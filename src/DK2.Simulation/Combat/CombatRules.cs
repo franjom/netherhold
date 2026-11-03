@@ -44,7 +44,7 @@ public enum FightTargetKind : byte
 /// <c>0x0045A6D0</c> (§2), the attackability recompute <c>0x0045A8B0</c> (§4), the registration
 /// <c>0x0045A9A0</c> and the fight-starter <c>0x0045A550</c> (§8). Where a DK2 test reads a state
 /// or timer this simulation does not have, the mapping is said at the test.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-acquisition.md")]
 public static class CombatRules
 {
     public const int NoTarget = 0;

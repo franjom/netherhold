@@ -1,3 +1,6 @@
+---
+systems: [navigation, creatures]
+---
 # Research: every route-helper call site, with the resume state it passes
 
 Source(s):
@@ -20,7 +23,7 @@ the next retirement slices need (§5).
 
 ---
 
-## 1. The count, and how each row was read — CONFIRMED
+## 1. The count, and how each row was read — STRONGLY INFERRED
 
 **134 sites, not 138:** 112 calls of `0x00471890` (to a position, state 6) and 22 of
 `0x00471A70` (to a room, state 7), as `travel-states.md` §2.1–2.2 give them. A raw
@@ -201,7 +204,7 @@ listed here without re-deriving them.
 | `0x00483B69` | `0x00483AE0` | job 7 Torture | 7 | 127 torturing a captive | 0x80 |  |
 | `0x004852BF` | `0x00485240` | job 4 Train | 7 | 108 training | 0x80 |  |
 
-## 3. The Imp's wrapper `0x004651A0(position*, resume, options, noTeleport)` — CONFIRMED
+## 3. The Imp's wrapper `0x004651A0(position*, resume, options, noTeleport)` — STRONGLY INFERRED
 
 `RET 0x10`, four stack arguments, 45 call sites. Every imp task handler walks through
 it. Only one of the 134 helper rows is the Imp's own: `0x004653DD`, the wrapper's
@@ -289,7 +292,7 @@ The claim resume is chosen inside kind 3's handler: 15 for plain path
 | `0x0046E5AB` | `0x0046E480` | 30, 31, 32, 33 | 31, 33 or 32 | 0xE8 | 1 | spell book / special / other object (`0x1F`/`0x21`/`0x20`) |
 | `0x0046E7A0` | `0x0046E610` | 42, 45 | 45 or 43 | 0xE0 | 1 | shared tail: `0x0046E738` pushes 45 (Lair); `0x0046E790` pushes 43 after a room-type-11 (Prison) search |
 
-## 4. The eight activities the next slices retire — CONFIRMED (sites)
+## 4. The eight activities the next slices retire — STRONGLY INFERRED (sites)
 
 "Entered from" says which code makes the call. A **task** row is an imp task kind's
 handler, reached from state 10's selection. It is not `0x006E4198`, which is the

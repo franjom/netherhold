@@ -1,3 +1,6 @@
+---
+systems: [rooms, navigation]
+---
 # Portal crystal clipping
 
 ## Evidence boundary
@@ -6,14 +9,14 @@ The owner supplied a remake screenshot of a Goblin intersecting a crystal
 (2026-10-23) and requested prevention for creatures generally. The remake's
 navigation blocked only the hole; two crossing regressions failed before the fix.
 
-CONFIRMED fresh binary reads: `FUN_004DCD20` deletes portal auto-objects,
+STRONGLY INFERRED fresh binary reads: `FUN_004DCD20` deletes portal auto-objects,
 marks the centre navigation byte4 and adds a light. `FUN_004DBB90` and
 `FUN_004DBBC0` stamp/reset the portal clock, not crystal obstacles.
 `FUN_004D12B0` enumerates flagged object obstacles and has a special Heart
 tail; no portal-specific crystal geometry is forwarded by that routine.
 These paths do not establish how every original-game collision behaves.
 
-CONFIRMED shipped data: object99, Portal Crystal, has Obstacle and width2048,
+STRONGLY INFERRED shipped data: object99, Portal Crystal, has Obstacle and width2048,
 but Portal/Hero Portal furniture ids are all zero and none of66 shipped THINGS
 files places object99. Its native runtime producer, if any, remains UNKNOWN.
 No native experiment establishes whether DK2 can exhibit this clipping.

@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Create Gold
 
 Read 2026-10-03 from DKII.EXE using an isolated PyGhidra MCP clone, with

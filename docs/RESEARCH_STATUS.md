@@ -1,6 +1,6 @@
 # Research status
 
-What is known against what is not. Three neighbours own the things this page
+What is known against what is not. Its neighbours own the things this page
 deliberately does not:
 
 | for | go to |
@@ -9,10 +9,12 @@ deliberately does not:
 | every open unknown, and how to close it | `docs/research/open-questions.md` |
 | built against the long-term goals | `docs/GOAL_ALIGNMENT.md` |
 | the system-by-system table | `DK2_REIMPLEMENTATION_PLAN.md` §3 *Reverse-engineering status* |
+| notes, ADRs, questions and function records counted per system | the generated wiki pages, `dk2tools wiki --out <dir>` (ADR-0643) |
 
 Confidence tags are mandatory in every note: CONFIRMED / STRONGLY INFERRED /
 HYPOTHESIS / UNKNOWN (AGENTS.md). **CONFIRMED is reserved for the running game**
-— owner observation or a stopwatch. A binary read is STRONGLY INFERRED.
+— owner observation or a stopwatch. A binary read is STRONGLY INFERRED. Function
+records use the same scale, plus DISPUTED (ADR-0642).
 
 ## Counts — run the command, never hand-maintain
 

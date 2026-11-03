@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting, presentation-unity]
+---
 # Classic dungeon camera
 
 Source: retail v1.70 DKII.EXE, Ghidra 12.1.4, 2026-10-14;
@@ -5,7 +8,7 @@ shipped GlobalVariables.kwd and Level1/7/8 player records.
 
 ## 1. Authored settings
 
-CONFIRMED data: the THINGS camera payload is 84 bytes. The existing CameraThing
+STRONGLY INFERRED data: the THINGS camera payload is 84 bytes. The existing CameraThing
 reader exposes its fixed-point lens, zoom and bounds plus 2048-unit angles.
 GlobalVariables.kwd has the camera records; ordinary dungeon preset id3 has
 position Z4096, zoom40960, minimum16384, maximum53248, lens8192, pitch220,
@@ -35,7 +38,7 @@ Before adding the engine offset it converts focus to `(gameX,gameY,-gameZ)`;
 converting that engine frame to Unity `(x,-z,-y)` preserves positive focus height.
 
 0x0058A6F0 scales projection by focal length divided by each viewport extent.
-CONFIRMED (whole decompile and instructions rechecked 2026-10-16):
+STRONGLY INFERRED (whole decompile and instructions rechecked 2026-10-16):
 0x0044D550 supplies the visibility distance as the larger of twice active
 zoom (+0xD80) and active view distance (+0xD8A), converted to world units.
 `NativeViewDistance` shares this value with the camera far clip; using the
@@ -91,7 +94,7 @@ transpose must be checked with asymmetric ground points, not a symmetric Heart.
 Fresh reads of 0x00594CB0 and 0x00594DB0 confirm the existing row-vector math
 records; 0x00594F30 supplies the transpose used for the optical-axis offset.
 
-CONFIRMED (2026-10-14): matrix constructor 0x0042F480 stores its nine
+STRONGLY INFERRED (2026-10-14): matrix constructor 0x0042F480 stores its nine
 arguments at element indices0,3,6,1,4,7,2,5,8. Thus the yaw/roll arguments
 in 0x0044D6D0 become rows `(c,-s,0; s,c,0; 0,0,1)` in our row-major
 representation, requiring negative System.Numerics Z angles. Pitch is built
@@ -113,7 +116,7 @@ calculation and clamping remain the presentation model's responsibility.
 
 ## 4. Starting location and limits
 
-CONFIRMED binary (2026-10-14): bridge initialization 0x0043AAD0 calls camera
+STRONGLY INFERRED binary (2026-10-14): bridge initialization 0x0043AAD0 calls camera
 reset 0x00449670. That reset clears the active view block and then sets yaw
 at camera+0xD84 to256 (45 degrees). The rotation builder 0x0044D6D0 consumes
 that field as yaw. Entering ordinary modes3/4/5 through 0x0044ACE0 preserves
@@ -130,10 +133,10 @@ an install-backed regression. The reset value256 remains unchanged.
 Ordinary pitch220 converts to51.328125 degrees above the floor. The matched
 recording comparison in section6 supports this tilt and the existing lens.
 
-CONFIRMED shipped keeper3 player camera tiles: Level1(14,28), Level7(5,15),
+STRONGLY INFERRED shipped keeper3 player camera tiles: Level1(14,28), Level7(5,15),
 Level8(75,9). 0x0051F0B0 copies the local player's camera coordinate pair to
 world+0x7235, alongside its local-player id, when the startup override is clear.
-CONFIRMED (2026-10-15): startup command7, 0x00447D50 at0x00447E0B..0x00447E57,
+STRONGLY INFERRED (2026-10-15): startup command7, 0x00447D50 at0x00447E0B..0x00447E57,
 reads that pair through world virtual+0x324 (0x00509830). It zero-extends both
 tile words, shifts each left12 and adds0x800, fixes height at0x1000, forces
 mode3 with duration0 through0x0044A9E0, then calls0x00449AC0. Thus the requested
@@ -178,7 +181,7 @@ global pixel equivalence or99% motion fidelity.
 
 ## 7. Ordinary camera controls, 2026-10-23
 
-CONFIRMED binary: 0x004066A0 polls ordinary input only on the first inner pass
+STRONGLY INFERRED binary: 0x004066A0 polls ordinary input only on the first inner pass
 and after 0x0044D590 permits it. It decays signed horizontal/vertical counters
 at HUD+0x1094/+0x1098 one step toward zero, then calls0x00406DF0. That function
 submits five-pixel edge directions first, followed by non-Ctrl arrow bindings.
@@ -206,7 +209,7 @@ clamp focus immediately. Combining packets before clamping is observably wrong
 at map edges. Focus lock bit0x40 or an active transition suppresses the update.
 Ordinary presets fix height to raw4095 after maximum-exclusive clamping.
 
-CONFIRMED binary (2026-10-27): the edge test in 0x00406DF0 is strict (x < 5, x > width - 5,
+STRONGLY INFERRED binary (2026-10-27): the edge test in 0x00406DF0 is strict (x < 5, x > width - 5,
 likewise y) and runs whether or not Ctrl or Shift is held. The registry option "Alternative
 Scroll" (profile +0xF1, 0x00759C1D, default 0) swaps LEFT/RIGHT only: plain LEFT/RIGHT rotate
 (action 8, +/-0x40) and Ctrl+LEFT/RIGHT pan with the Shift fast flag (0x004066A0). UP/DOWN
@@ -220,7 +223,7 @@ flag bit1 locks yaw. Thus one input millisecond is one of2048 angle units,
 with pan preceding yaw. Keyboard zoom submits signed1024 to action7, but
 0x004422B0 consumes only its sign: the wheel's multiplicative rule still applies.
 
-Pitch and roll (read 2026-10-30, CONFIRMED). Command 8 carries yaw in field0, roll in field1 and
+Pitch and roll (read 2026-10-30, STRONGLY INFERRED). Command 8 carries yaw in field0, roll in field1 and
 pitch in field2. X held sends dx*-8 as yaw and dy*-8 as pitch; Pitch Up/Down (bindings 0x2F/0x30)
 send pitch -8/+8, and 0x31/0x32 send roll. `0x00449D40` does nothing during a timed transition
 (+0xDD8) and skips each angle whose lock bit in +0xD92 is set (0x01 yaw, 0x02 roll, 0x04 pitch).
@@ -243,14 +246,14 @@ the Mono conversion trap is recorded in `docs/TRAPS.md`.
 
 ## 8. Projection widening and reference matching, 2026-10-23
 
-CONFIRMED binary and executable oracle:0x0058A6F0 divides the supplied pixel
+STRONGLY INFERRED binary and executable oracle:0x0058A6F0 divides the supplied pixel
 focal length by viewport width/height. With focal640, changing a1600x1200
 viewport to1600x900 keeps horizontal normalized scale0.4 and changes vertical
 scale from0.533333 to0.711111. Viewport cropping does not change the lens.
 The ordinary renderer0x00598880 supplies the lens independently of the crop;
 its conversion is in section2.
 
-CONFIRMED remake defect: reference-resolution scaling used the cropped viewport
+Measured remake defect: reference-resolution scaling used the cropped viewport
 height. A live3840x2160 snapshot with ordinary camera and letterbox height0.75
 had vertical FOV86.3048degrees and horizontal FOV131.54degrees. A full-screen
 height correction removed the crop dependence but retained the earlier extra

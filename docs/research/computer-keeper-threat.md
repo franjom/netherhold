@@ -1,3 +1,6 @@
+---
+systems: [computer-keeper]
+---
 # Computer keeper threat and retreat audit
 
 Independent read of `DKII.EXE` v1.70 (MD5
@@ -22,7 +25,7 @@ head and follow player `+0x3A`. For a fresh level, `0x0056DAD0` reads the
 205-byte PLAYERS records sequentially; callbacks `0x0051EF80/0x0051F0B0`
 activate each through `0x004C2340`. Thus the last nonzero enemy encountered
 is the earliest activated such enemy. Level10Players ids are 1,2,3,4 and
-Level17Players ids 1,2,3,4,5 (**CONFIRMED from data**), giving reversed walks.
+Level17Players ids 1,2,3,4,5 (**STRONGLY INFERRED from data**), giving reversed walks.
 Id 0 is unowned ground, not one of these player objects. Save-restored list
 order and dynamic deactivation/reactivation are not established by this load trace.
 
@@ -81,7 +84,7 @@ The threat word comes from TRAPS record `+0x1EA`: `0x00570D10` copies it to
 intermediate `+0x292`; `0x004AA440` copies that word to descriptor `+0x8C`.
 `0x004AA330` initializes it to zero. No conversion or scaling occurs.
 Shipped global `Traps.kwd` ids 1 through 16 carry, in order, 74, 0, 74, 0, 185, 74,
-37, 600, 0, 74, 0, 100, 0, 74, 0, 0 (**CONFIRMED** from data). Zero is a
+37, 600, 0, 74, 0, 100, 0, 74, 0, 0 (**STRONGLY INFERRED** from data). Zero is a
 real zero contribution, not a missing-value fallback. The synthetic parser test
 also distinguishes unsigned values above 32767 and adjacent fields.
 

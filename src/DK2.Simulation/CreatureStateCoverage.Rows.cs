@@ -82,7 +82,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unreachable(66, "STRONGLY INFERRED as Q415: no SetState, wrapper, walk, +0xDF store or room-table site enters it (workshop-states.md §2)"));
         rows.Add(Built(67, typeof(SlapRules), nameof(SlapRules.WorkshopState)));
         rows.Add(Built(68, typeof(CrateRules), nameof(CrateRules.CrateMadeState)));
-        rows.Add(Unreachable(69, "CONFIRMED: 68 sets it (0x00470BA2) and returns 0, and the dispatcher sets 1 in the same call (0x004772B7), so its handler never runs (refused-states.md §2)"));
+        rows.Add(Unreachable(69, "STRONGLY INFERRED: 68 sets it (0x00470BA2) and returns 0, and the dispatcher sets 1 in the same call (0x004772B7), so its handler never runs (refused-states.md §2)"));
         rows.Add(Built(70, typeof(WorkshopStep), nameof(WorkshopStep.ReturningState)));
         rows.Add(Built(71, typeof(DropLandingRules), nameof(DropLandingRules.HeartDropState)));
         rows.Add(Unreachable(72, "no entry by any scan; 73 and 74 follow only from it: room-return-states.md §4"));

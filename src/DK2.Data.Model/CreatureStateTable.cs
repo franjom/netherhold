@@ -16,7 +16,7 @@ using Flag = CreatureStateFlags;
 /// <c>docs/research/creature-state-table.md</c> §4, whose six independent checks establish
 /// the frame and the count. Correct a row in the note and regenerate; an edit made here is
 /// lost on the next run.</para></summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/creature-state-table.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-state-table.md")]
 public static class CreatureStateTable
 {
     /// <summary>Records in the table. An earlier reading said 239; that was a scan window

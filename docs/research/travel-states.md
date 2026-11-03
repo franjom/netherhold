@@ -1,3 +1,6 @@
+---
+systems: [navigation, creatures]
+---
 # Mechanic: travel states — how a caller hands work to a walk, and how the walk hands it back
 
 Source(s):
@@ -28,7 +31,7 @@ caller polls.
 
 ---
 
-## 1. The protocol at a glance — CONFIRMED
+## 1. The protocol at a glance — STRONGLY INFERRED
 
 | step | who | what |
 |---|---|---|
@@ -44,7 +47,7 @@ A zero return reaches the dispatcher (`0x00476FC0`), which sets state 1 (eating.
 
 ## 2. The route helpers
 
-### 2.1 `0x00471890(position*, resume, options)` — to a position, state 6 — CONFIRMED
+### 2.1 `0x00471890(position*, resume, options)` — to a position, state 6 — STRONGLY INFERRED
 
 `RET 0x0C`, three stack arguments in that order (112 call sites).
 
@@ -61,7 +64,7 @@ A zero return reaches the dispatcher (`0x00476FC0`), which sets state 1 (eating.
 7. If busy (`0x00496D00`), end the current action (`0x00496D20`).
 8. `creature+0x47C` (word) = 0; return 1.
 
-### 2.2 `0x00471A70(room, resume, options)` — to a room, state 7 — CONFIRMED
+### 2.2 `0x00471A70(room, resume, options)` — to a room, state 7 — STRONGLY INFERRED
 
 `RET 0x0C`, 22 call sites. steering-behaviours.md called the first argument an
 entity. It is a **room**: it is compared with `0x004559B0` of the creature's tile
@@ -83,7 +86,7 @@ entity. It is a **room**: it is compared with `0x004559B0` of the creature's til
    dumper line `MoveToRoom (%d, %d)` at `+E6` is this point.
 7. If busy, end the action; return 1.
 
-### 2.3 A failed route with option bit 0: tunnelling — CONFIRMED (branches)
+### 2.3 A failed route with option bit 0: tunnelling — STRONGLY INFERRED (branches)
 
 Both helpers share the failure path. Without option bit 0 they return 0. With it:
 
@@ -102,9 +105,9 @@ Both helpers share the failure path. Without option bit 0 they return 0. With it
 Built, with the tunnel itself, in ADR-0222 (`tunnelling.md`). State 224 later releases that leader to idle and puts the worker into
 ordinary follower state 222; `+0x417`, `+0x3DF` and `+0x3E1` are the
 dumper's `PartyId`, `MyLeadersId` and `PositionInParty`, so the field
-identities are CONFIRMED.
+identities are STRONGLY INFERRED.
 
-### 2.4 Other writers of `+0xDF` — CONFIRMED (complete list)
+### 2.4 Other writers of `+0xDF` — STRONGLY INFERRED (complete list)
 
 A sweep of every store to `+0xDF` (and to `creature+0x32D`, the same slot addressed
 from the creature) finds **16**: the two helpers; the resets in states 6, 7, 8 and 88;
@@ -121,7 +124,7 @@ So `+0xDF` is a general "next state" slot. Category 2 is its main user, not its 
 one. **The constructor sets `+0x10` = 1, `+0x40` = 0 and `+0xDF` = 0.** After any
 resume the slot holds 1.
 
-## 3. `SetState`'s part — CONFIRMED (`0x00476D30`, read in full)
+## 3. `SetState`'s part — STRONGLY INFERRED (`0x00476D30`, read in full)
 
 After the allowed-test of creature-state-table.md §2.2, the routine branches on the
 current category (`EBP`) and the target's (`EDI`):
@@ -142,7 +145,7 @@ The effect: **a walk is invisible to the category hooks.** A creature leaving a 
 job to fetch something and coming back to the same category never runs that
 category's leave or enter hook.
 
-## 4. The resume — CONFIRMED
+## 4. The resume — STRONGLY INFERRED
 
 It is the travel handler's own arrival branch. The sites:
 
@@ -191,7 +194,7 @@ Built for non-imps as `TravelArrivalSystem` (6, 7, 9) and in `ApproachRules` (8)
 bit 0 (6 also sets `+0x3DB = 1`); otherwise they set it. State 7 computes this from
 dwords at `+0xE3`/`+0xE7`, which under its own layout hold the room id, `+0xE5` and
 bytes of the point, so its flag is computed from a meaningless value. The arithmetic
-is CONFIRMED. `+0xF1` is the flag byte of the animation object at creature `+0x44`, and
+is STRONGLY INFERRED. `+0xF1` is the flag byte of the animation object at creature `+0x44`, and
 bit 0 is its loop bit: `0x004969D0` clears it for a count below two, and the action
 runner `0x00496AA0` clears it on the last counted cycle. So near the destination the
 walk cycle finishes instead of looping (STRONGLY INFERRED, 2026-10-04).
@@ -219,7 +222,7 @@ not.
   `+0xDF`-resolved category, so a creature walking to a hatchery is **not** re-asked.
   The sleep and pay branches use the same resolved category (`creature-needs-routine.md` §2).
 
-## 6. State 88, "waiting" — CONFIRMED (body); entry UNKNOWN
+## 6. State 88, "waiting" — STRONGLY INFERRED (body); entry UNKNOWN
 
 `0x00480F50`: if busy, return 1. Otherwise, if `now - StartedAt < +0xE3`, start action
 **43** (`0x004969D0(43, 1, 0, 0, 0)`) and return 1. Once the time is up,
@@ -247,7 +250,7 @@ Action 43, one `Idle1` cycle, is also what job 16 starts on a creature that cann
 Not covered: code reached only through an unscanned computed call, and a state id
 restored from a save.
 
-## 8. Worked example: a hungry creature eats — CONFIRMED
+## 8. Worked example: a hungry creature eats — STRONGLY INFERRED
 
 1. The needs routine's hunger branch calls `0x004633D0`, which enters **91**
    (eating.md §3).

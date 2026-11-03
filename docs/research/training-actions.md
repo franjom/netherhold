@@ -1,10 +1,13 @@
+---
+systems: [rooms, creatures]
+---
 # Training machine approaches and actions
 
 Primary source: retail v1.70 `DKII.EXE`, whole-function decompilation and
 caller instruction checks on 2026-10-11. The payment hook remains described
 only in [training.md](training.md); this is the natural machine cycle.
 
-## 1. State cycle — CONFIRMED
+## 1. State cycle — STRONGLY INFERRED
 
 State 108 (`0x00485310`) stops movement. Below the training cap, when the
 keeper can afford training and the creature stands in its own Training Room,
@@ -28,7 +31,7 @@ turn. After age one, movement away from that saved position aborts an active
 action. It stays while an action exists, otherwise returns to 108. This is
 a repeating choose, approach, face, strike/cast, choose cycle.
 
-## 2. Machine and spell selection — CONFIRMED
+## 2. Machine and spell selection — STRONGLY INFERRED
 
 `0x004F2F50` scans the first three creature spell slots in order, requiring
 the level, a nonzero spell definition, its attack flag and casting readiness.
@@ -46,7 +49,7 @@ RNG(100); chance is halved on the creature's current cell. If eligible cells
 exist but none passes the chance, it repeats. Caller pushes confirm that its
 target argument is the machine position, rather than a terrain identifier.
 
-## 3. Action gates — CONFIRMED
+## 3. Action gates — STRONGLY INFERRED
 
 Action 30's handler (`0x00498CA0`) waits until unsigned current tick exceeds
 `start - 1 + def+0x5CA`, then sets the valid target object's process state to

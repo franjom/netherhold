@@ -1,3 +1,6 @@
+---
+systems: [data-formats]
+---
 # KWD/KLD record fields completed for M1
 
 **Scope:** Dungeon Keeper 2 v1.70 shipped editor data. This page records file
@@ -7,11 +10,11 @@ layout, not gameplay behaviour.
 
 | Claim | Confidence | Basis |
 |---|---|---|
-| CREATURE_SPELLS is 266 bytes; SHOTS 239; EFFECTS 246; EFFECT_ELEMENTS 182 | **CONFIRMED** | `contentSize / itemCount` in the shipped files; every parsed record round-trips |
-| THINGS tags 194–205 have the recorded payload sizes and layouts | **CONFIRMED** for the eleven shipped tags; **HYPOTHESIS** for DeadBody (202) | All 6,318 shipped payloads consume and round-trip; tag 202 has no shipped instance |
-| Both TRIGGERS payloads are 16 bytes with an 8-byte union followed by ids, type and repeat count | **CONFIRMED** | All 9,161 shipped payloads consume and round-trip |
-| LEVEL has a 25,603-byte base metadata block, an optional 80-byte extension, then typed 72-byte paths and a height-sized `u32` tail | **CONFIRMED** for the shipped files | All 66 LEVEL files consume and round-trip; `KwdLevel.BaseMetadataSize`/`ExtendedMetadataSize` are 25603/25683 |
-| GLOBALS is a LEVEL path discriminator rather than a shipped standalone chunk | **CONFIRMED** for this corpus; standalone form **UNKNOWN** (Q220) | Exhaustive sweep of 408 KWD/KLD files finds no type-0 chunk or path row |
+| CREATURE_SPELLS is 266 bytes; SHOTS 239; EFFECTS 246; EFFECT_ELEMENTS 182 | **STRONGLY INFERRED** | `contentSize / itemCount` in the shipped files; every parsed record round-trips |
+| THINGS tags 194–205 have the recorded payload sizes and layouts | **STRONGLY INFERRED** for the eleven shipped tags; **HYPOTHESIS** for DeadBody (202) | All 6,318 shipped payloads consume and round-trip; tag 202 has no shipped instance |
+| Both TRIGGERS payloads are 16 bytes with an 8-byte union followed by ids, type and repeat count | **STRONGLY INFERRED** | All 9,161 shipped payloads consume and round-trip |
+| LEVEL has a 25,603-byte base metadata block, an optional 80-byte extension, then typed 72-byte paths and a height-sized `u32` tail | **STRONGLY INFERRED** for the shipped files | All 66 LEVEL files consume and round-trip; `KwdLevel.BaseMetadataSize`/`ExtendedMetadataSize` are 25603/25683 |
+| GLOBALS is a LEVEL path discriminator rather than a shipped standalone chunk | **STRONGLY INFERRED** for this corpus; standalone form **UNKNOWN** (Q220) | Exhaustive sweep of 408 KWD/KLD files finds no type-0 chunk or path row |
 | TRIGGERS parameter reads | **STRONGLY INFERRED** where binary-read; otherwise explicitly transcribed or unreached | DKII.EXE dispatcher family and the shipped distribution; see `trigger-semantics.md` |
 | Other semantic field names below | **STRONGLY INFERRED** | Names come from OpenKeeper's GPLv3 reader; widths/order are independently checked against the shipped bytes |
 

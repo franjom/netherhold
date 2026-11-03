@@ -1,4 +1,7 @@
-﻿# The Hand of Evil: picking up, dropping, slapping
+﻿---
+systems: [keeper-spells]
+---
+# The Hand of Evil: picking up, dropping, slapping
 
 Milestone M8. The keeper's only direct contact with a creature.
 
@@ -29,7 +32,7 @@ about the binary in our own words**; no decompiler output enters this repository
 | A slap raises Efficiency by ten points, and does not stack | **CONFIRMED** (owner, 2026-09-05) — *"it raises from 273 to 310 after the first slap and stays there no matter how many times i slap that imp"* |
 | **Being dropped next to work the keeper marked** raises it by ten points too, and dropping on empty ground is worth nothing | **CONFIRMED** (owner, 2026-09-05) — both halves watched |
 | **There is no cooldown on a slap** | **STRONGLY INFERRED** — the `LastSlapTick` window guards the knock-back impulse and nothing else. See §4 |
-| A slap costs `SlapDamage` health — 100 of an Imp's 500 | **CONFIRMED** by the shipped data; **UNVERIFIED** that the original applies it on the same path |
+| A slap costs `SlapDamage` health — 100 of an Imp's 500 | **STRONGLY INFERRED** by the shipped data; **UNVERIFIED** that the original applies it on the same path |
 | `AngerInHand` applies **once a game second, from 20 game seconds after the pick-up** | **STRONGLY INFERRED** — read from the creature update |
 | The slap's work bonus lasts **25 game seconds** | **CONFIRMED** (owner, 2026-09-06) — *"timeout for efficiency to return back to 80% after slap is 25s, not 60s"*. Q159 closed |
 | **The aimed bonus is a task kind, not a flag** — and it lasts as long as that kind of work does | **STRONGLY INFERRED** (2026-09-06; two writers in the whole binary) — §6, ADR-0069 |

@@ -20,7 +20,7 @@ public static class EnvironmentMapCoordinates
     /// <paramref name="normal"/> is the vertex normal turned by the drawn thing's own rotation, in
     /// DK2's frame, and is halved here (constant 0.5 at <c>0x0066FC20</c>). Then
     /// <c>u = Nz·Ex − Nx·Ez + 0.5</c> and <c>v = Nz·Ey − Ny·Ez + 0.5</c> (<c>0x00582503</c>–<c>0x00582769</c>).
-    /// CONFIRMED arithmetic; the frames of the two vectors are LIKELY (the normal gets no view
+    /// STRONGLY INFERRED arithmetic; the frames of the two vectors are HYPOTHESIS (the normal gets no view
     /// rotation).</summary>
     public static Vector2 Of(Vector3 eye, Vector3 normal)
     {
@@ -35,7 +35,7 @@ public static class EnvironmentMapCoordinates
     public static Vector3 FromRenderFrame(Vector3 render) => new(render.X, -render.Z, -render.Y);
 
     /// <summary>A camera-space point in Direct3D's left-handed convention (z into the screen) from
-    /// a right-handed view space whose z points out of it, as Unity's does. GUESS: that DK2's
+    /// a right-handed view space whose z points out of it, as Unity's does. HYPOTHESIS: that DK2's
     /// camera space is Direct3D's own; the matrix at <c>0x00760AC4</c> was not traced to its
     /// builder, so the axis directions, and with them the sign of v, are unconfirmed.</summary>
     public static Vector3 FromRightHandedView(Vector3 view) => new(view.X, view.Y, -view.Z);

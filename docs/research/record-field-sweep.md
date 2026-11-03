@@ -1,3 +1,6 @@
+---
+systems: [simulation-core, tooling-process]
+---
 # The creature and object records, swept for fields that carry no information
 
 **2026-09-07, Q213.** The balance table was swept for zero-shipped values on
@@ -172,7 +175,7 @@ loader is an offset-alignment problem rather than a hunt.
 
 ## Confidence
 
-CONFIRMED — the shipped-data half: which fields are zero, constant or varying
+STRONGLY INFERRED — the shipped-data half: which fields are zero, constant or varying
 (`dk2tools kwd fieldsweep`). STRONGLY INFERRED — the three creature fields and
 `ManaValue` being CUT, which rests on exhaustive reference scans of one
 executable block plus, for `ManaValue`, an untyped dword caveat.

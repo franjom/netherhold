@@ -1,9 +1,12 @@
+---
+systems: [creatures, combat]
+---
 # Alliances
 
 What DK2's alliance array is, who writes it, and what reads it. The verdict half (allies ending
 games together) is [win-and-defeat.md](win-and-defeat.md) §7. Read 2026-10-26 (Q558, Q576).
 
-## 1. The array — CONFIRMED
+## 1. The array — STRONGLY INFERRED
 
 Each player record holds eight bytes at `player+0x1AE`, indexed by the other player's `Number`
 (`+0x10FC`, 1..7 by record index, `0x004C1E20`), so the index is the player id. A byte is 1 for
@@ -19,7 +22,7 @@ Ours: `PlayerState.AlliedWith`, one bit per id, read by `WorldState.AreAllied` (
 
 - **The level's VARIABLES id-66 records**, `0x0051DC90` (dispatched by `Variables_InitDispatch`
   `0x0051AA90`): record words `+0x14` and `+0x18` are two player numbers; each player's byte at the
-  other's number is set to 1. It never clears. CONFIRMED from the handler.
+  other's number is set to 1. It never clears. STRONGLY INFERRED from the handler.
 - **Trigger action 18** (`0x00519376`) and the make/break game actions `0x00513FF0`/`0x00513F60`
   write both sides. Already built (`TriggerExecutor`, `AllianceSystem`).
 - `Player_Initialise` zeroes the array when `Players_Activate` (`0x004C2460`) activates a record.

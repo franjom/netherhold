@@ -5,7 +5,7 @@
 namespace DK2.Data.Model;
 
 /// <summary>DK2's reserved player ids. <b>Not every player is a keeper.</b>
-/// <para><b>CONFIRMED from three independent directions.</b> Across all 66 shipped levels every
+/// <para><b>STRONGLY INFERRED from three independent directions.</b> Across all 66 shipped levels every
 /// dungeon-heart tile, every creature pool and every creature-availability entry names a player
 /// between 3 and 7, never 0, 1 or 2. Level 1 shows four ids at once — hero gate player 1,
 /// unclaimed portal player 2, keeper's heart player 3, unmined rock player 0. And OpenKeeper's

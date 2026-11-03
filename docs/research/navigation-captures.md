@@ -1,4 +1,7 @@
-﻿# Measuring the router against DK2's own route log
+﻿---
+systems: [navigation, tooling-process]
+---
+# Measuring the router against DK2's own route log
 
 DK2 logs every routing decision it makes, behind a global nothing writes
 (`[0x006EC9E8]`, `navigation-mesh-and-search.md` §5). Set to 1 in a running

@@ -1,6 +1,9 @@
+---
+systems: [data-formats, creatures]
+---
 # DK2 v1.70 creature table (Creatures.kwd)
 
-DK2's own data — CONFIRMED by definition. Layout and offsets:
+DK2's own data — STRONGLY INFERRED by definition. Layout and offsets:
 `docs/research/kwd-creatures.md`. Reproduce the summary table with
 `dk2tools kwd creatures` and any one block below with
 `dk2tools kwd creature <name>`; both read the reference install directly, so a

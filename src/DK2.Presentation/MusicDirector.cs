@@ -10,7 +10,7 @@ namespace DK2.Presentation;
 public enum MusicLevel : uint { Silent = 255, Raid, Battle, LargeBattle, Reaper }
 public readonly record struct MusicFrame(int MusicIntensity, int AmbienceIntensity);
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/music.md#8-pseudocode-ours")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/music.md#8-pseudocode-ours")]
 public sealed class MusicDirector
 {
     private int _musicIntensity;
@@ -32,7 +32,7 @@ public sealed class MusicDirector
 }
 
 /// <summary>The linked player's inclusive-range picker; item and link indices on disk are1-based.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/music.md#6-the-segment-picker-0x006163c0-linked-player-vtable-0x00674180")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/music.md#6-the-segment-picker-0x006163c0-linked-player-vtable-0x00674180")]
 public sealed class MusicSegmentPicker(SoundGroup group, Func<uint> random)
 {
     private int? _current;

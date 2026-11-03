@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Creature ownership order
 
 **STRONGLY INFERRED**, read-only DKII.EXE in Ghidra 12.1.4/PyGhidra,

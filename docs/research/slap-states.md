@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells, creatures]
+---
 # The slap's states: 67, 77, 120
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-07.
@@ -6,7 +9,7 @@
   (`HandSystem.OutcomeOf`). The reaction is `0x0046F1F0`, the handler of 77 and, through the thunk
   `0x00470C00`, of 67 and 120 (`creature-state-table.md`).
 
-## 1. The move — CONFIRMED
+## 1. The move — STRONGLY INFERRED
 
 After the early returns (a Horny to 242; states 76, 101 and 193 nothing; 209 and 255 the short
 path), by the room the creature holds a place in (`+0x3B9`):
@@ -29,7 +32,7 @@ moves. Then the rest of the slap as ADR-0373 has it.
 The transition table refuses 77 from 71, 207, 208, 216–219 and 246 (among them the dying 216 and
 217 and the frozen 218), so a creature in one of those takes no slap at all.
 
-## 2. The reaction `0x0046F1F0` — CONFIRMED
+## 2. The reaction `0x0046F1F0` — STRONGLY INFERRED
 
 1. At `Age` below 2: a running action ended, action 19 (`0x13`) started (`CreatureAction_Begin`).
    Action 19's record plays art slot 4 (byte `+0x14` of record 19, `0x006E43D3`, written by the
@@ -50,7 +53,7 @@ idles, and 1 sends it to 10 on its next turn.
   slap ignored.
 - `CreatureStatusSystem` runs the reaction for every creature in 67, 77 or 120 (activity `Slapped`),
   as it runs the get-up; the prisoner systems leave a captive in 120 to it.
-- Action 19's length is `AnimationTimingRules.CountedHoldTicks` for art slot 4, count 0, LIKELY as for
+- Action 19's length is `AnimationTimingRules.CountedHoldTicks` for art slot 4, count 0, HYPOTHESIS as for
   the other actions; it starts at the first turn after the slap (ours' `Age` 1).
 - **Not modelled:** the knock-back's velocity (ADR-0373), so the door-tile stop in §2 step 2; a
   Horny is not slappable in ours (`HandRules.CanSlap`), so 242 and 238 are not reached.

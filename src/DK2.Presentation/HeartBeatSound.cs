@@ -13,7 +13,7 @@ namespace DK2.Presentation;
 /// consumes a pending beat (<see cref="HeartPulseGate"/>): <c>0x150</c>, handle 0, in the category of the heart
 /// room's terrain, at the heart object's position. It is asked for before the game-turn test that gates the
 /// mana effect, so it sounds during the opening too (docs/research/sound-effects.md section 8).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/sound-effects.md#8-the-dungeon-heart")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-effects.md#8-the-dungeon-heart")]
 public static class HeartBeatSound
 {
     public const uint EventId = 0x150;

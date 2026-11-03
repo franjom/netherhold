@@ -1,8 +1,11 @@
+---
+systems: [presentation-unity]
+---
 # Portal arrival rendering cost
 
 ## Finding
 
-CONFIRMED in the controlled remake probe, 2026-10-25: moving Warlock arrival
+Measured in the controlled remake probe, 2026-10-25: moving Warlock arrival
 geometry repeatedly rebuilds the shared transparent-terrain stream. The costly
 part is run preparation/mesh upload, with additional render-submission cost;
 the triangle depth sort itself is smaller. Independent `verify_arrivals` review
@@ -103,7 +106,7 @@ existing terrain/effect ordering probes and matched moving-effect measurements.
 
 ## Ordinary player CPU/GPU capture
 
-CONFIRMED in the remake, 2026-10-25: a rendered Development player reproduces
+Measured in the remake, 2026-10-25: a rendered Development player reproduces
 roughly the reported frame interval. Suppressing only arrival effect165
 substantially reduces CPU frame interval and measured GPU duration. Repeating
 the full effect after the control reproduces the slowdown.
@@ -195,7 +198,7 @@ brightness to hide the performance cost.
 
 ## Renderer optimization and Release acceptance
 
-CONFIRMED in the remake, 2026-10-25: the transparent renderer now uploads one
+Measured in the remake, 2026-10-25: the transparent renderer now uploads one
 interleaved vertex stream shared by index-only material-run meshes. Run bounds,
 indices and renderer state are retained where possible. Conservative triangle
 frustum rejection precedes the existing stable depth ordering. The effect shader
@@ -240,7 +243,7 @@ for the target, scenario coverage and acceptance protocol.
 
 ## Index-buffer resizing and residual hitches
 
-CONFIRMED in the remake: `SetTriangles` resized run index buffers as triangle
+Measured in the remake: `SetTriangles` resized run index buffers as triangle
 counts changed. A GPU regression failed when a run shrank from12 to3 indices;
 the replacement retains capacity, uploads only active indices and updates an
 explicit submesh draw range. Shrink/growth, wide indices, bounds, ordering and

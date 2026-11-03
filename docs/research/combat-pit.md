@@ -1,3 +1,6 @@
+---
+systems: [rooms, combat]
+---
 # Mechanic: the Combat Pit — states 137 to 141
 
 Source(s):

@@ -14,7 +14,7 @@ namespace DK2.Simulation;
 /// (<c>0x00491830(255)</c>): it lies for <c>StunDuration</c>, gets up in 257
 /// (<c>0x00481200</c>), and 257 asks the room underfoot (<c>0x004E8DA0(0)</c>): the room's drop
 /// state, or with none, 250.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/hand-drop-landing.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/hand-drop-landing.md")]
 public static class DropLandingRules
 {
     /// <summary>State 76, the landing (<c>0x0046EAB0</c>).</summary>

@@ -10,7 +10,7 @@ namespace DK2.Data.Kwd;
 /// <summary>
 /// Reads a level's tile grid from the MAP(100) record into a <see cref="LevelMap"/>.
 ///
-/// Layout CONFIRMED: the MAP chunk header carries u32 width, u32 height, and
+/// Layout STRONGLY INFERRED: the MAP chunk header carries u32 width, u32 height, and
 /// the content is exactly width * height * 4 bytes — one 4-byte tile per cell
 /// in row-major order (terrainId, playerId, flag, unknown).
 /// See docs/research/kwd-terrain-rooms.md.

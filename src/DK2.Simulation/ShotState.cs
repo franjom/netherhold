@@ -11,7 +11,7 @@ namespace DK2.Simulation;
 /// tile; the velocity is position units a tick, so the definition's <c>Speed</c> is the distance
 /// covered each tick. Simulation flight remains planar; observation-only view origins
 /// approximate height separately (Q398, ADR-0595).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/shots.md")]
 public sealed class ShotState
 {
     public int Id;

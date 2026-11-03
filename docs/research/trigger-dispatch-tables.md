@@ -1,4 +1,7 @@
-﻿# The trigger dispatch tables, and the arms behind them
+﻿---
+systems: [campaign-triggers]
+---
+# The trigger dispatch tables, and the arms behind them
 
 How a condition type becomes a rule, and what the arms read that
 `trigger-semantics.md` does not already cover. Written 2026-09-10 while ranking
@@ -33,7 +36,7 @@ The world table gives type 46 its own slot, and that slot's jump entry is
 `Unhandled Trigger When [ Type %d, Index %d ]` printf at `0x0051892F`. So the
 engine returns zero for it deliberately and says nothing, unlike the 57 types
 that reach `0x00518929` and do print. One shipped record uses it, in level 1's
-player tree, reaching the world arm by delegation. CONFIRMED from the tables.
+player tree, reaching the world arm by delegation. STRONGLY INFERRED from the tables.
 
 ## The three availability arms: 27, 28, 29
 

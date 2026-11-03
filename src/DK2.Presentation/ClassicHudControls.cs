@@ -17,7 +17,7 @@ public enum ClassicHudAction : byte
 public enum ClassicOptionsPage : byte { Root, Objective, Exit, Confirmation, Save, Load, GameOptions }
 public enum ClassicSessionAction : byte { None, Restart, ReturnToMenu, Quit }
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-controls.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-controls.md")]
 public sealed class ClassicHudControls
 {
     public SoundRequests Sounds { get; } = new();
@@ -39,7 +39,7 @@ public sealed class ClassicHudControls
 
     public void SetGuiVisible(bool visible) => GuiVisible = visible;
 
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/hud-visibility.md#result-and-special-player-state-binary-2026-10-24")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hud-visibility.md#result-and-special-player-state-binary-2026-10-24")]
     public void UpdateResult(HudResultState result, CameraModeId camera = default)
     {
         if (camera != CameraModeId.ScriptedPath) InputSuppressed = false;
@@ -122,7 +122,7 @@ public sealed class ClassicHudControls
         new(camera.ShowNormalHud && GuiVisible && !FullMapVisible, camera.AllowOrdinaryInput && !InputSuppressed);
 }
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-controls.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-controls.md")]
 public static class ClassicHudControlLayout
 {
     public static ClassicHudAction ActionAt(Vector2 point, bool secondary)

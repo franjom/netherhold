@@ -1,4 +1,7 @@
-﻿# Computer keeper task handlers and room planner
+﻿---
+systems: [computer-keeper]
+---
+# Computer keeper task handlers and room planner
 
 **Scope:** `DKII.EXE` v1.70, MD5 `2f3bbc21eae8c3aa468136baa303036d`. Addresses are
 virtual. This opens `computer-keeper-tasks.md` §3; decompiled text is not reproduced.

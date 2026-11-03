@@ -11,7 +11,7 @@ namespace DK2.Simulation.Steering;
 /// docs/research/steering-behaviours.md §3 and §6): a one-radius margin against the position
 /// one tick ahead, judged per axis from three tile probes in the heading's quadrant, a reflection
 /// off an inside corner, and in <c>escape_stuck_mode</c> a two-raw-unit sideways nudge.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public static class AvoidWallsRules
 {
     public const int Weight = 0x9999;
@@ -104,7 +104,7 @@ public static class AvoidWallsRules
 /// the discriminant is <c>4·(b² − a·c)</c> with <c>b</c> already doubled, and the root is the
 /// integer square root of the 16.16 discriminant taken as it comes. So a head-on approach reports
 /// a negative distance and the caller's corner reflection fires only in a narrow band.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public static class RayCircle
 {
     /// <summary>Reported when the discriminant is not positive.</summary>

@@ -52,7 +52,7 @@ public static class CreatureLevelRules
     /// of 20. Its nine readers are the work actions' callbacks (dig <c>0x00496E00</c>, mining
     /// <c>0x004971D0</c>, claim <c>0x004974C0</c>, reinforce <c>0x00497960</c>, and the floor attack,
     /// conversion, room attack and repair), each paying once per hit whose tile test passes.</summary>
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-levels.md")]
     public static int WorkExperiencePerHit(GameDatabase database) =>
         database[VariableTypeId.ImpExperienceGainPerSecond];
 
@@ -64,7 +64,7 @@ public static class CreatureLevelRules
     /// <see cref="SimulationTiming.OnOriginalTick"/>; one level per call, no loop, through
     /// <see cref="LevelUp"/> (Q427). A Combat Pit
     /// fighter at <c>CombatPitMaxExperienceLevel</c> is refused everything (combat-pit.md §7).</summary>
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-levels.md")]
     public static bool Grant(
         in StateHookContext hooks, CreatureDef creature, CreatureState state, int amount)
     {
@@ -127,7 +127,7 @@ public static class CreatureLevelRules
     }
 
     /// <summary>The experience needed to reach the next level: the record's <c>ExpForNextLevel</c>
-    /// scaled by the table, indexed by the creature's CURRENT level. CONFIRMED (Q124): DK2's adder
+    /// scaled by the table, indexed by the creature's CURRENT level. STRONGLY INFERRED (Q124): DK2's adder
     /// indexes the <c>ExperienceForNextLevel</c> column with the current level byte and uses the raw
     /// value at level 1, so the first level costs the record's own 3000 where indexing by the target
     /// would make it 3900. Not reproduced: the clamp of the scaled threshold to <c>0xFFFE</c>, which

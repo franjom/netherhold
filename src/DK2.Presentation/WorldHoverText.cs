@@ -211,7 +211,7 @@ public sealed class WorldHoverText
             // DK2's dead body (class 6, 0x004B1740): 2791 with %30 the type name and %88 its level.
             // %29 is written only when def+0x895 is non-zero, and then with the type name of the body's
             // creature id +0x128 (the id +0x129 came from, 0x004B0F20), not the special name. Otherwise
-            // DK2 leaves that buffer unwritten; ours printing it empty is a GUESS (Q634). The popup is
+            // DK2 leaves that buffer unwritten; ours printing it empty is a HYPOTHESIS (Q634). The popup is
             // the type name (0x0042D4A0 kind 6). Unreachable: no Hand pick returns a corpse (0x005992B0).
             if (special != 0) _tokens[29] = kind;
             _tokens[30] = kind;

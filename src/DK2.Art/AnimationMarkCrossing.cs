@@ -10,7 +10,7 @@ namespace DK2.Art;
 /// lies strictly inside the phase interval between two drawn frames (docs/research/sound-effects-continuous.md section 1).
 /// The interval is the turn's phase step (the previous turn's phase to the current one, wrapped at 4096) scaled by the two
 /// frames' fractions of the turn in 1/256ths. Presentation only: it reads a clock, never the simulation.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/sound-effects-continuous.md#1-footsteps")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-effects-continuous.md#1-footsteps")]
 public static class AnimationMarkCrossing
 {
     private const int One = 4096;

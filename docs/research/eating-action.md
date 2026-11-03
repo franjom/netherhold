@@ -1,7 +1,10 @@
+---
+systems: [creatures, rooms]
+---
 # Eating action timing
 
 Source: retail v1.70 DKII.EXE, whole handlers and action initializer read through
-Ghidra, 2026-10-11. CONFIRMED unless stated otherwise. Meal quantities and the
+Ghidra, 2026-10-11. STRONGLY INFERRED unless stated otherwise. Meal quantities and the
 search chain remain in eating.md §7 and prison.md §7.1.
 
 ## Hatchery action 26

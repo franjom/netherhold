@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # Action points: from the THINGS file into runtime state
 
 This note answers the action-point storage questions needed before a level's
@@ -30,7 +33,7 @@ agree on this relevant tail of the runtime object:
 | `+0x34` | 2 | trigger root id | `TriggerId` | **STRONGLY INFERRED** |
 | `+0x36` | 1 | trigger repeat count | resolved trigger record | **STRONGLY INFERRED**, not yet projected because THINGS projection has no trigger records |
 | `+0x37` | 1 | action-point id | `ActionPointId` | **STRONGLY INFERRED** |
-| `+0x38..+0x3F` | 4 × 2 | rectangle corners, in the order **StartX `+0x38`, StartY `+0x3A`, EndX `+0x3C`, EndY `+0x3E`** | low words of four source dwords | **CONFIRMED** — the order is read off action 17's walk, which indexes the slab array with the `+0x38`/`+0x3C` pair as the column and multiplies the `+0x3A`/`+0x3E` pair by the map width (`trigger-dispatch-tables.md`) |
+| `+0x38..+0x3F` | 4 × 2 | rectangle corners, in the order **StartX `+0x38`, StartY `+0x3A`, EndX `+0x3C`, EndY `+0x3E`** | low words of four source dwords | **STRONGLY INFERRED** — the order is read off action 17's walk, which indexes the slab array with the `+0x38`/`+0x3C` pair as the column and multiplies the `+0x3A`/`+0x3E` pair by the map width (`trigger-dispatch-tables.md`) |
 
 Variable 19 is the level's original tick rate and is 4 in all shipped levels.
 The loader multiplies the authored `WaitDelay` once and stores the low 16 bits.
@@ -147,7 +150,7 @@ history is in `hash-versions.md`.
 | Runtime offsets, widths, initialization and saved block | **STRONGLY INFERRED** from the binary |
 | No runtime `Available` field; actions 16/17/27/31 do not write the point | **STRONGLY INFERRED** from complete binary paths |
 | Action 27 angle/time belong to its camera/event command | **STRONGLY INFERRED** from the binary |
-| Loader flag mask is `0x3D`; source bit 6 is discarded | **STRONGLY INFERRED** from the binary; source values CONFIRMED from shipped data |
+| Loader flag mask is `0x3D`; source bit 6 is discarded | **STRONGLY INFERRED** from the binary; source values STRONGLY INFERRED from shipped data |
 | Rectangle iteration is inclusive and may scale with area | **STRONGLY INFERRED** from the binary |
 | Next waypoint is static after load | **STRONGLY INFERRED** from exhaustive direct references |
 | Meanings of opaque flag bits and the timer/counter consumers | **UNKNOWN** |

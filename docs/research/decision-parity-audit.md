@@ -1,3 +1,6 @@
+---
+systems: [tooling-process, creatures]
+---
 # Decision parity audit, hash 303
 
 2026-10-25. Analysis and standalone diagnostics against the archived simulation
@@ -52,7 +55,7 @@ histories in these seeds. A late claim alone therefore does not prove that the
 chooser selected the wrong priority from equivalent inputs. The full failure
 chain remains in the earlier replay analysis.
 
-**CONFIRMED ordering difference:** Flag 18 is written by action 65464 after
+**STRONGLY INFERRED ordering difference:** Flag 18 is written by action 65464 after
 condition 74 (type 41) of action point 21's root 67 accepts this footprint.
 The captured native list puts that point (thing 1145) in class list 5 and the
 four Imps in list 0. [The sweep](functions/004B7830.md) completes list 0 before
@@ -76,7 +79,7 @@ matches, navigation reconstruction differences, and remaining eligibility gaps.
 
 ## A captured chooser matches through its RNG calls
 
-**CONFIRMED, bounded computation:** the retained execution-turn-171 boundary
+**Measured, bounded computation:** the retained execution-turn-171 boundary
 for native Imp 453 is reproduced by hash 303 with both a rebuilt navigation mesh
 and the retained imported mesh. [The original boundary](imp-strike-choice-boundary.md)
 owns the captured inputs, route and historical result. The current diagnostic
@@ -108,7 +111,7 @@ the match. See [checker reconstruction limits](imp-decision-checker.md).
 
 ## Combat scan timing matches the tested branch
 
-**CONFIRMED, controlled computation:** 128 executions of original
+**STRONGLY INFERRED, controlled computation:** 128 executions of original
 [ProcessFight](functions/0045E9F0.md) match the real hash-303
 `CombatRules.ScanIsDue` on whether selection is called and the resulting counter.
 The matrix covers both Imp/non-Imp types, all 16 counter values, no movement,
@@ -136,7 +139,7 @@ Our sealed Level 4 seed-2 run instead relocates its final successful drops to
 this comparison establishes a differing treatment of the recorded coordinates,
 not a matched-state combat defect or a predicted win gain.
 
-**CONFIRMED source and binary distinction:** `ReplayCommands.DropAt` explicitly
+**STRONGLY INFERRED source and binary distinction:** `ReplayCommands.DropAt` explicitly
 relocates a recorded creature drop to a nearby tile accepted by our current
 drop rules, following the owner's 2026-09-29 adaptation. `HandSystem.Drop` also
 applies the interface drop gate when executing the command. The native

@@ -1,3 +1,6 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # How DK2 draws a placed object
 
 **Status (2026-10-10, claude):** draft. Read from DKII.EXE by decompile and disassembly;
@@ -6,7 +9,7 @@ field names are in `object-thing-object.md`; the definition loader is `0x0049DD6
 
 ## 1. The draw path
 
-**CONFIRMED.** The per-tile presentation pass `0x0043CC30` walks both thing chains of the
+**STRONGLY INFERRED.** The per-tile presentation pass `0x0043CC30` walks both thing chains of the
 tile and, for each thing whose vtable `+0x18` and `+0x34` tests pass and which is in sight
 (or has thing `+0x90` bit `0x10`), calls the render sink's slot `+0xEC` (sink vtable
 `0x00670574`, so `0x00599C10`) with the tile and the thing.
@@ -35,7 +38,7 @@ An art with runtime flag `0x40000` is skipped entirely while the global `0x00759
 
 The file record has nine 84-byte ArtResources at `+0x20` (name 64, flags u32 at `+0x40`,
 12 value bytes at `+0x44`, type at `+0x50`, bytes `+0x51`/`+0x52`). The runtime definition
-has **eight** 27-byte slots, filled by `0x00504D80` (`0x0049DD60`, **CONFIRMED**):
+has **eight** 27-byte slots, filled by `0x00504D80` (`0x0049DD60`, **STRONGLY INFERRED**):
 
 | runtime slot (def offset) | file art | use found |
 |---|---|---|
@@ -54,9 +57,9 @@ Wheel) and 61 (Electric Chair) the floor art's name gets a `g_` prefix unless
 ## 3. Which art is drawn
 
 - **Default: file art #0.** `Object_Init` (`0x0049B1C0`) installs def `+0x51` into the
-  RenderInfo through `0x004B37D0` (scalar `0x1000`, animation id 0, immediate). **CONFIRMED.**
+  RenderInfo through `0x004B37D0` (scalar `0x1000`, animation id 0, immediate). **STRONGLY INFERRED.**
 - **Gold on the floor (ids 1 Gold, 2 Gold Bag): one mesh, scaled by GoldHeld** (§5). No art
-  switch. **CONFIRMED** (`0x0049C760`).
+  switch. **STRONGLY INFERRED** (`0x0049C760`).
 - **Treasury and Heart gold (Gold Pile 1): art by fill.** `0x004F4440` (it requires def
   `+0xF4` bit `0x40`, which Gold, Gold Bag and Gold Pile 1 all carry), called by the three
   store/deposit routines `0x004F3C60`,
@@ -64,11 +67,11 @@ Wheel) and 61 (Electric Chair) the floor art's name gets a `g_` prefix unless
   room of type 5 with `+0x9A` bit 0 clear, else `MaxGoldPerTreasuryTile` (3000) — and
   installs: GoldHeld < cap/3 → file art #5 (`Gold Urn1`); < 2·cap/3 → #6 (`Gold Urn2`);
   else #0 (`Gold Chest`), each only if that slot is loaded. Treasury: 0–999, 1000–1999,
-  2000+; Heart: 0–332, 333–665, 666+. #7 `Gold Chest2` is not chosen here. **CONFIRMED.**
+  2000+; Heart: 0–332, 333–665, 666+. #7 `Gold Chest2` is not chosen here. **STRONGLY INFERRED.**
 - **In the hand:** the hand's pick-up visual `0x0040D670` installs def `+0x36` (file art #3)
   into the hand's own RenderInfo for an object without def flag `0x40`; a creature gets its
   definition's art 11 instead (`0x00494860(0xB)`). The floor mesh is not what the hand
-  draws. **CONFIRMED.** An object *with* flag `0x40` (the three gold objects among them)
+  draws. **STRONGLY INFERRED.** An object *with* flag `0x40` (the three gold objects among them)
   gets no art from this routine; what the hand shows for gold: not read.
 - **Chicken, coop, egg, book case, training dummy, beds:** §8.
 - **Call To Arms (id 10):** `0x0049C6A0` and `0x0049BC00` test type 10 and install file art
@@ -76,7 +79,7 @@ Wheel) and 61 (Electric Chair) the floor art's name gets a `g_` prefix unless
   install #5 and #6. Live selectors are state12 floor0, states13/14 art5,
   state15 art7, and states20/19 art6. Post-load restoration differs for19/20
   (art7). The activation and removal handlers wait for ended/wrapped art flags;
-  state14 keeps its loop while recalling. **CONFIRMED**, 2026-10-11.
+  state14 keeps its loop while recalling. **STRONGLY INFERRED**, 2026-10-11.
 - **Dungeon Heart (id 13):** its art #0 is `Dungeon centre`, type 6, 70 frames at 30 fps,
   flags `0x201`. `Object_Init` installs the floor resource with scalar 4096;
   `0x004B37D0` stops looping only for flag `0x80`, absent here. Rechecked in the
@@ -88,7 +91,7 @@ Wheel) and 61 (Electric Chair) the floor art's name gets a `g_` prefix unless
 
 ## 4. Position and rotation
 
-**Position: CONFIRMED.** `0x0059C2A0` builds two points, one from thing `+0xF6/+0xFA/+0xFE`
+**Position: STRONGLY INFERRED.** `0x0059C2A0` builds two points, one from thing `+0xF6/+0xFA/+0xFE`
 and one from the position `+0x1A/+0x1E/+0x22`, each plus the RenderInfo offset words
 `+0x51/+0x53/+0x55` (zeroed on install), divided by 4096, the third component negated. The
 object is drawn at **its own coordinates, not the tile centre**, in 12.12 fixed point
@@ -101,7 +104,7 @@ tile's floor height (`Tile_FloorHeight` `0x004545C0`: `0x1000` on ordinary floor
 `0xE00`, Temple 0, Graveyard/Crypt `0xF00`, Combat Pit `0x400`, bridges `0x1199`) because
 `Object_FallAndLand` (`0x0049EF90`) drops it until it reaches that height. STRONGLY INFERRED.
 
-**Rotation: CONFIRMED.** Yaw comes from the heading word thing `+0xF4` (and `+0x102`):
+**Rotation: STRONGLY INFERRED.** Yaw comes from the heading word thing `+0xF4` (and `+0x102`):
 radians = −(h + 0x400) · π / 1024, so **2048 units per turn** with a half-turn offset.
 Under the row-vector matrices below and the `(x, −z, −y)` frame conversion, Unity yaw is
 **+(h + 0x400)**, pitch is negative and roll positive. The half-turn is required: at Prison
@@ -110,7 +113,7 @@ Two more RenderInfo words, `+0x20` and `+0x24`, are passed as angles × −π/10
 is not used by the mesh draw. The hand's hover jitter `0x004B4430` keeps all three within
 `0x7FF`. `Object_Init` zeroes `+0xF4` and `+0x102`.
 
-**Axes and order: CONFIRMED** (2026-10-10). RenderInfo is thing `+0x44`, so thing `+0x64` is
+**Axes and order: STRONGLY INFERRED** (2026-10-10). RenderInfo is thing `+0x44`, so thing `+0x64` is
 `+0x20`, `+0x68` is `+0x24`, and thing `+0x95/+0x97/+0x99` are the offsets `+0x51/+0x53/+0x55`.
 `0x00580480` builds per-axis matrices with `0x0041C580` (axis 0 X, 1 Y, 2 Z), each angle
 interpolated between previous and current, and multiplies them with `0x00594CB0`
@@ -129,7 +132,7 @@ and state `0x1E` turns `+0x68`, the disc's own axle.
 
 ## 5. Scale
 
-**CONFIRMED.** The mesh draw uses RenderInfo `+0x04` and `+0x08` (thing `+0x48`, `+0x4C`)
+**STRONGLY INFERRED.** The mesh draw uses RenderInfo `+0x04` and `+0x08` (thing `+0x48`, `+0x4C`)
 divided by 4096, as (`+4`, `+8`, `+4`) — 4096 is 1.0. Which world axis gets `+8`: UNKNOWN.
 
 - Installing a type-5 art (`0x004B37D0`) sets both to the art's value at file `+0x44`
@@ -169,7 +172,7 @@ whether something else tests them: UNKNOWN.
 
 ## 7. Animated objects on the floor
 
-**CONFIRMED.** A type-6 floor art plays on the floor: the object update calls the
+**STRONGLY INFERRED.** A type-6 floor art plays on the floor: the object update calls the
 RenderInfo tick `0x004B3AD0`, which runs `0x004B3C10` for type 6. Install resets the phase
 `+0x94` to 0, so the main loop starts at **frame 0** (the random-start bit affects only the
 texture phase, §6). The phase is a 0..`0x1000` fraction of the segment, advanced per turn by
@@ -183,7 +186,7 @@ type-6 draw `0x0059C880` blends the current and next frame by the phase.
 Object process states run their handler from the table `0x0049E600` fills (state *s* at
 `0x006E4B3C + s·0x14`). The art each one installs, read 2026-10-10:
 
-**Sleeping in a bed (CONFIRMED).** Creature state 83 (`0x0046FA60`) does the presentation
+**Sleeping in a bed (STRONGLY INFERRED).** Creature state 83 (`0x0046FA60`) does the presentation
 for every sleeper, and only when the creature's own art 12 (`0x00494860(0xC)`) is loaded and a
 creature vtable `+0x278` call on the bed (at `0x0046FAF9`, meaning unread) returns 0:
 - *Ordinary bed:* the bed's draw bit is cleared (the bed is hidden) unless the creature's
@@ -204,12 +207,12 @@ creature vtable `+0x278` call on the bed (at `0x0046FAF9`, meaning unread) retur
   #3, the in-hand art the hand installs (§3), so a bed in the hand swings. Whether a bed's
   #5 ever plays on the floor: UNKNOWN.
 
-**Book Case (64): CONFIRMED.** `Room_Rebuild` (`0x004EE6A5` arm) picks n = 0..2 from the
+**Book Case (64): STRONGLY INFERRED.** `Room_Rebuild` (`0x004EE6A5` arm) picks n = 0..2 from the
 tile-coordinate selector and installs def + (n+4)·0x1B: file art #5, #6 or #7
 (`book_case1..3`). It stores n at `+0x14A` and sets the heading to `(y & 1) << 10`.
 Books and research play no part. #0 and #8 `book_case4` are not chosen there.
 
-**Coop (35) and Egg (47), CONFIRMED.** `Hatchery_LayEgg` (`0x004DE620`, `hatchery.md` §3) has two paths.
+**Coop (35) and Egg (47), STRONGLY INFERRED.** `Hatchery_LayEgg` (`0x004DE620`, `hatchery.md` §3) has two paths.
 - *Coop path, the room full:* coop state 29 and egg state 24; the lay routine sets both.
   - State 29 (`0x004A1BD0`) installs the coop's #5 `Coup-Wobble(Give_Birth)` (77 frames
     at 15 fps), then #0 when it ends.
@@ -221,14 +224,14 @@ Books and research play no part. #0 and #8 `book_case4` are not chosen there.
 - State 32 (`0x004A1CF0`): while #0 `Egg-Hatch_Start` (45 frames at 30 fps) is installed
   and RenderInfo `+0xAD` bits 1–2 report it ended or wrapped, it installs #5
   `Egg-Hatch_End`. On the next turn, with any other art installed, it creates the Chicken
-  and destroys the egg, with no wait for #5 to finish. CONFIRMED read; worth checking by eye.
+  and destroys the egg, with no wait for #5 to finish. STRONGLY INFERRED read; worth checking by eye.
   Whether bit 2 is ever cleared after the first wrap: not checked.
 
 **Chicken (9).** State 8 (`0x004A24A0`) shows #5 `Eat`, or #6 `Scared` when `+0x152` is
 set, for random(16)+8 counts, then #0 `Walk`. State 25 (`0x004A17E0`, no type test) flees
 with #6 and returns to #0 when slowed. Nothing read installs #7 `Idle`: UNKNOWN.
 
-**Training Dummy (14): CONFIRMED.** The training blow (`0x00498CA0`) sets state 18
+**Training Dummy (14): STRONGLY INFERRED.** The training blow (`0x00498CA0`) sets state 18
 (`0x004A13F0`). It installs #5 `Recoil_back` if loaded (sound 0x311 for type 14), spins the
 heading with a decaying speed until below 0x40 per turn, and reinstalls #0 when the clip ends.
 
@@ -238,7 +241,7 @@ object 95 states 48/49 (#5, #6 while playing, set by `0x004D6890`).
 The classic Prison door view retains its opening stamp and plays #0 once
 when the simulated door opens; its closing lifecycle is not yet modelled (ADR-0438).
 
-**Object update order (CONFIRMED, 2026-10-11).** `0x0049BD20` runs the process,
+**Object update order (STRONGLY INFERRED, 2026-10-11).** `0x0049BD20` runs the process,
 then physical movement (`0x004B2030`), then animation (`0x004B3AD0`). The object
 vtable `0x0066D654` has ground response `0x0049CD70` at +0x64 and mass test
 `0x004B7230` at +0x88. Mass's runtime low signed word zero suppresses gravity.
@@ -284,7 +287,7 @@ idle actors keep their existing selection. Tests: `MistressBedExitTests` and
 
 ## 9. Torture victims on wheels
 
-**CONFIRMED (2026-10-10, 0x00484110 and 0x00484590).** Strapping places the creature
+**STRONGLY INFERRED (2026-10-10, 0x00484110 and 0x00484590).** Strapping places the creature
 at its device's point and starts action 36, using creature art 17. This is catalogue
 slot 16, `Mis_Torture` for both Mistresses; its mesh contains the body, not the wheel.
 Wall victims face inward with the device, roll about its axle, and get draw height
@@ -301,7 +304,7 @@ other numeric modes remain unbuilt. ADR-0420.
 
 ## 10. Flat sprites
 
-Read 2026-10-16. CONFIRMED. `0x0059B880` sends any art other than types 4, 5 and 6
+Read 2026-10-16. STRONGLY INFERRED. `0x0059B880` sends any art other than types 4, 5 and 6
 whose resource flags have `0x100` to `0x0059C720` (`0x0059BAA7`), before the
 billboard `0x0059C360`; the shipped elements with the flag are 2 of type 2 and 12
 of type 3.
@@ -322,7 +325,7 @@ effects renderer draws them so, lit as below. Unread: the texture and frame pick
 (vtable slot 2, `0x0057FF30`, through `0x0057C780` and `0x0057F090`; ours takes
 the particle's age through the stored frames as the billboards do).
 
-**Billboards** (read 2026-10-17, CONFIRMED). `0x0059C360` sizes a camera-facing
+**Billboards** (read 2026-10-17, STRONGLY INFERRED). `0x0059C360` sizes a camera-facing
 sprite as scale `+4` × descriptor width and scale `+8` × descriptor height
 (`Fixed_Multiply`, then /4096: tiles), and with art flag `0x40` moves it by half
 its height on the camera's vertical (`+0x59`/4096 − h/2; `+0x57` is the
@@ -339,7 +342,7 @@ value for an effect element (`0x00435F20` sets the width and height targets
 alike), and the offset words `+0x51..+0x59` are zeroed by the reset `0x004B3610`
 with no effect-element writer found, so ours takes them as zero.
 
-**Sprite light** (CONFIRMED for both draws). `0x0057F3D0` and `0x0057FB80` light
+**Sprite light** (STRONGLY INFERRED for both draws). `0x0057F3D0` and `0x0057FB80` light
 the whole sprite by its tint × 255 plus, at its centre, each listed light's
 radial term (`0x0057C080`: no normal, the distance bins of the vertex lighting,
 the full colour in the first bin), the list being `0x0057BCB0`'s from the draw

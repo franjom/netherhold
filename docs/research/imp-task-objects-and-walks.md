@@ -1,6 +1,9 @@
+---
+systems: [imps-tile-work]
+---
 # Imp tasks: the objects handler, the secret door, the kicked imp, the walk's end
 
-**CONFIRMED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
+**STRONGLY INFERRED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
 12.1.4/PyGhidra on Claude's clone, 2026-09-30. Decompiler output stayed under
 `reverse-engineering/` (ADR-0046); every fact below is in our words with its address.
 Captures (`level1-live1/seed01`, `level2-live2/seed01`, player 3) were used only to check
@@ -139,7 +142,7 @@ the found entry's 36 bytes (`REP MOVSD`, 9 dwords) when it is allocated (`+0x23`
 word (`+0x21`) matches, and `EBP-0x64 + 0x21` is `EBP-0x43`. `0x00508110` and `0x00508160`
 use only the low 16 bits, so both calls address the kind-11 entry itself: it records a
 holder, and a second imp is refused or kicks under the `0x32` slack (`0x0046CE4F`, kick at
-`0x0046CE63`). CONFIRMED. An earlier frame scan missed the callee's write and called the word
+`0x0046CE63`). STRONGLY INFERRED. An earlier frame scan missed the callee's write and called the word
 unwritten.
 
 **The work.** State 38 (`0x00467650`): the entry must still be kind 11 (`0x00508070`)

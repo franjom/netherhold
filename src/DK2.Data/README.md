@@ -11,7 +11,7 @@ Entry points: `Dk2Install.Find`/`Require` resolves the install (`DK2_DIR` first)
 
 ## KWD/KLD records
 
-`KwdReader` is the chunk-level reader; the container layout is CONFIRMED against the
+`KwdReader` is the chunk-level reader; the container layout is STRONGLY INFERRED against the
 reference install (`docs/research/kwd-container.md`) and a file may carry several
 chunks back to back. Every `KwdRecordType` id has a typed parsing surface, and each
 typed record keeps its exact source image, so `dk2tools kwd corpus` byte-round-trips
@@ -107,7 +107,7 @@ The API does not validate level playability.
 
 ## WAD archives and saved games
 
-`WadArchive` reads DK2's "DWFB" version 2 archives — CONFIRMED against all five WADs
+`WadArchive` reads DK2's "DWFB" version 2 archives — STRONGLY INFERRED against all five WADs
 of the reference install, with the field table in `docs/research/wad-format.md`.
 `WadDecompressor` implements the type-4 entry decompression, adapted from GLKeeper
 (MIT — see `THIRD-PARTY-NOTICES.md`).
@@ -152,7 +152,7 @@ internal states, so no implementation depends on them (ADR-0072,
 decode, every glyph to its full `w * h` (`Bf4FontReaderTests`). The class comment
 gives the byte layout. The facts come from the loader `0x006336D0`, the font
 object's methods `0x006335B0`-`0x006336A0`, and the blitter `0x006337A0`
-(CONFIRMED, read 2026-10-17):
+(STRONGLY INFERRED, read 2026-10-17):
 - the header holds the line height (byte `+5`) and the glyph count (u16 `+6`). An
   offset table follows, one record per glyph;
 - a record holds its UTF-16 character, the stored and unpacked sizes, the flags,
@@ -215,7 +215,7 @@ boundaries are the ones its loader applies, so three fields the editor stored as
 16-bit values are read as the single byte the game consumes. The map, the consumers
 of every field at runtime, the shipped ranges and the parameters the game never reads
 are in `docs/KEEPER_AI.md` §2.2 (STRONGLY INFERRED from the binary; the record stride
-is CONFIRMED from data). OpenKeeper's parser agrees on every field boundary and was
+is STRONGLY INFERRED from data). OpenKeeper's parser agrees on every field boundary and was
 used as a cross-check only; its identifiers were not adopted.
 
 ## Front-end profile storage

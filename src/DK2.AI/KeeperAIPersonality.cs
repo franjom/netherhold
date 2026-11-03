@@ -32,7 +32,7 @@ public enum KeeperPersonality : byte
 /// keeper, so <see cref="KeeperAI"/> treats both alike (KEEPER_AI.md §6, quirk 8). Fields the setter
 /// does not write keep the defaults of <c>0x004F8360</c> (§3.3); <c>EditorAiType</c> is the chosen
 /// personality, and <c>RawBlock</c> is empty, as no PLAYERS block exists.</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/KEEPER_AI.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/KEEPER_AI.md")]
 public static class KeeperAIPersonality
 {
     public const int Count = 9;

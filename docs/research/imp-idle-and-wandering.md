@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # Research: what an imp with nothing to do does
 
 Source: `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-24. Addresses

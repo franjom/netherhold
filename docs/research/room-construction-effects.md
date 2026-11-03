@@ -1,8 +1,11 @@
+---
+systems: [rooms, art-assets]
+---
 # Room construction particles
 
 DKII.EXE v1.70, primary binary read 2026-10-12 through Ghidra 12.1.4.
 Binary conclusions below are **STRONGLY INFERRED**, pending a controlled
-original-game visual comparison. Shipped record values are **CONFIRMED data**.
+original-game visual comparison. Shipped record values are **STRONGLY INFERRED data**.
 No decompiler text or third-party implementation is reproduced.
 
 ## 1. Construction source
@@ -71,7 +74,7 @@ It does not mean that type 3 alone enables texture animation.
 
 ### Sprite blend and shared terrain ordering (2026-10-23)
 
-CONFIRMED rereads: `0x0059A6A0` loads type3 art, including animated art,
+STRONGLY INFERRED rereads: `0x0059A6A0` loads type3 art, including animated art,
 as `AA_` material flag0x10. `0x0057C420` maps this to state0x201 and
 `0x00589250` selects ONE/ONE. Texture alpha does not attenuate this default
 additive contribution. `0x0057F7E0` applies `0x0057F090` render-item overrides,
@@ -184,7 +187,7 @@ resource enumeration and missing-frame policy are not established here.
 
 ## 5. View clock and remaining boundaries
 
-**CONFIRMED (binary, 2026-10-12):** effect lifetime uses wall-time quanta of
+**STRONGLY INFERRED (binary, 2026-10-12):** effect lifetime uses wall-time quanta of
 50 milliseconds, nominally 20 updates per second. The complete presentation
 update is `0x0043B220`; its earlier Sight-only name described one branch.
 At `0x0043BF3D` it obtains milliseconds from `0x005B5E90`, compares them to
@@ -224,7 +227,7 @@ inside that provider.
 
 ## 6. Claim, capture and bed creation
 
-**CONFIRMED binary and shipped data (2026-10-12).** These requests use the
+**STRONGLY INFERRED binary and shipped data (2026-10-12).** These requests use the
 same view-effect interface and type-4 generator as construction. A work
 strike is not an effect trigger: only the completed changes below emit.
 
@@ -331,7 +334,7 @@ number 1, variant 0.
 
 `0x00435F20` also compares the element owner against component slot `+0xC4`.
 Equality selects `0x0050F880` instead: palette number
-`floor(wallMilliseconds/100)%7+1`. CONFIRMED startup writer (2026-10-16):
+`floor(wallMilliseconds/100)%7+1`. STRONGLY INFERRED startup writer (2026-10-16):
 `0x00447D87` and`0x00525702` pass the neutral-player global through slot`+0xC8`;
 `0x00440F90` forwards to renderer`+0x9E`, whose setter`0x00443110` writes`+0xE`.
 Its getter`0x00443100` is shared by the renderer interfaces. Thus neutral-owned
@@ -345,7 +348,7 @@ Color is sampled at birth; this later sample alone does not prove birth-time col
 
 ### 6.1. Pale claim mist investigation
 
-CONFIRMED code/history audit (2026-10-17): claim element142 still selects the
+STRONGLY INFERRED code/history audit (2026-10-17): claim element142 still selects the
 keeper tint; the0x80-to0x2 correction does not change it because its art flags
 are0x86. The Heart's grey-dust correction therefore did not remove the claim tint.
 Element143 remains authored white. `RoomConstructionParticles` gives red keeper3

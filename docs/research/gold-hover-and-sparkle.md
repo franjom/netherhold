@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end, art-assets]
+---
 # Gold under the Hand: hover texture, red pass and the store sparkle
 
 Read 2026-10-23 (claude) from DKII.EXE and the shipped data after the owner's
@@ -7,13 +10,13 @@ that moves, a pink-red tint and "1000 Gold" when pointed at, and that they can b
 picked up and dropped. Confidence labels are per claim. The creature hover tint is
 [status-flowers.md](status-flowers.md) §1; this page adds what objects and gold do.
 
-## 1. The hover texture — CONFIRMED
+## 1. The hover texture — STRONGLY INFERRED
 
 [Presentation_Update](functions/0043B220.md), in its hover-tint arm (0x0043BE40), reads
 the hovered thing's installed art resource (thing `+0x6C`, RenderInfo `+0x28`). When
 its flags dword (`+0xB`) has bit **0x10000**, it saves the texture phase (0x0043C240)
 and writes **0xFFF** to RenderInfo `+0x30` and `+0x34` before the tint; the restore
-after the world draw (0x0043C14F..0x0043C1EB) puts it back. CONFIRMED (disassembly
+after the world draw (0x0043C14F..0x0043C1EB) puts it back. STRONGLY INFERRED (disassembly
 0x0043BE76..0x0043BEA3).
 
 A KMF material holding several textures draws the one its phase selects
@@ -22,13 +25,13 @@ A KMF material holding several textures draws the one its phase selects
 
 - Art flag 0x10000 is set on exactly the gold meshes: object 1 Gold (`Gold Pile`),
   2 Gold Bag (`Gold Bag1`) and 3 Gold Pile 1 (`Gold Chest`, `Gold Urn1`, `Gold Urn2`,
-  `Gold Chest2`), all with flags 0x10205. No other object art has it. CONFIRMED.
+  `Gold Chest2`), all with flags 0x10205. No other object art has it. STRONGLY INFERRED.
 - Their spill cards are two-texture materials: `Gold_Spill_Small` +
   `Gold_Spill_Small_HIGHLIGHT` (Gold Pile, Urn1) and `Gold_Spill` + `Gold_Spill_HIGHLIGHT`
   (Urn2, Chest), file flags 0x81, brightness 0.6. The `_HIGHLIGHT` textures are the same
-  coins recoloured orange-red, with identical alpha. CONFIRMED (EngineTextures decode).
+  coins recoloured orange-red, with identical alpha. STRONGLY INFERRED (EngineTextures decode).
 - The chest's inner gold (`Gold_In_ChestGold`, texture `Gold`) and the wood are
-  single-texture materials, so the phase changes nothing there. CONFIRMED.
+  single-texture materials, so the phase changes nothing there. STRONGLY INFERRED.
 
 Unhovered, the spill shows its first texture. The art's flag 4 gives these meshes a
 texture phase that advances 0x1000 a turn over a frame count of 1 (art `+0x48` = 1;
@@ -40,7 +43,7 @@ SHOT0220-0227, where the cards are gold.
 
 **The hover id.** The tint arm draws only the Hand's hover id (interface `+0x10BC`, which
 0x0040ACD0 copies to bridge `+0x34`). In Hand mode [Hand_UpdateHoverTarget](functions/0040C290.md)
-sets it from the pick, per class, for the viewing player (CONFIRMED, decompile 2026-10-23):
+sets it from the pick, per class, for the viewing player (STRONGLY INFERRED, decompile 2026-10-23):
 
 | pick kind | published when |
 |---|---|
@@ -60,7 +63,7 @@ book) pass 0x0049CBB0 too and are tinted: binary and owner agree (2026-10-23).
 
 Every class passes the arm's vtable `+0x34` test: [0x00628BC0](functions/00628BC0.md)
 (returns 1) sits there in the object vtable 0x0066D654 (dword 0x0066D688), the trap
-vtable 0x0066D754 and the door's. CONFIRMED.
+vtable 0x0066D754 and the door's. STRONGLY INFERRED.
 
 **The cursor.** Over own creatures and gold the Hand shows the pickup hand; over doors
 and traps it does not (owner, 2026-10-23). This follows 0x0040C1E0's pickup permission
@@ -96,7 +99,7 @@ chest's own tile, not the room's (2026-10-23). That the chest is on a Heart tile
 cap is 1000 ([object-drawing.md](object-drawing.md) §2, 0x004F4440), is STRONGLY
 INFERRED from the screenshot: it stands beside the Heart, and 1000 is a full Heart tile.
 
-## 3. The shine is the store sparkle — mechanism CONFIRMED, match STRONGLY INFERRED
+## 3. The shine is the store sparkle — mechanism STRONGLY INFERRED, match STRONGLY INFERRED
 
 The moving glint on the chest in SHOT0222-0224 is not in the material: no gold material
 has the environment-map bit (file 0x40), and no gold object has an authored light. It is
@@ -111,12 +114,12 @@ effect **34, Gold Sparkle**, made by [0x004F3A00](functions/004F3A00.md):
 - On each tile, each object (`+0x12` = 2) of type 3 whose definition has the gold flag
   (`+0xF4` & 0x40) draws `random(100)` again; below 10 it calls world slot `+0x38C` with
   definition `+0x117` (Objects.kwd `+0x358`: 34 for Gold Pile 1, 0 for Gold and Gold Bag),
-  the room's word `+0x1D` (owner, LIKELY), the object's position raised by the
+  the room's word `+0x1D` (owner, HYPOTHESIS), the object's position raised by the
   definition's Height `+0xFA`, and heading 0.
 
 So only Treasury and Heart gold sparkles, never a loose pile. Effect 34: generation
 type 4, one element a turn, HP 3, element 19 `Gold Sparkle` with art `GSparkle`.
-CONFIRMED from Effects.kwd/EffectElements.kwd.
+STRONGLY INFERRED from Effects.kwd/EffectElements.kwd.
 
 That the glint in the screenshots is this effect, rather than something unread, is
 STRONGLY INFERRED: it appears and moves on the chest only, frame to frame.
@@ -134,7 +137,7 @@ The dumper's `SparkleEffectTimer` (`+0x14A`, [object-thing-object.md](object-thi
 belongs to objects with definition flag 0x4 (TypeSpecial), and the one at `+0x151` to
 object type 4 (dumper 0x0049D68D, 0x0049D6B5); neither is gold.
 
-## 4. Picking the store gold up — the lift CONFIRMED, built
+## 4. Picking the store gold up — the lift STRONGLY INFERRED, built
 
 Gold Pile 1 carries `CanBePickedUp`, and the owner lifts and drops chests and urns and sees
 the pickup hand over gold piles, chests and urns (2026-10-23).

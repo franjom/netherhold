@@ -87,7 +87,7 @@ internal delegate void LeaveHook(in StateHookContext hooks, CreatureState creatu
 /// and leave dispatch <see cref="CreatureStateMachine"/> runs in <c>SetState</c>'s order
 /// (<c>state-category-hooks.md</c> §5, ADR-0308). Every filled slot of DK2's table has a row in
 /// <see cref="Slots"/>, built or not.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/state-category-hooks.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public static class CategoryHooks
 {
     private const string Seeded = "the countdown seed is built (the shared step in RunEnter)";

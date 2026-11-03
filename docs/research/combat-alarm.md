@@ -1,3 +1,6 @@
+---
+systems: [combat]
+---
 # Mechanic: the NonFighter arm and the alarm — a worker's reluctance, and the room that answers
 
 Source(s):
@@ -69,7 +72,7 @@ arm (`0x0045C15C`) and the flee entry (`0x00460975`); a refusal there ends the f
 Imp idles. Built as `FearRules.AlreadyResponding` (ADR-0609; the Guard Post's report uses it
 too). Then the **nearest Guard Room of mine** to the threat by distance² to its
 `+0x27/+0x29` tile: the walk skips any room whose type byte `+0x18` is not 9
-(`0x00475336`, CONFIRMED; the same filter as `0x00460B50`, ADR-0473), and with none it
+(`0x00475336`, STRONGLY INFERRED; the same filter as `0x00460B50`, ADR-0473), and with none it
 raises nothing (ADR-0517). `0x004E4D90(room, &out, 0,
 0)` gives a position in it: one random slab-chain step count, then advance
 and wrap past floor slots (`Room_IsFloorSlot`, `0x00454110`). Portal, Heart
@@ -268,7 +271,7 @@ and the NonFighter escape is an **Imp-candidate test**. The parsed raw field is
 named `UniqueBaseCreatureId`; the resolver's concept is the base creature type
 id.
 
-**Confidence: CONFIRMED (binary and shipped data).** The loader fixes both file
+**Confidence: STRONGLY INFERRED (binary and shipped data).** The loader fixes both file
 offsets, all readers use the result as a creature type id, and all 13 unique
 records map exactly to their ordinary archetypes.
 
@@ -320,13 +323,13 @@ parity; the owner's differing rally behavior remains open in Q586.
 
 ## Confidence
 
-**CONFIRMED (binary):** §1's order, the Good-owner filter, the hero path's three
+**STRONGLY INFERRED (binary):** §1's order, the Good-owner filter, the hero path's three
 exits and their `0xEA60` return; §2's conditions, the five-tile check and the
 state fields; §3's every skip, the quarter-health test, the raiser's run speed,
 the deficit countdown, the two `SetState`s and action 79; §4's thirty ticks and
 the walk speed; state 6's arrival.
 
-**CONFIRMED (binary, 2026-10-14):** the 9 that `0x00460B50` compares at `0x00460BC8` is the
+**STRONGLY INFERRED (binary, 2026-10-14):** the 9 that `0x00460B50` compares at `0x00460BC8` is the
 room type byte `+0x18` (the Guard Room), not a thing class: `0x004C61C0` walks the same list
 and compares that byte with the requested room type (3 and 25 for portals).
 

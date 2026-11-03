@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # Imp task outcome audit, 2026-10-17
 
 ## Scope and reproducibility
@@ -113,7 +116,7 @@ The fixed bins are a concentration proxy, sensitive to their origin.
 
 ### 1. Wrong input to the cast Imp's drop scan: high outcome relevance
 
-**CONFIRMED chain in seed 5:** our Imp 1 takes a dig at (20,54) on turn 370,
+**Measured chain in seed 5:** our Imp 1 takes a dig at (20,54) on turn 370,
 then interrupts that walk with the freshly-dug claim at (30,54) on 371.
 The floor changes from terrain 3 to owned terrain 8 at 379. Original floor
 ownership changes at capture 404, aligned 403: ours is 24 turns earlier.
@@ -197,7 +200,7 @@ kind 6 to the reinforcing ring scan. No duration or completed-wall limit
 appears on this path. Our corresponding code is
 `ImpTaskSystem.Selection.cs:38–49`, `:199` and `:401–408`.
 
-**CONFIRMED rule; conditional outcome:** DK2 can keep an aimed reinforcer
+**STRONGLY INFERRED rule; conditional outcome:** DK2 can keep an aimed reinforcer
 working across the map as long as successive searches succeed. This does
 not prove the exact 600-turn run under our changed map state would occur
 in DK2. A timeout or priority reorder would be an invented deviation.
@@ -276,7 +279,7 @@ is 7, at turn 6756. These are fixed-branch totals, not a paired 20-seed
 comparison against hash 265. The older P2 totals cannot establish this
 change's contribution to the win or death differences.
 
-**Confirmed store-only regression:** Level 1 seed 18 wins at 1816 on the matching
+**Measured store-only regression:** Level 1 seed 18 wins at 1816 on the matching
 `647c43e8` baseline and does not win within 2044 on the fixed branch.
 The fixed replay refuses the Hatchery build at 466 (`drag_cost=0`);
 the baseline has no `build_refused` event. The causal trace follows below.
@@ -305,7 +308,7 @@ the outcome changes remain diagnostics for the larger Imp discrepancy.
 
 ### Level 1 seed 18: why the Hatchery build fails
 
-**CONFIRMED in the paired replays:** the turn-466 command builds one tile,
+**Measured in the paired replays:** the turn-466 command builds one tile,
 `(13,34)`. Baseline claims it at 420; the candidate at 821. All nine tiles
 in the surrounding excavated 3-by-3 area have identical excavation turns
 in both runs, but baseline claims all nine by 446 and candidate none by 465.
@@ -331,7 +334,7 @@ store walk takes that claim, leading into the southern claims and the
 Hatchery tile. Candidate Imp 1 continues mining; another Imp first claims
 `(14,24)` at 375 and works north instead.
 
-**CONFIRMED binary rules:** the mining state's action-running check comes
+**STRONGLY INFERRED binary rules:** the mining state's action-running check comes
 before its task lookup; a missing task exits before raising kind 14. The
 dig/mine search removes obsolete tasks without waiting for their old
 workers. See [mining state](functions/00465870.md) and
@@ -347,7 +350,7 @@ there is no matching original seed-18 capture. Missing fresh-claim tasks
 are therefore observable natively; this does not prove identical race
 timing for seed 18.
 
-**CONFIRMED ordering difference:** original creature updates run the action before the state
+**STRONGLY INFERRED ordering difference:** original creature updates run the action before the state
 dispatcher ([update record](functions/00488930.md)); ordinary reinforcement's
 [action-clock candidate](reinforcement-action-clock.md) polls before fight/state
 processing (ADR-0638). Other work adapters retain separate ordering limits,
@@ -362,7 +365,7 @@ next Imp. The normal final work pass remained. This tests visibility between
 workers, not DK2's action-before-state ordering within one creature.
 The diagnostic code was removed after measurement; hash 266 is unchanged.
 
-**CONFIRMED counterfactual, Level 1 seed 18:**
+**Measured counterfactual, Level 1 seed 18:**
 
 | Event | Store candidate | Flush after each Imp |
 |---|---:|---:|

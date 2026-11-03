@@ -1,4 +1,7 @@
-﻿# Mechanic: shots — what a creature spell fires, how it flies, and how it lands
+﻿---
+systems: [combat]
+---
+# Mechanic: shots — what a creature spell fires, how it flies, and how it lands
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-23. Addresses are
@@ -189,7 +192,7 @@ killer is stamped the same way. **Nothing scales with the caster's level.**
 
 **Area, per tick (`0x004AC3C0` by `DamageType`; 1 `0x004AC5A0`, 2 `0x004AC6D0`,
 3 `0x004AC940`, 4 `0x004ACAF0`, 8 `0x004ACCA0`; 0, 5, 6, 7 nothing).** Type 2
-(`0x004AC6D0`, CONFIRMED from the listing 2026-10-02): over the tiles within
+(`0x004AC6D0`, STRONGLY INFERRED from the listing 2026-10-02): over the tiles within
 ±`data2` of me, clamped to the map, rows outer, each tile's thing chain in order,
 every thing **not of my owner** — a creature with `+0x445` clear, any object, a
 **trap or a door** unless my `AttackCategory` is 7 (gas) — within `data2` tiles
@@ -208,7 +211,7 @@ words over the definition's defaults with no zero test (`0x00498A9D`), the hit s
 copies its parent's words unconditionally (`0x004AB433`), and the area handler reads
 the shot's own `+0x141` (`0x004AC6DA`); the Firebomb spell's `ShotData2` is 0, so the
 explosion chained on the hit has a zero radius. The Firebomb is a 600-point contact
-hit with a display (CONFIRMED binary 2026-09-23; the owner recalls no splash, Q398).
+hit with a display (STRONGLY INFERRED binary 2026-09-23; the owner recalls no splash, Q398).
 
 ## 8. Process types read (table at `0x0069E84F`, filled by `0x004AD1B0`)
 
@@ -311,7 +314,7 @@ not. Process 34 retains its early gameplay removal, with its native view tail pr
 (ADR-0596). **Thing order (2026-10-04):** `0x004B7830` updates list 0 (creatures)
 before list 1 (shots, kind 1 from `0x004AAC90`), each newest first (`0x004B4A10` links at
 the head, the next pointer read after each update), so a creature-fired shot should move
-the turn it is made (CONFIRMED 2026-10-26: every shot is linked kind 1 through `0x004AAC90`, see
+the turn it is made (STRONGLY INFERRED 2026-10-26: every shot is linked kind 1 through `0x004AAC90`, see
 [004B7830](functions/004B7830.md); a shot created after list 1 has been walked first updates the next turn), as ours
 does for a creature-fired shot; ours walks `world.Shots` newest first too (ADR-0367). Every shot creator ours builds
 was checked on 2026-10-27 (ADR-0551). Same turn: a creature's spell and free-aim shots (`CombatSystem`) and
@@ -330,25 +333,25 @@ first update lands on the same tick but DK2's explosion is made a turn earlier t
 `Shot_Create` caller `0x004A32C6` (shot `0x3F`, an unnamed thing-update function using fields `+0x13E`, `+0x14E`,
 `+0x14A` and sound `0x2F9`); its list and role are unread. The Bile Demon's idle shot (`CreatureJobSystem`) is made in
 the creature sweep, before `ShotSystem`, so it moves the turn it is made (ADR-0551, ADR-0554). A player's cast moves the turn it is
-made, as packet actions are dispatched before the sweep ([005119C0](functions/005119C0.md), LIKELY). The
+made, as packet actions are dispatched before the sweep ([005119C0](functions/005119C0.md), HYPOTHESIS). The
 computer keeper casts from the player frame, which in DK2 is after the sweep; its commands reach ours at
 the head of the next tick, before the shots. Ours makes no door-fired shot.
 
 ## Confidence
 
-**CONFIRMED (binary):** §1 creation and defaults; §2's mapping; §3's launch
+**STRONGLY INFERRED (binary):** §1 creation and defaults; §2's mapping; §3's launch
 arithmetic; §4's order and every branch; §4a's finder, predicates and hit
 handling; §7 contact and type-2 area arithmetic; §8's ten handlers as tabled.
 
-**CONFIRMED (data):** §9 and the radius.
+**STRONGLY INFERRED (data):** §9 and the radius.
 
-**CONFIRMED (binary, 2026-09-23):** §4a's overlap test; §8's types 3 and 34.
+**STRONGLY INFERRED (binary, 2026-09-23):** §4a's overlap test; §8's types 3 and 34.
 
 **STRONGLY INFERRED:** the bounce in §6; class 6 as dead bodies. (Body bit 21 was
 first read here as invisibility; it is the dying flag `0x0048B770` sets —
 `creature-status-effects.md` §3, corrected 2026-09-23.)
 
-**CONFIRMED (binary, 2026-10-04):** §8's Web body and the five raised events; §10's list
+**STRONGLY INFERRED (binary, 2026-10-04):** §8's Web body and the five raised events; §10's list
 order and shot kind.
 
 **UNKNOWN:** Q395 (how the Guided Bolt homes in flight, handler 18, body bit 16, area

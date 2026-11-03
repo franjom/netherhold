@@ -14,7 +14,7 @@ namespace DK2.Simulation;
 /// once stood in for them all make their moves through here (ADR-0209). The gate came
 /// first on purpose: all 78,680 ordered pairs resolve (<see cref="CreatureStateTransitions"/>,
 /// Q300), so no retirement had to invent a transition rule.</para></summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/creature-state-table.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-state-table.md")]
 public static class CreatureStateMachine
 {
     /// <summary>A corpse's: DK2 destroys the creature and makes a <c>CDeadBody</c> thing, and

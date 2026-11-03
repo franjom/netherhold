@@ -1,3 +1,6 @@
+---
+systems: [tooling-process, navigation]
+---
 # Q712: the next matched route-window divergence
 
 Source: retail DKII.EXE v1.70, ghidra-queries, 2026-11-01. The complete body
@@ -6,7 +9,7 @@ and position/velocity setter [004D59A0](functions/004D59A0.md) identify the
 captured inputs. [Follow_Path](functions/004D3C40.md) refills an exhausted
 window before selecting its new aim.
 
-## Confirmed observations
+## Measured observations
 
 The historical exact-prefix comparisons below use legacy capture headers,
 not established executed-turn parity; see the [clock boundary](packet-playback-clock.md).

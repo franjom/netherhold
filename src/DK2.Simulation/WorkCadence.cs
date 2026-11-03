@@ -17,7 +17,7 @@ namespace DK2.Simulation;
 /// its strike at E+2, a claim one or two ticks after its last application).
 /// These constants remain a fallback with known phase-dependent mismatches;
 /// see imp-dig-stop-clock.md for the native clock and rejected correction.</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/mining-cadence.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/mining-cadence.md")]
 public static class WorkCadence
 {
     /// <summary>Arrival (the entry state's tick) to the first application: E+2.</summary>

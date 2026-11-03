@@ -11,7 +11,7 @@ namespace DK2.Simulation.Combat;
 /// slots, the cooldown gate (<c>0x0048C800</c>), and the survey's choice of attack spell (§5).
 /// The friendly survey and the applicability table are docs/research/spell-friendly-arm.md
 /// (§1—§8). The thing-targeting spells are not built.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-spells.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-spells.md")]
 public static class SpellRules
 {
     /// <summary>The spell definition's <c>Flags</c> bits the fight reads (§2).</summary>

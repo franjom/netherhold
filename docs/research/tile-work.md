@@ -1,4 +1,7 @@
-﻿# Tile work: digging, mining, claiming, reinforcing
+﻿---
+systems: [imps-tile-work]
+---
+# Tile work: digging, mining, claiming, reinforcing
 
 | | |
 |---|---|
@@ -57,7 +60,7 @@ second, and an application is a fifth of one.
 
 ### Q69: attacking hostile floor is live; the vault rates are cut
 
-**CONFIRMED from the binary (2026-09-07), re-read independently the same day.**
+**STRONGLY INFERRED from the binary (2026-09-07), re-read independently the same day.**
 `AttackTileHealth` is installed at `0x006F2558` after division by the four ticks
 per game second, so the shipped −140 becomes −35, and it has two live readers,
 the work handlers at `0x00497670` and `0x004977F0`. Both require a tile owned by

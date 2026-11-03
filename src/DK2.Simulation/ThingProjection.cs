@@ -90,7 +90,7 @@ public static class ThingProjection
 
                 // Neither the neutral nor the good creature record carries a
                 // player field, because their side is fixed by which record
-                // they are. PlayerIds documents both ids as CONFIRMED.
+                // they are. PlayerIds documents both ids as STRONGLY INFERRED.
                 case NeutralCreatureThing t:
                     PlaceCreature(
                         world, database, t, t.CreatureId, PlayerIds.Neutral,

@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # First dig: continuous work and release observations
 
 2026-10-18, research only, modern gameplay hash/save 274. This extends the
@@ -31,7 +34,7 @@ A fresh [state-14 read](functions/004655D0.md) retains the action-running gate
 before the id-and-kind task check. The native pool identity lifecycle is
 observed here, not reconstructed by our tile flag.
 
-## Bounded modern continuation — CONFIRMED results
+## Bounded modern continuation — measured results
 
 Restore captured tiles, ordered marks and these three workers once, before
 execution 159. Supply the previously observed work-entry stamps and remaining

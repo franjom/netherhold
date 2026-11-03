@@ -6,7 +6,7 @@ namespace DK2.Data.Model;
 
 /// <summary>
 /// Identifiers of the KWD VARIABLES(230) record payloads — DK2's global
-/// game-rule table. Names CONFIRMED from ufdada/dk2-tools variables_struct.bt
+/// game-rule table. Names STRONGLY INFERRED from ufdada/dk2-tools variables_struct.bt
 /// (format facts; cross-checked against OpenKeeper's independent derivation);
 /// numbering gaps exist in the original data and are preserved.
 /// Ids 1 (CreaturePool), 2 (Availability), 17 (Research), 43 (Sacrifice), 65 (CreatureStats)

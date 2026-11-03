@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Category 0 states, part 1: 5, 69, 71, 86, 113, 126, 135, 211
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-07.
@@ -7,7 +10,7 @@
   to a shared tail (`docs/TRAPS.md`), the `+0xDF` stores (`travel-states.md` §2.4) and the room
   table's `+0x19`/`+0x1D` (`portals-room-handler-table.md`).
 
-## 1. 5, a neutral creature's idle `0x004776B0` — CONFIRMED
+## 1. 5, a neutral creature's idle `0x004776B0` — STRONGLY INFERRED
 
 A bare jump to `0x004776C0`, the inner body of state 3 (`idle-fallback.md` §3), without 3's wait
 for a running action or its `+0x7E` deadline. Every turn: with `+0xA7` zero, `SetState(87)` and
@@ -27,7 +30,7 @@ Nothing else enters 5.
 **Ours.** `CreatureJobSystem` sends every neutral creature in 1 to 5, not only a fleeing one, and
 5 runs `IdleBody`, which 3 now shares with the Bile Demon's draw and shot (missing from 3 too).
 
-## 2. 69 is unreachable — CONFIRMED
+## 2. 69 is unreachable — STRONGLY INFERRED
 
 `0x00470BC0`: with an action running 1; otherwise with an order (player `+0xA1C`) `SetState(63)`
 and 1, else 0. Its one setter is 68 (`0x00470BA2`), which sets 1, then 69, and returns 0; the
@@ -35,7 +38,7 @@ dispatcher then sets 1 (`0x004772B4`–`0x004772B7`). Both moves are admitted (c
 mask is 0, category 1's names category 0), so 69 is entered and left within the one call and its
 handler never runs. Ours ends 68 idle, which is the same.
 
-## 3. 71, the Dungeon Heart's drop state `0x00459180` — CONFIRMED (ours' inner 3×3 anchor STRONGLY INFERRED)
+## 3. 71, the Dungeon Heart's drop state `0x00459180` — STRONGLY INFERRED (ours' inner 3×3 anchor HYPOTHESIS)
 
 1. Not on a Heart (`0x00453A20(5)`): 0, idle.
 2. Not a worker (`def+0x686` bit 0): `SetState(188)`, the wage collection (`payday.md`).
@@ -56,7 +59,7 @@ and kicks to 1 then 71: from 257 after the drop stun (`0x00481351`) and from 76 
 on its own room tile (cell owner = creature owner) the switch on room type sets 71 for a Heart
 only when the cell byte `+0x0C` is `0x40` (`0x0046F0BE`), which the builder `0x004EFBE0` writes on
 the centre (2,2) alone; any other Heart tile goes to the gold store if it carries gold, else 11.
-CONFIRMED (disassembly, 2026-10-23). So a keeper's Imp dropped on the eight platform tiles never
+STRONGLY INFERRED (disassembly, 2026-10-23). So a keeper's Imp dropped on the eight platform tiles never
 enters 71 and is not given back, which is what the owner's photos of 2026-10-23 show; 71's own
 inner 3×3 test (step 3) is met only by a worker that reaches 71 through 257's tail after a stun.
 The Heart's `+0x1D` = 71 is never read for a Heart.
@@ -71,14 +74,14 @@ nothing: `DisposalRules.Disposes` requires `HeartRuined` false, and the drop lan
 built: 76's victim-or-door pick (`0x00481400`, ADR-0226). The Heart object is ours' living Heart (`HeartRuined` false), and the inner
 3×3 is measured from the room's bounding box: STRONGLY INFERRED that `+0x2D`/`+0x2E` is that corner,
 the first slab of a 5×5 Heart (Q515); the owner's play no longer bears on it. The mana is Create
-Imp's cost, CONFIRMED: `0x0050DD60` reads keeper spell 4's `+0x58`. 71's handler runs in the turn
+Imp's cost, STRONGLY INFERRED: `0x0050DD60` reads keeper spell 4's `+0x58`. 71's handler runs in the turn
 it is entered.
 
 Owner play questions, not yet asked: does the mana bar rise by Create Imp's cost when an Imp is
 disposed of on the Heart's centre; what happens to an Imp dropped on a ruined Heart's centre
 (ours lands it); and can a captured enemy Imp be dropped on your own platform.
 
-## 4. 113, back into a Training Room `0x00485A60` — CONFIRMED
+## 4. 113, back into a Training Room `0x00485A60` — STRONGLY INFERRED
 
 At `Age` 1 or less, 1. Then on a Training Room tile of its own keeper's (`0x004539B0(7, owner, 0)`),
 `SetState(108)` and 1; otherwise 0.
@@ -92,7 +95,7 @@ neighbouring room tile of a room whose definition has `SpecialWalls` (skipped wh
 its next turn when the room was rebuilt, taken, freed or beside a changed tile since its claim
 (ADR-0406, `room-return-states.md` §1).
 
-## 5. 126, back into a Prison `0x00473920` — CONFIRMED
+## 5. 126, back into a Prison `0x00473920` — STRONGLY INFERRED
 
 At `Age` 1 or less, 1. Then on any Prison tile (`0x00453A20(11)`, whoever owns it): a neutral
 creature first takes the tile's owner (vtable `+0x24`, `0x0048D050`); then `SetState(114)` and its
@@ -106,7 +109,7 @@ the admission does, or let out and idle off a Prison; the freed and ownership sl
 does (ADR-0406). Not built: the neutral captive's owner change. A neighbour's change does not kick a
 Prison: `0x004E44E0` has no arm for it.
 
-## 6. 86, a tunneller's wander `0x00480750` — CONFIRMED
+## 6. 86, a tunneller's wander `0x00480750` — STRONGLY INFERRED
 
 No wait for an action. If state `+0xB3` is not after now (unsigned): 0. Otherwise from
 `random(4)` round N, E, S, W (`0x006BC350`) of its tile: skip a neighbour whose
@@ -123,7 +126,7 @@ near-constant range and a deadline that passes only for small y. Built as read.
 planner `0x00485EF0` finds no next dig and the reach flag `+0xCB` is clear (the wall-follow came
 back to its hit point four times, `tunnelling.md`); and 86's own walk.
 
-## 7. 135, a willing torturee's way off `0x00484CC0` — CONFIRMED
+## 7. 135, a willing torturee's way off `0x00484CC0` — STRONGLY INFERRED
 
 Zeroes `+0x64`, `+0x66`, `+0x68` (animation) and returns 0, idle.
 
@@ -141,7 +144,7 @@ The kick's leave from category 15 frees the device. In the recruit a taken kick 
 **Ours.** `CallToArmsRules.Recruit` kicks a willing torturee to 135 before 190 (idle if 190 is
 refused). Not built: the Heart's responder. A conversion goes 131 → 1, the same leave.
 
-## 8. 211, the gold celebration `0x00458680` — CONFIRMED
+## 8. 211, the gold celebration `0x00458680` — STRONGLY INFERRED
 
 `0x00458680` returns whether an action runs; 0 is idle. Its one setter is `0x00481610`: not in 193,
 `SetState(211)`; then with art slot 8 present (`0x00494860(8)`, `+0xB` bit 0) a running action
@@ -162,5 +165,5 @@ The transition table refuses 211 from a category 0 state (2–5, 60–62, 68–7
 
 **Ours.** `DropDeliveryRules.Celebrate` at the Hand's delivery (Q570, owner 2026-10-07: a creature
 cheers when gold lands on it), and 211's turn in `CreatureJobSystem`: held while the action runs,
-then idle. The action's length is `AnimationTimingRules.CountedHoldTicks` for art slot 8 (LIKELY,
+then idle. The action's length is `AnimationTimingRules.CountedHoldTicks` for art slot 8 (HYPOTHESIS,
 as for the Casino's).

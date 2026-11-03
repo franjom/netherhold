@@ -14,7 +14,7 @@ namespace DK2.Simulation.Systems;
 /// not either. A command naming a player the level does not have is dropped rather than faulted:
 /// the original indexes an entity table by the id in the packet and a missing player is a null
 /// there.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/doors-and-traps.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
 public sealed class AllianceSystem : ISimulationSystem
 {
     public string Name => "alliances";

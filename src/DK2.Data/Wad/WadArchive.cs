@@ -13,7 +13,7 @@ namespace DK2.Data.Wad;
 /// <c>0x58</c>, <b>40 bytes each</b>, carrying an absolute name offset and size, a data offset, a
 /// stored size, a compression type (0 or 4) and an uncompressed size. The full field table,
 /// including the four unknown dwords, is in docs/research/wad-format.md.</para>
-/// <para>CONFIRMED against all five WADs of the reference install.</para></summary>
+/// <para>STRONGLY INFERRED against all five WADs of the reference install.</para></summary>
 public sealed class WadArchive : IDisposable
 {
     private const uint Signature = 0x42465744; // "DWFB" little-endian

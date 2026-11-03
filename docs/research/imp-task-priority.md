@@ -1,4 +1,7 @@
-﻿# How an imp chooses a job: two tiers, read from the binary
+﻿---
+systems: [imps-tile-work]
+---
+# How an imp chooses a job: two tiers, read from the binary
 
 **Source:** `DKII.EXE` v1.70 — the `ImpState.cpp` and `ImpUtils.cpp`
 translation units, the tile-marking code, the per-player alliance table and
@@ -154,7 +157,7 @@ SJ-Library, SJ-Graveyard, SJ-Prison, SJ-Temple, Imprison`. Every job above has
 an icon; **"Fix" is the name of kind 16's icon**, which is why 6 and 16 are
 called reinforce and fix here rather than "reinforce, first half / second
 half". Which of the two is which is **STRONGLY INFERRED** from the order the
-switch and the table share; the *pair* is CONFIRMED from the code.
+switch and the table share; the *pair* is STRONGLY INFERRED from the code.
 
 ### The terrain flag word, as the binary reads it
 
@@ -267,7 +270,7 @@ player to make.
 **Neither reference project can check this.** OpenKeeper scores tasks as
 `distance + priority` and picks the best — a weighted model, not an ordered
 one — and its rescue task does not override the priority at all; Flame's map
-names no symbol at the table's address. This is binary-only, and CONFIRMED there.
+names no symbol at the table's address. This is binary-only, and STRONGLY INFERRED there.
 
 **What is *not* in Tier A is the finding.** Reinforcing and gold are never
 searched whole-map by kind. They are found by distance, and only after every
@@ -294,7 +297,7 @@ whole-map kind has come up empty.
   strictly within `0x555` of the imp are taken, each min(pile, cap less held), stopping once
   `0x00464360(1)` says full (cap less variable 74); other piles on the tile stay. Full hands then go to the store chooser, falling back to 10 when no store
   has room; a part-load goes to 10 and stays in the hands. **The pick-up takes no
-  time** (Q143, re-read 2026-10-04, CONFIRMED). State 27 starts no action and waits on
+  time** (Q143, re-read 2026-10-04, STRONGLY INFERRED). State 27 starts no action and waits on
   none: there is no call to `0x00496980` or `0x00496D00` in `0x00466850`–`0x00466A37`.
   It takes the piles in the first turn it runs. The cap is the level-scaled `def+0x69C`
   less what the imp carries (`+0x3FB`). Whether the walk's arrival adds a turn before 27

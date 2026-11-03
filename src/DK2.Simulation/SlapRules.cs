@@ -16,7 +16,7 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/slap-states.md")]
 public static class SlapRules
 {
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/casino-winner-slap.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/casino-winner-slap.md")]
     public static int SlapCasinoWinner(SimulationContext context, CreatureState winner)
     {
         WorldState world = context.World;

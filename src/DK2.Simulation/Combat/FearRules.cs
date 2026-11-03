@@ -20,7 +20,7 @@ namespace DK2.Simulation.Combat;
 /// <c>FightWithDrawState.cpp</c>). A creature below a sixth of its health and far from its heart
 /// withdraws at once. The hero gates, per-type player modifiers and the steering impulse of
 /// the step back remain outside this implementation.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fear.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-fear.md")]
 public static class FearRules
 {
     private const string SystemName = "combat";

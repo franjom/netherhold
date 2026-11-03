@@ -1,4 +1,7 @@
-﻿# Mechanic: combat cadence — the two attack clocks
+﻿---
+systems: [combat]
+---
+# Mechanic: combat cadence — the two attack clocks
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -132,7 +135,7 @@ fixed-point add, divide and multiply, and the flag arms are mutually exclusive
 
 ## 5. Is `FUN_00492320` live?
 
-CONFIRMED by fresh xrefs and raw disassembly on 2026-10-03: direct calls occur
+STRONGLY INFERRED by fresh xrefs and raw disassembly on 2026-10-03: direct calls occur
 at `0051F293`, `0051F2B9`, and `0051F35B`. The earlier absence-of-callers claim
 was false.
 
@@ -140,7 +143,7 @@ Its role as the live loader remains STRONGLY INFERRED: `FUN_00494EF0` reads
 `def+0x5C6` as an integer and re-promotes it, while this builder converts the
 file's seconds to ticks. `training.md` §4 also uses its converted pairs.
 The callers' wider runtime reachability has not been audited here, so the
-function record remains LIKELY. An original-game cadence experiment would
+function record remains HYPOTHESIS. An original-game cadence experiment would
 independently check the mapping: a Troll's gate interval is 1 tick and a Bile
 Demon's is 5, predicting about five times as many Troll swings under equal
 uninterrupted attack conditions.
@@ -156,11 +159,11 @@ uninterrupted attack conditions.
 
 ## Confidence
 
-**CONFIRMED (binary):** the five field boundaries and their access widths; that
+**STRONGLY INFERRED (binary):** the five field boundaries and their access widths; that
 `def+0x5C6` and `def+0x5CA` are distinct live fields with disjoint readers; both
 gates' arithmetic; that `EDI` is `[0x006E4154+0x40]`.
 
-**CONFIRMED (shipped data):** the two columns and their tick conversions.
+**STRONGLY INFERRED (shipped data):** the two columns and their tick conversions.
 
 **STRONGLY INFERRED:** that file `0x0CF9` is the source of `def+0x5CA`, and that
 `FUN_00492320` reflects the live loader (§5).

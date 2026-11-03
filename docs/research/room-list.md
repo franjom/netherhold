@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The player's room list: where DK2 keeps what the player built
 
 | | |
@@ -71,7 +74,7 @@ list's first and last tiles. `Room_AddTile` (`0x004EC650`) appends a slab in
 one consecutive run (`0x004EC791`–`0x004EC7A0`): it writes the old tail's next
 link, sets `LastSlab` to the new tile and increments the word `Size`.
 `Room_Absorb` (`0x004ECB70`) moves `LastSlab` and adds `Size` in the same call.
-CONFIRMED. While a placement is being finished, the newest slab is the tail and
+STRONGLY INFERRED. While a placement is being finished, the newest slab is the tail and
 the first slab is the head. Those two tiles can be close together however many
 slabs lie on the chain between them, so the box they span says nothing about
 `Size`. In the settled rooms above, the two ends happen to sit at opposite

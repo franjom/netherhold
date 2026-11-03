@@ -1,7 +1,10 @@
+---
+systems: [rooms, camera-lighting]
+---
 # Portal visibility (Q197)
 
 Status: **Q197 answered; startup source count verified and entrance lighting built.**
-Binary and shipped-data read through 2026-10-28. Native contracts are CONFIRMED;
+Binary and shipped-data read through 2026-10-28. Native contracts are STRONGLY INFERRED;
 screenshot correspondence is STRONGLY INFERRED. The optional visual check is Q670.
 
 ## Observation and data
@@ -18,7 +21,7 @@ exploring or casting Sight. On the minimap the room patch itself changes
 colour; no separate flashing icon or outline was reported. This establishes
 fresh-game visibility, not the exact native turn or operation that explores it.
 
-**CONFIRMED:** Hero Portal is room25/terrain40; keeper Portal is room3/terrain12.
+**STRONGLY INFERRED:** Hero Portal is room25/terrain40; keeper Portal is room3/terrain12.
 Neither terrain has bit24 (reveal through fog) or bit9 (AlwaysExplored). Their terrain
 ambient RGB is `(115,97,65)` and light RGB `(0,0,0)`. Handler equality and the
 canonical flag comparison are in [portals-mercenary.md §1](portals-mercenary.md#1-the-data-draws-no-distinction-at-all).
@@ -34,7 +37,7 @@ label cannot be explained by that terrain being placed directly in this map.
 
 ## Scripted startup reveal (Q197, 2026-10-28)
 
-**CONFIRMED from shipped data and native dispatch:** Frosty's Lair's trigger
+**STRONGLY INFERRED from shipped data and native dispatch:** Frosty's Lair's trigger
 chunk contains three conditions and six actions. Each keeper root tests level
 time >= 0 (condition34, comparison5, value0, repeat1) and has two reveal actions:
 
@@ -78,7 +81,7 @@ records and the exact end of the 276-byte trigger file.
 
 ## 3D admission and ordinary exploration
 
-**CONFIRMED:** `0x0043E320` substitutes Fog terrain27 for an unexplored,
+**STRONGLY INFERRED:** `0x0043E320` substitutes Fog terrain27 for an unexplored,
 unscanned tile outside temporary Sight and possession viewing. A scanned tile
 without terrain bit24 substitutes ClaimScan terrain38. The real room-piece
 builder is bypassed after that substitution. Terrain40 has no exception.
@@ -86,7 +89,7 @@ The admission path in `0x0043C310` and things/liquid path in `0x0043CC30`
 also test exploration, temporary Sight and possession viewing. A centre light
 does not bypass these tests in the bodies read.
 
-**CONFIRMED:** `0x00454B80` delegates exploration of a room with construction
+**STRONGLY INFERRED:** `0x00454B80` delegates exploration of a room with construction
 3,4 or8 to `0x004E8B80`, which walks its slab chain and calls `0x00454D40`
 on each tile. Both 3×3 entrances qualify. Thus discovering one room tile can
 explore all nine while its neighbouring ground remains fogged. This ordinary
@@ -109,7 +112,7 @@ to explain the four reveals.
 
 ## Entrance light and the ring
 
-**CONFIRMED:** shared refresh `0x004DCD20` creates a standalone engine light
+**STRONGLY INFERRED:** shared refresh `0x004DCD20` creates a standalone engine light
 on the fifth slab of a nine-slab entrance, at tile centre and raw height2000,
 through bridge `+0xA4` (`0x004397E0`). Both room3 and room25 use this refresh,
 without an arrival, activation or owner test. It does not explore or scan.
@@ -135,7 +138,7 @@ advancing its anchor by whole50ms quanta. Each admitted call updates each light
 once, even after a stall; effects separately receive the elapsed quantum count.
 The nominal pulse period is2.5s, stretched by missed presentation updates.
 
-**CONFIRMED source admission:** `0x0043A0D0` creates kind2/mode1; constructor
+**STRONGLY INFERRED source admission:** `0x0043A0D0` creates kind2/mode1; constructor
 `0x004468E0` embeds RenderInfo at `+0x26`. Reset `0x004B3610` already zeroes
 RenderInfo `+0x4C`, hence light `+0x72`. Clearing its bit0 again in the entrance
 refresh does not enable source emission: `0x00599C60` submits a nonzero-radius
@@ -145,7 +148,7 @@ renderer classification is `0x191` normally or `0x95` with Cheap Lighting
 in `0x0043CC30` submits it without an exploration test; `0x00571AB0` links it
 into the dynamic cache. This does not bypass admission for room or creature art.
 
-**CONFIRMED receiver path:** the7x7 cache gather `0x00576230` has no exploration
+**STRONGLY INFERRED receiver path:** the7x7 cache gather `0x00576230` has no exploration
 or line-of-sight test. Unknown ground still substitutes terrain27 in `0x0043E320`.
 The substitute follows the ordinary piece path `0x0043E860`, whole/quarter sinks
 `0x0059A050`/`0x0059A200`, mesh item `0x00585F90` and transform `0x0057AD20`;
@@ -176,7 +179,7 @@ There is no discovery write, new stored simulation state or HashVersion change.
 
 ## Startup light count
 
-**CONFIRMED, fresh Frosty's Lair:** four centre-light requests, one per entrance,
+**STRONGLY INFERRED, fresh Frosty's Lair:** four centre-light requests, one per entrance,
 remain after startup, assuming successful allocations. Its descriptor names one
 Map.kld and its room THINGS records are three Hearts, not additional entrance builds.
 The complete allocation path is:
@@ -207,7 +210,7 @@ lights, allocation failure can omit a source; four is the successful startup cou
 
 ## Minimap flash
 
-**CONFIRMED:** `0x0041A9B0` copies palette entries from phase `turn % 7` to
+**STRONGLY INFERRED:** `0x0041A9B0` copies palette entries from phase `turn % 7` to
 the neutral player's Number for the three ownership-colour banks. A visible
 neutral room therefore changes colour independently of portal activation or
 creature arrivals. Both entrance types use this ordinary room-class path;
@@ -224,13 +227,13 @@ Battle-record structure has its home in [binary-census.md §3](binary-census.md#
 
 **STRONGLY INFERRED correspondence:** the owner's Q669 answer identifies the
 changing room patch expected from the ordinary neutral palette cycle. The
-native cycle itself is CONFIRMED above; exact colours and phase have not been
+native cycle itself is STRONGLY INFERRED above; exact colours and phase have not been
 measured against play. There is no separate entrance marker to build from
 this observation, and the neutral cycle is already implemented.
 
 ## Mercenary eligibility
 
-**CONFIRMED:** `0x004DBF90` accepts creature definition `+0x686 bit0x400`
+**STRONGLY INFERRED:** `0x004DBF90` accepts creature definition `+0x686 bit0x400`
 for room3, or `+0x68A bit8` (AvailableViaHeroPortal) for room25. This selects
 arrival candidates. It is not a visibility flag. The ordinary creator
 `0x004DC9A0`, constructor `0x004DBB90`, and special-arrival path
@@ -257,7 +260,7 @@ the fog seed (`0x0050B5D5`).
 
 ## Skirmish startup follow-up (2026-10-28)
 
-**CONFIRMED:** the direct fog dispatch in `0x0050C800` applies to modes2/3 on
+**STRONGLY INFERRED:** the direct fog dispatch in `0x0050C800` applies to modes2/3 on
 a fresh load. Fog switch `0x0075AE8B` selects explore-all or the local seed
 `0x00451FD0`. The latter uses the local player getter (world slot `+0x264`,
 `0x00508C60`, world `+0x7243`), ownership, orthogonal neighbours and terrain
@@ -272,7 +275,7 @@ also separate from discovery: `0x004F1040` sets pillar movement bit `+8 bit0x400
 statistics. The direct map-byte writes near `0x0050B79A`/`0x0050B867` modify
 tile `+0xB bit0x20`, neither of the two discovery bits.
 
-**CONFIRMED:** authored map callback `0x0051EC60` resolves the recorded player
+**STRONGLY INFERRED:** authored map callback `0x0051EC60` resolves the recorded player
 and passes that player as the room-builder receiver (`0x0051ED93..0x0051ED9F`).
 It does not temporarily build every entrance for the local player. Its final
 map-byte flag branch changes tile `+8 bit0x1000`, not explored `0x2000`.

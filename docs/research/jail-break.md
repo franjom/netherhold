@@ -1,3 +1,6 @@
+---
+systems: [rooms, creatures]
+---
 # A Prison's door and a jail break: states 122 and 121
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
@@ -11,7 +14,7 @@ A rescuer that steps into an enemy Prison holding an ally goes to **122**. It wa
 **door**, faces the cell, unlocks and opens the door, and releases every prisoner of its own side.
 Each released prisoner walks out in **121** and is free once it stands off the cell's floor.
 
-## 1. The door, `0x004E32C0` — CONFIRMED
+## 1. The door, `0x004E32C0` — STRONGLY INFERRED
 
 The room's `DoorTileX`/`DoorTileY` (`+0x51`, `+0x55`, named by the room dumper):
 - The door is the tile **north of the first floor tile**, in the room's tile chain, whose three
@@ -31,7 +34,7 @@ row-major, which puts its door at the west end. The earlier "camera" reading was
 the same on screen but runs the other way on the map. Ours walks `SlabChain.Order` (ADR-0240). The
 NW and NE tests never decide for a rectangle, so a negative control that drops them survives.
 
-## 2. The room's door state — CONFIRMED
+## 2. The room's door state — STRONGLY INFERRED
 
 - `Activation` (`+0x59`): toggled by `0x004E3680`. Off to on posts message `0x3F`; on to off
   closes the door and posts `0x3E`. The keeper's toggle is `0x00514280`.
@@ -43,7 +46,7 @@ NW and NE tests never decide for a rectangle, so a negative control that drops t
   toggle `0x004E3680` and `0x004E2B30` both start with `0x004E2D40(0)`, which clears it
   (corrected 2026-09-26).
 
-## 3. The way in, `0x004E8660`'s Prison arm — CONFIRMED
+## 3. The way in, `0x004E8660`'s Prison arm — STRONGLY INFERRED
 
 Run when a creature steps onto a new room tile. For a Prison, the stepping creature (`EDI`) must:
 - not be a worker;
@@ -57,7 +60,7 @@ Then, over the room's attached list, a prisoner that is not dying, is of a side 
 rescuer, and is not the neutral player's: **`SetState(122)` on the rescuer**
 (`MOV ECX,EDI` at `0x004E879C`). The Torture Chamber's arm is the same shape with 134.
 
-## 4. State 122, `0x00473C60` — CONFIRMED
+## 4. State 122, `0x00473C60` — STRONGLY INFERRED
 
 1. Off a Prison tile: return 0.
 2. No door: return 0.
@@ -67,7 +70,7 @@ rescuer, and is not the neutral player's: **`SetState(122)` on the rescuer**
 6. `DoorOpen` off: `0x004E35C0` opens it, return 1.
 7. Open: `0x004E2E70(1, rescuer's owner, 0)`, then `SetState(1)` and `SetState(87)`, a wander.
 
-## 5. The release, `0x004E2E70(message, player, all)` — CONFIRMED
+## 5. The release, `0x004E2E70(message, player, all)` — STRONGLY INFERRED
 
 Over the room's floor tiles, each thing on the ground, not dying, whose owner is `player` (or
 any, with `all`):
@@ -83,7 +86,7 @@ per creature it releases, and on the no-door path only when a rim tile is found.
   **overcrowding break**, and from `0x00514462`;
 - `0x004E2C30` (`(0, room owner, 0)`, after setting the attached list to 126).
 
-## 6. State 121, `0x004739E0` — CONFIRMED
+## 6. State 121, `0x004739E0` — STRONGLY INFERRED
 
 1. Off a Prison's floor: return 0, idle. **This is how a prisoner goes free.** Idle leaves category
    14, and the captive is its own side's creature again.

@@ -1,9 +1,12 @@
+---
+systems: [creatures]
+---
 # Portals — where creatures come from
 
 | | |
 |---|---|
 | Source(s) | `Rooms.kwd`, `Terrain.kwd`, `CREATURES`, per-level `VARIABLES` (shipped v1.70); `DKII.EXE` v1.70 (`Entrance.cpp` unit, ADR-0046); owner observations 2026-09-04 and 2026-09-07; 1999 manual p.22; OpenKeeper `CreatureSpawnSystem` (GPLv3, facts only, `THIRD-PARTY-NOTICES.md`) |
-| Confidence | Every *number* is CONFIRMED from the shipped data. The interval, its reset, the per-portal clock and the two rosters are CONFIRMED (binary plus owner). The pool's meaning is STRONGLY INFERRED; how attraction composes is CONFIRMED from the binary (§3) |
+| Confidence | Every *number* is STRONGLY INFERRED from the shipped data. The interval, its reset, the per-portal clock and the two rosters are CONFIRMED (binary plus owner). The pool's meaning is STRONGLY INFERRED; how attraction composes is STRONGLY INFERRED from the binary (§3) |
 | Implementation | `PortalRules`, `Systems/PortalSystem.cs`; `TileState.EntranceIdleTicks` and `TileState.EntranceCreaturesGenerated` on the centre tile; `PortalRules.OnOwnerChanged`, called from `TileWorkRules.Convert`. ADR-0042, ADR-0047, ADR-0086 |
 | Tests | `PortalTests` (38), `PortalOnRealDataTests` (16), `RoomConversionTests`, `RuinedHeartTests`; `scenarios/creatures/a_portal_fills_a_dungeon.yaml`, `scenarios/creatures/an_imp_claims_a_portal.yaml` |
 | Open questions | Q87 (what a `CreaturePool` entry is a quota of), Q89 (attraction below `RecommendedSize`), Q90 (weighting), Q91 (what players 1 and 2 do), Q98 (a deliberate capacity divergence) |
@@ -16,7 +19,7 @@ Split by subject, because this note was three times its budget:
 
 ---
 
-## What the shipped data says (CONFIRMED)
+## What the shipped data says (STRONGLY INFERRED)
 
 | Fact | Where |
 |---|---|
@@ -111,7 +114,7 @@ coincide — two different fifteens. Q87.
 
 **Read from the binary 2026-09-14, and it splits OpenKeeper's two readings.**
 
-**Both slots: CONFIRMED.** `FUN_004DC810` walks the creature definition's
+**Both slots: STRONGLY INFERRED.** `FUN_004DC810` walks the creature definition's
 counted list — `byte[def+0x788]` entries of **3 bytes** from `def+0x5DA`,
 `{u8 param, u8 amount, u8 kind}`, fetched by `FUN_00494380` — and returns 0
 on the first entry that fails, 1 only after all of them pass. By the jump table at
@@ -221,7 +224,7 @@ reserved.** See `PlayerIds` (ADR-0043).
 | 2 | **neutral — this is what an unclaimed room belongs to** |
 | 3–7 | keepers |
 
-CONFIRMED from three directions, only one of them OpenKeeper's `Player`
+STRONGLY INFERRED from three directions, only one of them OpenKeeper's `Player`
 constants. The campaign's own data says it twice: across all 66 levels **every
 dungeon-heart tile belongs to a player between 3 and 7**, and **every creature
 pool and creature-availability entry names a player between 3 and 7**. Level 1

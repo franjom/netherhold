@@ -10,7 +10,7 @@ namespace DK2.Simulation;
 /// <summary>Where a keeper's mana comes from, and what stops it growing (mana.md).
 /// <para><b>Mana is land</b>: the three terrains with a non-zero <see cref="TerrainDef.ManaGain"/>
 /// — Claimed Path 1, Reinforced Wall 1, Claimed Vault 100 — are exactly the non-room
-/// terrains a keeper holds, so income is the size of the territory (CONFIRMED from the
+/// terrains a keeper holds, so income is the size of the territory (STRONGLY INFERRED from the
 /// data). The unit is per second (STRONGLY INFERRED): <c>MaximumManaGainPerSecond</c>
 /// (500) caps the total and a cap shares its unit. A heart adds a flat 30, once per
 /// keeper — exact, because <b>a keeper has at most one heart, ever</b>. Every imp drains

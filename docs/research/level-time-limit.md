@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # The level time limit, and trigger actions 9, 15, 23, 31 and 47
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-26.
@@ -10,7 +13,7 @@ Action type 23 sets a countdown in game turns that the world counts down once a 
 "timer" conditions that name id 16 read it. When it runs out, a world bit is set and, in game
 modes 2 and 3 only, every keeper loses.
 
-## 1. Where the three actions go — CONFIRMED
+## 1. Where the three actions go — STRONGLY INFERRED
 
 The player action dispatcher `0x004C8620` (types 10–50, byte table `0x004C8A98`, jump table
 `0x004C8A60`) has no arm for 9, 15, 23 or 47. Its default `0x004C8A3E` passes the record to the
@@ -23,7 +26,7 @@ world dispatcher `0x00518AD0` (byte table `0x00519930`, jump table `0x005198C4`)
 | 23 | `0x0051916F` | `world+0x72AA := Value` (dword 4); the timer id byte is not read |
 | 47 | `0x005197B1` | world slot `+0x378` = `0x005098C0`: `world+0x72BC := TargetId` (byte 0) |
 
-## 2. `LevelTimeLimit`, `world+0x72AA` — CONFIRMED
+## 2. `LevelTimeLimit`, `world+0x72AA` — STRONGLY INFERRED
 
 - **The name** is DK2's own: the world dumper prints it at `0x0050ED6A` (`LevelTimeLimit %d`).
 - **The countdown**, in the per-turn world update `0x0050A450`, at `0x0050A64E`:
@@ -58,7 +61,7 @@ world dispatcher `0x00518AD0` (byte table `0x00519930`, jump table `0x005198C4`)
   `+0x34C`, it is read by the world dumper and by `0x0050F3D0` (`0x0050F567`), which is also
   not read.
 
-## 3. `SpecialInfoNextRoomTypeId`, `world+0x72BC` — CONFIRMED
+## 3. `SpecialInfoNextRoomTypeId`, `world+0x72BC` — STRONGLY INFERRED
 
 Named by the world dumper at `0x0050F102`. Its readers:
 - the getter `0x005098B0`, world slot `+0x374`, which is called only from the interface at
@@ -68,10 +71,10 @@ Named by the world dumper at `0x0050F102`. Its readers:
 
 The only reader whose role is known is the display.
 
-## 4. Action 9 is interface state — CONFIRMED
+## 4. Action 9 is interface state — STRONGLY INFERRED
 
 Action 9 is FLASH_BUTTON: a global, real-clock HUD flash request. Its descriptor and expiry are in
-[hud-resources.md](hud-resources.md#scripted-resource-flashing--confirmed). What it flashes (tabs,
+[hud-resources.md](hud-resources.md#scripted-resource-flashing--strongly-inferred). What it flashes (tabs,
 panel slots, icon buttons, mana and gold) and what clears it are in [tab-alerts.md](tab-alerts.md).
 
 ## 5. Ours
@@ -86,7 +89,7 @@ panel slots, icon buttons, mana and gold) and what clears it are in [tab-alerts.
 - **Not built:**
   - action 9's generic icon flash and chime (the mana/gold, tab and slot flashes are built; see tab-alerts.md).
 
-## 6. Action 15 in a creature's tree — CONFIRMED, built (ADR-0236)
+## 6. Action 15 in a creature's tree — STRONGLY INFERRED, built (ADR-0236)
 
 The creature action dispatcher `0x0049AC80` (types 15–43, byte table `0x0049B19C`, jump table
 `0x0049B170`) sends 15 to `0x0049ACC1`. It returns 1 on every path:

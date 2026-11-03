@@ -16,7 +16,7 @@ namespace DK2.Simulation;
 /// to a Treasury or Heart (155, 156) and takes its winnings (157) before a deadline, which, missed,
 /// angers every creature of its keeper (<c>0x004D6A40</c>). The room update <c>0x004D6270</c> ends
 /// the party.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/casino.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/casino.md")]
 public static class CasinoJackpotRules
 {
     /// <summary>152 (<c>0x00456EC0</c>): the winner's celebration, ten game seconds.</summary>

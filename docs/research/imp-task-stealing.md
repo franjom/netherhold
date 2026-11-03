@@ -1,6 +1,9 @@
+---
+systems: [imps-tile-work]
+---
 # Imp task stealing: who takes a held task, what the loser does, what ends a trade
 
-**CONFIRMED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
+**STRONGLY INFERRED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
 12.1.4/PyGhidra on a worker copy of Claude's project, 2026-09-30. Decompiler output stayed
 under `reverse-engineering/` (ADR-0046); every fact below is in our words with its
 address. No capture was compared here; §10 names the checks. The sibling
@@ -202,7 +205,7 @@ imp**, which is safe only because every taker kicks the holder first or right af
 own walk. The "waits if its stance is occupied" of `imp-state-exits.md` for 13, 21 and 25
 is wrong: `0x004B2AE0` turns the creature's facing (`+0xF4`) toward the point by at most
 its turn rate (`definition+0x6A0 & 0x7FF`) and returns the remaining angle; the states
-wait for the turn, never for another imp (STRONGLY INFERRED on the rate field, CONFIRMED
+wait for the turn, never for another imp (STRONGLY INFERRED on the rate field, STRONGLY INFERRED
 on the shape).
 
 **What stops a trade.** A steal needs the taker strictly nearer than the holder to one

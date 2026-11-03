@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # A creature’s job and needs, named by DK2 (Q264)
 
 **Scope:** the field names DK2 prints for a creature's job, needs and imp task state, transcribed from its debug

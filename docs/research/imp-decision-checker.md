@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work, tooling-process]
+---
 # Limits of the Imp decision checker
 
 Checked 2026-10-17 on master `5735d000`, with unchanged gameplay.
@@ -6,7 +9,7 @@ and `level4-live1/seed01/level4.dk2cap`. Frame numbers below are capture
 frames, not simulation turns. The extractor SHA256 is
 `629f6387a8874550d84561a7584f370614479b4a37a7a5fb64eb2138960253cf`.
 
-## Result — CONFIRMED controls, bounded scope
+## Result — measured controls, bounded scope
 
 Through frame 450 the checker reports 82/82 choices equal, including the
 cast Imp's claim at `(30,54)` at frame 396. Through frame 1100 it reports

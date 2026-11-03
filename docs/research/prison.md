@@ -1,11 +1,14 @@
-﻿# The Prison: capture, withering, skeletons and the jail break
+﻿---
+systems: [rooms, creatures]
+---
+# The Prison: capture, withering, skeletons and the jail break
 
 | | |
 |---|---|
 | Source(s) | `DKII.EXE` v1.70 (facts in our own words, ADR-0046) — `FUN_004e70a0` and `FUN_00490240` (the shipped debug dumps), `FUN_0047b7c0` (the drain), `FUN_004e2e70` (`prison.cpp`'s jail break), `FUN_00473550` / `FUN_00473750` (the food hunt), `Room.cpp:1717` (the step), the state and category tables; 1999 manual p.23; owner play 2026-09-05 to 2026-09-13 |
 | Implementation | `PrisonRules`, `Systems/PrisonSystem`, `Systems/PrisonerWanderSystem`, `Systems/PrisonerEatSystem`, the enemy branch of `CarryRules.TryDestinationFor`, the ownership exception in `HandRules.CanPickUp`, `CreatureState.PrisonOwnerPlayerId`, `EatingRules.EatInPrison`. Decisions: ADR-0064, ADR-0070 to ADR-0075 |
 | Tests | `PrisonTests`, `EatingTests`; `scenarios/creatures/an_imp_drags_an_enemy_to_prison.yaml`, `scenarios/creatures/a_keeper_drops_a_chicken_in_a_prison.yaml` |
-| Confidence | **CONFIRMED**: the drain and its hunger gate, the capacity rule, the arrival health, the wander loop, the food race, the jail-break trigger, that only an imp captures, that an available prison is preferred over a full one, and that a prison filling during the carry leaves the body on its rim (with every prison already full no imp sets off: owner recollection and `0x0046D810`, ADR-0354). **STRONGLY INFERRED**: the Skeleton on death and a lost prison freeing its enemies — the manual states each. **UNKNOWN**: the pick-up handler's real ownership gate (Q161), tie-breaking among eligible prisons and what the two refused creature states are, which shipped field the occupancy byte is |
+| Confidence | **CONFIRMED**: the drain and its hunger gate, the capacity rule, the arrival health, the wander loop, the food race, the jail-break trigger, that only an imp captures, that an available prison is preferred over a full one, and that a prison filling during the carry leaves the body on its rim. **STRONGLY INFERRED**: that with every prison already full no imp sets off (`0x0046D810`, ADR-0354; the owner recalls it, a recollection, not an observation), the Skeleton on death and a lost prison freeing its enemies — the manual states each. **UNKNOWN**: the pick-up handler's real ownership gate (Q161), tie-breaking among eligible prisons and what the two refused creature states are, which shipped field the occupancy byte is |
 | Known exceptions | Ours drains in single seconds without the accompanying anger, rolls the jail break once a second (Q168), frees prisoners where they stand rather than at the door, and has no keeper-set door bar, torture chamber or combat pit — §5 |
 | Open questions | Q161 (the pick-up handler's real ownership gate), Q164, Q166, Q168 (our jail-break cadence), Q171, Q184, Q185, Q186, Q188 |
 
@@ -252,7 +255,7 @@ And **combat** from the other end: everything here begins after a fight, and
 there is no fight, which is why `an_imp_drags_an_enemy_to_prison` places its
 goblin at zero health.
 
-## 6. What a prisoner does between arriving and dying — CONFIRMED
+## 6. What a prisoner does between arriving and dying — STRONGLY INFERRED
 
 Read out of `DKII.EXE` on 2026-09-06 under the corrected state-table frame
 (`creature-state-table.md`). The prison occupies **states 114–126**, all of

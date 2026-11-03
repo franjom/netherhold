@@ -1,3 +1,6 @@
+---
+systems: [simulation-core, creatures]
+---
 # The creature update's order, and ours (ADR-0554)
 
 **Scope:** the order in which one turn runs each creature's fight, needs, choosers, state handler
@@ -9,13 +12,13 @@ walk in `imp-task-objects-and-walks.md`, and the sweep in [004B7830](functions/0
 
 | Step | Where | Confidence |
 |---|---|---|
-| Payday clock, once per player | `0x004BE1A0` from `0x0050A450` at `0x0050A7BE`, before the sweep | CONFIRMED |
-| Creature sweep, newest first, one whole update at a time | `0x004B7830` at `0x0050A7D7` | CONFIRMED |
-| Fight scan | `0x0045E9F0` at `0x00489AC7` | CONFIRMED |
-| Dispatcher: category hook, need-anger `0x00478D00`, needs routine `0x00477C20`, unhappy or angry chooser, then the state handler | `0x00476FC0` at `0x0048A030` | CONFIRMED |
-| Physical commit | `0x004B2030` at `0x0048A204` | CONFIRMED |
-| Steering step; its gate skips the Imp (`+0x36F == 1`) | `0x0048A266`, gate `0x0048A210`-`0x0048A248` | CONFIRMED |
-| Imp's step: inside state 6's handler, then the arrival test and the resume, in one call | `0x00470C80` | CONFIRMED |
+| Payday clock, once per player | `0x004BE1A0` from `0x0050A450` at `0x0050A7BE`, before the sweep | STRONGLY INFERRED |
+| Creature sweep, newest first, one whole update at a time | `0x004B7830` at `0x0050A7D7` | STRONGLY INFERRED |
+| Fight scan | `0x0045E9F0` at `0x00489AC7` | STRONGLY INFERRED |
+| Dispatcher: category hook, need-anger `0x00478D00`, needs routine `0x00477C20`, unhappy or angry chooser, then the state handler | `0x00476FC0` at `0x0048A030` | STRONGLY INFERRED |
+| Physical commit | `0x004B2030` at `0x0048A204` | STRONGLY INFERRED |
+| Steering step; its gate skips the Imp (`+0x36F == 1`) | `0x0048A266`, gate `0x0048A210`-`0x0048A248` | STRONGLY INFERRED |
+| Imp's step: inside state 6's handler, then the arrival test and the resume, in one call | `0x00470C80` | STRONGLY INFERRED |
 
 In the dispatcher, a success in the needs routine still runs the handler, on the new state. A
 success in a mood chooser skips the handler for that turn.

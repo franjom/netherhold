@@ -41,7 +41,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void ACastsShotUpdatesOnTheCastsTick_PacketActionsAreDispatchedBeforeTheSweep0x004B7830_Likely()
     {
-        // World_UpdateTurn dispatches packet actions (0x005119C0, LIKELY) before 0x004B7830 walks list 1,
+        // World_UpdateTurn dispatches packet actions (0x005119C0, HYPOTHESIS) before 0x004B7830 walks list 1,
         // so a player's cast moves the turn it is made; the computer keeper casts in the player frame,
         // after the sweep, and its commands reach ours at the head of the next tick (ADR-0551).
         var (db, world, target) = Setup();

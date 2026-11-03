@@ -10,9 +10,9 @@ namespace DK2.Simulation;
 /// <summary>
 /// The mutable per-tile simulation state, distinct from <see cref="MapTile"/>,
 /// which is the immutable file view. Terrain, owner and flags come straight from
-/// the MAP record (CONFIRMED); health is seeded from
+/// the MAP record (STRONGLY INFERRED); health is seeded from
 /// <see cref="TerrainDef.StartingHealth"/> and is what digging, claiming and
-/// reinforcing modify (CONFIRMED, docs/research/kwd-terrain-rooms.md); gold held
+/// reinforcing modify (STRONGLY INFERRED, docs/research/kwd-terrain-rooms.md); gold held
 /// is where a keeper's gold actually is, because every limit DK2 sets on gold is
 /// per tile (<see cref="GoldStore"/>).
 /// </summary>

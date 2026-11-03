@@ -100,7 +100,7 @@ public static class ResearchStep
     /// <summary>60 (room-return-states.md §2): at <c>Age</c> 1 a running action ended; without art in
     /// slot 8, 0; while an action runs, 1; otherwise action 35 for <c>random(2) + 1</c> plays
     /// (simulation stream), then 1 and 61, and 0: the creature idles in the same call with the action
-    /// playing, as 61's handler never runs. The hold is the counted clip, LIKELY.</summary>
+    /// playing, as 61's handler never runs. The hold is the counted clip, HYPOTHESIS.</summary>
     private static bool Celebrate(SimulationContext context, string system, CreatureState creature, long age)
     {
         long now = context.Tick.Value;

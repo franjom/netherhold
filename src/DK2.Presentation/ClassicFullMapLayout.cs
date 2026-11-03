@@ -8,7 +8,7 @@ namespace DK2.Presentation;
 
 public readonly record struct FullMapPreview(Vector2 Origin, Vector2 Size, ClassicCameraPose Pose);
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-controls.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-controls.md")]
 public readonly record struct ClassicFullMapLayout(Vector2 Origin, Vector2 Size, int MapWidth, int MapHeight)
 {
     public static ClassicFullMapLayout Fit(int screenWidth,int screenHeight,int mapWidth,int mapHeight)

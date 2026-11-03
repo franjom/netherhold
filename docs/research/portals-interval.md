@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # A portal's arrival interval
 
 | | |
@@ -109,7 +112,7 @@ gaps.
 Read 2026-10-01 from the binary (pyghidra-mcp, ADR-0046) and checked against
 three seeded Level 2 captures. Confidence is per claim.
 
-**Every due roll restamps the clock. CONFIRMED (binary).** When
+**Every due roll restamps the clock. STRONGLY INFERRED (binary).** When
 `now >= room[0x49] + (n² + base) × variable19`, `0x004DBBE0` calls the pick
 `0x004DBF90` with 1 and then writes `room[0x49] = now` at `0x004DBC7C`. Nothing
 tests what the pick returned. So the clock restarts at the due tick whether a
@@ -119,7 +122,7 @@ obstacle goes. The wait is never banked. Before the due test the routine checks
 only that the room's owner is not `DAT_006F2548` and that the owner's
 `+0x132` (`KilledByPlayerId`) is 0.
 
-**The special-arrival branch is not the campaign's. CONFIRMED (binary).** First
+**The special-arrival branch is not the campaign's. STRONGLY INFERRED (binary).** First
 the due path calls `0x004DCF50`. When it returns non-zero for a room of type 3,
 the routine restamps and returns without the pick. `0x004DCF50` returns 0 at
 once when the mode byte `0x0075AD4B` is 1 (single player, `win-and-defeat.md`).
@@ -128,7 +131,7 @@ In other modes it offers the first type in 0x20..0x2C whose player flag
 sets the flag, and returns 1 whether or not the create succeeded. Not built:
 nothing here runs a non-campaign mode.
 
-**The pick can draw and still create nothing. CONFIRMED (binary).** After the
+**The pick can draw and still create nothing. STRONGLY INFERRED (binary).** After the
 draw, `0x004DBF90` calls the creator `0x004DC9A0` and increments `room[0x4D]`
 (`0x004DC5E3`) only when it returns non-zero. It then decays every boost and
 block whenever any type had weight, however the create went. The creator's
@@ -136,7 +139,7 @@ first test (`0x004DC9AB`–`0x004DC9B8`) is the owner's `+0x76` bit 10. When the
 bit is clear it returns 0 before anything else. The player dumper prints that
 bit as **`PortalsOpen`** (`0x004BDCEA`).
 
-**Only the script writes `PortalsOpen`. CONFIRMED (binary).** Player action
+**Only the script writes `PortalsOpen`. STRONGLY INFERRED (binary).** Player action
 type 37 maps to arm `0x004C892D` (index byte 9 at `0x004C8AB3`, pointer 9 of the
 table at `0x004C8A60`; type 28 maps to `0x004C8851` in the same tables, which
 `portal-creature-action.md` had read). A zero body byte 0 clears bit 10 and any
@@ -145,7 +148,7 @@ sets the bit for its own call, so a scripted creature comes through a closed
 portal, then clears it again if it was clear (`0x004DC983`–`0x004DC989`).
 `0x004DC9A0` has exactly those two callers.
 
-**Level 2 closes its portal for the scripted Warlock. CONFIRMED (shipped
+**Level 2 closes its portal for the scripted Warlock. STRONGLY INFERRED (shipped
 triggers).** Condition 3 (*a Portal*) with child condition 4 (*a Library*) runs
 action 37 with `Available=0` and starts timer 0. At timer 0 ≥ 10 s it runs action
 28 (Warlock, level 1) and action 31 (path 60 to action point 4). At timer 0 ≥ 30 s
@@ -197,11 +200,11 @@ the dword into a register, decrements the register and stores it back.
 - **The arrival is stamped with its portal.** `Portal_CreateArrival`
   (`0x004DC9A0`) writes the portal room's tag (`room+0x04`) into the creature's
   word `+0x4EB` on both arms: `0x004DCC40` for a keeper portal, `0x004DCC99` for a
-  hero portal. `Creature_Construct` zeroes it (`0x004878EC`). CONFIRMED.
+  hero portal. `Creature_Construct` zeroes it (`0x004878EC`). STRONGLY INFERRED.
 - **A death gives the slot back.** At `0x00488150`–`0x00488170`,
   `Creature_DeathBookkeeping` reads `+0x4EB`. When it is non-zero and that
   thing's dword `+0x4D` is above zero, it decrements the dword. The tally never
-  goes below zero. Nothing checks that the thing is still a portal. CONFIRMED.
+  goes below zero. Nothing checks that the thing is still a portal. STRONGLY INFERRED.
 - **A converted creature keeps its stamp.** The text scans for writers of
   `+0x4EB` found only the three writes above; the other hits are on the computer
   player's struct. A creature that changes owner would therefore still lower its
@@ -220,7 +223,7 @@ same bookkeeping is unread. Built as ADR-0358 (`PortalRules.ArrivalDied`).
 
 Read 2026-11-01 from the binary and checked against the Level 5 and Level 4 captures.
 
-**The pick and the noticing pass both start with the keeper's free lair space. CONFIRMED (binary).**
+**The pick and the noticing pass both start with the keeper's free lair space. STRONGLY INFERRED (binary).**
 `0x004DBF90` calls `0x004C6DD0` on the owner before its type loop. It weighs no type while the
 result is negative: it jumps to its epilogue at 0x004DBFF8. `0x004DBD90` does the same. So a
 negative value means no notice, no draw, no decay and no creation, and the caller still restamps
@@ -293,7 +296,7 @@ that could not have found the thing was read as evidence about the thing.
 
 ## Portal buildup (built, ADR-0467)
 
-CONFIRMED by whole-function reads, refreshed 2026-10-23: `FUN_004DBBE0`
+STRONGLY INFERRED by whole-function reads, refreshed 2026-10-23: `FUN_004DBBE0`
 tests equality with the next due turn minus three game seconds (12 ticks).
 It calls `FUN_004DBF90` with argument zero and, when its candidate count
 and the room definition's runtime ushort `+0x425` are nonzero, requests
@@ -336,7 +339,7 @@ The original isolated probe checked particles but missed the weak/occluded
 rendering reported by the owner. The corrected blend and depth ordering and
 focused GPU regression are in [sprite rendering](room-construction-effects.md#sprite-blend-and-shared-terrain-ordering-2026-10-23).
 
-CONFIRMED shipped definitions and `FUN_00435F20`'s colour selection:
+STRONGLY INFERRED shipped definitions and `FUN_00435F20`'s colour selection:
 
 | Element | Resource | RGB | File art flags | Lifetime updates |
 |---|---|---|---|---|

@@ -17,7 +17,7 @@ namespace DK2.Simulation.Systems;
 /// dispatcher's needs routine and the state handlers, so every handler that waits for
 /// <see cref="CreatureState.HasRoute"/> to clear hands over when DK2's would. An imp is left to its own
 /// handler, which steps it and tests the progress itself after the mover (ADR-0297).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/travel-states.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/travel-states.md")]
 public sealed class TravelArrivalSystem : ICreatureUpdateStep
 {
     private const int WaitingState = 88;

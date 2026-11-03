@@ -6,7 +6,7 @@ using DK2.Core;
 
 namespace DK2.Simulation;
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/object-drawing.md#8-furniture-eggs-and-chickens")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/object-drawing.md#8-furniture-eggs-and-chickens")]
 public static class ObjectReactionRules
 {
     private const string SystemName = "ObjectReactions";

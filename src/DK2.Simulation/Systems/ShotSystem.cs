@@ -18,7 +18,7 @@ namespace DK2.Simulation.Systems;
 /// walked newest first; a shot made while the list is walked (a chained shot) or after it (a
 /// trap's) waits for the next turn, and one a creature makes in its own update moves this turn
 /// (ADR-0367, ADR-0551).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/shots.md")]
 public sealed class ShotSystem : ISimulationSystem
 {
     private const string SystemName = "shots";

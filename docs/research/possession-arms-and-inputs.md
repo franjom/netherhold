@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Possession: the unbuilt arms and the command inputs
 
 Primary source: DKII.EXE v1.70, pyghidra-mcp reads on 2026-10-12 (Q535, Q536).
@@ -14,7 +17,7 @@ Object types named below: 9 Chicken, 14 Training Dummy, 15 Anvil, 16 Steel Bucke
 46 Work Bench, 64 Book Case, 94 Arch Pillar. A dead body is class 6, not an object
 type, and a shot is class 1.
 
-## 1. Melee on objects — CONFIRMED
+## 1. Melee on objects — STRONGLY INFERRED
 
 Action 26 (`0x00514830`) switches an object target (class +0x12 = 2) on type byte
 +0x12C through index table `0x005153E8` (type − 1, 46 entries) and jump table
@@ -52,7 +55,7 @@ ticks; then +0xD4 and +0xD8 are zeroed and it returns 0. No damage.
 vtable +0x10C, else the object's position; `Attack_LookupImpactPair(def+0x77A, object
 def+0x11C, point)`; +0x427 = now. The effects are presentation; the weapon sound it asks is [sound-effects-combat.md section 5](sound-effects-combat.md#5-the-swing-death-and-corpses).
 
-## 2. The swing on things that are not creatures — CONFIRMED
+## 2. The swing on things that are not creatures — STRONGLY INFERRED
 
 Action 17's swing `0x00498E30` gates on a live slot, +0x16 ≠ 2 and vtable +0x34;
 object, shot and body all return 1 there (`0x00628BC0`). A possessed attacker
@@ -79,7 +82,7 @@ heart through the forward above.
 UNREAD: what removes a shot whose Health a blow takes to ≤ 0; what the object
 updater does when state 18 returns 0.
 
-## 3. Dig and claim — CONFIRMED by listing
+## 3. Dig and claim — STRONGLY INFERRED by listing
 
 A melee press with no target, on a creature whose def+0x686 bit 0 is set
 (`0x00514E1D`–`0x00515037`); bit 0 clear returns 1 and does nothing.
@@ -107,7 +110,7 @@ solid tile → effect 0x335 (presentation). +0x427 on a successful start.
 
 No reinforce arm, no wall claim, no task marked.
 
-**The actions — CONFIRMED** (handlers read 2026-10-12). None reads a task or an imp
+**The actions — STRONGLY INFERRED** (handlers read 2026-10-12). None reads a task or an imp
 job field: each takes its tile from the begin point (+0x38D/+0x391 >> 12) and works it
 through `Map_ApplyTileWork` (`0x004508D0`) with the creature's owner. Work rate is
 +0x3AF + +0x3B3 (12.12); ×MRT multiplies the floored delta (SAR 12) by
@@ -120,7 +123,7 @@ until it returns 0, then holds for the animation; mode 0 ends on that poll.
 | 1 dig | `0x00496E00` | 3 | Imp: own wall var 9, rock var 8, enemy wall var 10, × rate, ×MRT; XP to any digger. Non-imp: 6 × var 9 × rate, owner ignored, no ×MRT, only while global `0x0075AE93` = 0 (UNREAD; `0x0050C90D` reads it beside game modes 2/3) |
 | 2 mine | `0x004971D0` | 3 | var 7 × rate, ×MRT, XP. Gold old·G/H − new·G/H (G terrain +0x185, H +0x1AD) to player GoldMined +0x15A, then the purse up to MaxGoldHeld, the rest on the floor (`0x004510C0`). A gem face (terrain +0x17B bit 1) takes no damage and pays GoldMinedFromGems (25) every strike; CONFIRMED (owner, 2026-10-12: gold every swing, the face never cracks) |
 | 4 claim | `0x004974C0` | 3 | ClaimTileHealth × rate, ×MRT, XP; returns 1 while the tile is claimable, so it strikes every poll until it converts; sound 0x10A or 0x10B |
-| 6 convert | `0x004977F0` | 0 | AttackTileHealth × rate, no XP, no ×MRT: one strike a press. When the floor falls, every trap and door on the creature's own tile (+0x1A, not the begin point) has its health zeroed (removal LIKELY) and `0x00455030` is notified |
+| 6 convert | `0x004977F0` | 0 | AttackTileHealth × rate, no XP, no ×MRT: one strike a press. When the floor falls, every trap and door on the creature's own tile (+0x1A, not the begin point) has its health zeroed (removal HYPOTHESIS) and `0x00455030` is notified |
 
 The owner (2026-10-12) has seen hero Dwarves dig walls; whether a possessed non-Imp
 digs is not known. Action 5 (`0x00497670`) is claim state 20's convert (imps of any player); its ×MRT branch is reached only by a possessed imp. UNREAD:
@@ -131,11 +134,11 @@ flags (the non-Imp dig, also the hero tunneller's; action 6's missing XP and its
 trap/door zeroing); `ClaimActionTile` repeats the claim each tick. The gem rule is
 built for every miner (ADR-0470).
 
-## 4. Followers — CONFIRMED unless marked
+## 4. Followers — STRONGLY INFERRED unless marked
 
 **The press** (slot 3, `0x0051503C`–`0x005150A4`). The owner (2026-10-12): key 7, then a
 click on a highlighted creature adds it as a follower, one per click; selector 3 of
-`Possession_SelectAbility` (`0x0040F9E0`) is that ability (the key binding is LIKELY). `0x00515D50` picks one creature;
+`Possession_SelectAbility` (`0x0040F9E0`) is that ability (the key binding is HYPOTHESIS). `0x00515D50` picks one creature;
 nothing happens when it returns 0 or when the possessed creature's +0x488 ≥ (variable
 223 & 0xFF), a signed compare (MaximumGroupNumberOfFollowers, 8). Otherwise
 `0x00461980(possessed id)` runs on the pick, and +0x488 is incremented only on its
@@ -189,7 +192,7 @@ its mood block, Needs_IsBusy counts the creature busy and it gains no need-anger
 spFighting's fear clears +0x482 before fleeing, so a follower that drops the follow
 can flee.
 
-**Action 37** (`0x00516A20`, CONFIRMED) is a close recruit, not a recall. From the
+**Action 37** (`0x00516A20`, STRONGLY INFERRED) is a close recruit, not a recall. From the
 possessed creature P's own position and heading +0xF4: P's tile first (things other
 than P in the cone, class 0, P's owner, +0x482 = 0), else the 8 neighbours in the
 melee order from table `0x006BC370`, the cone tested once at each tile's centre; the
@@ -213,7 +216,7 @@ re-route on every return to 246 predicts; a recruited Imp fights when the posses
 strikes a hero, as the leader's-target override predicts. Whether a full eight can be
 recruited after a follower leaves or is sacrificed, and the dismiss key, are not known.
 
-## 5. Command inputs — CONFIRMED unless marked
+## 5. Command inputs — STRONGLY INFERRED unless marked
 
 **Sneak, command 0x1D** (handler `0x00517270` → ToggleSneak `0x0048EE90`). Packet
 dwords 0 and 1 are a raw tile x, y, unchecked. +0x4A3 = 0 when +0x4A3 is already set
@@ -270,7 +273,7 @@ spell gate. Simulation readers: the free-aim range (`0x00515364`: 0x3000 when sp
 Range +0x31 plus the bit is nonzero, else 0, which is unlimited) and shot +0x165
 (`0x004984D0`), which doubles contact damage (`0x004AC420`). So for a spell with Range
 0 sniper mode adds a 3-tile cap. The HUD `0x00420D10` reads it for presentation; the
-input routine `0x0040FDF0` sends action 39 with the inverted bit (CONFIRMED).
+input routine `0x0040FDF0` sends action 39 with the inverted bit (STRONGLY INFERRED).
 
 **Shot range.** `Shot_Update` (`0x004AB2C3`–`0x004AB308`) destroys a shot when MaxRange
 +0x155 ≠ 0 and dx² + dy² from StartPosition +0x159/+0x15D exceeds MaxRange², both
@@ -281,7 +284,7 @@ input routine `0x0040FDF0` sends action 39 with the inverted bit (CONFIRMED).
 - Action 26 never reads dword2's 11-bit angle: its callees read words 0 and 1 only
   (the hypnosis command decodes the same field from its own packet). `0x00516050`'s third argument is dead (`RET 0xC`, one caller,
   always 1).
-- The caster is a candidate of its own spell scan (and LIKELY of the follower scan,
+- The caster is a candidate of its own spell scan (and probably of the follower scan,
   by the same argument; UNREAD there) but cannot win when the pose's X/Y
   equal its position: the vertical-only direction scores ≥ about 1200 against 256.
   Whether the client's pose always equals the position is UNREAD.
@@ -295,5 +298,5 @@ input routine `0x0040FDF0` sends action 39 with the inverted bit (CONFIRMED).
 - Player order: `Players_Activate` (`0x004C2460`) pushes each player on the head of
   the active list (world +0x7A, next +0x3A), so scans visit players in reverse
   activation order. Activation follows the level's PLAYERS records in file order
-  (`0x0051EF80` → `0x004C2340`), so the last record comes first (CONFIRMED;
+  (`0x0051EF80` → `0x004C2340`), so the last record comes first (STRONGLY INFERRED;
   [win-and-defeat.md](win-and-defeat.md) §7).

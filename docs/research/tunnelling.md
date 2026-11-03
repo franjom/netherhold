@@ -1,3 +1,6 @@
+---
+systems: [heroes]
+---
 # Tunnelling: states 186, 223 and 224
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
@@ -8,7 +11,7 @@
 
 When a hero's route fails with option bit 0, a hero worker (the Dwarf) digs its own way. It aims a straight line at the target and follows walls round rock it may not dig, and it digs each tile from beside it. A party leader lends the errand to its Dwarf and walks behind it until the Dwarf hands back.
 
-## 1. Entry: the route helpers' failure path — CONFIRMED
+## 1. Entry: the route helpers' failure path — STRONGLY INFERRED
 
 This is `0x00471890` at `0x0047193A`–`0x00471A56`, and `0x00471A70` alike.
 - **Without option bit 0**, a failed route returns 0.
@@ -18,14 +21,14 @@ This is `0x00471890` at `0x0047193A`–`0x00471A56`, and `0x00471A70` alike.
   - Workers whose request fails are passed over. With none found it returns 0.
 - **The feasibility test** `0x00471740` has the same branches. There it asks only `0x00485B50`: is the creature a worker, and may it enter 186 (`0x00477310`)?
 
-## 2. The tunnel request, `0x00485B80` / `0x00485AB0` — CONFIRMED
+## 2. The tunnel request, `0x00485B80` / `0x00485AB0` — STRONGLY INFERRED
 
 1. `SetState(186)` must be taken; sound `0x100` plays.
 2. **The target tile** `+0xB7/+0xB9` is the point's tile, or the room's first tile (`+0x2D/+0x2E`).
 3. **The dig point** `+0xAF/+0xB3` and **the stand point** `+0xA7/+0xAB` both start as the creature's position.
 4. The resume state goes in `+0xD3`, and the phase `+0xBB` is 0.
 
-## 3. State 186, `0x00485C10` — CONFIRMED
+## 3. State 186, `0x00485C10` — STRONGLY INFERRED
 
 1. **An action still playing** (`0x00496D00`): wait.
 2. **The dig tile is clear** (world slot `+0x208` false). Try the route to the target tile's centre, resuming `+0xD3`, options 0: done.
@@ -42,7 +45,7 @@ This is `0x00471890` at `0x0047193A`–`0x00471A56`, and `0x00471A70` alike.
 
 **`0x004B2AE0` turns; it is not a region test.** It steps the heading toward a point by at most the definition's turn rate (`+0x6A0 & 0x7FF`) and returns what is left. Ours has it as `Bearing.TurnToward`. That answers half of Q371: the fight state's pre-swing test is a turn to face the target. Payday's 188 likewise waits while it turns to face the tile (`payday.md` §4.3).
 
-## 4. The next dig tile, `0x00485EF0` — CONFIRMED
+## 4. The next dig tile, `0x00485EF0` — STRONGLY INFERRED
 
 It sets the reach flag `+0xCB` to 1 first.
 
@@ -70,7 +73,7 @@ The directions (`0x0069A070`) are N (0,−1), E (1,0), S (0,1), W (−1,0).
 
 `0x00453CC0`, used by the hand walk, is a wall of a non-neutral player that is solid, has no gold, and is at its terrain's `MaxHealth`.
 
-## 5. The stand point, `0x00486680` — CONFIRMED
+## 5. The stand point, `0x00486680` — STRONGLY INFERRED
 
 These are the dig tile's four neighbours in order:
 1. the near side in x (toward the creature; to the left when level)
@@ -80,7 +83,7 @@ These are the dig tile's four neighbours in order:
 
 The first that is clear (`+0x208`) and reachable (`0x00471630`, options 2) becomes the stand point, at its tile centre.
 
-## 6. States 223 and 224 — CONFIRMED
+## 6. States 223 and 224 — STRONGLY INFERRED
 
 - **223** (`0x00462130`). The leader reads `MyLeadersId` as the tunneller.
   - A dead or removed tag, or a thing that is not a creature (`+0x12 != 0`), clears the word and returns 0.

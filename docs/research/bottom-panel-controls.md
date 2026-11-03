@@ -1,10 +1,13 @@
+---
+systems: [hud-front-end]
+---
 # Bottom panel controls
 
 Read2026-10-18 from DKII.EXE static menu/widget records, callbacks and the
 shipped KWD/interface resources. Confidence applies to each contract below.
 Function-level readings and revisions live in their knowledge-base records.
 
-## Geometry and category controls (CONFIRMED)
+## Geometry and category controls (STRONGLY INFERRED)
 
 The virtual coordinate system is2560x1920; the presentation reference transform
 is height/1920, preserving the original bottom and left anchors. Static menu18
@@ -39,7 +42,7 @@ not additional category slots. Native bitmap64x64 Panel-BG is tiled through
 the retained image pool. The last partially visible tile is stretched; exact
 edge cropping remains a presentation limitation.
 
-## Room state and action (CONFIRMED)
+## Room state and action (STRONGLY INFERRED)
 
 The visible resolver is [0x00410AE0](functions/00410AE0.md), the widget updater
 is [0x00410990](functions/00410990.md), and selection is
@@ -61,18 +64,18 @@ room while its availability changes; simulation placement still rejects
 invalid construction. Clicking a visible availability4 entry clears the tool.
 
 The room name comes from RoomDef.NameStringId, cost from RoomDef.Cost and icon
-from its first84-byte art descriptor. Page ordering is CONFIRMED: service
+from its first84-byte art descriptor. Page ordering is STRONGLY INFERRED: service
 virtual+0xA8 is [0x0050D150](functions/0050D150.md), which finds the definition
 whose runtime+0x466 byte matches the ordinal. The room loader copies that byte
 from intermediate+0x496, file+0x3C2, the existing RoomDef.OrderInEditor field.
 The model sorts by that field. Secondary room-slot navigation uses the separate
 [callback](functions/004118B0.md); its adapter ordering limitation is below.
 
-## Spells and workshop (partially CONFIRMED)
+## Spells and workshop (partially STRONGLY INFERRED)
 
 ### Unknown-slot brightness (2026-10-25)
 
-CONFIRMED binary: [spell updater](functions/004113B0.md), `0x00411563..0x004115C7`,
+STRONGLY INFERRED binary: [spell updater](functions/004113B0.md), `0x00411563..0x004115C7`,
 maps availability 2 or 4 to widget state 2 before the affordability call.
 [Slot drawing](functions/00412FC0.md) initializes RGB255 at `0x004130AA..0x004130B4`;
 the state-1 guard at `0x00413878` bypasses affordability dimming, recharge and flash
@@ -96,7 +99,7 @@ retained research overlay. Run `run-tag-overlay.ps1 -SpellSlotStates` under
 
 The tab strip's background is [0x00418EE0](functions/00418EE0.md): Bar-00 wood tiled from x0 (read;
 the minimap draws over it, and the stone fill also spans the full width), then Bar-02/Bar-03 metal whose
-width depends on the screen width; the adapter's last-480-units placement is a 4:3 reading (LIKELY).
+width depends on the screen width; the adapter's last-480-units placement is a 4:3 reading (HYPOTHESIS).
 [0x00412260](functions/00412260.md) draws the selected tab's alternate art (`+0x40`: catalogue
 173/174/175/178, `gui\icons\selected-creature/room/spell/workshop`) over the icon and tints the
 Workshop tab grey while no Workshop is owned. A hovered tab draws catalogue121 `gui\icons\hilight` over itself with render flag8 (read as additive; built as a lightening overlay). Tab hover follows the widget text id (`+0x30`,
@@ -116,7 +119,7 @@ Menu39 at (1112,1460) 948x156 holds eighteen 88x128 widgets: Review Objective (t
 `0x004288C0`), a second button (art153, `0x004247F0`), and sixteen message slot widgets (art127,
 `0x00423F50`/`0x00424220`) of which at most eight are used: [message-tabs.md](message-tabs.md)
 (BUILT 2026-10-21, ADR-0525). Menu43 is at (2080,1472) 480x140.
-Tab visibility is [0x00416E20](functions/00416E20.md) (CONFIRMED): Creatures and Rooms
+Tab visibility is [0x00416E20](functions/00416E20.md) (STRONGLY INFERRED): Creatures and Rooms
 always show; Spells and Workshop show only while one of their filtered choices has
 availability other than1, and a hidden tab keeps its place.
 The common renderer's spell branch excludes spell5 and14 from the normal grid.
@@ -158,7 +161,7 @@ from the symmetric positions and screen-edge fit; owner comparison must verify
 it. Values above99 remain undisplayed because the native resource-index behavior
 outside the ten digit descriptors has not been established.
 
-## Install asset metadata (CONFIRMED shipped data)
+## Install asset metadata (STRONGLY INFERRED shipped data)
 
 All original artwork remains in the install and is accessed through
 IClassicBottomPanelAssets. Rooms use the existing art catalogue. Additional

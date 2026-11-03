@@ -13,7 +13,7 @@ public enum SoundFrameLoad : byte { Normal, Slow, Heavy }
 /// <summary>DK2's frequent-event throttle (state at <c>0x0075B470</c>). On a slow frame each of 29
 /// listed events plays at most once per a rotating gap of frames; on a heavy frame they do not
 /// play at all. Every other event, and every event on a normal frame, passes.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets")]
 public sealed class SoundThrottle
 {
     private const int Counters = 1024;

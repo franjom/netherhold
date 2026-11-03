@@ -18,7 +18,7 @@ namespace DK2.Simulation;
 /// <para>Every handler measures the holder from where it is (<c>+0x1A/+0x1E</c>), walking or
 /// at work (imp-task-stealing.md §2).</para>
 /// </summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/imp-task-stealing.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-task-stealing.md")]
 public static class TaskStealing
 {
     private const int TeleportingOut = 51;

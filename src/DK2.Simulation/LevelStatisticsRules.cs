@@ -9,7 +9,7 @@ namespace DK2.Simulation;
 
 /// <summary>The level-statistics counters' writers and the level-end sample of
 /// <c>Player_EndLevelStatistics</c> (<c>0x004BE630</c>); docs/research/level-statistics.md.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/level-statistics.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/level-statistics.md")]
 public static class LevelStatisticsRules
 {
     private const byte FirstSpecial = 117, LastSpecial = 129;

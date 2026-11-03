@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Mechanic: state-category hook bodies
 
 Source: `DKII.EXE` v1.70 (GOG), all 32 functions below disassembled in full
@@ -11,7 +14,7 @@ not a running-game observation (ADR-0046).
 ### Room position, admission and occupancy
 
 Nine enter functions fill ten slots (Research and GuardPost share `0x0047AFB0`) and
-use one chain, **CONFIRMED** (re-read 2026-10-01). The world call `+0x1D4` finds the
+use one chain, **STRONGLY INFERRED** (re-read 2026-10-01). The world call `+0x1D4` finds the
 map cell under the creature, `0x004559B0` resolves its low-12-bit thing id, `0x004E7F80`
 admits the room, and `0x004E5A70` claims a place in it (§3.5). The leave hooks release
 the place with `0x004E5E00`. The room keeps a linked occupant list and `UsedCapacity`;
@@ -51,9 +54,9 @@ the category operation failed; a return of one means it remains valid.
 | `0x004647D0` | WorkerJob leave | Ends two possible current-action words; while in travel states 6/7, dispatches on resume `+0xDF`. Removes/completes player tasks using state `+0x8A/+0x94/+0x96`, or restores worker bits in the branches detailed in `creature-pickup.md`. That pickup subset is built (ADR-0263); full task cleanup remains incomplete. |
 | `0x004752A0` | ReportingDanger leave | Clears creature `+0x3E6` bit 3, **`RebelActive`** (DK2's own dumper name, `rebellion.md` §4). Which creatures can carry the bit into the category, and the intent, are `rebellion.md` §4 (Q411). |
 | `0x0047A780` | Refused leave | Calls `0x0048FD70` with a local `0x1000`, clears creature `+0x3CD`, zeroes the vectors at `+0x104` and `+0x110`, and clears `+0x3E6` bit 20. The combined role is **UNKNOWN**. |
-| `0x0047A810` | Combat enter | Stops the creature (`0x0048ECE0`), clears `ReportingTo` `+0x3D5`, ends a running action, and zeroes the creature's (not the state object's) `+0x95`, `+0x97`, `+0x99`, `+0x64`, `+0x68`, `+0x66`; never refuses. Order, fields and what ours models: `combat-category-hooks.md` §1, §3 (re-read 2026-10-02, CONFIRMED). |
+| `0x0047A810` | Combat enter | Stops the creature (`0x0048ECE0`), clears `ReportingTo` `+0x3D5`, ends a running action, and zeroes the creature's (not the state object's) `+0x95`, `+0x97`, `+0x99`, `+0x64`, `+0x68`, `+0x66`; never refuses. Order, fields and what ours models: `combat-category-hooks.md` §1, §3 (re-read 2026-10-02, STRONGLY INFERRED). |
 | `0x0047A870` | Combat update | Only states 199/200 can award combat experience. After definition-flag and target-class gates, it takes `ExpPerSecond` from definition `+0x6B7`, scales levels 2-10 by stat 15, clamps to `0..65534`, and calls the experience adder. It writes no field directly. The gates: definition `+0x686` bit 0 clear or bit 8 set, a live fight target of class 0. Award gates are built (ADR-0366); [per-creature ordering](combat-experience-order.md) is the bounded ADR-0640 correction. |
-| `0x0047A980` | Combat leave | The fight-leave routine `0x0045ADC0` (the creature's forced target and engagement, then every attacker's, the victory nibble only at health 0 or below), the walk speed `0x004887D0(0, 0)`, then `+0x3D5` = 0. `combat-category-hooks.md` §2 (re-read 2026-10-02, CONFIRMED). |
+| `0x0047A980` | Combat leave | The fight-leave routine `0x0045ADC0` (the creature's forced target and engagement, then every attacker's, the victory nibble only at health 0 or below), the walk speed `0x004887D0(0, 0)`, then `+0x3D5` = 0. `combat-category-hooks.md` §2 (re-read 2026-10-02, STRONGLY INFERRED). |
 | `0x0047A9B0` | Unnamed28 update | Unless the owner's `Status` is Won (2), applies a health delta of -10 to the creature every tick. This does not distinguish what the 15 otherwise `idle` states represent, so category 28 remains unnamed. |
 
 ## 3. Room-category hooks
@@ -64,11 +67,11 @@ the category operation failed; a return of one means it remains valid.
 |---|---|---|
 | `0x0047A9E0` | Spectating enter | On room type 16, clears creature `+0x3E6` bit 15, `CombatPitFighter` (`AND CH,0x7F`; corrected 2026-09-25, this row said bit 23); initializes `+0xAB`; claims the room position. |
 | `0x0047AAE0` | CombatPit enter | On room type 16 and an exact `0x400` floor height, sets creature `+0x3E6` bit 15, `CombatPitFighter` (`OR 0x8000`; corrected 2026-09-25, this row said bit 23; `combat-pit.md`); initializes `+0xAB`; claims the room position. |
-| `0x0047AB90` | Sleeping leave | Sets the draw bit (`+0xF3` bit 0, RenderInfo `+0xAF`) on the lair `+0x3B7` names and on the creature: believed presentation only, not built (`leave-hook-bodies.md` §2: the body CONFIRMED, the draw-bit reading inferred). |
+| `0x0047AB90` | Sleeping leave | Sets the draw bit (`+0xF3` bit 0, RenderInfo `+0xAF`) on the lair `+0x3B7` names and on the creature: believed presentation only, not built (`leave-hook-bodies.md` §2: the body STRONGLY INFERRED, the draw-bit reading inferred). |
 | `0x0047AC00` | Sleeping update | State 83 first calls `0x00477B20(1)`. Once per game second by turn modulus, calls the shared lair effect `0x004DFF00`. |
 | `0x0047AC40` | Lair update | Once per game second by turn modulus, calls `0x004DFF00`. |
 | `0x0047AC70` | Sulking update | Does the same lair call, then returns whether `0x004871A0` finds id 5 in creature `+0x26E`. |
-| `0x0047ACB0` | Casino enter | **CONFIRMED** (re-read 2026-10-01). `0x004539B0(15, owner, 0)` on the cell under the creature: only on its keeper's own Casino is room `+0x53` (the lever) tested, and 0 refuses. Otherwise the lever is not asked for, and the claim judges the cell. Then, unless player `+0xF4A` is nonzero, the purse: creature `+0x3FB` at most `abs(GamblingModifyCreatureMoneyMoneyPerSecond)` (8) refuses (signed `JLE`). Then `+0xB0` = variable 19 and `+0xB3` = 0, and the lookup and claim of §3.5, so a claim refusal leaves the seed written. Every refusal returns 0; none raises a message. Built: ADR-0313; the party, ADR-0396. |
+| `0x0047ACB0` | Casino enter | **STRONGLY INFERRED** (re-read 2026-10-01). `0x004539B0(15, owner, 0)` on the cell under the creature: only on its keeper's own Casino is room `+0x53` (the lever) tested, and 0 refuses. Otherwise the lever is not asked for, and the claim judges the cell. Then, unless player `+0xF4A` is nonzero, the purse: creature `+0x3FB` at most `abs(GamblingModifyCreatureMoneyMoneyPerSecond)` (8) refuses (signed `JLE`). Then `+0xB0` = variable 19 and `+0xB3` = 0, and the lookup and claim of §3.5, so a claim refusal leaves the seed written. Every refusal returns 0; none raises a message. Built: ADR-0313; the party, ADR-0396. |
 | `0x0047AD70` | Casino update | Once per second, advances the fearless countdown at creature `+0x4F4`. Station mode byte `+0x4A` selects Smiles or Money. Smiles applies anger -2000; Money applies +100; both charge buckets 5, 0 and 3 with selector 2. It then adds 1 money in Smiles or subtracts 8 in Money. A roll uses jackpot chances 5000/20000 and calls the keeper jackpot routine on result 42. |
 | `0x0047AF20` | Casino leave | Only when `CasinoGamblingFearless` (`+0x3EA` bit 13) is set: clears it and writes `FearlessUntil` (`+0x3D7`) = now + variable 19 × variable 203. Then releases. Built: ADR-0322 (`leave-hook-bodies.md` §1). |
 | `0x0047AFB0` | Research / GuardPost enter | Claims the room position; no category-specific side effect. |
@@ -76,12 +79,12 @@ the category operation failed; a return of one means it remains valid.
 | `0x0047B0A0` | Manufacture enter | Increments `NumberOfManufacturingCreatures`, **player** `+0x8A` of the tile's keeper; clears state `+0xB9` (unread); claims. Built: ADR-0322 (`leave-hook-bodies.md` §4). |
 | `0x0047B120` | Manufacture leave | Decrements the same player `+0x8A`, with no floor, and releases. Built: ADR-0322. |
 | `0x0047B190` | Manufacture update | Reads definition `ManufacturePerSecond` (`+0x6BD`), scales levels 2-10 by stat 18, clamps `0..65534`, and credits the keeper through `0x004C3200` and returns 1; a zero scaled credit skips the adder and returns 0, so the dispatcher idles the creature (re-read 2026-10-29, ADR-0573). The Research update `0x0047B000` has no such test and returns 1 on a zero credit. |
-| `0x0047B230` | Training enter | **CONFIRMED** (re-read 2026-10-01). First the gold: `-ModifyPlayerColdWhileTrainingPerSecond` (5) against player `+0x7E` (`Money`), `CMP`/`JBE`, so 5 ≤ Money passes. Failing, it raises message 55 to the creature's keeper on every refusal (`0x004C4600(0x37, owner, 5, 0, 1)`: Data1 5, subtable `0x006A0690`, 240 s) and returns 0, writing nothing. Passing, it clears `+0xB4`, sets `+0xB3` = variable 19, then the lookup and claim of §3.5, so a claim refusal leaves the seed written. The update hook raises the same message. Built: ADR-0313. |
+| `0x0047B230` | Training enter | **STRONGLY INFERRED** (re-read 2026-10-01). First the gold: `-ModifyPlayerColdWhileTrainingPerSecond` (5) against player `+0x7E` (`Money`), `CMP`/`JBE`, so 5 ≤ Money passes. Failing, it raises message 55 to the creature's keeper on every refusal (`0x004C4600(0x37, owner, 5, 0, 1)`: Data1 5, subtable `0x006A0690`, 240 s) and returns 0, writing nothing. Passing, it clears `+0xB4`, sets `+0xB3` = variable 19, then the lookup and claim of §3.5, so a claim refusal leaves the seed written. The update hook raises the same message. Built: ADR-0313. |
 | `0x0047B2D0` | Training update | At the level cap it returns 1 at once: no experience, no charge, no countdown step. Below it, adds level-scaled `ExpPerSecondTraining` every tick. Once per second (`+0xB3`) it checks the keeper can pay 5: if not, message 55 and failure; if so, it charges 5 at the creature's tile (`0x004BA420`), and every fourth charge calls `0x0050FB70` with 20, the floating "−20" (re-read 2026-10-01; this row said 20 gold every fourth check). |
 | `0x0047B430` | Torture enter | Claims, then initializes `+0xAC`. |
 | `0x0047B4A0` | Torture leave | Switches off an Electric Chair's sparks and shows the device again (presentation); unless `TortureVoluntary` (`+0x3EA` bit 14), zeroes `DroppedToDoJobId` (state `+0x6E`); clears bit 14; releases. Built but the presentation: ADR-0322 (`leave-hook-bodies.md` §3). |
 | `0x0047B590` | Torture update | Once per second, adds variable 19 to creature `+0x4F6`, applies definition `TortureHpChange` (`+0x79F`) as health, and, when the station's `+0x1D` names the creature, applies definition **`TortureMoodChange` (`+0x7A1`)** to anger bucket 5 with selector 8. Thus the anger amount is per creature, not a global. At the level-scaled `TortureTimeToConvert` threshold it either kills on the variable-234 roll (shipped zero) or calls the conversion helper. |
-| `0x0047B740` | Prison enter | **CONFIRMED** (re-read 2026-10-01): the lookup and claim of §3.5; any refusal returns 0 with nothing else done, so no seed and **no event 7**. Once the claim takes, it seeds `+0xAB` from variable 19, fires creature trigger event 7 on the captive itself (`ECX` = state `+0x8`, pushes `7, 0, 0`), and returns 1. The claim's overcrowding message `0x2A` is on its success path, so 7 fires there too. Built: ADR-0311. |
+| `0x0047B740` | Prison enter | **STRONGLY INFERRED** (re-read 2026-10-01): the lookup and claim of §3.5; any refusal returns 0 with nothing else done, so no seed and **no event 7**. Once the claim takes, it seeds `+0xAB` from variable 19, fires creature trigger event 7 on the captive itself (`ECX` = state `+0x8`, pushes `7, 0, 0`), and returns 1. The claim's overcrowding message `0x2A` is on its success path, so 7 fires there too. Built: ADR-0311. |
 | `0x0047B7C0` | Prison update | Every four game seconds, and only for a creature with nonzero level-scaled `HungerFill` and a room id, applies `4 x PrisonModifyCreatureHealthPerSecond` (-12) and **`ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150)** to bucket 0 with selector 9. |
 | `0x0047B8C0` | Temple enter | Initializes `+0xAF` and claims. |
 
@@ -377,7 +380,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   same. **Built** (ADR-0192): one countdown per creature, seeded when `SetState` runs an
   enter hook, so a walk inside one category keeps it.
 
-## 5. How `SetState` runs the hooks — CONFIRMED (`0x00476D30`, re-read 2026-10-01)
+## 5. How `SetState` runs the hooks — STRONGLY INFERRED (`0x00476D30`, re-read 2026-10-01)
 
 Read in full with Ghidra 12.1.4; `travel-states.md` §3 owns the walk rows (a category-2 target runs no hook).
 

@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Mechanic: the dying states — 216 falls, 217 lies, a corpse has none
 
 Source(s):
@@ -60,7 +63,7 @@ creature in `CreatureActivity.Dead`, holding no state id, the one creature that 
 none.
 
 **The corpse clock stops while the body is carried** (Q164, read 2026-10-04,
-CONFIRMED). The countdown is the body's `+0x40`. `DeadBody_Construct` `0x004B0F20` sets it
+STRONGLY INFERRED). The countdown is the body's `+0x40`. `DeadBody_Construct` `0x004B0F20` sets it
 to `DeadBodyDiesAfterSeconds` × ticks per second, 60 × 4 turns (`0x004B0FAF`). It is the
 only reader of `0x006F25A0` besides the loader. The body's vtable (`0x0066D904`) has a
 carried flag `+0x138`: `+0x6C` `0x004B80F0` sets it, `+0x70` `0x004B8100` clears it (the
@@ -80,7 +83,7 @@ were not classified.
 
 ## 3. Classic corpse art
 
-CONFIRMED (binary and shipped data, 2026-10-11): `0x004B0F20` requests
+STRONGLY INFERRED (binary and shipped data, 2026-10-11): `0x004B0F20` requests
 creature-definition art 41 and installs it on the dead body. `0x00492320`
 loads its name from staging +0x187B and compacts it into definition +0x453
 (instructions 0x0049323C–0x0049325E). Subtracting the loader's +0x3F0 staging

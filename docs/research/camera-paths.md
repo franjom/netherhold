@@ -1,9 +1,12 @@
+---
+systems: [camera-lighting, campaign-triggers]
+---
 # Camera paths (`.KCS`) and their playback
 
 DKII.EXE v1.70, Ghidra primary reads and the shipped `Data/Paths.WAD`, 2026-10-17.
-The file format and the loader `0x0044CFB0` are **CONFIRMED** against all 80
+The file format and the loader `0x0044CFB0` are **STRONGLY INFERRED** against all 80
 shipped files. The playback in `Camera_Update` mode `0x12` and the render branch of
-`0x00598880` are read; their arithmetic is **CONFIRMED** from disassembly. The skip,
+`0x00598880` are read; their arithmetic is **STRONGLY INFERRED** from disassembly. The skip,
 action 38's letterbox switch and the subtitle drawing are read (§5-§7). The fog
 question is answered from the shipped scripts (§8). Built as ADR-0496 (§9).
 
@@ -67,9 +70,9 @@ which matches the 30 frames a second of §2.
 Callers:
 - **In game:** only `0x00442540`, game action 0x73's view handler. The view's
   initialiser `0x0043AAD0` fills its handler array at view `+0xA2` from (id, handler)
-  pairs at `0x0066CE30`, and the pair `(0x73, 0x00442540)` is there (CONFIRMED, read
+  pairs at `0x0066CE30`, and the pair `(0x73, 0x00442540)` is there (STRONGLY INFERRED, read
   2026-10-17). How a queued action reaches that array is unread, so the link is
-  **LIKELY**. `0x0050E5C0` first offers a record to the observer `[[world+4]+0x10]`
+  **HYPOTHESIS**. `0x0050E5C0` first offers a record to the observer `[[world+4]+0x10]`
   (slots +0x20 and +0x24), then to the world table at `+0x1684`, whose filler
   `0x00511A80` registers no 0x73. It unpacks `{pathId | bit31, x, y}` and passes bit 31 as `plain`. Trigger
   action 31's arm `0x004C886E` queues that record for the local player only: the
@@ -157,8 +160,8 @@ any mode request that `0x0044A5D0` deferred into `+0xDB0/+0xDB4` during the path
 The ordinary camera's own position fields are never written during an in-game path,
 so the player's view returns to where it was before.
 
-`0x0044D320` is not a camera save. Its rects are CONFIRMED; that they make a letterbox
-is our reading of their values (LIKELY):
+`0x0044D320` is not a camera save. Its rects are STRONGLY INFERRED; that they make a letterbox
+is our reading of their values (HYPOTHESIS):
 - With argument 1 it raises a count `+0xE48`. It animates the viewport rect
   `+0xE62..+0xE6E` over 2000 ms (`+0xE4A` start, `+0xE4E` duration) to
   `(0, h/8, w, h - h/8)`, which is black bars of an eighth of the screen height top
@@ -257,7 +260,7 @@ draw resolve it through `0x00553A90`, which reads only the table `0x00553780`
 loaded at level start (`0x007415B4`; else an empty string). `0x00553780` takes a
 byte at `+0x64EC` of `Level_ApplyRuntimeConfiguration_LIKELY`'s source, INFERRED
 to be the KWD `TextTableId` (`LevelTextTableTests`, five levels). Its 60-entry
-table `0x006BC010` (CONFIRMED) maps 1-34 to resources 0x420-0x441 (`LEVEL1.str`
+table `0x006BC010` (STRONGLY INFERRED) maps 1-34 to resources 0x420-0x441 (`LEVEL1.str`
 ... `DEMO3.str`), 35-40 to 0x439 (`MYPETDUNGEON.str`), and the rest to nothing.
 Level 1's speech 3 is `LEVEL1.str` 2, *"Behold, your Dungeon Heart..."*; speech 2
 is 1, *"Here walks the goodly Lord Antonius..."*.

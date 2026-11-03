@@ -1,3 +1,6 @@
+---
+systems: [navigation]
+---
 # Steering body retention between mover calls (Q735)
 
 Binary readings of DKII.EXE v1.70, 2026-11-03. The decision is ADR-0644 (hash/save 392).

@@ -1,3 +1,6 @@
+---
+systems: [simulation-core]
+---
 # State-hash versions 170–249
 
 Earlier pins and reasons from [the current version record](hash-versions.md).
@@ -52,7 +55,7 @@ animation-completion poll. No new saved field. ADR-0447.
 **236** — `0xC3C0A8A82912396E`. Combines possession followers/inputs with failed hero
 jobs running the native idle wrapper;
 same-tile wander and training routes retain their destination waypoint.
-ADR-0444–0446.
+ADR-0641, ADR-0445–0446.
 
 **235** — `0xF586FE56CCF63F2F`. The possession/arms branch: followers (leader, route deadline, count, shared melee target; ADR-0445) and inputs (disguise, sniper mode, hypnosis hold, old owner, mark and attack counts on creatures, the sniper bit on shots; ADR-0446) are saved and hashed. Classic's unmerged idle fixes used `0x7033026B2672013F`; 236 separates the combined snapshot.
 

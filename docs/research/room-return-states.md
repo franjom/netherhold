@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # The last category 0 states: room returns, the research cheer, and the unreached
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-07 by three read-only passes, each
@@ -10,7 +13,7 @@
 - The dispatcher skips the handler of state 0 (`0x00477282`) and sets 1 when a handler returns 0
   (`0x004772B4`–`0x004772B7`).
 
-## 1. 62, 70 and 154: back into a Library, Workshop or Casino that changed — CONFIRMED
+## 1. 62, 70 and 154: back into a Library, Workshop or Casino that changed — STRONGLY INFERRED
 
 Siblings of the Temple's 107 (`temple-states.md` §7), the Training Room's 113 and the Prison's 126
 (`refused-states.md` §4, §5). Each kicks every place-holder of the room (head `+0x0A`, next `+0x238`)
@@ -53,7 +56,7 @@ Chamber `0x004F1FB0` at `+0x05` and `+0x0D` (end the action, stop, 136) and `0x0
 (136 first, then its device count). The load slot `+0x11` is the Library's `0x004E10D0`; the
 Lair's and Workshop's are the bare `RET` at `0x00401200`, every other type's null.
 
-## 2. 60 and 61: the research cheer — CONFIRMED
+## 2. 60 and 61: the research cheer — STRONGLY INFERRED
 
 **Entry.** `0x004E0870`, called only by the research adder `0x004C2DC0` at `0x004C2FC2` when an item
 is done: once `0x004E1AC0` finds a shelf in the chosen Library, every place-holder of that Library is
@@ -75,7 +78,7 @@ it is available, which is this reading.
 
 **Ours.** `ResearchStep.Cheer` in `ResearchTreeRules.Deliver`, before the item's grant, and 60's arm in
 `ResearchStep`. The leave from the Research category releases the place. The action's length is the
-counted clip (`AnimationTimingRules.CountedHoldTicks`), LIKELY. Not read: whether state 1's handler
+counted clip (`AnimationTimingRules.CountedHoldTicks`), HYPOTHESIS. Not read: whether state 1's handler
 cuts action 35 short.
 
 ## 3. 158: the Saturday-night dance — left unbuilt (Q571)

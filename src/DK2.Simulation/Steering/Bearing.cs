@@ -10,7 +10,7 @@ namespace DK2.Simulation.Steering;
 /// target (<c>0x004B2AE0</c>; docs/research/steering-behaviours.md §5.3). The bearing is the
 /// original's table arctangent (<c>0x0065FB54</c>), whose 257 entries are exactly
 /// floor(atan(i/256) · 2048 / 2π); the table here is that formula's output, not a copy.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public static class Bearing
 {
     public const int Turn = 2048;

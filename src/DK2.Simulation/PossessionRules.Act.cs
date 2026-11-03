@@ -241,7 +241,7 @@ public static partial class PossessionRules
     }
 
     /// <summary>One tile's layer-0 chain, head first: every class this simulation represents. A heart's
-    /// pillar is built with its heart, before anything that arrives later, so it comes last (LIKELY;
+    /// pillar is built with its heart, before anything that arrives later, so it comes last (HYPOTHESIS;
     /// the chain order of things made at load is unread).</summary>
     internal static void ThingsOnTile(WorldState world, int tile, List<ChainThing> into, HeartSites? hearts = null)
     {

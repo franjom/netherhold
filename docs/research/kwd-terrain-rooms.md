@@ -1,4 +1,7 @@
-﻿# Mechanic: TERRAIN(110), ROOMS(120) and MAP(100) records
+﻿---
+systems: [data-formats]
+---
+# Mechanic: TERRAIN(110), ROOMS(120) and MAP(100) records
 
 Source(s):
 - ufdada/dk2-tools `terrains_struct.bt`, `rooms_struct.bt`, `map_struct.bt`
@@ -16,7 +19,7 @@ Original version: DK2 v1.70 (GOG)
 
 Summing the template's declared field widths reproduces both numbers exactly,
 using ArtResource = 84 bytes (64-byte name + 4 flags + 12 union + 4 tail). The
-84-byte figure is itself CONFIRMED from the creature record's own offset
+84-byte figure is itself STRONGLY INFERRED from the creature record's own offset
 anchors: `portraitResource` at 0xD40, `Light` at 0xD94, difference 0x54 = 84.
 
 ## MAP(100) — the dungeon grid
@@ -28,7 +31,7 @@ The chunk header carries `u32 width, u32 height`; content is exactly
 u8 terrainId    u8 playerId    u8 flags    u8 unknown
 ```
 
-CONFIRMED across every campaign map: all tile terrain ids resolve against the
+STRONGLY INFERRED across every campaign map: all tile terrain ids resolve against the
 TERRAIN table (asserted in tests). Example — `level1Map.kld`, 30 × 38
 (4,560 content bytes):
 
@@ -49,10 +52,10 @@ Tile counts independently confirm room geometry: Dungeon Heart occupies exactly
 value but 1 or 2; 2 occurs only on bridge terrain and every such tile borders
 lava, every 1 bridge tile touching a hazard borders water. A sold bridge
 reverts to what it spanned (ADR-0031, `BridgeRules`,
-`BridgesOnRealDataTests`). Behaviour CONFIRMED; that this byte is where the
+`BridgesOnRealDataTests`). Behaviour STRONGLY INFERRED; that this byte is where the
 original keeps it is STRONGLY INFERRED.
 
-**Byte 2 (`playerId`) numbering**, CONFIRMED by sweeping the MAP record of all
+**Byte 2 (`playerId`) numbering**, STRONGLY INFERRED by sweeping the MAP record of all
 66 shipped maps (`dk2tools kwd map <file>` prints one map's owner histogram):
 
 | id | meaning | maps carrying it |
@@ -176,7 +179,7 @@ the dump agrees (every record's `0x1D6` is its own id and the values are sensibl
 
 ## Ceiling fields: bounded binary audit (2026-10-29, Q679)
 
-CONFIRMED: `0x0043AD70` loads common resource `Ceiling` as type 1 with
+STRONGLY INFERRED: `0x0043AD70` loads common resource `Ceiling` as type 1 with
 flags `0x20000`, through the same loader interface as torch resources.
 Loading a texture does not establish a ceiling mesh or its visibility rules.
 
@@ -198,7 +201,7 @@ with controlled room widths; keep any resulting evidence in `F:/DK2Evidence`.
 
 ## Confidence
 
-CONFIRMED — record sizes, all parsed field offsets, the transition graph, room
+STRONGLY INFERRED — record sizes, all parsed field offsets, the transition graph, room
 ids, grid layout, and the MAP `playerId` and `flags` bytes.
 
 UNKNOWN — MAP tile byte 4; the meaning of `maxHealthTypeTerrainId` for

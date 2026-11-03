@@ -7,7 +7,7 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/training-actions.md#3-action-gates--confirmed")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/training-actions.md#3-action-gates--strongly-inferred")]
 public sealed class TrainingActionSystem : ISimulationSystem
 {
     public string Name => "TrainingActions";

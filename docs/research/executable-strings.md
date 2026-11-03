@@ -1,4 +1,7 @@
-﻿# What DKII.EXE says about itself, without decompiling anything
+﻿---
+systems: [tooling-process]
+---
+# What DKII.EXE says about itself, without decompiling anything
 
 Status: **facts only** — this page is what the shipped executable's *strings*
 say, which is the cheapest evidence in the binary and the least ambiguous. No

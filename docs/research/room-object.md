@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The room object, named by DK2 (Q264)
 
 **Scope:** canonical runtime layout for a room instance. Most names come from
@@ -16,7 +19,7 @@ it holds, never its unit, writer or rule.
   withdraw, the alarm, the threat list and a Vampire's reincarnation aim at. The
   writer is `Room_UpdateCentrePos` (`0x004E4590`). It picks a rule by room type
   through the index bytes at `0x004E4AD8` and the jump table at `0x004E4AC0`
-  (binary, 2026-10-04, Q515). CONFIRMED:
+  (binary, 2026-10-04, Q515). STRONGLY INFERRED:
   - Heart (5): `FirstSlab` +3 on each axis (`0x004E45D0`), and `NavigationPos` +1.
   - Portal and Hero Portal (3, 0x19): `FirstSlab` +1.
   - Types 0x12–0x18: `FirstSlab` itself.
@@ -51,7 +54,7 @@ it holds, never its unit, writer or rule.
     a sale through `0x004C5DB0`) frees the room at `0x004ED9FA` and rebuilds
     what is left through `0x004ED320`. Each tile either joins a neighbouring
     piece (`0x004EC650`) or starts a new room (`0x004EC5A0` → `0x004EC490` →
-    `Room_Construct`). CONFIRMED.
+    `Room_Construct`). STRONGLY INFERRED.
   - Only three types have overlay state copied across the rebuild: type 8
     (`+0x49`), the Prison (`+0x59/+0x5D`) and the Casino (`+0x53`). Every
     other type's overlay, for example the Graveyard's `DecomposeValue` or the

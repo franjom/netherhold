@@ -1,4 +1,7 @@
-﻿# The player object's fields, named by DK2 (Q264)
+﻿---
+systems: [simulation-core]
+---
+# The player object's fields, named by DK2 (Q264)
 
 **Scope:** runtime offsets on DK2's player object. What a *trigger* does with
 them is `trigger-semantics.md`; this is the map those readings point into.

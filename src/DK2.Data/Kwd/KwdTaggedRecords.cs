@@ -9,7 +9,7 @@ namespace DK2.Data.Kwd;
 
 /// <summary>Walks the two KWD record types that are not a fixed stride: THINGS and
 /// TRIGGERS. Both are self-describing — <c>u32 tag; u32 payloadSize; u8[payloadSize]</c>
-/// — so a chunk splits into records with no payload layout known. CONFIRMED 2026-09-04.</summary>
+/// — so a chunk splits into records with no payload layout known. STRONGLY INFERRED 2026-09-04.</summary>
 /// <remarks><para>Validated structurally: over all 133 tagged chunks the install ships
 /// (two per campaign level plus <c>GlobalVariables.kwd</c>'s camera chunk; 6,318 THINGS
 /// and 9,161 TRIGGERS records), walking <c>itemCount</c> records consumes each chunk to

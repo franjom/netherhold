@@ -15,6 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="DK2.Tools.Tests" />
   </ItemGroup>
 

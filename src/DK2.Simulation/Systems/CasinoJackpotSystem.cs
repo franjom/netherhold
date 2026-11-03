@@ -10,7 +10,7 @@ namespace DK2.Simulation.Systems;
 /// <summary>A Casino jackpot's aftermath for each creature (ADR-0396): the creature update's two
 /// countdowns, the drunk timer and a winner's deadline, and a winner's own states 152 and 155–157
 /// (<see cref="CasinoJackpotRules"/>).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/casino.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/casino.md")]
 public sealed class CasinoJackpotSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CasinoJackpot";

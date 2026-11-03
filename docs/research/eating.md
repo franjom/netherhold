@@ -1,4 +1,7 @@
-﻿# Mechanic: eating — hunger, the chicken, and the two ways of paying it off
+﻿---
+systems: [creatures, rooms]
+---
+# Mechanic: eating — hunger, the chicken, and the two ways of paying it off
 
 Source(s):
 - `DKII.EXE` v1.70, `HungerState.cpp`'s translation unit and the creature state
@@ -11,7 +14,7 @@ Original version: DK2 v1.70
 Companion to `hatchery.md`, the room that makes the food, and to
 `creature-needs.md`, where the creature record's numbers live.
 
-Confidence: **CONFIRMED** from the binary throughout, except the two items in
+Confidence: **STRONGLY INFERRED** from the binary throughout, except the two items in
 §8.
 
 ## 1. The short version

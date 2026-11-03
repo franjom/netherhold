@@ -173,6 +173,9 @@ any machine.**
   **The pin's world holds two creatures** (Q206), so a change to
   `CreatureState.HashInto` does fail it. It registers no creature *system*,
   so what it guards is the fields, not behaviour over ticks.
+- A static field that two simulations could both write is forbidden:
+  `ArchitectureTests.NoStaticFieldSharesMutableStateBetweenSimulations` requires
+  `[ThreadStatic]` (as the routing scratch lists are) or an entry on its allow-list.
 - `WorldSnapshot` round-trips are verified by continuing both runs for hundreds
   of ticks, not by comparing bytes.
 - `.github/workflows/ci.yml` declares the gate on Linux and Windows with

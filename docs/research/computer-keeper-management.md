@@ -1,3 +1,6 @@
+---
+systems: [computer-keeper]
+---
 # Keeper management and battle selection audit
 
 Independent Ghidra 12.1.4/PyGhidra read of the read-only `DKII.EXE` v1.70
@@ -53,7 +56,7 @@ Every row is STRONGLY INFERRED from the static read unless marked.
 | 14 | `0x004E8210(1, 0)` with ECX the room walks its slab chain from `FirstSlab` (`+0x2D/+0x2E`, tile `+0x04` next), counts tiles `Room_IsFloorSlot` (`0x00454110`) accepts, draws `random(count)` from the world stream and returns that tile's centre (`tile × 0x1000 + 0x800`, z 0). No slot: 0, no draw. For Training and the Pit the slot is an interior cell. | `0x004E8210`–`0x004E8427` |
 | 15 | The drop adds `0x100` to x and y: `tile × 0x1000 + 0x900`, as the retreat's. | `0x004FF843`, `0x004FF9F7` |
 
-Shipped data (CONFIRMED): variable 126 is 4; campaign keepers' `IACreatureSkillLevel` runs
+Shipped data (STRONGLY INFERRED): variable 126 is 4; campaign keepers' `IACreatureSkillLevel` runs
 0 to 10 (Level 17's Harkan 4, its player 5 5, Level 10's Asmodeus 10). A Pit fighter at or above
 the skill level is lifted out by the retreat's fifth branch (`computer-keeper-threat.md` §4)
 one step before this one, so the two alternate when the experience bound sends it back. No original
@@ -106,7 +109,7 @@ to the descriptor count (slot `+0x114`: 13 shipped, so id 14 is never
 reached), require availability 3, no cooldown, the corresponding descriptor
 flag word bit (`+0x54` ← file `0xDC`: 8 supportive, 4 offensive), and bit
 16 clear. Shipped: Thunderbolt, Inferno and Chicken are offensive, Heal is
-supportive, Tremor carries 4 and 16 (CONFIRMED from `KeeperSpells.kwd`).
+supportive, Tremor carries 4 and 16 (STRONGLY INFERRED from `KeeperSpells.kwd`).
 With `q = manaCost / 2499`:
 
 - Supportive: retain each eligible spell **before** testing
@@ -177,7 +180,7 @@ Re-read 2026-09-30 (Ghidra 12.1.4, MCP and runner, Claude's clone) and **BUILT**
 | Room order | `0x004E3800` | a new room is linked at the head of its owner's list: newest first | STRONGLY INFERRED |
 | Breach counts | `0x004F8993` | `BreachAtXPoints & 0xF` into all sixteen | STRONGLY INFERRED |
 | Tunnel store | `0x004FDC50`, `0x004FDB90` | with the nibble set, an owner `0x004BF390` calls an enemy on any of the nine tiles around the cursor stores start = cursor, end = target in the first empty slot, clears the nibble and ends the task | STRONGLY INFERRED |
-| Neutral land | `0x004BF390`, `0x0051DC90` | every shipped level allies each keeper with the neutral player (id-66 records, [alliances.md](alliances.md) §2), so `0x004BF390` calls neutral land no enemy: an attack tunnel does not stop at its first step onto unowned ground | CONFIRMED |
+| Neutral land | `0x004BF390`, `0x0051DC90` | every shipped level allies each keeper with the neutral player (id-66 records, [alliances.md](alliances.md) §2), so `0x004BF390` calls neutral land no enemy: an attack tunnel does not stop at its first step onto unowned ground | STRONGLY INFERRED |
 | Heart room extent | | the +3 rule centres a seven-by-seven room; `RoomIndex` sees five by five, so ours lands one tile inside the corner | UNKNOWN |
 
 ## 7. Front and attack management — `0x004FE9C0`, `0x004FECE0`
@@ -208,7 +211,7 @@ table from `0x004798D0..0x004805F0` confirms idle category 1 returns 5, whereas
 research/manufacture return 20 and training returns 21. For workers, nonzero
 creature `Idle +0x3D1` or state-object byte `+0x98` (creature `+0x2E6`) `== 6` returns
 5; otherwise effective combat returns 4 and other categories return 6. **That byte is
-the imp's last task kind**, CONFIRMED (2026-10-08): each task handler writes it as it takes the task
+the imp's last task kind**, STRONGLY INFERRED (2026-10-08): each task handler writes it as it takes the task
 (`0x0046AEA0` writes 6 for a reinforce and `0x10` for a repair) and state 10 zeroes it before it
 chooses again (`0x00464010`; state 11 on a drop). It is not a working-state test: an imp keeps kind
 6 on its walk, at the wall, and in a fight it is drawn into, until its next state 10. The Level 11A

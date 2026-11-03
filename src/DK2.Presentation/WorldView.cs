@@ -109,7 +109,7 @@ public readonly struct TileView
     /// without knowing the terrain table. An integer, per ADR-0001; 1000 for a terrain with no
     /// meaningful maximum.
     /// <para>DK2 does show wall damage, and shows it by swapping the wall's <i>texture</i> for a
-    /// damage-state one — CONFIRMED from Simon Schreibt's captures
+    /// damage-state one — STRONGLY INFERRED from Simon Schreibt's captures
     /// (docs/research/wall-rendering.md), so what this selects are textures, not meshes.</para></summary>
     public int HealthPermille { get; }
 
@@ -697,7 +697,7 @@ public sealed partial class WorldView
     }
 
     /// <summary>One tile.</summary>
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/fog-of-war.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/fog-of-war.md")]
     public TileView TileAt(WorldState world, int x, int y)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
@@ -1383,7 +1383,7 @@ public sealed partial class WorldView
     }
 
     /// <summary>A wall top's live scan: bit k set where neighbour k is on the map and open.
-    /// LIKELY: DK2's scan (<c>0x00440001..0x00440068</c>) also needs the neighbour clear of
+    /// HYPOTHESIS: DK2's scan (<c>0x00440001..0x00440068</c>) also needs the neighbour clear of
     /// <c>0x004434F0</c>'s grid bit 15, and explored or a flag set; those are not built, and
     /// terrain solidity stands in for vtable <c>+0x208</c> (nav-solid).</summary>
     private int TopEdges(WorldState world, int x, int y)

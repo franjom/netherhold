@@ -1,3 +1,6 @@
+---
+systems: [combat]
+---
 # Mechanic: the fight itself — `spFighting`, the swing's two clocks, and the target's answer
 
 Source(s):
@@ -199,7 +202,7 @@ update whose scan engaged the creature, and state 199's handler raises the battl
 
 ## Confidence
 
-**CONFIRMED (binary):** §1's prologue and event; §2's order and every test in
+**STRONGLY INFERRED (binary):** §1's prologue and event; §2's order and every test in
 it, including `0x00460C50`'s neighbourhood walk, the withdraw conditions and the
 health-third of `0x0048F250`, the fear counter's clamps, threshold and flee
 state; §3's request, door offsets, state 8 and the fields filled; §4's switch
@@ -208,7 +211,7 @@ blow's liveness-only test and the source argument; §5 in full; §6's unlink,
 the `0xF` nibble, state 260 and action 55; the names `TimeLastUsedMelee`,
 `FearlessUntil`, `AttackCreatureHits`, `NeedBodyForFightIdle`.
 
-**CONFIRMED (data):** `0xCF9` and `0xEF8` ticks for the seven creatures tabled
+**STRONGLY INFERRED (data):** `0xCF9` and `0xEF8` ticks for the seven creatures tabled
 in combat-cadence.md §3.
 
 **STRONGLY INFERRED:** the battle-call request below; the former state-8 and

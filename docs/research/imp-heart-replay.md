@@ -1,10 +1,13 @@
+---
+systems: [imps-tile-work, navigation]
+---
 # Heart routing: one paired Level 4 replay
 
 2026-10-18. This is a compatibility check of the owner's recorded inputs,
 not an original-versus-modern determinism claim. The matched chooser and
 frozen-world controls live in [imp-boundary-route.md](imp-boundary-route.md).
 
-## Paired replay — CONFIRMED observations
+## Paired replay — measured observations
 
 Both versions run Level4 `l4live.sav`, seed 1, all 6804 turns, default xoshiro
 simulation RNG. The original capture uses DK2's generator; these streams are
@@ -57,7 +60,7 @@ native despite the improved replay result; priorities have not been changed.
 
 ## First remaining trace differences
 
-**CONFIRMED observation:** original slot 454 / modern creature 2 first differs
+**Measured observation:** original slot 454 / modern creature 2 first differs
 in raw entity coordinates on aligned turn 6: native `(103032,217720)`, current
 `(103031,217719)`, in 1/4096 units. Its movement-order cause is established in
 [imp-first-integration.md](imp-first-integration.md#cause-of-q613-movement-order-and-crowd-input). The

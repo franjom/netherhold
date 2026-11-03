@@ -1,3 +1,6 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # Format and engine: the floor and plain-terrain pieces DK2 draws for a tile (Q71)
 
 Source(s):
@@ -13,7 +16,7 @@ numbers continue from there.
 
 ## 4. 0x00443610's arms (TileConstruction +0x452)
 
-Arguments: (x, y, tile, terrain, room, list). CONFIRMED (whole decompile, plain
+Arguments: (x, y, tile, terrain, room, list). STRONGLY INFERRED (whole decompile, plain
 switch).
 
 | TC | Builder | What it draws | Calls the wall chooser |
@@ -33,7 +36,7 @@ switch).
 
 ### Normal floor, 0x00444970
 
-CONFIRMED in the decompile, which here does not depend on mis-tracked registers.
+STRONGLY INFERRED in the decompile, which here does not depend on mis-tracked registers.
 
 ```
 m = tile(x,y).byte0C                  # 8-neighbour same-type-and-owner mask, bit k = DIR[k] (`room-floors-and-liquids.md` §1)
@@ -72,7 +75,7 @@ at 0x0043E860..0x0043E8FC.
 
 ### Terrain loader 0x004F66E0
 
-Intermediate = file + 0xB8. CONFIRMED: the flags at file 0x190 land at
+Intermediate = file + 0xB8. STRONGLY INFERRED: the flags at file 0x190 land at
 intermediate 0x248 and runtime +0x17B.
 
 - In the general case, **art 0 → handle +0x0F, art 1 → +0x2A, art 2 → +0x45,
@@ -109,13 +112,13 @@ loaded as `TerrainDef.TextureVariants` (2026-10-22).
 
 ### The rule, in short
 
-CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0x0043FE30`
+STRONGLY INFERRED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0x0043FE30`
 (top and water) and `0x0043FF5A..0x00440315` (quarters); the secret-door prelude
-(`0x0043E8FC..0x0043F1A8`) is LIKELY (decompile only); the hero-wall scheme's run-on tests were
+(`0x0043E8FC..0x0043F1A8`) is HYPOTHESIS (decompile only); the hero-wall scheme's run-on tests were
 read from the instructions at `0x0043F3A0..0x0043F50F` (2026-10-21).
 
 - A terrain with side art (`+0x1CB` bit 1) or PlayerColouredWall draws art 1 on each side whose
-  neighbour is **off the map** (CONFIRMED, `0x0043F1F6..0x0043F224`: the flag set before the
+  neighbour is **off the map** (STRONGLY INFERRED, `0x0043F1F6..0x0043F224`: the flag set before the
   on-map call survives its failure), or explored and not nav-solid, unless that neighbour is a room
   that draws its own walls (room definition `+0x43D` bit 3, set for constructions 1, 5, 7, 9, 12
   and 13, `wall-pieces.md` section 1) and this terrain is AllowRoomWalls. A scanned neighbour
@@ -156,7 +159,7 @@ upper fog-edge openings remain outside those samples; their [under-wall geometry
 trace](room-floors-and-liquids.md#residual-fog-edge-trace-2026-11-01) narrows Q643.
 Matched native coverage and the earlier Level 2 report remain open.
 
-### The quarters (CONFIRMED, `0x0043FF5A..0x004402F0`)
+### The quarters (STRONGLY INFERRED, `0x0043FF5A..0x004402F0`)
 
 - Entered for PlayerColouredPath or PlayerColouredWall, when drawn as fog, or for terrain 0x23
   (whose piece comes from vtable `+0x2AC`, unread).
@@ -184,12 +187,12 @@ Matched native coverage and the earlier Level 2 report remain open.
 
 - **Rock, Gold, Gems, Impenetrable Rock, Edge of Map, Fog of War.** One
   "<X> WALL" (art 1) per face that is exposed, visible and not taken over by a
-  room, rotated by side. One "<X> TOP" (art 2) on top. CONFIRMED.
+  room, rotated by side. One "<X> TOP" (art 2) on top. STRONGLY INFERRED.
   - Rock and Gold use a 1-in-3 texture variant and Impenetrable a 1-in-2
     variant, picked by a **position hash**. The hash is the LCG 0x005558D0
     (s = s·1664525 + 1013904223, then a 13-bit rotate, mod n), seeded from x and
     y and never from the synced seed 0x006F3FA8. It is deterministic per tile,
-    not random. CONFIRMED for the computation. That +0x11 selects a texture
+    not random. STRONGLY INFERRED for the computation. That +0x11 selects a texture
     variant is STRONGLY INFERRED.
   - "Rock Corner" (+0x97) and the TAGGED tops (+0x60) are not read by
     0x0043E860. Their consumer is UNKNOWN. The tagged look does not use art 3: list+0x2EC bit 0
@@ -209,13 +212,13 @@ Matched native coverage and the earlier Level 2 report remain open.
   traced to their loader; that they hold the "claimed floor/top P_i" meshes
   rests on the mesh names (7 players × 5).
 - **Claimed Path.** 4 quarters "claimed floor{owner}_{i}". The mask is the tile
-  byte +0xC, precomputed by the simulation, not a live scan. CONFIRMED for the
+  byte +0xC, precomputed by the simulation, not a live scan. STRONGLY INFERRED for the
   switch; the names are STRONGLY INFERRED.
-- **Dirt Path.** One whole "ROCK FLOOR" piece. CONFIRMED.
+- **Dirt Path.** One whole "ROCK FLOOR" piece. STRONGLY INFERRED.
 - **Water and Lava.** 0x0043E440 builds the bed from WATER/LAVA BED0..7 and the
   tile byte +0xC (`room-floors-and-liquids.md` §3); open water draws no bed.
 - **Mana Vault.** MANA_VAULT when owned by the neutral player, else
-  MANA_VAULT_CLAIMED. CONFIRMED, and the owner sees the two looks (2026-10-09). Not built.
+  MANA_VAULT_CLAIMED. STRONGLY INFERRED, and the owner sees the two looks (2026-10-09). Not built.
 
 ### Room walls versus terrain faces
 
@@ -223,7 +226,7 @@ Room walls are drawn only against AllowRoomWalls terrain (Impenetrable Rock,
 Reinforced Wall, Edge of Map) or a closed secret door. Against such a tile the
 terrain's own face is suppressed. Against Rock, Gold, Gems and the rest, the
 room draws no wall, and the rock tile shows its own ROCK WALL face to the room.
-CONFIRMED (both sides of the test).
+STRONGLY INFERRED (both sides of the test).
 
 ### Randomness
 

@@ -1,10 +1,13 @@
+---
+systems: [rooms, art-assets]
+---
 # Room and neutral-Portal border flames
 
 DKII.EXE v1.70, primary Ghidra reads and shipped Effects/EffectElements records,
 2026-10-17. The owner's screenshot/recollection prompted the investigation; the
 mechanism below comes from the binary and data, not that recollection.
 
-## Border producer — CONFIRMED
+## Border producer — STRONGLY INFERRED
 
 [Room_BorderEffectTick](functions/004E7CD0.md) runs in the common room tick
 ([Room_Tick](functions/004E4B00.md)), after the type-specific handler permits it.
@@ -30,7 +33,7 @@ is800/4096 tile per turn, before contour turns and edge clamping.
 
 ## Art and the two tongues
 
-CONFIRMED shipped data:
+STRONGLY INFERRED shipped data:
 
 | Definition | Art / flags | Lifetime | Linked output |
 |---|---|---|---|
@@ -48,7 +51,7 @@ not two independent contour runners. HP20 consumes nominal20×50ms=1second,
 while the room requests a flame every0.5seconds. Thus roughly two overlap in
 steady motion. Exact visible overlap still needs a timed original-game capture.
 
-## Keeper colour and multicoloured unclaimed Portals — CONFIRMED
+## Keeper colour and multicoloured unclaimed Portals — STRONGLY INFERRED
 
 Effect20's art mask`0x2` is set. [ViewEffect_Initialize](functions/004347E0.md)
 selects the owner palette when that mask is set; an owner matching the neutral
