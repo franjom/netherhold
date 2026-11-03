@@ -40,6 +40,7 @@ public static class RoomLists
     {
         int[] parent = Enumerable.Repeat(-1, world.TileCount).ToArray();
         RoomListPosition[] positions = new RoomListPosition[world.TileCount];
+        var workshopRoots = new List<int>();
         int Root(int tile)
         {
             while (parent[tile] != tile)
@@ -63,6 +64,7 @@ public static class RoomLists
             {
                 parent[i] = i;
                 positions[i] = Next(world);
+                if (WorkshopTimerRules.IsWorkshop(database.RoomByTerrain(world.TileAtIndex(i).TerrainId))) workshopRoots.Add(i);
             }
             else
             {
@@ -70,7 +72,18 @@ public static class RoomLists
                 if (Same(i, west)) parent[Root(west)] = joined;
             }
         }
+        var lowest = new Dictionary<int, int>();
         for (int i = 0; i < parent.Length; i++)
-            if (parent[i] >= 0) world.TileAtIndex(i).RoomListPosition = positions[Root(i)];
+        {
+            if (parent[i] < 0) continue;
+            int root = Root(i);
+            world.TileAtIndex(i).RoomListPosition = positions[root];
+            lowest.TryAdd(root, i);
+        }
+
+        // Each Workshop started a room as it was loaded (0x004F4A60); one a later tile merged into
+        // another was freed, its draws spent.
+        world.LevelStartWorkshops.Clear();
+        foreach (int root in workshopRoots) world.LevelStartWorkshops.Add(Root(root) == root ? lowest[root] : -1);
     }
 }

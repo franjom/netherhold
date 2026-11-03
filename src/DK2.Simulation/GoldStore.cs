@@ -260,7 +260,7 @@ public static class GoldStore
         if (state.GoldHeld == 0)
         {
             context?.RequestEffect("gold store", ViewEffectRequest.AtTileCentre(
-                new EffectId(room.Definition.PortalBuildUpEffectId), room.OwnerPlayerId,
+                new EffectId(room.Definition.RoomEffect425Id), room.OwnerPlayerId,
                 world.TilePosition(tile), new Fp32(0)));
             state.StoreGoldHeading = rng is null ? null : (ushort)rng.NextInt(0x800);
         }

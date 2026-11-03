@@ -536,8 +536,8 @@ public sealed class CreatureState
     /// <summary><c>DieInstantly</c>, bit 11 of the creature's second flag dword: this one
     /// skips the collapsed, rescuable window and dies where it stands. Set by trigger action
     /// type 1 from its <c>Flag</c> byte's bit 2, on 22 of the 268 shipped records
-    /// (ADR-0138). Three creature types carry it whatever the flag says —
-    /// <see cref="CreatureDeathRules.DiesInstantly"/>.</summary>
+    /// (ADR-0138), and by a party member's or placed hero's <c>Flags2</c> bit 2 (ADR-0636). Three
+    /// types carry it whatever the flag says (<see cref="CreatureDeathRules.DiesInstantly"/>).</summary>
     public bool DieInstantly;
 
     /// <summary>Experience level, 1 to <see cref="CreatureLevelRules.MaxLevel"/> (10). A
@@ -1276,7 +1276,7 @@ public sealed class CreatureState
     /// a placed creature write it (ADR-0201); the constructor seeds bits 0 and 3 (ADR-0262).</summary>
     public byte Flags = 9;
 
-    /// <summary>The member's <c>Flags2</c> bits landed on the second flag dword: <c>DestroysRooms</c>
+    /// <summary>A party member's or placed hero's <c>Flags2</c> bits on the second flag dword: <c>DestroysRooms</c>
     /// (bit 7), <c>IsTool</c> (bit 8), <c>IsMercenary</c> (bit 9); <see cref="DieInstantly"/> is bit 11.
     /// IsTool also permits foreign pickup (hand-of-evil.md §3).</summary>
     public bool DestroysRooms;

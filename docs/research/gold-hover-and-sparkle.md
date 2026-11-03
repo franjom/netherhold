@@ -125,7 +125,7 @@ STRONGLY INFERRED: it appears and moves on the chest only, frame to frame.
 16-turn sweep. Mapping: a store tile holding gold is one Gold Pile 1 (the deposit creates it,
 `0x004F4510` deletes it with its last gold), so the chain walk (`SlabChain.Order`, DK2's `+0x2D`
 chain) draws once per tile with gold. Every Treasury and unruined Heart draws, whatever its owner
-(`Room_Tick` calls the type handler unconditionally), in `RoomIndex` order (ADR-0327). The pile
+(`Room_Tick` calls the type handler unconditionally), in the room walk's order, newest room first (ADR-0634). The pile
 stands at its tile's centre on the floor, `0x1000` (`0x004F3C60` creates it at z 0 and the
 floor step `0x004B5020` raises it, STRONGLY INFERRED), so the request is effect 34 at height
 `0x1000` + 1068. The effect's own randomness is the view's. Tests: `StoreGoldTests`.

@@ -188,6 +188,23 @@ public struct TileState
     public byte PrisonDoor;
     public long PrisonDoorAnimationTick;
 
+    /// <summary>A Workshop's four effect countdowns in turns (<c>room+0x49</c>, <c>+0x55</c>, <c>+0x4D</c>,
+    /// <c>+0x51</c>, the dumper's Steam, LavaSpill, Smoke and LavaBubbling counters), on the room's lowest
+    /// tile like <see cref="HatcheryLastGeneratedTick"/> and zero elsewhere. Each is seeded by the room's
+    /// constructor and reloaded from the simulation stream when it reaches zero
+    /// (<see cref="WorkshopTimerRules"/>, workshop-timers.md). Growth and merging keep the surviving
+    /// room's; a rebuild after a sale constructs new rooms and seeds them again.</summary>
+    public int WorkshopSteamTimer;
+
+    /// <inheritdoc cref="WorkshopSteamTimer"/>
+    public int WorkshopLavaSpillTimer;
+
+    /// <inheritdoc cref="WorkshopSteamTimer"/>
+    public int WorkshopSmokeTimer;
+
+    /// <inheritdoc cref="WorkshopSteamTimer"/>
+    public int WorkshopLavaBubblingTimer;
+
     /// <summary>A room tile's place in its room's slab chain (<c>FirstSlab</c> to <c>LastSlab</c>,
     /// <c>room+0x2D</c>/<c>+0x2F</c>): the chain is the room's tiles by this, then by tile index.
     /// Zero for the map's own rooms, which DK2 loads in row-major order. Kept by
@@ -285,6 +302,10 @@ public struct TileState
         hash.Add(CasinoPartyStartTick);
         hash.Add(PrisonDoor);
         hash.Add(PrisonDoorAnimationTick);
+        hash.Add(WorkshopSteamTimer);
+        hash.Add(WorkshopLavaSpillTimer);
+        hash.Add(WorkshopSmokeTimer);
+        hash.Add(WorkshopLavaBubblingTimer);
         hash.Add(SlabOrder);
         hash.Add(RoomListPosition.Value);
         hash.Add(RoomSizeChangedTick);
@@ -1082,6 +1103,17 @@ public sealed class WorldState
         Relink(creature);
         return creature;
     }
+
+    /// <summary>The simulation's own generator, for the draws a room's constructor makes at the moment a
+    /// tile starts a room (<see cref="WorkshopTimerRules.Construct"/>), where no system is running. Null
+    /// until a <see cref="GameSimulation"/> binds its generator; a room made before then draws nothing.</summary>
+    internal SimRandom? RoomConstructionRandom { get; set; }
+
+    /// <summary>The Workshops the map was loaded with, one entry per room constructed, in construction
+    /// order: the lowest tile of the room that survived, or -1 for a room merged into another. Set by
+    /// <see cref="RoomLists.Initialize"/>, spent by <see cref="WorkshopTimerRules.InitializeLevelStart"/>
+    /// when a simulation starts the level. Not saved: a restored world has no draws to make.</summary>
+    internal List<int> LevelStartWorkshops { get; } = [];
 
     internal void BindCreatureIdentityRandom(SimRandom random)
     {

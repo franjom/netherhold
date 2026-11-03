@@ -145,6 +145,7 @@ public static class SlabChain
         byte door = 0, party = 0;
         long partyStart = 0;
         long hatcheryStamp = world.CurrentTick.Value + 1;
+        WorkshopTimers workshop = default;
         for (int d = 0; d < Dx.Length; d++)
         {
             int n = Neighbour(world, tileIndex, d);
@@ -156,6 +157,7 @@ public static class SlabChain
                 int clockTile = int.MaxValue;
                 foreach (int t in room) clockTile = Math.Min(clockTile, t);
                 hatcheryStamp = world.TileAtIndex(clockTile).HatcheryLastGeneratedTick;
+                workshop = WorkshopTimerRules.Read(world, clockTile);
                 listPosition = world.TileAtIndex(room[0]).RoomListPosition;
                 foreach (int t in room)
                 {
@@ -175,10 +177,14 @@ public static class SlabChain
             }
         }
 
+        bool workshopRoom = WorkshopTimerRules.IsWorkshop(database.RoomByTerrain(terrain));
+        // A tile with no neighbour starts a room, and a Workshop's constructor draws its four timers (0x004F4A60).
+        if (chain is null && workshopRoom && world.RoomConstructionRandom is { } rng) workshop = WorkshopTimerRules.Construct(rng);
         chain ??= [tileIndex];
         if (listPosition == default) listPosition = RoomLists.Next(world);
         RoomLists.Set(world, chain, listPosition);
         Stamp(world, chain);
+        if (workshopRoom) WorkshopTimerRules.Place(world, chain, workshop);
         int lowest = KeepDoor(world, chain, door);
         ref TileState head = ref world.TileAtIndex(lowest);
         (head.CasinoParty, head.CasinoPartyStartTick) = (party, partyStart);
@@ -252,6 +258,7 @@ public static class SlabChain
         var chainOf = new Dictionary<int, List<int>>(order.Length);
         var chains = new List<List<int>>();
         var positions = new Dictionary<List<int>, RoomListPosition>();
+        var workshops = new Dictionary<List<int>, WorkshopTimers>();
         foreach (int tile in order)
         {
             List<int>? joined = null;
@@ -274,6 +281,7 @@ public static class SlabChain
                     }
 
                     chains.Remove(other);
+                    workshops.Remove(other);
                 }
             }
 
@@ -283,6 +291,9 @@ public static class SlabChain
                 chainOf[tile] = alone;
                 chains.Add(alone);
                 positions.Add(alone, RoomLists.Next(world));
+                // Each piece is a new room, and a Workshop's constructor draws its timers as it is made.
+                if (WorkshopTimerRules.IsWorkshop(room) && world.RoomConstructionRandom is { } rng)
+                    workshops.Add(alone, WorkshopTimerRules.Construct(rng));
             }
         }
 
@@ -295,6 +306,7 @@ public static class SlabChain
         long animationTick = leaving.PrisonDoorAnimationTick;
         foreach (int tile in old) animationTick = Math.Max(animationTick, world.TileAtIndex(tile).PrisonDoorAnimationTick);
         leaving.PrisonDoorAnimationTick = 0;
+        (leaving.WorkshopSteamTimer, leaving.WorkshopSmokeTimer, leaving.WorkshopLavaBubblingTimer, leaving.WorkshopLavaSpillTimer) = (0, 0, 0, 0);
         leaving.HatcheryLastGeneratedTick = 0;
         leaving.HatcheryStartupIntervalTicks = 0;
         (leaving.PrisonDoor, leaving.CasinoParty, leaving.CasinoPartyStartTick) = (0, 0, 0);
@@ -306,6 +318,7 @@ public static class SlabChain
             Stamp(world, chain);
             RoomHealthRules.SetPiece(world, database, room, chain, percent);
             KeepDoor(world, chain, door, animationTick);
+            if (WorkshopTimerRules.IsWorkshop(room)) WorkshopTimerRules.Place(world, chain, workshops.GetValueOrDefault(chain));
             if (room.TypeId == RoomTypeId.Hatchery)
             {
                 int lowest = int.MaxValue;

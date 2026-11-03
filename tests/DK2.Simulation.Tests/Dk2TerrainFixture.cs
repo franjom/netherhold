@@ -1379,6 +1379,19 @@ internal static class Dk2TerrainFixture
     public static ShotDef[] Shots() =>
     [
         Status("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, 0, ShotRules.CreateObjectProcess, attackCategory: 12),
+        // Create Imp's two shots as shipped: 2 runs creation process 1, the upgraded 60 process 36.
+        new(new byte[239])
+        {
+            Name = "Create Creature", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = 2,
+            // Shipped values: dies on its first update, the next turn, and runs the process on death.
+            Speed = 2048, Health = 1, TimedDelay = 251, Flags = 0x4, ShotProcessFlags = 0x80, ProcessType = 1,
+        },
+        new(new byte[239])
+        {
+            Name = "Create Single Creature", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = 60,
+            // Shipped values: dies on its first update, the next turn, and runs the process on death.
+            Speed = 2048, Health = 1, Flags = 0x4, ShotProcessFlags = 0x80, ProcessType = 36,
+        },
         new(new byte[239])
         {
             Name = "Fireball", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = FireballShotId,
@@ -1765,7 +1778,7 @@ internal static class Dk2TerrainFixture
 
         // Transcribed for the Treasury (60, Gold Earn Creation), because a gold
         // deposit asks for it on each store pile it creates.
-        PortalBuildUpEffectId = roomEffect,
+        RoomEffect425Id = roomEffect,
 
         // Not transcribed. Present because the record requires them.
         HealthGain = 0,
@@ -1802,6 +1815,34 @@ internal static class Dk2TerrainFixture
         return new LevelMap(width, height, tiles);
     }
 
+    /// <summary>The Heart's tile in <see cref="HeartRoom"/>.</summary>
+    public static readonly TilePos HeartTile = new(3, 3);
+
+    /// <summary>Widens the starting room to the claimed 5 by 5 at (1..5, 1..5) for <paramref name="owner"/>,
+    /// with a one-tile Dungeon Heart at <see cref="HeartTile"/> unless <paramref name="heart"/> is false.
+    /// A free imp is cast two tiles from the Heart (0x004BB2A0); in a shipped level that point stays
+    /// on the Heart's floor, and here too.</summary>
+    public static void HeartRoom(WorldState world, GameDatabase database, byte owner, bool heart = true)
+    {
+        for (int y = 1; y <= 5; y++)
+            for (int x = 1; x <= 5; x++)
+            {
+                ref TileState floor = ref world.Tile(x, y);
+                floor.TerrainId = ClaimedPath;
+                floor.OwnerPlayerId = owner;
+            }
+        if (heart) PlaceHeart(world, database, owner);
+    }
+
+    /// <summary>Puts the one-tile Dungeon Heart of <see cref="HeartRoom"/> at <see cref="HeartTile"/>.</summary>
+    public static void PlaceHeart(WorldState world, GameDatabase database, byte owner)
+    {
+        ref TileState tile = ref world.Tile(HeartTile.X, HeartTile.Y);
+        tile.TerrainId = DungeonHeartTerrain;
+        tile.Health = database.TerrainById(tile.TerrainId).StartingHealth;
+        tile.OwnerPlayerId = owner;
+    }
+
     public static WorldState World() =>
         WorldState.FromMap(Database(), Map(), [(byte)0, (byte)1, (byte)2]);
 
@@ -1825,6 +1866,13 @@ internal static class Dk2TerrainFixture
     /// no imps is staffed on the first tick (<c>ImpSupplySystem</c>), so a
     /// mana-income test that hands a keeper a heart starts paying imp upkeep
     /// immediately unless it excludes that system.</summary>
+    /// <remarks>The room walk's steps count as systems: leaving out <see cref="Systems.DungeonHeartSystem"/>
+    /// also leaves out the Heart handler's own part, <see cref="Systems.HeartFrameStep"/>, which runs in the walk.</remarks>
     public static ISimulationSystem[] SystemsWithout<T>() where T : ISimulationSystem =>
-        [.. Systems.SimulationSystems.Default().Where(s => s is not T)];
+    [
+        .. Systems.SimulationSystems.Default().Where(s => s is not T).Select(s => s is Systems.RoomTickSystem walk
+            ? new Systems.RoomTickSystem([.. walk.Steps.Where(step =>
+                step is not T && !(typeof(T) == typeof(Systems.DungeonHeartSystem) && step is Systems.HeartFrameStep))])
+            : s),
+    ];
 }

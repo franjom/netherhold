@@ -5,7 +5,7 @@ Milestone M6. What a keeper's banked research points buy. The accrual that banks
 
 **Implementation:** `DK2.Simulation.ResearchTreeRules`, advanced from the research
 credit in `Systems.CreatureJobSystem` and chosen each turn by `Systems.ResearchSystem`;
-Create Imp's level in `Systems.ImpSupplySystem` (ADR-0247).
+Create Imp's level in `ImpCreationRules.FromShot`, from the shot's death event (ADR-0247, ADR-0635).
 **Tests:** `ResearchTreeTests` (`DK2.Simulation.Tests`) and
 `ResearchTreeOnRealDataTests` (`DK2.Behavior.Tests`).
 **Questions:** Q447.
@@ -151,8 +151,9 @@ The runtime record is 122 bytes (`0x7A`), stored at world `+0x1604` and filled b
 `(1, 4)`. Data 1 is the creature type (1, the Imp) and data 2 its level, so the
 **upgraded imp is level 4**, as the owner saw. The level comes from the record's
 bonus data, not from a constant in the code. Data 1 is the one that the cost
-formula reads as the creature type. The shot process itself was not read, so
-"data 2 is the level" rests on the data and the owner's observation.
+formula reads as the creature type. Shot 60's process ([0x004AFE50](functions/004AFE50.md))
+levels the creature up until it reaches data 2, so data 2 is the level; shot 2's process
+makes data 2 creatures and never levels them.
 
 **Free imps are upgraded too.** The per-turn free imp ([imps-and-mana.md](imps-and-mana.md)) calls
 the same `0x004BBD30` with spell 4 and a free argument, which skips the mana

@@ -173,15 +173,15 @@ does the opposite, but by accident: it resets to Java's `Double.MIN_VALUE`,
 which is the smallest *positive* double rather than the sentinel it reads as, so
 an `elapsed - lastSpawn` of the whole game clock satisfies any interval.
 
-### The quirk kept on purpose
+### The count is live
 
-The keeper's creature count is read **once per tick** and not updated between
-that tick's portals, so two portals ripe on the same tick both produce — even
-though the first arrival would have raised the required interval and might have
-filled the last slot. A keeper with several portals can end a tick one or two
-over their stated maximum. OpenKeeper documents this as original behaviour and
-replicates it deliberately; so does this (fidelity priority 4, reproduce rather
-than fix). `PortalTests.TwoPortalsRipeOnTheSameTickBothProduce`.
+The pick (`0x004DBF90`) recounts the owner's portal-born creatures (list `+6`, link `+0x10`, `+0x3E6 & 2`) and
+recomputes the capacity (`0x004DCE30`) every time it runs, and the arrival creator (`0x004DC9A0`) links the new
+creature (`Creature_Construct`, `0x004872A0`) and sets that bit at once. So a second portal ripe in the same turn
+sees the first one's arrival: at one under the capacity it refuses and draws nothing, and a keeper never ends a
+turn over its maximum. (An earlier reading, after OpenKeeper, had the count read once a turn.) The room walk
+visits the portals newest first (ADR-0634).
+`PortalTests.ASecondPortalRipeOnTheSameTickSeesTheFirstOnesArrivalAndAtTheCapRefusesAndDrawsNothing`.
 
 ### Which creature, when several qualify
 

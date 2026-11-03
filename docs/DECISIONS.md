@@ -14701,3 +14701,129 @@ keeps it. Not mirrored: 6's wait while a kind-4 action runs (`0x00470CA8`).
 a quarter of a tile past it. Among the scenarios only the Goblin's first bird moved (chicken 5 for
 21, the meal tick unchanged). The Jack keeps its own check for hosts that run without this step.
 DK2 runs the stop inside the handler, after the needs routine; ours runs it just before that.
+
+## ADR-0630: a free imp drops in two tiles from the Heart
+
+**Date:** 2026-11-02. **Status:** accepted. Builds Q716 except its draw order; hash/save 377.
+
+**Context.** DK2 makes a free imp by casting Create Imp with the bypass flag (`0x004BB2A0`,
+`0x004BB55F`): the point is DungeonHeartPosition's centre plus 0x2000 at a random(0x800)
+angle, X + sin and Y - cos, Z 0. The shot's creation process puts the imp half a tile above
+the floor in state 214 and draws its heading: random(0x800) in process 1 (`0x004AD7A0`),
+random(4) << 9 in the upgraded shot's process 36 (`0x004AFE50`). It then falls and makes
+effect 29 on landing (`0x00481750`). That the free cast's shot is raised to the floor first is
+STRONGLY INFERRED (no capture). Ours made a healthy keeper's free imp in state 1 on the first
+Heart tile with no draw; its ruined-at-load branch used X + cos, Y + sin; neither our bought
+nor our free imps drew the heading ([imps-and-mana.md](research/imps-and-mana.md)).
+
+**Decision.** `ImpSupplySystem.TopUp` draws the angle for every free cast, aims from
+`HeartSites.PositionOf` ((1,1) for a Heart ruined at load, which never set it), and refuses a
+point off the map or nav-solid, with the deadline still advanced. Free and bought imps share
+`Place`: the exact point, the heading draw chosen by the fired shot's process, then
+`ImpCreationRules.Begin`.
+
+**Consequences.** Two draws per created imp, so seeded runs after the first imp diverge from
+376. Ours makes both draws inside the cast; DK2 runs the creation process in the shot's own
+update, so with two keepers its order may be angle, angle, heading, heading (unread, Q716).
+A free imp spends its fall in 214, then 11 and 10, before choosing work. The test fixtures'
+Heart sits in a claimed 5 by 5, as a shipped Heart does. Whether the fall is Q149's 1.4 s is
+unmeasured.
+## ADR-0634: the Workshop's four effect timers draw the world stream
+
+**Date:** 2026-11-02. **Status:** accepted. Q733; hash/save 385.
+
+**Context.** DK2's Workshop handler (`0x004F4B20`) counts four effect timers down each turn. At zero
+each reloads with `random(16 x ticks) + 8 x ticks` on the world stream, then, whether or not an effect is
+asked for, draws again to pick a floor slot, a wall slot or a Steel Bucket, and plays an effect (steam 50,
+lava spill, smoke 51, lava bubbling 93) with a sound for three of them. The room constructor (`0x004F4A60`)
+draws `random(4 x ticks)` four times as a room is made. Ours drew none of it, so our stream was shorter than
+DK2's on every level with a Workshop; the census had one timer too few and no constructor. Owner,
+2026-11-02: port the timers ([workshop-timers.md](research/workshop-timers.md)).
+
+**Decision.** `WorkshopTimerSystem`, in the room-tick phase after the hated-company step, runs
+`WorkshopTimerRules.Tick` on each Workshop, newest first as DK2's room manager walks (`0x004EC490` links at
+the head), in the handler's order: steam, lava spill, smoke, lava bubbling. The four countdowns are
+`TileState` fields on the room's lowest tile, kept as the Hatchery's stamp is: `SlabChain.Added` keeps the
+first neighbour's room's, `Removed` constructs each piece anew. The constructor's draws are made where a
+tile starts a room, for each piece a sale leaves, and as the simulation starts for the map's own rooms
+(`RoomLists.Initialize` records them, a merged room included). `RoomDef` gains the two effect ids at file
+`0x388` and `0x38A`. The effects are requests; the sounds (`0x2E9`, `0x2E8`) are one-line comments at their
+three sites for the sound branch.
+
+**Room walk (owner, 2026-11-02).** A Treasury's per-turn draw depends on its values, so running the
+per-type systems in turn would have split the stream from DK2's for good wherever an older Treasury met a Workshop.
+`RoomTickSystem` replaces the room-tick phase's systems with one walk over every room, newest first (`0x004EC450`,
+`0x004EC490`), each room's handler, border step and health step before the next room's. The systems became its
+`IRoomTickStep`s with their rules unchanged and still run alone. The Hatchery's lay and the Heart handler's
+frame moved into the walk; the eggs', coops' and chickens' object steps end the thing pass, which DK2 runs
+before the rooms. A portal now counts its keeper's creatures and capacity live on every pick, as `0x004DBF90`
+does, so a second ripe portal sees the first's arrival. Mapping: workshop-timers.md section 8.
+
+**Consequences.** A Workshop draws 4 at its start and 4 to 8 more at every reload. Deviations: a captured room
+takes a new list position, where DK2's manager list does not move it; coops are placed once a second by
+ours, with no draw, where Room_Rebuild places them at room change with one draw each (`0x004DE220`); the
+furniture list lacks the Workshop
+Pillars; the lava-spill effect sits at the object's floor position, not its unread mesh point (the owner is the
+object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not (Q733). The Torture
+Chamber, Temple, Graveyard, Combat Pit and hero gate handlers draw the world stream too and are not built.
+Hash/save 385: sixteen bytes a tile. No scenario moved and no fixture holds a Workshop, so the pin moved only
+with the version.
+
+
+## ADR-0635: a Create Imp makes its imp through its shot
+
+**Date:** 2026-11-02. **Status:** accepted. Answers Q716 and Q149; hash/save 383.
+
+**Context.** The native capture `Q716FreeImps` (`F:\DK2Evidence\studies\q716-free-imp-draws--2026-11-02--001`,
+`tools/levelgen/q716_draws.py`) has keepers 3 and 4 due a free imp on the same turn, four times. Every
+draw matched on the world seed: the free casts' turn draws both angles in active-list order (keeper 4,
+then 3) and ends with two Create Creature shots and no imp. The next turn the shots die newest first, and
+each runs process 1 (`0x004AD7A0`) on its death event (`ShotProcessFlags` 0x80, health 1, counting
+down): Creature_Construct's name draw (random(500), `0x00491929`; matched against all eight imps' +0x4ED)
+and blood-group draw (random(6), `0x004919E4`), then the heading (`0x004AD957`). The imp appears at floor
++ 0x800 in state 214, reaches the floor the next turn and is in state 11 the turn after. A bought cast
+is different: the Level 4 casts at packet turns 392 and 552 show their imp on the cast's own turn
+(`imp-observation-clocks.md`, CONFIRMED). DK2 applies packet commands before the thing pass
+(`World_UpdateTurn`, `0x0050A450`), so a bought cast's shot is in the list when it is walked; the free cast is made in the player update, after it.
+Ours made both kinds of imp inside the cast, with the heading drawn straight after its own angle.
+
+**Decision.** Both casts fire the spell's shot (2, or 60 once upgraded) at the cast point:
+`CreateImpCastSystem`, with the keeper actions before the thing pass, for a bought cast, and
+`ImpSupplySystem`, in the player update, for a free one. `ShotSystem` already walks shots newest first
+and runs the death event, so `ShotRules.Process` sends processes 1 and 36 to `ImpCreationRules.FromShot`:
+the creation gates (bounds, nav bit 3) at the shot's point; the creature (process 1 makes `Data2` of them,
+each allocated on its ring and then put back on the shot's point, `0x004AD9B4`); its heading; the fall;
+and for process 36 Creature_LevelUp up to `Data2`, with effect 339 each time. Payment and the free
+deadline stay at the cast, so a point the process refuses still costs the mana or the interval. The
+non-worker arm is not built.
+
+**Consequences.** Free imps arrive a turn later than before, as in the capture; bought imps on the cast's
+turn as before. Tile-only and heart-default casts (commands without an exact point) now fall too. A
+bought cast now precedes the turn's mana payment, so it can no longer spend mana earned that turn, as in
+DK2: `World_UpdateTurn` (`0x0050A450`) dispatches packet actions before the player update, and the cast
+(`0x004BBD30`) charges the mana itself. Two casts in one turn are both priced
+before either imp exists. An upgraded imp now shows the promotion effect three times.
+
+## ADR-0636: a placed hero takes its record's Flags2
+
+**Date:** 2026-11-02. **Status:** accepted. Builds part of Q732; hash/save 381.
+
+**Context.** `Level_LoadGoodCreature` (`0x00520460`) hands a placed hero's Flags2 byte (record
+`+0x53`) to the setters the party spawn uses: bit 0 to `0x0048E090` (DestroysRooms), bit 1 to
+`0x0048E0B0` (IsTool), bit 3 to `0x0048E0D0` (IsMercenary, the data's name; the setter also
+writes the unique-texture selector `+0xF0`), bit 2 to `0x0048E140`
+(DieInstantly, `+0x3EA` bit 11). The health routine (`0x004B2CE0`) skips the collapse for a
+DieInstantly creature attached to no room (`creature-death.md`). Ours copied these bits for
+party members only (`HeroPartyRules`), so every placed hero collapsed. Watched 2026-11-02
+(level `M7Q729`): one of Secret4's placed Dwarves, Flags2 4, attached to no room (`+0x3B9` 0)
+with `+0x3EA` bit 11 set (both read from the capture), went from 1000 to -147 health under a
+Bile Demon's blow and left a body that turn, never dying; ours put the same Dwarf in 216.
+
+**Decision.** `ThingProjection` sets the four flags from a `GoodCreatureThing`'s Flags2 as
+`HeroPartyRules` does for a member.
+
+**Consequences.** The shipped placed heroes carry Flags2 0 to 4 (levelgen `show`, all 66 levels):
+the 46 with bit 2, in 11 levels (27 in Secret2, 9 in Secret4), now die outright when no room
+holds them, so ours can no longer imprison or rescue them either. DestroysRooms (bit 0, 110
+heroes) and IsTool (bit 1, 67) now reach placed heroes too; no placed hero sets bit 3. Those
+two bits' effects on placed heroes are not watched.

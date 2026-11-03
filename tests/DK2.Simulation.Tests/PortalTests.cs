@@ -1189,16 +1189,11 @@ public class PortalTests
         Assert.All(threeByThree, r => Assert.True(PortalRules.IsEntrance(r)));
     }
 
-    // ---- the quirk, kept on purpose --------------------------------------
+    // ---- the count is live ---------------------------------------------------
 
     [Fact]
-    public void TwoPortalsRipeOnTheSameTickBothProduce()
+    public void TwoPortalsRipeOnTheSameTickBothProduceWhileThereIsRoomForBoth()
     {
-        // Reproduced, not fixed (fidelity priority 4). The keeper's creature
-        // count is read once a tick, so the second portal does not see the
-        // first one's arrival — neither the longer interval it implies nor the
-        // slot it took. OpenKeeper documents the same behaviour in the
-        // original and replicates it deliberately.
         GameDatabase db = Database();
         WorldState world = World(db);
         Portal(db, world, 5, 5);
@@ -1208,6 +1203,42 @@ public class PortalTests
         Simulation(db, world).Run(25 * SimulationTiming.TicksPerSecond);
 
         Assert.Equal(2, Goblins(world));
+    }
+
+    [Fact]
+    public void ASecondPortalRipeOnTheSameTickSeesTheFirstOnesArrivalAndAtTheCapRefusesAndDrawsNothing()
+    {
+        // 0x004DBF90 recounts the owner's portal-born creatures and the capacity (0x004DCE30) every time it
+        // runs, and 0x004DC9A0 links the new creature and marks it portal-born at once. Two portals hold
+        // 15 + 5 = 20; with 19 held, the first takes the last place and the second refuses.
+        (GameSimulation sim, WorldState world, int arrivals, uint seed) = TwoRipePortals(portalBorn: 19);
+        Assert.Equal(1, arrivals);
+        Assert.Equal(20, world.Creatures.Count(c => c.OwnerPlayerId == Keeper && c.CameThroughPortal));
+
+        // The one pick's draws are all the stream moved: a single ripe portal at 19 draws the same.
+        (GameSimulation _, WorldState _, int _, uint single) = TwoRipePortals(portalBorn: 19, secondRipe: false);
+        Assert.Equal(single, seed);
+    }
+
+    private static (GameSimulation Sim, WorldState World, int Arrivals, uint Seed) TwoRipePortals(int portalBorn, bool secondRipe = true)
+    {
+        GameDatabase db = Database(poolSize: 40);
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+        Portal(db, world, 5, 9);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 4, 6);   // room for every goblin's bed
+        var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)), [new PortalSystem()]);
+        for (int i = 0; i < portalBorn; i++)
+            world.SpawnCreature(db, GoblinId, Keeper, new TilePos(12 + (i % 3), 2 + (i / 3))).CameThroughPortal = true;
+        int due = PortalRules.SpawnIntervalTicks(db, 0) - 1;
+        foreach (RoomInstance portal in RoomIndex.Build(world, db).Where(r => PortalRules.IsEntrance(r.Definition)))
+            if (secondRipe || portal.TileIndices[0] == RoomIndex.Build(world, db).Where(r => PortalRules.IsEntrance(r.Definition)).Max(r => r.TileIndices[0]))
+                world.TileAtIndex(PortalRules.EntranceTileIndex(world, portal)).EntranceIdleTicks = due;
+
+        sim.Tick();
+
+        int arrivals = world.Creatures.Count(c => c.OwnerPlayerId == Keeper && c.CameThroughPortal) - portalBorn;
+        return (sim, world, arrivals, ((Dk2Lcg)sim.Rng.Algorithm).Seed);
     }
 
     [Fact]
@@ -1222,8 +1253,8 @@ public class PortalTests
 
         Simulation(db, world).Run(25 * SimulationTiming.TicksPerSecond * 400);
 
-        // 15 + 5, plus at most one overshoot from the once-a-tick count above.
-        Assert.InRange(Goblins(world), 20, 21);
+        // 15 + 5: the count is live, so the second portal never overshoots the first's arrival.
+        Assert.Equal(20, Goblins(world));
     }
 
     // ---- the clock -------------------------------------------------------

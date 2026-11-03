@@ -303,6 +303,10 @@ per-room gate first, and every shipped room divides exactly either way. Sellable
 means `Buildable`, so `RoomRules.CanSell` names no room: on shipped data it admits
 the 17 rooms a keeper builds and refuses the portals, hearts and hero gates.
 
+**Not read: the sale's permission test**, world object `[0x006E5054]` slot `+0x384`, first in `0x004C5DB0`; it stops a
+keeper's sale (pay flag 1). The owner's Sell did nothing on `M7Q729b`'s Prison (2026-11-02, Secret4-based), likely
+this; ours has no such test. Action 22 passes flag 0 and goes on regardless (`M7Q729c`).
+
 **Gold on a sold treasury tile: CONFIRMED and reproduced** (owner, 2026-09-03;
 binary, 2026-09-05). The tile reverts to claimed floor and the gold drops onto that
 same tile as a pile, coming off the keeper's spendable total until somebody fetches

@@ -14,10 +14,10 @@ namespace DK2.Simulation.Systems;
 /// chain from its first slab, each loose pile handed to the deposit <c>0x004F3C60</c> from its tile
 /// (<see cref="GoldStore.DepositFrom"/>) and destroyed, what does not fit going back down as a new
 /// pile at one of eight points, a draw on the world stream each time.
-/// <para>Deviates: rooms in <see cref="RoomIndex"/> order, not DK2's room list (ADR-0327); a Heart
+/// <para>Deviates: a Heart
 /// sweeps only while <c>SuckGold</c> (<c>+0x51</c>) is set, taken here as always.</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/gold-on-the-floor.md")]
-public sealed class StoreSweepSystem : ISimulationSystem
+public sealed class StoreSweepSystem : IRoomTickStep
 {
     /// <summary>The sweep's period in turns, the updates' <c>turn &amp; 0xF</c>.</summary>
     public const int SweepTurns = 16;
@@ -34,21 +34,25 @@ public sealed class StoreSweepSystem : ISimulationSystem
 
     public string Name => "store sweep";
 
-    public void Execute(SimulationContext context)
-    {
-        WorldState world = context.World;
-        GameDatabase database = context.Database;
-        // DK2's turn is our tick plus one (ADR-0119).
-        bool sweepTurn = (context.Tick.Value + 1) % SweepTurns == 0 && AnyLoosePileInAStore(world, database);
-        ObjectDef? pile = database.ObjectById(FloorGold.TreasuryPileObjectId);
+    private bool _sweepTurn;
+    private ObjectDef? _pile;
 
-        foreach (RoomInstance room in RoomIndex.Build(world, database))
-        {
-            if (!IsLiveStore(world, room)) continue;
-            Sparkle(context, room, pile);
-            if (sweepTurn && PlayerIds.IsKeeper(room.OwnerPlayerId) && Sweeps(world, database, room))
-                Sweep(context, room);
-        }
+    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context)
+    {
+        // DK2's turn is our tick plus one (ADR-0119).
+        _sweepTurn = (context.Tick.Value + 1) % SweepTurns == 0 && AnyLoosePileInAStore(context.World, context.Database);
+        _pile = context.Database.ObjectById(FloorGold.TreasuryPileObjectId);
+    }
+
+    public bool Applies(SimulationContext context, RoomInstance room) => IsLiveStore(context.World, room);
+
+    public void Tick(SimulationContext context, RoomInstance room)
+    {
+        Sparkle(context, room, _pile);
+        if (_sweepTurn && PlayerIds.IsKeeper(room.OwnerPlayerId) && Sweeps(context.World, context.Database, room))
+            Sweep(context, room);
     }
 
     /// <summary>A Treasury, or a Heart whose keeper's heart is not ruined: the rooms whose update

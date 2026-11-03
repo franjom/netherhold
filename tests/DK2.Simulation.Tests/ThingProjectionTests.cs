@@ -144,6 +144,48 @@ public class ThingProjectionTests
         Assert.Equal([(byte)0xF9, (byte)0xFF, (byte)0x20], world.Creatures.Select(c => c.Flags).ToArray());
     }
 
+    [Theory]
+    [InlineData(0x01)]
+    [InlineData(0x02)]
+    [InlineData(0x04)]
+    [InlineData(0x08)]
+    [InlineData(0xF0)]
+    public void APlacedHeroTakesEachFlags2BitAsAPartyMemberDoes(byte flags2)
+    {
+        // 0x00520460 hands record +0x53 to the setters the party spawn uses (ADR-0636); bit 2 is
+        // DieInstantly, which Secret4's placed Dwarves carry (Q732).
+        GameDatabase database = Database();
+        WorldState world = World(database);
+
+        ThingProjection.Place(world, database,
+        [
+            new GoodCreatureThing(new byte[32])
+            { X = 5, Y = 4, CreatureId = 7, Level = 1, InitialHealth = 100, Flags2 = flags2 },
+        ]);
+
+        CreatureState hero = Assert.Single(world.Creatures);
+        Assert.Equal([flags2 == 0x01, flags2 == 0x02, flags2 == 0x04, flags2 == 0x08],
+                     new[] { hero.DestroysRooms, hero.IsTool, hero.DieInstantly, hero.IsMercenary });
+    }
+
+    [Theory]
+    [InlineData(0x00, true)]
+    [InlineData(0x04, false)]
+    public void APlacedDieInstantlyHeroHasNoDyingWindowOutOfDoors(byte flags2, bool collapses)
+    {
+        // Secret4's placed Dwarves carry Flags2 4: one killed in the open left a body at once (M7Q729).
+        GameDatabase database = Database();
+        WorldState world = World(database);
+        ThingProjection.Place(world, database,
+        [
+            new GoodCreatureThing(new byte[32])
+            { X = 5, Y = 4, CreatureId = 7, Level = 1, InitialHealth = 100, Flags2 = flags2 },
+        ]);
+
+        CreatureState hero = Assert.Single(world.Creatures);
+        Assert.Equal(collapses, CreatureDeathRules.HasDyingState(world, database, database.CreatureById(hero.CreatureTypeId), hero));
+    }
+
     [Fact]
     public void AnObjectCarriesItsMoneyAmountAsGold()
     {

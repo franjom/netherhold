@@ -47,13 +47,7 @@ public class ManaUpkeepTests
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
-        if (heart)
-        {
-            ref TileState tile = ref world.Tile(2, 2);
-            tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
-            tile.Health = database.TerrainById(tile.TerrainId).StartingHealth;
-            tile.OwnerPlayerId = Keeper;
-        }
+        Dk2TerrainFixture.HeartRoom(world, database, Keeper, heart);
 
         world.Player(Keeper).Mana = mana;
 
