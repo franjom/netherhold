@@ -16,7 +16,7 @@ namespace DK2.Simulation.Combat;
 /// The status process types run on the first tick or the creature struck (§8, <see cref="Process"/>).
 /// Height, the overlap test's exact shape and objects as targets are not modelled; a door or a heart
 /// aimed at is struck within a quarter tile of its tile (Q398, Q363).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/shots.md")]
 public static partial class ShotRules
 {
     private const string SystemName = "shots";

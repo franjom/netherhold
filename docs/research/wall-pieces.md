@@ -13,8 +13,8 @@ Original version: DK2 v1.70 (GOG)
 Presentation only: nothing here changes a rule. Built so far: the general room wall chooser
 (§2) for Normal and DoubleQuad rooms (ADR-0392); the rest is the spec for what follows.
 
-Labels: CONFIRMED (read in the disassembly, or whole in a decompile that does not depend on
-mis-tracked registers), STRONGLY INFERRED, HYPOTHESIS or UNKNOWN.
+Labels: STRONGLY INFERRED (read in the disassembly, or whole in a decompile that does not depend on
+mis-tracked registers), HYPOTHESIS (inferred, a step not read) or UNKNOWN.
 
 Conventions used below:
 - **Direction table** `0x006BC370`: 8 entries of (dx, dy), index k = 0 N (0,−1),
@@ -28,8 +28,8 @@ Conventions used below:
   at +8..+0xA, a word at +0xC (0x90 on wall-top pieces, otherwise 0), a byte 0xFF
   at +0x10, a texture or animation value at +0x11 and a flag byte. Quarter entries
   also store a **quadrant** at +0x16 and their flag byte at +0x1A; whole entries
-  store their flag byte at +0x15. CONFIRMED (stores). The quadrant numbering is
-  0 NW, 1 NE, 2 SE, 3 SW. That is STRONGLY INFERRED: each floor builder writes
+  store their flag byte at +0x15. STRONGLY INFERRED (stores). The quadrant numbering is
+  0 NW, 1 NE, 2 SE, 3 SW. That is HYPOTHESIS: each floor builder writes
   quadrant q from the neighbour directions (2q−2, 2q−1, 2q), and the wall halves
   agree with it. How 0x0043C310 consumes the two arrays (vt+0xF0 and vt+0xF4) was
   **not** re-read.
@@ -44,7 +44,7 @@ The room loader is **0x004EACC0** (thiscall: runtime definition, intermediate
 record, …). It works from an intermediate record, which is the file record
 shifted by **+0xD4**. The intermediate starts with 0xD4 bytes of "field present"
 dwords, its checksum loop covers 0x4F3 = 0xD4 + 1055 bytes, and the file's torch
-art at 0x3C7 appears at intermediate 0x49B. CONFIRMED.
+art at 0x3C7 appears at intermediate 0x49B. STRONGLY INFERRED.
 
 Every art goes through 0x00504D80, which builds a 27-byte record (the handle at
 +0xF, the flags at +0xB, the type at +0xA). Destinations, from the `LEA ECX`
@@ -63,7 +63,7 @@ before each call:
 
 Each loaded art also gets optional `<name>Start` and `<name>End` handles at
 record +0x13 and +0x17, when flag bits 0x8 and 0x10 are set. The format strings
-are at 0x006975CC and 0x006975C4. CONFIRMED. So **+0x7F is the torch art's
+are at 0x006975CC and 0x006975C4. STRONGLY INFERRED. So **+0x7F is the torch art's
 "Start" slot** (0x6C + 0x13), not a piece slot in its own right (§3).
 
 ### The piece table: where +0x121..+0x1A8 come from
@@ -71,7 +71,7 @@ are at 0x006975CC and 0x006975C4. CONFIRMED. So **+0x7F is the torch art's
 The wall and floor slots are **not file art slots**. They are meshes the loader
 builds by name from the **name of file art 2**, `sprintf("%s%d", art2Name, k)`
 (format 0x0069FF1C), each with art 2's flags and type. Piece k goes to record
-**+0xC1 + k·0x1B**, so its handle sits at **+0xD0 + k·0x1B**. CONFIRMED.
+**+0xC1 + k·0x1B**, so its handle sits at **+0xD0 + k·0x1B**. STRONGLY INFERRED.
 
 | TileConstruction | Pieces built | Evidence |
 |---|---|---|
@@ -87,7 +87,7 @@ builds by name from the **name of file art 2**, `sprintf("%s%d", art2Name, k)`
 | 11 | k = 0..3, plus "%s%s%d" (name, "Destroyed", k) at +0x271 + k·0x1B | 0x004EB4B8..0x004EB59B |
 | 13 | k = 0..6, plus "%s%d%s" (name, k, "_DESTROYED") at +0x271 + k·0x1B | 0x004EB72E..0x004EB80B |
 
-The wall chooser's slots are therefore these pieces. CONFIRMED by arithmetic
+The wall chooser's slots are therefore these pieces. STRONGLY INFERRED by arithmetic
 from the loader:
 
 | Runtime handle | Piece k | Role in 0x00444F10 (§2) |
@@ -130,14 +130,14 @@ from the loader:
 The art 8 of Hero Gate Final and FrontEnd is "IMPEN ROCK TOP" (+0x60), which
 0x004464C0 and 0x00446640 draw (`floor-and-terrain-pieces.md` §4). Temple's torch art is empty.
 
-The "<name>k" names, and the slots taken from the loader, are CONFIRMED. That
+The "<name>k" names, and the slots taken from the loader, are STRONGLY INFERRED. That
 piece 9 is the **interior centre piece** and pieces 0..3 are the floor quarters
-is CONFIRMED for Normal rooms (`floor-and-terrain-pieces.md` §4).
+is STRONGLY INFERRED for Normal rooms (`floor-and-terrain-pieces.md` §4).
 
 ### Which constructions draw room walls
 
 The loader sets definition `+0x43D` bit 0x8 for TileConstruction 1, 5, 7, 9, 12
-and 13 (the switch right after the +0x452 copy in 0x004EACC0). CONFIRMED. These
+and 13 (the switch right after the +0x452 copy in 0x004EACC0). STRONGLY INFERRED. These
 are exactly the 0x00443610 arms that call the wall chooser. The terrain renderer
 tests the same bit to **suppress the neighbouring wall's own face** (`floor-and-terrain-pieces.md` §5).
 
@@ -151,13 +151,13 @@ room+0x18. The decompiler drops one argument. The frame was re-derived from
 0x00444F10..0x00444FB3.
 
 **Dispatch** (0x00444F7F..0x00444F99): type 0x12 → §3, type 0x15 → return,
-type 0x17 → §3, everything else → the general path. CONFIRMED.
+type 0x17 → §3, everything else → the general path. STRONGLY INFERRED.
 
 **Per-piece extras**: +0x11 = 0x004419D0(tile, roomTerrain). For a terrain with
 flag 0x20000 (Decay; only Reinforced Wall has it) it is a damage stage,
 `max(0, health − 2) / (MaxHealth / n)`, as 4.12. For room terrains it is 0.
 The tint comes from the **neighbour's** terrain colour words +0x1B9/+0x1BB/+0x1BD
-when that terrain has flag 0x20000000 (AmbientLight). CONFIRMED.
+when that terrain has flag 0x20000000 (AmbientLight). STRONGLY INFERRED.
 
 ### Pseudocode (general rooms; STRONGLY INFERRED against the disassembly, 0x00444F9F..0x004458B1)
 
@@ -205,16 +205,16 @@ The four half-piece cases, with their addresses:
 - **Side order** is N, E, S, W. Each side's A end is the counter-clockwise
   neighbour (d−2): W for N, N for E, E for S and S for W. The B end is d+2. For
   side N, quadrant s = 0 is the NW quarter and s+1 = 1 the NE quarter, so A is
-  the west half. CONFIRMED for the arithmetic; the quadrant semantics are STRONGLY
-  INFERRED.
+  the west half. STRONGLY INFERRED for the arithmetic; the quadrant semantics are
+  HYPOTHESIS.
 - **The rotation +4 is s for every piece of side s** (0 N, 1 E, 2 S, 3 W).
-  CONFIRMED.
+  STRONGLY INFERRED.
 - **The highlight flag is bit 0, not bit 1.** It is ORed into +0x1A (quarter
   entries) or into list+0x1B4 + n·0x16 + 0x15 = +0x1C9 (whole entries). It marks
   the wall tile behind the face as dig-tagged: either cell bit 0x2000, or the
   tile is inside the live selection rectangle at bridge+0x10/+0x14/+0x18/+0x1C
-  and its terrain is Taggable. CONFIRMED for the tests (0x00445280..0x004452B7).
-  That bit 0x2000 is the dig-tag highlight is STRONGLY INFERRED: 0x004484A0
+  and its terrain is Taggable. STRONGLY INFERRED for the tests (0x00445280..0x004452B7).
+  That bit 0x2000 is the dig-tag highlight is HYPOTHESIS: 0x004484A0
   clears it on non-Taggable terrain.
 - **0x004435E0** returns a pointer to the 16-bit cell of the bridge's per-tile
   presentation grid (bridge+0x326; width +8, height +0xC, base +4), or null off
@@ -235,15 +235,15 @@ The four half-piece cases, with their addresses:
   `room-floors-and-liquids.md` §5) means always piece 7. Torches
   (wall-torches.md §2) go on the opposite parity, but only Torture and Casino
   add the phase to the torch test. In other rooms with a phase, a decorated
-  wall and a torch can coincide. CONFIRMED (0x004452F1..0x0044535F).
-- **Not position-hashed and not random.** CONFIRMED.
+  wall and a torch can coincide. STRONGLY INFERRED (0x004452F1..0x0044535F).
+- **Not position-hashed and not random.** STRONGLY INFERRED.
 
 ---
 
 ## 3. Special cases in 0x00444F10
 
 **Type 0x15 (Hero Gate FrontEnd): no walls.** It returns at 0x00444F90.
-CONFIRMED.
+STRONGLY INFERRED.
 
 **Type 0x12 (Hero Gate Final, "hero door01..09").** dx = x − room+0x2D and
 dy = y − room+0x2E (the room origin bytes). All pieces go into the whole array,
@@ -253,9 +253,9 @@ decompile only, and have the same shape.
 
 | dx | Pieces |
 |---|---|
-| 0 | piece 6 rot 3, always. Also piece 6 rot 0 when dy = 0, and piece 3 (+0x121) rot 2 when dy = 4. The dy = 0 and dy = 4 branches fall through into the rot-3 piece (CONFIRMED). |
-| 2 | piece 6 rot 1, always. Also piece 6 rot 0 when dy = 0, and piece 7 (+0x18D) rot 2 when dy = 4 (STRONGLY INFERRED). |
-| 1 | dy = 0: piece 4 rot 0. dy = 5: piece 5 rot 0 **and** piece 5 rot 2. Nothing otherwise (STRONGLY INFERRED). |
+| 0 | piece 6 rot 3, always. Also piece 6 rot 0 when dy = 0, and piece 3 (+0x121) rot 2 when dy = 4. The dy = 0 and dy = 4 branches fall through into the rot-3 piece (STRONGLY INFERRED). |
+| 2 | piece 6 rot 1, always. Also piece 6 rot 0 when dy = 0, and piece 7 (+0x18D) rot 2 when dy = 4 (HYPOTHESIS). |
+| 1 | dy = 0: piece 4 rot 0. dy = 5: piece 5 rot 0 **and** piece 5 rot 2. Nothing otherwise (HYPOTHESIS). |
 | other | nothing |
 
 So: hero door07 down both side columns, door05 on the top middle, door04 and
@@ -279,7 +279,7 @@ for s in 0..3:
                    whole += { piece 6 (+0x172), rot = (s-1)&3 }
 ```
 
-- This arm rotates by **(s−1)&3**, where the general arm uses s. CONFIRMED.
+- This arm rotates by **(s−1)&3**, where the general arm uses s. STRONGLY INFERRED.
 - +0x7F + k·0x1B = +0xD0 + (k−3)·0x1B. The facing side therefore draws gate
   piece k−3, while the floor builder 0x00446800 draws piece k from the same
   nibble. The tile writer 0x004F00F0 gives k = 3, 4 or 5 by position along the

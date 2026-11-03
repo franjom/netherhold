@@ -26,12 +26,12 @@ the win tail at `0x004BED9E`: LevelWon `+0x172` = 1 and `Message_Post` `0x004C46
 
 `0x0051E6D0` copies the runtime LEVEL record (file offset + `0x134`) into the world:
 `+0x722E` is file byte 25545 and `+0x722F` byte 25546, the two bytes our reader exposes as
-`LevelDef.SpecialLevelIndex` (CONFIRMED by the copy at `0x0051E6D0`). The same routine
+`LevelDef.SpecialLevelIndex` (STRONGLY INFERRED by the copy at `0x0051E6D0`). The same routine
 fills the reward bytes of §5: world `+0x9B80..+0x9B83` from `PreviousRewards`,
 `+0x9B86..+0x9B89` from `NextRewards`, and `+0x9B84`/`+0x9B8A` from extended-metadata bytes
 25605/25606 (`LevelDef.Unknown_6403[2]`/`[3]`).
 
-**The shipped data (CONFIRMED, dumped 2026-10-26):**
+**The shipped data (STRONGLY INFERRED, dumped 2026-10-26):**
 - Flag `0x20` is on Secret1-Secret5 and on the multiplayer map Islands (mode 2/3, so
   inert). The low byte of `SpecialLevelIndex` is 1-5 on Secret1-5 and 0 on every campaign
   map; its high byte (`+0x722F`) is 0x92-0x94 on several maps and its reader is unread.
@@ -87,7 +87,7 @@ at once in game mode 3.
    the `OR` at `0x004BF94A`).
 7. Always (with or without a gem): action **`0x74`** with 1 (raise the letterbox).
 
-Which shipped campaign maps have a gem (CONFIRMED, triggers and things corpus):
+Which shipped campaign maps have a gem (STRONGLY INFERRED, triggers and things corpus):
 creature action 20 hands one to a creature in 14 levels (1-5, 6a, 6b, 7, 8, 9, 14, 15a,
 15b, 16), trigger action 2 creates object 28 in 15a, 18, 19, 20, and 18, 19, 20 also place
 one. **Levels 10, 11A-C, 12, 13 and 17 have none**, so their finale is the letterbox alone
@@ -192,7 +192,7 @@ designers' "1st and 2nd cut of the end-of-level sequence" (camera-paths.md §1).
   TabletSparkle, its frames left as its size (HYPOTHESIS). Past frame 34, once no sparkle is
   left, a 2 s hold is armed (`+0x57` = 2) and when it passes the tablet is done (`+0x4B`).
   The frame counter counts drawn frames, not game turns, so the growth takes 32 drawn
-  frames at whatever rate DK2 drew. CONFIRMED arithmetic; the order and sense of the two
+  frames at whatever rate DK2 drew. STRONGLY INFERRED arithmetic; the order and sense of the two
   turns and the sparkles' blend are unread.
 - **Update, `0x0042C390`** (per frame). Returns at once in camera modes 2, 7 or `0x12` (so
   path 101 holds the screen back) or while the game object's `+0x284` is set. While the

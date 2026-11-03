@@ -101,7 +101,7 @@ Thus static drawing combines cached0x60 light with0xA0/0x01 light; animated
 0x100/0x04 selection is a separate path. Selection-cache invalidation and exact
 floating-point addition order remain requirements for an equivalent publisher.
 
-CONFIRMED: initializer 0x0043A1E0 stores both current and base ushort RGB,
+STRONGLY INFERRED: initializer 0x0043A1E0 stores both current and base ushort RGB,
 uint radius and byte intensity separately. Radius above 10111 becomes 10112.
 The conversion to renderer coefficients is resolved in section5. These field
 widths alone do not establish a Unity falloff mapping.
@@ -133,7 +133,7 @@ now supplies this built-in descriptor independently of effect-element records.
 `ClassicTorchFlames` draws its additive white, camera-facing sprite alongside
 the mounted model, with the same visibility lifetime as the torch.
 
-CONFIRMED (2026-10-16): `0x0043CC30` adds height`0x4B0` and a512-unit cardinal
+STRONGLY INFERRED (2026-10-16): `0x0043CC30` adds height`0x4B0` and a512-unit cardinal
 offset to the mounted model offset, almost cancelling that offset (the two
 positive mounts retain their native one-unit truncation). Sprite flag`0x800`
 requests lattice deformation in `0x0057F7E0`. `0x0043B220` advances one shared
@@ -253,7 +253,7 @@ field at+0x4C to512, not40; the preset loader `0x00565CF0` also writes it.
 None of these read settings bodies applies the value to the ambient setter.
 This does not establish every possible indirect startup command or saved setting.
 
-CONFIRMED (2026-10-16): startup settings`+0x5C` passes through slot`+0x70`
+STRONGLY INFERRED (2026-10-16): startup settings`+0x5C` passes through slot`+0x70`
 ([0x0059C110](functions/0059C110.md)) to a dword store at`0x00764BE4`, without
 setting ambient RGB. The option's meaning and consumers remain untraced.
 
@@ -267,7 +267,7 @@ command math without registry writes. Framebuffer transfer remains open (Q603).
 
 ## 9. Per-tile terrain point lights
 
-CONFIRMED: `0x00441CD0` submits renderer slot `+0xE0`, which is `0x00599960`
+STRONGLY INFERRED: `0x00441CD0` submits renderer slot `+0xE0`, which is `0x00599960`
 in vtable `0x00670574`. Therefore the terrain source uses the same point-light
 coefficient path as a torch, not a flat ambient addition. Startup requests
 radius `0x1200` (1.125 tiles) and intensity128 (normalized1). Its initial RGB500

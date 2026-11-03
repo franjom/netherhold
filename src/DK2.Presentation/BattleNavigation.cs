@@ -7,7 +7,7 @@ using DK2.Data.Model;
 
 namespace DK2.Presentation;
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/battle-tab.md#4-clicks-and-the-f-key--confirmed")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/battle-tab.md#4-clicks-and-the-f-key--strongly-inferred")]
 public sealed class BattleNavigation(PlayerId viewer)
 {
     public BattleViewSlot Last { get; private set; } = BattleViewSlot.None;

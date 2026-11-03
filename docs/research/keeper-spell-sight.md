@@ -8,7 +8,7 @@ Read 2026-10-04 from DKII.EXE v1.70 and shipped data. Raw output remains in
 
 ## 1. Descriptor and position cast
 
-**CONFIRMED.** `KeeperSpells.kwd` record56: Sight Of Evil id1, location5,
+**STRONGLY INFERRED.** `KeeperSpells.kwd` record56: Sight Of Evil id1, location5,
 target4, shot33 for normal and upgraded casts, data1=5/7, data2=0, mana5000,
 upkeep0 and cooldown0. `Shots.kwd` record7704: shot33, process25, flags4,
 process flags0x42, health64, speed2048, radius819 and no damage/collision type.
@@ -30,7 +30,7 @@ distinct from the presentation region's clock.
 
 ## 2. Local presentation region
 
-**CONFIRMED.** On its first callback, process25 sets shot `+0x169`. Only when
+**STRONGLY INFERRED.** On its first callback, process25 sets shot `+0x169`. Only when
 the owner is the local player and the full dword data1 is nonzero does it post
 command13, with position and a packed word: low16 shot health, high16 data1.
 The later health20 callback takes a separate effect0xE8 path.
@@ -54,7 +54,7 @@ unexplored tile in both terrain-rendering paths
 [0043B220](functions/0043B220.md) retains the region through equality and clears
 the start/end stamps only when unsigned bridge-clock now is greater than end.
 Active updates request redraw6, including expiry. **The bridge clock is the game
-turn (Q534, 2026-10-05; CONFIRMED).** The presentation is the bridge's sink:
+turn (Q534, 2026-10-05; STRONGLY INFERRED).** The presentation is the bridge's sink:
 [00527040](functions/00527040.md) stores the container at sink+4, so `bridge[1]+4` is
 `[container+4]`, the word [00517490](functions/00517490.md) returns as the turn (set to
 1 at `0x00526254`). The 64 units are 64 turns, and the region shows while turn ≤
@@ -76,7 +76,7 @@ the actual terrain mesh or replace its lighting with a radial approximation.
 
 ## 3. Discovery and explored state
 
-**CONFIRMED mechanism and audited storage boundaries.** This is an additional
+**STRONGLY INFERRED mechanism and audited storage boundaries.** This is an additional
 temporary local rendering predicate, not a write to the scanned `tile+0xB`
 bit0x40 or explored `tile+8` word bit0x2000. The process, registration and
 render gates do not set those bits. The redraw path goes through

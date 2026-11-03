@@ -8,7 +8,7 @@ namespace DK2.Data.Model;
 
 /// <summary>
 /// Terrain type flags (TERRAIN record, offset 0x190).
-/// CONFIRMED: ufdada/dk2-tools terrains_struct.bt bit order.
+/// STRONGLY INFERRED: ufdada/dk2-tools terrains_struct.bt bit order.
 /// </summary>
 [Flags]
 public enum TerrainFlags : uint
@@ -47,7 +47,7 @@ public enum TerrainFlags : uint
 /// <summary>
 /// One terrain type from the TERRAIN(110) record (552 bytes each).
 /// Gameplay fields only; art resources are omitted (see DK2.Assets).
-/// Layout CONFIRMED — see docs/research/kwd-terrain-rooms.md.
+/// Layout STRONGLY INFERRED — see docs/research/kwd-terrain-rooms.md.
 /// </summary>
 public sealed record TerrainDef
 {
@@ -82,7 +82,7 @@ public sealed record TerrainDef
 
     /// <summary>
     /// Health change per second for creatures on this tile. Negative values heal:
-    /// Hero Lair stores -67 (CONFIRMED — reads as 65469 if treated as unsigned),
+    /// Hero Lair stores -67 (STRONGLY INFERRED — reads as 65469 if treated as unsigned),
     /// which is why this field is signed.
     /// </summary>
     public required short Damage { get; init; }

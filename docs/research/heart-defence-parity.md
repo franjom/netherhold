@@ -214,7 +214,7 @@ the Level 5 target-acquisition gap, and entry-count parity remains unestablished
 
 ## Redispatch follow-up (Q712, 2026-11-01)
 
-CONFIRMED capture/output counts for ticks 1401-3400, native seeds 2/3/7 and
+Measured capture/output counts for ticks 1401-3400, native seeds 2/3/7 and
 five remake generators per native state. Fifteen hash362 resyncs add only
 `--jobs`; all 30 creature/event outputs match their prior controls by SHA-256.
 The resume state splits the visible 254-to6 exits:
@@ -257,7 +257,7 @@ snapshots. Use v2, whose six redispatches match the positive control.
 
 ## Hero exposure and earliest comparable divergence (Q712, 2026-11-01)
 
-CONFIRMED measurement: native seeds 2/3/7 and five hash 362 generators per seed,
+Measured: native seeds 2/3/7 and five hash 362 generators per seed,
 ticks 1401-3400, exact positions about room tile (17, 26), centre (17.5, 26.5).
 This is distinct from the player Heart-position tile (16, 25). Each squared axis
 displacement is shifted by 12 before addition, strict sum < 65536, as 004D9690.

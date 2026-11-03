@@ -17,7 +17,7 @@ Object types named below: 9 Chicken, 14 Training Dummy, 15 Anvil, 16 Steel Bucke
 46 Work Bench, 64 Book Case, 94 Arch Pillar. A dead body is class 6, not an object
 type, and a shot is class 1.
 
-## 1. Melee on objects — CONFIRMED
+## 1. Melee on objects — STRONGLY INFERRED
 
 Action 26 (`0x00514830`) switches an object target (class +0x12 = 2) on type byte
 +0x12C through index table `0x005153E8` (type − 1, 46 entries) and jump table
@@ -55,7 +55,7 @@ ticks; then +0xD4 and +0xD8 are zeroed and it returns 0. No damage.
 vtable +0x10C, else the object's position; `Attack_LookupImpactPair(def+0x77A, object
 def+0x11C, point)`; +0x427 = now. The effects are presentation; the weapon sound it asks is [sound-effects-combat.md section 5](sound-effects-combat.md#5-the-swing-death-and-corpses).
 
-## 2. The swing on things that are not creatures — CONFIRMED
+## 2. The swing on things that are not creatures — STRONGLY INFERRED
 
 Action 17's swing `0x00498E30` gates on a live slot, +0x16 ≠ 2 and vtable +0x34;
 object, shot and body all return 1 there (`0x00628BC0`). A possessed attacker
@@ -134,7 +134,7 @@ flags (the non-Imp dig, also the hero tunneller's; action 6's missing XP and its
 trap/door zeroing); `ClaimActionTile` repeats the claim each tick. The gem rule is
 built for every miner (ADR-0470).
 
-## 4. Followers — CONFIRMED unless marked
+## 4. Followers — STRONGLY INFERRED unless marked
 
 **The press** (slot 3, `0x0051503C`–`0x005150A4`). The owner (2026-10-12): key 7, then a
 click on a highlighted creature adds it as a follower, one per click; selector 3 of
@@ -192,7 +192,7 @@ its mood block, Needs_IsBusy counts the creature busy and it gains no need-anger
 spFighting's fear clears +0x482 before fleeing, so a follower that drops the follow
 can flee.
 
-**Action 37** (`0x00516A20`, CONFIRMED) is a close recruit, not a recall. From the
+**Action 37** (`0x00516A20`, STRONGLY INFERRED) is a close recruit, not a recall. From the
 possessed creature P's own position and heading +0xF4: P's tile first (things other
 than P in the cone, class 0, P's owner, +0x482 = 0), else the 8 neighbours in the
 melee order from table `0x006BC370`, the cone tested once at each tile's centre; the
@@ -216,7 +216,7 @@ re-route on every return to 246 predicts; a recruited Imp fights when the posses
 strikes a hero, as the leader's-target override predicts. Whether a full eight can be
 recruited after a follower leaves or is sacrificed, and the dismiss key, are not known.
 
-## 5. Command inputs — CONFIRMED unless marked
+## 5. Command inputs — STRONGLY INFERRED unless marked
 
 **Sneak, command 0x1D** (handler `0x00517270` → ToggleSneak `0x0048EE90`). Packet
 dwords 0 and 1 are a raw tile x, y, unchecked. +0x4A3 = 0 when +0x4A3 is already set
@@ -273,7 +273,7 @@ spell gate. Simulation readers: the free-aim range (`0x00515364`: 0x3000 when sp
 Range +0x31 plus the bit is nonzero, else 0, which is unlimited) and shot +0x165
 (`0x004984D0`), which doubles contact damage (`0x004AC420`). So for a spell with Range
 0 sniper mode adds a 3-tile cap. The HUD `0x00420D10` reads it for presentation; the
-input routine `0x0040FDF0` sends action 39 with the inverted bit (CONFIRMED).
+input routine `0x0040FDF0` sends action 39 with the inverted bit (STRONGLY INFERRED).
 
 **Shot range.** `Shot_Update` (`0x004AB2C3`–`0x004AB308`) destroys a shot when MaxRange
 +0x155 ≠ 0 and dx² + dy² from StartPosition +0x159/+0x15D exceeds MaxRange², both
@@ -298,5 +298,5 @@ input routine `0x0040FDF0` sends action 39 with the inverted bit (CONFIRMED).
 - Player order: `Players_Activate` (`0x004C2460`) pushes each player on the head of
   the active list (world +0x7A, next +0x3A), so scans visit players in reverse
   activation order. Activation follows the level's PLAYERS records in file order
-  (`0x0051EF80` → `0x004C2340`), so the last record comes first (CONFIRMED;
+  (`0x0051EF80` → `0x004C2340`), so the last record comes first (STRONGLY INFERRED;
   [win-and-defeat.md](win-and-defeat.md) §7).

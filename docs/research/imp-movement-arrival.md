@@ -15,7 +15,7 @@ RNG override below remains diagnostic and is absent from integration.
 
 ## Native startup comparison
 
-**CONFIRMED observation:** the compiled candidate, without diagnostic order or
+**Measured observation:** the compiled candidate, without diagnostic order or
 axis overrides, matches all four original Level4 workers' entity positions,
 full velocities, headings and states over aligned turns 4–21: 72 observations.
 The comparison contains 92 observations through turn 26. Ten differ, beginning
@@ -38,7 +38,7 @@ captured. The modern RNG wrapper records two rolls of 20, so `Rest` in
 `ImpTaskSystem.Wander.cs` correctly chooses state 87 for those inputs.
 This boundary is not evidence of a different work priority or missing task.
 
-**CONFIRMED controlled computation:** execute the original handler with turn,
+**STRONGLY INFERRED controlled computation:** execute the original handler with turn,
 random result, availability and transition/action setters controlled. With
 otherwise identical gates, roll 20 requests state 87; 25/74 start action 43;
 75/99 start action 44. The original action-running predicate executes unchanged.
@@ -67,7 +67,7 @@ during this investigation; no campaign replay or broad suite was repeated.
 
 ## Replay acceptance
 
-**CONFIRMED outcome:** the same Level4 packet, xoshiro seed 1, 6804 consecutive
+**Measured outcome:** the same Level4 packet, xoshiro seed 1, 6804 consecutive
 turns and 707 actions on 647 turns produces no win and 39 keeper Imp deaths.
 Three mapping passes produce the same replay SHA256:
 `1c1bcdcfe9c5aca316fdb93fcc81d19884c1ece144a90f8f939e8b156def8528`.

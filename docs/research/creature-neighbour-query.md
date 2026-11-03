@@ -3,7 +3,7 @@ systems: [creatures, navigation]
 ---
 # Creature neighbour query
 
-## Native query (CONFIRMED)
+## Native query (STRONGLY INFERRED)
 
 `0x004D2DF0` supplies 1.2 times the mover's radius as a span to `0x004D1170`.
 The latter halves the span and scans a tile rectangle: lower edges floor from

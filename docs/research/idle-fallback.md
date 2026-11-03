@@ -14,7 +14,7 @@ shut, 89 tries **Train, then watching a pit fight, then Drink**, each only when 
 that room available. With none, it gives the creature **12 turns in state 3**, which wanders in
 87 or plays an idle action.
 
-## 1. State 89, `0x004778E0` — CONFIRMED
+## 1. State 89, `0x004778E0` — STRONGLY INFERRED
 
 In order:
 1. A dying creature stops (`0x00459560`).
@@ -32,7 +32,7 @@ In order:
 
 The unhappy and angry choosers are the dispatcher's (`0x00476FC0`), not 89's.
 
-## 2. `0x00478680` — CONFIRMED
+## 2. `0x00478680` — STRONGLY INFERRED
 
 1. **Train** (job 4): unless the definition has `NotTrainWhenIdle` (`+0x686` bit 21), when
    `0x004BAB20(7)` is 3.
@@ -50,7 +50,7 @@ looks for a room.
 admitted: category 0's entry mask is 0. So the walk is replaced in the same call, and state 3
 runs no movement.
 
-## 3. State 3, `0x00477680` — CONFIRMED
+## 3. State 3, `0x00477680` — STRONGLY INFERRED
 
 - An action running: return 1.
 - `now ≥ +0x7E`: return 0, idle.
@@ -100,7 +100,7 @@ through 89.
   - `ReturnToJobId`;
   - the casino arm. The Call To Arms arm is built (`call-to-arms.md`, ADR-0279).
 
-## 6. Two more `AngerNoWork` sites (Q438) — CONFIRMED, not built
+## 6. Two more `AngerNoWork` sites (Q438) — STRONGLY INFERRED, not built
 
 Read 2026-09-26 after the verification pass (`verification-2026-09-26.md` §5). The reader search
 covered every `def+0x6C0`–`+0x6CB` displacement and the indexed forms, and found four readers of

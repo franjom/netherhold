@@ -14,7 +14,7 @@ systems: [keeper-spells, creatures]
 
 The keeper's drop enters **76**. A non-worker that no room takes over is **stunned** (255), whoever dropped it and a freed prisoner included (ADR-0616), for its definition's `StunDuration`. It gets up in **257**, and 257 asks the room underfoot: the room's drop state, or with none, **250**, where it stands until 50 turns past the state word `+0x7E`. **77** is the slap's reaction.
 
-## 1. The drop enters 76 — CONFIRMED
+## 1. The drop enters 76 — STRONGLY INFERRED
 
 - **The keeper's drop.** `0x004BC710` clears the in-hand bit (`+0x3E6` bit 0), stamps `+0x4BF` with now and calls `SetState(76)` (`0x004BC7CD`–`0x004BC7D7`).
 - **Level-placed creatures (STRONGLY INFERRED, binary 2026-10-10).** After rebuilding rooms,
@@ -29,7 +29,7 @@ The keeper's drop enters **76**. A non-worker that no room takes over is **stunn
 - **77 is the slap's.** Its only way in is the slap handler `0x0048B8A0` (`0x0048BA06`), which deals `SlapDamage`, fires creature event 5 and player event `0x3C`.
 - **What 77 does** (`0x0046F1F0`). It plays action 19, then sends a creature to the state of the room it is attached to (`+0x3B9`): Workshop 63, Prison 115, Torture Chamber 130. A Horned Reaper goes to 238, a worker to 10, anyone else to 1.
 
-## 2. State 76, `0x0046EAB0` — CONFIRMED (the arms used here)
+## 2. State 76, `0x0046EAB0` — STRONGLY INFERRED (the arms used here)
 
 **Vertical gate and sound (binary reread 2026-10-29; Q680).** At
 `0x0046EE1A..4A`, virtual `+0x88` is the creature flying test
@@ -41,7 +41,7 @@ state update. A non-flyer instead uses the shared gravity pass
 compares it with world floor height (virtual `+0x204`). Above it, 76
 returns success without the room/stun transition. On contact it requests
 sound event `0xF6` from creature-definition sound category `+0x6E3`, except
-on a Temple floor accepted by `0x00454110`. These operations are CONFIRMED;
+on a Temple floor accepted by `0x00454110`. These operations are STRONGLY INFERRED;
 there is no fixed descent duration in this handler. The human input's
 initial drop Z and complete trajectory still require a matched native
 capture. The requested position is supplied unchanged to `0x004BC710`.
@@ -68,7 +68,7 @@ After its landing work (the pit scatter, the fall, and the sound gate above), it
 
 Anything else, a Library or a Lair included, returns 1.
 
-## 3. The stun, 255 → 257 — CONFIRMED
+## 3. The stun, 255 → 257 — STRONGLY INFERRED
 
 255 (`0x004810E0`) stands while `now − state+0x18 < StunDuration`, a count of turns (the loader `0x00493B57` stores file seconds × ticks a second >> 12; `creature-status-effects.md` §2). Its first call, the turn after the stun is set (Age 1), creates effect 101 (Creature Dazed Effect) only when the duration hold arm is active; zero duration skips it. Its art has "dazed" stars and a sparkle on a circular path, tied to the creature's `0x1388` point, which `0x00434E80` follows (ADR-0480). `CreatureStunnedTimeSeconds` (2) is never read. Then 257 (`0x00481200`):
 1. It returns 1 while an action is current (`0x00496D00`): the get-up, action 53, which 255's end started. Action 53 plays animation block 27, Getup (`0x006E47AD` = 27), so the hold is that animation's frames at its rate: `ceil(frames × 4 / rate) + 1` ticks, the +1 being the tick the handler sees the action end, as for the Entrance animation (`portal-creature-action.md`). That `+20` selects the block is STRONGLY INFERRED (`creature-action-table.md` §3), and the formula is fitted (STRONGLY INFERRED): it reproduces every 257 run the Level 1–3 captures measured (the longest of a type that ends in a room drop, the same in every run): Warlock (5) 51 frames, 8 ticks; Goblin (7) 69, 11; Troll (10) 29, 5; Firefly (12) 84, 13; Dwarf (14) 16, 4; Lord of the Land (29) 22, 4. A fight can cut it short (257 → 8 or 199): 257's flag byte is 2, without bit 6, so `ProcessFight` runs while it holds (`combat-acquisition.md` §2). Measured in the Level 4 seed 1 capture: DK2's dropped creatures go 257 → 199 or 8 one to eight ticks after getting up, each on the hero registered on it (ADR-0488).
@@ -81,7 +81,7 @@ Anything else, a Library or a Lair included, returns 1.
 
 Portal state197 entry and its direct196 call are settled in [creature-leaving.md section2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).
 
-## 4. `0x004E8DA0(0)`, the room drop, and 250 — CONFIRMED
+## 4. `0x004E8DA0(0)`, the room drop, and 250 — STRONGLY INFERRED
 
 It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 

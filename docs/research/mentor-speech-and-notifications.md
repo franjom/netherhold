@@ -22,7 +22,7 @@ one home is `src/DK2.Data/README.md` §STR.
 | Notification types live in a 100-entry table at `.data 0x006A0B00`, 10 bytes each | **Strongly inferred** | The resolver's own indexing; all 100 rows decode coherently |
 | A speech reference is stored as **`-(10000 + id)`** | **Strongly inferred**, corroborated by observation | Eight independent coherence checks below, plus the owner hearing two lines the rival reading excludes |
 | Type 89 is the Mentor taunt pool, 27 variants | **Strongly inferred** | Its variant list is 27 lines, all inside the authored `silly` block |
-| The idle taunt is type 89 variant 3 = *"The very rock yawns…"* | **CONFIRMED** that the line occurs in play (owner recollection, 2026-09-10); the **trigger** is strongly inferred | Owner has heard it; the mechanism is read from the binary |
+| The idle taunt is type 89 variant 3 = *"The very rock yawns…"* | **Strongly inferred** (binary), line and trigger; the owner also recalls hearing the line in play (a recollection, 2026-09-10, not an observation) | The mechanism is read from the binary; the owner says he has heard it |
 | Idleness is **cursor movement**, measured in **real** milliseconds | **Strongly inferred** | The handler compares a stored cursor position and stamps the `timeGetTime` wrapper |
 | The taunt fires at **160 s**, the camera wander at **180 s** | **Strongly inferred, not yet timed** | Two immediate comparisons; the stopwatch test is in `observation-checklist.md` |
 | Six `silly` lines have no code path in v1.70 | **Strongly inferred** | Scope of the negative is stated below |

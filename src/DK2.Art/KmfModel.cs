@@ -59,12 +59,12 @@ public sealed record KmfMaterial(string Name, IReadOnlyList<string> TextureNames
     /// unless the item's bit 0x400 is set: item <c>+0x50</c> in the static queue, <c>0x00581589</c>/
     /// <c>0x00581597</c>, item <c>+0x4C</c> in the animated one, <c>0x00584FD1</c>), and only while
     /// the EnvironmentMapping option is on (global <c>0x00764BE4</c>, default on, HYPOTHESIS).
-    /// So an additive or alpha-blended material never gets one. CONFIRMED (kmf-materials.md §8).</summary>
+    /// So an additive or alpha-blended material never gets one. STRONGLY INFERRED (kmf-materials.md §8).</summary>
     public bool HasEnvironmentPass => IsEnvironmentMapped && Blend == KmfBlend.Opaque;
 
     /// <summary>The environment pass's light scale: its vertex colour is the drawn thing's light
     /// (base colour plus point lights, <c>0x0057C190</c>) times material <c>+0x1D</c>, the
-    /// descriptor's <see cref="Shininess"/>; brightness plays no part. CONFIRMED for the colour
+    /// descriptor's <see cref="Shininess"/>; brightness plays no part. STRONGLY INFERRED for the colour
     /// sum; that the texture is modulated by it is HYPOTHESIS (kmf-materials.md §8). The floor at 0 is
     /// ours: a Unity colour below 0 would subtract under ONE/ONE, where a packed vertex colour
     /// cannot; how DK2 packs a negative product is unread; the shipped examples read (§8) are 0.2 to 1.</summary>

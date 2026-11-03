@@ -11,7 +11,7 @@ Source correction: `d10d19aa`.
 
 ## Compared boundary
 
-**CONFIRMED observations:** native capture frames 5–7 align with modern turns
+**Measured observations:** native capture frames 5–7 align with modern turns
 4–6. No frame is torn. Native slots 455–452 map to modern IDs 1–4. The modern
 probe uses normal campaign initialization, xoshiro seed 1 and six ticks; the
 recorded player actions have not begun in this interval.
@@ -42,7 +42,7 @@ difference (Q613).
 The complete function was reread, including the shared axis-writing tail at
 `0x004D4E4B`; its input is the body velocity, not the force or rotated step.
 
-**CONFIRMED computations:** executing
+**STRONGLY INFERRED computations:** executing
 [the original normalization helper](functions/004D1F10.md) on each of the
 12 captured velocities reproduces every captured X axis exactly. The
 normalization arithmetic itself is not the mismatch in these cases.
@@ -62,7 +62,7 @@ two corrections investigated here: movement order and idle arrival.
 
 ## Cause of Q613: movement order and crowd input
 
-**CONFIRMED capture and control:** the native creature list places the four
+**CONFIRMED capture; measured control:** the native creature list places the four
 workers in slot order 452, 453, 454, 455, corresponding to modern IDs 4, 3, 2, 1.
 The [linker](functions/004B4A10.md) inserts at the head and the
 [world sweep](functions/004B7830.md) follows that list. The captured head also
@@ -86,7 +86,7 @@ modern reconstruction; the changed crowd sum alters the follow-path force.
 | Oldest first | 0 | 118925 | 24363 | 45771 | 21471 |
 | Newest first | 4576 | 113556 | 24378 | 45786 | 21478 |
 
-**CONFIRMED computations:** original Follow_Path and vector helpers reproduce
+**STRONGLY INFERRED computations:** original Follow_Path and vector helpers reproduce
 both numeric chains. That Follow_Path experiment controls its external turn
 result and crowd callback; it does not emulate a complete native world.
 The quantized length/clamp arithmetic explains the small increase in resulting
@@ -125,7 +125,7 @@ onto the synthetic map. Both creation-order cases failed with the opposite
 velocity result before the fix, then passed. They assert the tile crossing,
 native arithmetic's velocity/position results and unchanged creature storage.
 
-**CONFIRMED compiled-candidate observation:** without the order wrapper, all
+**Measured compiled-candidate observation:** without the order wrapper, all
 four workers' entity positions, full velocities, headings and states match
 native over aligned turns 4–17: 56 observations. The first subsequent difference
 is worker 2 on turn 18: position still agrees, but native resumes idle and stops
@@ -133,7 +133,7 @@ while ours remains in state 6 with velocity. The known axis-source discrepancy
 also remains in that candidate. The idle-arrival correction addresses the next
 verified boundary separately.
 
-**CONFIRMED replay outcomes:** reuse the stable hash-269 baseline and rerun
+**Measured replay outcomes:** reuse the stable hash-269 baseline and rerun
 the same Level4 packet, xoshiro seed 1, 6804 turns and 707 actions on 647 turns.
 
 | Version | Win turn | Keeper Imp deaths | Unresolved mappings | Mapping passes |

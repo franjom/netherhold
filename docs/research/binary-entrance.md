@@ -111,7 +111,7 @@ unambiguous.
 
 ---
 
-## 3. The creature count behind the cap is the portal-made bit — CONFIRMED (KB `0x004DBF90`)
+## 3. The creature count behind the cap is the portal-made bit — STRONGLY INFERRED (KB `0x004DBF90`)
 
 The count the cap is compared against walks the player's creature list and
 counts an entry only if instance bit `+0x3E6` bit 1 is set. The portal creator
@@ -144,11 +144,11 @@ rather than one parameterised room:
 
 | Room | Contributes | status |
 |---|---|---|
-| General furniture rooms | the room's **`TotalCapacity`**, `room+0x67`: matching auto furniture, with a conditional +1 for Library, Training, Workshop and Casino but not Torture | **CONFIRMED** |
-| Every other room (Guard Room, Hatchery, Treasury, ...) | the same `room+0x67`, which `FUN_004E3ED0`'s default arm sets to the slab count `+0xA7` (`auto-placed-furniture.md` §5) | **CONFIRMED** (2026-10-12) |
+| General furniture rooms | the room's **`TotalCapacity`**, `room+0x67`: matching auto furniture, with a conditional +1 for Library, Training, Workshop and Casino but not Torture | **STRONGLY INFERRED** |
+| Every other room (Guard Room, Hatchery, Treasury, ...) | the same `room+0x67`, which `FUN_004E3ED0`'s default arm sets to the slab count `+0xA7` (`auto-placed-furniture.md` §5) | **STRONGLY INFERRED** (2026-10-12) |
 | Temple (13) | **2** if it holds **object 66, the Temple Hand**, else 0 | **CONFIRMED** |
 | Prison (11), Combat Pit (16) | the room's **interior slab count**: it walks the slab chain from `room+0x2D`/`+0x2E` and counts each slab `FUN_00454110` accepts, which is every interior slab (`+0x0C == 0xFF`) of both types | **HYPOTHESIS** (read statically, record `00454110.md`) |
-| Lair (2) | **flat 1.0**, or **3.0** when a byte at `+0x771` on the creature record is **22**; the room walk is skipped entirely | **CONFIRMED**, the 22 unexplained |
+| Lair (2) | **flat 1.0**, or **3.0** when a byte at `+0x771` on the creature record is **22**; the room walk is skipped entirely | **STRONGLY INFERRED**, the 22 unexplained |
 
 **The Prison and Combat Pit arm, read 2026-09-14.** `FUN_004DCE70` dispatches on
 the room's type byte `+0x18`: Prison and Combat Pit take the branch at

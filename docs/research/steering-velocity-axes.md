@@ -17,7 +17,7 @@ wall clamps precede this tail. Our old `SteeringIntegrator.Step` used the
 clamped force or the pre-turn displacement. Replace that source with the
 resulting velocity and remove the unused clamp output.
 
-**CONFIRMED computations:** original normalization reproduces the four initial
+**Measured computations:** original normalization reproduces the four initial
 Level4 worker axes from their captured velocities. New coasting regressions
 assert those literal native values. A nonzero-force arrival regression requires
 zero axes after the snap. Existing partial-wall and refused-step cases now
@@ -51,7 +51,7 @@ The earlier baseline runs at `2367fd35` reproduce those identities; main
 `506557a5` has identical source/test/Unity trees. The prison-chicken scenario
 passes here. No scenario expectation was changed.
 
-**CONFIRMED replay outcome:** the same Level4 packet, xoshiro seed 1, 6804
+**Measured replay outcome:** the same Level4 packet, xoshiro seed 1, 6804
 consecutive turns and 707 actions on 647 turns reproduces the stored hash-269
 baseline CSV exactly: win turn 6732, three keeper Imp deaths, nine unresolved
 mappings, stable on the first pass when seeded with that baseline's entity map.

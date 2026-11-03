@@ -11,7 +11,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-## Container layout — CONFIRMED
+## Container layout — STRONGLY INFERRED
 
 ```
 0x00  char[4]  signature "DWFB"
@@ -41,7 +41,7 @@ Evidence:
   corpus is printable ASCII.
 - Compression type: 0 = stored, 4 = compressed. No other value occurs.
 
-## Compression — CONFIRMED
+## Compression — STRONGLY INFERRED
 
 An LZ77-family token stream.
 
@@ -52,7 +52,7 @@ An LZ77-family token stream.
   count > 0x70 terminates the stream, carrying `flag & 3` final literals.
 - Exact loop semantics preserved from GLKeeper (do-while copies count+1 bytes).
 
-Confidence: CONFIRMED (empirically, full corpus)
+Confidence: STRONGLY INFERRED (empirically, full corpus)
 
 Implementation: `DK2.Data.Wad.WadArchive`, `DK2.Data.Wad.WadDecompressor`;
 `dk2tools wad list <file.WAD>` and `dk2tools wad extract <file.WAD> <entry>`

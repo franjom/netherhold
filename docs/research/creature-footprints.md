@@ -6,7 +6,7 @@ systems: [art-assets, presentation-unity]
 Primary source: retail v1.70 DKII.EXE, Ghidra 12.1.4 decompile and instruction
 checks, 2026-10-20; shipped `Effects.kwd`. Q610.
 
-## Producer — CONFIRMED
+## Producer — STRONGLY INFERRED
 
 The creature update [0x00488930](functions/00488930.md), before its action,
 fight, state handler and movement, maintains native bytes +0x478 (blood) and

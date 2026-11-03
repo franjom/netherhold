@@ -9,7 +9,7 @@ systems: [keeper-spells, creatures]
   (`HandSystem.OutcomeOf`). The reaction is `0x0046F1F0`, the handler of 77 and, through the thunk
   `0x00470C00`, of 67 and 120 (`creature-state-table.md`).
 
-## 1. The move — CONFIRMED
+## 1. The move — STRONGLY INFERRED
 
 After the early returns (a Horny to 242; states 76, 101 and 193 nothing; 209 and 255 the short
 path), by the room the creature holds a place in (`+0x3B9`):
@@ -32,7 +32,7 @@ moves. Then the rest of the slap as ADR-0373 has it.
 The transition table refuses 77 from 71, 207, 208, 216–219 and 246 (among them the dying 216 and
 217 and the frozen 218), so a creature in one of those takes no slap at all.
 
-## 2. The reaction `0x0046F1F0` — CONFIRMED
+## 2. The reaction `0x0046F1F0` — STRONGLY INFERRED
 
 1. At `Age` below 2: a running action ended, action 19 (`0x13`) started (`CreatureAction_Begin`).
    Action 19's record plays art slot 4 (byte `+0x14` of record 19, `0x006E43D3`, written by the

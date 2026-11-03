@@ -14,7 +14,7 @@ namespace DK2.Simulation.Systems;
 /// <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c>, into the Treatment bucket with complaint 7.</summary>
 /// <remarks>Deviation: DK2's phase is the room's id, <c>(turn + room+4) &amp; 31</c>; ours is the
 /// room's lowest tile index, because our rooms carry no id (ADR-0479).</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/binary-census.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/binary-census.md")]
 public sealed class HatedCompanySystem : IRoomTickStep
 {
     /// <summary>The step's period in turns, the handler's <c>&amp; 0x1F</c>.</summary>

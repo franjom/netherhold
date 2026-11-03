@@ -7,8 +7,8 @@ systems: [rooms]
 |---|---|
 | Source(s) | `DKII.EXE` v1.70, initialised `.data` at base `0x006a1e9f`, read 2026-09-07 under ADR-0046 |
 | Evidence | Every record's leading type byte equals its own id, which re-confirms the base and the 41-byte stride independently of how they were found. All 26 records are present and in id order |
-| Confidence | **CONFIRMED**: base, stride, the ten slots, all twelve indexing sites, and slot `+0x25` as a `JobType`. The distinction between `+0x19` and `+0x1d` remains **UNKNOWN**; `+0x21` is identified in [the getter's record](functions/004E6CD0.md) |
-| Implementation | `JobRules.RoomFor` (`Confidence.Confirmed` because of this table); `PortalRules.OnOwnerChanged` for the portal's reset. ADR-0086 amendment 1, **ADR-0088** |
+| Confidence | **STRONGLY INFERRED**: base, stride, the ten slots, all twelve indexing sites, and slot `+0x25` as a `JobType`. The distinction between `+0x19` and `+0x1d` remains **UNKNOWN**; `+0x21` is identified in [the getter's record](functions/004E6CD0.md) |
+| Implementation | `JobRules.RoomFor` (`Confidence.StronglyInferred`, resting on this table); `PortalRules.OnOwnerChanged` for the portal's reset. ADR-0086 amendment 1, **ADR-0088** |
 | Open questions | the distinction between `+0x19` and `+0x1d` (Q210 (b) is closed) |
 
 Opened while chasing the portal's tally reset, which is why it lives beside
@@ -117,7 +117,7 @@ Two patterns, with no reading attached. **`+0x1d`, wherever it is non-zero, is
 an exact copy of `+0x19`** — six rooms (Portal, Dungeon Heart, Prison, Torture
 Chamber, Temple, Combat Pit, plus Hero Portal as Portal's twin). And `+0x21` is
 small (3–6) everywhere except the two portals, which carry **52**.
-**`+0x19` and `+0x1d` are creature state ids — CONFIRMED** (2026-09-23): both
+**`+0x19` and `+0x1d` are creature state ids — STRONGLY INFERRED** (2026-09-23): both
 accessors' results go straight to `SetState` (`0x0046EF7F`, `0x0046F127`,
 `0x004E9035`), and the values name each room's working state (Hatchery 92
 *eating*, Library 53 *researching*, Temple 101). What separates the two slots is

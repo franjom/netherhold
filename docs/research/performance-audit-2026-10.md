@@ -6,8 +6,8 @@ systems: [simulation-core, presentation-unity]
 Static audit of master `7281a019`, 2026-10-24. Analysis only: no game code,
 tests, player, replay, soak or profiler runs changed or executed in phase 1.
 Line references below refer to that commit. No FPS or millisecond gains have
-been measured here. CONFIRMED means the code path/cost mechanism was read;
-its importance to actual frame time remains SUSPECTED until measured.
+been measured here. STRONGLY INFERRED means the code path/cost mechanism was read;
+its importance to actual frame time remains HYPOTHESIS until measured.
 
 Path prefixes: `U` = `unity/DK2.Unity/Assets/DK2/`, `P` =
 `src/DK2.Presentation/`, `S` = `src/DK2.Simulation/`, `A` = `src/DK2.AI/`.
@@ -37,7 +37,7 @@ The reported six persistent allocations have **no established attribution**.
 
 ## Unity per-frame CPU and GC
 
-**C1 — CONFIRMED: resample and upload every posed actor.**
+**C1 — STRONGLY INFERRED: resample and upload every posed actor.**
 `U/ClassicCreatureAnimation.cs:93,120,130`; `U/DungeonRunner.cs:622`.
 Each draw samples every vertex, converts it, calls SetVertices and recalculates
 bounds even when the resulting pose is unchanged. Cost is O(total animated
@@ -51,7 +51,7 @@ on held/identical poses; moving actors still need them. Risk V: control points,
 Heart beats, bounds/culling and animation clocks must still advance correctly.
 No H; do not reduce animation cadence or extrapolate motion.
 
-**C2 — CONFIRMED: hover picking scans all actors before local fallback.**
+**C2 — STRONGLY INFERRED: hover picking scans all actors before local fallback.**
 `U/DungeonScene.cs:185,192,214,310`; `U/DungeonRunner.cs:1212,1226`.
 Each eligible frame offers creatures, objects and structures; sphere/bounds
 survivors copy mesh vertices and every submesh's indices into reused lists and
@@ -65,7 +65,7 @@ Risk V: exact hit, eligibility, occlusion and fallback ordering; no H. Cached
 delegates already exist (`DungeonRunner.cs:1223`); local functions alone are
 not evidence of a heap closure allocation.
 
-**C3 — CONFIRMED: small presenter containers allocated every frame.**
+**C3 — STRONGLY INFERRED: small presenter containers allocated every frame.**
 `P/ScenePresenter.cs:359,387,558`: PresentStructures creates a HashSet and List
 even with no structural change. Work scales with structures, not map area.
 Proposed: reuse cleared per-presenter scratch, preserving sorted removals.
@@ -75,7 +75,7 @@ Object/creature passes also enumerate every Present; gate only after measuring
 and identifying all between-tick preview/visibility inputs.
 Fixed (2026-10-24): structure seen/gone scratch reused, removals sorted by a shared comparer; test pins the calls.
 
-**C4 — CONFIRMED: placement price formatting and digit keys per frame.**
+**C4 — STRONGLY INFERRED: placement price formatting and digit keys per frame.**
 `U/ClassicPlacementOverlay.cs:97,101,109`: an active priced preview formats its
 number and concatenates a texture key per digit on every draw, despite cached
 textures. Proposed: retain digits and texture references until price/family
@@ -83,7 +83,7 @@ changes, as `ClassicResourceHud.cs:223` already does. Gain: one number string
 and up to MaxDigits key strings per applicable frame. Low V; no H.
 Fixed (2026-10-24): digit textures retained until price/family changes; no number string per frame.
 
-**C5 — SUSPECTED: redundant retained-UI layout work.**
+**C5 — HYPOTHESIS: redundant retained-UI layout work.**
 `U/ClassicBottomPanel.cs:181,188,215,239`; `U/ClassicMessageTabs.cs:227`;
 `U/ClassicResourceHud.cs:229`. Visible frames write many positions, display
 states and tints. Unity may suppress equal-value changes; source does not prove
@@ -92,7 +92,7 @@ revisions from genuinely animated changes. Gain unknown, probably modest unless
 UI Toolkit markers dominate. Risk V: resize, pinned panels, flashing and scrolling;
 no H. Do not recreate the UI: elements are already retained.
 
-**C6 — CONFIRMED: flowers capture all creatures and submit separate layers.**
+**C6 — STRONGLY INFERRED: flowers capture all creatures and submit separate layers.**
 `P/StatusFlowers.cs:371,390,448`; `U/ClassicStatusFlowers.cs:51,64,78`.
 Every frame observes all creature health and computes shown flowers; torture
 flowers can construct floor-slot containers. Each shown flower submits its
@@ -103,14 +103,14 @@ then measure atlas/batching options preserving layer order. Gain scales with
 creatures and displayed layers. V: countdown, torture lift, blink and concentric
 icons; no H. Health/centre/hover dictionaries are pruned (`StatusFlowers.cs:510`).
 
-**C7 — SUSPECTED: repeated camera/component lookups.**
+**C7 — HYPOTHESIS: repeated camera/component lookups.**
 `U/DungeonRunner.cs:631,634,637,1218`; `U/DungeonScene.cs:245,560,599,615`.
 These occur per frame or per actor; no Find-object scan was found on the main
 Update path. Proposed: cache the active camera and actor components with proper
 replacement invalidation. Gain likely below geometry/scanning work; measure in
 a player because editor GetComponent allocation differs. Low V; no H.
 
-**C8 — CONFIRMED: tile gating still scans and revisits the map.**
+**C8 — STRONGLY INFERRED: tile gating still scans and revisits the map.**
 `P/ScenePresenter.cs:397,406,409,413,420,449`: every changed tick forces a
 whole-map TileView pass and tile snapshot copy, even without terrain changes.
 Otherwise gating scans objects for crypts and compares the tile bytes; previews
@@ -123,7 +123,7 @@ outside hashed state and preserve all existing between-tick updates.
 
 ## Leaks and long-session degradation
 
-**L1 — CONFIRMED: no explicit teardown for the runtime art owner.**
+**L1 — STRONGLY INFERRED: no explicit teardown for the runtime art owner.**
 `U/ClassicMeshes.cs:31,298,390,509,715`; `U/DungeonRunner.cs:283,487`.
 ClassicMeshes retains built/shared meshes, textures and material variants but
 has no asset-release method. Runner destroys HUD/light resources and disposes
@@ -138,7 +138,7 @@ and retained references before treating it as permanent growth across scenes.
 Fixed (2026-10-24): `ClassicMeshes.Release` destroys only what it created (deduplicated registry), run by
 Runner.OnDestroy after effects and `DungeonScene.Dispose`. Unity play/stop/reload check pending.
 
-**L2 — CONFIRMED retention; growth rate SUSPECTED: variant caches.**
+**L2 — STRONGLY INFERRED retention; growth rate HYPOTHESIS: variant caches.**
 `U/ClassicMeshes.cs:124,443,451,635,642`;
 `U/ClassicConstructionEffects.cs:144,148`.
 New effect RGB values make native material copies keyed by (material, RGB),
@@ -153,7 +153,7 @@ phase arrays; actual palette/phase diversity needs a soak. V: blend, depth,
 emission and batching equivalence; no H. Do not quantize colours to save memory.
 Partly fixed (2026-10-24): SetAlpha reuses a scratch Material[]; the cache redesign remains open.
 
-**L3 — CONFIRMED: smaller generated-resource teardown omissions.**
+**L3 — STRONGLY INFERRED: smaller generated-resource teardown omissions.**
 `U/LiquidSurfaces.cs:65,81,112`: Clear destroys layer objects but not layer.Mesh;
 rebuild does destroy the previous mesh. `U/TerrainChunks.cs:232` creates opaque
 chunk meshes; Clear releases them (`:156,187`), but Runner.OnDestroy only calls
@@ -166,7 +166,7 @@ Gain: generated mesh/material/atlas memory per unload, no steady-state FPS
 promise. No H; low V with correct ownership and destruction order.
 Fixed (2026-10-24): `DungeonScene.Dispose` (Clear, lights, placeholders) on final teardown; liquid and chunk meshes freed; atlas disposed.
 
-**L4 — CONFIRMED negative evidence, warning remains SUSPECTED.**
+**L4 — STRONGLY INFERRED negative evidence, warning remains HYPOTHESIS.**
 A source sweep of `src/**/*.cs` and `unity/DK2.Unity/Assets/**/*.cs` found no
 Allocator.Persistent use or owned NativeArray/NativeList allocation. The movie's
 GetPixelData view (`U/ClassicMoviePlayer.cs:236`) is texture-backed, not a new
@@ -177,7 +177,7 @@ Proposed: capture allocator call stacks during reload/Play transitions and
 compare an empty matching URP project only if needed. Gain unknown; no H/V
 change authorized from this warning alone. Do not disable leak detection.
 
-**L5 — CONFIRMED bounded/pruned paths; monitor rather than rewrite.**
+**L5 — STRONGLY INFERRED bounded/pruned paths; monitor rather than rewrite.**
 `U/DungeonScene.cs:294` caps pick-sphere entries at 4096 (a clear causes a later
 refill, not unlimited growth). `P/ClassicWorldLightCache.cs:130,186,266` removes
 absent sources/tables and clears state. `U/TransparentTerrain.cs:125,126,408`
@@ -189,7 +189,7 @@ Gain unknown; trimming every frame can worsen GC. No H; lifecycle V risk.
 
 ## Rendering and GPU submission
 
-**R1 — CONFIRMED: changing effects invalidate shared transparent geometry.**
+**R1 — STRONGLY INFERRED: changing effects invalidate shared transparent geometry.**
 `U/TransparentTerrain.cs:65,75,79,240,246,264,290`;
 `U/ClassicConstructionEffects.cs:257,266`.
 Effect meshes are read back into CPU lists each frame. Changed transform/vertex
@@ -204,7 +204,7 @@ measure Sort/Order/Upload markers. V high: global transparent ordering is a
 fidelity requirement; separating queues or dropping mist is not an acceptable
 shortcut. No H. Headless probe does not execute this camera callback. Current implementation and measurements: [portal arrival performance](portal-arrival-performance.md).
 
-**R2 — CONFIRMED: lighting dirty ranges include unchanged gaps.**
+**R2 — STRONGLY INFERRED: lighting dirty ranges include unchanged gaps.**
 `U/ClassicTileLightBuffer.cs:65,93,97`; `ClassicTileFillBuffer.cs:45`;
 `ClassicTorchLightBuffer.cs:65`. Updates already compare values. Flush uploads
 the inclusive first-to-last dirty range, not necessarily the whole buffer, but
@@ -215,7 +215,7 @@ Proposed: measure dirty count/span/upload bytes; coalesce several dirty spans
 only when saved bytes outweigh extra SetData calls. Gain proportional to gaps;
 no gain for dense changes. V: no stale lighting/global-buffer disposal; no H.
 
-**R3 — CONFIRMED extra geometry; GPU bottleneck SUSPECTED.**
+**R3 — STRONGLY INFERRED extra geometry; GPU bottleneck HYPOTHESIS.**
 `U/ClassicMeshes.cs:303,313,316,369`: each eligible shiny material adds a submesh
 with the same triangles and an additive environment material. Submission and
 vertex/fragment work increase with shiny visible submeshes, alongside flowers,
@@ -228,7 +228,7 @@ batching/variant retention. Gain unknown; high V for pass fusion or stripping.
 No H. Transparent/additive no-depth-write passes also create overdraw; assess
 in a rendered player at 720p versus 1440p before blaming CPU or disabling art.
 
-**R4 — CONFIRMED existing minimap gates; remaining whole-grid CPU scan.**
+**R4 — STRONGLY INFERRED existing minimap gates; remaining whole-grid CPU scan.**
 `U/DungeonMinimap.cs:204,207,231`; `U/MinimapGpuMap.cs:117,126,141,184`.
 Capture skips an unchanged tick/preview; changed captures scan all map tiles
 but upload only changed classes. Markers upload on captured changes; disc render
@@ -240,7 +240,7 @@ markers must update; no H.
 
 ## Simulation tick allocation and scanning
 
-**S1 — CONFIRMED: map-wide selection remains after reachability caching.**
+**S1 — STRONGLY INFERRED: map-wide selection remains after reachability caching.**
 `S/Systems/ImpTaskSystem.Selection.cs:430,442,461,724`. Excavation walks every
 tile, collects candidates and sorts them; diamond searches can visit the map
 when no job qualifies. Cost per search O(map area + candidates log candidates),
@@ -250,7 +250,7 @@ and mass-tag ticks. **H high:** the scan clears DigTaskOutlivesWallFor at `:449`
 and emits events, and ring starting sides consume RNG. Do not skip those writes,
 change RNG draws or replace traversal with nearest-first heuristics.
 
-**S2 — CONFIRMED: known transient room work still exists.**
+**S2 — STRONGLY INFERRED: known transient room work still exists.**
 `S/RoomNeedRules.cs:84,118,168,280,330,403,441` allocates filtered room lists
 per applicable creature need/job query. `S/AutoFurnitureRules.cs:299,308,316`
 builds a List and room-membership HashSet and sometimes another result HashSet
@@ -262,7 +262,7 @@ Gain: remove container/backing-array churn; magnitude needs allocation stacks.
 adoption and per-query live occupancy. A per-tick cache may already be stale
 within that same tick; do not assume RoomIndex's key covers these facts.
 
-**S3 — CONFIRMED: event details built before sink acceptance.**
+**S3 — STRONGLY INFERRED: event details built before sink acceptance.**
 `S/ISimulationSystem.cs:85,88`; `S/SimulationEvents.cs:33,39`.
 Emit takes string, so callers pay formatting before NullEventSink discards it;
 RequestEffect formats detail even when only typed payloads are consumed. The
@@ -275,7 +275,7 @@ without allocating a closure per call. Gain proportional to emitted text volume;
 unknown until measured. H low if event payload/order and all RNG/effect work
 still run; never suppress the effect request or simulation draw itself.
 
-**S4 — CONFIRMED: KeeperView copies the observation per Think, conditionally.**
+**S4 — STRONGLY INFERRED: KeeperView copies the observation per Think, conditionally.**
 `A/KeeperAI.cs:73`; `A/KeeperView.cs:34,41,52,61,84,98,146`.
 Tiles, room views, creatures, messages and traps are copied per keeper Think;
 cost O(map + entities + rooms) per AI tick. The old ~341 KB estimate is not a
@@ -289,7 +289,7 @@ storage through an observation to save copying.
 
 ## Burst work and synchronization
 
-**T1 — CONFIRMED join; frame-pacing attribution SUSPECTED.**
+**T1 — STRONGLY INFERRED join; frame-pacing attribution HYPOTHESIS.**
 `U/DungeonRunner.cs:517,645,674,681`: next Update waits for the prior Task.Run
 tick batch; the batch can contain two ticks. Excess over available overlap
 blocks the main thread. Proposed: attribute worker execution versus queue/join
@@ -298,7 +298,7 @@ Gain can be zero when ticks finish in time. **H/V high** for publication changes
 commands/events/world readers and draw-clock endpoint holds must stay coherent.
 Do not remove the join while the presenter reads mutable simulation state.
 
-**T2 — CONFIRMED burst paths; magnitude SUSPECTED.**
+**T2 — STRONGLY INFERRED burst paths; magnitude HYPOTHESIS.**
 `U/TerrainChunks.cs:136,142,148,232`: first flush is unbudgeted; later flushes
 budget between chunks, so a single chunk can exceed 4 ms. Rebuilds allocate
 meshes and geometry arrays (`:271–291`). `ClassicMeshes.cs:287,369,713` still
@@ -310,7 +310,7 @@ Gain: fewer startup/first-encounter spikes, not necessarily higher steady FPS.
 V: preserve complete initial scene and the accepted terrain backlog semantics;
 no H. Existing prefetch/startup improvements are documented in the roadmap.
 
-**T3 — CONFIRMED movie-specific sync and upload.**
+**T3 — STRONGLY INFERRED movie-specific sync and upload.**
 `U/ClassicMoviePlayer.cs:86,217,221,225,236,274`: open occurs synchronously;
 ShowFrame waits for decode and, after a dropped frame, may wait for a replacement
 decode as well. Due frames copy/upload width*height*4 bytes; teardown joins the

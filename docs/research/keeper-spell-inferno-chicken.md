@@ -7,7 +7,7 @@ Sources: DKII.EXE v1.70 (GOG), read with Ghidra 12.1.4 through pyghidra-mcp and 
 headless runner, 2026-10-01; the reference install's `KeeperSpells.kwd`, `Shots.kwd`
 and `Creatures.kwd`, read byte by byte. No original cast of either spell was
 captured. Binary claims are **STRONGLY INFERRED** unless marked otherwise; values
-read from the shipped files are **CONFIRMED**. Function records under
+read from the shipped files are **STRONGLY INFERRED**. Function records under
 `functions/` carry the per-function detail; this note is the mechanism.
 
 What this settles: the two offensive spells the battle step chooses but the build
@@ -17,7 +17,7 @@ Hatchery, but it can still be attacked. **Inferno** is a fire zone that does not
 move. For 30 ticks it hits **every creature of any owner** within one tile of where
 its target stood, the caster's own creatures included, for 100 per tick.
 
-## 1. Shipped data — CONFIRMED
+## 1. Shipped data — STRONGLY INFERRED
 
 `KeeperSpells.kwd` record fields at the offsets `KwdKeeperSpells` reads:
 

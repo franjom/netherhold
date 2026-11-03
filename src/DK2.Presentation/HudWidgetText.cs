@@ -6,8 +6,8 @@ namespace DK2.Presentation;
 
 /// <summary>
 /// A HUD widget's hover text. The static widget record's text id (<c>+0x30</c>, copied to runtime
-/// <c>+0x6F</c>) is CONFIRMED. The status-strip line comes from the hover status switch
-/// <c>0x0042DB60</c>, which maps each id through its own table (CONFIRMED by decompile): mostly
+/// <c>+0x6F</c>) is STRONGLY INFERRED. The status-strip line comes from the hover status switch
+/// <c>0x0042DB60</c>, which maps each id through its own table (STRONGLY INFERRED by decompile): mostly
 /// id+1, but Query's 2149 maps to 2795. That switch sets only the status line; the popup name drawn
 /// over these widgets follows the owner's report that DK2 shows one (2026-10-19), and its native
 /// producer is unread.

@@ -209,7 +209,7 @@ worker credits the keeper's one pool of points (ADR-0203).
 
 ### 5.1 Zero-rate dropped workers (Q672, binary, 2026-10-29)
 
-**CONFIRMED control flow:** a zero manufacture credit causes repeated job retries
+**STRONGLY INFERRED control flow:** a zero manufacture credit causes repeated job retries
 when the remembered drop job is Manufacture, the queue remains nonempty, a usable
 Workshop accepts the creature, and earlier needs/idle priorities take nothing.
 For a creature already inside the selected Workshop, successive dispatcher updates

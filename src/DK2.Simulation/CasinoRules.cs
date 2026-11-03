@@ -12,7 +12,7 @@ namespace DK2.Simulation;
 /// <c>state-category-hooks.md</c> §3.1). Generous (Smiley) calms and pays the gambler, and the
 /// keeper pays for it; stingy ($) angers and fleeces the gambler, and the gold lands beneath
 /// the lever.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/state-category-hooks.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public static class CasinoRules
 {
     /// <summary>The lever's settings, DK2's room byte <c>+0x4A</c>. A new Casino is generous.</summary>

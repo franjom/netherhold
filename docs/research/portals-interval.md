@@ -139,7 +139,7 @@ first test (`0x004DC9AB`–`0x004DC9B8`) is the owner's `+0x76` bit 10. When the
 bit is clear it returns 0 before anything else. The player dumper prints that
 bit as **`PortalsOpen`** (`0x004BDCEA`).
 
-**Only the script writes `PortalsOpen`. CONFIRMED (binary).** Player action
+**Only the script writes `PortalsOpen`. STRONGLY INFERRED (binary).** Player action
 type 37 maps to arm `0x004C892D` (index byte 9 at `0x004C8AB3`, pointer 9 of the
 table at `0x004C8A60`; type 28 maps to `0x004C8851` in the same tables, which
 `portal-creature-action.md` had read). A zero body byte 0 clears bit 10 and any
@@ -148,7 +148,7 @@ sets the bit for its own call, so a scripted creature comes through a closed
 portal, then clears it again if it was clear (`0x004DC983`–`0x004DC989`).
 `0x004DC9A0` has exactly those two callers.
 
-**Level 2 closes its portal for the scripted Warlock. CONFIRMED (shipped
+**Level 2 closes its portal for the scripted Warlock. STRONGLY INFERRED (shipped
 triggers).** Condition 3 (*a Portal*) with child condition 4 (*a Library*) runs
 action 37 with `Available=0` and starts timer 0. At timer 0 ≥ 10 s it runs action
 28 (Warlock, level 1) and action 31 (path 60 to action point 4). At timer 0 ≥ 30 s
@@ -200,11 +200,11 @@ the dword into a register, decrements the register and stores it back.
 - **The arrival is stamped with its portal.** `Portal_CreateArrival`
   (`0x004DC9A0`) writes the portal room's tag (`room+0x04`) into the creature's
   word `+0x4EB` on both arms: `0x004DCC40` for a keeper portal, `0x004DCC99` for a
-  hero portal. `Creature_Construct` zeroes it (`0x004878EC`). CONFIRMED.
+  hero portal. `Creature_Construct` zeroes it (`0x004878EC`). STRONGLY INFERRED.
 - **A death gives the slot back.** At `0x00488150`–`0x00488170`,
   `Creature_DeathBookkeeping` reads `+0x4EB`. When it is non-zero and that
   thing's dword `+0x4D` is above zero, it decrements the dword. The tally never
-  goes below zero. Nothing checks that the thing is still a portal. CONFIRMED.
+  goes below zero. Nothing checks that the thing is still a portal. STRONGLY INFERRED.
 - **A converted creature keeps its stamp.** The text scans for writers of
   `+0x4EB` found only the three writes above; the other hits are on the computer
   player's struct. A creature that changes owner would therefore still lower its
@@ -339,7 +339,7 @@ The original isolated probe checked particles but missed the weak/occluded
 rendering reported by the owner. The corrected blend and depth ordering and
 focused GPU regression are in [sprite rendering](room-construction-effects.md#sprite-blend-and-shared-terrain-ordering-2026-10-23).
 
-CONFIRMED shipped definitions and `FUN_00435F20`'s colour selection:
+STRONGLY INFERRED shipped definitions and `FUN_00435F20`'s colour selection:
 
 | Element | Resource | RGB | File art flags | Lifetime updates |
 |---|---|---|---|---|

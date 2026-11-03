@@ -11,7 +11,7 @@ namespace DK2.Simulation.Steering;
 /// a push from every overlapping neighbour, scaled by the cosine against the body's own velocity
 /// and the neighbour's size share through the original's unshifted multiply, plus a repulsion
 /// from one remembered entity within its sight range.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/navigation-and-steering.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/navigation-and-steering.md")]
 public static class SeparationBehaviour
 {
     public const int Weight = 0x2147;

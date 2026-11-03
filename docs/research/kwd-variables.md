@@ -39,7 +39,7 @@ Evidence:
 Observed behaviour: this file IS the game's balance specification. Per-level
 *Variables.kld files override it (same record format).
 
-Confidence: CONFIRMED (layout and values) / UNKNOWN (ids 19, 29, 44, ...
+Confidence: STRONGLY INFERRED (layout and values) / UNKNOWN (ids 19, 29, 44, ...
 present in data without names — `VariableTypeId` preserves the gaps). Id 17 was on
 that list until 2026-09-28: DK2's own Variables dispatcher (`0x0051AA90`) sends it
 to the research-list handler.

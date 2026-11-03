@@ -14,7 +14,7 @@ unless it is a Barricade. **The definition's `GoldCost` is paid at once** (confi
 2026-09-26), and the blueprint then
 gets the same order and list entry an authored one does.
 
-## 1. The door, `0x004C33B0(x, y, type)` — CONFIRMED
+## 1. The door, `0x004C33B0(x, y, type)` — STRONGLY INFERRED
 
 1. The definition (world slot `+0x138`). `Barricade` is `+0x8B` bit `0x40`.
 2. The tile test, world slot `+0x244`, which is `0x00450DB0(x, y, owner, barricade)`. It needs all
@@ -42,7 +42,7 @@ gets the same order and list entry an authored one does.
    - for the local keeper, it plays a sound;
    - it calls `0x004E8D30` and refreshes the tile.
 
-## 2. The trap, `0x004C3860(x, y)` — CONFIRMED
+## 2. The trap, `0x004C3860(x, y)` — STRONGLY INFERRED
 
 The same, with:
 - the tile test at world slot `+0x24C`, which is `0x00450EB0(x, y, owner)`: the first four tests

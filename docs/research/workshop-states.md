@@ -12,7 +12,7 @@ systems: [rooms]
 - Handlers from the state table (`creature-state-table.md`): 63 `0x00470110`, 64 `0x00470470`,
   65 `0x00470860`, 66 `0x00470560`, 67 `0x00470C00`. All five are category 5 (Manufacture).
 
-## 1. How each is entered — CONFIRMED
+## 1. How each is entered — STRONGLY INFERRED
 
 A scan of every call to `SetState`, `0x0048AD30`, `0x00491830` and the two walks for `0x3F`–`0x45`:
 
@@ -40,7 +40,7 @@ shared `SetState` tail at `0x0048BA00`; the call scan missed it because no call 
 and 120's): action `0x13`, then 63 for a Workshop place. The slap's state moves (67, 77, 120)
 are built (`SlapRules`, ADR-0401, `slap-states.md`; Q569).
 
-## 3. The finder `0x004F5BE0(room, creature)` — CONFIRMED
+## 3. The finder `0x004F5BE0(room, creature)` — STRONGLY INFERRED
 
 Over the room's objects of type 15 (*Anvil*), 16 or 46, two passes, each the nearest by squared
 distance (strict `<`, the second continuing from the first's best):
@@ -57,7 +57,7 @@ distance (strict `<`, the second continuing from the first's best):
 3. Neither: it clears the seeker's mode and searches again, without end. A Workshop holds a place
    only while it has furniture (ADR-0205), so a holder never meets an empty one.
 
-## 4. 63, the chooser `0x00470110` — CONFIRMED
+## 4. 63, the chooser `0x00470110` — STRONGLY INFERRED
 
 1. At `Age` 1 it stops. With no manufacture order (player `+0xA1C` zero): at `Age` 1 action 43,
    and it holds while that plays, then returns 0.
@@ -69,7 +69,7 @@ distance (strict `<`, the second continuing from the first's best):
    the finder's point. A walk there resuming 64 (`0x00471890`, options `0x80`); taken, the target
    is the object's position. Either way it returns 1.
 
-## 5. 64 and 65, the work — CONFIRMED
+## 5. 64 and 65, the work — STRONGLY INFERRED
 
 **64** (`0x00470470`): on the target's tile an object of type 46, else 15, else 16
 (`0x004537E0`). None: `SetState(63)`; refused, return 0; taken, it goes on below anyway. Found:

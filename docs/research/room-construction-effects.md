@@ -334,7 +334,7 @@ number 1, variant 0.
 
 `0x00435F20` also compares the element owner against component slot `+0xC4`.
 Equality selects `0x0050F880` instead: palette number
-`floor(wallMilliseconds/100)%7+1`. CONFIRMED startup writer (2026-10-16):
+`floor(wallMilliseconds/100)%7+1`. STRONGLY INFERRED startup writer (2026-10-16):
 `0x00447D87` and`0x00525702` pass the neutral-player global through slot`+0xC8`;
 `0x00440F90` forwards to renderer`+0x9E`, whose setter`0x00443110` writes`+0xE`.
 Its getter`0x00443100` is shared by the renderer interfaces. Thus neutral-owned
@@ -348,7 +348,7 @@ Color is sampled at birth; this later sample alone does not prove birth-time col
 
 ### 6.1. Pale claim mist investigation
 
-CONFIRMED code/history audit (2026-10-17): claim element142 still selects the
+STRONGLY INFERRED code/history audit (2026-10-17): claim element142 still selects the
 keeper tint; the0x80-to0x2 correction does not change it because its art flags
 are0x86. The Heart's grey-dust correction therefore did not remove the claim tint.
 Element143 remains authored white. `RoomConstructionParticles` gives red keeper3

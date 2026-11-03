@@ -7,7 +7,7 @@ Sources: DKII.EXE v1.70, read-only Ghidra queries, 2026-10-18; the install's
 Text.str and EngineTextures cache. Output stays in `reverse-engineering/resources-*`.
 Function records hold the individual verdicts.
 
-## Values and update cadence — CONFIRMED
+## Values and update cadence — STRONGLY INFERRED
 
 `0x00422BC0` draws the viewing keeper's mana total from player `+0x82` and
 two rates. It is called by the active HUD dispatcher `0x00419DF0` each frame,
@@ -43,7 +43,7 @@ The already implemented `CasinoJackpotRules.WageBill` is this same producer;
 resource capture reuses it. Flashing uses the real clock and continues while
 the simulation is paused; the ten-second extension and alarm use game time.
 
-## Digits and colours — CONFIRMED
+## Digits and colours — STRONGLY INFERRED
 
 These resource numbers are **sprites, not BF4 text**. `0x004152B0` loads the
 actual raw-string resource names below. Older Ghidra symbol names replaced
@@ -83,7 +83,7 @@ Remaining digits advance one step each. No right-alignment padding is used.
 
 ## Geometry and active artwork
 
-**CONFIRMED:** virtual reference coordinates are **2560×1920**.
+**STRONGLY INFERRED:** virtual reference coordinates are **2560×1920**.
 `0x0052C5A0` and `0x0052C630` independently scale horizontal components by
 screen width/2560 and vertical ones by height/1920, with integer division.
 At 1024×768 both factors are 0.4. The adapter's existing height-preserving
@@ -124,7 +124,7 @@ Other catalogue resources are **not evidence that they are active**:
 was found for them in the inspected paths. Gold-bg-00/01 (88/89, type 1) are
 also present; the ordinary gold number callback instead uses 76/77 above.
 
-## Hover and clicks — confirmed bindings, partial actions
+## Hover and clicks — STRONGLY INFERRED bindings, partial actions
 
 Widget coordinates below are local to menu21. `0x00528570` adds its `(0,20)`
 parent origin, so Heart and Payday start at screen-virtual y48.
@@ -167,7 +167,7 @@ the pushed layers (fill 3, frame 2, alarm 1, [0x00422F60](functions/00422F60.md)
 is in front, which is inferred. The adapter draws each ring behind its frame. These are static positions; the
 literal Heart y=3 is physical and does not scale with the screen height.
 
-**CONFIRMED fill:** `0x0041EF70` clips a textured square to an angular sector
+**STRONGLY INFERRED fill:** `0x0041EF70` clips a textured square to an angular sector
 using a triangle fan from its centre and the crossed square corners. It is
 not an annular mesh: the source texture's alpha defines the ring. For fraction
 f, white texture draws from `3π−2πf` to `3π`; black-multiplied texture draws
@@ -203,7 +203,7 @@ original numeric sprite families, colours, source assets and supplied geometry.
 
 The hover status text occupies the adjoining menu rather than the resource
 area; see [world-hover-text.md](world-hover-text.md#original-fonts-artwork-and-geometry).
-## Counter withdrawal — CONFIRMED
+## Counter withdrawal — STRONGLY INFERRED
 
 `0x00511A80` registers action 105 at table record `0x006A5A30`, with gameplay
 handler `0x00513CE0`. The complete handler and assembly were read. It first
@@ -223,7 +223,7 @@ so a same-frame drop uses ordinary Hand delivery. It never calls the AI-only
 `MintWageCommand`, requires no Treasury when the Heart has stored gold, and
 creates no gold when storage is empty.
 
-## Scripted resource flashing — CONFIRMED
+## Scripted resource flashing — STRONGLY INFERRED
 
 These are **FlashButton action 9 descriptors**, not retained player messages.
 The primary world vtable `0x0066E3EC` binds slot `+0x2F8` to `0x005096F0`,

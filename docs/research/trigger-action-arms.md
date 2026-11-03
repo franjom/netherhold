@@ -20,7 +20,7 @@ Level 11A's first turn runs it for 7-6, 7-4 and 7-5: Raksha starts allied with t
 other three keepers. The M12 capture shows those bytes set on turn 2. Built
 (ADR-0377).
 
-**CONFIRMED.**
+**STRONGLY INFERRED.**
 
 ## Action 22 writes terrain, and on a room tile it sells and builds (Q301)
 
@@ -60,7 +60,7 @@ entry `0x15` gives jump slot 12). In order:
    return 1. That slot makes effects, as for `0x59`, `0x138` and action 41; that this
    one is presentation only is inference.
 
-**CONFIRMED** for the control flow and arguments. `0x004F04F0` and `0x004F09B0`, the closers, are read
+**STRONGLY INFERRED** for the control flow and arguments. `0x004F04F0` and `0x004F09B0`, the closers, are read
 (`wall-torches.md` §6: torch recolour and room refresh); the openers `0x004F0390` and
 `0x004F0840` are unread. The keeper's builder `0x004C5B40` uses the
 same bracket (`bridge-placement.md` §3).
@@ -104,7 +104,7 @@ The creature arm (`0x0049AC80`, case `0x23`) reads byte 00:
 - **1:** `Creature_EnterDeathFall` `0x00459560`, an ordinary death.
 - **Anything else:** nothing; the arm returns 1.
 
-**CONFIRMED.**
+**STRONGLY INFERRED.**
 
 ## Actions 39, 40 and 41: the byte or word at 00 is a type id (Q227)
 
@@ -118,7 +118,7 @@ offsets 04/06. The coordinates are zero-based, as action 1's are.
 - **41**: word 00 is an **effect id**, passed to world slot `+0x38C`. Its owner
   argument is the result of slot `+0x264`, the **local** player, not a body byte.
 
-**CONFIRMED.** None of the three ships.
+**STRONGLY INFERRED.** None of the three ships.
 
 All five types are Unperformed in ours (`TriggerExecutor.Performs`). The reader
 (`KwdAdditionalRecords`) still names the bytes `Unknown_*`, and reads action 24's
@@ -144,6 +144,6 @@ trigger 85 and Level 7's trigger 29 run the pair on a hero's creation (condition
   for is open (Q607): the creature icon selector (`0x00597270`) reads a six-slot list
   for icons 7–9.
 
-**CONFIRMED** for both arms; arm `0x14` was re-read by a second reader on 2026-10-17, arm
+**STRONGLY INFERRED** for both arms; arm `0x14` was re-read by a second reader on 2026-10-17, arm
 `0x2A` has one reader. Action 20 ships in 14 levels and 42 in 21. 20 is performed in ours
 (ADR-0495); 42 stays partial.

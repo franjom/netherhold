@@ -3,7 +3,7 @@ systems: [data-formats]
 ---
 # DK2 v1.70 global balance table (GlobalVariables.kwd)
 
-DK2's own data — CONFIRMED by definition. Reproduce with `dk2tools kwd vars`,
+DK2's own data — STRONGLY INFERRED by definition. Reproduce with `dk2tools kwd vars`,
 which reads `Data/editor/GlobalVariables.kwd` from the reference install
 directly; a disagreement between this page and the tool means the page is
 stale. Layout: `kwd-variables.md`. Names from ufdada/dk2-tools

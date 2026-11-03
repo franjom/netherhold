@@ -4,11 +4,11 @@ systems: [hud-front-end]
 # In-game Options pages
 
 Read 2026-10-29 from DKII.EXE static menu descriptors and callbacks.
-The existing pause/open/close contract remains in [minimap-controls.md](minimap-controls.md#options-toggle-confirmed-control-flow-menu-identity-strongly-inferred).
+The existing pause/open/close contract remains in [minimap-controls.md](minimap-controls.md#options-toggle-strongly-inferred-control-flow-menu-identity-strongly-inferred).
 
 ## Row destinations
 
-CONFIRMED static bindings: menu22 at `0x00696BE8`, widgets at `0x006945C8`,
+STRONGLY INFERRED static bindings: menu22 at `0x00696BE8`, widgets at `0x006945C8`,
 80 bytes per record. A destination changes the visible page without clearing
 interface `+0x2722`; therefore child pages retain the Options pause.
 
@@ -37,7 +37,7 @@ show question15, accept21 and cancel20; `0x00420570` supplies the title and
 action to both buttons. Accept is `0x004205B0`, cancel `0x00420770`.
 Cancel action2 returns to menu22; cancel actions1/3 returns to menu34.
 
-CONFIRMED: accept action2 submits game action102 and closes Options;
+STRONGLY INFERRED: accept action2 submits game action102 and closes Options;
 action3 submits125; action1 submits1 and selects the front-end return page.
 For campaign mode1, action1 selects page37 while the viewing player has no
 result flag `0x400000`, page26 with it. Abandoning therefore returns to the
@@ -48,7 +48,7 @@ The downstream action102 and125 consumers remain unread here.
 
 ## Save/load browser
 
-CONFIRMED: these are named-file browsers, not a fixed number of save slots.
+STRONGLY INFERRED: these are named-file browsers, not a fixed number of save slots.
 `0x0042A760` refreshes a `*.sav` list; Load selection `0x0042A7D0` resolves a
 listed file and sets the pending-load path/flag. Save selection `0x0042A850`
 puts the selected basename in the name editor. Submit `0x0042A920` creates
@@ -61,7 +61,7 @@ pages15..17; it leads from25 to26,27,29,31.
 
 ## Game Options children
 
-CONFIRMED: the static descriptors for menus25..32 begin at `0x00696CC0`
+STRONGLY INFERRED: the static descriptors for menus25..32 begin at `0x00696CC0`
 with 72-byte menu records; menu25 widgets begin at `0x00694C08` with
 80-byte widgets and a `0xFF00` terminator. Root25 links Graphics26,
 Sound27, Control29 and User Cameras31. Control29 links Keyboard30;

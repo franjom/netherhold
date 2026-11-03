@@ -17,11 +17,11 @@ public readonly record struct HandCursorSprite(string FileName, Vector2 FrameSiz
 
 public readonly record struct HandCursorPlacement(Vector2 Origin, Vector2 Size);
 
-[DK2.Core.Dk2Behavior(DK2.Core.Confidence.Confirmed, "docs/research/hand-cursor-rendering.md")]
+[DK2.Core.Dk2Behavior(DK2.Core.Confidence.StronglyInferred, "docs/research/hand-cursor-rendering.md")]
 public static class HandCursor
 {
     /// <summary>Whether the hovered tile takes the excavation cursor: tagged by the viewer, Taggable
-    /// terrain (CONFIRMED: the picker <c>0x005992B0</c> sets its target bit from terrain flag
+    /// terrain (STRONGLY INFERRED: the picker <c>0x005992B0</c> sets its target bit from terrain flag
     /// <c>0x08</c>), or hidden by fog (HYPOTHESIS: the owner saw the dig cursor over "Fog of War",
     /// fog-of-war.md §9.2, and the picker gates on the explored bit <c>+9</c>&amp;<c>0x20</c> with
     /// register arguments unresolved). Fog is the explored layer, as the hover text and minimap

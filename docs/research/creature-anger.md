@@ -14,8 +14,8 @@ Source(s):
 
 Original version: DK2 v1.70
 
-Confidence: **CONFIRMED** — the ceiling from two independent owner measurements,
-the six counters and the choosers from the binary.
+Confidence: **CONFIRMED** — the ceiling from two independent owner measurements;
+**STRONGLY INFERRED** — the six counters and the choosers from the binary.
 
 ## The two measurements
 

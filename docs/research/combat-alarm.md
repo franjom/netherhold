@@ -323,7 +323,7 @@ parity; the owner's differing rally behavior remains open in Q586.
 
 ## Confidence
 
-**CONFIRMED (binary):** §1's order, the Good-owner filter, the hero path's three
+**STRONGLY INFERRED (binary):** §1's order, the Good-owner filter, the hero path's three
 exits and their `0xEA60` return; §2's conditions, the five-tile check and the
 state fields; §3's every skip, the quarter-health test, the raiser's run speed,
 the deficit countdown, the two `SetState`s and action 79; §4's thirty ticks and

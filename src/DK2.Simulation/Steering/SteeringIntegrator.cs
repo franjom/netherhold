@@ -12,7 +12,7 @@ namespace DK2.Simulation.Steering;
 /// weighted; the slide along recorded solid obstacles; the sum clamped again and divided by a
 /// mass of one into the velocity; the velocity clamped to <c>max_speed</c>; the arrival snap;
 /// the wall clamp on the new position with its three fallbacks; the local axes; the stuck bits.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public static class SteeringIntegrator
 {
     public const int Mass = Fixed16.One;

@@ -83,7 +83,7 @@ text (status strip, below) are built (2026-10-20, 2026-10-23). Native hit covera
 
 Read 2026-10-23 and rechecked 2026-10-24 from DKII.EXE 1.70, shipped Text.str and Creatures.kwd.
 
-**Portrait image — CONFIRMED within the audited draw path (2026-10-24).**
+**Portrait image — STRONGLY INFERRED within the audited draw path (2026-10-24).**
 `0x004201B0`, draw callback of menus 7/8/12/15, always installs compact
 definition `+0x52B` at `0x00420394`/`0x00420495` and draws through renderer
 slot `+0x5C`. Its complete body has no hover `+0x49` test, alternate portrait,
@@ -100,7 +100,7 @@ but their name occurs neither in the executable nor shipped editor KWDs.
 Archive presence is not an active draw path; the name search alone does not
 exclude dynamic construction elsewhere.
 
-**Hit coverage — CONFIRMED for the retained overview layout.** Portraits are
+**Hit coverage — STRONGLY INFERRED for the retained overview layout.** Portraits are
 separate draw submissions. `0x00418BC0` lays out ordinary count rectangles;
 `0x00528300` preserves separate worker draw/hit geometry; `0x00528430` tests
 half-open bounds. Menus 4/5 have no widget arrays. Sidebar and row templates
@@ -123,14 +123,14 @@ The adapter retains a coarser hit union (worker 256 high, ordinary 244 in every
 mode); exact row-boundary parity is not built by this no-preview audit.
 Existing status text and count highlights are unchanged.
 
-**Trigger — CONFIRMED.** While a visible count widget has the pointer (`+0x49`),
+**Trigger — STRONGLY INFERRED.** While a visible count widget has the pointer (`+0x49`),
 `0x00418DD0` writes interface `+0x4658 = 4` and `+0x465C` = the column's creature type.
 The widget is hidden, and gives no text, when the column is past the roster or page
 capacity or the definition has `+0x686` bit `0x8000000` (kwd `0xEFC` bit 27, our
 `CreatureFlags.IsUnique`; `CreatureOverview` never makes a column for one, so ours matches). The value is the same for
 every row and every mode: one type per column.
 
-**Status strip text — CONFIRMED.** The strip draw `0x0042E140` calls `0x0042D820`,
+**Status strip text — STRONGLY INFERRED.** The strip draw `0x0042E140` calls `0x0042D820`,
 whose case 4 calls `0x00494740` on the definition. That formats the definition's
 `+0x6AC` string, copied by `0x00492320` from Creatures.kwd byte `0xF38` (Imp 2347,
 Firefly 2349), with two substitutions, spelled %27 and %28 in the strings:

@@ -13,7 +13,7 @@ Original version: DK2 v1.70 (GOG)
 Facts only, per ADR-0046 — no decompiler output is reproduced and none is in the
 repository.
 
-Confidence: **CONFIRMED**. Questions: Q2 (closed), Q203, Q204, Q210.
+Confidence: **STRONGLY INFERRED**. Questions: Q2 (closed), Q203, Q204, Q210.
 
 ---
 
@@ -217,7 +217,7 @@ the happy and unhappy choosers, the gate and its three timestamps
 Research and Manufacture are walked to and stood in; their category hooks pay
 the *player*, and no keeper here has anything to research or make.
 
-## 7. The room → job map — CONFIRMED (Q210)
+## 7. The room → job map — STRONGLY INFERRED (Q210)
 
 `JobRules.RoomFor` was strongly inferred: only Guard was certain, because its
 handler passes the literal `9` to its room search. **DK2's per-room-type handler
@@ -265,7 +265,7 @@ rests on its handler. A room with no job slot is not a room with no purpose.
 
 ## 6. Q204's two flags, both answered 2026-09-11
 
-### 6.1 `player+0x76` bit 2 is `CallToArmsOn` — CONFIRMED
+### 6.1 `player+0x76` bit 2 is `CallToArmsOn` — STRONGLY INFERRED
 
 Not by inference: **DK2 prints the name itself.** The player debug dumper
 (`0x004BCF2F`, `player-object.md`) reaches `+0x76` fifteen times, once per bit,
@@ -291,7 +291,7 @@ kind. Defeat needs a different candidate (Q93, Q207).
 **Built** (ADR-0279): `CreatureJobSystem` admits only Leave and Rebel while the owner's
 Call To Arms is on, as this gate does.
 
-### 6.2 `def+0x686 & 0x4000` is `IsHorny` — CONFIRMED
+### 6.2 `def+0x686 & 0x4000` is `IsHorny` — STRONGLY INFERRED
 
 The loader copies file offset `0xEFC` straight into runtime `+0x686`
 (`record-field-sweep.md`), so bit order is preserved and `0x4000` is **bit 14**.

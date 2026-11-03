@@ -174,7 +174,7 @@ unlinks immediately; the native deferred finished-object sweep remains unbuilt.
 The hand accepts only ordinary Portal disposal at hash/save 353; Hero Portal
 has no hand bin or accepted throw. Get-up and level-placed room entry can
 still reach its deeper gate; their initial stun distinction is in the
-[room-drop evidence](hand-drop-landing.md#4-0x004e8da00-the-room-drop-and-250--confirmed).
+[room-drop evidence](hand-drop-landing.md#4-0x004e8da00-the-room-drop-and-250--strongly-inferred).
 Non-worker room entry retains the Casino countdown; job 0 is never hated.
 The creature bank event reaches Unity through `WorldSoundDirector` and
 `ClassicSoundPlayer`; native playback acceptance is pending.

@@ -45,7 +45,7 @@ requested state and resets time/frame when leaving a state. `0x0040E300`
 completes state 5 into state 6; it is not a continuously swinging dig cursor.
 The optional random-frame mode exists but is not the ordinary timer.
 
-## Where the hotspot lands (CONFIRMED, 2026-10-23)
+## Where the hotspot lands (STRONGLY INFERRED, 2026-10-23)
 
 Read for the owner's report that our Hand feels "too far down and right" of the mouse.
 
@@ -53,7 +53,7 @@ Read for the owner's report that our Hand feels "too far down and right" of the 
 - **The pointer source (HYPOTHESIS).** The point comes from a mouse source read through a vtable in `0x005DBB10`. That source is unread, so "it is the same point the world picker uses" is HYPOTHESIS, not CONFIRMED.
 - **The art (STRONGLY INFERRED, shipped data).** The hand is drawn down and right of its hotspot on purpose. Point.png frame 0 has its hotspot (2,17) on a transparent pixel; its claw tip is at (6,33), which is (+4,+16) frame pixels from the hotspot. The claw reaches the hotspot only around frames 24-32 of the 41-frame loop (leftmost pixels (3,19), (0,12), (0,14)).
 
-**Ours (CONFIRMED, code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which was the hotspot, as in DK2, and since 2026-10-24 is the claw tip (below).
+**Ours (read in our code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which was the hotspot, as in DK2, and since 2026-10-24 is the claw tip (below).
 
 Claw-tip offset from the pointer in screen pixels (Point frame 0):
 
@@ -82,7 +82,7 @@ claw tip at (6,33) (the finger column is 6-7); frame 28's finger reaches (1,12).
 
 Point's claws flex over the loop (the tip ranges over x 0-15 and y 12-43 frame pixels), so pinning each frame's tip moved the whole hand about the pointer; the owner chose (2026-10-24) one anchor, frame 0's resting tip, so the hand stays still as DK2's does and the claw tip at rest is the click point. The hover tooltip keeps a fixed offset: `HandCursor.Reach` is the frame width minus the anchor X (Point 76, SmallPoint 42, Idle 83), plus 18, so Point's tooltip sits 94 units right where DK2's sat 98.
 
-## Channel selection and hover eligibility (CONFIRMED subset)
+## Channel selection and hover eligibility (STRONGLY INFERRED subset)
 
 Constructor `0x00402670` initializes three channels through `0x0040AAC0`:
 base at interface `+0x12DA` starts at state 1, middle `+0x12F6` and contextual
@@ -150,7 +150,7 @@ eligible objects within half a tile. This is not arbitrary same-tile picking.
 Built (2026-10-23) as `HoverPickRules` (both stages' eligibility) and `RenderedPick` (triangle hit
 over centre) in src/DK2.Presentation/HoverPickRules.cs, used by `DungeonScene.PickHoverEntity`.
 **Picking leftovers (read 2026-10-24).** The screen circle is the projected bounding sphere
-(CONFIRMED): the animated draw ([0x00584900](functions/00584900.md)) takes the model's KMF Origin
+(STRONGLY INFERRED): the animated draw ([0x00584900](functions/00584900.md)) takes the model's KMF Origin
 through the draw matrix plus the draw position as centre and BoundsScale times the draw scale
 (`+0x60`) as radius; the static draw ([0x00580EC0](functions/00580EC0.md)) the same with its own
 offsets (scale `+0x58`). [0x00575F10](functions/00575F10.md) projects it, radius = focal / depth
@@ -251,7 +251,7 @@ The texture handle comes from render sink `+0x8E`; its resource and final
 blend/depth state remain UNKNOWN. Keep this separate from the persistent
 dig-tag mesh tint in [tag-highlight.md](tag-highlight.md). The one-tile hover
 cage is most likely the Hand light's (placement-cursor.md §2a). Its visibility flag is
-interface vtable slot `+0x20`, `0x004096B0` (CONFIRMED, 2026-10-23): in Hand mode it shows
+interface vtable slot `+0x20`, `0x004096B0` (STRONGLY INFERRED, 2026-10-23): in Hand mode it shows
 over a dig-taggable tile (blue) or with a full hand and no drop rectangle, and never over
 plain floor with an empty hand.
 

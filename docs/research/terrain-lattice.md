@@ -18,9 +18,9 @@ not tile flag `0x8000` or Tremor's lattice). No rule changes; it is how the view
 straight pieces (`wall-rendering.md`, `floor-and-terrain-pieces.md`) into DK2's uneven
 walls. Facts in our own words, no decompiler output (ADR-0046). Every name below is ours.
 
-Labels: **CONFIRMED** (read in the code, the data flow traced to the store),
-**STRONGLY INFERRED** (read, one link resting on an earlier note or an unread
-callee's name), **HYPOTHESIS**, **UNKNOWN**.
+Labels: **STRONGLY INFERRED** (read in the code, the data flow traced to the store),
+**HYPOTHESIS** (read, one link resting on an earlier note or an unread
+callee's name), **UNKNOWN**.
 
 ---
 
@@ -28,7 +28,7 @@ callee's name), **HYPOTHESIS**, **UNKNOWN**.
 
 - The terrain renderer `0x0043C310` hands each piece to the render sink, the static
   object at `0x00793388` (vtable `0x00670574`, built by `0x00598270`): whole pieces
-  through `0x0059A050`, quarter pieces through `0x0059A200`. **CONFIRMED.**
+  through `0x0059A050`, quarter pieces through `0x0059A200`. **STRONGLY INFERRED.**
 - A whole piece is placed at **(x + 0.5, y + 0.5, 0)** in tile units (the code
   subtracts −0.5, so the sign is plus). A quarter piece is placed at (x, y) plus the
   quadrant offset from the table at `0x007956D0` (12 bytes a quadrant, filled by
@@ -38,26 +38,26 @@ callee's name), **HYPOTHESIS**, **UNKNOWN**.
   `0x00598080`), stored as nine floats m0..m8 in this order:
   rot 0 (1,0,0, 0,1,0, 0,0,1); rot 1 (0,1,0, −1,0,0, 0,0,1);
   rot 2 (−1,0,0, 0,−1,0, 0,0,1); rot 3 (0,−1,0, 1,0,0, 0,0,1). Whether m is applied
-  to row or column vectors was not read. **CONFIRMED** (values); multiplication
+  to row or column vectors was not read. **STRONGLY INFERRED** (values); multiplication
   convention **UNKNOWN**.
 - Both queue a draw item through `0x00585F90`; the mesh instance `0x0057AD20`
   transforms every vertex position by the piece's matrix and placement and then
   passes it through the lattice sampler `0x0058F030` (`ECX` = the lattice global
   `0x00781088`). Normals are transformed in a second loop that does not touch the
-  lattice. **CONFIRMED** (position); normals **HYPOTHESIS**.
+  lattice. **STRONGLY INFERRED** (position); normals **HYPOTHESIS**.
 - The deformed geometry is built once per tile and cached (§7), not per frame.
-  **CONFIRMED.**
+  **STRONGLY INFERRED.**
 
 ## 2. The lattice and its sampling
 
 The lattice object at `0x00781088` holds three words: a pointer to a 3×3 table of
 point blocks (stride 4 pointers a column of tiles, so block (tx, ty) is entry
 tx·4 + ty, tx, ty ∈ 0..2), and the window origin x and y as floats. `0x0058EF60`
-sets them. **CONFIRMED.**
+sets them. **STRONGLY INFERRED.**
 
 A point block belongs to one tile and holds **20 points** (x, y, z floats, 240 bytes):
 2 columns in x × 2 in y × 5 levels in z, point index i·10 + j·5 + k, i, j ∈ {0, 1}
-(half-tile column inside the tile), k ∈ 0..4 (level). **CONFIRMED.**
+(half-tile column inside the tile), k ∈ 0..4 (level). **STRONGLY INFERRED.**
 
 The window for a tile (x0, y0) is the 3×3 tiles around it, origin (x0 − 1, y0 − 1),
 so it is a grid of 6 × 6 columns at half-tile spacing and 5 levels: 5 × 5 × 4 cells.
@@ -76,11 +76,11 @@ The corner lookup table at `0x00780E78` (8 bytes per (iu, iv), index iv + iu·8,
 built by `0x0058EE60`): bytes 0..3 are the blocks of the four corners (iu, iv),
 (iu+1, iv), (iu, iv+1), (iu+1, iv+1), each (column ÷ 2)·4 + (row ÷ 2); bytes 4..7
 the point offsets inside them, ((row & 1) + (column & 1)·2)·5. Level k is then added.
-**CONFIRMED.**
+**STRONGLY INFERRED.**
 
 So every lattice point is a half-tile column (X2, Y2) = (2x + i, 2y + j) at level k,
 owned by tile (X2 ÷ 2, Y2 ÷ 2), and two neighbouring tiles' pieces sample the same
-points: the field is continuous across tile seams. **CONFIRMED** (from the layout).
+points: the field is continuous across tile seams. **STRONGLY INFERRED** (from the layout).
 
 ## 3. The per-tile cell and its rest positions
 
@@ -89,15 +89,15 @@ points: the field is continuous across tile seams. **CONFIRMED** (from the layou
 
 - **Undeformed path** when the sink's dword `+0xC5` is 0 or the game mode byte
   `0x0075AD4B` is 5: `0x0058EF80` writes the identity grid,
-  point(i, j, k) = (x + i/2, y + j/2, −2.5 + k/2). **CONFIRMED.**
+  point(i, j, k) = (x + i/2, y + j/2, −2.5 + k/2). **STRONGLY INFERRED.**
   `+0xC5` is set to 1 by the sink's initialiser `0x005983C0` (`0x00598616`) and no
   other store to it was found (StoreAt scan of `+0xC5`; the four other hits are in
   unrelated classes). So in a game the deformation is always on. Mode 5 is entered
   by `0x00525CD2` together with the "FrontEnd3DLevel" switch `0x0075AEAF = 1`, so it
-  is very probably the 3D front end. **STRONGLY INFERRED.**
+  is very probably the 3D front end. **HYPOTHESIS.**
 - **Deformed path**: rest positions from `0x005A3220`, then the offsets of §5 and §6
   added to levels k = 1, 2, 3; levels 0 and 4 keep their rest positions.
-  **CONFIRMED.**
+  **STRONGLY INFERRED.**
 
 Rest positions of the deformed path (`0x005A3220`):
 point(i, j, k) = (x + i/2, y + j/2, −2.5 + k·s + o), where
@@ -111,14 +111,14 @@ point(i, j, k) = (x + i/2, y + j/2, −2.5 + k·s + o), where
 settings object `0x00759A78` (built by `0x00565FD0`), loaded by `0x00564B00` from the
 config key "HighWalls" (string `0x006BDA58`; **1 when the key is absent**, `0x00565135`)
 and saved back by `0x00563FB0`. It is written through the object, which is why no store
-by absolute address exists. **CONFIRMED** (loader, saver, default, offset; the shipped
+by absolute address exists. **STRONGLY INFERRED** (loader, saver, default, offset; the shipped
 config was not read). `0x0075AEAF` is set by the `-FE3D` switch and the other
 "FrontEnd3DLevel" launches (`0x00401600`, `0x00401660`, `0x00525CC2`) and cleared by its
 sibling switch. `0x00759AE8` is a latch of the possession cameras (modes 2, 10, 11; mode
 2 follows the possessed creature): `0x0044ACE0` clears it on every request, and the
 commit `0x0044BD70` sets it only when entering those modes from outside them, so a
 request between two of them leaves it clear; each flip invalidates every cell
-(`0x00571DA0`). **CONFIRMED** for the code paths.
+(`0x00571DA0`). **STRONGLY INFERRED** for the code paths.
 
 **So the walls stand a full tile above the floor by default**, in the keeper's view and
 in possession alike. Only with HighWalls off, outside possession and the 3D front end,
@@ -138,8 +138,8 @@ the tile is in bounds (world slot `+0x1FC`, `0x00509090`); the tile's explored b
 (`tile+8` word bit `0x2000`, `fog-reveal-sources.md`) is set; the navigation solid
 bit (world slot `+0x20C`, `0x005090C0`, nav byte bit 3) is clear at (tx·0x1000,
 ty·0x1000); and world slot `+0x220` (`0x005092D0` → `0x004528C0` → `0x004528E0`, the
-door nibble of `imp-claim-path.md` §4) returns 0 at that position. **CONFIRMED** for
-the calls; that `+0x220` is the door test is **STRONGLY INFERRED** from the earlier
+door nibble of `imp-claim-path.md` §4) returns 0 at that position. **STRONGLY INFERRED** for
+the calls; that `+0x220` is the door test is **HYPOTHESIS** from the earlier
 note's reading of `0x004528E0`. An unexplored tile counts as closed.
 
 `0x005A3590` reads the 3×3 tiles around (x, y) into s(dx, dy), dx, dy ∈ −1..1
@@ -162,7 +162,7 @@ The terrain record is the runtime one from the table at `0x006DA4A8`, indexed by
 tile byte `+0xA`; the eight bytes are the file's wibble H, lean H[3], wibble V and
 lean V[3] at `0x1CE..0x1D5` (`kwd-terrain-rooms.md`, *the wibble and lean bytes*,
 with the shipped values: Rock 255, [255,255,255], 128, [255,255,255]; Dirt Path
-255, [96,96,0], 128, 0s; Claimed Path 102, [96,96,0], 13, 0s). **CONFIRMED**
+255, [96,96,0], 128, 0s; Claimed Path 102, [96,96,0], 13, 0s). **STRONGLY INFERRED**
 (runtime offsets and their use). What tile bit `0x8000` is: **UNKNOWN**.
 
 **Sub-point parameters** `0x0059E480`: for each layer L and each of the 3×3
@@ -171,11 +171,11 @@ tiles containing the quarter positions (4x + 2c ± 1, 4y + 2r ± 1) (arithmetic 
 by 2, so floor). For c = 0 that is columns x−1 and x, for c = 1 column x twice, for
 c = 2 columns x and x+1; the same for rows. Each field of the sub-point's record is
 the **minimum over those four tiles** (`0x0059E3A0` for the two ints, `0x0059E400`
-for the two floats, each field separately). **CONFIRMED.**
+for the two floats, each field separately). **STRONGLY INFERRED.**
 
 Then for layer 0 only, `Lift(r, c) = −0.15 − 0.125 · sin(((2x + c) + (2y + r)) · 0.5)`
 (radians, x87 `FSIN`; constants 0.5 at `0x006706AC`, 0.125 at `0x006706F4`, −0.15 as a
-double at `0x006706F8`). **CONFIRMED.**
+double at `0x006706F8`). **STRONGLY INFERRED.**
 
 ## 5. Lean (`0x005A37F0`)
 
@@ -210,7 +210,7 @@ Q(1,1).y = (Q(2,1).y + Q(0,1).y + Q(1,2).y + Q(1,0).y)/4; its z stays 0.
 
 Only Q(r, c) for r, c ∈ {0, 1} (the tile's own four columns) are added to the
 offsets; the far row and column exist to feed the averages. Then the layer-0
-offsets get z += `Lift(r, c)`. **CONFIRMED** (constants 1.4 at `0x00670700`,
+offsets get z += `Lift(r, c)`. **STRONGLY INFERRED** (constants 1.4 at `0x00670700`,
 −0.5 at `0x00670704`, 0.25 at `0x006706E4`).
 
 The minimum over the four tiles is what makes the lean modest: at a Dirt Path/Rock
@@ -223,13 +223,13 @@ not the rock's 255) and the floor layer by 0. Against an unexplored tile the lea
 Per layer L and each own sub-point (r, c), r, c ∈ {0, 1}:
 
 - seed = (2x + c) + 16·L + 0x10000·(2y + r), a fresh local per call
-  (`0x005A3590` builds 48 of them, of which these 12 are read). **CONFIRMED.**
+  (`0x005A3590` builds 48 of them, of which these 12 are read). **STRONGLY INFERRED.**
 - With the game's draw `Random_Next` (`0x005558D0`: seed = seed·0x19660D +
   0x3C6EF35F, result rotr(seed, 13) mod n) on that one seed, in this order:
   dz = Vw ≠ 0 ? rand(Vw) : 0; dy = Hw ≠ 0 ? rand(Hw) − Hw/2 : 0;
   dx = Hw ≠ 0 ? rand(Hw) − Hw/2 : 0 (Hw/2 a signed integer halving; a zero
   range draws nothing). Offset += (dx, dy, dz) · 2⁻¹⁷ (`0x00670708`, the double
-  7.62939453125e-6). **CONFIRMED.**
+  7.62939453125e-6). **STRONGLY INFERRED.**
 - Corner (0,0) (NW, N, W, C, the same pairs as §5): A = Hw(0,0) · 2⁻¹⁷ / 2. If
   east ≠ west: if also north ≠ south, A = A · 1.4; x += A when west is open, else
   −A. If north ≠ south: y += A when north is open, else −A (using the possibly
@@ -255,11 +255,11 @@ X2 + 16 at layer 0, on the same row): a DK2 quirk to keep, not fix.
   bytes chained through `+0x14`, keyed by the dword x | y << 16 (`0x00571B00`).
   `+4` is a frame stamp, `+0x1C`/`+0x20` an LRU list (head `0x00760B6C`, tail
   `0x00764BD8`), `+0x18` flags, **`+0x3C` the 20-point block** (null until built),
-  `+0x40` the Tremor block (§8). **CONFIRMED.**
+  `+0x40` the Tremor block (§8). **STRONGLY INFERRED.**
 - `0x00760B10` is the frame counter, bumped once per frame by `0x00575700` (which
   also measures frames per second with `timeGetTime`). A stale stamp moves the entry
   to the LRU head; an entry no frame touched is freed after it is presented
-  (`0x00576010`, `classic-light-visibility.md` §4). **CONFIRMED.** (When the engine heap is full, its allocator `0x0057CEB0` retries
+  (`0x00576010`, `classic-light-visibility.md` §4). **STRONGLY INFERRED.** (When the engine heap is full, its allocator `0x0057CEB0` retries
   after calls to `0x005742F0`, unread, which may drop old entries; a dropped cell
   would be recomputed identically.)
 - `0x00571F00` fills the lattice for tile (x0, y0): for each of the 3×3 tiles it gets
@@ -267,7 +267,7 @@ X2 + 16 at layer 0, on the same row): a DK2 quirk to keep, not fix.
   `0x00575FA0`, which copies the 240 bytes into a fresh engine-heap block), records
   the block in the tile entry's table, and sets the window to (x0 − 1, y0 − 1).
   `0x005722A0` calls it before building the tile's meshes, which it does only when the
-  entry is dirty (`+0x18` bit `0x10`) or not yet built (bit 2). **CONFIRMED.**
+  entry is dirty (`+0x18` bit `0x10`) or not yet built (bit 2). **STRONGLY INFERRED.**
 - **Invalidation**, by commands forwarded to the sink's slots: slot `+0x28`
   (`0x00598800`) handles id 3 (the 3×3 around the tile: `0x00571E60(x−1, y−1, 3, 3)`),
   id 5 (one tile, `0x00571E00`) and id 6 (a rectangle, `0x00571E60`); slot `+0x24`
@@ -275,8 +275,8 @@ X2 + 16 at layer 0, on the same row): a DK2 quirk to keep, not fix.
   sets the dirty bit. The terrain setter `0x0044FC40` posts command 3 for the changed
   tile (`wall-torches.md` §6), so **digging or building re-derives the changed tile
   and its eight neighbours** — exactly the reach of the 3×3 inputs. The command
-  ids are **CONFIRMED** in the handlers; that the terrain setter's command 3 reaches
-  this sink is **STRONGLY INFERRED** (the bridge forwards every command to the next
+  ids are **STRONGLY INFERRED** in the handlers; that the terrain setter's command 3 reaches
+  this sink is **HYPOTHESIS** (the bridge forwards every command to the next
   sink's `+0x28`, `wall-torches.md` §6). Who posts 5, 6 and 0x67 (exploration?) is
   **UNKNOWN**.
 - `0x00571C50` flushes the whole cache (called from `0x00574310`).
@@ -291,7 +291,7 @@ with draws on a **running global seed** `0x00795854`, incremented per call: two
 ranges from rand(0x4000), then per point rand(b + 1)·2⁻¹⁷ in z and
 (rand(a) − a/2)·2⁻¹⁷ in x and y. It sets entry flag `0x40`; `0x00572060` then gathers
 the 3×3 Tremor blocks (identity from `0x0058EF80` where no Tremor) into a table at
-entry `+0x58`. **CONFIRMED** for the build; how the Tremor table is used in the draw
+entry `+0x58`. **STRONGLY INFERRED** for the build; how the Tremor table is used in the draw
 **UNKNOWN**. This is the only non-deterministic deformation, and it is transient.
 
 ## 9. Q72: deterministic, a pure function of the map
@@ -303,7 +303,7 @@ from the coordinates (§6); it reads no game random stream, no time and no frame
 counter. A wall dug out and rebuilt in the same surroundings comes back with the same
 bend. A neighbour's change does alter the tile (the 3×3 invalidation), and an
 unexplored neighbour differs from an explored one. Tremor adds a separate, random,
-transient wobble (§8). **CONFIRMED** (for the deterministic part).
+transient wobble (§8). **STRONGLY INFERRED** (for the deterministic part).
 
 For this project: a renderer can reproduce it from the map alone; the simulation
 needs no field, as Q72 required. It does need the explored bit, the navigation-solid

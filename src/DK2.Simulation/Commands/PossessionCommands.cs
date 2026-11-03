@@ -29,7 +29,7 @@ public sealed record ActPossessedCreatureCommand(PlayerId PlayerId, PossessionAi
 
 /// <summary>Action 38 (<c>0x00516E40</c>): the possessed creature's followers are let go. The
 /// input routine <c>0x0040FFB0</c> posts it (key binding 13, HYPOTHESIS); no packet decoder here builds it.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/possession-arms-and-inputs.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/possession-arms-and-inputs.md")]
 public sealed record DismissFollowersCommand(PlayerId PlayerId) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash) => base.HashInto(ref hash);
@@ -61,7 +61,7 @@ public sealed record HypnotiseCommand(PlayerId PlayerId, PossessionAim Aim) : Pl
 
 /// <summary>Command 39 (<c>0x005171D0</c>), sent by the input routine <c>0x0040FDF0</c> with the new
 /// value: SniperMode on or off.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/possession-arms-and-inputs.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/possession-arms-and-inputs.md")]
 public sealed record SetSniperModeCommand(PlayerId PlayerId, bool On) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)

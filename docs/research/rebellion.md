@@ -7,7 +7,7 @@ Source: `DKII.EXE` v1.70 (GOG). Job 16's handler `0x00475170`, state 271's
 handler `0x004750B0` and the angry chooser's first step `0x004784C0` were
 disassembled in full with Ghidra 11.0.1 on 2026-09-23, and the four `Rebel`
 globals were scanned for readers over the whole image. Confidence is
-**CONFIRMED** where a row cites an instruction and **STRONGLY INFERRED** where it
+**STRONGLY INFERRED** where a row cites an instruction and **HYPOTHESIS** where it
 names a routine from its callers; **UNKNOWN** is marked. Binary evidence, not a
 running-game observation (ADR-0046).
 
@@ -60,8 +60,8 @@ and 4 together — `RebelActive` **and** `RebelLeader` — and returns success.
 2. if that took, start creature **action 43** with a count of 1 (`0x004969D0`, the
    `PUSH 1` at `0x00475269`; a count below two clears the loop bit, so it plays one
    cycle). Record 43 (`creature-action-table.md`) has no handler, mode 3 and `+20` =
-   20, the `Idle1` animation block (that `+20` names the block is STRONGLY
-   INFERRED): the rebel stands through one idle cycle, and state 271 waits on it (§3);
+   20, the `Idle1` animation block (that `+20` names the block is
+   HYPOTHESIS): the rebel stands through one idle cycle, and state 271 waits on it (§3);
 3. `[controller+0xB7] := 0x00517490() + 30` — the game tick (`trigger-state.md`
    §6 settles the unit as ticks) plus **30**, so **7.5 game seconds** at
    variable 19 = 4;
@@ -103,7 +103,7 @@ When both hold, in this order:
 6. `0x0045A6D0(0)`, the may-I-look-for-a-fight gate, at `0x00475125`, with its
    result discarded (EAX is reloaded at `0x0047512A`). **It has no effect**: the
    gate writes only its own stack frame and its callees (`0x00473990`,
-   `0x00485210`, `0x004E0460`, `0x00478050`) only read. A dead call (CONFIRMED,
+   `0x00485210`, `0x004E0460`, `0x00478050`) only read. A dead call (STRONGLY INFERRED,
    whole body read 2026-10-04). Step 5's `0x0045A8B0` is a different function.
 7. `+0x3E6` bit 14 `Leaving` is cleared. It is not leaving any more.
 8. **The old keeper is told.** `0x004C4600` on `world+0x2E54` with type **19**,
@@ -112,12 +112,12 @@ When both hold, in this order:
    index the 100-record table at `0x006A0B00`. Type 19's row (`0x006A0BBE`) has
    flags `0x6032` (50 seconds, no variant list, so the variant selects nothing)
    and reference −10506: `Speech.str` **506, "Your creatures are rebelling!"**
-   (the row CONFIRMED; the id through the −(10000 + id) bias, STRONGLY INFERRED).
+   (the row STRONGLY INFERRED; the id through the −(10000 + id) bias, HYPOTHESIS).
 
 The handler returns 1 either way, so waiting and defecting look the same to the
 caller.
 
-**The countdown is not interrupted by the mood choosers** (Q410, CONFIRMED 2026-10-04). The angry
+**The countdown is not interrupted by the mood choosers** (Q410, STRONGLY INFERRED 2026-10-04). The angry
 chooser `0x004784C0` has one caller, `0x00477244`, in the mood prelude of `0x00476FC0`, and that
 prelude skips both choosers while `RebelActive` is set (`0x004771A7`). Job 16 sets the bit before
 it branches (`0x004751AF`), so a creature in 271 never re-draws a job and the deadline is never
@@ -139,7 +139,7 @@ busy test, `0x00477BDA`) until the defection.
   each through `0x00471890(&pos, 254, f)`: the alarm `0x00475660` and
   `Trap_Update` `0x004A84E0` refuse an Angry creature (`+0x28A` == 2) and state
   groups 3 and 7, while `Heart_Update` `0x004D9690` refuses group 3 only
-  (`0x004D9976`) — CONFIRMED. So the countdown state 271 (group 3) cannot be
+  (`0x004D9976`) — STRONGLY INFERRED. So the countdown state 271 (group 3) cannot be
   sent, but a rebel walking to its portal in §2's portal branch near its own heart
   plausibly can, and leaving 254 makes it an ordinary angry creature again (PLAUSIBLE:
   filters read, not observed). Why DK2 wants that is **UNKNOWN** (Q411); a cleanup
@@ -162,7 +162,7 @@ block found no other writer (2026-10-02). Its readers include these five (`BitRe
 | `0x00478D4F`, in the need-anger routine `0x00478D00` | returns before any need anger is charged |
 | `0x00477BDA`, in the needs busy test `0x00477B40` | reports busy: no eat, sleep or pay attempt |
 | `0x0048A36C`, inside the per-tick creature update `0x00488930` | the door contact: a rebel fights its own keeper's shut door (`door-blocking.md` §1). **STRONGLY INFERRED**, read whole 2026-10-02 |
-| `0x00491B18`, in the predicate `0x00491AE0` | one of six clauses: not following already (`+0x482`), not Horny, state group not 1, `+0x3CB` zero, not `RebelActive`, mood class `+0x28A` Happy. Its callers are the possession follower scan `0x00515D50` and the follow starter `0x00461980`, which clears `+0x482` first when re-starting the same follow, so that clause gates fresh follows. A rebel cannot become a possessed creature's follower (CONFIRMED clauses; the "may follow" name HYPOTHESIS) |
+| `0x00491B18`, in the predicate `0x00491AE0` | one of six clauses: not following already (`+0x482`), not Horny, state group not 1, `+0x3CB` zero, not `RebelActive`, mood class `+0x28A` Happy. Its callers are the possession follower scan `0x00515D50` and the follow starter `0x00461980`, which clears `+0x482` first when re-starting the same follow, so that clause gates fresh follows. A rebel cannot become a possessed creature's follower (STRONGLY INFERRED clauses; the "may follow" name HYPOTHESIS) |
 
 ## 5. The three outcome percentages are dead, and so is the follower cap
 

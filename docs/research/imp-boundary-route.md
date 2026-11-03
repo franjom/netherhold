@@ -23,7 +23,7 @@ points: `(1605632,3473408)`, `(1703936,3538944)`, `(1824000,3549696)`.
 The target preserves the full requested point; the last window point is
 quantized. The [body route record](functions/004D5100.md) identifies the fields.
 
-## Controlled modern reconstruction — CONFIRMED results
+## Controlled modern reconstruction — measured results
 
 A local copy of `DecisionCheck` loads tiles, marks, worker poses/task fields,
 the task list and gold objects from the actual entry image, without the old
@@ -81,7 +81,7 @@ its two unmatched triangles and the native four are confined to `(21..23,5..7)`.
 The native retains a point at `(22,6)` there. Their history remains unverified,
 and this residual does not prevent the exact three-point route match.
 
-## Frozen-world movement control — CONFIRMED computations
+## Frozen-world movement control — STRONGLY INFERRED computations
 
 The oracle executes [Body_Integrate](functions/004D5A40.md) repeatedly from the
 chooser-return memory image. The modern probe restores that body's limits,

@@ -7,7 +7,7 @@ namespace DK2.Data.Model;
 /// <summary>
 /// DK2's room type identifiers.
 ///
-/// Base list CONFIRMED from Flame `src/dk2/room_type.h` (derived from DKII.EXE
+/// Base list STRONGLY INFERRED from Flame `src/dk2/room_type.h` (derived from DKII.EXE
 /// v1.70). Flame left ids 2, 7, 18, 19, 20, 22 and 23 as `unk_N`; those names
 /// are filled in here from the reference install's own Rooms.kwd, where each
 /// record carries its name string. Verified by

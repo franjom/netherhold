@@ -27,7 +27,7 @@ The chain does not depend on the camera.
 - `+0xA7` is the count.
 - Room tile walks follow these links, sometimes after advancing to a random start. §7 lists them.
 
-## 2. Building: the action and its wave — CONFIRMED
+## 2. Building: the action and its wave — STRONGLY INFERRED
 
 **Action `0x2F` (build a room), `0x00512850`**, calls `0x004C6EF0(type, x1, y1, x2, y2)` on the
 player. The corners are the packet's words at `+4`, `+6`, `+8` and `+0xA`, passed signed and
@@ -108,7 +108,7 @@ re-finish. STRONGLY INFERRED: our build command ignoring `Availability` matches 
 simulation. HYPOTHESIS: the build menu is the gate; `0x00410990` also reads availability, into a
 state word, but who calls it is not traced.
 
-## 3. Adding a tile: join, create or merge — CONFIRMED
+## 3. Adding a tile: join, create or merge — STRONGLY INFERRED
 
 `buildRoom` calls `0x004ED1A0`, which calls `0x004ED320(x, y, type, owner, allowance)`.
 - **`0x00450840`** asks whether any orthogonal neighbour is a room of that type whose tile owner
@@ -135,7 +135,7 @@ state word, but who calls it is not traced.
 After every insert, `0x004ED1A0` runs the room's rebuild `0x004EDFC0`, which **recomputes the
 Prison door** (`jail-break.md` §1). The door can therefore move while a room grows.
 
-## 4. Selling a tile: the chain is replayed — CONFIRMED
+## 4. Selling a tile: the chain is replayed — STRONGLY INFERRED
 
 **Action `0x31`, `0x005128F0`**, calls `0x004C70A0(5, x1, y1, x2, y2)`. That queues a sell in
 three slots at `player+0xE97`, laid out as in §2.

@@ -108,8 +108,8 @@ only ever reading `build/converted`.
 
 ## Piece selection in DKII.EXE (Q71)
 
-Read 2026-10-05 in Ghidra. **CONFIRMED** for the dispatch below; which art slot
-is which piece is **STRONGLY INFERRED**.
+Read 2026-10-05 in Ghidra. **STRONGLY INFERRED** for the dispatch below; which art slot
+is which piece is **HYPOTHESIS**.
 
 - The terrain renderer `0x0043C310` asks `0x0043E320` for the tile's piece list
   and submits each entry through its render sink's vt`+0xF0` / vt`+0xF4`.

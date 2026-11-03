@@ -17,7 +17,7 @@ namespace DK2.Simulation.Systems;
 /// made there. Generous, it is −4: taken from that pile first and from the keeper's treasury for
 /// the rest, as far as the keeper has it. So a generous Casino costs its keeper a coin a second
 /// a gambler, and a stingy one leaves its takings beneath the lever for an imp to fetch.</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/state-category-hooks.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public sealed class CasinoSystem : IRoomTickStep
 {
     private const string SystemName = "Casino";

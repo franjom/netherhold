@@ -12,7 +12,7 @@ namespace DK2.Simulation;
 /// read from its stores and not from a file: 44 records carry one. Index 21 is excluded by the runner and has one
 /// (<c>0xDB</c>) the hover test skips. Ours has no action layer: each system that begins an action asks for the word of the
 /// index it mirrors (<see cref="CreatureActionSounds"/>). docs/research/sound-effects-continuous.md section 2.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/sound-effects-continuous.md#2-the-action-table")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-effects-continuous.md#2-the-action-table")]
 public static class CreatureActionTable
 {
     public const int Count = 81;

@@ -207,7 +207,7 @@ It takes one pile a tile and goes round the room's tile ring until the wage is m
 own keeper (`0x004539B0`, types 1 then 5). Otherwise it returns 0 and counts no attempt. The
 confirmation of ADR-0015 stands: the withdrawal is from tiles, never from a player counter.
 
-**`FUN_0048ae70(taken / 2)` puts half the wage in the creature's purse — CONFIRMED
+**`FUN_0048ae70(taken / 2)` puts half the wage in the creature's purse — STRONGLY INFERRED
 (2026-09-24).** Its receiver is the creature (`MOV ECX,[ESI+0x8]` at the call). It adds
 the argument to `creature+0x3FB`, the `GoldHeld` field DK2's own dumper names, then caps
 it at the definition's `MaxGoldHeld` (`+0x69C`), scaled at levels 2–10 by the stat row
@@ -229,7 +229,7 @@ No keeper's rooms or gold are tested here; the starter's own gates are in
 `job-selection.md`. **Built** (Q421, ADR-0189). The empty take, the missing room and nothing
 owed all return 0 as well.
 
-**`FUN_00486f80(4)` wipes the pay-anger bucket — CONFIRMED (2026-09-24).** Its
+**`FUN_00486f80(4)` wipes the pay-anger bucket — STRONGLY INFERRED (2026-09-24).** Its
 receiver is the same `int[8]` the anger wrapper `0x00478B80` hands the adder
 (`LEA ECX,[ESI+0x20]` in both). It adds the counter's own negation, so the
 counter becomes 0, clamps as the adder does and recomputes the maximum. The

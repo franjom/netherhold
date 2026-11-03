@@ -30,7 +30,7 @@ reads recorded in `gold-on-the-floor.md`.
 | Claim | Status |
 |---|---|
 | A room owns a terrain type, and `PlaceableOnLand/Water/Lava` decide the ground; `Buildable` decides what a player may build and sell | **CONFIRMED** — the flags partition the shipped rooms exactly as the game plays |
-| A treasury tile holds 3000; a dungeon-heart tile holds 1000 | **CONFIRMED** — two variables, named for those two rooms |
+| A treasury tile holds 3000; a dungeon-heart tile holds 1000 | **STRONGLY INFERRED** — two variables, named for those two rooms |
 | A keeper's gold is the sum of what their tiles hold | **STRONGLY INFERRED** — every limit DK2 sets on gold is per tile |
 | A room is built on land the player already owns | **STRONGLY INFERRED** — observed, and the tile carries no other candidate |
 | A new room tile must touch land the keeper already holds | **CONFIRMED (Q33), BUILT** — a bridge span must touch the builder's own floor (`RoomRules.CanBuild`, ADR-0304) |
@@ -39,7 +39,7 @@ reads recorded in `gold-on-the-floor.md`.
 | `RecommendedSizeX/Y` gates what a room *does*, not what may be built | **STRONGLY INFERRED, BUILT** (Q36, Q45, ADR-0027); the Prison contradicts it, Q179 |
 | Selling a room returns half its cost, per tile | **CONFIRMED, BUILT** (Q34, ADR-0029) |
 | Mined gold goes into the mining imp's hands, then a treasury or heart tile | **CONFIRMED** (Q31); the Imp's `maxGoldHeld` is 1400 |
-| Where an imp stops mining to unload | **CONFIRMED, BUILT** (Q50, ADR-0296) — at the hands test, 1400 less 340: four swings, 1090 gold at level 1 |
+| Where an imp stops mining to unload | **STRONGLY INFERRED, BUILT** (Q50, ADR-0296) — at the hands test, 1400 less 340: four swings, 1090 gold at level 1 |
 | A dungeon heart stores 16000, not 25000 | **CONFIRMED, BUILT** (Q52, ADR-0027) — 16 of its 25 tiles hold gold |
 | A pile on the floor is the fourth place gold sits | **STRONGLY INFERRED, BUILT** — object type 1; `gold-on-the-floor.md` |
 

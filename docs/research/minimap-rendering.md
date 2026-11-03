@@ -303,7 +303,7 @@ visible rings alone do not establish what gameplay events should create them.
 
 Read 2026-10-18: complete `0x0041B180`, the whole-map renderer's tail, screen
 unprojection and submission helpers, with assembly resolving implicit vector
-destinations and vertex arrays. Geometry below is **CONFIRMED**; material
+destinations and vertex arrays. Geometry below is **STRONGLY INFERRED**; material
 opacity and the active renderer's final clipping remain **UNKNOWN**.
 
 The whole-map renderer `0x0041ADA0` draws the map first, then the footprint

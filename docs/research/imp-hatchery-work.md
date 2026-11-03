@@ -34,7 +34,7 @@ modern `job_taken` events; native sub-turn retakes can be invisible.
 
 ## Measured work and distance
 
-**CONFIRMED measurements**, in Imp-turns unless stated otherwise:
+**Measurements** (the DK2 column CONFIRMED by native capture, the seed columns measured), in Imp-turns unless stated otherwise:
 
 | Measure | DK2 | Main seed 1 | Main seed 5 |
 |---|---:|---:|---:|
@@ -68,7 +68,7 @@ The known store-state collapse is documented in the earlier audit.
 
 ## A controlled claim-choice boundary
 
-**CONFIRMED observations:** seed 1's first cast claims `(30,54)` on turn 403,
+**Measured observations:** seed 1's first cast claims `(30,54)` on turn 403,
 versus native header 404. Seed 5 claims that tile on 358; its cast worker instead takes
 Claim at `(29,53)`, not a long initial reinforcement assignment. Thus early
 floor ownership remains seed-sensitive, while the old cast-to-reinforce
@@ -84,7 +84,7 @@ At native 405/modern 404, `(30,53)` is native neutral floor but modern owned
 floor; `(29,55)` has the inverse ownership. Modern worker 4 claimed
 `(30,53)` on 357; native first claims it on 415.
 
-**CONFIRMED counterfactual:** immediately before modern turn 405, replace
+**Measured counterfactual:** immediately before modern turn 405, replace
 only those two tiles' terrain, owner and health with their native header-406
 values: `(30,53)=(3,2,1)` and `(29,55)=(8,3,660)`. The chooser then takes
 `(30,53)`, one post-turn before native, without a chooser or RNG override. The trace
@@ -101,7 +101,7 @@ No mismatching priority rule is established at this boundary.
 
 ## Earlier floor opening and decision window
 
-**CONFIRMED observations:** the seed-1 worker-4 claim chain starts when its
+**Measured observations:** the seed-1 worker-4 claim chain starts when its
 gold-deposit walk enters `(28,54)` on turn 309. It interrupts that walk to
 claim, carrying 1090 gold, and owns the tile on 318. Native already owns it
 on 191. Native's worker 453 takes that claim from state 10 on header 172, not from
@@ -115,7 +115,7 @@ wall is still solid, and remains in state 12 through 187. The dig arrival
 and action histories already differ before the opening; these samples do
 not isolate a work-rate, idle-duration or RNG defect.
 
-**CONFIRMED counterfactual:** immediately before modern turn 176, set only
+**Measured counterfactual:** immediately before modern turn 176, set only
 worker 3's state to 10 and its action deadline to zero. Raw worker rows
 through 175 equal the baseline. It takes mining `(29,54)` on 176, loses
 that slot through stealing on 178, then chooses claim `(28,54)` on 179 and
@@ -133,7 +133,7 @@ boundary is in `ImpTaskSystem.Wander.cs:77` and `:90`.
 
 ### Opening-time input control
 
-**CONFIRMED counterfactual:** after modern turn 166, change only `(28,54)`
+**Measured counterfactual:** after modern turn 166, change only `(28,54)`
 to native's neutral-floor tuple: terrain 3, owner 2, health 1. Worker rows
 through 166 and all tile rows through 165 match the baseline. No chooser,
 worker timer or RNG override is applied. Later decisions can consume different
@@ -165,7 +165,7 @@ No campaign acceptance was run for this diagnostic intervention.
 
 ### Reservation and position controls
 
-**CONFIRMED counterfactuals:** run the original chooser on worker 453's
+**STRONGLY INFERRED counterfactuals:** run the original chooser on worker 453's
 captured execution-171 entry image, changing only the inputs below. Every call
 returns successfully, without function stubs or instruction patches.
 
@@ -233,7 +233,7 @@ run. Swapping only the gap in this arithmetic predicts native floor opening
 165 with gap three, and modern opening 174 with gap four; observed values
 are native header 166 and modern 173. This is an arithmetic control, not a simulation replay.
 
-**CONFIRMED simulation counterfactual:** for every modern state-14 worker
+**Measured simulation counterfactual:** for every modern state-14 worker
 in this 1100-turn replay, extend the timer after its first hit from three
 to four, without changing selection or arrival. `(28,54)` opens on 174,
 and ownership still arrives on 318. Reinforcement observations fall from
@@ -250,10 +250,10 @@ before the first job; the two runs do not share a matched RNG stream.
 
 ## Portal regression: a work-visibility boundary
 
-**CONFIRMED observations:** the four-turn dig candidate `f62b06f7` converts
+**Measured observations:** the four-turn dig candidate `f62b06f7` converts
 the first Portal at `(24,44)` on 953, versus main's 742 and native header 787.
 The native capture's tile owner changes from neutral to player 3 on 787;
-worker 453 takes the room claim on 757. Neither modern replay shares native RNG.
+worker 453 takes the room claim on 757 (CONFIRMED, native capture). Neither modern replay shares native RNG.
 
 Both modern workers 2 match in the recorded fields on 584: state 10,
 position `(77089,227275)`, last kind 2, target `(19,55)`, held gold 1400.
@@ -272,7 +272,7 @@ on 612. The unchanged precedence operates on different available work.
 A fresh [claim-handler read](functions/0046AB50.md) preserves the free-slot
 and strictly-nearer stealing gates; no rank defect is established here.
 
-**CONFIRMED counterfactual:** only on candidate turn 585, resolve all pending
+**Measured counterfactual:** only on candidate turn 585, resolve all pending
 work immediately after worker 3's update, before workers 2 and 1 choose.
 Worker 4 has already chosen by then. The probe invokes the original private
 worker update in its normal descending order; with the flush disabled, all

@@ -88,7 +88,7 @@ the members' mean position at `+0x06`/`+0x0A`/`+0x0E`, a member count at
   `MusicLevelTwoThreatThreshold`, Three or Four (variables 215 to 217). That
   slot (`0x00567BC0`) raises the sound manager's music level `+0x2C`, which its
   update `0x005674F0` (at `0x00567570`) turns into the music's intensity, 20 a
-  level: CONFIRMED 2026-10-27 (`music.md`).
+  level: STRONGLY INFERRED 2026-10-27 (`music.md`).
 - `0x00505500` takes a member out: it unlinks it, clears `+0x37A`, decrements
   the count and clears the record when it empties.
 - World slot `+0x2B8` (`0x00505250`) returns the next record holding a local

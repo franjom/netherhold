@@ -21,7 +21,7 @@ route finding, stealing or an actual captured world.
 Independently run the modern real handlers on a synthetic shipped-data fixture:
 one worker, reachable claimable floor, a marked dig and reinforceable walls.
 Only the last-kind/aim pair changes for the first six rows. No original-world
-state equivalence is claimed. Results are **CONFIRMED computations**.
+state equivalence is claimed. Results are **STRONGLY INFERRED computations**.
 
 | Situation | Native controlled precedence | Modern real-handler result |
 |---|---|---|

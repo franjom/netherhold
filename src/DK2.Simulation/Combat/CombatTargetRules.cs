@@ -113,7 +113,7 @@ public sealed class HeartSites
 /// a hurt creature in place of the fight (combat-fear.md §3), and the attack-spell survey that lets
 /// a caster engage at its spell's range (combat-spells.md §5, ADR-0167). Not built and named there:
 /// the thing-targeting survey and scans A and B.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-acquisition.md")]
 public static class CombatTargetRules
 {
     /// <summary>One tile squared in the scans' units: closer than this, a creature fights hand to hand.</summary>

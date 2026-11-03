@@ -11,12 +11,12 @@ consulted, never quoted (ADR-0046; plan §2.2.1).
 Original version: DK2 v1.70 (GOG)
 
 This is the table's home; `eating.md` §2.1 points here. Confidence:
-**CONFIRMED** for §1–§5, **UNKNOWN** for the items in §6.
+**STRONGLY INFERRED** for §1–§5, **UNKNOWN** for the items in §6.
 
 **A second, unrelated handler table** holds the melee attack: the 81-record
 creature **action** table at `0x006E4198` (`creature-action-table.md`).
 
-## 1. What it is — CONFIRMED
+## 1. What it is — STRONGLY INFERRED
 
 **281 records of 25 (`0x19`) bytes based at `0x006DA8B0`**, running to
 `0x006DC420` inclusive; the next global begins at `0x006DC424`, after three
@@ -30,18 +30,18 @@ between **`0x0047BBE3` and `0x004805E4`**. No function contains that run, which
 is why a caller search finds nothing, and why recovering it means walking the
 disassembly tracking register values rather than reading bytes out of a section.
 
-## 2. Record layout — CONFIRMED
+## 2. Record layout — STRONGLY INFERRED
 
 | Offset | Size | Field | Status |
 |---|---|---|---|
-| `+0x00` | 4 | **update handler** — the per-tick function | CONFIRMED |
-| `+0x04` | 4 | written and never read | CONFIRMED dead (Q184) |
-| `+0x08` | 4 | written and never read | CONFIRMED dead (Q184) |
-| `+0x0c` | 4 | written and never read | CONFIRMED dead (Q184) |
-| `+0x10` | 4 | state id, equal to the record index — **also never read** | CONFIRMED dead (Q184) |
-| `+0x14` | 2 | **`Text.str` string id** — the state's display label | CONFIRMED |
-| `+0x16` | 1 | **group tag**, compared for equality by `SetState` | CONFIRMED |
-| `+0x17` | 1 | **category**, index into the 32-entry table at `0x00699688` | CONFIRMED |
+| `+0x00` | 4 | **update handler** — the per-tick function | STRONGLY INFERRED |
+| `+0x04` | 4 | written and never read | STRONGLY INFERRED dead (Q184) |
+| `+0x08` | 4 | written and never read | STRONGLY INFERRED dead (Q184) |
+| `+0x0c` | 4 | written and never read | STRONGLY INFERRED dead (Q184) |
+| `+0x10` | 4 | state id, equal to the record index — **also never read** | STRONGLY INFERRED dead (Q184) |
+| `+0x14` | 2 | **`Text.str` string id** — the state's display label | STRONGLY INFERRED |
+| `+0x16` | 1 | **group tag**, compared for equality by `SetState` | STRONGLY INFERRED |
+| `+0x17` | 1 | **category**, index into the 32-entry table at `0x00699688` | STRONGLY INFERRED |
 | `+0x18` | 1 | flag byte | partly decoded (Q185) |
 
 **Four of those nine fields are dead** (Q184). A raw address scan of every slot
@@ -71,7 +71,7 @@ entries of a `0x40`-byte-per-entry table, and **`+0x17 == 2` means "utility
 state"** — the case that saves the caller's state and resumes through
 `UtilityNewState` (probe **Q174**; the protocol is `travel-states.md`).
 
-### 2.2 The transition rule, in the original's own order — CONFIRMED
+### 2.2 The transition rule, in the original's own order — STRONGLY INFERRED
 
 Read from `FUN_00476D30` on 2026-09-10. The routine takes the requested state id
 and reads the current one from the state object's `+0x10`. **Every test but the
@@ -110,7 +110,7 @@ that identity have one home, `state-categories.md`** (Q300).
 states are decided, 46,534 allowed and 32,146 refused (ADR-0195). The two state bytes alone
 settled 20,628 of them; the category records decide the rest.
 
-## 3. The labels — CONFIRMED
+## 3. The labels — STRONGLY INFERRED
 
 The `+0x14` word is a string id in the install's own `Text.str`, and it resolves
 to the text the game shows for what a creature is doing — **the "current

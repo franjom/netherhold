@@ -8,7 +8,7 @@ Light selection and invalidation remain in [classic-lighting.md section9](classi
 
 ## 1. Ordinary-view polygon boundary
 
-CONFIRMED call sequence: renderer frame setup `0x00575A00` stores the camera
+STRONGLY INFERRED call sequence: renderer frame setup `0x00575A00` stores the camera
 position, orientation, lens, viewport bounds and visibility distance in its
 working globals, then calls `0x00574820`. When renderer flag1 is clear, its
 returned polygon goes to `0x005735A0`; the alternate flag1 branch uses the
@@ -27,7 +27,7 @@ each submission: near(--), near(+-), near(-+), near(++), far(--), far(+-),
 far(-+), far(++), centre. Renderer flag8 is not established as camera record
 flag8; adapters must supply the actual renderer mode.
 
-CONFIRMED `0x00575220` intersects every unordered original point pair with
+STRONGLY INFERRED `0x00575220` intersects every unordered original point pair with
 each height plane (lower first, then upper), accepting only strict crossings.
 Intersections precede the original points; points outside the inclusive slab
 are removed. The initialization call at `0x00598443` passes lower=-9,
@@ -35,7 +35,7 @@ upper=0 to `0x00574310`; its two stores are the only instruction references
 that write the clipping globals. Native coordinates map to Unity as
 `(x,-z,-y)`, so the slab covers Unity heights0 through9.
 
-CONFIRMED `0x00575440` removes a point if a later point differs by less than
+STRONGLY INFERRED `0x00575440` removes a point if a later point differs by less than
 0.01 on both horizontal axes, ignoring height. `0x00575180` computes view-depth
 limits for projection setup; it does not change this point set.
 `0x005754D0` starts at the first minimum-Y point, repeatedly chooses the first
@@ -64,7 +64,7 @@ produces no targets. The maximum-Y row is excluded when the edge walkers
 reach the terminal level. The returned visible chain is linked through cache
 entry `+0x24`; each visited entry receives flag8 at `+0x18`.
 
-CONFIRMED `0x00571B00` clears flag8 when initializing a new cache entry, but
+STRONGLY INFERRED `0x00571B00` clears flag8 when initializing a new cache entry, but
 its existing-entry frame/LRU refresh does not clear flags. `0x00575700`
 increments the32-bit frame counter without a wrap correction or a visible-flag
 clear in its own body.
@@ -79,7 +79,7 @@ advance alone is not the reset operation.
 
 The exact per-target rectangle bounds and source preparation are documented
 in [classic-lighting.md section9](classic-lighting.md#9-per-tile-terrain-point-lights).
-CONFIRMED `0x005725D0` invokes the adjoining update for every integer
+STRONGLY INFERRED `0x005725D0` invokes the adjoining update for every integer
 coordinate in each inclusive rectangle, Y outer/X inner, without a local
 map-bound clamp. Its call domain is the union of those rectangles.
 

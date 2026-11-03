@@ -5,7 +5,7 @@ systems: [doors-traps]
 
 This note is the canonical evidence for placed doors and traps. Addresses refer
 to DKII.EXE v1.70. Binary findings are **STRONGLY INFERRED**; only corpus facts
-read from shipped data are **CONFIRMED**.
+read from shipped data are **STRONGLY INFERRED**.
 
 ## Result
 

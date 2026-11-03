@@ -31,7 +31,7 @@ callbacks receive (runtime `+0x67`). All draw through
 The Ally button shows only in game mode 3 (`0x0075AD4B`), and toggles menu42
 through [0x00425070](functions/00425070.md).
 
-## 2. Which messages get a tab (CONFIRMED)
+## 2. Which messages get a tab (STRONGLY INFERRED)
 
 [0x00423BD0](functions/00423BD0.md), called every frame by
 [Hud_UpdateControls](functions/00407260.md), walks the local player's messages in
@@ -52,7 +52,7 @@ Record `+0x2A`, previously "purpose UNKNOWN", holds two interface bits: `4`
 dismissed, `8` opened. They are written directly by the interface (no packet),
 and the queue save `0x004C43B0` keeps them with the record.
 
-## 3. Art, flash and slide-in (CONFIRMED arithmetic)
+## 3. Art, flash and slide-in (STRONGLY INFERRED arithmetic)
 
 The record's graphic `+0x13` (from type-table field `+6`; 0 is read as 1)
 selects a three-frame family from the GUI catalogue `0x006A7DF0`
@@ -120,7 +120,7 @@ regressions fail on old behavior; all nine tab tests and all 1,408 Release
 presentation tests pass; the Unity adapter compiles without warnings/errors.
 The owner's audible acceptance remains Q717.
 
-## 4. Hover text (CONFIRMED)
+## 4. Hover text (STRONGLY INFERRED)
 
 A hovered slot sets interface `+0x4658 = 5`, `+0x465C = slot`. The status
 formatter [0x0042D820](functions/0042D820.md) case 5 finds that message and
@@ -136,7 +136,7 @@ string `-10000 - id` (the formatter's table is probably Speech.str); otherwise
 the record's string id `+0x0F` resolves as: below -10000 Speech.str
 (`-10000 - id`), -128..-1 the level table (`-1 - id`), 1..9999 Text.str.
 
-## 5. Clicks (left/right STRONGLY INFERRED; bodies CONFIRMED)
+## 5. Clicks (left/right STRONGLY INFERRED; bodies STRONGLY INFERRED)
 
 Input channel 0xF0 reaches the hand's primary click and 0xF1 its secondary
 ([0x00406530](functions/00406530.md)); the widget manager sends 0xF0 to source
@@ -182,7 +182,7 @@ Dungeon Heart. Its click converts tile to world (`tile * 4096 + 2048`,
 (its own inset inside that box is unread).
 
 **Frame.** Menu40's draw callback (static record `+0x1E`) is
-[0x00417EA0](functions/00417EA0.md), shared by menus 36, 37, 51 and 52. CONFIRMED: it converts the
+[0x00417EA0](functions/00417EA0.md), shared by menus 36, 37, 51 and 52. STRONGLY INFERRED: it converts the
 menu rectangle to screen pixels, insets it by 10 pixels and calls
 [0x00411D00](functions/00411D00.md) with flags 8, which draws the nine
 `gui\windows\text_box-{tl,t,tr,l,m,r,bl,b,br}` pieces (catalogue 19..27, resource offsets
@@ -196,7 +196,7 @@ middle step draws that 16x16 piece stretched to 32. The owner's fitted box (x 10
 against about 9.6). The callback does not depend on the mode, so the Query uses the same frame;
 Query mode's own widgets are not read here.
 
-## 7. Review Objective (CONFIRMED)
+## 7. Review Objective (STRONGLY INFERRED)
 
 [0x004288C0](functions/004288C0.md) toggles menu33 (full screen, (0,180)
 2560x1280), unless Options is open. Opening saves and hides menu40; closing
@@ -242,7 +242,7 @@ At the owner's request (2026-10-25), popup messages select their bitmap font at
 scrolling. Measurement and rendering use the same font; objective text retains
 its existing size. This is a readability choice, not a native sizing claim.
 
-## 9. Indicator menus 45..50 (CONFIRMED; built in part)
+## 9. Indicator menus 45..50 (STRONGLY INFERRED; built in part)
 
 [0x00427BA0](functions/00427BA0.md) runs each frame. It tests six world values and shows a 128-tall
 menu for each that passes; the first shown sits at (20, 1332), and each next is placed right after the
@@ -284,21 +284,21 @@ packs in a row.
   `+0x686` bit 8) dies, credited to the player tagged in the victim's word `+0x36` (the last health-change
   source, stamped by `0x004B2CE0`), else to the owner of its first attacker (spell `+0x504[i]` before melee
   `+0x514[i]`, i = 0..7); a victim with `+0x3E6` bit `0x40` counts nothing
-  ([0x00487C70](functions/00487C70.md), CONFIRMED). No owner test: any keeper that kills a good
+  ([0x00487C70](functions/00487C70.md), STRONGLY INFERRED). No owner test: any keeper that kills a good
   creature counts it. At level end each player also counts the hero-owned creatures left dying whose `+0x36`
   names them ([0x004BE630](functions/004BE630.md)). In My Pet Dungeon mode each also adds
   MpdScoreHeroKilled to the score.
-- *Slaps Remaining* draws MaximumSlaps `+0x72B8` minus the player's NumberOfSlaps `+0xEE6`, 6 slots (CONFIRMED).
+- *Slaps Remaining* draws MaximumSlaps `+0x72B8` minus the player's NumberOfSlaps `+0xEE6`, 6 slots (STRONGLY INFERRED).
   Player action 50 sets `+0x72B8` to its dword `+4` (`0x004C8A25`). Nothing but the HUD, the world dumper
   and `0x0050F3D0` reads `+0x72B8`, so the hand never refuses a slap; running out only hides the box
   (the level's own triggers can test condition 71).
 - *Next Room* draws no background and no text: catalogue 263 `gui\icons\next_room`, then the GUI icon of
   room type `+0x72BC` (room definition `+0x00`, through [0x0050D0B0](functions/0050D0B0.md)), as 128x128
-  squares side by side (art CONFIRMED, placement STRONGLY INFERRED). Its only writer is action 47.
+  squares side by side (art STRONGLY INFERRED, placement STRONGLY INFERRED). Its only writer is action 47.
 - *Current Holder*: world action 46 (`0x00519755`) is the only caller of the setter
   [0x00509880](functions/00509880.md). Byte 00 zero clears the holder; otherwise the dword `+4` is a one-based
   tile (x low word, y high word) and the holder becomes that tile's owner (`+8 & 0xFFF`); a missing tile
-  fails the action. CONFIRMED.
+  fails the action. STRONGLY INFERRED.
 
 Built (ADR-0532): `PlayerState.HeroesDestroyed` credited in `CreatureHealthSystem.Die`/`CreditHeroKill`
 from `CreatureState.HealthSourcePlayerId` (`+0x36`, stamped at each health-change call site), `DeathUncounted`

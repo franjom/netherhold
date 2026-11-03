@@ -34,7 +34,7 @@ A separate completed poll of worker 455 on turn 165 is a negative control:
 the tile is already floor at entry, remains unchanged, and flags likewise
 gain stop bit 8. An action poll is not automatically another work hit.
 
-## Modern reconstruction — CONFIRMED results
+## Modern reconstruction — measured results
 
 The chooser fixture restores captured terrain/health/owners, marks and ordered
 task entries, worker poses, task sides/slots, hands, loose/stored gold, clock

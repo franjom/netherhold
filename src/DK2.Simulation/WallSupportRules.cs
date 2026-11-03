@@ -8,7 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>Releases walls which lost their supporting floor after hostile floor or room capture.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/wall-support-after-claim.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/wall-support-after-claim.md")]
 public static class WallSupportRules
 {
     private static readonly TilePos[] Orthogonal = [new(-1, 0), new(0, -1), new(1, 0), new(0, 1)];

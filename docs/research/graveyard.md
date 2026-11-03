@@ -11,7 +11,7 @@ Source(s):
 
 Original version: DK2 v1.70
 
-Confidence: **CONFIRMED (owner + data)** for §1's destination room, **CONFIRMED
+Confidence: **CONFIRMED (owner + data)** for §1's destination room, **STRONGLY INFERRED
 (binary)** for §2 except where a line says otherwise.
 
 Split from `creature-death.md` (§2.2, §2.5) on 2026-10-05; the vampire's own

@@ -39,7 +39,7 @@ functions above and the HUD reset `0x004033F0` (all-instruction search, 2026-10-
 
 Typed letters keep their hotkeys. `Cheat_BeginEntry` returns 0 on every path, so
 `Input_HandleGameKey` goes on to the key bindings (`0x00405829`); the `WM_CHAR` copy goes to
-the matcher separately. CONFIRMED (binary), and seen by the owner (§7). The remake's entry UI
+the matcher separately. STRONGLY INFERRED (binary), and seen by the owner (§7). The remake's entry UI
 departs from this: see ADR-0589.
 
 ## 3. The eight phrases

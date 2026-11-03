@@ -388,9 +388,9 @@ startup and holding only a vtable and a name; `Follow_Path`'s single virtual is
 bit 6; the navigation module's diagnostic strings quoted in §2 are present; the
 route entry's caller graph in §5.
 
-**CONFIRMED (negative):** no `.pt` or `.tr` file ships in the reference install.
+**STRONGLY INFERRED (negative):** no `.pt` or `.tr` file ships in the reference install.
 
-**CONFIRMED (binary + owner):** that a route is reduced to grid-free waypoints
+**STRONGLY INFERRED (binary + owner):** that a route is reduced to grid-free waypoints
 by a funnel over gates, and that routes run straight where the funnel needs no
 turn (§2.1, §3.1).
 

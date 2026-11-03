@@ -16,7 +16,7 @@ Saves are user-generated, not shipped assets, so nothing here is a
 redistribution question. Reading them still goes through the asset
 abstraction layer like everything else.
 
-## Shape of the file — CONFIRMED
+## Shape of the file — STRONGLY INFERRED
 
 | Region | Offset | Size | Contents |
 |---|---|---|---|

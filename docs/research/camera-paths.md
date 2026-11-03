@@ -4,7 +4,7 @@ systems: [camera-lighting, campaign-triggers]
 # Camera paths (`.KCS`) and their playback
 
 DKII.EXE v1.70, Ghidra primary reads and the shipped `Data/Paths.WAD`, 2026-10-17.
-The file format and the loader `0x0044CFB0` are **CONFIRMED** against all 80
+The file format and the loader `0x0044CFB0` are **STRONGLY INFERRED** against all 80
 shipped files. The playback in `Camera_Update` mode `0x12` and the render branch of
 `0x00598880` are read; their arithmetic is **STRONGLY INFERRED** from disassembly. The skip,
 action 38's letterbox switch and the subtitle drawing are read (§5-§7). The fog
@@ -160,7 +160,7 @@ any mode request that `0x0044A5D0` deferred into `+0xDB0/+0xDB4` during the path
 The ordinary camera's own position fields are never written during an in-game path,
 so the player's view returns to where it was before.
 
-`0x0044D320` is not a camera save. Its rects are CONFIRMED; that they make a letterbox
+`0x0044D320` is not a camera save. Its rects are STRONGLY INFERRED; that they make a letterbox
 is our reading of their values (HYPOTHESIS):
 - With argument 1 it raises a count `+0xE48`. It animates the viewport rect
   `+0xE62..+0xE6E` over 2000 ms (`+0xE4A` start, `+0xE4E` duration) to
@@ -260,7 +260,7 @@ draw resolve it through `0x00553A90`, which reads only the table `0x00553780`
 loaded at level start (`0x007415B4`; else an empty string). `0x00553780` takes a
 byte at `+0x64EC` of `Level_ApplyRuntimeConfiguration_LIKELY`'s source, INFERRED
 to be the KWD `TextTableId` (`LevelTextTableTests`, five levels). Its 60-entry
-table `0x006BC010` (CONFIRMED) maps 1-34 to resources 0x420-0x441 (`LEVEL1.str`
+table `0x006BC010` (STRONGLY INFERRED) maps 1-34 to resources 0x420-0x441 (`LEVEL1.str`
 ... `DEMO3.str`), 35-40 to 0x439 (`MYPETDUNGEON.str`), and the rest to nothing.
 Level 1's speech 3 is `LEVEL1.str` 2, *"Behold, your Dungeon Heart..."*; speech 2
 is 1, *"Here walks the goodly Lord Antonius..."*.

@@ -19,7 +19,7 @@ Presentation only; F8 runtime playback is built (ADR-0583), with Unity hearing a
 are presentation too (`binary-census.md` §3). Facts in our own words; no decompiler output
 (ADR-0046). Every name below is ours.
 
-Labels: **CONFIRMED** (read in the code or parsed from the data), **STRONGLY INFERRED**,
+Labels: **CONFIRMED** (the running game shows it: the owner's observation in play, the live capture), **STRONGLY INFERRED** (read in the code or parsed from the data),
 **HYPOTHESIS** (the lead's reading, consistent with what was checked, not re-read), **UNKNOWN**.
 
 ---
@@ -27,7 +27,7 @@ Labels: **CONFIRMED** (read in the code or parsed from the data), **STRONGLY INF
 ## 1. The sound manager and its music level
 
 The in-game sound manager is the object behind the pointer `0x0075B468` (vtable `0x0066F7FC`).
-Its music level `L` is the dword `+0x2C`. **CONFIRMED.**
+Its music level `L` is the dword `+0x2C`. **STRONGLY INFERRED.**
 
 | Slot | Function | Does |
 |---|---|---|
@@ -37,13 +37,13 @@ Its music level `L` is the dword `+0x2C`. **CONFIRMED.**
 
 `L` takes `0xFF` (silent) or `0x100`..`0x103` (music levels 1–4). The update maps it to the
 intensity **0, 20, 40, 60, 80** through a jump table at `0x005676FC` (`0xFF` and anything
-else → 0). **CONFIRMED.**
+else → 0). **STRONGLY INFERRED.**
 
 ## 2. Every request (the complete list)
 
 Every indirect call through slots `+0x4C` and `+0x50` in `.text` and `cseg`, with the object
 each is made on (`SlotCallCtx`, 25 instructions of context). These are the ones on the sound
-manager; the rest are other classes. **CONFIRMED** for the list. A call on a copy of the
+manager; the rest are other classes. **STRONGLY INFERRED** for the list. A call on a copy of the
 pointer held elsewhere could escape the scan; none was seen.
 
 | Request | Site | When |
@@ -58,13 +58,13 @@ pointer held elsewhere could escape the scan; none was seen.
 | set `0xFF` | `0x004D9EE0` in `DungeonHeart_Update` | the end of a Heart's opening sequence (elapsed `9 × tps`, `heart-intro.md` §1); no local-player test |
 | set `0xFF` | `0x00538504` in `0x005384F0` | the top of every front-end station frame, unconditionally |
 
-States are the executable's labels (`creature-state-table.md`). **CONFIRMED.**
+States are the executable's labels (`creature-state-table.md`). **STRONGLY INFERRED.**
 
 So level 1 is not a fight: it is a creature **setting out on a raid** — the raise comes when
 the route is found, as the walk starts, except tunnelling, a direct `SetState`. No raise tests
 the local player (163 always walks to player 3). On shipped data only StealGold parties and
 tunnellers reach these raises (§9, *When a raid raises level 1*). Fighting itself
-raises nothing below level 2. **CONFIRMED.** Bit `0x40` of player `+0x76` is printed as
+raises nothing below level 2. **STRONGLY INFERRED.** Bit `0x40` of player `+0x76` is printed as
 `GameWonSequenceActive` by the player dumper (`0x004BD5CD`, `SHR 6`) and set by the win
 sequence (`campaign-win-sequence.md`), so the end-sequence Reaper silences the music rather
 than raising it: **STRONGLY INFERRED** (that the Reaper belongs to the player the win sequence
@@ -73,7 +73,7 @@ marks was not read).
 ## 3. The update `0x005674F0`, in its order
 
 Called from the session loop right after the world frame (`0x00526B4E`, `GameSession_UpdateLoop`),
-so once per world frame. **CONFIRMED** (call site); the frame's rate is the session loop's.
+so once per world frame. **STRONGLY INFERRED** (call site); the frame's rate is the session loop's.
 
 1. If the music switch (`0x0075AD37`, settings object `0x0075AD0B` field `+0x2C`, written by
    `Settings_SetMusicSwitch` `0x00563A20`) is on:
@@ -81,10 +81,10 @@ so once per world frame. **CONFIRMED** (call site); the frame's rate is the sess
      `theme[track]` in the music category (`+0x3C`), `theme` at `0x006BDB70` = {341, 343, 344,
      345}, `track` the level's byte `+0x720D` with 0 read as 1;
    - otherwise set parameter 2 of the music instance to `intensity(L)` and update it;
-   - then **decay**: `L > 0x100` becomes `0x100`. **CONFIRMED.**
+   - then **decay**: `L > 0x100` becomes `0x100`. **STRONGLY INFERRED.**
 2. Ambience (`+0x34`): none yet → start group **341** (`0x155`); else set its parameter 2 to
    `intensity(L) + (q == 1 ? 20 : 0)`, `q` = `0x0075AD27`, settings field `+0x1C`, the one
-   **`SoundQuality`** writes (`0x005637E0`). **CONFIRMED** (offsets); its three menu labels are
+   **`SoundQuality`** writes (`0x005637E0`). **STRONGLY INFERRED** (offsets); its three menu labels are
    Text.str 1443 *Low*, 281 *Medium*, 1442 *High*; which one is value 1 is **UNKNOWN** (the lead
    orders them Low first).
 3. One-shot atmosphere: none → start group **746**; else update it. **HYPOTHESIS** (lead; the
@@ -99,7 +99,7 @@ Consequences:
   set which track byte: **UNKNOWN** (not read here).
 - With no raid, battle or Reaper, `L` is `0xFF` (after the Heart's opening) and the intensity 0;
   neither track's item 1 has a link at 0, so the music instance stays stopped and only the
-  ambience plays. **CONFIRMED** (code and data); `L`'s value before the Heart opens is unread.
+  ambience plays. **STRONGLY INFERRED** (code and data); `L`'s value before the Heart opens is unread.
 
 ## 4. The battle threat (`Battle_Update` `0x00505310`)
 
@@ -108,14 +108,14 @@ Per battle record, the members that are in category 22 (fighting), with neither 
 (world slot `+0x264` through the record's world pointer `+0x00`, `0x005053AB`) add
 `definition +0x698`, scaled above level 1 by the percentage at `[0x006E4154] + 0x105 + 2·level`
 over 100. Then raise `0x103` if the sum ≥ variable 217 (1500), else `0x102` if ≥ 216 (500), else
-`0x101` if ≥ 215 (100). **CONFIRMED** (read whole; `binary-census.md` §3). All eight records
+`0x101` if ≥ 215 (100). **STRONGLY INFERRED** (read whole; `binary-census.md` §3). All eight records
 are scored every turn, including those with no local creature (`battle-tab.md` §2), so a fight
 between two other players — heroes against a computer keeper — raises your music too. How a
 creature joins (5 tiles) and the HUD tab are in `battle-tab.md`.
 
 ## 5. The data (`SFX.map`, `BANK.map`)
 
-The layout parses all four background maps to their last byte. **CONFIRMED** (data).
+The layout parses all four background maps to their last byte. **STRONGLY INFERRED** (data).
 `BANK.map`: 16-byte id, two zero dwords, `count` at `0x18`, then per archive a length-prefixed
 name (`Global\Track_1_1` … `Global\Track_3_4`, 9 for music); a sound's bank is a 1-based index.
 `SFX.map`: header to `0x18`, `count`, then entries (24 bytes: group count, …), groups (20 bytes),
@@ -139,11 +139,11 @@ then per group its items (42 bytes) and per item its sounds (16 bytes) and links
 No music item has zero links. In track 3 the part-4 items (129–152) link to item **153** at
 0–19, and 153 has no link below 20: with the music silenced mid-part-4, one outro segment
 plays and the music stops. Repeated targets within one range weight the choice (track 3
-item 130 lists 131 twice at 80–100). **CONFIRMED** (data).
+item 130 lists 131 twice at 80–100). **STRONGLY INFERRED** (data).
 
 ### 5.1 Native group flag consumers (2026-10-29)
 
-**CONFIRMED:** group `+0x10` is a 16-bit flag word, and `+0x12` begins a
+**STRONGLY INFERRED:** group `+0x10` is a 16-bit flag word, and `+0x12` begins a
 separate parameter-id field. Id 2 is the intensity used by the music and
 ambience requests. See [instance init](functions/0060C9D0.md).
 The [factory](functions/0060DA70.md) dispatches on `0x04`, `0x10`, `0x02` and
@@ -165,27 +165,27 @@ read. The flags are not one undivided "player class" field.
 
 `pick(intensity)` on a playing instance (`+0x04` group, `+0x08` current item):
 
-1. No current item: take the group's first item (the entry point). **CONFIRMED.**
+1. No current item: take the group's first item (the entry point). **STRONGLY INFERRED.**
 2. The item has no links: current := none, return 0 (no stop flag). Inert for the shipped
-   music (§5). **CONFIRMED.**
+   music (§5). **STRONGLY INFERRED.**
 3. Count the links with `min ≤ intensity ≤ max`. None: write `0x7F` to the intensity slot
-   `+0x44`, set flag `+0x28 |= 0x100` (stopped), return 0. **CONFIRMED.**
+   `+0x44`, set flag `+0x28 |= 0x100` (stopped), return 0. **STRONGLY INFERRED.**
 4. Advance the sound LCG at `0x007A53B0` (`× 0x19660D + 0x3C6EF35F`), `k = rotr(seed, 13) mod n`,
-   take the `k`-th matching link in file order: uniform over matching links. **CONFIRMED.**
+   take the `k`-th matching link in file order: uniform over matching links. **STRONGLY INFERRED.**
 
 Start (slot `+0x3C`, `0x006165D0`) is the picker with the instance's own intensity `+0x44`; the
 constructor `0x0060C640` zeroes `+0x08`, so the first segment is a target of item 1's links.
-**CONFIRMED.** Resume (slot `+0x20`, `0x00616560`): while stopped and the intensity slot is
-no longer `0x7F`, clear the current item, pick, and queue the result. **CONFIRMED.** The
+**STRONGLY INFERRED.** Resume (slot `+0x20`, `0x00616560`): while stopped and the intensity slot is
+no longer `0x7F`, clear the current item, pick, and queue the result. **STRONGLY INFERRED.** The
 segment end (slot 0, `0x006164D0`) picks with the intensity in `+0x44` and queues the item's
-sound on the stream, so a level change is heard at the next segment boundary. **CONFIRMED**
+sound on the stream, so a level change is heard at the next segment boundary. **STRONGLY INFERRED**
 (read 2026-10-28; nothing is queued when the pick or the sound pick returns 0). The intensity reaches `+0x44` every frame: set-parameter
 `0x00608DE0` → `0x0060D990` → `0x0060C750` writes the value into each of slots `+0x44..+0x47`
 whose id byte `+0x40..+0x43` matches, and the instance init (`0x0060C9D0`) copies slot 0's id
 from the group's `+0x12` (2). The per-frame update `0x00608D50` → `0x0060D950` calls the
-instance's slot `+0x20`, the resume. **CONFIRMED** (2026-10-27, deep pass). The init's start
+instance's slot `+0x20`, the resume. **STRONGLY INFERRED** (2026-10-27, deep pass). The init's start
 pick stores item 1 as current even when nothing matches, so at intensity 0 the music instance
-exists, flagged stopped, and retries each frame (**CONFIRMED**). That it is silent is
+exists, flagged stopped, and retries each frame (**STRONGLY INFERRED**). That it is silent is
 **CONFIRMED** by the owner (no music before the first raise, §9 *Live capture*); how is unread:
 the init still picks item 1's sound into `+0x0C` (`0x0060CA43..9C`), and what keeps it off the
 stream remains unread. `0x0060C960` initializes flags, not playback
@@ -272,11 +272,11 @@ binary and data, read 2026-10-28:
   only things that lower it are the three sets to `0xFF` (§2) — the Heart's opening, the Horned
   Reaper while its player is in the win sequence, the front end — and the manager's own
   constructor and init (`0xFF`, the init also from `Display_InitializeMode`, below).
-  **CONFIRMED** (writers of `+0x2C`, and every call on the manager by slot).
+  **STRONGLY INFERRED** (writers of `+0x2C`, and every call on the manager by slot).
 - **The track.** At intensities 20, 40 and 60 every segment of both tracks has a link in range
   (parsed `musicSFX.map`), and from item 1 at 20 track 1 cycles through 52 segments and track 3
   through 87, with no blank entry reached (the one blank, `Track_1_2` #36, is unreachable).
-  **CONFIRMED** (data). The segment end (slot 0, `0x006164D0`, read by the 2026-10-28 reviewer)
+  **STRONGLY INFERRED** (data). The segment end (slot 0, `0x006164D0`, read by the 2026-10-28 reviewer)
   picks with `+0x44` and queues the chosen sound, so at level 1 the picker never runs dry and
   the music should not stop by itself: **STRONGLY INFERRED** (the stream playing one queued
   segment into the next is unread).
@@ -313,14 +313,14 @@ Read 2026-10-28 (literal-push scans of `SetState` `0x00476D30` and its wrappers 
 66 TRIGGERS files):
 - **One way into each state.** 163 only from job 13's arm (`0x00481FF4`), 179 only from job
   11's (`0x0045834B`), 183 only from job 12's (`0x00458697`); no route helper resumes in any of
-  them. **CONFIRMED** (a state restored from `+0xDF` was not enumerated, but `+0xDF` holds a resume).
+  them. **STRONGLY INFERRED** (a state restored from `+0xDF` was not enumerated, but `+0xDF` holds a resume).
 - **Which jobs ship.** Party, placed and action-15 objectives are only 13, 18, 19, 22 and 23.
   Job 11 is in two mood tables (Prince Tristran unhappy 10 %, Stone Knight angry 100 %), which
   heroes never run (ADR-0485), so 179 needs a keeper's converted hero; job 12 is in no table and
   is handed on only by a leader already in 184 (`0x00458CD3`), so **183 never runs on shipped
   data**. StealGold: placed heroes in Levels 3 (9), 5 (2), 6a (1), 14 (7), 20 (7) (26, Q275's
   placed count; party members' objectives not counted), and action 15 in Levels 3 and 8
-  (Level 3's Thieves on arrival, Q530). **CONFIRMED** (data).
+  (Level 3's Thieves on arrival, Q530). **STRONGLY INFERRED** (data).
 - **No proximity or fog gate.** The arms and handlers 163/179 hold no distance or visibility
   test, and the route is a whole-map query. 163 always walks to player 3's nearest Treasury and
   refuses player 3's own creatures (`0x00482027..2E`); arm 13 uses the job's player, else the
@@ -337,12 +337,12 @@ Read 2026-10-28 (literal-push scans of `SetState` `0x00476D30` and its wrappers 
   door — a hero leader that is a tunneller (definition `+0x686` bit 0, owner the hero player
   `[0x006F254C]`, in practice the Dwarf), or a leader with a tunneller party member (`+0x417`),
   gets `SetState(186)` and the raise at once, at set-out, whatever the target. With an open
-  route nothing tunnels; a converted hero does not self-tunnel. **CONFIRMED.**
+  route nothing tunnels; a converted hero does not self-tunnel. **STRONGLY INFERRED.**
 - **So.** A StealGold party raises level 1 at set-out against player 3; a KillPlayer hero (the
   most common objective: 1,068 placed heroes, Q275, and 370 of the 565 action-15 sets),
   KillCreatures or SendToActionPoint one raises
   it only if its route fails and it tunnels, also at set-out. Otherwise its music starts from
-  battle threat (§4), when blows land, which fits the owner's account. **CONFIRMED** in the code.
+  battle threat (§4), when blows land, which fits the owner's account. **STRONGLY INFERRED** in the code.
 
 ### Live capture, 2026-10-28 (Q666 answered)
 

@@ -30,7 +30,7 @@ shows. The effect engine itself (type-4 emission, element motion, the 50 ms view
 
 ## 1. How the simulation asks for an effect
 
-The world vtable `0x0066E3EC` has four effect slots (CONFIRMED):
+The world vtable `0x0066E3EC` has four effect slots (STRONGLY INFERRED):
 
 | slot | function | does |
 |---|---|---|
@@ -47,7 +47,7 @@ A gated request that fails is not retried. The simulation keeps a handle only fo
 and the light (§2). It writes into them (position, second point, carried velocity, Kill) and
 never reads them back. A shot's save record (`0x004AB090`, `0x004AB120`) streams `+0x124` and
 `+0x12D..+0x172`, so neither handle is saved. The view effects draw on the presentation seed
-`0x006D6450`, and the shot paths draw no random number (CONFIRMED).
+`0x006D6450`, and the shot paths draw no random number (STRONGLY INFERRED).
 
 ## 2. A shot's effects, event by event
 
@@ -61,7 +61,7 @@ never reads them back. A shot's save record (`0x004AB090`, `0x004AB120`) streams
 | thing struck (`0x004ABEDC..0x004ABEFE`) | `+0x67` hit-thing | `+0x38C` | shot position at collision | tied to a creature (below) |
 | health below 1 (`0x004AB515`) | `+0x5B` death | `+0x38C` | position after the move | no |
 
-**The trail** (CONFIRMED):
+**The trail** (STRONGLY INFERRED):
 - **Set up at shot creation.** The trail is made when the shot is made, before launch. It is
   tied to the shot's tag (effect `+0x133`, `+0x135` = 0) and gets `+0x145 = 0`, so **its HP
   never counts down**: it emits every update while the shot lives, whatever its authored HP
@@ -93,7 +93,7 @@ never reads them back. A shot's save record (`0x004AB090`, `0x004AB120`) streams
   trail 64 → 50) through the gated view slot `+0x90`. Shot `Flags` bit 6 would remove the
   trail at once through `+0x394`; no shipped shot has it.
 
-**Creation effect (CONFIRMED).**
+**Creation effect (STRONGLY INFERRED).**
 - With shot `Flags` bit 7 (`0x004AB1E0..0x004AB260`), the creation effect is given the same
   carried velocity: velocity × `0x006F2590` (variable 19) / **20**, and `+0x155` = 1.
   `+0x155` is a field of the effect, not the shot's max range.
@@ -102,7 +102,7 @@ never reads them back. A shot's save record (`0x004AB090`, `0x004AB120`) streams
 **Timed effect.** The id is tested before the division, so `TimedDelay` 251 with effect 0
 never divides. Only Raise Dead (shot 40) ships one: effect 286, every tick.
 
-**Hit-thing (CONFIRMED, `0x004ABEEF..0x004ABEFE`).**
+**Hit-thing (STRONGLY INFERRED, `0x004ABEEF..0x004ABEFE`).**
 - When the struck thing is a creature (class 0), the creature's tag is written into the
   **effect's** `+0x133`.
 - The existing creature attachment arm then carries the effect and its elements with the
@@ -164,16 +164,16 @@ These are the pieces that the shot effects exercise:
 
 | piece | behaviour | address | confidence |
 |---|---|---|---|
-| effect flag `0x40` | generated ids are **effects**, made through view `+0x94` (`0x0043895D`); without it, elements through `0x004352E0` (`0x00438DFA`, `0x00438FA9`). Shot users: 107 Inferno → 106, 153 Wind → 152/154/155, 245, 284 → 4, 362 Armour Hit → 361/363 | `0x004386F0` | CONFIRMED |
-| effect flag `0x100` | type4 adds carried velocity `+0x149` and the emitter's own velocity to each generated child; other generation/contact paths do not inherit it | `0x00438A58..0x00438A94` | CONFIRMED |
-| DirectionalSpread `+0x43` | nonzero: the element's velocity heading is its heading + `Random(8s) − 4s`, not uniform. ds 1 a jet along the launch heading (77, 148, 156, 158); ds 255 a fan (232, 234, 245) | `0x00435F20` (`0x0043609E..0x004360D5`) | CONFIRMED |
-| effect flag `0x400` | besides one random slot a pass, on the element path the element heading is the orientation offset alone, without the parent's (158 Haste). On the `0x40` path it is the reverse: with `0x400` the offset plus the parent heading (`0x00438A03`), without it the offset alone (`0x00438BBB`); effect 284 is the shipped case | `0x00438DE0` | CONFIRMED |
-| effect flag `0x1` | floor contact always raises its hit id; `0x1` also Kills. Wall collision always raises HitSolid through ungated `+0x94`; `0x1` makes movement fail. The effect caller stops at the old point without Kill, while the element caller removes the failed element | `0x00446C70`, `0x004476E0` | CONFIRMED |
+| effect flag `0x40` | generated ids are **effects**, made through view `+0x94` (`0x0043895D`); without it, elements through `0x004352E0` (`0x00438DFA`, `0x00438FA9`). Shot users: 107 Inferno → 106, 153 Wind → 152/154/155, 245, 284 → 4, 362 Armour Hit → 361/363 | `0x004386F0` | STRONGLY INFERRED |
+| effect flag `0x100` | type4 adds carried velocity `+0x149` and the emitter's own velocity to each generated child; other generation/contact paths do not inherit it | `0x00438A58..0x00438A94` | STRONGLY INFERRED |
+| DirectionalSpread `+0x43` | nonzero: the element's velocity heading is its heading + `Random(8s) − 4s`, not uniform. ds 1 a jet along the launch heading (77, 148, 156, 158); ds 255 a fan (232, 234, 245) | `0x00435F20` (`0x0043609E..0x004360D5`) | STRONGLY INFERRED |
+| effect flag `0x400` | besides one random slot a pass, on the element path the element heading is the orientation offset alone, without the parent's (158 Haste). On the `0x40` path it is the reverse: with `0x400` the offset plus the parent heading (`0x00438A03`), without it the offset alone (`0x00438BBB`); effect 284 is the shipped case | `0x00438DE0` | STRONGLY INFERRED |
+| effect flag `0x1` | floor contact always raises its hit id; `0x1` also Kills. Wall collision always raises HitSolid through ungated `+0x94`; `0x1` makes movement fail. The effect caller stops at the old point without Kill, while the element caller removes the failed element | `0x00446C70`, `0x004476E0` | STRONGLY INFERRED |
 | effect hit ids | floor: file HitWater (`+0xC6`, runtime `+0x81`) on terrain `0x100` (Lava), else file HitLava (`+0xC8`, runtime `+0x83`) on `0x80` (Water), else HitSolid; wall: HitSolid. Preserve this native swapped-field selection | `0x00446C70`, `0x004476E0`, `0x004358C0` | STRONGLY INFERRED (binary; terrain loader and registration checked) |
-| element hit ids | on the floor: the first nonzero of HitWater, HitLava, HitSolid, no terrain test; HitSolid on a wall | same | CONFIRMED |
-| element flag `0x40` | yaw := atan2 of the initial XY velocity, a mesh points along its flight (187 iceicle) | `0x00435F20` (`0x0043615F..0x00436190`) | CONFIRMED |
-| element NextEffectId | made every update before angles/motion, including expiry, through ungated `+0x94` (550 → 337) | `0x00436430` | CONFIRMED |
-| effect light | made once at init, moved with the effect plus the descriptor offset, released at teardown, so it outlasts emission; light flags `0x2`/`0x4` are not tested there | `0x00439880` | CONFIRMED for that path |
+| element hit ids | on the floor: the first nonzero of HitWater, HitLava, HitSolid, no terrain test; HitSolid on a wall | same | STRONGLY INFERRED |
+| element flag `0x40` | yaw := atan2 of the initial XY velocity, a mesh points along its flight (187 iceicle) | `0x00435F20` (`0x0043615F..0x00436190`) | STRONGLY INFERRED |
+| element NextEffectId | made every update before angles/motion, including expiry, through ungated `+0x94` (550 → 337) | `0x00436430` | STRONGLY INFERRED |
+| effect light | made once at init, moved with the effect plus the descriptor offset, released at teardown, so it outlasts emission; light flags `0x2`/`0x4` are not tested there | `0x00439880` | STRONGLY INFERRED for that path |
 | effect flags `0x80`, `0x200`; element flag `0x20`; effect Radius | no reader found among the decompiled functions' tests of the flags words (`0x004347E0`, `0x004376E0`, `0x004386F0`, `0x00439100`, `0x00440420`) and of `+0x6D` (only the loader `0x004358C0` and constructor `0x004357E0`); undefined functions were not scanned | | STRONGLY INFERRED inert |
 
 Generation, contact children and element NextEffect use ungated view `+0x94`; teardown
@@ -249,7 +249,7 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
   not the helper. The bridge generator +0x72 feeds `0x00449B00`. The setter
   suppresses offsets for flag 0x40/mode transitions. One process run posts one impulse
   even without a creature hit: 30 over the Inferno's life.
-- The mechanism is CONFIRMED; that it reads as a shake is STRONGLY INFERRED.
+- The mechanism is STRONGLY INFERRED; that it reads as a shake is HYPOTHESIS.
 
 **Burning creatures (STRONGLY INFERRED, `0x0048E4B7..0x0048E631`, re-read).**
 - `0x0048EBD0` stores ticks at `+0x469` and the burner at `+0x46B`. The Inferno sets 1 every

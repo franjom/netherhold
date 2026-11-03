@@ -8,7 +8,7 @@ systems: [computer-keeper]
 Independent audit, 2026-09-28, of `DKII.EXE` v1.70, MD5
 `2f3bbc21eae8c3aa468136baa303036d`, using Ghidra 12.1.4/PyGhidra in the
 read-only project. Addresses are virtual. Layout and shipped records are
-**CONFIRMED**; behavioural interpretations are **STRONGLY INFERRED** unless
+**STRONGLY INFERRED**; behavioural interpretations are **STRONGLY INFERRED** unless
 stated otherwise. No live message sequence was captured. The keeper's reactions
 are in `../KEEPER_AI.md` §5.3; this document owns their producers and lifetime.
 
@@ -96,7 +96,7 @@ type-0 row. Type 41 gives Treasury 420 seconds, Lair/Hatchery 180,
 Graveyard/Prison 600 and room types 6, 7, 9, 10, 12, 13, 15, 16 300. Type 42
 gives Treasury/Hatchery 240, Lair 90 and types 6, 7 and 9–16 300. Type 43
 gives Prison/Torture 360 and types 1–4, 6, 7, 9, 10 and 13–16 300. These bytes
-are **CONFIRMED** (re-read 2026-10-02). The record starts with timeout zero; a
+are **STRONGLY INFERRED** (re-read 2026-10-02). The record starts with timeout zero; a
 matching row sets subtype, string and lifetime. An unmatched type takes the
 terminator's string with timeout and subtype zero: 41 and 43 end in string 0, so
 the record is freed again after any eviction it caused; 42's terminator string
@@ -312,7 +312,7 @@ player for the request without bit 7.
   ask for a new room. The availability, set-bit and same-room tests then follow
   as for 41, storing the byte with bit 7.
 
-The untag failure branch is unreachable in 1.70, **CONFIRMED** statically: the
+The untag failure branch is unreachable in 1.70, **STRONGLY INFERRED** statically: the
 dispatcher returns the handler's result, and the startup constructor `0x00511A80`
 registers `0x005129E0` for id `0x29` in the `{id, handler}` list at `0x006A54B8`,
 which the world-init routine `0x005099A0` copies into the table (cleared at

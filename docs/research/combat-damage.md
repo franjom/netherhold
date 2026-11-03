@@ -207,7 +207,7 @@ their ceilings; the level scaling; the negation and its position; the bearing
 arithmetic and its `> 15` guard; the zero-damage early out; both player
 modifiers; the Monk bracket; the argument order into `FUN_004B2CE0`.
 
-**CONFIRMED (repo cross-reference):** `Possessed`, `InfluencedByPossessed`,
+**STRONGLY INFERRED (repo cross-reference):** `Possessed`, `InfluencedByPossessed`,
 `CombatPitFighter` and `CantBeResurrected`, from `creature-object.md`.
 
 **UNKNOWN:** the bearing bonus's purpose (Q325). `FUN_00490120` is read in

@@ -48,7 +48,7 @@ The health writes are those of `0x00452F60`, not the selector.
 
 ## Own-wall retry cycle
 
-Mechanism CONFIRMED, observable unverified. Whole state 22 (`0x00466390`)
+Mechanism STRONGLY INFERRED, observable unverified. Whole state 22 (`0x00466390`)
 rejects an own wall at its continuation test and reaches the tail at
 `0x004665DB`: it deletes a matching kind-6 entry, clears its held id and
 returns to 10. The pool wrapper `0x00508040` and remover `0x00507EF0` only

@@ -205,7 +205,7 @@ imp**, which is safe only because every taker kicks the holder first or right af
 own walk. The "waits if its stance is occupied" of `imp-state-exits.md` for 13, 21 and 25
 is wrong: `0x004B2AE0` turns the creature's facing (`+0xF4`) toward the point by at most
 its turn rate (`definition+0x6A0 & 0x7FF`) and returns the remaining angle; the states
-wait for the turn, never for another imp (STRONGLY INFERRED on the rate field, CONFIRMED
+wait for the turn, never for another imp (STRONGLY INFERRED on the rate field, STRONGLY INFERRED
 on the shape).
 
 **What stops a trade.** A steal needs the taker strictly nearer than the holder to one

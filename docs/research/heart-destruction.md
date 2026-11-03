@@ -3,7 +3,7 @@ systems: [rooms, campaign-triggers]
 ---
 # Dungeon Heart destruction
 
-## Native trigger (CONFIRMED, 2026-11-01)
+## Native trigger (STRONGLY INFERRED, 2026-11-01)
 
 The destruction visual is an object death effect, independent of the Heart room's
 opening and ruin clocks. `0x0049B1C0` enables object runtime `+0x146` bit 0.

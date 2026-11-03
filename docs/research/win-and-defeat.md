@@ -255,7 +255,7 @@ indexes another table: UNKNOWN which.
 ## 7. Alliances; what a defeat does
 
 **Alliances end games together, but only in skirmish and multiplayer** (Q359, read
-2026-10-26, CONFIRMED). The loops sit after the score block of `0x004BE630`, which returns
+2026-10-26, STRONGLY INFERRED). The loops sit after the score block of `0x004BE630`, which returns
 in modes 1 and 4 (campaign, My Pet Dungeon) and in any mode but 2 and 3 (`0x004BF32E`). All
 three walk the active player list from `world+0x7A` (next `+0x3A`, reverse activation
 order; the order is the PLAYERS records' in every mode, below), take only keepers (`Number >= 3`) and call two keepers *mutual allies* when each

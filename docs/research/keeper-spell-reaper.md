@@ -8,7 +8,7 @@ Ghidra clones. Raw output stays in `reverse-engineering/.cache/`.
 
 ## 1. Descriptor and creation
 
-**CONFIRMED.** `KeeperSpells.kwd` Summon Horny record1680: id5, location1,
+**STRONGLY INFERRED.** `KeeperSpells.kwd` Summon Horny record1680: id5, location1,
 target4, shot46, no bonus, data words0/0, mana100000, upkeep2000, cooldown0.
 OneShotReaper record4928 uses the same shot with data1=99, mana0 and upkeep125.
 Shot46 record10811 has process33, flags4, process flags128, health1,
@@ -39,7 +39,7 @@ level-up target-minus-one times; selected levels0/1 perform no grants.
 
 ## 2. Arrival and departure
 
-**CONFIRMED.** The state age is a dword at creature `+26A` (state object `+1C`).
+**STRONGLY INFERRED.** The state age is a dword at creature `+26A` (state object `+1C`).
 Accepted state changes reset it; the dispatcher increments it before the
 category hook and handler, after its suspend gate. It is distinct from `+2F5`.
 
@@ -67,7 +67,7 @@ handler turn28; a fresh departure alpha255 reaches zero at age31.
 
 ## 3. Resources and limits
 
-**CONFIRMED.** [004BB8A0](functions/004BB8A0.md) refuses another Summon Horny
+**STRONGLY INFERRED.** [004BB8A0](functions/004BB8A0.md) refuses another Summon Horny
 while any owned class0 creature has IsHorny, including arrival/departure.
 [004BFB80](functions/004BFB80.md) finds the first such owned creature.
 Normal upkeep and insufficient-mana departure require player status Playing,
@@ -84,7 +84,7 @@ and [004B2CE0](functions/004B2CE0.md). Normal creation assigns no expiry timer.
 OneShotReaper is excluded from these upkeep/dismissal paths despite its125 field.
 The campaign talisman count remains **UNKNOWN**, tracked only in Q447.
 
-**CONFIRMED.** A successful spell14 position cast sets player `+0x76` bit0x1000
+**STRONGLY INFERRED.** A successful spell14 position cast sets player `+0x76` bit0x1000
 after the shot, payment and clocks; its permission refuses that bit. Only spell5
 tests the owned-Reaper restriction, so a timed Reaper can coexist with a normal
 one. The first owned Reaper controls upkeep; a newer timed Reaper can therefore

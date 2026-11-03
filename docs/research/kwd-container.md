@@ -20,7 +20,7 @@ Evidence:
 
 Observed behaviour: each KWD file begins with a little-endian int32 record-type id.
 
-Confidence: CONFIRMED
+Confidence: STRONGLY INFERRED
 
 Implementation: `DK2.Data.Model.KwdRecordType` (18 ids), `DK2.Data.Kwd.KwdReader`
 
@@ -32,7 +32,7 @@ Open questions: Q70 (the CREATURES tail), Q221 (the dead-body payload).
 
 ## Update 2026-08-29 (parser implemented)
 
-Header layout CONFIRMED (`KwdReader`): 5 × u32 fixed header (sig, byteSize=4,
+Header layout STRONGLY INFERRED (`KwdReader`): 5 × u32 fixed header (sig, byteSize=4,
 chunkEndOffset, checkOne=sig+1, headerBlockSize), then headerBlockSize bytes of
 type-specific header (general: u32 itemCount, u32 unk, 2 × 10-byte timestamp),
 then u32 checkTwo (sig+2 or sig+3), u32 contentSize, then records. Chunks
@@ -48,7 +48,7 @@ an install-gated regression test asserts them.
 
 ## Writer header evidence
 
-CONFIRMED by a 2026-10-03 little-endian header dump of all 408 reference files
+STRONGLY INFERRED by a 2026-10-03 little-endian header dump of all 408 reference files
 (409 chunks). Every chunkEndOffset equals the complete chunk length, relative
 to that chunk's start. All 66 LEVEL chunks use checkTwo = sig+3; the other
 343 use sig+2. General headers are 28 bytes and their unknown u32 is always 1;
@@ -101,7 +101,7 @@ EFFECT_ELEMENTS, THINGS, TRIGGERS and LEVEL; for the rest the byte promise rests
 on the record image and the typed reader exposes gameplay fields only.
 
 MAP needs no per-record stride derivation: it is `width × height` tiles of 4
-bytes, CONFIRMED, and its `itemCount` is meaningless (ADR-0031 for what the
+bytes, STRONGLY INFERRED, and its `itemCount` is meaningless (ADR-0031 for what the
 third of those bytes does).
 
 ### VARIABLES is a tagged union in a fixed cell
@@ -192,7 +192,7 @@ further than theirs.
 These sources locate fields; only the install says whether the description is
 complete.
 
-Confidence: **CONFIRMED** (all twelve strides, the tagged-record shape, eleven of
+Confidence: **STRONGLY INFERRED** (all twelve strides, the tagged-record shape, eleven of
 twelve THINGS payload sizes) / **HYPOTHESIS** (dead-body payload 16, unobserved).
 
 Implementation: `DK2.Data.Kwd.KwdTaggedRecords`, `KwdThings`, `KwdTriggers`,

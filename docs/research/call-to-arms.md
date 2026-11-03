@@ -5,14 +5,14 @@ systems: [keeper-spells, creatures]
 
 **STRONGLY INFERRED**, DKII.EXE v1.70, read-only Ghidra 12.1.4/PyGhidra in Claude's
 project, 2026-09-29. No original run has been compared (Q483). Shipped record values
-are CONFIRMED from `KeeperSpells.kwd`, `Shots.kwd` and `Objects.kwd`. Implementation:
+are STRONGLY INFERRED from `KeeperSpells.kwd`, `Shots.kwd` and `Objects.kwd`. Implementation:
 `CallToArmsRules`, `CallToArmsSystem`, `KeeperSpellRules.CastAtPlace` (ADR-0279).
 
 ## 1. Claim audit
 
 | Claim | Source | Result | Status |
 |---|---|---|---|
-| Spell 3 record | `KeeperSpells.kwd` id 3 | cost 10000, upkeep 90, no cooldown, location selector 4, target selector 4, shot 5 with data1 10, bonus shot the same | CONFIRMED |
+| Spell 3 record | `KeeperSpells.kwd` id 3 | cost 10000, upkeep 90, no cooldown, location selector 4, target selector 4, shot 5 with data1 10, bonus shot the same | STRONGLY INFERRED |
 | Upgrade changes only the upkeep | `0x004C17A0`, `0x004C10E0`, variable 227 | `UpgradedCallToArmsCostPercentage` (70) scales the per-second upkeep; the cast cost is the record's | STRONGLY INFERRED |
 | Player cast path | action `0x36` (54) `0x005132D0` → `0x004BBD30` → `0x004BB8A0` | packet: spell id in the high word, position x/y in 4096ths; cost, cooldown, validators, shot, payment, both clocks | STRONGLY INFERRED |
 | Location 4 | `0x00517F10` | no ownership: refuses only the navigation grid's solid bit, and tile flag `0x2000` when cast flag bit 1 is set | STRONGLY INFERRED |

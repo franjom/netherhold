@@ -3,7 +3,7 @@ systems: [imps-tile-work, art-assets]
 ---
 # Terrain destruction debris
 
-## 1. Request and shipped definition — CONFIRMED
+## 1. Request and shipped definition — STRONGLY INFERRED
 
 Primary source: DKII.EXE `0x00452F60` and `0x004F66E0`, reread on
 2026-10-13, plus the installed Terrain/Effects/EffectElements KWD records.
@@ -23,7 +23,7 @@ Elements 7–10 use original Rock1–Rock4, art type 5; 542 is dust and 144 is
 rockchip. The meshes have 32–64 HP, upward speed 2048–16384, mass3276 and
 elasticity26214. Dig Gold similarly emits 60 particles, 48 of them meshes.
 
-## 2. Tumbling and contact — CONFIRMED
+## 2. Tumbling and contact — STRONGLY INFERRED
 
 Primary sources: `0x004386F0`, `0x00435F20`, `0x00436430`,
 `0x00446C70`, `0x00435E70`, `0x004468E0` and `0x004B3610`.
@@ -55,7 +55,7 @@ the same coordinate mapping as objects; interpolation is view-only.
 No original asset is copied into the repository. These requests and their
 presentation RNG are neither saved nor hashed; gameplay remains version240.
 
-## 4. Dust, progress and keeper color — CONFIRMED within the work chain
+## 4. Dust, progress and keeper color — STRONGLY INFERRED within the work chain
 
 Primary binary reread 2026-10-13: whole dig action `0x00496E00`, mine
 action `0x004971D0`, mining state `0x00465870`, action-point wrapper

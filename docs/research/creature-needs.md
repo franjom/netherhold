@@ -17,7 +17,7 @@ What a creature *has*, as opposed to where it is standing. Health, hunger, sleep
 collapse and death are all implemented; this note is the data behind them and
 the owner answers that pinned them.
 
-Confidence: **CONFIRMED (data)** for every table here; **CONFIRMED (owner)** for
+Confidence: **STRONGLY INFERRED (data)** for every table here; **CONFIRMED (owner)** for
 the behaviours in §7; **STRONGLY INFERRED** for the two items §3 marks.
 
 ## 2. The numbers, all from the creature record

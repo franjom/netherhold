@@ -338,7 +338,7 @@ or nothing. **Do:** same creature and target, blows to kill, possessed and not.
 
 ### Q325 — is there really a direction bonus?
 The swing adds up to **+51%** off the compass bearing between the two things,
-reading neither one's facing (arithmetic CONFIRMED). **Do:** attack along an
+reading neither one's facing (arithmetic STRONGLY INFERRED). **Do:** attack along an
 axis, then diagonally. **Means:** fewer blows one way → the reading holds; no
 difference → a gate was missed.
 

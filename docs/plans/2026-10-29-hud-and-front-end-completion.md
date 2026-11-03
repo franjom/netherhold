@@ -278,7 +278,7 @@ Owner decisions (2026-10-23): decoded in C# at load time, in memory, no cache, n
 - Create: `src/DK2.Data/Media/SoundBank.cs` — loads one SDT archive and decodes each entry on first use (lazy, cached in memory for the session)
 - Tests: `tests/DK2.Data.Tests/MpegAudioDecoderTests.cs`
 
-**Additional C1 regression contract:** retain the last complete MPEG frame. Before comparing decoded sample count with SDT `+32`, resolve Q677's units and trimming; padded frame totals are not that field. The TODO is in `tests/DK2.Convert.Tests/SdtArchiveTests.cs`; see [front-end-assets.md section5.1](../research/front-end-assets.md#51-sdt-container-confirmed-bytes-and-sdtarchive).
+**Additional C1 regression contract:** retain the last complete MPEG frame. Before comparing decoded sample count with SDT `+32`, resolve Q677's units and trimming; padded frame totals are not that field. The TODO is in `tests/DK2.Convert.Tests/SdtArchiveTests.cs`; see [front-end-assets.md section5.1](../research/front-end-assets.md#51-sdt-container-strongly-inferred-bytes-and-sdtarchive).
 
 **Step 1 — failing tests** (`[InstallFact]`; the first decodes a Layer I entry and checks sample rate, channel count and a duration computed from the frame headers in §5.1; the second a Layer II speech entry at 22,050 Hz mono; a third asserts no file is written under the install or the temp directory during decode).
 

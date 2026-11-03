@@ -16,13 +16,13 @@ public readonly record struct CreatureQuerySnapshot(CreatureQueryTarget Target,s
 {
     public static CreatureQuerySnapshot Empty => new(CreatureQueryTarget.None,"",default);
 }
-[Dk2Behavior(Confidence.Confirmed,"docs/research/minimap-controls.md")]
+[Dk2Behavior(Confidence.StronglyInferred,"docs/research/minimap-controls.md")]
 public static class ClassicCreatureQueryRules
 {
     public static Dk2Angle FollowHeading(Dk2Angle yaw) => new((ushort)(yaw.Value % 64));
 }
 
-[Dk2Behavior(Confidence.Confirmed,"docs/research/minimap-controls.md")]
+[Dk2Behavior(Confidence.StronglyInferred,"docs/research/minimap-controls.md")]
 public sealed class ClassicCreatureQuery
 {
     private readonly GameDatabase _database;

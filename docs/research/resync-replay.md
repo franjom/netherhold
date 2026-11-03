@@ -222,7 +222,7 @@ native 446=(98984,107176), 445=(105641,108449). The discounted Blocker scores ar
 | our attacker, native Guards | 17541 | 17467 | 445 |
 | native 440, our Guards | 8170 | 18853 | 10 |
 
-CONFIRMED in this probe (arithmetic): swapping the Guards' points flips the Troll choice, so the points
+Measured in this probe (arithmetic): swapping the Guards' points flips the Troll choice, so the points
 decide it; why ours stand elsewhere (RNG or timing) is not established; the Flanker crowd counts favor
 that engaged Guard, using both arrays and the existing per-creature sweep. Approach meets the door
 and forces its target at 5282/5284/5288 (ours 21/45+16/19); the Guard choice already differs before
@@ -235,7 +235,7 @@ now+12; state 4 (`0x00477680`) holds the action before testing that deadline. Na
 (start stamp 5276) remains through 5303; 446's (5274) through 5301, explaining their long state-4 stays.
 Their north walks are 87 -> 6 resuming 1 at 5307/5308 and 5305/5306: idle wandering, not KillPlayer success.
 Ours omitted the wait action. ADR-0566 adds its start and hold using existing ActionUntilTick timing.
-Control flow is CONFIRMED; fresh-install timing is STRONGLY INFERRED, retaining the existing
+Control flow is measured; fresh-install timing is STRONGLY INFERRED, retaining the existing
 phase/alternate-draw limits of [the timer surrogate](animation-clock.md).
 
 One post-fix run, `resync-guard/run3790-h323-wait-action-codex`: the two Trolls first choose 11 at

@@ -17,7 +17,7 @@ namespace DK2.Simulation.Systems;
 /// <para>The tail then runs the fallen keeper's consequences every turn (<see cref="DefeatRules"/>,
 /// DK2's <c>0x004DAA10</c>). Each verdict goes through <see cref="VerdictRules.End"/>, which in
 /// skirmish and multiplayer carries it to allies (Q359).</para></summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/win-and-defeat.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/win-and-defeat.md")]
 public sealed class DungeonHeartSystem : ISimulationSystem
 {
     private readonly bool _frames;
@@ -101,7 +101,7 @@ public sealed class DungeonHeartSystem : ISimulationSystem
 /// <c>Heart_OnDestroyed</c> draws (<c>0x004DA560</c>, from the thing pass) are not in ours, and the message post at
 /// <c>0x004D9AFD</c> (0x27 at half health, 0x28 at a tenth) has no counterpart. <see cref="DungeonHeartSystem"/> runs it itself
 /// when it runs without a room walk.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/win-and-defeat.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/win-and-defeat.md")]
 public sealed class HeartFrameStep : IRoomTickStep
 {
     private const string SystemName = "dungeon heart";

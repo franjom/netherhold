@@ -75,7 +75,7 @@ the adapter probe checks hidden/input-blocked navigation and restored zoom.
 
 ## Normal GUI toggle producers
 
-**CONFIRMED subset:** key dispatcher `0x00405010` binding `0x26` toggles
+**STRONGLY INFERRED subset:** key dispatcher `0x00405010` binding `0x26` toggles
 interface `+0xF5`. In the ordinary dungeon arm, hiding expands the view to
 virtual `(0,0,2560,1920)` through view slot `+0x34`; restoration uses the normal
 viewport fields and graphics-mode offsets. The possession-like arm also
@@ -120,7 +120,7 @@ implements that purpose without copying the raw numeric field.
 
 ## Result and special-player state (binary, 2026-10-24)
 
-**CONFIRMED direct store contracts:** player flag `+0x76 & 0x80000` is set
+**STRONGLY INFERRED direct store contracts:** player flag `+0x76 & 0x80000` is set
 by `0x004C0120` only when continuing old Status 1 (conquered). This store is
 not multiplayer-only: the routine also serves campaign action 134 through
 `0x00512950`. A second caller, `0x00428230` (reviewer, 2026-10-24), is a widget
@@ -157,7 +157,7 @@ The direct result updater `0x004039A0` establishes these campaign rules:
 - A separate Status-2/game-mode-4 arm restores these fields, forces letterbox
   action `0x74` value 2 and shows menu51. Mode 4 is outside the campaign gate.
 
-`ClassicHudControls.UpdateResult` implements the FD/F5 subset (CONFIRMED against
+`ClassicHudControls.UpdateResult` implements the FD/F5 subset (STRONGLY INFERRED against
 `0x004039A0`'s stores) and is tested, but **Unity does not feed it**. The key
 dispatcher `0x00405010` tests Status and FD before the Options (0x18) and GUI (0x26)
 bindings, so DK2 also refuses Options and G after a result; its way out is Space/Esc
@@ -169,7 +169,7 @@ HashVersion bump was made. The special post-conquest view is likewise unbuilt.
 
 ## Scripted GUI restoration and nested letterboxes
 
-**CONFIRMED setters:** interface `+0x34` is `0x00402B70` (F5=1), and `+0x38`
+**STRONGLY INFERRED setters:** interface `+0x34` is `0x00402B70` (F5=1), and `+0x38`
 is `0x00402B80` (F5=0). Action 38 calls hide on enable and show on disable,
 independently of its counted letterbox request. The non-mode-3 celebration
 `0x004BF9E0` also calls hide. The script's show sets F5=1 unconditionally; it

@@ -11,7 +11,7 @@ systems: [rooms]
   103 `0x00472AC0`, 104 `0x00472D30`, 105 `0x00472E90`, 106 `0x00473010`, 107 `0x004730E0`.
   101–106 are category 12 (Temple); 107 is category 0.
 
-## 1. How each is entered — CONFIRMED
+## 1. How each is entered — STRONGLY INFERRED
 
 A scan of every call to `SetState` (`0x00476D30`), `0x0048AD30`, `0x00491830` and the two walks
 (`0x00471890`, `0x00471A70`) for the constants `0x65`–`0x6B`:
@@ -34,7 +34,7 @@ The other hits of `0x68` and `0x69` are option pushes before walks to other stat
 `+0x19`/`+0x1D` give the Temple 101 (`portals-room-handler-table.md`), and no `+0xDF` store does
 (`travel-states.md` §2.4). Not covered, as for Q415: a computed call and a state restored from a save.
 
-## 3. 101, the way in `0x00472930` — CONFIRMED
+## 3. 101, the way in `0x00472930` — STRONGLY INFERRED
 
 At `Age` 1 the creature stops (`0x0048ECE0`). On a Temple tile (`0x00453A20(13)`):
 - if the floor height at its position is 0 (`0x004545C0`, which answers 0 for any Temple tile
@@ -46,7 +46,7 @@ At `Age` 1 the creature stops (`0x0048ECE0`). On a Temple tile (`0x00453A20(13)`
 
 Off a Temple, or on another keeper's, it returns 0.
 
-## 4. 103, the spot `0x00472AC0` — CONFIRMED
+## 4. 103, the spot `0x00472AC0` — STRONGLY INFERRED
 
 1. `n` is 8 when its tile is a floor slot (`0x00454110`), else 4.
 2. If another creature stands on its tile (the tile's thing list, kind 0, not itself), the
@@ -67,7 +67,7 @@ Off a Temple, or on another keeper's, it returns 0.
 7. A walk refused: `SetState(1)`, then the Temple finder `0x004F1A20` and a walk to the Temple it
    names resuming 101 (`0x00471A70`); 1 if that walk is taken, else 0.
 
-## 5. 104 and 105, the prayer — CONFIRMED
+## 5. 104 and 105, the prayer — STRONGLY INFERRED
 
 **104** (`0x00472D30`):
 1. Another creature on its tile: `SetState(103)`; taken, return 1.
@@ -98,7 +98,7 @@ Goblin, Vampire, Wizard, Elven Archer, Thief and King Reginald, −1675 the Trol
 −1249 the Monk, −843 the Rogue, 0 for the rest: the prayer's animation ends that far ahead of
 where it began. Vector 2 is 257's get-up step (`hand-drop-landing.md` §3).
 
-## 6. 106, the summoned creature — CONFIRMED
+## 6. 106, the summoned creature — STRONGLY INFERRED
 
 `0x004F1780`'s creature reward (case 1) creates the creature at the offering, raises it to the
 offering's level, and kicks it to 106 (`0x0048AD30`). The kick enters the Temple category, whose
@@ -109,7 +109,7 @@ record (`+0x19` → `+0x423`, presentation), then the room point `0x004E8430` (a
 among the room's tiles in chain order that are neither a floor nor a wall slot) and a walk there
 resuming 1. It returns 1 when the walk is taken, otherwise 0; any later turn returns 0.
 
-## 7. 107, a Temple that changed — CONFIRMED
+## 7. 107, a Temple that changed — STRONGLY INFERRED
 
 `0x004F15D0` kicks every place-holder of the room to 107 until its list is empty. It is the
 Temple's room-type slot `+0x05` (the room is freed, `0x004E39C0`), `+0x09` (its tiles changed,
@@ -153,7 +153,7 @@ releases each place as it goes, which is what empties the list.
   centre.
 - Not modelled, all presentation: the effect, `+0xF6`. The sounds are built ([sound-effects.md section 12](sound-effects.md#12-rooms-creature-states)).
 
-## 9. Where a walk to a room ends `0x004E4C10` — CONFIRMED
+## 9. Where a walk to a room ends `0x004E4C10` — STRONGLY INFERRED
 
 Ours walked every job to its room's centre tile, which in a Temple is the pool, so a worshipper
 walked into it and 101 met the pool (§3). DK2's room walk `0x00471A70` (travel-states.md §2.2)

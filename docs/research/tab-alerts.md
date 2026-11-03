@@ -7,11 +7,11 @@ Sources: DKII.EXE v1.70 through pyghidra-mcp, 2026-10-23 (claude); the shipped
 `*Triggers.kld` corpus through `dk2tools kwd triggers <file> 214 9`. Function verdicts
 live in their records; this page states the contract the presentation layer must meet.
 
-## 1. There is one alert, and only a level script raises it — CONFIRMED
+## 1. There is one alert, and only a level script raises it — STRONGLY INFERRED
 
 Every flashing bottom-panel tab, panel item and HUD icon reads the same **global
 FlashButton descriptor** at world `+0x7291` (layout and lifetime:
-[hud-resources.md](hud-resources.md#scripted-resource-flashing--confirmed)). Its only
+[hud-resources.md](hud-resources.md#scripted-resource-flashing--strongly-inferred)). Its only
 setter, [0x00510260](functions/00510260.md), has exactly one caller, trigger action 9 in
 [0x00518AD0](functions/00518AD0.md) (`0x005191C5`). The clear
 [0x00509710](functions/00509710.md) is reached only through world vtable slot `+0x300`.
@@ -66,7 +66,7 @@ Spells or Workshop tab directly (FB/FA/F9): those arms are inert in the corpus, 
 tabs flash only as the route to a flashed item. Most durations are 0 (until used or
 cleared); My Pet Dungeon uses 3-5 s.
 
-## 2. How a flash is drawn — CONFIRMED (blend mode STRONGLY INFERRED)
+## 2. How a flash is drawn — STRONGLY INFERRED (blend mode HYPOTHESIS)
 
 Shared by the tab (0x00412260) and the slot (0x00412FC0):
 
@@ -110,7 +110,7 @@ Shared by the tab (0x00412260) and the slot (0x00412FC0):
 The generic icon button (0x004129E0, category 0 with a widget `+0x74` match) only applies
 the odd-phase `0x323232` tint: it has no sparkles and no sound.
 
-## 3. Tab locking: Shift-click pins one panel beside the current one — CONFIRMED
+## 3. Tab locking: Shift-click pins one panel beside the current one — STRONGLY INFERRED
 
 Read whole 2026-10-23: the tab click [0x00416C20](functions/00416C20.md), the modifier mask
 [0x005B2A50](functions/005B2A50.md), the relayout [0x00416FD0](functions/00416FD0.md), the

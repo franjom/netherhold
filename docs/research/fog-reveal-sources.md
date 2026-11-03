@@ -19,8 +19,7 @@ the save reader never saw it because its grid starts 8 bytes late (§2). The bit
 writes the other bit.
 
 Everything below comes from reading the binary and is **STRONGLY INFERRED**,
-unless it says **CONFIRMED**. Those facts were measured from the owner's saves
-or the shipped data.
+unless it says **CONFIRMED**. Those facts were measured from the owner's game-written saves.
 
 ## 1. The two bits
 
@@ -205,7 +204,7 @@ Skipped when the level comes from a save (world `+0x7239` bit `0x40`).
   flag byte `+0x32` has bit `0x10`, the level start explores the point's
   inclusive rectangle through `0x00454B80` (`action-points.md`'s bit-4 reader
   `0x0050C083`). It then posts one rectangle notification. **85 of the 1,152
-  shipped points carry the bit, in 30 levels — CONFIRMED** from the corpus.
+  shipped points carry the bit, in 30 levels — STRONGLY INFERRED** from the corpus.
   Those include campaign levels 2, 5, 7, 9, 15a, 15b and 18, the four Secret
   levels and all seven `mpd`. OpenKeeper's format enum names the editor bit
   `REVEAL_THROUGH_FOG_OF_WAR` (a format fact).

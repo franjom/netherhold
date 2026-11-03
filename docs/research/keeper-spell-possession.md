@@ -8,7 +8,7 @@ shipped KeeperSpells, Shots, Creatures and LEVEL records. Function records
 hold each read's scope and dated history. Stage7a implements the creature
 lifecycle, modifiers and upkeep; Stage7b the possessed actions 25 and 26.
 
-## Cast and target — CONFIRMED
+## Cast and target — STRONGLY INFERRED
 
 Keeper spell2 supplies shot32 for both research levels, cost500, upkeep25,
 cooldown0, location5 and target6. Shot32 uses process26, flags6,
@@ -30,7 +30,7 @@ cast payment and clocks. Process24, 0x004AEE50, is an owner-changing callback
 and is not the possession handler. The chicken arm calls 0x004AF000 and
 0x0049D080; its object control and presentation remain unbuilt.
 
-## Entry, exit and update — CONFIRMED
+## Entry, exit and update — STRONGLY INFERRED
 
 0x0048DEA0 sets creature+0x3E6 bit7. Entry leaves state, job, claim and
 current action intact; it resets follower count+0x488 and influence
@@ -70,7 +70,7 @@ influence flags. Exit clears the whole owner's list. Sight uses
 ordinary doors block, barricades do not. See combat-acquisition.md and
 door-blocking.md for the shared walker.
 
-## Modifiers — CONFIRMED
+## Modifiers — STRONGLY INFERRED
 
 0x005099A0 initializes32 first-person stat words to100. Variable224's
 0x0051DC70 stores the low16 bits at global+0x313+2*StatId, ignores Level and
@@ -105,7 +105,7 @@ the simulation mirrors that boundary when composing its status cap.
 The getter's supplementary primary read is recorded at
 [0x0048D000](functions/0048D000.md).
 
-## Upkeep — CONFIRMED, built (Q58)
+## Upkeep — STRONGLY INFERRED, built (Q58)
 
 0x004C17A0 charges a live possessed creature only while global0x006F2957
 bit0 is set. There is no camera, local-player or actual-owner equality gate
@@ -149,7 +149,7 @@ stat, so the signed product only reaches the clamp below 1 through a zero row.
 
 ## Regeneration and implementation boundary
 
-CONFIRMED: 0x00488930's own-land regeneration block has no possession or
+STRONGLY INFERRED: 0x00488930's own-land regeneration block has no possession or
 combat exclusion; it excludes dying and compares tile owner with actual
 owner. The loader converts shipped67 to unsigned16 per creature update.
 Positive health changes through0x004B2CE0 do not take possession's damage
@@ -174,7 +174,7 @@ Read 2026-10-04 from Codex's quarantine captures, re-checked with pyghidra-mcp:
 listings of 0x005146B0 and 0x00514830–0x005153CC, bytes at 0x006BC3B0 and the
 object jump table at 0x005153D0, and whole reads of the helpers named below.
 
-**Action25 movement, 0x005146B0 — CONFIRMED.** The packet holds X (+0), Y (+4),
+**Action25 movement, 0x005146B0 — STRONGLY INFERRED.** The packet holds X (+0), Y (+4),
 a packed word (+8) and the player tag (+0x10); player+0x134 is the possessed
 thing, and zero does nothing. A nonzero packed word sets the position to X, Y and
 its low 16 bits (unsigned) as Z, and the heading +0xF4 to its high 16 bits masked
@@ -186,7 +186,7 @@ setter 0x004B5020 stores a layer-2 thing raw. Otherwise it raises Z to the floor
 height from 0x004545C0 (kept at +0x26). Above 0x3000 it sets Z to 0x2000, not
 0x3000; exactly 0x3000 stays.
 
-**Action26 packet, 0x00514830 — CONFIRMED.** Dword0 has X in bits 0–19 and yaw in
+**Action26 packet, 0x00514830 — STRONGLY INFERRED.** Dword0 has X in bits 0–19 and yaw in
 bits 20–30. Dword1 has Y in bits 0–19 and pitch in bits 20–30. Dword2 has Z in
 bits 0–13, an 11-bit angle at 14 that no arm here reads, melee at bit 27 and the
 slot in bits 28–31 (arithmetic shift). The aim vector, shared by every arm, is
@@ -196,7 +196,7 @@ shift. The horizontal part is not scaled by pitch. Normalising to 4096 sums the
 32-bit squares shifted 12, takes Math_Isqrt of 16 times the sum, shifts it right
 4 and divides each component times 16 by that, truncating; zero length skips it.
 
-**Melee, bit 27 set — CONFIRMED.** (1) Gate 0x0048C9B0 or nothing. (2) Stamp
+**Melee, bit 27 set — STRONGLY INFERRED.** (1) Gate 0x0048C9B0 or nothing. (2) Stamp
 +0x427 = now **before** searching. (3) World +0x334, 0x00515420. Around the pose's
 tile it visits (0,−1), (1,−1), (1,0), (1,1), (0,1), (−1,1), (−1,0), (−1,−1), then
 the own tile (0,0) last. On each tile it walks the layer-0 chain (cell word 0 via
@@ -224,7 +224,7 @@ possession-arms-and-inputs.md §4). A refused start keeps the first stamp. The
 blow is action 17's swing 0x00498E30 into 0x00494D00. No target and def+0x686 bit
 0 runs the dig/claim arm (possession-arms-and-inputs.md §3), not built.
 
-The pick predicate 0x00516050 — CONFIRMED. Equal owners branch at 0x00516065.
+The pick predicate 0x00516050 — STRONGLY INFERRED. Equal owners branch at 0x00516065.
 Same owner: objects only, within reach 0x005162E0, typed through 0x005162A0:
 gold 1–3 while carried gold +0x3FB is strictly below the level-scaled def+0x69C,
 or types 9, 14, 15, 16, 46, 64; every other type is refused. Another owner:
@@ -234,7 +234,7 @@ bit 4; creatures not dying (+0x3E6 bit 21, vtable +0x28); any other class.
 Reach uses the creature's heading +0xF4, not the aim: within 0x80 (no wrap),
 and horizontal distance² ≤ 1.2 × the summed vtable +0x3C sizes.
 
-**Spell, bit 27 clear — CONFIRMED.** Slot 3 is the follower arm, not a spell.
+**Spell, bit 27 clear — STRONGLY INFERRED.** Slot 3 is the follower arm, not a spell.
 0x00515D50 scores friendly creatures within 7 tiles as below. Below variable 223
 (MaximumGroupNumberOfFollowers, 8), a successful 0x00461980 counts +0x488. It
 never stamps (unbuilt). Other slots: refused by 0x0048C800 (strict, so equality
@@ -250,7 +250,7 @@ spell Range +0x31 plus SniperMode (+0x3E6 bit 31) is nonzero, else 0. Shot type
 30 without a target starts nothing. Every path past the record lookup, refused
 starts included, then stamps +0x41B + 4·(slot & 0xFF) = now.
 
-**Spell target scan 0x00515520 — CONFIRMED.** The best score starts at variable 187
+**Spell target scan 0x00515520 — STRONGLY INFERRED.** The best score starts at variable 187
 FirstPersonAccuracyAngleDegrees (0x006F296E, 45) × 2048 / 360 = 256 and is replaced
 on a signed strictly lower score = 4096 − dot(normalised(thing − pose), aim).
 Players come in list order (world +0x7A, next +0x3A). One qualifies by
@@ -265,14 +265,14 @@ construction) or the cell's byte +0xB bit 0 is set. Traps skip +0x10C & 0x30,
 creatures dying ones (bit 21 or the death query). The caster is not excluded. The
 threshold is unsigned (variable × 0x800) / 360.
 
-**Free-aim launch, 0x004984D0 — CONFIRMED.** Possessed, the shot has no wind-up
+**Free-aim launch, 0x004984D0 — STRONGLY INFERRED.** Possessed, the shot has no wind-up
 and no horizontal muzzle offset. Z adds the slot entry's +0xE. 0x004B7CD0
 spawns spell +0x44 at heading +0xF4. The data words are ShotData1/2, and +0x151 is
 the possessed flag. +0x165 is set under SniperMode, which doubles contact damage in
 0x004AC420. Range goes to +0x155, the start to +0x159. 0x004AB830/0x004AB8A0 aim
 and launch at the action's point.
 
-**Tile chain order — CONFIRMED.** When a thing not on layer 2 changes tile,
+**Tile chain order — STRONGLY INFERRED.** When a thing not on layer 2 changes tile,
 0x004B5020 unlinks it (prev +0xA, next +0xC) and pushes it on the **head** of the
 new tile's chain for its layer +0x16. One chain mixes creatures, objects, traps and
 doors, so melee meets the latest arrival first across classes. Because 0x00516670

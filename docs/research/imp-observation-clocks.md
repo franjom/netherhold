@@ -5,7 +5,7 @@ systems: [imps-tile-work, tooling-process]
 
 ## Calibrated observations
 
-**CONFIRMED (2026-10-18):** the raw Level4 capture header and modern post-turn
+**Measured (2026-10-18):** the raw Level4 capture header and modern post-turn
 label agree at both recorded Create Imp births:
 
 | Packet turn | Native worker / first active capture header | Modern worker / post-turn birth |

@@ -12,7 +12,7 @@ Original version: DK2 v1.70 (GOG)
 Presentation only: nothing here changes a rule. It decides how the asset
 pipeline (`src/DK2.Convert`) turns an animated KMF into a clip.
 
-## 1. The key byte is a key-frame time — CONFIRMED
+## 1. The key byte is a key-frame time — STRONGLY INFERRED
 
 Each `GEOM` entry is a packed position followed by one byte. The engine's
 vertex evaluator `0x0057E5B0` takes a float frame `f` and its integer part `i`:
@@ -31,7 +31,7 @@ entry is exact, and the engine **interpolates linearly** between consecutive
 key entries. A file need store only key poses. The byte does not change the
 playback rate.
 
-## 2. The frame is continuous — CONFIRMED
+## 2. The frame is continuous — STRONGLY INFERRED
 
 The mesh drawer `0x00577F10` reads the instance's float time at `+0x44`,
 clamps it to [0, 1] (or wraps it into [0, 1] when the mesh's loop flag, mesh

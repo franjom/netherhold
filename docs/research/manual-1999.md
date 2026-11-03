@@ -108,7 +108,7 @@ number that quantifies it on the right. **Nothing here is implemented** — it i
 the research that has to precede implementing it, and the "what a room does"
 question in `RESEARCH_STATUS.md`.
 
-Confidence convention: the *purpose* statements are CONFIRMED by the manual (EA
+Confidence convention: the *purpose* statements are STRONGLY INFERRED by the manual (EA
 describing its own game). The *pairings* with variables are STRONGLY INFERRED —
 the variable names say what they modify and the manual says what the room does,
 and in several cases the two contain the same number, but nobody has watched the

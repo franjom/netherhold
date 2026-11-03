@@ -95,7 +95,7 @@ the inner's (outer N edge 3, inner N edge 0).
 
 **Hero Gate Final, selector 9.** Table `0x0066DCC8`, (dx + 3·dy), dy 0..5: columns dx 0 and 2 are
 (2,0) and (2,2) for dy 0..4; the middle is (0,0) at dy 0 and (1,0) at dy 1..4; row 5 is 0xF0, (8,0),
-0xF0. **Hero Gate 3×1, selector 13** (CONFIRMED, §7): o = room `+0x9B` (8 = none, nothing
+0xF0. **Hero Gate 3×1, selector 13** (STRONGLY INFERRED, §7): o = room `+0x9B` (8 = none, nothing
 written). Along x for o = 0 and 2, along y for 1 and 3, with "gate" = a tile of type 0x17 and this
 owner: o = 0 or 1, the tile two back is gate → k = 3, else one back → 4, else 5; o = 2 or 3 the
 reverse (two back → 5, one back → 4, else 3). This settles `wall-pieces.md` §3: the face piece
@@ -256,7 +256,7 @@ surface is WaterSOLID / Lava0SOLID (`+0x160`); **on**, water uses "Water" (`+0x3
 cache holds Water0..31, WaterSOLID0..31, Lava0 and Lava0SOLID: water animates over 32 frames (its
 frame rate is UNKNOWN), lava does not. The Temple uses the room's "Water" (`+0xA6` as type 1).
 
-**Geometry** (CONFIRMED in the three drawers; render command `0x005873A0`). Per tile a 3 × 3
+**Geometry** (STRONGLY INFERRED in the three drawers; render command `0x005873A0`). Per tile a 3 × 3
 vertex grid (2 × 2 cells; n = 2 samples per tile, set by `0x00447AF3`) from (x, y) to
 (x + 1, y + 1), heights and normals per vertex, alpha argument 0.7. Heights are in tile units with
 up = −z, so −0.9 is 0.1 tile below the floor (DK2 z 0xE66) (STRONGLY INFERRED: the beds hang

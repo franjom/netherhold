@@ -8,7 +8,7 @@ using DK2.Data.Media;
 namespace DK2.Presentation;
 
 /// <summary>The sound system's own LCG; never uses the simulation's RNG.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/sound-playback.md#category-and-sample-selection")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-playback.md#category-and-sample-selection")]
 public sealed class SoundRand(uint seed)
 {
     private uint _state = seed;
@@ -19,7 +19,7 @@ public sealed class SoundRand(uint seed)
     }
 }
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/sound-playback.md#category-and-sample-selection")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-playback.md#category-and-sample-selection")]
 public sealed class SoundResolver(BankMap banks, SfxMap map)
 {
     /// <summary>Whether the group repeats on its own: bit <c>0x08</c> of its flag word (group <c>+0x10</c>) makes the instance flags 6, and flag 4 gives the

@@ -288,7 +288,7 @@ including the acquirer's withdraw; §4 in order with the nearest-attacker rule,
 the stand-off, head-count and Scout alarm entry (ADR-0425); §5's lair/Heart/room
 destinations and the run, with failure/fallback differences below;
 `Running` as the body's speed cap (the definition's `RunSpeed`, `def+0x5B8` through
-`0x004887D0` mode 1, with no level term; CONFIRMED, ADR-0518). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
+`0x004887D0` mode 1, with no level term; STRONGLY INFERRED, ADR-0518). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
 202, entered from 199 when not already in the combat group; both hold those ids since
 ADR-0208. The arrival's turn ends in 202, which idles on the next turn, and a creature a
 combat handler leaves in state 1 runs 1's handler the turn after (ADR-0580).
@@ -341,7 +341,7 @@ two balance variables, the escape test's direction, the run-speed comparison's
 direction, the dead overwrite in §5 step 5, the dispatcher's idle on a zero
 return, §6.
 
-**CONFIRMED (binary, 2026-09-26):** (1, 1) as a heartless player's heart position.
+**STRONGLY INFERRED (binary, 2026-09-26):** (1, 1) as a heartless player's heart position.
 
 **STRONGLY INFERRED:** `+0x12` clear meaning a live thing. The run speed is the
 definition's, unscaled by level (ADR-0518).

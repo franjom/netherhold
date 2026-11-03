@@ -22,7 +22,7 @@ After the world render, 0x0043C14F-0x0043C1EB restores the saved fields, so only
 
 [Draw_FlashOverride](functions/0059D4B0.md) hands the material to the mesh draw as an overlay, with flag 0x200 (0x600 in the door/trap mode). Period 0 means there is no pulse. This is not selection kind 3: the tile outline's red channel is a different path.
 
-Who gets the tint is the Hand's hover id, which Hand_UpdateHoverTarget 0x0040C290 publishes per class for the viewer: a creature the viewer may pick up, an own pickable or slappable object or loose gold on own land, any door, a trap on an own or neutral tile (CONFIRMED). So a rival's, neutral or hero creature is never tinted. The owner (2026-10-23, play): own creatures, doors and traps and gold are tinted, never a rival's or a neutral one; both mesh draws skip the pass on additive and alpha-blended materials unless the draw flags hold 0x400 (only a Fear Trap or Hero Portcullis), so a creature's translucent parts stay untinted: CONFIRMED by binary and owner (2026-10-23, correcting the owner's earlier answer); see [gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §2. The adapter tints by that rule (`HoverTint`) only in Hand mode off the HUD, a gate DK2's code here does not show. That the overlay on an animated mesh is the same two-pass additive draw as on terrain is STRONGLY INFERRED.
+Who gets the tint is the Hand's hover id, which Hand_UpdateHoverTarget 0x0040C290 publishes per class for the viewer: a creature the viewer may pick up, an own pickable or slappable object or loose gold on own land, any door, a trap on an own or neutral tile (STRONGLY INFERRED). So a rival's, neutral or hero creature is never tinted. The owner (2026-10-23, play): own creatures, doors and traps and gold are tinted, never a rival's or a neutral one; both mesh draws skip the pass on additive and alpha-blended materials unless the draw flags hold 0x400 (only a Fear Trap or Hero Portcullis), so a creature's translucent parts stay untinted: CONFIRMED by binary and owner (2026-10-23, correcting the owner's earlier answer); see [gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §2. The adapter tints by that rule (`HoverTint`) only in Hand mode off the HUD, a gate DK2's code here does not show. That the overlay on an animated mesh is the same two-pass additive draw as on terrain is STRONGLY INFERRED.
 
 ## 2. Status flower
 
@@ -40,7 +40,7 @@ The assets are in `GUI\moods\` (EngineTextures; loader [00596850](functions/0059
 | Imprison, Objective, Objective-2, S-Gem | status icons |
 | a "Dollar" mesh | the casino winner |
 
-### Draw path (CONFIRMED)
+### Draw path (STRONGLY INFERRED)
 
 1. [RenderSink_DrawThing](functions/00599C10.md) draws the body through 0x0059B880 unconditionally, then calls [Render_DrawThingOverlay](functions/005953D0.md).
 2. The overlay returns at once unless the thing's slot `+0x5C` is true. For creatures that is [0048E830](functions/0048E830.md), the flower-visibility predicate.
@@ -51,7 +51,7 @@ The assets are in `GUI\moods\` (EngineTextures; loader [00596850](functions/0059
    - the ring ([005958F0](functions/005958F0.md), then 0x00596EB0);
    - the creature centre (0x005961A0).
 
-**Size, anchor, blend (size CONFIRMED; anchor and blend inferred; read 2026-10-23).** Every mood icon is loaded as a type-2 sprite
+**Size, anchor, blend (size STRONGLY INFERRED; anchor and blend inferred; read 2026-10-23).** Every mood icon is loaded as a type-2 sprite
 with descriptor size 0x1000, or 0x2000 for Imprison and both Objectives, on an `A_` material
 ([00596850](functions/00596850.md); only its kind-2 argument is read, so that the material is
 `A_` is inferred): SRCALPHA/INVSRCALPHA, depth-tested, no depth write, texture
@@ -65,12 +65,12 @@ the centre and Imprison tag ([005961A0](functions/005961A0.md)) and the Objectiv
 ([00596770](functions/00596770.md)) all draw through one RenderInfo (flower object `+0x3D`) at one
 position (`+0x25`/`+0x31`); only the descriptor at `+0xED` changes. The descriptor
 ([00596850](functions/00596850.md)) holds a size, a type and a material, no origin, hotspot or
-UV rectangle (CONFIRMED). The sprite path ([0059C360](functions/0059C360.md)) offsets the quad by
+UV rectangle (STRONGLY INFERRED). The sprite path ([0059C360](functions/0059C360.md)) offsets the quad by
 RenderInfo `+0x57`/`+0x59`, and the half-height move needs art flag 0x40, which no mood art has; no
 store to `+0x57`/`+0x59` (`+0x94`/`+0x96` of the flower object) exists in the flower code
 (StoreAt over the binary), so they stay at their initial value, probably 0. The quad
 ([0057F3D0](functions/0057F3D0.md)) is ±w/2 by ±h/2 about those offsets with UVs (0,0), (1,0),
-(1,1), (0,1): the whole texture, no sub-rectangle (CONFIRMED). The level badge's fan
+(1,1), (0,1): the whole texture, no sub-rectangle (STRONGLY INFERRED). The level badge's fan
 ([00595990](functions/00595990.md)) pivots on UV (0.5, 0.5) at the same point, so the wedge turns
 about the texture centre, as our shader's does. So DK2 places a centre icon with no offset, and
 layers the icons only by draw order (no depth write).
@@ -90,7 +90,7 @@ Ours now lifts along the ray to the eye and scales by the depth ratio
 (`StatusFlowerRules.LayerPlacement`), which keeps every layer on the anchor's screen point at its
 own screen size.
 
-### When an own creature's flower shows (0048E830, CONFIRMED)
+### When an own creature's flower shows (0048E830, STRONGLY INFERRED)
 
 There is a global gate on viewer player `+0x76` bits 0x400000/0x40 and mode 0x0075AD4B.
 
@@ -114,7 +114,7 @@ Nothing in the predicate refuses a prisoner: an enemy in the viewer's prison sho
 
 `+0x38` has two writers:
 - Thing_ModifyHealth (0x004B2CE0, stores at 0x004B3267-0x004B3280) sets it, and `+0x3C`, to now + ¾ s on any health change. A turn is ¼ s (container `+8` = 4), so ¾ s is 3 turns.
-- **Presentation_Update stamps the Hand's hover target** at 0x0043B7F1-0x0043B857 (CONFIRMED, claude). It reads the hover id from bridge `+0x34` (the same id as the tint). For a creature, door or trap (`+0x12` of 0, 3 or 4) it writes `+0x38 = turn (0x00517490) + (ticks-per-second·3)>>2`.
+- **Presentation_Update stamps the Hand's hover target** at 0x0043B7F1-0x0043B857 (STRONGLY INFERRED, claude). It reads the hover id from bridge `+0x34` (the same id as the tint). For a creature, door or trap (`+0x12` of 0, 3 or 4) it writes `+0x38 = turn (0x00517490) + (ticks-per-second·3)>>2`.
 
 So pointing at any creature shows its flower, and the flower lingers ¾ s after the pointer leaves, as the owner's screenshots show.
 

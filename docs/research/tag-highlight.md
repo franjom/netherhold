@@ -11,13 +11,13 @@ blue-violet tint over the tile's whole visible mesh, texture still visible.
 
 - The bridge's per-tile word grid (bridge +0x326, cell helper
   [0x004435E0](functions/004435E0.md)) carries the tag look in bit 13 (0x2000).
-  [0x00443540](functions/00443540.md) writes it. CONFIRMED.
+  [0x00443540](functions/00443540.md) writes it. STRONGLY INFERRED.
 - Bridge command 7 ([0x00447D50](functions/00447D50.md)) clears it on every
   tile, then sweeps the map. On a Solid terrain (+0x17B bit 0) it asks the task
   list of the bridge's own player (thing table [bridge vt+0xBC] +0x1105) for the
   tile's task kind ([0x00508290](functions/00508290.md)). Kind 1 or 2 sets the
   bit; anything else clears it. Each change also calls world slot +0x1F8(x, y,
-  on/off) (0x004481BD..0x00448268). CONFIRMED for the code; that kinds 1 and 2
+  on/off) (0x004481BD..0x00448268). STRONGLY INFERRED for the code; that kinds 1 and 2
   are dig and mine gold is HYPOTHESIS (the kind scan's own record).
 - Two more writers: [0x0043D9B0](functions/0043D9B0.md) (Ghidra splits it at
   0x0043D9E3), called by the event handlers 0x00442570 (on) and 0x004425C0 (off),
@@ -30,7 +30,7 @@ blue-violet tint over the tile's whole visible mesh, texture still visible.
 - [0x004484A0](functions/004484A0.md) clears the bit when the terrain is not
   Taggable (+0x17B bit 3), for example once the tile is dug, on a tile that is
   explored (+9 bit 0x20), or unexplored with +0xB bit 0x40 on a
-  RevealThroughFogOfWar terrain. CONFIRMED.
+  RevealThroughFogOfWar terrain. STRONGLY INFERRED.
 - So only the viewer's own tags show, and the look does not depend on the owner's
   colour. Tags of other players are never drawn. HYPOTHESIS (it follows
   from which task list is read).
@@ -48,11 +48,11 @@ blue-violet tint over the tile's whole visible mesh, texture still visible.
 
   The 2026-10-06 reading that the flag is "set for every PlayerColouredWall"
   was wrong: the value tested at 0x0043FC9B is the secret-door result of
-  0x004434F0, stored at 0x0043E8F8. CONFIRMED.
+  0x004434F0, stored at 0x0043E8F8. STRONGLY INFERRED.
 - Room walls use a per-piece bit 0 instead (+0x1A on a quarter, +0x15 on a whole
   piece). It is set when the wall tile outside the room face is tagged or is in
   the rectangle and Taggable (wall-pieces.md, Notes). So when a room wall
-  replaces a tagged rock's face, that wall piece is tinted too. CONFIRMED.
+  replaces a tagged rock's face, that wall piece is tinted too. STRONGLY INFERRED.
 - [0x0043C310](functions/0043C310.md) submits every quarter and whole piece with
   a mode:
   - mode 1 when the tile flag or the piece flag has bit 0;
@@ -60,7 +60,7 @@ blue-violet tint over the tile's whole visible mesh, texture still visible.
   - mode 2 always when bridge +0x139B is set and world vt+0x2D8(x, y) is true.
 
   This covers the top and every face the builder emitted, so a face hidden by a
-  solid neighbour (never emitted) shows no tint. CONFIRMED. Bit1's other producers
+  solid neighbour (never emitted) shows no tint. STRONGLY INFERRED. Bit1's other producers
   remain UNKNOWN; +0x139B is the tutorial pulse described below.
 
 ## 3. The look: one colour, one overlay material, frame 0
@@ -70,20 +70,20 @@ blue-violet tint over the tile's whole visible mesh, texture still visible.
   - **Mode 1** replaces the piece colour with **(128, 128, 200)**: floats
     0x3F008081, 0x3F008081 and 0x3F48C8C9, each a value /255. It sets render
     flag 0x200 and attaches the overlay {material id = global 0x006FCD77,
-    frame fraction 0.0}. CONFIRMED.
+    frame fraction 0.0}. STRONGLY INFERRED.
   - **Mode 2** is **(255, 0, 0)** with the material id at global 0x006FCD73.
-    CONFIRMED.
+    STRONGLY INFERRED.
 - The draw ([0x00586190](functions/00586190.md), slot 2 of vtable 0x0066FD8C)
   handles a highlighted piece (flags & 0x300) submesh by submesh. It resolves the
   piece's own texture and the overlay material's texture (0x0057C780), and pins
   the overlay to frame 0. Over an opaque base it queues one batch entry with two
   passes, one texture each: the base texture in the base state, then the overlay
   in the overlay state with 0x280 cleared. Over a translucent base it queues two
-  entries, base then overlay. The base is always drawn first. CONFIRMED for the
+  entries, base then overlay. The base is always drawn first. STRONGLY INFERRED for the
   control flow. The flush is 0x0058F640 → 0x0058A150, which draws pass i with
   state i (§6).
 - **No animation.** The overlay frame fraction is the constant 0.0, the colour
-  is constant, and nothing in the path reads a clock. CONFIRMED for this path.
+  is constant, and nothing in the path reads a clock. STRONGLY INFERRED for this path.
 
 ## 4. What the remake should do
 
@@ -163,14 +163,14 @@ the selected tile is unconfirmed and is not added.
   | +0xA36F | 0x006FCD77 | BlueTexture | 3, the tag highlight |
   | +0xA373 | — | RedTexture | 1 |
 
-  The table runs on after +0xA373; that part is unread. CONFIRMED.
+  The table runs on after +0xA373; that part is unread. STRONGLY INFERRED.
 - **Material names.** Kind 1 names the material "S_<tex>", kind 2 "A_<tex>" and
   kind 3 "AA_<tex>". The kind sets material flags 0, 4 and 0x10 (0x0059A6A0). So
   the tag overlay is the material **"AA_BlueTexture"**, built on the texture
-  "BlueTexture". CONFIRMED.
+  "BlueTexture". STRONGLY INFERRED.
 - **The texture.** The install has `DK2TextureCache\EngineTextures.dir/.dat`
   entry **BlueTextureMM0**: 16×16, no alpha, every pixel **(63, 64, 255)**.
-  RedTextureMM0 is (255, 64, 65). CONFIRMED by decoding them with our
+  RedTextureMM0 is (255, 64, 65). STRONGLY INFERRED by decoding them with our
   EngineTextureArchive.
 - **The blend is additive.** The material constructor
   [0x0057C420](functions/0057C420.md) gives flag 0x10 the render state
@@ -180,7 +180,7 @@ the selected tile is unconfirmed and is not added.
   DESTBLEND = ONE with blending on: **additive**. For comparison, 0x20 ("A_",
   alpha) is SRCALPHA/INVSRCALPHA and 0x1000 is ZERO/INVSRCCOLOR. Texture stage 0
   is MODULATE(TEXTURE, DIFFUSE) at 1×, never 2× (0x005899F0, 0x00589250).
-  CONFIRMED.
+  STRONGLY INFERRED.
 - **The colour is added light, not a multiply.** The vertex-colour loops
   (0x0057B6D0, 0x0057B0E0) build each vertex's diffuse as the sum of four terms:
   - the vertex's own light (+0x1C..+0x24);
@@ -188,7 +188,7 @@ the selected tile is unconfirmed and is not added.
   - the render item's colour (instance +0x14..+0x1C, from the sink);
   - the global ambient 0x00760A98..0x00760AA0.
 
-  CONFIRMED for the sum. So mode 1 **adds (128, 128, 200)** (0..255 units) to the
+  STRONGLY INFERRED for the sum. So mode 1 **adds (128, 128, 200)** (0..255 units) to the
   piece's lighting, which brightens and blues the base pass. The additive
   BlueTexture pass then adds about (63, 64, 255) × its own diffuse on top. Hence
   a tile brighter and more violet than its neighbours. RGB packing is in

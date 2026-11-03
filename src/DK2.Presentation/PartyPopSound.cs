@@ -13,7 +13,7 @@ namespace DK2.Presentation;
 /// (<c>GLOBAL\EFFECTS</c>, world <c>+0xA3BB</c>) at the effect's position (<c>0x004D6610</c>). DK2 requests it only when
 /// the effect was created, so the host calls this when the effect model reports the effect created
 /// (docs/research/sound-effects.md section 9).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/sound-effects.md#9-workshop-casino-prison-and-portal")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-effects.md#9-workshop-casino-prison-and-portal")]
 public static class PartyPopSound
 {
     public const uint EventId = 0x344;

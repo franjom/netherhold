@@ -50,7 +50,7 @@ If evidence changes an old reading, replace it there; git retains the history.
 Everything above reads the dumpers for their *names*. One of them can be run, and
 then it gives values.
 
-**CONFIRMED (static, 2026-09-23).** `0x0050EA70` is the world logger: `this` is the
+**STRONGLY INFERRED (static, 2026-09-23).** `0x0050EA70` is the world logger: `this` is the
 world object at `0x006F2A08`, it reads the game tick and formats `Logging World [GT %d]...`,
 and the world dumper at `0x0050EAE9` above is inside it. Nothing calls it directly. It is
 reached through the world's vtable at `+0x38`, from three sites in one routine,
@@ -95,8 +95,8 @@ the other dumpers**. In file order:
   `NeutralPlayerId`, `HornedReaperTypeId`, the trigger counts, ...), the level-intro
   overrides, and the line `End World Log`.
 
-The order is read from the output, not from `0x0050EA70`'s call list; reading that list is
-what would promote this to CONFIRMED.
+The order is read from the running game's output, so it is CONFIRMED; `0x0050EA70`'s call
+list itself was not read.
 
 **What the dump says about creature state.** Every id in it names a state in
 [creature-state-table.md](creature-state-table.md):

@@ -11,7 +11,7 @@ namespace DK2.Simulation;
 /// <remarks>The fixed-point stance multiplier scales level-adjusted damage before negation,
 /// bearing and per-player bonuses. Negating first makes each bonus division truncate toward zero;
 /// see docs/research/combat-damage.md.</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-damage.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-damage.md")]
 public static class MeleeDamageRules
 {
     /// <summary>1.0 in the original's 12-bit fixed point, and the multiplier when no stance applies.</summary>
@@ -44,7 +44,7 @@ public static class MeleeDamageRules
     /// <c>0x64</c> at <c>0x00509A88</c>, before the load). Variable 98, once guessed here, has no
     /// reader.
     /// </summary>
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-damage.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-damage.md")]
     public static int PossessionIncreasePercent(GameDatabase database)
         => database.FirstPersonStat(CreatureStatId.MeleeDamage);
 

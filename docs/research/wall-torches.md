@@ -24,7 +24,7 @@ is an engine light, not a game thing, and nothing in the game rules reads it
 has to report terrain changes, which it already does.
 
 Everything read from the binary is **STRONGLY INFERRED** unless it says
-**CONFIRMED**. Facts marked CONFIRMED were measured from the shipped data.
+**HYPOTHESIS** or **UNKNOWN**. Facts measured from the shipped data are STRONGLY INFERRED too.
 
 ## 1. The rule, for one wall tile
 
@@ -155,7 +155,7 @@ the RenderInfo at `+0x26` to `0x0059BB80`. That helper adds signed offsets
 Unity yaw is positive. Thus the mesh anchor lies on the wall, while the light
 stays off it. The classic adapter separates these positions.
 
-**Mesh bend: CONFIRMED (2026-10-11).** The type-5 branch passes the mesh to
+**Mesh bend: STRONGLY INFERRED (2026-10-11).** The type-5 branch passes the mesh to
 `0x00585F90`, which constructs its instance through `0x0057AD20`. That path
 transforms each vertex and then samples `0x0058F030`, as for the wall pieces.
 Moving only the anchor onto the straight tile edge still leaves a gap against
@@ -163,7 +163,7 @@ a bent wall. Classic torches now share the wall lattice for every vertex,
 retain rotated unbent normals, and refresh their private meshes after terrain
 changes. The illumination position stays separate.
 
-### Shipped room values (CONFIRMED, `Rooms.kwd`)
+### Shipped room values (STRONGLY INFERRED, `Rooms.kwd`)
 
 Colours include the +255 high bits. A blank cell is height 6144, radius 6144 or
 art `Torch1`.
@@ -248,7 +248,7 @@ sink is the CBridge is STRONGLY INFERRED. The command table at `0x0066D0D8`
   vt`+0x21C`), then for the qualifying tiles two steps away (`0x00450108`,
   `0x0045019D`). When its argument 5 is set, it posts command 3 with `+4 = 1`
   for the tile itself (`0x00450288`).
-- **Command 16 — CONFIRMED (2026-10-05, Q445).** Its only posters are the two
+- **Command 16 — STRONGLY INFERRED (2026-10-05, Q445).** Its only posters are the two
   room-change closers, `0x004F04F0` (after a build: the player's wave
   `0x004C7380`, the computer keeper `0x004C5B40`, trigger dispatch
   `0x005195F0`) and `0x004F09B0` (after a sell or destruction: the sell wave
@@ -285,22 +285,22 @@ sink is the CBridge is STRONGLY INFERRED. The command table at `0x0066D0D8`
 **Answered (binary, 2026-10-21).** Level-start torches come from **one sweep
 after the whole map is loaded**. During the load itself no torch is placed.
 
-1. **The gate is closed during the load. CONFIRMED.** The bridge initialiser
+1. **The gate is closed during the load. STRONGLY INFERRED.** The bridge initialiser
    `0x0043AAD0` stores 0 in the gate. The map loader `0x0044E9E0` first calls
    the teardown `0x0044F280`, which posts command 2 when a map already exists.
    Command 2 destroys every light and clears the gate. GameAction_LoadLevel
    `0x00513870` also calls the teardown at `0x00513923`.
-2. **Unloaded tiles are Impenetrable Rock. CONFIRMED.** `0x0044F370` sets every
+2. **Unloaded tiles are Impenetrable Rock. STRONGLY INFERRED.** `0x0044F370` sets every
    tile to terrain 1 with nav byte 8 (solid) before any tile record is read.
    Terrain 0 never reaches the terrain table, whose entry 0 is null
    (`0x00455D40`).
-3. **The map is read row by row, x inside y. CONFIRMED** (`0x0056D2D0`). Each
+3. **The map is read row by row, x inside y. STRONGLY INFERRED** (`0x0056D2D0`). Each
    tile goes through `0x0051EC60` and then the setter. The setter's command 4
    and command 3 both hit the closed gate. So does command 6, which
    `0x00451E50` posts for the whole map. `0x0051E0A0` takes its world
    `+0x7239` bit `0x4` branch for any level file; that bit picks the callback
    set.
-4. **The sweep. CONFIRMED.** The level initialiser `0x0050B5B0` is called by
+4. **The sweep. STRONGLY INFERRED.** The level initialiser `0x0050B5B0` is called by
    the KWD load (`0x0050E89B`), by GameAction_LoadLevel (`0x00513C42`) and by
    the save rebuild (`0x0050B48D`). Near its end (`0x0050C4B5..0x0050C643`) it
    walks every tile, y outer and x inner. For each tile that passes

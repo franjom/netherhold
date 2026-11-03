@@ -8,7 +8,7 @@ using DK2.Simulation;
 
 namespace DK2.Presentation;
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-rendering.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-rendering.md")]
 public static class MinimapNorth
 {
     public static Vector2 SpriteOriginPixels(Dk2Angle heading, int screenHeight)

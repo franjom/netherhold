@@ -4,7 +4,7 @@ systems: [keeper-spells]
 # Turncoat: temporary combat allegiance
 
 Binary read in Ghidra 12.1.4/PyGhidra, 2026-10-04. Instruction and shipped-data
-claims below are **CONFIRMED**; gameplay equivalence remains **STRONGLY INFERRED**
+claims below are **STRONGLY INFERRED**; gameplay equivalence remains **STRONGLY INFERRED**
 without an original-game cast trace. Implementation: `TurncoatRules`, ADR-0350.
 
 ## 1. Descriptor and cast

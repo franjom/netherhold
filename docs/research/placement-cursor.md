@@ -13,9 +13,9 @@ binary: in room mode a flashing cage, blue where the room can go, a pink/red pri
 "arrow to the ground" icon; where it cannot, a red cage, no price and a crossed circle. The
 one-tile cage while only hovering is not the selection rectangle (the room arm fills none until
 a drag, §2) but most likely the Hand light's own cage (HYPOTHESIS), drawn where `0x004096B0` allows
-it (§2a, CONFIRMED).
+it (§2a, STRONGLY INFERRED).
 
-## 1. Per-frame flow (CONFIRMED)
+## 1. Per-frame flow (STRONGLY INFERRED)
 
 `0x0040BBE0` runs every frame. It first resets interface feedback byte
 `+0x132E` to `(old & 0xF9) | 0x18`, which clears bits 0x02 and 0x04 and sets 0x08 and 0x10, and
@@ -31,7 +31,7 @@ mode `+0x13DB`:
 | 4 | `0x0040B600` | sell |
 | 6 | `0x0040B3C0` | door placement |
 | 7 | `0x0040B4F0` | trap placement |
-| 8 | `0x0040B7F0` | keeper spell (CONFIRMED: the click arm posts the cast actions; spell id in `+0x13E8`) |
+| 8 | `0x0040B7F0` | keeper spell (STRONGLY INFERRED: the click arm posts the cast actions; spell id in `+0x13E8`) |
 | 10 | `0x0040BB60` | Query |
 
 Over the GUI it requests the small pointer (state 2). For modes 3, 4, 6, 7 and 8 it also sets
@@ -50,7 +50,7 @@ The price lives in `+0x13E4`, a signed int. A **negative** value is a cost and a
 value is a refund. The room, door and trap arms write it every frame. Nothing clears it per
 frame: only tool cancel `0x004094C0`, `0x00407580` and the reset `0x004033F0` zero it.
 
-## 2. Validity and rectangle per tool (CONFIRMED unless marked)
+## 2. Validity and rectangle per tool (STRONGLY INFERRED unless marked)
 
 **Room build, mode 3, `0x0040B210`.** If the hovered tile is diggable
 (`+0x1084 == 1`, target flag bit 0), the arm shows PickAxeHold (state 4) and returns. Tagging
@@ -84,7 +84,7 @@ the animated Point (state 1).
 
 **Door, mode 6, `0x0040B3C0`, and trap, mode 7, `0x0040B4F0`.** These arms **never fill the
 rectangle, so doors and traps have no rectangle cage.** The hover cage of §2a shows here on
-every interior tile, coloured by these arms' bit 0x10 (CONFIRMED: `0x0040C120` returns 1
+every interior tile, coloured by these arms' bit 0x10 (STRONGLY INFERRED: `0x0040C120` returns 1
 for modes 6 and 7; not owner-confirmed).
 - With no Workshop (`Player_CountRoomsOfType(10)`), or no tile under the pointer (`+0x1FC`),
   the arm sets bit 0x02, clears 0x10 and leaves `+0x13E4` untouched (it may be stale).
@@ -104,7 +104,7 @@ interface `+0x3E6F` is 1): location selector 4 (`0x00517F10`) then also wants ti
 `0x004075E0` runs the same tests and flags before posting 0x36/0x37/0x38/0x87, so DK2's No Go is
 where its click does nothing.
 
-**Query, mode 10, `0x0040BB60` (CONFIRMED).** Point cursor, hover id; never No Go off the GUI.
+**Query, mode 10, `0x0040BB60` (STRONGLY INFERRED).** Point cursor, hover id; never No Go off the GUI.
 
 **Hand, mode 0, `0x0040AE80`.** This arm fills a 1×1 rectangle while the hand holds
 something, and that is the drop cage. See hand-cursor-rendering.md.
@@ -165,9 +165,9 @@ that also shows PickAxeHold):
 
 In Hand mode a held item usually also fills the 1×1 drop rectangle (`0x0040AE80`), which
 clears this bit, so the drop cage is drawn by the rectangle path; the light cage shows with a
-full hand only when that arm finds no item to drop (CONFIRMED by reading; rare). Over a
+full hand only when that arm finds no item to drop (STRONGLY INFERRED by reading; rare). Over a
 dig-taggable tile the Hand and room arms return before writing bit 0x10, so the reset's 0x10
-stays and that cage is **blue** (CONFIRMED chain). With an empty hand over floor, a creature
+stays and that cage is **blue** (STRONGLY INFERRED chain). With an empty hand over floor, a creature
 or a non-taggable wall, Hand mode shows no hover cage.
 
 **Where it lands (HYPOTHESIS).** The light sits at the picked point, not at a tile centre, at
@@ -181,7 +181,7 @@ uses for each boundary tile, which fits the owner's photos: the hover cage follo
 terrain lattice like a full tile. How the light reaches the draw is not traced. It is probably
 the tile thing chain that `0x00446C70` updates, drawn by `0x0043CC30`'s thing pass.
 
-**Colour while hovering (CONFIRMED chain).** The order is `0x00403D78` (`0x0040BFF0` →
+**Colour while hovering (STRONGLY INFERRED chain).** The order is `0x00403D78` (`0x0040BFF0` →
 `0x0040BBE0`: reset, then the tool arm), then `0x00403E52` (`0x0040ACD0`: publish). In room
 mode the arm writes bit 0x10 from the 1×1 precheck on the hovered tile (explored, terrain
 `+0x17B` gate, `Room_PrecheckRectangle`). `0x0040ACD0` copies it to bridge `+0x36`, and
@@ -199,7 +199,7 @@ into the dragged rectangle.
 current rectangle (`+0x10..+0x1C` / `+0x4E..+0x5A`) on every call. The outgoing one goes
 into `+0x24..+0x30` / `+0x62..+0x6E`: raw on the first call (flag `+0x20` / `+0x5E` clear),
 otherwise as `0x005B7090(old, outgoing)`, the bounding-box union (min x0, min y0, max x1,
-max y1; CONFIRMED for `0x0044E130`). So that field is a running union of replaced
+max y1; STRONGLY INFERRED for `0x0044E130`). So that field is a running union of replaced
 rectangles, a dirty region; who clears the flag is unread. The only callers that pass a non-zero rectangle are
 in `0x0040ACD0`, which passes the interface rectangle to both. The rest pass zeros:
 `0x0040386E/0x0040388B`, `0x0043B0D7/0x0043B0F4` and `0x0043BE0B`. So in this path the
@@ -210,13 +210,13 @@ secondary always equals the primary.
 Read 2026-10-23 in disassembly: `0x0040AE80` (`0x0040AF09..0x0040B13A`), `0x0040D8F0`, the
 three CWorld slots behind it and the click arm of `0x00408EE0`.
 
-**Which item (CONFIRMED).** The first pending-pickup record (`+0x142`, stride `0x36`, count
+**Which item (STRONGLY INFERRED).** The first pending-pickup record (`+0x142`, stride `0x36`, count
 `+0xEF8`) whose dword `+0x0C` is 0. That dword is set to 1 when a drop is queued for a pickup the
 simulation has not yet confirmed (`0x0040914B`). With no such record, the top of the hand:
 player `+0x1BF` is the count, and `0x004BCAB0(count − 1)` gives the last item in. The click
 drops the same item, so the cage tests the next drop.
 
-**The colour (CONFIRMED).** Bit 0x10 ends as the inverse of bit 0x02. So the cage is blue unless
+**The colour (STRONGLY INFERRED).** Bit 0x10 ends as the inverse of bit 0x02. So the cage is blue unless
 the arm sets 0x02 (red):
 - class 0, a creature: `0x0040D8F0` false;
 - class 2, an object: world slot `+0x234` false;
@@ -224,7 +224,7 @@ the arm sets 0x02 (red):
 For an own creature over an owned Portal centre, or an IsWorker+IsEvil creature over an owned
 Heart cell with byte `+0x0C == 0x40`, the arm sets 0x04, which hides No Go. A refusal clears it.
 
-**The rules (CONFIRMED; `0x00450910`, `0x00450BE0` and `0x00450D40`).** "Allied" is the tile
+**The rules (STRONGLY INFERRED; `0x00450910`, `0x00450BE0` and `0x00450D40`).** "Allied" is the tile
 owner's alliance with the player, which includes the player itself, and never the neutral player.
 Every class refuses a navigation-solid tile (grid bit 3) and a door tile (`0x004528E0`).
 - **Creature, worker:**
@@ -250,7 +250,7 @@ Every class refuses a navigation-solid tile (grid bit 3) and a door tile (`0x004
   - a Chicken (9) or Call To Arms (10) is refused on a Portal centre and on a Heart's inner 3×3.
 - **Dead body:** only onto a tile the player itself owns.
 
-**Where the rule lives (CONFIRMED by search).** Only `0x0040AE80` and `0x0040D8F0` call through
+**Where the rule lives (STRONGLY INFERRED by search).** Only `0x0040AE80` and `0x0040D8F0` call through
 slots `+0x230`, `+0x234` and `+0x238`. The three bodies are reached only through their thunks.
 The click arm submits a drop only when `0x0040D8F0` passes, so a refused drop never becomes a
 command. The simulation does not test the tile again.
@@ -268,7 +268,7 @@ centre only (`0x004EFBE0`'s table). The dead-body arm is not built.
   show a blue cage there and the Imp landing; on the centre the cage is blue with the rubbish
   bin, and the Imp is disposed of (structure-blocks.md §4).
 
-## 3. Tool icon and price drawing, `0x0040CAE0` (CONFIRMED)
+## 3. Tool icon and price drawing, `0x0040CAE0` (STRONGLY INFERRED)
 
 The call comes from `0x00403FB0` at `0x00404D88`, with the pointer position in screen pixels
 (`0x005589E0` on `0x00756EE8`). W and H below are the screen size, `0x00756EEC`/`0x00756EF0`.
@@ -293,7 +293,7 @@ index at 13, so no I-* icon and **no price**. It draws, at the same anchor and `
 the spell's GUI icon: the KeeperSpells record's first art (file `+0x20`, `gui\spells\<name>`, the
 bottom panel's resource), never the upgraded `…-2`. Then the No Go anchor moves by `(-2, +2)`.
 Record [0040D310](functions/0040D310.md). **Over the GUI** this function sets bit 0x02 for every
-mode with an icon (3–8, 10), so Query too shows No Go over the HUD (CONFIRMED).
+mode with an icon (3–8, 10), so Query too shows No Go over the HUD (STRONGLY INFERRED).
 
 **Price.** When an icon was drawn and `+0x13E4 != 0`, `Hud_DrawResourceDigits 0x00415650` is
 called with the absolute value. The digits are left-aligned at `(iconX + 30, iconY + 10)` in
@@ -338,7 +338,7 @@ bin, icons 1–7, overflow, No Go ([0040CFE0](functions/0040CFE0.md), [0040D450]
 | Sell | one-tile hover cage, rectangle while dragging | I-Sell | refund (128,255,255) | No Go when the refund is ≤ 0 |
 | Door | one-tile hover cage | I-Place_Door | door cost | No Go (no Workshop, unaffordable, world test fails) |
 | Trap | one-tile hover cage | I-Place_Trap | trap cost | as door |
-| Keeper spell | hover cage over a dig-taggable tile only | the spell's GUI icon (file `+0x20`) | none (CONFIRMED) | No Go where the click casts nothing, offset (-2,+2) |
+| Keeper spell | hover cage over a dig-taggable tile only | the spell's GUI icon (file `+0x20`) | none (STRONGLY INFERRED) | No Go where the click casts nothing, offset (-2,+2) |
 | Query | hover cage over a dig-taggable tile only | I-Query | none | No Go only over the HUD |
 | Hand, holding | drop cage on the hovered tile | each held thing's GUI icon, up to 8, then more_creatures; I-Dismiss over the first where the drop disposes | none | No Go over the first icon where the drop is refused |
 
@@ -360,7 +360,7 @@ bin, icons 1–7, overflow, No Go ([0040CFE0](functions/0040CFE0.md), [0040D450]
 `PlacementCursor` (Presentation) returns each frame's cage, validity, icon, No Go and signed price
 for room, sell, door and trap from `RoomRules` and `BlueprintPlacementRules`; a room's price counts
 the tiles `CanBuild` or the span rule accepts, and with none it is invalid and unpriced, as
-`0x004C5AF0` returns (CONFIRMED; our count mirrors slot `+0x22C` without walking it). The room drag
+`0x004C5AF0` returns (STRONGLY INFERRED; our count mirrors slot `+0x22C` without walking it). The room drag
 clamps its end to `RubberBandAreaLimit` (`PlayerInputTranslator`, as `0x00408194..0x004081FD`); the
 cursor rectangle and sell release keep the low corner (`0x0040B2B0`, `0x0040B661`, `0x004083DA`),
 the room release the anchor (`0x00408194`); ours does each.

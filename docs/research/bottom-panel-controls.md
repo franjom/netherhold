@@ -7,7 +7,7 @@ Read2026-10-18 from DKII.EXE static menu/widget records, callbacks and the
 shipped KWD/interface resources. Confidence applies to each contract below.
 Function-level readings and revisions live in their knowledge-base records.
 
-## Geometry and category controls (CONFIRMED)
+## Geometry and category controls (STRONGLY INFERRED)
 
 The virtual coordinate system is2560x1920; the presentation reference transform
 is height/1920, preserving the original bottom and left anchors. Static menu18
@@ -42,7 +42,7 @@ not additional category slots. Native bitmap64x64 Panel-BG is tiled through
 the retained image pool. The last partially visible tile is stretched; exact
 edge cropping remains a presentation limitation.
 
-## Room state and action (CONFIRMED)
+## Room state and action (STRONGLY INFERRED)
 
 The visible resolver is [0x00410AE0](functions/00410AE0.md), the widget updater
 is [0x00410990](functions/00410990.md), and selection is
@@ -64,14 +64,14 @@ room while its availability changes; simulation placement still rejects
 invalid construction. Clicking a visible availability4 entry clears the tool.
 
 The room name comes from RoomDef.NameStringId, cost from RoomDef.Cost and icon
-from its first84-byte art descriptor. Page ordering is CONFIRMED: service
+from its first84-byte art descriptor. Page ordering is STRONGLY INFERRED: service
 virtual+0xA8 is [0x0050D150](functions/0050D150.md), which finds the definition
 whose runtime+0x466 byte matches the ordinal. The room loader copies that byte
 from intermediate+0x496, file+0x3C2, the existing RoomDef.OrderInEditor field.
 The model sorts by that field. Secondary room-slot navigation uses the separate
 [callback](functions/004118B0.md); its adapter ordering limitation is below.
 
-## Spells and workshop (partially CONFIRMED)
+## Spells and workshop (partially STRONGLY INFERRED)
 
 ### Unknown-slot brightness (2026-10-25)
 
@@ -119,7 +119,7 @@ Menu39 at (1112,1460) 948x156 holds eighteen 88x128 widgets: Review Objective (t
 `0x004288C0`), a second button (art153, `0x004247F0`), and sixteen message slot widgets (art127,
 `0x00423F50`/`0x00424220`) of which at most eight are used: [message-tabs.md](message-tabs.md)
 (BUILT 2026-10-21, ADR-0525). Menu43 is at (2080,1472) 480x140.
-Tab visibility is [0x00416E20](functions/00416E20.md) (CONFIRMED): Creatures and Rooms
+Tab visibility is [0x00416E20](functions/00416E20.md) (STRONGLY INFERRED): Creatures and Rooms
 always show; Spells and Workshop show only while one of their filtered choices has
 availability other than1, and a hidden tab keeps its place.
 The common renderer's spell branch excludes spell5 and14 from the normal grid.

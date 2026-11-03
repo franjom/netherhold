@@ -143,7 +143,7 @@ public static class RoomHealthRules
     /// <summary>One conversion application at <paramref name="efficiency"/> 4096ths: the tabled
     /// per-second value over variable 19, times the rate, floored (−5000 × 0xCCC ≫ 12 = −4000, the
     /// captures' step).</summary>
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/room-health.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-health.md")]
     public static int ConvertPerApplication(GameDatabase database, PlayerId tileOwner, int efficiency) =>
         SimulationTiming.WorkApplication(database[ConvertVariable(tileOwner)], efficiency);
 

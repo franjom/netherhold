@@ -142,7 +142,7 @@ target into the shot's data2.
 Origin: `x + (offX·cos>>16) − (offY·sin>>16)`, `y + (offY·cos>>16) + (offX·sin>>16)`, height
 `+ offZ` (32-bit products, arithmetic shifts). Sine `0x006C1488` and cosine `0x006C1C88` are
 one 2560-dword table a quarter turn apart, `trunc(65536·sin(2πi/2048))` for every entry
-(CONFIRMED against the dump). A creature target is told (`0x0045AA20(trapTag, 0)`); then target
+(STRONGLY INFERRED against the dump). A creature target is told (`0x0045AA20(trapTag, 0)`); then target
 `+0x147`, aim (`0x004AB830`), data words from `+0x7C/+0x80`, and with a target the forced
 collision `+0x14D` for every selector but 1 and 3. Then: the mana (flag `0x100`, not the hero
 player) through `0x004C19C0` (adds, clamps at 0) and `player+0x10F2 += cost`; flag `0x2`
@@ -293,7 +293,7 @@ fallback is class 4 only (`0x00471D68`). Built (ADR-0338): the reveal; (ADR-0340
 
 ## 12. Shipped definitions and shot coverage
 
-**CONFIRMED from shipped `Traps.kwd` and `Shots.kwd`:** zero charge everywhere but Spare Door 1
+**STRONGLY INFERRED from shipped `Traps.kwd` and `Shots.kwd`:** zero charge everywhere but Spare Door 1
 (two ticks). "Built" is `TrapRules.FiringBuilt`: the shot's damage type, process and chained
 shots all have a handler, or there is no shot. "Gate only": the selector and charge run, and
 `0x004A80E0` returns at once for shot 0, so nothing fires and the charge keeps climbing.
@@ -356,13 +356,13 @@ keeps a keeper Boulder trap sealed away: Secret4's trigger 4 (type 28) loses the
 - **Brave creatures swing (Q362):** a level-10 Black Knight, Bile Demon and Vampire, each 4 tiles from a Hero
   Sentry, were hit on turn 7 (−250), took the trap as their target (`+0x502`) within two turns, walked to it
   in state 8 and fought it in 199 until it was gone (Vampire turn 25, Knight 37, Bile Demon 52), then idled.
-  CONFIRMED (observed): ADR-0340's attack on a revealed trap. Ours does the same in the same setup;
+  CONFIRMED (observed): ADR-0340's attack on a revealed trap. Ours does the same in the same setup (measured);
   its timings differ (Q732).
 - **A hero trap on neutral ground never exists (Q513a):** the hero Boulder trap placed on a Neutral Dirt Path
   at (3,4) was missing from the first captured turn, and that corridor's Troll never fought. The one on hero
   Claimed Path at (7,4) fired at its Troll on turn 8; the boulder appeared on turn 9 as the one-shot trap went,
   struck the Troll on turn 12 (1000 → 500, stunned 256) and it was dying (216, health 240) on turn 13.
-  CONFIRMED (observed), as §13 predicts for Level 20's (12,5). Ours also drops the neutral one (Q732 for the rest).
+  CONFIRMED (observed), as §13 predicts for Level 20's (12,5). Ours also drops the neutral one (measured; Q732 for the rest).
 
 *Ours against these* (a one-off scenario run, same levels; turns are each run's own, so a one-turn offset may be
 the harness's), Q732:

@@ -12,7 +12,7 @@ namespace DK2.Simulation.Combat;
 /// <c>OldFightPos</c>/<c>OldFightTick</c> (<c>+0x52A</c>, <c>+0x52E</c>; <c>0x00461801</c>) for any
 /// creature but an Imp; state 1 (<c>0x004773D0</c>) walks there once health is back above three
 /// quarters, within 500 turns of the stamp, before any of its other arms.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fear.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-fear.md")]
 public static class FightReturnRules
 {
     /// <summary>How long a stamp stays good (<c>+0x52E + 500</c>), in turns.</summary>

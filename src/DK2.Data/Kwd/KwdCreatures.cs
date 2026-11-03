@@ -14,7 +14,7 @@ namespace DK2.Data.Kwd;
 ///
 /// Record size is 5449 bytes in standalone Creatures.kwd; a 5537-byte variant
 /// (88 extra trailing bytes) occurs when creature data is embedded in globals
-/// files. Field offsets CONFIRMED via the dk2-tools template's self-consistent
+/// files. Field offsets STRONGLY INFERRED via the dk2-tools template's self-consistent
 /// offset anchors (docs/research/kwd-creatures.md). Gameplay fields only; the
 /// ~45 ArtResource blocks are skipped except where a name is useful later.
 /// </summary>

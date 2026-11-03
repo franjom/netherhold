@@ -7,7 +7,7 @@ DK2 v1.70 (GOG install), read 2026-10-23 from the shipped files with one-off scr
 
 Scope is the **files**. Which state of the menu machine or the campaign map uses which file is a DKII.EXE question and is not answered here; rows that say "used by X" give the evidence for the pairing (a file name, a designer's index, a count match).
 
-Confidence: **CONFIRMED** = read from the bytes or by a repo reader over every file in the class; **STRONGLY INFERRED** = consistent evidence, not proved; **HYPOTHESIS** = plausible, unchecked; **UNKNOWN**. OpenKeeper (GPLv3) is cited for facts only, and no code was taken from it.
+Confidence: **CONFIRMED** = the running game shows it (owner observation, native capture); **STRONGLY INFERRED** = read from the bytes or by a repo reader over every file in the class, or in DKII.EXE; **HYPOTHESIS** = fits the evidence (or is consistent with it but not proved), a step not read; **UNKNOWN**. OpenKeeper (GPLv3) is cited for facts only, and no code was taken from it.
 
 ## 0. Summary: readers present and missing
 
@@ -21,7 +21,7 @@ Confidence: **CONFIRMED** = read from the bytes or by a repo reader over every f
 | Front-end level `FrontEnd3DLevel*` | 6 files | `KwdReader`, `MapGrid`, `KwdThings`, `KwdTriggers`, players and variables | none | — |
 | Front-end meshes (KMF) | 93 FE-named plus shared ones in `Meshes.WAD` | `DK2.Art.KmfReader` (not run on these files here) | none expected (STRONGLY INFERRED) | — |
 | Front-end textures | 560 `3dFe*`/`3dMap*`/`MPD*` entries in `EngineTextures.dir` | `DK2.Art.EngineTextureArchive` | none | — |
-| Camera paths 250-274 | 25 `.KCS` in `Paths.WAD` | `DK2.Data.Camera.KcsCameraPath` | none (format CONFIRMED over all 80 files, camera-paths.md) | — |
+| Camera paths 250-274 | 25 `.KCS` in `Paths.WAD` | `DK2.Data.Camera.KcsCameraPath` | none (format STRONGLY INFERRED over all 80 files, camera-paths.md) | — |
 | Fonts `FONT_FRONTEND*.bf4` | 6 | `DK2.Data.Text.Bf4FontReader` (an install test sweeps all 22 `.bf4`) | original glyph metrics and bitmap fallback in F3/F4 | — |
 | String tables | 92 `.str` | `DK2.Data.Text.Dk2StringTable`, `LevelTextTable` | none | — |
 | SDT sound banks | `FrontEndHD`, `GuiHD`, `Patch_1HD`, 10 `Track_*`, 33 speech banks | `DK2.Data.Media.SdtArchive` and `MpegAudioDecoder` | built in F8; scope and limits: ADR-0583 | medium |
@@ -33,7 +33,7 @@ Confidence: **CONFIRMED** = read from the bytes or by a repo reader over every f
 
 ## 1. `Data/FrontEnd.WAD`
 
-### 1.1 Container (CONFIRMED, bytes)
+### 1.1 Container (STRONGLY INFERRED, bytes)
 
 - 22,599,650 bytes on disk, DWFB version 2, **445 entries, none compressed**, 22,573,843
   bytes of payload. It is the same container as the other four WADs (wad-format.md).
@@ -43,7 +43,7 @@ Confidence: **CONFIRMED** = read from the bytes or by a repo reader over every f
 ### 1.2 Entries grouped by purpose
 
 The grouping is by name, so it is STRONGLY INFERRED; the counts, sizes and pixel
-dimensions are CONFIRMED (read from the PNG IHDR, BMP and `.444` headers).
+dimensions are STRONGLY INFERRED (read from the PNG IHDR, BMP and `.444` headers).
 
 | Group | Names (pattern) | Count | Payload bytes | Dimensions |
 |---|---|---|---|---|
@@ -68,7 +68,7 @@ dimensions are CONFIRMED (read from the PNG IHDR, BMP and `.444` headers).
 - The level-launch screen loads the two images `Obj Shots\<level> 0` and `1`
   (`0x0053AC60`, campaign-map-and-progression.md). The WAD's `Obj_Shots\` run (entries
   271-330) holds exactly those: `Secret1..5-0`, `MPD1..7-0`, and `Level{n}-0`/`-1` for
-  the 24 campaign levels. Secret and MPD levels have only the `-0` image (CONFIRMED,
+  the 24 campaign levels. Secret and MPD levels have only the `-0` image (STRONGLY INFERRED,
   names). That the `\<level> <n>` string resolves to `Level<n>-<n>.png` is STRONGLY
   INFERRED; the formatting is in the sibling's read.
 - The 19 `M-0xx` thumbnails match the 19 `CutSceneLevel{n}.tgq` movies, and
@@ -77,7 +77,7 @@ dimensions are CONFIRMED (read from the PNG IHDR, BMP and `.444` headers).
   hold 20 multiplayer level names (§7). Whether a thumbnail is missing a briefing, or the
   reverse, was not checked.
 
-### 1.3 Directory runs and duplicate names (CONFIRMED, bytes)
+### 1.3 Directory runs and duplicate names (STRONGLY INFERRED, bytes)
 
 13 entries carry a directory prefix (`TitleScreen\`, `Thumbnails\`, `Obj_Shots\`,
 `Mov_Shots\`, `Maps\`, `LoadingScreen-Japanese\`, `LoadingScreen\`, `HiScores\`,
@@ -97,11 +97,11 @@ those copies produced the empty-looking cancel button. Native `0x00534210`
 requests plain Confirm/Cancel. Directory reconstruction remains STRONGLY INFERRED
 from shipped names, not proved by the storage-query wrapper.
 
-### 1.4 `.444` images (bytes CONFIRMED, codec STRONGLY INFERRED)
+### 1.4 `.444` images (bytes STRONGLY INFERRED, codec STRONGLY INFERRED)
 
 The 8-byte header is `u16 width, u16 height`, a flag byte at +4 and three
 replacement-colour bytes at +5..+7. All 29 shipped images have flags `0x65`,
-no alpha and no mask (CONFIRMED from their bytes). Dimensions match their names.
+no alpha and no mask (STRONGLY INFERRED from their bytes). Dimensions match their names.
 
 Native header setup `0x005D77A0` takes alpha from flag bit 7 and enables a block
 mask when bit 0 is clear. The 32-bit block routine `0x00668810` reads absolute
@@ -121,7 +121,7 @@ the header and RGB/DC distinction (facts only; THIRD-PARTY-NOTICES.md).
 
 ## 2. The front-end level: `Data/editor/maps/FrontEnd3DLevel*`
 
-| File | Bytes | Content (CONFIRMED, repo readers) |
+| File | Bytes | Content (STRONGLY INFERRED, repo readers) |
 |---|---|---|
 | `FrontEnd3DLevel.kwd` | 26,831 | level info. Its strings are only the paths of the global `.kwd` files and of the five `.kld` files below: no title, music or briefing |
 | `FrontEnd3DLevelMap.kld` | 428 | **7 × 14 tiles**. Terrain: 30 Edge of Map ×38, 14 Dungeon Heart ×25, 1 Impenetrable Rock ×19, 34 Hero Gate [FrontEnd] ×16. Owners: p1 16, p2 57, p3 25 |
@@ -133,12 +133,12 @@ the header and RGB/DC distinction (facts only; THIRD-PARTY-NOTICES.md).
 - Room 21 "Hero Gate [FrontEnd]" is a 1×1 `HeroGateFrontEndTile` construction with HP
   600 and terrain 34. Its pieces are `3DFrontend1..16` (wall-pieces.md); it builds no
   walls (wall-pieces.md §3); its floor table is the 3×6 table `0x0066DD28`
-  (room-floors-and-liquids.md). CONFIRMED in those documents.
+  (room-floors-and-liquids.md). STRONGLY INFERRED in those documents.
 - None of the front-end objects (§2.1) is placed by the level, so the executable must
   create them (STRONGLY INFERRED: they appear in no `.kld`; the code that spawns them
   belongs to the menu-machine read).
 
-### 2.1 Front-end objects in `Objects.kwd` (CONFIRMED, `kwd objects`)
+### 2.1 Front-end objects in `Objects.kwd` (STRONGLY INFERRED, `kwd objects`)
 
 | Id | Name | Flags of note |
 |---|---|---|
@@ -152,7 +152,7 @@ the header and RGB/DC distinction (facts only; THIRD-PARTY-NOTICES.md).
 | 133 | HeroGate MPD Table | CanBePickedUp, HP 1000 |
 | 134, 135, 136 | 3D Front End Banner 2, 3, 4 | — |
 
-### 2.2 Front-end meshes in `Meshes.WAD` (CONFIRMED names, 2,015 entries in all)
+### 2.2 Front-end meshes in `Meshes.WAD` (STRONGLY INFERRED names, 2,015 entries in all)
 
 | Pattern | Count | Bytes | Likely use (by name, STRONGLY INFERRED) |
 |---|---|---|---|
@@ -170,7 +170,7 @@ the header and RGB/DC distinction (facts only; THIRD-PARTY-NOTICES.md).
 The 93 meshes in the first eight rows carry front-end names (1,970,333 bytes counting
 the 17 `REA3_*` files, which are excluded from the 93).
 
-### 2.3 Front-end textures in `DK2TextureCache/EngineTextures.dir` (CONFIRMED names)
+### 2.3 Front-end textures in `DK2TextureCache/EngineTextures.dir` (STRONGLY INFERRED names)
 
 5,767 entries in all; each texture is stored at up to 4 mip levels (`MM0..MM3`).
 - `3dFe_*`: 70 entries, 20 base textures (arches, chains, floor, walls, pillar base,
@@ -184,7 +184,7 @@ the 17 `REA3_*` files, which are excluded from the 93).
 
 The 2D map is a backdrop image, and a byte index bitmap gives the slot under the
 pointer (`0x00538D00`, campaign-map-and-progression.md, STRONGLY INFERRED there). The
-WAD candidates, by name and pixel format (format CONFIRMED, pairing HYPOTHESIS):
+WAD candidates, by name and pixel format (format STRONGLY INFERRED, pairing HYPOTHESIS):
 - **Backdrop:** `BackdropMap.png`, 640×480 RGB. For My Pet Dungeon, `BackdropMPD1..6`
   and `BackdropMPDEmpty`; the MPD backdrop varies with the number of levels open.
 - **Index bitmap:** `map_template.png`, 640×480 **8-bit paletted** (one byte a pixel).
@@ -193,10 +193,10 @@ WAD candidates, by name and pixel format (format CONFIRMED, pairing HYPOTHESIS):
 - **Per-level overlays:** the 133 `2dLevel*`/`2dLevelS*` pieces (4 variants each) and
   `MapColours.png` (64×16).
 
-## 3. Camera paths in `Paths.WAD` (CONFIRMED)
+## 3. Camera paths in `Paths.WAD` (STRONGLY INFERRED)
 
 The designers' index in `Engine Path Info.txt.txt` heads paths 250-274 "3D Front End
-Camera's". At the CONFIRMED 30 frames a second (camera-paths.md §1):
+Camera's". At the STRONGLY INFERRED 30 frames a second (camera-paths.md §1):
 
 | Path | Index text | Frames | Seconds |
 |---|---|---|---|
@@ -217,7 +217,7 @@ That is 25 files: 8 single-frame static views and 17 moves. A static path is 72 
 (16-byte header and one 56-byte frame). Other paths without an index entry (233-236,
 244: 450-1,200 frames) are not named as front end.
 
-## 4. Fonts (CONFIRMED)
+## 4. Fonts (STRONGLY INFERRED)
 
 `Data/Text/Default` holds 22 `.bf4` fonts: 6 `FONT_FRONTEND` and 16 `FONT_INGAME`.
 Menu style selection and measurement: [menu implementation boundary](front-end-menus.md#f3-implementation-boundary). Replacement font policy: ADR-0539.
@@ -236,7 +236,7 @@ Menu style selection and measurement: [menu implementation boundary](front-end-m
 
 ## 5. Sound
 
-### 5.1 SDT container (CONFIRMED, bytes, and `SdtArchive`)
+### 5.1 SDT container (STRONGLY INFERRED, bytes, and `SdtArchive`)
 
 `u32 count`, then `count` absolute `u32` offsets. Each entry has a 40-byte header:
 `u32 headerSize (40)`, `u32 storedSize`, `char[16] name`, `u16 sampleRate`,
@@ -267,7 +267,7 @@ the entry:
 OpenKeeper's `SdtFile` reads the same layout, and THIRD-PARTY-NOTICES.md already
 records it for `SdtArchive`.
 
-### 5.2 Front-end banks (CONFIRMED, bytes)
+### 5.2 Front-end banks (STRONGLY INFERRED, bytes)
 
 | File | Bytes | Entries | Non-empty | Content |
 |---|---|---|---|---|
@@ -278,7 +278,7 @@ records it for `SdtArchive`.
 ### 5.3 Event maps (`*BANK.map`, `*SFX.map`)
 
 A `BANK.map` holds a 16-byte id, two `u32`s and `u32 count` at 0x18, then
-`count` 11-byte records, then length-prefixed archive names. CONFIRMED by
+`count` 11-byte records, then length-prefixed archive names. STRONGLY INFERRED by
 parsing and the native reader; flags at record `+9` are in
 [sound-effects.md section 2](sound-effects.md#2-bankmap-archive-flags).
 
@@ -302,7 +302,7 @@ are in [music.md section 5.1](music.md#51-native-group-flag-consumers-2026-10-29
 The `object_fe_*` banks name five front-end props: map, parchment, spike, torch and
 window. Only some of them have an object in `Objects.kwd` (§2.1).
 
-### 5.4 Music (CONFIRMED sizes; durations computed from MPEG frames)
+### 5.4 Music (STRONGLY INFERRED sizes; durations computed from MPEG frames)
 
 | Bank | Bytes | Entries (non-empty) | Duration |
 |---|---|---|---|
@@ -322,7 +322,7 @@ The music is made of segments (`1pt1-001.mp2` …) that `musicSFX.map` sequences
 DKII.EXE question (UNKNOWN). `Global/SoundFont.sf2` (404,764 B, RIFF `sfbk`) is
 selected by one_shot_atmos; see [sound-effects.md section 2](sound-effects.md#2-bankmap-archive-flags).
 
-### 5.5 Speech (CONFIRMED)
+### 5.5 Speech (STRONGLY INFERRED)
 
 33 `speech_*` folders hold 3,386 entries in 82,334,879 bytes.
 - `speech_mentor`: 1,505 entries, 33,288,635 B. It pairs with `Speech.str`; see
@@ -341,7 +341,7 @@ Which bank speaks the campaign-map briefings is UNKNOWN (binary question).
 Container, codec and display evidence now live in [movie-format.md](movie-format.md);
 the shipped-file inventory below is the asset catalogue.
 
-### 6.2 Files (CONFIRMED sizes and chunk counts; durations at 25 fps)
+### 6.2 Files (STRONGLY INFERRED sizes and chunk counts; durations at 25 fps)
 
 | File | Bytes | Video frames | Duration |
 |---|---|---|---|
@@ -373,7 +373,7 @@ timing measurements and limits live in [movie-format.md](movie-format.md).
 The owner requires runtime reads of the install, with no ffmpeg or converted
 asset cache; sequencing remains F7 of the front-end plan.
 
-## 7. Text (CONFIRMED, `Dk2StringTable` header counts; `str list` spot checks)
+## 7. Text (STRONGLY INFERRED, `Dk2StringTable` header counts; `str list` spot checks)
 
 | Files | Count | Entries each | Use |
 |---|---|---|---|
@@ -394,10 +394,10 @@ The briefing-entry meanings are STRONGLY INFERRED from the content of four files
 
 | Item | Facts | Confidence |
 |---|---|---|
-| `Data/Settings/HiScores.dat` | 1,320 bytes = **ten 0x84-byte (132-byte) rows** (`0x0053E610`, campaign-map-and-progression.md). In each row, +0 is a `u32` score (rows descend from 1,000,000), +4 the name in UTF-16 (32 characters, 64 bytes) and +68 the level label in UTF-16 (32 characters, e.g. "20"). The text is not cleared past its terminator: stale bytes, including a pointer-like `0x006BD44C`, survive in three rows. Written by `0x0053E320`/`0x0053E610` when a slot's Total Evil Rating qualifies | row size CONFIRMED (bytes and the binary); fields STRONGLY INFERRED from 10 rows |
-| `HiScores\HiScores.dat` in `FrontEnd.WAD` | 450 bytes = ten **45-byte** rows: a `u32` score (2000, 1800 … 200) and then a UTF-16 name. That is not the 132-byte layout, so this is not the file the game reads at run time; whether DK2 reads it at all is UNKNOWN | rows CONFIRMED |
-| `Data/Settings/settings.txt`, `Data/Save/save.txt` | 1 byte each: placeholders | CONFIRMED |
-| `Data/Save/*.SAV`, `*.QSAV` | the load-game list's source. `QuickSave`, `MPDQuickSave` and `SkirmishQuickSave` are the named quick-save slots | names CONFIRMED |
-| `Data/editor/maps/FrontEnd3DLevel*` | §2 | CONFIRMED |
-| `DK2TextureCache/EngineTextures.*` | front-end textures, §2.3 | CONFIRMED |
-| `Sprite.WAD` | 24 entries, none with a front-end name (minimap-rendering.md) | CONFIRMED |
+| `Data/Settings/HiScores.dat` | 1,320 bytes = **ten 0x84-byte (132-byte) rows** (`0x0053E610`, campaign-map-and-progression.md). In each row, +0 is a `u32` score (rows descend from 1,000,000), +4 the name in UTF-16 (32 characters, 64 bytes) and +68 the level label in UTF-16 (32 characters, e.g. "20"). The text is not cleared past its terminator: stale bytes, including a pointer-like `0x006BD44C`, survive in three rows. Written by `0x0053E320`/`0x0053E610` when a slot's Total Evil Rating qualifies | row size STRONGLY INFERRED (bytes and the binary); fields STRONGLY INFERRED from 10 rows |
+| `HiScores\HiScores.dat` in `FrontEnd.WAD` | 450 bytes = ten **45-byte** rows: a `u32` score (2000, 1800 … 200) and then a UTF-16 name. That is not the 132-byte layout, so this is not the file the game reads at run time; whether DK2 reads it at all is UNKNOWN | rows STRONGLY INFERRED |
+| `Data/Settings/settings.txt`, `Data/Save/save.txt` | 1 byte each: placeholders | STRONGLY INFERRED |
+| `Data/Save/*.SAV`, `*.QSAV` | the load-game list's source. `QuickSave`, `MPDQuickSave` and `SkirmishQuickSave` are the named quick-save slots | names STRONGLY INFERRED |
+| `Data/editor/maps/FrontEnd3DLevel*` | §2 | STRONGLY INFERRED |
+| `DK2TextureCache/EngineTextures.*` | front-end textures, §2.3 | STRONGLY INFERRED |
+| `Sprite.WAD` | 24 entries, none with a front-end name (minimap-rendering.md) | STRONGLY INFERRED |

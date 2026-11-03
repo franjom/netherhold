@@ -56,7 +56,7 @@ called with `LEA ECX,[ESI+0x8]` at `0x00513A59` and `0x00509B50`).
 body (`0x004B0F20`), 7 `0x004B19A0`; kind 9 is never linked. So **every creature
 updates, walking its root at `0x0048A480`, before any action point**, and each
 class runs **newest first**. The THINGS handler `0x005211A0` creates one point per
-record, so points run in reverse file order (CONFIRMED 2026-10-26: the THINGS reader calls the
+record, so points run in reverse file order (STRONGLY INFERRED 2026-10-26: the THINGS reader calls the
 handler in file order; see [004B7830](functions/004B7830.md)). Q246's "points interleave with creatures" was wrong. Built as
 ADR-0361 and ADR-0568: creature roots run after their own update, action points
 after creature work, and player roots after room ticks. The timing evidence is
@@ -186,7 +186,7 @@ neutral player `[0x006F2548]` gets a new owner. `0x004A3F50` is the creature fil
 shape over the object's root: for each active record of the event's type on the
 top-level chain it walks the children through `0x004A3E90` with the record's own
 `+0x0F`. That walker uses the world condition dispatcher `0x00518270` (type 18 is
-answered false) and the world action dispatcher, and returns 0. **CONFIRMED.** No
+answered false) and the world action dispatcher, and returns 0. **STRONGLY INFERRED.** No
 per-turn walk reaches `+0x144`. Its only writer found is the object initialiser `0x0049B1C0`, which zeroes it
 (`0x0049B390`); no store of a non-zero value turned up in instruction scans of `.text`
 and `cseg` (whole-record copies not checked). Neither the object

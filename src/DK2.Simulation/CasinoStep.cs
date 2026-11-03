@@ -18,7 +18,7 @@ namespace DK2.Simulation;
 /// <remarks>Ours: a state entered this turn runs from the next, where DK2's dispatcher can run a
 /// kicked creature's new handler later in the same turn. Sounds, the wheel's spin and the drunk
 /// walk are presentation and not kept.</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/casino.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/casino.md")]
 public static class CasinoStep
 {
     /// <summary>145 (<c>0x00456160</c>): the chooser.</summary>

@@ -7,7 +7,7 @@ Primary source: retail v1.70 DKII.EXE, Ghidra 12.1.4 decompilation and
 instruction checks, 2026-10-13. Shipped data: the reference install's
 Data/Editor/Terrain.kwd, Effects.kwd and EffectElements.kwd.
 
-## 1. Ordinary trigger - CONFIRMED
+## 1. Ordinary trigger - STRONGLY INFERRED
 
 Creature_Update (`0x00488930`) requests effect 117 at
 `0x0048A06A-0x0048A0AE` when both conditions hold:

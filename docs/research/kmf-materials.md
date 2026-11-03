@@ -17,7 +17,7 @@ block).
 
 Per material it reads, in file order: the name, the texture count and names, the
 flags dword, brightness, shininess, the environment texture name. The same order
-`KmfReader` reads. CONFIRMED.
+`KmfReader` reads. STRONGLY INFERRED.
 
 It translates the file flags into engine material flags:
 
@@ -31,14 +31,14 @@ It translates the file flags into engine material flags:
 | 0x40 | 0x200 | `frontenv…`, environment-mapped |
 | 0x02, 0x80, 0x100 | dropped | "double sided", `…Illum…`, `Invisible…` |
 
-CONFIRMED. The engine flags go to the material descriptor builder
+STRONGLY INFERRED. The engine flags go to the material descriptor builder
 [0x0057C340](functions/0057C340.md) ORed with 0x4000 (the texture-list path), with
 brightness stored three times as the colour (+0x50, +0x54, +0x58), shininess at +0x4C
-and the environment texture name at +0x10. CONFIRMED.
+and the environment texture name at +0x10. STRONGLY INFERRED.
 
 So bits 0x02, 0x80 and 0x100 have no runtime effect through this loader. The
 "Illum" materials are lit by their **brightness**, which every material carries
-(§3). CONFIRMED for this loader; no other MAT2 reader exists (one reference).
+(§3). STRONGLY INFERRED for this loader; no other MAT2 reader exists (one reference).
 
 ## 2. Engine flag to render state
 
@@ -54,9 +54,9 @@ The material constructor [0x0057C420](functions/0057C420.md) starts the state wo
 | 0x040 | `& ~0x40` | state bit 0x40, meaning UNREAD |
 | 0x200 | `\| 0x800`, loads the environment texture into material +0x8 | a separate additive pass, §8 |
 
-CONFIRMED for the state words. In the applier, bit 0x1 sets SRCBLEND ONE, DESTBLEND
+STRONGLY INFERRED for the state words. In the applier, bit 0x1 sets SRCBLEND ONE, DESTBLEND
 ONE; bit 0x20 sets SRCALPHA/INVSRCALPHA and is issued after bit 0x1, so a state with
-both blends by alpha; 0x80 is ZWRITEENABLE, 0x100 ZENABLE. CONFIRMED. State bit 0x2
+both blends by alpha; 0x80 is ZWRITEENABLE, 0x100 ZENABLE. STRONGLY INFERRED. State bit 0x2
 has no reader in the applier; its reader is UNREAD.
 
 State bit 0x200 is set by every blended state. The batch drawer
@@ -75,7 +75,7 @@ So for a KMF material:
 - file 0x01, 0x08, 0x10 or 0x20 → **alpha-blended** by the texture's alpha, no depth
   write, depth-sorted;
 - file 0x04 alone → **additive** ONE/ONE, colour white (full light), no depth write;
-- otherwise **opaque**. CONFIRMED.
+- otherwise **opaque**. STRONGLY INFERRED.
 
 ## 3. Light: brightness is added, specular is off
 
@@ -83,7 +83,7 @@ The constructor stores brightness × 255 as the material colour (+0x21..+0x29), 
 vertex-colour loops add that colour to each vertex's light before the texture is
 modulated by it ([tag-highlight.md](tag-highlight.md) §6). So brightness is
 self-illumination: the gold spill cards (0.6) and chest gold (0.6) glow. An additive
-material's colour is forced to white, so it draws at full light. CONFIRMED.
+material's colour is forced to white, so it draws at full light. STRONGLY INFERRED.
 
 STRONGLY INFERRED shipped data (2026-10-16): `ROCK TOP.kmf` and all five materials in
 `DHeart Arches.kmf` have brightness zero. Their black appearance with no supplied
@@ -102,7 +102,7 @@ HYPOTHESIS: DK2 has **no alpha test**; "mask" materials are alpha-blended.
 CULLMODE NONE leaves culling to the engine: the triangle sink 0x0058B9D0 (installed in
 0x0077F4E4 at 0x0058ABA4) drops a triangle whose screen-space cross product is
 negative, with no material test. The loader drops the file's "double sided" bit
-(§1). So every KMF face is one-sided in DK2. CONFIRMED for this sink; the clipping sink
+(§1). So every KMF face is one-sided in DK2. STRONGLY INFERRED for this sink; the clipping sink
 [0x0058B940](functions/0058B940.md) defers clipped triangles and hands the rest to it.
 
 ## 5. Texture alpha
@@ -110,7 +110,7 @@ negative, with no material test. The loader drops the file's "double sided" bit
 `EngineTextureArchive` already decodes each entry's alpha channel when the entry has
 one (`HasAlpha`): `Gold_Spill_Small` and `Gold_Spill` have alpha. The texture loader
 in the constructor (0x00590B40) takes a mode of 1 (3 with engine flag 0x1000, from
-the tag materials only) and does not depend on the blend. CONFIRMED.
+the tag materials only) and does not depend on the blend. STRONGLY INFERRED.
 
 ## 6. What the classic look draws
 
@@ -142,7 +142,7 @@ The Casino's Alcove Barrels (object 68, `Bar_Barrel2`) have flags 0 and brightne
 opaque and unlit by themselves. Their bright patches were most likely URP Lit's default
 specular (smoothness 0.5), which DK2 never draws (§3). STRONGLY INFERRED; check on screen.
 
-## 7. Portal crystal occlusion — CONFIRMED
+## 7. Portal crystal occlusion — STRONGLY INFERRED
 
 The Level8 Portal uses static `PORTAL0`–`PORTAL8` meshes. Its four crystal primitives
 use `Portal_Gem5`, file flags 0x81 or 0x83, brightness 0.4; the chasm uses
@@ -180,7 +180,7 @@ no z-write, depth-sorted) and sub-mesh id + 1000, which the dispatch (0x00582CE0
 0x005848B0) sends to the environment emitters 0x00582290 (static) and 0x00583DC0
 (animated). It is one texture in one pass, not a second texture stage.
 
-- **Coordinates** (0x00582503-0x00582769, CONFIRMED arithmetic): E = vertex minus
+- **Coordinates** (0x00582503-0x00582769, STRONGLY INFERRED arithmetic): E = vertex minus
   camera (0x00760AB8), rotated by the view matrix at 0x00760AC4 and normalised; N =
   the vertex normal turned by the object's own matrix, times 0.5 (0x0066FC20);
   `u = Nz·Ex − Nx·Ez + 0.5`, `v = Nz·Ey − Ny·Ez + 0.5`. No clock: the shine moves
@@ -218,7 +218,7 @@ classic vertex-lit shader no pass is drawn.
 
 ## 9. Unique creature textures (2026-10-29, Q681)
 
-CONFIRMED native mechanism: `0x0059A3C0` uses `unique_%s` when variant
+STRONGLY INFERRED native mechanism: `0x0059A3C0` uses `unique_%s` when variant
 bit 0 is set, and otherwise keeps the supplied texture name. Its caller
 `0x005924A0` passes texture descriptor `+0x38`; a failed nonzero-variant
 lookup returns -1. `0x0057C420` fills material variant rows and uses the

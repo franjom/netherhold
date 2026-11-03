@@ -9,7 +9,7 @@ disassembly (0x00413E4F..0x00414079). Function verdicts live in their records; t
 the contract the presentation layer must meet. Parent page:
 [bottom-panel-controls.md](bottom-panel-controls.md).
 
-## 1. One draw, three progress sectors — CONFIRMED
+## 1. One draw, three progress sectors — STRONGLY INFERRED
 
 Every Rooms, Spells and Workshop slot widget has one draw callback, 0x00412FC0. The static
 widget records hold the update callback at `+0x34` and the draw at `+0x38` (static-record
@@ -55,13 +55,13 @@ Overlays use lower numbers, so a lower layer is in front, as the Heart's layers 
 That is the only arrangement in which the bright wedge is visible over a dimmed icon. The
 depth-to-layer mapping itself is unread.
 
-**Pressed slots — CONFIRMED.** Widget `+0x41`/`+0x45` non-zero (meaning unread, taken as
+**Pressed slots — STRONGLY INFERRED.** Widget `+0x41`/`+0x45` non-zero (meaning unread, taken as
 pressed) draws the base icon inset one pixel, `w − 2`. The recharge wedge and the state-2
 research wedge use `w` when not pressed and `w − 2` when pressed (0x00413909..0x00413967,
 0x00413EDD..0x00413F80). The state-1 research wedge does the reverse, `w − 2` when not pressed
 (0x00413FCB..0x00414070). The manufacture wedge and its purple tint are skipped while pressed.
 
-## 2. Spell recharge — CONFIRMED except the layering
+## 2. Spell recharge — STRONGLY INFERRED except the layering
 
 Drawn in the spell arm of 0x00412FC0 (0x00413422 reads p, 0x0041388D..0x004139CB draws) for ordinary spells
 only; library specials, the Reaper (spell 5) and the one-shot Reaper (14) are not on the grid.
@@ -84,7 +84,7 @@ only; library specials, the Reaper (spell 5) and the one-shot Reaper (14) are no
 `KeeperSpellRules.CanCast` already uses,
 `(uint)(CooldownRaw × OriginalTicksPerGameSecond) >> 12`. Built (§8).
 
-## 3. Manufacture — CONFIRMED
+## 3. Manufacture — STRONGLY INFERRED
 
 Drawn in the Workshop arm (0x0041349D..0x00413723 marks the slot, 0x00413C4B draws).
 
@@ -116,7 +116,7 @@ Only a sale (game actions 0x33/0x35) changes the ring outside enqueue and pop (Q
 or trap still under construction only, taking the first order of its type and zeroing `+0x217` when
 that was the head; a door or trap destroyed any other way leaves its order queued.
 
-## 4. Research — CONFIRMED except the colour order
+## 4. Research — STRONGLY INFERRED except the colour order
 
 Drawn in the shared tail of 0x00412FC0 (0x00413E4F..0x00414079) for any slot kind.
 
@@ -138,7 +138,7 @@ Drawn in the shared tail of 0x00412FC0 (0x00413E4F..0x00414079) for any slot kin
 0 = none) and `GlobalVariables.Research[target − 1]` (`ResearchEntry.Kind`, `TypeId`, `Cost`;
 `ResearchTreeRules.KindRoom/KindDoor/KindTrap/KindSpell` = 1/2/3/4). Built (§8).
 
-## 5. Other per-slot overlays in the same draw — CONFIRMED
+## 5. Other per-slot overlays in the same draw — STRONGLY INFERRED
 
 | Overlay | Condition | Art (catalogue index, name) | Layer | Built |
 |---|---|---|---|---|
@@ -155,7 +155,7 @@ Catalogue names are from the 69-byte catalogue records at 0x006A7DF0 (index × 6
 minimap-rendering.md). The runtime array at interface `+0x12B6` uses 27-byte entries, with the
 texture at `+0xF`, so `+0x1B96` is entry 261's texture.
 
-## 6. The Reaper's `_timerImages` — CONFIRMED, already built
+## 6. The Reaper's `_timerImages` — STRONGLY INFERRED, already built
 
 `ClassicBottomPanel._timerImages` are the Reaper one-shot countdown digits (`Gui\spells\rt-0..9`)
 drawn by 0x00424840 in menu41 ([keeper-spell-reaper.md](keeper-spell-reaper.md)). They are

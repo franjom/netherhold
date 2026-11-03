@@ -32,7 +32,7 @@ What OpenKeeper adds, and what this census says of it:
 | Type `0x01` is raised by `CPlayer::initAsNoPlayer` | The only post of type 1 is `Player_ModifyHeartHealth` `0x004DA323` (the heart's health change; matches our reading in [win-and-defeat.md](win-and-defeat.md)). Their function name is another label or wrong. |
 | Type `0x2D` is raised by `CPlayer::fun_4E2500` | Agrees: `Library_FindForCreature` pushes it at `0x004E27FD` and jumps to the shared ecx setup at `0x004E2867`, then the call at `0x004E286D`. |
 | Rows 26 and 34 take "20/30" seconds | Every key of both lists is 30 s. The 20 is only the seconds field of the list's terminator record (used, as the default, on row 34 only). Their other slash and range columns match the keys exactly. |
-| 25 types have "none found" | **Confirmed, and no further type lacks a poster** (section 4). |
+| 25 types have "none found" | **STRONGLY INFERRED, and no further type lacks a poster** (section 4). |
 | "go-to" kinds, text strings | Not in the table (code and `Speech.str`). Not checked here. |
 | A named producer per type | For the 67 types where they name one by address, one of our posters lies within `0x1800` bytes after it in every case. That is a plausibility check, not an identity: function sizes vary and the rest of their names are labels only. |
 

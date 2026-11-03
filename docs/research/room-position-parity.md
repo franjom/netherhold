@@ -8,7 +8,7 @@ Primary source: retail DKII.EXE v1.70, ghidra-queries, 2026-11-01. Read the
 centre instruction window 004E4701-004E495A. Committed hash 368 is the
 pre-edit control for ADR-0625/hash 369.
 
-## Confirmed rule
+## The rule
 
 Ordinary rooms sum their slab coordinates and divide each sum by the count.
 The resulting tile is accepted only when it belongs to that exact room. A

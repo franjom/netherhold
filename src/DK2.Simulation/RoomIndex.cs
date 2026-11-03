@@ -240,7 +240,7 @@ public static class RoomIndex
     }
 
     // 004E4759..004E4954: centroid when owned, otherwise the first owned spiral tile.
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/room-position-parity.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-position-parity.md")]
     private static TilePos FindOrdinaryCentre(WorldState world, int[] indices)
     {
         int sumX = 0, sumY = 0;

@@ -14930,16 +14930,18 @@ stopwatch, native capture), STRONGLY INFERRED (a read of the binary or the shipp
 HYPOTHESIS (fits the evidence, a step not read), UNKNOWN (DK2's answer is not known), and
 DISPUTED (readings conflict; records only). Owner decision, 2026-11-03: rename the record
 values rather than keep a mapping table. Records moved by `tools/kb/rescale_confidence.py`:
-CONFIRMED to STRONGLY INFERRED (1,540), LIKELY and GUESS to HYPOTHESIS (1,244), each with a
-dated History line. A record stays CONFIRMED only where the running game shows its whole role:
-`0050EA70`, the world-log dump the owner ran. Records whose role a native capture backs in part
-were moved and wait for a record-by-record raise. `kb check` rejects the retired words.
+CONFIRMED to STRONGLY INFERRED (1,540 of 1,541), LIKELY and GUESS to HYPOTHESIS (1,244), each with a
+dated History line. A native capture counts as the running game (owner, 2026-11-03), and a
+record-by-record audit left 5 records CONFIRMED, those whose whole role the running game shows
+(KB Coverage counts them); one that a capture shows only in part stays STRONGLY INFERRED, and the owner's
+memory of play does not count (AGENTS.md). `kb check` rejects the retired words.
 
 **Consequences.** Ghidra names keep a suffix for HYPOTHESIS, UNKNOWN and DISPUTED only
 (ADR-0290); `kb apply-names` must be rerun to retire the `_LIKELY`/`_GUESS` names. A branch
 cut before this ADR runs the rescale script after merging master; it keeps a record master holds
-CONFIRMED. Prose that used CONFIRMED for a binary read, and LIKELY/GUESS tags in notes, records and
-code comments, moved too. Record names that end in `_LIKELY` were left as names.
+CONFIRMED. Prose that used CONFIRMED for a binary read, in notes, records, code comments and `Dk2Behavior`
+attributes, was audited one occurrence at a time and moved (owner, 2026-11-03); results of our
+own runs are "measured", not CONFIRMED. Record names that end in `_LIKELY` were left as names.
 
 ## ADR-0643: the wiki is indexed by a closed list of systems and generated in CI
 

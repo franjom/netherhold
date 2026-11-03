@@ -165,7 +165,7 @@ handles them from its own table at `0x0066CE30` ([campaign-win-sequence.md](camp
 **STRONGLY INFERRED (binary):** the base, the 20-byte stride, the 86 records and the
 `[id, handler]` layout; that 85 ids run 1–137; that `FUN_00514830` is id 26.
 
-**CONFIRMED (cross-reference):** the six anchors of §2.
+**STRONGLY INFERRED (cross-reference):** the six anchors of §2.
 
 **UNKNOWN:** what all but those six ids mean, and the 52 gaps — whether they are
 unused ids or actions handled somewhere else entirely.

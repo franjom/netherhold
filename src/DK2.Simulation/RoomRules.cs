@@ -83,7 +83,7 @@ public static class RoomRules
 
     /// <summary>Whether this terrain is ground the room may sit on, ignoring
     /// ownership, cost and buildability: the room's placement flags against the
-    /// terrain's water/lava/solid flags. CONFIRMED at the level of the data — the flags
+    /// terrain's water/lava/solid flags. STRONGLY INFERRED at the level of the data — the flags
     /// exist for this question and partition the shipped rooms unaided.</summary>
     public static bool IsSuitableGround(GameDatabase database, in TileState tile, RoomDef room)
     {

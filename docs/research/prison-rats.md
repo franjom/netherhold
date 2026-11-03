@@ -4,7 +4,7 @@ systems: [rooms]
 # Prison rats
 
 Status: STRONGLY INFERRED from DKII.EXE v1.70, read 2026-10-12.
-Shipped record values are CONFIRMED from Objects.kwd. No original-game
+Shipped record values are STRONGLY INFERRED from Objects.kwd. No original-game
 population or timing experiment has been performed.
 
 ## 1. Generation
@@ -60,7 +60,7 @@ For each accepted candidate it draws x then y offsets with random(4096),
 covering the full tile, and starts common MoveTo with resume process 11,
 extra speed zero and interruptible flag true. There is no path search.
 Process 9 uses the common turn/countdown/velocity rules in
-[hatchery-roaming.md](hatchery-roaming.md#2-movement-timing--confirmed).
+[hatchery-roaming.md](hatchery-roaming.md#2-movement-timing--strongly-inferred).
 Chicken-only avoidance remains gated by object type 9. A rat immediately
 chooses another point on its next process-11 update after arrival.
 

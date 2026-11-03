@@ -12,7 +12,7 @@ namespace DK2.Simulation.Navigation;
 /// bit 3 → tight arrival, bit 4 → no final approach, bit 5 or 6 → snap and separate until
 /// arrival. Bit 0 is the state helper's own: keep the state on a failed request. The named
 /// words are the ones the state handlers push; most push <see cref="Loose"/>.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 [Flags]
 public enum MoveOptions
 {

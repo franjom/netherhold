@@ -15,7 +15,7 @@ follow their ordinary transform and lattice path. The decisive assembly is
 `0x0057AEA0..0x0057AF62`; an independent reader checked the three negations.
 `0x00585F90` forwards its draw flags into that parameter.
 
-CONFIRMED: `0x0057D5B0` copies the three static KMF normal floats into the
+STRONGLY INFERRED: `0x0057D5B0` copies the three static KMF normal floats into the
 runtime vertex without arithmetic; this is not cancelling a loader inversion.
 The ordinary top arm of`0x0043E860` puts terrain art2 into a whole-piece record
 with flags`0x90`. `0x0043C310` forwards that record's flags through whole-piece
@@ -29,7 +29,7 @@ height2 and an upward authored normal. The native flag makes that lighting
 normal point downward instead. ClaimScan's light is below that top, so this
 changes the sign of incidence; gamma or a normal-length adjustment cannot do so.
 
-CONFIRMED quarter caps: `0x0043FF5D` initializes quarter draw flags to`0x90`;
+STRONGLY INFERRED quarter caps: `0x0043FF5D` initializes quarter draw flags to`0x90`;
 only the open PlayerColouredPath branch clears them at`0x0043FF6B`.
 `0x00440232..0x00440248` copies those flags into quarter-record`+0xC`.
 Solid PlayerColouredWall quarters retain normal inversion. Floor quarters do not.
@@ -41,7 +41,7 @@ regressions and image checks are in classic-lighting-verification.md.
 
 ## 2. Texture stages and remaining limits
 
-CONFIRMED: the ordinary stage0 colour operation set by`0x00589250` is4,
+STRONGLY INFERRED: the ordinary stage0 colour operation set by`0x00589250` is4,
 with texture and diffuse arguments. Direct3D defines that as ordinary modulation,
 not an added ambient term. Special state bits`0x8000`/`0x10000` configure
 bump-environment stages; they are not evidence of a default scene fill.
@@ -56,7 +56,7 @@ No arbitrary shader brightness or gamma adjustment follows from this trace.
 
 ## 3. Ordinary objects use instance lighting
 
-CONFIRMED: type5 objects pass through`0x0059CCF0`/`0x00580480` into draw vtable
+STRONGLY INFERRED: type5 objects pass through`0x0059CCF0`/`0x00580480` into draw vtable
 `0x0066FD1C`. Preparation slot+8,`0x00580EC0`, selects flag`0x100` sources into
 draw`+0x60`, and separately evaluates flag4 sources with`0x0057C080` at the draw
 translation. This is not terrain's`0x60`/`0xA0`/1 per-vertex classification.
@@ -98,13 +98,13 @@ flag`0x80` multiplies by the owner's palette RGB/255 and clamps each result to
 at least32. This is not the torch room-colour +255 conversion. The helper sets
 the created engine light's flag8. Assembly confirms the unsigned radius math.
 
-CONFIRMED lifetime: `0x0049BD20` saves the linked light's old position at`+0x105`
+STRONGLY INFERRED lifetime: `0x0049BD20` saves the linked light's old position at`+0x105`
 and updates its position to the physical object position plus the same descriptor
 XYZ after object animation. `0x0049B5E0` destroys it through bridge slot`+0xA8`
 and clears the object's handle. `0x0043A2E0` leaves factory flags`0x28` steady:
 there is no automatic colour fade or model-alpha multiplication on this path.
 
-CONFIRMED classification: the light initializer calls`0x004468E0` with mode1,
+STRONGLY INFERRED classification: the light initializer calls`0x004468E0` with mode1,
 stored at`+0xE4`. The prepared-tile pass`0x0043CC30` sends such kind2 lights to
 renderer slot`+0xE8`,`0x00599C60`, including the cache-only branch without the
 ordinary mesh's visibility test. This renderer prepends dynamic sources through
@@ -115,7 +115,7 @@ interpolate previous+(current-previous)*fraction through`0x0041C4C0`,
 `0x00446C70` prepends on creation or tile change and leaves same-tile order alone.
 The renderer's second prepend reverses encounter order back to insertion order.
 
-CONFIRMED Heart placement: `0x004DB700` creates Heart13 and Arches86 at the
+STRONGLY INFERRED Heart placement: `0x004DB700` creates Heart13 and Arches86 at the
 central tile with physical Z0. Our central Heart floor projection also returns0;
 its authored lights therefore originate at heights3686/4096 and15360/4096.
 
@@ -133,7 +133,7 @@ offsets still need comparison. These are not evidence for an ambient fill.
 
 ## 5. Room automatic-object added colour
 
-CONFIRMED: `0x004E6220` stamps a furniture object's room and links its automatic
+STRONGLY INFERRED: `0x004E6220` stamps a furniture object's room and links its automatic
 object list. If the room terrain has AmbientLight (bit29), it copies the low
 bytes of the terrain's ambient RGB words into object bytes`+0x8C..+0x8E`.
 This is an added model colour, independent of the linked dynamic light.

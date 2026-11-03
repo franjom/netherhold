@@ -14,7 +14,7 @@ namespace DK2.Simulation.Systems;
 /// <see cref="TileWorkSystem"/>'s, and the decision to go and do it is
 /// <see cref="ImpTaskSystem"/>'s.
 /// <para>A tag on terrain that is not <see cref="TerrainFlags.Taggable"/> is
-/// dropped unless a Secret Door files kind 11 first — CONFIRMED at the level of the data: the flag is
+/// dropped unless a Secret Door files kind 11 first — STRONGLY INFERRED at the level of the data: the flag is
 /// set on rock, gold, gems, reinforced walls and fog, never on floor. An
 /// undiscovered tile is exempt, so a mark into the dark is a bet revalidated at
 /// reveal (CONFIRMED, Q193, docs/research/fog-of-war.md); untagging is always

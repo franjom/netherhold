@@ -13,7 +13,7 @@ namespace DK2.Simulation.Systems;
 /// and the imp is made on the cast's own turn, as the Level 4 casts at packet turns 392 and 552 show
 /// (imp-observation-clocks.md). A free cast is made in the player update after that walk and
 /// waits a turn (<see cref="ImpSupplySystem"/>, ADR-0635).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/functions/0050A450.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/functions/0050A450.md")]
 public sealed class CreateImpCastSystem : ISimulationSystem
 {
     public string Name => "CreateImpCast";

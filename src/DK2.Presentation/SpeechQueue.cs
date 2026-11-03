@@ -7,7 +7,7 @@ using DK2.Core;
 namespace DK2.Presentation;
 
 /// <summary>Sixteen FIFO speech slots, deduped by queued event and category; mentor-speech-and-notifications.md section2.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/mentor-speech-and-notifications.md#2-the-speech-queue")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/mentor-speech-and-notifications.md#2-the-speech-queue")]
 public sealed class SpeechQueue
 {
     private readonly Queue<SoundRequest> _waiting = new();

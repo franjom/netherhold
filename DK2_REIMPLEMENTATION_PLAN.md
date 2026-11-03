@@ -492,7 +492,7 @@ Confidence reflects *our ability to reproduce the behaviour*, not merely to pars
 | **Economy — payday/wage procedure** | ● | | | Built as a journey (ADR-0078/0079); `f3E2_getPaid`, `SkipNextPayment` |
 | **Creature stats & data** | ● | | | KWD `CREATURES(170)`, `CreatureStats` StatTypes |
 | **Creature state representation** | ● | | | Flame `creature_state.h` — 54 named flags |
-| **Creature job/destination selection** | | ● | | **Workers: CONFIRMED and built** (ADR-0018/0058/0061, `imp-task-priority.md`); **non-workers: built from the mood choosers and the 28-way dispatcher `FUN_00478800`** (ADR-0082), against the 281-state table (ADR-0072) that is still being mapped |
+| **Creature job/destination selection** | | ● | | **Workers: STRONGLY INFERRED and built** (ADR-0018/0058/0061, `imp-task-priority.md`); **non-workers: built from the mood choosers and the 28-way dispatcher `FUN_00478800`** (ADR-0082), against the 281-state table (ADR-0072) that is still being mapped |
 | **Creature moods / anger / happiness** | | ● | | **Built** (ADR-0053/0081, `creature-anger.md`): six counters saturating at 65533, mood banded on the largest, measured ceiling 32767, once a game second, desertion. Open: happiness sources beyond the two a player can switch off |
 | **Combat — stats** | ● | | | KWD; `MELEE_DAMAGE`, `MELEE_RECHARGE_TIME_SECONDS` |
 | **Combat — resolution & target selection** | | ● | | Melee and spells built from the binary (ADR-0163–0170); what is left: `dk2tools coverage`, `docs/HANDOFF.md` |
@@ -1295,7 +1295,7 @@ second** (ADR-0089); `CMapEntry`'s 11 bytes are still [UNKNOWN] against the KWD 
 `f3AF_workModifier` versus `f3B3_workEnhancement` is still [UNKNOWN];
 `Follow_Path`'s 36 bytes held no path data — it is a stateless named behaviour, and DK2
 routes on a navigation mesh (ADR-0155, Q5); and the job-selection order is
-**confirmed for workers from the binary's own priority table** and is not OpenKeeper's
+**STRONGLY INFERRED for workers from the binary's own priority table** and is not OpenKeeper's
 lair → sleep → eat → work (ADR-0058).
 
 ---

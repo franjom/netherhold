@@ -20,7 +20,7 @@ public static class EnvironmentMapCoordinates
     /// <paramref name="normal"/> is the vertex normal turned by the drawn thing's own rotation, in
     /// DK2's frame, and is halved here (constant 0.5 at <c>0x0066FC20</c>). Then
     /// <c>u = Nz·Ex − Nx·Ez + 0.5</c> and <c>v = Nz·Ey − Ny·Ez + 0.5</c> (<c>0x00582503</c>–<c>0x00582769</c>).
-    /// CONFIRMED arithmetic; the frames of the two vectors are HYPOTHESIS (the normal gets no view
+    /// STRONGLY INFERRED arithmetic; the frames of the two vectors are HYPOTHESIS (the normal gets no view
     /// rotation).</summary>
     public static Vector2 Of(Vector3 eye, Vector3 normal)
     {

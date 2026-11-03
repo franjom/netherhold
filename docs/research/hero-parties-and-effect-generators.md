@@ -51,7 +51,7 @@ them (Q259).
 
 ## Effect generators in DK2 (read 2026-10-05, Q255, Q259)
 
-**Loader — CONFIRMED.** The THINGS tag-203 handler (`0x00521380`) reads the 36-byte
+**Loader — STRONGLY INFERRED.** The THINGS tag-203 handler (`0x00521380`) reads the 36-byte
 body and copies `X`, `Y` (as tile centres), `+0x10` → `Width`, `+0x12` → `Height`, `+0x1D`
 → `Id`, and, once the creator `0x004B81E0` succeeds, `+0x1C` → `Frequency` and the four
 words at `+0x14` → the effect ids. Body `+0x08`, `+0x0C` and the six bytes at `+0x1E` are
@@ -59,7 +59,7 @@ never read. The runtime object (vtable `0x0066D814`; field names from its dumper
 `0x004B1CF0`) adds the next due turn `+0x2E`, `Flags +0x3B` (0) and `Active +0x3C` (1);
 init `0x004B19A0`, save `0x004B19F0`.
 
-**Update — CONFIRMED.** `0x004B1B60` (vtable `+0x14`, outside any defined function):
+**Update — STRONGLY INFERRED.** `0x004B1B60` (vtable `+0x14`, outside any defined function):
 when `Active` and turn > due, `slot = rand(4)` from the simulation seed
 (`EffectGenerator.cpp` line 173); an empty slot returns without restamping, so it
 draws again next turn. Otherwise `rand(Width << 12)` and `rand(Height << 12)` place a
@@ -69,7 +69,7 @@ effect for the neutral player, and due = turn + `Frequency` × variable 19. So
 `Frequency` is seconds and the four ids are picked uniformly, an empty slot costing a
 turn. What `+0x20C` tests and what `+0x38C` builds are unread.
 
-**Every level has one more — CONFIRMED.** `Level_InitTriggersAndStart` adds a generator
+**Every level has one more — STRONGLY INFERRED.** `Level_InitTriggersAndStart` adds a generator
 at `0x0050C265` (unless world `+0x7239` bit `0x40`): position (`0x1800`, `0x1800`,
 `0x2000`), width and height the map's minus 2, `Frequency` 1, effect 90 in slot 0
 only. Its id is the node count of the list at world `+0x16` (PLAUSIBLE). The only
@@ -255,7 +255,7 @@ The ruin opens the claim test's second arm (`0x00454040`): a non-Attackable gate
 embedded gate cannot otherwise be destroyed. Both agree with the read: the shipped gate terrains
 are not Attackable.
 
-**Shipped data (CONFIRMED):** 67 type-32 records on 17 levels name 65 tiles: 61 on 2x2 gates,
+**Shipped data (STRONGLY INFERRED):** 67 type-32 records on 17 levels name 65 tiles: 61 on 2x2 gates,
 3 on 3x1 gates, and Level 7's (35,41), a Reinforced Wall, where the arm does nothing (a
 prediction). Every shipped party raised on a gate (35 levels) already stands where the step-off
 would put it, so the step-off moves no shipped spawn.

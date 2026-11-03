@@ -133,7 +133,7 @@ effect 101, Creature Dazed Effect, tied to it on the handler's first call only
 while the duration hold remains active (Age 1; ADR-0480, corrected by ADR-0581);
 when the time is up, action 53 (getting up) and `SetState(257)`, whose handler
 (`0x00481200`) returns 1 while an action is current, then runs `0x00481400` and the
-room drop `0x004E8DA0(0)` (CONFIRMED, `hand-drop-landing.md` §3); `+0x3CB` := 0.
+room drop `0x004E8DA0(0)` (STRONGLY INFERRED, `hand-drop-landing.md` §3); `+0x3CB` := 0.
 **A hit lengthens the stun.** The damage routine (tests at `0x004B2EA9` and `0x004B2EBA`, call at `0x004B2EC9`), for a creature in the
 stunned family with a live non-Imp among its attackers (`0x0045EC10`), calls `0x00481360`:
 the stun left grows by variable 181 `StunTimePercentageIncreaseWhenHit` (25) percent of
@@ -155,7 +155,7 @@ owner. The three caller durations and the truncated pre-hit health-percentage ga
 in [shot-effects.md section5](shot-effects.md#5-the-inferno).
 **No routine that reads `+0x469` or `+0x46B` changes health**: the readers are the
 update above, the animation chooser, the effect follower (`0x00487C70`) and the
-serialisers (CONFIRMED, negative: every reader of both words was walked). It is not
+serialisers (STRONGLY INFERRED, negative: every reader of both words was walked). It is not
 display alone: each burning tick the update draws nine times on the simulation stream
 for its flames ([shot-effects.md](shot-effects.md) §5, Q658).
 
@@ -225,7 +225,7 @@ values and refusals; the frozen handler; the stun handler and `StunDuration`'s
 loader multiply; the Invisible drop and the targetable bit's conditions; §3's
 multipliers and refusals; the Stone Knight path.
 
-**CONFIRMED (negative):** fire changes no health in v1.70.
+**STRONGLY INFERRED (negative):** fire changes no health in v1.70.
 
 **CONFIRMED (owner, 2026-09-23):** the Reaper Fireball stuns — the target is thrown to the
 ground with the stunned effect.

@@ -142,7 +142,7 @@ the found entry's 36 bytes (`REP MOVSD`, 9 dwords) when it is allocated (`+0x23`
 word (`+0x21`) matches, and `EBP-0x64 + 0x21` is `EBP-0x43`. `0x00508110` and `0x00508160`
 use only the low 16 bits, so both calls address the kind-11 entry itself: it records a
 holder, and a second imp is refused or kicks under the `0x32` slack (`0x0046CE4F`, kick at
-`0x0046CE63`). CONFIRMED. An earlier frame scan missed the callee's write and called the word
+`0x0046CE63`). STRONGLY INFERRED. An earlier frame scan missed the callee's write and called the word
 unwritten.
 
 **The work.** State 38 (`0x00467650`): the entry must still be kind 11 (`0x00508070`)

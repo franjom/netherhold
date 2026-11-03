@@ -22,7 +22,7 @@ public interface ISightBlocker
 /// to the other, one tile boundary at a time, asking each tile entered whether it blocks. The
 /// tile the walk starts in is never asked; the tile the target stands in is, when entered.
 /// (docs/research/combat-acquisition.md §5)</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-acquisition.md")]
 public static class LineOfSight
 {
     private const int TileMask = unchecked((int)0xFFFF0000);
