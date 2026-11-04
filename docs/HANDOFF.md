@@ -359,7 +359,7 @@ startup pose (ADR-0462); portal smoke, wall reinforcement and portal buildup
 effects (ADR-0464, 0465, 0467); the Heart sparkles and opening sequence; rock
 dust prominence (Q593); live Heart platform guards and Arch Pillar targets
 (Q585, Q586); Level8's guard placement (Q589). Unbuilt: non-creature threat
-flight (combat-fear.md §7), the Prison chicken loop, Hatchery adoption and held-bird decay (Q584),
+flight (combat-fear.md §7), the Prison chicken loop, held-bird decay (Q584),
 the remaining flower gaps (research/status-flowers.md §4). Reported graininess: inspect the Game view
 scale before changing rendering (TRAPS.md). Crowd profiling limits are in
 tools/classic-unity-probe/README.md.

@@ -140,10 +140,13 @@ frame, registered ones stay 1000); the death is read, not captured. Built (ADR-0
 Our saved/hashed Hatchery anchor identifies the current derived room containing
 that tile. Northwest growth retains membership; an invalidated or differently
 owned anchor releases it. Capacity counting follows the saved membership even
-outside the room. This is bounded by the existing derived-room model: a sale,
-split, absorbed-room merge or capture can recreate original room identities
-while a still-valid anchor survives here. Full identity teardown, `Hatchery_AdoptChickens`
-(`0x004DEB70`, registers an unregistered bird standing on a Hatchery tile and so stops its decay)
-and decay of a bird in the hand or carried (ours does not update it; `Object_Update` has no hand
-test) remain unbuilt. Existing laying capacity continues
+outside the room. A tile add, a merge and a removal release the birds of every room they free
+(`0x004E39C0`: the absorbed rooms, or the whole old room) and then adopt the birds standing on the
+Hatchery's tiles (`Hatchery_AdoptChickens`, `0x004DEB70`; `ChickenMovementRules.AdoptOnChain`,
+ADR-0652, STRONGLY INFERRED, no capture covers a change). An adopted bird stops decaying. A capture
+conversion (`Room_MergeNeighbours`, `0x004EC900`, and the owner-change slot `0x004DE5D0`) runs through
+ours' removal and re-add; a partial conversion is unread. Unbuilt: `Object_SetOwner`'s owner-list relink,
+the object trigger event 18, adoption at level load (process 6 registers such birds on their first
+turn), and decay of a bird in the hand or carried (ours does not update it; `Object_Update` has no
+hand test). Existing laying capacity continues
 counting eggs as reservations; the original room list counts only chickens.

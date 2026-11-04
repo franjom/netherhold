@@ -146,6 +146,7 @@ public static class SlabChain
         long partyStart = 0;
         long hatcheryStamp = world.CurrentTick.Value + 1;
         WorkshopTimers workshop = default;
+        var freed = new List<int>();
         for (int d = 0; d < Dx.Length; d++)
         {
             int n = Neighbour(world, tileIndex, d);
@@ -174,6 +175,7 @@ public static class SlabChain
             {
                 chain.AddRange(room);
                 absorbed?.AddRange(room);
+                freed.AddRange(room);
             }
         }
 
@@ -196,6 +198,10 @@ public static class SlabChain
                 world.TileAtIndex(t).HatcheryStartupIntervalTicks = 0;
             }
             head.HatcheryLastGeneratedTick = hatcheryStamp;
+            // Room_Absorb frees each room merged in behind (0x004ECD00), whose Room_OnFreed unlinks its
+            // birds; then the slot +0x09 of the room that grew adopts those on its tiles.
+            ChickenMovementRules.ReleaseHatcheryBirds(world, freed);
+            ChickenMovementRules.AdoptOnChain(world, database, chain);
         }
         return chain;
     }
@@ -311,6 +317,8 @@ public static class SlabChain
         leaving.HatcheryStartupIntervalTicks = 0;
         (leaving.PrisonDoor, leaving.CasinoParty, leaving.CasinoPartyStartTick) = (0, 0, 0);
         foreach (int tile in old) door |= world.TileAtIndex(tile).PrisonDoor;
+        // The freed old room's Room_OnFreed unlinks every bird it held (0x004E39C0); each piece adopts afresh.
+        if (room.TypeId == RoomTypeId.Hatchery) ChickenMovementRules.ReleaseHatcheryBirds(world, [.. old, tileIndex]);
 
         foreach (List<int> chain in chains)
         {
@@ -329,6 +337,7 @@ public static class SlabChain
                     world.TileAtIndex(t).HatcheryStartupIntervalTicks = 0;
                 }
                 world.TileAtIndex(lowest).HatcheryLastGeneratedTick = world.CurrentTick.Value + 1;
+                ChickenMovementRules.AdoptOnChain(world, database, chain);
             }
             if (room.TypeId == RoomTypeId.Prison) Activate(world, chain);
         }

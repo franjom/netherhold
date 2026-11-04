@@ -121,8 +121,8 @@ The outcome averages neither confirm nor refute the rule fixes at this sample si
 399 against DK2 is 0.20 (1400), 0.19 (3400) and 0.25 (L4); the per-state paired change from 392 to 399 has
 p 0.43, 0.06 and 0.19. The Heart still sees the pillar targeted about half as long as native. Q712 is
 therefore no longer steered by these averages: new rules need a binary reading or a capture (a draw-log
-comparison on other levels, which needs native captures; the Q584 edges, a held bird's decay and
-`Hatchery_AdoptChickens` `0x004DEB70`), and the scratch restore adapter stops here.
+comparison on other levels, which needs native captures; a held bird's decay, Q584; `Hatchery_AdoptChickens`
+`0x004DEB70` was built afterwards, ADR-0652), and the scratch restore adapter stops here.
 
 Evidence: `F:/DK2Evidence/builds/q712-final399-measurement-h399--2026-11-04--001/` and the studies
 `heart-defence-q712-h399-l5--2026-11-04--001/` and its `l4` sibling.

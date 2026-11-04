@@ -142,7 +142,8 @@ runs from the Hatchery's tile pass `0x004DE560`, which first recomputes the
 generation interval `+0x4D` from `Size`, and from its ownership-change slot
 `0x004DE5D0`, which first empties `+0x0C` through `0x004E6130` (2026-10-04). It
 gives a chicken owned by someone else to the room's owner, and lists it only
-when the chicken's room word `+0x138` is 0. `0x004A1F87` adds a chicken standing
+when the chicken's room word `+0x138` is 0. Ours runs it when a Hatchery's tiles
+change (ADR-0652). `0x004A1F87` adds a chicken standing
 on its owner's Hatchery. No adder for an egg was
 found, so an egg does not stock a hatchery; that the list holds nothing else is
 STRONGLY INFERRED, its other adders being other rooms' (Q522). Ours counts the
@@ -285,5 +286,5 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 
 ## Open questions
 
-- Prison process 3, Hatchery adoption of a standing bird and decay of a held bird: Q584 (loose process 10 and free-range decay are built, ADR-0647, ADR-0650).
+- Prison process 3 and decay of a held bird: Q584 (loose process 10, free-range decay and Hatchery adoption on a tile change are built, ADR-0647, ADR-0650, ADR-0652).
 - Q134: why the exponent is that value. Does not affect fidelity.

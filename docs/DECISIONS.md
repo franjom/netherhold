@@ -15165,7 +15165,46 @@ leave the death to this step.
 **Consequences.** A free-range bird lives its 1000 health, 250 seconds. A full Hatchery's free-range
 census now empties as birds die, so it launches more: `a_hatchery_lays_and_hatches` lays 42 eggs, not
 22. Removal is at once rather than in the second walk later the same turn. The death itself is read,
-not captured (no bird reached 0 in the window). Two edges stay open (Q584): ours does not update a bird
+not captured (no bird reached 0 in the window). One edge stays open (Q584): ours does not update a bird
 in the hand or carried, where `Object_Update` has no hand test and a held free-range bird probably keeps
-decaying; and `Hatchery_AdoptChickens` (`0x004DEB70`), which registers an unregistered bird standing on
-a Hatchery tile and so stops its decay, is not built.
+decaying. `Hatchery_AdoptChickens` (`0x004DEB70`), which registers a bird standing on a Hatchery tile
+and so stops its decay, is built in ADR-0652.
+
+## ADR-0652: a Hatchery adopts the Chickens on its tiles when they change
+
+**Date:** 2026-11-04. **Status:** accepted. Builds part of Q584; hash/save 401. · **Systems:** rooms
+
+**Context.** Adding a tile to a room (`0x004ED1A0`, through `0x004ED320` and the room's `0x004EC650`,
+which absorbs each further neighbouring room with `Room_Absorb`, `0x004ECB70`) ends in one call of
+`Room_OnTilesChanged` (`0x004E4480`, at `0x004ED2D8`). Removing a tile (`0x004ED7B0`) frees the old room
+(`0x004ED9FA`), re-inserts its other tiles, and calls `0x004E4480` once for each resulting piece
+(`0x004ED76C`). `0x004E4480` calls the room type's slot `+0x09`. The Hatchery's (`0x004DE560`) recomputes
+its laying interval and calls `Hatchery_AdoptChickens` (`0x004DEB70`). That walks the room's slab chain
+and each tile's thing list, head (newest) first. For each Chicken (object 9) it first gives the bird the
+room's owner when that differs. It does this through `Object_SetOwner` (`0x0049C850`), which first unlinks
+the bird from its room. It then adds the bird, capacity-gated, through `Room_AddObject` (`0x004E5FF0`)
+when it is in no room. Freeing a room, the absorbed one in a merge or the old one in a removal
+(`0x004ECD00`), runs `Room_OnFreed` (`0x004E39C0`), which unlinks every object of its ObjectList. Ours
+registered a bird only through process 6, so a free-range bird that came to stand on a Hatchery stayed
+free and decayed (ADR-0650).
+
+**Decision.** For a Hatchery, `SlabChain.Added` and `SlabChain.Removed`, the remake's tile add and tile
+removal, first release the birds of the freed rooms (`ChickenMovementRules.ReleaseHatcheryBirds`). In
+`SlabChain.Added` those are the rooms absorbed behind the first neighbour. In `SlabChain.Removed` it is
+the whole old room. Then they adopt (`AdoptOnChain`): in chain order, and newest first on each tile, a
+bird of another owner is released and takes the room's owner, and a bird in no room is admitted when
+capacity allows.
+
+**Consequences.** A Hatchery built or grown under a free-range bird takes that bird in, and the bird stops
+decaying and can no longer escape. A cut Hatchery keeps only the birds standing on its pieces, and a bird
+on the sold tile goes free. A Hatchery tile that changes owner takes the birds standing on it, through
+ours' removal and re-add. DK2's conversion path is different: `Room_MergeNeighbours` (`0x004EC900`,
+which calls `0x004E4480` at `0x004ECB1D`) and the owner-change slot `0x004DE5D0`. The two routes are
+equal for a whole room, but a partial conversion is unread. All of this is STRONGLY INFERRED from the
+disassembly; no capture covers a Hatchery change. Not mirrored:
+- `Object_SetOwner`'s owner-list relink (`0x004B4D40`, `0x004B4C30`);
+- the object trigger event 18 it fires for a formerly neutral bird; ours has no object roots;
+- adoption at level load, where DK2 inserts room tiles one by one; process 6 registers such birds on
+  their first turn.
+
+A held bird's decay stays open (Q584).

@@ -116,16 +116,65 @@ public static class ChickenMovementRules
     private static void RegisterHatchery(SimulationContext context, ObjectState chicken, TilePos tile)
     {
         if (chicken.HatcheryRoomAnchorTileIndex >= 0) return;
-        RoomInstance room = RoomIndex.RoomAt(context.World, context.Database, tile.Y * context.World.Width + tile.X)!;
+        Admit(context.World, context.Database, chicken,
+            RoomIndex.RoomAt(context.World, context.Database, tile.Y * context.World.Width + tile.X)!);
+    }
+
+    /// <summary><c>Room_AddObject</c> (<c>0x004E5FF0</c>) for a Chicken: admitted when the room's used capacity
+    /// plus the bird's definition capacity fits, which clears its escape eligibility (<c>0x004C0010</c>).</summary>
+    private static void Admit(WorldState world, GameDatabase database, ObjectState chicken, RoomInstance room)
+    {
         int used = 0;
-        foreach (ObjectState bird in context.World.Objects)
+        foreach (ObjectState bird in world.Objects)
             if (bird.ObjectTypeId == HatcheryRules.ChickenObjectId
                 && room.Contains(bird.HatcheryRoomAnchorTileIndex))
-                used += context.Database.ObjectById(bird.ObjectTypeId)!.RoomCapacity;
-        int required = context.Database.ObjectById(chicken.ObjectTypeId)!.RoomCapacity;
-        if (used + required > HatcheryRules.FlockCapacity(context.Database, room)) return;
+                used += database.ObjectById(bird.ObjectTypeId)!.RoomCapacity;
+        int required = database.ObjectById(chicken.ObjectTypeId)!.RoomCapacity;
+        if (used + required > HatcheryRules.FlockCapacity(database, room)) return;
         chicken.HatcheryRoomAnchorTileIndex = room.TileIndices[0];
         chicken.ChickenCanEscape = false;
+    }
+
+    /// <summary><c>Room_OnFreed</c> (<c>0x004E39C0</c>) unlinks every object of a freed room: each bird whose
+    /// membership anchor is one of <paramref name="tiles"/> leaves its Hatchery.</summary>
+    internal static void ReleaseHatcheryBirds(WorldState world, IReadOnlyCollection<int> tiles)
+    {
+        if (tiles.Count == 0) return;
+        var set = tiles as ISet<int> ?? new HashSet<int>(tiles);
+        foreach (ObjectState bird in world.Objects)
+            if (bird.ObjectTypeId == HatcheryRules.ChickenObjectId && set.Contains(bird.HatcheryRoomAnchorTileIndex))
+                UnlinkHatchery(bird);
+    }
+
+    /// <summary><c>Hatchery_AdoptChickens</c> (<c>0x004DEB70</c>), the tail of the Hatchery's slot +0x09
+    /// (<c>0x004DE560</c>) that <c>Room_OnTilesChanged</c> (<c>0x004E4480</c>) runs after a tile is added,
+    /// rooms are merged or a room is cut. It walks the room's slab chain and each tile's thing list head
+    /// first; a Chicken of another owner takes the room's owner (<c>Object_SetOwner</c>, <c>0x0049C850</c>,
+    /// which first releases its room), and one in no room is admitted when capacity allows (ADR-0652).</summary>
+    internal static void AdoptOnChain(WorldState world, GameDatabase database, IReadOnlyList<int> chain)
+    {
+        if (chain.Count == 0 || RoomIndex.RoomAt(world, database, chain[0]) is not { } room
+            || room.Definition.TypeId != RoomTypeId.Hatchery) return;
+        var birds = new List<ObjectState>();
+        foreach (ObjectState o in world.Objects)
+            if (o.ObjectTypeId == HatcheryRules.ChickenObjectId && o.TileLink.IsLinked && room.Contains(o.TileLink.TileIndex))
+                birds.Add(o);
+        if (birds.Count == 0) return;
+        // A tile's thing list is newest first: the higher link order first.
+        birds.Sort((a, b) => b.TileLink.Order.CompareTo(a.TileLink.Order));
+        foreach (int tile in chain)
+        {
+            foreach (ObjectState bird in birds)
+            {
+                if (bird.TileLink.TileIndex != tile) continue;
+                if (bird.OwnerPlayerId != room.OwnerPlayerId)
+                {
+                    UnlinkHatchery(bird);
+                    bird.OwnerPlayerId = room.OwnerPlayerId;
+                }
+                if (bird.HatcheryRoomAnchorTileIndex < 0) Admit(world, database, bird, room);
+            }
+        }
     }
 
     private static bool IsOwnedHatchery(SimulationContext context, ObjectState chicken, TilePos tile) =>
