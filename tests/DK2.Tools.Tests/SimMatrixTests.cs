@@ -172,6 +172,23 @@ public class SimMatrixTests
     }
 
     [Fact]
+    public void ReadingARoomInstanceIsReadingRoomsAndRebuildingItIsNot()
+    {
+        // RoomTickSystem walks every RoomInstance and keeps no room state of its own.
+        var rooms = Array.IndexOf(StateModel.Columns, "Rooms");
+        var walk = Repository.Value.Rows.Single(r => r.Row.Name == "RoomTickSystem");
+        Assert.Equal("R", walk.Core.Cells[rooms]);
+        Assert.All(Repository.Value.Rows.Where(r => r.Core.Writes.All(w => !w.StartsWith("TileState.", StringComparison.Ordinal)
+                                                                         && !w.StartsWith("WorldState.", StringComparison.Ordinal)
+                                                                         && !w.StartsWith("RoomBuildWaveState.", StringComparison.Ordinal)
+                                                                         && !w.StartsWith("TempleSacrificeState.", StringComparison.Ordinal)
+                                                                         && !w.StartsWith("GraveyardState.", StringComparison.Ordinal)
+                                                                         && !w.StartsWith("SacrificeIngredient.", StringComparison.Ordinal)
+                                                                         && !w.StartsWith("RoomBorderCursor.", StringComparison.Ordinal))),
+            r => Assert.NotEqual("W", r.Core.Cells[rooms]));
+    }
+
+    [Fact]
     public void AWorldAccessorReturningAListCarriesItsWrites()
     {
         // TempleSacrificeRules removes through WorldState.RawTempleSacrifices => _templeSacrifices.

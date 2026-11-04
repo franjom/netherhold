@@ -101,6 +101,18 @@ internal sealed class StateModel
         ["ISimulationProfiler"] = Excluded, ["ISimulationEventSink"] = EventsOut,
     };
 
+    /// <summary>Types whose reads count in another column than their writes, by simple name. <c>RoomInstance</c>
+    /// is the room as the tiles describe it, rebuilt into a cache: reading it reads room state, and writing it only
+    /// refreshes the cache, so its reads are Rooms and its writes stay in Caches &amp; scratch.</summary>
+    internal static readonly IReadOnlyDictionary<string, int> ReadColumns = new Dictionary<string, int>(StringComparer.Ordinal)
+    {
+        ["RoomInstance"] = Rooms,
+    };
+
+    /// <summary>The column a read of <paramref name="member"/> counts in, given where it sits.</summary>
+    internal static int ReadColumn(ISymbol member, int column) =>
+        member.ContainingType is { } owner && ReadColumns.TryGetValue(owner.Name, out int read) ? read : column;
+
     private readonly Dictionary<INamedTypeSymbol, int> _typeColumn = new(SymbolEqualityComparer.Default);
     private readonly Dictionary<INamedTypeSymbol, List<int>> _reachedFrom = new(SymbolEqualityComparer.Default);
     private readonly HashSet<INamedTypeSymbol> _systemTypes = new(SymbolEqualityComparer.Default);

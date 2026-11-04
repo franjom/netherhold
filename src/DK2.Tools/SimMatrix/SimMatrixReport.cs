@@ -29,7 +29,9 @@ internal static class SimMatrixReport
         sb.Append("**Legend.** `W` written, `R` read and not written. Upper case is the core view, which stops at the hubs ")
           .Append($"({string.Join(" and ", result.Hubs.Select(h => $"`{h.Name}`"))}); lower case is what a row reaches only ")
           .Append("through a hub, so `Rw` is read by the row itself and written only through a hub. A step (↳) runs inside its ")
-          .Append("container once per creature or room, in the order shown.\n\n");
+          .Append("container once per creature or room, in the order shown. Rooms holds the state a room keeps from tick ")
+          .Append("to tick; reading `RoomInstance`, the room as its tiles describe it, counts as reading Rooms, while ")
+          .Append("rebuilding it is a write of Caches & scratch.\n\n");
 
         sb.Append("## Matrix\n\n");
         sb.Append("| # | System |");

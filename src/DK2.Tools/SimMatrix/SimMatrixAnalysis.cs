@@ -141,7 +141,7 @@ internal static class SimMatrixAnalysis
             var cells = new string[StateModel.Columns.Length];
             Array.Fill(cells, "");
             foreach (var key in reads)
-                if (Place(key) is (FieldPlace.Column, var c)) cells[c] = "R";
+                if (Place(key) is (FieldPlace.Column, var c)) cells[StateModel.ReadColumn(key, c)] = "R";
             foreach (var key in writes)
                 if (Place(key) is (FieldPlace.Column, var c)) cells[c] = "W";
             return new RowView(
