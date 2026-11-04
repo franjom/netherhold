@@ -100,7 +100,7 @@ public static class CreatureStateMachine
         TrainingStep.CancelAction(creature);
         creature.SwingInProgress = false;
         creature.ActionUntilTick = 0;
-        creature.Tunnel.ActionUntilTick = 0;
+        creature.Tunnel.Digging = false;
     }
 
     /// <summary>The arrival branch of a travel handler: hand control to the resume state and

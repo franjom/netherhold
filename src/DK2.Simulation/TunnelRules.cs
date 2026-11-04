@@ -12,12 +12,14 @@ namespace DK2.Simulation;
 /// <c>+0xAF/+0xB3</c> (positions), the target tile <c>+0xB7/+0xB9</c>, the phase <c>+0xBB</c>, the
 /// wall-follow exit <c>+0xBF/+0xC1</c> and hit point <c>+0xC3/+0xC5</c> (tiles), the facing
 /// <c>+0xC7</c>, the reach flag <c>+0xCB</c>, the hand <c>+0xCF</c> and the resume <c>+0xD3</c>;
-/// ours adds the end of the dig swing it is waiting on.</summary>
+/// ours adds whether its dig runs and which action it is, 1 or 2 (DK2's current action, creature
+/// <c>+0x3A9</c>).</summary>
 public struct TunnelRecord
 {
     public int StandX, StandY, DigX, DigY, TargetX, TargetY, Phase, ExitX, ExitY, HitX, HitY, Facing, Resume;
     public bool Reach, Hand;
-    public long ActionUntilTick;
+    public bool Digging;
+    public byte Action;
 }
 
 /// <summary>A hero worker digging its own way (tunnelling.md, ADR-0222): the route helpers'
@@ -146,8 +148,25 @@ public static class TunnelRules
     /// <summary>State 186 (<c>0x00485C10</c>). False goes to idle.</summary>
     public static bool Tunnel(SimulationContext context, string system, CreatureState creature)
     {
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        // A slot-5 clip with no dig running is stale: an update with no action puts the standing or
+        // walking clip on (0x0048BE50), so the next swing installs slot 5 afresh.
+        if (!creature.Tunnel.Digging) ClearDigClip(creature);
+        bool result = TunnelStep(context, system, creature, definition);
+        if (!creature.Tunnel.Digging) ClearDigClip(creature);
+        return result;
+    }
+
+    private static void ClearDigClip(CreatureState creature)
+    {
+        if (creature.ActionArtSlot == DigArtSlot) ActionAnimationClock.Clear(creature);
+    }
+
+    private static bool TunnelStep(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
+    {
         ref TunnelRecord t = ref creature.Tunnel;
-        if (context.Tick.Value < t.ActionUntilTick) return true;
+        // 0x00485C10 waits while an action runs (0x00496D00); the runner polls it first.
+        if (t.Digging && !PollDig(context, creature, definition)) return true;
         int dx = t.DigX >> 12, dy = t.DigY >> 12;
 
         if (!IsSolid(context, dx, dy))
@@ -171,13 +190,12 @@ public static class TunnelRules
         if (Math.Abs(t.StandX - creature.PosX) > StandRange || Math.Abs(t.StandY - creature.PosY) > StandRange)
             return Stand(context, creature) && Walk(context, creature, t.StandX, t.StandY, TunnellingState, 0);
 
-        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         int heading = creature.Heading;
         int left = Steering.Bearing.TurnToward(ref heading, Steering.Bearing.Of(t.DigX - creature.PosX, t.DigY - creature.PosY), SimulationTiming.TurnRatePerTick(definition));
         creature.Heading = heading;
         if (left != 0) return true;
 
-        return Dig(context, system, creature, dx, dy);
+        return Dig(context, creature, definition, dx, dy);
     }
 
     /// <summary>State 223 (<c>0x00462130</c>): behind the tunneller, one free tile past its facing,
@@ -208,24 +226,87 @@ public static class TunnelRules
         return true;
     }
 
-    /// <summary>The swing: action 1, or 2 on a tile with a <c>GoldValue</c>, aimed at the dig tile. Ours
-    /// queues one application and waits a work period; action 1 by a worker that is not an Imp digs at
-    /// six times <c>DigOwnWallHealth</c> (<see cref="TileWorkStrike.NonImpDig"/>).</summary>
-    private static bool Dig(SimulationContext context, string system, CreatureState creature, int x, int y)
+    /// <summary>Actions 1 (dig) and 2 (mine) play art slot 5 (records 1 and 2 of <c>0x006E4198</c>).</summary>
+    private const byte DigArtSlot = 5;
+
+    /// <summary>The swing begins (<c>0x00496980</c>, aimed at the dig tile): action 2 on a tile with a
+    /// <c>GoldValue</c> (<c>0x00485E45</c>), else action 1 (<c>0x00485E7D</c>). It strikes at the runner's next
+    /// poll (<see cref="PollDig"/>) and lasts as long as the creature's slot-5 clip, so the art sets the
+    /// cadence (ADR-0661).</summary>
+    private static bool Dig(SimulationContext context, CreatureState creature, CreatureDef definition, int x, int y)
     {
-        WorldState world = context.World;
-        int index = (y * world.Width) + x;
-        ref TileState tile = ref world.TileAtIndex(index);
-        TileWorkKind kind = context.Database.TerrainById(tile.TerrainId).GoldValue != 0 ? TileWorkKind.MineGold : TileWorkKind.Dig;
-        if (kind == TileWorkKind.Dig
-            ? !TileWorkRules.TryResolveDigTask(context.Database, tile, kind, creature.OwnerPlayerId, out _)
-            : !TileWorkRules.Applies(world, context.Database, tile, kind, creature.OwnerPlayerId))
-            return false;
-        world.QueueWork(new TileWorkOrder(index, kind, creature.OwnerPlayerId, creature.Id,
-            Strike: kind == TileWorkKind.Dig && creature.CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId
-                ? TileWorkStrike.NonImpDig : TileWorkStrike.None));
-        creature.Tunnel.ActionUntilTick = context.Tick.Value + SimulationTiming.WorkApplicationPeriodTicks;
+        TileWorkKind? kind = StrikeKind(context, creature, context.World.TileAtIndex((y * context.World.Width) + x));
+        if (kind is null) return false;
+        // Ours: with no slot-5 art there is no clip, and the action ends at its strike.
+        if (ActionAnimationClock.CanPlay(definition, DigArtSlot))
+            ActionAnimationClock.Begin(creature, definition, DigArtSlot, context.Rng);
+        else ActionAnimationClock.Clear(creature);
+        creature.ActionHandlerDone = false;
+        creature.Tunnel.Digging = true;
+        creature.Tunnel.Action = (byte)(kind == TileWorkKind.MineGold ? CreatureActionTable.Mine : CreatureActionTable.Dig);
+        ActionAnimationClock.Advance(creature, definition);
         return true;
+    }
+
+    /// <summary>The work a strike on this tile does, or null when the handler would not strike: a
+    /// diggable wall (<c>0x00496E00</c>) or a workable seam (<c>0x004971D0</c>).</summary>
+    private static TileWorkKind? StrikeKind(SimulationContext context, CreatureState creature, TileState tile)
+    {
+        TileWorkKind kind = context.Database.TerrainById(tile.TerrainId).GoldValue != 0 ? TileWorkKind.MineGold : TileWorkKind.Dig;
+        bool strikes = kind == TileWorkKind.Dig
+            ? TileWorkRules.TryResolveDigTask(context.Database, tile, kind, creature.OwnerPlayerId, out _)
+            : TileWorkRules.Applies(context.World, context.Database, tile, kind, creature.OwnerPlayerId);
+        return strikes ? kind : null;
+    }
+
+    /// <summary>A clip asked to stop is done once it has run into its End and completed; with no clip
+    /// (ours, art the creature lacks) at once.</summary>
+    private static bool StoppedClipDone(CreatureState creature) =>
+        creature.ActionAnimationRate == 0 || (creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0;
+
+    /// <summary>The runner's poll of the swing (<c>0x00496AA0</c>, mode 3): the handler is called until it
+    /// returns done, and the action ends when the handler and the clip are both done. The handler strikes
+    /// while its tile stands and retests it: still standing, it is done; emptied, or gone before it struck,
+    /// it asks the clip to stop and is done when the clip completes. After the clip first wraps, a swing
+    /// that leaves its tile standing ends at the poll that strikes, so a tile takes a first cycle and then
+    /// a strike a turn. True when the action has ended.</summary>
+    /// <remarks>Ours strikes through the work queue, so the retest applies the strike to a copy of the
+    /// tile; another worker's strike queued on it this turn is not seen.</remarks>
+    private static bool PollDig(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        ref TunnelRecord t = ref creature.Tunnel;
+        int index = ((t.DigY >> 12) * context.World.Width) + (t.DigX >> 12);
+        if (!creature.ActionHandlerDone)
+        {
+            TileState tile = context.World.TileAtIndex(index);
+            bool standing = false;
+            if (StrikeKind(context, creature, tile) is TileWorkKind work)
+            {
+                TileWorkStrike strike = work == TileWorkKind.Dig && creature.CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId
+                    ? TileWorkStrike.NonImpDig : TileWorkStrike.None;
+                context.World.QueueWork(new TileWorkOrder(index, work, creature.OwnerPlayerId, creature.Id, Strike: strike));
+                TileWorkRules.Apply(context.Database, ref tile, work, creature.OwnerPlayerId,
+                    TileWorkSystem.EfficiencyOf(context, creature.Id), strike: strike);
+                standing = StrikeKind(context, creature, tile) is not null;
+            }
+            if (standing) creature.ActionHandlerDone = true;
+            else
+            {
+                creature.ActionAnimationFlags |= ActionAnimationFlags.Stop;
+                creature.ActionHandlerDone = StoppedClipDone(creature);
+            }
+        }
+
+        bool ended = creature.ActionHandlerDone && ((creature.ActionAnimationFlags & ActionAnimationFlags.Stop) != 0
+            ? StoppedClipDone(creature)
+            : ActionAnimationClock.AnimationDone(creature));
+        if (ended)
+        {
+            t.Digging = false;
+            return true;
+        }
+        ActionAnimationClock.Advance(creature, definition);
+        return false;
     }
 
     /// <summary><c>0x00485EF0</c>: the next dig tile (tunnelling.md §4). True with one; false at the

@@ -142,7 +142,7 @@ public class CreatureStateMachineTests
         CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, travelState, Eating);
 
         Assert.Equal(0, creature.ActionUntilTick);
-        Assert.Equal(0, creature.Tunnel.ActionUntilTick);
+        Assert.False(creature.Tunnel.Digging);
         Assert.False(creature.SwingInProgress);
         Assert.Equal(0, creature.TrainingActionId);
     }
@@ -156,7 +156,7 @@ public class CreatureStateMachineTests
         CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, Approaching, Engaging);
 
         Assert.Equal(900, creature.ActionUntilTick);
-        Assert.Equal(900, creature.Tunnel.ActionUntilTick);
+        Assert.True(creature.Tunnel.Digging);
         Assert.True(creature.SwingInProgress);
         Assert.Equal(1, creature.TrainingActionId);
     }
@@ -166,7 +166,7 @@ public class CreatureStateMachineTests
         CreatureState creature = Fresh();
         StatePlacement.Place(creature, state);
         creature.ActionUntilTick = 900;
-        creature.Tunnel.ActionUntilTick = 900;
+        creature.Tunnel.Digging = true;
         creature.SwingInProgress = true;
         creature.TrainingActionId = 1;
         return creature;

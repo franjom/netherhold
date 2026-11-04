@@ -15358,3 +15358,32 @@ built" and "built in part", and a record built whole but never promoted looked t
 force and cited in code. The `docs` gate rejects `implemented` on an ADR a change touches, as it rejects any
 status word not in `AdrIndex.Statuses`. 17 BUILT records still lack an `implements:` line; each is held to
 the rule when it is next edited.
+
+## ADR-0661: a tunneller's swing is action 1 on its own clip
+
+**Date:** 2026-11-04. **Status:** accepted. Answers Q742; hash/save 407. · **Systems:** heroes, imps-tile-work
+
+**Context.** State 186 (`0x00485C10`) waits while an action runs (`0x00496D00`) and digs by beginning
+action 1, or 2 on a gold tile, aimed at the dig tile. Action 1 is the Imp's dig: record 1 of the
+action table, handler `0x00496E00`, art slot 5, mode 3. The runner (`0x00496AA0`) calls the handler
+until it returns done, and the handler strikes once while its tile stands; the action ends when the
+handler and the clip are both done. Once a clip has wrapped it counts as done until it is installed
+again, so after the first cycle each swing ends at the poll that strikes. That is the Imp's measured
+cadence (mining-cadence.md section 5) and, run on our clock with the Dwarf's slot 5 (30 frames at 30
+per second, start 9, end 10), a strike, a second six turns later, then one a turn. A walk to the next
+stand point puts the walking clip on, so each tile starts a fresh cycle. Ours struck once per work
+period, every turn from the first. OpenKeeper PR #914 pointed at the swing; its reading that every
+swing plays out in full is not what the clock gives.
+
+**Decision.** `TunnelRules` runs the dig as DK2's action on `ActionAnimationClock`: `Dig` begins action
+1, or 2 on a `GoldValue` tile, on slot 5; `PollDig` is the runner's mode-3 poll at the top of state
+186, whose handler strikes through the work queue and retests the tile by applying the same strike to a
+copy, asking the clip to stop in that poll when it empties; an update of state 186 that ends with no
+dig running drops the slot-5 clip, as `0x0048BE50` puts the standing or walking clip on, so each tile
+starts a fresh cycle. `TunnelRecord.ActionUntilTick` is replaced by `Digging` and the action id.
+
+**Consequences.** A hero Dwarf takes a turn longer to first strike each tile and five more before its
+second strike, so tunnels are slower by about that much per tile. A creature with no slot-5 art has no
+clip in ours and its action ends at the strike; DK2 would run whatever clip it has. The retest does not
+see another worker's strike queued on the same tile that turn. The action sounds (`0x334`, `0x109`) and
+the mine handler's own payment (`0x004971D0`) are not mirrored; a gold tile is still mined as before.

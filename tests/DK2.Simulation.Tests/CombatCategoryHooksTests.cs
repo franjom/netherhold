@@ -133,14 +133,14 @@ public class CombatCategoryHooksTests
         Assert.True(me.HasRoute);
         me.ActionUntilTick = 99;
         me.SwingInProgress = true;
-        me.Tunnel.ActionUntilTick = 99;
+        me.Tunnel.Digging = true;
 
         Assert.True(CreatureStateMachine.TrySetState(hooks, me, Engaging));
 
         Assert.False(me.HasRoute);
         Assert.Equal(0, me.ActionUntilTick);
         Assert.False(me.SwingInProgress);
-        Assert.Equal(0, me.Tunnel.ActionUntilTick);
+        Assert.False(me.Tunnel.Digging);
     }
 
     [Fact]

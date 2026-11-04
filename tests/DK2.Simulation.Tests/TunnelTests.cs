@@ -138,6 +138,68 @@ public class TunnelTests
         Assert.True(wandered, $"never wandered; state {dwarf.Dk2StateId}");
     }
 
+    /// <summary>The swing is action 1 on art slot 5 (ADR-0661): it strikes at the runner's next poll and
+    /// lasts its clip, so the art sets the cadence. Given the shipped Dwarf's slot 5 (30 frames at 30 per
+    /// second, start 9, end 10), the fixture's worker strikes a second time six turns after the first,
+    /// then, the clip having wrapped, every turn, as the Imp's dig does.</summary>
+    [Fact]
+    public void WithTheDwarfsArt_TheSecondStrikeWaitsOutTheFirstClip_ThenOneATurn()
+    {
+        (GameDatabase db, WorldState world) = Walled(WithDwarfDigArt());
+        world.Tile(4, 6).Health = 1_000_000;
+        CreatureState digger = Hero(db, world, Worker, new TilePos(3, 6));
+        (GameSimulation sim, _) = Simulation(db, world);
+
+        List<long> strikes = StrikesOn(sim, world, new TilePos(4, 6), 5, 60);
+
+        Assert.True(strikes.Count == 5, $"strikes at {string.Join(",", strikes)}");
+        Assert.Equal([6L, 1L, 1L, 1L], strikes.Zip(strikes.Skip(1), (a, b) => b - a));
+    }
+
+    /// <summary>A strike that empties its tile asks the clip to stop, and the walk to the next stand point
+    /// puts another clip on (0x0048BE50), so the next tile starts a fresh first cycle.</summary>
+    [Fact]
+    public void EachNewTileStartsAFreshClip()
+    {
+        (GameDatabase db, WorldState world) = Walled(WithDwarfDigArt());
+        world.Tile(4, 6).Health = 1;
+        world.Tile(5, 6).Health = 1_000_000;
+        CreatureState digger = Hero(db, world, Worker, new TilePos(3, 6));
+        (GameSimulation sim, _) = Simulation(db, world);
+
+        List<long> strikes = StrikesOn(sim, world, new TilePos(5, 6), 3, 200);
+
+        Assert.True(strikes.Count == 3, $"strikes at {string.Join(",", strikes)}");
+        Assert.Equal([6L, 1L], strikes.Zip(strikes.Skip(1), (a, b) => b - a));
+    }
+
+    private static GameDatabase WithDwarfDigArt()
+    {
+        GameDatabase basis = Dk2TerrainFixture.Database();
+        var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        slots[5] = new CreatureAnimationTiming
+        {
+            ResourceType = 6, Flags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
+            FrameCount = 30, FramesPerSecond = 30, StartSegmentFrames = 9, EndSegmentFrames = 10,
+        };
+        return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
+            basis.Creatures.Values.Select(c => c.CreatureId == Worker ? c with { ArtSlots = slots } : c),
+            basis.Variables, objects: basis.Objects.Values);
+    }
+
+    private static List<long> StrikesOn(GameSimulation sim, WorldState world, TilePos at, int count, int limit)
+    {
+        var strikes = new List<long>();
+        int health = world.Tile(at.X, at.Y).Health;
+        for (int t = 0; t < limit && strikes.Count < count; t++)
+        {
+            sim.Tick();
+            if (world.Tile(at.X, at.Y).Health < health) strikes.Add(sim.World.CurrentTick.Value);
+            health = world.Tile(at.X, at.Y).Health;
+        }
+        return strikes;
+    }
+
     private static int StateOf(CreatureState c) =>
         c.Dk2StateId is StateShadowTravel.ToPoint or StateShadowTravel.ToRoom ? c.UtilityNewState : c.Dk2StateId;
 
@@ -166,9 +228,10 @@ public class TunnelTests
     }
 
     /// <summary>All rock inside the border but a pocket at (3,6) and a 3x3 heart at (10..12, 5..7).</summary>
-    private static (GameDatabase, WorldState) Walled()
+    private static (GameDatabase, WorldState) Walled() => Walled(Dk2TerrainFixture.Database());
+
+    private static (GameDatabase, WorldState) Walled(GameDatabase db)
     {
-        GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         world.Tile(3, 6).TerrainId = Dk2TerrainFixture.DirtPath;
