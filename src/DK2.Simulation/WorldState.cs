@@ -1472,7 +1472,8 @@ public sealed class WorldState
 
     internal void AddHeroParty(HeroPartyState party) => _heroParties.Add(party);
 
-    /// <summary>The level's effect generators in THINGS-file order. No behaviour exists yet.</summary>
+    /// <summary>The level's effect generators in THINGS-file order, then the level-start generator;
+    /// <see cref="EffectGeneratorSystem"/> runs them (ADR-0648).</summary>
     public IReadOnlyList<EffectGeneratorState> EffectGenerators => _effectGenerators;
 
     internal void AddEffectGenerator(EffectGeneratorState generator) => _effectGenerators.Add(generator);

@@ -136,7 +136,7 @@ ours, chosen to be explicable rather than measured against DK2. The creature upd
 | `Objects` (`ObjectState`) | in placement order (ADR-0054) |
 | `ActionPoints` (`ActionPointState`) | in THINGS-file order, because several original lookups walk the collection linearly (ADR-0103) |
 | `Doors`, `Traps` | authored state in THINGS-file order (ADR-0106); a door is fought and a gate collapses (ADR-0318, ADR-0320), traps fire (ADR-0321, ADR-0331) |
-| `HeroParties`, `EffectGenerators` | authored state in THINGS-file order (ADR-0108); action 14 raises a party (ADR-0197), a generator still generates nothing (Q255) |
+| `HeroParties`, `EffectGenerators` | authored state in THINGS-file order (ADR-0108); action 14 raises a party (ADR-0197), a generator runs and every level start adds one (ADR-0648) |
 | `TempleSacrifices` (`TempleSacrificeState`) | a sorted persistent three-offering ring per derived Temple anchor (ADR-0149) |
 | `Triggers` (`TriggerState`) | the level-global flag and timer banks (ADR-0102) |
 | `Messages` (`PlayerMessageQueue`) | retained combat messages; observation and expiry boundary in ADR-0245 |

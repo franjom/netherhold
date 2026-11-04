@@ -21,7 +21,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 396;
+    private const ulong HashVersion = 397;
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
@@ -77,6 +77,7 @@ public sealed class GameSimulation
         _systemMarkers = [.. _systems.Select(s => SimulationMarker.Named(s.Name))];
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
         if (levelStart) HatcheryRules.InitializeLevelStart(world, database);
+        if (levelStart) EffectGeneratorRules.InitializeLevelStart(world);
         _triggers = triggers is null
             ? new TriggerExecutor(world.Triggers)
             : new TriggerExecutor(triggers, world.Triggers, world, database, rng, levelStart);

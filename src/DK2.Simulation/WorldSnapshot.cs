@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 396;
+    private const int FormatVersion = 397;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -840,6 +840,8 @@ public static class WorldSnapshot
             foreach (ushort effectId in generator.EffectIds) w.Write(effectId);
             w.Write(generator.Frequency); w.Write(generator.GeneratorId);
             w.Write(generator.Unknown_001E.ToArray());
+            w.Write(generator.PosX); w.Write(generator.PosY); w.Write(generator.PosZ);
+            w.Write(generator.NextDueTurn);
         }
 
         w.Write(world.TempleSacrifices.Count);
@@ -1661,6 +1663,8 @@ public static class WorldSnapshot
                 Unknown_0010 = unknown0010, Unknown_0012 = unknown0012, EffectIds = effectIds,
                 Frequency = r.ReadByte(), GeneratorId = r.ReadByte(),
                 Unknown_001E = SaveReader.Bytes(r, EffectGeneratorState.Unknown001ELength, "effect generator state"),
+                PosX = r.ReadInt32(), PosY = r.ReadInt32(), PosZ = r.ReadInt32(),
+                NextDueTurn = r.ReadUInt32(),
             });
         }
 

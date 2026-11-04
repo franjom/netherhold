@@ -12,7 +12,7 @@ action type 14 raises a party, read to its last instruction on 2026-09-24.
 The 48-level campaign contains 220 hero parties, and the shipped corpus contains
 one effect generator; every parsed field now enters ordered, hashed and
 snapshotted world state verbatim; the spawn is read (last section), and DK2's generation is read
-(§ Effect generators in DK2) but not built.
+and built (§ Effect generators in DK2, ADR-0648).
 Across the complete 66-level shipped sweep, 35 levels contain a party.
 
 ## Record shapes
@@ -45,9 +45,9 @@ Q256 records it rather than this change rewiring the tree.
 ## Behaviour
 
 Parties spawn (ADR-0197; `HeroPartyRules`, the last section here is its brief).
-Ours stores generators and generates nothing. Three of the stored fields are ones
-DK2 discards (below); ours keeps them for the round trip and, since hash 187, does not hash
-them (Q259).
+Generators run (ADR-0648; `EffectGeneratorRules`, `EffectGeneratorSystem`). Three of the stored
+fields are ones DK2 discards (below); ours keeps them for the round trip and, since hash 187,
+does not hash them (Q259).
 
 ## Effect generators in DK2 (read 2026-10-05, Q255, Q259)
 
@@ -63,19 +63,30 @@ init `0x004B19A0`, save `0x004B19F0`.
 when `Active` and turn > due, `slot = rand(4)` from the simulation seed
 (`EffectGenerator.cpp` line 173); an empty slot returns without restamping, so it
 draws again next turn. Otherwise `rand(Width << 12)` and `rand(Height << 12)` place a
-point from the generator's corner; world slot `+0x20C`(point) non-zero returns, again
-without restamping; else `rand(0x800)` gives the angle, world slot `+0x38C` makes the
-effect for the neutral player, and due = turn + `Frequency` × variable 19. So
-`Frequency` is seconds and the four ids are picked uniformly, an empty slot costing a
-turn. What `+0x20C` tests and what `+0x38C` builds are unread.
+point from the generator's corner; world slot `+0x20C`(point), `0x005090C0`, tests the
+navigation byte's solid bit at the point's tile and, when set, returns again without
+restamping; else `rand(0x800)` gives the angle, world slot `+0x38C` makes the effect for
+the neutral player, and due = turn + `Frequency` × variable 19. So `Frequency` is seconds
+and the four ids are picked uniformly, an empty slot costing a turn. The effect's own
+internals past `0x00509580` are unread.
 
 **Every level has one more — STRONGLY INFERRED.** `Level_InitTriggersAndStart` adds a generator
 at `0x0050C265` (unless world `+0x7239` bit `0x40`): position (`0x1800`, `0x1800`,
 `0x2000`), width and height the map's minus 2, `Frequency` 1, effect 90 in slot 0
-only. Its id is the node count of the list at world `+0x16` (PLAUSIBLE). The only
-authored generator is Level 17's, yet `dk2-random.md`'s Level 1 census logs 2,982
-draws at line 173: this level-start generator makes them. Ours draws for neither,
-one more entry in the seed-stream gap that document records.
+only. Its id is the node count of the list at world `+0x16` (`0x0050C22D..0x0050C241`). The
+only authored generator is Level 17's, yet `dk2-random.md`'s Level 1 census logs 2,982
+draws at line 173: this level-start generator makes them.
+
+**Built (ADR-0648, hash/save 397).** `EffectGeneratorSystem` runs after the action points
+(thing list 7, last of the update walk, newest first) and adds the level-start generator on
+a level start, not a restore. The seed-1 Level 5 draw log
+(`F:/DK2Evidence/studies/q712-native-drawlog-level5-seed1--2026-11-03--001`) has line 173
+once on each of 380 due turns, 179 and 180 105 times and 188 30 times, and every 188 is
+followed by the next 173 exactly five turns later: the cadence is CONFIRMED. That capture
+went out of sync on its checksum at turn 782 with the seed still matching and holds only the
+level-start generator, so the authored-generator paths (tile-centre corner, four slots,
+newest-first order) are STRONGLY INFERRED. Whether ours now draws as many numbers a turn as
+that log is not yet measured ([neutral-ambient-effect.md](neutral-ambient-effect.md#the-remaining-draw-gap)).
 
 Adding both collections changes the state shape even in an empty world, so
 `HashVersion` and snapshot `FormatVersion` are 47. The pin is recorded in

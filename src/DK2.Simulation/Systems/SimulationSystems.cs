@@ -91,6 +91,7 @@ public static class SimulationSystems
         new HatcherySystem(lays: false),
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
         new ActionPointTriggerSystem(), // list 5, after creature work and before the player frame
+        new EffectGeneratorSystem(), // list 7, the last of the thing pass's update walk (ADR-0648)
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
         new TrapRemovalSystem(),
         new DoorRemovalSystem(),

@@ -16,6 +16,7 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**397** - `0x11BF8C558F1157EF`. Remake regression pin, not native evidence. FormatVersion also 397. Effect generators run (`0x004B1B60`) and every level start adds one over the map with effect 90 (`0x0050C201`); a generator keeps its corner and due turn, saved and hashed (ADR-0648). Earlier saves are refused.
 **396** - `0x856469DFB0A4FA98`. Remake regression pin, not native evidence. FormatVersion also 396. A loose Chicken runs object process 10 (`0x004A26D0`): the roam draws, and death off a holding Hatchery, for a fallen owner or on a terrain with Damage (ADR-0647). No new saved field. Earlier saves are refused.
 **395** - `0xC0268533B850F8E4`. Remake regression pin, not native evidence. FormatVersion also 395. The neutral player's frame draws its ambient tile, two world draws a turn and four on a Lava tile (`0x004BB130`, ADR-0646). No new saved field. Earlier saves are refused.
 **394** - `0x918189F70F074B32`. Remake regression pin, not native evidence. FormatVersion also 394. Combines 393 (ADR-0645, master) with 392 (ADR-0644, the steering-body branch); neither rule changed in the merge. Earlier saves are refused.

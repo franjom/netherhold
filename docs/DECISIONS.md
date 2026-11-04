@@ -15088,3 +15088,33 @@ bird boxed in by rock cycles 10, 0 and 6 where it landed. The death effect the o
 request is not modelled, and ours removes a dead bird at once where DK2's thing pass removes it later
 in the same turn. Whether ours has as many loose birds as DK2's Level 5 at turn 1400 is checked
 when the Q712 controls move onto the seed-1 capture.
+
+## ADR-0648: effect generators run, and every level starts with one
+
+**Date:** 2026-11-04. **Status:** accepted. Builds part of Q712 (the world stream's lockstep); hash/save 397.
+
+**Context.** DK2's thing pass ends with list 7, the effect generators (`EffectGenerator_Update`
+`0x004B1B60`), and `Level_InitTriggersAndStart` adds one generator to every level that is not a
+restore (`0x0050C201..0x0050C27A`): corner (0x1800, 0x1800, 0x2000), the map less two each way,
+frequency 1, effect 90. Ours projected the authored generators and ran none. The seed-1 Level 5 draw
+log has the update's draws on 380 of 500 turns: the slot draw (line 173) once on every turn the
+generator is due, the point (179, 180) 105 times and the heading (188) 30 times, and each heading is
+followed by the next slot draw exactly five turns later.
+
+**Decision.** `EffectGeneratorState` keeps its corner and its due turn (`+0x2E`), saved and hashed.
+`GameSimulation` adds the level-start generator at a level start and not on a restore.
+`EffectGeneratorSystem` runs after the action points, newest first. Once the turn is past due it
+draws `random(4)` for a slot; an empty slot ends the turn, as does a point on a solid tile
+(`random(width << 12)`, `random(height << 12)` from the corner). Otherwise `random(0x800)` is the
+heading, the effect is requested for the neutral player, and the generator is due again `Frequency`
+seconds later. See [hero-parties-and-effect-generators.md](research/hero-parties-and-effect-generators.md).
+
+**Consequences.** Every level now draws on most turns: three slot draws in four miss, and a point on
+rock costs a turn. The cadence (one slot draw a due turn, the next five turns after a heading) is
+CONFIRMED against the draw log; that capture went out of sync on its checksum at turn 782 with the
+seed still matching, and holds only the level-start generator. Authored generators (their tile-centre
+corner, four slots, newest-first order), the solid test (world vt `+0x20C`, the nav byte's solid bit) and
+the effect's world-stream independence are STRONGLY INFERRED. Ours runs the Call to Arms and Chicken
+systems after the generator, where DK2 runs them in lists 0 and 2 before it; on a turn either draws, the
+stream order differs.
+`a_hatchery_lays_and_hatches` lays 22 eggs, not 21. Snapshots carry both generators.

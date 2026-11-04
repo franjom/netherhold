@@ -63,6 +63,7 @@ public class SimulationSystemsOrderTests
             "HatcherySystem",
             "TrapSystem",
             "ActionPointTriggerSystem",
+            "EffectGeneratorSystem",
             "TrapRemovalSystem",
             "DoorRemovalSystem",
             "ReaperRemovalSystem",

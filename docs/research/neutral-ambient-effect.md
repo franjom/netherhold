@@ -64,12 +64,17 @@ unchanged by it.
 ## The remaining draw gap
 
 Over the same 500 turns the log holds 8480 draws, about 15-19 world-seed numbers a turn, against
-about 4 in ours. The neutral frame (ADR-0646) is the first missing consumer built, and the loose
-chicken, object process 10 (`0x004A26D0`; ObjectState.cpp lines 2851, 2914, 2915; 2421 and 46
-draws over the 500 turns), the second (ADR-0647, hash/save 396). Whether ours has as many loose
-birds as DK2's Level 5 at turn 1400 is not yet checked. Still missing, in the order they were found:
+about 4 in ours before these consumers. Built, in the order found: the neutral frame (ADR-0646,
+hash/save 395); the loose chicken, object process 10 (`0x004A26D0`; ObjectState.cpp lines 2851,
+2914, 2915; 2421 and 46 draws over the 500 turns; ADR-0647, hash/save 396); and the effect
+generators, `EffectGenerator_Update` (`0x004B1B60`; lines 173, 179, 180, 188; ADR-0648, hash/save
+397, [evidence](hero-parties-and-effect-generators.md#effect-generators-in-dk2-read-2026-10-05-q255-q259)).
 
-1. `EffectGenerator_Update` (`0x004B1B60`; lines 173, 179, 180, 188).
-2. Object states 2523, 2558 and 2559, whose draw sites are not yet mapped.
+The draw sites logged as object states 2523, 2558 and 2559 belong to an owned Hatchery's object
+process 6 (`0x004A1F30`): line 0x9DB, `random(4)`, at its side search, and lines 0x9FE and 0x9FF,
+its point draws at `0x004A2097` and `0x004A212B`. Ours already mirrors them in
+`ChickenMovementRules.ChooseRoomPoint`; they were never a missing consumer, only unmapped.
 
-Q738 (`0x004B9740`'s periodic draws) is separate.
+The consumers found from the log are all accounted for. Not yet measured: whether ours matches the log's per-turn draw
+counts on Level 5, and whether it has as many loose birds as DK2 at turn 1400. That needs the
+Q712 controls moved onto the seed-1 capture. Q738 (`0x004B9740`'s periodic draws) is separate.

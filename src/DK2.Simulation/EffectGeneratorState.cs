@@ -8,8 +8,8 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>
-/// One effect generator projected verbatim in THINGS-file order. Generation
-/// behaviour is UNKNOWN and deliberately absent (ADR-0108).
+/// One effect generator: the THINGS records in file order, then the one the level initialiser adds
+/// (<see cref="EffectGeneratorRules"/>). Each turn's update is <c>0x004B1B60</c> (ADR-0648).
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
 public sealed class EffectGeneratorState
@@ -37,6 +37,14 @@ public sealed class EffectGeneratorState
 
     private readonly ReadOnlyMemory<byte> _unknown001E;
 
+    /// <summary>The position, <c>+0x1A/+0x1E/+0x22</c>: the spawn rectangle's corner.</summary>
+    public int PosX { get; init; }
+    public int PosY { get; init; }
+    public int PosZ { get; init; }
+
+    /// <summary>The turn after which the next effect is due, <c>+0x2E</c>; zero at creation.</summary>
+    public uint NextDueTurn;
+
     /// <summary>The fields the THINGS loader <c>0x00521380</c> reads (Q259): position, the spawn
     /// rectangle's width and height (<c>Unknown_0010</c>, <c>Unknown_0012</c>), the four effect ids,
     /// the frequency and the id. Body <c>+0x08</c>, <c>+0x0C</c> and the six bytes at <c>+0x1E</c>
@@ -48,5 +56,7 @@ public sealed class EffectGeneratorState
         hash.Add(EffectIds.Count);
         foreach (ushort effectId in EffectIds) hash.Add(effectId);
         hash.Add(Frequency); hash.Add(GeneratorId);
+        hash.Add(PosX); hash.Add(PosY); hash.Add(PosZ);
+        hash.Add(NextDueTurn);
     }
 }

@@ -377,5 +377,7 @@ public static class ThingProjection
             Unknown_0010 = thing.Unknown_0010, Unknown_0012 = thing.Unknown_0012,
             EffectIds = thing.EffectIds.ToArray(), Frequency = thing.Frequency,
             GeneratorId = thing.GeneratorId, Unknown_001E = thing.Unknown_001E.ToArray(),
+            // The tag-203 handler 0x00521380 places it at the tile's centre, height 0.
+            PosX = CreatureState.CentreOf(thing.X), PosY = CreatureState.CentreOf(thing.Y),
         });
 }

@@ -142,7 +142,7 @@ The busiest, with what they are (read in Ghidra 12.1.4):
 | 5,749 | ObjectState.cpp:2782 | `0x004A2650`, 2 | object state `0x004A24A0` |
 | 1,706 | ObjectState.cpp:2708 | `0x004A24C9`, 16 | the same state's timer, set to the draw + 8 |
 | 2,982 | EffectGenerator.cpp:173 | `0x004B1BA4`, 4 | an effect generator picking one of four effects; 179/180/188 place it |
-| 1,620 ×3 | ObjectState.cpp:2523, 2558, 2559 | `0x004A2149` and two unmapped | always together |
+| 1,620 ×3 | ObjectState.cpp:2523, 2558, 2559 | `0x004A2149`; 2558 and 2559 at `0x004A2097` and `0x004A212B` | an owned Hatchery's object process 6 (`0x004A1F30`): the side search and its point draws; mirrored in `ChickenMovementRules.ChooseRoomPoint` |
 | 342 | RenderInfo.cpp:201 | `0x004B38C6`, 2 | a render routine that passes the world seed's address directly |
 | 730 | ImpUtils.cpp:484 | unmapped | imp work |
 | 676 | GoodState.cpp:253 | `0x00462079`, 9 | heroes |

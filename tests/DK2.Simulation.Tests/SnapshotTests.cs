@@ -342,7 +342,9 @@ public class SnapshotTests
             (member.X, member.Y, member.Z, member.GoldHeld, member.Level, member.Flags));
         Assert.Equal(20, member.WanderRadius); Assert.Equal(21, member.PartyId);
 
-        EffectGeneratorState generator = Assert.Single(restored.World.EffectGenerators);
+        // The level start's own generator (ADR-0648) comes first, then the placed one.
+        Assert.Equal(2, restored.World.EffectGenerators.Count);
+        EffectGeneratorState generator = restored.World.EffectGenerators[1];
         Assert.Equal(new ushort[] { 29, 30, 31 }, generator.EffectIds);
         Assert.Equal(new byte[] { 34, 35, 36, 37, 38, 39 }, generator.Unknown_001E.ToArray());
         Assert.Equal(original.StateHash(), restored.StateHash());

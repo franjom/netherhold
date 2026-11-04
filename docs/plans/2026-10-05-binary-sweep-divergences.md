@@ -23,7 +23,7 @@ current Level 1–3 baselines.
 | Q129 (**built, ADR-0360**) | Heart room `InitialHealth` percentage ignored | Level 7's heart starts at 1000; Level 8's heart room is ruined at load with no heart object | `ThingProjection` |
 | Q514 (**built, ADR-0362**) | Non-ownable tiles keep the map's owner (3,629 shipped tiles) or get owner 0 | Forced to the neutral player `[0x006F2548]` | `WorldState.FromMap`, `RoomRules.cs:281`, `DefeatRules.cs:89`, `TriggerExecutor.cs:1271` |
 | Q301 (**built, ADR-0363**) | Trigger action 22 declines room tiles; owner 0 for non-ownable terrain; no effect 0x146 | Sells the old room tile without refund, builds the new one free and untested | `TriggerExecutor.AlterTerrain` |
-| Q255/Q259 (**Q259 hash built; Q255 deferred: `+0x20C` unread and the cosmetic draws dwarf it**) | No effect generators, so no draws | Every level gets a map-wide effect-90 generator drawing from the simulation seed (RNG fidelity gap, `dk2-random.md`) | new; `EffectGeneratorState` hashes three fields DK2 discards |
+| Q255/Q259 (**Q259 hash built; Q255 built, ADR-0648**) | No effect generators, so no draws | Every level gets a map-wide effect-90 generator drawing from the simulation seed (RNG fidelity gap, `dk2-random.md`) | new; `EffectGeneratorState` hashes three fields DK2 discards |
 
 ## Combat, creatures, rooms
 
