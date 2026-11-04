@@ -709,6 +709,8 @@ public sealed class WorldState
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
     internal RoomBuildWaveState?[] RoomBuildWaveSlots { get; }
     public IReadOnlyList<RoomBuildWaveState?> RoomBuildWaves => RoomBuildWaveSlots;
+    internal RoomSellWaveState?[] RoomSellWaveSlots { get; }
+    public IReadOnlyList<RoomSellWaveState?> RoomSellWaves => RoomSellWaveSlots;
     private readonly List<TileWorkOrder> _pendingWork = [];
     private readonly List<CreatureState> _creatures = [];
     internal CreatureSlotPool CreatureSlots { get; } = new();
@@ -738,6 +740,7 @@ public sealed class WorldState
         _tiles = tiles;
         _players = players;
         RoomBuildWaveSlots = new RoomBuildWaveState?[players.Length * RoomBuildWaveRules.SlotsPerPlayer];
+        RoomSellWaveSlots = new RoomSellWaveState?[players.Length * RoomSellWaveRules.SlotsPerPlayer];
         FogOfWarEnabled = fogOfWarEnabled;
 
         // One place, so no construction path can produce a keeper without a hand:
@@ -826,6 +829,14 @@ public sealed class WorldState
         for (int i = 0; i < _players.Length; i++)
             if (_players[i].PlayerId == playerId)
                 return ref RoomBuildWaveSlots[i * RoomBuildWaveRules.SlotsPerPlayer + (int)slot];
+        throw new KeyNotFoundException($"No player with id {playerId} in this world.");
+    }
+
+    internal ref RoomSellWaveState? RoomSellWave(PlayerId playerId, int slot)
+    {
+        for (int i = 0; i < _players.Length; i++)
+            if (_players[i].PlayerId == playerId)
+                return ref RoomSellWaveSlots[i * RoomSellWaveRules.SlotsPerPlayer + slot];
         throw new KeyNotFoundException($"No player with id {playerId} in this world.");
     }
 
@@ -1684,6 +1695,11 @@ public sealed class WorldState
         {
             hash.Add(wave.HasValue ? (byte)1 : (byte)0);
             if (wave is RoomBuildWaveState active) active.HashInto(ref hash);
+        }
+        foreach (RoomSellWaveState? wave in RoomSellWaveSlots)
+        {
+            hash.Add(wave.HasValue ? (byte)1 : (byte)0);
+            if (wave is RoomSellWaveState active) active.HashInto(ref hash);
         }
         hash.Add(_pendingWork.Count);
         foreach (TileWorkOrder o in _pendingWork) o.HashInto(ref hash);

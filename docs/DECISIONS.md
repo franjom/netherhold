@@ -15241,10 +15241,40 @@ disassembly; no capture covers a Hatchery change. Not mirrored:
 
 A held bird's decay stays open (Q584).
 
+## ADR-0653: a dragged sale is a wave from the rectangle's maximum corner
+
+**Date:** 2026-11-04. **Status:** accepted. Builds Q744; hash/save 404. · **Systems:** rooms
+
+**Context.** The Hand's sell release (`0x004075E0`, `0x004083DA..0x00408467`) normalises a drag and sends
+action `0x31` with the minimum corner first and the maximum second. `0x004C70A0` queues it, with no
+pre-check, in the first free of three slots at player `+0xE97`. The sell wave `0x004C7160`, which the
+keeper frame calls right after the build wave, sells one diagonal a turn from the second corner through
+`0x004C5DB0(x, y, 1)`, and clears the slot and ends the player's drain at the first. Action `0x30`
+(`0x00512890`) sells one tile at once. The owner's capture (`q750-cost-numbers--2026-11-04--003`) shows
+three drag sales going one diagonal a tick from the SE corner, each tile refunding half its price
+([floating-cost-numbers.md](research/floating-cost-numbers.md) section 6). Ours sold the whole rectangle in
+one tick.
+
+**Decision.** `SellRoomCommand.Rect` normalises the corners and is a player wave (journal tag 34);
+`RoomSellSystem` queues it in three slots per player (`WorldState.RoomSellWaves`, hashed and saved) and
+drops a fourth. `RoomSellWaveSystem`, after `RoomBuildWaveSystem`, sells each slot's diagonal for the
+turn through the same per-tile sale as before, sharing the build wave's geometry. A direct
+`SellRoomCommand` (scenario setup, room-log replays, one-tile sales) stays immediate.
+
+**Consequences.** A drag sale's refunds, sounds, floor gold and room splits arrive one diagonal a turn,
+from the maximum corner whatever the drag direction. In the wave, a refund no store takes lands on the
+tile being sold, as DK2 pays each refund in at its tile (`0x004BA420`); the direct path keeps its
+last-tile choice (Q139). As in DK2, a wave that finishes ends the player's drain for that turn, so a
+slot queued behind it can miss its only diagonal and stay occupied. A non-room tile is skipped at no cost.
+Not mirrored: the opener `0x004F0840` removes the pillars of every pillared room touching the rectangle and
+clears tile-word bit 14 on its tiles (`0x004F0F90`) until the closer `0x004F09B0` re-places them, with the
+torch commands; ours has no pillar objects or bit 14. The frame guard's `+0x76` bit 22 is unmirrored, as
+for the build wave. The Hand posts `0x31` even for a one-tile drag; who posts `0x30` is unread.
+
 ## ADR-0654: a new room or blueprint sends the keeper's walkers back to choose again
 
-**Date:** 2026-11-04. **Status:** accepted. Answers Q740; hash/save 403 (402 is held by the floating-cost
-worktree). · **Systems:** doors-traps, rooms
+**Date:** 2026-11-04. **Status:** accepted. Answers Q740; hash/save 403 (402 unused; ADR-0653 took
+404). · **Systems:** doors-traps, rooms
 
 **Context.** `0x004E8D30` stops each of a player's creatures in state 3 or 4 (the idle wanders),
 7 (walking to a room), or 6 resuming 1 (walking to a point with nothing after it), and kicks it to

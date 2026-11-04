@@ -90,6 +90,7 @@ public class SimulationSystemsOrderTests
             "ManaSystem",
             "ImpSupplySystem",
             "RoomBuildWaveSystem",
+            "RoomSellWaveSystem",
             "ResearchSystem",
             "ManufactureDecaySystem",
             "ObjectReactionSystem",

@@ -31,6 +31,7 @@ public class CommandCodecTests
         new BuildRoomCommand(P, RoomTypeId.Treasury, [T, new TilePos(1, 2)])
             { Mode = RoomBuildMode.PlayerWave, Press = new TilePos(9, 9), Release = new TilePos(8, 8) },
         new SellRoomCommand(P, [T]),
+        SellRoomCommand.Rect(P, 6, 4, 2, 3),
         new CreateImpCommand(P, F2),
         new CreateImpCommand(P, T),
         new CreateImpCommand(P),

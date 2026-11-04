@@ -13,12 +13,9 @@ namespace DK2.Simulation.Systems;
 /// floor it stood on, and half its cost back to the keeper. What may be sold and
 /// what it is worth are <see cref="RoomRules"/>; where the gold goes is
 /// <see cref="GoldStore"/>.
-/// <para><b>A tile at a time, each refund banked before the next tile goes</b>:
-/// selling a treasury shrinks the store the refund has to go into, so a keeper
-/// selling the lot runs out of somewhere to put the money partway through, and
-/// the run says exactly when. <b>Deliberate deviation: selling is instant</b> —
-/// in DK2 an imp walks over and dismantles the tile, and no task kind for that
-/// has been identified (imp-task-priority.md §3).</para>
+/// <para><b>A tile at a time, each refund banked before the next tile goes</b>: selling a treasury
+/// shrinks the store the refund has to go into. A dragged rectangle is queued here and sold one
+/// diagonal a turn from its maximum corner by <see cref="RoomSellWaveSystem"/> (room-slab-chain.md §4).</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public sealed class RoomSellSystem : ISimulationSystem
@@ -30,7 +27,119 @@ public sealed class RoomSellSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         foreach (SellRoomCommand sell in context.Commands<SellRoomCommand>())
-            Apply(context, sell);
+            if (sell.Mode == RoomSellMode.PlayerWave) Queue(context, sell);
+            else Apply(context, sell);
+    }
+
+    /// <summary>Action <c>0x31</c> (<c>0x004C70A0</c>): the rectangle goes into the first free of three slots, with
+    /// no pre-check and no cost; with all three busy the request is dropped.</summary>
+    private static void Queue(SimulationContext context, SellRoomCommand command)
+    {
+        WorldState world = context.World;
+        if (!world.HasPlayer(command.PlayerId)) return;
+        for (int slotIndex = 0; slotIndex < RoomSellWaveRules.SlotsPerPlayer; slotIndex++)
+        {
+            ref RoomSellWaveState? slot = ref world.RoomSellWave(command.PlayerId, slotIndex);
+            if (slot.HasValue) continue;
+            slot = new RoomSellWaveState(command.Min, command.Max, context.Tick);
+            return;
+        }
+        context.Emit(SystemName, "sell_refused", $"player={command.PlayerId} reason=queue_full");
+    }
+
+    /// <summary>The sell wave <c>0x004C7160</c>: this turn's diagonal of each queued sale, every tile sold and paid
+    /// (<c>0x004C5DB0</c> with pay flag 1). Reaching the minimum corner clears the slot and ends the player's
+    /// drain, as the build wave's completion does.</summary>
+    internal static void Drain(SimulationContext context, PlayerId playerId)
+    {
+        WorldState world = context.World;
+        if (!playerId.IsKeeper || world.Player(playerId).KilledByPlayerId != 0) return;
+        for (int slotIndex = 0; slotIndex < RoomSellWaveRules.SlotsPerPlayer; slotIndex++)
+        {
+            ref RoomSellWaveState? slot = ref world.RoomSellWave(playerId, slotIndex);
+            if (slot is not RoomSellWaveState wave) continue;
+            TilePos end = RoomBuildWaveRules.ClampPress(wave.Min);
+            foreach (TilePos pos in RoomSellWaveRules.Diagonal(wave, context.Tick, world))
+            {
+                if (world.Contains(pos)) SellWaveTile(context, playerId, pos);
+                if (pos == end)
+                {
+                    slot = null;
+                    return;
+                }
+            }
+        }
+    }
+
+    private static void SellWaveTile(SimulationContext context, PlayerId playerId, TilePos pos)
+    {
+        TileSale sale = SellOne(context, playerId, pos, wave: true);
+        if (sale.Verdict != RoomSale.Allowed) return;
+        context.Emit(SystemName, "sold",
+            $"player={playerId} tiles=1 refund={sale.Banked} refused=0 tile=({pos.X},{pos.Y})");
+        if (sale.Displaced > 0)
+            context.Emit(SystemName, "gold_displaced",
+                $"player={playerId} amount={sale.Displaced} reason=store_sold (now piles on the floor tiles that replaced it)");
+        if (sale.Bridge)
+            context.Emit(SystemName, "bridge_sold",
+                $"player={playerId} tiles=1 note=reverted to the water or lava each one spanned (Q64)");
+    }
+
+    private readonly record struct TileSale(RoomSale Verdict, int Banked, int Lost, int Displaced, bool Bridge);
+
+    /// <summary>One tile, in <c>0x004C5DB0</c>'s order: unmake it, leave its stored gold on its floor, bank the
+    /// refund and sound the sale. For a <paramref name="wave"/> tile the Combat Pit it cut is reset with the unmake
+    /// (inside <c>0x004ED440</c>) and a refund no store takes lands on this tile (<c>0x004BA420</c>); the immediate
+    /// path does both once for the whole command.</summary>
+    private static TileSale SellOne(SimulationContext context, PlayerId playerId, TilePos pos, bool wave = false)
+    {
+        WorldState world = context.World;
+        if (!world.Contains(pos)) return new TileSale(RoomSale.OffMap, 0, 0, 0, false);
+
+        ref TileState tile = ref world.Tile(pos);
+        RoomSale verdict = RoomRules.CanSell(context.Database, tile, playerId, out RoomDef? room);
+        if (verdict != RoomSale.Allowed || room is null) return new TileSale(verdict, 0, 0, 0, false);
+
+        int refund = RoomRules.RefundPerTile(context.Database, room);
+        int index = (pos.Y * world.Width) + pos.X;
+
+        // A bridge goes back to the water or lava it spanned rather than to the Claimed Path its terrain
+        // record names (CONFIRMED, Q64; BridgeRules), so it is counted and reported.
+        bool bridge = BridgeRules.IsBridge(room);
+
+        // A Graveyard sold even in part is rebuilt with its tally at 0 (Q321).
+        if (room.TypeId == RoomTypeId.Graveyard
+            && RoomIndex.RoomAt(world, context.Database, index) is RoomInstance graveyard)
+            GraveyardRules.Forget(world, graveyard);
+
+        List<RoomInstance>? pits = wave && room.TypeId == RoomTypeId.CombatPit
+            ? CombatPitRules.PitsUnder(world, context.Database, [pos]) : null;
+
+        // Unmake first, then bank: the other order would let a refund land on the tile being sold.
+        byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
+        int displaced = RoomRules.Unmake(context.Database, ref tile);
+        SlabChain.Changed(world, context.Database, index, terrainBefore, ownerBefore);
+        if (pits is not null) foreach (RoomInstance pit in pits) CombatPitSystem.Reset(context, pit);
+
+        // The store's contents stay where the store was, as a pile on the floor of that very tile
+        // (gold-on-the-floor.md section 4), dropped before the refund is banked.
+        FloorGold.Drop(world, context.Database, index, displaced);
+
+        int banked = GoldStore.Deposit(world, context.Database, playerId, refund);
+        // What no store takes asks for a Treasury (0x004BA420).
+        if (banked < refund) RoomNeedRules.GoldLeftOver(context, playerId);
+        if (wave && banked < refund)
+        {
+            FloorGold.Drop(world, context.Database, index, refund - banked);
+            context.Emit(SystemName, "refund_overflowed",
+                $"player={playerId} amount={refund - banked} reason=nowhere_to_store (now a pile on the floor at tile {index})");
+        }
+
+        // The sale's own sound, after the refund is paid in (0x004C5EF8): handle 0, the room's terrain
+        // category, the tile's centre at height 0x1000.
+        ThingSoundRules.RequestTile(context, SystemName, room.TerrainId, index, ThingSoundEvent.RoomTileSold,
+            height: 0x1000, SoundSourceKind.Room);
+        return new TileSale(RoomSale.Allowed, banked, refund - banked, displaced, bridge);
     }
 
     private static void Apply(SimulationContext context, SellRoomCommand command)
@@ -51,60 +160,18 @@ public sealed class RoomSellSystem : ISimulationSystem
 
         foreach (TilePos pos in command.Tiles)
         {
-            if (!world.Contains(pos))
+            TileSale sale = SellOne(context, command.PlayerId, pos);
+            if (sale.Verdict != RoomSale.Allowed)
             {
-                Count(refusals, RoomSale.OffMap);
+                Count(refusals, sale.Verdict);
                 continue;
             }
-
-            ref TileState tile = ref world.Tile(pos);
-            RoomSale verdict = RoomRules.CanSell(context.Database, tile, command.PlayerId, out RoomDef? room);
-            if (verdict != RoomSale.Allowed || room is null)
-            {
-                Count(refusals, verdict);
-                continue;
-            }
-
-            int refund = RoomRules.RefundPerTile(context.Database, room);
-
-            // A bridge goes back to the water or lava it spanned rather than to
-            // the Claimed Path its terrain record names (CONFIRMED, Q64;
-            // BridgeRules). The only sale whose outcome is not the
-            // destroyed-type field, so it is counted and reported.
-            if (BridgeRules.IsBridge(room)) bridges++;
-
-            // A Graveyard sold even in part is rebuilt with its tally at 0 (Q321).
-            if (room.TypeId == RoomTypeId.Graveyard
-                && RoomIndex.RoomAt(world, context.Database, (pos.Y * world.Width) + pos.X) is RoomInstance graveyard)
-                GraveyardRules.Forget(world, graveyard);
-
-            // Unmake first, then bank. The other order would let a refund land on
-            // the tile being sold and spill straight back out again.
-            byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
-            int displacedHere = RoomRules.Unmake(context.Database, ref tile);
-            SlabChain.Changed(world, context.Database, (pos.Y * world.Width) + pos.X, terrainBefore, ownerBefore);
-            displacedGold += displacedHere;
             sold++;
-
-            // The store's contents stay where the store was, as a pile on the
-            // floor of that very tile -- the original walks the room's gold
-            // objects and remakes each one as a floor pile in place
-            // (gold-on-the-floor.md section 4). Dropped before the refund is
-            // banked, so the two cannot be confused for one another.
+            if (sale.Bridge) bridges++;
+            displacedGold += sale.Displaced;
+            refunded += sale.Banked;
+            lostRefund += sale.Lost;
             lastSold = (pos.Y * world.Width) + pos.X;
-            FloorGold.Drop(world, context.Database, lastSold, displacedHere);
-
-            int banked = GoldStore.Deposit(world, context.Database, command.PlayerId, refund);
-            // Each tile's refund is paid in at its tile (0x004C5DB0 to 0x004BA420); what no store takes
-            // asks for a Treasury.
-            if (banked < refund) RoomNeedRules.GoldLeftOver(context, command.PlayerId);
-            refunded += banked;
-            lostRefund += refund - banked;
-
-            // The sale's own sound, after the refund is paid in (0x004C5EF8): handle 0, the room's terrain
-            // category, the tile's centre at height 0x1000.
-            ThingSoundRules.RequestTile(context, SystemName, room.TerrainId, lastSold, ThingSoundEvent.RoomTileSold,
-                height: 0x1000, SoundSourceKind.Room);
         }
 
         context.Emit(SystemName, "sold",
@@ -112,12 +179,8 @@ public sealed class RoomSellSystem : ISimulationSystem
             $"refused={Describe(refusals)}");
         if (sold > 0) foreach (RoomInstance pit in pits) CombatPitSystem.Reset(context, pit);
 
-        // A refund with nowhere to go lands on the floor rather than vanishing:
-        // the original's add-gold-to-player takes a position and, once every
-        // treasury and heart has refused, makes a floor pile there
-        // (gold-on-the-floor.md section 5). WHICH tile is ours -- the caller
-        // chooses the position and this one has a whole command's worth of them,
-        // so the last tile sold is a choice and not a reading (Q139).
+        // A refund with nowhere to go lands on the floor rather than vanishing (gold-on-the-floor.md section 5).
+        // An immediate multi-tile sale has no single tile of DK2's to use, so the last tile sold is a choice (Q139).
         if (lostRefund > 0 && lastSold >= 0)
         {
             FloorGold.Drop(world, context.Database, lastSold, lostRefund);

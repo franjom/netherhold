@@ -972,7 +972,7 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        sim.Tick(InputFrame.Of(SellRoomCommand.Rect(Keeper, CellA.X, CellA.Y, CellA.X, CellA.Y)));
+        sim.Tick(InputFrame.Of(SellRoomCommand.At(Keeper, CellA)));
         for (int i = 0; i < 2 * Second; i++) sim.Tick();
 
         // The Prison's freed and tiles-changed slots kick it to 126, which finds no Prison and lets

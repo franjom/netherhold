@@ -328,6 +328,16 @@ public static class WorldSnapshot
             w.Write(active.QueuedTick.Value);
             w.Write(active.AccumulatedCost);
         }
+        foreach (RoomSellWaveState? wave in world.RoomSellWaveSlots)
+        {
+            w.Write(wave.HasValue);
+            if (wave is not RoomSellWaveState active) continue;
+            w.Write(active.Min.X);
+            w.Write(active.Min.Y);
+            w.Write(active.Max.X);
+            w.Write(active.Max.Y);
+            w.Write(active.QueuedTick.Value);
+        }
 
         w.Write(world.PendingWork.Count);
         foreach (TileWorkOrder o in world.PendingWork)
@@ -1103,6 +1113,10 @@ public static class WorldSnapshot
                 world.RoomBuildWaveSlots[i] = new RoomBuildWaveState((RoomTypeId)r.ReadByte(),
                     new TilePos(r.ReadInt32(), r.ReadInt32()), new TilePos(r.ReadInt32(), r.ReadInt32()),
                     new GameTick(r.ReadInt64()), r.ReadUInt16());
+        for (int i = 0; i < world.RoomSellWaveSlots.Length; i++)
+            if (r.ReadBoolean())
+                world.RoomSellWaveSlots[i] = new RoomSellWaveState(new TilePos(r.ReadInt32(), r.ReadInt32()),
+                    new TilePos(r.ReadInt32(), r.ReadInt32()), new GameTick(r.ReadInt64()));
 
         int workCount = SaveReader.Count(r, "workCount", 18);
         for (int i = 0; i < workCount; i++)
