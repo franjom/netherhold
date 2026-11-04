@@ -73,7 +73,7 @@ hero party's shared pace, which ours keeps in `PartySpeedRaw`.
 
 **The current action.** Ours has no one field for `+0x3A9`: the swing (`SwingInProgress`),
 the idle, cheer and prisoner flourish actions (`ActionUntilTick`) and the tunnel's dig
-(`Tunnel.ActionUntilTick`) stand in for it; `CreatureStateMachine.EndAction` clears them all, and `EnterCombat` calls it (ADR-0572).
+(`Tunnel.Digging`, action 1 or 2) stand in for it; `CreatureStateMachine.EndAction` clears them all, and `EnterCombat` calls it (ADR-0572).
 
 ## 4. The routes out of category 22
 

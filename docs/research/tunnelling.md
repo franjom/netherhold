@@ -95,7 +95,7 @@ The first that is clear (`+0x208`) and reachable (`0x00471630`, options 2) becom
 
 ## Differences in ours
 
-- **The dig lands as imp work.** It is one application per work period (`TileWorkRules`, Dig or MineGold, which resolves an owned wall itself), while an "action" of one period plays.
+- **The swing is action 1 or 2 on the creature's slot-5 clip** (ADR-0661, Q742). `TunnelRules.PollDig` is the runner's mode-3 poll (`0x00496AA0`, handler `0x00496E00`): the first poll after `Dig` strikes, and the action ends when the handler and the clip are both done. A wrapped clip counts as done until reinstalled, so after the first cycle a swing ends at the poll that strikes. The Dwarf's slot 5 (30 frames, 30 fps, start 9, end 10) gives a strike, a second six turns later, then one a turn; a walk or idle update with no action drops the clip, so each tile starts afresh. The strike goes through the work queue (`TileWorkRules`, Dig or MineGold, which resolves an owned wall itself). Not mirrored: the action sounds (`0x334`, `0x109`), the mine handler's own payment, and a creature with no slot-5 art (ours ends the action at the strike).
 - **The solid bit is terrain `Solid`.**
 - **The turn is `Bearing.TurnToward`** at the per-tick rate (`SimulationTiming.TurnRatePerTick`, ADR-0602).
 - **Not built:** sound `0x100`, and state 86 (the worker idles instead).

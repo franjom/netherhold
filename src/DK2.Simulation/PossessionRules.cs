@@ -58,7 +58,7 @@ public static partial class PossessionRules
             {
                 target.SwingInProgress = false;
                 target.ActionUntilTick = 0;
-                target.Tunnel.ActionUntilTick = 0;
+                target.Tunnel.Digging = false;
                 if (!HandRules.IsHeld(target))
                     CreatureStateMachine.TrySetState(context.Hooks, target, CombatStates.Frozen, context.Tick.Value);
             }

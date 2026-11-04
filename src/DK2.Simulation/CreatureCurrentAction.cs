@@ -18,16 +18,17 @@ public static class CreatureCurrentAction
     /// <summary>The stand-ins <see cref="CreatureStateMachine"/> clears when it ends an action: a swing, an action hold
     /// (idle, flourish, a cast, the Workshop's work), the tunnel's dig, a trainee's swing and an imp's dig or mine loop.</summary>
     public static bool IsRunning(CreatureState creature, GameTick tick) =>
-        creature.SwingInProgress || tick.Value < creature.ActionUntilTick || tick.Value < creature.Tunnel.ActionUntilTick
+        creature.SwingInProgress || tick.Value < creature.ActionUntilTick || creature.Tunnel.Digging
         || creature.TrainingActionId != 0 || WorkLoopIndex(creature) != 0;
 
     /// <summary>The index of the action that runs when ours names it: 30 and 31 for a trainee's, 1 and 2 for an imp's dig and
-    /// mine, 17, 16 or 15 for a swing, cast or free-aimed cast in progress, 17 for a melee swing in its hold, 16 for a cast in its hold; 0 for none or one ours does not tell apart.</summary>
+    /// mine, 1 or 2 for a tunneller's dig, 17, 16 or 15 for a swing, cast or free-aimed cast in progress, 17 for a melee swing in its hold, 16 for a cast in its hold; 0 for none or one ours does not tell apart.</summary>
     public static int IndexOf(CreatureState creature, CreatureDef definition, GameTick tick)
     {
         if (creature.TrainingActionId != 0)
             return creature.TrainingActionId == (byte)TrainingActionKind.Spell ? CreatureActionTable.TrainSpell : CreatureActionTable.TrainMelee;
         if (WorkLoopIndex(creature) is var work and not 0) return work;
+        if (creature.Tunnel.Digging) return creature.Tunnel.Action;
         if (creature.SwingInProgress)
             return creature.SwingKind switch
             {

@@ -155,11 +155,11 @@ public sealed class PartyArrivalTests
         var (db, world, hero) = Spawn();
         hero.Dk2StateId = 210;
         hero.SwingInProgress = true;
-        hero.Tunnel.ActionUntilTick = 100;
+        hero.Tunnel.Digging = true;
         new GameSimulation(db, world, 1, [new TremorCreatureSystem()]).Tick();
         Assert.Equal(263, hero.Dk2StateId);
         Assert.False(hero.SwingInProgress);
-        Assert.Equal(0, hero.Tunnel.ActionUntilTick);
+        Assert.False(hero.Tunnel.Digging);
         Assert.Equal(5, hero.ActionUntilTick);
     }
 

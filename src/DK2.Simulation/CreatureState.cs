@@ -1494,7 +1494,8 @@ public sealed class CreatureState
         hash.Add(Tunnel.Resume);
         hash.Add(Tunnel.Reach);
         hash.Add(Tunnel.Hand);
-        hash.Add(Tunnel.ActionUntilTick);
+        hash.Add(Tunnel.Digging);
+        hash.Add(Tunnel.Action);
         hash.Add(WanderStamp);
         hash.Add(ActionUntilTick);
         hash.Add(TrainingActionId);
