@@ -88,10 +88,6 @@ public static class Recipes
             + "cast a free Imp for both. The capture's world seed shows whether each heading draw follows its own "
             + "keeper's angle draw or both angle draws.",
             WithoutImps),
-        new("Q750CostNumbersGold", "Small",
-            "The CostNumbers field with 250000 starting gold for keeper 3 (2026-11-04). Superseded unplayed: the Heart "
-            + "takes 16000 and the rest is dropped with no Treasury (player-object.md).",
-            b => { CostNumbers(b); b.SetStartingGold(Keeper, 250000); }),
         new("Q750CostNumbersBank", "Small",
             "Floating cost digits (floating-cost-numbers.md, Q744, Q750), played 2026-11-04: the CostNumbers field, "
             + "250000 starting gold and a 9x9 keeper Treasury painted at x 36..44, rows 22..30, so the Heart's 16000 and "
