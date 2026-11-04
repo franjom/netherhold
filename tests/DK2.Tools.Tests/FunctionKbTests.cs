@@ -267,17 +267,19 @@ public sealed class FunctionKbTests
         Assert.EndsWith("is new and has no History line dated 2026-10-01", born, StringComparison.Ordinal);
     }
 
-    /// <summary>A BUILT record names its code, checked when a change touches the header; READ with code named
-    /// is a partial mirror and stays legal.</summary>
+    /// <summary>BUILT and PARTIAL name their code and READ names none, checked when a change touches the header.</summary>
     [Fact]
-    public void ABuiltRecordNamesItsCodeWhenTheHeaderChanges()
+    public void StatusAndImplementsAgreeWhenTheHeaderChanges()
     {
         var read = Record("0050EA70") with { Status = "READ", Implements = [] };
         var built = read with { Status = "BUILT", Implements = ["src/DK2.Simulation/WorldState.cs"] };
+        var partial = built with { Status = "PARTIAL" };
         var bare = built with { Implements = [] };
         Assert.Null(FunctionKb.StatusMismatch(read, null));
         Assert.Null(FunctionKb.StatusMismatch(built, read));
-        Assert.Null(FunctionKb.StatusMismatch(read with { Implements = built.Implements }, read));   // partial
+        Assert.Null(FunctionKb.StatusMismatch(partial, read));
+        Assert.Contains("status PARTIAL but no implements:", FunctionKb.StatusMismatch(partial with { Implements = [] }, read));
+        Assert.Contains("status READ but implements:", FunctionKb.StatusMismatch(read with { Implements = built.Implements }, read));
         Assert.Contains("status BUILT but no implements:", FunctionKb.StatusMismatch(bare, read));
         Assert.Contains("status BUILT but no implements:", FunctionKb.StatusMismatch(bare, null));
         Assert.Null(FunctionKb.StatusMismatch(bare, bare));                    // already on master, header untouched

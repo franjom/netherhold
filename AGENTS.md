@@ -192,9 +192,10 @@ a `History` line dated that day.** A document, ADR or source file that names a
 runs it (`docs/plans/` is exempt: a plan is a process document, not a claim).
 Read the record before you decompile: a later session may already have
 disputed what you are about to conclude. `implements` names our code that
-mirrors the function, not code that consumes its output. A BUILT record must
-carry an `implements:` line (`kb check` rejects one that gains or changes its
-header without it); READ with an `implements:` line records a partial mirror.
+mirrors the function, not code that consumes its output. Status is READ (not
+mirrored, no `implements:`), PARTIAL (our code mirrors part of it) or BUILT
+(all of it), and both of those name the code in `implements:`; `kb check`
+holds a new or re-headed record to that (ADR-0660).
 When a record gains
 a reading, `kb check` notes the files that cite its address and are not in the
 change: read each one, because code and prose written against the old reading

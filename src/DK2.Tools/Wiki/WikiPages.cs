@@ -246,28 +246,27 @@ public static partial class WikiPages
             => g.TryGetValue(id, out var l) ? (where is null ? l.Count : l.Count(where)) : 0;
 
         var sb = Header("Status Matrix", "the research notes, `docs/DECISIONS.md`, `open-questions.md` and the function records");
-        sb.Append("Per system: research notes; ADRs in force (accepted, implemented or amended), how many of them our code cites, ")
+        sb.Append("Per system: research notes; ADRs in force (accepted or amended), how many of them our code cites, ")
           .Append("superseded or withdrawn, and proposed; open questions; and DKII.EXE function records whose evidence links into ")
-          .Append("the system's notes, how many are BUILT, and how many are READ although an `implements:` line names our code.\n\n");
-        sb.Append("An ADR's status says it was decided, not that it was built: `accepted` stays when the code lands. \"Cited in ")
-          .Append("code\" counts ADRs whose number appears in `src/` or the Unity scripts. It is a floor, not a census: built ")
-          .Append("decisions are not always cited, process and research decisions have no code to cite them, and a citation can ")
-          .Append("mark a partial build. A READ record with an `implements:` line may be a function our code mirrors in part, ")
-          .Append("or one that was built and never promoted to BUILT.\n\n");
-        sb.Append("| System | Notes | ADRs in force | Cited in code | Superseded | Proposed | Open questions | Function records | Built | READ, code named |\n");
+          .Append("the system's notes, with how many our code mirrors whole (BUILT) and in part (PARTIAL).\n\n");
+        sb.Append("An ADR's status says it was decided, not that it was built: `accepted` stays when the code lands (ADR-0660). ")
+          .Append("\"Cited in code\" counts ADRs whose number appears in `src/` or the Unity scripts. It is a floor, not a census: ")
+          .Append("built decisions are not always cited, process and research decisions have no code to cite them, and a ")
+          .Append("citation can mark a partial build.\n\n");
+        sb.Append("| System | Notes | ADRs in force | Cited in code | Superseded | Proposed | Open questions | Function records | Built | Partial |\n");
         sb.Append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n");
         foreach (SystemEntry s in inputs.Catalog.Systems)
         {
             sb.Append("| [").Append(s.Title).Append("](Decisions-by-System#").Append(FunctionKb.Slug(s.Title)).Append(") | ")
               .Append(N(Count(notes, s.Id))).Append(" | ")
-              .Append(N(Count(adrs, s.Id, a => a.Status is "accepted" or "implemented" or "amended"))).Append(" | ")
-              .Append(N(Count(adrs, s.Id, a => a.Status is "accepted" or "implemented" or "amended" && inputs.AdrsCitedInCode.Contains(a.Number)))).Append(" | ")
+              .Append(N(Count(adrs, s.Id, a => a.Status is "accepted" or "amended"))).Append(" | ")
+              .Append(N(Count(adrs, s.Id, a => a.Status is "accepted" or "amended" && inputs.AdrsCitedInCode.Contains(a.Number)))).Append(" | ")
               .Append(N(Count(adrs, s.Id, a => a.Status is "superseded" or "withdrawn"))).Append(" | ")
               .Append(N(Count(adrs, s.Id, a => a.Status is "proposed"))).Append(" | ")
               .Append(N(Count(questions, s.Id))).Append(" | ")
               .Append(N(Count(records, s.Id))).Append(" | ")
               .Append(N(Count(records, s.Id, r => r.Status == "BUILT"))).Append(" | ")
-              .Append(N(Count(records, s.Id, r => r.Status == "READ" && r.Implements.Count > 0))).Append(" |\n");
+              .Append(N(Count(records, s.Id, r => r.Status == "PARTIAL"))).Append(" |\n");
         }
         return sb.ToString();
     }
@@ -279,7 +278,7 @@ public static partial class WikiPages
         string[] statuses = FunctionKb.Statuses;
         var sb = Header("KB Coverage", $"the function records in [`{FunctionKb.Folder}/`]({Blob.Replace("/blob/", "/tree/")}{FunctionKb.Folder})");
         sb.Append(N(inputs.Records.Count)).Append(" records. Confidence is the one scale of ADR-0642: CONFIRMED needs the running game, ")
-          .Append("a binary read alone is STRONGLY INFERRED. READ means read in DKII.EXE, BUILT that our code mirrors it.\n\n");
+          .Append("a binary read alone is STRONGLY INFERRED. READ means read in DKII.EXE, PARTIAL that our code mirrors part of it, BUILT all of it (ADR-0660).\n\n");
 
         sb.Append("## By confidence and status\n\n| Confidence | ").Append(string.Join(" | ", statuses)).Append(" | Total |\n|---|");
         sb.Append(string.Concat(Enumerable.Repeat("---:|", statuses.Length + 1))).Append('\n');

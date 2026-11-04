@@ -22,7 +22,7 @@ address: 0x0050EA70
 name: WorldLog_Dump
 role: Prints every world field and creature state into MESSAGE.LOG.
 confidence: CONFIRMED        # CONFIRMED | LIKELY | GUESS | DISPUTED
-status: READ                 # READ | BUILT | SUPERSEDED
+status: READ                 # READ | PARTIAL | BUILT | SUPERSEDED (PARTIAL: ADR-0660)
 evidence: docs/research/debug-dumpers.md#world-log
 implements: tools/worldlog.py
 
