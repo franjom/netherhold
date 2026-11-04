@@ -62,7 +62,7 @@ runner's render settings and campaign fog setting. No scene file is saved.
 Path subtitles and the win screen's Speech.str text (`DungeonRunner.DrawSubtitleText`; the title card at twice the size) use
 Bullfrog's DungeonKeeperII TrueType face when the machine has it
 at `DK2.Unity/Assets/Resources/Fonts/DungeonKeeperII.ttf` (gitignored, not ours to
-ship; a copy is at wfonts.com/font/dungeonkeeperii; a fresh worktree's Unity project lacks it,
+ship; download it from [wfonts.com](https://www.wfonts.com/font/dungeonkeeperii); a fresh worktree's Unity project lacks it,
 see `docs/TRAPS.md`). Otherwise they use DK2's own
 bitmap font from the install, at the shipped size that reads at the screen height
 (`InterfaceFonts.LegibleFileName`, not DK2's own size rule; Q608), and failing
