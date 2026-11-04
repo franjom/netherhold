@@ -18,6 +18,7 @@
 - [[Research by System|Research-by-System]]
 - [[Open Questions|Open-Questions]]
 - [[KB Coverage|KB-Coverage]]
+- [[Simulation Read-Write Matrix|Simulation-Read-Write-Matrix]]
 
 **Research**
 - [Research docs](https://github.com/franjom/netherhold/tree/master/docs/research)

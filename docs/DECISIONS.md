@@ -15017,7 +15017,7 @@ own runs are "measured", not CONFIRMED. Record names that end in `_LIKELY` were 
 
 ## ADR-0643: the wiki is indexed by a closed list of systems and generated in CI
 
-**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0 to WP5). · **Systems:** tooling-process
+**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0 to WP6). · **Systems:** tooling-process
 
 **Context.** The GitHub wiki mirrors `docs/wiki/` (CI job `wiki`). A reader asking "what
 do we know about combat, and where is it built" had to search 280 research notes and 600
@@ -15029,8 +15029,9 @@ notes it cites by filename, unless its header has an explicit `**Systems:**` fie
 replaces them. Status is the first word of the header's status, parsed, not edited into the
 file. `dk2tools docs` rejects an added or changed note or ADR that names an unknown system
 or none, and any ADR number used twice. `dk2tools wiki --out <dir>` generates the index
-pages; CI generates them into a staging folder beside `docs/wiki/` and mirrors both, so no
-generated page is committed. Pages are byte-stable: sorted, with no dates or commit ids.
+pages, and the Simulation Read-Write Matrix (`dk2tools simmatrix`, WP6: which system reads and writes
+which state, read from the source of `SimulationSystems.Default()`); CI generates them into a staging
+folder beside `docs/wiki/` and mirrors both, so no generated page is committed. Pages are byte-stable: sorted, with no dates or commit ids.
 ADR numbers never given to an ADR are listed as "not used" on the wiki rather than
 explained in this file (owner, 2026-11-03).
 
@@ -15167,6 +15168,34 @@ census now empties as birds die, so it launches more: `a_hatchery_lays_and_hatch
 22. Removal is at once rather than in the second walk later the same turn. The death itself is read,
 not captured (no bird reached 0 in the window). One edge stays open (Q584): ours does not update a bird
 in the hand or carried, where `Object_Update` has no hand test and a held free-range bird probably keeps
+decaying; and `Hatchery_AdoptChickens` (`0x004DEB70`), which registers an unregistered bird standing on
+a Hatchery tile and so stops its decay, is not built.
+
+## ADR-0651: a hungry creature takes AngerNoFood while its keeper could feed it
+
+**Date:** 2026-11-04. **Status:** accepted. Answers Q739; corrects ADR-0074's "prison only" reading of
+the food charge; hash/save 400. · **Systems:** creatures
+
+**Context.** The need-anger routine `0x00478D00` has three arms, not two. Between the lair and pay
+charges it adds `AngerNoFood` (`def+0x6C3`) to bucket 1, with complaint 1, when the level-scaled
+`HungerFill` is non-zero and at most `HungerNeed` (`+0x4C` of the creature's controller), and Hatchery
+availability is 3 or the keeper owns a Hatchery. It is behind the same early returns as its siblings.
+The Hatchery eat state `0x00463760` calls `Anger_ForgetBucket(1)` on each bird, after the bird's sound
+and before the health and the pay-off. [payday.md](research/payday.md) section 6 and KB `0x00478D00`
+already recorded the charge, but ours applied `AngerNoFood` only in the prison: "charging it would anger
+everybody on a map with no hatchery". The room clause is DK2's answer to that worry. OpenKeeper PR #894
+pointed at it; the rule here is read from the binary.
+
+**Decision.** `CreatureAngerRules.PerSecond` charges `AngerNoFood` to bucket 1 when
+`EatingRules.IsHungry` holds, the creature is not a follower, and its keeper's Hatchery availability is
+3 or it owns one. `CreatureEatSystem.Swallow` forgets bucket 1 on each bird, after the chicken's sound.
+
+**Consequences.** A hungry creature angers at its tabled rate (a Goblin's 100 a second) from the moment
+it becomes hungry until it eats, including the walk to the Hatchery, so only one that cannot get fed
+for long reaches Unhappy. A keeper who may not build a Hatchery and owns none never pays it. The charge
+runs once a game second at the full rate, as the lair and pay arms do (ADR-0554), where DK2 adds a
+quarter each turn. The siblings' unmodelled guards (payday.md section 6.5) apply to it unchanged. The
+possessed creature's chicken (`0x00514830`), which treats bucket 1 differently, is not changed.
 decaying. `Hatchery_AdoptChickens` (`0x004DEB70`), which registers a bird standing on a Hatchery tile
 and so stops its decay, is built in ADR-0652.
 

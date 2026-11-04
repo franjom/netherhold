@@ -4,6 +4,7 @@
 
 using DK2.Tools;
 using DK2.Tools.Commands;
+using DK2.Tools.SimMatrix;
 using DK2.Tools.Wiki;
 
 // DK2.Tools — command-line utilities for inspecting original game data.
@@ -30,6 +31,7 @@ internal partial class Program
             ["kb"] = args => args.Length >= 2 ? FunctionKbCommand.Run(args.Skip(1).ToArray()) : Usage(),
             ["docs"] = DocsCommand.Run,
             ["wiki"] = WikiCommand.Run,
+            ["simmatrix"] = SimMatrixCommand.Run,
             ["coverage"] = args => args.Length == 2 && args[1] == "states"
                 ? StateCoverageReport.Print(Console.Out)
                 : CoverageCommand.Run(args),
@@ -86,6 +88,7 @@ internal partial class Program
         Console.WriteLine("       [--message <file>]                also check a commit message body");
 
         Console.WriteLine("  wiki --out <dir>                       write the generated wiki pages (ADR-0643)");
+        Console.WriteLine("  simmatrix --out <dir>                  write the simulation read/write matrix (issue 9, WP6)");
 
         Console.WriteLine("  kb check [--all|--staged|--since REF]  check the function knowledge base on what changed");
 

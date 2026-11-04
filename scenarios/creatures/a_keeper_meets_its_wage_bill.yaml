@@ -97,6 +97,11 @@ setup:
     - { type: Treasury, at: [13, 7], player: 4 }
     - { type: Lair, at: [12, 5], player: 4 }
     - { type: Lair, at: [13, 5], player: 4 }
+    # A Hatchery each. A Goblin is hungry three minutes in, and a keeper who may build a
+    # Hatchery and has none angers it from then on (ADR-0651), which would end this story
+    # before payday. Fed creatures keep it about the wage.
+    - { type: Hatchery, at: [1, 6], size: [3, 3], player: 3 }
+    - { type: Hatchery, at: [12, 1], size: [3, 3], player: 4 }
   creatures:
     - { type: Goblin, at: [5, 2], player: 3 }
     - { type: Goblin, at: [6, 3], player: 3 }
