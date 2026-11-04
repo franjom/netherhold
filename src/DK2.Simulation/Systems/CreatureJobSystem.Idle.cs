@@ -39,6 +39,8 @@ public sealed partial class CreatureJobSystem
     {
         if (creature.Dk2StateId is not (CreatureStateMachine.Idle or IdleChooserState)) return;
         if (Fallback(context, creature, definition)) return;
+        // 0x00478680's only caller is 89 (0x00477A92); a Horny choosing in 1 (238 unbuilt) makes no DK2 draws here.
+        if (creature.Dk2StateId == IdleChooserState) HeartWalkDraws(context, creature);
         creature.StateDeadlineTick = context.Tick.Value + NothingToDoTicks;
         StateShadow.Move(context, SystemName, creature, DoingNothingState);
     }
@@ -46,7 +48,8 @@ public sealed partial class CreatureJobSystem
     /// <summary><c>0x00478680</c>. Train, unless the definition is <c>NotTrainWhenIdle</c>
     /// (<c>+0x686</c> bit 21), when the Training Room is available; then job 26 when the Combat Pit
     /// is; then Drink when the Casino is. Otherwise a walk resuming 1 to a point two tiles from the
-    /// Heart's centre, which 89's <c>SetState(3)</c> replaces at once, so it is not built.</summary>
+    /// Heart's centre, which 89's <c>SetState(3)</c> replaces at once, so only its draws are made
+    /// (<see cref="HeartWalkDraws"/>).</summary>
     private static bool Fallback(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
@@ -59,6 +62,23 @@ public sealed partial class CreatureJobSystem
             return true;
         return RoomAvailable(world, owner, RoomTypeId.Casino)
             && TryTake(context, creature, definition, JobType.Drink, roll: -1, "idle", report: false);
+    }
+
+    /// <summary><c>0x00478680</c>'s tail, the draws of the Heart walk that 89 replaces (ADR-0656): a random
+    /// unruined Heart of the owner (<c>0x004C6460(5)</c>, <c>random(count)</c> even for one, none without
+    /// one), then the x and y sides, <c>random(2)</c> each (State.cpp lines 2100 and 2101). The route draws
+    /// nothing; DK2's Level 4 draw log shows the next consumer straight after line 2101.</summary>
+    private static void HeartWalkDraws(SimulationContext context, CreatureState creature)
+    {
+        WorldState world = context.World;
+        if (!world.HasPlayer(creature.OwnerPlayerId) || world.Player(creature.OwnerPlayerId).HeartRuined) return;
+        int hearts = 0;
+        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+            if (room.OwnerPlayerId == creature.OwnerPlayerId && room.Definition.TypeId == RoomTypeId.DungeonHeart) hearts++;
+        if (hearts == 0) return;
+        context.Rng.NextInt(hearts);
+        context.Rng.NextInt(2);
+        context.Rng.NextInt(2);
     }
 
     private static bool RoomAvailable(WorldState world, PlayerId player, RoomTypeId type) =>

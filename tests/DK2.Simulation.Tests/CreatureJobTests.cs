@@ -139,6 +139,59 @@ public sealed class CreatureJobTests
         Assert.Contains(events.Events, e => e.Kind == "no_work");
     }
 
+    /// <summary><c>0x00478680</c>'s Heart walk is replaced by 89's state 3, but its draws are made (ADR-0656):
+    /// a random own unruined Heart (<c>random(count)</c>) and the two sides (<c>random(2)</c> each). With the
+    /// Heart ruined, or with no Heart, the same pass draws nothing, so the two runs part by three draws on the first failed pass,
+    /// or not at all.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AFailedPassMakesTheHeartWalksThreeDrawsWhenTheKeeperHasAHeart(int hearts)
+    {
+        (GameSimulation Sim, ListEventSink Events) Run(bool ruined)
+        {
+            GameDatabase db = Db;
+            WorldState world = World(db);
+            Fund(world, 10_000);
+            // Two Hearts are two rooms: (1, 1) and (3, 1) do not touch.
+            if (hearts > 0) RoomRules.Place(db, ref world.Tile(1, 1), db.Room(RoomTypeId.DungeonHeart), Keeper);
+            if (hearts > 1) RoomRules.Place(db, ref world.Tile(3, 1), db.Room(RoomTypeId.DungeonHeart), Keeper);
+            world.Player(Keeper).HeartRuined = ruined;
+            world.SpawnCreature(db, GoblinId, Keeper, Floor);
+            var events = new ListEventSink();
+            var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(7)),
+                [new CreatureMovementSystem(), new CreatureJobSystem(), new CreatureAngerSystem()]);
+            sim.ObserveWith(events);
+            return (sim, events);
+        }
+
+        var (withHeart, withEvents) = Run(ruined: false);
+        var (without, withoutEvents) = Run(ruined: true);
+        for (int tick = 0; tick < Second * 10; tick++)
+        {
+            withHeart.Tick();
+            without.Tick();
+            bool passed = withEvents.Events.Any(e => e.Kind == "no_work");
+            Assert.Equal(passed, withoutEvents.Events.Any(e => e.Kind == "no_work"));
+            if (!passed)
+            {
+                Assert.Equal(((Dk2Lcg)without.Rng.Algorithm).Seed, ((Dk2Lcg)withHeart.Rng.Algorithm).Seed);
+                continue;
+            }
+            var expected = new Dk2Lcg(((Dk2Lcg)without.Rng.Algorithm).Seed);
+            if (hearts > 0)
+            {
+                expected.NextInt(hearts);
+                expected.NextInt(2);
+                expected.NextInt(2);
+            }
+            Assert.Equal(expected.Seed, ((Dk2Lcg)withHeart.Rng.Algorithm).Seed);
+            return;
+        }
+        Assert.Fail("no failed pass in ten seconds");
+    }
+
     [Fact]
     public void BuildingTheTrainingRoomStopsTheChargeOnTheSecondItAppears()
     {

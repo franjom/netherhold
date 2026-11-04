@@ -4991,7 +4991,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
    - then job 26 when the Combat Pit is available;
    - then Drink when the Casino is.
 
-   Its Heart walk is replaced at once by 89's `SetState(3)`, so it is not built.
+   Its Heart walk is replaced at once by 89's `SetState(3)`, so it is not built; its draws are (ADR-0656).
 2. **State 3** (`0x00477680`) holds until `+0x7E`:
    - At first, and on a roll under 25, it wanders in 87 (the imp's handler, now shared), with `+0xA7` = now + 132.
    - After a wander, 25–74 plays action 43 and 75–99 action 44.
@@ -15269,3 +15269,31 @@ the hand is in none of the four states and is left alone, in DK2 and ours. Repea
 order do nothing more, since a kicked creature is in 1. A drag refused by the admission's cost check
 queues no wave and resets nothing. `Direct` orders also come from scenario setup, so a scenario's
 starting rooms reset its keeper's walkers; the shipped scenarios are unchanged by it.
+
+## ADR-0656: an idle creature's failed pass makes the Heart walk's draws
+
+**Date:** 2026-11-04. **Status:** accepted. Hash/save 406. · **Systems:** creatures
+
+**Context.** After state 89's chooser takes nothing, `0x00478680` tries Train, job 26 and Drink, as
+ADR-0228 built. When none of them is taken, it draws a random own Heart. That draw is
+`Player_RandomRoomOfType` (`0x004C6460`) with type 5: it counts the player's rooms of that type without
+`+0x9A` bit 0 and, when there is any, draws `random(count)`, even for one. It then draws `random(2)`
+twice, at State.cpp lines 2100 and 2101. Each picks a side, ±2 tiles, of the Heart's position word, x
+first. Last it routes there (`Travel_RouteToPoint`, state 1, option 0x80). Its only caller is 89
+(`0x00477A92`), which then sets state 3. That replaces the walk, so ADR-0228 did not build the tail, and
+ours never made its three draws. The native Level 4 draw log (`q712-native-drawlog-level4-seed1--2026-11-04--001`,
+turns 1401-1900) has these sites 10 times each, for a keeper with one Heart. Every time the order is
+`State.cpp:1700` (the chooser), `PlayerRooms.cpp:644`, 2100, 2101, and then the next consumer, so the route
+draws nothing there.
+
+**Decision.** `CreatureJobSystem.NothingChosen` makes the three draws after a failed fallback, before
+state 3, for a creature in 89. They are made only when the owner is a registered player with an
+unruined Heart; the remake's per-player `HeartRuined` stands for the room's `+0x9A` bit 0. The walk stays
+unbuilt. A Horny creature, which ours lets choose in state 1 because 238 is unbuilt, makes no draws there.
+
+**Consequences.** On every failed idle pass of a keeper that has a Heart, the world stream now advances as
+DK2's does. Nothing a creature does changes directly, but every later random outcome shifts. The order is
+CONFIRMED by the native draw log for a one-Heart keeper on Level 4; the ranges, the gate and the
+many-Heart case are STRONGLY INFERRED from the disassembly. Ours counts derived Heart rooms, where DK2
+walks the player's room list; the room it would pick differs only when there are several, and ours makes
+no walk.
