@@ -207,6 +207,7 @@ static class FunctionKbCommand
                 var merged = mergedLines.Length == 0 ? null : FunctionKb.Parse(relative, mergedLines, []);
                 IReadOnlyCollection<DateOnly> days = staged ? [today] : [today, .. Repo.CommitDays(root, baseRef, relative)];
                 findings.AddRange(FunctionKb.HistoryRequired(now, before, days, merged));
+                if (FunctionKb.StatusMismatch(now, before, merged) is { } mismatch) findings.Add(mismatch);
                 if (FunctionKb.GainedReading(now, before)) reread.Add(now.Address);
             }
             findings.AddRange(FunctionKb.MissingRecords(changes, recorded));

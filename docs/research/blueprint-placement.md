@@ -70,5 +70,24 @@ The same, with:
   is not built.
 - **Not built:**
   - `player+0x177`;
-  - message `0x37`, the cost display, the sounds, `0x004E8D30`;
+  - message `0x37`, the cost display, the sounds;
   - the computer keeper's placement.
+
+## 5. The walker reset, `0x004E8D30` — STRONGLY INFERRED
+
+Read whole (2026-11-04). A fastcall on a player: it walks that player's creature list (head at
+player `+0x06`, next at creature `+0x10`) and, for each creature whose state (`+0x25E`, the state
+object's `+0x10`) is 3, 4 or 7, or is 6 with the resume slot (`+0x32D`, the state object's `+0xDF`)
+equal to 1, calls `0x0048ECE0` (stop) and `Creature_KickToState(1)`. Nothing else: no owner, room
+or category test.
+
+Its three callers, each passing the player who made the change:
+- the door placer `0x004C33B0` at `0x004C361D` and the trap placer `0x004C3860` at `0x004C39D5`,
+  after the blueprint is made (section 1, step 5);
+- the end of `0x004F04F0`, which closes a built room rectangle (`0x004F0817`). Its callers are the
+  build wave `0x004C7380`, at the press corner, passing its own player; the computer keeper's
+  `0x004C5B40`; and trigger action 22's room arm (`0x005195F0`), passing the action's player.
+
+The build wave also reaches that close when a tile's money test refuses (-1, `0x004C775F`), and the
+computer keeper's wrapper calls `0x004F04F0` after every tile, built or not. Selling does not reach
+the reset: the sell closer `0x004F09B0` does not call it. Ours is `WalkerResetRules` (ADR-0654).

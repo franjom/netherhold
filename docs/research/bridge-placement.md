@@ -61,7 +61,7 @@ rooms (`room-slab-chain.md` §3); on success, unless `bypass`, it debits the pri
 
 `0x004C5B40(x, y, room, a4, a5)` (`RET 0x14`) passes `bypass = 1` when one tile's price exceeds
 `Money`, else `a4`, and `skipTest = a5`, bracketing the call with `0x004F0390`/`0x004F04F0` on
-world `+0x9BE` (role UNKNOWN). Its only callers are tasks 3 (`0x004FD2B0`) and 7 (`0x004FDC50`)
+world `+0x9BE` (`0x004F04F0` closes the rectangle and ends in the walker reset, [blueprint-placement.md](blueprint-placement.md) section 5; `0x004F0390` is unread). Its only callers are tasks 3 (`0x004FD2B0`) and 7 (`0x004FDC50`)
 (rel32 scan of every executable block, `.text` and `cseg`). **A keeper's tile it cannot afford
 is laid free**; a human's is refused.
 
@@ -114,5 +114,5 @@ abandons the task where DK2 takes `NextTask`.
 
 - Q497: whether the original Drako crosses the lava and calls at Morgana's heart as ours does.
 - Q501: answered; a rival keeper's creature refusing a tile is assumed from the raw owner compare, not seen.
-- `0x004F0390`/`0x004F04F0` around the keeper's build. `0x00442960` uses the predicate to mark each placeable tile of a dragged
+- `0x004F0390`, the unread opener before the keeper's build. `0x00442960` uses the predicate to mark each placeable tile of a dragged
   rectangle before it sends the build packet ([its record](functions/00442960.md)).

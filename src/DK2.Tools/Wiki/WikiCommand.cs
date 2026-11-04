@@ -9,7 +9,7 @@ namespace DK2.Tools.Wiki;
 
 /// <summary><c>dk2tools wiki --out &lt;dir&gt;</c>: writes the generated wiki pages (ADR-0643), the simulation
 /// read/write matrix (<see cref="SimMatrixCommand"/>) among them.</summary>
-internal static class WikiCommand
+internal static partial class WikiCommand
 {
     internal static int Run(string[] args)
     {
@@ -63,6 +63,34 @@ internal static class WikiCommand
         var errors = new List<string>();
         var records = FunctionKbCommand.Load(new FunctionKbCommand.Source(root, staged: false), errors);
         if (errors.Count > 0) throw new InvalidDataException($"function records: {errors[0]} (and {errors.Count - 1} more)");
-        return new WikiInputs(catalog, notes, adrs, rows, records);
+        return new WikiInputs(catalog, notes, adrs, rows, records, AdrsCitedInCode(root));
     }
+
+    /// <summary>Code folders whose <c>ADR-NNNN</c> citations count as an ADR being built: the source and the Unity
+    /// scripts, not tests.</summary>
+    internal static readonly string[] CodeFolders = ["src", "unity/DK2.Unity/Assets"];
+
+    /// <summary>Every ADR number a <c>.cs</c> file under <see cref="CodeFolders"/> cites, build output skipped.</summary>
+    internal static IReadOnlySet<int> AdrsCitedInCode(string root)
+    {
+        var cited = new HashSet<int>();
+        foreach (string folder in CodeFolders)
+        {
+            string dir = Path.Combine(root, folder.Replace('/', Path.DirectorySeparatorChar));
+            if (!Directory.Exists(dir)) continue;
+            foreach (string file in Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
+            {
+                var parts = Path.GetRelativePath(root, file).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (parts.Contains("obj") || parts.Contains("bin")) continue;
+                foreach (System.Text.RegularExpressions.Match m in AdrCitation().Matches(File.ReadAllText(file)))
+                    foreach (System.Text.RegularExpressions.Capture number in m.Groups[1].Captures.Concat(m.Groups[2].Captures))
+                        cited.Add(int.Parse(number.ValueSpan, System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
+        return cited;
+    }
+
+    // ADR-0058, and the shorthand ADR-0058/0063/0065 for several.
+    [System.Text.RegularExpressions.GeneratedRegex(@"\bADR-(\d{4})(?:/(\d{4}))*\b")]
+    private static partial System.Text.RegularExpressions.Regex AdrCitation();
 }
