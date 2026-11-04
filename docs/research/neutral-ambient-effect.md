@@ -75,6 +75,12 @@ process 6 (`0x004A1F30`): line 0x9DB, `random(4)`, at its side search, and lines
 its point draws at `0x004A2097` and `0x004A212B`. Ours already mirrors them in
 `ChickenMovementRules.ChooseRoomPoint`; they were never a missing consumer, only unmapped.
 
-The consumers found from the log are all accounted for. Not yet measured: whether ours matches the log's per-turn draw
-counts on Level 5, and whether it has as many loose birds as DK2 at turn 1400. That needs the
-Q712 controls moved onto the seed-1 capture. Q738 (`0x004B9740`'s periodic draws) is separate.
+The consumers found from the log are all accounted for. Measured 2026-11-04 (one modern Level 5
+run restored from the seed-1 capture at 1400, hash 397;
+`F:/DK2Evidence/studies/q712-seed1-draws-h397--2026-11-04--002`): the first draw of turn 1401 uses
+DK2's seed, and over turns 1401-1900 ours draws 6543 numbers against the log's 8466. The neutral
+frame draws 1000 as DK2's, the generator 625 against 620 and the Treasury sparkle 1997 against
+2050; the chickens draw 2223 against 4174. Both games hold 19 chickens at 1400, but the restore
+resyncs creatures only, so ours keeps its own birds' processes and positions where DK2 has 8 in
+process 8, 2 walking, 4 loose and 5 between processes. Restoring the chicken objects is the next
+input. Q738 (`0x004B9740`'s periodic draws) is separate.
