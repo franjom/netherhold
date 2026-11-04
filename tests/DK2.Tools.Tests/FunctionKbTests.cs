@@ -267,6 +267,23 @@ public sealed class FunctionKbTests
         Assert.EndsWith("is new and has no History line dated 2026-10-01", born, StringComparison.Ordinal);
     }
 
+    /// <summary>A BUILT record names its code, checked when a change touches the header; READ with code named
+    /// is a partial mirror and stays legal.</summary>
+    [Fact]
+    public void ABuiltRecordNamesItsCodeWhenTheHeaderChanges()
+    {
+        var read = Record("0050EA70") with { Status = "READ", Implements = [] };
+        var built = read with { Status = "BUILT", Implements = ["src/DK2.Simulation/WorldState.cs"] };
+        var bare = built with { Implements = [] };
+        Assert.Null(FunctionKb.StatusMismatch(read, null));
+        Assert.Null(FunctionKb.StatusMismatch(built, read));
+        Assert.Null(FunctionKb.StatusMismatch(read with { Implements = built.Implements }, read));   // partial
+        Assert.Contains("status BUILT but no implements:", FunctionKb.StatusMismatch(bare, read));
+        Assert.Contains("status BUILT but no implements:", FunctionKb.StatusMismatch(bare, null));
+        Assert.Null(FunctionKb.StatusMismatch(bare, bare));                    // already on master, header untouched
+        Assert.Null(FunctionKb.StatusMismatch(bare, read, merged: bare));      // came in by merge as it was written
+    }
+
     /// <summary>CI checks a pushed range after the fact: a line dated on the day a commit in the range wrote it
     /// passes, though that day is not today.</summary>
     [Fact]
