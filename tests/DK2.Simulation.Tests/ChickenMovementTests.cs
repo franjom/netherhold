@@ -37,6 +37,17 @@ public class ChickenMovementTests
         Assert.Equal(1, HatcheryRules.Birds(world, room));
     }
 
+    /// <summary>A bird its Hatchery holds keeps its health (DieOverTimeIfNotInRoom, ADR-0650).</summary>
+    [Fact]
+    public void ARegisteredBirdDoesNotDecay()
+    {
+        var (db, world, chicken) = HatchBird();
+        var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
+        sim.Run(20);
+        Assert.True(chicken.HatcheryRoomAnchorTileIndex >= 0);
+        Assert.Equal(db.ObjectById(HatcheryRules.ChickenObjectId)!.Hp, chicken.Health);
+    }
+
     [Fact]
     public void SuccessfulHandLiftReleasesRegisteredHatcheryCapacity()
     {

@@ -32,6 +32,7 @@ public static class ChickenMovementRules
         if (chicken.ProcessState == 0)
         {
             SetProcess(chicken, (ChickenProcess)context.Database.ObjectById(chicken.ObjectTypeId)!.StartState);
+            Decay(context, chicken);
             return;
         }
         chicken.ProcessAgeTicks = unchecked(chicken.ProcessAgeTicks + 1);
@@ -48,10 +49,29 @@ public static class ChickenMovementRules
                 break;
             case ChickenProcess.Loose:
                 // A process that returns 0 is cleared, and the next update restarts it (0x0049EED0).
-                if (!Roam(context, chicken) && context.World.Objects.Contains(chicken))
-                    SetProcess(chicken, ChickenProcess.None);
+                if (!Roam(context, chicken)) SetProcess(chicken, ChickenProcess.None);
                 break;
         }
+        Decay(context, chicken);
+    }
+
+    /// <summary>The object update's tail after the process (<c>0x0049BD20</c>): a definition with
+    /// <c>DieOverTime</c>, or <c>DieOverTimeIfNotInRoom</c> while no room holds the bird (<c>+0x138</c>,
+    /// ours the Hatchery anchor), loses one health a turn; at none it asks for its definition's death
+    /// effect (<c>+0x119</c>; <c>Object_Init</c> sets the <c>+0x146</c> bit that allows it) at its point,
+    /// heading and owner, and the thing pass's second walk removes it the same turn (ADR-0650).</summary>
+    private static void Decay(SimulationContext context, ObjectState chicken)
+    {
+        ObjectDef definition = context.Database.ObjectById(chicken.ObjectTypeId)!;
+        bool decays = definition.Flags.HasFlag(ObjectFlags.DieOverTime)
+            || (definition.Flags.HasFlag(ObjectFlags.DieOverTimeIfNotInRoom) && chicken.HatcheryRoomAnchorTileIndex < 0);
+        if (decays && chicken.Health > 0) chicken.Health--;
+        if (chicken.Health > 0) return;
+        if (definition.DeathEffectId != 0)
+            context.RequestEffect("chicken", new ViewEffectRequest(new EffectId(definition.DeathEffectId), new PlayerId(chicken.OwnerPlayerId),
+                new FpPosition3(new Fp32(chicken.PosX), new Fp32(chicken.PosY), new Fp32(chicken.PosZ)), new Dk2Angle((ushort)chicken.Heading)));
+        context.Emit("chicken", "chicken_died", $"object={chicken.Id}");
+        context.World.RemoveObject(chicken.Id);
     }
 
     public static void SetProcess(ObjectState chicken, ChickenProcess process)
@@ -222,13 +242,11 @@ public static class ChickenMovementRules
         return false;
     }
 
-    /// <summary>Vtable <c>+0x20</c> (<c>0x004B2AD0</c>) only zeroes the bird's health; DK2 removes it in the
-    /// thing pass's second walk (<c>0x004B7830</c>) later the same turn, ours at once. The death effect the
-    /// object update requests at zero health (<c>+0x146</c> bit 0, definition <c>+0x119</c>) is not modelled.</summary>
+    /// <summary>Vtable <c>+0x20</c> (<c>0x004B2AD0</c>) only zeroes the bird's health; the same update's
+    /// <see cref="Decay"/> asks for its death effect and removes it.</summary>
     private static void Kill(SimulationContext context, ObjectState chicken, string reason)
     {
         chicken.Health = 0;
-        context.World.RemoveObject(chicken.Id);
         context.Emit("chicken", "loose_chicken_died", $"object={chicken.Id} reason={reason}");
     }
 

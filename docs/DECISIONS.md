@@ -15143,3 +15143,29 @@ refreshes the navigation, a world with a loose Chicken builds and edits its (has
 rather than at the first route request. Other users of the terrain-derived class (`CasinoStep.NavClass`,
 the Temple and Combat Pit neighbour steps) are unchanged; the review found them likely inert where they
 differ (Heart and Portal centres, floor slots).
+
+## ADR-0650: a free-range Chicken decays and dies
+
+**Date:** 2026-11-04. **Status:** accepted. Builds part of Q584; hash/save 399. · **Systems:** rooms
+
+**Context.** `Object_Update` (`0x0049BD20`), after the process and physics, takes one health a turn from
+an object whose definition has `DieOverTime`, or `DieOverTimeIfNotInRoom` while no room holds it
+(`+0x138` zero), unless `+0x146` bit 0x10 is set (gold taken into the hand). At none it requests the
+definition's death effect (`+0x119`; `Object_Init` sets the `+0x146` bit 0 that allows it) at the
+object's point, heading and owner, and the thing pass's second walk (`0x004B7830`) removes it. The
+Chicken's flags (`0x00230782`) carry `DieOverTimeIfNotInRoom`. Ours never decayed a Chicken. In the
+seed-1 Level 5 capture every free-range bird loses exactly one health a turn and a Hatchery-held one
+keeps 1000 (CONFIRMED, frames 1400-1460).
+
+**Decision.** `ChickenMovementRules.Tick` ends with that step, the process-0 restart included: a bird
+the Hatchery does not hold loses one health a turn, and at none it requests its death effect, emits
+`chicken_died` and is removed. Process 10's kills only zero the health, as vtable `+0x20` does, and
+leave the death to this step.
+
+**Consequences.** A free-range bird lives its 1000 health, 250 seconds. A full Hatchery's free-range
+census now empties as birds die, so it launches more: `a_hatchery_lays_and_hatches` lays 42 eggs, not
+22. Removal is at once rather than in the second walk later the same turn. The death itself is read,
+not captured (no bird reached 0 in the window). Two edges stay open (Q584): ours does not update a bird
+in the hand or carried, where `Object_Update` has no hand test and a held free-range bird probably keeps
+decaying; and `Hatchery_AdoptChickens` (`0x004DEB70`), which registers an unregistered bird standing on
+a Hatchery tile and so stops its decay, is not built.

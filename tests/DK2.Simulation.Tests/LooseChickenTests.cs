@@ -116,6 +116,22 @@ public class LooseChickenTests
         Assert.Equal(gold == 0 ? (byte)ChickenProcess.Moving : (byte)ChickenProcess.None, chicken.ProcessState);
     }
 
+    /// <summary>A bird no room holds loses one health a turn (DieOverTimeIfNotInRoom, ADR-0650); at none it
+    /// dies and goes the same turn.</summary>
+    [Fact]
+    public void AFreeRangeBirdLosesOneHealthATurnAndDiesAtNone()
+    {
+        var (sim, chicken, sink) = Start(1);
+        Assert.Equal(1000, chicken.Health);
+        sim.Tick();
+        sim.Tick();
+        Assert.Equal(998, chicken.Health);
+        chicken.Health = 1;
+        sim.Tick();
+        Assert.DoesNotContain(chicken, sim.World.Objects);
+        Assert.Contains(sink.Events, e => e.Kind == "chicken_died" && e.Detail == $"object={chicken.Id}");
+    }
+
     [Fact]
     public void AnotherOwnersTileIsNotASide()
     {

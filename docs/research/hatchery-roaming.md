@@ -100,7 +100,7 @@ destination, velocity, resume process, flags and count are hashed and saved;
 crossing a tile updates its occupancy link. Hatching on an owned Hatchery starts
 process 6, matching `0x004A1CF0`'s owned-room branch. Egg animation timing stays
 the existing two-second approximation. Object initialization retains Chicken
-`+0x14A = 1`. Loose process 10 is built (ADR-0647); Prison process 3 remains unbuilt.
+`+0x14A = 1`. Loose process 10 is built (ADR-0647) and so is free-range decay (§5); Prison process 3 remains unbuilt.
 
 Hand drop selects falling process 1 (`0x004BC710`). On landing without a
 recipient, `0x0049EF90` selects the room's nonzero field-21 handler
@@ -132,13 +132,18 @@ Successful admission calls `0x004C0010`, which clears Chicken eligibility
 eligibility and increments that counter. Normal movement retains membership.
 Hand lift detaches a room object (`0x004C0CB0`), and removal releases it.
 Room teardown (`0x004E39C0`) detaches ordinary room objects without deleting them.
-Conditional decay in `0x0049BD20` tests membership zero, not physical room tiles.
+Conditional decay in `0x0049BD20` tests membership zero, not physical room tiles: a bird no
+room holds loses one health a turn and at none requests its death effect and is removed. The
+decrement is CONFIRMED by the seed-1 Level 5 capture (frames 1396-1462: free-range birds -1 a
+frame, registered ones stay 1000); the death is read, not captured. Built (ADR-0650).
 
 Our saved/hashed Hatchery anchor identifies the current derived room containing
 that tile. Northwest growth retains membership; an invalidated or differently
 owned anchor releases it. Capacity counting follows the saved membership even
 outside the room. This is bounded by the existing derived-room model: a sale,
 split, absorbed-room merge or capture can recreate original room identities
-while a still-valid anchor survives here. Full identity teardown/adoption and
-the free-range census/decay remain unbuilt. Existing laying capacity continues
+while a still-valid anchor survives here. Full identity teardown, `Hatchery_AdoptChickens`
+(`0x004DEB70`, registers an unregistered bird standing on a Hatchery tile and so stops its decay)
+and decay of a bird in the hand or carried (ours does not update it; `Object_Update` has no hand
+test) remain unbuilt. Existing laying capacity continues
 counting eggs as reservations; the original room list counts only chickens.

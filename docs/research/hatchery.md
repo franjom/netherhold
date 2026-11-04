@@ -285,5 +285,5 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 
 ## Open questions
 
-- Free-range census/decay and Prison process 3: Q584 (loose process 10 is built, ADR-0647).
+- Prison process 3, Hatchery adoption of a standing bird and decay of a held bird: Q584 (loose process 10 and free-range decay are built, ADR-0647, ADR-0650).
 - Q134: why the exponent is that value. Does not affect fidelity.
