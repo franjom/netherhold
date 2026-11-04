@@ -17,7 +17,8 @@ public static partial class AdrIndex
     public const string RelativePath = "docs/DECISIONS.md";
 
     /// <summary>The status words an ADR can resolve to, after <see cref="NormaliseStatus"/>.</summary>
-    public static readonly string[] Statuses = ["proposed", "accepted", "implemented", "amended", "superseded", "withdrawn"];
+    /// <remarks>No "implemented": an ADR's status says it was decided, and <c>accepted</c> stays when the code lands (ADR-0660).</remarks>
+    public static readonly string[] Statuses = ["proposed", "accepted", "amended", "superseded", "withdrawn"];
 
     [GeneratedRegex(@"^#{2,3} ADR-(\d{4})\b(.*)$")] private static partial Regex HeadingRx();
     [GeneratedRegex(@"^\s*amendment\b", RegexOptions.IgnoreCase)] private static partial Regex AmendmentRx();

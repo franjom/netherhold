@@ -154,7 +154,9 @@ These are hard failures:
 - **The KB rule.** Every new finding or correction about a function is in
   its record in the same change, with a History line dated that day. A `FUN_`
   in a changed line of `docs/` or `src/` needs a record. `implements:` names
-  code that mirrors the function, not code that consumes its output.
+  code that mirrors the function, not code that consumes its output. Status
+  is READ (no `implements:`), PARTIAL or BUILT (both name the code); see
+  ADR-0660.
 - Run `dotnet run --project src/DK2.Tools -c Release -- kb check`, and the
   docs gate if it is present (`... -- docs --check`). It covers unstaged
   files too. Report the output exactly as printed. Running the tests is

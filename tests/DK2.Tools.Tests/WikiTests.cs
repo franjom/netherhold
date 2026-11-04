@@ -132,7 +132,7 @@ public class WikiTests
         Cites docs/research/rooms-note.md, which is not a note here.
 
         ## ADR-0002: a newer header
-        **Date:** 2026-11-03. **Status:** implemented, 2026-11-03. · **Systems:** rooms
+        **Date:** 2026-11-03. **Status:** amended, 2026-11-03. · **Systems:** rooms
 
         **Decision.** Cites fear.md, but the explicit field wins.
 
@@ -145,13 +145,20 @@ public class WikiTests
     static IReadOnlyList<Adr> ParseDecisions(string text, params string[] notes)
         => AdrIndex.Parse(text.Split('\n'), notes.ToHashSet(StringComparer.Ordinal));
 
+    [Theory]
+    [InlineData("accepted", "accepted")]
+    [InlineData("Reversed", "superseded")]
+    [InlineData("implemented", "")]   // retired by ADR-0660: the docs gate reports it on a touched ADR
+    public void StatusWordsNormalise(string word, string status)
+        => Assert.Equal(status, AdrIndex.NormaliseStatus(word));
+
     [Fact]
     public void AdrsAreParsedFromBothHeaderFormatsAndAnAmendmentStaysWithItsAdr()
     {
         var adrs = ParseDecisions(Decisions, "fear");
         Assert.Equal([1, 2, 3], adrs.Select(a => a.Number));
         Assert.Equal(["Integer maths", "a newer header", "an old one"], adrs.Select(a => a.Title));
-        Assert.Equal(["accepted", "implemented", "superseded"], adrs.Select(a => a.Status));
+        Assert.Equal(["accepted", "amended", "superseded"], adrs.Select(a => a.Status));
         Assert.Equal(["fear"], adrs[0].CitedNotes);
         Assert.Null(adrs[0].ExplicitSystems);
         Assert.Equal(["rooms"], adrs[1].ExplicitSystems);

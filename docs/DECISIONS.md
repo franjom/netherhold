@@ -6380,7 +6380,7 @@ other agent, could not ask "what is `FUN_X`, and who decided" without reading th
 **Decision.**
 1. One record per DKII.EXE function, `docs/research/functions/<ADDRESS>.md`, in git:
    a header (address, name, role, confidence on the one scale of ADR-0642,
-   status READ | BUILT | SUPERSEDED, evidence links, optional `implements`), a body of
+   status READ | PARTIAL | BUILT | SUPERSEDED (PARTIAL: ADR-0660), evidence links, optional `implements`), a body of
    reasoning, and a `## History` of dated, attributed lines.
 2. `dk2tools kb check` gates it and the commit-msg hook runs it. Each of these blocks
    the commit: a `FUN_` in a changed line of `docs/` or `src/` with no record, a header
@@ -13946,7 +13946,7 @@ runs at the next poll.
 
 ## ADR-0595 - reproduce creature burning and its simulation draws
 
-**Status:** implemented, 2026-10-30.
+**Status:** accepted, 2026-10-30.
 
 **Decision.** Store the native burning countdown and burner tag as unsigned words,
 save and hash them, and mirror the three ignition paths and ordered z/x/y draws.
@@ -13966,7 +13966,7 @@ outside 0x0048957D. Only tests back that reorder; no capture does.
 
 ## ADR-0596 - request shot effects without changing gameplay
 
-**Status:** implemented, 2026-10-30.
+**Status:** accepted, 2026-10-30.
 
 **Decision.** Extend view requests with shot attachment, aim, carried velocity and
 visibility policy. Producers request trails after their same-call launch so the view
@@ -13989,7 +13989,7 @@ compile/sync limits: [shot-effects.md section7](research/shot-effects.md#7-ours)
 
 ## ADR-0597 - complete the effect-engine paths used by shots
 
-**Status:** implemented, 2026-10-30.
+**Status:** accepted, 2026-10-30.
 
 **Decision.** Extend the shared view engine with type4 velocity inheritance and headings,
 DirectionalSpread, contact-child selection, flight yaw, element NextEffect, and generation
@@ -14009,7 +14009,7 @@ existing public names and asset access.
 
 ## ADR-0599 - draw procedural lightning and electrified creatures
 
-**Status:** implemented, 2026-10-30.
+**Status:** accepted, 2026-10-30.
 
 **Decision.** Decode procedural kinds in the data model, build bolts/ribbons in
 engine-neutral presentation, and draw them through the Unity asset abstraction.
@@ -14029,7 +14029,7 @@ kind8 endpoints and the ordinary keeper creature-targeted Thunderbolt path.
 
 ## ADR-0600 - draw shot bodies through the existing asset and effect adapters
 
-**Status:** implemented, 2026-10-30.
+**Status:** accepted, 2026-10-30.
 
 **Decision.** Project live shots read-only into the existing sprite/mesh draw format.
 Use logical shot asset keys and runtime install providers, interpolate observed positions
@@ -14048,7 +14048,7 @@ Hash/save343 and its deterministic pin remain unchanged on this branch.
 
 ## ADR-0601 - present burning and local Inferno camera impulses
 
-**Status:** implemented, 2026-10-30.
+**Status:** accepted, 2026-10-30.
 
 **Decision.** Project burning into the existing additive red pass with native status
 precedence and Horny suppression. Deduplicate that pass when the creature is hovered.
@@ -14090,7 +14090,7 @@ turn. Level 4 is not yet re-measured; Q665 stays open.
 
 ## ADR-0603 - run the Portal hand-drop exit handler
 
-**Status:** implemented, 2026-10-31.
+**Status:** accepted, 2026-10-31.
 
 **Decision.** Enter197 on an accepted own Portal centre disposal and run its owned-centre
 gate before the shared196 handler. Retain the native repeated sacked events,
@@ -14108,7 +14108,7 @@ observation remain in the linked research and [structure-blocks.md](research/str
 
 ## ADR-0604 - request the battle call when an approach starts
 
-**Status:** implemented, 2026-10-31.
+**Status:** accepted, 2026-10-31.
 
 **Decision.** Emit creature sound event `0xD6` after a successful fight-approach
 entry through the shared creature-bank presentation path. Add no battle-call
@@ -14119,7 +14119,7 @@ cooldown and no swing-side request. Sound-manager admission remains separate.
 
 ## ADR-0605 - fill wall corners when reinforcement finishes
 
-**Status:** implemented, 2026-10-31. Q694, hash/save347.
+**Status:** accepted, 2026-10-31. Q694, hash/save347.
 
 **Decision.** Run state22's diagonal fill when its action ends and the completed
 reinforce task is released. Use the navigation grid for the open-side test and
@@ -14130,7 +14130,7 @@ No new persistent fields. Campaign wall-count parity remains unestablished.
 
 ## ADR-0606 - retain the Hatchery level-start interval
 
-**Status:** implemented, 2026-10-31. Q695, hash/save348.
+**Status:** accepted, 2026-10-31. Q695, hash/save348.
 
 **Decision.** Apply the size-step interval to existing Hatcheries at level start,
 after ordinary construction. Retain it until a tile pass. Use the native
@@ -14143,7 +14143,7 @@ and snapshotted. Restoring a snapshot skips the level-start override.
 
 ## ADR-0607 - separate reinforcement selection from its work guard
 
-**Status:** implemented, 2026-10-31. Q696, Q564, hash/save349.
+**Status:** accepted, 2026-10-31. Q696, Q564, hash/save349.
 
 **Decision.** Select kind6 using its own owner/health predicate before kind16
 repair. Apply action7 only to an eligible neutral wall touching own floor.
@@ -14161,7 +14161,7 @@ unverified (Q564/Q696); the inspected pool deletion has no per-wall cooldown.
 
 ## ADR-0608 - reproduce the unpaid jackpot slap
 
-**Status:** implemented, 2026-10-31. Q697, hash/save350.
+**Status:** accepted, 2026-10-31. Q697, hash/save350.
 
 **Decision.** Route a full slap with an outstanding jackpot deadline through
 the winner routine. Preserve its purse debit followed by a second spawn cap,
@@ -14989,7 +14989,7 @@ boulder-struck Troll's death a turn later.
 
 ## ADR-0642: one confidence scale for notes, records and code
 
-**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0). · **Systems:** tooling-process
+**Date:** 2026-11-03. **Status:** accepted, 2026-11-03. Issue #9 (WP0). · **Systems:** tooling-process
 
 **Context.** Research notes, `Dk2BehaviorAttribute` and `RESEARCH_STATUS.md` used
 CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN, with CONFIRMED reserved for the
@@ -15017,7 +15017,7 @@ own runs are "measured", not CONFIRMED. Record names that end in `_LIKELY` were 
 
 ## ADR-0643: the wiki is indexed by a closed list of systems and generated in CI
 
-**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0 to WP6). · **Systems:** tooling-process
+**Date:** 2026-11-03. **Status:** accepted, 2026-11-03. Issue #9 (WP0 to WP6). · **Systems:** tooling-process
 
 **Context.** The GitHub wiki mirrors `docs/wiki/` (CI job `wiki`). A reader asking "what
 do we know about combat, and where is it built" had to search 280 research notes and 600
@@ -15327,3 +15327,34 @@ CONFIRMED by the native draw log for a one-Heart keeper on Level 4; the ranges, 
 many-Heart case are STRONGLY INFERRED from the disassembly. Ours counts derived Heart rooms, where DK2
 walks the player's room list; the room it would pick differs only when there are several, and ours makes
 no walk.
+
+## ADR-0660: a function record can be PARTIAL, and an ADR in force is accepted
+
+**Date:** 2026-11-04. **Status:** accepted. Owner's decision, following issue #9. · **Systems:** tooling-process
+
+**Context.** The Status Matrix (ADR-0643) counted ADRs by status word and records by status, and both
+undercounted what is built. 563 ADRs said `accepted` and 14 `implemented`; nobody changes the word when the
+code lands. 366 function records said READ while an `implements:` line named our code. The KB rule in
+AGENTS.md used READ plus `implements:` for a function our code mirrors only in part, so READ meant both "not
+built" and "built in part", and a record built whole but never promoted looked the same.
+
+**Decision.**
+- A function record's status is READ, PARTIAL, BUILT or SUPERSEDED. PARTIAL: our code mirrors part of the
+  function, and the `implements:` lines name that code. BUILT: it mirrors the whole. READ: it is read and not
+  mirrored, so it names no code.
+- `dk2tools kb check` holds status and `implements:` together on a new record or one whose header a change
+  touches: BUILT and PARTIAL need an `implements:` line, and READ has none. A header that comes in by merge
+  as the other side wrote it is exempt.
+- The 366 READ records with an `implements:` line became PARTIAL, each with a History line. Which of them
+  are in fact BUILT is decided as each is next read. A PARTIAL label is only as good as its `implements:`
+  lines: some name code that consumes the function's table rather than mirroring it (`0052CAD0`'s
+  `GuiSoundSlot.cs`), and nine name a class rather than a file. Such a record goes back to READ, without the
+  line, when it is next read.
+- An ADR's status records the decision, not the build: `accepted` (or `amended`) is the status of an ADR in
+  force whether or not its code exists. `implemented` is retired, and the 14 ADRs that used it say
+  `accepted`. What is built shows in the code's citations, which the Status Matrix counts.
+
+**Consequences.** The Status Matrix shows BUILT and PARTIAL records side by side, and its ADR columns are in
+force and cited in code. The `docs` gate rejects `implemented` on an ADR a change touches, as it rejects any
+status word not in `AdrIndex.Statuses`. 17 BUILT records still lack an `implements:` line; each is held to
+the rule when it is next edited.

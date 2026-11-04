@@ -33,7 +33,7 @@ HEADER_ORDER = ["address", "name", "role", "confidence", "status", "evidence", "
 TOKEN_KEYS = {"address", "confidence", "status", "evidence", "implements"}
 LIST_KEYS = {"evidence", "implements"}
 CONFIDENCES = ("CONFIRMED", "STRONGLY INFERRED", "HYPOTHESIS", "UNKNOWN", "DISPUTED")  # ADR-0642
-STATUSES = ("READ", "BUILT", "SUPERSEDED")
+STATUSES = ("READ", "PARTIAL", "BUILT", "SUPERSEDED")  # ADR-0660
 HISTORY_HEADING = "## History"
 ADDRESS_RX = re.compile(r"^00[4-6][0-9A-F]{5}$")
 AGENT_RX = re.compile(r"^[a-z][a-z0-9-]*$")
@@ -378,7 +378,8 @@ def make_server():
         comma-separated repo paths (optional #anchor) and replace the whole list; implements='-' clears it
         (evidence cannot be cleared). reasoning replaces the body. note becomes the History line
         '- <today> <agent>: <note>'. A new record needs role and evidence and defaults to name FUN_<ADDR>,
-        confidence HYPOTHESIS, status READ. The file is validated with `dk2tools kb check --all`; a finding about this
+        confidence HYPOTHESIS, status READ. Status is READ, PARTIAL or BUILT (ADR-0660): PARTIAL and BUILT need
+        implements naming the code that mirrors the function, and READ takes none. The file is validated with `dk2tools kb check --all`; a finding about this
         record undoes the write and returns 'not saved: ...', so a record that already has a finding cannot be
         written until that finding is fixed in the same call. Otherwise INDEX.md is regenerated (best effort;
         it is deterministic from the records on disk) and 'saved <path>' returned.
