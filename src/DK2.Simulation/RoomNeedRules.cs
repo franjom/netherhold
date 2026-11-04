@@ -39,7 +39,7 @@ public static class RoomNeedRules
         {
             if (room.OwnerPlayerId != player) continue;
             if (room.Definition.TypeId == RoomTypeId.Treasury) treasury = true;
-            else if (room.Definition.TypeId != RoomTypeId.DungeonHeart || world.Player(player).HeartRuined) continue;
+            else if (room.Definition.TypeId != RoomTypeId.DungeonHeart || RoomRules.IsRuined(world, room)) continue;
             if (!room.TileIndices.Any(tile => GoldStore.SpaceIn(world, context.Database, tile) > 0)) continue;
             space = true;
             int first = SlabChain.FirstSlab(world, room);

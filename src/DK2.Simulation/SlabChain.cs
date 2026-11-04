@@ -130,7 +130,8 @@ public static class SlabChain
     /// and every later neighbour's different room is appended after it (<c>0x004ECB70</c>). With no
     /// such neighbour it starts a room of its own (<c>0x004EC5A0</c>).</summary>
     /// <remarks>The room keeps the joined room's fields; an absorbed room's are dropped
-    /// (<c>0x004ECD00</c> frees it). Of those fields ours keeps two sets on a tile, the room's lowest:
+    /// (<c>0x004ECD00</c> frees it). Its ruin is kept on every tile; of the other fields ours keeps two
+    /// sets on a tile, the room's lowest:
     /// the Prison's door byte (<see cref="JailBreakRules.DoorOf"/>) and the Casino's party
     /// (<see cref="CasinoJackpotRules.IsPartyOn"/>), so they move to the new lowest.</remarks>
     /// <param name="absorbed">Gains the tiles of the rooms merged in behind the joined one, whose
@@ -143,6 +144,7 @@ public static class SlabChain
         List<int>? chain = null;
         RoomListPosition listPosition = default;
         byte door = 0, party = 0;
+        bool ruined = false;
         long partyStart = 0;
         long hatcheryStamp = world.CurrentTick.Value + 1;
         WorkshopTimers workshop = default;
@@ -160,6 +162,7 @@ public static class SlabChain
                 hatcheryStamp = world.TileAtIndex(clockTile).HatcheryLastGeneratedTick;
                 workshop = WorkshopTimerRules.Read(world, clockTile);
                 listPosition = world.TileAtIndex(room[0]).RoomListPosition;
+                ruined = world.TileAtIndex(room[0]).RoomRuined;
                 foreach (int t in room)
                 {
                     ref TileState kept = ref world.TileAtIndex(t);
@@ -187,6 +190,9 @@ public static class SlabChain
         RoomLists.Set(world, chain, listPosition);
         Stamp(world, chain);
         if (workshopRoom) WorkshopTimerRules.Place(world, chain, workshop);
+        // The joined room's ruin (+0x9A bit 0) is the grown room's; a tile that starts a room starts
+        // unruined, as Room_Construct clears the bit (0x004E392D, ADR-0662).
+        foreach (int t in chain) world.TileAtIndex(t).RoomRuined = ruined;
         int lowest = KeepDoor(world, chain, door);
         ref TileState head = ref world.TileAtIndex(lowest);
         (head.CasinoParty, head.CasinoPartyStartTick) = (party, partyStart);
@@ -249,6 +255,9 @@ public static class SlabChain
             int n = Neighbour(world, tileIndex, d);
             if (n >= 0 && !old.Contains(n) && Same(world, n, terrain, owner)) Fill(world, n, terrain, owner, old);
         }
+
+        // Each piece is constructed afresh (Room_Construct, 0x004E3800), which clears the ruin bit.
+        foreach (int tile in old) world.TileAtIndex(tile).RoomRuined = false;
 
         // The share is taken of the room as it was, the leaving tile still counted (0x004ED54F).
         int size = old.Count + 1;

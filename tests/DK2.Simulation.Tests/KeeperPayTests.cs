@@ -83,7 +83,7 @@ public class KeeperPayTests
         Store(db, world, RoomTypeId.DungeonHeart, 6, 6, 1, 500);
         Assert.Equal(100, GoldStore.Spend(world, db, Keeper, 100));
 
-        world.Player(Keeper).HeartRuined = true;
+        HeartRuin.Set(world, Keeper, true);
         Assert.Equal(0, GoldStore.Spend(world, db, Keeper, 100));
     }
 

@@ -88,8 +88,7 @@ public sealed class StructureBlocks
             if (terrainId == 0) continue;
             if (terrainId != portalTerrain && terrainId != heroPortalTerrain && terrainId != heartTerrain) continue;
 
-            long ruined = terrainId == heartTerrain && world.HasPlayer(tile.OwnerPlayerId)
-                && world.Player(tile.OwnerPlayerId).HeartRuined ? 1L << 40 : 0;
+            long ruined = terrainId == heartTerrain && tile.RoomRuined ? 1L << 40 : 0;
             seeds.Add(ruined | ((long)i << 16) | ((long)terrainId << 8) | tile.OwnerPlayerId);
         }
 
@@ -170,7 +169,7 @@ public sealed class StructureBlocks
                 break;
 
             case RoomTypeId.DungeonHeart:
-                if (world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined) break;
+                if (RoomRules.IsRuined(world, room)) break;
                 // The middle nine, the raised platform Q52's 16000 pinned. IsCentrePlatform answers
                 // false for a room narrower than 3, so a half-destroyed heart blocks nothing and
                 // does not trap the creatures standing in it.

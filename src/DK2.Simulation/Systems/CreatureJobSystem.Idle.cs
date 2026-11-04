@@ -71,10 +71,10 @@ public sealed partial class CreatureJobSystem
     private static void HeartWalkDraws(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        if (!world.HasPlayer(creature.OwnerPlayerId) || world.Player(creature.OwnerPlayerId).HeartRuined) return;
         int hearts = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
-            if (room.OwnerPlayerId == creature.OwnerPlayerId && room.Definition.TypeId == RoomTypeId.DungeonHeart) hearts++;
+            if (room.OwnerPlayerId == creature.OwnerPlayerId && room.Definition.TypeId == RoomTypeId.DungeonHeart
+                && !RoomRules.IsRuined(world, room)) hearts++;
         if (hearts == 0) return;
         context.Rng.NextInt(hearts);
         context.Rng.NextInt(2);

@@ -534,7 +534,7 @@ public sealed class StructureBlocksTests
     {
         var (world, steering, goblin, sim) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
         Assert.False(Grid(Db, world).IsWalkable(6, 6));
-        world.Player(Keeper).HeartRuined = true;
+        HeartRuin.Set(world, Keeper, true);
         steering.Refresh();
         Assert.True(Grid(Db, world).IsWalkable(6, 6));
         Assert.Empty(StructureBlocks.For(world, Db).HeartCentres);
@@ -560,7 +560,7 @@ public sealed class StructureBlocksTests
         var from = HeartRelativePoint(x0, y0);
         var to = HeartRelativePoint(x1, y1);
         Assert.Equal(allowed, steering.CanMove(from, to));
-        world.Player(Keeper).HeartRuined = true;
+        HeartRuin.Set(world, Keeper, true);
         steering.Refresh();
         Assert.True(steering.CanMove(from, to));
     }
@@ -583,7 +583,7 @@ public sealed class StructureBlocksTests
         for (int tick = 0; tick < 400 && !goblin.Body.PathFinished; tick++) sim.Tick(InputFrame.Empty);
         Assert.True(goblin.Body.PathFinished);
         Assert.True(DistanceToHeartCentre(goblin) >= 1 << 15);
-        world.Player(Keeper).HeartRuined = true;
+        HeartRuin.Set(world, Keeper, true);
         Assert.Equal(HeartRelativePoint(0, 0), steering.ConstrainTarget(goblin.Body.Pos, HeartRelativePoint(0, 0)));
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.ExactSpot));
         Assert.Equal(HeartRelativePoint(0, 0), goblin.Body.PathTargetPos);

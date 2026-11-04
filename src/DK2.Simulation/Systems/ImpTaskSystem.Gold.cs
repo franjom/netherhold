@@ -355,8 +355,7 @@ public sealed partial class ImpTaskSystem
         int index = (here.Y * world.Width) + here.X;
         RoomInstance? room = RoomIndex.RoomAt(world, database, index);
         if (room is null || room.OwnerPlayerId != creature.OwnerPlayerId) return false;
-        bool liveHeart = room.Definition.TypeId == RoomTypeId.DungeonHeart
-            && !(world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined);
+        bool liveHeart = room.Definition.TypeId == RoomTypeId.DungeonHeart && !RoomRules.IsRuined(world, room);
         if (!liveHeart && room.Definition.TypeId != RoomTypeId.Treasury) return false;
 
         int perTile = database[VariableTypeId.MaxGoldPerTreasuryTile];

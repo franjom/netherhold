@@ -56,7 +56,7 @@ public class DungeonHeartTests
         if (initialRuin)
         {
             world.Player(Keeper).HeartHealth = 0;
-            world.Player(Keeper).HeartRuined = true;
+            HeartRuin.Set(world, Keeper, true);
         }
         else world.DamageHeart(Keeper, 10, Rival);
         var sim = Simulation(database, world);
@@ -196,6 +196,9 @@ public class DungeonHeartTests
         Assert.False(keeper.HeartRuined);
         SkipOpening(sim);
         Assert.True(sim.World.Player(Keeper).HeartRuined);
+        // And the room is the ruin, on every tile (ADR-0662).
+        RoomInstance room = RoomIndex.Build(sim.World, database).Single(r => r.Definition.TypeId == RoomTypeId.DungeonHeart);
+        Assert.All(room.TileIndices, i => Assert.True(sim.World.TileAtIndex(i).RoomRuined));
     }
 
     [Fact]
@@ -316,6 +319,7 @@ public class DungeonHeartTests
         SkipOpening(Simulation(database, world));
 
         Assert.True(world.Player(Keeper).HeartRuined);
+        Assert.True(tile.RoomRuined);
         Assert.Equal(0, GoldStore.Capacity(world, database, corner));
         Assert.True(TileWorkRules.Applies(world, database, tile, TileWorkKind.ConvertRoom, Rival));
         Assert.False(TileWorkRules.Applies(world, database, tile, TileWorkKind.ConvertRoom, Keeper));

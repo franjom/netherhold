@@ -377,7 +377,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             _database.RoomByTerrain(_world.Tile(x, y).TerrainId)?.TypeId != RoomTypeId.DungeonHeart) return target;
         RoomInstance? room = RoomIndex.RoomAt(_world, _database, y * _world.Width + x);
         if (room is null || room.Width < 3 || room.Height < 3 ||
-            (_world.HasPlayer(room.OwnerPlayerId) && _world.Player(room.OwnerPlayerId).HeartRuined)) return target;
+            RoomRules.IsRuined(_world, room)) return target;
         var centre = new Fixed16Vector(CreatureState.CentreOf((room.MinX + room.MaxX) / 2) << 4,
             CreatureState.CentreOf((room.MinY + room.MaxY) / 2) << 4);
         int radius = (heart.Width.Raw >> 1) << 4;

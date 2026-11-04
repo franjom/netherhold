@@ -102,7 +102,7 @@ public sealed class StoreGoldTests
     {
         (GameDatabase db, WorldState world) = World();
         Room(db, world, Dk2TerrainFixture.DungeonHeartTerrain, 5, 5, 9, 9);
-        world.Player(Keeper).HeartRuined = ruined;
+        HeartRuin.Set(world, Keeper, ruined);
 
         var rng = new Scripted(30);
         Run(db, world, rng);
@@ -202,7 +202,7 @@ public sealed class StoreGoldTests
     {
         (GameDatabase db, WorldState world) = World();
         Room(db, world, Dk2TerrainFixture.DungeonHeartTerrain, 5, 5, 9, 9);
-        world.Player(Keeper).HeartRuined = true;
+        HeartRuin.Set(world, Keeper, true);
 
         DropFromHand(db, world, 700, new TilePos(5, 5));
 

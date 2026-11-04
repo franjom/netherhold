@@ -32,6 +32,7 @@ does not delete type 86 Arches, type 88 Steps or type 100 Obstacle.
 The later room ruin is separate: `0x004D9A60` waits until after its opening
 interval before noticing the missing Heart. `0x004E9130` case 5 sets the ruin
 bit and refreshes tiles. Only its case 20 deletes room objects directly.
+The ruin belongs to the room and survives a change of owner (win-and-defeat.md section 4, ADR-0662).
 Downstream tile-event effects on surviving Heart decorations remain unverified.
 
 ## Authored effect graph (STRONGLY INFERRED shipped data)

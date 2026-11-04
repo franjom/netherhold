@@ -843,8 +843,7 @@ public sealed partial class WorldView
         : _roomKeys.TryGetValue(tile.TerrainId, out RoomPieceKeys? keys) ? keys : null;
 
     private bool IsRuinedHeart(WorldState world, in TileState tile) =>
-        _destroyedHeartKeys.ContainsKey(tile.TerrainId) && world.HasPlayer(tile.OwnerPlayerId)
-        && world.Player(tile.OwnerPlayerId).HeartRuined;
+        _destroyedHeartKeys.ContainsKey(tile.TerrainId) && tile.RoomRuined;
 
     private LiquidSurface SurfaceOf(in TileState tile, TerrainDef terrain)
     {

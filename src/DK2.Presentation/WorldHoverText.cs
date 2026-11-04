@@ -284,7 +284,7 @@ public sealed class WorldHoverText
                 break;
             case RoomTypeId.DungeonHeart:
                 ref PlayerState player = ref world.Player(_viewer);
-                if (player.HeartRuined) return new("", name, hit);
+                if (RoomRules.IsRuined(world, room)) return new("", name, hit);   // 0x004E9393 tests the room
                 int maxHealth = _database[VariableTypeId.DungeonHeartObjectHealth];
                 _tokens[37] = Number(maxHealth > 0 ? (int)((long)player.HeartHealth * 100 / maxHealth) : 0);
                 _tokens[40] = Number(player.Mana);

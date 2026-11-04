@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 20;
+    public const int FormatVersion = 21;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -74,6 +74,7 @@ public static class KeeperViewSnapshot
             foreach (int index in room.FloorSlots) w.Write(index);
             foreach (int index in room.ChainOrder) w.Write(index);
             w.Write(room.ObjectListHead);
+            w.Write(room.Ruined);
         }
         w.Write(view.Messages.Count);
         foreach (PlayerMessage m in view.Messages)
@@ -170,7 +171,7 @@ public static class KeeperViewSnapshot
             for (int j = 0; j < chain.Length; j++) chain[j] = r.ReadInt32();
             if (!new HashSet<int>(chain).SetEquals(indices) || chain.Distinct().Count() != chain.Length)
                 throw new InvalidDataException("A room's chain order is not its tiles.");
-            rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY, slots, chain, r.ReadInt32());
+            rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY, slots, chain, r.ReadInt32(), r.ReadBoolean());
         }
         var messages = new PlayerMessage[ReadCount(r, 27)];
         for (int i = 0; i < messages.Length; i++)

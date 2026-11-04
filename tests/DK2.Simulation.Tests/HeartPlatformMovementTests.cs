@@ -42,7 +42,7 @@ public sealed class HeartPlatformMovementTests
     {
         var (db, world, steering, _) = Setup(new TilePos(2, 6));
         Assert.Equal(allowed, steering.CanMove(Point(x0, y0), Point(x1, y1)));
-        world.Player(PlayerIds.FirstKeeper).HeartRuined = true;
+        HeartRuin.Set(world, PlayerIds.FirstKeeper, true);
         steering.Refresh();
         Assert.True(steering.CanMove(Point(x0, y0), Point(x1, y1)));
     }
@@ -58,7 +58,7 @@ public sealed class HeartPlatformMovementTests
         var (_, world, steering, _) = Setup(new TilePos(2, 6));
         Fixed16Vector target = steering.ConstrainTarget(Point(-4, 0), Point(x, y));
         Assert.Equal(Point(rimX, rimY), target);
-        world.Player(PlayerIds.FirstKeeper).HeartRuined = true;
+        HeartRuin.Set(world, PlayerIds.FirstKeeper, true);
         Assert.Equal(Point(x, y), steering.ConstrainTarget(Point(-4, 0), Point(x, y)));
     }
 
@@ -68,7 +68,7 @@ public sealed class HeartPlatformMovementTests
     public void GoblinFinishesTheWalkAfterItsInitialEscapeModeClears(bool ruined)
     {
         var (db, world, steering, goblin) = Setup(new TilePos(2, 6));
-        world.Player(PlayerIds.FirstKeeper).HeartRuined = ruined;
+        HeartRuin.Set(world, PlayerIds.FirstKeeper, ruined);
         Assert.True(steering.TryRoute(goblin, new TilePos(10, 6), MoveOptions.Loose));
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
         bool crossedCore = false;
@@ -151,7 +151,7 @@ public sealed class HeartPlatformMovementTests
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), MoveOptions.ExactSpot));
         Assert.Equal(Point(-0.625, 0), goblin.Body.PathTargetPos);
         int before = steering.Rebuilds;
-        world.Player(PlayerIds.FirstKeeper).HeartRuined = true;
+        HeartRuin.Set(world, PlayerIds.FirstKeeper, true);
         steering.Refresh();
         Assert.Equal(before, steering.Rebuilds);
         Assert.Equal(nativeBytes, WorldSteering.CaptureNavigationBytes(db, world));

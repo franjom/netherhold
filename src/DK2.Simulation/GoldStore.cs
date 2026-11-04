@@ -70,9 +70,7 @@ public static class GoldStore
 
         // A ruined heart holds nothing: DK2's gold sum skips a heart whose +0x9A bit 0
         // is set, and that bit is the ruin (Q263, win-and-defeat.md §4).
-        if (room.Definition.TypeId == RoomTypeId.DungeonHeart
-            && world.HasPlayer(room.OwnerPlayerId)
-            && world.Player(room.OwnerPlayerId).HeartRuined)
+        if (room.Definition.TypeId == RoomTypeId.DungeonHeart && RoomRules.IsRuined(world, room))
             return 0;
 
         int perTile = room.Definition.TypeId switch
@@ -236,8 +234,7 @@ public static class GoldStore
     /// <summary>The ruin test both deposits and the gold store state <c>0x0049F730</c> make first
     /// (room <c>+0x9A</c> bit 0): a ruined Heart takes nothing.</summary>
     public static bool Accepts(WorldState world, RoomInstance room) =>
-        room.Definition.TypeId != RoomTypeId.DungeonHeart
-        || !(world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined);
+        room.Definition.TypeId != RoomTypeId.DungeonHeart || !RoomRules.IsRuined(world, room);
 
     /// <summary>The eight points a deposit's leftover is put at, in DK2's table order
     /// (<c>0x006A2FA0</c>: each coordinate 0x3FF, 0x7FF or 0xBFF, never both 0x7FF), as the
@@ -335,7 +332,7 @@ public static class GoldStore
         {
             if (room.OwnerPlayerId != playerId) continue;
             if (room.Definition.TypeId == RoomTypeId.Treasury) treasuries++;
-            else if (room.Definition.TypeId != RoomTypeId.DungeonHeart || world.Player(playerId).HeartRuined) continue;
+            else if (room.Definition.TypeId != RoomTypeId.DungeonHeart || RoomRules.IsRuined(world, room)) continue;
             stores.Add(room);
         }
 

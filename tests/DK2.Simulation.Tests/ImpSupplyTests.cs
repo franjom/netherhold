@@ -85,7 +85,7 @@ public class ImpSupplyTests
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         Dk2TerrainFixture.HeartRoom(world, database, Keeper);
-        world.Player(Keeper).HeartRuined = true;
+        HeartRuin.Set(world, Keeper, true);
         var simulation = new GameSimulation(database, world, 5,
             [new DungeonHeartSystem(), new ShotSystem(), new ImpSupplySystem()]);
 
@@ -154,7 +154,7 @@ public class ImpSupplyTests
     public void AFallenKeeperWithRetainedHeartTilesReceivesNoFreeImps()
     {
         Run run = WithAHeart();
-        run.World.Player(Keeper).HeartRuined = true;
+        HeartRuin.Set(run.World, Keeper, true);
         run.World.Player(Keeper).KilledByPlayerId = 2;
 
         run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 6);
@@ -253,7 +253,7 @@ public class ImpSupplyTests
         for (ulong seed = 1; seed <= 40; seed++)
         {
             (WorldState world, GameSimulation sim, _) = FreeSupplyOnly(seed);
-            world.Player(Keeper).HeartRuined = true;
+            HeartRuin.Set(world, Keeper, true);
             int angle = new SimRandom(seed).NextInt(0x800);
             (int x, int y) = RingPoint(new TilePos(1, 1), angle);
 
