@@ -93,6 +93,29 @@ public class LooseChickenTests
         Assert.Equal(fourth ? (byte)ChickenProcess.Moving : (byte)ChickenProcess.None, chicken.ProcessState);
     }
 
+    /// <summary>A Treasury tile holding gold holds DK2's Gold Pile 1, an obstacle (ADR-0649): on the
+    /// fourth try, where a room may be taken, the empty one is and the stocked one is not.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(500)]
+    public void AStoreTileHoldingGoldIsRefused(int gold)
+    {
+        uint seed = 1;
+        int last = (new Dk2Lcg(seed).NextInt(4) + 3) & 3;
+        var (sim, chicken, _) = Start(seed, (db, world) =>
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                var at = new TilePos(2 + Sides[i].X, 2 + Sides[i].Y);
+                if (i != last) { Rock(db, world, at); continue; }
+                RoomRules.Place(db, ref world.Tile(at), db.Room(RoomTypeId.Treasury), Keeper);
+                world.Tile(at).GoldHeld = gold;
+            }
+        });
+        sim.Tick();
+        Assert.Equal(gold == 0 ? (byte)ChickenProcess.Moving : (byte)ChickenProcess.None, chicken.ProcessState);
+    }
+
     [Fact]
     public void AnotherOwnersTileIsNotASide()
     {

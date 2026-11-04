@@ -296,7 +296,7 @@ room's `+0x423` sound.
   walk. **Scan A** for a dead forced target: ours clears it and finds nobody.
 - 217's throw of the loser to the rim; the room's entry point, its sounds, message 9, the
   finder's messages, the death sound;
-  `0x00455000`'s byte in the neighbour picker (taken as equal within a room); the rim's
+  `0x00455000`'s byte in the neighbour picker (not read; the floor test stands for floor slots 4 against rim 0); the rim's
   slopes; `KillsInCombatPit` (`+0x408`), whose writer is still unread.
 - The shot owner: a pit fighter's shots are the hero player's (`combat-spells.md`).
 

@@ -80,7 +80,7 @@ definition speed again; see its function record for the eligibility gates.
 
 Process 10 is broader than an owned-room wander. It has Chicken/free-range
 eligibility and destruction paths, owner-state and world-region gates, and a
-four-neighbour search that checks matching owner and floor height. It avoids
+four-neighbour search that checks matching owner and the raw navigation byte (`0x00455000`). It avoids
 room tiles on the first three attempts, traps, doors and obstacle objects,
 then chooses each sub-tile coordinate as `0x555 + random(0x555)` and moves with
 resume process 10. The helpers are now read (2026-10-11): `0x0049CE50` returns
@@ -88,7 +88,7 @@ Chicken `+0x14A` or zero; `0x0049CEA0` returns Chicken `+0x152`, otherwise
 `+0x14E`. The owner's `+0x132` is the stamped killer. The `+0x1A9` gate reads
 the terrain record's Damage field (`0x00509480`, Q584): any nonzero value, harmful
 or healing, kills a loose bird like a fallen owner or a held bird off a Hatchery.
-The loose roam is built (ADR-0647, hash/save 396).
+A Treasury or Heart tile holding gold has a Gold Pile object, an obstacle. The loose roam is built (ADR-0647, hash/save 396; ADR-0649, 398).
 
 ## 4. Implementation boundary
 

@@ -140,8 +140,9 @@ releases each place as it goes, which is what empties the list.
   (ADR-0406); a neighbour's change does not, the Temple lacking `SpecialWalls`.
 - The centre tile `+0x27` is `RoomInstance.CentreField`, the bounding box's centre (Q515).
 - 103's neighbour search does not test solid terrain or the nav class. A tile of the same room has
-  the room's terrain, which is not solid, and the nav byte is written only by `Tile_SetTerrain`
-  (record `00455000`), so it is class 0 like its neighbours.
+  the room's terrain, which is not solid, and the nav byte is not only `Tile_SetTerrain`'s: `0x00454FD0` also writes 4 on
+  floor slots and portal centres, the Heart builder 3 on the Heart centre, doors their own
+  (record `00455000`). Ours compares none of it here (ADR-0649).
 - 103 and 104 count a creature on the tile, not a corpse: DK2's corpse is a `CDeadBody`, another
   kind of thing (`dying-states.md` §2). STRONGLY INFERRED: that kind is not 0.
 - The job walk draws the room point (§9) for each candidate room before routing to it, where DK2's

@@ -142,8 +142,8 @@ public static class CombatPitRules
     /// first of the <paramref name="count"/> neighbours (4: orthogonal; 8: all round) that is the
     /// same room, not solid, and floor exactly when the creature's own tile is, or with
     /// <paramref name="rimOnly"/> not floor; with <paramref name="empty"/>, nobody stands on it
-    /// (<c>0x00453670</c>). -1 when none is. <c>0x00455000</c>'s byte is taken as equal within a
-    /// room. 139 passes <c>(4, 0, 0)</c>, 142 <c>(4 or 8, 1, 1)</c>.</summary>
+    /// (<c>0x00453670</c>). -1 when none is. <c>0x00455000</c>'s byte is not read: a DoubleQuad pit's floor slots carry 4
+    /// and its rim 0, the difference the floor test stands for. 139 passes <c>(4, 0, 0)</c>, 142 <c>(4 or 8, 1, 1)</c>.</summary>
     public static int NeighbourStep(SimulationContext context, RoomInstance pit, CreatureState creature,
         int count = 4, bool rimOnly = false, bool empty = false)
     {

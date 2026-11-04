@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation.Steering;
 
 namespace DK2.Simulation;
@@ -150,8 +151,10 @@ public static class ChickenMovementRules
     /// <summary>Process 10, <c>0x004A26D0</c>. A bird a Hatchery holds (<c>+0x14A</c> clear) off any Hatchery
     /// tile, one whose owner has fallen (<c>+0x132</c>) or one on a terrain with any Damage, harmful or healing
     /// (terrain <c>+0x1A9</c>) dies (vtable <c>+0x20</c>); a scared one does nothing. Otherwise <c>random(4)</c> picks the first
-    /// of the four sides tried in turn: a neighbour on the map, not solid, of the bird's own nav class and
-    /// owned by its owner, not a room on the first three tries, with no door, trap or obstacle. The point is
+    /// of the four sides tried in turn: a neighbour on the map whose navigation byte is not solid and equals
+    /// the bird's own tile's (<c>0x00455000</c> reads the raw byte, so a Heart centre's 3 refuses floor; ADR-0649),
+    /// owned by its owner, not a room on the first three tries, with no door, trap or obstacle (a store
+    /// tile's gold pile among them). The point is
     /// <c>random(0x555) + 0x555</c> into it on each axis, x first, and the walk resumes 10; a walk that cannot
     /// start tries the next side. Returns false when no side takes it.</summary>
     private static bool Roam(SimulationContext context, ObjectState chicken)
@@ -179,18 +182,21 @@ public static class ChickenMovementRules
         }
 
         int start = context.Rng.NextInt(4);
-        int navClass = CasinoStep.NavClass(database, here);
+        context.Navigation.Refresh(); // one pass over the tiles when nothing changed
+        byte navByte = context.Navigation.NavByte(current.X, current.Y);
         for (int i = 0; i < 4; i++)
         {
             int direction = ((start + i) & 3) * 2;
             var neighbour = new TilePos(current.X + Dx8[direction], current.Y + Dy8[direction]);
             if (!world.Contains(neighbour)) continue;
             TileState tile = world.Tile(neighbour);
-            if (database.TerrainById(tile.TerrainId).IsSolid || CasinoStep.NavClass(database, tile) != navClass
+            byte sideByte = context.Navigation.NavByte(neighbour.X, neighbour.Y);
+            if (NavBytes.IsSolid(sideByte) || sideByte != navByte
                 || tile.OwnerPlayerId != chicken.OwnerPlayerId) continue;
             if (i < 3 && database.RoomByTerrain(tile.TerrainId) is not null) continue;
             int index = neighbour.Y * world.Width + neighbour.X;
-            if (HasDoorOrTrap(world, neighbour) || CasinoStep.HasObstacle(world, database, index)) continue;
+            if (HasDoorOrTrap(world, neighbour) || CasinoStep.HasObstacle(world, database, index)
+                || HasStorePile(database, tile)) continue;
             var destination = new ObjectMovePoint(
                 new Fp32((neighbour.X << 12) | (context.Rng.NextInt(0x555) + 0x555)),
                 new Fp32((neighbour.Y << 12) | (context.Rng.NextInt(0x555) + 0x555)));
@@ -198,6 +204,14 @@ public static class ChickenMovementRules
         }
         return false;
     }
+
+    /// <summary>A Treasury or Heart tile holding gold holds one Gold Pile 1 (<c>0x004F3C60</c>), an Obstacle
+    /// by its definition, which <c>Tile_FirstObstacle</c> (<c>0x00453600</c>) finds; ours keeps that gold on
+    /// the tile without the object (ADR-0649).</summary>
+    private static bool HasStorePile(GameDatabase database, in TileState tile) =>
+        tile.GoldHeld > 0
+        && database.RoomByTerrain(tile.TerrainId)?.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart
+        && database.ObjectById(FloorGold.TreasuryPileObjectId)?.Flags.HasFlag(ObjectFlags.Obstacle) == true;
 
     private static bool HasDoorOrTrap(WorldState world, TilePos tile)
     {

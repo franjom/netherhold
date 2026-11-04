@@ -15118,3 +15118,28 @@ the effect's world-stream independence are STRONGLY INFERRED. Ours runs the Call
 systems after the generator, where DK2 runs them in lists 0 and 2 before it; on a turn either draws, the
 stream order differs.
 `a_hatchery_lays_and_hatches` lays 22 eggs, not 21. Snapshots carry both generators.
+
+## ADR-0649: a loose Chicken reads the raw navigation byte and sees a store's gold pile
+
+**Date:** 2026-11-04. **Status:** accepted. Corrects ADR-0647; part of Q712; hash/save 398. · **Systems:** rooms, navigation
+
+**Context.** Restoring DK2's 19 Chickens at turn 1400 of the seed-1 Level 5 capture and comparing
+each world-seed draw with DK2's log, two side tests of process 10 (`0x004A26D0`) disagreed. Its class
+test (`0x00455000`) compares the raw navigation bytes of the two tiles, and the Heart builder writes
+3 on the Heart's centre tile (Q601), so a bird there refuses every floor side; ours compared a class
+derived from terrain, which reads that tile as floor. Its obstacle test (`Tile_FirstObstacle`,
+`0x00453600`) finds a store tile's Gold Pile 1 (`0x004F3C60` makes one per Treasury or Heart tile
+holding gold), whose definition is an Obstacle; ours keeps store gold on the tile with no object.
+
+**Decision.** `ChickenMovementRules.Roam` compares `Navigation.NavByte` values and reads the solid bit
+from them, refreshing the navigation first, and treats a Treasury or Heart tile holding gold as holding
+an obstacle.
+
+**Consequences.** With DK2's Chickens and store gold restored (scratch adapter, not production), turn
+1401 draws as DK2's does, draw for draw, and the run draws 8091 numbers over 1401-1900 against DK2's
+8466 (measured; 6543 before any chicken restore, 7790 with the Chickens but not the store gold). The next difference is three Warlocks the creature
+restore leaves choosing lairs and jobs on turn 1402, where DK2's were already on their way. Because `Roam`
+refreshes the navigation, a world with a loose Chicken builds and edits its (hashed) mesh at that point
+rather than at the first route request. Other users of the terrain-derived class (`CasinoStep.NavClass`,
+the Temple and Combat Pit neighbour steps) are unchanged; the review found them likely inert where they
+differ (Heart and Portal centres, floor slots).
