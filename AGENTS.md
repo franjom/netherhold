@@ -250,7 +250,7 @@ research note starts with front matter naming its systems (`---`, `systems: [com
 an ADR inherits the systems of the notes it cites by file name, or carries `**Systems:** id, ...`
 on its status line, which replaces them. `dk2tools docs` fails a note or ADR you add or change
 that names no system or an unknown one, an ADR with no status, and any ADR number used twice.
-The wiki's index pages are generated in CI (`dk2tools wiki`), never committed.
+The wiki's index pages, and the simulation read/write matrix (`dk2tools simmatrix`), are generated in CI (`dk2tools wiki`), never committed.
 
 **Install the hook once per clone:** `git config core.hooksPath .githooks`.
 CI (`.github/workflows/ci.yml`) builds and tests on Linux and Windows with no DK2 install, and its `docs and kb gate` job reruns the budgets and `kb check` on what each push or pull request adds. The hook catches them before the commit. It **blocks** on a budget
