@@ -1500,6 +1500,9 @@ public sealed class TriggerExecutor
             byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             RoomRules.Place(_database, ref tile, room, player);
             SlabChain.Changed(_world, _database, index, terrainBefore, ownerBefore);
+            // Then the one-tile rectangle is closed (0x005195F0), whose last step is the walker reset.
+            WalkerResetRules.Reset(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested),
+                _world, _world.CurrentTick.Value, player);
         }
 
         // The map this run has already derived is now wrong about this tile.

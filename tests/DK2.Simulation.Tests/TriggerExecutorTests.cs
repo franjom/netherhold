@@ -1018,6 +1018,24 @@ public class TriggerExecutorTests
         Assert.NotNull(RoomIndex.RoomAt(world, database, (3 * world.Width) + 3));
     }
 
+    /// <summary>The room arm closes its one-tile rectangle (<c>0x005195F0</c> calls <c>0x004F04F0</c>),
+    /// whose last step resets the action player's walkers; a plain terrain write does not (ADR-0654).</summary>
+    [Theory]
+    [InlineData(Dk2TerrainFixture.LairTerrain, true)]
+    [InlineData(Dk2TerrainFixture.ClaimedPath, false)]
+    public void AlterTerrainToARoomResetsThePlayersWalkers_APlainTerrainDoesNot(byte terrainId, bool resets)
+    {
+        (WorldState world, GameDatabase database) = AlterWorld();
+        CreatureState walker = world.SpawnCreature(database, 7, Keeper, new TilePos(5, 5));
+        CreatureStateMachine.BeginTravel(new StateHookContext(world, database), walker,
+            7, LairRules.MakingAHomeState);   // state 7, travel to a room
+
+        RunAlter(world, database, terrainId, Keeper, x: 4, y: 4);
+
+        Assert.Equal(terrainId, world.Tile(3, 3).TerrainId);
+        Assert.Equal(resets ? CreatureStateMachine.Idle : 7, walker.Dk2StateId);
+    }
+
     /// <summary>Q301: a room on the tile is sold first, with no refund, then the terrain written
     /// with the record's player: a Lair under a Claimed Path write becomes the player's path.</summary>
     [Fact]

@@ -98,6 +98,25 @@ to those states: the owner decided on 2026-11-04 to keep building rules backed b
 to stop steering Q712 by outcome averages (see [Outcomes at hash 399](#outcomes-at-hash-399)). Q738
 (`0x004B9740`'s periodic draws) is separate.
 
+## Native draw log: Level 4 seed 1, turns 1401-1900
+
+`F:/DK2Evidence/studies/q712-native-drawlog-level4-seed1--2026-11-04--001`, the same kind of log on the
+`l4live` natural seed: 10206 draws over the 500 turns, every one attributed to its turn (median 21 a turn),
+from 57 sites, 13 of which the Level 5 window never draws. The run's MESSAGE.LOG shows "Gone Out Of Sync
+(Checksum) GT 622", yet all 501 frame seeds occur in the owner's `level4-live1/seed01` capture, offset one
+tick, as with Level 5. Of the 13:
+
+- already mirrored: PatrolState 72 and 73 (`0x00471EB0`), Training.cpp:188 (`0x004F2FF0`), Hatchery.cpp:289,
+  306 and 307 (`0x004DE620`), WaitState 54 and 60 (`0x00486CF0`), TrainState 101 (`0x00485310`), ObjectState
+  2030 (`0x004A13F0`), ManufactureState 188 (`0x00470470`), ShotProcess 189 (`0x004AD7A0`);
+- built from this log: State.cpp:2100 and 2101 with PlayerRooms.cpp:644, an idle creature's Heart walk
+  (`0x00478680`; ADR-0656, [idle-fallback.md](idle-fallback.md#2-0x00478680--strongly-inferred)), 10 times
+  each for a keeper with one Heart, always in the order State.cpp:1700, PlayerRooms.cpp:644, 2100, 2101
+  (CONFIRMED);
+- still missing: Hatchery.cpp:187 (`0x004DE220`, a coop's placement `random(4)` per coop, which needs the coops
+  rebuilt on a room change, Q733) and ManufactureState.cpp:469 (`0x00470B20`, state 68 on a crate made,
+  `random(2)`, its gate flag unread, no function record).
+
 ## Outcomes at hash 399
 
 Measured 2026-11-04: 115 bounded stored-pickup resyncs (75 Level 5, 40 Level 4) at hash/save 399

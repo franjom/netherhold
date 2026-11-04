@@ -264,8 +264,8 @@ the `HasWalls` / `SpecialTiles` / `SpecialWalls` flags describe how a room meshe
 itself together and grows walls — presentation and adjacency, none of it read. A
 1x1 temple is buildable here and in the original (Q36), so this is a rendering gap
 rather than a rule gap. Construction uses the player's diagonal wave;
-see [room-slab-chain.md](room-slab-chain.md), section 2. Selling remains
-immediate here. **A room's `ObjectIds` are placed by nothing** — the list is read,
+see [room-slab-chain.md](room-slab-chain.md), section 2. A dragged sale is a wave too
+(ADR-0653, Q744); a direct `SellRoomCommand` is immediate. **A room's `ObjectIds` are placed by nothing** — the list is read,
 `ObjectCarryRules` using it to decide which room an object belongs in, but no rule
 furnishes a newly built room with the objects the record names.
 
@@ -316,10 +316,10 @@ same tile as a pile, coming off the keeper's spendable total until somebody fetc
 it. `RoomRules.Unmake` returns the displaced amount, `RoomSellSystem` drops it and
 emits `gold_displaced`, and an imp can fetch it (`ImpTaskKind.FetchGold`). The pile
 is over `MaxGoldPileOutsideTreasury` deliberately — that variable is not a cap
-(Q65). A refund with nowhere to go also lands on the floor, at the last tile sold,
-and emits `refund_overflowed`; the original's add-gold-to-player takes a position
-and makes a pile there once every store has refused, but **which** tile is ours,
-not a reading (Q139).
+(Q65). A refund with nowhere to go also lands on the floor and emits `refund_overflowed`; the
+original's add-gold-to-player takes a position and makes a pile there once every store has
+refused. A wave sale (ADR-0653) uses its own tile, as `0x004C5DB0` does; a direct sale uses the
+last tile sold, **which** is ours, not a reading (Q139).
 
 ### Bridges: what is underneath
 

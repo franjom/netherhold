@@ -4,7 +4,7 @@ systems: [creatures]
 # State 89's fallback and state 3: what an idle creature does with nothing to do
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
-- **Built:** ADR-0228, `CreatureJobSystem` (its `Idle` part).
+- **Built:** ADR-0228, ADR-0656, `CreatureJobSystem` (its `Idle` part).
 - Related: `job-selection.md`, `combat-pit-spectators.md`, `imp-idle-and-wandering.md`.
 
 ## Result in one sentence
@@ -46,9 +46,15 @@ The unhappy and angry choosers are the dispatcher's (`0x00476FC0`), not 89's.
 row (`player-object.md`). 3 is "available": buildable, not built. Each job's own handler then
 looks for a room.
 
-**The Heart walk has no effect.** 89 then calls `SetState(3)`. From the walk's state 6 that is
-admitted: category 0's entry mask is 0. So the walk is replaced in the same call, and state 3
-runs no movement.
+**The Heart walk has no effect, but its draws do.** 89 then calls `SetState(3)`. From the walk's
+state 6 that is admitted: category 0's entry mask is 0. So the walk is replaced in the same call,
+and state 3 runs no movement. With no unruined Heart (`+0x9A` bit 0 clear) `0x004C6460` draws
+nothing and the tail is skipped; otherwise the world stream gets `random(count)` at
+PlayerRooms.cpp:644 (even for one Heart), then `random(2)` at State.cpp:2100 and 2101. The
+route draws nothing: the native Level 4 draw log, a keeper with one Heart, shows State.cpp:1700
+(the chooser), PlayerRooms.cpp:644, 2100, 2101 and then the next consumer, 10 of 10 (CONFIRMED;
+[census](neutral-ambient-effect.md#native-draw-log-level-4-seed-1-turns-1401-1900)). Record:
+[0x00478680](functions/00478680.md).
 
 ## 3. State 3, `0x00477680` — STRONGLY INFERRED
 
@@ -94,8 +100,10 @@ through 89.
 - **The refusal log** now reports every refusal, since passes are rare.
 - **Guessed:** that every creature has actions 43 and 44, and their length
   (`ImpTaskSystem.IdleActionGuessTicks` = 8).
+- **The Heart walk's draws are built** (ADR-0656, `HeartWalkDraws`): in state 89 only, for a
+  registered owner with an unruined Heart. A Horny choosing in state 1 makes none. The walk itself
+  is not built, since it has no effect.
 - **Not built:**
-  - the Heart walk, since it has no effect;
   - the idle sound;
   - `ReturnToJobId`;
   - the casino arm. The Call To Arms arm is built (`call-to-arms.md`, ADR-0279).

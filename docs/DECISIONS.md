@@ -4991,7 +4991,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
    - then job 26 when the Combat Pit is available;
    - then Drink when the Casino is.
 
-   Its Heart walk is replaced at once by 89's `SetState(3)`, so it is not built.
+   Its Heart walk is replaced at once by 89's `SetState(3)`, so it is not built; its draws are (ADR-0656).
 2. **State 3** (`0x00477680`) holds until `+0x7E`:
    - At first, and on a roll under 25, it wanders in 87 (the imp's handler, now shared), with `+0xA7` = now + 132.
    - After a wander, 25–74 plays action 43 and 75–99 action 44.
@@ -15240,6 +15240,93 @@ disassembly; no capture covers a Hatchery change. Not mirrored:
   their first turn.
 
 A held bird's decay stays open (Q584).
+
+## ADR-0653: a dragged sale is a wave from the rectangle's maximum corner
+
+**Date:** 2026-11-04. **Status:** accepted. Builds Q744; hash/save 404. · **Systems:** rooms
+
+**Context.** The Hand's sell release (`0x004075E0`, `0x004083DA..0x00408467`) normalises a drag and sends
+action `0x31` with the minimum corner first and the maximum second. `0x004C70A0` queues it, with no
+pre-check, in the first free of three slots at player `+0xE97`. The sell wave `0x004C7160`, which the
+keeper frame calls right after the build wave, sells one diagonal a turn from the second corner through
+`0x004C5DB0(x, y, 1)`, and clears the slot and ends the player's drain at the first. Action `0x30`
+(`0x00512890`) sells one tile at once. The owner's capture (`q750-cost-numbers--2026-11-04--003`) shows
+three drag sales going one diagonal a tick from the SE corner, each tile refunding half its price
+([floating-cost-numbers.md](research/floating-cost-numbers.md) section 6). Ours sold the whole rectangle in
+one tick.
+
+**Decision.** `SellRoomCommand.Rect` normalises the corners and is a player wave (journal tag 34);
+`RoomSellSystem` queues it in three slots per player (`WorldState.RoomSellWaves`, hashed and saved) and
+drops a fourth. `RoomSellWaveSystem`, after `RoomBuildWaveSystem`, sells each slot's diagonal for the
+turn through the same per-tile sale as before, sharing the build wave's geometry. A direct
+`SellRoomCommand` (scenario setup, room-log replays, one-tile sales) stays immediate.
+
+**Consequences.** A drag sale's refunds, sounds, floor gold and room splits arrive one diagonal a turn,
+from the maximum corner whatever the drag direction. In the wave, a refund no store takes lands on the
+tile being sold, as DK2 pays each refund in at its tile (`0x004BA420`); the direct path keeps its
+last-tile choice (Q139). As in DK2, a wave that finishes ends the player's drain for that turn, so a
+slot queued behind it can miss its only diagonal and stay occupied. A non-room tile is skipped at no cost.
+Not mirrored: the opener `0x004F0840` removes the pillars of every pillared room touching the rectangle and
+clears tile-word bit 14 on its tiles (`0x004F0F90`) until the closer `0x004F09B0` re-places them, with the
+torch commands; ours has no pillar objects or bit 14. The frame guard's `+0x76` bit 22 is unmirrored, as
+for the build wave. The Hand posts `0x31` even for a one-tile drag; who posts `0x30` is unread.
+
+## ADR-0654: a new room or blueprint sends the keeper's walkers back to choose again
+
+**Date:** 2026-11-04. **Status:** accepted. Answers Q740; hash/save 403 (402 unused; ADR-0653 took
+404). · **Systems:** doors-traps, rooms
+
+**Context.** `0x004E8D30` stops each of a player's creatures in state 3 or 4 (the idle wanders),
+7 (walking to a room), or 6 resuming 1 (walking to a point with nothing after it), and kicks it to
+state 1. DK2 calls it when a room rectangle closes (`0x004F04F0`: the build wave at its press corner,
+the computer keeper, trigger action 22's room arm) and after a door or trap blueprint is placed,
+each time for the player who made the change ([blueprint-placement.md](research/blueprint-placement.md)
+section 5). Ours had no such reset, so a creature kept walking to a room chosen before the change.
+OpenKeeper PR #867 pointed at it; its claims that a sale also resets and that a walk to a lair is
+exempt are not in the binary.
+
+**Decision.** `WalkerResetRules.Reset` mirrors it over `WorldState.OwnedCreatures` (the player's
+list, newest first): states 3, 4 and 7 or 6 resuming 1, then `StopMoving` and `SetState(1)`. It runs
+in `RoomBuildSystem.Drain` when a wave reaches its press corner or stops for want of gold (a -1
+refusal jumps to the same close, `0x004C775F`), at the end of every `Direct` build order (the computer
+keeper's per-tile wrapper `0x004C5B40` closes a rectangle whether or not the tile was built), in
+`BlueprintSystem` after an allowed door or trap placement, and in trigger action 22's room arm after
+the tile is built.
+
+**Consequences.** A creature walking to a Lair, Hatchery or job room when its keeper builds a room or
+puts down a blueprint stops where it is and decides again, so it may pick the new room. A creature in
+the hand is in none of the four states and is left alone, in DK2 and ours. Repeated resets in one
+order do nothing more, since a kicked creature is in 1. A drag refused by the admission's cost check
+queues no wave and resets nothing. `Direct` orders also come from scenario setup, so a scenario's
+starting rooms reset its keeper's walkers; the shipped scenarios are unchanged by it.
+
+## ADR-0656: an idle creature's failed pass makes the Heart walk's draws
+
+**Date:** 2026-11-04. **Status:** accepted. Hash/save 406. · **Systems:** creatures
+
+**Context.** After state 89's chooser takes nothing, `0x00478680` tries Train, job 26 and Drink, as
+ADR-0228 built. When none of them is taken, it draws a random own Heart. That draw is
+`Player_RandomRoomOfType` (`0x004C6460`) with type 5: it counts the player's rooms of that type without
+`+0x9A` bit 0 and, when there is any, draws `random(count)`, even for one. It then draws `random(2)`
+twice, at State.cpp lines 2100 and 2101. Each picks a side, ±2 tiles, of the Heart's position word, x
+first. Last it routes there (`Travel_RouteToPoint`, state 1, option 0x80). Its only caller is 89
+(`0x00477A92`), which then sets state 3. That replaces the walk, so ADR-0228 did not build the tail, and
+ours never made its three draws. The native Level 4 draw log (`q712-native-drawlog-level4-seed1--2026-11-04--001`,
+turns 1401-1900) has these sites 10 times each, for a keeper with one Heart. Every time the order is
+`State.cpp:1700` (the chooser), `PlayerRooms.cpp:644`, 2100, 2101, and then the next consumer, so the route
+draws nothing there.
+
+**Decision.** `CreatureJobSystem.NothingChosen` makes the three draws after a failed fallback, before
+state 3, for a creature in 89. They are made only when the owner is a registered player with an
+unruined Heart; the remake's per-player `HeartRuined` stands for the room's `+0x9A` bit 0. The walk stays
+unbuilt. A Horny creature, which ours lets choose in state 1 because 238 is unbuilt, makes no draws there.
+
+**Consequences.** On every failed idle pass of a keeper that has a Heart, the world stream now advances as
+DK2's does. Nothing a creature does changes directly, but every later random outcome shifts. The order is
+CONFIRMED by the native draw log for a one-Heart keeper on Level 4; the ranges, the gate and the
+many-Heart case are STRONGLY INFERRED from the disassembly. Ours counts derived Heart rooms, where DK2
+walks the player's room list; the room it would pick differs only when there are several, and ours makes
+no walk.
 
 ## ADR-0660: a function record can be PARTIAL, and an ADR in force is accepted
 

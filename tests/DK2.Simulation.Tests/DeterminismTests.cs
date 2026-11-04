@@ -160,8 +160,8 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // Remake regression output, not DK2 evidence. HashVersion 401; see docs/research/hash-versions.md.
-        Assert.Equal(0x2F98D6F624D74C53UL, sim.StateHash());
+        // Remake regression output, not DK2 evidence. HashVersion 406; see docs/research/hash-versions.md.
+        Assert.Equal(0xEA559C9834D9724FUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

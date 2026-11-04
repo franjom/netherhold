@@ -122,7 +122,7 @@ with an interface message.
 Two things follow that are worth keeping:
 
 - **the caller chooses the tile**, so "where does an overflowing refund land" is
-  a property of the call site rather than of the gold rules;
+  a property of the call site, not of the gold rules (ADR-0653, Q139);
 - **DK2 spreads a deposit across rooms**, where `GoldStore.Deposit` works in
   tile-index order. Ours already says that order is ours and not DK2's; this is
   what DK2's actually is, and closing the gap is a separate change because it

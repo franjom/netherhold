@@ -86,7 +86,9 @@ public sealed class RoomBuildSystem : ISimulationSystem
                 // The bridge arm tests money before its span map; ordinary rooms test placement first.
                 if (bridge && GoldStore.Total(world, playerId) < cost)
                 {
+                    // A -1 refusal jumps to the press-corner close too (0x004C775F), reset and all.
                     slot = null;
+                    WalkerResetRules.Reset(context, SystemName, playerId);
                     return;
                 }
                 HashSet<TilePos>? spans = bridge
@@ -97,6 +99,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
                     if (GoldStore.Total(world, playerId) < cost)
                     {
                         slot = null;
+                        WalkerResetRules.Reset(context, SystemName, playerId);
                         return;
                     }
                     bool built = PlacePaidTile(context, playerId, pos, room, announce: context.Tick != wave.QueuedTick);
@@ -114,6 +117,8 @@ public sealed class RoomBuildSystem : ISimulationSystem
                 if (pos == press)
                 {
                     slot = null;
+                    // 0x004F04F0 closes the rectangle and ends with the keeper's walker reset.
+                    WalkerResetRules.Reset(context, SystemName, playerId);
                     // Completion exits the entire player drain; later slots do not catch up next tick.
                     return;
                 }
@@ -225,6 +230,10 @@ public sealed class RoomBuildSystem : ISimulationSystem
         if (built > 0)
             foreach (RoomInstance pit in CombatPitRules.PitsUnder(world, context.Database, command.Tiles))
                 CombatPitSystem.Reset(context, pit);
+
+        // The computer keeper's wrapper 0x004C5B40 closes a one-tile rectangle after every tile, built or
+        // not, so its walkers are reset; once is enough, as a kicked walker is in 1 and not reset again.
+        WalkerResetRules.Reset(context, SystemName, command.PlayerId);
     }
 
     private static RoomPlacement Verdict(
