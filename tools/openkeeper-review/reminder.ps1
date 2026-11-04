@@ -12,6 +12,16 @@ try {
     $root = $env:CLAUDE_PROJECT_DIR
     if (-not $root) { $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent }
 
+    # Only a new (or cleared) session asks. A resumed session's hook context was seen to vanish
+    # (2026-11-04: the marker was written on resume, the reminder reached no transcript), and that
+    # spent the day's one question. Compaction re-fires the hook too and must not ask mid-session.
+    $source = ''
+    if ([Console]::IsInputRedirected) {
+        $stdin = [Console]::In.ReadToEnd()
+        if ($stdin) { $source = ($stdin | ConvertFrom-Json).source }
+    }
+    if ($source -eq 'resume' -or $source -eq 'compact') { exit 0 }
+
     $today = Get-Date
     $weekday = if ($Day) { $Day } else { $today.DayOfWeek.ToString() }
     if ($weekday -ne 'Wednesday' -and $weekday -ne 'Friday') { exit 0 }
