@@ -292,7 +292,7 @@ interruption byte (0x006E41B4 + 0x1D·id: record +28 of the action table at
 that byte as 1 in all 81 records. It ends the current action first. Neither action 26 nor the begin tells the target: the
 answer 0x0045AA20 has only spFighting and trap callers. An object's radius
 (vtable 0x0066D654 slot +0x3C, 0x00402AD0) is 0. The gold arm's last call,
-0x0050FB70, forwards to the world's sink (presentation, HYPOTHESIS).
+0x0050FB70, shows the amount as floating gold digits ([floating-cost-numbers.md](floating-cost-numbers.md)).
 
 The unbuilt arms (objects, the swing on non-creatures, dig/claim, followers) and the
 command inputs (sneak, hypnosis, sniper) are read in
