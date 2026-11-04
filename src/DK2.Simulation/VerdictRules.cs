@@ -10,7 +10,7 @@ namespace DK2.Simulation;
 /// <summary>Ending a player's game: DK2's <c>0x004BE630</c>, every caller's way in. The first verdict
 /// stands (<see cref="WorldState.EndGame"/>); in skirmish and multiplayer it then carries to the
 /// other keepers through alliances (win-and-defeat.md §7, ADR-0547).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/win-and-defeat.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/win-and-defeat.md")]
 public static class VerdictRules
 {
     /// <summary>Ends <paramref name="playerId"/>'s game with <paramref name="status"/>; returns whether

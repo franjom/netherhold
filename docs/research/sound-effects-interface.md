@@ -1,3 +1,6 @@
+---
+systems: [audio]
+---
 # Sound effects: the interface and global requests of phase W8
 
 Read 2026-11-03 for the last phase of [the world-sounds plan](../plans/2026-10-31-world-sounds.md). These are the requests the
@@ -8,7 +11,7 @@ front end, the player's per-turn update. Nothing here is decompiler text (ADR-00
 
 ## 1. The GUI sound table `0x006AC8C4`
 
-CONFIRMED (disassembly `0x0052BA68` to `0x0052BAAE`, the loader inside [Gui_LoadMenuTree](../research/functions/0052B8F0.md); consumers
+STRONGLY INFERRED (disassembly `0x0052BA68` to `0x0052BAAE`, the loader inside [Gui_LoadMenuTree](../research/functions/0052B8F0.md); consumers
 [0x0052CAD0](../research/functions/0052CAD0.md), [0x00412260](../research/functions/00412260.md)). The table is 0x30-byte records starting at
 `0x006AC8A0`: the record's own number at `+0`, its category name at `+4` (32 bytes), the category handle the loader stores at `+0x24`, the press
 sound at `+0x28` and the release sound at `+0x2C`. The loader runs once (record 0's handle word is its "not loaded" flag), takes the records
@@ -17,7 +20,7 @@ at `0x006AC8C4 + slot * 0x30`, so a widget's sound slot is the record number. Th
 from the data), which settles the pairing: earlier notes paired a slot's ids with the name 0x30 bytes later (one record too far). Independent
 check: the front end's own filler at the tail of [0x00535A30](../research/functions/00535A30.md) (`0x00535B92` to `0x00535BD2`) walks the same records and, for
 numbers `0x1B` to `0x24` (27 to 36), stores the front-end category handle `+0x5AB9` (FRONT_END) in record `0x20` (32) and the parchment's `+0x5AC1` in the
-others, which is the table below. CONFIRMED.
+others, which is the table below. STRONGLY INFERRED.
 
 | Slot | Category | Press / release | Used by |
 |---|---|---|---|
@@ -34,7 +37,7 @@ others, which is the table below. CONFIRMED.
 | 32 | `front_end` | `0x30A` | main menu labels |
 | 33 to 36 | `object_fe_parchment` | `0x30B` to `0x30E` | page buttons and back icons |
 
-CONFIRMED against the shipped maps: `options` is the only category with `0x33C` and `0x341`; `front_end` has `0x30A`, `object_fe_parchment` has
+STRONGLY INFERRED against the shipped maps: `options` is the only category with `0x33C` and `0x341`; `front_end` has `0x30A`, `object_fe_parchment` has
 `0x30B` to `0x30E`. Corrected in our code (2026-11-03): the category slots' press and release were asked in `gui_button_icon_large` whatever the
 grid; a 128-unit grid gives its slots sound slot 5, `gui_button_icon`, whose `0x104` is a different sample from the large icon's (the shipped
 maps: archive 1 entry 38 of 408 ms against entry 39 of 733 ms, one-based as the maps store them). The press now follows the panel's grid, as the chime does. The front end's main-menu click
@@ -42,7 +45,7 @@ is asked in `front_end` (same sample as the parchment's `0x30A`: both resolve to
 
 ## 2. The flash chime `0x33A`
 
-CONFIRMED (disassembly `0x00412579` to `0x004125C3` and `0x00413A70` to `0x00413AA8`; [tab-alerts.md section 2](tab-alerts.md)). Sound `0x33A`,
+STRONGLY INFERRED (disassembly `0x00412579` to `0x004125C3` and `0x00413A70` to `0x00413AA8`; [tab-alerts.md section 2](tab-alerts.md)). Sound `0x33A`,
 nonpositional, handle 0, in the category of the flashing widget's sound slot (section 1). Both the tab flash and the slot flash test and then
 write the interface's latch `+0x4F0D`: with the half-second phase (real clock divided by 500, bit 0; 1 is the dark half) zero, the latch
 non-zero and the game not suspended (`[[interface+4]+0x284]` zero) they ask the sound; every flashing draw then stores its phase in the latch.
@@ -57,7 +60,7 @@ All six categories have `0x33A` with one sample (entry 49 of 740 ms, the same in
 
 ## 3. Cheat entry `0x133`, `0x134`, `0x135`
 
-CONFIRMED (disassembly; [cheats.md](cheats.md), [0x0040A600](../research/functions/0040A600.md), [0x0040A680](../research/functions/0040A680.md)),
+STRONGLY INFERRED (disassembly; [cheats.md](cheats.md), [0x0040A600](../research/functions/0040A600.md), [0x0040A680](../research/functions/0040A680.md)),
 all nonpositional, handle 0, `gui_button_size` (slot 7, which has all three groups):
 
 | Sound | Site | When |
@@ -71,7 +74,7 @@ belong to its open, mismatch-cancel and accept.
 
 ## 4. Slider test sounds `0x345`, `0x346`, `0x31D`
 
-CONFIRMED (disassembly [0x0042B950](../research/functions/0042B950.md), [0x0042B9F0](../research/functions/0042B9F0.md),
+STRONGLY INFERRED (disassembly [0x0042B950](../research/functions/0042B950.md), [0x0042B9F0](../research/functions/0042B9F0.md),
 [0x0042BA90](../research/functions/0042BA90.md), [0x0054D180](../research/functions/0054D180.md), [0x0054D240](../research/functions/0054D240.md),
 [0x00551F20](../research/functions/00551F20.md)). Each is the tail of a slider's change callback. When the widget's state word `+0x41` is 3, the widget's flag read by virtual `+0x50` is clear and the page's handle for the sound is zero, it asks the sound with handle 0, keeps the
 returned handle and sets the flag through virtual `+0x4C`; when the state is no longer 3 and the flag is set it clears the flag and sends the stop command to the kept
@@ -80,7 +83,7 @@ handle (slot `+0x38`; `0x00551FE0` names its command object `0x0066C77C`, the wo
 State 3 is a **thumb grab**, not any press. In the slider's per-update input function (`0x00529510`, the horizontal sibling of the vertical scrollbar update
 [0x00528B20](../research/functions/00528B20.md), whose record says "Thumb: state 3") the state is set to 3 only at `0x0052974A` to `0x00529764`: the pointer is inside the thumb
 rectangle (widget `+0x90` to `+0x9C`), the button is down and the previous state is 0. A press on the track outside the thumb gives states 4 then 5 (a one-step
-page move) and the arrows states 1 and 2; all are silent for the test sound. Release clears the state, which stops the sound. CONFIRMED for the function
+page move) and the arrows states 1 and 2; all are silent for the test sound. Release clears the state, which stops the sound. STRONGLY INFERRED for the function
 (disassembly); STRONGLY INFERRED that the callbacks above belong to widgets of this class: the callbacks call the common slider helper `0x005501F0`, and
 `0x005507E0` is the hover helper both classes share. So the sound starts at the grab and is cut at the release.
 
@@ -106,7 +109,7 @@ refuses while the SFX switch is off, [0x00567810](../research/functions/00567810
 
 ## 5. The campaign map's land sound `0x32A`
 
-CONFIRMED (disassembly [0x00538D00](../research/functions/00538D00.md) at `0x00538FA1` and `0x005390AE`, [0x004A35E0](../research/functions/004A35E0.md)).
+STRONGLY INFERRED (disassembly [0x00538D00](../research/functions/00538D00.md) at `0x00538FA1` and `0x005390AE`, [0x004A35E0](../research/functions/004A35E0.md)).
 Nonpositional, handle 0, `OBJECT_FE_MAP` (one sample, entry 66 of 797 ms). The per-frame map pick asks it for a hovered land whose
 arming word (land `+0x184`) is 1 and whose height is still at most its creation height plus `0x1040`, then clears the word and raises the land. A
 hovered arrow does the same for the land it belongs to. The land's own per-tick update ([0x004A35E0](../research/functions/004A35E0.md)) sets the word to 1
@@ -117,7 +120,7 @@ and its frame update (`Sounds`); the Unity front end drains it after the pointer
 
 ## 6. In-game Save and Load: `0x33C`, `0x341`
 
-CONFIRMED (disassembly). Both are nonpositional, handle 0, in `options` (slots 26 and 25). `0x33C` is the end of
+STRONGLY INFERRED (disassembly). Both are nonpositional, handle 0, in `options` (slots 26 and 25). `0x33C` is the end of
 [Options_SubmitSaveName](../research/functions/0042A920.md) (`0x0042A9D8`), after the file is written and the list refreshed. `0x341` follows a load request:
 [Options_SelectLoadFile](../research/functions/0042A7D0.md) stores the chosen path and sets the interface word `+0x3990`; the interface's per-frame
 input function ([0x004036E0](../research/functions/004036E0.md), site `0x00403EA6`) hands the path to the session object (virtual `+0x2C` of the object
@@ -126,7 +129,7 @@ at interface `+0x53`) and asks `0x341`. The in-game slots 16 to 24 (`options` `0
 
 ## 7. The speech line and its duck
 
-CONFIRMED (disassembly [0x00568490](../research/functions/00568490.md)). The site `0x00568531` is the speech queue's line start: slot `+0x24` with the
+STRONGLY INFERRED (disassembly [0x00568490](../research/functions/00568490.md)). The site `0x00568531` is the speech queue's line start: slot `+0x24` with the
 queue's stored handle, the line's category and the absolute value of the line's event. That is the request the Mentor queue
 (`SpeechQueue`, `ClassicSoundPlayer.UpdateSpeech`) already makes, built in phase C4; the throttle mode around it is in
 [sound-effects.md section 4](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets).
@@ -134,7 +137,7 @@ queue's stored handle, the line's category and the absolute value of the line's 
 Not built before: the line also ducks the other volumes. Before the request it sends two commands (slot `+0x38`, command objects `0x0066F964` and
 `0x0066F96C`) carrying the music setting (`0x0075AD17`) and the effects setting (`0x0075AD13`) times four over six, in whole percent, unsigned; when
 the line's handle is dead ([0x005681D0](../research/functions/005681D0.md), `0x00568238`) it sends them again with the full settings. The commands
-(`0x00608580`, `0x00608520`) set a volume class to the value times 0.01. CONFIRMED pairing: the music setter (`0x005635B0`) and the effects setter (`0x00563520`) call manager slot `+0x54` with classes 1 and 2; the slot's jump table
+(`0x00608580`, `0x00608520`) set a volume class to the value times 0.01. STRONGLY INFERRED pairing: the music setter (`0x005635B0`) and the effects setter (`0x00563520`) call manager slot `+0x54` with classes 1 and 2; the slot's jump table
 (`0x00567D5C`, index bytes `0x00567D80`) builds exactly the command objects `0x0066F964` and `0x0066F96C` the duck sends, and `0x0075AD17` is the music
 setting, `0x0075AD13` the effects setting. STRONGLY INFERRED only: ambience and terrain beds sit in the effects class. Built as `SpeechDuck.Percent` and
 `ClassicSoundPlayer`: while the Mentor line plays, music, ambience and effects run at two thirds of their settings, restored at its end.
@@ -143,12 +146,12 @@ DK2 restores only when the line's handle is non-zero and dead, so a refused requ
 
 ## 8. Mana `0xF`, Horny `0x1`, party pop `0x344`
 
-- **Mana `0xF`** (`0x004C1226`, [Mana_UpdatePlayer](../research/functions/004C10E0.md)), CONFIRMED site: in the once-a-second payment, when the player's mana
+- **Mana `0xF`** (`0x004C1226`, [Mana_UpdatePlayer](../research/functions/004C10E0.md)), STRONGLY INFERRED site: in the once-a-second payment, when the player's mana
   reaches zero and the turn is past the stamp `+0xAE`, it asks `0xF`, nonpositional, handle 0, in the category of room definition 5 (the Dungeon Heart;
   definition `+0x449`), then moves the stamp on by the variable at `0x006F28ED` seconds. It has no local-player test, so every keeper that runs dry asks.
   Silent: no category of the Global maps has group `0xF` (data), so DK2 plays nothing there either. The warning the player does see is the
   message of type 52 (already built as `LowManaWarning`).
-- **Horny `0x1`** (`0x004B9BD6`, [Player_UpdateFlagNotifications](../research/functions/004B9740.md)), CONFIRMED site: the world's category at `+0xA3B7`
+- **Horny `0x1`** (`0x004B9BD6`, [Player_UpdateFlagNotifications](../research/functions/004B9740.md)), STRONGLY INFERRED site: the world's category at `+0xA3B7`
   (loaded first, `0x0050A25A`) is `SPEECH_HORNY`, not an effects category, and `0x1` is its group 1 (one sample). It is asked once (latch: player flag
   `+0x76` bit `0x10000`) when, with no result on the player, world option bit 4 set (`+0x72A1`), the player's table of 0x11-byte records holds key 5 with
   value 3 (STRONGLY INFERRED: the availability of spell 5, the Horned Reaper) and the mana
@@ -159,18 +162,18 @@ DK2 restores only when the line's handle is non-zero and dead, so a refused requ
 
 ## 9. The front end's atmosphere and music request: `0x2EA`, `0x155`
 
-CONFIRMED (disassembly [0x00537290](../research/functions/00537290.md), called from the front-end branch of
+STRONGLY INFERRED (disassembly [0x00537290](../research/functions/00537290.md), called from the front-end branch of
 [GameSession_Run](../research/functions/00525370.md) at `0x005257CC`, once per run of that branch, STRONGLY INFERRED). If the one-shot-atmosphere handle is zero it asks `0x2EA` in `ONE_SHOT_ATMOS`; if the
 music handle is zero it asks `0x155` in `MUSIC`; each is nonpositional, handle stored, never stopped by the front end. `0x2EA` is group 746 of music.md
 (19 samples, volume 21, delays of 8 to 20 s). `MUSIC` has groups `0x157` and `0x159` only, so the front end's `0x155` finds nothing: silent (data;
 the in-game ambience is `0x155` in `AMBIENCE`). So the front end plays no music through this site. Waits: the one-shot atmosphere is a
 delay-chained player (flags `0x0204`, constructor `0x00615EE0`, vtable `0x006740B0`, [0x0060DA70](../research/functions/0060DA70.md)) whose body is unread:
 what the delay is measured from, whether it repeats and what the volume 21 scales are UNKNOWN, so no player exists to start. The in-game manager
-starts the same group (music.md section 3, LIKELY); both are the same missing player.
+starts the same group (music.md section 3, HYPOTHESIS); both are the same missing player.
 
 ## 10. The battle fly-in `0x32B`, `0x32C`
 
-CONFIRMED site and gates ([battle-tab.md section 5](battle-tab.md), [0x0042C0D0](../research/functions/0042C0D0.md), [0x0042C390](../research/functions/0042C390.md)):
+STRONGLY INFERRED site and gates ([battle-tab.md section 5](battle-tab.md), [0x0042C0D0](../research/functions/0042C0D0.md), [0x0042C390](../research/functions/0042C390.md)):
 `0x32B` at `0x0042C102` (graphics detail at least 3, no fly-in running) and `0x32C` at `0x0042C66E` (the overlay reports done, the camera is not letterboxed),
 nonpositional, handle 0, slot 15 (`gui_button_tab_new_combat`; the data has both groups there, `0x32B` with two samples). They were listed as "tab
 scroll"; they are the notice that flies in when a fight starts. Waits: the Battle tab and its fly-in overlay (`0x0042F040`) are not built; only

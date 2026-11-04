@@ -10,7 +10,7 @@ namespace DK2.Data.Kwd;
 
 /// <summary>Parser for PLAYERS(180) records: one per player slot, 205 bytes each, in a level's
 /// <c>&lt;name&gt;Players.kld</c>.
-/// <para><b>Stride CONFIRMED from data:</b> all 66 shipped files divide exactly at 205 bytes (item
+/// <para><b>Stride STRONGLY INFERRED from data:</b> all 66 shipped files divide exactly at 205 bytes (item
 /// counts 3-7, 274 records in all). <b>Field boundaries STRONGLY INFERRED</b> from the retail
 /// loader that unpacks the record: gold at 0, the AI flag at 4, the 158-byte parameter block at 8,
 /// then trigger id, player id, camera and a 32-byte name. That block's byte-to-field map, its

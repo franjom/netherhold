@@ -14,7 +14,7 @@ namespace DK2.Simulation;
 /// <para>Scalars are the steering layer's 16.16 fixed point, not <see cref="Fp32"/>'s 1/4096.
 /// Arithmetic is reproduced operation for operation rather than reinterpreted: where the original
 /// divides a 64-bit numerator by a 16.16 ratio, so does this.</para></summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/navigation-and-steering.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/navigation-and-steering.md")]
 public static class SeparationRules
 {
     /// <summary>1.0 in the steering layer's 16.16 scalars.</summary>

@@ -14,7 +14,7 @@ namespace DK2.Pathfinding;
 /// <para>The heap is the original's 1024-entry binary heap; ties are settled by its sift order,
 /// which is what decides between equally near triangles. Scratch arrays are reused between
 /// calls with a generation stamp, as the original does. Not thread-safe.</para></summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/navigation-mesh-and-search.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/navigation-mesh-and-search.md")]
 public sealed class MeshRouter
 {
     public const int HeapCapacity = 1024;

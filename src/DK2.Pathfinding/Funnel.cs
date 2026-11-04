@@ -13,7 +13,7 @@ namespace DK2.Pathfinding;
 /// a tile, which is why a route across open floor is one straight segment.</summary>
 /// <remarks>What the mover aims at is not these corners: <see cref="GateWalk"/> re-walks the
 /// route's gates against this polyline and the mover takes the midpoint of each kept gate.</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/navigation-and-steering.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/navigation-and-steering.md")]
 public static class Funnel
 {
     /// <summary>Appends the turn points strictly between <paramref name="from"/> and

@@ -1,4 +1,7 @@
-﻿# Mechanic: how DK2 routes and how it moves (Q5)
+﻿---
+systems: [navigation]
+---
+# Mechanic: how DK2 routes and how it moves (Q5)
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -213,7 +216,7 @@ wraps again for any real contact, per component. So the stored contribution
 is the **middle bits of two overflowing products**: deterministic in the
 operands, unrelated to the geometry (a stationary equal-size contact comes out
 pointing *toward* the neighbour; the sign of `S` decides nothing). The combiner
-then truncates it to `max_force`. Arithmetic CONFIRMED from the binary by two
+then truncates it to `max_force`. Arithmetic STRONGLY INFERRED from the binary by two
 readers; what contact looks like in play is unobserved (Q345). Priority (4):
 reproduce, do not fix.
 
@@ -377,7 +380,7 @@ weighted (Q30).
 
 ## Confidence
 
-**CONFIRMED (binary):** `Follow_Path` is DKII.EXE's own class name, with the
+**STRONGLY INFERRED (binary):** `Follow_Path` is DKII.EXE's own class name, with the
 descriptor, locator and vtable addresses given in §1; the family is `Behaviour`
 plus exactly eight named subclasses; each is a global singleton constructed at
 startup and holding only a vtable and a name; `Follow_Path`'s single virtual is
@@ -385,16 +388,16 @@ startup and holding only a vtable and a name; `Follow_Path`'s single virtual is
 bit 6; the navigation module's diagnostic strings quoted in §2 are present; the
 route entry's caller graph in §5.
 
-**CONFIRMED (negative):** no `.pt` or `.tr` file ships in the reference install.
+**STRONGLY INFERRED (negative):** no `.pt` or `.tr` file ships in the reference install.
 
-**CONFIRMED (binary + owner):** that a route is reduced to grid-free waypoints
+**STRONGLY INFERRED (binary + owner):** that a route is reduced to grid-free waypoints
 by a funnel over gates, and that routes run straight where the funnel needs no
 turn (§2.1, §3.1).
 
-**CONFIRMED (binary):** that the corridor is found by a greedy best-first
+**STRONGLY INFERRED (binary):** that the corridor is found by a greedy best-first
 search over a triangulated mesh, run from both ends with the shorter funnelled
 result kept (Q341, `navigation-mesh-and-search.md`).
 
-**CONFIRMED (binary):** the gate re-walk of §2.1 end to end — its eight cross
+**STRONGLY INFERRED (binary):** the gate re-walk of §2.1 end to end — its eight cross
 products, selection, cap, adjusters and intersection — and that the cap is the
 wrapper's `0x1000`. UNKNOWN: whether a shipped map has a sixteen-tile gate.

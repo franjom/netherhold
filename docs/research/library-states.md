@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The Library's states: 53–59
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-06.
@@ -5,7 +8,7 @@
 - State `+0xA9`/`+0xAD` is the researcher's target point (creature `+0x2F7`/`+0x2FB`), `+0xB1`/
   `+0xB5` where a wait last saw it, `+0xA7` the creature 59 watches. `Age` is state `+0x1C`.
 
-## 1. The walk — CONFIRMED
+## 1. The walk — STRONGLY INFERRED
 
 States 53–59 are category 4, so the Research hook runs under all of them and a walk between them
 keeps it running.
@@ -34,7 +37,7 @@ instructions that push or store either constant, the only stores near the state 
 table's own id field (`0x0047CAA8`, `0x0047CC24`); the pushes near `0x0047B230` are message 55.
 Not covered, as for Q415: a computed call that was not scanned, and a state restored from a save.
 
-## 3. 53, the chooser `0x00475A20` — CONFIRMED
+## 3. 53, the chooser `0x00475A20` — STRONGLY INFERRED
 
 1. At `Age` 1 the creature stops. With no research target (player `+0x213` zero): at `Age` 1
    action 43, and it holds while that plays, then returns 0.
@@ -47,7 +50,7 @@ Not covered, as for Q415: a computed call that was not scanned, and a state rest
    (options `0x80`); taken, the target is the object's position. No object: a walk to the
    finder's point, the target that point. Either way it returns 1.
 
-## 4. The finder `0x004E1ED0` — CONFIRMED (the variant seed STRONGLY INFERRED)
+## 4. The finder `0x004E1ED0` — STRONGLY INFERRED (the variant seed STRONGLY INFERRED)
 
 Over the room's objects of type 58 (*Library Book*) or 64 (*Book Case*), the nearest by squared
 distance (strict `<`) that is free: no place-holder of the room has a valid target point (world
@@ -71,7 +74,7 @@ variant `random(3)` from the coordinate-seeded selector the furniture choice use
 (evidence: the floor arm at `0x004EE6A5` calls the same selector the choice does; the seeding order
 across a rebuild was not traced).
 
-## 5. Reading: 54, 56, 57 — CONFIRMED
+## 5. Reading: 54, 56, 57 — STRONGLY INFERRED
 
 **54.** On the target point's tile a Book Case, else a Library Book. Neither: `SetState(53)`;
 refused, return 0; taken, it goes on below anyway. Found: it turns toward the object and returns 1
@@ -87,7 +90,7 @@ While the action runs, 57 asks the finder again and, given an object, sets 53 an
 `0x004C6AE0` finds a Library with a place other than this one, return 0 (idle, to choose again);
 otherwise `SetState(53)`.
 
-## 6. The disturbed Library and 59 — CONFIRMED
+## 6. The disturbed Library and 59 — STRONGLY INFERRED
 
 **The way in.** The contact test `0x004E8660`, run when a creature steps onto a room tile, calls
 `0x004E88A0` for a creature on a Library tile whose resolved category is not 4 (the intruder). Once

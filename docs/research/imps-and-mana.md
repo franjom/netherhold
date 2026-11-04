@@ -1,4 +1,7 @@
-﻿# Imps, and what mana is actually for
+﻿---
+systems: [imps-tile-work]
+---
+# Imps, and what mana is actually for
 
 Milestone M3. Where imps come from, what they cost to buy, and what they cost to
 keep — the last of which turns mana from a number that only goes up into an
@@ -33,7 +36,7 @@ economy. Mana's *income* side is `mana.md`.
 | A claimed mana vault is worth +100 a second | **CONFIRMED** (Q37b) — owner, and `TerrainDef.ManaGain` for Claimed Vault is 100; see `mana.md` |
 | Possession drains 25 a second | **UNKNOWN** (Q58) — `KeeperSpells` `0x00E2` says 25, `ManaCostInFirstPersonPerSecond` says 5, and the owner saw no drain at all |
 | **The free-imp clock is a deadline, not a countdown** | **CONFIRMED** (Q56, ADR-0057) — owner recording, then the binary. A keeper at full strength is never owed one, their deadline goes stale, and the next loss is replaced **on the spot** |
-| A free imp costs no mana and ignores availability | **CONFIRMED** — the free flag makes the original skip the availability check, the affordability check and the deduction |
+| A free imp costs no mana and ignores availability | **STRONGLY INFERRED** — the free flag makes the original skip the availability check, the affordability check and the deduction |
 | An imp held in the Hand of Evil still counts towards the four | **CONFIRMED** (Q148) — owner: holding one of four produces no fifth. The imp portrait's figure is a *different* count and excludes them |
 
 ---
@@ -91,7 +94,7 @@ Recorded 2026-09-05:
 
 ### What the binary says
 
-**CONFIRMED (binary, 2026-11-01).** `0x004B8640` initializes the unsigned
+**STRONGLY INFERRED (binary, 2026-11-01).** `0x004B8640` initializes the unsigned
 free-Imp deadline (player +0xA2) to `0xFFFFFFFF` at `0x004B86C3`. The Heart's
 opening frame `0x004D9A60` arms it at elapsed exactly nine game seconds:
 `0x004D9ECD` stores the current native turn, for every owner. This is outside
@@ -237,7 +240,7 @@ gets four back for nothing and rebuilds the rest from the cheap end of the curve
 **The cast goes through the position permission** (`0x004BB8A0`, `keeper-spell-casting.md`
 §3). The Create Imp record selects location 1 and target 4 (`KeeperSpells.kwd`, bytes `0xEF`
 and `0xDA`), so the tile must be the caster's own or an ally's — never neutral or unowned — and
-not solid, with the room exclusions the other place casts share. **CONFIRMED by the seeded
+not solid, with the room exclusions the other place casts share. **Measured by the seeded
 replays of `l2live2`:** the recording casts six times at (14,24), (14,23), (12,20) and (11,20)
 between ticks 2158 and 2270. Seed 02, where every one of those tiles was still neutral dirt,
 made no imp; seed 03 made one, on the one tile the keeper had claimed; seed 04, with all six

@@ -1,4 +1,7 @@
-﻿# Mechanic: the navigation mesh and the route search (Q341)
+﻿---
+systems: [navigation]
+---
+# Mechanic: the navigation mesh and the route search (Q341)
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -351,7 +354,7 @@ the quads whose two diagonals tie.
 
 **CONFIRMED (capture, 2026-09-17 and 2026-09-18):** §7's agreement rates, and
 the door arms of §4, which reproduce DK2's own `route=` and `way=` once each
-request is scored against the option word its caller passes (Q357). **CONFIRMED (binary):** the call chain and every address in §1; the allocator's
+request is scored against the option word its caller passes (Q357). **STRONGLY INFERRED (binary):** the call chain and every address in §1; the allocator's
 layout and the 29-byte derivation; the triangle and point records as far as the
 fields named; the full-map and single-tile rebuild entries; the heap, its cap,
 the stamp, the key expression and that the heap compares on it; termination on
@@ -359,7 +362,7 @@ pop; two directions with the shorter funnelled length kept; the class-table
 selection with its `+1`; every arm of the cost function as tabled; the six
 globals and their sources; the route cache and its keys.
 
-**CONFIRMED (binary):** the reset to two triangles; the maximal-rectangle
+**STRONGLY INFERRED (binary):** the reset to two triangles; the maximal-rectangle
 scan; four corners then four constraint sides per rectangle; point insertion
 as on-vertex / on-edge / interior with no in-circle test; constraint insertion
 by orientation-guided flipping with recursion at vertices; the flip itself;
@@ -368,7 +371,7 @@ flood, its criterion and its exemption of rock; that the vertex-removal pass is
 gated on the partial-rebuild flag; the merge, the dead markers and the free
 lists; that `+0xE` is a word with six flag bits below a ten-bit id.
 
-**CONFIRMED (binary):** the width-class table and its packing; the three
+**STRONGLY INFERRED (binary):** the width-class table and its packing; the three
 per-slot masks and that the search advances through them; that the class byte
 is `[0x006A11F0] − 1` with no writer of that byte found; the constraint bits
 `slot + 3` — set by the side-marker, cleared by the clone, refused by the flip;
@@ -376,7 +379,7 @@ the flood fill, its queue and its records; that outside the builder only the
 orchestrator's pre-check `0x004C9400` reads region ids, before either mode's
 search (§5); the search's two pops a round.
 
-**CONFIRMED (binary + repo):** categories 1 and 3 are water and lava — the two
+**STRONGLY INFERRED (binary + repo):** categories 1 and 3 are water and lava — the two
 definition bits the request reads are the two our `CreatureFlags` already names.
 
 **STRONGLY INFERRED:** that the forward search is seeded at the destination;

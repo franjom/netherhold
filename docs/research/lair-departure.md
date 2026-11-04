@@ -1,3 +1,6 @@
+---
+systems: [creatures, navigation]
+---
 # Lair departure point and arrival options
 
 ## Pre-edit mismatches (2026-11-03)
@@ -8,7 +11,7 @@
 | 00471AE8 / 004E4C10 | Final departure uses the centre-nearest LairRules.ArrivalTile without a draw | Outside the chosen room, draw one random slab-chain starting tile and use the existing room-point predicate/search |
 | 00471AAA–00471AD2 | Routes to the centre before deciding whether a walk exists | Already inside the chosen room: state 1 then resume 80; no point draw, route or helper action cancellation; return the resume transition result |
 
-These are CONFIRMED by independent binary reads. The bounded correction uses
+These are STRONGLY INFERRED by independent binary reads. The bounded correction uses
 the existing RoomWalkRules point picker and ExactSpot options. It preserves
 the room finder's existing reachability, centre and tie approximations; it
 does not establish parity for the entire lair search. State 80's local-candidate

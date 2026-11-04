@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # The notification type table at 0x006A0B00 (all 100 rows)
 
 - `DKII.EXE` v1.70 (GOG). Read 2026-10-26 from the file's own bytes (PE section map, every row and every variant list), and the first 1000 bytes were cross-read through Ghidra at the same address.
@@ -8,7 +11,7 @@
 
 All 100 rows are read; the table matches OpenKeeper's issue #566 on every field we can compare (all 100 rows), and the **raiser census finds 25 types that no `call` to the poster pushes, exactly OpenKeeper's 25 "none found" rows**. Every other type has a poster. Three things are new here: the full per-type raiser list (section 3), the `+6` field resolved as the tab graphic, and a wrong line in our own docs found on the way (section 5).
 
-## 1. Row layout - CONFIRMED (bytes), 10 bytes at `0x006A0B00 + 10 * type`
+## 1. Row layout - STRONGLY INFERRED (bytes), 10 bytes at `0x006A0B00 + 10 * type`
 
 | Field | Width | Meaning |
 |---|---|---|
@@ -29,7 +32,7 @@ What OpenKeeper adds, and what this census says of it:
 | Type `0x01` is raised by `CPlayer::initAsNoPlayer` | The only post of type 1 is `Player_ModifyHeartHealth` `0x004DA323` (the heart's health change; matches our reading in [win-and-defeat.md](win-and-defeat.md)). Their function name is another label or wrong. |
 | Type `0x2D` is raised by `CPlayer::fun_4E2500` | Agrees: `Library_FindForCreature` pushes it at `0x004E27FD` and jumps to the shared ecx setup at `0x004E2867`, then the call at `0x004E286D`. |
 | Rows 26 and 34 take "20/30" seconds | Every key of both lists is 30 s. The 20 is only the seconds field of the list's terminator record (used, as the default, on row 34 only). Their other slash and range columns match the keys exactly. |
-| 25 types have "none found" | **Confirmed, and no further type lacks a poster** (section 4). |
+| 25 types have "none found" | **STRONGLY INFERRED, and no further type lacks a poster** (section 4). |
 | "go-to" kinds, text strings | Not in the table (code and `Speech.str`). Not checked here. |
 | A named producer per type | For the 67 types where they name one by address, one of our posters lies within `0x1800` bytes after it in every case. That is a plausibility check, not an identity: function sizes vary and the rest of their names are labels only. |
 

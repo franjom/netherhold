@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # World trigger-tree traversal in DKII.EXE v1.70
 
 **Scope:** the world tree walker at `0x00518150`, its record initialisers at

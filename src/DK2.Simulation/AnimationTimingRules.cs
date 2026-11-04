@@ -60,7 +60,7 @@ public static class AnimationTimingRules
     /// <summary>How long an action started through <c>0x004969D0</c> with <paramref name="count"/>
     /// holds, playing its art slot resolved: count 0 or 1 plays once (<see cref="ActionHoldTicks"/>),
     /// a count of 2 or more loops <paramref name="count"/> + 1 times at the clip's frames and rate,
-    /// rounded up, as the prison's flourish does (ADR-0301). LIKELY: the runner's end after the
+    /// rounded up, as the prison's flourish does (ADR-0301). HYPOTHESIS: the runner's end after the
     /// cycles is the renderer's flags, which are not read.</summary>
     public static int CountedHoldTicks(CreatureDef definition, int slot, int count)
     {

@@ -1,4 +1,7 @@
-﻿# Mechanic: winning, losing, and the fall of a dungeon heart
+﻿---
+systems: [campaign-triggers]
+---
+# Mechanic: winning, losing, and the fall of a dungeon heart
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-22 and 2026-09-23. Addresses are
@@ -252,7 +255,7 @@ indexes another table: UNKNOWN which.
 ## 7. Alliances; what a defeat does
 
 **Alliances end games together, but only in skirmish and multiplayer** (Q359, read
-2026-10-26, CONFIRMED). The loops sit after the score block of `0x004BE630`, which returns
+2026-10-26, STRONGLY INFERRED). The loops sit after the score block of `0x004BE630`, which returns
 in modes 1 and 4 (campaign, My Pet Dungeon) and in any mode but 2 and 3 (`0x004BF32E`). All
 three walk the active player list from `world+0x7A` (next `+0x3A`, reverse activation
 order; the order is the PLAYERS records' in every mode, below), take only keepers (`Number >= 3`) and call two keepers *mutual allies* when each
@@ -274,7 +277,7 @@ Each call runs these loops again for the player it ends, and a player already en
 returns at once (`+0x19A`), so the recursion settles. Two keepers allied with *S*
 but not with each other: the first ally's win makes the second one lose.
 
-**The activation order is the PLAYERS file's** (CONFIRMED, read 2026-10-26). The level's KWD
+**The activation order is the PLAYERS file's** (STRONGLY INFERRED, read 2026-10-26). The level's KWD
 reader `0x0056C960` reads chunk after chunk while the file has bytes left (`0x0056CBD0` per
 chunk); the PLAYERS chunk (180) goes to `0x0056DAD0`, which reads its records one by one (205
 bytes shipped) and calls slot `+0x6C` of the callback table for each. `0x0051E0A0` fills that
@@ -370,7 +373,7 @@ Not built: the object damage path that writes `+0x36`; the multiplayer-mode bran
 
 ## Confidence
 
-**CONFIRMED (binary):** `Status` at `+0x19A`, its single non-zero writer, the
+**STRONGLY INFERRED (binary):** `Status` at `+0x19A`, its single non-zero writer, the
 one-shot guard, codes 1/2/3 and every site that pushes them; the player action
 dispatcher's tables and its arms for 10 and 11; that 12 and 13 reach the failure
 exit of both dispatchers; the heart object's type, health offset and both
@@ -380,7 +383,7 @@ skip and the no-object → ruin call; `+0x9A` bit 0 as the ruin and its use by
 `GameTickDied`; the verdict's conditions, its side test against the hero and
 neutral ids, the objective text ids, and the last-keeper-standing count.
 
-**CONFIRMED (data):** the parent types of all 87 shipped `WIN_GAME` and
+**STRONGLY INFERRED (data):** the parent types of all 87 shipped `WIN_GAME` and
 `LOSE_GAME` records; no type-13 object in any THINGS file; 100000 and 25.
 
 **UNKNOWN:** what writes `object+0x36`; bits 19 and 22 of `+0x76`; the world bit

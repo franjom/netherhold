@@ -1,6 +1,9 @@
+---
+systems: [hud-front-end]
+---
 # HUD visibility
 
-## Camera gate (CONFIRMED, binary)
+## Camera gate (STRONGLY INFERRED, binary)
 
 Read 2026-10-18: complete `0x0044D620`, `0x0044D590`, `0x0044D870` and
 `0x00419DF0`, plus the GUI-routing arm of `0x00406530` and the overlay shell
@@ -45,7 +48,7 @@ normal HUD therefore does not hide subtitles or the letterbox. View slot
 not itself a visibility test. Normal HUD drawing uses it to select a special
 compact branch; panel semantics remain unread.
 
-## Hidden HUD input (CONFIRMED, binary; incomplete modal semantics)
+## Hidden HUD input (STRONGLY INFERRED, binary; incomplete modal semantics)
 
 Pointer routing `0x00406530` first calls `0x0044D590`. This permits ordinary
 input only when camera `+0xDD8` is zero, mode is neither `0xB` nor `0x12`, and
@@ -72,7 +75,7 @@ the adapter probe checks hidden/input-blocked navigation and restored zoom.
 
 ## Normal GUI toggle producers
 
-**CONFIRMED subset:** key dispatcher `0x00405010` binding `0x26` toggles
+**STRONGLY INFERRED subset:** key dispatcher `0x00405010` binding `0x26` toggles
 interface `+0xF5`. In the ordinary dungeon arm, hiding expands the view to
 virtual `(0,0,2560,1920)` through view slot `+0x34`; restoration uses the normal
 viewport fields and graphics-mode offsets. The possession-like arm also
@@ -117,7 +120,7 @@ implements that purpose without copying the raw numeric field.
 
 ## Result and special-player state (binary, 2026-10-24)
 
-**CONFIRMED direct store contracts:** player flag `+0x76 & 0x80000` is set
+**STRONGLY INFERRED direct store contracts:** player flag `+0x76 & 0x80000` is set
 by `0x004C0120` only when continuing old Status 1 (conquered). This store is
 not multiplayer-only: the routine also serves campaign action 134 through
 `0x00512950`. A second caller, `0x00428230` (reviewer, 2026-10-24), is a widget
@@ -125,7 +128,7 @@ callback held only in static widget record data at `0x0069318E`; it calls player
 vtable `+0x260` with the interface's player id, then `0x004C0120`. Its neighbour
 record's callback `0x004281D0` posts action record (0,0,0,1) through `0x004346E0`,
 the same payload `0x004039A0` posts at `0x00403A90..0x00403AD5` when Status is neither
-0 nor 2 outside game mode 3 and path mode. That pair is LIKELY a result menu's
+0 nor 2 outside game mode 3 and path mode. That pair is probably a result menu's
 continue and leave buttons; which menu owns the records and their labels is unread. Player initialization `0x004B8640` clears it in every mode.
 The store/mask census found no other direct bit-19 setter/clearer on the player;
 Reaper-state masks concern a different record, and `0x004B9740` changes only
@@ -154,7 +157,7 @@ The direct result updater `0x004039A0` establishes these campaign rules:
 - A separate Status-2/game-mode-4 arm restores these fields, forces letterbox
   action `0x74` value 2 and shows menu51. Mode 4 is outside the campaign gate.
 
-`ClassicHudControls.UpdateResult` implements the FD/F5 subset (CONFIRMED against
+`ClassicHudControls.UpdateResult` implements the FD/F5 subset (STRONGLY INFERRED against
 `0x004039A0`'s stores) and is tested, but **Unity does not feed it**. The key
 dispatcher `0x00405010` tests Status and FD before the Options (0x18) and GUI (0x26)
 bindings, so DK2 also refuses Options and G after a result; its way out is Space/Esc
@@ -166,7 +169,7 @@ HashVersion bump was made. The special post-conquest view is likewise unbuilt.
 
 ## Scripted GUI restoration and nested letterboxes
 
-**CONFIRMED setters:** interface `+0x34` is `0x00402B70` (F5=1), and `+0x38`
+**STRONGLY INFERRED setters:** interface `+0x34` is `0x00402B70` (F5=1), and `+0x38`
 is `0x00402B80` (F5=0). Action 38 calls hide on enable and show on disable,
 independently of its counted letterbox request. The non-mode-3 celebration
 `0x004BF9E0` also calls hide. The script's show sets F5=1 unconditionally; it

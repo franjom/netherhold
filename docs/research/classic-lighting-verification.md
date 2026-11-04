@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting, presentation-unity]
+---
 # Classic Step 5 verification
 
 This records checks of our implementation. Binary behavior evidence lives in

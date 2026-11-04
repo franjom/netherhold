@@ -1,9 +1,12 @@
+---
+systems: [rooms, camera-lighting]
+---
 # The Dungeon Heart's opening sequence
 
 DKII.EXE v1.70, Ghidra primary reads and shipped Editor KWD records, 2026-10-14.
-The room update (`0x004D9A60`, read whole twice) and the data are **CONFIRMED**;
-of the chain mechanics the Next chain (`0x00440350`) is **CONFIRMED** and the
-death path, the generation flags and the group parts are **LIKELY** (their records
+The room update (`0x004D9A60`, read whole twice) and the data are **STRONGLY INFERRED**;
+of the chain mechanics the Next chain (`0x00440350`) is **STRONGLY INFERRED** and the
+death path, the generation flags and the group parts are **HYPOTHESIS** (their records
 name the unread steps); the `0xF1` opening sound is built ([sound-effects.md section 8](sound-effects.md#8-the-dungeon-heart)); effect lights are built in section5. Built as
 ADR-0475.
 
@@ -100,7 +103,7 @@ three-float offset (KMF GROP: HEAD count, then ELEM name and offset).
   explanation for surviving parts. General birth-contact parity is Q620.
   Element396 has no art and scale0..0, so
   `0x00435F20` sets no scale; the size is the member record's, `0x1000` from the
-  loader `0x004358C0`, copied to RenderInfo `+4/+8` by `0x004B37D0`. CONFIRMED.
+  loader `0x004358C0`, copied to RenderInfo `+4/+8` by `0x004B37D0`. STRONGLY INFERRED.
   That the first step (vz 16384..22528 less mass 1638, `>> 4`) lifts every member
   clear holds only with the KMF z read as down, which is INFERRED; the install
   test `TheHeartPlugsNinePiecesFlyOnTheirFirstUpdate_IfKmfGroupZPointsDown` pins
@@ -119,7 +122,7 @@ sparkles and their fade-in run from 7.25 s to 9.25 s.
 
 ### Startup element colours
 
-CONFIRMED shipped-data closure (2026-10-17): roots223/225/314 reach11 effects
+STRONGLY INFERRED shipped-data closure (2026-10-17): roots223/225/314 reach11 effects
 through Next, death/contact and generated-effect links. Including generated,
 group-member and death/contact/next-element links reaches elements
 379/380/381/382/383/384/396/403/406/407/408/525. None has art flag`0x2`.
@@ -168,7 +171,7 @@ shipped definitions, asserts the closure and checks every art flag.
 
 ## 5. Effect lights
 
-Read 2026-10-16. CONFIRMED except where marked.
+Read 2026-10-16. STRONGLY INFERRED except where marked.
 
 - **Creation.** At the end of `0x004347E0` an effect asks view slot `+0xA0`
   (`0x00439880`, view vtable `0x0066CC94`) for a light from its definition's
@@ -206,9 +209,9 @@ adds them to the tiles' dynamic sources beside the object lights.
 Read 2026-10-16. STRONGLY INFERRED: an additive effect mesh is drawn at its
 texture, once. The links:
 
-- CONFIRMED: the material constructor forces an ADD material's colour to white
+- STRONGLY INFERRED: the material constructor forces an ADD material's colour to white
   (kmf-materials.md §2);
-- CONFIRMED: the static mesh draw (`0x0059CCF0` → `0x00580480`) passes the
+- STRONGLY INFERRED: the static mesh draw (`0x0059CCF0` → `0x00580480`) passes the
   element's tint (RenderInfo `+0x48`, the element's `+0x6E`, here RGB 25) as
   floats × 255, and the primitive draw `0x00581BE0` makes a vertex's colour
   material colour + tint, then adds the lights (`0x0057C190`): white and more;
@@ -217,15 +220,15 @@ texture, once. The links:
   `0x0058B2A0` are unread;
 - unread: `0x00581BE0` computes that colour only for a vertex whose bit 2 is set
   in the table at `0x0077F4F8`; what sets it for an effect mesh is not traced;
-- CONFIRMED for `0x00589250`: its only stage-0 colour operation is 4, MODULATE
+- STRONGLY INFERRED for `0x00589250`: its only stage-0 colour operation is 4, MODULATE
   (never 2X or 4X), and state bit 1 sets SRCBLEND and DESTBLEND ONE; device set-up
   code that may set stage 0 elsewhere was not searched;
-- CONFIRMED: back faces are culled in software for every material
+- STRONGLY INFERRED: back faces are culled in software for every material
   (kmf-materials.md §4).
 
 The same sum lights an **opaque** effect mesh: its vertices start at the
 material colour (its brightness, 0 for the plug's materials) plus the element's
-tint, then take the lights. CONFIRMED: `0x00435F20` writes the element's RGB to
+tint, then take the lights. STRONGLY INFERRED: `0x00435F20` writes the element's RGB to
 `+0x6E` for an element with art, and `0x004B3610` zeroes the tint
 (RenderInfo `+0x48..+0x4A`) otherwise. So the lid (406) and the cracked lid (403)
 glow at 50/255 and the flying rock (380) at 120,100,100 before any light; the

@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Minimap corner controls and related view navigation
 
 Read 2026-10-18 from DKII.EXE callbacks, key dispatch and static menu records.
@@ -7,7 +10,7 @@ The corners do not provide Home or compass-reset actions.
 
 ## Corner meanings
 
-| Corner | Callback | CONFIRMED action |
+| Corner | Callback | STRONGLY INFERRED action |
 |---|---|---|
 | Upper left | `0x0041A2B0` | Select interface tool mode 10 and submit the common selection-cleanup request. |
 | Upper right | `0x004163F0` | Select tool mode 4, clear drag state and conditionally clear queued selection. |
@@ -37,7 +40,7 @@ Sell 2151, magnifier 2145 ("Resize map"), Options 2147. The status line is the s
 [0x0042DB60](functions/0042DB60.md): the next string, except Query 2149 gives 2795. The popup
 name over them follows the owner's report; its native producer is unread (`HudWidgetText`).
 
-## Options toggle (CONFIRMED control flow; menu identity strongly inferred)
+## Options toggle (STRONGLY INFERRED control flow; menu identity strongly inferred)
 
 `0x00428710` requires player `+0x19A == 0` and first resets ordinary tool state.
 Opening hides menu ids 22..35, shows menu 22, sets `+0x2722=1`, attempts sound
@@ -73,14 +76,14 @@ Options. While Options owns input, ordinary map/GUI/Heart hotkeys are blocked.
 
 ## Heart navigation and full-screen map
 
-**CONFIRMED:** `0x00416680` reads the viewing player's stored Heart tile,
+**STRONGLY INFERRED:** `0x00416680` reads the viewing player's stored Heart tile,
 requires world slot `+0x1FC` to accept it, then submits session command 4 with
 that tile pair and zero height. It uses the same camera-target/glide consumer
 as a minimap navigation click, not a heading reset. In `0x00405010`, binding
 `0x27` invokes this callback. The shipped default H mapping is recorded in
 [controls.md](controls.md#keeper-mode--everything-else).
 
-**CONFIRMED:** binding `0x29` enters full-screen map by submitting
+**STRONGLY INFERRED:** binding `0x29` enters full-screen map by submitting
 session type `0xF` with mode 7, setting world slot `+0x1F0` to 1, and refreshing
 the complete map rectangle. While view slot `+0xCC` returns 7, only that binding
 reaches the key handler's exit: mode 3, clear `+0x1F0`, refresh. Normal key
@@ -107,7 +110,7 @@ palette textures. Supplementary overlays read the settled world.
 
 ### Full-map markers and legend
 
-CONFIRMED from [the overlay](functions/00403FB0.md): discovered creatures not
+STRONGLY INFERRED from [the overlay](functions/00403FB0.md): discovered creatures not
 in hand draw3-pixel squares in palette17+owner, without the minimap blink.
 The hovered room's symbol is centred on its stored centre tile, which must be
 explored; the pointer tile must be inside the map border. Native room art and
@@ -120,7 +123,7 @@ Room centres reuse the existing derived centre fields, whose Heart offset
 remains STRONGLY INFERRED. The host scales creature squares by screen height
 relative to768 for readability; DK2 uses3device pixels. Matched acceptance is pending.
 
-### Preview and legend (CONFIRMED, binary 2026-10-29)
+### Preview and legend (STRONGLY INFERRED, binary 2026-10-29)
 
 [Mode7 rendering](functions/00598880.md) unprojects the continuous pointer
 position, without a separate inside-map or discovery guard. Engine eyeZ is-8,
@@ -132,7 +135,7 @@ are(466W/640,266H/480)..(572W/640,417H/480). Rendered comparison is pending.
 Normal-HUD toggle producers and remaining Q611 boundaries remain in
 [hud-visibility.md](hud-visibility.md#normal-gui-toggle-producers).
 
-## Query selection (confirmed callback chain, partial presentation)
+## Query selection (STRONGLY INFERRED callback chain, partial presentation)
 
 In ordinary tool mode10, `0x004075E0` accepts a pressed creature hit (kind2)
 only when camera `+0xE02` is zero. It stores the id at interface `+0x13D7`,
@@ -170,7 +173,7 @@ Options callback, only resets mode1 outright and cancels drags in modes3/4.
 
 ## Menu40 scrollbar (read 2026-10-23)
 
-**Creation — CONFIRMED.** A type-7 text widget whose record byte `+5` is not `0xFF` gets a
+**Creation — STRONGLY INFERRED.** A type-7 text widget whose record byte `+5` is not `0xFF` gets a
 child widget in its init slot (`0x0052A0D0`): a type-2 scrollbar (vtable `0x0066ECBC`, 0xB0
 bytes) copied from the parent's record with x = parent x + width (+ byte 5 when non-zero),
 the parent's y and height, width and hit width 64, range [0, 1], no click callbacks, the
@@ -181,13 +184,13 @@ menu-local **(1116, 20), 64 × 288**, right of the text, 20 inside the 1200-wide
 created disabled (`+0x61 = 0`). Sound slot 0 means its press/release sounds
 (`0x0052CAD0`, table `0x006AC8C4`) are silent.
 
-**When it shows — CONFIRMED.** [0x0052A330](functions/0052A330.md) measures the text in the
+**When it shows — STRONGLY INFERRED.** [0x0052A330](functions/0052A330.md) measures the text in the
 widget rectangle narrowed by 64 reference units (the bar's width), in screen pixels. If it is
 taller than the widget, the bar gets min 0, max = text height − box height (pixels),
 position 0, and is enabled; otherwise it stays disabled. Every call resets the position to
 the top.
 
-**Art and geometry — CONFIRMED** (0x00414400, only while enabled; catalogue `0x006A7DF0`
+**Art and geometry — STRONGLY INFERRED** (0x00414400, only while enabled; catalogue `0x006A7DF0`
 entries 0..3, loaded at interface `+0x12B6`, 27 bytes each). In reference units, bar
 `(x, y, 64, h)`:
 
@@ -201,13 +204,13 @@ entries 0..3, loaded at interface `+0x12B6`, 27 bytes each). In reference units,
 The binary scales 64 and 8 with the x factor and 128, 28 and 4 with the y factor
 (`0x0052C5A0` pairs); equal at 4:3. No pressed or hover variants are drawn.
 
-**Thumb — CONFIRMED** (slots `+0x20` 0x00529160 and `+0x24` 0x0052A1F0). Track length
+**Thumb — STRONGLY INFERRED** (slots `+0x20` 0x00529160 and `+0x24` 0x0052A1F0). Track length
 `T = h − 128` (160 for menu40), range `R = max − min` in pixels:
 `len = T / (R + 1)`, at least 16 (or the record's fixed `+0xA8`, 0 here);
 `top = y + 64 + (pos − min)·(T − len) / R` (`y + 64` when R = 0). With any real overflow the
 thumb is 16 units, drawn 8 high.
 
-**Input — CONFIRMED** (slot `+0x08` 0x00528B20, every GUI update while the button at input
+**Input — STRONGLY INFERRED** (slot `+0x08` 0x00528B20, every GUI update while the button at input
 `+0xC0` is held; states in `+0x41`):
 - **arrows:** pressing the up/down square starts state 1/2, and each update while it stays
   held on the arrow moves the position by −1/+1 **pixel** (`0x00528FB0`, clamped to
@@ -220,7 +223,7 @@ thumb is 16 units, drawn 8 high.
 - **no mouse wheel:** the class reads only the pointer and the button, and DK2 has no wheel
   binding ([controls.md](controls.md)).
 
-**Who scrolls — CONFIRMED** (0x004242F0). In **message mode** the text is set once by the
+**Who scrolls — STRONGLY INFERRED** (0x004242F0). In **message mode** the text is set once by the
 message click (0x00423F50) and re-rendered into the text cache (`+0x1409`, 0x0042CB60) at
 y offset `−position` whenever the position changes. In **Query mode** the entity text is
 regenerated and passed to 0x0052A330 on every draw, which puts the position back to 0, and

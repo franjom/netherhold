@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # Method: what the emulator oracle has held to DKII.EXE
 
 Source(s):
@@ -94,7 +97,7 @@ with the earlier capture.
 
 ## Confidence
 
-Every equality above is binary evidence, run rather than read: CONFIRMED for what each function
+Every equality above is binary evidence, run rather than read: STRONGLY INFERRED for what each function
 computes on the inputs run, and a sample between them. `[Dk2Behavior]` still rises no higher than
 STRONGLY INFERRED on this alone (ADR-0046 rule 5). Q600's and Q601's answers are the binary's readings, seen on one capture
 (Q601 on two).

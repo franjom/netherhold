@@ -1,9 +1,12 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # Animation replacement and render clock
 
 Primary source: retail v1.70 `DKII.EXE`, Ghidra decompilation and instruction
 checks, 2026-10-11. Presentation clock only; Q582's combat lifetime is untouched.
 
-## 1. Replacement — CONFIRMED
+## 1. Replacement — STRONGLY INFERRED
 
 `0x004B37D0` installs immediately when requested or when the current resource
 is absent/completed. Otherwise it stores one pending resource, scalar and art
@@ -31,7 +34,7 @@ Built: `RenderAnimationClock.Replace` and the Unity player's pending resource
 set retain the outgoing mesh until replacement, then switch topology/materials
 with the installed clock. `ResourceRevision` identifies that installation.
 
-## 2. Rate exceptions — CONFIRMED
+## 2. Rate exceptions — STRONGLY INFERRED
 
 Resource flag `0x80` sets the stop-loop gate during installation even if
 looping was requested. Frozen timer `creature+0x447` bypasses advancement in
@@ -63,7 +66,7 @@ shifted right 12, rather than the creature definition's speed.
 Status helpers `0x004B4580`, `0x004B45B0`, `0x004B4610` change drawing offsets
 and flags, rather than setting the phase advance rate; see their records.
 
-## 3. Render factor producer — CONFIRMED
+## 3. Render factor producer — STRONGLY INFERRED
 
 `0x00526590` passes its record at session `+0x278` to the renderer's virtual
 slot `+0x2C` (`0x00598880`). Record word 0 is the turn stamp; word 1 is

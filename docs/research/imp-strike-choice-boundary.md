@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # A completed rock strike and the following claim boundary
 
 2026-10-18. Research only, main gameplay hash/save 274. This replaces neither
@@ -31,7 +34,7 @@ A separate completed poll of worker 455 on turn 165 is a negative control:
 the tile is already floor at entry, remains unchanged, and flags likewise
 gain stop bit 8. An action poll is not automatically another work hit.
 
-## Modern reconstruction — CONFIRMED results
+## Modern reconstruction — measured results
 
 The chooser fixture restores captured terrain/health/owners, marks and ordered
 task entries, worker poses, task sides/slots, hands, loose/stored gold, clock

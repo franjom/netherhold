@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The Workshop's effect timers and what they draw from the random stream
 
 Source(s):
@@ -16,7 +19,7 @@ Original version: DK2 v1.70 (GOG). Implemented as `WorkshopTimerRules` and `Work
 
 A reload draws the simulation stream (world `+0x15A0`, `dk2-random.md` section 2) whether or not an effect or a
 sound follows, so a level with a Workshop draws more than one without. The effects are presentation; the
-draws are not. Draws a Workshop makes, all on the world stream (CONFIRMED by each call's seed argument):
+draws are not. Draws a Workshop makes, all on the world stream (STRONGLY INFERRED by each call's seed argument):
 
 | Where | Source line | Range | When |
 |---|---|---|---|
@@ -31,9 +34,9 @@ draws are not. Draws a Workshop makes, all on the world stream (CONFIRMED by eac
 | wall-slot pick | `Room.cpp` 0xF42 | the wall-slot count | smoke fires, definition effect `+0x427` set, a slot exists |
 
 The six lines of the handler are the reloads and picks; the slot picks and the constructor's four were
-not counted before. CONFIRMED (disassembly of both functions).
+not counted before. STRONGLY INFERRED (disassembly of both functions).
 
-## 2. The room's fields (CONFIRMED)
+## 2. The room's fields (STRONGLY INFERRED)
 
 `Room_Construct` (`0x004E3800`) zeroes `+0x49..+0x66` and then calls the type's constructor, slot `+0x01` of the
 type table (`0x004F4A60` for type 10). The dumper `0x004E70B6` names the Workshop's overlay:
@@ -51,7 +54,7 @@ the four on the room's lowest tile, as the Hatchery's laying stamp is kept (`roo
 merging keep the surviving room's, a rebuild after a sale constructs each piece anew, and a rival's capture
 keeps the tiles, so keeps the timers.
 
-## 3. The handler, `0x004F4B20` (CONFIRMED)
+## 3. The handler, `0x004F4B20` (STRONGLY INFERRED)
 
 Fastcall on the room, once a turn (`Room_Tick`, `0x004E4B00`, through `0x004EC450`), after which it returns 1,
 so the common health step follows. It first runs the hated-company step `0x004E8C60`, then four blocks in this
@@ -84,7 +87,7 @@ The floor and wall passes of `0x004E8210` walk the room's slab chain in order. T
 file's eight words from `0x382`, copied to `+0x421` by `0x004EAE2A` when nonzero (`RoomDef.RoomEffect427Id`,
 `RoomEffect429Id` are the two this handler adds to `RoomEffect425Id`).
 
-## 4. Order (CONFIRMED)
+## 4. Order (STRONGLY INFERRED)
 
 `0x004EC490` links each new room at the head of the manager's in-use list (`0x004EC559..0x004EC57E`) and
 `0x004EC450` walks it from the head along each room's `+0x21`, reading the next link before the call

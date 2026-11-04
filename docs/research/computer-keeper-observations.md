@@ -1,10 +1,13 @@
+---
+systems: [computer-keeper]
+---
 # Computer keeper: stock Level 10 capture
 
 The owner left Level 10 ("Smash", Woodsong) running with player 4 Asmodeus, then
 saved `Data/Save/woodsong_ai.SAV` after roughly ten minutes (2026-09-27).
 The save header identifies `level10`, game tick 2408, and the supported
 `May 12 200012:28:22` build. `Level10Players.kld` identifies player 4 as the
-computer keeper and player 3 as the human. These are CONFIRMED data facts.
+computer keeper and player 3 as the human. These are STRONGLY INFERRED data facts.
 
 The tile-grid writer in `DKII.EXE` at `0x0044F3F0` writes an eight-byte map
 header and calls `0x00452B90` for ten bytes per tile, starting at the live
@@ -40,7 +43,7 @@ changed 47 terrain tiles and held 471 tiles, versus 0 changed terrain and 427
 owned tiles in the original save. The keeper emitted 18 `BuildRoomCommand`s,
 9 `TagTilesCommand`s, 67 `CreateImpCommand`s and 6 `SlapCreatureCommand`s;
 emission does not establish that every command succeeded. This is a
-CONFIRMED result of the implementation before the availability fix.
+Measured result of the implementation before the availability fix.
 
 The two captures share the stock map and elapsed game ticks, but their random
 seeds, starting entities and resources have not been proved equivalent. The
@@ -89,7 +92,7 @@ level-7 Black Knights four times each, and portal recruits after them, onto the
 Training Room's two interior cells. On that build a Black Knight over the Training cap
 stayed in the room's state 108 once dropped; since ADR-0393 it is refused and lifted again, as
 in DK2 (Q509, the Level 17 comparison below). Portal recruitment occurred independently
-of the keeper command stream. These are CONFIRMED modern-run facts, not an
+of the keeper command stream. These are measured modern-run facts, not an
 original-game comparison. The scenario has no scripted player commands and has
 regression expectations for digging, the Prison build, and portal recruitment;
 `level17_harkan_training.yaml` asserts the first moves.

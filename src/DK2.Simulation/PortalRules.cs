@@ -15,7 +15,7 @@ namespace DK2.Simulation;
 /// (kind 2) is not one of them: the pick <c>0x004DBF90</c> never reads it, and Level 3's
 /// recording produces three creatures its script made UNAVAILABLE (ADR-0316).
 /// <see cref="IsUnlocked"/> remains for the table's other readers. Gates and numbers
-/// CONFIRMED (shipped v1.70 data; 1999 manual "Portal" p.22); how they compose STRONGLY
+/// STRONGLY INFERRED (shipped v1.70 data; 1999 manual "Portal" p.22); how they compose STRONGLY
 /// INFERRED (portals.md, Q86).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/portals.md")]
 public static class PortalRules
@@ -271,7 +271,7 @@ public static class PortalRules
     /// <summary>How many creatures this keeper's portals support:
     /// <c>CreaturesSupportedByFirstPortal</c> (15) plus
     /// <c>CreaturesSupportedPerAdditionalPortal</c> (5) per portal after the first, 0
-    /// with none, counting both portal types. CONFIRMED (binary; the two variable
+    /// with none, counting both portal types. STRONGLY INFERRED (binary; the two variable
     /// names; 1999 manual — docs/research/binary-entrance.md §2). Strictly less than,
     /// so at capacity nothing arrives and nothing is culled: a keeper who loses a
     /// portal keeps every creature (CONFIRMED, owner). A portal counts however broken,
@@ -347,10 +347,10 @@ public static class PortalRules
     /// then require <see cref="CreatureFlags.AvailableViaPortal"/> for a Portal or
     /// <see cref="CreatureFlags2.AvailableViaHeroPortal"/> for a Hero Portal — flags
     /// <b>exclusive by room type, not by owner</b>, so neither portal emits the
-    /// other's creatures. CONFIRMED (binary, ADR-0046, binary-entrance.md §1; owner).
+    /// other's creatures. STRONGLY INFERRED (binary, ADR-0046, binary-entrance.md §1; owner).
     /// Not redundant: nine hero creatures are AVAILABLE and pooled for keepers 3–6 on
     /// the three Frosty levels without the flag. The IsUnique half never fires on shipped data, but all thirteen uniques carry the portal flag, which is why DK2 needs it.</summary>
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/portals.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/portals.md")]
     public static bool CanComeFromPortal(CreatureDef creature, RoomDef portal)
     {
         if (creature.Flags.HasFlag(CreatureFlags.IsUnique)) return false;

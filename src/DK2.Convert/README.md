@@ -17,7 +17,7 @@ below; `sdt list <file.sdt>` and `sdt extract <file.sdt> [--out <dir>]` drive
 
 ## KMF model format
 
-Confidence is **CONFIRMED** against the shipped v1.70 files used by the guarded tests
+Confidence is **STRONGLY INFERRED** against the shipped v1.70 files used by the guarded tests
 and corroborated with OpenKeeper's KMF reader.
 
 KMF is little-endian and chunked with four-character identifiers. The outer `KMSH`
@@ -79,7 +79,7 @@ There are two unrelated stores:
   height, stored size, two scaled dimensions, and an alpha flag, followed by a
   compressed bitstream.
 
-The model texture codec is **CONFIRMED** against the shipped cache and corroborated
+The model texture codec is **STRONGLY INFERRED** against the shipped cache and corroborated
 with OpenKeeper. It predicts colour-channel DC values between 8×8 blocks,
 entropy-decodes quantized coefficients, performs two integer inverse transforms,
 converts the resulting luma/chroma planes to RGBA, and optionally decodes an alpha
@@ -94,7 +94,7 @@ movies and BF4 by fonts; neither participates in terrain or creature textures.
 
 ## SDT sound banks
 
-Confidence is **CONFIRMED** against all 142 SDT files in the shipped v1.70
+Confidence is **STRONGLY INFERRED** against all 142 SDT files in the shipped v1.70
 installation (8,959 entries) and corroborated, for format facts only, with
 OpenKeeper's SDT reader. They agree on the container layout and the channel
 interpretation of every type that occurs; the payload codec label is narrower below

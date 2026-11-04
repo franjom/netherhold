@@ -1,3 +1,6 @@
+---
+systems: [data-formats]
+---
 # The VARIABLES corpus, swept (Q84, Q85, and an amendment to ADR-0085)
 
 **2026-09-07.** **`dk2tools kwd varsweep`** parses all 66 `*Variables.kld`

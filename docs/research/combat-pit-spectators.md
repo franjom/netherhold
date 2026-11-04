@@ -1,10 +1,13 @@
+---
+systems: [rooms, combat]
+---
 # The Combat Pit's spectators: job 26 and states 142, 143, 144
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
 - **Built:** ADR-0227, `CombatPitSpectatorRules`.
 - The pit itself: `combat-pit.md`.
 
-## 1. The way in — CONFIRMED
+## 1. The way in — STRONGLY INFERRED
 
 - **138's rim arm never succeeds.** 142–144 are category 31, Spectating, whose entry mask
   `0x8002383B` lacks the Combat Pit's bit `0x10000`. `SetState(142)` from 138 is refused, and
@@ -24,7 +27,7 @@
 
   **Built in ours (ADR-0228, `idle-fallback.md`).**
 
-## 2. Job 26, `0x00457780` — CONFIRMED
+## 2. Job 26, `0x00457780` — STRONGLY INFERRED
 
 1. On a tile of a Combat Pit owned by the creature's keeper or an ally
    (`0x004539B0(16, owner, 1)`), off the floor (`0x00454110` = 0): if a fight is on
@@ -47,14 +50,14 @@
    round the chain that is **not interior** (`0x00454110` = 0, so on a pit the rim) and passes
    three more tests.
 
-## 3. `0x004D7CF0`, "a fight is on" — CONFIRMED
+## 3. `0x004D7CF0`, "a fight is on" — STRONGLY INFERRED
 
 This is a room method. It walks the room's tile chain; on each tile `0x00454110` accepts (the
 floor), each thing on the ground (`+0x12` = 0) whose state category (`0x00478050`, which reads
 the resume state `+0xDF` of a walk) is **22, Combat**. The first one found gives its position,
 and **`room+0x53` takes now**. It returns 1; with none, 0.
 
-## 4. The states — CONFIRMED
+## 4. The states — STRONGLY INFERRED
 
 **142** (`0x00457D60`), choosing a spot.
 - Another thing on the ground on its tile: `0x004E50F0(position, out, count, 1, 1)`, with

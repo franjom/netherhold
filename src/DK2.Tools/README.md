@@ -10,10 +10,10 @@ the usage. Families: `kwd` (read, round-trip and rewrite KWD/KLD files), `wad`, 
 `str` (list archive and string contents), `convert` and `where` (asset conversion and
 lookup, via `DK2.Convert`), `capture-diff`, `trigger-diff`, `trigger-run`, `replay`
 and `decide` (comparing simulation runs with recorded captures), `coverage`, `kb`
-(the function knowledge base), `docs` (doc budgets), `status`, `sgmap` and
-`verification-ledger`. Install-reading commands need `DK2_DIR`.
+(the function knowledge base), `docs` (doc budgets and the system tags of ADR-0643),
+`wiki` (the generated wiki pages, `Wiki/`), `status`, `sgmap` and `verification-ledger`. Install-reading commands need `DK2_DIR`.
 
 Depends on `DK2.Assets`, `DK2.Convert`, `DK2.Core`, `DK2.Data`, `DK2.Data.Model` and
-`DK2.Simulation`.
+`DK2.Simulation`, and on YamlDotNet for `docs/systems.yaml`.
 
 Test: `dotnet test tests/DK2.Tools.Tests`.

@@ -1,3 +1,6 @@
+---
+systems: [combat]
+---
 # Mechanic: the friendly spell arm and its applicability table
 
 Source(s):
@@ -223,15 +226,15 @@ Haste at 3686 units a tick can pass a standing ally where the 2048-a-tick buffs 
 
 ## Confidence
 
-**CONFIRMED (binary):** the table contents and dispatch; every predicate and
+**STRONGLY INFERRED (binary):** the table contents and dispatch; every predicate and
 strict comparison; the friendly slot overwrite, self-only Invisible arm,
 candidate list and gates, distance, route and fallthrough; both readers each
 of bits 5, 6 and 7; the bounded negative for bit 8.
 
-**CONFIRMED (data):** the `AlternativeShot` and flag-bit membership of the
+**STRONGLY INFERRED (data):** the `AlternativeShot` and flag-bit membership of the
 shipped spell records.
 
-**CONFIRMED (review at merge, 2026-09-23):** the dispatcher and all five predicates
+**STRONGLY INFERRED (review at merge, 2026-09-23):** the dispatcher and all five predicates
 (`0x0049A7B0`—`0x0049A949`), the category helper `0x00478050`, and the walk's quarter-health
 gate (`0x0045DCA3`, `SHR 2` after the level scale) were re-read from the binary; the
 test Codex wrote as "state 22" is the state category, corrected above.

@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # Imp selection: binary evidence and matched boundaries
 
 2026-10-25. Research only; no gameplay changes or new rate sweep. Modern target:
@@ -33,7 +36,7 @@ scanner/tile handler, secret-door scanner/tile handler, corpse, rescue scanner/t
 handler, gold-in-hand/store selection, and pool raise/first/next/find/holder access.
 Querying interior address `00508190` resolves to function `00508160`.
 Fresh decompilation is available for follow-up inspection; it does not confer
-execution coverage or upgrade existing LIKELY verdicts for dig, corpse or rescue.
+execution coverage or upgrade existing HYPOTHESIS verdicts for dig, corpse or rescue.
 
 The canonical rules remain in [task priority](imp-task-priority.md),
 [task stealing](imp-task-stealing.md), [claim eligibility](imp-claim-path.md),
@@ -42,7 +45,7 @@ The canonical rules remain in [task priority](imp-task-priority.md),
 
 ## What the priority evidence establishes
 
-**CONFIRMED from the binary:** ordinary priorities are not the first thing an
+**STRONGLY INFERRED from the binary:** ordinary priorities are not the first thing an
 Imp tries. State 10 first applies the special-owner/throttle branches, then an
 aimed retry and the shipped last-kind retry table. A failed dig/mine retry can
 try depositing before ordinary priorities. A just-dropped Imp has a local scan
@@ -202,7 +205,7 @@ No production code was changed by this study.
 ## What remains unconfirmed
 
 **UNKNOWN as complete equivalence:** every possible task-selection input.
-Existing LIKELY handler verdicts remain so; all room/blueprint/rescue/corpse,
+Existing HYPOTHESIS handler verdicts remain so; all room/blueprint/rescue/corpse,
 secret-door, capacity, stale-holder, stealing, state-refusal and route-failure
 branches need dedicated native-input controls before claiming complete coverage.
 The 118 ordering controls do not close those predicates.

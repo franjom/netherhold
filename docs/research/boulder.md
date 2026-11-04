@@ -1,3 +1,6 @@
+---
+systems: [doors-traps]
+---
 # Mechanic: the Boulder — the trap's shot, the rolling object and what it strikes
 
 Source(s): DKII.EXE v1.70, pyghidra-mcp listings and decompiles on 2026-10-02; the shipped
@@ -232,7 +235,7 @@ corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamageP
 - **Why the strike lands again.** The Dwarf's `StunDuration` (`def+0x74C`, file `0xED0`) is 0. State 256's
   handler (`0x004810D0`) holds only while the turns since entry are under it, so at the Dwarf's next
   update it starts action 53 and calls `SetState(257)`. The strike skips only 76 and 256, so the next
-  tick's strike lands on a Dwarf in 257. CONFIRMED (binary and data).
+  tick's strike lands on a Dwarf in 257. STRONGLY INFERRED (binary and data).
 - **Why one doubled.** The health routine (`0x004B2CE0`) adds 128/128 for a stunned creature (209, 255, 256,
   257). The 6000 Hp Dwarf's second hit was 3000 × 2 = 6000, 3000 → −3000. CONFIRMED (binary and capture).
 - **No floor at zero.** That routine does not clamp a negative result. Health stays below zero unless the

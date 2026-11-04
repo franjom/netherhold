@@ -1,9 +1,12 @@
+---
+systems: [presentation-unity]
+---
 # Classic mesh shadows
 
 Primary binary reads, 2026-10-15. These renderer paths generate mesh silhouettes;
 the creature-specific shadow-enable producer remains open.
 
-## Confirmed resource and silhouette path
+## Resource and silhouette path — STRONGLY INFERRED
 
 - `0x0058E330` creates 64 resources named `ENGINE_SHADOW_DYNAMIC_<index>`,
   requesting 32 by 32 pixels, and stores their handles at `0x00780960`.
@@ -30,7 +33,7 @@ the creature-specific shadow-enable producer remains open.
 
 ## Receiver, strength and blend
 
-CONFIRMED: `0x0058E640` constructs a four-vertex receiving quad oriented along
+STRONGLY INFERRED: `0x0058E640` constructs a four-vertex receiving quad oriented along
 the horizontal vector from selected light to transformed model centre. Half
 width derives from the model bounding radius times instance scale. Quality
 below 3 stretches the quad with light distance; quality 3 and above uses an
@@ -66,7 +69,7 @@ format remains UNKNOWN. `0x00589140` only touches surface residency through
 
 ## Shadow selection
 
-CONFIRMED: animated preparation `0x00584900` skips shadows when global quality
+STRONGLY INFERRED: animated preparation `0x00584900` skips shadows when global quality
 is nonpositive, then calls `0x0058EC70` to select sources. That selector requires
 light flag `0x10`, 3D squared distance below the global range squared and a
 positive per-draw capacity byte. If there are too many candidates it retains
@@ -74,7 +77,7 @@ the nearest sources and uses the next source distance for fading. Otherwise
 the fade distance is the global range. Initialization sets the range to 2.5;
 `0x0058E580` can adjust it gradually within 0..2.5, so 2.5 is not invariant.
 
-CONFIRMED: `0x0059C880` supplies capacity 3 when global `0x00759ACC` is nonzero
+STRONGLY INFERRED: `0x0059C880` supplies capacity 3 when global `0x00759ACC` is nonzero
 and RenderInfo `+0x4C` bit 0 is set, otherwise capacity zero. With capacity 3,
 it queries world slot `+0x204` at the draw position for floor height and passes
 `-floorHeight / 4096 - 0.01` in native render coordinates. `0x00583120` copies
@@ -84,7 +87,7 @@ The producer deciding which creature RenderInfos enable bit 0 remains unread.
 The small class initializer `0x004B4120` preserves that byte; it does not
 establish a default shadow-enable value.
 
-CONFIRMED: `0x00599960` maps engine-light `+0x134` bit `0x4000` to initial
+STRONGLY INFERRED: `0x00599960` maps engine-light `+0x134` bit `0x4000` to initial
 render-light flags `0x12` or `0x14`; when unset it supplies `0x04`.
 `0x00599BD0` preserves bit `0x10` while adding renderer classification bits.
 Thus engine flag `0x4000`, not engine flag `0x10`, determines eligibility for

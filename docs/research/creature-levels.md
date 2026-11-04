@@ -1,4 +1,7 @@
-﻿# Mechanic: creature levels — what a level does, and what raises one
+﻿---
+systems: [creatures]
+---
+# Mechanic: creature levels — what a level does, and what raises one
 
 Source(s):
 - The reference install's `GlobalVariables.kwd` (the 32 × 9 stat table) and
@@ -17,7 +20,7 @@ outright. Both halves are implemented: an imp earns experience by working and a
 non-worker earns by training. Nothing earns by fighting, because combat does not
 exist (M7).
 
-Confidence: **CONFIRMED** for the table, the indexing and the adder's clauses;
+Confidence: **STRONGLY INFERRED** for the table, the indexing and the adder's clauses;
 **CONFIRMED (owner)** that levelling happens at all.
 
 **The runtime side was read on 2026-09-15 and agrees** (`combat.md` §4). The 32 x 9
@@ -121,7 +124,7 @@ prove the correction from behaviour, which nobody has done for these.
 
 ### Promotion sparkles (2026-10-23)
 
-CONFIRMED by a fresh whole read of `FUN_0048B120` and the request assembly
+STRONGLY INFERRED by a fresh whole read of `FUN_0048B120` and the request assembly
 at0x0048B294–0x0048B2B6: every successful level increment requests effect339
 (0x153) through view slot+0x38C, after health rescaling and before the pit-cap
 state change. It passes the creature's owner word+0x28, position+0x1A and
@@ -168,7 +171,7 @@ DK2 sequence; pixel parity and native timing remain unmeasured.
   signature was **removed rather than kept as an overload**, because a call that
   forgot the level would silently cap a level-10 Goblin at 1500 health instead of
   9000.
-- **Speed does not scale with level** (CONFIRMED, ADR-0518; corrected 2026-10-19). The
+- **Speed does not scale with level** (STRONGLY INFERRED, ADR-0518; corrected 2026-10-19). The
   Speed and RunSpeed rows have no reader: `Creature_SetSpeedMode` (`0x004887D0`) takes
   the speed from the definition (`creature+0x370`, then `+0x5B4`/`+0x5B8`/`+0x5BC`), one
   record shared by every creature of a type, and `Creature_LevelUp` (`0x0048B120`)
@@ -270,7 +273,7 @@ on the original's tick rather than once a game second: four awards of twenty and
 one of eighty leave different numbers behind on any second that crosses a
 threshold.
 
-## 5. `ExperienceForNextLevel` is indexed by the CURRENT level — CONFIRMED
+## 5. `ExperienceForNextLevel` is indexed by the CURRENT level — STRONGLY INFERRED
 
 Under that reading level 1 gets the implicit 100% and the first level costs
 exactly the record's 3000, which is the natural meaning of a field called

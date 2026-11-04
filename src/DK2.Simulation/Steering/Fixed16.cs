@@ -41,7 +41,7 @@ public readonly record struct Fixed16Vector(int X, int Y)
 /// it (docs/research/steering-behaviours.md). A product is 64-bit and keeps bits 16..47; a
 /// quotient shifts the dividend up by 16 and truncates toward zero; a length is the three-band
 /// square root. Positions are sixteen times the simulation's 1/4096 units.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public static class Fixed16
 {
     public const int One = 1 << 16;

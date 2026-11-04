@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # The Hand's dropped-object earmark
 
 Source: `DKII.EXE` v1.70 (GOG), read 2026-09-25. The relevant routines are
@@ -177,7 +180,7 @@ coupling the simulation to cursor input.
 
 ## 8. The delivery calming field
 
-**Values CONFIRMED from the shipped data; loader mapping STRONGLY INFERRED; semantic name UNKNOWN.** The creature loader
+**Values STRONGLY INFERRED from the shipped data; loader mapping STRONGLY INFERRED; semantic name UNKNOWN.** The creature loader
 copies loader-input `+0x13BB` to runtime definition `+0x6E1` at
 `0x00493A9E`–`0x00493AA5`. Pinning that source by its neighbours in the input
 record, rather than subtracting a presumed base, places it at creature KWD

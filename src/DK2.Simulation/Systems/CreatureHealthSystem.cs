@@ -367,7 +367,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     }
 
     /// <summary>The hero count of the death bookkeeping (<c>0x0048822F</c>–<c>0x004882DC</c>,
-    /// CONFIRMED): at health 0 or below, the credited player is the victim's health source
+    /// STRONGLY INFERRED): at health 0 or below, the credited player is the victim's health source
     /// (<c>+0x36</c>, <see cref="CreatureState.HealthSourcePlayerId"/>), or when that is 0 the
     /// owner of the first engaged attacker, slot by slot from 0 to 7. The mixed-slot adapter
     /// boundary is recorded in <c>docs/research/functions/00487C70.md</c>. With a credited player, a

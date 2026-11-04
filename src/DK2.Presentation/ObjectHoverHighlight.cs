@@ -57,7 +57,7 @@ public static class HoverTint
 {
     /// <summary>An object is published when its definition has CanBePickedUp or CanBeSlapped
     /// (<c>+0xF4</c> &amp; 0x300) and it is the viewer's, or it is loose gold (type 1 or 2) on the
-    /// viewer's tile (<c>0x0049CBB0</c>). CONFIRMED.</summary>
+    /// viewer's tile (<c>0x0049CBB0</c>). STRONGLY INFERRED.</summary>
     public static bool ObjectPublished(ObjectDef? definition, byte objectTypeId, byte owner, byte tileOwner, PlayerId viewer) =>
         definition is not null
         && (definition.Flags & (ObjectFlags.CanBePickedUp | ObjectFlags.CanBeSlapped)) != 0
@@ -65,7 +65,7 @@ public static class HoverTint
 
     /// <summary>The flash override's door/trap mode (<c>0x0043BEF8</c>..<c>0x0043BF1A</c>): a trap or door
     /// whose type (<c>+0xF6</c>) is 8 — the Fear Trap, the Hero Portcullis — gets mode 1, draw flags
-    /// 0x600 rather than 0x200 (<c>0x0059D4B0</c>). CONFIRMED.</summary>
+    /// 0x600 rather than 0x200 (<c>0x0059D4B0</c>). STRONGLY INFERRED.</summary>
     public const byte FlashMode1Type = 8;
 
     /// <summary>Whether the hover tint's draw flags hold 0x400: the hit is a door or trap of type
@@ -91,9 +91,9 @@ public static class HoverTint
     /// <summary>Whether the hit is tinted for <paramref name="viewer"/>.
     /// <list type="bullet">
     /// <item>A creature the viewer may pick up (<c>0x0048E670</c>: the definition's hand bit and
-    /// pickup permission; <see cref="HandRules.HasPickupPermission"/>). CONFIRMED.</item>
+    /// pickup permission; <see cref="HandRules.HasPickupPermission"/>). STRONGLY INFERRED.</item>
     /// <item>An object by <see cref="ObjectPublished"/>; the store pile decoration as Gold Pile 1
-    /// owned by its store tile's keeper. CONFIRMED.</item>
+    /// owned by its store tile's keeper. STRONGLY INFERRED.</item>
     /// <item>A door or trap the viewer owns (owner, 2026-10-23). DK2 publishes any door and a trap on
     /// the viewer's or a neutral tile (<c>0x0040C290</c> cases 5 and 6); what the picker hands it is
     /// unread.</item>

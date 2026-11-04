@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end, combat]
+---
 # Mechanic: the Battle tab — crossed blades, battle records and the zoom to a fight
 
 Source(s):
@@ -18,7 +21,7 @@ for music; `BattleNavigation` selects the next local record and the rebound
 Zoom To Fight action glides to its tile centre. The visual battle tab and its
 fly-in remain pending.
 
-## 1. Where the tab lives — CONFIRMED
+## 1. Where the tab lives — STRONGLY INFERRED
 
 The tab is widget 1 of **menu 43** (`0x2B`; page record `0x00693BE0`, widget array
 `0x00692AF8`), a 480 x 140 menu at (2080, 1472) in the 2560 x 1920 reference screen, right of
@@ -35,13 +38,13 @@ the panel collapses. Its three static widget records (0x50 bytes, layout in
 All three draw through [Hud_DrawIconButton](functions/004129E0.md). The loader
 [0x00528300](functions/00528300.md) copies the record's dword at `+1` (the id) to the live
 widget's `+0x74`, the right-click callback to `+0x51` and the frame callback to `+0x24`, and
-starts the state `+0x61` at 1. Widgets 2 and 3 (Call to Arms disband, LIKELY from the art; and
-an alarm icon) are not read here. The status line for a hovered widget is LIKELY text
+starts the state `+0x61` at 1. Widgets 2 and 3 (Call to Arms disband, probably from the art; and
+an alarm icon) are not read here. The status line for a hovered widget is probably text
 2166 "Battle Tab: right-click to zoom, click again to cycle.", by the tabs' id + 1 rule
 (bottom-panel-controls.md). The positions are static, so a hidden neighbour leaves its gap
 (STRONGLY INFERRED: no relayout of menu 43 was found).
 
-## 2. Battle records — CONFIRMED
+## 2. Battle records — STRONGLY INFERRED
 
 The world holds **eight** records of `0x26` bytes at `+0x9C50`; world slot `+0x2B4`
 ([0x00509540](functions/00509540.md)) returns record *i*.
@@ -81,7 +84,7 @@ bookkeeping ([0x00487C70](functions/00487C70.md)) and the collapse's ordinary br
 path instead, presumably reaching the death bookkeeping, unread) remove it at once through [Battles_RemoveCreature](functions/005051F0.md). A record whose count
 reaches zero is cleared whole, age included; there is no other expiry.
 
-## 3. When the tab shows — CONFIRMED
+## 3. When the tab shows — STRONGLY INFERRED
 
 The frame callback [Hud_BattleTabUpdate](functions/004269D0.md) runs every frame and sets the
 widget state to 1 (shown) when [World_NextLocalBattle](functions/00505250.md) from index -1
@@ -91,7 +94,7 @@ after the last local member leaves its record. A battle between two other player
 it. In multiplayer each machine presumably shows its own player's battles, the records being
 shared world state and the local player word `+0x7243` per machine (no multiplayer path read).
 
-## 4. Clicks and the F key — CONFIRMED
+## 4. Clicks and the F key — STRONGLY INFERRED
 
 - **Right click** ([Hud_ZoomToNextBattle](functions/00426960.md)): asks
   World_NextLocalBattle for the next local battle after the index kept at interface `+0x130`,
@@ -107,7 +110,7 @@ shared world state and the local player word `+0x7243` per machine (no multiplay
   **F**, no modifier: the manual's "Zoom To Next Fight", Text.str 126.
 - No sound, speech or packet besides the camera action.
 
-## 5. The fly-in notice — trigger, latch and sounds CONFIRMED; its look UNKNOWN
+## 5. The fly-in notice — trigger, latch and sounds STRONGLY INFERRED; its look UNKNOWN
 
 When a local player's creature joins a record that held none of that player's creatures,
 Battle_JoinNearest calls interface slot `+0x4C` ([Hud_StartBattleFlyIn](functions/0042C0D0.md),
@@ -123,7 +126,7 @@ fly-in plays). That update skips camera modes 2, 7 and `0x12` and a paused game.
 What the object draws, and what 0.15, 2000 ms and 2441 mean, are unread (`0x0042F040`).
 Whether this or the tab is the "box" of the census is not settled; the owner sees both (§8).
 
-## 6. Drawing — CONFIRMED
+## 6. Drawing — STRONGLY INFERRED
 
 Hud_DrawIconButton's menu-43 arm (`0x00412AF3..0x00412BA7`) runs for a widget in state 1:
 
@@ -143,7 +146,7 @@ and younger than **128 turns**, an outline circle of colour bytes (0, 255, 0) (g
 record's centre, radius = age & 31 raster units, so it expands and restarts every 32 turns
 (8 s and 32 s at the shipped 4 turns a second).
 
-## 7. Speech — CONFIRMED for the negative scope stated
+## 7. Speech — STRONGLY INFERRED for the negative scope stated
 
 The battle code plays no speech. Level 1's line `LEVEL1.str` 21 ("...move your gaze to see
 them now by right-clicking on the flashing blades...") is script: trigger 78 (flag 80 = 1)

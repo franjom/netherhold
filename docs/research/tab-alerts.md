@@ -1,14 +1,17 @@
+---
+systems: [hud-front-end]
+---
 # Bottom-panel tab and button flashing
 
 Sources: DKII.EXE v1.70 through pyghidra-mcp, 2026-10-23 (claude); the shipped
 `*Triggers.kld` corpus through `dk2tools kwd triggers <file> 214 9`. Function verdicts
 live in their records; this page states the contract the presentation layer must meet.
 
-## 1. There is one alert, and only a level script raises it — CONFIRMED
+## 1. There is one alert, and only a level script raises it — STRONGLY INFERRED
 
 Every flashing bottom-panel tab, panel item and HUD icon reads the same **global
 FlashButton descriptor** at world `+0x7291` (layout and lifetime:
-[hud-resources.md](hud-resources.md#scripted-resource-flashing--confirmed)). Its only
+[hud-resources.md](hud-resources.md#scripted-resource-flashing--strongly-inferred)). Its only
 setter, [0x00510260](functions/00510260.md), has exactly one caller, trigger action 9 in
 [0x00518AD0](functions/00518AD0.md) (`0x005191C5`). The clear
 [0x00509710](functions/00509710.md) is reached only through world vtable slot `+0x300`.
@@ -57,13 +60,13 @@ Dungeon maps. Categories used: 0 (`0xF3` gold 40 s in level1, `0xF2` mana 30 s i
 `0xF8` Creatures tab in level4), 1 (rooms; level1 flashes Lair 2 and Hatchery 4), 3 (door
 1, level3), 4 (trap 3, level3) and 5 (spells). The room value is the one
 [0x00410AE0](functions/00410AE0.md) returns and the room tool stores at `+0x13F4`. Reading it
-as the room type id fits level1's tutorial (Lair, then Hatchery) but is LIKELY: that record
+as the room type id fits level1's tutorial (Lair, then Hatchery) but is HYPOTHESIS: that record
 describes the iterator as resolving a display-order byte. No shipped level flashes the Rooms,
 Spells or Workshop tab directly (FB/FA/F9): those arms are inert in the corpus, and the
 tabs flash only as the route to a flashed item. Most durations are 0 (until used or
 cleared); My Pet Dungeon uses 3-5 s.
 
-## 2. How a flash is drawn — CONFIRMED (blend mode STRONGLY INFERRED)
+## 2. How a flash is drawn — STRONGLY INFERRED (blend mode HYPOTHESIS)
 
 Shared by the tab (0x00412260) and the slot (0x00412FC0):
 
@@ -107,7 +110,7 @@ Shared by the tab (0x00412260) and the slot (0x00412FC0):
 The generic icon button (0x004129E0, category 0 with a widget `+0x74` match) only applies
 the odd-phase `0x323232` tint: it has no sparkles and no sound.
 
-## 3. Tab locking: Shift-click pins one panel beside the current one — CONFIRMED
+## 3. Tab locking: Shift-click pins one panel beside the current one — STRONGLY INFERRED
 
 Read whole 2026-10-23: the tab click [0x00416C20](functions/00416C20.md), the modifier mask
 [0x005B2A50](functions/005B2A50.md), the relayout [0x00416FD0](functions/00416FD0.md), the
@@ -145,7 +148,7 @@ Shift+Ctrl or Shift+Alt is an ordinary click.
 **Nothing else writes the pins.** StoreAt/InsGrep over `+0x5F..+0x63` find only 0x00416C20
 (the other hits are sub-objects at `+0xC`/`+0x4D05`, constructor 0x00402AF0). The level
 reset [0x004033F0](functions/004033F0.md) does not touch them and the interface is the
-static 0x006CEA10, so a pin LIKELY survives a level change (the menus' own visibility is
+static 0x006CEA10, so a pin probably survives a level change (the menus' own visibility is
 rebuilt; whether the lock icon then shows over a closed panel is unobserved).
 
 **Layout of several open panels** (0x00417310, relayout runs only while expanded). With `n`

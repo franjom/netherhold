@@ -4,7 +4,7 @@
 
 namespace DK2.Data.Model;
 
-/// <summary>Creature job/activity ids. CONFIRMED: ufdada/dk2-tools creatures_struct.bt.</summary>
+/// <summary>Creature job/activity ids. STRONGLY INFERRED: ufdada/dk2-tools creatures_struct.bt.</summary>
 public enum JobType
 {
     None = 0, Sleep = 1, Eat = 2, Research = 3, Train = 4, Manufacture = 5,
@@ -16,7 +16,7 @@ public enum JobType
     Tolling = 28,
 }
 
-/// <summary>Attack/shot type ids. CONFIRMED: creatures_struct.bt.</summary>
+/// <summary>Attack/shot type ids. STRONGLY INFERRED: creatures_struct.bt.</summary>
 public enum AttackType : byte
 {
     None = 0, MeleeBlade = 1, MeleeBlunt = 2, MeleeBody = 3,
@@ -33,14 +33,14 @@ public enum AttackType : byte
     MaidenWeb = 40, MaidenPoisonSpit = 41,
 }
 
-/// <summary>CONFIRMED: creatures_struct.bt.</summary>
+/// <summary>STRONGLY INFERRED: creatures_struct.bt.</summary>
 public enum JobClass : byte { Artisan = 0, Thinker = 1, Fighter = 2, Scout = 3 }
 
-/// <summary>CONFIRMED: creatures_struct.bt.</summary>
+/// <summary>STRONGLY INFERRED: creatures_struct.bt.</summary>
 public enum FightStyle : byte { NonFighter = 0, Blitzer = 1, Blocker = 2, Flanker = 3, Support = 4 }
 
 /// <summary>Creature definition flags: the first flag dword, at record offset 0xEFC.
-/// CONFIRMED: creatures_struct.bt bit order.</summary>
+/// STRONGLY INFERRED: creatures_struct.bt bit order.</summary>
 [Flags]
 public enum CreatureFlags : uint
 {
@@ -56,7 +56,7 @@ public enum CreatureFlags : uint
     /// <summary>The hero side: across all 46 shipped creatures this bit is the exact complement of
     /// <see cref="IsEvil"/>, and the original's lair-preference test reads the pair as alignment —
     /// a creature avoids a lair holding a bed whose owner is of the other side. STRONGLY INFERRED
-    /// as a name; the complement is CONFIRMED by <c>LairPreferenceOnRealDataTests</c>
+    /// as a name; the complement is STRONGLY INFERRED by <c>LairPreferenceOnRealDataTests</c>
     /// (Q151, docs/research/lair-acquisition.md §4).</summary>
     IsGood = 1u << 8,
     IsImmuneToTurncoat = 1u << 9,

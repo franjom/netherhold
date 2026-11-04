@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # The mining action's ending phase
 
 Sources: retail v1.70 binary through PyGhidra, shipped Imp art slot 5 and

@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers, tooling-process]
+---
 # Unlocking campaign levels for capture (registry)
 
 **Scope:** how DK2 v1.70 decides which campaign level the world map offers, and

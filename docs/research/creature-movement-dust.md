@@ -1,10 +1,13 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # Creature movement dust
 
 Primary source: retail v1.70 DKII.EXE, Ghidra 12.1.4 decompilation and
 instruction checks, 2026-10-13. Shipped data: the reference install's
 Data/Editor/Terrain.kwd, Effects.kwd and EffectElements.kwd.
 
-## 1. Ordinary trigger - CONFIRMED
+## 1. Ordinary trigger - STRONGLY INFERRED
 
 Creature_Update (`0x00488930`) requests effect 117 at
 `0x0048A06A-0x0048A0AE` when both conditions hold:
@@ -40,7 +43,7 @@ The same effect also appears in status-timer requests, independently of this
 terrain condition; their existing cadence lives in
 [creature-status-effects.md](creature-status-effects.md), section 1.
 
-## 2. Shipped dust - CONFIRMED data
+## 2. Shipped dust - STRONGLY INFERRED data
 
 Effect 117, Foot Dust Effect, has no own art, flags 0x280, HP 1/1,
 generation type 4 and eight passes. Its sole generated id is element 264.

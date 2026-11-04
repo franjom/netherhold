@@ -8,7 +8,7 @@ namespace DK2.Data.Model;
 
 /// <summary>
 /// Room placement flags (ROOMS record, offset 0x370).
-/// CONFIRMED: ufdada/dk2-tools rooms_struct.bt bit order.
+/// STRONGLY INFERRED: ufdada/dk2-tools rooms_struct.bt bit order.
 /// </summary>
 [Flags]
 public enum RoomFlags : uint
@@ -34,7 +34,7 @@ public enum RoomFlags : uint
 
 /// <summary>
 /// How a room's tiles are laid out/meshed as it grows.
-/// CONFIRMED: rooms_struct.bt.
+/// STRONGLY INFERRED: rooms_struct.bt.
 /// </summary>
 public enum TileConstruction : byte
 {
@@ -56,7 +56,7 @@ public enum TileConstruction : byte
 
 /// <summary>
 /// One room type from the ROOMS(120) record (1055 bytes each).
-/// Layout CONFIRMED — see docs/research/kwd-terrain-rooms.md.
+/// Layout STRONGLY INFERRED — see docs/research/kwd-terrain-rooms.md.
 /// </summary>
 public sealed record RoomDef
 {
@@ -131,7 +131,7 @@ public sealed record RoomDef
 }
 
 /// <summary>
-/// A room's wall torch, read from its ROOMS record (wall-torches.md §4, CONFIRMED against the
+/// A room's wall torch, read from its ROOMS record (wall-torches.md §4, STRONGLY INFERRED against the
 /// shipped file). Colours include the +255 of flags 9 to 11.
 /// </summary>
 /// <param name="Red">File byte <c>0x397</c>, plus 255 with <see cref="RoomFlags.TorchRedHigh"/>.</param>

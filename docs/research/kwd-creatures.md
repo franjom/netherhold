@@ -1,3 +1,6 @@
+---
+systems: [data-formats]
+---
 # Mechanic: CREATURES(170) record — the creature definition table
 
 Source(s):
@@ -128,7 +131,7 @@ priority list — see `job-selection.md` for the chooser, `unhappyThreshold`
 
 ## Confidence
 
-CONFIRMED — record size, creature ids, and all fields asserted in tests.
+STRONGLY INFERRED — record size, creature ids, and all fields asserted in tests.
 Cross-validated against two independent sources.
 
 UNKNOWN — what (if anything) consumes `moodChange`/`manaChange`; the ~45

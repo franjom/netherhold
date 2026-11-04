@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Minimap rendering
 
 ## Tile raster and palette (STRONGLY INFERRED, binary)
@@ -253,7 +256,7 @@ This inventories containers, not a confirmed mapping from each HUD widget to art
 72. The existing `Bf4FontReader` reads these; text style selection remains in
 `InterfaceFonts`. Resource access for the HUD must remain behind a provider.
 
-### Reporting-distance outlines and pulses (CONFIRMED, binary)
+### Reporting-distance outlines and pulses (STRONGLY INFERRED, binary)
 
 Read 2026-10-18: the complete `0x0041CC50` body, the `0x0051CD90` variable
 switch, and `0x004AA2F0` with its minimap call site. The low byte at `0x006F2964`
@@ -300,7 +303,7 @@ visible rings alone do not establish what gameplay events should create them.
 
 Read 2026-10-18: complete `0x0041B180`, the whole-map renderer's tail, screen
 unprojection and submission helpers, with assembly resolving implicit vector
-destinations and vertex arrays. Geometry below is **CONFIRMED**; material
+destinations and vertex arrays. Geometry below is **STRONGLY INFERRED**; material
 opacity and the active renderer's final clipping remain **UNKNOWN**.
 
 The whole-map renderer `0x0041ADA0` draws the map first, then the footprint

@@ -17,7 +17,7 @@ namespace DK2.Simulation.Systems;
 /// <c>SelectAVictim</c>; a fighter holds its target while it stands, backs off or runs when its
 /// fear says so, winds up and lands its swing, or looks again and walks closer. The scan and the fear
 /// accumulator are <see cref="Update"/>; the handlers are <see cref="States"/>.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fight-state.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-fight-state.md")]
 public sealed class CombatSystem : ICreatureUpdateStep
 {
     private const string SystemName = "combat";

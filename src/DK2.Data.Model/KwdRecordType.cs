@@ -7,7 +7,7 @@ namespace DK2.Data.Model;
 /// <summary>
 /// Top-level record types of the KWD/KLD container format.
 ///
-/// CONFIRMED twice over:
+/// STRONGLY INFERRED twice over:
 ///  - OpenKeeper `MapDataTypeEnum` and ufdada/dk2-tools binary templates agree.
 ///  - Verified directly against this project's reference installation:
 ///    `Data/editor/Creatures.kwd` begins 0xAA (=170, Creatures) and

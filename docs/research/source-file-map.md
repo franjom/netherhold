@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # The original's own source-file names, and where its code lives
 
 **Source:** `DKII.EXE`, read on 2026-09-05. Facts in our own words; ADR-0046
@@ -75,7 +78,7 @@ found them and is why `FloorGold` and `GoldStore` are separate from each other.
 
 ## Confidence
 
-CONFIRMED — the names and the count. They read straight out of the file as
+STRONGLY INFERRED — the names and the count. They read straight out of the file as
 NUL-terminated strings and reproduce exactly on re-scan; only the *grouping*
 above is interpretation.
 

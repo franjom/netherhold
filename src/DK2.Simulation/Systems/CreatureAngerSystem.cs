@@ -18,7 +18,7 @@ namespace DK2.Simulation.Systems;
 /// second, as every rate it reads is per second, in the creature's update after the needs
 /// routine, as DK2's angry chooser does; ours charges the need-anger there too, where
 /// <c>0x00478D00</c> runs before the needs routine, and before the health system (ADR-0554).</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/creature-anger.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-anger.md")]
 public sealed class CreatureAngerSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CreatureAnger";

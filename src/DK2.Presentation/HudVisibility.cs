@@ -35,7 +35,7 @@ public readonly record struct HudVisibility(bool ShowNormalHud, bool AllowOrdina
 public readonly record struct HudResultState(
     bool HasResult = false, bool Continued = false, bool RestoreRequested = false);
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/hud-visibility.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/hud-visibility.md")]
 public static class HudVisibilityRules
 {
     public static HudVisibility ForCamera(CameraModeId mode, int letterboxRequests, bool cameraInputBlocked = false)

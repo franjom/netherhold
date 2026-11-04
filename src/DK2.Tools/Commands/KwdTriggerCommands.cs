@@ -18,7 +18,7 @@ internal static partial class KwdCommands
         // TRIGGERS chunk for ALTER_TERRAIN_TYPE (action type 22) and reports the
         // terrain those actions write. Payload layout and its OpenKeeper
         // provenance: docs/research/external-resources.md; the 16-byte TRIGGERS
-        // payload is CONFIRMED in docs/research/kwd-record-fields.md. Guard: every
+        // payload is STRONGLY INFERRED in docs/research/kwd-record-fields.md. Guard: every
         // decoded type lands in the enumerated range, every terrain id resolves.
         string root = Dk2Install.Require();
         string mapsDir = Path.Combine(root, "Data", "editor", "maps");

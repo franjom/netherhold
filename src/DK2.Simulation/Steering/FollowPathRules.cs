@@ -10,7 +10,7 @@ namespace DK2.Simulation.Steering;
 /// docs/research/steering-behaviours.md §5). Stuck detection and re-routing, the advance and
 /// arrival rules of the imp and creature arms, the turn that must finish before the body moves,
 /// and the seek. The force is a desired velocity minus the current one.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public static class FollowPathRules
 {
     public const int Weight = 0x5999;

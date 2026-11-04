@@ -18,7 +18,7 @@ namespace DK2.Simulation.Combat;
 /// the swing was started at, through <see cref="MeleeDamageRules"/>. The spell arms are here too
 /// (combat-spells.md, ADR-0167): a cast is action 16, its shot leaving after the slot's wind-up.
 /// Not built and named there: the celebration over a kill and the ally arm.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fight-state.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-fight-state.md")]
 public static class FightRules
 {
     private const string SystemName = "combat";

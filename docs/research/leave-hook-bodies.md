@@ -1,8 +1,11 @@
+---
+systems: [creatures]
+---
 # Mechanic: four leave hooks and the Workshop's maker count
 
 Source: `DKII.EXE` v1.70 (GOG), Ghidra 12.1.4, read instruction by instruction on
 2026-10-02. Each hook's prologue, epilogue and every call's `ECX` were read; field names
-are DK2's own, from the dumpers (`debug-dumpers.md`). Confidence is **CONFIRMED** (binary)
+are DK2's own, from the dumpers (`debug-dumpers.md`). Confidence is **STRONGLY INFERRED** (binary)
 unless a line says otherwise. Built as ADR-0322; what each slot lacks is in
 `CategoryHooks.Slots`. `state-category-hooks.md` §3 owns the hook table.
 

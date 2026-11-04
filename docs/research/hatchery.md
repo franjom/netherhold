@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # Mechanic: the Hatchery — coops, eggs and chickens
 
 Source(s):
@@ -10,7 +13,7 @@ Original version: DK2 v1.70
 Facts in our own words; ADR-0046 governs the boundary. Companion to `eating.md`,
 which is the creature side of the same food chain.
 
-Confidence: **CONFIRMED** for the coop count, the spacing, the egg, the laying
+Confidence: **STRONGLY INFERRED** for the coop count, the spacing, the egg, the laying
 interval and the flock cap; **UNKNOWN** for the one sub-question in §5.
 
 ---
@@ -48,19 +51,19 @@ The placer is `0x004DE220` (`Hatchery_PlaceCoops`), the Hatchery arm (type 4) of
           - and is at squared distance >= 3.0 tiles from every coop in `placed`
         none found -> stop
 
-- **Candidates are interior tiles only.** A rim tile is never a coop. CONFIRMED.
+- **Candidates are interior tiles only.** A rim tile is never a coop. STRONGLY INFERRED.
 - **Distance:** per coop, `(|dx|^2 >> 12) + (|dy|^2 >> 12)` in 1/4096 units, rejected
   when below `0x3000` unsigned (`0x004DE3A2`). Between tile centres that is
   `dx^2 + dy^2 < 3` in tiles, so a coop may not be any of a placed coop's eight
   neighbours; two apart in a row or column is allowed. The list holds **only the
-  coops this pass has placed**. CONFIRMED.
+  coops this pass has placed**. STRONGLY INFERRED.
 - **Order:** each coop restarts the walk at `FirstSlab`. Since a refused tile stays
   refused, this is one greedy pass in chain order (`room-slab-chain.md`): row-major
   for a pre-placed room, wave order from the drag's second corner for a dragged one.
 - **Count:** `Size / 6`, capped at 36 (`> 0x23` gives `0x24`), counted over all tiles,
-  while the candidates are interior: the walk can run out first. CONFIRMED.
+  while the candidates are interior: the walk can run out first. STRONGLY INFERRED.
 - **Position:** exactly the tile centre, `x*4096 + 0x800`, `y*4096 + 0x800`, height
-  `0xE00`. CONFIRMED.
+  `0xE00`. STRONGLY INFERRED.
 - **Per coop:** its angle `+0xF4`/`+0x102` is `(selector(x, y) mod 4) << 9`, the
   coordinate selector of `auto-placed-furniture.md` §2 (y with `0x2286`, x with
   `0x16F2`); `+0x14A` is `random(4) << 9` from the **simulation stream** (world
@@ -99,7 +102,7 @@ instructions 2026-10-02:
    the Hatchery Pillar; pick one at random. Draw X and Y offsets independently
    as `random(0x800) - 0x400` from its centre (world stream). Assembly at
    `0x004DE6BD` and `0x004DE74A` pushes type `0x4E` into `0x004537E0`;
-   the tile need not be empty of eggs, chickens or coops. CONFIRMED, 2026-10-10.
+   the tile need not be empty of eggs, chickens or coops. STRONGLY INFERRED, 2026-10-10.
 2. **No capacity** (`0x004DE8AE`). Only while the keeper's byte `+0x1C1` is below
    the global at `0x006F28CB` (§5) and the room has auto-placed objects: count the
    coops (object 35) on `+0x0E`, pick **one at random**, and lay the egg there.
@@ -125,7 +128,7 @@ it has laid (`computer-keeper-messages.md` §2).
   the room and builds what is left as new rooms. A new Hatchery goes through
   `Room_Construct` and then `0x004DE060`, so its count restarts at 0 and its
   laying clock at that turn. The rebuild copies overlay state across only for
-  types 8, 11 and 15 (`room-object.md`). CONFIRMED.
+  types 8, 11 and 15 (`room-object.md`). STRONGLY INFERRED.
 
 Ours keeps the count on the room's lowest tile (ADR-0335). It therefore also
 loses the count when that one tile changes, but keeps it when any other tile is
@@ -238,7 +241,7 @@ definition rather than hardcoding nine.
 The Chicken carries `DieOverTimeIfNotInRoom`, not `DieOverTime`. Conditional
 decay tests persistent room membership, not whether the bird physically stands
 on room tiles; the registration and free-range census are confirmed in
-[hatchery-roaming.md §5](hatchery-roaming.md#5-persistent-room-membership--confirmed).
+[hatchery-roaming.md §5](hatchery-roaming.md#5-persistent-room-membership--strongly-inferred).
 
 The object union corroborates the name from the other side: a `Chicken` object's
 per-kind state is **`FreeRange`, `PeckingTimer`, `StayThere`,

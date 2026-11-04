@@ -14,7 +14,7 @@ namespace DK2.Simulation.Systems;
 /// effect puts the walk back, poison bleeds its amount a tick while the creature is not frozen, and a
 /// spent chicken timer sends the creature to idle whatever it is doing. The
 /// stun is a state with its own clock (§2, state 255) and counts here too.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/creature-status-effects.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-status-effects.md")]
 public sealed class CreatureStatusSystem : ICreatureUpdateStep
 {
     private const string SystemName = "status";

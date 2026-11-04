@@ -1,3 +1,6 @@
+---
+systems: [combat]
+---
 # Mechanic: the fight approach and victory pause
 
 Source(s):
@@ -241,7 +244,7 @@ animation-duration evidence and pending owner checks by Q376.
 
 ## Confidence
 
-**CONFIRMED (binary):** every branch and ordering in `0x00470E30`,
+**STRONGLY INFERRED (binary):** every branch and ordering in `0x00470E30`,
 `0x00471430`, `0x00460FE0`, `0x00461130`, and `0x00458680`; the three-argument
 shape and `RET 0x0C` of `0x00471D10` and `0x00471890`; the state fields written;
 the direct route calls; the 10-call refresh; variables 213/214; action 55's null

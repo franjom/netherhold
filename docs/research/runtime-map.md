@@ -1,3 +1,6 @@
+---
+systems: [simulation-core]
+---
 # The runtime map: reaching a tile while the game is running
 
 | | |

@@ -31,7 +31,7 @@ public interface ICreatureUpdateStep : ISimulationSystem
 /// removed during it shifts nothing onto a second update, and one added during it waits for the
 /// next tick, as a thing linked at the head of DK2's list does. A creature removed by one of its
 /// own steps takes none of the rest.</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/functions/004B7830.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/functions/004B7830.md")]
 public sealed class CreatureUpdateSystem : ISimulationSystem
 {
     private readonly ICreatureUpdateStep[] _steps;

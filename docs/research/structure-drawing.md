@@ -1,7 +1,10 @@
+---
+systems: [doors-traps, art-assets]
+---
 # Door and trap drawing
 
 Read DKII.EXE v1.70 with Ghidra 12.1.4 and the shipped KWD/KMF files,
-2026-10-10. CONFIRMED unless a boundary below says otherwise.
+2026-10-10. STRONGLY INFERRED unless a boundary below says otherwise.
 
 ## 1. Art selection and facing
 

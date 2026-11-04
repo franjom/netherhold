@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Mechanic: creatures leaving and joining through portals
 
 Source(s): `DKII.EXE` v1.70 (GOG), read in the `DK2_RE` Ghidra project on
@@ -42,7 +45,7 @@ to be reachable. State 194 asks `0x00471890` for a point route to the room's
 8, failure returns zero without installing a route (`travel-states.md` §2.3),
 so the creature remains in 194 and retries the same nearest candidate.
 
-**CONFIRMED (whole-body reread, 2026-10-13):** every state-194 handler call
+**STRONGLY INFERRED (whole-body reread, 2026-10-13):** every state-194 handler call
 selects an entrance before requesting its route; it has no existing-route
 shortcut. A retained route belongs to state 6 resuming in 195, not to state 194.
 `LeavingRules.Step` accepts only that leaving-travel route without reselection;
@@ -171,7 +174,7 @@ unlinks immediately; the native deferred finished-object sweep remains unbuilt.
 The hand accepts only ordinary Portal disposal at hash/save 353; Hero Portal
 has no hand bin or accepted throw. Get-up and level-placed room entry can
 still reach its deeper gate; their initial stun distinction is in the
-[room-drop evidence](hand-drop-landing.md#4-0x004e8da00-the-room-drop-and-250--confirmed).
+[room-drop evidence](hand-drop-landing.md#4-0x004e8da00-the-room-drop-and-250--strongly-inferred).
 Non-worker room entry retains the Casino countdown; job 0 is never hated.
 The creature bank event reaches Unity through `WorldSoundDirector` and
 `ClassicSoundPlayer`; native playback acceptance is pending.

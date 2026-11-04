@@ -8,7 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>What a second in the training room is worth, and what it costs the
-/// keeper. CONFIRMED (DKII.EXE v1.70, 2026-09-07; Q205, docs/research/training.md).
+/// keeper. STRONGLY INFERRED (DKII.EXE v1.70, 2026-09-07; Q205, docs/research/training.md).
 /// DK2 pays not from any of the six training states (108–113) but from the state
 /// <b>category</b>'s update hook — category 13, carried by five of the six — the same
 /// trick behind the prison drain (14), research (4) and manufacture (5). The rate is
@@ -16,7 +16,7 @@ namespace DK2.Simulation;
 /// (<see cref="SimulationTiming.LoaderRatePerTick"/>) and the hook adds one unit a
 /// tick, truncating, so 30 pays <b>28 a game second</b>. <c>ExpPerSecond</c> is a
 /// different mechanic, combat experience paid by category 22.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/training.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/training.md")]
 public static class TrainingRules
 {
     /// <summary>The level a training room cannot take a creature past:

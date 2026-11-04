@@ -1,3 +1,6 @@
+---
+systems: [combat]
+---
 # Mechanic: the Combat category's enter and leave hooks
 
 Source(s):
@@ -13,7 +16,7 @@ Original version: DK2 v1.70 (GOG)
 Questions: completes three slots of `state-category-hooks.md` §2. The update hook
 `0x0047A870` (combat experience) is not covered. ADR-0319.
 
-Confidence: **CONFIRMED (binary)** for §1–§3; §5's mapping of our collapse onto DK2's order
+Confidence: **STRONGLY INFERRED (binary)** for §1–§3; §5's mapping of our collapse onto DK2's order
 is **STRONGLY INFERRED**.
 
 ---

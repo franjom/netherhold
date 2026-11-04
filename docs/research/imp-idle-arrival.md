@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work, navigation]
+---
 # Idle Imp arrival: native progress and body stop
 
 2026-10-18. Follow-up to [the hash-269 trace](imp-heart-replay.md#first-remaining-trace-differences).
@@ -8,7 +11,7 @@ Source correction: `372a7334`; `9c519967` applies the same change in composition
 
 ## Native comparison and scope
 
-**CONFIRMED observation:** the scoped candidate restores creature 2's state
+**Measured observation:** the scoped candidate restores creature 2's state
 sequence against native slot 454 for all 26 aligned turns of the initial walk.
 It stops on turn 18, retains that position through turn 26 and has zero velocity
 on each of those stopped turns. The earlier coordinate discrepancy remains:
@@ -32,7 +35,7 @@ changes belong to this candidate.
 
 ## Full Level4 replay and controls
 
-**CONFIRMED measured outcomes:** the same recorded input, xoshiro seed 1,
+**Measured outcomes:** the same recorded input, xoshiro seed 1,
 6804 consecutive turns and 707 actions on 647 turns as the prior comparison.
 Each variant reconciles its own entity map until stable; at most six passes.
 The prior hash-269 result is reused, not rerun.

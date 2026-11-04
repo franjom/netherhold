@@ -1,9 +1,12 @@
+---
+systems: [camera-lighting, art-assets]
+---
 # Wall-flame presentation cadence
 
 Retail DKII.EXE v1.70, Ghidra instructions and complete scoped function reads,
 2026-10-17. Position/resource inputs remain in classic-lighting.md section4.
 
-## Confirmed update chain
+## Update chain — STRONGLY INFERRED
 
 Presentation vtable0x0066CC94 has update slot0x2C at0x0043B220.
 The session0x00526590 asks its presentation's slot0x38 at0x00526C99 and,
@@ -22,7 +25,7 @@ descriptor gives step204 and limit4096. This is before the separately gated
 50ms particle scheduler at0x0043BF3D; that scheduler does not pace the flame.
 The outer application's frame rate/device waiting is not established here.
 
-## Confirmed phase offsets and implementation boundary
+## Phase offsets and implementation boundary — STRONGLY INFERRED
 
 Presentation initialization0x0043AAD0 writes seed1 to bridge+0x72 at0x0043AB90.
 Tile appearance0x00439B90 draws random4096 on that seed at0x0043A04A and stores

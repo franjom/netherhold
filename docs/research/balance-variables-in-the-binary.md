@@ -1,4 +1,7 @@
-﻿# Where the balance variables go: the id to global map
+﻿---
+systems: [data-formats]
+---
+# Where the balance variables go: the id to global map
 
 **Source:** `DKII.EXE`, read on 2026-09-04. Facts only, in our own words —
 ADR-0046 governs what may cross out of `reverse-engineering/`.

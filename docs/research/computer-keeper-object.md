@@ -1,3 +1,6 @@
+---
+systems: [computer-keeper]
+---
 # The computer keeper, named by DK2 (Q264)
 
 **Scope:** the field names DK2 prints for the AI keeper's own state, transcribed from its debug

@@ -8,7 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>Where a walk to a room ends (<c>0x00471A70</c>, travel-states.md §2.2).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/temple-states.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/temple-states.md")]
 public static class RoomWalkRules
 {
     /// <summary><c>0x004E4C10</c>: <c>random(size)</c> (simulation stream, line <c>0x5E5</c>) steps along

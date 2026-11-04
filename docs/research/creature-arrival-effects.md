@@ -1,7 +1,10 @@
+---
+systems: [creatures, art-assets]
+---
 # Creature portal arrival effects
 
 Research only, 2026-10-25. Binary dispatch and shipped-data assignments are
-CONFIRMED; descriptions of their combined appearance are STRONGLY INFERRED
+STRONGLY INFERRED; descriptions of their combined appearance are STRONGLY INFERRED
 from the named artwork and authored colours. No native visual experiment was
 run. Independently checked by the `verify_arrivals` subagent.
 
@@ -31,7 +34,7 @@ is reproducible from the named parsers and offsets; it contains no native captur
 
 ## Binary selection
 
-CONFIRMED: [Portal_CreateArrival](functions/004DC9A0.md),
+STRONGLY INFERRED: [Portal_CreateArrival](functions/004DC9A0.md),
 `0x004DCB8F..0x004DCBD1`, reads the word at creature-definition `+0x776`.
 A nonzero id and unsigned global `0x00759AEC >= 3` request the effect through
 world/view slot `+0x38C`. Calling that global the effects-detail setting remains
@@ -49,7 +52,7 @@ Placement, heading and the animation exit are recorded in
 
 ## Creature catalogue
 
-Effect/element ids and resource names are CONFIRMED shipped data. The appearance
+Effect/element ids and resource names are STRONGLY INFERRED shipped data. The appearance
 column describes those assets; it does not establish final pixels, brightness,
 particle density or duration. Beam/disc codes are expanded below.
 
@@ -77,7 +80,7 @@ unique-type gate. Eligibility is [the existing portal research](portals-mercenar
 
 ### The Mistress recollection
 
-The owner's recollection was a blizzard/storm. CONFIRMED data supports that:
+The owner's recollection was a blizzard/storm. STRONGLY INFERRED data supports that:
 effect 163 emits `mist`, `icechunk` and `sparklea`, with WhirlpoolRate 12 and
 a blue beam companion. Describing the combination as a swirling ice storm is
 STRONGLY INFERRED. It does not call the separately named Hailstorm effect 341;
@@ -85,7 +88,7 @@ that branch belongs to Dark Angel and Black Knight arrivals.
 
 ### Hero Portal mercenaries
 
-CONFIRMED: all nine types with the Hero Portal availability flag use **369**:
+STRONGLY INFERRED: all nine types with the Hero Portal availability flag use **369**:
 13 Knight, 15 Giant, 16 Wizard, 17 Elven Archer, 18 Thief, 19 Monk,
 20 Fairy, 25 Guard, 30 Royal Guard. Effect 369 emits purple-grey smoke
 element 596 (`SM`, RGB 120/80/120), with NextEffectId 370; effect 370 emits
@@ -106,7 +109,7 @@ before its room-type branch; keeper ownership does not change this choice.
 
 ## Effect dependency catalogue
 
-CONFIRMED: generator [0x004386F0](functions/004386F0.md) treats generated ids
+STRONGLY INFERRED: generator [0x004386F0](functions/004386F0.md) treats generated ids
 as effects when parent flag `0x40` is set, otherwise as elements. The two
 namespaces overlap numerically. In these tables `E` and `L` distinguish them;
 duplicates are intentional generation slots. `Next` is the stored NextEffectId,
@@ -158,7 +161,7 @@ Resource names and RGB are authored data, not calibrated displayed colours.
 ### Authored light descriptors
 
 The reachable effects also carry these nonzero-radius light descriptors
-(CONFIRMED data). Raw RGB and radius are given without interpreting light flags
+(STRONGLY INFERRED data). Raw RGB and radius are given without interpreting light flags
 as displayed intensity. All other reachable effects have radius zero.
 
 | Effect | Light RGB | Radius (raw) | Light flags |

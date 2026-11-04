@@ -12,7 +12,7 @@ namespace DK2.Simulation;
 /// <remarks>Rooms here are still found from the map (<see cref="RoomIndex"/>); only the order is
 /// state, as <see cref="TileState.SlabOrder"/>. Tiles with equal orders, the map's own at 0, come
 /// in tile-index order, which is the row-major order DK2 loads a level's rooms in (<c>0x0056D2D0</c>).</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/room-slab-chain.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-slab-chain.md")]
 public static class SlabChain
 {
     /// <summary><c>0x006BC350</c>: N, E, S, W. The first neighbour in this order names the room a

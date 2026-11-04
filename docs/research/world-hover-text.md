@@ -1,10 +1,13 @@
+---
+systems: [hud-front-end]
+---
 # World hover text
 
 Sources: DKII.EXE v1.70, read-only PyGhidra queries, 2026-10-18; the install's
 `Data/Text/Default/Text.str`, font files and EngineTextures cache. Binary output
 stays under `reverse-engineering/hover-*`. Function records carry the verdicts.
 
-## Two independent text paths — CONFIRMED
+## Two independent text paths — STRONGLY INFERRED
 
 The top strip callback `0x0042E140` runs the world status producer
 `0x0042D1F0`, or the GUI status producer when a widget owns the pointer. The
@@ -42,7 +45,7 @@ renderer waits **strictly more than 1500 milliseconds**; GUI tooltips wait
 within one target does not itself reset this identity timer. The original
 identity word is the entity/room tag, or x+y+1 for terrain (collisions possible).
 
-## Creature status — CONFIRMED
+## Creature status — STRONGLY INFERRED
 
 `0x0048D880` chooses Text.str **2841** for ordinary owned creatures. Its
 substitutions, using the string reader's one-based token spelling:
@@ -69,7 +72,7 @@ with separate special-definition and multiplayer paths: the Lord of the Land
 non-zero `+0x895` replaces the pool name, so Unique Goblin reads "Name: Grubb". The formatter accepts
 the resolved identity from the asset provider; it consumes no RNG.
 
-## Personal identities — CONFIRMED
+## Personal identities — STRONGLY INFERRED
 
 Constructor `0x004872A0` calls `0x00491900` and `0x004919C0` after linking the
 new creature to its owner. They clear name index `+0x4ED` and blood-group index
@@ -84,7 +87,7 @@ seven blood-group pointers at `0x0069A8E8`. `CreatureNamePool` reads these from
 the installed binary through the identity asset abstraction; no strings are
 bundled. The initial-map construction boundary is ADR-0521.
 
-## Rooms and objects — CONFIRMED
+## Rooms and objects — STRONGLY INFERRED
 
 `0x004E9250` selects **2579** for an owned Dungeon Heart: heart-object health
 percentage and the keeper's mana/ceiling as `%37`, `%40`, `%41`. It selects
@@ -150,7 +153,7 @@ A hovered store pile (the Treasury or Heart gold decoration) reads "N Gold"
 (string 2543, the tile's gold), as a type 3 object would; see
 [gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §5.
 
-## Doors, traps and dead bodies — CONFIRMED
+## Doors, traps and dead bodies — STRONGLY INFERRED
 
 Read 2026-10-23 from the vtable slots +0x4C. Tokens are raw id + 1, as above.
 Health `%37` is the 12.12 ratio 100 / definition health (`0x00441990`, IDIV,
@@ -188,14 +191,14 @@ when the definition's special name +0x895 is non-zero, and then with the type
 name `+0x6AA` of the definition for the body's creature id `+0x128`, the one
 `+0x129` was looked up from (`0x004B0F20`), so "the dead body of Goblin a level 3
 Goblin" for Unique Goblin, not "Grubb". Otherwise this function never writes that
-buffer, so what DK2 prints there is unread, and ours prints it empty (a GUESS,
+buffer, so what DK2 prints there is unread, and ours prints it empty (a HYPOTHESIS,
 Q634). No owner test. The popup name is the type name, with no +0x895 override. `WorldHoverText` formats it for `CreatureDeathRules.IsCorpse`, but our picker,
 like DK2's, never returns a corpse, so it is kept unreachable.
 The shot formatter `0x004B5C20` writes an empty string.
 
 ## Original fonts, artwork and geometry
 
-**CONFIRMED:** status and popup both copy style `0x00741320`, the white
+**STRONGLY INFERRED:** status and popup both copy style `0x00741320`, the white
 base-10 in-game BF4 font; font width selection is already described by
 `InterfaceFonts`. Catalogue `0x006A7DF0`, stride 69, records 72/73 name
 `gui/Windows/Bar-00` and `Bar-01`. Their runtime stride is 27. The top strip

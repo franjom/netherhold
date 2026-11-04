@@ -1,3 +1,6 @@
+---
+systems: [legal, tooling-process]
+---
 # The Dungeon Keeper wiki as a source: how, and the licence question
 
 The owner suggested using the Fandom Dungeon Keeper wiki, and possibly scraping
@@ -92,15 +95,15 @@ is the whole reason to spend a test on numbers we already had.
 
 | Claim (DK2 section) | Status |
 |---|---|
-| Five corpses in a Graveyard make a Vampire | **CONFIRMED against the data**, `1000/200` — and it validates our reading of `DecomposeValue` as a per-corpse worth, which nothing else could check |
-| Two Black Knights sacrificed make a Vampire | **CONFIRMED against the data**, and it is the first thing ever to read `SacrificeEntry`, so it doubles as a layout check |
+| Five corpses in a Graveyard make a Vampire | **STRONGLY INFERRED against the data**, `1000/200` — and it validates our reading of `DecomposeValue` as a per-corpse worth, which nothing else could check |
+| Two Black Knights sacrificed make a Vampire | **STRONGLY INFERRED against the data**, and it is the first thing ever to read `SacrificeEntry`, so it doubles as a layout check |
 | A slain Vampire loses a level and reincarnates | **CONFIRMS the owner** |
 | Only Monks can lay one to rest permanently | **CONFIRMS the owner** |
 | A level-1 Vampire is lost for good | **CONFIRMS the owner** |
 | **Lost for good if you control no Graveyard when it is slain** | **NEW — the owner did not mention this third condition** |
 | It reincarnates **in the Graveyard** | **AGREES with the owner** once Q113 closed: the sarcophagus is the Graveyard's, not the vampire's own bed |
 | At level 10 it raises corpses into Skeletons, which competes with making more Vampires | New, and not built — levels (`CreatureLevelRules`) and corpses (`CreatureActivity.Dead`) now exist, so it is no longer blocked on either |
-| Health 2500, wage 750, Thinker, Blitzer | **CONFIRMED against the data** |
+| Health 2500, wage 750, Thinker, Blitzer | **STRONGLY INFERRED against the data** |
 
 ## Worth fetching next, when there is a reason to
 

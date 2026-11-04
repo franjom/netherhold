@@ -1,4 +1,7 @@
-﻿# Efficiency — the work rate is a creature stat, and DK2 shows it
+﻿---
+systems: [imps-tile-work]
+---
+# Efficiency — the work rate is a creature stat, and DK2 shows it
 
 | | |
 |---|---|

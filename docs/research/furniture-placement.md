@@ -1,6 +1,9 @@
+---
+systems: [rooms, art-assets]
+---
 # Where furniture stands in its tile, and which way it faces
 
-Status: DRAFT, 2026-10-10. Every placement below is **CONFIRMED** by a static read of
+Status: DRAFT, 2026-10-10. Every placement below is **STRONGLY INFERRED** by a static read of
 `DKII.EXE` (decompile plus the jump tables named) unless marked otherwise. Mesh-heading
 conversion is established in [object-drawing.md §4](object-drawing.md#4-position-and-rotation).
 The heading values and the direction the binary's own trig gives them are read. Which tiles get
@@ -24,7 +27,7 @@ coop *choice* stays in `hatchery.md` §2.
   (`0x0049B9F0`). They are RenderInfo (`thing+0x44`) `+0x20/+0x22/+0x24` and `+0x51..+0x55`:
   `+0x64` turns the mesh about its X, then `+0x68` about its Y, then the heading yaws it;
   `+0x66` is unused by the mesh draw; `+0x95..+0x99` is a **draw offset** x/y/height in world
-  axes, added to the point and not to the position (CONFIRMED, `object-drawing.md` §4).
+  axes, added to the point and not to the position (STRONGLY INFERRED, `object-drawing.md` §4).
 
 ## 2. The floor pass (`Room_Rebuild` `0x004EDFC0`, first loop)
 
@@ -182,7 +185,7 @@ saved, and published unchanged through the Urn/Chest art switches (hash/save 301
 The previously discarded draw is reused, so this adds no runtime random draws.
 **UNKNOWN:** the exact Level 2 load-time heading sequence. The level action
 `0x00513870` and storage initializer `0x005099A0` both seed the world stream with 1
-before loading; see [dk2-random.md §3](dk2-random.md#3-the-seed-confirmed).
+before loading; see [dk2-random.md §3](dk2-random.md#3-the-seed-strongly-inferred).
 `0x00521420` invokes the Heart builder from the room record. Which draws precede its
 gold deposit is not established; for example, creature art installation can draw
 on the same stream (`0x004B37D0`). A seed-1 sequence beginning at the deposit would

@@ -5,7 +5,7 @@
 namespace DK2.Core;
 
 /// <summary>
-/// DK2's own generator, CONFIRMED from the binary (docs/research/dk2-random.md):
+/// DK2's own generator, STRONGLY INFERRED from the binary (docs/research/dk2-random.md):
 /// a 32-bit LCG whose output is rotated right 13 bits, then reduced modulo n.
 /// Built but not the default (ADR-0275); select it with
 /// <c>new SimRandom(new Dk2Lcg())</c>.

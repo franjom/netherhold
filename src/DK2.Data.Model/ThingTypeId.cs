@@ -6,7 +6,7 @@ namespace DK2.Data.Model;
 
 /// <summary>
 /// DK2's entity ("thing") categories.
-/// CONFIRMED: Flame `src/dk2/entities/entities_type.h`.
+/// STRONGLY INFERRED: Flame `src/dk2/entities/entities_type.h`.
 /// </summary>
 public enum ThingTypeId : byte
 {

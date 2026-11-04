@@ -93,7 +93,7 @@ public static class PrisonRules
     /// <c>0x00496A30</c> stores one more as the cycle count (<c>+0x3AE</c>), and the runner
     /// <c>0x00496AA0</c> lets the animation loop until the count runs down, so the Angry animation
     /// plays <paramref name="variant"/> + 1 times at its frames and rate, rounded up as for action 49.
-    /// LIKELY: the count and the end come from the renderer's flags, which are not read.</summary>
+    /// HYPOTHESIS: the count and the end come from the renderer's flags, which are not read.</summary>
     public static int FlourishTicks(CreatureDef definition, int variant) =>
         definition.AngryFrames <= 0 || definition.AngryFramesPerSecond <= 0
             ? 0

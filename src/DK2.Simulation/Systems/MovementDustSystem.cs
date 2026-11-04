@@ -17,7 +17,7 @@ namespace DK2.Simulation.Systems;
 /// its mover and compares the tile it saw last tick, which is the same unless a state handler moves
 /// the creature within a tick. Held creatures and corpses are skipped as the other mirrors do (ADR-0206); whether
 /// DK2's thing pass updates them is unread.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/creature-movement-dust.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-movement-dust.md")]
 public sealed class MovementDustSystem : ICreatureUpdateStep
 {
     /// <summary>Foot Dust Effect, the literal the creature update requests.</summary>

@@ -18,7 +18,7 @@ namespace DK2.Simulation.Combat;
 /// even when the target has not moved — a Flanker aiming behind the target. It is a walk resuming
 /// 199 (<see cref="CombatStates.Approaching"/>), so it keeps the Combat category's place and pays
 /// no combat experience. Behind the target is read from its velocity, not its facing (Q400).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-approach-and-victory.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-approach-and-victory.md")]
 public static class ApproachRules
 {
     private const string SystemName = "combat";

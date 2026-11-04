@@ -1,3 +1,6 @@
+---
+systems: [combat, navigation]
+---
 # Combat body integration
 
 Source: DKII.EXE v1.70 GOG, Ghidra 12.1.4, 2026-10-12. Primary
@@ -5,7 +8,7 @@ instruction reads and field-store census; no decompiler output is retained.
 
 ## Route-less fighting
 
-CONFIRMED: the creature update's mover gate at `0x0048A232`–`0x0048A248`
+STRONGLY INFERRED: the creature update's mover gate at `0x0048A232`–`0x0048A248`
 tests state-table bit 0, independently of whether a path is loaded. The
 recovered table gives states 199 and 200 flags 3 (creature-state-table.md).
 Fighting therefore integrates without a route. The other gates exclude
@@ -29,7 +32,7 @@ or natural campaign behaviour.
 
 ## Remembered entity
 
-CONFIRMED census: `ReadsAt`/`StoreAt` for `+0x537/+0x539`, with constructor,
+STRONGLY INFERRED census: `ReadsAt`/`StoreAt` for `+0x537/+0x539`, with constructor,
 selector and update positive controls, finds constructor zeroing, selector
 failure zeroing, update decrement and expiry clearing. The complete selector
 and fight-starter do not arm it. The earlier claim that the victim selector

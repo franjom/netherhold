@@ -1,3 +1,6 @@
+---
+systems: [doors-traps]
+---
 # Mechanic: the Jack In The Box — the trap's shot, the Jack and its explosion
 
 Source(s): DKII.EXE v1.70, pyghidra-mcp listings and decompiles on 2026-10-02; the shipped

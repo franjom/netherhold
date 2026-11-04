@@ -1,8 +1,11 @@
+---
+systems: [rooms, art-assets]
+---
 # Dungeon Heart mana particles
 
 DKII.EXE v1.70, Ghidra 12.1.4 primary reads and shipped Editor KWD records,
-2026-10-13. Record values are **CONFIRMED data**; motion and emission are
-**CONFIRMED binary readings**, awaiting a matched original visual comparison.
+2026-10-13. Record values are **STRONGLY INFERRED data**; motion and emission are
+**STRONGLY INFERRED binary readings**, awaiting a matched original visual comparison.
 
 ## 1. Shipped definitions
 

@@ -1,3 +1,6 @@
+---
+systems: [heroes]
+---
 # Hero-party walking after action 14
 
 ## Result in one sentence
@@ -9,12 +12,12 @@ leader whose route failed.
 
 Source: `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on
 2026-09-25. This note records binary facts in our own words (ADR-0046).
-**CONFIRMED** means the cited instruction decides the claim;
-**STRONGLY INFERRED** names a role from several such instructions;
+**STRONGLY INFERRED** means the cited instruction decides the claim, or, for a
+role, several such instructions;
 **UNKNOWN** marks the remaining observable gap. No running-game
-observation was made.
+observation was made, except the capture of §7 (**CONFIRMED**).
 
-Calling conventions used below are **CONFIRMED** from each prologue,
+Calling conventions used below are **STRONGLY INFERRED** from each prologue,
 epilogue and stack load. A creature-state controller is in `ECX`; its
 body is at controller `+0x08`; state/job handlers have no stack
 argument. `0x00478800` instead has `RET 4`: `ECX` is the controller and
@@ -28,7 +31,7 @@ arguments with a room first.
 except 10 and 16. Otherwise it switches over job ids 0..28. A
 successful arm writes the id to controller `+0x64`,
 `CurrentlyDoingJobId`; failure leaves it alone.
-**CONFIRMED** by `0x00478803`-`0x004789A2`.
+**STRONGLY INFERRED** by `0x00478803`-`0x004789A2`.
 
 The five shipped party jobs take these arms:
 
@@ -39,7 +42,7 @@ The five shipped party jobs take these arms:
   differ from the creature's owner. It finds that player's nearest
   room type 1, proves a route with options 3,
   and enters 163 `stealing booty`. The value word is unread by this arm.
-  **CONFIRMED** by `0x00462660` and `0x00481FA0`.
+  **STRONGLY INFERRED** by `0x00462660` and `0x00481FA0`.
 
 - **18 `KillCreatures` -> `0x00462310`.** The player word selects
   a player;
@@ -48,7 +51,7 @@ The five shipped party jobs take these arms:
   reachable member other than self, and routes to it with resume state
   177 `attacking Dungeon Heart`, options `0x41`. The value word is
   preserved if
-  the player is filled in, but is otherwise unused. **CONFIRMED** by
+  the player is filled in, but is otherwise unused. **STRONGLY INFERRED** by
   `0x0046231B`-`0x00462474`.
 
 - **19 `KillPlayer` -> `0x00462490`.** Player selection and the zero-player
@@ -77,7 +80,7 @@ The five shipped party jobs take these arms:
   while parked; after its deadline it picks a point in the current
   tile, reloads a random 50..84-tick deadline, and walks back to 176.
   Both job words are ignored.
-  **CONFIRMED** by `0x00486CC0` and `0x00486CF0`.
+  **STRONGLY INFERRED** by `0x00486CC0` and `0x00486CF0`.
 
   Rechecked `0x00486CF0` and `0x004CF490` on 2026-10-10: the waiting
   state requests a real sub-tile route, and a one-triangle route still has
@@ -112,7 +115,7 @@ The five shipped party jobs take these arms:
   `+0x33`, its next waypoint, sets a deadline from `+0x30`, and enters
   175. State 175 wanders by adjacent tiles until that
   deadline and then returns to 173. The player word is ignored.
-  **CONFIRMED** by `0x00471E80`, `0x00471EB0`, `0x00472150` and
+  **STRONGLY INFERRED** by `0x00471E80`, `0x00471EB0`, `0x00472150` and
   `0x004721C0`; action-point field names come from `action-points.md`.
 
 The standing job is not a one-shot command. State 1 sends hero-owned
@@ -125,7 +128,7 @@ with no wander stamp that inner body enters 87. At the deadline it returns
 zero, so `0x00476FC0` resets to state 1 and the cycle retries. The job triple
 is not cleared. A terminal job state that returns zero likewise goes
 through state 1 and state 90, so a surviving leader repeats its job.
-**CONFIRMED** by `0x004773D0`, `0x00477850`, `0x00477680` and
+**STRONGLY INFERRED** by `0x004773D0`, `0x00477850`, `0x00477680` and
 `0x00476FC0`.
 
 Rechecked these whole routines on 2026-10-12. HeroSystem now uses the
@@ -145,7 +148,7 @@ jobs to party followers.
 The dispatcher is not a category hook. Its other callers are the happy,
 unhappy and angry choosers `0x004780E0`, `0x004782C0`,
 `0x004784C0`, idle chooser `0x004778E0`, and its helper
-`0x00478680`. **CONFIRMED** by the seven call references to
+`0x00478680`. **STRONGLY INFERRED** by the seven call references to
 `0x00478800` and the state table built at `0x0047BBE0`.
 
 ## 2. States 222, 223 and 224
@@ -155,7 +158,7 @@ with 223/224. `0x00461F00` reads `MyLeadersId`, chooses a tile behind
 that thing's heading, adds one of nine sub-tile offsets, and calls
 `0x00471890(point, 222, 0x80)`. When the leader is itself travelling
 in state 6, the reference point is its stored movement target rather
-than its current position. **CONFIRMED** by
+than its current position. **STRONGLY INFERRED** by
 `0x00461F00`-`0x004620D4`.
 
 Same-tile destinations are real walks here, too (binary recheck, 2026-10-11):
@@ -174,7 +177,7 @@ the leader. Positions 1, 2 and 3 therefore aim one tile back; 4 and 5
 aim two; 6 and 7 aim three, and so on. Obstruction checks may rotate
 the search and stop at a nearer tile. `PositionInParty` is therefore
 spacing, not only a
-count; the leader's copy remains the follower count. **CONFIRMED** by
+count; the leader's copy remains the follower count. **STRONGLY INFERRED** by
 `0x00461F36`-`0x0046204F`.
 
 States 223/224 are entered only by option-bit-0 route failure:
@@ -186,7 +189,7 @@ States 223/224 are entered only by option-bit-0 route failure:
   put that
   worker's tag in the leader's `MyLeadersId` and set the leader to 223.
   These two helper branches are the only direct assignments of 223.
-  **CONFIRMED** at `0x004719C8`-`0x00471A56` and
+  **STRONGLY INFERRED** at `0x004719C8`-`0x00471A56` and
   `0x00471C59`-`0x00471CEA`.
 
 - State 223 (`0x00462130`) treats `MyLeadersId` as the tunneller's
@@ -195,14 +198,14 @@ States 223/224 are entered only by option-bit-0 route failure:
   chooses an adjacent point behind the worker and calls
   `0x00471890(point, 223, 0x80)`. Thus 223 repeatedly travels through
   state 6 and resumes itself; `0x004622FB` is the only other
-  site carrying 223, as a resume value. **CONFIRMED** by
+  site carrying 223, as a resume value. **STRONGLY INFERRED** by
   `0x0046213C`-`0x0046230C`.
 
 - The worker tunnels in state 186 with 224 in its tunnelling resume
   slot `+0xD3`; state 186 is the only producer of 224. State 224
   (`0x004620F0`) reads the worker's ordinary `MyLeadersId`, forces
   that leader to state 1, then puts the worker in normal follower
-  state 222. It has no liveness test. **CONFIRMED** by the two
+  state 222. It has no liveness test. **STRONGLY INFERRED** by the two
   fallback calls, state 186's resume
   at `0x00485C10`, and `0x004620F0`-`0x00462129`.
 
@@ -213,28 +216,28 @@ States 223/224 are entered only by option-bit-0 route failure:
 `0x00653000..0x0066BFFF`. The complete creature-field reader set is:
 
 - `0x00461F12`, state 222: select the leader thing;
-  `0x00461F36`: calculate trailing depth. **CONFIRMED.**
+  `0x00461F36`: calculate trailing depth. **STRONGLY INFERRED.**
 - `0x004620FC`, state 224: select the leader to release.
-  **CONFIRMED.**
+  **STRONGLY INFERRED.**
 - `0x0046213C`, state 223: select and validate the tunneller.
-  **CONFIRMED.**
+  **STRONGLY INFERRED.**
 - `0x004716BD`, point feasibility `0x00471630`, and `0x00471807`,
   room feasibility `0x00471740`: require a non-zero follower count
   before asking a
-  worker to tunnel. **CONFIRMED.**
+  worker to tunnel. **STRONGLY INFERRED.**
 - `0x004719C8`, point route helper `0x00471890`, and `0x00471C59`,
   room route
   helper `0x00471A70`: the same fallback eligibility test.
-  **CONFIRMED.**
+  **STRONGLY INFERRED.**
 - `0x004904DA` and `0x004904F6`, creature diagnostic dumper
   `0x00490240`: print the two fields and decide no gameplay.
-  **CONFIRMED.**
+  **STRONGLY INFERRED.**
 
 The other hits are not readers: constructor `0x004872A0`, health
 handler `0x004B2CE0` and spawn `0x00519F90` write the fields;
 `0x005604C0` writes a dword at the same numeric offset in an unrelated
 `cseg` object; three `0x3E19999A` constants merely contain the search
-text. **CONFIRMED** by the
+text. **STRONGLY INFERRED** by the
 base registers and opcodes at all 30 hits.
 
 ## 4. The party pace is a one-time write
@@ -242,7 +245,7 @@ base registers and opcodes at all 30 hits.
 The complete call-reference list for `0x004887D0` has 22 sites. The
 spawn's `0x0051A6FC` is the only call with mode 0 and a non-zero
 explicit speed taken from the party scan. No later call recomputes a
-minimum or reads another party member. **CONFIRMED** by all call
+minimum or reads another party member. **STRONGLY INFERRED** by all call
 windows and `0x0051A6D9`-`0x0051A6FC`.
 
 `0x004887D0(mode, explicit)` records the mode at creature `+0x3BB`; a
@@ -251,7 +254,7 @@ field, while a non-zero one is passed straight to `0x0048D010`. Fight
 entry uses mode 1 and zero, so it replaces the party cap with that
 creature's run speed. Later mode-0 calls restore that creature's own
 walk speed, not the party minimum.
-The shared party pace is therefore not restored by any call read. **CONFIRMED** by
+The shared party pace is therefore not restored by any call read. **STRONGLY INFERRED** by
 `0x004887D0`-`0x0048882D`, fight call `0x0045EBC9`, and the call sweep, which does not
 reach the 22 calls through vtable `+0x8C` (`0x0048D010`); four of those were read.
 
@@ -259,7 +262,7 @@ The level-stat arm at `0x00494BA4` divides its argument by variable 19
 and writes only definition `+0x5B4` at `0x00494BB7`. It neither calls
 the speed setter nor writes creature `+0x11C` or the steering body's
 `max_speed`. A level-up does not reset the current cap; a later mode-0
-speed call will use the updated definition speed. **CONFIRMED** by
+speed call will use the updated definition speed. **STRONGLY INFERRED** by
 `0x00494BA4`-`0x00494BBE`.
 
 ## 5. A leader lost to capture or death
@@ -271,7 +274,7 @@ fallen leader, the first same-party follower in the hero list is
 promoted, receives the old leader's job triple and trigger root, and
 enters state 1. A second scan points and renumbers the remaining
 followers behind it, then writes their count to
-the new leader. **CONFIRMED** by `0x004B2FDF`-`0x004B30F3`.
+the new leader. **STRONGLY INFERRED** by `0x004B2FDF`-`0x004B30F3`.
 
 Read again while building (ADR-0218). The branch runs only for the hero player's creatures
 (`+0x28` against `[0x006F254C]`), right after the dying countdown starts (`0x004B2FB5`). The detach
@@ -294,7 +297,7 @@ Every step is as read.
 
 This re-lead path notably excludes `PartyId == 0`, even though `0xFF`
 is the
-usual no-party sentinel. **CONFIRMED** by the byte test at `0x004B2FDF`.
+usual no-party sentinel. **STRONGLY INFERRED** by the byte test at `0x004B2FDF`.
 
 There is no equivalent party-field access on the immediate-death path,
 and the whole-offset scan found no other cleanup. Ordinary state 222
@@ -354,12 +357,12 @@ Job 18 stops at the first reachable creature and fails outright if its route fai
 **Job 19.** It resolves `+0x40D` (or the strongest player, written back), then reads
 `DungeonHeartPosition` (`0x004C5F50`, `player+0xB43`, a tile). The cell there must name a room
 (`+0x2 & 0xFFF`; none fails). `0x004559B0` gives that room, and `0x004E4D90(room, &point, 0, 0)` a
-point in it. Then `0x00471890(point, 178, 1)`. **CONFIRMED** at `0x004624EC`–`0x00462544`.
+point in it. Then `0x00471890(point, 178, 1)`. **STRONGLY INFERRED** at `0x004624EC`–`0x00462544`.
 
 **`0x004E4D90(room, out, a, b)`.** It starts from `room+0x2D/+0x2E` and follows the cell links
 `random(room+0xA7)` times (`0x005558D0`). Unless `a != 0 && b == 0`, it then steps on round the
 ring while `0x00454110(cell)` is non-zero, or while it is zero when `b` is set. It writes the tile's
-centre. **CONFIRMED.**
+centre. **STRONGLY INFERRED.**
 
 **`0x00454110(cell)`, non-zero meaning accepted** (record `00454110.md`, polarity checked
 2026-09-30). It returns 0 for any cell that is not an interior room cell (`+0xC == 0xFF`); for an
@@ -370,10 +373,10 @@ interior one:
 - **Any other type:** 1.
 
 So every heart tile returns 0, the walk above never steps on, and job 19's point is a random heart
-tile. **CONFIRMED.**
+tile. **STRONGLY INFERRED.**
 
 **State 177's fallback** (`0x004625F7`–`0x00462642`). The centre of the `DungeonHeartPosition`
-tile itself, `0x00471890(centre, 178, 0)`, with no room asked. **CONFIRMED.**
+tile itself, `0x00471890(centre, 178, 0)`, with no room asked. **STRONGLY INFERRED.**
 
 ## 7. Opening party order (2026-10-25, ADR-0542)
 
@@ -383,7 +386,7 @@ are `(60756,30719)`, `(60756,29354)`, `(58026,29354)`, beside the shared spawn
 `(55296,30720)`. The leader instead targets `(55296,55296)`. Indices 440/441/442
 are 1/2/3. This is Level2's party 1; the investigated saved Unity scene names Level2.
 Level3's opening has three Dwarves in separate parties, not this four-member group.
-**CONFIRMED binary:** `0x004B7830` visits creatures newest first; `0x00519F90`
+**STRONGLY INFERRED binary:** `0x004B7830` visits creatures newest first; `0x00519F90`
 walks the hero list newest first when selecting the last flagged leader and
 numbering followers (`0x0051A606..0x0051A741`). State 222's destination depends on
 whether its leader has already entered 6; see section 2.

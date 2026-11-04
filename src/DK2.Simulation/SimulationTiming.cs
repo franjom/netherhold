@@ -56,7 +56,7 @@ public static class SimulationTiming
     /// stored raw (training.md §4). Both directions are reproduced: <c>ExpPerSecondTraining</c> 30
     /// becomes 7 a tick and so 28 a game second, while <c>ResearchPerSecond</c> 1 and 3 both become 4
     /// (<c>ResearchOnRealDataTests</c>). Multiply back up before adding once a game second; where the cadence matters, add on <see cref="OnOriginalTick"/>.</summary>
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-levels.md")]
     public static int LoaderRatePerTick(int fileValue)
     {
         if (fileValue == 0) return 0;
@@ -69,7 +69,7 @@ public static class SimulationTiming
     /// through <see cref="LoaderRatePerTick"/> (<c>0x00492320</c>), the rate every creature turn
     /// (<c>0x004B2AE0</c>) steps its heading by. Guard 256, Thief 512 and Dwarf 341 of the 2048 a
     /// circle, as DK2's Level 4 captures turn them (ADR-0602).</summary>
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md#53-turning-comes-first")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md#53-turning-comes-first")]
     public static int TurnRatePerTick(CreatureDef definition) => LoaderRatePerTick(definition.TurnRate);
 
     /// <summary>How many times a game second a worker applies work to a tile: four, once a tick,

@@ -278,7 +278,7 @@ Owner decisions (2026-10-23): decoded in C# at load time, in memory, no cache, n
 - Create: `src/DK2.Data/Media/SoundBank.cs` — loads one SDT archive and decodes each entry on first use (lazy, cached in memory for the session)
 - Tests: `tests/DK2.Data.Tests/MpegAudioDecoderTests.cs`
 
-**Additional C1 regression contract:** retain the last complete MPEG frame. Before comparing decoded sample count with SDT `+32`, resolve Q677's units and trimming; padded frame totals are not that field. The TODO is in `tests/DK2.Convert.Tests/SdtArchiveTests.cs`; see [front-end-assets.md section5.1](../research/front-end-assets.md#51-sdt-container-confirmed-bytes-and-sdtarchive).
+**Additional C1 regression contract:** retain the last complete MPEG frame. Before comparing decoded sample count with SDT `+32`, resolve Q677's units and trimming; padded frame totals are not that field. The TODO is in `tests/DK2.Convert.Tests/SdtArchiveTests.cs`; see [front-end-assets.md section5.1](../research/front-end-assets.md#51-sdt-container-strongly-inferred-bytes-and-sdtarchive).
 
 **Step 1 — failing tests** (`[InstallFact]`; the first decodes a Layer I entry and checks sample rate, channel count and a duration computed from the frame headers in §5.1; the second a Layer II speech entry at 22,050 Hz mono; a third asserts no file is written under the install or the temp directory during decode).
 
@@ -367,7 +367,7 @@ Additional researched presentation queue: Q676 Keeper Thunderbolt ribbon ([shot-
 
 ### Task E1: Full-map preview, markers, legend and hover symbols
 
-`docs/plans/2026-10-17-classic-look-step6.md` lists markers as open; `ClassicFullMapLayout` draws terrain and navigation. Add the native live preview and legend using [minimap-controls.md](../research/minimap-controls.md#preview-and-legend-confirmed-binary-2026-10-29); test viewport scaling, continuous pointer mapping and fog behavior, then verify in Unity. The preview is a camera/render task distinct from GPU map markers. **Research:** the full-map draw (start from the M toggle's consumer in minimap-controls.md "Heart navigation and full-screen map" and `0x0041CC50`'s overlay arms recorded in minimap-rendering.md) for creature squares, legend entries and the hover symbol. Build each as a `MinimapMarker` kind over the existing GPU path, tested in `ClassicFullMapTests.cs`. Commit: `hud: the full map's creature squares, legend and hover symbol`.
+`docs/plans/2026-10-17-classic-look-step6.md` lists markers as open; `ClassicFullMapLayout` draws terrain and navigation. Add the native live preview and legend using [minimap-controls.md](../research/minimap-controls.md#preview-and-legend-strongly-inferred-binary-2026-10-29); test viewport scaling, continuous pointer mapping and fog behavior, then verify in Unity. The preview is a camera/render task distinct from GPU map markers. **Research:** the full-map draw (start from the M toggle's consumer in minimap-controls.md "Heart navigation and full-screen map" and `0x0041CC50`'s overlay arms recorded in minimap-rendering.md) for creature squares, legend entries and the hover symbol. Build each as a `MinimapMarker` kind over the existing GPU path, tested in `ClassicFullMapTests.cs`. Commit: `hud: the full map's creature squares, legend and hover symbol`.
 
 ### Task E2: The objects-only pick (PAGE UP, binding 26)
 

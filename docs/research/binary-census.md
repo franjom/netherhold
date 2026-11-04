@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # Census: what DKII.EXE holds that the function records do not
 
 Source(s):
@@ -85,7 +88,7 @@ the members' mean position at `+0x06`/`+0x0A`/`+0x0E`, a member count at
   `MusicLevelTwoThreatThreshold`, Three or Four (variables 215 to 217). That
   slot (`0x00567BC0`) raises the sound manager's music level `+0x2C`, which its
   update `0x005674F0` (at `0x00567570`) turns into the music's intensity, 20 a
-  level: CONFIRMED 2026-10-27 (`music.md`).
+  level: STRONGLY INFERRED 2026-10-27 (`music.md`).
 - `0x00505500` takes a member out: it unlinks it, clears `+0x37A`, decrements
   the count and clears the record when it empties.
 - World slot `+0x2B8` (`0x00505250`) returns the next record holding a local
@@ -124,7 +127,7 @@ table jumps from id 28's stub to id 29's. The switch `0x0075AE7B`, field
 `+0x134` of the settings object at `0x0075AD47`, has no non-zero store: only
 its constructor `0x0055CCA0` and reset `0x0055E5A0` write it, both with 0. So
 the count test always fails and the placer, though called every turn, never
-places one. These are negative scans, so the verdict is LIKELY. The owner has
+places one. These are negative scans, so the verdict is HYPOTHESIS. The owner has
 never seen a special appear on the map by itself during a level (2026-10-14).
 
 The byte `0x006F25BC` has one other reader. A panel tally `0x00416980` adds it

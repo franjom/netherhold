@@ -10,7 +10,7 @@ namespace DK2.Simulation;
 /// <summary>A creature's own gold, <see cref="CreatureState.GoldHeld"/> (<c>creature+0x3FB</c>):
 /// an imp's load and a fighter's purse are one field. Half of every wage lands in it
 /// (state 189) and the Casino pays into it or takes from it (<c>payday.md</c> §4.4, ADR-0187).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/payday.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/payday.md")]
 public static class PurseRules
 {
     /// <summary>DK2's <c>0x0048AE70(amount)</c>: adds to the purse and caps it at the level-scaled

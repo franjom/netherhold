@@ -1,3 +1,6 @@
+---
+systems: [rooms, doors-traps]
+---
 # Mechanic: Workshop crates — made, stored, carried and built
 
 The manufacturer's own states 63–67 are [workshop-states.md](workshop-states.md) (ADR-0404).
@@ -35,7 +38,7 @@ Questions: advances ADR-0135; builds the half of ADR-0203 it left out ("what car
 to its blueprint"); Q432.
 
 Confidence: **STRONGLY INFERRED (binary)** throughout. The crate flags and capacities are
-**CONFIRMED** from shipped data. §5's outcome and the single queue are **CONFIRMED** by the
+**STRONGLY INFERRED** from shipped data. §5's outcome and the single queue are **CONFIRMED** by the
 owner.
 
 ---
@@ -206,7 +209,7 @@ worker credits the keeper's one pool of points (ADR-0203).
 
 ### 5.1 Zero-rate dropped workers (Q672, binary, 2026-10-29)
 
-**CONFIRMED control flow:** a zero manufacture credit causes repeated job retries
+**STRONGLY INFERRED control flow:** a zero manufacture credit causes repeated job retries
 when the remembered drop job is Manufacture, the queue remains nonempty, a usable
 Workshop accepts the creature, and earlier needs/idle priorities take nothing.
 For a creature already inside the selected Workshop, successive dispatcher updates

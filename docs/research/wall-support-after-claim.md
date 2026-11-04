@@ -1,6 +1,9 @@
+---
+systems: [imps-tile-work]
+---
 # Wall support after ownership loss
 
-## 1. Completion callback — CONFIRMED
+## 1. Completion callback — STRONGLY INFERRED
 
 Primary source: DKII.EXE `0x00455030`, decompiled and its corner loop checked
 against assembly on 2026-10-13. Callers include Imp state 20 (`0x00465FE3`),
@@ -24,7 +27,7 @@ Room transfer calls the same callback after each slab changes owner, in the
 existing slab-chain order. Mutations are immediate, so later checks observe
 earlier wall conversions.
 
-## 2. Corners — CONFIRMED
+## 2. Corners — STRONGLY INFERRED
 
 The four candidate offsets in the signed-dword table at `0x00697A30` are
 northwest, northeast, southeast and southwest. Each candidate must be owned,

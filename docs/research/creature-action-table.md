@@ -1,4 +1,7 @@
-﻿# Mechanic: the creature action table — how an attack is entered
+﻿---
+systems: [creatures]
+---
+# Mechanic: the creature action table — how an attack is entered
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -177,7 +180,7 @@ object at `[0x0075B468]` through vtable `+0x20` with the creature's handle `+0x2
 definition's bank `def+0x6E3`, the id and the position `+0x1A`, keeping the returned handle
 in `+0x2E`. The other two users of the record lookup `FUN_00496DC0` (`0x0040C290`, on a turn
 modulus, and `0x0045A200`) read only this word, for the same call. The call shape is
-CONFIRMED; the words exist as `SFX.map` groups in the creature's category (`0x334`, `0x109` and `0x10C` in `creature_imp`), and the table is read in full in
+STRONGLY INFERRED; the words exist as `SFX.map` groups in the creature's category (`0x334`, `0x109` and `0x10C` in `creature_imp`), and the table is read in full in
 [sound-effects-continuous.md section 2](sound-effects-continuous.md#2-the-action-table).
 
 ## 6. What this leaves
@@ -198,16 +201,16 @@ CONFIRMED; the words exist as `SFX.map` groups in the creature's category (`0x33
 
 ## Confidence
 
-**CONFIRMED (binary):** the base, the 29-byte stride, the 81-record extent and
+**STRONGLY INFERRED (binary):** the base, the 29-byte stride, the 81-record extent and
 both of the facts that bound it; the index field and its `29n` arithmetic; the
 null and `0x15` guards; the 34-byte action block and that `FUN_00496AA0` clears
 it whole; that `FUN_00496700` begins an action from a stack argument; the 24
 handler installs and the 24 call sites; that record 17's handler is the melee
 attack and that `FUN_00514830` starts it with a literal `0x11`.
 
-**CONFIRMED (negative):** `+25` is not a `Text.str` id.
+**STRONGLY INFERRED (negative):** `+25` is not a `Text.str` id.
 
-**CONFIRMED (2026-10-04):** `+16` is the record's index; `+25` is passed to the creature's sound call (§5).
+**STRONGLY INFERRED (2026-10-04):** `+16` is the record's index; `+25` is passed to the creature's sound call (§5).
 
 **STRONGLY INFERRED:** that `+20` selects a creature animation block (§3; two actions checked by name).
 

@@ -1,3 +1,6 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # Format and engine: room floors, liquid beds and the liquid surface (Q71)
 
 **Grounded creature placement (2026-10-12).** The classic view evaluates the
@@ -7,7 +10,7 @@ use 0x1000. Flying creatures retain their existing height (steering-behaviours.m
 §7.5); attached victims retain their device pose. Full creature vertical physics
 remains unbuilt.
 
-**CONFIRMED (binary, `0x004545C0`, water/lava arm; instructions rechecked
+**STRONGLY INFERRED (binary, `0x004545C0`, water/lava arm; instructions rechecked
 2026-10-12):** the liquid floor starts at 0xA66. The same-liquid neighbour mask
 includes bridges over that liquid and off-map cells (`0x00450470`). The bearing
 from tile centre selects an octant; its even pair selects a rotated N/NE/E
@@ -36,7 +39,7 @@ Coordinates: (dx, dy) grow east and south, as the direction table does (N = (0, 
 ## 1. The writer of a room tile's byte +0xC: 0x004EDC10
 
 `0x00450470` hands every room tile (cell word `+2 & 0xFFF` non-zero) to `0x004EDC10`. It does
-nothing off the map, otherwise switches on the definition's `+0x452`. CONFIRMED (whole decompile;
+nothing off the map, otherwise switches on the definition's `+0x452`. STRONGLY INFERRED (whole decompile;
 the selector-8 polarity checked at `0x004EDD42`).
 
 | Sel | Writer | Byte +0xC |
@@ -52,7 +55,7 @@ the selector-8 polarity checked at `0x004EDD42`).
 | 12 Hero Gate FrontEnd | `0x004F02D0` | 3×6 table `0x0066DD28`: piece dx + 3·dy for dy 0..4, row 5 = 0xF0, 15, 0xF0; outside 0x10 |
 | 13 Hero Gate 3×1 | `0x004F00F0` | k << 4 \| (o + 1) & 3, k in 3..5 (below) |
 
-**The kind mask** (Quad, Normal, DoubleQuad). CONFIRMED in the disassembly of `0x004EFF00`
+**The kind mask** (Quad, Normal, DoubleQuad). STRONGLY INFERRED in the disassembly of `0x004EFF00`
 (`0x004EFF48..0x004EFFBA`); the other two decompile to the same loop. Bit k (direction k) is set
 when the neighbour is on the map (world vt `+0x1FC`), its terrain byte (cell `+0xA`) equals this
 tile's terrain id (definition `+0x1C4` from vt `+0x6C`), and its owner (cell `+8 & 0xFFF`)
@@ -62,7 +65,7 @@ room instance**: two rooms of one type and owner touching only at a corner see e
 `NavCache_SetTile(x, y, 4)` (`0x00454FD0`) on a tile `Room_IsFloorSlot` accepts, and
 `0x004EDC10` posts bridge command 6 for a rectangle around the tile.
 
-**3×3, `0x004EF730`.** CONFIRMED (disassembly read whole). If any of the four orthogonal
+**3×3, `0x004EF730`.** STRONGLY INFERRED (disassembly read whole). If any of the four orthogonal
 neighbours is off the map, nothing is written. Otherwise, with "same" = room word non-zero, equal
 to this tile's and the same room thing (`0x004559B0`):
 cx = 0 if W is not same, else 1 if E is same, else 2; cy likewise from N and S. The byte is
@@ -72,7 +75,7 @@ the middle column (1); a 1-wide room gives 0, a 2-wide 0 then 2. Selector 4 inde
 `0x0066DB98` (5-byte entries) with the same cx + 3·cy: corners piece 0 (NW rot 0, NE 1, SE 2,
 SW 3), edges piece 1 (N 0, E 1, S 2, W 3), centre piece 2 rot 0. No shipped room uses selector 4.
 
-**Heart, `0x004EFBE0` / `0x004EFC60`.** CONFIRMED (decompile clean, tables read).
+**Heart, `0x004EFBE0` / `0x004EFC60`.** STRONGLY INFERRED (decompile clean, tables read).
 dx = x − room `+0x2D`, dy = y − room `+0x2E` (the first slab, the NW tile of a placed 5×5:
 `0x004DA150` takes the inner 3×3 as first slab + 1..3). Outside 0..4 nothing is written. The byte
 is piece << 4 | rot from table `0x0066DBC8` (normal) or `0x0066DC48` (destroyed), entry
@@ -92,7 +95,7 @@ the inner's (outer N edge 3, inner N edge 0).
 
 **Hero Gate Final, selector 9.** Table `0x0066DCC8`, (dx + 3·dy), dy 0..5: columns dx 0 and 2 are
 (2,0) and (2,2) for dy 0..4; the middle is (0,0) at dy 0 and (1,0) at dy 1..4; row 5 is 0xF0, (8,0),
-0xF0. **Hero Gate 3×1, selector 13** (CONFIRMED, §7): o = room `+0x9B` (8 = none, nothing
+0xF0. **Hero Gate 3×1, selector 13** (STRONGLY INFERRED, §7): o = room `+0x9B` (8 = none, nothing
 written). Along x for o = 0 and 2, along y for 1 and 3, with "gate" = a tile of type 0x17 and this
 owner: o = 0 or 1, the tile two back is gate → k = 3, else one back → 4, else 5; o = 2 or 3 the
 reverse (two back → 5, one back → 4, else 3). This settles `wall-pieces.md` §3: the face piece
@@ -101,7 +104,7 @@ k − 3 is 0, 1 or 2.
 ## 2. The whole-tile builders
 
 All four put one entry in the **whole** array (list `+0x1B4`, count `+0x2E8`), with the tint from
-the room terrain's colour when it has AmbientLight. CONFIRMED (decompiles that do not depend on
+the room terrain's colour when it has AmbientLight. STRONGLY INFERRED (decompiles that do not depend on
 mis-tracked registers; `0x004463B0` checked in the disassembly).
 
 - `0x00446140` (3×3): piece = the whole byte, handle definition `+0xD0 + byte·0x1B`, rot 0.
@@ -114,13 +117,13 @@ mis-tracked registers; `0x004463B0` checked in the disassembly).
   draws DUNGEON0 (`+0xD0`) when room `+0x63` is 0, else Dungeon_Destroyed5 (`+0x307`). What
   `+0x63` holds is UNKNOWN.
 
-**Quad, `0x00443910`** (quarter array). CONFIRMED (disassembly `0x00443950..0x00443F03`).
+**Quad, `0x00443910`** (quarter array). STRONGLY INFERRED (disassembly `0x00443950..0x00443F03`).
 Quadrant q takes (first, diagonal, last) of byte +0xC as bits 2, 1, 0, like the Normal floor; T is
 `0x0066DDA0`, or `0x0066DE60` for type 0x11 (Stone Bridge), which differs only in entries 4 and 6:
 (0, 2) instead of (0, 0). Rotation T.rot + q, quadrant q. A Wooden Bridge (type 8) whose cell word
 `+8` has bit 0x1000 (the bridge is over lava, below) gives every quarter `+0x11` from
 `0x00441990` with 0 or 0x1000 over 0x2000, chosen by cell `+0xB & 0x1E` below or from 8: two
-looks, LIKELY its burning; their meaning is UNKNOWN. Then, for types 8, 0x11 and 0x16, the bed:
+looks, probably its burning; their meaning is UNKNOWN. Then, for types 8, 0x11 and 0x16, the bed:
 bit k when the neighbour is on the map and either its terrain has Water (`+0x17B` 0x80; Lava
 0x100 for a lava bridge), or it is a bridge tile over the same liquid (same cell `+8` bit 0x1000).
 Off the map counts as 0. The bed terrain is Water (world vt `+0x2BC`) or, with bit 0x1000, Lava
@@ -128,12 +131,12 @@ Off the map counts as 0. The bed terrain is Water (world vt `+0x2BC`) or, with b
 
 ## 3. The water and lava bed: 0x0043E440
 
-Arguments (x, y, terrain, list, mask); CONFIRMED (disassembly of the entry and table loop, the
+Arguments (x, y, terrain, list, mask); STRONGLY INFERRED (disassembly of the entry and table loop, the
 rest a clean decompile). Callers: `0x0043E860` at `0x0043FE2B` for plain Water and Lava terrain
 with the tile byte +0xC, and the Quad builder above. For ConstructionTypeWater terrain
 `0x00450470` sets bit k when the neighbour is off the map, has the same terrain id, or is a room
 tile whose definition `+0x43D` has bit 0 or 1 (placeable on water or lava) and whose cell `+8`
-bit 0x1000 matches (clear for water, set for lava) (LIKELY, decompile).
+bit 0x1000 matches (clear for water, set for lava) (HYPOTHESIS, decompile).
 
 ```
 if terrain is Water (no 0x100) and TranslucentWater == 0 and mask == 0xFF: draw nothing
@@ -159,7 +162,7 @@ The quarter table Q (`0x0066DEA0`): 0:(5,1) 1:(4,1) 2:(5,1) 3:(4,1) 4:(4,2) 5:(6
 
 ## 4. DoubleQuad in full: 0x00443F20
 
-CONFIRMED in the disassembly: `0x00443F20..0x0044425F` (dispatch, door tests, inner mask, the
+STRONGLY INFERRED in the disassembly: `0x00443F20..0x0044425F` (dispatch, door tests, inner mask, the
 first quadrant) and the later quadrants' offsets (q1 inner +1 at `0x004443A0`, outer +3 at
 `0x00444453`; q2 `0x00444553`, `0x00444638`; q3 `0x00444734`, `0x004447D2`).
 
@@ -199,7 +202,7 @@ the table's pieces as DK2 does.
 
 ## 5. The wall decoration phase: room +0x92 and +0x96
 
-CONFIRMED (disassembly `0x004ECEB0..0x004ED189`, `0x004544B1..0x00454507`, `0x0050BB63..`).
+STRONGLY INFERRED (disassembly `0x004ECEB0..0x004ED189`, `0x004544B1..0x00454507`, `0x0050BB63..`).
 
 - `Room_Construct` sets both to −1 (`0x004E3942`).
 - `0x004ECEB0` sets them. Bridges (types 8, 0x11, 0x16) get 0 and 0. Otherwise, while either is
@@ -220,7 +223,7 @@ CONFIRMED (disassembly `0x004ECEB0..0x004ED189`, `0x004544B1..0x00454507`, `0x00
 
 ## 6. The liquid surface
 
-**Who draws it** (CONFIRMED, disassembly `0x0043D1C5..0x0043D394` in the per-tile pass
+**Who draws it** (STRONGLY INFERRED, disassembly `0x0043D1C5..0x0043D394` in the per-tile pass
 `0x0043CC30`, through the visibility gate below). The terrain is
 the tile's own, except that a bridge tile (8, 0x11, 0x16) **over water** uses the Water terrain; a
 bridge over lava keeps its own, so **no lava surface is drawn under a bridge** (only the bed).
@@ -231,7 +234,7 @@ room definition `+0x261` bit 0 is set (never: loaded with 0x20000) or Translucen
 The renderer vtable is `0x00670574`: `+0xF8` = `0x005A2570`, `+0xFC` = `0x005A2BE0`, `+0x100` =
 `0x005A2F10`. Every call passes colour (0, 0, 0, 255).
 
-**Fog gate, rechecked 2026-10-24.** CONFIRMED in disassembly
+**Fog gate, rechecked 2026-10-24.** STRONGLY INFERRED in disassembly
 `0x0043D187..0x0043D1BF`: liquid drawing is admitted by explored (`tile+9 & 0x20`),
 Sight (world slot `+0xDC`), possession camera (`0x0044DB70`), or the conjunction
 of terrain flag `0x01000000` and scanned (`tile+0xB & 0x40`). Both shipped Water
@@ -253,7 +256,7 @@ surface is WaterSOLID / Lava0SOLID (`+0x160`); **on**, water uses "Water" (`+0x3
 cache holds Water0..31, WaterSOLID0..31, Lava0 and Lava0SOLID: water animates over 32 frames (its
 frame rate is UNKNOWN), lava does not. The Temple uses the room's "Water" (`+0xA6` as type 1).
 
-**Geometry** (CONFIRMED in the three drawers; render command `0x005873A0`). Per tile a 3 × 3
+**Geometry** (STRONGLY INFERRED in the three drawers; render command `0x005873A0`). Per tile a 3 × 3
 vertex grid (2 × 2 cells; n = 2 samples per tile, set by `0x00447AF3`) from (x, y) to
 (x + 1, y + 1), heights and normals per vertex, alpha argument 0.7. Heights are in tile units with
 up = −z, so −0.9 is 0.1 tile below the floor (DK2 z 0xE66) (STRONGLY INFERRED: the beds hang
@@ -276,7 +279,7 @@ are then rebuilt through a float step (constant unread). It runs
 only with Sine Wave Water off (`0x0043BF7B`); what disturbs it is UNKNOWN. The options are the
 settings object `0x00759A78`: `+0x60` Translucent Water (`0x00759AD8`, setter `0x005664A0`) and
 `+0x68` Sine Wave Water (`0x00759AE0`, setter `0x005668F0`); their defaults follow a machine-speed
-tier (`0x00563FB0`, LIKELY). How the command blends (beyond the 0.7 argument) remains UNKNOWN.
+tier (`0x00563FB0`, HYPOTHESIS). How the command blends (beyond the 0.7 argument) remains UNKNOWN.
 The recovered vtable `0x0066FDDC` draw paths are in the [residual fog-edge trace](#residual-fog-edge-trace-2026-11-01).
 
 ### Residual fog-edge trace (2026-11-01)
@@ -315,7 +318,7 @@ SHA-256 manifest. These are remake captures, not native DK2 screenshots.
 
 ## 7. The 2×2 and 3×1 hero gates
 
-**The builder, `0x00446800`** (selectors 11 and 13). CONFIRMED (clean decompile). One whole
+**The builder, `0x00446800`** (selectors 11 and 13). STRONGLY INFERRED (clean decompile). One whole
 entry: piece n = high nibble of byte +0xC, rotation = low nibble, handle definition `+0xD0 + n·0x1B`,
 or `+0x280 + n·0x1B` (the loader's destroyed set, `wall-pieces.md` §1) when room `+0x9A` bit 0
 is set; tinted like §2. Selector 13 then runs the wall chooser's type 0x17 arm (`wall-pieces.md` §3).

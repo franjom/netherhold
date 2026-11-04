@@ -1,4 +1,7 @@
-﻿# Gold on the floor: the fourth place a keeper's gold can be
+﻿---
+systems: [imps-tile-work]
+---
+# Gold on the floor: the fourth place a keeper's gold can be
 
 **Source:** `DKII.EXE`, the `Treasure.cpp`, `Player.cpp`, `Creature.cpp` and
 `ImpUtils.cpp` translation units, read on 2026-09-05, plus `Objects.kwd` and
@@ -384,7 +387,7 @@ neutral workers.
 the level row. The worker arm also uses variable 74, which is **340** on every shipped level
 (`imp-hands-full.md`).
 
-**Related, not the walk-over** (LIKELY; detail in each function's record):
+**Related, not the walk-over** (HYPOTHESIS; detail in each function's record):
 
 - A possessed creature's action 26 (`0x00514830`) has a pick-up arm. It takes the smallest
   of the pile, twice what the purse lacks, and 100, and credits half. A possessed creature

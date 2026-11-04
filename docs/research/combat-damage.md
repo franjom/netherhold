@@ -1,4 +1,7 @@
-﻿# Mechanic: the melee damage formula, end to end
+﻿---
+systems: [combat]
+---
+# Mechanic: the melee damage formula, end to end
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -31,7 +34,7 @@ out-pointer it returns:
 | `0x00441990` | `*out = (*this << 12) / *arg` — a 12.12 **divide** |
 | `0x004363F0` | Signed 64-bit product, shifted 12 and narrowed into the 32-bit output — a 12.12 **multiply** |
 
-CONFIRMED from fresh assembly (2026-10-04): `0x00436411–0x00436421`
+STRONGLY INFERRED from fresh assembly (2026-10-04): `0x00436411–0x00436421`
 stores only the low 32 bits of the shifted product. The damage accessor reloads
 that signed result and shifts 12 at `0x00494ED3`. Combining both shifts in a
 wide intermediate loses this narrowing. With authored stat −101 and base 100,
@@ -59,7 +62,7 @@ The bit names are **not new work**: all three were already in this project's
 there, which is the cheapest lesson on this page.
 
 `global+0x482` is **variable 225 `CombatPitMeleeDamageModifierPercentage`**.
-CONFIRMED from fresh assembly (2026-10-04): its setter at `0x0051D645`
+STRONGLY INFERRED from fresh assembly (2026-10-04): its setter at `0x0051D645`
 stores only AL at `0x006F29D2`; the damage reader at `0x00494E1D`
 zero-extends that byte. Authored values therefore wrap modulo 256:
 356 becomes 100, 256 becomes 0, and −1 becomes 255. It ships **100**, so a
@@ -166,7 +169,7 @@ In a Combat Pit: `(100 + 100) / 100 = 2.0`, so `1020`.
 
 ### Level7 Giant versus Imp
 
-CONFIRMED from shipped Level7 data and fresh binary reads on 2026-10-10:
+STRONGLY INFERRED from shipped Level7 data and fresh binary reads on 2026-10-10:
 the nearby starting Giants are level 1, with 4000 HP and melee damage 450;
 the player's starting Imps are level 1 with 500 HP. Neither stat overrides
 the global creature file. The Giant has no spell slots; the Imp's spells
@@ -199,12 +202,12 @@ passes it to step 3 (Q370).
 
 ## Confidence
 
-**CONFIRMED (binary):** the three helpers; the three mutually exclusive arms and
+**STRONGLY INFERRED (binary):** the three helpers; the three mutually exclusive arms and
 their ceilings; the level scaling; the negation and its position; the bearing
 arithmetic and its `> 15` guard; the zero-damage early out; both player
 modifiers; the Monk bracket; the argument order into `FUN_004B2CE0`.
 
-**CONFIRMED (repo cross-reference):** `Possessed`, `InfluencedByPossessed`,
+**STRONGLY INFERRED (repo cross-reference):** `Possessed`, `InfluencedByPossessed`,
 `CombatPitFighter` and `CantBeResurrected`, from `creature-object.md`.
 
 **UNKNOWN:** the bearing bonus's purpose (Q325). `FUN_00490120` is read in

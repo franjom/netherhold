@@ -147,7 +147,7 @@ blind readings; the omissions were early returns, flags and mode parameters, not
    confidence until fixed. If the code is unaffected, say so in the record's History line, so
    the check is not repeated.
 6. **Order.** Records with `status: READ` and nothing downstream first, because no test or replay
-   covers them; then records with no function in Ghidra; then LIKELY and GUESS; BUILT records
+   covers them; then records with no function in Ghidra; then HYPOTHESIS; BUILT records
    last, since their outcomes are already judged against captures. A record marked CONFIRMED
    that cites only a binary read is STRONGLY INFERRED by `RESEARCH_STATUS.md`; list those for
    relabelling as the pass reaches them.

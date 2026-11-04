@@ -7,7 +7,7 @@ namespace DK2.Core;
 /// <summary>
 /// A tile coordinate on the dungeon grid.
 ///
-/// DK2 addresses tiles with small integer coordinates (CONFIRMED: Flame decodes the
+/// DK2 addresses tiles with small integer coordinates (STRONGLY INFERRED: Flame decodes the
 /// position structs its room record uses, the first slab among them, as byte pairs
 /// and ushort pairs).
 /// </summary>

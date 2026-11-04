@@ -11,7 +11,7 @@ namespace DK2.Presentation;
 public readonly record struct MinimapNavigationView(
     int Width, int Height, MinimapZoom Zoom, FpPosition3 Focus, Dk2Angle Heading);
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-rendering.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-rendering.md")]
 public static class MinimapNavigation
 {
     public static bool TryResolve(Vector2 referencePoint, MinimapNavigationView view, out TilePos target)

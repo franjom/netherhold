@@ -9,7 +9,7 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>The wet/blood counters and requests in the creature update, before action and movement.
 /// See docs/research/creature-footprints.md for the native gates and supported flight subset.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/creature-footprints.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-footprints.md")]
 public sealed class FootprintSystem : ISimulationSystem
 {
     private readonly HashSet<TilePos> _corpseTiles = [];

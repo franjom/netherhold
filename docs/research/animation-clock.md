@@ -1,3 +1,6 @@
+---
+systems: [creatures, art-assets]
+---
 # The action animation clock
 
 2026-10-19. Retail v1.70 through PyGhidra. Built for the dig and mining actions as
@@ -5,7 +8,7 @@ ADR-0514 (hash/save 282). It replaces the two provisional end-of-action models,
 which reconstructed the phase from work entry ([mining-finish.md](mining-finish.md),
 [imp-dig-stop-clock.md](imp-dig-stop-clock.md)).
 
-## The record — CONFIRMED (read)
+## The record — STRONGLY INFERRED (read)
 
 A creature's animation object sits at creature `+0x44`, so its fields appear at creature
 `+0xD8` (phase), `+0xDC` (rate), `+0xF1` (flags) and `+0xF2` (art slot).
@@ -16,7 +19,7 @@ A creature's animation object sits at creature `+0x44`, so its fields appear at 
   Creatures.kwd's art slot fields, loaded as `CreatureAnimationTiming`.
 - **Durations:** a segment of n frames lasts `D = n*4096/fps`.
 - **Rate:** `min(4095, 4096*4096/(D*4))`, from [0x004B41E0](functions/004B41E0.md). The
-  divisor 4 is the tick-rate global `0x006F2590`; that it holds 4 is LIKELY, and it
+  divisor 4 is the tick-rate global `0x006F2590`; that it holds 4 is HYPOTHESIS, and it
   reproduces both Imp rates.
 - **Carry:** `over*4096 / (Dnext*4096/Dprev)`, truncating at each division.
 - **Imp art slot 5:** 15 Main frames, 8 End frames, 20 FPS and no Start segment. That gives a
@@ -124,7 +127,7 @@ Tests: `ImpWorkAnimationTests`.
   worker keeps its clip unadvanced, as `0x0048BE50` does. Other exclusions change state, and
   the next step clears the clip.
 - **Phase carry between states:** a direct dig-to-mine change with no turn between actions
-  would keep the phase in DK2 (LIKELY). Ours reinstalls, because any turn outside a work
+  would keep the phase in DK2 (HYPOTHESIS). Ours reinstalls, because any turn outside a work
   state clears the clip.
 - **Other actions** still use closed-form `ActionUntilTick` hold times, correct only from a
   fresh install: claim, reinforce, convert, melee, spells, training, eating and the victory
@@ -140,10 +143,10 @@ and the loop bit cleared, so the clip plays once.
 The runner ends the action on the poll after the clip's rate drops to 0. That is one
 turn after completion, so an action lasts k + 1 turns, where k advances reach 4096.
 
-**Install coin (CONFIRMED, read):** when the art flags hit `0xFC00`,
+**Install coin (STRONGLY INFERRED, read):** when the art flags hit `0xFC00`,
 [0x004B37D0](functions/004B37D0.md) draws `rand(2)` on the simulation stream. On a 1
 with flag `0x400` it installs the definition's alternate clip (definition `+0x46E`) and
-sets animation flag bit 6. That `+0x46E` is loaded from file `+0x1083` is LIKELY: the
+sets animation flag bit 6. That `+0x46E` is loaded from file `+0x1083` is HYPOTHESIS: the
 block there is an art block (the Imp's IMP-Idle4), but the loader's copy was not read.
 
 | Imp clip | Frames / fps | Rate | Turns |

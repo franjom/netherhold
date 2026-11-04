@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The Casino's states: 145–153, the jackpot and its winner (152, 155–157)
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-06.
@@ -8,7 +11,7 @@
   (creature `+0x24E`); `+0xB1` is creature `+0x2FF`. `Age` is state `+0x1C`, 1 on a state's
   first handler call. `v19` is variable 19, four turns a second.
 
-## 1. How a gambler moves — CONFIRMED
+## 1. How a gambler moves — STRONGLY INFERRED
 
 States 145–151 and 153 are category 17, so the update hook `0x0047AD70` runs in all of them
 and a walk between them (state 6, resuming one of them) keeps it running. 152 and 155–157 are
@@ -33,7 +36,7 @@ helpers `0x00471890` and `0x00471A70`): 145 from job 9's walk (`0x0045613D`), fr
 150; 153 from the jackpot (`0x004D6B45`) and 145's walk (`0x004561BF`). The room drop
 (`Room_DropCreature`) also enters 145, as the Casino's room-record state.
 
-## 2. State 145, the chooser `0x00456160` — CONFIRMED
+## 2. State 145, the chooser `0x00456160` — STRONGLY INFERRED
 
 1. At `Age` 1 the creature stops (`0x0048ECE0`).
 2. Not on a tile of its own keeper's Casino (`0x004539B0(15, owner, 0)`): return 0.
@@ -52,7 +55,7 @@ helpers `0x00471890` and `0x00471A70`): 145 from job 9's walk (`0x0045613D`), fr
 Ghidra's decompiler marks the object arms of step 6 unreachable: it loses the finders' out
 parameter. The disassembly (`0x00456249`–`0x004563F5`) is the reading.
 
-## 3. The finders and where a gambler stands — CONFIRMED
+## 3. The finders and where a gambler stands — STRONGLY INFERRED
 
 The Casino's room record lists objects 87, 59, 67 and 68 in its first four slots
 (`terrain-room-dump.md`): *Roulette Table*, *Barrel*, *Bar Table* and *Alcove Barrels*. Slots
@@ -88,7 +91,7 @@ The Casino's room record lists objects 87, 59, 67 and 68 in its first four slots
   3 for `0x100`, else 0; the Casino's terrain (24, flags `0x30000034`) has none of them, so it is
   0 on every Casino tile.
 
-## 4. Drinking: 146 and 147 — CONFIRMED
+## 4. Drinking: 146 and 147 — STRONGLY INFERRED
 
 **146.** With `+0xAC` set: the object in `+0xB1` must still be a live object (`0x006ED540`,
 kind 2), else `SetState(145)` and return 1; the creature turns toward it (`0x004B2AE0`) and
@@ -113,7 +116,7 @@ chooses the drunk walk art: presentation. Its one simulation reader is 146's cou
 position) ends its action (`0x00496D20`). It stores its position. While the action runs it holds
 (every `v19 × 8` turns a sound); after, `SetState(145)`.
 
-## 5. Gambling at a table: 148 and 149 — CONFIRMED
+## 5. Gambling at a table: 148 and 149 — STRONGLY INFERRED
 
 **148.** The same facing step as 146. Then `A` = art 14 present (`0x00494A00`, no fallback),
 `B` = art 8 present on the Smiley setting or art 9 on the $ setting (`0x004D6880` on the held
@@ -134,12 +137,12 @@ is a live Roulette Table, `random(2)` picks one of the Roulette Wheels (object 3
 spin (`0x0049EF60(0x12)`) with sound `0xD5`: presentation, but the draw is on the simulation stream.
 Without a wheel, 149 still asks `0xD5` every `v19 × 8` turns ([sound-effects.md section 12](sound-effects.md#12-rooms-creature-states)).
 
-## 6. A bare tile: 150 and 151 — CONFIRMED
+## 6. A bare tile: 150 and 151 — STRONGLY INFERRED
 
 **150** (`0x00456450`, not a function in the canonical project): action 68, count 1; started,
 `SetState(151)`, else return 0. **151** as 147 without the sound.
 
-## 7. The actions — CONFIRMED (table), LIKELY (duration)
+## 7. The actions — STRONGLY INFERRED (table), HYPOTHESIS (duration)
 
 `0x004950C0` fills each record (`0x006E4198 + id × 0x1D`): actions 35, 56, 39, 57 and 65–68 have
 no handler, mode 0 (EAX, 0 at their stores) and no fixed duration, so each ends with its
@@ -149,14 +152,14 @@ animation. Their art (`+0x14`): 35 → 8 (`0x00495AFF`), 39 → 19 (`0x00495BB3`
 as the cycle count and, for `n` below 2, clears looping: so count 1 plays once and count `n ≥ 2`
 plays `n + 1` times, as the prison's flourish does (ADR-0301). The length of a play is the
 resolved art's frames and rate, as `AnimationTimingRules` reads them; that the runner ends a
-looped action after exactly its cycles is LIKELY (the cycle flags are the renderer's).
+looped action after exactly its cycles is HYPOTHESIS (the cycle flags are the renderer's).
 
 **In the shipped data** (`CasinoOnRealDataTests`): of the 39 creatures whose job tables list Drink,
 King Reginald and the Stone Knight have no art 19 or 9 and no 28 or 8, so 146 turns them idle three
 times in four and 153 at once; every drinker has 37, 8, 20 and 34; 28 lack art 14, so action 65 is
 open to eleven.
 
-## 8. The jackpot `0x004D6AA0` — CONFIRMED
+## 8. The jackpot `0x004D6AA0` — STRONGLY INFERRED
 
 The update hook rolls `random(5000)` on Smiley, `random(20000)` on $ (variables 205, 206), once
 per act, after the purse; a 42 calls the jackpot on the keeper with the gambler. It does nothing
@@ -176,7 +179,7 @@ if any of the keeper's creatures has a winner's deadline (`+0x3F2`). Otherwise:
 `state-category-hooks.md` §3.1 said the others got "complaints 1 and `0x99`": those are the two
 kicks.
 
-## 9. The party — CONFIRMED
+## 9. The party — STRONGLY INFERRED
 
 **The room update** (`0x004D6270`): with `+0x41` set at the turn's start it never reaches the
 settlement (`0x004D676F` lies on the party-off path; the party block exits at `0x004D6862`), so a
@@ -200,10 +203,10 @@ creature can reach (`0x00471740(room, 0x80)`) and that has a place or a lever; n
 ranking. A gambler at or below the stake can join a party, but the update hook's own purse test,
 which the party does not lift, sends it idle on its first act (`state-category-hooks.md` §3.1).
 
-## 10. The winner: 152, 155, 156, 157 — CONFIRMED
+## 10. The winner: 152, 155, 156, 157 — STRONGLY INFERRED
 
 **152** (`0x00456EC0`, category 0). At `Age` 1: any action ends; art 28 resolved present, action
-57 at its position (`0x00496980`, which writes no count: one play is LIKELY, §7); else art 8,
+57 at its position (`0x00496980`, which writes no count: one play is HYPOTHESIS, §7); else art 8,
 action 35 with count `random(4) + 3`;
 else return 0. Each turn with no action running, action 35 again. At `Age` `v19 × 10`:
 `KickToState(1)`, `KickToState(155)`.
@@ -235,7 +238,7 @@ so ours does not keep them); reaching 0 calls
 `0x004D6A40`: every creature of the keeper gets variable 208 (100) on Treatment with complaint
 9, and the keeper message 91.
 
-## 11. Messages — CONFIRMED
+## 11. Messages — STRONGLY INFERRED
 
 From the 10-byte rows at `0x006A0B00`: 73, 75, 77 and 91 are `0x2032` (50 s, tab, no duplicates);
 89 has a variant list at `0x006A09D8` whose variant 11 lasts 20 s.

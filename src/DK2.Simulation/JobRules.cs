@@ -13,13 +13,13 @@ namespace DK2.Simulation;
 /// job availability</b> — the choosers never inspect rooms, they try jobs until one says
 /// yes. Every handler is a cheap keeper-or-creature test (some have none), a search for
 /// the nearest suitable room, then entering the state, which can still fail.
-/// <para>The job-to-room map is CONFIRMED twice over: the Guard handler passes the
+/// <para>The job-to-room map is STRONGLY INFERRED twice over: the Guard handler passes the
 /// literal 9 (<see cref="RoomTypeId.GuardRoom"/>), and DK2's per-room-type handler table
 /// carries a job id in its last slot, giving eight agreements plus Prison→<see cref="JobType.Wait"/>
 /// (Q210). That table is one dispatch path, not the whole map — Lair and Combat Pit
 /// carry no job id, so <see cref="JobType.Sleep"/>, <see cref="JobType.Sulk"/> and
 /// <see cref="JobType.CombatPitSpectate"/> (state 89's fallback, ADR-0227) come another way.</para></summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/job-selection.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/job-selection.md")]
 public static class JobRules
 {
     /// <summary>The room a job is done in, or null when the job needs none. <b>Sulk

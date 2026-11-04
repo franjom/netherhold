@@ -1,3 +1,6 @@
+---
+systems: [combat]
+---
 # Mechanic: fear and flight — the accumulator, the counter, the back-off and the withdrawal
 
 Source(s):
@@ -285,7 +288,7 @@ including the acquirer's withdraw; §4 in order with the nearest-attacker rule,
 the stand-off, head-count and Scout alarm entry (ADR-0425); §5's lair/Heart/room
 destinations and the run, with failure/fallback differences below;
 `Running` as the body's speed cap (the definition's `RunSpeed`, `def+0x5B8` through
-`0x004887D0` mode 1, with no level term; CONFIRMED, ADR-0518). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
+`0x004887D0` mode 1, with no level term; STRONGLY INFERRED, ADR-0518). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
 202, entered from 199 when not already in the combat group; both hold those ids since
 ADR-0208. The arrival's turn ends in 202, which idles on the next turn, and a creature a
 combat handler leaves in state 1 runs 1's handler the turn after (ADR-0580).
@@ -333,19 +336,19 @@ general nearby-enemy reaction. Provenance: `0x00489AD3`–`0x00489E27` assembly.
 
 ## Confidence
 
-**CONFIRMED (binary):** every step of §2, §3, §4 and §5, the field names, the
+**STRONGLY INFERRED (binary):** every step of §2, §3, §4 and §5, the field names, the
 two balance variables, the escape test's direction, the run-speed comparison's
 direction, the dead overwrite in §5 step 5, the dispatcher's idle on a zero
 return, §6.
 
-**CONFIRMED (binary, 2026-09-26):** (1, 1) as a heartless player's heart position.
+**STRONGLY INFERRED (binary, 2026-09-26):** (1, 1) as a heartless player's heart position.
 
 **STRONGLY INFERRED:** `+0x12` clear meaning a live thing. The run speed is the
 definition's, unscaled by level (ADR-0518).
 
-**CONFIRMED (binary, 2026-10-04):** bit 4's writers (§3.2); the Crypt counts (§2 step 4).
+**STRONGLY INFERRED (binary, 2026-10-04):** bit 4's writers (§3.2); the Crypt counts (§2 step 4).
 
-**CONFIRMED (data, 2026-10-06):** no shipped level (all 66 in `Data/editor/maps`) holds a Crypt, so the Crypt counts are 0 there (Q375).
+**STRONGLY INFERRED (data, 2026-10-06):** no shipped level (all 66 in `Data/editor/maps`) holds a Crypt, so the Crypt counts are 0 there (Q375).
 
 **UNKNOWN:** the reflect arm's creature vslots `+0x60` and `+0x84` (§4 step 8), unread.
 
@@ -354,11 +357,11 @@ definition's, unscaled by level (ADR-0518).
 **The stamp.** The withdraw state's success tail (`0x004617B2`–`0x00461826`) sets the run speed,
 makes effect `0xDC`, and then, unless the creature's `TypeId` (`+0x36F`, the dumper's name) is
 1 (the Imp), stamps `OldFightPos` and `OldFightTick`. It reads `+0x1A`, the x coordinate, for
-**both** words. **CONFIRMED.**
+**both** words. **STRONGLY INFERRED.**
 
 **The reader.** State 1 (`0x004773D0`) tests the stamp before its hero, neutral, worker and
 default arms.
 - **Stale:** with `now >= OldFightTick + 500` it clears all three.
 - **Healthy:** with `(level-scaled Hp × 3) >> 2 < Health` it walks to the tile's centre,
   `0x00471890(point, 1, TypeId == 1 ? 0x80 : 0)`, and clears the stamp on success.
-- **Otherwise** the stamp is kept, and the other arms run. **CONFIRMED.**
+- **Otherwise** the stamp is kept, and the other arms run. **STRONGLY INFERRED.**

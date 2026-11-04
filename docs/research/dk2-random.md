@@ -1,3 +1,6 @@
+---
+systems: [simulation-core]
+---
 # DK2's random numbers: the generator, its streams and its seed
 
 Source(s):
@@ -14,7 +17,7 @@ Original version: DK2 v1.70 (GOG)
 Implemented as `Dk2Lcg` in `src/DK2.Core`, behind `SimRandom`, and not the
 default (ADR-0275). Answers Q3.
 
-## 1. The generator, `0x005558D0` (CONFIRMED)
+## 1. The generator, `0x005558D0` (STRONGLY INFERRED)
 
 It takes four arguments: the range `n`, a pointer to a 32-bit seed, a source
 file name and a line number. Every caller passes its own `__FILE__` and
@@ -35,7 +38,7 @@ Consequences:
 - The furniture selector (`auto-placed-furniture.md` §2) is this same function
   called on a stack-local seed built from tile coordinates.
 
-## 2. The streams (CONFIRMED by call-site argument)
+## 2. The streams (STRONGLY INFERRED by call-site argument)
 
 Each call's seed pointer was read from the push before the source-file push.
 The source file comes from that string.
@@ -69,7 +72,7 @@ calls in 6 functions:
   record. A simulation use would desync lockstep multiplayer, so these two
   are presumably presentation. That is a HYPOTHESIS until they are read.
 
-## 3. The seed (CONFIRMED)
+## 3. The seed (STRONGLY INFERRED)
 
 - **Level start sets it to 1.** `0x00513870` stores 1 at `+0x15A0`. It is
   called from `0x00511A80`, and Flame names it the level-load action handler.
@@ -86,7 +89,7 @@ calls in 6 functions:
 So every level starts from the same random state. Two runs differ only by
 their inputs, which is why `-PSAVE`/`-PLOAD` playback reproduces a session.
 
-## 4. The dead draw log (CONFIRMED present, never enabled)
+## 4. The dead draw log (STRONGLY INFERRED present, never enabled)
 
 When the global `0x0075B2F4` is non-zero and the seed passed is the world
 seed, the generator logs `R[file:line] seed` for each draw, with the file name

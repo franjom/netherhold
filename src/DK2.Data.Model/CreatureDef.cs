@@ -37,7 +37,7 @@ public sealed record CreatureJobAlternative(JobType Job, short MoodChange, short
 
 /// <summary>
 /// Gameplay-relevant creature definition parsed from CREATURES(170) records.
-/// Field layout CONFIRMED from ufdada/dk2-tools creatures_struct.bt, offsets
+/// Field layout STRONGLY INFERRED from ufdada/dk2-tools creatures_struct.bt, offsets
 /// self-validated against the template's own anchors and the 5449-byte record
 /// size of the reference Creatures.kwd (docs/research/kwd-creatures.md).
 /// Art/animation resources are intentionally reduced to their names — asset

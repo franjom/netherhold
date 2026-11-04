@@ -1,3 +1,6 @@
+---
+systems: [rooms, computer-keeper]
+---
 # Bridge placement, and the computer keeper's bridges
 
 **Scope:** `DKII.EXE` v1.70, MD5 `2f3bbc21eae8c3aa468136baa303036d`; read 2026-10-01 with Ghidra

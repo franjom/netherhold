@@ -1,4 +1,7 @@
-﻿# Mechanic: door contact, the door fight and a door's death
+﻿---
+systems: [doors-traps, navigation]
+---
+# Mechanic: door contact, the door fight and a door's death
 
 Source(s): DKII.EXE v1.70, PyGhidra and pyghidra-mcp reads on 2026-09-28 and 2026-10-02;
 the owner's play (Q454 and the support wall, 2026-10-02); the shipped THINGS files.
@@ -143,7 +146,7 @@ Update `0x004A55F0`, in its order:
 
 **CONFIRMED (owner, 2026-10-02):** digging out a wall beside a door destroys the door.
 
-**Shipped data (CONFIRMED):** of 940 placed doors on 46 levels, none fails the support test;
+**Shipped data (STRONGLY INFERRED):** of 940 placed doors on 46 levels, none fails the support test;
 one fails the owner test — Level 4's hero Wooden Door at (24,9) on a Neutral-owned tile, which the
 read rule kills on the first update. **Consistent with Level 4 seed 1's capture and dump (2026-10-15):** DK2
 has no door record there from tick 2 on, and its navigation byte at tick 500 is 0 on that water tile (§7, Q600).

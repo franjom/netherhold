@@ -1,6 +1,9 @@
+---
+systems: [data-formats]
+---
 # DK2 v1.70 terrain and room tables
 
-DK2's own data, read from the reference install — CONFIRMED by definition.
+DK2's own data, read from the reference install — STRONGLY INFERRED, being the shipped data itself.
 Layout and validation: `docs/research/kwd-terrain-rooms.md`. Each block names
 the `dk2tools` subcommand that regenerates it; a disagreement between this page
 and the tool means the page is stale.

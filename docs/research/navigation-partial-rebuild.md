@@ -1,3 +1,6 @@
+---
+systems: [navigation]
+---
 # Mechanic: the navigation mesh's per-tile rebuild (Q591)
 
 Source(s):
@@ -134,7 +137,7 @@ After an edit, DK2's procedure, now ours too:
 - it coarsens only the rectangle.
 
 The same navigation bytes can yield different triangles and routes after an
-edit history versus a fresh build: **CONFIRMED by the native controlled rebuild
+edit history versus a fresh build: **STRONGLY INFERRED by the native controlled rebuild
 in §6**. That result does not prove a campaign loss or a defect in our fresh
 builder. Building the partial path faithfully needed, and has (ADR-0461):
 
@@ -227,7 +230,7 @@ transcribed, so on this capture the effect did not show; a capture with
 
 ## 6. Level 1 same-input navigation controls (2026-10-25)
 
-**CONFIRMED, bounded computation.** The three live choices in
+**Measured, bounded computation.** The three live choices in
 [Imp selection evidence](imp-selection-evidence.md) match hash303 jobs/RNG, but
 two reconstructed routes differ. The execution-327 choice now separates current
 bytes, retained mesh history and fresh building. Modern target remains
@@ -324,7 +327,7 @@ Seed1 has53 single-tile partial refreshes; seed3 has55. Seed7 has46 single-tile
 and two double-tile refreshes. At replay106, events observe `(9,30)` before
 `(9,26)`; refresh107 applies `(9,26)` before `(9,30)`. At521, `(17,20)` then
 `(15,32)` retain their order at refresh522. Thus real batching and one reversal
-are **CONFIRMED** in this prefix. Their effect on the Hatchery deadline or loss
+are measured in this prefix. Their effect on the Hatchery deadline or loss
 remains **UNKNOWN**; seeds1/3 already diverge without batching in this window.
 
 Commands: `Analysis.dll native <root>/native-events.jsonl <new-results.json>`;

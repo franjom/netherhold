@@ -1,3 +1,6 @@
+---
+systems: [data-formats, simulation-core]
+---
 # Format: saved games (`.SAV`, `.QSAV`)
 
 Source(s):
@@ -13,7 +16,7 @@ Saves are user-generated, not shipped assets, so nothing here is a
 redistribution question. Reading them still goes through the asset
 abstraction layer like everything else.
 
-## Shape of the file — CONFIRMED
+## Shape of the file — STRONGLY INFERRED
 
 | Region | Offset | Size | Contents |
 |---|---|---|---|
@@ -41,7 +44,7 @@ is sized by something else about the level (Q183).
 `0x8859` is odd, so the writer is a byte-oriented serialiser, not a `memcpy` of
 a packed struct.
 
-## How the save is written — CONFIRMED from the binary
+## How the save is written — STRONGLY INFERRED from the binary
 
 The save routine was found by following the Save window's text-input handler
 (`0x0042A920`) through **vtable slot `+0x28`** on the world object, whose

@@ -33,7 +33,7 @@ public static class CreatureActivityRules
     /// (state object <c>+0x98</c>) is 6, reinforce: the kind stays until state 10 zeroes it
     /// (<c>0x00464010</c>), so through a fight too (Q574); a repair is 16, not 6 (<c>0x0046AEA0</c>).
     /// Otherwise <see cref="WorkerFighting"/> in the combat category, else <see cref="WorkerBusy"/>.</summary>
-    [Dk2Behavior(Confidence.Confirmed, "docs/research/computer-keeper-management.md")]
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-management.md")]
     public static int Code(CreatureDef definition, CreatureState creature)
     {
         CreatureStateCategory category = NeedRules.ResolvedCategory(creature);

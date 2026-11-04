@@ -1,8 +1,11 @@
+---
+systems: [imps-tile-work]
+---
 # Reinforcement selection and work (Q696, Q564)
 
 ## Selection
 
-CONFIRMED binary predicate from whole `0x00453E90`, including its unsigned health
+STRONGLY INFERRED binary predicate from whole `0x00453E90`, including its unsigned health
 comparisons, read 2026-10-31. Full executable-block CallScanAll finds only
 `0x0046AEF1`, in the reinforce/repair handler `0x0046AEA0`.
 
@@ -45,7 +48,7 @@ The health writes are those of `0x00452F60`, not the selector.
 
 ## Own-wall retry cycle
 
-Mechanism CONFIRMED, observable unverified. Whole state 22 (`0x00466390`)
+Mechanism STRONGLY INFERRED, observable unverified. Whole state 22 (`0x00466390`)
 rejects an own wall at its continuation test and reaches the tail at
 `0x004665DB`: it deletes a matching kind-6 entry, clears its held id and
 returns to 10. The pool wrapper `0x00508040` and remover `0x00507EF0` only

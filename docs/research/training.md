@@ -1,4 +1,7 @@
-﻿# Mechanic: training, and the four rates that share its shape
+﻿---
+systems: [rooms, creatures]
+---
+# Mechanic: training, and the four rates that share its shape
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-07
@@ -10,7 +13,7 @@ Original version: DK2 v1.70 (GOG)
 Everything below is read out of the executable. Facts only, per ADR-0046 — no
 decompiler output is reproduced and none is in the repository.
 
-Confidence: **CONFIRMED** throughout except where a clause says otherwise.
+Confidence: **STRONGLY INFERRED** throughout except where a clause says otherwise.
 Questions: Q205, Q79, Q127 (both readings corrected), Q124 (one clause
 confirmed), Q186, Q203.
 
@@ -19,7 +22,7 @@ Trap: the Imp's `ExpPerSecond` of **1200** against a balance-table
 evidence that the record's rates are **per minute**. They are not — the 1200 is
 a coincidence between two unrelated mechanics (§5.2).
 
-## 2. Where the payment lives — CONFIRMED
+## 2. Where the payment lives — STRONGLY INFERRED
 
 Not in any of the six training states. `FUN_00485310`, `FUN_004859e0`,
 `FUN_00485580`, `FUN_004855b0`, `FUN_004857f0` and `FUN_00485a60` are states
@@ -58,7 +61,7 @@ States 108–112 carry category 13; state 113 carries category 0. So **five of t
 six training states pay identically and the payment was written once**. The same
 trick gave the prison its drain (category 14, `FUN_0047B7C0`, Q173).
 
-## 3. What the update hook does, in order — CONFIRMED
+## 3. What the update hook does, in order — STRONGLY INFERRED
 
 1. If the creature's level is at or above `TrainingRoomMaxExperienceLevel`, the
    hook returns failure.
@@ -88,7 +91,7 @@ Four things fall out of the order, and each is behaviour:
 - **The "-20" is cosmetic and the accounting is not.** DK2 spends five a second
   and shows the player twenty every fourth second.
 
-## 4. The rate is per second, and the loader is what says so — CONFIRMED
+## 4. The rate is per second, and the loader is what says so — STRONGLY INFERRED
 
 The creature loader `FUN_00492320` stores five consecutive frame slots into five
 runtime fields, and **four of the five are divided as they are stored**:
@@ -141,7 +144,7 @@ divide to zero and are floored to one, so each researches at **4 a game
 second** — four times the Skeleton's shipped number and a third more than the
 Dark Angel's. It **rounds up as far as it needs to**.
 
-## 5. What the sibling rates are for — CONFIRMED
+## 5. What the sibling rates are for — STRONGLY INFERRED
 
 Each of the four is read by exactly one category update hook, and each hook
 scales it by one column of the 32 × 9 per-level stat table at `DAT_006E4154`:
@@ -196,7 +199,7 @@ Maiden Of The Nest is the only creature in the game carrying 25.
 never trains and never fights: its 1200 is unreachable, because nothing puts a
 worker into a category-22 state. **Unexplained, and recorded as such.**
 
-## 6. Q79: imp experience is per work hit, not per job — CONFIRMED (corrected 2026-10-06)
+## 6. Q79: imp experience is per work hit, not per job — STRONGLY INFERRED (corrected 2026-10-06)
 
 The owner (2026-09-07): *"imps are fast little buggers, but I am inclined to say
 per job done, job being excavating tiles, mining gold, claiming tiles,
@@ -237,7 +240,7 @@ siblings on the creature record are converted to per-tick by the loader; this
 one is a global, is read raw, and is added raw: **20 a work hit**, so level 2 costs
 150 hits (§6.2's correction; it was once read as 20 a tick, 37.5 s of work).
 
-### 6.2 The cadence — CONFIRMED, and the chain is closed
+### 6.2 The cadence — STRONGLY INFERRED, and the chain is closed
 
 | Link | Routine |
 |---|---|
@@ -267,7 +270,7 @@ hook of §8, is **per tick** rather than per second: it is called from
 `ImpExperienceGainPerSecond` carries. If that variable were ever non-zero it
 would drain **four times** its named rate.
 
-## 7. The adder, and two readings of ours that were wrong — CONFIRMED
+## 7. The adder, and two readings of ours that were wrong — STRONGLY INFERRED
 
 `FUN_00457880(creature, delta)` is the only thing in the game that changes a
 creature's experience:

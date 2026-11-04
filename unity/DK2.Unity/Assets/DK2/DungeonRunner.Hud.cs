@@ -142,7 +142,7 @@ namespace DK2.Unity
         /// <summary>Player <c>+0xEEA</c>, the name the Current Holder box shows: the level's Players
         /// record name, or DK2's own "Good Player" / "Neutral Player" (0x006A6D50, 0x006A6D68) when
         /// that is empty, by the record's kind (0x0051EFE0: 1 good, 2 neutral), else "Keeper %d" with
-        /// its Number (0x0051F0B0, 0x006A6D88), which a level load sets to the id. CONFIRMED.</summary>
+        /// its Number (0x0051F0B0, 0x006A6D88), which a level load sets to the id. STRONGLY INFERRED.</summary>
         private static Func<byte, string> PlayerNames(List<PlayerDef> players)
         {
             var names = new Dictionary<byte, string>();

@@ -1,0 +1,61 @@
+# The closed list of systems the wiki indexes by (ADR-0643). Research notes name theirs in
+# front matter (`systems: [combat]`); ADRs inherit them from the notes they cite or carry
+# `**Systems:**`. `dk2tools docs` rejects an id that is not here. Order is the wiki's order.
+systems:
+  - id: simulation-core
+    title: Simulation core
+    scope: The tick loop, system order, determinism, the state hash, snapshots and save/load.
+  - id: navigation
+    title: Navigation
+    scope: Route finding, the navigation mesh, steering bodies and movement.
+  - id: imps-tile-work
+    title: Imps and tile work
+    scope: Digging, claiming, reinforcing, gold mining and every other imp job on tiles.
+  - id: creatures
+    title: Creatures
+    scope: Creature states, needs, jobs, moods, arrival through portals, payday and death.
+  - id: rooms
+    title: Rooms
+    scope: Room building, selling, capture, and what each room does for its occupants.
+  - id: combat
+    title: Combat
+    scope: Fights, attacks, shots, damage, experience and fleeing.
+  - id: keeper-spells
+    title: Keeper spells
+    scope: The Hand of Evil, possession and every keeper spell.
+  - id: doors-traps
+    title: Doors and traps
+    scope: Door and trap placement, manufacture, triggering and effects.
+  - id: heroes
+    title: Heroes
+    scope: Hero parties, hero gates, tunnelling and hero behaviour.
+  - id: computer-keeper
+    title: Computer keeper
+    scope: The AI keeper's building, attack, defence and management decisions.
+  - id: campaign-triggers
+    title: Campaign and triggers
+    scope: Level scripts, triggers and actions, objectives, win and loss, campaign progress.
+  - id: camera-lighting
+    title: Camera and lighting
+    scope: Camera modes and paths, fog of war, torches and the lighting model.
+  - id: hud-front-end
+    title: HUD and front end
+    scope: The in-game panels, minimap, messages and cursors, and the front-end menus.
+  - id: audio
+    title: Audio
+    scope: Sound effects, speech, music and their triggering.
+  - id: data-formats
+    title: Data formats
+    scope: KWD, KLD, KMF, SDT, WAD and save files, and how we read them.
+  - id: art-assets
+    title: Art and assets
+    scope: Models, textures, animations, effects and the asset pipeline.
+  - id: presentation-unity
+    title: Unity presentation
+    scope: The Unity adapter, rendering, terrain meshes and the presentation boundary.
+  - id: tooling-process
+    title: Tooling and process
+    scope: Research method, the binary and its tools, captures, the harness and verification.
+  - id: legal
+    title: Legal
+    scope: Licences, clean-room rules and what may be reused or redistributed.

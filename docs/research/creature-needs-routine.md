@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Mechanic: the needs routine — how hunger, sleep and pay take a creature off its work
 
 Source: `DKII.EXE` v1.70 (GOG), `0x00477C20` and its caller, the per-creature
@@ -67,7 +70,7 @@ after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
   and the state's flag byte lacks bit 3, `+0x48` is set to now and `HungerFill` is
   added to `+0x4C`. With bit 3 set the stamp is not moved, so the time still
   passes: a helping overdue on leaving the state lands at once.
-- **When the clock starts** (Q102, read 2026-10-04, CONFIRMED). At spawn.
+- **When the clock starts** (Q102, read 2026-10-04, STRONGLY INFERRED). At spawn.
   `CreatureState_Construct` `0x00476B40` is called only from `Creature_Construct`
   (`0x004873C5`). It stamps `+0x48` with the current turn rounded down to a multiple of 8,
   ORed with the creature's entity id & 7, so creatures are staggered across 8 turns.
@@ -84,7 +87,7 @@ after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
 
 - Once `+0x5D2` has passed since `+0x54`, and the flag byte lacks bit 4, `+0x58` is
   set to `+0x5D6` and `+0x54` to now.
-- **Latch writers, rechecked 2026-10-29 (CONFIRMED binary).** The constructor
+- **Latch writers, rechecked 2026-10-29 (STRONGLY INFERRED binary).** The constructor
   initializes `+0x58` to zero; the needs routine loads it at `0x00477E10`;
   `0x00477B20` subtracts with a zero floor. State 83's category hook calls the
   subtractor with 1 each turn, while its handler refreshes `+0x54` to now
@@ -107,7 +110,7 @@ after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
 maximum (definition `+0x692`) with `CreatureSleepsWhenBelowPercentHealth` (50,
 `0x006F28CE`). Below it, a bed attempt with the Sleeping mask, the category test and
 the busy test, but no 4-turn gate (`0x00477F94`–`0x00478023`). The attempt is the same
-`0x0046F440`, and nothing on the path writes `+0x58` (re-read 2026-10-26, CONFIRMED):
+`0x0046F440`, and nothing on the path writes `+0x58` (re-read 2026-10-26, STRONGLY INFERRED):
 
 - **With a bed** it routes only while `+0x58` is non-zero, so a wound alone does not send
   a bedded creature to bed; it only drops the tired branch's 4-turn gate.
@@ -127,7 +130,7 @@ updates, including eating 91–95, active lair/bed states 79–84 and payday
 same skip does not automatically cover a walk resuming one of these states.
 Captivity is different: the usual prisoner states are group 1 with neither
 clock flag. The busy test blocks their attempts, but their overdue hunger and
-sleep-latch updates still run. These distinctions are CONFIRMED from the whole
+sleep-latch updates still run. These distinctions are STRONGLY INFERRED from the whole
 routine and state table, rechecked 2026-10-29; a blanket captivity clock pause
 is not supported.
 

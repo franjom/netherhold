@@ -1,4 +1,7 @@
-﻿# The first worker: how an imp finds work and gets to it
+﻿---
+systems: [imps-tile-work]
+---
+# The first worker: how an imp finds work and gets to it
 
 Milestone M3. Who does the tile work that `tile-work.md` describes, and how they
 come to be doing it.
@@ -22,9 +25,9 @@ Q47); `DKII.EXE` v1.70 for the priority order (`imp-task-priority.md`).
 
 | Claim | Status |
 |---|---|
-| Imp and Dwarf are the game's workers, identified by a flag rather than by id | **CONFIRMED** — `IsWorker` falls on exactly those two (`ImpsOnRealDataTests.TheWorkerFlag_FallsOnExactlyTheImpAndTheDwarf`) |
-| A marked tile is dug, mined or dug-through according to its terrain flags and owner | **CONFIRMED** — the four kinds are mutually exclusive on the shipped data |
-| A worker whose search finds nothing rests in state 12 for 240 + rand(240) ticks, then searches again | **CONFIRMED** (binary, `0x00464110`; `imp-idle-and-wandering.md` §2). States 10 and 12 do not read `ImpIdleDelayBeforeReevaluationSeconds` |
+| Imp and Dwarf are the game's workers, identified by a flag rather than by id | **STRONGLY INFERRED** — `IsWorker` falls on exactly those two (`ImpsOnRealDataTests.TheWorkerFlag_FallsOnExactlyTheImpAndTheDwarf`) |
+| A marked tile is dug, mined or dug-through according to its terrain flags and owner | **STRONGLY INFERRED** — the four kinds are mutually exclusive on the shipped data |
+| A worker whose search finds nothing rests in state 12 for 240 + rand(240) ticks, then searches again | **STRONGLY INFERRED** (binary, `0x00464110`; `imp-idle-and-wandering.md` §2). States 10 and 12 do not read `ImpIdleDelayBeforeReevaluationSeconds` |
 | Creature `speed` is in tiles per second | **STRONGLY INFERRED** (Q29) — see below |
 | Walkability follows `CanWalkOnWater` / `CanWalkOnLava` | **STRONGLY INFERRED** — the flags exist for nothing else |
 | **Job priority is two tiers: marked excavation then claiming, each whole-map; then the nearest of reinforcing and floor gold, wall first on a tie** | **READ from the binary and CONFIRMED by the owner twice** — the order in 2026-08 (Q24, ADR-0018), and that a marked wall beats gold near or far on 2026-09-05 (Q147). Gold's place is DK2's (Q146, ADR-0058); the distance metric is ours (Q25). `imp-task-priority.md` |
@@ -42,7 +45,7 @@ Q47); `DKII.EXE` v1.70 for the priority order (`imp-task-priority.md`).
 | A worker that finishes a job starts the next one at once rather than waiting out the idle delay | **STRONGLY INFERRED** — an imp that has just finished has not been idle |
 | Imps never eat | **CONFIRMED** — owner observation; the Imp's hunger rate of 32767 does mean "never" (Q12) |
 | An imp carries mined gold to a treasury or heart tile itself | **CONFIRMED** — owner observation (Q31); the tail of a mining job, not a job |
-| Where an imp breaks off mining to go and unload | **CONFIRMED, BUILT** (Q50, ADR-0296) — when the hands test reads full, `MaxGoldHeld(level)` less 340: four swings and 1090 gold at level 1 |
+| Where an imp breaks off mining to go and unload | **STRONGLY INFERRED, BUILT** (Q50, ADR-0296) — when the hands test reads full, `MaxGoldHeld(level)` less 340: four swings and 1090 gold at level 1 |
 | An imp with a part-load tops up from a pile it passes | **READ** (Q142) — until its hands hold a level-scaled share of `MaxGoldHeld`; ours gets the same outcome because a loaded imp is delivering before selection runs |
 | An imp with nowhere to unload keeps mining | **CONFIRMED, BUILT** (Q31; ADR-0264) — what its hands cannot hold goes down as a floor pile at its slot (`FloorGold.PutDown`; `gold-on-the-floor.md` §10, Q138, Q140) |
 | Routing: connectivity and step cost | **CONFIRMED** eight-connected (Q28, observed); **STRONGLY INFERRED** a corner cut only past an open side (the region fill `0x004C91A0` walks the three neighbour slots, read as edge neighbours; ADR-0339); **CONFIRMED** no terrain weighting (Q30); **STRONGLY INFERRED** octile 10/14 (Q48). Tie-breaking is ours. The original's algorithm is **not a grid search at all** (Q5, ADR-0155): a triangulated navigation mesh followed by a steering system. Q28 and Q30 stand, because they were observed rather than inferred |
@@ -211,7 +214,7 @@ treasury tile into the next without a spillover rule
 Two decisions are ours rather than the game's, and both are stated in the code:
 
 - **Where it stops mining.** When the hands test `0x00464360(1)` reads full, the
-  level's `MaxGoldHeld` less variable 74 — CONFIRMED (Q50, ADR-0296). At level 1:
+  level's `MaxGoldHeld` less variable 74 — STRONGLY INFERRED (Q50, ADR-0296). At level 1:
   four swings, a 1090 load, a seam in three trips of 1090, 1091 and 819.
 - **Nowhere to unload.** It keeps mining, as DK2's does, and the gold it cannot
   hold goes down at its feet as a floor pile (`gold-on-the-floor.md` §10, Q138,
@@ -294,7 +297,7 @@ dug (kind 14, Q154). Picking gold up takes no time (Q143, `imp-task-priority.md`
 its task lives; it never looks for gold. Mining state 26 (`0x00465870`) is the same, but
 full hands send the imp to deposit before the next strike. The dispatcher `0x00476FC0`
 runs no needs or mood chooser for a worker, and category 3 has no update hook, so nothing in
-the imp's own turn picks a new job until the tile is done. CONFIRMED for the imp's own turn.
+the imp's own turn picks a new job until the tile is done. STRONGLY INFERRED for the imp's own turn.
 STRONGLY INFERRED that no outside routine kicks a digger when gold appears: no such kick was
 scanned for. The owner's gem observation fits state 26: a gem face never runs out, so the imp
 leaves it when its hands are full, to deposit, not to fetch. Ours finishes the tile, which

@@ -9,12 +9,14 @@ using C# and Unity.
 
 Do not invent original DK2 behavior when it can be researched.
 
-Distinguish:
+Distinguish, on the one scale that research notes, function records and code share
+(ADR-0642):
 
-- CONFIRMED
-- STRONGLY INFERRED
-- HYPOTHESIS
-- UNKNOWN
+- CONFIRMED: seen in the running game (owner observation, stopwatch, native capture)
+- STRONGLY INFERRED: read in the binary or the shipped data
+- HYPOTHESIS: fits the evidence, with a step nobody read
+- UNKNOWN: DK2's answer is not known
+- DISPUTED (function records only): two readings conflict
 
 ## HARD RULE: native evidence lives outside the clone
 
@@ -226,7 +228,7 @@ not required to fix the backlog, but do not add to it.
 | inline comment | **6 lines** | worst is 19 |
 | comment lines per file | **40%** | worst is 61% |
 | commit message body | **15 lines** | the last 25 run 0–10 |
-| research doc | **400 lines** | 2 of 202 over |
+| research doc | **400 lines**, front matter excluded | 2 of 296 over |
 | ADR | **50 lines** (amendment **15**) | already met — do not regress |
 | `docs/HANDOFF.md` | **500 lines** | 217 |
 
@@ -242,6 +244,13 @@ document is not the moment to demand a split. `--all` reports the backlog
 a commit body, for a commit-msg hook. Budgets live in one place,
 `DocBudgets` in `src/DK2.Tools/Commands/DocsCommand.cs`; changing one there without changing
 this table is a bug.
+
+**Systems (ADR-0643).** `docs/systems.yaml` is the closed list of systems the wiki indexes by. A
+research note starts with front matter naming its systems (`---`, `systems: [combat]`, `---`);
+an ADR inherits the systems of the notes it cites by file name, or carries `**Systems:** id, ...`
+on its status line, which replaces them. `dk2tools docs` fails a note or ADR you add or change
+that names no system or an unknown one, an ADR with no status, and any ADR number used twice.
+The wiki's index pages are generated in CI (`dk2tools wiki`), never committed.
 
 **Install the hook once per clone:** `git config core.hooksPath .githooks`.
 CI (`.github/workflows/ci.yml`) builds and tests on Linux and Windows with no DK2 install, and its `docs and kb gate` job reruns the budgets and `kb check` on what each push or pull request adds. The hook catches them before the commit. It **blocks** on a budget

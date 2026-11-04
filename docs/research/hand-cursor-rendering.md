@@ -1,6 +1,9 @@
+---
+systems: [hud-front-end, keeper-spells]
+---
 # Hand cursor and hover feedback
 
-## Sprite resources and state (CONFIRMED, binary and shipped data)
+## Sprite resources and state (STRONGLY INFERRED, binary and shipped data)
 
 Read 2026-10-18: cursor loader `0x0040C710`, state update `0x0040AAE0`,
 transition `0x0040ABC0`, software-cursor publication `0x0040ACD0`, and table
@@ -42,15 +45,15 @@ requested state and resets time/frame when leaving a state. `0x0040E300`
 completes state 5 into state 6; it is not a continuously swinging dig cursor.
 The optional random-frame mode exists but is not the ordinary timer.
 
-## Where the hotspot lands (CONFIRMED, 2026-10-23)
+## Where the hotspot lands (STRONGLY INFERRED, 2026-10-23)
 
 Read for the owner's report that our Hand feels "too far down and right" of the mouse.
 
-- **DK2 (CONFIRMED, binary).** `0x0040ACD0` submits surface, frame rectangle and the scaled hotspot through `0x005B2BD0` -> `0x005BB2A0` -> `0x005DBAC0` -> `0x005DC120`. That function stores `-hotspot` as the draw offset (`+0x40/+0x44`). `0x005DC580` places the sprite at `pointer + offset`. So the top-left is `pointer - scaledHotspot`, and the hotspot pixel sits on the pointer.
-- **The pointer source (LIKELY).** The point comes from a mouse source read through a vtable in `0x005DBB10`. That source is unread, so "it is the same point the world picker uses" is LIKELY, not CONFIRMED.
-- **The art (CONFIRMED, shipped data).** The hand is drawn down and right of its hotspot on purpose. Point.png frame 0 has its hotspot (2,17) on a transparent pixel; its claw tip is at (6,33), which is (+4,+16) frame pixels from the hotspot. The claw reaches the hotspot only around frames 24-32 of the 41-frame loop (leftmost pixels (3,19), (0,12), (0,14)).
+- **DK2 (STRONGLY INFERRED, binary).** `0x0040ACD0` submits surface, frame rectangle and the scaled hotspot through `0x005B2BD0` -> `0x005BB2A0` -> `0x005DBAC0` -> `0x005DC120`. That function stores `-hotspot` as the draw offset (`+0x40/+0x44`). `0x005DC580` places the sprite at `pointer + offset`. So the top-left is `pointer - scaledHotspot`, and the hotspot pixel sits on the pointer.
+- **The pointer source (HYPOTHESIS).** The point comes from a mouse source read through a vtable in `0x005DBB10`. That source is unread, so "it is the same point the world picker uses" is HYPOTHESIS, not CONFIRMED.
+- **The art (STRONGLY INFERRED, shipped data).** The hand is drawn down and right of its hotspot on purpose. Point.png frame 0 has its hotspot (2,17) on a transparent pixel; its claw tip is at (6,33), which is (+4,+16) frame pixels from the hotspot. The claw reaches the hotspot only around frames 24-32 of the 41-frame loop (leftmost pixels (3,19), (0,12), (0,14)).
 
-**Ours (CONFIRMED, code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which was the hotspot, as in DK2, and since 2026-10-24 is the claw tip (below).
+**Ours (read in our code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which was the hotspot, as in DK2, and since 2026-10-24 is the claw tip (below).
 
 Claw-tip offset from the pointer in screen pixels (Point frame 0):
 
@@ -79,7 +82,7 @@ claw tip at (6,33) (the finger column is 6-7); frame 28's finger reaches (1,12).
 
 Point's claws flex over the loop (the tip ranges over x 0-15 and y 12-43 frame pixels), so pinning each frame's tip moved the whole hand about the pointer; the owner chose (2026-10-24) one anchor, frame 0's resting tip, so the hand stays still as DK2's does and the claw tip at rest is the click point. The hover tooltip keeps a fixed offset: `HandCursor.Reach` is the frame width minus the anchor X (Point 76, SmallPoint 42, Idle 83), plus 18, so Point's tooltip sits 94 units right where DK2's sat 98.
 
-## Channel selection and hover eligibility (CONFIRMED subset)
+## Channel selection and hover eligibility (STRONGLY INFERRED subset)
 
 Constructor `0x00402670` initializes three channels through `0x0040AAC0`:
 base at interface `+0x12DA` starts at state 1, middle `+0x12F6` and contextual
@@ -88,7 +91,7 @@ middle, then base. Thus contextual zero falls back to the animated Point.
 Hidden-HUD/presentation gates can publish a null cursor; modal semantics remain
 separate from the supported ordinary dungeon view.
 
-**The GUI pointer (2026-10-19, LIKELY).** The middle channel takes tool icon ids
+**The GUI pointer (2026-10-19, HYPOTHESIS).** The middle channel takes tool icon ids
 (0xC, 0xD), not hand states. State 2 `SmallPoint` goes into the contextual
 channel at `0x0040BCB6` and `0x0040BEFE`, when interface `+0x12B2` is non-zero
 and `+0x10C` is zero, behind gates `0x0044D620` and player `+0x19A` == 0.
@@ -119,7 +122,7 @@ hit helper `0x00572820`, then calls `0x0044DEC0` as a fallback. Some implicit
 register arguments in the picker remain unresolved; do not turn this reading
 into an invented complete fog or ray-depth policy.
 
-**The rendered hit (CONFIRMED, read 2026-10-23).** Only meshes enter it. The static and
+**The rendered hit (STRONGLY INFERRED, read 2026-10-23).** Only meshes enter it. The static and
 animated mesh draws append themselves to a 256-entry screen list (`0x00769A78`: x, y, radius
 squared, item) when they carry a thing tag ([0x00572820](functions/00572820.md)), and
 [Thing_DrawRenderInfo](functions/0059B880.md) passes the tag only for: a creature whose definition
@@ -147,7 +150,7 @@ eligible objects within half a tile. This is not arbitrary same-tile picking.
 Built (2026-10-23) as `HoverPickRules` (both stages' eligibility) and `RenderedPick` (triangle hit
 over centre) in src/DK2.Presentation/HoverPickRules.cs, used by `DungeonScene.PickHoverEntity`.
 **Picking leftovers (read 2026-10-24).** The screen circle is the projected bounding sphere
-(CONFIRMED): the animated draw ([0x00584900](functions/00584900.md)) takes the model's KMF Origin
+(STRONGLY INFERRED): the animated draw ([0x00584900](functions/00584900.md)) takes the model's KMF Origin
 through the draw matrix plus the draw position as centre and BoundsScale times the draw scale
 (`+0x60`) as radius; the static draw ([0x00580EC0](functions/00580EC0.md)) the same with its own
 offsets (scale `+0x58`). [0x00575F10](functions/00575F10.md) projects it, radius = focal / depth
@@ -157,11 +160,11 @@ ClassicMeshes writes into UV2 (read once per mesh), with the sphere centre's vie
 centre-pass depth; a mesh without it uses its renderer bounds. Terrain occlusion is unchanged. A draw outside the view never reaches the list: 0x00575D70 culls a sphere outside any of the view's four side planes (so anything behind the eye), before the 1e30 case can apply. Ours tests each renderer's bounds against the camera frustum first (added 2026-10-24 after the owner saw "Chicken" with no chicken on screen: an off-screen chicken behind the camera held every pointer).
 The two gates in [0x005992B0](functions/005992B0.md): `[0x006ED540 + tag]` is the live-slot byte
 of the thing table, which ours meets by looking every candidate up by id (nothing to build); sink
-`+0xD1` is set while binding 26 is held (default PAGE UP, LIKELY the manual's "Pick up Objects
+`+0xD1` is set while binding 26 is held (default PAGE UP, probably the manual's "Pick up Objects
 (Not creatures)", see controls.md) through the setter [0x0059C130](functions/0059C130.md): creatures
 leave the rendered list, a non-creature winner falls to the sweep and the sweep runs object-only.
 Not built (ours has no binding 26). The entity arms run only with a tile under the pointer; ours
-calls `PickHoverEntity` only when `ScreenToTile` returns one, the same outcome (LIKELY).
+calls `PickHoverEntity` only when `ScreenToTile` returns one, the same outcome (HYPOTHESIS).
 
 ## Implemented cursor subset and limits
 
@@ -203,7 +206,7 @@ light `+0x33E`'s own kind3 art, which `Presentation_Update` shows (edge word
 
 ## Selection outline rendering
 
-CONFIRMED (2026-10-18, binary): `0x0043CC30` uses the primary rectangle,
+STRONGLY INFERRED (2026-10-18, binary): `0x0043CC30` uses the primary rectangle,
 falling back to the secondary when the primary is empty. Bounds are half-open.
 For each boundary tile it moves bridge handle `+0x35D` to the tile centre at
 height zero, then sets edge bits north=1, south=2, west=4, east=8, plus `0x10`;
@@ -248,7 +251,7 @@ The texture handle comes from render sink `+0x8E`; its resource and final
 blend/depth state remain UNKNOWN. Keep this separate from the persistent
 dig-tag mesh tint in [tag-highlight.md](tag-highlight.md). The one-tile hover
 cage is most likely the Hand light's (placement-cursor.md §2a). Its visibility flag is
-interface vtable slot `+0x20`, `0x004096B0` (CONFIRMED, 2026-10-23): in Hand mode it shows
+interface vtable slot `+0x20`, `0x004096B0` (STRONGLY INFERRED, 2026-10-23): in Hand mode it shows
 over a dig-taggable tile (blue) or with a full hand and no drop rectangle, and never over
 plain floor with an empty hand.
 
@@ -271,7 +274,7 @@ until compared against the native procedural grid builder. The pulse draws
 the previous level, advances only on active draws, clamps overshoot and retains
 the native strict endpoint reversal.
 
-## Refused drop feedback (CONFIRMED, binary 2026-10-29)
+## Refused drop feedback (STRONGLY INFERRED, binary 2026-10-29)
 
 The click arm of `0x00408EE0` tests `0x0040D8F0` before submitting a normal
 Hand drop. Only success calls `0x0040DAB0`, whose tail at `0x0040DCF6..0x0040DD08`

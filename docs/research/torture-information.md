@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # What torture tells a keeper: `0x004F2370`
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
@@ -10,12 +13,12 @@ When an enemy dies on a keeper's torture device, the keeper is given one piece o
 Rewards 3–10 each unlock a row of the **enemy-information panel**, once per pair of keepers.
 Reward 11, always available, **reveals** part of the victim keeper's dungeon.
 
-## 1. When — CONFIRMED
+## 1. When — STRONGLY INFERRED
 
 The Torture hook `0x0047B590` calls `0x004F2370(chamber, victim)` for an enemy that is dead after
 the act (`state-category-hooks.md` §3.3).
 
-## 2. The choice — CONFIRMED
+## 2. The choice — STRONGLY INFERRED
 
 `victim` is the creature and `+0x28` its keeper; the chamber's keeper is room `+0x1D`.
 1. A victim of the hero player (`0x006F254C`) skips to step 4.
@@ -37,7 +40,7 @@ the act (`state-category-hooks.md` §3.3).
 index). Otherwise it reads the flag at `+0x14 + k × 0xC4 + chamber × 0x1C + victim × 4`: twelve
 rows of seven by seven. `0x004C2B60` writes 1 to the same place.
 
-## 3. What 3–10 unlock — CONFIRMED
+## 3. What 3–10 unlock — STRONGLY INFERRED
 
 The table's only other reader is `0x00423A80`, called eleven times by the panel `0x00423450`,
 once for each row `k` = 1–11 at y = `0x46` + 40 × (k − 1). Given, it formats `0x004C2C30(k,
@@ -59,7 +62,7 @@ player)`; otherwise a default. The values:
 So 3–10 are **presentation only**. Nothing in the simulation reads the table. The rows' labels
 are the panel's text, which is not read.
 
-## 4. Reward 11 — CONFIRMED
+## 4. Reward 11 — STRONGLY INFERRED
 
 Over the victim keeper's rooms (`player+0x36`, next `+8`), it skips each whose first tile
 (`+0x2D`, `+0x2E`) is explored (tile byte `+9` bit `0x20`). On the first that is not, it
@@ -67,7 +70,7 @@ explores every tile of the room (`0x00454B80`), each with a 3 × 3 area of kind 
 (`0x00517480`). With none, it takes the keeper's first creature standing on unexplored ground
 and writes `+0x475` = 16 and `+0x476` = the chamber's keeper (`fog-reveal-sources.md` §3.1).
 
-## 5. The speech — CONFIRMED
+## 5. The speech — STRONGLY INFERRED
 
 Speech `0x61` goes to the chamber's keeper. Then `0x60` follows for 3–10, and `0x3B` for 11.
 

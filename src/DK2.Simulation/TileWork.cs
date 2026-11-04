@@ -198,7 +198,7 @@ public static class TileWorkRules
     }
 
     /// <summary>The global variable each kind draws its per-application health
-    /// delta from. CONFIRMED — these are DK2's own variable names.</summary>
+    /// delta from. STRONGLY INFERRED — these are DK2's own variable names.</summary>
     public static VariableTypeId Variable(TileWorkKind kind) => kind switch
     {
         TileWorkKind.Dig => VariableTypeId.DigRockHealth,

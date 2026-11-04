@@ -1,9 +1,12 @@
+---
+systems: [imps-tile-work]
+---
 # Imp claim path: how DK2 chooses, takes and loses claim work (kinds 3 and 14)
 
 | | |
 |---|---|
 | Source(s) | `DKII.EXE` v1.70 (GOG), read 2026-09-30 through pyghidra-mcp and the headless runner on Claude's project copies; captures `level1-live1` seed01, `level1-live1-seeds` seed02–07 and `level2-fullstate-20260928/l2win928` for checks only |
-| Confidence | **CONFIRMED** unless a paragraph says otherwise; every fact carries its address. Decompiler output stayed under `reverse-engineering/` and the scratchpad (ADR-0046) |
+| Confidence | **STRONGLY INFERRED** unless a paragraph says otherwise; every fact carries its address. Decompiler output stayed under `reverse-engineering/` and the scratchpad (ADR-0046) |
 | Implementation | none yet; §11 is the list to build from. `imp-task-stealing.md` §3, §5–§8 and `imp-task-priority.md` §2.2, §4, §6 are the current readings this note corrects |
 | Tests | none yet |
 | Known exceptions | none |

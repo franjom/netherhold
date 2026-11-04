@@ -6,7 +6,7 @@ using DK2.Core;
 
 namespace DK2.Presentation;
 
-[Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-rendering.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-rendering.md")]
 public static class MinimapHeartTrail
 {
     public const int MaximumDots = 32;

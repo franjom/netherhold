@@ -1,9 +1,12 @@
+---
+systems: [keeper-spells]
+---
 # Tremor — effect and recovery traced, integration awaiting verification
 
 Read 2026-10-03 from DKII.EXE v1.70 through isolated PyGhidra MCP project
 copies. Disassembly checks the callback arguments, slot selection, bounds,
 expiry comparison and update order. Binary behavior is STRONGLY INFERRED;
-the shipped descriptor and the dumper's field names are CONFIRMED.
+the shipped descriptor and the dumper's field names are STRONGLY INFERRED.
 The integer action clock and Tremor integration are committed. Independent
 review found remaining corrections; the boundary below records binary evidence.
 

@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers, camera-lighting]
+---
 # Level8 opening motion
 
 ## Reproduction

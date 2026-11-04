@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # Exhausted Imp dig action and slot availability
 
 The native dates in the clock probes below are **execution-clock timestamps**.
@@ -26,7 +29,7 @@ directly confirms these action-clear dates. **CONFIRMED:** the native captured s
 state 10 at snapshot header 168, and 452 at header 169. Main's `WorkCadence.ActionEnded` instead uses a six-turn
 modulo from work entry, holding 454 three turns too long.
 
-**CONFIRMED within a bounded modern control:** restore the native post-strike
+**Measured within a bounded modern control:** restore the native post-strike
 tiles, workers and task occupancy at 165; run actual worker updates in order
 452, 453, 454, 455 through 171. Freeze movement and skip worker 453 until its
 captured pose/state and pre-choice RNG are restored at 171. With hash 274,

@@ -7,7 +7,7 @@ using DK2.Data.Model;
 
 namespace DK2.Data.Kwd;
 
-/// <summary>Chunk-level reader for KWD/KLD files. Layout CONFIRMED against the
+/// <summary>Chunk-level reader for KWD/KLD files. Layout STRONGLY INFERRED against the
 /// reference install (docs/research/kwd-container.md); chunks repeat to end of file.
 /// <code>
 /// u32 signature (KwdRecordType); u32 byteSize (== 4); u32 chunkEndOffset;

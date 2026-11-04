@@ -1,10 +1,13 @@
+---
+systems: [simulation-core]
+---
 # The neutral player's ambient tile (0x004BB130)
 
 Binary readings of DKII.EXE v1.70, 2026-11-03. The decision is ADR-0646 (hash/save 395).
 Function-level facts are in the records [004BB130](functions/004BB130.md) and
 [004B9EC0](functions/004B9EC0.md).
 
-## Rule (CONFIRMED in the disassembly, 0x004BB130..0x004BB293)
+## Rule (STRONGLY INFERRED, the disassembly 0x004BB130..0x004BB293; the pair CONFIRMED in the draw log)
 
 `Player_Tick` (`0x004B9EC0`) returns through `Player_GenerateAmbientEffect` for the neutral
 tag (`0x006F2548`, `0x004B9F22`), after the player's trigger root and `0x004B9740`. The body:

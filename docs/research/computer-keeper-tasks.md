@@ -1,4 +1,7 @@
-﻿# The computer keeper's task dispatcher
+﻿---
+systems: [computer-keeper]
+---
+# The computer keeper's task dispatcher
 
 **Scope:** `DKII.EXE` v1.70, MD5
 `2f3bbc21eae8c3aa468136baa303036d`. This document follows the computer

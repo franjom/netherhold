@@ -1,4 +1,7 @@
-﻿# Mechanic: the 32 state-category records
+﻿---
+systems: [creatures]
+---
+# Mechanic: the 32 state-category records
 
 Source(s): `DKII.EXE` v1.70 (GOG) read with Ghidra 11.0.1 on 2026-09-10 — the fill
 run, the transition routine `FUN_00476D30`, the per-tick dispatcher
@@ -135,7 +138,7 @@ state object's own `+0x3c` either.
 Values in the table run 2, 4, 5, 6, 12, 16-22 and 29; the accessors can also
 return 25 and 26, which no record holds.
 
-## 5.1 Which category's update hook runs — CONFIRMED (2026-09-24)
+## 5.1 Which category's update hook runs — STRONGLY INFERRED (2026-09-24)
 
 The per-tick dispatcher `0x00476FC0` reads the current state's category byte. If it is
 not 2, it runs that category's update hook (`0x0069969C + cat * 0x40`). If it is 2, it

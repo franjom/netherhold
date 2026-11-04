@@ -1,4 +1,7 @@
-﻿# Mechanic: how a creature enters combat — `spFighting` and the AttackType switch
+﻿---
+systems: [combat]
+---
+# Mechanic: how a creature enters combat — `spFighting` and the AttackType switch
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-21. Addresses are
@@ -183,7 +186,7 @@ success on seeing it.
 
 ## Confidence
 
-**CONFIRMED (binary):** the registration run and its 25-byte stride; that state
+**STRONGLY INFERRED (binary):** the registration run and its 25-byte stride; that state
 200's handler is `0x0045f030`; the five state labels through `Text.str`; the
 switch's selector, its five arms and which action each starts; that action 17 has
 exactly two literal starters; every quoted assertion, which is the binary's own

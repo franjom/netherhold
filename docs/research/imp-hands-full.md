@@ -1,4 +1,7 @@
-﻿# Imp hands full: why DK2's imps rest where ours fetch gold
+﻿---
+systems: [imps-tile-work]
+---
+# Imp hands full: why DK2's imps rest where ours fetch gold
 
 **Source:** `DKII.EXE`, read on 2026-09-30 (headless Ghidra 12.1.4 and pyghidra-mcp):
 `0x00488930`, `0x00464360`, `0x0051CD90`, `0x0051DC40`, `0x0051AA90`. Also

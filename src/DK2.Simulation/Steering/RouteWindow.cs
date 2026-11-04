@@ -10,7 +10,7 @@ namespace DK2.Simulation.Steering;
 /// <summary>The mover's route request and its window of five points (<c>0x004D5100</c>;
 /// docs/research/steering-behaviours.md §7). The window does not slide: when its points are used
 /// up the whole route is requested again from where the body stands.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public static class RouteWindow
 {
     /// <summary>Sixteenths of a tile from a 16.16 distance, the window's bookkeeping unit.</summary>

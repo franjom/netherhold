@@ -12,7 +12,7 @@ namespace DK2.Simulation;
 /// of that type. Names are the level editor's; numbers are the record's type byte; the
 /// firing site of each is tabled in trigger-walkers.md, "Who fires what". <see cref="Leaves"/>
 /// has no site in DKII.EXE and no shipped record.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/trigger-walkers.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-walkers.md")]
 public enum CreatureTriggerEvent : byte
 {
     Created = 3,
@@ -38,7 +38,7 @@ public enum CreatureTriggerEvent : byte
 /// filter <c>0x004C7A50(player, type, targetType, targetId)</c>; the pair matters only to
 /// <see cref="GuiButtonPressed"/>, whose record must carry the same two bytes. Sites in
 /// trigger-walkers.md, "Who fires what".</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/trigger-walkers.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-walkers.md")]
 public enum PlayerTriggerEvent : byte
 {
     PayDay = 46,

@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # TRIGGERS parameter reads in DKII.EXE v1.70
 
 **Scope:** the two 16-byte TRIGGERS records in the shipped v1.70 editor data.

@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # Campaign win sequence: the Horned Reaper finale, the celebration and the win screen
 
 DKII.EXE v1.70 (GOG), pyghidra-mcp reads and disassembly on 2026-10-26, plus the shipped
@@ -23,12 +26,12 @@ the win tail at `0x004BED9E`: LevelWon `+0x172` = 1 and `Message_Post` `0x004C46
 
 `0x0051E6D0` copies the runtime LEVEL record (file offset + `0x134`) into the world:
 `+0x722E` is file byte 25545 and `+0x722F` byte 25546, the two bytes our reader exposes as
-`LevelDef.SpecialLevelIndex` (CONFIRMED by the copy at `0x0051E6D0`). The same routine
+`LevelDef.SpecialLevelIndex` (STRONGLY INFERRED by the copy at `0x0051E6D0`). The same routine
 fills the reward bytes of §5: world `+0x9B80..+0x9B83` from `PreviousRewards`,
 `+0x9B86..+0x9B89` from `NextRewards`, and `+0x9B84`/`+0x9B8A` from extended-metadata bytes
 25605/25606 (`LevelDef.Unknown_6403[2]`/`[3]`).
 
-**The shipped data (CONFIRMED, dumped 2026-10-26):**
+**The shipped data (STRONGLY INFERRED, dumped 2026-10-26):**
 - Flag `0x20` is on Secret1-Secret5 and on the multiplayer map Islands (mode 2/3, so
   inert). The low byte of `SpecialLevelIndex` is 1-5 on Secret1-5 and 0 on every campaign
   map; its high byte (`+0x722F`) is 0x92-0x94 on several maps and its reader is unread.
@@ -84,7 +87,7 @@ at once in game mode 3.
    the `OR` at `0x004BF94A`).
 7. Always (with or without a gem): action **`0x74`** with 1 (raise the letterbox).
 
-Which shipped campaign maps have a gem (CONFIRMED, triggers and things corpus):
+Which shipped campaign maps have a gem (STRONGLY INFERRED, triggers and things corpus):
 creature action 20 hands one to a creature in 14 levels (1-5, 6a, 6b, 7, 8, 9, 14, 15a,
 15b, 16), trigger action 2 creates object 28 in 15a, 18, 19, 20, and 18, 19, 20 also place
 one. **Levels 10, 11A-C, 12, 13 and 17 have none**, so their finale is the letterbox alone
@@ -105,8 +108,8 @@ Ghidra function). STRONGLY INFERRED unless noted.
 | 231 | `0x004743C0` | Age 1: creature action 46 once (the arrival roar, art 35, [keeper-spell-reaper.md](keeper-spell-reaper.md) §1) and sound `0x12C`. Waits for the action to end | 232 |
 | 232 | `0x00474430` | If thing `+0xB3D` is gone or no longer class 2, returns 0 and stays (what the dispatcher does with 0 is unread). When the position test or the route request
 fails it returns 1 with no change, so the Reaper retries every tick. If the gem's position passes `Thing_PositionAllowsCreation` `0x004B35C0` and `Creature_RequestRoute` `0x004D0F60` (options `0x26`) succeeds: state 234 with next state 233 (`+0xDF`) and target (`+0xE3/+0xE7`) | 234 |
-| 234 | `0x00474F80` | The walk: on its own tile and the four beside it (the loop skips a tile whose x and y offsets are both non-zero, `0x00474FAA`), a trap without `+0x10C` bit `0x20` is destroyed (slot `+0x20`); a door with `+0x109` = 0 is unlocked (`Door_SetLockMode(0)`) when it is the Reaper's owner's and locked, or else has its lock-pick timer started (`0x004A6DF0`, `DoorPickedTimeSeconds` · TPS). Then the en-route step `State06_EnRoute` `0x00470C80` (LIKELY: it resumes the saved 233 on arrival) and `Tile_SetExploredAndRefresh` on its tile | 233 |
-| 233 | `0x004744F0` | Age 1: heading `0x400`; view action 17 with 0 (stop following); view action `0x73` path **101** at its tile; view action `0x84` (view `+0x1221 |= 0x10`, unread); creature action 47 once; `+0xF1` bit 3; the gem is removed through its slot `+0x20` (LIKELY destruction, as `0x004A5290` uses it); sound `0x32E`, handle kept at `+0x2E`. Then the age is held. When the game turn exceeds action start `+0x3A5` + 13·TPS (13 s): `+0x3EA |= 0x80000`, and if the renderer gives its mesh point 8000 (bridge slot `+0x10C`, `0x00441AA0`, forwarding to the render sink; point id LIKELY) effect 258 *Horny End of level* there. One turn later, once: **interface slot `+0x40`** `0x0042BE40`, the win screen (§5) | stays in 233 |
+| 234 | `0x00474F80` | The walk: on its own tile and the four beside it (the loop skips a tile whose x and y offsets are both non-zero, `0x00474FAA`), a trap without `+0x10C` bit `0x20` is destroyed (slot `+0x20`); a door with `+0x109` = 0 is unlocked (`Door_SetLockMode(0)`) when it is the Reaper's owner's and locked, or else has its lock-pick timer started (`0x004A6DF0`, `DoorPickedTimeSeconds` · TPS). Then the en-route step `State06_EnRoute` `0x00470C80` (HYPOTHESIS: it resumes the saved 233 on arrival) and `Tile_SetExploredAndRefresh` on its tile | 233 |
+| 233 | `0x004744F0` | Age 1: heading `0x400`; view action 17 with 0 (stop following); view action `0x73` path **101** at its tile; view action `0x84` (view `+0x1221 |= 0x10`, unread); creature action 47 once; `+0xF1` bit 3; the gem is removed through its slot `+0x20` (probably destruction, as `0x004A5290` uses it); sound `0x32E`, handle kept at `+0x2E`. Then the age is held. When the game turn exceeds action start `+0x3A5` + 13·TPS (13 s): `+0x3EA |= 0x80000`, and if the renderer gives its mesh point 8000 (bridge slot `+0x10C`, `0x00441AA0`, forwarding to the render sink; point id HYPOTHESIS) effect 258 *Horny End of level* there. One turn later, once: **interface slot `+0x40`** `0x0042BE40`, the win screen (§5) | stays in 233 |
 
 The Reaper stays in 233 until the player continues (§6), when `Player_ContinueAfterResult`
 `0x004C0120` dismisses it (`Creature_DismissReaper` `0x00491B70`, state 242 fade).
@@ -127,7 +130,7 @@ Game actions 4, 6, 15, 17, `0x73`, `0x74` and `0x84` are not in the world's tabl
 (`game-actions.md` §4). `World_DispatchAction` `0x0050E5C0` first offers every record to
 the bridge `[[world+4]+0x10]` (vtable `0x0066CC94`: slot `+0x20` `0x0043B150`, slot `+0x24`
 `0x0043B180`, slot `+0xD0` `0x0043A980` returns the camera at bridge `+0x3E5`). The bridge
-handlers come from the (id, handler) pairs at `0x0066CE30`, 37 pairs (CONFIRMED bytes):
+handlers come from the (id, handler) pairs at `0x0066CE30`, 37 pairs (STRONGLY INFERRED bytes):
 
 | Id | Handler | Effect (camera = bridge `+0x3E5`) |
 |---|---|---|
@@ -168,7 +171,7 @@ designers' "1st and 2nd cut of the end-of-level sequence" (camera-paths.md §1).
   The row is: dword id (0-51, equal to the row index), dword pointer to the UTF-16 name,
   word icon, word speech id, dword flag (meaning unread; 0 on the spells, the Guard Post and
   the unused rows). The speech id is a Speech.str text id: 1369 reads "Alarm Traps announce
-  enemy intrusion", 1350 "Devise new spells in the Library" (CONFIRMED, bytes dumped
+  enemy intrusion", 1350 "Devise new spells in the Library" (STRONGLY INFERRED, bytes dumped
   2026-10-26; transcribed in `WinScreen.Items`).
 - **The tablet, interface `+0x4C6E`** (read 2026-10-27: set-up `0x0042BE90`, draw
   `0x0042F040`, step `0x0042EE80`, loads `0x0042F4D0`/`0x0042F5E0` from `0x0042BB30`).
@@ -186,10 +189,10 @@ designers' "1st and 2nd cut of the end-of-level sequence" (camera-paths.md §1).
   `0x00577DC0`; Tablet.kmf's 16, ids 11000–11015, ring its edge), every second point
   below graphics detail 5. They move (rand − 16384)/8192 px a frame per axis and live
   rand/8192 + 8 frames (MSVC `rand`, `0x006359F0`). Each is drawn with the sprite
-  TabletSparkle, its frames left as its size (LIKELY). Past frame 34, once no sparkle is
+  TabletSparkle, its frames left as its size (HYPOTHESIS). Past frame 34, once no sparkle is
   left, a 2 s hold is armed (`+0x57` = 2) and when it passes the tablet is done (`+0x4B`).
   The frame counter counts drawn frames, not game turns, so the growth takes 32 drawn
-  frames at whatever rate DK2 drew. CONFIRMED arithmetic; the order and sense of the two
+  frames at whatever rate DK2 drew. STRONGLY INFERRED arithmetic; the order and sense of the two
   turns and the sparkles' blend are unread.
 - **Update, `0x0042C390`** (per frame). Returns at once in camera modes 2, 7 or `0x12` (so
   path 101 holds the screen back) or while the game object's `+0x284` is set. While the

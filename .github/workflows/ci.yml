@@ -78,9 +78,11 @@ jobs:
 
   wiki:
     # The GitHub wiki is its own repository, outside pull requests and the
-    # gate above. Its source is docs/wiki/, and this job mirrors it there once
-    # the gate has passed on master. An edit made on the wiki's web page is
-    # overwritten by the next sync; it survives only in the wiki's history.
+    # gate above. Its source is docs/wiki/ plus the pages `dk2tools wiki`
+    # generates (ADR-0643), which are never committed. This job stages both in
+    # one folder and mirrors it there once the gate has passed on master, so a
+    # generated page that stops being generated is deleted too. An edit made on
+    # the wiki's web page is overwritten by the next sync.
     name: sync docs/wiki to the GitHub wiki
     needs: docs
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -93,19 +95,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Mirror docs/wiki
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Generate the index pages
+        run: |
+          dotnet build src/DK2.Tools/DK2.Tools.csproj --configuration Release
+          dotnet src/DK2.Tools/bin/Release/net10.0/DK2.Tools.dll wiki --out "$RUNNER_TEMP/gen"
+
+      - name: Mirror docs/wiki and the generated pages
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          mkdir -p "$RUNNER_TEMP/stage"
+          rsync -a --exclude README.md docs/wiki/ "$RUNNER_TEMP/stage/"
+          rsync -a "$RUNNER_TEMP/gen/" "$RUNNER_TEMP/stage/"
           git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" "$RUNNER_TEMP/wiki"
-          rsync -a --delete --exclude .git --exclude README.md docs/wiki/ "$RUNNER_TEMP/wiki/"
+          rsync -a --delete --exclude .git "$RUNNER_TEMP/stage/" "$RUNNER_TEMP/wiki/"
           cd "$RUNNER_TEMP/wiki"
           git add -A
           if git diff --cached --quiet; then
             # Nothing to push, but still ask for push access, so a token that
             # lost it fails here rather than on the next real change.
             git push --dry-run -q
-            echo "wiki already matches docs/wiki"
+            echo "wiki already matches docs/wiki and the generated pages"
             exit 0
           fi
           git -c user.name="github-actions[bot]" \

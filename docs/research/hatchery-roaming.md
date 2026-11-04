@@ -1,4 +1,7 @@
-﻿# Chicken object roaming
+﻿---
+systems: [rooms]
+---
+# Chicken object roaming
 
 Binary reads on 2026-10-10: object process table `0x0049E600`, Hatchery
 process 6 `0x004A1F30`, movement starter `0x0049F880`, movement process 9
@@ -7,7 +10,7 @@ process 6 `0x004A1F30`, movement starter `0x0049F880`, movement process 9
 arithmetic were also checked in assembly. These are object handlers, not the
 creature chicken-spell states. Captures remain under `reverse-engineering/`.
 
-## 1. Owned Hatchery loop — CONFIRMED
+## 1. Owned Hatchery loop — STRONGLY INFERRED
 
 Process 6 acts on Chicken object 9 in its owner's Hatchery 4. An unregistered
 room object (`+0x138 = 0`) attempts room registration before moving. It rolls
@@ -30,7 +33,7 @@ The handler starts movement with resume process 8, extra speed 0 and
 interruptible flag 1. Outside an owned Hatchery, a room tile routes to process
 10; otherwise it returns 0 to the process dispatcher.
 
-## 2. Movement timing — CONFIRMED
+## 2. Movement timing — STRONGLY INFERRED
 
 `0x0049F880` checks destination bounds, then stores process 9, process age 0,
 resume state `+0x15C`, destination X/Y `+0x160/+0x164` and interruptible flag
@@ -118,7 +121,7 @@ unbuilt. Audio's global footstep alternation, randomized object scale and the
 Chicken KMF Walk/Eat/Scared playback and render interpolation are built;
 see kmf-animation-playback.md §7.
 
-## 5. Persistent room membership — confirmed
+## 5. Persistent room membership — STRONGLY INFERRED
 
 Process 6 first tries `0x004E5FF0` when object room word `+0x138` is zero.
 Admission consumes the definition's capacity; failure does not prevent roaming.

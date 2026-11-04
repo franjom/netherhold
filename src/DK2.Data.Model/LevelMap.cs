@@ -15,7 +15,7 @@ public readonly record struct MapTile(byte TerrainId, byte PlayerId, byte Flags,
 /// derives its own mutable <c>WorldState</c> from one of these (tile health,
 /// ownership changes, and so on live there, not here).
 ///
-/// Layout CONFIRMED — see docs/research/kwd-terrain-rooms.md.
+/// Layout STRONGLY INFERRED — see docs/research/kwd-terrain-rooms.md.
 /// </summary>
 public sealed class LevelMap
 {

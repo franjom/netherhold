@@ -1,4 +1,7 @@
-﻿# Mechanic: combat — the damage sink, and what scales a blow
+﻿---
+systems: [combat]
+---
+# Mechanic: combat — the damage sink, and what scales a blow
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-15. Addresses are
@@ -72,10 +75,10 @@ not `+0x10` of an entry near `0x006A5894`. What action 26 *is* remains Q340.
 
 Named here so the next reader does not spend the same hour on it.
 
-## 4. What a level does, confirmed from the binary
+## 4. What a level does, STRONGLY INFERRED from the binary
 
 `creature-levels.md` read the **32 × 9** stat table out of `GlobalVariables.kwd`
-and called the table and its indexing CONFIRMED. The runtime side now agrees,
+and called the table and its indexing STRONGLY INFERRED. The runtime side now agrees,
 independently.
 
 **The cached global block.** `[0x006E4154]` holds `0x006F2550`, the base of the
@@ -119,7 +122,7 @@ original instruction for instruction**, including the sign: the binary reads the
 percentage with `MOVSX`, and this project's `_wideStatPercent` already carries
 values that do not fit a byte.
 
-So the level mechanism moves from *read off the shipped table* to **CONFIRMED
+So the level mechanism moves from *read off the shipped table* to **STRONGLY INFERRED
 against the executable**, and the divide by 100 is a real signed divide there
 (the `0x51EB851F` multiply-and-shift), not a rounding convention we chose.
 
@@ -214,7 +217,7 @@ The swing runs from `0x00498E96`, inside a larger handler whose entry is earlier
    the position triple at `+0x1A`/`+0x1E` — then `& 0x7FF` (2048 to a turn),
    reflected about zero as `0x7FE - a` when above `0x3FF`, divided by 20 to give
    0–51, and **if that exceeds 15**, `damage += damage * it / 100`.
-   **The arithmetic is CONFIRMED and the purpose is UNKNOWN (Q325).** Nothing in
+   **The arithmetic is STRONGLY INFERRED and the purpose is UNKNOWN (Q325).** Nothing in
    it reads either thing's facing, so as written the bonus is a function of the
    compass bearing from target to attacker — up to +51% for attacking along one
    axis and nothing along the other. That is a strange combat rule, which is
@@ -380,7 +383,7 @@ routine sets `0x54` through `[ESI+0x24E]` twenty bytes on. Not resistance.
 
 ## Confidence
 
-**CONFIRMED (binary):** the health routine and its argument shape; the three
+**STRONGLY INFERRED (binary):** the health routine and its argument shape; the three
 creature offsets; the melee block's runtime offsets; the stat matrix's layout and
 the `× percent / 100` rule with level 1 exempt; that `FUN_00514830` is not
 combat (it is game action `0x1A`, §3); that `FUN_00498E30` is the attack routine

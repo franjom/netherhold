@@ -1,4 +1,7 @@
-# Special-role idle: confirmed reads and engine boundary
+---
+systems: [creatures]
+---
+# Special-role idle: STRONGLY INFERRED reads and engine boundary
 
 Read 2026-10-04 from DKII.EXE using per-run Ghidra clones. Function facts
 are canonical in the linked records below; raw output remains quarantined.
@@ -32,7 +35,7 @@ does not yet show the second.
   and fear's flee test exits on it (`combat-fear.md`); ours too (`FearRules`). Other
   ways into a flee state were not traced. ADR-0574's fleeing-Horny arm in
   `DispatchIdle` is not expected to run.
-- **The target he chooses is never his own keeper's or an ally's.** CONFIRMED.
+- **The target he chooses is never his own keeper's or an ally's.** STRONGLY INFERRED.
   State 238 ([004748E0](functions/004748E0.md)) and `SelectAVictim` with his forced
   bit (`+0x3E6` bit 2) clear (`0x0045CE8D`, `0x0045D078`) call
   [0045E1B0](functions/0045E1B0.md): pass 1 skips every player allied with his owner
@@ -42,19 +45,19 @@ does not yet show the second.
   tiles). With neither, 238 sets 242 and he departs. In `SelectAVictim` this call
   stands in for the gate `0x0045A6D0`; `ProcessFight` still applies that gate first
   (`0x0045EA18`) while the forced bit is clear.
-- **With nothing found there, he falls into the ordinary scans.** CONFIRMED control
+- **With nothing found there, he falls into the ordinary scans.** STRONGLY INFERRED control
   flow (`0x0045D069`-`0x0045D08C`, no bail-out for Horny): scans B, C and D, the
   fight-type arm and F (`combat-acquisition.md` §6). Whether any of them can pick his
   own side was not read; this is the path a "no enemies" Horny takes.
 - **Scan A takes any side, but is rarely reached.** Scan A (`0x0045CF0B`-`0x0045D067`)
-  walks every player's creatures with no owner or alliance test (CONFIRMED), and a
+  walks every player's creatures with no owner or alliance test (STRONGLY INFERRED), and a
   dead forced id falls into it (`0x0045CEBC`, `0x0045CF02`). But the fight handler
   clears a dead engaged target's forced id before `SelectAVictim`
   (`0x0045F0A7`-`0x0045F0C6`), death bookkeeping clears it too (`0x0045E4A0`), and his
   own kill sends him to 239 (`0x004992A1`-`0x004992C4`). A target killed by someone
   else before he engages it is the one window seen. HYPOTHESIS that scan A is what
   the owner remembers.
-- **His blow on his own keeper's creature kills it outright.** CONFIRMED control
+- **His blow on his own keeper's creature kills it outright.** STRONGLY INFERRED control
   flow in the melee swing ([00498E30](functions/00498E30.md), `0x00499077`-`0x004990C3`),
   for a creature target (`+0x12` = 0, `0x00498F2A`) with `+0x445` zero (`0x0049904B`):
   same owner (`+0x28`) as Horny → his forced target cleared, `SetState(242)` on him,

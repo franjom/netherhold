@@ -10,7 +10,7 @@ namespace DK2.Simulation.Steering;
 /// docs/research/steering-behaviours.md §2). Any overlapping soft <c>Obstacle</c> shoves at full
 /// <c>max_force</c> with no falloff; a <c>SolidObstacle</c> is not pushed against but recorded,
 /// up to twelve, for the integrator to slide the velocity along.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public static class RepelObstacleRules
 {
     public const int Weight = 0x6666;

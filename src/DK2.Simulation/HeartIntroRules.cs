@@ -19,7 +19,7 @@ namespace DK2.Simulation;
 /// regenerates nor notices a missing Heart. The local player is the viewer, which the simulation
 /// does not know: the view keeps the owner-only requests (<see cref="IsViewerOnly"/>) for it.
 /// </summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/heart-intro.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/heart-intro.md")]
 public static class HeartIntroRules
 {
     /// <summary>Heart Plug Static Lit (<c>0xDF</c>): the plug lid, drawn each turn before the start.</summary>

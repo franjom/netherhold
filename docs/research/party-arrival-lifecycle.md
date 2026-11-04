@@ -1,3 +1,6 @@
+---
+systems: [heroes]
+---
 # Party arrival lifecycle (Q712)
 
 Source: retail DKII.EXE v1.70, Ghidra 12.1.4, 2026-11-01. Binary readings below

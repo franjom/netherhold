@@ -1,10 +1,13 @@
+---
+systems: [imps-tile-work]
+---
 # Level 4 seed 8: first additional Imp death
 
 Scope: compare store-only hash 266 with per-worker work visibility, hash 267.
 The aggregate results are in [the task audit](imp-task-audit.md#store-only-campaign-check-hash-266).
 This trace uses existing replays; no new campaign runs or gameplay changes.
 
-## Identity and the relevant job divergence — CONFIRMED
+## Identity and the relevant job divergence — measured
 
 Hash 267's first keeper Imp death is recorded at turn 3792, creature 40.
 Do not compare creature 40 across runs: hash 266's id 40 is a Guard.
@@ -24,7 +27,7 @@ next walk at 2778, finishes that claim at 2786 and chooses `(12,33)` at 2789.
 The claim completes at 2798. In hash 266, Imp 3 is still mining eastward at
 this time; Imp 14 eventually claims the cast tile at 3578.
 
-## Jobs, exposure and retreat — CONFIRMED in hash 267
+## Jobs, exposure and retreat — measured in hash 267
 
 The cast Imp takes reinforcement at `(13,33)`, `(11,33)`, `(11,34)`,
 `(10,34)`, `(10,32)` and `(9,31)`, choosing at turns 3473, 3531, 3589,

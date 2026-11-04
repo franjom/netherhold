@@ -1,3 +1,6 @@
+---
+systems: [combat, creatures]
+---
 # Combat category experience order (Q734)
 
 ## Pre-edit mismatches (2026-11-03)

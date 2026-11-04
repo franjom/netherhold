@@ -15,7 +15,7 @@ namespace DK2.Simulation;
 /// <c>RebelMaxFollowers</c> are written by their loader stubs and read nowhere in the
 /// executable, so the shipped game has one outcome and no followers
 /// (docs/research/rebellion.md §5).</para></summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/rebellion.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/rebellion.md")]
 public static class RebellionRules
 {
     /// <summary>Ticks a creature with no reachable Portal waits before defecting — DK2

@@ -39,7 +39,7 @@ public static class CombatPitSpectatorRules
     public const int MoveChance = 35;
 
     /// <summary>The cheer's length, ours: actions 69 and 70 run for their animation, which is not
-    /// read. A GUESS, like the imp's idle actions (<see cref="ImpTaskSystem.IdleActionGuessTicks"/>).</summary>
+    /// read. A HYPOTHESIS, like the imp's idle actions (<see cref="ImpTaskSystem.IdleActionGuessTicks"/>).</summary>
     public const int CheerGuessTicks = 8;
 
     public static bool IsSpectatorState(int state) => state is ChoosingState or FacingState or CheeringState;

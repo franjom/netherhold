@@ -1,4 +1,7 @@
-﻿# Mechanic: the Graveyard — where a Vampire comes back, and the tally that makes one
+﻿---
+systems: [rooms]
+---
+# Mechanic: the Graveyard — where a Vampire comes back, and the tally that makes one
 
 Source(s):
 - Owner observation, 2026-09-07 (Q113)
@@ -8,7 +11,7 @@ Source(s):
 
 Original version: DK2 v1.70
 
-Confidence: **CONFIRMED (owner + data)** for §1's destination room, **CONFIRMED
+Confidence: **CONFIRMED (owner + data)** for §1's destination room, **STRONGLY INFERRED
 (binary)** for §2 except where a line says otherwise.
 
 Split from `creature-death.md` (§2.2, §2.5) on 2026-10-05; the vampire's own
@@ -101,7 +104,7 @@ The tally lives in the room's dword `+0x49`, which the room dumper names
   - In a merge the surviving room keeps its tally and the absorbed room's is
     dropped.
 
-All of the above is CONFIRMED (instruction level) except where a line says
+All of the above is STRONGLY INFERRED (instruction level) except where a line says
 otherwise. Built as ADR-0370 (`GraveyardRules`): the gate's capacity is the room's floor slots
 (`Room_ComputeTotalCapacity` `0x004E3ED0`, type 14), the Vampire rises at the room's crypt, or on a
 random tile when it has none (Q579, below), and effect 0x138, state 198 and message 72 are not

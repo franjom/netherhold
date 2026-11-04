@@ -1,3 +1,6 @@
+---
+systems: [creatures, rooms]
+---
 # Mechanic: how a creature gets a lair
 
 Source(s):
@@ -11,7 +14,7 @@ Original version: DK2 v1.70
 
 Facts in our own words; ADR-0046 governs the boundary.
 
-Confidence: **CONFIRMED** for §3–§6 and §8 from the binary, **STRONGLY
+Confidence: **STRONGLY INFERRED** for §3–§6 and §8 from the binary, **STRONGLY
 INFERRED** for §9 from complete handler reads, and **CONFIRMED (owner)** for
 §1. Built 2026-09-05, ADR-0060 and ADR-0061.
 
@@ -54,8 +57,8 @@ lair attempt *failing*.
 | A rejected candidate is followed by another attempt | **CONFIRMED** |
 | Candidate choice contains randomness | **STRONGLY INFERRED** from the watched spread, **corroborated by the binary** — §4 |
 | A creature remembers what it has already rejected within one search | **HYPOTHESIS** |
-| An idle creature with no lair tries for one **first, whatever its mood** | **CONFIRMED** (§5). The attempt can *fail* — no reachable lair with a free slot — and only then does the creature take a job |
-| Being idle without a lair is the trigger; a sleep need every `TimeAwake` is a second one | **CONFIRMED** (§5). The unhappy and angry job choosers also try for a lair first, but the happy idle path does too, so mood gates nothing |
+| An idle creature with no lair tries for one **first, whatever its mood** | **STRONGLY INFERRED** (§5). The attempt can *fail* — no reachable lair with a free slot — and only then does the creature take a job |
+| Being idle without a lair is the trigger; a sleep need every `TimeAwake` is a second one | **STRONGLY INFERRED** (§5). The unhappy and angry job choosers also try for a lair first, but the happy idle path does too, so mood gates nothing |
 
 ## 3. The link between creature and bed is two-way
 
@@ -349,7 +352,7 @@ virtual health predicate. State 83 reads health only for its own exit test.
 That does not identify why the once-per-second effect sometimes heals, so the
 health half of Q123 remains **UNKNOWN** and must not be widened by inference.
 
-### 9.1 How the chain moves, read for ADR-0178 — CONFIRMED
+### 9.1 How the chain moves, read for ADR-0178 — STRONGLY INFERRED
 
 Three exits, each read instruction by instruction on 2026-09-24:
 

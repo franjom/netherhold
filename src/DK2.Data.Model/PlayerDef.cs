@@ -6,7 +6,7 @@ namespace DK2.Data.Model;
 
 /// <summary>One row of a level's PLAYERS(180) record — a player slot as the level defines it: who
 /// plays, with how much gold, and, for a computer keeper, the personality block that drives it.
-/// <para><b>Layout CONFIRMED, semantics STRONGLY INFERRED</b> from the retail loader that consumes
+/// <para><b>Layout and semantics STRONGLY INFERRED</b> from the retail loader that consumes
 /// this record (<c>docs/KEEPER_AI.md</c> §3.1): all 66 shipped <c>*Players.kld</c> files divide
 /// exactly into 205-byte records, and the loader's reads pin the gold, the AI flag, the 158-byte
 /// block, the trigger id, the player id, the camera and the name. OpenKeeper's independent parser

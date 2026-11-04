@@ -1,3 +1,6 @@
+---
+systems: [simulation-core]
+---
 # Early state-hash versions
 
 Versions 9–169, split from [the current version record](hash-versions.md) to keep each research document within its budget.

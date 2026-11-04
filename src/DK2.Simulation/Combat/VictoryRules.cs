@@ -14,7 +14,7 @@ namespace DK2.Simulation.Combat;
 /// for <c>NeedBodyForFightIdle</c> a walk to the nearest dead body within <c>0x2000</c> squared
 /// and the same pause there. The pause ends when that animation instance ends
 /// (<see cref="PauseTicks"/>, Q376).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-approach-and-victory.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-approach-and-victory.md")]
 public static class VictoryRules
 {
     private const string SystemName = "combat";

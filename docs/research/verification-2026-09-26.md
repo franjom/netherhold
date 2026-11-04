@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # Verification of ADR-0227 to ADR-0234, 2026-09-26
 
 - **Scope:** ADR-0227 (pit spectators), 0228 (idle fallback), 0229 (jail break), 0230 (torture
@@ -12,7 +15,7 @@
   ones print unpadded (`[EAX*0x4 + 0x6ee540]`). The Ghidra runner also splits arguments on spaces,
   so `+ 0x409]` became `+`, which matches every line. Both mistakes returned 0 hits or every
   line, and the control exposed each one.
-- **Verdicts:** CONFIRMED (the binary agrees), WRONG (it does not), UNSURE (it leaves it open).
+- **Verdicts:** verified (the binary agrees), WRONG (it does not), UNSURE (it leaves it open).
 
 ## Summary of findings
 
@@ -53,13 +56,13 @@
 - **Why the audit missed it:** the audit scanned for the absolute address and for
   `+0x31B` displacements. This store reaches the address as base plus index, and neither
   search can see that.
-- **Confidence:** CONFIRMED for the store and the shipped value. STRONGLY INFERRED that the
+- **Confidence:** STRONGLY INFERRED for the store and the shipped value. HYPOTHESIS that the
   global file's VARIABLES chunk passes through this dispatcher: the dispatcher's own caller,
   `0x0051E0A0`, was not traced.
 - **Action:** rewrite Q337 as answered and correct `MeleeDamageRules`. Variables 98 and 113 still
   have no reader.
 
-## 2. ADR-0234 (Q427): caller count — WRONG, conclusion CONFIRMED
+## 2. ADR-0234 (Q427): caller count — WRONG, conclusion verified
 
 - **Doc:** `0x0048B120` "has twelve callers" (ADR-0234; the `LevelUp` comment in
   `CreatureLevelRules.cs`; the Q427 row).
@@ -69,7 +72,7 @@
   - Eight are in regions Ghidra has no function for: `0x0048D302`, `0x004AFC15`, `0x00505E45`,
     `0x00505E50`, `0x005143B8`, `0x0052022C`, `0x0052053B` and `0x0052096F`.
   - The experience adder's call is at `0x004579D4`.
-- **Confirmed:**
+- **STRONGLY INFERRED:**
   - `+0x403` byte stores: the constructor's 1 at `0x004875C9`, `0x0048AFA0` at `0x0048B06A`, and
     `0x0048B120` at `0x0048B1E6`.
   - Wider stores spanning `+0x403` exist only in `0x005306F0`, `0x0055DF60`, `0x005604C0`,
@@ -128,7 +131,7 @@ Readers of `def+0x6C7` (`InsGrep 0x6c7]`, plus `0x6c4]`–`0x6c6]` for wider loa
 - **Loader:** `0x00493A0B` divides the file value by var19 and floors it at 1, as ADR-0228 says.
 - **Q438.**
 
-## 6. ADR-0227 and 0232: "the only code that selects job 26" — CONFIRMED for code, qualified for data
+## 6. ADR-0227 and 0232: "the only code that selects job 26" — verified for code, qualified for data
 
 - **Code:** the only `PUSH 0x1A` into the job dispatcher `0x00478800` is at `0x004786D7`, in
   `0x00478680`. The dispatcher has 13 call sites.
@@ -167,7 +170,7 @@ Readers of `def+0x6C7` (`InsGrep 0x6c7]`, plus `0x6c4]`–`0x6c6]` for wider loa
 - **Still open:** how DK2 computes it. `CombatPitSpectatorRules.Middle` (the bounding-box middle)
   remains ours, and 122's turn uses it too.
 
-## ADR-0227 — checked and CONFIRMED
+## ADR-0227 — checked and verified
 
 - **Entry mask:** category 31's mask is `0x8002383B`. `ESI` is loaded at `0x00479B47` and
   stored to `0x00699E7C` at `0x0047A6CE`. It lacks bit `0x10000`.
@@ -220,7 +223,7 @@ Readers of `def+0x6C7` (`InsGrep 0x6c7]`, plus `0x6c4]`–`0x6c6]` for wider loa
   - Moved and 142 taken, it ends the action and returns 1.
   - Its quiet test is `>` (`JBE` at `0x004581BD`), on any room tile (`+2 & 0xFFF`).
 
-## ADR-0228 — checked and CONFIRMED
+## ADR-0228 — checked and verified
 
 - **State 89's order (`0x004778E0`):**
   - dying (`+0x3E6` bit 21);
@@ -254,7 +257,7 @@ Readers of `def+0x6C7` (`InsGrep 0x6c7]`, plus `0x6c4]`–`0x6c6]` for wider loa
 - **Loader:** `0x00493A0B` divides the file value by var19 and floors it at 1 (`0x00493A1D`).
   Goblin 50 → 12.
 
-## ADR-0229 — checked and CONFIRMED
+## ADR-0229 — checked and verified
 
 - **Door routine `0x004E32C0`:**
   - It zeroes `+0x51`/`+0x55` first and tests N, NW and NE.
@@ -290,7 +293,7 @@ Readers of `def+0x6C7` (`InsGrep 0x6c7]`, plus `0x6c4]`–`0x6c6]` for wider loa
   (`0x004E29D4`, `0x004E2AB1`, each var19 × 2) and the countdown (`0x004E2AFC`). The `cseg` hit
   at `0x00653019` is a text string disassembled as code.
 
-## ADR-0230 — checked and CONFIRMED
+## ADR-0230 — checked and verified
 
 - **Reward choice `0x004F2370`:**
   - A victim of the hero player (`0x006F254C`) skips the class step.
@@ -307,7 +310,7 @@ Readers of `def+0x6C7` (`InsGrep 0x6c7]`, plus `0x6c4]`–`0x6c6]` for wider loa
 - **The call:** the torture hook's call at `0x0047B64D` runs when the victim's owner ≠ the room
   owner and virtual `+0x28` holds.
 
-## ADR-0231 and ADR-0233 — checked and CONFIRMED
+## ADR-0231 and ADR-0233 — checked and verified
 
 - **Door tile test `0x00450DB0`:**
   - owner match; route-map bit 3 clear; no room; no thing of class 4 or 3;
@@ -334,7 +337,7 @@ Readers of `def+0x6C7` (`InsGrep 0x6c7]`, plus `0x6c4]`–`0x6c6]` for wider loa
   the pushes show `EDI`, the type.
 - **UNSURE (inherited):** ours reads "solid" as terrain `IsSolid`, where DK2 reads route-map bit 3.
 
-## ADR-0232 — the rest, checked and CONFIRMED
+## ADR-0232 — the rest, checked and verified
 
 - **Heart position:**
   - `+0xB43`/`+0xB45` are written only at `0x004B883E`/`0x004B8845` (`EBP` = 1 from

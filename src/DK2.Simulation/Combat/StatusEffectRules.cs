@@ -12,7 +12,7 @@ namespace DK2.Simulation.Combat;
 /// routine's multipliers in 128ths that every blow and shot pass through (§3). Fire is cosmetic in
 /// v1.70; the per-player damage byte, the pit fighter, the Stone Knight's blow
 /// path and the stun's early end are not modelled (Q399).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/creature-status-effects.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-status-effects.md")]
 public static class StatusEffectRules
 {
     /// <summary>0x0048EBD0: replace both burning words, including a shorter re-arm.</summary>

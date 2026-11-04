@@ -51,7 +51,7 @@ public sealed record DoorDef
 }
 
 /// <summary>The door record's flags byte. Named by which shipped records carry each bit: the
-/// Secret Door alone has bit 5, both barricades bit 6, the two hero doors bit 7 (CONFIRMED
+/// Secret Door alone has bit 5, both barricades bit 6, the two hero doors bit 7 (STRONGLY INFERRED
 /// from data); the binary's navigation writer treats bit 6 as a permanent lock.</summary>
 [Flags]
 public enum DoorFlags : byte

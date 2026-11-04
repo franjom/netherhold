@@ -32,7 +32,7 @@ public struct GateRecord
 /// funnel polyline; caps a kept gate at sixteen tiles around the point where the polyline's line
 /// crosses it; and finally takes one point across each kept gate. The mover aims at those points,
 /// not at the funnel's corners. Coordinates are the router's, 256 to a tile.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/navigation-and-steering.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/navigation-and-steering.md")]
 public static class GateWalk
 {
     /// <summary>The cap pushed as a literal by <c>0x004D0320</c> (at <c>0x004D0967</c>): sixteen tiles.
