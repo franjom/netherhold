@@ -124,6 +124,19 @@ public static partial class FunctionKb
         new($"(?<![0-9A-Za-z_])(?:(?:0[xX]|FUN_)0*{address.TrimStart('0')}|{address})(?![0-9A-Za-z])",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    /// <summary>A BUILT record must name the code that mirrors it in an <c>implements:</c> line. Checked on a record
+    /// whose header a change touches, or a new one, so the records already on master are fixed as they are next
+    /// edited; a header equal to MERGE_HEAD's was judged on the side that wrote it. READ with an <c>implements:</c>
+    /// line stays legal: it is how a function our code mirrors only in part is recorded.</summary>
+    public static string? StatusMismatch(FunctionRecord now, FunctionRecord? before, FunctionRecord? merged = null)
+    {
+        if (before is not null && before.HeaderKey == now.HeaderKey) return null;
+        if (merged is not null && merged.HeaderKey == now.HeaderKey) return null;
+        return now.Status == "BUILT" && now.Implements.Count == 0
+            ? $"{now.RelativePath}: status BUILT but no implements: line names the code that mirrors it"
+            : null;
+    }
+
     /// <summary>Whether a change gave this record a new reading: it is new, or it gained a History line.</summary>
     public static bool GainedReading(FunctionRecord now, FunctionRecord? before)
         => before is null || now.History.Count > before.History.Count;

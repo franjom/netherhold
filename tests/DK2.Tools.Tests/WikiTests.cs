@@ -27,6 +27,32 @@ public class WikiTests
             notes.ToDictionary(n => n.Note, n => (IReadOnlyList<string>)n.Systems, StringComparer.Ordinal),
             notes.Select(n => n.Note).ToHashSet(StringComparer.Ordinal));
 
+    [Fact]
+    public void AdrsCitedInCodeComeFromSourceNotTestsOrBuildOutput()
+    {
+        string root = Directory.CreateTempSubdirectory("dk2-adrs-").FullName;
+        try
+        {
+            void Write(string relative, string text)
+            {
+                string path = Path.Combine(root, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllText(path, text);
+            }
+            Write("src/A/Rules.cs", "// ADR-0001; see ADR-0058/0063/0065");
+            Write("src/A/obj/Gen.cs", "// ADR-0002");
+            Write("tests/A.Tests/T.cs", "// ADR-0003");
+            Write("unity/DK2.Unity/Assets/DK2/Scripts/View.cs", "// ADR-0004");
+            Write("src/A/Notes.md", "ADR-0005");
+
+            Assert.Equal([1, 4, 58, 63, 65], WikiCommand.AdrsCitedInCode(root).Order());
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     static List<string> Check(string relative, string[] lines, DocsContext context, string[]? baseLines = null,
         bool all = true)
     {
