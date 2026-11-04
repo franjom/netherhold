@@ -93,5 +93,36 @@ against the log's 8466 draws:
 log site for site, and 39 turns have equal counts. The next difference is turn 1402: three
 `RoomWalkRules.ArrivalTile` draws by our three Warlocks, which the creature restore leaves choosing
 lairs and jobs, where DK2's were in states 7/80 (making a home), 6/54 (going to research) and 56
-(researching). That is restore fidelity, like Q719's partial inputs, not a rule. The next input is
-restoring those states. Q738 (`0x004B9740`'s periodic draws) is separate.
+(researching). That is restore fidelity, like Q719's partial inputs, not a rule. The scratch restore adapter is not extended
+to those states: the owner decided on 2026-11-04 to keep building rules backed by the binary or a capture and
+to stop steering Q712 by outcome averages (see [Outcomes at hash 399](#outcomes-at-hash-399)). Q738
+(`0x004B9740`'s periodic draws) is separate.
+
+## Outcomes at hash 399
+
+Measured 2026-11-04: 115 bounded stored-pickup resyncs (75 Level 5, 40 Level 4) at hash/save 399
+(ADR-0650, on top of ADR-0646 to 0649), same scorer and cohorts as
+[hash 392](steering-body-retention.md#outcomes-at-hash-392). Means per run:
+
+| Measure | DK2 | 392 | 399 |
+|---|---:|---:|---:|
+| L5 state-254 entries | 15.00 | 15.33 | 13.27 |
+| Exits to 199 | 3.67 | 1.00 | 0.80 |
+| Exits to 203 | 5.00 | 2.27 | 2.07 |
+| Exits to 1 | 3.00 | 4.40 | 5.40 |
+| Exits to 6 | 2.00 | 6.87 | 4.47 |
+| Exits to 8 | 1.00 | 0.67 | 0.53 |
+| Hero ticks near Heart, targeting pillar | 3298.67 | 1679.53 | 1618.33 |
+| Keeper Imp deaths, L5 resync 1400 | 11.12 | 5.90 | 7.27 |
+| Keeper Imp deaths, L5 resync 3400 | 5.80 | 5.80 | 9.32 |
+| Keeper Imp deaths, L4, all 40 | 6.50 | 9.93 | 8.00 |
+
+The outcome averages neither confirm nor refute the rule fixes at this sample size: the sign-flip p of
+399 against DK2 is 0.20 (1400), 0.19 (3400) and 0.25 (L4); the per-state paired change from 392 to 399 has
+p 0.43, 0.06 and 0.19. The Heart still sees the pillar targeted about half as long as native. Q712 is
+therefore no longer steered by these averages: new rules need a binary reading or a capture (a draw-log
+comparison on other levels, which needs native captures; the Q584 edges, a held bird's decay and
+`Hatchery_AdoptChickens` `0x004DEB70`), and the scratch restore adapter stops here.
+
+Evidence: `F:/DK2Evidence/builds/q712-final399-measurement-h399--2026-11-04--001/` and the studies
+`heart-defence-q712-h399-l5--2026-11-04--001/` and its `l4` sibling.
