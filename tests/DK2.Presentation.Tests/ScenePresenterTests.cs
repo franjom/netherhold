@@ -255,7 +255,9 @@ public class ScenePresenterTests
         var presenter = new ScenePresenter(new WorldView(db), AssetProviderChain.Standard(), target);
         presenter.Present(world);
         target.Clear();
+        // As the heart's frame does: the keeper's flag and the room's own ruin (ADR-0662).
         world.Player(4).HeartRuined = true;
+        RoomRules.RuinHearts(world, db, 4);
         presenter.Present(world);
         Assert.Equal(25, target.Updates);
     }

@@ -70,8 +70,8 @@ dropped on its Heart's centre (`DisposalRules`, ADR-0148), crediting the tile ow
 through `DropLandingRules.CreditWorkerGivenBack` (`Player_AddMana` `0x004C19C0` adds, then clamps a
 gain at the ceiling `+0x10EA`), and lands one on the eight platform tiles (ADR-0526 amendment).
 A ruined Heart (no type-13 object, so 71 sends the worker to 11) disposes of nothing and credits
-nothing: `DisposalRules.Disposes` requires `HeartRuined` false, and the drop lands as usual. Not
-built: 76's victim-or-door pick (`0x00481400`, ADR-0226). The Heart object is ours' living Heart (`HeartRuined` false), and the inner
+nothing: `DisposalRules.Disposes` requires the Heart's room not ruined (`TileState.RoomRuined`, ADR-0662), and the drop lands as usual. Not
+built: 76's victim-or-door pick (`0x00481400`, ADR-0226). The Heart object is ours' living Heart (the room not ruined), and the inner
 3×3 is measured from the room's bounding box: STRONGLY INFERRED that `+0x2D`/`+0x2E` is that corner,
 the first slab of a 5×5 Heart (Q515); the owner's play no longer bears on it. The mana is Create
 Imp's cost, STRONGLY INFERRED: `0x0050DD60` reads keeper spell 4's `+0x58`. 71's handler runs in the turn

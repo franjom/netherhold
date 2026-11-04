@@ -55,12 +55,12 @@ public sealed class StoreSweepSystem : IRoomTickStep
             Sweep(context, room);
     }
 
-    /// <summary>A Treasury, or a Heart whose keeper's heart is not ruined: the rooms whose update
+    /// <summary>A Treasury, or a Heart that is not a ruin: the rooms whose update
     /// reaches the sparkle (the Heart's returns on <c>+0x9A</c> bit 0 first).</summary>
     private static bool IsLiveStore(WorldState world, RoomInstance room) => room.Definition.TypeId switch
     {
         RoomTypeId.Treasury => true,
-        RoomTypeId.DungeonHeart => !(world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined),
+        RoomTypeId.DungeonHeart => !RoomRules.IsRuined(world, room),
         _ => false,
     };
 

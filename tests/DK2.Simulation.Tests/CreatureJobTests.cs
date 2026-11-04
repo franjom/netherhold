@@ -157,7 +157,7 @@ public sealed class CreatureJobTests
             // Two Hearts are two rooms: (1, 1) and (3, 1) do not touch.
             if (hearts > 0) RoomRules.Place(db, ref world.Tile(1, 1), db.Room(RoomTypeId.DungeonHeart), Keeper);
             if (hearts > 1) RoomRules.Place(db, ref world.Tile(3, 1), db.Room(RoomTypeId.DungeonHeart), Keeper);
-            world.Player(Keeper).HeartRuined = ruined;
+            HeartRuin.Set(world, Keeper, ruined);
             world.SpawnCreature(db, GoblinId, Keeper, Floor);
             var events = new ListEventSink();
             var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(7)),

@@ -23,6 +23,7 @@ public class ClaimAndBedEffectTests
             for (int x = 1; x <= 5; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), PlayerIds.FirstKeeper);
         world.Player(PlayerIds.FirstKeeper).HeartRuined = ruined;
+        if (ruined) RoomRules.RuinHearts(world, db, PlayerIds.FirstKeeper);
         var view = new WorldView(db);
         FpPosition3 At(int x, int y) => new(new(x * Fp32.One + Fp32.One / 2),
             new(y * Fp32.One + Fp32.One / 2), new(0));

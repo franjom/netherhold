@@ -410,7 +410,7 @@ public sealed partial class WorldView
     /// the Arch Pillars at height 0; they are drawn on the floor here (ASSUMED, as for the pillars).</summary>
     private void DecorateHeart(WorldState world, RoomInstance room, PlayerId owner, List<ObjectView> into)
     {
-        if (world.HasPlayer(owner) && world.Player(owner).HeartRuined) return;
+        if (RoomRules.IsRuined(world, room)) return;
         bool alive = !PlayerIds.IsKeeper(owner.Value) || !world.HasPlayer(owner)
             || world.Player(owner).HeartHealth > 0;
         int[] chain = SlabChain.Order(world, room);
@@ -524,8 +524,7 @@ public sealed partial class WorldView
     /// Chest. Retains its creation heading; unknown load headings keep the visual fallback.</summary>
     private void StorePiles(WorldState world, RoomInstance room, PlayerId owner, List<ObjectView> into)
     {
-        bool liveHeart = room.Definition.TypeId == RoomTypeId.DungeonHeart
-            && !(world.HasPlayer(owner) && world.Player(owner).HeartRuined);
+        bool liveHeart = room.Definition.TypeId == RoomTypeId.DungeonHeart && !RoomRules.IsRuined(world, room);
         int cap = liveHeart ? 1000 : 3000;
         foreach (int tile in room.TileIndices)
         {

@@ -95,7 +95,7 @@ public class HeartPillarTests
             case 1: id = world.TileCount * 3; break;
             case 2: id = ((5 * world.Width + 10) * 3) + 1; break;
             case 3: owner = PlayerIds.FirstKeeper; break;
-            case 4: world.Player(owner).HeartRuined = true; break;
+            case 4: HeartRuin.Set(world, owner, true); break;
             case 5: world.Player(owner).HeartHealth = 0; break;
             case 6: world.TileAtIndex(tile).TerrainId = Dk2TerrainFixture.DirtPath; break;
             case 7: world.TileAtIndex(tile).SlabOrder = 999; break;

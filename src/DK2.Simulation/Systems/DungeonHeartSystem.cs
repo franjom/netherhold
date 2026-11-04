@@ -157,6 +157,7 @@ public sealed class HeartFrameStep : IRoomTickStep
         {
             if (player.HeartRuined) return;
             player.HeartRuined = true;
+            RoomRules.RuinHearts(context.World, context.Database, player.PlayerId);
             context.Emit(SystemName, "heart_ruined", $"player={player.PlayerId}");
             return;
         }

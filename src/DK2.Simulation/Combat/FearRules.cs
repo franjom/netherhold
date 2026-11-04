@@ -557,11 +557,10 @@ public static class FearRules
             // in its wall and the draw falls through to a random room: on Level 3 DK2's imps landed
             // at the heart 6 times in 21 and at other rooms 15 (ADR-0323).
             IReadOnlyList<RoomInstance> mineRooms = rooms.Of(context, me.OwnerPlayerId);
-            if (!world.Player(me.OwnerPlayerId).HeartRuined)
             {
                 var heartsOfMine = new List<RoomInstance>();
                 foreach (RoomInstance room in mineRooms)
-                    if (room.Definition.TypeId == RoomTypeId.DungeonHeart) heartsOfMine.Add(room);
+                    if (room.Definition.TypeId == RoomTypeId.DungeonHeart && !RoomRules.IsRuined(world, room)) heartsOfMine.Add(room);
                 if (heartsOfMine.Count > 0)
                 {
                     RoomInstance heart = heartsOfMine[rng.NextInt(heartsOfMine.Count)];

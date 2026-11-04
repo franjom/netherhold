@@ -11,7 +11,7 @@ INFERRED behavior; captured transitions are CONFIRMED observations.
 
 | DK2 branch | Remake comparison | Verdict |
 |---|---|---|
-| `004D96A4`, room ruin bit | `HeartDefenceSystem.Execute` uses the owner's ruined Heart | Equivalent for Level 5's single Heart; room/owner distinction remains |
+| `004D96A4`, room ruin bit | `HeartDefenceSystem.Execute` tests the room's ruin (`RoomRules.IsRuined`, ADR-0662) | Equivalent |
 | `004D96DC–004D96E7`, four-turn room-ID phase | Hard-coded phase zero | General mismatch; Level 5's captured room slot 1124 also has phase zero |
 | `004D96F0–004D9834`, enemy search | First attackable hostile within strict reporting radius, room position | Dispatch uses the room position; see the coordinate note below. Ours evaluates attackability; native reads its cached bit (`0045A8B0`) |
 | `004D9867–004D98D0`, gathering radius, Horny | Strict gathering radius, definition Horny exclusion | Same rule; no worker exclusion or head count |

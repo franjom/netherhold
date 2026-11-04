@@ -15387,3 +15387,29 @@ second strike, so tunnels are slower by about that much per tile. A creature wit
 clip in ours and its action ends at the strike; DK2 would run whatever clip it has. The retest does not
 see another worker's strike queued on the same tile that turn. The action sounds (`0x334`, `0x109`) and
 the mine handler's own payment (`0x004971D0`) are not mirrored; a gold tile is still mined as before.
+
+## ADR-0662: a Dungeon Heart's ruin belongs to the room
+
+**Date:** 2026-11-04. **Status:** accepted. Answers Q743; hash/save 408. · **Systems:** rooms, imps-tile-work
+
+**Context.** DK2 keeps a room's ruin in room `+0x9A` bit 0. `0x004E9130` sets it, called only by the
+heart's frame (`0x004D9F7D`), the heart builder (`0x004DB715`) and trigger action 32 (`0x005196F5`), all
+with 1; `Room_Construct` (`0x004E3800`) clears it for a room it starts, a fresh tile or a piece left when
+a tile goes. The owner change `0x004E5650` and the conversion do not touch it, so a ruined Heart a rival
+claims stays a ruin. Every room-level test reads the room: the gold chooser `0x00464400` and every gold
+path, the claim gate `0x00454040`, the random room of a type `0x004C6460`, the heart's tick and the hover.
+Ours kept the Heart's ruin on the keeper (`PlayerState.HeartRuined`) and asked the room's current owner,
+so a captured ruin looked live to its captor. OpenKeeper PR #912 pointed at it.
+
+**Decision.** The Heart's ruin is kept on its room's tiles, `TileState.RoomRuined`, the field the gates'
+ruin already uses. `RoomRules.RuinHearts` sets it when the heart dies and the level loader sets it on a
+0 % Heart whoever owns it; `SlabChain.Added` gives a grown room the joined room's ruin and a new room
+none, and `SlabChain.Removed` clears it on the pieces it rebuilds. The room-level tests read it through
+`RoomRules.IsRuined`: gold capacity, deposits and spending, the store choice and its message, the store
+sparkle, the claim rule, the random Heart of fear and of the idle walk and the AI's view, the core
+steering and structure blocks, heart defence, the drop landing and disposal, the hover and the drawing.
+`PlayerState.HeartRuined` stays for a keeper's own heart: defeat, imp supply, combat and pillar standing.
+
+**Consequences.** A captured ruined Heart takes no gold, is never drawn as a keeper's Heart and stays
+claimable by a third keeper. Ours gives a ruined Heart no capacity where `0x004F4700` gives its tiles
+times the Treasury cap, but every DK2 gold path tests the ruin first, so neither reaches that arm.

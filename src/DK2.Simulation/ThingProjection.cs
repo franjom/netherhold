@@ -186,10 +186,12 @@ public static class ThingProjection
         // byte 3 whether or not the heart is ruined (0x004DBB65, Q601).
         int[] chain = SlabChain.Order(world, heart);
         if (chain.Length > 12) world.Stamp(chain[12], NavBytes.Lava);
-        if (!world.HasPlayer(heart.OwnerPlayerId)) return true;
+        int pct = thing.InitialHealth;
+        // The builder ruins its room at 0 whoever owns it (0x004DB711-0x004DB715).
+        if (pct == 0) RoomRules.Ruin(world, heart);
+        if (!world.HasPlayer(heart.OwnerPlayerId)) return pct != 0;
 
         ref PlayerState owner = ref world.Player(heart.OwnerPlayerId);
-        int pct = thing.InitialHealth;
         if (pct == 0)
         {
             owner.HeartHealth = 0;

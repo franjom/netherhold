@@ -223,10 +223,11 @@ public struct TileState
     /// <see cref="RoomSizeChangedTick"/> is; a holder compares both (<see cref="SlabChain.HoldersStamp"/>).</summary>
     public long RoomKickedTick;
 
-    /// <summary>DK2's room ruin, <c>room+0x9A</c> bit 0, held on each tile of a ruined gate since
+    /// <summary>DK2's room ruin, <c>room+0x9A</c> bit 0, held on each tile of a ruined room since
     /// rooms here are derived from tiles. Set by trigger action 32 through <c>0x004E9130</c> for the
-    /// Hero Gate types 18, 20 and 23; it makes a non-Attackable room convertible (<c>0x00454040</c>).
-    /// A heart's ruin is <see cref="PlayerState.HeartRuined"/> (hero-parties-and-effect-generators.md).</summary>
+    /// Hero Gate types 18, 20 and 23, and on a Dungeon Heart when its heart dies
+    /// (<see cref="RoomRules.RuinHearts"/>); it makes a non-Attackable room convertible (<c>0x00454040</c>).
+    /// It goes with the room to a new owner, so a captured ruined Heart stays one (ADR-0662).</summary>
     public bool RoomRuined;
 
     /// <summary>This tile's part of its room's health deficit: the room's <c>Health</c>
@@ -488,8 +489,9 @@ public struct PlayerState
     /// <summary>When the heart died — DK2's <c>GameTickDied</c> at <c>player+0xEE2</c>.</summary>
     public GameTick HeartDiedTick;
 
-    /// <summary>Bit 0 of the heart room's <c>+0x9A</c>: set by the room's own frame when it
-    /// finds no heart object. A ruined heart stores no gold and can be claimed (Q93, Q263).</summary>
+    /// <summary>The keeper's own heart is gone: defeat, imp supply, pillar and combat standing read it.
+    /// The Heart room's ruin, <c>+0x9A</c> bit 0, which gold and claiming read, is
+    /// <see cref="TileState.RoomRuined"/> (ADR-0662).</summary>
     public bool HeartRuined;
 
     /// <summary>The heart room's regeneration counter, <c>room+0x56</c>: at 0 the heart heals and it

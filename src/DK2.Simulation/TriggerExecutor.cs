@@ -1523,8 +1523,8 @@ public sealed class TriggerExecutor
     /// Gate types 18, 20 and 23 only, sets the room's ruin bit and redraws its tiles; terrain and
     /// navigation are unchanged, and a ruined gate becomes convertible (ADR-0299). Off the map, on
     /// no room or on any other type it does nothing, and the arm succeeds either way.</summary>
-    /// <remarks>A heart reached this way is declined: no shipped record names one, and ours keeps
-    /// a heart's ruin per player. The 2x2 arm's destruction of the room's objects has nothing to
+    /// <remarks>A heart reached this way is declined: no shipped record names one, though DK2 would
+    /// ruin it (Q743). The 2x2 arm's destruction of the room's objects has nothing to
     /// destroy here: no object is placed on a gate.</remarks>
     private bool CollapseGate(
         TriggerRecord record, TriggerContext context,

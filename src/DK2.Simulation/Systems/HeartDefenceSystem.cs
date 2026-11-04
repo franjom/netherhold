@@ -15,8 +15,7 @@ namespace DK2.Simulation.Systems;
 /// creature of its owner within <c>DungeonHeartCreatureGatheringDistanceTiles</c> that may go,
 /// workers included, running to it to stand in state 254, as the alarm's responders do.</summary>
 /// <remarks>Deviates: DK2's phase is the heart room's id (<c>(turn + room+4) &amp; 3</c>); ours has
-/// no room ids and uses Morgana's on Level 11A (1100) for every heart; the ruin gate reads the
-/// player's heart, not the room's <c>+0x9A</c>; a willing torturee is not kicked to 135 first
+/// no room ids and uses Morgana's on Level 11A (1100) for every heart; a willing torturee is not kicked to 135 first
 /// (ADR-0400); the job is let go as the alarm's responders do.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-alarm.md")]
 public sealed class HeartDefenceSystem : IRoomTickStep
@@ -49,7 +48,7 @@ public sealed class HeartDefenceSystem : IRoomTickStep
     public bool Applies(SimulationContext context, RoomInstance room) =>
         _dispatches && room.Definition.TypeId == RoomTypeId.DungeonHeart
         && PlayerIds.IsKeeper(room.OwnerPlayerId) && context.World.HasPlayer(room.OwnerPlayerId)
-        && !context.World.Player(room.OwnerPlayerId).HeartRuined;
+        && !RoomRules.IsRuined(context.World, room);
 
     public void Tick(SimulationContext context, RoomInstance room)
     {

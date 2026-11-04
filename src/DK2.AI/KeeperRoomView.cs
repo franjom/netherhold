@@ -13,13 +13,15 @@ public sealed class KeeperRoomView
         : this(room.Definition, room.OwnerPlayerId, room.TileIndices,
             room.MinX, room.MinY, room.MaxX, room.MaxY, FloorSlotsInChainOrder(world, room),
             SlabChain.Order(world, room),
-            room.Definition.TypeId == RoomTypeId.Hatchery ? EatingRules.NewestChicken(world, room)?.Id ?? -1 : -1) { }
+            room.Definition.TypeId == RoomTypeId.Hatchery ? EatingRules.NewestChicken(world, room)?.Id ?? -1 : -1,
+            RoomRules.IsRuined(world, room)) { }
 
     internal KeeperRoomView(RoomDef definition, PlayerId ownerPlayerId, IEnumerable<int> tiles,
         int minX, int minY, int maxX, int maxY, IEnumerable<int>? floorSlots = null,
-        IEnumerable<int>? chainOrder = null, int objectListHead = -1)
+        IEnumerable<int>? chainOrder = null, int objectListHead = -1, bool ruined = false)
     {
         Definition = definition;
+        Ruined = ruined;
         OwnerPlayerId = ownerPlayerId.Value;
         TileIndices = Array.AsReadOnly(tiles.ToArray());
         MinX = minX;
@@ -33,6 +35,9 @@ public sealed class KeeperRoomView
 
     public RoomDef Definition { get; }
     public byte OwnerPlayerId { get; }
+
+    /// <summary>The room's ruin, room <c>+0x9A</c> bit 0 (ADR-0662).</summary>
+    public bool Ruined { get; }
     public IReadOnlyList<int> TileIndices { get; }
     public int MinX { get; }
     public int MinY { get; }

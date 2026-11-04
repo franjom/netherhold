@@ -204,6 +204,15 @@ the engine's general collapse of a room, and the owner's Q93 answer — the fall
 heart turns to ruin, claimable but neither sellable nor buildable — is this bit.
 How the ruined room leaves the keeper's room list, which type 25 needs, is Q358.
 
+The ruin belongs to the room, not to its owner. `0x004E9130` has three callers, the heart frame
+(`0x004D9F7D`), the builder (`0x004DB715`) and trigger action 32 (`0x005196F5`), all with 1.
+`Room_Construct` (`0x004E3800`) clears the bit for a room it starts, a fresh tile or a piece left
+when a tile goes; a join keeps the joined room's. The owner change `0x004E5650` and the conversion
+`0x004E5300` never write it, so a ruined Heart a rival claims stays a ruin. The room-level tests read
+it: the gold chooser `0x00464400` and every gold path, the claim gate `0x00454040`, the random room of
+a type `0x004C6460`, the heart's tick, the hover `0x004E9393` and the tile redraw `0x004EDC10`.
+STRONGLY INFERRED (Q743, ADR-0662).
+
 ## 5. The blow that kills: `KilledByPlayerId`
 
 `0x0049B5E0` is the object death handler (reached from the thing deleter
@@ -360,13 +369,14 @@ condition type 25 counts it out is still UNKNOWN.
   once by `WorldState.EndGame`.
 - Actions 10 and 11 performed for the player of a player or creature tree,
   refused with `Unhandled` in a world tree; 12 and 13 stay `Unhandled`.
-- `HeartHealth`, `HeartLastAttackerPlayerId`, `HeartDiedTick`, `HeartRuined`;
+- `HeartHealth`, `HeartLastAttackerPlayerId`, `HeartDiedTick`, `HeartRuined` (the keeper's own heart
+  is gone: defeat, imp supply, pillar and combat standing; the Heart room's ruin is `TileState.RoomRuined`);
   `WorldState.DamageHeart` is the death handler's stamp, called by the melee blow
   (`FightRules`), a shot's contact (`ShotRules`) and the Boulder (ADR-0164, ADR-0333).
 - `DungeonHeartSystem`, last in the tick: regeneration every fifth turn (`PlayerState.HeartRegenCountdown`), ruin one
   turn after death, verdict from the killer's side, last keeper standing.
-- A ruined heart has no gold capacity (`GoldStore`) and is claimable
-  (`TileWorkRules.Applies(world, …)`).
+- A ruined Heart room, whoever owns it, has no gold capacity (`GoldStore`) and is claimable
+  (`TileWorkRules.Applies(world, …)`); `RoomRules.IsRuined` reads the room's tiles (ADR-0662).
 
 Not built: the object damage path that writes `+0x36`; the multiplayer-mode branch; the
 `+0x76` bits 19 and 22 the last-keeper count and award test; the room leaving the room list.

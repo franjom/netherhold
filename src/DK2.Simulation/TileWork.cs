@@ -331,12 +331,11 @@ public static class TileWorkRules
     public static bool Applies(GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId)
         => Applies(database, tile, kind, playerId, ruinedHeart: false);
 
-    /// <summary>The same, knowing whether the tile's owner has lost their heart: a
-    /// ruined heart is claimable like any room (Q93, ADR-0162), a live one never is.</summary>
+    /// <summary>The same, knowing whether the tile's room is a ruin (room <c>+0x9A</c> bit 0, kept on its
+    /// tiles, ADR-0662): a ruined heart is claimable like any room (Q93, ADR-0162), a live one never is.</summary>
     public static bool Applies(
         WorldState world, GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId)
-        => Applies(database, tile, kind, playerId,
-                   world.HasPlayer(tile.OwnerPlayerId) && world.Player(tile.OwnerPlayerId).HeartRuined);
+        => Applies(database, tile, kind, playerId, tile.RoomRuined);
 
     private static bool Applies(
         GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId, bool ruinedHeart)

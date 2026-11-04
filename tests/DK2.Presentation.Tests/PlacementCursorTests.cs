@@ -275,6 +275,7 @@ public sealed class PlacementCursorTests
         TilePos centre = HeartCentre(world, db, keeper);
         Hold(world, world.SpawnCreature(db, ImpType, keeper, Claimed(world, db, keeper, 0)));
         world.Player(keeper).HeartRuined = true;
+        RoomRules.RuinHearts(world, db, keeper);
 
         Assert.False(PlacementCursor.HandDrop(world, db, keeper, centre).Dispose);
     }

@@ -217,6 +217,7 @@ public static class RoomRules
     {
         TerrainDef covered = database.TerrainById(tile.TerrainId);
         TerrainDef terrain = database.TerrainById(room.TerrainId);
+        tile.RoomRuined = false;   // a new room tile is no ruin
 
         // A bridge records the hazard it is laid over, because that is what it
         // reverts to when it goes (Q64, ADR-0031) and the terrain table says Claimed
@@ -288,6 +289,26 @@ public static class RoomRules
         return afterRoomGate * standardRate / 100;
     }
 
+    /// <summary>Whether this room is a ruin, DK2's room <c>+0x9A</c> bit 0: a Dungeon Heart whose heart was
+    /// destroyed, or a gate trigger action 32 collapsed. Kept on the room's tiles, so it goes with the room
+    /// to a new owner: a captured ruined Heart stays one (ADR-0662).</summary>
+    public static bool IsRuined(WorldState world, RoomInstance room) =>
+        room.TileIndices.Count > 0 && world.TileAtIndex(room.TileIndices[0]).RoomRuined;
+
+    /// <summary>Makes the room a ruin (<c>0x004E9130</c> with 1).</summary>
+    public static void Ruin(WorldState world, RoomInstance room)
+    {
+        foreach (int index in room.TileIndices) world.TileAtIndex(index).RoomRuined = true;
+    }
+
+    /// <summary>Ruins each Dungeon Heart <paramref name="player"/> owns, as the heart's frame does to its
+    /// room when the heart dies (<c>0x004D9F7D</c>).</summary>
+    public static void RuinHearts(WorldState world, GameDatabase database, PlayerId player)
+    {
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+            if (room.Definition.TypeId == RoomTypeId.DungeonHeart && room.OwnerPlayerId == player.Value) Ruin(world, room);
+    }
+
     /// <summary>Takes a room tile back to what it was, and says how much stored gold
     /// the tile can no longer hold. The destination comes from
     /// <c>BridgeRules.RevertsTo</c>, not straight from
@@ -307,6 +328,7 @@ public static class RoomRules
         tile.TerrainId = revertsTo;
         tile.Health = next.StartingHealth;
         tile.BurnTicksRemaining = 0;
+        tile.RoomRuined = false;
         if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
 
         // Unownable ground belongs to the neutral player, as Tile_SetTerrain gives it

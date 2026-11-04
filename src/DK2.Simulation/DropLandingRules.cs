@@ -179,7 +179,7 @@ public static class DropLandingRules
         int dx = creature.Tile.X - heart.MinX, dy = creature.Tile.Y - heart.MinY;
         bool inner = dx is >= 1 and <= 3 && dy is >= 1 and <= 3;
         PlayerId owner = world.TileAtIndex((creature.Tile.Y * world.Width) + creature.Tile.X).OwnerPlayerId;
-        bool heartObject = world.HasPlayer(heart.OwnerPlayerId) && !world.Player(heart.OwnerPlayerId).HeartRuined;
+        bool heartObject = !RoomRules.IsRuined(world, heart);
         if (!inner || !heartObject)
         {
             if (!StateShadow.TryMove(context, system, creature, WorkerAfterDropState)) StateShadow.ToIdle(context, system, creature);

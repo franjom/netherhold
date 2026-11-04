@@ -228,6 +228,7 @@ public class KeeperAttackPlannerTests
         WorldState world = World(open: true);
         Fighter(world, Keeper, 15, 15);
         world.Player(Enemy).HeartRuined = true;
+        RoomRules.RuinHearts(world, Db, Enemy);
         (KeeperAttackPlanner planner, KeeperAIState state, _) = Planner(world, Attacker(firstEnd: 0, firstStart: 2));
 
         // The room draw skips the ruin bit, so end 0 finds no Heart room and refuses after the bits.

@@ -361,7 +361,7 @@ public class HandDropGateTests
         WorldState world = World(db);
         Set(world, 7, 3, 13, 9, Dk2TerrainFixture.ClaimedPath, Keeper);
         Paint(db, world, RoomTypeId.DungeonHeart, 8, 4, 12, 8);
-        world.Player(Keeper).HeartRuined = true;
+        HeartRuin.Set(world, Keeper, true);
         world.Player(Keeper).Mana = 100;
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 3));
         var events = new ListEventSink();

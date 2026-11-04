@@ -218,8 +218,8 @@ public sealed class KeeperView : INavByteGrid
     internal IReadOnlyList<byte> StatusEntries => _statuses;
     internal IReadOnlyList<bool> HeartRuinedEntries => _heartRuined;
 
-    /// <summary>Whether a player's heart is a ruin (<see cref="PlayerState.HeartRuined"/>), the room
-    /// ruin bit <c>+0x9A</c> the random room draw skips.</summary>
+    /// <summary>Whether a player's own heart is gone (<see cref="PlayerState.HeartRuined"/>). The random
+    /// room draw reads the room's ruin instead (<see cref="KeeperRoomView.Ruined"/>, ADR-0662).</summary>
     public bool HeartRuined(PlayerId playerId) => playerId.Value < _heartRuined.Length && _heartRuined[playerId.Value];
     internal IEnumerable<int> CallRefusedTiles => _callRefusedTiles.OrderBy(i => i);
     internal IEnumerable<int> SightRefusedTiles => _sightRefusedTiles.OrderBy(i => i);
@@ -514,12 +514,11 @@ public sealed class KeeperView : INavByteGrid
     }
 
     /// <summary><c>0x004C6460</c>: a room drawn uniformly among the player's rooms of one type whose
-    /// ruin bit (<c>+0x9A</c> bit 0) is clear, drawing only when there is one; here a fallen keeper's
-    /// heart is the one ruin. Drawn from the keeper's own stream (ADR-0244).</summary>
+    /// ruin bit (<c>+0x9A</c> bit 0) is clear, drawing only when there is one (ADR-0662). Drawn from the
+    /// keeper's own stream (ADR-0244).</summary>
     public KeeperRoomView? RandomRoomOfType(PlayerId player, RoomTypeId type, SimRandom rng)
     {
-        List<KeeperRoomView> rooms = RoomsOf(player).Where(r => r.Definition.RoomId == (byte)type
-            && !(type == RoomTypeId.DungeonHeart && HeartRuined(player))).ToList();
+        List<KeeperRoomView> rooms = RoomsOf(player).Where(r => r.Definition.RoomId == (byte)type && !r.Ruined).ToList();
         return rooms.Count == 0 ? null : rooms[rng.NextInt(rooms.Count)];
     }
 
