@@ -88,7 +88,52 @@ public static class Recipes
             + "cast a free Imp for both. The capture's world seed shows whether each heading draw follows its own "
             + "keeper's angle draw or both angle draws.",
             WithoutImps),
+        new("Q750CostNumbers", "Small",
+            "Floating cost digits (floating-cost-numbers.md, Q744, Q750; 2026-11-04): keeper 3's Heart opens east at "
+            + "(15,11..13) onto a 28x29 Claimed Path field (x 17..44, rows 2..30) for room builds and drag sales; four "
+            + "level-1 Goblins there for a Temple's prayer (mana digits). All other rock is impenetrable, which seals "
+            + "keeper 4 in its corner.",
+            CostNumbers),
+        new("Q750CostNumbersGold", "Small",
+            "Q750CostNumbers with 250000 starting gold for keeper 3: the first build started the owner on Small's own gold (2026-11-04). "
+            + "Superseded unplayed: the Heart takes 16000 and the rest is dropped with no Treasury (player-object.md).",
+            b => { CostNumbers(b); b.SetStartingGold(Keeper, 250000); }),
+        new("Q750CostNumbersBank", "Small",
+            "Q750CostNumbersGold with a 9x9 keeper Treasury painted at x 36..44, rows 22..30, so the Heart's 16000 and "
+            + "81 x 3000 hold all 250000 starting gold.",
+            b =>
+            {
+                CostNumbers(b);
+                for (int y = 22; y <= 30; y++) for (int x = 36; x <= 44; x++) b.Paint(x, y, new MapTile(TreasuryTerrain, Keeper, 1, 0));
+                b.SetStartingGold(Keeper, 250000);
+            }),
     ];
+
+    private const byte TreasuryTerrain = 10;
+
+    /// <summary>The Q750CostNumbers layout: an open field east of keeper 3's Heart; see the recipe's purpose.</summary>
+    private static void CostNumbers(LevelBuilder b)
+    {
+        LevelMap map = b.Map;
+        var rock = new MapTile(ImpenetrableRock, Neutral, 1, 0);
+        var path = new MapTile(ClaimedPath, Keeper, 1, 0);
+        static bool Field(int x, int y) => (x is >= 17 and <= 44 && y is >= 2 and <= 30) || (x is 15 or 16 && y is >= 11 and <= 13);
+        for (int y = 1; y < map.Height - 1; y++)
+            for (int x = 1; x < map.Width - 1; x++)
+                if (Field(x, y)) b.Paint(x, y, path);
+                else if (map[x, y].TerrainId is not (9 or 14)) b.Paint(x, y, rock);
+
+        var things = b.Things;
+        for (int i = things.Count - 1; i >= 0; i--)
+            if (things[i] is ObjectThing o && Field(o.X, o.Y)) b.RemoveThing(i);
+
+        var (creature, creatureImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Keeper && c.CreatureId == Imp);
+        foreach (int y in new[] { 10, 12, 14, 16 })
+            b.InsertThing(creature with
+            {
+                X = 20, Y = y, CreatureId = Goblin, PlayerId = Keeper, Level = 1, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+            }, creatureImage);
+    }
 
     private static void WithoutImps(LevelBuilder b)
     {

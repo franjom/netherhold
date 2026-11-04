@@ -18,7 +18,7 @@ public sealed class LevelBuilder
     public string BaseName { get; }
     private readonly KwdLevelFileSet _set;
     private readonly KwdChunkLocation _map;
-    private readonly string _things, _variables;
+    private readonly string _things, _variables, _players;
 
     public LevelBuilder(string install, string baseName)
     {
@@ -29,6 +29,16 @@ public sealed class LevelBuilder
         _map = new KwdChunkLocation(mapFile, ChunkOf(mapFile, KwdRecordType.Map));
         _things = Own("Things.kld");
         _variables = Own("Variables.kld");
+        _players = Own("Players.kld");
+    }
+
+    /// <summary>Sets a player's starting gold in the level's PLAYERS file; throws when the level has no such player.</summary>
+    public void SetStartingGold(byte playerId, int gold)
+    {
+        int chunk = ChunkOf(_players, KwdRecordType.Players);
+        var rows = KwdTypedRecords.Read(_set.Chunks(_players)[chunk]);
+        int i = Enumerable.Range(0, rows.Count).Single(k => rows[k] is PlayerDef p && p.PlayerId == playerId);
+        _set.EditRecord<PlayerDef>(new KwdRecordLocation(_players, chunk, i), r => r with { StartingGold = gold });
     }
 
     public static string MapsDir(string install) => Path.Combine(install, "Data", "editor", "maps");
