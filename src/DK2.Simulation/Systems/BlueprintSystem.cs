@@ -31,6 +31,9 @@ public sealed class BlueprintSystem : ISimulationSystem
             if (kind.Length == 0) continue;
             context.Emit(SystemName, verdict == BlueprintPlacementRules.Verdict.Allowed ? "blueprint_placed" : "blueprint_refused",
                 $"player={command.PlayerId} kind={kind} type={type} at=({at.X},{at.Y}) reason={verdict}");
+            // Both placers end with the keeper's walker reset (0x004C361D, 0x004C39D5).
+            if (verdict == BlueprintPlacementRules.Verdict.Allowed)
+                WalkerResetRules.Reset(context, SystemName, command.PlayerId);
         }
     }
 }

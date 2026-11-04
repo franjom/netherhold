@@ -15240,3 +15240,32 @@ disassembly; no capture covers a Hatchery change. Not mirrored:
   their first turn.
 
 A held bird's decay stays open (Q584).
+
+## ADR-0654: a new room or blueprint sends the keeper's walkers back to choose again
+
+**Date:** 2026-11-04. **Status:** accepted. Answers Q740; hash/save 403 (402 is held by the floating-cost
+worktree). · **Systems:** doors-traps, rooms
+
+**Context.** `0x004E8D30` stops each of a player's creatures in state 3 or 4 (the idle wanders),
+7 (walking to a room), or 6 resuming 1 (walking to a point with nothing after it), and kicks it to
+state 1. DK2 calls it when a room rectangle closes (`0x004F04F0`: the build wave at its press corner,
+the computer keeper, trigger action 22's room arm) and after a door or trap blueprint is placed,
+each time for the player who made the change ([blueprint-placement.md](research/blueprint-placement.md)
+section 5). Ours had no such reset, so a creature kept walking to a room chosen before the change.
+OpenKeeper PR #867 pointed at it; its claims that a sale also resets and that a walk to a lair is
+exempt are not in the binary.
+
+**Decision.** `WalkerResetRules.Reset` mirrors it over `WorldState.OwnedCreatures` (the player's
+list, newest first): states 3, 4 and 7 or 6 resuming 1, then `StopMoving` and `SetState(1)`. It runs
+in `RoomBuildSystem.Drain` when a wave reaches its press corner or stops for want of gold (a -1
+refusal jumps to the same close, `0x004C775F`), at the end of every `Direct` build order (the computer
+keeper's per-tile wrapper `0x004C5B40` closes a rectangle whether or not the tile was built), in
+`BlueprintSystem` after an allowed door or trap placement, and in trigger action 22's room arm after
+the tile is built.
+
+**Consequences.** A creature walking to a Lair, Hatchery or job room when its keeper builds a room or
+puts down a blueprint stops where it is and decides again, so it may pick the new room. A creature in
+the hand is in none of the four states and is left alone, in DK2 and ours. Repeated resets in one
+order do nothing more, since a kicked creature is in 1. A drag refused by the admission's cost check
+queues no wave and resets nothing. `Direct` orders also come from scenario setup, so a scenario's
+starting rooms reset its keeper's walkers; the shipped scenarios are unchanged by it.

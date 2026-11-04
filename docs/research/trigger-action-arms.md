@@ -55,7 +55,8 @@ entry `0x15` gives jump slot 12). In order:
      terrains flagged `0x80` (Water) and `0x100` (Lava).
    - Then `0x004F0390(room, owner, rect)`, `Player_BuildRoomTile`
      `0x004C5C30(x, y, room, turn, 1, 1, 8)` (bypass and skipTest: no charge, no
-     placement test), and `0x004F04F0(room, owner, rect)`.
+     placement test), and `0x004F04F0(room, owner, rect)`, which ends in the walker reset
+     `0x004E8D30` for the action's player (`blueprint-placement.md` §5).
 7. **Both paths end** with world slot `+0x38C(0x146, TagId, tile centre, …)` and
    return 1. That slot makes effects, as for `0x59`, `0x138` and action 41; that this
    one is presentation only is inference.
@@ -68,7 +69,8 @@ same bracket (`bridge-placement.md` §3).
 **Built** as `TriggerExecutor.AlterTerrain` (ADR-0136, ADR-0363; the neutral owner ADR-0362).
 The campaign uses the room path for Wooden Bridges on Siege and Secret3. Deviates: a room
 placeable on neither water nor lava is placed straight over the old terrain; effect `0x146`,
-the map brackets and a sold Combat Pit's reset are not modelled.
+the map brackets and a sold Combat Pit's reset are not modelled. The room arm resets the player's
+walkers after the tile is built (ADR-0654); the plain-terrain arm does not.
 
 ## Action 24's second dword: only its low byte, the message record (Q227)
 

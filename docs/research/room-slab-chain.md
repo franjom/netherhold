@@ -60,9 +60,10 @@ player. The corners are the packet's words at `+4`, `+6`, `+8` and `+0xA`, passe
 - Each tile gets the placement test `0x004C5A20`, then `buildRoom` `0x004C5C30`.
   - The two bridges and the hero bridge (types 8, 17, 22) test the tile against a per-rectangle
     map `0x004C57F0` instead.
-- A refusal of −1 ends the slot at once.
+- A refusal of −1 ends the slot at once, through the same `0x004F04F0` close as the press corner.
 - The slot empties when the wave reaches (x1, y1). `0x004F04F0` then recolours the torches
-  around the rectangle and refreshes the rooms it touches (`wall-torches.md` §6), and the
+  around the rectangle, refreshes the rooms it touches (`wall-torches.md` §6) and resets the keeper's
+  walkers (`blueprint-placement.md` §5), and the
   accumulated cost is shown at the last tile (`0x0050FB70`). The tile-word bit-14 clear over
   a rectangle is in the sell-side closer `0x004F09B0` (`0x004F09F8`), not here.
 
