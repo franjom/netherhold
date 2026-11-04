@@ -172,6 +172,30 @@ public class EatingTests
     }
 
     [Fact]
+    public void EachChickenWipesTheHungerGrievanceAndNoOther()
+    {
+        // 0x00463760 forgets bucket 1 on every bird, before the health and the pay-off
+        // (ADR-0651), and still owing a second bird does not keep it.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+        ObjectState bird = Chicken(db, world, 7, 7);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 7));
+        MakeHungry(goblin, 2);
+        goblin.Anger.Hunger = 5000;
+        goblin.Anger.Lair = 3000;
+        goblin.TargetObjectId = bird.Id;
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, EatingRules.EatState);
+
+        Simulation(db, world).Tick();
+
+        Assert.Null(world.ObjectById(bird.Id));
+        Assert.Equal(1, goblin.HungerNeed);
+        Assert.Equal(0, goblin.Anger.Hunger);
+        Assert.Equal(3000, goblin.Anger.Lair);
+    }
+
+    [Fact]
     public void AHungryGoblinWalksToTheHatcheryAndEatsTheChicken()
     {
         GameDatabase db = Db;

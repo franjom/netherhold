@@ -55,6 +55,19 @@ public class MoodMessageTests
     }
 
     [Fact]
+    public void LairAndFoodCrossingInOneSecondPostTheLairComplaint()
+    {
+        // 0x00478D00 adds lair before food (ADR-0651), so the lair add makes the crossing and
+        // the food add finds the band already changed.
+        var (_, world, goblin, state) = Goblin();
+        int unhappy = CreatureAngerRules.UnhappyAt(goblin);
+        var delta = new CreatureAnger { Hunger = unhappy, Lair = unhappy };
+        CreatureAngerRules.ApplyNeeds(world, goblin, state, delta);
+
+        Assert.Equal((int)AngerComplaint.NoLair, Assert.Single(world.Messages.Entries).Data1);
+    }
+
+    [Fact]
     public void ACrossingFromUnhappyToAngryPosts18()
     {
         var (_, world, goblin, state) = Goblin();

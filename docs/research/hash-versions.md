@@ -16,6 +16,7 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**400** - `0x60AE0E08750D4B7F`. Remake regression pin, not native evidence. FormatVersion also 400. A hungry creature whose keeper may build or owns a Hatchery takes `AngerNoFood` each second, and each Hatchery chicken forgets bucket 1 (`0x00478D00`, `0x00463760`, ADR-0651). No new saved field. Earlier saves are refused.
 **399** - `0x1C6027B8C1B6CF49`. Remake regression pin, not native evidence. FormatVersion also 399. A Chicken no room holds loses one health a turn and dies at none, with its death effect (`0x0049BD20`, ADR-0650). No new saved field. Earlier saves are refused.
 **398** - `0x3AD178E82DD854F6`. Remake regression pin, not native evidence. FormatVersion also 398. A loose Chicken compares raw navigation bytes and counts a store tile's gold pile as an obstacle (ADR-0649). No new saved field. Earlier saves are refused.
 **397** - `0x11BF8C558F1157EF`. Remake regression pin, not native evidence. FormatVersion also 397. Effect generators run (`0x004B1B60`) and every level start adds one over the map with effect 90 (`0x0050C201`); a generator keeps its corner and due turn, saved and hashed (ADR-0648). Earlier saves are refused.

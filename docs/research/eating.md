@@ -264,7 +264,8 @@ one to it gets it, eats it, and its health replenishes by some amount"*.
 ## 7. Eating, and the two amounts
 
 Within a squared distance of `0x1001` — one tile in a fixed point whose tile is
-4096 — the creature eats. In order: an effect on the bird, the health top-up
+4096 — the creature eats. In order: an effect on the bird, the creature's bucket 1
+(`AngerNoFood`) forgotten (`Anger_ForgetBucket(1)`, every bird; ADR-0651), the health top-up
 above, the subtract, an effect on the creature, the bird destroyed,
 `LastAteTime` stamped.
 

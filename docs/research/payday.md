@@ -276,7 +276,7 @@ it charges all three standing sources one after another, **independently**:
 | Source | Field | Condition |
 |---|---|---|
 | `AngerNoLair` | `def+0x6c1` | no bed **and** the room type is available |
-| `AngerNoFood` | `def+0x6c3` | `HungerNeed` >= level-scaled `HungerFill` **and** a hatchery is available |
+| `AngerNoFood` | `def+0x6c3` | level-scaled `HungerFill` non-zero and <= `HungerNeed`, **and** Hatchery availability 3 or a Hatchery owned (`Player_CountRoomsOfType(4)`, the keeper's own rooms; built, ADR-0651) |
 | **`AngerNoPay`** | **`def+0x6c5`** | **`WageOwed != 0`, and level-scaled `Pay` != 0** |
 
 ### 6.1 The pay clause has no treasury test

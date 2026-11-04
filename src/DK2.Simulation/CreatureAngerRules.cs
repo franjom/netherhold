@@ -117,11 +117,11 @@ public static class CreatureAngerRules
         return CreatureMood.Content;
     }
 
-    /// <summary>The per-second anger change from unmet needs and from a bed: three of DK2's six
-    /// sources — <c>AngerNoLair</c> +100, <c>AngerNoPay</c> +60 (ADR-0079; being owed is the whole
-    /// trigger, <see cref="PaydayRules.IsOwedWages"/>) and
-    /// <c>ModifyAngerOfCreatureInLairPerSecond</c> −550. Elsewhere: <c>AngerNoFood</c> +100 in the
-    /// prison only (ADR-0074), <c>AngerNoWork</c>, the loaded 12, on each failed pass in <see cref="Systems.CreatureJobSystem"/>,
+    /// <summary>The per-second anger change from unmet needs and from a bed: four of DK2's six
+    /// sources — <c>AngerNoLair</c> +100, <c>AngerNoFood</c> +100 (ADR-0651), <c>AngerNoPay</c> +60
+    /// (ADR-0079; being owed is the whole trigger, <see cref="PaydayRules.IsOwedWages"/>) and
+    /// <c>ModifyAngerOfCreatureInLairPerSecond</c> −550. Elsewhere: the prison's own food anger
+    /// (ADR-0074), <c>AngerNoWork</c>, the loaded 12, on each failed pass in <see cref="Systems.CreatureJobSystem"/>,
     /// and <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> +150 every four seconds in a
     /// cell (<see cref="PrisonRules.CellAngerPerApplication"/>, ADR-0171). That variable's
     /// <i>other</i> reader, the mixed-alignment room rule, is <see cref="Systems.HatedCompanySystem"/>.</summary>
@@ -150,6 +150,15 @@ public static class CreatureAngerRules
             delta.Lair += creature.AngerNoLair;
         }
 
+        // Hungry while its keeper could feed it (ADR-0651): 0x00478D00 charges bucket 1 at
+        // HungerNeed >= level-scaled HungerFill when Hatchery availability is 3 or the keeper owns
+        // one, so a map that offers no Hatchery angers nobody. Eating forgets it (CreatureEatSystem).
+        if (!follower && EatingRules.IsHungry(database, creature, state)
+            && CanFeed(world, database, state.OwnerPlayerId))
+        {
+            delta.Hunger += creature.AngerNoFood;
+        }
+
         // Owed wages it has not collected.
         if (!follower && PaydayRules.IsOwedWages(database, creature, state))
         {
@@ -167,6 +176,17 @@ public static class CreatureAngerRules
         }
 
         return delta;
+    }
+
+    /// <summary>The food charge's room clause in <c>0x00478D00</c>: Hatchery availability 3
+    /// (<c>Player_RoomAvailability(4)</c>), else any Hatchery owned (<c>Player_CountRoomsOfType(4)</c>).</summary>
+    private static bool CanFeed(WorldState world, GameDatabase database, PlayerId player)
+    {
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Hatchery) == RoomNeedRules.Available)
+            return true;
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+            if (EatingRules.IsHatcheryOf(room, player.Value)) return true;
+        return false;
     }
 
     /// <summary>Applies a whole tick's worth of per-bucket change.</summary>
@@ -219,6 +239,21 @@ public static class CreatureAngerRules
         AngerComplaint.General, AngerComplaint.NoFood, AngerComplaint.NoLair,
         AngerComplaint.NoWork, AngerComplaint.Money, AngerComplaint.NoLair,
     ];
+
+    /// <summary>The order <see cref="PerSecond"/>'s buckets are added in: <c>0x00478D00</c>'s lair,
+    /// food and pay (calls at <c>0x00478DE5</c>, <c>0x00478E77</c>, <c>0x00478EF0</c>), then the in-lair
+    /// calm. Not index order: when two cross a band in one second, the first posts the message.</summary>
+    private static readonly AngerBucket[] NeedOrder =
+        [AngerBucket.Lair, AngerBucket.Hunger, AngerBucket.Pay, AngerBucket.Treatment];
+
+    /// <summary>A <see cref="PerSecond"/> delta, in <see cref="NeedOrder"/> with
+    /// <see cref="NeedComplaints"/>.</summary>
+    public static void ApplyNeeds(WorldState world, CreatureDef creature, CreatureState state, CreatureAnger delta)
+    {
+        foreach (AngerBucket bucket in NeedOrder)
+            if (delta[bucket] != 0)
+                Apply(world, creature, state, bucket, delta[bucket], NeedComplaints[(int)bucket]);
+    }
 
     /// <summary>Whether this creature can be angered at all — one flag read from the record. False
     /// for the Skeleton and Jack, the two carrying <see cref="CreatureFlags2.NeverAngered"/>, whose

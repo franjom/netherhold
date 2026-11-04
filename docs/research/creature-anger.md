@@ -180,8 +180,9 @@ both numbers and wrong about what they do to each other. **A keeper cannot buy
 off every grievance with the cheapest one to fix.** And
 `ModifyCreatureAngerWhilePrayingPerSecond` (−275) is applied in six consecutive
 calls, one per bucket: the one source that drains a grievance it did not cause
-(`job-selection.md` §5). Two events wipe their own bucket to zero instead: a bed
-placed (Lair) and a wage paid in full (Pay), both `0x00486F80` (ADR-0179).
+(`job-selection.md` §5). Three events wipe their own bucket to zero instead: a bed
+placed (Lair) and a wage paid in full (Pay), both `0x00486F80` (ADR-0179),
+and each Hatchery chicken eaten (Hunger, `0x00463760`, ADR-0651).
 
 ### A number above the ceiling, and the whole-routine guard
 
@@ -342,7 +343,7 @@ when the player's own choices can turn it off.**
 | `ModifyAngerOfCreatureInLairPerSecond` | −550/s | **Yes** — sleep works, so recovery is real |
 | `AngerNoPay` | +60/s | **Yes** (ADR-0079) — `FUN_00478d00`, the need-anger routine, reached just before the needs routine. **Being owed is the whole trigger**: unlike its two siblings it has *no room-availability clause*, so a keeper cannot excuse itself by having no treasury. Charged additively with `AngerNoLair`, and **not at all to a captive** — bit 1 of the state flag byte suppresses the whole routine and all eleven captive states carry it. `payday.md` §6 |
 | `AngerNoWork` | +12 a failed pass (corrected, ADR-0228) | **Yes** (ADR-0082) — charged by the happy chooser when every job in the creature's happy table has failed, the loaded value once per pass; 89 then parks the creature in 3, so passes are 14 to 32 turns apart (`idle-fallback.md`, measured 2026-10-29). **And only the happy chooser's tail**: the unhappy and angry choosers have the identical tail with the call missing, but 89 calls the happy chooser whatever the mood, so an unhappy creature whose mood prelude took nothing is charged by 89 (ADR-0574). `JobRules.ChargesNoWorkAnger`, `job-selection.md` §1 |
-| `AngerNoFood` | +100/s | **In the prison only** (ADR-0074) — a keeper can stock a cell, so that source is one the player can turn off. Not applied generally: the ordinary hungry creature walks to a hatchery, and charging it would anger everybody on a map with no hatchery |
+| `AngerNoFood` | +100/s | **Yes** (ADR-0651) — `0x00478D00` charges it to bucket 1 while level-scaled `HungerFill` is non-zero and at most `HungerNeed`, **and** the keeper's Hatchery availability is 3 or it owns a Hatchery, so a map offering none angers nobody. Each Hatchery chicken eaten forgets bucket 1 (`0x00463760`). The prison's own charge is separate (ADR-0074, `prison.md` §7.4) |
 | hated company | +150/s | **Yes** — a prison cell every four seconds into bucket 0 (ADR-0171), and a Library, Training Room, Guard Room or Workshop holding both alignments, eight seconds' worth every 32 turns into bucket 5 (`0x004E8C60`, ADR-0479) |
 
 Otherwise anger becomes a countdown no dungeon survives. **Each omission is a

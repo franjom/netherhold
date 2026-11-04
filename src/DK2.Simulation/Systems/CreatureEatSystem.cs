@@ -341,6 +341,8 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         // State 93 asks for the chicken's own sound first (0x00463859, the bird's category and voice, at the
         // bird), then, once the meal is paid off, the eater's (0x0046398D).
         ThingSoundRules.Request(context, SystemName, chicken, ThingSoundEvent.ChickenEaten);
+        // Then the hunger grievance is wiped, every bird and before the meal (0x00463760, ADR-0651).
+        CreatureAngerRules.Forget(context.World, definition, creature, AngerBucket.Hunger);
         int before = creature.Health;
         int gained = EatingRules.Eat(database, definition, creature);
         ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.Ate);
