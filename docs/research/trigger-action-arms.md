@@ -62,8 +62,8 @@ entry `0x15` gives jump slot 12). In order:
    one is presentation only is inference.
 
 **STRONGLY INFERRED** for the control flow and arguments. `0x004F04F0` and `0x004F09B0`, the closers, are read
-(`wall-torches.md` §6: torch recolour and room refresh); the openers `0x004F0390` and
-`0x004F0840` are unread. The keeper's builder `0x004C5B40` uses the
+(`wall-torches.md` §6: torch recolour and room refresh); the opener `0x004F0390` is unread, and `0x004F0840`
+has a [record](functions/004F0840.md). The keeper's builder `0x004C5B40` uses the
 same bracket (`bridge-placement.md` §3).
 
 **Built** as `TriggerExecutor.AlterTerrain` (ADR-0136, ADR-0363; the neutral owner ADR-0362).

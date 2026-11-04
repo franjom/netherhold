@@ -262,8 +262,10 @@ ADR-0240 records the chain order. §9 says what was built.
   Successful wave tiles reconcile furniture before emitting their effects.
   Slots, queue stamps and accumulated cost survive hashes and checkpoints.
   `BuildRoomCommand.At` retains immediate computer/scenario builder behavior
-  without the player wave's creation effect. `SellRoomCommand.Rect` lists the
-  same order but selling remains immediate in this slice.
+  without the player wave's creation effect. `SellRoomCommand.Rect` normalises its corners and
+  `RoomSellSystem` queues it in three slots per player; `RoomSellWaveSystem` drains them after
+  `RoomBuildWaveSystem`, one diagonal a turn from the maximum corner (ADR-0653). A direct
+  `SellRoomCommand` stays immediate.
 - ADR-0243 switches the order-sensitive §7 readers: pit route point, imp room
   point, wall-furniture phase, chicken and prison-food ties, gold deposit tile,
   lair search, and Workshop crate placement. Each has a dragged-room regression

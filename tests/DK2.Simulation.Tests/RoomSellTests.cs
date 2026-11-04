@@ -121,17 +121,151 @@ public class RoomSellTests
         Assert.Equal(Keeper, run.World.Tile(2, 2).OwnerPlayerId);
     }
 
-    [Fact]
-    public void SellingSeveralTilesSellsThemAll()
+    /// <summary>A dragged sale is a wave (0x004C7160): one diagonal a turn from the rectangle's maximum
+    /// corner, whichever way it was dragged, and the slot empties at the minimum corner.</summary>
+    [Theory]
+    [InlineData(1, 3)]
+    [InlineData(3, 1)]
+    public void ADraggedSaleSellsOneDiagonalATurnFromTheMaximumCorner(int fromX, int toX)
     {
         Run run = Start();
         Give(run, RoomTypeId.Treasury, Keeper,
              new TilePos(1, 1), new TilePos(2, 1), new TilePos(3, 1));
 
-        run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 3, 1));
+        run.Tick(SellRoomCommand.Rect(Keeper, fromX, 1, toX, 1));
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(3, 1).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, run.World.Tile(2, 1).TerrainId);
+        Assert.Contains(run.World.RoomSellWaves, w => w.HasValue);
 
+        run.Tick();
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(2, 1).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, run.World.Tile(1, 1).TerrainId);
+
+        run.Tick();
         Assert.All(new[] { 1, 2, 3 },
             x => Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(x, 1).TerrainId));
+        Assert.DoesNotContain(run.World.RoomSellWaves, w => w.HasValue);
+    }
+
+    /// <summary>Three sale slots; a fourth drag while all three are busy is dropped (0x004C70A0).</summary>
+    [Fact]
+    public void AFourthSaleWhileThreeAreQueuedIsDropped()
+    {
+        Run run = Start();
+        Give(run, RoomTypeId.Lair, Keeper, new TilePos(1, 1), new TilePos(1, 3));
+
+        run.Tick(
+            SellRoomCommand.Rect(Keeper, 1, 1, 3, 3), SellRoomCommand.Rect(Keeper, 1, 1, 3, 3),
+            SellRoomCommand.Rect(Keeper, 1, 1, 3, 3), SellRoomCommand.Rect(Keeper, 1, 1, 3, 3));
+
+        Assert.Equal(3, run.World.RoomSellWaves.Count(w => w.HasValue));
+        Assert.Single(run.Of("sell_refused"));
+    }
+
+    /// <summary>A mixed-direction drag over two dimensions: the wave starts at (max x, max y) and each turn
+    /// sells the tiles one step further from it (0x004C7160).</summary>
+    [Fact]
+    public void ATwoDimensionalSaleWalksTheDiagonalsFromTheMaximumCorner()
+    {
+        Run run = Start();
+        TilePos[] all = [.. Enumerable.Range(1, 3).SelectMany(y => Enumerable.Range(1, 3).Select(x => new TilePos(x, y)))];
+        Give(run, RoomTypeId.Lair, Keeper, all);
+
+        run.Tick(SellRoomCommand.Rect(Keeper, 3, 1, 1, 3));
+        for (int turn = 0; turn <= 4; turn++)
+        {
+            if (turn > 0) run.Tick();
+            foreach (TilePos p in all)
+            {
+                bool sold = (3 - p.X) + (3 - p.Y) <= turn;
+                Assert.Equal(sold, run.World.Tile(p).TerrainId == Dk2TerrainFixture.ClaimedPath);
+            }
+        }
+        Assert.DoesNotContain(run.World.RoomSellWaves, w => w.HasValue);
+    }
+
+    /// <summary>DK2 pays each refund in at its own tile (0x004C5DB0 to 0x004BA420), so with no store a wave
+    /// leaves each tile's refund on that tile.</summary>
+    [Fact]
+    public void EachWaveRefundNoStoreTakesLandsOnItsOwnTile()
+    {
+        Run run = Start();
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Give(run, RoomTypeId.Lair, Keeper, new TilePos(1, 1), new TilePos(2, 1), new TilePos(3, 1));
+
+        run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 3, 1));
+        run.Tick();
+        run.Tick();
+
+        foreach (int x in new[] { 1, 2, 3 })
+            Assert.Equal(150, FloorGold.OnTile(run.World, database, run.World.Width + x));
+    }
+
+    /// <summary>A wave that reaches its minimum corner ends the player's whole drain for the turn (0x004C7160 returns),
+    /// so a later slot misses that turn's diagonal. A one-tile sale queued behind it never sells and keeps its slot,
+    /// as the build wave's does (room-slab-chain.md section 2).</summary>
+    [Fact]
+    public void AFinishingSaleEndsThePlayersWaveForThatTurn()
+    {
+        Run run = Start();
+        Give(run, RoomTypeId.Lair, Keeper, new TilePos(1, 1), new TilePos(2, 1));
+
+        run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 1, 1), SellRoomCommand.Rect(Keeper, 2, 1, 2, 1));
+        run.Tick();
+        run.Tick();
+
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(1, 1).TerrainId);
+        Assert.NotEqual(Dk2TerrainFixture.ClaimedPath, run.World.Tile(2, 1).TerrainId);
+        Assert.Single(run.World.RoomSellWaves, w => w.HasValue);
+    }
+
+    [Fact]
+    public void ASlotFreedByAFinishedSaleTakesTheNextOne()
+    {
+        Run run = Start();
+        Give(run, RoomTypeId.Lair, Keeper, new TilePos(1, 1), new TilePos(3, 3));
+
+        run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 3, 3));
+        for (int i = 0; i < 4; i++) run.Tick();
+        Assert.DoesNotContain(run.World.RoomSellWaves, w => w.HasValue);
+
+        run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 2, 2), SellRoomCommand.Rect(Keeper, 1, 1, 2, 2),
+            SellRoomCommand.Rect(Keeper, 1, 1, 2, 2));
+        Assert.Equal(3, run.World.RoomSellWaves.Count(w => w.HasValue));
+        Assert.Empty(run.Of("sell_refused"));
+    }
+
+    /// <summary>The keeper frame that drains the waves does not run for a defeated keeper (0x004BB2A0's guard,
+    /// mirrored as for the build wave).</summary>
+    [Fact]
+    public void ADefeatedKeepersQueuedSaleSellsNothing()
+    {
+        Run run = Start();
+        Give(run, RoomTypeId.Lair, Keeper, new TilePos(1, 1));
+        run.World.Player(Keeper).KilledByPlayerId = Rival;
+
+        run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 1, 1));
+        run.Tick();
+
+        Assert.NotEqual(Dk2TerrainFixture.ClaimedPath, run.World.Tile(1, 1).TerrainId);
+    }
+
+    [Fact]
+    public void ASnapshotRestoresAPendingSaleAndContinuesIdentically()
+    {
+        Run run = Start();
+        Give(run, RoomTypeId.Treasury, Keeper, new TilePos(1, 1), new TilePos(2, 2), new TilePos(3, 3));
+        run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 3, 3));
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(run.Sim), run.Sim.Database,
+            Dk2TerrainFixture.DefaultSystems());
+        Assert.Equal(run.Sim.StateHash(), restored.StateHash());
+        for (int i = 0; i < 5; i++)
+        {
+            run.Tick();
+            restored.Tick(InputFrame.Empty);
+            Assert.Equal(run.Sim.StateHash(), restored.StateHash());
+        }
+        Assert.DoesNotContain(restored.World.RoomSellWaves, w => w.HasValue);
     }
 
     // ---- what cannot be sold ---------------------------------------------
@@ -241,6 +375,7 @@ public class RoomSellTests
         Give(run, RoomTypeId.Treasury, Keeper, new TilePos(1, 1), new TilePos(2, 1));
 
         run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 2, 1));
+        run.Tick();
 
         Assert.Equal(0, GoldStore.Total(run.World, Keeper));
         Assert.Equal(200, FloorGold.Total(run.World, database));
@@ -263,6 +398,7 @@ public class RoomSellTests
         Give(run, RoomTypeId.Lair, Keeper, new TilePos(2, 1), new TilePos(3, 1));
 
         run.Tick(SellRoomCommand.Rect(Keeper, 2, 1, 3, 1));
+        run.Tick();
 
         // Two lair tiles at 300 refund 150 each, and the treasury holds both.
         Assert.Equal(300, GoldStore.Total(run.World, Keeper));
@@ -292,7 +428,7 @@ public class RoomSellTests
         Assert.Equal(150, RoomRules.RefundPerTile(database, database.Room(RoomTypeId.Lair)));
 
         run.Tick(
-            SellRoomCommand.Rect(Keeper, 1, 1, 2, 1),
+            SellRoomCommand.At(Keeper, new TilePos(1, 1), new TilePos(2, 1)),
             BuildRoomCommand.At(Keeper, RoomTypeId.Treasury, new TilePos(2, 2)));
 
         Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, run.World.Tile(2, 2).TerrainId);

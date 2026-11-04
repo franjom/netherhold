@@ -28,11 +28,18 @@ public static class RoomBuildWaveRules
 {
     public const int SlotsPerPlayer = 3;
 
-    public static IEnumerable<TilePos> Diagonal(RoomBuildWaveState wave, GameTick now, WorldState world)
+    public static IEnumerable<TilePos> Diagonal(RoomBuildWaveState wave, GameTick now, WorldState world) =>
+        Diagonal(wave.Press, wave.Release, wave.QueuedTick, now, world);
+
+    /// <summary>The tiles a wave reaches on <paramref name="now"/>: <c>|x − end.X| + |y − end.Y|</c> equal to the
+    /// turns since <paramref name="queued"/>, from <paramref name="end"/> back toward <paramref name="start"/>. The
+    /// build wave <c>0x004C7380</c> and the sell wave <c>0x004C7160</c> share this geometry.</summary>
+    internal static IEnumerable<TilePos> Diagonal(TilePos start, TilePos end, GameTick queued, GameTick now,
+        WorldState world)
     {
-        TilePos press = ClampPress(wave.Press);
-        TilePos release = ClampRelease(wave.Release, world);
-        long elapsedTicks = now.Value - wave.QueuedTick.Value;
+        TilePos press = ClampPress(start);
+        TilePos release = ClampRelease(end, world);
+        long elapsedTicks = now.Value - queued.Value;
         int dx = Math.Abs(press.X - release.X), dy = Math.Abs(press.Y - release.Y);
         if (elapsedTicks < 0 || elapsedTicks > dx + dy) yield break;
         int elapsed = (int)elapsedTicks;

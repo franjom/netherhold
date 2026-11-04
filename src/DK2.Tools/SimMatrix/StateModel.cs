@@ -51,7 +51,7 @@ internal sealed class StateModel
         ["_nextCreatureId"] = Creatures, ["_nextChainOrder"] = Creatures,
         ["_players"] = Players, ["ActivePlayerOrderSlots"] = Players, ["Messages"] = Players, ["Carry"] = Players,
         ["LocalPlayerId"] = Players,
-        ["RoomBuildWaveSlots"] = Rooms, ["_templeSacrifices"] = Rooms, ["_graveyards"] = Rooms,
+        ["RoomBuildWaveSlots"] = Rooms, ["RoomSellWaveSlots"] = Rooms, ["_templeSacrifices"] = Rooms, ["_graveyards"] = Rooms,
         ["RoomBorderCursorList"] = Rooms, ["LevelStartWorkshops"] = Rooms, ["NextRoomListPosition"] = Rooms,
         ["_objects"] = Objects, ["_nextObjectId"] = Objects, ["_shots"] = Objects, ["_nextShotId"] = Objects,
         ["_effectGenerators"] = Objects,

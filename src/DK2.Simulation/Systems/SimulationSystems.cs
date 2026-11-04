@@ -190,6 +190,7 @@ public static class SimulationSystems
         new ManaSystem(),
         new ImpSupplySystem(),
         new RoomBuildWaveSystem(), // keeper frame after mana, before its research chooser (0x004BB614)
+        new RoomSellWaveSystem(), // the sell wave 0x004C7160, right after the build wave in the keeper frame
         new ResearchSystem(), // the same player frame chooses a research target when it has none
         new ManufactureDecaySystem(), // the player update's manufacture loss (0x004C3340, ADR-0203)
     ];

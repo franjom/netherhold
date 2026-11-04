@@ -24,6 +24,7 @@ public static class CommandCodec
             case BuildRoomCommand c:
                 Head(w, 2, c); w.Write((byte)c.RoomId); Tiles(w, c.Tiles); w.Write((byte)c.Mode);
                 Tile(w, c.Press); Tile(w, c.Release); break;
+            case SellRoomCommand { Mode: RoomSellMode.PlayerWave } c: Head(w, 34, c); Tile(w, c.Min); Tile(w, c.Max); break;
             case SellRoomCommand c: Head(w, 3, c); Tiles(w, c.Tiles); break;
             case CreateImpCommand c:
                 Head(w, 4, c);
@@ -112,6 +113,7 @@ public static class CommandCodec
             31 => new RevealMapCommand(player),
             32 => new ActivateSpecialCommand(player, r.ReadInt32(), r.ReadInt32()),
             33 => new WithdrawCounterGoldCommand(player, new GoldAmount(r.ReadInt32())),
+            34 => ReadSellWave(r, player),
             _ => throw new InvalidDataException($"Unknown command tag {tag} in the journal."),
         };
     }
@@ -123,6 +125,12 @@ public static class CommandCodec
         var mode = (RoomBuildMode)r.ReadByte();
         TilePos press = ReadTile(r);
         return new BuildRoomCommand(player, room, tiles) { Mode = mode, Press = press, Release = ReadTile(r) };
+    }
+
+    private static SellRoomCommand ReadSellWave(BinaryReader r, PlayerId player)
+    {
+        TilePos min = ReadTile(r), max = ReadTile(r);
+        return SellRoomCommand.Rect(player, min.X, min.Y, max.X, max.Y);
     }
 
     private static void Head(BinaryWriter w, ushort tag, PlayerCommand c)

@@ -160,7 +160,7 @@ digits only while creatures pray at the Temple's rim, not when they are dropped 
 
 ## 7. What ours does
 
-Not built. ADR-0597 deferred numeric display ("ours has no cost-number request caller"), and
+Not built. A dragged sale is a wave in ours (ADR-0653), so the per-tile request would fall on its diagonals. ADR-0597 deferred numeric display ("ours has no cost-number request caller"), and
 ADR-0534 and ADR-0313 list the store-lift amount and the training −20 as not modelled. A build
 would put the request where DK2 puts it: a view request from the build wave's completion and
 from each paid tile sale, carrying viewer, point, amount and kind, with the digits drawn by
