@@ -716,6 +716,77 @@ public class CreatureAngerTests
             world, db, db.CreatureById(GoblinId), goblin).Treatment);
     }
 
+    // ---- going hungry (0x00478D00's food arm, ADR-0651) -----------------------
+
+    private static int HungerChargeOf(GameDatabase db, WorldState world, CreatureState goblin) =>
+        CreatureAngerRules.PerSecond(world, db, db.CreatureById(GoblinId), goblin).Hunger;
+
+    private static CreatureState HungryGoblin(GameDatabase db, WorldState world)
+    {
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.HungerNeed = EatingRules.HungerFill(db, db.CreatureById(GoblinId), goblin.Level);
+        return goblin;
+    }
+
+    [Fact]
+    public void AHungryGoblinIsChargedAngerNoFoodWhileItsKeeperMayBuildAHatchery()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, RoomNeedRules.Available));
+        CreatureState goblin = HungryGoblin(db, world);
+
+        int charge = HungerChargeOf(db, world, goblin);
+        Assert.True(charge > 0);
+        Assert.Equal(db.CreatureById(GoblinId).AngerNoFood, charge);
+
+        // One short of a helping is not hungry: the threshold is HungerNeed >= HungerFill.
+        goblin.HungerNeed--;
+        Assert.Equal(0, HungerChargeOf(db, world, goblin));
+    }
+
+    [Fact]
+    public void OwningAHatcheryIsEnoughWhenItCanNoLongerBeBuilt()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, 1));
+        CreatureState goblin = HungryGoblin(db, world);
+        Assert.Equal(0, HungerChargeOf(db, world, goblin));
+
+        ref TileState tile = ref world.Tile(6, 6);
+        RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Hatchery), Keeper);
+        Assert.Equal(db.CreatureById(GoblinId).AngerNoFood, HungerChargeOf(db, world, goblin));
+    }
+
+    [Fact]
+    public void ARivalsHatcheryOrNoHatcheryAtAllAngersNobody()
+    {
+        // The room clause is what keeps a map without Hatcheries quiet: the reason ADR-0074 had
+        // left the food charge to the prison, and DK2's own answer to it.
+        GameDatabase db = Db;
+        WorldState world = WorldState.FromMap(
+            db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
+        CreatureState goblin = HungryGoblin(db, world);
+        Assert.Equal(0, HungerChargeOf(db, world, goblin));
+
+        ref TileState tile = ref world.Tile(6, 6);
+        RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Hatchery), (byte)(Keeper + 1));
+        Assert.Equal(0, HungerChargeOf(db, world, goblin));
+    }
+
+    [Fact]
+    public void AFollowerIsNotChargedForHunger()
+    {
+        // 0x00478D00 returns before any arm for a follower (+0x482, 0x00478D1D).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, RoomNeedRules.Available));
+        CreatureState goblin = HungryGoblin(db, world);
+        goblin.FollowLeaderId = 99;
+        Assert.Equal(0, HungerChargeOf(db, world, goblin));
+    }
+
     [Fact]
     public void AngerFloorsAtZeroRatherThanGoingNegative()
     {
