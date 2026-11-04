@@ -125,6 +125,12 @@ comments do.
   `docs/systems.yaml`. Tooling only — no simulation
   assembly references it.
 
+## Roslyn (Microsoft.CodeAnalysis.CSharp)
+- https://github.com/dotnet/roslyn, version 4.14.0 — MIT License, Copyright (c) .NET Foundation
+  and Contributors
+- Used by `DK2.Tools` (`dk2tools simmatrix`) to compile the simulation's source and read which
+  systems read and write which state. Tooling only — no simulation assembly references it.
+
 ## NLayer
 
 - https://github.com/naudio/NLayer, version 3.0.0, MIT licence, Copyright (c) 2018 Mark Heath, Andrew Ward & Contributors.

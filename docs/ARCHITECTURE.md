@@ -40,7 +40,7 @@ from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references a
 | `DK2.Art` | readers for the player's original art: KMF models, engine textures, the art catalogue (ADR-0408) |
 | `DK2.Convert` | original art → glTF/GLB and PNG (`dk2tools convert`) |
 | `DK2.Harness` | headless scenario runner |
-| `DK2.Tools` | the `dk2tools` CLI: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, and the data inspectors |
+| `DK2.Tools` | the `dk2tools` CLI: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, `simmatrix`, and the data inspectors |
 | `unity/DK2.Unity` | the adapter; `unity/DK2.Unity.Compile` builds it against Unity's modules |
 
 `docs/HANDOFF.md` §"Where to work" says which project a change belongs in.

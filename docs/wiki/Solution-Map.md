@@ -42,7 +42,7 @@ executables, tools and tests target **net10.0**.
 | **DK2.Presentation** | Turns world state into drawables, independent of the renderer: HUD, panels, camera paths, cutscenes | Core, Data, Data.Model, Simulation, Assets |
 | **DK2.Convert** | Converts original art to glTF/GLB and PNG | Art, Assets, Data |
 | **DK2.Harness** | Headless scenario runner: runs YAML scenarios and writes reports, events and per-tick hashes | Core, Data, Data.Model, Simulation, AI, Assets, Presentation |
-| **DK2.Tools** | The `dk2tools` command line: `status`, `docs`, `kb`, `coverage`, `convert`, `replay` and the data inspectors ([README](https://github.com/franjom/netherhold/blob/master/src/DK2.Tools/README.md)) | Assets, Convert, Core, Data, Data.Model, Simulation |
+| **DK2.Tools** | The `dk2tools` command line: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, `simmatrix` and the data inspectors ([README](https://github.com/franjom/netherhold/blob/master/src/DK2.Tools/README.md)) | Assets, Convert, Core, Data, Data.Model, Simulation |
 | **Shared** | `UnityBound.props`, which sets the netstandard2.1 target from inside each Unity-loadable project, and polyfills | — |
 
 ## Unity: `unity/`

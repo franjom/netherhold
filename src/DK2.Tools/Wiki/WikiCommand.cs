@@ -3,10 +3,12 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Text;
+using DK2.Tools.SimMatrix;
 
 namespace DK2.Tools.Wiki;
 
-/// <summary><c>dk2tools wiki --out &lt;dir&gt;</c>: writes the generated wiki pages (ADR-0643).</summary>
+/// <summary><c>dk2tools wiki --out &lt;dir&gt;</c>: writes the generated wiki pages (ADR-0643), the simulation
+/// read/write matrix (<see cref="SimMatrixCommand"/>) among them.</summary>
 internal static class WikiCommand
 {
     internal static int Run(string[] args)
@@ -25,11 +27,14 @@ internal static class WikiCommand
         }
 
         WikiInputs inputs;
+        SimMatrixResult matrix;
         try
         {
             inputs = Load(root);
+            matrix = SimMatrixAnalysis.Run(root);
         }
-        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException)
+        // InvalidOperationException: the simulation's shape changed under a table or a parse (a .Single() that failed).
+        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
         {
             Console.Error.WriteLine($"wiki: {e.Message}");
             return 2;
@@ -37,9 +42,11 @@ internal static class WikiCommand
 
         Directory.CreateDirectory(output);
         var utf8 = new UTF8Encoding(false);
-        foreach (var (file, content) in WikiPages.All(inputs))
+        var pages = WikiPages.All(inputs);
+        foreach (var (file, content) in pages)
             File.WriteAllText(Path.Combine(output, file), content, utf8);
-        Console.WriteLine($"wiki: {WikiPages.All(inputs).Count} pages -> {output}");
+        SimMatrixCommand.Write(output, matrix);
+        Console.WriteLine($"wiki: {pages.Count + 1} pages -> {output}");
         return 0;
     }
 

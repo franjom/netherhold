@@ -15017,7 +15017,7 @@ own runs are "measured", not CONFIRMED. Record names that end in `_LIKELY` were 
 
 ## ADR-0643: the wiki is indexed by a closed list of systems and generated in CI
 
-**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0 to WP5). · **Systems:** tooling-process
+**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0 to WP6). · **Systems:** tooling-process
 
 **Context.** The GitHub wiki mirrors `docs/wiki/` (CI job `wiki`). A reader asking "what
 do we know about combat, and where is it built" had to search 280 research notes and 600
@@ -15029,8 +15029,9 @@ notes it cites by filename, unless its header has an explicit `**Systems:**` fie
 replaces them. Status is the first word of the header's status, parsed, not edited into the
 file. `dk2tools docs` rejects an added or changed note or ADR that names an unknown system
 or none, and any ADR number used twice. `dk2tools wiki --out <dir>` generates the index
-pages; CI generates them into a staging folder beside `docs/wiki/` and mirrors both, so no
-generated page is committed. Pages are byte-stable: sorted, with no dates or commit ids.
+pages, and the Simulation Read-Write Matrix (`dk2tools simmatrix`, WP6: which system reads and writes
+which state, read from the source of `SimulationSystems.Default()`); CI generates them into a staging
+folder beside `docs/wiki/` and mirrors both, so no generated page is committed. Pages are byte-stable: sorted, with no dates or commit ids.
 ADR numbers never given to an ADR are listed as "not used" on the wiki rather than
 explained in this file (owner, 2026-11-03).
 
