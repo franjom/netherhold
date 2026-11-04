@@ -88,19 +88,14 @@ public static class Recipes
             + "cast a free Imp for both. The capture's world seed shows whether each heading draw follows its own "
             + "keeper's angle draw or both angle draws.",
             WithoutImps),
-        new("Q750CostNumbers", "Small",
-            "Floating cost digits (floating-cost-numbers.md, Q744, Q750; 2026-11-04): keeper 3's Heart opens east at "
-            + "(15,11..13) onto a 28x29 Claimed Path field (x 17..44, rows 2..30) for room builds and drag sales; four "
-            + "level-1 Goblins there for a Temple's prayer (mana digits). All other rock is impenetrable, which seals "
-            + "keeper 4 in its corner.",
-            CostNumbers),
         new("Q750CostNumbersGold", "Small",
-            "Q750CostNumbers with 250000 starting gold for keeper 3: the first build started the owner on Small's own gold (2026-11-04). "
-            + "Superseded unplayed: the Heart takes 16000 and the rest is dropped with no Treasury (player-object.md).",
+            "The CostNumbers field with 250000 starting gold for keeper 3 (2026-11-04). Superseded unplayed: the Heart "
+            + "takes 16000 and the rest is dropped with no Treasury (player-object.md).",
             b => { CostNumbers(b); b.SetStartingGold(Keeper, 250000); }),
         new("Q750CostNumbersBank", "Small",
-            "Q750CostNumbersGold with a 9x9 keeper Treasury painted at x 36..44, rows 22..30, so the Heart's 16000 and "
-            + "81 x 3000 hold all 250000 starting gold.",
+            "Floating cost digits (floating-cost-numbers.md, Q744, Q750), played 2026-11-04: the CostNumbers field, "
+            + "250000 starting gold and a 9x9 keeper Treasury painted at x 36..44, rows 22..30, so the Heart's 16000 and "
+            + "81 x 3000 hold all of it.",
             b =>
             {
                 CostNumbers(b);
@@ -111,7 +106,9 @@ public static class Recipes
 
     private const byte TreasuryTerrain = 10;
 
-    /// <summary>The Q750CostNumbers layout: an open field east of keeper 3's Heart; see the recipe's purpose.</summary>
+    /// <summary>The Q750 layout: keeper 3's Heart opens east at (15,11..13) onto a 28x29 Claimed Path field
+    /// (x 17..44, rows 2..30) for room builds and drag sales, with four level-1 Goblins for a Temple. All other
+    /// rock is impenetrable, which seals keeper 4 in its corner.</summary>
     private static void CostNumbers(LevelBuilder b)
     {
         LevelMap map = b.Map;

@@ -72,11 +72,12 @@ pops that refund at the tile:
 | point | the sold tile's centre, height **0x1000** |
 | kind | 0, gold |
 
-A drag sale calls it once per tile, so each tile gets its own number. The sale wave
-`0x004C7160` reaches them one diagonal at a time, as SHOT0004-0009 show; its start and step are
-[Q744](open-questions.md). A flag-0 sale (a room
-tile worked down to nothing, a trigger's sale) pays nothing and shows nothing. Selling is
-also "different" in that its number starts one tile higher than a build's (0x1000 against 0).
+A drag sale calls it once per tile, so each tile gets its own number, one diagonal a turn
+([Player_SellWave](functions/004C7160.md)). The wave always starts at the rectangle's **(max x,
+max y)** corner: the Hand's sell release normalises the corners before sending action 0x31, and the
+wave starts at the second, the maximum ([0x004C70A0](functions/004C70A0.md)). A build is not
+normalised and starts where the drag is released. A single-tile sale (action 0x30,
+[0x00512890](functions/00512890.md)) is immediate.
 
 ## 4. The digits — STRONGLY INFERRED (binary and data)
 
@@ -149,7 +150,7 @@ wall time minus about 8.2 s, fixed by the waves below.
 |---|---|---|
 | 5×5 Lair, pressed NW (17,2), released SE (21,6) | one diagonal per tick from (21,6), ticks 71-79, −300 a tile | **7500** appears at the NW corner with the last diagonal (20.6 s), shoots up in about 0.3 s, holds, and is gone 2.2-2.3 s later, no fade |
 | 5×5 Lair, pressed SE, released NW | one diagonal per tick from (17,2), ticks 162-170; tiles already built are skipped and cost nothing | |
-| drag sales of the Lair (twice) and a 3×3 Temple, each pressed SE | one diagonal per tick from the SE corner, the **press** corner (owner: a sale starts opposite to a build), refund half the price (150, 1500) | a number per tile, born diagonal by diagonal (29-32 s, 1:22-1:28) |
+| drag sales of the Lair (twice) and a 3×3 Temple, each pressed SE | one diagonal per tick from the SE corner, which is (max x, max y) and here also the press corner (owner: "opposite to a build"), refund half the price (150, 1500) | a number per tile, born diagonal by diagonal (29-32 s, 1:22-1:28) |
 | single-tile builds and sales | one tile, ±300 / +150 | |
 
 So the build sum is shown at the press corner when the wave closes, and both waves move one diagonal

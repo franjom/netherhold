@@ -140,7 +140,9 @@ Prison door** (`jail-break.md` §1). The door can therefore move while a room gr
 **Action `0x31`, `0x005128F0`**, calls `0x004C70A0(5, x1, y1, x2, y2)`. That queues a sell in
 three slots at `player+0xE97`, laid out as in §2.
 
-**Its wave, `0x004C7160`**, is the same diagonal sweep from (x2, y2). It sells each tile with
+**Its wave, `0x004C7160`**, is the same diagonal sweep from (x2, y2). The Hand's sell release
+normalises the drag first (`0x004075E0`, `0x004083DA..0x00408467`: +0 the minimum corner, +4 the
+maximum), so a drag sale always starts at (max x, max y), unlike a build (Q744). It sells each tile with
 `0x004C5DB0(x, y, 1)`, which calls `0x004ED440`, then **`0x004ED7B0`**:
 1. It unlinks the tile, fixing `FirstSlab` or the predecessor's link and `LastSlab`.
 2. It turns the tile back to ground.

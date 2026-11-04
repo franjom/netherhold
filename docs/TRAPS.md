@@ -337,3 +337,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Legacy native creature-map.csv is a changes-only log with integer tile coordinates; use raw .dk2cap frames for per-turn fixed-point geometry, and seed type identity from earlier events.
 - Binary-backed helper tests do not establish caller or update-phase parity; add runtime entry/exit/order controls before marking the complete path built.
 - A levelgen test level starts the keeper on its base level's own gold (Small: 3000). `SetStartingGold` above the Heart's 16000 needs Treasury tiles painted in the map (3000 each), or DK2 drops the rest (player-object.md).
+- The dk2kb MCP server (`kb_upsert`) writes into the main checkout, not into the worktree you are working in, and validates against the main checkout's docs. In a worktree, write function records as files and run `kb check` there.
