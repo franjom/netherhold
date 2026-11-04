@@ -60,6 +60,22 @@ public class ChickenMovementTests
         Assert.Equal(0, HatcheryRules.Birds(world, RoomIndex.RoomAt(world, db, 2 * world.Width + 2)!));
     }
 
+    /// <summary>The hand's lift sets <c>+0x146</c> bit 0x10 (<c>0x004C0D17</c>), which skips <c>Object_Update</c>'s
+    /// decay, and landing clears it (<c>0x0049EFBF</c>): a held bird, out of its room, keeps its health.</summary>
+    [Fact]
+    public void AHeldBirdDoesNotDecay()
+    {
+        var (db, world, chicken) = HatchBird();
+        var sim = new GameSimulation(db, world, 42, [new HandSystem(), new ChickenMovementSystem()]);
+        sim.Tick();
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(PlayerIds.FirstKeeper, chicken.Id)));
+        Assert.Equal(-1, chicken.HatcheryRoomAnchorTileIndex);
+        int health = chicken.Health;
+        sim.Run(20);
+        Assert.True(chicken.InHand);
+        Assert.Equal(health, chicken.Health);
+    }
+
     [Fact]
     public void ASpawnedBirdStartsAtItsRequestedTileCentre()
     {

@@ -15151,7 +15151,7 @@ differ (Heart and Portal centres, floor slots).
 
 **Context.** `Object_Update` (`0x0049BD20`), after the process and physics, takes one health a turn from
 an object whose definition has `DieOverTime`, or `DieOverTimeIfNotInRoom` while no room holds it
-(`+0x138` zero), unless `+0x146` bit 0x10 is set (gold taken into the hand). At none it requests the
+(`+0x138` zero), unless `+0x146` bit 0x10 is set (the hand's lift sets it on every object, `0x004C0CB0`; landing clears it, `0x0049EF90`). At none it requests the
 definition's death effect (`+0x119`; `Object_Init` sets the `+0x146` bit 0 that allows it) at the
 object's point, heading and owner, and the thing pass's second walk (`0x004B7830`) removes it. The
 Chicken's flags (`0x00230782`) carry `DieOverTimeIfNotInRoom`. Ours never decayed a Chicken. In the
@@ -15166,10 +15166,13 @@ leave the death to this step.
 **Consequences.** A free-range bird lives its 1000 health, 250 seconds. A full Hatchery's free-range
 census now empties as birds die, so it launches more: `a_hatchery_lays_and_hatches` lays 42 eggs, not
 22. Removal is at once rather than in the second walk later the same turn. The death itself is read,
-not captured (no bird reached 0 in the window). One edge stays open (Q584): ours does not update a bird
-in the hand or carried, where `Object_Update` has no hand test and a held free-range bird probably keeps
-decaying; and `Hatchery_AdoptChickens` (`0x004DEB70`), which registers an unregistered bird standing on
-a Hatchery tile and so stops its decay, is not built.
+not captured (no bird reached 0 in the window). A bird in the hand does not decay, as in DK2; ours
+returns early for it. `Hatchery_AdoptChickens` (`0x004DEB70`), which registers an unregistered bird
+standing on a Hatchery tile and so stops its decay, is built in ADR-0652.
+
+**Amendment, 2026-11-04.** The first reading, that `Object_Update` has no hand test and a held bird
+probably keeps decaying, was wrong: the lift sets bit 0x10 for every object. STRONGLY INFERRED (binary
+only). Detail in KB `0x0049BD20`.
 
 ## ADR-0651: a hungry creature takes AngerNoFood while its keeper could feed it
 

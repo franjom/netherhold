@@ -136,6 +136,9 @@ Conditional decay in `0x0049BD20` tests membership zero, not physical room tiles
 room holds loses one health a turn and at none requests its death effect and is removed. The
 decrement is CONFIRMED by the seed-1 Level 5 capture (frames 1396-1462: free-range birds -1 a
 frame, registered ones stay 1000); the death is read, not captured. Built (ADR-0650).
+The decay skips an object whose `+0x146` bit 0x10 is set: the hand's lift (`0x004C0CB0`, store
+`0x004C0D17`) sets it on every object and landing (`0x0049EF90`, `0x0049EFB7`) clears it, so a bird in
+the hand does not decay (STRONGLY INFERRED, binary only, no capture). Ours returns early for it.
 
 Our saved/hashed Hatchery anchor identifies the current derived room containing
 that tile. Northwest growth retains membership; an invalidated or differently
@@ -147,6 +150,5 @@ ADR-0652, STRONGLY INFERRED, no capture covers a change). An adopted bird stops 
 conversion (`Room_MergeNeighbours`, `0x004EC900`, and the owner-change slot `0x004DE5D0`) runs through
 ours' removal and re-add; a partial conversion is unread. Unbuilt: `Object_SetOwner`'s owner-list relink,
 the object trigger event 18, adoption at level load (process 6 registers such birds on their first
-turn), and decay of a bird in the hand or carried (ours does not update it; `Object_Update` has no
-hand test). Existing laying capacity continues
+turn). Existing laying capacity continues
 counting eggs as reservations; the original room list counts only chickens.

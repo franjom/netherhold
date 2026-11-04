@@ -286,5 +286,5 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 
 ## Open questions
 
-- Prison process 3 and decay of a held bird: Q584 (loose process 10, free-range decay and Hatchery adoption on a tile change are built, ADR-0647, ADR-0650, ADR-0652).
+- Prison process 3 and adoption at level load: Q584 (loose process 10, free-range decay and Hatchery adoption on a tile change are built, ADR-0647, ADR-0650, ADR-0652).
 - Q134: why the exponent is that value. Does not affect fidelity.
