@@ -31,6 +31,12 @@ public readonly record struct StructureView(StructureId Id, TilePos Tile, Player
     public bool LastFrame => Id.Kind == StructureKind.Door;
     public AssetRef LockMesh { get; init; }
 
+    /// <summary>The model's RenderInfo tint, one value for all three channels, added to every vertex's
+    /// light before the point lights (<c>0x00583120</c> stores it x255 at draw <c>+0x40</c>;
+    /// <c>0x005836A0</c> starts each vertex there). A built door carries <see cref="WorldView.BuiltDoorTint"/>
+    /// and nothing else does; a blueprint's flat plan materials ignore it.</summary>
+    public byte InstanceTint { get; init; }
+
     /// <summary>None for a built structure; otherwise this turn's plan colour (<see cref="WorldView.PlanTint"/>).</summary>
     public BlueprintTint Plan { get; init; }
 
@@ -41,6 +47,12 @@ public readonly record struct StructureView(StructureId Id, TilePos Tile, Player
 
 public sealed partial class WorldView
 {
+    /// <summary>The tint a built door's RenderInfo holds (<c>0x004A6B70</c> stores 0x80 at thing
+    /// <c>+0x8C..+0x8E</c>, RenderInfo <c>+0x48..+0x4A</c>, when construction is zero; a blueprint
+    /// stores 0xFF and a built or hidden trap 0). It is half a channel of base light, so a door
+    /// stays visible where no point light reaches it. STRONGLY INFERRED.</summary>
+    public const byte BuiltDoorTint = 0x80;
+
     public IEnumerable<StructureView> Structures(WorldState world)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
@@ -59,6 +71,7 @@ public sealed partial class WorldView
                     && (definition.Flags & (DoorFlags.Barricade | DoorFlags.Secret)) == 0
                     ? AssetRef.ForDoorLock(definition.Name) : default,
                 Plan = door.UnderConstruction ? PlanTint(world, StructureKind.Door, new PlayerId(door.PlayerId)) : BlueprintTint.None,
+                InstanceTint = door.UnderConstruction ? (byte)0 : BuiltDoorTint,
             };
         }
         foreach (TrapState trap in world.Traps)

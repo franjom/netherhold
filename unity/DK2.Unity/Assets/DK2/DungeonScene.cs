@@ -784,6 +784,10 @@ namespace DK2.Unity
             go.transform.localRotation = Quaternion.Euler(0f, structure.MeshYaw * 360f / 2048f, 0f);
             if (realMesh) go.transform.localScale = Vector3.one;
             _structureViews[id] = structure;
+            // The built door's own tint, a base light that no point light has to reach (0x004A6B70).
+            if (structure.InstanceTint != 0 && structure.Plan == BlueprintTint.None && realMesh && _classic != null
+                && go.TryGetComponent(out MeshRenderer tinted))
+                tinted.sharedMaterials = _classic.InstanceTinted(tinted.sharedMaterials, structure.InstanceTint);
             if (structure.Plan != BlueprintTint.None && realMesh && _classic != null && go.TryGetComponent(out Renderer plan))
             {
                 int slots = plan.sharedMaterials.Length;
