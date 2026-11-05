@@ -104,7 +104,7 @@ implemented actions; unsupported actions remain dimmed. The mouse
 wheel also zooms. With Classic Vertex Lighting,
 `=`/`+` and `-` adjust native ambient light; keypad plus/minus work too.
 The bottom tabs select Creatures, Rooms, Spells and Workshop. Room choices show
-their original icons and names; secondary click cycles owned rooms. Creature
+their original icons and names; secondary click cycles owned rooms, and on a Workshop door or trap its owned doors or traps of that kind. Creature
 portraits support primary pickup, Shift for lowest level, Control for highest,
 and secondary camera focus. The four small selectors switch totals/jobs/combat/moods.
 `G` toggles the HUD, `H` navigates to the Heart, `M` toggles the full map, and

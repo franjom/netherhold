@@ -63,6 +63,8 @@ namespace DK2.Unity
         /// panel's own selection is left as it is.</summary>
         public event Action<BottomPanelChoice> SpecialChosen;
         public event Action<RoomTypeId> NavigateRoom;
+        /// <summary>A door or trap slot's right click (<c>0x00416070</c>), with the door or trap id.</summary>
+        public event Action<byte> NavigateDoor, NavigateTrap;
         /// <summary>Raised with the new state when the Resize Panel button collapses or expands.</summary>
         public event Action<bool> CollapsedChanged;
         /// <summary>HUD <c>+0x109</c> == 0 (0x004167D0): the strip at the bottom, categories,
@@ -442,6 +444,10 @@ namespace DK2.Unity
                 BottomPanelChoice room = _slots[action];
                 if (room != null && room.Visible && room.Kind == BottomPanelChoiceKind.Room)
                     NavigateRoom?.Invoke((RoomTypeId)room.Key.Value);
+                else if (room != null && room.Visible && room.Kind == BottomPanelChoiceKind.Door)
+                    NavigateDoor?.Invoke(room.Key.Value);
+                else if (room != null && room.Visible && room.Kind == BottomPanelChoiceKind.Trap)
+                    NavigateTrap?.Invoke(room.Key.Value);
                 return;
             }
             if (action == 400)

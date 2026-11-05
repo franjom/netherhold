@@ -26,6 +26,8 @@ namespace DK2.Unity
         private CreatureOverview _overviewView;
         private ClassicCreatureOverview _overviewPanel;
         private RoomNavigation _roomNavigation;
+        private ThingNavigation _doorNavigation, _trapNavigation;
+        private readonly System.Collections.Generic.List<ThingNavigationEntry> _thingEntries = new();
         private ClassicOptionsPanel _optionsPanel;
         private ClassicFullMap _fullMap;
         private BottomPanelChoiceKey? _panelChoice;
@@ -79,6 +81,10 @@ namespace DK2.Unity
             _bottomPanel.SpecialChosen += ActivateStoredSpecial;
             _roomNavigation = new RoomNavigation(new PlayerId((byte)viewingPlayerId));
             _bottomPanel.NavigateRoom += NavigateRoom;
+            _doorNavigation = new ThingNavigation(new PlayerId((byte)viewingPlayerId));
+            _trapNavigation = new ThingNavigation(new PlayerId((byte)viewingPlayerId));
+            _bottomPanel.NavigateDoor += NavigateDoor;
+            _bottomPanel.NavigateTrap += NavigateTrap;
             _bottomPanel.CollapsedChanged += collapsed =>
             {
                 if (_classicCamera == null) return;
@@ -233,6 +239,32 @@ namespace DK2.Unity
                     new TilePos(room.CentreFieldX, room.CentreFieldY)));
             }
             if (_roomNavigation.Next(entries, type) is TilePos tile) StartGlide(tile);
+        }
+
+        // 0x00416150 / 0x004162A0: the viewer's doors or traps of one kind, blueprints included,
+        // newest first: Thing_LinkToOwner (0x004B4C30) links each new thing at the list's head.
+        private void NavigateDoor(byte kind)
+        {
+            _thingEntries.Clear();
+            IReadOnlyList<DoorState> doors = _simulation.World.Doors;
+            for (int i = doors.Count - 1; i >= 0; i--)
+            {
+                DoorState door = doors[i];
+                _thingEntries.Add(new ThingNavigationEntry(door.Id, new PlayerId(door.PlayerId), door.DoorId, new TilePos(door.X, door.Y)));
+            }
+            if (_doorNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
+        }
+
+        private void NavigateTrap(byte kind)
+        {
+            _thingEntries.Clear();
+            IReadOnlyList<TrapState> traps = _simulation.World.Traps;
+            for (int i = traps.Count - 1; i >= 0; i--)
+            {
+                TrapState trap = traps[i];
+                _thingEntries.Add(new ThingNavigationEntry(trap.Id, new PlayerId(trap.PlayerId), trap.TrapId, new TilePos(trap.X, trap.Y)));
+            }
+            if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
         }
 
         private void ApplyHudAction(ClassicHudAction action)
