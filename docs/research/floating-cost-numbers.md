@@ -194,4 +194,6 @@ amendment, which other effect sprites keep. Which lights DK2 lists is still unre
 Not mirrored: the sale's opening permission test `0x004C5DD0`, which can refuse before the pop; the
 per-element allocator gate `0x004352E0`; the other twelve callers of section 5 and the computer
 keeper's direct build. ADR-0534 and ADR-0313 still list the store-lift amount and the training -20 as
-not modelled. Native visual acceptance is pending.
+not modelled. Accepted in play by the owner (2026-11-05, "this looks good"), after effect billboards
+were turned upright (they had been drawn upside down): a Prison drag sale's 375s and a build's 7500
+(`F:/DK2Evidence/captures/visual/cost-numbers-ours-accepted--2026-11-05--001`).
