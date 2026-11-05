@@ -257,7 +257,8 @@ API references checked through Context7: [job dependencies](https://docs.unity3d
 **Status (end of 2026-11-05):** the table and reading below are the baseline
 taken before items 1 and 2 of the ranked order landed. Current numbers are in
 those items: tick frames ~30 ms, Present 6.7 ms, AnimatedFrame 1.2 ms, tick
-~13.4 ms. ADR-0454 and ADR-0456 are amended to match (commit 13a036ab).
+~13.4 ms; after the sound prefetch, max frame 62 ms and p95 17.6 ms. ADR-0454
+and ADR-0456 are amended to match (commit 13a036ab); ADR-0686 covers sound.
 
 Source: `tools/game-unity-probe`, Level6a, 90 s, headless Development
 player, run `build/game-unity-probe/20261105-205627` (`frames.csv`,
@@ -342,9 +343,18 @@ the opening fly-over.
    frame (~13 ms of ~30), which is item 3's job to hide. The max frame
    (456–467 ms) is cold sound decode in `UpdateWorldSound` and speech: the
    first use of a category costs 194–650 ms and 27–67 MB in one frame (frames
-   856 and 2609). That is outside P1's seam and is being fixed as a separate
-   prefetch. The probe gained a `-Markers` option and
-   `tools/game-unity-probe/report-capture.ps1`, a capture self-time report.
+   856 and 2609). That is outside P1's seam and was fixed separately:
+   `perf/sound-prefetch` landed as 3190c62b (merge of d0a8ce25, ADR-0686
+   amending ADR-0583). Clips decode on worker threads (`SoundClipDecoder`) and
+   the level's speech and map, creature and object categories are prefetched
+   at load beside the art prefetch (`LevelSoundPrefetch`, step
+   `sound.prefetch`: +557 ms of load and 55 MB on Level6a). An effect that was
+   not prefetched plays one or two frames late on first use only. Same probe
+   after that: max frame 218.7 → 62.1 ms, frames over 100 ms 2 → 0, over
+   33 ms 12 → 6, p95 18.0 → 17.6 ms. The remaining worst frames are the
+   simulation tick, 43–47 ms inside 60 ms frames: item 3. The probe gained a
+   `-Markers` option and `tools/game-unity-probe/report-capture.ps1`, a
+   capture self-time report.
 3. Then P1's cheap variant: skip the join and world presentation when the tick
    is not done, after the reader audit in P1. It conflicts with any branch
    restructuring the presenter, so run it after item 2 lands, not beside it.
