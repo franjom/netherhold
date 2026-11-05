@@ -34,6 +34,7 @@ public sealed class HeroSystem : ICreatureUpdateStep
     {
         if (!_onOriginalTick) return;
         if (creature.Possessed) return;
+        if (Combat.ThreatFleeRules.IsFleeing(creature)) return;   // the combat states' (ADR-0678)
         if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
         if (!HeroJobRules.IsHero(creature)) return;
         if (CreatureEligibility.IsExcluded(creature,

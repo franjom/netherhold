@@ -235,7 +235,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(218, typeof(CombatStates), nameof(CombatStates.Frozen)));
         rows.Add(Unbuilt(219, "not read"));
         rows.Add(Unbuilt(220, "partly read in traps.md; not built"));
-        rows.Add(Unbuilt(221, "its handler 0x00484940 returns 0 (hero-party-walk.md); nothing in src/ enters it"));
+        rows.Add(Built(221, typeof(Combat.ThreatFleeRules), nameof(Combat.ThreatFleeRules.FledState)));
         rows.Add(Built(222, typeof(HeroJobRules), nameof(HeroJobRules.FollowingState)));
         rows.Add(Built(223, typeof(TunnelRules), nameof(TunnelRules.AdvancingState)));
         rows.Add(Built(224, typeof(TunnelRules), nameof(TunnelRules.HandBackState)));

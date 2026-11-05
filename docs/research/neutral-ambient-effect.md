@@ -136,8 +136,8 @@ Level 4 nor the Level 5 log draws, read in the binary (STRONGLY INFERRED where n
   `random(height)`) and 98/99 (`0x0045A3E0`, state 225: up to 5 tries of `random(5) - 2` per axis), 280 and 50
   draws each (ADR-0674, hash 418); Creature.cpp 1555 (`0x00488F13`, `random(20)` a turn for a Horny creature
   once its keeper's finale bit `player+0x76 & 0x40` is set), 18 draws, one a turn from 3683 (ADR-0675, hash 419);
-- unbuilt: Creature.cpp 2098, 2105 and 2106 (`Creature_Update`'s flight from the thing at +0x533, needing Q375's
-  threat source), 2 and 32 each;
+- built: Creature.cpp 2098, 2105 and 2106 (`Creature_Update`'s flight from the thing at +0x533, from traps and
+  the Boulder), 2 and 32 each (ADR-0678, hash 422);
 - built: PayState 197 (`0x00472390`, state 187's `random(8)` point, 13 draws, each after its `0x004E4D90` start
   draw, Room.cpp 1563; ADR-0677, hash 421);
 - partial: Room.cpp 3994 (`0x004E8430`, 27 draws): 25 inside the wander's run (StateUtils 325, 367, 3994, 338), whose

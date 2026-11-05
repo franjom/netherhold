@@ -77,6 +77,7 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         if (creature.Activity == CreatureActivity.Leaving) return;
         if (HeroJobRules.IsHero(creature)) return;   // HeroSystem: state 1 sends a hero to 90
         if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
+        if (Combat.ThreatFleeRules.IsFleeing(creature)) return;   // the combat states' (ADR-0678)
         if (ExploreRules.KeeperTurn(context, SystemName, creature)) return;   // job 24's state 225 (ADR-0674)
 
         // A walk resuming 1 is state 1's own, back to a fight (ADR-0225): the arrival is idle.

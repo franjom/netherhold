@@ -632,13 +632,14 @@ public static class TrapRules
 
     /// <summary><c>0x004B32A0</c>: count every creature of a hostile player within the radius and in
     /// sight, then give each one inside a radius a tile smaller (at least one) the threat over that
-    /// count, into its <c>TempFear</c> through <c>0x0045C5D0</c>. Its owner discount is the one
-    /// <see cref="FearRules"/> does not hold (Q375), and its <c>ThreatThing</c> is not built.</summary>
+    /// count, into its <c>TempFear</c> through <c>0x0045C5D0</c>, which names the trap as its
+    /// <c>ThreatThing</c> (ADR-0678). Its owner discount is the one <see cref="FearRules"/> does not hold (Q375).</summary>
     public static void ShareThreat(WorldState world, ISightBlocker sight, TrapState trap, int amount, int radius) =>
-        ShareThreat(world, sight, trap.PlayerId, trap.PosX, trap.PosY, amount, radius);
+        ShareThreat(world, sight, trap.PlayerId, trap.PosX, trap.PosY, amount, radius, ThreatSource.OfTrap(trap));
 
     /// <summary><c>0x004B32A0</c> for any thing: <paramref name="owner"/>'s enemies around a point.</summary>
-    public static void ShareThreat(WorldState world, ISightBlocker sight, PlayerId owner, int x, int y, int amount, int radius)
+    public static void ShareThreat(WorldState world, ISightBlocker sight, PlayerId owner, int x, int y, int amount, int radius,
+        ThreatSource source)
     {
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         int outer = radius * (radius >> 12);
@@ -661,7 +662,10 @@ public static class TrapRules
             if (IsHostileOnMap(world, owner, creature)
                 && (int)DistanceSquared(creature.PosX, creature.PosY, x, y) < innerSquared
                 && LineOfSight.Clear(sight, x, y, creature.PosX, creature.PosY))
+            {
                 creature.TempFear = unchecked((ushort)(creature.TempFear + share));
+                ThreatFleeRules.Record(creature, share, source);   // 0x0045C5D0's ThreatThing (ADR-0678)
+            }
         }
     }
 

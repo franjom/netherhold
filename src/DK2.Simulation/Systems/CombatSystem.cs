@@ -107,6 +107,8 @@ public sealed class CombatSystem : ICreatureUpdateStep
 
         // 0x0045E4F0 runs in the creature's own update, after its fight processing.
         FearRules.Radiate(context, _sight!, _hearts, creature, definition);
+        // 0x00489AD3: the flight from the ThreatThing, before the dispatcher (ADR-0678).
+        ThreatFleeRules.Turn(context, _sight!, creature, definition);
     }
 
     private static bool InCombatState(CreatureState creature) => creature.Activity is CreatureActivity.Fighting
@@ -123,7 +125,8 @@ public sealed class CombatSystem : ICreatureUpdateStep
         if (!CreatureDeathRules.IsPossessed(world, creature))
         {
             bool handled = true;
-            switch (creature.Activity)
+            if (ThreatFleeRules.Dispatch(context, "combat", creature)) { }   // the walk to 221 and 221 (ADR-0678)
+            else switch (creature.Activity)
             {
                 case CreatureActivity.Fighting: Fight(context, creature, definition); break;
                 case CreatureActivity.Fleeing: FearRules.Flee(context, _sight!, _hearts, _rooms, creature, definition, _scratch); break;

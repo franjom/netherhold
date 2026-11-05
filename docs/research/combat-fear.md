@@ -311,8 +311,9 @@ word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 The stunned gate is built (ADR-0559), beside the chicken's (ADR-0302): a stunned creature's
 `TempFear` piles up and its first standing tick hands the whole intake over.
 
-**Not built:** hero gates; the owner modifiers (Q375);
-`ThreatThing`; the two spell sources of §2; the body bit `+0x10F`.0.
+**Not built:** hero gates; the owner modifiers (Q375); the two spell sources of §2; the body bit
+`+0x10F`.0. `ThreatThing` is built for traps and the Boulder (ADR-0678); its timed-effect source
+(`+0x463`/`+0x465`/`+0x467`, `0x0048E38C`) is not.
 
 Withdrawal is built through step 5 (ADR-0544 failed pick, ADR-0545 the away
 stage's draws; each caller supplies what it leaves in `+0x502`, the NonFighter
@@ -331,8 +332,11 @@ combat category 22, a live `ThreatThing` of a **non-creature** class within five
 tiles causes up to five away-point draws, accepted by map bounds and sight;
 an accepted idle transition routes in 6 toward 221 (Imp options `0x80`, others 0).
 The source and threshold are then cleared even for a creature source, which does
-not take this route. This unbuilt branch concerns traps and objects, not a
-general nearby-enemy reaction. Provenance: `0x00489AD3`–`0x00489E27` assembly.
+not take this route. This branch concerns traps and objects, not a general nearby-enemy reaction.
+The tile offsets to the thing take `random(2)` when zero (Creature.cpp 2098, 2100), then each try draws
+`random(|4dx|)`, `random(|4dy|)` (2105, 2106), as the withdraw's away stage does. Its threshold check
+uses the raw `Fear` at level 1. Built as `ThreatFleeRules` (ADR-0678); state 221's handler `0x00484940`
+returns 0. Provenance: `0x00489AD3`–`0x00489E27` assembly.
 
 ## Confidence
 

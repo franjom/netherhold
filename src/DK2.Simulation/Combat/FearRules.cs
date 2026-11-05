@@ -84,6 +84,7 @@ public static class FearRules
         if (them is null || CreatureDeathRules.IsDown(them)) return;
         if (!LineOfSight.Clear(sight, me.PosX, me.PosY, them.PosX, them.PosY)) return;
         them.TempFear = (ushort)(them.TempFear + share);
+        ThreatFleeRules.Record(them, share, ThreatSource.OfCreature(me));   // the inlined 0x0045C5D0 (0x0045E742)
     }
 
     /// <summary>The level-scaled <c>Threat</c> stat, a creature's weight in every head-count.</summary>
@@ -604,7 +605,7 @@ public static class FearRules
                 int attempts = 5;
                 if (staged is TilePos target)
                 {
-                    AwayFromTarget(world, sight, rng, me, target);
+                    AwayFrom(world, sight, rng, me, target);
                     attempts = 2;
                 }
                 for (int attempt = 0; attempt < attempts && destX < 0; attempt++)
@@ -657,8 +658,9 @@ public static class FearRules
     /// take a random(2) each when zero, x first, a zero draw meaning -1; then up to five tries of
     /// random(|4dx|) and random(|4dy|) whole tiles away from the target, accepted when the world
     /// holds the point (<c>0x00509050</c>) and the line to it is clear (<c>0x004512F0</c>). The
-    /// point is discarded: the caller's local tries overwrite it.</summary>
-    private static void AwayFromTarget(WorldState world, ISightBlocker sight, SimRandom rng, CreatureState me, TilePos target)
+    /// point is discarded: the caller's local tries overwrite it. <c>Creature_Update</c>'s flight from
+    /// its threat draws the same way and keeps it (<see cref="ThreatFleeRules"/>).</summary>
+    internal static (int X, int Y)? AwayFrom(WorldState world, ISightBlocker sight, SimRandom rng, CreatureState me, TilePos target)
     {
         int dx = target.X - (me.PosX >> 12), dy = target.Y - (me.PosY >> 12);
         if (dx == 0) dx = rng.NextInt(2) == 0 ? -1 : 1;
@@ -667,8 +669,9 @@ public static class FearRules
         {
             int ax = rng.NextInt(Math.Abs(dx * 4)), ay = rng.NextInt(Math.Abs(dy * 4));
             int x = me.PosX + ((dx > 0 ? -ax : ax) * Fp32.One), y = me.PosY + ((dy > 0 ? -ay : ay) * Fp32.One);
-            if (InWorld(world, x, y) && LineOfSight.Clear(sight, me.PosX, me.PosY, x, y)) return;
+            if (InWorld(world, x, y) && LineOfSight.Clear(sight, me.PosX, me.PosY, x, y)) return (x, y);
         }
+        return null;
     }
 
     /// <summary><c>0x00509050</c>: the point's tile, unsigned, under the map's width and height.</summary>

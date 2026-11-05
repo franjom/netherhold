@@ -237,6 +237,9 @@ public enum CreatureActivity
 
     /// <summary>Hidden party arrival before state269 releases it into recovery.</summary>
     Arriving = 42,
+
+    /// <summary>Walking from a threat to state 221, or in it (<see cref="Combat.ThreatFleeRules"/>).</summary>
+    RunningFromThreat = 43,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -889,6 +892,13 @@ public sealed class CreatureState
     /// (<c>+0x524</c>), a word that wraps. Handed to <see cref="CurrentFear"/> next tick.</summary>
     public ushort TempFear;
 
+    /// <summary>What the last positive threat came from, DK2's <c>ThreatThing</c> (<c>+0x533</c>): the kind
+    /// (<see cref="Combat.ThreatSource"/>) and the thing's id; cleared by the flight (ADR-0678).</summary>
+    public byte ThreatThingKind;
+
+    /// <summary>See <see cref="ThreatThingKind"/>.</summary>
+    public int ThreatThingId;
+
     /// <summary>Last tick's intake scaled by my distance from my heart — DK2's <c>CurrentFear</c>
     /// (<c>+0x526</c>), measured against the level-scaled <c>Fear</c> stat.</summary>
     public ushort CurrentFear;
@@ -1462,6 +1472,8 @@ public sealed class CreatureState
         hash.Add(SwingTargetId);
         hash.Add(SwingTargetPlayerId);
         hash.Add(TempFear);
+        hash.Add(ThreatThingKind);
+        hash.Add(ThreatThingId);
         hash.Add(CurrentFear);
         hash.Add(OverThreatCounter);
         hash.Add(BackOffTimer);

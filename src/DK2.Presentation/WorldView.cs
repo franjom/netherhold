@@ -1866,6 +1866,7 @@ public sealed partial class WorldView
         CreatureActivity.Slapped => "slapped",
         CreatureActivity.Following => "following",
         CreatureActivity.Arriving => "arriving",
+        CreatureActivity.RunningFromThreat => "running_from_threat",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };

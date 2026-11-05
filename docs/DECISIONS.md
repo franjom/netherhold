@@ -15873,3 +15873,36 @@ pile search uses `GoldStore.ObjectTiles`, shared with the carrier's deposit sear
 - `ChickenRules.Position` approximates `NavigationPos` with the centroid's tile.
 
 STRONGLY INFERRED from the decompile. Record `00472390` holds the detail.
+
+## ADR-0678: an afraid creature runs from the trap or Boulder that threatened it
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 422. · **Systems:** combat, creatures
+
+**Context.** The Level 3 native draw log has Creature.cpp 2105 and 2106 32 times each and 2098 twice.
+They are `Creature_Update`'s flight from its `ThreatThing` (`0x00489AD3`-`0x00489E27`), which runs after
+the fear accumulator and before the dispatcher. `Creature_AddThreat` (`0x0045C5D0`) and its three inlined
+copies in the accumulator (`0x0045E4F0`) name the source of any positive threat at `+0x533`; the last
+writer wins. Ours added the threat but kept no source.
+- Gates: not possessed or dying, not `IsFearless` and past `FearlessUntil`, `CurrentFear` over the level's
+  `Fear`, a state, attackable, not already walking to 221. It then fires creature event 12.
+- Outside the Combat category, with a live thing: a creature, or a thing at 25 tiles squared (five tiles)
+  or more, is cleared with no flight. Nearer, zero tile offsets take `random(2)`, and up to five tries of `random(|4dx|)`,
+  `random(|4dy|)` look for a point the world holds with a clear line to it.
+- With one, it sets state 1 and walks there resuming 221 (word 0x80 for an Imp). 221's handler
+  (`0x00484940`) returns 0. The thing is cleared either way.
+
+**Decision.** `TrapRules.ShareThreat` takes a `ThreatSource` and records it on each creature it frightens:
+the trap, or the Boulder object; `FearRules.Radiate` records the radiating creature on each receiver.
+`ThreatFleeRules.Turn` runs the arm at the end of `CombatSystem.Update`,
+with the draws shared with the withdraw's away stage (`FearRules.AwayFrom`). `ThreatFleeRules.Dispatch`
+runs the walk's arrival and 221 in the combat states' place for every creature. Hero, job and worker
+systems leave a fleeing creature alone. State 221 is the new `RunningFromThreat` activity.
+
+**Consequences.**
+- Two new saved and hashed creature fields, `ThreatThingKind` and `ThreatThingId`.
+- Creature event 12 (Afraid) now fires.
+- Not mirrored: the timed-effect threat source (`+0x463`/`+0x467`); the owner discount (Q375); the
+  attackable bit as the previous turn computed it (ours is live); state 6's generic work during the walk;
+  the needs and anger checks DK2 runs in states 6 and 221; an Imp's task release by its state hooks.
+
+STRONGLY INFERRED from the disassembly. Records `00488930` and `0045C5D0` hold the detail.
