@@ -468,7 +468,7 @@ Run dk2tools status after the tests when the plan's generated count changes,
 and dk2tools verification-ledger after adding or removing a rule attribute.
 Run dk2tools kb index after changing function records; never edit INDEX.md by
 hand. A note needs `systems:` front matter; dk2tools wiki previews the CI-built wiki
-(ADR-0643), the simulation read/write matrix included (dk2tools simmatrix writes it alone). Check the changed commit with git diff --check. A simulation state change
+(ADR-0643), the simulation read/write matrix included (dk2tools simmatrix writes it alone). A new system page in docs/wiki/ follows System-Page-Template.md and goes in _Sidebar.md; a change to a system that has one updates the page and its "last verified" footer. Check the changed commit with git diff --check. A simulation state change
 requires matching GameSimulation.HashVersion and WorldSnapshot.FormatVersion, a new
 determinism pin, and a hash-versions.md row; an observation-format change, a schema bump.
 
