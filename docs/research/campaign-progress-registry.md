@@ -7,7 +7,7 @@ systems: [campaign-triggers, tooling-process]
 how to move that without playing the campaign. This exists for one reason: a
 two-sided capture needs a *choice* of level, and until 2026-09-10 only level 1
 — the tutorial, whose script is gated on the player digging — could be reached
-(`docs/experiments/level1-idle-001`).
+(`F:\DK2Evidence\studies\l01-idle-001--unknown-date--001\payload\`).
 
 It is not a game rule and nothing in the simulation reads it.
 

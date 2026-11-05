@@ -36,7 +36,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   hash328; remaining needs timing gaps are in creature-needs-routine.md section 5.
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
-  levels (docs/experiments/). M6 remains partial: the latest completed packet
+  levels (F:\DK2Evidence\studies). M6 remains partial: the latest completed packet
   measurement is hash328 at `0c0f7042` (2026-10-29; write-up
   F:\DK2Evidence\studies\packet-replay-hash328--unknown-date--001\payload\README.md): 78 of 80 runs valid (Level 4
   seeds 14 and 18: the fixed-map remap ran out of creatures to pair), wins 19/7/14/0 (of
@@ -60,8 +60,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   and a permutation test puts the 7 -> 15 shift at p ~ 0.15, inside seed noise.
   ADR-0543 (hash307) raised withdrawals (median 85 -> 112.5), untested for
   significance. The one before is
-  [hash305](experiments/2026-10-25-packet-replay-hash305/README.md), with
-  hash303/P2 comparisons and mapping limits. The historical [hash303 failure analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
+  hash305 (`F:\DK2Evidence\studies\packet-replay-hash305--2026-10-25--001\payload\README.md`), with
+  hash303/P2 comparisons and mapping limits. The historical hash303 failure analysis (`F:\DK2Evidence\studies\packet-replay-hash303--2026-10-25--001\payload\analysis.md`)
   separates observed blockers from open causes; the current report checks the
   persistent Level 1 Hatchery refusal and records the changed outcomes.
   The [decision parity audit](research/decision-parity-audit.md) verifies bounded
@@ -196,7 +196,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   and creatures fighting a revealed trap (scan D, ADR-0340) run; disarming is deferred under
   ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to object slapping
   (ADR-0341). Left: Q732 (ours against the levelgen captures) and the owner observations pending in
-  experiments/doors-and-traps.md.
+  F:\DK2Evidence\studies\doors-and-traps-md--unknown-date--001\payload\doors-and-traps.md.
 - Keeper spells (ADR-0350): Create Gold, Tremor, Turncoat, Summon Horny,
   OneShotReaper and Possession's simulation side are built, and Sight of Evil
   casts with an empty effect (ADR-0352), its region presentation (Q194). Research
@@ -377,7 +377,7 @@ tools/classic-unity-probe/README.md.
    10 seeds and grows Training in 0 of 10 (DK2: 12 -> 20 tiles), an open
    difference of ADR-0561. Compare with every computer keeper running and
    on the record's gold. Do not infer an UNKNOWN rule from a name.
-4. M7: Q732 (ours against the levelgen captures; a placed hero's Flags2 is built, ADR-0636) and the owner observations in experiments/doors-and-traps.md.
+4. M7: Q732 (ours against the levelgen captures; a placed hero's Flags2 is built, ADR-0636) and the owner observations in F:\DK2Evidence\studies\doors-and-traps-md--unknown-date--001\payload\doors-and-traps.md.
 5. Possession: the Unity first-person camera and input
    (plans/2026-10-12-possession-arms-build-plan.md); owner play questions are
    in possession-arms-and-inputs.md §4–5.

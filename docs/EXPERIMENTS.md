@@ -40,7 +40,7 @@ the human does the taught action, so no walker closes it.
 
 **Level 1 idle closed it.** Removing the *input* rather than the player (the
 owner loaded level 1 and touched nothing for five minutes,
-`docs/experiments/level1-idle-001`, predictions recorded before the run): **4 in
+`F:\DK2Evidence\studies\l01-idle-001--unknown-date--001\payload\`, predictions recorded before the run): **4 in
 both, 0 DK2 only, 0 ours only**. We invent nothing there. After stamp alignment
 the turn numbers agree: `f1` and `f34` sit exactly 7 ticks late in DK2 while
 being 568 ticks apart, because timer 15 reads the load origin (DK2 stored 7, we
@@ -54,12 +54,12 @@ absolute ticks are not comparable (Q272), and `capture-diff` removes the origin.
 run stamps two timers early and then does nothing, and a stamp is *stored*, so
 unlike a flag it cannot be blurred by when the probe looked. Over ticks 36-1218
 all 150 columns are identical and both sides stamp timers 0 and 1 at tick 4
-(`docs/experiments/level20-idle-001`). No event fired inside the window, so it
+(`F:\DK2Evidence\studies\l20-idle-001--unknown-date--001\payload\`). No event fired inside the window, so it
 rules out a systematic tick offset and settles nothing else. `capture-diff` now
 reports an event the other side stopped before as untested, not divergent.
 
 **Eleven minutes, Q273 answered by the game itself**
-(`docs/experiments/level20-idle-002`). Timer 1 restamps inside the window: DK2
+(`F:\DK2Evidence\studies\l20-idle-002--unknown-date--001\payload\`). Timer 1 restamps inside the window: DK2
 stored **1724**, we store 1724, and the probe first *saw* it at **1725**. The
 probe's sample labelled N shows state before tick N's trigger pass, so capture
 row N is our row N-1. Applied to three events it was not fitted to (Level 20's

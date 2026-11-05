@@ -76,7 +76,6 @@ netstandard2.1.
 | [`TRAPS.md`](https://github.com/franjom/netherhold/blob/master/docs/TRAPS.md) | Known pitfalls |
 | [`research/`](https://github.com/franjom/netherhold/tree/master/docs/research) | One document per DK2 mechanic (combat, rooms, spells, camera, lighting, campaign…), plus open questions |
 | [`research/functions/`](https://github.com/franjom/netherhold/tree/master/docs/research/functions) | The function knowledge base: one record per `DKII.EXE` function, named by address |
-| [`experiments/`](https://github.com/franjom/netherhold/tree/master/docs/experiments) | Comparisons with the original game: idle-trigger runs and packet-replay sweeps |
 | [`plans/`](https://github.com/franjom/netherhold/tree/master/docs/plans) | Dated design and implementation plans |
 
 ## Everything else

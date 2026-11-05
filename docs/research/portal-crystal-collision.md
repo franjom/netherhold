@@ -48,7 +48,7 @@ These are observed limitations of the restored steering, not a native-behaviour
 claim or a reason to invent another movement correction during this rollback.
 Generic arrival/snap tests remain in `SteeringIntegratorTests`.
 
-The hash-303 packet sweep is now [measured against hash 302](../experiments/2026-10-25-packet-replay-hash303/README.md).
+The hash-303 packet sweep is now measured against hash 302 (`F:\DK2Evidence\studies\packet-replay-hash303--2026-10-25--001\payload\README.md`).
 No Unity visual probe was run for this rollback. Test logs are under
 `F:\DK2Evidence\studies\portal-crystal-rollback--2026-10-25--001\payload`. Before rebuilding, the
 hash-302 Release tool was copied and SHA-256 verified (21 files) under

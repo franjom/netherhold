@@ -2016,7 +2016,7 @@ The rebased `kwd oracle 200` measurements are recorded in the commit.
 - Campaign-wide `stalls` **215 → 143**. `moved` and `after1` do not move, and could not: nothing kills a keeper, so all 72 records read false. This buys census honesty, not reach.
 - We store the player id where DK2 stores the killer's object id and converts through its `Number`; the two agree only while `TagId` and `Number` do (Q271).
 ## ADR-0117 — Live captures compare by event set and stored-stamp alignment
-**Date:** 2026-09-09 · **Status:** accepted · Experiment: `docs/experiments/level1-idle-001/` · **Systems:** tooling-process
+**Date:** 2026-09-09 · **Status:** accepted · Experiment: `F:\DK2Evidence\studies\l01-idle-001--unknown-date--001\payload\` · **Systems:** tooling-process
 
 **Context.** `trigger-diff` pairs exact turn numbers and is correct for two of
 our runs. A live capture has a different, load-jittered origin; played sessions
@@ -2041,7 +2041,7 @@ and every measurable residual must be at most one tick. Its path and skip policy
 live in `Dk2CaptureGate`. No simulation state changed, so no `HashVersion` bump.
 
 ## ADR-0118 — An event the other run stopped before is untested, not divergent
-**Date:** 2026-09-10 · **Status:** accepted · Experiment: `docs/experiments/level20-idle-001/` · **Systems:** tooling-process
+**Date:** 2026-09-10 · **Status:** accepted · Experiment: `F:\DK2Evidence\studies\l20-idle-001--unknown-date--001\payload\` · **Systems:** tooling-process
 
 **Context.** ADR-0117 split events into three sets: both, capture only, ours
 only. Two runs of the same level rarely cover the same span — a capture is
@@ -2067,7 +2067,7 @@ run that discriminates Q273 was chosen. No simulation state changed, so no
 `HashVersion` bump.
 
 ## ADR-0119 — Compare a timer's stored stamps, not the turn the probe noticed them
-**Date:** 2026-09-10 · **Status:** accepted · Experiment: `docs/experiments/level20-idle-002/` · **Systems:** tooling-process
+**Date:** 2026-09-10 · **Status:** accepted · Experiment: `F:\DK2Evidence\studies\l20-idle-002--unknown-date--001\payload\` · **Systems:** tooling-process
 
 **Context.** A live capture yields two unlike quantities. A flag is a boolean
 seen only when the probe looks, so its turn is an observation. A timer slot
@@ -10144,7 +10144,7 @@ to it, `0x004E53B0`) is still unbuilt, so ours admits slightly more than DK2.
 Levels 1–3 replays are unchanged (19/6/18 over seeds 1–20). Level 4's replays now
 receive 6–16 Dark Elves (DK2: 11) but none wins: our dig into the hero base lags
 DK2's by 200–1,400 turns by seed, and Receive Imps (special 124, at 5783) is unbuilt
-(experiments/2026-10-12-level4-packet-replay/).
+(F:\DK2Evidence\studies\l04-packet-replay--2026-10-12--001\payload\).
 
 ## ADR-0441 — Build Receive Imps, special 124
 **Date:** 2026-10-12 · **Status:** accepted · Research: specials.md (124), functions/00481750.md
@@ -10164,7 +10164,7 @@ Hash/save version 232.
 Levels 2 and 3 replays are unchanged; Level 4 still wins 0/20. Seed 1's claim frontier
 now reaches row 5 at 6600 (DK2 6310, and row 15 before); seeds 5 and 14 creep to row 21
 by about 6100 and never reach row 15. Ours are in state 10 on the creation tick where
-DK2's are in 11, as for Create Imp (experiments/2026-10-12-level4-packet-replay/).
+DK2's are in 11, as for Create Imp (F:\DK2Evidence\studies\l04-packet-replay--2026-10-12--001\payload\).
 
 ## ADR-0442 — Restore room construction and ambient room life
 
@@ -12460,7 +12460,7 @@ snapshots the losing player's list before transferring eligible rooms.
 withdrawal can be reproduced without injecting a reordered combat cache.
 Distinct adjacent native room records remain outside the connected-component
 model, and other room-list readers remain separate work. Campaign outcomes are
-separate evidence: [the hash305 measurement](experiments/2026-10-25-packet-replay-hash305/README.md).
+separate evidence: the hash305 measurement (`F:\DK2Evidence\studies\packet-replay-hash305--2026-10-25--001\payload\README.md`).
 
 ## ADR-0542 — Preserve native hero-party ordering
 **Date:** 2026-10-25 · **Status:** accepted

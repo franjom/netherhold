@@ -562,7 +562,7 @@ difference is noted here.
 ├── docs/
 │   ├── research/                 one file per mechanic, on the Appendix B template
 │   ├── architecture/             the simulation loop
-│   ├── experiments/              recorded oracle results, one folder per capture, and doors-and-traps.md
+│   ├── experiments/              gitignored; the oracle write-ups live in F:\DK2Evidence\studies
 │   ├── plans/                    process documents; not claims
 │   └── ...                       HANDOFF, DECISIONS, TRAPS, KEEPER_AI, ASSET_PIPELINE, ART_DIRECTION
 ├── scenarios/                    declarative scenario files (see §6.2)
@@ -821,7 +821,7 @@ setup, observations nothing produces yet — so a run can never look more comple
 | Setup | generated custom level + trigger script | `ScenarioRunner` |
 | Stepping | Flame TPS limit; frame-step | `sim.Tick()` |
 | Observation | screen capture + memory inspection at known `CCreature` offsets | direct state read |
-| Output | a capture CSV under `reverse-engineering/dk2runs/` (gitignored) | `dk2tools trigger-run` or `replay` CSV; the write-up is `docs/experiments/<id>/README.md` |
+| Output | a capture CSV under `reverse-engineering/dk2runs/` (gitignored) | `dk2tools trigger-run` or `replay` CSV; the write-up goes to `F:\DK2Evidence\studies` (AGENTS.md, evidence rule) |
 
 Reading the oracle's state directly from memory is feasible *because Flame gives us the
 field offsets* — e.g. `f3B9_roomId` at `+0x3B9`, `f3E6_stateFlags` at `+0x3E6`. This
@@ -840,8 +840,8 @@ Every scenario becomes a test in `DK2.Behavior.Tests` (`ScenarioExpectationTests
 Divergences are triaged as: *our bug* → fix; *unknown mechanic* → new research doc;
 *acceptable* → record with an explicit written justification. The corpus only ever grows.
 Built: a scenario that asserts carries an `expect:` block (ADR-0150), three idle captures
-sit under `docs/experiments/` and `dk2tools capture-diff` compares them, the packet
-replays of Levels 1–3 are the replay rig (spread over seeds: `docs/experiments/2026-10-06-packet-replay-seeds/`), and two idle captures of DK2's own keepers are compared in `computer-keeper-observations.md`. There is no comparer across all scenarios.
+are written up under `F:\DK2Evidence\studies` and `dk2tools capture-diff` compares them, the packet
+replays of Levels 1–3 are the replay rig (spread over seeds: `F:\DK2Evidence\studies\packet-replay-seeds--2026-10-06--001\payload\`), and two idle captures of DK2's own keepers are compared in `computer-keeper-observations.md`. There is no comparer across all scenarios.
 
 ### 6.5 Determinism gate
 
@@ -927,7 +927,7 @@ the order, and revision 2 changes only that column and the last three rows.
 | **M4** ✅ | — | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
 | **M5** ◐ | 2 | First oracle comparison | Memory-reading oracle probe working against DK2; 20+ scenarios captured from both sides; first divergence report | 4–6 wk |
 | **M6** ◐ | **1** | Real level loads | A stock campaign level loads, terrain and things place correctly, triggers/objectives fire, **level is winnable** | 6–10 wk |
-| **M7** ◐ | 3 | Combat & heroes | Combat resolution, hero parties, hero gates, traps, doors. Built: combat, hero parties, the door fight (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331), the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337), the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and trap damage (ADR-0326), the alarm's route word (ADR-0332), creatures fighting a revealed trap (scan D, ADR-0340); disarming is deferred under ADR-0329's scoped inference (Q455), shot heights move to M9 and the Boulder's slap to object slapping (ADR-0341); left: the owner's observations, Q520's wall disputed, Q513, Q524, Q362 (`experiments/doors-and-traps.md`) | 3–5 mo |
+| **M7** ◐ | 3 | Combat & heroes | Combat resolution, hero parties, hero gates, traps, doors. Built: combat, hero parties, the door fight (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331), the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337), the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and trap damage (ADR-0326), the alarm's route word (ADR-0332), creatures fighting a revealed trap (scan D, ADR-0340); disarming is deferred under ADR-0329's scoped inference (Q455), shot heights move to M9 and the Boulder's slap to object slapping (ADR-0341); left: the owner's observations, Q520's wall disputed, Q513, Q524, Q362 (`F:\DK2Evidence\studies\doors-and-traps-md--unknown-date--001\payload\doors-and-traps.md`) | 3–5 mo |
 | **M8** ◐ | 5 | Breadth | All rooms, all creatures, all keeper spells, research, possession, prison/torture/graveyard/temple. Built: the research tree and its spell upgrades (ADR-0247, ADR-0350); all 13 keeper spells — Create Imp, Call to Arms, Thunderbolt, Heal, Inferno, Chicken, Create Gold, Tremor, Turncoat, Summon Horny, OneShotReaper and Possession's simulation side (ADR-0350; its followers, commands and arms ADR-0445, ADR-0446, ADR-0468–ADR-0470), and Sight of Evil's cast with an empty effect, its region being presentation (ADR-0352, Q194, Q534) | 6–12 mo |
 | **M9** | cont. | Fidelity | 500+ behavioural regression scenarios green; documented divergence list; pathfinding rewritten against oracle traces | continuous |
 | **M10** | 6 | Campaign | Full campaign playable start to finish. Front end read, build plan in `docs/plans/2026-10-23-front-end.md` | after M8 |
@@ -1065,7 +1065,7 @@ Measured by event set over 1176 shared turns, ours against played run 5: **2 fir
 
 **Level 1 idle closed the first of those.** With the input removed rather than the player,
 ours against DK2 is **4 events in both, 0 either side**, and the two flags we were calling
-false positives are DK2's too (`docs/experiments/level1-idle-001`). Turn numbers agree to a
+false positives are DK2's too (`F:\DK2Evidence\studies\l01-idle-001--unknown-date--001\payload\`). Turn numbers agree to a
 constant over a 568-tick span, so the rate is right. **The origin is load jitter, not a
 rule** — timer 15's stamp across six captures is 4, 6, 7, 8, 10 and 11 — so a comparison
 aligns on the first evaluation, which a timer's stored stamp gives exactly (Q272). One tick
@@ -1076,11 +1076,11 @@ two *played* runs was entirely the human.
 only after `docs/research/campaign-progress-registry.md` — was picked because its idle run
 stamps two timers early and then does nothing: a stamp is *stored*, so it cannot be blurred
 by when the probe sampled. Over ticks 36–1218 **all 150 columns are identical**, and both
-sides stamp timers 0 and 1 at tick **4** (`docs/experiments/level20-idle-001`). Absolute
+sides stamp timers 0 and 1 at tick **4** (`F:\DK2Evidence\studies\l20-idle-001--unknown-date--001\payload\`). Absolute
 tick numbering therefore carries no systematic offset, and the residual must live in the
 sampled half.
 
-**The 11-minute version closed it (`docs/experiments/level20-idle-002`).** Timer 1 restamps
+**The 11-minute version closed it (`F:\DK2Evidence\studies\l20-idle-002--unknown-date--001\payload\`).** Timer 1 restamps
 inside that window, and a timer slot holds *the tick the game recorded when it acted*: DK2
 stored **1724**, we store 1724, and the probe first saw it at **1725**. One event dates the
 probe's lag against the game's own record. Applied to the three events it was not fitted to
@@ -1103,7 +1103,7 @@ condition work can close it**: it is a tutorial that advances when the human doe
 action.
 
 What remains: 20+ scenarios captured from both sides (three idle captures under
-`docs/experiments/` and the packet replays of Levels 1–3, so far), and running
+`F:\DK2Evidence\studies` and the packet replays of Levels 1–3, so far), and running
 DK2 under Flame, which §6.1 calls M5's first step and which has not been done.
 
 **M6 — partial, and trigger execution is now the bulk of it.** Records parse (M1); a level's
@@ -1111,7 +1111,7 @@ placed creatures and objects reach the world (ADR-0101), the trigger flag and ti
 world state (ADR-0102), action points are ordered world state (ADR-0103), and doors, traps,
 hero parties and effect generators are all stored, hashed and snapshotted (ADR-0106,
 ADR-0108) — nothing in the THINGS corpus is unprojected. The recorded plays of Levels 1–3 replay headlessly over many seeds and are set against DK2's own seeded playbacks
-(`docs/experiments/2026-10-06-packet-replay-seeds/`, Q444, Q567); interactive presentation
+(`F:\DK2Evidence\studies\packet-replay-seeds--2026-10-06--001\payload\`, Q444, Q567); interactive presentation
 and broader campaign compatibility remain unfinished.
 
 **Triggers execute.** Q228 settled the cadence — one evaluation per game turn, from the world

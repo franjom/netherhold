@@ -279,8 +279,8 @@ Unity code. It is outside `DK2.slnx` on purpose. See `unity/README.md`.
 every part of a scenario it could not honour — unknown keys, unapplied setup,
 observations nothing produces yet — so a run can never look more complete than it
 is, and `TextRenderer` writes a `world.txt` per scenario. A scenario that asserts
-carries an `expect:` block in game seconds (ADR-0150); `docs/experiments/` holds
-the oracle-versus-ours idle runs, and the packet replays are ADR-0339's rig. See
+carries an `expect:` block in game seconds (ADR-0150); the oracle-versus-ours idle runs are written up in
+`F:\DK2Evidence\studies`, and the packet replays are ADR-0339's rig. See
 `scenarios/README.md`.
 
 ## Tile work (M3)
@@ -551,8 +551,8 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
   assert 50x real time and 100 ms per tick on an idle machine (ADR-0575). The
   default run and CI do not run them.
 - **The oracle comparison is per scenario.** Levels 1, 2 and 3 have recorded
-  packets replayed headlessly over 20 seeds (Q444, ADR-0339; idle captures in
-  `docs/experiments/`); there is no automatic divergence report across all
+  packets replayed headlessly over 20 seeds (Q444, ADR-0339; idle captures written up in
+  `F:\DK2Evidence\studies`); there is no automatic divergence report across all
   scenarios.
 
 ## Licence boundaries in the tree

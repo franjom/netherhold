@@ -139,7 +139,7 @@ resolved.
 Level 20, five idle minutes, one owned portal, zero rooms built: nothing
 arrived. Against a 25 s base that is about a dozen missed intervals, and the
 game was demonstrably running, because the same capture shows the trigger clock
-advancing 1182 ticks (`docs/experiments/level20-idle-001`). The obvious
+advancing 1182 ticks (`F:\DK2Evidence\studies\l20-idle-001--unknown-date--001\payload\`). The obvious
 confound is out — Level 20's pool is not empty; player 3 has six types, and all
 six want a room: Bile Demon and Troll a Workshop, Mistress a Torture Chamber,
 Warlock a Library, Dark Elf a Guard Room, Salamander a Training Room.
