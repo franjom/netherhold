@@ -95,7 +95,7 @@ public sealed class CostNumberTests
     private static (GameSimulation Sim, ListEventSink Events) Start()
     {
         var db = Dk2TerrainFixture.Database();
-        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = Dk2TerrainFixture.Sellable(WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]));
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 3)), db.Room(RoomTypeId.DungeonHeart), Keeper);
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 1)), db.Room(RoomTypeId.Treasury), Keeper);
         GoldStore.Deposit(world, db, Keeper, 10000);

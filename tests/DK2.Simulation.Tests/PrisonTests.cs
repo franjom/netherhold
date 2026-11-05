@@ -38,8 +38,8 @@ public class PrisonTests
 
     private static GameDatabase Db => Dk2TerrainFixture.Database();
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
-        db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
+    private static WorldState World(GameDatabase db) => Dk2TerrainFixture.Sellable(WorldState.FromMap(
+        db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]));
 
     private static GameSimulation Simulation(
         GameDatabase db, WorldState world, ListEventSink? sink = null, ISimulationSystem? last = null)

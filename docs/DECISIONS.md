@@ -1449,7 +1449,7 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 - **41 of 46 creatures have `ExpPerSecond` exactly 5 × `ExpPerSecondTraining`**, which argues the two are the same kind of quantity without reading any code. The exceptions are three uniques whose combat rate was raised without the training column following, the Maiden Of The Nest, and the Imp at forty times — the one creature that neither trains nor fights, and the source of the misleading number.
 - The scenario shows the arc: two Goblins train, both reach level 2, the treasury empties at about t2500 and both lose the job on the spot, and 2500 ticks later they are the same unhappy Goblin the keeper who built no room has. Player 4 had to be *given* gold for its refusal to still say `no_room`.
 - `HashVersion` unchanged at 33 — no hashed field changed shape — but hashed *values* move wherever experience is earned.
-- Ours, flagged: a capped creature keeps the job for up to one five-second gate instead of being ejected by a state handler, because we have one working state where DK2 has six; the gold comes out of the keeper's tiles rather than the tile underfoot; no floating "−20", no message `0x37`, no combat-pit fallback for a creature that has outgrown the training room. Q79's factor of four rests on `tile-work.md`'s per-tick accrual rather than a caller read — the probe: find what iterates the imp task table at `0x006E4198`.
+- Ours, flagged: a capped creature keeps the job for up to one five-second gate instead of being ejected by a state handler, because we have one working state where DK2 has six; the gold comes out of the keeper's tiles rather than the tile underfoot; no message `0x37`, no combat-pit fallback for a creature that has outgrown the training room (the floating −20 is ADR-0664's). Q79's factor of four rests on `tile-work.md`'s per-tick accrual rather than a caller read — the probe: find what iterates the imp task table at `0x006E4198`.
 
 ## ADR-0084 — Portal disposal is for non-Imps; Imp disposal is through the Heart
 **Date:** 2026-09-07 · **Status:** accepted · amended 2026-09-13; closes Q88, opens Q209; confirms Q137 · amended 2026-09-17: the router follows DK2's captured cache (heart floor, portal centre byte 4 for option bit 2), the grid and the Hand keep the blocks (Q352) · Research: `docs/research/structure-blocks.md`
@@ -6986,8 +6986,8 @@ claims in DK2, and still seed before here: the same unread divergence on a full 
   arrival. On ab59255 one was (seed 2, tick 3383: refused with message 55, where before it
   trained five ticks and lost the job at the charge). No rig builds a Casino: its refusals are
   exercised by tests alone.
-- Not built: the jackpot party (`+0xF4A`), and the Training enter hook's `+0xB4` clear (ours
-  keeps no count for the floating −20). The Casino's `+0xB3 = 0` is Training's byte, which
+- Not built: the jackpot party (`+0xF4A`); the Training enter hook's `+0xB4` clear is ADR-0664's.
+  The Casino's `+0xB3 = 0` is Training's byte, which
   ours does not keep apart.
 - The Casino finder offers a lever-only 3×3 Casino whose claim must refuse (Q506). Ours does not.
 
@@ -12320,8 +12320,8 @@ and the runner shows the pickup hand over one. Behaviour only (HashVersion 299).
 
 **Deviations.** The lifted pile is neutral from the lift (DK2's keeps its keeper until its landing
 hands it to the neutral player); a lifted pile dropped back on a store is deposited on landing
-(ADR-0613); the floating
-amount, lift sound and `+0x146` bit 4 are not modelled; the effect's own draws are view-side.
+(ADR-0613); the lift sound and
+`+0x146` bit 4 are not modelled, and the floating amount is ADR-0664's; the effect's own draws are view-side.
 DK2 runs each room's handler, border effect and health step room by room (0x004EC450); ours runs
 every store first, then the other room systems, so the sparkle's draws are grouped by handler, not
 interleaved per room (with ADR-0327's room order). The lifted pile stays tile-linked to its empty
@@ -15434,7 +15434,7 @@ itself is gold (`InGameDigit5` averages RGB 171,159,92) and the mana art
 green-blue (`gInGameDigit5`, 91,171,133).
 
 **Decision.** `CostNumberRules.Show` asks for effect 22 or 364 as a gated `ViewEffectRequest` carrying
-`Amount`, from two callers: the build wave's close (the slot's sum, when non-zero, at the press corner at
+`Amount`, from two callers (ADR-0664 adds the rest): the build wave's close (the slot's sum, when non-zero, at the press corner at
 height 0, also when a money refusal jumps the wave there, `0x004C775F`) and every paid tile sale (its
 refund at the tile at height `0x1000`, `0x004C5ED0`), wave and immediate alike. The view engine drops an
 amount whose owner is not its viewer, and generation type 14 makes the digits with
@@ -15444,12 +15444,42 @@ radial term (`SpriteLighting`, `0x0057C080`) of each light in the digit's tile t
 before its amendment, which still holds for every other effect sprite.
 
 **Limits.** Which lights DK2 lists for these sprites is unread (Q609); the tile's table is ADR-0493's
-inference, here backed by the owner's observation that the digits follow the lighting. A paid sale
-first passes a permission test (`0x004C5DD0`, unread) that ours lacks, so ours can float a refund for a
-sale DK2 refuses. Each digit's own allocator gate (`0x004352E0`) is not mirrored. The other
-twelve callers (doors, traps, Training, Temple mana, payday, Casino and the rest) and the direct
-computer-keeper build are not wired.
+inference, here backed by the owner's observation that the digits follow the lighting. Each digit's own allocator gate
+(`0x004352E0`) is not mirrored. The sale's opening test and the other callers are ADR-0664's; the direct
+computer-keeper build is not wired.
 
 **Consequences.** Events only: no world state, so hash/save 408 and the determinism pin are unchanged.
 The owner accepted the sale and build numbers in play on 2026-11-05, once effect billboards were drawn
 upright (their v had run the wrong way for every effect sprite).
+
+## ADR-0664: a paid sale tests availability, and the other floating amounts
+
+**Date:** 2026-11-05. **Status:** accepted. Extends ADR-0663; hash/save 409. · **Systems:** rooms, hud-front-end
+
+**Context.** A paid sale opens with world slot `+0x384` (`0x004C5DD0` → `0x0044F770`): the tile's room must be
+the seller's, Buildable, and of a type whose availability (`0x004BAB20`, 1 without a row) is neither 1 nor 4,
+or the sale does nothing. Ours had no availability test, so it sold (and floated a refund for) what DK2
+refuses; the owner's unsellable Prison in M7Q729b fits it (its availability there is not read). A My Pet
+Dungeon level holds its locked rooms at 4. ADR-0663 wired two of the 14 callers of `0x0050FB70`.
+
+**Decision.** `RoomSellSystem.SellOne` refuses with `RoomSale.NotAvailable` before the unmake when
+`RoomRules.IsSellableType` fails. `CostNumberRules.Show` gains the callers whose events ours models:
+- door and trap placement: the price at the tile centre, height 0 (`0x004C3519`, `0x004C3918`);
+- the Hand lifting a gold object, loose or a store pile: its whole gold where it lay (`0x004C0DDA`);
+- payday: the whole wage taken, at the creature (`0x0047281E`);
+- the jackpot collect: what came off the room, at the winner, before the purse (`0x00457644`);
+- the generous Casino settlement: 4 per gambler, nominal, at the lever's tile (`0x004D685D`); stingy
+  shows nothing;
+- the possessed gold grab: the whole take at the action's pose (`0x00514D6F`);
+- Training: every fourth paid charge floats four charges at the trainee (`0x0047B405`), counted in the
+  new `CreatureState.TrainingCharges` (the state object's `+0xB4`), zeroed on entering Training.
+
+**Limits.** Not wired: the Temple's mana (our prayer credits none), door and trap sales (not modelled),
+and the Thief or Rogue's Crypt-rest gold (`0x00499F9E`, action 80): the Crypt is content DK2 scrapped, dead
+code (owner). The ownership half stays `CanSell`'s, which exempts the bridges. The Casino's number counts
+our tile-standing gamblers where DK2 walks the room's occupant list (its slot `+0x1FC` gate, `0x00509090`,
+is a bounds test). Ours still charges, and so counts, a trainee at the level cap, where DK2's hook returns
+first. A lifted gold object floats at floor height, not its stored height. The sell cursor does not test
+availability. Test worlds give keepers researchable (2) room rows (`Dk2TerrainFixture.Sellable`).
+
+**Consequences.** `TrainingCharges` is hashed and saved: hash/save 409 and a new pin.

@@ -401,6 +401,8 @@ public static class CasinoJackpotRules
         int taken = PaydayRules.TakeFromRoom(world, room, here, asked);
         if (taken != 0)
         {
+            // What came off the room floats up from the winner before it reaches the purse (0x00457644).
+            CostNumberRules.Show(context, system, new PlayerId(creature.OwnerPlayerId), CostNumberRules.PointOf(creature), taken);
             int kept = PurseRules.Receive(database, database.CreatureById(creature.CreatureTypeId), creature, taken);
             ThingSoundRules.Request(context, system, creature, ThingSoundEvent.GoldReceived);   // 0x00457677
             context.Emit(system, "jackpot_collected", $"creature={creature.Id} taken={taken} kept={kept} owed={creature.JackpotWinnings}");

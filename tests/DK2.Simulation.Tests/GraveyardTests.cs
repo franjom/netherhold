@@ -348,7 +348,7 @@ public class GraveyardTests
     private static (GameDatabase Db, WorldState World) Setup(CreatureDef corpse)
     {
         GameDatabase db = Dk2TerrainFixture.Database(corpse);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        WorldState world = Dk2TerrainFixture.Sellable(WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]));
         return (db, world);
     }
 

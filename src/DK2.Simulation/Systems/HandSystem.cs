@@ -202,6 +202,11 @@ public sealed class HandSystem : ISimulationSystem
         }
 
         if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.UnlinkHatchery(thing);
+        // A gold object floats its whole amount where it lay (0x004C0DDA): definition +0xF4 bit 0x40, the
+        // object not already in the hand (0x004BCAE0), before it joins it. DK2 passes the object's stored height;
+        // ours the floor's (ThingSoundRules.PointOf).
+        if (context.Database.ObjectById(thing.ObjectTypeId)?.Flags.HasFlag(ObjectFlags.TypeGold) == true)
+            CostNumberRules.Show(context, SystemName, command.PlayerId, ThingSoundRules.PointOf(context, thing), thing.GoldHeld);
         thing.InHand = true;
         world.Player(command.PlayerId).Hand.Add(HandItem.Of(thing));
         ThingSoundRules.Request(context, SystemName, thing, ThingSoundEvent.PickedUp);   // 0x004C0E01
@@ -218,7 +223,7 @@ public sealed class HandSystem : ISimulationSystem
     /// object here, from the tile's gold (ADR-0015).</summary>
     /// <remarks>Deviates: the pile is the neutral player's from the lift, as the counter's is
     /// (<see cref="WithdrawCounterGold"/>); DK2's keeps its keeper until its landing hands it to the
-    /// neutral player (<c>0x0049EF90</c>). Not modelled: the floating amount (<c>0x0050FB70</c>) and
+    /// neutral player (<c>0x0049EF90</c>). The floating amount (<c>0x0050FB70</c>) is shown. Not modelled:
     /// <c>+0x146</c> bit 4. The lift sound (<c>0xC3</c>) is requested in the pile object's category, which
     /// object 3 does not have, so it is silent.</remarks>
     private static void PickUpStoreGold(SimulationContext context, PickUpStoreGoldCommand command)
@@ -238,6 +243,8 @@ public sealed class HandSystem : ISimulationSystem
         tile.GoldHeld = 0;
         ObjectState pile = world.SpawnObject(database, FloorGold.TreasuryPileObjectId, PlayerIds.Neutral, tileIndex);
         pile.GoldHeld = gold;
+        // The pile's whole amount floats up where it lay (0x004C0DDA; the store pile is a gold object).
+        CostNumberRules.Show(context, SystemName, command.PlayerId, ThingSoundRules.PointOf(context, pile), gold);
         pile.InHand = true;
         List<HandItem> hand = world.Player(command.PlayerId).Hand;
         hand.Add(HandItem.Of(pile));

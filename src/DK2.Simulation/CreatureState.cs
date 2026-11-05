@@ -720,6 +720,11 @@ public sealed class CreatureState
     /// renderer reads it, for the Gem dust trail (ADR-0495).</summary>
     public bool GemCarrier;
 
+    /// <summary>Training charges paid since the last floating amount (the Training state object's
+    /// <c>+0xB4</c>): zeroed on entering Training (<c>0x0047B230</c>), counted on each paid charge, and at
+    /// four the trainee floats four charges and the count starts again (<c>0x0047B3D3</c>).</summary>
+    public byte TrainingCharges;
+
     /// <summary>The object this worker is walking towards, or -1 for none.</summary>
     public int TargetObjectId = -1;
 
@@ -1618,6 +1623,7 @@ public sealed class CreatureState
         hash.Add(GoodJobPlayerId);
         hash.Add(GoodJobActionPointId);
         hash.Add(GemCarrier);
+        hash.Add(TrainingCharges);
         for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
         for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }

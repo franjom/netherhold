@@ -329,6 +329,8 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         // The coin sound first (0x00472803): the gold object's pick-up group with the creature's own handle.
         ThingSoundRules.RequestInObjectCategory(context, SystemName, creature, FloorGold.FloorGoldObjectId,
             ThingSoundEvent.WageTaken, voiced: true);
+        // Then the whole wage taken floats up from the creature, for its keeper (0x0047281E).
+        CostNumberRules.Show(context, SystemName, new PlayerId(creature.OwnerPlayerId), CostNumberRules.PointOf(creature), taken);
 
         // Half of what came off the floor goes into the creature's own purse, and the rest
         // is gone (0x0048AE70(taken / 2), payday.md 4.4).

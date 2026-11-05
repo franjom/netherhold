@@ -205,7 +205,7 @@ public class RoomNeedMessageTests
     [Fact]
     public void SellingARoomWhoseRefundNoStoreTakesPostsFullAndOneThatFitsPostsNothing()
     {
-        WorldState world = World();
+        WorldState world = Dk2TerrainFixture.Sellable(World());
         Availability(world, RoomTypeId.Treasury, 3);
         Room(world, RoomTypeId.Treasury, 1, 1, gold: 3000);
         Room(world, RoomTypeId.Lair, 3, 3);
@@ -214,7 +214,7 @@ public class RoomNeedMessageTests
         PlayerMessage full = Assert.Single(world.Messages.Entries);
         Assert.Equal((PlayerMessageKind.RoomFull, RoomTypeId.Treasury), (full.Kind, full.Room));
 
-        WorldState roomy = World();
+        WorldState roomy = Dk2TerrainFixture.Sellable(World());
         Availability(roomy, RoomTypeId.Treasury, 3);
         Room(roomy, RoomTypeId.Treasury, 1, 1);
         Room(roomy, RoomTypeId.Lair, 3, 3);

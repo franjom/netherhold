@@ -19,7 +19,7 @@ public sealed class SlabChainTests
     private static (GameDatabase, WorldState, GameSimulation) World(GameDatabase? definition = null)
     {
         GameDatabase db = definition ?? Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Keeper]);
+        WorldState world = Dk2TerrainFixture.Sellable(WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Keeper]));
         for (int y = 1; y <= 10; y++)
         for (int x = 1; x <= 14; x++)
         {

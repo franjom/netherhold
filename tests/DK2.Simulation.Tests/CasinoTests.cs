@@ -181,6 +181,8 @@ public class CasinoTests
         Assert.Equal(goblin.Anger.Work, goblin.Anger.Company);
         Assert.Equal(0, goblin.Anger.Pay);
         Assert.Equal(64, FloorGold.OnTile(world, db, Index(world, LeverAt)));
+        // The stingy lever's take floats nothing (only the generous branch counts at 0x004D67E6).
+        Assert.DoesNotContain(sink.Events, e => e.EffectRequest?.Amount.HasValue == true);
 
         // Four game seconds apart: the room's turn modulo variable 19 x 4.
         long[] settled = sink.Events.Where(e => e.Kind == "settled").Select(e => e.Tick.Value).ToArray();
@@ -209,6 +211,9 @@ public class CasinoTests
         Assert.Equal(998, world.Tile(Vault.X, Vault.Y).GoldHeld);
         Assert.Contains(sink.Events, e => e.Kind == "settled"
             && e.Detail.Contains("gamblers=2") && e.Detail.Contains("paid=8"));
+        // The payout floats up once from the lever's tile for the owner, 4 a gambler (0x004D685D).
+        ViewEffectRequest shown = Assert.Single(sink.Events, e => e.EffectRequest?.Amount.HasValue == true).EffectRequest!.Value;
+        Assert.Equal((8, LeverAt, 0), ((int)shown.Amount!, shown.Tile, shown.Height.Raw));
     }
 
     [Fact]

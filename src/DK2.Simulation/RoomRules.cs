@@ -63,6 +63,10 @@ public enum RoomSale
     /// <summary>A room a keeper never bought and cannot sell: a portal, a dungeon
     /// heart, a hero gate. Gated by the same <c>Buildable</c> flag as building.</summary>
     NotSellable = 4,
+
+    /// <summary>The keeper's availability of the room's type is 1 (none) or 4: the paid sale's opening
+    /// test <c>0x0044F770</c> refuses it (the owner's Prison in M7Q729b would not sell).</summary>
+    NotAvailable = 5,
 }
 
 /// <summary>Where a room may go, what it costs, and what it does to the tile it
@@ -271,6 +275,16 @@ public static class RoomRules
         if (!terrain.IsOwnable) return RoomSale.Allowed;
 
         return tile.OwnerPlayerId == playerId ? RoomSale.Allowed : RoomSale.NotYourRoom;
+    }
+
+    /// <summary>The availability half of <c>0x0044F770</c>, the paid sale's opening test: the keeper's
+    /// availability of the room's type (<c>0x004BAB20</c>, 1 without a row) is neither 1 nor 4. Its ownership
+    /// half is <see cref="CanSell"/>'s, which exempts a non-ownable terrain (the bridges) where DK2 compares the
+    /// cell's owner with the seller for every room; whose a DK2 bridge cell is, is unread.</summary>
+    public static bool IsSellableType(WorldState world, PlayerId playerId, RoomDef room)
+    {
+        int availability = world.Availability(playerId, AvailabilityKind.Room, room.RoomId);
+        return availability is not (1 or 4);
     }
 
     /// <summary>Gold returned for selling one tile of <paramref name="room"/>:

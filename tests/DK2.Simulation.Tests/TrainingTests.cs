@@ -255,6 +255,41 @@ public sealed class TrainingTests
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
     }
 
+    /// <summary>Every fourth paid charge floats the four together from the trainee and the count starts
+    /// again (0x0047B3D3, the state object's +0xB4): 16 charges in 20 seconds make four numbers of 20.</summary>
+    [Fact]
+    public void EveryFourthChargeFloatsFourChargesFromTheTrainee()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = Trainee(db, world, gold: 1000);
+        var sink = new ListEventSink();
+
+        Simulation(db, world, sink).Run(Second * 20);
+
+        ViewEffectRequest[] shown = [.. sink.Events.Where(e => e.EffectRequest?.Amount.HasValue == true)
+            .Select(e => e.EffectRequest!.Value)];
+        Assert.Equal(4, shown.Length);
+        Assert.All(shown, a => Assert.Equal((4 * 5, new PlayerId(Keeper)), ((int)a.Amount!, a.Owner)));
+        Assert.Equal(0, goblin.TrainingCharges);
+    }
+
+    [Fact]
+    public void TheChargeCountIsStateThatHashesAndSurvivesASave()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = Trainee(db, world, gold: 1000);
+        GameSimulation sim = Simulation(db, world);
+        sim.Run(Second * 2);
+        Assert.NotEqual(0, goblin.TrainingCharges);
+        ulong before = sim.StateHash();
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new CreatureJobSystem()]);
+        Assert.Equal(before, restored.StateHash());
+        goblin.TrainingCharges++;
+        Assert.NotEqual(before, sim.StateHash());
+    }
+
     [Fact]
     public void AKeeperWhoRunsOutOfGoldLosesTheCreaturesJobMidTraining()
     {

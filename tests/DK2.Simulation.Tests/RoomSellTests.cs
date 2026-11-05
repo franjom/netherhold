@@ -34,8 +34,8 @@ public class RoomSellTests
     private static Run Start(ulong seed = 11)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        WorldState world = Dk2TerrainFixture.Sellable(WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]));
 
         var sim = new GameSimulation(database, world, seed, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
@@ -100,6 +100,31 @@ public class RoomSellTests
 
         Assert.Equal(100, GoldStore.Total(run.World, Keeper));
         Assert.Contains(run.Of("sold"), e => e.Detail.Contains("tiles=1") && e.Detail.Contains("refund=100"));
+    }
+
+    /// <summary>The paid sale's opening test (0x004C5DD0 -> 0x0044F770): a room type whose availability is 1
+    /// or 4 is not sold at all, by hand or by a drag (no unmake, refund or floating number); 2 and 3 sell.</summary>
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, true)]
+    [InlineData(3, true)]
+    [InlineData(4, false)]
+    public void ARoomTypeTheKeeperHasNotGotAvailableIsNotSold(int availability, bool sells)
+    {
+        Run run = Start();
+        Give(run, RoomTypeId.Treasury, Keeper, new TilePos(1, 1), new TilePos(2, 1), new TilePos(2, 2));
+        run.World.SetAvailability(new PlayerId(Keeper), AvailabilityKind.Room, (int)RoomTypeId.Treasury, availability);
+
+        run.Tick(SellRoomCommand.At(Keeper, new TilePos(1, 1)));
+        run.Tick(SellRoomCommand.Rect(Keeper, 2, 1, 2, 2));
+        run.Tick();
+
+        byte expected = sells ? Dk2TerrainFixture.ClaimedPath : Dk2TerrainFixture.TreasuryTerrain;
+        Assert.All(new[] { new TilePos(1, 1), new TilePos(2, 1), new TilePos(2, 2) },
+            p => Assert.Equal(expected, run.World.Tile(p).TerrainId));
+        Assert.Equal(sells, run.Events.Events.Any(e => e.EffectRequest?.Amount.HasValue == true));
+        if (!sells)
+            Assert.Contains(run.Of("sold"), e => e.Detail.Contains("NotAvailable"));
     }
 
     // ---- what happens to the tile ----------------------------------------

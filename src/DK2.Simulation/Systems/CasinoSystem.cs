@@ -106,6 +106,12 @@ public sealed class CasinoSystem : IRoomTickStep
         }
 
         if (gamblers == 0) return;
+        // The generous lever's payout floats up from the lever's tile for the room's owner, at its nominal
+        // rate per gambler, not what the keeper's gold allowed (0x004D685D; the stingy lever shows nothing).
+        if (each < 0)
+            CostNumberRules.Show(context, SystemName, new PlayerId(room.OwnerPlayerId),
+                CostNumberRules.TileCentre(new TilePos(lever.TileIndex % world.Width, lever.TileIndex / world.Width), 0),
+                gamblers * -each);
         context.Emit(SystemName, "settled",
             $"player={room.OwnerPlayerId} lever={lever.TileIndex} gamblers={gamblers} " +
             $"dropped={dropped} paid={paid} under_lever={FloorGold.OnTile(world, database, lever.TileIndex)}");

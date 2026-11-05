@@ -273,6 +273,9 @@ public class PaydayTests
         // payday is the strongest confirmation of that this project has.
         Assert.Equal(1500, world.Tile(vault.X, vault.Y).GoldHeld);
         Assert.Contains(sink.Events, e => e.Kind == "paid" && e.Detail.Contains("took=500"));
+        // The whole wage taken floats up from the creature, for its keeper (0x0047281E).
+        ViewEffectRequest shown = Assert.Single(sink.Events, e => e.EffectRequest?.Amount.HasValue == true).EffectRequest!.Value;
+        Assert.Equal((500, new PlayerId(Keeper), vault), ((int)shown.Amount!, shown.Owner, shown.Tile));
 
         // And half of it is the creature's own now, the other half gone (ADR-0187).
         Assert.Equal(250, goblin.GoldHeld);

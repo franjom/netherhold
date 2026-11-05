@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 408;
+    private const int FormatVersion = 409;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -628,6 +628,7 @@ public static class WorldSnapshot
             w.Write(c.GoodJobPlayerId);
             w.Write(c.GoodJobActionPointId);
             w.Write(c.GemCarrier);
+            w.Write(c.TrainingCharges);
             for (int i = 0; i < c.SpellStamps.Length; i++) w.Write(c.SpellStamps[i]);
             for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
             for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
@@ -1415,6 +1416,7 @@ public static class WorldSnapshot
                 GoodJobPlayerId = r.ReadByte(),
                 GoodJobActionPointId = r.ReadInt32(),
                 GemCarrier = r.ReadBoolean(),
+                TrainingCharges = r.ReadByte(),
             };
             for (int k = 0; k < creature.SpellStamps.Length; k++) creature.SpellStamps[k] = r.ReadInt64();
             for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();
