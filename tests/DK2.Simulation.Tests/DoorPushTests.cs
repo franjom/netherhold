@@ -197,19 +197,10 @@ public class DoorPushTests
         Assert.Equal(0, imp.PhysicalVelocityX);
     }
 
-    /// <summary>The owner's report: an Imp that arrives on the exact centre and turns toward north (the bearing of
-    /// a zero vector) was pushed along that heading into the wall of an east-west passage and stayed pressed
-    /// against it. A creature on the push point is pushed along its heading unless that faces a shut side
-    /// (ADR-0682): then toward an open one. Every shut/open mix of the four sides, every heading, on the centre.</summary>
-    [Theory]
-    [InlineData(0b0101, 0)]    // walls north and south: a passage east-west, heading north
-    [InlineData(0b0101, 1024)] // the same, heading south
-    [InlineData(0b1010, 512)]  // walls east and west, heading east
-    [InlineData(0b1010, 1536)]
-    [InlineData(0b0111, 0)]    // a dead end open to the west, heading north
-    [InlineData(0b1011, 1024)] // open to the south, heading south
-    [InlineData(0b0001, 0)]    // only the north shut: it is pushed away from it
-    public void ACreatureOnThePushPointIsNeverPushedIntoAWall(int shutSides, int heading)
+    /// <summary>Opens the neighbours of the door tile except the shut sides (bit 0 north, 1 east, 2 south, 3 west
+    /// of <paramref name="shutSides"/>) and puts an Imp on the door tile, at the given offset from its centre.</summary>
+    private static (GameSimulation Sim, CreatureState Imp, GameDatabase Db, WorldState World) Enclosed(
+        int shutSides, int heading, int offsetX = 0, int offsetY = 0)
     {
         (GameDatabase db, WorldState world, _) = Walled(Barricade);
         for (int y = 1; y < world.Height - 1; y++)
@@ -228,11 +219,14 @@ public class DoorPushTests
         }
 
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, DoorTile);
-        imp.PosX = Centre(DoorTile.X);
-        imp.PosY = Centre(DoorTile.Y);
+        imp.PosX = Centre(DoorTile.X) + offsetX;
+        imp.PosY = Centre(DoorTile.Y) + offsetY;
         imp.Heading = heading;
-        GameSimulation sim = Sim(db, world);
+        return (Sim(db, world), imp, db, world);
+    }
 
+    private static void AssertPushedClearOfTheWalls(GameSimulation sim, CreatureState imp, GameDatabase db, WorldState world)
+    {
         Assert.InRange(TurnsUntilOffTheDoorTile(sim, imp, 80), 1, 60);
         sim.Run(80);
 
@@ -243,6 +237,74 @@ public class DoorPushTests
         // Standing clear of every wall edge by more than a step, so the next route can start.
         int dx = Math.Abs(imp.PosX - Centre(imp.Tile.X)), dy = Math.Abs(imp.PosY - Centre(imp.Tile.Y));
         Assert.True(dx < 0x800 && dy < 0x800);
+    }
+
+    /// <summary>OURS, not DK2 (ADR-0682): the owner's report was an Imp that arrives on the exact centre and turns
+    /// toward north (the bearing of a zero vector); DK2's push then runs along that heading into the wall of an
+    /// east-west passage. In a passage the push length is 0 along the whole centre line across it (the along-wall
+    /// component is zeroed first, <c>0x004A58A2</c>), so these cases stand at several points of that line.
+    /// <c>DoorPushRules.TowardAnOpenSide</c> sends the creature to an open side when its heading faces a shut one.</summary>
+    [Theory]
+    [InlineData(0b0101, 0, 0, 0)]       // walls north and south, heading north (shut), on the centre
+    [InlineData(0b0101, 0, 0, 0x300)]   // the same, below the centre on the line
+    [InlineData(0b0101, 1024, 0, -0x400)] // heading south (shut), above the centre
+    [InlineData(0b0101, 1024, 0, 0x6FF)]
+    [InlineData(0b1010, 512, 0, 0)]     // walls east and west, heading east (shut)
+    [InlineData(0b1010, 512, 0x300, 0)]
+    [InlineData(0b1010, 1536, -0x400, 0)] // heading west (shut)
+    [InlineData(0b1010, 1536, 0x6FF, 0)]
+    public void OursPushesACreatureOnTheCentreLineTowardAnOpenSide(int shutSides, int heading, int offsetX, int offsetY)
+    {
+        (GameSimulation sim, CreatureState imp, GameDatabase db, WorldState world) = Enclosed(shutSides, heading, offsetX, offsetY);
+
+        AssertPushedClearOfTheWalls(sim, imp, db, world);
+    }
+
+    /// <summary>These three never reach <c>TowardAnOpenSide</c>: their push point is off the centre, so a creature
+    /// on the centre has a non-zero length and DK2's own vector already points to the open side. They guard that
+    /// DK2's vector, unchanged, leaves no creature in a wall for a dead end and a single shut side.</summary>
+    [Theory]
+    [InlineData(0b0111, 0)]    // a dead end open to the west, heading north
+    [InlineData(0b1011, 1024)] // open to the south, heading south
+    [InlineData(0b0001, 0)]    // only the north shut: it is pushed away from it
+    public void ADeadEndOrOneShutSideIsLeftToDK2sOwnVector(int shutSides, int heading)
+    {
+        (GameSimulation sim, CreatureState imp, GameDatabase db, WorldState world) = Enclosed(shutSides, heading);
+
+        AssertPushedClearOfTheWalls(sim, imp, db, world);
+    }
+
+    /// <summary>DK2's heading vector stands when the heading faces an open side: a passage east-west, heading east
+    /// (open), on the centre, takes <c>0x80</c> along the heading and none across it.</summary>
+    [Theory]
+    [InlineData(0b0101, 512)]   // heading east, open
+    [InlineData(0b0101, 1536)]  // heading west, open
+    [InlineData(0b1010, 0)]     // heading north, open
+    [InlineData(0b1010, 1024)]  // heading south, open
+    public void AHeadingThatFacesAnOpenSideStands_AsDK2s(int shutSides, int heading)
+    {
+        (GameSimulation sim, CreatureState imp, _, _) = Enclosed(shutSides, heading);
+
+        sim.Run(1);
+
+        Assert.Equal(PushVector(heading).X, imp.PhysicalVelocityX);
+        Assert.Equal(PushVector(heading).Y, imp.PhysicalVelocityY);
+    }
+
+    /// <summary>With all four sides shut there is no open side: DK2's heading vector stands, whatever the heading.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(512)]
+    [InlineData(1024)]
+    [InlineData(1536)]
+    public void WithAllFourSidesShutDK2sHeadingVectorStands(int heading)
+    {
+        (GameSimulation sim, CreatureState imp, _, _) = Enclosed(0b1111, heading);
+
+        sim.Run(1);
+
+        Assert.Equal(PushVector(heading).X, imp.PhysicalVelocityX);
+        Assert.Equal(PushVector(heading).Y, imp.PhysicalVelocityY);
     }
 
     /// <summary>With all four sides shut there is nowhere to go: DK2's heading push stands, and the creature stays.</summary>
