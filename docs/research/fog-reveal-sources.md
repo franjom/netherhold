@@ -338,3 +338,52 @@ require exploration. No distance fog or brightness approximation is applied.
 `WorldState.FromMap` applies the terrain loader's ownership reveal, without
 inventing the separate game-mode seed. Remaining source limitations are listed
 in the table; temporary Sight presentation is separate (`keeper-spell-sight.md`).
+
+## 6. Campaign start: nothing explores the rock around an owned room (Level6a, 2026-11-05)
+
+Question: our Level6a Torture Chamber (36..38, 14..17) draws no walls on the sides whose outside
+neighbour is Impenetrable Rock that the viewer has not explored; the owner's screenshot of the
+original shows them. Is there a level-start rule we lack?
+
+**No such rule was found. STRONGLY INFERRED, from the binary and the shipped data.**
+
+- **The neighbour seed does not run in the campaign.** `0x0050C800` gates both seed calls on
+  `[0x0075AD4B]` being 2 or 3 and on world `+0x7239` bit `0x40` being clear (whole body read).
+  The campaign is mode 1, so neither `0x00451FD0` nor `0x00451EF0` runs. The mode 1 or 4 branch at its top
+  only calls seven small setters (`0x0055D6A0`..`0x0055DA40`).
+- **The writer set is closed.** Callers of `0x00454B80` are ten (§3); `0x00454D40` has one,
+  `0x004E8B80`. The only direct stores of the explored bit are the three `OR byte [tile+9], 0x20`
+  in `0x00451FD0` (`0x0045202F`, `0x00452059`, `0x004520B0`) and the fog-off `0x00451EF0`. No other
+  instruction with an `0x2000` immediate stores into a tile. None of them explores a neighbour of a
+  room tile. `0x004E8B80` walks the room's own chain only.
+- **The loader gives the rock nothing.** `Tile_SetTerrain` compares its fourth argument, the
+  owner it was asked for, not the stored owner, with the local player (`0x0044FE7B..0x0044FE8F`).
+  The Level6a map file names the neutral player (2) on every Impenetrable Rock tile around the
+  chamber, and the chamber's own tiles name player 3.
+- **Level-start sight cannot reach them.** The loop at `0x0050C171..0x0050C1F2` runs `0x0048CC90`
+  over the local player's creatures (skipping one flagged `+0x46F` bit `0x40` that stands in a
+  room of type 11, 12 or 16). Level6a's player-3 creatures start at (24..27, 19..22) and
+  (30..34, 19..20); a replay of the native angular grid from each (doors counted and not counted)
+  sees none of the 11 rock tiles (35..39,13), (39,14..17), (36,18), (38,18). The torture victim is
+  a hero, so it explores nothing. Level6a has no flagged action point near the chamber (flags
+  `0x04`/`0x0C`; the bit is `0x10`) and its three action-17 records name points 26 and 27 only.
+- **Sight's presentation predicate is false at start.** `0x00441B00` returns false while its start
+  stamp (`+0x139F`) is zero.
+- **Native campaign captures agree.** At the first playable tick of Level 2, 4 and 5
+  (`F:\DK2Evidence\captures\native\native-dk2runs--unknown-date--001`, tile `+8` bit `0x2000`), the
+  explored tiles that player 3 does not own are only flagged-action-point rectangles (3x3, 5x5)
+  plus a few sight tiles. Those start areas are enclosed by owned Reinforced Wall, so the captures
+  show no counterexample but cannot test the neighbour seed itself. Ticks 2..93 of those captures
+  hold a different, larger explored set (loading phase, not read).
+
+**Conclusion.** By the closed writer set, the rock gets explored in the original only by sight: a
+creature of the viewer inside or beside the chamber (HYPOTHESIS which one: a torturing Mistress, a
+creature dropped from the hand, an Imp). Ours never sends one there (nearest player-3 creature over 3000 ticks: 3 tiles
+away), so the walls stay black. Not verified: when the owner's screenshot was taken, and whether
+a torturer or other creature had entered the chamber by then.
+
+**Build.** No change to `WorldState.FromMap` or `WorldView.WallsOf`; adding the multiplayer
+neighbour seed to the campaign would explore tiles the original does not and change
+`TileState.ExploredBy` (hashed and saved) for every campaign level. The missing piece is the
+creature behaviour that brings sight into a Torture Chamber, which this section did not
+investigate.
