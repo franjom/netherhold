@@ -121,7 +121,7 @@ public sealed class RoomSellSystem : ISimulationSystem
         // Unmake first, then bank: the other order would let a refund land on the tile being sold.
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
         int displaced = RoomRules.Unmake(context.Database, ref tile);
-        SlabChain.Changed(world, context.Database, index, terrainBefore, ownerBefore);
+        SlabChain.Changed(world, context.Database, index, terrainBefore, ownerBefore, context.Rng, context);
         if (pits is not null) foreach (RoomInstance pit in pits) CombatPitSystem.Reset(context, pit);
 
         // The store's contents stay where the store was, as a pile on the floor of that very tile

@@ -260,14 +260,55 @@ public static class GoldStore
             tile.GoldHeld = 0;
             tile.StoreGoldHeading = null;
         }
-        var loose = new List<ObjectState>();
+        BankFloorGold(world, database, room, chain, stored, rng, context);
+    }
+
+    /// <summary>A Treasury's slot <c>+0x09</c>, which <c>Room_OnTilesChanged</c> (<c>0x004E4480</c>) runs
+    /// after every rebuild of its tiles (ADR-0669): <c>0x004F3B60</c> banks every floor pile on them.
+    /// A room a rebuild frees, the old room a removal splits or one a join absorbs, is first emptied by
+    /// the Treasury's slot <c>+0x05</c> (<c>0x004D9670</c>, <c>Store_EmptyToFloor</c>), so the store gold on
+    /// <paramref name="freed"/> goes down and back in with the rest.</summary>
+    public static void BankFloorGold(WorldState world, GameDatabase database, IReadOnlyList<int> tiles,
+        IReadOnlyCollection<int>? freed, SimRandom? rng, SimulationContext? context = null)
+    {
+        if (tiles.Count == 0) return;
+        if (database.RoomByTerrain(world.TileAtIndex(tiles[0]).TerrainId)?.TypeId != RoomTypeId.Treasury) return;
+        if (RoomIndex.RoomAt(world, database, tiles[0]) is not { } room) return;
+        int[] chain = SlabChain.Order(world, room);
+        int[]? emptied = null;
+        if (freed is { Count: > 0 })
+        {
+            emptied = new int[chain.Length];
+            for (int i = 0; i < chain.Length; i++)
+            {
+                if (!freed.Contains(chain[i])) continue;
+                ref TileState tile = ref world.TileAtIndex(chain[i]);
+                emptied[i] = tile.GoldHeld;
+                tile.GoldHeld = 0;
+                tile.StoreGoldHeading = null;
+            }
+        }
+        BankFloorGold(world, database, room, chain, emptied, rng, context);
+    }
+
+    /// <summary><c>0x004F3B60</c>'s walk: chain tile by tile, a tile's things newest first
+    /// (<c>Thing_LinkToTile</c> <c>0x004B4E70</c> links at the head), each floor pile deposited from
+    /// its tile. <paramref name="emptied"/> is the store gold just emptied on each tile, its newest pile.</summary>
+    private static void BankFloorGold(WorldState world, GameDatabase database, RoomInstance room, int[] chain,
+        int[]? emptied, SimRandom? rng, SimulationContext? context)
+    {
+        // One pass over the things: each chain tile's floor piles, oldest first.
+        var position = new Dictionary<int, int>(chain.Length);
+        for (int i = 0; i < chain.Length; i++) position[chain[i]] = i;
+        List<ObjectState>?[] piles = new List<ObjectState>?[chain.Length];
+        foreach (ObjectState thing in world.Objects)
+            if (thing.ObjectTypeId == FloorGold.FloorGoldObjectId && !thing.InHand && thing.CarriedByCreatureId < 0
+                && position.TryGetValue(thing.TileIndex, out int at))
+                (piles[at] ??= []).Add(thing);
         for (int i = 0; i < chain.Length; i++)
         {
-            if (stored[i] > 0) DepositFrom(world, database, room, chain[i], stored[i], rng, context);
-            loose.Clear();
-            foreach (ObjectState thing in world.Objects)
-                if (thing.TileIndex == chain[i] && thing.ObjectTypeId == FloorGold.FloorGoldObjectId
-                    && !thing.InHand && thing.CarriedByCreatureId < 0) loose.Add(thing);
+            if (emptied is not null && emptied[i] > 0) DepositFrom(world, database, room, chain[i], emptied[i], rng, context);
+            if (piles[i] is not { } loose) continue;
             for (int k = loose.Count - 1; k >= 0; k--)   // newest first, as the tile's list
             {
                 ObjectState pile = loose[k];

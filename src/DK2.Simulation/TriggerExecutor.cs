@@ -1483,7 +1483,7 @@ public sealed class TriggerExecutor
                 GraveyardRules.Forget(_world, graveyard);
             byte soldTerrain = tile.TerrainId, soldOwner = tile.OwnerPlayerId;
             int displaced = RoomRules.Unmake(_database, ref tile);
-            SlabChain.Changed(_world, _database, index, soldTerrain, soldOwner);
+            SlabChain.Changed(_world, _database, index, soldTerrain, soldOwner, _rng);
             FloorGold.Drop(_world, _database, index, displaced);
         }
 
@@ -1499,7 +1499,7 @@ public sealed class TriggerExecutor
             if (under is not null) SetTerrain(ref tile, under, PlayerIds.Neutral);
             byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             RoomRules.Place(_database, ref tile, room, player);
-            SlabChain.Changed(_world, _database, index, terrainBefore, ownerBefore);
+            SlabChain.Changed(_world, _database, index, terrainBefore, ownerBefore, _rng);
             // Then the one-tile rectangle is closed (0x005195F0), whose last step is the walker reset.
             WalkerResetRules.Reset(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested),
                 _world, _world.CurrentTick.Value, player);

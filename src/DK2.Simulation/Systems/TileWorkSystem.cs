@@ -62,7 +62,7 @@ public sealed class TileWorkSystem : ISimulationSystem
 
                 // Anything that made or unmade a room tile, a rival breaking one down, goes
                 // through the chain's own insert and replay.
-                SlabChain.Changed(world, context.Database, order.TileIndex, before, ownerBefore);
+                SlabChain.Changed(world, context.Database, order.TileIndex, before, ownerBefore, context.Rng, context);
                 if (order.Kind == TileWorkKind.AttackTile && result.Outcome == TileWorkOutcome.Destroyed)
                     WallSupportRules.ReleaseUnsupported(world, context.Database,
                         new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width));

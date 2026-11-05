@@ -16,6 +16,7 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**413** - `0x6F8A63F6C77764F1`. Remake regression pin, not native evidence. FormatVersion also 413. A Treasury banks the floor gold on its tiles after every tile rebuild, a freed room's store emptied first, drawing a pile angle per store pile (`0x004E4480`, `0x004F3B60`, `0x004D9670`, ADR-0669). No new saved field. Earlier saves are refused.
 **412** - `0xD5E74937446CFA2C`. Remake regression pin, not native evidence. FormatVersion also 412. A captured Treasury (capture or defeat) empties its store and re-deposits it, with the loose gold on its tiles, for the new owner, drawing a pile angle per store pile (`0x004F3C40`, `0x004F3B60`, ADR-0668). No new saved field. Earlier saves are refused.
 **411** - `0x26761A450278842E`. Remake regression pin, not native evidence. FormatVersion also 411. The need charges skip workers, and the lair, food and pay charges are four times the loader's per-tick rate (`0x00476FC0`, `0x00478D00`, `0x00492320`, ADR-0667). No new saved field. Earlier saves are refused.
 **410** - `0xB1D2461D47BE59F1`. Remake regression pin, not native evidence. FormatVersion also 410. A bedless creature takes `AngerNoLair` only while its keeper's Lair availability is 3 or it owns a Lair (`0x00478D00`, ADR-0666). No new saved field. Earlier saves are refused.

@@ -68,7 +68,7 @@ public static class ReinforcementRules
             if (NavBytes.IsSolid(context.Navigation.NavByte(open.X, open.Y))) return;
             byte before = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             bool changed = TileWorkRules.CompleteWall(context.Database, ref tile, owner);
-            SlabChain.Changed(world, context.Database, wall.Y * world.Width + wall.X, before, ownerBefore);
+            SlabChain.Changed(world, context.Database, wall.Y * world.Width + wall.X, before, ownerBefore, context.Rng, context);
             if (changed) TileWorkSystem.RequestCompletionEffect(context, before, wall, owner);
         }
     }
