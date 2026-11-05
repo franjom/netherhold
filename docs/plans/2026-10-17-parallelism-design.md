@@ -254,6 +254,11 @@ API references checked through Context7: [job dependencies](https://docs.unity3d
 
 ## Addendum 2026-11-05: Level6a measurement answers P0 for that level
 
+**Status (end of 2026-11-05):** the table and reading below are the baseline
+taken before items 1 and 2 of the ranked order landed. Current numbers are in
+those items: tick frames ~30 ms, Present 6.7 ms, AnimatedFrame 1.2 ms, tick
+~13.4 ms. ADR-0454 and ADR-0456 are amended to match (commit 13a036ab).
+
 Source: `tools/game-unity-probe`, Level6a, 90 s, headless Development
 player, run `build/game-unity-probe/20261105-205627` (`frames.csv`,
 `summary.txt`), measured by a parallel session and checked here. The owner
@@ -278,33 +283,68 @@ In the owner's editor the hitch line from commit c4749222 shows
 `DK2.Simulation.WaitForTick` at 10–30 ms on tick frames and up to 83 ms during
 the opening fly-over.
 
-**Reading.**
+**Reading of the baseline.**
 
-- The join blocks, and the cause is placement: `DungeonRunner` starts the tick
+- The join blocked, and the cause is placement: `DungeonRunner` starts the tick
   on a worker at the end of a frame and joins at the start of the next
   `Update`, because that frame reads the live `World` (Present, sounds,
   flowers, minimap). The tick overlaps one render gap of 10–16 ms and a 17 ms
   tick cannot finish inside it. This is P1's cheap variant: let presentation
   read a snapshot so a tick can span the 250 ms turn.
-- The join is not the main cost. Present plus AnimatedFrame on a tick frame
-  (~36 ms) exceed the tick itself, and they are 7–15 times their non-tick
-  cost. With the join at zero, tick frames would still be over budget. That is
-  serial presentation work on tick frames, not a threading problem.
-- The worst frames are not the join. Frames 3567–3624 run 170–400 ms with
+- The join was not the main cost. Present plus AnimatedFrame on a tick frame
+  (~36 ms) exceeded the tick itself, 7–15 times their non-tick cost. With
+  the join at zero, tick frames would still have been over budget. That was
+  serial presentation work on tick frames, not a threading problem (fixed by
+  item 2).
+- The worst frames were not the join. Frames 3567–3624 ran 170–400 ms with
   Present 67–128 ms and AnimatedFrame 112–144 ms, the portal-arrival pattern
   above (cold creature creation and mesh builds on the main thread). Two other
   spikes (frames 856, 2609) carry 13–14 MB of allocation and a gen-0 collection.
-- Allocation is ~15 MB/s. The gates above say to remove it before parallelizing.
+- Allocation was ~15 MB/s, now ~7.7 MB/s after items 1 and 2. The gates above
+  say to remove it before parallelizing.
 
 **Ranked order (the P0 exit for Level6a).**
 
-1. Shorten the tick: `nav.refresh` is two thirds of it. Simulation-side, hash
-   unchanged. In flight on `perf/nav-refresh`. Shrinks the join wait directly
-   and does not touch P1's seam.
+1. Shorten the tick: `nav.refresh` was two thirds of it. Simulation-side, hash
+   unchanged. Shrinks the join wait directly and does not touch P1's seam.
+   **Landed 2026-11-05** as fa73ef5e (merge of d2150742): the refresh compares
+   one packed key per tile (terrain, owner, RoomRuined, SecretDoor) instead of
+   the whole 1 MB `TileState` array, about nine times a tick. Headless .NET,
+   Level6a, 1200 ticks: `nav.refresh` total 321–435 ms → 176–206 ms,
+   allocation 19.5 MB → 3.9 MB. Hash and pins unchanged. Not measured alone
+   under Unity Mono; the item 2 reruns below, which include it, show the
+   tick-frame `DK2.Simulation.Tick` mean at 13.3–13.5 ms against 17.2. A follow-up that adds a process-wide tile-write counter
+   (perf/nav-refresh-epoch, 7288680a) was not merged: simulations share no
+   state.
 2. Cut Present and AnimatedFrame on tick frames to their non-tick cost: find
    why they are 7–15 times costlier when a tick completed, the cold mesh
-   builds and the allocation sources. In flight on `perf/tick-frame-present`,
-   which should stay out of the join placement in `DungeonRunner`.
+   builds and the allocation sources. **Landed 2026-11-05** as 9377b14d (merge
+   of 973c8a9a), inside the boundary: tick start, `WaitForTick` and the World
+   the frame reads are untouched. Changes: an incremental tile pass that
+   re-asks only tiles within 2 of a change (`IncrementalTiles=false` restores
+   the full pass), local torch refresh, reused creature clip meshes, an
+   AssetRef key cache and Mono allocation fixes. Same probe, Level6a, 90 s,
+   runs `20261105-214219` and `-214441`:
+
+   | Metric | Before | After |
+   |---|---:|---:|
+   | Tick-frame main thread, mean (ms) | 65.4 | 29.9 / 30.1 |
+   | Tick-frame main thread, p95 (ms) | 127 | 35 |
+   | Tick-frame Present (ms) | 21.1 | 6.7 |
+   | Tick-frame AnimatedFrame (ms) | 15.1 | 1.2 |
+   | `DK2.Simulation.Tick` on a tick frame (ms) | 17.2 | 13.3 / 13.5 |
+   | p95, all frames (ms) | 53.6 | 26.5 / 26.9 |
+   | p99, all frames (ms) | 80.3 | 31.7 / 32.1 |
+   | Frames over 33 ms | 362 | 35 / 39 |
+   | GC over 90 s | 1.36 GB, 97 gen-0 | 0.69 GB, 47–48 gen-0 |
+
+   Left after this: the simulation tick is now the largest part of a tick
+   frame (~13 ms of ~30), which is item 3's job to hide. The max frame
+   (456–467 ms) is cold sound decode in `UpdateWorldSound` and speech: the
+   first use of a category costs 194–650 ms and 27–67 MB in one frame (frames
+   856 and 2609). That is outside P1's seam and is being fixed as a separate
+   prefetch. The probe gained a `-Markers` option and
+   `tools/game-unity-probe/report-capture.ps1`, a capture self-time report.
 3. Then P1's cheap variant: skip the join and world presentation when the tick
    is not done, after the reader audit in P1. It conflicts with any branch
    restructuring the presenter, so run it after item 2 lands, not beside it.
