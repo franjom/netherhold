@@ -13618,14 +13618,14 @@ and its pin remain unchanged. Animation waits for execution and a render drain;
 native packet-submit timing and pending-entry scheduling remain partial (Q682).
 
 ## ADR-0583 - MPEG audio is decoded by NLayer, in memory, at load time
-**Date:** 2026-10-29 · **Status:** accepted · No hash change · **Systems:** audio
+**Date:** 2026-10-29 · **Status:** accepted · amended 2026-11-05 by ADR-0686: decoding moved off the frame thread · No hash change · **Systems:** audio
 
 **Context.** The installed effects use MPEG Layer I and speech/music use Layer II.
 The owner chose NLayer (MIT); derived game assets must remain in memory.
 
 **Decision.** `DK2.Data.Media.MpegAudioDecoder` wraps NLayer 3.0.0. Unity receives
 its dependency-free netstandard2.0 DLL through `sync-assemblies.ps1`. `SoundBank`
-decodes entries on first use and retains PCM for the session. No decoded cache
+decodes entries on first use, on a worker thread (ADR-0686), and retains PCM for the session. No decoded cache
 is written to disk. SDT reading belongs to the runtime data assembly.
 
 **Consequences.** Callers depend on our PCM type, not NLayer. Install tests prove
@@ -16109,3 +16109,38 @@ whose resolver `0x00494880` sends a missing 22 to 5.
 
 STRONGLY INFERRED from the binary. See [workshop-states.md](research/workshop-states.md) §5 and records
 `00470860`, `00494880`.
+
+## ADR-0686: sound clips decode on worker threads, a level's sounds are decoded at load, and a late effect plays when ready
+
+**Date:** 2026-11-05. **Status:** accepted. No hash change. · **Systems:** audio, presentation-unity
+
+**Context.** `ClassicSoundPlayer` decoded an SDT clip (NLayer, ADR-0583) on the frame thread the first time it
+played: effects in `Play`, speech in `UpdateSpeech`, music and ambience-bed segments in `Fill`. On Level 6a a music
+segment cost 190 to 240 ms and about 14 MB of GC in one frame, a speech line 35 to 40 ms. Nothing is known about how
+DK2 itself loads its samples; this is a remake policy.
+
+**Decision.**
+- `SoundClipDecoder` (DK2.Presentation) decodes on thread-pool workers. `TryGet` answers from decoded clips and
+  otherwise starts a worker decode; a failed decode is silence and one logged warning. `InstallClassicSoundAssets`
+  and `SoundBank` are thread-safe; the frame thread never calls `IClassicSoundAssets.Clip`.
+- `LevelSoundPrefetch.Categories` is decoded at load beside the art prefetch, and `DungeonRunner.StartGame` waits for
+  it (startup step `sound.prefetch`): level speech; the terrain and room categories on the map; the categories of the
+  creatures, objects, doors and traps present at start. Not the Mentor's 1,500 lines (233 MB decoded), and not music
+  or the ambience bed (68 MB for Track_Zero alone).
+- An effect whose clip is not decoded waits and plays when ready. It is dropped when it would come more than 500 ms
+  late, or when its voice is stopped or asked again; while it waits it holds its voice's priority. A speech line holds
+  the `SpeechQueue` while it decodes, and a queued line starts decoding at enqueue, with no LCG draw.
+- Music and the ambience bed choose the next segment when one second of audio is left, as before, and queue it when
+  the worker finishes, so the stream does not gap. Only a level's first segment starts late, by its decode time.
+
+**Consequences.**
+- Level 6a probe, 90 s: the worst frame went from 218.7 ms (frame 0: 242 ms of sound) to 62.1 ms (a 47 ms tick);
+  after frame 0, no sound system exceeds 2.4 ms. Frames over 33 ms fell from 12 to 6, GC over the run from 692.8 to 609.4 MB.
+  `MpegAudioDecoder` decodes into one exact-size array: bit-identical to the old decode on all 2,577 Global HD and
+  speech_level6a clips, with about 3.5 times less GC per decode.
+- Cost: the prefetch decodes 55.1 MB of samples in 557 ms of startup (startup 1,895 to 2,430 ms). An effect not
+  prefetched is heard late by its decode, normally one or two frames.
+- ADR-0583's "decodes entries on first use" now happens on a worker. `SdtArchive.Open` keeps the file's bytes
+  instead of copying them (a 33 MB bank cost 66 MB).
+- A looping sound whose thing goes while it decodes plays until `FollowVoices` next runs. The wait and hold logic
+  is in the Unity adapter and has no unit test; hearing acceptance in Unity stays pending.

@@ -22,6 +22,17 @@ public class ClassicSoundAssetsTests
         Assert.Same(clip, assets.Clip(reference));
     }
 
+    // A level's categories decode on workers while it loads; afterwards a clip is ready without a decode.
+    [InstallFact]
+    public async Task APrefetchedCategoryIsReadyWithoutADecode()
+    {
+        var decoder = new SoundClipDecoder(new InstallClassicSoundAssets(Dk2InstallGate.Path));
+        await decoder.Prefetch(new[] { SoundCategory.FrontEnd }, 2).WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.True(decoder.TryGet(new ResolvedSound(@"Global\FrontEnd", new SoundEntryId(0)), out PcmClip? clip));
+        Assert.Equal(26112, clip!.Samples.Length);
+        Assert.False(decoder.TryTakeFailure(out _));
+    }
+
     // Object 29 Training Target names OBJECT_TRAINING_TARGET, which the install does not ship; its requests
     // resolve to nothing instead of throwing on every request.
     [InstallFact]

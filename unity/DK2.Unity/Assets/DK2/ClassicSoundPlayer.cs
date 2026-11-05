@@ -18,6 +18,9 @@ namespace DK2.Unity
     {
         private readonly GameObject _owner;
         private readonly IClassicSoundAssets _assets;
+        private readonly SoundClipDecoder _decoder;
+        private float[] _floats = Array.Empty<float>();
+        private readonly List<ResolvedSound> _warm = new List<ResolvedSound>();
         private readonly SoundRand _random = new SoundRand(1);
         private readonly Dictionary<SoundCategory, SoundResolver> _resolvers = new Dictionary<SoundCategory, SoundResolver>();
         private readonly Dictionary<PcmClip, AudioClip> _clips = new Dictionary<PcmClip, AudioClip>();
@@ -42,6 +45,9 @@ namespace DK2.Unity
             public PcmAudioQueue Samples;
             public MusicSegmentPicker Picker;
             public SoundResolver Resolver;
+            /// <summary>The segment picked and waiting for its decode, and its gain.</summary>
+            public ResolvedSound? Decoding;
+            public float DecodingGain;
         }
         private LinkedChannel _music, _ambience;
         public int SoundQuality { get; set; }
@@ -81,26 +87,46 @@ namespace DK2.Unity
                 Fill(_ambience, frame.AmbienceIntensity);
             }
         }
+        /// <summary>The next segment is picked when a second of audio is left, as before; its decode (up to 270 ms for a
+        /// minute-long segment) runs on a worker and the segment is queued when it is done, inside that second, so the
+        /// stream does not gap. Only the level's first segment is heard late, by its decode time.</summary>
         private void Fill(LinkedChannel channel, int intensity)
         {
             channel.Picker.SetIntensity(intensity);
+            if (channel.Decoding is ResolvedSound decoding)
+            {
+                if (!_decoder.TryGet(decoding, out PcmClip decoded)) return;
+                channel.Decoding = null;
+                if (decoded != null) channel.Samples.Enqueue(decoded, channel.DecodingGain);
+                return;
+            }
             if (channel.Samples.RemainingFrames > 22050) return;
             SoundItem item = channel.Picker.Pick();
             if (item == null) return;
             ResolvedSound? reference = channel.Resolver.ResolveItem(item, _random);
             if (!reference.HasValue) return;
-            PcmClip clip = _assets.Clip(reference.Value);
-            if (clip != null) channel.Samples.Enqueue(clip, item.Unknown0x08.Length >= 5 ? item.Unknown0x08[4] / 100f : 1);
+            float gain = item.Unknown0x08.Length >= 5 ? item.Unknown0x08[4] / 100f : 1;
+            if (!_decoder.TryGet(reference.Value, out PcmClip clip)) { channel.Decoding = reference; channel.DecodingGain = gain; return; }
+            if (clip != null) channel.Samples.Enqueue(clip, gain);
         }
         private AudioSource _speech;
         private readonly SpeechQueue _speechQueue = new SpeechQueue();
         public bool SpeechEnabled => _speechOn;
+        /// <summary>The line the queue handed out whose clip is still decoding; the queue is not advanced until it plays.</summary>
+        private SoundRequest? _speechDecoding;
+        private ResolvedSound? _speechReference;
         public SoundRequest? CurrentSpeech => _speech.isPlaying ? _speechQueue.Current : null;
         public bool SpeechBusy => _speechQueue.Current.HasValue || _speechQueue.WaitingCount > 0;
         public void QueueSpeech(SoundCategory category, SoundId id, bool clearWaiting = false, bool subtitle = false)
         {
             if (clearWaiting) _speechQueue.ClearWaiting();
-            if (_speechOn) _speechQueue.Enqueue(new SoundRequest(category, id, Subtitle: subtitle));
+            if (_speechOn && _speechQueue.Enqueue(new SoundRequest(category, id, Subtitle: subtitle)))
+            {
+                // The line's clips start decoding now, while it waits its turn (at least a second after the line
+                // before), so a queued line plays on time. The variant is still drawn when it plays.
+                Resolver(category).SamplesOf(id, _warm);
+                for (int i = 0; i < _warm.Count; i++) _decoder.TryGet(_warm[i], out _);
+            }
         }
         public void QueueSpeech(SoundRequests requests)
         {
@@ -109,15 +135,24 @@ namespace DK2.Unity
         }
         public void StopSpeech(long nowMilliseconds)
         {
-            _speech.Stop(); _speechQueue.Stop(nowMilliseconds);
+            _speech.Stop(); _speechQueue.Stop(nowMilliseconds); _speechDecoding = null; _speechReference = null;
         }
         public void UpdateSpeech(long nowMilliseconds)
         {
-            SoundRequest? next = _speechQueue.Update(nowMilliseconds, _speech.isPlaying);
-            if (next.HasValue)
+            // A line whose clip is decoding holds the queue: it is the queue's current line, and its audio is not
+            // playing yet, which the queue would read as the line having ended.
+            SoundRequest? next = _speechDecoding ?? _speechQueue.Update(nowMilliseconds, _speech.isPlaying);
+            _speechDecoding = null;
+            ResolvedSound? reference = null;
+            if (next.HasValue) reference = _speechReference ?? Resolver(next.Value.Category).Resolve(next.Value.Id, _random);
+            _speechReference = null;
+            if (reference.HasValue)
             {
-                AudioClip clip = Resolve(next.Value.Category, next.Value.Id);
-                if (clip != null)
+                if (!TryClip(reference.Value, out AudioClip clip))
+                {
+                    _speechDecoding = next; _speechReference = reference;
+                }
+                else if (clip != null)
                 {
                     _speech.clip = clip; _speech.volume = _speechOn ? _master * _speechVolume : 0;
                     _speech.Play();
@@ -132,6 +167,7 @@ namespace DK2.Unity
         public ClassicSoundPlayer(Transform parent, IClassicSoundAssets assets)
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
+            _decoder = new SoundClipDecoder(assets);
             _owner = new GameObject("Classic sound"); _owner.transform.SetParent(parent, false);
             if (UnityEngine.Object.FindAnyObjectByType<AudioListener>() == null && Camera.main != null)
                 Camera.main.gameObject.AddComponent<AudioListener>();
@@ -170,16 +206,97 @@ namespace DK2.Unity
                 // DK2's stop command on a handle (slot +0x38): the voice's source ends and is free. It is not a sound, so no throttle or priority applies.
                 AudioSource stopped = _voices.Release(request.Voice);
                 _anchors.Remove(request.Voice);
+                DropDecoding(request.Voice);
                 if (stopped != null) stopped.Stop();
                 return;
             }
-            if (!_effectsOn || request.Category.IsNone || !_throttle.Admit(request.Id)) return;
+            if (!_effectsOn || request.Category.IsNone) return;
+            // The same sound already waiting on its voice is that request still on its way, not a new one
+            // (the ambient pass asks each frame until its bed plays).
+            if (request.Voice != SoundVoiceId.None && IsDecoding(request.Voice, request.Id)) return;
+            if (!_throttle.Admit(request.Id)) return;
             SoundResolver resolver = Resolver(request.Category);
             SoundPriority? priority = resolver.PriorityOf(request.Id);
             if (!priority.HasValue || _voices.CanRetain(request.Voice, priority.Value, source => source.isPlaying)) return;
+            // A sound waiting for its decode holds its voice as a playing one would.
+            if (request.Voice != SoundVoiceId.None && DecodingPriority(request.Voice) is SoundPriority waiting && waiting.Value >= priority.Value.Value) return;
             ResolvedSound? reference = resolver.Resolve(request.Id, _random);
-            AudioClip clip = reference.HasValue ? Clip(reference.Value) : null;
-            if (clip == null) return;
+            if (!reference.HasValue) return;
+            if (!TryClip(reference.Value, out AudioClip clip))
+            {
+                DropDecoding(request.Voice);
+                _decoding.Add(new DecodingSound { Request = request, Reference = reference.Value, Priority = priority.Value, Since = NowMs() });
+                return;
+            }
+            if (clip != null) Start(request, clip, resolver, priority.Value);
+        }
+
+        /// <summary>A sound whose clip was not decoded when it was asked for: it plays when the decode is done
+        /// (<see cref="PlayDecoded"/>), unless its voice is stopped or asked again first, or it waited longer
+        /// than <see cref="MaxDecodeWaitMs"/>.</summary>
+        private struct DecodingSound
+        {
+            public SoundRequest Request;
+            public ResolvedSound Reference;
+            public SoundPriority Priority;
+            public uint Since;
+        }
+        private readonly List<DecodingSound> _decoding = new List<DecodingSound>();
+
+        /// <summary>Remake policy: an effect is heard late by its decode, normally one or two frames for an effect clip
+        /// of 2-10 ms; one that would come more than half a second late is dropped rather than heard out of step.</summary>
+        private const uint MaxDecodeWaitMs = 500;
+
+        private bool IsDecoding(SoundVoiceId voice, SoundId id)
+        {
+            for (int i = 0; i < _decoding.Count; i++)
+                if (_decoding[i].Request.Voice == voice && _decoding[i].Request.Id == id) return true;
+            return false;
+        }
+
+        private SoundPriority? DecodingPriority(SoundVoiceId voice)
+        {
+            for (int i = 0; i < _decoding.Count; i++)
+                if (_decoding[i].Request.Voice == voice) return _decoding[i].Priority;
+            return null;
+        }
+
+        private void DropDecoding(SoundVoiceId voice)
+        {
+            if (voice == SoundVoiceId.None) return;
+            for (int i = _decoding.Count - 1; i >= 0; i--)
+                if (_decoding[i].Request.Voice == voice) _decoding.RemoveAt(i);
+        }
+
+        /// <summary>Once a frame, before the frame's own requests: starts the sounds whose clips have finished decoding,
+        /// and logs any clip that failed. A looping sound's thing may have gone meanwhile; <see cref="FollowVoices"/> stops it
+        /// on its next pass. Allocation-free when nothing is waiting and nothing failed.</summary>
+        public void PlayDecoded()
+        {
+            while (_decoder.TryTakeFailure(out string failure)) Debug.LogWarning($"DK2: sound clip could not be decoded - {failure}");
+            if (_decoding.Count == 0) return;
+            uint now = NowMs();
+            for (int i = 0; i < _decoding.Count; i++)
+            {
+                DecodingSound waiting = _decoding[i];
+                bool ready = TryClip(waiting.Reference, out AudioClip clip);
+                bool late = now - waiting.Since > MaxDecodeWaitMs;
+                if (!ready && !late) continue;
+                _decoding.RemoveAt(i--);
+                if (ready && !late && clip != null && _effectsOn)
+                    Start(waiting.Request, clip, Resolver(waiting.Request.Category), waiting.Priority);
+            }
+        }
+
+        /// <summary>Decodes the level's likely clips on workers while it loads (<see cref="LevelSoundPrefetch"/>).</summary>
+        public System.Threading.Tasks.Task Prefetch(IReadOnlyCollection<SoundCategory> categories, int workers) =>
+            _decoder.Prefetch(categories, workers);
+
+        /// <summary>Megabytes of 16-bit samples decoded so far, for the startup log.</summary>
+        public double DecodedMegabytes => _decoder.DecodedSamples * 2 / (1024d * 1024d);
+
+        private void Start(SoundRequest request, AudioClip clip, SoundResolver resolver, SoundPriority priority)
+        {
             AudioSource source = null;
             _voices.TryGet(request.Voice, out _, out source);
             if (source == null) source = _effects.Find(s => !s.isPlaying);
@@ -197,7 +314,7 @@ namespace DK2.Unity
             else _anchors.Remove(request.Voice);
             source.volume = _master * EffectVolume * (request.VolumeAnchor is System.Numerics.Vector3 near ? AnchoredVolume.Of(near, ListenerFocus) : 1f);
             source.Play();
-            _voices.Assign(request.Voice, request.Id, source, priority.Value);
+            _voices.Assign(request.Voice, request.Id, source, priority);
         }
 
         private readonly Dictionary<string, SoundVoiceId> _terrainBeds = new Dictionary<string, SoundVoiceId>();
@@ -225,7 +342,11 @@ namespace DK2.Unity
                     Play(new SoundRequest(new SoundCategory(emitter.Category.ToLowerInvariant()), new SoundId(0x2EA), position, voice));
             }
             foreach (KeyValuePair<string, SoundVoiceId> entry in _terrainBeds)
-                if (!_terrainBedsWanted.Contains(entry.Key) && _voices.Release(entry.Value) is AudioSource ended) ended.Stop();
+                if (!_terrainBedsWanted.Contains(entry.Key))
+                {
+                    DropDecoding(entry.Value);
+                    if (_voices.Release(entry.Value) is AudioSource ended) ended.Stop();
+                }
         }
 
         private readonly Dictionary<SoundVoiceId, System.Numerics.Vector3> _anchors = new Dictionary<SoundVoiceId, System.Numerics.Vector3>();
@@ -268,23 +389,20 @@ namespace DK2.Unity
             }
             return resolver;
         }
-        private AudioClip Resolve(SoundCategory category, SoundId id)
+        /// <summary>The clip for a sample, false while its decode runs on a worker (started here). A decoded sample becomes
+        /// an AudioClip on first use through one reused float buffer: no decode on this thread.</summary>
+        private bool TryClip(ResolvedSound reference, out AudioClip clip)
         {
-            ResolvedSound? reference = Resolver(category).Resolve(id, _random);
-            return reference.HasValue ? Clip(reference.Value) : null;
-        }
-
-        private AudioClip Clip(ResolvedSound reference)
-        {
-            PcmClip pcm = _assets.Clip(reference);
-            if (pcm == null) return null;
-            if (_clips.TryGetValue(pcm, out AudioClip clip)) return clip;
+            clip = null;
+            if (!_decoder.TryGet(reference, out PcmClip pcm)) return false;
+            if (pcm == null) return true;
+            if (_clips.TryGetValue(pcm, out clip)) return true;
             clip = AudioClip.Create(reference.Archive + ":" + reference.Entry.Value,
                 pcm.Samples.Length / pcm.Channels, pcm.Channels, pcm.SampleRate, false);
-            var samples = new float[pcm.Samples.Length];
-            for (int i = 0; i < samples.Length; i++) samples[i] = pcm.Samples[i] / 32768f;
-            clip.SetData(samples, 0); _clips.Add(pcm, clip);
-            return clip;
+            if (_floats.Length < pcm.Samples.Length) _floats = new float[pcm.Samples.Length];
+            for (int i = 0; i < pcm.Samples.Length; i++) _floats[i] = pcm.Samples[i] / 32768f;
+            clip.SetData(new ReadOnlySpan<float>(_floats, 0, pcm.Samples.Length), 0); _clips.Add(pcm, clip);
+            return true;
         }
 
         public void Dispose()

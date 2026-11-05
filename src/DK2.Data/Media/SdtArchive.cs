@@ -51,7 +51,7 @@ public sealed class SdtArchive
     public static SdtArchive Open(string path)
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path is required.", nameof(path));
-        return Read(File.ReadAllBytes(path));
+        return Parse(File.ReadAllBytes(path));
     }
 
     public static SdtArchive Read(Stream stream)
@@ -59,11 +59,16 @@ public sealed class SdtArchive
         if (stream is null) throw new ArgumentNullException(nameof(stream));
         using var copy = new MemoryStream();
         stream.CopyTo(copy);
-        return Read(copy.ToArray());
+        return Parse(copy.ToArray());
     }
 
-    public static SdtArchive Read(ReadOnlySpan<byte> data)
+    public static SdtArchive Read(ReadOnlySpan<byte> data) => Parse(data.ToArray());
+
+    /// <summary>Parses an archive that owns <paramref name="bytes"/>, which is kept, not copied: a bank is read once,
+    /// so a speech bank of 33 MB costs 33 MB and not twice that.</summary>
+    private static SdtArchive Parse(byte[] bytes)
     {
+        ReadOnlySpan<byte> data = bytes;
         if (data.Length < 4) throw Invalid(0, "Missing entry count.");
         uint count = U32(data, 0);
         if (count > int.MaxValue || count > (uint)((data.Length - 4) / 4))
@@ -111,7 +116,7 @@ public sealed class SdtArchive
             previousOffset = offset;
         }
 
-        return new SdtArchive(data.ToArray(), entries);
+        return new SdtArchive(bytes, entries);
     }
 
     public byte[] Extract(SdtEntry entry)
@@ -120,6 +125,13 @@ public sealed class SdtArchive
         SdtEntry owned = Entry(entry);
         ReadOnlySpan<byte> payload = _data.AsSpan(checked((int)owned.DataOffset), checked((int)owned.StoredSize));
         return owned.Codec == SdtCodec.Pcm ? Wave(payload, owned) : payload.ToArray();
+    }
+
+    /// <summary>An entry's stored payload, in place: no copy.</summary>
+    internal ArraySegment<byte> Payload(SdtEntry entry)
+    {
+        SdtEntry owned = Entry(entry ?? throw new ArgumentNullException(nameof(entry)));
+        return new ArraySegment<byte>(_data, checked((int)owned.DataOffset), checked((int)owned.StoredSize));
     }
 
     public string OutputFileName(SdtEntry entry)
