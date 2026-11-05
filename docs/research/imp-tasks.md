@@ -278,7 +278,7 @@ STRONGLY INFERRED.
 
 | Behaviour | DK2 | Here | Question |
 |---|---|---|---|
-| **Wandering** with nothing to do | Runs around, stops, "waits" and runs again (CONFIRMED: owner, 2026-09-24, `imp-idle-and-wandering.md` §1). Interacting with scenery and creatures is the owner's account of play (ADR-0018), not yet seen in a run: HYPOTHESIS | States 10, 12 and 87 run; idle-action duration is guessed | `imp-idle-and-wandering.md` |
+| **Wandering** with nothing to do | Runs around, stops, "waits" and runs again (CONFIRMED: owner, 2026-09-24, `imp-idle-and-wandering.md` §1). Interacting with scenery and creatures was the owner's account of play (ADR-0018); the idle loop read in the binary has no such target (ADR-0018 amendment, STRONGLY INFERRED) | States 10, 12 and 87 run; idle-action duration is guessed | `imp-idle-and-wandering.md` |
 | ~500 ms linger after claiming | Observed | Goes straight to the next job; cooldown or animation is indistinguishable from outside | Q49 |
 | Fetching a Workshop crate for a placed trap or door (kinds 9/10) | Tier A task | Crate delivery runs when a blueprint exists; placing blueprints in play remains open | `workshop-crates.md` |
 | **Fleeing a fight** | Imps flee | Combat flight runs; see `combat-fear.md` for its limits | `combat-fear.md` |
