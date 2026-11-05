@@ -92,8 +92,8 @@ public static class RoomHealthRules
 
     /// <summary>The part of <c>Room_TransferOwnership</c> (<c>0x004E5650</c>) built here: every tile
     /// to the new owner, a portal's clock restarted (<see cref="PortalRules.OnOwnerChanged"/>) and
-    /// both keepers told (<see cref="PostTransfer"/>). Gold stays where it is, a treasury's with the
-    /// treasury (Q40). It never writes the health.</summary>
+    /// both keepers told (<see cref="PostTransfer"/>); a Treasury's gold is re-banked for the new owner
+    /// (<see cref="GoldStore.Recapture"/>, ADR-0668). It never writes the health.</summary>
     private static void TransferOwnership(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId,
         SimulationContext? context)
     {
@@ -114,8 +114,10 @@ public static class RoomHealthRules
             WallSupportRules.ReleaseUnsupported(world, database, new TilePos(index % world.Width, index / world.Width));
         }
 
-        // The type's slot +0x0D kicks every place-holder (room-return-states.md §1, ADR-0406).
+        // The type's slot +0x0D kicks every place-holder (room-return-states.md §1, ADR-0406); a
+        // Treasury's re-banks its gold for the new owner (0x004F3C40, ADR-0668).
         SlabChain.Kick(world, room);
+        GoldStore.Recapture(world, database, room, context?.Rng, context);
         if (RoomIndex.RoomAt(world, database, room.TileIndices[0]) is { } merged)
             RoomLists.Set(world, merged.TileIndices, listPosition);
     }

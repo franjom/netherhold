@@ -15548,3 +15548,28 @@ times `SimulationTiming.LoaderRatePerTick` a second. `NeedsBed` still gates the 
 
 **Consequences.** A keeper's Dwarf or Imp takes no lair, food or pay anger. The lair gate's change is
 unobservable, since the Stone Knight is never a keeper's. Figures that four divides are unchanged.
+
+## ADR-0668: a captured Treasury re-banks its gold for the captor
+
+**Date:** 2026-11-05. **Status:** accepted. Answers Q746; hash/save 412. · **Systems:** rooms, imps-tile-work
+
+**Context.** `Room_TransferOwnership` (`0x004E5650`) re-owns only the room's auto-placed objects (list
+`+0x0E`, `0x004E62D0`); stored objects (`+0x0C`) are not walked there. Then it calls the type's slot
+`+0x0D`. The Treasury's is `0x004F3C40` (record `0x006A1EC8`): `Store_EmptyToFloor` (`0x004F38C0`)
+replaces each store pile with a neutral floor pile on its tile and debits the pile's owner, still the
+old keeper; the tally `+0x49` is zeroed; `0x004F3B60` walks the room's tiles in chain order and puts
+each floor pile on them (object 1) into the room through `Room_DepositGold` (`0x004F3C60`), crediting
+the room's owner, now the captor, and drawing a pile angle for each store pile it creates. The Heart
+has no slot `+0x0D`. Ours kept the gold on the tiles: the same totals, but no deposit, no draws, and
+loose gold on the tiles left loose. OpenKeeper PR #877 assumed the gold moves.
+
+**Decision.** `GoldStore.Recapture` runs after the slot `+0x0D` kick in the capture
+(`RoomHealthRules`) and in the defeat arm `0x004DAA10` that hands rooms to neutral (`DefeatRules`):
+each chain tile's store gold, then its floor piles newest first, deposited from that tile through
+`DepositFrom`. The local defeat arm `0x004DAE40` hands no Treasury over; the unbuilt hand-overs of
+`Heart_OnDestroyed` and trigger dispatch `0x00519860` must call it when built.
+
+**Consequences.** The captor gets the gold and any loose gold on the room's tiles, and the stream
+moves as DK2's does. Deviation: ours deposits along the room as it stands, which a capture can merge
+with the captor's; DK2's captured room keeps its own chain. It shows only on overflow. The same
+`0x004F3B60` is the Treasury's slot `+0x09`, run on every tile change (Q753).

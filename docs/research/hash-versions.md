@@ -16,6 +16,7 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**412** - `0xD5E74937446CFA2C`. Remake regression pin, not native evidence. FormatVersion also 412. A captured Treasury (capture or defeat) empties its store and re-deposits it, with the loose gold on its tiles, for the new owner, drawing a pile angle per store pile (`0x004F3C40`, `0x004F3B60`, ADR-0668). No new saved field. Earlier saves are refused.
 **411** - `0x26761A450278842E`. Remake regression pin, not native evidence. FormatVersion also 411. The need charges skip workers, and the lair, food and pay charges are four times the loader's per-tick rate (`0x00476FC0`, `0x00478D00`, `0x00492320`, ADR-0667). No new saved field. Earlier saves are refused.
 **410** - `0xB1D2461D47BE59F1`. Remake regression pin, not native evidence. FormatVersion also 410. A bedless creature takes `AngerNoLair` only while its keeper's Lair availability is 3 or it owns a Lair (`0x00478D00`, ADR-0666). No new saved field. Earlier saves are refused.
 **409** - `0x514A174D5DAD37F8`. Remake regression pin, not native evidence. FormatVersion also 409. `CreatureState.TrainingCharges`, the Training state object's `+0xB4`: zeroed on entering Training (`0x0047B230`), counted per paid charge; at four the trainee floats four charges and it restarts (`0x0047B3D3`, ADR-0664). Earlier saves are refused.

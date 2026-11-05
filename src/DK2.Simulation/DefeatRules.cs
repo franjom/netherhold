@@ -75,6 +75,7 @@ public static class DefeatRules
                 if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
             }
             SlabChain.Kick(world, room);   // Room_TransferOwnership's slot +0x0D (ADR-0406)
+            GoldStore.Recapture(world, database, room, context.Rng, context);   // a Treasury's (ADR-0668)
             rooms++;
         }
 
