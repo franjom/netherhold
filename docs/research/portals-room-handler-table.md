@@ -76,7 +76,8 @@ the creature's record whether it may do it.
 
 Every one matches `JobType` as this project already had it, **including the two
 that are not sequential** — `Drink` is 9 and `Wait` is 22. That is what turned
-`JobRules.RoomFor` from strongly inferred into confirmed (ADR-0088). The Prison
+`JobRules.RoomFor` from a guess into a reading of the binary (ADR-0088): STRONGLY
+INFERRED on the one scale (ADR-0642), since no run has shown it. The Prison
 row is a ninth entry we did not have, and it is inert: no creature's job tables
 list `Wait`.
 

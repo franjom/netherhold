@@ -159,9 +159,11 @@
 - Generalises `SimulationTiming.WorkApplicationPeriodTicks`; ADR-0011 is unchanged.
 
 ## ADR-0018 — Imps take jobs in a strict, confirmed priority order
-**Date:** 2026-08-29 (M3) · **Status:** accepted · supersedes ADR-0014 · amended 2026-09-05 by ADR-0056 and ADR-0058: the order stands, what it is part of changed
+**Date:** 2026-08-29 (M3) · **Status:** amended · supersedes ADR-0014 · amended 2026-09-05 by ADR-0056 and ADR-0058: the order stands, what it is part of changed; amended 2026-11-05 after a check in the binary
 
-**Context.** ADR-0014 restricted workers to marked excavation because the order an imp prefers its jobs in was UNKNOWN (Q24). The owner supplied the original's order: **marked excavation, then claiming, then reinforcing**, then wandering the dungeon and interacting with scenery and creatures.
+- **Amendment (2026-11-05, read in DKII.EXE; STRONGLY INFERRED unless marked):** this ADR came from the owner's account of play before the binary was read. State 10 (`0x00463DF0`) first retries the imp's last task kind, so after a claim it claims again before digging. Tier A then walks the list at `0x00698658` (14, 8, 9, 1, 3, 13, 12): loose objects and crates come before excavation, and excavation (whole map, straight-line distance) before claiming (whole-map ring scan). **Reinforcing is not a third search:** it is in Tier B (`0x004640B8`), one ring scan that mixes it by distance with gold and objects (ADR-0058). Claiming and reinforcing need a tile touching the keeper's own floor (`0x00453B30`, `0x00453E90`). Mined gold goes into the imp's hands and is deposited after any further digging, from the last-kind path. **Idle** (state 12, `0x00464240`): walk to an own tile 4–7 out or, 1 in 8, a point in an owned room (state 87), or play action 43 or 44 in place, art slots 20 and 31 with no handler. Nothing in that loop targets scenery, objects or creatures, so "interacting with scenery and creatures" has no support in the idle code (other states not scanned). Wandering is built (ADR-0224); the consequence below that says it is not is history.
+
+**Context.** ADR-0014 restricted workers to marked excavation because the order an imp prefers its jobs in was UNKNOWN (Q24). The owner supplied the original's order: **marked excavation, then claiming, then reinforcing**, then wandering the dungeon and interacting with scenery and creatures (see the amendment above).
 **Decision.**
 - `ImpTaskSystem` implements those three in that order as a **strict** priority: the whole reachable map is searched for excavation before a single claimable tile is considered. Three sequential nearest-searches rather than one scored search over a mixed candidate list, because what was described is an ordering, not a weighting.
 - Carrying mined gold is deliberately **not** in the list: an imp mines into its own hands and delivers when full, so carrying is the tail of a mining job (ADR-0019).
@@ -1568,8 +1570,10 @@ masked, so a non-lava creature can no longer route onto a ruin's centre, as DK2'
 - `HashVersion` unchanged and the determinism pin holds: no shipped scenario contains a Skeleton or a Jack, and every other creature's answer is the same under both rules.
 - **Still open in Q210.** Bit 0 (King Reginald, Stone Knight, Jack) makes its carrier immune to whatever the impact routine at `0x004af1e0` applies — that routine damages a creature and **doubles the damage** when the target's tile carries terrain flag `+0x17b & 0x80`. Which attack it is has *not* been established; the routine is installed into a table rather than called. Bit 1 (Stone Knight alone) is a **bounded** negative: no instruction in either executable block tests it, and none reads a wider field at `+0x687`, `+0x688` or `+0x689` that would cover the byte without naming it.
 
-## ADR-0088 — The room → job map is confirmed, and `JobRules` stops being an inference
-**Date:** 2026-09-07 · **Status:** accepted · Q210
+## ADR-0088 — The room → job map is read from the binary, and `JobRules` stops resting on reasoning
+**Date:** 2026-09-07 · **Status:** amended · Q210
+
+- **Amendment (2026-11-05, ADR-0642):** this ADR said "confirmed" for a read of the binary. On the one scale the map is STRONGLY INFERRED: the table was read, no run has shown it. `JobRules` carries `Confidence.StronglyInferred`, and the decision below keeps its original words.
 
 **Context.** DK2's per-room-type handler table (`0x006a1e9f`, 41 bytes a record, ids 1..26 — the table ADR-0086 amendment 1 opened) ends each record with a **job id**. `FUN_004E8DA0` loads it, asks the creature's own definition whether that creature may take the job, and writes it into `creature+0x2bc`.
 
