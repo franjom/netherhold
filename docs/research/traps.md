@@ -159,8 +159,8 @@ to the trap (`0x00471890`). So a creature fired at by a trap walks to it, and on
 creature while not fighting does nothing. combat-fight-state.md §5 had this backwards.
 
 The shot's caster word `+0x145` is not written, so "never the caster" excludes nobody. Its
-immediate hit is `0x004ABD60`'s forced collision (shots.md §4a). Height, aim height and the
-vertical origin are dropped with the rest of the flight's height (Q398).
+immediate hit is `0x004ABD60`'s forced collision (shots.md §4a). DK2 keeps the height, aim
+height and vertical origin (`0x004A7FD0`); ours drops them with the rest of the flight's height (Q398).
 
 ## 8. The threat
 
