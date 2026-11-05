@@ -208,4 +208,4 @@ as the separate [portal buildup](portals-interval.md#mist-appearance-and-duratio
 The owner withdrew the keeper-colour report after
 rechecking DK2 (Q619 closed). The generator has no post-birth RGB override
 ([004386F0](functions/004386F0.md)), and action49 has no tick callback
-([004950C0](functions/004950C0.md)). Sprite lighting is Q609.
+([004950C0](functions/004950C0.md)). Sprite lighting is [object-drawing.md section 10](object-drawing.md#10-flat-sprites).

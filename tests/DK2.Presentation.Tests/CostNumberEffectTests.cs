@@ -57,8 +57,13 @@ public class CostNumberEffectTests
         Assert.Equal(((byte)10, (byte)20, (byte)30), SpriteLighting.Lit(10, 20, 30, [], default));
     }
 
-    [Fact]
-    public void OtherEffectElementsDoNotTakeLight()
+    /// <summary>Q609: art types 1 and 2 take their tile's light (type 1 starting white, 0x00436311), additive
+    /// type 3 keeps its tint alone (0x0059A6A0 flag 0x10 -> 0x0057C420 clears state bit 0x40).</summary>
+    [Theory]
+    [InlineData(1, true, 255)]
+    [InlineData(2, true, 40)]
+    [InlineData(3, false, 40)]
+    public void ElementsTakeLightByArtType(byte artType, bool lit, byte red)
     {
         var wave = new EffectDef([])
         {
@@ -67,14 +72,15 @@ public class CostNumberEffectTests
         };
         var spark = new EffectElementDef([])
         {
-            Name = "spark", EffectElementId = 20, ArtResource = new("spark", 0, new byte[12], 2, 0, 0, 0),
-            MinHp = 20, MaxHp = 20, MinScale = 4096, MaxScale = 4096,
+            Name = "spark", EffectElementId = 20, ArtResource = new("spark", 0, new byte[12], artType, 0, 0, 0),
+            MinHp = 20, MaxHp = 20, MinScale = 4096, MaxScale = 4096, Red = 40, Green = 50, Blue = 60,
         };
         var model = new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(),
             effects: [wave], effectElements: [spark]), 7, () => default, floorHeight: _ => default);
         model.Request(new ViewEffectRequest(new(10), Viewer, new FpPosition3(new(10000), new(12000), new(0))));
         model.AdvanceTo(new(51));
-        Assert.False(Assert.Single(model.Particles).TakesLight);
+        ConstructionParticle particle = Assert.Single(model.Particles);
+        Assert.Equal((lit, red), (particle.TakesLight, particle.Red));
     }
 
     [Fact]

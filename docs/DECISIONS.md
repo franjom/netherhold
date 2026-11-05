@@ -11443,23 +11443,18 @@ effect sprites have a 4096-square descriptor, so the size only changes the other
 hands out a visible tile's table; the Unity effects renderer adds every light of the sprite's
 tile to its colour, clamped at 255 per channel, for billboards and flat squares alike, and sizes
 a billboard by its descriptor, raising a flag-`0x40` sprite by half its height along the camera's
-up axis. That the list is the tile's whole table is INFERRED, that the shift is a lift STRONGLY
-INFERRED (object-drawing.md §10).
+up axis. That the list is the tile's whole table was INFERRED and is read (ADR-0665), that the shift is a
+lift STRONGLY INFERRED (object-drawing.md §10).
 
 **Consequences.** Presentation only. Sprites near torches, the Heart and effect lights are
 brighter than before in every channel their tint leaves below 255 (a channel at 255 is capped); the 15 odd-sized sprites (drips, door and Horny flames, the eye glow) change
 shape, and the six flag-`0x40` sprites stand on their points.
 
-**Amendment (2026-10-21).** The light sum is withdrawn; effect sprites draw at their tint alone.
-The owner reported the Heart's appearance dust turned brown, its cyan plug sparkles (384, 408)
-white and too bright, and the claim mist a pale fog instead of the keeper's colour. A probe A/B
-of the Heart intro tied the dust and sparkles to the added Heart lights (orange, the blue glow,
-the burst's white flash), and without them the dust matched DK2's grey (SHOT0007-0013). DK2's
-draws do add a list (CONFIRMED), but its filler is unread; for effects it is taken as empty
-(HYPOTHESIS). Against it: the list has the tile-table layout, the items are queued on their tile
-(`0x00571AE0`) for a later unread pass, and nothing else is known to fill it, so DK2 may light
-them after all and our light set (or sample point, or cap) differ instead (Q609). The claim
-mist's fix is inferred from the same cause, not probed. Descriptor sizing and the lift stay.
+**Amendment (2026-10-21; which sprites are lit is ADR-0665's).** The light sum was withdrawn after the owner
+reported the Heart's appearance dust turned brown, its cyan plug sparkles (384, 408) white and too bright, and
+the claim mist a pale fog. A probe A/B of the Heart intro tied the dust and sparkles to the added Heart lights.
+ADR-0665 reads the cause: those elements are additive (type 3), which DK2 never lights, while types 1 and 2
+take the tile's table as this ADR summed it. Descriptor sizing and the lift stay.
 
 ## ADR-0494 - Wall flames use a frame-independent playback clock
 **Date:** 2026-10-17 - **Status:** accepted - Research: torch-animation.md
@@ -14042,8 +14037,7 @@ Merge descriptor lights with separate source keys independently of body visibili
 
 **Evidence and verification:** [shot-effects.md sections2/7](research/shot-effects.md#2-a-shots-effects-event-by-event).
 
-**Limits.** Type2 sprites use neutral white while native radial-light input remains
-untraced (Q609). Animated bodies use discrete cached frames; mod-authored start/end
+**Limits.** Type2 sprites keep RGB 0 and take their tile's light (Q609, ADR-0665). Animated bodies use discrete cached frames; mod-authored start/end
 segments are unbuilt. General vertical flight/restored launch pose remain Q398.
 Native visual acceptance is pending.
 
@@ -15442,11 +15436,10 @@ refund at the tile at height `0x1000`, `0x004C5ED0`), wave and immediate alike. 
 amount whose owner is not its viewer, and generation type 14 makes the digits with
 `ConstructionParticle.ScreenOffsetXRaw` (positive to the right: SHOT0010 reads "18750"), which Unity adds
 along the camera's right axis. The digits keep RGB 0,0,0 and take light (`TakesLight`): Unity adds the
-radial term (`SpriteLighting`, `0x0057C080`) of each light in the digit's tile table, as ADR-0493 did
-before its amendment, which still holds for every other effect sprite.
+radial term (`SpriteLighting`, `0x0057C080`) of each light in the digit's tile table, as it does for every lit sprite (ADR-0665).
 
-**Limits.** Which lights DK2 lists for these sprites is unread (Q609); the tile's table is ADR-0493's
-inference, here backed by the owner's observation that the digits follow the lighting. Each digit's own allocator gate
+**Limits.** The tile's table is the list DK2 gives these sprites (Q609, ADR-0665); the owner's observation
+that the digits follow the lighting agrees. Each digit's own allocator gate
 (`0x004352E0`) is not mirrored. The sale's opening test and the other callers are ADR-0664's; the direct
 computer-keeper build is not wired.
 
@@ -15485,3 +15478,33 @@ first. A lifted gold object floats at floor height, not its stored height. The s
 availability. Test worlds give keepers researchable (2) room rows (`Dk2TerrainFixture.Sellable`).
 
 **Consequences.** `TrainingCharges` is hashed and saved: hash/save 409 and a new pin.
+
+## ADR-0665: alpha and type-1 effect sprites take their tile's light; additive ones do not
+
+**Date:** 2026-11-05. **Status:** accepted. Answers Q609; amends ADR-0493's amendment and ADR-0600's
+type-2 approximation. Presentation only. · **Systems:** art-assets, hud-front-end
+
+**Context.** DK2's sprite prepares (`0x0057F7E0` billboard, `0x0057FF30` flat) add the global ambient
+(`0x00760A98`) to the tint and take draw context `+8` as the item's light list only under render-state
+bit 0x40; otherwise the list is the empty `0x00765648`. The state is the material's `+0xC` masked by the
+item flags (`0x0057F090`: item bits 2 and 4 clear 0x40). `Material_Construct` (`0x0057C420`) starts every
+state at 0x1C0/0x5C0, bit 0x40 set, and only descriptor flags 0x10 and 0x40 clear it.
+`RenderEngine_LoadMaterial` (`0x0059A6A0`) gives sprite art type 1 no flag, type 2 (alpha) flag 4 and
+type 3 (additive) flag 0x10. The queued sprite items sit on their tile-cache entry's list `+0x30`, which
+`Renderer_PrepareTilePrimitiveLists` (`0x00572CF0`) prepares with context `+8` = the entry's light
+table `+0xC4`, the table the terrain uses. An element's item flags are its effect's `+0x81`, zero for
+ordinary effects (`0x0043CC30` sets the torch's and the hover cage's edge bits; the fade's bit 1 is harmless). The default ambient is RGB 0 (classic-lighting.md section 8).
+
+**Decision.** `SpriteLighting.IsLit` is true for art types 1 and 2. Effect elements and shot bodies carry
+`TakesLight` by it, and Unity colours them by tint plus the radial light of their tile's table. Type 1
+starts white (`0x00436311`), type 2 keeps its RGB (shot bodies 0, not ADR-0600's neutral white), and
+additive sprites keep their tint alone.
+
+**Limits.** The ambient is not added (0 at the default setting; the ambient keys can raise it). The
+hover cage's edge bits written to an effect's `+0x81` by `0x0043CC30` are not mirrored. An effect's own art
+(footprints, the room-border flame) draws through the same path and is lit natively; ours leaves it unlit,
+its native starting tint unread. Native visual acceptance is pending for sprites other than the digits.
+
+**Consequences.** The additive sprites ADR-0493's amendment found wrong when lit (the Heart's dust 381,
+sparkles 384/408, static 383, the claim mist 142/143) are type 3 and stay unlit; the 99 alpha elements
+and alpha shot bodies now darken and brighten with the tile's lights.

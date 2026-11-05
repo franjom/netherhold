@@ -104,15 +104,17 @@ namespace DK2.Unity
         private float _fraction;
         private readonly List<EffectLightView> _lights = new List<EffectLightView>();
 
-        /// <summary>A sprite's colour: its tint alone. DK2's sprite draws (0x0057F3D0, 0x0057FB80) add
-        /// the radial term of a light list (0x0057C080) whose source context is untraced; adding the tile's whole
-        /// table (ADR-0493) turned the Heart's grey dust brown, its cyan sparkles white and the claim
-        /// mist pale, against the owner's DK2, so the list is taken as empty for effects (amendment).</summary>
+        /// <summary>A sprite's colour: an additive sprite's tint alone; a lit one's (art types 1 and 2) tint plus
+        /// its tile table's radial light at its point (0x0057F3D0, 0x0057FB80; Q609, ADR-0665). The ambient DK2 adds
+        /// is RGB 0 at the default setting (classic-lighting.md section 8) and is not added.</summary>
         private Color32 SpriteColour(ConstructionParticle source, Vector3 position)
         {
             if (!source.TakesLight) return new Color32(source.Red, source.Green, source.Blue, 255);
-            // Without classic lighting there are no tables: a lit-only sprite draws its art plain rather than black.
-            if (TileLights == null) return new Color32(255, 255, 255, 255);
+            // Without classic lighting there are no tables: a lit sprite keeps its tint, and one whose tint is black
+            // (the digits, a cannonball) draws its art plain rather than vanishing.
+            if (TileLights == null)
+                return (source.Red | source.Green | source.Blue) == 0
+                    ? new Color32(255, 255, 255, 255) : new Color32(source.Red, source.Green, source.Blue, 255);
             // A tile drawn without a table this frame has no lights, as DK2's empty list: base colour alone.
             if (!TileLights(new TilePos(source.XRaw >> 12, source.YRaw >> 12), out ClassicLightTable table))
                 return new Color32(source.Red, source.Green, source.Blue, 255);

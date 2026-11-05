@@ -112,12 +112,13 @@ The ten elements per kind (shipped data):
 | element flags | 0 | 0 |
 | RGB / fade percentage | 0,0,0 / 100 | same |
 
-**Colour — STRONGLY INFERRED that the digits show only light; HYPOTHESIS which lights.** The element RGB is 0,0,0, set by [0x00435F20](functions/00435F20.md): art
+**Colour — STRONGLY INFERRED that the digits show only light, from their tile's table.** The element RGB is 0,0,0, set by [0x00435F20](functions/00435F20.md): art
 type 1 is white, runtime art flag 2 takes the owner colour (minimum `0x30`), otherwise the definition's
 RGB (`+0x4A..+0x4C`) goes to element `+0x6E`. [0x00504D80](functions/00504D80.md) sets `+0xB` bit 0 for
 any non-zero art type, so both digit sets pass the RenderInfo gate. `0x0057F3D0` adds a light term to
-that base from a list whose filler is unread (Q609), so all the digits show is light: the owner sees them
-darken in unlit places (2026-11-05). A DK2 Prison sale screenshot
+that base from the tile's light table, which DK2 gives every type 2 (alpha) sprite
+([object-drawing.md section 10](object-drawing.md#10-flat-sprites), Q609, ADR-0665), so all the digits show is
+light: the owner sees them darken in unlit places (2026-11-05). A DK2 Prison sale screenshot
 (`F:/DK2Evidence/captures/visual/cost-numbers-prison-sale-lighting--2026-11-05--001`) shows the digits
 under wall torches bright gold, never white, and those mid-room dimmer but readable. The art itself is gold: the `InGameDigit5` texture averages
 RGB 171,159,92 over its opaque pixels, `gInGameDigit5` (mana) 91,171,133 (decoded 2026-11-05 with
@@ -191,8 +192,8 @@ an `Amount`, and nothing for an amount below 0. Its callers:
 The presentation engine drops an `Amount` request whose owner is not its `viewer`. Generation type 14
 makes one element per digit with `ConstructionParticle.ScreenOffsetXRaw` (section 4), which Unity adds
 along the camera's right axis. The digits keep RGB 0,0,0 and take light (`TakesLight`): Unity adds the
-radial term of each light in the digit's tile table (`SpriteLighting`), as ADR-0493 did before its
-amendment, which other effect sprites keep. Which lights DK2 lists is still unread (Q609).
+radial term of each light in the digit's tile table (`SpriteLighting`), as it does for every lit sprite
+(art types 1 and 2, ADR-0665).
 
 Not mirrored: the per-element allocator gate `0x004352E0`; the computer keeper's direct build; the Temple's
 mana (our prayer credits none); door and trap sales (not modelled); `0x00499F9E` (the Crypt is content DK2

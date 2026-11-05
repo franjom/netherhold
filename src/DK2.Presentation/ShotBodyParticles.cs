@@ -86,15 +86,17 @@ public sealed class ShotBodyParticles
         int frames = Word(art, art.Type == 5 ? 4 : 8);
         int initialPhase = (art.Flags & 0x24) == 0x24
             ? _random.NextInt(Math.Max(1, frames)) * (Fp32.One / Math.Max(1, frames)) : 0;
-        // Sprite types1/3 initialize white natively. Type2's untraced radial-light term is
-        // approximated by neutral white in the existing unlit sprite renderer (shot-effects.md).
-        byte colour = art.Type <= 3 ? (byte)255 : (byte)0;
+        // Sprite types 1/3 initialize white natively and type 2 keeps RGB 0 (shot-effects.md); types 1 and 2 then
+        // take their tile's light (Q609, ADR-0665), so a type-2 body shows only that light. Type 0 (no sprite art,
+        // never drawn by 0x0059B880) keeps the white it had; natively it would stay 0.
+        byte colour = art.Type is 0 or 1 or 3 ? (byte)255 : (byte)0;
         return new ConstructionParticle
         {
             Definition = element, SpriteAsset = AssetRef.ForShot(shot.Name), InitialScale = scale,
             ScaleTarget = scale, Health = 1, InitialHealth = 1, InitialPhase = initialPhase,
             FrameDuration = (art.Flags & 4) != 0 ? Math.Max(1, frames) : 0,
             Red = colour, Green = colour, Blue = colour,
+            TakesLight = SpriteLighting.IsLit(art.Type),
         };
     }
 

@@ -354,16 +354,11 @@ are0x86. The Heart's grey-dust correction therefore did not remove the claim tin
 Element143 remains authored white. `RoomConstructionParticles` gives red keeper3
 element142 RGB230/50/50 before lifetime dimming and renderer lighting.
 
-Commit a21c8734 changed billboard output from that source RGB to source plus
-radial light in `ClassicConstructionEffects.SpriteColour`, capped at255.
-HYPOTHESIS: strong white light bleaches the mist; a0.8 white contribution would
-turn230/50/50 into255/254/254. Lights are added after lifetime dimming as well.
-The native addition is confirmed, but our use of the tile's entire light table
-remains inferred: see [object-drawing.md section10](object-drawing.md#10-flat-sprites).
-No live claim measurement or native table-membership comparison yet proves
-this is the reported regression. Next verification and the open boundary are Q609.
-2026-10-21: the sum was withdrawn (ADR-0493 amendment) after a Heart-intro A/B showed the
-same light turning grey dust brown; the claim mist was not probed.
+Commit a21c8734 changed billboard output from that source RGB to source plus radial light in
+`ClassicConstructionEffects.SpriteColour`, capped at255; a0.8 white contribution turns230/50/50 into
+255/254/254, the bleaching reported. Elements142 and143 are additive (art type 3), which DK2 never lights
+([object-drawing.md section10](object-drawing.md#10-flat-sprites), Q609, ADR-0665), so the sum was wrong for
+them and they draw at their tint. The claim mist was not probed live.
 
 ### 6.2. Portal capture comparison (SHOT0231–0240)
 
