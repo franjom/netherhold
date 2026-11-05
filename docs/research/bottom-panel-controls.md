@@ -208,6 +208,14 @@ This is an explicit ordering approximation. Identity uses the room's minimum
 tile; a split/merge can therefore restart the cycle. Camera targets use the
 existing CentreFieldX/Y and native glide rather than inventing new room centres.
 
+Door and trap secondary presses (Q741) are the Workshop record's
+[0x00416070](functions/00416070.md): [0x00416150](functions/00416150.md) cycles
+the viewer's doors of the slot's kind and [0x004162A0](functions/004162A0.md) its
+traps, each keeping its own last thing. Unlike the room cycle, the walk goes on
+from the last thing whatever its kind. ThingNavigation builds both, blueprints
+included, newest first as DK2's owner lists are (0x004B4C30 links at the head);
+ours orders by descending id. The action 0x72 a press posts is not mirrored.
+
 BottomPanelViewTests cover localized names, live costs, unknown/absent entries,
 selected tool cancellation, native grid coordinates, read-only capture and
 steady-state allocations. Owner comparison at1024x768 and2560x1440, adapter
