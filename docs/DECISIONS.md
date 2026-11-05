@@ -16002,3 +16002,31 @@ DK2's vector stands.
 - Whether a native Imp arrives on the exact centre is UNKNOWN; if it does not, DK2 never meets the case.
 
 Records `004A55F0`, `004B2030`, `004B35C0` hold the reads.
+
+
+## ADR-0683: line of sight passes an open door and a blueprint, as `0x004511A0` does
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 427. · **Systems:** camera-lighting, doors-traps
+
+**Context.** Owner report: on Level6a DK2 shows the Workshop behind the wooden door explored and ours
+leaves it as unexplored rock. The level script un-explores the player's own Workshop after the fly-over,
+and `0x00454E00` has no owner test, so only creature sight brings it back. ADR-0318 made `WorldSight` stop
+at any door thing, open or shut, from a read of the thing chain. `0x004511A0`'s door arm first calls
+`0x004528E0`, which returns 0 unless the tile's navigation byte carries a door owner; only a closed,
+completed door writes one (`0x004A66F0`).
+
+**Decision.** `WorldSight.Blocks` stops sight at a door only while it is closed, completed and not a
+barricade, reading the open state live. `DoorOn`, the reach test's thing-chain question, is unchanged.
+`DiscoveryRules.SetExplored` un-explores a 5x5 rotated room tile by tile: `0x00454E00` takes
+constructions 3 and 4 as a whole room, `0x00454B80` also 8.
+
+**Consequences.**
+- No new saved field. The hash moves with behaviour (427): creature sight, combat targeting, the Boulder,
+  traps and possession all ask `WorldSight`, so an open door no longer hides what is behind it. Earlier
+  saves are refused.
+- The Unity symptom is not reproduced headless: Level6a re-explores the Workshop within about 110 ticks
+  because a creature walks in. That the open-door rule is what the owner saw is a HYPOTHESIS.
+- Per-tick sight stays ours (DK2's is event-driven), so ours still sees at least what DK2 does.
+
+STRONGLY INFERRED from the disassembly. Records `004511A0`, `004528E0`, `00454E00`, `004512F0` hold the
+detail; evidence in [fog-reveal-sources.md](research/fog-reveal-sources.md) §7.

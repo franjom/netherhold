@@ -17,8 +17,10 @@ public static class DiscoveryRules
         if (!world.Contains(position)) return;
         int index = position.Y * world.Width + position.X;
         RoomDef? definition = database.RoomByTerrain(world.Tile(position).TerrainId);
-        if (definition?.Construction is TileConstruction.ThreeByThree
-            or TileConstruction.ThreeByThreeRotated or TileConstruction.FiveByFiveRotated)
+        // The set arm 0x00454B80 takes construction 3, 4 and 8 as a whole room; the clear arm
+        // 0x00454E00 only 3 and 4, so a 5x5 rotated room (the Heart) clears one tile at a time.
+        if (definition?.Construction is TileConstruction.ThreeByThree or TileConstruction.ThreeByThreeRotated
+            || (explored && definition?.Construction is TileConstruction.FiveByFiveRotated))
         {
             RoomInstance? room = RoomIndex.RoomAt(world, database, index);
             if (room is not null)

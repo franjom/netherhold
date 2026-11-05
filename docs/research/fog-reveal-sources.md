@@ -341,16 +341,13 @@ in the table; temporary Sight presentation is separate (`keeper-spell-sight.md`)
 
 ## 6. Campaign start: nothing explores the rock around an owned room (Level6a, 2026-11-05)
 
-Question: our Level6a Torture Chamber (36..38, 14..17) draws no walls on the sides whose outside
-neighbour is Impenetrable Rock that the viewer has not explored; the owner's screenshot of the
-original shows them. Is there a level-start rule we lack?
-
+Question: our Level6a Torture Chamber (36..38, 14..17) draws no walls beside unexplored Impenetrable
+Rock; the owner's screenshot of the original shows them. Is there a level-start rule we lack?
 **No such rule was found. STRONGLY INFERRED, from the binary and the shipped data.**
 
 - **The neighbour seed does not run in the campaign.** `0x0050C800` gates both seed calls on
   `[0x0075AD4B]` being 2 or 3 and on world `+0x7239` bit `0x40` being clear (whole body read).
-  The campaign is mode 1, so neither `0x00451FD0` nor `0x00451EF0` runs. The mode 1 or 4 branch at its top
-  only calls seven small setters (`0x0055D6A0`..`0x0055DA40`).
+  The campaign is mode 1, so neither `0x00451FD0` nor `0x00451EF0` runs.
 - **The writer set is closed.** Callers of `0x00454B80` are ten (§3); `0x00454D40` has one,
   `0x004E8B80`. The only direct stores of the explored bit are the three `OR byte [tile+9], 0x20`
   in `0x00451FD0` (`0x0045202F`, `0x00452059`, `0x004520B0`) and the fog-off `0x00451EF0`. No other
@@ -367,14 +364,10 @@ original shows them. Is there a level-start rule we lack?
   sees none of the 11 rock tiles (35..39,13), (39,14..17), (36,18), (38,18). The torture victim is
   a hero, so it explores nothing. Level6a has no flagged action point near the chamber (flags
   `0x04`/`0x0C`; the bit is `0x10`) and its three action-17 records name points 26 and 27 only.
-- **Sight's presentation predicate is false at start.** `0x00441B00` returns false while its start
-  stamp (`+0x139F`) is zero.
 - **Native campaign captures agree.** At the first playable tick of Level 2, 4 and 5
-  (`F:\DK2Evidence\captures\native\native-dk2runs--unknown-date--001`, tile `+8` bit `0x2000`), the
-  explored tiles that player 3 does not own are only flagged-action-point rectangles (3x3, 5x5)
-  plus a few sight tiles. Those start areas are enclosed by owned Reinforced Wall, so the captures
-  show no counterexample but cannot test the neighbour seed itself. Ticks 2..93 of those captures
-  hold a different, larger explored set (loading phase, not read).
+  (`F:\DK2Evidence\captures\native\native-dk2runs--unknown-date--001`), the explored tiles player 3
+  does not own are only flagged-action-point rectangles plus a few sight tiles. Those starts are
+  enclosed by owned wall, so there is no counterexample, and no test of the neighbour seed.
 
 **Conclusion.** By the closed writer set, the rock gets explored in the original only by sight: a
 creature of the viewer inside or beside the chamber (HYPOTHESIS which one: a torturing Mistress, a
@@ -382,8 +375,29 @@ creature dropped from the hand, an Imp). Ours never sends one there (nearest pla
 away), so the walls stay black. Not verified: when the owner's screenshot was taken, and whether
 a torturer or other creature had entered the chamber by then.
 
-**Build.** No change to `WorldState.FromMap` or `WorldView.WallsOf`; adding the multiplayer
-neighbour seed to the campaign would explore tiles the original does not and change
-`TileState.ExploredBy` (hashed and saved) for every campaign level. The missing piece is the
-creature behaviour that brings sight into a Torture Chamber, which this section did not
-investigate.
+**Build.** No change to `WorldState.FromMap` or `WorldView.WallsOf`: the multiplayer neighbour seed
+would explore tiles the original does not, in every campaign level.
+
+## 7. The Workshop behind the door (Level6a, 2026-11-05)
+
+Question: the owner's DK2 screenshot shows Level6a's Workshop (36..38, 25..28) explored behind the
+wooden door at (35,26); ours drew unexplored rock until a creature went in.
+
+- **It is the player's own.** The map names player 3 on all twelve tiles, so the loader explores
+  them (§3.2). The script then hides them: after the opening fly-over, trigger 14 (condition 72) runs
+  action 17 un-explore on point 26, (30,25)-(49,49), and explores point 27, (38,25)-(45,30), which
+  touches one Workshop column. Normal rooms are not explored whole (the set arm takes constructions
+  3, 4 and 8). The clear arm `0x00454E00` has no owner test, so DK2 hides the player's Training Room
+  and Workshop too, and only creature sight brings them back (closed writer set, §6). STRONGLY INFERRED.
+- **Sight passes an open door.** `0x004511A0`'s door arm calls `0x004528E0`, which tests the
+  navigation byte's door nibble first (`0x004511F3`, `0x0045126A`). A closed, completed door writes
+  that nibble; an open door or a blueprint leaves floor (`0x004A66F0`). Ours stopped sight at any door
+  thing (ADR-0318's reading). Doors open when an eligible creature is beside them, so a creature at the
+  Hatchery's south edge, which touches the Workshop's north door (37,24), or at the Training Room's
+  east edge sees in. STRONGLY INFERRED as a rule; HYPOTHESIS that it is what the owner saw.
+- **The clear arm** takes constructions 3 and 4 only; ours cleared 8 (the Heart) whole.
+- **Not reproduced headless.** Before and after the fix, seeds 1..8 re-explore the Workshop within
+  about 110 ticks, because a creature walks in. The Unity symptom needs a run where none does.
+
+**Build.** `WorldSight` blocks only a closed, completed, non-barricade door; `DiscoveryRules` clears
+a 5x5 rotated room tile by tile (ADR-0683, hash 427).
