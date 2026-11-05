@@ -139,8 +139,9 @@ Level 4 nor the Level 5 log draws, read in the binary (STRONGLY INFERRED where n
 - unbuilt: Creature.cpp 2098, 2105 and 2106 (`Creature_Update`'s flight from the thing at +0x533, needing Q375's
   threat source), 2 and 32 each;
 - partial: PayState 197 (`0x00472390`, state 187's `random(8)` pile offset and its `0x004E4D90` start draw);
-  Room.cpp 3994 (`0x004E8430`, 27 draws, caller not identified: the wander and jail-break callers draw over a
-  different tile count, and state 217's Graveyard point is unbuilt).
+  Room.cpp 3994 (`0x004E8430`, 27 draws): 25 inside the wander's run (StateUtils 325, 367, 3994, 338), whose
+  room branch and the Prison release and escape now draw with DK2's count (ADR-0676, hash 420); the one at
+  turn 1985 is unattributed, and state 217's Graveyard point and the dead body's `+0x134` move are unbuilt.
 
 ## Outcomes at hash 399
 

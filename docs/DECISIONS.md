@@ -15817,3 +15817,30 @@ that precedes it, and before the timed effects (`0x0048957D`).
   draw nothing.
 
 STRONGLY INFERRED from the disassembly. Record `00488930` holds the detail.
+
+## ADR-0676: the wander and the Prison draw their room point as `0x004E8430` does
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 420. · **Systems:** creatures, rooms
+
+**Context.** The Level 3 native draw log has 27 Room.cpp 3994 draws (`Room_RandomPoint`, `0x004E8430`). 25
+fall inside the wander finder's run (`0x00480A00`; StateUtils 325, 367, 3994, 338). `0x004E8430` draws
+among the room's tiles in slab-chain order that are neither floor nor wall slots.
+- The wander's room branch takes that point and only then tests it for an obstacle (`Tile_FirstObstacle`).
+  An obstacle, or no point, moves the search to the next room, so an obstructed room still costs its draw
+  (`0x00480AD9`).
+- Prison release (`0x004E2F51`) and state 121's escape (`0x00473A86`) walk to the point as it is.
+- Ours drew the wander's point among walkable, unobstructed tiles. The Prison's drew a start among all
+  the room's tiles and stepped round to a walkable rim tile. Both counts differ from DK2's.
+
+**Decision.** Both use `RoomWalkRules.RoomPoint`, the existing mirror of `0x004E8430`. The wander tests the
+obstacle after the draw and moves on to the next room. `ImpTaskSystem.RoomPoint` is removed, and
+`RoomDestination` is public for its test.
+
+**Consequences.**
+- The wander's room branch and a Prison break draw as many as DK2 does for the same room.
+- Not mirrored:
+  - state 217's Graveyard point;
+  - the dead body's `+0x134` move on a Prison or Torture floor slot (`0x004B1422`);
+  - the one Level 3 draw at turn 1985, whose caller is unattributed.
+
+STRONGLY INFERRED from the disassembly. Records `00480A00` and `004E2E70` hold the detail.

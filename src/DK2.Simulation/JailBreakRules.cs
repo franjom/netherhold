@@ -145,7 +145,7 @@ public static class JailBreakRules
             int x, y;
             if (door < 0)
             {
-                if (RimTile(context, c, room) is not int rim) continue;
+                if (RimTile(context, room) is not int rim) continue;
                 x = CreatureState.CentreOf(rim % w);
                 y = CreatureState.CentreOf(rim / w);
             }
@@ -187,7 +187,7 @@ public static class JailBreakRules
         int door = DoorTile(world, room);
         if (door < 0)
         {
-            if (RimTile(context, prisoner, room) is int rim) Walk(context, prisoner, CreatureState.CentreOf(rim % w), CreatureState.CentreOf(rim / w));
+            if (RimTile(context, room) is int rim) Walk(context, prisoner, CreatureState.CentreOf(rim % w), CreatureState.CentreOf(rim / w));
             return;
         }
 
@@ -218,22 +218,10 @@ public static class JailBreakRules
         return true;
     }
 
-    /// <summary><c>0x004E8430</c>: a random tile of the room off its floor that the creature can
-    /// stand on, round from a random start.</summary>
-    private static int? RimTile(SimulationContext context, CreatureState creature, RoomInstance room)
-    {
-        IReadOnlyList<int> tiles = room.TileIndices;
-        int start = context.Rng.NextInt(tiles.Count);
-        var grid = new WorldPathGrid(context.Database, context.World, context.Database.CreatureById(creature.CreatureTypeId));
-        int w = context.World.Width;
-        for (int k = 0; k < tiles.Count; k++)
-        {
-            int tile = tiles[(start + k) % tiles.Count];
-            if (!room.IsInterior(tile) && grid.IsWalkable(tile % w, tile / w)) return tile;
-        }
-
-        return null;
-    }
+    /// <summary><c>0x004E8430</c>, as both callers take it (<c>0x00473A86</c>, <c>0x004E2F51</c>): one draw
+    /// among the room's tiles that are neither floor nor wall slots, its centre walked to as is (ADR-0676).</summary>
+    private static int? RimTile(SimulationContext context, RoomInstance room) =>
+        RoomWalkRules.RoomPoint(context.World, context.Database, room, context.Rng);
 
     /// <summary>Whether a prisoner is walking out, so the cell's own states leave it alone.</summary>
     public static bool IsEscaping(CreatureState c) =>

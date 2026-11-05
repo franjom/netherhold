@@ -261,13 +261,50 @@ public sealed class SlabChainTests
         (GameDatabase db, WorldState world, GameSimulation sim) = World();
         RoomInstance room = Drag(db, world, sim, RoomTypeId.Treasury, 4, 3, 6, 3);
         int[] chain = SlabChain.Order(world, room);
-        CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
 
         for (ulong seed = 1; seed <= 20; seed++)
         {
             int pick = new SimRandom(seed).NextInt(chain.Length);
-            Assert.Equal(chain[pick], ImpTaskSystem.RoomPoint(world, db, imp, room, new SimRandom(seed)));
+            Assert.Equal(chain[pick], RoomWalkRules.RoomPoint(world, db, room, new SimRandom(seed)));
         }
+    }
+
+    /// <summary>The wander's room branch draws its point among the room's tiles first and tests the
+    /// obstacle after (<c>0x00480AD9</c>, ADR-0676): a Treasury whose every tile is obstructed still costs
+    /// one draw and gives no point; a clear one gives the chain tile the draw picks.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AWandersRoomPointIsDrawnBeforeItsObstacleTest(bool obstructed)
+    {
+        (GameDatabase db, WorldState world, GameSimulation sim) = World();
+        RoomInstance room = Drag(db, world, sim, RoomTypeId.Treasury, 4, 3, 6, 3);
+        int[] chain = SlabChain.Order(world, room);
+        if (obstructed)
+            foreach (int tile in chain)
+                world.SpawnObject(db, Navigation.WorldSteering.DungeonHeartObstacleObjectId, Keeper, tile);
+        CreatureState walker = world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId, Keeper, new TilePos(8, 8));
+
+        uint before = 0, after = 0;
+        (int X, int Y)? point = null;
+        new GameSimulation(db, world, new SimRandom(new Dk2Lcg(7)), [new Probe(ctx =>
+        {
+            before = ((Dk2Lcg)ctx.Rng.Algorithm).Seed;
+            point = ImpTaskSystem.RoomDestination(ctx, walker);
+            after = ((Dk2Lcg)ctx.Rng.Algorithm).Seed;
+        })]).Tick();
+
+        var expected = new Dk2Lcg(before);
+        int pick = expected.NextInt(chain.Length);
+        Assert.Equal(expected.Seed, after);
+        if (obstructed) Assert.Null(point);
+        else Assert.Equal((chain[pick] % world.Width, chain[pick] / world.Width), point);
+    }
+
+    private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
+    {
+        public string Name => "Probe";
+        public void Execute(SimulationContext context) => act(context);
     }
 
     [Fact]
