@@ -11,7 +11,7 @@ that remaining outcome differences are solely RNG.
 
 ## Scope and evidence
 
-The [saved replay failure analysis](../experiments/2026-10-25-packet-replay-hash303/analysis.md)
+The saved replay failure analysis (`F:\DK2Evidence\studies\packet-replay-hash303--2026-10-25--001\payload\analysis.md`)
 identifies the Level 1 Hatchery timing gate and Level 4 frontier interruptions.
 This audit checks native-versus-modern decisions rather than tuning those rates.
 
@@ -250,7 +250,7 @@ the live pair, controls,19 sealed artifacts and pinned inputs.
    change its policy or relabel it as strict replay.
 3. Room creation/list order is now retained by the combat cache in
    [hash305](room-list.md#persistent-player-list-order-hash305), with a production-history
-   boundary check. The [hash305 campaign comparison](../experiments/2026-10-25-packet-replay-hash305/README.md)
+   boundary check. The hash305 campaign comparison (`F:\DK2Evidence\studies\packet-replay-hash305--2026-10-25--001\payload\README.md`)
    records outcomes separately. Capture acquisition inputs at the earlier interruption:
    scan counter, poses, candidate/attacker order, sight, target, state/resume and
    RNG. The new withdrawal result does not validate that earlier decision.

@@ -7,6 +7,9 @@ repository (Status Matrix, Decisions/Research by System, Open Questions, KB
 Coverage; ADR-0643) and the Simulation Read-Write Matrix (`dk2tools simmatrix`). Those are never committed: run the command to preview them,
 and change their sources, not the wiki.
 
+The hand-written pages are Home, Charter, Glossary, Determinism, Legal-and-Clean-Room,
+Solution-Map, and one page per system in the shape of System-Page-Template.md.
+
 Edit the pages here and change them through a pull request. An edit made on the
 wiki's web page is overwritten by the next sync.
 

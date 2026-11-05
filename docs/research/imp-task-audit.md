@@ -18,7 +18,7 @@ level3-live1,level4-live1}/seed01/levelN.dk2cap`.
 This audit uses historical P2, now preserved under
 `F:/DK2Evidence/rigs/rig--2026-10-24--001/payload/sets/P2/levelN/seed01–20`.
 P2's exact build commit is not established. Its saved rates and the latest
-hash305 measurement are in [the current experiment](../experiments/2026-10-25-packet-replay-hash305/README.md).
+hash305 measurement are in the current experiment (`F:\DK2Evidence\studies\packet-replay-hash305--2026-10-25--001\payload\README.md`).
 The state census below remains historical P2.
 
 Two fresh, serial 1100-turn runs used the existing Release tool on checkout

@@ -393,7 +393,7 @@ Instrumentation, measurement tooling or disassembly, and scheduled accordingly.
 ## 9. Door contact and traps
 
 Q451 (failed disarm) and Q452 (Sentry range; Q454 was answered by the owner)
-have a [shared experiment sheet](../experiments/doors-and-traps.md). Q513 lists three
+have a shared experiment sheet (`F:\DK2Evidence\studies\doors-and-traps-md--unknown-date--001\payload\doors-and-traps.md`). Q513 lists three
 binary predictions of the trap firing (ADR-0321): Level 20's hero Boulder at (12,5) gone at
 the start, a creature walking to the trap that shot it, and lasting fear near a fired trap. Record
 the level and trap/creature types, with video of the action and its control. The sheet also has

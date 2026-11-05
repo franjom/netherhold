@@ -28,7 +28,7 @@ More in the [README](https://github.com/franjom/netherhold#screenshots).
   implemented. It is not reconstructed from memory of play.
 - **Every claim carries a confidence level:** CONFIRMED (seen in the running
   game), STRONGLY INFERRED (read in the binary or the shipped data), HYPOTHESIS
-  or UNKNOWN; function records add DISPUTED.
+  or UNKNOWN; function records add DISPUTED ([[Glossary]]).
 - **The simulation is deterministic.** It runs on integer ticks (4 per second,
   DK2's own rate), uses fixed-point maths and a seeded random source, and takes
   every balance number from the original game database.
@@ -37,16 +37,18 @@ More in the [README](https://github.com/franjom/netherhold#screenshots).
 
 ## Start here
 
-| If you want to… | Go to |
-|---|---|
-| Build and run the tests | [Build and test (README)](https://github.com/franjom/netherhold#build-and-test) |
-| Run it with your own DK2 installation | [Use an original DK2 installation](https://github.com/franjom/netherhold#use-an-original-dk2-installation) |
-| Understand how the code is organised | [[Solution Map\|Solution-Map]] |
-| See the layering rules and simulation rules | [ARCHITECTURE.md](https://github.com/franjom/netherhold/blob/master/docs/ARCHITECTURE.md) |
-| Know what works today and what's next | [HANDOFF.md](https://github.com/franjom/netherhold/blob/master/docs/HANDOFF.md) |
-| Read why things are the way they are | [DECISIONS.md](https://github.com/franjom/netherhold/blob/master/docs/DECISIONS.md) (ADRs) |
-| Browse the reverse-engineering research | [`docs/research/`](https://github.com/franjom/netherhold/tree/master/docs/research) and [RESEARCH_STATUS.md](https://github.com/franjom/netherhold/blob/master/docs/RESEARCH_STATUS.md) |
-| Contribute | [AGENTS.md](https://github.com/franjom/netherhold/blob/master/AGENTS.md) (research rules, evidence handling, documentation budgets) |
+| You are… | Start with | Then |
+|---|---|---|
+| **Curious about the project** | [[Charter]]: what it is for, and what "faithful" means | [[Status Matrix\|Status-Matrix]] for how far each system has got, or a system page such as [[Imps and Tile Work\|Imps-and-Tile-Work]] |
+| **A C# contributor** | [[Solution Map\|Solution-Map]] and [[Determinism]] | [Build and test](https://github.com/franjom/netherhold#build-and-test), then the [contributor rules](https://github.com/franjom/netherhold/blob/master/AGENTS.md) |
+| **A reverse engineer** | [[Legal and Clean Room\|Legal-and-Clean-Room]]: what may and may not cross from the binary | [[KB Coverage\|KB-Coverage]] and [[Open Questions\|Open-Questions]], and the [method](https://github.com/franjom/netherhold/blob/master/reverse-engineering/README.md) |
+| **A Unity developer** | [Unity presentation](https://github.com/franjom/netherhold/blob/master/unity/README.md): the adapter, which holds no game rules | [Run the Unity presentation](https://github.com/franjom/netherhold#run-the-unity-presentation) and the [architecture](https://github.com/franjom/netherhold/blob/master/docs/ARCHITECTURE.md) |
+| **A maintainer** | [Current state (HANDOFF)](https://github.com/franjom/netherhold/blob/master/docs/HANDOFF.md) | [[Decisions by System\|Decisions-by-System]], [[Simulation Read-Write Matrix\|Simulation-Read-Write-Matrix]] and the [plan](https://github.com/franjom/netherhold/blob/master/DK2_REIMPLEMENTATION_PLAN.md) |
+
+Words you may not know are in the [[Glossary]]. Each system has a page in the
+same shape (see the [[System Page Template\|System-Page-Template]]):
+[[Imps and Tile Work\|Imps-and-Tile-Work]], [[Navigation]] and
+[[Doors and Traps\|Doors-and-Traps]] so far.
 
 ## Requirements at a glance
 

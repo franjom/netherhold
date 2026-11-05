@@ -343,7 +343,7 @@ read and none writes (§7).
 `navigation-captures.md` is the log of those captures. In short: replaying
 Level 7's 21,298 requests on DK2's own dumped navigation bytes, **21,288 agree**
 (99.95 %); on a Level 10 played by a keeper, **every request but three of
-86,140** is explained by one of six mover profiles, corridor lengths are exact
+86,140** is explained by one of nine mover profiles (three owners, each respecting doors with or without lava, or attacking), corridor lengths are exact
 in 87 %, and at tick 7 DK2's point set is **exactly ours**, 1,417 for 1,417, with
 2,612 of its 2,765 triangles identical. **One** request of 20,926 produces a
 waypoint count no mover profile reproduces. What is left is the corridor: ours
