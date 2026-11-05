@@ -32,8 +32,8 @@ internal partial class Program
             ["docs"] = DocsCommand.Run,
             ["wiki"] = WikiCommand.Run,
             ["simmatrix"] = SimMatrixCommand.Run,
-            ["coverage"] = args => args.Length == 2 && args[1] == "states"
-                ? StateCoverageReport.Print(Console.Out)
+            ["coverage"] = args => args.Length == 2 && args[1] == "states" ? StateCoverageReport.Print(Console.Out)
+                : args.Length == 2 && args[1] == "actions" ? ActionCoverageReport.Print(Console.Out)
                 : CoverageCommand.Run(args),
             ["convert"] = AssetCommands.RunConvert,
             ["wad"] = args => args.Length >= 3 && args[1] == "list" ? AssetCommands.RunWadList(args)
@@ -80,6 +80,8 @@ internal partial class Program
         Console.WriteLine("  coverage states                        the 281 creature states: built, unreachable or");
 
         Console.WriteLine("                                         unbuilt, per category, and the unbuilt list");
+        Console.WriteLine("  coverage actions                       the 81 creature actions: built, unbuilt or never");
+        Console.WriteLine("                                         begun, with the starters of the unbuilt");
 
         Console.WriteLine("  docs [--since <ref>] [--all]           check AGENTS.md's recording budgets on what");
 

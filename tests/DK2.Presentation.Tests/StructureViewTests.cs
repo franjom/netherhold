@@ -174,6 +174,29 @@ public sealed class StructureViewTests
     }
 
     [Fact]
+    public void ABuiltDoorCarriesTheRenderInfoTintOfHalfAChannelAndNothingElseDoes()
+    {
+        // 0x004A6B70: construction zero stores 0x80 at thing +0x8C..+0x8E (RenderInfo +0x48..+0x4A);
+        // a blueprint stores 0xFF under the flat plan material, a trap 0 (0x004A9F10).
+        var (database, world) = Fixture();
+        var view = new WorldView(database, 2);
+        DoorState door = world.Doors[0];
+        var id = new StructureId(StructureKind.Door, door.Id);
+        StructureView Door() => view.Structures(world).Single(value => value.Id == id);
+
+        door.UnderConstruction = false;
+        door.Open = false;
+        Assert.Equal(WorldView.BuiltDoorTint, Door().InstanceTint);
+        Assert.Equal(0x80, Door().InstanceTint);
+        door.Open = true;
+        Assert.Equal(WorldView.BuiltDoorTint, Door().InstanceTint);
+        door.UnderConstruction = true;
+        Assert.Equal(0, Door().InstanceTint);
+        Assert.All(view.Structures(world).Where(value => value.Id.Kind == StructureKind.Trap),
+            value => Assert.Equal(0, value.InstanceTint));
+    }
+
+    [Fact]
     public void LockAttachmentFollowsSettledStateAndBothSupportOrientations()
     {
         var (database, world) = Fixture();

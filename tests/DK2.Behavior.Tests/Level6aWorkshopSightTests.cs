@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Systems;
 using DK2.TestSupport;
@@ -44,6 +45,26 @@ public class Level6aWorkshopSightTests
 
         Assert.False(world.DoorAt(37, 24)!.Open);
         for (int y = 25; y <= 28; y++) Assert.False(world.Tile(37, y).IsExploredBy(Keeper), $"(37,{y})");
+    }
+
+    /// <summary>Sight marks the blocking tile itself (0x0044E7F0 tests the slots before the cell closes
+    /// them), so a Training Room creature explores the closed door's own tile, and the door is drawn:
+    /// fog gates structures on the explored bit and the built door carries tint 0x80 (0x004A6B70), so
+    /// it stays visible where no point light reaches it.</summary>
+    [InstallFact]
+    public void ACreatureInTheTrainingRoomExploresTheClosedDoorTileAndTheDoorIsDrawnLit()
+    {
+        (GameSimulation simulation, WorldState world) = Level6aAfterTheFlyOver(lockHatcheryDoor: false);
+        world.Tile(35, 26).ClearExploredBy(Keeper);
+        world.SpawnCreature(simulation.Database, 1, Keeper, new TilePos(33, 26));
+
+        simulation.Tick();
+
+        Assert.False(world.DoorAt(35, 26)!.Open);
+        Assert.True(world.Tile(35, 26).IsExploredBy(Keeper));
+        var view = new WorldView(simulation.Database, new PlayerId(Keeper));
+        StructureView door = view.Structures(world).Single(s => s.Tile == new TilePos(35, 26));
+        Assert.Equal(WorldView.BuiltDoorTint, door.InstanceTint);
     }
 
     /// <summary>The set arm 0x00454B80 explores a 5x5 rotated room (the Heart) whole; the clear arm

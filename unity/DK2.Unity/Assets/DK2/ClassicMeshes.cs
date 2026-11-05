@@ -476,6 +476,19 @@ namespace DK2.Unity
             return tinted;
         }
 
+        /// <summary>A model's materials under a uniform RenderInfo tint (a built door's 0x80,
+        /// <see cref="WorldView.BuiltDoorTint"/>): <see cref="ElementTinted"/> on each, leaving the
+        /// environment pass, which is lit through its own colour, as it is.</summary>
+        public Material[] InstanceTinted(Material[] source, byte tint)
+        {
+            if (tint == 0) return source;
+            var tinted = new Material[source.Length];
+            for (int i = 0; i < source.Length; i++)
+                tinted[i] = _environmentMaterials.Contains(source[i]) ? source[i]
+                    : ElementTinted(source[i], new Color32(tint, tint, tint, 255));
+            return tinted;
+        }
+
         public Material TerrainTinted(Material material, DK2.Data.Model.TerrainLightColour tint)
         {
             tint = ClassicTerrainTint.PieceColour(tint);

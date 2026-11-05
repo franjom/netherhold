@@ -118,3 +118,31 @@ materials for the shared `AA_BlueTexture` or `AA_RedTexture` array (`ClassicMesh
 the dig tag's own overlay materials) and, on a blink, swaps the array in place rather than
 rebuilding the model. Not modelled: the kind-1 branch, and the second override `0x004A6B70`
 gives the linked thing at door `+0x103`.
+
+## 6. A built door's base light (Level6a, 2026-11-05)
+
+Level6a's wooden door at (35,26) drew almost black in ours and well lit in DK2. STRONGLY INFERRED
+from DKII.EXE.
+
+- **The tint.** `0x004A6B70` with construction zero stores 0x80 at thing `+0x8C..+0x8E`, which is
+  RenderInfo `+0x48..+0x4A` (RenderInfo is thing `+0x44`; the disassembly sets `EDI = ESI + 0x44`). A
+  blueprint stores 0xFF; the trap twin `0x004A9F10` stores 0xFF for a plan and 0 otherwise.
+- **Where it goes.** The door's art is an animated clip, drawn by `0x0059C880`, which passes the
+  RenderInfo tint, each byte divided by 255, to `0x00583120`; that stores it x255 at draw `+0x40..+0x48`.
+  `0x00584900` adds the global ambient to those words (flag `+0x4C` bit 2 clear) and then the flag-4
+  radial light (`0x0057C080`). `0x005836A0` starts every vertex at material brightness plus those words
+  and adds the sampled instance lights after. So a built door has half a channel of base light, 128 of
+  255, whatever point lights reach it.
+- **Why ours was black.** Ours lit the door by point lights and the Unity fill only. At Level6a's door
+  the nearest lights are terrain lights 1.0 tile away at height 1.5 with radius 1.125, which the
+  sampled test at the door's origin does not reach, and a closed door's own tile has no terrain light
+  (`0x00452DC0` skips a door tile).
+- **Built.** `StructureView.InstanceTint` is `WorldView.BuiltDoorTint` for a built door, open or closed;
+  `DungeonScene.CreateStructure` adds it as emission through `ClassicMeshes.InstanceTinted`. Not
+  verified against a DK2 frame: the size of the effect, and whether the door's neighbouring floor
+  differs.
+- **Sight is not the cause.** A creature two tiles from the closed door explores the door's own tile
+  (`0x0044E7F0` tests the slots before the cell closes them), as the Level6a test shows.
+- **Open divergence.** The torch and terrain-light door tests (`0x00452D80`, `0x00452DC0`) call
+  `0x005092F0` with the third argument 0, the navigation-nibble test, so an open door or a blueprint
+  does not exclude its tile, and ours (`WorldState.DoorAt`) excludes any door.

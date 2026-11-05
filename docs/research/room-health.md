@@ -133,7 +133,7 @@ health (§2), and a treasury tile's gold falls to the floor (`gold-on-the-floor.
 ## 5. Who starts action 11
 
 Three state handlers, and nothing else: all 109 calls of the four action starters are in
-`.text`, none in `cseg`, and 105 push a literal (`creature-action-table.md` §4).
+`.text`, none in `cseg`, and 102 push a literal (`creature-action-table.md` §4).
 
 - **State 267 (destroying rooms), from the creature update.** `Creature_Update`
   (`0x00488930`) at `0x00488F61`–`0x0048902E`: on entering a new tile, a creature of the Good
@@ -158,7 +158,7 @@ Three state handlers, and nothing else: all 109 calls of the four action starter
 `0x00498120`: on the tile's room, when `Room_NeedsRepair` (`0x004E6C00`) holds, that is the room
 is the creature's keeper's and its health is below `MaxHealth × Size`, it adds `RepairRoomHealth`
 (20000 / 4 = 5000) × rate through the applier, which clamps at the cap. **Nothing starts it**: no
-literal 12 among the 105 pushes, and the four computed indices are 0x41–0x46 (Casino, Combat
+literal 12 among the 102 pushes, and the four computed indices are 0x41–0x46 (Casino, Combat
 Pit) and the two tables at `0x00699F30`/`0x00699EB8`, whose actions are 0x47–0x4E.
 `RepairRoomHealth` has one reader, this handler (`0x004981A4`); action 1 (`0x00496E00`) reads
 only variables 8, 9 and 10. With `HealthGain` 0 everywhere, **a damaged room is never repaired**:
