@@ -165,11 +165,36 @@ public static class ObjectCarryRules
         thing.CarriedByCreatureId = -1;
     }
 
-    /// <summary>Moves a carried object to wherever its carrier is standing. An object has a tile and
-    /// not a position, so this is coarser than <see cref="CarryRules.FollowCarrier"/> — which is
-    /// right: nothing asks where within a tile a book is.</summary>
-    public static void FollowCarrier(WorldState world, CreatureState worker, ObjectState thing) =>
+    /// <summary>The imp jobs' take-hold (<c>Creature_TakeHoldOfThing</c>, <c>0x0048B4A0</c>): a book,
+    /// crate or Special in the arms, attached to the carrier at once. <see cref="PickUp"/> is the
+    /// Portal Gem's route (<c>0x0048B350</c>), which never attaches.</summary>
+    public static void TakeHold(CreatureState worker, ObjectState thing)
+    {
+        PickUp(worker, thing);
+        Attach(worker, thing);
+    }
+
+    /// <summary>Attaches a carried object to its carrier, as <c>Creature_UpdateCarriedThing</c>
+    /// (<c>0x0048B5F0</c>) does on every update of a creature holding one: the thing's position
+    /// (<c>+0x1A/+0x1E</c>) becomes the carrier's own and its heading (<c>+0xF4</c>) the carrier's
+    /// turned back a quarter (<c>0x0048B63F</c>). The height is the carrier's; the view draws it there.</summary>
+    public static void Attach(CreatureState worker, ObjectState thing)
+    {
+        thing.PosX = worker.PosX;
+        thing.PosY = worker.PosY;
+        thing.Heading = (worker.Heading - CarriedHeadingTurn) & 0x7FF;
+    }
+
+    /// <summary>The quarter turn between a carrier's heading and its carried thing's (<c>0x0048B646</c>).</summary>
+    public const int CarriedHeadingTurn = 0x400;
+
+    /// <summary>Attaches a carried object and moves it onto its carrier's tile, which the position
+    /// setter (<c>0x004B5020</c>) does when the position crosses one.</summary>
+    public static void FollowCarrier(WorldState world, CreatureState worker, ObjectState thing)
+    {
+        Attach(worker, thing);
         thing.TileIndex = (worker.Tile.Y * world.Width) + worker.Tile.X;
+    }
 
     /// <summary>Makes <paramref name="worker"/> let go of whatever it was carrying, wherever it is
     /// standing, and says whether it was holding anything. Called wherever a worker stops being a

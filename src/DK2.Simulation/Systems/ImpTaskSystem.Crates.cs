@@ -243,7 +243,7 @@ public sealed partial class ImpTaskSystem
             if (RoomIndex.RoomAt(world, database, here) is { } room && CrateRules.IsListedIn(world, database, room, crate))
                 CrateRules.Unlist(world, database, room, crate);
             creature.TargetObjectId = -1;
-            ObjectCarryRules.PickUp(creature, crate);
+            ObjectCarryRules.TakeHold(creature, crate);
             BeginTaskWalk(context, creature, InstallStateOf(kind));
             context.Emit(SystemName, "crate_picked_up",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} crate={crate.Id} " +
@@ -339,7 +339,7 @@ public sealed partial class ImpTaskSystem
         int destination = CrateHome(context, creature);
         if (destination >= 0 && destination != here && RouteTo(context, creature, grid, destination))
         {
-            ObjectCarryRules.PickUp(creature, crate);
+            ObjectCarryRules.TakeHold(creature, crate);
             creature.TargetTileIndex = destination;
             int carrying = creature.UtilityNewState;
             StateShadow.Arrive(context, SystemName, creature);

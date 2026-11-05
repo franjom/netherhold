@@ -201,7 +201,7 @@ public sealed partial class ImpTaskSystem
             ImpStates.CarryingStateFor(context.Database.ObjectById(thing.ObjectTypeId)!.Flags));
 
         creature.TargetObjectId = -1;
-        ObjectCarryRules.PickUp(creature, thing);
+        ObjectCarryRules.TakeHold(creature, thing);
         creature.TargetTileIndex = destination;
 
         context.Emit(SystemName, "object_picked_up",

@@ -297,6 +297,19 @@ if another creature holds it, walks the imp to the crate through the imp wrapper
 - Either way the task is released and the imp sets 10.
 - A carried id of zero returns 0, which is idle.
 
+**The carried thing is attached to the imp (STRONGLY INFERRED, 2026-11-05).** An imp that holds a
+crate, book, Special or body has its dragging word `+0x3C5` set (`0x0048B4A0`), and every update of that
+creature ends with `0x0048B5F0` (called at `0x0048A4AE`, after the steering step):
+- the thing's position `+0x1A/+0x1E/+0x22` becomes the imp's own through the position setter
+  (`0x004B5560`, `0x004B5020`), so it is the imp's exact point and height, floor-clamped, in the same
+  update the imp moved, never a tile centre or a turn behind;
+- first, when the thing's vtable `+0x38` passes, its previous position `+0xF6..` is saved and its heading `+0xF4` set to
+  the imp's minus `0x400`. That slot is the constant-true stub `0x00628BC0` in the object, creature and
+  body vtables (`0x0066D68C`, `0x0066D55C`, `0x0066D93C`), so it always passes.
+
+The Portal Gem is held through `0x0048B350` (`+0x3C3`) and is never attached or drawn
+(`functions/0048B350.md`). Gold is not a thing in the imp's arms: it is the imp's `GoldHeld`, drawn on the imp.
+
 **32**, a crate carried home (`0x00466DF0`):
 - The crate is put down.
 - On a tile of a room the imp's keeper owns that passes the capacity test, `0x004F57F0` lists
@@ -326,6 +339,7 @@ if another creature holds it, walks the imp to the crate through the imp wrapper
 - Rooms are taken in `RoomIndex` order. Distances are to a room's first tile.
 - Tiles are walked in chain order (ADR-0243).
 - The task hold is read from the other imps' states.
+- A held crate, book or Special takes the imp's position and heading minus `0x400` each update (ADR-0680): `ObjectCarryRules.TakeHold` and `FollowCarrier` write the thing's `PosX`/`PosY`/`Heading` after the mover, and the view draws it at that point at the carrier's ground height, interpolated from the last tick's capture. A dragged body takes the same heading (`CarryRules.FollowCarrier`).
 - 68's celebration takes no time: action 35 is not played, though its `random(2)` draw is (ADR-0671).
 - The eviction takes the working creature with the lowest id.
 

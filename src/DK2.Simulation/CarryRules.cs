@@ -141,5 +141,8 @@ public static class CarryRules
     {
         body.PosX = worker.PosX;
         body.PosY = worker.PosY;
+        // Creature_UpdateCarriedThing (0x0048B5F0) turns what it holds a quarter back from the carrier;
+        // a creature's vtable +0x38 test passes as an object's does.
+        body.Heading = (worker.Heading - ObjectCarryRules.CarriedHeadingTurn) & 0x7FF;
     }
 }

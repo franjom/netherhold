@@ -66,7 +66,7 @@ public sealed partial class WorldView
         _objectPositionsTick = world.CurrentTick;
         _objectPositions.Clear();
         foreach (ObjectState thing in world.Objects)
-            if (!thing.InHand && thing.CarriedByCreatureId < 0)
+            if (!thing.InHand && (thing.CarriedByCreatureId < 0 || IsAttached(thing)))
             {
                 ObjectView pose = Placed(world, thing, new TilePos(thing.TileIndex % world.Width, thing.TileIndex / world.Width));
                 _objectPositions[thing.Id] = (thing, pose.PosX, pose.PosY, pose.Heading, pose.Height, pose.Pitch, pose.Roll);
@@ -187,6 +187,11 @@ public sealed partial class WorldView
         return world.CurrentTick.Value - creature.StateEnteredTick <= hold;
     }
 
+    /// <summary>Held in a creature's arms by a take-hold (<c>0x0048B4A0</c>): follows its carrier's point.
+    /// The Portal Gem, held through <c>0x0048B350</c>, is not drawn at all.</summary>
+    private static bool IsAttached(ObjectState thing) =>
+        thing.CarriedByCreatureId >= 0 && !LevelGemIdle.IsInCarrierArms(thing);
+
     /// <summary>An object of the simulation, placed.</summary>
     private ObjectView Placed(WorldState world, ObjectState thing, TilePos at)
     {
@@ -282,6 +287,14 @@ public sealed partial class WorldView
                         heading = thing.Heading;
                     break;
             }
+        }
+
+        // A book, crate or Special in an imp's arms is at the imp's own point, turned a quarter from it
+        // (Creature_UpdateCarriedThing 0x0048B5F0, once a creature update), not on its tile's centre.
+        if (IsAttached(thing))
+        {
+            (posX, posY, heading) = (thing.PosX, thing.PosY, thing.Heading);
+            z = CreatureGroundHeight(world, new(new(posX), new(posY), default)).Raw;
         }
 
         // A loose level gem bobs and spins in its state-50 process (0x004A3C30).
