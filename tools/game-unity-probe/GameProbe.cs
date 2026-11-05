@@ -110,6 +110,8 @@ namespace DK2.Unity
             };
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
+            // Silent: the owner works beside it and heard a probe's mentor speech.
+            AudioListener.volume = 0f;
             _output = Arg("-probeOutput", Application.persistentDataPath);
             Directory.CreateDirectory(_output);
             _duration = Seconds("-probeSeconds", 150);
