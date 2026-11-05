@@ -102,11 +102,12 @@ stands on the target's tile.
 ## 4. Sight
 
 Line walker `0x004512F0(a, b, f1, f2)` asks `0x004511A0(x, y, f1, f2)` per tile; every scan
-passes `f2 = 1`. A navigation byte with bit 3 (Solid) blocks. With `f1 = 0` a door thing on
-the tile blocks unless it is a barricade (`def+0x8B` bit 6); the test reads the thing chain,
-not the open word or the construction word, so an open door and a blueprint stop sight too.
-With `f1 = 1` and `f2 = 1` no door blocks, only Solid. Ours read the door from the
-navigation byte, so an open door was transparent, until ADR-0318.
+passes `f2 = 1`. A navigation byte with bit 3 (Solid) blocks. With `f1 = 0` a door blocks only
+while the tile's navigation byte carries a door owner (`0x004528E0` tests that nibble first), which
+a closed, completed door writes (so does a revealed secret door while open, `0x004A6625`, unbuilt); then a door
+thing blocks unless it is a barricade (`def+0x8B` bit 6).
+An open door and a blueprint leave floor, so they let sight through (corrected 2026-11-05, ADR-0683;
+ADR-0318 had them block). With `f1 = 1` and `f2 = 1` no door blocks, only Solid.
 
 ## 5. The swing and other damage
 
@@ -135,7 +136,7 @@ Update `0x004A55F0`, in its order:
 2. Construction presentation; the lock-pick countdown (doors-and-traps.md).
 3. **Owner.** When the tile word `+8 & 0xFFF` (Q247) is not the door's owner: an unbuilt door
    leaves its keeper's blueprint list (`0x005056E0`), and health is set to 0.
-4. A closed built door pushes creatures off its tile (`0x004B1F20`); not built.
+4. A closed built door pushes creatures off its tile, a barricade included: [door-push.md](door-push.md) (ADR-0679).
 5. A barricade returns here: alive it only updates sounds; dead it plays `def+0xAE`.
 6. **Support.** Orientation `+0x119` 0 tests `(x, y−1)` and `(x, y+1)`, otherwise `(x−1, y)` and
    `(x+1, y)`, through world slot `+0x208` (`0x00509200`, Solid bit). Unless both are Solid,
@@ -179,7 +180,7 @@ Built: §1 except the bits 17/18 clear (nothing here sets them) and `+0x16` (unn
 timing. A door's id is stable and blueprints hold ids, so a removal leaves every other
 reference intact.
 
-Left: the push-out (§6.4), the secret-door reveal (§6.8), §8, the linked objects, effects and
+Left: the secret-door reveal (§6.8), §8, the linked objects, effects and
 sounds, area damage on doors.
 
 ## Open questions

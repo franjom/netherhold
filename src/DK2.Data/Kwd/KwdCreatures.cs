@@ -206,6 +206,7 @@ public static partial class KwdCreatures
             Speed = Fp(0xEB4),
             RunSpeed = Fp(0xEB8),
             ShuffleSpeed = Fp(OffsetShuffleSpeed),
+            AirFriction = U16(0xEAC),
             Height = Fp(0xEA4),
             EyeHeight = Fp(0xEB0),
             DistanceCanSee = Fp(0xEC8),

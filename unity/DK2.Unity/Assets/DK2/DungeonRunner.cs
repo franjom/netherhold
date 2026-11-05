@@ -519,6 +519,45 @@ namespace DK2.Unity
             }
         }
 
+        private HitchReport _hitches;
+
+        /// <summary>After startup, a frame slower than <see cref="Threshold"/> logs the art loaded on first use in that
+        /// frame, by kind, so a stall in play (a cast's first effects, a creature's first clip) is named, not guessed.
+        /// Allocation-free on ordinary frames.</summary>
+        private sealed class HitchReport
+        {
+            private const double Threshold = 50;
+            private double[] _before = new double[(int)ClassicMeshes.LoadBreakdown.Work.Count];
+            private double[] _after = new double[(int)ClassicMeshes.LoadBreakdown.Work.Count];
+            private bool _primed;
+            private int _models, _images;
+
+            public string Frame(double milliseconds, ClassicMeshes.LoadBreakdown breakdown, InstallArtProvider art, long tick)
+            {
+                breakdown.Snapshot(_after);
+                int models = art?.ModelsDecoded ?? 0, images = art?.ImagesDecoded ?? 0;
+                string line = null;
+                if (_primed && milliseconds > Threshold)
+                {
+                    var text = new System.Text.StringBuilder("DK2 hitch: ");
+                    text.Append(milliseconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))
+                        .Append(" ms at tick ").Append(tick).Append("; first-use loads:");
+                    for (var work = ClassicMeshes.LoadBreakdown.Work.Terrain; work < ClassicMeshes.LoadBreakdown.Work.Count; work++)
+                    {
+                        double spent = _after[(int)work] - _before[(int)work];
+                        if (spent >= 0.5)
+                            text.Append(' ').Append(work.ToString().ToLowerInvariant()).Append('=')
+                                .Append(spent.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+                    }
+                    text.Append("; decoded ").Append(models - _models).Append(" models, ").Append(images - _images).Append(" images");
+                    line = text.ToString();
+                }
+                (_before, _after) = (_after, _before);
+                _models = models; _images = images; _primed = true;
+                return line;
+            }
+        }
+
         /// <summary>Wall time of each startup step, logged as one line when <see cref="StartGame"/>
         /// ends and again after the first frames, which still decode art on first sight. It measures
         /// loading for the parallelism plan (docs/plans/2026-10-17-parallelism-design.md).</summary>
@@ -667,6 +706,12 @@ namespace DK2.Unity
             if (_frontEnd != null) { if (!UpdateStartup() && !UpdateCutscene()) UpdateFrontEnd(); return; }
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
+            else if (_classic?.Breakdown != null)
+            {
+                _hitches ??= new HitchReport();
+                string hitch = _hitches.Frame(Time.unscaledDeltaTime * 1000d, _classic.Breakdown, _installArt, _simulation.World.CurrentTick.Value);
+                if (hitch != null) Debug.LogWarning(hitch);
+            }
 
             // The tick started at the end of the last frame, if any, has the world until it is done.
             WaitForTick();
@@ -958,6 +1003,8 @@ namespace DK2.Unity
             {
                 _pendingCommands.Add(command);
                 if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs, pointed);
+                // DK2's click runs the cursor's own permission tests and posts only a permitted cast.
+                if (!_spellRefused && CastSpellId(command) is byte cast) _spellCastCursor.Play(cast, nowMs);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
                     _worldView.QueueTagPreview(tag, _simulation.World.CurrentTick.Next);
                 if (command is DK2.Simulation.Commands.PickUpCreatureCommand pickup)
@@ -1504,18 +1551,28 @@ namespace DK2.Unity
             {
                 _hoverSnapshot = CaptureHudHover();
                 // Over the HUD DK2 shows the small pointing finger, state 2, which 0x0040BCB6 and
-                // 0x0040BEFE set while interface +0x12B2 (pointer over the GUI) is set (LIKELY;
-                // its producer at 0x00403D1C..0x00403D69 is partly read; owner-observed in play).
-                if (ActiveTool == PlayerToolMode.Hand) cursor = HandCursorKind.SmallPoint;
+                // 0x0040BEFE set while interface +0x12B2 (pointer over the GUI) is set, in every tool
+                // mode: 0x0040BBE0 requests it before its tool switch (HYPOTHESIS; its producer at
+                // 0x00403D1C..0x00403D69 is partly read; owner-observed in play).
+                cursor = HandCursorKind.SmallPoint;
                 // Over the GUI 0x0040BBE0 sets No Go for the room, sell, door, trap and spell tools, and
                 // 0x0040CAE0 for every tool that draws an icon, Query included (0x0040CDD9..0x0040CDE1).
                 PlacementFeedback over = Placement(_simulation.World, new PlayerId((byte)viewingPlayerId), null);
                 if (over.Icon != PlacementIcon.None)
                     placement = new PlacementFeedback(null, false, over.Price, over.Icon, true, over.Affordable, over.SpellId);
             }
+            // A keeper spell's tool (mode 8) clears the contextual channel and requests state 12, the
+            // pointing finger, every frame until the spell is cancelled (0x0040B7F0); over the GUI
+            // 0x0040BBE0 asks SmallPoint instead and never runs the spell arm.
+            bool spellArmed = SpellArmed;
+            long castMs = (long)(Time.unscaledTimeAsDouble * 1000);
+            if (!spellArmed) _spellCastCursor.Cancel();
+            else if (!PointerOverHud(mouse))
+                cursor = _spellCastCursor.Showing(castMs) ? HandCursorKind.SpellCast : HandCursorKind.SpellPoint;
+            _spellRefused = placement.NoGo;
             bool holding = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
             long cursorMs = (long)(Time.unscaledTimeAsDouble * 1000);
-            if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal)
+            if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal && !spellArmed)
                 cursor = _cursorFeedback.Resolve(cursor, holding, HoldingGold(), Input.GetMouseButton(0), cursorMs, _pointerWorld);
             else _cursorFeedback.Advance(cursorMs, _pointerWorld);
             if (_soundPlayer != null) _soundPlayer.Play(_cursorFeedback.Sounds); else _cursorFeedback.Sounds.Clear();
@@ -1560,6 +1617,23 @@ namespace DK2.Unity
             PlacementFeedback held = PlacementCursor.HandDrop(world, _simulation.Database, viewer, at);
             return new PlacementFeedback(feedback.Cage, feedback.Valid, 0, PlacementIcon.Held, held.NoGo, true, 0, held.Dispose);
         }
+
+        private readonly SpellCastCursor _spellCastCursor = new SpellCastCursor();
+        private bool _spellRefused;
+
+        private static byte? CastSpellId(PlayerCommand command) => command switch
+        {
+            DK2.Simulation.Commands.CreateImpCommand => 4,
+            DK2.Simulation.Commands.CastSpellAtPlaceCommand place => place.SpellId,
+            DK2.Simulation.Commands.CastSpellOnCreatureCommand creature => creature.SpellId,
+            _ => null,
+        };
+
+        /// <summary>A keeper spell is the selected tool, DK2's mode 8: Create Imp's own tool or a spell
+        /// chosen from the panel.</summary>
+        private bool SpellArmed => ActiveTool == PlayerToolMode.CreateImp
+            || ActiveTool == PlayerToolMode.Hand && !_queryTool && _input.Targeting is null
+                && _panelChoice is BottomPanelChoiceKey { Kind: BottomPanelChoiceKind.Spell };
 
         /// <summary>The active tool as 0x004096B0 sees it; null for tools DK2's cursor has no mode for.</summary>
         private HoverCageTool? CageTool()

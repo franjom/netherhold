@@ -25,6 +25,20 @@ Frames are stacked vertically, in this order from the top:
 | 9 | HoldGold.png | 1 | 63×43 | -18,7 | 15 |
 | 10 | DropGold.png | 16 | 87×95 | 5,59 | 30 |
 | 11 | Slap.png | 15 | 126×99 | 2,64 | 30 |
+| 12 | Idle.png | 1 | 83×39 | 2,4 | 30 |
+| 13 | SpellCast.png | 12 | 87×104 | 1,65 | 30 |
+| 14 | SpellPossess.png | 6 | 64×64 | 32,32 | 15 |
+
+States 12 to 14 were read from the table on 2026-11-05 (STRONGLY INFERRED). State 12's record is
+state 3's, field for field: the pointing finger. A keeper spell's tool (mode 8,
+`0x0040B7F0`) clears the contextual channel unless it holds 5 or 11, and requests
+state 12 on the middle channel every frame, so the finger stays until the spell is
+cancelled. Over the GUI, `0x0040BBE0` requests SmallPoint instead and skips the spell
+arm. Built as `HandCursorKind.SpellPoint`. State 13, the cast hand, is asked by the mode-8
+click in `Hand_Click` (`0x004075E0`) once it has posted a cast, except for Possession (spell 2).
+Its callback `0x0040E5E0` asks state 12 back when the 12 frames end, and asks no sound. Built as
+`HandCursorKind.SpellCast` and `SpellCastCursor`; ours gates the play on the cursor's No Go, the
+same tests the click runs.
 
 Width/hotspot-X scale by physical screen width/640; height/hotspot-Y by
 screen height/480, with integer truncation. The loader resamples the complete
@@ -92,7 +106,7 @@ Hidden-HUD/presentation gates can publish a null cursor; modal semantics remain
 separate from the supported ordinary dungeon view.
 
 **The GUI pointer (2026-10-19, HYPOTHESIS).** The middle channel takes tool icon ids
-(0xC, 0xD), not hand states. State 2 `SmallPoint` goes into the contextual
+(0xC, 0xD): these are cursor states 12 and 13 of the table above (corrected 2026-11-05). State 2 `SmallPoint` goes into the contextual
 channel at `0x0040BCB6` and `0x0040BEFE`, when interface `+0x12B2` is non-zero
 and `+0x10C` is zero, behind gates `0x0044D620` and player `+0x19A` == 0.
 
@@ -105,7 +119,8 @@ and `+0x10C` is zero, behind gates `0x0044D620` and player `+0x19A` == 0.
 
 That makes it a pointer-over-GUI flag. The widget list's coverage of the whole HUD is unchecked. Whether a held item overrides state 2 over the HUD in DK2 is unread; ours lets the held item win.
 The owner sees the small pointing finger over the minimap corners and tabs; the
-adapter uses it over the whole HUD in Hand mode.
+adapter uses it over the whole HUD in every tool mode: `0x0040BBE0` requests state 2
+over the GUI before its tool-mode switch (read 2026-11-05).
 
 For ordinary Hand mode, `0x0040AE80` retains transient states 5 and 11.
 Otherwise `0x0040C1E0` tests a live creature/object through pickup permission:

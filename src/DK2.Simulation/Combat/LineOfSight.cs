@@ -107,10 +107,12 @@ public static class LineOfSight
 }
 
 /// <summary>The per-tile rule as the running game has it (<c>0x004511A0</c> with its scans' flags 0
-/// and 1): a solid navigation byte stops sight, and so does a door thing standing on the tile, open,
-/// shut or still a blueprint, unless its definition is a barricade, which the scans look over. With
-/// the first flag set, as the reach test sets it when a door stands on the target's tile, no door
-/// stops sight: <see cref="SolidOnly"/> (door-blocking.md).</summary>
+/// and 1): a solid navigation byte stops sight, and so does a door, but only while the tile's
+/// navigation byte carries a door owner (<c>0x004528E0</c> tests that high nibble first), which is a
+/// closed, completed door. An open door and a blueprint leave floor there and let sight through. A
+/// barricade, which the scans look over, never stops it. With the first flag set, as the reach test
+/// sets it when a door stands on the target's tile, no door stops sight: <see cref="SolidOnly"/>
+/// (door-blocking.md section 4).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/door-blocking.md")]
 public sealed class WorldSight : ISightBlocker
 {
@@ -119,10 +121,11 @@ public sealed class WorldSight : ISightBlocker
     private readonly GameDatabase _database;
     private readonly SolidSight _solid;
     private byte[] _doorTiles = [];
+    private DoorState?[] _doorAt = [];
     private int _doorsVersion = -1;
 
-    // A tile's cached door: none, one that stops sight, or a barricade.
-    private const byte NoDoor = 0, BlockingDoor = 1, Barricade = 2;
+    // A tile's cached door: none, a door, or a barricade.
+    private const byte NoDoor = 0, PlainDoor = 1, Barricade = 2;
 
     public WorldSight(WorldSteering navigation, WorldState world, GameDatabase database)
     {
@@ -147,20 +150,33 @@ public sealed class WorldSight : ISightBlocker
         byte nav = _navigation.NavByte(x, y);
         if (NavBytes.IsSolid(nav)) return true;
         Sync();
-        return x >= 0 && y >= 0 && x < _world.Width && y < _world.Height && _doorTiles[(y * _world.Width) + x] == BlockingDoor;
+        if (x < 0 || y < 0 || x >= _world.Width || y >= _world.Height) return false;
+        int index = (y * _world.Width) + x;
+        // The open state is read live: it changes without a change of the door list.
+        return _doorTiles[index] == PlainDoor && _doorAt[index] is { UnderConstruction: false, Open: false };
     }
 
     private void Sync()
     {
         if (_doorsVersion == _world.DoorsVersion && _doorTiles.Length == _world.TileCount) return;
-        if (_doorTiles.Length != _world.TileCount) _doorTiles = new byte[_world.TileCount];
-        else Array.Clear(_doorTiles, 0, _doorTiles.Length);
+        if (_doorTiles.Length != _world.TileCount)
+        {
+            _doorTiles = new byte[_world.TileCount];
+            _doorAt = new DoorState?[_world.TileCount];
+        }
+        else
+        {
+            Array.Clear(_doorTiles, 0, _doorTiles.Length);
+            Array.Clear(_doorAt, 0, _doorAt.Length);
+        }
         foreach (DoorState door in _world.Doors)
         {
             if (!_world.Contains(door.X, door.Y)) continue;
             bool barricade = _database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)
                 && (definition.Flags & DoorFlags.Barricade) != 0;
-            _doorTiles[(door.Y * _world.Width) + door.X] = barricade ? Barricade : BlockingDoor;
+            int index = (door.Y * _world.Width) + door.X;
+            _doorTiles[index] = barricade ? Barricade : PlainDoor;
+            _doorAt[index] = door;
         }
         _doorsVersion = _world.DoorsVersion;
     }

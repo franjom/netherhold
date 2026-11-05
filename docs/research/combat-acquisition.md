@@ -158,10 +158,10 @@ walk starts in is never asked**; the target's tile is, when entered.
 
 The per-tile test `0x004511A0(x, y, 0, 1)`: the map's **navigation byte** (the
 grid at `map+0x18` layer 4, `pitch·y + x`) with **bit 3 — `Solid`** — blocks;
-then the tile's things: a door (thing type 4) blocks unless its definition flag
-`+0x8B` bit 6 (a barricade) is set, which flag 1 looks over. Whether an open
-door's thing stays on the tile is UNKNOWN; ours reads the door from the
-navigation byte, so an open door is transparent.
+then a door, but only when the same byte's high nibble is set (`0x004528E0`, a
+closed, completed door): a door thing (type 4) blocks unless its definition flag
+`+0x8B` bit 6 (a barricade) is set, which flag 1 looks over. An open door or a
+blueprint leaves floor in that byte, so it is transparent (ADR-0683).
 
 **Reach, `0x0045AFF0(me, point, rangeSq)`.** Identical positions → true. The
 route request `0x004D0E60(body, me, &point, 0x80 | 0 for an Imp)` fails → false.

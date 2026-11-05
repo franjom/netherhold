@@ -688,6 +688,29 @@ public class CarryingTests
     }
 
     [Fact]
+    public void ACarriedBodyTakesTheCarriersHeadingMinusHalfATurn()
+    {
+        // Creature_UpdateCarriedThing (0x0048B5F0) turns what it drags by 0x400 of the 0x800 to a
+        // turn, a body (creature vtable +0x38 passes) as well as an object.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Graveyard(db, world);
+        CreatureState corpse = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        CreatureDeathRules.BecomeCorpse(world, db, corpse);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(3, 3));
+        var sim = new GameSimulation(db, world, seed: 42, [new CarriedThingAttachSystem()]);
+        CarryRules.PickUp(imp, corpse);
+        imp.Heading = 0x2A0;
+        imp.PosX += 0x200;
+
+        sim.Tick();
+
+        Assert.Equal(imp.PosX, corpse.PosX);
+        Assert.Equal((0x2A0 - 0x400) & 0x7FF, corpse.Heading);
+        Assert.NotEqual(imp.Heading, corpse.Heading);
+    }
+
+    [Fact]
     public void OneImpCarriesOneThingAndNotTwo()
     {
         GameDatabase db = Db;

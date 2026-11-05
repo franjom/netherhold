@@ -565,6 +565,24 @@ namespace DK2.Unity
             return _tagOverlay;
         }
 
+        private readonly Dictionary<(int, bool), Material[]> _blueprints = new Dictionary<(int, bool), Material[]>();
+
+        /// <summary>A door or trap under construction: DK2 swaps every material of the model for
+        /// <c>AA_BlueTexture</c> or <c>AA_RedTexture</c> (draw flag 0x100, <c>0x00580EC0</c>), additive,
+        /// unlit, no depth write, back faces culled; overlapping faces add up toward white
+        /// (structure-drawing.md section 5). One shared array per (slot count, colour), so a blink allocates nothing.</summary>
+        public Material[] Blueprint(int slots, bool red)
+        {
+            slots = Mathf.Max(1, slots);
+            if (_blueprints.TryGetValue((slots, red), out Material[] plan)) return plan;
+            plan = new Material[slots];
+            // The dig tag's own materials; their DK2TagOverlay tag is read only for terrain runs.
+            Material overlay = TagOverlay(red);
+            for (int i = 0; i < slots; i++) plan[i] = overlay;
+            _blueprints[(slots, red)] = plan;
+            return plan;
+        }
+
         public static bool IsTagOverlay(Material material) => material.GetTag("DK2TagOverlay", false) is "dig" or "tutorial";
 
         private Material Additive(string name, Color colour)
@@ -812,6 +830,13 @@ namespace DK2.Unity
             {
                 Switch(_current);
                 return (double[])_milliseconds.Clone();
+            }
+
+            /// <summary>The totals so far into <paramref name="into"/>, without allocating.</summary>
+            public void Snapshot(double[] into)
+            {
+                Switch(_current);
+                System.Array.Copy(_milliseconds, into, _milliseconds.Length);
             }
 
             private void Switch(Work next)

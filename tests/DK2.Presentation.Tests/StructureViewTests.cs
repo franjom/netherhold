@@ -131,6 +131,49 @@ public sealed class StructureViewTests
     }
 
     [Fact]
+    public void BlueprintsBlinkRedUntilTheirKeeperOwnsAWorkshop()
+    {
+        // 0x004A6B70 / 0x004A9F10: blue on even turns for a door, red for a trap, alternating each
+        // turn; steady blue once player +0x1121 (owns a room of type 10) is set.
+        var (database, world) = Fixture();
+        var view = new WorldView(database, 2);
+        DoorState door = world.Doors[0];
+        TrapState trap = world.Traps[0];
+        door.UnderConstruction = trap.UnderConstruction = true;
+        var simulation = new GameSimulation(database, world, 7, []);
+        BlueprintTint Plan(StructureKind kind, int id) =>
+            view.Structures(world).Single(value => value.Id == new StructureId(kind, id)).Plan;
+        for (int i = 0; i < 2; i++)
+        {
+            bool even = (world.CurrentTick.Value & 1) == 0;
+            Assert.Equal(even ? BlueprintTint.Blue : BlueprintTint.Red, Plan(StructureKind.Door, door.Id));
+            Assert.Equal(even ? BlueprintTint.Red : BlueprintTint.Blue, Plan(StructureKind.Trap, trap.Id));
+            StructureView before = view.Structures(world).Single(value => value.Id.Kind == StructureKind.Door && value.Id.Value == door.Id);
+            simulation.Tick(InputFrame.Empty);
+            StructureView after = view.Structures(world).Single(value => value.Id.Kind == StructureKind.Door && value.Id.Value == door.Id);
+            Assert.True(after.IsBlinkOf(before));
+        }
+        // A rival's Workshop does not stop the blink.
+        world.Tile(new TilePos(0, 0)).TerrainId = 3;
+        world.Tile(new TilePos(0, 0)).OwnerPlayerId = 1;
+        simulation.Tick(InputFrame.Empty);
+        Assert.Equal(BlueprintTint.Red, Plan((world.CurrentTick.Value & 1) == 0 ? StructureKind.Trap : StructureKind.Door,
+            (world.CurrentTick.Value & 1) == 0 ? trap.Id : door.Id));
+        world.Tile(new TilePos(0, 0)).OwnerPlayerId = 2;
+        for (int i = 0; i < 2; i++)
+        {
+            simulation.Tick(InputFrame.Empty);
+            Assert.Equal(BlueprintTint.Blue, Plan(StructureKind.Door, door.Id));
+            Assert.Equal(BlueprintTint.Blue, Plan(StructureKind.Trap, trap.Id));
+        }
+        StructureView plan = view.Structures(world).Single(value => value.Id == new StructureId(StructureKind.Door, door.Id));
+        door.UnderConstruction = false;
+        StructureView built = view.Structures(world).Single(value => value.Id == new StructureId(StructureKind.Door, door.Id));
+        Assert.Equal(BlueprintTint.None, built.Plan);
+        Assert.False(built.IsBlinkOf(plan));
+    }
+
+    [Fact]
     public void LockAttachmentFollowsSettledStateAndBothSupportOrientations()
     {
         var (database, world) = Fixture();
@@ -276,7 +319,15 @@ public sealed class StructureViewTests
             Damage = 0, MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id,
             Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
         };
-        var database = new GameDatabase([Terrain(1, 0), Terrain(2, TerrainFlags.Solid)], [], [],
+        var workshop = new RoomDef
+        {
+            Name = "Workshop", RoomId = (byte)RoomTypeId.Workshop, TerrainId = 3, Flags = RoomFlags.PlaceableOnLand,
+            Construction = TileConstruction.ThreeByThree, Cost = 0, ReturnPercentage = 0,
+            CreatedCreatureId = 0, ObjectIds = [], HealthGain = 0, CeilingHeight = new Fp32(0),
+            RecommendedSizeX = 3, RecommendedSizeY = 3, OrderInEditor = 0, NameStringId = 0, TooltipStringId = 0,
+        };
+        var database = new GameDatabase([Terrain(1, 0), Terrain(2, TerrainFlags.Solid),
+            Terrain(3, TerrainFlags.Room | TerrainFlags.Ownable)], [workshop], [],
             new GlobalVariables(), doors: [new DoorDef { Name = "Door", DoorId = 1,
                 Health = 100, GoldCost = 0, ManufactureRequired = 0, Flags = doorFlags }],
             traps: [new TrapDef { Name = "Trap", TrapId = 1, Health = 100,

@@ -217,6 +217,69 @@ the observed birth correction or justify priority changes to restore a win.
 The reinforcement cause remains open; compare the earliest differing worker
 decision and its actual task inputs.
 
+## State 214 animation, scale and effect (read 2026-11-05)
+
+**STRONGLY INFERRED, animation.** The chooser [0x0048BE50](functions/0048BE50.md) has its own
+arm for a worker (definition flag bit 0) whose state is 214: art slot 32 (0x20), immediate
+install, advance scalar 4096, the loop bit left set. It is not the state-76 landing arm, which
+tests state 76 only. The 214 handler runs the landing and the state is already 11 when the
+chooser runs later in the same update (the state write is immediate), so state 76's slot 20/24
+choice never applies to a created Imp. The Imp's slot 32 is block 32 of Creatures.kwd (native
+slot N is file block N; the art catalogue index is N-1, so 31): `imp-jump(iw)`, type 6, 20
+frames at 20 per second in the descriptor (the KMF file itself holds 22 frames), flags 0. Its
+mesh rises about 0.39 tile from standing at frame 11 and lands at frame 21. Slot 32 is also
+the art of actions 54, 60 (the Imp teleport) and 61, 63 (from the table filler's stores);
+none of their literal starters is on the 214 to 11 path.
+
+**STRONGLY INFERRED, how long it shows.** Per the captured clocks the chooser sees state 214 on
+one update (the first, whose physical pass drops the Imp) and state 11 on the next. At 20 frames
+per second and four turns per second the clip advances about 5 of its 20 frames, then the
+standing pose replaces it at once (zero speed, slot 39, which resolves to slot 1 for an Imp
+because its slot 39 has no resource). The visible hop is the first quarter of the clip plus the
+height change, not a whole jump.
+
+**HYPOTHESIS, the rise.** Creature construction copies its creation position into the previous
+position `+0xF6` (0x004872F0, [record](functions/004872A0.md)). The shot's worker arm creates the
+creature at shot Z + 0x20, then moves it to Z + 0x800 with the position setter, which does not
+touch `+0xF6`; the previous-position refresh runs at the start of the next update. If the draw
+interpolates `+0xF6` to `+0x1A` as ours does, the Imp rises from floor + 0x20 to floor + 0x800
+over its creation turn, then falls over the next: this would be the owner's "rises from the
+floor, hops up, lands". The draw's use of `+0xF6` for a just-created creature, and what is drawn
+before the first chooser run installs a clip, were not read.
+
+**STRONGLY INFERRED, scale.** Nothing grows an Imp. Both creation arms (0x004AD7A0, 0x004AFE50)
+call [0x0048FD70](functions/0048FD70.md) with 4096, and the handler repeats it at landing; every
+chooser run does too while `+0x3CD` is zero (only a path at 0x004AE92C sets it to 1, and 0x004817B1
+clears it). The call stores the scalar and writes definition `+0x626` scaled by level and scalar
+into `+0x48/+0x4C`, so the Imp keeps its normal size throughout. Grow-in is state 245's.
+
+**STRONGLY INFERRED, effect.** Effect 29 Imp Birth Trail (Effects.kwd): generation type 4, 2
+elements per turn for 24 turns, one element, 18 Imp Birth Trail Spark: sprite Sparkle-02g, tint
+(40, 255, 180), life 12 to 16 turns, scale 0.4 to 0.8, horizontal and vertical speed to 8192 either way,
+friction 327, fading. It is made at landing only (the turn state 214 becomes 11), not during the
+rise. Ours requests it (`ImpCreationRules.Step`), the effect model supports type 4 and the Unity
+runner feeds it the simulation events; not seen running.
+
+**Built (2026-11-05), presentation only.** `WorldView` gives a worker the clip key `creation_jump`
+(art catalogue 31, slot 32) for the one update the chooser sees it in 214: the update after its
+creation, whose physical pass drops it. The clip starts on that tick, and state 11 replaces it with
+the standing pose on the next. The creation turn keeps the ordinary pose. On that turn, with both
+heights at the birth height and no vertical velocity yet, a worker is drawn from a previous height
+of floor + 0x20: the rise of the HYPOTHESIS above. The simulation, its hash and saves are unchanged.
+A first build played the clip for both 214 turns, and the owner saw a somersault where DK2 shows a
+hop.
+
+**Owner's recording (2026-11-05, upgraded Create Imp).** At 30 fps the imp appears on the floor at
+the cast point. It leaps up and sideways in a sprawled, near-horizontal pose, its shadow apart below
+it, and lands about 0.35 s later. The red orb and the pink and white burst over it come from the
+upgraded spell's level-ups to 4, not from the birth; a plain cast shows neither (owner). The green
+glow at its feet is effect 29.
+
+**Ours today.** State 214 maps to Activity Idle, so `WorldView.AnimationFor` returns the `idle`
+key (slot 20, Imp_Idle1, 171 frames) with no route, and the same in 11 and 10. Height is
+`PosZ` over the floor, interpolated from `LastPosZ`; `Begin` sets both to 0x800, so there is no
+rise and the Imp is first drawn half a tile up.
+
 ## Reproduction and review
 
 Ignored artifacts are alongside those in imp-observation-clocks.md. `Program.cs`

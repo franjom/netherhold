@@ -337,6 +337,12 @@ gem-dust sparkles) tied to the gem. The process is STRONGLY INFERRED (decompile 
 2026-10-23); that a loose (dropped) gem stays in state 50 is HYPOTHESIS (unread; a world-log
 dump after the drop would settle it).
 
+A carried gem is not drawn (STRONGLY INFERRED, 2026-11-05): the pick-up `0x0048B350` takes it off its
+tile chain and the position routine does not relink a carried thing, so the per-tile pass `0x0043CC30`
+never reaches it; the Lord shows only the gem-dust trail. `LevelGemIdle.IsInCarrierArms` skips it in
+`WorldView.Objects`; before, Level 5's intro drew it hovering on the Lord's start tile after he walked
+off, because the simulation never moves a carried gem. Other carried things are still drawn (unread).
+
 Its mesh is `Gem.kmf`: a noise texture whose look is DK2's additive environment pass
 (`EnvmapK`, kmf-materials.md §8) plus additive rays. Built in the view: `LevelGemIdle` (bob and spin from the turn, idle
 effect once a second, untied) and the environment pass. Approximated: the climb limit

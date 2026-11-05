@@ -90,6 +90,34 @@ Ours now lifts along the ray to the eye and scales by the depth ratio
 (`StatusFlowerRules.LayerPlacement`), which keeps every layer on the anchor's screen point at its
 own screen size.
 
+### Order against blended terrain (read 2026-11-05)
+
+The flower is not drawn in a pass of its own. Its sprite item is queued on its tile
+([00571AE0](functions/00571AE0.md)), and the billboard prepare ([0057F7E0](functions/0057F7E0.md))
+adds a batch entry. That entry carries the material's state, and an `A_` state holds 0x200 and
+ZENABLE 0x100 without ZWRITE 0x80 ([0057C420](functions/0057C420.md)). The quad goes to the triangle
+sink ([0058B9D0](functions/0058B9D0.md)), which files every 0x200 triangle into one 1024-bucket list
+keyed by the sum of its camera depths. The list is linear from near to far
+([0058A570](functions/0058A570.md), selected per view in [0058A970](functions/0058A970.md)). It is
+flushed back to front once a frame ([00588D00](functions/00588D00.md)), the world view's slot shared
+by sprites and meshes. STRONGLY INFERRED for the queueing, HYPOTHESIS for the far-first walk (as its
+record says). The queue (0x00588C40) adds a signed byte from batch `+0x20` to the bucket. The
+batch grower (0x00579FD0) zero-fills new entries, and no store to `+0x20` was found in the sprite or
+mesh queue writers read. So the bias is taken as 0 for both (HYPOTHESIS).
+
+The Prison's bars, posts and gates (`PRISON10`/`12`/`14`/`15`/`19`) carry file flag 0x01 and are
+therefore blended the same way, with no depth write. So a bar behind the flower draws before it and
+a bar in front draws over it. The flower sits above the bars' 1-tile top and behind the near fence,
+so it is usually nearer, as the owner sees in DK2. Ours had drawn every blended terrain run after
+every flower, because runs take sorting orders from 1 upward and the flower took 0. Each icon now
+takes the order of the runs wholly behind its depth.
+
+That alone did not fix it (owner, 2026-11-05: still under the bars). A whole Prison fence is one
+material, so it sorted into one run that straddled the flower and drew over it. Now
+`TransparentTerrain.PlaceItems` sorts when the flowers are queued and splits every run at each
+icon's depth (`TriangleDepthOrderBuffer.Split`, one pass, no re-sort when only the flowers moved).
+Each icon then sits between whole runs, as in DK2's per-triangle list.
+
 ### When an own creature's flower shows (0048E830, STRONGLY INFERRED)
 
 There is a global gate on viewer player `+0x76` bits 0x400000/0x40 and mode 0x0075AD4B.

@@ -800,6 +800,7 @@ internal static class Dk2TerrainFixture
         Speed = new Fp32(7536),
         RunSpeed = new Fp32(7536),
         ShuffleSpeed = new Fp32(4096),
+        AirFriction = 327, // every shipped creature: file +0xEAC
         Height = new Fp32(2048),
         DistanceCanSee = new Fp32(16384),
         DistanceCanHear = new Fp32(16384),

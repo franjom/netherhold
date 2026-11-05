@@ -584,7 +584,7 @@ public static class WorldResync
         if (carrying)
         {
             crate = world.SpawnObject(database, crateObject, PlayerIds.Unowned, (imp.Tile.Y * world.Width) + imp.Tile.X);
-            ObjectCarryRules.PickUp(imp, crate);
+            ObjectCarryRules.TakeHold(imp, crate);
         }
         else
         {

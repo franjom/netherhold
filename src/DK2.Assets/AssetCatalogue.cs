@@ -78,7 +78,7 @@ public static class AssetCatalogue
         "running_from_threat",
     ];
 
-    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance", "getting_up", "movement_idle"];
+    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance", "getting_up", "movement_idle", "creation_jump"];
 
     /// <summary>Elements drawn as models: a static mesh (art type 5) or an animated one (type 6,
     /// the Portal Beams' sixty frames).</summary>

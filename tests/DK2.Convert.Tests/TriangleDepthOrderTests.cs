@@ -47,6 +47,44 @@ public sealed class TriangleDepthOrderTests
     }
 
     [Fact]
+    public void RunsBehindPlacesAnItemBetweenTheRunsAroundItsDepth()
+    {
+        // Depth 4 (far bar), 2 (post), 0 and -1 (near bars, one run). A flower at depth 1 sits in front
+        // of the far bar and the post and behind the near bars (DK2's one blended list, 0x00588D00).
+        Vector3[] positions = [new(0, 0, 4), new(0, 0, 2), new(0, 0, 0), new(0, 0, -1)];
+        RenderTriangle[] triangles = [new(2, 2, 2, 0), new(0, 0, 0, 0), new(1, 1, 1, 1), new(3, 3, 3, 0)];
+        var buffer = new TriangleDepthOrderBuffer();
+        var runs = buffer.Sort(positions, triangles, Vector3.UnitZ);
+        Assert.Equal([4f, 2f, -1f], runs.Select(r => r.NearestDepth));
+        Assert.Equal(0, buffer.RunsBehind(5f));
+        Assert.Equal(1, buffer.RunsBehind(3f));
+        Assert.Equal(2, buffer.RunsBehind(1f));
+        Assert.Equal(2, buffer.RunsBehind(2f));
+        Assert.Equal(2, buffer.RunsBehind(-0.5f));
+        Assert.Equal(3, buffer.RunsBehind(-2f));
+    }
+
+    [Fact]
+    public void ABreakSplitsAOneMaterialFenceAroundAnItemInsideIt()
+    {
+        // A Prison fence of one material at depths 3, 1 and -1 is one run; a flower at depth 0 inside
+        // it would draw wholly before or after the fence. The break splits it so the far bars draw
+        // first and the near bar over the flower (0x0058B9D0's per-triangle list).
+        Vector3[] positions = [new(0, 0, 3), new(0, 0, 1), new(0, 0, -1)];
+        RenderTriangle[] triangles = [new(0, 0, 0, 0), new(1, 1, 1, 0), new(2, 2, 2, 0)];
+        var buffer = new TriangleDepthOrderBuffer();
+        Assert.Single(buffer.Sort(positions, triangles, Vector3.UnitZ));
+        var runs = buffer.Split([0f]);
+        Assert.Equal([1f, -1f], runs.Select(r => r.NearestDepth));
+        Assert.Equal([2, 1], runs.Select(r => r.Triangles.Count));
+        Assert.Equal(1, buffer.RunsBehind(0f));
+        // A break on a centroid keeps that triangle behind; two breaks between triangles split once.
+        Assert.Equal([2, 1], buffer.Split([1f]).Select(r => r.Triangles.Count));
+        Assert.Equal([1, 2], buffer.Sort(positions, triangles, Vector3.UnitZ, [2.5f, 2f]).Select(r => r.Triangles.Count));
+        Assert.Single(buffer.Split([]));
+    }
+
+    [Fact]
     public void ReusedSortAllocatesNoManagedMemoryAfterCapacityWarmup()
     {
         Vector3[] positions = [Vector3.Zero, Vector3.UnitZ, -Vector3.UnitZ];

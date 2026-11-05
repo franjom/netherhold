@@ -315,6 +315,13 @@ public class CrateTests
         Assert.Equal(tiles[0], crates[1].TileIndex);
         Assert.Equal(tiles[1], crates[0].TileIndex);
 
+        // 0x004F5040 sets each crate at the centre of its tile, so a point left by the imp that set it down is gone.
+        Assert.All(crates, c =>
+        {
+            Assert.Equal(CreatureState.CentreOf(c.TileIndex % world.Width), c.PosX);
+            Assert.Equal(CreatureState.CentreOf(c.TileIndex / world.Width), c.PosY);
+        });
+
         // Enough crates to pass the slots in index order: none is set down on one.
         for (int i = 0; i < 11; i++)
             Assert.True(CrateRules.List(new StateHookContext(world, db), workshop, world.SpawnObject(db, DoorCrate, PlayerIds.Unowned, workshop.TileIndices[0])));

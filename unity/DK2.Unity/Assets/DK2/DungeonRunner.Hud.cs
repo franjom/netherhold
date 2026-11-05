@@ -52,6 +52,7 @@ namespace DK2.Unity
         private CreatureQuerySnapshot _querySnapshot = CreatureQuerySnapshot.Empty;
         private StatusFlowers _statusFlowers;
         private ClassicStatusFlowers _statusFlowerArt;
+        private TransparentTerrain _statusFlowerBlended;
         private CreatureQueryTarget _hoveredCreature;
         private InGameOptionsController _gameOptions;
         private BattleNavigation _battleNavigation;
@@ -77,6 +78,8 @@ namespace DK2.Unity
             _placementOverlay.CreatureIconName = id => heldArt.CreatureIcons.TryGetValue(id, out Dk2ArtResource icon) ? icon.Name : null;
             _placementOverlay.ObjectIconName = id => heldArt.Objects.TryGetValue(id, out IReadOnlyList<Dk2ArtResource> art) && art.Count > 1 ? art[1].Name : null;
             _bottomPanel.SelectCategory(BottomPanelCategory.Creatures);
+            // The panel starts with Creatures open; nobody clicked its tab, so its press sound is not played.
+            _bottomPanel.Sounds.Clear();
             _bottomPanel.Selected += SelectPanelChoice;
             _bottomPanel.SpecialChosen += ActivateStoredSpecial;
             _roomNavigation = new RoomNavigation(new PlayerId((byte)viewingPlayerId));
@@ -183,9 +186,11 @@ namespace DK2.Unity
             if (_statusFlowers == null || _statusFlowerArt == null) return;
             WorldState world = _simulation.World;
             bool possessing = world.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0;
+            // Unity's null: a rebuilt scene destroyed the previous blended terrain.
+            if (_statusFlowerBlended == null) _statusFlowerBlended = GetComponentInChildren<TransparentTerrain>();
             _statusFlowerArt.Draw(Camera.main, _scene, _statusFlowers.Capture(world, world.CurrentTick, _hoveredCreature,
                 EffectClock?.Invoke().Milliseconds ?? (long)(Time.unscaledTimeAsDouble * 1000)),
-                CurrentHud.ShowNormalHud || _scriptedView.PathPlaying, possessing);
+                CurrentHud.ShowNormalHud || _scriptedView.PathPlaying, possessing, _statusFlowerBlended);
         }
 
         private void DisposeHudControls()

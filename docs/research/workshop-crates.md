@@ -297,6 +297,42 @@ if another creature holds it, walks the imp to the crate through the imp wrapper
 - Either way the task is released and the imp sets 10.
 - A carried id of zero returns 0, which is idle.
 
+**The carried thing is attached to the imp (STRONGLY INFERRED, 2026-11-05).** An imp that holds a
+crate, book, Special or body has its dragging word `+0x3C5` set (`0x0048B4A0`). While it is set, every
+update of that creature, in every state, calls `0x0048B5F0` at `0x0048A4AE`: after the steering step and
+before the animation chooser `0x0048BE50` (called at `0x0048A4B5`), so mid-update, not at its end:
+- the thing's position `+0x1A/+0x1E/+0x22` becomes the imp's own through the position setter
+  (`0x004B5560`, `0x004B5020`), so it is the imp's exact point and height, floor-clamped, in the same
+  update the imp moved, never a tile centre or a turn behind;
+- first, when the thing's vtable `+0x38` passes, its previous position `+0xF6..` is saved and its heading `+0xF4` set to
+  the imp's minus `0x400`: half a turn, headings having `0x800` to a turn. That slot is the constant-true
+  stub `0x00628BC0` in the object, creature and body vtables (`0x0066D68C`, `0x0066D55C`, `0x0066D93C`),
+  so it always passes.
+
+**Set down (STRONGLY INFERRED, 2026-11-05).** `Creature_DropDraggedThing` `0x0048B500` first sets the thing at
+the carrier's own `+0x1A` triple (`0x0048B52F` `LEA EDI,[EBP+0x1A]`, `0x0048B535` `CALL 0x004B5560`), then, when
+`+0x38` passes, copies that point to the thing's `+0xF6..` and its `+0xF4` to `+0x102`, so the heading is
+left as the last attach set it; classes 6, 2 and 0 then get `+0x70`, and `+0x3C5` is cleared. A dropped
+crate therefore lies at the point the imp stood. `0x004F5040` then sets a crate it lists in a Workshop at
+the tile centre (`x * 0x1000 + 0x800`, height 0) and aims it at the room's position.
+
+**Drawn (STRONGLY INFERRED).** The draw reads the thing's own `+0x1A` for every class, not a tile
+centre (`0x00599C10`, `0x0059C2A0`; [object-drawing.md](object-drawing.md) section 4): a loose crate, book
+or Special is drawn where it was set down, a listed crate at its tile centre.
+
+**What drops it.** The imp job states (31, 32, 35, 37, 41, 43-45), the choosers `0x0046E480` and
+`0x0046E7CD`, death (`0x004B2F5C`, `0x00488221`) and possession (`0x004BE0F4`) call `0x0048B500`, and
+the worker-job leave hook `0x004647D0` (a state-category table entry, `0x0047994F`) calls it, with the
+`+0x3C3` drop `0x0048B3A0`, first thing at `0x0046480B`-`0x00464827`, whenever a creature leaves that
+category. A hand pick-up very likely lets go this way (HYPOTHESIS: its path through the leave hook is not
+traced). No hand, slap or fight code reads `+0x3C5` (field scan, 2026-11-05), so a held thing stays
+attached through any state that does not leave the category.
+
+The Portal Gem is held through `0x0048B350` (`+0x3C3`) and is never attached or drawn
+(`functions/0048B350.md`). The gold an imp carries is not a thing named by `+0x3C3` or `+0x3C5`: DK2's
+creature dump names it `GoldHeld` at `+0x3FB` ([creature-object.md](creature-object.md)), so this attachment
+does not move it.
+
 **32**, a crate carried home (`0x00466DF0`):
 - The crate is put down.
 - On a tile of a room the imp's keeper owns that passes the capacity test, `0x004F57F0` lists
@@ -326,6 +362,9 @@ if another creature holds it, walks the imp to the crate through the imp wrapper
 - Rooms are taken in `RoomIndex` order. Distances are to a room's first tile.
 - Tiles are walked in chain order (ADR-0243).
 - The task hold is read from the other imps' states.
+- A held crate, book or Special takes the imp's position and heading minus `0x400` (half a turn) every turn, in any state (ADR-0680, ADR-0684): `CarriedThingAttachSystem` runs `ObjectCarryRules.FollowCarrier` after the state handlers and the mover, and the view draws it at that point at the carrier's ground height, interpolated from the last tick's capture. A dragged body takes the same heading (`CarryRules.FollowCarrier`).
+- `ObjectCarryRules.Drop` sets the thing at the carrier's point and keeps its heading; the view draws a loose crate, book or Special there (`StandsAtOwnPoint`), and `CrateRules.Arrange` sets a listed crate at its tile centre, heading 0 (DK2's aim at the room's position and the three-to-a-tile draw offsets `+0x249`, `-0x249`, height `0x300` are unbuilt). The hand's drop sets the tile centre (DK2's point for it is unread).
+- Ours drops a held thing only on a hand pick-up, death, possession and the job's own ends; the worker-job leave hook's drop on every other category change is not built.
 - 68's celebration takes no time: action 35 is not played, though its `random(2)` draw is (ADR-0671).
 - The eviction takes the working creature with the lowest id.
 

@@ -203,3 +203,45 @@ second fly-in may play.
 - The delay-chained player of the one-shot atmosphere (section 9).
 - The latch `+0x4F0D` before the first flash, and the draw order of tabs and slots (section 2).
 - The land update's rate in the front end (section 5).
+- Whether the spell announcement (section 13) is requested on the slot's press or release.
+
+## 13. Selecting, arming and cancelling a keeper spell
+
+Read 2026-11-05 for the owner's report that DK2 plays a sound on selecting a spell that the remake lacks. Disassembly and decompile of
+[0x00411140](../research/functions/00411140.md), [0x00424F50](../research/functions/00424F50.md), [0x004075E0](../research/functions/004075E0.md)
+(tool mode 8 arm), [0x0040B7F0](../research/functions/0040B7F0.md), [0x0040E5E0](../research/functions/0040E5E0.md),
+[0x004094C0](../research/functions/004094C0.md), [0x00408EE0](../research/functions/00408EE0.md); the shipped maps and `KeeperSpells.kwd`.
+
+**The one request (STRONGLY INFERRED).** At `0x00411342` to `0x00411356` of [SpellPanel_ClickSlot](../research/functions/00411140.md), after the spell is selected
+(`+0x13DB` = 8, `+0x13E8` = spell id), it asks slot `+0x24` with the interface's own handle `+0x2E` (stored back), the category at the runtime
+spell's `+0x71` (the file record's `0x174`, `GUI_BUTTON_<SPELL>`, section 1 of [sound-effects-combat.md](sound-effects-combat.md)) and event `0x104`,
+nonpositional. It runs for every spell of the panel except the two the list skips (ids 5 and 14, the reaper pair) and for every click that
+reaches the spell arm (also while the spell is already armed), before the GUI-button post (`0x00422600`). Nothing else reads `+0x71`
+of a spell record (store and read scans of `+0x71`).
+
+The shipped samples are the spoken spell announcement, 3.2 to 4.4 s, one per category (group `0x104`, priority word `0xF9F`, against `0x32` of the
+slot's own `gui_button_icon` click): Sight of Evil (id 1) 3214 ms, Possession (2) 3229, Call to Arms (3) 4277, Create Imp (4) 3375,
+Thunderbolt (6) 4389, Turncoat (7) 3176, Tremor (8) 3336, Inferno (9) 4213, Heal (10) 3457, Chicken (11) 4001, Create Gold (13) 3873 (priority 1).
+Summon Horny (5) and OneShotReaper (14) name `GUI_BUTTON_SUMMON_REAPER` (4144 ms) but never reach this arm: the Reaper button's
+selector [Hud_SelectReaperSpell](../research/functions/00424F50.md) (mode 8, spell 5 or 14) asks no sound, and the Library specials
+([0x0040A280](../research/functions/0040A280.md)) ask none either. `gui_button_reaper_talisman` (`0x104`, 1718 ms) has no reader (no string in the
+executable or the KWDs). The handle is never stopped (the cancel path sends no stop command), so the announcement plays out; the reset at
+`0x00403608` only forgets the handle. A live handle retains an equal or lower priority request (sound-playback.md), so a second spell click inside the
+announcement is dropped, except one with a higher priority word (any spell after Create Gold).
+
+**Silent, by reading (STRONGLY INFERRED).** The armed tool's per-frame feedback [0x0040B7F0](../research/functions/0040B7F0.md) and the dispatcher
+`0x0040BBE0` ask nothing; the cursor request `0xC` (Idle.png, at `0x0040C1AA` on selection and in the callbacks) has the plain callback. The cast click (mode 8
+arm of [Hand_Click](../research/functions/004075E0.md)) posts action `0x36`, `0x37`, `0x38` or `0x87` and requests state 13
+(SpellCast.png, 12 frames, 30 a second) except for spell 2; its callback [0x0040E5E0](../research/functions/0040E5E0.md) (event 0 adopt, event 2 return to `0xC`) asks no
+sound; the cast's `0xEF` is the simulation's own request ([sound-effects-combat.md](sound-effects-combat.md) section 1, built). A cast without enough
+mana, or a refused target, returns without sound (`0x004C1740` is a pure compare). State 14 (SpellPossess.png) has no literal request among
+the call sites of `0x0040ABC0` (scan of the last pushed literal) (variable-argument sites are the pickup arms); its callback is the plain one. Cancel (right press,
+`0x00408EE0` then [Hud_CancelSelectedTool](../research/functions/004094C0.md)) and choosing another tool ask no sound and stop none. No Mentor line is asked by
+any of these; action `0x72` only fires trigger event 53 for level scripts. The hover sound over one's own creature
+([0x0040C290](../research/functions/0040C290.md), section 6 of sound-effects.md) runs in every tool mode, mode 8 included, as built.
+
+**Ours.** `BottomPanelView.PressChoice` and `ReleaseChoice` play the slot's `gui_button_icon` `0x104`/`0x136`: DK2's widget table sound, which stays (no `0x136`
+group exists in `gui_button_icon`, so the release is silent in both). The spell announcement is built (2026-11-05):
+`KeeperSpellDef.GuiButtonSoundCategory` reads file `0x174`, and `BottomPanelView.Select` asks `0x104` in it on one
+voice (`SpellAnnouncementVoice`, the handle `+0x2E`) for every spell but 5 and 14. Waits: where in the press/release
+the handler runs (the widget's callback, record `+5` of the widget at `0x0068FDF8`, fires from its click path, unread); ours selects on release.

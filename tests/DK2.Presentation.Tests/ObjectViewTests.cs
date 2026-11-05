@@ -91,6 +91,78 @@ public class ObjectViewTests
         Assert.NotEqual(after.Height, after.PreviousHeight);
     }
 
+    [InstallFact]
+    public void ACarriedBookIsDrawnAtItsCarriersPointAndInterpolatesWithIt()
+    {
+        // Creature_UpdateCarriedThing (0x0048B5F0): the thing takes the carrier's position each update, so
+        // it is never left on the tile centre a tile behind.
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper,
+            new TilePos(40 % world.Width, 40 / world.Width));
+        ObjectState book = world.SpawnObject(database, 4, PlayerIds.Unowned, 40);
+        ObjectCarryRules.TakeHold(imp, book);
+        imp.PosX += 0x700;
+        imp.Heading = 0x200;
+        ObjectCarryRules.FollowCarrier(world, imp, book);
+        var view = new WorldView(database);
+        view.CaptureObjectPositions(world);
+        int previousX = imp.PosX;
+
+        new GameSimulation(database, world, 7, []).Tick();
+        imp.PosX += 0x100;
+        ObjectCarryRules.FollowCarrier(world, imp, book);
+        ObjectView drawn = view.Objects(world).Single(o => o.Id == book.Id);
+
+        Assert.Equal(imp.PosX, drawn.PosX);
+        Assert.Equal(imp.PosY, drawn.PosY);
+        Assert.Equal(previousX, drawn.PreviousPosX);
+        Assert.Equal(0x200 - 0x400 & 0x7FF, drawn.Heading);
+    }
+
+    [InstallFact]
+    public void ADroppedBookIsDrawnWhereItWasSetDown_AndOneNeverHeldOnItsTileCentre()
+    {
+        // Creature_DropDraggedThing (0x0048B500) leaves the thing at the carrier's point and DK2 draws a thing at
+        // its own +0x1A (object-drawing.md section 4): a dropped book must not jump to the tile centre.
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper,
+            new TilePos(40 % world.Width, 40 / world.Width));
+        ObjectState book = world.SpawnObject(database, 4, PlayerIds.Unowned, 40);
+        ObjectState untouched = world.SpawnObject(database, 4, PlayerIds.Unowned, 41);
+        ObjectCarryRules.TakeHold(imp, book);
+        imp.PosX += 0x500;
+        imp.PosY -= 0x300;
+        ObjectCarryRules.Drop(world, imp, book);
+        var view = new WorldView(database);
+
+        ObjectView dropped = view.Objects(world).Single(o => o.Id == book.Id);
+        ObjectView lying = view.Objects(world).Single(o => o.Id == untouched.Id);
+
+        Assert.Equal(imp.PosX, dropped.PosX);
+        Assert.Equal(imp.PosY, dropped.PosY);
+        Assert.Equal(book.Heading, dropped.Heading);
+        Assert.NotEqual(CreatureState.CentreOf(40 % world.Width), dropped.PosX);
+        Assert.Equal(CreatureState.CentreOf(41 % world.Width), lying.PosX);
+        Assert.Equal(CreatureState.CentreOf(41 / world.Width), lying.PosY);
+    }
+
+    [InstallFact]
+    public void APortalGemPickedUpThroughPickUpIsNotDrawnAtItsCarrier()
+    {
+        // 0x0048B350 (+0x3C3) is never attached by 0x0048B5F0: the gem stays off the tile chain, undrawn.
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState lord = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper,
+            new TilePos(40 % world.Width, 40 / world.Width));
+        ObjectState gem = world.SpawnObject(database, TriggerExecutor.PortalGemObjectId, PlayerIds.Unowned, 40);
+        ObjectCarryRules.PickUp(lord, gem);
+        lord.PosX += 0x300;
+        var view = new WorldView(database);
+        view.CaptureObjectPositions(world);
+
+        Assert.DoesNotContain(view.Objects(world), o => o.Id == gem.Id);
+        Assert.Equal((0, 0), (gem.PosX, gem.PosY));
+    }
+
     [InstallTheory]
     [InlineData(35, 29, 0, 5)]
     [InlineData(47, 32, 0, 0)]

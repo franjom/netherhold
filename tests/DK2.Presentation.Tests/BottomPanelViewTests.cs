@@ -96,6 +96,48 @@ public sealed class BottomPanelViewTests
         Assert.Equal(panel.Reaper.Key, panel.Selection.Choice);
     }
 
+    // An upgraded spell's slot draws its second icon (file +0x120, the gold-rimmed -2 art; panel-indicators.md section 5).
+    [InstallFact]
+    public void AnUpgradedSpellIsMarkedForItsSecondIcon()
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        world.SetAvailability(PlayerIds.FirstKeeper, AvailabilityKind.Spell, 4, 3);
+        var panel = new BottomPanelView(db, PlayerIds.FirstKeeper, (_, name) => name);
+        var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, 4);
+        panel.Capture(world);
+        Assert.False(panel.Choice(key)!.Upgraded);
+        world.SetUpgraded(PlayerIds.FirstKeeper, AvailabilityKind.Spell, 4, true);
+        panel.Capture(world);
+        Assert.True(panel.Choice(key)!.Upgraded);
+    }
+
+    // SpellPanel_ClickSlot (0x00411140) asks 0x104 in the spell's GUI_BUTTON_* category, file record 0x174.
+    [InstallFact]
+    public void SelectingASpellAnnouncesItInItsGuiButtonCategory()
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        KeeperSpellDef imp = db.KeeperSpellById(4)!;
+        Assert.Equal("GUI_BUTTON_CREATE_IMP", imp.GuiButtonSoundCategory);
+        world.SetAvailability(PlayerIds.FirstKeeper, AvailabilityKind.Spell, 4, 3);
+        var panel = new BottomPanelView(db, PlayerIds.FirstKeeper, (_, name) => name);
+        panel.Capture(world);
+        Assert.True(panel.Select(new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, 4)));
+        SoundRequest announced = Assert.Single(panel.Sounds.Pending);
+        Assert.Equal(new SoundCategory("gui_button_create_imp"), announced.Category);
+        Assert.Equal(0x104u, announced.Id.Value);
+        Assert.Null(announced.World);
+        Assert.Equal(BottomPanelView.SpellAnnouncementVoice, announced.Voice);
+        panel.Sounds.Clear();
+        world.SetAvailability(PlayerIds.FirstKeeper, AvailabilityKind.Room, (byte)RoomTypeId.Lair, 3);
+        panel.Capture(world);
+        Assert.True(panel.Select(new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, (byte)RoomTypeId.Lair)));
+        Assert.Empty(panel.Sounds.Pending);
+    }
+
     [InstallFact]
     public void SpellsAndWorkshopTabsShowOnlyWhenOneOfTheirChoicesIsPresent()
     {

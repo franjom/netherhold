@@ -75,6 +75,46 @@ marker requests in the update but no reachable lock writer (see
 [doors-and-traps.md](doors-and-traps.md#door-runtime-behavior)); they remain unpresented.
 
 Remaining: door transition/death clips, trap firing clips, secret-door disguises,
-other linked door objects and construction tint/blinking.
+other linked door objects, and the blueprint's kind-1 branch (section 5).
 The classic Unity view freezes door clips at the settled endpoint; the converted
 GLB retains the clip and a future renderer must select that endpoint itself.
+
+## 5. Blueprint drawing (2026-11-05)
+
+A door or trap with construction nonzero is drawn as its own model with every material swapped
+for one flat colour. STRONGLY INFERRED from DKII.EXE unless marked.
+
+- **The override.** Each turn the door update `0x004A55F0` calls `0x004A6B70` while construction
+  (`+0x109`) is nonzero; the trap twin is `0x004A9F10`. Both pass a world material to
+  `0x004B4580`, which stores it at RenderInfo `+0x73`, sets `+0x4D` bit 1 and a period of 0 (every
+  frame), and set the tint `+0x48..+0x4A` to 255. A built door clears the override and tint 128.
+  `0x0059D4B0` turns bit 1 into draw flag 0x100, and the static draw `0x00580EC0` then draws every
+  primitive of the model with that one material and its render state, in place of the model's own
+  (draw `+0x50` bit 0x100 tested at `0x0058122E`, material from draw `+0x64` at `0x00581237`; the animated draw `0x00584900` does the same from its `+0x4C` and `+0x70`). The geometry, and so the silhouette, stays.
+- **The material.** `0x005099A0` fills `+0xA36B` RedTexture and `+0xA36F` BlueTexture as kind 3
+  (`AA_`), `+0xA373` RedTexture and `+0xA377` BlueTexture as kind 1 (`S_`, string `0x006A4AE4`
+  BlueTexture). Kind 3 is additive ONE/ONE, no depth write, depth test kept, colour forced white
+  and lighting bit 0x40 cleared ([0057C420](functions/0057C420.md),
+  [tag-highlight.md §6](tag-highlight.md#6-the-overlay-material-and-the-blend-2026-10-10-follow-up)).
+  BlueTexture is flat (63, 64, 255), RedTexture (255, 64, 65). So a plan adds a flat blue to
+  whatever is behind it, with no shading of its own. Back faces are culled in software
+  ([kmf-materials.md §4](kmf-materials.md#4-culling-is-in-software-for-every-material)), but the
+  model's front faces that overlap each add again: two layers give (126, 128, 255), four nearly white.
+  HYPOTHESIS: this is the light lavender with near-white folds the owner sees in DK2.
+- **The kind-1 branch.** The global `0x00759AFC` (bss, read only by these two functions; no writer
+  found by a full `.text` immediate scan) selects the kind-1 materials instead. UNKNOWN when it is
+  set; it is zero at load, so the kind-3 look is the normal one (HYPOTHESIS).
+- **The blink.** If the owner's player `+0x1121` is zero, the colour follows the game turn
+  (`0x00517490`) parity: a door is blue on even turns and red on odd, a trap the reverse.
+  `Player_Tick` (`0x004B9EC0`) sets `+0x1121` each turn to whether the player owns a room of type 10,
+  the Workshop (`0x004C5FD0`, `0x004B9ECB..0x004B9EE6`), before its early return for the neutral and hero players. So a plan blinks red and blue, one turn each, until its keeper
+  has a Workshop, then stays blue.
+
+Ours: `WorldView.PlanTint` gives each blueprint's `StructureView.Plan` (Blue or Red) from the
+Workshop test (any owned Workshop tile, refreshed once per turn) and the tick parity. A view
+reads `CurrentTick` after the tick that ran DK2 turn `CurrentTick` (`GameSimulation` passes
+`CurrentTick + 1` as the turn, then increments), so the parity is that of the last turn run. `DungeonScene` swaps the model's
+materials for the shared `AA_BlueTexture` or `AA_RedTexture` array (`ClassicMeshes.Blueprint`,
+the dig tag's own overlay materials) and, on a blink, swaps the array in place rather than
+rebuilding the model. Not modelled: the kind-1 branch, and the second override `0x004A6B70`
+gives the linked thing at door `+0x103`.

@@ -10,7 +10,7 @@ using DK2.Simulation;
 
 namespace DK2.Presentation;
 
-public enum HandCursorKind { Default, Point, SmallPoint, Pickup, Dig, Tag, Tagging, HoldThing, DropThing, HoldGold, DropGold, Slap }
+public enum HandCursorKind { Default, Point, SmallPoint, Pickup, Dig, Tag, Tagging, HoldThing, DropThing, HoldGold, DropGold, Slap, SpellPoint, SpellCast }
 
 public readonly record struct HandCursorSprite(string FileName, Vector2 FrameSize, Vector2 Hotspot,
     int FrameCount, int FramesPerSecond);
@@ -54,6 +54,12 @@ public static class HandCursor
         HandCursorKind.HoldGold => new("HoldGold.png", new(63, 43), new(-18, 7), FrameCount: 1, FramesPerSecond: 15),
         HandCursorKind.DropGold => new("DropGold.png", new(87, 95), new(5, 59), FrameCount: 16, FramesPerSecond: 30),
         HandCursorKind.Slap => new("Slap.png", new(126, 99), new(2, 64), FrameCount: 15, FramesPerSecond: 30),
+        // State 12, which a keeper spell's tool (mode 8, 0x0040B7F0) requests on the middle channel:
+        // its record in 0x0068F638 is state 3's, the pointing finger.
+        HandCursorKind.SpellPoint => new("Idle.png", new(83, 39), new(2, 4), FrameCount: 1, FramesPerSecond: 30),
+        // State 13, the cast: the click that posts a cast asks it, and its callback (0x0040E5E0) asks state 12 back
+        // once its frames are done.
+        HandCursorKind.SpellCast => new("SpellCast.png", new(87, 104), new(1, 65), FrameCount: 12, FramesPerSecond: 30),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -79,7 +85,7 @@ public static class HandCursor
         {
             HandCursorKind.Point => PointRestingTip,
             HandCursorKind.SmallPoint => new(0, 2),
-            HandCursorKind.Pickup => new(0, 4),
+            HandCursorKind.Pickup or HandCursorKind.SpellPoint => new(0, 4),
             _ => sprite.Hotspot,
         };
     }
@@ -189,6 +195,34 @@ public sealed class HandCursorFeedback
 
     private static SoundRequest HandSound(uint id, FpPosition2 at) =>
         new(HandCategory, new SoundId(id), new Vector3(at.X.Raw / 4096f, 2f, -at.Y.Raw / 4096f));
+}
+
+/// <summary>Cursor state 13 after a cast click: <c>Hand_Click</c> (<c>0x004075E0</c>, mode 8) asks it once it has
+/// posted a cast (actions 0x36 to 0x38), except for Possession (spell 2); its callback (<c>0x0040E5E0</c>) asks the
+/// finger, state 12, back when the 12 frames are done. It asks no sound.</summary>
+[DK2.Core.Dk2Behavior(DK2.Core.Confidence.StronglyInferred, "docs/research/hand-cursor-rendering.md")]
+public sealed class SpellCastCursor
+{
+    /// <summary>Possession, whose cast asks no cast hand.</summary>
+    public const byte PossessionSpellId = 2;
+    private long _startedAt = -1;
+
+    public void Play(byte spellId, long milliseconds)
+    {
+        if (spellId != PossessionSpellId) _startedAt = milliseconds;
+    }
+
+    public void Cancel() => _startedAt = -1;
+
+    /// <summary>Whether the cast hand is still playing at <paramref name="milliseconds"/>; once it is done it clears.</summary>
+    public bool Showing(long milliseconds)
+    {
+        if (_startedAt < 0) return false;
+        HandCursorSprite sprite = HandCursor.Sprite(HandCursorKind.SpellCast);
+        if (Math.Max(0, milliseconds - _startedAt) * sprite.FramesPerSecond < sprite.FrameCount * 1000L) return true;
+        _startedAt = -1;
+        return false;
+    }
 }
 
 public sealed class HandCursorAnimation

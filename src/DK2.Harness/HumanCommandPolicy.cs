@@ -17,7 +17,7 @@ public enum HumanCommandClass
     OutsidePlay,
 
     /// <summary>DK2's human can do it, but no input path of ours issues it yet (possession input,
-    /// door locking, alliances, the casino lever, message acknowledgement, rescue priority).</summary>
+    /// alliances, the casino lever, message acknowledgement, rescue priority).</summary>
     NoHumanPathYet,
 
     /// <summary>Only the computer keeper issues it; no human action corresponds.</summary>
@@ -63,10 +63,11 @@ public static class HumanCommandPolicy
         [typeof(WithdrawCounterGoldCommand)] = HumanCommandClass.Play,
         // The bottom panel's clicks: action 0x72, a trigger event (ADR-0670).
         [typeof(GuiButtonCommand)] = HumanCommandClass.Play,
+        // The Hand's press on a door, Hand_Click's hover-kind-5 arm (action 93).
+        [typeof(LockDoorCommand)] = HumanCommandClass.Play,
         [typeof(SkipCameraPathCommand)] = HumanCommandClass.OutsidePlay,
         [typeof(RevealMapCommand)] = HumanCommandClass.OutsidePlay,
         [typeof(ContinueAfterResultCommand)] = HumanCommandClass.OutsidePlay,
-        [typeof(LockDoorCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(PullCasinoLeverCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(SetAllianceCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(AcknowledgePlayerMessageCommand)] = HumanCommandClass.NoHumanPathYet,

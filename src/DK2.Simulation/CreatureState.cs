@@ -316,6 +316,12 @@ public sealed class CreatureState
 
     public bool ArrivalHeightActive;
 
+    /// <summary>The persistent horizontal vector (<c>+0x104</c>, <c>+0x108</c>), a thing's movement that
+    /// stays from turn to turn: a closed door adds to it (<c>0x004B1F20</c>), and the physical pass
+    /// (<c>0x004B2030</c>, <see cref="CreaturePhysicsRules"/>) moves the creature by a sixteenth of it and
+    /// drops <see cref="CreatureDef.AirFriction"/> of it per turn.</summary>
+    public int PhysicalVelocityX, PhysicalVelocityY;
+
     private int _posX, _posY;
     private bool _inHand;
     private int _carriedByCreatureId = -1;
@@ -1382,6 +1388,8 @@ public sealed class CreatureState
         hash.Add(PosZ);
         hash.Add(CreationVelocityZ);
         hash.Add(ArrivalHeightActive);
+        hash.Add(PhysicalVelocityX);
+        hash.Add(PhysicalVelocityY);
         hash.Add(Heading);
         hash.Add((int)RouteOptions);
         hash.Add(HeartTargetPlayerId);

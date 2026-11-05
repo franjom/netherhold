@@ -8,7 +8,8 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Systems;
 
 /// <summary>The health half of DK2's door update (<c>0x004A55F0</c>), in its order: the recovery,
-/// the owner test, and past the barricade return the support test. It runs after the creatures
+/// the owner test, the push off the tile (<see cref="DoorPushRules"/>), and past the barricade
+/// return the support test. It runs after the creatures
 /// have moved and swung, as DK2's thing pass updates the creature list before the doors
 /// (<c>0x004B7830</c>); the open state is <see cref="DoorSystem"/>'s, whose timing against movement
 /// is unchanged by where this half runs (door-blocking.md).</summary>
@@ -28,6 +29,8 @@ public sealed class DoorHealthSystem : ISimulationSystem
             DoorRules.Recover(context, door, definition);
             if (DoorRules.OwnerLost(world, door))
                 context.Emit("doors", "door_owner_lost", $"door={door.Id} player={door.PlayerId} tile_owner={world.Tile(door.X, door.Y).OwnerPlayerId}");
+            // Step 4, before the barricade's return: a closed built door, a barricade included, pushes off its tile.
+            DoorPushRules.PushCreaturesOff(context, door);
             if (definition.Flags.HasFlag(DoorFlags.Barricade)) continue;
             if (DoorRules.SupportLost(context.Navigation, door))
                 context.Emit("doors", "door_unsupported", $"door={door.Id} at={door.X},{door.Y}");

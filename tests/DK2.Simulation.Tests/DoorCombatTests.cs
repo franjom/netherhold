@@ -296,10 +296,11 @@ public class DoorCombatTests
         Assert.Equal(destroyed, world.Doors.Count == 0);
     }
 
-    /// <summary>The per-tile sight rule (<c>0x004511A0</c>): a door thing stops sight open or shut;
-    /// with a door on the target's tile no door does, only rock.</summary>
+    /// <summary>The per-tile sight rule (<c>0x004511A0</c>): a closed, completed door stops sight, an
+    /// open one does not (its navigation byte is floor, <c>0x004528E0</c>); with a door on the target's
+    /// tile no door does, only rock.</summary>
     [Fact]
-    public void ADoorStopsSightOpenOrShut_ButNotTowardATargetOnADoorTile()
+    public void AClosedDoorStopsSightAnOpenOneDoesNot_ButNotTowardATargetOnADoorTile()
     {
         (GameDatabase db, WorldState world) = Walled(Rival);
         var steering = new WorldSteering(db, world);
@@ -309,7 +310,7 @@ public class DoorCombatTests
 
         Assert.False(LineOfSight.Clear(sight, fromX, y, toX, y));
         world.Doors[0].Open = true;
-        Assert.False(LineOfSight.Clear(sight, fromX, y, toX, y));
+        Assert.True(LineOfSight.Clear(sight, fromX, y, toX, y));
         Assert.True(sight.DoorOn(DoorTile.X, DoorTile.Y));
         Assert.True(LineOfSight.Clear(sight.SolidOnly, fromX, y, CreatureState.CentreOf(10), y));
     }

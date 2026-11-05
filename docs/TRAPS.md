@@ -180,7 +180,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Worktrees, numbers and merges
 
-- The dk2kb MCP (`kb_get`, `kb_search`) reads the main checkout. In a worktree, an empty `kb_get` does not mean the record is missing: check `docs/research/functions/<ADDRESS>.md` on disk and merge into it, keeping its History.
+- The dk2kb MCP (`kb_get`, `kb_search`) reads the main checkout. In a worktree, an empty `kb_get` does not mean the record is missing: check `docs/research/functions/<ADDRESS>.md` on disk and merge into it, keeping its History. `kb_upsert` also writes the main checkout, not the worktree: edit the record file in the worktree instead, or copy the result across and restore the main file.
 
 - ADR, question and `HashVersion` numbers are read from committed files in every worktree, and
   master moves under a long task: re-check all of them immediately before each commit, and expect

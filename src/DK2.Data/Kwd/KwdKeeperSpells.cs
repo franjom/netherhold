@@ -18,6 +18,8 @@ public static class KwdKeeperSpells
         byte[] bytes = KwdOverlay.Image(template, KwdRecordType.KeeperSpells, RecordSize);
         KwdOverlay.Ascii(bytes, 0, 32, record.Name, Name(bytes, 0), trimmed: false);
         KwdOverlay.Ascii(bytes, OffsetSoundCategory, 32, record.SoundCategory, Name(bytes, OffsetSoundCategory), trimmed: false);
+        KwdOverlay.Ascii(bytes, OffsetGuiButtonSoundCategory, 32, record.GuiButtonSoundCategory,
+            Name(bytes, OffsetGuiButtonSoundCategory), trimmed: false);
         void I32(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value);
         if (record.ManaUpkeepPerSecond < 0 || record.ManaUpkeepPerSecond > ushort.MaxValue)
             throw new InvalidDataException("KEEPERSPELLS mana upkeep must fit its unsigned 16-bit field.");
@@ -67,6 +69,9 @@ public static class KwdKeeperSpells
     /// manager's lookup into the runtime spell's <c>+0x6D</c> (<c>0x004F7CE0</c>, docs/research/sound-effects-combat.md).</summary>
     private const int OffsetSoundCategory = 0xF1;
 
+    /// <summary>The GUI button's category name, 32 bytes, the runtime spell's <c>+0x71</c> (<c>0x004F7CE0</c>).</summary>
+    private const int OffsetGuiButtonSoundCategory = 0x174;
+
     public static List<KeeperSpellDef> Parse(IEnumerable<KwdChunk> chunks)
     {
         var result = new List<KeeperSpellDef>();
@@ -91,6 +96,7 @@ public static class KwdKeeperSpells
     {
         Name = Name(rec, b),
         SoundCategory = Name(rec, b + OffsetSoundCategory),
+        GuiButtonSoundCategory = Name(rec, b + OffsetGuiButtonSoundCategory),
         ManaUpkeepPerSecond =
             BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + OffsetManaUpkeepPerSecond)),
         ManaCost =

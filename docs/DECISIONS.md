@@ -10202,8 +10202,9 @@ until the owner's army starts breaking the door at 5344.
 
 **Decision.** The claim priority refuses a tile with a closed, completed door, as
 `0x0046AB50`'s third gate does: it continues only when `+0x21C(x, y, 0)`, the door nibble
-of the tile's navigation byte, is 0. Only a closed, completed door writes that nibble
-(`0x004A66F0`), so an open door or one under construction does not refuse. One gate
+of the tile's navigation byte, is 0. A closed, completed door writes that nibble
+(`0x004A66F0`; a revealed open secret door also does, `0x004A6625`, unbuilt), so an open door or one under
+construction does not refuse. One gate
 covers claim, attack and room conversion, as the handler does. Hash/save version 234.
 
 **Consequences.** On ADR-0441's tool Level 4 goes from 0/20 to 2/20 (seeds 19 and 13,
@@ -15906,3 +15907,165 @@ systems leave a fleeing creature alone. State 221 is the new `RunningFromThreat`
   the needs and anger checks DK2 runs in states 6 and 221; an Imp's task release by its state hooks.
 
 STRONGLY INFERRED from the disassembly. Records `00488930` and `0045C5D0` hold the detail.
+
+## ADR-0679: a closed door pushes creatures off its tile, through the physical pass
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 423. · **Systems:** doors-traps, creatures
+
+**Context.** Owner report, Level 6a: Imps standing on a barricade when it is completed stay trapped in it;
+in DK2 they are pushed out. Door update `0x004A55F0` step 4 pushes, and it comes before the barricade's
+early return, so a barricade pushes too. Ours had no push and no persistent creature velocity.
+
+**Decision.** `DoorHealthSystem` runs `DoorPushRules` at step 4, after the owner test: for a closed, built
+door every creature on its tile gets `0x80` added to its persistent velocity, away from a point the shut
+neighbours move (`0x004B1F20`). `CreaturePhysicsRules` is the physical pass's persistent arm
+(`0x004B2030`), run in the creature's movement step: sub-steps of a sixteenth, reflect-and-halve at a wall
+or door body, a commit that drops `CreatureDef.AirFriction` (file `+0xEAC`, 327) of the vector.
+`DoorRules.BlocksAt` is `0x004529A0`. Rules and addresses: [door-push.md](research/door-push.md).
+
+**Consequences.**
+- New saved and hashed fields: `CreatureState.PhysicalVelocityX/Y` (`+0x104/+0x108`). Earlier saves are refused.
+- A creature 0x300 off a barricade's centre leaves its tile on the 24th turn (33rd from 0x10): 6 to 8 game
+  seconds, against the owner's recollection of a couple.
+- Not built: the vertical and temporary vectors in the pass (their callers keep their own code), the lock
+  mode 3 shove, the creature terrain test of the commit.
+
+STRONGLY INFERRED from the disassembly. Records `004A55F0`, `004B1F20`, `004B2030`, `004529A0` hold the detail.
+
+## ADR-0680: a thing an imp holds is attached to the imp, at its point and turned half a turn
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 424. · **Systems:** creatures, doors-traps
+
+**Context.** Owner report: a finished trap box dragged to its blueprint trails about a tile behind the
+imp; in DK2 it is attached. The cause is presentation fed by too little state: ours kept only a tile for
+a held object and drew it on that tile's centre, with no interpolation, while the imp moves by sub-tile
+steps. DK2's `0x0048B5F0` runs in every update of a creature holding a thing (`+0x3C5`, set by
+`0x0048B4A0` for a crate, book, Special or body), after steering and before the animation chooser, and
+writes the imp's position into it.
+
+**Decision.** `ObjectCarryRules.TakeHold` (the imp jobs' pick-up; the Portal Gem keeps `PickUp`, which
+`0x0048B350` never attaches) and `FollowCarrier` copy the carrier's `PosX`/`PosY` into the object and set
+its heading to the carrier's minus `0x400` (half a turn: `0x800` to a turn), after the mover. `CarryRules.FollowCarrier` gives a dragged body
+the same heading. `WorldView` draws an attached object at that point at the carrier's ground height and
+captures it for the per-tick interpolation. Evidence: [workshop-crates.md](research/workshop-crates.md) §7.
+
+**Consequences.**
+- No new saved field. The position and heading words of a held thing now carry the carrier's, so the
+  state hash moves (424); earlier saves are refused.
+- A dropped thing keeps those words; ADR-0684 draws it there.
+- Not built: the thing's vertical position as state (the view takes the carrier's ground height) and
+  the previous-position words `+0xF6..` (the view's capture stands in).
+
+STRONGLY INFERRED from the disassembly. Records `0048B5F0`, `0048B4A0`, `004B5020` and `00628BC0` hold the detail.
+## ADR-0681: an imp takes a prisoner into the Prison through its gate
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 425. · **Systems:** rooms, creatures
+
+**Context.** Owner report, Level 6a: imps delivered a dragged prisoner from any rim tile of the Prison, and
+then stayed stuck inside it. State 43 (`0x00467DD0`) walks to the room's entry point (the door tile,
+`0x004E3290`) with option `0xE0`, and only from there steps south into the cell with `0xE4`, resuming 44; 44
+admits and walks back to the door with `0xEC`, resuming 46. A cell's floor is nav bit 2, which the step cost
+`0x004C8BD0` lets only an option-bit-2 walk cross. Ours routed one `0xE4` walk to a free cell tile from
+wherever the imp stood and elided 46's walk, so it crossed the edge anywhere and could not get out.
+
+**Decision.** `PrisonRules.GateTileIn` is the carry's destination: the door tile of the nearest Prison with
+space. `RouteTo` walks a Prison's door tile with `0xE0` and a cell tile with `0xE4`.
+`ImpTaskSystem.AtThePrisonGate` is 43's arrival test (open and room: step into the cell, resume 44; else the
+nearest other Prison; else put the body down on the door tile and idle). Admission walks to the door with
+`MoveOptions.PrisonLeaving` (`0xEC`), resuming 46, which returns the fight bits and sets 10. Rules and
+addresses: [prison-gate.md](research/prison-gate.md).
+
+**Consequences.**
+- No new saved field. Hash/save 425.
+- A Prison that fills before the imp reaches the door leaves the body on the door tile, where ADR-0629 put it on
+  a random rim tile (44's exit 3, reached now only if the Prison fills during the one step in). Q754.
+- Not built: the door's opening, 43's rim-tile branch, 44's exits 2 to 4 and 47/48's walks (an imp that meets
+  one of those races stays in the cell).
+- Declared deviation: native refuses the pick-up for a Prison with no door tile (`0x0046E786` tests the entry
+  point's X, which is below one tile for door tile (0, 0)); ours falls back to the free cell tile.
+
+STRONGLY INFERRED from the decompile of `0x00467DD0`, `0x004683F0`, `0x004E3290`, `0x004C8BD0`, `0x0046E610`'s
+enemy arm. The premise "cell floor = nav bit 2" rests on `0x004EFDE0`'s record, which is HYPOTHESIS.
+
+## ADR-0682: a creature on a closed door's push point is pushed toward an open side
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 426. · **Systems:** doors-traps, creatures
+
+**Context.** Owner report (Unity): an Imp that finishes a barricade is pushed off the tile, sometimes into
+a wall, and stays there. Door update `0x004A55F0` and the physical pass `0x004B2030` match ours; neither has
+a terrain guard beyond the reflect arm. The one push that faces a wall is a creature whose distance from
+the push point is 0, which takes its heading (`+0xF4`). That is not one point: `0x004A58A2`-`0x004A58C2` zeroes
+the along-wall component first, so in a passage the length is 0 along the whole line through the centre across
+it. Ours put an arriving Imp on the exact centre with heading north.
+
+**Decision.** `DoorPushRules.TowardAnOpenSide`: when that heading mainly faces a shut side and another side is
+open, the push goes to the open side nearest the heading. A deviation from DK2, recorded in
+[door-push.md](research/door-push.md) section 4. With all four sides shut, or a heading facing an open side,
+DK2's vector stands.
+
+**Consequences.**
+- No new saved field. Hash/save 426 (behaviour).
+- Whether a native Imp arrives on the exact centre is UNKNOWN; if it does not, DK2 never meets the case.
+
+Records `004A55F0`, `004B2030`, `004B35C0` hold the reads.
+
+
+## ADR-0683: line of sight passes an open door and a blueprint, as `0x004511A0` does
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 427. · **Systems:** camera-lighting, doors-traps
+
+**Context.** Owner report: on Level6a DK2 shows the Workshop behind the wooden door explored and ours
+leaves it as unexplored rock. The level script un-explores the player's own Workshop after the fly-over,
+and `0x00454E00` has no owner test, so only creature sight brings it back. ADR-0318 made `WorldSight` stop
+at any door thing, open or shut, from a read of the thing chain. `0x004511A0`'s door arm first calls
+`0x004528E0`, which returns 0 unless the tile's navigation byte carries a door owner; a closed,
+completed door writes one (`0x004A66F0`), and so does a revealed secret door while open (`0x004A6625`, unbuilt).
+
+**Decision.** `WorldSight.Blocks` stops sight at a door only while it is closed, completed and not a
+barricade, reading the open state live. `DoorOn`, the reach test's thing-chain question, is unchanged.
+`DiscoveryRules.SetExplored` un-explores a 5x5 rotated room tile by tile: `0x00454E00` takes
+constructions 3 and 4 as a whole room, `0x00454B80` also 8.
+
+**Consequences.**
+- No new saved field. The hash moves with behaviour (427): creature sight, combat targeting, the Boulder,
+  traps and possession all ask `WorldSight`, so an open door no longer hides what is behind it. Earlier
+  saves are refused.
+- The Unity symptom is not reproduced headless: Level6a re-explores the Workshop within about 110 ticks
+  because a creature walks in. That the open-door rule is what the owner saw is a HYPOTHESIS.
+- Per-tick sight stays ours (DK2's is event-driven), so ours still sees at least what DK2 does.
+- A closed, completed door is not the only writer of the nibble: `0x004A55F0`'s secret-door reveal arm calls
+  `Door_WriteNavByte(1)` at `0x004A6625` while the door is open, so DK2 blocks sight at a revealed open secret
+  door. The reveal is unbuilt, so nothing diverges today.
+
+STRONGLY INFERRED from the disassembly. Records `004511A0`, `004528E0`, `00454E00`, `004512F0` hold the
+detail; evidence in [fog-reveal-sources.md](research/fog-reveal-sources.md) §7.
+
+## ADR-0684: a set-down thing lies at the carrier's point, and the attachment runs in every state
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 428. · **Systems:** creatures, doors-traps
+
+**Context.** Review of ADR-0680. It said `0x400` was a quarter turn (it is half: `0x800` to a turn) and
+that `0x0048B5F0` ends the update (its call at `0x0048A4AE` is before the animation chooser, `0x0048A4B5`).
+Two behaviours were also short of DK2: `Creature_DropDraggedThing` (`0x0048B500`) sets the thing at the
+carrier's exact point and keeps its heading, while ours drew a loose crate on its tile centre, so a dropped
+crate jumped from the imp's point to the centre; and ours followed the carrier only inside the carry states
+31-33, 35 and 37, where DK2's call is made in every state while `+0x3C5` is set.
+
+**Decision.**
+- `CarriedThingAttachSystem` runs `ObjectCarryRules.FollowCarrier` (and `CarryRules.FollowCarrier` for a
+  body) for every creature holding something, before the carrying sound, in any state. The Portal Gem
+  (`+0x3C3`) is skipped.
+- `ObjectCarryRules.Drop` is `0x0048B500`: the thing takes the carrier's point and tile and keeps its heading;
+  the imp jobs' drops and `DropWhatever` use it, and `Deliver` sets the same point.
+- `WorldView` draws a loose crate, book or Special at its own point and heading while that point is on its
+  tile (`StandsAtOwnPoint`), as DK2 draws every thing at `+0x1A`. `CrateRules.Arrange` sets a listed crate at its
+  tile centre, as `0x004F5040` does, and the hand's drop sets the tile centre.
+
+**Consequences.**
+- No new saved field. Dropped and listed crates' `PosX`/`PosY` move, so the state hash moves (428); earlier
+  saves are refused.
+- Not built: DK2's aim of a listed crate at the room's position and its three-to-a-tile draw offsets; the
+  hand-drop point for a crate (unread); the worker-job leave hook's (`0x004647D0`) drop on a category change
+  beyond pick-up, death and possession.
+
+STRONGLY INFERRED from the disassembly; the hand pick-up's route through the leave hook is HYPOTHESIS. See [workshop-crates.md](research/workshop-crates.md) §7 and records `0048B500`, `0048B5F0`, `004F5040`, `004647D0`.

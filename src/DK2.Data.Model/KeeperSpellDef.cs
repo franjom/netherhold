@@ -40,6 +40,11 @@ public sealed record KeeperSpellDef
     /// runtime spell's <c>+0x6D</c>, which the cast asks <c>0xEF</c> in and the Tremor its sounds. Empty when the record names none.</summary>
     public string SoundCategory { get; init; } = string.Empty;
 
+    /// <summary>The spell's GUI button sound category (a <c>GUI_BUTTON_*</c> bank), file <c>0x174</c>, 32 bytes: the
+    /// runtime spell's <c>+0x71</c>, in which selecting the spell from the panel asks <c>0x104</c>, its spoken
+    /// announcement (<c>0x00411140</c>, sound-effects-interface.md section 13). Empty when the record names none.</summary>
+    public string GuiButtonSoundCategory { get; init; } = string.Empty;
+
     public int CooldownRaw { get; init; }
     public byte LocationSelector { get; init; }
     public byte TargetSelector { get; init; }
