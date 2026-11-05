@@ -283,7 +283,7 @@ public sealed partial class ImpTaskSystem
             // The walk ended short of the blueprint: state 6 fails, which is idle.
             context.Emit(SystemName, "crate_dropped",
                 $"imp={creature.Id} crate={crate.Id} at=({creature.Tile.X},{creature.Tile.Y}) reason=no_route");
-            ObjectCarryRules.PutDown(creature, crate);
+            ObjectCarryRules.Drop(world, creature, crate);
             StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
@@ -291,7 +291,7 @@ public sealed partial class ImpTaskSystem
 
         if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
         byte kind = KindOfState(creature.Dk2StateId);
-        ObjectCarryRules.PutDown(creature, crate);
+        ObjectCarryRules.Drop(world, creature, crate);
 
         if (CrateRules.BlueprintAt(world, context.Database, creature.OwnerPlayerId, kind, here, crate.ObjectTypeId) is { } blueprint)
         {
@@ -320,8 +320,7 @@ public sealed partial class ImpTaskSystem
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        ObjectCarryRules.PutDown(creature, crate);
-        crate.TileIndex = here;
+        ObjectCarryRules.Drop(world, creature, crate);
 
         if (RoomIndex.RoomAt(world, database, here) is { } room && room.Definition.TypeId == RoomTypeId.Workshop
             && room.OwnerPlayerId == creature.OwnerPlayerId && CrateRules.List(context.Hooks, room, crate))
