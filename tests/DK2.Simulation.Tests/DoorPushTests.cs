@@ -197,6 +197,75 @@ public class DoorPushTests
         Assert.Equal(0, imp.PhysicalVelocityX);
     }
 
+    /// <summary>The owner's report: an Imp that arrives on the exact centre and turns toward north (the bearing of
+    /// a zero vector) was pushed along that heading into the wall of an east-west passage and stayed pressed
+    /// against it. A creature on the push point is pushed along its heading unless that faces a shut side
+    /// (ADR-0682): then toward an open one. Every shut/open mix of the four sides, every heading, on the centre.</summary>
+    [Theory]
+    [InlineData(0b0101, 0)]    // walls north and south: a passage east-west, heading north
+    [InlineData(0b0101, 1024)] // the same, heading south
+    [InlineData(0b1010, 512)]  // walls east and west, heading east
+    [InlineData(0b1010, 1536)]
+    [InlineData(0b0111, 0)]    // a dead end open to the west, heading north
+    [InlineData(0b1011, 1024)] // open to the south, heading south
+    [InlineData(0b0001, 0)]    // only the north shut: it is pushed away from it
+    public void ACreatureOnThePushPointIsNeverPushedIntoAWall(int shutSides, int heading)
+    {
+        (GameDatabase db, WorldState world, _) = Walled(Barricade);
+        for (int y = 1; y < world.Height - 1; y++)
+        {
+            for (int x = 1; x < world.Width - 1; x++)
+            {
+                if (x != DoorTile.X || y != DoorTile.Y) world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
+        (int X, int Y)[] sides = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+        for (int side = 0; side < 4; side++)
+        {
+            if ((shutSides & (1 << side)) == 0) continue;
+            world.Tile(new TilePos(DoorTile.X + sides[side].X, DoorTile.Y + sides[side].Y)).TerrainId = Dk2TerrainFixture.Rock;
+        }
+
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, DoorTile);
+        imp.PosX = Centre(DoorTile.X);
+        imp.PosY = Centre(DoorTile.Y);
+        imp.Heading = heading;
+        GameSimulation sim = Sim(db, world);
+
+        Assert.InRange(TurnsUntilOffTheDoorTile(sim, imp, 80), 1, 60);
+        sim.Run(80);
+
+        Assert.False(db.TerrainById(world.Tile(imp.Tile).TerrainId).IsSolid, "the imp ended inside a wall");
+        Assert.NotEqual(DoorTile, imp.Tile);
+        Assert.Equal(0, imp.PhysicalVelocityX);
+        Assert.Equal(0, imp.PhysicalVelocityY);
+        // Standing clear of every wall edge by more than a step, so the next route can start.
+        int dx = Math.Abs(imp.PosX - Centre(imp.Tile.X)), dy = Math.Abs(imp.PosY - Centre(imp.Tile.Y));
+        Assert.True(dx < 0x800 && dy < 0x800);
+    }
+
+    /// <summary>With all four sides shut there is nowhere to go: DK2's heading push stands, and the creature stays.</summary>
+    [Fact]
+    public void ACreatureInAClosedBoxStaysOnTheTile()
+    {
+        (GameDatabase db, WorldState world, _) = Walled(Barricade);
+        world.Tile(new TilePos(DoorTile.X, DoorTile.Y - 1)).TerrainId = Dk2TerrainFixture.Rock;
+        world.Tile(new TilePos(DoorTile.X, DoorTile.Y + 1)).TerrainId = Dk2TerrainFixture.Rock;
+        world.Tile(new TilePos(DoorTile.X - 1, DoorTile.Y)).TerrainId = Dk2TerrainFixture.Rock;
+        world.Tile(new TilePos(DoorTile.X + 1, DoorTile.Y)).TerrainId = Dk2TerrainFixture.Rock;
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, DoorTile);
+        imp.PosX = Centre(DoorTile.X);
+        imp.PosY = Centre(DoorTile.Y);
+        imp.Heading = 0;
+        GameSimulation sim = Sim(db, world);
+
+        sim.Run(60);
+
+        Assert.Equal(DoorTile, imp.Tile);
+        Assert.False(db.TerrainById(world.Tile(imp.Tile).TerrainId).IsSolid);
+    }
+
     /// <summary>The vector is part of the state: it changes the hash and survives a save.</summary>
     [Fact]
     public void ThePersistentVelocityIsHashedAndSaved()

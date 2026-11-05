@@ -15956,3 +15956,23 @@ captures it for the per-tick interpolation. Evidence: [workshop-crates.md](resea
   the previous-position words `+0xF6..` (the view's capture stands in).
 
 STRONGLY INFERRED from the disassembly. Records `0048B5F0`, `0048B4A0`, `004B5020` and `00628BC0` hold the detail.
+
+## ADR-0682: a creature on a closed door's push point is pushed toward an open side
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 426. · **Systems:** doors-traps, creatures
+
+**Context.** Owner report (Unity): an Imp that finishes a barricade is pushed off the tile, sometimes into
+a wall, and stays there. Door update `0x004A55F0` and the physical pass `0x004B2030` match ours; neither has
+a terrain guard beyond the reflect arm. The one push that faces a wall is a creature exactly on the push
+point, which takes its heading (`+0xF4`). Ours put an arriving Imp on the exact centre with heading north.
+
+**Decision.** `DoorPushRules.TowardAnOpenSide`: when that heading mainly faces a shut side and another side is
+open, the push goes to the open side nearest the heading. A deviation from DK2, recorded in
+[door-push.md](research/door-push.md) section 4. With all four sides shut, or a heading facing an open side,
+DK2's vector stands.
+
+**Consequences.**
+- No new saved field. Hash/save 426 (behaviour).
+- Whether a native Imp arrives on the exact centre is UNKNOWN; if it does not, DK2 never meets the case.
+
+Records `004A55F0`, `004B2030`, `004B35C0` hold the reads.
