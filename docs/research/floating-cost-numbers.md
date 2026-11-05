@@ -117,7 +117,9 @@ type 1 is white, runtime art flag 2 takes the owner colour (minimum `0x30`), oth
 RGB (`+0x4A..+0x4C`) goes to element `+0x6E`. [0x00504D80](functions/00504D80.md) sets `+0xB` bit 0 for
 any non-zero art type, so both digit sets pass the RenderInfo gate. `0x0057F3D0` adds a light term to
 that base from a list whose filler is unread (Q609), so all the digits show is light: the owner sees them
-darken in unlit places (2026-11-05). The art itself is gold: the `InGameDigit5` texture averages
+darken in unlit places (2026-11-05). A DK2 Prison sale screenshot
+(`F:/DK2Evidence/captures/visual/cost-numbers-prison-sale-lighting--2026-11-05--001`) shows the digits
+under wall torches bright gold, never white, and those mid-room dimmer but readable. The art itself is gold: the `InGameDigit5` texture averages
 RGB 171,159,92 over its opaque pixels, `gInGameDigit5` (mana) 91,171,133 (decoded 2026-11-05 with
 `DK2.Art`'s EngineTextureArchive).
 
