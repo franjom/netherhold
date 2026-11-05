@@ -135,6 +135,9 @@ public sealed class RoomSellSystem : ISimulationSystem
                 $"player={playerId} amount={refund - banked} reason=nowhere_to_store (now a pile on the floor at tile {index})");
         }
 
+        // The refund floats up from the tile (0x004C5ED0), every paid tile, a refund of 0 included.
+        CostNumberRules.Show(context, SystemName, playerId, CostNumberRules.TileCentre(pos, 0x1000), refund);
+
         // The sale's own sound, after the refund is paid in (0x004C5EF8): handle 0, the room's terrain
         // category, the tile's centre at height 0x1000.
         ThingSoundRules.RequestTile(context, SystemName, room.TerrainId, index, ThingSoundEvent.RoomTileSold,

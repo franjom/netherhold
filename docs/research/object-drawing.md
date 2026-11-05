@@ -358,8 +358,11 @@ the Heart's grey dust brown and its cyan sparkles white against the owner's DK2,
 effect sprites now draw at their tint and the list is taken as empty for them
 (HYPOTHESIS; against it, the items are queued on their tile by `0x00571AE0` for an
 untraced draw-context producer that may supply the tile's table, Q609).
-`ClassicPointLight.RadialAt` and `ClassicWorldLightCache.TryGetVisibleTable` remain,
-unused by the renderer, for that question.
+The floating cost digits (RGB 0,0,0, `ConstructionParticle.TakesLight`) are the one exception:
+`SpriteLighting.Lit` adds `ClassicPointLight.RadialAt` over the digit tile's table from
+`ClassicWorldLightCache.TryGetVisibleTable`, the Hand's light included, because the owner sees
+them follow the lighting (2026-11-05, ADR-0663). That the list is the tile's table stays a
+HYPOTHESIS (Q609).
 
 ## 11. Open
 

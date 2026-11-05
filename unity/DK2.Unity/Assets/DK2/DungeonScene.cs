@@ -83,6 +83,16 @@ namespace DK2.Unity
         /// <summary>A drawn gem carrier's mesh point 10001, once per draw (CreatureView.GemDustSparkle).</summary>
         public System.Action<FpPosition3> GemSparkleRequested { get; set; }
         public ClassicLightning Lightning { get; set; }
+
+        /// <summary>The light table this frame gave a visible tile; false for a tile not drawn or
+        /// without classic lighting.</summary>
+        public bool HasClassicLighting => _worldLights != null;
+
+        public bool TryGetTileLights(TilePos tile, out ClassicLightTable table)
+        {
+            table = null;
+            return _worldLights != null && _worldLights.TryGetVisibleTable(tile, out table);
+        }
         private readonly Dictionary<int, long> _gemSparkleQuanta = new Dictionary<int, long>();
         public System.Func<EffectTime> HeartEffectClock { get; set; } =
             () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));

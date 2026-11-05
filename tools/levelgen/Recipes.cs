@@ -98,7 +98,34 @@ public static class Recipes
                 for (int y = 22; y <= 30; y++) for (int x = 36; x <= 44; x++) b.Paint(x, y, new MapTile(TreasuryTerrain, Keeper, 1, 0));
                 b.SetStartingGold(Keeper, 250000);
             }),
+        new("MPT21Dungeon", "mpd1",
+            "The owner's My Pet Dungeon save MPT21.SAV (Data/Save, 2026-09-26) as a level, for Unity (2026-11-05): mpd1's map "
+            + "repainted tile by tile from the save's grid, placed objects left in solid rock removed, and 250000 starting "
+            + "gold (the Heart's 16000 and the save's 115 Treasury tiles x 3000 hold it). The save's creatures and objects "
+            + "are undecoded (Q182), so mpd1's own placed things stay.",
+            b => FromSave(b, "MPT21.SAV", 250000)),
     ];
+
+    /// <summary>Repaints the base level from a DK2 save of that level (terrain, owner and flags per tile)
+    /// and drops placed objects now inside solid rock or wall.</summary>
+    private static void FromSave(LevelBuilder b, string saveFile, int startingGold)
+    {
+        string path = Path.Combine(DK2.Data.Save.Dk2SaveReader.SaveDirectory(b.Install), saveFile);
+        DK2.Data.Save.SavedGame save = DK2.Data.Save.Dk2SaveReader.Load(b.Install, path)
+            ?? throw new InvalidOperationException($"{saveFile} names a level this install has no map for");
+        if (!save.Header.LevelName.Equals(b.BaseName, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"{saveFile} is level {save.Header.LevelName}, not {b.BaseName}");
+        LevelMap from = save.Map, to = b.Map;
+        if (from.Width != to.Width || from.Height != to.Height) throw new InvalidOperationException("grid size differs");
+        for (int y = 0; y < from.Height; y++)
+            for (int x = 0; x < from.Width; x++)
+                if (from[x, y] != to[x, y]) b.Paint(x, y, from[x, y]);
+        LevelMap painted = b.Map;
+        var things = b.Things;
+        for (int i = things.Count - 1; i >= 0; i--)
+            if (things[i] is ObjectThing o && painted[o.X, o.Y].TerrainId is ImpenetrableRock or 2 or 9) b.RemoveThing(i);
+        b.SetStartingGold(Keeper, startingGold);
+    }
 
     private const byte TreasuryTerrain = 10;
 

@@ -41,6 +41,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private readonly Func<ViewEffectRequest, bool>? _cameraVisible;
     private readonly Func<TilePos, TerrainFlags>? _terrainFlags;
     private readonly Func<TilePos, bool>? _solidTile;
+    private readonly PlayerId? _viewer;
 
     /// <summary>The longest Next chain followed from one request (<c>0x00440350</c> loops until a
     /// zero id; shipped chains are two long). A guard against a data cycle.</summary>
@@ -78,8 +79,10 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         Func<ViewEffectRequest, bool>? cameraVisible = null,
         Func<TilePos, TerrainFlags>? terrainFlags = null,
         Func<TilePos, bool>? solidTile = null,
-        Func<CreatureId, Fp32?>? creatureGroundHeight = null)
+        Func<CreatureId, Fp32?>? creatureGroundHeight = null,
+        PlayerId? viewer = null)
     {
+        _viewer = viewer;
         _groupParts = groupParts;
         _creatureGroundHeight = creatureGroundHeight;
         _attachment = attachment;
@@ -140,6 +143,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             ? incoming with { Position = incoming.Position with { Z = new(incoming.Position.Z.Raw
                 + (_creatureGroundHeight?.Invoke(incoming.GroundCreatureId) ?? _floorHeight(incoming.GroundAnchor ?? incoming.Position)).Raw) },
                 HeightSpace = EffectHeightSpace.Absolute } : incoming;
+        // 0x00441060 floats an amount for the local viewer only; a null viewer shows every player's.
+        if (request.Amount.HasValue && _viewer is PlayerId viewer && request.Owner != viewer) return;
         if (!_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
             || !AllowsEffect(request, definition)) return;
         EffectCreated?.Invoke(request);
@@ -818,6 +823,14 @@ public sealed class ConstructionParticle
     internal int SwayPhaseRaw;
     internal int SecondSwayPhaseRaw;
     internal int FallPhaseRaw;
+    /// <summary>A sideways offset of the drawn sprite in camera space, in 1/4096 tile, positive to the
+    /// viewer's right (element <c>+0x7D</c>, written by generation type 14 <c>0x00439480</c>); 0 for
+    /// every element but a floating amount's digits.</summary>
+    public int ScreenOffsetXRaw { get; internal set; }
+    /// <summary>Whether the sprite's colour is its tint plus the radial term of its tile's lights
+    /// (<c>0x0057F3D0</c> through <c>0x0057C080</c>), clamped at 255 a channel: a floating amount's digits,
+    /// whose tint is 0,0,0. Other effect sprites draw at their tint alone (ADR-0493 amendment, Q609).</summary>
+    public bool TakesLight { get; internal set; }
     public byte Red { get; internal set; }
     public byte Green { get; internal set; }
     public byte Blue { get; internal set; }
