@@ -260,13 +260,20 @@ friction 327, fading. It is made at landing only (the turn state 214 becomes 11)
 rise. Ours requests it (`ImpCreationRules.Step`), the effect model supports type 4 and the Unity
 runner feeds it the simulation events; not seen running.
 
-**Built (2026-11-05), presentation only.** `WorldView` gives a worker in state 214 the clip key
-`creation_jump` (art catalogue 31, slot 32), played once from the state's entry tick and replaced
-when the state leaves 214, as the chooser does. On the creation turn (both heights at the birth
-height, no vertical velocity yet) it draws the previous height at floor + 0x20, the rise of the
-HYPOTHESIS above. The simulation, its hash and saves are unchanged. A non-worker in 214 keeps the
-plain fall. The owner saw the Imp hop up and land in the running game (2026-11-05). That fits this
-reading, but nobody has yet compared the built result with the game frame by frame.
+**Built (2026-11-05), presentation only.** `WorldView` gives a worker the clip key `creation_jump`
+(art catalogue 31, slot 32) for the one update the chooser sees it in 214: the update after its
+creation, whose physical pass drops it. The clip starts on that tick, and state 11 replaces it with
+the standing pose on the next. The creation turn keeps the ordinary pose. On that turn, with both
+heights at the birth height and no vertical velocity yet, a worker is drawn from a previous height
+of floor + 0x20: the rise of the HYPOTHESIS above. The simulation, its hash and saves are unchanged.
+A first build played the clip for both 214 turns, and the owner saw a somersault where DK2 shows a
+hop.
+
+**Owner's recording (2026-11-05, upgraded Create Imp).** At 30 fps the imp appears on the floor at
+the cast point. It leaps up and sideways in a sprawled, near-horizontal pose, its shadow apart below
+it, and lands about 0.35 s later. The red orb and the pink and white burst over it come from the
+upgraded spell's level-ups to 4, not from the birth; a plain cast shows neither (owner). The green
+glow at its feet is effect 29.
 
 **Ours today.** State 214 maps to Activity Idle, so `WorldView.AnimationFor` returns the `idle`
 key (slot 20, Imp_Idle1, 171 frames) with no route, and the same in 11 and 10. Height is

@@ -1512,11 +1512,11 @@ public sealed partial class WorldView
                 new FpPosition3(new(posX), new(posY), new(FloorZ))).Raw;
             int previousHeight = flying ? FloorZ : CreatureGroundHeight(world,
                 new FpPosition3(new(creature.LastPosX), new(creature.LastPosY), new(FloorZ))).Raw;
-            bool creationJump = IsCreationJump(creature);
+            bool creationJump = IsCreationJump(creature, world.CurrentTick);
             if (creature.Dk2StateId == ImpCreationRules.FallingState)
             {
                 height += creature.PosZ;
-                previousHeight += creationJump && IsCreationTurn(creature) ? CreationPreviousHeight : creature.LastPosZ;
+                previousHeight += IsWorker(creature) && IsCreationTurn(creature) ? CreationPreviousHeight : creature.LastPosZ;
             }
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
             int previousX = creature.LastPosX, previousY = creature.LastPosY;
@@ -1575,7 +1575,7 @@ public sealed partial class WorldView
                 playsAnimation || creationJump, creature.Activity != CreatureActivity.Dying && !meleeAnimation && !castAnimation
                     && !IsDeferredLanding(creature) && !trainingAnimation && !entranceAnimation
                     && !IsDropRecoveryAnimation(creature) && !creationJump,
-                creationJump && creature.StateEnteredTick >= 0 ? new GameTick(creature.StateEnteredTick)
+                creationJump ? new GameTick(creature.StateEnteredTick + 1)
                     : trainingAnimation ? new GameTick(creature.TrainingActionStartedTick)
                     : meleeAnimation || castAnimation ? new GameTick(creature.SwingStartTick)
                     : (entranceAnimation || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature)) && creature.StateEnteredTick >= 0
@@ -1639,7 +1639,7 @@ public sealed partial class WorldView
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         if (IsBedExitPose(creature, tick)) return _creatureAnimations[creature.CreatureTypeId]["moving_to_job"];
-        if (IsCreationJump(creature)) return _creatureAnimations[creature.CreatureTypeId]["creation_jump"];
+        if (IsCreationJump(creature, tick)) return _creatureAnimations[creature.CreatureTypeId]["creation_jump"];
         string clip = ActivityKeySegment(creature.Activity);
         if (creature.Dk2StateId == PortalRules.JoiningState) clip = "entrance";
         else if (IsDropRecoveryAnimation(creature)) clip = creature.Dk2StateId == DropLandingRules.GettingUpState
@@ -1749,12 +1749,17 @@ public sealed partial class WorldView
     private static bool IsEatingAnimation(CreatureState creature) =>
         creature.Dk2StateId is EatingRules.AfterMealState or PrisonRules.AfterEatingState;
     private readonly Dictionary<byte, int> _castHoldTicks = [];
-    /// <summary>A worker in state 214 plays its slot-32 jump (imp-jump(iw)): 0x0048BE50's 214 arm installs it at
-    /// once, and the next state's standing pose replaces it at once, so only its opening frames show
-    /// (imp-create-position.md, "State 214 animation").</summary>
-    private bool IsCreationJump(CreatureState creature) =>
-        creature.Dk2StateId == ImpCreationRules.FallingState
-        && (_database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) != 0;
+    /// <summary>A worker plays its slot-32 jump (imp-jump(iw)) for the one update the chooser sees it in state 214:
+    /// the update after its creation, whose physical pass drops it to the floor. 0x0048BE50's 214 arm installs the
+    /// clip at once, and on the next update the landing's state 11 installs the standing pose at once, so only the
+    /// clip's opening frames show (imp-create-position.md, "State 214 animation"). The creation turn keeps the
+    /// ordinary pose.</summary>
+    private bool IsCreationJump(CreatureState creature, GameTick tick) =>
+        creature.Dk2StateId == ImpCreationRules.FallingState && creature.StateEnteredTick >= 0
+        && tick.Value == creature.StateEnteredTick + 1 && IsWorker(creature);
+
+    private bool IsWorker(CreatureState creature) =>
+        (_database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) != 0;
 
     /// <summary>The turn of creation: <see cref="ImpCreationRules"/> starts both heights at the birth height and its
     /// first step moves the previous one.</summary>
