@@ -15363,6 +15363,8 @@ force and cited in code. The `docs` gate rejects `implemented` on an ADR a chang
 status word not in `AdrIndex.Statuses`. 17 BUILT records still lack an `implements:` line; each is held to
 the rule when it is next edited.
 
+- **Amendment (2026-11-05):** the sort was done in one pass rather than as records are next read (`0c8d955b`): 131 PARTIAL became BUILT, 9 became READ, 12 BUILT became PARTIAL, and every BUILT record now names its code. 234 records are PARTIAL, each with a History line saying what is not mirrored.
+
 ## ADR-0661: a tunneller's swing is action 1 on its own clip
 
 **Date:** 2026-11-04. **Status:** accepted. Answers Q742; hash/save 407. · **Systems:** heroes, imps-tile-work

@@ -19,7 +19,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - KLD content offsets depend on each chunk's headerBlockSize; validate record tags and the final boundary before treating a trigger file as empty (Frosty's Lair TRIGGERS starts at60, THINGS at56).
 
 - Replay CSV labels its clock `tick`, but replay events TSV labels it `turn`; inspect the header before sharing a parser.
-- `docs/experiments/` is ignored: stage a requested report with `git add -f -- <exact README path>`, never the whole experiment directory.
+- `docs/experiments/` is ignored and untracked (`ecf22a30`): an experiment write-up goes to `F:\DK2Evidence\studies\<study>\payload\` (AGENTS.md, evidence rule), and nothing under `docs/experiments/` is staged, not even with `git add -f`.
 
 - `dotnet run -m:1 -- ...` forwards the unrecognized MSBuild switch to the app; use `dotnet build -m:1`, then run the built DLL.
 
