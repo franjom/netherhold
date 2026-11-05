@@ -960,12 +960,9 @@ Expected: PASS. Then run the whole `DK2.Behavior.Tests`.
     is 0.5–0.56 ms.
   - Not built.
 - **Narrowing `nav.refresh`'s cache key.**
-  - `WorldSteering.Unchanged()` compares the whole `TileState` array, so health, gold, fog and
-    tag writes force a navigation-byte refill 8–18 times a tick.
-  - The ceiling is its self-time, ≈ 0.4–0.5 ms/tick.
-  - A narrower key would have to name every input of the fill (terrain, owner, secret door,
-    doors, ruined hearts, crypts, nav stamps).
-  - Not built.
+  - Built after this plan (commit d2150742, ADR-0454): `WorldSteering.Unchanged()` compares one
+    word per tile (terrain, owner, ruin, Secret Door), so health, gold, fog and tag writes no
+    longer force a refill. Hashes unchanged.
 - **Building keeper views in parallel.**
   - Unsafe as the code stands. `StructureBlocks.For` rewrites `world.StructureCache.Scratch` on
     every call, even on a cache hit (`StructureBlocks.cs:81-93`). So even pre-warmed caches

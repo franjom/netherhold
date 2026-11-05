@@ -10435,7 +10435,7 @@ confines it. The `grid.flood` marker counts floods. Selection's own cost
 (ring scans over the map, candidate sorting) is untouched and is the next item.
 
 ## ADR-0454 — Derived navigation state is kept while its inputs are unchanged
-**Date:** 2026-10-13 · **Status:** accepted · **Systems:** navigation, simulation-core
+**Date:** 2026-10-13 · **Status:** accepted · amended 2026-11-05: the refresh compares one word per tile, not the tile array · **Systems:** navigation, simulation-core
 
 **Context.** A tick allocated about 8 MB on Level 18 and spent a sixth of
 its time in `nav.refresh`, called about seventeen times a tick, each call
@@ -10447,7 +10447,9 @@ room sweep allocated a visited array the size of the map, and every
 never trusted blindly. `WorldSteering.Refresh` returns at once while the
 tile array, the doors' navigation fields, the set of ruined hearts and the
 crypts' tiles (a Graveyard's floor slots) are what the last refresh saw;
-the check is one byte comparison of the tile array. `StructureBlocks.For` keeps the world's last mask with the list of
+the tile check is one word per tile of what the refresh reads (terrain, owner,
+ruin bit, Secret Door), so a write to health, gold, tags or fog does not
+trigger a refill. `StructureBlocks.For` keeps the world's last mask with the list of
 structure tiles (index, terrain, owner, heart ruined) it was built from,
 and recomputes when a scan finds that list changed. `RoomIndex` takes its
 visited array from per-thread scratch. No tile-write counter exists, since
@@ -10485,28 +10487,39 @@ here that carries it, or the player draws it pink; unity/README.md says so.
 `DK2/ClassicEffect` is a shader under Resources already, so every variant of
 it is built.
 ## ADR-0456 — The presenter runs its tile pass only when the tiles' inputs changed
-**Date:** 2026-10-13 · **Status:** accepted · **Systems:** presentation-unity
+**Date:** 2026-10-13 · **Status:** accepted · amended 2026-11-05: the pass asks only the tiles whose inputs changed · **Systems:** presentation-unity
 
 **Context.** `ScenePresenter.Present` runs every frame and its tile pass
 built a `TileView` for every tile to compare with the last one pushed,
 about 1-2 ms a frame on Level 1, on frames where the simulation had not
-ticked and nothing could have changed.
+ticked and nothing could have changed. Once the tick was the only thing
+that changed, a frame carrying one still asked all 4,900 tiles of Level 6a
+again (about 65 ms on the main thread against 17 without a tick).
 
 **Decision.** The tile pass runs only when its inputs differ from what it
-last read: the tile array, compared byte for byte against a copy; which
-hearts are ruined (a ruined platform is drawn as floor); the fog flag; the
-doors' version (a door shows on its tile); the crypts' tiles (a Graveyard's
-floor slots); the view's tag-preview version; and the tick, since the view's
-room facts are cached per tick. The viewing player and the database are
-fixed for the view's life. A tile written, a door placed or a preview moved
-between two presents is still seen (tests pin those three). The other passes
-(torches, objects, structures, creatures) are unchanged.
+last read: the tile array, compared byte for byte against a copy; each
+tile's room facts; which hearts are ruined (a ruined platform is drawn as
+floor); the fog flag; the doors' version (a door shows on its tile); the
+crypts' tiles (a Graveyard's floor slots); the view's tag-preview version;
+the highlight slots and blink; and the tick, since the view's room facts
+are cached per tick, which matters for the pass itself only while a Sight
+region is open. The viewing player and the database are fixed for the
+view's life. A tile written, a door placed or a preview moved between two
+presents is still seen (tests pin those three). When only tiles or room
+facts changed, the pass asks only the tiles within two of a tile whose
+bytes changed (the widest read a tile view makes of its neighbours) and
+the tiles whose room facts changed; any other input asks every tile.
+`ScenePresenter.IncrementalTiles = false` is the old pass, and
+`IncrementalTilePassTests` requires both to push the same calls over 400
+ticks of Level 6a. The other passes (torches, objects, structures,
+creatures) are unchanged.
 
 **Consequences.** Any new input the tile view reads must join the check,
 as with ADR-0454's caches; the reviewer found the doors and the preview
 missing from the first version. The saving is on frames without a tick,
-which at 4 Hz is most of them. `WorldState.Tiles` exposes the tiles as a
-read-only span for whole-map comparison.
+which at 4 Hz is most of them, and on tick frames the incremental pass (Level 6a probe,
+90 s: main thread on tick frames 65.4 to 30 ms, Present 21.1 to 6.7 ms). `WorldState.Tiles`
+exposes the tiles as a read-only span for whole-map comparison.
 
 ## ADR-0457 — Terrain chunk rebuilds are spread over frames
 **Date:** 2026-10-13 · **Status:** accepted · **Systems:** presentation-unity
