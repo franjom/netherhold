@@ -65,17 +65,17 @@ expect:
     detail: "creature=1 type=Goblin player=3 chicken=7"
     at_tick: 720
     because: >
-      Floor laying, full-room coop launches and chicken roaming leave a bird on the
-      entry tile, so this seed feeds one Goblin without a chase and the other after
-      a short one (tick 724). WHICH bird is incidental: it follows every random draw
-      before the meal, so any change that adds or moves a draw re-picks it. At
-      hash 416 (the level-start coop draw, ADR-0672) creature 1 takes bird 7.
+      Floor laying, full-room coop launches and chicken roaming leave birds by the
+      entry tile, so this seed feeds both Goblins without a chase. WHICH bird is
+      incidental: it follows every random draw before the meal, so any change that
+      adds or moves a draw re-picks it. At hash 420 (the wander's room point,
+      ADR-0676) creature 1 takes bird 7.
       Nearest-bird walks have EatingTests.
   - event: chicken_eaten
-    detail: "creature=2 type=Goblin player=3 chicken=9"
-    at_tick: 724
+    detail: "creature=2 type=Goblin player=3 chicken=21"
+    at_tick: 720
     because: >
-      The second Goblin's bird is a step away at this seed; incidental as above.
+      The second Goblin's bird is at hand at this seed; incidental as above.
   - event: egg_laid
     at_tick: 767
     because: >

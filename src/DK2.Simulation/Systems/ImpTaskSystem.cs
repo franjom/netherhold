@@ -218,6 +218,7 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
     private void UpdateWorker(SimulationContext context, CreatureState creature)
     {
         if (creature.Possessed) return;
+        if (Combat.ThreatFleeRules.IsFleeing(creature)) return;   // the combat states' (ADR-0678)
         if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return;

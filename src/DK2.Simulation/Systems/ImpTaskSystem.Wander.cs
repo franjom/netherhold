@@ -197,11 +197,11 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>The room branch: of the keeper's rooms in list order, the last eligible one, then any
-    /// room after it, until one gives a point (<c>0x004E8430</c>). Ours: the room list is
-    /// <see cref="RoomIndex.Build"/>'s order, and the point is a random walkable tile of the room with
-    /// no obstacle, where DK2's two cell tests (<c>0x00454110</c>, <c>0x00454230</c>) turn on a cell
-    /// byte that is unread.</summary>
-    private static (int X, int Y)? RoomDestination(SimulationContext context, CreatureState creature)
+    /// room after it, until one gives a point: <c>0x004E8430</c> draws among the room's tiles that are
+    /// neither floor nor wall slots, and a tile with an obstacle (<c>Tile_FirstObstacle</c>) sends the
+    /// search on to the next room (<c>0x00480AD9</c>, ADR-0676). Ours: the room list is
+    /// <see cref="RoomIndex.Build"/>'s order.</summary>
+    public static (int X, int Y)? RoomDestination(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
         IReadOnlyList<RoomInstance> all = RoomIndex.Build(world, context.Database);
@@ -215,7 +215,6 @@ public sealed partial class ImpTaskSystem
             if (IsWanderRoom(room.Definition)) remaining++;
         }
         if (remaining == 0) return null;
-        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         foreach (RoomInstance room in rooms)
         {
             if (remaining != 0)
@@ -223,22 +222,11 @@ public sealed partial class ImpTaskSystem
                 if (!IsWanderRoom(room.Definition)) continue;
                 if (--remaining != 0) continue;
             }
-            if (RoomPoint(world, context.Database, definition, room, context.Rng) is not int pick) continue;
+            if (RoomWalkRules.RoomPoint(world, context.Database, room, context.Rng) is not int pick
+                || HasObstacle(world, context.Database, pick)) continue;
             return (pick % world.Width, pick / world.Width);
         }
         return null;
-    }
-
-    /// <summary><c>0x004E8430</c>: choose among eligible room tiles in slab-chain order.</summary>
-    public static int? RoomPoint(WorldState world, GameDatabase database, CreatureDef creature,
-        RoomInstance room, SimRandom rng)
-    {
-        var grid = new WorldPathGrid(database, world, creature);
-        var open = new List<int>();
-        foreach (int tile in SlabChain.Order(world, room))
-            if (grid.IsWalkable(tile % world.Width, tile / world.Width)
-                && !HasObstacle(world, database, tile)) open.Add(tile);
-        return open.Count == 0 ? null : open[rng.NextInt(open.Count)];
     }
 
     private static bool IsWanderRoom(RoomDef room) => room.TypeId is RoomTypeId t && Array.IndexOf(WanderRooms, t) >= 0;

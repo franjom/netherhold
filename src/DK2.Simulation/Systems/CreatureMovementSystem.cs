@@ -76,6 +76,8 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         // this tick's move, which a shot's aim leads by (shots.md §7).
         creature.LastPosX = creature.PosX;
         creature.LastPosY = creature.PosY;
+        // The physical pass (0x004B2030 at 0x0048A204) runs on every creature, ahead of the steering gate.
+        CreaturePhysicsRules.Step(context, creature);
         Sync(context, creature);
 
         if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) return;

@@ -18,8 +18,8 @@ namespace DK2.Simulation.Systems;
 /// dispatcher (<c>0x00476FC0</c>). Ours: how long a job is kept — all six of DK2's
 /// duration variables, <c>MotionlessWhileResearchingSeconds</c> through
 /// <c>MinimumJobDurationSeconds</c>, are read by nothing (ADR-0082), so a job lasts
-/// until the room stops being the keeper's or a need intervenes. Leave, Rebel and Explore
-/// are chosen and logged only; StealGold runs <see cref="StealGoldRules"/> (ADR-0223).</remarks>
+/// until the room stops being the keeper's or a need intervenes. Leave and Rebel are logged
+/// only; StealGold and Explore run their rules (ADR-0223, ADR-0674).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/job-selection.md")]
 public sealed partial class CreatureJobSystem : ICreatureUpdateStep
 {
@@ -77,6 +77,8 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         if (creature.Activity == CreatureActivity.Leaving) return;
         if (HeroJobRules.IsHero(creature)) return;   // HeroSystem: state 1 sends a hero to 90
         if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
+        if (Combat.ThreatFleeRules.IsFleeing(creature)) return;   // the combat states' (ADR-0678)
+        if (ExploreRules.KeeperTurn(context, SystemName, creature)) return;   // job 24's state 225 (ADR-0674)
 
         // A walk resuming 1 is state 1's own, back to a fight (ADR-0225): the arrival is idle.
         if (StateShadow.IsTravelling(creature) && creature.UtilityNewState == CreatureStateMachine.Idle)
@@ -352,9 +354,23 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             }
         }
 
+        // Job 24's arm (0x0045A290, Job_Dispatch case 0x18): a neutral tile anywhere, then 225 (ADR-0674).
+        if (refused is null && job == JobType.Explore)
+        {
+            if (!ExploreRules.Arm(context, creature)) refused = "no_target";
+            else
+            {
+                creature.CurrentJob = job;
+                context.Emit(SystemName, "job_taken",
+                    $"creature={creature.Id} type={definition.Name} " +
+                    $"player={creature.OwnerPlayerId} job={job} roll={roll} how={how} room=None effect=built steps={creature.Body.PathTotalCount}");
+                return true;
+            }
+        }
+
         if (refused is null && wants is null)
         {
-            // Leave, Rebel, Explore and the rest. Real DK2 outcomes
+            // Leave, Rebel and the rest. Real DK2 outcomes
             // with no room to walk to and nothing here to act on; the angry
             // chooser reports them the same way and neither invents one.
             refused = "no_such_job_here";

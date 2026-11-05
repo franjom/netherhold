@@ -27,6 +27,30 @@ public static class DoorRules
     /// <summary>Whether DK2's death query would say the door is dead.</summary>
     public static bool IsDead(DoorState door) => door.Health <= 0;
 
+    /// <summary>Whether a creature at (<paramref name="x"/>, <paramref name="y"/>, <paramref name="z"/>) is
+    /// inside a closed, completed door's body (<c>0x004529A0</c>): a barricade fills its tile below a
+    /// height of <c>0x1801</c>; another door is a plate across the passage, the middle <c>0xC00</c> of
+    /// the tile on the axis its orientation names (0 on x, 1 on y, 2 both). The door on the tile, if any,
+    /// is returned whether or not it blocks. DK2 reads only the first door on the tile's chain.</summary>
+    public static bool BlocksAt(SimulationContext context, int x, int y, int z, out DoorState? door)
+    {
+        door = null;
+        WorldState world = context.World;
+        if (world.Doors.Count == 0 || !world.Contains(x >> 12, y >> 12)) return false;
+        door = world.DoorAt(x >> 12, y >> 12);
+        if (door is null || door.UnderConstruction || door.Open) return false;
+        if (context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition) && definition.Flags.HasFlag(DoorFlags.Barricade))
+            return z < 0x1801;
+        bool acrossX = Math.Abs((x & 0xFFF) - 0x800) <= 0x600, acrossY = Math.Abs((y & 0xFFF) - 0x800) <= 0x600;
+        return door.Orientation switch
+        {
+            0 => acrossX,
+            1 => acrossY,
+            2 => acrossX && acrossY,
+            _ => true,
+        };
+    }
+
     /// <summary>The recovery (<c>0x004A55F0</c>'s head): a live door past its deadline gains the
     /// definition's signed <c>HealthGain</c> (<c>def+0x93</c>), capped by what it is missing, and
     /// the deadline moves on one game second whenever that gain is defined — gained or not. The

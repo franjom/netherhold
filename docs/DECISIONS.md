@@ -15708,3 +15708,225 @@ two-coop Hatchery refreshed twice by a dug wall.
 
 STRONGLY INFERRED from the disassembly. The record of each function, and `hatchery.md` §2, hold the
 detail.
+
+## ADR-0673: the level start sweeps Hero Lair ground for trestles, with its draws
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 417. · **Systems:** heroes, simulation-core
+
+**Context.** `Level_InitTriggersAndStart` (`0x0050B5B0`) calls `random` directly three times, all on the world
+stream, all logged against `World.cpp` ([evidence](research/hero-lair-trestles.md)):
+- lines 0x969 and 0x971 (`0x0050C572`, `0x0050C5F6`), in a sweep over every tile after the torches;
+- line 0x99D (`0x0050C76C`), the transfer creature's facing.
+
+The sweep takes a tile of terrain 35 (Hero Lair) whose neighbour byte `+0x0C` is zero, which
+`Map_TileNeighbourCodes` (`0x00450470`) makes true only when all eight neighbours are on the map and terrain 35.
+It skips the tile when any neighbour holds object `0x71` (`0x004537E0`). Otherwise it draws `random(4)` and on zero
+makes object `0x71` (Hero Armoury Trestle) for the hero player and draws its heading, `random(0x800)`. Objects made
+earlier in the scan count. Ours drew nothing here. The transfer creature is already built
+(`TransferCreatureRules.Arrive`, called by the host after the level start); its one facing draw follows the
+creature's identity draws and precedes the level-ups.
+
+**Decision.** `HeroLairRules.InitializeLevelStart` runs the sweep from the `GameSimulation` constructor after the
+trigger executor is made, so it follows the Hatchery coops (ADR-0672) and event 3, as in DK2. The mask test is
+computed from the terrain; no byte `+0xC` is stored. `TransferCreatureArrivalTests` pins the facing draw.
+
+**Consequences.**
+- Only maps with an interior lair tile change: Level 16 and 17 (one each), Patrol, TrapTime and six My Pet
+  Dungeon maps. Level 4 and the other campaign levels draw nothing.
+- The new objects count in the state hash, so hash and save become 417.
+- Not mirrored:
+  - the sweep on a restored save, which DK2 runs;
+  - a door or a room on the tile, and an object pool that refuses;
+  - the Training Target (object 29) draw of `Room_Rebuild`'s wall pass, `random(0x1000)` on the world stream per
+    wall target (call `0x004EECCB`, line 0x881), made at each rebuild of a Training Room including the level start.
+    Ours places wall targets by reconciliation in `AutoFurnitureSystem`, so it needs ADR-0672's rebuild model for
+    every room type;
+  - the seed order of the level start's per-player event 3 against the room rebuilds.
+- Other direct callees reach `random` only through creature creation, trigger actions and the heart's health
+  routine; no further level-start draw was read. Indirect calls were not followed, and
+  `Graveyard_CreateVampire` (`0x004DD820`, world-seed draw) was not read.
+
+The draw sites, order and neighbour test are STRONGLY INFERRED from the disassembly. The interior rule (byte `+0x0C`
+zero) is a HYPOTHESIS: one step, that nothing else writes the byte before the scan, was not read. No native capture
+covers a lair tile.
+## ADR-0674: job 24, Explore, walks a creature to neutral floor and on through state 225
+
+**Date:** 2026-11-05. **Status:** accepted. Closes state 225 of issue 6. Hash/save 418. · **Systems:** creatures
+
+**Context.** The Level 3 native draw log (turns 3-3700, `neutral-ambient-effect.md`) has 280 draws at each of
+ExploreState.cpp 28 and 29 and 50 at each of 98 and 99, sites the Level 4 and 5 logs never reach. Their
+functions are Job_Dispatch's case 0x18, `0x0045A290`, and state 225's handler `0x0045A3E0`. Ours refused job
+24 as `no_such_job_here`, and state 225 was unread (GitHub issue 6).
+
+- The arm makes up to 20 tries of `random(map width)`, then `random(map height)`. It takes the first tile
+  that passes four tests: in the map, not solid (world slot `+0x208`), owned by the neutral player
+  (`tile+8 & 0xFFF == [0x006F2548]`), and reachable (`Creature_CanRouteTo`, word 0x80).
+- On a hit it sets state word `+0xA7` to 10 and calls `Travel_RouteToPoint(point, 225, 0x80)`. With no hit
+  the job fails.
+- State 225 runs while `+0xA7` is non-zero. Each time it decrements the word and makes up to 5 tries of
+  `random(5) - 2` on each axis around the creature's tile.
+- The tests are the same, except the owner must be 0. A hit walks there, resuming 225. A spent word or no
+  hit returns 0, and the dispatcher idles the creature.
+
+**Decision.** `ExploreRules.Arm` and `Step` mirror the two functions, with the same draw order.
+- `KeeperTurn` runs the walk's arrival and the state for a keeper's creature, from `CreatureJobSystem`. A
+  failed step clears the job and idles the creature.
+- Solidity is the navigation byte's bit 8. Reachability is `CombatTargetRules.CanReach` with word 0x80.
+  The navigation grid is refreshed before each read.
+- The `+0xA7` word is kept as a new field, `ExploreStepsLeft`, saved and hashed. It is held apart from
+  `WanderStamp`, as every state's use of that shared word is in ours.
+- State 225 counts as AtWork.
+
+**Consequences.**
+- A Firefly, whose happy table is Explore at 100%, now walks the map instead of taking its fallback. Level
+  3's explorer is creature 440, a Firefly (type 12), in the owner's `level3-live1` capture. The Imp's table
+  also holds Explore, but a worker's jobs are the worker system's, so ours never arms it for an Imp.
+- Reachability rests on `Creature_CanRouteTo`'s return value, a HYPOTHESIS record. Ours also accepts the
+  creature's own tile, which DK2 may refuse.
+- Not mirrored:
+  - whether a state change clears the shared `+0xA7`, which is unread;
+  - the route word's door handling, as in other 0x80 routes.
+
+STRONGLY INFERRED from the decompile. Records `0045A290` and `0045A3E0` hold the detail.
+
+## ADR-0675: a Horny creature draws its finale ambience every turn
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 419. · **Systems:** creatures
+
+**Context.** The Level 3 native draw log has Creature.cpp 1555 once a turn from turn 3683, the turn after the
+finale Reaper lands (`neutral-ambient-effect.md`). Ours never made the draw. The site is `Creature_Update`'s
+early arm, `0x00488EB5`-`0x00488F5C`. Nothing before it in the update returns. On the ordinary path nothing
+before it draws on the world stream. The dying arm at `0x00488A5E` (`0x00459560`, whose `0x0048F410` draws)
+does, but a Horny creature takes no damage (`0x004B2CE0`).
+- The arm runs for a creature whose definition has `+0x686` bit `0x4000` (IsHorny), when its owner's
+  player `+0x76` bit `0x40` (the finale started, ours `FinaleRules.SequenceStarted`) is set.
+- It first passes the creature to `Room_TypeEffectResponse` (`0x004E7FE0`) when its tile is a room's.
+- Then, unless the state is `0xE9` (233), it draws `random(20)` (`0x00488F13`). A 0 plays sound `0xCC`, a
+  10 sound `0xD6`, with the creature's handle, category and position.
+
+**Decision.** `FinaleRules.HornyAmbience` makes the draw and the two sound requests. `CreatureStatusSystem` runs
+it first in each creature's update, after `ReaperRules.AdvanceTimer`, which mirrors the `+0x4E9` countdown
+that precedes it, and before the timed effects (`0x0048957D`).
+
+**Consequences.**
+- After the finale, the world stream advances one draw per Horny creature per turn.
+- Not mirrored: the room response on the creature's tile. Its Treasury arm (type 1, `0x004F48E0`) draws
+  `random(100)` on the world stream for each class-2 object of type byte 3 within three tiles whose
+  definition's `+0xF4` has bit `0x40`, when the room definition's `+0x423` is set. Under 10 it spawns an
+  effect. Level 3's finale Reaper never stands on a Treasury, so its log has none. Arms 4, 6, 10 and 15
+  draw nothing.
+
+STRONGLY INFERRED from the disassembly. Record `00488930` holds the detail.
+
+## ADR-0676: the wander and the Prison draw their room point as `0x004E8430` does
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 420. · **Systems:** creatures, rooms
+
+**Context.** The Level 3 native draw log has 27 Room.cpp 3994 draws (`Room_RandomPoint`, `0x004E8430`). 25
+fall inside the wander finder's run (`0x00480A00`; StateUtils 325, 367, 3994, 338). `0x004E8430` draws
+among the room's tiles in slab-chain order that are neither floor nor wall slots.
+- The wander's room branch takes that point and only then tests it for an obstacle (`Tile_FirstObstacle`).
+  An obstacle, or no point, moves the search to the next room, so an obstructed room still costs its draw
+  (`0x00480AD9`).
+- Prison release (`0x004E2F51`) and state 121's escape (`0x00473A86`) walk to the point as it is.
+- Ours drew the wander's point among walkable, unobstructed tiles. The Prison's drew a start among all
+  the room's tiles and stepped round to a walkable rim tile. Both counts differ from DK2's.
+
+**Decision.** Both use `RoomWalkRules.RoomPoint`, the existing mirror of `0x004E8430`. The wander tests the
+obstacle after the draw and moves on to the next room. `ImpTaskSystem.RoomPoint` is removed, and
+`RoomDestination` is public for its test.
+
+**Consequences.**
+- The wander's room branch and a Prison break draw as many as DK2 does for the same room.
+- Not mirrored:
+  - state 217's Graveyard point;
+  - the dead body's `+0x134` move on a Prison or Torture floor slot (`0x004B1422`);
+  - the one Level 3 draw at turn 1985, whose caller is unattributed.
+
+STRONGLY INFERRED from the disassembly. Records `00480A00` and `004E2E70` hold the detail.
+
+## ADR-0677: payday's state 187 finds its tile and point as DK2 does
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 421. · **Systems:** creatures, rooms
+
+**Context.** The Level 3 native draw log has 13 PayState.cpp 197 draws, each right after a Room.cpp 1563
+draw. Ours made neither: it walked to the room's gold tile nearest the creature. Its shortcut also paid a
+creature standing on the tile in the same turn. State 187 (`0x00472390`) does this:
+- It keeps a room of the player's list that is a Treasury or an unruined Heart (`+0x9A` bit 0) holding gold.
+  The room's position (`+0x2B/+0x2C`) must be reachable with word 0x80, and strictly nearest.
+- It draws a start tile (`0x004E4D90(room, 1, 0)`, `random(size)`). It then follows the tile links,
+  wrapping, to the first tile with no object on it or with a gold pile (type byte `+0x12C` 3).
+- It draws `random(8)` for one of the eight points at `0x00698C20` and calls
+  `Travel_RouteToPoint(point, 188, 0xE8)`.
+- No such room posts message 0x37. No tile or no route posts 0x2B.
+
+**Decision.** `PaydaySystem.SetOutForTheTreasury` follows it. Rooms come from `RoomLists.Of`, newest first.
+The position is `ChickenRules.Position`, and reachability is `ChickenRules.Reachable` (word 0x80). The
+pile search uses `GoldStore.ObjectTiles`, shared with the carrier's deposit search, and a store pile is
+`TileState.GoldHeld`. The standing-on-it shortcut is gone. 189 still takes the wage from the whole room.
+
+**Consequences.**
+- A wage walk costs two world draws and ends at a sub-tile point; a creature already there is paid when the
+  walk's arrival is noticed.
+- Unchanged and not DK2's: the failed-attempt count at 187, which DK2 counts only at 189, and the
+  messages, which are events.
+- `ChickenRules.Position` approximates `NavigationPos` with the centroid's tile.
+
+STRONGLY INFERRED from the decompile. Record `00472390` holds the detail.
+
+## ADR-0678: an afraid creature runs from the trap or Boulder that threatened it
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 422. · **Systems:** combat, creatures
+
+**Context.** The Level 3 native draw log has Creature.cpp 2105 and 2106 32 times each and 2098 twice.
+They are `Creature_Update`'s flight from its `ThreatThing` (`0x00489AD3`-`0x00489E27`), which runs after
+the fear accumulator and before the dispatcher. `Creature_AddThreat` (`0x0045C5D0`) and its three inlined
+copies in the accumulator (`0x0045E4F0`) name the source of any positive threat at `+0x533`; the last
+writer wins. Ours added the threat but kept no source.
+- Gates: not possessed or dying, not `IsFearless` and past `FearlessUntil`, `CurrentFear` over the level's
+  `Fear`, a state, attackable, not already walking to 221. It then fires creature event 12.
+- Outside the Combat category, with a live thing: a creature, or a thing at 25 tiles squared (five tiles)
+  or more, is cleared with no flight. Nearer, zero tile offsets take `random(2)`, and up to five tries of `random(|4dx|)`,
+  `random(|4dy|)` look for a point the world holds with a clear line to it.
+- With one, it sets state 1 and walks there resuming 221 (word 0x80 for an Imp). 221's handler
+  (`0x00484940`) returns 0. The thing is cleared either way.
+
+**Decision.** `TrapRules.ShareThreat` takes a `ThreatSource` and records it on each creature it frightens:
+the trap, or the Boulder object; `FearRules.Radiate` records the radiating creature on each receiver.
+`ThreatFleeRules.Turn` runs the arm at the end of `CombatSystem.Update`,
+with the draws shared with the withdraw's away stage (`FearRules.AwayFrom`). `ThreatFleeRules.Dispatch`
+runs the walk's arrival and 221 in the combat states' place for every creature. Hero, job and worker
+systems leave a fleeing creature alone. State 221 is the new `RunningFromThreat` activity.
+
+**Consequences.**
+- Two new saved and hashed creature fields, `ThreatThingKind` and `ThreatThingId`.
+- Creature event 12 (Afraid) now fires.
+- Not mirrored: the timed-effect threat source (`+0x463`/`+0x467`); the owner discount (Q375); the
+  attackable bit as the previous turn computed it (ours is live); state 6's generic work during the walk;
+  the needs and anger checks DK2 runs in states 6 and 221; an Imp's task release by its state hooks.
+
+STRONGLY INFERRED from the disassembly. Records `00488930` and `0045C5D0` hold the detail.
+
+## ADR-0679: a closed door pushes creatures off its tile, through the physical pass
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 423. · **Systems:** doors-traps, creatures
+
+**Context.** Owner report, Level 6a: Imps standing on a barricade when it is completed stay trapped in it;
+in DK2 they are pushed out. Door update `0x004A55F0` step 4 pushes, and it comes before the barricade's
+early return, so a barricade pushes too. Ours had no push and no persistent creature velocity.
+
+**Decision.** `DoorHealthSystem` runs `DoorPushRules` at step 4, after the owner test: for a closed, built
+door every creature on its tile gets `0x80` added to its persistent velocity, away from a point the shut
+neighbours move (`0x004B1F20`). `CreaturePhysicsRules` is the physical pass's persistent arm
+(`0x004B2030`), run in the creature's movement step: sub-steps of a sixteenth, reflect-and-halve at a wall
+or door body, a commit that drops `CreatureDef.AirFriction` (file `+0xEAC`, 327) of the vector.
+`DoorRules.BlocksAt` is `0x004529A0`. Rules and addresses: [door-push.md](research/door-push.md).
+
+**Consequences.**
+- New saved and hashed fields: `CreatureState.PhysicalVelocityX/Y` (`+0x104/+0x108`). Earlier saves are refused.
+- A creature 0x300 off a barricade's centre leaves its tile on the 24th turn (33rd from 0x10): 6 to 8 game
+  seconds, against the owner's recollection of a couple.
+- Not built: the vertical and temporary vectors in the pass (their callers keep their own code), the lock
+  mode 3 shove, the creature terrain test of the commit.
+
+STRONGLY INFERRED from the disassembly. Records `004A55F0`, `004B1F20`, `004B2030`, `004529A0` hold the detail.

@@ -180,7 +180,7 @@ own-spot fallback. Read while building:
 - **The fallback** runs only when the last tile tried was (0, 0).
 - **Room branch order:** after the last eligible room, every later room of any type is tried.
 - **The picker's rolls** come from the simulation stream, world `+0x15A0` (the decompiler's `+0x568` is a dword index on an `int*`; corrected 2026-10-05).
-- **The room point** is `0x004E8430`: a random one of the room's tiles passing `0x00454110` and `0x00454230`.
+- **The room point** is `0x004E8430`: a random one of the room's tiles that is neither a floor slot (`0x00454110`) nor a wall slot (`0x00454230`); the obstacle test below comes after the draw, and a failure moves on to the next room (ADR-0676).
 - **`0x00453600`** rejects a tile holding an object flagged Obstacle (bit 14).
 
 Guessed: the idle actions' length. Not built: the throttle.

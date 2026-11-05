@@ -36,6 +36,8 @@ public static class ActivityRules
         GuardRules.PatrolState or 100 => CreatureActivity.AtWork,
         CombatPitRules.WaitingState => CreatureActivity.PitFighting,
         HeroJobRules.WaitingState or HeroJobRules.RoamingState => CreatureActivity.AtWork,
+        ExploreRules.ExploringState => CreatureActivity.AtWork,
+        Combat.ThreatFleeRules.FledState => CreatureActivity.RunningFromThreat,
         HeroJobRules.AtThePointState or HeroJobRules.HuntingState or HeroJobRules.AtTheHeartState
             or HeroJobRules.FollowingState => CreatureActivity.GoingToJob,
         StealGoldRules.InTheTreasuryState => CreatureActivity.GoingToJob,
@@ -75,6 +77,8 @@ public static class ActivityRules
         >= StealGoldRules.ToTheTreasuryState and <= StealGoldRules.AtTheGoldState => CreatureActivity.AtWork,
         StealGoldRules.EscapingState => CreatureActivity.Leaving,
         StealGoldRules.RunTheJobState => CreatureActivity.Idle,
+        ExploreRules.ExploringState => CreatureActivity.AtWork,
+        Combat.ThreatFleeRules.FledState => CreatureActivity.RunningFromThreat,
         TunnelRules.TunnellingState or TunnelRules.WanderState => CreatureActivity.AtWork,
         TrainingRules.ReturningState => CreatureActivity.AtWork,
         TrainingStep.AtMachineState or TrainingStep.WorkingState => CreatureActivity.AtWork,

@@ -80,6 +80,7 @@ public static partial class KwdCreatures
         S32(0xEB4, row.Speed.Raw);
         S32(0xEB8, row.RunSpeed.Raw);
         S32(OffsetShuffleSpeed, row.ShuffleSpeed.Raw);
+        U16(0xEAC, (ushort)row.AirFriction);
         S32(0xEA4, row.Height.Raw);
         S32(0xEB0, row.EyeHeight.Raw);
         S32(0xEC8, row.DistanceCanSee.Raw);

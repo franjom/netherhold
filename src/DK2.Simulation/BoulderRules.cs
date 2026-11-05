@@ -293,7 +293,8 @@ public static class BoulderRules
         int amount = database[VariableTypeId.BoulderFearAmount] & 0xFFFF;
         int threat = boulder.Health != 0 && definition.Hp != 0 ? amount * boulder.Health / definition.Hp : amount;
         int radius = (database[VariableTypeId.BoulderFearRange] & 0xFFFF) << 12;
-        TrapRules.ShareThreat(context.World, sight, boulder.OwnerPlayerId, boulder.PosX, boulder.PosY, threat, radius);
+        TrapRules.ShareThreat(context.World, sight, boulder.OwnerPlayerId, boulder.PosX, boulder.PosY, threat, radius,
+            ThreatSource.OfObject(boulder));
         return true;
     }
 

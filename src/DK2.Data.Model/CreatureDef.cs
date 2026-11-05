@@ -164,6 +164,10 @@ public sealed record CreatureDef
     public required Fp32 Speed { get; init; }
     public required Fp32 RunSpeed { get; init; }
     public required Fp32 ShuffleSpeed { get; init; }
+
+    /// <summary>File <c>+0xEAC</c> (<c>def+0x690</c>): the share of a thing's persistent velocity dropped per turn, over 4096; 327 in every shipped record.</summary>
+    public int AirFriction { get; init; }
+
     public required Fp32 Height { get; init; }
     public required Fp32 EyeHeight { get; init; }
     public required Fp32 DistanceCanSee { get; init; }

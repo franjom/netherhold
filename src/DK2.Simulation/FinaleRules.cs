@@ -65,6 +65,25 @@ public static class FinaleRules
     private const string SystemName = "finale";
 
     public const uint SequenceStarted = 0x40;
+
+    /// <summary>The finale state the ambience skips, <c>0xE9</c>.</summary>
+    private const int AmbienceQuietState = 233;
+
+    /// <summary><c>Creature_Update</c>'s early arm (<c>0x00488EB5</c>-<c>0x00488F5C</c>), before its timed
+    /// effects: an <c>IsHorny</c> creature whose player's <see cref="SequenceStarted"/> bit is set, in any
+    /// state but 233, draws <c>random(20)</c> on the world stream every turn (Creature.cpp 1555); 0 plays
+    /// sound 0xCC and 10 plays 0xD6 at it. The room response on its tile (<c>0x004E7FE0</c>), whose
+    /// Treasury arm draws too, is not mirrored (ADR-0675).</summary>
+    public static void HornyAmbience(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
+    {
+        if (!definition.Flags.HasFlag(CreatureFlags.IsHorny)) return;
+        WorldState world = context.World;
+        if (!world.HasPlayer(creature.OwnerPlayerId) || (world.Player(creature.OwnerPlayerId).Finale.Flags & SequenceStarted) == 0) return;
+        if (creature.Dk2StateId == AmbienceQuietState) return;
+        int roll = context.Rng.NextInt(20);
+        if (roll == 0) ThingSoundRules.Request(context, system, creature, (ThingSoundEvent)0xCC);   // 0xCC has no name of its own yet
+        else if (roll == 10) ThingSoundRules.Request(context, system, creature, ThingSoundEvent.BattleCall);
+    }
     public const uint ReaperCreated = 0x800;
     public const uint ResultContinued = 0x40000;
     public const uint ContinuedFromConquered = 0x80000;

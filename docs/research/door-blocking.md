@@ -135,7 +135,7 @@ Update `0x004A55F0`, in its order:
 2. Construction presentation; the lock-pick countdown (doors-and-traps.md).
 3. **Owner.** When the tile word `+8 & 0xFFF` (Q247) is not the door's owner: an unbuilt door
    leaves its keeper's blueprint list (`0x005056E0`), and health is set to 0.
-4. A closed built door pushes creatures off its tile (`0x004B1F20`); not built.
+4. A closed built door pushes creatures off its tile, a barricade included: [door-push.md](door-push.md) (ADR-0679).
 5. A barricade returns here: alive it only updates sounds; dead it plays `def+0xAE`.
 6. **Support.** Orientation `+0x119` 0 tests `(x, y−1)` and `(x, y+1)`, otherwise `(x−1, y)` and
    `(x+1, y)`, through world slot `+0x208` (`0x00509200`, Solid bit). Unless both are Solid,
@@ -179,7 +179,7 @@ Built: §1 except the bits 17/18 clear (nothing here sets them) and `+0x16` (unn
 timing. A door's id is stable and blueprints hold ids, so a removal leaves every other
 reference intact.
 
-Left: the push-out (§6.4), the secret-door reveal (§6.8), §8, the linked objects, effects and
+Left: the secret-door reveal (§6.8), §8, the linked objects, effects and
 sounds, area damage on doors.
 
 ## Open questions
