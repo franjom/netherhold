@@ -467,6 +467,7 @@ public sealed class CreatureJobTests
         // drains buckets it never filled. -275 a second, six times over.
         GameDatabase db = Db;
         WorldState world = World(db);
+        LairOffer.Offer(world, Keeper);
         Paint(db, world, RoomTypeId.Temple, Floor);
 
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, Floor);

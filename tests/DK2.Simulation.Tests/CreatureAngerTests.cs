@@ -103,6 +103,7 @@ public class CreatureAngerTests
         // tolerance, because the systems run on the last tick of each game second.
         GameDatabase db = Db;
         WorldState world = World(db);
+        LairOffer.Offer(world, Keeper);
         var events = new ListEventSink();
 
         // No lair anywhere, so AngerNoLair is the only source running.
@@ -312,6 +313,7 @@ public class CreatureAngerTests
         // wipes the Lair bucket outright as it places the bed (ADR-0179).
         GameDatabase db = Db;
         WorldState world = World(db);
+        LairOffer.Offer(world, Keeper);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         CreatureDef definition = db.CreatureById(GoblinId);
@@ -358,6 +360,7 @@ public class CreatureAngerTests
         GameDatabase db = Db;
         WorldState world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
+        LairOffer.Offer(world, Keeper);
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, new TilePos(2, 2));
 
         vampire.Anger.Lair = CreatureAngerRules.Ceiling + 1;
@@ -785,6 +788,50 @@ public class CreatureAngerTests
         CreatureState goblin = HungryGoblin(db, world);
         goblin.FollowLeaderId = 99;
         Assert.Equal(0, HungerChargeOf(db, world, goblin));
+    }
+
+    private static int LairChargeOf(GameDatabase db, WorldState world, CreatureState goblin) =>
+        CreatureAngerRules.PerSecond(world, db, db.CreatureById(GoblinId), goblin).Lair;
+
+    [Fact]
+    public void ABedlessGoblinIsChargedAngerNoLairOnlyWhileItsKeeperMayBuildALair()
+    {
+        // The lair arm's room clause (0x00478DB7-0x00478DD5, ADR-0666): Lair availability 3.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        Assert.Equal(0, LairChargeOf(db, world, goblin));
+
+        LairOffer.Offer(world, Keeper);
+        Assert.Equal(db.CreatureById(GoblinId).AngerNoLair, LairChargeOf(db, world, goblin));
+    }
+
+    [Fact]
+    public void OwningALairIsEnoughWhenItCanNoLongerBeBuilt()
+    {
+        // Or a Lair owned (Player_CountRoomsOfType(2) > 0), the bed not yet taken.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Lair, 1));
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        Assert.Equal(0, LairChargeOf(db, world, goblin));
+
+        PaintLair(db, world, new TilePos(6, 6));
+        Assert.False(LairRules.HasBed(world, db, goblin));
+        Assert.Equal(db.CreatureById(GoblinId).AngerNoLair, LairChargeOf(db, world, goblin));
+    }
+
+    [Fact]
+    public void ARivalsLairAngersNobody()
+    {
+        GameDatabase db = Db;
+        WorldState world = WorldState.FromMap(
+            db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+
+        ref TileState tile = ref world.Tile(6, 6);
+        RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Lair), (byte)(Keeper + 1));
+        Assert.Equal(0, LairChargeOf(db, world, goblin));
     }
 
     [Fact]

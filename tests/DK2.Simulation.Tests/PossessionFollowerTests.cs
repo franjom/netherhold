@@ -313,6 +313,7 @@ public sealed class PossessionFollowerTests
     public void AFollowerTakesNoLairAnger_ConfirmedFromBinary()
     {
         var (db, world) = Open();
+        LairOffer.Offer(world, Keeper);
         CreatureState bedless = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         CreatureDef goblin = db.CreatureById(bedless.CreatureTypeId);
         Assert.True(CreatureAngerRules.PerSecond(world, db, goblin, bedless).Lair > 0);

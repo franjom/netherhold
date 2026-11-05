@@ -275,7 +275,7 @@ it charges all three standing sources one after another, **independently**:
 
 | Source | Field | Condition |
 |---|---|---|
-| `AngerNoLair` | `def+0x6c1` | no bed **and** the room type is available |
+| `AngerNoLair` | `def+0x6c1` | no bed (`+0x3B7` is 0), `def+0x771` non-zero, **and** Lair availability 3 or a Lair owned (`0x00478DBC`, `0x00478DCE`; built, ADR-0666) |
 | `AngerNoFood` | `def+0x6c3` | level-scaled `HungerFill` non-zero and <= `HungerNeed`, **and** Hatchery availability 3 or a Hatchery owned (`Player_CountRoomsOfType(4)`, the keeper's own rooms; built, ADR-0651) |
 | **`AngerNoPay`** | **`def+0x6c5`** | **`WageOwed != 0`, and level-scaled `Pay` != 0** |
 

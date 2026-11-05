@@ -826,6 +826,7 @@ public class HandTests
         // dungeon costs a keeper nothing.
         GameDatabase db = Db;
         WorldState world = World(db);
+        LairOffer.Offer(world, Keeper);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.Anger.Lair = 10_000;
         GameSimulation sim = Simulation(db, world);
