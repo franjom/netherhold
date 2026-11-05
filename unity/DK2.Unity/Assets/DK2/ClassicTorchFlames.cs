@@ -69,6 +69,8 @@ namespace DK2.Unity
                 go.transform.SetParent(_root, false);
                 go.layer = _root.gameObject.layer;
                 var renderer = go.AddComponent<SpriteRenderer>();
+                // The flame frames are decoded top row first and a sprite counts v up: flip to stand the tip up.
+                renderer.flipY = true;
                 renderer.sharedMaterial = _material;
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
