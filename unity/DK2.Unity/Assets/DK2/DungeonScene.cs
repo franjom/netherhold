@@ -781,6 +781,12 @@ namespace DK2.Unity
             go.transform.position = Ground(x, y, structure.Height / (float)Fp32.One);
             go.transform.localRotation = Quaternion.Euler(0f, structure.MeshYaw * 360f / 2048f, 0f);
             if (realMesh) go.transform.localScale = Vector3.one;
+            if (structure.UnderConstruction && realMesh && _classic != null && go.TryGetComponent(out Renderer plan))
+            {
+                var plans = new Material[Mathf.Max(1, plan.sharedMaterials.Length)];
+                for (int i = 0; i < plans.Length; i++) plans[i] = _classic.Blueprint();
+                plan.sharedMaterials = plans;
+            }
             if (!structure.LockMesh.IsEmpty && _classic != null)
                 _classic.TryCreate(structure.LockMesh, "door lock", go.transform);
         }

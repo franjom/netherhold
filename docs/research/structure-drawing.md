@@ -75,6 +75,22 @@ marker requests in the update but no reachable lock writer (see
 [doors-and-traps.md](doors-and-traps.md#door-runtime-behavior)); they remain unpresented.
 
 Remaining: door transition/death clips, trap firing clips, secret-door disguises,
-other linked door objects and construction tint/blinking.
+other linked door objects and the exact blueprint blend and blink (section 5).
 The classic Unity view freezes door clips at the settled endpoint; the converted
 GLB retains the clip and a future renderer must select that endpoint itself.
+
+## 5. Blueprint drawing (2026-11-05)
+
+A door or trap with construction nonzero is drawn as a blue plan, not as the built model. In
+`0x004A6B70` the owner's blueprint gets a texture override through `RenderInfo_SetDrawOffset`
+(`0x004B4580`), picked from four world fields filled by `0x005099A0`: `+0xA36F` (BlueTexture, kind 3) or
+`+0xA36B` (RedTexture, kind 3) by the parity of the game turn, and `+0xA377` / `+0xA373` (kind 1) under
+a global at `0x00759AFC`; it then sets the instance colour bytes to 255. A built door clears the
+override. The trap twin `0x004A9F10` reads three of the four fields (not `+0xA373`). STRONGLY INFERRED that the plan is
+blue-textured; what selects red versus blue is UNKNOWN.
+
+Ours (Unity adapter only): `StructureView.UnderConstruction` swaps the model's materials for one
+translucent (63, 64, 255) at alpha 0.55 (`ClassicMeshes.Blueprint`), static, with no blink: a
+HYPOTHESIS for the blend. Before this the adapter ignored the flag, so Level6a's three authored
+Barricade blueprints at (44,23..25) looked built from the first frame although the simulation held
+them as blueprints (orders queued, imps building at about tick 230).
