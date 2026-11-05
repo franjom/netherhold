@@ -38,6 +38,14 @@ public static class LevelGemIdle
     public static long Turn(WorldState world) =>
         (world ?? throw new ArgumentNullException(nameof(world))).CurrentTick.Value + 1;
 
+    /// <summary>Whether a Portal Gem is in a carrier's arms and so not drawn as an object. The pick-up
+    /// (<c>0x0048B350</c>) takes the thing off its tile chain (<c>0x004B4F60</c>) and the per-tile pass
+    /// that draws things (<c>0x0043CC30</c>) walks those chains; the carrier shows it only through the
+    /// gem-dust trail. Ours never moves a carried gem, so drawing it would leave it on the floor
+    /// where it was made (Level 5's intro, Q623). Other carried things stay drawn: their draw is unread.</summary>
+    public static bool IsInCarrierArms(ObjectState thing) =>
+        thing.CarriedByCreatureId >= 0 && thing.ObjectTypeId == TriggerExecutor.PortalGemObjectId;
+
     /// <summary>Whether a definition runs this process: it starts in state 50.</summary>
     public static bool Applies(ObjectDef? definition) => definition is { StartState: ProcessState };
 
