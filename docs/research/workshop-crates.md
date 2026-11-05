@@ -157,19 +157,23 @@ The decompiler printed `0x00454230` as always returning 0; the disassembly retur
 (`FloorSlots`, and the wall walk). Neither asks the room's special-tiles or special-walls
 flag.
 
-## 5. States 68 and 69: every worker ends the turn idle
+## 5. States 68 and 69: the celebration, then idle
 
 **68** (`0x00470B20`):
-- On its first turn (`Age == 1`) it ends a running action (`0x00496D20`).
+- When the state's turn counter `+0x1C` is 1 it ends a running action (`0x00496D20`). The
+  maker's own run, the turn it makes the crate, sees 0: the crate maker's `SetState` zeroes the
+  counter after the dispatcher's increment (`00470B20.md`).
 - It reads the creature definition's animation record 8 (27-byte records at `def+0x370`
-  through `0x00494860`), flag `+0xB` bit 0. With the flag set and no action running, it
-  starts action 35 (`0x23`) for one or two plays (`random(2) + 1` into `+0x3AE`).
+  through `0x00494860`), flag `+0xB` bit 0; a missing slot 8 resolves to slot 0. With the flag
+  set and an action still running it returns 1 and stays in 68. With the flag set and none
+  running it draws `random(2)` (ManufactureState.cpp:469) and starts action 35 (`0x23`) for
+  that many plays plus one (`+0x3AE`).
 - **It then sets 1 and 69, and returns 0.** It sets 1 first because 68 to 69 is refused:
   same group, target category Refused.
 
 **The dispatcher** sets state 1 after any handler returns 0 (`0x004772AA`–`0x004772B7`,
 `imp-state-exits.md` §1). So the creature ends the turn idle with the action playing. Without
-the flag, or with an action still running, 68 returns 0 at once, which is also idle.
+the flag, 68 returns 0 at once, which is also idle.
 
 **69** (`0x00470BC0`) waits for the action and then sets 63 if the keeper has an order, else
 returns 0. Nothing that sets 69 leaves the creature there, so it never runs. The only setter
@@ -309,7 +313,8 @@ if another creature holds it, walks the imp to the crate through the imp wrapper
   workers to 68; the crate left to nobody when the Workshop is full.
 - `RoomCapacityRules`: the Workshop extra on every capacity test.
 - `AutoFurnitureRules.FurnitureSlots`: both slot tests.
-- `CreatureJobSystem`: 68, which idles the creature on the turn it runs.
+- `CreatureJobSystem`: 68, which idles the creature on the turn it runs; with the flag it first
+  waits out a running action and draws the play count (ADR-0671).
 - `ImpTaskSystem`:
   - the three handlers, in their places (Tier A third, the drop scan third, kind 8's branch);
   - states 34 to 37;
@@ -321,7 +326,7 @@ if another creature holds it, walks the imp to the crate through the imp wrapper
 - Rooms are taken in `RoomIndex` order. Distances are to a room's first tile.
 - Tiles are walked in chain order (ADR-0243).
 - The task hold is read from the other imps' states.
-- 68's celebration takes no time and its flag is not read, because both arms end idle.
+- 68's celebration takes no time: action 35 is not played, though its `random(2)` draw is (ADR-0671).
 - The eviction takes the working creature with the lowest id.
 
 ## 9. Read, not built

@@ -611,8 +611,8 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             return;
         }
 
-        // A crate was just made (ADR-0214): state 68 starts the celebration and sets 1 and 69,
-        // and returns 0, so the dispatcher sets 1 again. The creature is idle from this turn.
+        // A crate was just made (ADR-0214): state 68 starts the celebration and ends in 1, idle from
+        // this turn; a maker that waited on its running action draws here a turn late (ADR-0671).
         if (creature.Dk2StateId == CrateRules.CrateMadeState)
         {
             if (originalTick) CrateMade(context, creature, definition);
@@ -630,7 +630,7 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
                 // The maker's own handler runs after its hook, in the state the crate maker set.
                 if (creature.Dk2StateId == CrateRules.CrateMadeState)
                 {
-                    CrateMade(context, creature, definition);
+                    CrateMade(context, creature, definition, makersOwnTurn: true);
                     return;
                 }
             }
@@ -868,12 +868,25 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     }
 
     /// <summary>State 68 (<c>0x00470B20</c>): a creature whose definition has the celebration
-    /// flag starts action 35 (<c>0x23</c>) for one or two plays; either way it ends the turn in
-    /// state 1, because the handler returns 0 after setting 1 and 69 and the dispatcher then sets
-    /// 1. Ours: no action is played, so the celebration takes no time, and the flag (animation
-    /// record 8's <c>+0xB</c> bit 0) is not read, since both arms end idle.</summary>
-    private static void CrateMade(SimulationContext context, CreatureState creature, CreatureDef definition)
+    /// flag starts action 35 (<c>0x23</c>) for one or two plays and ends in state 1; without the
+    /// flag it returns 0 and the dispatcher sets 1. The flag is art record 8's <c>+0xB</c> bit 0
+    /// through the fallback resolver (<c>0x00494860</c>, <see cref="AnimationTimingRules.ResolvesPresent"/>).
+    /// The handler ends a running action only when the state's turn counter <c>+0x1C</c> is 1. The maker
+    /// runs it the turn it makes the crate with the counter still 0 (the crate maker's <c>SetState</c>
+    /// zeroed it after the dispatcher's increment), so with the flag and its action 32 still running it
+    /// returns 1 and waits a turn (<paramref name="makersOwnTurn"/>). Every other run has the counter at 1:
+    /// the action is ended and, with the flag, <c>random(2)</c> is drawn (ManufactureState.cpp line 469)
+    /// for the play count (ADR-0671). The Level 4 capture shows both: crate 1904 made in turn 1701 with
+    /// its pair of draws in 1702, crate 1975 made and drawn in 1857. Ours: no action is played, so the
+    /// celebration takes no time.</summary>
+    private static void CrateMade(SimulationContext context, CreatureState creature, CreatureDef definition, bool makersOwnTurn = false)
     {
+        if (!makersOwnTurn) CreatureStateMachine.EndAction(creature);
+        if (AnimationTimingRules.ResolvesPresent(definition, 8))
+        {
+            if (context.Tick.Value < creature.ActionUntilTick) return;
+            context.Rng.NextInt(2);
+        }
         context.Emit(SystemName, "crate_celebrated",
             $"creature={creature.Id} type={definition.Name} player={creature.OwnerPlayerId}");
         Stop(context, creature);

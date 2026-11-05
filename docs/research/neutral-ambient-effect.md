@@ -113,9 +113,10 @@ tick, as with Level 5. Of the 13:
   (`0x00478680`; ADR-0656, [idle-fallback.md](idle-fallback.md#2-0x00478680--strongly-inferred)), 10 times
   each for a keeper with one Heart, always in the order State.cpp:1700, PlayerRooms.cpp:644, 2100, 2101
   (CONFIRMED);
+- built from this log: ManufactureState.cpp:469 (`0x00470B20`, state 68 on a crate made, `random(2)` when art
+  record 8 resolves present; ADR-0671, hash 415);
 - still missing: Hatchery.cpp:187 (`0x004DE220`, a coop's placement `random(4)` per coop, which needs the coops
-  rebuilt on a room change, Q733) and ManufactureState.cpp:469 (`0x00470B20`, state 68 on a crate made,
-  `random(2)`, its gate flag unread, no function record).
+  rebuilt on a room change, Q733).
 
 ## Outcomes at hash 399
 

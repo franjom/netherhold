@@ -139,6 +139,66 @@ public class CrateTests
         Assert.Equal(1, world.Player(Keeper).ItemsManufactured);
     }
 
+    /// <summary>State 68 (<c>0x00470B20</c>) draws the celebration's play count, <c>random(2)</c>, for a
+    /// creature whose art record 8 resolves present (ADR-0671), and nothing otherwise: two workers whose
+    /// slot 8 is present make the two runs part by one draw per celebration. The maker's own run comes
+    /// the turn of the crate with its action 32 still running, so it waits and draws a turn later.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ACelebratingWorkerDrawsItsPlayCountOnlyWithArtSlotEight(bool actionRunning)
+    {
+        (GameSimulation Sim, ListEventSink Sink) Run(bool slotEight)
+        {
+            CreatureDef maker = Dk2TerrainFixture.Goblin() with
+            {
+                CreatureId = MakerId, Name = "Maker", ManufacturePerSecond = 40,
+                HappyJobs = [new(JobType.Manufacture, 0, 0, 100)],
+            };
+            if (slotEight)
+            {
+                var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+                slots[8] = new CreatureAnimationTiming { ResourceType = 1, Flags = CreatureAnimationFlags.Present };
+                maker = maker with { ArtSlots = slots };
+            }
+            GameDatabase db = Dk2TerrainFixture.Database(maker);
+            WorldState world = World(db);
+            CreatureState a = Maker(db, world, new TilePos(2, 2));
+            CreatureState b = Maker(db, world, new TilePos(3, 3));
+            // Action 32 still playing, as it is mid-work (state 64's random(7) + 6 plays).
+            if (actionRunning) a.ActionUntilTick = b.ActionUntilTick = 1000;
+            ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+            world.Player(Keeper).ManufacturePoints = 995;
+            var sink = new ListEventSink();
+            var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(42)),
+                [new HandSystem(), new CreatureMovementSystem(), new ImpTaskSystem(), new CreatureJobSystem()]);
+            sim.ObserveWith(sink);
+            return (sim, sink);
+        }
+
+        var (with, withSink) = Run(slotEight: true);
+        var (without, withoutSink) = Run(slotEight: false);
+        var celebratedAt = new List<long>();
+        for (int tick = 0; tick < Second; tick++)
+        {
+            with.Tick();
+            without.Tick();
+            // Each celebration in the flagged run is one draw more; a maker whose action still runs
+            // celebrates a turn after the crate, where the flagless run's does at once.
+            int celebrated = withSink.Events.Count(e => e.Kind == "crate_celebrated");
+            while (celebratedAt.Count < celebrated) celebratedAt.Add(tick);
+            var expected = new Dk2Lcg(((Dk2Lcg)without.Rng.Algorithm).Seed);
+            for (int i = 0; i < celebrated; i++) expected.NextInt(2);
+            Assert.Equal(expected.Seed, ((Dk2Lcg)with.Rng.Algorithm).Seed);
+            if (celebrated < 2) continue;
+            Assert.Equal(2, withoutSink.Events.Count(e => e.Kind == "crate_celebrated"));
+            // The crate is made on the first turn; the flagless run's two celebrate at once.
+            Assert.Equal(actionRunning ? 1 : 0, celebratedAt.Max());
+            return;
+        }
+        Assert.Fail("no crate in a second");
+    }
+
     [Fact]
     public void TwoMakersWorkOneQueue_OneCrateAtATime_InHalfTheTime()
     {

@@ -4685,7 +4685,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 1. **Kind 0 is a door, 1 a trap**, in the order list, on a crate and in the blueprint list (`0x00506BA0`). Ours had them the other way round.
 2. **The blueprint list** (`player+0xA21`, 128 entries) is `PlayerState.Blueprints`. The door loader adds every authored door blueprint to it, as well as pushing its order. The trap loader does neither, so an authored trap blueprint is never built.
 3. **A Workshop holds its crates.** A listed crate is owned by the keeper and set down three to a tile, off every floor and wall furniture slot, newest first (`0x004F5040`). The Workshop's capacity extra (`0x004F6140`: crates / 3 < tiles − furniture) is part of every capacity test on a Workshop. A crate made in a full Workshop belongs to nobody.
-4. **A made crate sends every worker in its Workshop to state 68**, which ends in state 1 the turn it runs: the handler sets 1 and 69, returns 0, and the dispatcher sets 1. The celebration takes no time here.
+4. **A made crate sends every worker in its Workshop to state 68**, which ends in state 1: the handler sets 1 and 69, returns 0, and the dispatcher sets 1. The celebration takes no time here. Its art-record-8 gate and `random(2)` draw are ADR-0671.
 5. **Three handlers take the job**, walking to the crate and resuming in 34 or 36:
    - Tier A's third kind, `0x0046BD70`: the blueprint list in order, and the first Workshop holding a crate for it.
    - The drop scan's third step, `0x0046C1A0`.
@@ -15629,3 +15629,39 @@ shipped mpd maps key on, and the flip of world `+0x72B2` (`0x00511610`) that eve
 ours on release inside the control; a click ours refuses on an unknown slot posts nothing, where
 DK2's room, spell and Workshop callbacks test no availability 2. DK2 also runs a turn's actions in
 packet order, ours groups them by type.
+
+## ADR-0671: a worker celebrating a made crate draws its play count
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 415. · **Systems:** creatures
+
+**Context.** A made crate sends every worker attached to its Workshop to state 68 (ADR-0214). Its
+handler, `0x00470B20`, first ends a running action, but only when the state's turn counter `+0x1C` is 1.
+It then tests bit 0 of `+0xB` in art record 8, which `CreatureDef_GetArt` (`0x00494860`) resolves
+through its fallback. With the bit clear it returns 0, and the dispatcher sets state 1. With the bit set
+and an action running, it returns 1 and stays in 68. Otherwise it draws `random(2)` (ManufactureState.cpp
+line 469) and starts action 35 for that many plays plus one (`0x004969D0`). On success it sets states 1
+and 69, and returns 0.
+
+The counter decides when the draw happens. `Creature_UpdateState` (`0x00476FC0`) increments `+0x1C`, then
+runs the category hook, then the handler. The maker's Manufacture hook makes the crate, and the crate
+maker's `SetState(68)` zeroes the counter. So the maker's handler runs that same turn with `+0x1C` = 0
+and does not end its action 32. If that action is still playing, the maker waits and draws a turn
+later. Every other run sees `+0x1C` = 1.
+
+The native Level 4 capture (`q712-native-drawlog-level4-seed1--2026-11-04--001`) shows both cases. Crate
+1904 appears in the frame after turn 1701, and its two workers' draws fall in turn 1702. Crate 1975
+appears and is drawn for in turn 1857. ADR-0214 built the idle ending but not the flag, so ours never
+drew.
+
+**Decision.** `CreatureJobSystem.CrateMade` mirrors the handler. On the maker's own turn it keeps a
+running action; on every other run it ends the action first. With `AnimationTimingRules.ResolvesPresent(definition, 8)`:
+- while an action runs (`ActionUntilTick`), the creature stays in 68;
+- otherwise it draws `random(2)` and idles.
+
+Without the flag it idles at once. Action 35 is not played, so the celebration still takes no time.
+
+**Consequences.** The world stream advances as DK2's does when a crate is made. A maker that is mid-work
+idles a turn later than before. Nothing else a creature does changes directly, but every later random
+outcome shifts. The handler and the counter are STRONGLY INFERRED from the disassembly. The two timings
+agree with the Level 4 capture. The art install's coin flip (`0x004B37D0`, RenderInfo.cpp:201) is
+absent after both pairs, so action 35's start drew nothing there.
