@@ -62,8 +62,9 @@ public static class SimulationMarkers
     public static readonly SimulationMarker Messages = SimulationMarker.Named("messages");
     public static readonly SimulationMarker Triggers = SimulationMarker.Named("triggers");
 
-    /// <summary>One call per <see cref="Navigation.WorldSteering.Refresh"/>: re-reading every
-    /// tile's navigation byte. Its call count is how many times a tick asks.</summary>
+    /// <summary>One call per <see cref="Navigation.WorldSteering.Refresh"/>: comparing what the
+    /// navigation bytes read (each tile's terrain, owner, ruin and Secret Door bits, the doors, the
+    /// crypts) with what the last refresh saw. Its call count is how many times a tick asks.</summary>
     public static readonly SimulationMarker NavRefresh = SimulationMarker.Named("nav.refresh");
 
     /// <summary>A full navigation-mesh build, inside <see cref="NavRefresh"/> when a byte changed.</summary>

@@ -149,6 +149,43 @@ public sealed class WorldSteeringMeshTests
         Assert.NotEqual(a.Value, b.Value);
     }
 
+    /// <summary>The refresh compares one word per tile (terrain, owner, ruin, Secret Door), not the
+    /// whole tile: a write to anything else leaves the mesh alone, and a write to those is seen.</summary>
+    [Fact]
+    public void OnlyTheFieldsTheBytesReadMoveTheMesh_AndTheBytesAlwaysEqualAFreshCapture()
+    {
+        var (db, world, steering, _) = Setup();
+        var random = new Random(7);
+        byte[] terrains = [Dk2TerrainFixture.ClaimedPath, Dk2TerrainFixture.Water, Dk2TerrainFixture.ReinforcedWall];
+        for (int step = 0; step < 200; step++)
+        {
+            int before = steering.Rebuilds;
+            ref TileState tile = ref world.Tile(random.Next(1, 12), random.Next(1, 12));
+            bool navigational = random.Next(2) == 0;
+            if (navigational)
+            {
+                byte terrain = terrains[random.Next(terrains.Length)];
+                byte owner = random.Next(2) == 0 ? PlayerIds.Neutral : PlayerIds.FirstKeeper;
+                tile.TerrainId = terrain;
+                tile.OwnerPlayerId = owner;
+            }
+            else
+            {
+                tile.Health += random.Next(1, 100);
+                tile.GoldHeld += random.Next(1, 100);
+                tile.TaggedBy = tile.TaggedBy.With(PlayerIds.FirstKeeper);
+                tile.ExploredBy = tile.ExploredBy.With(PlayerIds.FirstKeeper);
+            }
+
+            steering.Refresh();
+
+            if (!navigational) Assert.Equal(before, steering.Rebuilds);
+            byte[] fresh = WorldSteering.CaptureNavigationBytes(db, world);
+            for (int i = 0; i < fresh.Length; i++)
+                Assert.Equal(fresh[i], steering.NavByte(i % world.Width, i / world.Width));
+        }
+    }
+
     private static void Claim(WorldState world, int x, int y)
     {
         ref TileState tile = ref world.Tile(x, y);
