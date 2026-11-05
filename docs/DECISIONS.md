@@ -15573,3 +15573,26 @@ each chain tile's store gold, then its floor piles newest first, deposited from 
 moves as DK2's does. Deviation: ours deposits along the room as it stands, which a capture can merge
 with the captor's; DK2's captured room keeps its own chain. It shows only on overflow. The same
 `0x004F3B60` is the Treasury's slot `+0x09`, run on every tile change (Q753).
+
+## ADR-0669: a Treasury banks the floor gold on its tiles whenever its tiles change
+
+**Date:** 2026-11-05. **Status:** accepted. Answers Q753; hash/save 413. · **Systems:** rooms, imps-tile-work
+
+**Context.** `0x004F3B60`, the walk that banks every floor gold pile on a room's tiles (ADR-0668), is
+also the Treasury record's slot `+0x09` (`0x006A1ED1`), which `Room_OnTilesChanged` `0x004E4480` runs
+after every rebuild: `Room_AddTile` `0x004ED1A0` (`0x004ED2D8`, a new room or a join), each piece of
+`Room_RemoveTile` (`0x004ED76C`) and `Room_MergeNeighbours` (`0x004ECB1D`). A rebuild that frees a
+room, the split old room or a join's absorbed one, first runs the Treasury's slot `+0x05`
+(`0x004D9670`), which empties its store to floor piles. Ours left loose gold to the store sweep and
+kept store gold where it lay, so neither the banking nor its pile-angle draws happened.
+
+**Decision.** `SlabChain.Added` and `Removed` call `GoldStore.BankFloorGold` for a Treasury after the
+rebuild, with the freed tiles' store gold emptied first: an absorbed room's on a join, every piece's
+on a removal. `SlabChain.Changed` takes the world stream and the context, for the draws and each new
+pile's Gold Earn Creation effect (`def+0x425`); callers with a context pass both.
+
+**Consequences.** Gold lying where a Treasury is built or extended is banked at once, and a sold tile
+re-banks the rest. A Heart's slot `+0x09` is the stub `0x00401200`. Unbuilt: the merge after a capture
+or conversion (`0x004EC900`: absorb, free, `0x004E4480`), where ours banks along the merged room in
+`Recapture` instead; and the level load, which DK2 builds through `Room_AddTile` (`0x004C5C30`) and
+ours through `AsLoaded`, the order of tiles and things there unread.

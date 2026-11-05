@@ -39,7 +39,8 @@ public static class SlabChain
 
     /// <summary>Call after <paramref name="tileIndex"/> changed terrain or owner, with what it was
     /// before: it leaves the room it was in and joins the one it is now in, if either is a room.</summary>
-    public static void Changed(WorldState world, GameDatabase database, int tileIndex, byte terrainBefore, PlayerId ownerBefore)
+    public static void Changed(WorldState world, GameDatabase database, int tileIndex, byte terrainBefore, PlayerId ownerBefore,
+        SimRandom? stream = null, SimulationContext? context = null)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (tile.TerrainId == terrainBefore && tile.OwnerPlayerId == ownerBefore) return;
@@ -50,11 +51,11 @@ public static class SlabChain
         int lost = tile.RoomHealthLost;
         tile.RoomHealthLost = 0;
         if (database.RoomByTerrain(terrainBefore) is { } before)
-            Removed(world, database, tileIndex, terrainBefore, ownerBefore, before, lost);
+            Removed(world, database, tileIndex, terrainBefore, ownerBefore, before, lost, stream, context);
         if (database.RoomByTerrain(tile.TerrainId) is { } after)
         {
             List<int>? absorbed = after.TypeId == RoomTypeId.Graveyard ? [] : null;
-            List<int> chain = Added(world, database, tileIndex, absorbed);
+            List<int> chain = Added(world, database, tileIndex, absorbed, stream, context);
             if (after.TypeId == RoomTypeId.Prison) Activate(world, chain);
             if (absorbed is { Count: > 0 }) GraveyardRules.Unlink(world, absorbed);
         }
@@ -136,7 +137,8 @@ public static class SlabChain
     /// (<see cref="CasinoJackpotRules.IsPartyOn"/>), so they move to the new lowest.</remarks>
     /// <param name="absorbed">Gains the tiles of the rooms merged in behind the joined one, whose
     /// records are freed (<c>Room_Free</c>).</param>
-    public static List<int> Added(WorldState world, GameDatabase database, int tileIndex, List<int>? absorbed = null)
+    public static List<int> Added(WorldState world, GameDatabase database, int tileIndex, List<int>? absorbed = null,
+        SimRandom? stream = null, SimulationContext? context = null)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         byte terrain = tile.TerrainId, owner = tile.OwnerPlayerId;
@@ -209,6 +211,9 @@ public static class SlabChain
             ChickenMovementRules.ReleaseHatcheryBirds(world, freed);
             ChickenMovementRules.AdoptOnChain(world, database, chain);
         }
+        // Room_AddTile's 0x004E4480 (0x004ED2D8): a Treasury's slot +0x09 banks its floor gold, an
+        // absorbed room's store emptied first (ADR-0669).
+        GoldStore.BankFloorGold(world, database, chain, freed, stream, context);
         return chain;
     }
 
@@ -247,7 +252,8 @@ public static class SlabChain
     /// the old room's share of health (<see cref="RoomHealthRules.SharePercent"/>);
     /// <paramref name="lost"/> is the leaving tile's part of the old deficit.</summary>
     public static void Removed(
-        WorldState world, GameDatabase database, int tileIndex, byte terrain, PlayerId owner, RoomDef room, int lost)
+        WorldState world, GameDatabase database, int tileIndex, byte terrain, PlayerId owner, RoomDef room, int lost,
+        SimRandom? stream = null, SimulationContext? context = null)
     {
         var old = new HashSet<int>();
         for (int d = 0; d < Dx.Length; d++)
@@ -349,6 +355,8 @@ public static class SlabChain
                 ChickenMovementRules.AdoptOnChain(world, database, chain);
             }
             if (room.TypeId == RoomTypeId.Prison) Activate(world, chain);
+            // The old room was freed and emptied (0x004D9670); each piece banks what lies on it (0x004ED76C).
+            if (room.TypeId == RoomTypeId.Treasury) GoldStore.BankFloorGold(world, database, chain, chain, stream, context);
         }
     }
 

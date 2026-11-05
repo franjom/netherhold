@@ -50,7 +50,7 @@ public sealed class BridgeBurnSystem : ISimulationSystem
             // read so far gives it through Tile_SetTerrain (0x0044FDBF, ADR-0362). STRONGLY
             // INFERRED: the burn's own writer is unread.
             if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Neutral;
-            SlabChain.Changed(world, context.Database, i, was, ownerBefore);
+            SlabChain.Changed(world, context.Database, i, was, ownerBefore, context.Rng, context);
 
             int lostGold = tile.GoldHeld;
             tile.GoldHeld = 0;

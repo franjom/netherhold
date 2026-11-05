@@ -148,7 +148,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
         ref TileState tile = ref context.World.Tile(pos);
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
         RoomRules.Place(context.Database, ref tile, room, playerId);
-        SlabChain.Changed(context.World, context.Database, pos.Y * context.World.Width + pos.X, terrainBefore, ownerBefore);
+        SlabChain.Changed(context.World, context.Database, pos.Y * context.World.Width + pos.X, terrainBefore, ownerBefore, context.Rng, context);
         if (announce)
             ThingSoundRules.RequestTile(context, SystemName, room.TerrainId, pos.Y * context.World.Width + pos.X,
                 ThingSoundEvent.RoomTileBuilt, kind: SoundSourceKind.Room);

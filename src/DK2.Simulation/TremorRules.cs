@@ -132,7 +132,7 @@ public static partial class TremorRules
         if (result.Outcome == TileWorkOutcome.Destroyed)
         {
             tile.FreshlyDug = false;
-            SlabChain.Changed(world, context.Database, world.TileIndex(at), before, ownerBefore);
+            SlabChain.Changed(world, context.Database, world.TileIndex(at), before, ownerBefore, context.Rng, context);
             if (tile.TerrainId != before)
                 ThingSoundRules.RequestTile(context, "tremor", before, world.TileIndex(at), ThingSoundEvent.TileBroken);
             context.Navigation.Refresh();
