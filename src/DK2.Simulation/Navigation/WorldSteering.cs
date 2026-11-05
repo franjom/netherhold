@@ -33,7 +33,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private MeshRouter? _router;
     private StructureBlocks? _structures;
     private IReadOnlyList<int> _platformCentres = [];
-    private TileState[] _tileSnapshot = [];
+    private uint[] _tileKeys = [];
     private readonly List<DoorKey> _doorSnapshot = [];
     private readonly List<long> _cryptSnapshot = [];
     private readonly List<long> _cryptScratch = [];
@@ -182,7 +182,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         _mesh = NavMesh.Read(r);
         _router = new MeshRouter(_mesh);
         _structures = StructureBlocks.For(_world, _database);
-        _tileSnapshot = [];
+        _tileKeys = [];
     }
 
     /// <summary>Folds the mesh into the state hash; nothing while no mesh stands.</summary>
@@ -200,10 +200,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     private bool Unchanged()
     {
-        TileState[] tiles = _world.RawTiles;
-        if (tiles.Length != _tileSnapshot.Length
-            || !MemoryMarshal.AsBytes(tiles.AsSpan()).SequenceEqual(MemoryMarshal.AsBytes(_tileSnapshot.AsSpan())))
-            return false;
+        if (!SameTileKeys()) return false;
         IReadOnlyList<DoorState> doors = _world.Doors;
         if (doors.Count != _doorSnapshot.Count) return false;
         for (int i = 0; i < doors.Count; i++)
@@ -217,14 +214,47 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return true;
     }
 
+    /// <summary>What of a tile the navigation bytes read, one word: its terrain, its owner, whether
+    /// its room is ruined and whether it hides a Secret Door. Every other field of the tile (health,
+    /// gold, tags, fog, room timers) leaves the bytes, the structure mask and the room floors alone,
+    /// so a change in those cannot change the mesh. <see cref="FillNavigationBytes"/> reads the
+    /// terrain and, on a door's tile, the Secret Door bit; <see cref="StructureBlocks.For"/> and
+    /// <see cref="RoomIndex"/> read terrain, owner and the ruin bit (ADR-0454, ADR-0466).</summary>
+    private static uint TileKeyOf(in TileState tile) =>
+        tile.TerrainId | ((uint)tile.OwnerPlayerId << 8) | (tile.RoomRuined ? 1u << 16 : 0u) | (tile.SecretDoor ? 1u << 17 : 0u);
+
+    /// <summary>Whether every tile's <see cref="TileKeyOf"/> is what the last refresh saw.</summary>
+    private bool SameTileKeys()
+    {
+        ReadOnlySpan<TileState> tiles = _world.Tiles;
+        ReadOnlySpan<uint> keys = _tileKeys;
+        if (tiles.Length != keys.Length) return false;
+        for (int i = 0; i < keys.Length; i++)
+            if (TileKeyOf(in tiles[i]) != keys[i]) return false;
+        return true;
+    }
+
+    private void StoreTileKeys()
+    {
+        ReadOnlySpan<TileState> tiles = _world.Tiles;
+        if (_tileKeys.Length != tiles.Length) _tileKeys = new uint[tiles.Length];
+        for (int i = 0; i < tiles.Length; i++) _tileKeys[i] = TileKeyOf(in tiles[i]);
+    }
+
     /// <summary>The crypts on the map, as a Graveyard's floor slots read them
     /// (<see cref="AutoFurnitureRules.FloorSlotSet"/>): tile and whether held, in object order.</summary>
     private void Crypts(List<long> into)
     {
         into.Clear();
-        foreach (ObjectState thing in _world.Objects)
+        // Index loop over the list itself: a refresh asks nine times a tick, and a foreach over the
+        // interface boxes its enumerator where the runtime does not elide it.
+        List<ObjectState> objects = _world.RawObjects;
+        for (int i = 0; i < objects.Count; i++)
+        {
+            ObjectState thing = objects[i];
             if (thing.ObjectTypeId == AutoFurnitureRules.CryptObjectId)
                 into.Add(((long)thing.TileIndex << 1) | (thing.InHand ? 1L : 0L));
+        }
     }
 
     /// <summary>One bit per player slot whose heart is ruined; the structure mask drops such a heart.</summary>
@@ -238,11 +268,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     private void Snapshot()
     {
-        TileState[] tiles = _world.RawTiles;
-        if (_tileSnapshot.Length != tiles.Length) _tileSnapshot = new TileState[tiles.Length];
-        Array.Copy(tiles, _tileSnapshot, tiles.Length);
+        StoreTileKeys();
         _doorSnapshot.Clear();
-        foreach (DoorState door in _world.Doors) _doorSnapshot.Add(KeyOf(door));
+        IReadOnlyList<DoorState> doors = _world.Doors;
+        for (int i = 0; i < doors.Count; i++) _doorSnapshot.Add(KeyOf(doors[i]));
         _ruinedSnapshot = RuinedHearts();
         _navStampSnapshot = _world.NavStamps.Count;
         Crypts(_cryptSnapshot);
@@ -311,8 +340,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
         // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor.
         // A barricade (definition flag bit 6) carries the lock bit whatever its lock mode.
-        foreach (DoorState door in world.Doors)
+        IReadOnlyList<DoorState> doorList = world.Doors;
+        for (int d = 0; d < doorList.Count; d++)
         {
+            DoorState door = doorList[d];
             if (door.UnderConstruction || door.Open || !world.Contains(door.X, door.Y)) continue;
             bool barricade = database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Barricade);
             bytes[(door.Y * world.Width) + door.X] =
