@@ -18,8 +18,7 @@ the straight-line distance to the goal, so it is neither Dijkstra nor A\* and ca
 creature's own flags and the option word its state passes decide which of those it may enter, so most walkers refuse other keepers' doors
 while an Imp on its way ignores doors altogether (STRONGLY INFERRED, binary; CONFIRMED against the route log, Q357). When a tile's byte
 changes, DK2 edits the mesh in place around that tile instead of rebuilding it ([per-tile
-rebuild](https://github.com/franjom/netherhold/blob/master/docs/research/navigation-partial-rebuild.md): read in the binary, though
-its function record, `004CE770`, still says HYPOTHESIS).
+rebuild](https://github.com/franjom/netherhold/blob/master/docs/research/navigation-partial-rebuild.md), STRONGLY INFERRED).
 
 **Movement is a steering system.** Each creature has a steering body holding a position, a velocity and a window of up to five route points.
 Eight behaviours are named in the binary; three are stubs, one is never registered, and four are summed as clamped forces and integrated by

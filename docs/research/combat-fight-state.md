@@ -159,12 +159,13 @@ attacker**: yes when the target has no live creature target of its own; no when
 its target *is* the attacker; and when its target is someone else, **yes only if
 that someone has more than one attacker** — a walk over both arrays stopping at
 the second nonzero slot. Turning: unlink from the old target, `+0x502` =
-attacker, and unless struck by melee or being Support, survey the three spell
+attacker, and when not struck by melee, or when it is Support, survey the three spell
 slots for an attack spell (bit 0 of the spell's `+0x27`, level allowing) — the
 first found is used with nibble 0 and range², else melee with nibble 1 and
 `(MeleeRange + attacker.FootprintRadius / 2)² >> 12`. Registration
-(`0x0045A9A0`) failing clears the target. Then `SetState(199)` unless already in
-the group, or en route toward 199.
+(`0x0045A9A0`) failing clears the target. Then `SetState(199)` when the category
+re-read after registration is not combat (22), or when the creature is in state 6
+with 199 pending (corrected 2026-11-05 from the re-read in `0045AA20`'s record).
 
 **Target not fighting, attacker a trap:** if the gate `0x0045A6D0(0)` allows, the
 target is not an Imp, the trap's slot is live and a route to it exists (`0x004D0E60`,

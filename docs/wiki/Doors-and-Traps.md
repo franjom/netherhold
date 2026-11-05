@@ -23,8 +23,6 @@ Door and trap placement, manufacture, triggering and effects: what a keeper's bl
 
 ## Evidence
 
-The research notes read the door and trap updates in the binary and label them STRONGLY INFERRED. Six of the function records below (`004A55F0`, `004A84E0`, `004A7D10`, `004A7FD0`, `0045AA20`, `00520E50`) still say HYPOTHESIS; until they are re-read, the lower label is the one on record.
-
 | What | Where |
 |---|---|
 | Door update: open order, support, recovery, death | [`004A55F0`](https://github.com/franjom/netherhold/blob/master/docs/research/functions/004A55F0.md) |
