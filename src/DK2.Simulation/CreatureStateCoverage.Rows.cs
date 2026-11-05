@@ -239,7 +239,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(222, typeof(HeroJobRules), nameof(HeroJobRules.FollowingState)));
         rows.Add(Built(223, typeof(TunnelRules), nameof(TunnelRules.AdvancingState)));
         rows.Add(Built(224, typeof(TunnelRules), nameof(TunnelRules.HandBackState)));
-        rows.Add(Unbuilt(225, "not read"));
+        rows.Add(Built(225, typeof(ExploreRules), nameof(ExploreRules.ExploringState)));
         rows.Add(Built(226, typeof(StealGoldRules), nameof(StealGoldRules.RunTheJobState)));
         rows.Add(Built(227, typeof(HeroJobRules), nameof(HeroJobRules.NoPointState)));
         rows.Add(Built(228, typeof(FinaleRules), nameof(FinaleRules.Run)));

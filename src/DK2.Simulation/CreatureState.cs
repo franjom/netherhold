@@ -981,6 +981,11 @@ public sealed class CreatureState
     /// one plays (imp-idle-and-wandering.md §3).</summary>
     public long WanderStamp;
 
+    /// <summary>State 225's steps left (state <c>+0xA7</c>): 10 from Explore's arm, one spent per
+    /// step (<c>0x0045A3E0</c>, ADR-0674). Kept apart from <see cref="WanderStamp"/>, as every state's
+    /// use of that shared word is here; whether a state change clears it is unread.</summary>
+    public int ExploreStepsLeft;
+
     /// <summary>When the creature action playing now ends (DK2's running action, <c>0x00496D00</c>);
     /// used by idle actions and the captured knockdown/get-up animation clock.</summary>
     public long ActionUntilTick;
@@ -1502,6 +1507,7 @@ public sealed class CreatureState
         hash.Add(Tunnel.Digging);
         hash.Add(Tunnel.Action);
         hash.Add(WanderStamp);
+        hash.Add(ExploreStepsLeft);
         hash.Add(ActionUntilTick);
         hash.Add(TrainingActionId);
         hash.Add(TrainingActionStartedTick);

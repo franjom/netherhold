@@ -119,6 +119,29 @@ tick, as with Level 5. Of the 13:
   of 6 clusters at the first index of a turn; the coops are rebuilt on a room change; ADR-0672, hash 416). No site
   of the census is unbuilt.
 
+## Native draw log: Level 3 seed 1, turns 3-3700
+
+`F:/DK2Evidence/studies/q712-native-drawlog-level3-seed1--2026-11-05--001`, the same draw log on the `l3live`
+natural seed over the whole replay, with the world seed read at every `World_UpdateTurn` return (`seeds.jsonl`)
+instead of frames. 61153 draws over 3698 turns, every one attributed to its turn (median 15 a turn), from 97
+sites. MESSAGE.LOG reports a checksum desync from GT 18 (low bits only), yet all 3699 per-turn seeds occur in the
+owner's `level3-live1/seed01` capture at offset one tick, as with Levels 4 and 5. The 25 sites neither the
+Level 4 nor the Level 5 log draws, read in the binary (STRONGLY INFERRED where not stated):
+
+- already mirrored: PatrolState 148 and 165 (`0x004721C0`, hero roaming state 175), Creature.cpp 5642-5644
+  (`0x0048E160`, burning), ImpState 233 and 384 (`0x00463DF0`), ImpState 522 (`0x00464240`), Training.cpp 148
+  and 289 (`0x004F2FF0`, `0x004F3310`), Creature.cpp 6651 and 6652 (`0x0048F930`), Player.cpp 4701 and 4702
+  (`0x004BF410`), LairState 170 (`0x0046F4F0`);
+- built from this log: ExploreState 28/29 (`0x0045A290`, job 24: up to 20 tries of `random(width)`,
+  `random(height)`) and 98/99 (`0x0045A3E0`, state 225: up to 5 tries of `random(5) - 2` per axis), 280 and 50
+  draws each (ADR-0674, hash 418);
+- unbuilt: Creature.cpp 2098, 2105 and 2106 (`Creature_Update`'s flight from the thing at +0x533, needing Q375's threat
+  source), 2 and 32 each; Creature.cpp 1555 (`random(20)` a turn for a Horny creature once the finale bit
+  `player+0x76 & 0x40` is set), 18;
+- partial: PayState 197 (`0x00472390`, state 187's `random(8)` pile offset and its `0x004E4D90` start draw);
+  Room.cpp 3994 (`0x004E8430`, 27 draws, caller not identified: the wander and jail-break callers draw over a
+  different tile count, and state 217's Graveyard point is unbuilt).
+
 ## Outcomes at hash 399
 
 Measured 2026-11-04: 115 bounded stored-pickup resyncs (75 Level 5, 40 Level 4) at hash/save 399

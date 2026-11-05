@@ -15708,3 +15708,43 @@ two-coop Hatchery refreshed twice by a dug wall.
 
 STRONGLY INFERRED from the disassembly. The record of each function, and `hatchery.md` §2, hold the
 detail.
+
+## ADR-0674: job 24, Explore, walks a creature to neutral floor and on through state 225
+
+**Date:** 2026-11-05. **Status:** accepted. Closes state 225 of issue 6. Hash/save 418. · **Systems:** creatures
+
+**Context.** The Level 3 native draw log (turns 3-3700, `neutral-ambient-effect.md`) has 280 draws at each of
+ExploreState.cpp 28 and 29 and 50 at each of 98 and 99, sites the Level 4 and 5 logs never reach. Their
+functions are Job_Dispatch's case 0x18, `0x0045A290`, and state 225's handler `0x0045A3E0`. Ours refused job
+24 as `no_such_job_here`, and state 225 was unread (GitHub issue 6).
+
+- The arm makes up to 20 tries of `random(map width)`, then `random(map height)`. It takes the first tile
+  that passes four tests: in the map, not solid (world slot `+0x208`), owned by the neutral player
+  (`tile+8 & 0xFFF == [0x006F2548]`), and reachable (`Creature_CanRouteTo`, word 0x80).
+- On a hit it sets state word `+0xA7` to 10 and calls `Travel_RouteToPoint(point, 225, 0x80)`. With no hit
+  the job fails.
+- State 225 runs while `+0xA7` is non-zero. Each time it decrements the word and makes up to 5 tries of
+  `random(5) - 2` on each axis around the creature's tile.
+- The tests are the same, except the owner must be 0. A hit walks there, resuming 225. A spent word or no
+  hit returns 0, and the dispatcher idles the creature.
+
+**Decision.** `ExploreRules.Arm` and `Step` mirror the two functions, with the same draw order.
+- `KeeperTurn` runs the walk's arrival and the state for a keeper's creature, from `CreatureJobSystem`. A
+  failed step clears the job and idles the creature.
+- Solidity is the navigation byte's bit 8. Reachability is `CombatTargetRules.CanReach` with word 0x80.
+  The navigation grid is refreshed before each read.
+- The `+0xA7` word is kept as a new field, `ExploreStepsLeft`, saved and hashed. It is held apart from
+  `WanderStamp`, as every state's use of that shared word is in ours.
+- State 225 counts as AtWork.
+
+**Consequences.**
+- A Firefly, whose happy table is Explore at 100%, now walks the map instead of taking its fallback. Level
+  3's explorer is creature 440, a Firefly (type 12), in the owner's `level3-live1` capture. The Imp's table
+  also holds Explore, but a worker's jobs are the worker system's, so ours never arms it for an Imp.
+- Reachability rests on `Creature_CanRouteTo`'s return value, a HYPOTHESIS record. Ours also accepts the
+  creature's own tile, which DK2 may refuse.
+- Not mirrored:
+  - whether a state change clears the shared `+0xA7`, which is unread;
+  - the route word's door handling, as in other 0x80 routes.
+
+STRONGLY INFERRED from the decompile. Records `0045A290` and `0045A3E0` hold the detail.
