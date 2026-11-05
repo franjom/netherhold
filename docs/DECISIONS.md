@@ -1568,8 +1568,10 @@ masked, so a non-lava creature can no longer route onto a ruin's centre, as DK2'
 - `HashVersion` unchanged and the determinism pin holds: no shipped scenario contains a Skeleton or a Jack, and every other creature's answer is the same under both rules.
 - **Still open in Q210.** Bit 0 (King Reginald, Stone Knight, Jack) makes its carrier immune to whatever the impact routine at `0x004af1e0` applies — that routine damages a creature and **doubles the damage** when the target's tile carries terrain flag `+0x17b & 0x80`. Which attack it is has *not* been established; the routine is installed into a table rather than called. Bit 1 (Stone Knight alone) is a **bounded** negative: no instruction in either executable block tests it, and none reads a wider field at `+0x687`, `+0x688` or `+0x689` that would cover the byte without naming it.
 
-## ADR-0088 — The room → job map is confirmed, and `JobRules` stops being an inference
-**Date:** 2026-09-07 · **Status:** accepted · Q210
+## ADR-0088 — The room → job map is read from the binary, and `JobRules` stops resting on reasoning
+**Date:** 2026-09-07 · **Status:** amended · Q210
+
+- **Amendment (2026-11-05, ADR-0642):** this ADR said "confirmed" for a read of the binary. On the one scale the map is STRONGLY INFERRED: the table was read, no run has shown it. `JobRules` carries `Confidence.StronglyInferred`, and the decision below keeps its original words.
 
 **Context.** DK2's per-room-type handler table (`0x006a1e9f`, 41 bytes a record, ids 1..26 — the table ADR-0086 amendment 1 opened) ends each record with a **job id**. `FUN_004E8DA0` loads it, asks the creature's own definition whether that creature may take the job, and writes it into `creature+0x2bc`.
 
