@@ -15956,3 +15956,29 @@ captures it for the per-tick interpolation. Evidence: [workshop-crates.md](resea
   the previous-position words `+0xF6..` (the view's capture stands in).
 
 STRONGLY INFERRED from the disassembly. Records `0048B5F0`, `0048B4A0`, `004B5020` and `00628BC0` hold the detail.
+## ADR-0681: an imp takes a prisoner into the Prison through its gate
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 425. · **Systems:** rooms, creatures
+
+**Context.** Owner report, Level 6a: imps delivered a dragged prisoner from any rim tile of the Prison, and
+then stayed stuck inside it. State 43 (`0x00467DD0`) walks to the room's entry point (the door tile,
+`0x004E3290`) with option `0xE0`, and only from there steps south into the cell with `0xE4`, resuming 44; 44
+admits and walks back to the door with `0xEC`, resuming 46. A cell's floor is nav bit 2, which the step cost
+`0x004C8BD0` lets only an option-bit-2 walk cross. Ours routed one `0xE4` walk to a free cell tile from
+wherever the imp stood and elided 46's walk, so it crossed the edge anywhere and could not get out.
+
+**Decision.** `PrisonRules.GateTileIn` is the carry's destination: the door tile of the nearest Prison with
+space. `RouteTo` walks a Prison's door tile with `0xE0` and a cell tile with `0xE4`.
+`ImpTaskSystem.AtThePrisonGate` is 43's arrival test (open and room: step into the cell, resume 44; else the
+nearest other Prison; else put the body down on the door tile and idle). Admission walks to the door with
+`MoveOptions.PrisonLeaving` (`0xEC`), resuming 46, which returns the fight bits and sets 10. Rules and
+addresses: [prison-gate.md](research/prison-gate.md).
+
+**Consequences.**
+- No new saved field. Hash/save 425.
+- A Prison that fills before the imp reaches the door leaves the body on the door tile, where ADR-0629 put it on
+  a random rim tile (44's exit 3, reached now only if the Prison fills during the one step in). Q754.
+- Not built: the door's opening, 43's rim-tile branch, 44's exits 2 to 4 and 47/48's walks (an imp that meets
+  one of those races stays in the cell).
+
+STRONGLY INFERRED from the decompile of `0x00467DD0`, `0x004683F0`, `0x004E3290`, `0x004C8BD0`.

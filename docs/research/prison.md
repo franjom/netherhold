@@ -104,12 +104,12 @@ DK2's imp Tier A job table is `14, 8, 9, 1, 3, 13, 12` — whole-map, first that
 takes (`imp-task-priority.md` §4). **Kind 13** is *carry an unconscious
 creature*, and its handler carries a pair of room ids, **2** and **11**: a Lair
 for the carrier's keeper's own, a **Prison** for anybody else's — one task, one
-priority, two destinations. Three consequences reproduced here:
+priority, two destinations. Three consequences reproduced here (the imp's route in, by the door tile, is [prison-gate.md](prison-gate.md)):
 
 - **Capture sits below claiming.** An imp takes no prisoners while there is
   unclaimed ground: in `an_imp_drags_an_enemy_to_prison` the goblin lies on the
   floor while the imp claims the whole map first.
-- **Capacity is checked before the pickup and again at the door** (owner, 2026-09-13 and 2026-10-05; ADR-0148, ADR-0354): with every Prison full no imp sets off (`0x0046D810`'s no-place result); a Prison that fills during the carry refuses at the door (`AdmitsAt`), the imp carries the body on to another Prison with space (ADR-0629), and failing that it is put down on the room point `0x004E8430`, a random tile that is neither floor nor wall slot, so the rim (`PrisonRules.RefusedBodyPoint`). **With no Prison left (exit 4), watched 2026-11-02** (`M7Q729c`, Q729): the imp walked on to the sold Prison's tile, put the body down still dying, and it spent the window it had left (held while carried) and died there; ours puts it down beside and it dies a turn later.
+- **Capacity is checked before the pickup and again at the door** (owner, 2026-09-13 and 2026-10-05; ADR-0148, ADR-0354): with every Prison full no imp sets off (`0x0046D810`'s no-place result); a Prison that fills during the carry refuses at the **door tile**, where state 43 repeats the test: the imp carries the body on to another Prison with space (ADR-0629), and failing that puts it down on the door tile, a rim tile (ADR-0681, [prison-gate.md](prison-gate.md), Q754; state 44's refusal, the room point `0x004E8430`, is left for a Prison that fills during the last step in). **With no Prison left (exit 4), watched 2026-11-02** (`M7Q729c`, Q729): the imp walked on to the sold Prison's tile, put the body down still dying, and it spent the window it had left (held while carried) and died there; ours puts it down on that tile (ADR-0681) and it dies a turn later.
 - **The rescue window is a real deadline.** That run used to capture ten ticks
   inside the window; **it does not capture at all** — the
   goblin dies at tick 243 while the imp still claims, and the run records zero

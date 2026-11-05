@@ -70,7 +70,7 @@ public static class ImpStates
     /// the keeper's own to its Lair (45), an enemy to a Prison (43).</summary>
     public const int PickingUpCasualty = 42;
 
-    /// <summary>State 43: carries an enemy to a Prison, then walks the inner leg to 44.</summary>
+    /// <summary>State 43: carries an enemy to a Prison's door tile, then walks the inner leg south into the cell, resuming 44 (ADR-0681).</summary>
     public const int CarryingToPrison = 43;
 
     /// <summary>State 44: admission. Admitted walks away to 46; refused goes to 47.</summary>
@@ -79,7 +79,7 @@ public static class ImpStates
     /// <summary>State 45: delivers the keeper's own casualty to its Lair and sets 10.</summary>
     public const int CarryingToLair = 45;
 
-    /// <summary>State 46: the admitted prisoner's carrier finishes walking away and sets 10.</summary>
+    /// <summary>State 46: the admitted prisoner's carrier has walked back out to the door; sets 10.</summary>
     public const int LeavingThePrisoner = 46;
 
     /// <summary>State 47: chooses a put-down point in the Prison for a refused body and walks

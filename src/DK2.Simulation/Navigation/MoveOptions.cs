@@ -36,8 +36,14 @@ public enum MoveOptions
     /// <summary>Cross a walled room interior while retaining the other route rules.</summary>
     CrossRoomInterior = 0x04,
 
-    /// <summary>State 44's delivery into a Prison cell: respect doors and snap to the spot.</summary>
+    /// <summary>State 43's step from the Prison's door into the cell (<c>0x00467DD0</c>): respect doors, snap
+    /// to the spot and cross the cell's boundary (bit 2), which a cell tile's navigation bit 2 refuses
+    /// every other walk.</summary>
     PrisonDelivery = 0xE4,
+
+    /// <summary>State 44's walk out of the cell to the door, resuming 46, and 44's and 47's walks with a
+    /// refused body (<c>0x00468010</c>, <c>0x00468270</c>): the exact spot, crossing the cell's boundary.</summary>
+    PrisonLeaving = 0xEC,
 
     /// <summary>A captive's chicken (124), freeing comrades (121): the exact spot with door
     /// bit 2 ignored and no door rule.</summary>

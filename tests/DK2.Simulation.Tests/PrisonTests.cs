@@ -126,14 +126,17 @@ public class PrisonTests
 
     /// <summary>Imprisons a second captive in <see cref="CellB"/> the first tick the imp is
     /// carrying, so the 3x3 prison fills during the walk.</summary>
-    private sealed class FillWhenCarrying(GameDatabase db, CreatureState imp) : ISimulationSystem
+    private sealed class FillWhenCarrying(GameDatabase db, CreatureState imp, bool atTheDoor = false) : ISimulationSystem
     {
         private bool _filled;
         public string Name => "FillWhenCarrying";
 
+        /// <summary>With <paramref name="atTheDoor"/>, waits until the imp has set off from the door into the
+        /// cell (state 44's walk), so the Prison fills after state 43's own check.</summary>
         public void Execute(SimulationContext context)
         {
             if (_filled || imp.Activity != CreatureActivity.CarryingBody) return;
+            if (atTheDoor && imp.UtilityNewState != ImpStates.AtThePrisonDoor) return;
             _filled = true;
             Prisoner(db, context.World, CellB);
         }
@@ -181,8 +184,8 @@ public class PrisonTests
     [Fact]
     public void AnAdmittedPrisonerIsFortyThreeFortyFourThenFortySix()
     {
-        // 42 walks an enemy in 6 to 43; ours arrives at the cell, so 43's inner leg to 44 and
-        // 44's walk away to 46 fall in that tick, and the last walk's saved caller is 44.
+        // 42 walks an enemy in 6 to 43, which on the door tile walks into the cell resuming 44; 44
+        // admits it and walks back to the door resuming 46 (0x00467DD0, 0x00468010, ADR-0681).
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -197,9 +200,12 @@ public class PrisonTests
             [(ImpStates.TaskSelection, 0, 0),
              (6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
              (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison),
+             (6, ImpStates.CarryingToPrison, ImpStates.AtThePrisonDoor),
+             (6, ImpStates.AtThePrisonDoor, ImpStates.LeavingThePrisoner),
              (ImpStates.TaskSelection, ImpStates.AtThePrisonDoor, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
-                () => sink.Events.Any(e => e.Kind == "creature_imprisoned")));
+                () => sink.Events.Any(e => e.Kind == "creature_imprisoned")
+                      && imp.Dk2StateId == ImpStates.TaskSelection));
         Assert.Equal((byte)0x29, imp.Flags);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
@@ -216,13 +222,14 @@ public class PrisonTests
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         imp.Flags = 0x20;
         var sink = new ListEventSink();
-        GameSimulation sim = Simulation(db, world, sink, new FillWhenCarrying(db, imp));
+        GameSimulation sim = Simulation(db, world, sink, new FillWhenCarrying(db, imp, atTheDoor: true));
 
         // The walk into 48 is 47's, so 47 is the saved caller the id is handed back with.
         Assert.Equal(
             [(ImpStates.TaskSelection, 0, 0),
              (6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
              (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison),
+             (6, ImpStates.CarryingToPrison, ImpStates.AtThePrisonDoor),
              (ImpStates.TaskSelection, ImpStates.TakingTheRefusedBody, CreatureStateMachine.Idle)],
             ImpStateTrace.Seen(sim, imp, 30 * Second,
                 () => sink.Events.Any(e => e.Kind == "body_dropped")));
