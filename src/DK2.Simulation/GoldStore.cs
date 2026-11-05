@@ -208,7 +208,7 @@ public static class GoldStore
     /// the deposit <c>0x004F3C60</c> the store sweep hands a loose pile to, from the pile's tile
     /// (gold-on-the-floor.md §11).</summary>
     public static int FillAlongChainFrom(WorldState world, GameDatabase database, RoomInstance room,
-        int startTile, int amount, SimRandom rng, SimulationContext? context = null)
+        int startTile, int amount, SimRandom? rng, SimulationContext? context = null)
     {
         int[] chain = SlabChain.Order(world, room);
         int start = Math.Max(0, Array.IndexOf(chain, startTile));
@@ -222,13 +222,60 @@ public static class GoldStore
     /// <see cref="FillAlongChainFrom"/>, and what the tiles cannot take goes down as a new neutral
     /// pile on <paramref name="tile"/> at one of eight points drawn on the world stream (line 0x196,
     /// table <c>0x006A2FA0</c>). Returns what went into the store.</summary>
-    public static int DepositFrom(SimulationContext context, RoomInstance room, int tile, int amount)
+    public static int DepositFrom(SimulationContext context, RoomInstance room, int tile, int amount) =>
+        DepositFrom(context.World, context.Database, room, tile, amount, context.Rng, context);
+
+    /// <summary>The same with the world stream passed in; with none, no angle or overflow point is drawn.</summary>
+    public static int DepositFrom(WorldState world, GameDatabase database, RoomInstance room, int tile, int amount,
+        SimRandom? rng, SimulationContext? context = null)
     {
-        if (amount <= 0 || !Accepts(context.World, room)) return 0;
-        int left = FillAlongChainFrom(context.World, context.Database, room, tile, amount, context.Rng, context);
-        if (left > 0 && FloorGold.Drop(context.World, context.Database, tile, left) is ObjectState pile)
-            pile.Cell = OverflowCells[context.Rng.NextInt(OverflowCells.Length)];
+        if (amount <= 0 || !Accepts(world, room)) return 0;
+        int left = FillAlongChainFrom(world, database, room, tile, amount, rng, context);
+        if (left > 0 && FloorGold.Drop(world, database, tile, left) is ObjectState pile && rng is not null)
+            pile.Cell = OverflowCells[rng.NextInt(OverflowCells.Length)];
         return amount - left;
+    }
+
+    /// <summary>A Treasury's slot <c>+0x0D</c>, run by <c>Room_TransferOwnership</c> after the tiles change
+    /// hands (<c>0x004F3C40</c>, ADR-0668): <c>Store_EmptyToFloor</c> (<c>0x004F38C0</c>) turns each store
+    /// pile into a floor pile on its tile, debiting its old keeper; the tally is zeroed; then
+    /// <c>0x004F3B60</c> walks the room's tiles in chain order and deposits every floor pile (object 1)
+    /// on each through <see cref="DepositFrom(WorldState, GameDatabase, RoomInstance, int, int, SimRandom?, SimulationContext?)"/>
+    /// into the room, now the captor's. So the gold changes hands, loose gold on the tiles is banked
+    /// with it, and each refilled tile draws a fresh pile angle. Within a tile DK2 walks its thing
+    /// list, newest first (<c>Thing_LinkToTile</c> <c>0x004B4E70</c> links at the head): the emptied
+    /// store pile, then the older floor piles newest first. Ours deposits along the room as it stands,
+    /// which a capture can merge with the captor's; DK2's captured room keeps its own chain.</summary>
+    public static void Recapture(WorldState world, GameDatabase database, RoomInstance captured, SimRandom? rng,
+        SimulationContext? context = null)
+    {
+        if (captured.Definition.TypeId != RoomTypeId.Treasury) return;
+        if (RoomIndex.RoomAt(world, database, captured.TileIndices[0]) is not { } room) return;
+        int[] chain = SlabChain.Order(world, captured);
+        var stored = new int[chain.Length];
+        for (int i = 0; i < chain.Length; i++)
+        {
+            ref TileState tile = ref world.TileAtIndex(chain[i]);
+            stored[i] = tile.GoldHeld;
+            tile.GoldHeld = 0;
+            tile.StoreGoldHeading = null;
+        }
+        var loose = new List<ObjectState>();
+        for (int i = 0; i < chain.Length; i++)
+        {
+            if (stored[i] > 0) DepositFrom(world, database, room, chain[i], stored[i], rng, context);
+            loose.Clear();
+            foreach (ObjectState thing in world.Objects)
+                if (thing.TileIndex == chain[i] && thing.ObjectTypeId == FloorGold.FloorGoldObjectId
+                    && !thing.InHand && thing.CarriedByCreatureId < 0) loose.Add(thing);
+            for (int k = loose.Count - 1; k >= 0; k--)   // newest first, as the tile's list
+            {
+                ObjectState pile = loose[k];
+                int amount = pile.GoldHeld;
+                world.RemoveObject(pile.Id);
+                DepositFrom(world, database, room, chain[i], amount, rng, context);
+            }
+        }
     }
 
     /// <summary>The ruin test both deposits and the gold store state <c>0x0049F730</c> make first
