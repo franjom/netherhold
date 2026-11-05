@@ -104,7 +104,8 @@ stands on the target's tile.
 Line walker `0x004512F0(a, b, f1, f2)` asks `0x004511A0(x, y, f1, f2)` per tile; every scan
 passes `f2 = 1`. A navigation byte with bit 3 (Solid) blocks. With `f1 = 0` a door blocks only
 while the tile's navigation byte carries a door owner (`0x004528E0` tests that nibble first), which
-a closed, completed door writes; then a door thing blocks unless it is a barricade (`def+0x8B` bit 6).
+a closed, completed door writes (so does a revealed secret door while open, `0x004A6625`, unbuilt); then a door
+thing blocks unless it is a barricade (`def+0x8B` bit 6).
 An open door and a blueprint leave floor, so they let sight through (corrected 2026-11-05, ADR-0683;
 ADR-0318 had them block). With `f1 = 1` and `f2 = 1` no door blocks, only Solid.
 

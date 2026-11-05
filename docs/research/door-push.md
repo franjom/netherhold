@@ -94,8 +94,10 @@ Not built, and ours differs:
 
 Re-read for the report that an Imp finishing a barricade is pushed into a wall and stays pressed against it.
 Step 4 and the pass match the binary (sections 1 and 2); no further terrain test exists in either, so DK2's
-push can face a wall in one case only: the creature on the push point itself, where `len` is 0 and the vector
-is the heading `+0xF4` (section 1, item 3), with the zeroing leaving nothing to say which way is open. The
+push can face a wall in one case only: `len` is 0 and the vector is the heading `+0xF4` (section 1, item 3), with the
+zeroing leaving nothing to say which way is open. That is not one point: `0x004A58A2`-`0x004A58C2` zeroes the
+along-wall component first (`dy` with north and south both shut, `dx` with east and west both shut), so in a
+passage `len` is 0 along the whole line through the centre across it. The
 reflect arm then turns the component back each turn and the persistent vector never empties: the creature
 stays against the wall. In every other position the vector points away from the shut sides, so toward the
 open ones.

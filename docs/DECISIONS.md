@@ -10202,8 +10202,9 @@ until the owner's army starts breaking the door at 5344.
 
 **Decision.** The claim priority refuses a tile with a closed, completed door, as
 `0x0046AB50`'s third gate does: it continues only when `+0x21C(x, y, 0)`, the door nibble
-of the tile's navigation byte, is 0. Only a closed, completed door writes that nibble
-(`0x004A66F0`), so an open door or one under construction does not refuse. One gate
+of the tile's navigation byte, is 0. A closed, completed door writes that nibble
+(`0x004A66F0`; a revealed open secret door also does, `0x004A6625`, unbuilt), so an open door or one under
+construction does not refuse. One gate
 covers claim, attack and room conversion, as the handler does. Hash/save version 234.
 
 **Consequences.** On ADR-0441's tool Level 4 goes from 0/20 to 2/20 (seeds 19 and 13,
@@ -15980,8 +15981,11 @@ addresses: [prison-gate.md](research/prison-gate.md).
   a random rim tile (44's exit 3, reached now only if the Prison fills during the one step in). Q754.
 - Not built: the door's opening, 43's rim-tile branch, 44's exits 2 to 4 and 47/48's walks (an imp that meets
   one of those races stays in the cell).
+- Declared deviation: native refuses the pick-up for a Prison with no door tile (`0x0046E786` tests the entry
+  point's X, which is below one tile for door tile (0, 0)); ours falls back to the free cell tile.
 
-STRONGLY INFERRED from the decompile of `0x00467DD0`, `0x004683F0`, `0x004E3290`, `0x004C8BD0`.
+STRONGLY INFERRED from the decompile of `0x00467DD0`, `0x004683F0`, `0x004E3290`, `0x004C8BD0`, `0x0046E610`'s
+enemy arm. The premise "cell floor = nav bit 2" rests on `0x004EFDE0`'s record, which is HYPOTHESIS.
 
 ## ADR-0682: a creature on a closed door's push point is pushed toward an open side
 
@@ -15989,8 +15993,10 @@ STRONGLY INFERRED from the decompile of `0x00467DD0`, `0x004683F0`, `0x004E3290`
 
 **Context.** Owner report (Unity): an Imp that finishes a barricade is pushed off the tile, sometimes into
 a wall, and stays there. Door update `0x004A55F0` and the physical pass `0x004B2030` match ours; neither has
-a terrain guard beyond the reflect arm. The one push that faces a wall is a creature exactly on the push
-point, which takes its heading (`+0xF4`). Ours put an arriving Imp on the exact centre with heading north.
+a terrain guard beyond the reflect arm. The one push that faces a wall is a creature whose distance from
+the push point is 0, which takes its heading (`+0xF4`). That is not one point: `0x004A58A2`-`0x004A58C2` zeroes
+the along-wall component first, so in a passage the length is 0 along the whole line through the centre across
+it. Ours put an arriving Imp on the exact centre with heading north.
 
 **Decision.** `DoorPushRules.TowardAnOpenSide`: when that heading mainly faces a shut side and another side is
 open, the push goes to the open side nearest the heading. A deviation from DK2, recorded in
@@ -16012,8 +16018,8 @@ Records `004A55F0`, `004B2030`, `004B35C0` hold the reads.
 leaves it as unexplored rock. The level script un-explores the player's own Workshop after the fly-over,
 and `0x00454E00` has no owner test, so only creature sight brings it back. ADR-0318 made `WorldSight` stop
 at any door thing, open or shut, from a read of the thing chain. `0x004511A0`'s door arm first calls
-`0x004528E0`, which returns 0 unless the tile's navigation byte carries a door owner; only a closed,
-completed door writes one (`0x004A66F0`).
+`0x004528E0`, which returns 0 unless the tile's navigation byte carries a door owner; a closed,
+completed door writes one (`0x004A66F0`), and so does a revealed secret door while open (`0x004A6625`, unbuilt).
 
 **Decision.** `WorldSight.Blocks` stops sight at a door only while it is closed, completed and not a
 barricade, reading the open state live. `DoorOn`, the reach test's thing-chain question, is unchanged.
@@ -16027,6 +16033,9 @@ constructions 3 and 4 as a whole room, `0x00454B80` also 8.
 - The Unity symptom is not reproduced headless: Level6a re-explores the Workshop within about 110 ticks
   because a creature walks in. That the open-door rule is what the owner saw is a HYPOTHESIS.
 - Per-tick sight stays ours (DK2's is event-driven), so ours still sees at least what DK2 does.
+- A closed, completed door is not the only writer of the nibble: `0x004A55F0`'s secret-door reveal arm calls
+  `Door_WriteNavByte(1)` at `0x004A6625` while the door is open, so DK2 blocks sight at a revealed open secret
+  door. The reveal is unbuilt, so nothing diverges today.
 
 STRONGLY INFERRED from the disassembly. Records `004511A0`, `004528E0`, `00454E00`, `004512F0` hold the
 detail; evidence in [fog-reveal-sources.md](research/fog-reveal-sources.md) §7.

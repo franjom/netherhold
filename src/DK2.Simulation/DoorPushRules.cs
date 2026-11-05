@@ -79,7 +79,8 @@ public static class DoorPushRules
     }
 
     /// <summary>A deviation from <c>0x004A55F0</c> (ADR-0682, docs/research/door-push.md section 4): DK2 pushes
-    /// a creature exactly on the push point along its heading whatever stands that way, and nothing in the pass
+    /// a creature whose length from the push point is 0 (the point itself, or in a passage the whole centre
+    /// line across it) along its heading whatever stands that way, and nothing in the pass
     /// frees one that is pushed into a wall. Ours keeps the heading unless it mainly faces a shut side
     /// and another side is open; then the push goes the other way, to the open side nearest the heading
     /// (ties in table order). With every side shut the heading stands.</summary>

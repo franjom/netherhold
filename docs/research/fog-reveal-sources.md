@@ -200,18 +200,16 @@ Skipped when the level comes from a save (world `+0x7239` bit `0x40`).
     **clears the explored bit along all four map edges**, so the border starts
     hidden. OpenKeeper's code does the same; Q429's old summary of it said
     "revealed", and that was wrong.
-- **Flagged action points, every mode.** For each action point whose runtime
-  flag byte `+0x32` has bit `0x10`, the level start explores the point's
-  inclusive rectangle through `0x00454B80` (`action-points.md`'s bit-4 reader
-  `0x0050C083`). It then posts one rectangle notification. **85 of the 1,152
-  shipped points carry the bit, in 30 levels — STRONGLY INFERRED** from the corpus.
-  Those include campaign levels 2, 5, 7, 9, 15a, 15b and 18, the four Secret
-  levels and all seven `mpd`. OpenKeeper's format enum names the editor bit
+- **Flagged action points, every mode.** For each action point whose runtime flag byte
+  `+0x32` has bit `0x10`, the level start explores the point's inclusive rectangle through
+  `0x00454B80` (`action-points.md`'s bit-4 reader `0x0050C083`), then posts one rectangle
+  notification. **85 of the 1,152 shipped points carry the bit, in 30 levels — STRONGLY
+  INFERRED** from the corpus. Those include campaign levels 2, 5, 7, 9, 15a, 15b and 18, the
+  four Secret levels and all seven `mpd`. OpenKeeper's format enum names the editor bit
   `REVEAL_THROUGH_FOG_OF_WAR` (a format fact).
-- **Sight.** Each creature the local player owns runs §3.1 once. The one
-  exception is a creature with `+0x46F` bit `0x40` set whose tile holds a thing
-  with type byte `+0x18` equal to 11, 12 or 16. What that thing is was not
-  identified.
+- **Sight.** Each creature the local player owns runs §3.1 once, except one with `+0x46F`
+  bit `0x40` set whose tile holds a thing with type byte `+0x18` equal to 11, 12 or 16
+  (what that thing is was not identified).
 - **Nothing seeds the scanned bit.** It comes from sight alone.
 
 ### 3.4 The Dungeon Heart disc — Q430
@@ -236,19 +234,18 @@ the elapsed ticks has cases 56–62. Each case calls `0x0049D150(r)` with
   **The save agrees — CONFIRMED.** In `fow_1.SAV`, 72 Gold tiles lie within 15
   tiles of player 3's heart, and none is explored. 18 of them are scanned.
 - **Nothing in play raises variable 19 (Q434, 2026-10-05).** Its two writers run
-  only while a level file loads: the `Variables_SetMisc` stub `0x0051CDCA` (id 19,
-  dispatched only by the file-record handler `0x00521790` through world `+0x1F24`,
-  reached from `World_LoadLevelKwd` and `GameAction_LoadLevel`) and
-  `0x0051E708`, which copies the LEVEL record's `TicksPerSecond` (`+0x12B6`, file
-  offset `0x1182`). No trigger or per-turn path reaches either, no shipped file
-  carries id 19, and every level ships 4: the disc needs an edited level with
-  `TicksPerSecond` of 7 or more.
+  only while a level file loads: the `Variables_SetMisc` stub `0x0051CDCA` (id 19, dispatched
+  only by the file-record handler `0x00521790` through world `+0x1F24`, reached from
+  `World_LoadLevelKwd` and `GameAction_LoadLevel`) and `0x0051E708`, which copies the LEVEL
+  record's `TicksPerSecond` (`+0x12B6`, file offset `0x1182`). No trigger or per-turn path
+  reaches either, no shipped file carries id 19, and every level ships 4: the disc needs an
+  edited level with `TicksPerSecond` of 7 or more.
 
 ### 3.5 Room ownership change — `0x004E5650`
 
-When a room changes owner, every tile of its chain that the local player owns
-is explored, and its minimap cell is redrawn. Its callers include trigger
-dispatch `0x00518AD0` and the defeat routines `0x004DAE40` and `0x004DAA10`.
+When a room changes owner, every tile of its chain that the local player owns is explored, and its
+minimap cell is redrawn. Its callers include trigger dispatch `0x00518AD0` and the defeat routines
+`0x004DAE40` and `0x004DAA10`.
 
 ### 3.6 Trigger action 17 — `0x00518AD0`
 
@@ -260,23 +257,21 @@ Frosty's Lair's startup use is mapped in [portal-visibility.md](portal-visibilit
 
 ### 3.7 The Torture Chamber's information — `0x004F2370`
 
-Reward 11 either explores the first of the victim owner's rooms (the chain from the
-player's `+0x36`) whose first tile is not yet explored, every tile of it, or tags one
-of that player's creatures that stands on unexplored ground: `+0x475 = 16`,
-`+0x476 = the chamber's owner`. The tag feeds §3.1's radius-1 square. The heart
-branch has no local-player test in the lines read.
+Reward 11 either explores the first of the victim owner's rooms (the chain from the player's
+`+0x36`) whose first tile is not yet explored, every tile of it, or tags one of that player's
+creatures that stands on unexplored ground: `+0x475 = 16`, `+0x476 = the chamber's owner`. The tag
+feeds §3.1's radius-1 square. The heart branch has no local-player test in the lines read.
 
 ### 3.8 Game action `0x79` — `0x00514240`
 
-If the issuing object's player is the local player, `0x004BFF60(p)` explores
-every tile player `p` owns. `game-actions.md` lists the id; what issues it is
-unread.
+If the issuing object's player is the local player, `0x004BFF60(p)` explores every tile player `p`
+owns. `game-actions.md` lists the id; what issues it is unread.
 
 ### 3.9 An ability effect — `0x00474F80`
 
-This is the four-neighbour trap/door effect in `doors-and-traps.md`. Its tail
-explores one tile. It is the campaign finale's walk state 234 (creature state
-`0x00474F80`), see `campaign-win-sequence.md`.
+This is the four-neighbour trap/door effect in `doors-and-traps.md`. Its tail explores one tile. It
+is the campaign finale's walk state 234 (creature state `0x00474F80`), see
+`campaign-win-sequence.md`.
 
 ### 3.10 Negative results
 
@@ -289,11 +284,11 @@ Each negative gives the range it covers.
   and §3.2–§3.9, and none of them is a keeper-spell handler. Sight's process25
   and local presentation region have now been read; see `keeper-spell-sight.md`.
   Reveal Map, a special, explores every tile through `0x00451EF0` (`specials.md` §4).
-- **Terrain flags.** A scan for tests of the runtime flag dword `+0x17B`
-  covered direct tests, `+0x17C` byte tests, and a load followed within 6
-  instructions by a test of the register or its high byte. It found
-  `AlwaysExplored` read once (`0x00451FD0`) and `UnexploreIfDugByAnotherPlayer`
-  once (`0x0044FC40`). The positive control found 13 readers of `0x01000000`.
+- **Terrain flags.** A scan for tests of the runtime flag dword `+0x17B` covered direct
+  tests, `+0x17C` byte tests, and a load followed within 6 instructions by a test of the
+  register or its high byte. It found `AlwaysExplored` read once (`0x00451FD0`) and
+  `UnexploreIfDugByAnotherPlayer` once (`0x0044FC40`); the positive control found 13
+  readers of `0x01000000`.
 - **Re-shroud and Re-fog.** The explored bit is cleared by: action 17 with
   byte 1 ≠ 0; `0x0044FC40` on `0x4000` terrain taken by another player; the
   seed's border pass; and the loader's restore. No path above consults a
@@ -319,6 +314,8 @@ Each DK2 local-player test becomes a viewer-specific mask operation; an
 unconditional writer updates every represented viewer. `WorldView` selects
 terrain 27/38/real terrain from those separate layers; rooms and entities
 require exploration. No distance fog or brightness approximation is applied.
+`WorldState.FromMap` applies the terrain loader's ownership reveal only; temporary
+Sight presentation is separate (`keeper-spell-sight.md`).
 
 | Source | Hook | State we lack |
 |---|---|---|
@@ -335,48 +332,47 @@ require exploration. No distance fog or brightness approximation is applied.
 | §3.7 torture | `TortureRules`, when reward 11 is built | the reward table |
 | §3.8, §3.9 | wait for their issuers | the game action, the ability |
 
-`WorldState.FromMap` applies the terrain loader's ownership reveal, without
-inventing the separate game-mode seed. Remaining source limitations are listed
-in the table; temporary Sight presentation is separate (`keeper-spell-sight.md`).
-
 ## 6. Campaign start: nothing explores the rock around an owned room (Level6a, 2026-11-05)
 
 Question: our Level6a Torture Chamber (36..38, 14..17) draws no walls beside unexplored Impenetrable
-Rock; the owner's screenshot of the original shows them. Is there a level-start rule we lack?
-**No such rule was found. STRONGLY INFERRED, from the binary and the shipped data.**
+Rock; the owner's screenshot of DK2 shows them. Is there a level-start rule we lack? **No such rule
+was found. STRONGLY INFERRED, from the binary and the shipped data.**
 
 - **The neighbour seed does not run in the campaign.** `0x0050C800` gates both seed calls on
   `[0x0075AD4B]` being 2 or 3 and on world `+0x7239` bit `0x40` being clear (whole body read).
-  The campaign is mode 1, so neither `0x00451FD0` nor `0x00451EF0` runs.
+  The campaign is mode 1, so neither `0x00451FD0` nor `0x00451EF0` runs; its mode 1 or 4
+  branch only calls seven small setters (`0x0055D6A0`..`0x0055DA40`).
 - **The writer set is closed.** Callers of `0x00454B80` are ten (§3); `0x00454D40` has one,
   `0x004E8B80`. The only direct stores of the explored bit are the three `OR byte [tile+9], 0x20`
-  in `0x00451FD0` (`0x0045202F`, `0x00452059`, `0x004520B0`) and the fog-off `0x00451EF0`. No other
-  instruction with an `0x2000` immediate stores into a tile. None of them explores a neighbour of a
-  room tile. `0x004E8B80` walks the room's own chain only.
+  in `0x00451FD0` (`0x0045202F`, `0x00452059`, `0x004520B0`) and the fog-off `0x00451EF0`; no other
+  `0x2000` immediate stores into a tile. None explores a neighbour of a room tile; `0x004E8B80`
+  walks the room's own chain only.
 - **The loader gives the rock nothing.** `Tile_SetTerrain` compares its fourth argument, the
   owner it was asked for, not the stored owner, with the local player (`0x0044FE7B..0x0044FE8F`).
   The Level6a map file names the neutral player (2) on every Impenetrable Rock tile around the
   chamber, and the chamber's own tiles name player 3.
 - **Level-start sight cannot reach them.** The loop at `0x0050C171..0x0050C1F2` runs `0x0048CC90`
-  over the local player's creatures (skipping one flagged `+0x46F` bit `0x40` that stands in a
-  room of type 11, 12 or 16). Level6a's player-3 creatures start at (24..27, 19..22) and
-  (30..34, 19..20); a replay of the native angular grid from each (doors counted and not counted)
+  over the local player's creatures (see §3.3). Level6a's player-3 creatures start at (24..27, 19..22)
+  and (30..34, 19..20); a replay of the native angular grid from each (doors counted and not counted)
   sees none of the 11 rock tiles (35..39,13), (39,14..17), (36,18), (38,18). The torture victim is
   a hero, so it explores nothing. Level6a has no flagged action point near the chamber (flags
   `0x04`/`0x0C`; the bit is `0x10`) and its three action-17 records name points 26 and 27 only.
+- **Sight's presentation predicate is false at start.** `0x00441B00` returns false while its start
+  stamp (`+0x139F`) is zero.
 - **Native campaign captures agree.** At the first playable tick of Level 2, 4 and 5
   (`F:\DK2Evidence\captures\native\native-dk2runs--unknown-date--001`), the explored tiles player 3
   does not own are only flagged-action-point rectangles plus a few sight tiles. Those starts are
-  enclosed by owned wall, so there is no counterexample, and no test of the neighbour seed.
+  enclosed by owned wall, so there is no counterexample, and no test of the neighbour seed. Ticks
+  2..93 of those captures hold a different, larger explored set (loading phase, not read).
 
 **Conclusion.** By the closed writer set, the rock gets explored in the original only by sight: a
 creature of the viewer inside or beside the chamber (HYPOTHESIS which one: a torturing Mistress, a
-creature dropped from the hand, an Imp). Ours never sends one there (nearest player-3 creature over 3000 ticks: 3 tiles
-away), so the walls stay black. Not verified: when the owner's screenshot was taken, and whether
-a torturer or other creature had entered the chamber by then.
-
+creature dropped from the hand, an Imp). Ours never sends one there (nearest player-3 creature over
+3000 ticks: 3 tiles away), so the walls stay black. Not verified: when the owner's screenshot was taken,
+and whether a torturer or other creature had entered the chamber by then.
 **Build.** No change to `WorldState.FromMap` or `WorldView.WallsOf`: the multiplayer neighbour seed
-would explore tiles the original does not, in every campaign level.
+would explore tiles the original does not, in every campaign level. Open: which creature behaviour
+brings sight to this rock; ADR-0683 now supplies the open-door path (§7), not tested against it.
 
 ## 7. The Workshop behind the door (Level6a, 2026-11-05)
 
@@ -391,13 +387,17 @@ wooden door at (35,26); ours drew unexplored rock until a creature went in.
   and Workshop too, and only creature sight brings them back (closed writer set, §6). STRONGLY INFERRED.
 - **Sight passes an open door.** `0x004511A0`'s door arm calls `0x004528E0`, which tests the
   navigation byte's door nibble first (`0x004511F3`, `0x0045126A`). A closed, completed door writes
-  that nibble; an open door or a blueprint leaves floor (`0x004A66F0`). Ours stopped sight at any door
-  thing (ADR-0318's reading). Doors open when an eligible creature is beside them, so a creature at the
-  Hatchery's south edge, which touches the Workshop's north door (37,24), or at the Training Room's
-  east edge sees in. STRONGLY INFERRED as a rule; HYPOTHESIS that it is what the owner saw.
-- **The clear arm** takes constructions 3 and 4 only; ours cleared 8 (the Heart) whole.
+  that nibble; an open door or a blueprint leaves floor (`0x004A66F0`). Exception: `0x004A55F0`'s
+  secret-door reveal arm (`+0x10D` open, `+0x109` 0, def `+0x8B` bit 5) calls `Door_WriteNavByte(1)`
+  at `0x004A6625` when an enemy sees the door, so a revealed open secret door blocks sight in DK2
+  (unbuilt in ours: nothing diverges). Ours stopped sight at any door thing (ADR-0318's reading).
+  Doors open when an eligible creature is beside them, so a creature at the Hatchery's south edge,
+  which touches the Workshop's north door (37,24), or at the Training Room's east edge sees in.
+  STRONGLY INFERRED as a rule; HYPOTHESIS that it is what the owner saw.
+- **The clear arm** takes constructions 3 and 4 only; ours cleared 8 (the Heart) whole. **Known gap:**
+  `DiscoveryRules` lacks the native explored-bit gates: the set arm (`0x00454BA0`, `TEST DH,0x20; JNZ`)
+  does nothing on an explored tile, the clear arm (`0x00454E26`) nothing on an unexplored one.
 - **Not reproduced headless.** Before and after the fix, seeds 1..8 re-explore the Workshop within
   about 110 ticks, because a creature walks in. The Unity symptom needs a run where none does.
-
-**Build.** `WorldSight` blocks only a closed, completed, non-barricade door; `DiscoveryRules` clears
-a 5x5 rotated room tile by tile (ADR-0683, hash 427).
+- **Build.** `WorldSight` blocks only a closed, completed, non-barricade door; `DiscoveryRules` clears
+  a 5x5 rotated room tile by tile (ADR-0683).

@@ -840,7 +840,7 @@ public sealed partial class ImpTaskSystem
             return true;
         }
 
-        // 0x0048B860's DropDraggedThing, then the handler's 0: idle.
+        // 0x0048B500's DropDraggedThing, then the handler's 0: idle.
         CarryRules.PutDown(creature, body);
         WorkerPickupRules.SetEnabled(creature, true);
         context.Emit(SystemName, "body_dropped",
