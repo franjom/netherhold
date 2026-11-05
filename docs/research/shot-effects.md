@@ -150,9 +150,9 @@ interpolated point with separate source keys; body visibility does not suppress 
 Every shipped body asset loads at run time through logical shot keys, without converted files.
 
 **Body limits.** Native reset gives scales4096, pitch/roll0, RGB0 and alpha255; art
-installation makes sprite types1/3 white, while type2 retains RGB0. The modern unlit
-sprite drawer uses neutral white for type2/CannonBall until its radial-light input
-is resolved (Q609). Type6 bodies select discrete cached frames rather than continuous
+installation makes sprite types1/3 white, while type2 retains RGB0. Types 1 and 2 take their
+tile's light, so a type-2 body (CannonBall) shows only that light, and type 3 is unlit (Q609,
+[object-drawing.md section 10](object-drawing.md#10-flat-sprites)). Type6 bodies select discrete cached frames rather than continuous
 vertex interpolation. The shipped Cyclone/FlyCyclone bodies have60frames/FPS30 and
 no start/end segments; mod-authored segmented shot playback is unbuilt. General
 vertical flight and exact restored launch pose remain Q398.
@@ -369,8 +369,7 @@ these timers or permanent link latches. Crackle adds bolts, not a tint.
 - **Approximations:** additive lightning blending (Q659); animation-install proxy and
   unrestored view timers/links (Q660); quarter-tile wall reflection (Q690); general
   vertical shot flight/view origins (Q398); camera frustum sphere (Q689). Restored
-  shot poses do not recover launch height/yaw or view handles. Type2 sprite lighting
-  remains approximate (Q609); type6 uses cached frames. Trail-kind remains Q662.
+  shot poses do not recover launch height/yaw or view handles. Type6 uses cached frames. Trail-kind remains Q662.
   Camera jitter uses a private seed 1 bridge LCG without other bridge consumers, and
   suppresses scripted paths only; other native transition gates are not mirrored.
 - **Not built:** procedural kinds1/4/6;

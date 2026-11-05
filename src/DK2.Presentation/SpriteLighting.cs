@@ -7,12 +7,21 @@ using System.Numerics;
 
 namespace DK2.Presentation;
 
-/// <summary>An effect sprite's lit colour (<c>0x0057F3D0</c>): its tint plus the radial term
-/// (<c>0x0057C080</c>, <see cref="ClassicPointLight.RadialAt"/>) of each listed light at the sprite's
-/// centre, clamped at 255 a channel. Used only for sprites with <see cref="ConstructionParticle.TakesLight"/>
-/// (ADR-0493's amendment keeps the others at their tint, Q609).</summary>
+/// <summary>An effect sprite's lit colour (<c>0x0057F3D0</c>, flat <c>0x0057FB80</c>): its tint plus the radial
+/// term (<c>0x0057C080</c>, <see cref="ClassicPointLight.RadialAt"/>) of each light in its tile's table at the
+/// sprite's point (the item's <c>+0x1C</c>, before any lift or screen offset), clamped at 255 a channel (Q609,
+/// ADR-0665). Which sprites are lit is <see cref="IsLit"/>.</summary>
 public static class SpriteLighting
 {
+    /// <summary>Whether a sprite of art <paramref name="artType"/> takes light. <c>RenderEngine_LoadMaterial</c>
+    /// (<c>0x0059A6A0</c>) gives type 1 no material flag, type 2 (alpha) flag 4 and type 3 (additive) flag 0x10;
+    /// <c>Material_Construct</c> (<c>0x0057C420</c>) starts every state with bit 0x40 and only flags 0x10 and 0x40
+    /// clear it; the prepares (<c>0x0057F7E0</c>, <c>0x0057FF30</c>) take the tile's table and the ambient only
+    /// under bit 0x40. An item flag 2 or 4 (render info <c>+0x5B</c>, an element's copied from its effect's
+    /// <c>+0x81</c>) clears it too: only the hover cage's edge bits (<c>0x0043CC30</c>) set one, which ours
+    /// does not mirror.</summary>
+    public static bool IsLit(byte artType) => artType is 1 or 2;
+
     public static (byte Red, byte Green, byte Blue) Lit(byte red, byte green, byte blue,
         ReadOnlySpan<ClassicPointLight> lights, Vector3 centre)
     {

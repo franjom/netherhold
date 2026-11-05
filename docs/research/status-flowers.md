@@ -58,7 +58,7 @@ with descriptor size 0x1000, or 0x2000 for Imprison and both Objectives, on an `
 times vertex colour ([0057C420](functions/0057C420.md), [00589250](functions/00589250.md)). The
 billboard draw [0059C360](functions/0059C360.md) makes it scale × descriptor in 12.12 over 4096:
 **a quarter tile across** (half for the large three; halved again while possessing), a square.
-Whether the overlay's sprite takes the tile's light list (Q609) is unread.
+Whether the overlay's sprite takes the tile's light list follows its material kind (alpha sprites do, additive never; Q609, ADR-0665); the `A_` kind is the inference above, and the flower's path is not checked against it.
 
 **Every layer is centred on one point (read 2026-10-24).** The ring ([005958F0](functions/005958F0.md)),
 the centre and Imprison tag ([005961A0](functions/005961A0.md)) and the Objective

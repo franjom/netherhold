@@ -356,9 +356,10 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         int scale = DrawExclusive(element.MinScale, element.MaxScale);
         int scaleTarget = (short)(((long)scale * element.ScaleRatio) >> 12);
         int scaleIncrement = health > 0 ? (short)((scaleTarget - scale) / health) : 0;
-        // 0x00435F20 (0x00436332): art flag 2 takes the owner's palette colour, otherwise the element's
-        // RGB. Flag 0x80 is the play-once texture phase, not a colour bit.
-        (byte red, byte green, byte blue) = (element.ArtResource.Flags & 0x2) != 0
+        // 0x00435F20 (0x00436311): art type 1 is white; art flag 2 takes the owner's palette colour, otherwise the
+        // element's RGB. Flag 0x80 is the play-once texture phase, not a colour bit.
+        (byte red, byte green, byte blue) = element.ArtResource.Type == 1 ? ((byte)255, (byte)255, (byte)255)
+            : (element.ArtResource.Flags & 0x2) != 0
             ? KeeperColour(request.Owner) : (element.Red, element.Green, element.Blue);
         var particle = new ConstructionParticle
         {
@@ -370,6 +371,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             InitialScale = scale, ScaleTarget = scaleTarget, ScaleIncrement = scaleIncrement,
             InitialPhase = phase, FrameDuration = (element.ArtResource.Flags & 4) != 0 ? frames : 0,
             Red = red, Green = green, Blue = blue,
+            TakesLight = SpriteLighting.IsLit(element.ArtResource.Type),
             HeadingRaw = heading, PreviousHeadingRaw = heading,
         };
         if ((element.Flags & 0x40) != 0)
@@ -828,8 +830,8 @@ public sealed class ConstructionParticle
     /// every element but a floating amount's digits.</summary>
     public int ScreenOffsetXRaw { get; internal set; }
     /// <summary>Whether the sprite's colour is its tint plus the radial term of its tile's lights
-    /// (<c>0x0057F3D0</c> through <c>0x0057C080</c>), clamped at 255 a channel: a floating amount's digits,
-    /// whose tint is 0,0,0. Other effect sprites draw at their tint alone (ADR-0493 amendment, Q609).</summary>
+    /// (<c>0x0057F3D0</c> through <c>0x0057C080</c>), clamped at 255 a channel: art types 1 and 2
+    /// (<see cref="SpriteLighting.IsLit"/>). Additive sprites (type 3) draw at their tint alone (Q609, ADR-0665).</summary>
     public bool TakesLight { get; internal set; }
     public byte Red { get; internal set; }
     public byte Green { get; internal set; }

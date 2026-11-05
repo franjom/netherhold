@@ -270,8 +270,8 @@ research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
 Scripted camera paths and mode/letterbox guards are built (ADR-0496); [scope and limits](research/camera-possession-guards.md#implementation-and-remaining-deviations).
 Step6 ordinary camera controls now follow native packets (ADR-0531); matched
 recording measurements, crop correction and verification limits: research/classic-camera.md §6–8.
-Room border flames are built (ADR-0524, research/room-border-effects.md); claim-mist
-bleaching is mitigated, its cause open (Q609).
+Room border flames are built (ADR-0524, research/room-border-effects.md). Effect and shot sprites
+of art types 1 and 2 take their tile's light, additive type 3 never (ADR-0665, Q609).
 Wet/bloody footprints are built; native rules and pending visual acceptance: research/creature-footprints.md (Q610, 2026-10-20).
 Creature asset keys are cached per definition/action; transparent terrain uses
 retained stable-sort buffers and reuses meshes across changes in draw order.

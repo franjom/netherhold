@@ -317,12 +317,12 @@ The turn: `Mat3_SetAxisRotation(2, a)` (`0x0041C580`) with the row transform
 `0x00594DB0` turns clockwise by a, and a is −h·π/1024, so the square turns
 counter-clockwise by h·π/1024 in the DK2 x-y plane. It lights
 each corner by the tint ×255 plus the radial term of the nearby lights at the
-centre (`0x0057C080`; not built, see Sprite light below). No descriptor dimension enters its size. Fourteen shipped
+centre (`0x0057C080`, see Sprite light below). No descriptor dimension enters its size. Fourteen shipped
 effect elements carry the flag: the Heart plug's overlay (407) and static (383),
 blood pools, the fire ring, the Portal's white disc, the inferno carpet, the
 Horny end rings, the arch mist. Built (ADR-0492 amendment, ADR-0493): the Unity
 effects renderer draws them so, lit as below. Unread: the texture and frame pick
-(vtable slot 2, `0x0057FF30`, through `0x0057C780` and `0x0057F090`; ours takes
+(vtable slot 2, `0x0057FF30`, whose lighting is read below, through `0x0057C780` and `0x0057F090`; ours takes
 the particle's age through the stored frames as the billboards do).
 
 **Billboards** (read 2026-10-17, STRONGLY INFERRED). `0x0059C360` sizes a camera-facing
@@ -342,27 +342,41 @@ value for an effect element (`0x00435F20` sets the width and height targets
 alike), and the offset words `+0x51..+0x59` are zeroed by the reset `0x004B3610`
 with no effect-element writer found, so ours takes them as zero.
 
-**Sprite light** (STRONGLY INFERRED for both draws). `0x0057F3D0` and `0x0057FB80` light
-the whole sprite by its tint × 255 plus, at its centre, each listed light's
-radial term (`0x0057C080`: no normal, the distance bins of the vertex lighting,
-the full colour in the first bin), the list being `0x0057BCB0`'s from the draw
-item's `+0x50`/`+0x38`, all bits. That this list is the drawn tile's table is
-INFERRED: the constructors leave `+0x50`/`+0x38` unset. `0x0057F7E0` fills the
-billboard list from its draw-context+8 when effective state bit0x40 is set,
-otherwise from the empty global list. That context's producer and the flat-item
-filler are untraced, though the list has the layout of
-the 12-static, 24-total table `0x00576230` fills. The sample point is the item's
-interpolated world point `+0x1C`, not the lifted centre. Built, then
-withdrawn (ADR-0493 amendment, 2026-10-21): summing the visible tile's table turned
-the Heart's grey dust brown and its cyan sparkles white against the owner's DK2, so
-effect sprites now draw at their tint and the list is taken as empty for them
-(HYPOTHESIS; against it, the items are queued on their tile by `0x00571AE0` for an
-untraced draw-context producer that may supply the tile's table, Q609).
-The floating cost digits (RGB 0,0,0, `ConstructionParticle.TakesLight`) are the one exception:
-`SpriteLighting.Lit` adds `ClassicPointLight.RadialAt` over the digit tile's table from
-`ClassicWorldLightCache.TryGetVisibleTable`, the Hand's light included, because the owner sees
-them follow the lighting (2026-11-05, ADR-0663). That the list is the tile's table stays a
-HYPOTHESIS (Q609).
+**Sprite light** (read 2026-11-05, STRONGLY INFERRED; Q609, ADR-0665). `0x0057F3D0` and `0x0057FB80` light
+the whole sprite by its tint × 255 plus, at its point, each listed light's radial term (`0x0057C080`: no
+normal, the distance bins of the vertex lighting, the full colour in the first bin), the list being
+`0x0057BCB0`'s from the draw item's `+0x50`/`+0x38`. The point is the item's interpolated world point
+`+0x1C`, not the lifted centre. The prepares fill the list: `0x0057F7E0` (billboard, vtable `0x0066FCCC`
+slot +8, `+0x50` at `0x0057F8B2`) and `0x0057FF30` (flat, `0x0066FCF4` slot +8, `+0x38` at
+`0x0057FF98`) compute state = (mask & material `+0xC`) | or from `0x0057F090` of the item flags, and only
+under state bit 0x40 add the ambient globals `0x00760A98..A0` to the item colour and take draw context `+8`
+as the list; otherwise the list is the empty `0x00765648`. The context is the drawn tile's:
+`0x00572CF0` calls vtable `+8` of every item on the tile cache entry's lists `+0x2C` and `+0x30` with
+(x, y, entry `+0xC4`, the tile's light table, the terrain's), and `0x00571AE0` queues a sprite item on
+`[0x00760B80]+0x30`, the entry TerrainCache_UpdateDynamicTile sets before the per-tile thing draw
+(`0x0043CC30`, view vtable `+0x134`), so a sprite sits on its own tile.
+
+Which sprites have bit 0x40: `Material_Construct` (`0x0057C420`) starts every state at 0x1C0 (descriptor
+bit 0x100) or 0x5C0, bit 0x40 set, and only descriptor flags 0x10 (also the white base) and 0x40 clear it.
+`RenderEngine_LoadMaterial` (`0x0059A6A0`, vtable slot `+0x54`, called with the art type byte by
+`0x0043670F` and, for shots, `0x004ACE8E`) gives sprite type 1 no flag, type 2 flag 4 and type 3 flag 0x10:
+types 1 and 2 are lit, additive type 3 never. `0x0057F090` clears it for item flags 2 (mask 0xFFFFFF1F)
+and 4, not for 1, 0x2001 or 0x20. An element's item flags are its effect's `+0x81` (copied at `0x004363BA`
+into render info `+0x5B`, zeroed by `0x004B3610`): `0x00436430` ORs bit 1 when a flag-8 element fades
+(harmless), `0x0043CC30` writes 0x800 for the torch effect and edge bits 1/2/4/8 | 0x10/0x20 for the hover
+cage (selection boundary) effect at view `+0x35D`, where bits 2 and 4 would unlight it. The material id is
+the art's `+0xF` (stored by `0x00504D80`), passed by `0x0059C360` to `0x0057F1E0` as item `+0x44`; render
+info `+0x5B` is item `+0x4C`. The default ambient is RGB 0 (classic-lighting.md section 8).
+
+Shipped data: the Heart plug's dust 381, static 383, sparkles 384 and 408 and the claim mist 142 and 143 are
+type 3, which explains why summing the lights turned them wrong (ADR-0493's amendment); the plug's dust 382
+is type 2 and is lit; element 99 is type 2, 1 type 1, 411 type 3. Built (ADR-0665): `SpriteLighting.IsLit`
+(types 1 and 2); `ConstructionParticle.TakesLight` set by it in `EmitElement` (type 1 starts white,
+`0x00436311`) and `ShotBodyParticles.Create` (type 2 keeps RGB 0); Unity's
+`ClassicConstructionEffects.SpriteColour` adds `ClassicPointLight.RadialAt` over the tile's table from
+`ClassicWorldLightCache.TryGetVisibleTable` at the unlifted point. Not mirrored: the ambient, the hover
+cage's edge bits, and an effect's own art (footprints, the room-border flame), which takes the same native
+path and is lit natively where ours leaves it unlit, its native starting tint unread.
 
 ## 11. Open
 

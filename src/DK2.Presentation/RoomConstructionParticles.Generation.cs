@@ -83,10 +83,8 @@ public sealed partial class RoomConstructionParticles
             if (!_database.EffectElements.TryGetValue((ushort)(first + amount % 10), out EffectElementDef? element)) return;
             ConstructionParticle? particle = EmitElement(element, effect, at, null, emitter, exactOrigin: true);
             if (particle == null) continue;
+            // The digits are alpha sprites with RGB 0,0,0, so all they show is their tile's light (Q609).
             particle.ScreenOffsetXRaw = offset;
-            // The digits carry RGB 0,0,0, so all they show is 0x0057F3D0's light term; the owner sees them
-            // darken in unlit places (2026-11-05, Q609/Q750). ADR-0493's amendment keeps other effects unlit.
-            particle.TakesLight = true;
         }
     }
 

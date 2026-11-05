@@ -68,6 +68,20 @@ public class ShotBodyTests
         Assert.Equal(expected, ShotBodyParticles.FrameIndex(new Fp32(phase), 60));
     }
 
+    /// <summary>Q609: a type-2 body keeps RGB 0 and takes its tile's light; type 3 is white and unlit; type 1
+    /// is white and lit (0x00435F20's colour, 0x0059A6A0's material flags).</summary>
+    [Theory]
+    [InlineData(1, 255, true)]
+    [InlineData(2, 0, true)]
+    [InlineData(3, 255, false)]
+    public void ABodysColourAndLightFollowItsArtType(byte artType, byte colour, bool lit)
+    {
+        var model = new ShotBodyParticles(Database(Definition(new("ball", 0, new byte[12], artType, 0, 0, 0))), 1);
+        model.Capture([new ShotState { Id = 1, ShotTypeId = 1, Age = 2, Health = 4, PosX = 1000, PosY = 2000 }], 1);
+        ConstructionParticle body = Assert.Single(model.Particles);
+        Assert.Equal((colour, lit), (body.Red, body.TakesLight));
+    }
+
     [Fact]
     public void BodyCaptureIsReadOnlyAndDropsARemovedShot()
     {
