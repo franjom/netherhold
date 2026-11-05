@@ -16069,3 +16069,30 @@ crate jumped from the imp's point to the centre; and ours followed the carrier o
   beyond pick-up, death and possession.
 
 STRONGLY INFERRED from the disassembly; the hand pick-up's route through the leave hook is HYPOTHESIS. See [workshop-crates.md](research/workshop-crates.md) §7 and records `0048B500`, `0048B5F0`, `004F5040`, `004647D0`.
+
+## ADR-0685: a manufacturer plays action 32's art while it hammers
+
+**Date:** 2026-11-05. **Status:** accepted. No hash change. · **Systems:** rooms, creatures, art-assets
+
+**Context.** The owner saw Level 6a's Trolls at the Workshop swing at nothing. Read against `DKII.EXE`, the
+simulation was right: the finder and the chooser (`0x004F5BE0`, `0x00470110`) put a working Troll
+`objdef Width / 2 + footprint / 2` from the machine's position, and states 64 and 65 turn it to face that
+position; `Level6aWorkshopWorkTests` holds both on the shipped level. The view was what differed: it had no
+clip for states 63 to 65, so a manufacturer stood in its idle pose, and `ArtSourceMap` mapped "working" to the
+creature's art slot 22, which the Troll does not have. DK2 begins action 32 with slot 22 through `0x00494860`,
+whose resolver `0x00494880` sends a missing 22 to 5.
+
+**Decision.**
+- `WorldView` plays "working" in state 65 from the state's entry (the turn state 64 begins the action) to
+  `ActionUntilTick`, looping; the turn in state 64 stays in the standing pose.
+- `ArtSourceMap` maps "working" to slot 22, or to the melee swing (slot 5) when the creature has none, so the
+  Troll's hammer is `Troll_Melee`.
+
+**Consequences.**
+- Presentation only: no state, hash or save change.
+- The clip's cycle count follows `AnimationTimingRules.CountedHoldTicks`, HYPOTHESIS as in `workshop-states.md` §6.
+  Where in the swing the hammer meets the machine is unchecked against play.
+- The owner's "the animation plays" was not reproduced: on master a manufacturer drew no clip at all.
+
+STRONGLY INFERRED from the binary. See [workshop-states.md](research/workshop-states.md) §5 and records
+`00470860`, `00494880`.

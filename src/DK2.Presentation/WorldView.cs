@@ -1583,7 +1583,8 @@ public sealed partial class WorldView
                 creationJump ? new GameTick(creature.StateEnteredTick + 1)
                     : trainingAnimation ? new GameTick(creature.TrainingActionStartedTick)
                     : meleeAnimation || castAnimation ? new GameTick(creature.SwingStartTick)
-                    : (entranceAnimation || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature)) && creature.StateEnteredTick >= 0
+                    : (entranceAnimation || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature)
+                        || IsWorkshopWorkAnimation(creature, world.CurrentTick)) && creature.StateEnteredTick >= 0
                     ? new GameTick(creature.StateEnteredTick) : null,
                 !meleeAnimation && !castAnimation && !trainingAnimation && !entranceAnimation && !stationaryMovement
                     && IsTravelAnimation(creature) ? MovementAnimationSpeed(creature) : null,
@@ -1655,6 +1656,7 @@ public sealed partial class WorldView
             clip = IsDeferredLanding(creature) ? "landing" : "idle";
         else if (IsMeleeAnimation(creature, tick)) clip = "fighting";
         else if (IsCastAnimation(creature, tick)) clip = "casting";
+        else if (IsWorkshopWorkAnimation(creature, tick)) clip = "working";
         else if (IsEatingAnimation(creature)) clip = "eating";
         else if (!creature.Possessed && IsTravelAnimation(creature) && MovementAnimationSpeed(creature).Raw == 0)
             clip = "movement_idle";
@@ -1680,7 +1682,7 @@ public sealed partial class WorldView
     public bool PlaysMappedAnimation(CreatureState creature, GameTick tick) =>
         creature.Dk2StateId is DropLandingRules.LandingState or PortalRules.JoiningState || IsTrainingAnimation(creature)
         || IsMeleeAnimation(creature, tick) || IsCastAnimation(creature, tick)
-        || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature) || creature.Activity switch
+        || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature) || IsWorkshopWorkAnimation(creature, tick) || creature.Activity switch
     {
         CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying or CreatureActivity.Fighting
             or CreatureActivity.BeingTortured => true,
@@ -1751,6 +1753,12 @@ public sealed partial class WorldView
         creature.Dk2StateId == DropLandingRules.LandingState
         && (_database.CreatureById(creature.CreatureTypeId).Flags & (CreatureFlags.IsWorker | CreatureFlags.IsEvil))
             != (CreatureFlags.IsWorker | CreatureFlags.IsEvil);
+    /// <summary>Action 32 runs in state 65 (<c>0x00470860</c>): the manufacturer plays art slot 22, or the melee swing
+    /// DK2 falls back to when the creature has none (<c>0x00494880</c>), from the turn state 64 begins the action,
+    /// which is state 65's entry, to its end (<see cref="WorkshopStep"/>; ADR-0685).</summary>
+    private static bool IsWorkshopWorkAnimation(CreatureState creature, GameTick tick) =>
+        creature.Dk2StateId == WorkshopStep.WorkingState && !creature.InHand
+        && tick.Value < creature.ActionUntilTick;
     private static bool IsEatingAnimation(CreatureState creature) =>
         creature.Dk2StateId is EatingRules.AfterMealState or PrisonRules.AfterEatingState;
     private readonly Dictionary<byte, int> _castHoldTicks = [];

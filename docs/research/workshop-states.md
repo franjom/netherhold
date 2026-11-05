@@ -76,7 +76,9 @@ distance (strict `<`, the second continuing from the first's best):
 it turns toward it (`0x004B2AE0`) and returns 1 until it faces it. Then action 32 with count
 `random(7) + 6` (simulation stream, line `0xBC`; `0x004969D0`) and, if it starts, `SetState(65)`.
 Return 1. Action 32 (record `0x006E4538`): handler `0x00498D20` (the anvil's sound `0x112`, once Gate A has passed; built in `WorkshopStep`, [sound-effects-continuous.md](sound-effects-continuous.md#2-the-action-table)),
-art 22.
+art 22. The begin (`0x00496700`) takes the descriptor through `0x00494860`, which resolves a missing slot by
+`0x00494880`: slot 22 falls back to 5, so a creature without art 22 hammers with its melee swing. Shipped
+`Creatures.kwd` gives the Troll no slot 22; its hammer is `Troll_Melee` (STRONGLY INFERRED, re-read 2026-11-05).
 
 **65** (`0x00470860`): it turns toward the target. The machine's process and effects are
 presentation (STRONGLY INFERRED: type 46 takes object state `0x1A` through `0x0049EF60` and every
@@ -97,6 +99,11 @@ It remembers its position. While the action runs, 1; ended, `SetState(63)` and i
   link `+0x12A`). They differ only for an object on a room tile that the list does not hold.
 - 63 without a held place stays; DK2 would pass a null room to the finder (not reached: the enter
   hook claims the place).
+- **The hammer is drawn** (`WorldView`, ADR-0685): state 65 plays art 22, or the melee swing it falls back
+  to, from the turn state 64 begins the action to `ActionUntilTick`. Before ADR-0685 a worker stood in its
+  idle pose in 63 to 65. The stand point and the facing (§3, §4) were re-read against the binary on
+  2026-11-05 and match ours; `Level6aWorkshopWorkTests` holds a working Troll `Width/2 + footprint/2`
+  from its machine and turned to it.
 - The machine's process states, its effects, sounds and object flags are presentation and not kept
   (STRONGLY INFERRED: who reads object state `0x1A` and the `+0x146` bit `0x20` was not traced, §5).
 - The finder's endless search (§3, step 3) is ours returning none, which leaves 63 standing.

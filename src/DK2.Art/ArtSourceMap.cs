@@ -282,7 +282,8 @@ public static class ArtSourceMap
         "being_tortured" => resources[CreatureTortured],
         "working" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
             => resources[CreatureMelee], // The Imp's slot is named Imp_Dig in shipped data.
-        "working" => resources[CreatureManufacturing],
+        // Action 32's art 22; a creature without it plays the melee swing, as 0x00494880 falls back (the Troll's hammer).
+        "working" => resources[CreatureManufacturing].Type != 0 ? resources[CreatureManufacturing] : resources[CreatureMelee],
         _ => resources[CreatureWalk],
     };
 

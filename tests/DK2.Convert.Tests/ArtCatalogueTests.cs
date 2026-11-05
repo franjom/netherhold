@@ -50,6 +50,30 @@ public class ArtCatalogueTests
         }
     }
 
+    /// <summary>Action 32 plays art 22 and a creature without it falls back to the melee swing (0x00494880):
+    /// the Troll's hammer is Troll_Melee.</summary>
+    [InstallFact]
+    public void WorkingIsArtTwentyTwoOrTheMeleeSwingItFallsBackTo()
+    {
+        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(e => e.Reference.Key);
+        foreach (var creature in database.Creatures.Values.Where(c => c.Name != "Imp"))
+        {
+            var resources = art.Creatures[creature.CreatureId];
+            var expected = resources[21].Type != 0 ? resources[21] : resources[4];
+            ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
+                DK2.Assets.AssetKind.Animation, "working").Key];
+            if (expected.IsEmpty) Assert.False(entry.HasSource);
+            else Assert.Equal(expected, entry.Source);
+        }
+
+        var troll = database.Creatures.Values.Single(c => c.Name == "Troll");
+        Assert.Equal("Troll_Melee", entries[DK2.Assets.AssetRef.ForCreature("Troll",
+            DK2.Assets.AssetKind.Animation, "working").Key].Source!.Name);
+        Assert.True(art.Creatures[troll.CreatureId][21].IsEmpty);
+    }
+
     [InstallFact]
     public void PortalEntranceUsesTheAuthoredBlockThirtyAndPreservesItsClockMetadata()
     {
