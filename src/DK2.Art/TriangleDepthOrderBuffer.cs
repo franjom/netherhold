@@ -24,8 +24,11 @@ public sealed class TriangleDepthOrderBuffer
     private readonly List<Run> _runs = [];
     private readonly List<Run> _pool = [];
 
+    private int _count;
+
+    /// <summary>Sorts back to front and builds the runs; <paramref name="breaks"/> as in <see cref="Split"/>.</summary>
     public IReadOnlyList<Run> Sort(IReadOnlyList<Vector3> positions,
-        IReadOnlyList<RenderTriangle> triangles, Vector3 cameraForward)
+        IReadOnlyList<RenderTriangle> triangles, Vector3 cameraForward, ReadOnlySpan<float> breaks = default)
     {
         if (_entries.Length < triangles.Count)
         {
@@ -39,13 +42,28 @@ public sealed class TriangleDepthOrderBuffer
             _entries[i] = new Entry(t, i, Vector3.Dot(positions[t.A] + positions[t.B] + positions[t.C], cameraForward));
         }
         SortEntries(triangles.Count);
+        _count = triangles.Count;
+        return Split(breaks);
+    }
+
+    /// <summary>Rebuilds the runs of the last <see cref="Sort"/> without sorting again, also starting a
+    /// run where the centroid depth first falls below each of <paramref name="breaks"/> (depths along the
+    /// same forward, farthest first). An item drawn at a break depth then never shares a run with
+    /// triangles on both sides of it, so <see cref="RunsBehind"/> places it exactly as DK2's one
+    /// per-triangle blended list does (0x0058B9D0): a Prison fence of one material is otherwise one run
+    /// that is either wholly before or wholly after a status flower inside it.</summary>
+    public IReadOnlyList<Run> Split(ReadOnlySpan<float> breaks)
+    {
         _runs.Clear();
         List<RenderTriangle>? current = null;
-        int material = -1;
-        for (int i = 0; i < triangles.Count; i++)
+        int material = -1, next = 0;
+        for (int i = 0; i < _count; i++)
         {
             RenderTriangle t = _entries[i].Triangle;
-            if (current is null || material != t.MaterialIndex)
+            float depth = _entries[i].Depth / 3f;
+            bool crossed = false;
+            while (next < breaks.Length && depth < breaks[next]) { next++; crossed = true; }
+            if (current is null || material != t.MaterialIndex || crossed)
             {
                 int slot = _runs.Count;
                 material = t.MaterialIndex;
@@ -56,7 +74,7 @@ public sealed class TriangleDepthOrderBuffer
                 _runs.Add(_pool[slot]);
             }
             current.Add(t);
-            _runs[^1].NearestDepth = _entries[i].Depth / 3f;
+            _runs[^1].NearestDepth = depth;
         }
         return _runs;
     }

@@ -110,8 +110,13 @@ therefore blended the same way, with no depth write. So a bar behind the flower 
 a bar in front draws over it. The flower sits above the bars' 1-tile top and behind the near fence,
 so it is usually nearer, as the owner sees in DK2. Ours had drawn every blended terrain run after
 every flower, because runs take sorting orders from 1 upward and the flower took 0. Each icon now
-takes the order of the runs wholly behind its depth (`TransparentTerrain.SortingOrderAt`). A run
-that straddles that depth draws over the icon, a coarser grain than DK2's per-triangle buckets.
+takes the order of the runs wholly behind its depth.
+
+That alone did not fix it (owner, 2026-11-05: still under the bars). A whole Prison fence is one
+material, so it sorted into one run that straddled the flower and drew over it. Now
+`TransparentTerrain.PlaceItems` sorts when the flowers are queued and splits every run at each
+icon's depth (`TriangleDepthOrderBuffer.Split`, one pass, no re-sort when only the flowers moved).
+Each icon then sits between whole runs, as in DK2's per-triangle list.
 
 ### When an own creature's flower shows (0048E830, STRONGLY INFERRED)
 

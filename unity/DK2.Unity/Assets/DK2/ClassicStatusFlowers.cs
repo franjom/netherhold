@@ -79,6 +79,20 @@ namespace DK2.Unity
                 if (flower.Objective != null) Sprite(flower.Objective, centre, 3, colour, -1, ring: false);
             }
 
+            // The A_ sprite is queued into the same back-to-front blended list as the terrain's
+            // translucent faces (0x0057F7E0 sets batch state 0x200; 0x0058B9D0), so a Prison bar
+            // behind the flower draws first and one in front of it draws over it. Order i + 1 ties the
+            // run just behind and the later material queue wins (TransparentTerrain.PlaceItems).
+            if (blended != null) blended.PlaceItems(camera, _positions, _orders);
+            for (int i = 0; i < _pending.Count; i++)
+            {
+                Pending p = _pending[i];
+                Graphics.RenderMesh(Params(p.Material, p.Block, blended != null ? _orders[i] : 0), _quad, 0,
+                    Matrix4x4.TRS(_positions[i], facing, Vector3.one * p.Size));
+            }
+            _pending.Clear();
+            _positions.Clear();
+
             // DK2 draws every layer at one point (no per-icon offset; 0x0059C360, 0x0057F3D0) and
             // layers them by draw order. Ours lifts each layer toward the camera for sorting, along
             // the eye ray so it stays concentric on screen (StatusFlowerRules.LayerPlacement). Valid for
@@ -86,16 +100,23 @@ namespace DK2.Unity
             void Sprite(string name, Vector3 anchor, int layer, Color colour, float wedge, bool ring)
             {
                 var (at, scale) = StatusFlowerRules.LayerPlacement(Numerics(anchor), Numerics(eye), Numerics(forward), layer, CentreLift);
-                var position = new Vector3(at.X, at.Y, at.Z);
-                // The A_ sprite is queued into the same back-to-front blended list as the terrain's
-                // translucent faces (0x0057F7E0 sets batch state 0x200; 0x0058B9D0), so a Prison
-                // bar behind the flower draws first and one in front of it draws over it.
-                int order = blended != null ? blended.SortingOrderAt(position) : 0;
-                Graphics.RenderMesh(Params(Art(name, ring), Block(ref block, colour, wedge), order), _quad, 0,
-                    Matrix4x4.TRS(position, facing,
-                        Vector3.one * (StatusFlowerRules.WorldSize(name, possessing) * scale)));
+                _positions.Add(new Vector3(at.X, at.Y, at.Z));
+                _pending.Add(new Pending(Art(name, ring), Block(ref block, colour, wedge),
+                    StatusFlowerRules.WorldSize(name, possessing) * scale));
             }
         }
+
+        private readonly struct Pending
+        {
+            public readonly Material Material;
+            public readonly MaterialPropertyBlock Block;
+            public readonly float Size;
+            public Pending(Material material, MaterialPropertyBlock block, float size) { Material = material; Block = block; Size = size; }
+        }
+
+        private readonly List<Pending> _pending = new List<Pending>();
+        private readonly List<Vector3> _positions = new List<Vector3>();
+        private readonly List<int> _orders = new List<int>();
 
         private static System.Numerics.Vector3 Numerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
 
@@ -132,7 +153,7 @@ namespace DK2.Unity
             var material = new Material(_shader) { name = "status flower " + name, mainTexture = texture };
             material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
             // After actor hover passes and the outline at +100, and after a blended terrain run that
-            // shares the icon's sorting order (TransparentTerrain.SortingOrderAt). Terrain tag passes
+            // shares the icon's sorting order (TransparentTerrain.PlaceItems). Terrain tag passes
             // use negative sorting orders, which take precedence over material queues.
             // Flowers still depth-test against solid geometry.
             material.renderQueue = (int)RenderQueue.Transparent + 200;

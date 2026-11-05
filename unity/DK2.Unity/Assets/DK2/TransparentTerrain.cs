@@ -150,6 +150,12 @@ namespace DK2.Unity
         private Vector3 _lastForward;
         private Matrix4x4 _lastMatrix;
         private Matrix4x4 _lastCullingMatrix;
+        // Status-flower depths that split runs (PlaceItems), farthest first.
+        private float[] _breaks = Array.Empty<float>();
+        private float[] _scratchBreaks = Array.Empty<float>();
+        private float[] _itemDepths = Array.Empty<float>();
+        private int _breakCount;
+        private bool _breaksChanged;
 
         private void OnEnable() => RenderPipelineManager.beginCameraRendering += BeforeCamera;
         private void OnDisable() => RenderPipelineManager.beginCameraRendering -= BeforeCamera;
@@ -284,10 +290,55 @@ namespace DK2.Unity
             foreach (Material material in _materials)
                 if (material.enableInstancing)
                     throw new InvalidOperationException("Shared transparent vertex streams require GPU instancing disabled.");
+            Refresh(camera);
+        }
+
+        /// <summary>Joins blended items (status flowers) at <paramref name="worlds"/> into this frame's
+        /// back-to-front stream for <paramref name="camera"/>: sorts now, splits any run an item sits
+        /// inside (<see cref="TriangleDepthOrderBuffer.Split"/>), and writes each item's sorting order to
+        /// <paramref name="orders"/>. Call once per frame after the camera is placed and before the
+        /// render; the render's own refresh then finds nothing changed and keeps these runs.</summary>
+        public void PlaceItems(Camera camera, List<Vector3> worlds, List<int> orders)
+        {
+            Vector3 forward = camera.transform.forward;
+            int count = worlds.Count;
+            if (_itemDepths.Length < count) { _itemDepths = new float[Mathf.NextPowerOfTwo(count)]; _scratchBreaks = new float[_itemDepths.Length]; }
+            for (int i = 0; i < count; i++)
+            {
+                _itemDepths[i] = Vector3.Dot(worlds[i], forward);
+                _scratchBreaks[i] = _itemDepths[i];
+            }
+            Array.Sort(_scratchBreaks, 0, count);
+            Array.Reverse(_scratchBreaks, 0, count);
+            bool same = count == _breakCount;
+            for (int i = 0; same && i < count; i++) same = _scratchBreaks[i] == _breaks[i];
+            if (!same)
+            {
+                if (_breaks.Length < count) _breaks = new float[_scratchBreaks.Length];
+                Array.Copy(_scratchBreaks, _breaks, count);
+                _breakCount = count;
+                _breaksChanged = true;
+            }
+            Refresh(camera);
+            orders.Clear();
+            for (int i = 0; i < count; i++) orders.Add(_sort.RunsBehind(_itemDepths[i]));
+        }
+
+        private void Refresh(Camera camera)
+        {
             Vector3 forward = camera.transform.forward;
             Matrix4x4 matrix = transform.localToWorldMatrix;
             Matrix4x4 culling = camera.cullingMatrix;
-            if (!_dirty && forward == _lastForward && matrix == _lastMatrix && culling == _lastCullingMatrix) return;
+            bool moved = _dirty || forward != _lastForward || matrix != _lastMatrix || culling != _lastCullingMatrix;
+            if (!moved && !_breaksChanged) return;
+            _breaksChanged = false;
+            if (!moved)
+            {
+                // Only the items moved: re-split the last order, no collect, cull or sort.
+                using (OrderMarker.Auto())
+                    Upload(_sort.Split(new ReadOnlySpan<float>(_breaks, 0, _breakCount)), geometryChanged: false);
+                return;
+            }
             using ProfilerMarker.AutoScope scope = SortMarker.Auto();
             bool geometryChanged = _dirty || (_effects.Count != 0 && matrix != _lastMatrix);
             if (geometryChanged) { Collect(); _geometryRevision++; }
@@ -325,7 +376,16 @@ namespace DK2.Unity
             IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered;
             using (OrderMarker.Auto())
                 ordered = _sort.Sort(_worldPositions, _visibleTriangles,
-                    new NumericsVector3(forward.x, forward.y, forward.z));
+                    new NumericsVector3(forward.x, forward.y, forward.z), new ReadOnlySpan<float>(_breaks, 0, _breakCount));
+            Upload(ordered, geometryChanged);
+            _dirty = false;
+            _lastForward = forward;
+            _lastMatrix = matrix;
+            _lastCullingMatrix = culling;
+        }
+
+        private void Upload(IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered, bool geometryChanged)
+        {
             using ProfilerMarker.AutoScope uploadScope = UploadMarker.Auto();
             if (ordered.Count > short.MaxValue)
                 throw new InvalidOperationException("Transparent terrain exceeds Unity's 32767 ordered-run limit.");
@@ -390,17 +450,8 @@ namespace DK2.Unity
             }
             foreach (Run run in _runs)
                 if (!run.Used && run.Active) { run.Object.SetActive(false); run.Active = false; }
-            _dirty = false;
-            _lastForward = forward;
-            _lastMatrix = matrix;
-            _lastCullingMatrix = culling;
         }
 
-        /// <summary>The sorting order that places a blended item at <paramref name="world"/> into the
-        /// last sorted stream: after every run wholly behind it (order i + 1 ties and a later material
-        /// queue wins), before the rest. DK2 depth-sorts every blended triangle, sprites included, in
-        /// one list (0x0057F7E0, 0x0058B9D0); 0 before the first sort.</summary>
-        public int SortingOrderAt(Vector3 world) => _sort.RunsBehind(Vector3.Dot(world, _lastForward));
 
         private static void SetRunDrawRange(Run run, int indexCount)
         {
