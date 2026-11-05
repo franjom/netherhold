@@ -136,21 +136,21 @@ public static class CreatureAngerRules
         if (PrisonRules.IsImprisoned(state)) return delta;
         // The need-anger routine 0x00478D00 returns at once for a follower (0x00478D1D): no lair,
         // food or pay charge. The in-lair calm below is another routine's and still applies.
-        // The dispatcher calls it for a keeper's creatures only (0x00476FC0, ADR-0485); the cooling
-        // below is the lair category hooks' (0x004DFF00) and runs for anyone.
-        bool follower = state.FollowLeaderId != 0 || !NeedRules.RunsNeeds(state);
+        // The dispatcher calls it for a keeper's non-workers only (0x00476FC0, ADR-0485; the worker
+        // jump 0x00477130, ADR-0667); the cooling below is the lair hooks' (0x004DFF00), for anyone.
+        bool follower = state.FollowLeaderId != 0 || !NeedRules.IsAsked(creature, state);
 
         // Additive (ADR-0079) and per bucket (ADR-0081): the original's need-anger routine
         // (FUN_00478d00) tests lair, food and pay in turn and charges each into its own counter, so
         // a bedless unpaid creature takes both and neither pays off the other.
-        // The lair charge has the food charge's room clause (ADR-0666): Lair availability 3 or a
-        // Lair owned (0x00478DB7-0x00478DD5), so a map that offers no Lair angers nobody for want of a bed.
-        if (!follower && LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state)
+        // Lair: no bed, a lair object (def+0x771, not TimeSleep; ADR-0667), and the Lair offered or
+        // owned (0x00478DB7-0x00478DD5, ADR-0666).
+        if (!follower && creature.LairObjectId != 0 && !LairRules.HasBed(world, database, state)
             && Offers(world, database, state.OwnerPlayerId, RoomTypeId.Lair))
         {
             // A creature whose record gives it no lair object at all — the Imp, the Skeleton,
             // Horny — is not owed a bed and is not angered by its absence.
-            delta.Lair += creature.AngerNoLair;
+            delta.Lair += Loaded(creature.AngerNoLair);
         }
 
         // Hungry while its keeper could feed it (ADR-0651): 0x00478D00 charges bucket 1 at
@@ -159,13 +159,13 @@ public static class CreatureAngerRules
         if (!follower && EatingRules.IsHungry(database, creature, state)
             && Offers(world, database, state.OwnerPlayerId, RoomTypeId.Hatchery))
         {
-            delta.Hunger += creature.AngerNoFood;
+            delta.Hunger += Loaded(creature.AngerNoFood);
         }
 
         // Owed wages it has not collected.
         if (!follower && PaydayRules.IsOwedWages(database, creature, state))
         {
-            delta.Pay += creature.AngerNoPay;
+            delta.Pay += Loaded(creature.AngerNoPay);
         }
 
         // And cooling pays off neither of them (ADR-0081): ModifyAngerOfCreatureInLairPerSecond
@@ -180,6 +180,12 @@ public static class CreatureAngerRules
 
         return delta;
     }
+
+    /// <summary>A need charge's game second: the loader's per-tick rate (<see cref="SimulationTiming.LoaderRatePerTick"/>,
+    /// non-zero floored at 1), added each of the second's four turns (ADR-0667). Bile Demon 150 is 148;
+    /// a tabled 1 is 4.</summary>
+    private static int Loaded(short perSecond) =>
+        SimulationTiming.LoaderRatePerTick(perSecond) * SimulationTiming.OriginalTicksPerGameSecond;
 
     /// <summary>The room clause of the lair and food charges in <c>0x00478D00</c>: the room's
     /// availability is 3 (<c>Player_RoomAvailability</c>), else the keeper owns one

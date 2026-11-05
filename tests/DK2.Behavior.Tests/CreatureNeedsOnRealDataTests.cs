@@ -425,6 +425,10 @@ public class CreatureNeedsOnRealDataTests
             Assert.Equal(0, creature.TimeSleep);
             Assert.True(creature.TimeAwake >= Never);
             Assert.Equal(6, creature.LairObjectId);
+            if (name == "Dwarf") Assert.True(creature.Flags.HasFlag(CreatureFlags.IsWorker));
+            // A tabled AngerNoLair of 1, never charged: the Dwarf, the one a keeper can own, is a
+            // worker, and the dispatcher skips the need-anger routine for workers (ADR-0667).
+            Assert.Equal(1, creature.AngerNoLair);
         }
     }
 
