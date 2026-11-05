@@ -118,10 +118,9 @@ public class HatcheryClockTests
         var sim = new GameSimulation(db, world, seed: 42, SimulationSystems.Default());
         sim.ObserveWith(sink);
 
-        // A 3x3 wants one coop: floor(9 / 6) = 1.
-        sim.Tick(); // the first game second has not elapsed yet
-        for (int i = 1; i < Second; i++) sim.Tick();
-        Assert.Contains(sink.Events, e => e.Kind == "coops_placed");
+        // A 3x3 wants one coop, floor(9 / 6) = 1, placed by the level start's rebuild (ADR-0672).
+        Assert.Single(world.Objects, o => o.ObjectTypeId == HatcheryRules.CoopObjectId && o.AutoPlaced);
+        for (int i = 0; i < Second; i++) sim.Tick();
         Assert.DoesNotContain(sink.Events, e => e.Kind == "egg_laid");
 
         // This pre-placed 3x3 uses the startup table: nothing at eleven, an egg at twelve.

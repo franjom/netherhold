@@ -31,7 +31,7 @@ public static class HatcheryRules
         _ => 3,
     };
 
-    internal static void InitializeLevelStart(WorldState world, GameDatabase database)
+    internal static void InitializeLevelStart(WorldState world, GameDatabase database, SimRandom? rng = null)
     {
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
@@ -40,6 +40,13 @@ public static class HatcheryRules
             clock.HatcheryLastGeneratedTick = world.CurrentTick.Value;
             clock.HatcheryStartupIntervalTicks = SimulationTiming.TicksFromSeconds(StartupIntervalSeconds(room.TileCount));
         }
+
+        // Level_InitTriggersAndStart then rebuilds, per active player and down its room list, each room
+        // whose definition is Buildable (+0x43D bit 0x80, 0x0050BC7A): a Hatchery places its coops (ADR-0672).
+        foreach (PlayerId player in world.ActivePlayerOrder)
+            foreach (RoomInstance room in RoomLists.Of(world, database, player))
+                if (room.Definition.TypeId == RoomTypeId.Hatchery && room.Definition.Flags.HasFlag(RoomFlags.Buildable))
+                    RebuildCoops(world, database, room, rng);
     }
 
     public static int GenerationIntervalTicks(WorldState world, GameDatabase database, RoomInstance room)
@@ -183,9 +190,7 @@ public static class HatcheryRules
     /// tile) that holds no coop of its own and lies at least √3 tiles from every coop taken
     /// so far. So a 5×5 room's four stand on a 2×2 grid inside the rim (owner, 2026-10-09).
     /// <para>May return fewer than <see cref="CoopCount"/>: a thin room has few interior tiles.
-    /// Deviates: DK2 also spends one simulation-stream roll per coop (its <c>+0x14A</c>), and
-    /// replaces every coop on each change where ours keeps those still wanted (hatchery.md,
-    /// Known exceptions).</para></summary>
+    /// <see cref="RebuildCoops"/> places them and makes the per-coop draw.</para></summary>
     public static void CoopTiles(WorldState world, RoomInstance hatchery, List<int> into)
     {
         if (into is null) throw new ArgumentNullException(nameof(into));
@@ -237,11 +242,9 @@ public static class HatcheryRules
     }
 
     /// <summary>Brings this room's coops up to what its size entitles it to, and says how
-    /// many it added.
-    /// <para>Idempotent, so it is safe to call whenever the room changes: a coop
-    /// already on a wanted tile is left alone. The owning
-    /// <see cref="Systems.AutoFurnitureSystem"/> reconciles obsolete coops when
-    /// a room changes shape.</para></summary>
+    /// many it added: a fixture's way to furnish a room it painted directly, with no draw and
+    /// a coop already on a wanted tile left alone. The game places coops through
+    /// <see cref="RebuildCoops"/> instead (ADR-0672).</summary>
     public static int PlaceCoops(
         WorldState world, GameDatabase database, RoomInstance hatchery)
     {
@@ -256,6 +259,72 @@ public static class HatcheryRules
             added++;
         }
         return added;
+    }
+
+    /// <summary><c>Hatchery_PlaceCoops</c> (<c>0x004DE220</c>), the Hatchery's arm of <c>Room_Rebuild</c>
+    /// (<c>0x004EDFC0</c>), after the rebuild has deleted the room's auto-placed objects: a coop on each of
+    /// <see cref="CoopTiles"/>, in slab-chain order, each followed by one draw of <c>random(4)</c> on the
+    /// world stream into the coop's <c>+0x14A</c> (Hatchery.cpp line 187, <c>0x004DE4E4</c>; nothing reads
+    /// it, so ours keeps no field). The coop's heading uses local seeds only (the view's
+    /// <see cref="AutoFurnitureRules.Choice"/>). Returns how many it placed (ADR-0672).</summary>
+    internal static int RebuildCoops(WorldState world, GameDatabase database, RoomInstance hatchery, SimRandom? rng)
+    {
+        RemoveAutoPlacedCoops(world, hatchery.TileIndices);
+        var tiles = new List<int>();
+        CoopTiles(world, hatchery, tiles);
+        foreach (int index in tiles)
+        {
+            world.SpawnObject(database, CoopObjectId, hatchery.OwnerPlayerId, index).AutoPlaced = true;
+            rng?.NextInt(4);
+        }
+        return tiles.Count;
+    }
+
+    /// <summary><c>Room_RefreshAfterNeighbourWork</c> (<c>0x004ECDB0</c>) for its Hatchery arm: for each of the
+    /// worked tile's N, E, S and W neighbours (<c>0x006BC350</c>) on the map that is a room tile, the room is
+    /// refreshed, and a room with pillars, a Hatchery among them (<c>0x004E4300</c>), is rebuilt, so a
+    /// Hatchery beside the work places its coops again, once for each of its tiles there (ADR-0672). DK2
+    /// calls it when work changes a tile's terrain (<c>Tile_ApplyWork</c>, <c>0x00453221</c> at zero
+    /// health and <c>0x004533C0</c> at the maximum) and again when a dig strike takes a tile to zero
+    /// (<c>Imp_DigAction</c>, <c>0x0049716B</c>); ours from <see cref="Systems.TileWorkSystem"/>,
+    /// <see cref="TremorRules"/> and the reinforcement fill. Not built: walls that decay on their own
+    /// (<c>Wall_RandomDeterioration</c>, <c>0x004BB6D0</c>) and the wall hit of a moving thing
+    /// (<c>0x004B2575</c>), which ours does not model. The other rooms' rebuilds draw nothing and are
+    /// <see cref="Systems.AutoFurnitureSystem"/>'s.</summary>
+    internal static void AfterNeighbourWork(WorldState world, GameDatabase database, int tileIndex, SimRandom rng)
+    {
+        int x = tileIndex % world.Width, y = tileIndex / world.Width;
+        ReadOnlySpan<(int Dx, int Dy)> sides = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+        foreach ((int dx, int dy) in sides)
+        {
+            if (!world.Contains(x + dx, y + dy)) continue;
+            int neighbour = ((y + dy) * world.Width) + x + dx;
+            if (database.RoomByTerrain(world.TileAtIndex(neighbour).TerrainId)?.TypeId != RoomTypeId.Hatchery) continue;
+            if (RoomIndex.RoomAt(world, database, neighbour) is { } hatchery) RebuildCoops(world, database, hatchery, rng);
+        }
+    }
+
+    /// <summary><c>Room_TransferOwnership</c> (<c>0x004E5650</c>) re-owns the room's auto-placed objects (list
+    /// <c>+0x0E</c>, each through <c>Object_SetOwner</c>) without a rebuild: a Hatchery's coops change hands
+    /// and none is placed again, so nothing is drawn (ADR-0672).</summary>
+    internal static void ReownCoops(WorldState world, RoomInstance room, PlayerId owner)
+    {
+        foreach (ObjectState thing in world.Objects)
+            if (thing.ObjectTypeId == CoopObjectId && thing.AutoPlaced && room.Contains(thing.TileIndex))
+                thing.OwnerPlayerId = owner.Value;
+    }
+
+    /// <summary><c>Room_DeleteAutoPlacedObjects</c> (<c>0x004E6BC0</c>) and <c>Room_OnFreed</c>
+    /// (<c>0x004E39C0</c>) for a Hatchery: every coop the room placed on <paramref name="tiles"/> goes.</summary>
+    internal static void RemoveAutoPlacedCoops(WorldState world, IEnumerable<int> tiles)
+    {
+        var set = tiles as ISet<int> ?? new HashSet<int>(tiles);
+        for (int i = world.Objects.Count - 1; i >= 0; i--)
+        {
+            ObjectState thing = world.Objects[i];
+            if (thing.ObjectTypeId == CoopObjectId && thing.AutoPlaced && set.Contains(thing.TileIndex))
+                world.RemoveObject(thing.Id);
+        }
     }
 
     /// <summary>A coop the room did not place stands here (<c>Cell_FindObjectOfType</c>

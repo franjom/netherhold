@@ -113,7 +113,7 @@ can pass several (a one-tile-wide room).
 | Crypt (26) | `0x004D8CB0` | 142 Crypt Bell | the first chain tile with all eight neighbours Crypt floor slots; centre; stored at room `+0x49..+0x4F` | not written | 0 |
 
 Each coop also gets `+0x14A = Random_Next(4) << 9` on the **simulation stream** (world
-`+0x15A0`, source line `0xBB`, `0x004DE4E4`): one draw per coop created. Ours draws nothing.
+`+0x15A0`, source line `0xBB`, `0x004DE4E4`): one draw per coop created; ours makes it in `HatcheryRules.RebuildCoops` and keeps no field (ADR-0672).
 
 ## 5. Room pillars (`0x004EF1F0`)
 

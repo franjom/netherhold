@@ -115,8 +115,9 @@ tick, as with Level 5. Of the 13:
   (CONFIRMED);
 - built from this log: ManufactureState.cpp:469 (`0x00470B20`, state 68 on a crate made, `random(2)` when art
   record 8 resolves present; ADR-0671, hash 415);
-- still missing: Hatchery.cpp:187 (`0x004DE220`, a coop's placement `random(4)` per coop, which needs the coops
-  rebuilt on a room change, Q733).
+- built from this log: Hatchery.cpp:187 (`0x004DE220`, a coop's placement `random(4)`, 4 consecutive draws in each
+  of 6 clusters at the first index of a turn; the coops are rebuilt on a room change; ADR-0672, hash 416). No site
+  of the census is unbuilt.
 
 ## Outcomes at hash 399
 

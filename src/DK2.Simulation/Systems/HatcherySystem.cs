@@ -95,19 +95,8 @@ public sealed class HatcherySystem : ISimulationSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
-        // Coops are the room's furniture and they are placed rather than
-        // built: a hatchery that grows gets the coops its new size allows,
-        // on the tiles HatcheryRules picks. Cheap when there is nothing to
-        // add, which is every second but the first.
-        int added = (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0
-            ? HatcheryRules.PlaceCoops(world, database, room) : 0;
-        if (added > 0)
-        {
-            context.Emit(SystemName, "coops_placed",
-                $"player={room.OwnerPlayerId} {Describe(world, room.TileIndices[0])} " +
-                $"added={added} tiles={room.TileCount} " +
-                $"wanted={HatcheryRules.CoopCount(room)}");
-        }
+        // Coops are not placed here: Room_Rebuild places them at the level's start and whenever the
+        // room's tiles change (HatcheryRules.RebuildCoops, ADR-0672).
 
         // The clock lives on the room's lowest tile, because a room here is
         // derived and cannot hold state of its own (TileState.HatcheryLastGeneratedTick).
@@ -168,8 +157,7 @@ public sealed class HatcherySystem : ISimulationSystem
 }
 
 /// <summary>The Hatchery's part of the room tick (<c>Hatchery_Tick</c>, <c>0x004DE0A0</c>, which only lays when its clock is
-/// due) and, as a stand-in, the coops DK2 places when the room changes (<c>0x004DE220</c>, Q733): ours once a second and
-/// the lay when its clock is due. <see cref="HatcherySystem"/> does this itself when it runs without a room walk.</summary>
+/// due). <see cref="HatcherySystem"/> does this itself when it runs without a room walk.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
 public sealed class HatcheryLayStep : IRoomTickStep
 {

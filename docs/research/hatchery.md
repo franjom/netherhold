@@ -252,9 +252,9 @@ per-kind state is **`FreeRange`, `PeckingTimer`, `StayThere`,
 
 `HatcherySystem` advances the coop and egg object processes each tick, using
 shipped integer art timing. Laying is checked every turn against the room's
-last-generated stamp; an attempted lay stamps the turn even on refusal. Coop
-maintenance remains once a game second. Startup and room-change clock handling
-are described in [hatchery-startup.md](hatchery-startup.md#built-scope).
+last-generated stamp; an attempted lay stamps the turn even on refusal. Coops
+are placed by `HatcheryRules.RebuildCoops` on a room change, not by the system
+(ADR-0672). Startup and room-change clock handling are described in [hatchery-startup.md](hatchery-startup.md#built-scope).
 `HatcheryRules` counts registered chickens for room capacity;
 eggs consume none. Full rooms use the coop branch below the owner's free-range
 cap. Metadata-free synthetic definitions retain the ADR-0066 two-second hatch
@@ -278,11 +278,12 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
   lifetime (section 3, ADR-0335). Clock migration is built separately
   (ADR-0606); it does not fix this count deviation.
 - The nine-tile truncation to 7 rather than 8 (§4), reproduced.
-- DK2 deletes every auto-placed coop on each change and places them all again,
-  with new ids in the new chain order, each with its angle and one
-  simulation-stream roll (§2). Ours keeps the coops still wanted and adds the
-  rest, so after a growth the coop list's order, which the lay's random pick
-  indexes, can differ from DK2's; the angle and the roll are not built.
+- The rebuild in §2 is built (ADR-0672): the coops are deleted and placed
+  again, with new ids in chain order and one simulation-stream roll each, at the
+  level start, on every tile change and after work on a neighbouring tile. Not
+  mirrored: the coop's angle (the view computes it), an object-create failure,
+  the rebuild on a restored save and the conversion's merge (ADR-0672,
+  Consequences).
 
 ## Open questions
 

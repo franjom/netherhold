@@ -232,7 +232,11 @@ public class ChickenMovementTests
         var (db, world, chicken) = HatchBird();
         chicken.ProcessState = (byte)ChickenProcess.Reaction;
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
-        int countdown = new SimRandom(42).NextInt(16) + 8;
+        // The level start's rebuild draws once for each coop it places (ADR-0672) before the reaction draws.
+        var expected = new SimRandom(42);
+        int coops = world.Objects.Count(o => o.ObjectTypeId == HatcheryRules.CoopObjectId);
+        for (int i = 0; i < coops; i++) expected.NextInt(4);
+        int countdown = expected.NextInt(16) + 8;
         sim.Tick();
         Assert.Equal(countdown - 1, chicken.ChickenReactionTicks);
         sim.Run(countdown - 1);

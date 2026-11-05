@@ -166,9 +166,8 @@ handler returns 1 (the table's handlers read here), so a room's border and healt
   World_UpdateTurn runs the thing pass first, so eggs, coops and chickens step before the lay:
   `HatcherySystem(lays: false)` sits with the objects, after `ObjectMovementSystem` and before `TrapSystem`
   (object class list 2 of `0x004B7830`, after the shots, before the traps). The coops are not the handler's: Room_Rebuild's Hatchery arm
-  (`0x004DE220`, hatchery.md section 2) places them at room-change time, one `random(4) << 9` draw each. **Deviation:**
-  ours places them once a second inside `HatcheryLayStep` (`HatcheryRules.PlaceCoops`) and draws nothing for them
-  (Q733).
+  (`0x004DE220`, hatchery.md section 2) places them at room-change time, one `random(4) << 9` draw each; ours does
+  the same in `HatcheryRules.RebuildCoops` (ADR-0672).
 - **Heart.** `0x004D9A60` is the Heart's whole handler and has no draw site of its own: only `0x004D9690`'s sparkle
   draws. `HeartFrameStep` runs the opening, regeneration and ruin at the Heart's turn. `Room_Ruin`'s Heart arm
   (`0x004E9130`) only toggles `+0x9A` bit 0 and recodes tiles. `Heart_OnDestroyed` (`0x004DA560`) draws, but its only

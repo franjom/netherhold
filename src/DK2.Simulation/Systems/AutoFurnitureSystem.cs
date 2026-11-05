@@ -51,15 +51,14 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
 
             var key = (thing.OwnerPlayerId, thing.TileIndex, thing.ObjectTypeId);
             if (unmatched.Remove(key)) continue;
-            if (thing.AutoPlaced) remove.Add(thing.Id);
+            // A Hatchery's coops are deleted and placed by its rebuild (HatcheryRules.RebuildCoops, ADR-0672).
+            if (thing.AutoPlaced && thing.ObjectTypeId != HatcheryRules.CoopObjectId) remove.Add(thing.Id);
         }
 
         foreach (int id in remove) world.RemoveObject(id);
         foreach ((PlayerId owner, int tile, byte type) in desired)
         {
             if (!unmatched.Contains((owner, tile, type))) continue;
-            // HatcherySystem owns coop creation and its coops_placed event;
-            // this pass only retains or removes coops as the room shape changes.
             if (type == HatcheryRules.CoopObjectId) continue;
             if (context.Database.ObjectById(type) is null) continue;
             world.SpawnObject(context.Database, type, owner, tile).AutoPlaced = true;

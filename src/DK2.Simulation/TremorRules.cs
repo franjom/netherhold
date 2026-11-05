@@ -133,6 +133,9 @@ public static partial class TremorRules
         {
             tile.FreshlyDug = false;
             SlabChain.Changed(world, context.Database, world.TileIndex(at), before, ownerBefore, context.Rng, context);
+            // The applier's neighbour refresh (0x00453221): a Hatchery beside the wall places its coops again (ADR-0672).
+            if (tile.TerrainId != before)
+                HatcheryRules.AfterNeighbourWork(world, context.Database, world.TileIndex(at), context.Rng);
             if (tile.TerrainId != before)
                 ThingSoundRules.RequestTile(context, "tremor", before, world.TileIndex(at), ThingSoundEvent.TileBroken);
             context.Navigation.Refresh();

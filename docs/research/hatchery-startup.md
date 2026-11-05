@@ -22,7 +22,7 @@ It skips this walk for restored saves (world+0x7239 bit0x40).
 The callee consumes but ignores the pushed variable18 argument
 (RET4); it writes only the receiving room, not a room walk itself.
 The later startup furniture rebuild (`0x0050BC9D`, `0x004EDFC0`) places coops
-and generic furniture without invoking +0x09 or writing the interval.
+(built, ADR-0672) and generic furniture without invoking +0x09 or writing the interval.
 Within the checked paths the table persists until another tile pass; mere
 ownership adoption does not itself write +0x4D. Runtime construction uses the power formula.
 

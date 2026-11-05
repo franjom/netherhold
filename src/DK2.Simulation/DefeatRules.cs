@@ -74,6 +74,7 @@ public static class DefeatRules
                 tile.KeptManaGain = 0;
                 if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
             }
+            HatcheryRules.ReownCoops(world, room, PlayerIds.Neutral);   // its auto-placed objects (ADR-0672)
             SlabChain.Kick(world, room);   // Room_TransferOwnership's slot +0x0D (ADR-0406)
             GoldStore.Recapture(world, database, room, context.Rng, context);   // a Treasury's (ADR-0668)
             rooms++;

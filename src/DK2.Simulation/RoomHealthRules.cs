@@ -116,6 +116,7 @@ public static class RoomHealthRules
 
         // The type's slot +0x0D kicks every place-holder (room-return-states.md §1, ADR-0406); a
         // Treasury's re-banks its gold for the new owner (0x004F3C40, ADR-0668).
+        HatcheryRules.ReownCoops(world, room, playerId);
         SlabChain.Kick(world, room);
         GoldStore.Recapture(world, database, room, context?.Rng, context);
         if (RoomIndex.RoomAt(world, database, room.TileIndices[0]) is { } merged)

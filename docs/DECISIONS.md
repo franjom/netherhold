@@ -15665,3 +15665,46 @@ idles a turn later than before. Nothing else a creature does changes directly, b
 outcome shifts. The handler and the counter are STRONGLY INFERRED from the disassembly. The two timings
 agree with the Level 4 capture. The art install's coin flip (`0x004B37D0`, RenderInfo.cpp:201) is
 absent after both pairs, so action 35's start drew nothing there.
+
+## ADR-0672: a Hatchery's coops are placed again on every rebuild, with a draw each
+
+**Date:** 2026-11-05. **Status:** accepted. Builds Q733(f). Hash/save 416. · **Systems:** rooms
+
+**Context.** `Room_Rebuild` (`0x004EDFC0`) runs after its caller deletes the room's auto-placed objects.
+Its Hatchery arm, `Hatchery_PlaceCoops` (`0x004DE220`), places `min(Size/6, 36)` coops along the slab
+chain and draws `random(4)` on the world stream after each one (Hatchery.cpp line 187, `0x004DE4E4`). It
+is called:
+- on a tile add and on each piece of a removal;
+- at the level start, per active player and room list, for a `Buildable` room;
+- from `Room_RefreshAfterNeighbourWork` (`0x004ECDB0`), which rebuilds each N/E/S/W neighbour's room that
+  has pillars, as a Hatchery does, after the applier changes a tile's terrain (`0x00453221`, `0x004533C0`)
+  and again after a dig strike reaches zero (`0x0049716B`).
+
+`Room_TransferOwnership` (`0x004E5650`) only re-owns the coops. Ours added missing coops once a second,
+with no draw. The native Level 4 draw log has the site as six clusters of four draws in 500 turns: a
+two-coop Hatchery refreshed twice by a dug wall.
+
+**Decision.** `HatcheryRules.RebuildCoops` deletes the room's auto-placed coops, places them along
+`CoopTiles` and draws `random(4)` after each. It runs:
+- from `SlabChain.Added` and `Removed`, before the Chicken adoption (ADR-0652);
+- from `InitializeLevelStart`;
+- through `AfterNeighbourWork`, from `TileWorkSystem`, `TremorRules` and the reinforcement fill.
+
+`ReownCoops` handles transfers. `HatcherySystem` and `AutoFurnitureSystem` no longer touch coops.
+
+**Consequences.**
+- Coops get new ids in chain order on every rebuild, so the full room's random coop launch picks as
+  DK2's does.
+- The stream advances one draw per coop placed; `a_goblin_eats_a_chicken` re-picks its incidental birds.
+- `coops_placed` is gone.
+- Not mirrored:
+  - the coop's simulation-side heading;
+  - an object-create failure;
+  - the rebuild on a restored save;
+  - other rooms' neighbour rebuilds, which draw nothing;
+  - the conversion merge;
+  - walls that decay on their own (`0x004BB6D0`) and a moving thing's wall hit (`0x004B2575`);
+  - the level start's per-player interleave with event 3.
+
+STRONGLY INFERRED from the disassembly. The record of each function, and `hatchery.md` §2, hold the
+detail.

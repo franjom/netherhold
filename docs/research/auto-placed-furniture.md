@@ -110,8 +110,8 @@ room construction. It currently owns:
 - the generic floor pass;
 - the generic wall pass, at tile-level precision;
 - the Temple Hand;
-- removal and retention of Hatchery coops; `HatcherySystem` creates them so its
-  `coops_placed` event remains observable.
+- nothing of the Hatchery's coops: `HatcheryRules.RebuildCoops` places them on a
+  room change and the system leaves them alone (ADR-0672).
 
 The `AutoPlaced` bit is snapshot and hash state. Any non-held object with the
 right owner, tile and type satisfies a slot, including keeper-, creature- and

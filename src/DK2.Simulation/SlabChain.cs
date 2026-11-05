@@ -209,6 +209,11 @@ public static class SlabChain
             // Room_Absorb frees each room merged in behind (0x004ECD00), whose Room_OnFreed unlinks its
             // birds; then the slot +0x09 of the room that grew adopts those on its tiles.
             ChickenMovementRules.ReleaseHatcheryBirds(world, freed);
+            // Room_AddTile deletes the room's auto-placed objects (Room_Absorb those of each room it
+            // absorbs) and Room_Rebuild places the coops again, before Room_OnTilesChanged (ADR-0672).
+            HatcheryRules.RemoveAutoPlacedCoops(world, chain);
+            if (RoomIndex.RoomAt(world, database, chain[0]) is { } grown)
+                HatcheryRules.RebuildCoops(world, database, grown, world.RoomConstructionRandom);
             ChickenMovementRules.AdoptOnChain(world, database, chain);
         }
         // Room_AddTile's 0x004E4480 (0x004ED2D8): a Treasury's slot +0x09 banks its floor gold, an
@@ -333,7 +338,12 @@ public static class SlabChain
         (leaving.PrisonDoor, leaving.CasinoParty, leaving.CasinoPartyStartTick) = (0, 0, 0);
         foreach (int tile in old) door |= world.TileAtIndex(tile).PrisonDoor;
         // The freed old room's Room_OnFreed unlinks every bird it held (0x004E39C0); each piece adopts afresh.
-        if (room.TypeId == RoomTypeId.Hatchery) ChickenMovementRules.ReleaseHatcheryBirds(world, [.. old, tileIndex]);
+        if (room.TypeId == RoomTypeId.Hatchery)
+        {
+            ChickenMovementRules.ReleaseHatcheryBirds(world, [.. old, tileIndex]);
+            // ...and deletes its auto-placed objects; each piece's Room_Rebuild places its coops (ADR-0672).
+            HatcheryRules.RemoveAutoPlacedCoops(world, [.. old, tileIndex]);
+        }
 
         foreach (List<int> chain in chains)
         {
@@ -352,6 +362,8 @@ public static class SlabChain
                     world.TileAtIndex(t).HatcheryStartupIntervalTicks = 0;
                 }
                 world.TileAtIndex(lowest).HatcheryLastGeneratedTick = world.CurrentTick.Value + 1;
+                if (RoomIndex.RoomAt(world, database, chain[0]) is { } piece)
+                    HatcheryRules.RebuildCoops(world, database, piece, world.RoomConstructionRandom);
                 ChickenMovementRules.AdoptOnChain(world, database, chain);
             }
             if (room.TypeId == RoomTypeId.Prison) Activate(world, chain);

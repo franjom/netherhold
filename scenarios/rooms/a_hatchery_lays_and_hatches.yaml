@@ -28,11 +28,6 @@ observe:
   - events
 # The room's whole clock, and every number in it is the room's size.
 expect:
-  - event: coops_placed
-    detail: "added=1 tiles=9 wanted=1"
-    because: >
-      A 3x3 hatchery wants one coop. How many it wants is derived from the tile
-      count rather than stored, which is why a room that grows lays more.
   - event: egg_laid
     detail: "interval=12s"
     because: >
