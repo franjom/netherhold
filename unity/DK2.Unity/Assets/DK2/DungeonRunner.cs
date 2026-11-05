@@ -524,13 +524,38 @@ namespace DK2.Unity
         /// <summary>After startup, a frame slower than <see cref="Threshold"/> logs the art loaded on first use in that
         /// frame, by kind, so a stall in play (a cast's first effects, a creature's first clip) is named, not guessed.
         /// Allocation-free on ordinary frames.</summary>
-        private sealed class HitchReport
+        private sealed class HitchReport : IDisposable
         {
             private const double Threshold = 50;
+            // The frame's own time in each of these, from the profiler (development and editor
+            // players record them), so a hitch names where the frame went, not only first-use art.
+            private static readonly string[] Markers =
+            {
+                "DK2.Simulation.WaitForTick", "DK2.Simulation.Tick", "DK2.Simulation.CaptureObjectPositions",
+                "DK2.Scene.Present", "DK2.Scene.AnimatedFrame", "DK2.Scene.CreateCreature", "DK2.Scene.PrepareLighting",
+                "DK2.TerrainChunks.Rebuild", "DK2.TerrainChunks.Geometry", "DK2.TerrainChunks.Upload",
+                "DK2.TransparentTerrain.SetChunk", "DK2.TransparentTerrain.Sort", "DK2.TransparentTerrain.Cull",
+                "DK2.TransparentTerrain.DepthOrder", "DK2.TransparentTerrain.UploadRuns",
+                "DK2.Animation.Sample", "DK2.Animation.MeshUpload", "DK2.Effects.Draw",
+                "DK2.Shadows.Selection", "DK2.Shadows.Silhouette", "DK2.Shadows.ReceiverUpload",
+                "GC.Collect",
+            };
+            private readonly global::Unity.Profiling.ProfilerRecorder[] _recorders = new global::Unity.Profiling.ProfilerRecorder[Markers.Length];
             private double[] _before = new double[(int)ClassicMeshes.LoadBreakdown.Work.Count];
             private double[] _after = new double[(int)ClassicMeshes.LoadBreakdown.Work.Count];
             private bool _primed;
             private int _models, _images;
+
+            public HitchReport()
+            {
+                for (int i = 0; i < Markers.Length; i++)
+                    _recorders[i] = global::Unity.Profiling.ProfilerRecorder.StartNew(global::Unity.Profiling.ProfilerCategory.Scripts, Markers[i]);
+            }
+
+            public void Dispose()
+            {
+                for (int i = 0; i < _recorders.Length; i++) _recorders[i].Dispose();
+            }
 
             public string Frame(double milliseconds, ClassicMeshes.LoadBreakdown breakdown, InstallArtProvider art, long tick)
             {
@@ -549,7 +574,15 @@ namespace DK2.Unity
                             text.Append(' ').Append(work.ToString().ToLowerInvariant()).Append('=')
                                 .Append(spent.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
                     }
-                    text.Append("; decoded ").Append(models - _models).Append(" models, ").Append(images - _images).Append(" images");
+                    text.Append("; decoded ").Append(models - _models).Append(" models, ").Append(images - _images).Append(" images; spent:");
+                    for (int i = 0; i < _recorders.Length; i++)
+                    {
+                        if (!_recorders[i].Valid) continue;
+                        double spent = _recorders[i].LastValue / 1e6;
+                        if (spent >= 2)
+                            text.Append(' ').Append(Markers[i]).Append('=')
+                                .Append(spent.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+                    }
                     line = text.ToString();
                 }
                 (_before, _after) = (_after, _before);
@@ -621,6 +654,7 @@ namespace DK2.Unity
         private void ReleaseRuntimeResources()
         {
             if (_runtimeReleased) return;
+            _hitches?.Dispose(); _hitches = null;
             _runtimeReleased = true;
             WaitForTick();
             CloseInputJournals("destroyed");
