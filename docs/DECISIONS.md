@@ -15844,3 +15844,32 @@ obstacle after the draw and moves on to the next room. `ImpTaskSystem.RoomPoint`
   - the one Level 3 draw at turn 1985, whose caller is unattributed.
 
 STRONGLY INFERRED from the disassembly. Records `00480A00` and `004E2E70` hold the detail.
+
+## ADR-0677: payday's state 187 finds its tile and point as DK2 does
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 421. · **Systems:** creatures, rooms
+
+**Context.** The Level 3 native draw log has 13 PayState.cpp 197 draws, each right after a Room.cpp 1563
+draw. Ours made neither: it walked to the room's gold tile nearest the creature. Its shortcut also paid a
+creature standing on the tile in the same turn. State 187 (`0x00472390`) does this:
+- It keeps a room of the player's list that is a Treasury or an unruined Heart (`+0x9A` bit 0) holding gold.
+  The room's position (`+0x2B/+0x2C`) must be reachable with word 0x80, and strictly nearest.
+- It draws a start tile (`0x004E4D90(room, 1, 0)`, `random(size)`). It then follows the tile links,
+  wrapping, to the first tile with no object on it or with a gold pile (type byte `+0x12C` 3).
+- It draws `random(8)` for one of the eight points at `0x00698C20` and calls
+  `Travel_RouteToPoint(point, 188, 0xE8)`.
+- No such room posts message 0x37. No tile or no route posts 0x2B.
+
+**Decision.** `PaydaySystem.SetOutForTheTreasury` follows it. Rooms come from `RoomLists.Of`, newest first.
+The position is `ChickenRules.Position`, and reachability is `ChickenRules.Reachable` (word 0x80). The
+pile search uses `GoldStore.ObjectTiles`, shared with the carrier's deposit search, and a store pile is
+`TileState.GoldHeld`. The standing-on-it shortcut is gone. 189 still takes the wage from the whole room.
+
+**Consequences.**
+- A wage walk costs two world draws and ends at a sub-tile point; a creature already there is paid when the
+  walk's arrival is noticed.
+- Unchanged and not DK2's: the failed-attempt count at 187, which DK2 counts only at 189, and the
+  messages, which are events.
+- `ChickenRules.Position` approximates `NavigationPos` with the centroid's tile.
+
+STRONGLY INFERRED from the decompile. Record `00472390` holds the detail.

@@ -167,12 +167,7 @@ public static class GoldStore
         int start = Array.IndexOf(chain, startTile);
         if (start < 0) return -1;
         int cap = database[VariableTypeId.MaxGoldPerTreasuryTile];
-        var occupied = new HashSet<int>();
-        foreach (ObjectState thing in world.Objects)
-            if (thing.TileLink.IsLinked) occupied.Add(thing.TileLink.TileIndex);
-        if (room.Definition.TypeId == RoomTypeId.DungeonHeart)
-            foreach (int position in HeartBuilderTiles)
-                if (position < chain.Length) occupied.Add(chain[position]);
+        HashSet<int> occupied = ObjectTiles(world, room, chain);
 
         for (int step = 0; step < chain.Length; step++)
         {
@@ -181,6 +176,19 @@ public static class GoldStore
             if (held > 0 ? held < cap : !occupied.Contains(tile)) return tile;
         }
         return -1;
+    }
+
+    /// <summary>The tiles something lies on, as the chain searches see them: every linked object's,
+    /// and on a Heart the builder's (<see cref="HeartBuilderTiles"/>).</summary>
+    internal static HashSet<int> ObjectTiles(WorldState world, RoomInstance room, int[] chain)
+    {
+        var occupied = new HashSet<int>();
+        foreach (ObjectState thing in world.Objects)
+            if (thing.TileLink.IsLinked) occupied.Add(thing.TileLink.TileIndex);
+        if (room.Definition.TypeId == RoomTypeId.DungeonHeart)
+            foreach (int position in HeartBuilderTiles)
+                if (position < chain.Length) occupied.Add(chain[position]);
+        return occupied;
     }
 
     /// <summary>The chain positions <c>0x004DB700</c> stands its objects on: Arch Pillars (94) at 7,

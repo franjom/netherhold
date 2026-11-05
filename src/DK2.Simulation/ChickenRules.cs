@@ -151,7 +151,7 @@ public static class ChickenRules
     }
 
     /// <summary>A room's integer centroid tile when it is the room's, else the room tile nearest it.</summary>
-    private static TilePos Position(WorldState world, RoomInstance room)
+    internal static TilePos Position(WorldState world, RoomInstance room)
     {
         int w = world.Width;
         long sumX = 0, sumY = 0;

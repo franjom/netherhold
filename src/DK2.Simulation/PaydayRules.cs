@@ -78,8 +78,8 @@ public static class PaydayRules
 
     /// <summary>Whether this room can pay a creature: a <see cref="RoomTypeId.Treasury"/> or
     /// <see cref="RoomTypeId.DungeonHeart"/> of its own keeper (the original searches types 1 and
-    /// 5). The heart's further condition is on an undecoded flag byte, so it is admitted
-    /// unconditionally (ADR-0078); it also pays for the first treasury (ADR-0015).</summary>
+    /// 5), as 188 and 189 test the tile's room (<c>0x004539B0</c>). State 187's search also skips a
+    /// ruined Heart (<c>+0x9A</c> bit 0, ADR-0677); it pays for the first treasury (ADR-0015).</summary>
     public static bool IsPayingRoomOf(RoomInstance room, PlayerId playerId) =>
         room.OwnerPlayerId == playerId
         && room.Definition.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart;

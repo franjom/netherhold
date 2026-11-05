@@ -697,8 +697,8 @@ public class PaydayTests
     [Fact]
     public void AGoblinStandingOnTheGoldStillTakesTheHelpersWalkThroughOneEightyEight()
     {
-        // 187 has no shortcut: it always calls the position helper, so even a creature on
-        // the tile passes 6 and 188 on the tick it is paid.
+        // 187 has no shortcut: it always calls the position helper (ADR-0677), so even a creature
+        // on the tile passes 6 and 188, and is paid when the walk's arrival is noticed.
         GameDatabase db = Db;
         WorldState world = World(db);
         Treasury(world, Floor, 2000);
@@ -706,13 +706,40 @@ public class PaydayTests
         goblin.WageOwed = 500;
         var sink = new ListEventSink();
 
-        Simulation(db, world, sink).Run(1);
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int t = 0; t < 3 && goblin.WageOwed != 0; t++) sim.Tick();
 
         Assert.Equal(0, goblin.WageOwed);
         Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
         Assert.Equal(PaydayRules.FindTheMoneyState, goblin.StateBeforeUtilityState);
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    /// <summary>187's two world draws (ADR-0677): the start tile, <c>0x004E4D90</c>'s <c>random(size)</c>,
+    /// then <c>random(8)</c> for the point in the pile's tile; none when no paying room holds gold.</summary>
+    [Theory]
+    [InlineData(2000, 2)]
+    [InlineData(0, 0)]
+    public void SettingOutForWagesDrawsTheStartTileThenThePoint(int gold, int draws)
+    {
+        GameSimulation Run(int owed)
+        {
+            GameDatabase db = Db;
+            WorldState world = World(db);
+            for (int x = 2; x <= 4; x++) Treasury(world, new TilePos(x, 2), gold);
+            CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 3));
+            goblin.WageOwed = owed;
+            var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(42)),
+                [new CreatureMovementSystem(), new PaydaySystem()]);
+            sim.Tick();
+            return sim;
+        }
+
+        GameSimulation with = Run(500), without = Run(0);
+        var expected = new Dk2Lcg(((Dk2Lcg)without.Rng.Algorithm).Seed);
+        for (int i = 0; i < draws; i++) expected.NextInt(8);
+        Assert.Equal(expected.Seed, ((Dk2Lcg)with.Rng.Algorithm).Seed);
     }
 
     [Fact]

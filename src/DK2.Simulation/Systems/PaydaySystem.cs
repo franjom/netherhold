@@ -15,9 +15,8 @@ namespace DK2.Simulation.Systems;
 /// tick sets off and takes its first walk step on this tick; the pay branch of the needs routine
 /// and states 187-189 run in each creature's update. Being owed charges <c>AngerNoPay</c>
 /// (ADR-0079, <see cref="PaydayRules.IsOwedWages"/>). Ours, none of it changing who gets paid:
-/// one activity over states 187-189 (ADR-0180); the arrival tile is the room's gold-bearing tile
-/// nearest the creature, not the original's search; and the Heart is admitted unconditionally
-/// where the original tests one undecoded flag bit beside the type.</remarks>
+/// one activity over states 187-189 (ADR-0180). 187's room, tile and point follow the original's
+/// search and its two world draws (ADR-0677).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/payday.md")]
 public sealed class PaydaySystem : ICreatureUpdateStep
 {
@@ -174,70 +173,54 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         SetOutForTheTreasury(context, creature, database.CreatureById(creature.CreatureTypeId));
     }
 
-    /// <summary>Chooses a treasury and starts the walk, or records why not.</summary>
-    /// <remarks>Rooms are ranked nearest-first by squared straight-line distance — the
-    /// original's ranking, and the same one the prison's food search and the hunger
-    /// walk use — and the first this creature can actually reach over its own
-    /// <see cref="WorldPathGrid"/> wins. Ties fall back to the lowest tile index,
-    /// <see cref="RoomIndex.Build"/>'s order (ADR-0001). A treasury with no gold in it
-    /// is not a candidate, which is the original's own gate and is visible in play: a
-    /// keeper with three empty treasuries and one full one sends everybody to the full
-    /// one rather than to the nearest.</remarks>
+    /// <summary>State 187 (<c>0x00472390</c>, ADR-0677): of the keeper's rooms, newest first, a Treasury or an
+    /// unruined Heart with gold whose position (<c>+0x2B</c>) the creature can reach (word 0x80) and is
+    /// strictly nearest. Then a random chain tile (<c>0x004E4D90(room, 1, 0)</c>, one draw), followed round
+    /// the chain to the first that holds a store pile or nothing at all; <c>random(8)</c> picks one of
+    /// eight points in it (<c>0x00698C20</c>) and the walk resumes 188 (word 0xE8). No room with gold is
+    /// message 0x37's case, the rest 0x2B's; ours records both as events.</summary>
     private void SetOutForTheTreasury(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
-        var candidates = new List<(long Distance, int FirstTile, RoomInstance Room)>();
-        int rooms = 0;
-
-        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        RoomInstance? best = null;
+        long bestDistance = long.MaxValue;
+        int rooms = 0, withGold = 0;
+        var scratch = new List<Steering.Fixed16Vector>();
+        foreach (RoomInstance room in RoomLists.Of(world, database, creature.OwnerPlayerId))
         {
-            if (!PaydayRules.IsPayingRoomOf(room, creature.OwnerPlayerId)) continue;
-            if (room.TileIndices.Count == 0) continue;
+            if (!PaydayRules.IsPayingRoomOf(room, creature.OwnerPlayerId) || room.TileCount == 0) continue;
             rooms++;
-
+            if (room.Definition.TypeId == RoomTypeId.DungeonHeart && RoomRules.IsRuined(world, room)) continue;
             if (PaydayRules.GoldIn(world, room) <= 0) continue;
-
-            candidates.Add((
-                EatingRules.DistanceSquared(world, creature.Tile, room.TileIndices[0]),
-                room.TileIndices[0], room));
+            withGold++;
+            TilePos position = ChickenRules.Position(world, room);
+            if (!ChickenRules.Reachable(context, creature, definition, position, scratch)) continue;
+            long dx = Math.Abs((long)CreatureState.CentreOf(position.X) - creature.PosX);
+            long dy = Math.Abs((long)CreatureState.CentreOf(position.Y) - creature.PosY);
+            long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
+            if (distance >= bestDistance) continue;
+            best = room;
+            bestDistance = distance;
         }
 
-        candidates.Sort((a, b) =>
-            a.Distance != b.Distance
-                ? a.Distance.CompareTo(b.Distance)
-                : a.FirstTile.CompareTo(b.FirstTile));
-
-        var grid = new WorldPathGrid(database, world, definition);
-
-        foreach ((_, _, RoomInstance room) in candidates)
+        if (best is not null && PileTile(context, best) is int tile)
         {
-            int target = NearestPayingTile(world, room, creature.Tile);
-            if (target < 0) continue;
-
-            var at = new TilePos(target % world.Width, target / world.Width);
-
-            // Standing on it already: no walk to make, take the money now.
-            if (at == creature.Tile)
+            int point = context.Rng.NextInt(PileOffsets.Length / 2);
+            int x = ((tile % world.Width) << 12) | PileOffsets[point * 2];
+            int y = ((tile / world.Width) << 12) | PileOffsets[(point * 2) + 1];
+            if (context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.ExactSpot))
             {
-                creature.StopMoving();
                 SetOutInState(context, creature);
-                Arrived(context, creature);
+                context.Emit(SystemName, "wages_sought",
+                    $"creature={creature.Id} type={definition.Name} " +
+                    $"player={creature.OwnerPlayerId} owed={creature.WageOwed} " +
+                    $"to=({tile % world.Width},{tile / world.Width}) gold={world.TileAtIndex(tile).GoldHeld} " +
+                    $"steps={creature.Body.PathTotalCount}");
                 return;
             }
-
-            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot)) continue;
-
-            SetOutInState(context, creature);
-
-            context.Emit(SystemName, "wages_sought",
-                $"creature={creature.Id} type={definition.Name} " +
-                $"player={creature.OwnerPlayerId} owed={creature.WageOwed} " +
-                $"to=({at.X},{at.Y}) gold={world.TileAtIndex(target).GoldHeld} " +
-                $"steps={creature.Body.PathTotalCount}");
-            return;
         }
 
         // Nothing to walk to. The original distinguishes the two cases with two
@@ -248,9 +231,34 @@ public sealed class PaydaySystem : ICreatureUpdateStep
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} owed={creature.WageOwed} " +
             $"reason={(rooms == 0 ? "no_treasury"
-                : candidates.Count == 0 ? "treasury_empty" : "unreachable")} " +
-            $"rooms={rooms} with_gold={candidates.Count} " +
+                : withGold == 0 ? "treasury_empty" : "unreachable")} " +
+            $"rooms={rooms} with_gold={withGold} " +
             $"attempts={creature.PayAttemptsFailed}");
+    }
+
+    /// <summary><c>0x00698C20</c>: the eight points of a tile 187 picks from, x then y, a ring round
+    /// the centre in thirds.</summary>
+    private static readonly int[] PileOffsets =
+    [
+        0x2AA, 0x2AA, 0x7FF, 0x2AA, 0xD54, 0x2AA, 0x2AA, 0x7FF,
+        0xD54, 0x7FF, 0x2AA, 0xD54, 0x7FF, 0xD54, 0xD54, 0xD54,
+    ];
+
+    /// <summary>187's tile: a random chain tile (<c>0x004E4D90(room, 1, 0)</c>), then on round the chain,
+    /// wrapping, to the first that holds a store pile or no object; null once back at the start. A
+    /// store pile is ours <see cref="TileState.GoldHeld"/>, as in <see cref="GoldStore.DepositTileAlongChain"/>.</summary>
+    private static int? PileTile(SimulationContext context, RoomInstance room)
+    {
+        WorldState world = context.World;
+        int[] chain = SlabChain.Order(world, room);
+        int start = context.Rng.NextInt(room.TileCount);
+        HashSet<int> occupied = GoldStore.ObjectTiles(world, room, chain);
+        for (int step = 0; step < chain.Length; step++)
+        {
+            int tile = chain[(start + step) % chain.Length];
+            if (world.TileAtIndex(tile).GoldHeld > 0 || !occupied.Contains(tile)) return tile;
+        }
+        return null;
     }
 
     /// <summary>Walking to the treasury, and taking the money on arrival.</summary>
@@ -356,34 +364,5 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         creature.StopMoving();
         if (CreatureJobSystem.TryGoGamblingWhenPaid(context, creature, definition)) return;
         StateShadow.ToIdle(context, SystemName, creature);
-    }
-
-    /// <summary>
-    /// The tile of this room with gold on it that is nearest the creature, or
-    /// -1 when the room has none.
-    ///
-    /// <para>Ours. The original walks the room to a tile and then searches that
-    /// tile's object list for a gold pile, which needs an object model for gold
-    /// that this project does not have — gold lives in a field on the tile
-    /// (ADR-0015). Picking the nearest gold-bearing tile reaches the same place
-    /// by the shortest honest route.</para>
-    /// </summary>
-    private static int NearestPayingTile(WorldState world, RoomInstance room, TilePos from)
-    {
-        int best = -1;
-        long bestDistance = long.MaxValue;
-
-        foreach (int index in room.TileIndices)
-        {
-            if (world.TileAtIndex(index).GoldHeld <= 0) continue;
-
-            long distance = EatingRules.DistanceSquared(world, from, index);
-            if (best >= 0 && distance >= bestDistance) continue;
-
-            best = index;
-            bestDistance = distance;
-        }
-
-        return best;
     }
 }

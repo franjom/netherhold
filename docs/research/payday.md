@@ -163,10 +163,12 @@ Walks the **player's room chain** and keeps a room when:
 - its type is **1 (Treasury)**, or **5 (Dungeon Heart)** with `(room[0x9a] & 1) == 0`; **and**
 - `room[0x49] != 0` — **the room actually has gold in it**.
 
-Candidates are ranked by **straight-line squared distance** in fixed point, the
-identical ranking the prison's food search uses (`prison.md` §7). The winner is
-then searched tile by tile for an object of kind 2 whose `+300` is 3 — a gold
-pile — and the creature is issued `move(target, resume: 0xbc, flags: 0xe8)`.
+Candidates must be reachable at their `NavigationPos` (`+0x2B/+0x2C`, options `0x80`) and are ranked by
+**straight-line squared distance** to it in fixed point, strictly, so the first in the list wins a tie.
+The winner is searched from a random tile (`0x004E4D90(room, 1, 0)`, one world draw) along the tile
+links, wrapping, for the first tile with no object of kind 2 on it or one whose `+300` is 3 — a gold pile.
+`random(8)` picks one of eight points in that tile (`0x00698C20`) and the creature is issued
+`move(target, resume: 0xbc, flags: 0xe8)` (ADR-0677).
 
 **When there is nothing to walk to, the two failures are distinguished:**
 
