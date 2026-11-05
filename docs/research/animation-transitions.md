@@ -63,8 +63,8 @@ Possessed movement replaces body speed with the squared XY distance between
 slot `+0x2C` resolves to `0x004B5D40`, returning the previous position at
 thing `+0xF6`. The scalar is the sum of each squared XY displacement
 shifted right 12, rather than the creature definition's speed.
-Status helpers `0x004B4580`, `0x004B45B0`, `0x004B4610` change drawing offsets
-and flags, rather than setting the phase advance rate; see their records.
+Status helpers `0x004B4580`, `0x004B45B0`, `0x004B4610` set and clear material
+overrides and their flags, rather than setting the phase advance rate; see their records.
 
 ## 3. Render factor producer — STRONGLY INFERRED
 

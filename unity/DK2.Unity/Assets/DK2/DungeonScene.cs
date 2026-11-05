@@ -102,6 +102,8 @@ namespace DK2.Unity
             new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight, Fp32 Phase)>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<StructureId, TilePos> _structureTiles = new Dictionary<StructureId, TilePos>();
+        private readonly Dictionary<StructureId, StructureView> _structureViews = new Dictionary<StructureId, StructureView>();
+        private readonly Dictionary<StructureId, int> _planSlots = new Dictionary<StructureId, int>();
         private readonly List<Material> _hoverMaterials = new List<Material>();
         private readonly HashSet<int> _redCreatures = new HashSet<int>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
@@ -781,11 +783,12 @@ namespace DK2.Unity
             go.transform.position = Ground(x, y, structure.Height / (float)Fp32.One);
             go.transform.localRotation = Quaternion.Euler(0f, structure.MeshYaw * 360f / 2048f, 0f);
             if (realMesh) go.transform.localScale = Vector3.one;
-            if (structure.UnderConstruction && realMesh && _classic != null && go.TryGetComponent(out Renderer plan))
+            _structureViews[id] = structure;
+            if (structure.Plan != BlueprintTint.None && realMesh && _classic != null && go.TryGetComponent(out Renderer plan))
             {
-                var plans = new Material[Mathf.Max(1, plan.sharedMaterials.Length)];
-                for (int i = 0; i < plans.Length; i++) plans[i] = _classic.Blueprint();
-                plan.sharedMaterials = plans;
+                int slots = plan.sharedMaterials.Length;
+                _planSlots[id] = slots;
+                plan.sharedMaterials = _classic.Blueprint(slots, structure.Plan == BlueprintTint.Red);
             }
             if (!structure.LockMesh.IsEmpty && _classic != null)
                 _classic.TryCreate(structure.LockMesh, "door lock", go.transform);
@@ -793,6 +796,15 @@ namespace DK2.Unity
 
         public void UpdateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh)
         {
+            // A blueprint's blink changes only its plan colour each turn: swap the shared array in place.
+            if (_structureViews.TryGetValue(id, out StructureView last) && structure.IsBlinkOf(last)
+                && _planSlots.TryGetValue(id, out int slots) && _structures.TryGetValue(id, out GameObject built)
+                && built != null && built.TryGetComponent(out Renderer plan))
+            {
+                plan.sharedMaterials = _classic.Blueprint(slots, structure.Plan == BlueprintTint.Red);
+                _structureViews[id] = structure;
+                return;
+            }
             RemoveStructure(id);
             CreateStructure(id, structure, mesh);
         }
@@ -802,6 +814,8 @@ namespace DK2.Unity
             if (_structures.TryGetValue(id, out GameObject go) && go != null) Object.Destroy(go);
             _structures.Remove(id);
             _structureTiles.Remove(id);
+            _structureViews.Remove(id);
+            _planSlots.Remove(id);
         }
 
         /// <summary>A wall torch: a point light, and its mesh when it has one. How DK2's light
@@ -1027,6 +1041,8 @@ namespace DK2.Unity
             while (_heartAdvances.TryDequeue(out _)) { }
             _structures.Clear();
             _structureTiles.Clear();
+            _structureViews.Clear();
+            _planSlots.Clear();
             _meshObjects.Clear();
             _artless.Clear();
             _meshCreatures.Clear();

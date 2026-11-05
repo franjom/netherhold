@@ -565,19 +565,22 @@ namespace DK2.Unity
             return _tagOverlay;
         }
 
-        private Material _blueprint;
+        private readonly Dictionary<(int, bool), Material[]> _blueprints = new Dictionary<(int, bool), Material[]>();
 
-        /// <summary>A door or trap under construction, drawn as DK2's blue plan: <c>0x004A6B70</c> gives
-        /// the owner's blueprint the BlueTexture override. Ours replaces the model's materials with one
-        /// translucent <see cref="TagOverlayColour"/>; the original's exact blend and its red/blue blink
-        /// are not read (structure-drawing.md section 5).</summary>
-        public Material Blueprint()
+        /// <summary>A door or trap under construction: DK2 swaps every material of the model for
+        /// <c>AA_BlueTexture</c> or <c>AA_RedTexture</c> (draw flag 0x100, <c>0x00580EC0</c>), additive,
+        /// unlit, no depth write, back faces culled; overlapping faces add up toward white
+        /// (structure-drawing.md section 5). One shared array per (slot count, colour), so a blink allocates nothing.</summary>
+        public Material[] Blueprint(int slots, bool red)
         {
-            if (_blueprint != null) return _blueprint;
-            Shader unlit = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            _blueprint = Own(new Material(unlit) { name = "Blueprint", color = new Color(TagOverlayColour.r, TagOverlayColour.g, TagOverlayColour.b, 0.55f) });
-            MakeTransparent(_blueprint, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
-            return _blueprint;
+            slots = Mathf.Max(1, slots);
+            if (_blueprints.TryGetValue((slots, red), out Material[] plan)) return plan;
+            plan = new Material[slots];
+            // The dig tag's own materials; their DK2TagOverlay tag is read only for terrain runs.
+            Material overlay = TagOverlay(red);
+            for (int i = 0; i < slots; i++) plan[i] = overlay;
+            _blueprints[(slots, red)] = plan;
+            return plan;
         }
 
         public static bool IsTagOverlay(Material material) => material.GetTag("DK2TagOverlay", false) is "dig" or "tutorial";
