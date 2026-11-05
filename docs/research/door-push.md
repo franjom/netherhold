@@ -85,7 +85,29 @@ Not built, and ours differs:
   arrival keep their own height code, and the flee step back its own slide (`FearRules.Slide`).
 - Creature height is `PosZ` (zero floor), so a barricade body test `z < 0x1801` is true for any grounded
   creature and for none that is high; DK2's floor height is not read.
-- The creature terrain test of the commit, other callers of `0x004B1F20`, the lock mode 3 shove
-  (`0x004A55F0` step 8, `+0x104/+0x108` written directly) and the Secret Door reveal.
+- Other callers of `0x004B1F20`, the lock mode 3 shove (`0x004A55F0` step 8, `+0x104/+0x108` written
+  directly) and the Secret Door reveal. The pass's terrain tests (stop test, reflect arm, commit gate) are built.
 - Whether the presence dword for file `+0xEAC` is set in every shipped record is not read; the value is
   taken from the file for all of them.
+
+## 4. Deviation: a creature on the push point (ADR-0682)
+
+Re-read for the report that an Imp finishing a barricade is pushed into a wall and stays pressed against it.
+Step 4 and the pass match the binary (sections 1 and 2); no further terrain test exists in either, so DK2's
+push can face a wall in one case only: the creature on the push point itself, where `len` is 0 and the vector
+is the heading `+0xF4` (section 1, item 3), with the zeroing leaving nothing to say which way is open. The
+reflect arm then turns the component back each turn and the persistent vector never empties: the creature
+stays against the wall. In every other position the vector points away from the shut sides, so toward the
+open ones.
+
+Ours reached it from the Imp's arrival. The Imp walks to the tile's exact centre, and its steering turns to
+the bearing of a zero vector (north) there, so an Imp finishing a barricade in an east-west passage was
+pushed north into the wall (reproduced with the crate flow, 2026-11-05). Whether DK2's Imp arrives on the
+exact centre, and with which heading, is UNKNOWN; its positions come from the same steering arithmetic.
+
+Ours differs from the binary there (`DoorPushRules.TowardAnOpenSide`): when the heading mainly faces a shut
+side and another side is open, the push goes to the open side nearest the heading (ties north, east, south,
+west). The heading stands when it faces an open side or every side is shut. The owner's expectation that
+DK2 always pushes a creature somewhere it can move is the reason; the binary does not say so.
+Not changed: a push toward a neighbour that is open but not enterable (water, lava for this creature)
+is DK2's, and the commit gate then keeps the creature on the tile.

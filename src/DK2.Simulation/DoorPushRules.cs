@@ -70,10 +70,36 @@ public static class DoorPushRules
                 // On the point itself: along its own heading (the sine tables, as the flee step back).
                 dx = (int)(((long)PushLength * TrapRules.Sine(creature.Heading)) >> 16);
                 dy = -(int)(((long)PushLength * TrapRules.Cosine(creature.Heading)) >> 16);
+                (dx, dy) = TowardAnOpenSide(open, dx, dy);
             }
 
             creature.PhysicalVelocityX += dx;
             creature.PhysicalVelocityY += dy;
         }
+    }
+
+    /// <summary>A deviation from <c>0x004A55F0</c> (ADR-0682, docs/research/door-push.md section 4): DK2 pushes
+    /// a creature exactly on the push point along its heading whatever stands that way, and nothing in the pass
+    /// frees one that is pushed into a wall. Ours keeps the heading unless it mainly faces a shut side
+    /// and another side is open; then the push goes the other way, to the open side nearest the heading
+    /// (ties in table order). With every side shut the heading stands.</summary>
+    private static (int X, int Y) TowardAnOpenSide(ReadOnlySpan<bool> open, int dx, int dy)
+    {
+        int facing = Math.Abs(dx) >= Math.Abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
+        if (open[facing]) return (dx, dy);
+
+        int best = -1, bestDot = int.MinValue;
+        for (int side = 0; side < 4; side++)
+        {
+            if (!open[side]) continue;
+            int dot = (dx * Neighbours[side].X) + (dy * Neighbours[side].Y);
+            if (dot > bestDot)
+            {
+                best = side;
+                bestDot = dot;
+            }
+        }
+
+        return best < 0 ? (dx, dy) : (Neighbours[best].X * PushLength, Neighbours[best].Y * PushLength);
     }
 }

@@ -14,8 +14,7 @@ namespace DK2.Simulation;
 /// docs/research/door-push.md describes: sub-steps of a sixteenth of the vector, a wall or door body
 /// reflecting and halving the component it stops, a commit that drops
 /// <see cref="CreatureDef.AirFriction"/> of the vector. Not built: the temporary vector and the
-/// vertical one (<see cref="Combat.FearRules.Slide"/>, <see cref="PartyArrivalRules"/> spend theirs), and the
-/// creature terrain test.</summary>
+/// vertical one (<see cref="Combat.FearRules.Slide"/>, <see cref="PartyArrivalRules"/> spend theirs).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/door-push.md")]
 public static class CreaturePhysicsRules
 {
