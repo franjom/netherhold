@@ -189,8 +189,7 @@ public sealed partial class WorldView
 
     /// <summary>Held in a creature's arms by a take-hold (<c>0x0048B4A0</c>): follows its carrier's point.
     /// The Portal Gem, held through <c>0x0048B350</c>, is not drawn at all.</summary>
-    private static bool IsAttached(ObjectState thing) =>
-        thing.CarriedByCreatureId >= 0 && !LevelGemIdle.IsInCarrierArms(thing);
+    private static bool IsAttached(ObjectState thing) => ObjectCarryRules.IsAttached(thing);
 
     /// <summary>An object of the simulation, placed.</summary>
     private ObjectView Placed(WorldState world, ObjectState thing, TilePos at)
@@ -289,13 +288,17 @@ public sealed partial class WorldView
             }
         }
 
-        // A book, crate or Special in an imp's arms is at the imp's own point, turned a quarter from it
-        // (Creature_UpdateCarriedThing 0x0048B5F0, once a creature update), not on its tile's centre.
+        // A book, crate or Special in an imp's arms is at the imp's own point, turned half a turn from it
+        // (Creature_UpdateCarriedThing 0x0048B5F0, once a creature update), not on its tile's centre. Set
+        // down (Creature_DropDraggedThing 0x0048B500), it lies at the point and heading it was dropped at:
+        // DK2 draws every thing at its own +0x1A (object-drawing.md section 4).
         if (IsAttached(thing))
         {
             (posX, posY, heading) = (thing.PosX, thing.PosY, thing.Heading);
             z = CreatureGroundHeight(world, new(new(posX), new(posY), default)).Raw;
         }
+        else if (ObjectCarryRules.StandsAtOwnPoint(_database, world.Width, thing))
+            (posX, posY, heading) = (thing.PosX, thing.PosY, thing.Heading);
 
         // A loose level gem bobs and spins in its state-50 process (0x004A3C30).
         if (LevelGemIdle.Applies(definition) && thing.CarriedByCreatureId < 0)

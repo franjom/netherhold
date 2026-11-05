@@ -248,7 +248,10 @@ public static class CrateRules
     /// <summary><c>0x004F5040</c>: the room's crates, newest first, three to a tile along the
     /// room's tiles that are neither a floor-furniture slot (<c>0x00454110</c>) nor a
     /// wall-furniture slot (<c>0x00454230</c>). Crates past the last such tile stay where they
-    /// are. Tiles are visited in the room's chain order.</summary>
+    /// are. Tiles are visited in the room's chain order. Each crate is set at its tile's centre
+    /// (<c>0x004F5040</c> through the position setter); DK2 then aims it at the room's position and
+    /// offsets its draw by <c>+0x249</c>, <c>-0x249</c> or a <c>0x300</c> height by its place on the tile
+    /// (unbuilt: ours draws it unturned, at the centre).</summary>
     public static void Arrange(WorldState world, GameDatabase database, RoomInstance workshop)
     {
         var crates = new List<ObjectState>();
@@ -261,7 +264,15 @@ public static class CrateRules
         foreach (int tile in SlabChain.Order(world, workshop))
         {
             if (slots.Contains(tile)) continue;
-            for (int k = 0; k < CratesPerTile && next < crates.Count; k++) crates[next++].TileIndex = tile;
+            for (int k = 0; k < CratesPerTile && next < crates.Count; k++)
+            {
+                ObjectState crate = crates[next++];
+                crate.TileIndex = tile;
+                crate.PosX = CreatureState.CentreOf(tile % world.Width);
+                crate.PosY = CreatureState.CentreOf(tile / world.Width);
+                crate.Heading = 0;
+            }
+
             if (next == crates.Count) return;
         }
     }

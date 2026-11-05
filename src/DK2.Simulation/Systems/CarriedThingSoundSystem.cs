@@ -6,11 +6,11 @@ using DK2.Core;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>The last of a creature's update that touches a carried thing (<c>Creature_UpdateCarriedThing</c>,
-/// <c>0x0048B5F0</c>, called at <c>0x0048A4AE</c>, after the steering step): a creature whose carried-thing word
+/// <summary>The carrying sound of a creature's update (<c>Creature_UpdateCarriedThing</c>, <c>0x0048B5F0</c>, called at
+/// <c>0x0048A4AE</c>, after the steering step, before the animation chooser): a creature whose carried-thing word
 /// (<c>+0x3C5</c>) names a live thing asks for the carrying sound <c>0x10D</c> with its own voice, in its own category,
-/// at its position, on every update. Only the sound is here; following the carrier is the carrying states' (ours
-/// moves the thing where the imp's handler runs). The imp jobs (<c>TakeHold</c>, <c>0x0048B4A0</c>) write that word for a
+/// at its position, on every update. Only the sound is here; the thing's position and heading are
+/// <see cref="CarriedThingAttachSystem"/>. The imp jobs (<c>TakeHold</c>, <c>0x0048B4A0</c>) write that word for a
 /// body, a spell book, a crate or a special; <c>PickUp</c> (<c>0x0048B350</c>), which the Portal Gem's trigger action uses,
 /// writes the separate <c>+0x3C3</c> and never triggers the call. Ours keeps both in <c>CarriedObjectId</c>, so a carried
 /// Portal Gem is told apart by its type and asks nothing.</summary>

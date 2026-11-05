@@ -54,6 +54,7 @@ public class SimulationSystemsOrderTests
             "CreatureUpdateSystem/MovementDustSystem",
             "CreatureUpdateSystem/CreatureMovementSystem",
             "CreatureUpdateSystem/ImpTaskSystem",
+            "CreatureUpdateSystem/CarriedThingAttachSystem",
             "CreatureUpdateSystem/CarriedThingSoundSystem",
             "DoorHealthSystem",
             "TrainingActionSystem",

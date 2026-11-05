@@ -158,11 +158,28 @@ public static class ObjectCarryRules
         thing.CarriedByCreatureId = worker.Id;
     }
 
-    /// <summary>Takes it back out, wherever it happens to be standing.</summary>
+    /// <summary>Takes it back out, wherever it happens to be standing: the ids only. <see cref="Drop"/> is
+    /// <c>Creature_DropDraggedThing</c> (<c>0x0048B500</c>), which also puts the thing at the carrier.</summary>
     public static void PutDown(CreatureState worker, ObjectState thing)
     {
         worker.CarriedObjectId = -1;
         thing.CarriedByCreatureId = -1;
+    }
+
+    /// <summary><c>Creature_DropDraggedThing</c> (<c>0x0048B500</c>): the thing is set at the carrier's own point
+    /// (<c>0x0048B52F</c>-<c>0x0048B535</c>, through the position setter), keeps its heading, and is let go. A loose
+    /// thing therefore lies where the imp stood, not on its tile's centre. The Portal Gem is not the take-hold's
+    /// (<c>0x0048B350</c>, whose drop twin <c>0x0048B3A0</c> is unread): it only takes the carrier's tile.</summary>
+    public static void Drop(WorldState world, CreatureState worker, ObjectState thing)
+    {
+        thing.TileIndex = (worker.Tile.Y * world.Width) + worker.Tile.X;
+        if (IsAttachable(thing))
+        {
+            thing.PosX = worker.PosX;
+            thing.PosY = worker.PosY;
+        }
+
+        PutDown(worker, thing);
     }
 
     /// <summary>The imp jobs' take-hold (<c>Creature_TakeHoldOfThing</c>, <c>0x0048B4A0</c>): a book,
@@ -174,10 +191,17 @@ public static class ObjectCarryRules
         Attach(worker, thing);
     }
 
+    /// <summary>Whether a thing a creature holds is the take-hold's (<c>0x0048B4A0</c>, attached by
+    /// <c>0x0048B5F0</c> every update) and not the Portal Gem, held through <c>0x0048B350</c>.</summary>
+    public static bool IsAttachable(ObjectState thing) => thing.ObjectTypeId != TriggerExecutor.PortalGemObjectId;
+
+    /// <summary>A held thing that follows its carrier: carried, and not the Portal Gem.</summary>
+    public static bool IsAttached(ObjectState thing) => thing.CarriedByCreatureId >= 0 && IsAttachable(thing);
+
     /// <summary>Attaches a carried object to its carrier, as <c>Creature_UpdateCarriedThing</c>
     /// (<c>0x0048B5F0</c>) does on every update of a creature holding one: the thing's position
     /// (<c>+0x1A/+0x1E</c>) becomes the carrier's own and its heading (<c>+0xF4</c>) the carrier's
-    /// turned back a quarter (<c>0x0048B63F</c>). The height is the carrier's; the view draws it there.</summary>
+    /// turned half a turn (<c>0x0048B63F</c>). The height is the carrier's; the view draws it there.</summary>
     public static void Attach(CreatureState worker, ObjectState thing)
     {
         thing.PosX = worker.PosX;
@@ -185,7 +209,8 @@ public static class ObjectCarryRules
         thing.Heading = (worker.Heading - CarriedHeadingTurn) & 0x7FF;
     }
 
-    /// <summary>The quarter turn between a carrier's heading and its carried thing's (<c>0x0048B646</c>).</summary>
+    /// <summary>The half turn (0x400 of 0x800 to a turn) between a carrier's heading and its carried thing's
+    /// (<c>0x0048B646</c>): the thing faces back along the carrier's heading.</summary>
     public const int CarriedHeadingTurn = 0x400;
 
     /// <summary>Attaches a carried object and moves it onto its carrier's tile, which the position
@@ -195,6 +220,14 @@ public static class ObjectCarryRules
         Attach(worker, thing);
         thing.TileIndex = (worker.Tile.Y * world.Width) + worker.Tile.X;
     }
+
+    /// <summary>Whether a loose crate, book or Special is drawn at its own point and heading (DK2 draws every
+    /// thing at <c>+0x1A</c>, object-drawing.md §4) and not on its tile's centre: a carrier set it down, which
+    /// leaves its point, and that point still lies on its tile. A thing never held keeps none.</summary>
+    public static bool StandsAtOwnPoint(GameDatabase database, int width, ObjectState thing) =>
+        thing.CarriedByCreatureId < 0 && (thing.PosX != 0 || thing.PosY != 0)
+        && HomeRoomFor(database, thing.ObjectTypeId) is not null
+        && ((thing.PosY >> 12) * width) + (thing.PosX >> 12) == thing.TileIndex;
 
     /// <summary>Makes <paramref name="worker"/> let go of whatever it was carrying, wherever it is
     /// standing, and says whether it was holding anything. Called wherever a worker stops being a
@@ -213,8 +246,7 @@ public static class ObjectCarryRules
             return false;
         }
 
-        FollowCarrier(world, worker, thing);
-        PutDown(worker, thing);
+        Drop(world, worker, thing);
         return true;
     }
 
@@ -225,6 +257,8 @@ public static class ObjectCarryRules
         CreatureState worker, ObjectState thing, PlayerId playerId, int tileIndex)
     {
         PutDown(worker, thing);
+        thing.PosX = worker.PosX;
+        thing.PosY = worker.PosY;
         thing.TileIndex = tileIndex;
         thing.OwnerPlayerId = playerId.Value;
     }

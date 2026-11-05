@@ -15931,27 +15931,27 @@ or door body, a commit that drops `CreatureDef.AirFriction` (file `+0xEAC`, 327)
 
 STRONGLY INFERRED from the disassembly. Records `004A55F0`, `004B1F20`, `004B2030`, `004529A0` hold the detail.
 
-## ADR-0680: a thing an imp holds is attached to the imp, at its point and a quarter turned
+## ADR-0680: a thing an imp holds is attached to the imp, at its point and turned half a turn
 
 **Date:** 2026-11-05. **Status:** accepted. Hash/save 424. · **Systems:** creatures, doors-traps
 
 **Context.** Owner report: a finished trap box dragged to its blueprint trails about a tile behind the
 imp; in DK2 it is attached. The cause is presentation fed by too little state: ours kept only a tile for
 a held object and drew it on that tile's centre, with no interpolation, while the imp moves by sub-tile
-steps. DK2's `0x0048B5F0` ends every update of a creature holding a thing (`+0x3C5`, set by
-`0x0048B4A0` for a crate, book, Special or body) by writing the imp's position into it.
+steps. DK2's `0x0048B5F0` runs in every update of a creature holding a thing (`+0x3C5`, set by
+`0x0048B4A0` for a crate, book, Special or body), after steering and before the animation chooser, and
+writes the imp's position into it.
 
 **Decision.** `ObjectCarryRules.TakeHold` (the imp jobs' pick-up; the Portal Gem keeps `PickUp`, which
 `0x0048B350` never attaches) and `FollowCarrier` copy the carrier's `PosX`/`PosY` into the object and set
-its heading to the carrier's minus `0x400`, after the mover. `CarryRules.FollowCarrier` gives a dragged body
+its heading to the carrier's minus `0x400` (half a turn: `0x800` to a turn), after the mover. `CarryRules.FollowCarrier` gives a dragged body
 the same heading. `WorldView` draws an attached object at that point at the carrier's ground height and
 captures it for the per-tick interpolation. Evidence: [workshop-crates.md](research/workshop-crates.md) §7.
 
 **Consequences.**
 - No new saved field. The position and heading words of a held thing now carry the carrier's, so the
   state hash moves (424); earlier saves are refused.
-- A dropped thing keeps those words. Its draw ignores them (only gold, eggs, chickens and rats read an
-  object's position).
+- A dropped thing keeps those words; ADR-0684 draws it there.
 - Not built: the thing's vertical position as state (the view takes the carrier's ground height) and
   the previous-position words `+0xF6..` (the view's capture stands in).
 
@@ -16030,3 +16030,33 @@ constructions 3 and 4 as a whole room, `0x00454B80` also 8.
 
 STRONGLY INFERRED from the disassembly. Records `004511A0`, `004528E0`, `00454E00`, `004512F0` hold the
 detail; evidence in [fog-reveal-sources.md](research/fog-reveal-sources.md) §7.
+
+## ADR-0684: a set-down thing lies at the carrier's point, and the attachment runs in every state
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 428. · **Systems:** creatures, doors-traps
+
+**Context.** Review of ADR-0680. It said `0x400` was a quarter turn (it is half: `0x800` to a turn) and
+that `0x0048B5F0` ends the update (its call at `0x0048A4AE` is before the animation chooser, `0x0048A4B5`).
+Two behaviours were also short of DK2: `Creature_DropDraggedThing` (`0x0048B500`) sets the thing at the
+carrier's exact point and keeps its heading, while ours drew a loose crate on its tile centre, so a dropped
+crate jumped from the imp's point to the centre; and ours followed the carrier only inside the carry states
+31-33, 35 and 37, where DK2's call is made in every state while `+0x3C5` is set.
+
+**Decision.**
+- `CarriedThingAttachSystem` runs `ObjectCarryRules.FollowCarrier` (and `CarryRules.FollowCarrier` for a
+  body) for every creature holding something, before the carrying sound, in any state. The Portal Gem
+  (`+0x3C3`) is skipped.
+- `ObjectCarryRules.Drop` is `0x0048B500`: the thing takes the carrier's point and tile and keeps its heading;
+  the imp jobs' drops and `DropWhatever` use it, and `Deliver` sets the same point.
+- `WorldView` draws a loose crate, book or Special at its own point and heading while that point is on its
+  tile (`StandsAtOwnPoint`), as DK2 draws every thing at `+0x1A`. `CrateRules.Arrange` sets a listed crate at its
+  tile centre, as `0x004F5040` does, and the hand's drop sets the tile centre.
+
+**Consequences.**
+- No new saved field. Dropped and listed crates' `PosX`/`PosY` move, so the state hash moves (428); earlier
+  saves are refused.
+- Not built: DK2's aim of a listed crate at the room's position and its three-to-a-tile draw offsets; the
+  hand-drop point for a crate (unread); the worker-job leave hook's (`0x004647D0`) drop on a category change
+  beyond pick-up, death and possession.
+
+STRONGLY INFERRED from the disassembly; the hand pick-up's route through the leave hook is HYPOTHESIS. See [workshop-crates.md](research/workshop-crates.md) §7 and records `0048B500`, `0048B5F0`, `004F5040`, `004647D0`.

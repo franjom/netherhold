@@ -342,11 +342,11 @@ public class ObjectCarryingTests
     }
 
     [Fact]
-    public void ACarriedBookIsAtTheImpsPointAndTurnedAQuarterFromIt()
+    public void ACarriedBookIsAtTheImpsPointAndTurnedHalfATurnFromIt()
     {
         // Creature_UpdateCarriedThing (0x0048B5F0) copies the carrier's position into the thing on
-        // every update and sets its heading to the carrier's minus 0x400: the book is attached, not
-        // standing on the imp's tile centre.
+        // every update and sets its heading to the carrier's minus 0x400, half of the 0x800 to a turn:
+        // the book is attached, not standing on the imp's tile centre.
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Library, Shelf, Shelf2);
@@ -369,6 +369,108 @@ public class ObjectCarryingTests
 
         Assert.True(held > 0);
         Assert.True(offCentre > 0, "the imp was never between tile centres, so the test proves nothing");
+    }
+
+    [Fact]
+    public void ADroppedThingLiesAtTheCarriersPointAndKeepsItsHeading()
+    {
+        // Creature_DropDraggedThing (0x0048B500) sets the thing at the carrier's own point
+        // (0x0048B52F, 0x0048B535) and copies +0xF4 to +0x102: the heading is left as it was. Ours
+        // used to leave the position of the last attach and draw the thing on its tile's centre.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        ObjectState book = Drop(db, world, Loose);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
+        imp.Heading = 0x2A0;
+        ObjectCarryRules.TakeHold(imp, book);
+        int attachedHeading = (0x2A0 - 0x400) & 0x7FF;
+        Assert.Equal(attachedHeading, book.Heading);
+
+        imp.PosX += 0x321;
+        imp.PosY -= 0x123;
+        imp.Heading = 0x100;
+        ObjectCarryRules.Drop(world, imp, book);
+
+        Assert.Equal(imp.PosX, book.PosX);
+        Assert.Equal(imp.PosY, book.PosY);
+        Assert.Equal((imp.Tile.Y * world.Width) + imp.Tile.X, book.TileIndex);
+        Assert.Equal(attachedHeading, book.Heading);
+        Assert.Equal(-1, book.CarriedByCreatureId);
+        Assert.Equal(-1, imp.CarriedObjectId);
+        Assert.True(ObjectCarryRules.StandsAtOwnPoint(db, world.Width, book));
+
+        // A shelved book keeps the point it was put down at too (Deliver).
+        ObjectState shelved = Drop(db, world, Loose);
+        ObjectCarryRules.TakeHold(imp, shelved);
+        ObjectCarryRules.Deliver(imp, shelved, Keeper, (imp.Tile.Y * world.Width) + imp.Tile.X);
+        Assert.Equal((imp.PosX, imp.PosY), (shelved.PosX, shelved.PosY));
+    }
+
+    [Fact]
+    public void AThingNeverHeldStandsOnItsTilesCentre_AndOneMovedToAnotherTileLosesItsOldPoint()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        ObjectState book = Drop(db, world, Loose);
+        Assert.False(ObjectCarryRules.StandsAtOwnPoint(db, world.Width, book));
+
+        // A point left on another tile is not the thing's own any more (the hand's drop, a relisting).
+        book.PosX = CreatureState.CentreOf(Middle.X) + 0x100;
+        book.PosY = CreatureState.CentreOf(Middle.Y);
+        Assert.False(ObjectCarryRules.StandsAtOwnPoint(db, world.Width, book));
+        book.TileIndex = (Middle.Y * world.Width) + Middle.X;
+        Assert.True(ObjectCarryRules.StandsAtOwnPoint(db, world.Width, book));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(6)]
+    [InlineData(10)]
+    [InlineData(80)]
+    [InlineData(200)]
+    public void ACarriedThingTakesItsCarriersPointInAnyState(int state)
+    {
+        // Creature_Update calls 0x0048B5F0 whenever +0x3C5 is set (0x0048A4A2-0x0048A4AE), whatever
+        // state the creature is in; none of these is a carry state (31-33, 35, 37).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        ObjectState book = Drop(db, world, Loose);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
+        ObjectCarryRules.TakeHold(imp, book);
+        imp.Dk2StateId = state;
+        var sim = new GameSimulation(db, world, seed: 42, [new CarriedThingAttachSystem()]);
+
+        imp.PosX += 0x2C3;
+        imp.PosY += 0x1D1;
+        imp.Heading = 0x333;
+        sim.Tick();
+
+        Assert.Equal((imp.PosX, imp.PosY), (book.PosX, book.PosY));
+        Assert.Equal((0x333 - 0x400) & 0x7FF, book.Heading);
+        Assert.Equal((imp.Tile.Y * world.Width) + imp.Tile.X, book.TileIndex);
+    }
+
+    [Fact]
+    public void APortalGemHeldThroughPickUpIsNeitherAttachedNorMovedByTheCarrier()
+    {
+        // 0x0048B350 writes +0x3C3, which 0x0048B5F0 never reads (ADR-0680): a negative control for
+        // the attachment, which would otherwise move the gem with its carrier.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
+        var gem = new ObjectState { Id = 900, ObjectTypeId = TriggerExecutor.PortalGemObjectId, TileIndex = (Loose.Y * world.Width) + Loose.X };
+        ObjectCarryRules.PickUp(imp, gem);
+        imp.PosX += 0x321;
+
+        Assert.False(ObjectCarryRules.IsAttachable(gem));
+        Assert.False(ObjectCarryRules.IsAttached(gem));
+        Assert.Equal((0, 0), (gem.PosX, gem.PosY));
+
+        ObjectCarryRules.Drop(world, imp, gem);
+
+        // Only the tile follows the carrier, as before the attachment existed.
+        Assert.Equal((0, 0), (gem.PosX, gem.PosY));
+        Assert.Equal((imp.Tile.Y * world.Width) + imp.Tile.X, gem.TileIndex);
     }
 
     [Fact]

@@ -621,7 +621,8 @@ public sealed class HandSystem : ISimulationSystem
         thing.InHand = false;
         thing.TileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
         if (FloorGoldLandingRules.Handles(thing)
-            || thing.ObjectTypeId is HatcheryRules.ChickenObjectId or HatcheryRules.EggObjectId)
+            || thing.ObjectTypeId is HatcheryRules.ChickenObjectId or HatcheryRules.EggObjectId
+            || ObjectCarryRules.HomeRoomFor(context.Database, thing.ObjectTypeId) is not null)
         {
             FpPosition2? point = FloorGoldLandingRules.Handles(thing) ? command.Position : null;
             thing.PosX = point?.X.Raw ?? CreatureState.CentreOf(command.Tile.X);

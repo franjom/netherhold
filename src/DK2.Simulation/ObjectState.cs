@@ -144,8 +144,9 @@ public sealed class ObjectState
     public int Health;
 
     /// <summary>The position, the header's <c>+0x1A/+0x1E</c>, in 1/4096 tiles. Kept only for an
-    /// boulder, landed gold, Rat or hatchery egg/chicken, and while an imp holds the object (the carrier's point,
-    /// <see cref="ObjectCarryRules.Attach"/>); other objects use the tile centre.</summary>
+    /// boulder, landed gold, Rat or hatchery egg/chicken, and for a crate, book or Special an imp held (the
+    /// carrier's point, <see cref="ObjectCarryRules.Attach"/>, left where <see cref="ObjectCarryRules.Drop"/> sets
+    /// it down); other objects use the tile centre.</summary>
     public int PosX, PosY;
 
     /// <summary>The header heading (+0xF4), and process age (+0x13E). Chicken and Rat movement own them here.</summary>

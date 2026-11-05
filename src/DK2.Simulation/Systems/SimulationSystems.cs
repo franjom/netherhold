@@ -141,7 +141,9 @@ public static class SimulationSystems
             // before that handler's arrival test (0x00470C80), and the steering step skips imps.
             // Each worker resolves its queued work before the next.
             workers,
-            // The creature update's last carrying step (0x0048A4AE): after every state handler and the mover.
+            // The creature update's carrying steps (0x0048A4AE): after every state handler and the mover, the
+            // carried thing takes the carrier's point in any state, then the carrying sound.
+            new CarriedThingAttachSystem(),
             new CarriedThingSoundSystem());
     }
 

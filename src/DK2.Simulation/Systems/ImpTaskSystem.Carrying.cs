@@ -250,7 +250,7 @@ public sealed partial class ImpTaskSystem
             context.Emit(SystemName, "object_dropped",
                 $"imp={creature.Id} object={thing.Id} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=no_route");
-            ObjectCarryRules.PutDown(creature, thing);
+            ObjectCarryRules.Drop(world, creature, thing);
             StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
@@ -268,7 +268,7 @@ public sealed partial class ImpTaskSystem
             context.Emit(SystemName, "object_dropped",
                 $"imp={creature.Id} object={thing.Id} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=tile_taken");
-            ObjectCarryRules.PutDown(creature, thing);
+            ObjectCarryRules.Drop(world, creature, thing);
             StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
