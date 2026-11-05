@@ -1608,7 +1608,7 @@ public sealed partial class WorldView
 
         foreach (ObjectState instance in world.Objects)
         {
-            if (instance.InHand) continue;
+            if (instance.InHand || LevelGemIdle.IsInCarrierArms(instance)) continue;
             if (instance.ObjectTypeId == HatcheryRules.EggObjectId && instance.ProcessState == 24
                 && instance.ProcessAgeTicks < 16) continue;
             var position = new TilePos(
