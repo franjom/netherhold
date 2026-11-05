@@ -49,8 +49,11 @@ namespace DK2.Unity
         }
 
         /// <summary>Draws this frame's flowers. Creatures the scene does not show (fog, removed,
-        /// inactive) get none. Call after the creatures are posed, with the world settled.</summary>
-        public void Draw(Camera camera, DungeonScene scene, IReadOnlyList<StatusFlower> flowers, bool hudVisible, bool possessing)
+        /// inactive) get none. Call after the creatures are posed, with the world settled.
+        /// <paramref name="blended"/> is the scene's depth-sorted blended terrain, which each icon
+        /// joins at its depth; null draws the icons after it all.</summary>
+        public void Draw(Camera camera, DungeonScene scene, IReadOnlyList<StatusFlower> flowers, bool hudVisible, bool possessing,
+            TransparentTerrain blended = null)
         {
             if (camera == null || scene == null || !hudVisible) return;
             Quaternion facing = camera.transform.rotation;
@@ -83,8 +86,13 @@ namespace DK2.Unity
             void Sprite(string name, Vector3 anchor, int layer, Color colour, float wedge, bool ring)
             {
                 var (at, scale) = StatusFlowerRules.LayerPlacement(Numerics(anchor), Numerics(eye), Numerics(forward), layer, CentreLift);
-                Graphics.RenderMesh(Params(Art(name, ring), Block(ref block, colour, wedge)), _quad, 0,
-                    Matrix4x4.TRS(new Vector3(at.X, at.Y, at.Z), facing,
+                var position = new Vector3(at.X, at.Y, at.Z);
+                // The A_ sprite is queued into the same back-to-front blended list as the terrain's
+                // translucent faces (0x0057F7E0 sets batch state 0x200; 0x0058B9D0), so a Prison
+                // bar behind the flower draws first and one in front of it draws over it.
+                int order = blended != null ? blended.SortingOrderAt(position) : 0;
+                Graphics.RenderMesh(Params(Art(name, ring), Block(ref block, colour, wedge), order), _quad, 0,
+                    Matrix4x4.TRS(position, facing,
                         Vector3.one * (StatusFlowerRules.WorldSize(name, possessing) * scale)));
             }
         }
@@ -108,8 +116,8 @@ namespace DK2.Unity
             return block;
         }
 
-        private static RenderParams Params(Material material, MaterialPropertyBlock block) => new RenderParams(material)
-        { shadowCastingMode = ShadowCastingMode.Off, receiveShadows = false, matProps = block };
+        private static RenderParams Params(Material material, MaterialPropertyBlock block, int sortingOrder) => new RenderParams(material)
+        { shadowCastingMode = ShadowCastingMode.Off, receiveShadows = false, matProps = block, sortingOrder = sortingOrder };
 
         /// <summary>One icon's material, loaded on first use. Its drawn size is the descriptor's
         /// (<see cref="StatusFlowerRules.WorldSize"/>), whatever the texture's pixel size.</summary>
@@ -123,8 +131,9 @@ namespace DK2.Unity
             // depth-tested, no depth write, texture times the vertex colour.
             var material = new Material(_shader) { name = "status flower " + name, mainTexture = texture };
             material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-            // After actor hover passes and the outline at +100. Terrain tag passes use negative
-            // sorting orders (TransparentTerrain), which take precedence over material queues.
+            // After actor hover passes and the outline at +100, and after a blended terrain run that
+            // shares the icon's sorting order (TransparentTerrain.SortingOrderAt). Terrain tag passes
+            // use negative sorting orders, which take precedence over material queues.
             // Flowers still depth-test against solid geometry.
             material.renderQueue = (int)RenderQueue.Transparent + 200;
             // H-xx is painted pale pink-grey; DK2 shows the petals in the flat keeper colour

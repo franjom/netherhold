@@ -47,6 +47,24 @@ public sealed class TriangleDepthOrderTests
     }
 
     [Fact]
+    public void RunsBehindPlacesAnItemBetweenTheRunsAroundItsDepth()
+    {
+        // Depth 4 (far bar), 2 (post), 0 and -1 (near bars, one run). A flower at depth 1 sits in front
+        // of the far bar and the post and behind the near bars (DK2's one blended list, 0x00588D00).
+        Vector3[] positions = [new(0, 0, 4), new(0, 0, 2), new(0, 0, 0), new(0, 0, -1)];
+        RenderTriangle[] triangles = [new(2, 2, 2, 0), new(0, 0, 0, 0), new(1, 1, 1, 1), new(3, 3, 3, 0)];
+        var buffer = new TriangleDepthOrderBuffer();
+        var runs = buffer.Sort(positions, triangles, Vector3.UnitZ);
+        Assert.Equal([4f, 2f, -1f], runs.Select(r => r.NearestDepth));
+        Assert.Equal(0, buffer.RunsBehind(5f));
+        Assert.Equal(1, buffer.RunsBehind(3f));
+        Assert.Equal(2, buffer.RunsBehind(1f));
+        Assert.Equal(2, buffer.RunsBehind(2f));
+        Assert.Equal(2, buffer.RunsBehind(-0.5f));
+        Assert.Equal(3, buffer.RunsBehind(-2f));
+    }
+
+    [Fact]
     public void ReusedSortAllocatesNoManagedMemoryAfterCapacityWarmup()
     {
         Vector3[] positions = [Vector3.Zero, Vector3.UnitZ, -Vector3.UnitZ];

@@ -12,6 +12,9 @@ public sealed class TriangleDepthOrderBuffer
     public sealed class Run
     {
         public int MaterialIndex { get; internal set; }
+
+        /// <summary>The camera depth (along the sort's forward) of the run's nearest triangle centroid.</summary>
+        public float NearestDepth { get; internal set; }
         public IReadOnlyList<RenderTriangle> Triangles => Storage;
         internal List<RenderTriangle> Storage { get; } = [];
     }
@@ -53,8 +56,25 @@ public sealed class TriangleDepthOrderBuffer
                 _runs.Add(_pool[slot]);
             }
             current.Add(t);
+            _runs[^1].NearestDepth = _entries[i].Depth / 3f;
         }
         return _runs;
+    }
+
+    /// <summary>How many leading runs of the last <see cref="Sort"/> lie wholly at or beyond
+    /// <paramref name="depth"/> (centroid depth along the same forward): an item at that depth
+    /// drawn after them and before the rest keeps DK2's one back-to-front blended list
+    /// (0x0058B9D0, 0x00588D00). A run straddling the depth counts as in front.</summary>
+    public int RunsBehind(float depth)
+    {
+        int low = 0, high = _runs.Count;
+        while (low < high)
+        {
+            int middle = (low + high) >> 1;
+            if (_runs[middle].NearestDepth >= depth) low = middle + 1;
+            else high = middle;
+        }
+        return low;
     }
 
     private void SortEntries(int count)
