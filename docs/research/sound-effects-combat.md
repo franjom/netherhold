@@ -81,8 +81,8 @@ spell's; 2, 4, 5, 10, 21, 31, 32, 60 and 64 none. A deviation, marked: the shot'
 [0x00498870](functions/00498870.md) at `0x00498A8D` (action 16) and [0x004984D0](functions/004984D0.md) at `0x0049868C` (action 15) ask,
 right after the shot is made, the creature spell record's `+0x3F` (ours `CreatureSpellDef.SoundEvent`, file `0xDA`, as
 combat-spells.md lists) in the shot's category, with the caster's own handle `+0x2E`, at the caster's `+0x1A` (not the origin the shot
-leaves from). STRONGLY INFERRED; built in `FightRules.RequestCastSound`. A third caller of `Shot_Create`, the unread action handler `0x004982B0`
-at `0x00498459`, asks the same and is not mirrored. The shipped words are `0x115` to `0x12A` (`0x115` for the fireballs, spit and web), and zero
+leaves from). STRONGLY INFERRED; built in `FightRules.RequestCastSound`. A third caller of `Shot_Create`, action 14's handler `0x004982B0`
+at `0x00498459`, asks the same; nothing begins action 14 (creature-action-table.md section 7). The shipped words are `0x115` to `0x12A` (`0x115` for the fireballs, spit and web), and zero
 for the Wizard's first Firebomb and the Imp's Teleport and Haste; only `0x115` (5 samples in `SPELL_FIREBALL`) and `0x12A` (1 in
 `SPELL_SKELETON_ARMY`) have samples in any shot category, so every other cast is silent.
 

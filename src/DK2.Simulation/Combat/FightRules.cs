@@ -433,7 +433,7 @@ public static class FightRules
     /// <summary>What a creature's cast asks of the sound manager once its shot is made (<c>0x00498A8D</c>, <c>0x0049868C</c>): the spell
     /// record's sound word (<c>+0x3F</c>, <see cref="CreatureSpellDef.SoundEvent"/>) in the shot's category, with the caster's own handle,
     /// at the caster's position (<c>+0x1A</c>, not the origin the shot leaves from). The word may be zero, which asks the manager for
-    /// no group; DK2 asks it all the same. A third caller, the unread <c>0x004982B0</c>, is not mirrored.</summary>
+    /// no group; DK2 asks it all the same. A third caller, <c>0x004982B0</c>, is action 14's handler, which nothing begins.</summary>
     private static void RequestCastSound(SimulationContext context, CreatureState me, CreatureSpellDef spell, ShotDef shotDef)
     {
         if (shotDef.SoundCategory.Length == 0 || ReferenceEquals(context.Events, NullEventSink.Instance)) return;

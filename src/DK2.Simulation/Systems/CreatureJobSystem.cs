@@ -752,7 +752,7 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // health, clamped by the health rules to what is actually missing.
         CreatureAnger before = creature.Anger;
         CreatureAngerRules.Apply(world, definition, creature, JobRules.PrayingCalm(database), CreatureAngerRules.PrayingComplaints);
-        // 0x0049984E heals by variable 115 with the creature's own owner as the source.
+        // 0x0047B970 heals by variable 115, clamped to the missing health, with the creature's own owner as the source.
         int healed = CreatureHealthRules.Apply(
             database, definition, creature, JobRules.PrayingHeal(database), creature.OwnerPlayerId);
 

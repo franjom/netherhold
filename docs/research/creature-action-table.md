@@ -250,6 +250,48 @@ STRONGLY INFERRED; the words exist as `SFX.map` groups in the creature's categor
   simply a duration (the runner compares it with the action's age, its record): a nonzero
   value makes `FUN_00496700` skip the animation start (`0x00496791`–`0x00496799`).
 
+## 7. The handlers
+
+All 29 routines are read (issue #8, 2026-11-05); each has its record. A handler runs at the head of
+the creature's update while its action is current; returning 0 ends the work, and a mode-3 action
+then waits for its counted animation too (`training-actions.md`). Most time themselves from the start
+stamp `+0x3A5`.
+
+| action | handler | what it does |
+|---|---|---|
+| 1 | [`0x00496E00`](functions/00496E00.md) | the Imp's dig: strikes the wall at the action point while it can be dug |
+| 2 | [`0x004971D0`](functions/004971D0.md) | the Imp's mine: strikes the gold seam at the action point |
+| 3 | [`0x00484940`](functions/00484940.md) | returns 0; nothing begins 3 |
+| 4 | [`0x004974C0`](functions/004974C0.md) | the claim strike on a claimable tile |
+| 5 | [`0x00497670`](functions/00497670.md) | the attack on another player's floor |
+| 6 | [`0x004977F0`](functions/004977F0.md) | one floor attack, the possessed claim |
+| 7 | [`0x00497960`](functions/00497960.md) | the reinforce strike |
+| 8 | [`0x00497AC0`](functions/00497AC0.md) | the wall repair |
+| 9 | [`0x00498BB0`](functions/00498BB0.md) | a breach check at the action point (state 185, not read) |
+| 10 | [`0x00497BF0`](functions/00497BF0.md) | one room conversion application |
+| 11 | [`0x00497DF0`](functions/00497DF0.md) | one room attack application |
+| 12 | [`0x00498120`](functions/00498120.md) | the room repair; nothing begins 12 |
+| 13 | [`0x00498240`](functions/00498240.md) | holds six turns (the disarm attempt, state 206, which DK2 never enters) |
+| 14 | [`0x004982B0`](functions/004982B0.md) | a spell shot after the spell's delay; nothing begins 14 |
+| 15 | [`0x004984D0`](functions/004984D0.md) | the free-aimed spell |
+| 16, 31 | [`0x00498870`](functions/00498870.md) | the targeted spell |
+| 17 | [`0x00498E30`](functions/00498E30.md) | the melee swing |
+| 18 | [`0x00499A40`](functions/00499A40.md) | a sound for the viewer's possessed creature |
+| 30 | [`0x00498CA0`](functions/00498CA0.md) | the training hit |
+| 32 | [`0x00498D20`](functions/00498D20.md) | the Anvil's forge sound after the work interval |
+| 36, 37, 38 | [`0x00499300`](functions/00499300.md) | the torture device; nothing begins 38 |
+| 40 | [`0x00499800`](functions/00499800.md) | turns to face the target |
+| 45 | [`0x00498260`](functions/00498260.md) | after eight turns calls its live class-2 target's virtual `+0x20` (state 240's chicken; the effect is unread) |
+| 50 | [`0x00499840`](functions/00499840.md) | a possessed creature's prayer: heals each turn while `+0x3E6` bit `0x2000` holds |
+| 52 | [`0x00499880`](functions/00499880.md) | asks the clip to stop and holds while the state is 255, stunned |
+| 60 | [`0x00499B80`](functions/00499B80.md) | the teleport: after three turns moves to the action point |
+| 61 | [`0x00499BE0`](functions/00499BE0.md) | the teleport's arrival: after one turn sets `+0xF3` bit 0 |
+| 63 | [`0x00499C20`](functions/00499C20.md) | the whip: after five turns spawns effect `0xED` at the victim |
+| 80 | [`0x00499CA0`](functions/00499CA0.md) | the Crypt rest, by creature kind (anger drain, heal, gold, objects, effects); dead code |
+
+The other 49 actions have no handler: the runner ends them by their mode, the `+27` age test and the
+animation alone.
+
 ## Confidence
 
 **STRONGLY INFERRED (binary):** the base, the 29-byte stride, the 81-record extent and
