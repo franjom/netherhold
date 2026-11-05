@@ -307,7 +307,8 @@ after the whole map is loaded**. During the load itself no torch is placed.
    `0x00452D80` (terrain `+0x17B` bit `0x40`, Torch, and world vt`+0x21C(x, y, 0)`
    returning 0; that the slot is the door test is HYPOTHESIS, `004528E0`), it calls
    bridge vt`+0xB8` directly (`0x0050C4DC`). That call is not gated. The same loop
-   then does other per-tile work (`0x0050C4E2..0x0050C60E`, terrain `0x23`), unread.
+   then does other per-tile work (`0x0050C4E2..0x0050C60E`, terrain `0x23`): the Hero Lair trestle sweep, in
+   [hero-lair-trestles.md](hero-lair-trestles.md).
    The load's room build does not place torches: `0x0051EC60` →
    `Player_BuildRoomTile` (`0x004C5C30`) → `0x004ED1A0`, whose only bridge posts are
    command 8 (`0x004ED221`), and none of `0x004F0E30`'s four callers is reached

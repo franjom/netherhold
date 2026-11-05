@@ -178,7 +178,7 @@ level never changes `Player Level Status`.
 | Kept: type and level only. Experience, name, health, equipment-like state are not stored; health is whatever `Creature_LevelUp` rescales to | same | STRONGLY INFERRED |
 | The level start does not test the game mode, so a stored ID would also appear in a skirmish/MPD start; only mode 1 ever stores one | same | STRONGLY INFERRED |
 
-Built (F5 stage C, hash 311): `TransferCreatureRules.Arrive` does the arrival; not mirrored are scale, the state-1 timer reset and unique-definition substitution ([0x0050B5B0](functions/0050B5B0.md)). The special's store is the host-applied `WorldState.Carry`.
+Built (F5 stage C, hash 311): `TransferCreatureRules.Arrive` does the arrival; not mirrored are scale, the state-1 timer reset and unique-definition substitution ([0x0050B5B0](functions/0050B5B0.md)); the facing draw is pinned by `TransferCreatureArrivalTests` (ADR-0673). The special's store is the host-applied `WorldState.Carry`.
 
 ## 5. Level start and level end
 

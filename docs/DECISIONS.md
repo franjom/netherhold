@@ -15709,6 +15709,46 @@ two-coop Hatchery refreshed twice by a dug wall.
 STRONGLY INFERRED from the disassembly. The record of each function, and `hatchery.md` §2, hold the
 detail.
 
+## ADR-0673: the level start sweeps Hero Lair ground for trestles, with its draws
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 417. · **Systems:** heroes, simulation-core
+
+**Context.** `Level_InitTriggersAndStart` (`0x0050B5B0`) calls `random` directly three times, all on the world
+stream, all logged against `World.cpp` ([evidence](research/hero-lair-trestles.md)):
+- lines 0x969 and 0x971 (`0x0050C572`, `0x0050C5F6`), in a sweep over every tile after the torches;
+- line 0x99D (`0x0050C76C`), the transfer creature's facing.
+
+The sweep takes a tile of terrain 35 (Hero Lair) whose neighbour byte `+0x0C` is zero, which
+`Map_TileNeighbourCodes` (`0x00450470`) makes true only when all eight neighbours are on the map and terrain 35.
+It skips the tile when any neighbour holds object `0x71` (`0x004537E0`). Otherwise it draws `random(4)` and on zero
+makes object `0x71` (Hero Armoury Trestle) for the hero player and draws its heading, `random(0x800)`. Objects made
+earlier in the scan count. Ours drew nothing here. The transfer creature is already built
+(`TransferCreatureRules.Arrive`, called by the host after the level start); its one facing draw follows the
+creature's identity draws and precedes the level-ups.
+
+**Decision.** `HeroLairRules.InitializeLevelStart` runs the sweep from the `GameSimulation` constructor after the
+trigger executor is made, so it follows the Hatchery coops (ADR-0672) and event 3, as in DK2. The mask test is
+computed from the terrain; no byte `+0xC` is stored. `TransferCreatureArrivalTests` pins the facing draw.
+
+**Consequences.**
+- Only maps with an interior lair tile change: Level 16 and 17 (one each), Patrol, TrapTime and six My Pet
+  Dungeon maps. Level 4 and the other campaign levels draw nothing.
+- The new objects count in the state hash, so hash and save become 417.
+- Not mirrored:
+  - the sweep on a restored save, which DK2 runs;
+  - a door or a room on the tile, and an object pool that refuses;
+  - the Training Target (object 29) draw of `Room_Rebuild`'s wall pass, `random(0x1000)` on the world stream per
+    wall target (call `0x004EECCB`, line 0x881), made at each rebuild of a Training Room including the level start.
+    Ours places wall targets by reconciliation in `AutoFurnitureSystem`, so it needs ADR-0672's rebuild model for
+    every room type;
+  - the seed order of the level start's per-player event 3 against the room rebuilds.
+- Other direct callees reach `random` only through creature creation, trigger actions and the heart's health
+  routine; no further level-start draw was read. Indirect calls were not followed, and
+  `Graveyard_CreateVampire` (`0x004DD820`, world-seed draw) was not read.
+
+The draw sites, order and neighbour test are STRONGLY INFERRED from the disassembly. The interior rule (byte `+0x0C`
+zero) is a HYPOTHESIS: one step, that nothing else writes the byte before the scan, was not read. No native capture
+covers a lair tile.
 ## ADR-0674: job 24, Explore, walks a creature to neutral floor and on through state 225
 
 **Date:** 2026-11-05. **Status:** accepted. Closes state 225 of issue 6. Hash/save 418. · **Systems:** creatures

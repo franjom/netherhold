@@ -81,6 +81,8 @@ public sealed class GameSimulation
         _triggers = triggers is null
             ? new TriggerExecutor(world.Triggers)
             : new TriggerExecutor(triggers, world.Triggers, world, database, rng, levelStart);
+        // Level_InitTriggersAndStart fires event 3 for each creature before its Hero Lair sweep (0x0050C4B5).
+        if (levelStart) HeroLairRules.InitializeLevelStart(world, database, rng);
         _context.Triggers = _triggers;
         _triggers.EffectRequested = _context.RequestEffect;
         _triggers.SoundRequested = _context.RequestSound;
