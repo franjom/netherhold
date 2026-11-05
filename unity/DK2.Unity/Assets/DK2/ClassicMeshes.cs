@@ -456,14 +456,26 @@ namespace DK2.Unity
         private readonly Dictionary<(Material, int), Material> _elementTinted =
             new Dictionary<(Material, int), Material>();
 
+        private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private readonly Dictionary<Material, bool> _additiveNamed = new Dictionary<Material, bool>();
+
+        /// <summary>Whether the material's name starts <c>AA_</c>, remembered per material: reading
+        /// <see cref="Object.name"/> allocates a string, and effects ask per particle per frame.</summary>
+        public bool IsAdditiveNamed(Material material)
+        {
+            if (!_additiveNamed.TryGetValue(material, out bool additive))
+                _additiveNamed[material] = additive = material.name.StartsWith("AA_", System.StringComparison.Ordinal);
+            return additive;
+        }
+
         /// <summary>An effect element's mesh material lit by the element's tint more: DK2 starts a
         /// vertex's light at the material colour plus the RenderInfo tint (the element's RGB, ×255 in
         /// <c>0x00580480</c>) before adding the lights (<c>0x00581BE0</c>). An additive material is
         /// already white and returned as it is. Shared per (material, tint).</summary>
         public Material ElementTinted(Material material, Color32 tint)
         {
-            if (material == null || (tint.r | tint.g | tint.b) == 0 || !material.HasProperty("_EmissionColor")
-                || material.name.StartsWith("AA_", System.StringComparison.Ordinal)) return material;
+            if (material == null || (tint.r | tint.g | tint.b) == 0 || !material.HasProperty(EmissionColorId)
+                || IsAdditiveNamed(material)) return material;
             int packed = tint.r << 16 | tint.g << 8 | tint.b;
             if (_elementTinted.TryGetValue((material, packed), out Material tinted)) return tinted;
             tinted = Copy(material, " (element tint)");

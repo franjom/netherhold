@@ -291,11 +291,14 @@ public sealed class ScenePresenter
     private TileVisual[] _lastTiles = [];
     private bool[] _tileCreated = [];
 
-    // What the tile pass last read: the tiles byte for byte, which hearts were ruined, the fog
-    // flag, the doors, the crypts (a Graveyard's floor slots), the tag preview and the tick (the
-    // view's room facts are per tick). While those are the same the pass would push nothing, so it
-    // is not run (ADR-0456).
+    // What the tile pass last read: the tiles byte for byte, each tile's room facts, which hearts
+    // were ruined, the fog flag, the doors, the crypts (a Graveyard's floor slots), the tag preview
+    // and the tick. While those are the same the pass would push nothing, so it is not run
+    // (ADR-0456); when only tiles or room facts changed, only the tiles that read them are asked
+    // again (TileViewReach).
     private TileState[] _tileSnapshot = [];
+    private WorldView.TileRoomFacts[] _factsSnapshot = [];
+    private bool[] _staleTiles = [];
     private ulong _ruinedSnapshot;
     private bool _fogSnapshot;
     private int _doorsSnapshot;
@@ -328,6 +331,25 @@ public sealed class ScenePresenter
         _target = target ?? throw new ArgumentNullException(nameof(target));
         _torches = torches;
     }
+
+    /// <summary>Where to time <see cref="Present"/>'s passes (<see cref="Markers"/>); observation only.</summary>
+    public ISimulationProfiler Profiler { get; set; } = NullSimulationProfiler.Instance;
+
+    /// <summary>The spans <see cref="Present"/> opens, one per pass, named <c>present.*</c>.</summary>
+    public static class Markers
+    {
+        public static readonly SimulationMarker TilesCheck = SimulationMarker.Named("present.tiles.check");
+        public static readonly SimulationMarker Tiles = SimulationMarker.Named("present.tiles");
+        public static readonly SimulationMarker TilesSnapshot = SimulationMarker.Named("present.tiles.snapshot");
+        public static readonly SimulationMarker Torches = SimulationMarker.Named("present.torches");
+        public static readonly SimulationMarker Objects = SimulationMarker.Named("present.objects");
+        public static readonly SimulationMarker Structures = SimulationMarker.Named("present.structures");
+        public static readonly SimulationMarker Creatures = SimulationMarker.Named("present.creatures");
+        public static readonly SimulationMarker Flush = SimulationMarker.Named("present.flush");
+    }
+
+    /// <summary>How many tiles the most recent <see cref="Present"/> asked the view for (pushed or not).</summary>
+    public int TilesAsked { get; private set; }
 
     /// <summary>How many tiles were pushed by the most recent <see cref="Present"/>.</summary>
     public int TilesPushed { get; private set; }
@@ -371,6 +393,7 @@ public sealed class ScenePresenter
         if (world is null) throw new ArgumentNullException(nameof(world));
 
         TilesPushed = 0;
+        TilesAsked = 0;
         CreaturesPushed = 0;
         ObjectsPushed = 0;
         TorchesPushed = 0;
@@ -380,54 +403,142 @@ public sealed class ScenePresenter
             _lastTiles = new TileVisual[world.TileCount];
             _tileCreated = new bool[world.TileCount];
             _tileSnapshot = [];
+            _factsSnapshot = new WorldView.TileRoomFacts[world.TileCount];
+            _staleTiles = new bool[world.TileCount];
         }
 
-        bool tilesUnchanged = TilesUnchanged(world);
-        if (!tilesUnchanged)
+        TileScope scope;
+        using (Profiler.Scope(Markers.TilesCheck)) scope = StaleTiles(world);
+        if (scope != TileScope.None)
         {
-            PresentTiles(world);
-            SnapshotTiles(world);
+            using (Profiler.Scope(Markers.Tiles)) PresentTiles(world, scope == TileScope.All);
+            using (Profiler.Scope(Markers.TilesSnapshot)) SnapshotTiles(world, scope == TileScope.All);
         }
-        PresentTorches(world, tilesUnchanged);
+        using (Profiler.Scope(Markers.Torches)) PresentTorches(world, scope == TileScope.None);
 
         // Objects before creatures, because a creature stands on an object and
         // the text renderer draws them in that precedence -- one order, decided
         // here, so two renderers cannot disagree about what occludes what.
-        PresentObjects(world);
-        PresentStructures(world);
-        PresentCreatures(world);
+        using (Profiler.Scope(Markers.Objects)) PresentObjects(world);
+        using (Profiler.Scope(Markers.Structures)) PresentStructures(world);
+        using (Profiler.Scope(Markers.Creatures)) PresentCreatures(world);
 
-        _target.Flush();
+        using (Profiler.Scope(Markers.Flush)) _target.Flush();
     }
 
-    /// <summary>Whether every input of the tile pass is what the last pass saw. The tile view reads
-    /// the tiles (own and neighbours), the owner's ruined heart, the fog flag, the door on a tile,
-    /// the crypts (a Graveyard's floor slots), the tag preview and its per-tick room facts; the
-    /// viewing player and the database are fixed for the view's life.</summary>
-    private bool TilesUnchanged(WorldState world)
+    /// <summary>
+    /// When false, any change to the tile pass's inputs asks every tile again, as the pass did
+    /// before it was incremental: the reference the incremental pass is tested against. True by
+    /// default; the pushes are the same either way.
+    /// </summary>
+    public bool IncrementalTiles { get; set; } = true;
+
+    private enum TileScope { None, Some, All }
+
+    /// <summary>How far a tile's view reads other tiles, in tiles either way (Chebyshev): a
+    /// DoubleQuad floor reads its neighbours' same-room masks, and a 3×1 hero gate its middle
+    /// tile's neighbours and the tile two back; every other read (faces, wall tops, floor and bed
+    /// masks, room walls, the point light's room mask) is a neighbour. Room-wide reads go through
+    /// the room facts, compared tile by tile instead.</summary>
+    private const int TileViewReach = 2;
+
+    /// <summary>
+    /// Which tiles the pass must ask again. The tile view reads the tiles (its own and those within
+    /// <see cref="TileViewReach"/>), its room's facts (per tick, <see cref="WorldView.RoomFactsOf"/>),
+    /// the owner's ruined heart, the fog flag, the door on a tile, the crypts (a Graveyard's floor
+    /// slots), the tag preview, the highlight blink and, while a Sight region is open, the tick
+    /// (<see cref="WorldView.TileViewsFollowTick"/>); the viewing player and the database are fixed
+    /// for the view's life. A change to any but the tiles and room facts asks every tile; those two
+    /// mark the tiles that read them in <see cref="_staleTiles"/>.
+    /// </summary>
+    private TileScope StaleTiles(WorldState world)
     {
         ReadOnlySpan<TileState> tiles = world.Tiles;
+        GameTick tick = world.CurrentTick;
+        bool tickChanged = _tickSnapshot != tick.Value;
         if (tiles.Length != _tileSnapshot.Length
             || _fogSnapshot != world.FogOfWarEnabled
             || _doorsSnapshot != world.DoorsVersion
             || _previewSnapshot != _view.PreviewVersion
             || !world.TileHighlights.Slots.SequenceEqual(_highlightSnapshot)
             || (world.TileHighlights.HasActive && _view.TerrainHighlightPhase != _highlightPhaseSnapshot)
-            || _tickSnapshot != world.CurrentTick.Value
-            || _ruinedSnapshot != RuinedHearts(world))
-            return false;
+            || (tickChanged && (_view.TileViewsFollowTick(tick) || _view.TileViewsFollowTick(new GameTick(_tickSnapshot))))
+            || _ruinedSnapshot != RuinedHearts(world)
+            || !CryptsUnchanged(world))
+            return TileScope.All;
+
+        bool tilesChanged = MarkChangedTiles(world, tiles);
+        if (!IncrementalTiles)
+        {
+            if (tilesChanged) Array.Clear(_staleTiles, 0, _staleTiles.Length);
+            return tilesChanged || tickChanged ? TileScope.All : TileScope.None;
+        }
+        if (!tilesChanged && !tickChanged) return TileScope.None;
+
+        // The view finds its room facts once a tick, so they can differ only across a tick or for
+        // tiles written since; a tile whose facts did not change and no tile near which did shows
+        // as it did.
+        if (_view.MarkChangedRoomFacts(world, _factsSnapshot, _staleTiles) | tilesChanged) return TileScope.Some;
+        _tickSnapshot = tick.Value;
+        return TileScope.None;
+    }
+
+    /// <summary>Marks every tile within <see cref="TileViewReach"/> of a tile whose bytes differ
+    /// from the snapshot; true if any did. Rows first, so an unchanged row costs one comparison.</summary>
+    private bool MarkChangedTiles(WorldState world, ReadOnlySpan<TileState> tiles)
+    {
+        ReadOnlySpan<byte> now = MemoryMarshal.AsBytes(tiles), then = MemoryMarshal.AsBytes(_tileSnapshot.AsSpan());
+        if (SameBytes(now, then)) return false;
+        int width = world.Width, height = world.Height, size = now.Length / tiles.Length, row = width * size;
+        for (int y = 0; y < height; y++)
+        {
+            if (SameBytes(now.Slice(y * row, row), then.Slice(y * row, row))) continue;
+            for (int x = 0; x < width; x++)
+            {
+                int at = ((y * width) + x) * size;
+                if (SameBytes(now.Slice(at, size), then.Slice(at, size))) continue;
+                for (int ty = Math.Max(0, y - TileViewReach); ty <= Math.Min(height - 1, y + TileViewReach); ty++)
+                    for (int tx = Math.Max(0, x - TileViewReach); tx <= Math.Min(width - 1, x + TileViewReach); tx++)
+                        _staleTiles[(ty * width) + tx] = true;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>Byte-equal spans of one length, eight bytes a step: the byte-wise
+    /// <c>SequenceEqual</c> is not vectorised on every runtime this assembly runs on (Unity's Mono),
+    /// and this compare runs over the whole map every frame.</summary>
+    private static bool SameBytes(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
+    {
+        if (a.Length != b.Length) return false;
+        ReadOnlySpan<ulong> wa = MemoryMarshal.Cast<byte, ulong>(a), wb = MemoryMarshal.Cast<byte, ulong>(b);
+        int i = 0;
+        for (; i + 4 <= wa.Length; i += 4)
+            if (((wa[i] ^ wb[i]) | (wa[i + 1] ^ wb[i + 1]) | (wa[i + 2] ^ wb[i + 2]) | (wa[i + 3] ^ wb[i + 3])) != 0) return false;
+        for (; i < wa.Length; i++)
+            if (wa[i] != wb[i]) return false;
+        for (int j = wa.Length * sizeof(ulong); j < a.Length; j++)
+            if (a[j] != b[j]) return false;
+        return true;
+    }
+
+    private bool CryptsUnchanged(WorldState world)
+    {
         Crypts(world, _cryptScratch);
         if (_cryptScratch.Count != _cryptSnapshot.Count) return false;
         for (int i = 0; i < _cryptScratch.Count; i++)
             if (_cryptScratch[i] != _cryptSnapshot[i]) return false;
-        return MemoryMarshal.AsBytes(tiles).SequenceEqual(MemoryMarshal.AsBytes(_tileSnapshot.AsSpan()));
+        return true;
     }
 
-    private void SnapshotTiles(WorldState world)
+    private void SnapshotTiles(WorldState world, bool all)
     {
         ReadOnlySpan<TileState> tiles = world.Tiles;
         if (_tileSnapshot.Length != tiles.Length) _tileSnapshot = new TileState[tiles.Length];
         tiles.CopyTo(_tileSnapshot);
+        if (all)
+            for (int i = 0; i < tiles.Length; i++) _factsSnapshot[i] = _view.RoomFactsOf(world, i);
+        Array.Clear(_staleTiles, 0, _staleTiles.Length);
         _fogSnapshot = world.FogOfWarEnabled;
         _doorsSnapshot = world.DoorsVersion;
         _previewSnapshot = _view.PreviewVersion;
@@ -456,13 +567,15 @@ public sealed class ScenePresenter
         return mask;
     }
 
-    private void PresentTiles(WorldState world)
+    private void PresentTiles(WorldState world, bool all)
     {
         for (int y = 0; y < world.Height; y++)
         {
             for (int x = 0; x < world.Width; x++)
             {
                 int index = (y * world.Width) + x;
+                if (!all && !_staleTiles[index]) continue;
+                TilesAsked++;
                 TileView tile = _view.TileAt(world, x, y);
                 var visual = new TileVisual(tile);
 

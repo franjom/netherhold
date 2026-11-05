@@ -269,7 +269,7 @@ public sealed class TorchLayout
     /// <summary><c>0x00452D80</c>: a Torch-flagged terrain that is not a door.</summary>
     private bool Qualifies(WorldState world, int x, int y) =>
         world.Contains(x, y)
-        && _database.TerrainById(world.Tile(x, y).TerrainId).Flags.HasFlag(TerrainFlags.Torch)
+        && ((_database.TerrainById(world.Tile(x, y).TerrainId).Flags & TerrainFlags.Torch) == TerrainFlags.Torch)
         && world.DoorAt(x, y) is null;
 
     /// <summary>§2: a N or S face needs the floor's x odd, an E or W face its y even.</summary>

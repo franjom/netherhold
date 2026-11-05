@@ -19,6 +19,9 @@ namespace DK2.Unity
         private TorchView _torch;
         private TerrainLattice _lattice;
 
+        /// <summary>The wall tile whose lattice window bends this torch (<see cref="TorchGeometry.Vertex"/>).</summary>
+        public TilePos Wall => _torch.Wall;
+
         public void Configure(in TorchView torch, TerrainLattice lattice)
         {
             if (_mesh == null)

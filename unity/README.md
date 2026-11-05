@@ -274,7 +274,12 @@ off for baseline captures. The adapter exposes these CPU markers:
 |---|---|
 | `DK2.Simulation.Tick` | One simulation tick and the object position snapshot |
 | `DK2.Scene.Present` | View generation, change detection and scene updates |
-| `DK2.Scene.AnimatedFrame` | Position interpolation, animation and dirty torch geometry |
+| `DK2.present.*` | Inside Present, one per pass: `tiles.check` (which tiles to ask again), `tiles`, `tiles.snapshot`, `torches`, `objects`, `structures`, `creatures`, `flush` |
+| `DK2.Scene.UpdateCreature` / `CreatureClip` / `CreateCreature` | A creature pushed; its clip (re)configured; one made |
+| `DK2.Scene.UpdateObject` / `ObjectClip` / `ObjectRestore` / `TexturePhase` | An object pushed, and its clip, model and texture phase |
+| `DK2.Scene.AnimatedFrame` | Position interpolation, animation and the torch geometry near pushed tiles |
+| `DK2.Scene.FrameCreatures` / `FrameObjects` / `FrameLightning` / `TorchRefresh` | Inside AnimatedFrame: its creature and object loops, a creature's lightning, the torches bent again |
+| `DK2.Frame.*` | The rest of Update: `WorldSound`, `Speech`, `StartupReport`, `Script`, `Minimap`, `Lights`, `EffectsAdvance`, `Look`, `Hud`, `Hover`, `Flowers`, `Journal` |
 | `DK2.Animation.Clock` | Per-instance phase advancement and segment selection |
 | `DK2.Animation.Sample` | KMF interpolation and Unity vertex conversion |
 | `DK2.Animation.MeshUpload` | Vertex upload and mesh bounds recalculation |

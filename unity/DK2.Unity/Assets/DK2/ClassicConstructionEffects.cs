@@ -193,7 +193,7 @@ namespace DK2.Unity
                             // Culling bounds about the particle: the default is an empty box at the origin.
                             worldBounds = new Bounds(position, Vector3.one * (4f * size + 1f)),
                         };
-                        if (_transparent != null && materials[sub].name.StartsWith("AA_", StringComparison.Ordinal))
+                        if (_transparent != null && _meshes.IsAdditiveNamed(materials[sub]))
                             _transparent.AddEffectMesh(mesh, sub, materials[sub], matrix);
                         else Graphics.RenderMesh(parameters, mesh, sub, matrix);
                     }
