@@ -339,7 +339,7 @@ when the player's own choices can turn it off.**
 
 | Source | Value | Applied? |
 |---|---|---|
-| `AngerNoLair` | +100/s | **Yes** — lairs are built, sold and filled |
+| `AngerNoLair` | +100/s | **Yes** — lairs are built, sold and filled. Only while the keeper's Lair availability is 3 or it owns a Lair, as with food (ADR-0666) |
 | `ModifyAngerOfCreatureInLairPerSecond` | −550/s | **Yes** — sleep works, so recovery is real |
 | `AngerNoPay` | +60/s | **Yes** (ADR-0079) — `FUN_00478d00`, the need-anger routine, reached just before the needs routine. **Being owed is the whole trigger**: unlike its two siblings it has *no room-availability clause*, so a keeper cannot excuse itself by having no treasury. Charged additively with `AngerNoLair`, and **not at all to a captive** — bit 1 of the state flag byte suppresses the whole routine and all eleven captive states carry it. `payday.md` §6 |
 | `AngerNoWork` | +12 a failed pass (corrected, ADR-0228) | **Yes** (ADR-0082) — charged by the happy chooser when every job in the creature's happy table has failed, the loaded value once per pass; 89 then parks the creature in 3, so passes are 14 to 32 turns apart (`idle-fallback.md`, measured 2026-10-29). **And only the happy chooser's tail**: the unhappy and angry choosers have the identical tail with the call missing, but 89 calls the happy chooser whatever the mood, so an unhappy creature whose mood prelude took nothing is charged by 89 (ADR-0574). `JobRules.ChargesNoWorkAnger`, `job-selection.md` §1 |

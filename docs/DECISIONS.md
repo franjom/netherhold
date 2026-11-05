@@ -15508,3 +15508,22 @@ its native starting tint unread. Native visual acceptance is pending for sprites
 **Consequences.** The additive sprites ADR-0493's amendment found wrong when lit (the Heart's dust 381,
 sparkles 384/408, static 383, the claim mist 142/143) are type 3 and stay unlit; the 99 alpha elements
 and alpha shot bodies now darken and brighten with the tile's lights.
+
+## ADR-0666: a bedless creature takes AngerNoLair only while its keeper could house it
+
+**Date:** 2026-11-05. **Status:** accepted. Answers Q751; hash/save 410. · **Systems:** creatures
+
+**Context.** The lair arm of `0x00478D00` (`0x00478D9D`-`0x00478DE5`) charges `AngerNoLair`
+(`def+0x6C1`) to bucket 2 when the creature holds no bed (`+0x3B7` is 0), its record names a lair
+object (`def+0x771`), and its keeper's Lair availability is 3 (`Player_RoomAvailability(2)`,
+`0x00478DBC`) or it owns a Lair (`Player_CountRoomsOfType(2)`, `0x00478DCE`). The food arm has the
+same clause on room 4 (ADR-0651). Ours charged every bedless creature, whatever the level offered.
+
+**Decision.** `CreatureAngerRules.PerSecond` adds the clause to the lair charge, through the helper
+`Offers`, which the food charge now shares: availability 3, else a room of that type the keeper owns.
+Tests of the lairless ladder run in a level that offers the Lair (`LairOffer`).
+
+**Consequences.** A keeper who may not build a Lair and owns none never angers a creature for want
+of a bed, as with the Hatchery. Ours keeps its `TimeSleep` condition on the lair arm (`LairRules.NeedsBed`);
+DK2's arm tests only the lair object. The owner's stopwatch (Unhappy at 165 s) holds only where the
+Lair is offered or owned; its test now offers it.

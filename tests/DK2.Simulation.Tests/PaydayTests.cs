@@ -599,6 +599,7 @@ public class PaydayTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
+        LairOffer.Offer(world, Keeper);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.WageOwed = 500;
 
@@ -625,6 +626,7 @@ public class PaydayTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
+        LairOffer.Offer(world, Keeper);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         GameSimulation sim = WithAnger(db, world);
 

@@ -143,7 +143,10 @@ public static class CreatureAngerRules
         // Additive (ADR-0079) and per bucket (ADR-0081): the original's need-anger routine
         // (FUN_00478d00) tests lair, food and pay in turn and charges each into its own counter, so
         // a bedless unpaid creature takes both and neither pays off the other.
-        if (!follower && LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state))
+        // The lair charge has the food charge's room clause (ADR-0666): Lair availability 3 or a
+        // Lair owned (0x00478DB7-0x00478DD5), so a map that offers no Lair angers nobody for want of a bed.
+        if (!follower && LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state)
+            && Offers(world, database, state.OwnerPlayerId, RoomTypeId.Lair))
         {
             // A creature whose record gives it no lair object at all — the Imp, the Skeleton,
             // Horny — is not owed a bed and is not angered by its absence.
@@ -154,7 +157,7 @@ public static class CreatureAngerRules
         // HungerNeed >= level-scaled HungerFill when Hatchery availability is 3 or the keeper owns
         // one, so a map that offers no Hatchery angers nobody. Eating forgets it (CreatureEatSystem).
         if (!follower && EatingRules.IsHungry(database, creature, state)
-            && CanFeed(world, database, state.OwnerPlayerId))
+            && Offers(world, database, state.OwnerPlayerId, RoomTypeId.Hatchery))
         {
             delta.Hunger += creature.AngerNoFood;
         }
@@ -178,14 +181,15 @@ public static class CreatureAngerRules
         return delta;
     }
 
-    /// <summary>The food charge's room clause in <c>0x00478D00</c>: Hatchery availability 3
-    /// (<c>Player_RoomAvailability(4)</c>), else any Hatchery owned (<c>Player_CountRoomsOfType(4)</c>).</summary>
-    private static bool CanFeed(WorldState world, GameDatabase database, PlayerId player)
+    /// <summary>The room clause of the lair and food charges in <c>0x00478D00</c>: the room's
+    /// availability is 3 (<c>Player_RoomAvailability</c>), else the keeper owns one
+    /// (<c>Player_CountRoomsOfType</c>); the lair arm asks room 2, the food arm room 4.</summary>
+    private static bool Offers(WorldState world, GameDatabase database, PlayerId player, RoomTypeId type)
     {
-        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Hatchery) == RoomNeedRules.Available)
+        if (world.Availability(player, AvailabilityKind.Room, (int)type) == RoomNeedRules.Available)
             return true;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
-            if (EatingRules.IsHatcheryOf(room, player.Value)) return true;
+            if (room.Definition.TypeId == type && room.OwnerPlayerId == player.Value) return true;
         return false;
     }
 
