@@ -147,7 +147,7 @@ Drawn in the shared tail of 0x00412FC0 (0x00413E4F..0x00414079) for any slot kin
 | Unaffordable | state 1, not affordable, not a library special | tint `0x646464` | 7 | yes |
 | No Workshop | door or trap, no Workshop, not pressed | tint `0x808080` | 7 | yes |
 | Flash | FlashButton names the slot | tint `0x323232` + 4 GSparkle | 7 / 1 | yes ([tab-alerts.md](tab-alerts.md)) |
-| Hover | state 1, widget `+0x49` ≠ 0 | 121 `gui\icons\hilight` with render flag 8, or 262 `gui\icons\hilight-2` without it for an upgraded spell | 4 | no |
+| Hover | state 1, widget `+0x49` ≠ 0 | 121 `gui\icons\hilight` with render flag 8, or 262 `gui\icons\hilight-2` without it for an upgraded spell | 4 | yes (not `hilight-2`) |
 | Selected | the slot is the current tool | widget art `+0x30` (+1 for a trap): 174 room, 175 spell, 176 door, 177 trap | 5 | yes |
 | Slash | room availability 4 | 235 `gui\icons\slash` | 3 | no |
 

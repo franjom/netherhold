@@ -10,7 +10,7 @@ using DK2.Simulation;
 
 namespace DK2.Presentation;
 
-public enum HandCursorKind { Default, Point, SmallPoint, Pickup, Dig, Tag, Tagging, HoldThing, DropThing, HoldGold, DropGold, Slap }
+public enum HandCursorKind { Default, Point, SmallPoint, Pickup, Dig, Tag, Tagging, HoldThing, DropThing, HoldGold, DropGold, Slap, SpellPoint }
 
 public readonly record struct HandCursorSprite(string FileName, Vector2 FrameSize, Vector2 Hotspot,
     int FrameCount, int FramesPerSecond);
@@ -54,6 +54,9 @@ public static class HandCursor
         HandCursorKind.HoldGold => new("HoldGold.png", new(63, 43), new(-18, 7), FrameCount: 1, FramesPerSecond: 15),
         HandCursorKind.DropGold => new("DropGold.png", new(87, 95), new(5, 59), FrameCount: 16, FramesPerSecond: 30),
         HandCursorKind.Slap => new("Slap.png", new(126, 99), new(2, 64), FrameCount: 15, FramesPerSecond: 30),
+        // State 12, which a keeper spell's tool (mode 8, 0x0040B7F0) requests on the middle channel:
+        // its record in 0x0068F638 is state 3's, the pointing finger.
+        HandCursorKind.SpellPoint => new("Idle.png", new(83, 39), new(2, 4), FrameCount: 1, FramesPerSecond: 30),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -79,7 +82,7 @@ public static class HandCursor
         {
             HandCursorKind.Point => PointRestingTip,
             HandCursorKind.SmallPoint => new(0, 2),
-            HandCursorKind.Pickup => new(0, 4),
+            HandCursorKind.Pickup or HandCursorKind.SpellPoint => new(0, 4),
             _ => sprite.Hotspot,
         };
     }

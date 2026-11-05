@@ -28,7 +28,7 @@ namespace DK2.Unity
         // At most two category panels open at once (0x00416C20 pins one tab), each with up to 26 slots a
         // page (13 x 2 128-unit cells, 0x00417470). Slot action p * PanelSlots + k is panel p's page slot k.
         private const int MaxPanels = 2, PanelSlots = 26, SlotCount = MaxPanels * PanelSlots;
-        private readonly Image[] _icons = new Image[SlotCount], _selection = new Image[SlotCount];
+        private readonly Image[] _icons = new Image[SlotCount], _selection = new Image[SlotCount], _slotHover = new Image[SlotCount];
         private readonly SlotSector[] _progress = new SlotSector[SlotCount], _research = new SlotSector[SlotCount];
         private readonly BottomPanelChoice[] _slots = new BottomPanelChoice[SlotCount];
         private readonly Image[] _previous = new Image[MaxPanels], _next = new Image[MaxPanels];
@@ -125,11 +125,12 @@ namespace DK2.Unity
             Texture2D hilight = Lightening(Texture("GUI\\Icons\\hilight"));
             for (int i = 0; i < 4; i++) _tabHover[i] = Picture(hilight);
             // Child order is draw order: recharge/manufacture sector (depth 0.7/0.6) over the icon, the
-            // selection (layer 5) over it, and the research sector (depth 0.4) in front (panel-indicators.md).
+            // selection (layer 5) over it, the hover (layer 4) over that, and the research sector
+            // (depth 0.4) in front (panel-indicators.md §5).
             for (int i = 0; i < SlotCount; i++)
             {
                 _icons[i] = Interactive(null, i);
-                _progress[i] = Sector(); _selection[i] = Picture(null); _research[i] = Sector();
+                _progress[i] = Sector(); _selection[i] = Picture(null); _slotHover[i] = Picture(hilight); _research[i] = Sector();
             }
             for (int p = 0; p < MaxPanels; p++)
             {
@@ -351,6 +352,10 @@ namespace DK2.Unity
                 bool show = choice != null;
                 _icons[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
                 _selection[i].style.display = show && choice.Selected ? DisplayStyle.Flex : DisplayStyle.None;
+                // A hovered slot in state 1 (Selectable) draws catalogue 121 hilight with render flag 8
+                // (0x00412FC0, panel-indicators.md §5). The upgraded spell's hilight-2 is not built.
+                bool hovered = show && _allowInput && _hovered == i && choice.Selectable;
+                _slotHover[i].style.display = hovered ? DisplayStyle.Flex : DisplayStyle.None;
                 BottomPanelSlotIndicators marks = show ? choice.Indicators : BottomPanelSlotIndicators.None;
                 int progress = marks.RechargePercent ?? marks.ManufacturePercent ?? 0;
                 _progress[i].style.display = progress != 0 ? DisplayStyle.Flex : DisplayStyle.None;
@@ -376,6 +381,7 @@ namespace DK2.Unity
                     : flashing && flash.Dark ? Dark
                     : !choice.Selectable || choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
                 Place(_icons[i], cell);
+                if (hovered) Place(_slotHover[i], cell);
                 if (progress != 0)
                 {
                     _progress[i].Set(iconTexture, Color.white, progress);

@@ -125,6 +125,14 @@ public sealed class HandCursorTests
     public void SingleFrameStatesUseTheirTipOrKeepDk2sHotspot(HandCursorKind kind, float x, float y) =>
         Assert.Equal(new Vector2(x, y), HandCursor.Anchor(kind, 0));
 
+    // A keeper spell's cursor, state 12, has the same 0x0068F638 record as state 3: Idle.png's finger.
+    [Fact]
+    public void SpellPointIsTheNativeState12FingerSheet()
+    {
+        Assert.Equal(HandCursor.Sprite(HandCursorKind.Pickup), HandCursor.Sprite(HandCursorKind.SpellPoint));
+        Assert.Equal(HandCursor.Anchor(HandCursorKind.Pickup, 0), HandCursor.Anchor(HandCursorKind.SpellPoint, 0));
+    }
+
     // The pick, slap and drops swing through DK2's hotspot; pinning a tip would stop the swing.
     [Theory]
     [InlineData(HandCursorKind.DropThing)]

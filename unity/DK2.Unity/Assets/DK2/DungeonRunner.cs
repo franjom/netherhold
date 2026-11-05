@@ -1504,18 +1504,24 @@ namespace DK2.Unity
             {
                 _hoverSnapshot = CaptureHudHover();
                 // Over the HUD DK2 shows the small pointing finger, state 2, which 0x0040BCB6 and
-                // 0x0040BEFE set while interface +0x12B2 (pointer over the GUI) is set (LIKELY;
-                // its producer at 0x00403D1C..0x00403D69 is partly read; owner-observed in play).
-                if (ActiveTool == PlayerToolMode.Hand) cursor = HandCursorKind.SmallPoint;
+                // 0x0040BEFE set while interface +0x12B2 (pointer over the GUI) is set, in every tool
+                // mode: 0x0040BBE0 requests it before its tool switch (HYPOTHESIS; its producer at
+                // 0x00403D1C..0x00403D69 is partly read; owner-observed in play).
+                cursor = HandCursorKind.SmallPoint;
                 // Over the GUI 0x0040BBE0 sets No Go for the room, sell, door, trap and spell tools, and
                 // 0x0040CAE0 for every tool that draws an icon, Query included (0x0040CDD9..0x0040CDE1).
                 PlacementFeedback over = Placement(_simulation.World, new PlayerId((byte)viewingPlayerId), null);
                 if (over.Icon != PlacementIcon.None)
                     placement = new PlacementFeedback(null, false, over.Price, over.Icon, true, over.Affordable, over.SpellId);
             }
+            // A keeper spell's tool (mode 8) clears the contextual channel and requests state 12, the
+            // pointing finger, every frame until the spell is cancelled (0x0040B7F0); over the GUI
+            // 0x0040BBE0 asks SmallPoint instead and never runs the spell arm.
+            bool spellArmed = SpellArmed;
+            if (spellArmed && !PointerOverHud(mouse)) cursor = HandCursorKind.SpellPoint;
             bool holding = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
             long cursorMs = (long)(Time.unscaledTimeAsDouble * 1000);
-            if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal)
+            if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal && !spellArmed)
                 cursor = _cursorFeedback.Resolve(cursor, holding, HoldingGold(), Input.GetMouseButton(0), cursorMs, _pointerWorld);
             else _cursorFeedback.Advance(cursorMs, _pointerWorld);
             if (_soundPlayer != null) _soundPlayer.Play(_cursorFeedback.Sounds); else _cursorFeedback.Sounds.Clear();
@@ -1560,6 +1566,12 @@ namespace DK2.Unity
             PlacementFeedback held = PlacementCursor.HandDrop(world, _simulation.Database, viewer, at);
             return new PlacementFeedback(feedback.Cage, feedback.Valid, 0, PlacementIcon.Held, held.NoGo, true, 0, held.Dispose);
         }
+
+        /// <summary>A keeper spell is the selected tool, DK2's mode 8: Create Imp's own tool or a spell
+        /// chosen from the panel.</summary>
+        private bool SpellArmed => ActiveTool == PlayerToolMode.CreateImp
+            || ActiveTool == PlayerToolMode.Hand && !_queryTool && _input.Targeting is null
+                && _panelChoice is BottomPanelChoiceKey { Kind: BottomPanelChoiceKind.Spell };
 
         /// <summary>The active tool as 0x004096B0 sees it; null for tools DK2's cursor has no mode for.</summary>
         private HoverCageTool? CageTool()

@@ -391,6 +391,9 @@ public sealed class BottomPanelView
         return _ownedRoomTypes[(byte)room];
     }
 
+    /// <summary>The interface's one announcement handle, <c>+0x2E</c>.</summary>
+    public static SoundVoiceId SpellAnnouncementVoice { get; } = new(0x80000000u | (0x7Fu << 24));
+
     public bool Select(BottomPanelChoiceKey key)
     {
         if (Reaper is BottomPanelChoice reaper && reaper.Key == key && reaper.Selectable)
@@ -410,6 +413,13 @@ public sealed class BottomPanelView
                 key.Kind == BottomPanelChoiceKind.Room ? (RoomTypeId)key.Value : default);
             foreach (BottomPanelChoice other in _choices) other.Selected = other.Key == key;
             if (Reaper is BottomPanelChoice special) special.Selected = false;
+            // SpellPanel_ClickSlot (0x00411140) announces the spell: 0x104 in its GUI_BUTTON_* category, nonpositional,
+            // on one handle it never stops, so a click inside a playing announcement is dropped (sound-effects-interface.md §13).
+            // The Reaper's own button (0x00424F50, spells 5 and 14) asks none.
+            if (key.Kind == BottomPanelChoiceKind.Spell && key.Value is not (5 or 14) && _database.KeeperSpellById(key.Value) is KeeperSpellDef spell
+                && !string.IsNullOrEmpty(spell.GuiButtonSoundCategory))
+                Sounds.Add(new SoundRequest(new SoundCategory(spell.GuiButtonSoundCategory.ToLowerInvariant()), new SoundId(0x104),
+                    Voice: SpellAnnouncementVoice));
             return true;
         }
         return false;
