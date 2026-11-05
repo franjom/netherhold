@@ -160,7 +160,7 @@ editor's; `CreatureTriggerEvent`/`PlayerTriggerEvent` carry them in code.
 | 63 | sacked | entrance arrival 196 `0x0045A0D0`, gate 197 `0x00459D50`, with player 61 |
 | 65 | picked up | hand pick-up `0x004BFBD0`, with player 58 |
 | P46 | pay day | `0x004BE1A0`, after notification 46 |
-| P53 | GUI button | `0x00513EB0` |
+| P53 | GUI button | `0x00513EB0`, posted by `0x00422600` (`GuiButtonCommand`, ADR-0670) |
 | P56/57 | dungeon breached / enemy breached | `0x00498BB0`: a creature on a tile owned by another player — 56 on its owner, 57 on the tile's, after notification 12 |
 | P59 | creature dropped | hand drop `0x0048B3A0` when the thing is class 0 |
 

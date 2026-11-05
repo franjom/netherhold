@@ -85,6 +85,7 @@ namespace DK2.Unity
             _trapNavigation = new ThingNavigation(new PlayerId((byte)viewingPlayerId));
             _bottomPanel.NavigateDoor += NavigateDoor;
             _bottomPanel.NavigateTrap += NavigateTrap;
+            _bottomPanel.GuiButton += PostGuiButton;
             _bottomPanel.CollapsedChanged += collapsed =>
             {
                 if (_classicCamera == null) return;
@@ -267,6 +268,10 @@ namespace DK2.Unity
             if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
         }
 
+        /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
+        private void PostGuiButton(GuiButtonTarget target) =>
+            _pendingCommands.Add(new GuiButtonCommand(new PlayerId((byte)viewingPlayerId), target));
+
         private void ApplyHudAction(ClassicHudAction action)
         {
             if (action == ClassicHudAction.None || _hudControls.InputSuppressed) return;
@@ -290,11 +295,13 @@ namespace DK2.Unity
             }
             if (action == ClassicHudAction.ZoomIn || action == ClassicHudAction.ZoomOut)
             {
+                PostGuiButton(GuiButtonTarget.MinimapZoom);   // the magnifier's primary or secondary click, 0x00416511/0x00416611
                 _minimap.HandleZoomPress(Input.mousePosition, action == ClassicHudAction.ZoomIn, action == ClassicHudAction.ZoomOut);
                 return;
             }
             if (action == ClassicHudAction.SelectQuery || action == ClassicHudAction.SelectSell)
             {
+                PostGuiButton(action == ClassicHudAction.SelectQuery ? GuiButtonTarget.Query : GuiButtonTarget.Sell);
                 _panelChoice = null; _selectedCorner = action;
                 _input.CancelTool();
                 _queryTool = action == ClassicHudAction.SelectQuery;

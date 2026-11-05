@@ -183,6 +183,11 @@ public sealed class PacketLog
                         target == 0 ? 0 : Resolve(target, PacketEntityKind.Creature)));
                     break;
                 case 114:
+                    // GUI button pressed (0x00513EB0): the category in the dword at +0x0, the id at +0x4.
+                    // 0x004C7A50 compares each whole with a record's body byte, so above 255 none matches.
+                    if (a.First <= byte.MaxValue && a.Second <= byte.MaxValue)
+                        commands.Add(new GuiButtonCommand(player,
+                            new GuiButtonTarget((GuiButtonCategory)a.First, (byte)a.Second)));
                     break;
                 case 93:
                     // Lock or unlock a door (0x00513800): the door's slot in the word at +0x0, the

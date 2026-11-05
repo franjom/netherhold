@@ -12,7 +12,7 @@ The corners do not provide Home or compass-reset actions.
 
 | Corner | Callback | STRONGLY INFERRED action |
 |---|---|---|
-| Upper left | `0x0041A2B0` | Select interface tool mode 10 and submit the common selection-cleanup request. |
+| Upper left | `0x0041A2B0` | Select interface tool mode 10 and post the GUI button (0, 1). |
 | Upper right | `0x004163F0` | Select tool mode 4, clear drag state and conditionally clear queued selection. |
 | Lower right | `0x00416480` / `0x00416580` | Zoom in/out; existing implementation and exact contract remain in minimap-rendering.md. |
 | Lower left | `0x00428710` | Toggle the Options menu family through interface `+0x2722`. |
@@ -24,9 +24,9 @@ Mode 10 displays cursor icon `gui/cursors/I-Query`; mode 4 displays
 their callbacks alone do not implement the eventual world-click action.
 Neither changes camera heading or navigates to the Heart.
 
-`0x00422600` is the shared selection-cleanup submission: action `0x72` with
-its two callback arguments and viewing player. Keep it separate from a tool
-selection's actual sale/query action. The queued-selection cleanup in the
+`0x00422600` posts the GUI button: action `0x72` with a (category, id) pair and
+the viewing player, which fires trigger event 53 (ADR-0670). It is not the
+tool selection's own sale/query action. The queued-selection cleanup in the
 Sell callback uses the same descriptor/channel match as the zoom callbacks.
 
 Lower-left hit bounds are virtual `[20,1820,100,1900)`, derived from menu 20,

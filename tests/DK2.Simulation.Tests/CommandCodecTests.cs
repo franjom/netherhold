@@ -65,6 +65,7 @@ public class CommandCodecTests
         new RevealMapCommand(P),
         new ActivateSpecialCommand(P, 49, 50),
         new WithdrawCounterGoldCommand(P, new GoldAmount(1_234_567)),
+        new GuiButtonCommand(P, GuiButtonTarget.Trap(3)),
     ];
 
     [Fact]
