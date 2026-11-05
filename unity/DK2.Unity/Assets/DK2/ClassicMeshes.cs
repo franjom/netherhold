@@ -565,6 +565,21 @@ namespace DK2.Unity
             return _tagOverlay;
         }
 
+        private Material _blueprint;
+
+        /// <summary>A door or trap under construction, drawn as DK2's blue plan: <c>0x004A6B70</c> gives
+        /// the owner's blueprint the BlueTexture override. Ours replaces the model's materials with one
+        /// translucent <see cref="TagOverlayColour"/>; the original's exact blend and its red/blue blink
+        /// are not read (structure-drawing.md section 5).</summary>
+        public Material Blueprint()
+        {
+            if (_blueprint != null) return _blueprint;
+            Shader unlit = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            _blueprint = Own(new Material(unlit) { name = "Blueprint", color = new Color(TagOverlayColour.r, TagOverlayColour.g, TagOverlayColour.b, 0.55f) });
+            MakeTransparent(_blueprint, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
+            return _blueprint;
+        }
+
         public static bool IsTagOverlay(Material material) => material.GetTag("DK2TagOverlay", false) is "dig" or "tutorial";
 
         private Material Additive(string name, Color colour)
