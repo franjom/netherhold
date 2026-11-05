@@ -123,9 +123,12 @@ read from the instructions at `0x0043F3A0..0x0043F50F` (2026-10-21).
   that draws its own walls (room definition `+0x43D` bit 3, set for constructions 1, 5, 7, 9, 12
   and 13, `wall-pieces.md` section 1) and this terrain is AllowRoomWalls. A scanned neighbour
   whose terrain has `0x01000000` also qualifies before the nav-solid rejection
-  (`0x0043F2A0..0x0043F2CC`, independently rechecked 2026-11-01). The explored-neighbour
-  arm when drawn as fog (`0x0043F252..0x0043F275`) likewise rejects solid ground;
-  its room-wall suppression bypass remains an adapter boundary. Sight (`+0xDC`) and
+  (`0x0043F2A0..0x0043F2CC`, independently rechecked 2026-11-01). When the tile itself is
+  unexplored (`0x0043E320`'s third argument, set at `0x0043E3A5..0x0043E42A` for fog, Claim Scan
+  and scanned `0x01000000` terrain alike), an explored neighbour takes a face unless it is
+  nav-solid, with no room-wall suppression (STRONGLY INFERRED, `0x0043F252..0x0043F275`, 2026-11-05); the room
+  builds no wall against an unexplored tile (`wall-pieces.md`), so scanned Impenetrable Rock
+  shows its own face to an explored room (built: `WorldView.DrawsFace`). Sight (`+0xDC`) and
   possession (`0x0044DB70`) are additional admission paths. A hero-owned Reinforced Wall draws
   `Herowall_LevelDefaultPart4..8` in `wall-pieces.md` §2's half/whole scheme with 4 and 5 swapped.
   The test is terrain flag `0x800` (PlayerColouredWall) and tile owner `+8 & 0xFFF` equal to the hero

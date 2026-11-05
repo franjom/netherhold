@@ -730,7 +730,7 @@ public sealed partial class WorldView
                 fogSolid,
                 goldHeld: 0,
                 HealthPermille(fog.StartingHealth, fog.MaxHealth),
-                pieces: PiecesOf(world, x, y, fogTile, fog),
+                pieces: PiecesOf(world, x, y, fogTile, fog, drawnAsFog: true),
                 pieceKeys: _pieceKeys[fog.TerrainId],
                 explored: false,
                 ambientTint: (fog.Flags & TerrainFlags.AmbientLight) != 0 && fog.Lighting is TerrainLighting fogLighting
@@ -754,7 +754,7 @@ public sealed partial class WorldView
             admitted ? tile.GoldHeld : 0,
             HealthPermille(admitted ? tile.Health : terrain.StartingHealth, terrain.MaxHealth),
             admitted ? WallsOrHeroFacesOf(world, x, y, tile, terrain) : default,
-            PiecesOf(world, x, y, tile, terrain),
+            PiecesOf(world, x, y, tile, terrain, drawnAsFog: !admitted),
             _pieceKeys[tile.TerrainId],
             explored,
             admitted && world.DoorAt(x, y) is not null,
@@ -1292,11 +1292,11 @@ public sealed partial class WorldView
     /// quarters when PlayerColouredPath, else its whole floor.
     /// <para>A hero-owned PlayerColouredWall draws no art-1 faces here: its faces are the hero wall
     /// pieces <see cref="HeroWallFacesOf"/> puts in <see cref="TileView.Walls"/>.</para>
-    /// <para>Deviates: solidity stands in for the art test and for nav-solidity; the face test's
-    /// fog exceptions, the Mana Vault, terrain 0x23 and the top variant are not built
-    /// (floor-and-terrain-pieces.md §5).</para>
+    /// <para>Deviates: solidity stands in for the art test and for nav-solidity; the Mana Vault,
+    /// terrain 0x23 and the top variant are not built (floor-and-terrain-pieces.md §5).</para>
     /// </summary>
-    private TerrainPieces PiecesOf(WorldState world, int x, int y, in TileState tile, TerrainDef terrain)
+    private TerrainPieces PiecesOf(WorldState world, int x, int y, in TileState tile, TerrainDef terrain,
+        bool drawnAsFog)
     {
         TerrainFlags flags = terrain.Flags;
         if ((flags & (TerrainFlags.Room | TerrainFlags.ConstructionTypeWater)) != 0
@@ -1311,7 +1311,7 @@ public sealed partial class WorldView
         {
             if (!IsHeroWall(tile, flags))
                 for (int side = 0; side < 4; side++)
-                    if (DrawsFace(world, x, y, side, flags)) pieces = pieces.WithFace(side);
+                    if (DrawsFace(world, x, y, side, flags, drawnAsFog)) pieces = pieces.WithFace(side);
 
             if ((flags & TerrainFlags.PlayerColouredWall) != 0)
                 return pieces.WithQuarters(QuarterKind.Top, set, QuarterPieces(TopEdges(world, x, y)));
@@ -1324,12 +1324,17 @@ public sealed partial class WorldView
     }
 
     /// <summary>Whether a solid plain tile draws a face on <paramref name="side"/>. Off the map the
-    /// face is drawn (0x0043F1F6..0x0043F224).</summary>
-    private bool DrawsFace(WorldState world, int x, int y, int side, TerrainFlags flags)
+    /// face is drawn (0x0043F1F6..0x0043F224). <paramref name="drawnAsFog"/> is 0x0043E320's third
+    /// argument: the tile is unexplored, outside Sight and possession, whether it shows as fog or as
+    /// scanned terrain that reveals through fog.</summary>
+    private bool DrawsFace(WorldState world, int x, int y, int side, TerrainFlags flags, bool drawnAsFog)
     {
         int nx = x + Dx8[side * 2], ny = y + Dy8[side * 2];
         if (!world.Contains(nx, ny)) return true;
         TileState neighbour = world.Tile(nx, ny);
+        // 0x0043F252..0x0043F275: such a tile faces an explored open neighbour with no room-wall
+        // suppression, since the room builds no wall against an unexplored tile (wall-pieces.md).
+        if (drawnAsFog && neighbour.IsExploredBy(_viewingPlayerId)) return !IsSolid(world, nx, ny);
         bool scannedTerrain = neighbour.IsDiscoveredBy(_viewingPlayerId)
             && _database.TerrainById(neighbour.TerrainId).IsRevealedThroughFog;
         if ((!IsVisible(world, new TilePos(nx, ny)) && !scannedTerrain) || IsSolid(world, nx, ny)) return false;
@@ -1364,7 +1369,7 @@ public sealed partial class WorldView
         RoomWalls faces = default;
         for (int side = 0; side < 4; side++)
         {
-            if (!DrawsFace(world, x, y, side, flags)) continue;
+            if (!DrawsFace(world, x, y, side, flags, drawnAsFog: false)) continue;
             int d = side * 2;
             bool a = Blocks(world, x, y, d - 2) && !Blocks(world, x, y, d - 1);
             bool b = Blocks(world, x, y, d + 2) && !Blocks(world, x, y, d + 1);

@@ -167,6 +167,41 @@ public class TerrainPiecesTests
         Assert.True(patch.At(X0 + 5, Y0 + 3).HasFace(N));
     }
 
+    /// <summary>A tile drawn unexplored (0x0043E320's third argument, set for scanned Impenetrable
+    /// Rock too) faces an explored open neighbour without the room-wall suppression
+    /// (0x0043F252..0x0043F275), and the room builds no wall against an unexplored tile, so the rock
+    /// shows its own face to the room until it is explored. Level 6a's Torture Chamber had neither.</summary>
+    [InstallFact]
+    public void AnUnexploredImpenetrableRockFacesAnExploredRoomUntilExplored()
+    {
+        string dir = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.Load(dir);
+        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!,
+            [0, 1, 2, Keeper], fogOfWarEnabled: true);
+        var patch = new Patch(db, world, new WorldView(db, new PlayerId(Keeper)));
+        string lair = db.Room(RoomTypeId.Lair).Name;
+        for (int y = Y0; y < Y0 + 7; y++)
+            for (int x = X0; x < X0 + 7; x++)
+            {
+                patch.Set(x, y, "Impenetrable Rock");
+                world.Tile(x, y).ClearExploredBy(Keeper);
+                world.Tile(x, y).DiscoveredBy = default;
+            }
+        patch.Set(X0 + 4, Y0 + 3, lair, Keeper);
+        world.Tile(X0 + 4, Y0 + 3).SetExploredBy(Keeper);
+        world.Tile(X0 + 3, Y0 + 3).SetDiscoveredBy(Keeper);
+
+        TileView rock = patch.View.TileAt(world, X0 + 3, Y0 + 3);
+        Assert.Equal("Impenetrable Rock", db.TerrainById(world.Tile(X0 + 3, Y0 + 3).TerrainId).Name);
+        Assert.False(rock.Explored);
+        Assert.True(rock.Pieces.HasFace(E));
+        Assert.False(patch.View.TileAt(world, X0 + 4, Y0 + 3).Walls.HasWall(W));
+
+        world.Tile(X0 + 3, Y0 + 3).SetExploredBy(Keeper);
+        Assert.False(patch.At(X0 + 3, Y0 + 3).HasFace(E));
+        Assert.True(patch.View.TileAt(world, X0 + 4, Y0 + 3).Walls.HasWall(W));
+    }
+
     /// <summary>The Heart (5×5 rotated) does not draw its own walls, so a Reinforced Wall beside it
     /// keeps its face; the Lair test above shows a room that does take it.</summary>
     [InstallFact]
