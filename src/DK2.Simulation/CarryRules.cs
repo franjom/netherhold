@@ -48,8 +48,8 @@ public static class CarryRules
     /// <item>Collapsed, the carrier's keeper's own — its own bed, not any free lair tile; it kept
     /// that bed through the collapse so this walk would have a destination
     /// (<see cref="CreatureDeathRules.Collapse"/>).</item>
-    /// <item>Collapsed, somebody else's — a free cell in the worker's keeper's nearest Prison
-    /// with space (<see cref="PrisonRules.FreeTileIn"/>, ADR-0064); none when every Prison is
+    /// <item>Collapsed, somebody else's — the door tile of the worker's keeper's nearest Prison
+    /// with space (<see cref="PrisonRules.GateTileIn"/>, ADR-0681); none when every Prison is
     /// full (ADR-0354).</item>
     /// <item>A corpse — the keeper's nearest Graveyard tile.</item></list></summary>
     public static int TryDestinationFor(
@@ -64,7 +64,7 @@ public static class CarryRules
         // selector 0x0046D810 raises no task without a place (ADR-0354). One that
         // fills during the walk refuses at the door, onto the rim (ADR-0148).
         if (body.OwnerPlayerId != worker.OwnerPlayerId)
-            return PrisonRules.FreeTileIn(world, database, worker.OwnerPlayerId, worker.Tile);
+            return PrisonRules.GateTileIn(world, database, worker.OwnerPlayerId, worker.Tile);
 
         return LairRules.BedTileIndex(world, database, body);
     }

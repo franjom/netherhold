@@ -529,6 +529,12 @@ public sealed partial class ImpTaskSystem
         SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
         WorldState world = context.World;
+        if (IsLeavingThePrison(creature))
+        {
+            UpdateLeavingThePrison(context, creature);
+            return;
+        }
+
         CreatureState? body = world.CreatureById(creature.CarriedCreatureId);
 
         // It rotted in the imp's arms, which a long walk to a distant graveyard
@@ -557,6 +563,9 @@ public sealed partial class ImpTaskSystem
         // corpse, which is when the walk has ended; the creature update asks again for a body still held.
         if (corpse && (here == creature.TargetTileIndex || !creature.HasRoute))
             ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.CarriedThing);
+        if (!own && !corpse && here == creature.TargetTileIndex
+            && AtThePrisonGate(context, creature, body, grid, here))
+            return;
         if (here != creature.TargetTileIndex
             || (own && RoomIndex.RoomAt(world, context.Database, here) is not { Definition.TypeId: RoomTypeId.Lair })
             || (corpse && !GraveyardRules.TryLay(world, context.Database, body, here)))
@@ -621,9 +630,10 @@ public sealed partial class ImpTaskSystem
         // with every prison already full no imp sets off (ADR-0354).
         if (body.OwnerPlayerId != creature.OwnerPlayerId)
         {
-            // Our one walk ends at the cell, so 43's inner leg to 44 falls in this tick, and the
-            // walks 44 starts after admission (46) or a refusal on this Prison (47, 48) are elided.
-            WalkOn(context, creature, ImpStates.AtThePrisonDoor);
+            // The walk from the door (43's inner leg) ends in 44; a door-less Prison is entered
+            // direct, so its 44 falls in this tick. The walks 44 starts after a refusal on this
+            // Prison (47, 48) are elided.
+            if (creature.Dk2StateId != ImpStates.AtThePrisonDoor) WalkOn(context, creature, ImpStates.AtThePrisonDoor);
             int cell = (creature.Tile.Y * world.Width) + creature.Tile.X;
             if (PrisonRules.AdmitsAt(world, context.Database, cell))
             {
@@ -635,12 +645,15 @@ public sealed partial class ImpTaskSystem
                 PrisonRules.Imprison(context.Hooks, body, creature.OwnerPlayerId, cell);
                 body.HealthSourcePlayerId = RoomIndex.RoomAt(world, context.Database, cell)!.OwnerPlayerId;
                 WorkerPickupRules.SetEnabled(creature, false);
-                WalkOn(context, creature, ImpStates.LeavingThePrisoner);
-                WorkerPickupRules.SetEnabled(creature, true);
                 context.Emit(SystemName, "creature_imprisoned",
                     $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
                     $"type={definition.Name} owner={body.OwnerPlayerId} " +
                     $"{Describe(world, cell)} health={body.Health}");
+                if (LeaveByTheDoor(context, creature, cell)) return;
+
+                // No door to walk out by: 46 falls in this tick.
+                WalkOn(context, creature, ImpStates.LeavingThePrisoner);
+                WorkerPickupRules.SetEnabled(creature, true);
                 WorkEnded(context, creature);
                 GoIdle(creature);
                 return;
@@ -648,7 +661,7 @@ public sealed partial class ImpTaskSystem
 
             // Exit 2: the nearest other Prison with space (0x004C6610 from the body's position),
             // carried on to and resumed in 43. Ours ranks by tile and asks the route after.
-            int next = PrisonRules.FreeTileIn(world, context.Database, creature.OwnerPlayerId, body.Tile);
+            int next = PrisonRules.GateTileIn(world, context.Database, creature.OwnerPlayerId, body.Tile);
             if (next >= 0 && RouteTo(context, creature, grid, next))
             {
                 creature.TargetTileIndex = next;
@@ -781,9 +794,95 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         var to = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
 
-        bool prison = context.Database.RoomByTerrain(world.Tile(to).TerrainId)?.TypeId == RoomTypeId.Prison;
-        return context.Navigation.TryRoute(creature, to,
-            prison ? Navigation.MoveOptions.PrisonDelivery : Navigation.MoveOptions.ExactSpot);
+        // A Prison's door tile is walked to with 0xE0, which stops at the cell's boundary; only the
+        // cell's own tiles take the walk that crosses it (state 43, 0x00467DD0).
+        Navigation.MoveOptions options = Navigation.MoveOptions.ExactSpot;
+        if (context.Database.RoomByTerrain(world.Tile(to).TerrainId)?.TypeId == RoomTypeId.Prison
+            && RoomIndex.RoomAt(world, context.Database, tileIndex) is { } room)
+            options = room.IsInterior(tileIndex) ? Navigation.MoveOptions.PrisonDelivery : Navigation.MoveOptions.Spot;
+        return context.Navigation.TryRoute(creature, to, options);
+    }
+
+    /// <summary>State 43 once the walk has ended (<c>0x00467DD0</c>, ADR-0681). On a Prison's door tile with
+    /// the Prison open and room for the body: walk south into the cell (option <c>0xE4</c>), resuming 44, which
+    /// admits it. Otherwise the nearest other Prison with space, resuming 43 at its door; with none the body is
+    /// put down where the imp stands and the imp goes idle. False when the imp stands in a cell, where
+    /// <see cref="Deliver"/> runs.</summary>
+    private bool AtThePrisonGate(
+        SimulationContext context, CreatureState creature, CreatureState body, WorldPathGrid grid, int here)
+    {
+        WorldState world = context.World;
+        RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
+        bool prison = room is { Definition.TypeId: RoomTypeId.Prison };
+        if (prison && room!.IsInterior(here)) return false;
+
+        if (prison && JailBreakRules.DoorTile(world, room!) == here)
+        {
+            int cell = here + world.Width;
+            if (PrisonRules.AdmitsAt(world, context.Database, cell) && RouteTo(context, creature, grid, cell))
+            {
+                creature.TargetTileIndex = cell;
+                StateShadow.Arrive(context, SystemName, creature);
+                WorkerPickupRules.SetEnabled(creature, false);
+                BeginTaskWalk(context, creature, ImpStates.AtThePrisonDoor);
+                return true;
+            }
+        }
+
+        int next = PrisonRules.GateTileIn(world, context.Database, creature.OwnerPlayerId, body.Tile);
+        if (next >= 0 && next != here && RouteTo(context, creature, grid, next))
+        {
+            creature.TargetTileIndex = next;
+            StateShadow.Arrive(context, SystemName, creature);
+            BeginTaskWalk(context, creature, ImpStates.CarryingToPrison);
+            context.Emit(SystemName, "prisoner_redirected",
+                $"imp={creature.Id} body={body.Id} from={Describe(world, here)} to={Describe(world, next)}");
+            return true;
+        }
+
+        // 0x0048B860's DropDraggedThing, then the handler's 0: idle.
+        CarryRules.PutDown(creature, body);
+        WorkerPickupRules.SetEnabled(creature, true);
+        context.Emit(SystemName, "body_dropped",
+            $"imp={creature.Id} body={body.Id} " +
+            $"at=({body.Tile.X},{body.Tile.Y}) reason={(prison ? "not_admitted" : "no_prison")}");
+        StateShadow.ToIdle(context, SystemName, creature);
+        GoIdle(creature);
+        return true;
+    }
+
+    /// <summary>State 44's admission walk (<c>0x00468010</c>): from the cell to the door tile, option
+    /// <c>0xEC</c> (which crosses the cell's boundary), resuming 46. False with no door or no route.</summary>
+    private bool LeaveByTheDoor(SimulationContext context, CreatureState creature, int cell)
+    {
+        WorldState world = context.World;
+        if (RoomIndex.RoomAt(world, context.Database, cell) is not { } room) return false;
+        int door = JailBreakRules.DoorTile(world, room);
+        if (door < 0) return false;
+
+        var to = new TilePos(door % world.Width, door / world.Width);
+        if (!context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.PrisonLeaving)) return false;
+        creature.TargetTileIndex = door;
+        BeginTaskWalk(context, creature, ImpStates.LeavingThePrisoner);
+        return true;
+    }
+
+    private static bool IsLeavingThePrison(CreatureState creature) =>
+        creature.CarriedCreatureId < 0
+        && (creature.Dk2StateId == ImpStates.LeavingThePrisoner
+            || (StateShadow.IsTravelling(creature) && creature.UtilityNewState == ImpStates.LeavingThePrisoner));
+
+    /// <summary>State 46 (<c>0x004683F0</c>): the imp has walked out to the door; its fight bits come back
+    /// and it sets 10. A lost route ends the errand where the imp stands.</summary>
+    private static void UpdateLeavingThePrison(SimulationContext context, CreatureState creature)
+    {
+        int here = (creature.Tile.Y * context.World.Width) + creature.Tile.X;
+        if (here != creature.TargetTileIndex && creature.HasRoute) return;
+
+        StateShadow.Arrive(context, SystemName, creature);
+        WorkerPickupRules.SetEnabled(creature, true);
+        WorkEnded(context, creature);
+        GoIdle(creature);
     }
 
     /// <summary>Clears the "body I am walking towards" note.</summary>

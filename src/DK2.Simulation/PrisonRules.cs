@@ -249,10 +249,30 @@ public static class PrisonRules
     /// <para>The carry's destination: with none, no imp sets off (ADR-0354: the owner, 2026-10-05,
     /// and the rescue selector <c>0x0046D810</c>'s no-place result).</para></summary>
     public static int FreeTileIn(
+        WorldState world, GameDatabase database, PlayerId playerId, TilePos from) =>
+        NearestWithSpace(world, database, playerId, from, out _);
+
+    /// <summary>Where an imp carrying an enemy sets off to: the <b>door tile</b> of
+    /// <paramref name="playerId"/>'s nearest Prison with space (<see cref="FreeTileIn"/>'s choice), or -1
+    /// when there is none. State 43 (<c>0x00467DD0</c>) walks to the room's entry point
+    /// (<c>0x004E3290</c>, the centre of <see cref="JailBreakRules.DoorTile"/>) and only from there
+    /// steps south into the cell; the cell's floor is navigation bit 2, which no other walk crosses. A
+    /// Prison with no door (a cell on the map's top row) falls back to the free cell tile.</summary>
+    public static int GateTileIn(
         WorldState world, GameDatabase database, PlayerId playerId, TilePos from)
+    {
+        int tile = NearestWithSpace(world, database, playerId, from, out RoomInstance? room);
+        if (tile < 0 || room is null) return -1;
+        int door = JailBreakRules.DoorTile(world, room);
+        return door >= 0 ? door : tile;
+    }
+
+    private static int NearestWithSpace(
+        WorldState world, GameDatabase database, PlayerId playerId, TilePos from, out RoomInstance? prison)
     {
         int best = -1;
         long bestDistance = long.MaxValue;
+        prison = null;
 
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
@@ -271,6 +291,7 @@ public static class PrisonRules
 
                 bestDistance = distance;
                 best = tileIndex;
+                prison = room;
             }
         }
 
