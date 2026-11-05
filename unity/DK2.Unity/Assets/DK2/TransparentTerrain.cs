@@ -396,6 +396,12 @@ namespace DK2.Unity
             _lastCullingMatrix = culling;
         }
 
+        /// <summary>The sorting order that places a blended item at <paramref name="world"/> into the
+        /// last sorted stream: after every run wholly behind it (order i + 1 ties and a later material
+        /// queue wins), before the rest. DK2 depth-sorts every blended triangle, sprites included, in
+        /// one list (0x0057F7E0, 0x0058B9D0); 0 before the first sort.</summary>
+        public int SortingOrderAt(Vector3 world) => _sort.RunsBehind(Vector3.Dot(world, _lastForward));
+
         private static void SetRunDrawRange(Run run, int indexCount)
         {
             run.Mesh.SetSubMesh(0, new SubMeshDescriptor(0, indexCount, MeshTopology.Triangles)
