@@ -9,6 +9,6 @@ namespace DK2.Presentation;
 
 public static class CreatureBurningVisual
 {
-    public static bool ShowsRed(CreatureState creature, CreatureFlags flags) => !flags.HasFlag(CreatureFlags.IsHorny) && creature.BurningTicks != 0
+    public static bool ShowsRed(CreatureState creature, CreatureFlags flags) => !((flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) && creature.BurningTicks != 0
         && creature.FrozenTicks == 0 && creature.PoisonTicks == 0 && creature.InvisibleTicks == 0;
 }

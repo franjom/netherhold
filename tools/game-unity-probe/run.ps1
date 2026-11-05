@@ -12,6 +12,7 @@ param(
     [int]$Seconds = 150,
     [int]$CaptureFrom = 0,
     [int]$CaptureTo = 0,
+    [string]$Markers = '',
     [switch]$SkipSync
 )
 $ErrorActionPreference = 'Stop'
@@ -74,7 +75,7 @@ if (!(Test-Path -LiteralPath $player)) { throw "No player was built; see $run/bu
 Write-Host "Playing $Level for $Seconds s..."
 Run-Native $player @('-batchmode', '-screen-width', '1280', '-screen-height', '720', '-dk2Install', $Install,
     '-level', $Level, '-seed', "$Seed", '-probeSeconds', "$Seconds", '-captureFrom', "$CaptureFrom",
-    '-captureTo', "$CaptureTo", '-probeOutput', $run, '-logFile', "$run/player.log") ([math]::Ceiling($Seconds / 60) + 5) @(0, 2)
+    '-captureTo', "$CaptureTo", '-markers', $(if ($Markers) { $Markers } else { ',' }), '-probeOutput', $run, '-logFile', "$run/player.log") ([math]::Ceiling($Seconds / 60) + 5) @(0, 2)
 if (!(Test-Path -LiteralPath "$run/summary.txt")) { throw "No summary; see $run/player.log" }
 Get-Content -LiteralPath "$run/summary.txt"
 Write-Output $run

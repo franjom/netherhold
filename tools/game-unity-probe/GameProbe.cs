@@ -36,7 +36,7 @@ namespace DK2.Unity
     public sealed class GameProbe : MonoBehaviour
     {
         // name in the CSV, Profiler marker, category
-        private static readonly (string Column, string Marker, ProfilerCategory Category)[] Recorded =
+        private static readonly (string Column, string Marker, ProfilerCategory Category)[] Standard =
         {
             ("main_thread_ms", "Main Thread", ProfilerCategory.Internal),
             ("tick_ms", "DK2.Simulation.Tick", ProfilerCategory.Scripts),
@@ -57,6 +57,10 @@ namespace DK2.Unity
             ("grid_flood_ms", "DK2.Sim.grid.flood", ProfilerCategory.Scripts),
             ("sleep_ms", "DK2.Sim.CreatureSleep", ProfilerCategory.Scripts),
         };
+
+        // The standard columns, then any named with -markers (comma-separated marker names), each
+        // its own column and its own line in the summary: for finding a hotspot inside one.
+        private (string Column, string Marker, ProfilerCategory Category)[] Recorded = Standard;
 
         private const int Tick = 1, Present = 2, Animated = 3, Chunk = 4, ImpTask = 5, Grid = 6, Nav = 7;
 
@@ -116,6 +120,10 @@ namespace DK2.Unity
             // Off unless asked: a full Profiler capture adds overhead to the frames it records.
             _captureFrom = Seconds("-captureFrom", 0);
             _captureTo = Seconds("-captureTo", 0);
+            string extra = Arg("-markers", "");
+            if (extra.Length > 0)
+                Recorded = Standard.Concat(extra.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(m => (m.Trim(), m.Trim(), ProfilerCategory.Scripts))).ToArray();
 
             // Room for every frame at well over the frame cap, made now rather than while measuring.
             int capacity = (int)(_duration * 120) + 1000;
@@ -265,6 +273,12 @@ namespace DK2.Unity
                 $"frames over 33 ms: {rows.Count(i => _rows[i].FrameMs > 33)}; with a tick: {rows.Count(i => _rows[i].Ticks > 0)}; gen-0 collections: {rows.Sum(i => _rows[i].Collections)}; GC allocated {rows.Where(i => _rows[i].GcBytes > 0).Sum(i => _rows[i].GcBytes) / 1048576.0:F1} MB"));
             text.AppendLine(FormattableString.Invariant(
                 $"mean frame without a tick {MeanOf(i => _rows[i].FrameMs, false):F2} ms (present {MeanOf(i => Value(i, Present), false):F2}, animation {MeanOf(i => Value(i, Animated), false):F2}); with a tick {MeanOf(i => _rows[i].FrameMs, true):F2} ms (tick {MeanOf(i => Value(i, Tick), true):F2})"));
+            for (int m = Standard.Length; m < Recorded.Length; m++)
+            {
+                int marker = m;
+                text.AppendLine(FormattableString.Invariant(
+                    $"  {Recorded[m].Marker}: mean without a tick {MeanOf(i => Value(i, marker), false):F3} ms, with a tick {MeanOf(i => Value(i, marker), true):F3} ms"));
+            }
             text.AppendLine("worst frames: frame, play s, frame_ms, ticks, tick, present, animation, chunk rebuild, ImpTask, grid.nearest (calls), nav.refresh, GC KB, collections");
             foreach (int i in rows.OrderByDescending(i => _rows[i].FrameMs).Take(15))
             {

@@ -100,6 +100,53 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     /// </summary>
     public static AssetRef Create(string category, string subject, AssetKind kind, string? variant = null)
     {
+        // Views ask for the same few hundred keys every frame (an effect element per particle, a
+        // door per structure); the first build is kept, so a frame allocates no key it built before.
+        var made = new MadeKey(category, subject, kind, variant);
+        lock (Made)
+            if (Made.TryGetValue(made, out AssetRef known)) return known;
+        AssetRef built = Build(category, subject, kind, variant);
+        lock (Made)
+        {
+            // Names come from the database, so the set is bounded; this only stops a runaway caller.
+            if (Made.Count >= MadeCapacity) Made.Clear();
+            Made[made] = built;
+        }
+        return built;
+    }
+
+    private const int MadeCapacity = 1 << 16;
+    private static readonly Dictionary<MadeKey, AssetRef> Made = new();
+
+    /// <summary><see cref="Create"/>'s arguments, compared ordinally, as the memo's key. The kind is
+    /// held as an int so no comparer boxes an enum.</summary>
+    private readonly struct MadeKey : IEquatable<MadeKey>
+    {
+        private readonly string _category, _subject;
+        private readonly string? _variant;
+        private readonly int _kind;
+
+        public MadeKey(string category, string subject, AssetKind kind, string? variant)
+        {
+            _category = category;
+            _subject = subject;
+            _variant = variant;
+            _kind = (int)kind;
+        }
+
+        public bool Equals(MadeKey other) => _kind == other._kind
+            && string.Equals(_subject, other._subject, StringComparison.Ordinal)
+            && string.Equals(_category, other._category, StringComparison.Ordinal)
+            && string.Equals(_variant, other._variant, StringComparison.Ordinal);
+
+        public override bool Equals(object? obj) => obj is MadeKey other && Equals(other);
+
+        public override int GetHashCode() => unchecked(((((_category?.GetHashCode() ?? 0) * 31)
+            + (_subject?.GetHashCode() ?? 0)) * 31 + (_variant?.GetHashCode() ?? 0)) * 31 + _kind);
+    }
+
+    private static AssetRef Build(string category, string subject, AssetKind kind, string? variant)
+    {
         if (!Categories.Contains(category))
             throw new ArgumentException(
                 $"'{category}' is not a known asset category. Add it to AssetRef if it is real.",

@@ -1171,7 +1171,69 @@ public sealed partial class WorldView
 
     /// <summary>What a floor reads of its whole room: the first slab (<c>room+0x2D</c>), the
     /// Prison's or Combat Pit's door tile, and the wall phases.</summary>
-    private readonly record struct RoomFacts(int FirstX, int FirstY, int DoorTile, int PhaseNorthSouth, int PhaseEastWest);
+    internal readonly record struct RoomFacts(int FirstX, int FirstY, int DoorTile, int PhaseNorthSouth, int PhaseEastWest);
+
+    /// <summary>See <see cref="RoomFactsOf"/>. Compared field by field, so no comparer is asked
+    /// for a nullable (which would box on some runtimes).</summary>
+    internal readonly struct TileRoomFacts
+    {
+        private readonly RoomFacts _facts;
+        private readonly bool _inRoom, _floorSlot;
+
+        public TileRoomFacts(RoomFacts? facts, bool floorSlot)
+        {
+            _facts = facts.GetValueOrDefault();
+            _inRoom = facts.HasValue;
+            _floorSlot = floorSlot;
+        }
+
+        public bool Same(in TileRoomFacts other) =>
+            _inRoom == other._inRoom && _floorSlot == other._floorSlot
+            && _facts.FirstX == other._facts.FirstX && _facts.FirstY == other._facts.FirstY
+            && _facts.DoorTile == other._facts.DoorTile && _facts.PhaseNorthSouth == other._facts.PhaseNorthSouth
+            && _facts.PhaseEastWest == other._facts.PhaseEastWest;
+    }
+
+    /// <summary>All <see cref="TileAt"/> reads of the room facts for one tile: its own room's facts
+    /// and whether it is a checkerboard floor slot. Two equal values mean the tile's view cannot
+    /// differ through the room facts (<see cref="ScenePresenter"/>'s incremental tile pass).</summary>
+    internal TileRoomFacts RoomFactsOf(WorldState world, int tileIndex)
+    {
+        EnsureRooms(world);
+        return FactsOfIndex(tileIndex);
+    }
+
+    /// <summary>Every tile's <see cref="RoomFactsOf"/> against <paramref name="seen"/>: each that
+    /// differs is written back and marked in <paramref name="stale"/>; true if any did.</summary>
+    internal bool MarkChangedRoomFacts(WorldState world, TileRoomFacts[] seen, bool[] stale)
+    {
+        EnsureRooms(world);
+        bool changed = false;
+        for (int i = 0; i < seen.Length; i++)
+        {
+            TileRoomFacts facts = FactsOfIndex(i);
+            if (facts.Same(seen[i])) continue;
+            seen[i] = facts;
+            stale[i] = true;
+            changed = true;
+        }
+        return changed;
+    }
+
+    // Only a room tile can be a checkerboard slot, so the set is asked for those alone.
+    private TileRoomFacts FactsOfIndex(int tileIndex)
+    {
+        int index = _roomOf[tileIndex];
+        return index == 0 ? default : new TileRoomFacts(_roomFacts[index - 1], _checkerSlots.Contains(tileIndex));
+    }
+
+    /// <summary>Whether <see cref="TileAt"/> can answer differently at <paramref name="tick"/> than at
+    /// a tick outside the Sight region's span: the only clock it reads (<see cref="SightRegion.Alpha"/>,
+    /// opaque before its start and after its duration). Room facts are per tick too, but the
+    /// presenter compares those itself (<see cref="RoomFactsOf"/>).</summary>
+    internal bool TileViewsFollowTick(GameTick tick) =>
+        _sightRegion is SightRegion region && tick.Value - region.Start.Value is var elapsed
+        && elapsed >= 0 && elapsed <= region.DurationTicks;
 
     private RoomFacts? FactsAt(WorldState world, int x, int y)
     {
@@ -1249,7 +1311,7 @@ public sealed partial class WorldView
     {
         if (!world.Contains(x, y)) return false;
         TerrainDef terrain = _database.TerrainById(world.Tile(x, y).TerrainId);
-        return terrain.Flags.HasFlag(TerrainFlags.AllowRoomWalls) && (!solid || terrain.IsSolid);
+        return ((terrain.Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls) && (!solid || terrain.IsSolid);
     }
 
     private static bool InRoom(WorldState world, RoomInstance room, int x, int y) =>
@@ -1488,11 +1550,11 @@ public sealed partial class WorldView
         if (!world.Contains(sx, sy) || !world.Contains(dx, dy)) return false;
         if (world.Tile(sx, sy).TerrainId != terrainId) return false;
         TerrainDef behind = _database.TerrainById(world.Tile(dx, dy).TerrainId);
-        return behind.IsSolid && behind.Flags.HasFlag(TerrainFlags.AllowRoomWalls);
+        return behind.IsSolid && ((behind.Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
     }
 
     private bool TakesRoomWalls(WorldState world, int x, int y) =>
-        _database.TerrainById(world.Tile(x, y).TerrainId).Flags.HasFlag(TerrainFlags.AllowRoomWalls);
+        ((_database.TerrainById(world.Tile(x, y).TerrainId).Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
 
     /// <summary>Every creature, in the simulation's own order (which is spawn order).</summary>
     public IEnumerable<CreatureView> Creatures(WorldState world)

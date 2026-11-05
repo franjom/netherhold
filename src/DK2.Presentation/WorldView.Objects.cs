@@ -153,7 +153,7 @@ public sealed partial class WorldView
         _pillarTiles.Clear();
         foreach (ObjectState thing in world.Objects)
             if (!thing.InHand && thing.CarriedByCreatureId < 0 && _database.ObjectById(thing.ObjectTypeId) is { } definition
-                && definition.Flags.HasFlag(ObjectFlags.Pillar))
+                && ((definition.Flags & ObjectFlags.Pillar) == ObjectFlags.Pillar))
                 _pillarTiles.Add(thing.TileIndex);
         for (int i = 0; i < _rooms.Count; i++) Decorate(world, _rooms[i], _roomFacts[i], _decorations);
         foreach (ObjectState thing in world.Objects) DecorateBeside(world, thing, _decorations);
@@ -165,7 +165,7 @@ public sealed partial class WorldView
     private bool BedHidden(WorldState world, ObjectState thing)
     {
         if (thing.ObjectTypeId == HeroBedId || thing.CreatureId <= 0) return false;
-        if (_database.ObjectById(thing.ObjectTypeId) is not { } definition || !definition.Flags.HasFlag(ObjectFlags.TypeLair))
+        if (_database.ObjectById(thing.ObjectTypeId) is not { } definition || !((definition.Flags & ObjectFlags.TypeLair) == ObjectFlags.TypeLair))
             return false;
         if (world.CreatureById(thing.CreatureId) is not { } sleeper) return false;
         return sleeper.Dk2StateId == LairRules.SleepingState && !IsMistressBedEntrance(world, sleeper)
@@ -282,7 +282,7 @@ public sealed partial class WorldView
                     break;
                 default:
                     // Use the stored bed heading; its native random creation draw remains unbuilt.
-                    if (definition is not null && definition.Flags.HasFlag(ObjectFlags.TypeLair))
+                    if (definition is not null && ((definition.Flags & ObjectFlags.TypeLair) == ObjectFlags.TypeLair))
                         heading = thing.Heading;
                     break;
             }

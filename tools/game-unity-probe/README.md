@@ -6,6 +6,13 @@ Plays a campaign level through the production `DungeonRunner` in a standalone
 ```powershell
 & tools/game-unity-probe/run.ps1                       # Level1, seed 1, 150 s
 & tools/game-unity-probe/run.ps1 -Level Level8 -Seconds 300
+# Extra columns, one per marker (unity/README.md#measuring-performance), to find a hotspot inside one:
+& tools/game-unity-probe/run.ps1 -Level Level6a -Seconds 90 -Markers "DK2.present.tiles,DK2.Scene.TorchRefresh"
+# A capture, then its main-thread self time and self GC allocation per sample path, frames with
+# and without a tick, and the worst frames broken down (capture-report.txt; a batchmode Editor
+# reads capture.raw in the scratch project):
+& tools/game-unity-probe/run.ps1 -Level Level6a -Seconds 30 -CaptureFrom 14 -CaptureTo 24
+& tools/game-unity-probe/report-capture.ps1 -RunDirectory <run directory>
 ```
 
 Requires an activated Unity 6000.6.0f1 editor with Windows standalone build support and
@@ -22,7 +29,7 @@ rebuilds and terrain chunks redraw. Each run directory holds:
 
 | File | What |
 |---|---|
-| `summary.txt` | Frame p50/p95/p99/max after the first 2 s of play, frames over 33 ms, mean frame with and without a tick, and the 15 worst frames broken down |
+| `summary.txt` | Frame p50/p95/p99/max after the first 2 s of play, frames over 33 ms, mean frame with and without a tick, each `-Markers` marker's mean with and without a tick, and the 15 worst frames broken down |
 | `frames.csv` | One row per frame: frame time, ticks run, grid searches, GC bytes and collections, and the time of each recorded marker |
 | `capture.raw` | Only with `-CaptureFrom 20 -CaptureTo 50`: a Unity Profiler capture of that window. Open **Window → Analysis → Profiler**, then **Load**, and click a spike. A full capture adds overhead to the frames it records, so read its shape, not its numbers |
 | `player.log`, `build.log` | Unity's logs |

@@ -17,6 +17,7 @@ namespace DK2.Unity
         private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.Animation.MeshUpload");
         private RenderAnimation[] _clips;
         private Mesh[] _meshes;
+        private Mesh[] _templates;
         private Material[][] _materials;
         private System.Numerics.Vector3[][] _samples;
         private Vector3[][] _vertices;
@@ -62,7 +63,7 @@ namespace DK2.Unity
                     return;
                 }
             }
-            Stop();
+            Halt();
             _clock = new RenderAnimationClock(timing, loop, authoredMovementScale, initialMovementSpeed, initialPhase);
             _resourceRevision = _clock.ResourceRevision;
             // The install normalizes the definition's marks by the clip's frame count (0x0048C5D0).
@@ -79,10 +80,19 @@ namespace DK2.Unity
         private void InstallMeshes(RenderAnimation[] clips, Mesh[] templates, Material[][] materials)
         {
             InstallationRevision++;
+            _drawnSegment = null;
+            if (SameClips(clips, templates))
+            {
+                // The copies differ from their templates only in the vertices and bounds Draw writes
+                // before a segment is shown, so a clip started again keeps them.
+                _clips = clips;
+                _materials = materials;
+                return;
+            }
             ReleaseMeshes();
             _clips = clips;
+            _templates = templates;
             _materials = materials;
-            _drawnSegment = null;
             _meshes = new Mesh[3];
             _samples = new System.Numerics.Vector3[3][];
             _vertices = new Vector3[3][];
@@ -182,12 +192,28 @@ namespace DK2.Unity
 
         public void Stop()
         {
+            Halt();
+            ReleaseMeshes();
+        }
+
+        // Stop, but the mesh copies stay for a configure that may reuse them (InstallMeshes).
+        private void Halt()
+        {
             _clock = null;
             _mark1 = _mark2 = 0;
             FootstepCrossing = 0;
             BeatPending = false;
             _pending = null;
-            ReleaseMeshes();
+        }
+
+        private bool SameClips(RenderAnimation[] clips, Mesh[] templates)
+        {
+            if (_meshes == null || _clips == null || _templates == null
+                || clips.Length != _clips.Length || templates.Length != _templates.Length) return false;
+            for (int i = 0; i < clips.Length; i++)
+                if (!ReferenceEquals(clips[i], _clips[i]) || templates[i] != _templates[i]
+                    || (clips[i] != null && _meshes[i] == null)) return false;
+            return true;
         }
 
         private void ReleaseMeshes()
@@ -195,6 +221,7 @@ namespace DK2.Unity
             if (_meshes != null)
                 foreach (Mesh mesh in _meshes) if (mesh != null) Object.Destroy(mesh);
             _meshes = null;
+            _templates = null;
         }
 
         private void OnDestroy()

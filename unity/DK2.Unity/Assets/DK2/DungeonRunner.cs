@@ -342,7 +342,7 @@ namespace DK2.Unity
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             if (_frontEndScenery != null) _worldView.FrontEndScenery = _frontEndScenery;
             _presenter = new ScenePresenter(
-                _worldView, _assets, _scene, new TorchLayout(database));
+                _worldView, _assets, _scene, new TorchLayout(database)) { Profiler = new UnitySimulationProfiler("DK2.") };
             _startup.Step("scene");
             if (_installArt != null)
             {
@@ -656,6 +656,19 @@ namespace DK2.Unity
         private static readonly ProfilerMarker TickMarker = new ProfilerMarker("DK2.Simulation.Tick");
         private static readonly ProfilerMarker WaitTickMarker = new ProfilerMarker("DK2.Simulation.WaitForTick");
         private static readonly ProfilerMarker PresentMarker = new ProfilerMarker("DK2.Scene.Present");
+        // The rest of the frame's own work, so no long stretch of Update is unaccounted for.
+        private static readonly ProfilerMarker FrameSoundMarker = new ProfilerMarker("DK2.Frame.WorldSound");
+        private static readonly ProfilerMarker FrameSpeechMarker = new ProfilerMarker("DK2.Frame.Speech");
+        private static readonly ProfilerMarker FrameReportMarker = new ProfilerMarker("DK2.Frame.StartupReport");
+        private static readonly ProfilerMarker FrameScriptMarker = new ProfilerMarker("DK2.Frame.Script");
+        private static readonly ProfilerMarker FrameMinimapMarker = new ProfilerMarker("DK2.Frame.Minimap");
+        private static readonly ProfilerMarker FrameLightsMarker = new ProfilerMarker("DK2.Frame.Lights");
+        private static readonly ProfilerMarker FrameEffectsAdvanceMarker = new ProfilerMarker("DK2.Frame.EffectsAdvance");
+        private static readonly ProfilerMarker FrameLookMarker = new ProfilerMarker("DK2.Frame.Look");
+        private static readonly ProfilerMarker FrameHudMarker = new ProfilerMarker("DK2.Frame.Hud");
+        private static readonly ProfilerMarker FrameHoverMarker = new ProfilerMarker("DK2.Frame.Hover");
+        private static readonly ProfilerMarker FrameFlowersMarker = new ProfilerMarker("DK2.Frame.Flowers");
+        private static readonly ProfilerMarker FrameJournalMarker = new ProfilerMarker("DK2.Frame.Journal");
         private readonly FrameElapsedClock _frameElapsed = new FrameElapsedClock();
 
         private EffectAttachment ResolveCreatureEffect(WorldState world, CreatureId id, uint point)
@@ -702,8 +715,9 @@ namespace DK2.Unity
             if (_simulation == null || _failure != null) return;
             if (Camera.main != null) Camera.main.transform.position -= _appliedCameraJitter;
             _appliedCameraJitter = Vector3.zero;
-            _soundPlayer?.UpdateSpeech((long)(Time.unscaledTimeAsDouble * 1000));
+            using (FrameSpeechMarker.Auto()) _soundPlayer?.UpdateSpeech((long)(Time.unscaledTimeAsDouble * 1000));
             if (_frontEnd != null) { if (!UpdateStartup() && !UpdateCutscene()) UpdateFrontEnd(); return; }
+            FrameReportMarker.Begin();
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
             else if (_classic?.Breakdown != null)
@@ -712,17 +726,19 @@ namespace DK2.Unity
                 string hitch = _hitches.Frame(Time.unscaledDeltaTime * 1000d, _classic.Breakdown, _installArt, _simulation.World.CurrentTick.Value);
                 if (hitch != null) Debug.LogWarning(hitch);
             }
+            FrameReportMarker.End();
 
             // The tick started at the end of the last frame, if any, has the world until it is done.
             WaitForTick();
             if (_simulation == null) return;
-            UpdateWorldSound(_simulation.World, _simulation.Database);
+            using (FrameSoundMarker.Auto()) UpdateWorldSound(_simulation.World, _simulation.Database);
             double elapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: Time.deltaTime, maximumDeltaSeconds: Time.maximumDeltaTime, timeScale: Time.timeScale);
 
             // The path is placed by the last tick run plus the debt toward the next, the clock
             // condition 72 counts, so the script's next path follows it. On the worker path that
             // is the world this frame draws; on the main thread this frame's ticks come after.
+            FrameScriptMarker.Begin();
             _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
                 _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d),
                 _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0
@@ -730,7 +746,9 @@ namespace DK2.Unity
             UpdateWinScreenPreview();
             // ClassicHudControls.UpdateResult (0x004039A0) is fed only for a level launched from the front
             // end, where Space leaves the result; elsewhere suppressing input would strand the player.
-            if (UpdateCampaignResult()) return;
+            bool result = UpdateCampaignResult();
+            FrameScriptMarker.End();
+            if (result) return;
             using (InputMarker.Auto())
             {
                 ApplyLetterbox();
@@ -815,7 +833,7 @@ namespace DK2.Unity
                 _gemIdleEffects.Collect(_simulation.World, _gemIdleRequests);
                 for (int i = 0; i < _gemIdleRequests.Count; i++) _constructionEffects.Model.Request(_gemIdleRequests[i]);
             }
-            _minimap?.Capture(_simulation.World, _worldView, _simulation.Navigation);
+            using (FrameMinimapMarker.Auto()) _minimap?.Capture(_simulation.World, _worldView, _simulation.Navigation);
             double preparedElapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: 0, maximumDeltaSeconds: Math.Max(0, Time.maximumDeltaTime - elapsed), timeScale: Time.timeScale);
             if (speed > 0f && !_hudControls.OptionsVisible) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed * (_gameSettings.GameSpeed / 4.0);
@@ -852,14 +870,19 @@ namespace DK2.Unity
                 Camera.main.transform.position += _appliedCameraJitter;
             }
             RefreshEffectCamera();
+            FrameLightsMarker.Begin();
             _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
-            if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
+            FrameLightsMarker.End();
+            using (FrameEffectsAdvanceMarker.Auto())
+                if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             // The pick is last frame's: the hover is captured after the HUD is drawn, below.
             _scene.SetHandLight(_handLight);
             // After the camera is placed, so a path's first and last frames take the right fade.
+            FrameLookMarker.Begin();
             ApplyClassicLook();
             _fullMap?.PreparePreview();
+            FrameLookMarker.End();
             if (_classicCamera != null)
                 _scene.PrepareClassicLighting(Camera.main,
                     _scriptedView.Pose is CameraPathPose path ? path.ViewDistance : _classicCamera.NativeViewDistance,
@@ -871,15 +894,15 @@ namespace DK2.Unity
             _lightning?.DrawEffects();
             _lightning?.EndFrame();
             _minimap?.SetVisibility(CurrentHud);
-            _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
-            DrawHudControls();
-            CaptureWorldHover();
-            DrawStatusFlowers();
+            using (FrameMinimapMarker.Auto()) _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
+            using (FrameHudMarker.Auto()) DrawHudControls();
+            using (FrameHoverMarker.Auto()) CaptureWorldHover();
+            using (FrameFlowersMarker.Auto()) DrawStatusFlowers();
             if (showDiagnostics) RefreshDiagnostics();
 
             // Nothing on this thread reads the world again before the next Update's wait: OnGUI
             // reads the strings built above, and Simulation's getter waits.
-            JournalTicks(ticks);
+            using (FrameJournalMarker.Auto()) JournalTicks(ticks);
             if (ticks > 0 && tickOnWorkerThread)
             {
                 int count = ticks;

@@ -55,7 +55,12 @@ namespace DK2.Unity
             _torchFlames?.Dispose();
             _torchFlames = new ClassicTorchFlames(_root, _lattice, sprites, clock ?? (() => HeartEffectClock()));
         }
-        private bool _torchGeometryDirty;
+        // Tiles pushed since the torches were last bent: the lattice forgets the cells within one of
+        // a pushed tile (TerrainChunks.TrySet), and a torch reads the cells within one of its wall
+        // (TerrainLattice.Deform), so only a torch within two of a pushed tile can bend differently.
+        private bool[] _latticeTouched;
+        private bool _anyLatticeTouched;
+        private readonly Dictionary<int, ClassicTorchGeometry> _torchGeometry = new Dictionary<int, ClassicTorchGeometry>();
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
@@ -409,6 +414,7 @@ namespace DK2.Unity
             _lattice = lattice;
             _worldWidth = worldWidth;
             _worldHeight = worldHeight;
+            _latticeTouched = new bool[worldWidth * worldHeight];
             _classic = classic;
             if (classic != null && creatureShadows) _creatureShadows = new ClassicCreatureShadows(root);
             if (classic != null && classic.UsesClassicVertexLighting)
@@ -432,7 +438,8 @@ namespace DK2.Unity
             _worldLights?.SetTerrain(tile.Position, tile.PointLight);
             // Revealed ground (Sight, the claim scan) is as bright as explored ground (owner 2026-10-21).
             _tileFill?.Set(tileIndex, tile.Explored || tile.Scanned || tile.PointLight.HasValue);
-            _torchGeometryDirty = true;
+            _latticeTouched[tileIndex] = true;
+            _anyLatticeTouched = true;
             // Steps 1 and 2 of the classic look: plain terrain and rooms from their pieces. A room
             // drawn so needs no furniture box; its objects are step 3.
             _liquids?.Set(tileIndex, tile);
@@ -489,9 +496,19 @@ namespace DK2.Unity
         }
 
         private static readonly ProfilerMarker CreateCreatureMarker = new ProfilerMarker("DK2.Scene.CreateCreature");
+        private static readonly ProfilerMarker UpdateCreatureMarker = new ProfilerMarker("DK2.Scene.UpdateCreature");
+        private static readonly ProfilerMarker CreatureClipMarker = new ProfilerMarker("DK2.Scene.CreatureClip");
+        private static readonly ProfilerMarker UpdateObjectMarker = new ProfilerMarker("DK2.Scene.UpdateObject");
+        private static readonly ProfilerMarker ObjectClipMarker = new ProfilerMarker("DK2.Scene.ObjectClip");
+        private static readonly ProfilerMarker ObjectRestoreMarker = new ProfilerMarker("DK2.Scene.ObjectRestore");
+        private static readonly ProfilerMarker TexturePhaseMarker = new ProfilerMarker("DK2.Scene.TexturePhase");
+        private static readonly ProfilerMarker FrameCreaturesMarker = new ProfilerMarker("DK2.Scene.FrameCreatures");
+        private static readonly ProfilerMarker FrameObjectsMarker = new ProfilerMarker("DK2.Scene.FrameObjects");
+        private static readonly ProfilerMarker FrameLightningMarker = new ProfilerMarker("DK2.Scene.FrameLightning");
 
         public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
+            using var updateScope = UpdateCreatureMarker.Auto();
             if (_creatureArt.TryGetValue(creatureId, out AssetRef previous) && previous != mesh.Reference)
                 RemoveCreature(creatureId, keepHead: true);
             if (!_creatures.TryGetValue(creatureId, out GameObject go) || go == null)
@@ -550,6 +567,7 @@ namespace DK2.Unity
             AssetRef clip = creature.PlaysAnimation ? animation.Reference : default;
             var identity = (clip, creature.AnimationStartedAt, creature.AnimationLoops, creature.AnimationDeferred);
             if (_creatureClips.TryGetValue(id, out var previous) && previous == identity) return;
+            using var clipScope = CreatureClipMarker.Auto();
             _creatureClips[id] = identity;
             ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
             double startSeconds = creature.AnimationStartedAt.HasValue
@@ -600,6 +618,7 @@ namespace DK2.Unity
                     if (heart.Value.HeartVisual.HasValue && heart.Value.OwnerPlayerId == advance.Owner
                         && _objects.TryGetValue(heart.Key, out GameObject heartObject) && heartObject != null)
                         heartObject.GetComponent<ClassicCreatureAnimation>()?.AdvanceHealthPhase(advance.Step);
+            FrameCreaturesMarker.Begin();
             foreach (KeyValuePair<int, CreatureView> entry in _creaturePoses)
             {
                 if (!_creatures.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
@@ -617,7 +636,9 @@ namespace DK2.Unity
                 if (player != null && player.FootstepCrossing != 0 && CreatureFootstepRequested != null)
                     CreatureFootstepRequested(entry.Key, pose, player.FootstepCrossing, go.transform.position);
                 if (pose.BurningRed) DrawHoverOverlay(new WorldHoverHit(WorldHoverKind.Creature, pose.Tile, entry.Key));
+                FrameLightningMarker.Begin();
                 Lightning?.DrawCreature(new CreatureId(entry.Key), tick, player);
+                FrameLightningMarker.End();
                 _creatureHeads[entry.Key] = player != null
                     && player.TryGetControlPoint(DK2.Art.Kmf.KmfControlPoint.Head, out Vector3 head)
                         ? new FpPosition3(new Fp32((int)(head.x * Fp32.One)), new Fp32((int)(-head.z * Fp32.One)),
@@ -639,6 +660,8 @@ namespace DK2.Unity
                     }
                 }
             }
+            FrameCreaturesMarker.End();
+            FrameObjectsMarker.Begin();
             foreach (KeyValuePair<int, ObjectView> entry in _objectPoses)
             {
                 if (!_objects.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
@@ -668,13 +691,25 @@ namespace DK2.Unity
                                 new Fp32(pose.PosY), new Fp32(pose.Height))));
                 }
             }
-            if (_torchGeometryDirty)
+            FrameObjectsMarker.End();
+            if (_anyLatticeTouched)
             {
-                foreach (GameObject torch in _torches.Values)
-                    if (torch != null && torch.transform.childCount > 0)
-                        torch.transform.GetChild(0).GetComponent<ClassicTorchGeometry>()?.Refresh();
-                _torchGeometryDirty = false;
+                using (TorchRefreshMarker.Auto())
+                    foreach (ClassicTorchGeometry geometry in _torchGeometry.Values)
+                        if (geometry != null && LatticeTouchedNear(geometry.Wall)) geometry.Refresh();
+                System.Array.Clear(_latticeTouched, 0, _latticeTouched.Length);
+                _anyLatticeTouched = false;
             }
+        }
+
+        private static readonly ProfilerMarker TorchRefreshMarker = new ProfilerMarker("DK2.Scene.TorchRefresh");
+
+        private bool LatticeTouchedNear(TilePos wall)
+        {
+            for (int y = Mathf.Max(0, wall.Y - 2); y <= Mathf.Min(_worldHeight - 1, wall.Y + 2); y++)
+                for (int x = Mathf.Max(0, wall.X - 2); x <= Mathf.Min(_worldWidth - 1, wall.X + 2); x++)
+                    if (_latticeTouched[(y * _worldWidth) + x]) return true;
+            return false;
         }
 
         public void SetPortalLights(IReadOnlyList<TilePos> requests)
@@ -722,6 +757,7 @@ namespace DK2.Unity
 
         public void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
         {
+            using var updateScope = UpdateObjectMarker.Auto();
             if (!_objects.TryGetValue(objectId, out GameObject go) || go == null)
             {
                 if (!(_artless.TryGetValue(objectId, out AssetRef asked) && asked == mesh.Reference))
@@ -730,7 +766,8 @@ namespace DK2.Unity
             }
 
             PositionObject(go, objectId, instance, mesh.Look);
-            ConfigureObjectClip(go, objectId, instance, mesh);
+            using (ObjectClipMarker.Auto()) ConfigureObjectClip(go, objectId, instance, mesh);
+            using var phaseScope = TexturePhaseMarker.Auto();
             if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase, instance.AddedLight);
             else if (instance.TexturePhase is Fp32 phase) _classic?.ConfigureTexturePhase(go, mesh, phase, instance.AddedLight);
             if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
@@ -742,6 +779,7 @@ namespace DK2.Unity
             {
                 _objectPoses[id] = pose;
                 if (_objectClips.Remove(id)) go.GetComponent<ClassicCreatureAnimation>()?.Stop();
+                using var restoreScope = ObjectRestoreMarker.Auto();
                 if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh, pose.AddedLight);
                 return;
             }
@@ -837,7 +875,7 @@ namespace DK2.Unity
             if (model != null)
             {
                 model.transform.SetParent(go.transform, false);
-                if (deform) model.AddComponent<ClassicTorchGeometry>();
+                if (deform) _torchGeometry[floorTileIndex] = model.AddComponent<ClassicTorchGeometry>();
             }
             ApplyTorchPose(go, torch);
             Light light = go.AddComponent<Light>();
@@ -875,6 +913,7 @@ namespace DK2.Unity
                 Object.Destroy(go);
 
             _torches.Remove(floorTileIndex);
+            _torchGeometry.Remove(floorTileIndex);
             _torchLights?.Remove(floorTileIndex);
             _worldLights?.SetTorch(new TilePos(floorTileIndex % _worldWidth, floorTileIndex / _worldWidth), null);
             _creatureShadows?.RemoveTorch(floorTileIndex);
@@ -1047,6 +1086,7 @@ namespace DK2.Unity
             _artless.Clear();
             _meshCreatures.Clear();
             _torches.Clear();
+            _torchGeometry.Clear();
         }
 
         private void ApplyFurniture(int tileIndex, in TileView tile, in ResolvedAsset furniture)

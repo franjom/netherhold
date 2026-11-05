@@ -17,6 +17,10 @@ namespace DK2.Unity
     {
         private ProfilerMarker[] _markers = new ProfilerMarker[64];
         private bool[] _made = new bool[64];
+        private readonly string _prefix;
+
+        /// <param name="prefix">Put before each marker name: the simulation's spans are <c>DK2.Sim.</c>.</param>
+        public UnitySimulationProfiler(string prefix = "DK2.Sim.") => _prefix = prefix;
 
         public void Begin(SimulationMarker marker)
         {
@@ -29,7 +33,7 @@ namespace DK2.Unity
             }
             if (!_made[id])
             {
-                _markers[id] = new ProfilerMarker(ProfilerCategory.Scripts, "DK2.Sim." + marker.Name);
+                _markers[id] = new ProfilerMarker(ProfilerCategory.Scripts, _prefix + marker.Name);
                 _made[id] = true;
             }
             _markers[id].Begin();
