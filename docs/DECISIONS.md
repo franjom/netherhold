@@ -15451,3 +15451,5 @@ twelve callers (doors, traps, Training, Temple mana, payday, Casino and the rest
 computer-keeper build are not wired.
 
 **Consequences.** Events only: no world state, so hash/save 408 and the determinism pin are unchanged.
+The owner accepted the sale and build numbers in play on 2026-11-05, once effect billboards were drawn
+upright (their v had run the wrong way for every effect sprite).
