@@ -163,7 +163,8 @@ the selected tile is unconfirmed and is not added.
   | +0xA36F | 0x006FCD77 | BlueTexture | 3, the tag highlight |
   | +0xA373 | — | RedTexture | 1 |
 
-  The table runs on after +0xA373; that part is unread. STRONGLY INFERRED.
+  +0xA377 is BlueTexture, kind 1 ([structure-drawing.md §5](structure-drawing.md#5-blueprint-drawing-2026-11-05)); the table
+  runs on after it, unread. STRONGLY INFERRED.
 - **Material names.** Kind 1 names the material "S_<tex>", kind 2 "A_<tex>" and
   kind 3 "AA_<tex>". The kind sets material flags 0, 4 and 0x10 (0x0059A6A0). So
   the tag overlay is the material **"AA_BlueTexture"**, built on the texture
