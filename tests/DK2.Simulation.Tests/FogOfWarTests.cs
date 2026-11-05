@@ -172,6 +172,50 @@ public sealed class FogOfWarTests
         Assert.Equal(open, world.Tile(15, 10).IsDiscoveredBy(1));
     }
 
+    /// <summary>0x004511A0 tests the navigation byte's door nibble first (0x004528E0), and only a
+    /// closed, completed door writes one: sight goes through an open door and a blueprint.</summary>
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    public void OnlyAClosedCompletedDoorHidesTheGroundBeyondIt(bool open, bool blueprint, bool seen)
+    {
+        (GameDatabase db, WorldState world, _) = FogWorld();
+        OpenInterior(world);
+        for (int y = 0; y < world.Height; y++) world.Tile(11, y).TerrainId = 1;
+        world.Tile(11, 10).TerrainId = Dk2TerrainFixture.DirtPath;
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20])
+        {
+            X = 11, Y = 10, PlayerId = 1, DoorId = 1, Unknown_0011 = new byte[3],
+        }]);
+        world.Doors[0].Open = open;
+        world.Doors[0].UnderConstruction = blueprint;
+
+        new GameSimulation(db, world, 1, [new FogOfWarSystem()]).Tick();
+
+        Assert.True(world.Tile(11, 10).IsExploredBy(1), "the door's own tile is always seen");
+        Assert.Equal(seen, world.Tile(12, 10).IsExploredBy(1));
+        Assert.Equal(seen, world.Tile(13, 10).IsExploredBy(1));
+    }
+
+    [Fact]
+    public void ABarricadeNeverHidesTheGroundBeyondIt()
+    {
+        (GameDatabase db, WorldState world, _) = FogWorld();
+        OpenInterior(world);
+        for (int y = 0; y < world.Height; y++) world.Tile(11, y).TerrainId = 1;
+        world.Tile(11, 10).TerrainId = Dk2TerrainFixture.DirtPath;
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20])
+        {
+            X = 11, Y = 10, PlayerId = 1, DoorId = 6, Unknown_0011 = new byte[3],
+        }]);
+        world.Doors[0].UnderConstruction = false;
+
+        new GameSimulation(db, world, 1, [new FogOfWarSystem()]).Tick();
+
+        Assert.True(world.Tile(12, 10).IsExploredBy(1));
+    }
+
     [Fact]
     public void NativePerTermRoundingIncludesThisNearBoundaryTile()
     {

@@ -102,11 +102,11 @@ stands on the target's tile.
 ## 4. Sight
 
 Line walker `0x004512F0(a, b, f1, f2)` asks `0x004511A0(x, y, f1, f2)` per tile; every scan
-passes `f2 = 1`. A navigation byte with bit 3 (Solid) blocks. With `f1 = 0` a door thing on
-the tile blocks unless it is a barricade (`def+0x8B` bit 6); the test reads the thing chain,
-not the open word or the construction word, so an open door and a blueprint stop sight too.
-With `f1 = 1` and `f2 = 1` no door blocks, only Solid. Ours read the door from the
-navigation byte, so an open door was transparent, until ADR-0318.
+passes `f2 = 1`. A navigation byte with bit 3 (Solid) blocks. With `f1 = 0` a door blocks only
+while the tile's navigation byte carries a door owner (`0x004528E0` tests that nibble first), which
+a closed, completed door writes; then a door thing blocks unless it is a barricade (`def+0x8B` bit 6).
+An open door and a blueprint leave floor, so they let sight through (corrected 2026-11-05, ADR-0683;
+ADR-0318 had them block). With `f1 = 1` and `f2 = 1` no door blocks, only Solid.
 
 ## 5. The swing and other damage
 

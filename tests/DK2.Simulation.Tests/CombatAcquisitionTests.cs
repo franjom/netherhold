@@ -270,6 +270,33 @@ public class CombatAcquisitionTests
         Assert.True(sight.Blocks(0, 0), "the impenetrable border is solid");
     }
 
+    /// <summary>0x004528E0 reads the navigation byte's door nibble before the thing chain, and an
+    /// open door or a blueprint leaves floor there: neither stops sight (door-blocking.md section 4).</summary>
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void AnOpenDoorAndABlueprintDoNotBlockSight(bool open, bool blueprint)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        ThingProjection.Place(world, db,
+            [new DoorThing(new byte[20]) { X = 6, Y = 5, PlayerId = Rival, Flags = 0, DoorId = 1, Unknown_0011 = new byte[3] }]);
+        world.Doors[0].UnderConstruction = blueprint;
+        var navigation = new Navigation.WorldSteering(db, world);
+        navigation.Refresh();
+        var sight = new WorldSight(navigation, world, db);
+        Assert.True(sight.Blocks(6, 5) == !blueprint);
+
+        world.Doors[0].Open = open;
+        navigation.Refresh();
+        Assert.False(sight.Blocks(6, 5));
+        Assert.True(sight.DoorOn(6, 5), "the reach test still finds the door thing");
+        Assert.True(LineOfSight.Clear(sight, Centre(5), Centre(5), Centre(7), Centre(5)));
+
+        world.Doors[0].Open = false;
+        world.Doors[0].UnderConstruction = false;
+        Assert.True(sight.Blocks(6, 5), "closing it is seen at once, with no change of the door list");
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static int Centre(int tile) => CreatureState.CentreOf(tile);
