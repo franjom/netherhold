@@ -151,7 +151,7 @@ public class EffectChainTests
 
     /// <summary>Q609: the sprites ADR-0493's lit draw got wrong (the Heart's dust 381, static 383, sparkles 384 and
     /// 408, the claim mist 142 and 143) are additive in the shipped data, so DK2 never lights them.</summary>
-    [Fact]
+    [InstallFact]
     public void TheSpritesThatLookedWrongLitAreAdditiveAndStayUnlit()
     {
         GameDatabase database = DK2.Data.GameDatabaseLoader.Load(Dk2InstallGate.Path);
