@@ -15906,3 +15906,27 @@ systems leave a fleeing creature alone. State 221 is the new `RunningFromThreat`
   the needs and anger checks DK2 runs in states 6 and 221; an Imp's task release by its state hooks.
 
 STRONGLY INFERRED from the disassembly. Records `00488930` and `0045C5D0` hold the detail.
+
+## ADR-0679: a closed door pushes creatures off its tile, through the physical pass
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 423. · **Systems:** doors-traps, creatures
+
+**Context.** Owner report, Level 6a: Imps standing on a barricade when it is completed stay trapped in it;
+in DK2 they are pushed out. Door update `0x004A55F0` step 4 pushes, and it comes before the barricade's
+early return, so a barricade pushes too. Ours had no push and no persistent creature velocity.
+
+**Decision.** `DoorHealthSystem` runs `DoorPushRules` at step 4, after the owner test: for a closed, built
+door every creature on its tile gets `0x80` added to its persistent velocity, away from a point the shut
+neighbours move (`0x004B1F20`). `CreaturePhysicsRules` is the physical pass's persistent arm
+(`0x004B2030`), run in the creature's movement step: sub-steps of a sixteenth, reflect-and-halve at a wall
+or door body, a commit that drops `CreatureDef.AirFriction` (file `+0xEAC`, 327) of the vector.
+`DoorRules.BlocksAt` is `0x004529A0`. Rules and addresses: [door-push.md](research/door-push.md).
+
+**Consequences.**
+- New saved and hashed fields: `CreatureState.PhysicalVelocityX/Y` (`+0x104/+0x108`). Earlier saves are refused.
+- A creature 0x300 off a barricade's centre leaves its tile on the 24th turn (33rd from 0x10): 6 to 8 game
+  seconds, against the owner's recollection of a couple.
+- Not built: the vertical and temporary vectors in the pass (their callers keep their own code), the lock
+  mode 3 shove, the creature terrain test of the commit.
+
+STRONGLY INFERRED from the disassembly. Records `004A55F0`, `004B1F20`, `004B2030`, `004529A0` hold the detail.
