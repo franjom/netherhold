@@ -224,7 +224,7 @@ The corner callback pairs are: upper left `0x0041A2B0`/none; upper right
 `0x004163F0`/none; lower right `0x00416480`/`0x00416580`; lower left
 `0x00428710`/none. The lower-right callbacks increment/decrement signed zoom,
 clamped to -1..4. Crossing into 0 or -1 updates the interface mode and whole-map
-rectangle. Their selection cleanup is described below. The other corners
+rectangle. Each posts the GUI button (0, 0xFD) (ADR-0670), described below. The other corners
 select mode 10, select mode 4, and toggle message-like widget visibility;
 their complete panel behaviour is not implemented by displaying the artwork.
 
@@ -367,7 +367,7 @@ the standard mouse button 0/1 layout, making default F0-left/F1-right
 **STRONGLY INFERRED**; concrete device-format setup is not yet checked.
 `0x005DD560` swaps F0/F1 when its receiver byte +0x60 is set.
 
-Zoom tails call selection cleanup and clear a queued selection only when its
+Zoom tails post the GUI button (0, 0xFD) and clear a queued selection only when its
 descriptor's first byte is zero and second byte matches the widget argument.
 Entering zoom 0 or whole-map -1 also changes the interface minimap mode and
 refreshes the map rectangle. These are UI operations, not simulation zoom rules.

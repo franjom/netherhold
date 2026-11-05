@@ -128,7 +128,7 @@ Shift), 2 for 0x1D/0x9D (Ctrl), 4 for 0x38/0xB8 (Alt); the click tests `== 1`, s
 Shift+Ctrl or Shift+Alt is an ordinary click.
 
 **A click on tab `c`**, in order:
-1. if the click has a widget id, the common selection-cleanup request `0x00422600(0, id)`;
+1. if the click has a widget id, the GUI button `0x00422600(0, id)`, trigger event 53 (ADR-0670);
 2. if the panel is collapsed (`+0x109 == 0`): expand it through 0x004167D0(0,0), which
    restores the remembered menus, and play `0x138` from bank `[0x006AC8C4 + 0x30n]`
    (n = 1/2/3/4 for FB/FA/F9/F8). An expanded panel plays nothing here;

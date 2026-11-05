@@ -146,8 +146,8 @@ rest reads off in order.
 | 40 / 41 | tag / untag for digging | a tile rectangle |
 | 47 | build a room | room type, then the drag rectangle |
 | 49 | sell | a tile rectangle |
-| 50 | place a trap | tile, then the trap type |
-| 52 | place a door | tile, then the door type |
+| 50 | place a door | tile, then the door type |
+| 52 | place a trap | tile, then the trap type |
 | 54 | cast a spell at a place | spell id, then a world position |
 | 55 | cast a spell on a creature | spell id, then a thing id |
 | 25 | the per-turn stream while possessing | the possessed position |
@@ -156,14 +156,15 @@ rest reads off in order.
 | 59 | take gold into the hand | thing id |
 | 61 | drop what the hand holds | a world position |
 | 62 | slap | thing id |
-| 114 | select a category and an item | the `Availability` pair |
+| 114 | GUI button pressed (trigger event 53, ADR-0670) | the (category, id) pair |
 | 92 | the window lost or regained focus | 1 leaving, 0 returning |
 
 **`114` is the key that checks all the others.** Every placement is preceded by
-a `114`, and its two arguments are exactly the `Availability` enum that
-`kwd-variables.md` derived from level data: kind **1 rooms, 3 traps, 4 doors, 5
-keeper spells** (0 is the built-in tools). The pairing is total - all 11 traps
-follow a `(3, ...)`, all 7 doors follow a `(4, ...)`, and the item id repeats
+a `114`, the panel click that selected it (`0x00422600`, ADR-0670), whose two
+arguments are the GUI categories: **1 rooms, 3 doors, 4 traps, 5 keeper spells**
+(0 is a HUD widget); not the `Availability` enum, which numbers traps 3 and doors 4.
+The pairing is total - all 11 doors follow a `(3, ...)`, all 7 traps follow a
+`(4, ...)` (corrected 2026-11-05: 50 places a door, 52 a trap), and the item id repeats
 inside the placement itself. That makes four independent confirmations, none of
 them from reading commands off in order:
 
@@ -185,10 +186,10 @@ them from reading commands off in order:
 
 **The stream looks like intent, not outcome.** Only one trap type and one door
 type were ever selected, both id 3 - `Sentry Trap` and `Braced Door` - yet there
-are **11 trap placements and 7 door placements on 18 distinct tiles**, while the
-owner reports building 4-5 doors and says several of the traps they placed never
-got built for want of a manufactured one. So a placement the game goes on to
-refuse appears to be recorded anyway. Not settled: a 30-second recording that
+are **11 door placements and 7 trap placements on 18 distinct tiles**, while the
+owner reports building 4-5 doors. So a placement the game goes on to refuse, or
+a door blueprint never filled, appears to be recorded anyway (the owner's account
+of traps left unbuilt for want of a manufactured one predates the 50/52 swap). Not settled: a 30-second recording that
 places a trap with nothing manufactured would say outright whether a refused
 placement still writes a command. It matters for anything that reads these
 commands as state changes.

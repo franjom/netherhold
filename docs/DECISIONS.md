@@ -15596,3 +15596,36 @@ re-banks the rest. A Heart's slot `+0x09` is the stub `0x00401200`. Unbuilt: the
 or conversion (`0x004EC900`: absorb, free, `0x004E4480`), where ours banks along the merged room in
 `Recapture` instead; and the level load, which DK2 builds through `Room_AddTile` (`0x004C5C30`) and
 ours through `AsLoaded`, the order of tiles and things there unread.
+
+## ADR-0670: a bottom-panel click posts DK2's GUI-button action, which fires trigger event 53
+
+**Date:** 2026-11-05. **Status:** accepted. · **Systems:** campaign-triggers, hud-front-end
+
+**Context.** `0x00422600`, which the HUD's click callbacks call, is not a selection cleanup: it posts
+game action 0x72 with a (category, id) pair and the viewing player through the session's command
+queue (`0x004346E0`, `0x00527130`), so it travels in the turn packet. Its handler `0x00513EB0`
+(registered at `0x005124BF`) fires player trigger event 53 with the pair (`Trigger_FirePlayerEvent`
+`0x004C7A50`). Shipped levels carry 159 type-53 records: Mentor hints, flags and parties, most in the
+My Pet Dungeon maps. The pair is the FlashButton target's: 1 room, 3 door, 4 trap, 5 spell, 0 a HUD
+widget. Ours had event 53 built but nothing posting it, and the packet log dropped 114.
+
+**Decision.** `GuiButtonCommand(player, category, id)`, journal tag 35, fires event 53 from the
+turn's commands before the trigger walk. The bottom panel posts it through `GuiButtonPairs`: on a
+selecting primary click, (1, room) unless the room only clears the tool (`0x00410860`), (5, spell)
+(`0x00411140`), (3, door) and (4, trap) (`0x00410BC0`); on a right click of a visible slot, (1, room)
+(`0x004118B0`) and (4, kind) for doors and traps alike: the door cycle `0x00416150` pushes 4, so a door
+of kind k fires trap k's event. DK2's quirk, kept. `PacketLog` decodes 114.
+
+Category 0 is the pressed widget's `+0x74`: the tabs 0xF8/0xFB/0xFA/0xF9 (`0x00416C20`), Resize
+Panel 0xF7 (`0x004167D0`), Sell 0xFF, the query tool 1, the minimap magnifier 0xFD on either click
+(primary zooms in, secondary out); ours posts each from its control. The targets are typed
+(`GuiButtonCategory`, `GuiButtonTarget`). The packet log drops a 114 whose value exceeds a byte,
+which no record can match. Hash/save 414: replays of native captures now fire type-53 records.
+
+**Consequences.** Scripted hints and flags tied to panel clicks now fire. Not built: the Hero ToolBox
+(menu 44: continual invasion 241, single 244, zoom 245; `0x00426CA0`, `0x00426C10`), whose ids the
+shipped mpd maps key on, and the flip of world `+0x72B2` (`0x00511610`) that event 53 makes for
+(0, 0xF1). Deviations: DK2 fires a type-0 widget's callback on the button-down edge (`0x00529BD0`),
+ours on release inside the control; a click ours refuses on an unknown slot posts nothing, where
+DK2's room, spell and Workshop callbacks test no availability 2. DK2 also runs a turn's actions in
+packet order, ours groups them by type.

@@ -26,6 +26,7 @@ public static class CommandCodec
                 Tile(w, c.Press); Tile(w, c.Release); break;
             case SellRoomCommand { Mode: RoomSellMode.PlayerWave } c: Head(w, 34, c); Tile(w, c.Min); Tile(w, c.Max); break;
             case SellRoomCommand c: Head(w, 3, c); Tiles(w, c.Tiles); break;
+            case GuiButtonCommand c: Head(w, 35, c); w.Write((byte)c.Target.Category); w.Write(c.Target.Id); break;
             case CreateImpCommand c:
                 Head(w, 4, c);
                 w.Write(c.Position.HasValue);
@@ -114,6 +115,7 @@ public static class CommandCodec
             32 => new ActivateSpecialCommand(player, r.ReadInt32(), r.ReadInt32()),
             33 => new WithdrawCounterGoldCommand(player, new GoldAmount(r.ReadInt32())),
             34 => ReadSellWave(r, player),
+            35 => new GuiButtonCommand(player, new GuiButtonTarget((GuiButtonCategory)r.ReadByte(), r.ReadByte())),
             _ => throw new InvalidDataException($"Unknown command tag {tag} in the journal."),
         };
     }

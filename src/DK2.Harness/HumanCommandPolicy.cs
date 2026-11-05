@@ -61,6 +61,8 @@ public static class HumanCommandPolicy
         [typeof(PlaceDoorCommand)] = HumanCommandClass.Play,
         [typeof(PlaceTrapCommand)] = HumanCommandClass.Play,
         [typeof(WithdrawCounterGoldCommand)] = HumanCommandClass.Play,
+        // The bottom panel's clicks: action 0x72, a trigger event (ADR-0670).
+        [typeof(GuiButtonCommand)] = HumanCommandClass.Play,
         [typeof(SkipCameraPathCommand)] = HumanCommandClass.OutsidePlay,
         [typeof(RevealMapCommand)] = HumanCommandClass.OutsidePlay,
         [typeof(ContinueAfterResultCommand)] = HumanCommandClass.OutsidePlay,

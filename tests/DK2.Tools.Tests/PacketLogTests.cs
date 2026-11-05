@@ -41,6 +41,25 @@ public sealed class PacketLogTests
     }
 
     [Fact]
+    public void AGuiButtonPacketCarriesTheCategoryThenTheId_AndAWideValueMatchesNothing()
+    {
+        // 114 (0x00513EB0): the category in the dword at +0x0, the id at +0x4 (ADR-0670). 0x004C7A50
+        // compares each whole with a body byte, so a value above 255 fires no record.
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (3, 6, 0, 114), (0x103, 6, 0, 114));
+        Turn(bytes, 3);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            var press = Assert.IsType<GuiButtonCommand>(Assert.Single(
+                PacketLog.Read(path, 1, 69).At(1, new PacketEntityMap()).All));
+            Assert.Equal(GuiButtonTarget.Door(6), press.Target);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void CreateImpPacketKeepsSignedCoordinatesOutsideTheMap()
     {
         var bytes = new List<byte>(new byte[69]);

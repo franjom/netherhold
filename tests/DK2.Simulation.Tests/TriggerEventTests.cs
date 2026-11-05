@@ -6,6 +6,8 @@ using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
 
+using DK2.Simulation.Commands;
+
 namespace DK2.Simulation.Tests;
 
 /// <summary>The creature and player event filters (<c>0x0049AA30</c>, <c>0x004C7A50</c>):
@@ -129,6 +131,27 @@ public class TriggerEventTests
         Assert.Equal(9, world.Triggers.Read(1));
         Assert.Equal(0, world.Triggers.Read(2));
         Assert.Equal(9, world.Triggers.Read(3));
+    }
+
+    /// <summary>Action 0x72 (0x00513EB0): a HUD button command fires event 53 with its pair on its
+    /// turn, so only the record naming that pair runs (ADR-0670).</summary>
+    [Fact]
+    public void AGuiButtonCommandFiresTheRecordNamingItsPair()
+    {
+        (WorldState world, GameDatabase database, _) = CreatureWorld(root: 0);
+        TriggerRecord[] records =
+        [
+            Gui(6, targetType: 4, targetId: 3, child: 0xFFFF, next: 7),
+            Gui(7, targetType: 3, targetId: 3, child: 0xFFFE),
+            Assign(1, flagId: 1), Assign(2, flagId: 2),
+        ];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 6)]);
+        var sim = new GameSimulation(database, world, seed: 1, triggers: tree);
+
+        sim.Tick(InputFrame.Of(new GuiButtonCommand(Keeper, GuiButtonTarget.Trap(3))));
+
+        Assert.Equal(9, world.Triggers.Read(1));
+        Assert.Equal(0, world.Triggers.Read(2));
     }
 
     /// <summary>The level initialiser fires event 3 for every placed creature; the executor does

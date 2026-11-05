@@ -21,7 +21,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 413;
+    private const ulong HashVersion = 414;
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
@@ -211,6 +211,10 @@ public sealed class GameSimulation
             if (command is Commands.ContinueAfterResultCommand go) FinaleRules.Continue(_context, go.PlayerId);
             else if (command is Commands.RevealMapCommand reveal) FinaleRules.RevealMap(World, reveal.PlayerId);
         }
+        // Action 0x72 (0x00513EB0): a HUD button fires player event 53 with its pair, from the turn's
+        // packet, before the walk (ADR-0670).
+        foreach (Commands.GuiButtonCommand press in _context.Commands<Commands.GuiButtonCommand>())
+            _context.FirePlayerEvent(press.PlayerId, PlayerTriggerEvent.GuiButtonPressed, (byte)press.Target.Category, press.Target.Id);
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.
         int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));

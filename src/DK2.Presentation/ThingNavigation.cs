@@ -18,8 +18,8 @@ public readonly record struct ThingNavigationEntry(int Id, PlayerId Owner, byte 
 /// the thing after it to the next of the requested kind; past the end, or with no such last thing,
 /// it takes the first of that kind from the list's head. No match clears the last thing. The caller
 /// passes things newest first, as DK2's list is (<c>Thing_LinkToOwner</c> <c>0x004B4C30</c> links at the
-/// head): ours is descending id, DK2's is link order. Not mirrored: the action 0x72 each right click
-/// posts first (<c>0x00422600</c>(4, kind)), whose consumer is unread.</remarks>
+/// head): ours is descending id, DK2's is link order. The GUI button each right click posts first
+/// (<c>0x00422600</c>, trap category) is <see cref="GuiButtonPairs.ForSecondary(BottomPanelChoice)"/>'s.</remarks>
 public sealed class ThingNavigation
 {
     private readonly PlayerId _viewer;

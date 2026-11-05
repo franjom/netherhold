@@ -106,8 +106,8 @@ Workshop tab grey while no Workshop is owned. A hovered tab draws catalogue121 `
 2153+2i; status 2154+2i via [0x0042DB60](functions/0042DB60.md)).
 The fifth strip widget `0x00690D98` (catalogue44 `GUI\Icons\i-mise`, local (544,0), 128x128,
 text2161 "Resize Panel", callback [0x004167D0](functions/004167D0.md)) collapses and expands the panel
-(BUILT 2026-10-20). Collapsing hides category menus1..4, the creature menus5..17 and menus41/44 (the
-Reaper); [0x00417170](functions/00417170.md) moves the strip (menu18), menu39 and menu43 from y0x5B4
+(BUILT 2026-10-20). Collapsing hides category menus1..4, the creature menus5..17 and menus41/44 (41 the
+Reaper, 44 the Hero ToolBox, ADR-0670); [0x00417170](functions/00417170.md) moves the strip (menu18), menu39 and menu43 from y0x5B4
 to y0x6EC, places menu40 above them, and ends the 3D viewport 0x98 below the strip, so the camera's
 centre moves with it ([classic-camera.md](classic-camera.md) §2). Expanding restores the remembered
 categories and menu41 and relays out ([0x00416FD0](functions/00416FD0.md)). Not built: the pointer
@@ -214,7 +214,7 @@ the viewer's doors of the slot's kind and [0x004162A0](functions/004162A0.md) it
 traps, each keeping its own last thing. Unlike the room cycle, the walk goes on
 from the last thing whatever its kind. ThingNavigation builds both, blueprints
 included, newest first as DK2's owner lists are (0x004B4C30 links at the head);
-ours orders by descending id. The action 0x72 a press posts is not mirrored.
+ours orders by descending id. Each press also posts the GUI button (4, kind), ADR-0670.
 
 BottomPanelViewTests cover localized names, live costs, unknown/absent entries,
 selected tool cancellation, native grid coordinates, read-only capture and

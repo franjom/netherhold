@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using DK2.Data.Model;
 using DK2.Presentation;
+using DK2.Simulation.Commands;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -65,6 +66,8 @@ namespace DK2.Unity
         public event Action<RoomTypeId> NavigateRoom;
         /// <summary>A door or trap slot's right click (<c>0x00416070</c>), with the door or trap id.</summary>
         public event Action<byte> NavigateDoor, NavigateTrap;
+        /// <summary>A click DK2 posts as action 0x72, with its target (<see cref="GuiButtonPairs"/>, ADR-0670).</summary>
+        public event Action<GuiButtonTarget> GuiButton;
         /// <summary>Raised with the new state when the Resize Panel button collapses or expands.</summary>
         public event Action<bool> CollapsedChanged;
         /// <summary>HUD <c>+0x109</c> == 0 (0x004167D0): the strip at the bottom, categories,
@@ -180,6 +183,7 @@ namespace DK2.Unity
         private void ClickTab(BottomPanelCategory category, bool shiftOnly)
         {
             CancelPointerGesture();
+            GuiButton?.Invoke(GuiButtonPairs.ForTab(category));   // 0x00416C36, before any expansion
             bool wasOpen = _tabState.Open.Contains(category);
             if (_tabState.Click(category, shiftOnly)) CollapsedChanged?.Invoke(false);
             if (!wasOpen) _page[(int)category] = 0;
@@ -442,6 +446,8 @@ namespace DK2.Unity
             if (secondary)
             {
                 BottomPanelChoice room = _slots[action];
+                if (room != null && room.Visible && GuiButtonPairs.ForSecondary(room) is GuiButtonTarget pressed)
+                    GuiButton?.Invoke(pressed);
                 if (room != null && room.Visible && room.Kind == BottomPanelChoiceKind.Room)
                     NavigateRoom?.Invoke((RoomTypeId)room.Key.Value);
                 else if (room != null && room.Visible && room.Kind == BottomPanelChoiceKind.Door)
@@ -452,6 +458,7 @@ namespace DK2.Unity
             }
             if (action == 400)
             {
+                GuiButton?.Invoke(GuiButtonTarget.ResizePanel);   // 0x004167FF
                 // The native pointer jump is not mirrored by legacy input; the sound request is retained by the model.
                 _tabState.Toggle();
                 if (Collapsed) { _hoverChoice = null; SetDescription(""); }
@@ -465,7 +472,11 @@ namespace DK2.Unity
             else if (action >= 100 && action < 104) ClickTab((BottomPanelCategory)(action - 100), evt.shiftKey && !evt.ctrlKey && !evt.altKey);
             else if (action >= 200 && action < 200 + 2 * MaxPanels) Page((action - 200) / 2, (action & 1) == 0 ? -1 : 1);
             else if (_slots[action] is BottomPanelChoice { Kind: BottomPanelChoiceKind.Special } special) SpecialChosen?.Invoke(special);
-            else if (_slots[action] != null && _view.Select(_slots[action].Key)) Selected?.Invoke(_view.Selection);
+            else if (_slots[action] != null && _view.Select(_slots[action].Key))
+            {
+                if (GuiButtonPairs.ForSelection(_slots[action]) is GuiButtonTarget selected) GuiButton?.Invoke(selected);
+                Selected?.Invoke(_view.Selection);
+            }
         }
         private void Wheel(WheelEvent evt)
         {
