@@ -16,6 +16,7 @@ internal static class ActionCoverageReport
         output.WriteLine($"creature actions: {rows.Count}"
             + $"  built: {Count(rows, ActionStatus.Built)}"
             + $"  unbuilt: {Count(rows, ActionStatus.Unbuilt)}"
+            + $"  unreachable: {Count(rows, ActionStatus.Unreachable)}"
             + $"  never begun: {Count(rows, ActionStatus.NeverBegun)}");
         output.WriteLine();
 
@@ -29,6 +30,13 @@ internal static class ActionCoverageReport
         output.WriteLine();
         output.WriteLine($"unbuilt ({Count(rows, ActionStatus.Unbuilt)}):");
         foreach (ActionCoverageRow row in rows.Where(r => r.Status == ActionStatus.Unbuilt))
+        {
+            output.WriteLine($"  {row.ActionId,2}  {row.Starters}: {row.Detail}");
+        }
+
+        output.WriteLine();
+        output.WriteLine($"unreachable ({Count(rows, ActionStatus.Unreachable)}):");
+        foreach (ActionCoverageRow row in rows.Where(r => r.Status == ActionStatus.Unreachable))
         {
             output.WriteLine($"  {row.ActionId,2}  {row.Starters}: {row.Detail}");
         }

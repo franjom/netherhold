@@ -28,14 +28,14 @@ public static partial class CreatureActionCoverage
         rows.Add(Unbuilt(10, "state 18", "the WorkCadence stand-in, no art 13 action"));
         rows.Add(Unbuilt(11, "states 180, 181, 267", "RoomAttackRules queues the attack each turn with no art 5 action; 180 and 181 unbuilt"));
         rows.Add(NeverBegun(12, $"no begin call passes 12 (room-health.md); {Table}"));
-        rows.Add(Unbuilt(13, "state 206", "DK2 never enters state 206 (CreatureStateCoverage)"));
+        rows.Add(Unreachable(13, "state 206", "DK2 never enters state 206 (Q455, traps.md section 11)"));
         rows.Add(NeverBegun(14, $"no begin call passes 14; {Table}"));
         rows.Add(Built(15, typeof(FightRules), nameof(FightRules.BeginFreeAim), "possession", "no hold (FightRules.BeginPossessedAction)"));
         rows.Add(Built(16, typeof(FightRules), nameof(FightRules.StartCast), "state 200; possession", "possession begins it with no hold"));
         rows.Add(Built(17, typeof(FightRules), nameof(FightRules.StartSwing), "state 200; possession", "possession begins it with no hold"));
         rows.Add(Unbuilt(18, "state 78", "state 78 not read"));
         rows.Add(Built(19, typeof(SlapRules), nameof(SlapRules.React), "state 77"));
-        rows.Add(Unbuilt(20, "state 207", "DK2 never enters state 207 (CreatureStateCoverage)"));
+        rows.Add(Unreachable(20, "state 207", "DK2 never enters state 207 (room-return-states.md section 5)"));
         rows.Add(NeverBegun(21, $"excluded by the runner and the begin as no action; {Table}"));
         rows.Add(Unbuilt(22, "the hand slap", "the slap's state-83 arm, which slap-states.md section 1 finds never matches after the state move"));
         rows.Add(NeverBegun(23, $"no begin call passes 23; {Table}"));
@@ -72,7 +72,7 @@ public static partial class CreatureActionCoverage
         rows.Add(NeverBegun(51, $"no begin call passes 51; {Table}"));
         rows.Add(Unbuilt(52, "state 209; the stun", "state 209 not read; StatusEffectRules.StunInto sets the stun with no art 24 action"));
         rows.Add(Built(53, typeof(DropLandingRules), nameof(DropLandingRules.GetUpTicks), "states 255, 263; routine 0x004813C0", "routine 0x004813C0, not read"));
-        rows.Add(Unbuilt(54, "states 258, 262", "DK2 never enters either (CreatureStateCoverage)"));
+        rows.Add(Unreachable(54, "states 258, 262", "DK2 never enters either: the Reaper scan's gate never passes (room-return-states.md)"));
         rows.Add(Built(55, typeof(VictoryRules), nameof(VictoryRules.Celebrate), "state 259; the victory arm"));
         rows.Add(Built(56, typeof(CasinoStep), "AtTheAlcove", "state 146"));
         rows.Add(Built(57, typeof(CasinoStep), "Dance", "states 152, 153, 158, 159; the win celebration", "states 158 and 159"));
@@ -90,10 +90,10 @@ public static partial class CreatureActionCoverage
         rows.Add(Built(69, typeof(CombatPitSpectatorRules), "Face", "state 143", "the hold is a guess (CheerGuessTicks)"));
         rows.Add(Built(70, typeof(CombatPitSpectatorRules), "Face", "state 143", "the hold is a guess (CheerGuessTicks)"));
         for (int id = 71; id <= 75; id++) rows.Add(Unbuilt(id, "state 272", "state 272 not read"));
-        rows.Add(Unbuilt(76, "states 272, 276", "272 not read; DK2 never enters 276 (CreatureStateCoverage)"));
+        rows.Add(Unbuilt(76, "states 272, 276", "272 not read; 276 is a Crypt state, dead code (Q375)"));
         rows.Add(Unbuilt(77, "state 272", "state 272 not read"));
         rows.Add(Unbuilt(78, "state 272", "state 272 not read"));
         rows.Add(Built(79, typeof(FearRules), nameof(FearRules.RespondToThreat), "state 251"));
-        rows.Add(Unbuilt(80, "state 275", "DK2 never enters state 275 (CreatureStateCoverage)"));
+        rows.Add(Unreachable(80, "state 275", "a Crypt state; the Crypt is dead code, never shipped (Q375, guard-room.md section 7)"));
     }
 }

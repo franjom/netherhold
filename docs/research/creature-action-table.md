@@ -190,6 +190,10 @@ sound `+25`:
 | 79 | 29 | 3 | — | — | state 251 `0x00475976` |
 | 80 | 5 | 0 | `0x00499CA0` | `0xd7` | state 275 `0x00483961` |
 
+Four begun actions cannot happen in the shipped game: 13, 20, 54 and 80 are begun only in states DK2
+never enters (206, 207, 258 and 262, 275); 275 and 276 are the Crypt's, which is dead code that never
+shipped (the owner, 2026-11-05; Q375), so 76 is reachable only through state 272.
+
 Only three addresses matter for combat, and they are the subject of
 `combat-entry.md`: **17** is the melee instance and **16** the spell instance,
 each started from exactly two places — game action 26's handler, which is the

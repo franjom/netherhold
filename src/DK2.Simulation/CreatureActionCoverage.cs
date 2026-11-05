@@ -16,6 +16,10 @@ public enum ActionStatus : byte
     /// <summary>DK2 begins it and ours does not; the detail names the starters and the blocker.</summary>
     Unbuilt,
 
+    /// <summary>Begun only in states DK2 never enters (their <see cref="StateStatus.Unreachable"/> rows), such
+    /// as the Crypt's, which is dead code; the detail cites why.</summary>
+    Unreachable,
+
     /// <summary>Nothing in the binary begins it: none of the 109 calls of the four begin entry points
     /// passes it, save state 148's 0, and every other write of the action field (<c>+0x3A9</c>) clears it. Index 0 is the null action
     /// (state 148 passes it to mean none, which starts and ends at once) and 21 the one the runner
@@ -95,6 +99,9 @@ public static partial class CreatureActionCoverage
 
     private static ActionCoverageRow Unbuilt(int id, string starters, string blocker) =>
         new(id, ActionStatus.Unbuilt, null, blocker, starters, null);
+
+    private static ActionCoverageRow Unreachable(int id, string starters, string evidence) =>
+        new(id, ActionStatus.Unreachable, null, evidence, starters, null);
 
     private static ActionCoverageRow NeverBegun(int id, string evidence) =>
         new(id, ActionStatus.NeverBegun, null, evidence, "", null);

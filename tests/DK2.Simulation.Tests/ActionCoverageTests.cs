@@ -53,6 +53,16 @@ public class ActionCoverageTests
             r => Assert.False(string.IsNullOrWhiteSpace(r.Detail), $"{r.ActionId} names no blocker"));
     }
 
+    /// <summary>An unreachable action is begun only in states DK2 never enters, each cited.</summary>
+    [Fact]
+    public void EveryUnreachableActionCitesWhyItsStatesAreNeverEntered()
+    {
+        ActionCoverageRow[] rows = CreatureActionCoverage.All.Where(r => r.Status == ActionStatus.Unreachable).ToArray();
+
+        Assert.Equal([13, 20, 54, 80], rows.Select(r => r.ActionId));
+        Assert.All(rows, r => Assert.True(r.Detail.Contains(".md") || r.Detail.Contains('Q'), $"{r.ActionId}: {r.Detail}"));
+    }
+
     /// <summary>The binary's own answer (2026-11-05): the 109 begin calls pass 67 distinct indices, and the
     /// only other writers of <c>+0x3A9</c> clear it.</summary>
     [Fact]

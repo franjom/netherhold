@@ -288,10 +288,10 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(271, "Q410, Q412: two calls in its handler are unread (rebellion.md)"));
         rows.Add(Unbuilt(272, "not read"));
         rows.Add(Built(273, typeof(JackInTheBoxRules), nameof(JackInTheBoxRules.SpringState)));
-        rows.Add(Unreachable(274, "a Crypt state (guard-room.md §7, functions/00483790.md); Q375 (data): no shipped level places, enables or terraforms a Crypt"));
-        rows.Add(Unreachable(275, "a Crypt state (guard-room.md §7, functions/00483870.md); Q375 (data): no shipped level places, enables or terraforms a Crypt"));
-        rows.Add(Unreachable(276, "a Crypt state (guard-room.md §7, functions/004839E0.md); Q375 (data): no shipped level places, enables or terraforms a Crypt"));
-        rows.Add(Unreachable(277, "a Crypt state (guard-room.md §7, functions/00483AC0.md); Q375 (data): no shipped level places, enables or terraforms a Crypt"));
+        rows.Add(Unreachable(274, "a Crypt state (guard-room.md §7, functions/00483790.md); Q375 (data): no shipped level places, enables or terraforms a Crypt; the owner (2026-11-05): the Crypt is dead code, never shipped"));
+        rows.Add(Unreachable(275, "a Crypt state (guard-room.md §7, functions/00483870.md); Q375 (data): no shipped level places, enables or terraforms a Crypt; the owner (2026-11-05): the Crypt is dead code, never shipped"));
+        rows.Add(Unreachable(276, "a Crypt state (guard-room.md §7, functions/004839E0.md); Q375 (data): no shipped level places, enables or terraforms a Crypt; the owner (2026-11-05): the Crypt is dead code, never shipped"));
+        rows.Add(Unreachable(277, "a Crypt state (guard-room.md §7, functions/00483AC0.md); Q375 (data): no shipped level places, enables or terraforms a Crypt; the owner (2026-11-05): the Crypt is dead code, never shipped"));
         rows.Add(Unbuilt(278, "handler read in functions/00462730.md; portal arrival remains unbuilt"));
         rows.Add(Unbuilt(279, "handler read in functions/004627E0.md; portal arrival remains unbuilt"));
         rows.Add(Unbuilt(280, "handler read in functions/00462840.md; portal arrival remains unbuilt"));
