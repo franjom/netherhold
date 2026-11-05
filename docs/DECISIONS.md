@@ -15788,3 +15788,32 @@ functions are Job_Dispatch's case 0x18, `0x0045A290`, and state 225's handler `0
   - the route word's door handling, as in other 0x80 routes.
 
 STRONGLY INFERRED from the decompile. Records `0045A290` and `0045A3E0` hold the detail.
+
+## ADR-0675: a Horny creature draws its finale ambience every turn
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 419. · **Systems:** creatures
+
+**Context.** The Level 3 native draw log has Creature.cpp 1555 once a turn from turn 3683, the turn after the
+finale Reaper lands (`neutral-ambient-effect.md`). Ours never made the draw. The site is `Creature_Update`'s
+early arm, `0x00488EB5`-`0x00488F5C`. Nothing before it in the update returns. On the ordinary path nothing
+before it draws on the world stream. The dying arm at `0x00488A5E` (`0x00459560`, whose `0x0048F410` draws)
+does, but a Horny creature takes no damage (`0x004B2CE0`).
+- The arm runs for a creature whose definition has `+0x686` bit `0x4000` (IsHorny), when its owner's
+  player `+0x76` bit `0x40` (the finale started, ours `FinaleRules.SequenceStarted`) is set.
+- It first passes the creature to `Room_TypeEffectResponse` (`0x004E7FE0`) when its tile is a room's.
+- Then, unless the state is `0xE9` (233), it draws `random(20)` (`0x00488F13`). A 0 plays sound `0xCC`, a
+  10 sound `0xD6`, with the creature's handle, category and position.
+
+**Decision.** `FinaleRules.HornyAmbience` makes the draw and the two sound requests. `CreatureStatusSystem` runs
+it first in each creature's update, after `ReaperRules.AdvanceTimer`, which mirrors the `+0x4E9` countdown
+that precedes it, and before the timed effects (`0x0048957D`).
+
+**Consequences.**
+- After the finale, the world stream advances one draw per Horny creature per turn.
+- Not mirrored: the room response on the creature's tile. Its Treasury arm (type 1, `0x004F48E0`) draws
+  `random(100)` on the world stream for each class-2 object of type byte 3 within three tiles whose
+  definition's `+0xF4` has bit `0x40`, when the room definition's `+0x423` is set. Under 10 it spawns an
+  effect. Level 3's finale Reaper never stands on a Treasury, so its log has none. Arms 4, 6, 10 and 15
+  draw nothing.
+
+STRONGLY INFERRED from the disassembly. Record `00488930` holds the detail.

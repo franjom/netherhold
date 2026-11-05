@@ -32,6 +32,7 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
 
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         ReaperRules.AdvanceTimer(context, creature, definition);
+        FinaleRules.HornyAmbience(context, SystemName, creature, definition);
 
         if (creature.Activity == CreatureActivity.Stunned && !TremorRules.IsRecovering(creature))
         {
