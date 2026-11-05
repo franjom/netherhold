@@ -77,7 +77,8 @@ namespace DK2.Unity
             Func<TilePos, TerrainFlags> terrainFlags = null,
             Func<TilePos, bool> solidTile = null,
             Func<ShotState, bool> shotVisible = null,
-            Func<CreatureId, Fp32?> creatureGroundHeight = null)
+            Func<CreatureId, Fp32?> creatureGroundHeight = null,
+            PlayerId? viewer = null)
         {
             _root = root;
             _sprites = sprites;
@@ -90,7 +91,8 @@ namespace DK2.Unity
                 heartSparkleStyle: HeartSparkleStyle.PillarHeight,
                 groupParts: meshes != null ? meshes.GroupParts : null, attachment: attachment,
                 shotAttachment: shotAttachment, cameraVisible: cameraVisible,
-                terrainFlags: terrainFlags, solidTile: solidTile, creatureGroundHeight: creatureGroundHeight);
+                terrainFlags: terrainFlags, solidTile: solidTile, creatureGroundHeight: creatureGroundHeight,
+                viewer: viewer);
         }
 
         // A stopwatch rather than Unity's clock: the model's Emit runs on the runner's worker thread
@@ -128,6 +130,7 @@ namespace DK2.Unity
             float fraction = _fraction;
             Camera camera = Camera.main;
             Vector3 cameraUp = camera != null ? camera.transform.up : Vector3.up;
+            Vector3 cameraRight = camera != null ? camera.transform.right : Vector3.right;
             foreach (Group group in _groups.Values)
             {
                 if (group == null) continue;
@@ -190,10 +193,11 @@ namespace DK2.Unity
                 // it lifts the sprite onto its point (flames, splashes) is STRONGLY INFERRED from the
                 // quad's UVs (v grows with camera y, D3D's v runs down) and the art.
                 if (group.StandsOnPoint) position += cameraUp * (spriteHeight * 0.5f);
+                // A floating amount's digit sits beside its neighbours in camera space (0x0059C360's +0x57).
+                if (source.ScreenOffsetXRaw != 0) position += cameraRight * (source.ScreenOffsetXRaw / 4096f);
                 if (_transparent != null)
                 {
-                    AddBillboardQuad(group, source, position, camera != null ? camera.transform.right : Vector3.right,
-                        cameraUp, width, spriteHeight);
+                    AddBillboardQuad(group, source, position, cameraRight, cameraUp, width, spriteHeight);
                     continue;
                 }
                 group.Buffer[group.Count++] = new ParticleSystem.Particle

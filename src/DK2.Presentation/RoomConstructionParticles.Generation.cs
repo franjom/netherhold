@@ -56,6 +56,38 @@ public sealed partial class RoomConstructionParticles
             case 3:
                 GenerateTileBurst(emitter);
                 break;
+            case 14:
+                GenerateDigits(emitter);
+                break;
+        }
+    }
+
+    /// <summary>A floating amount (<c>0x00439480</c>): one element per decimal digit of the request's
+    /// amount (0 has one), units first, element id = first generated id + digit, at the instance's
+    /// point with heading 0. The units digit sits <c>(n/2)·w</c> to the right and each following digit
+    /// <c>w</c> further left, where <c>w</c> is the first element's MaxScale, so the 0.3-tile digits abut
+    /// and read left to right (floating-cost-numbers.md section 4).</summary>
+    private void GenerateDigits(Emitter emitter)
+    {
+        EffectDef effect = emitter.Definition;
+        ushort first = effect.GenerateIds.FirstOrDefault();
+        if (first == 0 || !_database.EffectElements.TryGetValue(first, out EffectElementDef? zero)) return;
+        int amount = emitter.Request.Amount ?? 0;
+        int digits = 1;
+        for (int rest = amount / 10; rest > 0; rest /= 10) digits++;
+        int width = zero.MaxScale;
+        int offset = digits / 2 * width;
+        ViewEffectRequest at = emitter.Request with { Heading = default };
+        for (int digit = 0; digit < digits; digit++, amount /= 10, offset -= width)
+        {
+            if (!_database.EffectElements.TryGetValue((ushort)(first + amount % 10), out EffectElementDef? element)) return;
+            ConstructionParticle? particle = EmitElement(element, effect, at, null, emitter, exactOrigin: true);
+            if (particle == null) continue;
+            particle.ScreenOffsetXRaw = offset;
+            // Owner-confirmed presentation, not DK2's draw (Q750, ADR-0663): the digits carry RGB 0,0,0 and
+            // 0x0057F3D0 adds a light term whose list is unset (Q609); the owner sees the art's own gold, so
+            // ours draws the art untinted.
+            particle.Red = particle.Green = particle.Blue = 255;
         }
     }
 

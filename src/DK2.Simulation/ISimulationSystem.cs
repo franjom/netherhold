@@ -103,7 +103,8 @@ public sealed class SimulationContext
     {
         if (request.EffectId == EffectId.None) return;
         Events.Emit(new SimEvent(Tick, system, "effect_requested",
-            $"player={request.Owner} effect={request.EffectId} tile=({request.Tile.X},{request.Tile.Y}) height={request.Height.Raw}")
+            $"player={request.Owner} effect={request.EffectId} tile=({request.Tile.X},{request.Tile.Y}) height={request.Height.Raw}"
+            + (request.Amount is int amount ? $" amount={amount}" : ""))
         {
             EffectRequest = request,
         });

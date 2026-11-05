@@ -86,7 +86,8 @@ public sealed class RoomBuildSystem : ISimulationSystem
                 // The bridge arm tests money before its span map; ordinary rooms test placement first.
                 if (bridge && GoldStore.Total(world, playerId) < cost)
                 {
-                    // A -1 refusal jumps to the press-corner close too (0x004C775F), reset and all.
+                    // A -1 refusal jumps to the press-corner close too (0x004C775F), sum, reset and all.
+                    ShowSum(context, playerId, press, wave);
                     slot = null;
                     WalkerResetRules.Reset(context, SystemName, playerId);
                     return;
@@ -98,6 +99,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
                 {
                     if (GoldStore.Total(world, playerId) < cost)
                     {
+                        ShowSum(context, playerId, press, wave);
                         slot = null;
                         WalkerResetRules.Reset(context, SystemName, playerId);
                         return;
@@ -116,6 +118,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
                 }
                 if (pos == press)
                 {
+                    ShowSum(context, playerId, press, wave);
                     slot = null;
                     // 0x004F04F0 closes the rectangle and ends with the keeper's walker reset.
                     WalkerResetRules.Reset(context, SystemName, playerId);
@@ -124,6 +127,14 @@ public sealed class RoomBuildSystem : ISimulationSystem
                 }
             }
         }
+    }
+
+    /// <summary>The close's floating sum (<c>0x004C77C6</c>): the slot's word <c>+0x1D3</c>, when non-zero,
+    /// at the press corner's centre at height 0, in gold (floating-cost-numbers.md section 2).</summary>
+    private static void ShowSum(SimulationContext context, PlayerId playerId, TilePos press, RoomBuildWaveState wave)
+    {
+        if (wave.AccumulatedCost == 0) return;
+        CostNumberRules.Show(context, SystemName, playerId, CostNumberRules.TileCentre(press, 0), wave.AccumulatedCost);
     }
 
     /// <summary>One paid tile. <paramref name="announce"/> is the builder's own test for its sound (<c>0x004C5D1B</c>): the

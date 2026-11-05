@@ -365,7 +365,8 @@ namespace DK2.Unity
                         || DK2.Pathfinding.NavBytes.IsSolid(_simulation.Navigation.NavByte(tile.X, tile.Y)),
                     shotVisible: shot => _worldView.CanShowTile(world, new TilePos(shot.PosX >> 12, shot.PosY >> 12)),
                     creatureGroundHeight: id => world.CreatureById(id.Value) is CreatureState creature
-                        ? _worldView.CreatureEffectGround(world, creature) : (Fp32?)null);
+                        ? _worldView.CreatureEffectGround(world, creature) : (Fp32?)null,
+                    viewer: new PlayerId((byte)viewingPlayerId));
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
                 _lightning = new ClassicLightning(transform, _installArt.LoadTexture, _constructionEffects.Model, unchecked((uint)seed));
                 _scene.Lightning = _lightning;

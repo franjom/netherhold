@@ -34,7 +34,10 @@ slot `+0x64`. That slot is [Presentation_ShowCostNumber](functions/00441060.md) 
   A rival keeper's spending is never shown to you.
 - `kind == 0` creates effect **22, Gold Cost**; any other `kind` creates effect **364, Mana
   Cost**. Both go through view slot `+0x94` ([0x0043A8E0](functions/0043A8E0.md)) at `point`,
-  heading 0, owned by the viewer.
+  heading 0, owned by the viewer. That slot calls slot `+0x90`, the gated creator
+  ([0x00440420](functions/00440420.md)): the camera test unless the definition has flag `0x8000`
+  (effects 22 and 364 have flags `0x480`), and the explored-tile or sight test. So a number off the
+  camera or on an unexplored tile is never created.
 - If the effect was created, the amount is stored in the new effect at `+0x12F`.
 
 The world's own random stream is not touched: this is view-side (`keeper-spell-tremor.md`
@@ -91,8 +94,11 @@ generate id 27 (gold) or 573 (mana). Type 14 is
 - Each element gets a horizontal screen offset (`+0x7D`) and a vertical one (`+0x7F` = 0). The
   units digit gets `(n/2)·w` (integer `n/2`, `0x00439518`), and each following digit `w` less,
   where `w` is the first element's MaxScale (definition `+0x2F`). With the 0.3-tile sprite width
-  that makes the digits abut. That a positive offset is to the right, so the units digit is
-  rightmost, is HYPOTHESIS: `0x0059C360` scales `+0x57` but its sign convention is unread.
+  that makes the digits abut. A positive offset is to the viewer's right, so the units digit is
+  rightmost: SHOT0010 reads "18750" left to right (and the owner's "4800"); the sign convention of
+  `0x0059C360`, which scales `+0x57`, is itself unread.
+- Each element first passes the allocator's gate `0x004352E0` (element flag `0x200` clear: camera,
+  `0x00440EE0`, solidity). A failure makes `0x00439480` return 0 and the effect be removed.
 
 The ten elements per kind (shipped data):
 
@@ -105,6 +111,14 @@ The ten elements per kind (shipped data):
 | mass / air friction / elasticity | 0 / 327 / 0 | same |
 | element flags | 0 | 0 |
 | RGB / fade percentage | 0,0,0 / 100 | same |
+
+**Colour — OPEN (Q750).** The element RGB is 0,0,0, set by [0x00435F20](functions/00435F20.md): art
+type 1 is white, runtime art flag 2 takes the owner colour (minimum `0x30`), otherwise the definition's
+RGB (`+0x4A..+0x4C`) goes to element `+0x6E`. [0x00504D80](functions/00504D80.md) sets `+0xB` bit 0 for
+any non-zero art type, so both digit sets pass the RenderInfo gate. `0x0057F3D0` adds a light term to
+that base from a list that is unset (Q609). The art itself is gold: the `InGameDigit5` texture averages
+RGB 171,159,92 over its opaque pixels, `gInGameDigit5` (mana) 91,171,133 (decoded 2026-11-05 with
+`DK2.Art`'s EngineTextureArchive).
 
 **Motion.** Element movement ([room-construction-effects.md](room-construction-effects.md)
 section 3) subtracts mass (0), multiplies velocity by `(4096−327)/4096` with truncation, then
@@ -158,10 +172,22 @@ per game turn. Mana digits did not appear in this run: the Goblins were dropped 
 prayer counter (player `+0x10EE`, credited by `0x0047B970`) never changed. The owner reports blue
 digits only while creatures pray at the Temple's rim, not when they are dropped in (2026-11-04).
 
-## 7. What ours does
+## 7. What ours does (ADR-0663)
 
-Not built. A dragged sale is a wave in ours (ADR-0653), so the per-tile request would fall on its diagonals. ADR-0597 deferred numeric display ("ours has no cost-number request caller"), and
-ADR-0534 and ADR-0313 list the store-lift amount and the training −20 as not modelled. A build
-would put the request where DK2 puts it: a view request from the build wave's completion and
-from each paid tile sale, carrying viewer, point, amount and kind, with the digits drawn by
-the presentation layer from section 4.
+`CostNumberRules.Show` asks for effect 22 (gold) or 364 (mana) as a gated `ViewEffectRequest` with
+an `Amount`, and nothing for an amount below 0. Two callers:
+
+- `RoomBuildSystem` shows the wave's summed cost, when non-zero, at the press corner at height 0, on the
+  close and on both money-refusal exits (`0x004C775F`).
+- `RoomSellSystem.SellOne` shows each paid tile's refund at the tile at height `0x1000`, after the
+  deposit or overflow and before sound `0xF5` (`0x004C5ED0`), for wave and immediate sales alike.
+
+The presentation engine drops an `Amount` request whose owner is not its `viewer`. Generation type 14
+makes one element per digit with `ConstructionParticle.ScreenOffsetXRaw` (section 4), which Unity adds
+along the camera's right axis. The digits are drawn untinted, RGB 255: an owner-confirmed
+presentation, not DK2's mechanism (colour paragraph, section 4).
+
+Not mirrored: the sale's opening permission test `0x004C5DD0`, which can refuse before the pop; the
+per-element allocator gate `0x004352E0`; the other twelve callers of section 5 and the computer
+keeper's direct build. ADR-0534 and ADR-0313 still list the store-lift amount and the training -20 as
+not modelled. Native visual acceptance is pending.

@@ -190,8 +190,8 @@ and reflecting both XY velocity axes (Q690).
   - users: Lava Spill 69, Fireburst 87, Tremor 103, Horny Teleport 123/124, Graveyard Mist 130.
     All have HP 1, so each fires one burst.
 - **14, `0x00439480`:** draws the decimal digits of instance `+0x12F` as elements (first id +
-  digit). Gold Cost 22 and Mana Cost 364, through `0x00441060` (view `+0x64`). Numeric
-  display remains deferred: ours has no cost-number request caller. The element
+  digit). Gold Cost 22 and Mana Cost 364, through `0x00441060` (view `+0x64`). Built for the
+  room build and sale numbers (ADR-0663, floating-cost-numbers.md section 7). The element
   render-offset contract is recorded in [00439480](functions/00439480.md).
 - **6, `0x00439330`:**
   - ids form a range;
@@ -373,7 +373,7 @@ these timers or permanent link latches. Crackle adds bolts, not a tint.
   remains approximate (Q609); type6 uses cached frames. Trail-kind remains Q662.
   Camera jitter uses a private seed 1 bridge LCG without other bridge consumers, and
   suppresses scripted paths only; other native transition gates are not mirrored.
-- **Not built:** numeric generation14 (no request caller); procedural kinds1/4/6;
+- **Not built:** procedural kinds1/4/6;
   mod-authored segmented shot playback; the stop of the burning sound 0x340.
 
 **Verification (ADR-0601).** After master integration, full Presentation 1369/Simulation 4103,

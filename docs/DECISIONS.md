@@ -15413,3 +15413,34 @@ steering and structure blocks, heart defence, the drop landing and disposal, the
 **Consequences.** A captured ruined Heart takes no gold, is never drawn as a keeper's Heart and stays
 claimable by a third keeper. Ours gives a ruined Heart no capacity where `0x004F4700` gives its tiles
 times the Treasury cap, but every DK2 gold path tests the ruin first, so neither reaches that arm.
+
+## ADR-0663: the floating gold numbers of a room build and sale
+
+**Date:** 2026-11-05. **Status:** accepted. Narrows Q750; hash/save 408 unchanged. · **Systems:** rooms, hud-front-end
+
+**Context.** DK2 floats the price of what a keeper builds or sells as gold digits in the world
+(floating-cost-numbers.md). `World_ShowCostNumber` `0x0050FB70` reaches `0x00441060`, which shows nothing
+for a negative amount or for anyone but the local viewer, and otherwise creates effect 22 (gold) or 364
+(mana) through view slot `+0x94`, which calls the gated creator `0x00440420` (camera, explored tile),
+with the amount at effect `+0x12F`. Generation type 14
+`0x00439480` makes one element per digit, units first, each with a sideways screen offset. ADR-0597
+deferred type 14 because ours had no caller. The digit elements carry RGB 0,0,0, yet the owner sees them
+in their art's colour; the art itself is gold (`InGameDigit5` averages RGB 171,159,92) and the mana art
+green-blue (`gInGameDigit5`, 91,171,133).
+
+**Decision.** `CostNumberRules.Show` asks for effect 22 or 364 as a gated `ViewEffectRequest` carrying
+`Amount`, from two callers: the build wave's close (the slot's sum, when non-zero, at the press corner at
+height 0, also when a money refusal jumps the wave there, `0x004C775F`) and every paid tile sale (its
+refund at the tile at height `0x1000`, `0x004C5ED0`), wave and immediate alike. The view engine drops an
+amount whose owner is not its viewer, and generation type 14 makes the digits with
+`ConstructionParticle.ScreenOffsetXRaw` (positive to the right: SHOT0010 reads "18750"), which Unity adds
+along the camera's right axis. The digits are drawn untinted, in their art's own colour.
+
+**Limits.** DK2's sprite draw `0x0057F3D0` adds a light term to the base colour; its source for these
+digits is unread, so untinted is an owner-confirmed presentation, not the mechanism (Q750). A paid sale
+first passes a permission test (`0x004C5DD0`, unread) that ours lacks, so ours can float a refund for a
+sale DK2 refuses. Each digit's own allocator gate (`0x004352E0`) is not mirrored. The other
+twelve callers (doors, traps, Training, Temple mana, payday, Casino and the rest) and the direct
+computer-keeper build are not wired.
+
+**Consequences.** Events only: no world state, so hash/save 408 and the determinism pin are unchanged.
