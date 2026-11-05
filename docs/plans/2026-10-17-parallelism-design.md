@@ -251,3 +251,65 @@ occupy every core.
 API references checked through Context7: [job dependencies](https://docs.unity3d.com/Manual/job-system-creating-jobs.html),
 [scripting backends](https://docs.unity3d.com/Manual/scripting-backends-intro.html),
 [incremental GC](https://docs.unity3d.com/Manual/performance-incremental-garbage-collection.html).
+
+## Addendum 2026-11-05: Level6a measurement answers P0 for that level
+
+Source: `tools/game-unity-probe`, Level6a, 90 s, headless Development
+player, run `build/game-unity-probe/20261105-205627` (`frames.csv`,
+`summary.txt`), measured by a parallel session and checked here. The owner
+sees a stutter four times a second and about 30 FPS in the editor on Level6a.
+The same probe at 7d47a14e, before the 2026-11-05 merges, gives the same
+numbers (tick frames 70.3 ms, p95 54 ms), so the cost is structural.
+
+| Measure | Value |
+|---|---:|
+| Frames after 2 s of play | 4189 |
+| Frame p50 / p95 / p99 / max (ms) | 16.68 / 53.57 / 80.29 / 399.49 |
+| Frames over 33 ms | 362, of which 352 carry a tick |
+| Mean frame without a tick (ms) | 16.95 (Present 2.87, AnimatedFrame 0.99) |
+| Mean frame with a tick (ms) | 65.35 |
+| GC over 90 s | 1360 MB allocated, 97 gen-0 collections |
+
+Tick-frame mean by marker (ms): `DK2.Simulation.Tick` 17.2, of which
+`nav.refresh` 11.4; `DK2.Scene.Present` 21.1; `DK2.Scene.AnimatedFrame` 15.1
+(about 1 ms on non-tick frames); chunk rebuild 4.3; imp job 1.6.
+
+In the owner's editor the hitch line from commit c4749222 shows
+`DK2.Simulation.WaitForTick` at 10–30 ms on tick frames and up to 83 ms during
+the opening fly-over.
+
+**Reading.**
+
+- The join blocks, and the cause is placement: `DungeonRunner` starts the tick
+  on a worker at the end of a frame and joins at the start of the next
+  `Update`, because that frame reads the live `World` (Present, sounds,
+  flowers, minimap). The tick overlaps one render gap of 10–16 ms and a 17 ms
+  tick cannot finish inside it. This is P1's cheap variant: let presentation
+  read a snapshot so a tick can span the 250 ms turn.
+- The join is not the main cost. Present plus AnimatedFrame on a tick frame
+  (~36 ms) exceed the tick itself, and they are 7–15 times their non-tick
+  cost. With the join at zero, tick frames would still be over budget. That is
+  serial presentation work on tick frames, not a threading problem.
+- The worst frames are not the join. Frames 3567–3624 run 170–400 ms with
+  Present 67–128 ms and AnimatedFrame 112–144 ms, the portal-arrival pattern
+  above (cold creature creation and mesh builds on the main thread). Two other
+  spikes (frames 856, 2609) carry 13–14 MB of allocation and a gen-0 collection.
+- Allocation is ~15 MB/s. The gates above say to remove it before parallelizing.
+
+**Ranked order (the P0 exit for Level6a).**
+
+1. Shorten the tick: `nav.refresh` is two thirds of it. Simulation-side, hash
+   unchanged. In flight on `perf/nav-refresh`. Shrinks the join wait directly
+   and does not touch P1's seam.
+2. Cut Present and AnimatedFrame on tick frames to their non-tick cost: find
+   why they are 7–15 times costlier when a tick completed, the cold mesh
+   builds and the allocation sources. In flight on `perf/tick-frame-present`,
+   which should stay out of the join placement in `DungeonRunner`.
+3. Then P1's cheap variant: skip the join and world presentation when the tick
+   is not done, after the reader audit in P1. It conflicts with any branch
+   restructuring the presenter, so run it after item 2 lands, not beside it.
+
+Still unmeasured: Level8's opening tick durations, the error-frame
+classification (boundary clamp, catch-up, long frame) for Level6a, and a 60 FPS
+cap repeat. The Level6a numbers are a headless Development player on a shared
+machine; a visible release confirmation per the P0 list is still owed.
