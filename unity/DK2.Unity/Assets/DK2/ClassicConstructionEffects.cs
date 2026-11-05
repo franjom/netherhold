@@ -108,8 +108,23 @@ namespace DK2.Unity
         /// the radial term of a light list (0x0057C080) whose source context is untraced; adding the tile's whole
         /// table (ADR-0493) turned the Heart's grey dust brown, its cyan sparkles white and the claim
         /// mist pale, against the owner's DK2, so the list is taken as empty for effects (amendment).</summary>
-        private static Color32 SpriteColour(ConstructionParticle source) =>
-            new Color32(source.Red, source.Green, source.Blue, 255);
+        private Color32 SpriteColour(ConstructionParticle source, Vector3 position)
+        {
+            if (!source.TakesLight) return new Color32(source.Red, source.Green, source.Blue, 255);
+            // Without classic lighting there are no tables: a lit-only sprite draws its art plain rather than black.
+            if (TileLights == null) return new Color32(255, 255, 255, 255);
+            // A tile drawn without a table this frame has no lights, as DK2's empty list: base colour alone.
+            if (!TileLights(new TilePos(source.XRaw >> 12, source.YRaw >> 12), out ClassicLightTable table))
+                return new Color32(source.Red, source.Green, source.Blue, 255);
+            var (red, green, blue) = SpriteLighting.Lit(source.Red, source.Green, source.Blue, table.Lights,
+                new System.Numerics.Vector3(position.x, position.y, position.z));
+            return new Color32(red, green, blue, 255);
+        }
+
+        public delegate bool TileLightLookup(TilePos tile, out ClassicLightTable table);
+
+        /// <summary>The frame's light table of a tile, for sprites that take light (<see cref="ConstructionParticle.TakesLight"/>).</summary>
+        public TileLightLookup TileLights { get; set; }
 
         /// <summary>Runs the effect updates due by now and returns the instances' lights, which
         /// the frame's lighting takes before it is prepared; <see cref="Draw"/> then draws this state.</summary>
@@ -192,18 +207,19 @@ namespace DK2.Unity
                 // 0x0059C360 with art flag 0x40 offsets the quad by half its height in camera space; that
                 // it lifts the sprite onto its point (flames, splashes) is STRONGLY INFERRED from the
                 // quad's UVs (v grows with camera y, D3D's v runs down) and the art.
+                Color32 colour = SpriteColour(source, position);
                 if (group.StandsOnPoint) position += cameraUp * (spriteHeight * 0.5f);
                 // A floating amount's digit sits beside its neighbours in camera space (0x0059C360's +0x57).
                 if (source.ScreenOffsetXRaw != 0) position += cameraRight * (source.ScreenOffsetXRaw / 4096f);
                 if (_transparent != null)
                 {
-                    AddBillboardQuad(group, source, position, cameraRight, cameraUp, width, spriteHeight);
+                    AddBillboardQuad(group, source, colour, position, cameraRight, cameraUp, width, spriteHeight);
                     continue;
                 }
                 group.Buffer[group.Count++] = new ParticleSystem.Particle
                 {
                     position = position,
-                    startColor = SpriteColour(source),
+                    startColor = colour,
                     rotation3D = Vector3.zero,
                     startSize3D = new Vector3(width, spriteHeight, 1f),
                     startLifetime = 1f,
@@ -264,7 +280,7 @@ namespace DK2.Unity
             float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
             int first = group.FlatVertices.Count;
             // The four corners share one colour (0x0057FB80).
-            Color32 colour = SpriteColour(source);
+            Color32 colour = SpriteColour(source, DungeonScene.Ground(x / 4096f, y / 4096f, height));
             for (int corner = 0; corner < 4; corner++)
             {
                 float cx = corner == 0 || corner == 3 ? -half : half;
@@ -307,14 +323,13 @@ namespace DK2.Unity
             Graphics.RenderMesh(parameters, mesh, 0, Matrix4x4.identity);
         }
 
-        private static void AddBillboardQuad(Group group, ConstructionParticle source, Vector3 position,
+        private static void AddBillboardQuad(Group group, ConstructionParticle source, Color32 colour, Vector3 position,
             Vector3 right, Vector3 up, float width, float height)
         {
             int frames = Math.Max(1, group.SpriteFrames);
             int frame = Math.Min(frames - 1, (int)((1f - source.RemainingSpriteLifetimeFraction) * frames));
             float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
             int first = group.FlatVertices.Count;
-            Color32 colour = SpriteColour(source);
             for (int corner = 0; corner < 4; corner++)
             {
                 bool left = corner == 0 || corner == 3;

@@ -15424,8 +15424,9 @@ for a negative amount or for anyone but the local viewer, and otherwise creates 
 (mana) through view slot `+0x94`, which calls the gated creator `0x00440420` (camera, explored tile),
 with the amount at effect `+0x12F`. Generation type 14
 `0x00439480` makes one element per digit, units first, each with a sideways screen offset. ADR-0597
-deferred type 14 because ours had no caller. The digit elements carry RGB 0,0,0, yet the owner sees them
-in their art's colour; the art itself is gold (`InGameDigit5` averages RGB 171,159,92) and the mana art
+deferred type 14 because ours had no caller. The digit elements carry RGB 0,0,0 and `0x0057F3D0` adds a
+light term, so all they show is light: the owner sees them darken in unlit places (2026-11-05). The art
+itself is gold (`InGameDigit5` averages RGB 171,159,92) and the mana art
 green-blue (`gInGameDigit5`, 91,171,133).
 
 **Decision.** `CostNumberRules.Show` asks for effect 22 or 364 as a gated `ViewEffectRequest` carrying
@@ -15434,10 +15435,12 @@ height 0, also when a money refusal jumps the wave there, `0x004C775F`) and ever
 refund at the tile at height `0x1000`, `0x004C5ED0`), wave and immediate alike. The view engine drops an
 amount whose owner is not its viewer, and generation type 14 makes the digits with
 `ConstructionParticle.ScreenOffsetXRaw` (positive to the right: SHOT0010 reads "18750"), which Unity adds
-along the camera's right axis. The digits are drawn untinted, in their art's own colour.
+along the camera's right axis. The digits keep RGB 0,0,0 and take light (`TakesLight`): Unity adds the
+radial term (`SpriteLighting`, `0x0057C080`) of each light in the digit's tile table, as ADR-0493 did
+before its amendment, which still holds for every other effect sprite.
 
-**Limits.** DK2's sprite draw `0x0057F3D0` adds a light term to the base colour; its source for these
-digits is unread, so untinted is an owner-confirmed presentation, not the mechanism (Q750). A paid sale
+**Limits.** Which lights DK2 lists for these sprites is unread (Q609); the tile's table is ADR-0493's
+inference, here backed by the owner's observation that the digits follow the lighting. A paid sale
 first passes a permission test (`0x004C5DD0`, unread) that ours lacks, so ours can float a refund for a
 sale DK2 refuses. Each digit's own allocator gate (`0x004352E0`) is not mirrored. The other
 twelve callers (doors, traps, Training, Temple mana, payday, Casino and the rest) and the direct

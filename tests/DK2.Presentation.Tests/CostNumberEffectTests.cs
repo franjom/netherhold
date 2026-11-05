@@ -28,15 +28,53 @@ public class CostNumberEffectTests
         Assert.All(digits, d => Assert.Equal((10000, 12000, 0), (d.XRaw, d.YRaw, d.HeadingRaw)));
     }
 
-    /// <summary>Owner-confirmed presentation, not DK2's draw (ADR-0663): the digits' RGB is 0,0,0 and the
-    /// owner sees them in their art's own colour, so ours draws the art untinted.</summary>
+    /// <summary>The digits keep their RGB 0,0,0 (0x00435F20) and take their tile's lights, so they show
+    /// only where lit, as the owner sees them (2026-11-05); other elements stay at their tint.</summary>
     [Fact]
-    public void TheDigitsAreDrawnUntintedAsTheOwnerSeesThem()
+    public void TheDigitsAreBlackTintedAndTakeLight()
     {
         var model = Model();
         model.Request(Amount(42));
         model.AdvanceTo(new(51));
-        Assert.All(model.Particles, d => Assert.Equal((255, 255, 255), (d.Red, d.Green, d.Blue)));
+        Assert.All(model.Particles, d =>
+        {
+            Assert.Equal((0, 0, 0), (d.Red, d.Green, d.Blue));
+            Assert.True(d.TakesLight);
+        });
+    }
+
+    [Fact]
+    public void ALitSpriteIsItsTintPlusEachLightsRadialTermCappedPerChannel()
+    {
+        ClassicPointLight torch = ClassicPointLight.FromTerrain(new TilePos(2, 3), new Fp32(4096),
+            new TerrainLightColour(200, 120, 40));
+        Assert.Equal(((byte)200, (byte)120, (byte)40),
+            SpriteLighting.Lit(0, 0, 0, [torch], torch.Position));
+        Assert.Equal(((byte)255, (byte)240, (byte)80),
+            SpriteLighting.Lit(0, 0, 0, [torch, torch], torch.Position));
+        Assert.Equal(((byte)0, (byte)0, (byte)0),
+            SpriteLighting.Lit(0, 0, 0, [torch], torch.Position + new System.Numerics.Vector3(5, 0, 0)));
+        Assert.Equal(((byte)10, (byte)20, (byte)30), SpriteLighting.Lit(10, 20, 30, [], default));
+    }
+
+    [Fact]
+    public void OtherEffectElementsDoNotTakeLight()
+    {
+        var wave = new EffectDef([])
+        {
+            Name = "wave", EffectId = 10, ArtResource = EmptyArt, Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            GenerateIds = [20], GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1,
+        };
+        var spark = new EffectElementDef([])
+        {
+            Name = "spark", EffectElementId = 20, ArtResource = new("spark", 0, new byte[12], 2, 0, 0, 0),
+            MinHp = 20, MaxHp = 20, MinScale = 4096, MaxScale = 4096,
+        };
+        var model = new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(),
+            effects: [wave], effectElements: [spark]), 7, () => default, floorHeight: _ => default);
+        model.Request(new ViewEffectRequest(new(10), Viewer, new FpPosition3(new(10000), new(12000), new(0))));
+        model.AdvanceTo(new(51));
+        Assert.False(Assert.Single(model.Particles).TakesLight);
     }
 
     [Fact]

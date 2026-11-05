@@ -84,10 +84,9 @@ public sealed partial class RoomConstructionParticles
             ConstructionParticle? particle = EmitElement(element, effect, at, null, emitter, exactOrigin: true);
             if (particle == null) continue;
             particle.ScreenOffsetXRaw = offset;
-            // Owner-confirmed presentation, not DK2's draw (Q750, ADR-0663): the digits carry RGB 0,0,0 and
-            // 0x0057F3D0 adds a light term whose list is unset (Q609); the owner sees the art's own gold, so
-            // ours draws the art untinted.
-            particle.Red = particle.Green = particle.Blue = 255;
+            // The digits carry RGB 0,0,0, so all they show is 0x0057F3D0's light term; the owner sees them
+            // darken in unlit places (2026-11-05, Q609/Q750). ADR-0493's amendment keeps other effects unlit.
+            particle.TakesLight = true;
         }
     }
 

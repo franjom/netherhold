@@ -827,6 +827,10 @@ public sealed class ConstructionParticle
     /// viewer's right (element <c>+0x7D</c>, written by generation type 14 <c>0x00439480</c>); 0 for
     /// every element but a floating amount's digits.</summary>
     public int ScreenOffsetXRaw { get; internal set; }
+    /// <summary>Whether the sprite's colour is its tint plus the radial term of its tile's lights
+    /// (<c>0x0057F3D0</c> through <c>0x0057C080</c>), clamped at 255 a channel: a floating amount's digits,
+    /// whose tint is 0,0,0. Other effect sprites draw at their tint alone (ADR-0493 amendment, Q609).</summary>
+    public bool TakesLight { get; internal set; }
     public byte Red { get; internal set; }
     public byte Green { get; internal set; }
     public byte Blue { get; internal set; }

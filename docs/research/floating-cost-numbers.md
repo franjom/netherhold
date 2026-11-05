@@ -112,11 +112,12 @@ The ten elements per kind (shipped data):
 | element flags | 0 | 0 |
 | RGB / fade percentage | 0,0,0 / 100 | same |
 
-**Colour — OPEN (Q750).** The element RGB is 0,0,0, set by [0x00435F20](functions/00435F20.md): art
+**Colour — STRONGLY INFERRED that the digits show only light; HYPOTHESIS which lights.** The element RGB is 0,0,0, set by [0x00435F20](functions/00435F20.md): art
 type 1 is white, runtime art flag 2 takes the owner colour (minimum `0x30`), otherwise the definition's
 RGB (`+0x4A..+0x4C`) goes to element `+0x6E`. [0x00504D80](functions/00504D80.md) sets `+0xB` bit 0 for
 any non-zero art type, so both digit sets pass the RenderInfo gate. `0x0057F3D0` adds a light term to
-that base from a list that is unset (Q609). The art itself is gold: the `InGameDigit5` texture averages
+that base from a list whose filler is unread (Q609), so all the digits show is light: the owner sees them
+darken in unlit places (2026-11-05). The art itself is gold: the `InGameDigit5` texture averages
 RGB 171,159,92 over its opaque pixels, `gInGameDigit5` (mana) 91,171,133 (decoded 2026-11-05 with
 `DK2.Art`'s EngineTextureArchive).
 
@@ -184,8 +185,9 @@ an `Amount`, and nothing for an amount below 0. Two callers:
 
 The presentation engine drops an `Amount` request whose owner is not its `viewer`. Generation type 14
 makes one element per digit with `ConstructionParticle.ScreenOffsetXRaw` (section 4), which Unity adds
-along the camera's right axis. The digits are drawn untinted, RGB 255: an owner-confirmed
-presentation, not DK2's mechanism (colour paragraph, section 4).
+along the camera's right axis. The digits keep RGB 0,0,0 and take light (`TakesLight`): Unity adds the
+radial term of each light in the digit's tile table (`SpriteLighting`), as ADR-0493 did before its
+amendment, which other effect sprites keep. Which lights DK2 lists is still unread (Q609).
 
 Not mirrored: the sale's opening permission test `0x004C5DD0`, which can refuse before the pop; the
 per-element allocator gate `0x004352E0`; the other twelve callers of section 5 and the computer

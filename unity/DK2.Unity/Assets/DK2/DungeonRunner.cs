@@ -370,6 +370,7 @@ namespace DK2.Unity
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
                 _lightning = new ClassicLightning(transform, _installArt.LoadTexture, _constructionEffects.Model, unchecked((uint)seed));
                 _scene.Lightning = _lightning;
+                if (_scene.HasClassicLighting) _constructionEffects.TileLights = _scene.TryGetTileLights;
                 _gemIdleEffects = new LevelGemIdleEffects(database);
                 // 0x0043A8E0's owner is the render sink's word +0xC, whose writer is unread; taken as the viewer.
                 _scene.GemSparkleRequested = point => _constructionEffects.Model.Request(new ViewEffectRequest(
