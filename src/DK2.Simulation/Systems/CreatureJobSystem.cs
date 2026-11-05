@@ -896,7 +896,15 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         int cost = TrainingRules.GoldPerSecond(database);
         if (cost <= 0) return;
 
-        if (GoldStore.TryWithdraw(world, creature.OwnerPlayerId, cost)) return;
+        if (GoldStore.TryWithdraw(world, creature.OwnerPlayerId, cost))
+        {
+            // Every fourth paid charge floats the four together from the trainee (0x0047B3D3..0x0047B40A).
+            if (++creature.TrainingCharges != 4) return;
+            CostNumberRules.Show(context, SystemName, new PlayerId(creature.OwnerPlayerId),
+                CostNumberRules.PointOf(creature), 4 * cost);
+            creature.TrainingCharges = 0;
+            return;
+        }
 
         context.Emit(SystemName, "job_lost",
             $"creature={creature.Id} type={definition.Name} " +

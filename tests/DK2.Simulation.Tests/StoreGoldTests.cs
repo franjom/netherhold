@@ -137,6 +137,9 @@ public sealed class StoreGoldTests
         Assert.Equal((FloorGold.TreasuryPileObjectId, 2500, true), (pile.ObjectTypeId, pile.GoldHeld, pile.InHand));
         Assert.Equal(0, world.Tile(6, 5).GoldHeld);
         Assert.Equal(700, GoldStore.Total(world, Keeper));
+        // The lifted pile floats its whole amount where it lay (0x004C0DDA).
+        ViewEffectRequest shown = Assert.Single(sink.Events, e => e.EffectRequest?.Amount.HasValue == true).EffectRequest!.Value;
+        Assert.Equal((2500, new TilePos(6, 5)), ((int)shown.Amount!, shown.Tile));
         Assert.Contains(sink.Events, e => e.Kind == "store_gold_picked_up");
     }
 

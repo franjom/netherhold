@@ -306,9 +306,9 @@ per-room gate first, and every shipped room divides exactly either way. Sellable
 means `Buildable`, so `RoomRules.CanSell` names no room: on shipped data it admits
 the 17 rooms a keeper builds and refuses the portals, hearts and hero gates.
 
-**Not read: the sale's permission test**, world object `[0x006E5054]` slot `+0x384`, first in `0x004C5DB0`; it stops a
-keeper's sale (pay flag 1). The owner's Sell did nothing on `M7Q729b`'s Prison (2026-11-02, Secret4-based), likely
-this; ours has no such test. Action 22 passes flag 0 and goes on regardless (`M7Q729c`).
+**The sale's opening test** (STRONGLY INFERRED, no capture; [0x004C5DB0](functions/004C5DB0.md)): the seller's room, ROOMS
+`+0x43D` bit `0x80`, availability neither 1 nor 4, or a paid sale stops before the unmake. `M7Q729b`'s Prison would not sell
+(owner, 2026-11-02): fits, unread; My Pet Dungeon locks rooms at 4. Ours: `RoomRules.IsSellableType` (ADR-0664). Action 22 goes on (flag 0).
 
 **Gold on a sold treasury tile: CONFIRMED and reproduced** (owner, 2026-09-03;
 binary, 2026-09-05). The tile reverts to claimed floor and the gold drops onto that

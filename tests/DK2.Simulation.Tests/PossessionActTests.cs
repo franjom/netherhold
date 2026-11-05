@@ -288,9 +288,14 @@ public sealed class PossessionActTests
         ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (10 * world.Width) + 11);
         pile.GoldHeld = 250;
         GameSimulation sim = Sim(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
         sim.Tick(InputFrame.Of(Act(me, melee: true)));
         Assert.Equal(250 - taken, pile.GoldHeld);
         Assert.Equal(taken / 2, me.GoldHeld);
+        // The whole take, not the purse's half, floats up for the possessing keeper (0x00514D6F).
+        int[] shown = [.. sink.Events.Where(e => e.EffectRequest?.Amount.HasValue == true).Select(e => e.EffectRequest!.Value.Amount!.Value)];
+        Assert.Equal(taken > 0 ? [taken] : [], shown);
     }
 
     [Theory]

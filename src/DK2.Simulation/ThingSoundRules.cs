@@ -216,14 +216,18 @@ public static class ThingSoundRules
         if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         string category = context.Database.ObjectById(thing.ObjectTypeId)?.SoundCategory ?? "";
         if (category.Length == 0) return;
-        if (at is not FpPosition3 point)
-        {
-            bool placed = thing.PosX != 0 || thing.PosY != 0;
-            var x = new Fp32(placed ? thing.PosX : CreatureState.CentreOf(thing.TileIndex % context.World.Width));
-            var y = new Fp32(placed ? thing.PosY : CreatureState.CentreOf(thing.TileIndex / context.World.Width));
-            point = new(x, y, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, x, y)));
-        }
+        FpPosition3 point = at ?? PointOf(context, thing);
         Request(context, system, new SoundSourceId(SoundSourceKind.Object, thing.Id), category, sound, point, alternating: alternating);
+    }
+
+    /// <summary>An object's own position (DK2's <c>+0x1A</c>): its stored x and y, or its tile's centre while it
+    /// keeps none, at floor height (a deviation: DK2 reads its stored height).</summary>
+    public static FpPosition3 PointOf(SimulationContext context, ObjectState thing)
+    {
+        bool placed = thing.PosX != 0 || thing.PosY != 0;
+        var x = new Fp32(placed ? thing.PosX : CreatureState.CentreOf(thing.TileIndex % context.World.Width));
+        var y = new Fp32(placed ? thing.PosY : CreatureState.CentreOf(thing.TileIndex / context.World.Width));
+        return new(x, y, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, x, y)));
     }
 
     /// <summary>A door's request: its definition's category (<c>+0xA9</c>, <see cref="DoorDef.SoundCategory"/>), its own

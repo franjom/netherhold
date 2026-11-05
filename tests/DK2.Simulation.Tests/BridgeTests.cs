@@ -38,8 +38,8 @@ public class BridgeTests
     private static Run Start(byte hazardTerrainId, TilePos at)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        WorldState world = Dk2TerrainFixture.Sellable(WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]));
 
         ref TileState tile = ref world.Tile(at);
         tile.TerrainId = hazardTerrainId;

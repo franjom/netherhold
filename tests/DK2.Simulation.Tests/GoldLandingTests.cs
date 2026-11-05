@@ -27,7 +27,12 @@ public class GoldLandingTests
         ObjectState target = FloorGold.PutDown(world, database, index, 2, 1800)!;
         ObjectState incoming = FloorGold.Drop(world, database, index + 1, 500)!;
         var simulation = new GameSimulation(database, world, 42, [new HandSystem()]);
+        var sink = new ListEventSink();
+        simulation.ObserveWith(sink);
         simulation.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, incoming.Id)));
+        // Lifting loose gold floats its amount where it lay (0x004C0DDA).
+        ViewEffectRequest shown = Assert.Single(sink.Events, e => e.EffectRequest?.Amount.HasValue == true).EffectRequest!.Value;
+        Assert.Equal((500, new TilePos(Destination.X + 1, Destination.Y)), ((int)shown.Amount!, shown.Tile));
         if (restore)
             simulation = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(simulation), database, [new HandSystem()]);
         var point = new FpPosition2(new Fp32(Destination.X * Fp32.One + 0xD54),

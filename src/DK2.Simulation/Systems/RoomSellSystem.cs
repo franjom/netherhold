@@ -99,6 +99,9 @@ public sealed class RoomSellSystem : ISimulationSystem
         ref TileState tile = ref world.Tile(pos);
         RoomSale verdict = RoomRules.CanSell(context.Database, tile, playerId, out RoomDef? room);
         if (verdict != RoomSale.Allowed || room is null) return new TileSale(verdict, 0, 0, 0, false);
+        // The paid sale's opening test (0x004C5DD0, world slot +0x384 -> 0x0044F770): the keeper's availability
+        // of the room's type must be neither 1 (none) nor 4, or nothing happens: no unmake, refund or number.
+        if (!RoomRules.IsSellableType(world, playerId, room)) return new TileSale(RoomSale.NotAvailable, 0, 0, 0, false);
 
         int refund = RoomRules.RefundPerTile(context.Database, room);
         int index = (pos.Y * world.Width) + pos.X;

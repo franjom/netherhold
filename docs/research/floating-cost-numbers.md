@@ -144,17 +144,11 @@ top of the climb. Binary STRONGLY INFERRED; the owner confirms no fade (2026-11-
 
 ## 5. Every source of the numbers — STRONGLY INFERRED (call sites)
 
-`0x0050FB70` has 14 callers. The 4th argument read at each site is 0 (gold) except one:
-
-| caller | what is shown |
-|---|---|
-| `0x004C7380` Player_BuildWave | the room drag's summed price (section 2) |
-| `0x004C5DB0` Player_SellRoomTile | each sold tile's refund (section 3) |
-| `0x004C3519` door, `0x004C3918` trap blueprint placement | the price paid (call sites; amounts not read) |
-| `0x004C3765` door sale, `0x004C3AAE` trap sale | the refund (call sites) |
-| `0x0047B2D0` Training update hook | `4 × training cost`, at the trainee, every fourth charge ([training.md](training.md) section 3) |
-| `0x0047B970` Temple update hook | **mana**: kind 1, each prayer's mana at the praying creature ([temple-states.md](temple-states.md)) |
-| `0x0047281E` payday, `0x00457644`, `0x004D685D` Casino, `0x004C0DDA` Hand lift, `0x00499F9E`, `0x00514D6F` possessed pick-up | gold amounts; not read beyond the call |
+`0x0050FB70` has 14 callers. The 4th argument is 0 (gold) at every site but the Temple's (1, mana).
+Each caller, the amount and point it passes, and whether ours wires it are listed in
+[World_ShowCostNumber](functions/0050FB70.md); the amounts are read from the call sites, and no
+capture shows the Hand, payday, Casino or Training numbers in play. The Training count is in
+[training.md](training.md) section 3, the Temple's mana in [temple-states.md](temple-states.md).
 
 ## 6. Measured in the game — CONFIRMED (capture and video, 2026-11-04)
 
@@ -175,15 +169,24 @@ per game turn. Mana digits did not appear in this run: the Goblins were dropped 
 prayer counter (player `+0x10EE`, credited by `0x0047B970`) never changed. The owner reports blue
 digits only while creatures pray at the Temple's rim, not when they are dropped in (2026-11-04).
 
-## 7. What ours does (ADR-0663)
+## 7. What ours does (ADR-0663, ADR-0664)
 
 `CostNumberRules.Show` asks for effect 22 (gold) or 364 (mana) as a gated `ViewEffectRequest` with
-an `Amount`, and nothing for an amount below 0. Two callers:
+an `Amount`, and nothing for an amount below 0. Its callers:
 
 - `RoomBuildSystem` shows the wave's summed cost, when non-zero, at the press corner at height 0, on the
   close and on both money-refusal exits (`0x004C775F`).
 - `RoomSellSystem.SellOne` shows each paid tile's refund at the tile at height `0x1000`, after the
-  deposit or overflow and before sound `0xF5` (`0x004C5ED0`), for wave and immediate sales alike.
+  deposit or overflow and before sound `0xF5` (`0x004C5ED0`), for wave and immediate sales alike. A sale
+  of a room type whose availability is 1 or 4 does nothing first (`RoomRules.IsSellableType`, the
+  availability half of `0x0044F770`); the sell cursor does not test it.
+- `BlueprintSystem` shows a placed door's or trap's price at the tile centre, height 0.
+- `HandSystem` shows a lifted gold object's whole gold, loose or a store pile, at the object's floor height.
+- `PaydaySystem.Take`, `CasinoJackpotRules.Collect` and Training (`CreatureJobSystem.ChargeForTraining`,
+  counting `CreatureState.TrainingCharges`) show at the creature.
+- `CasinoSystem.Settle` shows the generous lever's 4 per gambler at the lever's tile, nominal; the stingy
+  lever shows nothing. It counts the gamblers standing on tiles where DK2 walks the room's occupant list.
+- `PossessionRules.Act.TakeGold` shows the whole take at the action's pose.
 
 The presentation engine drops an `Amount` request whose owner is not its `viewer`. Generation type 14
 makes one element per digit with `ConstructionParticle.ScreenOffsetXRaw` (section 4), which Unity adds
@@ -191,9 +194,9 @@ along the camera's right axis. The digits keep RGB 0,0,0 and take light (`TakesL
 radial term of each light in the digit's tile table (`SpriteLighting`), as ADR-0493 did before its
 amendment, which other effect sprites keep. Which lights DK2 lists is still unread (Q609).
 
-Not mirrored: the sale's opening permission test `0x004C5DD0`, which can refuse before the pop; the
-per-element allocator gate `0x004352E0`; the other twelve callers of section 5 and the computer
-keeper's direct build. ADR-0534 and ADR-0313 still list the store-lift amount and the training -20 as
-not modelled. Accepted in play by the owner (2026-11-05, "this looks good"), after effect billboards
+Not mirrored: the per-element allocator gate `0x004352E0`; the computer keeper's direct build; the Temple's
+mana (our prayer credits none); door and trap sales (not modelled); `0x00499F9E` (the Crypt is content DK2
+scrapped, dead code, owner). Ours still charges, and so counts, a trainee at the level cap, where DK2's hook
+returns first. Accepted in play by the owner (2026-11-05, "this looks good"), after effect billboards
 were turned upright (they had been drawn upside down): a Prison drag sale's 375s and a build's 7500
 (`F:/DK2Evidence/captures/visual/cost-numbers-ours-accepted--2026-11-05--001`).

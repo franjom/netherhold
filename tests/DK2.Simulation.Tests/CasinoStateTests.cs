@@ -676,5 +676,9 @@ public class CasinoStateTests
         Assert.Equal(SoundSourceId.Of(new CreatureId(winner.Id)), sound.Source);
         Assert.Equal(new FpPosition3(new Fp32(winner.PosX), new Fp32(winner.PosY), new Fp32(winner.PosZ)), sound.Position);
         Assert.True(sound.Voiced);
+        // What came off the room floats up from the winner, before the purse (0x00457644).
+        ViewEffectRequest shown = Assert.Single(sink.Events, e => e.EffectRequest?.Amount.HasValue == true).EffectRequest!.Value;
+        Assert.Equal(sound.Position, shown.Position);
+        Assert.Contains(sink.Events, e => e.Kind == "jackpot_collected" && e.Detail.Contains($"taken={shown.Amount}"));
     }
 }

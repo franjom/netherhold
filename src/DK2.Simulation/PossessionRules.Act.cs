@@ -138,7 +138,7 @@ public static partial class PossessionRules
                 Attack(context, me, FightTargetKind.Door, door.Id, now);
                 break;
             case ObjectState thing:
-                ObjectArm(context, me, mine, thing, now);
+                ObjectArm(context, me, mine, thing, now, aim);
                 break;
             case PillarThing pillar:
                 // Action 17 at the pillar; the health routine hands its blow to the heart (0x004DA200).
@@ -176,12 +176,13 @@ public static partial class PossessionRules
     /// <see cref="EatChicken"/>, 14 <see cref="SpinDummy"/>; 15, 16 and 46 only place an impact effect
     /// (<c>0x004998A0</c>: <see cref="WeaponImpactRules"/> asks its sound); any other type the pick allows (the Book Case, 64) takes the
     /// attack. The Arch Pillar (94) is a <see cref="PillarThing"/>.</summary>
-    private static void ObjectArm(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState thing, long now)
+    private static void ObjectArm(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState thing, long now,
+        PossessionAim aim)
     {
         switch (thing.ObjectTypeId)
         {
             case FloorGold.FloorGoldObjectId or GoldBagObjectId or FloorGold.TreasuryPileObjectId:
-                TakeGold(context, me, mine, thing);
+                TakeGold(context, me, mine, thing, aim);
                 break;
             case HatcheryRules.ChickenObjectId:
                 EatChicken(context, me, mine, thing);
@@ -201,8 +202,10 @@ public static partial class PossessionRules
     }
 
     /// <summary>The pick-up: the least of twice what the purse lacks, the pile (an unsigned test) and
-    /// 100; the pile loses it, emptied it goes, and half goes into the purse (<c>0x0048AE70</c>).</summary>
-    private static void TakeGold(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState pile)
+    /// 100; the pile loses it, emptied it goes, and half goes into the purse (<c>0x0048AE70</c>); then the whole
+    /// take floats up at the action's pose for the possessing keeper (<c>0x00514D6F</c>).</summary>
+    private static void TakeGold(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState pile,
+        PossessionAim aim)
     {
         int lacks = CreatureLevelRules.MaxGoldHeld(context.Database, mine, me.Level) - me.GoldHeld;
         if (lacks == 0) return;
@@ -211,6 +214,9 @@ public static partial class PossessionRules
         if (take > 99) take = 100;
         FloorGold.Take(context.World, context.Database, pile, take);
         int landed = PurseRules.Receive(context.Database, mine, me, take / 2);
+        (int px, int py, int pz) = aim.PacketOrigin;
+        CostNumberRules.Show(context, ActSystem, new PlayerId(me.OwnerPlayerId),
+            new FpPosition3(new Fp32(px), new Fp32(py), new Fp32(pz)), take);
         context.Emit(ActSystem, "possessed_gold", $"creature={me.Id} pile={pile.Id} take={take} purse={landed}");
     }
 

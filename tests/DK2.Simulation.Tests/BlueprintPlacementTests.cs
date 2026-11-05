@@ -151,5 +151,22 @@ public sealed class BlueprintPlacementTests
         Assert.Contains(sink.Events, e => e.Kind == "blueprint_placed" && e.Detail.Contains("kind=door"));
         Assert.Contains(sink.Events, e => e.Kind == "blueprint_refused" && e.Detail.Contains("reason=NoWalls"));
         Assert.Single(world.Doors);
+        // Only the placed door floats its price, from the tile's centre at height 0 (0x004C3519).
+        ViewEffectRequest shown = Assert.Single(sink.Events, e => e.EffectRequest?.Amount.HasValue == true).EffectRequest!.Value;
+        Assert.Equal((db.Doors[WoodenDoor].GoldCost, InTheCorridor, 0), ((int)shown.Amount!, shown.Tile, shown.Height.Raw));
+    }
+
+    [Fact]
+    public void APlacedTrapFloatsItsPrice()
+    {
+        (GameDatabase db, WorldState world) = World();
+        byte trapId = db.Traps.Keys.First(id => db.Traps[id].GoldCost > 0);
+        var sim = new GameSimulation(db, world, seed: 1, [new BlueprintSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        sim.Tick(InputFrame.Of(new PlaceTrapCommand(Keeper, InTheCorridor, trapId)));
+        Assert.Contains(sink.Events, e => e.Kind == "blueprint_placed");
+        ViewEffectRequest shown = Assert.Single(sink.Events, e => e.EffectRequest?.Amount.HasValue == true).EffectRequest!.Value;
+        Assert.Equal((db.Traps[trapId].GoldCost, InTheCorridor), ((int)shown.Amount!, shown.Tile));
     }
 }

@@ -1462,6 +1462,23 @@ internal static class Dk2TerrainFixture
             Health = health, Flags = flags, ShotProcessFlags = processFlags, CollideType = collide, ProcessType = process, DamageType = damageType, AttackCategory = attackCategory, DeathShotId = deathShot,
         };
 
+    /// <summary>Gives every keeper of <paramref name="world"/> a researchable (2) row for each room type it
+    /// lacks one for, so a paid sale passes its opening availability test (<c>0x0044F770</c> refuses 1 and 4)
+    /// without changing the rules that ask for an available (3) room. Rules that test for 1 (no row) or 2
+    /// (<c>RoomNeedRules.GoldLeftOver</c>, research) see 2 in a wrapped world: wrap only sale tests.</summary>
+    public static WorldState Sellable(WorldState world)
+    {
+        for (int i = 0; i < world.PlayerCount; i++)
+        {
+            ref PlayerState player = ref world.Player(world.PlayerAtIndex(i).PlayerId);
+            if (!player.PlayerId.IsKeeper) continue;
+            foreach (RoomTypeId type in Enum.GetValues<RoomTypeId>())
+                if (!player.Availabilities.Exists(a => a.Kind == AvailabilityKind.Room && a.TypeId == (int)type))
+                    player.Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)type, 2));
+        }
+        return world;
+    }
+
     /// <summary>Every global variable a built mechanic reads, at its shipped
     /// value, plus four rows of the per-level stat table.</summary>
     public static GlobalVariables Variables()

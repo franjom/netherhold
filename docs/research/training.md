@@ -77,7 +77,7 @@ trick gave the prison its drain (category 14, `FUN_0047B7C0`, Q173).
    raised and the hook returns failure.
 7. `trainingCostPerSecond` is spent at the creature's tile.
 8. The creature's charge count goes up by one; when it reaches 4, a floating
-   "-20" pops up and the count goes back to 0.
+   "-20" pops up and the count resets (`CreatureState.TrainingCharges`, ADR-0664).
 
 Four things fall out of the order, and each is behaviour:
 
@@ -381,8 +381,9 @@ still counted as training.
 The natural 108/111/112 machine cycle and cap refusal are now built; see
 [training-actions.md](training-actions.md). Remaining presentation and room
 payment differences: gold comes out of the keeper's tiles through
-`GoldStore.TryWithdraw`, and there is no floating "-20", message `0x37` or
-combat-pit fallback.
+`GoldStore.TryWithdraw`, and there is no message `0x37` or combat-pit
+fallback. The floating "-20" is shown every fourth paid charge (ADR-0664);
+ours still charges and counts at the level cap, where DK2's hook returns first.
 
 ## Tests
 

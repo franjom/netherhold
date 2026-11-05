@@ -155,8 +155,7 @@ public static class CategoryHooks
         Releasing(CreatureStateCategory.Temple, 0x0047B920, Release),
 
         new(CreatureStateCategory.Training, HookKind.Enter, 0x0047B230, HookStatus.Partial,
-            "the gold test with message 55, then the seed, then the claim (ADR-0313); not built: clearing "
-            + "+0xB4, the count behind the floating -20, which ours does not keep")
+            "the gold test with message 55, then the charge count +0xB4 and the seed, then the claim (ADR-0313)")
         {
             SeedsCountdown = true,
             Enter = static (in StateHookContext hooks, CreatureState creature) =>
@@ -169,7 +168,8 @@ public static class CategoryHooks
                     return false;
                 }
 
-                // Seeded before the claim, so a full room still leaves it written, as DK2's does.
+                // Counted and seeded before the claim, so a full room still leaves both written, as DK2's does.
+                creature.TrainingCharges = 0;
                 creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
                 return RoomCapacityRules.Claim(in hooks, creature);
             },
