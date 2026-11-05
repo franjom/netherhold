@@ -7,7 +7,8 @@ systems: [audio]
 
 The runtime media reader and decoder are in DK2.Data.Media (ADR-0583). NLayer3.0.0 decodes
 FrontEndHD entry0 to26112 mono samples (68 LayerI frames) and Mentor entry0 to58752 mono
-samples (51 LayerII frames), both22050Hz. No derived assets are written to disk.
+samples (51 LayerII frames), both22050Hz. No derived assets are written to disk. Decoding runs on
+worker threads, not the frame thread (ADR-0686, a remake policy).
 
 ## Category and sample selection
 

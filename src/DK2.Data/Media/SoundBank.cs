@@ -8,7 +8,8 @@ namespace DK2.Data.Media;
 
 public readonly record struct SoundEntryId(int Value);
 
-/// <summary>One SDT archive with clips decoded on first use and retained for the session.</summary>
+/// <summary>One SDT archive with clips decoded on first use and retained for the session. Safe to call from
+/// several threads: a clip is decoded outside the lock, and the first decode of an entry is the one kept.</summary>
 public sealed class SoundBank
 {
     private readonly SdtArchive _archive;
@@ -19,25 +20,37 @@ public sealed class SoundBank
     public PcmClip? GetClip(SoundEntryId entryId)
     {
         if ((uint)entryId.Value >= _archive.Entries.Count) throw new ArgumentOutOfRangeException(nameof(entryId));
-        if (_clips.TryGetValue(entryId, out PcmClip? cached)) return cached;
-        SdtEntry entry = _archive.Entries[entryId.Value];
-        PcmClip? clip;
-        if (entry.Codec == SdtCodec.Empty) clip = null;
-        else if (entry.Codec == SdtCodec.Pcm)
+        lock (_clips)
+            if (_clips.TryGetValue(entryId, out PcmClip? cached)) return cached;
+        PcmClip? clip = Decode(_archive.Entries[entryId.Value]);
+        lock (_clips)
         {
-            byte[] wave = _archive.Extract(entry);
+            if (_clips.TryGetValue(entryId, out PcmClip? first)) return first;
+            _clips.Add(entryId, clip);
+        }
+        return clip;
+    }
+
+    private PcmClip? Decode(SdtEntry entry)
+    {
+        if (entry.Codec == SdtCodec.Empty) return null;
+        if (entry.Codec == SdtCodec.Pcm)
+        {
+            ArraySegment<byte> wave = _archive.Payload(entry);
             int bytesPerSample = entry.BitsPerSample / 8;
             if (bytesPerSample != 1 && bytesPerSample != 2) throw new InvalidDataException("Unsupported PCM sample width.");
             var samples = new short[entry.StoredSize / bytesPerSample];
+            ReadOnlySpan<byte> data = wave.AsSpan();
             for (int i = 0; i < samples.Length; i++)
-                samples[i] = bytesPerSample == 1 ? (short)((wave[44 + i] - 128) << 8)
-                    : BinaryPrimitives.ReadInt16LittleEndian(wave.AsSpan(44 + i * 2));
-            clip = new PcmClip(entry.SampleRate, entry.ChannelCount!.Value, samples);
+                samples[i] = bytesPerSample == 1 ? (short)((data[i] - 128) << 8)
+                    : BinaryPrimitives.ReadInt16LittleEndian(data.Slice(i * 2));
+            return new PcmClip(entry.SampleRate, entry.ChannelCount!.Value, samples);
         }
-        else if (entry.Codec is SdtCodec.MpegLayer1 or SdtCodec.MpegLayer2 or SdtCodec.MpegLayer3)
-            clip = MpegAudioDecoder.Decode(_archive.Extract(entry));
-        else throw new InvalidDataException("Unknown SDT audio codec.");
-        _clips.Add(entryId, clip);
-        return clip;
+        if (entry.Codec is SdtCodec.MpegLayer1 or SdtCodec.MpegLayer2 or SdtCodec.MpegLayer3)
+        {
+            ArraySegment<byte> payload = _archive.Payload(entry);
+            return MpegAudioDecoder.Decode(payload.Array!, payload.Offset, payload.Count);
+        }
+        throw new InvalidDataException("Unknown SDT audio codec.");
     }
 }

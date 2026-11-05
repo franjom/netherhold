@@ -378,6 +378,11 @@ namespace DK2.Unity
             }
             _startup.Step("effects");
             _soundPlayer = new ClassicSoundPlayer(transform, new InstallClassicSoundAssets(install));
+            // The level's likely sound clips decode on workers beside the art; the rest decode on first use, also off
+            // this thread, so no frame decodes a clip. Read before the first tick, like the art keys.
+            Task soundPrefetch = frontEnd ? null : _soundPlayer.Prefetch(LevelSoundPrefetch.Categories(database, world,
+                new DK2.Data.Media.SoundCategory(database.Level?.SoundCategory.ToLowerInvariant()
+                    ?? DK2.Data.Media.SoundCategory.Mentor.Name)), workers);
             // DK2 plays a Casino party's pop only when it created the party's effect (0x004D65E9).
             if (_constructionEffects != null)
                 _constructionEffects.Model.EffectCreated = effect =>
@@ -436,6 +441,9 @@ namespace DK2.Unity
             _startup.Step("tick");
             WaitForPrefetch(prefetch);
             _startup.Step("prefetch.wait");
+            WaitForPrefetch(soundPrefetch, "sound");
+            _startup.Step("sound.prefetch");
+            Debug.Log($"DK2: sound prefetch decoded {_soundPlayer.DecodedMegabytes:F1} MB of samples");
             double[] artBefore = _classic?.Breakdown.Snapshot();
             _presenter.Present(world);
             _startup.Step("present");
@@ -506,7 +514,7 @@ namespace DK2.Unity
 
         /// <summary>Waits for the art prefetch. A failure is only a warning: the art then loads on
         /// request, which reports a real problem as it always has.</summary>
-        private static void WaitForPrefetch(Task prefetch)
+        private static void WaitForPrefetch(Task prefetch, string what = "art")
         {
             if (prefetch == null) return;
             try
@@ -515,7 +523,7 @@ namespace DK2.Unity
             }
             catch (AggregateException ex)
             {
-                Debug.LogWarning($"DK2: art prefetch failed — {ex.GetBaseException().Message}");
+                Debug.LogWarning($"DK2: {what} prefetch failed — {ex.GetBaseException().Message}");
             }
         }
 
@@ -749,6 +757,7 @@ namespace DK2.Unity
             if (_simulation == null || _failure != null) return;
             if (Camera.main != null) Camera.main.transform.position -= _appliedCameraJitter;
             _appliedCameraJitter = Vector3.zero;
+            using (FrameSoundMarker.Auto()) _soundPlayer?.PlayDecoded();
             using (FrameSpeechMarker.Auto()) _soundPlayer?.UpdateSpeech((long)(Time.unscaledTimeAsDouble * 1000));
             if (_frontEnd != null) { if (!UpdateStartup() && !UpdateCutscene()) UpdateFrontEnd(); return; }
             FrameReportMarker.Begin();

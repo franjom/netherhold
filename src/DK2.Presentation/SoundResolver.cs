@@ -44,6 +44,29 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
         return group is { Items.Count: 1 } ? ResolveItem(group.Items[0], random) : null;
     }
 
+    /// <summary>Every sample the group's items can pick, without drawing from the sound LCG: what a decoder warms
+    /// before the group is played. Entries that point outside the bank map are skipped.</summary>
+    public void SamplesOf(SoundId id, List<ResolvedSound> into)
+    {
+        into.Clear();
+        foreach (SoundGroup group in map.Groups)
+        {
+            if (group.Id != id) continue;
+            foreach (SoundItem item in group.Items)
+                foreach (SoundSample sample in item.Sounds)
+                    if (Locate(banks, sample) is ResolvedSound found) into.Add(found);
+            return;
+        }
+    }
+
+    /// <summary>A sample's bank entry, or null when it points outside the bank map.</summary>
+    public static ResolvedSound? Locate(BankMap banks, SoundSample sample)
+    {
+        int bank = sample.Archive.Value - 1;
+        if (bank < 0 || bank >= banks.Archives.Count || sample.Index == 0 || sample.Index > int.MaxValue) return null;
+        return new ResolvedSound(banks.Archives[bank].Name, new SoundEntryId((int)sample.Index - 1));
+    }
+
     public ResolvedSound? ResolveItem(SoundItem item, SoundRand random)
     {
         if (item.Sounds.Count == 0) return null;
