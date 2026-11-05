@@ -335,7 +335,9 @@ namespace DK2.Unity
                 bool left = corner == 0 || corner == 3;
                 group.FlatVertices.Add(position + right * (left ? -width * .5f : width * .5f)
                     + up * (corner < 2 ? -height * .5f : height * .5f));
-                group.FlatUvs.Add(new Vector2(left ? u0 : u1, corner < 2 ? 0f : 1f));
+                // 0x0057F3D0 gives the screen's upper corners v 0, the image's top row; the atlas holds that
+                // row at Unity's v 0, so the lower corners take v 1 (the floating digits showed it upside down).
+                group.FlatUvs.Add(new Vector2(left ? u0 : u1, corner < 2 ? 1f : 0f));
                 group.FlatColours.Add(colour);
             }
             group.FlatTriangles.Add(first); group.FlatTriangles.Add(first + 1); group.FlatTriangles.Add(first + 2);
@@ -469,6 +471,8 @@ namespace DK2.Unity
             var renderer = go.GetComponent<ParticleSystemRenderer>();
             renderer.sharedMaterial = group.Material;
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            // The atlas rows are top first; Unity's sprites count v up, so the image is turned upright.
+            renderer.flip = new Vector3(0f, 1f, 0f);
             renderer.sortMode = ParticleSystemSortMode.Distance;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             group.System.Play(); group.System.Pause();
