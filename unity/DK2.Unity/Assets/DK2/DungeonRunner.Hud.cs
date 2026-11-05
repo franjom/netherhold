@@ -77,6 +77,8 @@ namespace DK2.Unity
             _placementOverlay.CreatureIconName = id => heldArt.CreatureIcons.TryGetValue(id, out Dk2ArtResource icon) ? icon.Name : null;
             _placementOverlay.ObjectIconName = id => heldArt.Objects.TryGetValue(id, out IReadOnlyList<Dk2ArtResource> art) && art.Count > 1 ? art[1].Name : null;
             _bottomPanel.SelectCategory(BottomPanelCategory.Creatures);
+            // The panel starts with Creatures open; nobody clicked its tab, so its press sound is not played.
+            _bottomPanel.Sounds.Clear();
             _bottomPanel.Selected += SelectPanelChoice;
             _bottomPanel.SpecialChosen += ActivateStoredSpecial;
             _roomNavigation = new RoomNavigation(new PlayerId((byte)viewingPlayerId));

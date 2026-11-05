@@ -76,6 +76,18 @@ public class PlayerInputTests
             PointerButtonTransition.Released).All);
     }
 
+    // Hand_Click (0x004075E0), mode 0, hover kind 5: the press on a door posts action 93, the lock toggle.
+    [Fact]
+    public void HandPressOnAHoveredDoorTogglesItsLock()
+    {
+        TilePos tile = new(6, 2);
+        PlayerInputSnapshot snapshot = new PlayerInputSnapshot(false, []).ForHover(new WorldHoverHit(WorldHoverKind.Door, tile, 12));
+        LockDoorCommand command = Assert.IsType<LockDoorCommand>(Assert.Single(
+            Translate(PlayerToolMode.Hand, tile, PointerButtonTransition.Pressed, snapshot).All));
+        Assert.Equal(tile, command.Tile);
+        Assert.Empty(Translate(PlayerToolMode.Slap, tile, PointerButtonTransition.Pressed, snapshot).All);
+    }
+
     [Fact]
     public void HandClickPrefersCreatureToObjectOnTheSameTile()
     {

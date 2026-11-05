@@ -34,8 +34,11 @@ state 3's, field for field: the pointing finger. A keeper spell's tool (mode 8,
 `0x0040B7F0`) clears the contextual channel unless it holds 5 or 11, and requests
 state 12 on the middle channel every frame, so the finger stays until the spell is
 cancelled. Over the GUI, `0x0040BBE0` requests SmallPoint instead and skips the spell
-arm. Built as `HandCursorKind.SpellPoint`. State 13 has its own callback `0x0040E5E0`;
-who requests it is unread.
+arm. Built as `HandCursorKind.SpellPoint`. State 13, the cast hand, is asked by the mode-8
+click in `Hand_Click` (`0x004075E0`) once it has posted a cast, except for Possession (spell 2).
+Its callback `0x0040E5E0` asks state 12 back when the 12 frames end, and asks no sound. Built as
+`HandCursorKind.SpellCast` and `SpellCastCursor`; ours gates the play on the cursor's No Go, the
+same tests the click runs.
 
 Width/hotspot-X scale by physical screen width/640; height/hotspot-Y by
 screen height/480, with integer truncation. The loader resamples the complete

@@ -829,6 +829,13 @@ namespace DK2.Unity
                 return (double[])_milliseconds.Clone();
             }
 
+            /// <summary>The totals so far into <paramref name="into"/>, without allocating.</summary>
+            public void Snapshot(double[] into)
+            {
+                Switch(_current);
+                System.Array.Copy(_milliseconds, into, _milliseconds.Length);
+            }
+
             private void Switch(Work next)
             {
                 double now = _clock.Elapsed.TotalMilliseconds;

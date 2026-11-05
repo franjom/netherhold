@@ -53,6 +53,7 @@ namespace DK2.Unity
         private bool _visible = true, _allowInput = true;
         private Vector2Int _viewport;
         private string _descriptionText = "";
+        private readonly Texture2D _hilight;
         private int _hovered = -1, _hoverCost;
         private BottomPanelChoice _hoverChoice;
         private bool _hoverUnknown;
@@ -122,7 +123,7 @@ namespace DK2.Unity
             // (0x00412260 at 0x00412900..0x0041294F). Flag 8 is read as additive: UI Toolkit has no
             // additive images, so the art is baked to white with its brightness as alpha, which
             // lightens the dark tab frame by about what adding it would.
-            Texture2D hilight = Lightening(Texture("GUI\\Icons\\hilight"));
+            Texture2D hilight = _hilight = Lightening(Texture("GUI\\Icons\\hilight"));
             for (int i = 0; i < 4; i++) _tabHover[i] = Picture(hilight);
             // Child order is draw order: recharge/manufacture sector (depth 0.7/0.6) over the icon, the
             // selection (layer 5) over it, the hover (layer 4) over that, and the research sector
@@ -353,16 +354,18 @@ namespace DK2.Unity
                 _icons[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
                 _selection[i].style.display = show && choice.Selected ? DisplayStyle.Flex : DisplayStyle.None;
                 // A hovered slot in state 1 (Selectable) draws catalogue 121 hilight with render flag 8
-                // (0x00412FC0, panel-indicators.md §5). The upgraded spell's hilight-2 is not built.
+                // (0x00412FC0, panel-indicators.md §5), or for an upgraded spell 262 hilight-2 without the flag.
                 bool hovered = show && _allowInput && _hovered == i && choice.Selectable;
                 _slotHover[i].style.display = hovered ? DisplayStyle.Flex : DisplayStyle.None;
+                if (hovered) _slotHover[i].image = choice.Upgraded ? Texture("GUI\\Icons\\hilight-2") : _hilight;
                 BottomPanelSlotIndicators marks = show ? choice.Indicators : BottomPanelSlotIndicators.None;
                 int progress = marks.RechargePercent ?? marks.ManufacturePercent ?? 0;
                 _progress[i].style.display = progress != 0 ? DisplayStyle.Flex : DisplayStyle.None;
                 _research[i].style.display = marks.ResearchPercent.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
                 if (!show) continue;
                 BottomPanelRect cell = grid.Slot(area, k);
-                string icon = !choice.Unknown ? _assets.Icon(choice.Key) : choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Rooms\\tba" :
+                // An upgraded spell draws its record's second icon, the gold-rimmed -2 art (panel-indicators.md §5).
+                string icon = !choice.Unknown ? (choice.Upgraded ? _assets.UpgradedIcon(choice.Key) : null) ?? _assets.Icon(choice.Key) : choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Rooms\\tba" :
                     choice.Kind == BottomPanelChoiceKind.Spell ? "GUI\\Spells\\s-tba" : "GUI\\Traps\\w-tba";
                 Texture2D iconTexture = string.IsNullOrEmpty(icon) ? null : Texture(icon);
                 _icons[i].image = iconTexture;

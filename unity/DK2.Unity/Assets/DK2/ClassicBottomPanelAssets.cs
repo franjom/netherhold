@@ -19,6 +19,8 @@ namespace DK2.Unity
     {
         RgbaImage Image(string name);
         string Icon(BottomPanelChoiceKey key);
+        /// <summary>An upgraded spell's icon, the record's second art name (file <c>+0x120</c>), or null.</summary>
+        string UpgradedIcon(BottomPanelChoiceKey key) => null;
         string Name(BottomPanelChoiceKey key, string fallback);
         int Order(BottomPanelChoiceKey key);
         string Text(uint id);
@@ -33,6 +35,7 @@ namespace DK2.Unity
         private readonly Dk2StringTable _strings;
         private readonly Dictionary<BottomPanelChoiceKey, string> _names = new Dictionary<BottomPanelChoiceKey, string>();
         private readonly Dictionary<BottomPanelChoiceKey, string> _icons = new Dictionary<BottomPanelChoiceKey, string>();
+        private readonly Dictionary<BottomPanelChoiceKey, string> _upgradedIcons = new Dictionary<BottomPanelChoiceKey, string>();
         private readonly Dictionary<BottomPanelChoiceKey, int> _order = new Dictionary<BottomPanelChoiceKey, int>();
 
         /// <summary>From the install alone, owning the texture archive it opens.</summary>
@@ -87,10 +90,17 @@ namespace DK2.Unity
                     int end = start;
                     while (end < start + 64 && data[end] != 0) end++;
                     _icons[key] = Encoding.ASCII.GetString(data, start, end - start);
+                    if (kind == BottomPanelChoiceKind.Spell)
+                    {
+                        int upgraded = at + 0x120, stop = upgraded;
+                        while (stop < upgraded + 64 && data[stop] != 0) stop++;
+                        if (stop > upgraded) _upgradedIcons[key] = Encoding.ASCII.GetString(data, upgraded, stop - upgraded);
+                    }
                 }
             }
         }
         public string Icon(BottomPanelChoiceKey key) => _icons.TryGetValue(key, out string name) ? name : null;
+        public string UpgradedIcon(BottomPanelChoiceKey key) => _upgradedIcons.TryGetValue(key, out string name) ? name : null;
         public int Order(BottomPanelChoiceKey key) => _order.TryGetValue(key, out int order) ? order : key.Value;
         public string Name(BottomPanelChoiceKey key, string fallback) => _names.TryGetValue(key, out string name) ? name : fallback;
         public string Text(uint id) => _strings.Resolve(id);

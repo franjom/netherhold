@@ -56,6 +56,9 @@ public enum PlayerInputTargetKind : byte
     /// <summary>A Treasury or Heart tile's store pile, a view decoration over the tile's gold
     /// (<see cref="WorldView.IsStorePile"/>); the hand lifts it by tile.</summary>
     StoreGold,
+    /// <summary>A door under the pointer (hover kind 5), which the hand's press locks or unlocks
+    /// (<c>Hand_Click</c> <c>0x004075E0</c>, game action 93).</summary>
+    Door,
 }
 
 /// <summary>An entity the player's current view permits the pointer to target. <paramref name="Origin"/>
@@ -104,6 +107,9 @@ public sealed class PlayerInputSnapshot
 
     public PlayerInputSnapshot ForHover(WorldHoverHit hit)
     {
+        // Doors are not captured targets: the pick names the door, and the press acts on it.
+        if (hit.Kind == WorldHoverKind.Door)
+            return new PlayerInputSnapshot(IsHolding, [new PlayerInputTarget(PlayerInputTargetKind.Door, hit.EntityId, hit.Tile)], Excavation);
         PlayerInputTargetKind? kind = hit.Kind switch
         {
             WorldHoverKind.Creature => PlayerInputTargetKind.Creature,
@@ -361,6 +367,11 @@ public sealed class PlayerInputTranslator
 
             if (TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Special) is PlayerInputTarget special)
                 return new ActivateSpecialCommand(intent.PlayerId, special.Id);
+
+            // Hand_Click (0x004075E0), mode 0, hover kind 5: the press posts action 93 for the hovered door,
+            // which the handler (0x00513800) toggles for its owner only.
+            if (TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Door) is PlayerInputTarget door)
+                return new LockDoorCommand(intent.PlayerId, door.Tile);
 
             PlayerInputTarget? instance = TargetAt(
                 snapshot.Targets, tile, PlayerInputTargetKind.Object);

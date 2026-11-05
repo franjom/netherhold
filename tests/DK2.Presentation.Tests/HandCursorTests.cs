@@ -133,6 +133,28 @@ public sealed class HandCursorTests
         Assert.Equal(HandCursor.Anchor(HandCursorKind.Pickup, 0), HandCursor.Anchor(HandCursorKind.SpellPoint, 0));
     }
 
+    // State 13 (0x0068F638): SpellCast.png, 12 frames at 30 per second, played once after a posted cast, then the
+    // finger again (0x0040E5E0); Possession's cast asks none (Hand_Click 0x004075E0).
+    [Fact]
+    public void ACastPlaysTheTwelveFrameCastHandOnceExceptForPossession()
+    {
+        HandCursorSprite sprite = HandCursor.Sprite(HandCursorKind.SpellCast);
+        Assert.Equal(("SpellCast.png", 12, 30), (sprite.FileName, sprite.FrameCount, sprite.FramesPerSecond));
+        Assert.Equal(sprite.Hotspot, HandCursor.Anchor(HandCursorKind.SpellCast, 5));
+        var cast = new SpellCastCursor();
+        Assert.False(cast.Showing(0));
+        cast.Play(4, 1000);
+        Assert.True(cast.Showing(1000));
+        long now = 1000;
+        while (now < 1390) { now += 10; Assert.True(cast.Showing(now)); }   // 12 frames at 30 per second: 400 ms
+        Assert.False(cast.Showing(1400));
+        Assert.False(cast.Showing(1410));
+        cast.Play(SpellCastCursor.PossessionSpellId, 2000);
+        Assert.False(cast.Showing(2000));
+        cast.Play(6, 3000); cast.Cancel();
+        Assert.False(cast.Showing(3000));
+    }
+
     // The pick, slap and drops swing through DK2's hotspot; pinning a tip would stop the swing.
     [Theory]
     [InlineData(HandCursorKind.DropThing)]
@@ -160,11 +182,13 @@ public sealed class HandCursorTests
     {
         var animation = new HandCursorAnimation();
         Assert.Equal(0, animation.Advance(HandCursorKind.Point, 0));
-        Assert.Equal(40, animation.Advance(HandCursorKind.Point, 1350));
-        Assert.Equal(0, animation.Advance(HandCursorKind.Point, 2000));
-        Assert.Equal(3, animation.Advance(HandCursorKind.Point, 2100));
-        Assert.Equal(0, animation.Advance(HandCursorKind.Dig, 2200));
-        Assert.Equal(0, animation.Advance(HandCursorKind.Point, 2300));
+        int frame = 0;
+        for (long t = 10; t <= 1350; t += 10) frame = animation.Advance(HandCursorKind.Point, t);   // steady 100 fps
+        Assert.Equal(40, frame);
+        for (long t = 1360; t <= 1370; t += 10) frame = animation.Advance(HandCursorKind.Point, t);
+        Assert.Equal(0, frame);                     // 41 frames done: the loop restarts, the overshoot discarded
+        Assert.Equal(0, animation.Advance(HandCursorKind.Dig, 1380));
+        Assert.Equal(0, animation.Advance(HandCursorKind.Point, 1390));
     }
 
     [Fact]
