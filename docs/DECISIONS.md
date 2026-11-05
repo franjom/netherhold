@@ -15527,3 +15527,24 @@ Tests of the lairless ladder run in a level that offers the Lair (`LairOffer`).
 of a bed, as with the Hatchery. Ours keeps its `TimeSleep` condition on the lair arm (`LairRules.NeedsBed`);
 DK2's arm tests only the lair object. The owner's stopwatch (Unhappy at 165 s) holds only where the
 Lair is offered or owned; its test now offers it.
+
+## ADR-0667: the need charges skip workers, read the lair object alone and use the loader's rates
+
+**Date:** 2026-11-05. **Status:** accepted. Answers Q752; hash/save 411. · **Systems:** creatures
+
+**Context.** The lair arm of `0x00478D00` tests the bed (`+0x3B7`) and the lair object (`def+0x771`,
+`0x00478DAD`), not `TimeSleep`; ours used `LairRules.NeedsBed`, which adds it. They differ for the Dwarf
+and the Stone Knight (lair object 6, `TimeSleep` 0). A keeper never owns the Stone Knight; it can own a
+Dwarf, by conversion or from a custom map's mercenary portal (owner, 2026-11-05). But the dispatcher
+`0x00476FC0` jumps every worker (`def+0x686` bit 0, `0x00477130`) past `0x00478D00`, its only caller,
+and the Dwarf is a worker, so DK2 charges a keeper's Dwarf nothing. Ours tested the owner only. And the
+loader stores each `angerNo*` per tick, file value over variable 19 by signed `IDIV`, floored at 1 when
+non-zero (`0x00492320`, `0x0049396E`-`0x004939ED`); the routine adds it every turn. Ours added the file
+value once a second, so a Bile Demon's 150 was 150 where DK2's is 148.
+
+**Decision.** `CreatureAngerRules.PerSecond` charges the need buckets only when `NeedRules.IsAsked`
+(a keeper's non-worker), gates the lair charge on `LairObjectId` as the arm does, and charges four
+times `SimulationTiming.LoaderRatePerTick` a second. `NeedsBed` still gates the bed attempt.
+
+**Consequences.** A keeper's Dwarf or Imp takes no lair, food or pay anger. The lair gate's change is
+unobservable, since the Stone Knight is never a keeper's. Figures that four divides are unchanged.

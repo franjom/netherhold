@@ -835,6 +835,41 @@ public class CreatureAngerTests
     }
 
     [Fact]
+    public void AKeepersDwarfIsAWorkerAndTakesNoNeedAnger()
+    {
+        // ADR-0667: the dispatcher jumps a worker (def+0x686 bit 0) past 0x00478D00 (0x00477130), so a
+        // keeper's Dwarf, converted or from a mercenary portal, is charged for no bed, food or pay.
+        const byte DwarfId = 14;
+        CreatureDef dwarf = Dk2TerrainFixture.Goblin() with
+        {
+            Name = "Dwarf", CreatureId = DwarfId, LairObjectId = 6, TimeSleep = 0, AngerNoLair = 1,
+            Flags = Dk2TerrainFixture.Goblin().Flags | CreatureFlags.IsWorker,
+        };
+        GameDatabase db = Dk2TerrainFixture.Database(dwarf);
+        WorldState world = World(db);
+        LairOffer.Offer(world, Keeper);
+        CreatureState state = world.SpawnCreature(db, DwarfId, Keeper, new TilePos(2, 2));
+
+        Assert.Equal(default, CreatureAngerRules.PerSecond(world, db, dwarf, state));
+        // Without the worker flag the lair arm would charge it 4 (def+0x771 alone, the loader's 1 a tick).
+        CreatureDef notAWorker = dwarf with { Flags = Dk2TerrainFixture.Goblin().Flags };
+        Assert.Equal(4, CreatureAngerRules.PerSecond(world, db, notAWorker, state).Lair);
+    }
+
+    [Fact]
+    public void ANeedChargeIsTheLoadersPerTickRateTimesFour()
+    {
+        // 150 / 4 truncates to 37 a tick: a Bile Demon's tabled 150 is 148 a game second.
+        CreatureDef bile = Dk2TerrainFixture.BileDemon() with { AngerNoLair = 150 };
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        LairOffer.Offer(world, Keeper);
+        CreatureState state = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(2, 2));
+
+        Assert.Equal(148, CreatureAngerRules.PerSecond(world, db, bile, state).Lair);
+    }
+
+    [Fact]
     public void AngerFloorsAtZeroRatherThanGoingNegative()
     {
         // Ours, not the data's (Q115). Without the floor a creature that had

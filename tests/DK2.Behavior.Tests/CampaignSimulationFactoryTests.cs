@@ -26,13 +26,16 @@ public class CampaignSimulationFactoryTests
         foreach (int tile in prison.TileIndices)
             world.TileAtIndex(tile).OwnerPlayerId = PlayerIds.FirstKeeper;
         Assert.Equal(2, RatRules.PopulationLimit(RoomIndex.Build(world, simulation.Database), PlayerIds.FirstKeeper));
-        simulation.Run(100);
+        // A spawn is a 5 % draw a call, so when the second rat comes rests on the shared stream: run
+        // until the limit is met, within 200 turns (two spawns missing that long is about 1 in 2000).
+        for (int t = 0; t < 200 && world.Objects.Count(thing => thing.ObjectTypeId == RatRules.RatObjectId) < 2; t++)
+            simulation.Tick();
         ObjectState[] rats = world.Objects.Where(thing => thing.ObjectTypeId == RatRules.RatObjectId).ToArray();
         Assert.Equal(2, rats.Length);
         Assert.All(rats, rat =>
         {
             Assert.Equal(PlayerIds.FirstKeeper, rat.OwnerPlayerId);
-            Assert.InRange(rat.Health, 1, 299);
+            Assert.InRange(rat.Health, 1, 300);   // 300 on the turn it spawns
             // Moving or choosing its next point: which one at this turn depends on the stream's draws.
             Assert.Contains(rat.ProcessState, new[] { ObjectMovementRules.MovingProcess.Value, RatRules.WanderingProcess.Value });
         });
