@@ -29,6 +29,9 @@ public sealed class SfxMap
     public IReadOnlyList<SoundEvent> Events { get; }
     public IReadOnlyList<SoundGroup> Groups { get; }
 
+    /// <summary>No events: a category the install does not ship, whose every request resolves to nothing.</summary>
+    public static SfxMap Empty { get; } = new(Array.Empty<SoundEvent>());
+
     public static SfxMap Read(ReadOnlySpan<byte> data)
     {
         using var reader = SoundMapReader.Open(data, 0xE9612C00, 0xB00009B4);

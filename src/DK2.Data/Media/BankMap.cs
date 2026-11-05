@@ -16,6 +16,9 @@ public sealed class BankMap
     private BankMap(IReadOnlyList<SoundArchive> archives) => Archives = archives;
     public IReadOnlyList<SoundArchive> Archives { get; }
 
+    /// <summary>No archives: a category the install does not ship.</summary>
+    public static BankMap Empty { get; } = new(Array.Empty<SoundArchive>());
+
     public static BankMap Read(ReadOnlySpan<byte> data)
     {
         using var reader = SoundMapReader.Open(data, 0xE9612C01, 0xA00009B4);

@@ -26,8 +26,12 @@ public sealed class InstallClassicSoundAssets : IClassicSoundAssets
         if (!_maps.TryGetValue(category, out SoundMaps? maps))
         {
             string directory = Path.Combine(_root, category.Name.StartsWith("speech_", StringComparison.OrdinalIgnoreCase) ? category.Name : "Global");
-            maps = new SoundMaps(BankMap.Read(File.ReadAllBytes(Path.Combine(directory, category.Name + "BANK.map"))),
-                SfxMap.Read(File.ReadAllBytes(Path.Combine(directory, category.Name + "SFX.map"))));
+            string bank = Path.Combine(directory, category.Name + "BANK.map"), sfx = Path.Combine(directory, category.Name + "SFX.map");
+            // A category the data names but the install does not ship (OBJECT_TRAINING_TARGET, object 29
+            // Training Target's) finds no handle in DK2's manager lookup, so its requests sound nothing; here it is empty.
+            maps = File.Exists(bank) && File.Exists(sfx)
+                ? new SoundMaps(BankMap.Read(File.ReadAllBytes(bank)), SfxMap.Read(File.ReadAllBytes(sfx)))
+                : new SoundMaps(BankMap.Empty, SfxMap.Empty);
             _maps.Add(category, maps);
         }
         return maps;

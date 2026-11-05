@@ -22,6 +22,17 @@ public class ClassicSoundAssetsTests
         Assert.Same(clip, assets.Clip(reference));
     }
 
+    // Object 29 Training Target names OBJECT_TRAINING_TARGET, which the install does not ship; its requests
+    // resolve to nothing instead of throwing on every request.
+    [InstallFact]
+    public void ACategoryTheInstallDoesNotShipHasEmptyMaps()
+    {
+        IClassicSoundAssets assets = new InstallClassicSoundAssets(Dk2InstallGate.Path);
+        SoundMaps maps = assets.Maps(new SoundCategory("object_training_target"));
+        Assert.Empty(maps.Banks.Archives);
+        Assert.Empty(maps.Effects.Groups);
+    }
+
     [Fact]
     public void ArchiveAndCategoryNamesCannotEscapeTheInstall()
     {
