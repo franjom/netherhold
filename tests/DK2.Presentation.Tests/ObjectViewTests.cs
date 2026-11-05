@@ -91,6 +91,34 @@ public class ObjectViewTests
         Assert.NotEqual(after.Height, after.PreviousHeight);
     }
 
+    [InstallFact]
+    public void ACarriedBookIsDrawnAtItsCarriersPointAndInterpolatesWithIt()
+    {
+        // Creature_UpdateCarriedThing (0x0048B5F0): the thing takes the carrier's position each update, so
+        // it is never left on the tile centre a tile behind.
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper,
+            new TilePos(40 % world.Width, 40 / world.Width));
+        ObjectState book = world.SpawnObject(database, 4, PlayerIds.Unowned, 40);
+        ObjectCarryRules.TakeHold(imp, book);
+        imp.PosX += 0x700;
+        imp.Heading = 0x200;
+        ObjectCarryRules.FollowCarrier(world, imp, book);
+        var view = new WorldView(database);
+        view.CaptureObjectPositions(world);
+        int previousX = imp.PosX;
+
+        new GameSimulation(database, world, 7, []).Tick();
+        imp.PosX += 0x100;
+        ObjectCarryRules.FollowCarrier(world, imp, book);
+        ObjectView drawn = view.Objects(world).Single(o => o.Id == book.Id);
+
+        Assert.Equal(imp.PosX, drawn.PosX);
+        Assert.Equal(imp.PosY, drawn.PosY);
+        Assert.Equal(previousX, drawn.PreviousPosX);
+        Assert.Equal(0x200 - 0x400 & 0x7FF, drawn.Heading);
+    }
+
     [InstallTheory]
     [InlineData(35, 29, 0, 5)]
     [InlineData(47, 32, 0, 0)]

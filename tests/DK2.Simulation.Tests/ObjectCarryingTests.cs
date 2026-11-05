@@ -342,6 +342,36 @@ public class ObjectCarryingTests
     }
 
     [Fact]
+    public void ACarriedBookIsAtTheImpsPointAndTurnedAQuarterFromIt()
+    {
+        // Creature_UpdateCarriedThing (0x0048B5F0) copies the carrier's position into the thing on
+        // every update and sets its heading to the carrier's minus 0x400: the book is attached, not
+        // standing on the imp's tile centre.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Library, Shelf, Shelf2);
+        ObjectState book = Drop(db, world, Loose);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
+
+        GameSimulation sim = Simulation(db, world);
+        int held = 0, offCentre = 0;
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+            if (imp.CarriedObjectId != book.Id) continue;
+
+            held++;
+            Assert.Equal(imp.PosX, book.PosX);
+            Assert.Equal(imp.PosY, book.PosY);
+            Assert.Equal((imp.Heading - 0x400) & 0x7FF, book.Heading);
+            if (imp.PosX % Fp32.One != Fp32.One / 2 || imp.PosY % Fp32.One != Fp32.One / 2) offCentre++;
+        }
+
+        Assert.True(held > 0);
+        Assert.True(offCentre > 0, "the imp was never between tile centres, so the test proves nothing");
+    }
+
+    [Fact]
     public void AnImpPickedUpByTheKeeperLeavesTheBookOnTheFloor()
     {
         // An imp in the hand is out of the dungeon, and a book that went up

@@ -15930,3 +15930,29 @@ or door body, a commit that drops `CreatureDef.AirFriction` (file `+0xEAC`, 327)
   mode 3 shove, the creature terrain test of the commit.
 
 STRONGLY INFERRED from the disassembly. Records `004A55F0`, `004B1F20`, `004B2030`, `004529A0` hold the detail.
+
+## ADR-0680: a thing an imp holds is attached to the imp, at its point and a quarter turned
+
+**Date:** 2026-11-05. **Status:** accepted. Hash/save 424. · **Systems:** creatures, doors-traps
+
+**Context.** Owner report: a finished trap box dragged to its blueprint trails about a tile behind the
+imp; in DK2 it is attached. The cause is presentation fed by too little state: ours kept only a tile for
+a held object and drew it on that tile's centre, with no interpolation, while the imp moves by sub-tile
+steps. DK2's `0x0048B5F0` ends every update of a creature holding a thing (`+0x3C5`, set by
+`0x0048B4A0` for a crate, book, Special or body) by writing the imp's position into it.
+
+**Decision.** `ObjectCarryRules.TakeHold` (the imp jobs' pick-up; the Portal Gem keeps `PickUp`, which
+`0x0048B350` never attaches) and `FollowCarrier` copy the carrier's `PosX`/`PosY` into the object and set
+its heading to the carrier's minus `0x400`, after the mover. `CarryRules.FollowCarrier` gives a dragged body
+the same heading. `WorldView` draws an attached object at that point at the carrier's ground height and
+captures it for the per-tick interpolation. Evidence: [workshop-crates.md](research/workshop-crates.md) §7.
+
+**Consequences.**
+- No new saved field. The position and heading words of a held thing now carry the carrier's, so the
+  state hash moves (424); earlier saves are refused.
+- A dropped thing keeps those words. Its draw ignores them (only gold, eggs, chickens and rats read an
+  object's position).
+- Not built: the thing's vertical position as state (the view takes the carrier's ground height) and
+  the previous-position words `+0xF6..` (the view's capture stands in).
+
+STRONGLY INFERRED from the disassembly. Records `0048B5F0`, `0048B4A0`, `004B5020` and `00628BC0` hold the detail.
