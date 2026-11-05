@@ -397,7 +397,9 @@ Every rate comes from the record or the balance table; none is in the code.
 health, hunger, anger, level and experience — and only because a mechanic reads
 each. Every creature holds one of **DK2's 281 state ids** and its activity is
 derived from it (ADR-0209, ADR-0210); `dk2tools coverage states` is the measure
-of how much of the creature loop exists.
+of how much of the creature loop exists. DK2's 81 creature actions have no table
+here: each rule plays an action's art slot with its own hold, and
+`dk2tools coverage actions` (`CreatureActionCoverage`) says which are begun.
 
 Three shapes matter to a change:
 

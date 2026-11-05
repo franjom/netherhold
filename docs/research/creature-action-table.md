@@ -14,7 +14,9 @@ Original version: DK2 v1.70 (GOG)
 Questions: **Q338** (answered here). Follows `combat.md` §6.0, which found the
 melee attack registered into this table and could not say what it was.
 
-**Nothing here is built.** It is what M7 was blocked on.
+**What is built is counted by `dk2tools coverage actions`** (`CreatureActionCoverage`, one row per
+action). Ours has no action table: each rule that mirrors a starting state plays the action's art
+slot with a hold of its own, and `CreatureActionTable` keeps the `+25` sound words.
 
 ---
 
@@ -33,14 +35,14 @@ The record, recovered by walking the filler tracking register values:
 
 | offset | width | what is known |
 |---|---|---|
-| `+0` | dword | **the handler**, installed for 24 of the 81 |
-| `+4` | dword | the handler's `this` offset into the creature (§6) |
-| `+8`, `+12` | dword | written, meaning UNKNOWN; `+12` is −1 or 0 |
+| `+0` | dword | **the handler**, installed for 32 of the 81 (§4): 29 routines, 16 and 31 sharing `0x00498870` and 36–38 `0x00499300` |
+| `+4` | dword | the handler's `this` offset into the creature (§6); 0 in every record |
+| `+8`, `+12` | dword | meaning UNKNOWN; `+8` is 0 in every record, `+12` is −1 exactly where `+0` is null, else 0 |
 | `+16` | dword | the record's own index (§6) |
 | `+20` | byte | a small id, 3 to `0x25`; §3 |
 | `+21` | dword | the mode, read by the runner (§6) |
 | `+25` | word | a sound id in the creature's bank, **not** a `Text.str` id — §5 |
-| `+27` | byte | 0 for all but four records; nonzero skips the animation start (§6) |
+| `+27` | byte | nonzero in six records: 0 (1), 20 (8), 25 (4), 33 (8), 34 (8), 42 (`0x30`); nonzero skips the animation start (§6) |
 | `+28` | byte | **1 in every record**; the end-action test `0x00496D20` reads it, so every action but 21 can be ended |
 
 ## 2. It is indexed by the creature's current action
@@ -82,68 +84,111 @@ Wheel's and Electric Chair's sounds ([record](functions/00499300.md)).
 
 ## 4. Who starts what
 
-Every call of `FUN_00496700` and its three wrappers was read for the literal
-pushed before it: **109 sites** (26 direct, 83 through the wrappers), of which
-**4** compute the index instead and are not in this map. **55** of the 81 records
-are started by a literal.
+All 81 records were read on 2026-11-05 by replaying the filler's stores with its registers
+tracked (every byte of the table is written; the values agree with every record read singly before).
+**109 calls** reach `FUN_00496700` and its three wrappers (26 direct, 83 through the wrappers), three
+of them the wrappers' own. Of the other 106, **102 push a literal index**, and six of those are shared
+tails that a second path jumps into with a different index pushed (2 at `0x00514FC9`, 36 at `0x00484EC4`,
+39 at `0x00456D1E`, 57 at `0x00456E84`, `0x0045775F` and `0x004633B7`), so 108 literals name 55
+indices. **4 compute it**: state 148's table pick (0, 65, 66, 67 or 68, casino.md §5), the Combat Pit spectator's 69 or 70
+(`0x004580A5`, combat-pit-spectators.md), and state 272's two {low, high, action} tables at
+`0x00699F30` and `0x00699EB8` (71–78 on a `random(100)`). So **67 indices are begun and 14 are not**:
+the null 0, the excluded 21, and 3, 12, 14, 23, 28, 33, 34, 38, 42, 48, 51 and 58. The only other
+writers of the index, found by its offset `+0x3A9` (the runner `0x00496C09`/`0x00496C72`, `0x00496D68`,
+`0x00496DAC`, `0x004997DE` in the torture handler) and block-relative (`0x004966B6` in the block clear
+`0x004966A0`, called by the begin and the melee swing `0x00498FCF`), clear the block, so none of the 14 is
+begun another way. The calls were found by a scan of every section for `E8`/`E9` targets and absolute
+references to the four entry points: all 109 are in `.text`, none in `cseg` or a pointer table.
 
-| index | sites | where |
-|---|---|---|
-| 1 (`0x01`) | 6 | `0x00465679` `0x00485e7d` `0x00514fc9` +3 |
-| 2 (`0x02`) | 2 | `0x00465a5d` `0x00485e45` |
-| 3 (`0x03`) | 1 | `0x00456931` |
-| 4 (`0x04`) | 2 | `0x00465d83` `0x00514ea9` |
-| 5 (`0x05`) | 1 | `0x00465fbe` |
-| 6 (`0x06`) | 1 | `0x00514ee0` |
-| 7 (`0x07`) | 1 | `0x0046645b` |
-| 8 (`0x08`) | 1 | `0x004667c0` |
-| 9 (`0x09`) | 1 | `0x00458dba` |
-| 10 (`0x0a`) | 1 | `0x00466220` |
-| 11 (`0x0b`) | 3 | `0x0045845b` `0x004585ad` `0x00458661` |
-| 13 (`0x0d`) | 1 | `0x00459002` |
-| 15 (`0x0f`) | 1 | `0x00515394` |
-| 16 (`0x10`) | 4 | `0x0051529f` `0x005152b8` `0x0045fb96` +1 |
-| 17 (`0x11`) | 2 | `0x00514da4` `0x00460103` |
-| 18 (`0x12`) | 1 | `0x0046f37f` |
-| 19 (`0x13`) | 1 | `0x0046f21d` |
-| 20 (`0x14`) | 1 | `0x00480fc7` |
-| 22 (`0x16`) | 1 | `0x0048ba4f` |
-| 24 (`0x18`) | 1 | `0x0046fc50` |
-| 25 (`0x19`) | 1 | `0x00482ff7` |
-| 26 (`0x1a`) | 5 | `0x004639d5` `0x00463bc2` `0x004738fc` +2 |
-| 27 (`0x1b`) | 2 | `0x00459499` `0x00472e42` |
-| 29 (`0x1d`) | 2 | `0x00475e00` `0x00475e4c` |
-| 30 (`0x1e`) | 2 | `0x00485692` `0x00485794` |
-| 31 (`0x1f`) | 1 | `0x0048571e` |
-| 32 (`0x20`) | 1 | `0x0047053e` |
-| 35 (`0x23`) | 9 | `0x00457d1a` `0x00456f1f` `0x00456e84` +6 |
-| 36 (`0x24`) | 2 | `0x00484461` `0x004846d0` |
-| 37 (`0x25`) | 2 | `0x004846fb` `0x00484ec4` |
-| 40 (`0x28`) | 1 | `0x00478fdd` |
-| 41 (`0x29`) | 1 | `0x0047351c` |
-| 43 (`0x2b`) | 9 | `0x0047044c` `0x00475cb6` `0x00481d2a` +6 |
-| 44 (`0x2c`) | 4 | `0x00457c2f` `0x0048554f` `0x00464305` +1 |
-| 45 (`0x2d`) | 1 | `0x00474c56` |
-| 46 (`0x2e`) | 3 | `0x00474865` `0x004743d6` `0x00474d08` |
-| 47 (`0x2f`) | 1 | `0x004745e4` |
-| 49 (`0x31`) | 2 | `0x004dcbe2` `0x004dd0c7` |
-| 50 (`0x32`) | 1 | `0x00489572` |
-| 52 (`0x34`) | 2 | `0x00481062` `0x00491855` |
-| 53 (`0x35`) | 3 | `0x004811c8` `0x004813e2` `0x004815e2` |
-| 54 (`0x36`) | 2 | `0x00474e5e` `0x00474f5b` |
-| 55 (`0x37`) | 2 | `0x00461109` `0x004611b6` |
-| 56 (`0x38`) | 1 | `0x00456d1e` |
-| 57 (`0x39`) | 2 | `0x00456f02` `0x004bfb46` |
-| 59 (`0x3b`) | 1 | `0x00474326` |
-| 60 (`0x3c`) | 1 | `0x0046534b` |
-| 61 (`0x3d`) | 1 | `0x00465415` |
-| 62 (`0x3e`) | 1 | `0x0048b828` |
-| 63 (`0x3f`) | 1 | `0x00483f94` |
-| 64 (`0x40`) | 1 | `0x00481573` |
-| 68 (`0x44`) | 1 | `0x00456460` |
-| 76 (`0x4c`) | 1 | `0x00483aa2` |
-| 79 (`0x4f`) | 1 | `0x00475976` |
-| 80 (`0x50`) | 1 | `0x00483961` |
+The first reading (2026-09-16) took the last literal pushed, which at three sites is the count, not
+the index: it had action 1 at state 272's two calls and an action 3 at state 148's. Neither is so.
+
+A starter is the state whose handler holds the call, or the routine named. Art is `+20`, mode `+21`,
+sound `+25`:
+
+| index | art | mode | handler | sound | begun by |
+|---|---|---|---|---|---|
+| 0 | 0 | 3 | — | — | none: the null action (state 148 passes 0 for no action) |
+| 1 | 5 | 3 | `0x00496E00` | `0x334` | state 14 `0x00465679`; state 186 `0x00485e7d`; possession `0x00514fc9`; state 38 `0x0046773d` |
+| 2 | 5 | 3 | `0x004971D0` | `0x109` | state 26 `0x00465a5d`; state 186 `0x00485e45`; possession `0x00514fc9` |
+| 3 | 5 | 3 | `0x00484940` | — | **none** |
+| 4 | 13 | 3 | `0x004974C0` | — | state 16 `0x00465d83`; possession `0x00514ea9` |
+| 5 | 13 | 3 | `0x00497670` | `0xe5` | state 20 `0x00465fbe` |
+| 6 | 13 | 0 | `0x004977F0` | `0xe5` | possession `0x00514ee0` |
+| 7 | 12 | 3 | `0x00497960` | — | state 22 `0x0046645b` |
+| 8 | 12 | 3 | `0x00497AC0` | `0x10c` | state 24 `0x004667c0` |
+| 9 | 5 | 3 | `0x00498BB0` | `0x109` | state 185 `0x00458dba` |
+| 10 | 13 | 3 | `0x00497BF0` | — | state 18 `0x00466220` |
+| 11 | 5 | 3 | `0x00497DF0` | `0xd7` | state 180 `0x0045845b`; state 181 `0x004585ad`; state 267 `0x00458661` |
+| 12 | 13 | 3 | `0x00498120` | — | **none** |
+| 13 | 5 | 0 | `0x00498240` | — | state 206 `0x00459002` |
+| 14 | 6 | 0 | `0x004982B0` | `0xd8` | **none** |
+| 15 | 6 | 0 | `0x004984D0` | `0xd8` | possession `0x00515394` |
+| 16 | 6 | 3 | `0x00498870` | `0xd8` | possession `0x0051529f` `0x005152b8`; state 200 `0x0045fb96` `0x00460042` |
+| 17 | 5 | 3 | `0x00498E30` | `0xd7` | possession `0x00514da4`; state 200 `0x00460103` |
+| 18 | 11 | 0 | `0x00499A40` | — | state 78 `0x0046f37f` |
+| 19 | 4 | 3 | — | `0xc5` | state 77 `0x0046f21d` |
+| 20 | 21 | 0 | — | `0xdb` | state 207 `0x00480fc7` |
+| 21 | 4 | 0 | — | `0xdb` | **none**; excluded by the runner |
+| 22 | 24 | 0 | — | — | the hand slap `0x0048ba4f` |
+| 23 | 24 | 0 | — | `0xe6` | **none** |
+| 24 | 12 | 0 | — | `0xce` | state 83 `0x0046fc50` |
+| 25 | 9 | 0 | — | `0xde` | state 85 `0x00482ff7` |
+| 26 | 13 | 0 | — | `0xcd` | state 93 `0x004639d5`; eating `0x00463bc2`; state 118 `0x004738fc`; the creature update `0x00489329`; possession `0x00514c27` |
+| 27 | 23 | 0 | — | `0xd4` | state 74 `0x00459499`; state 104 `0x00472e42` |
+| 28 | 23 | 0 | — | `0xe0` | **none** |
+| 29 | 14 | 0 | — | `0xd1` | state 54 `0x00475e00` `0x00475e4c` |
+| 30 | 5 | 3 | `0x00498CA0` | `0xd3` | state 111 `0x00485692` `0x00485794` |
+| 31 | 6 | 3 | `0x00498870` | `0xd3` | state 111 `0x0048571e` |
+| 32 | 22 | 3 | `0x00498D20` | `0xd2` | state 64 `0x0047053e` |
+| 33 | 8 | 0 | — | `0xca` | **none** |
+| 34 | 9 | 0 | — | `0xcc` | **none** |
+| 35 | 8 | 0 | — | `0xca` | state 140 `0x00457d1a`; state 152 `0x00456f1f` `0x00456f95`; state 153 `0x00456e84`; state 158 `0x0045775f`; state 159 `0x004633b7`; state 68 `0x00470b88`; state 60 `0x00476258`; the celebration `0x00481694` |
+| 36 | 17 | 0 | `0x00499300` | — | state 130 `0x00484461`; state 131 `0x004846d0`; state 136 `0x00484ec4` |
+| 37 | 25 | 0 | `0x00499300` | — | state 131 `0x004846fb`; state 136 `0x00484ec4` |
+| 38 | 26 | 0 | `0x00499300` | — | **none** |
+| 39 | 19 | 0 | — | `0xe1` | state 146 `0x00456d1e` |
+| 40 | 5 | 0 | `0x00499800` | `0xd7` | the Library's intruder watch (`0x00478F00`) `0x00478fdd` |
+| 41 | 9 | 0 | — | `0xd0` | state 116 `0x0047351c` |
+| 42 | 16 | 0 | — | `0xd0` | **none** |
+| 43 | 20 | 3 | — | — | state 63 `0x0047044c`; state 53 `0x00475cb6`; state 250 `0x00481d2a`; state 198 `0x0045a218`; state 12 `0x004642cf`; job 16's start `0x0047526e`; the idle (`0x004776C0`, state 5 and others) `0x0047772a`; state 88 `0x00480fa3`; state 176 `0x00486dd8` |
+| 44 | 31 | 3 | — | — | state 139 `0x00457c2f`; state 108 `0x0048554f`; state 12 `0x00464305`; the idle `0x004777b0` |
+| 45 | 25 | 3 | `0x00498260` | `0xe6` | state 240 `0x00474c56` |
+| 46 | 35 | 0 | — | `0xe6` | state 237 `0x00474865`; state 231 `0x004743d6`; state 242 `0x00474d08` |
+| 47 | 23 | 0 | — | `0xe6` | state 233 `0x004745e4` |
+| 48 | 26 | 0 | — | `0xe6` | **none** |
+| 49 | 30 | 0 | — | — | portal arrival `0x004dcbe2`; special arrival `0x004dd0c7` |
+| 50 | 23 | 0 | `0x00499840` | `0xd4` | the creature update `0x00489572` |
+| 51 | 14 | 0 | — | `0xd1` | **none** |
+| 52 | 24 | 0 | `0x00499880` | — | state 209 `0x00481062`; the stun `0x00491855` |
+| 53 | 27 | 3 | — | — | state 255 `0x004811c8`; routine `0x004813C0` `0x004813e2`; state 263 `0x004815e2` |
+| 54 | 32 | 0 | — | — | state 258 `0x00474e5e`; state 262 `0x00474f5b` |
+| 55 | 35 | 0 | — | — | the victory arm `0x00461109`; state 259 `0x004611b6` |
+| 56 | 37 | 0 | — | — | state 146 `0x00456d1e` |
+| 57 | 28 | 0 | — | — | state 152 `0x00456f02`; state 153 `0x00456e84`; state 158 `0x0045775f`; state 159 `0x004633b7`; the win celebration `0x004bfb46` |
+| 58 | 9 | 0 | — | `0x12d` | **none** |
+| 59 | 3 | 0 | — | — | state 230 `0x00474326` |
+| 60 | 32 | 3 | `0x00499B80` | — | the imp teleport `0x0046534b` |
+| 61 | 32 | 3 | `0x00499BE0` | — | state 51 `0x00465415` |
+| 62 | 7 | 3 | — | — | the collapse `0x0048b828` |
+| 63 | 32 | 3 | `0x00499C20` | `0xcf` | state 128 `0x00483f94` |
+| 64 | 24 | 3 | — | — | state 210 `0x00481573` |
+| 65 | 14 | 0 | — | `0xd1` | state 148 (computed) |
+| 66 | 8 | 0 | — | `0xca` | state 148 (computed) |
+| 67 | 9 | 0 | — | `0xde` | state 148 (computed) |
+| 68 | 20 | 0 | — | — | state 150 `0x00456460`; state 148 (computed) |
+| 69 | 8 | 0 | — | `0xca` | state 143 (computed) |
+| 70 | 20 | 0 | — | — | state 143 (computed) |
+| 71 | 20 | 3 | — | — | state 272 (computed) |
+| 72 | 31 | 3 | — | — | state 272 (computed) |
+| 73 | 5 | 3 | — | — | state 272 (computed) |
+| 74 | 9 | 3 | — | — | state 272 (computed) |
+| 75 | 8 | 3 | — | — | state 272 (computed) |
+| 76 | 28 | 3 | — | — | state 276 `0x00483aa2`; state 272 (computed) |
+| 77 | 37 | 3 | — | — | state 272 (computed) |
+| 78 | 19 | 3 | — | — | state 272 (computed) |
+| 79 | 29 | 3 | — | — | state 251 `0x00475976` |
+| 80 | 5 | 0 | `0x00499CA0` | `0xd7` | state 275 `0x00483961` |
 
 Only three addresses matter for combat, and they are the subject of
 `combat-entry.md`: **17** is the melee instance and **16** the spell instance,
@@ -185,8 +230,10 @@ STRONGLY INFERRED; the words exist as `SFX.map` groups in the creature's categor
 
 ## 6. What this leaves
 
-- The enumeration has **no name** here, and 57 of the 81 records carry no
-  handler. Whether those are unused or handled by their `+20` alone is UNKNOWN.
+- The enumeration has **no name** here. 49 of the 81 records carry no handler: such an action
+  runs no code of its own each turn, and the runner ends it by its mode, the `+27` age test and the
+  animation ([0x00496AA0](functions/00496AA0.md)). Record 3's handler
+  `0x00484940` returns 0, and nothing begins it.
 - Why index 21 is singled out is UNKNOWN. The runner `0x00496AA0`, `0x00496D00` and
   `FUN_00496700` treat it as no action, no literal site starts it, and its record carries
   animation block 4, a hit recoil.
@@ -204,15 +251,15 @@ STRONGLY INFERRED; the words exist as `SFX.map` groups in the creature's categor
 **STRONGLY INFERRED (binary):** the base, the 29-byte stride, the 81-record extent and
 both of the facts that bound it; the index field and its `29n` arithmetic; the
 null and `0x15` guards; the 34-byte action block and that `FUN_00496AA0` clears
-it whole; that `FUN_00496700` begins an action from a stack argument; the 24
-handler installs and the 24 call sites; that record 17's handler is the melee
+it whole; that `FUN_00496700` begins an action from a stack argument; the 32
+handler installs; the 109 begin calls and their indices (§4); that record 17's handler is the melee
 attack and that `FUN_00514830` starts it with a literal `0x11`.
 
-**STRONGLY INFERRED (negative):** `+25` is not a `Text.str` id.
+**STRONGLY INFERRED (negative):** `+25` is not a `Text.str` id; the 14 indices never begun (§4: a static scan of code and data, so a restored save is outside it).
 
 **STRONGLY INFERRED (2026-10-04):** `+16` is the record's index; `+25` is passed to the creature's sound call (§5).
 
 **STRONGLY INFERRED:** that `+20` selects a creature animation block (§3; two actions checked by name).
 
-**UNKNOWN:** the table's own name, `+8` and `+12`, why index 21 is excluded, and what the
-57 handler-less records do.
+**UNKNOWN:** the table's own name, the meaning of `+8` and `+12`, and why index 21 is
+excluded.

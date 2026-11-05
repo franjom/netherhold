@@ -8,7 +8,7 @@ canonical documents (AGENTS.md: one fact, one home).
 The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
 §8. Regenerate its numeric status with dk2tools status after a Release test run;
 do not maintain counts here. For exact build coverage use dk2tools coverage
---all and dk2tools coverage states.
+--all, dk2tools coverage states and dk2tools coverage actions.
 
 - Hatchery startup and room-change clocks are built (ADR-0606, Q695, hash/save 348);
   [scope and native validation limits](research/hatchery-startup.md#built-scope).
