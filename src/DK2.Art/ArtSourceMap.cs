@@ -266,6 +266,8 @@ public static class ArtSourceMap
         "fighting" => resources[CreatureMelee],
         "casting" => resources[5].Type != 0 ? resources[5] : resources[CreatureMelee],
         "landing" => resources[23].Type != 0 ? resources[23] : resources[3],
+        // Slot 32 (catalogue 31), which the chooser 0x0048BE50 installs for a worker in state 214: the Imp's imp-jump(iw).
+        "creation_jump" => resources.Count > 31 && resources[31].Type != 0 ? resources[31] : resources[CreatureIdle],
         "stunned" => resources[23].Type != 0 ? resources[23] : resources[3],
         "getting_up" => resources[26].Type != 0 ? resources[26] : resources[0],
         "running" => resources[1].Type != 0 ? resources[1] : resources[CreatureWalk],

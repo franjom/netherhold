@@ -1512,10 +1512,11 @@ public sealed partial class WorldView
                 new FpPosition3(new(posX), new(posY), new(FloorZ))).Raw;
             int previousHeight = flying ? FloorZ : CreatureGroundHeight(world,
                 new FpPosition3(new(creature.LastPosX), new(creature.LastPosY), new(FloorZ))).Raw;
+            bool creationJump = IsCreationJump(creature);
             if (creature.Dk2StateId == ImpCreationRules.FallingState)
             {
                 height += creature.PosZ;
-                previousHeight += creature.LastPosZ;
+                previousHeight += creationJump && IsCreationTurn(creature) ? CreationPreviousHeight : creature.LastPosZ;
             }
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
             int previousX = creature.LastPosX, previousY = creature.LastPosY;
@@ -1571,10 +1572,11 @@ public sealed partial class WorldView
                 mesh,
                 animation,
                 creature.GoldHeld, height, yaw, pitch, roll, previousX, previousY,
-                playsAnimation, creature.Activity != CreatureActivity.Dying && !meleeAnimation && !castAnimation
+                playsAnimation || creationJump, creature.Activity != CreatureActivity.Dying && !meleeAnimation && !castAnimation
                     && !IsDeferredLanding(creature) && !trainingAnimation && !entranceAnimation
-                    && !IsDropRecoveryAnimation(creature),
-                trainingAnimation ? new GameTick(creature.TrainingActionStartedTick)
+                    && !IsDropRecoveryAnimation(creature) && !creationJump,
+                creationJump && creature.StateEnteredTick >= 0 ? new GameTick(creature.StateEnteredTick)
+                    : trainingAnimation ? new GameTick(creature.TrainingActionStartedTick)
                     : meleeAnimation || castAnimation ? new GameTick(creature.SwingStartTick)
                     : (entranceAnimation || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature)) && creature.StateEnteredTick >= 0
                     ? new GameTick(creature.StateEnteredTick) : null,
@@ -1637,6 +1639,7 @@ public sealed partial class WorldView
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         if (IsBedExitPose(creature, tick)) return _creatureAnimations[creature.CreatureTypeId]["moving_to_job"];
+        if (IsCreationJump(creature)) return _creatureAnimations[creature.CreatureTypeId]["creation_jump"];
         string clip = ActivityKeySegment(creature.Activity);
         if (creature.Dk2StateId == PortalRules.JoiningState) clip = "entrance";
         else if (IsDropRecoveryAnimation(creature)) clip = creature.Dk2StateId == DropLandingRules.GettingUpState
@@ -1746,6 +1749,23 @@ public sealed partial class WorldView
     private static bool IsEatingAnimation(CreatureState creature) =>
         creature.Dk2StateId is EatingRules.AfterMealState or PrisonRules.AfterEatingState;
     private readonly Dictionary<byte, int> _castHoldTicks = [];
+    /// <summary>A worker in state 214 plays its slot-32 jump (imp-jump(iw)): 0x0048BE50's 214 arm installs it at
+    /// once, and the next state's standing pose replaces it at once, so only its opening frames show
+    /// (imp-create-position.md, "State 214 animation").</summary>
+    private bool IsCreationJump(CreatureState creature) =>
+        creature.Dk2StateId == ImpCreationRules.FallingState
+        && (_database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) != 0;
+
+    /// <summary>The turn of creation: <see cref="ImpCreationRules"/> starts both heights at the birth height and its
+    /// first step moves the previous one.</summary>
+    private static bool IsCreationTurn(CreatureState creature) =>
+        creature.PosZ == ImpCreationRules.BirthHeightAboveFloor && creature.LastPosZ == ImpCreationRules.BirthHeightAboveFloor
+        && creature.CreationVelocityZ == 0;
+
+    /// <summary>HYPOTHESIS: the worker arm makes the creature at shot Z + 0x20, which construction copies into the
+    /// previous position +0xF6, then moves only the current one to Z + 0x800; drawn from previous to current, the
+    /// worker rises over its creation turn before it falls (imp-create-position.md). The draw's use of +0xF6 is unread.</summary>
+    private const int CreationPreviousHeight = 0x20;
 
     private bool IsCastAnimation(CreatureState creature, GameTick tick)
     {

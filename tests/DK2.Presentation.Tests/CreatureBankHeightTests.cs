@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Assets;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
@@ -12,10 +13,38 @@ namespace DK2.Presentation.Tests;
 
 public sealed class CreatureBankHeightTests
 {
+    // A created worker plays its slot-32 jump while in 214 (0x0048BE50's 214 arm) and rises from just above its
+    // floor over the creation turn, from the previous height construction leaves (HYPOTHESIS, imp-create-position.md).
+    [InstallFact]
+    public void ACreatedWorkerRisesFromItsFloorWithItsSlot32JumpThenFalls()
+    {
+        var (database, world, creature) = WaterPatch();
+        world.Tile(1, 1).TerrainId = database.Room(RoomTypeId.Lair).TerrainId;
+        creature.Dk2StateId = ImpCreationRules.FallingState;
+        creature.StateEnteredTick = world.CurrentTick.Value;
+        creature.PosZ = creature.LastPosZ = ImpCreationRules.BirthHeightAboveFloor;
+        var view = new WorldView(database);
+        CreatureView born = view.Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(6144, born.Height);
+        Assert.Equal(4096 + 0x20, born.PreviousHeight);
+        Assert.Equal(AssetRef.ForCreature("Dwarf", AssetKind.Animation, "creation_jump"), born.Animation);
+        Assert.False(born.AnimationLoops);
+        Assert.Equal(world.CurrentTick, born.AnimationStartedAt);
+        creature.PosZ = 0;
+        CreatureView fallen = view.Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(4096, fallen.Height);
+        Assert.Equal(6144, fallen.PreviousHeight);
+        creature.Dk2StateId = 11;
+        Assert.NotEqual(born.Animation, view.Creatures(world).Single(c => c.Id == creature.Id).Animation);
+        // The Imp's slot 32 is imp-jump(iw): a type-6 clip of 20 frames at 20 fps.
+        CreatureAnimationTiming jump = database.CreatureByName("Imp")!.ArtSlot(32);
+        Assert.Equal((6, 20, 20), ((int)jump.ResourceType, (int)jump.FrameCount, (int)jump.FramesPerSecond));
+    }
+
     [InstallFact]
     public void ACreationFallPreservesBothHeightsAboveTheGroundForInterpolation()
     {
-        var (database, world, creature) = WaterPatch();
+        var (database, world, creature) = WaterPatch("Troll");
         world.Tile(1, 1).TerrainId = database.Room(RoomTypeId.Lair).TerrainId;
         creature.Dk2StateId = ImpCreationRules.FallingState;
         creature.PosZ = creature.LastPosZ = ImpCreationRules.BirthHeightAboveFloor;
@@ -73,7 +102,7 @@ public sealed class CreatureBankHeightTests
         Assert.Equal(0xA66, new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id).Height);
     }
 
-    private static (GameDatabase, WorldState, CreatureState) WaterPatch()
+    private static (GameDatabase, WorldState, CreatureState) WaterPatch(string creatureName = "Dwarf")
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
@@ -83,7 +112,7 @@ public sealed class CreatureBankHeightTests
             for (int x = 0; x < 3; x++)
                 world.Tile(x, y).TerrainId = database.WaterTerrain!.TerrainId;
         CreatureState creature = world.SpawnCreature(database,
-            database.CreatureByName("Dwarf")!.CreatureId, 2, new TilePos(1, 1));
+            database.CreatureByName(creatureName)!.CreatureId, 2, new TilePos(1, 1));
         return (database, world, creature);
     }
 }
