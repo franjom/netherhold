@@ -233,7 +233,9 @@ public sealed class BottomPanelViewTests
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var sim = new GameSimulation(db, world, seed: 7);
         var panel = new BottomPanelView(db, PlayerIds.FirstKeeper, (_, name) => name);
-        panel.Capture(world);
+        // Warm past the runtime's own one-off cost: run alone, the second Capture took 88 bytes in its
+        // loop methods' on-stack replacement out of quick JIT (gone with DOTNET_TC_QuickJitForLoops=0).
+        for (int i = 0; i < 100; i++) panel.Capture(world);
         ulong hash = sim.StateHash();
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 100; i++) panel.Capture(world);
