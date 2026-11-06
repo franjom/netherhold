@@ -280,17 +280,12 @@ public static class HatcheryRules
         return tiles.Count;
     }
 
-    /// <summary><c>Room_RefreshAfterNeighbourWork</c> (<c>0x004ECDB0</c>) for its Hatchery arm: for each of the
-    /// worked tile's N, E, S and W neighbours (<c>0x006BC350</c>) on the map that is a room tile, the room is
-    /// refreshed, and a room with pillars, a Hatchery among them (<c>0x004E4300</c>), is rebuilt, so a
-    /// Hatchery beside the work places its coops again, once for each of its tiles there (ADR-0672). DK2
-    /// calls it when work changes a tile's terrain (<c>Tile_ApplyWork</c>, <c>0x00453221</c> at zero
-    /// health and <c>0x004533C0</c> at the maximum) and again when a dig strike takes a tile to zero
-    /// (<c>Imp_DigAction</c>, <c>0x0049716B</c>); ours from <see cref="Systems.TileWorkSystem"/>,
-    /// <see cref="TremorRules"/> and the reinforcement fill. Not built: walls that decay on their own
-    /// (<c>Wall_RandomDeterioration</c>, <c>0x004BB6D0</c>) and the wall hit of a moving thing
-    /// (<c>0x004B2575</c>), which ours does not model. The other rooms' rebuilds draw nothing and are
-    /// <see cref="Systems.AutoFurnitureSystem"/>'s.</summary>
+    /// <summary>The Hatchery and Training subset of <c>Room_RefreshAfterNeighbourWork</c>
+    /// (<c>0x004ECDB0</c>): visits N/E/S/W, rebuilding each qualifying neighbor's furniture,
+    /// including repeated visits to the same room (ADR-0672, ADR-0705). Training requires
+    /// SpecialWalls; a Hatchery has pillars. Work that changes terrain calls this, and a
+    /// successful dig calls it again. See training-target-rebuild.md for bounded scope.
+    /// Not built: spontaneous wall decay or a moving thing's wall hit.</summary>
     internal static void AfterNeighbourWork(WorldState world, GameDatabase database, int tileIndex, SimRandom rng)
     {
         int x = tileIndex % world.Width, y = tileIndex / world.Width;
@@ -299,8 +294,12 @@ public static class HatcheryRules
         {
             if (!world.Contains(x + dx, y + dy)) continue;
             int neighbour = ((y + dy) * world.Width) + x + dx;
-            if (database.RoomByTerrain(world.TileAtIndex(neighbour).TerrainId)?.TypeId != RoomTypeId.Hatchery) continue;
-            if (RoomIndex.RoomAt(world, database, neighbour) is { } hatchery) RebuildCoops(world, database, hatchery, rng);
+            RoomTypeId? type = database.RoomByTerrain(world.TileAtIndex(neighbour).TerrainId)?.TypeId;
+            if (type is not (RoomTypeId.Hatchery or RoomTypeId.TrainingRoom)) continue;
+            if (RoomIndex.RoomAt(world, database, neighbour) is not { } room) continue;
+            if (type == RoomTypeId.Hatchery) RebuildCoops(world, database, room, rng);
+            else if ((room.Definition.Flags & RoomFlags.SpecialWalls) != 0)
+                TrainingFurnitureRules.Rebuild(world, database, room, rng);
         }
     }
 

@@ -126,6 +126,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - PowerShell here-strings piped into Python can replace non-ASCII source literals with `?`; use ASCII script literals or `apply_patch` for Unicode edits.
 - `WadArchive.TryGetEntry` returns the later of two same-named entries; FrontEnd.WAD has 31 duplicate names (loading screens, `2dLevelS*`, Cancel/Confirm), so look those up by entry index ([front-end-assets.md](research/front-end-assets.md) §1.3).
 
+- Decode Ghidra read_bytes hex as ASCII before naming a source-file draw site; reading near-spellings by eye can mislabel the verifier.
+
 ## Builds, tests and dk2tools
 
 - `SaveLoadingBoundsTests.DuplicateSecretDoorKeysAreWrappedWithPosition` uses the remake snapshot tile stride; update it when tile fields change, or its corruption lands in another section.

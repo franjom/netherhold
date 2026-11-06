@@ -92,6 +92,10 @@ replacement and the RNG roll were unread.
 
 The 5×5 result is the owner's "2×2 grid".
 
+The shared neighbor-work callback also rebuilds Training furniture; see the
+[bounded Target implementation](training-target-rebuild.md). Hatchery visits
+retain their N/E/S/W interleaving, including repeated visits to the same room.
+
 ## 3. Where an egg appears
 
 The lay routine `0x004DE620` first asks whether the room has capacity for one more

@@ -10837,7 +10837,7 @@ keeper's reinforced wall (the owner's observation agrees: hero Dwarves dig walls
 the multiplier and the strike's flags; a creature its claim tile; hash/save version 244.
 
 **Consequences.** The global `0x0075AE93` that stops a non-Imp's dig is taken as 0
-(campaign); `0x004ECDB0` and `0x00455030` are not represented. On shipped data one
+(campaign); the [Hatchery/Training subset](research/training-target-rebuild.md) of `0x004ECDB0` is represented; `0x00455030` is not. On shipped data one
 possessed strike converts a Dirt Path, so a claim runs once; ours also ends it when the
 creature leaves possession, is down or is held (what DK2's action does then is unread).
 
@@ -16647,3 +16647,18 @@ Existing public constructors and numeric query signatures remain available.
 **Consequences.** Hash/save436, no new saved state or restore inputs. The
 Guard Room capacity extra and existing room-routing approximations remain
 outside this change. Q712 still requires further comparison.
+
+## ADR-0705 - rebuild Training furniture after neighbor work
+**Date:** 2026-11-06 | **Status:** accepted | **Systems:** creatures, rooms, simulation-core
+
+**Context.** `training-target-rebuild.md` ties the1436 missing Target draw
+to a completed adjacent reinforcement already timed correctly in both runs.
+
+**Decision.** Include Training Rooms with SpecialWalls in the existing
+N/E/S/W work-refresh loop. Replace their auto-placed furniture, floor then
+wall in chain order, and draw4096 per wall Target on the shared world stream.
+Each neighboring room tile causes its own rebuild; do not coalesce calls.
+
+**Consequences.** Hash/save437, no new saved state. Scope is neighbor work:
+startup, room-tile changes and capture merges remain separate gaps. The
+native object animation phase is not retained by this bounded rule.

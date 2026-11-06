@@ -28,7 +28,7 @@ use identical declared1400 inputs; no extra restore field or future fit is used.
 | Run | Complete-turn ordered sites/preseeds | First different ordered site |
 |---|---|---|
 | Production435 |347 draws,1401–1425 |1426 draw3: Library.cpp:1068 / Room.cpp:1509 |
-| Finder-only capacity check |488 draws,1401–1435 |1436 draw1: RoomManager.cpp:2177 / Treasury.cpp:335 |
+| Finder-only capacity check |488 draws,1401–1435 |1436 draw1: RoomManager.cpp:2177 / Treasure.cpp:335 |
 
 CONFIRMED by the controlled replay: the extra capacity call fixes the third
 draw at1426, then the genuine room-point call follows it. The whole-turn
@@ -44,7 +44,7 @@ At1436 the native site is the wall Training Target world draw already
 recorded in [004EDFC0](functions/004EDFC0.md): type29, bound4096, line0x881.
 The capture replaces target1412 with1429 in room1118 at the same position,
 73472,124928. The remake instead next creates store gold, whose heading draw
-is Treasury.cpp:335, verified in [004F3C60](functions/004F3C60.md).
+is Treasure.cpp:335, verified in [004F3C60](functions/004F3C60.md).
 No later parity is claimed, and no target-furniture rule is changed here.
 
 Evidence is add-only under
@@ -66,7 +66,7 @@ The Guard Room extra and existing geometry adapters remain outside this change.
 The frozen435 baseline and final436 control use identical declared1400
 inputs. Baseline retains347 ordered sites/preseeds through1425; final436
 matches488 through1435. Its first differing site is1436 draw1,
-RoomManager.cpp:2177 versus Treasury.cpp:335. No extra restore input or
+RoomManager.cpp:2177 versus Treasure.cpp:335. No extra restore input or
 future draw/seed is inserted. This extends the controlled draw prefix;
 full-state, executed-turn and Heart-outcome parity remain unestablished.
 
@@ -74,8 +74,9 @@ Evidence is add-only under
 `F:/DK2Evidence/{studies,builds}/q712-library-capacity-h436--2026-11-06--001`.
 The final paired run directories are `baseline435` and `shipped436`; the latter
 uses frozen435's diagnostic adapter with the shipped436 simulation changes.
-The next bounded investigation is Training Target rebuild timing and its
-world draw, beginning with the captured target replacement described above.
+The next boundary from this 436 control is addressed by the bounded
+[neighbor-work rebuild at 437](training-target-rebuild.md). Its other Target
+rebuild entries and animation phase remain outside that fix.
 
 ## Verification at436
 

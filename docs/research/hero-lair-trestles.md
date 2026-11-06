@@ -72,11 +72,12 @@ draw on the world seed:
 |---|---|---|
 | `Hatchery_PlaceCoops` (`0x004DE220`, call `0x004DE4EC`) | `random(4)` per coop | built, ADR-0672 |
 | `Graveyard_PickCryptPoint` (`0x004DD9B0`) | `random(count)` | built, `GraveyardRules` |
-| `Room_Rebuild` wall pass, Training Target (object 29), call `0x004EECCB`, line 0x881 | `random(0x1000)` into `+0xD4`/`+0xD8`, one per wall target | **not built** |
+| `Room_Rebuild` wall pass, Training Target (object 29), call `0x004EECCB`, line 0x881 | `random(0x1000)` into `+0xD4`/`+0xD8`, one per wall target | [neighbor work built at 437](training-target-rebuild.md); level start unbuilt |
 
-The Training Target draw is made at each level-start rebuild of a Training Room, at its tile changes and after work
-beside it. Ours places the wall targets in `AutoFurnitureSystem` by reconciliation, with no draw and not at the level
-start, so mirroring it needs the rebuild model of ADR-0672 for every room type. It is not approximated here.
+The Training Target draw is made at level start, room tile changes and after
+neighbor work. The [neighbor-work subset](training-target-rebuild.md) is built
+at 437. Startup, room additions/removals, capture merges and the object's
+animation phase remain unmirrored.
 
 Not read: `Graveyard_CreateVampire` (`0x004DD820`) draws on the world seed (`0x004DD88C`) and is reachable from
 `Graveyard_AdoptCorpses`, which a fresh level should not reach; the trigger actions event 3 runs; and every indirect call.

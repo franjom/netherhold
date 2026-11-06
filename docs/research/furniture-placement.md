@@ -64,7 +64,7 @@ the home position:
 | type | arm | inset toward the wall | other |
 |---|---|---|---|
 | 8 Torture Wheel | `0x004EEB27` | `0x7C0` | `+0x99 = 0x800`; process state `0x1E` |
-| 29 Training Target | `0x004EEBE2` | `0x700` | `+0xD4 = +0xD8 = Random_Next(0x1000)` on the **simulation stream** (world `+0x15A0`, `0x004EECBF`); not drawn by ours, ADR-0673 |
+| 29 Training Target | `0x004EEBE2` | `0x700` | `+0xD4 = +0xD8 = Random_Next(0x1000)` on the **simulation stream** (world `+0x15A0`, `0x004EECBF`); [draw built for neighbor work at 437](training-target-rebuild.md); phase fields, startup, room-tile changes and capture merges remain unmirrored |
 | 58 Library Book | `0x004EECEB` | `0x700` | `+0xD4/+0xD8/+0xDC = 0` |
 | 62 Torture Coals, 63 Torture Water | `0x004EED89` | `0x480` | 62 gets process state `0x28`; see below |
 | 67 Bar Table | `0x004EEAA9` | `0x700` | |
