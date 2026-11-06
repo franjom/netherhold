@@ -39,10 +39,11 @@ expect:
       State32 waits for floor art0, installs hatch-end art5, then creates the
       chicken on the following turn (object-drawing.md section 8).
   - event: egg_laid
-    count: 55
+    count: 58
     because: >
       Registered room capacity is nine chickens. Full-room launches continue
       until the free-range census reaches twelve (object-drawing.md section 8); this
-      fixed seed lays fifty-five eggs at hash431. Collision breaks (ADR-0699) and
+      fixed seed lays fifty-eight eggs at hash432. Pillar avoidance (ADR-0700),
+      collision breaks (ADR-0699) and
       free-range bird decay (ADR-0650) free the census for another launch.
       A remake regression pin, not a native measurement.

@@ -250,7 +250,7 @@ above the floor. An Egg on the floor with horizontal speed sum above 4096 adds
 a temporary upward impulse 12288. Other ground objects clear vertical velocity.
 
 During state 24's wait, `0x004DEA50` requires a room and a Coop on the Egg's
-tile, restores the Coop point at z 5000, and adds temporary vertical velocity
+tile, restores the Coop point at z 5096, and adds temporary vertical velocity
 `gravity × 256 − persistent vertical velocity`. Physics then cancels that
 temporary velocity against gravity. On turn 16, the launch impulse is added
 before the same physics pass; the persistent vertical velocity still includes

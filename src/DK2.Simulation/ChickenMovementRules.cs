@@ -201,7 +201,8 @@ public static class ChickenMovementRules
             int direction = ((start + i) & 3) * 2;
             var neighbour = new TilePos(current.X + Dx8[direction], current.Y + Dy8[direction]);
             if (!IsOwnedHatchery(context, chicken, neighbour)
-                || CasinoStep.HasObstacle(world, context.Database, neighbour.Y * world.Width + neighbour.X)) continue;
+                || CasinoStep.HasObstacle(world, context.Database, neighbour.Y * world.Width + neighbour.X)
+                || HasHatcheryPillar(context, neighbour)) continue;
             target = neighbour;
             break;
         }
@@ -296,6 +297,23 @@ public static class ChickenMovementRules
             if (HeartPillarRules.TryResolve(world, database, world.Tile(tile).OwnerPlayerId, id, out _)) return true;
         }
         return false;
+    }
+
+    // Hatchery pillars are drawn from room geometry rather than stored as simulation objects.
+    private static bool HasHatcheryPillar(SimulationContext context, TilePos tile)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        if (database.ObjectById(HatcheryRules.PillarObjectId) is not { } definition
+            || (definition.Flags & ObjectFlags.Obstacle) == 0) return false;
+        int index = tile.Y * world.Width + tile.X;
+        RoomInstance? room = RoomIndex.RoomAt(world, database, index);
+        if (room is null || room.Definition.TypeId != RoomTypeId.Hatchery) return false;
+        foreach (ObjectState thing in world.Objects)
+            if (thing.TileIndex == index && !thing.InHand && thing.CarriedByCreatureId < 0
+                && database.ObjectById(thing.ObjectTypeId) is { } other
+                && (other.Flags & ObjectFlags.Pillar) != 0) return false;
+        return AutoFurnitureRules.RoomPillarCorners(world, room, tile).Any();
     }
 
     private static bool HasDoorOrTrap(WorldState world, TilePos tile)

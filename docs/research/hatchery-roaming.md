@@ -97,7 +97,9 @@ tick by `ObjectMovementSystem`, together with Rats, Eggs and Coops newest first 
 ([prison-rats.md](prison-rats.md#3-life-and-presentation)). The shared class-list
 order is established in `imp-task-stealing.md` §8. Heading, age, reaction countdown,
 destination, velocity, resume process, flags and count are hashed and saved;
-crossing a tile updates its occupancy link. Hatching on an owned Hatchery starts
+crossing a tile updates its occupancy link. ADR-0700/hash-save 432 adds the [virtual Hatchery pillar
+obstacle check](q712-early-draw-continuation.md#built-at432-adr-0700) to the owned-room selector.
+Hatching on an owned Hatchery starts
 process 6, matching `0x004A1CF0`'s owned-room branch. Egg animation timing stays
 the existing two-second approximation. Object initialization retains Chicken
 `+0x14A = 1`. Loose process 10 is built (ADR-0647) and so is free-range decay (§5); Prison process 3 remains unbuilt.

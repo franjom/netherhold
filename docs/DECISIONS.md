@@ -16577,3 +16577,16 @@ axis projection does not block a clear diagonal candidate. Do not step a transit
 The terrain-solid collision subset remains bounded: native door/voxel/liquid volumes and deferred
 unlinking are not added. Boulder/reaction passes remain separate. Effect playback, full-state and
 Heart-outcome parity remain unestablished.
+
+## ADR-0700 — owned Chickens avoid virtual Hatchery pillars
+**Date:** 2026-11-06 · **Status:** accepted · **Systems:** creatures, rooms
+
+**Context.** The bounded comparison in `q712-early-draw-continuation.md` finds
+that missing pillar78 obstacles change a Chicken destination and its later draws.
+
+**Decision.** Include virtual Hatchery pillars in process6's cardinal obstacle
+check. Reuse room pillar geometry, require the definition's Obstacle flag, and
+respect active physical Pillar-flagged objects that suppress virtual placement.
+
+**Consequences.** Hash/save432, no new fields or draws. General room-pillar
+collision, movement-gate bits and full restore/outcome parity remain outside scope.

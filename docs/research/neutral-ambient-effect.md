@@ -310,7 +310,8 @@ regression pins; those affected by the new draws are updated without changing me
 
 Native door/voxel/liquid collision volumes, deferred unlinking, the full captured mixed-object list,
 effect playback and Heart outcomes remain outside this validation. The engine unlinks the broken Egg
-immediately, whereas native marks it for the later removal sweep. Later turns remain untested.
+immediately, whereas native marks it for the later removal sweep. This 431 validation ends at 1403;
+the [early continuation](q712-early-draw-continuation.md) follows the next boundaries through 1412.
 Hash/save431 adds no fields; the new pin is in [hash-versions.md](hash-versions.md).
 Original regression evidence/source/build: `F:/DK2Evidence/{studies,builds}/q712-egg-collision-h431--2026-11-06--001`.
 The composition with master `b4cc4e84` retains the same 39 ordered native seeds/sites at 1401-1403
