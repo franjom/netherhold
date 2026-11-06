@@ -16227,3 +16227,32 @@ parallelism plan). Nothing is known about how DK2 itself schedules these loads; 
   at 26.7 s is gone; no frame over 33 ms after 2 s of play (max 27.7 ms, p95 16.95). Ticks 2 and 3
   (86–100 ms at 0.5–0.75 s) remain: the first worker ticks' wait and the first clip builds. Table in
   `docs/research/level8-intro-motion.md`.
+
+## ADR-0689: a second copy of the level ticks on a worker while the level loads
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity, simulation-core
+
+**Context.** After ADR-0688 the Level6a fly-by's remaining hitches were at ticks 2 and 3, half a second
+into play: the join waited 73 and 37 ms on the second and third worker ticks, which the headless harness
+runs in about 4 ms once warm. The first tick runs inline in `StartGame` and compiles most of the per-tick
+path, but what it leaves (systems and branches a first tick does not reach) is compiled by Mono on the
+worker in ticks 2 and 3, and the frame pays the wait. Compiling the whole simulation assembly ahead
+(ADR-0688's warm-up) cost 1.4 s of loading through the JIT lock and did not shrink the wait.
+
+**Decision.** `SimulationWarmup.Start` (DK2.Presentation) builds a second simulation of the same level
+from the loaded map, level, players, things and triggers, on a worker, and ticks it eight times while
+the scene is built and the art decodes. It shares nothing with the live simulation (its own world, RNG
+and trigger tree; the simulation keeps no static state) and reads nothing from it, so the live hash
+cannot depend on it (`SimulationWarmupTests`). Not for a restored session or the front end. A snapshot
+copy was tried first and dropped: writing the snapshot cost the main thread 176 ms.
+
+**Consequences.**
+- The worker's compile contends with the sound and art decodes for cores during loading; the copy's
+  eight ticks took 422 ms on the worker and finished before loading did (Level6a).
+- Measured, Level6a fly-by, worker ticks (run `20261106-090620`): the first live tick, inline in
+  `StartGame`, fell from 356 to 98–128 ms; the third worker tick's join wait from 37 ms to none; the
+  second worker tick's wait stayed at 41–45 ms, and the probe's columns put 38 ms of it in
+  `DK2.Sim.ImpTask.job` with 7 ms of `grid.flood`. The copy had ticked that tick already, so that is
+  not compilation: the imp job step runs several times slower under Mono than in .NET (the headless
+  harness runs the same tick in 6.8 ms). It is the same step behind the 25–48 ms ticks of a dig wave,
+  and is the next item in the parallelism plan's order.

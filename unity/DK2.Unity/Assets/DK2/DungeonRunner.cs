@@ -263,6 +263,7 @@ namespace DK2.Unity
                 : GameDatabaseLoader.Load(install);
             _startup.Step("database");
 
+            Func<GameSimulation> warmupCopy = null;
             LevelMap map = campaignLevel
                 ? GameDatabaseLoader.LoadCampaignMap(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' map.")
@@ -288,6 +289,8 @@ namespace DK2.Unity
                         players.Select(player => player.PlayerId), fogOfWarEnabled: false), seed)
                     : CampaignSimulationFactory.Create(database, map, level,
                         players, things, triggers, seed, fogOfWarEnabled: fogOfWar));
+                if (!frontEnd && _resumeSimulation == null)
+                    warmupCopy = () => CampaignSimulationFactory.Create(database, map, level, players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
             }
             else
             {
@@ -296,6 +299,12 @@ namespace DK2.Unity
                 _simulation = new GameSimulation(database, savedMap, seed, SimulationSystems.Default());
             }
             _simulation.ProfileWith(new UnitySimulationProfiler());
+            // A second copy of the level ticks on a worker while this one loads, so the live ticks
+            // run compiled code (ADR-0689).
+            if (warmupCopy != null)
+                SimulationWarmup.Start(warmupCopy).ContinueWith(done => Debug.Log(done.IsFaulted
+                    ? $"DK2: simulation warm-up failed: {done.Exception?.GetBaseException().Message}"
+                    : $"DK2: simulation warm-up ticked {SimulationWarmup.DefaultTicks} in {done.Result.TotalMilliseconds:F0} ms"));
             WorldState world = _simulation.World;
             if (!frontEnd) world.LocalPlayerId = new PlayerId((byte)viewingPlayerId);
             if (!frontEnd) PrepareCampaignResult(resumed: _resumeSession != null);

@@ -77,9 +77,11 @@ p95 16.95), draw-clock error above 2 ticks/s 0.32%, and no hitch line after
 tick 3. The 56–82 ms frame at 26.7 s, the first with the HUD after the path,
 is gone: it was two BF4 font parses, the cursor sheet, the counter digits,
 and then ~50 ms of Mono JIT spread over the hover, input and HUD passes. What
-remains is ticks 2 and 3 (0.5–0.75 s of play), 86–100 ms each: the first
-worker ticks' wait and the first creature clip builds, startup-adjacent and
-not yet worked on. The camera's own step per frame still varies
+remained was ticks 2 and 3 (0.5–0.75 s of play), 86–100 ms each. ADR-0689
+(a copy of the level ticked on a worker during loading) removed tick 3's
+wait and cut the first inline tick from 356 to about 110 ms; tick 2 keeps a
+41 ms wait that is the imp job step itself under Mono (38 ms, 6.8 ms
+headless), the plan's next item. The camera's own step per frame still varies
 along the path, as an authored path accelerates and turns; that is not a
 timing error and is not counted. Owner visual comparison in the editor is
 still pending, and the Level8 capture has not been repeated.

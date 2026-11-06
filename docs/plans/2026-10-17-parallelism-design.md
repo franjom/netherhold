@@ -459,8 +459,11 @@ Reading:
   the first second of play. The ticks 2 and 3 art loads decode in the
   background from `FirstFrameArt.LaterKeys`. Run `20261106-083703`: no frame
   over 33 ms after 2 s of play, max 27.7 ms. The 181 ms frame at 5.5 s in one
-  worker run was not captured. Left: ticks 2 and 3 themselves, 86–100 ms at
-  0.5–0.75 s of play (first worker ticks' wait and first clip builds).
+  worker run was not captured. Ticks 2 and 3 (86–100 ms at 0.5–0.75 s of
+  play) were next: ADR-0689 ticks a copy of the level on a worker during
+  loading, which removed tick 3's wait and cut the inline first tick from 356
+  to ~110 ms; tick 2's remaining 41 ms is the imp job step under Mono (38 ms
+  against 6.8 ms headless), the same step as the dig-wave ticks below.
 
 **Level8, same probe, 90 s (run `20261106-072230`, inline ticks).** The
 opening tick durations the roadmap's first paragraph asked for: on the 352

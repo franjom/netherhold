@@ -19,9 +19,12 @@ public static class CampaignSimulationFactory
             players.Select(p => p.PlayerId), fogOfWarEnabled: fogOfWarEnabled);
         ThingProjection.Place(world, database, things,
             players.ToDictionary(p => p.PlayerId, p => p.StartingGold));
-        var tree = new TriggerTree(triggers, level.TriggerId,
-            things.OfType<HeroPartyThing>(),
-            players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
-        return new GameSimulation(database, world, seed, SimulationSystems.Default(), tree);
+        return new GameSimulation(database, world, seed, SimulationSystems.Default(), Triggers(level, players, things, triggers));
     }
+
+    /// <summary>A level's trigger tree, fresh: one per simulation, since the tree holds state.</summary>
+    public static TriggerTree Triggers(LevelDef level, IReadOnlyList<PlayerDef> players,
+        IReadOnlyList<ThingRecord> things, IReadOnlyList<TriggerRecord> triggers) =>
+        new TriggerTree(triggers, level.TriggerId, things.OfType<HeroPartyThing>(),
+            players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
 }
