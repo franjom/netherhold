@@ -315,6 +315,9 @@ as Editor Play mode; Editor timings include Editor overhead. Keep Deep Profiling
 Support off for the baseline. Use the Frame Debugger when rendering/batches are
 the bottleneck, and CPU Timeline/GC allocation call stacks for script spikes.
 Verify final performance in a release build, which strips profiler calls.
+Players build with IL2CPP (ADR-0690): the editor needs its Windows IL2CPP module
+and Visual Studio's C++ tools, and a first-use cost seen in Play mode (Mono) may not
+exist in the player. `tools/game-unity-probe/run.ps1 -Il2cpp` measures the player.
 
 Frame budgets are 16.67 ms at 60 FPS and 8.33 ms at 120 FPS; these are targets,
 not measured results. Inspect slow frames as well as averages. The existing

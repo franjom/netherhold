@@ -16256,3 +16256,29 @@ copy was tried first and dropped: writing the snapshot cost the main thread 176 
   not compilation: the imp job step runs several times slower under Mono than in .NET (the headless
   harness runs the same tick in 6.8 ms). It is the same step behind the 25–48 ms ticks of a dig wave,
   and is the next item in the parallelism plan's order.
+
+## ADR-0690: standalone players are built with IL2CPP
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity
+
+**Context.** Every first-execution cost the Level6a probe found under Mono (ADR-0688's HUD frame, ADR-0689's
+ticks 2 and 3, the dig-wave frames) is the JIT compiling a path on its first use. The game probe can now
+build the same player with IL2CPP (`run.ps1 -Il2cpp`); Level6a, 90 s, worker ticks: startup 2.88 → 1.54 s,
+the tick-2 hitch gone, frames over 20 ms after 2 s 18 → 3, fly-by draw-clock error frames 0.45% → 0.13%
+(parallelism plan addendum 2026-11-06). The game runs no code generation at run time, so nothing stands
+in IL2CPP's way.
+
+**Decision.** `ProjectSettings.asset` sets the Standalone scripting backend to IL2CPP. The editor's Play
+mode is Mono regardless, so the Mono warm-ups of ADR-0688 and ADR-0689 stay; the JIT warm-up compiles out
+under IL2CPP. The game probe keeps Mono as its default so earlier runs stay comparable, and says which
+backend a run used in `backend.txt`.
+
+**Consequences.**
+- Building a Windows player needs the editor's Windows IL2CPP module (installed in the Hub copy of
+  6000.6.0f1, not in the `Program Files/Unity 6000.6.0f1` copy) and Visual Studio's C++ tools; builds take
+  a few minutes longer. A Linux player needs the Linux IL2CPP module and its cross-toolchain, not yet
+  installed or tried.
+- Managed stripping is stricter: a type found only by reflection would need a `link.xml` entry. None does
+  today; the probe run is the check, since it plays a whole level and marks a run with errors invalid.
+- Whether ADR-0689's warm-up ticks still pay under IL2CPP (129 ms on a worker, first inline tick 22 ms) is
+  open and cheap to measure.

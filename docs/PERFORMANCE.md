@@ -66,6 +66,9 @@ The owner's laptop is the floor, not the goal. Revised targets, by tier:
 | floor | the owner's laptop (`performance-target.json`) | 1920x1080 | 60 FPS, every frame | 100+ |
 | desktop | RTX 3060 class or better | 1920x1080 | 120 FPS, every frame | — |
 
+Players are built with IL2CPP (ADR-0690); a Mono player measures the editor's
+runtime, not the game's, and the game probe says which backend a run used.
+
 The desktop tier has no machine here. Someone else will run it, on hardware
 we cannot see, so the capture must work without this repository, Unity or the
 developer's install paths, and must come back as files we can read. Today it
