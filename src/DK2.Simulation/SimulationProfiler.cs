@@ -87,6 +87,13 @@ public static class SimulationMarkers
     public static readonly SimulationMarker ImpWander = SimulationMarker.Named("ImpTask.wander");
     public static readonly SimulationMarker ImpCarry = SimulationMarker.Named("ImpTask.carry");
     public static readonly SimulationMarker ImpJob = SimulationMarker.Named("ImpTask.job");
+    // Inside the job step: the whole-map excavation scan, one wall's sides, the ring scan for a
+    // claim, a candidate's flood reachability and a side's nav-mesh route.
+    public static readonly SimulationMarker ImpScan = SimulationMarker.Named("ImpTask.job.scan");
+    public static readonly SimulationMarker ImpWall = SimulationMarker.Named("ImpTask.job.wall");
+    public static readonly SimulationMarker ImpClaimScan = SimulationMarker.Named("ImpTask.job.claim scan");
+    public static readonly SimulationMarker ImpReach = SimulationMarker.Named("ImpTask.job.reach");
+    public static readonly SimulationMarker ImpPoint = SimulationMarker.Named("ImpTask.job.point route");
 }
 
 /// <summary>

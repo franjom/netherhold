@@ -457,6 +457,7 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
     /// with a real predicate.</summary>
     private bool Reaches(WorldPathGrid grid, CreatureState creature, TilePos tile)
     {
+        using ProfileScope _ = _pathfinder.Profiler.Scope(SimulationMarkers.ImpReach);
         return Flooded(grid, creature).TryPathTo(tile, _route);
     }
 

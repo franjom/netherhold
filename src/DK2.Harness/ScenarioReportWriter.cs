@@ -154,9 +154,13 @@ internal static class ScenarioReportWriter
             double worst = timings.TickTimes.Skip(2).Select(t => t.TotalMilliseconds).DefaultIfEmpty(0).Max();
             // The opening ticks one by one: a level's script often does its most in the first few.
             string opening = string.Join(", ", timings.TickTimes.Take(12).Select(t => t.TotalMilliseconds.ToString("F1", CultureInfo.InvariantCulture)));
+            // And every later tick over 10 ms, by index: which ticks a burst of work lands on.
+            string slow = string.Join(", ", timings.TickTimes.Select((t, i) => (Tick: i, Ms: t.TotalMilliseconds))
+                .Skip(12).Where(t => t.Ms > 10).Take(40).Select(t => $"{t.Tick}: {t.Ms.ToString("F1", CultureInfo.InvariantCulture)}"));
             File.WriteAllText(Path.Combine(outputDir, "timings.txt"), timings.Summarise(top: 30) +
                 Environment.NewLine + FormattableString.Invariant($"worst tick after warm-up: {worst:F3} ms") +
                 Environment.NewLine + $"first ticks (ms): {opening}" +
+                Environment.NewLine + $"later ticks over 10 ms: {slow}" +
                 Environment.NewLine);
         }
     }

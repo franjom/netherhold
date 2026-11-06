@@ -464,6 +464,20 @@ Reading:
   loading, which removed tick 3's wait and cut the inline first tick from 356
   to ~110 ms; tick 2's remaining 41 ms is the imp job step under Mono (38 ms
   against 6.8 ms headless), the same step as the dig-wave ticks below.
+  **The imp job step, split (run `20261106-091307`, sub-markers
+  `DK2.Sim.ImpTask.job.*` and `nav.route`):** in the dig-wave ticks the job
+  step's 20–23 ms are nav-mesh routes, 15–18 ms a tick, asked by
+  `PointReachable` for each candidate wall side and by the claim ring scan;
+  the whole-map excavation scan is 0.06 ms, the grid flood 1–3 ms. A route
+  costs ~0.2 ms headlessly and 0.6–1.2 ms under Mono; the router is DK2's own
+  algorithm transcribed (`MeshRouter`: two searches, two funnels, a gate
+  walk, a hashed locate cache that is part of the state hash), so there is
+  little to take out of it without changing hashes. Headlessly the same
+  scenario's worst ticks are the nav-mesh rebuilds after the digs land
+  (`nav.build` 22 ms, `nav.refresh` 4 × 7 ms), which Unity's frames did not
+  show. Scenario: `scenarios/perf/level6a_dig_waves.yaml`. The lever left is
+  the scripting backend: Visual Studio 2026 with the C++ tools is installed,
+  the IL2CPP player module is not.
 
 **Level8, same probe, 90 s (run `20261106-072230`, inline ticks).** The
 opening tick durations the roadmap's first paragraph asked for: on the 352

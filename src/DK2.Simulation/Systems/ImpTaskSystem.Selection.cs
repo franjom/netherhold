@@ -449,6 +449,7 @@ public sealed partial class ImpTaskSystem
         // The walk drops every task of its kinds whose tile can no longer be dug (0x00469BC8,
         // 0x00469EBF), so a digger whose action is still running then raises no kind 14 (ADR-0305).
         _excavation.Clear();
+        ProfileScope scan = context.Profiler.Scope(SimulationMarkers.ImpScan);
         for (int y = 0; y < world.Height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -469,6 +470,7 @@ public sealed partial class ImpTaskSystem
             }
         }
         _excavation.Sort();
+        scan.Dispose();
 
         // The walk's one choice is taken or lost: a failed walk gives the whole selection up
         // (0x00469AF0's tail returns 0), it does not move on to the next wall (Q590).
@@ -494,6 +496,7 @@ public sealed partial class ImpTaskSystem
     private bool TryExcavationAt(
         SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos target, PlayerId player)
     {
+        using ProfileScope wall = context.Profiler.Scope(SimulationMarkers.ImpWall);
         _excavationWalkFailed = false;
         WorldState world = context.World;
         int targetIndex = target.Y * world.Width + target.X;
@@ -565,6 +568,7 @@ public sealed partial class ImpTaskSystem
     /// walking to or stealing it; the selection grid has no doors (Q590, ADR-0472).</summary>
     private bool PointReachable(SimulationContext context, CreatureState creature, int x, int y)
     {
+        using ProfileScope _ = context.Profiler.Scope(SimulationMarkers.ImpPoint);
         _reachPoints.Clear();
         return context.Navigation.Route(
             new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4), new Steering.Fixed16Vector(x << 4, y << 4),
@@ -692,7 +696,7 @@ public sealed partial class ImpTaskSystem
     /// </summary>
     private bool TryTakeClaim(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-
+        using ProfileScope _ = context.Profiler.Scope(SimulationMarkers.ImpClaimScan);
         WorldState world = context.World;
         TilePos at = creature.Tile;
         var rings = new DiamondRings(world, at, ChosenStartSide(context, ClaimStartSide(context, world, at, creature.OwnerPlayerId)));
