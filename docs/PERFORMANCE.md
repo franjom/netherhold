@@ -56,3 +56,54 @@ have one home: [portal arrival performance](research/portal-arrival-performance.
 
 This target is the Unity frame. The headless simulation has its own opt-in budget
 (50x real time, 100 ms per tick): [ADR-0575](DECISIONS.md), `GOAL_ALIGNMENT.md` gap 4.
+
+## Hardware tiers and captures on other machines (2026-11-06)
+
+The owner's laptop is the floor, not the goal. Revised targets, by tier:
+
+| Tier | Hardware | Resolution | Minimum | Goal |
+|---|---|---|---:|---:|
+| floor | the owner's laptop (`performance-target.json`) | 1920x1080 | 60 FPS, every frame | 100+ |
+| desktop | RTX 3060 class or better | 1920x1080 | 120 FPS, every frame | — |
+
+The desktop tier has no machine here. Someone else will run it, on hardware
+we cannot see, so the capture must work without this repository, Unity or the
+developer's install paths, and must come back as files we can read. Today it
+cannot: `run-window-frames.ps1` needs the editor, a scratch project under this
+clone's `build/`, PresentMon installed by our script and the DK2 install at
+its path, and a release player records nothing about its own frames. What a
+desktop-tier capture needs, in order of what exists:
+
+1. **A tester package**: one release player (Vulkan, with the Direct3D12
+   fallback), the pinned PresentMon binary, a script that starts the trace,
+   runs one named scenario from `required_scenarios` with a fixed seed and
+   camera, stops the trace and zips the CSV, `Player.log`, the machine's
+   CPU/GPU/driver/resolution metadata, the built-DLL SHA256 fingerprints and
+   a screenshot taken outside the timed interval. `frame_budget.py` already
+   reads such a capture, but it checks the capture's CPU, GPU and resolution
+   against the one profile in `performance-target.json` and fails any other
+   machine; it needs a `--tier` that selects a tier's minimum and accepts
+   that tier's hardware. The tiers are listed in the file; the checker does
+   not read them yet.
+2. **Telemetry inside the release player**, off by default, on by a command
+   line switch or a file beside the executable, allocation-free on ordinary
+   frames: per frame the interval, ticks run, the join wait, Present,
+   AnimatedFrame, chunk rebuild, the draw clock and the camera, as the game
+   probe's `frames.csv` has them, plus the hitch line's first-use art by
+   kind. Written to `persistentDataPath` at exit. This is what explains a
+   slow frame the tester reports; PresentMon alone says only that it was slow.
+   The profiler recorders behind the hitch line exist only in development
+   players, so the release recorder reads stopwatches of its own.
+3. **The draw-clock evenness metric** (frames with draw-clock error over 2
+   ticks/s, `docs/research/level8-intro-motion.md`) in the same report, since
+   a fly-by can stutter at a flat 120 FPS. The 2026-11-06 Level6a measurement
+   failed it at 12% with frame time flat.
+4. **Scenario coverage**: the opening fly-by and the dig burst
+   (`terrain-edit-burst`) are the two that showed the remaining hitches; the
+   list in `performance-target.json` stands.
+
+Until items 1 and 2 exist, a desktop-tier number is a tester's FPS counter,
+which the policy above does not accept. Evidence from another machine goes to
+`F:\DK2Evidence\` like any capture that cannot be regenerated here.
+Measurements so far, all on the owner's laptop and headless, are in the
+[parallelism plan](plans/2026-10-17-parallelism-design.md), addendum 2026-11-06.

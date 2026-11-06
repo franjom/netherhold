@@ -494,7 +494,10 @@ in hand when the draw clock crosses the boundary and nothing clamps; and take
 the frame's elapsed time once. Commands then reach their tick one frame
 earlier, not later. Measure with this run's metric before and after.
 
-Still unmeasured: a 60 FPS cap repeat of the Level8 motion capture. These numbers are a headless
+Still unmeasured: a 60 FPS cap repeat of the Level8 motion capture, and
+anything on the desktop tier (120 FPS on an RTX 3060 class machine), which
+[the performance policy](../PERFORMANCE.md#hardware-tiers-and-captures-on-other-machines-2026-11-06)
+now lists with the tester package and release-player telemetry it needs. These numbers are a headless
 Development player on a shared machine; a visible release confirmation per the
 P0 list is still owed, and the owner's editor stutter has no player-side
 counterpart in these runs.

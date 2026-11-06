@@ -9,6 +9,21 @@
     "GPU": "AMD Radeon(TM) Graphics",
     "Resolution": "1920x1080"
   },
+  "tiers": [
+    {
+      "name": "floor",
+      "hardware": "the owner's laptop (metadata above)",
+      "resolution": "1920x1080",
+      "minimum_fps": 60,
+      "optimization_goal_fps": 100
+    },
+    {
+      "name": "desktop",
+      "hardware": "RTX 3060 class or better; no machine here, captured by a tester (docs/PERFORMANCE.md)",
+      "resolution": "1920x1080",
+      "minimum_fps": 120
+    }
+  ],
   "required_scenarios": [
     "level1-goblin-introduction",
     "level2-warlock-introduction",
