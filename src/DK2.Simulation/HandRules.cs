@@ -80,7 +80,7 @@ public static class HandRules
                 or CreatureDeathRules.DyingState or CreatureStateMachine.NoState) return false;
         // A nonzero removal stamp refuses any creature, an imp or not (0x0048E6A0, ADR-0277).
         if (creature.ManaRemovalStamp != 0) return false;
-        if (!definition.Flags.HasFlag(CreatureFlags.CanBePickedUp)) return false;
+        if (!((definition.Flags & CreatureFlags.CanBePickedUp) == CreatureFlags.CanBePickedUp)) return false;
         if (creature.Dk2StateId is 76 or 193) return false;
         if (creature.OwnerPlayerId != playerId)
             return creature.IsTool || (creature.SneakingAs != 0 && creature.SneakingAs == playerId.Value)
@@ -89,7 +89,7 @@ public static class HandRules
             return world.Contains(creature.Tile)
                 && world.Tile(creature.Tile.X, creature.Tile.Y).OwnerPlayerId == playerId;
         if (creature.Dk2StateId is 51 or 52 || TurncoatRules.IsActive(creature)) return false;
-        if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && (creature.Flags & 9) == 0) return false;
+        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && (creature.Flags & 9) == 0) return false;
         // The stored room must be nobody's or the owner's. A Prison writes that membership on
         // entry (0x0047B740 calls 0x004E5A70), so an own creature in another keeper's cells is
         // refused; other rooms' membership is not stored here (creature-pickup.md).
@@ -238,9 +238,9 @@ public static class HandRules
         bool neutral = cell.OwnerPlayerId == PlayerIds.Neutral;
         bool allied = !neutral && world.AreAllied(playerId, cell.OwnerPlayerId);
 
-        if (definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
         {
-            bool evil = definition.Flags.HasFlag(CreatureFlags.IsEvil);
+            bool evil = ((definition.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
             if (room == RoomTypeId.CombatPit && IsFloorSlot(world, tile)) return false;
             if (room == RoomTypeId.DungeonHeart && !own && IsHeartInner(world, database, tile)) return false;
             if (evil && room is (RoomTypeId.Portal or RoomTypeId.HeroPortal) && IsPortalCentre(world, database, tile, heroPortalToo: true)) return false;
@@ -267,7 +267,7 @@ public static class HandRules
         if (IsSolidOrDoor(world, database, tile)) return false;
         ref TileState cell = ref world.Tile(tile.X, tile.Y);
         bool neutral = cell.OwnerPlayerId == PlayerIds.Neutral;
-        bool allowed = database.ObjectById(objectTypeId)?.Flags.HasFlag(ObjectFlags.CanBeDroppedOnAnyLand) == true
+        bool allowed = ((database.ObjectById(objectTypeId)?.Flags & ObjectFlags.CanBeDroppedOnAnyLand) == ObjectFlags.CanBeDroppedOnAnyLand) == true
             || (!neutral && world.AreAllied(playerId, cell.OwnerPlayerId));
         if (objectTypeId is not (HatcheryRules.ChickenObjectId or CallToArmsRules.ObjectTypeId)) return allowed;
         RoomTypeId? room = database.RoomByTerrain(cell.TerrainId)?.TypeId;
@@ -332,8 +332,8 @@ public static class HandRules
         GameDatabase database, CreatureState creature, PlayerId playerId)
     {
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-        if (!definition.Flags.HasFlag(CreatureFlags.CanBeSlapped)) return false;
-        if (definition.Flags.HasFlag(CreatureFlags.IsHorny)) return false;
+        if (!((definition.Flags & CreatureFlags.CanBeSlapped) == CreatureFlags.CanBeSlapped)) return false;
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return false;
         if (creature.InHand) return false;
 
         // A prisoner answers to its jailer and to nobody else, its own keeper included:

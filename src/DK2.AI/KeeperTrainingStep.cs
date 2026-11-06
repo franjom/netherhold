@@ -70,7 +70,7 @@ public sealed class KeeperTrainingStep
         {
             if (allowance <= 0) break;
             CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) continue;
             int level = LevelOf(creature);
 
             if (WantsThePit(creature, definition, level))

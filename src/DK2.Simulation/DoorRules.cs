@@ -39,7 +39,7 @@ public static class DoorRules
         if (world.Doors.Count == 0 || !world.Contains(x >> 12, y >> 12)) return false;
         door = world.DoorAt(x >> 12, y >> 12);
         if (door is null || door.UnderConstruction || door.Open) return false;
-        if (context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition) && definition.Flags.HasFlag(DoorFlags.Barricade))
+        if (context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition) && ((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
             return z < 0x1801;
         bool acrossX = Math.Abs((x & 0xFFF) - 0x800) <= 0x600, acrossY = Math.Abs((y & 0xFFF) - 0x800) <= 0x600;
         return door.Orientation switch
@@ -107,7 +107,7 @@ public static class DoorRules
         world.RemoveDoor(door);
         if (world.Contains(door.X, door.Y))
         {
-            if (context.Database.Doors.GetValueOrDefault(door.DoorId)?.Flags.HasFlag(DoorFlags.Secret) == true)
+            if (((context.Database.Doors.GetValueOrDefault(door.DoorId)?.Flags & DoorFlags.Secret) == DoorFlags.Secret) == true)
                 world.Tile(door.X, door.Y).SecretDoor = false;
             TerrainDef terrain = context.Database.TerrainById(world.Tile(door.X, door.Y).TerrainId);
             if (!terrain.IsSolid && (terrain.IsWater || terrain.IsLava))

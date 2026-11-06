@@ -56,7 +56,7 @@ public sealed class CreatureOverview
         Func<CreatureOverviewType,int>? order=null)
     {
         _database=database;_viewer=viewingPlayer;
-        var definitions=database.Creatures.Values.Where(d=>!d.Flags.HasFlag(CreatureFlags.IsUnique))
+        var definitions=database.Creatures.Values.Where(d=>!((d.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique))
             .OrderBy(d=>order?.Invoke(new(d.CreatureId))??d.CreatureId).ThenBy(d=>d.CreatureId).ToArray();
         _worker=definitions.First(d=>(d.Flags&(CreatureFlags.IsEvil|CreatureFlags.IsWorker))==(CreatureFlags.IsEvil|CreatureFlags.IsWorker)).CreatureId;
         _all=definitions.OrderBy(d=>d.CreatureId==_worker?0:1).Select(d=>new CreatureOverviewEntry(new(d.CreatureId),name(new(d.CreatureId),d.Name))).ToArray();
@@ -150,6 +150,6 @@ public sealed class CreatureOverview
     private byte ResolvedType(CreatureState creature)
     {
         CreatureDef definition=_database.CreatureById(creature.CreatureTypeId);
-        return definition.Flags.HasFlag(CreatureFlags.IsUnique)?definition.UniqueBaseCreatureId:definition.CreatureId;
+        return ((definition.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique)?definition.UniqueBaseCreatureId:definition.CreatureId;
     }
 }

@@ -570,7 +570,7 @@ public static class TunnelRules
     }
 
     private static bool IsWorker(SimulationContext context, CreatureState creature) =>
-        context.Database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
+        ((context.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
 
     private static int Centre(int tile) => CreatureState.CentreOf(tile);
 }

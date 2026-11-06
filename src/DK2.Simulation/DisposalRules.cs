@@ -28,7 +28,7 @@ public static class DisposalRules
             && LeavingRules.IsDropCentre(world, database, at, playerId)) return true;
         // 71 gives a worker back only with the Heart object (type 13) in the room; a ruined Heart
         // has none, so 71 sends it to 11 and the drop is an ordinary landing.
-        if (mover.Flags.HasFlag(CreatureFlags.IsWorker))
+        if (((mover.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
             return IsHeartCentreTile(world, database, at, playerId) && !world.Tile(at.X, at.Y).RoomRuined;
 
         return false;

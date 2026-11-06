@@ -51,7 +51,7 @@ public static class ImpCreationRules
             return;
         }
         CreatureDef type = database.CreatureById((byte)shot.Data1);
-        if (!type.Flags.HasFlag(CreatureFlags.IsWorker))
+        if (!((type.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
         {
             context.Emit("ImpCreation", "creature_creation_refused", $"shot={shot.Id} type={shot.Data1} reason=not_a_worker");
             return;

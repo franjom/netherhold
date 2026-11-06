@@ -106,14 +106,14 @@ public sealed record TerrainDef
     /// <summary>Authored point-light height; null preserves a writer template's value.</summary>
     public Fp32? TerrainLightHeight { get; init; }
 
-    public bool IsSolid => Flags.HasFlag(TerrainFlags.Solid);
-    public bool IsImpenetrable => Flags.HasFlag(TerrainFlags.Impenetrable);
-    public bool IsOwnable => Flags.HasFlag(TerrainFlags.Ownable);
-    public bool IsTaggable => Flags.HasFlag(TerrainFlags.Taggable);
-    public bool IsRoom => Flags.HasFlag(TerrainFlags.Room);
-    public bool IsAttackable => Flags.HasFlag(TerrainFlags.Attackable);
-    public bool IsWater => Flags.HasFlag(TerrainFlags.Water);
-    public bool IsLava => Flags.HasFlag(TerrainFlags.Lava);
+    public bool IsSolid => ((Flags & TerrainFlags.Solid) == TerrainFlags.Solid);
+    public bool IsImpenetrable => ((Flags & TerrainFlags.Impenetrable) == TerrainFlags.Impenetrable);
+    public bool IsOwnable => ((Flags & TerrainFlags.Ownable) == TerrainFlags.Ownable);
+    public bool IsTaggable => ((Flags & TerrainFlags.Taggable) == TerrainFlags.Taggable);
+    public bool IsRoom => ((Flags & TerrainFlags.Room) == TerrainFlags.Room);
+    public bool IsAttackable => ((Flags & TerrainFlags.Attackable) == TerrainFlags.Attackable);
+    public bool IsWater => ((Flags & TerrainFlags.Water) == TerrainFlags.Water);
+    public bool IsLava => ((Flags & TerrainFlags.Lava) == TerrainFlags.Lava);
 
     /// <summary>
     /// Whether the real terrain remains visible through an undiscovered tile.
@@ -122,5 +122,5 @@ public sealed record TerrainDef
     /// lava, gold, gems and the map edge.
     /// </summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/fog-of-war.md")]
-    public bool IsRevealedThroughFog => Flags.HasFlag(TerrainFlags.RevealThroughFogOfWar);
+    public bool IsRevealedThroughFog => ((Flags & TerrainFlags.RevealThroughFogOfWar) == TerrainFlags.RevealThroughFogOfWar);
 }

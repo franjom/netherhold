@@ -104,7 +104,7 @@ public static class CreatureDeathRules
     /// Vampire, and its object ids 31-34 are not the Vampire's <c>LairObjectId</c> of 26, so
     /// reincarnation is a Graveyard tile and not <see cref="Rescue"/> (<see cref="TryReincarnate"/>).</summary>
     public static bool CanBeResurrected(CreatureDef creature) =>
-        creature.Flags.HasFlag(CreatureFlags.CanBeResurrected);
+        ((creature.Flags & CreatureFlags.CanBeResurrected) == CreatureFlags.CanBeResurrected);
 
     /// <summary>The reincarnation <c>0x0048FFC0</c> (creature-death.md §2.3, Q329), tried for a
     /// <see cref="CanBeResurrected"/> creature whose health has run out. Its guards, in order: not on
@@ -215,7 +215,7 @@ public static class CreatureDeathRules
     /// is no undead flag; <c>CreatureNeedsOnRealDataTests</c> asserts all three sets by name. Trap:
     /// this flag governs and <c>DecomposeValue</c> does not — Horny and Jack carry a decompose value of 200 while generating no body, so a graveyard counting it would be fed by corpses that never exist.</summary>
     public static bool LeavesBody(CreatureDef creature) =>
-        creature.Flags.HasFlag(CreatureFlags.GenerateDeadBody);
+        ((creature.Flags & CreatureFlags.GenerateDeadBody) == CreatureFlags.GenerateDeadBody);
 
     /// <summary>The death bookkeeping's gate (<c>0x00487C70</c>): the definition flag and its
     /// runtime copy, which mana-removal selection clears (<see cref="CreatureState.CorpseSuppressed"/>).

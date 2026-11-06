@@ -96,8 +96,8 @@ public static class CreatureHealthRules
         TerrainDef terrain = database.TerrainById(world.Tile(at.X, at.Y).TerrainId);
         if (terrain.Damage == 0) return 0;
 
-        if (terrain.IsWater && creature.Flags.HasFlag(CreatureFlags.CanWalkOnWater)) return 0;
-        if (terrain.IsLava && creature.Flags.HasFlag(CreatureFlags.CanWalkOnLava)) return 0;
+        if (terrain.IsWater && ((creature.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater)) return 0;
+        if (terrain.IsLava && ((creature.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava)) return 0;
 
         return -terrain.Damage;
     }

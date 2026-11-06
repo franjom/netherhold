@@ -547,7 +547,7 @@ public static partial class ShotRules
     /// attacking abnormal targets (rebellion.md §7.2).</summary>
     public static void ModifyHealth(SimulationContext context, ShotState shot, ShotDef definition, CreatureState target, CreatureDef targetDef)
     {
-        if (targetDef.Flags.HasFlag(CreatureFlags.IsHorny) || CreatureDeathRules.IsCorpse(target)) return;
+        if (((targetDef.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || CreatureDeathRules.IsCorpse(target)) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;
         StatusEffectRules.IgniteWeakTarget(context, definition, target, 5, shot.OwnerPlayerId);
@@ -569,7 +569,7 @@ public static partial class ShotRules
         // 0x004B2CE0 refuses a creature whose kind is OnlyAttackableByHorny for a positive delta too.
         // Both arms pass the shot's owner (+0x28) as the source (0x004ADCE0, 0x004ADDF8).
         int healed = amount >= 0
-            ? targetDef.Flags.HasFlag(CreatureFlags.OnlyAttackableByHorny) ? Refused(target, shot.OwnerPlayerId) : CreatureHealthRules.Apply(database, targetDef, target, amount, shot.OwnerPlayerId)
+            ? ((targetDef.Flags & CreatureFlags.OnlyAttackableByHorny) == CreatureFlags.OnlyAttackableByHorny) ? Refused(target, shot.OwnerPlayerId) : CreatureHealthRules.Apply(database, targetDef, target, amount, shot.OwnerPlayerId)
             : StatusEffectRules.Hurt(world, database, targetDef, target, -amount, shot.OwnerPlayerId);
         context.Emit(SystemName, "healed", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} amount={amount} landed={healed} health={target.Health}");
     }

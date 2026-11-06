@@ -62,7 +62,7 @@ public static class ThreatFleeRules
     {
         // 0x00489AD3: possessed (+0x3E6 bit 0x80), dying (0x200000), IsFearless, or before FearlessUntil.
         if (CreatureDeathRules.IsPossessed(context.World, me) || CreatureDeathRules.IsDying(me)
-            || definition.Flags.HasFlag(CreatureFlags.IsFearless) || CasinoRules.IsFearlessFromGambling(context.World, me)) return;
+            || ((definition.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless) || CasinoRules.IsFearlessFromGambling(context.World, me)) return;
         if (me.CurrentFear <= FearRules.FearThreshold(context.Database, definition, me.Level)) return;
         if (!CreatureStateMachine.HasState(me) || !CombatRules.IsAttackable(me)) return;
         if (me.Dk2StateId == StateShadow.TravelToPoint && me.UtilityNewState == FledState) return;

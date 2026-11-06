@@ -69,7 +69,7 @@ public static class AutoFurnitureRules
         }
 
         int choiceCount = FloorChoiceCount(room.Definition);
-        if (room.Definition.Flags.HasFlag(RoomFlags.SpecialTiles) && choiceCount != 0)
+        if (((room.Definition.Flags & RoomFlags.SpecialTiles) == RoomFlags.SpecialTiles) && choiceCount != 0)
         {
             foreach (int tile in slots)
             {
@@ -145,7 +145,7 @@ public static class AutoFurnitureRules
         while (count < 4 && count < room.ObjectIds.Count && room.ObjectIds[count] != 0)
             count++;
 
-        if (count == 4 && room.Flags.HasFlag(RoomFlags.SpecialWalls)) count = 3;
+        if (count == 4 && ((room.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls)) count = 3;
         return count;
     }
 
@@ -154,7 +154,7 @@ public static class AutoFurnitureRules
         HashSet<int> roomTiles,
         List<(int TileIndex, byte ObjectTypeId)> into)
     {
-        if (!room.Definition.Flags.HasFlag(RoomFlags.SpecialWalls)) return;
+        if (!((room.Definition.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls)) return;
 
         int choiceCount = 0;
         while (choiceCount < 3 && choiceCount + 3 < room.Definition.ObjectIds.Count
@@ -279,8 +279,8 @@ public static class AutoFurnitureRules
     {
         if (!world.Contains(x, y)) return false;
         TerrainFlags flags = database.TerrainById(world.Tile(x, y).TerrainId).Flags;
-        return flags.HasFlag(TerrainFlags.Solid)
-            && flags.HasFlag(TerrainFlags.AllowRoomWalls);
+        return ((flags & TerrainFlags.Solid) == TerrainFlags.Solid)
+            && ((flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
     }
 
     /// <summary>The rooms whose floor slots are one parity of a checkerboard: Guard Room, Workshop
@@ -442,7 +442,7 @@ public static class AutoFurnitureRules
     /// <summary>Whether this object's type appears in the room's wall-pass list.</summary>
     public static bool IsWallFurniture(RoomDef room, ObjectState thing)
     {
-        if (!room.Flags.HasFlag(RoomFlags.SpecialWalls)) return false;
+        if (!((room.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls)) return false;
         for (int i = 3; i <= 5 && i < room.ObjectIds.Count; i++)
         {
             if (room.ObjectIds[i] == 0) break;

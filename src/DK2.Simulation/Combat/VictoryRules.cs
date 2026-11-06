@@ -63,7 +63,7 @@ public static class VictoryRules
     /// at once when none is near or no route exists (the last is ours, Q400).</summary>
     public static void Victory(SimulationContext context, CreatureState me, CreatureDef mine)
     {
-        if (mine.Flags.HasFlag(CreatureFlags.NeedBodyForFightIdle))
+        if (((mine.Flags & CreatureFlags.NeedBodyForFightIdle) == CreatureFlags.NeedBodyForFightIdle))
         {
             CreatureState? body = NearestBody(context.World, me);
             if (body != null && context.Navigation.TryRouteTo(me, body.PosX, body.PosY, MoveOptions.Plain))

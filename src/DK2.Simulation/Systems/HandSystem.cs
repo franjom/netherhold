@@ -205,7 +205,7 @@ public sealed class HandSystem : ISimulationSystem
         // A gold object floats its whole amount where it lay (0x004C0DDA): definition +0xF4 bit 0x40, the
         // object not already in the hand (0x004BCAE0), before it joins it. DK2 passes the object's stored height;
         // ours the floor's (ThingSoundRules.PointOf).
-        if (context.Database.ObjectById(thing.ObjectTypeId)?.Flags.HasFlag(ObjectFlags.TypeGold) == true)
+        if (((context.Database.ObjectById(thing.ObjectTypeId)?.Flags & ObjectFlags.TypeGold) == ObjectFlags.TypeGold) == true)
             CostNumberRules.Show(context, SystemName, command.PlayerId, ThingSoundRules.PointOf(context, thing), thing.GoldHeld);
         thing.InHand = true;
         world.Player(command.PlayerId).Hand.Add(HandItem.Of(thing));
@@ -392,7 +392,7 @@ public sealed class HandSystem : ISimulationSystem
         {
             if (LeavingRules.IsDropCentre(world, context.Database, command.Tile, creature.OwnerPlayerId))
             {
-                if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+                if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
                 {
                     // The hand disposes only at a Portal (0x0040AE80), whose drop is immediate.
                     DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
@@ -403,7 +403,7 @@ public sealed class HandSystem : ISimulationSystem
             }
             // A worker through its Heart's centre is 71's give-back (76 sets 71 on cell byte 0x40):
             // Create Imp's mana to the tile owner first, then its gold is lost and it is destroyed.
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker))
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
             {
                 PlayerId owner = world.TileAtIndex(landingTileIndex).OwnerPlayerId;
                 int refund = DropLandingRules.CreditWorkerGivenBack(world, context.Database, owner);
@@ -471,7 +471,7 @@ public sealed class HandSystem : ISimulationSystem
         // 137, through 1 (0x004E8DA0(0), combat-pit.md §1).
         RoomInstance? pit = CombatPitRules.PitAt(world, context.Database, landingTileIndex);
         if (creature.OwnerPlayerId == command.PlayerId && pit?.OwnerPlayerId == command.PlayerId
-            && !definition.Flags.HasFlag(CreatureFlags.IsWorker) && CombatPitRules.IsFloor(pit, landingTileIndex)
+            && !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && CombatPitRules.IsFloor(pit, landingTileIndex)
             && CombatPitSystem.Move(context, creature, CombatPitRules.ArrivingState))
         {
             context.Emit(SystemName, "dropped_in_pit",
@@ -486,7 +486,7 @@ public sealed class HandSystem : ISimulationSystem
         // non-worker (0x0046EFA7), or a worker of a player numbered below 3, a hero's or a neutral's
         // (0x0046EFB7), goes to the stun at 0x0046F173. Only a stored pick-up puts another keeper's or
         // a hero's creature in the hand (ADR-0616). A freed prisoner is stunned too (owner, 2026-11-01).
-        bool stuns = !definition.Flags.HasFlag(CreatureFlags.IsWorker)
+        bool stuns = !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
             || creature.OwnerPlayerId < PlayerIds.FirstKeeper;
         if (stuns && Combat.StatusEffectRules.StunOnLanding(context, creature, definition))
         {
@@ -501,7 +501,7 @@ public sealed class HandSystem : ISimulationSystem
         // 12.5% bonus turns on only if that look finds something (ADR-0069). The timer
         // goes to zero because a dropped worker skips the chooser's cap. The kind just
         // done is zeroed, the aimed kind kept: state 11 writes +0x98 only (0x00463DD2).
-        bool worker = definition.Flags.HasFlag(CreatureFlags.IsWorker);
+        bool worker = ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
         creature.JustDropped = worker;
         creature.LastTaskKind = ImpTaskKind.None;
         if (worker)
@@ -755,7 +755,7 @@ public sealed class HandSystem : ISimulationSystem
         WorldState world, GameDatabase database, CreatureDef definition, CreatureState creature, byte slapper, out RoomInstance? room)
     {
         room = null;
-        if (definition.Flags.HasFlag(CreatureFlags.IsHorny)) return SlapOutcome.Uncounted;
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return SlapOutcome.Uncounted;
         if (creature.Dk2StateId is 76 or 101 or 193) return SlapOutcome.Nothing;
         if (creature.Dk2StateId is 209 or 255) return SlapOutcome.Short;
         room = creature.HeldPlace.IsHeld

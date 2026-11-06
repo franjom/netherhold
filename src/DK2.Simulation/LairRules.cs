@@ -134,8 +134,8 @@ public static class LairRules
     public static bool HoldsBedOfOtherAlignment(
         WorldState world, GameDatabase database, RoomInstance lair, CreatureDef me)
     {
-        bool good = me.Flags.HasFlag(CreatureFlags.IsGood);
-        bool evil = me.Flags.HasFlag(CreatureFlags.IsEvil);
+        bool good = ((me.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood);
+        bool evil = ((me.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
         if (!good && !evil) return false;
 
         IReadOnlyList<ObjectState> objects = world.Objects;
@@ -149,8 +149,8 @@ public static class LairRules
             if (owner is null) continue;
 
             CreatureFlags theirs = database.CreatureById(owner.CreatureTypeId).Flags;
-            if (good && theirs.HasFlag(CreatureFlags.IsEvil)) return true;
-            if (evil && theirs.HasFlag(CreatureFlags.IsGood)) return true;
+            if (good && ((theirs & CreatureFlags.IsEvil) == CreatureFlags.IsEvil)) return true;
+            if (evil && ((theirs & CreatureFlags.IsGood) == CreatureFlags.IsGood)) return true;
         }
 
         return false;

@@ -271,7 +271,7 @@ public static class FightRules
             case FightTargetKind.Object:
                 if (world.ObjectById(me.SwingTargetId) is not { } thing) return false;
                 WeaponImpactRules.OnObject(context, SystemName, me, mine, thing.ObjectTypeId);   // 0x004991C0
-                bool damageable = context.Database.ObjectById(thing.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.Damageable);
+                bool damageable = context.Database.ObjectById(thing.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.Damageable) == ObjectFlags.Damageable);
                 // Only a Book Case reaches here, and it is not Damageable; a Damageable one would take
                 // the blow on its health, which no shipped object the pick allows needs.
                 context.Emit(SystemName, damageable ? "object_struck_unbuilt" : "object_refuses_blow",

@@ -28,7 +28,7 @@ public static class PaydayRules
     /// reads "armed" as a non-zero deadline where DK2 keeps <c>player+0x76</c> bit <c>0x200</c>.</summary>
     public static void ArmOnGain(WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker)) return;
+        if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return;
         if (!world.HasPlayer(creature.OwnerPlayerId)) return;
         ref PlayerState player = ref world.Player(creature.OwnerPlayerId);
         if (player.NextPaydayTick.Value != 0) return;

@@ -153,6 +153,9 @@ Three rules govern it:
   generated from the declarations (`python tools/state-copy/generate.py` rewrites
   `StateCopy.g.cs`); a new collection on `WorldState` itself goes in
   `WorldState.CopyFrom`, and `StateCopyTests` names what was left out.
+- **No `Enum.HasFlag` anywhere under `src/`.** It boxes both operands under IL2CPP and
+  Mono; write `(x & f) == f` (ADR-0695). `ArchitectureTests.NothingUnderSrcCallsEnumHasFlag`
+  enforces it.
 - **Nothing in the simulation may read an event back.** `ISimulationEventSink`
   (`SimulationEvents.cs`) is write-only observation; attaching a recorder with
   `ObserveWith` must not change behaviour.

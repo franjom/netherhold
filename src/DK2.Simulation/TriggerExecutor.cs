@@ -987,7 +987,7 @@ public sealed class TriggerExecutor
             if (creature.OwnerPlayerId != playerId || creature.Dk2StateId == CreatureStateMachine.NoState) continue;
             if (wanted != 0 && creature.CreatureTypeId != wanted) continue;
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) continue;
             if (CreatureAngerRules.MoodOf(definition, creature) == mood) count++;
         }
         return count;

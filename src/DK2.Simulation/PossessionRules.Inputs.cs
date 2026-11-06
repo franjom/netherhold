@@ -91,7 +91,7 @@ public static partial class PossessionRules
         {
             CreatureState c = creatures[i];
             if (!CreatureStateMachine.HasState(c) || !CombatRules.IsHostile(world, keeper.Value, c.OwnerPlayerId)) continue;
-            if (!database.CreatureById(c.CreatureTypeId).Flags.HasFlag(CreatureFlags.CanBeHypnotized)) continue;
+            if (!((database.CreatureById(c.CreatureTypeId).Flags & CreatureFlags.CanBeHypnotized) == CreatureFlags.CanBeHypnotized)) continue;
             if (!InAimCone(aim.Yaw.Value, pose, new Vec3(c.PosX, c.PosY, c.PosZ))) continue;
             if (!LineOfSight.Clear(sight, px, py, c.PosX, c.PosY)) continue;
             uint d = TrapRules.DistanceSquared(px, py, c.PosX, c.PosY);
@@ -99,7 +99,7 @@ public static partial class PossessionRules
             nearest = d;
             best = c;
         }
-        if (best is null || database.CreatureById(best.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsImmuneToTurncoat)) return;
+        if (best is null || ((database.CreatureById(best.CreatureTypeId).Flags & CreatureFlags.IsImmuneToTurncoat) == CreatureFlags.IsImmuneToTurncoat)) return;
 
         best.HypnosisOwnerPlayerId = best.OwnerPlayerId;
         world.ChangeCreatureOwner(database, best, new PlayerId(me.OwnerPlayerId));

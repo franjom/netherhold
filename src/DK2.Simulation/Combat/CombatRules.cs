@@ -181,7 +181,7 @@ public static class CombatRules
         && !PrisonRules.IsImprisoned(creature)
         && creature.Activity != CreatureActivity.Leaving
         && !HandRules.IsHeld(creature)
-        && ((CreatureFightFlags)creature.Flags).HasFlag(CreatureFightFlags.Attackable)
+        && ((((CreatureFightFlags)creature.Flags) & CreatureFightFlags.Attackable) == CreatureFightFlags.Attackable)
         && !(CreatureStateMachine.HasState(creature) && CreatureStateTable.Get(creature.Dk2StateId).Has(CreatureStateFlags.NotAttackable))
         && !StatusEffectRules.IsInvisible(creature)
         && !AllSlotsTaken(creature);
@@ -202,14 +202,14 @@ public static class CombatRules
     /// and Horny's non-arrival scratch guard.</summary>
     public static bool MayLookForAFight(WorldState world, GameDatabase database, CreatureState creature, bool force) =>
         !PrisonRules.IsImprisoned(creature)
-        && (!database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny)
+        && (!((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
             || ((force || creature.ReaperCanAcquireFight) && creature.Activity != CreatureActivity.ReaperArriving))
         && (force || CallToArmsRules.WithinFightDistance(world, database, creature))
         && creature.Activity != CreatureActivity.Sleeping
         && (creature.Activity != CreatureActivity.Leaving || force)
         && (creature.Activity is not (CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm) || force)
         && (!HandRules.IsHeld(creature) || force)
-        && (((CreatureFightFlags)creature.Flags).HasFlag(CreatureFightFlags.MayLookForAFight) || force)
+        && (((((CreatureFightFlags)creature.Flags) & CreatureFightFlags.MayLookForAFight) == CreatureFightFlags.MayLookForAFight) || force)
         && !CreatureDeathRules.IsPossessed(world, creature)
         && !NoFightLookup(creature)
         && !StatusEffectRules.IsFrozen(creature)
@@ -253,9 +253,9 @@ public static class CombatRules
     public static int Discounted(int distanceSquared) => (7 * distanceSquared) >> 3;
 
     public static bool OppositeAlignment(CreatureDef me, CreatureDef candidate) =>
-        me.Flags.HasFlag(CreatureFlags.IsGood)
-            ? candidate.Flags.HasFlag(CreatureFlags.IsEvil)
-            : candidate.Flags.HasFlag(CreatureFlags.IsGood);
+        ((me.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood)
+            ? ((candidate.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil)
+            : ((candidate.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood);
 
     /// <summary><c>0x004BF390</c>: another player's creature is an enemy unless allied.</summary>
     public static bool IsHostile(WorldState world, byte mySide, byte theirSide) => !world.AreAllied(mySide, theirSide);

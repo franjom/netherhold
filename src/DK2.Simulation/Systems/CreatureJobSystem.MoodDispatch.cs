@@ -26,7 +26,7 @@ public sealed partial class CreatureJobSystem
             creature.StateDeadlineTick = context.Tick.Value + NothingToDoTicks;
             destination = NeutralIdleState;
         }
-        else destination = definition.Flags.HasFlag(CreatureFlags.IsHorny) ? HornyIdleState : IdleChooserState;
+        else destination = ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) ? HornyIdleState : IdleChooserState;
         // One handler per turn. The special-role controllers remain explicitly unbuilt.
         CreatureStateMachine.TrySetState(context.Hooks, creature, destination, context.Tick.Value);
     }
@@ -37,7 +37,7 @@ public sealed partial class CreatureJobSystem
         CreatureMood mood = CreatureAngerRules.MoodOf(definition, creature);
         // The dispatcher's owner test: the hero and neutral players' creatures run no choosers (ADR-0485).
         bool eligible = NeedRules.RunsNeeds(creature)
-            && !definition.Flags.HasFlag(CreatureFlags.IsHorny)
+            && !((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
             && !creature.RebelActive
             && !CallToArmsRules.IsUnderCallToArms(context.World, creature);
         // Raw idle and the caller's role/need/combat guards cover the modeled dispatcher gates.

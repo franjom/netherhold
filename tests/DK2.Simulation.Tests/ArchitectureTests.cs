@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -110,6 +110,22 @@ public class ArchitectureTests
         // And the guard is not vacuous: the four files it exempts do contain a write, so
         // a pattern that stopped matching would fail here rather than pass everything.
         Assert.Equal(4, files.Count(f => Regex.IsMatch(File.ReadAllText(f), write)));
+    }
+
+    [Fact]
+    public void NothingUnderSrcCallsEnumHasFlag()
+    {
+        // Enum.HasFlag boxes both operands under IL2CPP and Mono: a tick and a frame full of flag
+        // tests allocated about 20 KB a frame through it (ADR-0695). The bitwise test reads the same.
+        string root = RepositoryRoot();
+        string[] offenders = Directory
+            .GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
+                     && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
+                     && Regex.IsMatch(File.ReadAllText(f), @"\.HasFlag\("))
+            .Select(f => Path.GetRelativePath(root, f))
+            .ToArray();
+        Assert.Empty(offenders);
     }
 
     /// <summary>Static fields allowed to hold shared mutable state, with the reason each is safe.</summary>

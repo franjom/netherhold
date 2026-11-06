@@ -268,7 +268,9 @@ batch (`WorldState.CopyFrom`, ADR-0693) and the runner takes over at the top of 
 the draw clock reaches the batch (ADR-0694), so a tick longer than a frame stalls nothing. The
 draw clock lags the tick clock by a frame plus the tick's wall time (`WorkerDrawLag`, ADR-0687),
 20–30 ms at 150 FPS. A new frame-side reader of the world takes `World`, never `_simulation.World`;
-code that runs on the tick thread (`RunTicks`) takes the simulation's. The probe below turns the
+code that runs on the tick thread (`RunTicks`) takes the simulation's and touches nothing of the
+view: the simulation's events reach the sinks through `DeferredEventSink` at the hand-over
+(ADR-0695). The probe below turns the
 worker off by default so its recorders see the tick's own cost on the main thread.
 
 Open **Window → Analysis → Profiler**, restart Play mode, and record the CPU

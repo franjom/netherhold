@@ -39,7 +39,7 @@ public static class ChickenRules
     public static void Strike(SimulationContext context, ShotState shot, CreatureState target, CreatureDef targetDef)
     {
         if (target.Activity == CreatureActivity.Dead) return;
-        if (targetDef.Flags.HasFlag(CreatureFlags.IsImmuneToChicken))
+        if (((targetDef.Flags & CreatureFlags.IsImmuneToChicken) == CreatureFlags.IsImmuneToChicken))
         {
             context.Emit(SystemName, "chicken_immune", $"shot={shot.Id} target={target.Id}");
             return;

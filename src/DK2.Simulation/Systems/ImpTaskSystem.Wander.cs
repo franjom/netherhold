@@ -147,7 +147,7 @@ public sealed partial class ImpTaskSystem
         x = (x & ~0xFFF) | ox;
         y = (y & ~0xFFF) | oy;
         if (!context.Navigation.TryRouteToStance(creature, x, y, Navigation.MoveOptions.Loose)) return false;
-        int resume = definition.Flags.HasFlag(CreatureFlags.IsHorny) ? 238 : CreatureStateMachine.Idle;
+        int resume = ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) ? 238 : CreatureStateMachine.Idle;
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;
     }
@@ -251,7 +251,7 @@ public sealed partial class ImpTaskSystem
         foreach (ObjectState o in world.Objects)
             if (o.TileIndex == tileIndex
                 && database.Objects.TryGetValue(o.ObjectTypeId, out ObjectDef? def)
-                && def.Flags.HasFlag(ObjectFlags.Obstacle))
+                && ((def.Flags & ObjectFlags.Obstacle) == ObjectFlags.Obstacle))
                 return true;
         return false;
     }

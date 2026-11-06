@@ -169,3 +169,10 @@ The gate held: the draw clock's steady share over the limit 0.17 % (limit 1.5 %)
 frames are now, uncapped: terrain chunk rebuilds inside Present (10–20 ms frames with 3–6 ms of
 rebuild, four in the fly-by's first five seconds) and one 30 ms lights frame at 5.7 s. Those are
 the next targets; the tick is no longer one of them above 60 FPS.
+
+Follow-up the same day (ADR-0695): the chunk rebuild keeps its mesh (upload 1.24 → 0.42 ms, allocation
+815 → 428 KB), the frame allocates 20 KB instead of 48 (`Enum.HasFlag` gone from `src/`, wall sides and
+light tiles cached), and two races the presented world exposed are closed: the object-position capture
+and the event sinks moved off the tick thread. The collection that lands badly (26–31 ms once a run)
+remains; it needs the tick thread's garbage counted next. The 60 FPS cap needs nothing: 1737 of 2043
+frames sit within 0.2 ms of 16.67 and only 33 exceed 17 ms, the limiter's own precision.

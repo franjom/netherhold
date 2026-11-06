@@ -365,7 +365,7 @@ public sealed class KeeperAttackPlanner
         {
             head ??= creature;
             CreatureFlags flags = _view.Database.CreatureById(creature.CreatureTypeId).Flags;
-            if (!flags.HasFlag(CreatureFlags.CanWalkOnWater) || !flags.HasFlag(CreatureFlags.CanWalkOnLava)) return creature;
+            if (!((flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater) || !((flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava)) return creature;
         }
         return head;
     }
@@ -483,5 +483,5 @@ public sealed class KeeperAttackPlanner
             .OrderBy(c => c.OwnershipRank);
 
     private bool IsWorker(KeeperCreatureView creature) =>
-        _view.Database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
+        ((_view.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
 }

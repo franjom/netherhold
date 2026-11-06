@@ -63,8 +63,8 @@ public static class ChickenMovementRules
     private static void Decay(SimulationContext context, ObjectState chicken)
     {
         ObjectDef definition = context.Database.ObjectById(chicken.ObjectTypeId)!;
-        bool decays = definition.Flags.HasFlag(ObjectFlags.DieOverTime)
-            || (definition.Flags.HasFlag(ObjectFlags.DieOverTimeIfNotInRoom) && chicken.HatcheryRoomAnchorTileIndex < 0);
+        bool decays = ((definition.Flags & ObjectFlags.DieOverTime) == ObjectFlags.DieOverTime)
+            || (((definition.Flags & ObjectFlags.DieOverTimeIfNotInRoom) == ObjectFlags.DieOverTimeIfNotInRoom) && chicken.HatcheryRoomAnchorTileIndex < 0);
         if (decays && chicken.Health > 0) chicken.Health--;
         if (chicken.Health > 0) return;
         if (definition.DeathEffectId != 0)
@@ -280,7 +280,7 @@ public static class ChickenMovementRules
     private static bool HasStorePile(GameDatabase database, in TileState tile) =>
         tile.GoldHeld > 0
         && database.RoomByTerrain(tile.TerrainId)?.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart
-        && database.ObjectById(FloorGold.TreasuryPileObjectId)?.Flags.HasFlag(ObjectFlags.Obstacle) == true;
+        && ((database.ObjectById(FloorGold.TreasuryPileObjectId)?.Flags & ObjectFlags.Obstacle) == ObjectFlags.Obstacle) == true;
 
     private static bool HasDoorOrTrap(WorldState world, TilePos tile)
     {
@@ -327,7 +327,7 @@ public static class ChickenMovementRules
         if (chicken.ChickenReactionTicks != 0)
         {
             if (chicken.ChickenScared && chicken.ProcessAgeTicks == 1
-                && context.Database.ObjectById(chicken.ObjectTypeId)!.Flags.HasFlag(ObjectFlags.TypeFood))
+                && ((context.Database.ObjectById(chicken.ObjectTypeId)!.Flags & ObjectFlags.TypeFood) == ObjectFlags.TypeFood))
             {
                 chicken.ChickenReactionTicks = 32;
                 return;
@@ -366,7 +366,7 @@ public static class ChickenMovementRules
             if (first is null) continue;
             CreatureDef definition = context.Database.CreatureById(first.CreatureTypeId);
             // Full ground-height physics is absent; supported flight and vertical position gate this scan.
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker) || WaterSpeedRules.IsFlying(definition, first)
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || WaterSpeedRules.IsFlying(definition, first)
                 || first.PosZ > Fp32.One) continue;
             int heading = Bearing.Of(chicken.PosX - first.PosX, chicken.PosY - first.PosY);
             var target = new ObjectMovePoint(new Fp32(chicken.PosX + (unchecked(TrapRules.Sine(heading) << 11) >> 16)),

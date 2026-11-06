@@ -45,7 +45,7 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
                 {
                     context.Emit(SystemName, "recovered", $"creature={creature.Id}");
                     // 257's room-drop tail has no worker exclusion (0x00481351).
-                    if (definition.Flags.HasFlag(CreatureFlags.IsWorker)
+                    if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
                         && !DropLandingRules.OnAHeart(world, database, creature)
                         && !LeavingRules.IsDropCentre(world, database, creature.Tile, creature.OwnerPlayerId))
                         Combat.CombatStates.Idle(context.Hooks, creature);
@@ -86,7 +86,7 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
         // 67, 77 and 120, the slap's reaction (0x0046F1F0, ADR-0401), for every creature.
         if (creature.Activity == CreatureActivity.Slapped) SlapRules.React(context, SystemName, creature, definition);
 
-        if (definition.Flags.HasFlag(CreatureFlags.IsHorny)) return;
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return;
 
         if (creature.ArmourTicks > 0) creature.ArmourTicks--;
         if (creature.InvulnerableTicks > 0) creature.InvulnerableTicks--;

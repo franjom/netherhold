@@ -45,7 +45,7 @@ public static class HatcheryRules
         // whose definition is Buildable (+0x43D bit 0x80, 0x0050BC7A): a Hatchery places its coops (ADR-0672).
         foreach (PlayerId player in world.ActivePlayerOrder)
             foreach (RoomInstance room in RoomLists.Of(world, database, player))
-                if (room.Definition.TypeId == RoomTypeId.Hatchery && room.Definition.Flags.HasFlag(RoomFlags.Buildable))
+                if (room.Definition.TypeId == RoomTypeId.Hatchery && ((room.Definition.Flags & RoomFlags.Buildable) == RoomFlags.Buildable))
                     RebuildCoops(world, database, room, rng);
     }
 
@@ -387,7 +387,7 @@ public static class HatcheryRules
                 && !o.InHand && o.CarriedByCreatureId < 0);
             // Room pillars are presentation decorations here; use their shared geometry too.
             bool hasOtherPillar = world.Objects.Any(o => o.TileIndex == index && !o.InHand && o.CarriedByCreatureId < 0
-                && database.ObjectById(o.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.Pillar));
+                && database.ObjectById(o.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.Pillar) == ObjectFlags.Pillar));
             if (!hasPillar && (hasOtherPillar || !AutoFurnitureRules.RoomPillarCorners(world, hatchery,
                 new TilePos(index % world.Width, index / world.Width)).Any())) candidates.Add(index);
         }

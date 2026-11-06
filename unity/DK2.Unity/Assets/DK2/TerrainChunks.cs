@@ -51,6 +51,11 @@ namespace DK2.Unity
         // Each chunk's mesh, held apart from its object so a teardown frees it even when the object
         // went first with its parent.
         private readonly Dictionary<int, Mesh> _chunkMeshes = new Dictionary<int, Mesh>();
+        private readonly Dictionary<int, Material[]> _chunkMaterials = new Dictionary<int, Material[]>();
+        private readonly List<Vector4> _staticLightInputs = new List<Vector4>();
+        // Bounds are recalculated once at the end; nothing here changes an index out of range.
+        private const MeshUpdateFlags UploadFlags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices
+            | MeshUpdateFlags.DontNotifyMeshUsers;
         private readonly System.Diagnostics.Stopwatch _flushClock = new System.Diagnostics.Stopwatch();
 
         /// <summary>How long one <see cref="Flush"/> may spend rebuilding chunks before it leaves the
@@ -197,6 +202,7 @@ namespace DK2.Unity
             if (_chunkMeshes.TryGetValue(chunk, out Mesh mesh) && mesh != null) Object.Destroy(mesh);
             _chunks.Remove(chunk);
             _chunkMeshes.Remove(chunk);
+            _chunkMaterials.Remove(chunk);
         }
 
         private int ChunkOf(int tileIndex) =>
@@ -239,19 +245,24 @@ namespace DK2.Unity
             }
 
             using ProfilerMarker.AutoScope upload = UploadMarker.Auto();
-            var mesh = new Mesh
+            // The chunk keeps its object, its mesh and its material array: a rebuild refills them in
+            // place, so a tick's rebuild leaves nothing for the collector (ADR-0695).
+            if (!_chunkMeshes.TryGetValue(chunk, out Mesh mesh) || mesh == null)
             {
-                name = $"terrain chunk {chunk}",
-                indexFormat = _positions.Count > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16,
-            };
-            mesh.SetVertices(_positions);
-            mesh.SetNormals(_normals);
-            mesh.SetUVs(0, _uvs);
-            mesh.SetUVs(1, _lightAnchors);
+                mesh = new Mesh { name = $"terrain chunk {chunk}" };
+                mesh.MarkDynamic();
+                _chunkMeshes[chunk] = mesh;
+            }
+            mesh.Clear(keepVertexLayout: true);
+            mesh.indexFormat = _positions.Count > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16;
+            mesh.SetVertices(_positions, 0, _positions.Count, UploadFlags);
+            mesh.SetNormals(_normals, 0, _normals.Count, UploadFlags);
+            mesh.SetUVs(0, _uvs, 0, _uvs.Count, UploadFlags);
+            mesh.SetUVs(1, _lightAnchors, 0, _lightAnchors.Count, UploadFlags);
             // Missing vertex channels can arrive as ones and select the animated lighting arm.
-            var staticLightInputs = new Vector4[_positions.Count];
-            mesh.SetUVs(2, staticLightInputs);
-            mesh.SetUVs(3, staticLightInputs);
+            while (_staticLightInputs.Count < _positions.Count) _staticLightInputs.Add(default);
+            mesh.SetUVs(2, _staticLightInputs, 0, _positions.Count, UploadFlags);
+            mesh.SetUVs(3, _staticLightInputs, 0, _positions.Count, UploadFlags);
             _opaque.Clear();
             foreach (KeyValuePair<Material, List<int>> entry in _byMaterial)
                 if (entry.Value.Count > 0 && entry.Key.renderQueue < (int)RenderQueue.Transparent) _opaque.Add(entry.Key);
@@ -260,19 +271,27 @@ namespace DK2.Unity
                 mesh.SetTriangles(_byMaterial[_opaque[i]], i, calculateBounds: false);
             mesh.RecalculateBounds();
 
-            // The chunk keeps its object; its previous mesh is destroyed rather than left to leak.
             if (go == null)
             {
                 go = new GameObject(mesh.name);
                 go.transform.SetParent(_root, worldPositionStays: false);
-                go.AddComponent<MeshFilter>();
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 go.AddComponent<MeshRenderer>();
                 _chunks[chunk] = go;
             }
-            if (_chunkMeshes.TryGetValue(chunk, out Mesh previous) && previous != null) Object.Destroy(previous);
-            _chunkMeshes[chunk] = mesh;
-            go.GetComponent<MeshFilter>().sharedMesh = mesh;
-            go.GetComponent<MeshRenderer>().sharedMaterials = _opaque.ToArray();
+            if (!_chunkMaterials.TryGetValue(chunk, out Material[] materials) || !SameMaterials(materials))
+            {
+                _chunkMaterials[chunk] = materials = _opaque.ToArray();
+                go.GetComponent<MeshRenderer>().sharedMaterials = materials;
+            }
+        }
+
+        private bool SameMaterials(Material[] materials)
+        {
+            if (materials.Length != _opaque.Count) return false;
+            for (int i = 0; i < materials.Length; i++)
+                if (!ReferenceEquals(materials[i], _opaque[i])) return false;
+            return true;
         }
 
         /// <summary>One tile's pieces, built as the chunk used to build them in place.</summary>

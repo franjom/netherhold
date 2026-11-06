@@ -121,7 +121,7 @@ public sealed class SpecialSystem : ISimulationSystem
         // The world's type list, taken in id order (its iterators are unread); with no worker the
         // type stays id 1, the default stored before the walk (0x004A4992).
         CreatureDef worker = database.Creatures.Values.OrderBy(c => c.CreatureId)
-            .FirstOrDefault(c => c.Flags.HasFlag(CreatureFlags.IsWorker)) ?? database.CreatureById(1);
+            .FirstOrDefault(c => ((c.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) ?? database.CreatureById(1);
 
         int centreX = ((heart % world.Width) * 0x1000) + 0x800;
         int centreY = ((heart / world.Width) * 0x1000) + 0x800;

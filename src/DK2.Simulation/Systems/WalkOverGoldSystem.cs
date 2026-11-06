@@ -52,7 +52,7 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
     /// <summary>The worker arm's three tests (<c>0x0048904E</c>): not possessed, a worker
     /// definition, owned by a keeper. Everyone else is this arm's.</summary>
     public static bool IsWorkerArm(WorldState world, CreatureDef definition, CreatureState creature) =>
-        definition.Flags.HasFlag(CreatureFlags.IsWorker)
+        ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
         && PlayerIds.IsKeeper(creature.OwnerPlayerId)
         && !CreatureDeathRules.IsPossessed(world, creature);
 

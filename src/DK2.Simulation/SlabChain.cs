@@ -87,7 +87,7 @@ public static class SlabChain
             if (nx < 0 || ny < 0 || nx >= world.Width || ny >= world.Height) continue;
             int n = (ny * world.Width) + nx;
             if (database.RoomByTerrain(world.TileAtIndex(n).TerrainId) is not { } definition
-                || !definition.Flags.HasFlag(RoomFlags.SpecialWalls)
+                || !((definition.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls)
                 || definition.TypeId is not (RoomTypeId.Library or RoomTypeId.TrainingRoom or RoomTypeId.Workshop
                     or RoomTypeId.TortureChamber or RoomTypeId.Casino)
                 || RoomIndex.RoomAt(world, database, n) is not { } room)

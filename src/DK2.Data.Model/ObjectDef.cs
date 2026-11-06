@@ -152,16 +152,16 @@ public sealed record ObjectDef
     public required ushort TooltipStringId { get; init; }
 
     /// <summary>One of the twelve beds — eleven evil plus the Hero Creature Bed.</summary>
-    public bool IsLair => Flags.HasFlag(ObjectFlags.TypeLair);
+    public bool IsLair => ((Flags & ObjectFlags.TypeLair) == ObjectFlags.TypeLair);
 
     /// <summary>Food: see <see cref="ObjectFlags.TypeFood"/> for what falls in the set.</summary>
-    public bool IsFood => Flags.HasFlag(ObjectFlags.TypeFood);
+    public bool IsFood => ((Flags & ObjectFlags.TypeFood) == ObjectFlags.TypeFood);
 
-    public bool IsGold => Flags.HasFlag(ObjectFlags.TypeGold);
+    public bool IsGold => ((Flags & ObjectFlags.TypeGold) == ObjectFlags.TypeGold);
 
-    public bool IsSpellBook => Flags.HasFlag(ObjectFlags.TypeSpellBook);
+    public bool IsSpellBook => ((Flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook);
 
-    public bool IsSpecial => Flags.HasFlag(ObjectFlags.TypeSpecial);
+    public bool IsSpecial => ((Flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial);
 
     /// <summary>Whether the Hand of Evil may lift this — <b>26 of the 145 records</b>: the three
     /// golds, the Chicken, Call To Arms, all fifteen specials, and six odds and ends (the Casino
@@ -171,10 +171,10 @@ public sealed record ObjectDef
     /// <para><b>The flag has exactly one reader in the whole binary</b>, the cursor's target
     /// search, which also lets the <b>Dungeon Heart</b> through by id regardless of the flag — a
     /// targeting special case rather than a lifting one, so it is not reproduced here.</para></summary>
-    public bool CanBePickedUp => Flags.HasFlag(ObjectFlags.CanBePickedUp);
+    public bool CanBePickedUp => ((Flags & ObjectFlags.CanBePickedUp) == ObjectFlags.CanBePickedUp);
 
     /// <summary>Decays on its own, with or without a room to keep it.</summary>
     public bool Decays =>
-        Flags.HasFlag(ObjectFlags.DieOverTime)
-        || Flags.HasFlag(ObjectFlags.DieOverTimeIfNotInRoom);
+        ((Flags & ObjectFlags.DieOverTime) == ObjectFlags.DieOverTime)
+        || ((Flags & ObjectFlags.DieOverTimeIfNotInRoom) == ObjectFlags.DieOverTimeIfNotInRoom);
 }

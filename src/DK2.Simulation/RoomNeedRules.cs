@@ -328,7 +328,7 @@ public static class RoomNeedRules
         PlayerId player = creature.OwnerPlayerId;
         var libraries = RoomIndex.Build(world, database)
             .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == RoomTypeId.Library && r.TileIndices.Count > 0).ToList();
-        CreatureFlags against = definition.Flags.HasFlag(CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
+        CreatureFlags against = ((definition.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
 
         bool storage = false, full = false, unequipped = false;
         RoomInstance? last = null, nearest = null, friendly = null;
@@ -366,7 +366,7 @@ public static class RoomNeedRules
     private static bool HoldsOneItObjectsTo(WorldState world, GameDatabase database, RoomInstance room, CreatureFlags against)
     {
         foreach (CreatureState c in world.Creatures)
-            if (c.HeldPlace.In(room) && database.CreatureById(c.CreatureTypeId).Flags.HasFlag(against)) return true;
+            if (c.HeldPlace.In(room) && ((database.CreatureById(c.CreatureTypeId).Flags & against) == against)) return true;
         return false;
     }
 

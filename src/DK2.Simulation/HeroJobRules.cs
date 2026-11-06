@@ -323,8 +323,8 @@ public static class HeroJobRules
         if ((point.Flags & 0x40) != 0 && terrain.IsSolid) return false;
         if (terrain.IsRoom && tile.OwnerPlayerId == creature.OwnerPlayerId) return false;
         if (terrain.IsImpenetrable && tile.OwnerPlayerId == creature.OwnerPlayerId) return false;
-        if (terrain.IsWater && definition.Flags.HasFlag(CreatureFlags.CanWalkOnWater)) return true;
-        if (terrain.IsLava && definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava)) return true;
+        if (terrain.IsWater && ((definition.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater)) return true;
+        if (terrain.IsLava && ((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava)) return true;
         return !terrain.IsImpenetrable;
     }
 

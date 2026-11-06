@@ -119,7 +119,7 @@ public static class DefeatRules
             if (CreatureDeathRules.IsDown(state) || HandRules.IsHeld(state) || PrisonRules.IsImprisoned(state)) continue;
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
-            if (creature.Flags.HasFlag(CreatureFlags.IsWorker))
+            if (((creature.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
             {
                 // 0x004DB67A passes the defeated player's KilledByPlayerId (+0x132) as the source.
                 CreatureHealthRules.Apply(database, creature, state, -state.Health, world.Player(playerId).KilledByPlayerId);

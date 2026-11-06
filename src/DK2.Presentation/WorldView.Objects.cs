@@ -55,15 +55,16 @@ public sealed partial class WorldView
 
     private readonly List<RoomInstance> _rooms = [];
     private readonly Dictionary<int, AssetRef> _objectArt = [];
-    // Two buffers: the tick thread captures into one while the frame reads the other (ADR-0694).
+    // Two buffers: a capture is taken into one while the frame still reads the other (ADR-0694).
     private Dictionary<int, (int X, int Y, int Heading, int Z, int Pitch, int Roll)> _objectPositions = [];
     private Dictionary<int, (int X, int Y, int Heading, int Z, int Pitch, int Roll)> _capturedPositions = [];
     private WorldState? _objectPositionsWorld;
     private GameTick _objectPositionsTick, _capturedPositionsTick;
 
     /// <summary>Capture before each simulation tick so a batched Unity frame interpolates only its
-    /// last tick. Reads the world and the art tables only; <see cref="PresentObjectPositions"/> hands
-    /// the capture to the frame.</summary>
+    /// last tick; on the presented-world path, from the presented world just before a batch replaces
+    /// it (ADR-0694). Main thread only: it reads the view's per-world caches.
+    /// <see cref="PresentObjectPositions"/> hands the capture to the frame.</summary>
     public void CaptureObjectPositions(WorldState world)
     {
         _capturedPositionsTick = world.CurrentTick;
@@ -221,7 +222,7 @@ public sealed partial class WorldView
 
         // A wall-pass object faces into the room, moved toward its wall (0x004EE9CE).
         int side = room is not null && thing.AutoPlaced && AutoFurnitureRules.IsWallFurniture(room.Definition, thing)
-            ? AutoFurnitureRules.WallSide(world, _database, room, tileIndex)
+            ? WallSideOf(world, room, tileIndex)
             : -1;
         if (side >= 0)
         {
@@ -391,6 +392,25 @@ public sealed partial class WorldView
 
     /// <summary>A stand-in for a simulation-stream draw ours does not keep: a value below
     /// <paramref name="range"/> mixed from an id.</summary>
+    // A room's wall slots once a tick, not a slot walk (and its lists) per wall object per frame.
+    private readonly Dictionary<int, int> _wallSides = [];
+    private WorldState? _wallSidesWorld;
+    private GameTick _wallSidesTick;
+
+    private int WallSideOf(WorldState world, RoomInstance room, int tileIndex)
+    {
+        if (!ReferenceEquals(_wallSidesWorld, world) || _wallSidesTick != world.CurrentTick)
+        {
+            _wallSides.Clear();
+            _wallSidesWorld = world;
+            _wallSidesTick = world.CurrentTick;
+        }
+        if (_wallSides.TryGetValue(tileIndex, out int side)) return side;
+        foreach (int tile in room.TileIndices) _wallSides[tile] = -1;
+        foreach ((int tile, int wallSide) in AutoFurnitureRules.WallSlotsInChainOrder(world, _database, room)) _wallSides[tile] = wallSide;
+        return _wallSides.TryGetValue(tileIndex, out side) ? side : -1;
+    }
+
     private static int Spread(int id, int range) => (int)((unchecked((uint)id * 0x9E3779B1u) >> 8) % (uint)range);
 
     private void Decorate(WorldState world, RoomInstance room, in RoomFacts facts, List<ObjectView> into)
@@ -641,18 +661,14 @@ public sealed partial class WorldView
             return mesh;
         }
         int key = (objectTypeId << 4) | slot;
-        // The capture on the tick thread and the frame both come here (ADR-0694).
-        lock (_objectArt)
+        if (!_objectArt.TryGetValue(key, out AssetRef art))
         {
-            if (!_objectArt.TryGetValue(key, out AssetRef art))
-            {
-                art = _database.ObjectById(objectTypeId) is { } definition
-                    ? AssetCatalogue.ObjectArt(definition.Name, slot)
-                    : default;
-                _objectArt[key] = art;
-            }
-            return art;
+            art = _database.ObjectById(objectTypeId) is { } definition
+                ? AssetCatalogue.ObjectArt(definition.Name, slot)
+                : default;
+            _objectArt[key] = art;
         }
+        return art;
     }
 
     /// <summary>The creature body's base plane, before relative falling height; not the Portal hole.</summary>

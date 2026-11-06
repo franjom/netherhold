@@ -34,7 +34,7 @@ public sealed class DoorSystem : ISimulationSystem
             if (door.LockPickTicks > 0) door.LockPickTicks--;
             if (door.UnderConstruction) continue;
             if (context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)
-                && definition.Flags.HasFlag(DoorFlags.Barricade)) continue;
+                && ((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) continue;
 
             bool was = door.Open;
             door.Open = door.LockPickTicks > 0
@@ -99,7 +99,7 @@ public sealed class DoorSystem : ISimulationSystem
         if (creature.OwnerPlayerId == PlayerIds.Neutral) return false;
         if (CreatureDeathRules.IsDown(creature)) return false;
 
-        bool worker = context.Database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
+        bool worker = ((context.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
         return door.LockMode switch
         {
             0 => true,

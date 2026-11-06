@@ -49,7 +49,7 @@ public sealed class ClassicCreatureQuery
         _tokens[35]=PaydayRules.Wage(_database,definition,creature.Level).ToString(CultureInfo.InvariantCulture);
         _tokens[36]=creature.GoldHeld.ToString(CultureInfo.InvariantCulture);
         uint template=creature.OwnerPlayerId==PlayerIds.Good?0x96Cu:creature.OwnerPlayerId==PlayerIds.Neutral?0x96Fu
-            :creature.OwnerPlayerId!=_viewer?0:definition.Flags.HasFlag(CreatureFlags.IsHorny)?0xAE9u:0x969u;
+            :creature.OwnerPlayerId!=_viewer?0:((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)?0xAE9u:0x969u;
         string text=template==0?"":WorldHoverText.Substitute(_resolve(template),_tokens);
         return _snapshot=new(target,text,position);
     }

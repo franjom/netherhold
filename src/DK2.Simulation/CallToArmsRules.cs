@@ -177,7 +177,7 @@ public static class CallToArmsRules
         foreach (CreatureState creature in world.OwnedCreatures(playerId).ToArray())
         {
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker) || creature.HeedingCallToArms)
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || creature.HeedingCallToArms)
             {
                 continue;
             }
@@ -248,7 +248,7 @@ public static class CallToArmsRules
         player.CallToArms = call;
         foreach (CreatureState creature in world.OwnedCreatures(playerId).ToArray())
         {
-            if (context.Database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker))
+            if (((context.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
             {
                 continue;
             }

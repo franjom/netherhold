@@ -77,7 +77,7 @@ public sealed class CreatureExperienceSystem : ICreatureUpdateStep
         WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
     {
         if (state.Dk2StateId is not (Combat.CombatStates.Engaging or 200)) return 0;
-        if (creature.Flags.HasFlag(CreatureFlags.IsWorker) && !creature.Flags.HasFlag(CreatureFlags.IsGood)) return 0;
+        if (((creature.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && !((creature.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood)) return 0;
         if (state.FightTargetKind != Combat.FightTargetKind.Creature) return 0;
         CreatureState? target = world.CreatureById(state.FightTargetId);
         if (target is null || target.Dk2StateId == CreatureStateMachine.NoState) return 0;

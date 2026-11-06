@@ -73,14 +73,26 @@ public static class ClassicLightVisibility
 
     public static TilePos[] EnumerateTiles(ReadOnlySpan<TilePos> polygon)
     {
-        if (polygon.Length == 0) return Array.Empty<TilePos>();
+        TilePos[] buffer = Array.Empty<TilePos>();
+        int count = EnumerateTiles(polygon, ref buffer);
+        if (count == buffer.Length) return buffer;
+        var tiles = new TilePos[count];
+        Array.Copy(buffer, tiles, count);
+        return tiles;
+    }
+
+    /// <summary>The tiles into a buffer the caller keeps across frames, grown when too small;
+    /// returns how many were written. A camera that moves every frame then allocates nothing.</summary>
+    public static int EnumerateTiles(ReadOnlySpan<TilePos> polygon, ref TilePos[] buffer)
+    {
+        if (polygon.Length == 0) return 0;
         int minimum = 0, maximumY = polygon[0].Y;
         for (int i = 1; i < polygon.Length; i++)
         {
             if (polygon[i].Y < polygon[minimum].Y) minimum = i;
             maximumY = Math.Max(maximumY, polygon[i].Y);
         }
-        var tiles = new List<TilePos>();
+        int count = 0;
         int left = minimum, right = minimum;
         int leftX = 0, rightX = 0, leftStep = 0, rightStep = 0;
         for (int y = polygon[minimum].Y; y < maximumY; y++)
@@ -89,11 +101,13 @@ public static class ClassicLightVisibility
             AdvanceEdge(polygon, y, 1, ref right, ref rightX, ref rightStep);
             int first = Math.Min(leftX >> 16, rightX >> 16);
             int last = Math.Max(leftX >> 16, rightX >> 16);
-            for (int x = first; x <= last; x++) tiles.Add(new TilePos(x, y));
+            if (count + (last - first + 1) > buffer.Length)
+                Array.Resize(ref buffer, Math.Max(buffer.Length * 2, count + (last - first + 1) + 256));
+            for (int x = first; x <= last; x++) buffer[count++] = new TilePos(x, y);
             leftX = unchecked(leftX + leftStep);
             rightX = unchecked(rightX + rightStep);
         }
-        return tiles.ToArray();
+        return count;
     }
 
     private static void AdvanceEdge(ReadOnlySpan<TilePos> polygon, int y, int direction,

@@ -54,9 +54,9 @@ public static class ImpStates
     /// first: 31 a spell book, 33 a Special, 32 a crate (<c>travel-state-call-sites.md</c> §3).
     /// Each stores the object and sets 10, or re-routes through the helper.</summary>
     public static int CarryingStateFor(ObjectFlags flags) =>
-        flags.HasFlag(ObjectFlags.TypeSpellBook) ? 31
-        : flags.HasFlag(ObjectFlags.TypeSpecial) ? 33
-        : flags.HasFlag(ObjectFlags.TypeCrate) ? 32
+        ((flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook) ? 31
+        : ((flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial) ? 33
+        : ((flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate) ? 32
         : throw new ArgumentOutOfRangeException(nameof(flags), flags, "Not a carried object.");
 
     /// <summary>State 40: takes the corpse on its tile and walks it to a Graveyard in 6.</summary>

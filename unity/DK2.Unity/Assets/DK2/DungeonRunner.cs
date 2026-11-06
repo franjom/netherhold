@@ -198,6 +198,7 @@ namespace DK2.Unity
         // one. The worker copies live into the spare after its batch; the frame takes the spare over,
         // in place, once the draw clock reaches the batch, so the frame neither waits nor clamps.
         private WorldState _presented, _spare;
+        private DeferredEventSink _deferredEvents;
         private int _ticksPending;
         private long _tickStartedStamp;
         private bool _tickObserved;
@@ -493,8 +494,11 @@ namespace DK2.Unity
             PrepareWinScreen(database);
             _worldSounds = new WorldSoundDirector(_scriptedView, new PlayerId((byte)viewingPlayerId));
             _handCursorEvents = new HandCursorEventSink(_cursorFeedback, new PlayerId((byte)viewingPlayerId),
-                new VisibilityEventSink(_worldView, world, new PlayerId((byte)viewingPlayerId), _worldSounds));
-            _simulation.ObserveWith(_handCursorEvents);
+                new VisibilityEventSink(_worldView, () => World, new PlayerId((byte)viewingPlayerId), _worldSounds));
+            // On the worker path the sinks write the view, so the tick thread only queues the events
+            // and the frame replays them when it takes the batch over (ADR-0694).
+            _deferredEvents = !frontEnd && tickOnWorkerThread ? new DeferredEventSink(_handCursorEvents) : null;
+            _simulation.ObserveWith((ISimulationEventSink)_deferredEvents ?? _handCursorEvents);
 
             int maximumHeartHealth = database[VariableTypeId.DungeonHeartObjectHealth];
             _heartHealthObserver = change => _scene.QueueHeartHealthChange(change.Owner,
@@ -513,6 +517,7 @@ namespace DK2.Unity
                 _presented = WorldState.CopyOf(_simulation.World);
                 _spare = WorldState.CopyOf(_simulation.World);
                 _worldView.PresentObjectPositions(_presented);
+                _deferredEvents.Replay();
             }
             _constructionEffects?.Model.UpdateNow();
             _startup.Step("tick");
@@ -772,6 +777,7 @@ namespace DK2.Unity
             _runtimeReleased = true;
             WaitForTick();
             _presented = _spare = null;
+            _deferredEvents = null;
             _ticksPending = 0;
             CloseInputJournals("destroyed");
             DisposeHudControls();
@@ -1108,8 +1114,11 @@ namespace DK2.Unity
                 InputFrame input = i == 0 ? firstInput : InputFrame.Empty;
                 using (TickMarker.Auto())
                 {
-                    using (CaptureMarker.Auto())
-                        _worldView.CaptureObjectPositions(_simulation.World);
+                    // On the worker path the capture is the main thread's, from the presented world,
+                    // when the batch is taken over: the view's caches are the frame's alone.
+                    if (_presented == null)
+                        using (CaptureMarker.Auto())
+                            _worldView.CaptureObjectPositions(_simulation.World);
                     long tick = _simulation.World.CurrentTick.Value;
                     JournalTick(tick, input, before: true);
                     try
@@ -1198,9 +1207,12 @@ namespace DK2.Unity
             }
             if (_presented == null) return;
             // The worker's copy of the live world becomes the presented one, in place: every reader
-            // keeps the instances it holds, and the live world is the worker's again.
+            // keeps the instances it holds, and the live world is the worker's again. The object
+            // poses of the world being replaced are what the next frames interpolate from.
+            using (CaptureMarker.Auto()) _worldView.CaptureObjectPositions(_presented);
             using (CopyWorldMarker.Auto()) _presented.CopyFrom(_spare);
             _worldView.PresentObjectPositions(_presented);
+            _deferredEvents.Replay();
             _ticksPending = 0;
             _recordedTickMs += _pendingTickMs;
             _pendingTickMs = 0;

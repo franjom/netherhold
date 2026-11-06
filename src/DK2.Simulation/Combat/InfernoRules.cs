@@ -46,7 +46,7 @@ public static class InfernoRules
             // World slot +0x208: the navigation grid's solid bit at the tile.
             if ((context.Navigation.NavByte(tile.X, tile.Y) & 8) != 0) continue;
             CreatureDef definition = database.CreatureById(target.CreatureTypeId);
-            if (definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava) && !definition.Flags.HasFlag(CreatureFlags.CanFly)) continue;
+            if (((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava) && !((definition.Flags & CreatureFlags.CanFly) == CreatureFlags.CanFly)) continue;
             long dx = Math.Abs((long)target.PosX - shot.PosX), dy = Math.Abs((long)target.PosY - shot.PosY);
             uint distance = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));
             if (distance >= (uint)bound) continue;

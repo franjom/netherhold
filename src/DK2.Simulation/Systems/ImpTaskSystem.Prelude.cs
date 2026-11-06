@@ -23,7 +23,7 @@ public sealed partial class ImpTaskSystem
         {
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (!creature.ReinforcementAction.Active && !ReinforcementActionRules.UsesClock(creature, definition)) return;
-            if (creature.Possessed || HeroJobRules.IsHero(creature) || !definition.Flags.HasFlag(CreatureFlags.IsWorker)
+            if (creature.Possessed || HeroJobRules.IsHero(creature) || !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
                 || context.TremorRecoveryCompletedThisTick.Contains(creature)
                 || CreatureEligibility.IsExcluded(creature,
                     CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return;

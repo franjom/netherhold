@@ -170,7 +170,7 @@ public static class DropLandingRules
     private static void HeartDrop(SimulationContext context, string system, CreatureState creature, CreatureDef definition, RoomInstance heart)
     {
         WorldState world = context.World;
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
         {
             if (!StateShadow.TryMove(context, system, creature, PaydayRules.ArrivingState)) StateShadow.ToIdle(context, system, creature);
             return;

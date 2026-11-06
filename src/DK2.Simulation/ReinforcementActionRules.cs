@@ -88,7 +88,7 @@ public static class ReinforcementActionRules
     internal static void Advance(CreatureState creature, CreatureDef definition)
     {
         if (creature.ActionArtSlot != ArtSlot
-            || (!creature.ReinforcementAction.Active && !definition.Flags.HasFlag(CreatureFlags.IsWorker))) return;
+            || (!creature.ReinforcementAction.Active && !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))) return;
         if (!creature.ReinforcementAction.Active) ActionAnimationClock.Clear(creature);
         else if (!StatusEffectRules.IsFrozen(creature)) ActionAnimationClock.Advance(creature, definition);
     }

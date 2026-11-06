@@ -76,7 +76,7 @@ public static class FinaleRules
     /// Treasury arm draws too, is not mirrored (ADR-0675).</summary>
     public static void HornyAmbience(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
     {
-        if (!definition.Flags.HasFlag(CreatureFlags.IsHorny)) return;
+        if (!((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return;
         WorldState world = context.World;
         if (!world.HasPlayer(creature.OwnerPlayerId) || (world.Player(creature.OwnerPlayerId).Finale.Flags & SequenceStarted) == 0) return;
         if (creature.Dk2StateId == AmbienceQuietState) return;
@@ -523,7 +523,7 @@ public static class FinaleRules
         foreach (CreatureState creature in world.CreatureOwnershipOrder)
         {
             if (creature.OwnerPlayerId != playerId || !CreatureStateMachine.HasState(creature)) continue;
-            if (context.Database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny))
+            if (((context.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
             {
                 reaper ??= creature;
                 continue;

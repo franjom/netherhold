@@ -68,7 +68,7 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // (ADR-0018). DK2 dispatches them before any of this too - an Imp's
         // happy table is Explore at 100%, and nothing here would know what
         // to do with it.
-        if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) return;
+        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return;
 
         if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) return;
         if (creature.CombatPitFighter) return;   // idle sends it back to the pit (ADR-0213)
@@ -173,7 +173,7 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // State 1 (0x004773D0) requests 89 and returns; 89's body runs on a later turn (ADR-0574).
         // A Horny's arm is 238, which is not built, so a Horny not fleeing still chooses below.
         if (creature.Dk2StateId == CreatureStateMachine.Idle
-            && (creature.Fleeing || !definition.Flags.HasFlag(CreatureFlags.IsHorny)))
+            && (creature.Fleeing || !((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)))
         {
             DispatchIdle(context, creature, definition);
             return;

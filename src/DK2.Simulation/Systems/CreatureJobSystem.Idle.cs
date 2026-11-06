@@ -54,7 +54,7 @@ public sealed partial class CreatureJobSystem
     {
         WorldState world = context.World;
         PlayerId owner = creature.OwnerPlayerId;
-        if (!definition.Flags.HasFlag(CreatureFlags.NotTrainWhenIdle) && RoomAvailable(world, owner, RoomTypeId.TrainingRoom)
+        if (!((definition.Flags & CreatureFlags.NotTrainWhenIdle) == CreatureFlags.NotTrainWhenIdle) && RoomAvailable(world, owner, RoomTypeId.TrainingRoom)
             && TryTake(context, creature, definition, JobType.Train, roll: -1, "idle", report: false))
             return true;
         if (RoomAvailable(world, owner, RoomTypeId.CombatPit)

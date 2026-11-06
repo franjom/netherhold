@@ -61,19 +61,19 @@ public static class WorldResync
             throw new InvalidDataException($"the capture's map is {state.Width}x{state.Height}, ours {world.Width}x{world.Height}");
 
         var notes = new List<string>();
-        int tilesChanged = parts.HasFlag(ResyncParts.Tiles) ? ApplyTiles(world, state) : 0;
-        int marksSet = parts.HasFlag(ResyncParts.Marks) ? ApplyMarks(world, state) : 0;
-        int doorsAndTraps = parts.HasFlag(ResyncParts.Doors) ? ApplyDoorsAndTraps(context, state, notes) : 0;
+        int tilesChanged = ((parts & ResyncParts.Tiles) == ResyncParts.Tiles) ? ApplyTiles(world, state) : 0;
+        int marksSet = ((parts & ResyncParts.Marks) == ResyncParts.Marks) ? ApplyMarks(world, state) : 0;
+        int doorsAndTraps = ((parts & ResyncParts.Doors) == ResyncParts.Doors) ? ApplyDoorsAndTraps(context, state, notes) : 0;
         simulation.Navigation.Refresh();
-        int piles = parts.HasFlag(ResyncParts.Gold) ? ReplaceFloorGold(world, database, state) : 0;
-        int crates = parts.HasFlag(ResyncParts.Crates) ? ReplaceCrates(world, database, state) : 0;
+        int piles = ((parts & ResyncParts.Gold) == ResyncParts.Gold) ? ReplaceFloorGold(world, database, state) : 0;
+        int crates = ((parts & ResyncParts.Crates) == ResyncParts.Crates) ? ReplaceCrates(world, database, state) : 0;
 
         int placed = 0, reissued = 0, crateTrips = 0, choosing = 0, idle = 0, left = 0, unmapped = 0;
         var unmappedNotes = new List<string>();
         var otherResumes = new SortedDictionary<int, int>();
         int paired = 0, removed = 0, added = 0;
         List<(ResyncCreature Native, CreatureState? Ours)> pairs = [];
-        if (parts.HasFlag(ResyncParts.Creatures))
+        if (((parts & ResyncParts.Creatures) == ResyncParts.Creatures))
         {
             pairs = Match(world, state, creatureOf, out paired);
             removed = RemoveExtras(context, pairs, notes);
@@ -95,13 +95,13 @@ public static class WorldResync
                 continue;
             }
 
-            if (parts.HasFlag(ResyncParts.Fear))
+            if (((parts & ResyncParts.Fear) == ResyncParts.Fear))
             {
                 CopyFear(ours, native);
                 CopyFightReturn(ours, native);
             }
-            if (parts.HasFlag(ResyncParts.Levels)) RaiseLevel(context, ours, native, notes);
-            if (!parts.HasFlag(ResyncParts.Pose)) continue;
+            if (((parts & ResyncParts.Levels) == ResyncParts.Levels)) RaiseLevel(context, ours, native, notes);
+            if (!((parts & ResyncParts.Pose) == ResyncParts.Pose)) continue;
             if (IsDown(native))
             {
                 // DK2's health counts the dying window down from 240 a tick at a time (the capture,
@@ -116,8 +116,8 @@ public static class WorldResync
                 continue;
             }
 
-            bool worker = parts.HasFlag(ResyncParts.Jobs) && native.Job is not null && PlayerIds.IsKeeper(ours.OwnerPlayerId)
-                && database.CreatureById(ours.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
+            bool worker = ((parts & ResyncParts.Jobs) == ResyncParts.Jobs) && native.Job is not null && PlayerIds.IsKeeper(ours.OwnerPlayerId)
+                && ((database.CreatureById(ours.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
             if (!worker)
             {
                 bool standing = Array.IndexOf(FreeStates, native.State) >= 0 && Array.IndexOf(FreeStates, ours.Dk2StateId) >= 0;
@@ -217,7 +217,7 @@ public static class WorldResync
             choosing++;
         }
 
-        foreach (ResyncPlayer player in parts.HasFlag(ResyncParts.Players) ? state.Players : [])
+        foreach (ResyncPlayer player in ((parts & ResyncParts.Players) == ResyncParts.Players) ? state.Players : [])
         {
             if (!PlayerIds.IsKeeper((byte)player.Id) || !world.HasPlayer((byte)player.Id)) continue;
             ref PlayerState keeper = ref world.Player((byte)player.Id);
@@ -234,10 +234,10 @@ public static class WorldResync
             }
         }
 
-        int triggerValues = parts.HasFlag(ResyncParts.Triggers) ? ApplyTriggerBanks(world.Triggers, state, notes) : 0;
-        int portalClocks = parts.HasFlag(ResyncParts.Portals) ? ApplyPortalClocks(world, database, state, notes) : 0;
+        int triggerValues = ((parts & ResyncParts.Triggers) == ResyncParts.Triggers) ? ApplyTriggerBanks(world.Triggers, state, notes) : 0;
+        int portalClocks = ((parts & ResyncParts.Portals) == ResyncParts.Portals) ? ApplyPortalClocks(world, database, state, notes) : 0;
 
-        if (!parts.HasFlag(ResyncParts.Seed)) notes.Add("DK2 seed not applied: skipped");
+        if (!((parts & ResyncParts.Seed) == ResyncParts.Seed)) notes.Add("DK2 seed not applied: skipped");
         else if (simulation.Rng.Algorithm is Dk2Lcg lcg) lcg.Reseed(state.Seed);
         else notes.Add($"DK2 seed {state.Seed} not applied: the run does not draw from DK2's generator (--rng dk2)");
 
@@ -500,7 +500,7 @@ public static class WorldResync
             if (native.Health > 0 && door.Health != native.Health)
                 notes.Add($"door {door.Id} at ({door.X},{door.Y}): health ours {door.Health}, DK2's {native.Health}");
             door.UnderConstruction = native.Constructing;
-            if (def.Flags.HasFlag(DoorFlags.Secret)) world.Tile(door.X, door.Y).SecretDoor = !native.Constructing;
+            if (((def.Flags & DoorFlags.Secret) == DoorFlags.Secret)) world.Tile(door.X, door.Y).SecretDoor = !native.Constructing;
             if (native.Health > 0) door.Health = native.Health;
             if (native.Constructing) blueprints.Add((native.Slot, door.PlayerId, new BlueprintRef(CrateRules.DoorKind, door.Id)));
         }

@@ -282,7 +282,7 @@ internal sealed class ScenarioWorldBuilder
             // creature owe negative food.
             if (c.Hunger is int hunger) placed.HungerNeed = Math.Max(0, hunger);
 
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) workers++;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) workers++;
         }
 
         SpawnObjects(scenario, world, unsupported);

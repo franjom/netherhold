@@ -16409,7 +16409,9 @@ a stall's catch-up of two); `WaitForTick` still joins, and now hands over too, f
 `Simulation` getter, the level's release, and a batch still running when the next is due, the one
 wait left. The object-position capture the worker takes before each tick goes to a second buffer
 that the hand-over swaps in (`WorldView.PresentObjectPositions`), and the art table both threads
-reach is locked. The draw clock (`WorkerDrawLag`) lags the tick clock by a frame plus the batch's
+reach is locked. *(Superseded the same day by ADR-0695: the capture is the main thread's, from the
+presented world at the hand-over, and the events are deferred to it; the tick thread touches no
+view state.)* The draw clock (`WorkerDrawLag`) lags the tick clock by a frame plus the batch's
 observed wall time (it rises at once, decays slowly), so the clock never reaches poses that are not
 presented yet; the script clock and the frame journal count the ticks pending beside the presented
 tick, which is the live tick as before. The main-thread path is unchanged: there `World` is the
@@ -16433,3 +16435,47 @@ simulation's.
   in a frame that presented a batch, when the worker is idle.
 - Display latency on the worker path is the lag, 20–30 ms at 150 FPS instead of one frame; the
   plan's trade, invisible in a dungeon view against a 20 ms stall four times a second.
+
+## ADR-0695: the frame allocates less than half of what it did, and the tick thread touches no view state
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity, simulation-core
+
+**Context.** With the join gone (ADR-0694) the frames over budget that remained were terrain chunk
+rebuilds (3–5 ms, one per tick, 0.8 MB allocated each) and a 30 ms frame once a run where a garbage
+collection landed; the quiet frame allocated 48 KB (Profiler capture of the windowed probe,
+`report-capture.ps1`: the objects pass 20 KB in 394 allocations, lighting preparation 7 KB, the
+rest in 2–4 KB pieces). Two races also surfaced once the frame ran beside the tick: the object-position
+capture the worker took before each tick read the view's per-world room caches while the frame rebuilt
+them for the presented world (an index out of range in `RoomObjectAddedLight`), and the simulation's
+event sinks (sight regions, the hand's feedback, sounds, scripted views, construction particles) wrote
+the view from the tick thread.
+
+**Decision.**
+- `Enum.HasFlag` is gone from `src/` (262 sites, a mechanical rewrite to `(x & f) == f`, which reads
+  the same): under IL2CPP and Mono it boxes both operands, and most of the objects pass's allocation was
+  three of them per object. `ArchitectureTests.NothingUnderSrcCallsEnumHasFlag` keeps it out.
+- A wall object's side comes from the view's per-tick cache of its room's wall slots
+  (`WorldView.WallSideOf`), not from a slot walk, with its lists, per object per frame.
+- A terrain chunk keeps its mesh, its material array and the static-light input buffer across
+  rebuilds and refills them (`MeshUpdateFlags` skip the validation); the upload fell from 1.24 to
+  0.42 ms and the rebuild's allocation from 815 to 428 KB.
+- The visible light tiles are enumerated into a buffer kept across frames
+  (`ClassicLightVisibility.EnumerateTiles(polygon, ref buffer)`), and a second camera's tiles are
+  joined into kept buffers too.
+- On the worker path the object-position capture is the main thread's, taken from the presented
+  world just before a batch replaces it; and the simulation's events are queued by
+  `DeferredEventSink` on the tick thread and replayed into the sinks when the batch is taken over,
+  so the sight region a batch reveals arrives with the world it belongs to. The tick thread now
+  touches nothing of the view. ADR-0694's description of the capture is superseded here.
+
+**Consequences.**
+- The quiet frame allocates 20 KB instead of 48 (p90 41 instead of 141); the windowed probe's 32 s
+  run allocated 243 MB instead of 274. The release capture after (`build/tester-package/20261106-135252/
+  captures/20261106-135609`, taken with the editor open, so its frame rate is not comparable) has 13
+  frames with a collection instead of 19; the collection that lands badly still costs 26–31 ms once
+  a run. What is left, per frame: the objects pass 4 KB in 188 small allocations, the runner's own
+  Update 4 KB, the flowers 3.6, the creature frame 2.8, the creature pass 2.1, the effects 2 and 2;
+  per rebuild, the per-tile geometry arrays 4 KB and the transparent chunk 2 KB. The next step on the
+  collector is the tick thread's own garbage, which the probe counts but this ADR did not touch.
+- The `DeferredEventSink` adds the hand-over's latency (under 40 ms) to every event's effect on the
+  view; the main-thread path and the front end keep the direct chain.

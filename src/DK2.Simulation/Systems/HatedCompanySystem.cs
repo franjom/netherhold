@@ -86,7 +86,7 @@ public sealed class HatedCompanySystem : IRoomTickStep
         {
             if (!c.HeldPlace.In(room)) continue;
             CreatureDef definition = database.CreatureById(c.CreatureTypeId);
-            if (definition.Flags.HasFlag(CreatureFlags.DoesntGetAngryWithEnemies)) continue;
+            if (((definition.Flags & CreatureFlags.DoesntGetAngryWithEnemies) == CreatureFlags.DoesntGetAngryWithEnemies)) continue;
             int applied = CreatureAngerRules.Apply(
                 world, definition, c, AngerBucket.Treatment, _delta, AngerComplaint.HatedCompany);
             context.Emit(Name, "angered",
@@ -123,5 +123,5 @@ public sealed class HatedCompanySystem : IRoomTickStep
     }
 
     private static bool IsEvil(GameDatabase database, CreatureState c) =>
-        database.CreatureById(c.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsEvil);
+        ((database.CreatureById(c.CreatureTypeId).Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
 }

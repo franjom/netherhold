@@ -20,7 +20,7 @@ public static class WaterSpeedRules
     }
 
     public static bool IsFlying(CreatureDef definition, CreatureState creature) =>
-        !definition.Flags.HasFlag(CreatureFlags.IsWorker)
+        !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
             && creature.Dk2StateId is not (217 or 218)
-            && definition.Flags.HasFlag(CreatureFlags.CanFly);
+            && ((definition.Flags & CreatureFlags.CanFly) == CreatureFlags.CanFly);
 }

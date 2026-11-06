@@ -148,11 +148,11 @@ public static class CombatPitSpectatorRules
     /// creature objects to an evil one, anyone else to a good one.</summary>
     private static bool HasAnOpponent(WorldState world, GameDatabase database, RoomInstance room, CreatureDef seeker)
     {
-        CreatureFlags against = seeker.Flags.HasFlag(CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
+        CreatureFlags against = ((seeker.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
         foreach (CreatureState c in world.Creatures)
         {
             if (!c.HeldPlace.In(room)) continue;
-            if (database.CreatureById(c.CreatureTypeId).Flags.HasFlag(against)) return true;
+            if (((database.CreatureById(c.CreatureTypeId).Flags & against) == against)) return true;
         }
 
         return false;

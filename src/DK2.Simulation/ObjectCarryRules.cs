@@ -33,9 +33,9 @@ public static class ObjectCarryRules
     public static RoomTypeId? HomeRoomFor(GameDatabase database, byte objectTypeId)
     {
         if (database.ObjectById(objectTypeId) is not { } definition) return null;
-        if (definition.Flags.HasFlag(ObjectFlags.TypeSpellBook)) return RoomTypeId.Library;
-        if (definition.Flags.HasFlag(ObjectFlags.TypeSpecial)) return RoomTypeId.Library;
-        if (definition.Flags.HasFlag(ObjectFlags.TypeCrate)) return RoomTypeId.Workshop;
+        if (((definition.Flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook)) return RoomTypeId.Library;
+        if (((definition.Flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial)) return RoomTypeId.Library;
+        if (((definition.Flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate)) return RoomTypeId.Workshop;
         return null;
     }
 
@@ -58,7 +58,7 @@ public static class ObjectCarryRules
     public static bool CanCarry(
         GameDatabase database, CreatureDef definition, CreatureState worker, ObjectState thing)
     {
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return false;
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return false;
         if (worker.CarriedObjectId >= 0) return false;
         if (worker.CarriedCreatureId >= 0) return false;
         if (worker.GoldHeld > 0) return false;

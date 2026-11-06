@@ -177,7 +177,7 @@ public static class ManaRules
             CreatureState creature = creatures[i];
             int player = indexOfOwner[creature.OwnerPlayerId];
             if (player < 0) continue;
-            if (database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker))
+            if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
                 upkeep[player] += perImp;
         }
         return upkeep;

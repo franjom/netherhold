@@ -393,7 +393,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         }
         LevelStatisticsRules.CreditDeath(world, creature, state, credited);
         if (credited == 0 || state.DeathUncounted) return credited;
-        if (creature.Flags.HasFlag(CreatureFlags.IsGood) && world.HasPlayer(credited))
+        if (((creature.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood) && world.HasPlayer(credited))
             world.Player(credited).HeroesDestroyed++;
         return credited;
     }

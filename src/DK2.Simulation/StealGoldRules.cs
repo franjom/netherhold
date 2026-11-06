@@ -174,7 +174,7 @@ public static class StealGoldRules
     {
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         int lost = PurseRules.Spend(creature, creature.GoldHeld);
-        bool effect = !definition.Flags.HasFlag(CreatureFlags.AvailableViaPortal);
+        bool effect = !((definition.Flags & CreatureFlags.AvailableViaPortal) == CreatureFlags.AvailableViaPortal);
         context.Emit(system, "creature_escaped",
             $"creature={creature.Id} type={definition.Name} player={creature.OwnerPlayerId} " +
             $"at=({creature.Tile.X},{creature.Tile.Y}) gold_lost={lost} effect={(effect ? 15 : 0)}");

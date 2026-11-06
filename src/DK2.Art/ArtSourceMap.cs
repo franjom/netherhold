@@ -242,7 +242,7 @@ public static class ArtSourceMap
                 if (!art.Doors.TryGetValue(door.DoorId, out IReadOnlyList<Dk2ArtResource>? resources))
                     entries.Add(Missing(reference, NoArtRecord("door", door.DoorId)));
                 else
-                    entries.Add(Model(reference, door.Flags.HasFlag(DoorFlags.Barricade)
+                    entries.Add(Model(reference, ((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)
                         ? resources[0] : resources[open ? 4 : 5], open ? "door opening" : "door closing"));
             }
             AssetRef lockReference = AssetRef.ForDoorLock(door.Name);

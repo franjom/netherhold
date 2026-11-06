@@ -345,7 +345,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         {
             DoorState door = doorList[d];
             if (door.UnderConstruction || door.Open || !world.Contains(door.X, door.Y)) continue;
-            bool barricade = database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Barricade);
+            bool barricade = database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && ((def.Flags & DoorFlags.Barricade) == DoorFlags.Barricade);
             bytes[(door.Y * world.Width) + door.X] =
                 NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, world.Tile(door.X, door.Y).SecretDoor);
         }
@@ -430,7 +430,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// the state's option word (<see cref="MoveOptions"/>: 7 respect doors, 1 pass own locked
     /// doors, 2 enter a portal's hole).</summary>
     public static MoverProfile ProfileOf(CreatureDef definition, PlayerId owner, MoveOptions options) =>
-        new(definition.Flags.HasFlag(CreatureFlags.CanWalkOnWater), definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava),
+        new(((definition.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater), ((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava),
             owner.Value,
             RespectDoors: ((int)options & 0x80) != 0,
             PassOwnLockedDoors: ((int)options & 0x02) != 0,
@@ -541,11 +541,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         foreach (ObjectState device in _objectObstacles)
         {
             ObjectDef? definition = _database.ObjectById(device.ObjectTypeId);
-            if (definition is null || !definition.Flags.HasFlag(ObjectFlags.Obstacle)) continue;
+            if (definition is null || !((definition.Flags & ObjectFlags.Obstacle) == ObjectFlags.Obstacle)) continue;
             int size = (definition.Width.Raw >> 1) << 4;
             if (size <= 0) continue;
             // 0x004D1439 ORs bit 0; 0x004D14A1 XORs it, retaining the previous callback's flags.
-            solid = definition.Flags.HasFlag(ObjectFlags.SolidObstacle) || !solid;
+            solid = ((definition.Flags & ObjectFlags.SolidObstacle) == ObjectFlags.SolidObstacle) || !solid;
             int x = CreatureState.CentreOf(device.TileIndex % _world.Width);
             int y = CreatureState.CentreOf(device.TileIndex / _world.Width);
             if (device.PosX != 0 || device.PosY != 0) (x, y) = (device.PosX, device.PosY);
@@ -565,7 +565,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
                 if (!_database.Objects.TryGetValue(id, out ObjectDef? def)) continue;
                 int size = (def.Width.Raw << 4) >> 1;
                 if ((pos - centre).Octile() > range + size) continue;
-                into.Add(new SteeringObstacle(pos, size, def.Flags.HasFlag(ObjectFlags.SolidObstacle), id == DungeonHeartObstacleObjectId));
+                into.Add(new SteeringObstacle(pos, size, ((def.Flags & ObjectFlags.SolidObstacle) == ObjectFlags.SolidObstacle), id == DungeonHeartObstacleObjectId));
             }
         }
     }

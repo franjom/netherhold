@@ -33,7 +33,7 @@ public static partial class PossessionRules
         if (!CreatureStateMachine.HasState(c)) return false;
         CreatureDef def = database.CreatureById(c.CreatureTypeId);
         return c.FollowLeaderId == 0
-            && !def.Flags.HasFlag(CreatureFlags.IsHorny)
+            && !((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
             && CreatureStateTable.Get(c.Dk2StateId).Group != 1
             && c.PrisonOwnerPlayerId == PrisonRules.NoPrison && !c.CombatPitFighter
             && !c.RebelActive

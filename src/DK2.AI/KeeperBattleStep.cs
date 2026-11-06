@@ -283,7 +283,7 @@ public sealed class KeeperBattleStep
     private static bool OffMap(KeeperCreatureView creature) => creature.InHand || creature.CarriedByCreatureId >= 0;
 
     private bool IsWorker(KeeperCreatureView creature) =>
-        _view.Database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
+        ((_view.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
 
     private static TilePos TileOf(KeeperCreatureView creature) => new(creature.PosX >> 12, creature.PosY >> 12);
 }

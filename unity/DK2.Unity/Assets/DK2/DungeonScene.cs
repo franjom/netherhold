@@ -127,11 +127,17 @@ namespace DK2.Unity
         private int _portalLightRequestsPublished;
         private readonly ClassicLightFlags _torchFlags;
         private TilePos[] _visibleLightTiles = System.Array.Empty<TilePos>();
+        private int _visibleLightCount;
         private readonly HashSet<TilePos> _publishedLightTiles = new HashSet<TilePos>();
         private ClassicCameraPose? _lightCameraPose;
         private CameraViewport _lightViewport;
         private float _lightViewDistance;
         private static readonly ProfilerMarker LightMarker = new ProfilerMarker("DK2.Scene.PrepareLighting");
+        private ClassicCameraPose? _additionalLightPose;
+        private CameraViewport _additionalLightViewport;
+        private TilePos[] _additionalLightTiles = System.Array.Empty<TilePos>();
+        private readonly HashSet<TilePos> _joinedLightTiles = new HashSet<TilePos>();
+        private TilePos[] _joinedLightBuffer = System.Array.Empty<TilePos>();
         private readonly ClassicCreatureShadows _creatureShadows;
         private readonly int _worldWidth;
         private readonly int _worldHeight;
@@ -989,10 +995,10 @@ namespace DK2.Unity
                     || !_lightViewport.Equals(viewport) || _lightViewDistance != nativeViewDistance)
                 {
                     TilePos[] polygon = ClassicLightVisibility.BuildPolygon(pose, viewport, nativeViewDistance);
-                    _visibleLightTiles = ClassicLightVisibility.EnumerateTiles(polygon);
+                    _visibleLightCount = ClassicLightVisibility.EnumerateTiles(polygon, ref _visibleLightTiles);
                     _lightCameraPose = pose; _lightViewport = viewport; _lightViewDistance = nativeViewDistance;
                 }
-                TilePos[] visible = _visibleLightTiles;
+                var visible = new System.ReadOnlySpan<TilePos>(_visibleLightTiles, 0, _visibleLightCount);
                 if (additionalCamera != null)
                 {
                     Vector3 at = additionalCamera.transform.position, ahead = additionalCamera.transform.forward,
@@ -1001,10 +1007,19 @@ namespace DK2.Unity
                         new System.Numerics.Vector3(ahead.x, ahead.y, ahead.z), new System.Numerics.Vector3(upward.x, upward.y, upward.z),
                         additionalCamera.fieldOfView, additionalCamera.farClipPlane, 0, 0);
                     var additionalViewport = new CameraViewport(Screen.width, additionalCamera.pixelWidth, additionalCamera.pixelHeight);
-                    var tiles = new HashSet<TilePos>(visible);
-                    foreach (TilePos tile in ClassicLightVisibility.EnumerateTiles(
-                        ClassicLightVisibility.BuildPolygon(additionalPose, additionalViewport, 10))) tiles.Add(tile);
-                    visible = new TilePos[tiles.Count]; tiles.CopyTo(visible);
+                    // The second camera's tiles are joined once per frame into buffers kept across frames.
+                    if (!additionalPose.Equals(_additionalLightPose) || !additionalViewport.Equals(_additionalLightViewport))
+                    {
+                        _additionalLightTiles = ClassicLightVisibility.EnumerateTiles(
+                            ClassicLightVisibility.BuildPolygon(additionalPose, additionalViewport, 10));
+                        _additionalLightPose = additionalPose; _additionalLightViewport = additionalViewport;
+                    }
+                    _joinedLightTiles.Clear();
+                    for (int i = 0; i < _visibleLightCount; i++) _joinedLightTiles.Add(_visibleLightTiles[i]);
+                    foreach (TilePos tile in _additionalLightTiles) _joinedLightTiles.Add(tile);
+                    if (_joinedLightBuffer.Length < _joinedLightTiles.Count) _joinedLightBuffer = new TilePos[_joinedLightTiles.Count * 2];
+                    _joinedLightTiles.CopyTo(_joinedLightBuffer);
+                    visible = new System.ReadOnlySpan<TilePos>(_joinedLightBuffer, 0, _joinedLightTiles.Count);
                 }
                 _worldLights.PrepareFrame(visible);
                 _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
@@ -1061,6 +1076,7 @@ namespace DK2.Unity
             _worldLights?.Clear();
             _publishedLightTiles.Clear();
             _visibleLightTiles = System.Array.Empty<TilePos>();
+            _visibleLightCount = 0;
             _lightCameraPose = null;
             _tileLights?.Clear();
             _torchLights?.Clear();

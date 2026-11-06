@@ -57,7 +57,7 @@ public static class CrateRules
 
     /// <summary>Whether the object is a crate.</summary>
     public static bool IsCrate(GameDatabase database, ObjectState thing) =>
-        database.ObjectById(thing.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.TypeCrate);
+        database.ObjectById(thing.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate);
 
     /// <summary>A crate's kind: a door's when a door definition names its object, else a trap's
     /// when a trap definition does, else null.</summary>
@@ -144,7 +144,7 @@ public static class CrateRules
             if (world.DoorById(blueprint.Id) is { } door)
             {
                 door.UnderConstruction = false;
-                if (database.Doors.GetValueOrDefault(door.DoorId)?.Flags.HasFlag(DoorFlags.Secret) == true)
+                if (((database.Doors.GetValueOrDefault(door.DoorId)?.Flags & DoorFlags.Secret) == DoorFlags.Secret) == true)
                     world.Tile(door.X, door.Y).SecretDoor = true;
             }
         }

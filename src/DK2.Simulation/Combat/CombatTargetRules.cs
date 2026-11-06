@@ -165,7 +165,7 @@ public static class CombatTargetRules
 
         int spellSlot = -1;
         CreatureSpellDef? spell = null;
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
             spellSlot = SpellRules.SurveyAttack(context.Database, me, definition, context.Tick.Value, out spell,
                 whileRecharging: SpellWhileRecharging(context, me, definition, scratch));
         if (CombatPitRules.IsOnTheMap(target)
@@ -193,7 +193,7 @@ public static class CombatTargetRules
 
         int spellSlot = -1, friendlySlot = -1;
         CreatureSpellDef? spell = null, friendly = null;
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
         {
             spellSlot = SpellRules.SurveyAttack(context.Database, me, definition, context.Tick.Value, out spell, skipStatus: true,
                 whileRecharging: SpellWhileRecharging(context, me, definition, scratch));
@@ -229,7 +229,7 @@ public static class CombatTargetRules
         }
         else
         {
-            bool secret = context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Secret);
+            bool secret = context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && ((def.Flags & DoorFlags.Secret) == DoorFlags.Secret);
             me.AttackType = CombatRules.AttackMode.MeleeAtThing;
             me.AttackSpellSlot = 0;
             me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange + new Fp32(secret ? SecretDoorReach : DoorReach));
@@ -268,7 +268,7 @@ public static class CombatTargetRules
         // Thing-targeting spells are not built.
         int spellSlot = -1, friendlySlot = -1;
         CreatureSpellDef? spell = null, friendly = null;
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
         {
             spellSlot = SpellRules.SurveyAttack(database, me, definition, context.Tick.Value, out spell,
                 whileRecharging: SpellWhileRecharging(context, me, definition, scratch));
@@ -312,11 +312,11 @@ public static class CombatTargetRules
         // Scan E: the enemy heart outranks nothing but a worker, and only an Imp or a Horned
         // Reaper never looks at it; a trap outranks it (the class test at 0x0045D91B).
         bool heartMayEnter = trap is null
-            && (chosen is null || database.CreatureById(chosen.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker));
+            && (chosen is null || ((database.CreatureById(chosen.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker));
         int heartTile = -1;
         HeartPillar heartPillar = default;
         PlayerId heartOwner = 0;
-        if (heartMayEnter && me.CreatureTypeId != CombatRules.ImpCreatureTypeId && !definition.Flags.HasFlag(CreatureFlags.IsHorny))
+        if (heartMayEnter && me.CreatureTypeId != CombatRules.ImpCreatureTypeId && !((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
             heartTile = ScanHearts(world, sight, hearts, me, sightSq, ref best, out heartOwner, out heartPillar);
 
         // Scan F (spell-friendly-arm.md §8): an ally that wants the friendly spell outranks whatever
@@ -356,7 +356,7 @@ public static class CombatTargetRules
         }
         TrapState? chosen = null;
         int best = int.MaxValue;
-        bool worker = definition.Flags.HasFlag(CreatureFlags.IsWorker);
+        bool worker = ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
         IReadOnlyList<TrapState> traps = world.Traps;
         for (int i = traps.Count - 1; i >= 0; i--)
         {

@@ -44,8 +44,8 @@ public sealed class WorldPathGrid : IPathGrid
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _world = world ?? throw new ArgumentNullException(nameof(world));
         _structures = structures ?? StructureBlocks.For(database: database, world: world);
-        _canCrossWater = mover.Flags.HasFlag(CreatureFlags.CanWalkOnWater);
-        _canCrossLava = mover.Flags.HasFlag(CreatureFlags.CanWalkOnLava);
+        _canCrossWater = ((mover.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater);
+        _canCrossLava = ((mover.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava);
     }
 
     public int Width => _world.Width;

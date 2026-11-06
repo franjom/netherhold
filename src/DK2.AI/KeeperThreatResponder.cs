@@ -248,7 +248,7 @@ public sealed class KeeperThreatResponder
             if (_moved.Contains(creature.Id)) continue;
             if (!WithinFiveTiles(creature.PosX, creature.PosY, centreX, centreY)) continue;
             CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
-            if (definition.Flags.HasFlag(CreatureFlags.IsHorny)) continue;
+            if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
             if (UnderCallToArms(creature)) continue;
             if (creature.LastDroppedCounter <= DroppedGraceTurns && _turn > DroppedGraceTurns) continue;
             if (creature.InMyHand || creature.StateId == DropLandingRules.LandingState) continue;
@@ -268,7 +268,7 @@ public sealed class KeeperThreatResponder
         {
             if (_moved.Contains(creature.Id)) continue;
             CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker) || definition.Flags.HasFlag(CreatureFlags.IsHorny)) continue;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
             if (UnderCallToArms(creature) || !creature.MayFight) continue;
             int group = CreatureStateTable.Get(creature.StateId).Group;
             if (creature.MaxHealth / 4 >= creature.Health || group is 7 or 3) continue;

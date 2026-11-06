@@ -269,7 +269,7 @@ public static class KeeperSpellRules
         !StatusEffectRules.IsStunned(target) && !HandRules.IsHeld(target)
         && target.Dk2StateId is not (193 or 278 or 279 or 280)
         && !target.CombatPitFighter && !ChickenRules.IsChicken(target)
-        && !database.CreatureById(target.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny)
+        && !((database.CreatureById(target.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
         && !target.RebelActive && target.OwnerPlayerId == playerId;
 
     /// <summary>Target 1, flags zero: a creature holding a room id is admitted when that room is the
@@ -285,7 +285,7 @@ public static class KeeperSpellRules
             int index = target.Tile.Y * world.Width + target.Tile.X;
             if (RoomIndex.RoomAt(world, database, index) is not null && world.TileAtIndex(index).OwnerPlayerId == playerId) return true;
         }
-        return !database.CreatureById(target.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny) && target.OwnerPlayerId == playerId;
+        return !((database.CreatureById(target.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) && target.OwnerPlayerId == playerId;
     }
 
     /// <summary>Target 2, flags zero: a creature owned by neither the caster nor neutral; allies and

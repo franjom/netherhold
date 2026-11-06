@@ -59,7 +59,7 @@ internal sealed class StateModel
         ["_heroParties"] = Heroes, ["HeroSlotArray"] = Heroes,
         ["_actionPoints"] = LevelScript, ["Triggers"] = LevelScript,
         ["_navStamps"] = Navigation,
-        ["StructureCache"] = Caches, ["RoomSweepCache"] = Caches,
+        ["StructureCache"] = Caches, ["RoomSweepCache"] = Caches, ["_copyIndex"] = Caches, ["_staleSecretDoorKeys"] = Caches,
         ["TremorSlots"] = World, ["GameMode"] = World, ["CurrentTick"] = World, ["FogOfWarEnabled"] = World,
         ["Width"] = World, ["Height"] = World,
         ["_creatureIdentityRandom"] = Rng, ["RoomConstructionRandom"] = Rng,

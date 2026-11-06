@@ -186,7 +186,7 @@ public static class RoomCapacityRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-        CreatureFlags against = definition.Flags.HasFlag(CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
+        CreatureFlags against = ((definition.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
         RoomInstance? nearest = null, nearestFriendly = null;
         long best = long.MaxValue, bestFriendly = long.MaxValue;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
@@ -204,7 +204,7 @@ public static class RoomCapacityRules
             if (distance < best) (nearest, best) = (room, distance);
             bool objects = false;
             foreach (CreatureState c in world.Creatures)
-                if (c.HeldPlace.In(room) && database.CreatureById(c.CreatureTypeId).Flags.HasFlag(against)) objects = true;
+                if (c.HeldPlace.In(room) && ((database.CreatureById(c.CreatureTypeId).Flags & against) == against)) objects = true;
             if (!objects && distance < bestFriendly) (nearestFriendly, bestFriendly) = (room, distance);
         }
 

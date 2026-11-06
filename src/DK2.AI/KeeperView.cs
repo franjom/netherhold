@@ -469,7 +469,7 @@ public sealed class KeeperView : INavByteGrid
     public bool CanPlaceDoor(TilePos p, DoorDef door, IReadOnlyCollection<TilePos>? pending = null)
     {
         if (!CanPlaceTrap(p, pending)) return false;
-        if (door.Flags.HasFlag(DoorFlags.Barricade)) return true;
+        if (((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return true;
         return (IsSolid(new TilePos(p.X, p.Y - 1)) && IsSolid(new TilePos(p.X, p.Y + 1)))
             || (IsSolid(new TilePos(p.X + 1, p.Y)) && IsSolid(new TilePos(p.X - 1, p.Y)));
     }

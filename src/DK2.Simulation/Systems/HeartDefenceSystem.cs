@@ -90,7 +90,7 @@ public sealed class HeartDefenceSystem : IRoomTickStep
         {
             if (!CreatureStateMachine.HasState(c) || CombatRules.DistanceSquared(x, y, c.PosX, c.PosY) >= limit) continue;
             CreatureDef def = database.CreatureById(c.CreatureTypeId);
-            if (def.Flags.HasFlag(CreatureFlags.IsHorny) || CallToArmsRules.IsUnderCallToArms(world, c)) continue;
+            if (((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || CallToArmsRules.IsUnderCallToArms(world, c)) continue;
             if (NeedRules.ResolvedCategory(c) == CreatureStateCategory.Combat) continue;
             if (!CombatRules.MayLookForAFight(world, database, c, force: false)) continue;
             if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;

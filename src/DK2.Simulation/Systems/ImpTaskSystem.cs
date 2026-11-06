@@ -221,7 +221,7 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         if (Combat.ThreatFleeRules.IsFleeing(creature)) return;   // the combat states' (ADR-0678)
         if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return;
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return;
 
         // A hero worker is HeroSystem's: DK2's state 1 sends a hero to 90 before it tests the
         // worker flag (ADR-0216).

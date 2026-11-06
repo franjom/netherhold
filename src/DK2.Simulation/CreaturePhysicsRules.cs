@@ -116,7 +116,7 @@ public static class CreaturePhysicsRules
         }
 
         if (context.Database.Doors.TryGetValue(door!.DoorId, out DoorDef? definition)
-            && definition.Flags.HasFlag(DoorFlags.Barricade)) return false;
+            && ((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return false;
         return !insideDoor || solid;
     }
 

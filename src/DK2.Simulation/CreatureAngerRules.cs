@@ -272,7 +272,7 @@ public static class CreatureAngerRules
     /// Dwarf and Horny are unflagged and carry 1 against a Goblin's 100 — a lairless Imp takes nine hours.</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-anger.md")]
     public static bool CanBeAngered(CreatureDef creature) =>
-        !creature.Flags2.HasFlag(CreatureFlags2.NeverAngered);
+        !((creature.Flags2 & CreatureFlags2.NeverAngered) == CreatureFlags2.NeverAngered);
 
     /// <summary>A slap: <c>AngerSlap</c>, +3000 for a Goblin and <b>−5000 for Jack</b>, whose whole
     /// record runs backwards. Called by <see cref="Systems.HandSystem"/> (ADR-0062). Six slaps make

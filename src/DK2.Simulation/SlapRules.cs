@@ -127,7 +127,7 @@ public static class SlapRules
             if (!StateShadow.TryMove(context, system, creature, state)) StateShadow.ToIdle(context, system, creature);
             return;
         }
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
             || !CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.TaskSelection, now))
             StateShadow.ToIdle(context, system, creature);
     }

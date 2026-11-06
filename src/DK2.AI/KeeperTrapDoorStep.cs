@@ -147,7 +147,7 @@ public sealed class KeeperTrapDoorStep
         for (int id = 1; id <= count; id++)
         {
             if (!_view.Database.Doors.TryGetValue((byte)id, out DoorDef? door)) continue;
-            if (door.Flags.HasFlag(DoorFlags.Barricade)) continue;
+            if (((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) continue;
             if (_view.Availability(AvailabilityKind.Door, id) != 3) continue;
             chosen = door;
             if ((uint)_rng.NextInt(100) <= stop * 50) break;

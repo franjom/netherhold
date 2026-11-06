@@ -34,7 +34,7 @@ public static class CarryRules
     /// ADR-0018).</summary>
     public static bool CanCarry(CreatureDef definition, CreatureState worker, CreatureState body)
     {
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return false;
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return false;
         if (worker.Id == body.Id) return false;
         if (worker.CarriedCreatureId >= 0) return false;
         if (worker.GoldHeld > 0) return false;

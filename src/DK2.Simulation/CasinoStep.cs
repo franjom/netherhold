@@ -245,16 +245,16 @@ public static class CasinoStep
     internal static int NavClass(GameDatabase database, in TileState tile)
     {
         TerrainFlags flags = database.TerrainById(tile.TerrainId).Flags;
-        if (flags.HasFlag(TerrainFlags.Solid)) return 8;
-        if (flags.HasFlag(TerrainFlags.Water)) return 1;
-        return flags.HasFlag(TerrainFlags.Lava) ? 3 : 0;
+        if (((flags & TerrainFlags.Solid) == TerrainFlags.Solid)) return 8;
+        if (((flags & TerrainFlags.Water) == TerrainFlags.Water)) return 1;
+        return ((flags & TerrainFlags.Lava) == TerrainFlags.Lava) ? 3 : 0;
     }
 
     internal static bool HasObstacle(WorldState world, GameDatabase database, int tile)
     {
         foreach (ObjectState thing in world.Objects)
             if (!thing.InHand && thing.TileIndex == tile
-                && database.ObjectById(thing.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.Obstacle))
+                && database.ObjectById(thing.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.Obstacle) == ObjectFlags.Obstacle))
                 return true;
         return false;
     }

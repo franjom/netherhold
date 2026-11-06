@@ -308,7 +308,7 @@ public static class ThingProjection
     private static void PlaceDoor(WorldState world, GameDatabase database, DoorThing thing)
     {
         if (world.Contains(thing.X, thing.Y)
-            && database.Doors.GetValueOrDefault(thing.DoorId)?.Flags.HasFlag(DoorFlags.Secret) == true)
+            && ((database.Doors.GetValueOrDefault(thing.DoorId)?.Flags & DoorFlags.Secret) == DoorFlags.Secret) == true)
             world.Tile(thing.X, thing.Y).SecretDoor = true;
         world.AddDoor(new DoorState
         {

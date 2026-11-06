@@ -223,7 +223,7 @@ public static class TrapRules
             CreatureState c = creatures[i];
             if (c.OwnerPlayerId != trap.PlayerId || !c.HeldPlace.In(room)) continue;
             CreatureDef def = database.CreatureById(c.CreatureTypeId);
-            if (def.Flags.HasFlag(CreatureFlags.IsWorker) || def.Flags.HasFlag(CreatureFlags.IsHorny)) continue;
+            if (((def.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || ((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
             if (CallToArmsRules.IsUnderCallToArms(world, c) || NeedRules.ResolvedCategory(c) == CreatureStateCategory.Combat) continue;
             if (!CombatRules.MayLookForAFight(world, database, c, force: false)) continue;
             if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;
@@ -477,8 +477,8 @@ public static class TrapRules
         if (FirstOnTile(world, trap.X, trap.Y, trap.PlayerId) is not { } creature) return 0;
         if (CreatureDeathRules.IsDying(creature)) return 0;
         CreatureDef type = database.CreatureById(creature.CreatureTypeId);
-        if (IsFlying(creature, type) || type.Flags.HasFlag(CreatureFlags.IsHorny)) return 0;
-        if (trap.TrapId == JackInTheBoxId && !type.Flags.HasFlag(CreatureFlags.IsWorker)) return 0;
+        if (IsFlying(creature, type) || ((type.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return 0;
+        if (trap.TrapId == JackInTheBoxId && !((type.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return 0;
         return creature.Id;
     }
 
@@ -486,9 +486,9 @@ public static class TrapRules
     /// in states 217 and 218. Not built: a worker's answer from its state bit 8, the five animations
     /// that answer no, and the <c>0x00494700</c> arm; a worker never flies here.</summary>
     private static bool IsFlying(CreatureState creature, CreatureDef type) =>
-        !type.Flags.HasFlag(CreatureFlags.IsWorker)
+        !((type.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
         && creature.Dk2StateId is not (217 or 218)
-        && type.Flags.HasFlag(CreatureFlags.CanFly);
+        && ((type.Flags & CreatureFlags.CanFly) == CreatureFlags.CanFly);
 
     /// <summary>The sight finder <c>0x004A9400</c>: once a turn, the strictly nearest attackable,
     /// visible creature of a hostile player inside the range (plus two when the turn asks), never an
@@ -507,7 +507,7 @@ public static class TrapRules
         {
             found = trap.SightTargetId;
             if (!LineOfSight.Clear(sight, trap.PosX, trap.PosY, kept.PosX, kept.PosY) || !CombatRules.IsAttackable(kept)
-                || database.CreatureById(kept.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny))
+                || ((database.CreatureById(kept.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
                 found = 0;
             else
             {
@@ -524,7 +524,7 @@ public static class TrapRules
             {
                 CreatureState creature = creatures[i];
                 if (creature.OwnerPlayerId != player || !CombatRules.IsAttackable(creature)) continue;
-                if (database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny)) continue;
+                if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
                 uint distance = DistanceSquared(creature.PosX, creature.PosY, trap.PosX, trap.PosY);
                 if (distance >= limit || distance >= best) continue;
                 if (!LineOfSight.Clear(sight, trap.PosX, trap.PosY, creature.PosX, creature.PosY)) continue;
@@ -731,7 +731,7 @@ public static class TrapRules
     /// 22–25) set to 10. True when it revealed one.</summary>
     public static bool RevealAround(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (!definition.Flags.HasFlag(CreatureFlags.RevealsAdjacentTraps)) return false;
+        if (!((definition.Flags & CreatureFlags.RevealsAdjacentTraps) == CreatureFlags.RevealsAdjacentTraps)) return false;
         WorldState world = context.World;
         TilePos at = creature.Tile;
         bool revealed = false;

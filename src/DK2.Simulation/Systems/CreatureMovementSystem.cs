@@ -168,7 +168,7 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
 
         var mover = new SteeringMover
         {
-            IsWorker = definition.Flags.HasFlag(CreatureFlags.IsWorker),
+            IsWorker = ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker),
             Heading = creature.Heading,
             TurnRate = SimulationTiming.TurnRatePerTick(definition),
             SizeClass = definition.SizeClass,

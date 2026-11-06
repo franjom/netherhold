@@ -69,6 +69,6 @@ public sealed class KeeperReadiness
     private IEnumerable<KeeperCreatureView> NonWorkers() =>
         _view.Creatures.Where(c => c.OwnerPlayerId == _view.PlayerId && c.OwnershipRank >= 0
                 && c.Activity != CreatureActivity.Dead
-                && !_view.Database.CreatureById(c.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker))
+                && !((_view.Database.CreatureById(c.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
             .OrderBy(c => c.OwnershipRank);
 }

@@ -107,7 +107,7 @@ public static class StatusEffectRules
     {
         target.HealthSourcePlayerId = source;
         if (damage <= 0) return 0;
-        if (definition.Flags.HasFlag(CreatureFlags.IsHorny) || definition.Flags.HasFlag(CreatureFlags.OnlyAttackableByHorny)) return 0;
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || ((definition.Flags & CreatureFlags.OnlyAttackableByHorny) == CreatureFlags.OnlyAttackableByHorny)) return 0;
         if (HandRules.IsHeld(target)) return 0;
         int scaled = (int)((long)damage * DamageMultiplier(world, database, target) / Base);
         if (IsStunned(target) && FearRules.NonImpAmongAttackers(world, target)) LengthenStun(database, definition, target);
@@ -158,7 +158,7 @@ public static class StatusEffectRules
     /// current action ends and the creature stands in the frozen state while the word runs.</summary>
     public static bool Freeze(SimulationContext context, CreatureState creature, CreatureDef definition, int ticks)
     {
-        if (ticks <= 0 || IsFrozen(creature) || definition.Flags.HasFlag(CreatureFlags.IsHorny)) return false;
+        if (ticks <= 0 || IsFrozen(creature) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return false;
         if (CreatureDeathRules.IsDown(creature)) return false;
         creature.FrozenTicks = ticks;
         Stand(context, creature, CombatStates.Frozen);
@@ -173,7 +173,7 @@ public static class StatusEffectRules
     public static bool Stun(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
-        if (HandRules.IsHeld(creature) || definition.Flags.HasFlag(CreatureFlags.IsHorny)) return false;
+        if (HandRules.IsHeld(creature) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return false;
         if (CreatureDeathRules.IsPossessed(world, creature) || CreatureDeathRules.IsDown(creature)) return false;
         // 0x00491840: a refused SetState(255) is no stun at all, so a frozen creature is not stunned.
         if (CreatureStateMachine.Classify(creature, CombatStates.Stunned) == StateTransition.Refused) return false;

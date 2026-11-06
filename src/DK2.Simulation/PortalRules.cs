@@ -353,11 +353,11 @@ public static class PortalRules
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/portals.md")]
     public static bool CanComeFromPortal(CreatureDef creature, RoomDef portal)
     {
-        if (creature.Flags.HasFlag(CreatureFlags.IsUnique)) return false;
+        if (((creature.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique)) return false;
 
         return portal.RoomId == (byte)RoomTypeId.HeroPortal
-            ? creature.Flags2.HasFlag(CreatureFlags2.AvailableViaHeroPortal)
-            : creature.Flags.HasFlag(CreatureFlags.AvailableViaPortal);
+            ? ((creature.Flags2 & CreatureFlags2.AvailableViaHeroPortal) == CreatureFlags2.AvailableViaHeroPortal)
+            : ((creature.Flags & CreatureFlags.AvailableViaPortal) == CreatureFlags.AvailableViaPortal);
     }
 
     /// <summary>Whether this keeper has this creature unlocked — <c>Availability</c>

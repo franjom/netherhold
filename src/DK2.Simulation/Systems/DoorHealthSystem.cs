@@ -31,7 +31,7 @@ public sealed class DoorHealthSystem : ISimulationSystem
                 context.Emit("doors", "door_owner_lost", $"door={door.Id} player={door.PlayerId} tile_owner={world.Tile(door.X, door.Y).OwnerPlayerId}");
             // Step 4, before the barricade's return: a closed built door, a barricade included, pushes off its tile.
             DoorPushRules.PushCreaturesOff(context, door);
-            if (definition.Flags.HasFlag(DoorFlags.Barricade)) continue;
+            if (((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) continue;
             if (DoorRules.SupportLost(context.Navigation, door))
                 context.Emit("doors", "door_unsupported", $"door={door.Id} at={door.X},{door.Y}");
         }

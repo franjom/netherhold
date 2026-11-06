@@ -132,7 +132,7 @@ public static class BoulderRules
                 (int px, int py) = other.PosX != 0 || other.PosY != 0
                     ? (other.PosX, other.PosY) : (CreatureState.CentreOf(x), CreatureState.CentreOf(y));
                 if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, px, py) >= (uint)(reach * reach) >> 12) continue;
-                if (!otherDef.Flags.HasFlag(ObjectFlags.BoulderDestroys)) continue;
+                if (!((otherDef.Flags & ObjectFlags.BoulderDestroys) == ObjectFlags.BoulderDestroys)) continue;
                 int damage = Capped(boulder, otherDef.Hp);
                 int landed;
                 if (damage < other.Health)
@@ -224,7 +224,7 @@ public static class BoulderRules
         PlayerId owner = world.Tile(x, y).OwnerPlayerId;
         if (!world.HasPlayer(owner) || !DisposalRules.IsHeartCentreTile(world, database, new TilePos(x, y), owner)) return;
         if (database.ObjectById(Navigation.WorldSteering.DungeonHeartObjectId) is not { } heartDef) return;
-        if (!heartDef.Flags.HasFlag(ObjectFlags.BoulderDestroys)) return;
+        if (!((heartDef.Flags & ObjectFlags.BoulderDestroys) == ObjectFlags.BoulderDestroys)) return;
         ref PlayerState player = ref world.Player(owner);
         if (player.HeartHealth <= 0) return;
         int reach = half + ((ushort)heartDef.Width.Raw >> 1);
@@ -400,7 +400,7 @@ public static class BoulderRules
         foreach (ObjectState thing in world.Objects)
         {
             if (thing.TileIndex != index || thing.InHand || thing.CarriedByCreatureId >= 0) continue;
-            if (database.ObjectById(thing.ObjectTypeId) is { } def && !def.Flags.HasFlag(ObjectFlags.BoulderCanRollThrough)) return true;
+            if (database.ObjectById(thing.ObjectTypeId) is { } def && !((def.Flags & ObjectFlags.BoulderCanRollThrough) == ObjectFlags.BoulderCanRollThrough)) return true;
         }
         return false;
     }

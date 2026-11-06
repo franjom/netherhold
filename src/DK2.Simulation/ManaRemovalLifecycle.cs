@@ -35,7 +35,7 @@ public static class ManaRemovalLifecycle
     }
 
     public static bool IsEvilWorker(CreatureDef definition) =>
-        definition.Flags.HasFlag(CreatureFlags.IsWorker) && definition.Flags.HasFlag(CreatureFlags.IsEvil);
+        ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && ((definition.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
 
     /// <summary>The owner's creatures in acquisition order, as the selector walks them.</summary>
     public static List<ManaRemovalCandidate> Candidates(WorldState world, GameDatabase database, PlayerId playerId)

@@ -293,7 +293,7 @@ public static partial class PossessionRules
         switch (thing.Thing)
         {
             case ObjectState o:
-                if (!sameOwner && database.ObjectById(o.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.DoorKey)) return false;
+                if (!sameOwner && database.ObjectById(o.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.DoorKey) == ObjectFlags.DoorKey)) return false;
                 if (!InReach(me, mine, thing.At)) return false;
                 return o.ObjectTypeId switch
                 {
@@ -306,7 +306,7 @@ public static partial class PossessionRules
             case PillarThing:
                 // Type 94: another owner's only, its definition's DoorKey bit tested as any object's.
                 if (sameOwner) return false;
-                if (database.ObjectById(HeartPillarRules.ArchPillarObjectId) is { } pillarDef && pillarDef.Flags.HasFlag(ObjectFlags.DoorKey)) return false;
+                if (database.ObjectById(HeartPillarRules.ArchPillarObjectId) is { } pillarDef && ((pillarDef.Flags & ObjectFlags.DoorKey) == ObjectFlags.DoorKey)) return false;
                 return InReach(me, mine, thing.At);
             default:
                 if (sameOwner) return false;

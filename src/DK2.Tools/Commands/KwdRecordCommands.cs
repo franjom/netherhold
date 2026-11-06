@@ -157,17 +157,17 @@ internal static partial class KwdCommands
         {
             string flags = string.Join(",", new[]
             {
-                c.Flags.HasFlag(CreatureFlags.IsWorker) ? "worker" : null,
-                c.Flags.HasFlag(CreatureFlags.IsEvil) ? "evil" : null,
-                c.Flags.HasFlag(CreatureFlags.CanFly) ? "fly" : null,
-                c.Flags.HasFlag(CreatureFlags.CanWalkOnWater) ? "water" : null,
-                c.Flags.HasFlag(CreatureFlags.CanWalkOnLava) ? "lava" : null,
-                c.Flags.HasFlag(CreatureFlags.IsFearless) ? "fearless" : null,
-                c.Flags.HasFlag(CreatureFlags.IsUnique) ? "unique" : null,
-                c.Flags.HasFlag(CreatureFlags.AvailableViaPortal) ? "portal" : null,
-                c.Flags.HasFlag(CreatureFlags.GenerateDeadBody) ? "body" : null,
-                c.Flags.HasFlag(CreatureFlags.CanBeResurrected) ? "resurrect" : null,
-                c.Flags.HasFlag(CreatureFlags.NeedBodyForFightIdle) ? "needbody" : null,
+                ((c.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) ? "worker" : null,
+                ((c.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil) ? "evil" : null,
+                ((c.Flags & CreatureFlags.CanFly) == CreatureFlags.CanFly) ? "fly" : null,
+                ((c.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater) ? "water" : null,
+                ((c.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava) ? "lava" : null,
+                ((c.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless) ? "fearless" : null,
+                ((c.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique) ? "unique" : null,
+                ((c.Flags & CreatureFlags.AvailableViaPortal) == CreatureFlags.AvailableViaPortal) ? "portal" : null,
+                ((c.Flags & CreatureFlags.GenerateDeadBody) == CreatureFlags.GenerateDeadBody) ? "body" : null,
+                ((c.Flags & CreatureFlags.CanBeResurrected) == CreatureFlags.CanBeResurrected) ? "resurrect" : null,
+                ((c.Flags & CreatureFlags.NeedBodyForFightIdle) == CreatureFlags.NeedBodyForFightIdle) ? "needbody" : null,
             }.Where(s => s is not null));
 
             Console.WriteLine($"{c.CreatureId,3} {c.Name,-16} {c.Hp,5} {c.MeleeDamage,4} {c.Pay,4} " +
@@ -577,15 +577,15 @@ internal static partial class KwdCommands
                 ("gold", o => o.IsGold),
                 ("spell book", o => o.IsSpellBook),
                 ("special", o => o.IsSpecial),
-                ("crate", o => o.Flags.HasFlag(ObjectFlags.TypeCrate)),
-                ("level gem", o => o.Flags.HasFlag(ObjectFlags.TypeLevelGem)),
+                ("crate", o => ((o.Flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate)),
+                ("level gem", o => ((o.Flags & ObjectFlags.TypeLevelGem) == ObjectFlags.TypeLevelGem)),
                 ("decays", o => o.Decays),
 
                 // The Hand of Evil's two: what it may lift, and where it may
                 // put it down (Q196).
-                ("pick up", o => o.Flags.HasFlag(ObjectFlags.CanBePickedUp)),
-                ("any land", o => o.Flags.HasFlag(ObjectFlags.CanBeDroppedOnAnyLand)),
-                ("slappable", o => o.Flags.HasFlag(ObjectFlags.CanBeSlapped)),
+                ("pick up", o => ((o.Flags & ObjectFlags.CanBePickedUp) == ObjectFlags.CanBePickedUp)),
+                ("any land", o => ((o.Flags & ObjectFlags.CanBeDroppedOnAnyLand) == ObjectFlags.CanBeDroppedOnAnyLand)),
+                ("slappable", o => ((o.Flags & ObjectFlags.CanBeSlapped) == ObjectFlags.CanBeSlapped)),
             })
             {
                 var hits = objects.Where(pick).OrderBy(o => o.ObjectId).ToList();

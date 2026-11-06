@@ -23,7 +23,7 @@ public static partial class PossessionRules
     /// begin replaces any running action. No reinforce, no wall claim, no task marked.</summary>
     internal static void DigOrClaim(SimulationContext context, CreatureState me, CreatureDef mine, PossessionAim aim)
     {
-        if (!mine.Flags.HasFlag(CreatureFlags.IsWorker)) return;
+        if (!((mine.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;
         PlayerId owner = me.OwnerPlayerId;

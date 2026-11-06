@@ -63,7 +63,7 @@ public static class ImpCrowding
             if (!TaskStealing.InPool(pool, creature)) continue;
             if (!SharesSlots(kind, creature.TargetWork)) continue;
             if (FaceOf(world, creature) != faceIndex) continue;
-            if (!database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker))
+            if (!((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
                 continue;
 
             if (++count >= limit) return true;

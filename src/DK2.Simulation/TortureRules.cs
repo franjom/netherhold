@@ -74,7 +74,7 @@ public static class TortureRules
     /// from an Electric Chair, a creature without <see cref="CreatureFlags.CanBeElectrocuted"/>
     /// (definition <c>+0x686</c> bit 19); the wheel takes anyone.</summary>
     public static bool Holds(ObjectState device, CreatureDef creature) =>
-        device.ObjectTypeId != ElectricChairObjectId || creature.Flags.HasFlag(CreatureFlags.CanBeElectrocuted);
+        device.ObjectTypeId != ElectricChairObjectId || ((creature.Flags & CreatureFlags.CanBeElectrocuted) == CreatureFlags.CanBeElectrocuted);
 
     /// <summary>The time served that converts: the definition's <c>TortureTimeToConvert</c> in
     /// turns (the loader stores seconds × variable 19, <c>0x0049391A</c>), scaled by the level row

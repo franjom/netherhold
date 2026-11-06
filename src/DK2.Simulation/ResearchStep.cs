@@ -330,11 +330,11 @@ public static class ResearchStep
     /// (<c>0x004946C0</c>).</summary>
     private static bool ObjectsToARoomMate(WorldState world, GameDatabase database, RoomInstance room, CreatureState creature)
     {
-        CreatureFlags against = database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsGood)
+        CreatureFlags against = ((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood)
             ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
         foreach (CreatureState c in world.Creatures)
             if (c.HeldPlace.In(room) && c.CreatureTypeId != creature.CreatureTypeId
-                && database.CreatureById(c.CreatureTypeId).Flags.HasFlag(against))
+                && ((database.CreatureById(c.CreatureTypeId).Flags & against) == against))
                 return true;
         return false;
     }
@@ -354,7 +354,7 @@ public static class ResearchStep
         {
             if (!c.HeldPlace.In(room)) continue;
             CreatureDef definition = database.CreatureById(c.CreatureTypeId);
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) continue;
             if (Distance(c.PosX - intruder.PosX, c.PosY - intruder.PosY) >= DisturbReach) continue;
             if (c.Dk2StateId != ReadingLongState) continue;
             if (c.Anger[AngerBucket.Treatment] > CreatureAngerRules.UnhappyAt(definition) * 10 / 100)

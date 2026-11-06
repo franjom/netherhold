@@ -123,7 +123,7 @@ public static class FearRules
     /// hero never withdraws (Q372).</summary>
     public static bool ShouldWithdraw(WorldState world, GameDatabase database, HeartSites hearts, CreatureState me, CreatureDef mine)
     {
-        if (me.CombatPitFighter || mine.Flags.HasFlag(CreatureFlags.IsFearless)
+        if (me.CombatPitFighter || ((mine.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless)
             || CasinoRules.IsFearlessFromGambling(world, me)) return false;
         int d = me.OwnerPlayerId == PlayerIds.Good ? 0 : HeartDistance(world, hearts, me);
         if (d <= WithdrawHeartDistance) return false;
@@ -138,7 +138,7 @@ public static class FearRules
     {
         if (me.OverThreatCounter > CounterReset) me.OverThreatCounter = 0;
         if (me.OverThreatCounter > FleeCount) me.OverThreatCounter = FleeCount;
-        if (me.CombatPitFighter || mine.Flags.HasFlag(CreatureFlags.IsFearless)
+        if (me.CombatPitFighter || ((mine.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless)
             || CasinoRules.IsFearlessFromGambling(world, me))
         {
             me.OverThreatCounter = 0;
@@ -240,7 +240,7 @@ public static class FearRules
 
         if (fromApproach)
         {
-            if (mine.Flags.HasFlag(CreatureFlags.AlwaysFlee)) timer = 0;
+            if (((mine.Flags & CreatureFlags.AlwaysFlee) == CreatureFlags.AlwaysFlee)) timer = 0;
         }
         else if (me.FightTargetKind == FightTargetKind.None || mine.FightStyle == FightStyle.NonFighter) timer = 0;
         else if (me.FightTargetKind == FightTargetKind.Creature)
@@ -826,7 +826,7 @@ public static class FearRules
             CreatureState c = creatures[i];
             if (c.OwnerPlayerId != me.OwnerPlayerId || c.Id == me.Id) continue;
             CreatureDef def = database.CreatureById(c.CreatureTypeId);
-            if (def.Flags.HasFlag(CreatureFlags.IsWorker) || def.Flags.HasFlag(CreatureFlags.IsHorny)) continue;
+            if (((def.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || ((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
             if (CombatRules.InCombat(c) || !CombatRules.MayLookForAFight(world, context.Database, c, force: false)) continue;
             if (c.Activity is not (CreatureActivity.Working or CreatureActivity.AtWork or CreatureActivity.GoingToJob)) continue;
             if (c.JobTileIndex < 0 || !room.TileIndices.Contains(c.JobTileIndex)) continue;
@@ -855,7 +855,7 @@ public static class FearRules
         // anyone else returns 0, idle in this turn (0x00475943-0x00475988).
         CombatStates.Enter(context, me, CreatureStateMachine.Idle);
         CombatStates.Enter(context, me, CombatStates.StandingDown);
-        if (mine.Flags.HasFlag(CreatureFlags.IsWorker))
+        if (((mine.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
             me.ActionUntilTick = context.Tick.Value + AnimationTimingRules.CountedHoldTicks(mine, AlarmArtSlot, 1);
         else
             CombatStates.Idle(context.Hooks, me);

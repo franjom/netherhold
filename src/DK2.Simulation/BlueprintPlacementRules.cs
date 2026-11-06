@@ -34,7 +34,7 @@ public static class BlueprintPlacementRules
     public static Verdict CanDoor(WorldState world, GameDatabase database, TilePos at, PlayerId player, DoorDef door)
     {
         Verdict verdict = CanTrap(world, database, at, player);
-        if (verdict != Verdict.Allowed || door.Flags.HasFlag(DoorFlags.Barricade)) return verdict;
+        if (verdict != Verdict.Allowed || ((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return verdict;
         bool northSouth = Solid(world, database, at.X, at.Y - 1) && Solid(world, database, at.X, at.Y + 1);
         bool eastWest = Solid(world, database, at.X + 1, at.Y) && Solid(world, database, at.X - 1, at.Y);
         return northSouth || eastWest ? Verdict.Allowed : Verdict.NoWalls;
@@ -46,7 +46,7 @@ public static class BlueprintPlacementRules
     /// (<c>0x00518AD0</c>) is given 0, which is not built.</summary>
     public static byte Orientation(WorldState world, GameDatabase database, TilePos at, DoorDef? door)
     {
-        if (door is not null && door.Flags.HasFlag(DoorFlags.Barricade)) return 2;
+        if (door is not null && ((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return 2;
         if (Solid(world, database, at.X - 1, at.Y) && Solid(world, database, at.X + 1, at.Y)) return 1;
         if (Solid(world, database, at.X, at.Y - 1) && Solid(world, database, at.X, at.Y + 1)) return 0;
         return 2;

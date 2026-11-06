@@ -63,7 +63,7 @@ public static class EfficiencyRules
 
         if (creature.WorkFasterTicks > 0) bonuses++;
 
-        if (definition.Flags.HasFlag(CreatureFlags.IsWorker)
+        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
             ? creature.DroppedTask != ImpTaskKind.None
             : creature.DroppedToDoJob != JobType.None)
             bonuses++;

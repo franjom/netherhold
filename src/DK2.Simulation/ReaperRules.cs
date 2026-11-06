@@ -22,7 +22,7 @@ public static class ReaperRules
     {
         foreach (CreatureState creature in world.CreatureOwnershipOrder)
             if (CreatureStateMachine.HasState(creature) && creature.OwnerPlayerId == player.PlayerId
-                && database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny))
+                && ((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
                 return creature;
         return null;
     }
@@ -55,7 +55,7 @@ public static class ReaperRules
 
     public static void AdvanceTimer(SimulationContext context, CreatureState reaper, CreatureDef definition)
     {
-        if (CreatureStateMachine.HasState(reaper) && definition.Flags.HasFlag(CreatureFlags.IsHorny)
+        if (CreatureStateMachine.HasState(reaper) && ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
             && reaper.ReaperTicks != 0 && --reaper.ReaperTicks == 0)
             Depart(context, reaper);
     }
@@ -166,10 +166,10 @@ public static class ReaperRules
     {
         foreach (CreatureDef candidate in database.Creatures.Values)
         {
-            byte id = candidate.Flags.HasFlag(CreatureFlags.IsUnique)
+            byte id = ((candidate.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique)
                 ? checked((byte)candidate.UniqueBaseCreatureId) : candidate.CreatureId;
             if (database.Creatures.TryGetValue(id, out CreatureDef? definition)
-                && definition.Flags.HasFlag(CreatureFlags.IsHorny))
+                && ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
                 return definition;
         }
         return null;

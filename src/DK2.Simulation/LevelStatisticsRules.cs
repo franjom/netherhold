@@ -31,7 +31,7 @@ public static class LevelStatisticsRules
     public static void CreditDeath(WorldState world, CreatureDef creature, CreatureState state, byte credited)
     {
         if (state.Health > 0 || state.DeathUncounted) return;
-        if (credited != 0 && !creature.Flags.HasFlag(CreatureFlags.IsGood) && credited != state.OwnerPlayerId
+        if (credited != 0 && !((creature.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood) && credited != state.OwnerPlayerId
             && world.HasPlayer(credited))
             world.Player(credited).Statistics.EnemyCreaturesKilled++;
         if (world.HasPlayer(state.OwnerPlayerId)) world.Player(state.OwnerPlayerId).Statistics.OwnCreaturesKilled++;

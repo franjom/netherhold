@@ -110,12 +110,12 @@ public sealed record RoomDef
     /// from a hand-built definition, which gets the balance defaults' torch.</summary>
     public RoomTorch? Torch { get; init; }
 
-    public bool IsBuildable => Flags.HasFlag(RoomFlags.Buildable);
-    public bool PlaceableOnLand => Flags.HasFlag(RoomFlags.PlaceableOnLand);
-    public bool PlaceableOnWater => Flags.HasFlag(RoomFlags.PlaceableOnWater);
-    public bool PlaceableOnLava => Flags.HasFlag(RoomFlags.PlaceableOnLava);
-    public bool IsGood => Flags.HasFlag(RoomFlags.IsGood);
-    public bool HasWalls => Flags.HasFlag(RoomFlags.HasWalls);
+    public bool IsBuildable => ((Flags & RoomFlags.Buildable) == RoomFlags.Buildable);
+    public bool PlaceableOnLand => ((Flags & RoomFlags.PlaceableOnLand) == RoomFlags.PlaceableOnLand);
+    public bool PlaceableOnWater => ((Flags & RoomFlags.PlaceableOnWater) == RoomFlags.PlaceableOnWater);
+    public bool PlaceableOnLava => ((Flags & RoomFlags.PlaceableOnLava) == RoomFlags.PlaceableOnLava);
+    public bool IsGood => ((Flags & RoomFlags.IsGood) == RoomFlags.IsGood);
+    public bool HasWalls => ((Flags & RoomFlags.HasWalls) == RoomFlags.HasWalls);
 
     /// <summary>The strongly-typed room type, when it is one we have named.</summary>
     ///

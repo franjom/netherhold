@@ -52,7 +52,7 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         bool directed = creature.Dk2StateId is >= LairRules.SelectingBedState and <= LairRules.SleepingState
             || (StateShadow.IsTravelling(creature)
                 && creature.UtilityNewState is >= LairRules.MakingAHomeState and <= LairRules.SleepingState);
-        if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && !directed) return;
+        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && !directed) return;
         if (!LairRules.NeedsBed(definition) && !directed) return;
 
         // A bed on a tile that has stopped being this keeper's lair is not a

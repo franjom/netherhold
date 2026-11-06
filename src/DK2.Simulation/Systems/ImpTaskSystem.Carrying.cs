@@ -29,7 +29,7 @@ public sealed partial class ImpTaskSystem
         // The kind-8 arm (0x004686D6) scans with no gate, so the draw comes first; the refusals
         // below are the objects handler's (0x0046B9C0), run on the scan's own tile (ADR-0351).
         int side = _only is null ? DrawnStartSide(context) : 0;
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return false;
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return false;
         if (creature.CarriedObjectId >= 0 || creature.CarriedCreatureId >= 0) return false;
         if (_only is TilePos only) return TryObjectAt(context, creature, grid, only);
 
@@ -68,7 +68,7 @@ public sealed partial class ImpTaskSystem
             if (thing.TileIndex != index || !ObjectCarryRules.IsLoose(context.Database, thing)) continue;
             ObjectFlags flags = context.Database.ObjectById(thing.ObjectTypeId)!.Flags;
 
-            if (flags.HasFlag(ObjectFlags.TypeSpecial))
+            if (((flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial))
             {
                 if (specialsFailed) continue;
                 if (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0)
@@ -77,9 +77,9 @@ public sealed partial class ImpTaskSystem
                     continue;
                 }
             }
-            else if (flags.HasFlag(ObjectFlags.TypeCrate) || flags.HasFlag(ObjectFlags.TypeSpellBook))
+            else if (((flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate) || ((flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook))
             {
-                if (flags.HasFlag(ObjectFlags.TypeCrate)
+                if (((flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate)
                     && BlueprintForLooseCrate(context, creature, grid, thing) is { } blueprint
                     && CommitCrateFetch(context, creature, blueprint, thing, "loose"))
                     return true;

@@ -167,7 +167,7 @@ public sealed class WorldHoverText
         _tokens[37] = Number(HealthPercent(door.Health, definition.Health));
         if (door.UnderConstruction) return new(Substitute(_resolve(2512), _tokens), name, hit);
         if (door.PlayerId != _viewer.Value) return new(name, name, hit);
-        if (definition.Flags.HasFlag(DoorFlags.Barricade)) return new(Substitute(_resolve(2536), _tokens), name, hit);
+        if (((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return new(Substitute(_resolve(2536), _tokens), name, hit);
         _tokens[72] = _resolve(door.LockMode != 0 ? 2516u : 2515u);
         return new(Substitute(_resolve(2532), _tokens), name, hit);
     }
@@ -227,7 +227,7 @@ public sealed class WorldHoverText
         if (creature.OwnerPlayerId == PlayerIds.Neutral)
             return new(Substitute(_resolve(2415), _tokens), popup, hit);
         if (creature.OwnerPlayerId != _viewer) return new("", popup, hit);
-        if (definition.Flags.HasFlag(CreatureFlags.IsHorny))
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
             return new(Substitute(_resolve(2793), _tokens), popup, hit);
         _tokens[31] = _resolve((uint)ActionStringId(creature.Dk2StateId, creature.UtilityNewState));
         _tokens[74] = Number(EfficiencyRules.Percent(creature, definition));

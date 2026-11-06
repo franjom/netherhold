@@ -37,7 +37,7 @@ public static class CreatureActivityRules
     public static int Code(CreatureDef definition, CreatureState creature)
     {
         CreatureStateCategory category = NeedRules.ResolvedCategory(creature);
-        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
             return (int)category < ByCategory.Length ? ByCategory[(int)category] : 0;
 
         if (creature.WorkerIdle || creature.LastTaskKind == ImpTaskKind.Reinforce) return Slappable;
