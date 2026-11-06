@@ -15,8 +15,9 @@ Questions: **Q338** (answered here). Follows `combat.md` §6.0, which found the
 melee attack registered into this table and could not say what it was.
 
 **What is built is counted by `dk2tools coverage actions`** (`CreatureActionCoverage`, one row per
-action). Ours has no action table: each rule that mirrors a starting state plays the action's art
-slot with a hold of its own, and `CreatureActionTable` keeps the `+25` sound words.
+action). Ours has no general action dispatcher: rules use their own holds or the shared
+[counted animation clock](animation-clock.md), including [non-worker idle43/44](idle-action-clock.md).
+`CreatureActionTable` keeps the `+25` sound words.
 
 ---
 
@@ -67,10 +68,10 @@ together — *what* it is doing and *when* it started.
 
 It takes the index as a stack argument, fills the parameter block, stamps
 `+0x3A5` from the game turn, clears `+0x3AD`/`+0x3AE`, and sets
-`creature+0x3EA` bit 12 (`PlayInstanceAnimation`) on the way in. Three thin
-wrappers at `0x00496980`, `0x004969D0` and `0x00496A30` call it and then copy
-two or three dwords into `+0x38D` — the same entry point with different argument
-shapes.
+`creature+0x3EA` bit 12 (`PlayInstanceAnimation`) on the way in. Its wrappers
+have distinct argument and post-start handling: [00496980](functions/00496980.md),
+[004969D0](functions/004969D0.md) (the counted wrapper) and
+[00496A30](functions/00496A30.md).
 
 **STRONGLY INFERRED (2026-09-28)**: `+20` selects which of the creature
 record's ~45 `ArtResource` animation blocks to play, counting 84-byte blocks from

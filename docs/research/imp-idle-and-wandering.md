@@ -183,7 +183,8 @@ own-spot fallback. Read while building:
 - **The room point** is `0x004E8430`: a random one of the room's tiles that is neither a floor slot (`0x00454110`) nor a wall slot (`0x00454230`); the obstacle test below comes after the draw, and a failure moves on to the next room (ADR-0676).
 - **`0x00453600`** rejects a tile holding an object flagged Obstacle (bit 14).
 
-Guessed: the idle actions' length. Not built: the throttle.
+Worker state12 uses its existing [counted clip clock](animation-clock.md);
+ADR-0701 separately adds [non-worker idle43/44](idle-action-clock.md). The throttle remains unbuilt.
 
 ## Stored idle flag and remaining limits
 
@@ -205,6 +206,6 @@ timer gate still controls when task selection runs; neutral selection keeps the
 flag, matching the original early-exit ordering. The drop path still compresses
 original landing/state-11 timing. State 11's additional byte at worker-state
 `+0xA2` is unrepresented; this is not a claim that the entire handler is complete.
-Idle-action durations remain guessed. No new original observation validates this
-integration. The mana-removal selector reads the flag live (ADR-0277); the
+The worker clock's evidence and limits are in [animation-clock.md](animation-clock.md).
+No new original observation validates this flag integration. The mana-removal selector reads the flag live (ADR-0277); the
 original run that would validate the whole sequence is Q57.

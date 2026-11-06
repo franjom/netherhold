@@ -195,8 +195,9 @@ bit 0 (6 also sets `+0x3DB = 1`); otherwise they set it. State 7 computes this f
 dwords at `+0xE3`/`+0xE7`, which under its own layout hold the room id, `+0xE5` and
 bytes of the point, so its flag is computed from a meaningless value. The arithmetic
 is STRONGLY INFERRED. `+0xF1` is the flag byte of the animation object at creature `+0x44`, and
-bit 0 is its loop bit: `0x004969D0` clears it for a count below two, and the action
-runner `0x00496AA0` clears it on the last counted cycle. So near the destination the
+bit 0 is its loop bit: the counted wrapper's signed-byte gate is recorded in
+[004969D0](functions/004969D0.md), and the runner's count branches in
+[00496AA0](functions/00496AA0.md). So near the destination the
 walk cycle finishes instead of looping (STRONGLY INFERRED, 2026-10-04).
 
 **The other movement fields** (InsGrep over every disassembled instruction, 2026-10-04).

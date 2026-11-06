@@ -25,15 +25,14 @@ success in a mood chooser skips the handler for that turn.
 
 ## 2. Ours
 
-`CreatureUpdateSystem` runs its steps one creature at a time, newest first by id. The steps, in
-declared order (captured resync-order limits are [Q719](fight-scan-initial-phase.md#captured-input-and-encounter-controls-369)):
-1. `CombatSystem`: the action runner, the scan and the fear radiation;
-2. `CreatureEatSystem`, `CreatureSleepSystem`, `PaydaySystem`;
-3. `CreatureAngerSystem`;
-4. `CombatSystem.States` (the combat states, then the trap reveal), `TremorCreature`, `Reaper`,
-   `Finale`, `CombatPit`, `JackInTheBox`, `CasinoJackpot`, `Hero`, `CreatureJob` (ADR-0555);
-5. `MovementDust`, `CreatureMovement`;
-6. `ImpTask`.
+`CreatureUpdateSystem` runs its steps one creature at a time, newest first by id. The declared steps live in
+[`SimulationSystems.CreatureUpdate`](../../src/DK2.Simulation/Systems/SimulationSystems.cs).
+Timed effects, the worker prelude and experience are included in this per-creature
+walk; captured resync-order limits remain [Q719](fight-scan-initial-phase.md#captured-input-and-encounter-controls-369).
+
+The [non-worker idle43/44 clock](idle-action-clock.md) polls after timed effects and
+the worker prelude, before combat, and advances after the creature's trigger root
+(ADR-0701). Both hooks run once per creature turn; the start is not polled again that turn.
 
 `PaydaySystem.BeginTurn` is the clock. `ManufactureDecaySystem` is in the player frame.
 
@@ -47,8 +46,8 @@ declared order (captured resync-order limits are [Q719](fight-scan-initial-phase
 - The Imp hold keys on the state at the start of the update, where DK2 keys on the state at the
   handler call. The two differ when the fight scan moves an Imp out of state 6 and back within one
   update. States 7 and 265 are not held, and their handlers are unread.
-- These still run as passes over the whole list: status countdowns (`0x0048E160`), footprints,
-  Call to Arms' heeding states, state 96, gold underfoot, health, prison and experience.
+- Some systems still run as whole-list passes; the current phase layout is in
+  [`SimulationSystems.Default`](../../src/DK2.Simulation/Systems/SimulationSystems.cs).
 - The clock's collect decision keeps our mask test and busy test. `0x00472320` makes neither.
 - The fireworks run after the last creature's update, not in the player frame.
 
