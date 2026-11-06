@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -23,6 +24,7 @@ namespace DK2.Unity.Editor
             if (at < 0 || at + 1 == args.Length) throw new ArgumentException("-probeBuild required");
             string output = args[at + 1];
             Directory.CreateDirectory(Path.GetDirectoryName(output));
+            PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, Backend(args));
             IncludeShadersFoundByName();
             var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
             EditorSceneManager.SaveScene(scene, "Assets/GameProbe.unity");
@@ -34,6 +36,19 @@ namespace DK2.Unity.Editor
                 options = BuildOptions.Development,
             });
             if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException(report.summary.result.ToString());
+        }
+
+        /// <summary>Mono unless <c>-probeBackend il2cpp</c>: the same project, compiled ahead of time.</summary>
+        private static ScriptingImplementation Backend(string[] args)
+        {
+            int at = Array.IndexOf(args, "-probeBackend");
+            string backend = at < 0 || at + 1 == args.Length ? "mono" : args[at + 1];
+            switch (backend)
+            {
+                case "mono": return ScriptingImplementation.Mono2x;
+                case "il2cpp": return ScriptingImplementation.IL2CPP;
+                default: throw new ArgumentException($"Unknown -probeBackend '{backend}'");
+            }
         }
 
         /// <summary>The adapter finds its shaders with <c>Shader.Find</c>, which in a player only

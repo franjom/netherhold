@@ -224,10 +224,10 @@ runs each: the HUD's steps summed ~330 ms → ~170–182 ms; hover 37–45 → 7
 resources 38–53 → 7–9, status flowers 36–40 → 8–11, bottom panel 128–155 →
 90–96 ms. The bottom panel's remainder is ~40 UI textures and its own panel.
 
-**IL2CPP** is not measured: the Windows IL2CPP player module is not installed in
-either Unity 6000.6.0f1 install (only Mono variations), and it needs the Visual
-Studio C++ tools. Expected to remove most first-call JIT cost (data loading is
-~4 ms warm in .NET against ~200–350 ms in the Mono player).
+**IL2CPP** was not measurable when this was written (no Windows IL2CPP player
+module). Measured 2026-11-06 in the addendum below: startup 2.88 → 1.54 s on
+Level6a, and the first-call costs this section attributes to the Mono JIT go
+with it.
 
 ## Gates for any eventual implementation
 
@@ -476,8 +476,43 @@ Reading:
   scenario's worst ticks are the nav-mesh rebuilds after the digs land
   (`nav.build` 22 ms, `nav.refresh` 4 × 7 ms), which Unity's frames did not
   show. Scenario: `scenarios/perf/level6a_dig_waves.yaml`. The lever left is
-  the scripting backend: Visual Studio 2026 with the C++ tools is installed,
-  the IL2CPP player module is not.
+  the scripting backend, measured next.
+
+**IL2CPP against Mono, same probe (2026-11-06, Level6a, 90 s, worker ticks,
+60 FPS cap; `run.ps1 -Il2cpp`, which needs the editor's Windows IL2CPP module
+and the Visual Studio C++ tools; `backend.txt` in each run directory).** Mono
+run `20261106-091307`, IL2CPP run `20261106-094552`, both at master
+a7113a8b with the warm-ups of ADR-0688/0689 in place (the JIT warm-up
+compiles out under IL2CPP):
+
+| Level6a, 90 s | Mono | IL2CPP |
+|---|---:|---:|
+| Startup (launch to first frame) | 2,878 ms | 1,540 ms |
+| First frame | 3,191 ms | 1,623 ms |
+| First inline tick | 56 ms | 22 ms |
+| Tick 2 hitch (first worker tick's wait) | 68.7 ms | none logged |
+| Warm-up copy, 8 ticks on a worker | 425 ms | 129 ms |
+| Frame p95 / p99 / max after 2 s | 16.79 / 18.01 / 56.3 ms | 16.76 / 16.87 / 38.1 ms |
+| Frames over 20 ms after 2 s | 18 | 3 |
+| Frames over 33 ms after 2 s | 4 | 1 |
+| Join over 1 ms: frames, max | 12, 38.6 ms | 4, 25.2 ms |
+| Fly-by frames with draw-clock error over 2 ticks/s | 0.45% (7) | 0.13% (2) |
+| Mean present / animation per frame | 1.77 / 0.95 ms | 1.23 / 0.66 ms |
+
+Everything the Mono runs charged to first execution is gone or halved: the
+tick-2 hitch, the 274–276 dig-wave frames (56 and 55 ms under Mono, 38 and
+33 ms here, the remaining cost the nav routes themselves), the HUD and
+present passes. What IL2CPP does not change: the dig wave's tick still
+outruns a frame (join 25 ms), the frames are still at the 60 FPS cap
+(p50 16.67 both), and startup's `prefetch.wait` grew 75 → 346 ms because the
+main thread now reaches the wait before the sound and art prefetch workers
+finish (the same work, no longer hidden behind a slow main thread).
+Recommendation: build players with IL2CPP. The editor's Play mode stays
+Mono, so the Mono warm-ups (ADR-0688's JIT warm-up, ADR-0689's warm-up
+ticks) stay for it; whether the warm-up ticks still pay under IL2CPP (129 ms
+on a worker during loading, first inline tick 22 ms) is a separate, cheaper
+question. The owner's project keeps its backend setting until the owner
+switches it; `run.ps1` defaults to Mono so the earlier runs stay comparable.
 
 **Level8, same probe, 90 s (run `20261106-072230`, inline ticks).** The
 opening tick durations the roadmap's first paragraph asked for: on the 352

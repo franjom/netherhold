@@ -69,6 +69,12 @@ the 1–1.5% target for the draw clock on this path in a headless Development
 player; what remains above 2 ticks/s is frame-time hitches, which the clock
 cannot hide.
 
+**IL2CPP, same path (run `20261106-094552`, 90 s):** 0.13% of frames above 2
+ticks/s (2 of 1590), p95 error 0.08 ticks/s, no boundary hold, against the
+Mono run of the same morning (`-091307`) at 0.45% (7 of 1570) and p95 0.15.
+The two left are the first frame and one 24 ms frame. Comparison table in
+the parallelism plan's addendum.
+
 **After ADR-0688** (HUD fonts, cursor sheets and counter digits loaded at
 startup; the later art decoded in the background; the adapter's and the
 presentation's methods compiled on a worker), same probe and path, run

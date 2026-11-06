@@ -14,6 +14,7 @@ param(
     [int]$CaptureTo = 0,
     [string]$Markers = '',
     [switch]$WorkerTicks,
+    [switch]$Il2cpp,
     [switch]$SkipSync
 )
 $ErrorActionPreference = 'Stop'
@@ -51,6 +52,8 @@ foreach ($folder in @('Assets', 'Packages', 'ProjectSettings')) {
 Copy-Item -LiteralPath "$PSScriptRoot/GameProbe.cs" -Destination "$project/Assets/DK2/GameProbe.cs" -Force
 Copy-Item -LiteralPath "$PSScriptRoot/GameProbeBuild.cs" -Destination "$project/Assets/DK2/Editor/GameProbeBuild.cs" -Force
 
+$backend = $(if ($Il2cpp) { 'il2cpp' } else { 'mono' })
+Set-Content -LiteralPath "$run/backend.txt" -Value $backend
 git -C $repo rev-parse HEAD | Set-Content -LiteralPath "$run/commit.txt"
 git -C $repo status --short | Set-Content -LiteralPath "$run/worktree-status.txt"
 
@@ -68,9 +71,10 @@ function Run-Native([string]$Executable, [string[]]$Arguments, [int]$Minutes, [i
 }
 
 $player = "$run/player/GameProbe.exe"
-Write-Host "Building the Development player (first run imports the project; allow several minutes)..."
+Write-Host "Building the $backend Development player (first run imports the project; IL2CPP compiles C++; allow several minutes)..."
 Run-Native $Unity @('-batchmode', '-quit', '-nographics', '-projectPath', $project,
-    '-executeMethod', 'DK2.Unity.Editor.GameProbeBuild.Build', '-probeBuild', $player, '-logFile', "$run/build.log") 40
+    '-executeMethod', 'DK2.Unity.Editor.GameProbeBuild.Build', '-probeBuild', $player, '-probeBackend', $backend,
+    '-logFile', "$run/build.log") 60
 if (!(Test-Path -LiteralPath $player)) { throw "No player was built; see $run/build.log" }
 
 Write-Host "Playing $Level for $Seconds s..."

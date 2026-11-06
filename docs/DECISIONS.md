@@ -16215,8 +16215,8 @@ parallelism plan). Nothing is known about how DK2 itself schedules these loads; 
   no change in the frame; the function pointer compiles them in 472 ms). It only compiles; no type
   initialiser runs off the main thread. Not during loading and not the simulation assembly: compiling
   all three from the top of `StartGame` took 1.8 s on the worker, the JIT lock stretched loading by
-  1.4 s, and tick 2's first-tick wait did not shrink. IL2CPP would make the warm-up unnecessary; its
-  Windows module is not installed (parallelism plan).
+  1.4 s, and tick 2's first-tick wait did not shrink. IL2CPP compiles the warm-up out (`ENABLE_IL2CPP`);
+  measured 2026-11-06, it also removes the first-execution costs here (parallelism plan addendum).
 - The hitch line also names `DK2.Frame.Hover`, `Hud`, `Flowers`, `Minimap` and `WorldSound`, and the
   hover and input passes carry `DK2.Hover.*` and `DK2.Input.*` markers.
 
