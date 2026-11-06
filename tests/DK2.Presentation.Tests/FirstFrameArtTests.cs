@@ -20,8 +20,8 @@ public sealed class FirstFrameArtTests
     [InstallFact]
     public void TheKeysCoverEveryAssetAPresentOfTheSameWorldPasses()
     {
-        // The runner presents after the first tick, whose additions load on request; what the
-        // keys promise is the world they were read from.
+        // The runner presents after the first tick, whose additions the later keys cover; what the
+        // first-frame keys promise is the world they were read from.
         (GameDatabase database, GameSimulation simulation) = Level8();
         IReadOnlyCollection<AssetRef> keys = FirstFrameArt.Keys(database, simulation.World, Viewer);
 
@@ -60,12 +60,35 @@ public sealed class FirstFrameArtTests
         (GameDatabase database, GameSimulation read) = Level8();
         (_, GameSimulation untouched) = Level8();
 
-        FirstFrameArt.Keys(database, read.World, Viewer);
+        IReadOnlyCollection<AssetRef> first = FirstFrameArt.Keys(database, read.World, Viewer);
+        FirstFrameArt.LaterKeys(database, read.World, Viewer, first);
         for (int tick = 0; tick < 40; tick++)
         {
             read.Tick();
             untouched.Tick();
             Assert.Equal(untouched.StateHash(), read.StateHash());
+        }
+    }
+
+    [InstallFact]
+    public void TheLaterKeysHoldEveryClipOfEachPresentCreatureTypeAndNothingOfTheFirstFrame()
+    {
+        (GameDatabase database, GameSimulation simulation) = Level8();
+        IReadOnlyCollection<AssetRef> first = FirstFrameArt.Keys(database, simulation.World, Viewer);
+        simulation.Tick();
+        var later = new HashSet<AssetRef>(FirstFrameArt.LaterKeys(database, simulation.World, Viewer, first));
+
+        Assert.NotEmpty(later);
+        Assert.Empty(later.Intersect(first));
+        var present = new HashSet<string>(new WorldView(database, Viewer).Creatures(simulation.World)
+            .Where(creature => !creature.Mesh.IsEmpty).Select(creature => creature.Mesh.Subject));
+        Assert.NotEmpty(present);
+        foreach (CreatureDef creature in database.Creatures.Values)
+        {
+            bool expected = present.Contains(AssetRef.ForCreature(creature.Name, AssetKind.Mesh).Subject);
+            foreach (AssetRef key in AssetCatalogue.ForCreature(creature))
+                Assert.True(expected ? later.Contains(key) || first.Contains(key) : !later.Contains(key),
+                    expected ? key + " is not decoded ahead" : key + " belongs to a creature type not present");
         }
     }
 

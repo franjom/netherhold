@@ -64,7 +64,8 @@ namespace DK2.Unity
         // its own column and its own line in the summary: for finding a hotspot inside one.
         private (string Column, string Marker, ProfilerCategory Category)[] Recorded = Standard;
 
-        private const int Tick = 1, Present = 2, Animated = 3, Chunk = 4, ImpTask = 5, Grid = 6, Nav = 7, WaitTick = 18;
+        private const int Tick = 1, Present = 2, Animated = 3, Chunk = 4, ImpTask = 5, Grid = 6, Nav = 7;
+        private static readonly int WaitTick = Array.FindIndex(Standard, r => r.Marker == "DK2.Simulation.WaitForTick");
 
         // Frames in the first seconds of play are left out of the summary: the first full present.
         private const float WarmUpSeconds = 2;
@@ -77,9 +78,7 @@ namespace DK2.Unity
         private int _count;
         private DungeonRunner _runner;
         private List<PlayerCommand> _pending;
-        private DungeonScene _scene;
-        private FieldInfo _renderSeconds;
-        private DK2.Presentation.ScriptedViewDirector _scriptedView;
+        private bool _workerTicks;
         private string _output;
         private float _duration, _captureFrom, _captureTo;
         private int _frame, _gcCount, _errors;
@@ -93,11 +92,10 @@ namespace DK2.Unity
             public float Seconds;
             public double FrameMs;
             public long Ticks, GridCalls, GcBytes;
-            // The draw clock (DungeonScene._renderSeconds * 4, in ticks) and the camera after the
-            // runner's last Update, and whether a scripted camera path was playing: for measuring
-            // the evenness of a fly-by against wall time, as the Level8 motion probe does.
+            // The draw clock in ticks and the camera after the runner's last Update, and whether a
+            // scripted camera path was playing: the evenness of a fly-by against wall time.
             public double RenderTick;
-            public float CamX, CamY, CamZ;
+            public Vector3 Camera;
             public bool Path;
         }
 
@@ -154,7 +152,8 @@ namespace DK2.Unity
             // game's own path runs instead: the recorders collect on every thread
             // (ProfilerRecorderOptions.Default has no CollectOnlyOnCurrentThread), so tick_ms is the
             // worker's time and wait_tick_ms is how long the next Update's join blocked.
-            Set("tickOnWorkerThread", Arg("-workerTicks", "0") != "0");
+            _workerTicks = Arg("-workerTicks", "0") != "0";
+            Set("tickOnWorkerThread", _workerTicks);
             _pending = (List<PlayerCommand>)typeof(DungeonRunner)
                 .GetField("_pendingCommands", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
 
@@ -231,22 +230,17 @@ namespace DK2.Unity
             int at = _count * Recorded.Length;
             for (int i = 0; i < _recorders.Count; i++)
                 _values[at + i] = _recorders[i].Valid ? _recorders[i].LastValue / 1e6 : double.NaN;
-            if (_scene == null)
-            {
-                _scene = (DungeonScene)typeof(DungeonRunner).GetField("_scene", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
-                _renderSeconds = typeof(DungeonScene).GetField("_renderSeconds", BindingFlags.Instance | BindingFlags.NonPublic);
-                _scriptedView = (DK2.Presentation.ScriptedViewDirector)typeof(DungeonRunner).GetField("_scriptedView", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
-            }
-            Vector3 camera = Camera.main != null ? Camera.main.transform.position : default;
+            DungeonScene scene = _runner.Scene;
+            Camera camera = Camera.main;
             _rows[_count++] = new Row
             {
                 Frame = frame, Seconds = seconds, FrameMs = frameMs, Collections = collections,
                 Ticks = _recorders[Tick].Valid ? _recorders[Tick].GetSample(0).Count : 0,
                 GridCalls = _recorders[Grid].Valid ? _recorders[Grid].GetSample(0).Count : 0,
                 GcBytes = _gcAllocated.Valid ? _gcAllocated.LastValue : -1,
-                RenderTick = _scene != null && _renderSeconds != null ? (double)_renderSeconds.GetValue(_scene) * 4 : double.NaN,
-                CamX = camera.x, CamY = camera.y, CamZ = camera.z,
-                Path = _scriptedView != null && _scriptedView.PathPlaying,
+                RenderTick = scene != null ? scene.DrawSeconds * SimulationTiming.TicksPerSecond : double.NaN,
+                Camera = camera != null ? camera.transform.position : default,
+                Path = _runner.ScriptedView != null && _runner.ScriptedView.PathPlaying,
             };
         }
 
@@ -299,12 +293,13 @@ namespace DK2.Unity
                 $"frames over 33 ms: {rows.Count(i => _rows[i].FrameMs > 33)}; with a tick: {rows.Count(i => _rows[i].Ticks > 0)}; gen-0 collections: {rows.Sum(i => _rows[i].Collections)}; GC allocated {rows.Where(i => _rows[i].GcBytes > 0).Sum(i => _rows[i].GcBytes) / 1048576.0:F1} MB"));
             text.AppendLine(FormattableString.Invariant(
                 $"mean frame without a tick {MeanOf(i => _rows[i].FrameMs, false):F2} ms (present {MeanOf(i => Value(i, Present), false):F2}, animation {MeanOf(i => Value(i, Animated), false):F2}); with a tick {MeanOf(i => _rows[i].FrameMs, true):F2} ms (tick {MeanOf(i => Value(i, Tick), true):F2})"));
-            if (_runner != null && (bool)typeof(DungeonRunner).GetField("tickOnWorkerThread", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner))
+            if (_workerTicks)
             {
-                // Worker ticks: how often the next Update's join found the tick still running.
-                int[] waits = rows.Where(i => Value(i, WaitTick) > 1).ToArray();
+                // How often the next Update's join found the tick still running.
+                int[] joined = rows.Where(i => Value(i, WaitTick) > 1).ToArray();
+                double[] waits = joined.Select(i => Value(i, WaitTick)).DefaultIfEmpty(0).ToArray();
                 text.AppendLine(FormattableString.Invariant(
-                    $"worker ticks: join over 1 ms in {waits.Length} frames (mean {(waits.Length > 0 ? waits.Average(i => Value(i, WaitTick)) : 0):F2} ms, max {(waits.Length > 0 ? waits.Max(i => Value(i, WaitTick)) : 0):F2}); frames over 33 ms with such a join: {waits.Count(i => _rows[i].FrameMs > 33)}"));
+                    $"worker ticks: join over 1 ms in {joined.Length} frames (mean {waits.Average():F2} ms, max {waits.Max():F2}); frames over 33 ms with such a join: {joined.Count(i => _rows[i].FrameMs > 33)}"));
             }
             for (int m = Standard.Length; m < Recorded.Length; m++)
             {
@@ -338,8 +333,8 @@ namespace DK2.Unity
         private string CheckChunksAgainstFullRebuild()
         {
             const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
-            object scene = typeof(DungeonRunner).GetField("_scene", Private).GetValue(_runner);
-            object terrain = scene?.GetType().GetField("_terrain", Private).GetValue(scene);
+            DungeonScene scene = _runner.Scene;
+            object terrain = scene == null ? null : typeof(DungeonScene).GetField("_terrain", Private).GetValue(scene);
             if (terrain == null) return "chunk cache check: no classic terrain";
             Type type = terrain.GetType();
             var chunks = (Dictionary<int, GameObject>)type.GetField("_chunks", Private).GetValue(terrain);
@@ -397,15 +392,16 @@ namespace DK2.Unity
                 csv.Append(r.Frame).Append(',').Append(r.Seconds.ToString("F3", CultureInfo.InvariantCulture)).Append(',')
                     .Append(r.FrameMs.ToString("F3", CultureInfo.InvariantCulture)).Append(',').Append(r.Ticks).Append(',')
                     .Append(r.GridCalls).Append(',').Append(r.GcBytes).Append(',').Append(r.Collections).Append(',')
-                    .Append(r.RenderTick.ToString("R", CultureInfo.InvariantCulture)).Append(',')
-                    .Append(r.CamX.ToString("R", CultureInfo.InvariantCulture)).Append(',')
-                    .Append(r.CamY.ToString("R", CultureInfo.InvariantCulture)).Append(',')
-                    .Append(r.CamZ.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(r.Path ? 1 : 0);
+                    .Append(Exact(r.RenderTick)).Append(',').Append(Exact(r.Camera.x)).Append(',')
+                    .Append(Exact(r.Camera.y)).Append(',').Append(Exact(r.Camera.z)).Append(',').Append(r.Path ? 1 : 0);
                 for (int m = 0; m < Recorded.Length; m++)
                     csv.Append(',').Append(Value(i, m).ToString("F3", CultureInfo.InvariantCulture));
                 csv.AppendLine();
             }
             File.WriteAllText(Path.Combine(_output, "frames.csv"), csv.ToString());
         }
+
+        // Round-trip exact, so a step between two frames' clocks is the difference the game saw.
+        private static string Exact(double value) => value.ToString("R", CultureInfo.InvariantCulture);
     }
 }

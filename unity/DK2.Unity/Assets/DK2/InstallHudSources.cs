@@ -20,6 +20,7 @@ namespace DK2.Unity
     {
         private readonly InstallArtProvider _art;
         private readonly Dictionary<string, BitmapFont> _fonts = new Dictionary<string, BitmapFont>();
+        private readonly Dictionary<string, Task<BitmapFont>> _pendingFonts = new Dictionary<string, Task<BitmapFont>>();
         private EngineTextureArchive _opened;
         private Dk2ArtCatalogue _catalogue;
         private Dk2StringTable _strings;
@@ -61,23 +62,16 @@ namespace DK2.Unity
             return font;
         }
 
-        private readonly Dictionary<string, Task<BitmapFont>> _pendingFonts = new Dictionary<string, Task<BitmapFont>>();
-
-        /// <summary>Reads fonts on worker threads, so a panel's first draw does not pay the ~30 ms
-        /// a BF4 parse costs: the hover HUD's first draw after the opening camera path paid two of
-        /// them in one frame (ADR-0688). Main thread only; the workers only parse.</summary>
-        public Task PrefetchFonts(params string[] files)
+        /// <summary>Reads fonts on worker threads, so a panel's first draw does not pay the ~30 ms a
+        /// BF4 parse costs (ADR-0688). Main thread only; the workers only parse.</summary>
+        public void PrefetchFonts(IEnumerable<string> files)
         {
-            var started = new List<Task>();
             foreach (string file in files)
             {
                 if (_fonts.ContainsKey(file) || _pendingFonts.ContainsKey(file)) continue;
                 string path = Path.Combine(TextDirectory, file);
-                Task<BitmapFont> task = Task.Run(() => Bf4FontReader.Open(path));
-                _pendingFonts.Add(file, task);
-                started.Add(task);
+                _pendingFonts.Add(file, Task.Run(() => Bf4FontReader.Open(path)));
             }
-            return Task.WhenAll(started);
         }
 
         public void Dispose()

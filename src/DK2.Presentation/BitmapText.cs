@@ -71,6 +71,15 @@ public static class InterfaceFonts
     /// </summary>
     public static string HudTooltipFileName(int screenHeight) => $"FONT_INGAME{HudTooltipFontSize(screenHeight)}.bf4";
 
+    /// <summary>Every font the in-game HUD draws with at this screen height: the status strip and
+    /// hover popup, the tooltip, the legible panel text, and the message tabs' smaller legible
+    /// size (85% of the height).</summary>
+    public static string[] HudFileNames(int screenHeight) =>
+    [
+        HudTextFileName(screenHeight), HudTooltipFileName(screenHeight),
+        LegibleFileName(screenHeight), LegibleFileName(screenHeight * 85 / 100),
+    ];
+
     /// <summary>The tooltip's target pixel height: 1.3 × height / 120.</summary>
     public static float HudTooltipPixels(int screenHeight) => screenHeight * 1.3f / 120f;
 

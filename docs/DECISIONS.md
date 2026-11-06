@@ -16199,8 +16199,8 @@ parallelism plan). Nothing is known about how DK2 itself schedules these loads; 
 **Decision.**
 - `InstallHudSources.PrefetchFonts` parses fonts on workers; `Font` waits for a pending parse. `StartGame`
   prefetches the HUD text, tooltip and legible fonts for the screen height while the HUD is built.
-- `ClassicHandCursor.Prepare` decodes the sheets of the kinds a pointer shows at rest and over the map, and
-  `ClassicResourceHud.Prepare` the digit, sign and rate textures, both at startup.
+- `ClassicHandCursor.Prepare` decodes every kind's sheet at startup, and `ClassicResourceHud` loads its
+  digit, sign and rate textures in its constructor beside the panel textures it already loaded there.
 - `FirstFrameArt.LaterKeys` lists, after the first tick, every clip and the dead mesh of each creature type
   present (by key prefix, so a mesh variant still brings its type) and the objects, decorations and
   structures the first tick added, less the first frame's keys. `DungeonRunner` decodes them on workers in

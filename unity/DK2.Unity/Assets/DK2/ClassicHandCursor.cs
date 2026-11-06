@@ -78,11 +78,10 @@ namespace DK2.Unity
             if (_manageSystemPointer) Cursor.visible = false;
         }
 
-        /// <summary>Loads the sheets of these kinds now, so the first frame the cursor shows after the
-        /// opening camera path does not decode a sprite and key out its green (ADR-0688).</summary>
-        public void Prepare(params HandCursorKind[] kinds)
+        /// <summary>Loads every kind's sheet now, so no frame decodes one on first use (ADR-0688).</summary>
+        public void Prepare()
         {
-            foreach (HandCursorKind kind in kinds)
+            foreach (HandCursorKind kind in (HandCursorKind[])Enum.GetValues(typeof(HandCursorKind)))
                 if (kind != HandCursorKind.Default) Sheet(kind);
         }
 
@@ -99,10 +98,13 @@ namespace DK2.Unity
                 throw new InvalidDataException("Cursor sheet does not match its native frame table: " + sprite.FileName);
             }
             image.filterMode = FilterMode.Bilinear; image.wrapMode = TextureWrapMode.Clamp;
-            Color32[] pixels = image.GetPixels32();
+            var pixels = image.GetRawTextureData<Color32>();
             for (int i = 0; i < pixels.Length; i++)
-                if (pixels[i].r == 0 && pixels[i].g == 255 && pixels[i].b == 0) pixels[i].a = 0;
-            image.SetPixels32(pixels); image.Apply();
+            {
+                Color32 pixel = pixels[i];
+                if (pixel.r == 0 && pixel.g == 255 && pixel.b == 0) { pixel.a = 0; pixels[i] = pixel; }
+            }
+            image.Apply();
             _textures.Add(kind, image);
             return image;
         }

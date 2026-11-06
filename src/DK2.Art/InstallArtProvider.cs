@@ -4,6 +4,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Threading;
 using DK2.Art.Kmf;
 using DK2.Art.Textures;
 using DK2.Assets;
@@ -206,7 +207,7 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     /// A key this provider does not answer is skipped, as is anything that fails to decode: a later
     /// load reports that as it always has. Safe alongside other loads.
     /// </summary>
-    public void Prefetch(IEnumerable<AssetRef> keys, int workers)
+    public void Prefetch(IEnumerable<AssetRef> keys, int workers, CancellationToken cancellation = default)
     {
         if (keys is null) throw new ArgumentNullException(nameof(keys));
         var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -218,23 +219,30 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
             if (TryResolveSegment(asset, AnimationSegment.End, out ResolvedAsset end)) entries.Add(end.InstallEntry!);
         }
 
-        var options = new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, workers) };
+        var options = new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, workers), CancellationToken = cancellation };
         var textures = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-        Parallel.ForEach(entries, options, entry =>
+        try
         {
-            if (!TryPrefetch(() => LoadEntry(entry, counted: false), out KmfModel model)) return;
-            foreach (KmfMaterial material in model.Materials)
+            Parallel.ForEach(entries, options, entry =>
             {
-                if (material.TextureNames.Count > 0)
+                if (!TryPrefetch(() => LoadEntry(entry, counted: false), out KmfModel model)) return;
+                foreach (KmfMaterial material in model.Materials)
                 {
-                    textures.TryAdd(material.TextureNames[0], true);
-                    textures.TryAdd(material.TextureNames[material.TextureNames.Count - 1], true);
+                    if (material.TextureNames.Count > 0)
+                    {
+                        textures.TryAdd(material.TextureNames[0], true);
+                        textures.TryAdd(material.TextureNames[material.TextureNames.Count - 1], true);
+                    }
+                    else if (!string.IsNullOrEmpty(material.EnvironmentTextureName))
+                        textures.TryAdd(material.EnvironmentTextureName, true);
                 }
-                else if (!string.IsNullOrEmpty(material.EnvironmentTextureName))
-                    textures.TryAdd(material.EnvironmentTextureName, true);
-            }
-        });
-        Parallel.ForEach(textures.Keys, options, name => TryPrefetch(() => LoadTexture(name, counted: false), out _));
+            });
+            Parallel.ForEach(textures.Keys, options, name => TryPrefetch(() => LoadTexture(name, counted: false), out _));
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelled by a level change: what was decoded stays decoded, the rest loads on request.
+        }
     }
 
     // A failure here is left for the load that needs the art, which reports it as it always has.

@@ -90,6 +90,19 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     /// <summary>What kind of asset this is. Part of the identity, not a lookup.</summary>
     public AssetKind Kind { get; }
 
+    /// <summary>The normalised subject, e.g. <c>imp</c> of <c>creature.imp.mesh</c>: what every
+    /// asset of one creature, object or terrain shares.</summary>
+    public string Subject
+    {
+        get
+        {
+            string key = Key;
+            int start = key.IndexOf('.') + 1;
+            int end = key.IndexOf('.', start);
+            return end < 0 ? key.Substring(start) : key.Substring(start, end - start);
+        }
+    }
+
     /// <summary>True for a <c>default</c> value, which is not a usable reference.</summary>
     public bool IsEmpty => _key is null;
 

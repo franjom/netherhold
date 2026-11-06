@@ -91,7 +91,17 @@ namespace DK2.Unity
             _payday = Picture(Texture("GUI\\Windows\\payday-BG"));
             _gold = new NumericRow(this); _mana = new NumericRow(this);
             _income = new NumericRow(this); _upkeep = new NumericRow(this);
+            // The counters' glyphs, like the panels above: decoded here rather than by the first draw
+            // with the HUD visible, which comes after the opening camera path (ADR-0688).
+            foreach (string family in new[] { LargeDigits, SmallDigits, RateDigits })
+                for (int digit = 0; digit <= 9; digit++) Texture(family + digit.ToString(CultureInfo.InvariantCulture));
+            Texture(MinusSign);
+            foreach (string suffix in new[] { "in", "out", "+", "-" }) Texture(RateDigits + suffix);
         }
+
+        // The glyph families: one texture per digit, icon or sign after the prefix.
+        private const string LargeDigits = "GUI\\Icons\\i-", SmallDigits = "GUI\\Icons\\lo-";
+        private const string RateDigits = "GUI\\Icons\\Mana\\s-", MinusSign = "GUI\\Icons\\i--";
 
         public void SetVisibility(HudVisibility visibility)
         {
@@ -105,16 +115,6 @@ namespace DK2.Unity
         public KeeperResourceKind ResourceAt(Vector3 screenPosition) => !_visible || !_allowInput
             ? KeeperResourceKind.None : KeeperResourceInteraction.HitTest(
                 new System.Numerics.Vector2(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false).x, ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false).y), Height);
-
-        /// <summary>Decodes the digit textures the counters draw with, so the first draw after the
-        /// opening camera path does not (ADR-0688).</summary>
-        public void Prepare()
-        {
-            foreach (string family in new[] { "GUI\\Icons\\i-", "GUI\\Icons\\lo-", "GUI\\Icons\\Mana\\s-" })
-                for (int digit = 0; digit <= 9; digit++) Texture(family + digit.ToString(CultureInfo.InvariantCulture));
-            Texture("GUI\\Icons\\i--");
-            foreach (string suffix in new[] { "in", "out", "+", "-" }) Texture("GUI\\Icons\\Mana\\s-" + suffix);
-        }
 
         public void Draw(KeeperResourceSnapshot snapshot) => Draw(snapshot, default);
 
@@ -145,7 +145,7 @@ namespace DK2.Unity
             Place(_payday, goldLeft, y, V(160), V(160));
             Place(_paydayFill, goldLeft, y, V(160), V(160));
             _paydayGauge.Update(snapshot.Payday);
-            string family = Width >= 640 ? "GUI\\Icons\\i-" : "GUI\\Icons\\lo-";
+            string family = Width >= 640 ? LargeDigits : SmallDigits;
             _mana.Draw(snapshot.Mana.Value, family, V(172), V(32), V(48), V(40), 7,
                 new Color32(0, 252, 156, 255));
             _mana.SetVisible(frame.ShowManaNumbers);
@@ -158,9 +158,9 @@ namespace DK2.Unity
             _income.SetVisible(rates); _upkeep.SetVisible(rates);
             if (rates)
             {
-                _income.Draw(snapshot.Income.Value, "GUI\\Icons\\Mana\\s-", V(184), V(88), V(64), V(16), 0,
+                _income.Draw(snapshot.Income.Value, RateDigits, V(184), V(88), V(64), V(16), 0,
                     new Color32(50, 255, 50, 255), "in", "+");
-                _upkeep.Draw(snapshot.Upkeep.Value, "GUI\\Icons\\Mana\\s-", V(360), V(88), V(64), V(16), 0,
+                _upkeep.Draw(snapshot.Upkeep.Value, RateDigits, V(360), V(88), V(64), V(16), 0,
                     new Color32(255, 50, 50, 255), "out", "-");
                 if (!frame.ShowManaNumbers) { _income.SetVisible(false); _upkeep.SetVisible(false); }
             }
@@ -248,7 +248,7 @@ namespace DK2.Unity
                     if (changed)
                     {
                         string suffix = i == 0 && prefix != 0 ? icon : i == 1 && prefix != 0 ? sign : _digits[i - prefix].ToString();
-                        glyph.image = _hud.Texture(suffix == "-" && prefix == 0 ? "GUI\\Icons\\i--" : family + suffix);
+                        glyph.image = _hud.Texture(suffix == "-" && prefix == 0 ? MinusSign : family + suffix);
                     }
                     glyph.tintColor = color;
                     Place(glyph, x + i * advance, y, size, size);

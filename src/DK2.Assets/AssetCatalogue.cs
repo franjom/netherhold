@@ -320,16 +320,19 @@ public static class AssetCatalogue
     public static IEnumerable<AssetRef> ForCreatures(GameDatabase database)
     {
         foreach (byte id in Sorted(database.Creatures.Keys))
-        {
-            CreatureDef creature = database.Creatures[id];
-            yield return AssetRef.ForCreature(creature.Name, AssetKind.Mesh);
-            yield return AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead");
+            foreach (AssetRef key in ForCreature(database.Creatures[id]))
+                yield return key;
+    }
 
-            foreach (string animation in CreatureAnimations)
-                yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
-            foreach (string animation in CreatureActionAnimations)
-                yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
-        }
+    /// <summary>One creature type's art: its living and corpse meshes and every animation.</summary>
+    public static IEnumerable<AssetRef> ForCreature(CreatureDef creature)
+    {
+        yield return AssetRef.ForCreature(creature.Name, AssetKind.Mesh);
+        yield return AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead");
+        foreach (string animation in CreatureAnimations)
+            yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
+        foreach (string animation in CreatureActionAnimations)
+            yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
     }
 
     /// <summary>

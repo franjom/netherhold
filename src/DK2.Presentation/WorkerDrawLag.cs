@@ -4,15 +4,11 @@
 
 namespace DK2.Presentation;
 
-/// <summary>The draw clock's lag behind the tick clock on the worker-thread path (ADR-0687).
-/// A frame that owes a tick starts it at its end, so its draw cannot have the tick's poses: with
-/// the draw clock at the tick clock the fraction clamps at the boundary and the next frame catches
-/// up, one hitch per tick. Drawing one frame behind, the owing frame still lies inside the
-/// interval it has, and the next frame, with the tick joined, continues from there. The lag is the
-/// frame interval the game is running at, followed by a short average so a capped or vsynced game
-/// settles on it exactly; a frame longer than the lag clamps as before, by its excess, and a frame
-/// shorter holds by the difference, both bounded by the frame-time variation itself. Never more
-/// than one tick, so a stall cannot hide a whole tick of motion.</summary>
+/// <summary>The draw clock's lag behind the tick clock on the worker-thread path (ADR-0687): one
+/// frame at the rate the game is running at, so the frame that owes a tick still draws inside the
+/// interval of poses it has instead of clamping at the boundary. A short average of the frame
+/// interval, so a capped or vsynced game settles on it exactly; never more than one tick, so a
+/// stall cannot hide a whole tick of motion.</summary>
 public sealed class WorkerDrawLag
 {
     private const double Smoothing = 0.2;
