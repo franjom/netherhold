@@ -49,3 +49,40 @@ What a capture cannot do yet: play the dig burst (the probe tags walls through
 the runner's input queue; a release player has no test controller), or
 certify against `frame_budget.py`, whose capture shape is the Level2 portal
 introduction probe's. Evidence from another machine goes to `F:\DK2Evidence\`.
+
+## Local rendered regression gate
+
+Budgets, evidence requirements and baseline policy live in
+[PERFORMANCE.md](../../docs/PERFORMANCE.md#regression-guards). First commission
+three reviewed current-build baseline captures with the settings below, using
+distinct output folders; review the logs and rendered content before retaining
+them as the baseline. Keep captures and reports under `F:\DK2Evidence\` add-only.
+
+```powershell
+# In an elevated PowerShell, capture each baseline separately (repeat with new output paths):
+& 'F:/DK2Evidence/packages/current/capture.ps1' -Install 'C:/Games/Dungeon Keeper 2' `
+    -Level level6a -Seed 1 -Seconds 40 -Width 1920 -Height 1080 -Windowed `
+    -FrameCap -1 -VSync 0 -Output 'F:/DK2Evidence/performance/baseline-1'
+
+# Use a PowerShell array for baseline paths, including paths containing spaces.
+$baseline = @('F:/DK2Evidence/performance/baseline-1',
+              'F:/DK2Evidence/performance/baseline-2',
+              'F:/DK2Evidence/performance/baseline-3')
+& tools/tester-package/run-regression.ps1 -Package 'F:/DK2Evidence/packages/candidate' `
+    -Install 'C:/Games/Dungeon Keeper 2' -Baseline $baseline `
+    -OutputRoot 'F:/DK2Evidence/performance/candidates'
+
+# Or compare already captured runs; each variable is an array of capture directories:
+$candidate = @('F:/DK2Evidence/performance/candidate-1',
+               'F:/DK2Evidence/performance/candidate-2',
+               'F:/DK2Evidence/performance/candidate-3')
+python tools/tester-package/compare_captures.py --baseline @baseline --candidate @candidate
+```
+
+The wrapper records three candidate runs serially in a unique output directory
+and writes `comparison.json` there. It uses the supplied reviewed baseline
+paths and returns the comparison's exit code. It does not replace the baseline.
+Rebuild the package to include the current `capture.ps1`: its structured
+`player-arguments.json` preserves arguments containing spaces. The checker
+prefers it and falls back to legacy `player-arguments.txt`; old captures whose
+unquoted paths contain spaces need fresh captures from the updated package.

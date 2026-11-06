@@ -279,7 +279,7 @@ Measured gains, regression checks and remaining costs: verification document.
 Arrival rendering shares vertex uploads, culls offscreen triangles and retains
 index capacity. The performance target remains unmet; buffer-churn measurements
 and residual first-use/worker costs: [arrival performance](research/portal-arrival-performance.md).
-Acceptance and remaining coverage: [performance policy](PERFORMANCE.md).
+Acceptance, remaining coverage and regression guards (baseline and remote enforcement pending): [performance policy](PERFORMANCE.md).
 The debug FPS/frame-time display is built; usage and rotation profiling protocol:
 [Unity performance guidance](../unity/README.md#measuring-performance).
 Creature/cinematic timing now shares a late draw clock (ADR-0501); native tile

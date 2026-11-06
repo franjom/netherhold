@@ -149,10 +149,12 @@ jobs:
         run: dotnet restore DK2.slnx
 
       - uses: actions/setup-python@v6
-        if: runner.os == 'Windows'
         with:
           python-version: '3.13'
           architecture: 'x64'
+
+      - name: Rendered capture comparison regression tests (no GPU required)
+        run: python -m unittest discover -s tools/tester-package -p "test_*.py" -v
 
       - name: Native decision recorder gate (no DK2 install)
         if: runner.os == 'Windows'
@@ -185,6 +187,11 @@ jobs:
           dotnet test tests/DK2.Simulation.Tests/DK2.Simulation.Tests.csproj
           --no-build --configuration Release
           --filter "FullyQualifiedName~DeterminismTests|FullyQualifiedName~SnapshotTests"
+
+      - name: Allocation and presentation thread regression gate (no DK2 install)
+        run: >
+          dotnet test DK2.slnx --no-build --configuration Release
+          --filter "FullyQualifiedName~AllocationBudgetTests|FullyQualifiedName~StateCopyTests|FullyQualifiedName~DeferredEventSinkTests|FullyQualifiedName~WorkerDrawLagTests"
 
       - name: Test
         # EXPECT SKIPS HERE, and read the count. This runner has no Dungeon
