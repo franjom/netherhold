@@ -81,6 +81,7 @@ public class ObjectViewTests
         var view = new WorldView(database);
         ObjectView before = view.Objects(world).Single(o => o.Id == egg.Id);
         view.CaptureObjectPositions(world);
+        view.PresentObjectPositions(world);
         new GameSimulation(database, world, 7, []).Tick();
         egg.PosZ = 6000;
         egg.DrawPitch = 128;
@@ -106,6 +107,7 @@ public class ObjectViewTests
         ObjectCarryRules.FollowCarrier(world, imp, book);
         var view = new WorldView(database);
         view.CaptureObjectPositions(world);
+        view.PresentObjectPositions(world);
         int previousX = imp.PosX;
 
         new GameSimulation(database, world, 7, []).Tick();
@@ -158,6 +160,7 @@ public class ObjectViewTests
         lord.PosX += 0x300;
         var view = new WorldView(database);
         view.CaptureObjectPositions(world);
+        view.PresentObjectPositions(world);
 
         Assert.DoesNotContain(view.Objects(world), o => o.Id == gem.Id);
         Assert.Equal((0, 0), (gem.PosX, gem.PosY));
@@ -212,6 +215,7 @@ public class ObjectViewTests
         for (int step = 0; step < 2; step++)
         {
             view.CaptureObjectPositions(world);
+            view.PresentObjectPositions(world);
             int previousX = chicken.PosX;
             simulation.Tick();
             chicken.PosX += 100;
@@ -223,6 +227,7 @@ public class ObjectViewTests
         }
         chicken.InHand = true;
         view.CaptureObjectPositions(world);
+        view.PresentObjectPositions(world);
         simulation.Tick();
         chicken.InHand = false;
         chicken.PosX += 8192;
