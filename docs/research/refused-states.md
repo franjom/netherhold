@@ -29,6 +29,7 @@ Nothing else enters 5.
 
 **Ours.** `CreatureJobSystem` sends every neutral creature in 1 to 5, not only a fleeing one, and
 5 runs `IdleBody`, which 3 now shares with the Bile Demon's draw and shot (missing from 3 too).
+Action availability and lifetime remain [partial](q712-early-draw-continuation.md#next-boundary1421-troll449s-idle-action).
 
 ## 2. 69 is unreachable — STRONGLY INFERRED
 

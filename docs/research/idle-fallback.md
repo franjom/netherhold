@@ -4,7 +4,8 @@ systems: [creatures]
 # State 89's fallback and state 3: what an idle creature does with nothing to do
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
-- **Built:** ADR-0228, ADR-0656, `CreatureJobSystem` (its `Idle` part).
+- **Built:** ADR-0228, ADR-0656, `CreatureJobSystem` (its `Idle` part);
+  idle-action availability and lifetime remain [partial](q712-early-draw-continuation.md#next-boundary1421-troll449s-idle-action).
 - Related: `job-selection.md`, `combat-pit-spectators.md`, `imp-idle-and-wandering.md`.
 
 ## Result in one sentence

@@ -10,10 +10,11 @@ are canonical in the linked records below; raw output remains quarantined.
 
 The Tremor Fleeing idle integration mirrors role selection in
 [004773D0](functions/004773D0.md): neutral state5 with deadline now+12,
-Horny state238, then an end to that handler turn. These destinations have
-explicit UnbuiltHandler activity, which prevents ordinary keeper selection.
-They remain ResearchOnly. The neutral inner routine and Horny idle controllers
-have been read but remain unbuilt. Arrival235/236/237 and departure242 are
+Horny state238, then an end to that handler turn. Neutral state5 shares the
+partially mirrored
+[inner idle routine](functions/004776C0.md); its availability and action clock
+remain the [Q712 boundary](q712-early-draw-continuation.md#next-boundary1421-troll449s-idle-action).
+Horny's idle controllers remain ResearchOnly. Arrival235/236/237 and departure242 are
 separately built; see `keeper-spell-reaper.md` for that lifecycle boundary.
 
 The known dependencies include actual action availability and animation

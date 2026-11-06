@@ -13,9 +13,10 @@ runs, diagnostic source and verification live outside the clone:
 `F:/DK2Evidence/studies/q712-draw1404--2026-11-06--001`.
 The frozen hash/save 432 diagnostic build is archived under
 `F:/DK2Evidence/builds/q712-hatchery-pillars-h432--2026-11-06--001`.
-All new restore fields come from completed1400; no later pose or completion tick
-is fed into the probe. `command.json` and `env.json` in each run name every input.
-Runs through1420 retain raw outputs after their first mismatch; those suffixes
+Capture-derived inputs use completed1400; the derived next-poll claim timer and
+binary-derived route options are identified below. No later pose or completion
+tick is fed into the probe. `command.json` and `env.json` in each run name every input.
+Runs through 1420 retain raw outputs after their first mismatch; those suffixes
 are excluded from parity claims.
 
 ## Restore boundaries before the rule defect
@@ -96,13 +97,65 @@ The study's final manifest verifies 387 entries by SHA-256; the build's complete
 manifest verifies 53 entries, including its earlier manifest. The build contains the frozen runtime
 and `source.zip`; the study contains `production-source-sha256.json`.
 
-## Next boundary:1413
+## Imp455 gold-return control: through1420
 
-The third draw differs: native draws the Chicken reaction (`ObjectState.cpp:2782`),
-while modern Imp455 searches for a gold store with bounds25 then8.
-Its restored state/resume is already wrong at1400: modern10/1 against native6/28;
-this is the existing partial worker/mining restore boundary (Q719).
-The first two draws at 1413 agree in site and seed (worker445 animation install,
-then Troll449's idle-body choice); the matched whole-turn claim stops at1412.
-Later mismatches are not attributed before this boundary is resolved.
-Full-state, complete playback and Heart-defence parity remain unestablished.
+The earlier third-draw mismatch at1413 is a restore omission. Native Imp455 is
+already carrying1091 gold in state6/resume28 at completed1400, with previous
+state26, original entry1392, heading741 and an active captured route. The generic
+worker restore instead leaves it in modern10/resume1; it mines again and later
+calls the gold-store chooser. The earlier body input explicitly skipped455.
+
+STRONGLY INFERRED from the re-read `0x00464400`: the gold-store chooser commits
+its selected point through the worker walk wrapper with resume28 and options0xE8.
+The control restores that captured trip and the existing body route; it makes no
+new route request, draws no number during restoration, and supplies no future
+arrival or work deadline. The route target in16.16 units is1234240,1714848.
+
+`off-v2` matches all five prior production432 outputs byte-for-byte (draws,
+actors, seeds, jobs, events). `on-v2` adds only the declared455 input and its
+captured body. Ordered sites and pre-draw seeds agree for212draws through1416.
+Imp455's state/resume/XY agree in all21 completed1400-1420 samples.
+This validates the bounded input, not a general worker restore adapter.
+
+The next mismatch at1417 is modern Chicken88, hatched at1416 from Egg61.
+That Egg came from modern pre-restore history. The native1400 inventory contains
+only Eggs1421 and1423; the old adapter added1421 and retained the unrelated61.
+The `inventory` control uniquely matches the two captured Eggs by owner, pose,
+process, age and velocity, then removes only unmatched modern61. It does not
+copy future object existence or restore every Egg field or object class.
+With both controls, all271 ordered sites and contiguous pre-draw seeds agree
+through 1420. The full-room Hatchery's1419 coop-selection roll is the existing
+`0x004DE620` call at004DE925, `Hatchery.cpp:357`; no missing consumer was added.
+
+Both diagnostic builds compile with zero warnings/errors. Production remains
+unchanged at hash/save 432; no production tests or remake expectations changed.
+The previous full-suite and Unity results above apply to the same simulation.
+Final source, complete runtime, input files, paired runs and verifier:
+`F:/DK2Evidence/{studies,builds}/q712-imp455-gold-return--2026-11-06--001`.
+Use `off-v2`, `on-v2` and `inventory`; initial `off`/`on` are superseded exploratory
+runs whose initial executable was not separately frozen. Raw outputs are retained.
+The extended study manifest verifies 469 entries and the build manifest 52 entries
+by SHA-256; the archived verifiers independently pass.
+
+## Next boundary:1421, Troll449's idle action
+
+A further run, `through1450`, uses the frozen archive executable and unchanged
+inventory inputs. The whole-turn match still ends at1420. At1421 the first two
+draws agree: Imp445's existing gold-store selection (`Room.cpp:1563`,
+`ImpState.cpp:764`). The third differs: modern Troll449 enters the wander search
+(`StateUtils.cpp:325`) where native next updates a loose Chicken.
+
+CONFIRMED from the capture: Troll449 starts action44 at1413; at 1421 it remains
+in state87 with action44, phase1521, rate169, flags0 and count2. Modern's idle
+choice at1413 sets `ActionUntilTick=1420` using `IdleActionGuessTicks=8`, then
+its state87 handler starts wandering at 1421. STRONGLY INFERRED from the re-read
+`0x004808E0`: native tests `0x00496D00` before any wander draw; the nonzero44
+is busy. The earlier restored1400 action ends correctly in the bounded control,
+but this newly chosen action uses the production duration guess.
+
+The next work is the binary-backed action43/44 lifetime and availability path
+for neutral/non-worker idle choices, reusing the actual animation clock where
+supported. Do not substitute a future-measured deadline. Raw1450 outputs after
+the1421 boundary are retained and excluded from parity claims. Complete mixed
+object restoration, full-state, playback and Heart-defence parity remain open;
+Q712 and the remaining Q719 restore scope are not closed.
