@@ -84,8 +84,11 @@ the format and what each experiment can establish.
 
 Use the editor version pinned in
 [ProjectVersion.txt](unity/DK2.Unity/ProjectSettings/ProjectVersion.txt), currently
-Unity 6000.6.0f1, with an activated editor license. On Windows, build and copy the
-Unity-compatible assemblies with:
+Unity 6000.6.0f1, with an activated editor license. Players build with IL2CPP
+(ADR-0690), so a player build also needs the editor's Windows IL2CPP module and
+Visual Studio's C++ tools; the editor alone runs Play mode. The scripts under
+`tools/` default to the Unity Hub install path and take `-Unity` for another.
+On Windows, build and copy the Unity-compatible assemblies with:
 
 ```powershell
 powershell -File unity/sync-assemblies.ps1

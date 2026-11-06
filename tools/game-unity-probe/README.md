@@ -21,7 +21,9 @@ Plays a campaign level through the production `DungeonRunner` in a standalone
 & tools/game-unity-probe/run.ps1 -Level Level6a -Seconds 90 -WorkerTicks -Il2cpp
 ```
 
-Requires an activated Unity 6000.6.0f1 editor with Windows standalone build support and
+Requires an activated Unity 6000.6.0f1 editor with Windows standalone build support
+(`-Il2cpp` also its Windows IL2CPP module, which the script checks for; `-Unity` names
+another install) and
 the install at `E:/GogGames/Dungeon Keeper 2` (`-Install` to override). It syncs this
 checkout's DLLs, copies `Assets`, `Packages` and `ProjectSettings` into one scratch
 project under the main clone's ignored `build/game-unity-probe/project` (reused for its

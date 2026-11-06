@@ -4,7 +4,7 @@
     frames went. See README.md.
 #>
 param(
-    [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
+    [string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe',
     [string]$Install = 'E:/GogGames/Dungeon Keeper 2',
     [string]$OutputRoot = 'D:/DungeonKeeperRemake/build/game-unity-probe',
     [string]$Level = 'Level1',
@@ -70,6 +70,10 @@ function Run-Native([string]$Executable, [string[]]$Arguments, [int]$Minutes, [i
     if ($Ok -notcontains $process.ExitCode) { throw "Failed ($($process.ExitCode)): $Executable; see the logs in $run" }
 }
 
+# The IL2CPP module is per editor install; the Hub copy of 6000.6.0f1 has it (ADR-0690).
+if ($Il2cpp -and !(Test-Path -LiteralPath (Join-Path (Split-Path $Unity) 'Data/PlaybackEngines/windowsstandalonesupport/Variations/win64_player_development_il2cpp'))) {
+    throw "$Unity has no Windows IL2CPP module; install it for that editor (Unity Hub > Installs > Add modules) or pass -Unity for an install that has it"
+}
 $player = "$run/player/GameProbe.exe"
 Write-Host "Building the $backend Development player (first run imports the project; IL2CPP compiles C++; allow several minutes)..."
 Run-Native $Unity @('-batchmode', '-quit', '-nographics', '-projectPath', $project,

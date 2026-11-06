@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See LICENSE in the project root for the full license text.
 
-param([string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe', [switch]$Gameplay)
+param([string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe', [switch]$Gameplay)
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
 $run = Join-Path $repo ('build/options-settings-probe-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))

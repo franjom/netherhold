@@ -1,5 +1,5 @@
 param(
-    [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
+    [string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe',
     [string]$Install = 'E:/GogGames/Dungeon Keeper 2',
     [string]$OutputRoot = 'D:/DungeonKeeperRemake/build/classic-unity-probe',
     [switch]$ReuseLastProject,

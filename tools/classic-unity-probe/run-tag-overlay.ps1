@@ -1,5 +1,5 @@
 param(
-    [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
+    [string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe',
     [string]$OutputRoot = "$PSScriptRoot/../../build/tag-overlay-probe",
     [switch]$PortalEntrance,
     [switch]$ShotEffects,

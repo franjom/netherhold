@@ -1,6 +1,6 @@
 param(
     [string]$SourceRepo = 'D:/DungeonKeeperRemake-classic',
-    [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
+    [string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe',
     [string]$Install = 'E:/GogGames/Dungeon Keeper 2',
     [string]$OutputRoot = 'D:/DungeonKeeperRemake/build/room-life-probe',
     [string]$Project = 'D:/DungeonKeeperRemake/build/classic-unity-probe/20261011-182558/project'

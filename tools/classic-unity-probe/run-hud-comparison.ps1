@@ -3,7 +3,7 @@
 # See LICENSE in the project root for the full license text.
 
 param(
-    [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
+    [string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe',
     [string]$EvidenceRoot = 'F:/DK2Evidence/captures/visual',
     [string]$ScratchProject = '',
     [switch]$FullMapOnly

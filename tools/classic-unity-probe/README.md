@@ -102,7 +102,7 @@ production Assets and DK2 DLLs, then run:
 
 ```powershell
 ./tools/classic-unity-probe/run-window-frames.ps1 `
-  -Unity 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe' `
+  -Unity 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe' `
   -Project 'D:/DungeonKeeperRemake/build/tag-overlay-probe/project' `
   -OutputRoot 'D:/DungeonKeeperRemake/build/portal-introduction-live' `
   -PortalIntroduction -VisiblePlayer

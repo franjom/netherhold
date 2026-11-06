@@ -59,6 +59,11 @@ Unity practice.
 
 - Unity 6000.6.0f1 with URP (`ProjectSettings/ProjectVersion.txt` is the
   authority). Query Context7 for Unity APIs before answering from memory.
+- Players build with IL2CPP (ADR-0690); Play mode is Mono. A first-use cost
+  seen in Play mode may not exist in the player: measure the player with
+  `tools/game-unity-probe/run.ps1 -Il2cpp`. A player build needs the editor
+  install that has the Windows IL2CPP module (the scripts' default `-Unity`
+  path) and Visual Studio's C++ tools.
 - No allocations in per-frame paths: reuse buffers, avoid LINQ, closures,
   boxing and string building in `Update`/`LateUpdate`. Cache component lookups.
 - Prefer batching, shared materials, `MaterialPropertyBlock`, and mesh reuse
