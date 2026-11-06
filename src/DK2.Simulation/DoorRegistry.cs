@@ -17,6 +17,12 @@ internal sealed class DoorRegistry
     /// <summary>The last door id given; a snapshot restores it so ids stay unique.</summary>
     public int NextId { get; set; }
 
+    internal void CopyFrom(DoorRegistry other)
+    {
+        NextId = other.NextId;
+        if (StateCopy.Sync(_doors, other._doors)) Version++;
+    }
+
     /// <summary>Bumped by every add and removal. Derived, not state: neither hashed nor saved.</summary>
     public int Version { get; private set; }
 

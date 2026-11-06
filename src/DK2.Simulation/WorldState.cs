@@ -687,7 +687,7 @@ public readonly record struct HandItem(HandItemKind Kind, int Id)
 /// not reachable from here does not exist as far as determinism is concerned,
 /// which is the invariant that keeps the gate meaningful.
 /// </summary>
-public sealed class WorldState
+public sealed partial class WorldState
 {
     private readonly TileState[] _tiles;
 

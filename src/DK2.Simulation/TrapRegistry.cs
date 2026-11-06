@@ -19,6 +19,12 @@ internal sealed class TrapRegistry
     /// <summary>The last trap id given; a snapshot restores it so ids stay unique.</summary>
     public int NextId { get; set; }
 
+    internal void CopyFrom(TrapRegistry other)
+    {
+        NextId = other.NextId;
+        StateCopy.Sync(_traps, other._traps);
+    }
+
     public void Add(TrapState trap)
     {
         trap.Id = ++NextId;

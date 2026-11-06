@@ -12,7 +12,7 @@ namespace DK2.Simulation;
 /// covered each tick. Simulation flight remains planar; observation-only view origins
 /// approximate height separately (Q398, ADR-0595).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/shots.md")]
-public sealed class ShotState
+public sealed partial class ShotState
 {
     public int Id;
     public byte ShotTypeId;

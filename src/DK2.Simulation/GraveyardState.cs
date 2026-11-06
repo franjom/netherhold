@@ -8,7 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>The persistent decomposition tally belonging to one derived Graveyard room.</summary>
-public sealed class GraveyardState
+public sealed partial class GraveyardState
 {
     internal GraveyardState(int anchorTileIndex, PlayerId ownerPlayerId)
     {

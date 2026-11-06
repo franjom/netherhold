@@ -96,18 +96,20 @@ public class ArchitectureTests
         var offenders = files
             .Where(f => Regex.IsMatch(File.ReadAllText(f), write))
             .Select(f => Path.GetFileName(f))
-            // The gate itself; the field's own declaration; and the snapshot reader, which
-            // restores a state a gate already allowed rather than taking a transition.
+            // The gate itself; the field's own declaration; and the snapshot reader and the
+            // generated world copy (ADR-0693), which restore a state a gate already allowed
+            // rather than taking a transition.
             .Where(f => f is not "CreatureStateMachine.cs"
                          and not "CreatureState.cs"
-                         and not "WorldSnapshot.cs")
+                         and not "WorldSnapshot.cs"
+                         and not "StateCopy.g.cs")
             .ToArray();
 
         Assert.Empty(offenders);
 
-        // And the guard is not vacuous: the three files it exempts do contain a write, so
+        // And the guard is not vacuous: the four files it exempts do contain a write, so
         // a pattern that stopped matching would fail here rather than pass everything.
-        Assert.Equal(3, files.Count(f => Regex.IsMatch(File.ReadAllText(f), write)));
+        Assert.Equal(4, files.Count(f => Regex.IsMatch(File.ReadAllText(f), write)));
     }
 
     /// <summary>Static fields allowed to hold shared mutable state, with the reason each is safe.</summary>

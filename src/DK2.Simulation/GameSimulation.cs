@@ -54,6 +54,17 @@ public sealed class GameSimulation
     {
     }
 
+    /// <summary>A simulation over a world that is already mid-level, such as a copy made by
+    /// <see cref="WorldState.CopyOf"/>: nothing the level start does is done again. The caller
+    /// restores the navigation (<see cref="Navigation.WorldSteering.Read"/>) if it wants the mesh's state.</summary>
+    public static GameSimulation Resume(
+        GameDatabase database,
+        WorldState world,
+        SimRandom rng,
+        IEnumerable<ISimulationSystem>? systems = null,
+        TriggerTree? triggers = null)
+        => new(database, world, rng, systems, triggers, levelStart: false);
+
     /// <summary><paramref name="levelStart"/> false is a restore (<see cref="WorldSnapshot"/>): the
     /// trigger executor skips the level initialiser's party sweep and creature event 3.</summary>
     internal GameSimulation(

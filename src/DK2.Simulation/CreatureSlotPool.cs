@@ -13,7 +13,7 @@ internal readonly record struct NativeCreatureTag(ushort Value)
 
 /// <summary>004B5A10 constructs tags 8..455 after the seven players;
 /// 004B7900 takes the head and 004B7A20 returns a slot to the head.</summary>
-internal sealed class CreatureSlotPool
+internal sealed partial class CreatureSlotPool
 {
     internal const int Capacity = 448;
     private readonly List<NativeCreatureTag> _free = Enumerable.Range(8, Capacity)

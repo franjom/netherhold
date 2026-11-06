@@ -135,7 +135,7 @@ public readonly record struct PlayerMessage(
 /// room-ownership family, mana pressure, room needs, Alarm, scripted speech and first arrivals.
 /// Any unsupported kind, or a subtype its table lacks, is refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
-public sealed class PlayerMessageQueue
+public sealed partial class PlayerMessageQueue
 {
     public const int Capacity = 256;
     private readonly List<PlayerMessage> _entries = new();

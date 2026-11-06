@@ -12,7 +12,7 @@ namespace DK2.Simulation;
 /// construction predicate is the one runtime value currently derived from them.
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
-public sealed class DoorState
+public sealed partial class DoorState
 {
     /// <summary>The door's id, given by <see cref="WorldState.AddDoor"/> from 1 and never reused,
     /// so a blueprint, a crate's order and a forced target name it across a removal. Ours: DK2's

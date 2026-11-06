@@ -1,7 +1,7 @@
 # The presented world: the frame reads a copy, the tick runs beside it (P1)
 
-**Date:** 2026-11-06. **Status:** proposed, awaiting the owner's decision. Continues
-[the parallelism plan](2026-10-17-parallelism-design.md), whose P1 this is.
+**Date:** 2026-11-06. **Status:** in progress on `perf/presented-world`; step 1 done
+(ADR-0693). Continues [the parallelism plan](2026-10-17-parallelism-design.md), whose P1 this is.
 
 ## Why now
 
@@ -80,12 +80,14 @@ dungeon view and cheaper than a 19 ms stall four times a second. The release rec
 
 ## Work, in order
 
-1. `CopyFrom` on `WorldState` and the state types it holds (`TileState` array copy,
-   `PlayerState` with its lists, `CreatureState` (259 fields), `ObjectState`, `ShotState`,
-   `ActionPointState`, the door and trap registries, hero parties, effect generators,
-   temple, graveyards, tremors, room waves, pending work, messages, triggers, nav
-   stamps, the id counters and the identity random), with the two hash tests. Two to
-   three days; the field lists are long but mechanical, and the tests catch omissions.
+1. **Done 2026-11-06 (ADR-0693).** `CopyFrom` on `WorldState` and the state types it
+   holds, generated from the declarations by `tools/state-copy/generate.py` rather than
+   written by hand, with `StateCopy.Sync` keeping instances by id. Verified three ways:
+   the state hash at several ticks, a reflection walk over every field that also refuses
+   a shared mutable reference, and a copy ticked under its own simulation
+   (`GameSimulation.Resume`) beside the live one for 300 ticks on Level6a. The in-place
+   copy costs 0.10 ms and no allocation at tick 1500 of Level6a (Release), against a
+   1.45 ms tick. The identity random is not copied: the copy never spawns.
 2. `DungeonRunner`: `_presented` replaces `_simulation.World` for the frame; the swap
    replaces the join; the tick starts at the top of the frame when due; the worker's
    post-tick step copies. One day, with the reader audit as the checklist.

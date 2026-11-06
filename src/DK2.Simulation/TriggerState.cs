@@ -36,7 +36,7 @@ public enum FlagWriteMode : byte
 /// variable 19 before comparison (<see cref="HasElapsed"/>, trigger-state.md §5). When a
 /// trigger is evaluated is not decided here: the world frame, once a game turn (Q228).</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-state.md")]
-public sealed class TriggerState
+public sealed partial class TriggerState
 {
     /// <summary>Flag ids 0..127. The bank is 0x80 bytes wide because the timer bank
     /// begins 0x80 bytes after it.</summary>

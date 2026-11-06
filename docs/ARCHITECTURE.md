@@ -149,7 +149,10 @@ Three rules govern it:
   ownership moved onto the object.
 - **New state must be reachable from `WorldState`** — added to `HashInto` *and*
   to `WorldSnapshot` in the same commit, or it is silently non-deterministic and
-  lost on load.
+  lost on load. The in-place copy the presented world reads (ADR-0693) is
+  generated from the declarations (`python tools/state-copy/generate.py` rewrites
+  `StateCopy.g.cs`); a new collection on `WorldState` itself goes in
+  `WorldState.CopyFrom`, and `StateCopyTests` names what was left out.
 - **Nothing in the simulation may read an event back.** `ISimulationEventSink`
   (`SimulationEvents.cs`) is write-only observation; attaching a recorder with
   `ObserveWith` must not change behaviour.
@@ -178,7 +181,9 @@ any machine.**
   `ArchitectureTests.NoStaticFieldSharesMutableStateBetweenSimulations` requires
   `[ThreadStatic]` (as the routing scratch lists are) or an entry on its allow-list.
 - `WorldSnapshot` round-trips are verified by continuing both runs for hundreds
-  of ticks, not by comparing bytes.
+  of ticks, not by comparing bytes. `WorldState.CopyFrom` is verified the same
+  way (`GameSimulation.Resume` over the copy) and, field by field, by the
+  reflection walk in `tests/DK2.TestSupport/StateGraph.cs`.
 - `.github/workflows/ci.yml` declares the gate on Linux and Windows with
   `DK2_DIR=/nonexistent`, so every install-gated test is reported skipped there.
   It runs on GitHub for every push to master and every pull request (since

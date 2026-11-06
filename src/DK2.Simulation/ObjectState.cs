@@ -13,7 +13,7 @@ namespace DK2.Simulation;
 /// Q130). Ours is flat, and the union's behavioural consequence is followed instead:
 /// <b>every field says which kind may write it, and every other kind leaves it zero</b>,
 /// which <see cref="HashInto"/> enforces by hashing all of them unconditionally. Fields arrive with the mechanic that reads them, as in <see cref="TileState"/>; DK2's header has eight more, listed in the research doc.</para></summary>
-public sealed class ObjectState
+public sealed partial class ObjectState
 {
     /// <summary>Unique within a level, in spawn order, <b>never reused</b> (like
     /// <see cref="CreatureState.Id"/>): a recycled id lets a stale reference point silently at a different thing.</summary>

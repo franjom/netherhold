@@ -12,7 +12,7 @@ namespace DK2.Simulation;
 /// (<see cref="EffectGeneratorRules"/>). Each turn's update is <c>0x004B1B60</c> (ADR-0648).
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
-public sealed class EffectGeneratorState
+public sealed partial class EffectGeneratorState
 {
     public const int Unknown001ELength = 6;
 

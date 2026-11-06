@@ -16,7 +16,7 @@ namespace DK2.Simulation;
 /// operations and never write the action-point object (ADR-0103).
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/action-points.md")]
-public sealed class ActionPointState
+public sealed partial class ActionPointState
 {
     /// <summary>The five source flag bits DK2's loader copies: 0, 2, 3, 4 and 5.</summary>
     public const byte LoadedFlagMask = 0x3D;

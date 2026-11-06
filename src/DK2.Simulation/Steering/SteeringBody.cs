@@ -11,7 +11,7 @@ namespace DK2.Simulation.Steering;
 /// tiles; the route window's distances are sixteenths of a tile. The three scalars are the
 /// literals every creature shares (navigation-and-steering.md §3.4).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/navigation-and-steering.md")]
-public sealed class SteeringBody
+public sealed partial class SteeringBody
 {
     public const int WindowSize = 5;
     public const int SolidContactSlots = 12;

@@ -16350,3 +16350,40 @@ first frame of play is the 1.3–1.5 s art-loading frame, so the work lands wher
 - The game probe takes `-Windowed` (cameras draw, 1920x1080) and `-FrameCap`; the recorder takes
   `-profileFrom`/`-profileTo` for a Profiler capture in a development player; the tester package builds
   one with `build.ps1 -Development`. That chain is how a frame outside `Update` gets a name.
+
+## ADR-0693: the world copies itself in place, field for field, and a reflection walk holds it to that
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** simulation-core
+
+**Context.** The presented world (docs/plans/2026-11-06-presented-world.md, P1 of the parallelism plan)
+needs a second `WorldState` that the frame reads while the worker ticks the first, brought up to date
+after every tick batch. The state is `WorldState` and fourteen classes under it, `CreatureState` alone
+with 273 members; a copy written by hand would be the third list of those fields beside `HashInto` and
+`WorldSnapshot`, and the one a new field is most easily left out of.
+
+**Decision.** `tools/state-copy/generate.py` writes `src/DK2.Simulation/StateCopy.g.cs` from each class's
+own declarations: a settable field or auto-property is assigned, an array copied, a list or dictionary
+refilled, an init-only property left to `Clone` (`MemberwiseClone`), an explicit property skipped
+because its backing field is copied. Every such class is `partial` and implements `IStateCopy<T>`
+(`Key`, `CopyFrom`, `Clone`); `StateCopy.Sync` brings a list to the source's keys in the source's
+order, copying into the instance that already holds a key, so a reader keeps its `CreatureState` for
+as long as the creature lives. `WorldState.CopyFrom` (hand-written, `WorldState.Copy.cs`) does the
+tiles, players, registries and counters; `WorldState.CopyOf` makes the first copy. The copy shares
+nothing mutable with the live world: the derived caches, events and bound generators are the copy's
+own and stay empty, so it is a world to read, not to tick.
+
+Two tests hold the copy: `StateGraph.AssertDeepCopy` (tests/DK2.TestSupport) walks both graphs by
+reflection, field by field, and fails on a value that differs or a mutable reference that is shared,
+so a field added to a state class without a regenerated copy fails `StateCopyTests` whether or not
+`HashInto` knows it; and `GameSimulation.Resume` puts a copy under its own simulation, which ticks
+beside the live one with equal state hashes (`PresentedWorldOnRealDataTests`, Level6a, 300 ticks).
+
+**Consequences.**
+- Level6a at tick 1500 (52 creatures, 135 objects, 70x70 tiles), Release: an in-place copy takes
+  0.10 ms and allocates nothing; a fresh `CopyOf` 0.72 ms; a tick 1.45 ms. The copy is one fifteenth
+  of a tick, on the worker.
+- A new field on a state class: add it, run `python tools/state-copy/generate.py`, commit the
+  regenerated file with it. A new collection on `WorldState`: a line in `WorldState.CopyFrom`. A new
+  state class: an entry in the script's table. `StateCopyTests` says which one was forgotten.
+- `GameSimulation.Resume` is the public form of the snapshot's restore constructor: a simulation over
+  a world already mid-level, nothing the level start does done again.

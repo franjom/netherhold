@@ -20,7 +20,7 @@ public readonly record struct SacrificeIngredient(byte Type, byte Id, int Creatu
 }
 
 /// <summary>The persistent three-offering ring belonging to one derived Temple room.</summary>
-public sealed class TempleSacrificeState
+public sealed partial class TempleSacrificeState
 {
     public const int Capacity = 3;
 

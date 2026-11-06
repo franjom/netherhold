@@ -10,7 +10,7 @@ namespace DK2.Simulation;
 public readonly record struct TileHighlightSlot(ActionPointId ActionPoint, short RemainingTicks, TilePos Min, TilePos Max);
 
 /// <summary>The world's four action-16 rectangles, independent of dig orders (tag-highlight.md).</summary>
-public sealed class TileHighlightState
+public sealed partial class TileHighlightState
 {
     public const int Capacity = 4;
     private readonly TileHighlightSlot[] _slots = new TileHighlightSlot[Capacity];

@@ -50,7 +50,7 @@ public sealed class HeroPartyMemberState
 /// state only: parties do not spawn, and their members are not placed creatures.
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
-public sealed class HeroPartyState
+public sealed partial class HeroPartyState
 {
     public required string Name { get; init; }
     public ushort TriggerId { get; init; }

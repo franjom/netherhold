@@ -249,7 +249,7 @@ public enum CreatureActivity
 /// are updated in is behaviour, as the work queue's order is (ADR-0010).</para>
 /// <para>Only fields some implemented mechanic reads are here, as for
 /// <see cref="TileState"/>.</para></remarks>
-public sealed class CreatureState
+public sealed partial class CreatureState
 {
     /// <summary>Stable identity for the life of the level. Assigned by <see cref="WorldState"/>.</summary>
     public int Id;

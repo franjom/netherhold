@@ -13,7 +13,7 @@ namespace DK2.Simulation;
 /// zeroed by the constructor <c>0x004A7940</c> and run by the update <c>0x004A84E0</c> (traps.md).
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
-public sealed class TrapState
+public sealed partial class TrapState
 {
     /// <summary>The trap's id, given as <see cref="DoorState.Id"/> is.</summary>
     public int Id { get; internal set; }
