@@ -69,7 +69,7 @@ public static class AttractionBudget
 
     private static bool HoldsTempleHand(WorldState world, RoomInstance room)
     {
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectState thing = objects[i];

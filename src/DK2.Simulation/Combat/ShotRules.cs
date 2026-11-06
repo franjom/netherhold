@@ -163,7 +163,7 @@ public static partial class ShotRules
         if (mode is CollideNone or CollideBodies) return null;
         CreatureState? best = null;
         int bestDistance = int.MaxValue;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
@@ -388,7 +388,7 @@ public static partial class ShotRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int tileX = shot.PosX >> 12, tileY = shot.PosY >> 12;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState target = creatures[i];

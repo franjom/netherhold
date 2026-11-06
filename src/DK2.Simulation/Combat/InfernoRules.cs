@@ -35,7 +35,7 @@ public static class InfernoRules
         int x0 = Math.Max(cx - radius, 0), y0 = Math.Max(cy - radius, 0);
         int x1 = Math.Min(cx + radius, world.Width - 1), y1 = Math.Min(cy + radius, world.Height - 1);
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState target = creatures[i];

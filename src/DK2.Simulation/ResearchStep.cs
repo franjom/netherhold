@@ -85,7 +85,7 @@ public static class ResearchStep
     /// to 60 (<c>0x004E0870</c>, the loop at <c>0x004E08B0</c>), before the item is granted.</summary>
     public static void Cheer(SimulationContext context, string system, RoomInstance library)
     {
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        EntityList<CreatureState> creatures = context.World.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];

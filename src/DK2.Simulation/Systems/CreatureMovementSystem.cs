@@ -36,6 +36,8 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
 
     // The door contact's SelectAVictim needs the fight's caches; ours, as CombatSystem keeps its own.
     private readonly List<Fixed16Vector> _scratch = [];
+    // Refilled for every creature: a new one per creature per tick was garbage for nothing.
+    private readonly SteeringMover _mover = new();
     private readonly HeartSites _hearts = new();
     private readonly RoomCache _rooms = new();
     private WorldSight? _sight;
@@ -166,15 +168,13 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         body.Vel = new Fixed16Vector((body.Vel.X >> 4) << 4, (body.Vel.Y >> 4) << 4);
         WorldSteering.SyncBody(creature);
 
-        var mover = new SteeringMover
-        {
-            IsWorker = ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker),
-            Heading = creature.Heading,
-            TurnRate = SimulationTiming.TurnRatePerTick(definition),
-            SizeClass = definition.SizeClass,
-            CrowdWord = body.Radius,
-            Profile = WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, creature.RouteOptions),
-        };
+        SteeringMover mover = _mover;
+        mover.IsWorker = ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
+        mover.Heading = creature.Heading;
+        mover.TurnRate = SimulationTiming.TurnRatePerTick(definition);
+        mover.SizeClass = definition.SizeClass;
+        mover.CrowdWord = body.Radius;
+        mover.Profile = WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, creature.RouteOptions);
 
         Fixed16Vector avoidWalls = AvoidWallsRules.Compute(body, mover.Profile, steering);
         Fixed16Vector repel = RepelObstacleRules.Compute(body, steering);

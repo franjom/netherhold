@@ -38,7 +38,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];

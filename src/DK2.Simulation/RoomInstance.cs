@@ -22,12 +22,14 @@ internal readonly record struct RoomGeometry(TilePos Minimum, TilePos Maximum, T
 public sealed class RoomInstance
 {
     private readonly TilePos _centre;
+    private readonly int[] _tileIndices;
 
     internal RoomInstance(RoomDef definition, PlayerId ownerPlayerId, int[] tileIndices,
                           RoomGeometry geometry)
     {
         Definition = definition;
         OwnerPlayerId = ownerPlayerId.Value;
+        _tileIndices = tileIndices;
         TileIndices = tileIndices;
         MinX = geometry.Minimum.X;
         MinY = geometry.Minimum.Y;
@@ -53,6 +55,13 @@ public sealed class RoomInstance
     public IReadOnlyList<int> TileIndices { get; }
 
     public int TileCount => TileIndices.Count;
+
+    /// <summary>The same tiles as <see cref="TileIndices"/>, for a loop that must not allocate.</summary>
+    public ReadOnlySpan<int> Tiles => _tileIndices;
+
+    /// <summary><see cref="AutoFurnitureRules.WallSide"/>'s answer for this instance, computed once:
+    /// it depends only on the map, and a map change replaces the instance. Derived, never hashed.</summary>
+    internal (int Tile, int Side)[]? WallSlots { get; set; }
 
     /// <summary>Whether a tile is one of this room's.</summary>
     public bool Contains(int tileIndex) => Array.BinarySearch((int[])TileIndices, tileIndex) >= 0;

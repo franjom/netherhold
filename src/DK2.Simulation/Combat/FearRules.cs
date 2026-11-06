@@ -187,7 +187,7 @@ public static class FearRules
 
     private static bool HeldByAnAttacker(WorldState world, CreatureState me, int x, int y)
     {
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
@@ -392,7 +392,7 @@ public static class FearRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int sum = 0;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
@@ -766,7 +766,7 @@ public static class FearRules
     /// in 251, else its own position — a walker's, not its route's end (ADR-0609).</summary>
     public static bool AlreadyResponding(WorldState world, PlayerId owner, int x, int y)
     {
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
@@ -820,7 +820,7 @@ public static class FearRules
         int wanted = me.AlarmDeficit;
         int sent = 0;
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; room != null && wanted >= 0 && i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];

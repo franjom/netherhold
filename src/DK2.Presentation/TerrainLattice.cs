@@ -78,6 +78,16 @@ public sealed class TerrainLattice
     /// <summary>Forgets every cell, as a change of <see cref="FullHeight"/> requires.</summary>
     public void InvalidateAll() => Array.Clear(_built, 0, _built.Length);
 
+    /// <summary>Builds the cells a piece drawn for tile (x0, y0) can reach, so that
+    /// <see cref="Deform"/> for that tile reads only the points: a thread other than the world's
+    /// may then deform while the world is written (ADR-0696).</summary>
+    public void Prepare(int x0, int y0)
+    {
+        for (int y = y0 - 1; y <= y0 + 1; y++)
+            for (int x = x0 - 1; x <= x0 + 1; x++)
+                Cell(x, y);
+    }
+
     /// <summary>A point of a piece drawn for tile (x0, y0), bent by the 3×3 tiles around it; a point
     /// outside that window's 5 × 5 × 4 cells is returned as it is.</summary>
     public Vector3 Deform(Vector3 p, int x0, int y0)

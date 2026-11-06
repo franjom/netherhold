@@ -19,7 +19,7 @@ public sealed class ChickenSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        EntityList<CreatureState> creatures = context.World.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];

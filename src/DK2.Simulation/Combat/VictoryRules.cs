@@ -86,7 +86,7 @@ public static class VictoryRules
     {
         CreatureState? best = null;
         int bestDistance = BodyReachSquared;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];

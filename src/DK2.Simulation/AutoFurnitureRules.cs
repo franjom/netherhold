@@ -33,13 +33,16 @@ public static class AutoFurnitureRules
 
         if (room.Definition.TypeId == RoomTypeId.Hatchery)
         {
-            var coops = new List<int>();
+            List<int> coops = s_slots ??= [];
+            coops.Clear();
             HatcheryRules.CoopTiles(world, room, coops);
             foreach (int tile in coops) into.Add((tile, HatcheryRules.CoopObjectId));
             return;
         }
 
-        var roomTiles = new HashSet<int>(room.TileIndices);
+        HashSet<int> roomTiles = s_roomTiles ??= [];
+        roomTiles.Clear();
+        foreach (int tile in room.Tiles) roomTiles.Add(tile);
 
         if (room.Definition.TypeId == RoomTypeId.Temple)
         {
@@ -48,7 +51,8 @@ public static class AutoFurnitureRules
             return;
         }
 
-        var slots = new List<int>();
+        List<int> slots = s_slots ??= [];
+        slots.Clear();
         FloorSlots(world, room, roomTiles, slots);
 
         // The Graveyard's crypts are its own pass's (0x004DD5C0), placed before this one on a rebuild;
@@ -181,11 +185,11 @@ public static class AutoFurnitureRules
     /// side byte, <c>casino.md</c> §3); -1 for a tile that is no wall slot of the room.</summary>
     public static int WallSide(WorldState world, GameDatabase database, RoomInstance room, int tileIndex)
     {
-        var slots = new List<int>();
-        var sides = new List<int>();
-        WallSlots(world, database, room, new HashSet<int>(room.TileIndices), slots, sides);
-        int at = slots.IndexOf(tileIndex);
-        return at < 0 ? -1 : sides[at];
+        // Once per instance: the steering asks this for every wall object near every creature.
+        (int Tile, int Side)[] slots = room.WallSlots ??= WallSlotsInChainOrder(world, database, room);
+        foreach ((int tile, int side) in slots)
+            if (tile == tileIndex) return side;
+        return -1;
     }
 
     /// <summary>The wall slots in chain order, each with its side (<c>0x004E8210</c>'s walk with only its
@@ -291,7 +295,7 @@ public static class AutoFurnitureRules
     private static int TempleHandTile(
         WorldState world, RoomInstance room, HashSet<int> roomTiles)
     {
-        foreach (int tile in room.TileIndices)
+        foreach (int tile in room.Tiles)
         {
             if (!IsSurroundedByRoom(world, roomTiles, tile)) continue;
 
@@ -347,17 +351,23 @@ public static class AutoFurnitureRules
 
     /// <summary>The floor-furniture slots: interior tiles, and for the checkerboard rooms only
     /// those of the parity of the leftmost one (<c>FUN_004EF5E0</c>). In index order.</summary>
+    // One room's scratch, per thread as RoomIndex keeps its visited array: a set and a list per
+    // room per tick were the pass's garbage. Neither outlives the DesiredFurniture call.
+    [ThreadStatic] private static HashSet<int>? s_roomTiles;
+    [ThreadStatic] private static List<int>? s_slots;
+
     private static void FloorSlots(
         WorldState world, RoomInstance room, HashSet<int> roomTiles, List<int> slots)
     {
-        foreach (int tile in room.TileIndices)
+        foreach (int tile in room.Tiles)
             if (IsSurroundedByRoom(world, roomTiles, tile)) slots.Add(tile);
 
         // The Graveyard arm refuses a cell holding a crypt (0x0045416C).
         if (room.Definition.TypeId == RoomTypeId.Graveyard && slots.Count > 0)
         {
             HashSet<int> crypts = CryptTiles(world, room);
-            if (crypts.Count > 0) slots.RemoveAll(crypts.Contains);
+            for (int i = slots.Count - 1; crypts.Count > 0 && i >= 0; i--)
+                if (crypts.Contains(slots[i])) slots.RemoveAt(i);
         }
 
         if (!UsesCheckerboard(room.Definition.TypeId) || slots.Count == 0) return;
@@ -366,8 +376,8 @@ public static class AutoFurnitureRules
         foreach (int tile in slots)
             if ((tile % world.Width) < (anchor % world.Width)) anchor = tile;
         int phase = ((anchor % world.Width) + (anchor / world.Width)) & 1;
-        slots.RemoveAll(tile =>
-            (((tile % world.Width) + (tile / world.Width)) & 1) != phase);
+        for (int i = slots.Count - 1; i >= 0; i--)
+            if ((((slots[i] % world.Width) + (slots[i] / world.Width)) & 1) != phase) slots.RemoveAt(i);
     }
 
     /// <summary>Where the Casino's set-up <c>0x004D6ED0</c> puts its lever: the first slab in the

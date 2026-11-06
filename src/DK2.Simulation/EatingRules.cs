@@ -143,7 +143,7 @@ public static class EatingRules
         ObjectState? best = null;
         long bestDistance = long.MaxValue;
 
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         foreach (int tile in SlabChain.Order(world, room))
         for (int i = 0; i < objects.Count; i++)
         {
@@ -182,7 +182,7 @@ public static class EatingRules
         ObjectState? best = null;
         long bestDistance = long.MaxValue;
 
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         foreach (int tile in SlabChain.Order(world, room))
         for (int i = 0; i < objects.Count; i++)
         {
@@ -211,7 +211,7 @@ public static class EatingRules
     /// not count, and the adder's capacity refusal is not modelled.</para></summary>
     public static bool HoldsAChicken(WorldState world, RoomInstance room)
     {
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
             if (IsEdibleChicken(objects[i]) && Contains(room, objects[i].TileIndex)) return true;

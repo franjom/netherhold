@@ -650,7 +650,8 @@ namespace DK2.Unity
             {
                 "DK2.Simulation.WaitForTick", "DK2.Simulation.Tick", "DK2.Simulation.CaptureObjectPositions", "DK2.Simulation.CopyWorld",
                 "DK2.Scene.Present", "DK2.Scene.AnimatedFrame", "DK2.Scene.CreateCreature", "DK2.Scene.PrepareLighting",
-                "DK2.TerrainChunks.Rebuild", "DK2.TerrainChunks.Geometry", "DK2.TerrainChunks.Upload",
+                "DK2.TerrainChunks.Rebuild", "DK2.TerrainChunks.Geometry", "DK2.TerrainChunks.Prepare",
+                "DK2.TerrainChunks.Join", "DK2.TerrainChunks.Upload",
                 "DK2.TransparentTerrain.SetChunk", "DK2.TransparentTerrain.Sort", "DK2.TransparentTerrain.Cull",
                 "DK2.TransparentTerrain.DepthOrder", "DK2.TransparentTerrain.UploadRuns",
                 "DK2.Animation.Sample", "DK2.Animation.MeshUpload", "DK2.Effects.Draw",

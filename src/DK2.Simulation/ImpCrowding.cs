@@ -54,7 +54,7 @@ public static class ImpCrowding
         int count = 0;
         int pool = TaskStealing.PoolOf(world, askingCreatureId);
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];

@@ -16479,3 +16479,49 @@ the view from the tick thread.
   collector is the tick thread's own garbage, which the probe counts but this ADR did not touch.
 - The `DeferredEventSink` adds the hand-over's latency (under 40 ms) to every event's effect on the
   view; the main-thread path and the front end keep the direct chain.
+
+## ADR-0696: the tick thread's garbage is counted and cut by three quarters, and a chunk's geometry is built off the frame
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** simulation-core, presentation-unity
+
+**Context.** ADR-0695 left two items: the collector's pause, with the tick thread's garbage uncounted,
+and the chunk rebuild's per-tile geometry, 1.3 ms of a tick's frame inside Present. Counted with
+`dotnet-trace` over the harness on Level 6a (600 ticks, allocation ticks by type and call site), the
+tick thread left 203 KB a tick. The sites: `RoomIndex.RoomAt` flood-filled a fresh instance per call,
+asked for every creature's obstacles and every eviction (the largest, in `int[]`, hash sets and lists);
+`RoomDef.TypeId` boxed twice per call in `Enum.IsDefined`; every `foreach` over `world.Creatures` and
+`world.Objects` boxed the list's enumerator through `IReadOnlyList<T>` (155 loops); the auto-furniture
+pass made five containers a tick and a set and two lists per room; a `SteeringMover` per creature per
+tick; and `AutoFurnitureRules.WallSide` walked the room's slab chain, with its sets, per wall object
+near every creature. The probe's rebuild frames allocated 0.5 MB each in the tiles' geometry arrays.
+
+**Decision.**
+- `RoomAt` answers from the cached sweep through a per-tile map (`RoomIndex.Cache.RoomOf`); the
+  instance is `Build`'s, shared until the map changes, and memoises its wall slots
+  (`RoomInstance.WallSlots`). The interior test binary-searches the sorted members.
+- `RoomDef.TypeId` reads a table of the named ids.
+- `WorldState.Creatures` and `Objects` are `EntityList<T>`, a struct whose `foreach` is the list's
+  own enumerator; a local of that type, not of the interface, keeps it unboxed (ARCHITECTURE.md).
+  `RoomInstance.Tiles` is the tile array as a span.
+- The auto-furniture system keeps its containers; the rules' per-room scratch is `[ThreadStatic]`,
+  as `RoomIndex`'s visited array is. The movement system refills one mover.
+- `TerrainChunks` builds a tile in two phases: the frame resolves its pieces and materials
+  (`Prepare`, Unity objects) and builds the lattice cells it reaches (`TerrainLattice.Prepare`); a
+  thread-pool task turns, places and bends the vertices and gathers the triangles (`Build`, arrays
+  and arithmetic only); the next flush joins it and uploads the chunks whose tiles are built. A tile
+  keeps its arrays and refills them. A tile change joins a running build first; the first build after
+  a load, and a flush without a budget (the probe's cache check), build inline.
+
+**Consequences.**
+- Harness, Level 6a: 203 → 52 KB a tick, 9.5 of which is the harness's own state hash; tick median
+  4.9 → 4.2 ms, p99 32 → 21. Hash unchanged; every suite passes.
+- Probe (`build/game-unity-probe/20261106-142649` against `20261106-134948`, windowed IL2CPP,
+  uncapped, 32 s): allocated 255 → 150 MB, collections 11 → 5, the quiet frame's median 20 → 11 KB,
+  a rebuild frame's 507 → 106 KB; a rebuild frame 11.2 → 5.9 ms (present 5.0 → 2.1, the chunk
+  rebuild 2.5 → 1.4 with the geometry's 1.3 ms gone from it); frame p99 10.8 → 7.9 ms. The
+  frame's share of a tile build is `Prepare`, 0.25 ms a tick, and the join 2 µs: the task is done
+  long before the next flush. The chunk cache check matches a full rebuild.
+- A terrain change shows one frame later than before, inside the draw lag the presented world
+  already has. The collection that lands costs 7–13 ms in the probe (the editor was open); it is
+  governed by the live heap, three worlds of it, not by the garbage, so fewer collections is what
+  less garbage buys.

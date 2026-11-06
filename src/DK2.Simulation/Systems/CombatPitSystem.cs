@@ -73,7 +73,7 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
         RoomInstance? pit = CombatPitRules.PitAt(world, context.Database, here);
         if (CombatPitRules.IsFloor(pit, here))
         {
-            IReadOnlyList<CreatureState> creatures = world.Creatures;
+            EntityList<CreatureState> creatures = world.Creatures;
             for (int i = 0; i < creatures.Count; i++)
             {
                 CreatureState other = creatures[i];
@@ -151,7 +151,7 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
     public static void Reset(SimulationContext context, RoomInstance pit)
     {
         WorldState world = context.World;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];

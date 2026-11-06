@@ -132,7 +132,7 @@ public static class HatcheryRules
     public static int Flock(WorldState world, RoomInstance hatchery)
     {
         int count = 0;
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
             if (objects[i].ObjectTypeId != ChickenObjectId) continue;
@@ -149,7 +149,7 @@ public static class HatcheryRules
     public static int Birds(WorldState world, RoomInstance hatchery)
     {
         int count = 0;
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
             byte type = objects[i].ObjectTypeId;
@@ -232,7 +232,7 @@ public static class HatcheryRules
         if (into is null) throw new ArgumentNullException(nameof(into));
         into.Clear();
 
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
             if (objects[i].ObjectTypeId != CoopObjectId) continue;
@@ -332,7 +332,7 @@ public static class HatcheryRules
     /// for the walk to skip.</summary>
     private static bool HasOwnCoop(WorldState world, int tileIndex)
     {
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
             if (objects[i].TileIndex == tileIndex && objects[i].ObjectTypeId == CoopObjectId && !objects[i].AutoPlaced)
                 return true;
@@ -342,7 +342,7 @@ public static class HatcheryRules
     /// <summary>Whether a coop already stands on this tile.</summary>
     public static bool HasCoop(WorldState world, int tileIndex)
     {
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
             if (objects[i].TileIndex == tileIndex && objects[i].ObjectTypeId == CoopObjectId)
                 return true;
@@ -444,7 +444,7 @@ public static class HatcheryRules
     /// <summary>Whether any object at all stands on this tile.</summary>
     public static bool AnythingOn(WorldState world, int tileIndex)
     {
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
             if (objects[i].TileIndex == tileIndex) return true;
         return false;

@@ -49,7 +49,7 @@ public static class LairRules
     /// <summary>Whether a bed already stands on this tile.</summary>
     public static bool BedTaken(WorldState world, GameDatabase database, int tileIndex)
     {
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
             if (objects[i].TileIndex == tileIndex && IsBed(database, objects[i]))
                 return true;
@@ -60,7 +60,7 @@ public static class LairRules
     public static ObjectState? BedOf(
         WorldState world, GameDatabase database, CreatureState creature)
     {
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
             if (objects[i].CreatureId == creature.Id && IsBed(database, objects[i]))
                 return objects[i];
@@ -138,7 +138,7 @@ public static class LairRules
         bool evil = ((me.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
         if (!good && !evil) return false;
 
-        IReadOnlyList<ObjectState> objects = world.Objects;
+        EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectState candidate = objects[i];

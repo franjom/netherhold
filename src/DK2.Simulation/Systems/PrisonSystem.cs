@@ -71,7 +71,7 @@ public sealed class PrisonSystem : ISimulationSystem
     /// <summary>121, once a turn, for every released prisoner (ADR-0229).</summary>
     private static void WalkOut(SimulationContext context)
     {
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        EntityList<CreatureState> creatures = context.World.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];

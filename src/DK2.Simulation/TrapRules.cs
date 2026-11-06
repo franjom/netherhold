@@ -186,7 +186,7 @@ public static class TrapRules
     {
         int reach = database[VariableTypeId.GuardPostReportingDistanceTiles];
         int limit = (reach << 12) * reach;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         foreach (PlayerId player in world.PlayerIds)
         {
             if (!CombatRules.IsHostile(world, trap.PlayerId, player.Value)) continue;
@@ -217,7 +217,7 @@ public static class TrapRules
         if (RoomIndex.RoomAt(world, database, trap.GuardRoomTile) is not { } room) return;
 
         int sent = 0;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count && wanted >= 0; i++)
         {
             CreatureState c = creatures[i];
@@ -311,7 +311,7 @@ public static class TrapRules
     /// notices a move at the turn's end where DK2 links at the move itself.</summary>
     public static void RelinkCreatures(WorldState world)
     {
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = creatures[i];
@@ -516,7 +516,7 @@ public static class TrapRules
             }
         }
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         foreach (PlayerId player in world.PlayerIds)
         {
             if (!CombatRules.IsHostile(world, trap.PlayerId, player.Value)) continue;
@@ -641,7 +641,7 @@ public static class TrapRules
     public static void ShareThreat(WorldState world, ISightBlocker sight, PlayerId owner, int x, int y, int amount, int radius,
         ThreatSource source)
     {
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         int outer = radius * (radius >> 12);
         int count = 0;
         for (int i = 0; i < creatures.Count; i++)

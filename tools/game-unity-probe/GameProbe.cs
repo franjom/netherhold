@@ -50,6 +50,8 @@ namespace DK2.Unity
             ("movement_ms", "DK2.Sim.CreatureMovement", ProfilerCategory.Scripts),
             ("triggers_ms", "DK2.Sim.triggers", ProfilerCategory.Scripts),
             ("chunk_geometry_ms", "DK2.TerrainChunks.Geometry", ProfilerCategory.Scripts),
+            ("chunk_prepare_ms", "DK2.TerrainChunks.Prepare", ProfilerCategory.Scripts),
+            ("chunk_join_ms", "DK2.TerrainChunks.Join", ProfilerCategory.Scripts),
             ("chunk_upload_ms", "DK2.TerrainChunks.Upload", ProfilerCategory.Scripts),
             ("transparent_set_ms", "DK2.TransparentTerrain.SetChunk", ProfilerCategory.Scripts),
             ("transparent_sort_ms", "DK2.TransparentTerrain.Sort", ProfilerCategory.Scripts),

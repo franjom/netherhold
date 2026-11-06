@@ -176,3 +176,11 @@ light tiles cached), and two races the presented world exposed are closed: the o
 and the event sinks moved off the tick thread. The collection that lands badly (26–31 ms once a run)
 remains; it needs the tick thread's garbage counted next. The 60 FPS cap needs nothing: 1737 of 2043
 frames sit within 0.2 ms of 16.67 and only 33 exceed 17 ms, the limiter's own precision.
+
+Second follow-up (ADR-0696): the tick thread's garbage counted (`dotnet-trace` over the harness on
+Level 6a, allocation ticks by type and site) and cut from 203 to 52 KB per tick, 9.5 of which is the
+harness's own state hash: `RoomIndex.RoomAt` answers from the cached sweep, `RoomDef.TypeId` from a
+table, `world.Creatures`/`Objects` enumerate without boxing, the auto-furniture pass keeps its
+lists. The tick's median fell from 4.9 to 4.2 ms with it. And the chunk rebuild's per-tile geometry
+is built on a thread-pool task between frames; the frame keeps the piece and material resolution,
+the join and the upload, and the tile's arrays are refilled rather than replaced.

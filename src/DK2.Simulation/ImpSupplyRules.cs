@@ -36,7 +36,7 @@ public static class ImpSupplyRules
     public static int ImpCount(WorldState world, GameDatabase database, PlayerId playerId)
     {
         int count = 0;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];

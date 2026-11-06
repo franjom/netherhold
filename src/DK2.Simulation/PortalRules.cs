@@ -288,7 +288,7 @@ public static class PortalRules
     public static int CreatureCount(WorldState world, PlayerId playerId)
     {
         int count = 0;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
@@ -315,7 +315,7 @@ public static class PortalRules
             if (LairRules.IsLairRoom(database, room))
                 space += (ushort)(LairRules.Capacity(room) - LairRules.Occupied(world, database, room));
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
@@ -332,7 +332,7 @@ public static class PortalRules
     public static int CreatureCountOfType(WorldState world, PlayerId playerId, byte creatureTypeId)
     {
         int count = 0;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];

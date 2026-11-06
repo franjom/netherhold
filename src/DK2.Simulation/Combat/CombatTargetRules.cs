@@ -428,7 +428,7 @@ public static class CombatTargetRules
 
         CreatureState? chosen = null;
         int best = int.MaxValue;
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        EntityList<CreatureState> creatures = context.World.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
@@ -519,7 +519,7 @@ public static class CombatTargetRules
         bool nearHeart = CombatRules.DistanceSquared(me.PosX, me.PosY, heartX, heartY) < HeartDefenceRadiusSquared;
 
         int best = int.MaxValue;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
@@ -617,7 +617,7 @@ public static class CombatTargetRules
         GameDatabase database = context.Database;
         CreatureState? chosen = null;
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];

@@ -171,7 +171,7 @@ public static class ManaRules
         int perImp = ImpUpkeepPerSecond(database);
         if (perImp == 0) return upkeep;
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];

@@ -15,7 +15,9 @@ namespace DK2.Simulation;
 /// should use.</para>
 /// <para>The whole-map sweep is kept per world and revalidated against every tile's terrain and
 /// owner and the database instance, never invalidated (ADR-0466). Its list and rooms are shared
-/// until the map changes, so neither may be mutated. The other two entry points are uncached.</para>
+/// until the map changes, so neither may be mutated. <see cref="RoomAt"/> answers from the same
+/// sweep through a per-tile map (ADR-0696: a fill per call was the simulation's largest
+/// allocation). The predicate sweep is uncached.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public static class RoomIndex
@@ -41,17 +43,18 @@ public static class RoomIndex
 
     /// <summary>
     /// The room the tile at <paramref name="tileIndex"/> belongs to, or null if
-    /// the tile is not room terrain.
+    /// the tile is not room terrain. The instance is the cached sweep's, shared with
+    /// <see cref="Build(WorldState, GameDatabase)"/> until the map changes.
     /// </summary>
     public static RoomInstance? RoomAt(WorldState world, GameDatabase database, int tileIndex)
     {
         if (tileIndex < 0 || tileIndex >= world.TileCount) return null;
 
         ref TileState tile = ref world.TileAtIndex(tileIndex);
-        RoomDef? definition = database.RoomByTerrain(tile.TerrainId);
-        if (definition is null) return null;
+        if (database.RoomByTerrain(tile.TerrainId) is null) return null;
 
-        return Fill(world, definition, tile.TerrainId, tile.OwnerPlayerId, tileIndex, visited: null);
+        Build(world, database);
+        return world.RoomSweepCache.RoomOf(tileIndex);
     }
 
     /// <summary>
@@ -140,9 +143,13 @@ public static class RoomIndex
     {
         private GameDatabase? _database;
         private ushort[] _tiles = [];
+        private RoomInstance?[] _byTile = [];
         private int _count = -1;
 
         public IReadOnlyList<RoomInstance>? Rooms { get; private set; }
+
+        /// <summary>The sweep's room holding the tile, or null for one outside every room.</summary>
+        public RoomInstance? RoomOf(int tileIndex) => _byTile[tileIndex];
 
         /// <summary>Whether <see cref="Rooms"/> is what a sweep of the world would give now: the
         /// same database, and each tile's terrain and owner as the sweep saw them.</summary>
@@ -161,8 +168,15 @@ public static class RoomIndex
         public void Remember(WorldState world, GameDatabase database, List<RoomInstance> rooms)
         {
             int count = world.TileCount;
-            if (_tiles.Length != count) _tiles = new ushort[count];
+            if (_tiles.Length != count)
+            {
+                _tiles = new ushort[count];
+                _byTile = new RoomInstance?[count];
+            }
+            else Array.Clear(_byTile, 0, count);
             for (int i = 0; i < count; i++) _tiles[i] = Key(world.TileAtIndex(i));
+            foreach (RoomInstance room in rooms)
+                foreach (int index in room.Tiles) _byTile[index] = room;
             _database = database;
             _count = count;
             Rooms = rooms;
@@ -233,9 +247,9 @@ public static class RoomIndex
         var geometry = new RoomGeometry(new TilePos(minX, minY), new TilePos(maxX, maxY),
             FindOrdinaryCentre(world, indices));
         var room = new RoomInstance(definition, ownerPlayerId, indices, geometry);
-        room.InteriorTileIndices = SurroundedWithin(world, room.TileIndices);
-        room.InteriorRimTileCount = room.InteriorTileIndices.Count
-            - SurroundedWithin(world, room.InteriorTileIndices).Length;
+        int[] interior = SurroundedWithin(world, indices);
+        room.InteriorTileIndices = interior;
+        room.InteriorRimTileCount = interior.Length - SurroundedWithin(world, interior).Length;
         return room;
     }
 
@@ -276,11 +290,11 @@ public static class RoomIndex
     /// interior it gives the interior's own core, and what is left is the ring a
     /// graveyard puts its graves on (Q60). One function, so both rings generalise to
     /// an L-shape the same way rather than by a bounding-box formula.</para>
+    /// <para><paramref name="members"/> is ascending, so membership is a binary search.</para>
     /// </summary>
-    private static int[] SurroundedWithin(WorldState world, IReadOnlyList<int> members)
+    private static int[] SurroundedWithin(WorldState world, int[] members)
     {
-        var member = new HashSet<int>(members);
-        var interior = new List<int>(members.Count);
+        var interior = new List<int>(members.Length);
 
         foreach (int index in members)
         {
@@ -293,7 +307,7 @@ public static class RoomIndex
                 int nx = cx + NeighbourDx[i];
                 int ny = cy + NeighbourDy[i];
 
-                if (world.Contains(nx, ny) && member.Contains((ny * world.Width) + nx)) continue;
+                if (world.Contains(nx, ny) && Array.BinarySearch(members, (ny * world.Width) + nx) >= 0) continue;
 
                 surrounded = false;
                 break;

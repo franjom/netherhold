@@ -371,8 +371,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         if (_structures is null || !_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return true;
         to = new Fixed16Vector((to.X >> 4) << 4, (to.Y >> 4) << 4);
         long radius = (heart.Width.Raw >> 1) << 4;
-        foreach (int index in _structures.HeartCentres)
+        IReadOnlyList<int> centres = _structures.HeartCentres;
+        for (int i = 0; i < centres.Count; i++)
         {
+            int index = centres[i];
             long dx = from.X - ((long)CreatureState.CentreOf(index % _world.Width) << 4);
             long dy = from.Y - ((long)CreatureState.CentreOf(index / _world.Width) << 4);
             long sx = (long)to.X - from.X, sy = (long)to.Y - from.Y;

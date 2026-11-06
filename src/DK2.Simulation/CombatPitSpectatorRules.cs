@@ -50,7 +50,7 @@ public static class CombatPitSpectatorRules
     public static bool FightOn(SimulationContext context, RoomInstance pit)
     {
         WorldState world = context.World;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];

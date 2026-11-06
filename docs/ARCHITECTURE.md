@@ -156,6 +156,11 @@ Three rules govern it:
 - **No `Enum.HasFlag` anywhere under `src/`.** It boxes both operands under IL2CPP and
   Mono; write `(x & f) == f` (ADR-0695). `ArchitectureTests.NothingUnderSrcCallsEnumHasFlag`
   enforces it.
+- **A per-tick loop allocates nothing it can avoid** (ADR-0696). `world.Creatures` and
+  `world.Objects` are `EntityList<T>`, whose `foreach` is the list's struct enumerator: keep a
+  local of that type, not of `IReadOnlyList<T>`, which boxes it. A loop over a room's tiles takes
+  `room.Tiles`. A system's working lists are its fields, cleared per tick, or `[ThreadStatic]`
+  scratch as `RoomIndex` keeps its visited array; never shared static state.
 - **Nothing in the simulation may read an event back.** `ISimulationEventSink`
   (`SimulationEvents.cs`) is write-only observation; attaching a recorder with
   `ObserveWith` must not change behaviour.
@@ -345,7 +350,9 @@ Evidence and confidence: `docs/research/imp-tasks.md`.
 
 - A room is a **derived instance** (`RoomInstance`, ADR-0027) over the tiles
   carrying its terrain, indexed by `RoomIndex`; there is no authoritative room
-  object to keep in step with the grid.
+  object to keep in step with the grid. `RoomAt` and `Build` share one cached sweep per
+  world, revalidated against every tile (ADR-0466, ADR-0696), so an instance lives until the
+  map changes and may memoise what depends only on the map (`WallSlots`).
 - `RoomRules` says where a room may go, what it costs and what it does to the
   tile. Where it may go is read from the room record's own placeable-on flags, so
   no code knows what a bridge is (ADR-0016).

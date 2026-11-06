@@ -86,7 +86,7 @@ public static partial class PossessionRules
         var pose = new Vec3(px, py, pz);
         CreatureState? best = null;
         uint nearest = uint.MaxValue;
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = creatures.Count - 1; i >= 0; i--)
         {
             CreatureState c = creatures[i];

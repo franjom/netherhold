@@ -296,8 +296,9 @@ off for baseline captures. The adapter exposes these CPU markers:
 | `DK2.Sim.nav.refresh` / `nav.build` / `nav.route` | Re-reading the navigation bytes, rebuilding the mesh, one route query |
 | `DK2.Sim.grid.nearest` / `grid.path` | One grid search by ImpTask's pathfinder |
 | `DK2.Sim.ImpTask.*` | ImpTask's phases: claim on the way, wander, carry, job |
-| `DK2.TerrainChunks.Rebuild` | One terrain chunk's mesh, inside `DK2.Scene.Present` |
-| `DK2.TerrainChunks.Geometry` / `Upload` | Inside Rebuild: one changed tile's pieces regenerated (cached tiles are copied), and the chunk mesh set |
+| `DK2.TerrainChunks.Rebuild` | One terrain chunk's mesh, inside `DK2.Scene.Present`: its built tiles copied and the mesh set (`Upload`) |
+| `DK2.TerrainChunks.Prepare` / `Join` | The frame's share of a changed tile: its pieces and materials resolved, and the build task's tiles taken over. The vertices themselves are bent on a thread-pool task (ADR-0696) |
+| `DK2.TerrainChunks.Geometry` | A tile's vertices built on the frame's thread: the first build after a load, or a flush without a budget |
 | `DK2.TransparentTerrain.SetChunk` / `Sort` | A chunk's blended faces kept; the per-camera depth sort of all of them |
 
 Nested marker times overlap: do not add child totals to their parent's total.

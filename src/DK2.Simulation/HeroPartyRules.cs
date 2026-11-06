@@ -257,7 +257,7 @@ public static class HeroPartyRules
     /// the follower count.</summary>
     public static void LinkFollowers(WorldState world, byte partyId)
     {
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         CreatureState? leader = null;
         for (int i = creatures.Count - 1; i >= 0; i--)
         {

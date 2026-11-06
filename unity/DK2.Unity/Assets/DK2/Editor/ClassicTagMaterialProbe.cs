@@ -65,10 +65,9 @@ namespace DK2.Unity.Editor
                     {
                         var chunks = new TerrainChunks(root.transform, classic, 1, 1);
                         // Exercise the emitted triangle/material boundary, including the room-wall tint argument.
-                        typeof(TerrainChunks).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance)
-                            .Invoke(chunks, new object[] { piece, 0, Vector3.zero, 0, 0, tagged, tint, null });
                         var emitted = (Dictionary<Material, List<int>>)typeof(TerrainChunks)
-                            .GetField("_tileByMaterial", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(chunks);
+                            .GetMethod("ProbeEmitted", BindingFlags.NonPublic | BindingFlags.Instance)
+                            .Invoke(chunks, new object[] { piece, tagged, tint });
                         foreach (Material material in emitted.Keys) owned.Add(material);
                         if (emitted.Count != (tagged ? 2 : 1))
                             throw new InvalidOperationException("Tag changed the base/overlay material pass count.");

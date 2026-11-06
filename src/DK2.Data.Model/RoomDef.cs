@@ -120,14 +120,20 @@ public sealed record RoomDef
     /// <summary>The strongly-typed room type, when it is one we have named.</summary>
     ///
     /// <remarks>
-    /// The non-generic <c>Enum.IsDefined(Type, object)</c> rather than the
-    /// generic overload, which is .NET 5+ and therefore unavailable on
-    /// netstandard2.1 — the framework Unity actually loads (ADR-0002). It boxes,
-    /// which is why this is a property on a definition record read at load time
-    /// and not something a per-tick rule calls.
+    /// A table of the named ids rather than <c>Enum.IsDefined</c>, which boxes its arguments: the
+    /// per-tick rules ask this for every room, and in the whole run it was the simulation's third
+    /// largest allocation (ADR-0696).
     /// </remarks>
-    public RoomTypeId? TypeId =>
-        Enum.IsDefined(typeof(RoomTypeId), (RoomTypeId)RoomId) ? (RoomTypeId)RoomId : null;
+    public RoomTypeId? TypeId => s_namedIds[RoomId];
+
+    private static readonly RoomTypeId?[] s_namedIds = NamedIds();
+
+    private static RoomTypeId?[] NamedIds()
+    {
+        var ids = new RoomTypeId?[256];
+        foreach (RoomTypeId id in Enum.GetValues(typeof(RoomTypeId))) ids[(byte)id] = id;
+        return ids;
+    }
 }
 
 /// <summary>

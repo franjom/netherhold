@@ -83,7 +83,7 @@ public sealed class LevelGemIdleEffects
         for (long turn = from; turn <= now; turn++)
         {
             if (!LevelGemIdle.EmitsOn(turn)) continue;
-            IReadOnlyList<ObjectState> objects = world.Objects;
+            EntityList<ObjectState> objects = world.Objects;
             for (int i = 0; i < objects.Count; i++)
             {
                 ObjectState thing = objects[i];

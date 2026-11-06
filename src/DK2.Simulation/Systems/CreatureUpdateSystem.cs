@@ -62,7 +62,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
 
     private static void Sweep(SimulationContext context, ReadOnlySpan<ICreatureUpdateStep> steps, bool walkTriggers = false)
     {
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        EntityList<CreatureState> creatures = context.World.Creatures;
         int below = int.MaxValue;
         for (int i = creatures.Count - 1; ; i--)
         {

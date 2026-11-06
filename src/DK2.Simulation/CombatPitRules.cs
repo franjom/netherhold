@@ -116,7 +116,7 @@ public static class CombatPitRules
         CreatureState? chosen = null;
         int best = int.MaxValue;
         int cap = database[VariableTypeId.CombatPitMaxExperienceLevel];
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
@@ -173,7 +173,7 @@ public static class CombatPitRules
     /// tile: its tile list's things with container state 0 (<c>+0x12</c>).</summary>
     public static bool AnyoneOn(WorldState world, TilePos tile, CreatureState? except)
     {
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState other = creatures[i];

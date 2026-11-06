@@ -35,7 +35,7 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
         }
         if (_piles.Count == 0) return;
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        EntityList<CreatureState> creatures = world.Creatures;
         for (int i = creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = creatures[i];

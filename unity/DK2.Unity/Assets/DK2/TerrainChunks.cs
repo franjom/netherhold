@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using DK2.Assets;
 using DK2.Presentation;
 using Unity.Profiling;
@@ -20,7 +21,8 @@ namespace DK2.Unity
     /// as DK2's side table runs), then moved to the tile's centre and, for a quarter, its quadrant's.
     /// Heights are the models' own: floor 1, walls 1 to 2 (ADR-0411). A <see cref="TerrainLattice"/>
     /// then bends each vertex as DK2 does, keeping the straight normals (terrain-lattice.md §1); a
-    /// change rebuilds the 5×5 tiles' chunks around it, where DK2 rebuilds the 3×3.
+    /// change rebuilds the 5×5 tiles' chunks around it, where DK2 rebuilds the 3×3. A tile's
+    /// vertices are built on a thread-pool task between frames (ADR-0696; <see cref="Flush"/>).
     /// </remarks>
     public sealed class TerrainChunks
     {
@@ -28,6 +30,8 @@ namespace DK2.Unity
 
         private static readonly ProfilerMarker RebuildMarker = new ProfilerMarker("DK2.TerrainChunks.Rebuild");
         private static readonly ProfilerMarker GeometryMarker = new ProfilerMarker("DK2.TerrainChunks.Geometry");
+        private static readonly ProfilerMarker PrepareMarker = new ProfilerMarker("DK2.TerrainChunks.Prepare");
+        private static readonly ProfilerMarker JoinMarker = new ProfilerMarker("DK2.TerrainChunks.Join");
         private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.TerrainChunks.Upload");
 
         // Quadrant centres NW, NE, SE, SW in renderer X (east) and Z (north).
@@ -35,6 +39,12 @@ namespace DK2.Unity
         {
             new Vector2(-0.25f, 0.25f), new Vector2(0.25f, 0.25f),
             new Vector2(0.25f, -0.25f), new Vector2(-0.25f, -0.25f),
+        };
+
+        // The four quarter turns, made on the main thread: the build thread only multiplies by them.
+        private static readonly Quaternion[] Turns =
+        {
+            Quaternion.identity, Quaternion.Euler(0f, 90f, 0f), Quaternion.Euler(0f, 180f, 0f), Quaternion.Euler(0f, 270f, 0f),
         };
 
         private readonly Transform _root;
@@ -58,38 +68,86 @@ namespace DK2.Unity
             | MeshUpdateFlags.DontNotifyMeshUsers;
         private readonly System.Diagnostics.Stopwatch _flushClock = new System.Diagnostics.Stopwatch();
 
-        /// <summary>How long one <see cref="Flush"/> may spend rebuilding chunks before it leaves the
-        /// rest for the next frame, in milliseconds; at least one chunk is rebuilt per flush, and the
+        /// <summary>How long one <see cref="Flush"/> may spend uploading chunks before it leaves the
+        /// rest for the next frame, in milliseconds; at least one chunk is uploaded per flush, and the
         /// first build after a <see cref="Clear"/> takes every chunk. A tag wave that touches many
         /// chunks then costs a few frames of a few milliseconds instead of one frame of a hundred,
         /// and a chunk not yet rebuilt shows its previous mesh until its turn (ADR-0457). Zero or
-        /// less rebuilds everything at once.</summary>
+        /// less builds and uploads everything at once, on the calling thread.</summary>
         public double FlushBudgetMilliseconds { get; set; } = 4.0;
 
         /// <summary>How many chunks the last <see cref="Flush"/> left for a later one.</summary>
         public int PendingChunks => _dirty.Count;
 
-        // Each drawn tile's pieces as AddTile last built them. A rebuild regenerates only the tiles
-        // whose inputs changed (_stale) and copies the rest, so a dig costs its 5x5 window rather
-        // than every tile of the chunks that window touches. The chunk comes out the same, vertex
-        // for vertex and triangle for triangle.
+        // Each drawn tile's pieces as the last build left them, in buffers the tile keeps: a rebuild
+        // regenerates only the tiles whose inputs changed (_stale) and copies the rest, so a dig costs
+        // its 5x5 window rather than every tile of the chunks that window touches, and the arrays are
+        // refilled rather than replaced (a tick's rebuild was 0.5 MB of them, ADR-0696). The chunk
+        // comes out the same, vertex for vertex and triangle for triangle.
         private sealed class TileGeometry
         {
-            public Vector3[] Positions, Normals;
-            public Vector2[] Uvs;
+            // Phase one, the frame's: the pieces placed in the tile and, per triangle group, the
+            // material slot it draws with.
+            public readonly List<PlacedPiece> Pieces = new List<PlacedPiece>();
+            public readonly List<TriangleGroup> Groups = new List<TriangleGroup>();
+            public Material[] Materials = new Material[4];
+            public int MaterialCount;
             public Vector2 LightAnchor;
-            public Material[] Materials;
-            public int[][] Triangles; // per material, indexed from the tile's first vertex
+            public int LatticeX, LatticeY;
+
+            // Phase two, any thread's: the vertices and, per material slot, the triangles from the
+            // tile's first vertex.
+            public Vector3[] Positions = new Vector3[256], Normals = new Vector3[256];
+            public Vector2[] Uvs = new Vector2[256];
+            public int VertexCount;
+            public IndexList[] Triangles = new IndexList[4];
+            public int[] PieceStarts = new int[8];
+
+            public int SlotOf(Material material)
+            {
+                for (int i = 0; i < MaterialCount; i++)
+                    if (ReferenceEquals(Materials[i], material)) return i;
+                if (MaterialCount == Materials.Length)
+                {
+                    System.Array.Resize(ref Materials, MaterialCount * 2);
+                    System.Array.Resize(ref Triangles, MaterialCount * 2);
+                }
+                Materials[MaterialCount] = material;
+                Triangles[MaterialCount] ??= new IndexList();
+                return MaterialCount++;
+            }
+        }
+
+        private sealed class IndexList
+        {
+            public int[] Items = new int[64];
+            public int Count;
+
+            public void Add(int value)
+            {
+                if (Count == Items.Length) System.Array.Resize(ref Items, Count * 2);
+                Items[Count++] = value;
+            }
+        }
+
+        private struct PlacedPiece
+        {
+            public ClassicMeshes.PieceSource Piece;
+            public int Rotation;
+            public Vector3 At;
+            public bool InvertNormals;
+        }
+
+        private struct TriangleGroup
+        {
+            public int Piece, Group, Slot;
         }
 
         private readonly TileGeometry[] _geometry;
         private readonly bool[] _stale;
-
-        // One tile's build, reused so a tile costs no list allocations beyond its own arrays.
-        private readonly List<Vector3> _tilePositions = new List<Vector3>();
-        private readonly List<Vector3> _tileNormals = new List<Vector3>();
-        private readonly List<Vector2> _tileUvs = new List<Vector2>();
-        private readonly Dictionary<Material, List<int>> _tileByMaterial = new Dictionary<Material, List<int>>();
+        // The tiles the running build task owns; nothing of theirs is read until it is joined.
+        private readonly List<int> _building = new List<int>();
+        private Task _buildTask;
 
         // One chunk's assembly, reused across rebuilds.
         private readonly List<Vector3> _positions = new List<Vector3>();
@@ -119,6 +177,9 @@ namespace DK2.Unity
         /// <summary>Takes the tile when it has plain or room pieces; false leaves it to the placeholder.</summary>
         public bool TrySet(int tileIndex, in TileView tile)
         {
+            // The build task reads the tiles and the lattice; a change waits for it (rarely: it is a
+            // millisecond or two, started a frame or more before the next tick's tiles arrive).
+            JoinBuild();
             bool draws = (!tile.Pieces.IsEmpty && tile.PieceKeys != null)
                 || tile.RoomKeys != null || tile.BedKeys != null || !tile.SightFogOverlay.IsEmpty;
             if (_lattice != null)
@@ -138,24 +199,40 @@ namespace DK2.Unity
             return draws;
         }
 
-        /// <summary>Rebuilds the chunks a tile changed in since the last flush, lowest chunk first,
-        /// within <see cref="FlushBudgetMilliseconds"/>; what does not fit stays dirty for the next
-        /// flush. Everything is rebuilt when nothing is drawn yet, so a level appears whole.</summary>
+        /// <summary>Takes a finished build over, starts one for the tiles that changed since, and
+        /// uploads the chunks whose tiles are all built, lowest chunk first, within
+        /// <see cref="FlushBudgetMilliseconds"/>; what does not fit stays dirty for the next flush.
+        /// Everything is built inline and uploaded when nothing is drawn yet, so a level appears whole.</summary>
         public void Flush()
         {
             LastFlushMilliseconds = 0;
             if (_dirty.Count == 0) return;
-            _dirtyOrder.Clear();
-            _dirtyOrder.AddRange(_dirty);
-            _dirtyOrder.Sort();
-            bool budgeted = FlushBudgetMilliseconds > 0 && _chunks.Count > 0;
             using ClassicMeshes.LoadBreakdown.Scope _ = ClassicMeshes.LoadBreakdown.Span(
                 _classic?.Breakdown, ClassicMeshes.LoadBreakdown.Work.Terrain);
             _flushClock.Restart();
+            bool budgeted = FlushBudgetMilliseconds > 0 && _chunks.Count > 0;
+            Task build = _buildTask;
+            if (build != null)
+            {
+                if (budgeted && !build.IsCompleted)
+                {
+                    LastFlushMilliseconds = _flushClock.Elapsed.TotalMilliseconds;
+                    return;
+                }
+                JoinBuild();
+            }
+
+            _dirtyOrder.Clear();
+            _dirtyOrder.AddRange(_dirty);
+            _dirtyOrder.Sort();
+            if (budgeted) StartBuild();
+            else BuildInline();
+
             foreach (int chunk in _dirtyOrder)
             {
                 if (budgeted && _dirty.Count < _dirtyOrder.Count && _flushClock.Elapsed.TotalMilliseconds >= FlushBudgetMilliseconds)
                     break;
+                if (AnyStale(chunk)) continue;
                 using (RebuildMarker.Auto())
                     Rebuild(chunk);
                 _dirty.Remove(chunk);
@@ -163,11 +240,12 @@ namespace DK2.Unity
             LastFlushMilliseconds = _flushClock.Elapsed.TotalMilliseconds;
         }
 
-        /// <summary>What the last <see cref="Flush"/> spent rebuilding, for the frame recorder.</summary>
+        /// <summary>What the last <see cref="Flush"/> spent on the frame's thread, for the frame recorder.</summary>
         public double LastFlushMilliseconds { get; private set; }
 
         public void Clear()
         {
+            JoinBuild();
             foreach (GameObject go in _chunks.Values) if (go != null) Object.Destroy(go);
             foreach (Mesh mesh in _chunkMeshes.Values) if (mesh != null) Object.Destroy(mesh);
             _chunks.Clear();
@@ -208,6 +286,82 @@ namespace DK2.Unity
         private int ChunkOf(int tileIndex) =>
             (tileIndex / _width / ChunkSize * _chunksX) + (tileIndex % _width / ChunkSize);
 
+        private bool AnyStale(int chunk)
+        {
+            int height = _tiles.Length / _width;
+            int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
+            for (int y = y0; y < Mathf.Min(y0 + ChunkSize, height); y++)
+                for (int x = x0; x < Mathf.Min(x0 + ChunkSize, _width); x++)
+                    if (_stale[(y * _width) + x]) return true;
+            return false;
+        }
+
+        /// <summary>Phase one for every stale tile of the dirty chunks, on this thread; a stale tile
+        /// no longer drawn just stops being stale.</summary>
+        private void PrepareStale()
+        {
+            using ProfilerMarker.AutoScope _ = PrepareMarker.Auto();
+            int height = _tiles.Length / _width;
+            foreach (int chunk in _dirtyOrder)
+            {
+                int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
+                for (int y = y0; y < Mathf.Min(y0 + ChunkSize, height); y++)
+                    for (int x = x0; x < Mathf.Min(x0 + ChunkSize, _width); x++)
+                    {
+                        int index = (y * _width) + x;
+                        if (!_stale[index]) continue;
+                        if (!_drawn[index])
+                        {
+                            _stale[index] = false;
+                            continue;
+                        }
+                        TileGeometry geometry = _geometry[index] ??= new TileGeometry();
+                        Prepare(x, y, _tiles[index], geometry);
+                        _lattice?.Prepare(x, y);
+                        _building.Add(index);
+                    }
+            }
+        }
+
+        private void StartBuild()
+        {
+            PrepareStale();
+            if (_building.Count == 0) return;
+            _buildTask = Task.Run(() =>
+            {
+                foreach (int index in _building) Build(_geometry[index]);
+            });
+        }
+
+        private void BuildInline()
+        {
+            PrepareStale();
+            using (GeometryMarker.Auto())
+                foreach (int index in _building) Build(_geometry[index]);
+            foreach (int index in _building) _stale[index] = false;
+            _building.Clear();
+        }
+
+        /// <summary>Waits for the build task, if one runs, and takes its tiles over.</summary>
+        private void JoinBuild()
+        {
+            Task build = _buildTask;
+            if (build == null) return;
+            using (JoinMarker.Auto())
+            {
+                _buildTask = null;
+                try
+                {
+                    build.GetAwaiter().GetResult();
+                }
+                finally
+                {
+                    foreach (int index in _building) _stale[index] = false;
+                    _building.Clear();
+                }
+            }
+        }
+
         private void Rebuild(int chunk)
         {
             _positions.Clear();
@@ -222,18 +376,7 @@ namespace DK2.Unity
                 for (int x = x0; x < Mathf.Min(x0 + ChunkSize, _width); x++)
                 {
                     int index = (y * _width) + x;
-                    if (!_drawn[index])
-                    {
-                        _geometry[index] = null;
-                        _stale[index] = false;
-                        continue;
-                    }
-                    if (_stale[index] || _geometry[index] == null)
-                    {
-                        using (GeometryMarker.Auto()) _geometry[index] = BuildTile(x, y, _tiles[index]);
-                        _stale[index] = false;
-                    }
-                    Append(_geometry[index]);
+                    if (_drawn[index]) Append(_geometry[index]);
                 }
 
             _transparent.SetChunk(chunk, _positions, _normals, _uvs, _lightAnchors, _byMaterial);
@@ -294,57 +437,99 @@ namespace DK2.Unity
             return true;
         }
 
-        /// <summary>One tile's pieces, built as the chunk used to build them in place.</summary>
-        private TileGeometry BuildTile(int x, int y, in TileView tile)
+        /// <summary>Phase one of one tile: its pieces placed and their materials resolved, in the
+        /// tile's own first-use order so the chunk's submeshes come out as the in-place build's did.
+        /// Main thread: the materials are Unity objects, made on first use.</summary>
+        private void Prepare(int x, int y, in TileView tile, TileGeometry geometry)
         {
-            _tilePositions.Clear();
-            _tileNormals.Clear();
-            _tileUvs.Clear();
-            foreach (List<int> list in _tileByMaterial.Values) list.Clear();
-            _tileMaterialOrder.Clear();
-            _tileMaterialSeen.Clear();
-            AddTile(x, y, tile);
+            geometry.Pieces.Clear();
+            geometry.Groups.Clear();
+            geometry.MaterialCount = 0;
+            geometry.LightAnchor = new Vector2(y * _width + x, 1);
+            geometry.LatticeX = x;
+            geometry.LatticeY = y;
+            AddTile(geometry, x, y, tile);
             if (!tile.SightFogOverlay.IsEmpty)
-                Add(_classic.Piece(tile.SightFogOverlay), 0, DungeonScene.Ground(x + .5f, y + .5f),
+                Add(geometry, _classic.Piece(tile.SightFogOverlay), 0, DungeonScene.Ground(x + .5f, y + .5f),
                     x, y, fogOpacity: tile.SightFogOpacity);
-
-            // In the tile's own first-use order, so Append meets materials in the order the old
-            // in-place build did and the chunk's submeshes come out in the same order.
-            var geometry = new TileGeometry
-            {
-                Positions = _tilePositions.ToArray(), Normals = _tileNormals.ToArray(), Uvs = _tileUvs.ToArray(),
-                LightAnchor = new Vector2(y * _width + x, 1),
-                Materials = _tileMaterialOrder.ToArray(), Triangles = new int[_tileMaterialOrder.Count][],
-            };
-            for (int m = 0; m < _tileMaterialOrder.Count; m++)
-                geometry.Triangles[m] = _tileByMaterial[_tileMaterialOrder[m]].ToArray();
-            return geometry;
         }
 
-        private readonly List<Material> _tileMaterialOrder = new List<Material>();
-        private readonly HashSet<Material> _tileMaterialSeen = new HashSet<Material>();
-
-        private void Append(TileGeometry geometry)
+        /// <summary>Phase two of one tile: the vertices turned, placed and bent, and the triangles
+        /// gathered per material slot. Arrays and arithmetic only, so any thread may run it; the
+        /// lattice cells it reads were built by <see cref="Prepare"/>.</summary>
+        private void Build(TileGeometry geometry)
         {
-            int start = _positions.Count;
-            _positions.AddRange(geometry.Positions);
-            _normals.AddRange(geometry.Normals);
-            _uvs.AddRange(geometry.Uvs);
-            for (int vertex = 0; vertex < geometry.Positions.Length; vertex++) _lightAnchors.Add(geometry.LightAnchor);
-            for (int m = 0; m < geometry.Materials.Length; m++)
+            geometry.VertexCount = 0;
+            for (int s = 0; s < geometry.MaterialCount; s++) geometry.Triangles[s].Count = 0;
+            if (geometry.PieceStarts.Length < geometry.Pieces.Count) geometry.PieceStarts = new int[geometry.Pieces.Count * 2];
+            int x = geometry.LatticeX, y = geometry.LatticeY;
+            for (int p = 0; p < geometry.Pieces.Count; p++)
             {
-                if (!_byMaterial.TryGetValue(geometry.Materials[m], out List<int> list))
-                    _byMaterial[geometry.Materials[m]] = list = new List<int>();
-                foreach (int index in geometry.Triangles[m]) list.Add(start + index);
+                PlacedPiece placed = geometry.Pieces[p];
+                ClassicMeshes.PieceSource piece = placed.Piece;
+                Quaternion turn = Turns[placed.Rotation & 3];
+                int start = geometry.VertexCount;
+                geometry.PieceStarts[p] = start;
+                int needed = start + piece.Positions.Length;
+                if (geometry.Positions.Length < needed)
+                {
+                    int size = Mathf.Max(needed, geometry.Positions.Length * 2);
+                    System.Array.Resize(ref geometry.Positions, size);
+                    System.Array.Resize(ref geometry.Normals, size);
+                    System.Array.Resize(ref geometry.Uvs, size);
+                }
+                for (int i = 0; i < piece.Positions.Length; i++)
+                {
+                    Vector3 v = (turn * piece.Positions[i]) + placed.At;
+                    if (_lattice != null)
+                    {
+                        // DK2's frame is (x, -z, -y) of this one (DungeonScene.Ground, RenderMesh).
+                        System.Numerics.Vector3 bent = _lattice.Deform(new System.Numerics.Vector3(v.x, -v.z, -v.y), x, y);
+                        v = new Vector3(bent.X, -bent.Z, -bent.Y);
+                    }
+                    geometry.Positions[start + i] = v;
+                    // Ordinary tops carry native drawflag0x80 (static-mesh-lighting.md section1).
+                    Vector3 normal = placed.InvertNormals ? -piece.Normals[i] : piece.Normals[i];
+                    geometry.Normals[start + i] = turn * normal;
+                    geometry.Uvs[start + i] = piece.Uvs[i];
+                }
+                geometry.VertexCount = needed;
+            }
+            for (int g = 0; g < geometry.Groups.Count; g++)
+            {
+                TriangleGroup group = geometry.Groups[g];
+                int start = geometry.PieceStarts[group.Piece];
+                IndexList list = geometry.Triangles[group.Slot];
+                foreach (int index in geometry.Pieces[group.Piece].Piece.Triangles[group.Group]) list.Add(start + index);
             }
         }
 
-        private void AddTile(int x, int y, in TileView tile)
+        private void Append(TileGeometry geometry)
         {
-            if (tile.BedKeys != null) AddBed(x, y, tile);
+            if (geometry == null) return;
+            int start = _positions.Count;
+            for (int i = 0; i < geometry.VertexCount; i++)
+            {
+                _positions.Add(geometry.Positions[i]);
+                _normals.Add(geometry.Normals[i]);
+                _uvs.Add(geometry.Uvs[i]);
+                _lightAnchors.Add(geometry.LightAnchor);
+            }
+            for (int s = 0; s < geometry.MaterialCount; s++)
+            {
+                if (!_byMaterial.TryGetValue(geometry.Materials[s], out List<int> list))
+                    _byMaterial[geometry.Materials[s]] = list = new List<int>();
+                IndexList triangles = geometry.Triangles[s];
+                for (int i = 0; i < triangles.Count; i++) list.Add(start + triangles.Items[i]);
+            }
+        }
+
+        private void AddTile(TileGeometry geometry, int x, int y, in TileView tile)
+        {
+            if (tile.BedKeys != null) AddBed(geometry, x, y, tile);
             if (tile.RoomKeys != null)
             {
-                AddRoom(x, y, tile);
+                AddRoom(geometry, x, y, tile);
                 return;
             }
 
@@ -356,17 +541,17 @@ namespace DK2.Unity
             // tile.FaceTexture; Q617). A tagged tile tints every piece it draws (tag-highlight.md).
             bool tagged = tile.Tagged;
             for (int side = 0; side < 4; side++)
-                if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, tile.FaceTexture), side, centre, x, y, tagged, tile.AmbientTint);
-            if (pieces.HasTop) Add(_classic.Piece(keys.Top), 0, centre, x, y, tagged, tile.AmbientTint,
+                if (pieces.HasFace(side)) Add(geometry, _classic.Piece(keys.Side, tile.FaceTexture), side, centre, x, y, tagged, tile.AmbientTint);
+            if (pieces.HasTop) Add(geometry, _classic.Piece(keys.Top), 0, centre, x, y, tagged, tile.AmbientTint,
                 invertLightingNormals: true);
-            if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre, x, y, tagged, tile.AmbientTint);
-            AddHeroFaces(x, y, tile, keys, centre, tagged);
+            if (pieces.HasFloor) Add(geometry, _classic.Piece(keys.Floor), 0, centre, x, y, tagged, tile.AmbientTint);
+            AddHeroFaces(geometry, x, y, tile, keys, centre, tagged);
             if (pieces.Quarters == QuarterKind.None) return;
 
             for (int q = 0; q < 4; q++)
             {
                 Vector2 offset = QuadrantCentres[q];
-                Add(_classic.Piece(keys.Quarter(pieces.QuarterSet, pieces.QuarterPiece(q))),
+                Add(geometry, _classic.Piece(keys.Quarter(pieces.QuarterSet, pieces.QuarterPiece(q))),
                     TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y), x, y, tagged, tile.AmbientTint,
                     invertLightingNormals: pieces.Quarters == QuarterKind.Top);
             }
@@ -374,13 +559,13 @@ namespace DK2.Unity
 
         /// <summary>A room tile: its floor's quarters and whole piece, then each side's wall, whole
         /// at the centre or as two halves in the side's two quadrants, all turned to the side.</summary>
-        private void AddRoom(int x, int y, in TileView tile)
+        private void AddRoom(TileGeometry geometry, int x, int y, in TileView tile)
         {
             RoomPieceKeys keys = tile.RoomKeys;
             Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
-            AddSet(tile.RoomFloor, keys, null, centre, x, y, tile.AmbientTint, tile.QuarterAmbientTint);
+            AddSet(geometry, tile.RoomFloor, keys, null, centre, x, y, tile.AmbientTint, tile.QuarterAmbientTint);
             if (!tile.ExtraRoomPiece.IsEmpty)
-                Add(_classic.Piece(tile.ExtraRoomPiece), 0, centre, x, y, tint: tile.AmbientTint);
+                Add(geometry, _classic.Piece(tile.ExtraRoomPiece), 0, centre, x, y, tint: tile.AmbientTint);
 
             // A wall facing a tagged tile is tinted with it (0x00444F10's per-piece flag, which
             // 0x0043C310 reads).
@@ -392,11 +577,11 @@ namespace DK2.Unity
                 DK2.Data.Model.TerrainLightColour tint = walls.IsWhole(side) && walls.WholePiece(side) < 7
                     ? default : NeighbourTint(x, y, side);
                 if (walls.IsWhole(side))
-                    Add(_classic.Piece(keys.Piece(walls.WholePiece(side))), walls.WholeRotation(side), centre, x, y, tagged, tint);
+                    Add(geometry, _classic.Piece(keys.Piece(walls.WholePiece(side))), walls.WholeRotation(side), centre, x, y, tagged, tint);
                 else if (walls.HasWall(side))
                 {
-                    Add(_classic.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), x, y, tagged, tint);
-                    Add(_classic.Piece(keys.Piece(walls.HalfBPiece(side))), side, Quadrant(centre, (side + 1) & 3), x, y,
+                    Add(geometry, _classic.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), x, y, tagged, tint);
+                    Add(geometry, _classic.Piece(keys.Piece(walls.HalfBPiece(side))), side, Quadrant(centre, (side + 1) & 3), x, y,
                         tagged, tint);
                 }
             }
@@ -405,19 +590,19 @@ namespace DK2.Unity
         /// <summary>A hero-owned wall's faces, carried in <see cref="TileView.Walls"/>: a whole piece
         /// at the centre or two halves in the side's two quadrants, turned to the side, with the room
         /// scheme's halves 4 and 5 swapped (0x0043E860).</summary>
-        private void AddHeroFaces(int x, int y, in TileView tile, TerrainPieceKeys keys, Vector3 centre, bool tagged)
+        private void AddHeroFaces(TileGeometry geometry, int x, int y, in TileView tile, TerrainPieceKeys keys, Vector3 centre, bool tagged)
         {
             RoomWalls faces = tile.Walls;
             if (faces.IsEmpty) return;
             for (int side = 0; side < 4; side++)
             {
                 if (faces.IsWhole(side))
-                    Add(_classic.Piece(keys.HeroFace(faces.WholePiece(side))), side, centre, x, y, tagged, tile.AmbientTint);
+                    Add(geometry, _classic.Piece(keys.HeroFace(faces.WholePiece(side))), side, centre, x, y, tagged, tile.AmbientTint);
                 else if (faces.HasWall(side))
                 {
-                    Add(_classic.Piece(keys.HeroFace(SwapHeroHalf(faces.HalfAPiece(side)))), side,
+                    Add(geometry, _classic.Piece(keys.HeroFace(SwapHeroHalf(faces.HalfAPiece(side)))), side,
                         Quadrant(centre, side), x, y, tagged, tile.AmbientTint);
-                    Add(_classic.Piece(keys.HeroFace(SwapHeroHalf(faces.HalfBPiece(side)))), side,
+                    Add(geometry, _classic.Piece(keys.HeroFace(SwapHeroHalf(faces.HalfBPiece(side)))), side,
                         Quadrant(centre, (side + 1) & 3), x, y, tagged, tile.AmbientTint);
                 }
             }
@@ -427,24 +612,24 @@ namespace DK2.Unity
 
         /// <summary>A liquid tile's bed, or a bridge's. The surface is not drawn: DK2's is an alpha
         /// texture laid by code not yet read.</summary>
-        private void AddBed(int x, int y, in TileView tile)
+        private void AddBed(TileGeometry geometry, int x, int y, in TileView tile)
         {
             TerrainPieceKeys keys = tile.BedKeys;
             Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
-            AddSet(tile.Bed, null, keys, centre, x, y);
+            AddSet(geometry, tile.Bed, null, keys, centre, x, y);
         }
 
         /// <summary>A piece list's quarters and whole piece, from a room's pieces or a liquid's bed.</summary>
-        private void AddSet(PieceSet set, RoomPieceKeys room, TerrainPieceKeys bed, Vector3 centre, int x, int y,
+        private void AddSet(TileGeometry geometry, PieceSet set, RoomPieceKeys room, TerrainPieceKeys bed, Vector3 centre, int x, int y,
             DK2.Data.Model.TerrainLightColour wholeTint = default,
             DK2.Data.Model.TerrainLightColour quarterTint = default)
         {
             if (set.HasQuarters)
                 for (int q = 0; q < 4; q++)
                     if (set.HasQuarter(q))
-                        Add(_classic.Piece(Key(room, bed, set.QuarterPiece(q))), set.QuarterRotation(q),
+                        Add(geometry, _classic.Piece(Key(room, bed, set.QuarterPiece(q))), set.QuarterRotation(q),
                             Quadrant(centre, q), x, y, tint: quarterTint);
-            if (set.HasWhole) Add(_classic.Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, x, y,
+            if (set.HasWhole) Add(geometry, _classic.Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, x, y,
                 tint: wholeTint);
         }
 
@@ -469,46 +654,44 @@ namespace DK2.Unity
         private static Vector3 Quadrant(Vector3 centre, int quadrant) =>
             centre + new Vector3(QuadrantCentres[quadrant].x, 0f, QuadrantCentres[quadrant].y);
 
-        private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y, bool tagged = false,
+        /// <summary>Places one piece and resolves the material of each of its triangle groups: the
+        /// sight fog's faded twin, the tag's or the red highlight's lit twin, or the terrain light's
+        /// tinted twin; a tagged piece draws a second time, additively (tag-highlight.md).</summary>
+        private void Add(TileGeometry geometry, ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y, bool tagged = false,
             DK2.Data.Model.TerrainLightColour tint = default, byte? fogOpacity = null, bool invertLightingNormals = false)
         {
             if (piece == null) return;
             bool red = _tiles[y * _width + x].RedHighlighted;
-            Quaternion turn = Quaternion.Euler(0f, 90f * rotation, 0f);
-            int start = _tilePositions.Count;
-            for (int i = 0; i < piece.Positions.Length; i++)
-            {
-                Vector3 v = (turn * piece.Positions[i]) + at;
-                if (_lattice != null)
-                {
-                    // DK2's frame is (x, -z, -y) of this one (DungeonScene.Ground, RenderMesh).
-                    System.Numerics.Vector3 bent = _lattice.Deform(new System.Numerics.Vector3(v.x, -v.z, -v.y), x, y);
-                    v = new Vector3(bent.X, -bent.Z, -bent.Y);
-                }
-                _tilePositions.Add(v);
-                // Ordinary tops carry native drawflag0x80 (static-mesh-lighting.md section1).
-                Vector3 normal = invertLightingNormals ? -piece.Normals[i] : piece.Normals[i];
-                _tileNormals.Add(turn * normal);
-                _tileUvs.Add(piece.Uvs[i]);
-            }
+            int placed = geometry.Pieces.Count;
+            geometry.Pieces.Add(new PlacedPiece { Piece = piece, Rotation = rotation, At = at, InvertNormals = invertLightingNormals });
             for (int m = 0; m < piece.Triangles.Count; m++)
             {
                 Material material = fogOpacity is byte opacity ? _classic.SightFog(piece.Materials[m], opacity)
                     : red ? _classic.Tagged(piece.Materials[m], red: true)
                     : tagged ? _classic.Tagged(piece.Materials[m])
                     : _classic.TerrainTinted(piece.Materials[m], tint);
-                AddTriangles(material, piece.Triangles[m], start);
-                // DK2 draws a tagged piece a second time, additively (tag-highlight.md).
-                if (red || tagged) AddTriangles(_classic.TagOverlay(red), piece.Triangles[m], start);
+                geometry.Groups.Add(new TriangleGroup { Piece = placed, Group = m, Slot = geometry.SlotOf(material) });
+                if (red || tagged)
+                    geometry.Groups.Add(new TriangleGroup { Piece = placed, Group = m, Slot = geometry.SlotOf(_classic.TagOverlay(red)) });
             }
         }
 
-        private void AddTriangles(Material material, int[] triangles, int start)
+        /// <summary>One piece's emitted triangles per material, for the editor's tag material probe
+        /// (reflection): both phases of a one-tile build with the piece alone.</summary>
+        private Dictionary<Material, List<int>> ProbeEmitted(ClassicMeshes.PieceSource piece, bool tagged,
+            DK2.Data.Model.TerrainLightColour tint)
         {
-            if (!_tileByMaterial.TryGetValue(material, out List<int> list))
-                _tileByMaterial[material] = list = new List<int>();
-            if (_tileMaterialSeen.Add(material)) _tileMaterialOrder.Add(material);
-            foreach (int index in triangles) list.Add(start + index);
+            var geometry = new TileGeometry();
+            Add(geometry, piece, 0, Vector3.zero, 0, 0, tagged, tint);
+            Build(geometry);
+            var emitted = new Dictionary<Material, List<int>>();
+            for (int s = 0; s < geometry.MaterialCount; s++)
+            {
+                var list = new List<int>();
+                for (int i = 0; i < geometry.Triangles[s].Count; i++) list.Add(geometry.Triangles[s].Items[i]);
+                emitted[geometry.Materials[s]] = list;
+            }
+            return emitted;
         }
     }
 }

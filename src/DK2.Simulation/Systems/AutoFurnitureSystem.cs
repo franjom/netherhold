@@ -13,18 +13,28 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
 {
     public string Name => "AutoFurniture";
 
+    // One tick's working sets, kept across ticks: five containers a tick were 30 KB of garbage.
+    private readonly List<(PlayerId Owner, int Tile, byte Type)> _desired = [];
+    private readonly HashSet<(PlayerId Owner, int Tile, byte Type)> _unmatched = [];
+    private readonly List<(int TileIndex, byte ObjectTypeId)> _roomFurniture = [];
+    private readonly List<RoomInstance> _rebuilt = [];
+    private readonly List<int> _remove = [];
+
     public void Execute(SimulationContext context)
     {
         WorldState world = context.World;
-        var desired = new List<(PlayerId Owner, int Tile, byte Type)>();
-        var unmatched = new HashSet<(PlayerId Owner, int Tile, byte Type)>();
-        var roomFurniture = new List<(int TileIndex, byte ObjectTypeId)>();
+        List<(PlayerId Owner, int Tile, byte Type)> desired = _desired;
+        HashSet<(PlayerId Owner, int Tile, byte Type)> unmatched = _unmatched;
+        List<(int TileIndex, byte ObjectTypeId)> roomFurniture = _roomFurniture;
+        desired.Clear();
+        unmatched.Clear();
 
         long now = world.CurrentTick.Value;
         IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
         // A rebuilt Graveyard (its size stamp this turn, map rooms at the first) runs its own pass
         // before the stones (Room_Rebuild, 0x004DD5C0).
-        var rebuilt = new List<RoomInstance>();
+        List<RoomInstance> rebuilt = _rebuilt;
+        rebuilt.Clear();
         foreach (RoomInstance room in rooms)
             if (room.Definition.TypeId == RoomTypeId.Graveyard && SlabChain.SizeChangedTick(world, room) == now)
             {
@@ -42,7 +52,8 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
             }
         }
 
-        var remove = new List<int>();
+        List<int> remove = _remove;
+        remove.Clear();
         foreach (ObjectState thing in world.Objects)
         {
             // Held objects retain their old TileIndex. Shipped furniture cannot

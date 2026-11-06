@@ -1019,7 +1019,7 @@ public sealed partial class WorldState
     /// for the same job get it in this order. Never sorted, never reordered —
     /// removing a creature must preserve the order of the rest.
     /// </summary>
-    public IReadOnlyList<CreatureState> Creatures => _creatures;
+    public EntityList<CreatureState> Creatures => new(_creatures);
 
     /// <summary>Most recently acquired first; held and dying creatures remain owned.
     /// Corpses are separate things in DK2 and are excluded here (ADR-0273).</summary>
@@ -1196,7 +1196,7 @@ public sealed partial class WorldState
     /// <para>Order is behaviour, as on <see cref="Creatures"/> — two beds freed on
     /// one tick are claimed in this order. Never sorted, never reordered.</para>
     /// </summary>
-    public IReadOnlyList<ObjectState> Objects => _objects;
+    public EntityList<ObjectState> Objects => new(_objects);
 
     /// <summary>
     /// Puts an object on a tile. Takes a definition id rather than a definition so
