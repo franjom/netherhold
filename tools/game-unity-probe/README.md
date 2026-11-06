@@ -13,6 +13,9 @@ Plays a campaign level through the production `DungeonRunner` in a standalone
 # reads capture.raw in the scratch project):
 & tools/game-unity-probe/run.ps1 -Level Level6a -Seconds 30 -CaptureFrom 14 -CaptureTo 24
 & tools/game-unity-probe/report-capture.ps1 -RunDirectory <run directory>
+# The game's own path (ADR-0458): ticks on the worker thread, and a wait_tick_ms column plus a
+# summary line saying how often the next frame's join found the tick still running:
+& tools/game-unity-probe/run.ps1 -Level Level6a -Seconds 90 -WorkerTicks
 ```
 
 Requires an activated Unity 6000.6.0f1 editor with Windows standalone build support and

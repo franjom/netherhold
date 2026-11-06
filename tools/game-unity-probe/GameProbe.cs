@@ -56,13 +56,15 @@ namespace DK2.Unity
             ("imp_job_ms", "DK2.Sim.ImpTask.job", ProfilerCategory.Scripts),
             ("grid_flood_ms", "DK2.Sim.grid.flood", ProfilerCategory.Scripts),
             ("sleep_ms", "DK2.Sim.CreatureSleep", ProfilerCategory.Scripts),
+            // The join at the start of Update; 0 unless -workerTicks 1.
+            ("wait_tick_ms", "DK2.Simulation.WaitForTick", ProfilerCategory.Scripts),
         };
 
         // The standard columns, then any named with -markers (comma-separated marker names), each
         // its own column and its own line in the summary: for finding a hotspot inside one.
         private (string Column, string Marker, ProfilerCategory Category)[] Recorded = Standard;
 
-        private const int Tick = 1, Present = 2, Animated = 3, Chunk = 4, ImpTask = 5, Grid = 6, Nav = 7;
+        private const int Tick = 1, Present = 2, Animated = 3, Chunk = 4, ImpTask = 5, Grid = 6, Nav = 7, WaitTick = 18;
 
         // Frames in the first seconds of play are left out of the summary: the first full present.
         private const float WarmUpSeconds = 2;
@@ -138,9 +140,12 @@ namespace DK2.Unity
             Set("levelName", Arg("-level", "Level1"));
             Set("seed", ulong.Parse(Arg("-seed", "1"), CultureInfo.InvariantCulture));
             Set("prefetchFirstFrameArt", Arg("-prefetchArt", "1") != "0");
-            // The probe measures the tick's own cost, so it runs inline on the main thread, where the
-            // recorders see it, rather than on the runner's worker thread (ADR-0458).
-            Set("tickOnWorkerThread", false);
+            // By default the probe measures the tick's own cost, so it runs inline on the main
+            // thread rather than on the runner's worker thread (ADR-0458). With -workerTicks 1 the
+            // game's own path runs instead: the recorders collect on every thread
+            // (ProfilerRecorderOptions.Default has no CollectOnlyOnCurrentThread), so tick_ms is the
+            // worker's time and wait_tick_ms is how long the next Update's join blocked.
+            Set("tickOnWorkerThread", Arg("-workerTicks", "0") != "0");
             _pending = (List<PlayerCommand>)typeof(DungeonRunner)
                 .GetField("_pendingCommands", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
 
@@ -275,6 +280,13 @@ namespace DK2.Unity
                 $"frames over 33 ms: {rows.Count(i => _rows[i].FrameMs > 33)}; with a tick: {rows.Count(i => _rows[i].Ticks > 0)}; gen-0 collections: {rows.Sum(i => _rows[i].Collections)}; GC allocated {rows.Where(i => _rows[i].GcBytes > 0).Sum(i => _rows[i].GcBytes) / 1048576.0:F1} MB"));
             text.AppendLine(FormattableString.Invariant(
                 $"mean frame without a tick {MeanOf(i => _rows[i].FrameMs, false):F2} ms (present {MeanOf(i => Value(i, Present), false):F2}, animation {MeanOf(i => Value(i, Animated), false):F2}); with a tick {MeanOf(i => _rows[i].FrameMs, true):F2} ms (tick {MeanOf(i => Value(i, Tick), true):F2})"));
+            if (_runner != null && (bool)typeof(DungeonRunner).GetField("tickOnWorkerThread", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner))
+            {
+                // Worker ticks: how often the next Update's join found the tick still running.
+                int[] waits = rows.Where(i => Value(i, WaitTick) > 1).ToArray();
+                text.AppendLine(FormattableString.Invariant(
+                    $"worker ticks: join over 1 ms in {waits.Length} frames (mean {(waits.Length > 0 ? waits.Average(i => Value(i, WaitTick)) : 0):F2} ms, max {(waits.Length > 0 ? waits.Max(i => Value(i, WaitTick)) : 0):F2}); frames over 33 ms with such a join: {waits.Count(i => _rows[i].FrameMs > 33)}"));
+            }
             for (int m = Standard.Length; m < Recorded.Length; m++)
             {
                 int marker = m;

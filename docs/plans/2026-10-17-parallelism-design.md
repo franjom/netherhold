@@ -254,11 +254,13 @@ API references checked through Context7: [job dependencies](https://docs.unity3d
 
 ## Addendum 2026-11-05: Level6a measurement answers P0 for that level
 
-**Status (end of 2026-11-05):** the table and reading below are the baseline
-taken before items 1 and 2 of the ranked order landed. Current numbers are in
-those items: tick frames ~30 ms, Present 6.7 ms, AnimatedFrame 1.2 ms, tick
-~13.4 ms; after the sound prefetch, max frame 62 ms and p95 17.6 ms. ADR-0454
-and ADR-0456 are amended to match (commit 13a036ab); ADR-0686 covers sound.
+**Status (2026-11-06):** the table and reading below are the baseline taken
+before items 1 and 2 of the ranked order landed. Current numbers are in those
+items and in the clean baseline further down: on the game's own worker-tick
+path Level6a runs at p95 16.84 ms and p99 17.9–19.1, Level8 at p95 16.84 and
+p99 17.05, and the join blocks on about one frame in 600. ADR-0454 and
+ADR-0456 are amended to match (commit 13a036ab); ADR-0686 covers sound. P1 is
+not pursued on this evidence (item 3 below says when it would be).
 
 Source: `tools/game-unity-probe`, Level6a, 90 s, headless Development
 player, run `build/game-unity-probe/20261105-205627` (`frames.csv`,
@@ -358,8 +360,118 @@ the opening fly-over.
 3. Then P1's cheap variant: skip the join and world presentation when the tick
    is not done, after the reader audit in P1. It conflicts with any branch
    restructuring the presenter, so run it after item 2 lands, not beside it.
+   **Re-ranked 2026-11-06 by the worker-tick runs below:** in the player the
+   join costs 0.1% of a Level6a run and nothing on Level8, and the only
+   frames it puts over budget are three 25–48 ms imp-job ticks per 90 s.
+   P1 is not built on this evidence. It comes back only if (a) a scenario
+   shows ticks longer than a frame as a matter of course, or (b) the editor
+   stutter the owner sees is measured and found to be the join rather than
+   editor overhead. Before either, shorten the imp-job tick (simulation
+   side, hash unchanged) and prefetch the cold hover-HUD build.
 
-Still unmeasured: Level8's opening tick durations, the error-frame
-classification (boundary clamp, catch-up, long frame) for Level6a, and a 60 FPS
-cap repeat. The Level6a numbers are a headless Development player on a shared
-machine; a visible release confirmation per the P0 list is still owed.
+**Frame readers of the live World (P1's audit, 2026-11-06, master 101c1b62).**
+`DungeonRunner.Update` joins in `WaitForTick`, then reads `_simulation.World`
+until it starts the next tick at the end of the frame. In order:
+
+| Reader | Reads | Already tick-gated? |
+|---|---|---|
+| Hitch report (`HitchReport.Frame`) | `CurrentTick` — **before the join**, while the worker may be writing | no |
+| `UpdateWorldSound`: `FollowVoices`, `UpdateAmbience`, music observer | creature voices; ambience cells round the listener; music state | ambience and music skip when `CurrentTick` is unchanged |
+| `_scriptedView.Update` | `CurrentTick`, viewing player's `PossessedCreatureId` | no |
+| Input block: `QueueInput`, hover pick, placement feedback, tag previews | tiles, objects, player hand, `CurrentTick.Next` | no |
+| `AcknowledgeTagPreviews`, `SetCreatureFrameTime`, `SetPossessionView` | `CurrentTick`, possession | no |
+| `_presenter.Present(World)` | everything the view generates; the big one | tiles pass is incremental since 9377b14d |
+| `_gemIdleEffects.Collect` | gem tiles | no |
+| `_minimap.Capture` | every tile, `CurrentTick`, preview version | returns at once when world, tick and preview version are unchanged |
+| `SeekCamera`, `LookAt` | `CurrentTick`, camera target | no |
+| `DrawCreatureFrame` | **no World**: captured `CreatureView` poses and `_renderSeconds` | — |
+| `CaptureShots(World.Shots)`, `_lightning.DrawShots(World, …)` | shots | no |
+| `PortalLightTiles(World)`, `LightObjects(World)` | portal tiles, light-carrying objects | no |
+| `DrawCreatureShadows` | `GroundHeightAt(world, point)` per creature | no |
+| `DrawHudControls`, `CaptureWorldHover` (`HoverPickRules`), `DrawStatusFlowers`, `RefreshDiagnostics` | player state, tiles, creatures | no |
+| `TagAroundHeart` in the probe, `Simulation` getter | joins first | — |
+
+Only `DrawCreatureFrame` and the torch/effect drawing read no World. So the
+cheap variant cannot be "skip Present only": a frame that does not join must
+skip every row above except `DrawCreatureFrame`, torches, effects, camera and
+HUD drawing that take no World, and the hitch line's early `CurrentTick` read
+must move after the join or take a copy. Readers that are already tick-gated
+(minimap, ambience, music) lose nothing on a skipped frame, since no tick
+completed. The costs are a one-frame-old hover pick, placement feedback and
+flowers, and the creature pose hold at fraction 1.
+
+**Probe gap found while setting up.** `GameProbe` forces `tickOnWorkerThread`
+off so its recorders see the tick's own cost, so every number in this addendum
+is the inline path: the join never ran in any probe run. The editor hitch line
+is the only measurement of `WaitForTick` so far. Added 2026-11-06: `run.ps1
+-WorkerTicks` keeps the game's own path, records `DK2.Simulation.WaitForTick`
+as `wait_tick_ms` and sums a line of how often the join blocked (the recorders
+collect on every thread by default, so `tick_ms` is then the worker's time).
+P1 is measured with that switch; the inline numbers stay the tick-cost baseline.
+
+**Clean baseline on master 101c1b62 (2026-11-06).** Same probe, Level6a,
+90 s, seed 1, headless Development player, shared machine. Runs
+`20261106-071158` and `-071559` inline; `-071818` and `-072030` with
+`-WorkerTicks`.
+
+| Level6a, frames after 2 s | Inline ticks (two runs) | Worker ticks (two runs) |
+|---|---:|---:|
+| p50 / p95 / p99 (ms) | 16.68 / 18.40–19.02 / 23.3–24.4 | 16.67 / 16.84–16.87 / 17.9–19.1 |
+| Max frame (ms) | 66.7 / 69.3 | 59.1 / 180.8 |
+| Frames over 33 ms | 10 / 10 | 4 / 5 |
+| Mean frame with a tick (ms) | 20.8 / 21.4 (tick 4.4 / 4.6) | 16.67 / 17.14 (tick 4.0 / 4.3 on the worker) |
+| Join over 1 ms | — | 6 / 9 frames of ~5250; 108 / 129 ms in 90 s; max 37 / 39 |
+| Over-budget frames caused by the join | — | 3 / 3 |
+| GC over 90 s | 607–608 MB, 38 gen-0 | 609–613 MB, 38 gen-0 |
+
+Classification of the inline over-33 ms frames (run `-071158`), as the P0
+list asks: 5 long ticks, every one 20–45 ms inside `DK2.Sim.ImpTask.job`
+(the per-imp job step, after the 60 s tag wave puts ~1000 tiles to dig); 4
+tick frames with a 20–28 ms Present plus a chunk rebuild on a dig; 1 frame
+of 67 ms with no DK2 marker at 26.7 s of play. Boundary clamp and catch-up
+cannot be told apart here: the probe does not log the draw-clock fraction.
+
+Reading:
+
+- **On the game's own path the join is nearly free on Level6a.** A 4 ms
+  mean tick finishes inside the render gap; the join blocks over 1 ms on
+  about one frame in 600 and costs ~0.1% of the run. Tick frames average the
+  same as the others. The owner's stutter four times a second is not in the
+  player's numbers; it needs measuring in the editor, where the hitch line
+  showed 10–30 ms joins.
+- **What the join still exposes is the long tick**, 25–48 ms in the imp job
+  step when many imps dig at once: three frames per 90 s, each 34–55 ms.
+  P1's cheap variant would turn those into a movement hold of one or two
+  frames. Shortening that tick (simulation side, the throughput plan's
+  territory; `ImpTask.job` is not on its list) removes them instead and also
+  helps the editor, so it ranks first.
+- **The recurring frame at 26.7 s is a cold hover-HUD build.** Every run,
+  inline or worker, has one frame of 59–82 ms at 26.7 s of play with no
+  probe column over 2 ms. A capture (run `20261106-072630`, `-CaptureFrom 25
+  -CaptureTo 28`, `report-capture.ps1`) puts it in `DK2.Frame.Hover` (50 ms
+  self time, with `Gfx.CreateTexture` and `Texture2D.GetPixels32` under it)
+  and `DK2.Frame.Hud` (14.5 ms): the first time something hoverable passes
+  under the probe's fixed pointer, the classic hover HUD bakes its text atlas
+  and panel textures. In play that happens in the first seconds, so it is a
+  startup-class cost like the art and sound prefetches, not a threading
+  matter. The 181 ms frame at 5.5 s in one worker run was not captured.
+
+**Level8, same probe, 90 s (run `20261106-072230`, inline ticks).** The
+opening tick durations the roadmap's first paragraph asked for: on the 352
+tick frames the tick is p50 3.6 ms, p90 6.4, p99 10.2, max 13.5 ms. No tick is
+longer than a 16.67 ms frame, so on Level8 the join cannot block for more than
+the tail of a tick. Frame p50 / p95 / p99 16.67 / 16.91 / 19.55 ms, max 68.7;
+6 frames over 33 ms: five are tick frames with Present at 19–53 ms (the 68.7
+ms one allocates 13 MB in the frame, the portal-arrival pattern of a cold
+creature build), one is 45 ms at 25.8 s with no DK2 marker. GC 621 MB, 33
+gen-0 in 90 s. With `-WorkerTicks` (run `-072430`): p95 16.84, p99 17.05,
+max 55.7 ms; the join is over 1 ms in 7 frames, max 5.9 ms, 19 ms in total,
+and causes no frame over budget; tick frames average 16.68 ms, the same as
+the rest. Two frames over 33 ms remain: the 43 ms unexplained one at 25.8 s
+and a 56 ms Present with 13 MB allocated at 26.1 s.
+
+Still unmeasured: the error-frame classification (boundary clamp, catch-up,
+long frame) for Level6a, and a 60 FPS cap repeat. These numbers are a headless
+Development player on a shared machine; a visible release confirmation per the
+P0 list is still owed, and the owner's editor stutter has no player-side
+counterpart in these runs.
