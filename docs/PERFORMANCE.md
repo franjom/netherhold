@@ -57,6 +57,47 @@ have one home: [portal arrival performance](research/portal-arrival-performance.
 This target is the Unity frame. The headless simulation has its own opt-in budget
 (50x real time, 100 ms per tick): [ADR-0575](DECISIONS.md), `GOAL_ALIGNMENT.md` gap 4.
 
+## Regression guards
+
+CI on Windows and Linux runs the allocation, state-copy, deferred-event and
+worker draw-lag guards without a DK2 install, plus the tester capture checker
+unit tests without a GPU. The steady-state budgets are zero managed bytes for
+in-place world copying with unchanged population, concrete creature iteration
+and cached `RoomAt` queries. Worker events must reach the frame thread only
+on replay, in order and exactly once. With an installed game, the Level6a
+seed-1 guard measures ticks 1501-1700 at at most 64 KiB per tick on average,
+without the harness hash; CI skips this installed-data guard.
+
+The local rendered regression gate uses at least three reviewed baseline
+captures and three candidate captures, run serially on the same idle hardware
+and player settings: release IL2CPP, Level6a, seed 1, 1920x1080, uncapped,
+VSync off, windowed. Each capture lasts 40 wall seconds and must contain the
+first 30 gameplay seconds. Analysis includes first use and the frame interval
+crossing the 30-second endpoint; loading time does not replace gameplay time.
+Commands are in the [tester README](../tools/tester-package/README.md#local-rendered-regression-gate).
+
+The comparison checks frame p99 and maximum, share of frames over the floor
+budget, tick p95, maximum chunk-rebuild time and GC collections per second.
+It uses medians across runs except frame maximum, which uses the worst frame
+across all runs. An increase fails above the larger of 20% or an absolute
+allowance: 0.25 ms for timings, 0.001 for slow-frame share, or one extra GC
+collection per analysis window. Independently, any candidate tick join over
+1 ms or steady draw-clock bad-frame share over 0.015 fails.
+
+Missing or inconsistent build manifests, hardware/settings metadata, player
+arguments, clean player logs, nonblank desktop PNG, moving fly-by or contiguous
+valid frame samples invalidate evidence. The desktop screenshot may differ in
+size from the independently checked game resolution. Exit codes are 0 pass,
+1 regression and 2 invalid evidence; the wrapper preserves `comparison.json`.
+
+This adds local graphics regression machinery. No new real GPU baseline has
+been captured or blessed, and no dedicated graphics runner or required remote
+status is configured. Commission the baseline from three reviewed captures of
+the current build, then pass their paths explicitly; the checker never blesses
+a candidate automatically. Preserve captures and reports add-only under
+`F:\DK2Evidence\` (AGENTS.md). A relative pass does not certify the absolute
+FPS target or the remaining scenario coverage.
+
 ## Hardware tiers and captures on other machines (2026-11-06)
 
 The owner's laptop is the floor, not the goal. Revised targets, by tier:
@@ -69,13 +110,9 @@ The owner's laptop is the floor, not the goal. Revised targets, by tier:
 Players are built with IL2CPP (ADR-0690); a Mono player measures the editor's
 runtime, not the game's, and the game probe says which backend a run used.
 
-The desktop tier has no machine here. Someone else will run it, on hardware
-we cannot see, so the capture must work without this repository, Unity or the
-developer's install paths, and must come back as files we can read. Today it
-cannot: `run-window-frames.ps1` needs the editor, a scratch project under this
-clone's `build/`, PresentMon installed by our script and the DK2 install at
-its path, and a release player records nothing about its own frames. What a
-desktop-tier capture needs, and what exists (ADR-0691, 2026-11-06):
+The desktop tier has no machine here. The tester package captures on other
+hardware without this repository, Unity or the developer's install paths,
+and returns files for review (ADR-0691):
 
 1. **A tester package** (`tools/tester-package`, built by its `build.ps1`): one
    release player (IL2CPP; Vulkan with the Direct3D12 fallback), the pinned

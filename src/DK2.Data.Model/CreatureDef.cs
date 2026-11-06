@@ -101,6 +101,10 @@ public sealed record CreatureDef
     /// <inheritdoc cref="PrayerStepX"/>
     public int PrayerStepY { get; init; }
 
+    /// <summary>Runtime vector 2's y component, file offset <c>0x128B</c>, in 1/4096 tiles.
+    /// State 257 rotates its negation along the facing before looking for combat.</summary>
+    public int GetUpStepY { get; init; }
+
     /// <summary>The Entrance animation's frame count and rate (animation block 30, the one
     /// action 49 plays while state 193 waits). Zero when the creature has none, as the Imp.</summary>
     public int EntranceFrames { get; init; }

@@ -148,7 +148,7 @@ Data2 is a thing tag where stated, not a stable index. Every type the keeper's w
 | 1 | `0x004DA200` | Heart owner; heart x / y | Negative heart-health delta, not invulnerable (`win-and-defeat.md` §3.1) | built |
 | 6 | `0x0045EB20` | Attacker's owner; its x / y | State 199 entered this turn, attack mode not 3 | built |
 | 12 | `0x00452F60` (`0x0045313E`) | Tile owner; x / y | Work brings to zero a tile whose terrain is Solid and Ownable and whose owner is not the worker's player; then player events `0x38`/`0x39` | built (`TileWorkSystem.PostThreat`); events `0x38`/`0x39` not |
-| 12 | `0x00498BB0` | Tile owner; x / y | Creature action 9, the breach check (`trigger-walkers.md`) | action 9 unbuilt |
+| 12 | [action 9](functions/00498BB0.md) | Post-work tile owner; x / y | Wall work returns zero health and the post-work owner differs from the creature's; supplemental breach events follow (see record) | action 9 unbuilt |
 | 17, 18 | `0x00478B80`, 60 sites | Creature owner (`+0x28`); selector / creature tag | Not never-angry; the add changed the band and the amount is positive; band 1 posts 17, band 2 posts 18 and fires trigger event 11 | posts §4; event 11 not fired |
 | 17, 18 | `0x00478C30`, one site (`0x004D6A68`) | as above | The percentage adder `0x004870E0`, same tests | site unbuilt |
 | 32 or 33, 35 | `0x004E5650` | New owner 32 (33 when the old owner is neutral), old owner 35; room type / room tag | Whole-room transfer | §4 |

@@ -189,7 +189,8 @@ accumulates velocity, and a mid-fall save resumes identically. Presentation adds
 creation elevation to its existing floor projection and keeps previous height.
 
 The [landing handler](functions/0046EAB0.md) has more than this ordinary
-empty-handed fallback. Existing omissions remain: adjacent-door work,
+empty-handed fallback. Existing omissions in this creation path remain: the shared
+[combat attempt](hand-drop-landing.md#built-scope-and-verification-adr-0698-hashsave-430),
 [Workshop blueprint takeover](functions/00464A80.md), Temple handling and
 room-specific position adjustments. Heart-interior landing is normally excluded
 by point-cast permissions. Do not substitute the general room-drop helper for

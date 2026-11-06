@@ -80,6 +80,7 @@ $playerArguments = @('-screen-fullscreen', $(if ($Windowed) { '0' } else { '1' }
     '-recordFrames', "$capture/recorder", '-profileFrom', "$ProfileFrom", '-profileTo', "$ProfileTo", '-logFile', "$capture/Player.log")
 $playerArguments += $ExtraArgs
 Set-Content -LiteralPath "$capture/player-arguments.txt" -Value ($playerArguments -join ' ')
+ConvertTo-Json -InputObject $playerArguments | Set-Content -LiteralPath "$capture/player-arguments.json" -Encoding UTF8
 Write-Host "Playing $Level for $Seconds s. Leave the game alone until it closes by itself."
 $process = Start-Process -FilePath $player -ArgumentList ((Quote $playerArguments) -join ' ') -PassThru
 $timer = [Diagnostics.Stopwatch]::StartNew()

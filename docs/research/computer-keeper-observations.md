@@ -94,7 +94,7 @@ stayed in the room's state 108 once dropped; since ADR-0393 it is refused and li
 in DK2 (Q509, the Level 17 comparison below). Portal recruitment occurred independently
 of the keeper command stream. These are measured modern-run facts, not an
 original-game comparison. The scenario has no scripted player commands and has
-regression expectations for digging, the Prison build, and portal recruitment;
+regression expectations for digging, mining and portal recruitment; [Prison construction is controlled](hand-drop-landing.md#level-17-diversion-controls);
 `level17_harkan_training.yaml` asserts the first moves.
 
 On Level 10 the same build has Asmodeus (skill level 10, never ready) lift its

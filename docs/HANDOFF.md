@@ -26,7 +26,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
 - The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
 - Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit
-  timing and pending-entry scheduling remain partial (Q682). The hand's Portal-only disposal and bin are corrected at hash/save 353 (ADR-0603); deeper Hero Portal room entry remains built. [Scope and limits](research/creature-leaving.md#5-built-hashsave-346-adr-0603), Q137/Q704.
+  timing and pending-entry scheduling remain partial (Q682). Drop-to-combat is built (ADR-0698, hash/save 430); [verification and Level 17 test split](research/hand-drop-landing.md#built-scope-and-verification-adr-0698-hashsave-430). The hand's Portal-only disposal and bin are corrected at hash/save 353 (ADR-0603); deeper Hero Portal room entry remains built. [Scope and limits](research/creature-leaving.md#5-built-hashsave-346-adr-0603), Q137/Q704.
 - Burning simulation/red, shot effects/bodies, lightning and Inferno jitter are built (hash/save 343).
   Scope and pending acceptance: [shot effects](research/shot-effects.md#7-ours), Q658/Q659/Q660/Q689/Q690; owner checks Q660 and Q691-Q693.
 - Thunderbolt guards are built at hash/save 332 (ADR-0581); Pit binding remains Q675.
@@ -279,7 +279,7 @@ Measured gains, regression checks and remaining costs: verification document.
 Arrival rendering shares vertex uploads, culls offscreen triangles and retains
 index capacity. The performance target remains unmet; buffer-churn measurements
 and residual first-use/worker costs: [arrival performance](research/portal-arrival-performance.md).
-Acceptance and remaining coverage: [performance policy](PERFORMANCE.md).
+Acceptance, remaining coverage and regression guards (baseline and remote enforcement pending): [performance policy](PERFORMANCE.md).
 The debug FPS/frame-time display is built; usage and rotation profiling protocol:
 [Unity performance guidance](../unity/README.md#measuring-performance).
 Creature/cinematic timing now shares a late draw clock (ADR-0501); native tile

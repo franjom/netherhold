@@ -161,7 +161,7 @@ editor's; `CreatureTriggerEvent`/`PlayerTriggerEvent` carry them in code.
 | 65 | picked up | hand pick-up `0x004BFBD0`, with player 58 |
 | P46 | pay day | `0x004BE1A0`, after notification 46 |
 | P53 | GUI button | `0x00513EB0`, posted by `0x00422600` (`GuiButtonCommand`, ADR-0670) |
-| P56/57 | dungeon breached / enemy breached | `0x00498BB0`: a creature on a tile owned by another player — 56 on its owner, 57 on the tile's, after notification 12 |
+| P56/57 | dungeon breached / enemy breached | [tile work before conversion](functions/00452F60.md), plus [action 9's supplemental post-work pair](functions/00498BB0.md); the records distinguish recipients and gates |
 | P59 | creature dropped | hand drop `0x0048B3A0` when the thing is class 0 |
 
 Shipped creature-event records: 3 (22), 4 (37), 6 (158), 8 (88), 10 (4),
@@ -172,10 +172,13 @@ are the two filters; `SimulationContext.FireCreatureEvent` is the systems' hook.
 Wired: 3 at executor construction and from the party spawn, 6 from a new
 engagement (DK2 fires on every fight-start), 15 from the stun, 63/61 from the
 entrance arrival, 16 and 4 from the health system's collapse and death, 13 from
-a gold steal, 7 from the Prison enter hook once its claim takes (ADR-0311). Not yet
-wired, their sites above: 5/60, 8, 9, 10, 11, 12, 54,
-65/58, 46, 53, 56/57, 59 — each waits on the system that owns
-the moment. An event walk's blocked and partial records are not reported.
+a gold steal, 7 from the Prison enter hook once its claim takes (ADR-0311),
+12 from `ThreatFleeRules` (ADR-0678), and 53 from `GuiButtonCommand` in
+`GameSimulation` (ADR-0670). Not yet wired, their sites above: 5/60, 8, 9,
+10, 11, 54, 65/58, 46, 56/57 and 59. The hunger subtract is mirrored without
+its event ([record](functions/00477AD0.md)); action 9 is unbuilt and ordinary
+tile work omits the breach pair. An event walk's blocked and partial records
+are not reported.
 
 ### Objects carry a root too, reached only by an event (Q285, read 2026-10-04)
 

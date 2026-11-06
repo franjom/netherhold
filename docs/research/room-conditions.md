@@ -42,11 +42,11 @@ analogue.
 
 ## Type 68: total capacity
 
-Type 68 sums the room's `TotalCapacity` field (`room-object.md`).
-`FUN_004E3ED0` computes it by walking things in the room and matching their
-type against the room definition's furniture identifiers; `0x004E4038` stores
-the result. It is a count of accepted objects, not a property of room shape.
+Type 68 sums the room's `TotalCapacity` field (`room-object.md`). Its
+type-dependent producer is documented in [the capacity record](functions/004E3ED0.md);
+furniture counts, floor/rim slots, slab counts and special values are separate
+arms. Gameplay storage capacity is not a substitute for this field.
 
-`AutoFurnitureRules.TryTotalCapacity` implements the five established capacity
-arms (`auto-placed-furniture.md`). Trigger condition type 68 remains blocked
-until that rule is wired into the evaluator.
+`AutoFurnitureRules.TryTotalCapacity` implements the established arms
+(`auto-placed-furniture.md`). Trigger condition type 68 is not wired into
+`TriggerExecutor.PlayerCounter`.

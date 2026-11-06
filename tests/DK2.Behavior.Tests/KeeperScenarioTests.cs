@@ -9,6 +9,7 @@ using DK2.Data.Model;
 using DK2.Harness;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
+using DK2.Simulation.Systems;
 using DK2.TestSupport;
 using Xunit.Abstractions;
 
@@ -239,6 +240,7 @@ public class Level17UnassistedKeeperScenarioTests(ITestOutputHelper output)
 
         // The corpus theory leaves this scenario to this test (ScenarioCorpus.RunByTheirOwnTest).
         Assert.Empty(first.ExpectationFailures);
+        Assert.Empty(second.ExpectationFailures);
         Assert.Equal(first.HashPerTick, second.HashPerTick);
         Assert.NotEmpty(first.KeeperCommandLog);
         Assert.Equal(first.KeeperCommandLog.Select(Fingerprint),
@@ -257,6 +259,52 @@ public class Level17UnassistedKeeperScenarioTests(ITestOutputHelper output)
             emission.Command.HashInto(ref hash);
             return (emission.InputTick, hash.Value);
         }
+    }
+}
+
+public class Level17PrisonConstructionTests
+{
+    [InstallFact]
+    public void HarkanMinesAndBuildsPrisonWhenTempleRequestsCannotPreemptIt()
+    {
+        string install = Dk2InstallGate.Path;
+        Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_unassisted.yaml");
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "level17");
+        var builder = new ScenarioWorldBuilder(database, install);
+        var inputs = new ScenarioInputBuilder(database, install);
+        var unsupported = new List<string>();
+        WorldState world = WorldState.FromMap(database, builder.ResolveMap(scenario.Map),
+            ScenarioRunner.ActivationOrder(scenario.Setup.Players.Select(p => p.Id),
+                GameDatabaseLoader.LoadCampaignPlayers(install, "level17")),
+            fogOfWarEnabled: scenario.FogOfWar);
+        HashSet<byte> paid = builder.PlaceShippedThings(scenario, world, unsupported);
+        builder.PlaceRooms(scenario, world, unsupported);
+        builder.PlaceResources(scenario, world, unsupported, paid);
+        builder.SpawnCreatures(scenario, world, unsupported);
+        // Keep the stock map and seed, but exclude the request that diverts this run from Prison.
+        // See hand-drop-landing.md, Level 17 diversion controls; this is a controlled remake run.
+        Assert.True(world.Availability(4, AvailabilityKind.Room, (int)RoomTypeId.Temple) > 0);
+        world.SetAvailability(4, AvailabilityKind.Room, (int)RoomTypeId.Temple, 0);
+        Assert.Equal(0, world.Availability(4, AvailabilityKind.Room, (int)RoomTypeId.Temple));
+        var simulation = new GameSimulation(database, world, scenario.CreateRandom(),
+            SimulationSystems.Default(), builder.ResolveShippedTriggers(scenario, "level17"));
+        var events = new ListEventSink();
+        simulation.ObserveWith(events);
+        KeeperAI keeper = Assert.Single(inputs.CreateComputerKeepers(scenario, "level17", world, unsupported));
+        var staging = new KeeperStaging();
+        IReadOnlyList<PlayerCommand> pending = [];
+        var commands = new List<PlayerCommand>();
+        for (int tick = 0; tick < scenario.DurationTicks; tick++)
+        {
+            simulation.Tick(new InputFrame(pending));
+            if (tick + 1 == scenario.DurationTicks) break;
+            pending = keeper.Think(database, world, staging);
+            commands.AddRange(pending);
+        }
+
+        Assert.Contains(events.Events, e => e.Kind == "destroyed" && e.Detail.Contains("player=4 MineGold"));
+        Assert.Contains(events.Events, e => e.Kind == "built" && e.Detail.Contains("player=4 room=Prison"));
+        Assert.Contains(commands, c => c is BuildRoomCommand { PlayerId.Value: 4, RoomId: RoomTypeId.Prison });
     }
 }
 

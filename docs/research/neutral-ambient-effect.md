@@ -292,7 +292,7 @@ the candidate-first physical test in [004B2030](functions/004B2030.md) (STRONGLY
 `ObjectMovementSystem` interleaves Egg/Coop processes with Chicken/Rat handlers; the default
 Hatchery pass does not repeat them. Standalone Hatchery hosts retain their own object updates.
 
-The production probe uses these six changed simulation files byte-for-byte, with the existing
+The branch-only production probe uses these six changed simulation files byte-for-byte, with the existing
 diagnostic host supplying the captured inputs. It matches all39 consecutive native pre-draw seeds
 and ordered sites over1401-1403, the Egg's pose/velocity/process through1402, and its removal at1403.
 It requests301 at1403, owner3, height4096. The corrected snapshot includes captured heading word403.
@@ -302,8 +302,8 @@ The new regressions cover break/bounce, effect payload, held/carried Eggs, clear
 mixed Egg/Chicken order in both directions, newborns, Coop aging and state24-to32 single stepping.
 The initial nine-case test revision fails five cases before the fix; adding the diagonal case fails
 that case before the candidate-test correction. Source hashes and reconstructed unchanged tests
-bind those results to the saved traces. All twelve final cases pass; the full solution has 8391 passed
-and 30 skipped, including 4835 Simulation tests. The Release build has no warnings or errors;
+bind those results to the saved traces. All twelve final cases pass. The integrated solution has
+8427 passed and 30 skipped across ten suites. The Release build has no warnings or errors;
 Unity compiles with zero errors and two existing obsolete-API warnings. Both affected scenario CLI
 runs pass. Fixed-seed scenario counts and incidental bird IDs are remake
 regression pins; those affected by the new draws are updated without changing meal or laying clocks.
@@ -312,7 +312,11 @@ Native door/voxel/liquid collision volumes, deferred unlinking, the full capture
 effect playback and Heart outcomes remain outside this validation. The engine unlinks the broken Egg
 immediately, whereas native marks it for the later removal sweep. Later turns remain untested.
 Hash/save431 adds no fields; the new pin is in [hash-versions.md](hash-versions.md).
-Evidence/source/build: `F:/DK2Evidence/{studies,builds}/q712-egg-collision-h431--2026-11-06--001`.
+Original regression evidence/source/build: `F:/DK2Evidence/{studies,builds}/q712-egg-collision-h431--2026-11-06--001`.
+The composition with master `b4cc4e84` retains the same 39 ordered native seeds/sites at 1401-1403
+in a new production probe; this is the same bounded prefix, not a new native or outcome measurement.
+Combined evidence/source/build: `F:/DK2Evidence/{studies,builds}/q712-egg-collision-integration--2026-11-06--001`;
+39 study files and 53 build files are SHA-256 verified, and its archived validator passes.
 
 ## Outcomes at hash 399
 

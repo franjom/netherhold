@@ -31,6 +31,7 @@ public sealed class SimulationContext
     public GameDatabase Database { get; }
     public WorldState World { get; }
     public SimRandom Rng { get; }
+    internal Combat.DropCombatRules DropCombat { get; } = new();
     // Recomputed each recovery pass; never an input to the following turn.
     internal HashSet<CreatureState> TremorRecoveryCompletedThisTick { get; } = [];
     // Cleared before every turn; suppresses a second mood selection later in that turn.

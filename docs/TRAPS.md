@@ -12,6 +12,9 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- With DOTALL enabled, bound merge-marker labels with `[^\n]*`; `^>>>>>>> .*` also consumes the file tail.
+- Restore Git blobs as bytes; Windows text newline translation can double CRLF already present in a blob.
+
 - Capture `record.u(offset)` defaults to a dword; supply the recorded field width explicitly so padding cannot enter restore inputs.
 
 - The archived dk2seed default map filter is 40x50; Level 5 is 51x55. Read the selected capture dimensions before launching a seeded native control.

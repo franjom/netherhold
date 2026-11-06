@@ -33,7 +33,7 @@ def optional_number(value):
         return math.nan
 
 
-def verify_render_proof(path):
+def verify_render_proof(path, expected_size=(1920, 1080)):
     data = path.read_bytes()
     if data[:8] != b"\x89PNG\r\n\x1a\n":
         raise ValueError("Missing PNG rendering proof")
@@ -46,8 +46,9 @@ def verify_render_proof(path):
         if kind == b"IDAT":
             payload.extend(body)
         at += size + 12
-    if header is None or header[:3] != (1920, 1080, 8) or header[3] not in (2, 6) or header[6] != 0:
-        raise ValueError("Rendering proof must be non-interlaced 1920x1080 RGB/RGBA8")
+    if (header is None or (expected_size is not None and header[:2] != expected_size)
+            or header[2] != 8 or header[3] not in (2, 6) or header[6] != 0):
+        raise ValueError("Rendering proof must be non-interlaced RGB/RGBA8 at the required dimensions")
     width, height, _, colour, _, _, _ = header
     channels = 3 if colour == 2 else 4
     stride = width * channels

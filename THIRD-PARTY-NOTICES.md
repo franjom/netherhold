@@ -6,6 +6,14 @@ attribution; the MIT licence in particular permits inclusion in a GPLv3 work,
 provided its notice is retained, which is what this file and the per-file
 comments do.
 
+## .NET agent skills
+
+- Selected skills from https://github.com/dotnet/skills, MIT License,
+  Copyright (c) .NET Foundation and Contributors.
+- Source revision, selection and project adaptations:
+  [.agents/skills/README.md](.agents/skills/README.md).
+- Full upstream notice: [.agents/skills/dotnet-skills.LICENSE](.agents/skills/dotnet-skills.LICENSE).
+
 ## GLKeeper
 - https://github.com/codenamecpp/GLKeeper — MIT License, Copyright (c) codenamecpp
 - `src/DK2.Data/Wad/WadDecompressor.cs` adapts the WAD entry decompression

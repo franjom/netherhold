@@ -132,8 +132,8 @@ second >> 12, read from staging `+0x12C0` (file `0xED0`; the staging record sits
 effect 101, Creature Dazed Effect, tied to it on the handler's first call only
 while the duration hold remains active (Age 1; ADR-0480, corrected by ADR-0581);
 when the time is up, action 53 (getting up) and `SetState(257)`, whose handler
-(`0x00481200`) returns 1 while an action is current, then runs `0x00481400` and the
-room drop `0x004E8DA0(0)` (STRONGLY INFERRED, `hand-drop-landing.md` §3); `+0x3CB` := 0.
+(`0x00481200`) returns 1 while an action is current, then steps along its facing and runs `0x00481400`; an unhandled attempt reaches
+the room drop `0x004E8DA0(0)` (STRONGLY INFERRED, `hand-drop-landing.md` §3); `+0x3CB` := 0.
 **A hit lengthens the stun.** The damage routine (tests at `0x004B2EA9` and `0x004B2EBA`, call at `0x004B2EC9`), for a creature in the
 stunned family with a live non-Imp among its attackers (`0x0045EC10`), calls `0x00481360`:
 the stun left grows by variable 181 `StunTimePercentageIncreaseWhenHit` (25) percent of

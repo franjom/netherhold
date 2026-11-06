@@ -171,7 +171,10 @@ update before doors (list 4); where shots fall is Q398.
 not in category 22 and the gate `0x0045A6D0(0)` passing, `SelectAVictim` first; failing that,
 the four neighbours of table `0x006BC350` (north, east, south, west) for a built door owned by
 the neutral player or not allied, which becomes the forced target (`0x0048F390`), and
-`SelectAVictim` runs again. Not built.
+`SelectAVictim` runs again. The result is handled even if that second call fails; the first
+call is judged by its resulting resolved category, not its return value. The helper does not
+test door health or whether it is open. Reread with both caller windows and the direction
+table on 2026-11-06: STRONGLY INFERRED. Built in `DropCombatRules` (ADR-0698).
 
 ## Built (ADR-0318) and left
 
@@ -180,7 +183,9 @@ Built: §1 except the bits 17/18 clear (nothing here sets them) and `+0x16` (unn
 timing. A door's id is stable and blueprints hold ids, so a removal leaves every other
 reference intact.
 
-Left: the secret-door reveal (§6.8), §8, the linked objects, effects and
+Section 8 is built (ADR-0698); verification limits: [hand-drop-landing.md](hand-drop-landing.md#built-scope-and-verification-adr-0698-hashsave-430).
+
+Left: the secret-door reveal (§6.8), the linked objects, effects and
 sounds, area damage on doors.
 
 ## Open questions
