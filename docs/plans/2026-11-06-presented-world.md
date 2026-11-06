@@ -108,6 +108,12 @@ frames over budget are no longer the join.
 - **Start the tick earlier in the frame, keep the join**: gains the few milliseconds of
   HUD and lights after Present; the tick is 7–14 ms against a 6 ms frame, so the wait
   remains.
-- **A frame cap**: hides the wait on 60 Hz displays and may shorten the tick itself if
-  the laptop's power budget is what makes it 7–14 ms windowed against 4 ms headless
-  (being measured). Worth shipping as a default regardless; not a fix for 120 FPS.
+- **A frame cap**: measured 2026-11-06 with the same release package, 40 s each,
+  windowed (`build/tester-package/20261106-111653/captures/20261106-112858`, `-112944`,
+  `-113031`, `-113117`: uncapped, cap 120, cap 60, uncapped with VSync 1). The tick's
+  own time does not depend on the cap: p50 7.9 / 6.9 / 6.0 / 7.1 ms, p95 15.3 / 15.9 /
+  13.7 / 15.1, max 21–23 in all four, so the windowed tick is slower than the headless
+  4 ms for another reason than the power budget. The join waits stay at the cap of 120
+  (127 waits over 1 ms, max 19.9 ms, 56 of the 63 frames over 16.67 ms) and go only at
+  the cap of 60 (6 waits). VSync 1 in a window did not hold the rate (150 FPS). A cap is
+  therefore a 60 Hz default, not a fix for anything above it; P1 is.
