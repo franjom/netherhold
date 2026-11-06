@@ -155,10 +155,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   within 4 through `0x004E50F0` and, when accepted, walks there through `0x00471890(tile,
   116, 0x80)`, which is state 6 resuming in 116; then it sets 116 whether or not the walk
   started. So a prisoner walks in 116, holding resume 116 and saved 115 (Q422).
-- **116** (`0x00473350`): every 10 ticks it looks for a bar object (type 2, model
-  `0x31`–`0x33`, `+0x138` naming its prison) and pushes against it; otherwise it plays
-  idle actions. When none is playing it rolls 100: under 10, with action 9 available, an
-  idle action 41; otherwise under 20 sets 115, the way back (Q422). It always returns 1.
+- **116**: prop-kick, idle-action and return-to-115 paths are recorded in
+  [00473350](functions/00473350.md) (Q422).
 - **117** (`0x00473550`): the nearest food object in the prison's slab chain. With none,
   `AngerNoFood` goes to bucket 1 with selector 1 and message `0x40`; otherwise a walk to
   it resuming in 118, returning 1. No food, or a walk that fails, sets 116.

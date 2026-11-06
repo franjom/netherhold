@@ -144,6 +144,33 @@ Level 4 nor the Level 5 log draws, read in the binary (STRONGLY INFERRED where n
   room branch and the Prison release and escape now draw with DK2's count (ADR-0676, hash 420); the one at
   turn 1985 is unattributed, and state 217's Graveyard point and the dead body's `+0x134` move are unbuilt.
 
+## Native draw log: Level 5 seed 1, turns 1901-3400
+
+`F:/DK2Evidence/studies/q712-native-drawlog-level5-seed1-fight--2026-11-06--001`, the same draw log on the
+`l5live` natural seed over the Heart fight the Q712 outcomes measure (1401-3400; the 2026-11-03 log holds
+1400-1900). 28468 draws over 1500 turns, every one attributed to its turn (median 16 a turn), from 89 sites.
+All 500 per-turn seeds of 1400-1899 occur in the 2026-11-03 log and the seed after 1900 is its last draw
+stepped once, establishing world-seed continuity across the overlap, not call-site parity. The 14 sites none of the Level 3, 4 or 5 (1400-1900)
+logs draws, mapped by the file and line pushed at each of the 479 calls of `0x005558D0`
+(STRONGLY INFERRED for site attribution; each function record retains its rule-confidence level):
+
+- already mirrored: PrisonState 179 and 185 (`0x004734D8`, `0x0047350C`, state 116's `random(100)` and
+  flourish `random(3)`), Room.cpp 1717 (`0x004E5127` in `0x004E50F0`, called here by state 115 `0x00473303`),
+  ObjectState 1132, 1171 and 1172 (`0x0049FE60`, the rat's wander) with Player.cpp 1246 (`0x004BA254`, the
+  ambient-animal spawn), State.cpp 1838 (`0x00478425`, the unhappy chooser's roll), GuardState 210 and 297
+  (`0x00462B57`, `0x00462D8D`: states 97 and 98's deadlines), ResearchState 421 (`0x00476248`, state 60's
+  cheer), ShotProcess 1858 (`0x004AFFEE`, a made creature's heading) and PlayerRooms.cpp 1122 (`0x004C6D55`,
+  the eligible-room pick);
+- unbuilt: ObjectState 2287 (`0x004A1AAA`, 6 draws), object process 28, the spin after a prisoner's
+  prop kick. Ours has no Skull or Bone props ([objects.md](objects.md)). The binary's selection,
+  velocity addition and spin rules are recorded in [00473350](functions/00473350.md) and
+  [004A1A60](functions/004A1A60.md).
+
+The fight census identifies one unbuilt prop consumer; its six world-seed draws can shift later decisions,
+so their effect on Q712 remains untested. A turn-by-turn comparison with matched restored inputs is needed
+to distinguish that omission from differences in draw order and count inside built rules. The owner's
+2026-11-04 stop on extending the scratch restore adapter remains in force.
+
 ## Outcomes at hash 399
 
 Measured 2026-11-04: 115 bounded stored-pickup resyncs (75 Level 5, 40 Level 4) at hash/save 399

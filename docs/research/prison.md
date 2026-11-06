@@ -300,15 +300,12 @@ state 116, which is code rather than a table entry.
 
 ### 6.3 What is not modelled
 
-- State 116 also plays idle flourishes on a second roll and turns to look at
-  something in the room on a ten-tick cadence: both cosmetic, both gated on an
-  animation slot (`creature+0x3a9`) with no counterpart here.
-- A **narrower variant of the step roll** takes rolls 10..19 instead of 0..19
-  when the creature's definition has art record 9 (`0x00494A00`), halving the
-  rate to 10 in 100; rolls 0..9 play the Angry animation (action 41). Record 9: the
-  runtime bit is file flag OR art type 1..8 (`0x00504D80`): 39 creatures (Q188, ADR-0301).
-- The look-at turn latches in `creature+0x2FA` (state object `+0xAC`); while it is
-  set, the mover leaves the prisoner standing (`0x004739C0`).
+- The look-at and prop-kick path is unbuilt; see [00473350](functions/00473350.md)
+  and the [fight census](neutral-ambient-effect.md#native-draw-log-level-5-seed-1-turns-1901-3400).
+  The mover gate is [004739C0](functions/004739C0.md).
+- The art-gated Angry flourish and narrower step roll are built (Q188, ADR-0301;
+  `PrisonerWanderSystem`); see [00473350](functions/00473350.md) and
+  [00494A00](functions/00494A00.md) for the art test.
 - The three unread function pointers in every state record, and the 32 category
   records category 14 indexes (Q184, Q186).
 
