@@ -33,9 +33,17 @@ namespace DK2.Unity.Editor
                 scenes = new[] { "Assets/GameProbe.unity" },
                 locationPathName = output,
                 target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.Development,
+                // -probeRelease 1 builds without development options: the probe's own recorders then read
+                // nothing, but the game's frame recorder (-recordFrames) measures the shipped player.
+                options = Flag(args, "-probeRelease") ? BuildOptions.None : BuildOptions.Development,
             });
             if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException(report.summary.result.ToString());
+        }
+
+        private static bool Flag(string[] args, string name)
+        {
+            int at = Array.IndexOf(args, name);
+            return at >= 0 && at + 1 < args.Length && args[at + 1] == "1";
         }
 
         /// <summary>Mono unless <c>-probeBackend il2cpp</c>: the same project, compiled ahead of time.</summary>

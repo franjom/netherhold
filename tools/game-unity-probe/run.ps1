@@ -17,6 +17,7 @@ param(
     [switch]$Il2cpp,
     [switch]$RecordFrames,
     [switch]$Windowed,
+    [switch]$Release,
     [int]$FrameCap = 60,
     [switch]$SkipSync
 )
@@ -56,7 +57,7 @@ $player = "$run/player/GameProbe.exe"
 Write-Host "Building the $backend Development player (first run imports the project; IL2CPP compiles C++; allow several minutes)..."
 Run-Native $Unity @('-batchmode', '-quit', '-nographics', '-projectPath', $project,
     '-executeMethod', 'DK2.Unity.Editor.GameProbeBuild.Build', '-probeBuild', $player, '-probeBackend', $backend,
-    '-logFile', "$run/build.log") 60
+    '-probeRelease', $(if ($Release) { '1' } else { '0' }), '-logFile', "$run/build.log") 60
 if (!(Test-Path -LiteralPath $player)) { throw "No player was built; see $run/build.log" }
 
 Write-Host "Playing $Level for $Seconds s..."

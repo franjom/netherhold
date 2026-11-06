@@ -16,6 +16,7 @@ param(
     [int]$VSync = 0,
     [double]$ProfileFrom = 0,
     [double]$ProfileTo = 0,
+    [string[]]$ExtraArgs = @(),
     [switch]$NoPresentMon,
     [string]$Output = ''
 )
@@ -77,6 +78,7 @@ if (!$NoPresentMon) {
 $playerArguments = @('-screen-fullscreen', $(if ($Windowed) { '0' } else { '1' }), '-screen-width', "$Width", '-screen-height', "$Height",
     '-level', $Level, '-seed', "$Seed", '-dk2Install', $Install, '-frameCap', "$FrameCap", '-vsync', "$VSync",
     '-recordFrames', "$capture/recorder", '-profileFrom', "$ProfileFrom", '-profileTo', "$ProfileTo", '-logFile', "$capture/Player.log")
+$playerArguments += $ExtraArgs
 Set-Content -LiteralPath "$capture/player-arguments.txt" -Value ($playerArguments -join ' ')
 Write-Host "Playing $Level for $Seconds s. Leave the game alone until it closes by itself."
 $process = Start-Process -FilePath $player -ArgumentList ((Quote $playerArguments) -join ' ') -PassThru
