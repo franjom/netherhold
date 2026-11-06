@@ -263,7 +263,8 @@ and GC allocation call stacks; a fixed-camera baseline cannot diagnose this hitc
 
 `DungeonRunner` runs its ticks on a worker thread after each frame is presented (its
 `tickOnWorkerThread` field, on by default; ADR-0458), so a tick overlaps the frame's rendering
-and the view shows it one frame later. The probe below turns that off so its recorders see the
+and the view shows it one frame later; the draw clock runs one frame behind the tick clock so the
+frame that owes a tick does not clamp at the boundary (ADR-0687). The probe below turns that off by default so its recorders see the
 tick's own cost on the main thread.
 
 Open **Window → Analysis → Profiler**, restart Play mode, and record the CPU

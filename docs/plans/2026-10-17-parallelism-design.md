@@ -487,12 +487,14 @@ the worker path the frame that owes a tick starts it at the end of the frame,
 so its draw cannot have the new positions; `fraction = min(_tickDebt +
 ticks, 1)` clamps, and the next frame pays the clamped remainder plus its own
 elapsed, with the second `preparedElapsed` sample adding a third uneven step.
-Fix direction, serial and inside the gates (no extrapolation, shared
-camera/creature clock): start a tick one frame before the clock needs it,
-when `_tickDebt` plus the expected frame will cross 1, so the completed tick is
-in hand when the draw clock crosses the boundary and nothing clamps; and take
-the frame's elapsed time once. Commands then reach their tick one frame
-earlier, not later. Measure with this run's metric before and after.
+**Fixed by ADR-0687 (2026-11-06)**, serial and inside the gates: instead of
+starting the tick a frame early (which would need a pose history, since the
+world would run ahead of the drawn interval), the draw clock runs one frame
+behind the tick clock (`WorkerDrawLag`, one frame at the observed rate, never
+more than a tick), and elapsed time is sampled once per frame. Same probe and
+path, run `20261106-075815`: frames over 2 ticks/s of draw-clock error 12.17%
+→ 0.26%, p95 error 3.48 → 0.24 ticks/s, boundary holds 102 → 0; frame time
+unchanged. Cost: one frame of display latency, explicit in the ADR.
 
 Still unmeasured: a 60 FPS cap repeat of the Level8 motion capture, and
 anything on the desktop tier (120 FPS on an RTX 3060 class machine), which

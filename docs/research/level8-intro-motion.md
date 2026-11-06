@@ -46,9 +46,31 @@ carries `render_tick`, the camera and `path`), run `build/game-unity-probe/20261
 over the 1571 frames of Level6a's opening path: 12.17% of frames above 2
 ticks/s (p95 error 3.48), with frame time flat at p95 16.85 ms. The error is a
 three-frame step pattern once per tick (clamp at the boundary, catch-up,
-short), so it is the boundary clamp, not a slow frame. Details and the fix
-direction: [parallelism plan](../plans/2026-10-17-parallelism-design.md),
-addendum 2026-11-06.
+short), so it is the boundary clamp, not a slow frame. Details:
+[parallelism plan](../plans/2026-10-17-parallelism-design.md), addendum
+2026-11-06.
+
+**After ADR-0687** (the draw clock one frame behind the tick clock, one
+elapsed sample per frame), same probe and path, run `20261106-075815`:
+
+| Level6a opening path, ~1567 frames | Before | After |
+|---|---:|---:|
+| Frames with error above 2 ticks/s | 12.17% | 0.26% (4 frames) |
+| p95 error, ticks/second | 3.48 | 0.24 |
+| Frames holding at a boundary (tick step under half the median) | 102 | 0 |
+| Frame time p95 (ms) | 16.85 | 17.02 |
+
+The remaining four are the first frames, while the lag settles, and one long
+frame. A repeat (run `-080042`) met machine interference, 31 frames over 33
+ms, and read 2.62%, all catch-ups after long frames and no boundary hold.
+Counting only steady frames (neither the frame nor the one before over 25
+ms), the three runs read 12.03% before and 0.00% / 0.00% after. This meets
+the 1–1.5% target for the draw clock on this path in a headless Development
+player; what remains above 2 ticks/s is frame-time hitches, which the clock
+cannot hide. The camera's own step per frame still varies
+along the path, as an authored path accelerates and turns; that is not a
+timing error and is not counted. Owner visual comparison in the editor is
+still pending, and the Level8 capture has not been repeated.
 
 Artifacts: `build/level8-motion-before/motion.csv` and
 `build/level8-motion-final/motion.csv`; intermediate capture: `build/level8-motion-after/`.

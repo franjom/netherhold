@@ -712,6 +712,8 @@ namespace DK2.Unity
         private static readonly ProfilerMarker FrameFlowersMarker = new ProfilerMarker("DK2.Frame.Flowers");
         private static readonly ProfilerMarker FrameJournalMarker = new ProfilerMarker("DK2.Frame.Journal");
         private readonly FrameElapsedClock _frameElapsed = new FrameElapsedClock();
+        // On the worker path the draw clock runs one frame behind the tick clock (ADR-0687).
+        private readonly WorkerDrawLag _drawLag = new WorkerDrawLag();
 
         private EffectAttachment ResolveCreatureEffect(WorldState world, CreatureId id, uint point)
         {
@@ -835,7 +837,9 @@ namespace DK2.Unity
             InputFrame firstInput = InputFrame.Empty;
             if (speed > 0f && !_hudControls.OptionsVisible)
             {
-                _tickDebt += elapsed * SimulationTiming.TicksPerSecond * speed * (_gameSettings.GameSpeed / 4.0);
+                double advance = elapsed * SimulationTiming.TicksPerSecond * speed * (_gameSettings.GameSpeed / 4.0);
+                _tickDebt += advance;
+                _drawLag.Observe(advance);
 
                 // Whole ticks only, and a cap so a long editor stall does not
                 // fast-forward the game by a thousand ticks in one frame.
@@ -857,10 +861,11 @@ namespace DK2.Unity
             _worldView.AdvanceTerrainHighlights(new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d)));
 
             // How far the drawn world is from its last tick toward its next, for the creature
-            // interpolation. On the worker path this frame's ticks have not run yet, so the world
-            // drawn is still the previous one and the frame that owes a tick draws it complete (1);
-            // the next frame then starts the new tick's motion from there.
-            float fraction = (float)Math.Min(tickOnWorkerThread ? _tickDebt + ticks : _tickDebt, 1d);
+            // interpolation and the camera path. On the worker path this frame's ticks have not run
+            // yet, so the world drawn is still the previous one, and the draw clock runs one frame
+            // behind the tick clock so the frame that owes a tick does not clamp at the boundary
+            // (ADR-0687, which is also why elapsed time is sampled once per frame).
+            float fraction = (float)(tickOnWorkerThread ? _drawLag.Fraction(_tickDebt, ticks) : Math.Min(_tickDebt, 1d));
 
             // Off the map, a Hand excavation preview keeps the last tile the pointer was on.
             TilePos? dragFrom = _input.DragFrom(PlayerToolMode.Hand);
@@ -877,22 +882,6 @@ namespace DK2.Unity
                 for (int i = 0; i < _gemIdleRequests.Count; i++) _constructionEffects.Model.Request(_gemIdleRequests[i]);
             }
             using (FrameMinimapMarker.Auto()) _minimap?.Capture(_simulation.World, _worldView, _simulation.Navigation);
-            double preparedElapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
-                fallbackDeltaSeconds: 0, maximumDeltaSeconds: Math.Max(0, Time.maximumDeltaTime - elapsed), timeScale: Time.timeScale);
-            if (speed > 0f && !_hudControls.OptionsVisible) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed * (_gameSettings.GameSpeed / 4.0);
-            if (tickOnWorkerThread && speed > 0f && !_hudControls.OptionsVisible)
-            {
-                int preparedTicks = (int)Math.Min(_tickDebt, Math.Max(1, maxTicksPerFrame) - ticks);
-                ticks += preparedTicks;
-                _tickDebt -= preparedTicks;
-                if (ticks > 0 && firstInput.All.Count == 0 && _pendingCommands.Count > 0)
-                {
-                    firstInput = new InputFrame(_pendingCommands.ToArray());
-                    JournalHandOff();
-                    _pendingCommands.Clear();
-                }
-            }
-            fraction = (float)Math.Min(tickOnWorkerThread ? _tickDebt + ticks : _tickDebt, 1d);
             bool drawingPath = _scriptedView.PathPlaying;
             _scriptedView.SeekCamera(_simulation.World.CurrentTick.Value + fraction);
             if (_scriptedView.PathPlaying) ApplyPathCamera();

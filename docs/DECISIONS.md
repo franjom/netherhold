@@ -11678,7 +11678,7 @@ across maps. Tests observe alarm responders entering their states rather than
 requiring both still occupy them on one arbitrary final tick.
 
 ## ADR-0501 — Camera and creatures share a late draw clock
-**Date:** 2026-10-17 · **Status:** accepted
+**Date:** 2026-10-17 · **Status:** accepted · amended by ADR-0687 (one elapsed sample per frame; the draw clock lags the tick clock by one frame)
 
 **Context.** A worker wait and presentation preparation can consume much of a
 frame. Counting that work on the following frame causes slow/catch-up motion
@@ -16144,3 +16144,40 @@ DK2 itself loads its samples; this is a remake policy.
   instead of copying them (a 33 MB bank cost 66 MB).
 - A looping sound whose thing goes while it decodes plays until `FollowVoices` next runs. The wait and hold logic
   is in the Unity adapter and has no unit test; hearing acceptance in Unity stays pending.
+
+## ADR-0687: the draw clock runs one frame behind the tick clock on the worker path
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. Amends ADR-0501. · **Systems:** presentation-unity, camera-lighting
+
+**Context.** With ticks on the worker thread (ADR-0458) the frame that owes a tick starts it at its end, so
+its draw cannot have the tick's poses. `DungeonRunner` drew at `min(_tickDebt + ticks, 1)`: the owing frame
+clamped at the tick boundary and the next frame, with the tick joined, caught up. A second sample of elapsed
+time after presentation preparation (ADR-0501) made the drawn advance vary with the preparation time, which
+is longer on the frame after a tick. Measured on Level6a's opening camera path (`tools/game-unity-probe`,
+worker ticks, 60 FPS cap, run `build/game-unity-probe/20261106-073731`): frame time flat at p95 16.85 ms,
+yet 12.2% of frames had more than 2 ticks/s of draw-clock error, in a three-frame pattern once per tick
+(0.011, 0.14–0.16, 0.024–0.047 tick against 0.0667), one hitch four times a second, which the owner saw
+as a fly-by that is not smooth. The 2026-10-17 Level8 capture had found the same boundary clamps
+(`docs/research/level8-intro-motion.md`).
+
+**Decision.**
+- `WorkerDrawLag` (DK2.Presentation): the draw clock lags the tick clock by one frame at the rate the game
+  is running at, a short average (0.2) of each frame's advance in ticks, never more than one tick.
+  `fraction = clamp(_tickDebt + ticks - lag, 0, 1)` on the worker path; the inline path is unchanged.
+- Elapsed time is sampled once per frame, after the join; the preparation time counts in the next frame.
+  The second sample and the ticks it could start are gone; commands still go to the first tick started at
+  or after the frame that collected them.
+- No extrapolation: the drawn time stays inside the interval of poses the frame has. A frame longer than
+  the lag clamps by its excess, a frame shorter holds by the difference; both are bounded by the frame-time
+  variation. The camera path seeks the same clock (ADR-0501), so a fly-by and the creatures agree.
+
+**Consequences.**
+- Display latency grows by one frame (16.7 ms at 60 FPS, 8.3 at 120), explicitly; the one-tick interpolation
+  delay is unchanged. Input-to-tick latency is unchanged.
+- `WorkerDrawLagTests` run the runner's per-frame arithmetic: at a steady rate the drawn time advances by
+  exactly one frame every frame across every tick boundary, and the old formula is shown to clamp and
+  catch up once per tick.
+- Measured result, same probe and path (run `20261106-075815`): frames over 2 ticks/s of draw-clock error
+  12.17% → 0.26%, p95 error 3.48 → 0.24 ticks/s, frames holding at a boundary 102 → 0, frame time
+  unchanged (p95 16.85 → 17.02 ms). Table in `docs/research/level8-intro-motion.md`. Owner visual
+  comparison in the editor is pending.
