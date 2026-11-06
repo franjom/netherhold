@@ -16606,3 +16606,16 @@ count0/1/other cycle branches and cancel the action through shared interruption.
 **Consequences.** Hash/save433 adds the idle action identity. Worker state12
 keeps its host; other action surrogates and exceptional animation overrides
 retain their existing scope. Native continuation needs its declared restore inputs.
+
+## ADR-0702 - gate bedless sleep attempts on the actual need
+**Date:** 2026-11-06 · **Status:** accepted · **Systems:** creatures, simulation-core
+
+**Context.** `bedless-sleep-need.md` isolates a healthy, untired creature leaving
+raw idle for a Lair before the original's idle-to-chooser handover.
+
+**Decision.** Require debt or the wound attempt before the sleep system seeks
+a bedless creature's Lair. Share the tired four-turn retry and busy test;
+ordinary acquisition remains with the idle/job chooser.
+
+**Consequences.** Hash/save434, no new state. Existing Lair-finder and needs
+ordering limits remain; native continuation retains declared snapshot inputs.

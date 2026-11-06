@@ -8,17 +8,12 @@ using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>One attempt to go and get a lair, shared by everything that makes it: in
-/// the original it is one function, <c>FUN_0046f390</c>, called from four places —
-/// the idle state, the sleep need, and the unhappy and angry job choosers
-/// (docs/research/lair-acquisition.md §5, §8).</summary>
-/// <remarks>It lives here rather than in <see cref="CreatureSleepSystem"/> because
-/// <see cref="CreatureAngerSystem"/> makes the same attempt before rolling an angry
-/// job (ADR-0061), and a second copy of "which lair, and can I get there" would be a
-/// second set of answers. The preconditions are the attempt's own, not the caller's;
-/// callers keep only their own cadence — the idle countdown, the five-second angry
-/// gate — which is where the original keeps it. A failed attempt is reported under
-/// the calling system's name, so the log says which caller asked.</remarks>
+/// <summary>Shared ordinary Lair eligibility and room selection
+/// (<c>FUN_0046f390</c>; docs/research/lair-acquisition.md §5, §8).</summary>
+/// <remarks>The shared attempt avoids duplicate finder rules in the need and mood callers.
+/// Callers own their scheduling: the sleep need has its retry, while state89 asks
+/// before jobs without a retry gate. The implemented eligibility subset is below.
+/// Failures are reported under the calling system's name.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/lair-acquisition.md")]
 public sealed class LairSeeker
 {
@@ -29,14 +24,11 @@ public sealed class LairSeeker
     public LairSeeker(IPathfinder pathfinder) =>
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
 
-    /// <summary>The gate the original's attempt opens with: conditions that have
-    /// nothing to do with why anybody is asking.</summary>
-    /// <remarks>Read from <c>FUN_0046f390</c> (Q104, Q150): a record that names a bed
-    /// and a non-zero <c>TimeSleep</c> (<see cref="LairRules.NeedsBed"/>), not held,
-    /// not imprisoned, not down, not already lair-seeking, and no bed yet. Leaving is
-    /// ours, not the original's, which gets it from its state machine instead: a
-    /// creature that gave up its bed to walk out must not take another one on the way
-    /// past (docs/research/lair-acquisition.md).</remarks>
+    /// <summary>The implemented eligibility subset of <c>FUN_0046f390</c> (Q104, Q150).</summary>
+    /// <remarks>Checks sleeping capability, bed ownership and activity exclusions.
+    /// The Activity guard does not mirror the unconditional stored-resume80 refusal,
+    /// including raw89; that gate remains unimplemented (bedless-sleep-need.md).
+    /// Leaving is an adapter that prevents a departing creature from acquiring a new bed.</remarks>
     public static bool CanAttempt(
         WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
@@ -49,9 +41,9 @@ public sealed class LairSeeker
         return !LairRules.HasBed(world, database, creature);
     }
 
-    /// <summary>The whole attempt, preconditions and all: <see cref="CanAttempt"/>
+    /// <summary>The implemented attempt: <see cref="CanAttempt"/>
     /// then <see cref="TrySetOutForALair"/>. A creature that fails the preconditions
-    /// fails silently, as the original's does — it is not a lair failure because it
+    /// fails silently — it is not a lair failure because it
     /// was never a lair question.</summary>
     public bool TryGoForALair(
         SimulationContext context, string systemName,

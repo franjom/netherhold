@@ -925,6 +925,8 @@ public class CreatureNeedsTests
         CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 1));
         CreatureState third = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 1));
+        first.SleepDebtTicks = second.SleepDebtTicks = third.SleepDebtTicks = 1;
+        first.NextSleepTryTick = second.NextSleepTryTick = third.NextSleepTryTick = GameTick.Zero;
 
         var sim = new GameSimulation(db, world, 42, [
             new CreatureMovementSystem(), new CreatureSleepSystem(),
@@ -1159,6 +1161,7 @@ public class CreatureNeedsTests
         Paint(db, world, RoomTypeId.Lair, bed, Keeper);
 
         CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        LairRules.PlaceBed(world, db, first, world.TileIndex(bed));
         var sim = new GameSimulation(db, world, 42, [
             new CreatureMovementSystem(), new CreatureSleepSystem(), new CreatureHealthSystem(),
         ]);
@@ -1173,6 +1176,7 @@ public class CreatureNeedsTests
         // at its next idle decision — hence a run longer than the dying window.
         first.Health = 0;
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 3));
+        second.SleepDebtTicks = 1;
 
         // Sixty seconds of dying, an idle re-evaluation, and the walk onto the freed tile: the
         // steering mover's final approach settles onto the centre over a few ticks, so a

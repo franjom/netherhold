@@ -48,7 +48,7 @@ public class LairAcquisitionTests
         GameDatabase db, WorldState world, ListEventSink? sink = null, ulong seed = 42)
     {
         var sim = new GameSimulation(db, world, seed, [
-            new CreatureMovementSystem(), new CreatureSleepSystem(),
+            new CreatureMovementSystem(), new CreatureSleepSystem(), new RequestedLairAttempt(),
         ]);
         if (sink is not null) sim.ObserveWith(sink);
         return sim;
@@ -149,8 +149,9 @@ public class LairAcquisitionTests
         CorridorToA3x3Lair(db, world);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-        // As after a failed attempt: the sleep system waits twelve ticks before it looks again.
-        goblin.TimerTicks = LairRules.IdleRedecisionTicks;
+        // Hold the genuine sleep-need retry shut; state89's acquisition is independent.
+        goblin.SleepDebtTicks = 1;
+        goblin.NextSleepTryTick = new GameTick(100);
         var sim = new GameSimulation(db, world, 42, [
             new CreatureMovementSystem(), new CreatureSleepSystem(), new CreatureJobSystem(),
         ]);
@@ -179,9 +180,10 @@ public class LairAcquisitionTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         goblin.Anger[AngerBucket.Lair] = CreatureAngerRules.UnhappyAt(db.CreatureById(GoblinId)) + 1;
         Assert.Equal(CreatureMood.Unhappy, CreatureAngerRules.MoodOf(db.CreatureById(GoblinId), goblin));
-        // The unhappy chooser rolled a moment ago, so its five-second gate is shut; the sleep system is waiting too.
+        // The unhappy chooser's gate and the genuine sleep-need retry are both shut.
         goblin.LastUnhappyChoiceTick = world.CurrentTick.Value + 1;
-        goblin.TimerTicks = LairRules.IdleRedecisionTicks;
+        goblin.SleepDebtTicks = 1;
+        goblin.NextSleepTryTick = new GameTick(100);
         var sim = new GameSimulation(db, world, 42, [
             new CreatureMovementSystem(), new CreatureSleepSystem(), new CreatureJobSystem(),
         ]);
@@ -215,7 +217,7 @@ public class LairAcquisitionTests
     }
 
     [Fact]
-    public void AFailedAttemptIsRetriedAtEveryIdleDecisionAndNotEveryTick()
+    public void ATiredBedlessCreatureRetriesAFailedNeedEveryFourTurns()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -223,10 +225,14 @@ public class LairAcquisitionTests
 
         // No lair at all.
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-        Walking(db, world, events).Run(120);
+        goblin.SleepDebtTicks = 1;
+        goblin.NextSleepTryTick = GameTick.Zero;
+        var sim = new GameSimulation(db, world, 42, [new CreatureSleepSystem()]);
+        sim.ObserveWith(events);
+        sim.Run(120);
 
-        // Tick 0, then every IdleRedecisionTicks: 0, 12, 24, ... 108.
-        Assert.Equal(120 / LairRules.IdleRedecisionTicks,
+        // A genuine sleep need retries at ticks0,4,...116, independently of idle choices.
+        Assert.Equal(120 / NeedRules.RetryTurns,
             events.Events.Count(e => e.Kind == "lair_attempt_failed"));
         Assert.All(events.Events.Where(e => e.Kind == "lair_attempt_failed"),
             e => Assert.Contains("reason=no_lair", e.Detail));
@@ -417,7 +423,7 @@ public class LairAcquisitionTests
         CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 2));
         var sim = new GameSimulation(db, world, new SimRandom(new FirstSlabRandom()), [
-            new CreatureMovementSystem(), new CreatureSleepSystem(),
+            new CreatureMovementSystem(), new CreatureSleepSystem(), new RequestedLairAttempt(),
         ]);
         sim.ObserveWith(events);
         sim.Run(Second * 20);
@@ -468,12 +474,13 @@ public class LairAcquisitionTests
         Assert.Contains(events.Events, e =>
             e.Kind == "lair_attempt_failed" && e.Detail.Contains("reason=lair_full"));
         int attemptsSoFar = events.Events.Count(e => e.Kind == "lair_attempt_failed");
-        Assert.InRange(attemptsSoFar, 2, 30);
+        Assert.Equal(1, attemptsSoFar);
 
         // The lodger goes; the tile is free again; the next idle decision
         // takes it.
         LairRules.ReleaseBed(world, db, lodger);
         world.RemoveCreature(lodger.Id);
+        sim.Systems.OfType<RequestedLairAttempt>().Single().Requested = true;
         sim.Run(Second * 5);
 
         Assert.Equal(new TilePos(7, 2), BedOf(world, db, goblin));
@@ -504,7 +511,7 @@ public class LairAcquisitionTests
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
         Assert.Contains(events.Events, e =>
             e.Kind == "lair_attempt_failed" && e.Detail.Contains("reason=not_in_lair"));
-        Assert.Contains(events.Events, e =>
+        Assert.DoesNotContain(events.Events, e =>
             e.Kind == "lair_attempt_failed" && e.Detail.Contains("reason=no_lair"));
     }
 
@@ -524,6 +531,7 @@ public class LairAcquisitionTests
         Assert.Equal(new TilePos(6, 2), BedOf(world, db, goblin));
 
         RoomRules.Unmake(db, ref world.Tile(6, 2));
+        sim.Systems.OfType<RequestedLairAttempt>().Single().Requested = true;
         sim.Run(Second * 5);
 
         Assert.Equal(new TilePos(7, 2), BedOf(world, db, goblin));
@@ -841,6 +849,23 @@ public class LairAcquisitionTests
 
         Assert.Equal(Run(42), Run(42));
     }
+    // Geometry/arrival tests request the public acquisition service explicitly. The real
+    // idle1->89 and sleep-need scheduling are covered by BedlessSleepNeedTests.
+    private sealed class RequestedLairAttempt : ISimulationSystem
+    {
+        public string Name => "LairAcquisitionSetup";
+        public bool Requested { get; set; } = true;
+        public void Execute(SimulationContext context)
+        {
+            if (!Requested) return;
+            Requested = false;
+            foreach (CreatureState creature in context.World.Creatures.OrderByDescending(c => c.Id))
+                if (creature.Activity == CreatureActivity.Idle)
+                    new LairSeeker(new DK2.Pathfinding.GridPathfinder()).TryGoForALair(context, Name,
+                        creature, context.Database.CreatureById(creature.CreatureTypeId));
+        }
+    }
+
     private sealed class FirstSlabRandom : IRandomAlgorithm
     {
         public int NextInt(int exclusiveMax) => 0;

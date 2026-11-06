@@ -170,15 +170,14 @@ public class CreatureAngerTests
     [Fact]
     public void AGoblinWithABedNeverGetsAngryAtAll()
     {
-        // The control: one lair tile is the difference the player makes. The tile
-        // is a diagonal step away rather than under the creature's feet because a
-        // bed is walked to (ADR-0060). The two seconds of walk cost 200 anger at
-        // AngerNoLair's 100 a second, and placing the bed wipes them (ADR-0179).
+        // This control starts with an owned bed. Acquisition and the grievance wipe
+        // are separate tests; the isolated anger host omits the idle/job chooser.
         GameDatabase db = Db;
         WorldState world = World(db);
         PaintLair(db, world, new TilePos(3, 3));
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        LairRules.PlaceBed(world, db, goblin, world.TileIndex(new TilePos(3, 3)));
         var events = new ListEventSink();
 
         Simulation(db, world, events).Run(Second * 400);
@@ -186,7 +185,7 @@ public class CreatureAngerTests
         Assert.True(LairRules.HasBed(world, db, goblin));
         Assert.Equal(CreatureMood.Content, CreatureAngerRules.MoodOf(db.CreatureById(GoblinId), goblin));
 
-        // Nothing left of the walk, and not one point more in four hundred.
+        // Owning the bed prevents a lair charge for all four hundred seconds.
         Assert.Equal(0, goblin.Anger.Max);
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_mood");
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
@@ -327,6 +326,8 @@ public class CreatureAngerTests
 
         // Now the player does something about it. One tile.
         PaintLair(db, world, new TilePos(2, 3));
+        goblin.SleepDebtTicks = 1; // Request a genuine sleep need in this chooser-free host.
+        goblin.NextSleepTryTick = sim.CurrentTick;
 
         // It has to notice and walk there — one tile, a couple of seconds, and
         // each of those seconds is still charged 100 (ADR-0060).

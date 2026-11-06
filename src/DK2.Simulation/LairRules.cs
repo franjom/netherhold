@@ -269,12 +269,9 @@ public static class LairRules
         return false;
     }
 
-    /// <summary>How long an idle, bedless creature waits between attempts to get a
-    /// lair, in ticks. <b>Ours</b>: a failed attempt in the original falls through to a
-    /// job and is retried at the next idle decision, and with no job system for
-    /// non-workers here the idle state's own fallback — wander 12 ticks, decide again —
-    /// is the only cadence to borrow. Whether the original's tick is this project's
-    /// tick is not established, so it has the right shape and is not measured.</summary>
+    /// <summary>The idle fallback deadline, in ticks. This is not a universal Lair
+    /// acquisition retry: the sleep need uses its separate four-turn gate, and
+    /// state89 attempts acquisition before jobs (creature-needs-routine.md).</summary>
     public const int IdleRedecisionTicks = 12;
 
     /// <summary>DK2's lair and sleep states (<c>lair-acquisition.md</c> §9, ADR-0178): 80

@@ -210,7 +210,7 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // State 89's step 5 (0x004778E0, idle-fallback.md §1): with no lair, the lair attempt
         // 0x0046F390 comes before the dropped job, the remembered job and either chooser, and
         // outside the chooser's gate — whatever the mood. CreatureSleepSystem's tired-and-bedless
-        // path is the same attempt on its own 12-tick retry; a creature that turns idle between
+        // path is the same attempt on the shared four-turn retry; a creature that turns idle between
         // the two systems used to roll a job here first and carry its lair grievance into
         // leaving (Level 3's Goblins, ADR-0328).
         if (!LairRules.HasBed(context.World, context.Database, creature)

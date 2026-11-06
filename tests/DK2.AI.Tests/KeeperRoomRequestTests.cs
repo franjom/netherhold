@@ -455,7 +455,7 @@ public class KeeperRoomRequestTests
         WorldState world = WithTreasury(goldPerTile: 3000);
         CreatureState sleeper = world.SpawnCreature(Db, KeeperWorld.SleeperCreature, Keeper, new TilePos(14, 14));
         var sim = new GameSimulation(Db, world, 1,
-            [new TileTagSystem(), new RoomBuildSystem(), new CreatureMovementSystem(), new CreatureSleepSystem()]);
+            [new TileTagSystem(), new RoomBuildSystem(), new CreatureMovementSystem(), new CreatureSleepSystem(), new CreatureJobSystem()]);
         var keeper = new KeeperAI(Keeper, Policy(1), new SimRandom(9));
         Play(world, sim, keeper, 600);
 

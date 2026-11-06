@@ -70,6 +70,7 @@ public sealed class LairDropTests
             sim.World.TileIndex(OldTile), PlayerIds.FirstKeeper));
         CreatureState next = sim.World.SpawnCreature(sim.Database,
             Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, OldTile);
+        next.SleepDebtTicks = 1; // This host omits the ordinary idle/job chooser.
         sim.Run(20);
         Assert.Equal(sim.World.TileIndex(OldTile), LairRules.BedTileIndex(sim.World, sim.Database, next));
     }

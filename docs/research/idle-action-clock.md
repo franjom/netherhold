@@ -66,7 +66,8 @@ aliases the native first draw, so that label alone does not identify the native 
 The first different ordered site is draw2: modern Imp444 Room.cpp:1563 against
 native ImpState.cpp:764. At completed1425, captured438 is in state89 at its previous
 position while modern438 is in state7 and has moved. The modern Lair lookup is the
-next investigation candidate; the source of the extra draw needs a binary check.
+investigation candidate in that433 control. The [bedless sleep-need correction](bedless-sleep-need.md)
+extends the paired control through1425 and records the next unimplemented guard.
 This advances the bounded probe, not full-state or Heart-outcome equivalence.
 
 Evidence is add-only under

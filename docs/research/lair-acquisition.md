@@ -146,24 +146,24 @@ search ran.
 
 ## 5. What starts the search (Q150)
 
-**There is no mood gate. An idle creature with no lair tries to get one before
-it does anything else, and the same attempt is also the first thing the unhappy
-and angry job choosers make.**
+State89 tries acquisition before jobs, whatever the mood; the unhappy and angry
+choosers also try acquisition before their job rolls. The shared attempt retains
+its own eligibility gates.
 
 The creature's dispatcher runs the category update, needs and mood choosers
 before the current handler; see [00476FC0](functions/00476FC0.md) and
 [the needs order](creature-needs-routine.md#1-where-it-runs). The unhappy and
 angry choosers try for a lair before their job roll.
 
-The **happy** path is the idle state's own update (the block at `004779f9`),
+The **happy** path is state89's chooser update (the block at `004779f9`),
 and it reads, in order: *no lair → try to get one* (`FUN_0046f390`); a pending
 assigned job; a remembered job; the happy-job roll (§8); fallbacks (train if a
 training room is available, then casino, combat pit, wander to the heart);
 otherwise wander for 12 ticks.
 
 **The attempt (`FUN_0046f390`) succeeds when:** the creature is not held and not
-dying; its record's **`TimeSleep` is non-zero**; it is not already in the
-lair-seeking state; it has no bed yet; its record names a bed (`LairObjectId` ≠
+dying; its record's **`TimeSleep` is non-zero**; its stored resume is not80
+(even in raw89); it has no bed yet; its record names a bed (`LairObjectId` ≠
 0); and the finder of §4 returns a room. Initial departure then uses the
 [room-helper split](lair-departure.md): outside, one room-point draw and E8
 travel resuming 80; inside that chosen room, idle then 80 without a new point,
@@ -189,11 +189,10 @@ no lair is *the same attempt*: find a lair, go and claim a bed. Hunger runs the
 same way one block earlier (`HungerNeed` grows by the level-scaled `HungerFill`
 every `HungerRate`; `eating.md` §3).
 
-**What this predicts, for the owner to break:** with a **large, empty,
-reachable lair** built before the portal delivers anything, *every* creature —
-Bile Demon and Troll included — goes for a bed before its first job. A Troll
-that trains first has found no lair with a free slot at that moment: full,
-unreachable, or counted full by a rule we have not read.
+An acquisition attempt can fail at eligibility before any room search, as the
+[stored-resume80 boundary](bedless-sleep-need.md#controlled-continuation) demonstrates.
+A creature taking a job first therefore does not by itself prove that the Lair
+was full or unreachable.
 
 **The method note worth keeping:** a coincidence between a visible state change
 and a behaviour is not the trigger until the behaviour is shown to be *absent*
@@ -214,8 +213,8 @@ cheapest of the three to check. Do not build a retry interval on it.
 
 ## 7. Implementation
 
-**ADR-0060.** `CreatureSleepSystem` and the shared `LairSeeker` (this document's
-§4 finder) do what §4, §5 and §7a-adjacent readings describe: a bedless idle
+**ADR-0060.** `CreatureSleepSystem` and the shared `LairSeeker` mirror the
+room/tile selection subset described here: a bedless idle
 creature picks the nearest reachable lair with a free slot, preferring one with
 no bed of the other side, walks to it, and finds its tile on arrival —
 underfoot, the eight neighbours in the original's order, then a walk of the room
@@ -242,8 +241,10 @@ shortcut; [scope and verification](lair-departure.md#implementation-and-verifica
 retain full finder limits. `LairRules.ArrivalTile` remains a centre-nearest tile
 for the finder's approximate reach test, not the final departure destination.
 The finder itself is unchanged: reachability, centre and ties remain adapter
-limits (Q473). The idle retry cadence (12 ticks), room-walk order and later
-bed-placement/relocation details retain their own scopes.
+limits (Q473). ADR-0702 builds the [sleep-need caller gate](bedless-sleep-need.md).
+`LairSeeker.CanAttempt` still uses Activity instead of the unconditional stored-resume80
+refusal; [0046F390](functions/0046F390.md) remains PARTIAL. The idle fallback deadline,
+room-walk order and later bed-placement/relocation details retain their own scopes.
 
 **Not added deliberately:** an implementation plan drawn from this note by
 another tool required the lair to be *"valid/functional according to the

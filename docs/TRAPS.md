@@ -351,3 +351,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `IClassicSoundAssets.Clip` decodes an uncached clip synchronously (190-240 ms for a music segment). Frame-thread code asks `SoundClipDecoder.TryGet` instead, which decodes on a worker and answers false until it is ready (ADR-0686).
 
 - Replay probes using `CapturedCreatureOrder` bypass `CreatureUpdateSystem.Sweep`; mirror new lifecycle hooks before comparing their clocks.
+- Serialize `GameTick.Value` in scratch JSON telemetry; serializing the struct follows its `Next` property recursively and fails at the depth limit.

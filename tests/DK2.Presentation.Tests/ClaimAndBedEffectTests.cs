@@ -431,7 +431,8 @@ public class ClaimAndBedEffectTests
             for (int x = 2; x <= 4; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
         CreatureDef goblin = db.Creatures.Values.Single(c => c.Name == "Goblin");
-        world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+        CreatureState sleeper = world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+        sleeper.SleepDebtTicks = 1;
         var sim = new GameSimulation(db, world, 1, [new CreatureMovementSystem(), new CreatureSleepSystem()]);
         var events = new ListEventSink();
         var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0));

@@ -100,7 +100,7 @@ Job **20 (Tunnelling)** has a case that does nothing and returns zero, and job
 
 | Job | Handler | Room | State | Its own test |
 |---|---|---|---|---|
-| 1 Sleep | `FUN_0046f440` | Lair | `0x51` | sleeps at all, **and has a bed**; bedless it kicks a lair attempt and **returns failure** |
+| 1 Sleep | `FUN_0046f440` | Lair | `0x51` | sleep-capable; bedded needs sleep debt; bedless calls acquisition and returns failure ([scope](bedless-sleep-need.md)) |
 | 2 Eat | `FUN_004633d0` | Hatchery | — | — |
 | 3 Research | `FUN_004759d0` | Library | `0x35` | `player+0x213 != 0` |
 | 4 Train | `FUN_00485240` | Training Room | `0x6c` | keeper's gold ≥ training cost, **and level < `TrainingRoomMaxExperienceLevel`**; above the cap it falls to a second call that is the combat pit's |

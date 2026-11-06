@@ -10,7 +10,7 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>Lair acquisition and sleep, including persistent debt and the four-turn tired retry.</summary>
 /// <remarks>STRONGLY INFERRED from creature-needs-routine.md and lair-acquisition.md.
-/// Bedless idle acquisition retains its separate twelve-turn fallback.</remarks>
+/// Untired, healthy bedless acquisition belongs to the idle/job chooser.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/lair-acquisition.md")]
 public sealed class CreatureSleepSystem : ICreatureUpdateStep
 {
@@ -117,38 +117,20 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
                 break;
 
             default:
-                if (bedIndex >= 0)
-                {
-                    if (!LairRules.WantsToSleep(database, definition, creature)
-                        || !NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)) break;
-                    bool wounded = CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature);
-                    bool retryDue = context.Tick >= creature.NextSleepTryTick;
-                    if (retryDue)
-                        creature.NextSleepTryTick = new GameTick(context.Tick.Value
-                            + NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
-                    else if (!wounded) break;
-                    if (!NeedRules.IsBusy(context.World, creature, context.Tick.Value))
-                        SetOff(context, creature, definition);
-                    break;
-                }
-
-                // No bed. An idle creature's first act is to go and get
-                // one (Q150) — and a tired one's too, which is the same
-                // attempt. Only from idle: a non-worker has no other
-                // state to be in today, and when it has, the attempt
-                // belongs at its idle decision, not mid-job.
-                if (creature.Activity != CreatureActivity.Idle) break;
-                // The hero and neutral players' creatures run no needs or choosers (Q599).
-                if (!NeedRules.RunsNeeds(creature)) break;
-
-                // Same countdown shape as an imp's idle delay: a failed
-                // attempt sets the timer, and the next one runs when it
-                // has counted down — every IdleRedecisionTicks exactly.
-                creature.TimerTicks--;
-                if (creature.TimerTicks > 0) break;
-
-                if (!_seeker.TryGoForALair(context, SystemName, creature, definition))
-                    creature.TimerTicks = LairRules.IdleRedecisionTicks;
+                if (!NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)) break;
+                bool tired = LairRules.WantsToSleep(database, definition, creature);
+                bool wounded = CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature);
+                // Job_Sleep routes a bedded creature only with debt; its bedless arm can also
+                // serve the wound attempt. Ordinary acquisition is state89's, not this need's.
+                if (!tired && (bedIndex >= 0 || !wounded)) break;
+                bool retryDue = context.Tick >= creature.NextSleepTryTick;
+                if (tired && retryDue)
+                    creature.NextSleepTryTick = new GameTick(context.Tick.Value
+                        + NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
+                else if (!wounded) break;
+                if (NeedRules.IsBusy(context.World, creature, context.Tick.Value)) break;
+                if (bedIndex >= 0) SetOff(context, creature, definition);
+                else _seeker.TryGoForALair(context, SystemName, creature, definition);
                 break;
         }
     }

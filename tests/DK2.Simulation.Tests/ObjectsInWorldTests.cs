@@ -251,10 +251,10 @@ public class ObjectsInWorldTests
         Paint(db, world, RoomTypeId.Lair, at, Keeper);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
+        LairRules.PlaceBed(world, db, goblin, world.TileIndex(at));
         var sim = new GameSimulation(db, world, 42, [new CreatureSleepSystem()]);
 
-        // Standing on the lair already: one tick to decide on it, one to test
-        // the tile underfoot and put the bed down (ADR-0060).
+        // The supplied bed remains valid until its lair tile is sold.
         sim.Run(2);
         Assert.Single(world.Objects);
 

@@ -181,7 +181,9 @@ one-second throttle for autonomous lair attempts.
   attempts test it after their own stamps.
 
 **Not built:** the alert timer, possession, rebels and the big winner in
-the busy test (the Call To Arms is built, ADR-0279) (each is one of our activities or unbuilt); a bedless
-wounded creature's lair attempt from a job (ours tries only from idle, Q150). Creatures still
+the busy test (the Call To Arms is built, ADR-0279) (each is one of our activities or unbuilt).
+ADR-0702 builds the [bedless sleep-need gate](bedless-sleep-need.md), including the
+eligible wounded researcher. The shared acquisition service still lacks the stored-resume80
+refusal, documented there. Creatures still
 on our own activities (combat, leaving, fleeing) are asked by none of the three, as
 before.
