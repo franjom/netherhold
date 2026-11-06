@@ -1,0 +1,126 @@
+{
+  "repository": "https://github.com/dotnet/skills",
+  "revision": "26a06585630870595c4fba50e313621989f58fc7",
+  "reviewed": "2026-11-06",
+  "adaptation": "SKILL.md adds project guidance link after front matter; additionally apply file_adaptations below; all other upstream bytes preserved.",
+  "file_adaptations": [
+    {
+      "skill": "microbenchmarking",
+      "file": "references/writing-benchmarks.md",
+      "upstream": "](references/bdn-internals-and-tuning.md)",
+      "installed": "](bdn-internals-and-tuning.md)",
+      "reason": "Resolve sibling reference from the references directory."
+    }
+  ],
+  "skills": [
+    {
+      "name": "dotnet-pinvoke",
+      "path": "plugins/dotnet-advanced/skills/dotnet-pinvoke",
+      "files": {
+        "references/diagnostics.md": "5c3596bc66f89a20dc1216d133fda6cdcf3af951e8ce41bc35c4fc90861528a7",
+        "references/type-mapping.md": "b8987c9264dc44704dbfdcfe8071f702c7d976cf3aabb6b686850df600c36d7c",
+        "SKILL.md": "05f8fe734ec6b010b8c3eefb28cf594123fec1ce3688cd08f4a804097237037a"
+      }
+    },
+    {
+      "name": "vectorization",
+      "path": "plugins/dotnet-advanced/skills/vectorization",
+      "files": {
+        "SKILL.md": "7dd6ac2b67b2a2def86045b708993fc651cf9eeaba0c2b72396f548216c97b77"
+      }
+    },
+    {
+      "name": "analyzing-dotnet-performance",
+      "path": "plugins/dotnet-diag/skills/analyzing-dotnet-performance",
+      "files": {
+        "references/async-patterns.md": "18e881ff7fbddbaf8e1da84cd46f182fa81c2c2c070915286e2aba671fcd3be7",
+        "references/collections-and-linq.md": "6911129ce735bd7c232ab75fd93fe5c4c0e6ddef911c0062ae974b33c76eeddf",
+        "references/critical-patterns.md": "ac17e1301a2f997a1be552d8efc5210b9b3c1ca30c71a5d60ed6f7d03d2e8290",
+        "references/io-and-serialization.md": "a9cb85c2bbfdce1059cc8e4c102d728728b79b8cb0c1d6091076bf79bca05c89",
+        "references/memory-and-strings.md": "917ea09f0496a59a15fe5abe2cea7b6ac38cf8d85e19b730bb497d35eb387d59",
+        "references/regex-patterns.md": "cfbd9bb1a4596b8acc537ed4a58d939237441e8716d5c747175cd8bc3b840a62",
+        "references/structural-patterns.md": "ee75e7da219e1d5fcc91c728babe9978793be97e37e01a78b51cc47316ecf170",
+        "SKILL.md": "66d06c577cf6cf55d548318c10bd80de3c8ee5495bea1f6d20d277ddde63ea83"
+      }
+    },
+    {
+      "name": "microbenchmarking",
+      "path": "plugins/dotnet-diag/skills/microbenchmarking",
+      "files": {
+        "references/bdn-internals-and-tuning.md": "213842a5ced85bbdd5db4d7f6de4c3bdd231367b292f7c994a504960e32c83f0",
+        "references/comparison-strategies.md": "cdbc8e7d4b9b2c9eeb1dbc1a7ceaee5b3cb453d041211bf30fc93b150c4fecf7",
+        "references/diagnosers-and-exporters.md": "9410eb556b83af2a63bdb593a791077a4a070210df569887f6265d9ecd825b14",
+        "references/project-setup-and-running.md": "dd6866d218be83e84e772b9bda17d1d8261da4a8318d6b098faffe71b95bfcdf",
+        "references/writing-benchmarks.md": "00279137333ae46cec081a3b85d53858cec9a7565beddf902e15a6f7abe81f09",
+        "SKILL.md": "64dab692a441a8af87b40cda1f3c2c9e5046551446fdea55d2801eaabb34785e"
+      }
+    },
+    {
+      "name": "filter-syntax",
+      "path": "plugins/dotnet-test/skills/filter-syntax",
+      "files": {
+        "SKILL.md": "64c294d0fc2d0c4d5887d391c6684429fc4d7a66b6b9f99a475e6abe390c5d19"
+      }
+    },
+    {
+      "name": "platform-detection",
+      "path": "plugins/dotnet-test/skills/platform-detection",
+      "files": {
+        "references/command-mode.md": "08e276dcafe6bd5bfbaab435065ca24a5800a4eae3ffd7fc15daa1e81354bbc4",
+        "SKILL.md": "c824bf8f8cbf1233b8b0dbc6e38fae6ac2486c42a6a1f6553a6335daa6838c1a"
+      }
+    },
+    {
+      "name": "run-tests",
+      "path": "plugins/dotnet-test/skills/run-tests",
+      "files": {
+        "SKILL.md": "7b9698bb5c1f172ca35695dc3b614957c2cb8badf7b230a4b8118d173650fe2b"
+      }
+    },
+    {
+      "name": "test-value-evidence",
+      "path": "plugins/dotnet-test/skills/test-value-evidence",
+      "files": {
+        "SKILL.md": "25199cc2c189957da34fd9fa417c582a0033d75cfb1772b91caac7d4a135b634"
+      }
+    },
+    {
+      "name": "csharp-refactoring",
+      "path": "plugins/dotnet/skills/csharp-refactoring",
+      "files": {
+        "references/operation-catalog.md": "94311ac23ea1098c130942084ceb07969f73790d59072c90b87967cbdc3b8dfa",
+        "SKILL.md": "4d7ef3b0abc08f44940565ddc336041fbde95b116c1894ba93abd455a332488c"
+      }
+    },
+    {
+      "name": "dotnet-breaking-changes",
+      "path": "plugins/dotnet/skills/dotnet-breaking-changes",
+      "files": {
+        "references/internals-visible-to.md": "ba039289233134c05aa1b5cc86c73dd8cf54e9281a7197b1a77cc493dda75652",
+        "references/multi-targeting.md": "d5b60d425020ce75d1cc9fc8c3138694016670eff6e0f5c5bc0ece683bb5e3d0",
+        "references/public-api.md": "38e9ba24036b69b9b19c7c50cf4a14723cd8f0968a8204a6a0a9b808693915a6",
+        "references/source-generation.md": "90cb491f2fa04d44a81f2a4f19305f602f4f1a3cb0a9cb27c72622e70944c0f5",
+        "SKILL.md": "2dccf8ab440b6208557f0391bae7ac30cb5db9fcdd9c966e49541965eccdd2da"
+      }
+    },
+    {
+      "name": "msbuild",
+      "path": "plugins/dotnet/skills/msbuild",
+      "files": {
+        "references/antipatterns/additional-antipatterns.md": "e86a52ded9a846f702def7a92003460ebb1b78a769b1da720b1947abbc524057",
+        "references/antipatterns/incremental-build-inputs-outputs.md": "361f23ef4cd84da9f8bf875151b2b1df27e0a2ab3354b8b6728d88b94db131ad",
+        "references/antipatterns/private-assets.md": "76ff2c88d729494b21fe3f12078b10e10ffcbc41857161defeb79487b97d829c",
+        "references/binlog-failure-analysis.md": "11b3962a232ef18ac184be8a52c86de8b35f05e10a3bfc7d5f5b3396f707e5ca",
+        "references/binlog-generation.md": "f6fc3dfbcb895b3cf5cc4c98dcacd76c3eaaab9d3b1a6e714a3bd596557df512",
+        "references/build-perf-baseline.md": "7e45dbf46d1912bde691c2ff2e184d0ce7f1521c30f21658a730cee815ec52fb",
+        "references/build-perf-diagnostics.md": "c715b1dfa297f898b45e893937e40d96e02f6f44c9c3f508dc4442c6dc7cc2f8",
+        "references/copy-to-output-directory.md": "01409f41fd8df30189d544d82dd20556690e5b2c0f16993625f1492d7bff09b2",
+        "references/eval-performance.md": "8a4eeb553ab4e43c9b2b19252fee41bd7a275fca4a8536920e99f9826cb00bdd",
+        "references/extension-points.md": "d7f6f7068366f893eecaf43a02f6d7a4fe8e2dd4933140f789560d81c58b40a5",
+        "references/incremental-build.md": "d5a177edfd5010837c799ec15d98930b43d28dd41b5095337a447bdef8236818",
+        "references/msbuild-antipatterns.md": "841b9a256840ebfd822401c32ac53efdfb4e3ad5d7790863f8031a8da237924e",
+        "SKILL.md": "21a2d7feed0edbe5e1e2c9be7938f0f77f4b779a8526c0c362c9100ef8a97fe2"
+      }
+    }
+  ]
+}
