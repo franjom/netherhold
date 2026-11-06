@@ -166,7 +166,7 @@ public class SimMatrixTests
         var rows = Repository.Value.Rows.Select(r => r.Row).ToArray();
         Assert.Equal(["Commands", "RoomLifecycle", "KeeperActions", "ThingPass", "Work", "RoomTicks", "PlayerFrame", "Needs", "Verdict"],
             rows.Select(r => r.Phase).Distinct());
-        Assert.Contains(rows, r => r.Name == "HatcherySystem(lays: false)");
+        Assert.Contains(rows, r => r.Name == "HatcherySystem(lays: false, stepObjects: false)");
         Assert.Contains(rows, r => r.Name == "DungeonHeartSystem(frames: false)");
         Assert.All(rows.Where(r => r.Kind == RowKind.CreatureStep), r => Assert.Equal(["BeginTurn", "Update", "EndTurn"], r.Entries.Select(e => e.Name)));
     }

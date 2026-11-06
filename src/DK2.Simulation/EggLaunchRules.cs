@@ -64,7 +64,7 @@ public static class EggLaunchRules
         Move(context, egg, default);
     }
 
-    internal static void Move(SimulationContext context, ObjectState egg, Fp32 temporaryVelocityZ)
+    internal static bool Move(SimulationContext context, ObjectState egg, Fp32 temporaryVelocityZ)
     {
         int ground = FloorHeight(context.World, context.Database, new Fp32(egg.PosX), new Fp32(egg.PosY));
         int temporaryZ = temporaryVelocityZ.Raw;
@@ -75,7 +75,7 @@ public static class EggLaunchRules
 
         int vx = egg.PhysicalVelocityX, vy = egg.PhysicalVelocityY, vz = egg.PhysicalVelocityZ + temporaryZ;
         int norm = IntegerMath.Length(vx, vy, vz);
-        if (norm == 0) return;
+        if (norm == 0) return true;
         int steps = Math.Min(16, (norm >> 14) + 1);
         int baseX = egg.PosX, baseY = egg.PosY, baseZ = egg.PosZ;
         int lastX = baseX, lastY = baseY, lastZ = baseZ;
@@ -84,10 +84,19 @@ public static class EggLaunchRules
             int nextX = baseX + (vx * step / steps) / 16;
             int nextY = baseY + (vy * step / steps) / 16;
             int nextZ = baseZ + (vz * step / steps) / 16;
-            bool blockedX = !Passable(context, new Fp32(nextX), new Fp32(baseY));
             bool blockedY = !Passable(context, new Fp32(baseX), new Fp32(nextY));
-            if (blockedX || blockedY || !Passable(context, new Fp32(nextX), new Fp32(nextY)))
+            if (!Passable(context, new Fp32(nextX), new Fp32(nextY)))
             {
+                if (context.Rng.NextInt(2) == 0)
+                {
+                    context.RequestEffect("Egg", new ViewEffectRequest(new EffectId(301), new PlayerId(egg.OwnerPlayerId),
+                        new FpPosition3(new Fp32(egg.PosX), new Fp32(egg.PosY), new Fp32(egg.PosZ)),
+                        new Dk2Angle((ushort)egg.Heading)));
+                    egg.PhysicalVelocityX = egg.PhysicalVelocityY = egg.PhysicalVelocityZ = 0;
+                    egg.Health = 0;
+                    context.World.RemoveObject(egg.Id);
+                    return false;
+                }
                 if (blockedY)
                 {
                     egg.PhysicalVelocityY = -(egg.PhysicalVelocityY / 2);
@@ -122,6 +131,7 @@ public static class EggLaunchRules
         egg.PhysicalVelocityY = unchecked(egg.PhysicalVelocityY * friction) / 4096;
         int horizontal = Math.Abs(egg.PhysicalVelocityX) + Math.Abs(egg.PhysicalVelocityY);
         if (horizontal > 0 && horizontal < 128) egg.PhysicalVelocityX = egg.PhysicalVelocityY = 0;
+        return true;
     }
 
     private static bool Passable(SimulationContext context, Fp32 x, Fp32 y)

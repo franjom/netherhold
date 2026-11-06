@@ -250,8 +250,9 @@ per-kind state is **`FreeRange`, `PeckingTimer`, `StayThere`,
 
 ## 6. Implementation
 
-`HatcherySystem` advances the coop and egg object processes each tick, using
-shipped integer art timing. Laying is checked every turn against the room's
+The default `ObjectMovementSystem` interleaves coop and egg processes with
+Chickens and Rats, using shipped integer art timing (ADR-0699). Standalone
+`HatcherySystem` hosts retain their own object walk. Laying is checked every turn against the room's
 last-generated stamp; an attempted lay stamps the turn even on refusal. Coops
 are placed by `HatcheryRules.RebuildCoops` on a room change, not by the system
 (ADR-0672). Startup and room-change clock handling are described in [hatchery-startup.md](hatchery-startup.md#built-scope).

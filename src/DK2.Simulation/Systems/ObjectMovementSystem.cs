@@ -6,7 +6,7 @@ using DK2.Core;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>Chicken and Rat handlers share the object's newest-first update order.</summary>
+/// <summary>Chicken, Rat, Egg and Coop handlers share the object's newest-first update order.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/prison-rats.md")]
 public sealed class ObjectMovementSystem : ISimulationSystem
 {
@@ -19,6 +19,8 @@ public sealed class ObjectMovementSystem : ISimulationSystem
             ObjectState thing = context.World.Objects[i];
             if (thing.ObjectTypeId == RatRules.RatObjectId) RatRules.Tick(context, thing);
             else if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.Tick(context, thing);
+            else if (thing.ObjectTypeId is HatcheryRules.EggObjectId or HatcheryRules.CoopObjectId)
+                HatcherySystem.StepObject(context, thing);
         }
     }
 }

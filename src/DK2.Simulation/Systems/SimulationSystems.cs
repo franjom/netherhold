@@ -85,10 +85,9 @@ public static class SimulationSystems
         new ShotSystem(),
         new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
         new ObjectMovementSystem(),
-        // The eggs', coops' and chickens' object steps, with the other objects (class list 2 of 0x004B7830, after the
-        // shots and before the traps) and so before the room walk, whose Hatchery lays afterwards (ADR-0634).
-        // Ours steps them after the boulder and the moving objects, not interleaved with them in DK2's list order.
-        new HatcherySystem(lays: false),
+        // ObjectMovement steps Eggs and Coops with the birds; this retains only synthetic-data hatching.
+        // The room walk lays afterwards (ADR-0634). Boulder and reaction passes remain separate.
+        new HatcherySystem(lays: false, stepObjects: false),
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
         new ActionPointTriggerSystem(), // list 5, after creature work and before the player frame
         new EffectGeneratorSystem(), // list 7, the last of the thing pass's update walk (ADR-0648)

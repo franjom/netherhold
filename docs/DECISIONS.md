@@ -16538,3 +16538,20 @@ local to loose Chicken side selection; do not instantiate duplicate pillar objec
 
 **Consequences.** Hash/save 429, no new fields. The bounded draw comparison is recorded in
 `neutral-ambient-effect.md`; it does not establish Heart-defence outcome parity.
+
+## ADR-0699 — Egg collision responses share the bird object walk
+**Date:** 2026-11-06 · **Status:** accepted · **Systems:** creatures, simulation-core
+
+**Context.** The turn1403 comparison in `neutral-ambient-effect.md` identifies an omitted Egg
+collision response and a changed roll when Eggs step after all Chickens.
+
+**Decision.** Interleave Egg and Coop processes with Chicken/Rat handlers in the existing
+object walk. Preserve the standalone Hatchery host and its room-laying path. On a blocked
+candidate point, draw the Egg's break roll before reflection; zero requests effect301 at the
+pre-commit pose, clears velocity/health and removes it, while one retains the bounce. An unused
+axis projection does not block a clear diagonal candidate. Do not step a transition or newborn twice.
+
+**Consequences.** Hash/save431, no new fields; 430/ADR-0698 belongs to concurrent work.
+The terrain-solid collision subset remains bounded: native door/voxel/liquid volumes and deferred
+unlinking are not added. Boulder/reaction passes remain separate. Effect playback, full-state and
+Heart-outcome parity remain unestablished.

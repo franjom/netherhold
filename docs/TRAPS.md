@@ -12,6 +12,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Capture `record.u(offset)` defaults to a dword; supply the recorded field width explicitly so padding cannot enter restore inputs.
+
 - The archived dk2seed default map filter is 40x50; Level 5 is 51x55. Read the selected capture dimensions before launching a seeded native control.
 
 - Codex's sandbox helper can fail before process startup with `setup refresh had errors`; an approved `require_escalated` command can still run.

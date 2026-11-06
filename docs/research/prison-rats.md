@@ -75,8 +75,8 @@ shipped 300 health therefore lasts 300 object updates. The simulation removes
 a rat at zero health and reuses the existing world unlink operation.
 
 RatRules/RatSystem implement the movement and lifetime; RatSpawnSystem runs
-the keeper generation branch. The default ObjectMovementSystem walks Chickens
-and Rats together in newest-first object order, preserving their shared random
+the keeper generation branch. The default ObjectMovementSystem walks Chickens,
+Rats, Eggs and Coops together in newest-first object order (ADR-0699), preserving their shared random
 draw order (World_LinkThing 0x004B4A10; World_UpdateThings 0x004B7830). Common
 movement lives in ObjectMovementRules.
 The existing object presentation samples Rat_Run and interpolates retained

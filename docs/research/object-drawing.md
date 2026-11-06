@@ -271,7 +271,7 @@ lifetime, state 24's hidden wait, launch and tumbling, state 18's recoil and
 decaying heading, Casino setting clips with their final poses, and Call to Arms
 activation, recall and removal. Integer
 animation metadata comes from the nine file resources. Launch collisions use
-the engine's terrain solids; the [Egg break callback and update interleaving](neutral-ambient-effect.md#egg-collision-at-turn-1403), original voxel volumes, liquid contacts and floor
+the engine's terrain solids, with the [Egg break callback and bird interleaving](neutral-ambient-effect.md#built-at431-adr-0699) built at431. Original voxel volumes, liquid contacts and floor
 geometry outside the Hatchery remain absent. The Hatchery ground zones follow
 `0x004545C0`; other room floors retain the engine's existing approximation.
 

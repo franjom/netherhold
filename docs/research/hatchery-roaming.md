@@ -93,7 +93,7 @@ A Treasury or Heart tile holding gold has a Gold Pile object, an obstacle. The l
 ## 4. Implementation boundary
 
 The owned Hatchery loop is built in `ChickenMovementRules` and stepped every
-tick by `ObjectMovementSystem`, together with Rats newest first
+tick by `ObjectMovementSystem`, together with Rats, Eggs and Coops newest first (ADR-0699)
 ([prison-rats.md](prison-rats.md#3-life-and-presentation)). The shared class-list
 order is established in `imp-task-stealing.md` §8. Heading, age, reaction countdown,
 destination, velocity, resume process, flags and count are hashed and saved;

@@ -62,17 +62,17 @@ expect:
       bird pays off the whole of HungerFill instead, which is the difference
       between the two routes (ADR-0074).
   - event: chicken_eaten
-    detail: "creature=1 type=Goblin player=3 chicken=7"
+    detail: "creature=1 type=Goblin player=3 chicken=5"
     at_tick: 720
     because: >
       Floor laying, full-room coop launches and chicken roaming leave birds by the
       entry tile, so this seed feeds both Goblins without a chase. WHICH bird is
       incidental: it follows every random draw before the meal, so any change that
-      adds or moves a draw re-picks it. At hash 420 (the wander's room point,
-      ADR-0676) creature 1 takes bird 7.
+      adds or moves a draw re-picks it. At hash431 (Egg collision and object
+      ordering, ADR-0699) creature 1 takes bird 5.
       Nearest-bird walks have EatingTests.
   - event: chicken_eaten
-    detail: "creature=2 type=Goblin player=3 chicken=21"
+    detail: "creature=2 type=Goblin player=3 chicken=11"
     at_tick: 720
     because: >
       The second Goblin's bird is at hand at this seed; incidental as above.
@@ -80,7 +80,7 @@ expect:
     at_tick: 767
     because: >
       The room holds nine registered birds and launches free-range eggs when full.
-      The first meals occur at 720 and 724; the pre-placed room's uninterrupted twelve-second
+      The pre-placed room's uninterrupted twelve-second
       interval resumes at47 + 15 x 48 =767, without restarting on the meal.
   - event: egg_laid
     at_tick: 1487

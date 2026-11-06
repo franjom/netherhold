@@ -164,7 +164,8 @@ handler returns 1 (the table's handlers read here), so a room's border and healt
 
 - **Hatchery.** `Hatchery_Tick` only tests `room+0x49 + room+0x4D <= turn`, lays, stamps `+0x49` and returns 1.
   World_UpdateTurn runs the thing pass first, so eggs, coops and chickens step before the lay:
-  `HatcherySystem(lays: false)` sits with the objects, after `ObjectMovementSystem` and before `TrapSystem`
+  `ObjectMovementSystem` interleaves the bird, Egg and Coop processes (ADR-0699); the default
+  `HatcherySystem` retains only synthetic-data hatching before `TrapSystem`
   (object class list 2 of `0x004B7830`, after the shots, before the traps). The coops are not the handler's: Room_Rebuild's Hatchery arm
   (`0x004DE220`, hatchery.md section 2) places them at room-change time, one `random(4) << 9` draw each; ours does
   the same in `HatcheryRules.RebuildCoops` (ADR-0672).
@@ -190,7 +191,7 @@ pick, and message 9: its creature states are `CombatPitSystem`'s, in the thing p
 `0x004DF6E0` (five inline draws); the Prison `0x004E2AC0` (door auto-close, no draws); the Lair and Crypt
 `0x004B4C20` (nothing). Every step of ours has a DK2 counterpart; `BridgeBurnSystem` stands in for one.
 
-Left where they are, because DK2 does not run them inside `Room_Tick`: `HatcherySystem`'s object steps (thing pass),
+Left where they are, because DK2 does not run them inside `Room_Tick`: the Hatchery object steps in `ObjectMovementSystem` (thing pass),
 `CasinoLeverSystem` (a command), the verdict tail of `DungeonHeartSystem` (player frame), `PrisonSystem`,
 `TempleSacrificeSystem` and `GraveyardSystem` (tile and creature hooks).
 

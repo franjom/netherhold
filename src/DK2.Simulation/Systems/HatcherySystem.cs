@@ -23,18 +23,25 @@ public sealed class HatcherySystem : ISimulationSystem
     private const string SystemName = "Hatchery";
 
     private readonly bool _lays;
+    private readonly bool _stepObjects;
     private readonly HatcheryLayStep _layStep = new();
 
     /// <param name="lays">Whether this system also lays, as the Hatchery's room handler does (<c>0x004DE0A0</c>).
     /// A host that walks the rooms in DK2's order has <see cref="HatcheryLayStep"/> do it there, after the thing
     /// pass that steps the objects, and passes false.</param>
-    public HatcherySystem(bool lays = true) => _lays = lays;
+    public HatcherySystem(bool lays = true) : this(lays, stepObjects: true) { }
+
+    internal HatcherySystem(bool lays, bool stepObjects)
+    {
+        _lays = lays;
+        _stepObjects = stepObjects;
+    }
 
     public string Name => SystemName;
 
     public void Execute(SimulationContext context)
     {
-        StepObjectAnimations(context);
+        if (_stepObjects) StepObjectAnimations(context);
 
         // Fallback hatching precedes laying so an egg is not aged on its lay turn.
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0) Hatch(context);
@@ -47,42 +54,48 @@ public sealed class HatcherySystem : ISimulationSystem
         for (int i = world.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState thing = world.Objects[i];
-            if (thing.InHand || thing.CarriedByCreatureId >= 0) continue;
-            ObjectDef? definition = context.Database.ObjectById(thing.ObjectTypeId);
-            if (thing.ObjectTypeId == HatcheryRules.EggObjectId && thing.ProcessState == EggLaunchRules.LaunchProcess)
+            StepObject(context, thing);
+        }
+    }
+
+    internal static void StepObject(SimulationContext context, ObjectState thing)
+    {
+        WorldState world = context.World;
+        if (thing.InHand || thing.CarriedByCreatureId >= 0) return;
+        ObjectDef? definition = context.Database.ObjectById(thing.ObjectTypeId);
+        if (thing.ObjectTypeId == HatcheryRules.EggObjectId && thing.ProcessState == EggLaunchRules.LaunchProcess)
+        {
+            EggLaunchRules.Step(context, thing);
+            return;
+        }
+        if (thing.ObjectTypeId == HatcheryRules.EggObjectId && thing.ProcessState == 32
+            && definition?.ArtSlot(0).ResourceType == 6)
+        {
+            thing.ProcessAgeTicks++;
+            if (thing.ProcessCount != 0)
             {
-                EggLaunchRules.Step(context, thing);
-                continue;
+                ObjectState chicken = HatcheryRules.Hatch(world, context.Database, thing);
+                context.Emit(SystemName, "chicken_hatched",
+                    $"player={chicken.OwnerPlayerId} egg={thing.Id} chicken={chicken.Id} " +
+                    $"{Describe(world, chicken.TileIndex)} animation=complete");
+                return;
             }
-            if (thing.ObjectTypeId == HatcheryRules.EggObjectId && thing.ProcessState == 32
-                && definition?.ArtSlot(0).ResourceType == 6)
+            if ((thing.PhysicalVelocityX != 0 || thing.PhysicalVelocityY != 0 || thing.PhysicalVelocityZ != 0)
+                && !EggLaunchRules.Move(context, thing, default)) return;
+            if (thing.ProcessAgeTicks < AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(0))) return;
+            if (definition.ArtSlot(5).ResourceType == 0) return;
+            thing.ProcessCount = 1;
+            thing.ProcessDeadline = context.Tick.Value;
+        }
+        else if (thing.ObjectTypeId == HatcheryRules.CoopObjectId && thing.ProcessState == 29)
+        {
+            thing.ProcessAgeTicks++;
+            if (thing.ProcessAgeTicks == 1) thing.ProcessDeadline = context.Tick.Value;
+            if (definition?.ArtSlot(5).ResourceType != 6
+                || thing.ProcessAgeTicks > AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(5)))
             {
-                thing.ProcessAgeTicks++;
-                if (thing.ProcessCount != 0)
-                {
-                    ObjectState chicken = HatcheryRules.Hatch(world, context.Database, thing);
-                    context.Emit(SystemName, "chicken_hatched",
-                        $"player={chicken.OwnerPlayerId} egg={thing.Id} chicken={chicken.Id} " +
-                        $"{Describe(world, chicken.TileIndex)} animation=complete");
-                    continue;
-                }
-                if (thing.PhysicalVelocityX != 0 || thing.PhysicalVelocityY != 0 || thing.PhysicalVelocityZ != 0)
-                    EggLaunchRules.Move(context, thing, default);
-                if (thing.ProcessAgeTicks < AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(0))) continue;
-                if (definition.ArtSlot(5).ResourceType == 0) continue;
-                thing.ProcessCount = 1;
-                thing.ProcessDeadline = context.Tick.Value;
-            }
-            else if (thing.ObjectTypeId == HatcheryRules.CoopObjectId && thing.ProcessState == 29)
-            {
-                thing.ProcessAgeTicks++;
-                if (thing.ProcessAgeTicks == 1) thing.ProcessDeadline = context.Tick.Value;
-                if (definition?.ArtSlot(5).ResourceType != 6
-                    || thing.ProcessAgeTicks > AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(5)))
-                {
-                    thing.ProcessState = 0;
-                    thing.ProcessAgeTicks = 0;
-                }
+                thing.ProcessState = 0;
+                thing.ProcessAgeTicks = 0;
             }
         }
     }
