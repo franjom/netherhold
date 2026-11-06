@@ -265,7 +265,7 @@ public static class ChickenMovementRules
             if (i < 3 && database.RoomByTerrain(tile.TerrainId) is not null) continue;
             int index = neighbour.Y * world.Width + neighbour.X;
             if (HasDoorOrTrap(world, neighbour) || CasinoStep.HasObstacle(world, database, index)
-                || HasStorePile(database, tile)) continue;
+                || HasStorePile(database, tile) || HasHeartPillar(context, neighbour)) continue;
             var destination = new ObjectMovePoint(
                 new Fp32((neighbour.X << 12) | (context.Rng.NextInt(0x555) + 0x555)),
                 new Fp32((neighbour.Y << 12) | (context.Rng.NextInt(0x555) + 0x555)));
@@ -281,6 +281,22 @@ public static class ChickenMovementRules
         tile.GoldHeld > 0
         && database.RoomByTerrain(tile.TerrainId)?.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart
         && ((database.ObjectById(FloorGold.TreasuryPileObjectId)?.Flags & ObjectFlags.Obstacle) == ObjectFlags.Obstacle) == true;
+
+    // Heart pillars are virtual combat targets, absent from the object list that the obstacle scan walks.
+    private static bool HasHeartPillar(SimulationContext context, TilePos tile)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        if (database.RoomByTerrain(world.Tile(tile).TerrainId)?.TypeId != RoomTypeId.DungeonHeart
+            || database.ObjectById(HeartPillarRules.ArchPillarObjectId) is not { } definition
+            || (definition.Flags & ObjectFlags.Obstacle) == 0) return false;
+        for (int ordinal = 0; ordinal < 3; ordinal++)
+        {
+            HeartPillarId id = HeartPillarId.For(world, HeartPillarRules.At(tile, (HeartPillar)ordinal));
+            if (HeartPillarRules.TryResolve(world, database, world.Tile(tile).OwnerPlayerId, id, out _)) return true;
+        }
+        return false;
+    }
 
     private static bool HasDoorOrTrap(WorldState world, TilePos tile)
     {

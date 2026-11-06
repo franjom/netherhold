@@ -145,6 +145,49 @@ public class LooseChickenTests
 
     public enum Blocker { None, Door, Trap, Obstacle, Water }
 
+    [Theory]
+    [InlineData(4, 3, true, false, 100000, true)]
+    [InlineData(3, 5, true, false, 100000, true)]
+    [InlineData(5, 5, true, false, 100000, true)]
+    [InlineData(5, 5, false, false, 100000, false)]
+    [InlineData(5, 5, true, true, 100000, false)]
+    [InlineData(5, 5, true, false, 0, false)]
+    [InlineData(4, 5, true, false, 100000, false)]
+    public void AHeartPillarSideIsRejectedOnlyWhileThePillarExistsAndIsAnObstacle(
+        int sideX, int sideY, bool obstacle, bool ruined, int health, bool blocked)
+    {
+        GameDatabase original = Dk2TerrainFixture.Database();
+        ObjectDef pillar = original.ObjectById(Navigation.WorldSteering.ArchesObjectId)! with
+        {
+            ObjectId = HeartPillarRules.ArchPillarObjectId,
+            Flags = obstacle ? ObjectFlags.Obstacle : ObjectFlags.None,
+        };
+        var db = new GameDatabase(original.Terrain.Values, original.Rooms.Values, original.Creatures.Values,
+            original.Variables, objects: original.Objects.Values.Append(pillar));
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
+        for (int y = 2; y <= 6; y++)
+            for (int x = 2; x <= 6; x++)
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Keeper);
+        ObjectState bird = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper,
+            sideY * world.Width + sideX - 1);
+        bird.ChickenCanEscape = true;
+        ChickenMovementRules.SetProcess(bird, ChickenProcess.Loose);
+        const uint seed = 1860230197;
+        var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(seed)), [new ChickenMovementSystem()]);
+        world.Player(Keeper).HeartRuined = ruined;
+        world.Player(Keeper).HeartHealth = health;
+        Assert.DoesNotContain(world.Objects, o => o.ObjectTypeId == HeartPillarRules.ArchPillarObjectId);
+        var expected = new Dk2Lcg(seed);
+        Assert.Equal(2, expected.NextInt(4)); // South, west, north, then the east side.
+        if (!blocked) { expected.NextInt(0x555); expected.NextInt(0x555); }
+
+        sim.Tick();
+
+        Assert.Equal(expected.Seed, SeedOf(sim));
+        Assert.Equal(blocked ? (byte)ChickenProcess.None : (byte)ChickenProcess.Moving, bird.ProcessState);
+        if (!blocked) Assert.Equal(sideX, bird.MoveDestinationX >> 12);
+    }
+
     /// <summary>The one side left open holds a door, a trap or an obstacle, or is water (another nav
     /// class): no side takes the bird. With nothing there, it walks.</summary>
     [Theory]

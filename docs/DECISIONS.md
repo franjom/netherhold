@@ -16525,3 +16525,16 @@ near every creature. The probe's rebuild frames allocated 0.5 MB each in the til
   already has. The collection that lands costs 7–13 ms in the probe (the editor was open); it is
   governed by the live heap, three worlds of it, not by the garbage, so fewer collections is what
   less garbage buys.
+
+## ADR-0697 — loose Chickens reject virtual Heart pillars
+**Date:** 2026-11-06 · **Status:** accepted · **Systems:** creatures, rooms
+
+**Context.** The captured Chicken boundary in `neutral-ambient-effect.md` comes from a Heart pillar
+missing from the remake's object-list obstacle scan. The pillars already have virtual identities and positions.
+
+**Decision.** Process 10 checks those existing pillar identities, their live-Heart eligibility and the
+shipped Arch Pillar definition's Obstacle flag before drawing a destination point. Keep the correction
+local to loose Chicken side selection; do not instantiate duplicate pillar objects.
+
+**Consequences.** Hash/save 429, no new fields. The bounded draw comparison is recorded in
+`neutral-ambient-effect.md`; it does not establish Heart-defence outcome parity.

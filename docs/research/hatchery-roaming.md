@@ -88,7 +88,7 @@ Chicken `+0x14A` or zero; `0x0049CEA0` returns Chicken `+0x152`, otherwise
 `+0x14E`. The owner's `+0x132` is the stamped killer. The `+0x1A9` gate reads
 the terrain record's Damage field (`0x00509480`, Q584): any nonzero value, harmful
 or healing, kills a loose bird like a fallen owner or a held bird off a Hatchery.
-A Treasury or Heart tile holding gold has a Gold Pile object, an obstacle. The loose roam is built (ADR-0647, hash/save 396; ADR-0649, 398).
+A Treasury or Heart tile holding gold has a Gold Pile object, an obstacle. The loose roam is built (ADR-0647, hash/save 396; ADR-0649, 398). ADR-0697/hash-save 429 adds the virtual Heart pillars to its obstacle check; see the [bounded Chicken probe](neutral-ambient-effect.md#chicken-draw-4-at-turn-1402-adr-0697).
 
 ## 4. Implementation boundary
 

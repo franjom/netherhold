@@ -1,5 +1,8 @@
 # Traps
 
+- PowerShell uses `[uint64]`; C#'s `[ulong]` is not a PowerShell type alias.
+- Windows PowerShell's `>` writes UTF-16LE; decode redirected native-command logs explicitly before parsing them.
+
 Tooling, encoding and process traps that have cost a session time, one line each, for every
 agent (Claude's private memory and Codex's are not shared; this file is). Add a line in the change
 that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps live in

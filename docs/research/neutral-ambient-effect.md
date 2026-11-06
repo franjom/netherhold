@@ -205,8 +205,45 @@ action runs ([004808E0](functions/004808E0.md), STRONGLY INFERRED). Supplying 44
 action removes that extra draw (CONFIRMED). This is a restore-input difference, not an established rule defect.
 
 That control matches the first three Chicken draws of 1402. Its fourth draw is ObjectState.cpp:2914
-where native draws 2851: the next unexplained boundary is inside Chicken roaming. Full-turn parity,
-later action endpoints and any effect on Heart-defence outcomes remain unestablished. The probe stops here.
+where native draws 2851: that probe stopped at the Chicken boundary. The [bounded follow-up](#chicken-draw-4-at-turn-1402-adr-0697) resolves it; later action endpoints and any effect on Heart-defence outcomes remain unestablished.
+
+## Chicken draw 4 at turn 1402 (ADR-0697)
+
+The next bounded probe identifies native Chicken 1414 (modern object 84) at (68703,107090), tile
+(16,26), in process 10. Its starting-side draw is the third draw of 1402. Modern takes the last side,
+(17,26), and draws the point's X/Y; native rejects it and proceeds to the next bird's side draw.
+Its captured position is unchanged; process 10 clears to 0 after no side is accepted (CONFIRMED).
+
+Native object 1221 is an Arch Pillar (94) on that side, at (72089,106906), already present at 1400.
+Objects.kwd gives it Obstacle. `Tile_FirstObstacle` tests that flag on tile objects, and process 10
+rejects the side before its point draws ([00453600](functions/00453600.md),
+[004A26D0](functions/004A26D0.md), STRONGLY INFERRED). The remake's pillars are virtual combat
+targets; its object-list scan saw none. Supplying that one captured object, with the other probe
+inputs fixed, removes the two extra draws and matches both turns' ordered sites and seeds (CONFIRMED).
+
+ADR-0697/hash-save 429 adds the existing virtual-pillar eligibility and definition flag to the loose
+Chicken's side check. It creates no objects. Regression cases cover all three pillars, a non-pillar tile,
+a cleared Obstacle flag, a ruined Heart and zero Heart health: the three live-pillar cases fail before
+the fix (two extra draws), with all four controls passing; all seven pass afterwards. The Simulation
+suite passes 4823 tests. The new determinism pin is in [hash-versions.md](hash-versions.md).
+
+| Two-turn probe | 1401 draws | 1402 draws |
+|---|---:|---:|
+| Native | 17 | 12 |
+| Hash 428, prior restored inputs | 17 | 14 |
+| Hash 428, one captured pillar added | 17 | 12 |
+| Hash 429, prior restored inputs | 17 | 13 |
+| Hash 429, also restoring Troll 447's captured state/action | 17 | 12 |
+
+The fixed rule changes the replay's pre-1400 history: Troll 447 now reaches the restore in a different
+state. Native already holds state 87/action 43 at 1400; supplying that snapshot removes its extra
+idle-body draw, as the earlier 449 control did. With that declared input, the fixed replay matches all
+29 ordered draws over 1401-1402. Neither full-state parity nor any Heart-defence outcome is established.
+The probe stops at 1402; further turns are not investigated.
+
+Evidence and replay source: `F:/DK2Evidence/studies/q712-chicken-draw1402--2026-11-06--001` and its
+same-named `builds` directory. Native inputs use completed turn 1400 only; projected action endpoints
+remain outside the validation claim.
 
 ## Outcomes at hash 399
 
