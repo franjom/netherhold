@@ -4943,7 +4943,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - **Tests changed to the new sequence.** Seven tests and one scenario now wait out the stun. `AFreezeIsTwoEighteen_…` ends in 250 off a room.
 - The need-grace test uses a Goblin with the shipped one-second stun, since the fixture's five seconds is a deliberate test value.
-- **Not built:** the other rooms' drop states on getting up (they idle; the pit's: ADR-0227), the worker arm `0x00481400`, Call To Arms (built later, ADR-0279), `+0x2CC`, and the landing's sound, fall and pit scatter.
+- **Not built:** the other rooms' drop states on getting up (they idle; the pit's: ADR-0227), Call To Arms (built later, ADR-0279), `+0x2CC`, and the landing's sound, fall and pit scatter. The worker combat attempt is built under ADR-0698.
 - Three new tests. Six negative controls each fail a named test: no stun, no 250, a zero-length 250, a freed prisoner stunned, a worker stunned, and the room ignored on getting up.
 - No new state; `HashVersion` stays **117**.
 
@@ -7400,8 +7400,8 @@ reads are now done (`door-blocking.md` §1–7); the owner confirmed two observa
 hold no door and fire no door event: L1 20/20 and L2 7/20, every seed identical to master
 `fe5e19e`. The shipped sweep: 940 doors on 46 levels, none unsupported, one killed by the owner
 test on its first turn, Level 4's hero Wooden Door at (24,9) (a prediction, Q453). Not built:
-the push-out, the secret-door reveal, the adjacent-door finder `0x00481400`, area damage on
-doors, the linked objects and effects. The pit's forced creature arm keeps ours (Q510).
+the push-out, the secret-door reveal, area damage on
+doors, the linked objects and effects. The adjacent-door finder is built under ADR-0698. The pit's forced creature arm keeps ours (Q510).
 
 ### ADR-0318 amendment — a door gone from water leaves floor (2026-10-15, Q600)
 The removal's `0x004A66F0(0)` writes navigation byte 0 over any byte carrying a door owner,
@@ -7948,8 +7948,7 @@ hand-drop-landing.md §4's "`SetState` does not write `+0x7E`" was wrong, and ou
 `ActionUntilTick` for `DropLandingRules.GetUpTicks`, a per-type table read off the Level 1–3
 captures (Warlock 8, Goblin 11, Troll 5, Firefly 13, the Lord of the Land (29) 4, type 14 (the Dwarf) 4; an unmeasured
 type 8, a guess, Q527), then runs the room drop. `AfterGettingUp` stamps `StateDeadlineTick` with
-now on its way into 250. 257's step along the facing and `0x00481400`'s victim-or-door pick stay
-unbuilt.
+now on its way into 250. 257's facing step and victim-or-door pick are built under ADR-0698.
 **Consequences.**
 - L1: 20 of 20 (seed 13 wins at 1800, the Lord dead at 1776; DK2 about 1780). Over the 20 seeds
   the Lord's death moved from 1742–2006 to 1749–1801, the six seeds past 1890 falling to
@@ -11326,7 +11325,7 @@ Room.
 
 **Decision.** `MayLookForAFight` tests `CreatureStateFlags.NoFightLookup` (bit 6, formerly
 `Unread6`) on the creature's state and the freeze timer, as the gate does, instead of the stunned
-and frozen activities. The victim pick `0x00481400` at 257's end is still not built.
+and frozen activities. The victim pick at 257's end is built under ADR-0698.
 
 **Consequences.** Level 4 seeds 1–20 against master 289041ed: the western party's last hero is down
 at a median of 4238, from 4301 (DK2's seed 1 about 3940); keeper Imp deaths before 4400 86 to 85.
@@ -16525,3 +16524,27 @@ near every creature. The probe's rebuild frames allocated 0.5 MB each in the til
   already has. The collection that lands costs 7–13 ms in the probe (the editor was open); it is
   governed by the live heap, three worlds of it, not by the garbage, so fewer collections is what
   less garbage buys.
+
+## ADR-0698: connect dropped creatures to combat before room fallback
+
+**Date:** 2026-11-06. **Status:** accepted. Hash/save 430. · **Systems:** combat, creatures
+
+**Context.** A creature dropped beside an enemy door could get up and stand without
+targeting it. The landing/get-up calls to the existing acquisition path were missing.
+Binary evidence is in `research/door-blocking.md` section 8 and
+`research/hand-drop-landing.md` section 3.
+
+**Decision.** Mirror the shared target attempt for keeper-worker landing and get-up
+completion: normal combat selection first, then cardinal neighbour doors in native order.
+Retain its handled result even if selecting the forced door fails. Before the get-up
+attempt, apply the definition's vector-2 y step with the native terrain/floor-slot checks.
+Decode and round-trip that component through the data layer; reuse combat acquisition,
+approach, attacks and cleanup rather than introducing a separate door-fighting state.
+
+**Consequences.** No new snapshot field. The existing instantaneous hand landing and
+fitted get-up duration remain deviations; remaining worker room-dispatch arms stay partial.
+Regression tests cover hand drops through damage, level-start workers, selection order,
+eligibility, step boundaries, target removal and save/load continuation. Version 429 is
+reserved by ADR-0697 on another branch; this change uses 430. Level 17 separates
+repeatable unaided play from controlled Prison construction; see
+[the measured rationale](research/hand-drop-landing.md#level-17-diversion-controls).

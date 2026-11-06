@@ -390,6 +390,11 @@ public sealed class HandSystem : ISimulationSystem
         // Neither Portal nor Heart disposal spills gold (creature-leaving.md section 2, Q137).
         if (disposed)
         {
+            if ((definition.Flags & CreatureFlags.IsWorker) != 0 && PlayerIds.IsKeeper(creature.OwnerPlayerId))
+            {
+                StateShadow.ToIdle(context, SystemName, creature);
+                if (context.DropCombat.TryAcquire(context, creature, definition)) return;
+            }
             if (LeavingRules.IsDropCentre(world, context.Database, command.Tile, creature.OwnerPlayerId))
             {
                 if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
@@ -457,8 +462,13 @@ public sealed class HandSystem : ISimulationSystem
             // Out of the captive states as the hand's 78 and 76 take it in DK2; the word stays.
             CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
         }
-        else if (creature.OwnerPlayerId == command.PlayerId
-                 && TortureRules.TryStrapOwn(context.Hooks, creature, landingTileIndex))
+        if ((definition.Flags & CreatureFlags.IsWorker) != 0 && PlayerIds.IsKeeper(creature.OwnerPlayerId))
+        {
+            StateShadow.ToIdle(context, SystemName, creature);
+            if (context.DropCombat.TryAcquire(context, creature, definition)) return;
+        }
+        if (creature.OwnerPlayerId == command.PlayerId
+            && TortureRules.TryStrapOwn(context.Hooks, creature, landingTileIndex))
         {
             // A Torture Chamber's drop state is 130 for any creature but a Horned Reaper (ADR-0200).
             context.Emit(SystemName, "own_strapped",

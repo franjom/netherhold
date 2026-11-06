@@ -38,12 +38,16 @@ public static class LevelPlacedCreatureRules
                 CreatureStateMachine.TrySetState(context.Hooks, creature, PrisonRules.AdmittedState);
                 CreatureStateMachine.TrySetState(context.Hooks, creature, PrisonRules.DecidingState);
             }
-            else if (room?.Definition.TypeId == RoomTypeId.TortureChamber
+            else if ((!keeperWorker || enemyRoom) && room?.Definition.TypeId == RoomTypeId.TortureChamber
                 && (room.OwnerPlayerId == creature.OwnerPlayerId
                     ? TortureRules.TryStrapOwn(context.Hooks, creature, here)
                     : TortureRules.TryStrap(context.Hooks, creature, room.OwnerPlayerId, here))) continue;
             else
             {
+                if (keeperWorker && context.DropCombat.TryAcquire(context, creature, definition)) continue;
+                if (keeperWorker && room?.Definition.TypeId == RoomTypeId.TortureChamber
+                    && room.OwnerPlayerId == creature.OwnerPlayerId
+                    && TortureRules.TryStrapOwn(context.Hooks, creature, here)) continue;
                 if (!keeperWorker && room?.Definition.TypeId == RoomTypeId.Portal
                     && LeavingRules.IsDropCentre(world, context.Database, creature.Tile, creature.OwnerPlayerId))
                 {

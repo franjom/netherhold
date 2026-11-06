@@ -12,7 +12,7 @@ namespace DK2.Simulation;
 /// (<c>0x004BC710</c>) sets 76, whose handler <c>0x0046EAB0</c> stuns a non-worker (or a worker
 /// of player 0-2, ADR-0616) that no room takes over
 /// (<c>0x00491830(255)</c>): it lies for <c>StunDuration</c>, gets up in 257
-/// (<c>0x00481200</c>), and 257 asks the room underfoot (<c>0x004E8DA0(0)</c>): the room's drop
+/// (<c>0x00481200</c>), and after its step/combat attempt asks the room (<c>0x004E8DA0(0)</c>): its drop
 /// state, or with none, 250.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hand-drop-landing.md")]
 public static class DropLandingRules
@@ -44,6 +44,30 @@ public static class DropLandingRules
                + definition.GetUpFramesPerSecond - 1) / definition.GetUpFramesPerSecond)
         + 1;
 
+    /// <summary>257's step (0x00481200): vector 2 along the facing, on non-solid terrain with
+    /// the same floor-slot classification. The target scan uses the resulting tile.</summary>
+    internal static void StepAfterGettingUp(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        int ahead = unchecked(-definition.GetUpStepY);
+        int x = unchecked(creature.PosX + ((TrapRules.Sine(creature.Heading) * ahead) >> 16));
+        int y = unchecked(creature.PosY - ((TrapRules.Cosine(creature.Heading) * ahead) >> 16));
+        var target = new TilePos(x >> 12, y >> 12);
+        WorldState world = context.World;
+        if (!world.Contains(target) || !world.Contains(creature.Tile)
+            || (context.Database.TerrainById(world.Tile(target).TerrainId).Flags & TerrainFlags.Solid) != 0) return;
+        if (FloorSlot(context, creature.Tile) != FloorSlot(context, target)) return;
+        creature.PosX = creature.LastPosX = x;
+        creature.PosY = creature.LastPosY = y;
+        creature.LastPosZ = creature.PosZ;
+    }
+
+    private static bool FloorSlot(SimulationContext context, TilePos tile)
+    {
+        int index = tile.Y * context.World.Width + tile.X;
+        return RoomIndex.RoomAt(context.World, context.Database, index) is { } room
+            && AutoFurnitureRules.IsFloorSlot(context.World, room, index);
+    }
+
     /// <summary>What <c>0x004E8DA0(0)</c> leaves in <c>FightProcessCounter</c> on its way to 250:
     /// bits 22 and 24 of the flag dword cleared, 23 and 25 set.</summary>
     public const byte StandFightProcessCounter = 10;
@@ -66,8 +90,8 @@ public static class DropLandingRules
         RoomTypeId.Temple => 101,
         RoomTypeId.Casino => 145,
         RoomTypeId.CombatPit => 137,
-        (RoomTypeId)25 => 197,
-        (RoomTypeId)26 => 274,
+        RoomTypeId.HeroPortal => 197,
+        RoomTypeId.Crypt => 274,
         _ => null,
     };
 

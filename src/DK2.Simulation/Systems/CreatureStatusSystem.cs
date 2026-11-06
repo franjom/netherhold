@@ -38,18 +38,20 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
         {
             if (creature.Dk2StateId == Combat.CombatStates.GettingUp)
             {
-                // 257 (0x00481200) holds while its get-up action plays (0x00496D00), then runs the
-                // victim-or-door pick 0x00481400 (not built) and asks the room underfoot (ADR-0226,
-                // ADR-0345). Worker room drops currently cover the Heart and Portal centres.
+                // 257 holds its get-up action, then tries combat before the room-drop fallback.
                 if (context.Tick.Value >= creature.ActionUntilTick)
                 {
                     context.Emit(SystemName, "recovered", $"creature={creature.Id}");
-                    // 257's room-drop tail has no worker exclusion (0x00481351).
-                    if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
-                        && !DropLandingRules.OnAHeart(world, database, creature)
-                        && !LeavingRules.IsDropCentre(world, database, creature.Tile, creature.OwnerPlayerId))
-                        Combat.CombatStates.Idle(context.Hooks, creature);
-                    else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
+                    DropLandingRules.StepAfterGettingUp(context, creature, definition);
+                    if (!context.DropCombat.TryAcquire(context, creature, definition))
+                    {
+                        // 257's room-drop tail has no worker exclusion (0x00481351).
+                        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
+                            && !DropLandingRules.OnAHeart(world, database, creature)
+                            && !LeavingRules.IsDropCentre(world, database, creature.Tile, creature.OwnerPlayerId))
+                            Combat.CombatStates.Idle(context.Hooks, creature);
+                        else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
+                    }
                     if (world.CreatureById(creature.Id) is null)
                     {
                         return;

@@ -12,7 +12,7 @@ systems: [keeper-spells, creatures]
 
 ## Result in one sentence
 
-The keeper's drop enters **76**. A non-worker that no room takes over is **stunned** (255), whoever dropped it and a freed prisoner included (ADR-0616), for its definition's `StunDuration`. It gets up in **257**, and 257 asks the room underfoot: the room's drop state, or with none, **250**, where it stands until 50 turns past the state word `+0x7E`. **77** is the slap's reaction.
+The keeper's drop enters **76**. A non-worker that no room takes over is **stunned** (255), whoever dropped it and a freed prisoner included (ADR-0616), for its definition's `StunDuration`. It gets up in **257**, steps along its facing and attempts combat before asking the room underfoot: the room's drop state, or with none, **250**, where it stands until 50 turns past the state word `+0x7E`. **77** is the slap's reaction.
 
 ## 1. The drop enters 76 — STRONGLY INFERRED
 
@@ -73,7 +73,7 @@ Anything else, a Library or a Lair included, returns 1.
 255 (`0x004810E0`) stands while `now − state+0x18 < StunDuration`, a count of turns (the loader `0x00493B57` stores file seconds × ticks a second >> 12; `creature-status-effects.md` §2). Its first call, the turn after the stun is set (Age 1), creates effect 101 (Creature Dazed Effect) only when the duration hold arm is active; zero duration skips it. Its art has "dazed" stars and a sparkle on a circular path, tied to the creature's `0x1388` point, which `0x00434E80` follows (ADR-0480). `CreatureStunnedTimeSeconds` (2) is never read. Then 257 (`0x00481200`):
 1. It returns 1 while an action is current (`0x00496D00`): the get-up, action 53, which 255's end started. Action 53 plays animation block 27, Getup (`0x006E47AD` = 27), so the hold is that animation's frames at its rate: `ceil(frames × 4 / rate) + 1` ticks, the +1 being the tick the handler sees the action end, as for the Entrance animation (`portal-creature-action.md`). That `+20` selects the block is STRONGLY INFERRED (`creature-action-table.md` §3), and the formula is fitted (STRONGLY INFERRED): it reproduces every 257 run the Level 1–3 captures measured (the longest of a type that ends in a room drop, the same in every run): Warlock (5) 51 frames, 8 ticks; Goblin (7) 69, 11; Troll (10) 29, 5; Firefly (12) 84, 13; Dwarf (14) 16, 4; Lord of the Land (29) 22, 4. A fight can cut it short (257 → 8 or 199): 257's flag byte is 2, without bit 6, so `ProcessFight` runs while it holds (`combat-acquisition.md` §2). Measured in the Level 4 seed 1 capture: DK2's dropped creatures go 257 → 199 or 8 one to eight ticks after getting up, each on the hero registered on it (ADR-0488).
 2. It steps a little along its facing: the definition's vector `0x00494650(def, 2)` (`def+0x6EC+0x18`) turned by the heading `+0xF4`, taken if the terrain there is not solid (terrain table byte `+0x17B` bit 0 clear) and the cell test `0x00454110` gives the same answer for the tile there as for its own.
-3. It runs `0x00481400` (`SelectAVictim`, else a neighbouring enemy door as the forced target; `door-blocking.md` §8) and returns 1 if that found something; otherwise **`0x004E8DA0(0)`**. So a shot's stun ends the same way as a drop's.
+3. It runs `0x00481400` (`SelectAVictim`, else a neighbouring enemy door as the forced target; `door-blocking.md` §8) and returns 1 if that attempt was handled (including a forced-door selection that fails); otherwise **`0x004E8DA0(0)`**. So a shot's stun ends the same way as a drop's.
 
 `0x004E8DA0` has a fourth caller at `0x00481351`, inside 257. The function-based caller list missed it, because Ghidra had no function there.
 
@@ -108,8 +108,72 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 - **Lair drops** run state 79; see lair-acquisition.md §9 and ADR-0450. Other
   unsupported room drop states still idle. The Combat Pit's 137 is built
   (ADR-0227); the Heart's 71 is built under ADR-0400.
-- **Workers.** A worker getting up on a Heart runs state 71 (ADR-0400); an owned Portal/Hero Portal centre runs 197. Elsewhere it idles, although the native room-drop tail has no worker exclusion. `0x00481400` (read, `door-blocking.md` §8) is not built, in 257 or in 76.
+- **Workers.** A worker getting up on a Heart runs state 71 (ADR-0400); an owned Portal/Hero Portal centre runs 197. Elsewhere it idles, although the native room-drop tail has no worker exclusion. The shared combat attempt runs before this fallback, and before keeper-worker landing dispatch (ADR-0698).
 - **The stun's count and stars** (ADR-0480): 255 and 256 count from the turn after they are set; the first counted turn asks for effect 101 once only while the duration hold remains active (zero duration skips it), at the creature's position on the floor, tied to the creature's mesh point 5000. Point 5000 is a KMF CTRL point, the head: slot `+0x10C` is the engine interface's `0x0059D380` (that the callers' object is that interface is HYPOTHESIS), which searches the drawn mesh's tagged points (`0x0059D260`); an animated entry is (primitive, vertex) evaluated at the drawn frame (`0x005835E0`). The view keeps each drawn creature's head and moves the effect and its stars with it each update, as `0x00434E80` does; a creature drawn with a static mesh is not resolved, so its stars stay where they were asked for. The drop goes straight to 255, so ours spends no turn in 76 and gets up one turn before DK2.
-- **Not modelled:** the landing's sound, fall and pit scatter; 257's step along the facing. The Casino countdown gate is built for Portal/Hero Portal room entry (ADR-0603), but remains absent from other room-drop branches. The Call To Arms branch is built (ADR-0279).
+- **Not modelled:** the landing's sound, fall and pit scatter. 257's facing step is built (ADR-0698), with a map-boundary check. The Casino countdown gate is built for Portal/Hero Portal room entry (ADR-0603), but remains absent from other room-drop branches. The Call To Arms branch is built (ADR-0279).
 - **257's hold** is `ActionUntilTick`, set at the stun's end to `DropLandingRules.GetUpTicks`, the Getup animation's length (ADR-0348, Q527). Classic presentation plays 255's knockdown once and holds its final pose, then plays 257's Getup once from its state-entry stamp. Action 52's art selector is 24 (`0x00495F36`), action 53's is 27 (`0x00495F6E`); independently checked 2026-10-13.
 - **One word for `+0x7E`:** `StateDeadlineTick`, stamped with now by `AfterGettingUp` on the way into 250, as `0x004E8DA0` stamps `+0x2CC`.
+
+## Built scope and verification (ADR-0698, hash/save 430)
+
+`DropCombatRules` connects the shared target attempt to hand/level-start keeper-worker
+landing and to state 257 after its facing step. `GetUpStepY` round-trips file `0x128B`.
+Acquisition, approach, attacks and cleanup use the existing combat path. The helper is
+built; state 257 remains partial because of its worker room fallback described above.
+The fitted get-up hold and instantaneous hand landing remain deviations.
+
+The reviewer independently checked the binary and implementation with no remaining
+blockers; the corrected focused fixtures pass 30 tests. Release solution build:
+0 warnings/errors. Unity compile: 0 errors and 2 existing HUD CS0618 warnings.
+Simulation: 4849 passed; Tools 164; Data 515; Presentation 1623; AI 412; Assets 68;
+Core 60; Convert 188, all with no failures or skips. Oracle: 3 passed, 25 skipped.
+These checks establish the bounded implementation, not native outcome parity.
+
+The full Release solution test run passes with no failures: Behavior 526 passed,
+5 skipped; the other suite counts above are unchanged. After the reviewer's final
+scheduling correction, both focused Level 17 tests pass (2 passed, 0 failed/skipped).
+The reviewer accepted the split between repeatable unaided play and controlled
+Prison construction. These are remake regressions, not native outcome parity.
+
+The original Prison-by-tick-1800 expectation exposed the diversion below: clean
+pre-change source `9c153d0d` first builds at 1021, while hash 430 builds none by
+1800 or in a diagnostic extension to 3600. Logs:
+`build/drop-combat-level17-{baseline,current,extended}/keepers-level17-harkan-unassisted-001`.
+The first event difference is a Troll 47 training sound at 177, after the get-up
+step executes at 168 (the completed-turn trace labels that pose 169).
+
+### Level 17 diversion controls
+
+Measured remake runs, not original-game evidence. An owned source snapshot under
+`build/drop-combat-investigation` retains the patch and adds diagnostic switches
+only to its copied code; no switch or suppression was added to production.
+
+| Probe change from hash 430 | Prison by 1800 | Other comparison |
+|---|---|---|
+| None | no | Final hash `22e544a2592a90cf` |
+| Disable the new combat helper only | no | Same final hash and byte-identical event log as the complete patch |
+| Disable only the get-up step | yes, first tile 1021 | Byte-identical events and keeper commands to pre-change code |
+| Ignore only Temple room requests | yes, first tile 864 | Get-up step and combat helper retained |
+
+The step changes Troll 47's training movement. The changed trajectory reaches a
+missing-Temple message at tick 490, versus 1358 before the change.
+Harkan takes the Temple request at 506 and routes toward the neutral Temple at
+(39,39), from (12,20), instead of choosing the Prison. It has 19613 gold then,
+above the Prison's 18750 estimate: lack of funds is not the immediate cause.
+The expired gold-tag countdown removes the seam tags at 403 in both runs.
+
+The pending-request priority is STRONGLY INFERRED from fresh instruction reads
+of `0x004FA400`, `0x004F93B0` and `0x004FC690`; their existing implementations agree.
+Thus the old seed-specific Prison expectation is not an invariant of this room
+planner once the get-up motion is corrected. The precise intermediate RNG-call
+divergence and matching native outcome remain unmeasured.
+
+The unaided scenario retains digging, mining and recruitment expectations; its
+repeatability test checks both expectation lists, hashes and keeper commands.
+`Level17PrisonConstructionTests` retains the same seed, map, shipped things,
+campaign definitions, systems, triggers and next-tick keeper scheduling, disabling
+only player 4's Temple availability. It requires mining, an actual Prison build
+and a keeper-issued Prison build command. The controlled fixture failed with
+stock Temple availability and passed with that exclusion. This separates a
+construction regression from a room-choice outcome that depends on the seed;
+no production AI rule changed.

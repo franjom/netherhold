@@ -79,12 +79,12 @@ internal sealed class StateModel
         ["AngryChooserRanThisTick"] = Caches, ["IdledByCombatHandlerThisTick"] = Caches,
         ["ReinforcementActionsPolledThisTick"] = Caches, ["WorkerPreludeProcessedThisTick"] = Caches,
         ["WorkerPreludeClaimedThisTick"] = Caches, ["TremorRebellionStartedThisTick"] = Caches,
-        ["UpdateStartStateId"] = Caches,
+        ["UpdateStartStateId"] = Caches, ["DropCombat"] = Caches,
     };
 
     /// <summary><c>SimulationContext</c> members that only hand out a reference: reading them is plumbing.</summary>
     internal static readonly IReadOnlySet<string> PlumbingMembers =
-        new HashSet<string>(["World", "Database", "Rng", "Navigation", "Events", "Triggers", "_profiler", "_requestEffect", "_requestSound"], StringComparer.Ordinal);
+        new HashSet<string>(["World", "Database", "Rng", "Navigation", "Events", "Triggers", "DropCombat", "_profiler", "_requestEffect", "_requestSound"], StringComparer.Ordinal);
 
     /// <summary>Types whose column is fixed whatever reaches them, by simple name.</summary>
     internal static readonly IReadOnlyDictionary<string, int> TypeColumns = new Dictionary<string, int>(StringComparer.Ordinal)

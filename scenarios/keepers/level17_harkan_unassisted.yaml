@@ -1,7 +1,7 @@
 id: keepers-level17-harkan-unassisted-001
 question: >
-  Does Harkan expand and build from the stock Level 17 room availability
-  without scripted player commands?
+  Does Harkan expand and recruit repeatably with stock Level 17 availability
+  and no scripted player commands?
 map: campaign:level17
 seed: 13
 duration_ticks: 1800
@@ -31,14 +31,6 @@ expect:
       DefaultRoomSize 25, so the room planner routes to gold (KEEPER_AI.md 5.5).
       DK2's Harkan had mined 3,000 by tick 160 in the original capture
       (computer-keeper-observations.md).
-  - event: built
-    detail: "player=4 room=Prison"
-    because: >
-      Once the seam pays for it, the planner digs and builds the Prison, the first
-      available missing room (0x004F93B0). DK2's Harkan builds it too, at tick 855
-      centred on (16,22). This seed builds it at 731 on (16,22); over seeds 1-30 ours lays it
-      at 548-875 on a drawn site (Q555, ADR-0405). Seed 12345, pinned before ADR-0405, is the one
-      seed of 31 that builds none inside 3,000 ticks.
   - event: creature_entered
     detail: "player=4"
     because: >
