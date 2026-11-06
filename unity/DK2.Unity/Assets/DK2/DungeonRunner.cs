@@ -1058,7 +1058,7 @@ namespace DK2.Unity
             {
                 int count = ticks;
                 InputFrame input = firstInput;
-                _tickTask = Task.Run(() => RunTicks(count, input));
+                _tickTask = StartTickThread(count, input);
             }
             if (_recorder != null)
             {
@@ -1101,6 +1101,24 @@ namespace DK2.Unity
             // Inline ticks are read by this frame's EndFrame, worker ticks by the frame that joins.
             if (_recorder != null) _recordedTickMs += _recorder.Elapsed(started);
         }
+
+        /// <summary>The ticks on a thread of their own, above normal priority: on the thread pool
+        /// beside Unity's main and render threads the same tick took 5–9 ms in a window against
+        /// 3–4 ms headless (presented-world plan, 2026-11-06). The task carries completion and
+        /// any exception to <see cref="WaitForTick"/> as before.</summary>
+        private static Task StartTickThread(int count, InputFrame input, Action<int, InputFrame> run)
+        {
+            var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var thread = new Thread(() =>
+            {
+                try { run(count, input); done.SetResult(true); }
+                catch (Exception ex) { done.SetException(ex); }
+            }) { Name = "DK2 tick", IsBackground = true, Priority = System.Threading.ThreadPriority.AboveNormal };
+            thread.Start();
+            return done.Task;
+        }
+
+        private Task StartTickThread(int count, InputFrame input) => StartTickThread(count, input, RunTicks);
 
         /// <summary>Joins the worker tick, if one is running. A tick that threw stops the game and
         /// shows the failure, as a throw out of Update used to.</summary>

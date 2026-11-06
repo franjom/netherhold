@@ -98,6 +98,29 @@ Branch: `perf/presented-world`. Gates: the pinned state hash, the clean-baseline
 in the parallelism plan, the draw-clock metric under 1.5%, and a release capture whose
 frames over budget are no longer the join.
 
+## Why the windowed tick is slower than the headless one (measured 2026-11-06)
+
+The same release player, Level6a, 60 FPS cap: headless (`build/game-unity-probe/20261106-115127`,
+the probe built with `-Release -RecordFrames`) ticks at 4.2 ms p50 and 6.4 p95; in the game's
+window (`build/tester-package/20261106-114342/captures/20261106-114714`) 5.3 p50 and 13.6 p95,
+max 21 ms. So the build is not the difference; the window is, and it doubles the tail. What
+was tried, each one build or capture, none of it the cause:
+
+| Lever | Tick p50 / p95 at 60 | uncapped | Reading |
+|---|---:|---:|---|
+| Thread pool (before) | 5.4 / 13.5 | 8.7 / 15.7 | baseline, idle machine |
+| Dedicated above-normal thread | 5.3 / 13.6 | 7.5 / 14.3 | ~1 ms uncapped, inside run-to-run variance; kept, since P1 wants a thread of its own |
+| 1280x720 window | 5.0 / 12.2 | 6.8 / 14.1 | not memory bandwidth: the frame rate rose a quarter, the tick barely moved |
+| Unity `-job-worker-count 4` | 5.6 / 12.9 | 7.4 / 14.8 | not Unity's job workers |
+| Unity `-job-worker-count 2` | 5.3 / 13.2 | 8.7 / 15.3 | same; and the owner heard the sound run ahead of the picture in the capped run, with nothing in its log or frames, so the setting is not used |
+
+The tick's time follows how busy the rest of the process is (headless < window at 60 < window at
+120 < uncapped) and nothing else: not resolution, not the pool, not Unity's workers, not thread
+priority. On this laptop's CPU that is the boost clock falling as more cores are active, which
+no setting of ours changes. Under P1 a 5–9 ms tick is irrelevant: it only has to finish before
+the next tick is due, 250 ms later. The input journal is off (`DK2_INPUT_JOURNAL` unset), the
+diagnostics hash runs in both players.
+
 ## Alternatives considered
 
 - **Per-reader snapshots** (each reader captures what it needs into its own struct):
