@@ -75,7 +75,8 @@ process 6 (`0x004A1F30`): line 0x9DB, `random(4)`, at its side search, and lines
 its point draws at `0x004A2097` and `0x004A212B`. Ours already mirrors them in
 `ChickenMovementRules.ChooseRoomPoint`; they were never a missing consumer, only unmapped.
 
-The consumers found from the log are all accounted for. Two ADR-0649 fixes (hash/save 398) came from
+The later [turn-1403 probe](#egg-collision-at-turn-1403) identifies an unbuilt Egg collision consumer
+in this log. Two ADR-0649 fixes (hash/save 398) came from
 comparing the birds: a loose bird's side test compares the raw navigation bytes, so the Heart's centre (3)
 refuses every floor side, and a Treasury or Heart tile holding gold holds a Gold Pile object, an obstacle.
 
@@ -239,11 +240,49 @@ The fixed rule changes the replay's pre-1400 history: Troll 447 now reaches the 
 state. Native already holds state 87/action 43 at 1400; supplying that snapshot removes its extra
 idle-body draw, as the earlier 449 control did. With that declared input, the fixed replay matches all
 29 ordered draws over 1401-1402. Neither full-state parity nor any Heart-defence outcome is established.
-The probe stops at 1402; further turns are not investigated.
+This fix's validation ends at 1402; the [next probe](#egg-collision-at-turn-1403) extends the diagnostic comparison.
 
 Evidence and replay source: `F:/DK2Evidence/studies/q712-chicken-draw1402--2026-11-06--001` and its
 same-named `builds` directory. Native inputs use completed turn 1400 only; projected action endpoints
 remain outside the validation claim.
+
+## Egg collision at turn 1403
+
+The unchanged hash-429 matched-input replay retains all 29 ordered matches at 1401-1402, then draws
+9 numbers against native's 10 at 1403. Native's first is Object.cpp:1330, `random(2)` in
+[0049CD00](functions/0049CD00.md): an Egg's blocking-collision callback, before reflection in
+[004B2030](functions/004B2030.md). Zero requests effect301 and marks the Egg dead (STRONGLY INFERRED).
+Production `EggLaunchRules.Move` has no such draw or break arm.
+
+Native Egg1421 already exists at completed1400 in process24/age37, position (47440,98616,4096),
+persistent velocity (-2705,-1877,0). It reaches (47113,98390,4096) at1402 and is absent at1403
+(CONFIRMED). Its next projected step enters wall tile (11,23) (STRONGLY INFERRED). The existing restore restores
+Chickens, not this Egg. Supplying only its completed1400 snapshot matches its position, velocity,
+process and age through1402, but leaves the 1403 draw missing.
+
+Adding the binary's collision draw in the diagnostic build gives10 draws, but the Egg draws seventh,
+after six Chicken draws. It receives1 and survives. Production's `ObjectMovementSystem` runs the
+Chickens before `HatcherySystem` runs Eggs. DK2 instead completes each object's update in list order
+([004B7830](functions/004B7830.md), STRONGLY INFERRED). Interleaving the diagnostic state24 Egg step
+with the Chicken/Rat walk makes this Egg draw first, receive0 and disappear as native does (CONFIRMED).
+
+| Bounded diagnostic control | 1401 | 1402 | 1403 | Ordered sites/seeds at1403 |
+|---|---:|---:|---:|---|
+| Unchanged rules, prior restore | 17 | 12 | 9 | Missing Egg draw |
+| And captured Egg1421 | 17 | 12 | 9 | Missing Egg draw |
+| And collision check | 17 | 12 | 10 | Egg draw seventh |
+| And state24 object interleaving | 17 | 12 | 10 | All10 match |
+
+The final control matches all39 ordered world draws over1401-1403. This is diagnostic evidence,
+not a production fix, full-state parity or a Heart-outcome result. Effect301 playback and later turns
+are untested. The restored Egg is appended as newest; the full native mixed-object order is not restored.
+The next implementation must preserve the Egg collision response and object ordering;
+restoring only the draw count changes which Egg survives. No general restore adapter is built.
+
+Evidence, controls, validator and diagnostic source/build: `F:/DK2Evidence/studies/q712-draw1403--2026-11-06--001`
+and its same-named `builds` directory. Only the corrected `egg1421-input-v2.json` is used. The earlier
+ungated `collision-control` changes pre1400 history and is excluded; bounded controls enable the new
+rules only after the completed1400 restore. No production source or hash/save version changes.
 
 ## Outcomes at hash 399
 

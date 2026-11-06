@@ -258,7 +258,8 @@ the previous gravity accumulation. This is not a conventional ballistic reset.
 
 Physical velocity is the sum of persistent (+0x104..0x10C) and temporary
 (+0x110..0x118) vectors. Motion uses that sum divided by 16, subdivided by
-`min(16, (vector length >> 14) + 1)`. Solid collision reflects the blocked
+`min(16, (vector length >> 14) + 1)`. Solid collision first offers the object's
+[break callback](functions/0049CD00.md); without a break it reflects the blocked
 horizontal component at half speed and continues the remaining substeps.
 Afterward horizontal components retain `(4096 − low-word air friction)/4096`,
 truncated toward zero; a negative multiplier becomes 2048. Vertical velocity
@@ -270,7 +271,7 @@ lifetime, state 24's hidden wait, launch and tumbling, state 18's recoil and
 decaying heading, Casino setting clips with their final poses, and Call to Arms
 activation, recall and removal. Integer
 animation metadata comes from the nine file resources. Launch collisions use
-the engine's terrain solids; original voxel volumes, liquid contacts and floor
+the engine's terrain solids; the [Egg break callback and update interleaving](neutral-ambient-effect.md#egg-collision-at-turn-1403), original voxel volumes, liquid contacts and floor
 geometry outside the Hatchery remain absent. The Hatchery ground zones follow
 `0x004545C0`; other room floors retain the engine's existing approximation.
 
