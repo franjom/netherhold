@@ -94,8 +94,9 @@ log site for site, and 39 turns have equal counts. The next difference is turn 1
 `RoomWalkRules.ArrivalTile` draws by our three Warlocks, which the creature restore leaves choosing
 lairs and jobs, where DK2's were in states 7/80 (making a home), 6/54 (going to research) and 56
 (researching). That is restore fidelity, like Q719's partial inputs, not a rule. The scratch restore adapter is not extended
-to those states: the owner decided on 2026-11-04 to keep building rules backed by the binary or a capture and
-to stop steering Q712 by outcome averages (see [Outcomes at hash 399](#outcomes-at-hash-399)). Q738
+to those states in that measurement. The owner decided on 2026-11-04 to keep building rules backed by the binary or a capture and
+to stop steering Q712 by outcome averages (see [Outcomes at hash 399](#outcomes-at-hash-399)); the later
+[bounded restore comparison](#bounded-restore-comparison-2026-11-06) reopens only the first-divergence probe. Q738
 (`0x004B9740`'s periodic draws) is separate.
 
 ## Native draw log: Level 4 seed 1, turns 1401-1900
@@ -168,8 +169,44 @@ logs draws, mapped by the file and line pushed at each of the 479 calls of `0x00
 
 The fight census identifies one unbuilt prop consumer; its six world-seed draws can shift later decisions,
 so their effect on Q712 remains untested. A turn-by-turn comparison with matched restored inputs is needed
-to distinguish that omission from differences in draw order and count inside built rules. The owner's
-2026-11-04 stop on extending the scratch restore adapter remains in force.
+to distinguish that omission from differences in draw order and count inside built rules. The owner
+authorized the bounded comparison below on 2026-11-06; a general restore adapter remains outside its scope.
+
+## Bounded restore comparison (2026-11-06)
+
+Owner scope: restore the three Warlocks at completed turn 1400 and explain the next draw divergence;
+no campaign sweep or outcome tuning. The scratch build uses production rules at `2fd5f277`, hash/save
+428, with the archived diagnostic adapter. Source, executable and provenance are preserved under
+`F:/DK2Evidence/builds/q712-warlock-restore-seed1--2026-11-06--001`; inputs, runs, verification script
+and `validation.json` are in its same-named `studies` directory. Both manifests were SHA-256 checked.
+
+Only turn-1400 snapshot fields feed the new restore: Warlocks 438/439/441 regain state/resume, heading,
+state age, Library targets/holds, waiting positions and steering bodies; 441's reading hold is projected
+from its captured animation fields. On completed turns 1401 and 1402, all three match native state,
+resume and XY (six checks, CONFIRMED); this does not validate their later action completion times.
+
+The current source has an earlier restore omission than the historical hash-398 control: its effect
+generator retains deadline 1403, while native tag 1228 holds 1395. Supplying native `+0x2E` makes all
+17 draws of turn 1401 match in ordered sites and pre-draw seeds. The due gate is
+[004B1B60](functions/004B1B60.md), STRONGLY INFERRED; the deadline contrast and control are CONFIRMED.
+
+| Control | Draws at 1401 | Draws at 1402 |
+|---|---:|---:|
+| Native | 17 | 12 |
+| Existing adapter, current rules | 9 | 18 |
+| Warlock restore | 9 | 13 |
+| And captured generator deadline | 17 | 15 |
+| And neutral Troll 449's state/action | 17 | 14 |
+
+After the Warlock and generator restore, the first turn-1402 draw is modern Troll 449's idle-body
+`random(100)`, in state 5. Native 449 stays in state 87 with action 44 running throughout 1400-1402.
+The restore had put it in 1, which dispatches to 5. State 87 returns before any random draw while an
+action runs ([004808E0](functions/004808E0.md), STRONGLY INFERRED). Supplying 449's captured state and
+action removes that extra draw (CONFIRMED). This is a restore-input difference, not an established rule defect.
+
+That control matches the first three Chicken draws of 1402. Its fourth draw is ObjectState.cpp:2914
+where native draws 2851: the next unexplained boundary is inside Chicken roaming. Full-turn parity,
+later action endpoints and any effect on Heart-defence outcomes remain unestablished. The probe stops here.
 
 ## Outcomes at hash 399
 
@@ -195,7 +232,7 @@ The outcome averages neither confirm nor refute the rule fixes at this sample si
 p 0.43, 0.06 and 0.19. The Heart still sees the pillar targeted about half as long as native. Q712 is
 therefore no longer steered by these averages: new rules need a binary reading or a capture (a draw-log
 comparison on other levels, which needs native captures; a held bird's decay, read afterwards as none and already ours, Q584; `Hatchery_AdoptChickens`
-`0x004DEB70` was built afterwards, ADR-0652), and the scratch restore adapter stops here.
+`0x004DEB70` was built afterwards, ADR-0652), and the scratch restore adapter stopped for that measurement. The [bounded 6 Nov comparison](#bounded-restore-comparison-2026-11-06) is separate.
 
 Evidence: `F:/DK2Evidence/builds/q712-final399-measurement-h399--2026-11-04--001/` and the studies
 `heart-defence-q712-h399-l5--2026-11-04--001/` and its `l4` sibling.
