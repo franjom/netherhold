@@ -555,18 +555,41 @@ path, run `20261106-075815`: frames over 2 ticks/s of draw-clock error 12.17%
 → 0.26%, p95 error 3.48 → 0.24 ticks/s, boundary holds 102 → 0; frame time
 unchanged. Cost: one frame of display latency, explicit in the ADR.
 
-**First release capture (2026-11-06, the tester package's own player on the
-owner's laptop, windowed 1920x1080, VSync off, no frame cap, 40 s, no
-PresentMon: `build/tester-package/20261106-103042/captures/20261106-103508`).**
-Frame p50 / p95 / p99 6.5 / 9.8 / 19.8 ms, max 93 ms; 109 of 4,948 frames after
-2 s over 16.67 ms. The two worst, 56 and 93 ms at tick 107 (26.8 s, where the
-fly-by ends and the HUD appears) and 73 ms at tick 143, spend under 3 ms in the
-tick join, Present and the animated frame together: the time is in a part the
-recorder does not name, most likely the HUD passes, and the headless probe
-(no window, no camera) never showed it. The draw-clock metric reads 3.0% error
-frames at ~150 FPS against 0.13% at the 60 FPS cap; whether that is the clock
-or the metric's sensitivity to short frames is open. Both are the next things
-to look at; the recorder gets a HUD column first.
+**First release captures (2026-11-06, the tester package's own player on the
+owner's laptop, windowed 1920x1080, VSync off, no frame cap, 40 s each, no
+PresentMon: `build/tester-package/20261106-10{3042,4449,4902}/captures`).**
+Three runs agree. Frame p50 / p95 / p99 about 6.1–6.5 / 8.8–9.8 / 18–20 ms, so
+the laptop runs the fly-by at ~150 FPS, with 68–109 of ~4,950 frames after 2 s
+over 16.67 ms. Where they go, by the recorder's columns:
+
+- **The tick join, uncapped, is the bulk: 101 of the 109 slow frames in the
+  first run.** Every tick (135 of 136) made the next frame wait, p50 4 ms, max
+  19 ms, because the worker tick is 6.8 ms p50 and 14 ms p95 (max 21) in the
+  windowed release player, against 4 ms headless, while a frame is 5–6 ms. At
+  the 60 FPS cap the same tick fits inside the frame and the join is free, which
+  is why the probe never saw this. This is P1's condition (a): above 60 FPS a
+  tick longer than a frame is the normal case, not the exception, and the
+  desktop tier (120 FPS: 8.3 ms frames) cannot be met with a 7–14 ms tick
+  joined every frame. P1 (draw the previous world while the tick runs) is back
+  on the table; it is the owner's call, since it restructures the presenter.
+- **The 26.6 s frame is the engine's, not the runner's.** The worst frame of
+  each run (79–93 ms) is the moment the fly-by ends and the HUD appears. With
+  `update_ms` in the recorder (the runner's Update from first line to last),
+  the 79 ms frame spends 3.8 ms in Update and 75 ms outside it: rendering,
+  presenting, or the driver. The HUD's first draw brings new materials and
+  shader variants (Vulkan pipelines are built on first use), which no C#
+  marker covers and which the headless probe, with no camera, never draws.
+  Next: warm the HUD's shader variants at startup (Unity 6's graphics state
+  collection, or `ShaderVariantCollection.WarmUp` on the materials under
+  `Assets/DK2/Resources`) and capture again. The runner's own HUD passes are
+  0.6 ms p50, 2 ms p99.
+- **The draw clock is even.** The 3.0% the metric first read at 150 FPS was
+  the metric: the clock samples elapsed time after the tick join, so a frame
+  that waited covers its wait and the next frame's interval carries it.
+  `draw_clock.py` now shifts the interval by the join; the same capture reads
+  0.2% (8 of 4,090 path frames), 0.1% on steady frames.
+- **Present spikes** of 20–29 ms at 3.2 s (chunk rebuilds after the first
+  tags land, decode on request) remain as before.
 
 Still unmeasured: a 60 FPS cap repeat of the Level8 motion capture, and
 anything on the desktop tier (120 FPS on an RTX 3060 class machine), which

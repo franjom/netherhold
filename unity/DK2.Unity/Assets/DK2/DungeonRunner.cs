@@ -204,6 +204,8 @@ namespace DK2.Unity
         private string _diagnostics = "";
         private readonly DebugFrameOverlay _frameOverlay = new DebugFrameOverlay();
         private FrameRecorder _recorder;
+        // The worker's time in the last frame's ticks, read by the frame that joins them.
+        private double _recordedTickMs;
         private InstallHudSources _hudSources;
         private StartupTimings _startup;
 
@@ -845,12 +847,14 @@ namespace DK2.Unity
             JournalBeginFrame();
             _frameOverlay.Sample(showDiagnostics);
             if (_simulation == null || _failure != null) return;
+            _recorder?.BeginFrame();
             if (Camera.main != null) Camera.main.transform.position -= _appliedCameraJitter;
             _appliedCameraJitter = Vector3.zero;
+            long soundStarted = _recorder?.Stamp() ?? 0;
             using (FrameSoundMarker.Auto()) _soundPlayer?.PlayDecoded();
             using (FrameSpeechMarker.Auto()) _soundPlayer?.UpdateSpeech((long)(Time.unscaledTimeAsDouble * 1000));
+            _recorder?.Spent(FrameRecorder.Part.Sound, soundStarted);
             if (_frontEnd != null) { if (!UpdateStartup() && !UpdateCutscene()) UpdateFrontEnd(); return; }
-            _recorder?.BeginFrame();
             FrameReportMarker.Begin();
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
@@ -867,13 +871,16 @@ namespace DK2.Unity
             WaitForTick();
             _recorder?.Spent(FrameRecorder.Part.Wait, waitStarted);
             if (_simulation == null) return;
+            soundStarted = _recorder?.Stamp() ?? 0;
             using (FrameSoundMarker.Auto()) UpdateWorldSound(_simulation.World, _simulation.Database);
+            _recorder?.Spent(FrameRecorder.Part.Sound, soundStarted);
             double elapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: Time.deltaTime, maximumDeltaSeconds: Time.maximumDeltaTime, timeScale: Time.timeScale);
 
             // The path is placed by the last tick run plus the debt toward the next, the clock
             // condition 72 counts, so the script's next path follows it. On the worker path that
             // is the world this frame draws; on the main thread this frame's ticks come after.
+            long scriptStarted = _recorder?.Stamp() ?? 0;
             FrameScriptMarker.Begin();
             _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
                 _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d),
@@ -884,7 +891,9 @@ namespace DK2.Unity
             // end, where Space leaves the result; elsewhere suppressing input would strand the player.
             bool result = UpdateCampaignResult();
             FrameScriptMarker.End();
+            _recorder?.Spent(FrameRecorder.Part.Script, scriptStarted);
             if (result) return;
+            long inputStarted = _recorder?.Stamp() ?? 0;
             using (InputMarker.Auto())
             {
                 ApplyLetterbox();
@@ -922,6 +931,7 @@ namespace DK2.Unity
                 if (hud.AllowOrdinaryInput && !HudModal) ReadAmbientKeys();
                 using (InputQueueMarker.Auto()) QueueInput();
             }
+            _recorder?.Spent(FrameRecorder.Part.Input, inputStarted);
             if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
 
             int ticks = 0;
@@ -997,6 +1007,7 @@ namespace DK2.Unity
                 Camera.main.transform.position += _appliedCameraJitter;
             }
             RefreshEffectCamera();
+            long lightsStarted = _recorder?.Stamp() ?? 0;
             FrameLightsMarker.Begin();
             _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
@@ -1020,11 +1031,14 @@ namespace DK2.Unity
             _lightning?.DrawShots(_simulation.World, _simulation.Database, _worldView, fraction);
             _lightning?.DrawEffects();
             _lightning?.EndFrame();
+            _recorder?.Spent(FrameRecorder.Part.Lights, lightsStarted);
+            long hudStarted = _recorder?.Stamp() ?? 0;
             _minimap?.SetVisibility(CurrentHud);
             using (FrameMinimapMarker.Auto()) _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
             using (FrameHudMarker.Auto()) DrawHudControls();
             using (FrameHoverMarker.Auto()) CaptureWorldHover();
             using (FrameFlowersMarker.Auto()) DrawStatusFlowers();
+            _recorder?.Spent(FrameRecorder.Part.Hud, hudStarted);
             if (showDiagnostics) RefreshDiagnostics();
 
             // Nothing on this thread reads the world again before the next Update's wait: OnGUI
@@ -1036,14 +1050,19 @@ namespace DK2.Unity
                 InputFrame input = firstInput;
                 _tickTask = Task.Run(() => RunTicks(count, input));
             }
-            _recorder?.EndFrame(ticks, _scene.DrawSeconds * SimulationTiming.TicksPerSecond,
-                Camera.main != null ? Camera.main.transform.position : default, _scriptedView.PathPlaying, _scene.TerrainFlushMilliseconds);
+            if (_recorder != null)
+            {
+                _recorder.EndFrame(ticks, _recordedTickMs, _scene.DrawSeconds * SimulationTiming.TicksPerSecond,
+                    Camera.main != null ? Camera.main.transform.position : default, _scriptedView.PathPlaying, _scene.TerrainFlushMilliseconds);
+                _recordedTickMs = 0;
+            }
         }
 
         /// <summary>The ticks of one frame, the first with the frame's commands. Capturing the
         /// object positions first is what the view's interpolation reads.</summary>
         private void RunTicks(int ticks, InputFrame firstInput)
         {
+            long started = _recorder?.Stamp() ?? 0;
             for (int i = 0; i < ticks; i++)
             {
                 InputFrame input = i == 0 ? firstInput : InputFrame.Empty;
@@ -1068,6 +1087,8 @@ namespace DK2.Unity
             // The hash is for the diagnostics only, and costs a few milliseconds; here it is off the
             // frame when the ticks are. Turned on at run time, it shows 0 until the next tick.
             if (showDiagnostics) _stateHash = _simulation.StateHash();
+            // Inline ticks are read by this frame's EndFrame, worker ticks by the frame that joins.
+            if (_recorder != null) _recordedTickMs += _recorder.Elapsed(started);
         }
 
         /// <summary>Joins the worker tick, if one is running. A tick that threw stops the game and

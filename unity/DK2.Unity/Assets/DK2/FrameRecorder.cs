@@ -19,11 +19,11 @@ namespace DK2.Unity
     /// go to <c>frames.csv</c>, in the game probe's columns, when the runner ends.</summary>
     internal sealed class FrameRecorder
     {
-        public enum Part { Wait, Present, Animation, Count }
+        public enum Part { Sound, Wait, Script, Input, Present, Animation, Lights, Hud, Count }
 
         private struct Row
         {
-            public float Seconds, FrameMs, WaitMs, PresentMs, AnimationMs, RebuildMs;
+            public float Seconds, FrameMs, UpdateMs, TickMs, SoundMs, WaitMs, ScriptMs, InputMs, PresentMs, AnimationMs, RebuildMs, LightsMs, HudMs;
             public double RenderTick;
             public Vector3 Camera;
             public byte Ticks, Collections;
@@ -63,9 +63,10 @@ namespace DK2.Unity
 
         public long Stamp() => _clock.ElapsedTicks;
 
+        public double Elapsed(long started) => (_clock.ElapsedTicks - started) * 1000.0 / Stopwatch.Frequency;
+
         /// <summary>Adds the time since <paramref name="started"/> to one part of this frame.</summary>
-        public void Spent(Part part, long started) =>
-            _parts[(int)part] += (_clock.ElapsedTicks - started) * 1000.0 / Stopwatch.Frequency;
+        public void Spent(Part part, long started) => _parts[(int)part] += Elapsed(started);
 
         /// <summary>At the top of a frame with a running simulation. The first call starts the play
         /// clock; the frame interval is from the previous call.</summary>
@@ -82,7 +83,8 @@ namespace DK2.Unity
             Array.Clear(_parts, 0, _parts.Length);
         }
 
-        public void EndFrame(int ticks, double renderTick, Vector3 camera, bool pathPlaying, double rebuildMs)
+        /// <param name="tickMs">The worker's time in the ticks this frame joined, if any.</param>
+        public void EndFrame(int ticks, double tickMs, double renderTick, Vector3 camera, bool pathPlaying, double rebuildMs)
         {
             if (_count == Capacity) return;
             int collections = GC.CollectionCount(0);
@@ -90,10 +92,17 @@ namespace DK2.Unity
             {
                 Seconds = (float)((_frameStart - _playStart) / (double)Stopwatch.Frequency),
                 FrameMs = (float)_frameMs,
+                UpdateMs = (float)Elapsed(_frameStart),
+                TickMs = (float)tickMs,
+                SoundMs = (float)_parts[(int)Part.Sound],
                 WaitMs = (float)_parts[(int)Part.Wait],
+                ScriptMs = (float)_parts[(int)Part.Script],
+                InputMs = (float)_parts[(int)Part.Input],
                 PresentMs = (float)_parts[(int)Part.Present],
                 AnimationMs = (float)_parts[(int)Part.Animation],
                 RebuildMs = (float)rebuildMs,
+                LightsMs = (float)_parts[(int)Part.Lights],
+                HudMs = (float)_parts[(int)Part.Hud],
                 RenderTick = renderTick,
                 Camera = camera,
                 Ticks = (byte)Math.Min(ticks, byte.MaxValue),
@@ -109,19 +118,28 @@ namespace DK2.Unity
             if (_written) return;
             _written = true;
             var csv = new StringBuilder(_count * 100 + 200);
-            csv.Append("frame,play_seconds,frame_ms,ticks,wait_tick_ms,present_ms,animated_frame_ms,chunk_rebuild_ms,")
-               .Append("gc_collections,render_tick,cam_x,cam_y,cam_z,path\n");
+            // update_ms is the runner's Update from its first line to its last; the rest of frame_ms is
+            // the engine's: rendering, presenting, other components, and whatever the driver does.
+            csv.Append("frame,play_seconds,frame_ms,update_ms,ticks,tick_ms,sound_ms,wait_tick_ms,script_ms,input_ms,present_ms,")
+               .Append("animated_frame_ms,chunk_rebuild_ms,lights_ms,hud_ms,gc_collections,render_tick,cam_x,cam_y,cam_z,path\n");
             for (int i = 0; i < _count; i++)
             {
                 ref Row row = ref _rows[i];
                 csv.Append(i).Append(',')
                    .Append(row.Seconds.ToString("F3", Invariant)).Append(',')
                    .Append(row.FrameMs.ToString("F3", Invariant)).Append(',')
+                   .Append(row.UpdateMs.ToString("F3", Invariant)).Append(',')
                    .Append(row.Ticks).Append(',')
+                   .Append(row.TickMs.ToString("F3", Invariant)).Append(',')
+                   .Append(row.SoundMs.ToString("F3", Invariant)).Append(',')
                    .Append(row.WaitMs.ToString("F3", Invariant)).Append(',')
+                   .Append(row.ScriptMs.ToString("F3", Invariant)).Append(',')
+                   .Append(row.InputMs.ToString("F3", Invariant)).Append(',')
                    .Append(row.PresentMs.ToString("F3", Invariant)).Append(',')
                    .Append(row.AnimationMs.ToString("F3", Invariant)).Append(',')
                    .Append(row.RebuildMs.ToString("F3", Invariant)).Append(',')
+                   .Append(row.LightsMs.ToString("F3", Invariant)).Append(',')
+                   .Append(row.HudMs.ToString("F3", Invariant)).Append(',')
                    .Append(row.Collections).Append(',')
                    .Append(row.RenderTick.ToString("F4", Invariant)).Append(',')
                    .Append(row.Camera.x.ToString("F4", Invariant)).Append(',')

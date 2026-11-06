@@ -47,13 +47,25 @@ def interval_metrics(values, budget):
 
 def worst_frames(rows, count=10):
     """The slowest frames after warm-up, with where each went, so a slow frame has a cause beside it."""
-    judged = [r for r in rows if float(r["play_seconds"]) >= WARM_UP_SECONDS]
-    judged.sort(key=lambda r: -float(r["frame_ms"]))
-    return [dict(play_seconds=float(r["play_seconds"]), frame_ms=float(r["frame_ms"]), ticks=int(r["ticks"]),
-                 wait_tick_ms=float(r["wait_tick_ms"]), present_ms=float(r["present_ms"]),
-                 animated_frame_ms=float(r["animated_frame_ms"]), chunk_rebuild_ms=float(r["chunk_rebuild_ms"]),
-                 gc_collections=int(r["gc_collections"]), path=r["path"] == "1")
-            for r in judged[:count]]
+    # frame_ms is the interval that ended when a row's frame began, so the work in that interval is
+    # the previous row's parts: a slow interval is listed with the frame that did the work.
+    judged = [(rows[i - 1], rows[i]) for i in range(1, len(rows)) if float(rows[i]["play_seconds"]) >= WARM_UP_SECONDS]
+    judged.sort(key=lambda pair: -float(pair[1]["frame_ms"]))
+    parts = ("sound_ms", "wait_tick_ms", "script_ms", "input_ms", "present_ms", "animated_frame_ms", "lights_ms", "hud_ms")
+    worst = []
+    for work, interval in judged[:count]:
+        entry = dict(play_seconds=float(work["play_seconds"]), frame_ms=float(interval["frame_ms"]),
+                     update_ms=float(work.get("update_ms", 0) or 0), ticks=int(work["ticks"]),
+                     tick_ms=float(work.get("tick_ms", 0) or 0), gc_collections=int(work["gc_collections"]), path=work["path"] == "1")
+        spent = 0.0
+        for part in parts:
+            value = float(work.get(part, 0) or 0)
+            entry[part] = value
+            spent += value
+        entry["chunk_rebuild_ms"] = float(work["chunk_rebuild_ms"])  # inside present_ms
+        entry["parts_ms"] = spent
+        worst.append(entry)
+    return worst
 
 
 def summarise(rows, metadata, machine, presents, tier):

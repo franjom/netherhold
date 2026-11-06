@@ -20,14 +20,23 @@ ERROR_LIMIT = 2.0
 STEADY_FRAME_MS = 25.0
 
 
+def wait(row):
+    try:
+        return float(row["wait_tick_ms"])
+    except (KeyError, ValueError):
+        return 0.0
+
+
 def analyse(rows):
-    """rows: dicts with frame_ms (the interval ending at the row), render_tick and path ('1' while playing)."""
+    """rows: dicts with frame_ms (the interval ending at the row), render_tick, path ('1' while playing)
+    and, when present, wait_tick_ms: the clock is sampled after the tick join, so a frame that waited
+    covers its wait as well, and the frame after it does not."""
     seq = [r for r in rows if r["path"] == "1"]
     if len(seq) < 10:
         return dict(path_frames=len(seq), analysed=0)
     errors, steps, steady_errors = [], [], []
     for before, now in zip(seq, seq[1:]):
-        dt = float(now["frame_ms"]) / 1000.0
+        dt = (float(now["frame_ms"]) + wait(now) - wait(before)) / 1000.0
         if dt <= 0:
             continue
         step = float(now["render_tick"]) - float(before["render_tick"])

@@ -322,9 +322,10 @@ exist in the player. `tools/game-unity-probe/run.ps1 -Il2cpp` measures the playe
 A release player records its own frames when asked (`FrameRecorder`, ADR-0691):
 `-recordFrames [directory]` on the command line, or a file named `record-frames`
 beside the executable (then under `persistentDataPath/frames/<stamp>`). It writes
-`frames.csv` in the game probe's columns (frame interval, ticks, the tick join,
-Present, the animated frame, chunk rebuilds, GC collections, the draw clock, the
-camera, path) and `metadata.txt` (backend, hardware, driver, resolution, VSync,
+`frames.csv` in the game probe's columns (frame interval, the runner's whole
+Update, ticks and the worker's time in them, sound, the tick join, the script,
+input, Present, the animated frame, chunk rebuilds, lights, the HUD passes, GC
+collections, the draw clock, the camera, path) and `metadata.txt` (backend, hardware, driver, resolution, VSync,
 frame cap, level, seed) when the game closes; the hitch lines stay in `Player.log`.
 Nothing allocates per frame; the rows are preallocated for ten minutes at 240 FPS.
 The runner also takes `-level <name>`, `-seed <n>` and `-dk2Install <path>` on the
