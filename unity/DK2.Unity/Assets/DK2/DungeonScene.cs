@@ -76,6 +76,8 @@ namespace DK2.Unity
 
         /// <summary>The draw clock in game seconds, as the last frame drew it; read by the game probe.</summary>
         internal double DrawSeconds => _renderSeconds;
+
+        internal double TerrainFlushMilliseconds => _terrain?.LastFlushMilliseconds ?? 0;
         private readonly HeartPulseGate _heartPulseGate = new HeartPulseGate();
         private readonly System.Collections.Concurrent.ConcurrentQueue<(PlayerId Owner, Fp32 Step)> _heartAdvances =
             new System.Collections.Concurrent.ConcurrentQueue<(PlayerId Owner, Fp32 Step)>();

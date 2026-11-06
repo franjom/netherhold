@@ -203,6 +203,7 @@ namespace DK2.Unity
         private ulong _stateHash;
         private string _diagnostics = "";
         private readonly DebugFrameOverlay _frameOverlay = new DebugFrameOverlay();
+        private FrameRecorder _recorder;
         private InstallHudSources _hudSources;
         private StartupTimings _startup;
 
@@ -215,6 +216,32 @@ namespace DK2.Unity
                 WaitForTick();
                 return _simulation;
             }
+        }
+
+        /// <summary>A player started by a script (the tester package, docs/PERFORMANCE.md) names its
+        /// level, seed and install on the command line; otherwise the Inspector's values stand.</summary>
+        private void ApplyLaunchArguments()
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            string level = Argument(args, "-level");
+            if (level != null)
+            {
+                sessionMode = GameSessionMode.Campaign;
+                levelName = level;
+                saveFile = "";
+            }
+            string seedText = Argument(args, "-seed");
+            if (seedText != null && ulong.TryParse(seedText, System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out ulong value))
+                seed = value;
+            string install = Argument(args, "-dk2Install");
+            if (install != null) installDirectory = install;
+        }
+
+        private static string Argument(string[] args, string key)
+        {
+            int at = Array.IndexOf(args, key);
+            return at >= 0 && at + 1 < args.Length ? args[at + 1] : null;
         }
 
         private void Start()
@@ -237,6 +264,8 @@ namespace DK2.Unity
         private void StartGame()
         {
             InitializeSettings();
+            ApplyLaunchArguments();
+            _recorder = FrameRecorder.TryCreate();
             bool frontEnd = sessionMode == GameSessionMode.FrontEnd;
             if (frontEnd)
             {
@@ -551,6 +580,9 @@ namespace DK2.Unity
         internal DungeonScene Scene => _scene;
         internal ScriptedViewDirector ScriptedView => _scriptedView;
         internal bool TicksOnWorker => tickOnWorkerThread;
+        /// <summary>Without joining a worker tick, unlike <see cref="Simulation"/>: a probe that
+        /// asked every frame moved the join out of <see cref="Update"/>, where the game pays it.</summary>
+        internal bool HasStarted => _simulation != null;
 
         /// <summary>Waits for the art prefetch. A failure is only a warning: the art then loads on
         /// request, which reports a real problem as it always has.</summary>
@@ -703,6 +735,7 @@ namespace DK2.Unity
         private void ReleaseRuntimeResources()
         {
             if (_runtimeReleased) return;
+            _recorder?.Write(levelName, seed); _recorder = null;
             _hitches?.Dispose(); _hitches = null;
             _runtimeReleased = true;
             WaitForTick();
@@ -817,6 +850,7 @@ namespace DK2.Unity
             using (FrameSoundMarker.Auto()) _soundPlayer?.PlayDecoded();
             using (FrameSpeechMarker.Auto()) _soundPlayer?.UpdateSpeech((long)(Time.unscaledTimeAsDouble * 1000));
             if (_frontEnd != null) { if (!UpdateStartup() && !UpdateCutscene()) UpdateFrontEnd(); return; }
+            _recorder?.BeginFrame();
             FrameReportMarker.Begin();
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
@@ -829,7 +863,9 @@ namespace DK2.Unity
             FrameReportMarker.End();
 
             // The tick started at the end of the last frame, if any, has the world until it is done.
+            long waitStarted = _recorder?.Stamp() ?? 0;
             WaitForTick();
+            _recorder?.Spent(FrameRecorder.Part.Wait, waitStarted);
             if (_simulation == null) return;
             using (FrameSoundMarker.Auto()) UpdateWorldSound(_simulation.World, _simulation.Database);
             double elapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
@@ -929,7 +965,9 @@ namespace DK2.Unity
             _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
             _worldView.SetPossessionView(_simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
+            long presentStarted = _recorder?.Stamp() ?? 0;
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
+            _recorder?.Spent(FrameRecorder.Part.Present, presentStarted);
             if (_gemIdleEffects != null)
             {
                 _gemIdleRequests.Clear();
@@ -946,7 +984,9 @@ namespace DK2.Unity
                 else LookAt(_simulation.World);
             }
             _lightning?.BeginFrame(Camera.main);
+            long animationStarted = _recorder?.Stamp() ?? 0;
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
+            _recorder?.Spent(FrameRecorder.Part.Animation, animationStarted);
             _shotDrawFraction = fraction;
             _constructionEffects?.CaptureShots(_simulation.World.Shots, fraction);
             FollowQueriedCreature();
@@ -996,6 +1036,8 @@ namespace DK2.Unity
                 InputFrame input = firstInput;
                 _tickTask = Task.Run(() => RunTicks(count, input));
             }
+            _recorder?.EndFrame(ticks, _scene.DrawSeconds * SimulationTiming.TicksPerSecond,
+                Camera.main != null ? Camera.main.transform.position : default, _scriptedView.PathPlaying, _scene.TerrainFlushMilliseconds);
         }
 
         /// <summary>The ticks of one frame, the first with the frame's commands. Capturing the

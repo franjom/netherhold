@@ -16283,3 +16283,41 @@ backend a run used in `backend.txt`.
 - ADR-0689's warm-up ticks do not pay under IL2CPP (measured the same day, run `20261106-101259` against
   `-094552`: without them startup is 120 ms shorter, the first inline tick 25 ms longer inside that
   loading, tick 2 the same, no hitch either way), so the runner starts them under Mono only.
+
+## ADR-0691: a release player records its own frames, and a tester package carries it to other hardware
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity
+
+**Context.** The desktop tier (docs/PERFORMANCE.md: 120 FPS, every frame, on an RTX 3060 class machine)
+has no machine here. Someone else runs it, on hardware we cannot see, and what comes back must explain a
+slow frame, not only report one: PresentMon says a present was late, the game probe's columns say where
+the frame went, and the probe exists only as a development player built from this clone with the editor.
+
+**Decision.**
+- `FrameRecorder` (DK2.Unity) records every frame of a running level when asked for, by `-recordFrames
+  [directory]` or a `record-frames` file beside the executable, and otherwise does not exist. It reads
+  stopwatches of its own around the tick join, Present and the animated frame, and the terrain chunks'
+  last flush time, since `ProfilerRecorder` collects nothing in a release player. Rows are a preallocated
+  struct array (ten minutes at 240 FPS); nothing allocates per frame. `frames.csv` has the game probe's
+  columns, so `draw_clock.py` and the same analysis read both; `metadata.txt` names backend, hardware,
+  driver, resolution, VSync, frame cap, level and seed. Written when the runner is destroyed.
+- `DungeonRunner` takes `-level`, `-seed` and `-dk2Install` on the command line (the game probe's names),
+  so a script starts a campaign level without the front end. The Inspector's values stand otherwise.
+- `tools/tester-package/build.ps1` builds a release IL2CPP player of the game's scene through the game
+  probe's scratch project, adds the pinned PresentMon and `capture.ps1`, and zips them with a manifest
+  (commit, worktree state, SHA256 of the player and the input DLLs). `capture.ps1` is what the tester
+  runs; `summarise_capture.py` judges what comes back against a tier (every frame after two seconds of
+  play within budget, by the recorder and by PresentMon; the fly-by's draw clock under 1.5% error
+  frames; the ten worst frames with their parts). `frame_budget.py` takes `--tier` for the Level2
+  introduction capture it reads.
+- The game probe asks `DungeonRunner.HasStarted` instead of `Simulation`, whose getter joins the worker
+  tick: asked every frame before the runner's `Update`, it had moved the join out of the frame the game
+  pays it in, which the recorder's wait column then missed.
+
+**Consequences.**
+- Checked on the same Level6a run (`20261106-102549`, IL2CPP development player, recorder beside the
+  probe): Present, the animated frame and chunk rebuilds agree with the profiler's recorders to 0.01 ms
+  across 2,281 frames, and the tick counts match.
+- A capture from another machine is evidence that cannot be regenerated here and goes to
+  `F:\DK2Evidence\`. The dig burst is not in a capture yet: a release player has no test controller.
+- A tester's install path is in the capture's `player-arguments.txt`; the instructions say so.

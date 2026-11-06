@@ -555,6 +555,19 @@ path, run `20261106-075815`: frames over 2 ticks/s of draw-clock error 12.17%
 → 0.26%, p95 error 3.48 → 0.24 ticks/s, boundary holds 102 → 0; frame time
 unchanged. Cost: one frame of display latency, explicit in the ADR.
 
+**First release capture (2026-11-06, the tester package's own player on the
+owner's laptop, windowed 1920x1080, VSync off, no frame cap, 40 s, no
+PresentMon: `build/tester-package/20261106-103042/captures/20261106-103508`).**
+Frame p50 / p95 / p99 6.5 / 9.8 / 19.8 ms, max 93 ms; 109 of 4,948 frames after
+2 s over 16.67 ms. The two worst, 56 and 93 ms at tick 107 (26.8 s, where the
+fly-by ends and the HUD appears) and 73 ms at tick 143, spend under 3 ms in the
+tick join, Present and the animated frame together: the time is in a part the
+recorder does not name, most likely the HUD passes, and the headless probe
+(no window, no camera) never showed it. The draw-clock metric reads 3.0% error
+frames at ~150 FPS against 0.13% at the 60 FPS cap; whether that is the clock
+or the metric's sensitivity to short frames is open. Both are the next things
+to look at; the recorder gets a HUD column first.
+
 Still unmeasured: a 60 FPS cap repeat of the Level8 motion capture, and
 anything on the desktop tier (120 FPS on an RTX 3060 class machine), which
 [the performance policy](../PERFORMANCE.md#hardware-tiers-and-captures-on-other-machines-2026-11-06)

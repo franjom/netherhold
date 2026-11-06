@@ -319,6 +319,19 @@ Players build with IL2CPP (ADR-0690): the editor needs its Windows IL2CPP module
 and Visual Studio's C++ tools, and a first-use cost seen in Play mode (Mono) may not
 exist in the player. `tools/game-unity-probe/run.ps1 -Il2cpp` measures the player.
 
+A release player records its own frames when asked (`FrameRecorder`, ADR-0691):
+`-recordFrames [directory]` on the command line, or a file named `record-frames`
+beside the executable (then under `persistentDataPath/frames/<stamp>`). It writes
+`frames.csv` in the game probe's columns (frame interval, ticks, the tick join,
+Present, the animated frame, chunk rebuilds, GC collections, the draw clock, the
+camera, path) and `metadata.txt` (backend, hardware, driver, resolution, VSync,
+frame cap, level, seed) when the game closes; the hitch lines stay in `Player.log`.
+Nothing allocates per frame; the rows are preallocated for ten minutes at 240 FPS.
+The runner also takes `-level <name>`, `-seed <n>` and `-dk2Install <path>` on the
+command line, so a script can start a campaign level without the front end
+(`tools/tester-package`). `tools/game-unity-probe/run.ps1 -RecordFrames` runs the
+recorder beside the probe to check its columns against the profiler's.
+
 Frame budgets are 16.67 ms at 60 FPS and 8.33 ms at 120 FPS; these are targets,
 not measured results. Inspect slow frames as well as averages. The existing
 sampler-only crowd probe and its limits are in

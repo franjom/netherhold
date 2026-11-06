@@ -174,7 +174,7 @@ namespace DK2.Unity
                 double frameMs = (now - _lastFrameTicks) * 1000.0 / Stopwatch.Frequency;
                 _lastFrameTicks = now;
 
-                if (_runner.Simulation == null)
+                if (!_runner.HasStarted)
                 {
                     // The runner reports a failed start as a logged error; waiting longer shows nothing.
                     if (_errors > 0 || _clock.Elapsed.TotalSeconds > 120)

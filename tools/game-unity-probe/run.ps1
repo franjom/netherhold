@@ -15,40 +15,16 @@ param(
     [string]$Markers = '',
     [switch]$WorkerTicks,
     [switch]$Il2cpp,
+    [switch]$RecordFrames,
     [switch]$SkipSync
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
-$project = Join-Path $OutputRoot 'project'
 $run = Join-Path $OutputRoot (Get-Date -Format 'yyyyMMdd-HHmmss')
 New-Item -ItemType Directory -Path $run -Force | Out-Null
 
-# The adapter's DLLs from this checkout's Release build.
-if (!$SkipSync) { & "$repo/unity/sync-assemblies.ps1" | Out-Null }
-
-# One scratch project, reused for its import cache. Only a folder this script made, and marked,
-# is ever written to: its Assets are replaced on every run.
-if (Test-Path -LiteralPath $project) {
-    if (!(Test-Path -LiteralPath "$project/.game-probe")) { throw "$project exists and is not the probe's scratch project" }
-} else {
-    New-Item -ItemType Directory -Path $project -Force | Out-Null
-    Set-Content -LiteralPath "$project/.game-probe" -Value 'isolated game profiling project'
-}
-# The first run seeds Library from a clone's, through a temporary name so a failed copy is retried.
-if (!(Test-Path -LiteralPath "$project/Library")) {
-    foreach ($cache in @("$repo/unity/DK2.Unity/Library", 'D:/DungeonKeeperRemake/unity/DK2.Unity/Library')) {
-        if (!(Test-Path -LiteralPath $cache)) { continue }
-        $partial = "$project/Library.partial"
-        if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Recurse -Force }
-        Copy-Item -LiteralPath $cache -Destination $partial -Recurse -Force
-        Rename-Item -LiteralPath $partial -NewName 'Library'
-        break
-    }
-}
-if (Test-Path -LiteralPath "$project/Assets") { Remove-Item -LiteralPath "$project/Assets" -Recurse -Force }
-foreach ($folder in @('Assets', 'Packages', 'ProjectSettings')) {
-    Copy-Item -LiteralPath "$repo/unity/DK2.Unity/$folder" -Destination $project -Recurse -Force
-}
+# The shared scratch project, refreshed from this checkout (prepare-project.ps1).
+$project = & "$PSScriptRoot/prepare-project.ps1" -Repo $repo -OutputRoot $OutputRoot -SkipSync:$SkipSync
 Copy-Item -LiteralPath "$PSScriptRoot/GameProbe.cs" -Destination "$project/Assets/DK2/GameProbe.cs" -Force
 Copy-Item -LiteralPath "$PSScriptRoot/GameProbeBuild.cs" -Destination "$project/Assets/DK2/Editor/GameProbeBuild.cs" -Force
 
@@ -82,10 +58,12 @@ Run-Native $Unity @('-batchmode', '-quit', '-nographics', '-projectPath', $proje
 if (!(Test-Path -LiteralPath $player)) { throw "No player was built; see $run/build.log" }
 
 Write-Host "Playing $Level for $Seconds s..."
-Run-Native $player @('-batchmode', '-screen-width', '1280', '-screen-height', '720', '-dk2Install', $Install,
+$playerArguments = @('-batchmode', '-screen-width', '1280', '-screen-height', '720', '-dk2Install', $Install,
     '-level', $Level, '-seed', "$Seed", '-probeSeconds', "$Seconds", '-captureFrom', "$CaptureFrom",
     '-captureTo', "$CaptureTo", '-markers', $(if ($Markers) { $Markers } else { ',' }), '-workerTicks', $(if ($WorkerTicks) { '1' } else { '0' }),
-    '-probeOutput', $run, '-logFile', "$run/player.log") ([math]::Ceiling($Seconds / 60) + 5) @(0, 2)
+    '-probeOutput', $run, '-logFile', "$run/player.log")
+if ($RecordFrames) { $playerArguments += @('-recordFrames', "$run/recorder") }
+Run-Native $player $playerArguments ([math]::Ceiling($Seconds / 60) + 5) @(0, 2)
 if (!(Test-Path -LiteralPath "$run/summary.txt")) { throw "No summary; see $run/player.log" }
 Get-Content -LiteralPath "$run/summary.txt"
 Write-Output $run

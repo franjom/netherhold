@@ -75,38 +75,38 @@ developer's install paths, and must come back as files we can read. Today it
 cannot: `run-window-frames.ps1` needs the editor, a scratch project under this
 clone's `build/`, PresentMon installed by our script and the DK2 install at
 its path, and a release player records nothing about its own frames. What a
-desktop-tier capture needs, in order of what exists:
+desktop-tier capture needs, and what exists (ADR-0691, 2026-11-06):
 
-1. **A tester package**: one release player (Vulkan, with the Direct3D12
-   fallback), the pinned PresentMon binary, a script that starts the trace,
-   runs one named scenario from `required_scenarios` with a fixed seed and
-   camera, stops the trace and zips the CSV, `Player.log`, the machine's
-   CPU/GPU/driver/resolution metadata, the built-DLL SHA256 fingerprints and
-   a screenshot taken outside the timed interval. `frame_budget.py` already
-   reads such a capture, but it checks the capture's CPU, GPU and resolution
-   against the one profile in `performance-target.json` and fails any other
-   machine; it needs a `--tier` that selects a tier's minimum and accepts
-   that tier's hardware. The tiers are listed in the file; the checker does
-   not read them yet.
-2. **Telemetry inside the release player**, off by default, on by a command
-   line switch or a file beside the executable, allocation-free on ordinary
-   frames: per frame the interval, ticks run, the join wait, Present,
-   AnimatedFrame, chunk rebuild, the draw clock and the camera, as the game
-   probe's `frames.csv` has them, plus the hitch line's first-use art by
-   kind. Written to `persistentDataPath` at exit. This is what explains a
-   slow frame the tester reports; PresentMon alone says only that it was slow.
-   The profiler recorders behind the hitch line exist only in development
-   players, so the release recorder reads stopwatches of its own.
-3. **The draw-clock evenness metric** (frames with draw-clock error over 2
-   ticks/s, `docs/research/level8-intro-motion.md`) in the same report, since
-   a fly-by can stutter at a flat 120 FPS. The 2026-11-06 Level6a measurement
-   failed it at 12% with frame time flat.
-4. **Scenario coverage**: the opening fly-by and the dig burst
-   (`terrain-edit-burst`) are the two that showed the remaining hitches; the
-   list in `performance-target.json` stands.
+1. **A tester package** (`tools/tester-package`, built by its `build.ps1`): one
+   release player (IL2CPP; Vulkan with the Direct3D12 fallback), the pinned
+   PresentMon binary, and `capture.ps1`, which records the machine's
+   CPU/GPU/driver/display, starts the trace, plays one campaign level with a
+   fixed seed hands-off (its opening fly-by is the level's own camera path),
+   stops the trace, takes a screenshot outside the timed interval and zips
+   the result with `Player.log`, the player's own hardware metadata and the
+   build's SHA256 manifest. `summarise_capture.py` judges the capture against
+   a tier. `frame_budget.py` takes `--tier` as well, for the Level2 portal
+   introduction capture its shape belongs to.
+2. **Telemetry inside the release player** (`FrameRecorder`, unity/README.md):
+   off by default, on by `-recordFrames [directory]` or a `record-frames` file
+   beside the executable, allocation-free on ordinary frames: per frame the
+   interval, ticks run, the join wait, Present, the animated frame, chunk
+   rebuilds, GC collections, the draw clock, the camera and whether a path
+   plays, in the game probe's columns, from stopwatches of its own since the
+   profiler's recorders exist only in development players. Written at exit.
+   The hitch lines (first-use art by kind) stay in `Player.log`, which the
+   capture includes. Checked against the probe's recorders on the same run:
+   Present, the animated frame and chunk rebuilds agree to 0.01 ms.
+3. **The draw-clock evenness metric** (`tools/game-unity-probe/draw_clock.py`,
+   the Level8 motion metric) is in the same summary, since a fly-by can stutter
+   at a flat 120 FPS. The 2026-11-06 Level6a measurement failed it at 12% with
+   frame time flat, before ADR-0687.
+4. **Scenario coverage**: the opening fly-by is covered; the dig burst
+   (`terrain-edit-burst`) is not yet, since a release player has no test
+   controller to tag walls with. The list in `performance-target.json` stands.
 
-Until items 1 and 2 exist, a desktop-tier number is a tester's FPS counter,
-which the policy above does not accept. Evidence from another machine goes to
+A desktop-tier number is still only as good as the capture behind it: a
+tester's FPS counter is not one, and the policy above does not accept it. Evidence from another machine goes to
 `F:\DK2Evidence\` like any capture that cannot be regenerated here.
 Measurements so far, all on the owner's laptop and headless, are in the
 [parallelism plan](plans/2026-10-17-parallelism-design.md), addendum 2026-11-06.

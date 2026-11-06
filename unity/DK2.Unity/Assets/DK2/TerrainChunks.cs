@@ -138,6 +138,7 @@ namespace DK2.Unity
         /// flush. Everything is rebuilt when nothing is drawn yet, so a level appears whole.</summary>
         public void Flush()
         {
+            LastFlushMilliseconds = 0;
             if (_dirty.Count == 0) return;
             _dirtyOrder.Clear();
             _dirtyOrder.AddRange(_dirty);
@@ -154,7 +155,11 @@ namespace DK2.Unity
                     Rebuild(chunk);
                 _dirty.Remove(chunk);
             }
+            LastFlushMilliseconds = _flushClock.Elapsed.TotalMilliseconds;
         }
+
+        /// <summary>What the last <see cref="Flush"/> spent rebuilding, for the frame recorder.</summary>
+        public double LastFlushMilliseconds { get; private set; }
 
         public void Clear()
         {
