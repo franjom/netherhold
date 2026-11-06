@@ -59,9 +59,10 @@ Both438 state/resume/XY match at1425:89/80,58057,102761. At1426 the remake's
 89 starts another Lair search (`Room.cpp:1563`), while native starts the happy
 chooser roll (`State.cpp:1700`) and ends travelling toward research. The next
 supported defect is [0046F390](functions/0046F390.md)'s unconditional refusal
-when stored resume is80, even in raw89. Captured438 retains resume80; our
-Activity-only guard lets it through. STRONGLY INFERRED from primary instructions,
-independently re-read by the reviewer. This gate remains unimplemented in434.
+when stored resume is80, even in raw89. Captured438 retains it at completed1425,
+entering1426; hash434's Activity-only guard lets it through. STRONGLY INFERRED from primary instructions,
+independently re-read by the reviewer. This gate was unimplemented in434;
+[ADR-0703/hash435](lair-resume-gate.md) builds it and owns the next boundary.
 No full-state or Heart outcome equivalence follows from the bounded draw match.
 
 Evidence is add-only under

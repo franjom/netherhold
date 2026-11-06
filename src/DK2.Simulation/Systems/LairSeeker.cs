@@ -26,14 +26,14 @@ public sealed class LairSeeker
 
     /// <summary>The implemented eligibility subset of <c>FUN_0046f390</c> (Q104, Q150).</summary>
     /// <remarks>Checks sleeping capability, bed ownership and activity exclusions.
-    /// The Activity guard does not mirror the unconditional stored-resume80 refusal,
-    /// including raw89; that gate remains unimplemented (bedless-sleep-need.md).
+    /// Stored resume80 refuses acquisition even outside travel (lair-resume-gate.md, ADR-0703).
     /// Leaving is an adapter that prevents a departing creature from acquiring a new bed.</remarks>
     public static bool CanAttempt(
         WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
     {
         if (!LairRules.NeedsBed(definition)) return false;
+        if (creature.UtilityNewState == LairRules.MakingAHomeState) return false;
         if (CreatureEligibility.IsExcluded(creature,
             CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return false;
         if (creature.Activity is CreatureActivity.SeekingLair

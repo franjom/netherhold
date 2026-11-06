@@ -16619,3 +16619,15 @@ ordinary acquisition remains with the idle/job chooser.
 
 **Consequences.** Hash/save434, no new state. Existing Lair-finder and needs
 ordering limits remain; native continuation retains declared snapshot inputs.
+
+## ADR-0703 - honor the stored Lair resume before acquisition
+**Date:** 2026-11-06 · **Status:** accepted · **Systems:** creatures, simulation-core
+
+**Context.** `lair-resume-gate.md` isolates acquisition accepted from raw89
+despite a stored resume80 that makes the original helper refuse.
+
+**Decision.** Test the stored resume independently of current activity before
+room search. Retain the other acquisition adapters in their existing scope.
+
+**Consequences.** Hash/save435, no new fields or restore inputs. The bounded
+comparison proceeds to research departure; full-state and Heart parity stay open.

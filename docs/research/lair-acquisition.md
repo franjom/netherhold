@@ -242,8 +242,8 @@ retain full finder limits. `LairRules.ArrivalTile` remains a centre-nearest tile
 for the finder's approximate reach test, not the final departure destination.
 The finder itself is unchanged: reachability, centre and ties remain adapter
 limits (Q473). ADR-0702 builds the [sleep-need caller gate](bedless-sleep-need.md).
-`LairSeeker.CanAttempt` still uses Activity instead of the unconditional stored-resume80
-refusal; [0046F390](functions/0046F390.md) remains PARTIAL. The idle fallback deadline,
+ADR-0703 adds the [unconditional stored-resume80 refusal](lair-resume-gate.md) to
+`LairSeeker.CanAttempt`; [0046F390](functions/0046F390.md) remains PARTIAL for other adapters. The idle fallback deadline,
 room-walk order and later bed-placement/relocation details retain their own scopes.
 
 **Not added deliberately:** an implementation plan drawn from this note by

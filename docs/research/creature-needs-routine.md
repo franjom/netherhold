@@ -183,7 +183,7 @@ one-second throttle for autonomous lair attempts.
 **Not built:** the alert timer, possession, rebels and the big winner in
 the busy test (the Call To Arms is built, ADR-0279) (each is one of our activities or unbuilt).
 ADR-0702 builds the [bedless sleep-need gate](bedless-sleep-need.md), including the
-eligible wounded researcher. The shared acquisition service still lacks the stored-resume80
-refusal, documented there. Creatures still
+eligible wounded researcher. ADR-0703 adds the shared acquisition service's
+[stored-resume80 refusal](lair-resume-gate.md); other adapters remain bounded. Creatures still
 on our own activities (combat, leaving, fleeing) are asked by none of the three, as
 before.
