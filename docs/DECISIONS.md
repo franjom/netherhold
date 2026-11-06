@@ -16321,3 +16321,32 @@ the frame went, and the probe exists only as a development player built from thi
 - A capture from another machine is evidence that cannot be regenerated here and goes to
   `F:\DK2Evidence\`. The dig burst is not in a capture yet: a release player has no test controller.
 - A tester's install path is in the capture's `player-arguments.txt`; the instructions say so.
+
+## ADR-0692: the HUD and the full camera draw once in the first frames of play
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity
+
+**Context.** Every release capture of Level6a (ADR-0691's recorder, uncapped, windowed) had a 79–93 ms
+frame where the opening fly-by ends and the HUD appears, with under 12 ms of it in the runner's `Update`.
+A Profiler capture of the real scene (a development build of the tester package's player, `-ProfileFrom
+25 -ProfileTo 28`) put it on the render thread: 74 ms in `Gfx.WaitForPresentOnGfxThread`, and 21 ms of
+URP's render loop the frame before. The HUD's first draw (nine UI Toolkit documents and the IMGUI
+panels) and the camera's first frame without the letterbox build pipelines, atlases and render targets
+on first use. The headless probe never drew either, and its own scene never showed the frame.
+
+**Decision.** For the first two frames of a campaign level `CurrentHud` reports the normal HUD as shown
+and ordinary input as blocked, `ApplyLetterbox` leaves the camera at its full rect, every `UIDocument`
+root has opacity 0 and `OnGUI` draws with a transparent `GUI.color`. The second frame restores them. The
+first frame of play is the 1.3–1.5 s art-loading frame, so the work lands where nothing is moving.
+
+**Consequences.**
+- Same scene, same build options, same capture (`build/tester-package/20261106-111442/captures/20261106-111542`):
+  the frames at the fly-by's end are 12–22 ms, and frames 2 and 3 of play are 39 and 43 ms inside the
+  loading pause. Nothing is visible: the panels draw transparent under the loading frame. The release
+  build confirms it (`20261106-111653/captures/20261106-111954`, uncapped, windowed): max frame 29.5 ms
+  against 79–93 before, frames over 16.67 ms 109 → 44, and 41 of those 44 are the tick join (P1).
+- Any new HUD surface that draws through its own document is warmed with the rest, since the documents
+  are found, not listed. One that draws only after an input event is not.
+- The game probe takes `-Windowed` (cameras draw, 1920x1080) and `-FrameCap`; the recorder takes
+  `-profileFrom`/`-profileTo` for a Profiler capture in a development player; the tester package builds
+  one with `build.ps1 -Development`. That chain is how a frame outside `Update` gets a name.

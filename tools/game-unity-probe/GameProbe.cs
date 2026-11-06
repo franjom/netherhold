@@ -122,7 +122,7 @@ namespace DK2.Unity
                 if (_errors++ == 0) _firstError = message;
             };
             QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = 60;
+            Application.targetFrameRate = int.Parse(Arg("-frameCap", "60"), CultureInfo.InvariantCulture);
             // Silent: the owner works beside it and heard a probe's mentor speech.
             AudioListener.volume = 0f;
             _output = Arg("-probeOutput", Application.persistentDataPath);
@@ -136,8 +136,9 @@ namespace DK2.Unity
                 Recorded = Standard.Concat(extra.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(m => (m.Trim(), m.Trim(), ProfilerCategory.Scripts))).ToArray();
 
-            // Room for every frame at well over the frame cap, made now rather than while measuring.
-            int capacity = (int)(_duration * 120) + 1000;
+            // Room for every frame at well over the frame cap (uncapped, a few hundred a second), made
+            // now rather than while measuring.
+            int capacity = (int)(_duration * (Application.targetFrameRate > 0 ? Application.targetFrameRate * 2 : 600)) + 1000;
             _rows = new Row[capacity];
             _values = new double[capacity * Recorded.Length];
 

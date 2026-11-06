@@ -12,6 +12,10 @@ param(
     [int]$Width = 1920,
     [int]$Height = 1080,
     [switch]$Windowed,
+    [int]$FrameCap = -1,
+    [int]$VSync = 0,
+    [double]$ProfileFrom = 0,
+    [double]$ProfileTo = 0,
     [switch]$NoPresentMon,
     [string]$Output = ''
 )
@@ -71,7 +75,8 @@ if (!$NoPresentMon) {
 
 # The game: a campaign level with a fixed seed; the recorder writes frames.csv when the game closes.
 $playerArguments = @('-screen-fullscreen', $(if ($Windowed) { '0' } else { '1' }), '-screen-width', "$Width", '-screen-height', "$Height",
-    '-level', $Level, '-seed', "$Seed", '-dk2Install', $Install, '-recordFrames', "$capture/recorder", '-logFile', "$capture/Player.log")
+    '-level', $Level, '-seed', "$Seed", '-dk2Install', $Install, '-frameCap', "$FrameCap", '-vsync', "$VSync",
+    '-recordFrames', "$capture/recorder", '-profileFrom', "$ProfileFrom", '-profileTo', "$ProfileTo", '-logFile', "$capture/Player.log")
 Set-Content -LiteralPath "$capture/player-arguments.txt" -Value ($playerArguments -join ' ')
 Write-Host "Playing $Level for $Seconds s. Leave the game alone until it closes by itself."
 $process = Start-Process -FilePath $player -ArgumentList ((Quote $playerArguments) -join ' ') -PassThru

@@ -238,6 +238,15 @@ namespace DK2.Unity
                 seed = value;
             string install = Argument(args, "-dk2Install");
             if (install != null) installDirectory = install;
+            // A capture names its frame cap and VSync, so a run on other hardware is comparable.
+            string cap = Argument(args, "-frameCap");
+            if (cap != null && int.TryParse(cap, System.Globalization.NumberStyles.AllowLeadingSign,
+                    System.Globalization.CultureInfo.InvariantCulture, out int frameCap))
+                Application.targetFrameRate = frameCap;
+            string vsync = Argument(args, "-vsync");
+            if (vsync != null && int.TryParse(vsync, System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out int vSyncCount))
+                QualitySettings.vSyncCount = vSyncCount;
         }
 
         private static string Argument(string[] args, string key)
@@ -571,6 +580,7 @@ namespace DK2.Unity
             // seconds of play, so no first-called path pays Mono's JIT in a frame (ADR-0688: not
             // during loading, and not the simulation, which cost load time for nothing).
             _jitWarmup ??= JitWarmup.Run(typeof(DungeonRunner).Assembly, typeof(WorldView).Assembly);
+            if (!frontEnd) BeginHudWarmUp(2);
         }
 
         /// <summary>Threads the first frame's art decodes on, at most; fewer on a machine with fewer cores.</summary>
@@ -1056,6 +1066,7 @@ namespace DK2.Unity
                     Camera.main != null ? Camera.main.transform.position : default, _scriptedView.PathPlaying, _scene.TerrainFlushMilliseconds);
                 _recordedTickMs = 0;
             }
+            EndHudWarmFrame();
         }
 
         /// <summary>The ticks of one frame, the first with the frame's commands. Capturing the
@@ -1325,7 +1336,7 @@ namespace DK2.Unity
         {
             Camera camera = Camera.main;
             if (camera == null) return;
-            float bar = _scriptedView.LetterboxBar;
+            float bar = _hudWarmFrames > 0 ? 0f : _scriptedView.LetterboxBar;
             camera.rect = new Rect(0f, bar, 1f, 1f - 2f * bar);
         }
 
@@ -1894,6 +1905,7 @@ namespace DK2.Unity
 
         private void OnGUI()
         {
+            if (_hudWarmFrames > 0) GUI.color = new Color(1f, 1f, 1f, 0f);
             if (_frontEnd != null)
             {
                 DrawCutsceneTitle();

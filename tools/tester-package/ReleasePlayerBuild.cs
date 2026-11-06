@@ -10,8 +10,9 @@ using UnityEditor.Build.Reporting;
 
 namespace DK2.Unity.Editor
 {
-    /// <summary>Builds the game as a release player (IL2CPP, ADR-0690; no development options) for
-    /// the tester package. Runs only in the marked scratch project <c>prepare-project.ps1</c> makes.</summary>
+    /// <summary>Builds the game as a release player (IL2CPP, ADR-0690; no development options unless
+    /// <c>-playerDevelopment 1</c>, for a Profiler capture of the real scene) for the tester package.
+    /// Runs only in the marked scratch project <c>prepare-project.ps1</c> makes.</summary>
     public static class ReleasePlayerBuild
     {
         public static void Build()
@@ -28,7 +29,7 @@ namespace DK2.Unity.Editor
                 scenes = new[] { "Assets/DK2/Scenes/Dungeon.unity" },
                 locationPathName = output,
                 target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.None,
+                options = Array.IndexOf(args, "-playerDevelopment") >= 0 ? BuildOptions.Development : BuildOptions.None,
             });
             if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException(report.summary.result.ToString());
         }

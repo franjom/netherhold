@@ -16,6 +16,8 @@ param(
     [switch]$WorkerTicks,
     [switch]$Il2cpp,
     [switch]$RecordFrames,
+    [switch]$Windowed,
+    [int]$FrameCap = 60,
     [switch]$SkipSync
 )
 $ErrorActionPreference = 'Stop'
@@ -58,9 +60,10 @@ Run-Native $Unity @('-batchmode', '-quit', '-nographics', '-projectPath', $proje
 if (!(Test-Path -LiteralPath $player)) { throw "No player was built; see $run/build.log" }
 
 Write-Host "Playing $Level for $Seconds s..."
-$playerArguments = @('-batchmode', '-screen-width', '1280', '-screen-height', '720', '-dk2Install', $Install,
+# Headless by default (no window, no camera); -Windowed draws at 1920x1080 so the engine's own frame work shows.
+$playerArguments = $(if ($Windowed) { @('-screen-fullscreen', '0', '-screen-width', '1920', '-screen-height', '1080') } else { @('-batchmode', '-screen-width', '1280', '-screen-height', '720') }) + @('-dk2Install', $Install,
     '-level', $Level, '-seed', "$Seed", '-probeSeconds', "$Seconds", '-captureFrom', "$CaptureFrom",
-    '-captureTo', "$CaptureTo", '-markers', $(if ($Markers) { $Markers } else { ',' }), '-workerTicks', $(if ($WorkerTicks) { '1' } else { '0' }),
+    '-captureTo', "$CaptureTo", '-frameCap', "$FrameCap", '-markers', $(if ($Markers) { $Markers } else { ',' }), '-workerTicks', $(if ($WorkerTicks) { '1' } else { '0' }),
     '-probeOutput', $run, '-logFile', "$run/player.log")
 if ($RecordFrames) { $playerArguments += @('-recordFrames', "$run/recorder") }
 Run-Native $player $playerArguments ([math]::Ceiling($Seconds / 60) + 5) @(0, 2)

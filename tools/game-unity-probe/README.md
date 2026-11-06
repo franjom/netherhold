@@ -22,6 +22,10 @@ Plays a campaign level through the production `DungeonRunner` in a standalone
 # Also the game's own release-player recorder (-recordFrames, unity/README.md), written to
 # <run>/recorder, to check it against the probe's columns:
 & tools/game-unity-probe/run.ps1 -Level Level6a -Seconds 30 -WorkerTicks -Il2cpp -RecordFrames
+# Windowed at 1920x1080 instead of headless, so the cameras draw and the engine's own frame work
+# (shader pipelines, uploads, present) is in the capture; -FrameCap -1 lifts the 60 FPS cap. The probe's
+# scene is its own, so a frame the real scene alone shows needs the tester package's development player:
+& tools/game-unity-probe/run.ps1 -Level Level6a -Seconds 32 -WorkerTicks -Il2cpp -Windowed -FrameCap -1 -CaptureFrom 25 -CaptureTo 28
 ```
 
 Requires an activated Unity 6000.6.0f1 editor with Windows standalone build support

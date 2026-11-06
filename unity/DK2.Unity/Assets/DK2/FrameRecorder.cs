@@ -43,8 +43,17 @@ namespace DK2.Unity
         private double _frameMs;
         private int _collections;
         private bool _written;
+        // A Unity Profiler capture of one window of play, written as capture.raw beside the rows.
+        // Development players only: the profiler does nothing in a release player.
+        private readonly float _profileFrom, _profileTo;
+        private bool _profiling, _profiled;
 
-        private FrameRecorder(string directory) => _directory = directory;
+        private FrameRecorder(string directory, float profileFrom, float profileTo)
+        {
+            _directory = directory;
+            _profileFrom = profileFrom;
+            _profileTo = profileTo;
+        }
 
         /// <summary>The recorder when the player was asked for one, else null.</summary>
         public static FrameRecorder TryCreate()
@@ -58,7 +67,13 @@ namespace DK2.Unity
                 : Path.Combine(Application.persistentDataPath, "frames", DateTime.Now.ToString("yyyyMMdd-HHmmss", Invariant));
             Directory.CreateDirectory(directory);
             Debug.Log($"DK2: recording frames to {directory}");
-            return new FrameRecorder(directory);
+            return new FrameRecorder(directory, Seconds(args, "-profileFrom"), Seconds(args, "-profileTo"));
+        }
+
+        private static float Seconds(string[] args, string key)
+        {
+            int at = Array.IndexOf(args, key);
+            return at >= 0 && at + 1 < args.Length && float.TryParse(args[at + 1], NumberStyles.Float, Invariant, out float value) ? value : 0;
         }
 
         public long Stamp() => _clock.ElapsedTicks;
@@ -81,6 +96,26 @@ namespace DK2.Unity
             _frameMs = _frameStart > 0 ? (now - _frameStart) * 1000.0 / Stopwatch.Frequency : 0;
             _frameStart = now;
             Array.Clear(_parts, 0, _parts.Length);
+            if (_profileTo > _profileFrom) ProfileWindow((now - _playStart) / (double)Stopwatch.Frequency);
+        }
+
+        private void ProfileWindow(double seconds)
+        {
+            if (!_profiling && !_profiled && seconds >= _profileFrom)
+            {
+                UnityEngine.Profiling.Profiler.logFile = Path.Combine(_directory, "capture");
+                UnityEngine.Profiling.Profiler.enableBinaryLog = true;
+                UnityEngine.Profiling.Profiler.enabled = true;
+                _profiling = true;
+            }
+            if (_profiling && seconds >= _profileTo)
+            {
+                UnityEngine.Profiling.Profiler.enabled = false;
+                UnityEngine.Profiling.Profiler.enableBinaryLog = false;
+                UnityEngine.Profiling.Profiler.logFile = "";
+                _profiling = false;
+                _profiled = true;
+            }
         }
 
         /// <param name="tickMs">The worker's time in the ticks this frame joined, if any.</param>

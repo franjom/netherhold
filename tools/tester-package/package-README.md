@@ -54,6 +54,8 @@ Options
     -Level level8     another campaign level (level1 ... level20)
     -Windowed         a 1920x1080 window instead of full screen
     -NoPresentMon     skip the frame trace (no administrator needed)
+    -FrameCap 120     cap the frame rate (default -1: uncapped)
+    -VSync 1          wait for the display (default 0: off)
 
 If the game does not start, Player.log in the capture folder says why; the
 usual reason is the -Install path.

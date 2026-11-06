@@ -328,9 +328,13 @@ input, Present, the animated frame, chunk rebuilds, lights, the HUD passes, GC
 collections, the draw clock, the camera, path) and `metadata.txt` (backend, hardware, driver, resolution, VSync,
 frame cap, level, seed) when the game closes; the hitch lines stay in `Player.log`.
 Nothing allocates per frame; the rows are preallocated for ten minutes at 240 FPS.
-The runner also takes `-level <name>`, `-seed <n>` and `-dk2Install <path>` on the
-command line, so a script can start a campaign level without the front end
-(`tools/tester-package`). `tools/game-unity-probe/run.ps1 -RecordFrames` runs the
+The runner also takes `-level <name>`, `-seed <n>`, `-dk2Install <path>`, `-frameCap <n>`
+and `-vsync <n>` on the command line, so a script can start a campaign level without
+the front end (`tools/tester-package`), and `-profileFrom <s> -profileTo <s>` writes a
+Unity Profiler capture of that window beside the rows in a development player, which
+`tools/game-unity-probe/report-capture.ps1` reads. The first two frames of a level draw
+the HUD transparent at the full camera rect so the render thread builds its pipelines
+and targets during loading, not where the fly-by ends (ADR-0692). `tools/game-unity-probe/run.ps1 -RecordFrames` runs the
 recorder beside the probe to check its columns against the profiler's.
 
 Frame budgets are 16.67 ms at 60 FPS and 8.33 ms at 120 FPS; these are targets,

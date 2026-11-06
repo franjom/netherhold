@@ -63,7 +63,32 @@ namespace DK2.Unity
         private GameTick _gotoTick;
         private (float X, float Y)? _gotoLocation;
 
-        private HudVisibility CurrentHud => _hudControls.Visibility(_scriptedView.HudFor(cameraPreset));
+        private HudVisibility CurrentHud => _hudWarmFrames > 0
+            ? new HudVisibility(ShowNormalHud: true, AllowOrdinaryInput: false)
+            : _hudControls.Visibility(_scriptedView.HudFor(cameraPreset));
+
+        // The HUD's first draw, and the camera's first frame without the letterbox, build pipelines
+        // and targets on the render thread: 74 ms where the fly-by ends. The first frames of play draw
+        // both instead, the panels at zero opacity, while the first frame is loading art anyway.
+        private int _hudWarmFrames;
+        private UnityEngine.UIElements.UIDocument[] _warmDocuments;
+
+        private void BeginHudWarmUp(int frames)
+        {
+            _hudWarmFrames = frames;
+            _warmDocuments = FindObjectsByType<UnityEngine.UIElements.UIDocument>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (UnityEngine.UIElements.UIDocument document in _warmDocuments)
+                if (document.rootVisualElement != null) document.rootVisualElement.style.opacity = 0;
+        }
+
+        private void EndHudWarmFrame()
+        {
+            if (_hudWarmFrames == 0 || --_hudWarmFrames > 0) return;
+            foreach (UnityEngine.UIElements.UIDocument document in _warmDocuments)
+                if (document != null && document.rootVisualElement != null)
+                    document.rootVisualElement.style.opacity = UnityEngine.UIElements.StyleKeyword.Null;
+            _warmDocuments = null;
+        }
         private bool HudModal => _hudControls.OptionsVisible || _hudControls.FullMapVisible;
 
         private void InitializeHudControls(string install, GameDatabase database, bool campaignLevel)

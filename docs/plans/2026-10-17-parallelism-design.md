@@ -572,17 +572,21 @@ over 16.67 ms. Where they go, by the recorder's columns:
   desktop tier (120 FPS: 8.3 ms frames) cannot be met with a 7–14 ms tick
   joined every frame. P1 (draw the previous world while the tick runs) is back
   on the table; it is the owner's call, since it restructures the presenter.
-- **The 26.6 s frame is the engine's, not the runner's.** The worst frame of
-  each run (79–93 ms) is the moment the fly-by ends and the HUD appears. With
-  `update_ms` in the recorder (the runner's Update from first line to last),
-  the 79 ms frame spends 3.8 ms in Update and 75 ms outside it: rendering,
-  presenting, or the driver. The HUD's first draw brings new materials and
-  shader variants (Vulkan pipelines are built on first use), which no C#
-  marker covers and which the headless probe, with no camera, never draws.
-  Next: warm the HUD's shader variants at startup (Unity 6's graphics state
-  collection, or `ShaderVariantCollection.WarmUp` on the materials under
-  `Assets/DK2/Resources`) and capture again. The runner's own HUD passes are
-  0.6 ms p50, 2 ms p99.
+- **The 26.6 s frame was the engine's, not the runner's: fixed by ADR-0692.**
+  The worst frame of each run (79–93 ms) was the moment the fly-by ends and
+  the HUD appears; `update_ms` put 3.8 ms of it in Update. A Profiler capture
+  of the real scene (development build of the tester player, `-ProfileFrom 25
+  -ProfileTo 28`, `report-capture.ps1` on its `recorder` folder) named it: 74 ms
+  in `Gfx.WaitForPresentOnGfxThread`, the render thread building the HUD's
+  pipelines and atlases and the camera's full-rect targets on first use, plus
+  21 ms of URP's render loop the frame before. The headless probe, with no
+  camera, never drew either; the windowed probe in its own scene did not show
+  it either, so the real scene was needed. The first two frames of play now
+  draw the HUD transparent at the full camera rect (ADR-0692): the fly-by's
+  end reads 12–22 ms, and frames 2–3 of play take 39 and 43 ms inside the
+  loading pause. Release build, same capture: max frame 29.5 ms (was 79–93),
+  frames over 16.67 ms 109 → 44, of which 41 are the tick join: what is left
+  above 60 FPS is P1. The runner's own HUD passes are 0.6 ms p50, 2 ms p99.
 - **The draw clock is even.** The 3.0% the metric first read at 150 FPS was
   the metric: the clock samples elapsed time after the tick join, so a frame
   that waited covers its wait and the next frame's interval carries it.

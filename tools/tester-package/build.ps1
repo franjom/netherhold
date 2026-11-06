@@ -7,6 +7,7 @@
 param(
     [string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe',
     [string]$OutputRoot = 'D:/DungeonKeeperRemake/build/tester-package',
+    [switch]$Development,
     [switch]$SkipSync
 )
 $ErrorActionPreference = 'Stop'
@@ -38,8 +39,10 @@ function Run-Native([string]$Executable, [string[]]$Arguments, [int]$Minutes) {
 
 $player = "$package/player/DK2.exe"
 Write-Host "Building the release player (IL2CPP compiles C++; allow several minutes)..."
-Run-Native $Unity @('-batchmode', '-quit', '-nographics', '-projectPath', $project,
-    '-executeMethod', 'DK2.Unity.Editor.ReleasePlayerBuild.Build', '-playerBuild', $player, '-logFile', "$package/build.log") 60
+$buildArguments = @('-batchmode', '-quit', '-nographics', '-projectPath', $project,
+    '-executeMethod', 'DK2.Unity.Editor.ReleasePlayerBuild.Build', '-playerBuild', $player, '-logFile', "$package/build.log")
+if ($Development) { $buildArguments += @('-playerDevelopment', '1') }
+Run-Native $Unity $buildArguments 60
 if (!(Test-Path -LiteralPath $player)) { throw "No player was built; see $package/build.log" }
 # The IL2CPP symbols folder is for crash dumps here, not for the tester: it is most of the size.
 Get-ChildItem -LiteralPath "$package/player" -Directory -Filter '*BackUpThisFolder*' | Remove-Item -Recurse -Force
@@ -59,7 +62,7 @@ $hashes = @(Get-ChildItem -LiteralPath "$package/player" -Recurse -File | Where-
     @(Get-ChildItem -LiteralPath "$repo/unity/DK2.Unity/Assets/Plugins/DK2" -Filter '*.dll')
 $manifest = @("Package=$stamp", "Commit=$commit", "WorktreeClean=$([string]::IsNullOrWhiteSpace($dirty))",
     "Unity=$((Get-Content -LiteralPath "$repo/unity/DK2.Unity/ProjectSettings/ProjectVersion.txt" -TotalCount 1) -replace '^m_EditorVersion:\s*', '')",
-    "Backend=IL2CPP", "Development=False", "PresentMon=2.6.0") +
+    "Backend=IL2CPP", "Development=$($Development.IsPresent)", "PresentMon=2.6.0") +
     @($hashes | ForEach-Object { "SHA256 $($_.Name)=$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" })
 Set-Content -LiteralPath "$package/manifest.txt" -Value $manifest
 Set-Content -LiteralPath "$package/build-commit.txt" -Value $commit

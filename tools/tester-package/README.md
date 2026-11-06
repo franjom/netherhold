@@ -12,6 +12,12 @@ PresentMon, `capture.ps1` and its instructions (`README.txt`).
 python tools/tester-package/summarise_capture.py <capture folder> --tier desktop
 ```
 
+`build.ps1 -Development` builds the same player with Unity's profiler in it, for
+`capture.ps1 -ProfileFrom 25 -ProfileTo 28`, whose `recorder/capture.raw`
+`tools/game-unity-probe/report-capture.ps1` turns into the frame breakdown that names
+engine-side time (ADR-0692 found its 74 ms present wait this way). Such a capture is
+for diagnosis; `summarise_capture.py` marks a development player invalid.
+
 `build.ps1` refreshes the scratch project from this checkout through
 `tools/game-unity-probe/prepare-project.ps1`, builds `Assets/DK2/Scenes/Dungeon.unity`
 as a non-development IL2CPP player (`ReleasePlayerBuild.cs`), verifies and copies
