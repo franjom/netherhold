@@ -115,5 +115,9 @@ frames over budget are no longer the join.
   13.7 / 15.1, max 21–23 in all four, so the windowed tick is slower than the headless
   4 ms for another reason than the power budget. The join waits stay at the cap of 120
   (127 waits over 1 ms, max 19.9 ms, 56 of the 63 frames over 16.67 ms) and go only at
-  the cap of 60 (6 waits). VSync 1 in a window did not hold the rate (150 FPS). A cap is
-  therefore a 60 Hz default, not a fix for anything above it; P1 is.
+  the cap of 60 (6 waits). VSync 1 in a window did not hold the rate (150 FPS). Repeated on an idle
+  machine (`-113607`, `-113653`, `-113739`, `-113826`): tick p50 8.7 / 6.3 / 5.4 /
+  7.6 ms, p95 15.6 / 15.1 / 13.2 / 16.7, waits over 1 ms 134 / 108 / 3 / 137, and the
+  first round's three long stalls at the cap of 60 (2.7 s, 1.3 s, 156 ms, nothing in
+  the game's columns) did not recur, so they were the machine. A cap is therefore a 60
+  Hz default, not a fix for anything above it; P1 is.
