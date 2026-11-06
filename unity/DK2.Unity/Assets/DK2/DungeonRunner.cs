@@ -299,12 +299,14 @@ namespace DK2.Unity
                 _simulation = new GameSimulation(database, savedMap, seed, SimulationSystems.Default());
             }
             _simulation.ProfileWith(new UnitySimulationProfiler());
+#if !ENABLE_IL2CPP
             // A second copy of the level ticks on a worker while this one loads, so the live ticks
-            // run compiled code (ADR-0689).
+            // run compiled code (ADR-0689). Mono only: compiled ahead, it cost more loading than it saved.
             if (warmupCopy != null)
                 SimulationWarmup.Start(warmupCopy).ContinueWith(done => Debug.Log(done.IsFaulted
                     ? $"DK2: simulation warm-up failed: {done.Exception?.GetBaseException().Message}"
                     : $"DK2: simulation warm-up ticked {SimulationWarmup.DefaultTicks} in {done.Result.TotalMilliseconds:F0} ms"));
+#endif
             WorldState world = _simulation.World;
             if (!frontEnd) world.LocalPlayerId = new PlayerId((byte)viewingPlayerId);
             if (!frontEnd) PrepareCampaignResult(resumed: _resumeSession != null);

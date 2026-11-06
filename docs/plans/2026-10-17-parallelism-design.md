@@ -509,9 +509,10 @@ main thread now reaches the wait before the sound and art prefetch workers
 finish (the same work, no longer hidden behind a slow main thread).
 Recommendation: build players with IL2CPP. The editor's Play mode stays
 Mono, so the Mono warm-ups (ADR-0688's JIT warm-up, ADR-0689's warm-up
-ticks) stay for it; whether the warm-up ticks still pay under IL2CPP (129 ms
-on a worker during loading, first inline tick 22 ms) is a separate, cheaper
-question. The owner's project keeps its backend setting until the owner
+ticks) stay for it; the warm-up ticks do not pay under IL2CPP (run
+`20261106-101259` without them: startup 1,422 ms against 1,540, first inline
+tick 61 ms against 36 inside that loading, tick 2 unchanged, no hitch), so the
+runner starts them under Mono only. The owner's project keeps its backend setting until the owner
 switches it; `run.ps1` defaults to Mono so the earlier runs stay comparable.
 
 **Level8, same probe, 90 s (run `20261106-072230`, inline ticks).** The

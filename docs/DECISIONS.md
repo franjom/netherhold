@@ -16280,5 +16280,6 @@ backend a run used in `backend.txt`.
   installed or tried.
 - Managed stripping is stricter: a type found only by reflection would need a `link.xml` entry. None does
   today; the probe run is the check, since it plays a whole level and marks a run with errors invalid.
-- Whether ADR-0689's warm-up ticks still pay under IL2CPP (129 ms on a worker, first inline tick 22 ms) is
-  open and cheap to measure.
+- ADR-0689's warm-up ticks do not pay under IL2CPP (measured the same day, run `20261106-101259` against
+  `-094552`: without them startup is 120 ms shorter, the first inline tick 25 ms longer inside that
+  loading, tick 2 the same, no hitch either way), so the runner starts them under Mono only.
