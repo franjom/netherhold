@@ -211,13 +211,48 @@ def qualify_fps(rows, metadata, presents, fps=60):
     return result
 
 
+def select_tier(target, name):
+    """The owner's machine is the floor tier; another name must be listed in the target file."""
+    tiers = target.get("tiers", [])
+    if name is None:
+        return dict(name="floor", minimum_fps=target["minimum_fps"], resolution="1920x1080", floor=True)
+    for tier in tiers:
+        if tier["name"] == name:
+            return dict(tier, floor=name == "floor")
+    raise ValueError(f"Unknown tier {name!r}; performance-target.json lists {[t['name'] for t in tiers]}")
+
+
+def tier_reasons(target, tier, metadata, fps):
+    """Why a capture cannot stand for this tier: the floor tier is the owner's hardware exactly; another
+    tier accepts any hardware that names itself, so the report can say what it ran on."""
+    reasons = []
+    if tier["floor"]:
+        for key, expected in target["metadata"].items():
+            if metadata.get(key, "").strip() != expected:
+                reasons.append(f"Target {key} must be {expected!r}")
+    else:
+        for key in ("CPU", "GPU"):
+            if not metadata.get(key, "").strip():
+                reasons.append(f"Tier {tier['name']} capture must record its {key}")
+        if metadata.get("Resolution", "").strip() != tier["resolution"]:
+            reasons.append(f"Tier {tier['name']} Resolution must be {tier['resolution']!r}")
+    if fps < tier["minimum_fps"]:
+        reasons.append(f"Cannot lower the {tier['name']} tier's minimum FPS for acceptance")
+    return reasons
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("capture", type=Path)
     target = json.loads(Path(__file__).with_name("performance-target.json").read_text(encoding="utf-8"))
-    parser.add_argument("--fps", type=float, default=target["minimum_fps"])
+    parser.add_argument("--fps", type=float, default=None)
     parser.add_argument("--mode", choices=("fps", "diagnostic-gpu"), default="fps")
+    parser.add_argument("--tier", default=None,
+                        help="a tier from performance-target.json: its minimum FPS, and its hardware instead of the owner's")
     args = parser.parse_args()
+    tier = select_tier(target, args.tier)
+    if args.fps is None:
+        args.fps = tier["minimum_fps"]
     try:
         metadata = dict(line.split("=", 1) for line in
                         read_capture_text(args.capture / "metadata.txt").splitlines() if "=" in line)
@@ -239,14 +274,11 @@ def main():
             result["status"] = "diagnostic"
             result["mode"] = "diagnostic-gpu"
         verify_render_proof(args.capture / "render-proof.png")
-        for key, expected in target["metadata"].items():
-            if metadata.get(key, "").strip() != expected:
-                result["invalid_reasons"].append(f"Target {key} must be {expected!r}")
-        if args.fps < target["minimum_fps"]:
-            result["invalid_reasons"].append("Cannot lower the owner's minimum FPS for acceptance")
+        result["invalid_reasons"].extend(tier_reasons(target, tier, metadata, args.fps))
         if result["invalid_reasons"]:
             result["status"] = "invalid"
         result["target_profile"] = target["name"]
+        result["tier"] = tier["name"]
         result["api"] = metadata.get("API")
     except (ValueError, KeyError, OSError, OverflowError, struct.error, zlib.error) as error:
         result = dict(status="invalid", invalid_reasons=[str(error)])

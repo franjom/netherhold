@@ -8,7 +8,7 @@ import tempfile
 import zlib
 from pathlib import Path
 
-from frame_budget import evaluate, qualify_fps, verify_render_proof, verify_trace_log, read_capture_text
+from frame_budget import evaluate, qualify_fps, verify_render_proof, verify_trace_log, read_capture_text, select_tier, tier_reasons
 
 
 class FrameBudgetTests(unittest.TestCase):
@@ -260,3 +260,34 @@ class FrameBudgetTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TierTests(unittest.TestCase):
+    target = dict(name="owner", minimum_fps=60, metadata=dict(CPU="owner cpu", GPU="owner gpu", Resolution="1920x1080"),
+                  tiers=[dict(name="floor", minimum_fps=60, resolution="1920x1080"),
+                         dict(name="desktop", minimum_fps=120, resolution="1920x1080")])
+
+    def test_no_tier_is_the_owner_floor(self):
+        tier = select_tier(self.target, None)
+        self.assertEqual(60, tier["minimum_fps"])
+        self.assertEqual([], tier_reasons(self.target, tier, dict(self.target["metadata"]), 60))
+        self.assertEqual(["Target GPU must be 'owner gpu'"],
+                         tier_reasons(self.target, tier, dict(CPU="owner cpu", GPU="RTX 3060", Resolution="1920x1080"), 60))
+
+    def test_desktop_tier_takes_other_hardware_that_names_itself(self):
+        tier = select_tier(self.target, "desktop")
+        self.assertEqual(120, tier["minimum_fps"])
+        self.assertEqual([], tier_reasons(self.target, tier, dict(CPU="i5", GPU="RTX 3060", Resolution="1920x1080"), 120))
+        self.assertEqual(["Tier desktop capture must record its GPU"],
+                         tier_reasons(self.target, tier, dict(CPU="i5", GPU="", Resolution="1920x1080"), 120))
+        self.assertEqual(["Tier desktop Resolution must be '1920x1080'"],
+                         tier_reasons(self.target, tier, dict(CPU="i5", GPU="RTX 3060", Resolution="2560x1440"), 120))
+
+    def test_tier_minimum_cannot_be_lowered(self):
+        tier = select_tier(self.target, "desktop")
+        self.assertEqual(["Cannot lower the desktop tier's minimum FPS for acceptance"],
+                         tier_reasons(self.target, tier, dict(CPU="i5", GPU="RTX 3060", Resolution="1920x1080"), 60))
+
+    def test_unknown_tier_is_an_error(self):
+        with self.assertRaises(ValueError):
+            select_tier(self.target, "console")
