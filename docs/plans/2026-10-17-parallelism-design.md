@@ -450,11 +450,17 @@ Reading:
   probe column over 2 ms. A capture (run `20261106-072630`, `-CaptureFrom 25
   -CaptureTo 28`, `report-capture.ps1`) puts it in `DK2.Frame.Hover` (50 ms
   self time, with `Gfx.CreateTexture` and `Texture2D.GetPixels32` under it)
-  and `DK2.Frame.Hud` (14.5 ms): the first time something hoverable passes
-  under the probe's fixed pointer, the classic hover HUD bakes its text atlas
-  and panel textures. In play that happens in the first seconds, so it is a
-  startup-class cost like the art and sound prefetches, not a threading
-  matter. The 181 ms frame at 5.5 s in one worker run was not captured.
+  and `DK2.Frame.Hud` (14.5 ms): the first frame with the HUD visible after
+  the opening camera path ends at 26.6 s. **Fixed by ADR-0688**: two BF4
+  font parses, the hand cursor's first sheet and the resource HUD's digits
+  are loaded at startup, and the ~50 ms that remained, spread thinly over
+  the hover, input and HUD passes with no allocation, was Mono's first-call
+  JIT; the adapter's and presentation's methods now compile on a worker in
+  the first second of play. The ticks 2 and 3 art loads decode in the
+  background from `FirstFrameArt.LaterKeys`. Run `20261106-083703`: no frame
+  over 33 ms after 2 s of play, max 27.7 ms. The 181 ms frame at 5.5 s in one
+  worker run was not captured. Left: ticks 2 and 3 themselves, 86–100 ms at
+  0.5–0.75 s of play (first worker ticks' wait and first clip builds).
 
 **Level8, same probe, 90 s (run `20261106-072230`, inline ticks).** The
 opening tick durations the roadmap's first paragraph asked for: on the 352

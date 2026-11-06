@@ -70,28 +70,41 @@ namespace DK2.Unity
                 return;
             }
             _kind = kind;
-            if (!_textures.TryGetValue(kind, out _image))
-            {
-                HandCursorSprite sprite = HandCursor.Sprite(kind);
-                _image = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                if (!_image.LoadImage(_assets.Load(kind)) || _image.width != (int)sprite.FrameSize.X
-                    || _image.height != (int)sprite.FrameSize.Y * sprite.FrameCount)
-                {
-                    UnityEngine.Object.Destroy(_image); _image = null;
-                    throw new InvalidDataException("Cursor sheet does not match its native frame table: " + sprite.FileName);
-                }
-                _image.filterMode = FilterMode.Bilinear; _image.wrapMode = TextureWrapMode.Clamp;
-                Color32[] pixels = _image.GetPixels32();
-                for (int i = 0; i < pixels.Length; i++)
-                    if (pixels[i].r == 0 && pixels[i].g == 255 && pixels[i].b == 0) pixels[i].a = 0;
-                _image.SetPixels32(pixels); _image.Apply();
-                _textures.Add(kind, _image);
-            }
+            _image = Sheet(kind);
             if (_manageSystemPointer && !_ownsPointer) { _previousVisible = Cursor.visible; _ownsPointer = true; }
             _frame = _animation.Advance(kind, (long)(nowSeconds * 1000));
             _visual.image = _image;
             _visual.style.display = DisplayStyle.Flex;
             if (_manageSystemPointer) Cursor.visible = false;
+        }
+
+        /// <summary>Loads the sheets of these kinds now, so the first frame the cursor shows after the
+        /// opening camera path does not decode a sprite and key out its green (ADR-0688).</summary>
+        public void Prepare(params HandCursorKind[] kinds)
+        {
+            foreach (HandCursorKind kind in kinds)
+                if (kind != HandCursorKind.Default) Sheet(kind);
+        }
+
+        /// <summary>The kind's sprite sheet, decoded on first use with its green keyed to transparent.</summary>
+        private Texture2D Sheet(HandCursorKind kind)
+        {
+            if (_textures.TryGetValue(kind, out Texture2D image)) return image;
+            HandCursorSprite sprite = HandCursor.Sprite(kind);
+            image = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            if (!image.LoadImage(_assets.Load(kind)) || image.width != (int)sprite.FrameSize.X
+                || image.height != (int)sprite.FrameSize.Y * sprite.FrameCount)
+            {
+                UnityEngine.Object.Destroy(image);
+                throw new InvalidDataException("Cursor sheet does not match its native frame table: " + sprite.FileName);
+            }
+            image.filterMode = FilterMode.Bilinear; image.wrapMode = TextureWrapMode.Clamp;
+            Color32[] pixels = image.GetPixels32();
+            for (int i = 0; i < pixels.Length; i++)
+                if (pixels[i].r == 0 && pixels[i].g == 255 && pixels[i].b == 0) pixels[i].a = 0;
+            image.SetPixels32(pixels); image.Apply();
+            _textures.Add(kind, image);
+            return image;
         }
 
         public void Draw(Vector2 pointerGui)

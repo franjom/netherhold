@@ -16181,3 +16181,49 @@ as a fly-by that is not smooth. The 2026-10-17 Level8 capture had found the same
   12.17% → 0.26%, p95 error 3.48 → 0.24 ticks/s, frames holding at a boundary 102 → 0, frame time
   unchanged (p95 16.85 → 17.02 ms). Table in `docs/research/level8-intro-motion.md`. Owner visual
   comparison in the editor is pending.
+
+## ADR-0688: the HUD's fonts, cursor sheets and counter digits load at startup, the later art decodes in the background, and the code compiles on a worker
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity, art-assets
+
+**Context.** After the art and sound prefetches (ADR-0686) the Level6a fly-by still had one 56–82 ms frame
+at 26.7 s of play in every run, editor and player alike: the first frame with the HUD visible after the
+opening camera path. A Profiler capture put it in `DK2.Frame.Hover` and `DK2.Frame.Hud`: the hover HUD
+parsed its two BF4 fonts (about 30 ms each) in its first visible draw, the hand cursor decoded its first
+sprite sheet and keyed out its green, the resource HUD decoded its digit and rate textures, and the bottom
+panel its first icons. The first seconds of play also decoded 20 models and clips at ticks 2 and 3 (up to
+43 ms of decode in one frame): the clips creatures change to within a second, and what the first tick
+added, which the first-frame prefetch leaves on request by design (ADR-0686's predecessor note in the
+parallelism plan). Nothing is known about how DK2 itself schedules these loads; this is a remake policy.
+
+**Decision.**
+- `InstallHudSources.PrefetchFonts` parses fonts on workers; `Font` waits for a pending parse. `StartGame`
+  prefetches the HUD text, tooltip and legible fonts for the screen height while the HUD is built.
+- `ClassicHandCursor.Prepare` decodes the sheets of the kinds a pointer shows at rest and over the map, and
+  `ClassicResourceHud.Prepare` the digit, sign and rate textures, both at startup.
+- `FirstFrameArt.LaterKeys` lists, after the first tick, every clip and the dead mesh of each creature type
+  present (by key prefix, so a mesh variant still brings its type) and the objects, decorations and
+  structures the first tick added, less the first frame's keys. `DungeonRunner` decodes them on workers in
+  the background (`prefetch.later`), never waited for by a frame; a frame that gets there first decodes on
+  request as before. The task is joined before the art provider is disposed.
+- With the fonts, sheets and digits loaded, the frame still cost 52 ms, now spread thinly over the
+  hover pick, the HUD, the input HUD, the hover HUD and the input queue, each a few ms of self time with
+  no child marker and no allocation: the first execution of those paths, which under Mono is their JIT
+  compilation. `JitWarmup` compiles every non-generic method of the DK2.Unity and DK2.Presentation
+  assemblies on a worker at the end of `StartGame`, through `RuntimeMethodHandle.GetFunctionPointer`
+  (`RuntimeHelpers.PrepareMethod` resolves without compiling under Mono: 5,423 methods in 13 ms, and
+  no change in the frame; the function pointer compiles them in 472 ms). It only compiles; no type
+  initialiser runs off the main thread. Not during loading and not the simulation assembly: compiling
+  all three from the top of `StartGame` took 1.8 s on the worker, the JIT lock stretched loading by
+  1.4 s, and tick 2's first-tick wait did not shrink. IL2CPP would make the warm-up unnecessary; its
+  Windows module is not installed (parallelism plan).
+- The hitch line also names `DK2.Frame.Hover`, `Hud`, `Flowers`, `Minimap` and `WorldSound`, and the
+  hover and input passes carry `DK2.Hover.*` and `DK2.Input.*` markers.
+
+**Consequences.**
+- Startup does more on workers (the compile is ~0.5 s for the adapter and presentation alone); the main
+  thread gains the two `Prepare` calls (a few ms).
+- Measured result, Level6a fly-by, worker ticks, 60 FPS cap (run `20261106-083703`): the 56–82 ms frame
+  at 26.7 s is gone; no frame over 33 ms after 2 s of play (max 27.7 ms, p95 16.95). Ticks 2 and 3
+  (86–100 ms at 0.5–0.75 s) remain: the first worker ticks' wait and the first clip builds. Table in
+  `docs/research/level8-intro-motion.md`.

@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using DK2.Art;
 using DK2.Art.Textures;
 using DK2.Data.Model;
@@ -45,15 +46,38 @@ namespace DK2.Unity
         public RgbaImage Texture(string name) =>
             _art != null ? _art.LoadTexture(name) : (_opened ??= EngineTextureArchive.OpenInstall(Install)).Decode(name);
 
-        /// <summary>A BF4 font of the default text directory, read once.</summary>
+        /// <summary>A BF4 font of the default text directory, read once; a font being read by
+        /// <see cref="PrefetchFonts"/> is waited for.</summary>
         public BitmapFont Font(string file)
         {
-            if (!_fonts.TryGetValue(file, out BitmapFont font))
+            if (_fonts.TryGetValue(file, out BitmapFont font)) return font;
+            if (_pendingFonts.TryGetValue(file, out Task<BitmapFont> pending))
             {
-                font = Bf4FontReader.Open(Path.Combine(TextDirectory, file));
-                _fonts.Add(file, font);
+                _pendingFonts.Remove(file);
+                font = pending.GetAwaiter().GetResult();
             }
+            else font = Bf4FontReader.Open(Path.Combine(TextDirectory, file));
+            _fonts.Add(file, font);
             return font;
+        }
+
+        private readonly Dictionary<string, Task<BitmapFont>> _pendingFonts = new Dictionary<string, Task<BitmapFont>>();
+
+        /// <summary>Reads fonts on worker threads, so a panel's first draw does not pay the ~30 ms
+        /// a BF4 parse costs: the hover HUD's first draw after the opening camera path paid two of
+        /// them in one frame (ADR-0688). Main thread only; the workers only parse.</summary>
+        public Task PrefetchFonts(params string[] files)
+        {
+            var started = new List<Task>();
+            foreach (string file in files)
+            {
+                if (_fonts.ContainsKey(file) || _pendingFonts.ContainsKey(file)) continue;
+                string path = Path.Combine(TextDirectory, file);
+                Task<BitmapFont> task = Task.Run(() => Bf4FontReader.Open(path));
+                _pendingFonts.Add(file, task);
+                started.Add(task);
+            }
+            return Task.WhenAll(started);
         }
 
         public void Dispose()

@@ -106,6 +106,16 @@ namespace DK2.Unity
             ? KeeperResourceKind.None : KeeperResourceInteraction.HitTest(
                 new System.Numerics.Vector2(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false).x, ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false).y), Height);
 
+        /// <summary>Decodes the digit textures the counters draw with, so the first draw after the
+        /// opening camera path does not (ADR-0688).</summary>
+        public void Prepare()
+        {
+            foreach (string family in new[] { "GUI\\Icons\\i-", "GUI\\Icons\\lo-", "GUI\\Icons\\Mana\\s-" })
+                for (int digit = 0; digit <= 9; digit++) Texture(family + digit.ToString(CultureInfo.InvariantCulture));
+            Texture("GUI\\Icons\\i--");
+            foreach (string suffix in new[] { "in", "out", "+", "-" }) Texture("GUI\\Icons\\Mana\\s-" + suffix);
+        }
+
         public void Draw(KeeperResourceSnapshot snapshot) => Draw(snapshot, default);
 
         public void Draw(KeeperResourceSnapshot snapshot, Vector2Int viewport)

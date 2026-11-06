@@ -50,6 +50,58 @@ public static class FirstFrameArt
         return keys;
     }
 
+    /// <summary>What the first frames of play ask for that the first frame did not, to decode in the
+    /// background after the first tick rather than on request in a frame (ADR-0688): every clip and
+    /// the dead mesh of each creature type present, since creatures change clips within a second of
+    /// play; and the objects, decorations and structures the first tick added. Nothing already in
+    /// <paramref name="firstFrame"/>.</summary>
+    public static IReadOnlyCollection<AssetRef> LaterKeys(GameDatabase database, WorldState world, PlayerId viewer,
+        IReadOnlyCollection<AssetRef> firstFrame)
+    {
+        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (firstFrame is null) throw new ArgumentNullException(nameof(firstFrame));
+
+        var view = new WorldView(database, viewer);
+        var keys = new HashSet<AssetRef>();
+        // Present types by key prefix (creature.<name>.), so a creature drawn with a mesh variant
+        // still brings its type's clips.
+        var presentTypes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (CreatureView creature in view.Creatures(world))
+        {
+            Add(keys, creature.Mesh);
+            Add(keys, creature.Animation);
+            if (!creature.Mesh.IsEmpty) presentTypes.Add(TypePrefix(creature.Mesh));
+        }
+        foreach (CreatureDef creature in database.Creatures.Values)
+        {
+            if (!presentTypes.Contains(TypePrefix(AssetRef.ForCreature(creature.Name, AssetKind.Mesh)))) continue;
+            Add(keys, AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead"));
+            foreach (string animation in AssetCatalogue.CreatureAnimations)
+                Add(keys, AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation));
+            foreach (string animation in AssetCatalogue.CreatureActionAnimations)
+                Add(keys, AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation));
+        }
+        foreach (ObjectView instance in view.Objects(world)) Add(keys, instance.Mesh);
+        foreach (ObjectView decoration in view.Decorations(world)) Add(keys, decoration.Mesh);
+        foreach (StructureView structure in view.Structures(world))
+        {
+            Add(keys, structure.Mesh);
+            Add(keys, structure.LockMesh);
+        }
+        keys.ExceptWith(firstFrame);
+        return keys;
+    }
+
+    /// <summary>The <c>category.subject.</c> prefix of a key, which every asset of that subject shares.</summary>
+    public static string TypePrefix(AssetRef key)
+    {
+        string text = key.Key;
+        int first = text.IndexOf('.');
+        int second = first < 0 ? -1 : text.IndexOf('.', first + 1);
+        return second < 0 ? text + "." : text.Substring(0, second + 1);
+    }
+
     private static void Add(HashSet<AssetRef> keys, AssetRef key)
     {
         if (!key.IsEmpty) keys.Add(key);

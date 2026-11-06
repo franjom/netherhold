@@ -67,7 +67,19 @@ Counting only steady frames (neither the frame nor the one before over 25
 ms), the three runs read 12.03% before and 0.00% / 0.00% after. This meets
 the 1–1.5% target for the draw clock on this path in a headless Development
 player; what remains above 2 ticks/s is frame-time hitches, which the clock
-cannot hide. The camera's own step per frame still varies
+cannot hide.
+
+**After ADR-0688** (HUD fonts, cursor sheets and counter digits loaded at
+startup; the later art decoded in the background; the adapter's and the
+presentation's methods compiled on a worker), same probe and path, run
+`20261106-083703`: frames over 33 ms after 2 s of play 1 → 0 (max 27.7 ms,
+p95 16.95), draw-clock error above 2 ticks/s 0.32%, and no hitch line after
+tick 3. The 56–82 ms frame at 26.7 s, the first with the HUD after the path,
+is gone: it was two BF4 font parses, the cursor sheet, the counter digits,
+and then ~50 ms of Mono JIT spread over the hover, input and HUD passes. What
+remains is ticks 2 and 3 (0.5–0.75 s of play), 86–100 ms each: the first
+worker ticks' wait and the first creature clip builds, startup-adjacent and
+not yet worked on. The camera's own step per frame still varies
 along the path, as an authored path accelerates and turns; that is not a
 timing error and is not counted. Owner visual comparison in the editor is
 still pending, and the Level8 capture has not been repeated.

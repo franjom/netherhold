@@ -324,13 +324,14 @@ namespace DK2.Unity
             // What the first tick adds (room furniture, open doors, new clips) loads on request:
             // listing the keys again after it cost about what decoding that art does.
             Task prefetch = null;
+            IReadOnlyCollection<AssetRef> firstFrame = null;
             InstallArtProvider art = _installArt;
             int workers = PrefetchWorkers(); // SystemInfo is main-thread only
             if (art != null && prefetchFirstFrameArt)
             {
-                IReadOnlyCollection<AssetRef> firstFrame = FirstFrameArt.Keys(database, world,
-                    new PlayerId((byte)viewingPlayerId), _frontEndScenery);
-                prefetch = Task.Run(() => art.Prefetch(firstFrame, workers));
+                firstFrame = FirstFrameArt.Keys(database, world, new PlayerId((byte)viewingPlayerId), _frontEndScenery);
+                IReadOnlyCollection<AssetRef> keys = firstFrame;
+                prefetch = Task.Run(() => art.Prefetch(keys, workers));
                 _startup.Step("prefetch.keys");
             }
 
@@ -439,6 +440,16 @@ namespace DK2.Unity
             if (_resumeSession == null) RunTicks(1, InputFrame.Empty);
             _constructionEffects?.Model.UpdateNow();
             _startup.Step("tick");
+            if (firstFrame != null)
+            {
+                // Every clip of each creature type present, and what the first tick added, decode in
+                // the background during the first seconds of play; a frame that gets there first
+                // still decodes on request (ADR-0688).
+                IReadOnlyCollection<AssetRef> later = FirstFrameArt.LaterKeys(database, world, new PlayerId((byte)viewingPlayerId), firstFrame);
+                int spare = Math.Max(1, workers - 1);
+                _laterPrefetch = Task.Run(() => art.Prefetch(later, spare));
+                _startup.Step("prefetch.later");
+            }
             WaitForPrefetch(prefetch);
             _startup.Step("prefetch.wait");
             WaitForPrefetch(soundPrefetch, "sound");
@@ -478,7 +489,14 @@ namespace DK2.Unity
             _minimap.Draw(Camera.main, _cameraFocus);
             _startup.Step("minimap.draw");
             _hudSources = new InstallHudSources(install, _installArt);
+            // The fonts the HUD draws with at this screen height, parsed on workers while the HUD is
+            // built, so its first draw after the opening camera path does not parse them (ADR-0688).
+            _hudSources.PrefetchFonts(InterfaceFonts.HudTextFileName(Screen.height),
+                InterfaceFonts.HudTooltipFileName(Screen.height), InterfaceFonts.LegibleFileName(Screen.height),
+                InterfaceFonts.LegibleFileName(Screen.height * 85 / 100));
             _handCursor = new ClassicHandCursor(new InstallHandCursorAssets(install));
+            _handCursor.Prepare(HandCursorKind.Point, HandCursorKind.SmallPoint, HandCursorKind.Dig, HandCursorKind.Tag,
+                HandCursorKind.Pickup, HandCursorKind.HoldThing);
             _startup.Step("hud.cursor");
             _tileHighlight = new ClassicTileHoverOutline(transform, lattice);
             _placementOverlay = new ClassicPlacementOverlay(transform, new InstallClassicResourceAssets(_hudSources));
@@ -487,6 +505,7 @@ namespace DK2.Unity
             _hoverHud = new ClassicHoverHud(new InstallClassicHoverAssets(_hudSources));
             _startup.Step("hud.hover");
             _resourceHud = new ClassicResourceHud(transform, new InstallClassicResourceAssets(_hudSources));
+            _resourceHud.Prepare();
             _resourceView = new KeeperResourceView(_simulation.Database, new PlayerId((byte)viewingPlayerId));
             _startup.Step("hud.resources");
             InitializeHudControls(install, database, campaignLevel);
@@ -505,6 +524,11 @@ namespace DK2.Unity
                 _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
             _startup.Step("lights");
             Debug.Log(_startup.Summary(_installArt));
+            // The adapter's and the presentation's methods compile on a worker during the first
+            // seconds of play, so no first-called path pays Mono's JIT in a frame: the first frame
+            // with the HUD after the opening camera path paid ~50 ms of it (ADR-0688). Not during
+            // loading, and not the simulation: the JIT lock made that cost 1.4 s of load for nothing.
+            _jitWarmup ??= JitWarmup.Run(typeof(DungeonRunner).Assembly, typeof(WorldView).Assembly);
         }
 
         /// <summary>Threads the first frame's art decodes on, at most; fewer on a machine with fewer cores.</summary>
@@ -514,6 +538,11 @@ namespace DK2.Unity
 
         /// <summary>Waits for the art prefetch. A failure is only a warning: the art then loads on
         /// request, which reports a real problem as it always has.</summary>
+        // The background decode of the later art (ADR-0688); joined before the art provider is disposed.
+        private Task _laterPrefetch;
+        // The one-time method compilation on a worker (ADR-0688); once per process is enough.
+        private static Task _jitWarmup;
+
         private static void WaitForPrefetch(Task prefetch, string what = "art")
         {
             if (prefetch == null) return;
@@ -545,6 +574,7 @@ namespace DK2.Unity
                 "DK2.TransparentTerrain.SetChunk", "DK2.TransparentTerrain.Sort", "DK2.TransparentTerrain.Cull",
                 "DK2.TransparentTerrain.DepthOrder", "DK2.TransparentTerrain.UploadRuns",
                 "DK2.Animation.Sample", "DK2.Animation.MeshUpload", "DK2.Effects.Draw",
+                "DK2.Frame.Hover", "DK2.Frame.Hud", "DK2.Frame.Flowers", "DK2.Frame.Minimap", "DK2.Frame.WorldSound",
                 "DK2.Shadows.Selection", "DK2.Shadows.Silhouette", "DK2.Shadows.ReceiverUpload",
                 "GC.Collect",
             };
@@ -691,6 +721,8 @@ namespace DK2.Unity
             _subtitleFont?.Dispose();
             _subtitleFont = null;
             _subtitleFontFile = null;
+            WaitForPrefetch(_laterPrefetch, "later art");
+            _laterPrefetch = null;
             _installArt?.Dispose();
             _installArt = null;
         }
@@ -805,7 +837,7 @@ namespace DK2.Unity
                         _pendingCommands.Add(new DK2.Simulation.Commands.SkipCameraPathCommand(new PlayerId((byte)viewingPlayerId)));
                 }
                 if (_scriptedView.TryTakeCameraMove(out TilePos glideTile)) StartGlide(glideTile);
-                UpdateHudControls(allowOptionsKey: !pathWasPlaying);
+                using (InputHudMarker.Auto()) UpdateHudControls(allowOptionsKey: !pathWasPlaying);
                 HudVisibility hud = CurrentHud;
                 _minimap?.SetVisibility(hud);
                 _hoverHud?.SetVisibility(hud);
@@ -818,6 +850,7 @@ namespace DK2.Unity
                 }
                 else
                 {
+                    InputCameraMarker.Begin();
                     Glide();
                     FollowScriptedCreature();
                     if (hud.AllowOrdinaryInput && !HudModal) ControlCamera();
@@ -827,9 +860,10 @@ namespace DK2.Unity
                         _cameraPointer = Input.mousePosition;
                         if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
                     }
+                    InputCameraMarker.End();
                 }
                 if (hud.AllowOrdinaryInput && !HudModal) ReadAmbientKeys();
-                QueueInput();
+                using (InputQueueMarker.Auto()) QueueInput();
             }
             if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
 
@@ -1541,8 +1575,9 @@ namespace DK2.Unity
             HudVisibility visibility = CurrentHud;
             _hoverHud?.SetVisibility(visibility);
             _resourceHud?.SetVisibility(visibility);
-            if (visibility.ShowNormalHud) _resourceHud?.Draw(_resources, default,
-                unchecked((uint)(Time.unscaledTimeAsDouble * 1000)), _scriptedView.ResourceFlash);
+            using (HoverResourcesMarker.Auto())
+                if (visibility.ShowNormalHud) _resourceHud?.Draw(_resources, default,
+                    unchecked((uint)(Time.unscaledTimeAsDouble * 1000)), _scriptedView.ResourceFlash);
             _hoverSnapshot = HoverTextSnapshot.Empty;
             Vector3 mouse = Input.mousePosition;
             bool inside = mouse.x >= 0 && mouse.y >= 0 && mouse.x < Screen.width && mouse.y < Screen.height;
@@ -1554,6 +1589,7 @@ namespace DK2.Unity
             // A failed pick with nothing hovered sends DK2's light to (0,0,0), an edge tile, which
             // blacks it out (0x0043BCB8); with ordinary input off (a cutscene) it keeps its place.
             if (visibility.AllowOrdinaryInput) _handLight = null;
+            HoverPickMarker.Begin();
             if (allowed && !PointerOverHud(mouse) && Camera.main != null && ScreenToTile(mouse) is TilePos tile)
             {
                 WorldState world = _simulation.World;
@@ -1602,6 +1638,7 @@ namespace DK2.Unity
                     placement = HeldIcons(placement, world, viewer, tile, hit.Kind == WorldHoverKind.Tile && dig);
                 }
             }
+            HoverPickMarker.End();
             if (allowed && PointerOverHud(mouse))
             {
                 _hoverSnapshot = CaptureHudHover();
@@ -1631,15 +1668,30 @@ namespace DK2.Unity
                 cursor = _cursorFeedback.Resolve(cursor, holding, HoldingGold(), Input.GetMouseButton(0), cursorMs, _pointerWorld);
             else _cursorFeedback.Advance(cursorMs, _pointerWorld);
             if (_soundPlayer != null) _soundPlayer.Play(_cursorFeedback.Sounds); else _cursorFeedback.Sounds.Clear();
-            _handCursor?.Update(cursor, allowed, Time.unscaledTimeAsDouble);
             Vector2 pointerGui = new Vector2(mouse.x, Screen.height - mouse.y);
-            _handCursor?.Draw(pointerGui);
+            using (HoverCursorMarker.Auto())
+            {
+                _handCursor?.Update(cursor, allowed, Time.unscaledTimeAsDouble);
+                _handCursor?.Draw(pointerGui);
+            }
             float reach = cursor == HandCursorKind.Default ? 80 : HandCursor.Reach(cursor);
-            _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
-            if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(_simulation.World, new PlayerId((byte)viewingPlayerId));
-            _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse), _heldStack, cursor);
-            _tileHighlight?.Update(placement.Cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
+            using (HoverHudMarker.Auto()) _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
+            using (HoverPlacementMarker.Auto())
+            {
+                if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(_simulation.World, new PlayerId((byte)viewingPlayerId));
+                _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse), _heldStack, cursor);
+                _tileHighlight?.Update(placement.Cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
+            }
         }
+
+        private static readonly ProfilerMarker HoverResourcesMarker = new ProfilerMarker("DK2.Hover.Resources");
+        private static readonly ProfilerMarker HoverPickMarker = new ProfilerMarker("DK2.Hover.Pick");
+        private static readonly ProfilerMarker HoverCursorMarker = new ProfilerMarker("DK2.Hover.Cursor");
+        private static readonly ProfilerMarker HoverHudMarker = new ProfilerMarker("DK2.Hover.Hud");
+        private static readonly ProfilerMarker HoverPlacementMarker = new ProfilerMarker("DK2.Hover.Placement");
+        private static readonly ProfilerMarker InputHudMarker = new ProfilerMarker("DK2.Input.Hud");
+        private static readonly ProfilerMarker InputCameraMarker = new ProfilerMarker("DK2.Input.Camera");
+        private static readonly ProfilerMarker InputQueueMarker = new ProfilerMarker("DK2.Input.Queue");
 
         /// <summary>With no rectangle, the one-tile hover cage, most likely the Hand light's own (+0x33E,
         /// 0x0043B220; placement-cursor.md §2a), shown per tool as 0x004096B0 decides and hidden on a
