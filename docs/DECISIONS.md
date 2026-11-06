@@ -16387,3 +16387,49 @@ beside the live one with equal state hashes (`PresentedWorldOnRealDataTests`, Le
   state class: an entry in the script's table. `StateCopyTests` says which one was forgotten.
 - `GameSimulation.Resume` is the public form of the snapshot's restore constructor: a simulation over
   a world already mid-level, nothing the level start does done again.
+
+## ADR-0694: the frame reads a presented copy of the world while the worker ticks the live one
+
+**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity
+
+**Context.** On the worker-thread path (ADR-0458) every frame joined the tick started at the end of
+the frame before. Above 60 FPS the tick (6–15 ms on the owner's laptop, Level6a) no longer fits in a
+frame: uncapped and windowed, 137 frames in 40 s waited for it, 5.8 ms p50 and up to 20 ms, and 54 of
+the 56 frames over 16.67 ms were that wait (docs/plans/2026-11-06-presented-world.md). A frame cap of
+60 hides it; nothing above does.
+
+**Decision.** `DungeonRunner` holds three worlds. The simulation's own is the worker's: the frame
+never reads it. After its batch the worker copies it into the spare (`WorldState.CopyFrom`,
+ADR-0693, the `DK2.Simulation.CopyWorld` marker) and signals. Every reader of the frame, 64 sites
+in the runner and all of DK2.Presentation through them, reads `World`: the presented copy, one
+instance for the whole level, so a view that holds a `CreatureState` or keys a cache on the world
+keeps what it holds. `PresentTick`, at the top of `Update`, copies the spare into the presented
+world in place when the batch is done and the draw clock has reached its last tick (or the batch is
+a stall's catch-up of two); `WaitForTick` still joins, and now hands over too, for the
+`Simulation` getter, the level's release, and a batch still running when the next is due, the one
+wait left. The object-position capture the worker takes before each tick goes to a second buffer
+that the hand-over swaps in (`WorldView.PresentObjectPositions`), and the art table both threads
+reach is locked. The draw clock (`WorkerDrawLag`) lags the tick clock by a frame plus the batch's
+observed wall time (it rises at once, decays slowly), so the clock never reaches poses that are not
+presented yet; the script clock and the frame journal count the ticks pending beside the presented
+tick, which is the live tick as before. The main-thread path is unchanged: there `World` is the
+simulation's.
+
+**Consequences.**
+- Same package build, Level6a, 40 s, windowed, idle laptop (`build/tester-package/20261106-125325/captures/`
+  against `20261106-114342`): uncapped, frames over 16.67 ms 56 → 6, none after a join (54 → 0),
+  frame p99 16.8 → 12.0 ms, 159 → 186 FPS; at the cap of 120, 26 → 6 and 24 → 0; at 60, the four
+  joins gone. The tick's own time is unchanged (6.5 ms p50, 15 p95 uncapped). The draw-clock
+  metric's steady share stays at 0.17 % and its worst error falls from 23.5 to 9.1 ms. The frames
+  over budget that remain are terrain chunk rebuilds inside Present (10–20 ms, 3–6 ms of rebuild)
+  and one 30 ms lights frame at 5.7 s: the next work.
+- The recorder's `wait_tick_ms` is now the hand-over copy (0.1–0.2 ms) plus any blocking join;
+  `tick_ms` is credited to the frame that presents the batch. The headless probe (`run.ps1
+  -WorkerTicks`, 40 s at 60) reports no join over 1 ms and the same clean hash.
+- A reader that must see the live world the moment a tick ends (the campaign carry, the level
+  statistics) sees it up to one batch and one lag later, under 40 ms; none of them act in that
+  window. The placement cursor and shot attachments read navigation bytes while a batch may be
+  writing them: a byte read torn for one frame, accepted. The minimap's whole-map capture runs only
+  in a frame that presented a batch, when the worker is idle.
+- Display latency on the worker path is the lag, 20–30 ms at 150 FPS instead of one frame; the
+  plan's trade, invisible in a dungeon view against a 20 ms stall four times a second.

@@ -262,10 +262,14 @@ global transparent-triangle sorting and run-mesh uploads. Also inspect
 and GC allocation call stacks; a fixed-camera baseline cannot diagnose this hitch.
 
 `DungeonRunner` runs its ticks on a worker thread after each frame is presented (its
-`tickOnWorkerThread` field, on by default; ADR-0458), so a tick overlaps the frame's rendering
-and the view shows it one frame later; the draw clock runs one frame behind the tick clock so the
-frame that owes a tick does not clamp at the boundary (ADR-0687). The probe below turns that off by default so its recorders see the
-tick's own cost on the main thread.
+`tickOnWorkerThread` field, on by default; ADR-0458). The frame never reads the simulation's
+world on that path: it reads `World`, a presented copy that the worker refreshes after each
+batch (`WorldState.CopyFrom`, ADR-0693) and the runner takes over at the top of the frame once
+the draw clock reaches the batch (ADR-0694), so a tick longer than a frame stalls nothing. The
+draw clock lags the tick clock by a frame plus the tick's wall time (`WorkerDrawLag`, ADR-0687),
+20–30 ms at 150 FPS. A new frame-side reader of the world takes `World`, never `_simulation.World`;
+code that runs on the tick thread (`RunTicks`) takes the simulation's. The probe below turns the
+worker off by default so its recorders see the tick's own cost on the main thread.
 
 Open **Window → Analysis → Profiler**, restart Play mode, and record the CPU
 Timeline, Rendering, Memory and GPU modules where supported. Leave Deep Profile

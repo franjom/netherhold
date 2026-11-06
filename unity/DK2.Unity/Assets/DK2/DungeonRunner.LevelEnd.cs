@@ -29,7 +29,7 @@ namespace DK2.Unity
             CampaignSlot slot = CampaignProgression.PlayedSlot(_campaignProfile);
             // A profile that names another map (edited between sessions) records nothing.
             _playedSlot = string.Equals(slot.LevelName, levelName, System.StringComparison.OrdinalIgnoreCase) ? slot : CampaignSlot.None;
-            if (resumed) { _carryApplied = _simulation.World.Carry; return; }
+            if (resumed) { _carryApplied = World.Carry; return; }
             if (_campaignProfile.TransferCreatureId == 0) return;
             // 0x0050C67D: the stored creature arrives before the first turn; both values clear whatever happens.
             TransferCreatureRules.Arrive(_simulation, new PlayerId((byte)viewingPlayerId),
@@ -41,7 +41,7 @@ namespace DK2.Unity
         /// <summary>The profile writes specials 129 and 140 make in DK2 the moment they act.</summary>
         private void ApplyCampaignCarry()
         {
-            CampaignCarry carry = _simulation.World.Carry;
+            CampaignCarry carry = World.Carry;
             if (carry.HiddenLandFound == _carryApplied.HiddenLandFound && carry.TransferStored == _carryApplied.TransferStored
                 && carry.TransferCreatureTypeId == _carryApplied.TransferCreatureTypeId
                 && carry.TransferCreatureLevel == _carryApplied.TransferCreatureLevel) return;
@@ -65,7 +65,7 @@ namespace DK2.Unity
             if (!LaunchedFromFrontEnd) return false;
             if (_playedSlot != CampaignSlot.None) ApplyCampaignCarry();
             RecordLevelStatistics();
-            byte status = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Status;
+            byte status = World.Player(new PlayerId((byte)viewingPlayerId)).Status;
             bool ended = PlayerStatus.HasEnded(status);
             _hudControls.UpdateResult(new HudResultState(HasResult: ended), _scriptedView.PathPlaying ? CameraModeId.ScriptedPath : default);
             if (!ended) return false;
@@ -86,7 +86,7 @@ namespace DK2.Unity
         private void RecordLevelStatistics()
         {
             if (_playedSlot == CampaignSlot.None) return;
-            WorldState world = _simulation.World;
+            WorldState world = World;
             bool any = false;
             for (int i = 0; i < world.PlayerCount && !any; i++)
             {
@@ -117,7 +117,7 @@ namespace DK2.Unity
         {
             // Remake placeholder: DK2's in-level result presentation is unread (front-end plan F5).
             if (!LaunchedFromFrontEnd || !_resultRecorded || _scriptedView.PathPlaying) return;
-            byte status = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Status;
+            byte status = World.Player(new PlayerId((byte)viewingPlayerId)).Status;
             if (!PlayerStatus.HasEnded(status)) return;
             DrawWinScreen();
             var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 18 };

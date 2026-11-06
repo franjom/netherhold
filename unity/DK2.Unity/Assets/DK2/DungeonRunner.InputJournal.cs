@@ -116,7 +116,7 @@ namespace DK2.Unity
         private void JournalTicks(int ticks)
         {
             if (_frameJournal == null) return;
-            _journalRecorder.Ticks(new GameTick(_simulation.World.CurrentTick.Value - (tickOnWorkerThread ? 0 : ticks)), ticks);
+            _journalRecorder.Ticks(new GameTick(World.CurrentTick.Value + _ticksPending - (tickOnWorkerThread ? 0 : ticks)), ticks);
         }
 
         private void LateUpdate()

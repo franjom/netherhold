@@ -67,7 +67,7 @@ namespace DK2.Unity
         private void FollowScriptedCreature()
         {
             if (_scriptedView.FollowedCreatureId == 0 || _glideMilliseconds > 0) return;
-            if (_simulation.World.CreatureById(_scriptedView.FollowedCreatureId) is not CreatureState creature) return;
+            if (World.CreatureById(_scriptedView.FollowedCreatureId) is not CreatureState creature) return;
             _cameraFocus = new Vector3(creature.PosX / (float)Fp32.One, _cameraFocus.y, -creature.PosY / (float)Fp32.One);
         }
 

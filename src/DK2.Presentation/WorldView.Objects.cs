@@ -55,22 +55,34 @@ public sealed partial class WorldView
 
     private readonly List<RoomInstance> _rooms = [];
     private readonly Dictionary<int, AssetRef> _objectArt = [];
-    private readonly Dictionary<int, (ObjectState Object, int X, int Y, int Heading, int Z, int Pitch, int Roll)> _objectPositions = [];
+    // Two buffers: the tick thread captures into one while the frame reads the other (ADR-0694).
+    private Dictionary<int, (int X, int Y, int Heading, int Z, int Pitch, int Roll)> _objectPositions = [];
+    private Dictionary<int, (int X, int Y, int Heading, int Z, int Pitch, int Roll)> _capturedPositions = [];
     private WorldState? _objectPositionsWorld;
-    private GameTick _objectPositionsTick;
+    private GameTick _objectPositionsTick, _capturedPositionsTick;
 
-    /// <summary>Capture before each simulation tick so a batched Unity frame interpolates only its last tick.</summary>
+    /// <summary>Capture before each simulation tick so a batched Unity frame interpolates only its
+    /// last tick. Reads the world and the art tables only; <see cref="PresentObjectPositions"/> hands
+    /// the capture to the frame.</summary>
     public void CaptureObjectPositions(WorldState world)
     {
-        _objectPositionsWorld = world;
-        _objectPositionsTick = world.CurrentTick;
-        _objectPositions.Clear();
+        _capturedPositionsTick = world.CurrentTick;
+        _capturedPositions.Clear();
         foreach (ObjectState thing in world.Objects)
             if (!thing.InHand && (thing.CarriedByCreatureId < 0 || IsAttached(thing)))
             {
                 ObjectView pose = Placed(world, thing, new TilePos(thing.TileIndex % world.Width, thing.TileIndex / world.Width));
-                _objectPositions[thing.Id] = (thing, pose.PosX, pose.PosY, pose.Heading, pose.Height, pose.Pitch, pose.Roll);
+                _capturedPositions[thing.Id] = (pose.PosX, pose.PosY, pose.Heading, pose.Height, pose.Pitch, pose.Roll);
             }
+    }
+
+    /// <summary>Makes the last capture the one the frame interpolates from, for the world the frame
+    /// draws: the live world on the main-thread path, the presented copy on the worker path.</summary>
+    public void PresentObjectPositions(WorldState world)
+    {
+        (_objectPositions, _capturedPositions) = (_capturedPositions, _objectPositions);
+        _objectPositionsTick = _capturedPositionsTick;
+        _objectPositionsWorld = world;
     }
 
     // The decorations, built once a tick as the room facts are (EnsureRooms), and the tiles holding
@@ -343,7 +355,7 @@ public sealed partial class WorldView
         if (thing.ObjectTypeId == CasinoLeverId && thing.ProcessState is not (48 or 49))
             objectAnimationStartedAt = new GameTick(-AnimationTimingRules.FirstCycleHoldTicks(definition?.ArtSlot(slot) ?? default) - 1);
         if (ReferenceEquals(world, _objectPositionsWorld) && world.CurrentTick.Value == _objectPositionsTick.Value + 1
-            && _objectPositions.TryGetValue(thing.Id, out var previous) && ReferenceEquals(previous.Object, thing))
+            && _objectPositions.TryGetValue(thing.Id, out var previous))
         {
             (previousX, previousY, previousHeading) = (previous.X, previous.Y, previous.Heading);
             (previousZ, previousPitch, previousRoll) = (previous.Z, previous.Pitch, previous.Roll);
@@ -629,14 +641,18 @@ public sealed partial class WorldView
             return mesh;
         }
         int key = (objectTypeId << 4) | slot;
-        if (!_objectArt.TryGetValue(key, out AssetRef art))
+        // The capture on the tick thread and the frame both come here (ADR-0694).
+        lock (_objectArt)
         {
-            art = _database.ObjectById(objectTypeId) is { } definition
-                ? AssetCatalogue.ObjectArt(definition.Name, slot)
-                : default;
-            _objectArt[key] = art;
+            if (!_objectArt.TryGetValue(key, out AssetRef art))
+            {
+                art = _database.ObjectById(objectTypeId) is { } definition
+                    ? AssetCatalogue.ObjectArt(definition.Name, slot)
+                    : default;
+                _objectArt[key] = art;
+            }
+            return art;
         }
-        return art;
     }
 
     /// <summary>The creature body's base plane, before relative falling height; not the Portal hole.</summary>

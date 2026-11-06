@@ -165,9 +165,9 @@ namespace DK2.Unity
                 message =>
                 {
                     // Once a tick: a room's location is a flood fill (RoomIndex.RoomAt).
-                    GameTick tick = _simulation.World.CurrentTick;
+                    GameTick tick = World.CurrentTick;
                     if (_gotoMessage != message.Id || _gotoTick != tick)
-                        (_gotoMessage, _gotoTick, _gotoLocation) = (message.Id, tick, _messageView.Location(_simulation.World, message));
+                        (_gotoMessage, _gotoTick, _gotoLocation) = (message.Id, tick, _messageView.Location(World, message));
                     return _gotoLocation;
                 },
                 // 0x00415B30 submits game action 4 with the point's tile (x >> 12, y >> 12): the focus
@@ -213,7 +213,7 @@ namespace DK2.Unity
         private void DrawStatusFlowers()
         {
             if (_statusFlowers == null || _statusFlowerArt == null) return;
-            WorldState world = _simulation.World;
+            WorldState world = World;
             bool possessing = world.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0;
             // Unity's null: a rebuilt scene destroyed the previous blended terrain.
             if (_statusFlowerBlended == null) _statusFlowerBlended = GetComponentInChildren<TransparentTerrain>();
@@ -263,13 +263,13 @@ namespace DK2.Unity
 
         private void NavigateRoom(RoomTypeId type)
         {
-            var rooms = RoomIndex.Build(_simulation.World, _simulation.Database);
+            var rooms = RoomIndex.Build(World, _simulation.Database);
             var entries = new System.Collections.Generic.List<RoomNavigationEntry>(rooms.Count);
             for (int i = 0; i < rooms.Count; i++)
             {
                 RoomInstance room = rooms[i];
                 if (room.Definition.TypeId is not RoomTypeId roomType) continue;
-                TilePos identity = _simulation.World.TilePosition(room.TileIndices[0]);
+                TilePos identity = World.TilePosition(room.TileIndices[0]);
                 entries.Add(new RoomNavigationEntry(identity, new PlayerId(room.OwnerPlayerId), roomType,
                     new TilePos(room.CentreFieldX, room.CentreFieldY)));
             }
@@ -281,7 +281,7 @@ namespace DK2.Unity
         private void NavigateDoor(byte kind)
         {
             _thingEntries.Clear();
-            IReadOnlyList<DoorState> doors = _simulation.World.Doors;
+            IReadOnlyList<DoorState> doors = World.Doors;
             for (int i = doors.Count - 1; i >= 0; i--)
             {
                 DoorState door = doors[i];
@@ -293,7 +293,7 @@ namespace DK2.Unity
         private void NavigateTrap(byte kind)
         {
             _thingEntries.Clear();
-            IReadOnlyList<TrapState> traps = _simulation.World.Traps;
+            IReadOnlyList<TrapState> traps = World.Traps;
             for (int i = traps.Count - 1; i >= 0; i--)
             {
                 TrapState trap = traps[i];
@@ -421,13 +421,13 @@ namespace DK2.Unity
             if (_overviewPanel.TryPress(Input.mousePosition, primary, secondary, shift && !control && !alt,
                 control && !shift && !alt, out CreatureOverviewRequest request))
             {
-                CreatureOverviewAction selected = _overviewView.Select(_simulation.World, request.Type, request.Selection, request.Filter);
+                CreatureOverviewAction selected = _overviewView.Select(World, request.Type, request.Selection, request.Filter);
                 if (selected.Kind == CreatureOverviewActionKind.Pickup)
                 {
                     var command = new PickUpCreatureCommand(new PlayerId((byte)viewingPlayerId), selected.Target.Value);
                     _pendingCommands.Add(command);
-                    _worldView.QueueMinimapPickupPreview(command, _simulation.World.CurrentTick.Next);
-                    _overviewView.QueuePickupPreview(selected.Target, _simulation.World.CurrentTick.Next);
+                    _worldView.QueueMinimapPickupPreview(command, World.CurrentTick.Next);
+                    _overviewView.QueuePickupPreview(selected.Target, World.CurrentTick.Next);
                 }
                 else if (selected.Kind == CreatureOverviewActionKind.Focus)
                 {
@@ -524,8 +524,8 @@ namespace DK2.Unity
         private void DrawHudControls()
         {
             ApplyHudScale();
-            _resources = _resourceView.Capture(_simulation.World, displayHealth: CurrentHud.ShowNormalHud);
-            _bottomView.Capture(_simulation.World);
+            _resources = _resourceView.Capture(World, displayHealth: CurrentHud.ShowNormalHud);
+            _bottomView.Capture(World);
             // FLASH_BUTTON on the panel (tab-alerts.md): the target drawn, and dropped once its item is in use.
             if (_scriptedView.ActiveFlashTarget is HudFlashTarget flash
                 && BottomPanelFlash.ClearedByUse(flash, ActiveTool, selectedRoomId, _panelChoice, _bottomPanel.OpenPanel))
@@ -533,10 +533,10 @@ namespace DK2.Unity
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
             _bottomPanel.GamePaused = _hudControls.OptionsVisible;
             _bottomPanel.Draw();
-            _fullMap.Capture(_simulation.World, _simulation.Database, new PlayerId((byte)viewingPlayerId));
+            _fullMap.Capture(World, _simulation.Database, new PlayerId((byte)viewingPlayerId));
             DrawSavePanel(frontEnd: false);
             _gameOptionsPanel?.Draw();
-            _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000), PlayedHud);
+            _messageView.Capture(World, (long)(Time.unscaledTimeAsDouble * 1000), PlayedHud);
             if (_hudWarmFrames > 0)
             {
                 // The warm frames draw the panels as shown; nothing about them is heard.
@@ -553,26 +553,26 @@ namespace DK2.Unity
                 _soundPlayer?.QueueSpeech(_messageView.Speech);
             }
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
-                HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)),
+                HudIndicatorSnapshot.Capture(World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)),
                 _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
-            _overviewView.Capture(_simulation.World);
+            _overviewView.Capture(World);
             _overviewPanel.Draw(CurrentHud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);
             _optionsPanel.Draw(Input.mousePosition); _fullMap.Draw();
-            CreatureState creature = _simulation.World.CreatureById(_queryTarget.Value);
+            CreatureState creature = World.CreatureById(_queryTarget.Value);
             string name = creature == null ? "" : _identityNames.Name(new CreatureNameIndex(creature.NameIndex));
             string blood = creature == null ? "" : _identityNames.BloodGroup(new CreatureBloodGroupIndex(creature.BloodGroupIndex));
-            _querySnapshot = _creatureQuery.Capture(_simulation.World, _queryTarget, name, blood);
+            _querySnapshot = _creatureQuery.Capture(World, _queryTarget, name, blood);
             _queryTarget = _querySnapshot.Target;
             _queryPanel.Draw(_querySnapshot, CurrentHud, HudModal);
         }
 
         private bool HoldingGold()
         {
-            var hand = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand;
+            var hand = World.Player(new PlayerId((byte)viewingPlayerId)).Hand;
             if (hand.Count == 0) return false;
             HandItem top = hand[hand.Count - 1];
-            return top.Kind == HandItemKind.Object && _simulation.World.ObjectById(top.Id) is ObjectState obj
+            return top.Kind == HandItemKind.Object && World.ObjectById(top.Id) is ObjectState obj
                 && obj.ObjectTypeId is 1 or 2 or 3;
         }
 

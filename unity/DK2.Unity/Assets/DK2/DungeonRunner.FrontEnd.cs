@@ -150,7 +150,7 @@ namespace DK2.Unity
             var tick = new GameTick((long)Math.Floor(turns));
             float fraction = (float)(turns - Math.Floor(turns));
             _scene.DrawCreatureFrame(tick, fraction);
-            _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
+            _scene.SetObjectLights(_worldView.LightObjects(World), 1);
             ApplyClassicLook();
             if (_frontEnd.Pose is CameraPathPose lightingPose) _scene.PrepareClassicLighting(Camera.main, lightingPose.ViewDistance);
             _scene.AdvanceTorchAnimation();
@@ -189,7 +189,7 @@ namespace DK2.Unity
                 _frontEndMapRevision = _campaignMap.Revision;
                 _frontEndScenery = FrontEndScenery.ApplyCampaignMap(_frontEndBaseScenery, _campaignMap);
                 _worldView.FrontEndScenery = _frontEndScenery;
-                _presenter.Present(_simulation.World);
+                _presenter.Present(World);
             }
         }
 

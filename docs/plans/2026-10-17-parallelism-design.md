@@ -588,7 +588,9 @@ over 16.67 ms. Where they go, by the recorder's columns:
   frames over 16.67 ms 109 → 44, of which 41 are the tick join: what is left
   above 60 FPS is P1, designed in
   [the presented-world plan](2026-11-06-presented-world.md) (the cheap variant
-  drops clicks; the full one copies the world on the worker after each tick). The runner's own HUD passes are 0.6 ms p50, 2 ms p99.
+  drops clicks; the full one copies the world on the worker after each tick),
+  built and measured the same day (ADR-0693, ADR-0694): uncapped, the frames
+  over 16.67 ms went 56 → 6 and the joins 137 → 0. The runner's own HUD passes are 0.6 ms p50, 2 ms p99.
 - **The draw clock is even.** The 3.0% the metric first read at 150 FPS was
   the metric: the clock samples elapsed time after the tick join, so a frame
   that waited covers its wait and the next frame's interval carries it.

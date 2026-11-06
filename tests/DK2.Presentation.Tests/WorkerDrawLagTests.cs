@@ -63,6 +63,72 @@ public class WorkerDrawLagTests
         Assert.Equal(TicksPerSecond / 30, lag.Lag, 6);
     }
 
+    /// <summary>The presented world's case (ADR-0694): a tick's poses arrive its wall time after
+    /// it started. With the tick time observed the clock never reaches the boundary before them;
+    /// without it, every tick clamps.</summary>
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 20)]
+    public void TheLagCoversTheTicksWallTimeSoTheFrameBesideItNeverClamps(bool observeTick, int clampsAtLeast)
+    {
+        const double fps = 150, tickSeconds = 0.014;
+        var lag = new WorkerDrawLag();
+        double debt = 0, running = 0;
+        long presented = 0;
+        int pending = 0, clamps = 0;
+        bool observed = false;
+        var drawn = new List<double>();
+        for (int frame = 0; frame < 1500; frame++)
+        {
+            double advance = TicksPerSecond / fps;
+            lag.Observe(advance);
+            debt += advance;
+            // The runner observes the batch's time when it sees it finished, and presents it once
+            // the draw clock reaches its last tick.
+            if (pending > 0 && (running += 1 / fps) >= tickSeconds)
+            {
+                if (observeTick && !observed) lag.ObserveTick(running * TicksPerSecond);
+                observed = true;
+                if (debt >= lag.Lag)
+                {
+                    presented += pending;
+                    pending = 0;
+                }
+            }
+            int starting = 0;
+            if (pending == 0 && debt >= 1)
+            {
+                starting = (int)Math.Min(debt, MaxTicksPerFrame);
+                debt -= starting;
+                running = 0;
+                observed = false;
+            }
+            double fraction = lag.Fraction(debt, pending + starting);
+            if (frame >= 200 && pending + starting > 0 && fraction >= 1) clamps++;
+            drawn.Add(presented + fraction);
+            pending += starting;
+        }
+        for (int i = 60; i < drawn.Count; i++) Assert.True(drawn[i] >= drawn[i - 1] - 1e-9, $"frame {i} drew backwards");
+        if (observeTick)
+        {
+            Assert.Equal(0, clamps);
+            double step = TicksPerSecond / fps;
+            for (int i = 200; i < drawn.Count; i++) Assert.Equal(step, drawn[i] - drawn[i - 1], 9);
+        }
+        else Assert.True(clamps >= clampsAtLeast, $"expected the clock to clamp at every tick, saw {clamps}");
+    }
+
+    [Fact]
+    public void TheTickTimeRisesAtOnceAndDecaysSlowly()
+    {
+        var lag = new WorkerDrawLag();
+        for (int i = 0; i < 100; i++) lag.Observe(TicksPerSecond / 150);
+        lag.ObserveTick(0.08);
+        Assert.Equal(TicksPerSecond / 150 + 0.08, lag.Lag, 9);
+        lag.ObserveTick(0.02);
+        Assert.True(lag.Lag > TicksPerSecond / 150 + 0.07, "one short tick must not drop the lag");
+    }
+
     [Fact]
     public void AStallNeverDrawsBackwardsAndNeverHidesAWholeTick()
     {

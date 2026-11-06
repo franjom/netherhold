@@ -299,8 +299,8 @@ meshes remain; movement and its observed near-hole limits are recorded in
 Level1's scripted red tutorial tile guidance is built (ADR-0528):
 [native slots and pulse](research/tag-highlight.md#scripted-tutorial-red-flash).
 Active tick/presentation stalls remain measurable: research/level8-intro-motion.md.
-Parallelism: [design](plans/2026-10-17-parallelism-design.md); P1 in progress on
-`perf/presented-world` ([plan](plans/2026-11-06-presented-world.md), copy done, ADR-0693).
+Parallelism: [design](plans/2026-10-17-parallelism-design.md); P1 built and measured on
+`perf/presented-world` ([plan](plans/2026-11-06-presented-world.md), ADR-0693/0694), unmerged.
 Next interface scope selected by the owner (2026-10-17):
 [Step6 HUD and controls preparation](plans/2026-10-17-classic-look-step6.md),
 following ART_DIRECTION.md §13 and proposed ADR-0497. Step5 is not formally closed.

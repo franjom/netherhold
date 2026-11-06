@@ -1,7 +1,8 @@
 # The presented world: the frame reads a copy, the tick runs beside it (P1)
 
-**Date:** 2026-11-06. **Status:** in progress on `perf/presented-world`; step 1 done
-(ADR-0693). Continues [the parallelism plan](2026-10-17-parallelism-design.md), whose P1 this is.
+**Date:** 2026-11-06. **Status:** built on `perf/presented-world` (ADR-0693, ADR-0694) and
+measured; see "Result" at the end. Continues [the parallelism plan](2026-10-17-parallelism-design.md),
+whose P1 this is.
 
 ## Why now
 
@@ -88,13 +89,15 @@ dungeon view and cheaper than a 19 ms stall four times a second. The release rec
    (`GameSimulation.Resume`) beside the live one for 300 ticks on Level6a. The in-place
    copy costs 0.10 ms and no allocation at tick 1500 of Level6a (Release), against a
    1.45 ms tick. The identity random is not copied: the copy never spawns.
-2. `DungeonRunner`: `_presented` replaces `_simulation.World` for the frame; the swap
-   replaces the join; the tick starts at the top of the frame when due; the worker's
-   post-tick step copies. One day, with the reader audit as the checklist.
-3. `WorkerDrawLag` takes the tick duration. Half a day with its tests.
-4. Measure: the release recorder, uncapped and at 120, before and after, on the same
-   package; the headless probe for the hash and the clean baselines; the fly-by's draw
-   clock. Half a day.
+2. **Done (ADR-0694).** `World` replaces `_simulation.World` for the frame; the hand-over
+   replaces the join and is a copy into one presented instance rather than a swap of two,
+   since the views key caches and hold instances by world; the tick still starts at the end
+   of the frame (earlier in wall time than the next frame's top); the worker's post-tick
+   step copies into the spare. The object-position capture is double-buffered.
+3. **Done.** `WorkerDrawLag` observes the batch's wall time (rising at once, decaying
+   slowly) and the runner presents a batch when the draw clock reaches it, so the clock
+   neither clamps at the boundary nor jumps past it.
+4. **Done.** Below.
 
 Branch: `perf/presented-world`. Gates: the pinned state hash, the clean-baseline tables
 in the parallelism plan, the draw-clock metric under 1.5%, and a release capture whose
@@ -146,3 +149,23 @@ diagnostics hash runs in both players.
   first round's three long stalls at the cap of 60 (2.7 s, 1.3 s, 156 ms, nothing in
   the game's columns) did not recur, so they were the machine. A cap is therefore a 60
   Hz default, not a fix for anything above it; P1 is.
+
+## Result (measured 2026-11-06)
+
+Same release package (`build/tester-package/20261106-125325`), Level6a, 40 s, windowed, idle
+laptop, against the dedicated-thread build before P1 (`20261106-114342`):
+
+| | uncapped before | after | cap 120 before | after | cap 60 before | after |
+|---|---:|---:|---:|---:|---:|---:|
+| FPS | 159 | 186 | 117 | 118 | 60 | 60 |
+| frame p50 / p99 ms | 5.9 / 16.8 | 5.0 / 12.0 | 8.4 / 14.4 | 8.3 / 12.7 | 16.7 / 16.9 | 16.7 / 17.1 |
+| frames over 16.67 ms | 56 | 6 | 26 | 6 | 966 | 930 |
+| of them after a join | 54 | 0 | 24 | 0 | 4 | 0 |
+| joins over 1 ms | 137 | 0 | 94 | 0 | 4 | 0 |
+| tick p50 / p95 ms | 7.5 / 14.3 | 6.5 / 15.3 | 5.8 / 13.4 | 6.0 / 13.1 | 5.3 / 13.6 | 5.3 / 12.1 |
+
+The gate held: the draw clock's steady share over the limit 0.17 % (limit 1.5 %), its worst error
+23.5 → 9.1 ms; the headless probe at 60 reports no join and no change to the hash. What the worst
+frames are now, uncapped: terrain chunk rebuilds inside Present (10–20 ms frames with 3–6 ms of
+rebuild, four in the fly-by's first five seconds) and one 30 ms lights frame at 5.7 s. Those are
+the next targets; the tick is no longer one of them above 60 FPS.

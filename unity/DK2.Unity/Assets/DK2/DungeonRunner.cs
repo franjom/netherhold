@@ -147,6 +147,7 @@ namespace DK2.Unity
         // position snapshot and the tick itself (whose systems UnitySimulationProfiler shows).
         private static readonly ProfilerMarker InputMarker = new ProfilerMarker("DK2.Frame.Input");
         private static readonly ProfilerMarker CaptureMarker = new ProfilerMarker("DK2.Simulation.CaptureObjectPositions");
+        private static readonly ProfilerMarker CopyWorldMarker = new ProfilerMarker("DK2.Simulation.CopyWorld");
 
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
@@ -192,6 +193,19 @@ namespace DK2.Unity
         private ClassicBitmapText _subtitleFont;
         private RoomTypeId[] _roomIds = Array.Empty<RoomTypeId>();
         private double _tickDebt;
+
+        // The presented world (ADR-0694): the frame reads this copy while the worker ticks the live
+        // one. The worker copies live into the spare after its batch; the frame takes the spare over,
+        // in place, once the draw clock reaches the batch, so the frame neither waits nor clamps.
+        private WorldState _presented, _spare;
+        private int _ticksPending;
+        private long _tickStartedStamp;
+        private bool _tickObserved;
+        private double _pendingTickMs;
+
+        /// <summary>The world this frame reads: the presented copy on the worker path, the simulation's
+        /// own on the main-thread path and in the front end.</summary>
+        private WorldState World => _presented ?? _simulation.World;
         private string _failure;
         private string _loadedFrom;
         private Task _tickTask;
@@ -494,6 +508,12 @@ namespace DK2.Unity
             // shows the lid and not the open pit beneath it.
             // A restored checkpoint already includes its starting turn.
             if (_resumeSession == null) RunTicks(1, InputFrame.Empty);
+            if (!frontEnd && tickOnWorkerThread)
+            {
+                _presented = WorldState.CopyOf(_simulation.World);
+                _spare = WorldState.CopyOf(_simulation.World);
+                _worldView.PresentObjectPositions(_presented);
+            }
             _constructionEffects?.Model.UpdateNow();
             _startup.Step("tick");
             if (firstFrame != null)
@@ -569,8 +589,8 @@ namespace DK2.Unity
             }
             _hoverText = new WorldHoverText(database, _hudSources.Strings.Resolve, new PlayerId((byte)viewingPlayerId), hoverSlot);
             _startup.Step("hud.text");
-            _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));
-            _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
+            _scene.SetPortalLights(_worldView.PortalLightTiles(World));
+            _scene.SetObjectLights(_worldView.LightObjects(World), 1);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)
                 _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
@@ -623,7 +643,7 @@ namespace DK2.Unity
             // players record them), so a hitch names where the frame went, not only first-use art.
             private static readonly string[] Markers =
             {
-                "DK2.Simulation.WaitForTick", "DK2.Simulation.Tick", "DK2.Simulation.CaptureObjectPositions",
+                "DK2.Simulation.WaitForTick", "DK2.Simulation.Tick", "DK2.Simulation.CaptureObjectPositions", "DK2.Simulation.CopyWorld",
                 "DK2.Scene.Present", "DK2.Scene.AnimatedFrame", "DK2.Scene.CreateCreature", "DK2.Scene.PrepareLighting",
                 "DK2.TerrainChunks.Rebuild", "DK2.TerrainChunks.Geometry", "DK2.TerrainChunks.Upload",
                 "DK2.TransparentTerrain.SetChunk", "DK2.TransparentTerrain.Sort", "DK2.TransparentTerrain.Cull",
@@ -751,6 +771,8 @@ namespace DK2.Unity
             _hitches?.Dispose(); _hitches = null;
             _runtimeReleased = true;
             WaitForTick();
+            _presented = _spare = null;
+            _ticksPending = 0;
             CloseInputJournals("destroyed");
             DisposeHudControls();
             _soundPlayer?.Dispose(); _soundPlayer = null;
@@ -871,18 +893,20 @@ namespace DK2.Unity
             else if (_classic?.Breakdown != null)
             {
                 _hitches ??= new HitchReport();
-                string hitch = _hitches.Frame(Time.unscaledDeltaTime * 1000d, _classic.Breakdown, _installArt, _simulation.World.CurrentTick.Value);
+                string hitch = _hitches.Frame(Time.unscaledDeltaTime * 1000d, _classic.Breakdown, _installArt, World.CurrentTick.Value);
                 if (hitch != null) Debug.LogWarning(hitch);
             }
             FrameReportMarker.End();
 
-            // The tick started at the end of the last frame, if any, has the world until it is done.
+            // The tick started at the end of the last frame, if any, has the live world until it is
+            // done; this frame reads the presented copy and takes the batch over when the draw clock
+            // reaches it (ADR-0694). The wait column records that hand-over and any blocking join.
             long waitStarted = _recorder?.Stamp() ?? 0;
-            WaitForTick();
+            PresentTick();
             _recorder?.Spent(FrameRecorder.Part.Wait, waitStarted);
             if (_simulation == null) return;
             soundStarted = _recorder?.Stamp() ?? 0;
-            using (FrameSoundMarker.Auto()) UpdateWorldSound(_simulation.World, _simulation.Database);
+            using (FrameSoundMarker.Auto()) UpdateWorldSound(World, _simulation.Database);
             _recorder?.Spent(FrameRecorder.Part.Sound, soundStarted);
             double elapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: Time.deltaTime, maximumDeltaSeconds: Time.maximumDeltaTime, timeScale: Time.timeScale);
@@ -893,8 +917,8 @@ namespace DK2.Unity
             long scriptStarted = _recorder?.Stamp() ?? 0;
             FrameScriptMarker.Begin();
             _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
-                _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d),
-                _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0
+                World.CurrentTick.Value + _ticksPending + Math.Min(_tickDebt, 1d),
+                World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0
                     ? CameraModeId.Possession : CameraModeId.Dungeon);
             UpdateWinScreenPreview();
             // ClassicHudControls.UpdateResult (0x004039A0) is fed only for a level launched from the front
@@ -968,47 +992,47 @@ namespace DK2.Unity
             _handCursorEvents?.Drain((long)(Time.unscaledTimeAsDouble * 1000));
             // Retain released tag previews until the command's tick has actually completed,
             // including the frame before a worker tick starts.
-            _worldView.AcknowledgeTagPreviews(_simulation.World.CurrentTick);
+            _worldView.AcknowledgeTagPreviews(World.CurrentTick);
             _worldView.AdvanceTerrainHighlights(new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d)));
 
-            // How far the drawn world is from its last tick toward its next, for the creature
-            // interpolation and the camera path. On the worker path this frame's ticks have not run
-            // yet, so the world drawn is still the previous one, and the draw clock runs one frame
-            // behind the tick clock so the frame that owes a tick does not clamp at the boundary
-            // (ADR-0687).
-            float fraction = (float)(tickOnWorkerThread ? _drawLag.Fraction(_tickDebt, ticks) : Math.Min(_tickDebt, 1d));
+            // How far the drawn world is from its last presented tick toward its next, for the
+            // creature interpolation and the camera path. On the worker path the ticks started and
+            // not yet presented are ahead of the drawn world, and the draw clock runs a tick's wall
+            // time and a frame behind the tick clock so it never reaches poses that are not there
+            // yet (ADR-0687, ADR-0694).
+            float fraction = (float)(tickOnWorkerThread ? _drawLag.Fraction(_tickDebt, _ticksPending + ticks) : Math.Min(_tickDebt, 1d));
 
             // Off the map, a Hand excavation preview keeps the last tile the pointer was on.
             TilePos? dragFrom = _input.DragFrom(PlayerToolMode.Hand);
             if (dragFrom == null) _dragTo = null;
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
             _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
-            _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
-            _worldView.SetPossessionView(_simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
+            _scene.SetCreatureFrameTime(World.CurrentTick, fraction);
+            _worldView.SetPossessionView(World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
             long presentStarted = _recorder?.Stamp() ?? 0;
-            using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
+            using (PresentMarker.Auto()) _presenter.Present(World);
             _recorder?.Spent(FrameRecorder.Part.Present, presentStarted);
             if (_gemIdleEffects != null)
             {
                 _gemIdleRequests.Clear();
-                _gemIdleEffects.Collect(_simulation.World, _gemIdleRequests);
+                _gemIdleEffects.Collect(World, _gemIdleRequests);
                 for (int i = 0; i < _gemIdleRequests.Count; i++) _constructionEffects.Model.Request(_gemIdleRequests[i]);
             }
-            using (FrameMinimapMarker.Auto()) _minimap?.Capture(_simulation.World, _worldView, _simulation.Navigation);
+            using (FrameMinimapMarker.Auto()) _minimap?.Capture(World, _worldView, _simulation.Navigation);
             bool drawingPath = _scriptedView.PathPlaying;
-            _scriptedView.SeekCamera(_simulation.World.CurrentTick.Value + fraction);
+            _scriptedView.SeekCamera(World.CurrentTick.Value + fraction);
             if (_scriptedView.PathPlaying) ApplyPathCamera();
             else if (drawingPath)
             {
                 if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
-                else LookAt(_simulation.World);
+                else LookAt(World);
             }
             _lightning?.BeginFrame(Camera.main);
             long animationStarted = _recorder?.Stamp() ?? 0;
-            _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
+            _scene.DrawCreatureFrame(World.CurrentTick, fraction);
             _recorder?.Spent(FrameRecorder.Part.Animation, animationStarted);
             _shotDrawFraction = fraction;
-            _constructionEffects?.CaptureShots(_simulation.World.Shots, fraction);
+            _constructionEffects?.CaptureShots(World.Shots, fraction);
             FollowQueriedCreature();
             if (Camera.main != null && !_scriptedView.PathPlaying)
             {
@@ -1019,8 +1043,8 @@ namespace DK2.Unity
             RefreshEffectCamera();
             long lightsStarted = _recorder?.Stamp() ?? 0;
             FrameLightsMarker.Begin();
-            _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));
-            _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
+            _scene.SetPortalLights(_worldView.PortalLightTiles(World));
+            _scene.SetObjectLights(_worldView.LightObjects(World), fraction);
             FrameLightsMarker.End();
             using (FrameEffectsAdvanceMarker.Auto())
                 if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
@@ -1036,9 +1060,9 @@ namespace DK2.Unity
                     _scriptedView.Pose is CameraPathPose path ? path.ViewDistance : _classicCamera.NativeViewDistance,
                     _fullMap?.PreviewCamera);
             _scene.AdvanceTorchAnimation();
-            _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
+            _scene.DrawCreatureShadows(Camera.main, _worldView, World);
             _constructionEffects?.Draw();
-            _lightning?.DrawShots(_simulation.World, _simulation.Database, _worldView, fraction);
+            _lightning?.DrawShots(World, _simulation.Database, _worldView, fraction);
             _lightning?.DrawEffects();
             _lightning?.EndFrame();
             _recorder?.Spent(FrameRecorder.Part.Lights, lightsStarted);
@@ -1056,8 +1080,13 @@ namespace DK2.Unity
             using (FrameJournalMarker.Auto()) JournalTicks(ticks);
             if (ticks > 0 && tickOnWorkerThread)
             {
+                // A batch still running when the next is due is joined here: the one wait left.
+                WaitForTick();
                 int count = ticks;
                 InputFrame input = firstInput;
+                _ticksPending = ticks;
+                _tickStartedStamp = System.Diagnostics.Stopwatch.GetTimestamp();
+                _tickObserved = false;
                 _tickTask = StartTickThread(count, input);
             }
             if (_recorder != null)
@@ -1098,8 +1127,35 @@ namespace DK2.Unity
             // The hash is for the diagnostics only, and costs a few milliseconds; here it is off the
             // frame when the ticks are. Turned on at run time, it shows 0 until the next tick.
             if (showDiagnostics) _stateHash = _simulation.StateHash();
-            // Inline ticks are read by this frame's EndFrame, worker ticks by the frame that joins.
-            if (_recorder != null) _recordedTickMs += _recorder.Elapsed(started);
+            // Inline ticks are read by this frame's EndFrame, worker ticks by the frame that presents.
+            double tickMs = _recorder?.Elapsed(started) ?? 0;
+            if (_presented != null)
+            {
+                using (CopyWorldMarker.Auto()) _spare.CopyFrom(_simulation.World);
+                _pendingTickMs = tickMs;
+            }
+            else
+            {
+                _worldView.PresentObjectPositions(_simulation.World);
+                _recordedTickMs += tickMs;
+            }
+        }
+
+        /// <summary>Takes a finished batch over when the draw clock has reached its last tick, so the
+        /// interpolation runs straight through the boundary; a stall's catch-up batch at once. The
+        /// batch's wall time, seen once, is what the draw clock lags by (<see cref="WorkerDrawLag"/>).</summary>
+        private void PresentTick()
+        {
+            Task task = _tickTask;
+            if (task == null || !task.IsCompleted) return;
+            if (!_tickObserved)
+            {
+                _tickObserved = true;
+                _drawLag.ObserveTick((System.Diagnostics.Stopwatch.GetTimestamp() - _tickStartedStamp)
+                    / (double)System.Diagnostics.Stopwatch.Frequency * SimulationTiming.TicksPerSecond);
+            }
+            // The debt is this frame's before its advance is added; the frame's usual advance stands in.
+            if (_ticksPending > 1 || _tickDebt + _drawLag.Frame >= _drawLag.Lag) WaitForTick();
         }
 
         /// <summary>The ticks on a thread of their own, above normal priority: on the thread pool
@@ -1138,7 +1194,16 @@ namespace DK2.Unity
                 _failure = $"tick failed: {ex.Message}";
                 speed = 0f;
                 _simulation = null;
+                return;
             }
+            if (_presented == null) return;
+            // The worker's copy of the live world becomes the presented one, in place: every reader
+            // keeps the instances it holds, and the live world is the worker's again.
+            using (CopyWorldMarker.Auto()) _presented.CopyFrom(_spare);
+            _worldView.PresentObjectPositions(_presented);
+            _ticksPending = 0;
+            _recordedTickMs += _pendingTickMs;
+            _pendingTickMs = 0;
         }
 
         private TilePos? _debugHoverTile;
@@ -1146,15 +1211,15 @@ namespace DK2.Unity
         private void RefreshDiagnostics()
         {
             string hover = "";
-            if (_debugHoverTile is TilePos at && _simulation.World.Contains(at))
+            if (_debugHoverTile is TilePos at && World.Contains(at))
             {
-                TileState state = _simulation.World.Tile(at);
+                TileState state = World.Tile(at);
                 var viewer = new PlayerId((byte)viewingPlayerId);
                 hover = Environment.NewLine + $"hover tile ({at.X},{at.Y})  {_simulation.Database.TerrainById(state.TerrainId).Name}  owner {state.OwnerPlayerId}"
                     + $"  explored {state.IsExploredBy(viewer)}  scanned {state.IsDiscoveredBy(viewer)}";
             }
             _diagnostics =
-                $"tick {_simulation.World.CurrentTick.Value}   " +
+                $"tick {World.CurrentTick.Value}   " +
                 $"state {_stateHash:x16}   " +
                 $"{_scene.TileObjects} tile objects   {_scene.CreatureObjects} creatures   " +
                 $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame" + hover;
@@ -1190,7 +1255,7 @@ namespace DK2.Unity
                 PointerPosition: tile is TilePos pointTile ? ScreenToPosition(Input.mousePosition, pointTile) : null);
             JournalIntent(intent);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
-                _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile, pendingCommands: _pendingCommands);
+                _worldView, World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile, pendingCommands: _pendingCommands);
             if (tile is TilePos at && (ActiveTool == PlayerToolMode.Hand || ActiveTool == PlayerToolMode.Slap))
                 snapshot = snapshot.ForHover(ResolveWorldHover(at));
             InputFrame frame = _input.Translate(intent, snapshot);
@@ -1208,9 +1273,9 @@ namespace DK2.Unity
                 // DK2's click runs the cursor's own permission tests and posts only a permitted cast.
                 if (!_spellRefused && CastSpellId(command) is byte cast) _spellCastCursor.Play(cast, nowMs);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
-                    _worldView.QueueTagPreview(tag, _simulation.World.CurrentTick.Next);
+                    _worldView.QueueTagPreview(tag, World.CurrentTick.Next);
                 if (command is DK2.Simulation.Commands.PickUpCreatureCommand pickup)
-                    _worldView.QueueMinimapPickupPreview(pickup, _simulation.World.CurrentTick.Next);
+                    _worldView.QueueMinimapPickupPreview(pickup, World.CurrentTick.Next);
             }
         }
 
@@ -1232,7 +1297,7 @@ namespace DK2.Unity
                     ray.origin.x, ray.origin.y, -ray.origin.z,
                     ray.direction.x, ray.direction.y, -ray.direction.z),
                 _worldView,
-                _simulation.World,
+                World,
                 DungeonScene.SolidHeight,
                 DungeonScene.OpenHeight);
         }
@@ -1242,7 +1307,7 @@ namespace DK2.Unity
             Camera camera = Camera.main;
             if (camera == null) return null;
             Ray ray = camera.ScreenPointToRay(screenPosition);
-            bool solid = _worldView.TileAt(_simulation.World, tile.X, tile.Y).Solid;
+            bool solid = _worldView.TileAt(World, tile.X, tile.Y).Solid;
             var plane = new Plane(Vector3.up,
                 new Vector3(0, solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
             if (!plane.Raycast(ray, out float distance)) return null;
@@ -1658,7 +1723,7 @@ namespace DK2.Unity
 
         private WorldHoverHit ResolveWorldHover(TilePos tile)
         {
-            WorldState world = _simulation.World;
+            WorldState world = World;
             PlayerId viewer = new PlayerId((byte)viewingPlayerId);
             if (world.FogOfWarEnabled && !world.Tile(tile).IsExploredBy(viewer))
                 return new WorldHoverHit(WorldHoverKind.Tile, tile);
@@ -1668,9 +1733,9 @@ namespace DK2.Unity
             var plane = new Plane(Vector3.up, new Vector3(0, shown.Solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
             if (!plane.Raycast(ray, out float distance)) return new WorldHoverHit(WorldHoverKind.Tile, tile);
             _objectsOnlyPick = !HudModal && CurrentHud.AllowOrdinaryInput && ClassicKeyBindings.Held(_gameSettings, GameAction.ObjectsOnly, exactModifiers: true);
-            _renderedPick ??= (kind, id) => HoverPickRules.Rendered(_simulation.World, _simulation.Database, kind, id, _objectsOnlyPick);
-            _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(_simulation.World, _simulation.Database, kind, id, _objectsOnlyPick);
-            _resolvesPick ??= candidate => HoverPickRules.Resolves(_simulation.World, candidate, new PlayerId((byte)viewingPlayerId));
+            _renderedPick ??= (kind, id) => HoverPickRules.Rendered(World, _simulation.Database, kind, id, _objectsOnlyPick);
+            _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(World, _simulation.Database, kind, id, _objectsOnlyPick);
+            _resolvesPick ??= candidate => HoverPickRules.Resolves(World, candidate, new PlayerId((byte)viewingPlayerId));
             GeometryUtility.CalculateFrustumPlanes(view, _pickFrustum);
             WorldHoverHit hit = _scene.PickHoverEntity(ray, view.transform.forward, distance + .02f, tile,
                 ray.GetPoint(distance), _renderedPick, _fallbackPick, _resolvesPick, _pickFrustum, _objectsOnlyPick);
@@ -1705,7 +1770,7 @@ namespace DK2.Unity
             using (HoverPickMarker.Auto())
             if (allowed && !PointerOverHud(mouse) && Camera.main != null && ScreenToTile(mouse) is TilePos tile)
             {
-                WorldState world = _simulation.World;
+                WorldState world = World;
                 _debugHoverTile = tile;
                 _pointerWorld = ScreenToPosition(mouse, tile) ?? new FpPosition2(
                     new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
@@ -1761,7 +1826,7 @@ namespace DK2.Unity
                 cursor = HandCursorKind.SmallPoint;
                 // Over the GUI 0x0040BBE0 sets No Go for the room, sell, door, trap and spell tools, and
                 // 0x0040CAE0 for every tool that draws an icon, Query included (0x0040CDD9..0x0040CDE1).
-                PlacementFeedback over = Placement(_simulation.World, new PlayerId((byte)viewingPlayerId), null);
+                PlacementFeedback over = Placement(World, new PlayerId((byte)viewingPlayerId), null);
                 if (over.Icon != PlacementIcon.None)
                     placement = new PlacementFeedback(null, false, over.Price, over.Icon, true, over.Affordable, over.SpellId);
             }
@@ -1774,7 +1839,7 @@ namespace DK2.Unity
             else if (!PointerOverHud(mouse))
                 cursor = _spellCastCursor.Showing(castMs) ? HandCursorKind.SpellCast : HandCursorKind.SpellPoint;
             _spellRefused = placement.NoGo;
-            bool holding = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
+            bool holding = World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
             long cursorMs = (long)(Time.unscaledTimeAsDouble * 1000);
             if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal && !spellArmed)
                 cursor = _cursorFeedback.Resolve(cursor, holding, HoldingGold(), Input.GetMouseButton(0), cursorMs, _pointerWorld);
@@ -1790,7 +1855,7 @@ namespace DK2.Unity
             using (HoverHudMarker.Auto()) _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
             using (HoverPlacementMarker.Auto())
             {
-                if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(_simulation.World, new PlayerId((byte)viewingPlayerId));
+                if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(World, new PlayerId((byte)viewingPlayerId));
                 _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse), _heldStack, cursor);
                 _tileHighlight?.Update(placement.Cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
             }
