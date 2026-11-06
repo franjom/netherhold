@@ -16590,3 +16590,19 @@ respect active physical Pillar-flagged objects that suppress virtual placement.
 
 **Consequences.** Hash/save432, no new fields or draws. General room-pillar
 collision, movement-gate bits and full restore/outcome parity remain outside scope.
+
+## ADR-0701 - run non-worker idle actions on their counted clips
+**Date:** 2026-11-06 · **Status:** accepted · **Systems:** creatures, simulation-core
+
+**Context.** `idle-action-clock.md` isolates a newly chosen idle action that
+outlasts the existing eight-tick stand-in and changes the world draw stream.
+
+**Decision.** Resolve availability and run actions43/44 through the counted
+animation clock. Keep a typed, saved identity across idle/wander states; poll
+after timed effects and before combat, then advance after creature triggers.
+Preserve requested art identity while resolving its resource. Mirror the runner's exact
+count0/1/other cycle branches and cancel the action through shared interruption.
+
+**Consequences.** Hash/save433 adds the idle action identity. Worker state12
+keeps its host; other action surrogates and exceptional animation overrides
+retain their existing scope. Native continuation needs its declared restore inputs.

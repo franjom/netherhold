@@ -22,8 +22,7 @@ public sealed partial class ImpTaskSystem
     /// flip swaps in IMP-Idle4.</summary>
     private const byte IdleAction43Art = 20, IdleAction44Art = 31;
 
-    /// <summary>How long another creature's idle action plays. <b>A guess</b>: other creatures do not
-    /// yet run the stored clip (CreatureJobSystem), so their length is not the animation's.</summary>
+    /// <summary>The legacy idle estimate; ordinary idle actions now use their stored clip.</summary>
     public const int IdleActionGuessTicks = 8;
 
     /// <summary>A worker in state 12 playing its counted idle clip (installed, loop bit clear); a
@@ -129,7 +128,7 @@ public sealed partial class ImpTaskSystem
     /// non-worker reaches it from state 3 (<see cref="CreatureJobSystem"/>, ADR-0228).</summary>
     internal static bool Wander(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (context.Tick.Value < creature.ActionUntilTick) return true;
+        if (context.Tick.Value < creature.ActionUntilTick || creature.IdleAction != IdleActionId.None) return true;
         int x = creature.PosX, y = creature.PosY;
         int r = context.Rng.NextInt(4) + 4;
         (int X, int Y)? at = null;

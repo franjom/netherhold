@@ -161,6 +161,7 @@ public static class StatusEffectRules
         if (ticks <= 0 || IsFrozen(creature) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return false;
         if (CreatureDeathRules.IsDown(creature)) return false;
         creature.FrozenTicks = ticks;
+        CreatureStateMachine.EndAction(creature);
         Stand(context, creature, CombatStates.Frozen);
         context.Emit(SystemName, "frozen", $"creature={creature.Id} ticks={ticks}");
         return true;
@@ -179,6 +180,7 @@ public static class StatusEffectRules
         if (CreatureStateMachine.Classify(creature, CombatStates.Stunned) == StateTransition.Refused) return false;
         creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
         Stand(context, creature, CombatStates.Stunned);
+        CreatureStateMachine.EndAction(creature);
         // 0x00491862, after SetState(255): the stunned creature's tree sees event 15.
         context.FireCreatureEvent(creature, CreatureTriggerEvent.Stunned);
         context.Emit(SystemName, "stunned", $"creature={creature.Id} ticks={creature.StunTicks}");
@@ -218,6 +220,7 @@ public static class StatusEffectRules
         if (CreatureStateMachine.Classify(creature, state) == StateTransition.Refused) return false;
         creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
         Stand(context, creature, state);
+        CreatureStateMachine.EndAction(creature);
         context.FireCreatureEvent(creature, CreatureTriggerEvent.Stunned);
         context.Emit(SystemName, "stunned", $"creature={creature.Id} ticks={creature.StunTicks} by={by}");
         return true;

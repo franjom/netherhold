@@ -87,12 +87,11 @@ public sealed partial class CreatureJobSystem
     /// <summary>States 3/4 (<c>0x00477680</c> and <c>0x004776C0</c>): wait out a playing action; at the
     /// deadline, idle. Otherwise, after a wander (<c>+0xA7</c> set), roll: under 25 wander again,
     /// 25–74 action 43, 75–99 action 44. With no wander yet, or on the low roll, 87 with
-    /// <c>+0xA7</c> = now + 132. Ours: every creature has both actions, whose length is a guess
-    /// (<see cref="ImpTaskSystem.IdleActionGuessTicks"/>).</summary>
+    /// <c>+0xA7</c> = now + 132. Availability and counted playback use the resolved art slot.</summary>
     internal static void DoingNothing(SimulationContext context, CreatureState creature)
     {
         long now = context.Tick.Value;
-        if (now < creature.ActionUntilTick) return;
+        if (now < creature.ActionUntilTick || creature.IdleAction != IdleActionId.None) return;
         if (creature.StateDeadlineTick <= now)
         {
             StateShadow.ToIdle(context, SystemName, creature);
@@ -116,10 +115,10 @@ public sealed partial class CreatureJobSystem
         if (creature.WanderStamp != 0)
         {
             int roll = context.Rng.NextInt(100);
-            if (roll >= 25)
+            if (roll >= 25 && IdleActionRules.TryBegin(context, creature,
+                roll < 75 ? IdleActionId.First : IdleActionId.Second))
             {
                 creature.WanderStamp = 0;
-                creature.ActionUntilTick = now + ImpTaskSystem.IdleActionGuessTicks;
                 context.Emit(SystemName, "idle_action",
                     $"creature={creature.Id} action={(roll < 75 ? 43 : 44)} at=({creature.Tile.X},{creature.Tile.Y})");
                 if (creature.CreatureTypeId == BileDemonTypeId && context.Rng.NextInt(100) < BileDemonIdleShotChance

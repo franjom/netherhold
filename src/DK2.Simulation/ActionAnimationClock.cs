@@ -15,8 +15,8 @@ public enum ActionAnimationFlags : byte
     None = 0,
     Loop = 1,
     Complete = 2,
-    /// <summary>Set by a Main wrap; only an install clears it, so after the first wrap every
-    /// action's animation counts as done (<c>0x00496AA0</c>).</summary>
+    /// <summary>Set by a Main wrap; the counted runner may consume this cycle flag
+    /// (<c>0x00496AA0</c>).</summary>
     Wrapped = 4,
     /// <summary>The handler's stop request: Main does not wrap again but runs into End.</summary>
     Stop = 8,
@@ -56,24 +56,33 @@ public static class ActionAnimationClock
     }
 
     /// <summary>A counted action begins (<c>0x004969D0</c>): keep or install as <see cref="Begin"/>,
-    /// then hold <paramref name="plays"/> + 1 in the count and clear the loop bit, so the clip
-    /// plays through once and the runner counts it down (<see cref="CountedActionEnded"/>).</summary>
+    /// then hold <paramref name="plays"/> + 1 in the count. Signed-byte counts below two clear the loop bit;
+    /// larger counts retain it for the runner (<see cref="CountedActionEnded"/>).</summary>
     public static void BeginCounted(CreatureState creature, CreatureDef definition, byte slot, byte plays, SimRandom rng)
     {
         Begin(creature, definition, slot, rng);
-        creature.ActionCount = (byte)(plays + 1);
-        creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
+        creature.ActionCount = unchecked((byte)(plays + 1));
+        if (unchecked((sbyte)plays) < 2) creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
     }
 
     /// <summary>The runner's poll of an action with no handler (<c>0x00496AA0</c>, mode 3): it ends
     /// when the rate is 0, or when the clip has wrapped or completed with the count at 0; a wrapped
-    /// or completed clip with count left is counted down instead.</summary>
+    /// or completed clip updates the count and cycle flags using the runner's 0/1/other branches.</summary>
     public static bool CountedActionEnded(CreatureState creature)
     {
         if (creature.ActionAnimationRate == 0) return true;
         if ((creature.ActionAnimationFlags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) == 0) return false;
         if (creature.ActionCount == 0) return true;
-        creature.ActionCount--;
+        if (creature.ActionCount == 1)
+        {
+            if ((creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0) creature.ActionCount = byte.MaxValue;
+        }
+        else
+        {
+            creature.ActionCount--;
+            if (creature.ActionCount == 1) creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
+            else creature.ActionAnimationFlags &= ~(ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped);
+        }
         return false;
     }
 
@@ -81,7 +90,7 @@ public static class ActionAnimationClock
     public static CreatureAnimationTiming ArtOf(CreatureState creature, CreatureDef definition) =>
         (creature.ActionAnimationFlags & ActionAnimationFlags.Alternate) != 0
             ? definition.AlternateArt
-            : definition.ArtSlot(creature.ActionArtSlot);
+            : definition.ArtSlot(AnimationTimingRules.ResolveArtSlot(definition, creature.ActionArtSlot));
 
     /// <summary>Whether <paramref name="slot"/> has the data the clock needs.</summary>
     public static bool CanPlay(CreatureDef definition, int slot)
@@ -181,7 +190,7 @@ public static class ActionAnimationClock
 
     private static void Install(CreatureState creature, CreatureDef definition, byte slot, SimRandom rng)
     {
-        CreatureAnimationTiming art = definition.ArtSlot(slot);
+        CreatureAnimationTiming art = definition.ArtSlot(AnimationTimingRules.ResolveArtSlot(definition, slot));
         bool alternate = false;
         if (((uint)art.Flags & DrawFlags) != 0 && rng.NextInt(2) == 1 && ((uint)art.Flags & AlternateFlag) != 0)
         {

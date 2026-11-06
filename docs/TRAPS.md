@@ -349,3 +349,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A test that steps the room-construction effect engine (`RoomConstructionParticles`) must call `AdvanceTo` one 50 ms update at a time: over many quanta at once the particles move only once, so a rise or an offset measured after one big step is wrong.
 - A level installed into the DK2 install's `Data/editor/maps` breaks the shipped-level counting tests in `DK2.Data.Tests` and `DK2.Behavior.Tests`, which expect 66 levels. Levelgen builds into a stage directory: remove an installed test level (an `MPT21Dungeon` once) before running the suite.
 - `IClassicSoundAssets.Clip` decodes an uncached clip synchronously (190-240 ms for a music segment). Frame-thread code asks `SoundClipDecoder.TryGet` instead, which decodes on a worker and answers false until it is ready (ADR-0686).
+
+- Replay probes using `CapturedCreatureOrder` bypass `CreatureUpdateSystem.Sweep`; mirror new lifecycle hooks before comparing their clocks.

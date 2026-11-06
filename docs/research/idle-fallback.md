@@ -5,7 +5,7 @@ systems: [creatures]
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
 - **Built:** ADR-0228, ADR-0656, `CreatureJobSystem` (its `Idle` part);
-  idle-action availability and lifetime remain [partial](q712-early-draw-continuation.md#next-boundary1421-troll449s-idle-action).
+  the bounded idle43/44 [availability and counted clock](idle-action-clock.md) are built (ADR-0701).
 - Related: `job-selection.md`, `combat-pit-spectators.md`, `imp-idle-and-wandering.md`.
 
 ## Result in one sentence
@@ -99,8 +99,7 @@ through 89.
   is `CreatureAngerSystem`, which runs first and marks the creature so the prelude does not
   run the angry chooser a second time.
 - **The refusal log** now reports every refusal, since passes are rare.
-- **Guessed:** that every creature has actions 43 and 44, and their length
-  (`ImpTaskSystem.IdleActionGuessTicks` = 8).
+- Actions43/44 use the [counted non-worker clock](idle-action-clock.md) and resolved-art availability (ADR-0701).
 - **The Heart walk's draws are built** (ADR-0656, `HeartWalkDraws`): in state 89 only, for a
   registered owner with an unruined Heart. A Horny choosing in state 1 makes none. The walk itself
   is not built, since it has no effect.

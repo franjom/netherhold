@@ -153,9 +153,9 @@ its state87 handler starts wandering at 1421. STRONGLY INFERRED from the re-read
 is busy. The earlier restored1400 action ends correctly in the bounded control,
 but this newly chosen action uses the production duration guess.
 
-The next work is the binary-backed action43/44 lifetime and availability path
-for neutral/non-worker idle choices, reusing the actual animation clock where
-supported. Do not substitute a future-measured deadline. Raw1450 outputs after
+ADR-0701 now builds the [counted non-worker idle clock](idle-action-clock.md),
+which extends the controlled prefix through1424 with its declared inputs.
+That note owns the current1425 boundary; no future-measured deadline is fitted. Raw1450 outputs after
 the1421 boundary are retained and excluded from parity claims. Complete mixed
 object restoration, full-state, playback and Heart-defence parity remain open;
 Q712 and the remaining Q719 restore scope are not closed.

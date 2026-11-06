@@ -91,7 +91,15 @@ public class RefusedStateTests
     [Fact]
     public void ABileDemonsIdleActionMakesTheHealInstantShotOneTimeInTen_AGoblinsNever_ItsFirstUpdateIsThatTurn_0x004B7830()
     {
-        GameDatabase db = Dk2TerrainFixture.Database();
+        GameDatabase source = Dk2TerrainFixture.Database();
+        var art = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        art[20] = art[31] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 100, FramesPerSecond = 20 };
+        GameDatabase db = new(source.Terrain.Values, source.Rooms.Values,
+            source.Creatures.Values.Select(c => c.CreatureId is Goblin or Dk2TerrainFixture.BileDemonCreatureId
+                ? c with { ArtSlots = art } : c), source.Variables,
+            keeperSpells: source.KeeperSpells.Values, objects: source.Objects.Values, doors: source.Doors.Values,
+            traps: source.Traps.Values, creatureSpells: source.CreatureSpells.Values, shots: source.Shots.Values,
+            effects: source.Effects.Values, effectElements: source.EffectElements.Values);
         WorldState world = Open(db);
         CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, PlayerIds.Neutral, new TilePos(5, 5));
         CreatureState goblin = world.SpawnCreature(db, Goblin, PlayerIds.Neutral, new TilePos(14, 14));

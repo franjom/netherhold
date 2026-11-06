@@ -42,15 +42,14 @@ clears the wrapped and stop bits.
 **Keep or install** ([0x00496700](functions/00496700.md)): an action keeps the running clip
 when the art slot matches and it has not finished a non-looping play. Otherwise it installs.
 
-**The runner's test** ([0x00496AA0](functions/00496AA0.md)): a mode-3 action ends when the
-handler is done and the animation is (rate 0, or wrapped or complete).
+**The runner's test** ([0x00496AA0](functions/00496AA0.md)): count-dependent completion
+branches are recorded there and in [the counted idle clock](idle-action-clock.md).
 
 - **The handler is called only until it first returns done.** Creature `+0x3AD` bit 0
   records that, and the runner skips the call while it is set. Only an action's begin
   clears it.
 - **The wrapped bit is sticky:** only an install, or the runner's own count-down for a
-  counted action, clears it. So after a loop's first wrap, each action ends as soon as its
-  handler is done.
+  counted action, clears it. The count-dependent branches determine when the action ends.
 
 This also gives the measured strike cadence:
 
@@ -163,10 +162,7 @@ Imp dig art (slot 5, flags `0x28011`) has `0x8000`, so every fresh dig or mining
 install draws one number too, without swapping. Built in ADR-0515; tests:
 `IdleActionClockTests`.
 
-Not mirrored, and unused so far: `0x00496700` keeps a clip by resource and the
-unresolved art byte, so it would reinstall (and draw again) after a swap, where our
-`Begin` keeps it. The runner's count-down mirrors only a count of 2.
-
-Other creatures' idle actions (`CreatureJobSystem`) still use a guessed 8 turns. Only
-the Imp's idle slots carry `0x400`. Other actions that install art in DK2 draw their
-coin too, but ours do not install a clip yet.
+ADR-0701 preserves the requested art slot while resolving its resource and mirrors
+the runner's count branches in `ActionAnimationClock`. Non-worker43/44 use the
+[bounded counted idle clock](idle-action-clock.md); worker state12 keeps its existing
+host. Other action surrogates and exceptional overrides retain their documented scope.

@@ -23,7 +23,10 @@ public sealed class IdleFallbackTests
     /// always fails.</summary>
     private static GameDatabase Db()
     {
-        CreatureDef idler = Dk2TerrainFixture.Goblin() with { CreatureId = Idler, Name = "Idle Goblin", HappyJobs = [new(JobType.Research, 0, 0, 100)] };
+        var art = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        art[20] = art[31] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 100, FramesPerSecond = 20 };
+        CreatureDef idler = Dk2TerrainFixture.Goblin() with
+        { CreatureId = Idler, Name = "Idle Goblin", HappyJobs = [new(JobType.Research, 0, 0, 100)], ArtSlots = art };
         return Dk2TerrainFixture.Database(idler,
             idler with { CreatureId = NoTrainer, Name = "Lazy Goblin", Flags = idler.Flags | CreatureFlags.NotTrainWhenIdle });
     }

@@ -164,6 +164,7 @@ namespace DK2.Simulation
             ActionAnimationFlags = other.ActionAnimationFlags;
             ActionHandlerDone = other.ActionHandlerDone;
             ActionCount = other.ActionCount;
+            IdleAction = other.IdleAction;
             ReinforcementAction = other.ReinforcementAction;
             AlarmX = other.AlarmX;
             AlarmY = other.AlarmY;

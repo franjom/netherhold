@@ -78,6 +78,7 @@ internal sealed class StateModel
         ["TremorRecoveryCompletedThisTick"] = Caches, ["TremorMoodDispatchedThisTick"] = Caches,
         ["AngryChooserRanThisTick"] = Caches, ["IdledByCombatHandlerThisTick"] = Caches,
         ["ReinforcementActionsPolledThisTick"] = Caches, ["WorkerPreludeProcessedThisTick"] = Caches,
+        ["IdleActionsPolledThisTick"] = Caches, ["IdleActionsAdvancedThisTick"] = Caches,
         ["WorkerPreludeClaimedThisTick"] = Caches, ["TremorRebellionStartedThisTick"] = Caches,
         ["UpdateStartStateId"] = Caches, ["DropCombat"] = Caches,
     };

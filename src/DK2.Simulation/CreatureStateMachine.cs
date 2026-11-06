@@ -98,6 +98,7 @@ public static class CreatureStateMachine
     {
         ReinforcementActionRules.Cancel(creature);
         TrainingStep.CancelAction(creature);
+        IdleActionRules.Cancel(creature);
         creature.SwingInProgress = false;
         creature.ActionUntilTick = 0;
         creature.Tunnel.Digging = false;

@@ -42,6 +42,8 @@ public sealed class SimulationContext
     // runs on the next turn (0x00476FC0 runs one handler a turn).
     internal HashSet<CreatureState> IdledByCombatHandlerThisTick { get; } = [];
     internal HashSet<CreatureState> ReinforcementActionsPolledThisTick { get; } = [];
+    internal HashSet<CreatureState> IdleActionsPolledThisTick { get; } = [];
+    internal HashSet<CreatureState> IdleActionsAdvancedThisTick { get; } = [];
     internal HashSet<CreatureState> WorkerPreludeProcessedThisTick { get; } = [];
     internal HashSet<CreatureState> WorkerPreludeClaimedThisTick { get; } = [];
 

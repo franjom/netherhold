@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 432;
+    private const int FormatVersion = 433;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -471,6 +471,7 @@ public static class WorldSnapshot
             w.Write(c.Running);
             w.Write(c.CombatStateEnteredTick);
             w.Write(c.StateEnteredTick);
+            w.Write((byte)c.IdleAction);
             w.Write(c.ActionArtSlot);
             w.Write(c.ActionAnimationPhase);
             w.Write(c.ActionAnimationRate);
@@ -1259,6 +1260,7 @@ public static class WorldSnapshot
                 Running = r.ReadBoolean(),
                 CombatStateEnteredTick = r.ReadInt64(),
                 StateEnteredTick = r.ReadInt64(),
+                IdleAction = (IdleActionId)r.ReadByte(),
                 ActionArtSlot = r.ReadByte(),
                 ActionAnimationPhase = r.ReadInt32(),
                 ActionAnimationRate = r.ReadInt32(),

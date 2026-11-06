@@ -62,6 +62,9 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
 
     private static void Sweep(SimulationContext context, ReadOnlySpan<ICreatureUpdateStep> steps, bool walkTriggers = false)
     {
+        bool hasCombatStep = false;
+        foreach (ICreatureUpdateStep step in steps)
+            if (step is CombatSystem) hasCombatStep = true;
         EntityList<CreatureState> creatures = context.World.Creatures;
         int below = int.MaxValue;
         for (int i = creatures.Count - 1; ; i--)
@@ -72,12 +75,21 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             below = creature.Id;
             context.UpdateStartStateId = creature.Dk2StateId;
+            bool actionPolled = false;
             foreach (ICreatureUpdateStep step in steps)
             {
+                // The native runner follows timed effects and the worker gold block, before combat.
+                if (!actionPolled && (step is CombatSystem || (!hasCombatStep && step is not CreatureStatusSystem)))
+                {
+                    IdleActionRules.Poll(context, creature);
+                    actionPolled = true;
+                }
                 step.Update(context, creature);
                 if (creature.LinkWorld is null) break;
             }
+            if (!actionPolled && creature.LinkWorld is not null) IdleActionRules.Poll(context, creature);
             if (walkTriggers && creature.LinkWorld is not null) context.Triggers?.RunCreature(creature);
+            if (creature.LinkWorld is not null) IdleActionRules.Advance(context, creature);
         }
     }
 }

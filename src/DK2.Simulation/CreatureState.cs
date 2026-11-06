@@ -928,7 +928,7 @@ public sealed partial class CreatureState
     // State-object +0x18; -1 when a clockless setup transition supplies no turn.
     public long StateEnteredTick = -1;
 
-    /// <summary>The running action's art slot (animation object +0xAE); 0 when the standing or
+    /// <summary>The running action's requested art slot (animation object +0xAE); 0 when the standing or
     /// walking clip plays. With the phase, rate and flags below it is the clock that decides
     /// when a mode-3 action may end (<see cref="ActionAnimationClock"/>).</summary>
     public byte ActionArtSlot;
@@ -947,8 +947,11 @@ public sealed partial class CreatureState
     public bool ActionHandlerDone;
 
     /// <summary>The running action's play count (creature +0x3AE): a counted action begun with a
-    /// count of n holds n + 1 and ends when it reaches 0 (<c>0x004969D0</c>, <c>0x00496AA0</c>).</summary>
+    /// count of n starts at n + 1; the runner updates it at cycle flags (<c>0x004969D0</c>, <c>0x00496AA0</c>).</summary>
     public byte ActionCount;
+
+    /// <summary>The counted idle action carried across idle and wander states, or none.</summary>
+    public IdleActionId IdleAction;
 
     public ReinforcementActionState ReinforcementAction;
 
@@ -1488,6 +1491,7 @@ public sealed partial class CreatureState
         hash.Add(Running);
         hash.Add(CombatStateEnteredTick);
         hash.Add(StateEnteredTick);
+        hash.Add((byte)IdleAction);
         hash.Add(ActionArtSlot);
         hash.Add(ActionAnimationPhase);
         hash.Add(ActionAnimationRate);
