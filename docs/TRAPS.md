@@ -352,3 +352,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Replay probes using `CapturedCreatureOrder` bypass `CreatureUpdateSystem.Sweep`; mirror new lifecycle hooks before comparing their clocks.
 - Serialize `GameTick.Value` in scratch JSON telemetry; serializing the struct follows its `Next` property recursively and fails at the depth limit.
+- Validate diagnostic site labels against binary source-line constants: RoomWalkRules.ArrivalTile is Room.cpp:1509 (0x5E5), not the different picker at1563.

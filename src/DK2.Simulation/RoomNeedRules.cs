@@ -318,7 +318,7 @@ public static class RoomNeedRules
     /// then 43 for one with a shelf and a place that the option-2 route misses (another draw each),
     /// 45, 42 and 44, both of them naming the last flagged room.</summary>
     /// <remarks>Ours walks its rooms in index order, not DK2's newest-first list, so an equal distance
-    /// can pick a different room; the draws are one per reachable Library either way.</remarks>
+    /// can pick a different room; the second capacity shelf draw is unbuilt (library-capacity-draws.md).</remarks>
     public static RoomInstance? FindLibrary(
         SimulationContext context, CreatureState creature, CreatureDef definition, out PlayerMessage? posted)
     {

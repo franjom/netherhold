@@ -8,7 +8,7 @@ using DK2.Simulation.Navigation;
 
 namespace DK2.Simulation;
 
-/// <summary>Whether a room has a place free: DK2's capacity test <c>0x004E53B0</c>, the claim
+/// <summary>Room places: the numeric and Workshop subset of DK2's capacity test <c>0x004E53B0</c>, the claim
 /// <c>0x004E5A70</c> a work category's enter hook makes and the release <c>0x004E5E00</c> its
 /// leave hook makes (ADR-0205, ADR-0309, <c>state-category-hooks.md</c> §3.5).</summary>
 /// <remarks>The test admits while <c>UsedCapacity + units ≤ TotalCapacity</c>. <c>UsedCapacity</c>
@@ -47,9 +47,10 @@ public static class RoomCapacityRules
         return used;
     }
 
-    /// <summary><c>0x004E53B0</c>: true while <paramref name="units"/> places are free, and
+    /// <summary>The numeric/Workshop subset of <c>0x004E53B0</c>: true while <paramref name="units"/> places are free, and
     /// always for a room whose capacity is not read. A Workshop must also have space for its
-    /// crates (<c>0x004F6140</c>, <see cref="CrateRules.WorkshopHasRoom"/>).</summary>
+    /// crates (<c>0x004F6140</c>, <see cref="CrateRules.WorkshopHasRoom"/>). The Library shelf-search
+    /// gate and its world draw are unbuilt (library-capacity-draws.md).</summary>
     public static bool HasRoom(
         WorldState world, GameDatabase database, RoomInstance room, int exceptId = -1, int units = Units)
     {

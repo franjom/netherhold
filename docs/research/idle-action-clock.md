@@ -61,13 +61,13 @@ completion. Both clear the action at1439. This component check after1424 is
 separate from global random-stream parity; no later render-phase match is claimed.
 No future action deadline, pose or random seed is injected.
 
-At1425, modern Warlock438 makes a Lair-arrival lookup at draw1; its Room label
-aliases the native first draw, so that label alone does not identify the native actor.
-The first different ordered site is draw2: modern Imp444 Room.cpp:1563 against
-native ImpState.cpp:764. At completed1425, captured438 is in state89 at its previous
-position while modern438 is in state7 and has moved. The modern Lair lookup is the
-investigation candidate in that433 control. The [bedless sleep-need correction](bedless-sleep-need.md)
-extends the paired control through1425 and records the next unimplemented guard.
+In the433 control, the first1425 site mismatch is draw1: native Room.cpp:1563
+against modern Room.cpp:1509 during Warlock438's Lair-arrival lookup. See the
+[mapper correction](library-capacity-draws.md#diagnostic-control-production435-unchanged); archived labels
+remain unchanged. At completed1425, captured438 is in state89 at its previous
+position while modern438 is in state7 and has moved. The
+[bedless sleep-need correction](bedless-sleep-need.md) extends the paired control
+through1425; the [stored-resume guard](lair-resume-gate.md) is built at435.
 This advances the bounded probe, not full-state or Heart-outcome equivalence.
 
 Evidence is add-only under

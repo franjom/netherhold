@@ -9658,7 +9658,7 @@ loop asks every reachable Library for a shelf (`0x004E1AC0`, one draw) before a 
 the Library through the generic room search, with no shelf test, and drew only when posting the
 finder's messages (ADR-0413), so the two random streams parted at the first Library search.
 
-**Decision.** `RoomNeedRules.FindLibrary` is `0x004E2500`, all but its tie order. Each reachable Library (option
+**Decision.** `RoomNeedRules.FindLibrary` mirrors the finder with partial tie order and capacity adapters; the [Library capacity gate](research/library-capacity-draws.md) remains unbuilt. Each reachable Library (option
 `0x80`) draws for a shelf; one with a shelf and a place is a candidate, ranked by the squared
 distance from the creature to its first slab's centre (`0x0043C260`, strict less-than); the
 nearest with no holder of the other alignment wins, else the nearest. With no candidate it posts

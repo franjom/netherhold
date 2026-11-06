@@ -52,11 +52,11 @@ input is applied to both baseline and candidate.
 
 | Build | Ordered site/preseed match | First different ordered site |
 |---|---|---|
-| Baseline433 with captured clocks |332 draws,1401–1424 |1425 draw2 |
+| Baseline433 with captured clocks |332 draws,1401–1424 |1425 draw1 |
 | Candidate434 with captured clocks |347 draws,1401–1425 |1426 draw1 |
 
 Both438 state/resume/XY match at1425:89/80,58057,102761. At1426 the remake's
-89 starts another Lair search (`Room.cpp:1563`), while native starts the happy
+89 starts another Lair search (`Room.cpp:1509`), while native starts the happy
 chooser roll (`State.cpp:1700`) and ends travelling toward research. The next
 supported defect is [0046F390](functions/0046F390.md)'s unconditional refusal
 when stored resume is80, even in raw89. Captured438 retains it at completed1425,
@@ -71,6 +71,8 @@ The paired runs are `baseline433-clock-restored` and
 `candidate434-clock-restored`. `baseline433` failed in diagnostic clock JSON
 serialization and is excluded. `candidate434` lacks the new initial-clock
 restore and is not an extended parity control.
+
+For corrected historical site labels, see the [mapper correction](library-capacity-draws.md#diagnostic-control-production435-unchanged).
 
 ## Verification
 

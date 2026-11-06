@@ -32,8 +32,8 @@ The frozen434 baseline is replayed from its archived executable.
 
 | Build | Complete-turn ordered site/preseed prefix | Next1426 site |
 |---|---|---|
-|434 |347 draws,1401–1425 |draw1: modern Room.cpp:1563, native State.cpp:1700 |
-|435 |347 draws,1401–1425 |draw3: modern Room.cpp:1563, native Library.cpp:1068 |
+|434 |347 draws,1401–1425 |draw1: modern Room.cpp:1509, native State.cpp:1700 |
+|435 |347 draws,1401–1425 |draw3: modern Room.cpp:1509, native Library.cpp:1068 |
 
 Candidate435 now matches the first two sites and preseeds at1426: the happy
 job roll and first shelf search. Fresh primary reads map them through
@@ -48,6 +48,9 @@ No full-state or Heart outcome parity follows from these observations.
 Evidence is add-only under
 `F:/DK2Evidence/{studies,builds}/q712-lair-resume80--2026-11-06--001`.
 The initial paired runs are `baseline434` and `candidate435`.
+
+The [Library capacity diagnostic](library-capacity-draws.md) owns the corrected
+RoomWalk site label and subsequent continuation; production435 remains unchanged.
 
 ## Verification
 
