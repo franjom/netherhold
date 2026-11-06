@@ -153,6 +153,15 @@ are made and checked). ADR-0242.
 
 Do not "fix" strange DK2 behavior without documenting the deviation.
 
+## Agent skills
+
+Before starting a task, review the available skill descriptions. Read and follow
+each relevant `SKILL.md`; use skills proactively without waiting for the owner to
+name them. Shared project skills and their compatibility guidance live in
+[.agents/skills/README.md](.agents/skills/README.md), with Claude entry points in
+`.claude/skills/`. Explicit owner instructions and this file take precedence
+over generic skill guidance.
+
 ## AI collaboration — what to record, and how much
 
 The `.claude/agents/general-purpose.md` override, including its Sonnet model selection, is intentional (owner, 2026-10-31).
