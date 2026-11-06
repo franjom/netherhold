@@ -65,7 +65,11 @@ namespace DK2.Unity
 
         private HudVisibility CurrentHud => _hudWarmFrames > 0
             ? new HudVisibility(ShowNormalHud: true, AllowOrdinaryInput: false)
-            : _hudControls.Visibility(_scriptedView.HudFor(cameraPreset));
+            : PlayedHud;
+
+        /// <summary>The visibility the game is actually in: what the message tabs slide on and the
+        /// sounds play for, whatever the warm frames below draw.</summary>
+        private HudVisibility PlayedHud => _hudControls.Visibility(_scriptedView.HudFor(cameraPreset));
 
         // The HUD's first draw, and the camera's first frame without the letterbox, build pipelines
         // and targets on the render thread: 74 ms where the fly-by ends. The first frames of play draw
@@ -532,13 +536,22 @@ namespace DK2.Unity
             _fullMap.Capture(_simulation.World, _simulation.Database, new PlayerId((byte)viewingPlayerId));
             DrawSavePanel(frontEnd: false);
             _gameOptionsPanel?.Draw();
-            _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000), CurrentHud);
-            _soundPlayer?.Play(_hudControls.Sounds);
-            _soundPlayer?.Play(_bottomPanel.Sounds);
-            _soundPlayer?.Play(_bottomView.Sounds);
-            _soundPlayer?.Play(_messageView.Sounds);
-            if (_optionsPages != null) _soundPlayer?.Play(_optionsPages.Sounds);
-            _soundPlayer?.QueueSpeech(_messageView.Speech);
+            _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000), PlayedHud);
+            if (_hudWarmFrames > 0)
+            {
+                // The warm frames draw the panels as shown; nothing about them is heard.
+                _hudControls.Sounds.Clear(); _bottomPanel.Sounds.Clear(); _bottomView.Sounds.Clear();
+                _messageView.Sounds.Clear(); _optionsPages?.Sounds.Clear();
+            }
+            else
+            {
+                _soundPlayer?.Play(_hudControls.Sounds);
+                _soundPlayer?.Play(_bottomPanel.Sounds);
+                _soundPlayer?.Play(_bottomView.Sounds);
+                _soundPlayer?.Play(_messageView.Sounds);
+                if (_optionsPages != null) _soundPlayer?.Play(_optionsPages.Sounds);
+                _soundPlayer?.QueueSpeech(_messageView.Speech);
+            }
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
                 HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)),
                 _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
