@@ -122,10 +122,9 @@ held room (`0x004E4D90(pt, 1, 0)`), resuming 53.
 - The contact call's own gates (`0x0048A81C`–`0x0048A858`: on the ground, not dying, no place held)
   are applied to the Library arm; a creature in the hand never reaches the test (`Sidelined`). The rescue arms in the same system lack them; that gap predates
   this work.
-- `0x004C6AE0`'s capacity test `0x004E53B0` counts the creature's own place, as ours does. It also
-  asks a Library for a shelf (`0x004E1AC0`, `library-and-research.md` §7: one draw); ours does not,
-  for any caller of `RoomCapacityRules.HasRoom`, so the Library's capacity and the stream differ when
-  every shelf is full.
+- `0x004C6AE0`'s capacity test counts the creature's own place, as ours does. The
+  [Library shelf gate](library-capacity-draws.md#built-at436-adr-0704) is built at 436;
+  execution checks shelf space before numeric fullness on the shared world stream.
 - Ties in the finder (equal squared distance) go to the first object in `world.Objects` order; DK2
   walks the room's object list, whose order ours does not keep. Ours takes any object of the two
   types on the room's tiles.

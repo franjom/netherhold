@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**436** — `0xBED80517CFD67EE8`. Library capacity repeats the shelf search before numeric fullness; execution hooks share the world RNG and claim fallback scans every matching room (ADR-0704). No new saved field.
+
 **435** - `0xA765B67512F17E53`. Remake regression pin, not native evidence. FormatVersion also435. Lair acquisition refuses stored resume80 independently of current activity (ADR-0703). No new fields or restore inputs; earlier saves are refused.
 **434** - `0x8C35C2375BFB9F18`. Remake regression pin, not native evidence. FormatVersion also434. Bedless sleep attempts require debt or wounds and use the shared tired retry/busy test; healthy acquisition stays in the idle/job chooser (ADR-0702). No new fields; earlier saves are refused.
 **433** - `0x4BB0A7289DC7D9DE`. Remake regression pin, not native evidence. FormatVersion also433. Non-worker idle43/44 use counted clips and resolved-art availability; IdleActionId is hashed/saved across idle/wander states. The shared runner uses native count/cycle branches (ADR-0701). Earlier saves are refused.

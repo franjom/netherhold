@@ -2,17 +2,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
 /// <summary>What a category hook may touch when <see cref="CreatureStateMachine"/> runs it:
 /// the world (rooms, the map cell under the creature, the players' gold), the database, and
-/// the level's trigger executor and effect requests. Passed by <c>in</c>, so a state
+/// the level's trigger executor, shared RNG and presentation requests. Passed by <c>in</c>, so a state
 /// change allocates nothing (ADR-0308).</summary>
 /// <remarks>A system has one in <see cref="SimulationContext.Hooks"/>. Code that holds only a
-/// world and a database builds one from them, which has no trigger executor, as a world with no
-/// triggers has none in its simulation context either.</remarks>
+/// world and a database builds one from them, with no trigger executor or RNG. Detached hooks
+/// check shelves without drawing; execution uses the simulation context (ADR-0704).</remarks>
 public readonly struct StateHookContext
 {
     public StateHookContext(WorldState world, GameDatabase database)
@@ -32,6 +33,9 @@ public readonly struct StateHookContext
 
     public WorldState World { get; }
     public GameDatabase Database { get; }
+
+    // Execution hooks share the simulation stream; detached setup hooks have none.
+    internal SimRandom? Rng { get; init; }
 
     /// <summary>Null in a world without triggers, as <see cref="SimulationContext"/>'s is.</summary>
     internal TriggerExecutor? Triggers { get; }

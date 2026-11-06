@@ -318,7 +318,7 @@ public static class RoomNeedRules
     /// then 43 for one with a shelf and a place that the option-2 route misses (another draw each),
     /// 45, 42 and 44, both of them naming the last flagged room.</summary>
     /// <remarks>Ours walks its rooms in index order, not DK2's newest-first list, so an equal distance
-    /// can pick a different room; the second capacity shelf draw is unbuilt (library-capacity-draws.md).</remarks>
+    /// can pick a different room; the shared capacity shelf draw is built (ADR-0704).</remarks>
     public static RoomInstance? FindLibrary(
         SimulationContext context, CreatureState creature, CreatureDef definition, out PlayerMessage? posted)
     {
@@ -338,7 +338,7 @@ public static class RoomNeedRules
         {
             if (!CanReachRoom(context, creature, definition, room, MoveOptions.Loose)) continue;
             bool shelf = ResearchTreeRules.FindShelf(context, room) >= 0;
-            if (shelf && RoomCapacityRules.HasRoom(world, database, room, creature.Id))
+            if (shelf && RoomCapacityRules.HasRoom(context.Hooks, room, creature))
             {
                 int first = SlabChain.FirstSlab(world, room);
                 long dx = (long)CreatureState.CentreOf(first % world.Width) - creature.PosX;
@@ -382,7 +382,7 @@ public static class RoomNeedRules
 
         foreach (RoomInstance room in libraries)
             if (ResearchTreeRules.FindShelf(context, room) >= 0
-                && RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id)
+                && RoomCapacityRules.HasRoom(context.Hooks, room, creature)
                 && !CanReachRoom(context, creature, definition, room, IgnoreDoors))
                 return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.Library);
         if (storage) return Post(context, player, PlayerMessageKind.RoomStorageFull, RoomTypeId.Library, SlabChain.FirstSlab(world, last!));

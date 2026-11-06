@@ -1061,7 +1061,7 @@ public sealed class TriggerExecutor
             // The objective is a state move, whose hooks need the world: an executor built without
             // one (a trigger-only test) cannot perform it, as with actions 6 and 28.
             if (_world is null || _database is null) return Unperformed(record, context, run.Partial);
-            return SetHeroObjective(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested), record.Parameters, run.Creature);
+            return SetHeroObjective(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested) { Rng = _rng }, record.Parameters, run.Creature);
         }
         if (context == TriggerContext.Creature && record.Type == 20 && run.Creature is not null)
         {
@@ -1289,7 +1289,7 @@ public sealed class TriggerExecutor
         {
             if (_world is null || _database is null || run.Player is not PlayerId player)
                 return Unperformed(record, context, partial);
-            PortalRules.CreateScriptedArrival(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested), player,
+            PortalRules.CreateScriptedArrival(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested) { Rng = _rng }, player,
                 Byte(p, "CreatureId"), Byte(p, "Level"));
             return true;
         }
@@ -1501,7 +1501,7 @@ public sealed class TriggerExecutor
             RoomRules.Place(_database, ref tile, room, player);
             SlabChain.Changed(_world, _database, index, terrainBefore, ownerBefore, _rng);
             // Then the one-tile rectangle is closed (0x005195F0), whose last step is the walker reset.
-            WalkerResetRules.Reset(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested),
+            WalkerResetRules.Reset(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested) { Rng = _rng },
                 _world, _world.CurrentTick.Value, player);
         }
 
@@ -1578,7 +1578,7 @@ public sealed class TriggerExecutor
 
         if (party is not null && _world is not null && _database is not null)
             return HeroPartyRules.Spawn(
-                new StateHookContext(_world, _database, this, EffectRequested, SoundRequested), _rng, _tree!, party,
+                new StateHookContext(_world, _database, this, EffectRequested, SoundRequested) { Rng = _rng }, _rng, _tree!, party,
                 Byte(p, "ActionPointId"), Byte(p, "PartyType"),
                 id => SetSubtreeActive(id, active: true),
                 created => FireCreatureEvent(created, CreatureTriggerEvent.Created, run.CurrentTick));

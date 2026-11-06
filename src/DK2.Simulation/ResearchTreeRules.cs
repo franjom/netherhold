@@ -230,17 +230,20 @@ public static class ResearchTreeRules
     /// <summary><c>0x004E1AC0</c>: a shelf in <paramref name="library"/> — a floor slot holding
     /// fewer than <see cref="ShelfCapacity"/> books and Specials — searched along the room's
     /// chain from a random slab and wrapping once, or -1. One draw per call.</summary>
-    public static int FindShelf(SimulationContext context, RoomInstance library)
+    public static int FindShelf(SimulationContext context, RoomInstance library) => FindShelf(context.Hooks, library);
+
+    // Detached hooks ask only whether a shelf exists; execution starts at a world-random slab.
+    internal static int FindShelf(in StateHookContext hooks, RoomInstance library)
     {
-        WorldState world = context.World;
+        WorldState world = hooks.World;
         int[] chain = SlabChain.Order(world, library);
-        int start = context.Rng.NextInt(library.TileCount);
+        int start = hooks.Rng?.NextInt(library.TileCount) ?? 0;
         HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, library);
 
         for (int i = start; i < chain.Length; i++)
-            if (HasShelfSpace(world, context.Database, library, slots, chain[i])) return chain[i];
+            if (HasShelfSpace(world, hooks.Database, library, slots, chain[i])) return chain[i];
         for (int i = 0; i < start && i < chain.Length; i++)
-            if (HasShelfSpace(world, context.Database, library, slots, chain[i])) return chain[i];
+            if (HasShelfSpace(world, hooks.Database, library, slots, chain[i])) return chain[i];
         return -1;
     }
 

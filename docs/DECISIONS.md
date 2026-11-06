@@ -4533,7 +4533,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - A room too small for furniture trains, researches, gambles and manufactures nobody. A 3x3 Training Room has one dummy and two places.
 - The fixture carries the shipped furniture of the Training Room, Workshop, Casino and Torture Chamber walls, and the Library's list is corrected to `[64, 0, 0, 58]`. `Dk2TerrainFixture.Furnish` stands one piece in a one-tile test room, a state DK2 cannot reach. The scenario's Training Room is 3x3.
-- Ours, stated: `UsedCapacity` is derived, not counted (counted since ADR-0309). The Library, Workshop and Guard Room extras, the Prison arm and the torture fallback timer are not built (the Combat Pit arm: ADR-0309). Three bodies on one arrival tile never settle, because our walks all end on the room's centre.
+- Ours, stated: `UsedCapacity` is derived, not counted (counted since ADR-0309). The Library and Workshop extras are built by ADR-0704 and ADR-0214; the Guard Room extra, Prison arm and torture fallback timer remain partial (the Combat Pit arm: ADR-0309). Three bodies on one arrival tile never settle, because our walks all end on the room's centre.
 - No hashed state changed. Nine tests, one on real data. Negative controls: a room never full, the torture finder asking one place, the victim chamber tested, no arrival claim, a fallback always found, every body claiming, the arriving creature counted and the Training Room's +1 dropped each fail a named test.
 
 ## ADR-0206 — Dying is states 216 and 217; a corpse holds no state
@@ -9658,7 +9658,7 @@ loop asks every reachable Library for a shelf (`0x004E1AC0`, one draw) before a 
 the Library through the generic room search, with no shelf test, and drew only when posting the
 finder's messages (ADR-0413), so the two random streams parted at the first Library search.
 
-**Decision.** `RoomNeedRules.FindLibrary` mirrors the finder with partial tie order and capacity adapters; the [Library capacity gate](research/library-capacity-draws.md) remains unbuilt. Each reachable Library (option
+**Decision.** `RoomNeedRules.FindLibrary` mirrors the finder with partial tie order; the [Library capacity gate](research/library-capacity-draws.md#built-at436-adr-0704) is built by ADR-0704. Each reachable Library (option
 `0x80`) draws for a shelf; one with a shelf and a place is a candidate, ranked by the squared
 distance from the creature to its first slab's centre (`0x0043C260`, strict less-than); the
 nearest with no holder of the other alignment wins, else the nearest. With no candidate it posts
@@ -16631,3 +16631,19 @@ room search. Retain the other acquisition adapters in their existing scope.
 
 **Consequences.** Hash/save435, no new fields or restore inputs. The bounded
 comparison proceeds to research departure; full-state and Heart parity stay open.
+
+## ADR-0704 - repeat the Library shelf check for capacity
+**Date:** 2026-11-06 · **Status:** accepted · **Systems:** creatures, rooms, simulation-core
+
+**Context.** `library-capacity-draws.md` establishes a second shelf search
+inside the shared capacity test, before numeric fullness is checked.
+
+**Decision.** Execution capacity checks use the shared world RNG, including
+Library finders, entry claims and their fallback search. The fallback scans
+all matching rooms even after finding a usable one. Numeric capacity queries
+remain pure; detached setup hooks test shelf availability without drawing.
+Existing public constructors and numeric query signatures remain available.
+
+**Consequences.** Hash/save436, no new saved state or restore inputs. The
+Guard Room capacity extra and existing room-routing approximations remain
+outside this change. Q712 still requires further comparison.

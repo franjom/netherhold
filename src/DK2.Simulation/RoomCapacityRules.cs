@@ -8,15 +8,15 @@ using DK2.Simulation.Navigation;
 
 namespace DK2.Simulation;
 
-/// <summary>Room places: the numeric and Workshop subset of DK2's capacity test <c>0x004E53B0</c>, the claim
+/// <summary>Room places: DK2's capacity test <c>0x004E53B0</c>, the claim
 /// <c>0x004E5A70</c> a work category's enter hook makes and the release <c>0x004E5E00</c> its
 /// leave hook makes (ADR-0205, ADR-0309, <c>state-category-hooks.md</c> §3.5).</summary>
 /// <remarks>The test admits while <c>UsedCapacity + units ≤ TotalCapacity</c>. <c>UsedCapacity</c>
 /// is the sum of the <see cref="CreatureState.HeldPlace"/>s in the room, so it moves only when a
 /// place is claimed or released. Only the rooms whose
 /// <see cref="AutoFurnitureRules.TryTotalCapacity"/> is read are limited; a Guard Room's cap is its
-/// tile count (ADR-0440). The Workshop's extra is built (ADR-0214); the Library's and the Guard
-/// Room's (its creatures on guard duty, <c>+0x2B6 == 6</c>, added to the used sum) are not.</remarks>
+/// tile count (ADR-0440). Workshop and Library extras are built (ADR-0214, ADR-0704); the Guard
+/// Room's extra (its creatures on guard duty, <c>+0x2B6 == 6</c>, added to the used sum) is not.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public static class RoomCapacityRules
 {
@@ -49,8 +49,8 @@ public static class RoomCapacityRules
 
     /// <summary>The numeric/Workshop subset of <c>0x004E53B0</c>: true while <paramref name="units"/> places are free, and
     /// always for a room whose capacity is not read. A Workshop must also have space for its
-    /// crates (<c>0x004F6140</c>, <see cref="CrateRules.WorkshopHasRoom"/>). The Library shelf-search
-    /// gate and its world draw are unbuilt (library-capacity-draws.md).</summary>
+    /// crates (<c>0x004F6140</c>, <see cref="CrateRules.WorkshopHasRoom"/>). This pure query omits the
+    /// Library shelf gate; execution uses the state-hook overload (ADR-0704).</summary>
     public static bool HasRoom(
         WorldState world, GameDatabase database, RoomInstance room, int exceptId = -1, int units = Units)
     {
@@ -58,6 +58,15 @@ public static class RoomCapacityRules
             return false;
         if (!AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity)) return true;
         return Occupants(world, room, exceptId) + units <= capacity;
+    }
+
+    /// <summary>The execution capacity test: Library shelf search before numeric fullness.
+    /// Detached setup hooks check the same shelf gate without drawing (ADR-0704).</summary>
+    internal static bool HasRoom(in StateHookContext hooks, RoomInstance room, CreatureState? except = null, int units = Units)
+    {
+        if (room.Definition.TypeId == RoomTypeId.Library && ResearchTreeRules.FindShelf(hooks, room) < 0)
+            return false;
+        return HasRoom(hooks.World, hooks.Database, room, except?.Id ?? -1, units);
     }
 
     /// <summary>The holder of a place in <paramref name="room"/> with the lowest id, or null.
@@ -97,9 +106,9 @@ public static class RoomCapacityRules
             return true;
         }
 
-        if (!HasRoom(world, hooks.Database, room, creature.Id))
+        if (!HasRoom(hooks, room, creature))
         {
-            if (RaisesFull(world, hooks.Database, room, creature))
+            if (!SearchesElsewhere(world, room) || !AnotherHasRoom(hooks, room, creature))
                 PostFull(world, room, (RoomTypeId)room.Definition.RoomId);
             return false;
         }
@@ -153,35 +162,42 @@ public static class RoomCapacityRules
     /// not change the answer. Deviates: the route goes to the room's first slab, not to its
     /// floor-slot position <c>+0x2B</c> (<c>0x004E4590</c>), which ours does not keep.</summary>
     public static bool AnotherHasRoom(
-        WorldState world, GameDatabase database, RoomInstance full, CreatureState creature)
+        WorldState world, GameDatabase database, RoomInstance full, CreatureState creature) =>
+        AnotherHasRoom(new StateHookContext(world, database), full, creature);
+
+    private static bool AnotherHasRoom(in StateHookContext hooks, RoomInstance full, CreatureState creature)
     {
+        WorldState world = hooks.World;
+        GameDatabase database = hooks.Database;
         WorldSteering? steering = null;
+        bool found = false;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
             if (room.OwnerPlayerId != full.OwnerPlayerId || room.Definition.TypeId != full.Definition.TypeId)
                 continue;
-            if (room.TileIndices.Count == 0 || !HasRoom(world, database, room, creature.Id)) continue;
+            if (room.TileIndices.Count == 0 || !HasRoom(hooks, room, creature)) continue;
+            // Native scans every matching capacity candidate, even after selecting a room.
+            if (found) continue;
             int first = SlabChain.FirstSlab(world, room);
             var to = new TilePos(first % world.Width, first / world.Width);
-            if (creature.Tile == to) return true;
+            if (creature.Tile == to) { found = true; continue; }
             steering ??= new WorldSteering(database, world);
             if (steering.Route(new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4),
                     new Steering.Fixed16Vector(CreatureState.CentreOf(to.X) << 4, CreatureState.CentreOf(to.Y) << 4),
                     WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, MoveOptions.Loose), [], refresh: false))
-                return true;
+                found = true;
         }
 
-        return false;
+        return found;
     }
 
     /// <summary><c>0x004C6AE0</c>: the keeper's room of <paramref name="type"/> with a place for the creature
     /// that it can route to, nearest, preferring one whose place-holders it does not object to; null with
     /// none. Deviates as <see cref="AnotherHasRoom"/> does: it measures to the bounding box's middle, where
     /// DK2 takes the room's centre <c>+0x27</c>, and routes to the first slab. The creature's own place
-    /// counts, as in DK2's test <c>0x004E53B0</c>. Not built: a Library's storage gate <c>0x004E1AC0</c>
-    /// inside that test (a shelf with room, one draw), which <see cref="HasRoom"/> lacks for every caller
-    /// (library-and-research.md §7).</summary>
+    /// counts, as in DK2's test <c>0x004E53B0</c>; a Library also checks shelf space before the
+    /// numeric comparison, consuming one world draw (ADR-0704).</summary>
     public static RoomInstance? FindRoomWithPlace(SimulationContext context, RoomTypeId type, CreatureState creature)
     {
         WorldState world = context.World;
@@ -193,7 +209,7 @@ public static class RoomCapacityRules
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
             if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != type || room.TileIndices.Count == 0) continue;
-            if (!HasRoom(world, database, room)) continue;
+            if (!HasRoom(context.Hooks, room)) continue;
             (int mx, int my) = CombatPitSpectatorRules.Middle(room);
             long dx = Math.Abs((long)CreatureState.CentreOf(mx) - creature.PosX), dy = Math.Abs((long)CreatureState.CentreOf(my) - creature.PosY);
             long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);

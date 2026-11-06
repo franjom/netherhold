@@ -147,7 +147,7 @@ public sealed class SimulationContext
     private readonly Action<string, ThingSoundRequest> _requestSound;
 
     /// <summary>The world, database, triggers and presentation requests available to a state hook.</summary>
-    public StateHookContext Hooks => new(World, Database, Triggers, _requestEffect, _requestSound);
+    public StateHookContext Hooks => new(World, Database, Triggers, _requestEffect, _requestSound) { Rng = Rng };
 
     public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type) =>
         Triggers?.FireCreatureEvent(creature, type, TriggerTurn);

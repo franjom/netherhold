@@ -225,7 +225,7 @@ public class JobRoomFinderMessageTests
     }
 
     [Fact]
-    public void TheLibraryFinderDrawsOnceForEachReachableLibraryEvenWhenItFindsOne()
+    public void TheLibraryFinderChecksTheShelfAgainForCapacityInEachReachableLibrary()
     {
         WorldState world = World();
         Room(world, RoomTypeId.Library, 5, 1);
@@ -234,7 +234,7 @@ public class JobRoomFinderMessageTests
         var draws = new Counting();
 
         Assert.NotNull(FindLibrary(world, draws));
-        Assert.Equal(2, draws.ByBound.GetValueOrDefault(9));   // FindShelf's random(room size)
+        Assert.Equal(4, draws.ByBound.GetValueOrDefault(9));
     }
 
     [Fact]

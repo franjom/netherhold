@@ -12,7 +12,7 @@ Library arm calls [004E1AC0](functions/004E1AC0.md) again before the numeric
 used-plus-requested comparison, even if the room will be full. Both shelf
 calls draw on the world stream. The first result is not reused.
 
-RoomCapacityRules.HasRoom omits that Library arm. This is a missing call
+Production435 RoomCapacityRules.HasRoom omits that Library arm. This is a missing call
 inside an already represented draw site, not a newly discovered RNG caller.
 The research handler [004759D0](functions/004759D0.md) still uses the ordinary
 room-route helper [00471A70](functions/00471A70.md); replacing its eventual
@@ -52,11 +52,41 @@ Evidence is add-only under
 The runs are `baseline435` and `finder-capacity-check`. The diagnostic build
 changes only RoomNeedRules in the archived435 source; its hash/save remains435.
 
-## Next bounded implementation
+## Built at436 (ADR-0704)
 
-Carry the world RNG through actual native capacity checks, including Library
-finders and room claims; first audit their callers and state-hook context.
-Do not add random draws to UI/AI queries merely asking for numeric capacity.
-Tests must distinguish the repeated shelf check, its order before numeric
-fullness, shelf refusal, and non-Library capacity. Then rerun the same paired
-control. Production remains at435 until that work is implemented and verified.
+Execution hooks carry the same world RNG as their simulation context.
+Library finders, entry claims, claim fallback and the general room finder
+use the capacity overload that searches a shelf before numeric fullness.
+The claim fallback completes every matching room's capacity check even after
+finding a usable room; see [004C6AE0](functions/004C6AE0.md).
+The public numeric query stays pure. Detached setup hooks check shelf
+availability without a stream. Existing constructors remain available.
+The Guard Room extra and existing geometry adapters remain outside this change.
+
+The frozen435 baseline and final436 control use identical declared1400
+inputs. Baseline retains347 ordered sites/preseeds through1425; final436
+matches488 through1435. Its first differing site is1436 draw1,
+RoomManager.cpp:2177 versus Treasury.cpp:335. No extra restore input or
+future draw/seed is inserted. This extends the controlled draw prefix;
+full-state, executed-turn and Heart-outcome parity remain unestablished.
+
+Evidence is add-only under
+`F:/DK2Evidence/{studies,builds}/q712-library-capacity-h436--2026-11-06--001`.
+The final paired run directories are `baseline435` and `shipped436`; the latter
+uses frozen435's diagnostic adapter with the shipped436 simulation changes.
+The next bounded investigation is Training Target rebuild timing and its
+world draw, beginning with the captured target replacement described above.
+
+## Verification at436
+
+The final focused run passes 90 cases. Counterfactuals fail 7 cases with one
+positive control, and the fallback counterfactual fails its ordering case.
+The final full solution run passes 8479 cases with 30 skipped and no failures
+across 10 suites. The Release solution build has zero warnings/errors; Unity
+compiles with zero errors and the two existing obsolete-API warnings.
+Logs and TRX files are archived in the external study's `verification/` directory.
+The final436 control and reviewer independently verify the 488-draw prefix.
+The comment-refresh `shipped436` run verifies the same prefix and next boundary;
+all eight production files match its executed control source byte for byte.
+Its receipt is `shipped436-verification.json`; `manifest-final.json` records
+SHA-256 checksums for the add-only archive.

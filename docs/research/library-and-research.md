@@ -288,6 +288,9 @@ a random draw, and a Library with no storage position refuses another user
 despite spare numerical capacity. The keeper-message finder also calls this
 helper directly before the generic test (`computer-keeper-messages.md` §2).
 
+The [execution gate is built at 436](library-capacity-draws.md#built-at436-adr-0704);
+public numeric queries remain pure.
+
 ---
 
 ## 8. The research tree

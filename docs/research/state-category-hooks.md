@@ -351,8 +351,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   category 0, which claims nothing, so only the victim holds a place.
 - **Built** (ADR-0205, ADR-0309): the test, every finder asking it, the lookup, and the
   claim and release as the hooks, with `0x004C6AE0`'s message choice; `UsedCapacity` sums
-  `CreatureState.HeldPlace`. Not built: Q504's gaps; the Library and Guard Room extras
-  and the torture fallback timer.
+  `CreatureState.HeldPlace`. The [Library extra](library-capacity-draws.md#built-at436-adr-0704)
+  is built at 436. Not built: Q504's gaps, the Guard Room extra and the torture fallback timer.
 
 ## 4. Answers and limits
 

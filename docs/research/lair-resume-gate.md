@@ -50,7 +50,8 @@ Evidence is add-only under
 The initial paired runs are `baseline434` and `candidate435`.
 
 The [Library capacity diagnostic](library-capacity-draws.md) owns the corrected
-RoomWalk site label and subsequent continuation; production435 remains unchanged.
+RoomWalk site label; the [production436 continuation](library-capacity-draws.md#built-at436-adr-0704)
+builds that capacity gate. The 435 control above remains historical.
 
 ## Verification
 
