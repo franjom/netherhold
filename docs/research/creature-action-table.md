@@ -267,7 +267,7 @@ stamp `+0x3A5`.
 | 6 | [`0x004977F0`](functions/004977F0.md) | one floor attack, the possessed claim |
 | 7 | [`0x00497960`](functions/00497960.md) | the reinforce strike |
 | 8 | [`0x00497AC0`](functions/00497AC0.md) | the wall repair |
-| 9 | [`0x00498BB0`](functions/00498BB0.md) | a breach check at the action point (state 185, not read) |
+| 9 | [`0x00498BB0`](functions/00498BB0.md) | wall work at the action point, with a post-work breach check (state 185's starter not read; action unbuilt) |
 | 10 | [`0x00497BF0`](functions/00497BF0.md) | one room conversion application |
 | 11 | [`0x00497DF0`](functions/00497DF0.md) | one room attack application |
 | 12 | [`0x00498120`](functions/00498120.md) | the room repair; nothing begins 12 |
