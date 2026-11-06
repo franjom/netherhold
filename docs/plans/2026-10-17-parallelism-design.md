@@ -470,8 +470,31 @@ and causes no frame over budget; tick frames average 16.68 ms, the same as
 the rest. Two frames over 33 ms remain: the 43 ms unexplained one at 25.8 s
 and a 56 ms Present with 13 MB allocated at 26.1 s.
 
-Still unmeasured: the error-frame classification (boundary clamp, catch-up,
-long frame) for Level6a, and a 60 FPS cap repeat. These numbers are a headless
+**The Level6a fly-by stutters on the draw clock, not on frame time (run
+`20261106-073731`, worker ticks, 40 s, 60 FPS cap).** The probe now logs the
+draw clock (`DungeonScene._renderSeconds` × 4), the camera position and
+whether a path plays, per frame. Over the 1571 frames of the opening path
+(0.3–26.6 s of play) frame time is flat: p50 16.67, p95 16.85 ms. Yet by the
+Level8 motion metric, draw-clock error above 2 ticks/s, **12.2% of path
+frames fail** (191 of 1570; p95 error 3.5 ticks/s) against the owner's 1–1.5%
+target, and the camera's step per frame is off its median by more than 25%
+in 78% of moving frames. The pattern repeats every 15 frames, i.e. once per
+tick: step 0.011 tick (clamped at the boundary, about a sixth of the 0.0667
+a frame should advance), then 0.14–0.16 (catch-up, more than double), then
+0.024–0.047, then even again. That is one hitch per tick, four a second,
+with no frame lost, which is what the owner sees. Where it comes from: on
+the worker path the frame that owes a tick starts it at the end of the frame,
+so its draw cannot have the new positions; `fraction = min(_tickDebt +
+ticks, 1)` clamps, and the next frame pays the clamped remainder plus its own
+elapsed, with the second `preparedElapsed` sample adding a third uneven step.
+Fix direction, serial and inside the gates (no extrapolation, shared
+camera/creature clock): start a tick one frame before the clock needs it,
+when `_tickDebt` plus the expected frame will cross 1, so the completed tick is
+in hand when the draw clock crosses the boundary and nothing clamps; and take
+the frame's elapsed time once. Commands then reach their tick one frame
+earlier, not later. Measure with this run's metric before and after.
+
+Still unmeasured: a 60 FPS cap repeat of the Level8 motion capture. These numbers are a headless
 Development player on a shared machine; a visible release confirmation per the
 P0 list is still owed, and the owner's editor stutter has no player-side
 counterpart in these runs.

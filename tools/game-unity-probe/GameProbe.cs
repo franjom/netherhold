@@ -77,6 +77,9 @@ namespace DK2.Unity
         private int _count;
         private DungeonRunner _runner;
         private List<PlayerCommand> _pending;
+        private DungeonScene _scene;
+        private FieldInfo _renderSeconds;
+        private DK2.Presentation.ScriptedViewDirector _scriptedView;
         private string _output;
         private float _duration, _captureFrom, _captureTo;
         private int _frame, _gcCount, _errors;
@@ -90,6 +93,12 @@ namespace DK2.Unity
             public float Seconds;
             public double FrameMs;
             public long Ticks, GridCalls, GcBytes;
+            // The draw clock (DungeonScene._renderSeconds * 4, in ticks) and the camera after the
+            // runner's last Update, and whether a scripted camera path was playing: for measuring
+            // the evenness of a fly-by against wall time, as the Level8 motion probe does.
+            public double RenderTick;
+            public float CamX, CamY, CamZ;
+            public bool Path;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -222,12 +231,22 @@ namespace DK2.Unity
             int at = _count * Recorded.Length;
             for (int i = 0; i < _recorders.Count; i++)
                 _values[at + i] = _recorders[i].Valid ? _recorders[i].LastValue / 1e6 : double.NaN;
+            if (_scene == null)
+            {
+                _scene = (DungeonScene)typeof(DungeonRunner).GetField("_scene", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
+                _renderSeconds = typeof(DungeonScene).GetField("_renderSeconds", BindingFlags.Instance | BindingFlags.NonPublic);
+                _scriptedView = (DK2.Presentation.ScriptedViewDirector)typeof(DungeonRunner).GetField("_scriptedView", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
+            }
+            Vector3 camera = Camera.main != null ? Camera.main.transform.position : default;
             _rows[_count++] = new Row
             {
                 Frame = frame, Seconds = seconds, FrameMs = frameMs, Collections = collections,
                 Ticks = _recorders[Tick].Valid ? _recorders[Tick].GetSample(0).Count : 0,
                 GridCalls = _recorders[Grid].Valid ? _recorders[Grid].GetSample(0).Count : 0,
                 GcBytes = _gcAllocated.Valid ? _gcAllocated.LastValue : -1,
+                RenderTick = _scene != null && _renderSeconds != null ? (double)_renderSeconds.GetValue(_scene) * 4 : double.NaN,
+                CamX = camera.x, CamY = camera.y, CamZ = camera.z,
+                Path = _scriptedView != null && _scriptedView.PathPlaying,
             };
         }
 
@@ -370,14 +389,18 @@ namespace DK2.Unity
         private void WriteCsv()
         {
             var csv = new StringBuilder();
-            csv.AppendLine("frame,play_seconds,frame_ms,ticks,grid_nearest_calls,gc_alloc_bytes,gc_collections," +
+            csv.AppendLine("frame,play_seconds,frame_ms,ticks,grid_nearest_calls,gc_alloc_bytes,gc_collections,render_tick,cam_x,cam_y,cam_z,path," +
                            string.Join(",", Recorded.Select(r => r.Column)));
             for (int i = 0; i < _count; i++)
             {
                 Row r = _rows[i];
                 csv.Append(r.Frame).Append(',').Append(r.Seconds.ToString("F3", CultureInfo.InvariantCulture)).Append(',')
                     .Append(r.FrameMs.ToString("F3", CultureInfo.InvariantCulture)).Append(',').Append(r.Ticks).Append(',')
-                    .Append(r.GridCalls).Append(',').Append(r.GcBytes).Append(',').Append(r.Collections);
+                    .Append(r.GridCalls).Append(',').Append(r.GcBytes).Append(',').Append(r.Collections).Append(',')
+                    .Append(r.RenderTick.ToString("R", CultureInfo.InvariantCulture)).Append(',')
+                    .Append(r.CamX.ToString("R", CultureInfo.InvariantCulture)).Append(',')
+                    .Append(r.CamY.ToString("R", CultureInfo.InvariantCulture)).Append(',')
+                    .Append(r.CamZ.ToString("R", CultureInfo.InvariantCulture)).Append(',').Append(r.Path ? 1 : 0);
                 for (int m = 0; m < Recorded.Length; m++)
                     csv.Append(',').Append(Value(i, m).ToString("F3", CultureInfo.InvariantCulture));
                 csv.AppendLine();

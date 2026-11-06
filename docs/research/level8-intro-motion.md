@@ -40,6 +40,16 @@ Owner acceptance target (2026-10-17): at most 1–1.5% timing-error frames under
 this metric and capture setup. Do not extrapolate creature movement to reach
 that target; avoiding additional clipping takes priority. Reduce actual delays.
 
+**Level6a fly-by, 2026-11-06 (master 6507d0eb).** The same metric from
+`tools/game-unity-probe` (`-WorkerTicks`, 40 s, 60 FPS cap; `frames.csv` now
+carries `render_tick`, the camera and `path`), run `build/game-unity-probe/20261106-073731`,
+over the 1571 frames of Level6a's opening path: 12.17% of frames above 2
+ticks/s (p95 error 3.48), with frame time flat at p95 16.85 ms. The error is a
+three-frame step pattern once per tick (clamp at the boundary, catch-up,
+short), so it is the boundary clamp, not a slow frame. Details and the fix
+direction: [parallelism plan](../plans/2026-10-17-parallelism-design.md),
+addendum 2026-11-06.
+
 Artifacts: `build/level8-motion-before/motion.csv` and
 `build/level8-motion-final/motion.csv`; intermediate capture: `build/level8-motion-after/`.
 The correction applies to all levels, not a Level8-specific rendering rule.
