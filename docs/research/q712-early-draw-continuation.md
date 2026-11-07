@@ -62,7 +62,7 @@ neighbours, rejects `0x00453600` obstacles, and falls back to its current slab
 if none passes. `0x004EF1F0` places Hatchery pillars at qualifying3x3 room corners,
 unless a Pillar-flagged object already occupies the slab.
 
-Our Hatchery pillars are virtual presentation furniture. The point selector
+In the 432 control, Hatchery pillars were virtual presentation furniture. The point selector
 checked only stored objects, so the absent obstacle let the bird pick the south
 corner. In `pillars-control`, supplying the four actual captured pillars78
 reproduces the native destination and compared pose/process/age samples at

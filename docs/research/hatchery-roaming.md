@@ -99,6 +99,8 @@ order is established in `imp-task-stealing.md` §8. Heading, age, reaction count
 destination, velocity, resume process, flags and count are hashed and saved;
 crossing a tile updates its occupancy link. ADR-0700/hash-save 432 adds the [virtual Hatchery pillar
 obstacle check](q712-early-draw-continuation.md#built-at432-adr-0700) to the owned-room selector.
+The [creature steering query](hatchery-pillar-steering.md) also includes virtual
+Hatchery corner geometry at 441, with its ordering and lifecycle limits kept separate.
 Hatching on an owned Hatchery starts
 process 6, matching `0x004A1CF0`'s owned-room branch. The [Egg art clock and birth draws](chicken-birth-clock.md)
 are built at 439; broader hatch-destination checks remain partial. Object initialization retains Chicken

@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**441** - `0x12CF3D1067315450`. Virtual Hatchery78 corners contribute to ordinary creature obstacle queries (ADR-0709); mixed same-tile ordering remains a HYPOTHESIS adapter assumption. No new saved fields; earlier saves are refused.
+
 **440** - `0xB82C776957AEDBC2`. Fresh counted base clips include integer start/main/end and terminal rate clearing (ADR-0708). No new saved fields; earlier saves are refused.
 
 **439** - `0x6983A602B40625B8`. Retained Chicken initialization scale and world birth draws; launched Eggs preserve the art clock across state24-to32 (ADR-0707).

@@ -140,6 +140,10 @@ heading uses the mesh conversion in `object-drawing.md` §4. Level 8's Torture C
 (a plus around the 3x3 at (11..13, 12..14)) gets exactly four, at (11,12), (13,12),
 (11,14), (13,14), as ours places and draws them at tile centres.
 
+The [virtual Hatchery steering geometry](hatchery-pillar-steering.md) is built
+at 441. Physical pillar creation/destruction, movement-bit writes and other
+room pillars remain outside that bounded implementation.
+
 ## 6. The Dungeon Heart (`DungeonHeart_Build` `0x004DB700`)
 
 Placed by slab-chain index i (row-major for a level's 5x5 Heart, so i = 12 is the centre:

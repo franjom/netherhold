@@ -384,7 +384,7 @@ public static class HatcheryRules
         {
             bool hasPillar = world.Objects.Any(o => o.TileIndex == index && o.ObjectTypeId == PillarObjectId
                 && !o.InHand && o.CarriedByCreatureId < 0);
-            // Room pillars are presentation decorations here; use their shared geometry too.
+            // Virtual room pillars use the same corner geometry for laying and steering.
             bool hasOtherPillar = world.Objects.Any(o => o.TileIndex == index && !o.InHand && o.CarriedByCreatureId < 0
                 && database.ObjectById(o.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.Pillar) == ObjectFlags.Pillar));
             if (!hasPillar && (hasOtherPillar || !AutoFurnitureRules.RoomPillarCorners(world, hatchery,

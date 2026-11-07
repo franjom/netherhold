@@ -77,7 +77,7 @@ Object order therefore matters even when a callback contributes no force. The en
 skips the `Dungeon Heart Obstacle` (object 100) in its tile walk and forwards
 the one on the heart room's centre once per query that touches heart terrain,
 with flag bits 0 and 1 (`structure-blocks.md` §5.3): a slide ring of 1.5 tiles
-plus the body's radius, which Level 7's imps rode in the capture.
+plus the body's radius, which Level 7's imps rode in the capture. See the [virtual Hatchery steering scope](hatchery-pillar-steering.md) for the added pillar geometry and ordering limits.
 
 Two helpers seen on the way: `0x004D4600` projects a target onto the body's
 `local_xaxis`/`local_yaxis` (forward and lateral offsets, 16.16), and

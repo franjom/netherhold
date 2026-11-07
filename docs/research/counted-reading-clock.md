@@ -52,7 +52,9 @@ heading control; no new input or later-capture deadline is supplied.
 through completed1500, with the calculated69-tick hold. Next is1501 draw1:
 native ObjectState.cpp:2851 versus modern Library.cpp:1068, preseed3043324754,
 modern tag438/state1 searching Library capacity. Its movement already differs
-at1440, so the next investigation starts before that draw.
+at1440. The [Hatchery pillar steering correction at441](hatchery-pillar-steering.md)
+addresses that historical movement boundary; its component limit remains separate
+from draw-stream agreement.
 
 `delivered440-reading-v2-components.json` verifies101/101 state/XY samples
 (1400 through1500) each for Warlocks439 and441, neutrals447/449 and Imp455.

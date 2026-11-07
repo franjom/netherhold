@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -40,7 +40,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private ulong _ruinedSnapshot;
     private int _navStampSnapshot;
     private readonly List<NavPoint> _waypoints = [];
-    private readonly List<ObjectState> _objectObstacles = [];
+    private readonly List<ObjectObstacle> _objectObstacles = [];
+    private readonly HashSet<int> _physicalPillarTiles = [];
+
+    private readonly record struct ObjectObstacle(int TileIndex, long Order, Fixed16Vector Position, int Size, bool Solid);
     private readonly bool _wholeBuilds;
     private int[] _builtLocate = [];
 
@@ -528,33 +531,38 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         int x1 = Math.Min(_world.Width - 1, ((centre.X >> 4) + half) >> 12);
         int y1 = Math.Min(_world.Height - 1, ((centre.Y >> 4) + half) >> 12);
         _objectObstacles.Clear();
+        _physicalPillarTiles.Clear();
         foreach (ObjectState device in _world.Objects)
         {
             if (!device.TileLink.IsLinked || device.ObjectTypeId == DungeonHeartObstacleObjectId) continue;
             int tx = device.TileLink.TileIndex % _world.Width, ty = device.TileLink.TileIndex / _world.Width;
             if (tx < x0 || tx > x1 || ty < y0 || ty > y1) continue;
-            _objectObstacles.Add(device);
-        }
-        _objectObstacles.Sort((left, right) => left.TileLink.TileIndex != right.TileLink.TileIndex
-            ? left.TileLink.TileIndex.CompareTo(right.TileLink.TileIndex)
-            : right.TileLink.Order.CompareTo(left.TileLink.Order));
-
-        bool solid = false;
-        foreach (ObjectState device in _objectObstacles)
-        {
             ObjectDef? definition = _database.ObjectById(device.ObjectTypeId);
-            if (definition is null || !((definition.Flags & ObjectFlags.Obstacle) == ObjectFlags.Obstacle)) continue;
+            if (definition is null) continue;
+            if (!device.InHand && device.CarriedByCreatureId < 0 && (definition.Flags & ObjectFlags.Pillar) != 0)
+                _physicalPillarTiles.Add(device.TileLink.TileIndex);
+            if ((definition.Flags & ObjectFlags.Obstacle) == 0) continue;
             int size = (definition.Width.Raw >> 1) << 4;
             if (size <= 0) continue;
-            // 0x004D1439 ORs bit 0; 0x004D14A1 XORs it, retaining the previous callback's flags.
-            solid = ((definition.Flags & ObjectFlags.SolidObstacle) == ObjectFlags.SolidObstacle) || !solid;
             int x = CreatureState.CentreOf(device.TileIndex % _world.Width);
             int y = CreatureState.CentreOf(device.TileIndex / _world.Width);
             if (device.PosX != 0 || device.PosY != 0) (x, y) = (device.PosX, device.PosY);
             if (device.AutoPlaced && RoomIndex.RoomAt(_world, _database, device.TileIndex) is { } room)
                 (x, y) = AutoFurnitureRules.FurniturePosition(_world, _database, room, device);
-            var position = new Fixed16Vector(x << 4, y << 4);
-            into.Add(new SteeringObstacle(position, size, solid, false));
+            _objectObstacles.Add(new ObjectObstacle(device.TileLink.TileIndex, device.TileLink.Order,
+                new Fixed16Vector(x << 4, y << 4), size, (definition.Flags & ObjectFlags.SolidObstacle) != 0));
+        }
+        AddVirtualHatcheryPillars(new TilePos(x0, y0), new TilePos(x1, y1));
+        _objectObstacles.Sort((left, right) => left.TileIndex != right.TileIndex
+            ? left.TileIndex.CompareTo(right.TileIndex)
+            : right.Order.CompareTo(left.Order));
+
+        bool solid = false;
+        foreach (ObjectObstacle obstacle in _objectObstacles)
+        {
+            // 0x004D1439 ORs bit 0; 0x004D14A1 XORs it, retaining the previous callback's flags.
+            solid = obstacle.Solid || !solid;
+            into.Add(new SteeringObstacle(obstacle.Position, obstacle.Size, solid, false));
         }
         if (_structures is null || _structures.HeartCentres.Count == 0) return;
 
@@ -568,6 +576,36 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
                 int size = (def.Width.Raw << 4) >> 1;
                 if ((pos - centre).Octile() > range + size) continue;
                 into.Add(new SteeringObstacle(pos, size, ((def.Flags & ObjectFlags.SolidObstacle) == ObjectFlags.SolidObstacle), id == DungeonHeartObstacleObjectId));
+            }
+        }
+    }
+
+    [Dk2Behavior(Confidence.Hypothesis, "docs/research/hatchery-pillar-steering.md")]
+    private void AddVirtualHatcheryPillars(TilePos minimum, TilePos maximum)
+    {
+        ObjectDef? definition = _database.ObjectById(HatcheryRules.PillarObjectId);
+        if (definition is null || (definition.Flags & ObjectFlags.Obstacle) == 0) return;
+        int size = (definition.Width.Raw >> 1) << 4;
+        if (size <= 0) return;
+        for (int y = minimum.Y; y <= maximum.Y; y++)
+        for (int x = minimum.X; x <= maximum.X; x++)
+        {
+            int tileIndex = y * _world.Width + x;
+            if (_physicalPillarTiles.Contains(tileIndex)
+                || RoomIndex.RoomAt(_world, _database, tileIndex) is not { } room
+                || room.Definition.TypeId != RoomTypeId.Hatchery) continue;
+            foreach (int corner in AutoFurnitureRules.RoomPillarCorners(_world, room, new TilePos(x, y)))
+            {
+                (int dx, int dy) = corner switch
+                {
+                    0 => (0x3FF, -0x400), 1 => (0x3FF, 0x3FF),
+                    2 => (-0x400, 0x3FF), _ => (-0x400, -0x400),
+                };
+                var position = new Fixed16Vector((CreatureState.CentreOf(x) + dx) << 4,
+                    (CreatureState.CentreOf(y) + dy) << 4);
+                // Treat virtual furniture as oldest; exact mixed rebuild history is not retained.
+                _objectObstacles.Add(new ObjectObstacle(tileIndex, long.MinValue, position, size,
+                    (definition.Flags & ObjectFlags.SolidObstacle) != 0));
             }
         }
     }

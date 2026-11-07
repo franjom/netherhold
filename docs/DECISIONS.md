@@ -16708,3 +16708,19 @@ Keep live retained phases, alternate resources and handler completion separate.
 
 **Consequences.** Hash/save440 changes action timing without new fields.
 No additional captured restore input or fitted completion deadline is used.
+
+## ADR-0709 - include virtual Hatchery pillars in creature obstacle queries
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** rooms, creatures, simulation-core
+
+**Context.** `hatchery-pillar-steering.md` identifies a missing pillar contact
+behind Q712's1440 Warlock motion divergence. Chicken point selection already
+uses this virtual furniture geometry.
+
+**Decision.** Feed virtual Hatchery78 inward corner positions and definition
+half-widths into the ordinary steering obstacle stream, with data flags and
+active physical-pillar suppression. Do not create additional object records.
+
+**Consequences.** Hash/save441 changes motion without new saved fields or
+random draws. Geometry/contact is binary-backed; virtual oldest-on-same-tile
+order is an explicit HYPOTHESIS adapter assumption. Exact mixed rebuild order,
+physical pillar lifecycle, other room pillars and movement bits remain partial.
