@@ -58,7 +58,9 @@ Production remains hash/save441 and its pin0x12CF3D1067315450. No simulation,
 snapshot, scenario or test changes and no new gameplay rule are delivered.
 A general restore adapter and independent construction-only manager ordinal
 remain open; the wrapper is an experiment, not their implementation.
-The next continuation traces438's movement from1492 before its1508 draw.
+The [Library arrival-chain control](library-arrival-chain.md) traces that
+historical movement boundary to the earlier destination selection; it retains
+the separate component and general restore limits.
 
 Evidence is add-only under
 `F:/DK2Evidence/studies/q712-room-order--2026-11-07--001`.

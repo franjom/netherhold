@@ -12,7 +12,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
-- Evidence commands that generate a scratch helper with `write_text` can trigger overwrite review even when the receipt uses `x`; exclusively create both new targets.
+- Evidence commands need explicit absent-target guards at the call site as well as exclusive creation in helpers; avoid `write_text` for new evidence or helper files.
 
 - With DOTALL enabled, bound merge-marker labels with `[^\n]*`; `^>>>>>>> .*` also consumes the file tail.
 - Restore Git blobs as bytes; Windows text newline translation can double CRLF already present in a blob.

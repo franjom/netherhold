@@ -385,7 +385,7 @@ flags/base health/threat (**Strongly inferred** roles except threat formula).
 are eligibility/state predicates; `0x00517490` gets the turn; `0x004BCAE0` tests the
 hand; `0x0048E6A0` tests keeper interaction; `0x004BFBD0` prepares a creature,
 `0x004BC500` picks it up, `0x004BC710` drops it; `0x004C5F50` gets the heart;
-`0x00454110` rejects obstructed room slabs. World slots
+`0x00454110` is the [floor-slot predicate](functions/00454110.md). World slots
 `+0x1CC/+0x1D0/+0x1D4/+0x1FC` supply dimensions, tile-at-position and bounds
 (**Strongly inferred**).
 
