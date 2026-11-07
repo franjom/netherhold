@@ -165,4 +165,6 @@ install draws one number too, without swapping. Built in ADR-0515; tests:
 ADR-0701 preserves the requested art slot while resolving its resource and mirrors
 the runner's count branches in `ActionAnimationClock`. Non-worker43/44 use the
 [bounded counted idle clock](idle-action-clock.md); worker state12 keeps its existing
-host. Other action surrogates and exceptional overrides retain their documented scope.
+host. The [fresh counted duration calculator](counted-reading-clock.md) shares
+this integer advance/count arm for null-handler modes 0 and 3 (ADR-0708).
+Retained phases, alternate resources and handler work keep their separate scope.

@@ -47,7 +47,8 @@ differ from the main checkout; this is not a claim of byte identity to main.
 `source-input-proof.json` records this scope; `unchanged-runtime-assemblies.json`
 records the read-only/applied runtime DLL comparison. The next boundary
 has preseed2513196491; modern Warlock439 draws7 at its shelf before DK2's
-first object draw. It needs a fresh caller/guard and captured-state check.
+first object draw. The [counted reading correction at 440](counted-reading-clock.md) addresses
+this historical boundary; earlier component divergence remains separately bounded.
 
 This is bounded draw continuation, not full-state, rendered playback or
 Heart-outcome parity. Other captured headings and restore fields remain open.

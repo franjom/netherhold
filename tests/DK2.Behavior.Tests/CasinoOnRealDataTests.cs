@@ -59,15 +59,16 @@ public class CasinoOnRealDataTests
     }
 
     /// <summary>The Goblin's drink, action 39 three times over (four plays of art 19), and its turn at a
-    /// table, action 68 once (art 20), from its own files. HYPOTHESIS: the cycle count is the renderer's.</summary>
+    /// table, action 68 once (art 20), from its own files; counted-reading-clock.md.</summary>
     [InstallFact]
-    public void TheGoblinsDrinkAndItsPlayAreTimedFromItsOwnArt_LikelyCycleCount()
+    public void TheGoblinsDrinkAndItsPlayAreTimedFromItsOwnArt()
     {
         CreatureDef goblin = Db().CreatureById(7);
         CreatureAnimationTiming drink = goblin.ArtSlot(AnimationTimingRules.ResolveArtSlot(goblin, 19));
         Assert.Equal(6, drink.ResourceType);
-        Assert.Equal((4 * drink.FrameCount * 4 + drink.FramesPerSecond - 1) / drink.FramesPerSecond,
-            AnimationTimingRules.CountedHoldTicks(goblin, 19, 3));
+        Assert.Equal(83, drink.FrameCount);
+        Assert.Equal(30, drink.FramesPerSecond);
+        Assert.Equal(46, AnimationTimingRules.CountedHoldTicks(goblin, 19, 3));
         Assert.True(AnimationTimingRules.CountedHoldTicks(goblin, 20, 1) > 0);
     }
 }

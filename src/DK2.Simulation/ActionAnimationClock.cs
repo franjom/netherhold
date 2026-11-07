@@ -26,7 +26,7 @@ public enum ActionAnimationFlags : byte
     Alternate = 64,
 }
 
-/// <summary>The animation clock behind a mode-3 action's end, kept as creature state rather than
+/// <summary>The shared animation/count clock for null-handler actions in modes 0 and 3, kept rather than
 /// reconstructed: phase and rate in 1/4096 of a segment, advanced once a turn (animation-clock.md).
 /// Install is <c>0x004B37D0</c> with <c>0x004B41E0</c>'s rate, the advance <c>0x004B3C10</c>, and
 /// <see cref="Begin"/> the keep-or-install test of <c>0x00496700</c>. The queued resource, the
@@ -65,7 +65,7 @@ public static class ActionAnimationClock
         if (unchecked((sbyte)plays) < 2) creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
     }
 
-    /// <summary>The runner's poll of an action with no handler (<c>0x00496AA0</c>, mode 3): it ends
+    /// <summary>The shared null-handler poll (<c>0x00496AA0</c>, modes 0 and 3): it ends
     /// when the rate is 0, or when the clip has wrapped or completed with the count at 0; a wrapped
     /// or completed clip updates the count and cycle flags using the runner's 0/1/other branches.</summary>
     public static bool CountedActionEnded(CreatureState creature)
@@ -120,6 +120,14 @@ public static class ActionAnimationClock
     public static void Advance(CreatureState creature, CreatureDef definition)
     {
         if (creature.ActionArtSlot == 0) return;
+        CreatureAnimationTiming art = creature.ActionAnimationRate == 0
+            || (creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0
+            ? default : ArtOf(creature, definition);
+        AdvanceResolved(creature, art);
+    }
+
+    internal static void AdvanceResolved(CreatureState creature, CreatureAnimationTiming art)
+    {
         ActionAnimationFlags flags = creature.ActionAnimationFlags;
         if ((flags & ActionAnimationFlags.Complete) != 0)
         {
@@ -129,7 +137,6 @@ public static class ActionAnimationClock
         }
         if (creature.ActionAnimationRate == 0) return;
 
-        CreatureAnimationTiming art = ArtOf(creature, definition);
         int phase = creature.ActionAnimationPhase + creature.ActionAnimationRate;
         if (phase < One)
         {

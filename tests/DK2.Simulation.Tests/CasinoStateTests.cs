@@ -246,12 +246,12 @@ public class CasinoStateTests
     }
 
     [Fact]
-    public void ACountedActionPlaysCountPlusOneTimes_LikelyFromTheRenderersCycleFlags()
+    public void ACountedActionIncludesTheFinalRateClearPoll()
     {
         CreatureDef goblin = Db().CreatureById(GoblinId);
         // One play of 20 frames at 20 a second is four turns; count 3 is four plays, count 64 sixty-five.
-        Assert.Equal(16, AnimationTimingRules.CountedHoldTicks(goblin, 19, 3));
-        Assert.Equal(260, AnimationTimingRules.CountedHoldTicks(goblin, 28, 64));
+        Assert.Equal(17, AnimationTimingRules.CountedHoldTicks(goblin, 19, 3));
+        Assert.Equal(261, AnimationTimingRules.CountedHoldTicks(goblin, 28, 64));
         Assert.Equal(AnimationTimingRules.ActionHoldTicks(goblin.ArtSlot(20)), AnimationTimingRules.CountedHoldTicks(goblin, 20, 1));
     }
 
@@ -519,7 +519,7 @@ public class CasinoStateTests
         dancer.StateEnteredTick = sim.World.CurrentTick.Value;
 
         sim.Run(2);
-        Assert.Equal(sim.World.CurrentTick.Value - 1 + 260, dancer.ActionUntilTick);
+        Assert.Equal(sim.World.CurrentTick.Value - 1 + 261, dancer.ActionUntilTick);
 
         HashSet<int> seen = Watch(sim, dancer, 262);
         Assert.Contains(CasinoStep.ChoosingState, seen);

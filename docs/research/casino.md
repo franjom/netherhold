@@ -142,7 +142,7 @@ Without a wheel, 149 still asks `0xD5` every `v19 × 8` turns ([sound-effects.md
 **150** (`0x00456450`, not a function in the canonical project): action 68, count 1; started,
 `SetState(151)`, else return 0. **151** as 147 without the sound.
 
-## 7. The actions — STRONGLY INFERRED (table), HYPOTHESIS (duration)
+## 7. The actions and duration scope
 
 `0x004950C0` fills each record (`0x006E4198 + id × 0x1D`): actions 35, 56, 39, 57 and 65–68 have
 no handler, mode 0 (EAX, 0 at their stores) and no fixed duration, so each ends with its
@@ -150,9 +150,11 @@ animation. Their art (`+0x14`): 35 → 8 (`0x00495AFF`), 39 → 19 (`0x00495BB3`
 (`0x00496090`), 57 → 28 (`0x004960BC`), 65 → 14, 66 → 8, 67 → 9, 68 → 20 (`0x004962AD`–`0x0049635E`). The resolver `0x00494880` maps a missing slot 8 to 0,
 14 to 5, 19 to 9, 20 to 1, 28 to 8, 34 to 1 and 37 to 1. The counted wrapper's
 byte wrapping and signed Loop gate are recorded in [004969D0](functions/004969D0.md)
-(ADR-0701); the Prison flourish is ADR-0301. The length of a play is the
-resolved art's frames and rate, as `AnimationTimingRules` reads them; that the runner ends a
-looped action after exactly its cycles is HYPOTHESIS (the cycle flags are the renderer's).
+(ADR-0701); the Prison flourish is ADR-0301. The
+[fresh counted base-clip duration](counted-reading-clock.md) is built at 440,
+including start/end segments, integer carry and final rate clear. A retained
+phase, alternate resource or handler work requires the live clock; this
+duration adapter does not establish those broader action lifetimes.
 
 **In the shipped data** (`CasinoOnRealDataTests`): of the 39 creatures whose job tables list Drink,
 King Reginald and the Stone Knight have no art 19 or 9 and no 28 or 8, so 146 turns them idle three

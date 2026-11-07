@@ -11,6 +11,7 @@ namespace DK2.Simulation;
 public static class AnimationTimingRules
 {
     private const int One = 4096;
+    [ThreadStatic] private static CreatureState? _countedClock;
 
     public static int KnockdownHoldTicks(CreatureDef definition) => ActionHoldTicks(
         SlotOrFallback(definition.KnockdownAnimation, definition.KnockdownFallbackAnimation));
@@ -58,17 +59,28 @@ public static class AnimationTimingRules
         HasArt(definition, ResolveArtSlot(definition, slot));
 
     /// <summary>How long an action started through <c>0x004969D0</c> with <paramref name="count"/>
-    /// holds, playing its art slot resolved: count 0 or 1 plays once (<see cref="ActionHoldTicks"/>),
-    /// a count of 2 or more loops <paramref name="count"/> + 1 times at the clip's frames and rate,
-    /// rounded up, as the prison's flourish does (ADR-0301). HYPOTHESIS: the runner's end after the
-    /// cycles is the renderer's flags, which are not read.</summary>
+    /// holds on a fresh resolved base clip. Count 0 or 1 plays once; larger values step the
+    /// integer start/main/end clock and runner with native byte wrapping and signed Loop gates.
+    /// A retained live phase or an alternate resource requires the live action clock.</summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/counted-reading-clock.md")]
     public static int CountedHoldTicks(CreatureDef definition, int slot, int count)
     {
         CreatureAnimationTiming animation = definition.ArtSlot(ResolveArtSlot(definition, slot));
         if (count < 2) return ActionHoldTicks(animation);
-        if (animation.ResourceType != 6 || animation.FramesPerSecond == 0) return 1;
-        long frames = (long)(count + 1) * animation.FrameCount * SimulationTiming.OriginalTicksPerGameSecond;
-        return (int)((frames + animation.FramesPerSecond - 1) / animation.FramesPerSecond);
+        if (animation.ResourceType != 6 || animation.FramesPerSecond == 0 || animation.FrameCount == 0) return 1;
+        CreatureState clock = _countedClock ??= new CreatureState();
+        bool hasStart = (animation.Flags & CreatureAnimationFlags.StartSegment) != 0 && animation.StartSegmentFrames != 0;
+        int frames = hasStart ? animation.StartSegmentFrames : animation.FrameCount;
+        clock.ActionAnimationPhase = 0;
+        clock.ActionAnimationRate = AdvanceRate(Duration(frames, animation.FramesPerSecond));
+        clock.ActionCount = unchecked((byte)(count + 1));
+        clock.ActionAnimationFlags = (unchecked((sbyte)(byte)count) >= 2 ? ActionAnimationFlags.Loop : ActionAnimationFlags.None)
+            | (hasStart ? ActionAnimationFlags.InStart : ActionAnimationFlags.None);
+        for (int ticks = 1; ; ticks++)
+        {
+            ActionAnimationClock.AdvanceResolved(clock, animation);
+            if (ActionAnimationClock.CountedActionEnded(clock)) return ticks;
+        }
     }
 
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-reaper.md")]

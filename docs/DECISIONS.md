@@ -16695,3 +16695,16 @@ simulation binds the world, synthetic/map objects retain the existing startup
 scope. Snapshot loading restores state without creation draws. Broader object
 initialization, hatch destination rejection and presentation scale application
 remain separate from this bounded fix.
+
+## ADR-0708 - step counted animation durations through the integer clock
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** creatures, simulation-core
+
+**Context.** `counted-reading-clock.md` traces an early Library reading end
+to omitted start/end segments and terminal rate clearing in a frame estimate.
+
+**Decision.** Calculate fresh counted base-clip holds with the existing integer
+animation advance and count poll, including their segment carry and flags.
+Keep live retained phases, alternate resources and handler completion separate.
+
+**Consequences.** Hash/save440 changes action timing without new fields.
+No additional captured restore input or fitted completion deadline is used.

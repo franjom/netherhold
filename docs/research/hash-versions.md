@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**440** - `0xB82C776957AEDBC2`. Fresh counted base clips include integer start/main/end and terminal rate clearing (ADR-0708). No new saved fields; earlier saves are refused.
+
 **439** - `0x6983A602B40625B8`. Retained Chicken initialization scale and world birth draws; launched Eggs preserve the art clock across state24-to32 (ADR-0707).
 
 **438** - `0xCDADF5771707E002`. Saved/hashed keeper refresh stamps, request and bit22 frame gate; the active keeper tail advances the unsigned deadline with its world draw (ADR-0706).
