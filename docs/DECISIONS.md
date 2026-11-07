@@ -16767,3 +16767,17 @@ its following update, as the native state 6/state 25 split requires.
 **Consequences.** Hash/save 444 changes behavior without new saved fields or
 restore inputs. Controlled replay also freezes the prior arrival behavior
 before 1400; unconditional replay and the wider movement adapters remain partial.
+
+## ADR-0713 - gate Library steering on the state left by its handler
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** creatures, navigation, rooms, simulation-core
+
+**Context.** `library-movement-gate.md` traces Q712's delayed 1551 reading draw
+to an extra step when the Library return handler resumed its chooser at 1520.
+
+**Decision.** Extend the existing current-state/speed gate to the implemented
+Library states, preserving each state's own movement flag and stored route.
+
+**Consequences.** Hash/save 445 changes behavior without new saved fields or
+restore inputs. The bounded caller-family selection is not a native predicate;
+other movement adapters remain partial. Replay retains its four bootstrap
+clauses and establishes only the documented controlled comparison.

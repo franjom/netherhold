@@ -93,9 +93,10 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             creature.TremorRoutePaused = false;
         }
 
-        // Native tests the current state's bit after its handler. Neutral stops retain a self-route;
-        // it must not steer until a movement-enabled state runs (stop-self-route.md).
-        if (creature.OwnerPlayerId == PlayerIds.Neutral && creature.CreatureTypeId != ImpTypeId
+        // Native tests the current state's bit after its handler. Mirror this for neutrals and
+        // the built Library states; the remaining mover adapters stay partial (library-movement-gate.md).
+        if ((creature.OwnerPlayerId == PlayerIds.Neutral || ResearchStep.IsResearchState(creature.Dk2StateId))
+            && creature.CreatureTypeId != ImpTypeId
             && (creature.Body.MaxSpeed == 0 || !CreatureStateMachine.HasState(creature)
                 || (CreatureStateTable.Get(creature.Dk2StateId).Flags & CreatureStateFlags.Unread0) == 0)) return;
 

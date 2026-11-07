@@ -113,7 +113,9 @@ held room (`0x004E4D90(pt, 1, 0)`), resuming 53.
 
 ## 7. Ours
 
-- `ResearchStep` runs 53, 54, 56, 57 and 59; the disturbed Library is `RescueSystem`'s contact test.
+- `ResearchStep` handles the implemented Library states; their
+  [current-state movement gate](library-movement-gate.md) is built at 445.
+  The disturbed Library is `RescueSystem`'s contact test.
   The [fresh counted reading duration](counted-reading-clock.md) is built at 440;
   state54's failed action-start guard remains unmirrored (00475D20).
 - Not modelled, all presentation: the object flags and the Library Book's process, action 40's

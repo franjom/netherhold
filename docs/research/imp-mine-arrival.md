@@ -33,8 +33,10 @@ sites and preseeds through complete turn 1550, versus 2189 through 1541 before.
 Imp 444 matches 151/151 state/XY samples over 1400–1550. Heading agrees over
 1536–1543; slot 5 phase, flags and rate agree at 1542–1543.
 Native standing/walking clips remain outside the action-clock comparison.
-Next: 1551 draw 1, native ResearchState.cpp:215 versus modern ObjectState.cpp:2851,
-preseed 1435647451, modern Chicken 115 bound 4. Identify the native research caller.
+This control stopped at 1551 draw 1, native ResearchState.cpp:215 versus modern
+ObjectState.cpp:2851, preseed 1435647451; modern Chicken 115 drew 4. The
+[next control](library-movement-gate.md) traced the delayed existing reading
+draw to movement after the Library return handler.
 
 ## Scope and evidence
 

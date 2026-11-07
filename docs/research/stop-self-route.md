@@ -38,8 +38,9 @@ perform the one stationary turn. No future heading, route, completion deadline
 or draw is supplied. The type 1 Imp stop adapter is unchanged.
 
 Ownership is an implementation boundary, not a native predicate: the native
-helpers are generic. Other owners retain the empty-route adapter and their
-existing movement gates. This does not complete the general stop or mover path.
+helpers are generic. Other owners retain the empty-route stop adapter; the
+[current-state/speed gate now also covers implemented Library states](library-movement-gate.md).
+Other movement adapters remain partial.
 Hash/save 443 adds no fields; its remake regression pin is 0x5F32B8E99F7A1CD5.
 
 ## Controlled comparison and bootstrap limit
