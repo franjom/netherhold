@@ -357,6 +357,11 @@ public struct PlayerState
     /// the same value only while <c>TagId</c> and <c>Number</c> agree (Q271).</remarks>
     public byte KilledByPlayerId;
 
+    public KeeperRefreshClock KeeperRefresh;
+
+    /// <summary>Player +0x76 bit22: the keeper frame continues despite a recorded killer.</summary>
+    public bool KeeperFrameAfterDefeat;
+
     /// <summary>DK2's <c>player+0x14A</c>, <c>HeroesDestroyed</c> (weight 50 in the level
     /// score): the heroes this player is credited with killing, which the Heroes Killed HUD box
     /// shows. The death bookkeeping (<c>0x00487C70</c>, <c>0x004882DC</c>) adds one when an
@@ -565,6 +570,10 @@ public struct PlayerState
         hash.Add(TrapNoManaMessageAt);
         hash.Add(GoldMined);
         hash.Add(KilledByPlayerId);
+        hash.Add(KeeperRefresh.LastRefreshTick.Value);
+        hash.Add(KeeperRefresh.NextRefreshTick.Value);
+        hash.Add(KeeperRefresh.Requested);
+        hash.Add(KeeperFrameAfterDefeat);
         hash.Add(HeroesDestroyed);
         hash.Add(SlapCount);
         hash.Add(PossessedCreatureId);

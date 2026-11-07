@@ -16662,3 +16662,19 @@ Each neighboring room tile causes its own rebuild; do not coalesce calls.
 **Consequences.** Hash/save437, no new saved state. Scope is neighbor work:
 startup, room-tile changes and capture merges remain separate gaps. The
 native object animation phase is not retained by this bounded rule.
+
+## ADR-0706 - retain the keeper-frame refresh clock
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** simulation-core
+
+**Context.** `keeper-refresh-clock.md` identifies the missing Player2254 draw
+as a stateful keeper-frame deadline, distinct from the mana calculation.
+
+**Decision.** Retain its last stamp, deadline and request, plus the bit22
+keeper-frame gate. Run the clock at the existing active-keeper tail with
+unsigned native turns, drawing50 when due and scheduling now+100+draw.
+Bit22 keeps that tail in its live branch despite a stamped killer.
+
+**Consequences.** Hash/save438, four new retained values. Snapshot restore
+preserves them. The bounded probe declares captured1400 clock input; no
+later-capture deadline or fitted value is used. Broader per-player service interleaving and
+other bit22 consumers retain their existing limits.

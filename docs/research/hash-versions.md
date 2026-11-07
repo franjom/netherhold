@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**438** - `0xCDADF5771707E002`. Saved/hashed keeper refresh stamps, request and bit22 frame gate; the active keeper tail advances the unsigned deadline with its world draw (ADR-0706).
+
 **437** - `0x43ACB3B286423A90`. Neighbor work replaces Training Room furniture and draws4096 per wall Target, preserving each N/E/S/W visit (ADR-0705). No new saved field; other Target rebuild entry points and animation phases remain unmirrored.
 
 **436** — `0xBED80517CFD67EE8`. Library capacity repeats the shelf search before numeric fullness; execution hooks share the world RNG and claim fallback scans every matching room (ADR-0704). No new saved field.

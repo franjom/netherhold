@@ -45,7 +45,7 @@ the neutral player out of them, and ours makes neither draw for any player (Q738
 world-seed draw log, every draw attributed to its turn against the frames' seeds, no gaps):
 Player.cpp:2045 and 2046 are drawn 500 times each, once per turn, and they are the last two
 draws of every turn. Line 2054 (the Lava roll) is never drawn in that window, so the Lava branch rests on the
-disassembly alone. In 4 turns a keeper's mana-tail draw (Player.cpp:2254, `0x004BB2A0`) comes
+disassembly alone. In 4 turns the [keeper refresh clock](keeper-refresh-clock.md) draw (Player.cpp:2254) comes
 just before the pair: the neutral frame follows at least one keeper's. The draw before
 them is a Treasury's (Treasure.cpp:132 or 162) in 486 turns; the rest are keeper-frame or
 creature draws.

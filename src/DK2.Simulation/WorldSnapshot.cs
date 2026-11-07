@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 437;
+    private const int FormatVersion = 438;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -310,6 +310,10 @@ public static class WorldSnapshot
                 w.Write((byte)held.Kind);
                 w.Write(held.Id);
             }
+            w.Write(p.KeeperRefresh.LastRefreshTick.Value);
+            w.Write(p.KeeperRefresh.NextRefreshTick.Value);
+            w.Write(p.KeeperRefresh.Requested);
+            w.Write(p.KeeperFrameAfterDefeat);
         }
 
         // Normally empty at a tick boundary — TileWorkSystem drains it every
@@ -1102,6 +1106,8 @@ public static class WorldSnapshot
                 var kind = (HandItemKind)r.ReadByte();
                 players[i].Hand.Add(new HandItem(kind, r.ReadInt32()));
             }
+            players[i].KeeperRefresh = new KeeperRefreshClock(new GameTick(r.ReadInt64()), new GameTick(r.ReadInt64()), r.ReadBoolean());
+            players[i].KeeperFrameAfterDefeat = r.ReadBoolean();
         }
 
         WorldState world = WorldState.FromParts(width, height, tiles, players, fogOfWarEnabled);

@@ -44,9 +44,13 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             if (!PlayerIds.IsKeeper(id.Value)) continue;
             ref PlayerState player = ref world.Player(id);
 
-            // A stamped killer is the whole condition, and the verdict depends only on which side
-            // struck the blow.
-            if (player.KilledByPlayerId == 0) continue;
+            // No killer or bit22 keeps the ordinary frame tail; otherwise the killer determines
+            // the defeat verdict (keeper-refresh-clock.md, ADR-0706).
+            if (player.KilledByPlayerId == 0 || player.KeeperFrameAfterDefeat)
+            {
+                player.KeeperRefresh = KeeperRefreshClockRules.Advance(player.KeeperRefresh, context.Tick, context.Rng);
+                continue;
+            }
             byte fallen = player.PlayerId.Value;
             if (DefeatRules.IsDeathTurn(context.Tick, player.HeartDiedTick)) DefeatRules.OnDeathTurn(context, fallen);
             if (DefeatRules.CreaturesGo(context.Tick, player.HeartDiedTick)) DefeatRules.ScatterCreatures(context, fallen);

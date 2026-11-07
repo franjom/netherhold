@@ -40,7 +40,8 @@ The prior436 baseline and its488-draw prefix through1435 are in
 Baseline436 retains488 ordered draw sites and preseeds through1435. The
 candidate with only the neighbor-work rule extends this to516 through1437,
 then14 matching draws in1438. Its first different site is1438 draw15:
-native Player.cpp:2254 versus modern ambient Player.cpp:2045. Inputs are the
+native Player.cpp:2254 versus modern ambient Player.cpp:2045. The
+[keeper refresh clock at 438](keeper-refresh-clock.md) addresses this boundary. Inputs are the
 same20 declared1400 environment keys; no new restore input or future fit.
 At1436 draw1, seed785837652 with bound4096 returns1044, matching the new
 native Target's+D4; the next draw uses seed2256700835 in both runs.

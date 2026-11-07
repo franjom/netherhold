@@ -355,3 +355,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Replay probes using `CapturedCreatureOrder` bypass `CreatureUpdateSystem.Sweep`; mirror new lifecycle hooks before comparing their clocks.
 - Serialize `GameTick.Value` in scratch JSON telemetry; serializing the struct follows its `Next` property recursively and fails at the depth limit.
 - Validate diagnostic site labels against binary source-line constants: RoomWalkRules.ArrivalTile is Room.cpp:1509 (0x5E5), not the different picker at1563.
+
+- If Docker tools are absent from chat, the local gateway still works via `docker mcp tools --gateway-arg=--profile=local call search_nodes query=topic`; CLI scalar tool arguments use key=value, not a raw JSON argument; nested objects require an MCP stdio JSON call.
+
+- Python on this Windows host may default to cp1252; pass encoding="utf-8-sig" when reading BOM Markdown before rewriting, or its header becomes mojibake.
