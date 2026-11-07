@@ -29,6 +29,35 @@ menus and level briefing first, then Level 1.
 <img src="screenshots/image_level_1_8.jpg" alt="Level 1, screenshot 8" width="49%">
 </p>
 
+## Performance at 1920×1080
+
+Recorded on **2026-11-06** using a Unity 6000.6.0f1 release IL2CPP player,
+Vulkan, windowed 1920×1080, VSync off. Workload: Level 6a's opening fly-by,
+seed 1, one 40-second capture per frame-cap setting on an idle laptop.
+
+| Hardware | Configuration |
+|---|---|
+| CPU | AMD Ryzen 7 7735HS, 8 cores / 16 threads |
+| GPU | Integrated AMD Radeon Graphics; driver 32.0.21045.16010 |
+| Memory | 31.2 GB usable, as reported by Windows |
+| OS | Windows 11 Pro, build 26300 |
+
+| Frame cap | Average FPS | Median frame | 99th-percentile frame | Longest frame |
+|---|---:|---:|---:|---:|
+| Uncapped | 186 | 5.0 ms | 12.0 ms | 34.5 ms |
+| 120 FPS | 118 | 8.3 ms | 12.7 ms | 32.1 ms |
+| 60 FPS | 60 | 16.7 ms | 17.1 ms | 23.2 ms |
+
+These recorder measurements exclude the first two seconds of gameplay; including
+that startup interval, the longest frames were 538, 458 and 433 ms respectively.
+They describe the P1 build measured that day, before its subsequent optimizations,
+and one short workload. Capture package: `20261106-125325` (recorded with local
+changes). Raw captures and SHA-256 inventory are retained at
+`F:/DK2Evidence/studies/readme-performance-1080p--2026-11-07--001/`.
+The every-frame 60 FPS target remains unmet; see the
+[measurement results](docs/plans/2026-11-06-presented-world.md#result-measured-2026-11-06)
+and [performance acceptance policy](docs/PERFORMANCE.md).
+
 ## Build and test
 
 Install the .NET SDK selected by [global.json](global.json) (.NET 10 or a newer
