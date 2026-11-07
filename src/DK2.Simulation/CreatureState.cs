@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -1337,7 +1337,7 @@ public sealed partial class CreatureState
     /// is clear. The mover's arrival test sets the flag (steering-behaviours.md §5.2).</summary>
     public bool HasRoute => Body.PathTotalCount != 0 && !Body.PathFinished;
 
-    /// <summary>A route was requested and found, arrived or not. False after <see cref="StopMoving"/>.</summary>
+    /// <summary>A route was requested and found, arrived or not; retained self-routes count.</summary>
     public bool IsRouted => Body.PathTotalCount != 0;
 
     /// <summary>The tile the loaded route ends on.</summary>
@@ -1345,12 +1345,13 @@ public sealed partial class CreatureState
 
     /// <summary>Stops the body where the creature stands, with zero velocity:
     /// <c>Creature_StopMoving</c> (<c>0x0048ECE0</c>) through <c>0x004D1070</c>, which requests a
-    /// route to itself and zeroes velocity (<c>0x004D59A0</c>). Neutral non-Imp controllers retain that
-    /// one-point route; other controllers keep the empty-route adapter (stop-self-route.md).</summary>
+    /// route to itself and zeroes velocity (<c>0x004D59A0</c>). Neutral and resolved Library non-Imp
+    /// controllers retain that route; other controllers keep the empty-route adapter (library-stop-route.md).</summary>
     public void StopMoving()
     {
         Body.Pos = new Steering.Fixed16Vector(PosX << 4, PosY << 4);
-        Steering.RouteWindow.Load(Body, OwnerPlayerId == PlayerIds.Neutral
+        Steering.RouteWindow.Load(Body, (OwnerPlayerId == PlayerIds.Neutral
+            || ResearchStep.ResolvedCategory(this) == CreatureStateCategory.Research)
             && CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId ? [Body.Pos] : [], Body.Pos, 0);
         Body.Vel = Steering.Fixed16Vector.Zero;
         // 0x0048ECE0 clears +0x3E6 bits 17 and 18 and 0x004D0F60 rewrites them from option word 0.

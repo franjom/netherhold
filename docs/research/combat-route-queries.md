@@ -58,9 +58,10 @@ The native query cache, global query-option writes and other reachability
 adapters remain partial. This change selects the proper point representation
 for combat; it does not establish complete native routing equivalence.
 
-Next: 1588 draw 1, native ResearchState.cpp:215 versus modern ImpUtils.cpp:484,
-preseed 2725511882, modern Imp 454 drawing 4. Warlock 438's earlier divergence
-is a candidate antecedent; trace the actual native caller before attributing it.
+This control stopped at 1588 draw 1, native ResearchState.cpp:215 versus modern
+ImpUtils.cpp:484, preseed 2725511882; modern Imp 454 drew 4. The
+[next control](library-stop-route.md) traced the delayed reading draw to the
+stopped route and Library walk handovers.
 
 ## Verification and evidence
 

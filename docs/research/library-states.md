@@ -114,7 +114,8 @@ held room (`0x004E4D90(pt, 1, 0)`), resuming 53.
 ## 7. Ours
 
 - `ResearchStep` handles the implemented Library states; their
-  [current-state movement gate](library-movement-gate.md) is built at 445.
+  [current-state movement gate](library-movement-gate.md) is built at 445;
+  [retained stops and progress handovers](library-stop-route.md) extend its coverage at 448.
   The disturbed Library is `RescueSystem`'s contact test.
   The [fresh counted reading duration](counted-reading-clock.md) is built at 440;
   state54's failed action-start guard remains unmirrored (00475D20).

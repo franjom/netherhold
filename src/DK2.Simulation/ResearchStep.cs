@@ -62,7 +62,7 @@ public static class ResearchStep
         if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Library)) return true;
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return true;
+            if (FollowPathRules.Progress(creature.Body) != Fixed16.One) return true;
             creature.StopMoving();
             return StateShadow.Arrive(context, system, creature);
         }

@@ -16811,3 +16811,18 @@ the plain-query points in combat reach checks.
 Query caching, global option writes and other reachability adapters remain
 partial. The controlled replay retains six disclosed bootstrap clauses;
 its draw agreement does not establish full-state or Heart-outcome parity.
+
+## ADR-0716 - retain the stopped route through Library handovers
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** creatures, navigation, rooms, simulation-core
+
+**Context.** `library-stop-route.md` traces Q712's delayed 1588 research draw
+to a lost self-route and two Library walks waiting on the finished flag.
+
+**Decision.** Extend retained self-routes to resolved Research non-Imps. End
+Library entry and internal walks at whole progress, preserving the stopped
+point for the current-state mover.
+
+**Consequences.** Hash/save 448 changes behavior without new saved fields.
+The caller-family scope is implementation coverage, not a native condition.
+Other stop/travel adapters remain partial; the controlled replay retains
+eight bootstrap clauses and does not establish full-state or Heart parity.

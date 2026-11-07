@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -513,7 +513,8 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     private void Travelling(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.HasRoute) return;
+        if (creature.CurrentJob == JobType.Research
+            ? Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One : creature.HasRoute) return;
         Arrive(context, creature, definition, creature.CurrentJob);
     }
 

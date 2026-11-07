@@ -188,9 +188,10 @@ resumes it. State 9 is 6 with a timeout.
 distance in sixteenths of a tile). 6 calls `Creature_StopMoving`; 7 zeroes the velocity and calls it
 only when the tile's room matches, else returns 0 with the route kept. 8 makes its route refresh first.
 The progress handover is built for non-Imps in `TravelArrivalSystem` (6, 7, 9)
-and `ApproachRules` (8) (ADR-0632, Q724), with the [neutral idle-return
-extension](stop-self-route.md) at hash 443. The kind-4 action hold remains outside
-the shared non-Imp adapter; this does not complete state 6 or generic stop behavior.
+and `ApproachRules` (8) (ADR-0632, Q724), with [neutral idle returns](stop-self-route.md)
+and [Library walk handovers](library-stop-route.md) covered separately. The
+state-6 kind-4 action hold and state-7 saved-room guard remain shared-adapter
+gaps; this does not complete either handler or generic stop behavior.
 
 **Both movers share a near-destination flag.** When the squared distance
 `(dx²>>12) + (dy²>>12)` is below `0x200` (about 0.35 tile) they clear `creature+0xF1`

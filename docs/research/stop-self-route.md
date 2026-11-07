@@ -37,10 +37,11 @@ idle-return walk over at whole progress. The neutral state 1 frame skips steerin
 perform the one stationary turn. No future heading, route, completion deadline
 or draw is supplied. The type 1 Imp stop adapter is unchanged.
 
-Ownership is an implementation boundary, not a native predicate: the native
-helpers are generic. Other owners retain the empty-route stop adapter; the
-[current-state/speed gate now also covers implemented Library states](library-movement-gate.md).
-Other movement adapters remain partial.
+Owner/category selection is implementation coverage, not a native predicate:
+the native helpers are generic. The [Library stop-route extension](library-stop-route.md)
+now also retains self-routes for resolved Research non-Imps; other caller
+families retain their stop adapters. The [current-state/speed gate](library-movement-gate.md)
+and remaining movement adapters keep their separate scopes.
 Hash/save 443 adds no fields; its remake regression pin is 0x5F32B8E99F7A1CD5.
 
 ## Controlled comparison and bootstrap limit
