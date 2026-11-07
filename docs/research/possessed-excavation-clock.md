@@ -57,8 +57,10 @@ The final controlled replay matches 2774 ordered sites/preseeds through complete
 turn 1575, versus 2527 through 1560 before. Newly exposed Hero 434's follow draw
 at 1563 is the existing [00461F00](functions/00461F00.md) random 9 at
 GoodState.cpp:253; mapping it is not a gameplay change.
-Next: 1576 draw 1, native PlayerRooms.cpp:644 versus modern ObjectState.cpp:2851,
-preseed 2605709186, modern Chicken 128 drawing 4. Identify the native room caller.
+This control stopped at 1576 draw 1, native PlayerRooms.cpp:644 versus modern
+ObjectState.cpp:2851, preseed 2605709186; modern Chicken 128 drew 4. The
+[next control](combat-route-queries.md) traced the existing withdrawal draws
+to an upstream combat-query geometry difference.
 
 The preceding 24 input values are unchanged. The four inherited bootstrap
 clauses plus one new before 1400 excavation fallback retain the earlier startup

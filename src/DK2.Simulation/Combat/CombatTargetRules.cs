@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Steering;
 
@@ -705,7 +706,7 @@ public static class CombatTargetRules
             new Fixed16Vector(toX << 4, toY << 4),
             WorldSteering.ProfileOf(definition, me.OwnerPlayerId, options),
             scratch,
-            refresh: false);
+            refresh: false, pointKind: RoutePointKind.FunnelCorners);
         if (!routed) return false;
         if (scratch.Count == 0) return true;
 

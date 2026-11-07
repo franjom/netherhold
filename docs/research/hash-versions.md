@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**447** - `0x5ECC1567B9E7928A`. Combat reach queries measure funnel corners; existing movement routes retain gate midpoints and their signatures (ADR-0715). No new saved fields; earlier saves are refused.
+
 **446** - `0x075852C6F00B405D`. Timed type 1 Imp possession dig/mine actions retain their independent point, completion and shared-clip ownership, with common poll/advance hooks, replacement cancellation and copy/hash/snapshot support (ADR-0714). Other work adapters remain partial; earlier saves are refused.
 
 **445** - `0x863B89D0EB9DFD9F`. Implemented Library states use the current-state movement flag and zero-speed hold after their handler, extending the neutral non-Imp gate (ADR-0713). No new saved fields; earlier saves are refused.

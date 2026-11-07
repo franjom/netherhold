@@ -506,11 +506,16 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// <summary>The route query with the rebuild check left to the caller: a scan that asks many
     /// times in one tick refreshes once and passes false.</summary>
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points, bool refresh)
+        => Route(from, to, mover, points, refresh, RoutePointKind.GateMidpoints);
+
+    /// <summary>The route with the caller's point kind; combat queries measure funnel corners.</summary>
+    public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points, bool refresh,
+        RoutePointKind pointKind)
     {
         if (refresh || _router is null) Refresh();
         to = ConstrainTarget(from, to);
         using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRoute);
-        if (!_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8), new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints))
+        if (!_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8), new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints, pointKind))
             return false;
         foreach (NavPoint p in _waypoints) points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));
         return true;

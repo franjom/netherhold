@@ -16796,3 +16796,18 @@ clip through stop/end. Preserve this state in hashing and snapshots.
 general resource-ID caching and wrapped sound requests remain partial.
 The controlled diagnostic synchronizes the native-order wrapper's new hooks
 and retains five explicit bootstrap clauses; no unconditional parity is claimed.
+
+## ADR-0715 - measure combat reach on the plain query path
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** combat, navigation, simulation-core
+
+**Context.** `combat-route-queries.md` traces Q712's 1576 withdrawal gap to
+a hero losing its target when combat measured movement gate midpoints.
+
+**Decision.** Expose the existing corridor funnel's corner points as an explicit
+route point kind, preserving the movement overloads' midpoint results, and use
+the plain-query points in combat reach checks.
+
+**Consequences.** Hash/save 447 changes behavior without new saved fields.
+Query caching, global option writes and other reachability adapters remain
+partial. The controlled replay retains six disclosed bootstrap clauses;
+its draw agreement does not establish full-state or Heart-outcome parity.

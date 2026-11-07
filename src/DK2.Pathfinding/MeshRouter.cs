@@ -43,8 +43,15 @@ public sealed class MeshRouter
     /// funnelled again in walking order and re-walked by <see cref="GateWalk"/>: the waypoints are
     /// the midpoint of each kept gate, then the destination.</summary>
     public bool TryRoute(NavPoint from, NavPoint to, MoverProfile mover, List<NavPoint> waypoints)
+        => TryRoute(from, to, mover, waypoints, RoutePointKind.GateMidpoints);
+
+    /// <summary>The same corridor selection, with funnel corners for a plain query or gate
+    /// midpoints for movement (navigation-mesh-and-search.md).</summary>
+    public bool TryRoute(NavPoint from, NavPoint to, MoverProfile mover, List<NavPoint> waypoints, RoutePointKind pointKind)
     {
         if (waypoints is null) throw new ArgumentNullException(nameof(waypoints));
+        if (pointKind != RoutePointKind.GateMidpoints && pointKind != RoutePointKind.FunnelCorners)
+            throw new ArgumentOutOfRangeException(nameof(pointKind));
         waypoints.Clear();
 
         int fromTri = _mesh.LocateEndpoint(from.X, from.Y);
@@ -73,6 +80,11 @@ public sealed class MeshRouter
 
         _pathA.Clear();
         Funnel.Reduce(_mesh, from, to, route, _pathA, _funnel);
+        if (pointKind == RoutePointKind.FunnelCorners)
+        {
+            waypoints.AddRange(_pathA);
+            return true;
+        }
         int count = GateWalk.Run(_mesh, from, to, route, _pathA, _records, GateWalk.Cap);
         GateWalk.Select(_records, count, to, GateWalk.Midpoint, waypoints);
         return true;

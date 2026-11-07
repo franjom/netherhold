@@ -193,11 +193,11 @@ So a creature engages what it can **see** within `DistanceCanSee`, or what it ca
 gap. A reimplementation cannot approximate that one with a radius: it needs the
 navigation mesh, and a target behind a wall is at its path distance.
 
-**On shipped data the distinction is invisible.** All 46 creatures ship both
-ranges at `16384`, exactly **4 tiles** (`dk2tools kwd creatures -s`). A
-reimplementation that models one range will match the original on every shipped
-creature and diverge only on modified data — so the two paths must still be kept
-apart, because their *tests* differ even where their radii do not.
+All 46 creatures ship both ranges at `16384`, exactly **4 tiles**
+(`dk2tools kwd creatures -s`). Equal numeric ranges retain separate acceptance
+tests: sight uses visibility, while hearing measures the queried path.
+[Combat query points](combat-route-queries.md) remain distinct from movement
+gate midpoints.
 
 **That uniformity makes the tiering exact.** With sight at 4 tiles `r` is
 `16 << 12`, and acceptance requires `d < r`; so a tier-`n` score can never reach

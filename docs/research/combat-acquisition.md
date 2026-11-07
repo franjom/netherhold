@@ -163,7 +163,7 @@ closed, completed door): a door thing (type 4) blocks unless its definition flag
 `+0x8B` bit 6 (a barricade) is set, which flag 1 looks over. An open door or a
 blueprint leaves floor in that byte, so it is transparent (ADR-0683).
 
-**Reach, `0x0045AFF0(me, point, rangeSq)`.** Identical positions → true. The
+**Reach, `0x0045AFF0(me, point, rangeSq)`.** The [plain query uses funnel corners](combat-route-queries.md), separately from movement gate midpoints. Identical positions → true. The
 route request `0x004D0E60(body, me, &point, 0x80 | 0 for an Imp)` fails → false.
 The dispatcher `0x004D0E10` builds the waypoints (positions `>> 4`, mode −2,
 budget `0x100`, `0x80` for an Imp); none → true. Each leg from the previous

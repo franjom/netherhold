@@ -57,11 +57,11 @@ run `Route2path` to reduce that corridor to a **path** of waypoints. The mesh's
 layout and the search — greedy best-first, run from both ends, shorter wins —
 are read in [navigation-mesh-and-search.md](navigation-mesh-and-search.md).
 
-### 2.1 `Route2path` is a funnel, and the waypoints are gate midpoints (Q342)
+### 2.1 `Route2path` is a funnel, and movement uses gate midpoints (Q342)
 
-Read by a second reader (codex, 2026-09-16) and spot-verified here at the three
-points that carry the conclusion. `Route2path` is **`0x004CEF40`**. It takes the
-start, the end and an ordered triangle route; for each adjacent pair,
+Movement uses gate midpoints; [combat queries](combat-route-queries.md) use
+funnel corners. `Route2path` is **`0x004CEF40`** (two readers, 2026-09-16);
+it takes the start, end and ordered triangle route. For each adjacent pair,
 `0x004CCD50` returns the two endpoints of the shared edge — the **gate**.
 
 The reduction is the standard **funnel** (string-pulling): keep a left and a
