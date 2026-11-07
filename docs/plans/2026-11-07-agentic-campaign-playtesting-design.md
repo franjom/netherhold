@@ -279,6 +279,14 @@ Their future value motivates clean interfaces, not early implementation of them.
 
 ## Next design gate
 
+Execution agents must use the applicable [repository .NET skills](../../.agents/skills/README.md),
+with explicit emphasis on measured performance and allocation cost. The
+[implementation plan](2026-11-07-campaign-player-stages1-2.md#net-skills-and-optimization-gate)
+owns skill routing and the optimization gate. Performance improvements must
+preserve player-information isolation, snapshot lifetime and deterministic
+outcomes for the same applied inputs; reducing fidelity or evidence coverage is
+not an optimization. Apply this requirement to later implementation plans too.
+
 The owner approved this design. Review the [stages 1-2 implementation plan](2026-11-07-campaign-player-stages1-2.md)
 and select an execution method before implementation. Later stages require their
 own concrete plans and measured acceptance.

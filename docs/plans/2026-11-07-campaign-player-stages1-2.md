@@ -29,6 +29,48 @@ external transport, model provider, editor automation or Unity dependency added.
 - First scope is headless command play. Desktop isolation, virtual UI and actual
   visual/audio output remain mandatory later design stages, not covered here.
 
+## .NET skills and optimization gate
+
+Every implementing/reviewing agent must read the applicable skills, not merely
+cite their names. Use the [project guidance](../../.agents/skills/README.md)
+and Context7 for current library/API documentation as required by AGENTS.md.
+Optimization is an explicit priority throughout implementation and review.
+
+| Skill | Required use when its trigger applies |
+|---|---|
+| `analyzing-dotnet-performance` | Review new observation, capability, scheduling, strategy and serialization hot paths before each owning task's gate; prioritize measured CPU/allocation costs. |
+| `run-tests` | Before executing or prescribing .NET test commands/filters. |
+| `test-value-evidence` | Establish meaningful revision-bound RED/GREEN evidence for the identified behavior/regression change. |
+| `csharp-refactoring` | Before behavior-preserving C# extraction, consolidation, renaming or other refactoring; separate behavior changes. |
+| `dotnet-breaking-changes` | When changing covered public/friend/generated contracts; check overloads, defaults, nullability and Unity consumers. |
+| `msbuild` | For project/import/target changes or build/restore failures and supported build-performance investigation. |
+| `microbenchmarking` | When BenchmarkDotNet is used or an isolated .NET microbenchmark is justified; keep full-run profiling separate. |
+| `vectorization` | Only for measured SIMD work, with contract/tail/fallback equivalence and performance evidence. |
+
+Measure before optimizing. Record first-capture and steady-state observation
+latency, bytes allocated per decision/tick, observation size, GC counts and total
+run overhead against the same applied-input replay without player observation
+or diagnostics. Include map/population/visibility, decision cadence, source/build
+identity, settings and sample scope. Run comparisons serially; noisy timing checks
+remain opt-in, while stable allocation/complexity regressions get focused guards.
+Derive numeric budgets from a reviewed baseline before claiming an improvement.
+
+Prioritize avoiding repeated full-map scans, repeated sorting, boxing, hot-path
+LINQ/closures, per-tick JSON/strings, unnecessary hashes and redundant snapshots.
+Capture on decision boundaries, bound batches and buffers, and keep invariant
+identity/file hashing out of the tick loop. Profile measured algorithmic costs
+as well as the skill's API-pattern findings; a clean scan is not proof of speed.
+Retain immutable published observations: cached/pooled scratch must not escape
+or be reused while a controller still owns a snapshot. Do not trade away typed
+values, visibility, current capability checks, evidence or thread safety for speed.
+Use only APIs supported by the actual target framework/runtime; a .NET 10 harness
+optimization must not leak unsupported APIs into Unity-loadable netstandard2.1.
+
+Review must include the chosen skills, prioritized findings, before/after
+measurements and replay/hash equivalence for every optimization. Report unresolved
+costs without claiming they are fixed. Existing Unity frame targets remain in
+[PERFORMANCE.md](../PERFORMANCE.md); headless figures do not certify those targets.
+
 ## Review focus
 
 1. Hidden-state changes must not change serialized observations, offers or refusals (task 2).
@@ -153,7 +195,9 @@ stream stays out of this interface, including error reasons and action hints.
 - [ ] In `PlayerObservationTests`, create paired synthetic worlds differing only behind fog: enemy creature/gold, secret door, room capacity, trigger state and another player's messages. Assert field-for-field identical detached observations and capabilities.
 - [ ] Add positive controls revealing a target through the existing view path, own held-creature visibility, discovery changes and empty message history. A global count or hash must not expose hidden changes.
 - [ ] Run the Presentation test project/class for RED, implement Capture, then GREEN. Mutate the original world after capture and assert the old observation is unchanged.
-- [ ] Assert StateHash and simulation RNG state are unchanged by repeated capture; retain existing fog/view/input tests in the focused run, then review/document/commit.
+- [ ] Assert StateHash and simulation RNG state are unchanged by repeated capture; retain existing fog/view/input tests in the focused run.
+- [ ] Establish the observation performance baseline on small and large/fog-heavy synthetic worlds. Measure first and repeated capture, capability generation and allocation; apply the optimization gate and preserve the detached-snapshot mutation test after any reuse/caching change.
+- [ ] Review the correctness and performance evidence, document and commit.
 
 ### Task 3: bounded action admission and receipts
 
@@ -244,6 +288,7 @@ build log; absent or inconsistent receipts leave the run diagnostic only.
 - [ ] `PlayerRunTests`: controller and scripted next-tick commands yield identical hash series; decisions after ticks 0/4/8 observe stamps 1/5/9; monitor on/off yields identical hashes and RNG.
 - [ ] Add RED cases for keeper/controller conflicts, invalid AdvanceTicks, first/last tick handling and cancellation after queued input. Implement the single-loop integration; run GREEN plus ScenarioControllerTests and JournalReplayTests.
 - [ ] Replay with a controller that throws if invoked: assert it is never called and the recorded run's hashes match. Reject mismatched scenario/data/assembly identity and truncated journals as incomplete evidence.
+- [ ] Profile coordinator/observation overhead against the identical journal without observers. Keep manifest/source/data hashing at startup, measure instrumentation separately from simulation and add stable allocation/cadence guards before the task review.
 - [ ] Retain complete logs; review/document/commit without updating a determinism pin merely for instrumentation.
 
 ### Task 5: reusable action routines and Level 1 strategy
@@ -275,6 +320,7 @@ then return a controller limitation. Preserve the reason and observed inputs.
 - [ ] `CampaignPlayerTests`: table-driven detached observations require affordable-room selection, no repeat build while pending, alternate visible frontier after refusal, no targeting unseen things, valid waiting, terminal idle and recovery exhaustion.
 - [ ] Add the positive control that changing only an admitted observation changes the decision, while identical observations/options yield identical actions. Run AI project/class RED.
 - [ ] Implement routines and strategy; GREEN includes 3x3 candidate ties, insufficient gold, a disappearing target and no offered action. Tests use observation fixtures, never a privileged KeeperView.
+- [ ] Measure strategy/candidate-search cost and allocations with representative visible populations; optimize dominant scans/sorts before considering SIMD or microbenchmarks. Verify identical decisions and hashes for unchanged observations/options.
 - [ ] Review/document/commit. Unsupported strategic needs remain controller limitations; they do not authorize a mechanic change or a hidden-state shortcut.
 
 ### Task 6: CLI, limits, outcomes and evidence
@@ -309,6 +355,7 @@ privileged diagnosis; the latter is never input to the strategy.
 - [ ] `PlayerRunReportTests`: assert win/defeat/controller limitation/timeout/invalid evidence map to distinct report outcomes; no victory is inferred from exit success or an empty expectation list.
 - [ ] RED tests cover parsing bounds, watch propagation, budget boundary flush, unwritable output, exhausted storage and no overwrite of an existing evidence directory. Implement and run GREEN.
 - [ ] A failed installed attempt must leave journal and metadata readable through the last flushed tick. Preserve irreplaceable failure/acceptance evidence add-only under F:/DK2Evidence with a SHA-256 inventory; routine regenerable output stays under build/.
+- [ ] Measure journal/report buffering and serialization under long runs; bound allocation and retained memory without per-tick formatting work or weakening flush/recovery evidence. Include these findings in the review before committing.
 - [ ] Review/document/commit; update the harness README's new flags and explicitly list Unity/model/UI/audio coverage as not implemented.
 
 ### Task 7: real Level 1 attempt and acceptance
@@ -332,6 +379,7 @@ DK2 behavior question under AGENTS.md before adding a behavioral assertion.
 - [ ] Once it wins, replay the same journal at the verified build/data identity and compare all recorded hashes. Confirm observations/monitoring off replay the same applied input; no model or controller participates.
 - [ ] Attempt seeds 2 and 3 and disclose every outcome without tuning engine behavior or promising broader campaign acceptance. A repeat seed-1 run must reproduce the deterministic baseline's action decisions and hash sequence.
 - [ ] Run final Release solution/Unity compile, relevant existing suites, full solution tests and docs/KB/coverage/status gates from HANDOFF. Installed acceptance must run with DK2_REQUIRE_INSTALL=1; absent data blocks acceptance rather than passing it.
+- [ ] Publish the final headless overhead/allocation results against the reviewed baseline, including first-use cost, remaining hot spots, applied-input equivalence and skill-backed review findings. Do not call one fast run a whole-game performance acceptance.
 - [ ] Reviewer checks evidence and actual Level 1 verdict; documenter reconciles status in the design/parent/handoff without marking later stages built. Inspect edits, archive receipt, commit and integrate by the owner's selected execution method. Do not remove worktrees or evidence.
 
 ## Execution handoff
