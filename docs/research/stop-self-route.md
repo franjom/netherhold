@@ -40,7 +40,8 @@ or draw is supplied. The type 1 Imp stop adapter is unchanged.
 Owner/category selection is implementation coverage, not a native predicate:
 the native helpers are generic. The [Library stop-route extension](library-stop-route.md)
 retains self-routes for resolved Research non-Imps, and the [combat extension](combat-stop-route.md)
-covers resolved fight states 199/200. Other caller families retain their stop
+covers resolved fight states 199/200. The [home extension](lair-home-handover.md)
+retains the point for resolved non-Imp state 80. Other caller families retain their stop
 adapters. [Retained waypoint precision](stopped-waypoint-precision.md) has its
 own bounded correction. The [current-state/speed gate](library-movement-gate.md)
 and remaining movement adapters keep their separate scopes.

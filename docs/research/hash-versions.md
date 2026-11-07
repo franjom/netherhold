@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**452** - `0x420CEFB2342AC832`. Lair home walks defer state 80 to its own update, retain the quantized stop point and wait for tile-centre facing; healthy completion defers idle without another stop (ADR-0720). No new saved fields; earlier saves are refused.
+
 **451** - `0x7772E79E5A838228`. Retained stopped waypoints use the native 16.8 route precision; body position and requested target remain 16.16 (ADR-0719). No new saved fields; earlier saves are refused.
 
 **450** - `0x5BB21DAEC8FC7759`. Imp withdrawal arrives after movement; idle/task selection ignore the prior work countdown; failed non-Imp fight handlers preserve their route (ADR-0718). No new saved fields; earlier saves are refused.

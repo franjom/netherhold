@@ -95,7 +95,10 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
 
         // Native tests the current state's bit after its handler. Mirror this for neutrals and
         // the built Library states; the remaining mover adapters stay partial (library-movement-gate.md).
-        if ((creature.OwnerPlayerId == PlayerIds.Neutral || ResearchStep.IsResearchState(creature.Dk2StateId))
+        if ((creature.OwnerPlayerId == PlayerIds.Neutral || ResearchStep.IsResearchState(creature.Dk2StateId)
+            || creature.Dk2StateId == LairRules.MakingAHomeState
+            || context.UpdateStartStateId == LairRules.MakingAHomeState
+            || context.IdledByLairHandlerThisTick.Contains(creature))
             && creature.CreatureTypeId != ImpTypeId
             && (creature.Body.MaxSpeed == 0 || !CreatureStateMachine.HasState(creature)
                 || (CreatureStateTable.Get(creature.Dk2StateId).Flags & CreatureStateFlags.Unread0) == 0)) return;

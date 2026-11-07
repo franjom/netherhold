@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -111,9 +111,12 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
                 break;
 
             case CreatureActivity.SeekingLair:
+                bool homeHandler = creature.Dk2StateId == LairRules.MakingAHomeState;
                 if (creature.Dk2StateId == LairRules.SelectingBedState)
                     SelectingBed(context, creature, definition);
                 else Seeking(context, creature, definition);
+                if (homeHandler && creature.Dk2StateId == CreatureStateMachine.Idle)
+                    context.IdledByLairHandlerThisTick.Add(creature);
                 break;
 
             default:
@@ -177,8 +180,17 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     private void Seeking(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.HasRoute) return;
-        StateShadow.Arrive(context, SystemName, creature);
+        if (StateShadow.IsTravelling(creature))
+        {
+            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return;
+            creature.StopMoving();
+            StateShadow.Arrive(context, SystemName, creature);
+            return;
+        }
+        // State 80 stops on its first handler update and waits for tile-centre facing.
+        if (context.Tick.Value - creature.StateEnteredTick == 1) creature.StopMoving();
+        if (CasinoStep.TurnTo(context, creature, CreatureState.CentreOf(creature.Tile.X),
+                CreatureState.CentreOf(creature.Tile.Y)) != 0) return;
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -251,7 +263,6 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
 
         LairRules.PlaceBed(context, creature, new TilePos(tileIndex % world.Width, tileIndex / world.Width));
         CreatureAngerRules.Forget(world, definition, creature, AngerBucket.Lair);
-        creature.StopMoving();
         creature.TimerTicks = 0;
 
         TilePos at = creature.Tile;

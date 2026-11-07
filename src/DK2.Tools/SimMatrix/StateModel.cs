@@ -77,6 +77,7 @@ internal sealed class StateModel
         ["_input"] = CommandsIn, ["_commands"] = CommandsIn,
         ["TremorRecoveryCompletedThisTick"] = Caches, ["TremorMoodDispatchedThisTick"] = Caches,
         ["AngryChooserRanThisTick"] = Caches, ["IdledByCombatHandlerThisTick"] = Caches,
+        ["IdledByLairHandlerThisTick"] = Caches,
         ["ReinforcementActionsPolledThisTick"] = Caches, ["WorkerPreludeProcessedThisTick"] = Caches,
         ["IdleActionsPolledThisTick"] = Caches, ["IdleActionsAdvancedThisTick"] = Caches,
         ["PossessedExcavationsPolledThisTick"] = Caches, ["PossessedExcavationsAdvancedThisTick"] = Caches,

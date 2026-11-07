@@ -57,9 +57,11 @@ Hash/save 451 changes behavior without new fields (ADR-0719).
 ## Verification and remaining scope
 
 The final controlled hash-451 replay matches 3573 ordered sites/preseeds through
-1615, versus 3426 through 1607 at 450. Next is 1616 draw 1, native
-ObjectState.cpp:2851 versus modern State.cpp:1700, preseed 3667998223, modern
-bound 100 from Warlock 437 in state 89. No following rule is inferred here.
+1615, versus 3426 through 1607 at 450. This control stopped at 1616 draw 1,
+native ObjectState.cpp:2851 versus modern State.cpp:1700, preseed 3667998223,
+modern bound 100 from Warlock 437 in state 89. The
+[next correction](lair-home-handover.md) resolves the compressed home handover;
+the waypoint precision rule is unchanged.
 
 Five regressions cover neutral, Library and fight retained waypoints with
 exact body/target positions, the captured escape-nudge direction, and an

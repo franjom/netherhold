@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -638,8 +638,7 @@ public class LairAcquisitionTests
     public void ABedlessCreatureWalksToTheLairInStateSevenAndMakesItsHomeInEighty()
     {
         // The attempt calls the room helper from idle with 80; 80 places the bed, and a
-        // healthy creature's 80 then returns failure, which is idle. The arrival and 80's
-        // decision fall in one tick here, so 80 itself is never seen between ticks.
+        // healthy creature's 80 then returns failure, which is idle on a later update.
         GameDatabase db = Db;
         WorldState world = World(db);
         var events = new ListEventSink();
@@ -649,7 +648,7 @@ public class LairAcquisitionTests
         GameSimulation sim = Walking(db, world, events);
 
         Assert.Equal(
-            [(7, Idle, LairRules.MakingAHomeState), (Idle, Idle, Idle)],
+            [(7, Idle, LairRules.MakingAHomeState), (80, Idle, Idle), (Idle, Idle, Idle)],
             StatesSeen(sim, goblin, Second * 15));
         Assert.Single(events.Events, e => e.Kind == "bed_claimed");
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
@@ -695,7 +694,9 @@ public class LairAcquisitionTests
         seen.AddRange(StatesSeen(sim, goblin, Second * 15));
 
         Assert.Equal(
-            [(7, Idle, LairRules.MakingAHomeState), (6, LairRules.MakingAHomeState, LairRules.MakingAHomeState), (Idle, LairRules.MakingAHomeState, Idle)],
+            [(7, Idle, LairRules.MakingAHomeState), (80, Idle, Idle),
+             (6, LairRules.MakingAHomeState, LairRules.MakingAHomeState),
+             (80, LairRules.MakingAHomeState, Idle), (Idle, LairRules.MakingAHomeState, Idle)],
             seen);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
@@ -717,7 +718,8 @@ public class LairAcquisitionTests
         List<(int State, int Saved, int Resume)> seen = StatesSeen(sim, goblin, Second * 15);
 
         Assert.Equal(
-            [(7, Idle, LairRules.MakingAHomeState), (LairRules.SleepingState, LairRules.GoingToBedState, Idle)],
+            [(7, Idle, LairRules.MakingAHomeState), (80, Idle, Idle),
+             (LairRules.SleepingState, LairRules.GoingToBedState, Idle)],
             seen);
         Assert.Equal(CreatureActivity.Sleeping, goblin.Activity);
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");

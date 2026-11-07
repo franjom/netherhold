@@ -292,6 +292,9 @@ inclusive at both ends, and the "sort" cannot reorder anything — are in
 
 ## 9. The six lair and sleep handlers
 
+The bounded [home arrival/facing handover](lair-home-handover.md) is built at
+hash 452; its remaining saved-room, wounded and failure adapters stay partial.
+
 The six contiguous handlers answer what states 79–84 do. Claims below are
 **STRONGLY INFERRED** from complete reads of each handler; helper names not
 already established elsewhere remain **UNKNOWN** rather than being guessed.
@@ -299,7 +302,7 @@ already established elsewhere remain **UNKNOWN** rather than being guessed.
 | state | reads | important calls and writes | exit |
 |---|---|---|---|
 | 79, looking for Lair | tile underfoot, room owner/type, `LairObjectId`, current bed and its room | accepts an existing bed in this room; otherwise finds a free tile, destroys a bed in another room, and gives the walk a seeded random offset | existing bed → 81; candidate → travel to 80; no candidate → message and idle |
-| 80, making a home | first-tick marker, current tile, room, candidate validity | stops movement on its first handler update; validates and registers the bed at the tile, or searches and walks to another candidate | placed bed → 81; candidate → 80 again; exhausted room → restart the global lair finder or end |
+| 80, making a home | age, tile-centre facing, room and candidate validity | stops at age one and waits for facing before validating/registering the bed or searching another candidate | healthy placement → idle; wounded → 81; candidate → travel to 80; exhausted room → global finder or end |
 | 81, going to bed | bed id, kind, validity, position and facing | derives a point from the bed facing, ends an active action, starts movement | travel to the point in state 82; invalid bed ends the state |
 | 82, sleeping | bed id, position and facing; creature position | turns toward the bed; when close, snaps ordinary-bed users to it and copies its facing | close and aligned → 83; too far → 81; no bed ends the state |
 | 83, sleeping | bed validity/type, `SleepNeeded`, level-scaled maximum and current health | zeros velocity; starts the bed animation; maintains bed/creature presentation flags; writes a 48-tick effect counter | stays while sleep need is non-zero or health is below maximum; ready in the Mistress bed → 84; ready in an ordinary bed → clean up and end |

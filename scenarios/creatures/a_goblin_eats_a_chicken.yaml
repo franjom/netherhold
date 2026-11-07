@@ -72,10 +72,11 @@ expect:
       steering, ADR-0709) creature 1 takes bird 21.
       Nearest-bird walks have EatingTests.
   - event: chicken_eaten
-    detail: "creature=2 type=Goblin player=3 chicken=15"
+    detail: "creature=2 type=Goblin player=3 chicken=9"
     at_tick: 720
     because: >
-      The second Goblin's bird is at hand at this seed; incidental as above.
+      At hash452 (Lair arrival/facing cadence, ADR-0720) the second Goblin's
+      bird is 9; this incidental choice is at hand at the same tick as before.
   - event: egg_laid
     at_tick: 767
     because: >

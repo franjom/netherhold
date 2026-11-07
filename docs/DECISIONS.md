@@ -16870,3 +16870,17 @@ representation, keeping the body's position and requested target at 16.16.
 **Consequences.** Hash/save 451 changes behavior without new saved fields.
 Existing retained-route coverage and other partial stop/query adapters remain
 unchanged. The controlled replay does not establish full-state or Heart parity.
+
+## ADR-0720 - preserve the home handler's arrival and facing cadence
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** creatures, navigation, rooms, simulation-core
+
+**Context.** `lair-home-handover.md` traces Q712's early idle chooser to a
+compressed Lair arrival and a missing tile-centre facing wait.
+
+**Decision.** Separate arrival from state 80's handler, retain its non-Imp
+stopped self-route, wait for facing, and defer its healthy idle handover.
+Apply the current-state movement gate to updates in or beginning in state 80.
+
+**Consequences.** Hash/save 452 changes behavior without new saved fields.
+Other Lair dispatch, retry and saved-room adapters remain partial.
+The controlled replay does not establish full-state or Heart parity.
