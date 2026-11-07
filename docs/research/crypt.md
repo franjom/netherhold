@@ -1,5 +1,5 @@
 ---
-systems: [rooms, creatures, combat, art-assets]
+systems: [rooms, creatures, combat, art-assets, audio, hud-front-end]
 ---
 # Crypt: surviving cut-room content
 
@@ -41,6 +41,40 @@ names with mip suffixes, plus sarcophagus/lid and headstone textures; its
 paired EngineTextures.dat is present. This establishes surviving named
 texture entries and mesh references, not a visual acceptance check of each image.
 Much of this art remains used by the shipped Graveyard.
+
+## Text and sound
+
+The English reference install has 92 STR tables under Data/Text/Default.
+A decoded search for crypt, sarcoph, mausol, catacomb, tolling and the word
+bell finds matches only in Text.str: id 2920 and ids 3049-3065. The latter
+block contains capture/loss/attack notices, capacity/access warnings,
+selection/zoom labels, a cost tooltip and an occupant tooltip. In particular:
+
+- 3056: "Your Crypt is still not functional!  You must enlarge it."
+- 3063: "Crypt.  Cost: %21 Gold."
+- 3065: "Crypt.  Health: %37%.  Tolling the Bell is %90 the %30."
+
+These strings exist despite the zero name/tooltip references in Rooms.kwd.
+They are interface text, not evidence of recorded Mentor dialogue.
+Speech.str has no match for the search terms. The mentor bank's sample 373,
+`grave001.mp2`, corresponds to the Graveyard's Vampire-arrival line; it is
+not a Crypt introduction ([speech mapping](mentor-speech-and-notifications.md#1-one-line-is-one-id-in-three-places)).
+
+A header/name scan of all 142 SDT banks (8959 entries) under Data/Sound
+finds no sample name containing crypt, sarcoph, mausol or catacomb, and no
+bank/map filename containing those terms or bell. Three bell-named samples
+do survive, all in Data/Sound/Sfx/Global/GraveyardHD.sdt:
+
+| Zero-based entry | Name | Nonempty payload, bytes |
+|---|---|---|
+| 1 | `bell1_pd6r.mp2` | 40961 |
+| 4 | `bell_v2.mp2` | 39009 |
+| 5 | `bell_v4.mp2` | 39289 |
+
+The bank also has two wisp samples. These are candidate shared sounds for
+restoration; a Crypt-specific use is not established. No audio was auditioned
+or exhaustively transcribed, so these searches establish no identifiable
+Crypt Mentor line, not the absence of one under an unrelated name.
 
 ## Rules present
 
