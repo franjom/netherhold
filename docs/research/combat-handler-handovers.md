@@ -69,10 +69,11 @@ Hash/save 450 changes behavior without new saved fields (ADR-0718).
 ## Verification and remaining boundary
 
 The three-step diagnostic comparison matches 3426 ordered sites/preseeds
-through 1607, versus 3180 through 1596 before these corrections. Its next
-boundary is 1608 draw 1, native State.cpp:1025 versus modern
-ResearchState.cpp:215, preseed 1284650174, modern bound 7 from creature 439 in
-state 54. That is the next investigation; no further lead is claimed here.
+through 1607, versus 3180 through 1596 before these corrections. This control
+stopped at 1608 draw 1, native State.cpp:1025 versus modern ResearchState.cpp:215,
+preseed 1284650174, modern bound 7 from creature 439 in state 54. The
+[next correction](stopped-waypoint-precision.md) traces that early shelf draw
+to stopped-waypoint precision, without changing this handler timing.
 
 The read-only timer observer preserves draw turn/seed/bound tuples and
 byte-identical actors, seeds and events from the preceding room-order control.

@@ -12,6 +12,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- PowerShell passes wildcard path arguments literally to rg; use a directory argument with `-g` for filename patterns.
+
 - Replacing a frozen diagnostic source file drops its inherited bootstrap clauses; reapply them and strip-check every clause against production bytes.
 
 - Evidence commands need explicit absent-target guards at the call site as well as exclusive creation in helpers; avoid `write_text` for new evidence or helper files.

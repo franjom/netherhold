@@ -1350,11 +1350,13 @@ public sealed partial class CreatureState
     public void StopMoving()
     {
         Body.Pos = new Steering.Fixed16Vector(PosX << 4, PosY << 4);
+        // Route points make the native 16.8 round trip; the target keeps 16.16 (0x004D5100).
         Steering.RouteWindow.Load(Body, (OwnerPlayerId == PlayerIds.Neutral
             || ResearchStep.ResolvedCategory(this) == CreatureStateCategory.Research
             || (CreatureStateMachine.HasState(this)
                 && NeedRules.ResolvedStateId(this) is Combat.CombatStates.Engaging or 200))
-            && CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId ? [Body.Pos] : [], Body.Pos, 0);
+            && CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId
+                ? [new Steering.Fixed16Vector(Body.Pos.X & ~0xFF, Body.Pos.Y & ~0xFF)] : [], Body.Pos, 0);
         Body.Vel = Steering.Fixed16Vector.Zero;
         // 0x0048ECE0 clears +0x3E6 bits 17 and 18 and 0x004D0F60 rewrites them from option word 0.
         RouteOptions = Navigation.MoveOptions.Plain;

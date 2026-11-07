@@ -16857,3 +16857,16 @@ Preserve the existing route when non-Imp handlers in states 199/200 fail.
 Other combat movement and external disengagement adapters remain partial.
 The bounded post-restore control does not establish full-state, unconditional
 replay or Heart parity.
+
+## ADR-0719 - preserve native precision in stopped waypoints
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** combat, creatures, navigation, rooms, simulation-core
+
+**Context.** `stopped-waypoint-precision.md` traces Q712's early shelf draw to
+an unquantized stopped waypoint changing a stuck-escape nudge and later crowding.
+
+**Decision.** Round retained stopped waypoints through the native 16.8 route
+representation, keeping the body's position and requested target at 16.16.
+
+**Consequences.** Hash/save 451 changes behavior without new saved fields.
+Existing retained-route coverage and other partial stop/query adapters remain
+unchanged. The controlled replay does not establish full-state or Heart parity.

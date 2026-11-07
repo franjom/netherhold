@@ -47,9 +47,10 @@ The final paired control matches 3159 ordered sites/preseeds through
 the six inherited bootstrap clauses and adds two that preserve pre-1400 Library
 walk handovers. Production has no tick gates.
 
-A small position difference persists: at 1579 native 438 is at X 26147 while
-modern is at X 26148. The native stationary step has body velocity (-2,0);
-modern has (1,0) in 16.16 units. Do not infer full pose or full-state parity
+In this control, at 1579 native 438 was at X 26147 while modern was at X 26148.
+The native stationary step had body velocity (-2,0); modern had (1,0) in 16.16
+units. The [later precision correction](stopped-waypoint-precision.md) owns
+that discrepancy. Do not infer full pose or full-state parity
 from restored draw timing. Warlock 438 states match 195/195 samples but state/XY
 match 177/195; five earlier tracked actors retain 195/195 state/XY, while 439 has
 191/195, first differing at 1591. Hero 436 first differs in state at 1593
