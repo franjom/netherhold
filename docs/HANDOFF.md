@@ -24,7 +24,7 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-Start with [combat stop routes](research/combat-stop-route.md), which
+Start with [room-selection order inputs](research/room-selection-order-inputs.md), which
 owns the current result, verification and external evidence paths. The next
 boundary is recorded in [Q712](research/open-questions.md); investigate its native
 caller and guards before proposing another rule. Build only behavior supported

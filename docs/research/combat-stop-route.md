@@ -66,9 +66,10 @@ Its next position difference is at 1596. All 23 busy-predicate samples from
 1574 through 1596 match; earlier 438/439/442 component differences persist.
 The full component receipt owns the remaining counts.
 
-Next: 1597 draw 1, native ImpUtils.cpp:484 versus modern State.cpp:1700,
-preseed 3845468488, modern 437/state 89 drawing 100. Trace the native caller and
-preceding state inputs before attributing a missing rule.
+This control stopped at 1597 draw 1, native ImpUtils.cpp:484 versus modern
+State.cpp:1700, preseed 3845468488, modern 437/state 89 drawing 100. The
+[next control](room-selection-order-inputs.md) corrects captured room-selection
+order inputs and replaces this lead; the production stop rule is unchanged.
 
 Nine regression cases cover the stationary turn/two facing ticks, preserved
 support route, both attack starts and four partial-scope controls. The exact final
