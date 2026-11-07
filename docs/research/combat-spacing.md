@@ -14,9 +14,9 @@ recovered table gives states 199 and 200 flags 3 (creature-state-table.md).
 Fighting therefore integrates without a route. The other gates exclude
 sidelined, possessed and Imp creatures before this test.
 
-Ours skipped every empty path, freezing ordinary neighbour contact after
-combat stopped its route. `CreatureMovementSystem` now includes route-less
-199/200; other route-less state dispatch remains unbuilt. No-route
+`CreatureMovementSystem` includes route-less 199/200 for neighbour contact;
+the fixture explicitly loads an empty route. [Retained combat stops](combat-stop-route.md)
+have separate scope, and other route-less state dispatch remains unbuilt. No-route
 `Follow_Path` brakes velocity without turning heading. Separation is soft,
 with the original overflow arithmetic and zero-distance exemption
 (navigation-and-steering.md section 3.2); it guarantees no rigid clearance.

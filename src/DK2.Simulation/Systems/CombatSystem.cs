@@ -271,7 +271,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         if (!FightRules.TargetPosition(world, context.Database, creature, out int x, out int y, out TilePos targetTile)) return;
         if (FightRules.InRange(_sight!, creature, x, y))
         {
-            creature.StopMoving();
+            if (creature.CreatureTypeId == CombatRules.ImpCreatureTypeId) creature.StopMoving();
             int heading = creature.Heading;
             int left = Bearing.TurnToward(ref heading, Bearing.Of(x - creature.PosX, y - creature.PosY), SimulationTiming.TurnRatePerTick(definition));
             creature.Heading = heading;
@@ -309,7 +309,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
                 return;
             }
             if (!CombatRules.IsFighting(creature)) return;
-            if (creature.FightTargetId != previous) creature.StopMoving();
+            if (creature.FightTargetId != previous && creature.CreatureTypeId == CombatRules.ImpCreatureTypeId) creature.StopMoving();
             if (!FightRules.TargetPosition(world, context.Database, creature, out x, out y, out targetTile)) return;
         }
 

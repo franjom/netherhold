@@ -16826,3 +16826,18 @@ point for the current-state mover.
 The caller-family scope is implementation coverage, not a native condition.
 Other stop/travel adapters remain partial; the controlled replay retains
 eight bootstrap clauses and does not establish full-state or Heart parity.
+
+## ADR-0717 - preserve stopped routes through combat facing
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** combat, creatures, navigation, simulation-core
+
+**Context.** `combat-stop-route.md` traces Q712's 1595 extra draw to a cast
+starting one turn early after an approach lost its stationary self-route turn.
+
+**Decision.** Retain stopped points for non-Imp resolved fight states 199/200.
+Preserve routes through their facing, reselection and action 16/17 starts
+instead of adding stops that the inspected native paths do not call.
+
+**Consequences.** Hash/save 449 changes behavior without new saved fields.
+Caller-family coverage is not a native predicate. Victory and type 1 Imp stops and
+other combat adapters remain partial. Controlled replay freezes the prior
+bootstrap and does not establish full-state, unconditional or Heart parity.

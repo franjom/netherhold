@@ -39,8 +39,9 @@ or draw is supplied. The type 1 Imp stop adapter is unchanged.
 
 Owner/category selection is implementation coverage, not a native predicate:
 the native helpers are generic. The [Library stop-route extension](library-stop-route.md)
-now also retains self-routes for resolved Research non-Imps; other caller
-families retain their stop adapters. The [current-state/speed gate](library-movement-gate.md)
+retains self-routes for resolved Research non-Imps, and the [combat extension](combat-stop-route.md)
+covers resolved fight states 199/200. Other caller families retain their stop
+adapters. The [current-state/speed gate](library-movement-gate.md)
 and remaining movement adapters keep their separate scopes.
 Hash/save 443 adds no fields; its remake regression pin is 0x5F32B8E99F7A1CD5.
 

@@ -199,7 +199,9 @@ unlink's `0xF` nibble and the victory states (ADR-0169, `combat-approach-and-vic
 step 8's Support re-acquisition and the ally arm (ADR-0170, `spell-friendly-arm.md`).
 Where it runs (ADR-0555): the handlers are `CombatSystem.States`, after the needs routine in the
 update whose scan engaged the creature, and state 199's handler raises the battle notice.
-**Not built, named:** waking a sleeper on the blow; the room notice (§2 step 4). Player event 6 (§1) is `CombatMessageRules.UpdateBattle`.
+The [non-Imp stop/facing and attack-start scope](combat-stop-route.md) is built
+at hash 449. **Not built, named:** the independent physical `+0x46F` eligibility
+gate; waking a sleeper on the blow; the room notice (§2 step 4). Player event 6 (§1) is `CombatMessageRules.UpdateBattle`.
 
 ## Confidence
 

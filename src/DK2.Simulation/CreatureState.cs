@@ -1345,13 +1345,15 @@ public sealed partial class CreatureState
 
     /// <summary>Stops the body where the creature stands, with zero velocity:
     /// <c>Creature_StopMoving</c> (<c>0x0048ECE0</c>) through <c>0x004D1070</c>, which requests a
-    /// route to itself and zeroes velocity (<c>0x004D59A0</c>). Neutral and resolved Library non-Imp
-    /// controllers retain that route; other controllers keep the empty-route adapter (library-stop-route.md).</summary>
+    /// route to itself and zeroes velocity (<c>0x004D59A0</c>). Neutral, resolved Research and fight states
+    /// 199/200 non-Imp controllers retain that route; other stop adapters remain partial (combat-stop-route.md).</summary>
     public void StopMoving()
     {
         Body.Pos = new Steering.Fixed16Vector(PosX << 4, PosY << 4);
         Steering.RouteWindow.Load(Body, (OwnerPlayerId == PlayerIds.Neutral
-            || ResearchStep.ResolvedCategory(this) == CreatureStateCategory.Research)
+            || ResearchStep.ResolvedCategory(this) == CreatureStateCategory.Research
+            || (CreatureStateMachine.HasState(this)
+                && NeedRules.ResolvedStateId(this) is Combat.CombatStates.Engaging or 200))
             && CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId ? [Body.Pos] : [], Body.Pos, 0);
         Body.Vel = Steering.Fixed16Vector.Zero;
         // 0x0048ECE0 clears +0x3E6 bits 17 and 18 and 0x004D0F60 rewrites them from option word 0.

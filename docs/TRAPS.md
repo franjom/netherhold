@@ -12,6 +12,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Replacing a frozen diagnostic source file drops its inherited bootstrap clauses; reapply them and strip-check every clause against production bytes.
+
 - Evidence commands need explicit absent-target guards at the call site as well as exclusive creation in helpers; avoid `write_text` for new evidence or helper files.
 - Wait for a counterfactual's restoration receipt before copying source overlays; its working file temporarily contains the pre-fix implementation.
 

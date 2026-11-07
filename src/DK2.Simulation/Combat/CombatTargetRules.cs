@@ -803,7 +803,9 @@ public static class CombatTargetRules
     private static void Enter(SimulationContext context, CreatureState me, CreatureDef mine, bool sameTarget, bool thing, string target)
     {
         // State 8 unlinks before reselecting. Its handler ends the route if the new target differs.
-        if (!sameTarget && !me.Approaching) me.StopMoving();
+        if (!sameTarget && !me.Approaching
+            && (me.CreatureTypeId == CombatRules.ImpCreatureTypeId
+                || NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat)) me.StopMoving();
         if (!CombatRules.IsFighting(me)) me.CombatStateEnteredTick = context.Tick.Value;
         me.Running = true; // state 199's entry sets the run speed (0x004887D0(1))
         if (CreatureStateMachine.HasState(me)

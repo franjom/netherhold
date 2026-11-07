@@ -57,9 +57,10 @@ match 177/195; five earlier tracked actors retain 195/195 state/XY, while 439 ha
 Other owned stop/travel adapters, unconditional replay and Heart outcomes
 remain open.
 
-Next: 1595 draw 1, native ObjectState.cpp:2851 versus modern Room.cpp:1563,
-preseed 2586590841, modern Hero 436 in state 90 drawing 25. Trace the native caller
-and its guards before attributing a missing rule.
+This control stopped at 1595 draw 1, native ObjectState.cpp:2851 versus modern
+Room.cpp:1563, preseed 2586590841; modern Hero 436/state 90 drew 25. The
+[next control](combat-stop-route.md) traced the early room draw to the earlier
+combat stop/facing sequence, with the cast duration unchanged.
 
 ## Verification and evidence
 

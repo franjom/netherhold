@@ -32,7 +32,7 @@ public class CombatApproachTests
         StatePlacement.As(fighter, CreatureActivity.Fighting);
         fighter.Dk2StateId = state;
         neighbour.PosX += 100;
-        fighter.StopMoving();
+        RouteWindow.Load(fighter.Body, [], fighter.Body.Pos, 0);
         int initialX = fighter.PosX;
         fighter.Heading = 321;
         var sim = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
@@ -235,7 +235,7 @@ public class CombatApproachTests
         Assert.Equal(CombatRules.NoTarget, fighter.FightTargetId);
         Assert.Equal(attacker.Id, fighter.EngagedMelee[0]);
         Assert.Equal(fighter.Id, attacker.FightTargetId);
-        Assert.False(fighter.HasRoute);
+        Assert.Equal(Fixed16.One, FollowPathRules.Progress(fighter.Body));
     }
 
     /// <summary>0x00470EC6 reads the resume word after selection can replace it with 202.</summary>

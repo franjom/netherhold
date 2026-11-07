@@ -148,7 +148,7 @@ public static class FightRules
         me.SwingTargetPlayerId = me.FightTargetPlayerId;
         // CreatureAction_Begin(17) asks the record's sound word as the action begins (0x004968BC); the clip is installed fresh.
         CreatureActionSounds.Begin(context, SystemName, me, CreatureActionTable.MeleeSwing);
-        me.StopMoving();
+        if (me.CreatureTypeId == CombatRules.ImpCreatureTypeId) me.StopMoving();
         context.Emit(SystemName, "swing", $"creature={me.Id} type={mine.Name} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
 
         if (me.SwingTargetKind == FightTargetKind.Creature)
@@ -301,7 +301,7 @@ public static class FightRules
         me.AttackCreatureHits = unchecked((ushort)(me.AttackCreatureHits + 1));   // 0x0048F3E0
         me.SpellStamps[slot] = context.Tick.Value;
         CreatureActionSounds.Begin(context, SystemName, me, CreatureActionTable.SpellCast);   // 0x004968BC, action 16
-        me.StopMoving();
+        if (me.CreatureTypeId == CombatRules.ImpCreatureTypeId) me.StopMoving();
         context.Emit(SystemName, "cast",
             $"creature={me.Id} type={mine.Name} slot={slot} spell={mine.Spells[slot].CreatureSpellId} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
 
