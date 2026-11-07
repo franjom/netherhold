@@ -102,6 +102,8 @@ receive new ordinals, and a captured room receives a new head position.
 `RoomCache.Of` reads that order; `RoomIndex.Build` retains its spatial ordering
 for other consumers. Defeat snapshots the losing keeper's list, transferring its
 eligible rooms in that order. Both fields are hashed and saved in format305.
+This owner-list ordinal does not restore the independent manager chain; see
+the [bounded manager-order control](room-manager-order.md) and Q733(d).
 
 The [captured withdrawal](decision-parity-audit.md#level4-captured-withdrawal-and-room-order-hash304)
 supplies the baseline. Evidence:

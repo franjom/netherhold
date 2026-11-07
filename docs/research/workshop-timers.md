@@ -110,11 +110,10 @@ room. Within a Workshop the order is the hated-company step (it draws nothing), 
 
 ## 6. What ours does and where it differs
 
-- `RoomTickSystem` walks every room newest first, by `RoomListPosition` (ADR-0541), and runs each room's steps
-  before the next room's (section 8), as DK2 does. A Treasury's per-turn draws (`StoreSweepSystem`, one
-  `random(100)` every turn, more per pile below 30) therefore fall where its age puts them among the Workshops'
-  (closed by the walk). **Remaining deviation (Q733d):** a rival's capture gives a room a new `RoomListPosition`, where
-  DK2's manager list does not move it, so a captured room's place in the walk differs.
+- `RoomTickSystem` runs each room's steps before the next room's (section 8).
+  Its shared owner-list ordinal does not fully mirror the independent manager
+  order; the [Q733(d) control](room-manager-order.md) records the measured
+  draw-order consequence. The general manager-order adapter remains unbuilt.
 - A level's own Workshops are constructed when a simulation starts, row by row as the map loads, before
   creatures: the four draws each, merged rooms included. UNKNOWN: whether DK2's loader makes rooms before
   or after its creatures; it sets the seed to 1 first (`0x00513870`).
@@ -195,7 +194,6 @@ Left where they are, because DK2 does not run them inside `Room_Tick`: the Hatch
 `CasinoLeverSystem` (a command), the verdict tail of `DungeonHeartSystem` (player frame), `PrisonSystem`,
 `TempleSacrificeSystem` and `GraveyardSystem` (tile and creature hooks).
 
-**Order of rooms.** `RoomListPosition` descending, then lowest tile descending (as `RoomLists.Of`). A rival's capture
-(`Room_TransferOwnership`, `0x004E5650`) never touches the manager's links, so DK2's walk order does not change; ours
-gives the room a new `RoomListPosition` for the player's list (ADR-0541). A second, construction-only ordinal would
-cost sixteen more saved bytes on every tile; not built (Q733).
+**Order of rooms.** The production sort remains `RoomListPosition` descending,
+then lowest tile descending (as `RoomLists.Of`). The [independent manager-order
+control](room-manager-order.md) owns Q733(d)'s current evidence and implementation limits.

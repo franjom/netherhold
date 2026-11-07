@@ -41,7 +41,8 @@ The mapped physical control matches1600 ordered sites/preseeds through1506.
 At1507 draw4 native next calls Treasure.cpp:132 while modern calls
 PortalChoiceRules.Pick (bound409600, preseed876633829). The fresh [Portal selector](functions/004DBF90.md) read and source-path bytes
 identify that call as Entrance.cpp:684, so the sites really differ. Eligibility
-and the cause of this early choice remain open.
+and the cause were the next investigation; the [room-manager order control](room-manager-order.md)
+reproduces the ordering boundary without changing Portal timing.
 
 Hash/save441 (ADR-0709) adds virtual Hatchery78 geometry to the ordinary steering query,
 including half-width, Obstacle/SolidObstacle flags, corner support and active
