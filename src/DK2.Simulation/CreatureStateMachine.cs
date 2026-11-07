@@ -96,6 +96,7 @@ public static class CreatureStateMachine
     /// running test's exception, action 21, has no starter, so ours skips that test.</summary>
     internal static void EndAction(CreatureState creature)
     {
+        PossessedExcavationRules.Cancel(creature);
         ReinforcementActionRules.Cancel(creature);
         TrainingStep.CancelAction(creature);
         IdleActionRules.Cancel(creature);

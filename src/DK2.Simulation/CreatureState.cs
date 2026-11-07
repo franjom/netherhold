@@ -954,6 +954,7 @@ public sealed partial class CreatureState
     public IdleActionId IdleAction;
 
     public ReinforcementActionState ReinforcementAction;
+    public PossessedExcavationState PossessedExcavation;
 
     /// <summary>The alarm a Scout carries to its room (DK2's state fields <c>+0xA7</c>, <c>+0xAF</c>,
     /// <c>+0xB1</c>): the threat's position, the strength still wanted there, and the room by its
@@ -1504,6 +1505,11 @@ public sealed partial class CreatureState
         hash.Add(ReinforcementAction.Target.X);
         hash.Add(ReinforcementAction.Target.Y);
         hash.Add(ReinforcementAction.AnimationComplete);
+        hash.Add((byte)PossessedExcavation.Kind);
+        hash.Add(PossessedExcavation.Target.X);
+        hash.Add(PossessedExcavation.Target.Y);
+        hash.Add(PossessedExcavation.AnimationComplete);
+        hash.Add(PossessedExcavation.OwnsClip);
         hash.Add(AlarmX);
         hash.Add(AlarmY);
         hash.Add(AlarmDeficit);

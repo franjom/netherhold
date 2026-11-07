@@ -46,6 +46,8 @@ public static class ActionAnimationClock
     /// count is 0, the looping action of <c>0x00496980</c>.</summary>
     public static void Begin(CreatureState creature, CreatureDef definition, byte slot, SimRandom rng)
     {
+        PossessedExcavationRules.Cancel(creature);
+        creature.PossessedExcavation = default;
         ReinforcementActionRules.Cancel(creature);
         ActionAnimationFlags flags = creature.ActionAnimationFlags;
         bool finished = (flags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) != 0

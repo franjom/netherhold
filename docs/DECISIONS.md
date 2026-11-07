@@ -16781,3 +16781,18 @@ Library states, preserving each state's own movement flag and stored route.
 restore inputs. The bounded caller-family selection is not a native predicate;
 other movement adapters remain partial. Replay retains its four bootstrap
 clauses and establishes only the documented controlled comparison.
+
+## ADR-0714 - run possessed Imp excavation through its action clock
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** imps-tile-work, creatures, simulation-core
+
+**Context.** `possessed-excavation-clock.md` traces Q712's 1561 missing draw
+to a possessed dig that applied work without starting its ordinary action.
+
+**Decision.** Keep the Imp's dig/mine action point and completion separately
+from its AI job, poll the strike in creature order, and advance its shared
+clip through stop/end. Preserve this state in hashing and snapshots.
+
+**Consequences.** Hash/save 446 adds action state. Other possessed work adapters,
+general resource-ID caching and wrapped sound requests remain partial.
+The controlled diagnostic synchronizes the native-order wrapper's new hooks
+and retains five explicit bootstrap clauses; no unconditional parity is claimed.

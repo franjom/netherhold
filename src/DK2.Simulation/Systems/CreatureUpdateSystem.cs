@@ -81,14 +81,20 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                 // The native runner follows timed effects and the worker gold block, before combat.
                 if (!actionPolled && (step is CombatSystem || (!hasCombatStep && step is not CreatureStatusSystem)))
                 {
+                    PossessedExcavationRules.Poll(context, creature);
                     IdleActionRules.Poll(context, creature);
                     actionPolled = true;
                 }
                 step.Update(context, creature);
                 if (creature.LinkWorld is null) break;
             }
-            if (!actionPolled && creature.LinkWorld is not null) IdleActionRules.Poll(context, creature);
+            if (!actionPolled && creature.LinkWorld is not null)
+            {
+                PossessedExcavationRules.Poll(context, creature);
+                IdleActionRules.Poll(context, creature);
+            }
             if (walkTriggers && creature.LinkWorld is not null) context.Triggers?.RunCreature(creature);
+            if (creature.LinkWorld is not null) PossessedExcavationRules.Advance(context, creature);
             if (creature.LinkWorld is not null) IdleActionRules.Advance(context, creature);
         }
     }

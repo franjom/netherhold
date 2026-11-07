@@ -65,12 +65,14 @@ public static partial class PossessionRules
         TerrainDef terrain = database.TerrainById(face.TerrainId);
         if (TileWorkRules.IsMinableGold(database, face))
         {
+            if (PossessedExcavationRules.TryBegin(context, me, mine, PossessedExcavationKind.Mine, facing)) return;
             BeginWork(context, me);
             world.QueueWork(new TileWorkOrder(index, TileWorkKind.MineGold, owner, me.Id, PossessedMultiplier(database, me, mine)));
             context.Emit(ActSystem, "possessed_mine", $"creature={me.Id} tile={index}");
         }
         else if (TileWorkRules.IsDiggableWall(terrain))
         {
+            if (PossessedExcavationRules.TryBegin(context, me, mine, PossessedExcavationKind.Dig, facing)) return;
             // Action 1 tests its own guard and picks the rate by the wall's owner each strike.
             BeginWork(context, me);
             bool imp = me.CreatureTypeId == CombatRules.ImpCreatureTypeId;
@@ -91,6 +93,11 @@ public static partial class PossessionRules
     /// <summary>A begun action replaces the running one: a swing or cast not yet landed, or a claim.</summary>
     private static void BeginWork(SimulationContext context, CreatureState me)
     {
+        if (me.PossessedExcavation.OwnsClip)
+        {
+            PossessedExcavationRules.Cancel(me);
+            ActionAnimationClock.Clear(me);
+        }
         me.SwingInProgress = false;
         me.ClaimActionTile = -1;
     }

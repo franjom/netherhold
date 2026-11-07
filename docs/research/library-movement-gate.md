@@ -41,9 +41,10 @@ Actors 438, 439, 441, 444, 447, 449 and 455 each match 161/161 state/XY samples 
 1400–1560. Heading matches all 161 for five; 438 first differs at 1425 and 444 at the
 1400 restore frame. These are component checks, not full-body
 or animation-clock parity.
-Next: 1561 draw 1, native RenderInfo.cpp:201 versus modern Room.cpp:1563,
-preseed 2245879489, modern Imp 444/state 26 drawing bound 25 for a store.
-Trace the native animation actor and the preceding action lifetime.
+This control stopped at 1561 draw 1, native RenderInfo.cpp:201 versus modern
+Room.cpp:1563, preseed 2245879489; modern Imp 444/state 26 drew bound 25 for a
+store. The [next control](possessed-excavation-clock.md) traced the missing
+existing animation draw to possessed Imp excavation.
 
 ## Scope and evidence
 

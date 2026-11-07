@@ -39,8 +39,9 @@ clears the wrapped and stop bits.
    - In a looping Main without the stop bit, it wraps and sets **wrapped**.
    - In a stopped Main, the overflow carries into End, or completes if the clip has no End.
 
-**Keep or install** ([0x00496700](functions/00496700.md)): an action keeps the running clip
-when the art slot matches and it has not finished a non-looping play. Otherwise it installs.
+**Keep or install:** [the starter record](functions/00496700.md) owns the native
+cache predicate. The shared clock's requested-slot reuse remains a
+[partial resource-identity adapter](possessed-excavation-clock.md#scope-and-limits).
 
 **The runner's test** ([0x00496AA0](functions/00496AA0.md)): count-dependent completion
 branches are recorded there and in [the counted idle clock](idle-action-clock.md).
@@ -94,7 +95,9 @@ states 14 and 26, for any creature whose slot 5 has timing data:
   set, it waits for complete. Otherwise it waits for the wrap.
 - **Leaving:** leaving the work state clears the clip.
 
-`WorkCadence` still times the strikes, and still times the end of every other kind's action.
+`WorkCadence` still times the AI work strikes. The additional
+[timed possessed Imp path](possessed-excavation-clock.md) has its own action
+point and completion state; other work adapters retain their documented scope.
 
 ## Evidence
 

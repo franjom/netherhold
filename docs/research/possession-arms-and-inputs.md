@@ -128,7 +128,9 @@ until it returns 0, then holds for the animation; mode 0 ends on that poll.
 The owner (2026-10-12) has seen hero Dwarves dig walls; whether a possessed non-Imp
 digs is not known. Action 5 (`0x00497670`) is claim state 20's convert (imps of any player); its ×MRT branch is reached only by a possessed imp. UNREAD:
 `0x0075AE93`, `0x004ECDB0` (run when a dug tile reaches 0), `0x00455030`, `0x004510C0`.
-Ours (ADR-0469): the press queues `TileWorkSystem` orders, which do the rate, XP,
+Ours: [timed type 1 Imp dig/mine](possessed-excavation-clock.md) runs through the
+ordinary action clock (ADR-0714). Other diggers, untimed definitions and
+claim/conversion keep the ADR-0469 adapters. `TileWorkSystem` supplies rate, XP,
 GoldMined and the purse-then-floor hand-off; an order carries ×MRT and its strike's
 flags (the non-Imp dig, also the hero tunneller's; action 6's missing XP and its
 trap/door zeroing); `ClaimActionTile` repeats the claim each tick. The gem rule is

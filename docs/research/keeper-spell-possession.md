@@ -222,7 +222,7 @@ PossessedTargetAttackTime +0x4D2 = now and PossessedTargetTag +0x4D0 = target ar
 written, and +0x427 is stamped again; followers read +0x4D0 (see
 possession-arms-and-inputs.md §4). A refused start keeps the first stamp. The
 blow is action 17's swing 0x00498E30 into 0x00494D00. No target and def+0x686 bit
-0 runs the dig/claim arm (possession-arms-and-inputs.md §3), not built.
+0 runs the dig/claim arm; its [current implementation scope](possession-arms-and-inputs.md#3-dig-and-claim--strongly-inferred-by-listing) separates the timed Imp clock from other work adapters.
 
 The pick predicate 0x00516050 — STRONGLY INFERRED. Equal owners branch at 0x00516065.
 Same owner: objects only, within reach 0x005162E0, typed through 0x005162A0:
@@ -237,7 +237,7 @@ and horizontal distance² ≤ 1.2 × the summed vtable +0x3C sizes.
 **Spell, bit 27 clear — STRONGLY INFERRED.** Slot 3 is the follower arm, not a spell.
 0x00515D50 scores friendly creatures within 7 tiles as below. Below variable 223
 (MaximumGroupNumberOfFollowers, 8), a successful 0x00461980 counts +0x488. It
-never stamps (unbuilt). Other slots: refused by 0x0048C800 (strict, so equality
+never stamps; its implementation is covered by ADR-0445. Other slots: refused by 0x0048C800 (strict, so equality
 refuses) → nothing. The spell id from 0x004943F0 is zero, or the record is
 missing → return, no stamp. The target is world +0x338, 0x00515520, friendly = flags
 bit 2; flags bit 7 replaces it with self after the scan. Bit 5 (teleport) runs
@@ -294,8 +294,8 @@ answer 0x0045AA20 has only spFighting and trap callers. An object's radius
 (vtable 0x0066D654 slot +0x3C, 0x00402AD0) is 0. The gold arm's last call,
 0x0050FB70, shows the amount as floating gold digits ([floating-cost-numbers.md](floating-cost-numbers.md)).
 
-The unbuilt arms (objects, the swing on non-creatures, dig/claim, followers) and the
-command inputs (sneak, hypnosis, sniper) are read in
+The object, excavation and follower arms and command inputs (sneak, hypnosis,
+sniper), with their implementation limits, are recorded in
 [possession-arms-and-inputs.md](possession-arms-and-inputs.md) (Q535, Q536).
 
 **Build boundary (2026-10-04).** Stage7b1 builds action25 as
@@ -320,7 +320,8 @@ action15 (`FightRules.BeginFreeAim`/`FireFreeAim`; the shot flies flat at the
 point's X/Y), shot type30's refusal and the slot stamp. The follower arm and
 +0x4D0/+0x4D2 are built (ADR-0445), and SneakingAs, hypnosis and SniperMode
 (ADR-0446); the chicken, type 14, action 17 on a Book Case, an Arch Pillar, a shot or
-a body and action 16 at a pillar (ADR-0468); dig and claim (ADR-0469). Not
+a body and action 16 at a pillar (ADR-0468); dig and claim (ADR-0469), with the
+[bounded timed Imp excavation clock](possessed-excavation-clock.md) at 446. Not
 represented: the secret-door cell bit and heights. A slot outside the creature's spells is
 refused by `SpellOf`'s bound; spell level is not tested, as in the listing.
 Approximations: an object's position is its PosX/PosY when either is non-zero,

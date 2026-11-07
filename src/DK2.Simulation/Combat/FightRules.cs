@@ -135,6 +135,7 @@ public static class FightRules
     /// target into the action, then tells the target it is attacked (§5). A zero wind-up lands now.</summary>
     public static void StartSwing(SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef mine, List<Fixed16Vector> scratch)
     {
+        PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
         me.SwingInProgress = true;
         me.ActionUntilTick = 0;
@@ -287,6 +288,7 @@ public static class FightRules
     /// <see cref="CastFires"/> says so. The ally arm passes <paramref name="tell"/> false: the ally is not told.</summary>
     public static void StartCast(SimulationContext context, CreatureState me, CreatureDef mine, int slot, bool tell = true)
     {
+        PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
         me.SwingInProgress = true;
         me.ActionUntilTick = context.Tick.Value + AnimationTimingRules.CountedHoldTicks(mine, 6, 1);
@@ -461,6 +463,7 @@ public static class FightRules
     public static void BeginPossessedAction(
         SimulationContext context, CreatureState me, byte kind, int slot, FightTargetKind targetKind, int targetId, byte targetPlayer = 0)
     {
+        PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
         me.SwingInProgress = true;
         me.ActionUntilTick = 0;
