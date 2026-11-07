@@ -69,8 +69,10 @@ The newly exposed Hero 436 HeartWalk draw at 1536 is an existing implemented sit
 fresh reads of [job 19](functions/00462490.md) and
 [room point selection](functions/004E4D90.md) map it to Room.cpp:1563. The source
 comment's old floor-test polarity is corrected without changing its picker.
-Next: 1542 draw 1, native RenderInfo.cpp:201 versus modern ObjectState.cpp:2851,
-preseed 210208807; modern Chicken 130 draws 4. Trace the native animation caller.
+This control stopped at 1542 draw 1, native RenderInfo.cpp:201 versus modern
+ObjectState.cpp:2851, preseed 210208807; modern Chicken 130 drew 4. The
+[next control](imp-mine-arrival.md) traced the delayed existing animation draw
+to the Imp job-walk handover.
 
 ## Evidence
 

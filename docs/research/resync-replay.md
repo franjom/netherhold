@@ -303,8 +303,9 @@ hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different cou
     point until ADR-0565; no steal counted here was from such a holder, and the reruns are
     byte-identical.
 - A walk to a seam that fell on the way: DK2's state 25 (`0x00465790`) finds the task entry gone and
-  goes to 10. Ours ends the walk `out_of_reach` through state 1. Both choose two ticks after arrival
-  (20 native, 15 ours), so it is only a label.
+  goes to 10. In this historical comparison ours ended the walk `out_of_reach` through state 1;
+  both chose two ticks after arrival (20 native, 15 ours). The current
+  [job-walk handover correction](imp-mine-arrival.md) is built at hash 444.
 - Mid-walk mine steals with the seam standing: native 1, ours 4 (leaving out the resync tick).
 - From 3000, ours' Imps enter 203 92 times in 3000-4000, against DK2's 22. This is a resync artefact.
   DK2's two Dwarf party members (423, 424; spawned at 2990 with 750 and 787 gold) were walking to

@@ -17,6 +17,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - With DOTALL enabled, bound merge-marker labels with `[^\n]*`; `^>>>>>>> .*` also consumes the file tail.
 - Restore Git blobs as bytes; Windows text newline translation can double CRLF already present in a blob.
+- Splice diagnostic source as bytes or explicit UTF-8; mixing UTF-8 Git text with Python's Windows locale encoding can corrupt only the inserted comments.
 
 - Capture `record.u(offset)` defaults to a dword; supply the recorded field width explicitly so padding cannot enter restore inputs.
 

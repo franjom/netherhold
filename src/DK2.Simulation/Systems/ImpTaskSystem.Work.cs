@@ -66,9 +66,16 @@ public sealed partial class ImpTaskSystem
         // State 6 resumes only when the route's progress is exactly 1.0 after the tick's move
         // (0x00470C80, 0x004D54F0): the point reached, or within a sixteenth of it, never on
         // entering the tile (imp-task-objects-and-walks.md §4, Q490, ADR-0297).
-        bool walked = creature.Dk2StateId != StateShadow.TravelToPoint
-            || Steering.FollowPathRules.Progress(creature.Body) == Steering.Fixed16.One;
-        if (walked && IsInWorkingPosition(context, creature, grid))
+        if (creature.Dk2StateId == StateShadow.TravelToPoint)
+        {
+            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return;
+            // State 6 resumes without asking the job's stance; the entry checks it next turn.
+            creature.StopMoving();
+            creature.TimerTicks = WorkCadence.FirstApplicationTicks;
+            AtWork(context, creature);
+            return;
+        }
+        if (IsInWorkingPosition(context, creature, grid))
         {
             (int entry, int work) = ImpStates.For(creature.TargetWork);
             if (creature.Dk2StateId == entry)
@@ -96,7 +103,7 @@ public sealed partial class ImpTaskSystem
             return;
         }
 
-        if (!walked || creature.HasRoute) return;
+        if (creature.HasRoute) return;
 
         // Walked the whole route and the target is still not next to it: the
         // world changed under the route. Drop the job rather than re-planning

@@ -16753,3 +16753,17 @@ Keep type 1 Imps and other owners outside this bounded correction.
 **Consequences.** Hash/save443 changes behavior without new fields. Neutral
 ownership is an implementation boundary, not a native condition. Controlled
 replay retains explicit bootstrap gates; general stop/mover coverage stays partial.
+
+## ADR-0712 - resume Imp job walks before checking their working stance
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** imps-tile-work, navigation, simulation-core
+
+**Context.** `imp-mine-arrival.md` traces Q712's 1542 delayed animation draw
+to a state 6 arrival that incorrectly requires the exhausted seam's new stance.
+
+**Decision.** At whole route progress, stop and resume the saved entry state
+without consulting job terrain or stance. Let that state validate the job on
+its following update, as the native state 6/state 25 split requires.
+
+**Consequences.** Hash/save 444 changes behavior without new saved fields or
+restore inputs. Controlled replay also freezes the prior arrival behavior
+before 1400; unconditional replay and the wider movement adapters remain partial.

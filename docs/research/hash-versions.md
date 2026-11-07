@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**444** - `0xF12CD4A1DE7E18AD`. Imp job walks resume the saved entry at whole progress before working-stance validation (ADR-0712). No new saved fields; earlier saves are refused.
+
 **443** - `0x5F32B8E99F7A1CD5`. Neutral non-Imp stops retain their self-route; idle returns use whole progress and their mover respects the current state flag and zero-speed hold (ADR-0711). No new saved fields; earlier saves are refused.
 
 **442** - `0x7CCD482E9EC67757`. Live Library neighbour terrain changes apply their holder kick immediately (ADR-0710). No new saved fields; earlier saves are refused.
