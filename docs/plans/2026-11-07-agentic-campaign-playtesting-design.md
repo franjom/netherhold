@@ -1,10 +1,11 @@
 # Agentic campaign playtesting
 
-**Date:** 2026-11-07. **Status:** proposed design; no implementation is claimed.
+**Date:** 2026-11-07. **Status:** owner-approved design; no implementation is claimed.
 **Purpose:** reduce the owner's repeated playtesting while establishing a reusable
 foundation for external agents and a future Enhanced keeper.
 **Goals:** 2 (campaign compatibility), 6 (oracle testing) and 10 (agent interface),
 with support for 5 (fidelity), 9 (determinism) and 11 (presentation modes).
+**Implementation:** [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md), awaiting review and execution-method selection.
 
 ## Relationship to existing work
 
@@ -278,8 +279,9 @@ Their future value motivates clean interfaces, not early implementation of them.
 
 ## Next design gate
 
-Review this proposed scope before producing the implementation plan for stages
-1-2. Later stages require their own concrete plans and measured acceptance.
+The owner approved this design. Review the [stages 1-2 implementation plan](2026-11-07-campaign-player-stages1-2.md)
+and select an execution method before implementation. Later stages require their
+own concrete plans and measured acceptance.
 Implementation must retain the repository's reviewer/documenter protocol and
 verify that observation, monitoring and recording do not change simulation
 outcomes for the same applied input frames. This document records requirements
