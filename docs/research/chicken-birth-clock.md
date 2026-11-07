@@ -52,7 +52,9 @@ Presentation application of the retained scale is outside this change.
 
 The final `delivered439-verification.json` verifies 716 complete ordered
 sites/preseeds through 1452. Next is 1453 draw1: native State.cpp:1025 versus
-modern Chicken ObjectState.cpp:2851, preseed3429617960 and bound4. Imp455
+modern Chicken ObjectState.cpp:2851, preseed3429617960 and bound4. The
+[neutral heading control](neutral-idle-heading.md) addresses this historical
+boundary without changing production rules. Imp455
 matches all 53 samples within that prefix. Across the entire 501-sample
 window, only 125 match; this is not later component or full-state parity.
 
