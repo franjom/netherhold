@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -1133,6 +1133,8 @@ public sealed partial class WorldState
     /// tile starts a room (<see cref="WorkshopTimerRules.Construct"/>), where no system is running. Null
     /// until a <see cref="GameSimulation"/> binds its generator; a room made before then draws nothing.</summary>
     internal SimRandom? RoomConstructionRandom { get; set; }
+    /// <summary>Live creation uses the simulation stream; restored and pre-simulation objects do not initialize it.</summary>
+    internal SimRandom? ObjectCreationRandom { get; set; }
 
     /// <summary>The Workshops the map was loaded with, one entry per room constructed, in construction
     /// order: the lowest tile of the room that survived, or -1 for a room merged into another. Set by
@@ -1243,6 +1245,9 @@ public sealed partial class WorldState
             instance.PosY = CreatureState.CentreOf(tileIndex / Width);
         }
 
+        if (objectTypeId == HatcheryRules.ChickenObjectId)
+            instance.ChickenScale = new Fp32(Fp32.One);
+        if (ObjectCreationRandom is { } random) ChickenSizeRules.Initialize(instance, random);
         _objects.Add(instance);
         instance.LinkWorld = this;
         Relink(instance);

@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -437,6 +437,8 @@ public static class HatcheryRules
         if (world.TileAtIndex(tile).OwnerPlayerId == owner.Value
             && database.RoomByTerrain(world.TileAtIndex(tile).TerrainId)?.TypeId == RoomTypeId.Hatchery)
             chicken.ProcessState = (byte)ChickenProcess.Hatchery;
+        else if (world.ObjectCreationRandom is { } random)
+            chicken.Heading = random.NextInt(0x800);
         return chicken;
     }
 

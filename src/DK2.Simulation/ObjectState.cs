@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -159,6 +159,9 @@ public sealed partial class ObjectState
     /// <summary>Egg tumbling angles +0x64/+0x66/+0x68, 2048 units per turn.</summary>
     public int DrawPitch, DrawYaw, DrawRoll;
 
+    /// <summary>Chicken initialization writes both native scale words +0x48/+0x4C equally.</summary>
+    public Fp32 ChickenScale;
+
     /// <summary>Chicken union +0x14A/+0x14E/+0x152: free-range eligibility, reaction countdown and fear marker.</summary>
     public bool ChickenCanEscape, ChickenScared;
     public int HatcheryRoomAnchorTileIndex = -1;
@@ -235,5 +238,6 @@ public sealed partial class ObjectState
         hash.Add(Wear);
         hash.Add(RollSignX);
         hash.Add(RollSignY);
+        hash.Add(ChickenScale.Raw);
     }
 }

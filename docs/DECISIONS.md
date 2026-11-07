@@ -16678,3 +16678,20 @@ Bit22 keeps that tail in its live branch despite a stamped killer.
 preserves them. The bounded probe declares captured1400 clock input; no
 later-capture deadline or fitted value is used. Broader per-player service interleaving and
 other bit22 consumers retain their existing limits.
+
+## ADR-0707 - keep the Egg art clock and Chicken birth draws
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** rooms, simulation-core
+
+**Context.** `chicken-birth-clock.md` traces the next Q712 mismatch to a
+reset animation stamp and missing world draws during Chicken initialization.
+
+**Decision.** Preserve the last art-install stamp when a launched Egg stops;
+poll that animation clock rather than the new process age. Live Chicken
+creation draws its size, retains it and then draws a hatch heading outside
+its owner's Hatchery. Initialization uses the simulation's world generator.
+
+**Consequences.** Hash/save439 adds the retained Chicken scale. Before a
+simulation binds the world, synthetic/map objects retain the existing startup
+scope. Snapshot loading restores state without creation draws. Broader object
+initialization, hatch destination rejection and presentation scale application
+remain separate from this bounded fix.

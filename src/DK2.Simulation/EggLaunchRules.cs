@@ -49,10 +49,10 @@ public static class EggLaunchRules
 
         if (Math.Abs(egg.PhysicalVelocityX) + Math.Abs(egg.PhysicalVelocityY) <= 0x1000)
         {
+            // State 24 keeps the installed art when it stops; the art clock predates state 32.
             egg.ProcessState = 32;
             egg.ProcessAgeTicks = 0;
             egg.ProcessCount = 0;
-            egg.ProcessDeadline = context.Tick.Value;
             Move(context, egg, default);
             return;
         }

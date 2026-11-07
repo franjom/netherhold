@@ -62,7 +62,7 @@ internal sealed class StateModel
         ["StructureCache"] = Caches, ["RoomSweepCache"] = Caches, ["_copyIndex"] = Caches, ["_staleSecretDoorKeys"] = Caches,
         ["TremorSlots"] = World, ["GameMode"] = World, ["CurrentTick"] = World, ["FogOfWarEnabled"] = World,
         ["Width"] = World, ["Height"] = World,
-        ["_creatureIdentityRandom"] = Rng, ["RoomConstructionRandom"] = Rng,
+        ["_creatureIdentityRandom"] = Rng, ["RoomConstructionRandom"] = Rng, ["ObjectCreationRandom"] = Rng,
         ["RoomTilesChanged"] = EventsOut, ["HeartHealthChanged"] = EventsOut, ["GameEnded"] = EventsOut,
         ["ObjectMade"] = EventsOut, ["ObjectRemoving"] = EventsOut,
     };

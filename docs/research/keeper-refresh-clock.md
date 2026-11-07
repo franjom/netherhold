@@ -51,7 +51,8 @@ it and the frozen437 reference retain516 ordered draws through1437 plus14
 matching draws in1438. Fullproduction438 runs its clock from startup, restores
 the captured1400 state and matches590 ordered sites/preseeds through1442.
 Its next difference is1443 draw1, native Object.cpp:63 versus Chicken roaming
-at ObjectState.cpp:2851. The state/reader alone does not extend the prefix.
+at ObjectState.cpp:2851. The [Chicken birth correction at 439](chicken-birth-clock.md)
+addresses this historical boundary. The state/reader alone does not extend the prefix.
 These controls establish draw continuation, not full-state or Heart parity.
 
 External evidence is add-only under

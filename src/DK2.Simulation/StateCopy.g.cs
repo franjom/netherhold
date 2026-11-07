@@ -349,6 +349,7 @@ namespace DK2.Simulation
             DrawPitch = other.DrawPitch;
             DrawYaw = other.DrawYaw;
             DrawRoll = other.DrawRoll;
+            ChickenScale = other.ChickenScale;
             ChickenCanEscape = other.ChickenCanEscape;
             ChickenScared = other.ChickenScared;
             HatcheryRoomAnchorTileIndex = other.HatcheryRoomAnchorTileIndex;

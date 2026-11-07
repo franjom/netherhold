@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 438;
+    private const int FormatVersion = 439;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -730,6 +730,7 @@ public static class WorldSnapshot
             w.Write(o.Wear);
             w.Write(o.RollSignX);
             w.Write(o.RollSignY);
+            w.Write(o.ChickenScale.Raw);
         }
 
         w.Write(world.ActionPoints.Count);
@@ -1491,7 +1492,7 @@ public static class WorldSnapshot
         world.NextShotId = nextShotId;
 
         int nextObjectId = r.ReadInt32();
-        int objectCount = SaveReader.Count(r, "objectCount", 155);
+        int objectCount = SaveReader.Count(r, "objectCount", 159);
         for (int i = 0; i < objectCount; i++)
         {
             var loaded = new ObjectState
@@ -1545,6 +1546,7 @@ public static class WorldSnapshot
                 Wear = r.ReadInt32(),
                 RollSignX = r.ReadSByte(),
                 RollSignY = r.ReadSByte(),
+                ChickenScale = new Fp32(r.ReadInt32()),
             };
             world.RawObjects.Add(loaded);
             world.AttachLoaded(loaded);

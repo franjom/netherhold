@@ -100,8 +100,8 @@ destination, velocity, resume process, flags and count are hashed and saved;
 crossing a tile updates its occupancy link. ADR-0700/hash-save 432 adds the [virtual Hatchery pillar
 obstacle check](q712-early-draw-continuation.md#built-at432-adr-0700) to the owned-room selector.
 Hatching on an owned Hatchery starts
-process 6, matching `0x004A1CF0`'s owned-room branch. Egg animation timing stays
-the existing two-second approximation. Object initialization retains Chicken
+process 6, matching `0x004A1CF0`'s owned-room branch. The [Egg art clock and birth draws](chicken-birth-clock.md)
+are built at 439; broader hatch-destination checks remain partial. Object initialization retains Chicken
 `+0x14A = 1`. Loose process 10 is built (ADR-0647) and so is free-range decay (§5); Prison process 3 remains unbuilt.
 
 Hand drop selects falling process 1 (`0x004BC710`). On landing without a
@@ -119,8 +119,8 @@ the newest linked creature on each tile. The original rejects workers and
 creatures above their ground-height word, then attempts a half-tile escape
 with doubled speed and resume 8. Our absent ground-height word is approximated
 by supported flight and `PosZ <= 0x1000`; complete vertical physics remains
-unbuilt. Audio's global footstep alternation, randomized object scale and the
-Chicken KMF Walk/Eat/Scared playback and render interpolation are built;
+unbuilt. Audio's global footstep alternation, the existing presentation size
+approximation and Chicken KMF Walk/Eat/Scared playback and render interpolation are built;
 see kmf-animation-playback.md §7.
 
 ## 5. Persistent room membership — STRONGLY INFERRED

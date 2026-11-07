@@ -48,13 +48,13 @@ public class HatcheryObjectAnimationTests
         var simulation = new GameSimulation(database, world, 7, [new HatcherySystem()]);
         var events = new ListEventSink();
         simulation.ObserveWith(events);
-        for (int tick = 0; tick < 6; tick++) simulation.Tick();
+        for (int tick = 0; tick < 7; tick++) simulation.Tick();
         Assert.Equal((byte)0, egg.ProcessCount);
         Assert.Contains(egg, world.Objects);
         simulation.Tick();
         Assert.Equal((byte)1, egg.ProcessCount);
         Assert.Contains(egg, world.Objects);
-        Assert.Equal(new GameTick(6).Value, egg.ProcessDeadline);
+        Assert.Equal(new GameTick(7).Value, egg.ProcessDeadline);
         simulation.Tick();
         Assert.DoesNotContain(egg, world.Objects);
         Assert.Contains(world.Objects, thing => thing.ObjectTypeId == HatcheryRules.ChickenObjectId && thing.TileIndex == 40);

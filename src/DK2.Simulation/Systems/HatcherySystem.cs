@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -82,7 +82,7 @@ public sealed class HatcherySystem : ISimulationSystem
             }
             if ((thing.PhysicalVelocityX != 0 || thing.PhysicalVelocityY != 0 || thing.PhysicalVelocityZ != 0)
                 && !EggLaunchRules.Move(context, thing, default)) return;
-            if (thing.ProcessAgeTicks < AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(0))) return;
+            if (context.Tick.Value - thing.ProcessDeadline < AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(0))) return;
             if (definition.ArtSlot(5).ResourceType == 0) return;
             thing.ProcessCount = 1;
             thing.ProcessDeadline = context.Tick.Value;

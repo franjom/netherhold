@@ -142,7 +142,8 @@ divided by 4096, as (`+4`, `+8`, `+4`) — 4096 is 1.0. Which world axis gets `+
   GoldHeld < 5000, else `0x11C4` (4548) — a scale of 0.5 at zero rising to 1.11 at 5000,
   continuous at the cap — and zeroes the ramp steps `+0x14/+0x18`.
 - **Chicken:** `Object_Init` sets both to `0x1000 + random(0x800)` — 1.0 to 1.5 — before
-  installing its type-6 art, which does not reset them.
+  installing its type-6 art, which does not reset them. The saved simulation birth
+  scale is [built at 439](chicken-birth-clock.md); presentation does not yet consume it.
 - `0x004B3B40` (every animation tick) ramps `+4`/`+8` toward `+0xC`/`+0x10` by the steps
   `+0x14`/`+0x18`; who sets a ramp for an object: not traced.
 - The definition's Width/Height (`+0xF8`/`+0xFA`) are **not** read by the draw path above.
@@ -267,7 +268,8 @@ is restored without this drag. `0x004B5020` clamps below-floor position and
 clears an Object's vertical velocity; positions above 12288 become 8192.
 
 **Built:** state 29's Coop clip, state 32's two Egg arts and one-turn hatch-end
-lifetime, state 24's hidden wait, launch and tumbling, state 18's recoil and
+lifetime, with [art-stamp retention and birth draws at 439](chicken-birth-clock.md);
+state 24's hidden wait, launch and tumbling, state 18's recoil and
 decaying heading, Casino setting clips with their final poses, and Call to Arms
 activation, recall and removal. Integer
 animation metadata comes from the nine file resources. Launch collisions use
