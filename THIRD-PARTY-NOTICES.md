@@ -20,6 +20,9 @@ comments do.
   algorithm from GLKeeper's `src/DK2WADArchive.cpp`.
 
 ## OpenKeeper
+- **Imp scheduling review (facts only, no code copied):** PR 1021 and its
+  prerequisite PR 933 were consulted; see the
+  [comparison and pinned revision](docs/research/openkeeper-1021-review.md).
 - **Heart death data (facts only):** object effect-word order and Heart construction
   references at `f45c0219be5af51c6694a28a32e52568e17cfa0d` were consulted;
   the death trigger was recovered independently from DKII.EXE. No code copied.

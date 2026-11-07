@@ -24,6 +24,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Splice diagnostic source as bytes or explicit UTF-8; mixing UTF-8 Git text with Python's Windows locale encoding can corrupt only the inserted comments.
 
 - Capture `record.u(offset)` defaults to a dword; supply the recorded field width explicitly so padding cannot enter restore inputs.
+- Seed packed action completion/count fields as bytes: a dword at creature +0x3AD also overwrites the work rate at +0x3AF.
 
 - The archived dk2seed default map filter is 40x50; Level 5 is 51x55. Read the selected capture dimensions before launching a seeded native control.
 

@@ -69,7 +69,8 @@ point, never the tile:
   (`tile-work-efficiency.md`), a floor;
 - `0x004E5300` applies it with the imp's owner. Action 10 is a mode-3 action: the runner
   (`0x00496AA0`) calls the handler once per action and reads its 0 as "struck", holding the action
-  until the animation ends (`mining-cadence.md` §5). The captures show one application a tick.
+  until its animation condition is met. First-cycle and retained-cycle timing:
+  [claim action clocks](imp-claim-action-clock.md).
 
 **`0x006F257C` is variable 136, `ConvertNeutralRoomHealth`, not `Unknown_17`.** The per-second
 handler `Variables_SetPerSecond` (`0x0051CB80`) divides by variable 19 and routes id 136 to
