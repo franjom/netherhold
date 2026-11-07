@@ -56,8 +56,10 @@ two observation-only differences from main and extends Tools body telemetry.
 | Prior441, deferred Library kick | 1851 through1519 | 1520 draw1: Library1068 versus Room1563 |
 | Live442, immediate Library kick | 2019 through1531 | 1532 draw1: State1025 versus Treasure335 |
 
-The next boundary has preseed2466167685. Modern455/state29 deposits gold,
-bound2048. Trace the native State.cpp:1025 caller before changing deposit rules.
+This control stopped at 1532 draw 1 with preseed 2466167685, before modern
+455/state29's bound 2048 deposit draw. The [next control](stop-self-route.md)
+traced the omission to the neutral stop/facing/arrival path without changing
+deposit rules.
 The matched draw prefix does not establish complete state, playback or Heart
 outcomes. Actors439,441,449 and455 each match132/132 state/XY samples1400–1531;
 438 matches120/132, first XY difference1520 despite matching state53. Neutral447

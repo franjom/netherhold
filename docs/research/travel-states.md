@@ -173,7 +173,7 @@ that activity's hook; a walk between categories runs none.
 |---|---|---|---|---|
 | entered by | `0x00471890` only | `0x00471A70` only | `0x00471D10` only | **nothing found** (§7) |
 | destination | point at `+0xE3/+0xE7` | room id `+0xE3`, byte `+0xE5`, point `+0xE6/+0xEA` | target tag, range, refresh countdown | as 6 |
-| arrival | path finished | path finished, then the tile's room must match `+0xE3` (word) and `+0xE5` (`room+0x18`) | reach + sight, or 6 | 6's |
+| arrival | whole route progress (below) | whole route progress, then the tile's room must match `+0xE3` (word) and `+0xE5` (`room+0x18`) | reach + sight, or 6 | 6's |
 | on a room mismatch | — | return 0 → idle; `+0xDF` **not** reset | — | — |
 | extra per tick | creature type 46 (Jack) loses 1 health (`0x004B2CE0(-1, owner, 0)`); holds, returning 1, while the current action's record `+20` byte is 4 | zeroes the body's velocity at arrival (`0x004D59A0(x, y, 0, 0)`) | combat, rerouting every 10 | `+0xEF` countdown; at zero stop and return 0 |
 
@@ -187,7 +187,10 @@ resumes it. State 9 is 6 with a timeout.
 **Both 6 and 7 end at a route progress of exactly 1.0** (`Body_PathProgress`, the last point's
 distance in sixteenths of a tile). 6 calls `Creature_StopMoving`; 7 zeroes the velocity and calls it
 only when the tile's room matches, else returns 0 with the route kept. 8 makes its route refresh first.
-Built for non-imps as `TravelArrivalSystem` (6, 7, 9) and in `ApproachRules` (8) (ADR-0632, Q724).
+The progress handover is built for non-Imps in `TravelArrivalSystem` (6, 7, 9)
+and `ApproachRules` (8) (ADR-0632, Q724), with the [neutral idle-return
+extension](stop-self-route.md) at hash 443. The kind-4 action hold remains outside
+the shared non-Imp adapter; this does not complete state 6 or generic stop behavior.
 
 **Both movers share a near-destination flag.** When the squared distance
 `(dx²>>12) + (dy²>>12)` is below `0x200` (about 0.35 tile) they clear `creature+0xF1`

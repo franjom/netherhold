@@ -230,8 +230,8 @@ public static class HeroJobRules
     /// <summary>Job 19's walk (<c>0x004624F0</c>–<c>0x00462544</c>): the room on the player's
     /// <c>DungeonHeartPosition</c> tile, none failing, then a point in it from
     /// <c>0x004E4D90(room, &amp;point, 0, 0)</c>. That draws a random tile along the room's ring and
-    /// steps on while its cell test <c>0x00454110</c> rejects; the test accepts every tile of a
-    /// heart (type 5), so the point is the random tile. Ours walks the room's slab chain
+    /// skips cells accepted by the floor-slot test <c>0x00454110</c>. Heart cells return false,
+    /// so the initial random tile is kept. Ours walks the room's slab chain
     /// (<see cref="SlabChain"/>) and accepts any room's tile.</summary>
     private static bool HeartWalk(SimulationContext context, CreatureState creature, PlayerId player, Navigation.MoveOptions options)
     {

@@ -93,6 +93,12 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             creature.TremorRoutePaused = false;
         }
 
+        // Native tests the current state's bit after its handler. Neutral stops retain a self-route;
+        // it must not steer until a movement-enabled state runs (stop-self-route.md).
+        if (creature.OwnerPlayerId == PlayerIds.Neutral && creature.CreatureTypeId != ImpTypeId
+            && (creature.Body.MaxSpeed == 0 || !CreatureStateMachine.HasState(creature)
+                || (CreatureStateTable.Get(creature.Dk2StateId).Flags & CreatureStateFlags.Unread0) == 0)) return;
+
         // Native fight states 199/200 have the movement bit even without a route: contact
         // steering and braking still run (combat-spacing.md).
         // Other states retain the route gate until their movement dispatch is mirrored. The

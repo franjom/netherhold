@@ -4829,7 +4829,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Context.** Both hero walks to a heart aimed at the first heart tile in map order. `0x004E4D90` and its cell test `0x00454110` are now read.
 
 **Decision.**
-1. **Job 19** (`0x004624F0`–`0x00462544`). It takes the room on the target player's `DungeonHeartPosition` tile (`player+0xB43`), failing if the tile has no room. The point comes from `0x004E4D90(room, &point, 0, 0)`. For a heart that is a random tile of the room, because the cell test accepts every type-5 tile. Options stay 1.
+1. **Job 19** (`0x004624F0`–`0x00462544`). It takes the room on the target player's `DungeonHeartPosition` tile (`player+0xB43`), failing if the tile has no room. The point comes from `0x004E4D90(room, &point, 0, 0)`. The room-point helper's [current predicate polarity](research/hero-party-walk.md#6-the-point-in-the-heart-read-2026-09-25-adr-0221) governs the choice; the type-5 arm returns false. Options stay 1.
 2. **State 177's fallback** (`0x004625F7`) walks to the centre of the `DungeonHeartPosition` tile itself, options 0.
 3. **`HeartSites.PositionOf`** gives ours for that position: the centre of the bounding box of the heart's tiles, as fear and combat already derive it.
 
@@ -16738,3 +16738,18 @@ Try holders in claim order and stop after the first accepted kick.
 **Consequences.** Hash/save442 changes timing without new fields or restore
 inputs. Detached setup and other room types retain their deferred marks;
 general notification, terrain-call coverage and movement parity remain partial.
+
+## ADR-0711 - retain neutral stop routes through their stationary facing step
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** creatures, navigation, simulation-core
+
+**Context.** `stop-self-route.md` traces a missing Q712 idle draw to the omitted
+one-point route that DK2's stop helper leaves at the creature's own position.
+
+**Decision.** Retain that route for neutral non-Imps, hand idle returns over at
+whole progress, and use their current state's movement flag and zero-speed
+hold after the handler.
+Keep type 1 Imps and other owners outside this bounded correction.
+
+**Consequences.** Hash/save443 changes behavior without new fields. Neutral
+ownership is an implementation boundary, not a native condition. Controlled
+replay retains explicit bootstrap gates; general stop/mover coverage stays partial.

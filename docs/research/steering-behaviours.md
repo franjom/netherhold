@@ -321,7 +321,7 @@ Flying's worker bits, five animation exceptions and mode-dependent bit precede
 `CanFly` outside states 217–218. Ours supports the trap subset: workers grounded,
 otherwise `CanFly` outside 217–218; other flight arms remain deviations.
 Lava's adjacent non-flying 150 % arm remains unbuilt. The owner saw slowdown; no live ratio was timed.
-Ours: walk/run (`MaxSpeedOf`), timed modifiers and `WaterSpeedRules`; shuffle/state gate and [injury speed/recharge branches](functions/00488930.md) remain unbuilt. The body syncs to the entity in `Advance` and keeps its 16.16 position after a committed step; turn start re-syncs only a body whose entity moved (an adapter, Q736).
+Ours: walk/run (`MaxSpeedOf`), timed modifiers and `WaterSpeedRules`; shuffle and [injury speed/recharge branches](functions/00488930.md) remain unbuilt. The [current-state mover gate](stop-self-route.md#bounded-implementation) is mirrored for neutral non-Imps; other controllers retain their adapters. The body syncs to the entity in `Advance` and keeps its 16.16 position after a committed step; turn start re-syncs only a body whose entity moved (an adapter, Q736).
 
 ### 7.6 The state's option word (`0x004D0F60`)
 

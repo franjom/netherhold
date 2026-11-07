@@ -88,10 +88,10 @@ At hash 269, `CreatureState.StopMoving` cleared the route but retained velocity;
 velocity. That trace still held velocity `(2134,-7286)` after its turn-19 stop,
 versus native zero.
 
-Hash 280 (ADR-0512) corrects the idle and store arrivals through a scoped stop
-([imp-idle-arrival.md](imp-idle-arrival.md)). The shared
-`CreatureState.StopMoving` still retains velocity for its other callers; mapping
-those callers onto the native stop's call sites is unverified, so it is not changed.
+Hash 280 (ADR-0512) corrected the idle and store arrivals through a scoped stop
+([imp-idle-arrival.md](imp-idle-arrival.md)); the shared helper was left unchanged
+in that comparison. Current stop-route scope is recorded in
+[neutral stop self-route](stop-self-route.md).
 
 ## Unity observation
 

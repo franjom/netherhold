@@ -83,7 +83,8 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // A walk resuming 1 is state 1's own, back to a fight (ADR-0225): the arrival is idle.
         if (StateShadow.IsTravelling(creature) && creature.UtilityNewState == CreatureStateMachine.Idle)
         {
-            if (!creature.HasRoute)
+            if (!creature.HasRoute || (creature.OwnerPlayerId == PlayerIds.Neutral
+                && Steering.FollowPathRules.Progress(creature.Body) == Steering.Fixed16.One))
             {
                 creature.StopMoving();
                 StateShadow.Arrive(context, SystemName, creature);
