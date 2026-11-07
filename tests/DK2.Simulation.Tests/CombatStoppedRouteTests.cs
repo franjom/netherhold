@@ -16,6 +16,24 @@ public sealed class CombatStoppedRouteTests
     private const int ApproachState = 8, FightState = 199;
 
     [Fact]
+    public void FailedReacquisitionPreservesTheFinishedPointAndFacing()
+    {
+        var (db, world, caster, target) = Setup();
+        target.OwnerPlayerId = caster.OwnerPlayerId;
+        caster.FightTargetKind = FightTargetKind.None;
+        caster.FightTargetId = CombatRules.NoTarget;
+        Load(caster, finished: true);
+        caster.Heading = 1612;
+
+        new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]).Tick();
+
+        Assert.Equal(CreatureStateMachine.Idle, caster.Dk2StateId);
+        Assert.Equal(1612, caster.Heading);
+        Assert.Equal(1, caster.Body.PathTotalCount);
+        Assert.True(caster.Body.PathFinished);
+    }
+
+    [Fact]
     public void AnApproachStopTurnsOnceBeforeTwoFacingTicksCanStartTheCast()
     {
         var (db, world, caster, _) = Setup();

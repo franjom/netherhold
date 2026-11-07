@@ -52,8 +52,8 @@ public sealed partial class ImpTaskSystem
             return true;
         }
 
-        // State 1 sends a worker straight to 10 (0x004773D0). Ours runs 10's selection from 1 in the
-        // same turn, as the rest of the imp's states always have.
+        // State 1 requests 10 (0x004773D0); selection runs on its own next update.
+        // Neither idle handover waits on the previous work countdown.
         switch (creature.Dk2StateId)
         {
             case ImpStates.AfterDrop:

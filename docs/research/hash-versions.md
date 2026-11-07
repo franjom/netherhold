@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**450** - `0x5BB21DAEC8FC7759`. Imp withdrawal arrives after movement; idle/task selection ignore the prior work countdown; failed non-Imp fight handlers preserve their route (ADR-0718). No new saved fields; earlier saves are refused.
+
 **449** - `0x3F5FFE08DBE3D082`. Resolved fight states 199/200 retain non-Imp stopped self-routes; combat facing, reselection and action 16/17 starts preserve those routes (ADR-0717). Other caller adapters remain partial. No new saved fields; earlier saves are refused.
 
 **448** - `0xF2FEC6511B348EED`. Resolved Research non-Imps retain stopped self-routes; Library entry and internal walks resume at whole progress (ADR-0716). No new saved fields; earlier saves are refused.

@@ -11,11 +11,13 @@ captured Lair slab chain corrects Warlock 437's bed destination. Supplying
 player 3's captured room-list order corrects Imp 442's withdrawal destination.
 These are diagnostic restore corrections; production simulation code is unchanged.
 
-The ordered-site/preseed prefix remains 3180 draws through 1596. With both
-inputs, the next boundary is 1597 draw 1: native ImpUtils.cpp:484 versus modern
+This control matched 3180 ordered sites/preseeds through 1596. With both
+inputs, it stopped at 1597 draw 1: native ImpUtils.cpp:484 versus modern
 Chicken ObjectState.cpp:2851, preseed 3845468488, modern bound 4. The old extra
-State.cpp:1700 draw from Warlock 437 is gone. This does not establish full-state,
-unconditional replay or Heart-outcome parity.
+State.cpp:1700 draw from Warlock 437 was gone. The
+[next implementation](combat-handler-handovers.md) resolves the handler timing
+lead below. Neither control establishes full-state, unconditional replay or
+Heart-outcome parity.
 
 ## Lair slab chain
 
@@ -61,21 +63,20 @@ NextRoomListPosition stays 15. The existing new-room insertion then supplies
 the later Bridge's order. No 1576 room list or destination is restored. Imp
 442's 1576 route target becomes native (15.5,30.5).
 
-## Remaining arrival lead
+## Arrival lead at hash 449
 
 CONFIRMED: Imp 442 reaches native position (63488,124928) at 1594. Native is
 already in arrival state 202; modern is still travelling, with PathFinished
 true and PathLastProgress 65536. Modern enters 202 at 1595. Native proceeds
 through 1 at 1595, 10 at 1596 and a reinforcement walk at 1597. Modern remains
-in 1 at 1597. Attribution of the missing native ring draw still needs checking.
+in 1 at 1597.
 
 STRONGLY INFERRED from a whole reread of
 [state 6](functions/00470C80.md): it integrates an Imp before its whole-progress
-arrival test and resumes the saved state in that same call. Modern's combat
-withdrawal handler currently runs before CreatureMovementSystem, while the
-ordinary worker arrival handlers run after it. The next bounded task is to
-test that phase difference and the following idle-to-task handover. Neither
-arrival timing nor worker selection is corrected by these order inputs.
+arrival test and resumes the saved state in that same call. At hash 449, the
+modern combat withdrawal handler ran before CreatureMovementSystem, while the
+ordinary worker arrival handlers ran after it. These order inputs did not
+correct arrival timing or the idle-to-task handover.
 
 ## Verification and evidence
 

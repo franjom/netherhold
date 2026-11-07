@@ -381,7 +381,11 @@ public sealed class CombatSystem : ICreatureUpdateStep
 
     private static void LetGo(SimulationContext context, CreatureState creature, string reason)
     {
-        CombatRules.Disengage(context.Hooks, creature);
+        if (creature.CreatureTypeId != CombatRules.ImpCreatureTypeId
+            && creature.Dk2StateId is CombatStates.Engaging or 200)
+            CombatStates.Idle(context.Hooks, creature);
+        else
+            CombatRules.Disengage(context.Hooks, creature);
         context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason={reason}");
     }
 }

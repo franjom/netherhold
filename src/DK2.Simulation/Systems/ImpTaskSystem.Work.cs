@@ -16,9 +16,6 @@ public sealed partial class ImpTaskSystem
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
         if (creature.Dk2StateId == CreatureStateMachine.Idle) creature.Fleeing = false;
-        creature.TimerTicks--;
-        if (creature.TimerTicks > 0) return;
-
         // State 1 hands a worker to 10 (0x004773D0), and 10 looks on its own next update: both
         // captures show one tick in 1 and one in 10 before every walk or rest (mining-cadence.md
         // §6). A worker whose job ended is already in 10 and looks at once.

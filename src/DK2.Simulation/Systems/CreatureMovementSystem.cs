@@ -123,6 +123,15 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         }
 
         Advance(context, context.Navigation, creature, context.Database.CreatureById(creature.CreatureTypeId));
+        // State 6 integrates an Imp before its arrival test (0x00470C80).
+        // The withdrawal handler ran before this step, so finish its walk here.
+        if (creature.CreatureTypeId == ImpTypeId
+            && creature.Dk2StateId == StateShadow.TravelToPoint && creature.UtilityNewState == Combat.CombatStates.Withdrawn
+            && FollowPathRules.Progress(creature.Body) == Fixed16.One)
+        {
+            creature.StopMoving();
+            Combat.FearRules.Withdrawing(context, creature);
+        }
     }
 
     /// <summary>The body on its creature, with the definition's limits and this tick's pace.</summary>

@@ -85,8 +85,6 @@ public class ImpWanderTests
         imp.TimerTicks = 2;
         var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem()]);
         sim.Tick();
-        Assert.True(imp.WorkerIdle);
-        sim.Tick();
         Assert.Equal(ImpStates.Resting, imp.Dk2StateId);
         Assert.False(imp.WorkerIdle);
         sim.Tick();

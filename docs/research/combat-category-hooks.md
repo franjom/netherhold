@@ -140,7 +140,9 @@ its function record, re-read 2026-10-02). The
 cannot-cast arm does the same (`combat-spells.md` §9). Ours went through state 1 and back on
 all three, which with the hooks built would release every attacker and end the cast on each
 re-selection. Since ADR-0319 ours unlinks in place, and only a failed re-selection ends the
-state. The alarm and the withdraw enter 199 before they route (`combat-alarm.md` §2); ours
+state. The [bounded non-Imp 199/200 failure handover](combat-handler-handovers.md)
+preserves the route through idle; other Disengage callers retain their adapters.
+The alarm and the withdraw enter 199 before they route (`combat-alarm.md` §2); ours
 probes the route first, so it routes again after the enter hook's stop.
 
 ## 7. Built (ADR-0319)

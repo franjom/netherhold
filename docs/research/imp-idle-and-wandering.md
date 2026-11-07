@@ -184,7 +184,7 @@ own-spot fallback. Read while building:
 - **`0x00453600`** rejects a tile holding an object flagged Obstacle (bit 14).
 
 Worker state12 uses its existing [counted clip clock](animation-clock.md);
-ADR-0701 separately adds [non-worker idle43/44](idle-action-clock.md). The throttle remains unbuilt.
+ADR-0701 separately adds [non-worker idle43/44](idle-action-clock.md).
 
 ## Stored idle flag and remaining limits
 
@@ -201,9 +201,9 @@ worker-drop path also clears it alongside its fresh-drop ticket. Picking up,
 wandering and arriving do not infer a new value from activity. Tests exercise
 these boundaries and hash sensitivity/save continuation (`ImpWanderTests`).
 
-The original per-player selection throttle remains unbuilt. The existing modern
-timer gate still controls when task selection runs; neutral selection keeps the
-flag, matching the original early-exit ordering. The drop path still compresses
+The [idle-to-selection handover](combat-handler-handovers.md) runs on separate
+turns without a work-countdown gate. Neutral selection keeps the flag, matching
+the original early-exit ordering. The drop path still compresses
 original landing/state-11 timing. State 11's additional byte at worker-state
 `+0xA2` is unrepresented; this is not a claim that the entire handler is complete.
 The worker clock's evidence and limits are in [animation-clock.md](animation-clock.md).

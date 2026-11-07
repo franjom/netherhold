@@ -16841,3 +16841,19 @@ instead of adding stops that the inspected native paths do not call.
 Caller-family coverage is not a native predicate. Victory and type 1 Imp stops and
 other combat adapters remain partial. Controlled replay freezes the prior
 bootstrap and does not establish full-state, unconditional or Heart parity.
+
+## ADR-0718 - preserve combat handler handover timing
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** combat, creatures, navigation, simulation-core
+
+**Context.** `combat-handler-handovers.md` traces three Q712 boundaries to
+withdrawal arrival before movement, an unrelated work countdown in idle, and
+an extra stop on a failed combat handler.
+
+**Decision.** Complete a type 1 Imp's withdrawal arrival after its movement
+step. Keep idle and task selection independent of a prior work countdown.
+Preserve the existing route when non-Imp handlers in states 199/200 fail.
+
+**Consequences.** Hash/save 450 changes behavior without new saved fields.
+Other combat movement and external disengagement adapters remain partial.
+The bounded post-restore control does not establish full-state, unconditional
+replay or Heart parity.
