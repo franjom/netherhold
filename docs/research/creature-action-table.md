@@ -288,7 +288,7 @@ stamp `+0x3A5`.
 | 60 | [`0x00499B80`](functions/00499B80.md) | the teleport: after three turns moves to the action point |
 | 61 | [`0x00499BE0`](functions/00499BE0.md) | the teleport's arrival: after one turn sets `+0xF3` bit 0 |
 | 63 | [`0x00499C20`](functions/00499C20.md) | the whip: after five turns spawns effect `0xED` at the victim |
-| 80 | [`0x00499CA0`](functions/00499CA0.md) | the Crypt rest, by creature kind (anger drain, heal, gold, objects, effects); dead code |
+| 80 | [`0x00499CA0`](functions/00499CA0.md) | the Crypt rest; creature-specific branches are recorded in the handler record, with the cut-room inventory in [Crypt](crypt.md) |
 
 The other 49 actions have no handler: the runner ends them by their mode, the `+27` age test and the
 animation alone.

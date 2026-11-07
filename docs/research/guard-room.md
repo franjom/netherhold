@@ -167,14 +167,17 @@ The alarm's arm `0x0047583F` computes the same flags, and so does `FearRules` si
 
 ## 7. The rest of category 11: the Crypt's states 274–277
 
+Surviving art and the creature-specific effects are indexed in [Crypt](crypt.md).
+
 Category 11 also holds four unlabelled states of room type 26, the Crypt
 (`creature-state-table.md`). 274 (`0x00483790`): on an own Crypt tile (`0x004539B0(0x1A)`)
 whose room has `+0x49` set and `+0x53` clear, route to `(+0x4B + 1, +0x4D)` resuming 275 and
 register the creature with `0x004D8E60` (the Q375 writer); otherwise, with `+0x55` set,
 `SetState(276)`. 275 (`0x00483870`): with an action running, 1; `RoomId` 0, 0; its room must
 be a Crypt with `+0x49` set and the creature on that tile, else `SetState(274)`; it turns to
-heading `0x600`, then sets the room's `+0x55` by creature type (`0x004D9410`: types 2, 26, 31
-→ 20; 13, 37 → 1; 21 → 40; 29 → 10; others 0) and starts action `0x50`. 276
+heading `0x600`, then requests dancers when room `+0x55` differs from the type's
+count ([state 275](functions/00483870.md)); the helper adds rather than assigns
+that count. It starts action `0x50`. 276
 (`0x004839E0`): 274's route, else action `0x4C`. 277 (`0x00483AC0`): `SetState(274)`.
 
 **Unreachable in shipped play (data, 2026-10-06, Q375).** A scan of all 66 shipped levels
