@@ -1,500 +1,120 @@
 # Handoff
 
-Current state and next actions live here; evidence and decisions stay in their
-canonical documents (AGENTS.md: one fact, one home).
+Current work and entry points for the next session. Decisions, evidence and open
+questions live in their canonical documents; this file links to them.
 
 ## Current state
 
-The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
-§8. Regenerate its numeric status with dk2tools status after a Release test run;
-do not maintain counts here. For exact build coverage use dk2tools coverage
---all, dk2tools coverage states and dk2tools coverage actions.
+- Milestones and acceptance criteria: [reimplementation plan §8](../DK2_REIMPLEMENTATION_PLAN.md).
+  Generate counts with `dk2tools status`; use `dk2tools coverage` for implementation
+  coverage. Neither counts nor historical test totals are maintained here.
+- Current simulation/save composition: [hash versions](research/hash-versions.md).
+  Behavioral parity with DK2 remains incomplete; bounded replay controls do not
+  establish full-state, campaign-outcome or interactive-play acceptance.
+- Classic rendering, HUD and front-end integration are on master. Owner play,
+  visual and hearing acceptance remain open in the
+  [completion acceptance record](plans/2026-10-29-hud-and-front-end-completion.md#acceptance-record)
+  and [HUD comparison checklist](research/hud-comparison-checklist.md).
+  Lighting acceptance and remaining comparison/performance limits live in
+  [classic lighting verification](research/classic-lighting-verification.md).
+- Presented-world P1 and its follow-ups are merged. Measurements and remaining
+  performance targets: [presented-world result](plans/2026-11-06-presented-world.md#result-measured-2026-11-06)
+  and [performance policy](PERFORMANCE.md).
 
-- Hatchery startup and room-change clocks are built (ADR-0606, Q695, hash/save 348);
-  [scope and native validation limits](research/hatchery-startup.md#built-scope).
-- Wall work: [corner fill](research/wall-corner-fill.md#built-scope-and-replay-limits) (ADR-0605, Q694, hash/save 347);
-  [reinforcement eligibility](research/wall-reinforce-eligibility.md#built-scope) (ADR-0607, Q696/Q564, hash/save 349; the repair pass after every kind-6 miss, ADR-0611, hash/save 355); the owner's below-half-wall check (Q564) is still open.
-- The Mistress bed exit runs through state 84 at hash/save 335 (ADR-0586).
-  Its inferred completion clock and presentation contract are in
-  [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
-  native playback acceptance remains Q685.
-- Portal lair capacity and stored pick-ups are built (ADR-0614/0616, Q709 closed).
-  Heart defender selection and same-tile response routes (ADR-0617), reporting timeout
-  and responder navigation gate (ADR-0619) are built. Non-gate parties run 269/210/263/264 before hero activity (ADR-0622).
-  [Arrival](research/party-arrival-lifecycle.md), phase allocation, cast hold, room position and [search order](research/q712-route-window.md#built-scope-and-verification-hash-370) are built (ADR-0622 through ADR-0626); [historical outcomes](research/fight-scan-initial-phase.md#matched-outcomes-366-through-370) leave Q712 open. [Atomic input controls](research/q712-atomic-inputs.md) now retain native navigation state; the [packet playback clock](research/packet-playback-clock.md) is built at hash/save 378 (ADR-0633, Q730), with [paired outcomes](research/packet-playback-clock.md#paired-outcomes-377-and-378) verified and the bounded Q730 reader rule closed. The current [composition](research/hash-versions.md) is hash/save 437 (ADR-0705); historical packet outcomes remain scoped to frozen 377/378, and Level 5 outcomes at 392 predate the 393 merge. The [Portal relocation scan reference](research/q712-atomic-inputs.md#portal-relocation-scan-reference-q731) is built (ADR-0637, hash/save 388); the bounded Q731 rule and [paired 387/388 outcomes](research/q712-atomic-inputs.md#paired-outcomes-387-and-388) are independently verified. The [ordinary reinforcement action clock](research/reinforcement-action-clock.md) is built at hash/save 389 (ADR-0638): source/proof, full checks and [outcomes](research/reinforcement-action-clock.md#outcomes-at-hash-389) are verified; Q712 remains open. [Reporting geometry](research/q712-atomic-inputs.md#reporting-geometry-at-hash-389-q712) bounds the residual; [initial Lair departure](research/lair-departure.md) is built at390 (ADR-0639), [outcomes](research/lair-departure.md#outcomes-at-hash-390) and bounded Q157 scope independently verified; Q712 remains open. Q719 retains partial withdrawal/body inputs; actual390 prefixes remain historical, while [Q734 experience ordering](research/combat-experience-order.md) is built at391 (ADR-0640), with controlled XP and [outcomes](research/combat-experience-order.md#outcomes-at-hash-391) verified; bounded Q734 is closed, Q712/Q719 remain open; the [steering body keeps its 16.16 position](research/steering-body-retention.md) between mover calls at 392 (ADR-0644, Q735 closed): first Level 5 Imp XY divergences move from 1417/1423 to 1467/1465, but 254 exits to 199 stay near 1 per run against native 3.67 and Level 4 Imp deaths rise, so Q712 stays open; worker resume and route inputs remain Q719 and the stale/zeroed-body adapter limits are Q736; the later full recorder is stopped with a verified incomplete prefix. The seed-1 Level 5 native draw log shows native drawing about 15-19 world numbers a turn against our 4; the [neutral player's ambient tile](research/neutral-ambient-effect.md) is the first missing consumer built (ADR-0646, hash/save 395), followed by the loose Chicken (ADR-0647, 396; ADR-0649, 398 corrects its navigation compare and store-gold obstacle) and the effect generators (ADR-0648, 397); those historical [consumers](research/neutral-ambient-effect.md#the-remaining-draw-gap) are built; the later [Egg collision response](research/neutral-ambient-effect.md#built-at431-adr-0699) is built at hash/save 431. With DK2's Chickens and store gold restored at 1400, turn 1401 draws as DK2's does and turns 1401-1900 draw 8091 numbers against 8466 (measured); that historical control leaves the Warlocks' states at turn 1402 unrestored (Q738 is separate). [Hash-399 outcomes](research/neutral-ambient-effect.md#outcomes-at-hash-399) (115 resyncs) neither confirm nor refute the rule fixes; owner decision 2026-11-04: build only rules backed by the binary or a capture, no steering by outcome averages; the owner reopened only the [bounded first-divergence probe](research/neutral-ambient-effect.md#bounded-restore-comparison-2026-11-06) on 2026-11-06. The follow-up [Chicken probe](research/neutral-ambient-effect.md#chicken-draw-4-at-turn-1402-adr-0697) builds the virtual-pillar obstacle check (ADR-0697, hash/save 429) with bounded draw verification complete. The [Egg collision response and bird object interleaving](research/neutral-ambient-effect.md#built-at431-adr-0699) are built at hash/save 431 (ADR-0699), with production verification through 1403. The [Hatchery pillar correction and continuation](research/q712-early-draw-continuation.md#built-at432-adr-0700) are built at hash/save 432 (ADR-0700), with the matched prefix extended through 1412. The [Imp455 and Egg-inventory diagnostic controls](research/q712-early-draw-continuation.md#imp455-gold-return-control-through1420) extend the ordered prefix through 1420 without production changes. The [counted non-worker idle clock](research/idle-action-clock.md) is built at hash/save 433 (ADR-0701), with the controlled draw prefix extended through 1424. The [bedless sleep-need gate](research/bedless-sleep-need.md) is built at hash/save 434 (ADR-0702), with a controlled prefix through 1425. The [stored-resume80 acquisition guard](research/lair-resume-gate.md) is built at hash/save 435 (ADR-0703). The [Library capacity gate](research/library-capacity-draws.md#built-at436-adr-0704) is built at hash/save 436 (ADR-0704), with 488 ordered sites/preseeds through 1435 under the declared 1400 inputs. The [neighbor-work Target rebuild](research/training-target-rebuild.md) is built at hash/save 437 (ADR-0705): 516 ordered sites/preseeds match through 1437, followed by 14 draws in 1438. The next boundary is 1438 draw 15, native Player2254 versus modern ambient Player2045. Native actor/caller attribution at the1426 Library site remains unestablished; full-state and Heart-outcome parity remain unestablished, and no general restore adapter is built. Historical exact prefixes are header-aligned controls, not executed-turn parity. Adapters Q713, restore limits Q714/Q719, hull premark Q723 remain open.
-- [Heart destruction and opening Imp supply](research/heart-destruction.md) are integrated at hash/save 364 (ADR-0620); Q583 is closed, Q715 remains bounded. A free imp is cast two tiles from the Heart as a shot that makes the imp the next turn, newest shot first; a bought cast makes its imp on its own turn (ADR-0630, ADR-0635, hash/save 383; Q716 answered by native capture).
-- Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
-- The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
-- Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit
-  timing and pending-entry scheduling remain partial (Q682). Drop-to-combat is built (ADR-0698, hash/save 430); [verification and Level 17 test split](research/hand-drop-landing.md#built-scope-and-verification-adr-0698-hashsave-430). The hand's Portal-only disposal and bin are corrected at hash/save 353 (ADR-0603); deeper Hero Portal room entry remains built. [Scope and limits](research/creature-leaving.md#5-built-hashsave-346-adr-0603), Q137/Q704.
-- Burning simulation/red, shot effects/bodies, lightning and Inferno jitter are built (hash/save 343).
-  Scope and pending acceptance: [shot effects](research/shot-effects.md#7-ours), Q658/Q659/Q660/Q689/Q690; owner checks Q660 and Q691-Q693.
-- Thunderbolt guards are built at hash/save 332 (ADR-0581); Pit binding remains Q675.
+## Active continuation
 
-- Sleep debt, needs-clock suppression and tired retries are built at hash/save 330
-  (ADR-0579, Q651/Q674). Native replay outcomes remain measured only through
-  hash328; remaining needs timing gaps are in creature-needs-routine.md section 5.
+The latest Q712 work is the bounded Level 5 draw-continuation investigation.
+Start with [Training Target rebuild](research/training-target-rebuild.md), which
+owns the current result, verification and external evidence paths. The next
+boundary is recorded in [Q712](research/open-questions.md); investigate its native
+caller and guards before proposing another rule. Build only behavior supported
+by the binary or a capture; do not tune rules to outcome averages.
 
-- M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
-  levels (F:\DK2Evidence\studies). M6 remains partial: the latest completed packet
-  measurement is hash328 at `0c0f7042` (2026-10-29; write-up
-  F:\DK2Evidence\studies\packet-replay-hash328--unknown-date--001\payload\README.md): 78 of 80 runs valid (Level 4
-  seeds 14 and 18: the fixed-map remap ran out of creatures to pair), wins 19/7/14/0 (of
-  20, 20, 20 and 18 valid) against hash320's 19/8/13/3, none beyond 20-seed noise (Level 4
-  Fisher p = 0.23); Level 4 Imp deaths median 27 (18 runs) against 8 (0-55 per seed at
-  both; Mann-Whitney p ~ 0.26, so not a direction). It spans hashes 321-328; no sweep
-  isolates them. Before it, hash320 at `65e529b7` (2026-10-28;
-  F:\DK2Evidence\studies\packet-replay-hash320--unknown-date--001\payload\README.md): 79 of 80 valid, wins 19/8/13/3
-  against hash309's 18/8/16/1, Level 4 Imp deaths median 8 against 14.5, spanning hashes
-  310-320. A Level 4 bisection and 60 seeds at hash328 show no change in 321-328 beyond seed noise
-  (`docs/research/level4-outcomes.md`); rig v2
-  (F:\DK2Evidence\rigs\rig-v2--2026-10-29--001\payload) fixes lmap.py's batch-pairing crash and takes levels and seeds
-  from the environment. The previous measurement is hash309 at `490b7d82`
-  (2026-10-26; F:\DK2Evidence\studies\packet-replay-hash309--unknown-date--001\payload\README.md): all 80 runs valid, wins
-  18/8/16/1 of 20 against hash305's 18/9/17/1; Level 1 seeds 3 and 7 now win and
-  6 and 11 lose; Level 4 Imp deaths median 14.5 against 7, with Imp flees, alarms
-  and withdrawals all up and no-destination endings not. Isolating sweeps at
-  [hash306](F:/DK2Evidence/studies/packet-replay-hash306--unknown-date--001/payload/README.md), [hash307](F:/DK2Evidence/studies/packet-replay-hash307--unknown-date--001/payload/README.md) and [hash308](F:/DK2Evidence/studies/packet-replay-hash308--unknown-date--001/payload/README.md):
-  307, 308 and 309 are byte-identical, so ADR-0544 and ADR-0545 change nothing in
-  these replays; the death median already reads 15 at hash306 (hero-party order),
-  and a permutation test puts the 7 -> 15 shift at p ~ 0.15, inside seed noise.
-  ADR-0543 (hash307) raised withdrawals (median 85 -> 112.5), untested for
-  significance. The one before is
-  hash305 (`F:\DK2Evidence\studies\packet-replay-hash305--2026-10-25--001\payload\README.md`), with
-  hash303/P2 comparisons and mapping limits. The historical hash303 failure analysis (`F:\DK2Evidence\studies\packet-replay-hash303--2026-10-25--001\payload\analysis.md`)
-  separates observed blockers from open causes; the current report checks the
-  persistent Level 1 Hatchery refusal and records the changed outcomes.
-  The [decision parity audit](research/decision-parity-audit.md) verifies bounded
-  chooser/RNG and combat checks, but identifies replay-drop limits (the NonFighter alarm staging has no observable gap, STRONGLY INFERRED);
-  the [Imp selection study](research/imp-selection-evidence.md) adds three live
-  matched choices and 118 binary ordering controls. Full parity remains unestablished.
-  The [navigation controls](research/navigation-partial-rebuild.md#6-level-1-same-input-navigation-controls-2026-10-25)
-  separate fresh-build reconstruction from edit history. The linked actual-history
-  follow-up matches55 native rebuilds and observes one modern write-order reversal;
-  its effect on losses remains open. The [captured Level4 withdrawal](research/decision-parity-audit.md#level4-captured-withdrawal-and-room-order-hash304)
-  isolates a room-order mismatch with identical RNG; supplying native order matches
-  the captured destination and route window. This is now built for the combat
-  room cache in [hash/save305](research/room-list.md#persistent-player-list-order-hash305)
-  (ADR-0541), including construction/capture/split order and snapshot state.
-  The completed measurement is linked above; broader campaign-loss causation
-  and combat/scheduling parity remain open.
-- The Imp Secret Door job path is built (ADR-0536, hash/save 304), including
-  per-keeper entry order and native reservation retention after interruptions.
-  Scope, focused verification and pending original-game acceptance:
-  [Secret Door work](research/imp-task-objects-and-walks.md#2-kind-11-is-the-secret-door-0x0046cb80).
-  Hash304 has no separate full sweep; the hash305 measurement includes both changes.
-- Q665's harness faults are fixed; Q710 remains the Level 4 turn-5000 Guard-room residual.
-  [Earlier diagnosis](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31);
-  the matched [366-370 comparison](research/fight-scan-initial-phase.md#death-scores-and-level-4-comparison-limit) is limited by [Q714](research/resync-replay.md#heart-and-terminal-state-restoration-q714).
-- The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
-  combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31); world-sound foundation, the hand's tag, slap, pick-up and drop sounds, terrain, digging, claiming, room and heart sounds, the imp jobs and creature states, objects, doors, traps, specials and the boulder, and spells, the Tremor, shots, the melee weapon impact, creature deaths, Create Imp and the Workshop (W1 to W8 built on branch `sound/world-sounds`, not merged, owner hearing pending: creature footsteps from the animation marks, the action table's words, the creature hover, stops, voices that follow their thing and the Casino party's music, the terrain ambience beds, the tab and slot flash chime, the campaign map's land sound, the slider test sounds on a thumb grab and the Mentor speech duck; the torture devices wait for Q635, sleeping, reinforcing, the linked beds and every first-person sound for the possession camera, and the cheat entry, in-game Save and Load, the battle fly-in, Horny's line and the front end's atmosphere for the features they belong to): [plan](plans/2026-10-31-world-sounds.md). A forced target no longer reaches a
-  corpse (Q598). Room ticks run between the creature pass and the players, as
-  DK2's do, with the hated-company rule (ADR-0479); the store sweep runs on
-  DK2's turn (Q596). The stun counts from its first call (ADR-0480). Only a
-  keeper's creatures run the needs, need-anger and mood choosers; heroes skip
-  them (ADR-0485, Q599). Store gold is built (ADR-0534, hash 299): every
-  Treasury and unruined Heart draws the
-  store sparkle each turn and the Hand lifts a store pile whole. Those draws
-  move every replay and win rig. The Level 1–4 packet sweep is linked above;
-  the level2/level4 live rigs, L11A and L17 have not been rerun since hash 298.
-  Hash/save 303 withdraws portal crystal collision (ADR-0527), retaining
-  hash 302's store gold/UI state (research/hash-versions.md).
-  Initial chest headings remain Q644; Level2's reported
-  water shapes under fog await a native visual comparison (Q643). Level 7's
-  missing scanned-liquid boundary faces are corrected in presentation (ADR-0618);
-  remaining small openings: [under-wall trace, Q643](research/room-floors-and-liquids.md#residual-fog-edge-trace-2026-11-01).
-- The navigation mesh's locate is DK2's cell-cache walk and the whole-map
-  builder writes DK2's slots (ADR-0486, hash 255): on the owner's Level 10
-  mesh capture 130 of 140 intervals reproduce slot for slot and the first dump
-  matches in 2,826 of 2,828 triangles (tools/meshreplay). The next capture
-  should carry its route log (--navlog).
-- Creature trigger action 20 gives the Portal Gem: Level 1's Lord carries it
-  from creation and drops it at death, and its carrier gives off the Gem dust
-  trail at mesh point 10001 in Unity (ADR-0495, hash 263; L1 20/20 unchanged).
-  As of 2026-10-17 the owner has not judged the trail in Unity; ours is paced at 20 Hz and
-  may be sparser than DK2's (Q606). The star icon above him is Q607. A live
-  check rig: reverse-engineering/dk2runs/level1-lord-sparkle/run.ps1 -Live,
-  with dk2reveal.py exploring the map in memory.
-  The Step6 branch (classic-look/step6, presentation only, no hash change) also
-  draws DK2's additive environment-map pass over every 0x40 material and animates
-  the loose gem as state 50 does (float, spin, effect 297 each second; that a
-  dropped gem stays in state 50 is HYPOTHESIS): kmf-materials.md §8, objects.md §8.
-  Q622 (Lord corpse: no missing body found, the armour shine was the gap),
-  Q623 and Q637 (camera frame and v sign unconfirmed) await the owner.
-- Hero-party ordering is corrected (ADR-0542, hash/save 306); opening Dwarf
-  reproduction, cross-level scope and remaining comparison limits:
-  [hero-party walk](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0542).
-- A withdrawal whose room pick fails (no rooms, or a drawn bridge) ends with no
-  further draw (ADR-0544, hash/save 308), and step 5 spends the away stage's draws
-  for a staged live creature or trap, each caller staging what DK2 does (ADR-0545,
-  hash/save 309). Measured together with 306–307 at 490b7d82 (below).
-- Level alliances (VARIABLES id 66) are applied at load and saved (ADR-0546); the game mode
-  and the verdict recursion are built (ADR-0547, hash/save 310; Q359, Q576). The packet
-  sweep was rerun at hash 320 (above). Q652: Level 11A's Drako no longer calls at Morgana's
-  front, a known regression.
-- One creature's whole update runs before the next one's, newest first (ADR-0554, hash/save 315):
-  `CreatureUpdateSystem` runs the fight, needs, anger, state handlers, mover and an Imp's handler
-  per creature; the payday clock runs before the creatures. Non-Imp walks take their first step
-  on the tick they start in 34% (Level 2) and 26% (Level 4) of cases, native 40% and 28%. Walks
-  from state 173 still start late. Differences left and measurements:
-  [creature-update-order.md](research/creature-update-order.md).
-- The combat states' handlers run in the creature's dispatcher turn, after the needs routine, so a
-  creature the scan engages runs its fight state in that update (ADR-0555, hash/save 316):
-  `CombatSystem.States`, then the trap reveal. Level 4's Imps flee straight from a walk, as native
-  Imps do; Level 2's Imp walk starts are 852 (native 871). Q665, measured at hash 316 on seed 1: Level 4's Imps fled
-  far more often than native (236 entries into 201-203 against 41) and started few walks from state
-  87 (41 against 809); over 8 DK2 seeds at hash 328 flight counts are alike and DK2 is overrun too
-  ([level4-outcomes.md](research/level4-outcomes.md)). `dk2tools replay --resync` continues a replay from a DK2 capture's tick
-  (ADR-0556, ADR-0558, [resync-replay.md](research/resync-replay.md)), copying DK2's doors, traps,
-  crates, manufacture list and Imp crate trips; Level 4 seed 1 resynced at 2340 starts jobs to 3400
-  as native does (mine 110/112, claim 66/57, reinforce 83/90, native/ours) and strikes the east
-  seam (29,34) at 2482 against 2476. A crate is paid for at the cost in the manufacture ring's
-  slot 0, not the head's (ADR-0557, hash/save 317, Q618): Level 4's east seam group now finishes
-  at 2810-3144 in seeds 1-5 (was 3098-3516; native 2815 and 2988). A stunned creature's fear
-  piles up and is handed over on its first standing tick (ADR-0559, hash/save 318); Level 4 seed 1
-  loses 45 Imps with and without it (32 at hash 316, one seed, not attributed to ADR-0557).
-  The 30-tick party offset in the death window is drift (the Portal claim at 2059 against 2030),
-  not a trigger rule. The resync copies the trigger banks and every creature (pose, level, health, fear and,
-  since ADR-0567, the fight-return stamp), each keeper Portal's clock and tally ([resync-replay.md](research/resync-replay.md#each-portals-clock-and-tally); state 5's missing arrivals: no lair space, ADR-0614) and pairs them itself (ADR-0560): seed 1 at 3520 has parties 5 and 7 at 3829 and 4189 (native 3830, 4190), flag
-  11 at 4330 (native 4378) and the hero door falling at 5314 (native about 5313), but 4 Imp
-  deaths against 0 (0 on the rerun at hash 323), three to party 5's Guard, which survives the fight at (15-17,31-34) where
-  DK2's party 5 is down by 3960. In that run the Guard survived because ours' Thief stood nearer
-  and drew the Elves (one fight, consistent with nearest-first). Resynced at 3790 (one seed),
-  ours reproduces the window apart from the post Guards' switch: rerun at hash 322, no keeper
-  creature dies (DK2 0), parties and hero deaths match within 10 ticks but one, door at 5301 (native
-  about 5313); one post Guard switches on time and two 12 and 31 ticks late, because ours' attackers
-  at the closed door all take one Guard where DK2's Goblins join a second
-  ([resync-replay.md](research/resync-replay.md), "The Guard fight"). In the point probe that
-  target choice flips with the Guards' points; why the points differ (RNG or timing) is not established. A separate state-176 action hold is built here (ADR-0566, hash/save 323); its
-  measurement and timer-surrogate limits are in the same section. The 3400 resync's 36 keeper deaths were an artefact: a stale walk-back stamp
-  of ours' own sent Dark Elf 27 behind the hero door, and the resync now copies DK2's stamp
-  (ADR-0567; 3 lost, door at 5312, DK2 about 5313). Resyncs at 3520 and 3790 lose 0; the full
-  replays at hash 323 lose 65 Imps (default generator) and 23 (`--rng dk2`) against DK2's 0; resynced at 3400 the run
-  loses 3 (0-4 over seeds 2-9). Leaving one part ours at 3400 (`--resync-skip`, ADR-0569; pose 45, jobs 43, fear 36,
-  doors 35, others 0-3) shows the doors part (DK2's door at (24,39) and four trap blueprints ours refused on tiles it had
-  not claimed at that point) is sufficient, but a replay that retries them (`--blueprints retry`, ADR-0570) still loses 36 / 39
-  (30 / 39 at hash 324, where the plain runs lose 36 / 23), so it is not the full runs'
-  cause (one seed; resync-replay.md, "Imp deaths and the player's door"). Seed 1 (one seed): Imp levels are alike (native 34 level-ups to 3520, ours 35). Ours has 15
-  Imps against 18 because three Create Imp casts are refused, one by a 79-mana margin. The first
-  difference is the first dig (strike 155 against 138), which closes by about 350. The claim and
-  mana deficit opens at about 550, where ours digs a fresh mark at (24,46) ahead of older ones.
-  That order follows from the north seam (31,54) falling at 324 against 305 with other Imps at its
-  face, each step the faithful rule, and the first-dig lag is RNG (STRONGLY INFERRED, one seed;
-  [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"), so
-  the drift from 131 to about 550 needs no rule difference. Next: the residual Guard-fight timing after ADR-0566; where ours' first Imp dies from DK2's 2400 states: ours loses at least one in all 120 runs (five a state), DK2 none in 3 of 8 (states 1, 3, 5; state or DK2's later draws untested) (after ADR-0580, hash/save 331; [level4-outcomes.md](research/level4-outcomes.md)); the remaining hero-exposure and survival gap in Q665 (see [hero phases](research/level4-outcomes.md#hero-phases-in-the-gold-route-zone-q665-follow-up-hash-333)). Mining is not a lead: ours mines as DK2 does for 600 ticks after a 2400 resync from each of 8 DK2 seeds, and the 3000-3700 resync surplus (101 mining walks to DK2's 80 from 3400, 91 to 70 from 3700, one seed; ADR-0562, ADR-0563 and ADR-0565 moved when state 26 asks its checks) does not hold over seeds (Q665; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"). The resync does not copy
-  a trigger record's active bit and repeat byte or the hero job triple, so resync before the
-  creature triggers that matter fire. A Level 4 resync passes `--births <native creature-map.csv>` so hand pickups of later-born creatures name ours ([level4-outcomes.md](research/level4-outcomes.md#hand-drops-after-the-resync)). Level 4 timer offsets split into camera-clock approximation and early room
-  capture plus a late trigger read; ADR-0568 corrects the read order. Evidence:
-  [timer stamps](research/trigger-timer-stamps.md). The Level 1-4 packet sweep, which also gives the win counts, was rerun at hash 320
-  (M6 above). DK2's own Level 11A ten-seed captures (`dk2runs/level11A-seeds`) were lost in the
-  2026-10-18 cleanup; the capture driver `run.ps1` was recovered from session logs but has not
-  been re-run (F:\DK2Evidence\rigs\recovered-rig--2026-10-19--001\payload\RECOVERY.md); the packet `m12l11a.sav` survives.
-- M7 remains partial (played on `tools/levelgen` levels: `boulder.md` §9b, `traps.md` §14, `jack-in-the-box.md` §7; a sprung Jack neither fights nor can be attacked, ADR-0615, hash/save 359; it settles on the heart corner at a whole route progress, ADR-0627, hash/save 371): combat, hero parties, door contact and the door fight
-  (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
-  the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
-  the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and damage (ADR-0326)
-  and creatures fighting a revealed trap (scan D, ADR-0340) run; disarming is deferred under
-  ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to object slapping
-  (ADR-0341). Left: Q732 (ours against the levelgen captures) and the owner observations pending in
-  F:\DK2Evidence\studies\doors-and-traps-md--unknown-date--001\payload\doors-and-traps.md.
-- Keeper spells (ADR-0350): Create Gold, Tremor, Turncoat, Summon Horny,
-  OneShotReaper and Possession's simulation side are built, and Sight of Evil
-  casts with an empty effect (ADR-0352), its region presentation (Q194). Research
-  grants every upgrade through ResearchTreeRules. Possession's followers
-  (ADR-0445), sneak, hypnosis and sniper commands (ADR-0446), object, pillar,
-  shot and body arms (ADR-0468), dig and claim (ADR-0469) and the gem face
-  (ADR-0470) are built. Left unbuilt: Horny's idle AI, the third cast path
-  (action 56 only, Q537) and the held-creature regeneration in Q152.
-- M12 remains partial. DK2.AI.KeeperAI is an input source that emits
-  PlayerCommands through a detached, serialisable observation (schema 20).
-  The task machine digs, expands, builds rooms, manages gold and imps, and
-  bridges water and lava; every message type its walk reads is produced and
-  consumed (ADR-0353, ADR-0412–0418); the threat response, retreat, battle step,
-  Call to Arms, Thunderbolt, Heal, Chicken, Inferno, Create Gold and Sight of
-  Evil run through simulation commands; the attack planner tunnels, stages and
-  calls its army; the nine lobby personalities load (ADR-0410). Left: the
-  research move and prisoner/special decisions. The traps-and-doors step is
-  built (ADR-0561). See KEEPER_AI.md §12.7–12.8. Same-map comparisons against DK2's own
-  keepers (Level 17, Level 11A) are in computer-keeper-observations.md, whose
-  last section is the acceptance table; open timing differences are Q563 and
-  Q574.
-- Goal 7's writer/editor API is complete and verified (ADR-0346,
-  `src/DK2.Data/README.md`); the editor UI and playability validation are
-  future work.
-- The creature state machine dispatches category hooks; CategoryHooks.Slots
-  holds every hook's status (ADR-0308, ADR-0319, ADR-0322).
-- Performance: profiling markers (ADR-0444), the worker reachability
-  flood (ADR-0453), kept navigation and room-sweep state (ADR-0454, ADR-0466),
-  DK2's per-tile navigation-mesh edit (ADR-0461), presenter and terrain
-  batching (ADR-0456, ADR-0457) and a worker-thread tick (ADR-0458) are built.
-  The owner has still to check shaders in a standalone build, terrain seams
-  while a tag wave drains, and the worker-thread tick in Unity.
-- A test oracle runs DKII.EXE's own pure functions and tables under Unicorn and
-  holds our C# to them, also on states captured from DK2 (ADR-0481,
-  tests/DK2.Oracle.Tests, tools/oracle/). The binary census of 2026-10-14
-  (research/binary-census.md) ranks 941 unread simulation-core functions; every
-  lead read so far was presentation, set-up or loader plumbing except the
-  hated-company step (Q595, built).
+The controlled prefix does not establish full-state or Heart-outcome parity.
+Restore and adapter gaps remain separate: Q713, Q714, Q719, Q723, Q736 and Q738
+in [open questions](research/open-questions.md). The broader M6 work is in
+[Heart defence parity](research/heart-defence-parity.md) and
+[resync replay](research/resync-replay.md); Level 4's remaining Guard-room
+exposure is Q710 in [Level 4 outcomes](research/level4-outcomes.md).
 
-## Classic look
+## Other pending work
 
-HUD/front-end completion (`codex/hud-completion-final`) is merged (2026-10-30), awaiting owner play,
-visual and hearing acceptance: startup/gallery, Options pages, save/load, runtime audio, rebound keys,
-scalable HUD, full map and hover/flower leftovers. Evidence and acceptance: [completion plan](plans/2026-10-29-hud-and-front-end-completion.md);
-captures: [HUD checklist](research/hud-comparison-checklist.md). Save-loading hardening is built;
-compatibility redesign remains pending (ADR-0588). ADR-0497 stays proposed; host settings in front-end-menus.md §6.
-Startup tab correction (ADR-0621): [scope and request traces](research/message-tabs.md#31-startup-sound-gate-binary-2026-11-01), audible acceptance Q717.
+These are entry points, not a new priority order.
 
-Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
-walls, liquids, objects, authored animation, room life, construction waves,
-Prison rats, Portal entrances, corpse art, terrain debris and the Hand
-(ADR-0431–0438, 0442, 0641 bank heights, 0447, 0449–0452, 0460, 0462–0465,
-0467). The Heart's health pulse (ADR-0463), mana sparkles (ADR-0474, an owner
-adjustment; cause open in Q594), opening sequence (ADR-0475), Portal entrance
-effect (ADR-0476) and Dirt Path foot dust (ADR-0477) are built. The complete
-researched arrival roster, including mercenaries, is in
-[creature-arrival-effects.md](research/creature-arrival-effects.md).
-Visual acceptance is tracked in research/classic-lighting-verification.md. Step 5's
-base camera, lighting/fog and follow-up fidelity corrections are on master.
-Milestones and remaining gates: plans/2026-10-14-classic-look-step5.md.
-Research: research/classic-lighting.md; current visual acceptance, standalone
-material verification and performance limits: research/classic-lighting-verification.md.
-The owner accepted the current appearance, including restored Heart arches,
-wall caps, frame-independent torches and standalone rack transparency.
-Matched-original startup-smoke and Levels7/8 comparisons remain pending.
+- Owner's standing priority: excess Level 7 Imp deaths, Q582. See
+  [combat acquisition](research/combat-acquisition.md) for the matched encounter
+  checks still needed.
+- M12 keeper acceptance and remaining decisions: [Keeper AI §12.7–12.8](KEEPER_AI.md),
+  [native keeper comparisons](research/computer-keeper-observations.md), Q563,
+  Q574 and Q652. Enhanced AI remains outside Classic fidelity scope.
+- M7 trap/door comparisons: Q732 and the owner observations linked from
+  [traps](research/traps.md). Keep original-game acceptance separate from built rules.
+- Possession camera and input: [build plan](plans/2026-10-12-possession-arms-build-plan.md)
+  and [owner play questions](research/possession-arms-and-inputs.md).
+- World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
+  Check the current code and Git history before relying on its branch-status prose.
+- Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)
+  and [Stage D](plans/2026-10-27-stage-d-unity-input.md). Input replay/extraction
+  and rendered-HUD automation remain follow-up work; use the completion acceptance
+  record above for the integrated walkthrough and its journals.
+- Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
+  and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
+  Read [art direction](ART_DIRECTION.md) before asset work.
 
-The saved Dungeon scene uses the owner's Native Initial Ambient setting (on);
-the brighter preview remains available with it off. +/− controls native ambient.
-Discovery schema/cadence limits are in
-research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
-Scripted camera paths and mode/letterbox guards are built (ADR-0496); [scope and limits](research/camera-possession-guards.md#implementation-and-remaining-deviations).
-Step6 ordinary camera controls now follow native packets (ADR-0531); matched
-recording measurements, crop correction and verification limits: research/classic-camera.md §6–8.
-Room border flames are built (ADR-0524, research/room-border-effects.md). Effect and shot sprites
-of art types 1 and 2 take their tile's light, additive type 3 never (ADR-0665, Q609).
-Wet/bloody footprints are built; native rules and pending visual acceptance: research/creature-footprints.md (Q610, 2026-10-20).
-Creature asset keys are cached per definition/action; transparent terrain uses
-retained stable-sort buffers and reuses meshes across changes in draw order.
-Measured gains, regression checks and remaining costs: verification document.
-Arrival rendering shares vertex uploads, culls offscreen triangles and retains
-index capacity. The performance target remains unmet; buffer-churn measurements
-and residual first-use/worker costs: [arrival performance](research/portal-arrival-performance.md).
-Acceptance, remaining coverage and regression guards (baseline and remote enforcement pending): [performance policy](PERFORMANCE.md).
-The debug FPS/frame-time display is built; usage and rotation profiling protocol:
-[Unity performance guidance](../unity/README.md#measuring-performance).
-Creature/cinematic timing now shares a late draw clock (ADR-0501); native tile
-neighbour queries and torture-approach flags are corrected (ADR-0500).
-Portal arrival transparency and animated beams are corrected. Red mist timing,
-failed previews and the withdrawn keeper-colour report (Q619 closed):
-[portal buildup](research/portals-interval.md#portal-buildup-built-adr-0467).
-Mist now uses the native default additive blend and joins the terrain depth stream:
-[rendering correction](research/room-construction-effects.md#sprite-blend-and-shared-terrain-ordering-2026-10-23).
-Room/Portal capture uses the native full-slab profile (ADR-0529), replacing the
-thin edge ring: [capture comparison](research/room-construction-effects.md#62-portal-capture-comparison-shot02310240).
-Creature promotions now request the original sparkle effect, including imp work
-levels and scripted grants: [promotion sparkles](research/creature-levels.md#promotion-sparkles-2026-10-23).
-Portal crystal collision is withdrawn (ADR-0527, Q642 closed). The original
-meshes remain; movement and its observed near-hole limits are recorded in
-[the rollback note](research/portal-crystal-collision.md).
-Level1's scripted red tutorial tile guidance is built (ADR-0528):
-[native slots and pulse](research/tag-highlight.md#scripted-tutorial-red-flash).
-Active tick/presentation stalls remain measurable: research/level8-intro-motion.md.
-Parallelism: [design](plans/2026-10-17-parallelism-design.md); P1 merged and measured
-([plan](plans/2026-11-06-presented-world.md), ADR-0693 to 0696); the plan's Result table is current.
-Next interface scope selected by the owner (2026-10-17):
-[Step6 HUD and controls preparation](plans/2026-10-17-classic-look-step6.md),
-following ART_DIRECTION.md §13 and proposed ADR-0497. Step5 is not formally closed.
-The Step6 shader/font feasibility pilot passed in isolated URP targets at 1024×768
-and 1440p (tools/hud-probe/README.md); a live minimap tile layer is connected
-on master with the native frame and its idle corner art. Creature,
-trap and door markers, Heart/Guard Post reporting-distance outlines, possession
-and Alarm rings, Guard Room rectangles, textured camera footprint, magnifier zoom
-and primary click navigation are built. Remaining overlays
-and owner comparison remain. The Step6 branch now implements camera/letterbox
-HUD hiding, restoration and input blocking, plus the native heading-dependent
-north marker, camera-ribbon disc containment and zoomed Heart direction trail.
-The branch also has original Hand/dig/pickup sprites, a terrain-deformed hover cage per tool mode (blue over dig tiles), a placement cage with tool icon and price (room, sell, door, trap, keeper spell, Query), the held-item icons beside the hand with the disposal bin over the Heart or Portal centre (never a Hero Portal: No Go, owner 2026-10-31), the red hover tint and the gold `_HIGHLIGHT` texture (store sparkle and lifting store gold not built: research/gold-hover-and-sparkle.md §6), delayed localized names and a top status strip with door, trap, dead-body (unreachable through the Hand pick, Q634) and Casino/Prison fixture status, and DK2's two-stage pick (triangle hit, centre, 3×3 sweep, projected-sphere circle, object ownership arm; objects-only PAGE UP built; terrain occlusion comparison pending; Q636 for rival doors and traps), the special creature name +0x895 (Lord of the Land's campaign-slot name built; the concealed Secret Door's "Enemy Wall" text built). Status flowers have DK2's size, Leaving/S-Gem and Imprison icons, the removal countdown and the torture lift (Q635). Evidence and limits:
-research/hand-cursor-rendering.md, research/placement-cursor.md, research/world-hover-text.md and research/status-flowers.md;
-live gold/mana, separate rates and the Heart health ring now occupy the original
-resource region, with status text to its right. The Step6 branch integration
-adds gold withdrawal, payday/alarm/flash state, original personal names and blood
-groups, G/H/M and corner controls, campaign Options pause, full-map terrain and
-navigation, creature query/follow, bottom choices (slot recharge, manufacture and research sectors: research/panel-indicators.md), message tabs with the framed message panel, its scrollbar and the six indicator boxes (research/message-tabs.md; hash/save 297, ADR-0532), Shift-click tab pinning with two side-by-side panels (research/tab-alerts.md §3), Reaper state, room cycling
-and all four creature overview modes. Canonical scope and remaining gates:
-plans/2026-10-17-classic-look-step6.md. Tutorial messages, the first Goblin
-introduction and script-forced flowers are built (ADR-0535, hash/save 302;
-research/message-tabs.md §10). Matched visual acceptance is pending (2026-10-24).
-Hash/save 289 adds native identity and
-last-payday state; ADR-0521 documents initial constructor RNG ordering limits.
-Campaign result suppression and scripted GUI restoration are built; Q611's
-remaining continuation boundary and original-game comparison are in
-research/hud-visibility.md (Q648/Q649).
-Native minimap raster and overlay reading: research/minimap-rendering.md.
-Q197 is answered and entrance lighting built; startup/runtime counts, pulse and fog boundary are in research/portal-visibility.md. Q670 retains visual acceptance. HashVersion unchanged.
-Its fresh-game visibility/colour-patch play check Q669 is answered. Input research remains.
+## Workspace and evidence
 
-Current verification (2026-11-01, ADR-0617): Simulation and focused checks pass;
-solution and Unity adapter builds report zero warnings/errors. The solution retains
-one reproduced master Level 18 failure. Counts and logs: [Heart defence parity](research/heart-defence-parity.md#verification-and-measurements).
-Prison chicken passes with master's central (5,4) drop. The branch's
-earlier failure is master's edge-route symptom, whose native cause is still
-unresolved (research/imp-fidelity-integration.md). Our side, from runs on
-2026-10-19: at af4768e7 both prisoners at (4,4)/(5,4) get the two-point route
-(7.5,2.5) -> (7.5,4.5) towards the rim tile (7,4), outside ADR-0139's fenced
-interior, and PrisonSystem emits `prisoner_freed ... at=(7,2) reason=cell_gone`
-on ticks 295 and 299. At 1f3805e0 creature 1 stood at (6,4), within reach, and
-ate on 281 without walking, so the edge walk never ran. What DK2 does with food
-on the rim is unknown. The HUD probe was not rerun
-after the merge.
-
-Use serial checks; isolated probes must not save or restart the owner's editor.
-For master, open unity/DK2.Unity; check the retained classic worktree's branch
-before using D:/DungeonKeeperRemake-classic/unity/DK2.Unity. Restart Play after
-unity/sync-assemblies.ps1. Never commit local editor state (ProjectSettings/*,
-Scenes/Dungeon.unity, URP globals). Room selection is available through the HUD;
-the DungeonRunner Inspector remains available for debugging (unity/README.md).
-
-Owner checks still pending in Unity: claiming, eating and sleeping; the Imp
-startup pose (ADR-0462); portal smoke, wall reinforcement and portal buildup
-effects (ADR-0464, 0465, 0467); the Heart sparkles and opening sequence; rock
-dust prominence (Q593); live Heart platform guards and Arch Pillar targets
-(Q585, Q586); Level8's guard placement (Q589). Unbuilt: non-creature threat
-flight (combat-fear.md §7), the Prison chicken loop,
-the remaining flower gaps (research/status-flowers.md §4). Reported graininess: inspect the Game view
-scale before changing rendering (TRAPS.md). Crowd profiling limits are in
-tools/classic-unity-probe/README.md.
-
-## Next work
-
-1. M6: close Q714 using existing capture fields and matched resync controls, then recheck
-   Q710's Guard-room exposure and Q712/Q713's Heart defence residuals ([current scope](research/heart-defence-parity.md); the next resync boundary is Q719's worker resume for states 25/26 and routes).
-   Follow fighter job/room choices from 5000 against the capture; Q567 and Q590 follow.
-   The function-level captured-state method is in reverse-engineering/README.md.
-2. Owner's standing priority (2026-10-10): the excess Level7 Imp deaths (Q582),
-   not an accepted deviation; see combat-acquisition.md §1.
-3. M12: the owner decides whether Q563 and Q574 close M12 or are narrowed
-   first; Level 17 with the traps-and-doors step finishes Harkan's Prison in 9 of
-   10 seeds and grows Training in 0 of 10 (DK2: 12 -> 20 tiles), an open
-   difference of ADR-0561. Compare with every computer keeper running and
-   on the record's gold. Do not infer an UNKNOWN rule from a name.
-4. M7: Q732 (ours against the levelgen captures; a placed hero's Flags2 is built, ADR-0636) and the owner observations in F:\DK2Evidence\studies\doors-and-traps-md--unknown-date--001\payload\doors-and-traps.md.
-5. Possession: the Unity first-person camera and input
-   (plans/2026-10-12-possession-arms-build-plan.md); owner play questions are
-   in possession-arms-and-inputs.md §4–5.
-6. M10 front end: owner play/visual/hearing acceptance of the integrated branch;
-   see [completion and remaining gates](plans/2026-10-29-hud-and-front-end-completion.md).
-   Campaign behaviour gaps beyond the menu loop remain in GOAL_ALIGNMENT.md row2.
-7. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
-   built; the appearance target is the approved AI concepts (ADR-0398,
-   ADR-0399, `art/manifests/creature/imp.yaml`). The Tripo candidate was
-   accepted as the shape on 2026-10-07; a paid regeneration comes first
-   (`docs/plans/2026-10-07-imp-image-to-3d-trial.md`). No rig or Unity work yet.
-   Still open: the geometry-index and exact-frame export for all 35 Imp files.
-
-8. Autonomous playtesting (ADR-0552, `plans/2026-10-27-autonomous-playtesting.md`): Stage A,
-   the test-controller hook in `DK2.Harness`, Stage B's harness half (input journal,
-   `replay`, `watch`) and Stage C (legal-action fuzzer, coverage, progress and the snapshot
-   check; `src/DK2.Harness/README.md`) are built. Stage D (ADR-0553,
-   `plans/2026-10-27-stage-d-unity-input.md`) Phase 1 is built: Unity writes `frames.journal`
-   (`FrameInputJournal`) and `input.journal` when `DK2_INPUT_JOURNAL` names a folder
-   (`unity/README.md`); it has not been run in the editor. Next: the owner plays three to five
-   journaled baseline sessions (to `F:\DK2Evidence\studies\unity-input-completion--<UTCtimestamp>--NNN\`), and Phase 1b
-   lets the harness replay a Unity journal; Phases 2-5 (input mapping into Presentation, the
-   Input System ADR, migration, rendered-HUD automation) are not started. Failure bundles hold no
-   snapshots, no DK2-behaviour invariant exists (each needs a cited source), and the fuzzer
-   plays no specials or objects and tags nothing under fog.
-
-After faithful M12, keep it as selectable Classic AI; explore a separate
-Enhanced keeper using the same observation/command interface (KEEPER_AI.md
-§12.7). Enhanced behavior is outside M12's fidelity target.
-
-## Work in other worktrees
-
-Run git worktree list first; another session may own these.
-
-- build/imp-store-timing, fixes/imp-store-timing: archived mining-clock candidate,
-  superseded by ADR-0514's stored clock (research/animation-clock.md).
-- build/imp-acceptance retains ignored native captures and experimental probes.
-  ADR-0512 integrates eight supported Imp corrections at hash/save 280; ADR-0513
-  zeroes velocity on route requests and stops (281); ADR-0514 stores the dig and
-  mining animation clock (282). Do not delete its ignored captures.
-  Q612 remains open; no new chooser preference or reinforcement timeout is
-  established. Direct chooser controls: research/imp-priority-checks.md.
-  Work/claim controls: research/imp-hatchery-work.md. Complete native work pairs:
-  research/imp-dig-sequence.md. Next: matched arrival-to-choice inputs, and
-  moving the other actions' closed-form holds onto the stored clock. Heart visual acceptance remains Q585.
-
-- Merged checkouts and two obsolete detached probes were removed on 2026-10-18.
-  The three `housekeeping 2026-10-18` stashes were dropped on 2026-10-28: the
-  trap/door work is built (ADR-0561); the classic Unity edits were material
-  re-serialisation and the work-only probe a debug print. The archive is in
-  reverse-engineering/housekeeping-20261018/manifest.json (local, gitignored).
+- Check `git status` and `git worktree list` before editing. Another session may
+  own a checkout; do not switch branches in the shared main checkout. Retained
+  worktrees and their branch names must be discovered, not copied from this file.
+- The main checkout has an owner-edited `unity/DK2.Unity/Assets/DK2/Scenes/Dungeon.unity`.
+  Preserve it. Use serial Unity checks; isolated probes must not save or restart
+  the owner's editor. Editor workflow: [Unity README](../unity/README.md).
+- Irreplaceable native captures, extracts and replay rigs belong in
+  `F:/DK2Evidence/`. Follow AGENTS.md's add-only, no-links and cleanup-approval
+  rules. Do not rely on legacy `reverse-engineering/dk2runs/` paths;
+  the 2026-10-18 cleanup lost captures and rigs. Follow each research note's
+  external evidence path and verify availability before planning a replay.
+- New native recordings use the [complete recorder](../tools/oracle/native-capture.md).
+  Research setup and tools: [reverse-engineering README](../reverse-engineering/README.md)
+  and [research queue](RESEARCH-QUEUE.md). Read function records before binary queries.
+- The reference install is `E:/GogGames/Dungeon Keeper 2`; `DK2_DIR` overrides
+  discovery. Install-dependent checks skip without data unless
+  `DK2_REQUIRE_INSTALL=1`. See [build/test guidance](../README.md#build-and-test).
 
 ## Where to work
 
-- src/DK2.Simulation owns game rules and mutable state; it is independent of
-  DK2.AI and Unity. src/DK2.AI observes and emits commands. src/DK2.Harness
-  runs headless scenarios; tests/DK2.AI.Tests and
-  tests/DK2.Behavior.Tests cover keeper decisions and stock maps.
-- docs/ARCHITECTURE.md gives the project boundaries and system order.
-  docs/DECISIONS.md records design choices. docs/research/functions/ is the
-  canonical knowledge base for each DKII.EXE function.
-- The reference install is E:\GogGames\Dungeon Keeper 2. DK2_DIR overrides
-  discovery; an invalid override means no install. Tests marked InstallFact
-  or InstallTheory skip without game data; DK2_REQUIRE_INSTALL=1 makes a
-  missing install fail (ADR-0100).
-- The replay rig is reverse-engineering/dk2runs/level4-live1/rig/runset.py
-  (local, not in the repo): Levels 1–4 over seeds; count deaths from
-  `creature_died` events. Measure master and the branch from the same base.
+- Project boundaries and simulation order: [architecture](ARCHITECTURE.md).
+  Rules and mutable state belong in `src/DK2.Simulation`; `src/DK2.AI` observes
+  and emits commands; `src/DK2.Harness` runs headless scenarios. Unity integrates
+  and presents them.
+- Tool and scenario entry points: [tool commands](../src/DK2.Tools/README.md)
+  and [scenarios](../scenarios/README.md).
+- Follow AGENTS.md for verification, reviewer/documenter passes and documentation
+  gates. Read [traps](TRAPS.md) before long work. Evidence belongs in research
+  notes, decisions in ADRs, function findings in their KB records, and remaining
+  unknowns in [open questions](research/open-questions.md).
 
 ## Run and verify
 
-    dotnet build DK2.slnx -c Release
-    dotnet test DK2.slnx -c Release --no-build
-    dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj -c Release
-    dotnet run --project src/DK2.Tools -c Release --no-build -- verification-ledger --check
-    dotnet run --project src/DK2.Tools -c Release --no-build -- kb check
-    dotnet run --project src/DK2.Tools -c Release --no-build -- coverage --check
-    dotnet run --project src/DK2.Tools -c Release --no-build -- docs --check
-    dotnet run --project src/DK2.Tools -c Release --no-build -- status --check
+From the repository root, the verification gate list is:
 
-DK2.Oracle.Tests runs DKII.EXE's own functions only when DK2_UNICORN_DLL
-names a unicorn.dll outside the repo, through Python 3 (py -3, or
-DK2_PYTHON); without the DLL the function tests skip
-(reverse-engineering/README.md, ADR-0481). Its table tests need only the
-install.
+```sh
+dotnet build DK2.slnx -c Release
+dotnet test DK2.slnx -c Release --no-build
+dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj -c Release
+dotnet run --project src/DK2.Tools -c Release --no-build -- verification-ledger --check
+dotnet run --project src/DK2.Tools -c Release --no-build -- kb check
+dotnet run --project src/DK2.Tools -c Release --no-build -- coverage --check
+dotnet run --project src/DK2.Tools -c Release --no-build -- docs --check
+dotnet run --project src/DK2.Tools -c Release --no-build -- status --check
+```
 
-Run dk2tools status after the tests when the plan's generated count changes,
-and dk2tools verification-ledger after adding or removing a rule attribute.
-Run dk2tools kb index after changing function records; never edit INDEX.md by
-hand. A note needs `systems:` front matter; dk2tools wiki previews the CI-built wiki
-(ADR-0643), the simulation read/write matrix included (dk2tools simmatrix writes it alone). A new system page in docs/wiki/ follows System-Page-Template.md and goes in _Sidebar.md; a change to a system that has one updates the page and its "last verified" footer. Check the changed commit with git diff --check. A simulation state change
-requires matching GameSimulation.HashVersion and WorldSnapshot.FormatVersion, a new
-determinism pin, and a hash-versions.md row; an observation-format change, a schema bump.
+Build/test prerequisites and install-dependent skips: [root README](../README.md#build-and-test).
+The Unity compile project is outside the solution; run `unity/sync-assemblies.ps1`
+after source changes before editor checks. See [Unity workflow](../unity/README.md).
+Check the changed diff with `git diff --check`.
 
-The Unity compile project is outside DK2.slnx. Run
-unity/sync-assemblies.ps1 after a change under src/ before an editor smoke
-test. Scenario format is in scenarios/README.md; harness output goes under
-build/scenario-runs/ and is ignored.
-
-## Research and workspace notes
-
-- Follow AGENTS.md's source order: DKII.EXE through Ghidra first for a
-  behavior question, then shipped data and original-game experiments.
-  The ghidra-queries skill and docs/RESEARCH-QUEUE.md describe Ghidra
-  12.1.4/PyGhidra. The runner clones the read-only D:\Ghidra\DK2_RE
-  project per run. Keep decompiler output under reverse-engineering/ or
-  scratch, never in tracked files.
-- Read a function's record before querying it. Put each new finding or
-  correction in that record with a dated History line. Write behavioral
-  evidence once in its research note; link from other documents. Distinguish
-  CONFIRMED (game), STRONGLY INFERRED (binary read), HYPOTHESIS, UNKNOWN: ADR-0642.
-- New captures use the [complete native recorder](../tools/oracle/native-capture.md),
-  retaining every readable byte at each selected completed turn. Legacy
-  polling headers use ADR-0119; timer stamps need no correction. See
-  reverse-engineering/README.md for legacy captures and oracle tools.
-- Check git status and git worktree list before editing: other sessions may
-  be working concurrently. Stage named paths, not git add -A; keep original
-  game files and Ghidra output out of commits. Never switch branches in the
-  shared main checkout (TRAPS.md). If Git reports dubious ownership in this
-  environment, use a per-command safe.directory setting.
+A simulation state change requires matching `GameSimulation.HashVersion` and
+`WorldSnapshot.FormatVersion`, a new determinism pin, and a
+[hash-versions row](research/hash-versions.md); an observation-format change
+requires a schema bump.
