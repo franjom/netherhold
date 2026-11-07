@@ -16724,3 +16724,17 @@ active physical-pillar suppression. Do not create additional object records.
 random draws. Geometry/contact is binary-backed; virtual oldest-on-same-tile
 order is an explicit HYPOTHESIS adapter assumption. Exact mixed rebuild order,
 physical pillar lifecycle, other room pillars and movement bits remain partial.
+
+## ADR-0710 - apply live Library neighbour kicks at the terrain change
+**Date:** 2026-11-07 | **Status:** accepted | **Systems:** rooms, creatures, simulation-core
+
+**Context.** `library-neighbour-kick.md` traces Q712's1520 missing Library
+claim draw to a neighbour kick deferred until the holder's next update.
+
+**Decision.** With a live simulation context, apply the Library neighbour's
+existing state transition and release hooks immediately during the change.
+Try holders in claim order and stop after the first accepted kick.
+
+**Consequences.** Hash/save442 changes timing without new fields or restore
+inputs. Detached setup and other room types retain their deferred marks;
+general notification, terrain-call coverage and movement parity remain partial.

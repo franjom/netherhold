@@ -49,9 +49,11 @@ Its sole read-only/applied source difference is a Boolean.
 | Read/validate24inputs only | 1620 through1507 | 1508 draw1: StateUtils325 versus Library1068 |
 | Apply1400 Library chain | 1851 through1519 | 1520 draw1: Library1068 versus Room1563 |
 
-The next boundary has preseed3542246557. Modern446/state26 makes a bound25
-room-routing draw through ImpTaskSystem.TryRouteToSomewhereItFits. Investigate
-its native counterpart and guards before treating this as a missing rule.
+This control stopped at 1520 draw 1, native Library1068 versus modern
+Room1563, with preseed 3542246557. Modern 446/state26 made the bound 25
+room-routing draw through ImpTaskSystem.TryRouteToSomewhereItFits. The
+[next control traced the Library kick timing](library-neighbour-kick.md),
+without changing mining or deposit rules.
 
 438 state/XY matches119/120 samples from1400 through1519: its remaining
 difference is state6 versus native62 at1518, with equal XY. Actors439,441,449

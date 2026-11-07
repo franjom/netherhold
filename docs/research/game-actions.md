@@ -120,8 +120,9 @@ player 3's `Status` go from 2 back to 0. Both carry zero fields.
   with bit `0x100000` on the player, it issues 134 and clears the bit.
 
 STRONGLY INFERRED from the binary, fitted to one recording. The clock's unit is
-assumed to be milliseconds (UNKNOWN). So are the meanings of `0x0048AD30`,
-`0x00491B70` and event `0x74` (Q448). For a replay these are
+assumed to be milliseconds (UNKNOWN). The [state wrapper](functions/0048AD30.md)
+is read and built; see Q448 for the remaining original-game consequences and
+event `0x74`. For a replay these are
 **after the result**: a comparison that stops at the win need not decode them.
 
 ## 4. The map

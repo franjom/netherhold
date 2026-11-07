@@ -34,11 +34,10 @@ also kicked by `Room_NeighbourTerrainChanged` `0x004E44E0` (jump table `0x004E45
 `0x3E` at `0x004E4523`, Workshop `0x46` at `0x004E452B`, Casino `0x9A` at `0x004E453D`, to the shared
 kick at `0x004E4544`).
 
-**Ours.** `RoomEvictRules`, at the holder's next turn, as for 107, 113 and 126: a rebuild (the
-room's size stamp) and a new owner (`Room_TransferOwnership`'s slot `+0x0D` stamps the room, also in
-defeat) differ from the stamp the holder took at its claim; a neighbouring tile's change
-(`0x004E44E0`, `SlabChain.KickNeighbours`) marks the room's latest claimant; a freed room is the held
-tile no longer being one of the type (ADR-0406, Q575). The handlers are `RoomEvictRules.BackIn` from `ResearchStep`, `WorkshopStep` and
+**Ours.** Live Library neighbour notifications apply the [immediate kick](library-neighbour-kick.md)
+during the terrain change (ADR-0710). Other room types and detached calls keep
+the deferred mark adapter. Rebuild/owner stamps and a freed held tile are
+still checked at the holder's next turn (ADR-0406, Q575). The handlers are `RoomEvictRules.BackIn` from `ResearchStep`, `WorkshopStep` and
 `CasinoStep`. Not built: the Library's load slot `+0x11` (ADR-0406), and the books', crates' and
 effect's handling. The neighbour trigger is the common one in play: a wall dug, reinforced or
 claimed beside the room. A jackpot winner leaves the Drink job (ADR-0396), so ours does not evict

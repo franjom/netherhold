@@ -94,7 +94,8 @@ neighbouring room tile of a room whose definition has `SpecialWalls` (skipped wh
 
 **Ours.** `RoomEvictRules` (shared with the Temple's 107 and the Prison's 126) kicks a trainee at
 its next turn when the room was rebuilt, taken, freed or beside a changed tile since its claim
-(ADR-0406, `room-return-states.md` §1).
+(ADR-0406, `room-return-states.md` §1). The [live Library neighbour
+notification](library-neighbour-kick.md) has separate immediate timing at 442.
 
 ## 5. 126, back into a Prison `0x00473920` — STRONGLY INFERRED
 

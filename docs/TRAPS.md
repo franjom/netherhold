@@ -13,6 +13,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 ## Shell and files
 
 - Evidence commands need explicit absent-target guards at the call site as well as exclusive creation in helpers; avoid `write_text` for new evidence or helper files.
+- Wait for a counterfactual's restoration receipt before copying source overlays; its working file temporarily contains the pre-fix implementation.
 
 - With DOTALL enabled, bound merge-marker labels with `[^\n]*`; `^>>>>>>> .*` also consumes the file tail.
 - Restore Git blobs as bytes; Windows text newline translation can double CRLF already present in a blob.

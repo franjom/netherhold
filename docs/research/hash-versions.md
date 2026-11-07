@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**442** - `0x7CCD482E9EC67757`. Live Library neighbour terrain changes apply their holder kick immediately (ADR-0710). No new saved fields; earlier saves are refused.
+
 **441** - `0x12CF3D1067315450`. Virtual Hatchery78 corners contribute to ordinary creature obstacle queries (ADR-0709); mixed same-tile ordering remains a HYPOTHESIS adapter assumption. No new saved fields; earlier saves are refused.
 
 **440** - `0xB82C776957AEDBC2`. Fresh counted base clips include integer start/main/end and terminal rate clearing (ADR-0708). No new saved fields; earlier saves are refused.

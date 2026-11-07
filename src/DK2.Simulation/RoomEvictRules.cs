@@ -12,7 +12,8 @@ namespace DK2.Simulation;
 /// <c>0x004E44E0</c> for one holder when a neighbouring tile's terrain changes, kick place-holders to
 /// the type's return state: Temple 107, Prison 126, Training Room 113, Library 62, Workshop 70,
 /// Casino 154. Each waits a turn and goes back in (room-return-states.md §1, the handlers there).</summary>
-/// <remarks>Ours sees the change at the holder's next turn, by the room's stamp
+/// <remarks>Live Library neighbour changes apply the kick during the change (ADR-0710).
+/// Other changes reach the holder's next turn through the room's stamp
 /// (<see cref="SlabChain.HoldersStamp"/>) against the one it held when it claimed its place
 /// (<see cref="CreatureState.HeldPlaceStamp"/>), which a neighbour's change replaces with
 /// <see cref="SlabChain.KickedMark"/> for one holder, and a freed room by the place's tile no longer

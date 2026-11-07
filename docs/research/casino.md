@@ -263,6 +263,8 @@ From the 10-byte rows at `0x006A0B00`: 73, 75, 77 and 91 are `0x2032` (50 s, tab
   effects, the wheel's spin (its `random(2)` is drawn), the drunk walk, 156's turn result beyond
   waiting for it.
 - 154, the eviction a Casino's sale, loss or neighbour's change starts (`0x004D70D0`, `0x004D7100`,
-  `0x004E44E0`), is built (ADR-0402, ADR-0406); 158 is not (Q571).
+  `0x004E44E0`), has a built return handler (ADR-0402, ADR-0406); neighbour
+  notifications retain the deferred adapter outside the [live Library path](library-neighbour-kick.md).
+  158 is not built (Q571).
 </content>
 </invoke>

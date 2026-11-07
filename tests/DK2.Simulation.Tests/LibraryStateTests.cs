@@ -335,6 +335,67 @@ public class LibraryStateTests
     }
 
     [Fact]
+    public void AChangedNeighbourKicksTheLibraryHolderBeforeTheNextCreatureTurn()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 3);
+        CreatureState reader = Researcher(db, world, new TilePos(2, 2), ResearchStep.ReadingShortState);
+        reader.ActionUntilTick = long.MaxValue;
+        var change = new ChangeNeighbourOnce();
+        GameSimulation sim = Simulation(db, world, change);
+
+        sim.Tick();
+
+        Assert.Equal(ResearchStep.ReturningState, reader.Dk2StateId);
+        Assert.False(reader.HeldPlace.IsHeld);
+        Assert.Equal(0, reader.StateEnteredTick);
+        sim.Tick();
+        Assert.Equal(ResearchStep.ReturningState, reader.Dk2StateId);
+        sim.Tick();
+        Assert.Equal(ResearchStep.ChoosingState, reader.Dk2StateId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AChangedNeighbourImmediatelyKicksOnlyTheLatestAcceptedLibraryHolder(bool latestInHand)
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 3);
+        CreatureState older = Researcher(db, world, new TilePos(2, 2), ResearchStep.ReadingShortState);
+        CreatureState latest = Researcher(db, world, new TilePos(2, 3), ResearchStep.ReadingShortState);
+        older.HeldPlaceSerial = 1;
+        latest.HeldPlaceSerial = 2;
+        latest.InHand = latestInHand;
+        var sim = new GameSimulation(db, world, seed: 42, [new ChangeNeighbourOnce()]);
+
+        sim.Tick();
+
+        CreatureState kicked = latestInHand ? older : latest;
+        CreatureState retained = latestInHand ? latest : older;
+        Assert.Equal(ResearchStep.ReadingShortState, retained.Dk2StateId);
+        Assert.True(retained.HeldPlace.IsHeld);
+        Assert.Equal(ResearchStep.ReturningState, kicked.Dk2StateId);
+        Assert.False(kicked.HeldPlace.IsHeld);
+    }
+
+    private sealed class ChangeNeighbourOnce : ISimulationSystem
+    {
+        private bool changed;
+        public string Name => "change Library neighbour";
+        public void Execute(SimulationContext context)
+        {
+            if (changed) return;
+            changed = true;
+            ref TileState tile = ref context.World.Tile(4, 2);
+            (byte before, PlayerId owner) = (tile.TerrainId, tile.OwnerPlayerId);
+            tile.TerrainId = Dk2TerrainFixture.ReinforcedWall;
+            SlabChain.Changed(context.World, context.Database, context.World.TileIndex(new TilePos(4, 2)),
+                before, owner, context.Rng, context);
+        }
+    }
+
+    [Fact]
     public void ANeighbouringTilesChangeSendsTheLibrarysReaderTo62AndBackTo53_TheRoomUnchanged()
     {
         // 0x004E44E0 from Tile_SetTerrain (0x00450214): a wall reinforced beside the Library (ADR-0406).

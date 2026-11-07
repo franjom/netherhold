@@ -64,7 +64,7 @@ public static class SlabChain
             (tile.SlabOrder, tile.RoomSizeChangedTick, tile.RoomKickedTick) = (0, 0, 0);
             tile.RoomListPosition = default;
         }
-        if (tile.TerrainId != terrainBefore) KickNeighbours(world, database, tileIndex);
+        if (tile.TerrainId != terrainBefore) KickNeighbours(world, database, tileIndex, context);
     }
 
     /// <summary>A holder a neighbour's change picked: no room's stamp equals it.</summary>
@@ -75,10 +75,12 @@ public static class SlabChain
     /// holder to 62, a Training Room's to 113, a Workshop's to 70, a Torture Chamber's to 136 and a
     /// Casino's to 154; the Prison has the flag and no arm. ONE holder per call: the loop steps
     /// through the kicked creature's own link, which its release (<c>0x004E5E00</c>) has zeroed, so it
-    /// takes the list's head, the latest claimant, and stops. Ours marks that holder, skipping one a
-    /// change has already marked, and it takes the kick at its next turn (<see cref="RoomEvictRules"/>).
-    /// Not modelled: a head whose kick the transition table refuses, after which DK2 tries the next.</summary>
-    internal static void KickNeighbours(WorldState world, GameDatabase database, int tileIndex)
+    /// takes the list's head, the latest claimant, and stops. A live Library change kicks immediately;
+    /// other rooms and detached setup mark the holder for its next turn (<see cref="RoomEvictRules"/>).</summary>
+    internal static void KickNeighbours(WorldState world, GameDatabase database, int tileIndex) =>
+        KickNeighbours(world, database, tileIndex, null);
+
+    private static void KickNeighbours(WorldState world, GameDatabase database, int tileIndex, SimulationContext? context)
     {
         int x = tileIndex % world.Width, y = tileIndex / world.Width;
         for (int d = 0; d < Dx.Length; d++)
@@ -92,6 +94,17 @@ public static class SlabChain
                     or RoomTypeId.TortureChamber or RoomTypeId.Casino)
                 || RoomIndex.RoomAt(world, database, n) is not { } room)
                 continue;
+
+            if (context is not null && definition.TypeId == RoomTypeId.Library)
+            {
+                foreach (CreatureState holder in world.Creatures.Where(c => c.HeldPlace.In(room))
+                    .OrderByDescending(c => c.HeldPlaceSerial).ToArray())
+                {
+                    if (holder.InHand) continue;
+                    if (Systems.StateShadow.TryMove(context, "room neighbour", holder, ResearchStep.ReturningState)) break;
+                }
+                continue;
+            }
 
             CreatureState? head = null;
             foreach (CreatureState c in world.Creatures)
