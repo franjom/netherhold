@@ -4,6 +4,10 @@
 **Parent:** `plans/2026-10-27-autonomous-playtesting.md` (ADR-0552, Stages A–C, headless).
 **Mandate:** `AGENTS.md` Goal 10 (AI/Bot Interface) and Goal 11 (presentation modes stay thin).
 
+**Proposed extension:** [agentic campaign playtesting](2026-11-07-agentic-campaign-playtesting-design.md)
+owns the background-play, desktop-isolation and audiovisual requirements. Stage D
+remains the input/UI path; direct command play does not satisfy its UI checks.
+
 ## 1. Objective
 
 Test the real Unity human-input path automatically:
@@ -137,9 +141,10 @@ gamepad. Device state stays outside `GameSimulation`.
 
 ## 7. Phase 5 — rendered HUD automation
 
-- **Where it runs.** A windowed Mono player built from a separate checkout (Unity's project lock
-  refuses a batch build of the project the owner has open; IL2CPP lacks its module). The
-  copy's Library is imported once and reused; DLLs come from `sync-assemblies.ps1`. Never
+- **Where it runs.** A windowed standalone player built from a separate checkout;
+  use the [current release-player workflow](../../README.md#run-the-unity-presentation)
+  and ADR-0690. Any diagnostic build is labelled separately. The copy's Library
+  is imported once and reused; DLLs come from `sync-assemblies.ps1`. Never
   `-nographics` for layout, hit tests or screenshots. One instance, one scenario, a wall-clock
   limit, launched by hand.
 - **Fixed step.** `Time.captureDeltaTime` alone does not fix the tick count, because
@@ -169,5 +174,6 @@ Every failure bundle: commit, Unity and Input System versions, scene and display
 
 ## 10. Out of scope
 
-Gamepad, continuous or parallel Unity runs, live LLM screenshot reading, computer-vision
-agents, new gameplay commands for testing, replacing the headless harness.
+Gamepad, continuous or parallel Unity runs, new gameplay commands for testing and
+replacing the headless harness. Agent supervision and audiovisual review are
+separate proposed extension stages, not completed or required by Stage D itself.

@@ -3,6 +3,10 @@
 **Status:** accepted as ADR-0552 (2026-10-27). Stages A, B and C built (the harness half of B); snapshots in failure bundles, DK2-behaviour invariants and a fog-aware fuzzer are not. Unity journals and the Unity input path are Stage D, ADR-0553 (`plans/2026-10-27-stage-d-unity-input.md`).
 **Mandate:** `AGENTS.md` Goal 10 (AI/Bot Interface). Related milestones: M5, M6, M9, M10, M12–M14.
 
+**Proposed extension:** [agentic campaign playtesting](2026-11-07-agentic-campaign-playtesting-design.md)
+defines the reusable campaign player, external-agent and audiovisual scope; it
+does not change the built stages below.
+
 ## 1. Objective
 
 An explicitly launched, resource-bounded way to let local controllers play the headless
@@ -186,5 +190,6 @@ sample size and uncertainty; a 20-seed median can double by chance.
   - Not built: snapshots in failure bundles, DK2-behaviour invariants (each needs a cited
     source), specials, objects and fog-aware tagging in the fuzzer.
 
-**Deferred:** goal-directed AI, Enhanced Keeper, fog-filtered observations, LLM supervisor
-code (an LLM can read reports by hand), in-process parallel worlds, distributed or continuous execution.
+**Deferred beyond A–C:** goal-directed play, player-visible observations and an
+agent supervisor are proposed in the extension above. Enhanced Keeper, in-process
+parallel worlds and distributed or continuous execution remain outside these stages.
