@@ -49,6 +49,8 @@ public static class ActionAnimationClock
         PossessedExcavationRules.Cancel(creature);
         creature.PossessedExcavation = default;
         ReinforcementActionRules.Cancel(creature);
+        ClaimActionRules.Cancel(creature);
+        creature.ClaimAction = default;
         ActionAnimationFlags flags = creature.ActionAnimationFlags;
         bool finished = (flags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) != 0
             && (flags & ActionAnimationFlags.Loop) == 0;

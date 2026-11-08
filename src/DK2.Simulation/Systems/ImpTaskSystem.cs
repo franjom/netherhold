@@ -234,9 +234,11 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         if (CreatureEligibility.IsExcluded(creature,
             CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return;
 
-        if (creature.ReinforcementAction.Active || ReinforcementActionRules.UsesClock(creature, definition))
+        if (creature.ReinforcementAction.Active || ReinforcementActionRules.UsesClock(creature, definition)
+            || creature.ClaimAction.Kind != ClaimActionKind.None || ClaimActionRules.UsesClock(creature, definition))
             RunWorkerPrelude(context, creature, definition);
         ReinforcementActionRules.Poll(context, creature);
+        ClaimActionRules.Poll(context, creature);
         bool handlerWasDone = creature.ActionHandlerDone;
         Update(context, creature, definition);
         // Later workers see this strike before choosing or testing their own finished action.
@@ -267,6 +269,9 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         ISimulationProfiler profiler = context.Profiler;
         if (RunWorkerPrelude(context, creature, definition, grid)) return;
         if (creature.Dk2StateId == 22 && FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
+        if (creature.Dk2StateId is 16 or 18 or 20
+            && (FightRules.ActionIsRunning(creature, definition, context.Tick)
+                || CreatureCurrentAction.IsRunning(creature, context.Tick))) return;
         // A combat handler set 1 this turn: 1's handler is next turn's (0x00476FC0).
         if (context.IdleHandlerWaits(creature)) return;
         bool wandered;

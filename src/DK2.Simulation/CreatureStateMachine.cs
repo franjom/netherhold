@@ -98,6 +98,7 @@ public static class CreatureStateMachine
     {
         PossessedExcavationRules.Cancel(creature);
         ReinforcementActionRules.Cancel(creature);
+        ClaimActionRules.Cancel(creature);
         TrainingStep.CancelAction(creature);
         IdleActionRules.Cancel(creature);
         creature.SwingInProgress = false;

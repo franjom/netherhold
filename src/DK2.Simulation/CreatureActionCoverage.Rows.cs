@@ -19,13 +19,13 @@ public static partial class CreatureActionCoverage
         rows.Add(Built(1, typeof(ImpTaskSystem), "StepWorkAnimation", "states 14, 186, 38; possession", "possession queues the strike with no clip"));
         rows.Add(Built(2, typeof(ImpTaskSystem), "StepWorkAnimation", "states 26, 186; possession", "possession queues the strike with no clip"));
         rows.Add(NeverBegun(3, $"no begin call passes 3 (its handler 0x00484940 returns 0); {Table}"));
-        rows.Add(Unbuilt(4, "state 16; possession", "state 16 runs on the WorkCadence stand-in and possession claims at once: no art 13 action"));
-        rows.Add(Unbuilt(5, "state 20", "the WorkCadence stand-in, no art 13 action"));
+        rows.Add(Built(4, typeof(ClaimActionRules), "Begin", "state 16; possession", "possession starts through its existing claim adapter; definitions without timing use WorkCadence"));
+        rows.Add(Built(5, typeof(ClaimActionRules), "Begin", "state 20", "definitions without timing use WorkCadence"));
         rows.Add(Unbuilt(6, "possession", "possession queues the attack at once, no art 13 action"));
         rows.Add(Built(7, typeof(ReinforcementActionRules), "Begin", "state 22"));
         rows.Add(Unbuilt(8, "state 24", "the WorkCadence stand-in; ImpTaskSystem.UpdateWorking asks only the begin's sound"));
         rows.Add(Unbuilt(9, "state 185", "state 185 not read"));
-        rows.Add(Unbuilt(10, "state 18", "the WorkCadence stand-in, no art 13 action"));
+        rows.Add(Built(10, typeof(ClaimActionRules), "Begin", "state 18", "definitions without timing use WorkCadence"));
         rows.Add(Unbuilt(11, "states 180, 181, 267", "RoomAttackRules queues the attack each turn with no art 5 action; 180 and 181 unbuilt"));
         rows.Add(NeverBegun(12, $"no begin call passes 12 (room-health.md); {Table}"));
         rows.Add(Unreachable(13, "state 206", "DK2 never enters state 206 (Q455, traps.md section 11)"));

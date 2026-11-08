@@ -16,17 +16,21 @@ namespace DK2.Simulation;
 public static class CreatureCurrentAction
 {
     /// <summary>The stand-ins <see cref="CreatureStateMachine"/> clears when it ends an action: a swing, an action hold
-    /// (idle, flourish, a cast, the Workshop's work), the tunnel's dig, a trainee's swing and an imp's dig or mine loop.</summary>
+    /// (idle, flourish, a cast, the Workshop's work), the tunnel's dig, a trainee's swing, an imp's dig or mine loop,
+    /// or an ordinary claim, floor-attack or room-conversion action.</summary>
     public static bool IsRunning(CreatureState creature, GameTick tick) =>
         creature.PossessedExcavation.Kind != PossessedExcavationKind.None
+        || creature.ClaimAction.Kind != ClaimActionKind.None
         || creature.IdleAction != IdleActionId.None || creature.SwingInProgress || tick.Value < creature.ActionUntilTick || creature.Tunnel.Digging
         || creature.TrainingActionId != 0 || WorkLoopIndex(creature) != 0;
 
     /// <summary>The index of the action that runs when ours names it: 30 and 31 for a trainee's, 1 and 2 for an imp's dig and
-    /// mine, 1 or 2 for a tunneller's dig, 17, 16 or 15 for a swing, cast or free-aimed cast in progress, 17 for a melee swing in its hold, 16 for a cast in its hold; 0 for none or one ours does not tell apart.</summary>
+    /// mine, 4, 5 and 10 for ordinary claim-family actions, 1 or 2 for a tunneller's dig, 17, 16 or 15 for a swing, cast
+    /// or free-aimed cast in progress, 17 for a melee swing in its hold, 16 for a cast in its hold; 0 for none or one ours does not tell apart.</summary>
     public static int IndexOf(CreatureState creature, CreatureDef definition, GameTick tick)
     {
         if (creature.PossessedExcavation.Kind != PossessedExcavationKind.None) return (int)creature.PossessedExcavation.Kind;
+        if (creature.ClaimAction.Kind != ClaimActionKind.None) return (int)creature.ClaimAction.Kind;
         if (creature.IdleAction != IdleActionId.None) return (int)creature.IdleAction;
         if (creature.TrainingActionId != 0)
             return creature.TrainingActionId == (byte)TrainingActionKind.Spell ? CreatureActionTable.TrainSpell : CreatureActionTable.TrainMelee;

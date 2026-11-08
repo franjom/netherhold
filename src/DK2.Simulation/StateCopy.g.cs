@@ -167,6 +167,7 @@ namespace DK2.Simulation
             IdleAction = other.IdleAction;
             ReinforcementAction = other.ReinforcementAction;
             PossessedExcavation = other.PossessedExcavation;
+            ClaimAction = other.ClaimAction;
             AlarmX = other.AlarmX;
             AlarmY = other.AlarmY;
             AlarmDeficit = other.AlarmDeficit;

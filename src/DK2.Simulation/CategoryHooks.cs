@@ -100,7 +100,7 @@ public static class CategoryHooks
         Slot(CreatureStateCategory.Refused, HookKind.Leave, 0x0047A780, HookStatus.NotBuilt,
             "clears +0x3CD, two vectors and +0x3E6 bit 20; the combined role is UNKNOWN (state-category-hooks.md §2)"),
         new(CreatureStateCategory.WorkerJob, HookKind.Leave, 0x004647D0, HookStatus.Partial,
-            "the pickup subset is built (ADR-0263); the task removal and completion are not (state-category-hooks.md §2)")
+            "pickup bits and ordinary claim action cancellation are built; task-slot removal remains partial (state-category-hooks.md §2)")
         {
             Leave = static (in StateHookContext _, CreatureState creature) => WorkerPickupRules.OnTaskReleased(creature),
         },

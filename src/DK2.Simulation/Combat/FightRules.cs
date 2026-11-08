@@ -112,7 +112,7 @@ public static class FightRules
     /// <summary>The common busy gate (00496D00): handler completion alone does not
     /// release a counted cast's animation hold (00496AA0).</summary>
     public static bool ActionIsRunning(CreatureState creature, CreatureDef definition, GameTick tick) =>
-        creature.ReinforcementAction.Active || tick.Value < creature.ActionUntilTick || MeleeActionIsRunning(creature, definition, tick);
+        creature.ClaimAction.Kind != ClaimActionKind.None || creature.ReinforcementAction.Active || tick.Value < creature.ActionUntilTick || MeleeActionIsRunning(creature, definition, tick);
 
     /// <summary>Mode-3 melee holds past impact until the animation completion poll
     /// (kmf-animation-playback.md §7). <see cref="AnimationTimingRules.ActionHoldTicks"/> counts the
@@ -137,6 +137,7 @@ public static class FightRules
     {
         PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
+        ClaimActionRules.Cancel(me);
         me.SwingInProgress = true;
         me.ActionUntilTick = 0;
         me.SwingKind = SpellRules.MeleeSwing;
@@ -290,6 +291,7 @@ public static class FightRules
     {
         PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
+        ClaimActionRules.Cancel(me);
         me.SwingInProgress = true;
         me.ActionUntilTick = context.Tick.Value + AnimationTimingRules.CountedHoldTicks(mine, 6, 1);
         me.SwingKind = SpellRules.SpellCast;
@@ -465,6 +467,7 @@ public static class FightRules
     {
         PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
+        ClaimActionRules.Cancel(me);
         me.SwingInProgress = true;
         me.ActionUntilTick = 0;
         me.SwingKind = kind;

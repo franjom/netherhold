@@ -16884,3 +16884,20 @@ Apply the current-state movement gate to updates in or beginning in state 80.
 **Consequences.** Hash/save 452 changes behavior without new saved fields.
 Other Lair dispatch, retry and saved-room adapters remain partial.
 The controlled replay does not establish full-state or Heart parity.
+
+## ADR-0721 - preserve ordinary claim action clocks
+**Date:** 2026-11-08 | **Status:** accepted | **Systems:** imps-tile-work, simulation-core
+
+**Context.** `imp-claim-action-clock.md` establishes phase-dependent application
+and completion differences in the ordinary claim, floor-attack and room adapters.
+
+**Decision.** Store each action's kind, independent tile point, animation
+completion and clip ownership beside the shared animation clock. Poll before
+combat/state validation and advance after the creature's handlers. Preserve
+retained phase/cycle flags and the handlers' distinct terminal conditions;
+cancel on action replacement or leaving the worker category.
+
+**Consequences.** Hash/save 453 adds the persistent action state and refuses
+earlier snapshots. The existing missing-timing fallback and possession-start
+adapters remain bounded limitations. Controlled function/test agreement does
+not establish campaign or complete action-layer parity.

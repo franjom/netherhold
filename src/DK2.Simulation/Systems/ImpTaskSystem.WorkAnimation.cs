@@ -41,6 +41,7 @@ public sealed partial class ImpTaskSystem
     private static bool WorkActionEnded(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (ReinforcementActionRules.UsesClock(creature, definition)) return !creature.ReinforcementAction.Active;
+        if (ClaimActionRules.UsesClock(creature, definition)) return creature.ClaimAction.Kind == ClaimActionKind.None;
         if (!PlaysWorkLoop(creature, definition))
             return WorkCadence.ActionEnded(creature.TargetWork, context.Tick.Value, creature.StateEnteredTick);
         if (creature.ActionArtSlot == 0) return true;
@@ -88,6 +89,7 @@ public sealed partial class ImpTaskSystem
     private static void StepWorkAnimation(SimulationContext context, CreatureState creature, CreatureDef definition, bool struck)
     {
         if (creature.ReinforcementAction.Active || ReinforcementActionRules.UsesClock(creature, definition)) return;
+        if (creature.ClaimAction.OwnsClip || ClaimActionRules.UsesClock(creature, definition)) return;
         if (creature.TargetTileIndex >= 0 && creature.SecretDoorTask
             && creature.Dk2StateId == ImpStates.SecretDoorWork)
         {

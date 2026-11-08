@@ -130,6 +130,14 @@ public sealed partial class ImpTaskSystem
             return;
         }
 
+        if (ClaimActionRules.UsesClock(creature, definition))
+        {
+            if (context.Tick.Value > creature.StateEnteredTick)
+                ClaimActionRules.Begin(context, creature, definition,
+                    new TilePos(creature.TargetTileIndex % context.World.Width, creature.TargetTileIndex / context.World.Width));
+            return;
+        }
+
         // State 26's handler runs its checks only on a call with no action running
         // (0x00465870), just before it begins the next strike's action: the end of the creature's
         // update asks them when the work clock begins one (MinersActionBegins). Without the

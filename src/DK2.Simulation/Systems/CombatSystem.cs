@@ -70,6 +70,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         if (CreatureDeathRules.IsCorpse(creature)) return;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         ReinforcementActionRules.Poll(context, creature);
+        ClaimActionRules.Poll(context, creature);
         // Action handlers continue while possession pauses state dispatch.
         if (creature.SwingInProgress)
         {

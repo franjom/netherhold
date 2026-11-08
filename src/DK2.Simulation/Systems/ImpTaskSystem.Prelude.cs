@@ -15,14 +15,15 @@ public sealed partial class ImpTaskSystem
     /// <summary>Reinforcement's claim/pickup block (0048904E), before the action poll at00489A68.</summary>
     public ICreatureUpdateStep Prelude => _prelude ??= new WorkerPrelude(this);
 
-    private sealed class WorkerPrelude(ImpTaskSystem owner) : ICreatureUpdateStep
+    internal sealed class WorkerPrelude(ImpTaskSystem owner) : ICreatureUpdateStep
     {
         public string Name => "WorkerPrelude";
         public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
         public void Update(SimulationContext context, CreatureState creature)
         {
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            if (!creature.ReinforcementAction.Active && !ReinforcementActionRules.UsesClock(creature, definition)) return;
+            if (!creature.ReinforcementAction.Active && !ReinforcementActionRules.UsesClock(creature, definition)
+                && creature.ClaimAction.Kind == ClaimActionKind.None && !ClaimActionRules.UsesClock(creature, definition)) return;
             if (creature.Possessed || HeroJobRules.IsHero(creature) || !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
                 || context.TremorRecoveryCompletedThisTick.Contains(creature)
                 || CreatureEligibility.IsExcluded(creature,

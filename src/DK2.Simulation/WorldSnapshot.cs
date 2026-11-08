@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 452;
+    private const int FormatVersion = 453;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -491,6 +491,11 @@ public static class WorldSnapshot
             w.Write(c.PossessedExcavation.Target.Y);
             w.Write(c.PossessedExcavation.AnimationComplete);
             w.Write(c.PossessedExcavation.OwnsClip);
+            w.Write((byte)c.ClaimAction.Kind);
+            w.Write(c.ClaimAction.Target.X);
+            w.Write(c.ClaimAction.Target.Y);
+            w.Write(c.ClaimAction.AnimationComplete);
+            w.Write(c.ClaimAction.OwnsClip);
             w.Write(c.AlarmX);
             w.Write(c.AlarmY);
             w.Write(c.AlarmDeficit);
@@ -1288,6 +1293,13 @@ public static class WorldSnapshot
                 PossessedExcavation = new PossessedExcavationState
                 {
                     Kind = (PossessedExcavationKind)r.ReadByte(),
+                    Target = new DK2.Core.TilePos(r.ReadInt32(), r.ReadInt32()),
+                    AnimationComplete = r.ReadBoolean(),
+                    OwnsClip = r.ReadBoolean(),
+                },
+                ClaimAction = new ClaimActionState
+                {
+                    Kind = (ClaimActionKind)r.ReadByte(),
                     Target = new DK2.Core.TilePos(r.ReadInt32(), r.ReadInt32()),
                     AnimationComplete = r.ReadBoolean(),
                     OwnsClip = r.ReadBoolean(),

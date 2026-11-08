@@ -15,6 +15,7 @@ internal static class WorkerPickupRules
 
     public static void OnTaskReleased(CreatureState creature)
     {
+        if (creature.ClaimAction.Kind != ClaimActionKind.None) CreatureStateMachine.EndAction(creature);
         // The dispatcher chooses the hook from the saved caller, but this hook reads the resume.
         int state = creature.Dk2StateId is 6 or 7 ? creature.UtilityNewState : creature.Dk2StateId;
         if (state is 43 or 44 or 46 or 49) SetEnabled(creature, true);

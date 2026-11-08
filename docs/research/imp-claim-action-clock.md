@@ -7,9 +7,9 @@ systems: [imps-tile-work]
 
 STRONGLY INFERRED from fresh DKII.EXE reads and original-function execution,
 2026-11-07: the ordinary adapters for actions 4, 5 and 10 omit retained
-animation state. This produces both application-spacing and completion errors
-in the current engine (hash/save 452). A constant first-gap correction cannot
-reproduce all the tested inputs. No simulation behavior changed in this study.
+animation state in baseline hash/save 452. This produces both application-spacing
+and completion errors. ADR-0721 supplies the ordinary live-action clocks at 453;
+a constant first-gap correction cannot reproduce all the tested inputs.
 
 The external lead was [OpenKeeper PR 1021](https://github.com/tonihele/OpenKeeper/pull/1021)
 and its prerequisite 933; the [PR comparison](openkeeper-1021-review.md) owns
@@ -48,7 +48,7 @@ inputs were tested for each family: phase 0/flags 1 (loop), phase 2000/flags 1,
 and phase 0/flags 5 (loop plus retained wrap). These are constructed inputs,
 not observations of how often the game reaches each one.
 
-| Case | Native applications | Native action ends | Modern applications | Modern work state exits |
+| Case | Native applications | Native action ends | Baseline 452 applications | Baseline 452 work state exits |
 |---|---|---|---|---|
 | Claim, phase 0 | 1–5 | 7 | 1–5 | 7 |
 | Claim, phase 2000 | 1–5 | 6 | 1–5 | 7 |
@@ -62,8 +62,8 @@ not observations of how often the game reaches each one.
 The remaining claim/wrap control matches the phase-0 claim row. Application
 amounts are +164 for floor claiming, -28 for floor attacking and -4000 for
 neutral-room conversion. The compared jobs need five, 24 and 23 applications.
-Native action ending and the modern state exit are different boundaries:
-the modern conversion fallback notices completed work on its following update.
+Native action ending and the baseline modern state exit are different boundaries:
+the baseline conversion fallback notices completed work on its following update.
 
 ## Method, evidence and limits
 
@@ -83,16 +83,17 @@ from this native fixture. The target routines themselves are not replaced.
 Initial installed animation phase/rate/resource are supplied; this is not a
 test of resource loading or the animation installer.
 
-The modern probe runs ImpTaskSystem and its real work applier on the existing
+The baseline 452 modern probe runs ImpTaskSystem and its real work applier on the existing
 test map, with slot-13 timing supplied from shipped metadata. It begins at
 the first application boundary, not a complete walking/arrival trajectory.
 The work-state entry is -2 and the initial work countdown is 1: completed-world
 tick 1 executes context tick 0, corresponding to native poll 1 after an action
 start at relative 0. PDB identity and SHA-256 document checks match five
-relevant current source files, including WorkCadence and both worker adapters.
+relevant baseline source files, including WorkCadence and both worker adapters.
 This is bounded source/build evidence, not a complete revision build proof.
 
-No native capture, campaign replay, Unity run or .NET test-suite run was made.
+The 2026-11-07 investigation ran no native capture, campaign replay, Unity run
+or .NET test suite.
 These results establish the supplied phase/cycle cases, not aggregate claiming
 speed or campaign outcomes. The full-health fresh attack control supports the
 PR's four-tick break-to-first-claim sequence through the already-read states;
@@ -103,17 +104,40 @@ and [PE/PDB identity and checksum specification](https://github.com/dotnet/runti
 The probe checks the full PDB identity, PDB content checksum and SHA-256
 source checksums; a mismatch aborts the run.
 
-## Implementation boundary
+## Implementation and remaining scope
 
-WorkCadence gives AttackTile and ConvertRoom a first gap of 1 and uses a
-two-tick modulus for claim completion. WorkAnimation's stored loop applies
-to digging/mining; reinforcement has its separate runner. Ordinary actions
-4/5/10 need independent handler/animation completion, retained phase/cycle
-state, their target points and polling before state validation. Preserve each
-handler's distinct terminal return rule. Restored actions must use captured
-clock inputs rather than a completion date read from later frames.
+ADR-0721/hash453 implements ordinary actions4/5/10 in ClaimActionRules using
+the stored animation clock. The action point survives changes to the task;
+the early poll applies work before combat/state validation, and advancement
+follows the handlers. Handler completion and animation completion remain
+independent, including a zero-rate poll with a counted cycle. Attack-to-claim
+entry states retain the slot13 clip. Accepted action replacement cancels the
+old action; the [worker category's leave hook](functions/004647D0.md) ends it
+before releasing its task. A paused state handler in possession still polls
+the running action, including actions4/5's existing recharge multiplier.
 
-The next implementation should extend an evidenced live-action path for these
-families and verify fresh, retained-phase, retained-wrap and terminal-hit cases.
-Replacing the gap with 3 or fitting a fixed tile duration would retain known
-errors in the controls above.
+The new state is hashed, copied and saved. Restored actions use those saved
+clock inputs, not a completion date read from later frames. The nine native
+timing expectations above pass through the real ordinary worker system.
+
+Definitions without playable art13 timing retain WorkCadence; new possession
+claim/attack input still uses its existing adapters. Resource-identity reuse,
+general queued art replacement and full captured-action restoration remain
+outside this change. The existing shared sound-start phase approximation is
+retained; this is not a complete native action or animation layer.
+
+## Implementation verification (2026-11-08)
+
+The final solution build and Unity compile pass; Unity reports two existing
+CS0618 warnings at DungeonRunner.Hud.cs:83. The full solution has 8653 passed,
+9 skipped and 0 failed tests; Simulation has 5073 passed, and the focused
+action-clock set has 30 passed. On archived baseline f177790b, the nine core
+cases produce six expected failures and three passing controls. The complete
+attack-to-claim handover regression also fails there: baseline break tick 24
+becomes 26, followed by current claim hits 30–34 and state 10 at 34.
+
+Implementation evidence is retained separately from the native study:
+`F:/DK2Evidence/studies/imp-claim-actions--2026-11-08--001/`.
+Its manifest verifies 58 files by SHA-256, including ten final TRX files,
+baseline failure TRXs, the unchanged 520-source baseline archive, exact tests,
+changed source and binaries. No native gameplay capture was made for this change.
