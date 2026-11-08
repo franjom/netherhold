@@ -585,5 +585,5 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
   `unicorn.dll` is absent (ADR-0481).
 - Decompiler output never enters the repository, anywhere (ADR-0046);
   `reverse-engineering/` is gitignored except its README.
-- OpenKeeper facts carry provenance in `THIRD-PARTY-NOTICES.md`; wiki content is
+- OpenKeeper provenance follows ADR-0003; wiki content is
   put in our own words with a citation, never its prose.

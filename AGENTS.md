@@ -69,7 +69,8 @@ Before implementing DK2 behavior, check, in this order:
    no shipped level has, build a test level, play it and record it:
    `tools/levelgen/README.md`.
 4. **OpenKeeper** — cloned at `D:\OpenKeeper`. GPLv3: facts only, with
-   provenance in `THIRD-PARTY-NOTICES.md`. Its pull requests are reviewed
+   project acknowledgment in `THIRD-PARTY-NOTICES.md`, detailed provenance in
+   `docs/research/`. Its pull requests are reviewed
    against this repo on the owner's say-so; a SessionStart hook asks on
    Wednesdays and Fridays. After a review, write the highest PR number
    reviewed to `tools/openkeeper-review/last-reviewed.txt`.

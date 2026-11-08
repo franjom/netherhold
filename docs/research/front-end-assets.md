@@ -264,8 +264,8 @@ the entry:
   walk cleanly; together they last about 5,537 s.
 - **Music is MPEG-2 Layer II joint/stereo at 112 kbps, 22,050 Hz.**
 
-OpenKeeper's `SdtFile` reads the same layout, and THIRD-PARTY-NOTICES.md already
-records it for `SdtArchive`.
+OpenKeeper's `SdtFile` reads the same layout; see the project acknowledgment in
+THIRD-PARTY-NOTICES.md.
 
 ### 5.2 Front-end banks (STRONGLY INFERRED, bytes)
 

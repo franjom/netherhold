@@ -69,7 +69,7 @@ numeric order. `kb_upsert` writes the main tree, not your worktree; in a worktre
 edit the record by hand, then `kb check` and `kb index` there.
 
 **Reference checkouts, both outside this repository:** `D:\OpenKeeper` (GPLv3 —
-facts only, provenance in `THIRD-PARTY-NOTICES.md`) and `D:\Flame`
+facts only, acknowledgment in `THIRD-PARTY-NOTICES.md`, provenance in `docs/research/`) and `D:\Flame`
 (**unlicensed — facts only, and never one of its identifiers in `src/`, `tests/`
 or `unity/`**). See `docs/research/external-resources.md`.
 
