@@ -59,7 +59,9 @@ rank zero needs no additional input here; mixed-rank restoration remains open.
 The final `controlled455-v2` replay matches 4106 ordered sites/preseeds
 through 1646, versus 3816 through 1630 at 454. Next is 1647 draw 1: native
 RenderInfo.cpp:201 versus modern Library.cpp:1068, seed 1428923462, modern
-bound 16, Warlock 437/state 1. No rule for that later boundary is inferred here.
+bound 16, Warlock 437/state 1. The [possessed-melee follow-up](possessed-melee-draw.md)
+identifies the animation-bridge gap and unresolved native target mapping; this
+control remains the last verified prefix.
 
 Imp 444 and Imp 455 each match 247/247 native state/XY samples; 444 matches
 246/247 headings. Other component discrepancies retain the scope in the
