@@ -754,6 +754,7 @@ public static class TileWorkRules
 
         int spilled = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));
         tile.GoldHeld -= spilled;
+        if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = 0;
         return spilled;
     }
 }

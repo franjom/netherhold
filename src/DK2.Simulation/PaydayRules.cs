@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -119,6 +119,7 @@ public static class PaydayRules
             ref TileState tile = ref world.TileAtIndex(tiles[(first + k) % tiles.Count]);
             int take = Math.Min(tile.GoldHeld, wanted - taken);
             tile.GoldHeld -= take;
+            if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = 0;
             taken += take;
         }
         return taken;

@@ -241,7 +241,9 @@ tile path grid would merge two distinct DK2 behaviours.
 
 `WorldSteering.CollectObstacles` forwards all linked normal-mode `Obstacle` objects
 using width/2, actual positions, query bounds and retained flags in tile-chain order.
-The wheel's width is 3686; a first-in-query wheel supplies a slide contact despite
+Tile-represented stored gold joins that stream through its
+[geometry and shared link-order adapter](store-gold-steering.md). The wheel's
+width is 3686; a first-in-query wheel supplies a slide contact despite
 its definition lacking `SolidObstacle`. Arrival, escape and zero-distance
 exceptions remain elsewhere; ADR-0505 retains a separate small core guard.
 First-person-only obstacle classes are deferred. The virtual three-object

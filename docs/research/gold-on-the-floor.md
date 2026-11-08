@@ -45,8 +45,8 @@ exactly what the deposit code does, found independently.
 
 ## 2. A treasury tile IS one of these objects
 
-This is a difference between DK2 and this project, and it is recorded rather
-than acted on.
+Stored gold remains tile-backed in this project; object consumers use bounded
+adapters rather than a physical store-pile object.
 
 The original's deposit walks the room's tiles in the room's own linked order,
 starting from the tile it was given and wrapping through the room's first tile
@@ -60,9 +60,9 @@ until it comes back to where it started or runs out of gold. On each tile:
 
 Ours keeps the same number in `TileState.GoldHeld` (ADR-0015): a store tile holding gold
 stands for exactly one such object, since the withdrawal `0x004F4510` deletes a pile with its
-last gold. The two behaviours that read the object are built on that mapping (ADR-0534,
-[gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §3, §4): the sparkle, one world-stream
-draw per pile, and the Hand's lift, which makes the object from the tile's whole gold.
+last gold. The [sparkle and Hand lift](gold-hover-and-sparkle.md) use that mapping
+(ADR-0534); [steering and the link-order lifecycle](store-gold-steering.md) also
+consume the represented pile, without changing the tile navigation byte.
 
 **A dungeon heart's capacity is `MaxGoldPerDungeonHeartTile << 4`.** Hardcoded,
 as a shift — not as a count of the room's tiles. That is **16000**, which is

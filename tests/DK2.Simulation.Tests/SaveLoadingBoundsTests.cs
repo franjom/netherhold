@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -140,8 +140,8 @@ public class SaveLoadingBoundsTests
     {
         byte[] bytes = Snapshot();
         int tileCountOffset = 63 + BitConverter.ToInt32(bytes, 59);
-        // Remake tile records: 117 bytes at format348, 133 once the Workshop's four timers joined them.
-        int countOffset = tileCountOffset + 4 + BitConverter.ToInt32(bytes, tileCountOffset) * 133 + 32;
+        // Tile records are 137 bytes at format455, including the stored-pile link order.
+        int countOffset = tileCountOffset + 4 + BitConverter.ToInt32(bytes, tileCountOffset) * 137 + 32;
         Assert.Equal(0, BitConverter.ToInt32(bytes, countOffset));
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);

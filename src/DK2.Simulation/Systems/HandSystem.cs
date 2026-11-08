@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -241,6 +241,7 @@ public sealed class HandSystem : ISimulationSystem
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         int gold = tile.GoldHeld;
         tile.GoldHeld = 0;
+        tile.StoreGoldLinkOrder = 0;
         ObjectState pile = world.SpawnObject(database, FloorGold.TreasuryPileObjectId, PlayerIds.Neutral, tileIndex);
         pile.GoldHeld = gold;
         // The pile's whole amount floats up where it lay (0x004C0DDA; the store pile is a gold object).

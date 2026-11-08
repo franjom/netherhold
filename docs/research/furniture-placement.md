@@ -187,6 +187,8 @@ re-created by `0x004E3C20`, not re-placed.
 The bounded [runtime bed-heading correction](bed-heading-draw.md) mirrors the
 creation draw; synthetic setup retains its separate adapter.
 
+Stored piles also have [steering geometry and a shared tile-link rank](store-gold-steering.md).
+
 Runtime deposit headings are now retained in `TileState.StoreGoldHeading`, hashed,
 saved, and published unchanged through the Urn/Chest art switches (hash/save 301).
 The previously discarded draw is reused, so this adds no runtime random draws.

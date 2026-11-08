@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**455** - `0x38611F5ADC795D73`. Tile-represented stored gold participates in the ordinary object-obstacle stream; its shared tile-link rank survives top-up, clears on emptying and renews on recreation (ADR-0723). StoreGoldLinkOrder is hashed, copied and saved; earlier saves are refused.
+
 **454** - `0xE47C63A5DCD4F64F`. Runtime bed creation draws and stores its heading after successful object creation and before the creation effect (ADR-0722). Synthetic world/database placement is unchanged. No new saved fields; earlier saves are refused.
 
 **453** - `0x6D1FBFC6E515A8B6`. Ordinary actions4/5/10 keep independent work points and handler/animation completion, retaining slot13 phase across actions (ADR-0721). Their kind, target, animation-completion and clip-ownership fields are hashed, copied and saved. Earlier saves are refused.

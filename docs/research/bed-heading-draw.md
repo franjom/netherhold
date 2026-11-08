@@ -48,9 +48,11 @@ All prior 26 input values are retained; the new clock input makes 27.
 ## Verification and remaining boundary
 
 The final controlled hash-454 replay matches 3816 ordered sites/preseeds through 1630,
-versus 3587 through 1616 on the repaired 453 baseline. Next is 1631 draw 1:
-native ObjectState.cpp:2851 versus modern Treasure.cpp:335, seed 2996395860,
-modern bound 2048, Imp 455/state 29. This is the next lead, not a rule built here.
+versus 3587 through 1616 on the repaired 453 baseline. This control stopped at
+1631 draw 1: native ObjectState.cpp:2851 versus modern Treasure.cpp:335, seed
+2996395860, modern bound 2048, Imp 455/state 29. The
+[next correction](store-gold-steering.md) supplies missing stored-gold steering
+geometry; the bed-heading rule is unchanged.
 
 The four regression cases cover two creature beds with the captured heading
 and exactly one seed advance, failed creation without a draw, and synthetic

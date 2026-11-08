@@ -119,7 +119,10 @@ public static class GoldStore
         if (amount <= 0) return 0;
 
         int put = Math.Min(SpaceIn(world, database, tileIndex), amount);
-        world.TileAtIndex(tileIndex).GoldHeld += put;
+        ref TileState destination = ref world.TileAtIndex(tileIndex);
+        if (put > 0 && destination.GoldHeld == 0)
+            destination.StoreGoldLinkOrder = ++world.NextTileLinkOrder;
+        destination.GoldHeld += put;
         return put;
     }
 
@@ -266,6 +269,7 @@ public static class GoldStore
             ref TileState tile = ref world.TileAtIndex(chain[i]);
             stored[i] = tile.GoldHeld;
             tile.GoldHeld = 0;
+            tile.StoreGoldLinkOrder = 0;
             tile.StoreGoldHeading = null;
         }
         BankFloorGold(world, database, room, chain, stored, rng, context);
@@ -293,6 +297,7 @@ public static class GoldStore
                 ref TileState tile = ref world.TileAtIndex(chain[i]);
                 emptied[i] = tile.GoldHeld;
                 tile.GoldHeld = 0;
+                tile.StoreGoldLinkOrder = 0;
                 tile.StoreGoldHeading = null;
             }
         }
@@ -352,6 +357,7 @@ public static class GoldStore
         ref TileState state = ref world.TileAtIndex(tile);
         if (state.GoldHeld == 0)
         {
+            state.StoreGoldLinkOrder = ++world.NextTileLinkOrder;
             context?.RequestEffect("gold store", ViewEffectRequest.AtTileCentre(
                 new EffectId(room.Definition.RoomEffect425Id), room.OwnerPlayerId,
                 world.TilePosition(tile), new Fp32(0)));
@@ -382,7 +388,9 @@ public static class GoldStore
             if (space <= 0) continue;
 
             int put = Math.Min(space, remaining);
-            world.TileAtIndex(index).GoldHeld += put;
+            ref TileState tile = ref world.TileAtIndex(index);
+            if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = ++world.NextTileLinkOrder;
+            tile.GoldHeld += put;
             remaining -= put;
         }
 
@@ -457,6 +465,7 @@ public static class GoldStore
             ref TileState state = ref world.TileAtIndex(tile);
             int take = Math.Min(state.GoldHeld, amount);
             state.GoldHeld -= take;
+            if (state.GoldHeld == 0) state.StoreGoldLinkOrder = 0;
             amount -= take;
         }
     }
@@ -481,6 +490,7 @@ public static class GoldStore
 
             int take = Math.Min(tile.GoldHeld, remaining);
             tile.GoldHeld -= take;
+            if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = 0;
             remaining -= take;
         }
 

@@ -16916,3 +16916,17 @@ before requesting its creation effect. Keep synthetic setup placement explicit.
 The diagnostic forwards master's new claim clock hooks and restores that live
 action from captured inputs. Controlled agreement does not establish full-state,
 unconditional replay or Heart parity.
+
+## ADR-0723 - include stored gold in steering obstacle queries
+**Date:** 2026-11-08 | **Status:** accepted | **Systems:** creatures, imps-tile-work, navigation, simulation-core
+
+**Context.** `store-gold-steering.md` traces Q712's early deposit to missing
+store-pile collision input, which first changes a nearby Imp's movement.
+
+**Decision.** Enumerate represented store piles with their shipped geometry
+and shared tile-link rank, avoiding a duplicate physical object representation.
+Retain the existing callback flags and force arithmetic.
+
+**Consequences.** Hash/save455 adds the persistent StoreGoldLinkOrder field.
+Initial mixed-object rank restore and the enumerator's existing partial
+adapters remain separate. Controlled agreement is not full-state or Heart parity.

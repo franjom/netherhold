@@ -354,6 +354,7 @@ public static class RoomRules
 
         int displaced = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));
         tile.GoldHeld -= displaced;
+        if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = 0;
         return displaced;
     }
 }

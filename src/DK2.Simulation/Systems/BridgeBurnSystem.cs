@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -54,6 +54,7 @@ public sealed class BridgeBurnSystem : ISimulationSystem
 
             int lostGold = tile.GoldHeld;
             tile.GoldHeld = 0;
+            tile.StoreGoldLinkOrder = 0;
 
             context.Emit(SystemName, "bridge_burnt",
                 $"player={tile.OwnerPlayerId} at=({i % world.Width},{i / world.Width}) " +

@@ -55,6 +55,7 @@ public static class DefeatRules
             if (tile.OwnerPlayerId != playerId || tile.TerrainId != heartTerrain || tile.GoldHeld <= 0) continue;
             int amount = tile.GoldHeld;
             tile.GoldHeld = 0;
+            tile.StoreGoldLinkOrder = 0;
             FloorGold.Drop(world, database, i, amount, PlayerIds.Neutral);
             gold += amount;
             piles++;

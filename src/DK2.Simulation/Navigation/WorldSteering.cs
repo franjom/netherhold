@@ -42,6 +42,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private readonly List<NavPoint> _waypoints = [];
     private readonly List<ObjectObstacle> _objectObstacles = [];
     private readonly HashSet<int> _physicalPillarTiles = [];
+    private readonly HashSet<int> _physicalStorePileTiles = [];
 
     private readonly record struct ObjectObstacle(int TileIndex, long Order, Fixed16Vector Position, int Size, bool Solid);
     private readonly bool _wholeBuilds;
@@ -537,6 +538,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         int y1 = Math.Min(_world.Height - 1, ((centre.Y >> 4) + half) >> 12);
         _objectObstacles.Clear();
         _physicalPillarTiles.Clear();
+        _physicalStorePileTiles.Clear();
         foreach (ObjectState device in _world.Objects)
         {
             if (!device.TileLink.IsLinked || device.ObjectTypeId == DungeonHeartObstacleObjectId) continue;
@@ -546,6 +548,9 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             if (definition is null) continue;
             if (!device.InHand && device.CarriedByCreatureId < 0 && (definition.Flags & ObjectFlags.Pillar) != 0)
                 _physicalPillarTiles.Add(device.TileLink.TileIndex);
+            if (!device.InHand && device.CarriedByCreatureId < 0
+                && device.ObjectTypeId == FloorGold.TreasuryPileObjectId)
+                _physicalStorePileTiles.Add(device.TileLink.TileIndex);
             if ((definition.Flags & ObjectFlags.Obstacle) == 0) continue;
             int size = (definition.Width.Raw >> 1) << 4;
             if (size <= 0) continue;
@@ -557,6 +562,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             _objectObstacles.Add(new ObjectObstacle(device.TileLink.TileIndex, device.TileLink.Order,
                 new Fixed16Vector(x << 4, y << 4), size, (definition.Flags & ObjectFlags.SolidObstacle) != 0));
         }
+        AddVirtualStorePiles(new TilePos(x0, y0), new TilePos(x1, y1));
         AddVirtualHatcheryPillars(new TilePos(x0, y0), new TilePos(x1, y1));
         _objectObstacles.Sort((left, right) => left.TileIndex != right.TileIndex
             ? left.TileIndex.CompareTo(right.TileIndex)
@@ -582,6 +588,26 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
                 if ((pos - centre).Octile() > range + size) continue;
                 into.Add(new SteeringObstacle(pos, size, ((def.Flags & ObjectFlags.SolidObstacle) == ObjectFlags.SolidObstacle), id == DungeonHeartObstacleObjectId));
             }
+        }
+    }
+
+    /// <summary>Store piles live in tile gold rather than ObjectState; include them in the callback stream.</summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/store-gold-steering.md")]
+    private void AddVirtualStorePiles(TilePos minimum, TilePos maximum)
+    {
+        ObjectDef? definition = _database.ObjectById(FloorGold.TreasuryPileObjectId);
+        if (definition is null || (definition.Flags & ObjectFlags.Obstacle) == 0) return;
+        int size = (definition.Width.Raw >> 1) << 4;
+        if (size <= 0) return;
+        for (int y = minimum.Y; y <= maximum.Y; y++)
+        for (int x = minimum.X; x <= maximum.X; x++)
+        {
+            int index = y * _world.Width + x;
+            ref TileState tile = ref _world.TileAtIndex(index);
+            if (tile.GoldHeld <= 0 || _physicalStorePileTiles.Contains(index)) continue;
+            var position = new Fixed16Vector(CreatureState.CentreOf(x) << 4, CreatureState.CentreOf(y) << 4);
+            _objectObstacles.Add(new ObjectObstacle(index, tile.StoreGoldLinkOrder, position, size,
+                (definition.Flags & ObjectFlags.SolidObstacle) != 0));
         }
     }
 

@@ -12,6 +12,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- DK2.Simulation targets netstandard2.1 without System.Text.Json; scratch steering observers use plain CSV, while JSON belongs in Tools.
+
 - After backing up your own edited path for a fast-forward, use git restore; manually writing HEAD's blob can still make merge report local changes.
 
 - When production adds action Poll/Advance hooks, update captured-order diagnostic wrappers too; an old copied sweep can freeze the new animation clock.
