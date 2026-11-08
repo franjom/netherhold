@@ -45,10 +45,11 @@ handler timing or full-state parity.
 ## Verification
 
 The final controlled hash-452 replay matches 3587 ordered sites/preseeds through 1616,
-versus 3573 through 1615 at 451. Next is 1617 draw 1: native
+versus 3573 through 1615 at 451. This control stopped at 1617 draw 1: native
 Creature.cpp:2790 (bed heading), modern ObjectState.cpp:2851 (chicken roam),
-preseed 1515096229, modern bound 4. That ordering is the next lead, not a rule
-implemented here.
+preseed 1515096229, modern bound 4. The
+[next correction](bed-heading-draw.md) supplies the omitted bed-heading draw;
+the home-handler timing is unchanged.
 
 The unchanged 26 controlled inputs and sixteen inherited bootstrap clauses are
 retained. Three diagnostic clauses preserve pre-1400 behavior for this correction;

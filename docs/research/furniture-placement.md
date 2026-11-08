@@ -184,6 +184,9 @@ re-created by `0x004E3C20`, not re-placed.
   remains as established in [object-drawing.md §4](object-drawing.md#4-position-and-rotation),
   rechecked through `0x0059CCF0` and `0x00580480` on 2026-10-24.
 
+The bounded [runtime bed-heading correction](bed-heading-draw.md) mirrors the
+creation draw; synthetic setup retains its separate adapter.
+
 Runtime deposit headings are now retained in `TileState.StoreGoldHeading`, hashed,
 saved, and published unchanged through the Urn/Chest art switches (hash/save 301).
 The previously discarded draw is reused, so this adds no runtime random draws.

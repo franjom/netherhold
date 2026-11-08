@@ -133,8 +133,9 @@ heart tile's gold as Urn1, Urn2 or the Chest by fill. Torture wheels beside coal
 simulation devices. A floor pile scales with its gold, a Book Case
 shows its selector's variant, and a sleeping creature's bed is hidden. With the install, an object
 with no art draws nothing, as DK2's does. Supported object-state animations are built
-in step 4 (ADR-0438). The headings DK2 draws on the simulation stream for beds and store
-piles remain unbuilt. Tilts and offsets,
+in step 4 (ADR-0438). Runtime bed and store-pile headings are covered by
+[furniture placement](../research/furniture-placement.md#7-beds-and-treasury-gold);
+load-time limits remain separate. Tilts and offsets,
 Prison door facing, KMF transparency, Hero Gate floors/faces and ruined Heart floors are built.
 Q581's wall-machine working positions and the room initialization/navigation fixes are built
 under ADR-0419, hash/save version 215. Owner screenshot checks remain in HANDOFF.md.

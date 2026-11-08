@@ -10344,8 +10344,9 @@ Hash/save version 238 accounts for changed claim approaches; cosmetic requests
 are neither saved nor hashed.
 
 **Consequences.** The changes apply across maps. Native arrival tolerance is
-preserved. The special cycling-colour branch and bed heading fidelity remain
-research boundaries; ordinary keeper colours use the confirmed palette.
+preserved. The special cycling-colour branch remains a research boundary;
+runtime bed-heading sampling is built under ADR-0722. Ordinary keeper colours
+use the confirmed palette.
 
 **Amendment, 2026-10-13.** Decode terrain destruction effects and submit them
 only when the source becomes another terrain. Type-5 effect keys reuse the
@@ -16901,3 +16902,17 @@ cancel on action replacement or leaving the worker category.
 earlier snapshots. The existing missing-timing fallback and possession-start
 adapters remain bounded limitations. Controlled function/test agreement does
 not establish campaign or complete action-layer parity.
+
+## ADR-0722 - sample runtime bed headings on the simulation stream
+**Date:** 2026-11-08 | **Status:** accepted | **Systems:** creatures, rooms, simulation-core
+
+**Context.** `bed-heading-draw.md` identifies Q712's turn 1617 missing draw:
+the runtime bed factory left the heading at zero despite the binary's draw.
+
+**Decision.** Sample and retain the heading after successful bed creation,
+before requesting its creation effect. Keep synthetic setup placement explicit.
+
+**Consequences.** Hash/save 454 changes behavior without new saved fields.
+The diagnostic forwards master's new claim clock hooks and restores that live
+action from captured inputs. Controlled agreement does not establish full-state,
+unconditional replay or Heart parity.

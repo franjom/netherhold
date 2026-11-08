@@ -294,7 +294,7 @@ public sealed partial class WorldView
                     scale = One + Spread(thing.Id, 0x800);
                     break;
                 default:
-                    // Use the stored bed heading; its native random creation draw remains unbuilt.
+                    // Use the stored bed heading.
                     if (definition is not null && ((definition.Flags & ObjectFlags.TypeLair) == ObjectFlags.TypeLair))
                         heading = thing.Heading;
                     break;

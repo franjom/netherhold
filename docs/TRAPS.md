@@ -12,6 +12,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- After backing up your own edited path for a fast-forward, use git restore; manually writing HEAD's blob can still make merge report local changes.
+
+- When production adds action Poll/Advance hooks, update captured-order diagnostic wrappers too; an old copied sweep can freeze the new animation clock.
+
 - PowerShell passes wildcard path arguments literally to rg; use a directory argument with `-g` for filename patterns.
 
 - Replacing a frozen diagnostic source file drops its inherited bootstrap clauses; reapply them and strip-check every clause against production bytes.

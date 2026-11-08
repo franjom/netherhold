@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -341,6 +341,7 @@ public static class LairRules
     public static ObjectState PlaceBed(SimulationContext context, CreatureState creature, TilePos at)
     {
         ObjectState bed = PlaceBed(context.World, context.Database, creature, context.World.TileIndex(at));
+        bed.Heading = context.Rng.NextInt(2048);
         context.RequestEffect("CreatureSleep", ViewEffectRequest.AtTileCentre(
             context.Database.Room(RoomTypeId.Lair).CreatedObjectEffectId, creature.OwnerPlayerId,
             at, new Fp32(0), new Dk2Angle((ushort)bed.Heading)));
