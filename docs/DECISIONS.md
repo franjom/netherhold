@@ -16930,3 +16930,46 @@ Retain the existing callback flags and force arithmetic.
 **Consequences.** Hash/save455 adds the persistent StoreGoldLinkOrder field.
 Initial mixed-object rank restore and the enumerator's existing partial
 adapters remain separate. Controlled agreement is not full-state or Heart parity.
+
+## ADR-0724 - multiplayer security: lockstep through a Steam relay that referees disputes
+**Date:** 2026-11-09 | **Status:** accepted | **Systems:** simulation-core, data-formats
+
+**Context.** Multiplayer and matchmaking are planned on deterministic lockstep (Q712). No network
+code exists yet. `CommandCodec` will carry peer traffic. The owner requires that no player's
+departure ends a match. The threat model, gaps and gates are in
+`docs/plans/2026-11-09-multiplayer-threat-model.md`.
+
+**Decision.** Steam is the platform: Steam networking with its relay (SDR), Steam lobbies, and
+Steam login tickets verified server-side. No player hosts. A relay server orders commands,
+enforces turn deadlines, forwards them, and keeps each match's input journal and checkpoints.
+It runs the simulation only to settle a dispute. Every network feature obeys:
+
+- **R1 bounded decoding.** Maximum message size, per-field limits and one controlled exception
+  type. Rate limits per peer. No reflection, type names or polymorphic deserialization. Each
+  command tag gets a fuzz sample.
+- **R2 sender identity.** The session stamps the authenticated sender's `PlayerId`. A payload
+  claiming another player is dropped.
+- **R3 validation in the simulation.** A command is a request. The handler checks ownership,
+  cost, range and state deterministically, so every peer refuses it alike. Bad values never
+  throw.
+- **R4 allow-list.** Only human-issuable commands cross the network. AI-only, cheat and debug
+  commands are refused (e.g. `GrantCreatureLevelCommand`, `RevealMapCommand`).
+- **R5 content.** Original maps, plus custom maps verified against the lobby's hash and a size
+  limit. Paths are never taken from the file. Arbitrary mods wait until every reachable
+  parser is fuzzed.
+- **R6 turns and desync.** Commands apply on a fixed future turn. A departed keeper goes to the
+  AI or idles. Peers exchange state hashes. On a mismatch, the relay replays the journal from
+  the last agreed checkpoint. Peers that differ are resynced from that state, or kicked for
+  clear tampering. This works with any player count, including 2 and 2-2.
+- **R7 transport.** Steam's authenticated, encrypted transport through SDR. No custom crypto.
+  Peers never learn each other's IP addresses.
+- **R8 backend.** Identity comes only from verified tickets. Secrets never ship in the client.
+  Launch is unranked; the kept journals let a server-side checker add ranked play later.
+- **R9 accepted risk.** Every lockstep client holds the full state, so fog of war can be
+  defeated by a modified client. Only server-filtered views would fix that.
+
+**Consequences.** Single-player goes through the same session and codec, so its tests exercise
+R1-R4. Before the codec carries network traffic: `ReadTiles` needs a bound, `PlayerId` must
+come from the session, and the allow-list must exist. Referee replay needs Linux and Windows
+to produce equal state hashes; a CI check must compare them. Hostile-command tests and fuzz
+targets join CI.
