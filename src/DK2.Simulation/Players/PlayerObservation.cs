@@ -110,8 +110,10 @@ public readonly record struct PlayerVisibleThing
     public ObjectTypeId? ObjectType { get; }
 }
 
-/// <summary>A message the player received, by id, with its resolved text when known.</summary>
-public readonly record struct PlayerNotice(GameTick Tick, uint MessageId, string? Text = null);
+/// <summary>A message the player received: the tick it was first observed, its ordinal among this
+/// player's messages (1, 2, ...; never the queue id, which other players' messages also advance),
+/// its kind, and its resolved text when known. No payload naming another object crosses here.</summary>
+public readonly record struct PlayerNotice(GameTick Tick, int Ordinal, PlayerMessageKind Kind, string? Text = null);
 
 /// <summary>Action families the player may request now.</summary>
 [Flags]

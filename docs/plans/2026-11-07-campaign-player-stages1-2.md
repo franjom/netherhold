@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-07. Design approved by the owner; inline execution
-in a worktree on `feature/campaign-player` (not merged). Task 1 is built; tasks 2-7 are not started.
+in a worktree on `feature/campaign-player` (not merged). Tasks 1-2 are built; tasks 3-7 are not started.
 **Goal:** attempt Level 1 unattended through a player-visible interface, preserve
 the input journal and produce a truthful, replayable completion/failure report.
 **Architecture:** extend the existing scenario loop. Put engine-neutral player
@@ -93,7 +93,7 @@ and the presentation HUD models are the visibility/input references.
 | Owner | New or changed files | Responsibility |
 |---|---|---|
 | Task 1 | `src/DK2.Simulation/Players/PlayerContracts.cs`, `PlayerObservation.cs`, `PlayerAction.cs`; `src/DK2.AI/Players/IPlayerController.cs`; `src/DK2.Data.Model/ObjectTypeId.cs`; `tests/DK2.AI.Tests/Players/PlayerDecisionTests.cs` | Detached contract and controller boundary |
-| Task 2 | `src/DK2.Presentation/PlayerObservationBuilder.cs`; `tests/DK2.Presentation.Tests/PlayerObservationTests.cs` | Visibility-safe projection and capabilities |
+| Task 2 | `src/DK2.Presentation/PlayerObservationBuilder.cs`, `WorldView.Player.cs`; `tests/DK2.Behavior.Tests/PlayerObservationTests.cs` | Visibility-safe projection and capabilities |
 | Task 3 | `src/DK2.Harness/PlayerSession.cs`; `src/DK2.Presentation/PlayerActionAdapter.cs`; `tests/DK2.Behavior.Tests/PlayerSessionTests.cs` | Action admission, deduplication, handles and receipts |
 | Task 4 | `src/DK2.Harness/PlayerRunCoordinator.cs`, `PlayerRunManifest.cs`; existing `ScenarioRunner.cs`, `RunMonitor.cs`, `JournalHeader.cs`; `tests/DK2.Behavior.Tests/PlayerRunTests.cs` | Loop integration, bounded advancement, identity and replay |
 | Task 5 | `src/DK2.AI/Players/CampaignPlayer.cs`, `PlayerActionRoutines.cs`, `CampaignPlayerOptions.cs`; `tests/DK2.AI.Tests/CampaignPlayerTests.cs` | Observation-driven strategy and recovery |
@@ -120,7 +120,7 @@ type. GREEN must include positive controls. Retain counterfactual evidence.
 
 After each task, run the reviewer, fix objections, run the documenter and inspect
 its edits before staging named paths and committing. Use `docs/HANDOFF.md`'s
-verification list for the final gate. Only task 1's tests have been executed.
+verification list for the final gate. Only the tests of tasks 1 and 2 have been executed.
 
 ### Task 1: detached player protocol
 
@@ -175,9 +175,16 @@ Assert.NotEqual(new PlayerRunId("run-a"), new PlayerRunId("run-b"));
 in DK2.Presentation; `Capture(WorldState completedWorld, PlayerStamp stamp,
 IReadOnlyList<PlayerReceipt> receipts) -> PlayerObservationCapture`.
 Define PlayerObservationCapture in the same file: Observation is the task 1 DTO;
-Targets is an owned read-only handle-to-PlayerInputTarget dictionary. The host
-retains Targets; only Observation reaches IPlayerController. Every handle is
-scoped to its run/revision and generated from already-admitted targets.
+`TryResolve(handle, out PlayerInputTarget)` maps a handle of that revision to its admitted
+target (an owned array indexed by ordinal, not a dictionary). The host retains the capture;
+only Observation reaches IPlayerController. Every handle is scoped to its run/revision and
+generated from already-admitted targets. As built, the tests live in DK2.Behavior.Tests to
+reuse `ScenarioTests.SyntheticDatabase()` (creature, Treasury, Create Imp) instead of a copy,
+and `PlayerNotice` carries the message kind and a per-viewer ordinal, never the shared queue id
+(schema still 1, unshipped). Thing offers are the engine's hand rules (`HandRules.CanPickUp`,
+`CanSlap`, `CanPickUpObject`, `CanPickUpStoreGold`); an own prisoner in unseen cells has no tile.
+The viewer's own tag on hidden ground is kept as the human sees it, although whether it sticks
+depends on hidden terrain (TileTagSystem); `PlayerObservationBuilder.CoverageLimits` lists the rest.
 The host calls Capture serially at completed boundaries, never concurrently with
 world mutation. Capture may use existing view caches but must not alter the hash.
 
@@ -197,13 +204,26 @@ the player's visible speech/notification identifiers or resolved text; never raw
 message payloads naming otherwise hidden objects. The host's full-state diagnostic
 stream stays out of this interface, including error reasons and action hints.
 
-- [ ] In `PlayerObservationTests`, create paired synthetic worlds differing only behind fog: enemy creature/gold, secret door, room capacity, trigger state and another player's messages. Assert field-for-field identical detached observations and capabilities.
-- [ ] Pin builder invariants: `Things[i].Handle` is (stamp revision, i), creature-summary handles point into Things, unknown tiles are all-default, and no default(PlayerVisibleThing) is emitted.
-- [ ] Add positive controls revealing a target through the existing view path, own held-creature visibility, discovery changes and empty message history. A global count or hash must not expose hidden changes.
-- [ ] Run the Presentation test project/class for RED, implement Capture, then GREEN. Mutate the original world after capture and assert the old observation is unchanged.
-- [ ] Assert StateHash and simulation RNG state are unchanged by repeated capture; retain existing fog/view/input tests in the focused run.
-- [ ] Establish the observation performance baseline on small and large/fog-heavy synthetic worlds. Measure first and repeated capture, capability generation and allocation; apply the optimization gate and preserve the detached-snapshot mutation test after any reuse/caching change.
+- [x] In `PlayerObservationTests`, create paired synthetic worlds differing only behind fog: enemy creature, object and gold, a hidden room, a scanned tile's owner, rival mana and another player's messages (posted before the viewer's). Assert field-for-field identical detached observations and capabilities.
+- [ ] Not yet in the pair: a secret door and trigger state (a later task's fixture can add them).
+- [x] Pin builder invariants: `Things[i].Handle` is (stamp revision, i), creature-summary handles point into Things, hidden tiles carry only the viewer's own tag (otherwise all-default), and no default(PlayerVisibleThing) is emitted.
+- [x] Add positive controls revealing a target through the existing view path, own held-creature visibility, discovery changes and empty message history. A global count or hash must not expose hidden changes.
+- [x] Run the test class for RED, implement Capture, then GREEN. Mutate the original world after capture and assert the old observation is unchanged.
+- [x] Assert StateHash and simulation RNG state are unchanged by repeated capture; retain existing fog/view/input tests in the focused run.
+- [x] Establish the observation performance baseline on small and large/fog-heavy synthetic worlds. Measure first and repeated capture, capability generation and allocation; apply the optimization gate and preserve the detached-snapshot mutation test after any reuse/caching change.
 - [ ] Review the correctness and performance evidence, document and commit.
+
+Result (headless, shipped data, fog on, steady state, tick 1200): Level 1 (30x38) 114 us and
+5 KB per capture; Level 20 (99x99) 589 us and 32 KB, against 1.2-3.3 ms per simulation tick.
+The hot spot left is `PlayerInputSnapshot.Capture` building full `CreatureView`s (180-230 us on
+Level 20); a per-terrain lookup table gave no measurable gain and was reverted.
+
+Owner questions about the human UI that the builder answers as the human path does (none is
+a DKII.EXE claim): does the viewer's own tag on hidden ground stick (`TileTagSystem` refuses
+secret doors and scanned non-taggable ground, so it depends on hidden terrain); is an own
+prisoner's position visible to a human in unseen cells (the builder gives it no tile); does the
+intro phase apply to mid-level introduction pans; can an enemy disguised as one's own be picked
+up.
 
 ### Task 3: bounded action admission and receipts
 

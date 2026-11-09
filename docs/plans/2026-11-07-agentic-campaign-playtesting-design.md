@@ -5,7 +5,7 @@
 foundation for external agents and a future Enhanced keeper.
 **Goals:** 2 (campaign compatibility), 6 (oracle testing) and 10 (agent interface),
 with support for 5 (fidelity), 9 (determinism) and 11 (presentation modes).
-**Implementation:** [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md), Task 1 (detached player contract) is built on `feature/campaign-player`, not merged; tasks 2-7 are not started.
+**Implementation:** [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md), Task 1 (detached player contract) and task 2 (visibility-safe observation builder) are built on `feature/campaign-player`, not merged; tasks 3-7 are not started.
 
 ## Relationship to existing work
 

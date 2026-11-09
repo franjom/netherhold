@@ -118,7 +118,7 @@ public class PlayerContractsTests
         {
             new(Handle(0), PlayerThingKind.Creature, new TilePos(2, 2), new PlayerId(3), PlayerThingActions.PickUp, new CreatureTypeId(1)),
         };
-        var notices = new List<PlayerNotice> { new(new GameTick(1), 7) };
+        var notices = new List<PlayerNotice> { new(new GameTick(1), 1, default) };
         PlayerReceipt[] receipts = [new(new PlayerActionId(1), PlayerReceiptStatus.Queued)];
         var roomOffers = new List<PlayerRoomOffer> { new(RoomTypeId.Treasury, new GoldAmount(50), true) };
         var panels = new List<GuiButtonTarget> { GuiButtonTarget.Room(RoomTypeId.Treasury) };
