@@ -75,7 +75,9 @@ These are entry points, not a new priority order.
   gem pickup (ticks 2490, 2346, 2316), and every journal replayed all hashes without the controller.
   The study is `F:/DK2Evidence/studies/campaign-player-l01-acceptance--2026-11-09--002`; the owner's
   commit and integration are pending. This is Level 1 only, headless, not a whole-game or rendered
-  acceptance. The run report still prints `acceptance: not claimed` because the CLI cannot see a build receipt.
+  acceptance. Build the receipt with `tools/build_receipt.py`; a run given `--player-receipt <dir>`
+  can claim acceptance under the conditions in the [harness README](../src/DK2.Harness/README.md),
+  and prints `not claimed: <reasons>` otherwise.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.

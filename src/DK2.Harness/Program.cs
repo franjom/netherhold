@@ -41,8 +41,11 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
                     player, a keeper or scripted commands on it, an existing folder or a bad run id).
                     Over a directory, any exit 2 makes the whole run exit 2. Under watch, the wall
                     limit defaults to 30 s below --timeout-seconds and must stay below it.
-                    A win reports the Reaper finale beside it and never claims acceptance; task 7's
-                    procedure adds the fresh-build receipt.
+                    --player-receipt <dir>  a fresh-build receipt (tools/build_receipt.py); a harness or
+                    tree that does not match it is refused (exit 2). Acceptance is claimed only with a
+                    matching receipt, a shipped level's unmodified start, a Completed run whose Reaper
+                    took the gem, and a controller-free replay of the journal with every hash matching;
+                    otherwise player-run.json says what was missing.
                     Not covered: Unity rendering, audio, the real UI, an external agent, the front end.
 
           replay <scenario.yaml> <input.journal> [--out <dir>]

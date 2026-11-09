@@ -136,7 +136,16 @@ reaches the gem opens the win screen** (a Reaper whose route never succeeds stay
 `Camera_StartPath` `0x0044A370` refuses while the camera is in mode `0x12` (a path playing),
 10, 2 or `0xB`, or while view `+0xDD8` is set: path 101 is started once, at state 233's
 first turn, so it does not play if path 100 (350 frames, about 11.7 s) is still running then.
-Whether 230..233 outlasts path 100 is unmeasured.
+**Measured (2026-11-09, one native run).** A light probe of the owner's Level 1 win packet
+(`l1win927b.sav`, reads at the `World_UpdateTurn` return, pauses under 7 ms, 4 TPS held) gives the
+Reaper's states by completed turn: 228 at the win (1871) for 8 turns, 229 for 4, 230 for 38, 231 for
+19, 232 for 1, the walk 234 for 26 (landing (16,8) to gem (15,13)), 233 at 1967, the gem gone at
+1968: 97 turns from the win. 230..233 so spans 84 turns (21 s), longer than path 100's 11.7 s,
+so path 101 is not refused (inferred from the timings, not observed). The remake's seed-1
+campaign-player run has 8, 4, 37, 18, 1 and a 61-turn walk, 130 in all: the map-independent
+states agree within one turn each (230 and 231 are one shorter, Q756); the rest is walk distance.
+Evidence: `F:/DK2Evidence/studies/l01-finale-native-probe--2026-11-09--002` and
+`F:/DK2Evidence/studies/l01-finale-comparison--2026-11-09--001`.
 
 Effect names are `Effects.kwd`'s; the creature actions are the Horny's own (46 and 47 are
 read in keeper-spell-reaper.md; 59 is unread).

@@ -41,7 +41,11 @@ public static class HarnessCommandLine
                 || Int(args, "--player-retries", 3) is not int retries
                 || NonNegative(args, "--player-finale-ticks", 400) is not int finale
                 || Int(args, "--player-output-mib", 64) is not int output || output < 2 || output > 1024 * 1024) return null;
-            campaign = new CampaignPlayerSpec(new PlayerId(id), maxTicks, wall, interval, actions, stall, retries, finale, output);
+            string? receipt = Value(args, "--player-receipt");
+            if (Array.IndexOf(args, "--player-receipt") >= 0
+                && (receipt is null || receipt.Length == 0 || receipt.StartsWith("--", StringComparison.Ordinal))) return null;
+            campaign = new CampaignPlayerSpec(new PlayerId(id), maxTicks, wall, interval, actions, stall, retries, finale, output,
+                receipt is null ? null : Path.GetFullPath(receipt));
         }
         else if (Array.Exists(args, a => a.StartsWith("--player-", StringComparison.Ordinal))) return null;
         // A misspelt limit must not silently fall back to its default.
@@ -55,6 +59,7 @@ public static class HarnessCommandLine
     [
         "--campaign-player", "--player-max-ticks", "--player-wall-seconds", "--player-interval-ticks",
         "--player-max-actions", "--player-stall-ticks", "--player-retries", "--player-finale-ticks", "--player-output-mib",
+        "--player-receipt",
     ];
 
     /// <summary>
@@ -87,7 +92,9 @@ public static class HarnessCommandLine
         var common = new List<string>();
         if (Array.IndexOf(args, "--coverage") >= 0) common.Add("--coverage");
         foreach (string flag in (string[])["--progress", "--snapshot-check", .. PlayerFlags])
-            if (Value(args, flag) is string v) common.AddRange([flag, v]);
+            if (Value(args, flag) is string v)
+                // A child may run from another folder: it gets the receipt's absolute path.
+                common.AddRange([flag, flag == "--player-receipt" ? template.Player!.Receipt! : v]);
         common.AddRange(wall);
 
         var jobs = new List<WatchJob>();

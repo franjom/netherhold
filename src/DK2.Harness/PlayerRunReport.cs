@@ -19,7 +19,8 @@ public enum PlayerRunOutcome : byte { Completed, Defeated, ControllerLimited, Te
 /// <summary>The command line's player-run settings; test policy, not DK2 rules.</summary>
 public sealed record CampaignPlayerSpec(
     Data.Model.PlayerId Player, int MaxTicks = 14400, int WallSeconds = 600, int IntervalTicks = 4,
-    int MaxActions = 4096, int StallTicks = 1200, int Retries = 3, int FinaleTicks = 400, int OutputMiB = 64)
+    int MaxActions = 4096, int StallTicks = 1200, int Retries = 3, int FinaleTicks = 400, int OutputMiB = 64,
+    string? Receipt = null)
 {
     /// <summary>Bytes kept back from the output budget for the final journal record and report.</summary>
     public const long ReserveBytes = 1024 * 1024;
@@ -64,12 +65,34 @@ public static class PlayerRunReport
         _ => 1,
     };
 
-    /// <summary>What a won run still does not establish: the CLI cannot see a build receipt.</summary>
-    public const string AcceptanceNotClaimed =
-        "not claimed: the fresh-build receipt and the installed-data requirement are checked by task 7's procedure, not this command";
+    /// <summary>The prefix of every acceptance line that claims nothing; the reasons follow it.</summary>
+    public const string NotClaimed = "not claimed: ";
 
-    /// <summary>The verdict file's bytes, built before writing so the output budget can include it.</summary>
-    public static byte[] Verdict(ScenarioResult result, PlayerRunOutcome outcome, CampaignPlayerSpec spec, string? note)
+    /// <summary>Why <paramref name="scenario"/> is not a shipped level's unmodified start (task 7): empty
+    /// when it is. Listing computer keepers is not a modification here; the run command compares the
+    /// list with the level's own PLAYERS records.</summary>
+    public static IReadOnlyList<string> ModifiedStart(Scenario scenario)
+    {
+        if (scenario is null) throw new ArgumentNullException(nameof(scenario));
+        var why = new List<string>();
+        if (!scenario.Map.StartsWith(ScenarioRunner.CampaignPrefix, StringComparison.OrdinalIgnoreCase)) why.Add($"map {scenario.Map} is not a shipped campaign level");
+        if (scenario.Random != "dk2") why.Add("the random generator is not DK2's (random: dk2)");
+        if (!scenario.FogOfWar) why.Add("fog of war is off, so the map is revealed");
+        if (!scenario.Setup.PlacedThings) why.Add("the level's placed things are not loaded");
+        if (scenario.Setup.Players.Count > 0) why.Add("the setup grants players gold, mana or spells");
+        if (scenario.Setup.Rooms.Count > 0) why.Add("the setup adds rooms");
+        if (scenario.Setup.Creatures.Count > 0) why.Add("the setup adds creatures");
+        if (scenario.Setup.Objects.Count > 0) why.Add("the setup adds objects");
+        if (scenario.Commands.Count > 0) why.Add("the scenario scripts commands");
+        if (scenario.Work.Count > 0) why.Add("the scenario injects tile work");
+        if (scenario.KeeperPersonalities.Count > 0) why.Add("the scenario replaces computer keepers' personalities");
+        if (scenario.UnknownKeys.Count > 0) why.Add($"the scenario has keys this build does not read: {string.Join(", ", scenario.UnknownKeys)}");
+        return why;
+    }
+
+    /// <summary>The verdict file's bytes, built before writing so the output budget can include it.
+    /// <paramref name="acceptance"/> is the claim line, from the run command's acceptance check.</summary>
+    public static byte[] Verdict(ScenarioResult result, PlayerRunOutcome outcome, CampaignPlayerSpec spec, string? note, string acceptance)
     {
         if (result.PlayerRun is not PlayerRunCoordinator player) throw new ArgumentException("Not a player run.", nameof(result));
         return JsonSerializer.SerializeToUtf8Bytes(new
@@ -83,7 +106,9 @@ public static class PlayerRunReport
             finale_pickup_tick = player.FinalePickupTick?.Value,
             suspected_anomaly = player.Stop == PlayerRunStop.Won && player.Finale == PlayerFinaleCoverage.NotReached
                 ? "the Horned Reaper did not pick up the Portal Gem within the finale window" : null,
-            acceptance = AcceptanceNotClaimed,
+            acceptance,
+            acceptance_claimed = !acceptance.StartsWith(NotClaimed, StringComparison.Ordinal),
+            receipt = spec.Receipt,
             ticks_run = result.TicksRun,
             final_state_hash = result.FinalStateHash.ToString("x16", CultureInfo.InvariantCulture),
             run_id = player.Options.RunId.Value,
