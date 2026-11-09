@@ -35,6 +35,10 @@ public sealed record RunOptions
     public int SnapshotCheckEvery { get; init; }
 
     public int SnapshotCheckTicks { get; init; } = 40;
+
+    /// <summary>Called after each tick with its index and the live simulation, for a test that must read
+    /// world state no <see cref="ScenarioResult"/> carries. It must only read: a write changes the hashes.</summary>
+    public Action<int, GameSimulation>? AfterTick { get; init; }
 }
 
 /// <summary>One progress sample for one player: what a stall is judged on.</summary>
@@ -94,6 +98,7 @@ internal sealed class RunMonitor(
         }
 
         if (options.ProgressEvery > 0 && done % options.ProgressEvery == 0) Sample(live.World, done);
+        options.AfterTick?.Invoke(tick, live);
     }
 
     public RunCoverage? Coverage(IReadOnlyList<SimEvent> events) => options.Coverage

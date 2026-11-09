@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**456** - `0x7D38792B75258DA5`. The Portal Gem is made at its carrier's point and dropped on the carrier's tile centre at height 0 (ADR-0725). No new saved fields; the pin moves only by the version fold (455 with the change keeps 0x38611F5ADC795D73); earlier saves are refused.
+
 **455** - `0x38611F5ADC795D73`. Tile-represented stored gold participates in the ordinary object-obstacle stream; its shared tile-link rank survives top-up, clears on emptying and renews on recreation (ADR-0723). StoreGoldLinkOrder is hashed, copied and saved; earlier saves are refused.
 
 **454** - `0xE47C63A5DCD4F64F`. Runtime bed creation draws and stores its heading after successful object creation and before the creation effect (ADR-0722). Synthetic world/database placement is unchanged. No new saved fields; earlier saves are refused.

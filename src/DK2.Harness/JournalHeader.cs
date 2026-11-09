@@ -39,9 +39,9 @@ public static class JournalHeader
     }
 
     /// <summary>Throws unless this build and this scenario file are the ones the journal recorded.</summary>
-    public static void CheckReplayable(Scenario scenario, InputJournal journal)
+    public static void CheckReplayable(Scenario scenario, InputJournal journal, bool acceptOtherHashVersion = false)
     {
-        if (journal.HashVersion != GameSimulation.CurrentHashVersion)
+        if (!acceptOtherHashVersion && journal.HashVersion != GameSimulation.CurrentHashVersion)
             throw new InvalidOperationException(
                 $"The journal was written at HashVersion {journal.HashVersion}; this build is " +
                 $"{GameSimulation.CurrentHashVersion}. Replay it at its own commit ({Value(journal, "commit")}).");

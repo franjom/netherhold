@@ -451,25 +451,30 @@ public class ObjectCarryingTests
     }
 
     [Fact]
-    public void APortalGemHeldThroughPickUpIsNeitherAttachedNorMovedByTheCarrier()
+    public void APortalGemHeldThroughPickUpIsNotMovedByTheCarrierAndDropsOnItsTileCentre()
     {
         // 0x0048B350 writes +0x3C3, which 0x0048B5F0 never reads (ADR-0680): a negative control for
-        // the attachment, which would otherwise move the gem with its carrier.
+        // the attachment, which would otherwise move the gem with its carrier. Its drop twin
+        // 0x0048B3A0 then sets an object of type 28 on the carrier's tile centre at height 0.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
-        var gem = new ObjectState { Id = 900, ObjectTypeId = TriggerExecutor.PortalGemObjectId, TileIndex = (Loose.Y * world.Width) + Loose.X };
+        var gem = new ObjectState
+        {
+            Id = 900, ObjectTypeId = TriggerExecutor.PortalGemObjectId, TileIndex = (Loose.Y * world.Width) + Loose.X,
+            PosX = 0x5123, PosY = 0x6456, PosZ = 0x300,
+        };
         ObjectCarryRules.PickUp(imp, gem);
         imp.PosX += 0x321;
 
         Assert.False(ObjectCarryRules.IsAttachable(gem));
         Assert.False(ObjectCarryRules.IsAttached(gem));
-        Assert.Equal((0, 0), (gem.PosX, gem.PosY));
+        Assert.Equal((0x5123, 0x6456), (gem.PosX, gem.PosY));
 
         ObjectCarryRules.Drop(world, imp, gem);
 
-        // Only the tile follows the carrier, as before the attachment existed.
-        Assert.Equal((0, 0), (gem.PosX, gem.PosY));
+        Assert.Equal((CreatureState.CentreOf(imp.Tile.X), CreatureState.CentreOf(imp.Tile.Y), 0), (gem.PosX, gem.PosY, gem.PosZ));
+        Assert.NotEqual((imp.PosX, imp.PosY), (gem.PosX, gem.PosY));
         Assert.Equal((imp.Tile.Y * world.Width) + imp.Tile.X, gem.TileIndex);
     }
 

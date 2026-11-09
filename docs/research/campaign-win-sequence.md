@@ -94,6 +94,19 @@ one. **Levels 10, 11A-C, 12, 13 and 17 have none**, so their finale is the lette
 and (§6) the win screen never starts (STRONGLY INFERRED from the corpus scan and the
 code; not observed).
 
+**Where a carried gem is at the win** (STRONGLY INFERRED, disassembly 2026-11-09). Step 2 and
+state 232 read the gem's own point `+0x1A`, not its carrier's. Action 20 creates the gem at
+the creature's point (`0x0049AD7D` passes `+0x1A` to `Object_Create`), and the carry
+`0x0048B350` never moves it. So a gem still in its carrier's arms is sought at the point
+where it was handed over. When the carrier dies, the drop `0x0048B3A0` runs (from
+`0x004881D6` and `0x004B2F4B`; possession and the worker-job leave hook use it too), unless
+the death is uncounted (`+0x3E6` bit `0x40`: Temple entry, trigger action 35 with 0), which
+destroys the carried thing instead (`0x0048819C`-`0x004881C2`). The drop sets the thing at the carrier's point, then sets a class-2
+object of type `0x1C` on the carrier's tile centre at height 0 (`0x0048B3E3`-`0x0048B41F`),
+and relinks it to that tile. Level 1's Lord drops the gem where he dies. In our replay of the
+campaign player's seed-1 win (remake output, not observed in DK2) the Lord dies on tile (15,22)
+and the Reaper takes the gem 108 turns after the verdict (ADR-0725). A map-placed gem: Q755.
+
 ## 3. The Reaper's states 228-234
 
 State-table rows 228-234 (`creature-state-table.md`). Age = state `+0x1C`, incremented
@@ -283,7 +296,7 @@ State 270's update handler is `Stub_ReturnTrue` `0x004B4C20` ([state-categories.
 | Item | Next |
 |---|---|
 | Creature action 59 | creature-action table |
-| What the state dispatcher does when 232 returns 0 | the state dispatcher |
+| What the state dispatcher does when 232 returns 0 (gem gone or not class 2; not reached on Level 1's win, where the gem lies on the floor) | the state dispatcher |
 | Bridge `+0x1221` bit `0x10` (action `0x84`); render point 8000 | `0x00441AA0`'s sink slot `+0x10C` |
 | Player `+0x76` bit `0x200000` setter; `0x0042F040`; `0x0042BC70` | slot scans |
 | World `+0x722F` (high byte of SpecialLevelIndex) reader | field scan |
