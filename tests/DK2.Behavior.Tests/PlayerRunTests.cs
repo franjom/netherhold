@@ -153,6 +153,30 @@ public class PlayerRunTests
         Assert.Equal(PlayerRunStop.ControllerLimited, silent.PlayerRun!.Stop);
     }
 
+    [Fact]
+    public void ActionsAreNumberedOneUpwardInDecisionOrderAcrossDecisions()
+    {
+        // Controllers read receipts by this numbering (IPlayerController's contract).
+        var controller = new Scripted(1, o => o.Stamp.Revision.Value <= 2
+            ? [new PlayerAction.TagArea(Rock, Rock), new PlayerAction.TagArea(new TilePos(5, 4), new TilePos(5, 4))] : []);
+        RunPlayer(Yaml(), controller);
+        Assert.Equal([1L, 2L, 3L, 4L], controller.Seen.SelectMany(o => o.Receipts)
+            .Where(r => r.Status == PlayerReceiptStatus.Queued).Select(r => r.Id.Value));
+    }
+
+    [Fact]
+    public void AStrategysOwnLimitationEndsTheRunAsOne()
+    {
+        ScenarioResult limited = RunPlayer(Yaml(), new GivesUp());
+        Assert.Equal((PlayerRunStop.ControllerLimited, "stuck"), (limited.PlayerRun!.Stop, limited.PlayerRun.Limitation));
+        Assert.Equal(1, limited.TicksRun);
+    }
+
+    private sealed class GivesUp : IPlayerController
+    {
+        public PlayerDecision Decide(PlayerObservation observation) => PlayerDecision.Limited("stuck");
+    }
+
     private sealed class Silent : IPlayerController
     {
         public PlayerDecision Decide(PlayerObservation observation) => null!;

@@ -8,7 +8,8 @@ namespace DK2.AI.Players;
 
 /// <summary>A replaceable player controller: a scripted bot, an external agent or a future keeper.
 /// It sees only <see cref="PlayerObservation"/>s and never a world; its memory stays outside the
-/// simulation. Construction receives the run and player identity.</summary>
+/// simulation. Construction receives the run and player identity. The host numbers a run's actions
+/// 1, 2, ... in the order decisions list them, so receipts can be matched to the actions sent.</summary>
 public interface IPlayerController
 {
     PlayerDecision Decide(PlayerObservation observation);
@@ -39,6 +40,12 @@ public sealed class PlayerDecision
 
     /// <summary>Requests nothing and waits <paramref name="advanceTicks"/>.</summary>
     public static PlayerDecision Wait(int advanceTicks, string reason) => new([], advanceTicks, reason);
+
+    /// <summary>The controller cannot go on: the host ends the run as a controller limitation, a
+    /// diagnostic result rather than an engine failure.</summary>
+    public static PlayerDecision Limited(string reason) => new([], 1, reason) { IsLimitation = true };
+
+    public bool IsLimitation { get; private init; }
 
     public IReadOnlyList<PlayerAction> Actions { get; }
     public int AdvanceTicks { get; }

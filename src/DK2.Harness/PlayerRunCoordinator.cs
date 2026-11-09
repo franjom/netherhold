@@ -188,6 +188,7 @@ public sealed class PlayerRunCoordinator
             return Limit($"the controller threw {ex.GetType().Name}: {ex.Message}");
         }
         if (decision is null) return Limit("the controller returned no decision");
+        if (decision.IsLimitation) return Limit(decision.Reason);
         if (decision.AdvanceTicks > _options.MaxAdvanceTicks)
             return Limit($"advance of {decision.AdvanceTicks} ticks exceeds {_options.MaxAdvanceTicks}");
         if (decision.Actions.Count > _options.Limits.MaxRequestsPerObservation)

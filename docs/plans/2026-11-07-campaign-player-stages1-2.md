@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-07. Design approved by the owner; inline execution
-in a worktree on `feature/campaign-player` (not merged). Tasks 1-4 are built; tasks 5-7 are not started.
+in a worktree on `feature/campaign-player` (not merged). Tasks 1-5 are built; tasks 6-7 are not started. Task 5's Level 1 win is an early scratch result; task 7's acceptance attempt with the build receipt is still to do.
 **Goal:** attempt Level 1 unattended through a player-visible interface, preserve
 the input journal and produce a truthful, replayable completion/failure report.
 **Architecture:** extend the existing scenario loop. Put engine-neutral player
@@ -96,7 +96,7 @@ and the presentation HUD models are the visibility/input references.
 | Task 2 | `src/DK2.Presentation/PlayerObservationBuilder.cs`, `WorldView.Player.cs`; `tests/DK2.Behavior.Tests/PlayerObservationTests.cs` | Visibility-safe projection and capabilities |
 | Task 3 | `src/DK2.Harness/PlayerSession.cs`; `src/DK2.Presentation/PlayerActionAdapter.cs`; `tests/DK2.Behavior.Tests/PlayerSessionTests.cs`; revision comparison operators in `PlayerContracts.cs` | Action admission, deduplication, handles and receipts |
 | Task 4 | `src/DK2.Harness/PlayerRunCoordinator.cs`, `PlayerRunManifest.cs`; existing `ScenarioRunner.cs`, `RunMonitor.cs`, `JournalHeader.cs`; `tests/DK2.Behavior.Tests/PlayerRunTests.cs` | Loop integration, bounded advancement, identity and replay |
-| Task 5 | `src/DK2.AI/Players/CampaignPlayer.cs`, `PlayerActionRoutines.cs`, `CampaignPlayerOptions.cs`; `tests/DK2.AI.Tests/CampaignPlayerTests.cs` | Observation-driven strategy and recovery |
+| Task 5 | `src/DK2.AI/Players/CampaignPlayer.cs`, `PlayerActionRoutines.cs`, `CampaignPlayerOptions.cs`; `tests/DK2.AI.Tests/Players/CampaignPlayerTests.cs`; `PlayerDecision.Limited` in `IPlayerController.cs`, its mapping in `src/DK2.Harness/PlayerRunCoordinator.cs`, `tests/DK2.Behavior.Tests/PlayerRunTests.cs` | Observation-driven strategy and recovery |
 | Task 6 | `src/DK2.Harness/PlayerRunReport.cs`; existing `HarnessCommandLine.cs`, `Program.cs`, `ScenarioReportWriter.cs`; `tests/DK2.Behavior.Tests/PlayerRunReportTests.cs` | CLI, limits, evidence and truthful outcomes |
 | Task 7 | `scenarios/campaign-player/level1.yaml`, `tests/DK2.Behavior.Tests/CampaignPlayerLevel1Tests.cs`, harness README | Installed acceptance and delivery |
 
@@ -362,11 +362,9 @@ journal's "completed") is first exercised by task 7's install attempt, which mus
 
 **Consumes:** only PlayerObservation; no database/world access in the controller.
 **Produces:** `CampaignPlayer(CampaignPlayerOptions options) : IPlayerController`;
-`PlayerActionRoutines.Choose(PlayerObservation observation,
-CampaignObjective objective) -> PlayerAction?` in DK2.AI.Players.
-Objectives are controller policy: EstablishEconomy, ProvideRooms, Explore,
-RespondToThreat and AwaitVerdict. They are not claims about DK2's AI priorities.
-`CampaignPlayerOptions` carries typed run/player IDs and explicit strategy
+`PlayerActionRoutines`, pure routines over one `PlayerObservation`, in DK2.AI.Players.
+The strategy's order (intro, hand, rooms, specials, frontier) is controller policy, not a
+claim about DK2's AI priorities. `CampaignPlayerOptions` carries typed run/player IDs and explicit strategy
 parameters; observations carry the prices/availability needed to act.
 
 First profile: skip an offered intro, select required offered tools, maintain a
@@ -384,11 +382,34 @@ equate a queued receipt with completion. Let known ongoing work continue; after
 the declared stall window, try the next candidate up to three recovery attempts,
 then return a controller limitation. Preserve the reason and observed inputs.
 
-- [ ] `CampaignPlayerTests`: table-driven detached observations require affordable-room selection, no repeat build while pending, alternate visible frontier after refusal, no targeting unseen things, valid waiting, terminal idle and recovery exhaustion.
-- [ ] Add the positive control that changing only an admitted observation changes the decision, while identical observations/options yield identical actions. Run AI project/class RED.
-- [ ] Implement routines and strategy; GREEN includes 3x3 candidate ties, insufficient gold, a disappearing target and no offered action. Tests use observation fixtures, never a privileged KeeperView.
-- [ ] Measure strategy/candidate-search cost and allocations with representative visible populations; optimize dominant scans/sorts before considering SIMD or microbenchmarks. Verify identical decisions and hashes for unchanged observations/options.
-- [ ] Review/document/commit. Unsupported strategic needs remain controller limitations; they do not authorize a mechanic change or a hidden-state shortcut.
+- [x] `CampaignPlayerTests` (in `tests/DK2.AI.Tests/Players/`): detached observations require affordable-room selection, no repeat build while pending, alternate visible frontier after refusal, no targeting unseen things, valid waiting, terminal idle and recovery exhaustion.
+- [x] Add the positive control that changing only an admitted observation changes the decision, while identical observations/options yield identical actions (`IdenticalObservationsGiveIdenticalDecisionsAndAChangedOneChangesIt`). The assertion-RED run was replaced by 21 paired counterfactuals over the build and its two review rounds, each detected by a named test.
+- [x] Implement routines and strategy; GREEN includes 3x3 candidate ties, insufficient gold, a disappearing target (a special that is gone, a held fighter whose enemy left) and no offered action. Tests use observation fixtures, never a privileged KeeperView.
+- [x] Measure strategy/candidate-search cost and allocations (figures under "As built": about 1% of a Level 1 run, so no scan or sort was optimised). Identical decisions for unchanged observations are pinned by the determinism test, identical hashes by the Level 1 replay and repeat run.
+- [x] Review/document/commit. Unsupported strategic needs remain controller limitations; they do not authorize a mechanic change or a hidden-state shortcut.
+
+As built: `CampaignPlayerOptions(runId, player, workerTypes)` takes the digging creature types
+from the host (public definition data) and validates its policy values; `PlayerDecision.Limited`
+ends a run as a controller limitation, its reason naming pending rooms, marks, frontier, hand and
+gold. `PlayerActionRoutines` holds pure routines over one observation (frontier, room squares,
+nearest enemy, free fighter, specials, own floor); the plan's `Choose`/`CampaignObjective` were
+dropped as an unused second path. Postconditions: a room is done when it covers its square, and a
+build not shown after `PendingRoomTicks` moves to another square; a drop is done when the hand
+empties, else that tile is skipped; a held fighter with no enemy goes down near home; a fighter
+near the enemy is left to fight, with a cooldown after each drop. Progress counts gains only; a
+gain resets recoveries; recovery untags and skips the standing marks. Receipts are matched by
+action id (the host numbers 1, 2, ... in decision order, pinned by a run test); only a refusal
+about the square (NotOffered, OutOfBounds) marks it tried. `DK2.AI/Players` is scanned for
+engine and host type names, with a negative control (`DK2.AI` cannot reference Presentation or
+Harness at all). Measured on Level 1: `Decide` 29 us and 1.3 KB a decision once warm.
+
+An early attempt with this controller (seed 1, fog, placed things, no setup changes) won Level 1
+at tick 2360 in 590 decisions (2 rooms, 155 marks, 15 pickups and drops, 1 special); its journal
+replayed all 2,762 hashes without the controller, and a repeat run matched its final hash. The
+Horned Reaper was created at the win but no gem pickup followed in 6,000 more ticks: unexplained,
+possibly dependent on the layout this controller dug, handed to its own mechanic session
+(evidence in ignored `build/campaign-player/level1-seed1-win/`). Task 7 reports it as
+`NotReached` and claims no end-to-end completion while it stands.
 
 ### Task 6: CLI, limits, outcomes and evidence
 
