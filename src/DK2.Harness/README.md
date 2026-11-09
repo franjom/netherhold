@@ -18,7 +18,7 @@ YAML scenarios (`Scenario.cs`), builds a world, runs the simulation and any comp
 keepers, checks `expect` claims, and writes a report per run.
 
     dotnet run --project src/DK2.Harness -- list [dir]
-    dotnet run --project src/DK2.Harness -- run <file|dir> [--out <dir>] [--fuzz <player>[:<seed>[:<interval>]]] [--coverage] [--progress <ticks>] [--snapshot-check <ticks>] [--campaign-player <player> [--player-* ...]]
+    dotnet run --project src/DK2.Harness -- run <file|dir> [--out <dir>] [--fuzz <player>[:<seed>[:<interval>]]] [--coverage] [--progress <ticks>] [--snapshot-check <ticks>] [--campaign-player <player> [--player-* ...] [--player-receipt <dir>]]
     dotnet run --project src/DK2.Harness -- replay <scenario> <input.journal> [--out <dir>]
     dotnet run --project src/DK2.Harness -- watch <file|dir> [--out <dir>] [--timeout-seconds 600] [--budget-minutes 30] [--max-runs 20] [--jobs 1] [run options] [--fuzz-seeds <n>]
 
@@ -70,8 +70,9 @@ Each run writes a new folder `<out>/<scenario>/<run id>/` (default id: the UTC t
 folder is never reused): the manifest before the first tick, a budgeted `input.journal`, the
 standard report files, `player-decisions.tsv`, `player-actions.tsv`, and `player-run.json` last,
 once the whole folder is known to fit the budget. The JSON holds the verdict, every limit, the
-finale coverage, any suspected anomaly (a win whose Horned Reaper finale was `NotReached`) and
-`acceptance: not claimed`; the installed build receipt that would change that is task 7.
+finale coverage, any suspected anomaly (a win whose Horned Reaper finale was `NotReached`),
+`acceptance_claimed` and `receipt`. Without a matching receipt the acceptance line reads
+`not claimed: ` followed by every reason (see "Build receipt and acceptance" below).
 
 | Verdict | Meaning | Exit |
 |---|---|---|
@@ -86,14 +87,48 @@ Under `watch`, the player flags go to each child; `--player-run-id` is refused, 
 defaults to 30 s below `--timeout-seconds` and must stay below it, and the child's journal is read
 from its run folder.
 
-Level 1 acceptance (task 7): `watch scenarios/campaign-player --campaign-player 3` plays shipped
-Level 1 on seeds 1-3 from its unmodified start; `CampaignPlayerLevel1Tests` (installed data) checks
-the start, the native win, the controller-free replay and the Reaper's gem pickup. The run report
-still says `acceptance: not claimed`: a build receipt is task 7's procedure, not the command's.
+Level 1 (task 7): `watch scenarios/campaign-player --campaign-player 3` plays shipped Level 1 on
+seeds 1-3 from its unmodified start; `CampaignPlayerLevel1Tests` (installed data) checks the start,
+the native win, the controller-free replay and the Reaper's gem pickup.
+
+### Build receipt and acceptance
+
+`python -I tools/build_receipt.py <new dir>` writes the receipt: `head.txt`, `status.txt`,
+`tracked.patch` with `tracked.patch.sha256`, `source.sha256` (every tracked or untracked, not
+ignored file under `src/`, `tests/` and `scenarios/`, plus the root build files; hashed before the
+build and again after it, and the tool refuses if they changed), `build.log` (a
+`dotnet build DK2.slnx -c Release --no-incremental`), `output.sha256` (every file in
+`src/DK2.Harness/bin/Release/net10.0` but `.pdb`) and `environment.txt`. It runs git before it
+creates the directory.
+
+`--player-receipt <dir>` (also under `watch`, which passes the absolute path to each child) is
+verified before the run folder is made; any problem refuses the run (exit 2). `BuildReceipt.Verify`
+checks that every listed output and source matches, that every non-`.pdb` file beside the harness
+is listed, that no unlisted `.cs`, `.csproj`, `.props` or `.targets` lies under `src/` outside
+`src/<project>/bin` and `obj`, and that every loaded `DK2.*` assembly comes from the harness folder.
+
+The run claims acceptance only when all of these hold (`PlayerRunCommand.ClaimGaps`):
+
+- a receipt was given and matched;
+- the start is unmodified (`PlayerRunReport.ModifiedStart` is empty): a campaign map, `random: dk2`,
+  fog on, `placed_things`, no setup players, rooms, creatures or objects, no commands, no work, no
+  keeper personalities, no unknown keys;
+- no `--fuzz`;
+- the scenario's `computer_keepers` equal the level's PLAYERS records' computer keepers, leaving out
+  the controlled player;
+- the outcome is Completed and the finale is `ReachedPickup` or `NotApplicable`;
+- the evidence fit the output budget;
+- an in-process replay of the journal without the controller, on the same build and data, matched
+  every recorded hash and the tick count (the claim needs that replay's matched-hash count).
+
+The claim line names the map, seed, controller, win tick, finale, receipt directory and head, adds
+"plus uncommitted changes (tracked patch sha256 ...)" when `status.txt` is not empty, and ends
+"Headless only ... `report.md` lists what this build cannot act on." The claim covers that one
+headless run, not rendered play; only Level 1 has been won so far.
 
 Not implemented (stages 4-5): Unity, rendering, audio, the real UI, an external model or agent,
 and the front end. A headless run does not certify rendered timing. Plan and as-built notes:
-`docs/plans/2026-11-07-campaign-player-stages1-2.md` (tasks 4, 6 and 7).
+`docs/plans/2026-11-07-campaign-player-stages1-2.md` (tasks 4, 6 and 7); the receipt procedure is also described in `tools/build_receipt.py`'s header.
 
 Exit code 1 means a scenario failed to load or run, or an expectation failed. The
 file format, output files and corpus are in `scenarios/README.md`. Campaign maps need

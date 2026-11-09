@@ -352,7 +352,7 @@ The decision log reads each receipt back from the session (`TryGetReceipt`).
 `PlayerRunManifest.Write/Verify(directory, scenario, install, runId)` cover the run id, scenario,
 `Data/editor` KWD/KLD and `Data/Paths.WAD`, every `DK2.*.dll` beside the harness, and the source
 tree with root build files; `Verify` returns blocking and diagnostic lists (source only
-diagnostic). The CLI calls it in task 6; the fresh-build receipt is task 7's. No synthetic
+diagnostic). The CLI calls it in task 6; the fresh-build receipt is `BuildReceipt` (task 7). No synthetic
 scenario can win, so a win through the runner (the last-tick result, the finale window, the
 journal's "completed") is first exercised by task 7's install attempt, which must assert it. Measured (shipped Level 1, fog, 1,200 ticks, decision every 4 ticks):
 549-560 ms against 525-536 ms without the player (about 4.5%), 2.5 MB more allocation (about
@@ -463,8 +463,8 @@ journal from its run folder. `PlayerRunCommand` makes a new `<out>/<scenario>/<r
 manifest before the first tick, and journals through a `BudgetedStream` whose 1 MiB reserve keeps
 room for the final records; wall time and output budget stop the run as cancelled. The whole folder
 counts against the budget, checked before the verdict file is written last. Verdicts: a win is
-Completed, with the finale and any suspected anomaly beside it and `acceptance` saying it is not
-claimed without task 7's build receipt; a defeat Defeated; no result in the ticks or a controller's
+Completed, with the finale and any suspected anomaly beside it and `acceptance` saying whether it
+is claimed (only with task 7's build receipt and replay proof, see below); a defeat Defeated; no result in the ticks or a controller's
 own limit ControllerLimited; a stopped run or evidence that did not reach disk IncompleteEvidence
 (exit 2); a refusal before any tick Refused (exit 2); an engine or host exception TechnicalFailure
 (exit 1) with its journal, manifest and verdict. `replay` verifies a player-run journal's manifest
@@ -545,8 +545,25 @@ within noise. The paired median is +49 ms a run against a 1,165 ms replay median
 performance acceptance. The remaining hot spot, from task 2's measurement, is
 `PlayerInputSnapshot.Capture` building `CreatureViews`. These are remake measurements, not DK2 facts.
 
-The harness and scenarios READMEs' entries for `scenarios/campaign-player/` follow in their own
-commit, because the build receipt hashes `src/` and `scenarios/`.
+Build receipt and the claim: `tools/build_receipt.py <new dir>` writes the receipt (head, status,
+tracked patch and its hash, source hashes taken before and after the build, build log, output hashes
+without `.pdb`), and `run --campaign-player N --player-receipt <dir>` (also under `watch`) has
+`BuildReceipt.Verify` check outputs, sources, unlisted build inputs under `src/` and that every loaded
+`DK2.*` assembly comes from the harness folder before the run folder is made; any problem is exit 2.
+`PlayerRunCommand.ClaimGaps` then requires a receipt, an empty `PlayerRunReport.ModifiedStart`, no
+`--fuzz`, `computer_keepers` equal to the level's PLAYERS records, a Completed outcome, a finale of
+`ReachedPickup` or `NotApplicable`, the evidence within the budget and an in-process controller-free
+replay that matched every recorded hash and the tick count. `player-run.json` gains
+`acceptance_claimed` and `receipt`; otherwise the line is `not claimed: ` and every reason. The claim
+is headless Level 1 only. `BuildReceiptTests`, `PlayerRunReportTests` and `CampaignPlayerLevel1Tests`
+(`AMatchingReceiptLetsTheWinClaimAcceptance`, which writes its receipt from the bytes it runs on and
+so proves the claim path, not freshness) passed 52 with `DK2_REQUIRE_INSTALL=1`; each counterfactual
+fault tried (receipt hashes not compared, unlisted outputs ignored, a mismatch not refused, setup
+grants passing as unmodified, no receipt allowed to claim, fuzz ignored, computer keepers not compared,
+replay result ignored, replay never run, replay proof not required, a dirty tree reported clean) was
+caught. A real run of `tools/build_receipt.py` then the CLI on `scenarios/campaign-player/level1.yaml`
+exited 0 with `acceptance_claimed` true, before the review fixes. The harness and scenarios READMEs
+carry the procedure.
 
 ## Execution handoff
 

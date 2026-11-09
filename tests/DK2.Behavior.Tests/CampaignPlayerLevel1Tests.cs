@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Security.Cryptography;
+using System.Text.Json;
 using DK2.Data.Model;
 using DK2.Harness;
 using DK2.Simulation;
@@ -173,5 +175,50 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
             .Replay(ScenarioCorpus.Load(ScenarioFile), attempt.Journal);
         Assert.Single(replay.Events, e => e.Kind == "gem_taken" && e.Tick.Value == pickup);
         output.WriteLine($"won t{win}, Reaper took the gem t{pickup} ({pickup - win} ticks later)");
+    }
+
+    [InstallFact]
+    public void AMatchingReceiptLetsTheWinClaimAcceptance()
+    {
+        // The receipt is written here from the bytes this test runs on, so it proves the claim path and
+        // the tree scan, not that the build was fresh; tools/build_receipt.py makes the real one.
+        string harness = AppContext.BaseDirectory;
+        string repo = BuildReceipt.RepositoryRootAbove(harness)!;
+        string root = Path.Combine(Path.GetTempPath(), $"dk2-accept-{Guid.NewGuid():N}");
+        string receipt = Path.Combine(root, "receipt");
+        Directory.CreateDirectory(receipt);
+        try
+        {
+            static string Line(string path, string name) =>
+                $"{Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)))}  {name}\n";
+            File.WriteAllText(Path.Combine(receipt, BuildReceipt.OutputFile), string.Concat(Directory.EnumerateFiles(harness)
+                .Where(f => !f.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase)).Select(f => Line(f, Path.GetFileName(f)))));
+            string[] inputs = [".cs", ".csproj", ".props", ".targets"];
+            File.WriteAllText(Path.Combine(receipt, BuildReceipt.SourceFile), string.Concat(
+                Directory.EnumerateFiles(Path.Combine(repo, "src"), "*", SearchOption.AllDirectories)
+                    .Select(f => (Path: f, Name: Path.GetRelativePath(repo, f).Replace('\\', '/')))
+                    .Where(f => inputs.Contains(Path.GetExtension(f.Path).ToLowerInvariant())
+                                && f.Name.Split('/') is var parts && !(parts.Length > 3 && parts[2] is "bin" or "obj"))
+                    .Select(f => Line(f.Path, f.Name))));
+
+            RunTemplate template = HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "3", "--player-receipt", receipt])!;
+            var runner = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path);
+            var error = new StringWriter();
+            int exit = PlayerRunCommand.Run(runner, ScenarioCorpus.Database, Dk2InstallGate.Path, ScenarioCorpus.Load(ScenarioFile), template,
+                Path.Combine(root, "out"), "accept", TextWriter.Null, error, tune: null, harnessDirectory: harness);
+            Assert.True(exit == 0, error.ToString());
+            using JsonDocument report = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(root, "out", "campaign-player-level1", "accept", PlayerRunReport.RunFile)));
+            string acceptance = report.RootElement.GetProperty("acceptance").GetString()!;
+            Assert.True(report.RootElement.GetProperty("acceptance_claimed").GetBoolean(), acceptance);
+            Assert.StartsWith("claimed: campaign:level1 (seed 1) won from its unmodified start", acceptance, StringComparison.Ordinal);
+            // The in-process replay proved every recorded hash: the run's ticks plus its initial hash.
+            Assert.Contains($"matched all {report.RootElement.GetProperty("ticks_run").GetInt32() + 1} recorded hashes", acceptance, StringComparison.Ordinal);
+            output.WriteLine(acceptance);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
     }
 }

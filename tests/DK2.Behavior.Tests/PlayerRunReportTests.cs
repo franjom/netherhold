@@ -85,6 +85,18 @@ public class PlayerRunReportTests
     }
 
     [Fact]
+    public void AReceiptIsTakenAsAnAbsolutePathAndABareFlagIsRefused()
+    {
+        Assert.Equal(Path.GetFullPath("rcpt"),
+            HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "3", "--player-receipt", "rcpt"])!.Player!.Receipt);
+        Assert.Null(HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "3", "--player-receipt"]));
+        Assert.Null(HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "3", "--player-receipt", "--coverage"]));
+        Assert.Null(HarnessCommandLine.RunOptions(["run", "x", "--player-receipt", "rcpt"]));          // a receipt with no player
+        List<WatchJob> jobs = HarnessCommandLine.WatchJobs(["a.yaml"], ["watch", "x", "--campaign-player", "3", "--player-receipt", "rcpt"])!;
+        Assert.Equal(["--campaign-player", "3", "--player-receipt", Path.GetFullPath("rcpt"), "--player-wall-seconds", "570"], jobs[0].Args);
+    }
+
+    [Fact]
     public void WatchPassesThePlayerOptionsToEachRun()
     {
         List<WatchJob> jobs = HarnessCommandLine.WatchJobs(["a.yaml", "b.yaml"],
@@ -174,6 +186,70 @@ public class PlayerRunReportTests
         return stream.ToArray();
     }
 
+    private static Scenario ShippedStart() => new()
+    {
+        Id = "start", Map = "campaign:level1", Seed = 1, Random = "dk2", FogOfWar = true, ViewingPlayer = 3, DurationTicks = 10,
+        Setup = new ScenarioSetup { PlacedThings = true },
+    };
+
+    [Fact]
+    public void EachThingAClaimNeedsIsNamedWhenItIsMissing()
+    {
+        var receipt = new BuildReceipt.Verification("receipt", "abc", []);
+        PlayerRunCoordinator won = After(PlayerStatus.Won);   // a zero finale window: Unchecked
+        List<string> Gaps(PlayerRunCoordinator player, BuildReceipt.Verification? r = null, bool fuzzed = false,
+            byte[]? keepers = null, Scenario? scenario = null) =>
+            PlayerRunCommand.ClaimGaps(scenario ?? ShippedStart(), player, PlayerRunReport.Outcome(player, true), r, fuzzed, keepers);
+
+        Assert.Equal(["the finale is Unchecked: the Horned Reaper did not take the Portal Gem"], Gaps(won, receipt, keepers: []));
+        Assert.Contains("no build receipt was given (--player-receipt)", Gaps(won, keepers: []));
+        Assert.Contains("another player is driven by the fuzzer (--fuzz)", Gaps(won, receipt, fuzzed: true, keepers: []));
+        Assert.Contains("the level's own computer keepers (its PLAYERS records) could not be read", Gaps(won, receipt));
+        Assert.Contains("the scenario drives computer keepers [], the level's records name [4]", Gaps(won, receipt, keepers: [4]));
+        // The controlled keeper is not one the scenario must drive, even if the records mark it.
+        Assert.Single(Gaps(won, receipt, keepers: [PlayerObservationTests.Viewer.Value]));
+        Assert.Contains("the run is Defeated, not Completed", Gaps(After(PlayerStatus.Lost), receipt, keepers: []));
+        Scenario granted = ShippedStart();
+        granted.Setup.Players.Add(new ScenarioPlayer { Id = 3, Gold = 50000 });
+        Assert.Contains("the setup grants players gold, mana or spells", Gaps(won, receipt, keepers: [], scenario: granted));
+        Assert.StartsWith(PlayerRunReport.NotClaimed, PlayerRunCommand.Acceptance(ShippedStart(), won, receipt, Gaps(won, receipt, keepers: []), 100),
+            StringComparison.Ordinal);
+        // With nothing else missing, a claim still needs the replay's proof.
+        Assert.Equal(PlayerRunReport.NotClaimed + "the journal was not replayed", PlayerRunCommand.Acceptance(ShippedStart(), won, receipt, [], null));
+        Assert.Contains("matched all 100 recorded hashes", PlayerRunCommand.Acceptance(ShippedStart(), won, receipt, [], 100), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OnlyAReplayThatMatchesEveryHashAndTickLeavesNoGap()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"dk2-replay-gap-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            string scenarioPath = Path.Combine(root, "probe.yaml");
+            File.WriteAllText(scenarioPath, Yaml(20));
+            Scenario scenario = Scenario.Load(scenarioPath);
+            var runner = new ScenarioRunner(Database(), null);
+            string journal = Path.Combine(root, "input.journal");
+            ScenarioResult result;
+            using (FileStream stream = File.Create(journal))
+                result = runner.Run(scenario, new RunOptions { Journal = stream });
+
+            Assert.Null(PlayerRunCommand.ReplayGap(runner, scenario, result, journal, out int compared));
+            Assert.Equal(result.HashPerTick.Count, compared);
+            Assert.StartsWith("the journal's replay without the controller does not match",
+                PlayerRunCommand.ReplayGap(runner, scenario, result with { TicksRun = result.TicksRun + 1 }, journal, out compared), StringComparison.Ordinal);
+            Assert.Equal(0, compared);
+            File.WriteAllBytes(journal, [1, 2, 3]);
+            Assert.StartsWith("the journal could not be replayed",
+                PlayerRunCommand.ReplayGap(runner, scenario, result, journal, out _), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public void ARunWritesItsEvidenceAndNeverOverwritesIt()
     {
@@ -199,7 +275,13 @@ public class PlayerRunReportTests
             {
                 Assert.Equal("ControllerLimited", report.RootElement.GetProperty("outcome").GetString());
                 Assert.Equal("NoResult", report.RootElement.GetProperty("stop").GetString());
-                Assert.Equal(PlayerRunReport.AcceptanceNotClaimed, report.RootElement.GetProperty("acceptance").GetString());
+                // Not claimed, and the report names every gap: no receipt, a synthetic map, no result.
+                string acceptance = report.RootElement.GetProperty("acceptance").GetString()!;
+                Assert.StartsWith(PlayerRunReport.NotClaimed, acceptance, StringComparison.Ordinal);
+                Assert.Contains("no build receipt", acceptance, StringComparison.Ordinal);
+                Assert.Contains("not a shipped campaign level", acceptance, StringComparison.Ordinal);
+                Assert.Contains("ControllerLimited, not Completed", acceptance, StringComparison.Ordinal);
+                Assert.False(report.RootElement.GetProperty("acceptance_claimed").GetBoolean());
                 Assert.Equal(600, report.RootElement.GetProperty("limits").GetProperty("wall_seconds").GetInt32());
                 Assert.Equal("no result within 40 ticks", report.RootElement.GetProperty("note").GetString());
                 Assert.Equal(40, report.RootElement.GetProperty("ticks_run").GetInt32());
