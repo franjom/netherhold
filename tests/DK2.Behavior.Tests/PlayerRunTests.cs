@@ -127,16 +127,16 @@ public class PlayerRunTests
     public void APlayerOwnedByAKeeperOrAControllerIsRefused()
     {
         var other = new ScenarioController("other", Keeper, _ => []);
-        Assert.Throws<ArgumentException>(() => WithScenario(Yaml(), s => Runner().Run(s, new RunOptions
+        Assert.ThrowsAny<ArgumentException>(() => WithScenario(Yaml(), s => Runner().Run(s, new RunOptions
         {
             Controllers = [other],
             PlayerRun = new PlayerRunOptions(new Scripted(1), Keeper, Run),
         })));
-        Assert.Throws<ArgumentException>(() => WithScenario(Yaml(), s => Runner().Run(s, new RunOptions
+        Assert.ThrowsAny<ArgumentException>(() => WithScenario(Yaml(), s => Runner().Run(s, new RunOptions
         {
             PlayerRun = new PlayerRunOptions(new Scripted(1), new PlayerId(5), Run),
         })));
-        var scripted = Assert.Throws<ArgumentException>(() => RunPlayer(Yaml(commands: "  - { at_tick: 1, player: 3, tag: [[6, 4]] }"), new Scripted(1)));
+        var scripted = Assert.Throws<PlayerRunRefusedException>(() => RunPlayer(Yaml(commands: "  - { at_tick: 1, player: 3, tag: [[6, 4]] }"), new Scripted(1)));
         Assert.Contains("one command source", scripted.Message, StringComparison.Ordinal);
     }
 

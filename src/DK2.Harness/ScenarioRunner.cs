@@ -289,7 +289,7 @@ public sealed class ScenarioRunner
             foreach (InputFrame scriptedFrame in input.Values)
                 foreach (PlayerCommand command in scriptedFrame.All)
                     if (command.PlayerId == controlled.Player)
-                        throw new ArgumentException(
+                        throw new PlayerRunRefusedException(
                             $"Player run: the scenario scripts commands for player {controlled.Player.Value}; a controlled player has one command source.",
                             nameof(scenario));
         List<ScenarioWork> work = ScenarioInputBuilder.ResolveWork(scenario, world, unsupported);
@@ -485,9 +485,9 @@ public sealed class ScenarioRunner
         if (playerRun is not null)
         {
             if (!world.PlayerIds.Contains(playerRun.Player))
-                throw new ArgumentException($"Player run: player {playerRun.Player.Value} is not in this world.", nameof(playerRun));
+                throw new PlayerRunRefusedException($"Player run: player {playerRun.Player.Value} is not in this world.", nameof(playerRun));
             if (!taken.Add(playerRun.Player))
-                throw new ArgumentException($"Player run: player {playerRun.Player.Value} already has a computer keeper.", nameof(playerRun));
+                throw new PlayerRunRefusedException($"Player run: player {playerRun.Player.Value} already has a computer keeper.", nameof(playerRun));
         }
         foreach (ScenarioController controller in controllers)
         {

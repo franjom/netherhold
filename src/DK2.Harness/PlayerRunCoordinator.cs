@@ -40,6 +40,10 @@ public sealed record PlayerRunOptions
 
     public PlayerSessionLimits Limits { get; init; } = new();
 
+    /// <summary>Asked after every tick; a reason stops the run as cancelled (the host's wall-time or
+    /// output budget). Null never stops it.</summary>
+    public Func<string?>? StopRequested { get; init; }
+
     /// <summary>A controller's name for the journal; the controller's type name by default.</summary>
     public string ControllerName => Controller.GetType().FullName ?? Controller.GetType().Name;
 
@@ -132,8 +136,24 @@ public sealed class PlayerRunCoordinator
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (Stopped) return [];
         ref readonly PlayerState player = ref world.Player(_options.Player);
+        // A result already in the world comes first: a budget stop on the winning tick keeps the win.
+        if (_finaleEndTick < 0 && player.Status == PlayerStatus.Playing && _options.StopRequested?.Invoke() is string why)
+        {
+            Limitation = why;
+            Cancel();
+            return [];
+        }
 
-        if (_finaleEndTick >= 0) return FinaleTick(player, completedTick);
+        if (_finaleEndTick >= 0)
+        {
+            if (_options.StopRequested?.Invoke() is string late)
+            {
+                Limitation = late;
+                Cancel();
+                return [];
+            }
+            return FinaleTick(player, completedTick);
+        }
         if (player.Status != PlayerStatus.Playing)
         {
             ResultTick = completedTick;
@@ -256,7 +276,7 @@ public sealed class PlayerRunCoordinator
         PlayerRunStop.Won => "completed",
         PlayerRunStop.Defeated => "player:defeated",
         PlayerRunStop.ControllerLimited => $"player:controller-limited: {Limitation}",
-        PlayerRunStop.Cancelled => "player:cancelled",
+        PlayerRunStop.Cancelled => Limitation is null ? "player:cancelled" : $"player:cancelled: {Limitation}",
         _ => string.Create(CultureInfo.InvariantCulture, $"player:no-result after {ticksRun} ticks"),
     };
 

@@ -207,6 +207,9 @@ public sealed record FuzzSpec(PlayerId Player, ulong? Seed, int IntervalTicks);
 /// <summary>Run options from a command line, applied per scenario (the fuzz seed and the journal differ).</summary>
 public sealed record RunTemplate(FuzzSpec? Fuzz, bool Coverage, int ProgressEvery, int SnapshotCheckEvery)
 {
+    /// <summary>A campaign player for one keeper (<c>--campaign-player</c>); null for none.</summary>
+    public CampaignPlayerSpec? Player { get; init; }
+
     public RunOptions For(Scenario scenario, Stream journal) => new()
     {
         Controllers = Fuzz is null

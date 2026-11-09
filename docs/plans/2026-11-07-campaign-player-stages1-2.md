@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-07. Design approved by the owner; inline execution
-in a worktree on `feature/campaign-player` (not merged). Tasks 1-5 are built; tasks 6-7 are not started. Task 5's Level 1 win is an early scratch result; task 7's acceptance attempt with the build receipt is still to do.
+in a worktree on `feature/campaign-player` (not merged). Tasks 1-6 are built; task 7 is not started. Task 5's Level 1 win is an early scratch result; task 7's acceptance attempt with the build receipt is still to do.
 **Goal:** attempt Level 1 unattended through a player-visible interface, preserve
 the input journal and produce a truthful, replayable completion/failure report.
 **Architecture:** extend the existing scenario loop. Put engine-neutral player
@@ -414,7 +414,7 @@ possibly dependent on the layout this controller dug, handed to its own mechanic
 ### Task 6: CLI, limits, outcomes and evidence
 
 **Produces:** `PlayerRunOutcome` (Completed, Defeated, ControllerLimited,
-TechnicalFailure, IncompleteEvidence); `PlayerRunReport` and its writer.
+TechnicalFailure, IncompleteEvidence; a refusal before any tick is recorded as the verdict string `Refused`); `PlayerRunReport` and its writer.
 Add `--campaign-player <player>` to existing run/watch options, propagated by
 WatchJobs; reject combination with --fuzz or another controller on that player.
 Defaults are test policy, not DK2 rules: 14,400 simulation ticks maximum,
@@ -448,10 +448,33 @@ identity and untested areas. Separate player-visible decision evidence from
 privileged diagnosis; the latter is never input to the strategy.
 
 - [ ] `PlayerRunReportTests`: assert win/defeat/controller limitation/timeout/invalid evidence map to distinct report outcomes; no victory is inferred from exit success or an empty expectation list. Each finale coverage value is reported distinctly and none alters the Won outcome.
-- [ ] RED tests cover parsing bounds, watch propagation, budget boundary flush, unwritable output, exhausted storage and no overwrite of an existing evidence directory. Implement and run GREEN.
+- [x] RED tests cover parsing bounds, watch propagation, budget boundary flush, an unwritable output folder, the budget stop and no overwrite of an existing evidence directory. Implement and run GREEN.
+- [ ] Untested branches: the over-budget downgrade of a finished folder, a real `EvidenceWriteException` from the disk, Defeated through the CLI and an IO error while writing the report files.
 - [ ] A failed installed attempt must leave journal and metadata readable through the last flushed tick. Preserve irreplaceable failure/acceptance evidence add-only under F:/DK2Evidence with a SHA-256 inventory; routine regenerable output stays under build/.
-- [ ] Measure journal/report buffering and serialization under long runs; bound allocation and retained memory without per-tick formatting work or weakening flush/recovery evidence. Include these findings in the review before committing.
-- [ ] Review/document/commit; update the harness README's new flags and explicitly list Unity/model/UI/audio coverage as not implemented.
+- [x] Bound allocation and retained memory without per-tick formatting work or weakening flush/recovery evidence: the per-tick cost is one budget comparison and one delegate, the reports are written once, and `BudgetedStream` forwards writes without allocating.
+- [ ] Measure journal/report buffering and serialization under a long run. Not timed separately; the figures above come from reading the code, not a measurement.
+- [x] Update the harness README's new flags and explicitly list Unity/model/UI/audio coverage as not implemented.
+- [x] Commit.
+
+As built: `HarnessCommandLine` parses `--campaign-player` and the `--player-*` limits (a limit
+without a player, a misspelt `--player-*` flag, a non-keeper, `--fuzz` on the same player, an
+advance above 40 or an output budget under 2 MiB are refused). `watch` passes them to each run,
+refuses `--player-run-id`, and sets the wall limit 30 s below `--timeout-seconds` unless given (it
+must stay below), so a run stops itself before the watchdog kills it; watch reads a player run's
+journal from its run folder. `PlayerRunCommand` makes a new `<out>/<scenario>/<run id>/` folder
+(default id: the UTC time; never an existing folder; run ids of only dots are refused), writes the
+manifest before the first tick, and journals through a `BudgetedStream` whose 1 MiB reserve keeps
+room for the final records; wall time and output budget stop the run as cancelled. The whole folder
+counts against the budget, checked before the verdict file is written last. Verdicts: a win is
+Completed, with the finale and any suspected anomaly beside it and `acceptance` saying it is not
+claimed without task 7's build receipt; a defeat Defeated; no result in the ticks or a controller's
+own limit ControllerLimited; a stopped run or evidence that did not reach disk IncompleteEvidence
+(exit 2); a refusal before any tick Refused (exit 2); an engine or host exception TechnicalFailure
+(exit 1) with its journal, manifest and verdict. `replay` verifies a player-run journal's manifest
+first. The budget check is one comparison a tick and the reports are written once; `BudgetedStream`
+forwards byte and span writes without allocating. Through the CLI on installed Level 1 (seed 1):
+Completed at tick 2360, finale NotReached, exit 0; `replay` verified the manifest and matched all
+2,762 hashes.
 
 ### Task 7: real Level 1 attempt and acceptance
 

@@ -31,6 +31,9 @@ public class PlayerContractsTests
         Assert.Throws<ArgumentException>(() => new PlayerRunId("  "));
         Assert.Throws<ArgumentException>(() => new PlayerRunId("a/b"));
         Assert.Throws<ArgumentException>(() => new PlayerRunId("a\nb"));
+        Assert.Throws<ArgumentException>(() => new PlayerRunId("."));
+        Assert.Throws<ArgumentException>(() => new PlayerRunId(".."));
+        Assert.Equal("a.b", new PlayerRunId("a.b").Value);
         Assert.Throws<ArgumentException>(() => new PlayerRunId(new string('a', PlayerRunId.MaxLength + 1)));
         Assert.Throws<ArgumentNullException>(() => new PlayerRunId(null!));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PlayerActionId(0));

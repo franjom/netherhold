@@ -22,9 +22,15 @@ public readonly record struct PlayerRunId
         if (value is null) throw new ArgumentNullException(nameof(value));
         if (value.Length is 0 or > MaxLength)
             throw new ArgumentException($"A run id has 1-{MaxLength} characters.", nameof(value));
+        bool named = false;
         foreach (char c in value)
+        {
             if (!(c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '.' or '_' or '-'))
                 throw new ArgumentException("A run id uses only letters, digits, '.', '_' and '-'.", nameof(value));
+            named |= c != '.';
+        }
+        // "." and ".." would name a folder above the run's own.
+        if (!named) throw new ArgumentException("A run id is not only dots.", nameof(value));
         _value = value;
     }
 

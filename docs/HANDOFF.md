@@ -66,10 +66,12 @@ These are entry points, not a new priority order.
   (`PlayerSession` in `DK2.Harness`, `PlayerActionAdapter` in `DK2.Presentation`), task 4,
   the tick-loop integration (`RunOptions.PlayerRun`, `PlayerRunCoordinator`, replay of
   `player.run.schema=1` journals, `PlayerRunManifest`), and task 5, the observation-only
-  `CampaignPlayer` strategy (`DK2.AI.Players`), are built. No command line drives a player run
-  yet (task 6). An early scratch run of task 5 won Level 1 (seed 1) and replayed exactly, but
-  the Horned Reaper finale did not complete (unexplained, with its own mechanic session); task 7's
-  acceptance attempt with the build receipt is still to do, so no end-to-end completion is claimed.
+  `CampaignPlayer` strategy (`DK2.AI.Players`), and task 6, `run --campaign-player` with its
+  limits, evidence folder and verdicts (`PlayerRunCommand`, `PlayerRunReport`; see
+  [`DK2.Harness`](../src/DK2.Harness/README.md)), are built. An early scratch run won Level 1
+  (seed 1) at tick 2360 and replayed exactly, but the Horned Reaper finale did not complete
+  (unexplained, with its own mechanic session). Task 7's acceptance attempt with the build receipt
+  is not started, so every run reports `acceptance: not claimed` and no end-to-end completion is claimed.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.

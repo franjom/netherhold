@@ -28,6 +28,22 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
                 --coverage            coverage.tsv: triggers reached, states, events
                 --progress <ticks>    progress.tsv and stall candidates (40 with --fuzz)
                 --snapshot-check <ticks>  save, restore and compare every that many ticks
+                --campaign-player <player>  the observation-only campaign player plays that keeper,
+                    into <out>/<scenario-id>/<run-id>/ (never an existing folder): input.journal,
+                    player-run-manifest.json, player-run.json, player-decisions.tsv, player-actions.tsv.
+                    Exit 0 only for a won run with whole evidence, 1 for any other attempt, 2 for
+                    incomplete evidence. Limits (test policy, not DK2 rules):
+                    --player-max-ticks 14400  --player-wall-seconds 600  --player-interval-ticks 4 (1-40)
+                    --player-max-actions 4096  --player-stall-ticks 1200  --player-retries 3
+                    --player-finale-ticks 400 (0 skips the finale)  --player-output-mib 64 (1 MiB kept back)
+                    --player-run-id <id>  the run's name (default: the UTC time); not with watch
+                    --player-output-mib is at least 2. Exit 2 also covers a refused run (no such
+                    player, a keeper or scripted commands on it, an existing folder or a bad run id).
+                    Over a directory, any exit 2 makes the whole run exit 2. Under watch, the wall
+                    limit defaults to 30 s below --timeout-seconds and must stay below it.
+                    A win reports the Reaper finale beside it and never claims acceptance; task 7's
+                    procedure adds the fresh-build receipt.
+                    Not covered: Unity rendering, audio, the real UI, an external agent, the front end.
 
           replay <scenario.yaml> <input.journal> [--out <dir>]
               Re-runs a journal without its keepers or controllers and compares
@@ -110,16 +126,25 @@ switch (args[0])
 
         if (HarnessCommandLine.RunOptions(args) is not { } template)
         {
-            Console.Error.WriteLine("--fuzz takes <player>[:<seed>[:<interval>]]; --progress and --snapshot-check a positive whole number.");
+            Console.Error.WriteLine("--fuzz takes <player>[:<seed>[:<interval>]]; --progress and --snapshot-check a positive whole number; " +
+                "--campaign-player a keeper id not also fuzzed, with --player-* limits as --help gives them.");
             return 2;
         }
 
-        int failures = 0;
+        int failures = 0, incomplete = 0;
         foreach (string file in files)
         {
             try
             {
                 Scenario scenario = Scenario.Load(file);
+                if (template.Player is not null)
+                {
+                    int exit = PlayerRunCommand.Run(runner, database, install, scenario, template, outRoot,
+                        HarnessCommandLine.Value(args, "--player-run-id"), Console.Out, Console.Error);
+                    if (exit == 2) incomplete++;
+                    else if (exit != 0) failures++;
+                    continue;
+                }
                 string outDir = Path.Combine(outRoot, scenario.Id);
                 Directory.CreateDirectory(outDir);
                 ScenarioResult result;
@@ -151,7 +176,7 @@ switch (args[0])
                 failures++;
             }
         }
-        return failures == 0 ? 0 : 1;
+        return incomplete > 0 ? 2 : failures == 0 ? 0 : 1;
     }
 
     case "replay":
@@ -193,6 +218,8 @@ switch (args[0])
             Console.Error.WriteLine($"not replayed: {ex.Message}");
             return 2;
         }
+        if (PlayerRunCommand.VerifyBeforeReplay(args[2], scenario, install, journal, Console.Out, Console.Error) is int refused)
+            return refused;
 
         var runner = new ScenarioRunner(GameDatabaseLoader.Load(install), install);
         string? recordedFailure = journal.EndReason is "completed" ? null : journal.EndReason;
@@ -246,13 +273,20 @@ switch (args[0])
             return 2;
         }
 
-        if (HarnessCommandLine.WatchJobs(files, args) is not { } jobs)
+        int? perRun = HarnessCommandLine.Int(args, "--timeout-seconds", 600);
+        if (perRun is null)
         {
-            Console.Error.WriteLine("A run option is malformed, or --fuzz-seeds was given without --fuzz; see --help.");
+            Console.Error.WriteLine("--timeout-seconds takes a positive whole number.");
+            return 2;
+        }
+        if (HarnessCommandLine.WatchJobs(files, args, perRun.Value) is { } jobs) { }
+        else
+        {
+            Console.Error.WriteLine("A run option is malformed, --fuzz-seeds was given without --fuzz, --player-run-id was given " +
+                "(each watched run names its own), or --player-wall-seconds is not below --timeout-seconds; see --help.");
             return 2;
         }
 
-        int? perRun = HarnessCommandLine.Int(args, "--timeout-seconds", 600);
         int? budget = HarnessCommandLine.Int(args, "--budget-minutes", 30);
         int? maxRuns = HarnessCommandLine.Int(args, "--max-runs", 20);
         int? parallelJobs = HarnessCommandLine.Int(args, "--jobs", 1);
