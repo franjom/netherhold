@@ -18,7 +18,7 @@ YAML scenarios (`Scenario.cs`), builds a world, runs the simulation and any comp
 keepers, checks `expect` claims, and writes a report per run.
 
     dotnet run --project src/DK2.Harness -- list [dir]
-    dotnet run --project src/DK2.Harness -- run <file|dir> [--out <dir>] [--fuzz <player>[:<seed>[:<interval>]]] [--coverage] [--progress <ticks>] [--snapshot-check <ticks>]
+    dotnet run --project src/DK2.Harness -- run <file|dir> [--out <dir>] [--fuzz <player>[:<seed>[:<interval>]]] [--coverage] [--progress <ticks>] [--snapshot-check <ticks>] [--campaign-player <player> [--player-* ...]]
     dotnet run --project src/DK2.Harness -- replay <scenario> <input.journal> [--out <dir>]
     dotnet run --project src/DK2.Harness -- watch <file|dir> [--out <dir>] [--timeout-seconds 600] [--budget-minutes 30] [--max-runs 20] [--jobs 1] [run options] [--fuzz-seeds <n>]
 
@@ -52,6 +52,48 @@ commands, and its commands join the next tick's input after the computer keepers
 they are passed as above; on the command line `--fuzz` builds one. Their commands are journaled
 like any others, so `replay` needs no controller. See ADR-0552 and
 `docs/plans/2026-10-27-autonomous-playtesting.md`.
+
+`RunOptions.PlayerRun` (null by default; legacy runs are unchanged) adds a detached player
+through `PlayerRunCoordinator`. Its journals carry `player.run.schema=1`, `replay` runs exactly
+the recorded ticks and verifies the journal's `PlayerRunManifest` (scenario, data, assemblies)
+first.
+
+`run <scenario|dir> --campaign-player <player>` plays that keeper with the observation-only
+`CampaignPlayer`. The limits are test policy, not DK2 rules: `--player-max-ticks`,
+`--player-wall-seconds`, `--player-interval-ticks` (1 to 40), `--player-max-actions`,
+`--player-stall-ticks`, `--player-retries`, `--player-finale-ticks` (0 skips the finale) and
+`--player-output-mib` (at least 2, 1 MiB kept back); `--player-run-id` names the run. A limit
+without a player, a misspelt `--player-*` flag, a non-keeper, `--fuzz` on the same player or a
+bad value is refused. `Program.cs` help lists the defaults.
+
+Each run writes a new folder `<out>/<scenario>/<run id>/` (default id: the UTC time; an existing
+folder is never reused): the manifest before the first tick, a budgeted `input.journal`, the
+standard report files, `player-decisions.tsv`, `player-actions.tsv`, and `player-run.json` last,
+once the whole folder is known to fit the budget. The JSON holds the verdict, every limit, the
+finale coverage, any suspected anomaly (a win whose Horned Reaper finale was `NotReached`) and
+`acceptance: not claimed`; the installed build receipt that would change that is task 7.
+
+| Verdict | Meaning | Exit |
+|---|---|---|
+| Completed | the player won | 0 |
+| Defeated | the player lost | 1 |
+| ControllerLimited | no result in the ticks, or the controller gave up | 1 |
+| IncompleteEvidence | wall-time or output-budget stop, or a write failure | 2 |
+| Refused | refused before any tick | 2 |
+| TechnicalFailure | engine or host exception | 1 |
+
+Under `watch`, the player flags go to each child; `--player-run-id` is refused, the wall limit
+defaults to 30 s below `--timeout-seconds` and must stay below it, and the child's journal is read
+from its run folder.
+
+Level 1 acceptance (task 7): `watch scenarios/campaign-player --campaign-player 3` plays shipped
+Level 1 on seeds 1-3 from its unmodified start; `CampaignPlayerLevel1Tests` (installed data) checks
+the start, the native win, the controller-free replay and the Reaper's gem pickup. The run report
+still says `acceptance: not claimed`: a build receipt is task 7's procedure, not the command's.
+
+Not implemented (stages 4-5): Unity, rendering, audio, the real UI, an external model or agent,
+and the front end. A headless run does not certify rendered timing. Plan and as-built notes:
+`docs/plans/2026-11-07-campaign-player-stages1-2.md` (tasks 4, 6 and 7).
 
 Exit code 1 means a scenario failed to load or run, or an expectation failed. The
 file format, output files and corpus are in `scenarios/README.md`. Campaign maps need

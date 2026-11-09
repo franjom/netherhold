@@ -1,0 +1,9 @@
+id: campaign-player-overhead-probe
+map: campaign:level1
+seed: 1
+random: dk2
+fog_of_war: true
+viewing_player: 3
+duration_ticks: 14400
+setup:
+  placed_things: true

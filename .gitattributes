@@ -10,3 +10,7 @@
 # Captured game output is evidence: keep its bytes (CRLF included) exactly as written.
 docs/research/samples/*.log -text
 docs/research/samples/*.gz binary
+
+# A replayed journal names its scenario by SHA-256: keep both files byte for byte.
+tests/DK2.Behavior.Tests/Fixtures/**/*.yaml -text
+tests/DK2.Behavior.Tests/Fixtures/**/*.journal binary

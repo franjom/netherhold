@@ -14,6 +14,10 @@ public sealed record RunOptions
 {
     public IReadOnlyList<ScenarioController> Controllers { get; init; } = [];
 
+    /// <summary>A controlled player driven through its own observations (campaign player plan,
+    /// task 4); null runs the scenario exactly as before.</summary>
+    public PlayerRunOptions? PlayerRun { get; init; }
+
     /// <summary>Where to write the input journal, or null for none.</summary>
     public Stream? Journal { get; init; }
 
@@ -35,6 +39,10 @@ public sealed record RunOptions
     public int SnapshotCheckEvery { get; init; }
 
     public int SnapshotCheckTicks { get; init; } = 40;
+
+    /// <summary>Called after each tick with its index and the live simulation, for a test that must read
+    /// world state no <see cref="ScenarioResult"/> carries. It must only read: a write changes the hashes.</summary>
+    public Action<int, GameSimulation>? AfterTick { get; init; }
 }
 
 /// <summary>One progress sample for one player: what a stall is judged on.</summary>
@@ -94,6 +102,7 @@ internal sealed class RunMonitor(
         }
 
         if (options.ProgressEvery > 0 && done % options.ProgressEvery == 0) Sample(live.World, done);
+        options.AfterTick?.Invoke(tick, live);
     }
 
     public RunCoverage? Coverage(IReadOnlyList<SimEvent> events) => options.Coverage
@@ -203,6 +212,9 @@ public sealed record FuzzSpec(PlayerId Player, ulong? Seed, int IntervalTicks);
 /// <summary>Run options from a command line, applied per scenario (the fuzz seed and the journal differ).</summary>
 public sealed record RunTemplate(FuzzSpec? Fuzz, bool Coverage, int ProgressEvery, int SnapshotCheckEvery)
 {
+    /// <summary>A campaign player for one keeper (<c>--campaign-player</c>); null for none.</summary>
+    public CampaignPlayerSpec? Player { get; init; }
+
     public RunOptions For(Scenario scenario, Stream journal) => new()
     {
         Controllers = Fuzz is null

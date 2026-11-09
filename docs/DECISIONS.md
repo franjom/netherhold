@@ -16973,3 +16973,25 @@ R1-R4. Before the codec carries network traffic: `ReadTiles` needs a bound, `Pla
 come from the session, and the allow-list must exist. Referee replay needs Linux and Windows
 to produce equal state hashes; a CI check must compare them. Hostile-command tests and fuzz
 targets join CI.
+
+## ADR-0725: the Portal Gem keeps a position: made at its carrier's point, dropped on its tile centre
+
+**Date:** 2026-11-09. **Status:** accepted. Hash/save 456. · **Systems:** campaign-triggers, creatures
+
+**Context.** After Level 1's win our Reaper never reached the gem, so the win screen could not open.
+Action 20 made the gem with no position, and the carrier's drop moved only its tile, so the finale
+read the gem's tile as the map corner (0,0) and state 232's position test failed every turn. DK2
+creates the gem at the carrier's `+0x1A` point (`0x0049AD7D`), and its drop `0x0048B3A0` sets an
+object of type 28 on the carrier's tile centre at height 0 (`0x0048B3E3`-`0x0048B41F`).
+
+**Decision.** `TriggerExecutor.GivePortalGem` gives the gem its carrier's point; `ObjectCarryRules.Drop`
+sets a Portal Gem on the carrier's tile centre at height 0. The carry still never moves it (ADR-0680).
+
+**Consequences.** No new field. The gem's hashed position now differs from its creation (456); earlier
+saves are refused. Remake runs, not DK2 observations: `ReaperFinaleOnRealDataTests`' fixture replay has
+the Reaper take the gem 108 turns after the verdict; the live campaign-player seed-1 run, 130 ticks
+(win 2360, pickup 2490; [campaign-win-sequence.md](research/campaign-win-sequence.md) §2). Only action 20's gem gains a point:
+a map-placed or trigger-made gem still has none (Q755).
+
+STRONGLY INFERRED from the disassembly. See [campaign-win-sequence.md](research/campaign-win-sequence.md) §2
+and records `0048B3A0`, `0049AC80`.

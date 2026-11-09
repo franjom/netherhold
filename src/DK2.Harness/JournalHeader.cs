@@ -19,10 +19,17 @@ public static class JournalHeader
     public const string ScenarioSha256 = "scenario.sha256";
     public const string SourceDirty = "src.dirty";
 
-    public static IReadOnlyDictionary<string, string> For(Scenario scenario, IReadOnlyList<ScenarioController> controllers)
+    /// <summary>Present, as "1", on a controlled-player run's journal: its replay runs exactly the
+    /// recorded tick count rather than the scenario's duration.</summary>
+    public const string PlayerRunSchema = "player.run.schema";
+
+    public static bool IsPlayerRun(InputJournal journal) => journal.Header.ContainsKey(PlayerRunSchema);
+
+    public static IReadOnlyDictionary<string, string> For(Scenario scenario, IReadOnlyList<ScenarioController> controllers,
+        IReadOnlyDictionary<string, string>? extra = null)
     {
         (string commit, string dirty) = GitState(scenario.SourcePath);
-        return new Dictionary<string, string>(StringComparer.Ordinal)
+        var header = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["commit"] = commit,
             [SourceDirty] = dirty,
@@ -36,12 +43,31 @@ public static class JournalHeader
             ["controllers"] = string.Join(";", controllers.Select(c => $"{c.Name}:{c.PlayerId.Value}:{c.IntervalTicks}")),
             ["started_utc"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
         };
+        if (extra is not null)
+            foreach (KeyValuePair<string, string> pair in extra) header.Add(pair.Key, pair.Value);
+        return header;
+    }
+
+    /// <summary>The ticks a replay runs: the scenario's duration, or for a player run the recorded
+    /// count, which must be present and within the scenario's duration. A run that ended in an
+    /// exception replays one tick more, the one that threw, so the failure recurs.</summary>
+    public static int ReplayTicks(Scenario scenario, InputJournal journal)
+    {
+        if (!IsPlayerRun(journal)) return scenario.DurationTicks;
+        if (Value(journal, PlayerRunSchema) != "1")
+            throw new InvalidOperationException($"Player-run schema {Value(journal, PlayerRunSchema)} is not one this build reads.");
+        if (journal.TicksRun is not long ticks)
+            throw new InvalidOperationException("The player-run journal has no end record: incomplete evidence, not replayable.");
+        if (ticks < 0 || ticks > scenario.DurationTicks)
+            throw new InvalidOperationException($"The journal ran {ticks} ticks; the scenario allows 0 to {scenario.DurationTicks}.");
+        bool threw = journal.EndReason?.StartsWith("exception", StringComparison.Ordinal) == true;
+        return (int)(threw && ticks < scenario.DurationTicks ? ticks + 1 : ticks);
     }
 
     /// <summary>Throws unless this build and this scenario file are the ones the journal recorded.</summary>
-    public static void CheckReplayable(Scenario scenario, InputJournal journal)
+    public static void CheckReplayable(Scenario scenario, InputJournal journal, bool acceptOtherHashVersion = false)
     {
-        if (journal.HashVersion != GameSimulation.CurrentHashVersion)
+        if (!acceptOtherHashVersion && journal.HashVersion != GameSimulation.CurrentHashVersion)
             throw new InvalidOperationException(
                 $"The journal was written at HashVersion {journal.HashVersion}; this build is " +
                 $"{GameSimulation.CurrentHashVersion}. Replay it at its own commit ({Value(journal, "commit")}).");
@@ -53,12 +79,13 @@ public static class JournalHeader
             throw new InvalidOperationException(
                 $"'{scenario.SourcePath}' is not the scenario file the journal recorded " +
                 $"(SHA-256 {recorded}, this file {current}).");
+        ReplayTicks(scenario, journal);
     }
 
     private static string Value(InputJournal journal, string key) =>
         journal.Header.TryGetValue(key, out string? value) ? value : "unknown";
 
-    private static string Sha256(string path) =>
+    internal static string Sha256(string path) =>
         File.Exists(path) ? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant() : "none";
 
     /// <summary>The commit and whether <c>src/</c> is dirty, from the repository holding the scenario

@@ -1,0 +1,14 @@
+id: campaign-player-level1
+question: >
+  Can the observation-only campaign player win shipped Level 1 from its unmodified start, seeing only
+  what a human keeper sees and acting only through the human input path (campaign player plan, task 7)?
+  The file grants nothing: no resources, rooms, creatures, scripted commands, injected work or revealed
+  map. Run it with `run --campaign-player 3`; without that flag it is Level 1 with nobody playing.
+map: campaign:level1
+seed: 1
+random: dk2
+fog_of_war: true
+viewing_player: 3
+duration_ticks: 14400
+setup:
+  placed_things: true
