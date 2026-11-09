@@ -74,9 +74,13 @@ does, and the gates that keep it true. It is written before any network code exi
   every shipped level file when the install is present).
 - **Gap, R5:** the remaining transferable formats (WAD, textures, meshes, sounds) are not fuzzed;
   they matter once custom maps can carry assets or arbitrary mods are allowed.
-- **Gap, R2:** `PlayerId` is read from the payload (`Head`/`Read`), i.e. self-asserted.
-- **Gap, R4:** the codec accepts every command, including `GrantCreatureLevelCommand` (AI-only:
-  no human action corresponds) and `RevealMapCommand` (cheat/result screen).
+- **Closed, R2 and R4 (decoding):** `PeerCommands.Read` decodes a peer's command, refuses one
+  whose `PlayerId` is not the authenticated sender, and refuses the types no human may send
+  (`GrantCreatureLevelCommand` and `MintWageCommand`, the computer keeper's; `RevealMapCommand`,
+  the result screen's and a cheat's). `PeerCommandsTests` fails until every new command type is
+  either allowed or named as refused. Journals keep using `CommandCodec.Read`, which accepts all.
+- **Gap, R2:** no session layer exists yet to call `PeerCommands.Read` with the transport's
+  sender, so single-player does not go through it.
 - **Unverified, R3:** many handlers refuse invalid commands (ADR-0279, ADR-0312), but nothing yet
   proves *every* handler validates ownership, cost and range against a hostile sender.
 
