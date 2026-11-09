@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Netherhold is an open-source, work-in-progress Dungeon Keeper 2 remake and reimplementation in C#/.NET and Unity, focused on faithful gameplay and deterministic simulation.">
+  <meta name="theme-color" content="#10121b">
+  <link rel="canonical" href="https://franjom.github.io/netherhold/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Netherhold — Dungeon Keeper 2 Remake & Reimplementation">
+  <meta property="og:description" content="An open-source, work-in-progress Dungeon Keeper II reimplementation built with C#/.NET and Unity.">
+  <meta property="og:url" content="https://franjom.github.io/netherhold/">
+  <meta property="og:image" content="https://raw.githubusercontent.com/franjom/netherhold/master/screenshots/image_level_1_1.jpg">
+  <title>Netherhold — Dungeon Keeper 2 Remake & Reimplementation</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:#10121b; color:#f0edf3; }
+    * { box-sizing:border-box; } body { margin:0; line-height:1.6; }
+    a { color:#e3b879; } a:focus-visible { outline:3px solid #e3b879; outline-offset:4px; }
+    .wrap { max-width:1050px; margin:auto; padding:0 24px; }
+    header { border-bottom:1px solid #33303d; padding:18px 0; }
+    header .wrap { display:flex; justify-content:space-between; align-items:center; gap:20px; }
+    .brand { color:#f0edf3; font-weight:800; text-decoration:none; letter-spacing:.06em; }
+    nav a { margin-left:18px; }
+    main { padding:64px 0 80px; }
+    .eyebrow { color:#e3b879; text-transform:uppercase; letter-spacing:.16em; font-weight:700; font-size:.8rem; }
+    h1 { font-size:clamp(2.4rem,6vw,4.5rem); line-height:1.12; margin:12px 0 20px; }
+    h2 { font-size:1.75rem; margin:56px 0 18px; }
+    .lead { font-size:1.2rem; max-width:760px; color:#d2cbd6; }
+    .actions { display:flex; gap:12px; flex-wrap:wrap; margin:30px 0; }
+    .button { display:inline-block; padding:12px 20px; border:1px solid #e3b879; border-radius:8px; font-weight:700; text-decoration:none; }
+    .button.primary { background:#e3b879; color:#17121b; }
+    .notice { background:#211d29; border-left:3px solid #e3b879; padding:14px 18px; margin:30px 0; }
+    .gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+    figure { margin:0; } img { display:block; width:100%; height:auto; border-radius:10px; border:1px solid #3b3645; }
+    figcaption { color:#bdb4c4; font-size:.9rem; margin-top:6px; }
+    .features { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+    .feature { background:#1b1b27; border:1px solid #34303f; border-radius:12px; padding:20px; }
+    .feature h3 { margin-top:0; }
+    footer { border-top:1px solid #33303d; padding:28px 0 40px; color:#bdb4c4; font-size:.9rem; }
+    @media(max-width:680px) { .gallery,.features { grid-template-columns:1fr; } main { padding-top:42px; } nav a { margin-left:10px; } }
+  </style>
+</head>
+<body>
+  <header><div class="wrap"><a class="brand" href="./">NETHERHOLD</a><nav aria-label="Main navigation"><a href="#screenshots">Screenshots</a><a href="https://github.com/franjom/netherhold">GitHub</a></nav></div></header>
+  <main class="wrap">
+    <section aria-labelledby="hero-title">
+      <p class="eyebrow">Open-source · Work in progress</p>
+      <h1 id="hero-title">Dungeon Keeper 2, reimplemented.</h1>
+      <p class="lead"><strong>Netherhold</strong> is a Dungeon Keeper 2 remake and reimplementation in C#/.NET with a Unity presentation layer. The goal is to reproduce the original game's observable behavior with a deterministic simulation independent of rendering.</p>
+      <div class="actions"><a class="button primary" href="https://github.com/franjom/netherhold">Explore the source code</a><a class="button" href="https://github.com/franjom/netherhold#build-and-test">Build &amp; test instructions</a></div>
+      <div class="notice"><strong>Development status:</strong> Netherhold is a research and development project, not a finished or fully compatible replacement. Original Dungeon Keeper 2 game files are required for game content and are not included.</div>
+    </section>
+    <section aria-labelledby="approach"><h2 id="approach">Project approach</h2><div class="features">
+      <div class="feature"><h3>Gameplay fidelity</h3><p>Behavior is researched against the original game rather than guessed. Compatibility and campaign outcomes are still being verified.</p></div>
+      <div class="feature"><h3>Deterministic C# simulation</h3><p>The .NET simulation is designed to operate independently of the Unity presentation layer, supporting repeatable tests and investigation.</p></div>
+      <div class="feature"><h3>Unity presentation</h3><p>A classic-style visual presentation with menus, HUD and level rendering is under active development.</p></div>
+    </div></section>
+    <section id="screenshots" aria-labelledby="shots-title"><h2 id="shots-title">Screenshots from the current build</h2><div class="gallery">
+      <figure><img loading="lazy" src="https://raw.githubusercontent.com/franjom/netherhold/master/screenshots/image_main_menu.jpg" alt="Netherhold main menu"><figcaption>Main menu</figcaption></figure>
+      <figure><img loading="lazy" src="https://raw.githubusercontent.com/franjom/netherhold/master/screenshots/image_level_briefing.jpg" alt="Netherhold campaign level briefing"><figcaption>Level briefing</figcaption></figure>
+      <figure><img loading="lazy" src="https://raw.githubusercontent.com/franjom/netherhold/master/screenshots/image_level_1_1.jpg" alt="Dungeon Keeper 2 Level 1 rendered by Netherhold"><figcaption>Level 1 gameplay</figcaption></figure>
+      <figure><img loading="lazy" src="https://raw.githubusercontent.com/franjom/netherhold/master/screenshots/image_level_1_4.jpg" alt="Another view of Level 1 in Netherhold"><figcaption>Level 1 gameplay</figcaption></figure>
+    </div></section>
+    <section aria-labelledby="participate"><h2 id="participate">Explore the project</h2><p>Read the <a href="https://github.com/franjom/netherhold#readme">README</a>, review the <a href="https://github.com/franjom/netherhold/blob/master/docs/ARCHITECTURE.md">architecture</a>, or browse <a href="https://github.com/franjom/netherhold/issues">issues</a>. Source code is licensed under GPL-3.0-or-later.</p></section>
+  </main>
+  <footer><div class="wrap">Netherhold is an independent fan reimplementation and is not affiliated with or endorsed by Electronic Arts or Bullfrog Productions. Dungeon Keeper is a trademark of its owner.</div></footer>
+</body>
+</html>
