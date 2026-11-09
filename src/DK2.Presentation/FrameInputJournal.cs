@@ -199,6 +199,10 @@ public sealed class FrameInputJournal
         {
             throw new InvalidDataException("the frame input journal ends inside its header");
         }
+        catch (FormatException e)
+        {
+            throw new InvalidDataException("A string length in the journal is malformed.", e);
+        }
 
         var frames = new List<FrameInputRecord>();
         while (true)
@@ -210,7 +214,7 @@ public sealed class FrameInputJournal
                 switch (tag)
                 {
                     case FrameRecord:
-                        int length = r.ReadInt32();
+                        int length = StreamCount.Read(r, 1);
                         byte[] payload = r.ReadBytes(length);
                         if (payload.Length < length) return new FrameInputJournal(header, frames, null, null);
                         using (var record = new BinaryReader(new MemoryStream(payload), Encoding.UTF8))
@@ -226,6 +230,10 @@ public sealed class FrameInputJournal
             catch (EndOfStreamException)
             {
                 return new FrameInputJournal(header, frames, null, null);
+            }
+            catch (FormatException e)
+            {
+                throw new InvalidDataException("A string length in the journal is malformed.", e);
             }
         }
     }
@@ -289,8 +297,9 @@ public sealed class FrameInputJournal
         KeysHeld = ReadKeys(r),
         Hud = (FrameHudFlags)r.ReadByte(),
         ActiveTool = (PlayerToolMode)r.ReadByte(),
-        Intents = Repeat(r, ReadIntent),
-        Commands = Repeat(r, b => new QueuedCommand((CommandQueuedWhen)b.ReadByte(), CommandCodec.Read(b))),
+        Intents = Repeat(r, IntentMinBytes, ReadIntent),
+        Commands = Repeat(r, 1 + CommandCodec.MinBytes,
+            b => new QueuedCommand((CommandQueuedWhen)b.ReadByte(), CommandCodec.Read(b))),
     };
 
     private static void Keys(BinaryWriter w, IReadOnlyList<HostKey> keys)
@@ -299,12 +308,14 @@ public sealed class FrameInputJournal
         foreach (HostKey key in keys) w.Write(key.Code);
     }
 
-    private static HostKey[] ReadKeys(BinaryReader r) => Repeat(r, b => new HostKey(b.ReadInt32()));
+    private static HostKey[] ReadKeys(BinaryReader r) => Repeat(r, sizeof(int), b => new HostKey(b.ReadInt32()));
 
-    private static T[] Repeat<T>(BinaryReader r, Func<BinaryReader, T> read)
+    /// <summary>Player, tool, tile flag, primary button and room: the fields every intent writes.</summary>
+    private const int IntentMinBytes = 5;
+
+    private static T[] Repeat<T>(BinaryReader r, int minBytesPerItem, Func<BinaryReader, T> read)
     {
-        int count = r.ReadInt32();
-        if (count < 0) throw new InvalidDataException($"negative count {count} in a frame record");
+        int count = StreamCount.Read(r, minBytesPerItem);
         var items = new T[count];
         for (int i = 0; i < count; i++) items[i] = read(r);
         return items;

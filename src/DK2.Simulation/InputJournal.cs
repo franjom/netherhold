@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Text;
+using DK2.Core;
 
 namespace DK2.Simulation;
 
@@ -153,6 +154,10 @@ public sealed class InputJournal
         {
             throw new InvalidDataException("The journal ends inside its header: the run never reached tick 0.");
         }
+        catch (FormatException e)
+        {
+            throw new InvalidDataException("A string length in the journal is malformed.", e);
+        }
 
         var frames = new Dictionary<long, InputFrame>();
         var hashes = new Dictionary<long, ulong>();
@@ -168,7 +173,7 @@ public sealed class InputJournal
                 {
                     case FrameRecord:
                         long tick = r.ReadInt64();
-                        var commands = new PlayerCommand[r.ReadInt32()];
+                        var commands = new PlayerCommand[StreamCount.Read(r, CommandCodec.MinBytes)];
                         for (int i = 0; i < commands.Length; i++) commands[i] = CommandCodec.Read(r);
                         frames[tick] = new InputFrame(commands);
                         break;
@@ -188,6 +193,10 @@ public sealed class InputJournal
             catch (EndOfStreamException)
             {
                 break;
+            }
+            catch (FormatException e)
+            {
+                throw new InvalidDataException("A string length in the journal is malformed.", e);
             }
         }
 
