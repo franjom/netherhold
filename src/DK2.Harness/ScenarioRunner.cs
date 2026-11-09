@@ -4,6 +4,7 @@
 
 using System.Runtime.ExceptionServices;
 using DK2.Assets;
+using DK2.Core;
 using DK2.AI;
 using DK2.Data;
 using DK2.Data.Model;
@@ -74,6 +75,9 @@ public sealed record ScenarioResult(
 
     /// <summary>A replay's verdict against its journal; null for an ordinary run.</summary>
     public ReplayReport? Replay { get; init; }
+
+    /// <summary>The controlled player's run (decisions, stop, finale); null when none was asked for.</summary>
+    public PlayerRunCoordinator? PlayerRun { get; init; }
 
     /// <summary>What the run touched, when <see cref="RunOptions.Coverage"/> asked for it.</summary>
     public RunCoverage? Coverage { get; init; }
@@ -281,6 +285,13 @@ public sealed class ScenarioRunner
         // the scenario's work is not a command, so it is injected either way.
         InputJournal? replay = mode.Replay;
         Dictionary<int, InputFrame> input = replay is null ? inputs.BuildInput(scenario, unsupported) : [];
+        if (replay is null && mode.Options.PlayerRun is { } controlled)
+            foreach (InputFrame scriptedFrame in input.Values)
+                foreach (PlayerCommand command in scriptedFrame.All)
+                    if (command.PlayerId == controlled.Player)
+                        throw new ArgumentException(
+                            $"Player run: the scenario scripts commands for player {controlled.Player.Value}; a controlled player has one command source.",
+                            nameof(scenario));
         List<ScenarioWork> work = ScenarioInputBuilder.ResolveWork(scenario, world, unsupported);
         List<KeeperAI> keepers = replay is null
             ? inputs.CreateComputerKeepers(scenario, campaignLevel, world, unsupported)
@@ -289,18 +300,24 @@ public sealed class ScenarioRunner
         var staging = new KeeperStaging();
         var commandLog = new List<KeeperCommandEmission>();
         var controllerLog = new List<ControllerCommandEmission>();
-        CheckControllers(controllers, world, keepers);
+        PlayerRunOptions? playerRun = replay is null ? mode.Options.PlayerRun : null;
+        CheckControllers(controllers, world, keepers, playerRun);
+        PlayerRunCoordinator? player = playerRun is null ? null : new PlayerRunCoordinator(_database, playerRun);
+        string playerName = player is null ? "" : $"player:{player.Options.ControllerName}";
         IReadOnlyList<PlayerCommand> pending = [];
+        int ticks = replay is not null ? JournalHeader.ReplayTicks(scenario, replay)
+            : playerRun is not null ? Math.Min(scenario.DurationTicks, playerRun.MaxTicks)
+            : scenario.DurationTicks;
 
         using InputJournalWriter? journal = mode.Record is null
             ? null
-            : new InputJournalWriter(mode.Record, JournalHeader.For(scenario, controllers));
-        var hashes = new List<ulong>(scenario.DurationTicks + 1) { simulation.StateHash() };
+            : new InputJournalWriter(mode.Record, JournalHeader.For(scenario, controllers, player?.JournalKeys()));
+        var hashes = new List<ulong>(ticks + 1) { simulation.StateHash() };
         journal?.WriteHash(0, hashes[0]);
         var divergence = new ReplayComparison(replay);
         divergence.Compare(0, hashes[0]);
         var monitor = new RunMonitor(mode.Options, _database,
-            () => builder.ResolveShippedTriggers(scenario, campaignLevel), work, scenario.DurationTicks);
+            () => builder.ResolveShippedTriggers(scenario, campaignLevel), work, ticks);
         monitor.Start(simulation);
         int completed = 0;
         List<PlayerCommand> Think()
@@ -317,7 +334,7 @@ public sealed class ScenarioRunner
         }
         try
         {
-            for (int t = 0; t < scenario.DurationTicks; t++)
+            for (int t = 0; t < ticks; t++)
             {
                 ScenarioInputBuilder.InjectWork(world, work, t);
                 InputFrame scripted = input.TryGetValue(t, out InputFrame frame) ? frame : InputFrame.Empty;
@@ -327,7 +344,7 @@ public sealed class ScenarioRunner
                 journal?.WriteFrame(t, given);
                 clock.BeginTick(t);
                 simulation.Tick(given);
-                bool last = t + 1 == scenario.DurationTicks;
+                bool last = t + 1 == ticks;
                 ulong hash;
                 List<PlayerCommand>? thought = null;
                 ExceptionDispatchInfo? keeperFailure = null;
@@ -356,10 +373,12 @@ public sealed class ScenarioRunner
                 keeperFailure?.Throw();
                 if (last)
                 {
+                    player?.AfterTick(world, new GameTick(t), anotherTick: false);
                     clock.EndTick();
                     break;
                 }
                 List<PlayerCommand> next = thought ?? Think();
+                int keeperLogged = commandLog.Count, emittedBefore = emitted.Count, controllerLogged = controllerLog.Count;
                 emitted.AddRange(next);
                 foreach (PlayerCommand command in next)
                     commandLog.Add(new KeeperCommandEmission(t + 1, command));
@@ -382,9 +401,27 @@ public sealed class ScenarioRunner
                         monitor.ControllerIssued(controller.PlayerId, t + 1);
                     }
                 }
+                // The controlled player last, through its own observation; its commands ride the same frame.
+                if (player is not null)
+                {
+                    foreach (PlayerCommand command in player.AfterTick(world, new GameTick(t)))
+                    {
+                        next.Add(command);
+                        controllerLog.Add(new ControllerCommandEmission(t + 1, playerName, command));
+                        monitor.ControllerIssued(player.Options.Player, t + 1);
+                    }
+                }
                 clock.End(RunClock.Controllers);
                 clock.EndTick();
                 pending = next;
+                if (player?.Stopped == true)
+                {
+                    // No frame follows, so this tick's decisions were never applied: unlog them.
+                    commandLog.RemoveRange(keeperLogged, commandLog.Count - keeperLogged);
+                    emitted.RemoveRange(emittedBefore, emitted.Count - emittedBefore);
+                    controllerLog.RemoveRange(controllerLogged, controllerLog.Count - controllerLogged);
+                    break;
+                }
             }
         }
         catch (Exception ex)
@@ -393,7 +430,8 @@ public sealed class ScenarioRunner
             journal?.WriteEnd(completed, $"exception after {completed} ticks: {ex.GetType().FullName}: {ex.Message}");
             throw;
         }
-        journal?.WriteEnd(scenario.DurationTicks, "completed");
+        player?.Finish();
+        journal?.WriteEnd(completed, player?.EndReason(completed) ?? "completed");
 
         if (simulation.Systems.Count == 0)
             unsupported.Add("no simulation systems are registered - the world cannot change");
@@ -408,7 +446,7 @@ public sealed class ScenarioRunner
         string picture = renderer.Render(world);
 
         return new ScenarioResult(
-            scenario, scenario.DurationTicks, simulation.StateHash(), hashes, sink.Events, unsupported)
+            scenario, completed, simulation.StateHash(), hashes, sink.Events, unsupported)
         {
             ExpectationFailures = CheckExpectations(scenario, sink.Events),
             Picture = picture,
@@ -419,6 +457,7 @@ public sealed class ScenarioRunner
             KeeperStates = keepers.ToDictionary(k => k.PlayerId, k => k.State),
             ControllerCommandLog = controllerLog,
             Replay = divergence.Report(),
+            PlayerRun = player,
             Coverage = monitor.Coverage(sink.Events),
             Progress = monitor.Progress,
             StallCandidates = monitor.StallCandidates,
@@ -440,9 +479,16 @@ public sealed class ScenarioRunner
     /// world does not have, one sharing a player with a computer keeper or another controller (two
     /// inputs for one keeper would make neither's evidence its own), or one with no decision interval.</summary>
     private static void CheckControllers(
-        IReadOnlyList<ScenarioController> controllers, WorldState world, List<KeeperAI> keepers)
+        IReadOnlyList<ScenarioController> controllers, WorldState world, List<KeeperAI> keepers, PlayerRunOptions? playerRun)
     {
         var taken = new HashSet<PlayerId>(keepers.Select(k => k.PlayerId));
+        if (playerRun is not null)
+        {
+            if (!world.PlayerIds.Contains(playerRun.Player))
+                throw new ArgumentException($"Player run: player {playerRun.Player.Value} is not in this world.", nameof(playerRun));
+            if (!taken.Add(playerRun.Player))
+                throw new ArgumentException($"Player run: player {playerRun.Player.Value} already has a computer keeper.", nameof(playerRun));
+        }
         foreach (ScenarioController controller in controllers)
         {
             if (controller.IntervalTicks < 1)

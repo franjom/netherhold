@@ -63,8 +63,11 @@ These are entry points, not a new priority order.
   worktree on `feature/campaign-player` (not merged). Task 1, the detached player contract
   (`DK2.Simulation.Players`, `DK2.AI.Players`), task 2, the visibility-safe observation
   (`PlayerObservationBuilder` in `DK2.Presentation`), and task 3, bounded action admission
-  (`PlayerSession` in `DK2.Harness`, `PlayerActionAdapter` in `DK2.Presentation`), are built;
-  nothing consumes them yet (tasks 4-7).
+  (`PlayerSession` in `DK2.Harness`, `PlayerActionAdapter` in `DK2.Presentation`), and task 4,
+  the tick-loop integration (`RunOptions.PlayerRun`, `PlayerRunCoordinator`, replay of
+  `player.run.schema=1` journals, `PlayerRunManifest`), are built. No command line drives a
+  player run yet (task 6), no real win has gone through the runner (task 7), and no strategy
+  controller exists before task 5.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.

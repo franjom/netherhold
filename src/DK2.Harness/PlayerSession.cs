@@ -92,6 +92,14 @@ public sealed class PlayerSession
         return withdrawn;
     }
 
+    /// <summary>The current receipt of a request this session judged; false for one it only answered.</summary>
+    public bool TryGetReceipt(PlayerActionId id, out PlayerReceipt receipt)
+    {
+        bool known = _ledger.TryGetValue(id, out Entry? entry);
+        receipt = known ? entry!.Receipt : default;
+        return known;
+    }
+
     /// <summary>Receipts issued or changed since the last call, in order, for the next observation.
     /// One id may appear twice (Queued, then Submitted). The host bounds requests per decision, which
     /// bounds this list.</summary>

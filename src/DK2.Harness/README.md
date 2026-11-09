@@ -53,6 +53,12 @@ they are passed as above; on the command line `--fuzz` builds one. Their command
 like any others, so `replay` needs no controller. See ADR-0552 and
 `docs/plans/2026-10-27-autonomous-playtesting.md`.
 
+`RunOptions.PlayerRun` (null by default; legacy runs are unchanged) adds a detached player
+through `PlayerRunCoordinator`. Its journals carry `player.run.schema=1`, `replay` runs exactly
+the recorded ticks, and `PlayerRunManifest` records the run's scenario, data and assemblies.
+There is no command line for it yet. See
+`docs/plans/2026-11-07-campaign-player-stages1-2.md` (task 4).
+
 Exit code 1 means a scenario failed to load or run, or an expectation failed. The
 file format, output files and corpus are in `scenarios/README.md`. Campaign maps need
 `DK2_DIR`.

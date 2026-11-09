@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-07. Design approved by the owner; inline execution
-in a worktree on `feature/campaign-player` (not merged). Tasks 1-3 are built; tasks 4-7 are not started.
+in a worktree on `feature/campaign-player` (not merged). Tasks 1-4 are built; tasks 5-7 are not started.
 **Goal:** attempt Level 1 unattended through a player-visible interface, preserve
 the input journal and produce a truthful, replayable completion/failure report.
 **Architecture:** extend the existing scenario loop. Put engine-neutral player
@@ -333,11 +333,30 @@ Hashes alone do not prove source-to-DLL freshness. Qualifying attempts also need
 a successful fresh-build receipt binding source hashes, output hashes and the
 build log; absent or inconsistent receipts leave the run diagnostic only.
 
-- [ ] `PlayerRunTests`: controller and scripted next-tick commands yield identical hash series; decisions after ticks 0/4/8 observe stamps 1/5/9; monitor on/off yields identical hashes and RNG.
-- [ ] Add RED cases for keeper/controller conflicts, invalid AdvanceTicks, first/last tick handling and cancellation after queued input. Post-win window: Decide is never called after Won, requests are refused as terminal, the run ends at the gem pickup or the window limit, and journal end/TicksRun include the window. Implement the single-loop integration; run GREEN plus ScenarioControllerTests and JournalReplayTests.
-- [ ] Replay with a controller that throws if invoked: assert it is never called and the recorded run's hashes match. Reject mismatched scenario/data/assembly identity and truncated journals as incomplete evidence.
-- [ ] Profile coordinator/observation overhead against the identical journal without observers. Keep manifest/source/data hashing at startup, measure instrumentation separately from simulation and add stable allocation/cadence guards before the task review.
-- [ ] Retain complete logs; review/document/commit without updating a determinism pin merely for instrumentation.
+- [x] `PlayerRunTests`: controller and scripted next-tick commands yield identical hash series; decisions after ticks 0/4/8 observe stamps 1/5/9; an observed run's hash series equals the uncontrolled run's.
+- [x] Monitor on/off yields identical hashes and RNG with a player attached (`TheMonitorOnOrOffLeavesTheHashSeriesAndItsRandomStateAlone`: coverage and progress sampling on against off; the state hash folds in the generator's state).
+- [x] RED cases for keeper/controller conflicts (`APlayerOwnedByAKeeperOrAControllerIsRefused`), invalid AdvanceTicks, first/last tick handling and cancellation after queued input. Post-win window, at coordinator level: Decide is never called after Won, the session is cancelled so requests are refused as terminal, the run ends at the gem pickup or the window limit, and `EndReason` is "completed". Single-loop integration built; the full suite, which includes ScenarioControllerTests and JournalReplayTests, is green (8,714 passed, 0 failed, 30 skipped).
+- [ ] Journal end and `TicksRun` including the finale window, through `ScenarioRunner`. No synthetic scenario can win; task 7's install attempt must assert it.
+- [x] Replay of a player-run journal executes exactly the recorded ticks and matches the recorded hashes (`APlayerRunJournalReplaysItsRecordedTicksWithoutTheController`). `Replay` takes no controller and never builds the coordinator, which is structurally stronger than the planned throw-if-invoked controller, so no such controller exists. Truncated journals are refused (`ATruncatedPlayerRunJournalIsRefused`); mismatched scenario, data or assembly identity is reported by `PlayerRunManifest.Verify` (`TheManifestVerifiesItsRunAndNamesEveryDifference`); the CLI's call to it is task 6.
+- [x] Coordinator and observation overhead measured against the identical run without observers (figures under "As built"); a stable allocation and cadence guard is `ADecisionCostsAFewKilobytesAndTheCadenceIsTheAdvance`. Manifest, source and data hashing at startup is the CLI's, task 6.
+- [x] Retain complete logs; review/document/commit without updating a determinism pin merely for instrumentation.
+
+As built: `AfterTick(world, completedTick, anotherTick)`; on the last tick it records the result
+without deciding. `PlayerRunOptions` carries MaxTicks, MaxAdvanceTicks, FinaleTicks and the
+session limits; `PlayerRunStop` and `PlayerFinaleCoverage` (ReachedPickup, NotReached,
+NotApplicable when no gem was recorded at the win, CutShort when the tick budget closes the
+window, Unchecked) feed task 6's outcomes; a win stands whatever the finale does. A controller
+that throws or answers nothing is ControllerLimited; a scenario scripting commands for the
+controlled player is refused. A journal that ended in an exception replays the throwing tick too.
+The decision log reads each receipt back from the session (`TryGetReceipt`).
+`PlayerRunManifest.Write/Verify(directory, scenario, install, runId)` cover the run id, scenario,
+`Data/editor` KWD/KLD and `Data/Paths.WAD`, every `DK2.*.dll` beside the harness, and the source
+tree with root build files; `Verify` returns blocking and diagnostic lists (source only
+diagnostic). The CLI calls it in task 6; the fresh-build receipt is task 7's. No synthetic
+scenario can win, so a win through the runner (the last-tick result, the finale window, the
+journal's "completed") is first exercised by task 7's install attempt, which must assert it. Measured (shipped Level 1, fog, 1,200 ticks, decision every 4 ticks):
+549-560 ms against 525-536 ms without the player (about 4.5%), 2.5 MB more allocation (about
+8 KB a decision), no extra gen0 collections, and an identical 1,201-hash series.
 
 ### Task 5: reusable action routines and Level 1 strategy
 

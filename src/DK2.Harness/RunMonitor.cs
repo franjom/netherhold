@@ -14,6 +14,10 @@ public sealed record RunOptions
 {
     public IReadOnlyList<ScenarioController> Controllers { get; init; } = [];
 
+    /// <summary>A controlled player driven through its own observations (campaign player plan,
+    /// task 4); null runs the scenario exactly as before.</summary>
+    public PlayerRunOptions? PlayerRun { get; init; }
+
     /// <summary>Where to write the input journal, or null for none.</summary>
     public Stream? Journal { get; init; }
 
