@@ -27,7 +27,22 @@ public static class KwdReader
         return Read(fs, path);
     }
 
+    /// <summary>Reads every chunk. Any malformed or truncated input throws
+    /// <see cref="InvalidDataException"/> (ADR-0724 R5); sizes are checked against the stream before
+    /// anything is allocated from them. Needs a seekable stream.</summary>
     public static List<KwdChunk> Read(Stream stream, string sourceName = "<stream>")
+    {
+        try
+        {
+            return ReadChunks(stream, sourceName);
+        }
+        catch (EndOfStreamException e)
+        {
+            throw new InvalidDataException($"{sourceName}: the file ends inside a chunk.", e);
+        }
+    }
+
+    private static List<KwdChunk> ReadChunks(Stream stream, string sourceName)
     {
         var chunks = new List<KwdChunk>();
         byte[] dw = new byte[4];
@@ -52,7 +67,7 @@ public static class KwdReader
                 throw new InvalidDataException(
                     $"{sourceName}: header check failed (sig={signature}, checkOne={checkOne}).");
 
-            byte[] headerBlock = new byte[headerBlockSize];
+            byte[] headerBlock = new byte[Size(stream, headerBlockSize, sourceName)];
             stream.ReadExactly(headerBlock);
 
             uint checkTwo = U32();
@@ -61,7 +76,7 @@ public static class KwdReader
                     $"{sourceName}: trailer check failed (sig={signature}, checkTwo={checkTwo}).");
 
             uint contentSize = U32();
-            byte[] content = new byte[contentSize];
+            byte[] content = new byte[Size(stream, contentSize, sourceName)];
             stream.ReadExactly(content);
 
             // LEVEL chunks (and some legacy variants) understate contentSize;
@@ -78,6 +93,16 @@ public static class KwdReader
             }
 
             var type = (KwdRecordType)signature;
+            int countBytes = type switch
+            {
+                KwdRecordType.Map => 0,
+                KwdRecordType.Level => 2,
+                KwdRecordType.Triggers => 8,
+                _ => 4,
+            };
+            if (headerBlock.Length < countBytes)
+                throw new InvalidDataException(
+                    $"{sourceName}: {type} header block is {headerBlock.Length} bytes, too short for its count.");
             int itemCount = type switch
             {
                 KwdRecordType.Map => 0, // MAP is width*height tiles, not itemCount records
@@ -100,6 +125,15 @@ public static class KwdReader
         }
 
         return chunks;
+    }
+
+    /// <summary>A declared size, refused when it runs past the end of the stream.</summary>
+    private static int Size(Stream stream, uint declared, string sourceName)
+    {
+        if (declared > stream.Length - stream.Position)
+            throw new InvalidDataException(
+                $"{sourceName}: a declared size of {declared} bytes runs past the end of the file.");
+        return (int)declared;
     }
 
     /// <summary>Peeks whether the stream is positioned at a plausible chunk header.</summary>
