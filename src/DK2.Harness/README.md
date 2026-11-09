@@ -86,9 +86,14 @@ Under `watch`, the player flags go to each child; `--player-run-id` is refused, 
 defaults to 30 s below `--timeout-seconds` and must stay below it, and the child's journal is read
 from its run folder.
 
+Level 1 acceptance (task 7): `watch scenarios/campaign-player --campaign-player 3` plays shipped
+Level 1 on seeds 1-3 from its unmodified start; `CampaignPlayerLevel1Tests` (installed data) checks
+the start, the native win, the controller-free replay and the Reaper's gem pickup. The run report
+still says `acceptance: not claimed`: a build receipt is task 7's procedure, not the command's.
+
 Not implemented (stages 4-5): Unity, rendering, audio, the real UI, an external model or agent,
 and the front end. A headless run does not certify rendered timing. Plan and as-built notes:
-`docs/plans/2026-11-07-campaign-player-stages1-2.md` (tasks 4 and 6).
+`docs/plans/2026-11-07-campaign-player-stages1-2.md` (tasks 4, 6 and 7).
 
 Exit code 1 means a scenario failed to load or run, or an expectation failed. The
 file format, output files and corpus are in `scenarios/README.md`. Campaign maps need

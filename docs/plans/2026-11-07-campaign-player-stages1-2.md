@@ -545,8 +545,8 @@ within noise. The paired median is +49 ms a run against a 1,165 ms replay median
 performance acceptance. The remaining hot spot, from task 2's measurement, is
 `PlayerInputSnapshot.Capture` building `CreatureViews`. These are remake measurements, not DK2 facts.
 
-Not done here: the harness README's entry for `scenarios/campaign-player/` is written after the
-commit review, because the build receipt hashes `src/`.
+The harness and scenarios READMEs' entries for `scenarios/campaign-player/` follow in their own
+commit, because the build receipt hashes `src/` and `scenarios/`.
 
 ## Execution handoff
 
