@@ -62,9 +62,12 @@ does, and the gates that keep it true. It is written before any network code exi
   sell waves are capped at `CommandCodec.MaxTiles`, and a list cannot claim more bytes than
   remain. Guarded by `CommandCodecHostileInputTests`, a seeded fuzz of random and mutated
   input with an allocation bound. A network layer maps both exceptions to one rejection.
-- **Gap, R1 (containers):** the counts around the codec are still unbounded:
-  `InputJournal.Read` (`new PlayerCommand[r.ReadInt32()]`), `FrameInputJournal`'s `Repeat`, and
-  `KwdMap.Parse` (`width * height * 4` can overflow `int` past its size check).
+- **Closed, R1 (journals):** `InputJournal` and `FrameInputJournal` read every count and record
+  length through `StreamCount.Read`, which refuses one the remaining bytes cannot hold, and map
+  malformed string lengths to `InvalidDataException`. Guarded by tests that overwrite every word
+  after the header with a huge or negative value under a 1 MB allocation bound.
+- **Gap, R5:** `KwdMap.Parse` computes `width * height * 4` in `int`, which can overflow past its
+  size check. The file parsers are not fuzzed yet.
 - **Gap, R2:** `PlayerId` is read from the payload (`Head`/`Read`), i.e. self-asserted.
 - **Gap, R4:** the codec accepts every command, including `GrantCreatureLevelCommand` (AI-only:
   no human action corresponds) and `RevealMapCommand` (cheat/result screen).

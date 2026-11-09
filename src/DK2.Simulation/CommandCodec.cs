@@ -77,6 +77,9 @@ public static class CommandCodec
     /// DK2 behaviour: a legitimate list or wave is bounded by its map.</summary>
     public const int MaxTiles = 1 << 20;
 
+    /// <summary>The fewest bytes any encoded command takes: its tag and player.</summary>
+    public const int MinBytes = 3;
+
     private const int TileBytes = 8;
 
     /// <summary>Decodes one command. Malformed input throws <see cref="InvalidDataException"/>; input

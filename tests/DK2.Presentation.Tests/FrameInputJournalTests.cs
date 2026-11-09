@@ -93,6 +93,42 @@ public class FrameInputJournalTests
         Assert.Throws<InvalidDataException>(() => FrameInputJournal.Read(new MemoryStream(stream.ToArray(), 0, 10)));
     }
 
+    /// <summary>ADR-0724 R1: any count or length overwritten with a huge or negative value reads as
+    /// a truncated journal or throws <see cref="InvalidDataException"/>, within a bounded allocation.</summary>
+    [Theory]
+    [InlineData(int.MaxValue)]
+    [InlineData(-1)]
+    [InlineData(0x40000000)]
+    public void AnyWordOverwritten_ReadsOrFailsInAControlledWay(int value)
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new FrameInputJournalWriter(stream, new Dictionary<string, string>()))
+        {
+            writer.Write(Busy(frame: 1));
+            writer.WriteEnd(1, "done");
+        }
+        byte[] whole = stream.ToArray();
+        for (int at = HeaderLength(); at + 4 <= whole.Length; at++)
+        {
+            byte[] input = (byte[])whole.Clone();
+            BitConverter.TryWriteBytes(input.AsSpan(at), value);
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            try
+            {
+                FrameInputJournal.Read(new MemoryStream(input));
+            }
+            catch (InvalidDataException)
+            {
+            }
+            catch (Exception e)
+            {
+                Assert.Fail($"{e.GetType().Name} with the word at {at} overwritten: {e.Message}");
+            }
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.True(allocated < 1024 * 1024, $"the word at {at} overwritten allocated {allocated} bytes");
+        }
+    }
+
     private static FrameInputRecord Busy(long frame) => new()
     {
         Frame = frame,
