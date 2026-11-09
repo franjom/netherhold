@@ -57,10 +57,14 @@ does, and the gates that keep it true. It is written before any network code exi
 - **Good:** no `unsafe` code; `AllowUnsafeBlocks` is off in Unity; no P/Invoke in `src/`.
 - **Good:** the editor-only git query in `DungeonRunner.InputJournal.cs` runs only when
   `Application.isEditor` and takes fixed arguments.
-- **Gap, R1:** `CommandCodec.ReadTiles` allocates `new TilePos[r.ReadInt32()]` from the stream. A
-  negative count throws `OverflowException`; a count near `int.MaxValue` requests ~16 GB. Fine
-  for a local journal, a remote crash on a network path. Unknown tags throw
-  `InvalidDataException`, but truncated input throws `EndOfStreamException`.
+- **Closed, R1 (codec):** `CommandCodec.Read` returns a command or throws `InvalidDataException`
+  (malformed) or `EndOfStreamException` (cut short; journal readers rely on it). Tile lists and
+  sell waves are capped at `CommandCodec.MaxTiles`, and a list cannot claim more bytes than
+  remain. Guarded by `CommandCodecHostileInputTests`, a seeded fuzz of random and mutated
+  input with an allocation bound. A network layer maps both exceptions to one rejection.
+- **Gap, R1 (containers):** the counts around the codec are still unbounded:
+  `InputJournal.Read` (`new PlayerCommand[r.ReadInt32()]`), `FrameInputJournal`'s `Repeat`, and
+  `KwdMap.Parse` (`width * height * 4` can overflow `int` past its size check).
 - **Gap, R2:** `PlayerId` is read from the payload (`Head`/`Read`), i.e. self-asserted.
 - **Gap, R4:** the codec accepts every command, including `GrantCreatureLevelCommand` (AI-only:
   no human action corresponds) and `RevealMapCommand` (cheat/result screen).
