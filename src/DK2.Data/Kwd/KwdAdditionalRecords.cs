@@ -40,7 +40,7 @@ public static partial class KwdAdditionalRecords
         foreach (KwdChunk chunk in chunks)
         {
             if (chunk.Type != type) continue;
-            if (chunk.ItemCount < 0 || chunk.Content.Length != chunk.ItemCount * stride)
+            if (chunk.ItemCount < 0 || chunk.Content.Length != (long)chunk.ItemCount * stride)
                 throw new InvalidDataException(
                     $"{type} content of {chunk.Content.Length} bytes does not contain " +
                     $"{chunk.ItemCount} records of {stride} bytes.");
@@ -351,14 +351,16 @@ public static partial class KwdLevel
         KwdChunk? chunk = chunks.SingleOrDefault(c => c.Type == KwdRecordType.Level);
         if (chunk is null) return null;
         byte[] r = chunk.Content;
+        if (chunk.HeaderBlock.Length < 4 || chunk.ItemCount < 0)
+            throw new InvalidDataException("LEVEL header block is too short for its path count and extent.");
         int height = KwdAdditionalRecords.U16(chunk.HeaderBlock, 2);
         int expectedInner = checked(chunk.ItemCount * PathSize + height * 4);
         // Opaque extended metadata may contain the marker; counts and extent select the boundary.
         int metadata = checked(r.Length - 8 - expectedInner);
         if ((metadata != BaseMetadataSize && metadata != ExtendedMetadataSize) || Check(r, metadata) != 222)
             throw new InvalidDataException("LEVEL metadata does not end at either shipped v1.70 boundary.");
-        int innerSize = checked((int)KwdAdditionalRecords.U32(r, metadata + 4));
-        if (innerSize != expectedInner || r.Length != metadata + 8 + innerSize)
+        uint innerSize = KwdAdditionalRecords.U32(r, metadata + 4);
+        if (innerSize != expectedInner || r.Length != metadata + 8 + expectedInner)
             throw new InvalidDataException($"LEVEL inner content is {innerSize} bytes; expected {expectedInner}.");
 
         var paths = new List<KwdLevelFilePath>(chunk.ItemCount);

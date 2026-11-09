@@ -66,12 +66,14 @@ does, and the gates that keep it true. It is written before any network code exi
   length through `StreamCount.Read`, which refuses one the remaining bytes cannot hold, and map
   malformed string lengths to `InvalidDataException`. Guarded by tests that overwrite every word
   after the header with a huge or negative value under a 1 MB allocation bound.
-- **Closed, R5 (container and MAP):** `KwdReader.Read` throws only `InvalidDataException`, checks
-  each declared size against the stream before allocating, and checks header blocks before
-  reading counts. `MapGrid.Parse` sizes the grid in `long`. Guarded by `KwdHostileInputTests`
-  (synthetic file in CI; every shipped MAP file when the install is present).
-- **Gap, R5:** the other per-level parsers (PLAYERS, THINGS, TRIGGERS, VARIABLES, LEVEL) are
-  not fuzzed yet.
+- **Closed, R5 (level files):** `KwdReader.Read` throws only `InvalidDataException`, checks
+  each declared size against the stream before allocating, and refuses a record count larger
+  than the chunk's content bytes. The MAP, PLAYERS, THINGS, TRIGGERS, VARIABLES and LEVEL
+  parsers compute sizes in `long` and size lists from the content, not the declared count.
+  Guarded by `KwdHostileInputTests` (synthetic file with every record type but LEVEL in CI;
+  every shipped level file when the install is present).
+- **Gap, R5:** the remaining transferable formats (WAD, textures, meshes, sounds) are not fuzzed;
+  they matter once custom maps can carry assets or arbitrary mods are allowed.
 - **Gap, R2:** `PlayerId` is read from the payload (`Head`/`Read`), i.e. self-asserted.
 - **Gap, R4:** the codec accepts every command, including `GrantCreatureLevelCommand` (AI-only:
   no human action corresponds) and `RevealMapCommand` (cheat/result screen).

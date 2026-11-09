@@ -83,7 +83,7 @@ public static class KwdKeeperSpells
             if (recordSize != RecordSize)
                 throw new InvalidDataException(
                     $"KEEPERSPELLS record size {recordSize} is not {RecordSize}.");
-            if (chunk.Content.Length != recordSize * chunk.ItemCount)
+            if (chunk.Content.Length != (long)recordSize * chunk.ItemCount)
                 throw new InvalidDataException("KEEPERSPELLS content size does not divide into records.");
 
             for (int i = 0; i < chunk.ItemCount; i++)

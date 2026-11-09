@@ -98,7 +98,7 @@ public static class KwdObjects
             if (recordSize != RecordSize)
                 throw new InvalidDataException(
                     $"OBJECTS record size {recordSize} is not {RecordSize}.");
-            if (chunk.Content.Length != recordSize * chunk.ItemCount)
+            if (chunk.Content.Length != (long)recordSize * chunk.ItemCount)
                 throw new InvalidDataException("OBJECTS content size does not divide into records.");
 
             for (int i = 0; i < chunk.ItemCount; i++)

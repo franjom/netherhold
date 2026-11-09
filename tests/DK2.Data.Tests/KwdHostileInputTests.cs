@@ -11,7 +11,7 @@ namespace DK2.Data.Tests;
 
 /// <summary>
 /// Custom maps arrive from other players (ADR-0724 R5). Whatever the bytes, reading a KWD file and
-/// its MAP grid either succeeds or throws <see cref="InvalidDataException"/>, and never allocates
+/// every level record in it either succeeds or throws <see cref="InvalidDataException"/>, and never allocates
 /// far beyond the file's own size.
 /// </summary>
 public class KwdHostileInputTests
@@ -57,15 +57,16 @@ public class KwdHostileInputTests
         }
     }
 
-    /// <summary>The same property on every shipped map, with words overwritten at random.</summary>
+    /// <summary>The same property on every shipped level file (MAP, PLAYERS, THINGS, TRIGGERS,
+    /// VARIABLES and the LEVEL header), with words overwritten at random.</summary>
     [InstallFact]
-    public void ShippedMaps_WithWordsOverwritten_ReadOrFailInAControlledWay()
+    public void ShippedLevelFiles_WithWordsOverwritten_ReadOrFailInAControlledWay()
     {
         string maps = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
         var random = new Random(72450);
         int[] values = [int.MaxValue, -1, 0x40000000, 0];
-        string[] files = Directory.GetFiles(maps, "*Map.kld");
-        Assert.True(files.Length > 50, $"expected every shipped MAP file, found {files.Length}");
+        string[] files = Directory.GetFiles(maps, "*.kld").Concat(Directory.GetFiles(maps, "*.kwd")).ToArray();
+        Assert.True(files.Length > 300, $"expected every shipped level file, found {files.Length}");
         foreach (string path in files)
         {
             byte[] file = File.ReadAllBytes(path);
@@ -85,8 +86,7 @@ public class KwdHostileInputTests
         long before = GC.GetAllocatedBytesForCurrentThread();
         try
         {
-            List<KwdChunk> chunks = KwdReader.Read(new MemoryStream(input));
-            MapGrid.Parse(chunks);
+            ParseLevel(KwdReader.Read(new MemoryStream(input)));
         }
         catch (InvalidDataException)
         {
@@ -99,17 +99,66 @@ public class KwdHostileInputTests
         Assert.True(allocated < maxBytes, $"{what} allocated {allocated} bytes");
     }
 
-    /// <summary>A 3x2 MAP chunk followed by a general (VARIABLES-shaped) chunk.</summary>
+    /// <summary>Every parser a transferred level reaches, as the level loader calls them.</summary>
+    private static void ParseLevel(List<KwdChunk> chunks)
+    {
+        MapGrid.Parse(chunks);
+        KwdPlayers.Parse(chunks);
+        KwdThings.Parse(chunks);
+        KwdTriggers.Parse(chunks);
+        KwdVariables.Parse(chunks);
+        KwdLevel.Parse(chunks);
+    }
+
+    /// <summary>Mutations start from a file every parser accepts, so they reach past the first check.</summary>
+    [Fact]
+    public void SyntheticFile_ParsesWhole()
+    {
+        List<KwdChunk> chunks = KwdReader.Read(new MemoryStream(SyntheticFile()));
+
+        Assert.Equal(6, MapGrid.Parse(chunks)!.Tiles.Count);
+        Assert.Single(KwdPlayers.Parse(chunks));
+        Assert.Equal(2, KwdThings.Parse(chunks).Count);
+        Assert.Equal(2, KwdTriggers.Parse(chunks).Count);
+    }
+
+    /// <summary>A 3x2 MAP grid, one VARIABLES record, one PLAYERS record, two THINGS and two
+    /// TRIGGERS. LEVEL is left to the install test: its 25 KB of metadata would make the
+    /// every-word sweep here slow.</summary>
     private static byte[] SyntheticFile()
     {
         byte[] mapHeader = new byte[8];
         BinaryPrimitives.WriteInt32LittleEndian(mapHeader, 3);
         BinaryPrimitives.WriteInt32LittleEndian(mapHeader.AsSpan(4), 2);
         byte[] tiles = Enumerable.Range(0, 3 * 2 * 4).Select(i => (byte)i).ToArray();
-        byte[] generalHeader = new byte[28];
-        BinaryPrimitives.WriteInt32LittleEndian(generalHeader, 2);
-        byte[] records = Enumerable.Range(0, 16).Select(i => (byte)(i * 7)).ToArray();
-        return KwdWriter.ToBytes([Chunk(KwdRecordType.Map, mapHeader, tiles), Chunk(KwdRecordType.Variables, generalHeader, records)]);
+        byte[] variables = Enumerable.Range(0, 16).Select(i => (byte)(i * 7)).ToArray();
+        byte[] player = Enumerable.Range(0, KwdPlayers.RecordSize).Select(i => (byte)(i * 3)).ToArray();
+        byte[] things = [.. Tagged(194, 24), .. Tagged(197, 56)];
+        byte[] triggers = [.. Tagged(213, 16), .. Tagged(214, 16)];
+        return KwdWriter.ToBytes([
+            Chunk(KwdRecordType.Map, mapHeader, tiles),
+            Chunk(KwdRecordType.Variables, Counts(1), variables),
+            Chunk(KwdRecordType.Players, Counts(1), player),
+            Chunk(KwdRecordType.Things, Counts(2), things),
+            Chunk(KwdRecordType.Triggers, Counts(1, 1), triggers),
+        ]);
+    }
+
+    private static byte[] Counts(params int[] counts)
+    {
+        byte[] header = new byte[28];
+        for (int i = 0; i < counts.Length; i++)
+            BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(i * 4), counts[i]);
+        return header;
+    }
+
+    private static byte[] Tagged(int tag, int size)
+    {
+        byte[] record = new byte[KwdTaggedRecords.RecordHeaderSize + size];
+        BinaryPrimitives.WriteInt32LittleEndian(record, tag);
+        BinaryPrimitives.WriteInt32LittleEndian(record.AsSpan(4), size);
+        for (int i = KwdTaggedRecords.RecordHeaderSize; i < record.Length; i++) record[i] = (byte)(i * 5);
+        return record;
     }
 
     private static KwdChunk Chunk(KwdRecordType type, byte[] header, byte[] content) => new()

@@ -103,20 +103,25 @@ public static class KwdReader
             if (headerBlock.Length < countBytes)
                 throw new InvalidDataException(
                     $"{sourceName}: {type} header block is {headerBlock.Length} bytes, too short for its count.");
-            int itemCount = type switch
+            long itemCount = type switch
             {
                 KwdRecordType.Map => 0, // MAP is width*height tiles, not itemCount records
                 KwdRecordType.Level => BinaryPrimitives.ReadUInt16LittleEndian(headerBlock),
                 KwdRecordType.Triggers =>
-                    (int)(BinaryPrimitives.ReadUInt32LittleEndian(headerBlock)
-                        + BinaryPrimitives.ReadUInt32LittleEndian(headerBlock.AsSpan(4))),
-                _ => (int)BinaryPrimitives.ReadUInt32LittleEndian(headerBlock),
+                    (long)BinaryPrimitives.ReadUInt32LittleEndian(headerBlock)
+                        + BinaryPrimitives.ReadUInt32LittleEndian(headerBlock.AsSpan(4)),
+                _ => BinaryPrimitives.ReadUInt32LittleEndian(headerBlock),
             };
+            // Every record takes at least one content byte, so a larger count is corrupt; refusing
+            // it here keeps every parser's count bounded by the bytes actually read (ADR-0724 R5).
+            if (itemCount > content.Length)
+                throw new InvalidDataException(
+                    $"{sourceName}: {type} declares {itemCount} records in {content.Length} content bytes.");
 
             chunks.Add(new KwdChunk
             {
                 Type = type,
-                ItemCount = itemCount,
+                ItemCount = (int)itemCount,
                 Content = content,
                 HeaderBlock = headerBlock,
                 ContainerHeader = new KwdContainerHeader(chunkEndOffset, checkTwo,
