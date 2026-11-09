@@ -109,6 +109,40 @@ public sealed class FinaleTests
     }
 
     [Fact]
+    public void TheReaperTakesAGemItsDeadCarrierDropped()
+    {
+        // Level 1's chain: action 20 makes the gem at its carrier's point (0x0049AD7D), the carry never
+        // moves it (0x0048B350), and death's drop sets it on the carrier's tile centre (0x0048B3A0).
+        // A gem left without a position named the map corner, and the Reaper stayed in 232.
+        (GameSimulation sim, _, ListEventSink events) = Setup(withGem: false);
+        WorldState world = sim.World;
+        CreatureState carrier = world.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Good, new TilePos(12, 12));
+        carrier.PosX += 0x123;
+        carrier.PosY -= 0x234;
+        TriggerExecutor.GivePortalGem(world, sim.Database, carrier);
+        ObjectState gem = world.ObjectById(carrier.CarriedObjectId)!;
+        Assert.Equal((carrier.PosX, carrier.PosY, carrier.PosZ), (gem.PosX, gem.PosY, gem.PosZ));
+
+        carrier.PosX = CreatureState.CentreOf(14) + 0x345;
+        carrier.PosY = CreatureState.CentreOf(11) - 0x456;
+        carrier.Health = 0;
+        for (int t = 0; t < 2000 && gem.CarriedByCreatureId >= 0; t++) sim.Tick(InputFrame.Empty);
+        Assert.Equal(-1, gem.CarriedByCreatureId);
+        Assert.Equal((CreatureState.CentreOf(14), CreatureState.CentreOf(11), 0), (gem.PosX, gem.PosY, gem.PosZ));
+
+        Win(sim);
+        ref PlayerState player = ref world.Player(Keeper);
+        Assert.Equal((14, 11, gem.Id), (player.Finale.GemTileX, player.Finale.GemTileY, player.Finale.GemObjectId));
+        CreatureState reaper = Reaper(sim);
+        for (int t = 0; t < 600 && player.Finale.PickupTick == 0; t++) sim.Tick(InputFrame.Empty);
+
+        Assert.NotEqual(0, player.Finale.PickupTick);
+        Assert.Equal(new TilePos(14, 11), reaper.Tile);
+        Assert.Null(world.ObjectById(gem.Id));
+        Assert.Contains(events.Events, e => e.Kind == "gem_taken");
+    }
+
+    [Fact]
     public void WithNoGemTheWinOnlyRaisesTheLetterbox()
     {
         (GameSimulation sim, _, ListEventSink events) = Setup(withGem: false);

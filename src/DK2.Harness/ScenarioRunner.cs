@@ -143,10 +143,15 @@ public sealed class ScenarioRunner
     /// fails again here, which is the reproduction. Refuses a journal from another
     /// <c>HashVersion</c> or another version of the scenario file.
     /// </summary>
-    public ScenarioResult Replay(Scenario scenario, InputJournal journal)
+    public ScenarioResult Replay(Scenario scenario, InputJournal journal) => Replay(scenario, journal, new RunOptions());
+
+    /// <summary>A replay with observers; <paramref name="options"/>' controllers and journal are ignored.
+    /// <paramref name="acceptOtherHashVersion"/> replays a journal from another <c>HashVersion</c> anyway, for
+    /// a test that studies where a changed rule diverges: its hashes are then evidence, not a verdict.</summary>
+    public ScenarioResult Replay(Scenario scenario, InputJournal journal, RunOptions options, bool acceptOtherHashVersion = false)
     {
-        JournalHeader.CheckReplayable(scenario, journal);
-        return RunOnLevel(scenario, new RunMode(new RunOptions(), journal));
+        JournalHeader.CheckReplayable(scenario, journal, acceptOtherHashVersion);
+        return RunOnLevel(scenario, new RunMode(options with { Controllers = [], Journal = null }, journal));
     }
 
     private ScenarioResult RunOnLevel(Scenario scenario, RunMode mode)

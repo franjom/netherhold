@@ -73,7 +73,28 @@ public static class CommandCodec
         }
     }
 
+    /// <summary>The most tiles one decoded command may carry. A decoding limit (ADR-0724 R1), not
+    /// DK2 behaviour: a legitimate list or wave is bounded by its map.</summary>
+    public const int MaxTiles = 1 << 20;
+
+    private const int TileBytes = 8;
+
+    /// <summary>Decodes one command. Malformed input throws <see cref="InvalidDataException"/>; input
+    /// cut short throws <see cref="EndOfStreamException"/>, which journal readers treat as the end.</summary>
     public static PlayerCommand Read(BinaryReader r)
+    {
+        try
+        {
+            return ReadUnchecked(r);
+        }
+        catch (ArgumentException e)
+        {
+            // A typed value (slot, angle, ...) refusing what the bytes say is malformed input.
+            throw new InvalidDataException($"A command carries a value its type refuses: {e.Message}", e);
+        }
+    }
+
+    private static PlayerCommand ReadUnchecked(BinaryReader r)
     {
         ushort tag = r.ReadUInt16();
         var player = new PlayerId(r.ReadByte());
@@ -131,8 +152,13 @@ public static class CommandCodec
 
     private static SellRoomCommand ReadSellWave(BinaryReader r, PlayerId player)
     {
-        TilePos min = ReadTile(r), max = ReadTile(r);
-        return SellRoomCommand.Rect(player, min.X, min.Y, max.X, max.Y);
+        TilePos a = ReadTile(r), b = ReadTile(r);
+        // The wave expands two corners into every tile between them, so bound the area first.
+        // Each side is checked before the product, which could otherwise wrap a long.
+        long width = Math.Abs((long)a.X - b.X) + 1, height = Math.Abs((long)a.Y - b.Y) + 1;
+        if (width > MaxTiles || height > MaxTiles || width * height > MaxTiles)
+            throw new InvalidDataException($"A {width}x{height} sell wave exceeds the codec limit {MaxTiles}.");
+        return SellRoomCommand.Rect(player, a.X, a.Y, b.X, b.Y);
     }
 
     private static void Head(BinaryWriter w, ushort tag, PlayerCommand c)
@@ -152,7 +178,14 @@ public static class CommandCodec
 
     private static TilePos[] ReadTiles(BinaryReader r)
     {
-        var tiles = new TilePos[r.ReadInt32()];
+        int count = r.ReadInt32();
+        if (count is < 0 or > MaxTiles)
+            throw new InvalidDataException($"A tile count of {count} is outside 0..{MaxTiles}.");
+        // The count is untrusted: allocate only what the input can still hold.
+        Stream s = r.BaseStream;
+        if (s.CanSeek && (long)count * TileBytes > s.Length - s.Position)
+            throw new EndOfStreamException($"A command's {count} tiles run past the end of the input.");
+        var tiles = new TilePos[count];
         for (int i = 0; i < tiles.Length; i++) tiles[i] = ReadTile(r);
         return tiles;
     }

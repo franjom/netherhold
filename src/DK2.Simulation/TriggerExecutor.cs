@@ -1177,16 +1177,19 @@ public sealed class TriggerExecutor
     public const byte PortalGemObjectId = 28;
 
     /// <summary>Creature action 20 (<c>0x0049AC80</c> arm <c>0x14</c>): a Portal Gem is made at the
-    /// creature, owned by the creature's keeper, and handed to it (<c>Creature_PickUpCarriedThing</c>,
-    /// <c>0x0048B350</c>); then <c>+0x92</c> bit 2 is set. The object type is fixed and the
-    /// action's byte is not read. The hand-over refuses a creature already carrying something, which
-    /// leaves the gem on the floor, but the bit is set either way. The arm always succeeds. Level 1
-    /// gives its Lord of the Land the gem this way on creation (trigger 85), and he drops it on
-    /// death through the carrier's ordinary drop.</summary>
-    private static void GivePortalGem(WorldState world, GameDatabase database, CreatureState creature)
+    /// creature's point (<c>+0x1A</c> to <c>Object_Create</c>, <c>0x0049AD7D</c>), owned by its keeper,
+    /// and handed to it (<c>0x0048B350</c>, which never moves it); then <c>+0x92</c> bit 2 is set. The
+    /// object type is fixed and the action's byte is not read. The hand-over refuses a creature already
+    /// carrying something, which leaves the gem on the floor, but the bit is set either way. Level 1
+    /// gives its Lord of the Land the gem this way (trigger 85); his death drops it on his tile's
+    /// centre (<see cref="ObjectCarryRules.Drop"/>), where the finale finds it.</summary>
+    public static void GivePortalGem(WorldState world, GameDatabase database, CreatureState creature)
     {
         ObjectState gem = world.SpawnObject(database, PortalGemObjectId,
             new PlayerId(creature.OwnerPlayerId), (creature.Tile.Y * world.Width) + creature.Tile.X);
+        gem.PosX = creature.PosX;
+        gem.PosY = creature.PosY;
+        gem.PosZ = creature.PosZ;
         if (creature.CarriedObjectId < 0) ObjectCarryRules.PickUp(creature, gem);
         creature.GemCarrier = true;
     }
