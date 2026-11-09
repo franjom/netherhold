@@ -77,11 +77,13 @@ costs without claiming they are fixed. Existing Unity frame targets remain in
 2. Reused native entity slots must not let an old handle target a different thing (task 3).
 3. Retried requests and end-of-run queued actions must never execute twice or disappear silently (tasks 3-4).
 4. Long legitimate work must not be called an engine bug; no progress must still terminate (tasks 5-6).
+   The post-win finale window must not admit controller actions or change the Won verdict (tasks 4, 6).
 5. A stale DLL, dirty tree, partial journal or skipped installed test must not receive an acceptance claim (tasks 4, 6-7).
 
 ## Entry points, dependencies and file ownership
 
-Current source baseline is `022cedf1`; recheck HEAD before execution.
+Current source baseline is `49f6305c` (rechecked 2026-11-09: since `022cedf1` only
+`WorldView.Objects.cs` changed in the touched projects); recheck HEAD before execution.
 `ScenarioRunner.RunOnLevel` owns the only tick loop and queues controllers after
 completed ticks for the next input frame. `RunOptions` is in `RunMonitor.cs`.
 `WorldView.CanShowTile`, `Tiles`, `Creatures`, `Objects`, `PlayerInputSnapshot`
@@ -259,8 +261,15 @@ Replay never instantiates the coordinator or calls the controller.
 
 Do not silently drop a final decision at the duration boundary: make no new
 decision when no next tick exists; cancel outstanding unsubmitted actions.
-For player runs only, stop at terminal state, cancellation or a reached limit;
-write the actual completed count to ScenarioResult.TicksRun and journal end, with
+For player runs only, stop at terminal state, cancellation or a reached limit.
+Status 2 is written before the Horned Reaper finale starts (`0x004BE630` →
+`0x004BF410`, [campaign-win-sequence.md](../research/campaign-win-sequence.md)),
+so after Won the coordinator keeps simulating a bounded post-win window with no
+decisions and every new request refused as terminal. The window ends when
+`PlayerFinale.PickupTick` is set (Reaper in `PickUpGemState` 233) or its tick limit
+expires; it is simulation, not controller play, and records the pickup tick.
+Defeat stops at once. Write the actual completed count, including any post-win
+window, to ScenarioResult.TicksRun and journal end, with
 hashes for ticks 0..completed. Preserve the legacy no-option duration behavior.
 Add `player.run.schema=1` to the header; replay of this mode executes exactly
 InputJournal.TicksRun ticks, rejecting absent/out-of-range counts. Legacy replay
@@ -286,7 +295,7 @@ a successful fresh-build receipt binding source hashes, output hashes and the
 build log; absent or inconsistent receipts leave the run diagnostic only.
 
 - [ ] `PlayerRunTests`: controller and scripted next-tick commands yield identical hash series; decisions after ticks 0/4/8 observe stamps 1/5/9; monitor on/off yields identical hashes and RNG.
-- [ ] Add RED cases for keeper/controller conflicts, invalid AdvanceTicks, first/last tick handling and cancellation after queued input. Implement the single-loop integration; run GREEN plus ScenarioControllerTests and JournalReplayTests.
+- [ ] Add RED cases for keeper/controller conflicts, invalid AdvanceTicks, first/last tick handling and cancellation after queued input. Post-win window: Decide is never called after Won, requests are refused as terminal, the run ends at the gem pickup or the window limit, and journal end/TicksRun include the window. Implement the single-loop integration; run GREEN plus ScenarioControllerTests and JournalReplayTests.
 - [ ] Replay with a controller that throws if invoked: assert it is never called and the recorded run's hashes match. Reject mismatched scenario/data/assembly identity and truncated journals as incomplete evidence.
 - [ ] Profile coordinator/observation overhead against the identical journal without observers. Keep manifest/source/data hashing at startup, measure instrumentation separately from simulation and add stable allocation/cadence guards before the task review.
 - [ ] Retain complete logs; review/document/commit without updating a determinism pin merely for instrumentation.
@@ -331,16 +340,23 @@ Add `--campaign-player <player>` to existing run/watch options, propagated by
 WatchJobs; reject combination with --fuzz or another controller on that player.
 Defaults are test policy, not DK2 rules: 14,400 simulation ticks maximum,
 600 wall seconds, decision interval 4 ticks, at most 4 requests per decision,
-4,096 submitted actions, stall window 1,200 ticks and 3 recovery attempts.
+4,096 submitted actions, stall window 1,200 ticks, 3 recovery attempts and a
+400-tick post-win finale window (100 s at 4 TPS; derive the final value from the
+first headless Level 1 finale and record it, do not tune it to pass).
 Expose `--player-max-ticks`, `--player-wall-seconds`, `--player-interval-ticks`,
-`--player-max-actions`, `--player-stall-ticks`, `--player-retries` and
-`--player-output-mib`; reject zero/negative or overflowing values. Keep at most
+`--player-max-actions`, `--player-stall-ticks`, `--player-retries`,
+`--player-finale-ticks` and `--player-output-mib` (finale window may be 0 to skip it); reject zero/negative or overflowing values. Keep at most
 4 requests per decision and bound AdvanceTicks to 1..40. Bound output to 64 MiB,
 reserving 1 MiB for final journal/report flush before stopping at that budget.
 Actual disk errors may prevent a bundle; report on stderr for the watch parent,
 and classify incomplete evidence instead of promising that flush succeeded.
 
 Use actual PlayerStatus.Won for completion; Conquered/Lost mean gameplay defeat.
+Report finale coverage separately: reached gem pickup (tick), not reached within
+the window (a suspected anomaly, not a defeat), not applicable (no gem on the
+level) or skipped (window 0, listed as unchecked coverage). The finale outcome
+never changes the Won verdict. Headless camera holds in states 229/230 never
+wait, so headless finale timing does not certify rendered timing (stage 4).
 Exit 0 requires a qualifying completed run, 1 a non-completed attempt, 2 invalid
 configuration/incomplete evidence; watch retains its existing aggregate/limit
 exit meanings. A sourced gameplay violation is a report finding, not an invented
@@ -352,7 +368,7 @@ controller limits, applied/pending/refused/cancelled receipts, coverage, source
 identity and untested areas. Separate player-visible decision evidence from
 privileged diagnosis; the latter is never input to the strategy.
 
-- [ ] `PlayerRunReportTests`: assert win/defeat/controller limitation/timeout/invalid evidence map to distinct report outcomes; no victory is inferred from exit success or an empty expectation list.
+- [ ] `PlayerRunReportTests`: assert win/defeat/controller limitation/timeout/invalid evidence map to distinct report outcomes; no victory is inferred from exit success or an empty expectation list. Each finale coverage value is reported distinctly and none alters the Won outcome.
 - [ ] RED tests cover parsing bounds, watch propagation, budget boundary flush, unwritable output, exhausted storage and no overwrite of an existing evidence directory. Implement and run GREEN.
 - [ ] A failed installed attempt must leave journal and metadata readable through the last flushed tick. Preserve irreplaceable failure/acceptance evidence add-only under F:/DK2Evidence with a SHA-256 inventory; routine regenerable output stays under build/.
 - [ ] Measure journal/report buffering and serialization under long runs; bound allocation and retained memory without per-tick formatting work or weakening flush/recovery evidence. Include these findings in the review before committing.
@@ -374,7 +390,7 @@ Those are evidence pointers, not authority for copying historical raw slot IDs.
 Use current normal player capabilities and actual status. Investigate any new
 DK2 behavior question under AGENTS.md before adding a behavioral assertion.
 
-- [ ] Add InstallFact tests `AttemptUsesUnmodifiedLevelStart`, `ControllerCanReachNativeWinVerdict`, `WinningJournalReplaysWithoutController`. Initial fixture must demonstrate the tests are exercised, not vacuous skips.
+- [ ] Add InstallFact tests `AttemptUsesUnmodifiedLevelStart`, `ControllerCanReachNativeWinVerdict`, `WinningJournalReplaysWithoutController`, `WinningRunReachesFinaleGemPickup` (Level 1 hands a gem over by creature action 20; the replay reproduces the pickup tick). Initial fixture must demonstrate the tests are exercised, not vacuous skips.
 - [ ] Fresh-build Release before the attempt; retain build log plus source/output hashes as the build receipt and verify no source changed before launch. Run one seed-1 attempt under watch with the limits above and a new output folder. A non-win is diagnostic, not GREEN; fix controller defects only within scope and file gameplay blockers separately.
 - [ ] Once it wins, replay the same journal at the verified build/data identity and compare all recorded hashes. Confirm observations/monitoring off replay the same applied input; no model or controller participates.
 - [ ] Attempt seeds 2 and 3 and disclose every outcome without tuning engine behavior or promising broader campaign acceptance. A repeat seed-1 run must reproduce the deterministic baseline's action decisions and hash sequence.
