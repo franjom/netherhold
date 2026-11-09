@@ -103,9 +103,13 @@ where it was handed over. When the carrier dies, the drop `0x0048B3A0` runs (fro
 the death is uncounted (`+0x3E6` bit `0x40`: Temple entry, trigger action 35 with 0), which
 destroys the carried thing instead (`0x0048819C`-`0x004881C2`). The drop sets the thing at the carrier's point, then sets a class-2
 object of type `0x1C` on the carrier's tile centre at height 0 (`0x0048B3E3`-`0x0048B41F`),
-and relinks it to that tile. Level 1's Lord drops the gem where he dies. In our replay of the
-campaign player's seed-1 win (remake output, not observed in DK2) the Lord dies on tile (15,22)
-and the Reaper takes the gem 108 turns after the verdict (ADR-0725). A map-placed gem: Q755.
+and relinks it to that tile. Level 1's Lord drops the gem where he dies. Remake outputs, not
+observed in DK2 (ADR-0725): in `ReaperFinaleOnRealDataTests`' replay of its fixture journal the
+Lord dies on tile (15,22) and the Reaper takes the gem 108 turns after the verdict; in the
+receipted live seed-1 run of the campaign player (study
+`F:/DK2Evidence/studies/campaign-player-l01-acceptance--2026-11-09--002`) the Lord dies on tile
+(15,24) at tick 2335, the win is at tick 2360 and `gem_taken` at tick 2490, 130 ticks later.
+A map-placed gem: Q755.
 
 ## 3. The Reaper's states 228-234
 

@@ -1,0 +1,12 @@
+id: campaign-player-level1-seed2
+question: >
+  Level 1 as level1.yaml, on DK2 random seed 2: does the campaign player's seed-1 win carry to another
+  seed? Every outcome is disclosed; none is an acceptance claim (campaign player plan, task 7).
+map: campaign:level1
+seed: 2
+random: dk2
+fog_of_war: true
+viewing_player: 3
+duration_ticks: 14400
+setup:
+  placed_things: true

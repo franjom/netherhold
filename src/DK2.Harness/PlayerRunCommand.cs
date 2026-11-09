@@ -46,15 +46,6 @@ public static class PlayerRunCommand
             return 2;
         }
 
-        IEnumerable<CreatureTypeId> workers = database.Creatures.Values
-            .Where(c => (c.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker).Select(c => new CreatureTypeId(c.CreatureId));
-        var controller = new CampaignPlayer(new CampaignPlayerOptions(id, spec.Player, workers)
-        {
-            AdvanceTicks = spec.IntervalTicks,
-            StallWindowTicks = spec.StallTicks,
-            RecoveryAttempts = spec.Retries,
-        });
-
         BudgetedStream? budgeted = null;
         try
         {
@@ -76,16 +67,10 @@ public static class PlayerRunCommand
         {
             using (budgeted)
             {
-                var playerRun = new PlayerRunOptions(controller, spec.Player, id)
-                {
-                    MaxTicks = spec.MaxTicks,
-                    FinaleTicks = spec.FinaleTicks,
-                    Limits = new PlayerSessionLimits(maxAdmittedActions: spec.MaxActions),
-                    StopRequested = () =>
-                        clock.Elapsed.TotalSeconds >= spec.WallSeconds ? $"wall-time limit of {spec.WallSeconds} s reached"
-                        : budgeted.Exhausted ? $"output budget of {spec.OutputMiB} MiB reached (1 MiB kept for the final records)"
-                        : null,
-                };
+                PlayerRunOptions playerRun = PlayerRunFor(database, spec, id, () =>
+                    clock.Elapsed.TotalSeconds >= spec.WallSeconds ? $"wall-time limit of {spec.WallSeconds} s reached"
+                    : budgeted.Exhausted ? $"output budget of {spec.OutputMiB} MiB reached (1 MiB kept for the final records)"
+                    : null);
                 try
                 {
                     RunOptions options = template.For(scenario, budgeted) with { PlayerRun = tune is null ? playerRun : tune(playerRun) };
@@ -150,6 +135,28 @@ public static class PlayerRunCommand
             error.WriteLine($"{scenario.Id}: the report could not be written: {ex.Message}");
             return PlayerRunReport.ExitCode(PlayerRunOutcome.IncompleteEvidence);
         }
+    }
+
+    /// <summary>The campaign player and its run options exactly as this command builds them, so an
+    /// acceptance test drives the same controller under the same limits.</summary>
+    internal static PlayerRunOptions PlayerRunFor(GameDatabase database, CampaignPlayerSpec spec, PlayerRunId id,
+        Func<string?>? stopRequested)
+    {
+        IEnumerable<CreatureTypeId> workers = database.Creatures.Values
+            .Where(c => (c.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker).Select(c => new CreatureTypeId(c.CreatureId));
+        var controller = new CampaignPlayer(new CampaignPlayerOptions(id, spec.Player, workers)
+        {
+            AdvanceTicks = spec.IntervalTicks,
+            StallWindowTicks = spec.StallTicks,
+            RecoveryAttempts = spec.Retries,
+        });
+        return new PlayerRunOptions(controller, spec.Player, id)
+        {
+            MaxTicks = spec.MaxTicks,
+            FinaleTicks = spec.FinaleTicks,
+            Limits = new PlayerSessionLimits(maxAdmittedActions: spec.MaxActions),
+            StopRequested = stopRequested,
+        };
     }
 
     /// <summary>Writes a refusal's or failure's verdict file; 2 when even that could not be written.</summary>

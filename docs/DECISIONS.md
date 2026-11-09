@@ -16988,8 +16988,9 @@ object of type 28 on the carrier's tile centre at height 0 (`0x0048B3E3`-`0x0048
 sets a Portal Gem on the carrier's tile centre at height 0. The carry still never moves it (ADR-0680).
 
 **Consequences.** No new field. The gem's hashed position now differs from its creation (456); earlier
-saves are refused. In our replay of the campaign player's Level 1 seed-1 win (a remake run, not a DK2
-observation) the Reaper takes the gem 108 turns after the verdict. Only action 20's gem gains a point:
+saves are refused. Remake runs, not DK2 observations: `ReaperFinaleOnRealDataTests`' fixture replay has
+the Reaper take the gem 108 turns after the verdict; the live campaign-player seed-1 run, 130 ticks
+(win 2360, pickup 2490; [campaign-win-sequence.md](research/campaign-win-sequence.md) §2). Only action 20's gem gains a point:
 a map-placed or trigger-made gem still has none (Q755).
 
 STRONGLY INFERRED from the disassembly. See [campaign-win-sequence.md](research/campaign-win-sequence.md) §2

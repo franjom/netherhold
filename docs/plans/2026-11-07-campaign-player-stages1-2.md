@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-07. Design approved by the owner; inline execution
-in a worktree on `feature/campaign-player` (not merged). Tasks 1-6 are built; task 7 is not started. Task 5's Level 1 win is an early scratch result; task 7's acceptance attempt with the build receipt is still to do.
+in a worktree on `feature/campaign-player` (not merged). Tasks 1-7 (stages 1-2) are built on the branch; task 7's commit and integration are pending the owner. No later stage is built.
 **Goal:** attempt Level 1 unattended through a player-visible interface, preserve
 the input journal and produce a truthful, replayable completion/failure report.
 **Architecture:** extend the existing scenario loop. Put engine-neutral player
@@ -404,12 +404,9 @@ engine and host type names, with a negative control (`DK2.AI` cannot reference P
 Harness at all). Measured on Level 1: `Decide` 29 us and 1.3 KB a decision once warm.
 
 An early attempt with this controller (seed 1, fog, placed things, no setup changes) won Level 1
-at tick 2360 in 590 decisions (2 rooms, 155 marks, 15 pickups and drops, 1 special); its journal
-replayed all 2,762 hashes without the controller, and a repeat run matched its final hash. The
-Horned Reaper was created at the win but no gem pickup followed in 6,000 more ticks: unexplained,
-possibly dependent on the layout this controller dug, handed to its own mechanic session
-(evidence in ignored `build/campaign-player/level1-seed1-win/`). Task 7 reports it as
-`NotReached` and claims no end-to-end completion while it stands.
+at tick 2360 in 590 decisions (2 rooms, 155 marks, 15 pickups and drops, 1 special). The Horned
+Reaper was created at the win but took no gem: the Portal Gem had no position (ADR-0725). Task 7
+records the acceptance runs after that fix.
 
 ### Task 6: CLI, limits, outcomes and evidence
 
@@ -472,9 +469,8 @@ own limit ControllerLimited; a stopped run or evidence that did not reach disk I
 (exit 2); a refusal before any tick Refused (exit 2); an engine or host exception TechnicalFailure
 (exit 1) with its journal, manifest and verdict. `replay` verifies a player-run journal's manifest
 first. The budget check is one comparison a tick and the reports are written once; `BudgetedStream`
-forwards byte and span writes without allocating. Through the CLI on installed Level 1 (seed 1):
-Completed at tick 2360, finale NotReached, exit 0; `replay` verified the manifest and matched all
-2,762 hashes.
+forwards byte and span writes without allocating. The installed Level 1 runs through the CLI are
+recorded under task 7.
 
 ### Task 7: real Level 1 attempt and acceptance
 
@@ -492,13 +488,65 @@ Those are evidence pointers, not authority for copying historical raw slot IDs.
 Use current normal player capabilities and actual status. Investigate any new
 DK2 behavior question under AGENTS.md before adding a behavioral assertion.
 
-- [ ] Add InstallFact tests `AttemptUsesUnmodifiedLevelStart`, `ControllerCanReachNativeWinVerdict`, `WinningJournalReplaysWithoutController`, `WinningRunReachesFinaleGemPickup` (Level 1 hands a gem over by creature action 20; the replay reproduces the pickup tick). Initial fixture must demonstrate the tests are exercised, not vacuous skips.
-- [ ] Fresh-build Release before the attempt; retain build log plus source/output hashes as the build receipt and verify no source changed before launch. Run one seed-1 attempt under watch with the limits above and a new output folder. A non-win is diagnostic, not GREEN; fix controller defects only within scope and file gameplay blockers separately.
-- [ ] Once it wins, replay the same journal at the verified build/data identity and compare all recorded hashes. Confirm observations/monitoring off replay the same applied input; no model or controller participates.
-- [ ] Attempt seeds 2 and 3 and disclose every outcome without tuning engine behavior or promising broader campaign acceptance. A repeat seed-1 run must reproduce the deterministic baseline's action decisions and hash sequence.
-- [ ] Run final Release solution/Unity compile, relevant existing suites, full solution tests and docs/KB/coverage/status gates from HANDOFF. Installed acceptance must run with DK2_REQUIRE_INSTALL=1; absent data blocks acceptance rather than passing it.
-- [ ] Publish the final headless overhead/allocation results against the reviewed baseline, including first-use cost, remaining hot spots, applied-input equivalence and skill-backed review findings. Do not call one fast run a whole-game performance acceptance.
-- [ ] Reviewer checks evidence and actual Level 1 verdict; documenter reconciles status in the design/parent/handoff without marking later stages built. Inspect edits, archive receipt, commit and integrate by the owner's selected execution method. Do not remove worktrees or evidence.
+- [x] Add InstallFact tests `AttemptUsesUnmodifiedLevelStart`, `ControllerCanReachNativeWinVerdict`, `WinningJournalReplaysWithoutController`, `WinningRunReachesFinaleGemPickup` (Level 1 hands a gem over by creature action 20; the replay reproduces the pickup tick). Initial fixture must demonstrate the tests are exercised, not vacuous skips.
+- [x] Fresh-build Release before the attempt; retain build log plus source/output hashes as the build receipt and verify no source changed before launch. Run one seed-1 attempt under watch with the limits above and a new output folder. A non-win is diagnostic, not GREEN; fix controller defects only within scope and file gameplay blockers separately.
+- [x] Once it wins, replay the same journal at the verified build/data identity and compare all recorded hashes. Confirm observations/monitoring off replay the same applied input; no model or controller participates.
+- [x] Attempt seeds 2 and 3 and disclose every outcome without tuning engine behavior or promising broader campaign acceptance. A repeat seed-1 run must reproduce the deterministic baseline's action decisions and hash sequence.
+- [x] Run final Release solution/Unity compile, relevant existing suites, full solution tests and docs/KB/coverage/status gates from HANDOFF. Installed acceptance must run with DK2_REQUIRE_INSTALL=1; absent data blocks acceptance rather than passing it.
+- [x] Publish the final headless overhead/allocation results against the reviewed baseline, including first-use cost, remaining hot spots, applied-input equivalence and skill-backed review findings. Do not call one fast run a whole-game performance acceptance.
+- [x] Reviewer checks evidence and actual Level 1 verdict; documenter reconciles status in the design/parent/handoff without marking later stages built.
+- [ ] Inspect edits, commit and integrate by the owner's selected execution method. Do not remove worktrees or evidence.
+
+As built: `scenarios/campaign-player/level1.yaml` (seed 1), `level1-seed2.yaml` and `level1-seed3.yaml`
+are shipped Level 1 (`random: dk2`, fog on, viewing player 3, `placed_things`, 14,400 ticks) and grant
+nothing; they play only under `run --campaign-player 3`. `CampaignPlayerLevel1Tests` has four
+InstallFacts sharing one seed-1 attempt. `AttemptUsesUnmodifiedLevelStart` asserts every
+Scenario/Setup field, that the file's start hash equals a bare in-memory scenario's, and that every
+applied journal command is player 3's and as many as the submitted receipts.
+`ControllerCanReachNativeWinVerdict` reads `PlayerState.Status` through `RunOptions.AfterTick` and
+checks it against the coordinator's `ResultTick`; nobody else wins, the journal ends `completed`.
+`WinningJournalReplaysWithoutController` replays with no controller, monitors off then on, all
+hashes equal. `WinningRunReachesFinaleGemPickup` checks that the gem exists at the win, stands on the
+tile where the Lord of the Land died (at its centre), that the finale is `ReachedPickup` within
+`FinaleTicks`, `reaper_created` on the win tick and `gem_taken` on the pickup tick, and that the
+replay reproduces `gem_taken`. `PlayerRunCommand.PlayerRunFor` was extracted so the tests and the CLI
+build the same controller and limits. The Task 7 attempt follows ADR-0725 (hash 456), merged into
+this branch from `fix/reaper-gem-pickup`; without it the finale was `NotReached`.
+
+Result (study `F:/DK2Evidence/studies/campaign-player-l01-acceptance--2026-11-09--002`, which
+supersedes `--001`; fresh Release build, 0 warnings, 1,661 source and 11 output hashes verified
+before launch). `watch scenarios/campaign-player --campaign-player 3`, all exit 0, all
+Completed/Won with the finale `ReachedPickup`:
+
+| Seed | Win tick | Gem pickup | Ticks run | Decisions |
+|---|---|---|---|---|
+| 1 | 2360 | 2490 | 2491 | 590 |
+| 2 | 2244 | 2346 | 2347 | 561 |
+| 3 | 2216 | 2316 | 2317 | 554 |
+
+Seed 1's final hash is `8f8750679404da55`; a repeat seed-1 run is byte-identical in decisions,
+actions, hashes and events. Each journal replayed through `replay`, exit 0, all hashes matching
+(2,492 / 2,348 / 2,318 ticks; the repeat 2,492). With `DK2_REQUIRE_INSTALL=1` the full tests (Behavior
+600 passed, 5 skipped: the opt-in SpeedBudget tests and the TriggerCapture comparison, which needs
+captures), the Unity compile, verification-ledger, kb, coverage, docs, status and diff-check gates
+exit 0. Counterfactuals, each fault alone and the sources restored by SHA-256: reverting the gem drop
+is caught by `WinningRunReachesFinaleGemPickup`, `ReaperFinaleOnRealDataTests` and both fix unit
+tests; reverting the gem creation is caught only by
+`FinaleTests.TheReaperTakesAGemItsDeadCarrierDropped`, because on Level 1 the Lord drops the gem
+before the win, so that half is not observable there; both together, a replay one tick late, a
+misread win tick, a start that grants gold and a foreign keeper's command in the journal are caught.
+
+Headless overhead (seed 1, the player run against a replay of the same journal, both writing a
+journal, order alternating, 15 steady rounds, assemblies hash-checked against the receipt): small,
+within noise. The paired median is +49 ms a run against a 1,165 ms replay median, but the spread is
+-63..+153 ms and play was slower in 11 of 15 rounds. Allocation is deterministic: +8.15 MB a run,
+13.5 KB a decision; gen0 15 against 14; `Decide` 17 us a decision. First use in a fresh process costs
+4.9 s against about 1.2 s steady (`Decide` 185 ms on first use). This is not a whole-game
+performance acceptance. The remaining hot spot, from task 2's measurement, is
+`PlayerInputSnapshot.Capture` building `CreatureViews`. These are remake measurements, not DK2 facts.
+
+Not done here: the harness README's entry for `scenarios/campaign-player/` is written after the
+commit review, because the build receipt hashes `src/`.
 
 ## Execution handoff
 
