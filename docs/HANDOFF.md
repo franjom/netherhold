@@ -59,8 +59,9 @@ These are entry points, not a new priority order.
   and rendered-HUD automation remain follow-up work; use the completion acceptance
   record above for the integrated walkthrough and its journals.
   Approved design: [agentic campaign playtesting](plans/2026-11-07-agentic-campaign-playtesting-design.md).
-  The [stages 1-2 plan](plans/2026-11-07-campaign-player-stages1-2.md) awaits owner review
-  and execution-method selection; implementation has not started.
+  The [stages 1-2 plan](plans/2026-11-07-campaign-player-stages1-2.md) runs inline in a
+  worktree on `feature/campaign-player` (not merged). Task 1, the detached player contract
+  (`DK2.Simulation.Players`, `DK2.AI.Players`), is built; nothing consumes it yet (tasks 2-7).
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.

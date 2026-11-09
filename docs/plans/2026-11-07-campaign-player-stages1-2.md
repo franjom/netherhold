@@ -2,8 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
-**Status:** proposed execution plan, 2026-11-07. Design approved by the owner;
-implementation and execution-method selection have not started.
+**Status:** execution plan, 2026-11-07. Design approved by the owner; inline execution
+in a worktree on `feature/campaign-player` (not merged). Task 1 is built; tasks 2-7 are not started.
 **Goal:** attempt Level 1 unattended through a player-visible interface, preserve
 the input journal and produce a truthful, replayable completion/failure report.
 **Architecture:** extend the existing scenario loop. Put engine-neutral player
@@ -92,7 +92,7 @@ and the presentation HUD models are the visibility/input references.
 
 | Owner | New or changed files | Responsibility |
 |---|---|---|
-| Task 1 | `src/DK2.Simulation/Players/PlayerContracts.cs`, `PlayerObservation.cs`, `PlayerAction.cs`; `src/DK2.AI/Players/IPlayerController.cs` | Detached contract and controller boundary |
+| Task 1 | `src/DK2.Simulation/Players/PlayerContracts.cs`, `PlayerObservation.cs`, `PlayerAction.cs`; `src/DK2.AI/Players/IPlayerController.cs`; `src/DK2.Data.Model/ObjectTypeId.cs`; `tests/DK2.AI.Tests/Players/PlayerDecisionTests.cs` | Detached contract and controller boundary |
 | Task 2 | `src/DK2.Presentation/PlayerObservationBuilder.cs`; `tests/DK2.Presentation.Tests/PlayerObservationTests.cs` | Visibility-safe projection and capabilities |
 | Task 3 | `src/DK2.Harness/PlayerSession.cs`; `src/DK2.Presentation/PlayerActionAdapter.cs`; `tests/DK2.Behavior.Tests/PlayerSessionTests.cs` | Action admission, deduplication, handles and receipts |
 | Task 4 | `src/DK2.Harness/PlayerRunCoordinator.cs`, `PlayerRunManifest.cs`; existing `ScenarioRunner.cs`, `RunMonitor.cs`, `JournalHeader.cs`; `tests/DK2.Behavior.Tests/PlayerRunTests.cs` | Loop integration, bounded advancement, identity and replay |
@@ -120,17 +120,20 @@ type. GREEN must include positive controls. Retain counterfactual evidence.
 
 After each task, run the reviewer, fix objections, run the documenter and inspect
 its edits before staging named paths and committing. Use `docs/HANDOFF.md`'s
-verification list for the final gate. No tests have been executed for this plan.
+verification list for the final gate. Only task 1's tests have been executed.
 
 ### Task 1: detached player protocol
 
 **Files:** task 1 ownership above; test `tests/DK2.Simulation.Tests/PlayerContractsTests.cs`.
 **Interfaces produced:** namespace `DK2.Simulation.Players`:
 `PlayerRunId(string Value)`, `PlayerActionId(long Value)`,
-`PlayerThingHandle(string Value)` and `PlayerRevision(long Value)` are validated
-readonly value types; empty IDs/handles and nonpositive action/revision values
-are rejected. `PlayerStamp` contains run ID, `PlayerId`, `GameTick` and revision.
-Use typed `PlayerGold` and `PlayerMana` values, not interchangeable quantities.
+`PlayerThingHandle(PlayerRevision, int ordinal)` and `PlayerRevision(long Value)` are
+validated readonly value types; empty IDs and nonpositive action/revision values
+are rejected, and `default` reports `IsValid == false`. `PlayerStamp` contains run ID, `PlayerId`, `GameTick` and revision.
+Use the existing typed `GoldAmount` and `ManaAmount` (DK2.Core), not interchangeable quantities.
+`PlayerThingHandle` is (revision, ordinal in that observation's thing list) rather than a
+string: no allocation per thing, revision-scoped by construction, and a transport formats it. The action family is closed by a `private protected abstract` member,
+since a record's protected copy constructor cannot close it.
 
 `PlayerObservation` contains Stamp, Phase (Intro/Playing/Ended), own terminal
 state, public resources, displayed owned-room/creature summaries, visible tiles,
@@ -153,7 +156,7 @@ In `DK2.AI.Players`, define
 `PlayerDecision` owns an action list, positive `AdvanceTicks` and a short reason.
 Controller construction receives run/player identity; it never receives a world.
 
-- [ ] Add tests `ObservationOwnsItsCollections` (mutating constructor inputs cannot change the snapshot), `ObservationHasNoPrivilegedReferences` (recursive field/type audit), and typed identity validation. Include these exact contract assertions:
+- [x] Add tests `ObservationOwnsItsCollections` (mutating constructor inputs cannot change the snapshot), `ObservationHasNoPrivilegedReferences` (recursive field/type audit), and typed identity validation. Include these exact contract assertions:
 
 ```csharp
 Assert.Throws<ArgumentException>(() => new PlayerRunId(""));
@@ -161,9 +164,9 @@ Assert.Throws<ArgumentOutOfRangeException>(() => new PlayerActionId(0));
 Assert.NotEqual(new PlayerRunId("run-a"), new PlayerRunId("run-b"));
 ```
 
-- [ ] Add a minimal immutable constructor/record skeleton, then run `PlayerContractsTests` in DK2.Simulation.Tests and retain the intended RED assertions.
-- [ ] Implement copying, validation and the closed action family; GREEN includes valid empty/no-action observations and distinct run identities.
-- [ ] Build the solution and Unity compile project; check the architecture guards before the task review/documentation/commit cycle.
+- [x] Add a minimal immutable constructor/record skeleton, then run `PlayerContractsTests` in DK2.Simulation.Tests and retain the intended RED assertions.
+- [x] Implement copying, validation and the closed action family; GREEN includes valid empty/no-action observations and distinct run identities.
+- [x] Build the solution and Unity compile project; check the architecture guards before the task review/documentation/commit cycle.
 
 ### Task 2: visibility-safe observations and capabilities
 
@@ -195,6 +198,7 @@ message payloads naming otherwise hidden objects. The host's full-state diagnost
 stream stays out of this interface, including error reasons and action hints.
 
 - [ ] In `PlayerObservationTests`, create paired synthetic worlds differing only behind fog: enemy creature/gold, secret door, room capacity, trigger state and another player's messages. Assert field-for-field identical detached observations and capabilities.
+- [ ] Pin builder invariants: `Things[i].Handle` is (stamp revision, i), creature-summary handles point into Things, unknown tiles are all-default, and no default(PlayerVisibleThing) is emitted.
 - [ ] Add positive controls revealing a target through the existing view path, own held-creature visibility, discovery changes and empty message history. A global count or hash must not expose hidden changes.
 - [ ] Run the Presentation test project/class for RED, implement Capture, then GREEN. Mutate the original world after capture and assert the old observation is unchanged.
 - [ ] Assert StateHash and simulation RNG state are unchanged by repeated capture; retain existing fog/view/input tests in the focused run.
