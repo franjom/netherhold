@@ -68,6 +68,11 @@ public readonly record struct PlayerRevision : IComparable<PlayerRevision>
 
     public int CompareTo(PlayerRevision other) => Value.CompareTo(other.Value);
 
+    public static bool operator <(PlayerRevision a, PlayerRevision b) => a.Value < b.Value;
+    public static bool operator >(PlayerRevision a, PlayerRevision b) => a.Value > b.Value;
+    public static bool operator <=(PlayerRevision a, PlayerRevision b) => a.Value <= b.Value;
+    public static bool operator >=(PlayerRevision a, PlayerRevision b) => a.Value >= b.Value;
+
     public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 }
 

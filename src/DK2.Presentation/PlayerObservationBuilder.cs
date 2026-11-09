@@ -38,6 +38,20 @@ public sealed class PlayerObservationCapture
         target = default;
         return false;
     }
+
+    /// <summary>The first creature target on <paramref name="tile"/>, as the hand's drop names the
+    /// creature under the pointer (<c>PlayerInputTranslator</c>'s TargetAt).</summary>
+    public bool TryFindCreatureAt(TilePos tile, out PlayerInputTarget creature)
+    {
+        foreach (PlayerInputTarget target in _targets)
+            if (target.Kind == PlayerInputTargetKind.Creature && target.Tile == tile)
+            {
+                creature = target;
+                return true;
+            }
+        creature = default;
+        return false;
+    }
 }
 
 /// <summary>

@@ -20,17 +20,17 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class PlayerObservationTests
 {
-    private static readonly PlayerId Viewer = new(3), Rival = new(4);
-    private const int Width = 8, Height = 3, Seen = 4; // columns 0-3 are explored by the viewer
-    private const byte Imp = 1, Fighter = 2, Pot = 1, Torch = 2;
-    private const byte DirtPath = 3, Treasury = 4, Gold = 5, Water = 6, Lava = 7, Rock = 2, RevealedFloor = 8;
-    private static readonly TilePos HiddenFloor = new(6, 1), HiddenRoom = new(7, 2), OwnFloor = new(1, 1), Scanned = new(5, 2);
-    private static readonly PlayerRunId Run = new("observation-test");
+    internal static readonly PlayerId Viewer = new(3), Rival = new(4);
+    internal const int Width = 8, Height = 3, Seen = 4; // columns 0-3 are explored by the viewer
+    internal const byte Imp = 1, Fighter = 2, Pot = 1, Torch = 2;
+    internal const byte DirtPath = 3, Treasury = 4, Gold = 5, Water = 6, Lava = 7, Rock = 2, RevealedFloor = 8;
+    internal static readonly TilePos HiddenFloor = new(6, 1), HiddenRoom = new(7, 2), OwnFloor = new(1, 1), Scanned = new(5, 2);
+    internal static readonly PlayerRunId Run = new("observation-test");
 
-    private static PlayerStamp Stamp(WorldState world, long revision = 1) =>
+    internal static PlayerStamp Stamp(WorldState world, long revision = 1) =>
         new(Run, Viewer, world.CurrentTick, new PlayerRevision(revision));
 
-    private static GameDatabase Database()
+    internal static GameDatabase Database()
     {
         GameDatabase basic = ScenarioTests.SyntheticDatabase();
         TerrainDef template = basic.TerrainById(DirtPath);
@@ -46,6 +46,7 @@ public class PlayerObservationTests
             NameStringId = 0, TooltipStringId = 0,
         };
         basic.Variables.Misc[VariableTypeId.MaxNumberOfThingsInHand] = new MiscVariable(VariableTypeId.MaxNumberOfThingsInHand, 8, 0, 0);
+        basic.Variables.Misc[VariableTypeId.RubberBandAreaLimit] = new MiscVariable(VariableTypeId.RubberBandAreaLimit, 5, 0, 0);
         return new GameDatabase(
             basic.Terrain.Values.Concat(
             [
@@ -66,7 +67,7 @@ public class PlayerObservationTests
     }
 
     /// <summary>Columns 0-3 are the viewer's explored Dirt Path; 4-7 the rival's, unexplored.</summary>
-    private static (GameDatabase Database, WorldState World) World(int width = Width, int height = Height)
+    internal static (GameDatabase Database, WorldState World) World(int width = Width, int height = Height)
     {
         GameDatabase database = Database();
         var tiles = new MapTile[width * height];
@@ -85,7 +86,7 @@ public class PlayerObservationTests
 
     /// <summary>Everything the rival has that the viewer cannot see, including a message posted
     /// before the viewer's own, which advances the shared queue id.</summary>
-    private static void AddHiddenDifferences(GameDatabase database, WorldState world)
+    internal static void AddHiddenDifferences(GameDatabase database, WorldState world)
     {
         world.SpawnCreature(database, Fighter, Rival, HiddenFloor);
         world.SpawnObject(database, Pot, Rival, HiddenFloor.Y * world.Width + HiddenFloor.X);

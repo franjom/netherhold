@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-07. Design approved by the owner; inline execution
-in a worktree on `feature/campaign-player` (not merged). Tasks 1-2 are built; tasks 3-7 are not started.
+in a worktree on `feature/campaign-player` (not merged). Tasks 1-3 are built; tasks 4-7 are not started.
 **Goal:** attempt Level 1 unattended through a player-visible interface, preserve
 the input journal and produce a truthful, replayable completion/failure report.
 **Architecture:** extend the existing scenario loop. Put engine-neutral player
@@ -94,7 +94,7 @@ and the presentation HUD models are the visibility/input references.
 |---|---|---|
 | Task 1 | `src/DK2.Simulation/Players/PlayerContracts.cs`, `PlayerObservation.cs`, `PlayerAction.cs`; `src/DK2.AI/Players/IPlayerController.cs`; `src/DK2.Data.Model/ObjectTypeId.cs`; `tests/DK2.AI.Tests/Players/PlayerDecisionTests.cs` | Detached contract and controller boundary |
 | Task 2 | `src/DK2.Presentation/PlayerObservationBuilder.cs`, `WorldView.Player.cs`; `tests/DK2.Behavior.Tests/PlayerObservationTests.cs` | Visibility-safe projection and capabilities |
-| Task 3 | `src/DK2.Harness/PlayerSession.cs`; `src/DK2.Presentation/PlayerActionAdapter.cs`; `tests/DK2.Behavior.Tests/PlayerSessionTests.cs` | Action admission, deduplication, handles and receipts |
+| Task 3 | `src/DK2.Harness/PlayerSession.cs`; `src/DK2.Presentation/PlayerActionAdapter.cs`; `tests/DK2.Behavior.Tests/PlayerSessionTests.cs`; revision comparison operators in `PlayerContracts.cs` | Action admission, deduplication, handles and receipts |
 | Task 4 | `src/DK2.Harness/PlayerRunCoordinator.cs`, `PlayerRunManifest.cs`; existing `ScenarioRunner.cs`, `RunMonitor.cs`, `JournalHeader.cs`; `tests/DK2.Behavior.Tests/PlayerRunTests.cs` | Loop integration, bounded advancement, identity and replay |
 | Task 5 | `src/DK2.AI/Players/CampaignPlayer.cs`, `PlayerActionRoutines.cs`, `CampaignPlayerOptions.cs`; `tests/DK2.AI.Tests/CampaignPlayerTests.cs` | Observation-driven strategy and recovery |
 | Task 6 | `src/DK2.Harness/PlayerRunReport.cs`; existing `HarnessCommandLine.cs`, `Program.cs`, `ScenarioReportWriter.cs`; `tests/DK2.Behavior.Tests/PlayerRunReportTests.cs` | CLI, limits, evidence and truthful outcomes |
@@ -211,7 +211,7 @@ stream stays out of this interface, including error reasons and action hints.
 - [x] Run the test class for RED, implement Capture, then GREEN. Mutate the original world after capture and assert the old observation is unchanged.
 - [x] Assert StateHash and simulation RNG state are unchanged by repeated capture; retain existing fog/view/input tests in the focused run.
 - [x] Establish the observation performance baseline on small and large/fog-heavy synthetic worlds. Measure first and repeated capture, capability generation and allocation; apply the optimization gate and preserve the detached-snapshot mutation test after any reuse/caching change.
-- [ ] Review the correctness and performance evidence, document and commit.
+- [x] Review the correctness and performance evidence, document and commit (`38e8b9e8`).
 
 Result (headless, shipped data, fog on, steady state, tick 1200): Level 1 (30x38) 114 us and
 5 KB per capture; Level 20 (99x99) 589 us and 32 KB, against 1.2-3.3 ms per simulation tick.
@@ -234,7 +234,13 @@ PlayerActionAdapter adapter)` in Harness;
 `Submit(PlayerRequest request) -> PlayerReceipt`;
 `Drain(GameTick appliesAt) -> IReadOnlyList<PlayerCommand>`;
 `Cancel() -> IReadOnlyList<PlayerReceipt>`.
-Expose immutable receipts for the next observation. PlayerActionAdapter is
+Expose immutable receipts for the next observation (as built: `TakeReceipts()`, the receipts
+issued or changed since the last call; optional `PlayerSessionLimits` bounds requests per
+observation and admitted actions). Only requests judged on the current observation are
+ledgered; transient refusals (identity, stale, future, too many, cancelled) may be retried under
+the same id. The next `Observe` cancels still-queued requests as stale, since their commands
+carry that observation's entity ids, so the coordinator drains before observing. A drop names
+the creature under the tile, as the hand does. PlayerActionAdapter is
 defined in Presentation with
 `Resolve(PlayerObservationCapture capture, PlayerAction action)
 -> PlayerActionResolution`. Resolution holds commands or a public-safe refusal.
@@ -260,10 +266,16 @@ Admission validates capability, bounds, ownership and visible handles. The engin
 remains authoritative for gameplay outcomes. Do not mutate resources or fabricate
 a success/refusal event to compensate for a command that did no work.
 
-- [ ] `PlayerSessionTests`: `DuplicateRequestRunsOnce`, `ConflictingIdIsRefused`, `StaleOrOtherRunDoesNotProbeWorld`, `ReusedSlotCannotResolveOldHandle`, `WrongPlayerAndDebugActionRejected`, `SelectPanelEmitsOrdinaryCommand`.
-- [ ] Run Behavior tests/class for assertion RED. Implement Submit/Drain/Cancel and confirm corresponding positive actions produce the same commands as the existing player path.
-- [ ] Verify repeated Drain is empty; Cancel marks queued actions cancelled, admits nothing later and does not retract a previously submitted input frame. Reject actions after terminal state.
-- [ ] Verify receipt reasons do not distinguish two otherwise identical hidden states; review/document/commit.
+- [x] `PlayerSessionTests`: `DuplicateRequestRunsOnce`, `ConflictingIdIsRefused`, `SelectPanelEmitsOrdinaryCommand`, and as built `StaleFutureOrOtherRunRequestsAreRefusedBeforeAnyHandleIsResolved`, `AHandleFromAnEarlierRevisionNeverResolves`, `WrongPlayerWrongPhaseAndUnofferedActionsAreRejected` for the planned stale, reused-slot and wrong-player cases.
+- [x] Implement Submit/Drain/Cancel. `AdmittedActionsBuildTheHumanPathsCommands` and `ADropNamesTheCreatureUnderItAsTheHandDoes` pin the commands against the existing player path. The assertion-RED run was replaced by 16 paired counterfactuals, each detected by its named test (K1-K12 on the first version were not re-run after the session rewrite).
+- [x] Repeated Drain is empty; Cancel marks queued actions cancelled, admits nothing later and does not retract a submitted request (`DrainIsOnceAndCancelWithdrawsOnlyWhatIsQueued`); nothing is admitted after the game ends (`NothingIsAdmittedAfterTheGameEnds`).
+- [x] Receipt reasons and commands do not distinguish two otherwise identical hidden states (`ReceiptsDoNotDistinguishHiddenStates`).
+- [x] Commit.
+
+Owner questions about the human UI that the session answers as the human path does (none is a
+DKII.EXE claim): should the campaign player feed and pay creatures by dropping on them, as the
+hand does (implemented as the human path); must every queued action enter the frame right after
+its observation (enforced: the next `Observe` cancels them as stale).
 
 ### Task 4: integrate the existing tick loop and replay identity
 
