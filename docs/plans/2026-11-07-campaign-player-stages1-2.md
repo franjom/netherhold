@@ -182,7 +182,7 @@ generated from already-admitted targets. As built, the tests live in DK2.Behavio
 reuse `ScenarioTests.SyntheticDatabase()` (creature, Treasury, Create Imp) instead of a copy,
 and `PlayerNotice` carries the message kind and a per-viewer ordinal, never the shared queue id
 (schema still 1, unshipped). Thing offers are the engine's hand rules (`HandRules.CanPickUp`,
-`CanSlap`, `CanPickUpObject`, `CanPickUpStoreGold`); an own prisoner in unseen cells has no tile.
+`CanSlap`, `CanPickUpObject`, `CanPickUpStoreGold`); every own creature not in the hand has its tile.
 The viewer's own tag on hidden ground is kept as the human sees it, although whether it sticks
 depends on hidden terrain (TileTagSystem); `PlayerObservationBuilder.CoverageLimits` lists the rest.
 The host calls Capture serially at completed boundaries, never concurrently with
@@ -218,12 +218,16 @@ Result (headless, shipped data, fog on, steady state, tick 1200): Level 1 (30x38
 The hot spot left is `PlayerInputSnapshot.Capture` building full `CreatureView`s (180-230 us on
 Level 20); a per-terrain lookup table gave no measurable gain and was reverted.
 
-Owner questions about the human UI that the builder answers as the human path does (none is
-a DKII.EXE claim): does the viewer's own tag on hidden ground stick (`TileTagSystem` refuses
-secret doors and scanned non-taggable ground, so it depends on hidden terrain); is an own
-prisoner's position visible to a human in unseen cells (the builder gives it no tile); does the
-intro phase apply to mid-level introduction pans; can an enemy disguised as one's own be picked
-up.
+Human-UI questions, answered from code and research (the builder follows the human path in each):
+- Own tag on hidden ground: a fog tile takes the tag and loses it on reveal as impenetrable rock
+  or a room (owner, Q193; `FogOfWarSystem`); a secret door or scanned non-taggable ground refuses
+  it at once (`TileTagSystem`), and `TileAt` draws the same marker, so a human sees it too.
+- Own prisoner in unseen cells: the creature panel's Focus (`0x00417F60`) excludes only state
+  193 and held creatures, so a human can jump to it; the observation keeps its tile.
+- Mid-level camera paths: pointer routing (`0x0044D590`) refuses panel and hand input in path
+  mode 0x12; only Escape/Space skip (`0x00405362`). Intro offering only SkipIntro is right.
+- A disguised enemy: the hover permission admits it, but action 57's path unmasks and refuses it
+  (creature-pickup.md); the offer matches the cursor. How a disguise is drawn is unread.
 
 ### Task 3: bounded action admission and receipts
 
@@ -272,10 +276,9 @@ a success/refusal event to compensate for a command that did no work.
 - [x] Receipt reasons and commands do not distinguish two otherwise identical hidden states (`ReceiptsDoNotDistinguishHiddenStates`).
 - [x] Commit.
 
-Owner questions about the human UI that the session answers as the human path does (none is a
-DKII.EXE claim): should the campaign player feed and pay creatures by dropping on them, as the
-hand does (implemented as the human path); must every queued action enter the frame right after
-its observation (enforced: the next `Observe` cancels them as stale).
+A drop onto a creature feeds or pays it as the hand's does (`DropDeliveryRules.RecipientOf`,
+`0x004BC710`: chicken by hunger fill, gold by pay, no ownership test). Queued actions never cross
+an observation: the next `Observe` cancels them as stale (host design, not a DK2 question).
 
 ### Task 4: integrate the existing tick loop and replay identity
 

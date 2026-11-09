@@ -218,15 +218,14 @@ public class PlayerObservationTests
     }
 
     [Fact]
-    public void AnOwnPrisonerInUnseenCellsHasNoTile()
+    public void AnOwnPrisonerInUnseenCellsKeepsItsTileAsTheCreaturePanelFocusShows()
     {
         var (database, world) = World();
         CreatureState prisoner = world.SpawnCreature(database, Fighter, Viewer, HiddenFloor);
         prisoner.PrisonOwnerPlayerId = 4;
 
-        Assert.Null(Assert.Single(Observe(database, world).Creatures).Tile);
-        world.Tile(HiddenFloor).SetExploredBy(3);
-        Assert.Equal(HiddenFloor, Assert.Single(Observe(database, world).Creatures).Tile);
+        PlayerCreatureSummary summary = Assert.Single(Observe(database, world).Creatures);
+        Assert.Equal((HiddenFloor, (PlayerThingHandle?)null), (summary.Tile, summary.Handle));
     }
 
     [Fact]

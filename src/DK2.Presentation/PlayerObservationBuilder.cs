@@ -217,9 +217,9 @@ public sealed class PlayerObservationBuilder
         foreach (CreatureState creature in world.Creatures)
         {
             if (creature.OwnerPlayerId != _player || creature.Activity == CreatureActivity.Dead) continue;
-            // Reported only where the viewer could see it anyway: an own creature in another keeper's
-            // Prison reveals nothing (FogOfWarSystem skips prisoners), nor may any future such state.
-            TilePos? tile = creature.InHand || !_view.CanShowTile(world, creature.Tile) ? null : creature.Tile;
+            // Every own creature's place is the viewer's to know: the creature panel's Focus
+            // (0x00417F60) jumps the camera to any not held or joining, prisoners included.
+            TilePos? tile = creature.InHand ? null : creature.Tile;
             _creatures.Add(new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand,
                 _creatureHandles.TryGetValue(creature.Id, out PlayerThingHandle handle) ? handle : null));
         }
