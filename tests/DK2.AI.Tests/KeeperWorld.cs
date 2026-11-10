@@ -66,7 +66,7 @@ internal static class KeeperWorld
 
     /// <param name="workshop">Adds the Workshop, doors 1 (Wooden), 2 (a Barricade) and 3 and traps 1
     /// (trigger 0), 2 (the Boulder) and 3 (trigger 1), for the trap and door step.</param>
-    public static GameDatabase Database(int handCapacity = 64, bool workshop = false)
+    public static GameDatabase Database(int handCapacity = 64, bool workshop = false, bool torture = false)
     {
         return new(
         [
@@ -93,6 +93,10 @@ internal static class KeeperWorld
             Terrain(WoodenBridgeFloor, "Wooden Bridge", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(StoneBridgeFloor, "Stone Bridge", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             .. workshop ? [Terrain(WorkshopFloor, "Workshop", TerrainFlags.Ownable | TerrainFlags.Room, 100)] : Array.Empty<TerrainDef>(),
+            .. torture
+                ? [Terrain(TortureFloor, "Torture Chamber", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+                    Terrain(WallRock, "Wall Rock", TerrainFlags.Solid | TerrainFlags.AllowRoomWalls, 165)]
+                : Array.Empty<TerrainDef>(),
         ],
         rooms:
         [
@@ -112,6 +116,7 @@ internal static class KeeperWorld
             Room(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeFloor, buildable: true, BridgeFlags),
             Room(RoomTypeId.StoneBridge, "Stone Bridge", 500, StoneBridgeFloor, buildable: true, BridgeFlags),
             .. workshop ? [Room(RoomTypeId.Workshop, "Workshop", 0, WorkshopFloor, buildable: false)] : Array.Empty<RoomDef>(),
+            .. torture ? [Room(RoomTypeId.TortureChamber, "Torture Chamber", 0, TortureFloor, buildable: false)] : Array.Empty<RoomDef>(),
         ],
         creatures:
         [
@@ -150,6 +155,9 @@ internal static class KeeperWorld
     }
 
     public const byte WorkshopFloor = 25;
+    public const byte TortureFloor = 28;
+    /// <summary>Solid and <c>AllowRoomWalls</c>: a room wall the wall-slot test accepts.</summary>
+    public const byte WallRock = 29;
     public const byte WoodenDoorId = 1, BarricadeDoorId = 2, LastDoorId = 3, BoulderTrapId = 2;
 
     private static DoorDef Door(byte id, DoorFlags flags) => new()

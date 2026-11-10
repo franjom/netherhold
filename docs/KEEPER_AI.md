@@ -178,7 +178,7 @@ from the tables):
 | 22 | `LightningInWater` | `0x7C` i32 | spells+2 | none found | 0/1 |
 | 23–25 | `SpellPreference` | `0x82` | spells+6 | `503060` | 0–4 |
 | 26–27 | `CallToArmsUsage` | `0x83` | spells+7 | `4FAEF0`, `4FE9C0`, `4FECE0` | 0–2 |
-| 28–29 | `ImprisonedCreatureAction` | `0x9D` | misc+7 | `5006D0` | 0–2 |
+| 28–29 | `ImprisonedCreatureAction` | `0x9D` | misc+7 | `5006D0` | 0–3 |
 | 30 | `NeverAttack` | `0x4E` i32 | attack+27 | `4FAEF0` | 0/1 |
 
 **Nine parameters are loaded but never read** — `TendancyType`,
@@ -478,7 +478,7 @@ tick is skipped (the counters still run).
     health above half, `SpeedChangeTimer == 0`, and a 1 % roll (action 62).
     The accessor includes idle creatures and excludes ordinary research/training;
     it is not a working-state test (`research/computer-keeper-management.md` §8).
-14. If budget: **prisoners** (`0x5006D0`, §5.8); if that returned budget and
+14. If budget: **prisoners** (`0x5006D0`, §5.8, built as `KeeperPrisonerStep`, ADR-0726); if that returned budget and
     `UseSightOfEvil` ≠ 0: **Sight of Evil** (`0x5003A0`): a random map position, drawn
     before the mode test; mode 1 casts at 2 %/tick anywhere, mode 2 at 20 %/tick only on
     enemy-owned tiles; a cast that succeeds costs one allowance (§5.10).
@@ -724,7 +724,8 @@ or an enemy on a 5 % roll, stopping at the first selection. A non-enemy goes to
 a **Lair**; an enemy goes by
 `ImprisonedCreatureAction`: 0 Torture Chamber (12), 1 nothing, 2 Combat Pit (16), 3
 Temple (13). Selection costs one allowance even when no move follows; room and
-hand restrictions are in `research/computer-keeper-management.md` §1.
+hand restrictions are in `research/computer-keeper-management.md` §1. Built as
+`KeeperPrisonerStep` (ADR-0726); the occupant order is claim order, newest first.
 **Retreat** (`0x4FF260`, step 7) walks the owned list from its newest creature
 with alternative branches: a Combat Pit fighter below half health, anyone fighting
 below `BARetreatHealth` percent, the 300-turn dropped guard, another creature below
@@ -1060,6 +1061,7 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `KeeperTrainingStep` | step 9's training moves | **exists** (ADR-0317) |
 | `KeeperRouteCache` | the routing mesh a keeper rebuilds only when the navigation bytes change | **exists** |
 | `KeeperTrapDoorStep` | step 10's traps and doors (§5.6) | **exists** (ADR-0561) |
+| `KeeperPrisonerStep` | step 14's prisoner step (§5.8) | **exists** (ADR-0726) |
 | `IWorldView` | a general agent observation interface | **not added**: `KeeperView` supplies the current keeper boundary; extend it with verified observations as §12.4 grows |
 
 The housekeeping steps of §5.1 (imps, slap, gold untag, the task machine) are private
@@ -1177,7 +1179,7 @@ Remaining M12 plan:
    ADR-0414 the rescue selector's, the other job-room finders' and the Graveyard's (Q542–Q544).
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
-3. **Dungeon management.** Add prisoners, specials and research decisions; the training moves
+3. **Dungeon management.** Add specials and research decisions; the prisoner step (ADR-0726), the training moves
    (ADR-0317), the traps and doors (ADR-0561), the room needs (ADR-0327, ADR-0335) and every message the walk reads, with make
    happy and dispose (ADR-0353), are built. Acceptance: a verified need changes its orders. Reuse §12.3–12.4's
    existing commands and state.
@@ -1202,7 +1204,8 @@ Create Gold (ADR-0352). The other files
 are §12.2's table.
 
 `KeeperAI.Think` also runs step 7's attack management, step 9's training moves
-(`KeeperTrainingStep`, ADR-0317) and step 10's traps and doors (`KeeperTrapDoorStep`, ADR-0561).
+(`KeeperTrainingStep`, ADR-0317), step 10's traps and doors (`KeeperTrapDoorStep`, ADR-0561)
+and step 14's prisoner step (`KeeperPrisonerStep`, ADR-0726).
 `tests/DK2.AI.Tests` runs `KeeperAITests` against a synthetic 30×30 rock world
 (`KeeperWorld`): the creation-time directions for all four heart positions, the site
 finder's placement and its gap gate, the walker in a straight line and round an
@@ -1253,4 +1256,4 @@ flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273
 the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery
 and expiry (ADR-0277); remaining gaps: `research/creature-pickup.md`.
 
-Not built: the prisoner step and the researcher's portal move.
+Not built: the researcher's portal move.

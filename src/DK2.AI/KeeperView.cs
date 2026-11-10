@@ -58,7 +58,7 @@ public sealed class KeeperView : INavByteGrid
         OwnedTiles = owned;
 
         IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, database);
-        AllRooms = rooms.Select(r => new KeeperRoomView(world, r)).ToList().AsReadOnly();
+        AllRooms = rooms.Select(r => new KeeperRoomView(world, database, r)).ToList().AsReadOnly();
         OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
         // DK2's DungeonHeartPosition (player+0xB43) is the heart thing's tile, the room's middle
         // (0x004C5F60's two writers); a keeper whose heart room is gone keeps no position here.
@@ -139,7 +139,9 @@ public sealed class KeeperView : INavByteGrid
                     && KeeperSpellRules.PlaceAllowed(world, database, this, playerId, inferno, c.Tile),
                 c.ExperiencePoints, c.DroppedToDoJob, c.Anger,
                 hasState ? CreatureActivityRules.Code(database.CreatureById(c.CreatureTypeId), c) : 0,
-                c.SpeedEffectTicks > 0));
+                c.SpeedEffectTicks > 0,
+                c.HeldPlace.TileIndex, c.HeldPlaceSerial,
+                hasState && DK2.Simulation.Combat.CombatRules.OnTortureDevice(c)));
         }
         Creatures = creatures.AsReadOnly();
         CallToArms = world.Player(playerId).CallToArms;

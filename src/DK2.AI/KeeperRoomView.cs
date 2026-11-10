@@ -9,17 +9,23 @@ namespace DK2.AI;
 
 public sealed class KeeperRoomView
 {
-    internal KeeperRoomView(WorldState world, RoomInstance room)
+    internal KeeperRoomView(WorldState world, GameDatabase database, RoomInstance room)
         : this(room.Definition, room.OwnerPlayerId, room.TileIndices,
             room.MinX, room.MinY, room.MaxX, room.MaxY, FloorSlotsInChainOrder(world, room),
             SlabChain.Order(world, room),
             room.Definition.TypeId == RoomTypeId.Hatchery ? EatingRules.NewestChicken(world, room)?.Id ?? -1 : -1,
-            RoomRules.IsRuined(world, room)) { }
+            RoomRules.IsRuined(world, room),
+            // Only the prisoner step's Torture move asks for wall slots (0x004E8210(1, 1)).
+            room.Definition.TypeId == RoomTypeId.TortureChamber
+                ? AutoFurnitureRules.WallSlotsOf(world, database, room).Select(s => s.Tile)
+                : null) { }
 
     internal KeeperRoomView(RoomDef definition, PlayerId ownerPlayerId, IEnumerable<int> tiles,
         int minX, int minY, int maxX, int maxY, IEnumerable<int>? floorSlots = null,
-        IEnumerable<int>? chainOrder = null, int objectListHead = -1, bool ruined = false)
+        IEnumerable<int>? chainOrder = null, int objectListHead = -1, bool ruined = false,
+        IEnumerable<int>? wallSlots = null)
     {
+        WallSlots = Array.AsReadOnly((wallSlots ?? []).ToArray());
         Definition = definition;
         Ruined = ruined;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -47,6 +53,20 @@ public sealed class KeeperRoomView
     /// <summary>The tiles <c>0x004E8210(1, 0)</c> counts and draws among: those the floor-slot test
     /// <c>0x00454110</c> accepts, in the room's slab-chain order (computer-keeper-management.md §2).</summary>
     public IReadOnlyList<int> FloorSlots { get; }
+
+    /// <summary>The tiles the wall-slot test <c>0x00454230</c> accepts, in chain order; captured for a
+    /// Torture Chamber only, empty for every other room.</summary>
+    public IReadOnlyList<int> WallSlots { get; }
+
+    /// <summary><c>0x004E8210(1, 1)</c>'s candidates: every tile either slot test accepts, counted
+    /// once, in chain order.</summary>
+    public IEnumerable<int> FurnitureSlots()
+    {
+        var accepted = new HashSet<int>(FloorSlots);
+        accepted.UnionWith(WallSlots);
+        foreach (int tile in ChainOrder)
+            if (accepted.Contains(tile)) yield return tile;
+    }
 
     /// <summary>Every tile in slab-chain order, <c>FirstSlab</c> first: the walk the expansion's
     /// corner search (<c>0x004FBE00</c>) makes, whose first extreme wins a tie.</summary>

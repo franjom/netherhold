@@ -104,4 +104,5 @@ The cast's permission (location 5, target 4), shot, payment and clocks are
 **Built** (ADR-0352) as `KeeperAI.SightOfEvil`. The draws come from the keeper's own
 stream (ADR-0244) in DK2's order. The cast is issued whenever DK2 calls it; its allowance
 follows the permission predicted from the capture: mana, cooldown and the own-room tiles
-Sight's target 4 refuses (observation schema 17). The prisoner step before it is unbuilt.
+Sight's target 4 refuses (observation schema 17). The prisoner step before it is built
+(`KeeperPrisonerStep`, ADR-0726).
