@@ -1,8 +1,8 @@
 # Context-mode through Docker MCP
 
-Runs upstream [context-mode](https://github.com/mksglu/context-mode) 1.0.169 in
-the Docker MCP `local` profile. The image has Node.js 22, Python 3, Bash, Git
-and ripgrep. It does not include .NET, Unity or Ghidra.
+Runs upstream [context-mode](https://github.com/mksglu/context-mode) 2.1.7 in
+the Docker MCP `local` profile. The image has Node.js 24 (2.x requires >= 24.15),
+Python 3, Bash, Git and ripgrep. It does not include .NET, Unity or Ghidra.
 
 ## Build and register
 
@@ -16,11 +16,21 @@ python tools/context-mode/smoke.py
 `Deploy.ps1` accepts `-Profile` and `-ProjectPath`. It builds the local image,
 copies the server definition to a new uniquely named file under
 `~/.docker/mcp/catalogs/`, adds it to the profile, and sets its project mount.
-It restricts this server to the seven analysis tools listed below through the
+It restricts this server to the five analysis tools listed below through the
 profile's tool allowlist; YAML tool metadata alone does not restrict discovery.
-Existing catalog files are preserved. The upstream package version and base
-image digest are pinned; npm transitive dependencies and Debian packages are
-resolved at build time. Nothing is pushed to a registry.
+Upstream 2.x also ships `ctx_resume`, `ctx_doctor`, `ctx_upgrade` and `ctx_purge`;
+they are deliberately not enabled (session resume is not integrated, upgrade must
+not run in a container, purge deletes the shared index). Re-running the script
+replaces the existing registration, so it is also the upgrade path. Existing
+catalog files are preserved. The upstream package version and base
+image digest are pinned; Debian packages are resolved at build time (2.x has no
+npm dependencies). Nothing is pushed to a registry.
+
+2.x renamed or merged the 1.x tools: `ctx_execute_file` is now `ctx_execute` with
+a `file` argument (the path reaches the code as `CTX_FILE`, not `FILE_CONTENT`), `ctx_batch_execute` is `ctx_batch` (commands are plain strings),
+and `ctx_fetch_and_index` is `ctx_index` with a `url` argument (the index label is
+the URL itself, not `source`). 2.x also needs an agent id and a trusted `/workspace`;
+the image sets `--agent codex` and a system `safe.directory` for that reason.
 
 The upstream dependency retains its
 [Elastic License 2.0](https://github.com/mksglu/context-mode/blob/main/LICENSE).
@@ -45,8 +55,8 @@ on its `MCP_DOCKER` server. Restart/reconnect the client after changing gateway
 environment or adding this server. A gateway already running with an older
 configuration may reject dynamic activation of a newly registered server.
 
-Call `ctx_execute`, `ctx_execute_file`, `ctx_batch_execute`, `ctx_index`,
-`ctx_search`, `ctx_fetch_and_index` and `ctx_stats` through `MCP_DOCKER`.
+Call `ctx_execute`, `ctx_batch`, `ctx_index`, `ctx_search` and `ctx_stats`
+through `MCP_DOCKER`.
 The smoke test supplies the read-only allowlist to its own gateway process;
 its success does not establish that an already-running client has reconnected.
 

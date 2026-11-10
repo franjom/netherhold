@@ -2,7 +2,7 @@ name: context-mode
 title: Context Mode (project analysis)
 type: server
 description: Containerized file analysis, indexing, fetching and search; no host session hooks.
-image: dk2/context-mode:1.0.169
+image: dk2/context-mode:2.1.7
 volumes:
   - '{{context-mode.project_path}}:/workspace:ro'
   - 'dk2-context-mode-content:/data'
@@ -17,9 +17,7 @@ config:
       - project_path
 tools:
   - name: ctx_execute
-  - name: ctx_execute_file
-  - name: ctx_batch_execute
+  - name: ctx_batch
   - name: ctx_index
   - name: ctx_search
-  - name: ctx_fetch_and_index
   - name: ctx_stats
