@@ -189,6 +189,8 @@ speed-hack test client is clamped.
 
 ## Phase 6: Steam and the match lifecycle
 
+- **Relay hosting:** our relay program on the Steamworks game-server API, in a few regions; the
+  same binary runs on a player's machine for private, LAN and community games.
 - **Transport and lobby:** SDR transport, Steam lobby, ticket check (R7, R8). Lobby metadata is
   client-writable, so the relay checks every peer's build hash, `HashVersion`, map hash and
   settings itself before start.

@@ -16943,7 +16943,10 @@ is `docs/plans/2026-11-09-multiplayer-threat-model.md`; the netcode plan is
 **Decision.** Steam is the platform: SDR transport, Steam lobbies, login tickets verified
 server-side. No player hosts. The official relay is a broker: it orders commands, owns the
 turn clock, enforces deadlines, compares state hashes, stores input journals and forwards
-snapshots. It never loads game data or simulates. Every network feature obeys:
+snapshots. It never loads game data or simulates. It is one program of our own, built on the
+Steamworks game-server API (tickets checked by the relay; no Web API key in any client), hosted
+by us in a few regions, and runnable by anyone for private, LAN or community games (owner,
+2026-11-10). Every network feature obeys:
 
 - **R1 bounded decoding.** Maximum message size, per-field limits (tile lists within the map),
   one controlled exception type, rate limits per peer. No reflective deserialization.

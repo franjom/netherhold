@@ -138,5 +138,5 @@ does, and the gates that keep it true. It is written before any network code exi
 6. **Mods:** original maps plus hash- and size-verified custom maps. Arbitrary mods wait for
    fuzzed parsers.
 
-Still open: how the relay is hosted (Steam game server or our own). Decide before phase 6 of the
-netcode plan, since it fixes the ticket API and the regions.
+7. **Relay hosting (2026-11-10):** one relay program of our own on the Steamworks game-server API,
+   hosted by us in a few regions and runnable by anyone, so multiplayer outlives our servers.
