@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**462** - `0xB28FC3F5420EAA3D`. The drop command carries the packet's angle and the drop heads the creature by it (ADR-0733). No new state; the version moves so that journals with the old drop encoding are refused.
+
 **461** - `0x37AC323C4B90D5D5`. Damage that empties a creature's health marks it (`CollapseDue`, hashed and saved) and it collapses in the same thing pass, picking its fall heading from the world stream (ADR-0732). Earlier saves are refused.
 
 **460** - `0x2AA60539641315F9`. A pick-up prepares the creature and the hand takes it a turn later: the keeper's pending lift and its turn are hashed and saved; the stun's handlers run after the fight scan (ADR-0731). Earlier saves are refused.

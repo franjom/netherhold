@@ -40,6 +40,7 @@ public class CommandCodecTests
         new PickUpStoreGoldCommand(P, T),
         new DropCommand(P, T, 43, F2),
         new DropCommand(P, T),
+        new DropCommand(P, T, 0, F2, new Dk2Angle(1000)),
         new SlapCreatureCommand(P, 44),
         new MintWageCommand(P, 45),
         new TakeCreatureCommand(P, 46),

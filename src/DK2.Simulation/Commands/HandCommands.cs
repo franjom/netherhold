@@ -61,9 +61,11 @@ public sealed record PickUpStoreGoldCommand(PlayerId PlayerId, TilePos Tile)
 /// <para><paramref name="TargetCreatureId"/> is the creature under the cursor, 0 for none. DK2
 /// keeps it in the keeper record (<c>+0x196</c>) rather than passing it to the handler, and only
 /// a chicken or gold dropped onto a creature reads it (<see cref="DropDeliveryRules"/>,
-/// ADR-0217).</para></summary>
+/// ADR-0217).</para>
+/// <para><paramref name="Heading"/> is the stored drop's angle, which <c>0x004BC710</c> writes to the
+/// dropped thing's heading (ADR-0733); null keeps the heading.</para></summary>
 public sealed record DropCommand(PlayerId PlayerId, TilePos Tile, int TargetCreatureId = 0,
-    FpPosition2? Position = null)
+    FpPosition2? Position = null, Dk2Angle? Heading = null)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
@@ -74,6 +76,8 @@ public sealed record DropCommand(PlayerId PlayerId, TilePos Tile, int TargetCrea
         hash.Add(TargetCreatureId);
         hash.Add(Position.HasValue);
         if (Position is FpPosition2 position) position.HashInto(ref hash);
+        hash.Add(Heading.HasValue);
+        if (Heading is Dk2Angle heading) hash.Add(heading.Raw);
     }
 }
 

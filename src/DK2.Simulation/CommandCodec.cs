@@ -39,7 +39,8 @@ public static class CommandCodec
             case PickUpStoreGoldCommand c: Head(w, 7, c); Tile(w, c.Tile); break;
             case DropCommand c:
                 Head(w, 8, c); Tile(w, c.Tile); w.Write(c.TargetCreatureId);
-                w.Write(c.Position.HasValue); if (c.Position is FpPosition2 dp) Position(w, dp); break;
+                w.Write(c.Position.HasValue); if (c.Position is FpPosition2 dp) Position(w, dp);
+                w.Write(c.Heading.HasValue); if (c.Heading is Dk2Angle dh) w.Write(dh.Raw); break;
             case SlapCreatureCommand c: Head(w, 9, c); w.Write(c.CreatureId); break;
             case MintWageCommand c: Head(w, 10, c); w.Write(c.CreatureId); break;
             case CastSpellAtPlaceCommand c:
@@ -114,7 +115,8 @@ public static class CommandCodec
             36 => new TakeCreatureCommand(player, r.ReadInt32()),
             6 => new PickUpObjectCommand(player, r.ReadInt32()),
             7 => new PickUpStoreGoldCommand(player, ReadTile(r)),
-            8 => new DropCommand(player, ReadTile(r), r.ReadInt32(), r.ReadBoolean() ? ReadPosition(r) : null),
+            8 => new DropCommand(player, ReadTile(r), r.ReadInt32(), r.ReadBoolean() ? ReadPosition(r) : null,
+                r.ReadBoolean() ? new Dk2Angle(r.ReadUInt16()) : null),
             9 => new SlapCreatureCommand(player, r.ReadInt32()),
             10 => new MintWageCommand(player, r.ReadInt32()),
             11 => new CastSpellAtPlaceCommand(player, r.ReadByte(), r.ReadInt32(), r.ReadInt32(), r.ReadUInt16()),

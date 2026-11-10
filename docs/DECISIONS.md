@@ -17125,3 +17125,17 @@ collapses the marked after the creature sweep, the shots and the traps.
 collapses up to three ticks sooner, and its dying window ends that much
 sooner. A blow during the creature sweep still draws after the sweep, not
 inside it. The heading ours stores from the first pick is unverified. The Level 1 win journal is re-recorded.
+## ADR-0733 - head a dropped creature by the drop's angle
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** creatures, combat, simulation-core
+
+**Context.** `drop-heading.md`: DK2's drop writes the packet's angle to the
+dropped thing's heading, and that turn's stopped route turns it once toward
+0. Ours kept the heading from before the pick-up, so a dropped creature faced
+its first target a turn early or late and its cast started a turn off.
+
+**Decision.** `DropCommand` carries an optional heading; the drop sets it and
+turns it once toward 0 by the creature's rate. Without one the heading stays.
+
+**Consequences.** The drop's encoding gains the angle, so hash/save 462
+refuses older journals; no state is added. The view and the computer keeper
+send no angle yet. The Level 1 win journal is re-recorded.

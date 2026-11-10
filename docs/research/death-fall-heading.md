@@ -50,7 +50,6 @@ dropped), the position from `0x0048F690`. A tile off the map blocks (ours).
 `ThePicksReplayTheLoggedDrawsForALayoutFittedToTheLog`
 replays the 29 logged draws from the logged seed, for a layout (only the south
 open) fitted to the sixteenths the log rejects; the real tiles round the Wizard
-were not read, so it pins the redraw loop and the two picks, not the blocking. The controlled replay
-(`F:/DK2Evidence/studies/q712-death-fall-heading--2026-11-10--001`,
-`controlled461-v3`) still stops at 1720 draw 3: ours lands the lethal Fireball
-on 1721, a turn late, because the Warlock's cast starts a turn late (Q712).
+were not read, so it pins the redraw loop and the two picks, not the blocking. At hash 461 the controlled replay still stopped at 1720 draw 3, the lethal
+Fireball landing a turn late; with [the drop's heading](drop-heading.md)
+(hash 462) the 29 draws match in place and the prefix runs through 1722.

@@ -107,6 +107,44 @@ public class DropLandingTests
         Assert.Contains(sink.Events, e => e.Kind == "dropped_stunned" && e.Tick.Value == sim.CurrentTick.Value - 1);
     }
 
+    // The capture's two points, Warlocks turning 341 a turn: packet angle 1000 reads 659 in the drop
+    // turn's frame and 134 reads 0. That the difference is one turn toward 0 is a hypothesis they fit.
+    [Theory]
+    [InlineData(1000, 659)]
+    [InlineData(134, 0)]
+    public void TheCapturedWarlockHeadingsAreTheAngleLessOneTurnTowardZero(int angle, int seen)
+    {
+        int heading = angle;
+        DK2.Simulation.Steering.Bearing.TurnToward(ref heading, 0, 341);
+        Assert.Equal(seen, heading);
+    }
+
+    // Ours applies that rule to any creature; a drop without an angle keeping the heading is ours too.
+    [Theory]
+    [InlineData(1000)]
+    [InlineData(134)]
+    [InlineData(1900)]
+    public void ADropHeadsTheCreatureByTheCommandsAngleAndTurnsItOnceTowardZero(int angle)
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        (GameSimulation sim, _) = Simulation(db, world);
+        int rate = SimulationTiming.TurnRatePerTick(db.CreatureById(GoblinId));
+        Assert.InRange(rate, 1, 1023);
+        int expected = angle <= 1024 ? Math.Max(angle - rate, 0) : (angle + rate >= 2048 ? 0 : angle + rate);
+
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
+        goblin.Heading = 77;
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor, Heading: new Dk2Angle((ushort)angle))));
+        Assert.Equal(expected, goblin.Heading);
+
+        sim.Run(2);
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
+        goblin.Heading = 77;
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        Assert.Equal(77, goblin.Heading);   // no angle: the heading is kept
+    }
+
     [Fact]
     public void APointOutsideTheCommandsTileIsRefused()
     {

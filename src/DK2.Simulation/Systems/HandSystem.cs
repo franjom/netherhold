@@ -466,6 +466,15 @@ public sealed class HandSystem : ISimulationSystem
         creature.PosY = command.Position?.Y.Raw ?? CreatureState.CentreOf(command.Tile.Y);
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.ClearJob();
+        // The drop writes the command's angle to the heading (0x004BCA08). The one turn toward 0 fits the
+        // captured headings (hypothesis: the stopped body's path step that turn); drop-heading.md.
+        if (command.Heading is Dk2Angle angle)
+        {
+            int heading = angle.Value;
+            Steering.Bearing.TurnToward(ref heading, 0,
+                SimulationTiming.TurnRatePerTick(context.Database.CreatureById(creature.CreatureTypeId)));
+            creature.Heading = heading;
+        }
 
         // State 76 falls for the rest of this turn and lands on the next (hand-drop-landing.md section 2).
         creature.PosZ = creature.LastPosZ = DropLandingRules.FallingHeight;

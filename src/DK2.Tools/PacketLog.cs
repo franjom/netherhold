@@ -173,8 +173,9 @@ public sealed class PacketLog
                     // 0x004BC710 takes the packet's point; a stand-in tile has none.
                     TilePos landing = dropAt?.Invoke(player, dropTile) ?? dropTile;
                     commands.Add(landing == dropTile
-                        ? new DropCommand(player, landing, 0, new FpPosition2(new Fp32((int)a.First), new Fp32((int)a.Second)))
-                        : new DropCommand(player, landing));
+                        ? new DropCommand(player, landing, 0, new FpPosition2(new Fp32((int)a.First), new Fp32((int)a.Second)),
+                            new Dk2Angle((ushort)((a.Third >> 16) & 0x7FF)))
+                        : new DropCommand(player, landing, Heading: new Dk2Angle((ushort)((a.Third >> 16) & 0x7FF))));
                     break;
                 case 62:
                     commands.Add(new SlapCreatureCommand(player, Resolve(a.First, PacketEntityKind.Creature)));

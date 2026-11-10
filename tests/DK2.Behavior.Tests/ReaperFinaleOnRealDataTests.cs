@@ -39,7 +39,7 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
             },
         };
         using FileStream journal = File.OpenRead(Dk2CaptureGate.PathFor(Fixture + "input.journal"));
-        // The journal was re-recorded at HashVersion 461 (the two-step pick-up and the stun handlers' new place moved the win). A later
+        // The journal was re-recorded at HashVersion 462 (the two-step pick-up and the stun handlers' new place moved the win). A later
         // hash version replays it with its hashes as evidence, not a verdict.
         ScenarioResult result = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path).Replay(
             Scenario.Load(Dk2CaptureGate.PathFor(Fixture + "level1.yaml")), InputJournal.Read(journal), options,
