@@ -81,7 +81,7 @@ the capacity at `+0x1c0` — which `MaxNumberOfThingsInHand` (64) seeds.
 first: it enters **state 75** (category 7) through `SetState`, retrying through
 idle when the current category is outside 75's entry mask, so a fighter leaves
 its fight here, before the hand's capacity is tested (STRONGLY INFERRED,
-2026-09-29). 75's update `0x0046EA60` returns 1 and only zeroes creature `+0x3CD`,
+2026-09-29). 75's update `0x0046EA60` returns 1, sets Z to 0x2000 and zeroes creature `+0x3CD`,
 so a creature the handler then refuses stays in 75; what else leaves 75 is UNKNOWN.
 The human's insertion is state 1's exit callback `0x004C0EA0` (ADR-0616), a turn
 after the action ([hand-pickup-turn.md](hand-pickup-turn.md), ADR-0731). Built:

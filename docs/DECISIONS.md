@@ -17138,14 +17138,16 @@ turns it once toward 0 by the creature's rate. Without one the heading stays.
 
 **Consequences.** The drop's encoding gains the angle, so hash/save 462
 refuses older journals; no state is added. The view and the computer keeper
-send no angle yet. The Level 1 win journal is re-recorded.
+send no angle yet. In DK2 the turn skips an Imp, and the computer keeper's
+drops pass angle 0 (`drop-heading.md`). The Level 1 win journal is re-recorded.
 ## ADR-0734 - a fighter with no action leaves a collapsed target in the same turn
 **Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures
 
 **Context.** `combat-fight-state.md` section 2: step 5 clears a target that
-has collapsed and the handler goes on with none; step 7 returns for a busy
-fighter; otherwise the out-of-reach arm seeks again and ends the state on
-none. Level 5 seed 1: the Wizard collapses on 1720; the Warlock whose cast had
+has collapsed and the handler goes on with none, through the fear checks of
+step 6; step 7 returns for a busy fighter; otherwise the no-target tail
+(`0x004601D7`) seeks again and ends the state on none, or takes the victory
+arm. Level 5 seed 1: the Wizard collapses on 1720; the Warlock whose cast had
 ended is idle on 1721, the three still casting on 1722. Ours let the target go
 and returned, so every fighter took the extra turn.
 

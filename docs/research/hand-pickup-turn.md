@@ -32,8 +32,35 @@ then counts each turn in 257; at ten the scan runs and the creature goes to
   the next ([004C0B50](functions/004C0B50.md) runs the exit callback), so the
   next hand command inserts the prepared creature first.
 - Otherwise [004C0AA0](functions/004C0AA0.md), in the keeper's frame, runs the
-  exit once `now - entered >= duration`. The capture puts that after the
-  creatures' updates of the following turn.
+  exit once `now - entered >= duration`; otherwise its update callback. The
+  turn's order is the packet actions (`0x0050A527`), the creature sweep
+  (`0x0050A7D7`), the rooms and the player update (`0x0050A7F5`), which reaches
+  004C0AA0 at `0x004BB60D` through `0x004BB2A0`: the keeper tick and the timed
+  completion come after the same turn's sweep, as the capture shows. The
+  pick-up and drop stubs (`0x00513480`, `0x00513650`) call Hand_EnterState
+  directly, so the enter callbacks run at packet time, before the sweep. So a
+  pick-up at turn T leaves the creature in 75 through T's and T+1's sweeps,
+  the insert runs in T+1's keeper frame after the sweep, and the creature first
+  updates in 78 at T+2. A hand command at T+1 leaves state 1 first and inserts
+  it before T+1's sweep (ADR-0731).
+- [004BC500](functions/004BC500.md) is the insert, not the prepare. It does
+  nothing when the creature is already held, the id is not live, the hand is
+  full (count `+0x1BF` at its maximum `+0x1C0`), vtable `+0x28` is nonzero, a
+  disguised creature (`+0x4A3`) is not the dropper's own, `+0x3E6` bit 21 is
+  set, the state is 51 or 52, or SetState(78) fails. On success it kicks to 78,
+  sets the in-hand bit, stamps `+0x4BF`, clears the Combat Pit fighter bit and
+  the forced target and adds the id to the hand list. The prepare is
+  [004C0BE0](functions/004C0BE0.md) with [004BFBD0](functions/004BFBD0.md):
+  state 75, effect 0x75, the body stopped. Neither it nor the stub tests the
+  hand's capacity; only the insert does. The exit callback
+  [004C0EA0](functions/004C0EA0.md) checks that the id is live and vtable
+  `+0x28` is 0, calls the insert and ignores its result.
+- A creature that left 75 before the exit (the fight scan can engage it; its
+  gate `0x0045A6D0` does not refuse 75) is still inserted if SetState(78) is
+  accepted, and DK2 forces it into 78. A prepared creature a full hand refuses
+  stays where it is; in 75 its handler [0046EA60](functions/0046EA60.md) sets Z
+  to `0x2000` on each update and never leaves, and nothing in the exit or the
+  insert resets it. That outcome is a reading, not seen in play.
 - The scan `0x0045E9F0` runs before the state handler (`0x00488930`) and
   counts only past its gate `0x0045A6D0`, which refuses state 76 and the
   states flagged 0x40 (255, 256), not 75 or 257. Which of its tests stops a
@@ -59,12 +86,22 @@ then counts each turn in 257; at ten the scan runs and the creature goes to
   runs after `combat.States` in the creature's update.
 - A prisoner in 75 does not roll its wander.
 
-Deviations: the insert is at the next tick's start, not in the keeper's frame;
-a creature that left 75 before the insert is still taken (78's kick is not
-modelled); 75's own height (0x2000 each turn, `0x0046EA60`) is not set; a
+Deviations: the timed insert (`HandSystem.Execute`) runs at the start of the
+second tick after the command, stamped one turn earlier; DK2's runs in the
+keeper's frame of the first turn after it, once that turn's sweep is done. The
+creature is in 75 through that sweep and in 78 for the next in both; only the
+hand's list differs in between. A creature that left 75 before the insert is
+still taken, but ours leaves its state (DK2 forces it into 78, the leave hooks
+run); 75's own height (`0x2000` each update) is not set; a
 mint-wage command does not leave the hand's state (unread). The view still
 counts a queued creature pick-up as holding, so a quick second click sends a
 drop the simulation ignores.
+
+## Unknown
+
+Whether the call at `0x004BA0B4` (the keeper tick's route to the timed
+completion) depends on the player's kind, and whether the interface refuses a
+pick-up when the hand is full before the packet is sent.
 
 ## Control
 

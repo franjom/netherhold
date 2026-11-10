@@ -62,18 +62,62 @@ the next tick. `LandingPending` and the dropper's player are hashed, saved
 and copied. While it falls the creature does not act (`HandRules.IsHeld`), is
 not in the hand (it can be hurt, healed and hit by a forced shot) and shows
 the computer keeper state 76. Ours keeps the creature's own state word
-through the fall; a flyer's descent (Z lowered 0x800 a turn) has no capture
-and falls like any other. Deviations: the Temple pool's sacrifice is still immediate (DK2's arm waits
-for the floor); a Torture Chamber tile does not snap the creature to its
-centre in the air; the view shows no landing pose for the fall turn. The
-keeper AI's own drops pass height 0 and the tile's centre plus 0x100
-(`0x004FF589`), so DK2 gives them no fall height; ours falls them the same
-turn count from the centre, which no capture confirms.
+through the fall; a flyer's descent has no capture and ours falls it like any
+other. Deviations: the Temple pool's sacrifice is still immediate (DK2's arm waits
+for the floor); the arms below are not built, among them the Torture Chamber
+tile's snap to its centre in the air; the view shows no landing pose for the
+fall turn. The computer keeper's three drops (`0x004FF589`, `0x004FFA1A`,
+`0x004F95F4`) pass height 0, angle 0 and the tile's centre plus `0x100` on each
+axis (disassembly). `0x004B5020` raises a below-floor Z to the floor, so state
+76 predicts the floor in its first update and the landing arms run in the
+first update after the drop; the AI drops in the keeper tick after the sweep,
+so DK2 lands it in the next turn's sweep (STRONGLY INFERRED). Ours gives it the
+human one-turn fall from `0x2000`; whether that makes ours a turn late depends
+on the phase at which our AI commands execute, which was not read (PLAUSIBLE).
+The angle's side is in [drop-heading.md](drop-heading.md).
 
 With it the four Warlocks dropped at 1688 to 1693 stand on DK2's points and
 enter 255 and 257 on DK2's turns. The two that then entered the fight a turn
 off were the pick-up's turn and the fight scan's order (ADR-0731,
 [hand-pickup-turn.md](hand-pickup-turn.md)).
+
+**Arms before the landing (STRONGLY INFERRED, whole handler read 2026-11-10;
+all unbuilt).** [0046EAB0](functions/0046EAB0.md) runs the Heart push, then the
+Torture snap, Temple splash and Combat Pit scatter, then the flyer's descent
+and the predicted-at-floor gate, then the landing work. The conditions are
+decompile reads.
+- **Heart (type 5),** when the state's `+0x1C` is 1, the tile is not an inner
+  Heart tile and the definition's `+0x686` bit 0 or bit 7 is clear
+  (`0x0046EAE4..0x0046EB4A`): it finds the room's first object of type 0xD and
+  adds a physical velocity of magnitude `0x8000` away from it. Age 1 is the
+  first update after the turn the state was set (255's note, not re-read), so
+  it runs on the landing update, not the drop turn.
+- **Torture Chamber (type 0xC),** every update: `Creature_StopMoving` (a new
+  unfinished self-route), `+0x104` and `+0x108` cleared, x and y snapped to the
+  tile's centre keeping Z (skipped only when they already equal it),
+  LastPosition written. The steering turn of [drop-heading.md](drop-heading.md)
+  therefore also happens on the landing update, in whatever state it holds then.
+- **Temple (type 0xD),** every update while the cell is a floor slot and the
+  height above the floor is under `0x1000`: [004F1940](functions/004F1940.md),
+  a cosmetic splash (effect 0x62, sound 0xE2) when the room's word `+0x429` is
+  nonzero. It is not the sacrifice. The landing branch skips the thud sound
+  `0xF6` for a Temple floor slot.
+- **Combat Pit (type 0x10, floor slot),** every update: x and y each become
+  the tile's base plus `random(0x1000)`, drawn from the world stream (lines
+  0x6D and 0x6E), Z unchanged, LastPosition written. A one-turn fall runs the
+  handler twice, so four draws.
+- **Flyer** (`0x0048ED40`): Z lowered by `0x800` on each handler call, before
+  the gate, and the gravity pass bypassed. From `0x2000` over a floor at 0 the
+  fourth update lands, not the second.
+- **Dying branch** (the gate says at floor): sound `0xF6`, SetState(1), the
+  running action ended, then with `+0x3E6` bit 21 set
+  [Creature_EnterDeathFall](functions/00459560.md) and return, skipping the
+  stun and room-drop code. [0048B770](functions/0048B770.md) sets the bit and
+  Hand_PickUp refuses a creature with it.
+
+Unknown: the meaning of the room word `+0x429`; the age convention behind the
+Heart push; who sets bit 21 while a creature is in 76, so when the dying branch
+is reached in play.
 
 The evil worker's landing art is already correct in our view: its `idle`
 key resolves to catalogue index 19 (native slot 20). Other creatures use

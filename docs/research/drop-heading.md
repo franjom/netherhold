@@ -19,13 +19,46 @@ systems: [keeper-spells, creatures, combat]
   masked to 11 bits; [004BC710](functions/004BC710.md) writes it to the
   dropped thing's `+0xF4` and `+0x102` at its tail (`0x004BCA08`), creature or
   object, after stopping a creature's body at its own point. The packet's third
-  word reaches `+0x196` through [004C09F0](functions/004C09F0.md). The `+0x102`
-  copy is not modelled; its readers are unread.
-- HYPOTHESIS (fits the frames, not read here): the turn toward 0 on the drop's
-  turn is the stopped route of [combat-stop-route.md](combat-stop-route.md), a
-  newly finished self-point having bearing 0 for Follow Path. The engagement
-  turn's 659 to 0 would then be two steps of 341: the fight handler's turn
-  toward the target, whose bearing is near 0 for all four, then the stop's.
+  word reaches `+0x196` through [004C09F0](functions/004C09F0.md). `+0x102` is
+  `LastAngle`, copied from `+0xF4` on every update, so that copy is transient
+  ([death-fall-heading.md](death-fall-heading.md)).
+- The turn toward 0 on the drop's turn is the stopped route of
+  [combat-stop-route.md](combat-stop-route.md), read link by link. It holds for
+  non-Imps and is not CONFIRMED: the game was not run.
+  1. Hand_Drop stops the body at its own point (`0x004BC7FB`) before the tail
+     writes the angle, so no turn happens inside it. It runs as hand state 4's
+     enter callback inside the packet dispatch (`0x0050A527`), before the
+     entity sweep (`0x0050A7D7`).
+  2. State 76 steers: its table row has flag byte `0x05`, and bit 0 is the
+     steering bit the update tests at `0x0048A23B..0x0048A248`
+     ([0047BBE0](functions/0047BBE0.md)). The gate order at
+     `0x0048A209..0x0048A248` is the prisoner look latch `0x004739C0`,
+     possession, type id 1 (the Imp, whose steering is skipped), the flag bit;
+     then `0x004D5AF0`, `0x004D59A0`, Body_Integrate `0x004D5A40`,
+     `0x004B35C0` and the commit `0x004B5560`
+     ([00488930](functions/00488930.md)).
+  3. [Follow Path](functions/004D3C40.md), creature arm: with no route or the
+     finished bit already set it brakes and never turns. On the last waypoint
+     it sets the finished bit in that call and still calls the turn helper
+     toward the path target, a self-route's own position. So the turn happens
+     once, on the first steering call after a fresh stop; later calls brake
+     without turning, which is why 255 and 257 keep the heading.
+  4. [Math_Atan2](functions/0065FB54.md) of (0, 0) is 0, so a self-point has
+     bearing 0.
+  5. [The turn helper](functions/004B2AE0.md) turns by min(rate, remaining).
+     The Warlock's file `TurnRate` 1365 over variable 19 (4) is 341; the
+     Wizard's is the same. 1000 to 659 and 134 to 0 follow, and from 1000 the
+     shortest way to 0 is decreasing (1000 is below 1024).
+- The engagement turn's 659 to 0 is two rate-limited turns in one update
+  (STRONGLY INFERRED). The scan `0x0045E9F0` (call at `0x00489AC7`) runs before
+  the state dispatcher (`0x0048A030`) and steering after it. Entering 199 runs
+  [CombatCategory_Enter](functions/0047A810.md), whose first act is
+  `Creature_StopMoving` (`0x0047A817`): a fresh unfinished self-route. 199's
+  handler tail-calls [0045F030](functions/0045F030.md), which in reach turns
+  toward the target (`0x0045FB3E`) and returns 1 while an angle remains: turn 1.
+  Steering then turns toward the self-point, bearing 0: turn 2. The result is 0
+  only if turn 1 leaves the heading at or below 341, so the target's bearing
+  must be at or below 341 for all four Warlocks.
 
 ## Built (ADR-0733, hash/save 462)
 
@@ -33,7 +66,33 @@ systems: [keeper-spells, creatures, combat]
 `HandSystem.Drop` sets the heading and turns it once toward 0 by the
 creature's rate, standing in for the fall turn's path step, which a falling
 creature does not take in ours. A command without an angle keeps the heading:
-the computer keeper's drops (their angle is unread) and the view's.
+the computer keeper's drops and the view's.
+
+Deviations of that build from the reading:
+
+- The computer keeper's three drops
+  ([004FF260](functions/004FF260.md), [004FF5C0](functions/004FF5C0.md),
+  [004F9520](functions/004F9520.md)) pass angle 0, the tile's centre plus
+  `0x100` on each axis and height 0 (read by disassembly). Ours keeps the
+  creature's heading and gives them the human fall.
+- The turn applies to non-Imps. Ours turns every creature, an Imp included.
+- The turn's bearing is 0 only while the creature's x and y still equal the
+  stop point. State 76's own arms can move it before the steering (the Torture
+  snap, the Combat Pit scatter, the Heart push:
+  [hand-drop-landing.md](hand-drop-landing.md)). Ours assumes 0 always, which
+  matters only on those room tiles.
+- Body_Integrate is skipped when the body's maximum speed (`+0xE2`) is 0
+  ([004D5A40](functions/004D5A40.md)); ours does not check it.
+- DK2 turns inside the creature's own update on the drop turn, ours in the
+  command: the same unless something reads the heading between the two.
+
+## Unknown
+
+- The engagement turn's first-turn bearing: that the target's bearing is at or
+  below 341 for all four Warlocks is a premise nobody has read. The target
+  positions are not in these notes; the capture has them.
+- The flag byte of states 199 and 200 (3, from creature-state-table.md): the
+  value stored at `0x0047F0F2` was not read from the listing.
 
 ## Control
 

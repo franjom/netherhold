@@ -30,7 +30,7 @@ Confidence: **STRONGLY INFERRED (binary)**.
   and set `+0x3EA` bit 10. The rule admits 216 from every state: group 3 with
   category 23 is its passthrough (`creature-state-table.md` §2.2).
 - **216's handler** `0x00459850` returns 1 while an action runs (`0x00496D00`, the
-  fall), then sets **217** and places the body on the floor.
+  fall), then sets **217** and steps the body along its heading by the definition's third vector; it writes no heading (read 2026-11-10).
 - **217's handler** `0x004599D0` plays the fall in two phases (`state+0xA7` 1, then
   2). Each turn it calls the health routine in its dying-countdown mode
   (`0x004B2CE0` with −1, §4), but only while the creature's `BeingDragged` (`+0x3C7`,

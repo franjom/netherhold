@@ -57,8 +57,12 @@ current state id, `+0x18` the turn entered. `EDI` is the engagement record
 5. **Target validity.** A thing target (nibble ≥ 2) must be live with health
    `+0x40 > 0`; a creature target must be live (else the *"attacking invalid
    tag"* assertion), `+0x16 ≠ 2`, and — unless I am a `CombatPitFighter` —
-   `IsAttackable`. Invalid: a fighter unlinks and clears the target and goes
-   on with none; an `AttackAbnormalTargets` creature clears and returns 0.
+   `IsAttackable`. Invalid (read 2026-11-10): an `AttackAbnormalTargets` or
+   non-fighter creature goes to `0x0046022F` and returns 0. A fighter unlinks
+   (`0x0045F30B..0x0045F37F`: `UnregisterAttacker` `0x0045E450` only for a live
+   creature target with nibble 0 to 1 or 3, then `+0x502` = 0 and the
+   forced-target clear `0x0048F3F0` when applicable) and **falls through to
+   step 6**. It does not stop the body: no `0x0048ECE0` call is on that path.
 6. **The fear checks**, run only when `0x00460C50` finds an **escape**: a
    neighbouring tile I can route to that holds no hostile creature attacking me
    (combat-fear.md §3.1; an earlier reading had this inverted). Then the withdraw
@@ -68,7 +72,11 @@ current state id, `+0x18` the turn entered. `EDI` is the engagement record
    against the level-scaled `Fear` sends the creature into state **203** with its
    `BackOffTimer`. All of it is combat-fear.md §3; **built (ADR-0165)**.
 7. **Busy** (`0x00496D00`: current action `+0x3A9` nonzero and not 21) → return 1.
-   A swinging creature neither moves nor looks.
+   A swinging creature neither moves nor looks. A fighter whose target step 5
+   just cleared returns here too (`0x0045F632`), without seeking. Not busy with
+   no target (`0x0045F654`..): an empty engagement record and `+0x502` go to
+   `SelectAVictim` (`0x004601D7`); success returns 1, failure (`0x004601F9`)
+   returns 0, or takes the victory arm `0x00460FE0` when the nibble is `0xF`.
 8. **Support re-acquires every tick**: a fight type 4 creature without
    `AttackAbnormalTargets` unlinks, runs `SelectAVictim`, keeps a new target,
    and restores the old one if none is found (the *"failed to re-aquire"*
@@ -202,6 +210,18 @@ update whose scan engaged the creature, and state 199's handler raises the battl
 The [non-Imp stop/facing and attack-start scope](combat-stop-route.md) is built
 at hash 449. **Not built, named:** the independent physical `+0x46F` eligibility
 gate; waking a sleeper on the blow; the room notice (§2 step 4). Player event 6 (§1) is `CombatMessageRules.UpdateBattle`.
+
+**Present deviations of the collapsed-target branch (ADR-0734; read
+2026-11-10, STRONGLY INFERRED).** It matches DK2 for a busy fighter and for one
+with no action, which seeks and ends the state on none. It differs in three
+places. It skips step 6, the fear checks DK2's step 5 falls into before the
+busy test. `VictoryRules.TargetDown` calls `StopMoving`, which DK2's step-5
+unlink does not; in 199 and 200 ours' `StopMoving` retains a self-route that
+then gives a steering turn toward 0 DK2 does not give at that point
+(PLAUSIBLE). Its `LetGo` on none ignores a nibble of `0xF`, DK2's victory arm.
+The general `!TargetIsValid` branch unlinks and seeks before the fear checks
+and the busy test, so it seeks while busy where DK2 returns 1 at step 7 after
+the same unlink; this is the case that branch's own comment describes.
 
 ## Confidence
 
