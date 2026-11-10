@@ -16963,7 +16963,8 @@ by us in a few regions, and runnable by anyone for private, LAN or community gam
   agreed hashes. A machine still diverged after replay forks against computer keepers; with
   three or more players the majority continues with that slot on the caretaker, with two the
   match is no contest. Commits carry a chained hash; a new relay instance resumes from the
-  longest prefix every client holds and drops the tail. Peers must match on a fingerprint of the
+  longest prefix every client holds and drops the tail. A prefix more than N turns short makes
+  its client a rejoiner, or, with two players, ends the match as no contest. Peers must match on a fingerprint of the
   parsed game data before start.
 - **R7 transport.** Steam's authenticated, encrypted SDR. No custom crypto, no peer IP addresses.
 - **R8 backend.** Identity only from verified tickets; no secrets in the client. Unranked: with

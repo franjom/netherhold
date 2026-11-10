@@ -49,6 +49,7 @@ does, and the gates that keep it true. It is written before any network code exi
 | **R**epudiation | loser disputes a result | R6: hashed input journal per match, kept by the relay |
 | **R**epudiation | peer reports wrong hashes to force resyncs | R6: it only forks itself; the others replay nothing they did not agree on |
 | **T**ampering | client supplies a forged journal when a relay instance is replaced | R6: resume from the longest chained-hash prefix every client holds |
+| **T**ampering | client claims a short journal to rewind the match past a lost fight | R6: a prefix more than N turns short makes it a rejoiner, or no contest with two players |
 | **I**nformation disclosure | map hack (whole state on every client) | accepted for lockstep (R9) |
 | **I**nformation disclosure | opponent's IP address | R7: relay by default |
 | **D**enial of service | malformed packet crashes the decoder | R1: bounded decoder, fuzzed |

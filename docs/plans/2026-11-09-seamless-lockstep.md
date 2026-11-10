@@ -23,8 +23,15 @@ of work and the exit test for each step. Two critical reviews (2026-11-10) are f
   the match is no contest. A deliberate wrong hash gains nothing.
 - **Nobody supplies the relay's history either.** Every commit carries a hash chained over all
   earlier commits. A new relay instance resumes from the longest prefix every client holds
-  identically and drops the tail, so a lying client can at most rewind a few turns, never add a
-  command in another player's name.
+  identically and drops the tail, so no client can add a command in another player's name. A
+  client cannot rewind the match either, because one client's prefix may trail the others' by
+  at most N turns, where N is a little more than the commits a client can honestly miss when a
+  relay dies:
+  - With three or more players, a client more than N turns short is a rejoiner: it gets the
+    caretaker and replays up to the others' common prefix, and does not set the resume point.
+  - With two players or a 2-2 split, a short honest journal cannot be told from a truncated one,
+    nor a long honest one from a forged tail (the chain is unkeyed). If the prefixes differ by
+    more than N turns, both fork and the match is no contest.
 - **Computer keepers run on every machine.** Their whole state, including each keeper's routing
   locate cache, joins the snapshot and the hash. No machine may act for another keeper.
 - **Self-hosted overseer.** A player who owns DK2 may run a server on their own install that
@@ -148,8 +155,10 @@ latency, jitter, loss and reordering.
 - **Desync:** a forced divergence is detected and located by the per-subsystem hashes. In 3 and 4
   player matches the majority continues with the diverged slot on the caretaker; in 2-player
   and 2-2 matches both fork and the match is no contest.
-- **Relay resume:** a new relay instance resumes from the clients' longest common chained prefix;
-  a client offering a forged or extended journal changes nothing but the resume point.
+- **Relay resume:** a new relay instance resumes from the clients' longest common chained prefix.
+  A forged tail changes nothing; a truncated journal more than N turns short makes its sender a
+  rejoiner (3+ players) or ends the match as no contest (2 players, 2-2). Fault injection sizes N
+  from the commits a client honestly misses when the relay dies.
 - **Hostile peer (R3):** every allowed command tag fuzzed against random world states, refused
   or applied without throwing, hashes equal.
 - **Rate limits and message caps** on the relay (R1); a peer cannot send a map-sized tile list
@@ -216,7 +225,8 @@ test client gains nothing.
   that never loads starts with the caretaker.
 - **Custom maps** through Steam Workshop rather than transfer between players.
 - **Relay failure:** a new relay instance resumes from the longest chained-hash prefix every
-  client holds identically, and drops the tail.
+  client holds identically, drops the tail, and refuses to let one client's prefix rewind the
+  match by more than N turns (N sized by the spike and phase 3).
 - **Desync reports** carry the per-subsystem diff and the journal, but no world state, so no
   DK2-derived data reaches our servers.
 - **Versions:** the lobby matches only identical builds and fingerprints; old journals replay
