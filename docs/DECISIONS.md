@@ -16929,48 +16929,50 @@ Retain the existing callback flags and force arithmetic.
 Initial mixed-object rank restore and the enumerator's existing partial
 adapters remain separate. Controlled agreement is not full-state or Heart parity.
 
-## ADR-0724 - multiplayer security: lockstep through a Steam relay that referees disputes
+## ADR-0724 - multiplayer security: lockstep through a Steam relay that never holds game data
 **Date:** 2026-11-09 | **Status:** accepted | **Systems:** simulation-core, data-formats
 
 **Context.** Multiplayer and matchmaking are planned on deterministic lockstep (Q712). No network
-code exists yet. `CommandCodec` will carry peer traffic. The owner requires that no player's
-departure ends a match. The threat model, gaps and gates are in
-`docs/plans/2026-11-09-multiplayer-threat-model.md`.
+code exists yet. The owner requires that no player's departure ends a match. We have no right to
+distribute DK2's data, so no server we run can load it or run the simulation. The threat model
+is `docs/plans/2026-11-09-multiplayer-threat-model.md`; the netcode plan is
+`docs/plans/2026-11-09-seamless-lockstep.md`.
 
-**Decision.** Steam is the platform: Steam networking with its relay (SDR), Steam lobbies, and
-Steam login tickets verified server-side. No player hosts. A relay server orders commands,
-enforces turn deadlines, forwards them, and keeps each match's input journal and checkpoints.
-It runs the simulation only to settle a dispute. Every network feature obeys:
+**Decision.** Steam is the platform: SDR transport, Steam lobbies, login tickets verified
+server-side. No player hosts. The official relay is a broker: it orders commands, owns the
+turn clock, compares state hashes and data fingerprints, and stores input journals. It never
+loads game data, simulates or carries world state. It is one program of our own, built on the
+Steamworks game-server API (tickets checked by the relay; no Web API key in any client), hosted
+by us in a few regions, and runnable by anyone for private, LAN or community games (owner,
+2026-11-10). Every network feature obeys:
 
-- **R1 bounded decoding.** Maximum message size, per-field limits and one controlled exception
-  type. Rate limits per peer. No reflection, type names or polymorphic deserialization. Each
-  command tag gets a fuzz sample.
-- **R2 sender identity.** The session stamps the authenticated sender's `PlayerId`. A payload
-  claiming another player is dropped.
-- **R3 validation in the simulation.** A command is a request. The handler checks ownership,
-  cost, range and state deterministically, so every peer refuses it alike. Bad values never
-  throw.
-- **R4 allow-list.** Only human-issuable commands cross the network. AI-only, cheat and debug
-  commands are refused (e.g. `GrantCreatureLevelCommand`, `RevealMapCommand`).
-- **R5 content.** Original maps, plus custom maps verified against the lobby's hash and a size
-  limit. Paths are never taken from the file. Arbitrary mods wait until every reachable
-  parser is fuzzed.
-- **R6 turns and desync.** Commands apply on a fixed future turn. A departed keeper goes to the
-  AI or idles. Peers exchange state hashes. On a mismatch, the relay replays the journal from
-  the last agreed checkpoint. Peers that differ are resynced from that state, or kicked for
-  clear tampering. This works with any player count, including 2 and 2-2.
-- **R7 transport.** Steam's authenticated, encrypted transport through SDR. No custom crypto.
-  Peers never learn each other's IP addresses.
-- **R8 backend.** Identity comes only from verified tickets. Secrets never ship in the client.
-  Launch is unranked; the kept journals let a server-side checker add ranked play later.
-- **R9 accepted risk.** Every lockstep client holds the full state, so fog of war can be
-  defeated by a modified client. Only server-filtered views would fix that.
+- **R1 bounded decoding.** Maximum message size, per-field limits (tile lists within the map),
+  one controlled exception type, rate limits per peer. No reflective deserialization.
+- **R2 sender identity.** The session supplies the authenticated sender; a command claiming
+  another player is refused (`PeerCommands.Read`).
+- **R3 validation in the simulation.** A command is a request. Its handler checks ownership,
+  cost, range, state and consent deterministically, and never throws on bad values.
+- **R4 allow-list.** Only human-issuable, validated commands cross the network (`PeerCommands`).
+- **R5 content.** Original maps, plus custom maps verified against a relay-checked hash and a
+  size limit. Paths never come from a file. Arbitrary mods wait for fuzzed parsers.
+- **R6 turns, desync, departure.** The relay puts each command in the turn open when it arrives;
+  there is no shared input delay. Every machine runs the computer keepers; their whole state is
+  in the snapshot and the hash, and the journal records the merged frame. A departed keeper gets
+  a caretaker for the rejoin window, then the computer keeper (owner, 2026-11-09). **No machine
+  loads another's state:** rejoin and resync replay the journal locally, checked against the
+  agreed hashes. A machine still diverged after replay forks against computer keepers and the
+  match is no contest. Peers must match on a fingerprint of every data input before start.
+- **R7 transport.** Steam's authenticated, encrypted SDR. No custom crypto, no peer IP addresses.
+- **R8 backend.** Identity only from verified tickets; no secrets in the client. Unranked: with
+  no server-side simulation, ranked play would need consensus plus reports.
+- **R9 accepted risk.** Every client holds the full state, so a modified client defeats fog of war.
+- **Self-hosted overseer.** A player who owns DK2 may run a server that loads their own install
+  and simulates as an authoritative peer: trusted AI, truth on desync, rejoin from the server.
+  The official relay and the overseer speak one protocol.
 
-**Consequences.** Single-player goes through the same session and codec, so its tests exercise
-R1-R4. Before the codec carries network traffic: `ReadTiles` needs a bound, `PlayerId` must
-come from the session, and the allow-list must exist. Referee replay needs Linux and Windows
-to produce equal state hashes; a CI check must compare them. Hostile-command tests and fuzz
-targets join CI.
+**Consequences.** Single-player goes through the same session, so its tests exercise R1-R4. The
+Unity (IL2CPP) build must reach the same hashes as CoreCLR; Linux and Windows already do in CI.
+`WorldSnapshot.Read` becomes network-facing and joins the fuzz targets.
 
 ## ADR-0725: the Portal Gem keeps a position: made at its carrier's point, dropped on its tile centre
 

@@ -119,10 +119,14 @@ the player's compact number at `+0x10FC` — `+0x1B6` is the next array, which i
 what bounds it. The predicate `0x004BF3D0(otherPlayerId)` returns 1 when the id
 is the player's own (`player+4`) and otherwise the byte; `0x004BF390` beside it
 is its negation, an is-enemy test. Both handlers write **both** players' arrays
-(`0x00513FF0` make, `0x00513F60` break; make also clears the `+0x1B6` pair), so
-a one-sided alliance is unreachable, and neither checks that the issuer is one
-of the pair. `0x0051DCEB` writes it from a table too, STRONGLY INFERRED to be
-trigger action 18's `Available`. What `+0x1B6` holds is UNKNOWN.
+(`0x00513FF0` make, action 123; `0x00513F60` break, action 122), so a one-sided
+alliance is unreachable. `0x0051DCEB` writes it from a table too, STRONGLY
+INFERRED to be trigger action 18's `Available`. `+0x1B6` is the **offer** array:
+action 118 (`0x00513EE0`) sets or clears the issuer's offer to the target, and
+make clears both offers. Consent is enforced only by the HUD (`0x00425B50`
+sends 123 only while the target's offer to the local player stands); make
+itself reads no offer, so a client sending 123 directly forces an alliance.
+Breaking needs no consent.
 
 **Navigation.** The writer `0x004A66F0` sets the tile's byte to
 `owner << 4 | 4 if lock mode ≠ 0 or definition bit 6 (a barricade) | 2 if the

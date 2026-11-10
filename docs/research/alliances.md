@@ -24,7 +24,11 @@ Ours: `PlayerState.AlliedWith`, one bit per id, read by `WorldState.AreAllied` (
   `0x0051AA90`): record words `+0x14` and `+0x18` are two player numbers; each player's byte at the
   other's number is set to 1. It never clears. STRONGLY INFERRED from the handler.
 - **Trigger action 18** (`0x00519376`) and the make/break game actions `0x00513FF0`/`0x00513F60`
-  write both sides. Already built (`TriggerExecutor`, `AllianceSystem`).
+  (123/122) write both sides. Already built (`TriggerExecutor`, `AllianceSystem`).
+- **Offers** sit in the next eight bytes, `player+0x1B6`. Action 118 (`0x00513EE0`) sets or clears
+  the issuer's offer to the target; make clears both. Only the HUD (`0x00425B50`) makes consent
+  hold, by sending make solely to accept the target's standing offer; make itself reads no
+  offer, and breaking needs none. Not built: ours has no offers (ADR-0724 R3 gap).
 - `Player_Initialise` zeroes the array when `Players_Activate` (`0x004C2460`) activates a record.
 
 The records survive the load: the Level 11A capture holds neutral (2) allied with heroes and with

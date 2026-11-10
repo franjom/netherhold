@@ -1,0 +1,240 @@
+# Seamless lockstep multiplayer
+
+How multiplayer should feel: no click ever waits visibly, no player's bad connection freezes the
+others, and a player who leaves or drops neither ends the match nor stalls it. The rules are
+ADR-0724; the threats are in `2026-11-09-multiplayer-threat-model.md`. This plan is the order
+of work and the exit test for each step. Two critical reviews (2026-11-10) are folded in.
+
+## Architecture
+
+- **Lockstep.** Every machine runs the whole simulation from the same ordered commands.
+- **No server we run holds DK2's data**, which we may not distribute. The official relay is a
+  data-free sequencer: it orders commands into turns, owns the turn clock, compares state
+  hashes and data fingerprints, and stores the input journal. It never simulates, and it never
+  carries world state.
+- **Nobody loads another player's state.** Rejoin and resync replay the relay's journal on the
+  player's own machine, from a local checkpoint or from tick 0, checked against the agreed
+  hashes. A snapshot from a peer would be state injection: in a two-player match the receiver
+  would trust its opponent completely, and two colluders outvote one honest player.
+- **Desync.** Hashes detect it and the journal locates it. A machine that still disagrees after
+  replaying the journal has diverged for good: each side continues its own fork against
+  computer keepers, and the match is recorded as no contest. A deliberate wrong hash gains
+  nothing.
+- **Computer keepers run on every machine.** Their whole state, including routing caches, joins
+  the snapshot and the hash. No machine may act for another keeper.
+- **Self-hosted overseer.** A player who owns DK2 may run a server on their own install that
+  simulates as an authoritative peer: trusted AI, truth on desync, rejoin from the server.
+
+## Starting point (2026-11-10)
+
+- **The tick is 250 ms** (`SimulationTiming.TicksPerSecond = 4`, DK2's own rate).
+- **Click to world change is already slow in single-player:** a click waits for the next tick
+  (125 ms on average), and the draw clock runs a tick behind to interpolate (`DungeonRunner.cs`
+  around line 1010, ADR-0687, ADR-0694). Multiplayer adds the turn close, the round trip and a
+  jitter buffer: roughly 450 to 600 ms. **Instant previews are required, not polish.**
+- **Interpolation exists** for creatures, shots, lights and the camera path. Headings snap.
+- **Ticks run in batches on a worker thread**; only a batch's first tick carries commands. The
+  options menu and losing window focus (`runInBackground: 0`) both stop ticks.
+- **At-once feedback** exists for tag tiles, the minimap pick-up, and the slap and spell cursors.
+  Pick-up in the world, drop, room, door and trap placement show nothing until the tick.
+- **Refused from peers for now:** `MovePossessedCreatureCommand` (any pose is installed) and
+  `SetAllianceCommand` (DK2's make handler ignores offers; only its HUD asked for consent).
+- **Computer keepers do not run in Unity.** Their state is outside the snapshot and the hash:
+  `KeeperAIState`, a private generator, `KeeperStaging`, and history-dependent routing
+  (`KeeperRouteCache`, whose answers depend on past queries, and `KeeperAI._directionsFixed`).
+- **Game data is outside the hash.** The snapshot omits the database on purpose and the hash
+  covers version, world, navigation and the generator. Two DK2 patch levels or an edited
+  creature file desync silently.
+- **Determinism evidence is thinner than it looks.** CI compares Linux and Windows hashes only on
+  synthetic content (`DK2_DIR=/nonexistent`); no real map or keeper run is compared across
+  platforms, and nothing compares IL2CPP. There are 13 `[ThreadStatic]` fields in 11 files.
+  Some rules take the first match from a database `Dictionary` (`ReaperRules.cs`,
+  `HeroPartyRules.cs`, `CrateRules.cs`), which depends on insertion order. The trap sine table
+  is built with `Math.Sin` (`TrapRules.cs`).
+- **Known costs:** ADR-0578 measured 1.9 ms per tick for computer keepers and 0.65 ms for the
+  state hash on one level under CoreCLR.
+
+## Phase 0: measure (2026-11-10)
+
+A `DK2.Tools` benchmark on the largest campaign maps with computer keepers playing, sampled up
+to a few thousand ticks, under CoreCLR and in an IL2CPP player build:
+
+- tick time (median, 99th percentile, worst) and allocation per tick;
+- computer keeper `Think` time and allocation per keeper;
+- journal replay speed, simulation only (sets rejoin and resync time);
+- `WorldSnapshot` size and write and read time (local checkpoints only);
+- click-to-world-change latency in the Unity build today, the baseline for phase 2.
+
+These set the minimum machine spec, the checkpoint interval and the rejoin time.
+
+## Phase 1: session layer and determinism, single-player first
+
+1. `IGameSession`: `Submit(command)`, `TryGetFrame(tick, out InputFrame)`, the local player
+   id, and session actions (pause, speed, handover, result screen). `LocalGameSession`
+   implements it in process.
+2. Every submitted command goes through `CommandCodec` and `PeerCommands.Read`, so R1 to R4 run
+   on every single-player command. Pose validation (phase 5) and alliance offers must exist
+   before single-player possession and alliances can go through the session.
+3. `DungeonRunner` submits instead of filling `_pendingCommands` and takes frames from the
+   session. `RevealMapCommand` from the result screen becomes a session action.
+4. **Computer keepers move into the session** and run on every machine:
+   - Their routing becomes history-free: restore the built locate cache before each query, as
+     `KeeperStaging` already can. The rest of their state (`KeeperAIState`, generator, staging,
+     `_directionsFixed`) joins `WorldSnapshot` and the hash (a `HashVersion` bump).
+   - **Canonical frame order:** human commands by player, then by sender sequence; then computer
+     keeper commands by player. The journal records the merged frame.
+   - **A slot that began human** never receives the computer keeper's own perks
+     (`GrantCreatureLevelCommand`, `MintWageCommand`), so leaving never pays.
+5. **Handlers validate before they mutate.** A throw is a bug: the match pauses, every machine
+   writes a dump, and the journal reproduces it. Phase 3 fuzzing removes the causes. IL2CPP
+   builds keep null and bounds checks on for the simulation assemblies.
+6. **Handover test:** swap a player to the computer keeper at tick T over the campaign replays.
+   Define its side effects: the hand's contents dropped at the Heart, possession ended, a
+   personality chosen for a slot that had none.
+7. **Diagnosis from the start:** per-subsystem hashes (tiles, creatures, players, generator,
+   navigation, computer keepers) and a dump that names the first differing subsystem and entity.
+8. **Data fingerprint:** a hash of every data input the simulation reads (database, level files,
+   tables). Two machines with different fingerprints never start a match together.
+9. **Determinism hardening:** order database iteration explicitly (or prove it is insertion
+   order on every runtime); pin the sine table with a checksum test; audit the 13
+   `[ThreadStatic]` fields.
+10. **Parity gates:** an IL2CPP player build replays journals and must report the CoreCLR
+    hashes. Real-data cross-platform runs need an install, which CI may not hold, so they run on
+    a self-hosted runner or a release checklist machine.
+11. **Simulated latency** (delay, jitter, loss) on `LocalGameSession`, for phases 2 and 5.
+
+**Exit:** single-player plays as before; replays reproduce their hashes (after the bump); a
+campaign level runs with its computer keepers in Unity; **snapshot at tick T, reload, continue
+with keepers, equal hashes**; a handover at any tick keeps replays deterministic; IL2CPP matches.
+
+## Phase 2: instant acknowledgement, and the possession prototype
+
+**Pending-command previews.** Each submitted command gets a presentation-only preview, keyed by
+its sender sequence number (the client cannot know the tick in advance). The preview is removed
+when the turn holding that sequence has run, replaced by the result or a refusal cue.
+
+- **Pick-up:** the creature or gold in the hand at once, hidden at its spot, with the sound.
+- **Drop:** the thing at the drop spot with the drop animation started.
+- **Room, door and trap:** a ghost with the build sound.
+- **Slap and spells:** these animate already; add the sound at click time.
+- **Refusals and conflicts:** the simulation emits a refusal event per refused command; the
+  preview fades with the refusal sound. This covers two players grabbing one creature.
+
+**Possession prototype** under simulated latency, now rather than in phase 5, because its verdict
+could change the tick rate everything else is sized on. If first-person play at 4 Hz with
+real latency cannot be made to feel right, decide on a finer possession tick or rollback here.
+
+**Exit:** with two ticks of simulated latency, a playtest cannot tell the difference from zero
+on pick-up, drop, tag, build and slap; the possession verdict is written down.
+
+## Phase 3: loopback multiplayer, no Steam
+
+An in-process relay and two to four sessions in one process, joined by a fake transport with
+latency, jitter, loss and reordering.
+
+- **Agreement** over long seeded matches through every fault injected.
+- **Late peer:** its commands land later, in their original order; the others never stall.
+- **Departure, caretaker and handover** on announced ticks, with equal hashes.
+- **Rejoin by journal replay** from a local checkpoint or tick 0, verified against the agreed
+  hashes at every checkpoint, then control returned on an announced tick.
+- **Desync:** a forced divergence is detected, located by the per-subsystem hashes, and ends in
+  the fork-against-computers outcome, in 2, 3, 4 and 2-vs-2 matches.
+- **Hostile peer (R3):** every allowed command tag fuzzed against random world states, refused
+  or applied without throwing, hashes equal.
+- **Rate limits and message caps** on the relay (R1); a peer cannot send a map-sized tile list
+  every turn.
+
+**Exit:** all of these run in CI as deterministic tests.
+
+## Steam spike, before phase 4
+
+A throwaway prototype to settle what the plan assumes about Steam: SDR message size limits,
+whether a relay that anyone runs is reachable through SDR, ticket checks on the Steamworks
+game-server API, and lobby behaviour.
+
+## Phase 4: the relay owns time
+
+1. **The relay is a sequencer.** It closes a turn every tick, puts every command that arrived
+   in the turn open at that moment, and broadcasts the commit (turn number, ordered frame,
+   handovers). There is no shared input delay: one player's bad link affects only that player.
+2. **Per-sender sequence numbers** keep each sender's commands in order; a late command moves
+   every later one from that sender with it.
+3. **Client buffer.** Each client runs committed turns from a small buffer (the existing draw
+   lag) and plays slightly faster or slower to keep it at target. This controls how far behind
+   the display runs; it is not clock sync.
+4. **The client keeps ticking** when the window loses focus or a menu opens
+   (`runInBackground`, the options-menu pause) during a match.
+5. **A slow machine is not a slow link.** A client that cannot simulate at the relay's pace is
+   warned and, if it falls a set number of turns behind, gets the caretaker. Phase 0 sets the
+   minimum spec.
+6. **Disconnects.** A disconnected keeper gets the **caretaker** (defends, does not sell, build
+   or spend) for the whole rejoin window, long enough for a crash, relaunch, load and replay.
+   The full computer keeper takes over only when the player leaves on purpose or the window
+   ends. A returning player gets control back on an announced tick.
+7. **Pause** is granted from a small per-player budget.
+
+**Exit:** with one peer on a 300 ms, 5 % loss link, the others' play is unaffected; that peer's
+own clicks still acknowledge at once.
+
+## Phase 5: possession
+
+Built to the verdict of phase 2's prototype.
+
+- **Send movement input, not poses.** A pose sent at tick T lands after knockback, freezes or
+  speed changes that the sender had not seen, so honest players would be clamped. The
+  simulation moves the creature from input; the client predicts with the same integer code and
+  blends to the confirmed position over about 100 ms when they differ.
+- **Validation (R3)** of whatever the command carries, including the Creature Teleport form,
+  which is allowed only when the simulation's own state says a teleport happened. Only then does
+  the command return to the allow-list.
+- **Attacks** start their animation and sound locally; the hit resolves in the simulation.
+- **Headings** are interpolated.
+
+**Exit:** possession with two ticks of simulated latency feels like zero latency; a speed-hack
+test client gains nothing.
+
+## Phase 6: Steam and the match lifecycle
+
+- **Relay hosting:** our relay program on the Steamworks game-server API, in a few regions; the
+  same binary runs on a player's machine for private, LAN and community games.
+- **Transport and lobby:** SDR transport, Steam lobby, ticket check (R7, R8). Lobby metadata is
+  client-writable, so the relay checks every peer's build hash, `HashVersion`, data fingerprint,
+  map hash and settings itself.
+- **Seed** picked by the relay after settings lock; **game speed** is a locked lobby setting.
+- **Start barrier:** the first tick waits until every peer has loaded, up to a timeout; a peer
+  that never loads starts with the caretaker.
+- **Custom maps** through Steam Workshop rather than transfer between players.
+- **Relay failure:** clients hold the journal and their checkpoints, so a new relay instance
+  resumes the match from the journal by consensus on its hashes.
+- **Desync reports** carry the per-subsystem diff and the journal, but no world state, so no
+  DK2-derived data reaches our servers.
+- **Versions:** the lobby matches only identical builds and fingerprints; old journals replay
+  only on the build that recorded them.
+- **Per-account desync and leave counts** for matchmaking.
+
+## Multiplayer rules still to design
+
+- **Victory, teams and fog settings**; the result screen; what `ContinueAfterResultCommand` does
+  in a match.
+- **Trigger commands:** `GuiButtonCommand` fires player event 53 with any target, and any peer's
+  `SkipCameraPathCommand` changes trigger state. Decide which a match accepts.
+- **Alliance offers:** model DK2's offer array (action 118) and accept a make only against a
+  standing offer; until then alliances are refused from peers.
+- **Slot lifecycle:** a defeated keeper becomes a spectator; a kicked player cannot rejoin; the
+  match ends when no human remains.
+- **Spectators, replays and multiplayer save/resume**, all journal-based.
+
+## Rollback
+
+Not planned. At 250 ms ticks with previews the strategy layer does not need it. Only phase 2's
+possession verdict could call for it, and it would stay inside the session layer.
+
+## Risks
+
+- **Computer keeper determinism and cost**, now that every machine runs every keeper and its
+  routing must be history-free.
+- **A handover into a dungeon the AI did not build**, tested in phase 1.
+- **IL2CPP versus CoreCLR**, and real data across platforms, which CI cannot hold.
+- **Rejoin time** grows with match length if checkpoints are sparse; phase 0 sizes it.
+- **The worker thread and the session**: the tick thread waits for frames without blocking the
+  main thread.
