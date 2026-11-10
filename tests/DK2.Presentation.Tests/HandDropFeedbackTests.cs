@@ -68,10 +68,12 @@ public sealed class HandDropFeedbackTests
         sim.Tick(InputFrame.Of(pickup, drop));
         observer.Drain(1000);
 
-        HandCursorKind expected = refused ? HandCursorKind.Point
-            : gold ? HandCursorKind.DropGold : HandCursorKind.DropThing;
+        // A creature is only prepared this tick (ADR-0731): with nothing else held the drop does
+        // nothing, as DK2's drop action tests the hand's count before the pending lift is taken.
+        HandCursorKind expected = refused || !gold ? HandCursorKind.Point : HandCursorKind.DropGold;
         Assert.Equal(expected, feedback.Resolve(HandCursorKind.Point, false, false, false, 1000));
-        Assert.Equal(refused ? 1 : 0, sim.World.Player(Keeper).Hand.Count);
+        Assert.Equal(refused && gold ? 1 : 0, sim.World.Player(Keeper).Hand.Count);
+        Assert.Equal(gold ? 0 : item.Id, sim.World.Player(Keeper).PendingLiftCreatureId);
     }
 
     [Theory]

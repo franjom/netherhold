@@ -213,7 +213,7 @@ public sealed class LairDropTests
 
     private static void Drop(GameSimulation sim, CreatureState creature, TilePos at)
     {
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(PlayerIds.FirstKeeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(PlayerIds.FirstKeeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(PlayerIds.FirstKeeper, at)));
     }
 

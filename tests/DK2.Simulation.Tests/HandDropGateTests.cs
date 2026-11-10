@@ -310,7 +310,7 @@ public class HandDropGateTests
             {
                 if (x == 10 && y == 6) continue;
                 var tile = new TilePos(x, y);
-                sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+                sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
                 Assert.True(HandRules.DropLands(world, db, Keeper, HandItem.Of(imp), tile));
                 sim.Tick(InputFrame.Of(new DropCommand(Keeper, tile)));
                 sim.Tick();
@@ -320,7 +320,7 @@ public class HandDropGateTests
             }
         Assert.DoesNotContain(events.Events, e => e.Kind is "drop_refused" or "creature_left" or "worker_given_back");
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         Assert.True(HandRules.DropLands(world, db, Keeper, HandItem.Of(imp), new TilePos(10, 6)));
         world.Player(Keeper).Mana = 100;
         imp.GoldHeld = 75;
@@ -348,7 +348,7 @@ public class HandDropGateTests
         int ceiling = ManaRules.Threshold(db);
         world.Player(Keeper).Mana = ceiling - 1;
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
         sim.Tick();
 
@@ -371,7 +371,7 @@ public class HandDropGateTests
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.ObserveWith(events);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
         sim.Tick();
 
@@ -409,7 +409,7 @@ public class HandDropGateTests
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.ObserveWith(events);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         Assert.False(HandRules.DropLands(world, db, Keeper, HandItem.Of(goblin), new TilePos(4, 2)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(4, 2))));
 

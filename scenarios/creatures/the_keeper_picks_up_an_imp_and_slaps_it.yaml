@@ -57,15 +57,16 @@
 #         how the shipped data says "imps never get angry" without a special
 #         case; and `WorkFasterTimer` starts, which is the ten points.
 #
-#   t2    `picked_up ... held=1` — the imp leaves the dungeon without leaving
-#         the level. From here it does not walk, work, sleep or look for a lair.
+#   t2    `lift_prepared`, and at t4 `picked_up ... held=1` (the hand takes a
+#         creature a turn after the pick-up, ADR-0731) — the imp leaves the
+#         dungeon without leaving the level. From here it does not walk, work, sleep or look for a lair.
 #         Note what is *not* in the log at t2: the imp had a job at t0 and the
 #         pick-up dropped it, because an imp lifted off its work has stopped
 #         working.
 #
-#   t3    `dropped ... tile=11,8 worker=yes held=0`, then `job_taken ... steps=0`
-#         and `dropped_onto_work ... task=Excavate within=3`, all on the same
-#         tick. **The drop buys the look and the look buys the ten points** —
+#   t4    `dropped_falling`, t5 `dropped ... tile=11,8 worker=yes held=0`, then
+#         `job_taken ... steps=0` and `dropped_onto_work ... task=Excavate
+#         within=3` once it has landed. **The drop buys the look and the look buys the ten points** —
 #         `worker=yes` only says this creature is eligible; `dropped_onto_work`
 #         is the bonus actually turning on, and it names what the imp found and
 #         how far it looked. `steps=0` is why it is worth having: the imp was
@@ -140,7 +141,7 @@ commands:
   # The hand, one verb a tick, so the log reads in order.
   - { at_tick: 1, player: 3, slap: 1 }
   - { at_tick: 2, player: 3, pick_up: 1 }
-  - { at_tick: 3, player: 3, drop: [11, 8] }
+  - { at_tick: 4, player: 3, drop: [11, 8] }
 observe:
   - state_hash
   - events

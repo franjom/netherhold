@@ -151,7 +151,8 @@ with keepers, equal hashes**; a handover at any tick keeps replays deterministic
 its sender sequence number (the client cannot know the tick in advance). The preview is removed
 when the turn holding that sequence has run, replaced by the result or a refusal cue.
 
-- **Pick-up:** the creature or gold in the hand at once, hidden at its spot, with the sound.
+- **Pick-up:** the creature or gold in the hand at once, hidden at its spot, with the sound. A
+  creature enters the hand a turn after the command (ADR-0731), so its preview lasts until then.
 - **Drop:** the thing at the drop spot with the drop animation started. A dropped creature lands
   a tick after its drop (the Q712 change, hash 459), so its preview lasts until the landing.
 - **Room, door and trap:** a ghost with the build sound.

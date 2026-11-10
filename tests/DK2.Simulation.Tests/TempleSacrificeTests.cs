@@ -230,7 +230,7 @@ public class TempleSacrificeTests
         (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor);
         db.Variables.Sacrifices.Add(OneCreatureRecipe(Dk2TerrainFixture.GoblinCreatureId, Dk2TerrainFixture.VampireCreatureId, 20));
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(1, 1));
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(1, 1))));
 
         Assert.NotNull(world.CreatureById(goblin.Id));
@@ -265,7 +265,7 @@ public class TempleSacrificeTests
         CreatureState creature = world.SpawnCreature(db, creatureTypeId, Keeper, new TilePos(2, 2));
         creature.Level = level;
         creature.Health = CreatureLevelRules.MaxHealth(db, db.CreatureById(creatureTypeId), level);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, temple)));
     }
 

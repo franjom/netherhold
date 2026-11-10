@@ -394,6 +394,14 @@ public struct PlayerState
     /// comparison remains unbuilt (Q279).</remarks>
     public int PossessedCreatureId;
 
+    /// <summary>The creature hand state 1 prepared and has not yet taken (<c>+0x18E</c> while <c>+0x186</c>
+    /// is 1); 0 for none. <see cref="Systems.HandSystem"/> takes it at this keeper's next hand command, or
+    /// one turn after <see cref="PendingLiftTick"/> (ADR-0731).</summary>
+    public int PendingLiftCreatureId;
+
+    /// <summary>The turn the pending lift was commanded (<c>+0x18A</c>).</summary>
+    public long PendingLiftTick;
+
     /// <summary>
     /// Research points banked toward <see cref="ResearchTarget"/>, DK2's
     /// <c>player+0x20F</c>. Credited whether or not a target is selected, because the
@@ -581,6 +589,8 @@ public struct PlayerState
         hash.Add(HeroesDestroyed);
         hash.Add(SlapCount);
         hash.Add(PossessedCreatureId);
+        hash.Add(PendingLiftCreatureId);
+        hash.Add(PendingLiftTick);
         hash.Add(ResearchPoints);
         hash.Add(ResearchTarget);
         hash.Add(NextFreeImpTick);

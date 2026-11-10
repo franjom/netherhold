@@ -158,6 +158,7 @@ public class ImpCreationLandingTests
         sim.Run(fallingTicks);
         Assert.True(imp.PosZ > 0);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(PlayerIds.FirstKeeper, imp.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(imp.InHand);
         Assert.NotEqual(214, imp.Dk2StateId);
         Assert.Equal((0, 0, 0), (imp.PosZ, imp.LastPosZ, imp.CreationVelocityZ));

@@ -43,7 +43,7 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
 
         // Skill level 10 and a minimum of 30: never ready, so step 9 moves its creatures (ADR-0317).
-        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is PickUpCreatureCommand or DropCommand).ToList();
+        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
         Assert.NotEmpty(moves);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level10")!;
         byte training = ScenarioCorpus.Database.RoomById((byte)RoomTypeId.TrainingRoom).TerrainId;
@@ -184,10 +184,10 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         // while it seeks its bed and lifted once asleep, each pick-up followed at once by a drop
         // on one of player 5's Lair tiles (ADR-0284, the scenario's comment for the turn).
         Assert.Empty(run.ExpectationFailures);
-        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is PickUpCreatureCommand or DropCommand).ToList();
+        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
         Assert.NotEmpty(moves);
         Assert.All(moves, e => Assert.Equal((byte)5, e.Command.PlayerId));
-        Assert.All(moves.Chunk(2), pair => Assert.True(pair[0].Command is PickUpCreatureCommand && pair[1].Command is DropCommand
+        Assert.All(moves.Chunk(2), pair => Assert.True(pair[0].Command is TakeCreatureCommand && pair[1].Command is DropCommand
             && pair[0].InputTick == pair[1].InputTick));
         Assert.True(moves[0].InputTick > 1, "the lift waits for the bed, it is not the first tick's");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level17")!;
@@ -211,9 +211,9 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         // The training moves' own commands on the stock map, nothing added: each pick-up followed
         // at once by a drop on an interior cell of Harkan's Training Room (ADR-0317).
         Assert.Empty(run.ExpectationFailures);
-        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is PickUpCreatureCommand or DropCommand).ToList();
+        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
         Assert.NotEmpty(moves);
-        Assert.All(moves.Chunk(2), pair => Assert.True(pair[0].Command is PickUpCreatureCommand && pair[1].Command is DropCommand
+        Assert.All(moves.Chunk(2), pair => Assert.True(pair[0].Command is TakeCreatureCommand && pair[1].Command is DropCommand
             && pair[0].InputTick == pair[1].InputTick));
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level17")!;
         byte training = database.RoomById((byte)RoomTypeId.TrainingRoom).TerrainId;

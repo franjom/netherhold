@@ -60,7 +60,7 @@ public class KeeperMoodRemediesTests
 
         Assert.True(handled);
         KeeperRoomView lair = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.Lair);
-        Assert.Equal<PlayerCommand>([new PickUpCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(lair))], commands);
+        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(lair))], commands);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class KeeperMoodRemediesTests
 
         Assert.True(handled);
         KeeperRoomView training = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.TrainingRoom);
-        Assert.Equal<PlayerCommand>([new PickUpCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(training))], commands);
+        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(training))], commands);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class KeeperMoodRemediesTests
             Happy(unhappy: false));
 
         Assert.True(handled);
-        Assert.IsType<PickUpCreatureCommand>(commands[0]);
+        Assert.IsType<TakeCreatureCommand>(commands[0]);
     }
 
     private static KeeperAIParameters Disposing(byte method) =>
@@ -197,7 +197,7 @@ public class KeeperMoodRemediesTests
             Disposing(1));
 
         Assert.True(handled);
-        Assert.Equal<PlayerCommand>([new PickUpCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, new TilePos(11, 11))], commands);
+        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, new TilePos(11, 11))], commands);
     }
 
     [Fact]
@@ -226,7 +226,7 @@ public class KeeperMoodRemediesTests
 
         Assert.True(handled);
         KeeperRoomView portal = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == type);
-        Assert.Equal<PlayerCommand>([new PickUpCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(portal))], commands);
+        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(portal))], commands);
     }
 
     [Fact]

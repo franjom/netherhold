@@ -58,7 +58,7 @@ public class DroppedToDoJobTests
     /// <summary>The drop, then the stun it lands in (76 to 255, ADR-0226), then 257's room drop.</summary>
     private static void DropOnTheBench(GameSimulation sim, CreatureState creature)
     {
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Bench)));
         sim.Tick();
         Assert.Equal(255, creature.Dk2StateId);

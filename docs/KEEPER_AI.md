@@ -1072,7 +1072,7 @@ methods on `KeeperAI` rather than a separate type.
 | Original action (§4) | Command today | Gap |
 |---|---|---|
 | 40 tag / 41 untag | `TagTilesCommand` | none |
-| pick up / drop creature | `PickUpCreatureCommand`, `DropCommand` | none. There is one drop command, not one per kind, because DK2 has a single drop handler that takes only a position and the hand chooses what comes out (ADR-0075) |
+| pick up / drop creature | `TakeCreatureCommand` (the computer keeper's direct lift, ADR-0731), `DropCommand` | none. There is one drop command, not one per kind, because DK2 has a single drop handler that takes only a position and the hand chooses what comes out (ADR-0075) |
 | pick up an object: a chicken, minted gold, a Special | `PickUpObjectCommand`, `ActivateSpecialCommand` | action 88 activates Increase Level (117); other Special effects remain unimplemented (`specials.md`) |
 | 62 slap | `SlapCreatureCommand` | none |
 | place room tile by tile | one `BuildRoomCommand` per tile | The command lacks DK2's payment-bypass mode when gold falls below one tile's price (handler research section 6). |

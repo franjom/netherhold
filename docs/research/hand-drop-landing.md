@@ -71,10 +71,9 @@ keeper AI's own drops pass height 0 and the tile's centre plus 0x100
 turn count from the centre, which no capture confirms.
 
 With it the four Warlocks dropped at 1688 to 1693 stand on DK2's points and
-enter 255 and 257 on DK2's turns. Two then differ by one turn entering the
-fight, which is Q712's next lead: 438 engages at 1701 where DK2's does at
-1702, and DK2's 441 is in 199 at 1704 without the facing step, where ours
-ends the full Getup hold, steps and engages at 1705.
+enter 255 and 257 on DK2's turns. The two that then entered the fight a turn
+off were the pick-up's turn and the fight scan's order (ADR-0731,
+[hand-pickup-turn.md](hand-pickup-turn.md)).
 
 The evil worker's landing art is already correct in our view: its `idle`
 key resolves to catalogue index 19 (native slot 20). Other creatures use

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 459;
+    private const int FormatVersion = 460;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -238,6 +238,8 @@ public static class WorldSnapshot
             w.Write(p.HeroesDestroyed);
             w.Write(p.SlapCount);
             w.Write(p.PossessedCreatureId);
+            w.Write(p.PendingLiftCreatureId);
+            w.Write(p.PendingLiftTick);
             w.Write(p.ResearchPoints);
             w.Write(p.ResearchTarget);
             w.Write(p.NextFreeImpTick.Value);
@@ -1064,6 +1066,8 @@ public static class WorldSnapshot
                 HeroesDestroyed = r.ReadInt32(),
                 SlapCount = r.ReadInt32(),
                 PossessedCreatureId = r.ReadInt32(),
+                PendingLiftCreatureId = r.ReadInt32(),
+                PendingLiftTick = r.ReadInt64(),
                 ResearchPoints = r.ReadInt32(),
                 ResearchTarget = r.ReadInt32(),
                 NextFreeImpTick = new GameTick(r.ReadInt64()),

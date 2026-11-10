@@ -76,7 +76,7 @@ public class TortureTests
 
     private static void Carry(GameSimulation sim, CreatureState creature, TilePos to)
     {
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, to)));
         sim.Tick();
     }

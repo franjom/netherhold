@@ -32,7 +32,7 @@ public class DropLandingTests
         int stun = SimulationTiming.TicksFromSeconds((int)db.CreatureById(GoblinId).StunDuration.ToDouble());
         Assert.Equal(11, DropLandingRules.GetUpTicks(db.CreatureById(GoblinId)));
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         goblin.StateDeadlineTick = sim.World.CurrentTick.Value - 1000;
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         sim.Tick();
@@ -84,7 +84,7 @@ public class DropLandingTests
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
         var point = new FpPosition2(new Fp32((Floor.X * Fp32.One) + 700), new Fp32((Floor.Y * Fp32.One) + 3100));
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor, 0, point)));
         Assert.True(goblin.LandingPending);
         Assert.False(goblin.InHand);
@@ -113,7 +113,7 @@ public class DropLandingTests
         (GameDatabase db, WorldState world) = World();
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor, 0,
             new FpPosition2(new Fp32((Floor.X + 3) * Fp32.One), new Fp32(Floor.Y * Fp32.One)))));
         Assert.True(goblin.InHand);
@@ -129,7 +129,7 @@ public class DropLandingTests
         (GameDatabase db, WorldState world) = World();
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         Assert.True(goblin.LandingPending);
 
@@ -159,7 +159,7 @@ public class DropLandingTests
             : InputFrame.Of(new DropCommand(Keeper, Floor)));
         if (!lifted) goblin.Health = 0;
 
-        sim.Tick();
+        sim.Run(lifted ? 2 : 1);
 
         Assert.False(goblin.LandingPending);
         Assert.Equal(lifted, goblin.InHand);
@@ -190,7 +190,7 @@ public class DropLandingTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         sim.Tick();
         long stunnedOn = sim.World.CurrentTick.Value - 1;
@@ -217,7 +217,7 @@ public class DropLandingTests
         captive.PrisonOwnerPlayerId = Keeper;
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         sim.Tick();
 
@@ -248,6 +248,7 @@ public class DropLandingTests
             [new HandSystem { StoredCommandPickups = true }, new CreatureStatusSystem(), new CreatureMovementSystem(), new CreatureJobSystem()]);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, foreign.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(foreign.InHand);
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         sim.Tick();

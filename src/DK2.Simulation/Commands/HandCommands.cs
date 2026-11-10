@@ -23,6 +23,19 @@ public sealed record PickUpCreatureCommand(PlayerId PlayerId, int CreatureId)
     }
 }
 
+/// <summary>The computer keeper's lift: its routines prepare a creature (<c>0x004BFBD0</c>) and put
+/// it in the hand at once (<c>0x004BC500</c>), with no hand state between, where the cursor's
+/// <see cref="PickUpCreatureCommand"/> waits a turn (ADR-0731). Refused from a network peer.</summary>
+public sealed record TakeCreatureCommand(PlayerId PlayerId, int CreatureId)
+    : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+        hash.Add(CreatureId);
+    }
+}
+
 /// <summary>Lifts a Treasury or Heart tile's store pile (Gold Pile 1) into the hand, by tile: ours
 /// keeps a store tile's gold in the tile (ADR-0015), so the pile has no object id until it is
 /// lifted. DK2's action 59 names the object (<c>0x005135B0</c>) and hand state 2 lifts it whole

@@ -148,7 +148,7 @@ public sealed class KeeperMoodRemedies
     private bool Lift(KeeperCreatureView creature)
     {
         if (!creature.PickupPermitted) return false;
-        _commands.Add(new PickUpCreatureCommand(_view.PlayerId, creature.Id));
+        _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
         return creature.CanPickUp;
     }
 

@@ -18,7 +18,7 @@ public sealed class PortalDropTests
         creature.DroppedToDoJob = JobType.Train;
         sim.World.Player(PlayerIds.FirstKeeper).EntranceInfo.Add(new(7, 0, 0));
         creature.GoldHeld = 350;
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(PlayerIds.FirstKeeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(PlayerIds.FirstKeeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(PlayerIds.FirstKeeper, new TilePos(6, 6))));
         sim.Tick();
         Assert.Equal(197, creature.Dk2StateId);
@@ -42,11 +42,11 @@ public sealed class PortalDropTests
     {
         var (sim, goblin, _) = Setup();
         var imp = sim.World.SpawnCreature(sim.Database, 1, PlayerIds.FirstKeeper, new TilePos(4, 4));
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(PlayerIds.FirstKeeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(PlayerIds.FirstKeeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(PlayerIds.FirstKeeper, new TilePos(6, 6))));
         Assert.True(imp.InHand);
         Assert.NotEqual(197, imp.Dk2StateId);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(PlayerIds.FirstKeeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(PlayerIds.FirstKeeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(PlayerIds.FirstKeeper, new TilePos(5, 5))));
         Assert.False(goblin.InHand);
         Assert.NotEqual(197, goblin.Dk2StateId);

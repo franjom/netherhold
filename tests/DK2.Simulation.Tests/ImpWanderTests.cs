@@ -132,6 +132,7 @@ public class ImpWanderTests
         imp.WorkerIdle = true;
         var sim = new GameSimulation(db, world, 11, [new HandSystem()]);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(imp.InHand);
         Assert.True(imp.WorkerIdle);
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(7, 6))));

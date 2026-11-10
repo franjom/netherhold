@@ -42,6 +42,7 @@ public class CommandCodecTests
         new DropCommand(P, T),
         new SlapCreatureCommand(P, 44),
         new MintWageCommand(P, 45),
+        new TakeCreatureCommand(P, 46),
         new CastSpellAtPlaceCommand(P, 9, 1_000, 2_000, 0x0102),
         new CastSpellOnCreatureCommand(P, 10, 46, 0x0201),
         new RemoveCallToArmsCommand(P),

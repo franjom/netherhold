@@ -247,7 +247,7 @@ public sealed class StructureBlocksTests
         var sim = new GameSimulation(db, world, 42, [new HandSystem(), new CreatureStatusSystem(), new CreatureJobSystem()]);
         sim.ObserveWith(events);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(6, 6))));
         sim.Tick();
         Assert.Equal(197, goblin.Dk2StateId);
@@ -279,7 +279,7 @@ public sealed class StructureBlocksTests
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.ObserveWith(events);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(5, 5))));
         sim.Tick();
 
@@ -308,7 +308,7 @@ public sealed class StructureBlocksTests
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.ObserveWith(events);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(6, 6))));
 
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
@@ -336,7 +336,7 @@ public sealed class StructureBlocksTests
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.ObserveWith(events);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(3, 3))));
 
         Assert.Contains(world.Creatures, c => c.Id == imp.Id);
@@ -350,7 +350,7 @@ public sealed class StructureBlocksTests
         Assert.Equal(new TilePos(9, 6), imp.Tile);
         Assert.False(imp.InHand);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
         sim.Tick();
 
@@ -380,7 +380,7 @@ public sealed class StructureBlocksTests
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.ObserveWith(events);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
 
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
@@ -407,7 +407,7 @@ public sealed class StructureBlocksTests
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.ObserveWith(events);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
 
         Assert.Contains(world.Creatures, c => c.Id == imp.Id);
@@ -432,7 +432,7 @@ public sealed class StructureBlocksTests
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.ObserveWith(events);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(6, 6))));
 
         Assert.Contains(world.Creatures, c => c.Id == captive.Id);

@@ -469,7 +469,7 @@ public class PrisonTests
         CreatureState captive = Prisoner(db, world, CellB);
 
         GameSimulation sim = Simulation(db, world);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(2, 7))));
 
         Assert.DoesNotContain(world.Creatures, c => c.Id == captive.Id);
@@ -827,6 +827,7 @@ public class PrisonTests
 
         GameSimulation sim = Simulation(db, world);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
 
         Assert.True(captive.InHand);
         Assert.Equal([HandItem.Of(captive)], world.Player(Keeper).Hand);
@@ -926,7 +927,7 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, CellC)));
         sim.Tick();
 
@@ -951,7 +952,7 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         sim.Tick();
 
@@ -1811,12 +1812,12 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, CellC)));
         sim.Tick();
         Assert.Equal(CreatureStateCategory.Prison, CreatureStateMachine.UpdatingCategory(captive));
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         sim.Tick();
         Assert.Equal(255, captive.Dk2StateId);

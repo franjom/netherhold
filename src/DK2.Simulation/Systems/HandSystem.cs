@@ -13,8 +13,8 @@ namespace DK2.Simulation.Systems;
 /// two clocks that holding and slapping start.</summary>
 /// <remarks>
 /// <para>Runs before anything a creature does of its own accord, so a creature
-/// picked up this tick takes no step and one dropped onto marked work can start
-/// on it at once. DK2's own order is UNKNOWN (the standing caveat on
+/// being lifted this tick (state 75, in the hand a turn later, ADR-0731) takes no step and
+/// one dropped onto marked work can start on it at once. DK2's own order is UNKNOWN (the standing caveat on
 /// <see cref="ISimulationSystem"/>); this order is declared, not inferred.</para>
 /// <para>Evidence, addresses and open questions: docs/research/hand-of-evil.md.
 /// Decisions: ADR-0062.</para>
@@ -52,11 +52,22 @@ public sealed class HandSystem : ISimulationSystem
             if (creature.LandingPending) _landing.Add(creature);
         foreach (CreatureState creature in _landing) Land(context, creature);
 
+        // Hand state 1 lasts one turn: last turn's keeper frame (0x004C0AA0), after the creatures, took
+        // a creature prepared the turn before.
+        long now = context.Tick.Value;
+        for (int i = 0; i < context.World.PlayerCount; i++)
+        {
+            ref PlayerState keeper = ref context.World.PlayerAtIndex(i);
+            if (keeper.PendingLiftCreatureId != 0 && now - keeper.PendingLiftTick >= 2)
+                CompleteLift(context, keeper.PlayerId, now - 1);
+        }
+
         foreach (PlayerCommand command in context.Input.All)
         {
             switch (command)
             {
-                case PickUpCreatureCommand pick: PickUp(context, pick, StoredCommandPickups); break;
+                case PickUpCreatureCommand pick: PickUp(context, pick.PlayerId, pick.CreatureId, StoredCommandPickups, direct: false); break;
+                case TakeCreatureCommand take: PickUp(context, take.PlayerId, take.CreatureId, StoredCommandPickups, direct: true); break;
                 case PickUpObjectCommand lift: PickUpObject(context, lift); break;
                 case PickUpStoreGoldCommand store: PickUpStoreGold(context, store); break;
                 case DropCommand drop: Drop(context, drop); break;
@@ -79,6 +90,7 @@ public sealed class HandSystem : ISimulationSystem
         if (taken <= 0) return;
         ObjectState pile = world.SpawnObject(database, FloorGold.TreasuryPileObjectId, PlayerIds.Neutral, 0);
         pile.GoldHeld = taken;
+        LeaveHandState(context, command.PlayerId);   // 0x00513D85, once the pile exists
         pile.InHand = true;
         hand.Add(HandItem.Of(pile));
         context.Emit(SystemName, "counter_gold_withdrawn",
@@ -123,11 +135,16 @@ public sealed class HandSystem : ISimulationSystem
 
     // ---------------------------------------------------------------- pick up
 
-    private static void PickUp(SimulationContext context, PickUpCreatureCommand command, bool stored)
+    /// <summary>The pick-up's first step. The cursor's action enters hand state 1 for any live creature
+    /// (<c>0x00513480</c>), which leaves a state still pending first; the computer keeper's routines go
+    /// straight on to the insert (<paramref name="direct"/>).</summary>
+    private static void PickUp(SimulationContext context, PlayerId playerId, int creatureId, bool stored, bool direct)
     {
         WorldState world = context.World;
-        CreatureState? creature = world.CreatureById(command.CreatureId);
-        if (creature is null) return;
+        CreatureState? creature = world.CreatureById(creatureId);
+        if (creature is null || !world.HasPlayer(playerId)) return;
+        LeaveHandState(context, playerId);
+        var command = new PickUpCreatureCommand(playerId, creatureId);
 
         if (stored ? !HandRules.StoredPickupAccepts(creature)
             : !HandRules.HasPickupPermission(world, context.Database, creature, command.PlayerId))
@@ -152,6 +169,53 @@ public sealed class HandSystem : ISimulationSystem
         if (prepared || creature.Activity == CreatureActivity.BeingLifted)
             ThingSoundRules.RequestUnvoiced(context, SystemName, creature, ThingSoundEvent.PickedUp,
                 new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)));
+        // Leaving its state lets go of the job and the load, and the creature stops where it stands
+        // (0x004C0BE0); 75 replaces a landing still pending.
+        DropLoad(context, creature);
+        TortureRules.Unstrap(context.Hooks, creature);
+        CombatPitRules.Unmark(world, creature);   // 0x004BFBD0 clears the fight and Pit marks
+        creature.ClearJob();
+        TrainingStep.CancelAction(creature);
+        creature.Body.Vel = Steering.Fixed16Vector.Zero;
+        if (creature.LandingPending)
+        {
+            creature.LandingPending = false;
+            creature.PosZ = creature.LastPosZ = 0;
+        }
+        // Hand state 1 is entered; its exit callback (0x004C0EA0) is the insert.
+        ref PlayerState keeper = ref world.Player(command.PlayerId);
+        keeper.PendingLiftCreatureId = creature.Id;
+        keeper.PendingLiftTick = context.Tick.Value;
+        context.Emit(SystemName, "lift_prepared", $"player={command.PlayerId} creature={creature.Id}");
+        if (direct) CompleteLift(context, playerId, context.Tick.Value);
+    }
+
+    /// <summary>Entering a hand state leaves the current one first (<c>0x004C09F0</c>, <c>0x004C0B50</c>):
+    /// a lift still pending is taken. Each action enters a state only once its own test has passed, so
+    /// the callers run this after that test.</summary>
+    private static void LeaveHandState(SimulationContext context, PlayerId playerId) =>
+        CompleteLift(context, playerId, context.Tick.Value);
+
+    /// <summary>Hand state 1's exit (<c>0x004C0EA0</c>, <c>Hand_PickUp</c> <c>0x004BC500</c>): the prepared
+    /// creature enters the hand, stamped with the turn DK2 took it. Its own refusals are tested here, not
+    /// at the command. A creature that left state 75 meanwhile is still taken (78's kick is not modelled).</summary>
+    private static void CompleteLift(SimulationContext context, PlayerId playerId, long pickupTick)
+    {
+        WorldState world = context.World;
+        ref PlayerState keeper = ref world.Player(playerId);
+        int id = keeper.PendingLiftCreatureId;
+        if (id == 0) return;
+        keeper.PendingLiftCreatureId = 0;
+        keeper.PendingLiftTick = 0;
+        CreatureState? creature = world.CreatureById(id);
+        if (creature is null) return;
+        var command = new PickUpCreatureCommand(playerId, id);
+        if (!HandRules.StoredPickupAccepts(creature))
+        {
+            context.Emit(SystemName, "pickup_refused",
+                $"player={playerId} creature={id} held={keeper.Hand.Count} reason=state");
+            return;
+        }
         if (world.Player(command.PlayerId).Hand.Count >= HandRules.Capacity(context.Database))
         {
             context.Emit(SystemName, "pickup_refused",
@@ -183,7 +247,7 @@ public sealed class HandSystem : ISimulationSystem
         CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
 
         creature.InHand = true;
-        creature.PickupTick = context.Tick.Value;
+        creature.PickupTick = pickupTick;
         world.Player(command.PlayerId).Hand.Add(HandItem.Of(creature));
 
         context.Emit(SystemName, "picked_up",
@@ -199,7 +263,8 @@ public sealed class HandSystem : ISimulationSystem
     {
         WorldState world = context.World;
         ObjectState? thing = world.ObjectById(command.ObjectId);
-        if (thing is null) return;
+        if (thing is null || !world.HasPlayer(command.PlayerId)) return;
+        LeaveHandState(context, command.PlayerId);
 
         if (!HandRules.CanPickUpObject(world, context.Database, thing, command.PlayerId))
         {
@@ -238,6 +303,8 @@ public sealed class HandSystem : ISimulationSystem
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        if (world.HasPlayer(command.PlayerId) && world.Contains(command.Tile) && world.Tile(command.Tile.X, command.Tile.Y).GoldHeld > 0)
+            LeaveHandState(context, command.PlayerId);
         if (!HandRules.CanPickUpStoreGold(world, database, command.Tile, command.PlayerId))
         {
             context.Emit(SystemName, "store_gold_pickup_refused",
@@ -304,7 +371,10 @@ public sealed class HandSystem : ISimulationSystem
     {
         WorldState world = context.World;
         List<HandItem> hand = world.Player(command.PlayerId).Hand;
+        // The drop action tests the hand's count before it enters its state (0x00513661): with only a
+        // lift pending it does nothing, and the keeper's frame takes the creature.
         if (hand.Count == 0) return;
+        LeaveHandState(context, command.PlayerId);
 
         if (command.Position is FpPosition2 position && position.Tile != command.Tile)
         {
@@ -721,6 +791,7 @@ public sealed class HandSystem : ISimulationSystem
         WorldState world = context.World;
         CreatureState? creature = world.CreatureById(command.CreatureId);
         if (creature is null) return;
+        if (world.HasPlayer(command.PlayerId)) LeaveHandState(context, command.PlayerId);
 
         if (!HandRules.CanSlap(context.Database, creature, command.PlayerId))
         {

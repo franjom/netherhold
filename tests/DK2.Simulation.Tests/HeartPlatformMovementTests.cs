@@ -133,7 +133,7 @@ public sealed class HeartPlatformMovementTests
         var (db, world, steering, _) = Setup(new TilePos(2, 6));
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         var hand = new GameSimulation(db, world, 5, [new HandSystem()]);
-        hand.Tick(InputFrame.Of(new Commands.PickUpCreatureCommand(PlayerIds.FirstKeeper, imp.Id)));
+        hand.Tick(InputFrame.Of(new Commands.TakeCreatureCommand(PlayerIds.FirstKeeper, imp.Id)));
         hand.Tick(InputFrame.Of(new Commands.DropCommand(PlayerIds.FirstKeeper, new TilePos(x, y))));
         hand.Tick();
         Assert.Equal(new TilePos(x, y), imp.Tile);

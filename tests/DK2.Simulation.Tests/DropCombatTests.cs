@@ -27,12 +27,13 @@ public class DropCombatTests
         CreatureState creature = world.SpawnCreature(db, type, Keeper, new TilePos(7, 10));
         DoorState door = world.Doors[0];
         var combat = new CombatSystem();
+        var status = new CreatureStatusSystem();
         var sim = new GameSimulation(db, world, 7,
-            [new HandSystem(), new CreatureUpdateSystem(combat, new CreatureStatusSystem(), combat.States,
+            [new HandSystem(), new CreatureUpdateSystem(combat, status, combat.States, status.Recovery,
                 new CreatureMovementSystem()), new ShotSystem(), new DoorRemovalSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Landing)));
         sim.Tick();
         if (type == Dk2TerrainFixture.ImpCreatureId)
@@ -104,7 +105,7 @@ public class DropCombatTests
         Assert.True(DisposalRules.Disposes(world, db, db.CreatureById(Dk2TerrainFixture.ImpCreatureId), Landing, Keeper));
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 10));
         var sim = new GameSimulation(db, world, 7, [new HandSystem()]);
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Landing)));
         sim.Tick();
         Assert.False(imp.InHand);

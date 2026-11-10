@@ -266,6 +266,7 @@ public class TorturerTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, victim.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(HandRules.IsHeld(victim));
         sim.Run(15 * SimulationTiming.TicksPerSecond);
 

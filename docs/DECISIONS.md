@@ -17088,3 +17088,24 @@ creature does not act, but is not in the hand.
 command's encoding is unchanged: it already carried the point. Recorded
 journals move; the Level 1 win journal is re-recorded. The keeper AI's drops
 get the same fall although DK2 passes them no height (unconfirmed deviation).
+## ADR-0731 - take a prepared creature into the hand a turn after the pick-up
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** creatures, combat, simulation-core
+
+**Context.** `hand-pickup-turn.md`: DK2's pick-up puts the creature in state
+75 and the hand takes it before the keeper's next hand command, or a turn
+later. Until then its fight scan counts. The scan also precedes the state
+handler, so the turn a stun ends has no count. Ours inserted at once and ran
+the stun's handlers before the scan; dropped creatures fought a turn off.
+
+**Decision.** The pick-up prepares and records a pending lift on the keeper;
+`HandSystem.CompleteLift` inserts it before that keeper's next hand command or
+at the start of the second tick after; a command leaves the pending state
+only once it passes DK2's own test, so a drop with nothing else held does
+nothing. The computer keeper's routines insert directly in DK2, so they issue
+a new `TakeCreatureCommand`. The handlers of 255, 256 and 257 move to
+`CreatureStatusSystem.Recovery`, after the combat states.
+
+**Consequences.** Hash/save 460 adds the pending lift and its turn. The
+pick-up's encoding is unchanged; the take is codec kind 36 and refused from a
+peer. The hand's refusals are tested at the insert.
+Recorded journals move; the Level 1 win journal is re-recorded.

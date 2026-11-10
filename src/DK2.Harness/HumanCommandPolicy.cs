@@ -82,6 +82,7 @@ public static class HumanCommandPolicy
         [typeof(MovePossessedCreatureCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(GrantCreatureLevelCommand)] = HumanCommandClass.ComputerKeeperOnly,
         [typeof(MintWageCommand)] = HumanCommandClass.ComputerKeeperOnly,
+        [typeof(TakeCreatureCommand)] = HumanCommandClass.ComputerKeeperOnly,
     };
 
     /// <summary>True when a human could issue this command in ordinary play: its type is

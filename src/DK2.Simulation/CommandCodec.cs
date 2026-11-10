@@ -34,6 +34,7 @@ public static class CommandCodec
                 else { w.Write(c.At.HasValue); if (c.At is TilePos at) Tile(w, at); }
                 break;
             case PickUpCreatureCommand c: Head(w, 5, c); w.Write(c.CreatureId); break;
+            case TakeCreatureCommand c: Head(w, 36, c); w.Write(c.CreatureId); break;
             case PickUpObjectCommand c: Head(w, 6, c); w.Write(c.ObjectId); break;
             case PickUpStoreGoldCommand c: Head(w, 7, c); Tile(w, c.Tile); break;
             case DropCommand c:
@@ -110,6 +111,7 @@ public static class CommandCodec
                 ? new CreateImpCommand(player, ReadPosition(r))
                 : new CreateImpCommand(player, r.ReadBoolean() ? ReadTile(r) : null),
             5 => new PickUpCreatureCommand(player, r.ReadInt32()),
+            36 => new TakeCreatureCommand(player, r.ReadInt32()),
             6 => new PickUpObjectCommand(player, r.ReadInt32()),
             7 => new PickUpStoreGoldCommand(player, ReadTile(r)),
             8 => new DropCommand(player, ReadTile(r), r.ReadInt32(), r.ReadBoolean() ? ReadPosition(r) : null),

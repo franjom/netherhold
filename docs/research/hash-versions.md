@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**460** - `0x2AA60539641315F9`. A pick-up prepares the creature and the hand takes it a turn later: the keeper's pending lift and its turn are hashed and saved; the stun's handlers run after the fight scan (ADR-0731). Earlier saves are refused.
+
 **459** - `0xB393AD51151259B0`. A hand drop falls for its turn and lands on the next: the pending landing and the dropping player are hashed, copied and saved (ADR-0730). Earlier saves are refused.
 
 **458** - `0x373E8ECA6121DF76`. A shot carries its height above the floor and a vertical velocity, hashed, copied and saved; the possessed picks read thing heights in the pose's frame and a possessed move stores height above the floor (ADR-0728). A creature's three-valued speed mode replaces the running flag (ADR-0729). Earlier saves are refused.

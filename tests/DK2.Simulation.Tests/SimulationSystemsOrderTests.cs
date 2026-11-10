@@ -43,6 +43,7 @@ public class SimulationSystemsOrderTests
             "CreatureUpdateSystem/PaydaySystem",
             "CreatureUpdateSystem/CreatureAngerSystem",
             "CreatureUpdateSystem/StateHandlers",
+            "CreatureUpdateSystem/RecoveryStep", // the stun states 255-257, after the fight scan.
             "CreatureUpdateSystem/TremorCreatureSystem",
             "CreatureUpdateSystem/ReaperSystem",
             "CreatureUpdateSystem/FinaleSystem",
