@@ -30,8 +30,8 @@ does, and the gates that keep it true. It is written before any network code exi
 3. **Transferred content:** maps, mods and saves received from a peer are untrusted files,
    parsed by the same readers as local files (`WadArchive`, `KwdReader`, `TqiDecoder`, ...).
 4. **Client to backend:** the backend trusts nothing the client says about itself.
-5. **Peer state:** a snapshot from a peer (rejoin, resync) and a state hash a peer reports are
-   claims, accepted only when they agree with the majority.
+5. **Peer state:** a state hash a peer reports is a claim. No machine ever loads another
+   machine's snapshot; rejoin and resync replay the journal locally.
 
 ## STRIDE
 
@@ -43,7 +43,9 @@ does, and the gates that keep it true. It is written before any network code exi
 | **T**ampering | cheat or AI-only command from a human peer | R4: network allow-list of command tags |
 | **T**ampering | modified packets in flight | R7: authenticated, encrypted transport |
 | **T**ampering | forged possession pose (teleport, speed hack) | R4: refused until R3 validates a pose |
-| **T**ampering | alliance forced on a player who did not agree | R3: consent checked in the simulation |
+| **T**ampering | alliance forced on a player who did not agree | R4: refused until R3 models DK2's offers |
+| **T**ampering | resync or rejoin snapshot crafted by a peer | R6: never loaded; journal replay only |
+| **T**ampering | different or edited game data on one machine | R6: data fingerprints compared before start |
 | **R**epudiation | loser disputes a result | R6: hashed input journal per match, kept by the relay |
 | **R**epudiation | peer reports wrong hashes to force resyncs | R6: consensus; a peer that keeps disagreeing is dropped |
 | **I**nformation disclosure | map hack (whole state on every client) | accepted for lockstep (R9) |
@@ -52,7 +54,7 @@ does, and the gates that keep it true. It is written before any network code exi
 | **D**enial of service | malicious map crashes a peer at load | R5: file parsers fuzzed, transfer verified |
 | **D**enial of service | command flood, faked lag | R1 rate limits, R6 turn deadlines |
 | **D**enial of service | a command that throws in its handler, on every peer alike | R3: handlers never throw; a failing command is dropped deterministically |
-| **D**enial of service | hostile snapshot at rejoin | R1: `WorldSnapshot.Read` bounded and fuzzed |
+| **D**enial of service | hostile local save or checkpoint | R1: `WorldSnapshot.Read` bounded and fuzzed |
 | **E**levation of privilege | code execution through deserialization | R1: no polymorphic or reflective deserialization |
 | **E**levation of privilege | path traversal from a transferred file name | R5: never use a path from the wire |
 
@@ -96,18 +98,22 @@ does, and the gates that keep it true. It is written before any network code exi
 - **Gap, R3 (possession):** `PossessionRules.Move` installs any position and heading, with no
   speed, wall or bounds check (`PossessionRules.Movement.cs`). Validation must still allow the
   Creature Teleport form, which has no speed bound.
-- **Gap, R3 (alliances):** `AllianceSystem` writes both players' alliance bits from one
-  player's `SetAllianceCommand`, so making an alliance needs no consent. DK2 has an offer array
+- **Gap, R3 (alliances), mitigated by R4:** `SetAllianceCommand` is refused from peers.
+  `AllianceSystem` writes both players' alliance bits from one player's command, so making an
+  alliance needs no consent. DK2 has an offer array
   (`player+0x1B6`, action 118) and its HUD sends "make" only to accept a pending offer, but
   the make handler (`0x00513FF0`) checks nothing. The fix models offers and lets make succeed
   only when the target's offer to the issuer stands, which refuses only what DK2's own HUD
   never sends.
-- **Gap, R6 (computer keepers):** `KeeperAIState` and each keeper's random generator are outside
-  the snapshot and the hash, so rejoin, resync and replays cannot reproduce them yet.
+- **Gap, R6 (computer keepers):** `KeeperAIState`, each keeper's generator, `KeeperStaging`,
+  `_directionsFixed` and the history-dependent `KeeperRouteCache` are outside the snapshot and
+  the hash, so a reloaded match cannot reproduce them yet.
+- **Gap, R6 (game data):** the hash and the snapshot leave out the database and level data, so
+  two machines with different data desync silently. Needs a data fingerprint.
 - **Gap, R1 (snapshots):** `WorldSnapshot.Read` is not fuzzed; it bounds the grid only by
   `width*height <= int.MaxValue`.
-- **Gap, determinism:** CI proves Linux and Windows hash alike under CoreCLR; nothing yet compares
-  a Unity IL2CPP build.
+- **Gap, determinism:** CI compares Linux and Windows hashes under CoreCLR on synthetic content
+  only (`DK2_DIR=/nonexistent`); no real map, no keeper run and no IL2CPP build is compared.
 
 ## Gates
 
@@ -131,8 +137,9 @@ does, and the gates that keep it true. It is written before any network code exi
    commands and enforces deadlines; a departed keeper is handed to the computer keeper.
 3. **Game data:** we may not distribute DK2's data, so no server we run simulates. The relay
    is a data-free broker; a player who owns DK2 may self-host an overseer that simulates.
-4. **Desync:** settled by consensus (ADR-0724 R6). Two-player matches resync one side and end as
-   no contest after repeated desync.
+4. **Desync:** detected by hashes and repaired by local journal replay; never by loading another
+   machine's state. A machine still diverged after replay forks against computer keepers and the
+   match is no contest (ADR-0724 R6).
 5. **Ranked:** not at launch. Without a server-side simulation it would need consensus plus
    reports, or self-hosted overseers.
 6. **Mods:** original maps plus hash- and size-verified custom maps. Arbitrary mods wait for

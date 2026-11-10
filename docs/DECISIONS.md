@@ -16942,8 +16942,8 @@ is `docs/plans/2026-11-09-multiplayer-threat-model.md`; the netcode plan is
 
 **Decision.** Steam is the platform: SDR transport, Steam lobbies, login tickets verified
 server-side. No player hosts. The official relay is a broker: it orders commands, owns the
-turn clock, enforces deadlines, compares state hashes, stores input journals and forwards
-snapshots. It never loads game data or simulates. It is one program of our own, built on the
+turn clock, compares state hashes and data fingerprints, and stores input journals. It never
+loads game data, simulates or carries world state. It is one program of our own, built on the
 Steamworks game-server API (tickets checked by the relay; no Web API key in any client), hosted
 by us in a few regions, and runnable by anyone for private, LAN or community games (owner,
 2026-11-10). Every network feature obeys:
@@ -16957,13 +16957,13 @@ by us in a few regions, and runnable by anyone for private, LAN or community gam
 - **R4 allow-list.** Only human-issuable, validated commands cross the network (`PeerCommands`).
 - **R5 content.** Original maps, plus custom maps verified against a relay-checked hash and a
   size limit. Paths never come from a file. Arbitrary mods wait for fuzzed parsers.
-- **R6 turns, desync, departure.** Commands apply on a turn the relay sets, with an input delay
-  adapted to the peers. Every machine runs the computer keepers; their state is in the snapshot
-  and the hash, and the journal records the merged frame. A departed keeper is handed to the
-  computer keeper on an announced tick (owner, 2026-11-09). Desync is settled by consensus:
-  with three or more peers the majority's snapshot resyncs the rest; with two, one side is
-  resynced and repeated desync ends the match as no contest. A snapshot from a peer is untrusted
-  input and is accepted only if the loader's next hash matches the majority.
+- **R6 turns, desync, departure.** The relay puts each command in the turn open when it arrives;
+  there is no shared input delay. Every machine runs the computer keepers; their whole state is
+  in the snapshot and the hash, and the journal records the merged frame. A departed keeper gets
+  a caretaker for the rejoin window, then the computer keeper (owner, 2026-11-09). **No machine
+  loads another's state:** rejoin and resync replay the journal locally, checked against the
+  agreed hashes. A machine still diverged after replay forks against computer keepers and the
+  match is no contest. Peers must match on a fingerprint of every data input before start.
 - **R7 transport.** Steam's authenticated, encrypted SDR. No custom crypto, no peer IP addresses.
 - **R8 backend.** Identity only from verified tickets; no secrets in the client. Unranked: with
   no server-side simulation, ranked play would need consensus plus reports.
