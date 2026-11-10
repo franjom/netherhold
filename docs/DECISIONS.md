@@ -16960,8 +16960,12 @@ by us in a few regions, and runnable by anyone for private, LAN or community gam
   in the snapshot and the hash, and the journal records the merged frame. A departed keeper gets
   a caretaker for the rejoin window, then the computer keeper (owner, 2026-11-09). **No machine
   loads another's state:** rejoin and resync replay the journal locally, checked against the
-  agreed hashes. A machine still diverged after replay forks against computer keepers and the
-  match is no contest. Peers must match on a fingerprint of every data input before start.
+  agreed hashes. A machine still diverged after replay forks against computer keepers; with
+  three or more players the majority continues with that slot on the caretaker, with two the
+  match is no contest. Commits carry a chained hash; a new relay instance resumes from the
+  longest prefix every client holds and drops the tail. A prefix more than N turns short makes
+  its client a rejoiner, or, with two players, ends the match as no contest. Peers must match on a fingerprint of the
+  parsed game data before start.
 - **R7 transport.** Steam's authenticated, encrypted SDR. No custom crypto, no peer IP addresses.
 - **R8 backend.** Identity only from verified tickets; no secrets in the client. Unranked: with
   no server-side simulation, ranked play would need consensus plus reports.
@@ -16970,9 +16974,10 @@ by us in a few regions, and runnable by anyone for private, LAN or community gam
   and simulates as an authoritative peer: trusted AI, truth on desync, rejoin from the server.
   The official relay and the overseer speak one protocol.
 
-**Consequences.** Single-player goes through the same session, so its tests exercise R1-R4. The
-Unity (IL2CPP) build must reach the same hashes as CoreCLR; Linux and Windows already do in CI.
-`WorldSnapshot.Read` becomes network-facing and joins the fuzz targets.
+**Consequences.** Single-player goes through the same session, so its tests exercise R1-R4. CI
+compares Linux and Windows hashes on synthetic content only; real data and the Unity (IL2CPP)
+build need a machine with an install. Snapshots stay local (saves and checkpoints), so
+`WorldSnapshot.Read` faces only the player's own files.
 
 ## ADR-0725: the Portal Gem keeps a position: made at its carrier's point, dropped on its tile centre
 

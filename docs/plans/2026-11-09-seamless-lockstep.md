@@ -17,11 +17,23 @@ of work and the exit test for each step. Two critical reviews (2026-11-10) are f
   hashes. A snapshot from a peer would be state injection: in a two-player match the receiver
   would trust its opponent completely, and two colluders outvote one honest player.
 - **Desync.** Hashes detect it and the journal locates it. A machine that still disagrees after
-  replaying the journal has diverged for good: each side continues its own fork against
-  computer keepers, and the match is recorded as no contest. A deliberate wrong hash gains
-  nothing.
-- **Computer keepers run on every machine.** Their whole state, including routing caches, joins
-  the snapshot and the hash. No machine may act for another keeper.
+  replaying the journal has diverged for good and continues alone, its own fork against
+  computer keepers. With three or more players the majority's match goes on, with the diverged
+  slot on the caretaker. With two players, or a 2-2 split, there is no majority: both fork and
+  the match is no contest. A deliberate wrong hash gains nothing.
+- **Nobody supplies the relay's history either.** Every commit carries a hash chained over all
+  earlier commits. A new relay instance resumes from the longest prefix every client holds
+  identically and drops the tail, so no client can add a command in another player's name. A
+  client cannot rewind the match either, because one client's prefix may trail the others' by
+  at most N turns, where N is a little more than the commits a client can honestly miss when a
+  relay dies:
+  - With three or more players, a client more than N turns short is a rejoiner: it gets the
+    caretaker and replays up to the others' common prefix, and does not set the resume point.
+  - With two players or a 2-2 split, a short honest journal cannot be told from a truncated one,
+    nor a long honest one from a forged tail (the chain is unkeyed). If the prefixes differ by
+    more than N turns, both fork and the match is no contest.
+- **Computer keepers run on every machine.** Their whole state, including each keeper's routing
+  locate cache, joins the snapshot and the hash. No machine may act for another keeper.
 - **Self-hosted overseer.** A player who owns DK2 may run a server on their own install that
   simulates as an authoritative peer: trusted AI, truth on desync, rejoin from the server.
 
@@ -54,18 +66,40 @@ of work and the exit test for each step. Two critical reviews (2026-11-10) are f
 - **Known costs:** ADR-0578 measured 1.9 ms per tick for computer keepers and 0.65 ms for the
   state hash on one level under CoreCLR.
 
-## Phase 0: measure (2026-11-10)
+## Phase 0: measure
 
-A `DK2.Tools` benchmark on the largest campaign maps with computer keepers playing, sampled up
-to a few thousand ticks, under CoreCLR and in an IL2CPP player build:
+**CoreCLR results (2026-11-10).** Scenario `scenarios/perf/level11a_keepers_sizing.yaml`: level
+11A, its four computer keepers playing, the human slot idle, 4,800 ticks (20 game minutes),
+about 50 creatures. Release build on a Ryzen 7 7735HS laptop with other work running, so the
+spread between runs is wide; the faster runs are quoted.
 
-- tick time (median, 99th percentile, worst) and allocation per tick;
-- computer keeper `Think` time and allocation per keeper;
-- journal replay speed, simulation only (sets rejoin and resync time);
-- `WorldSnapshot` size and write and read time (local checkpoints only);
-- click-to-world-change latency in the Unity build today, the baseline for phase 2.
+| measure | result | against the 250 ms tick |
+|---|---|---|
+| tick, live with keepers | median 8 ms, 99th percentile 44 to 58 ms, worst 330 to 400 ms on tick 1 and 49 ms after it (speed-budget run) | median 3 %; only the first tick exceeds a whole tick |
+| computer keepers | 4.6 ms a tick for four (about 1.1 ms each) | the largest single cost |
+| allocation | 665 KB a tick (2.6 MB a second), 555 KB of it keeper AI | a GC risk under IL2CPP |
+| journal replay, no AI, hashing every tick | 5 to 6 ms a tick, about 40 to 50 times real time | 20 minutes replays in about 30 s |
+| exact snapshot (`FromBytes`) | 900 KB raw, 40 to 60 KB compressed, write 3 to 4 ms, read 2.5 ms | a checkpoint costs about one tick's median |
+| journal | 128 KB for 20 minutes, AI commands included | human commands alone are far smaller |
 
-These set the minimum machine spec, the checkpoint interval and the rejoin time.
+What follows:
+
+- **Checkpoints are cheap.** Writing one every 30 game seconds costs well under 0.1 ms a tick on
+  average. Rejoin after a crash is a local checkpoint plus seconds of replay; a new machine
+  replays from tick 0 at about 40 times real time (90 s for an hour's match).
+- **Only the first tick is long.** Tick 1 (the first job scans) takes up to 400 ms; the start
+  barrier hides it. After it the worst tick was 49 ms in a clean run, though a busy machine showed
+  one of 390 ms, so phase 4 must not treat one long tick as a slow machine.
+- **The keeper AI is the budget.** It is most of the time and of the allocation, on every
+  machine for every keeper. Reducing its allocation is worth doing before IL2CPP numbers.
+- **Rollback is out.** A tick plus a restore costs about 10 ms, so re-simulating even two ticks
+  inside a 16 ms frame does not fit.
+- **`LoadGame` is not a checkpoint.** It reloads as DK2 loads a save (room chains re-added row by
+  row), so its hash differs by design; checkpoints use `FromBytes`.
+- The snapshot does not yet hold computer keeper state (phase 1), so it will grow.
+
+**Still to measure:** the same run in an IL2CPP player build and on a minimum-spec machine, a
+late-game map with more creatures, and click-to-world-change latency in the Unity build.
 
 ## Phase 1: session layer and determinism, single-player first
 
@@ -78,9 +112,11 @@ These set the minimum machine spec, the checkpoint interval and the rejoin time.
 3. `DungeonRunner` submits instead of filling `_pendingCommands` and takes frames from the
    session. `RevealMapCommand` from the result screen becomes a session action.
 4. **Computer keepers move into the session** and run on every machine:
-   - Their routing becomes history-free: restore the built locate cache before each query, as
-     `KeeperStaging` already can. The rest of their state (`KeeperAIState`, generator, staging,
-     `_directionsFixed`) joins `WorldSnapshot` and the hash (a `HashVersion` bump).
+   - Their state joins `WorldSnapshot` and the hash (a `HashVersion` bump): `KeeperAIState`,
+     the generator, staging, `_directionsFixed`, and each keeper's routing locate cache. The
+     cache's walk is DK2's own (ADR-0486), so it is saved, not reset: behaviour and keeper
+     replays stay as they are, a non-deviation. The route mesh is rebuilt whenever its
+     navigation bytes change, so saving the cache should suffice; verify that, or save the mesh.
    - **Canonical frame order:** human commands by player, then by sender sequence; then computer
      keeper commands by player. The journal records the merged frame.
    - **A slot that began human** never receives the computer keeper's own perks
@@ -93,8 +129,9 @@ These set the minimum machine spec, the checkpoint interval and the rejoin time.
    personality chosen for a slot that had none.
 7. **Diagnosis from the start:** per-subsystem hashes (tiles, creatures, players, generator,
    navigation, computer keepers) and a dump that names the first differing subsystem and entity.
-8. **Data fingerprint:** a hash of every data input the simulation reads (database, level files,
-   tables). Two machines with different fingerprints never start a match together.
+8. **Data fingerprint:** a hash of the parsed values the simulation reads (database, level data,
+   tables), not of file bytes, so differently packaged or localised installs with identical game
+   data still match. Two machines with different fingerprints never start a match together.
 9. **Determinism hardening:** order database iteration explicitly (or prove it is insertion
    order on every runtime); pin the sine table with a checksum test; audit the 13
    `[ThreadStatic]` fields.
@@ -137,8 +174,13 @@ latency, jitter, loss and reordering.
 - **Departure, caretaker and handover** on announced ticks, with equal hashes.
 - **Rejoin by journal replay** from a local checkpoint or tick 0, verified against the agreed
   hashes at every checkpoint, then control returned on an announced tick.
-- **Desync:** a forced divergence is detected, located by the per-subsystem hashes, and ends in
-  the fork-against-computers outcome, in 2, 3, 4 and 2-vs-2 matches.
+- **Desync:** a forced divergence is detected and located by the per-subsystem hashes. In 3 and 4
+  player matches the majority continues with the diverged slot on the caretaker; in 2-player
+  and 2-2 matches both fork and the match is no contest.
+- **Relay resume:** a new relay instance resumes from the clients' longest common chained prefix.
+  A forged tail changes nothing; a truncated journal more than N turns short makes its sender a
+  rejoiner (3+ players) or ends the match as no contest (2 players, 2-2). Fault injection sizes N
+  from the commits a client honestly misses when the relay dies.
 - **Hostile peer (R3):** every allowed command tag fuzzed against random world states, refused
   or applied without throwing, hashes equal.
 - **Rate limits and message caps** on the relay (R1); a peer cannot send a map-sized tile list
@@ -184,9 +226,9 @@ Built to the verdict of phase 2's prototype.
   speed changes that the sender had not seen, so honest players would be clamped. The
   simulation moves the creature from input; the client predicts with the same integer code and
   blends to the confirmed position over about 100 ms when they differ.
-- **Validation (R3)** of whatever the command carries, including the Creature Teleport form,
-  which is allowed only when the simulation's own state says a teleport happened. Only then does
-  the command return to the allow-list.
+- **Validation (R3)** of the movement input (range of each axis, rate). Teleports come from the
+  simulation's own spell, never from the client. Only then does a possession movement command
+  return to the allow-list.
 - **Attacks** start their animation and sound locally; the hit resolves in the simulation.
 - **Headings** are interpolated.
 
@@ -204,8 +246,9 @@ test client gains nothing.
 - **Start barrier:** the first tick waits until every peer has loaded, up to a timeout; a peer
   that never loads starts with the caretaker.
 - **Custom maps** through Steam Workshop rather than transfer between players.
-- **Relay failure:** clients hold the journal and their checkpoints, so a new relay instance
-  resumes the match from the journal by consensus on its hashes.
+- **Relay failure:** a new relay instance resumes from the longest chained-hash prefix every
+  client holds identically, drops the tail, and refuses to let one client's prefix rewind the
+  match by more than N turns (N sized by the spike and phase 3).
 - **Desync reports** carry the per-subsystem diff and the journal, but no world state, so no
   DK2-derived data reaches our servers.
 - **Versions:** the lobby matches only identical builds and fingerprints; old journals replay
@@ -232,7 +275,7 @@ possession verdict could call for it, and it would stay inside the session layer
 ## Risks
 
 - **Computer keeper determinism and cost**, now that every machine runs every keeper and its
-  routing must be history-free.
+  state, routing cache included, must round-trip through the snapshot.
 - **A handover into a dungeon the AI did not build**, tested in phase 1.
 - **IL2CPP versus CoreCLR**, and real data across platforms, which CI cannot hold.
 - **Rejoin time** grows with match length if checkpoints are sparse; phase 0 sizes it.
