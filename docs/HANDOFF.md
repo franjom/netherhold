@@ -25,7 +25,7 @@ questions live in their canonical documents; this file links to them.
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
 The last controlled result (hash 462 with ADR-0734, ordered draws match through
-turn 1723) is in [Q712](research/open-questions.md), with its causes in
+turn 1723 as built) is in [Q712](research/open-questions.md), with its causes in
 [possessed pick heights](research/possessed-pick-heights.md),
 [step-back speed mode](research/step-back-speed-mode.md),
 [the hand drop's fall](research/hand-drop-landing.md) (ADR-0730),
@@ -33,9 +33,9 @@ turn 1723) is in [Q712](research/open-questions.md), with its causes in
 [the fall heading](research/death-fall-heading.md) (ADR-0732) and
 [the drop's heading](research/drop-heading.md) (ADR-0733); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
-[store-gold steering](research/store-gold-steering.md). The next boundary,
-turn 1724 draw 5, is a missing restore input (two Warlocks' lair links at
-1400), described in Q712. Build only behavior supported
+[store-gold steering](research/store-gold-steering.md). With the two Warlocks' 1400 beds restored as a replay input the prefix runs
+through 1755; the next boundary, turn 1756 draw 1 (a hero's first turn in
+state 8), is described in Q712. Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 
 The controlled prefix does not establish full-state or Heart-outcome parity.
