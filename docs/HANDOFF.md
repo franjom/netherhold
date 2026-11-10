@@ -24,11 +24,18 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-[Possessed melee draw](research/possessed-melee-draw.md) owns the last controlled
-result (hash 457, ordered draws match through turn 1685) and its verification;
-[store-gold steering](research/store-gold-steering.md) owns the prefix before it.
-The next boundary, turn 1686, is recorded in [Q712](research/open-questions.md);
-investigate its native caller and guards before proposing another rule. Build only behavior supported
+The last controlled result (hash 462 with ADR-0734, ordered draws match through
+turn 1723) is in [Q712](research/open-questions.md), with its causes in
+[possessed pick heights](research/possessed-pick-heights.md),
+[step-back speed mode](research/step-back-speed-mode.md),
+[the hand drop's fall](research/hand-drop-landing.md) (ADR-0730),
+[the pick-up's turn](research/hand-pickup-turn.md) (ADR-0731),
+[the fall heading](research/death-fall-heading.md) (ADR-0732) and
+[the drop's heading](research/drop-heading.md) (ADR-0733); earlier prefixes are
+[possessed melee draw](research/possessed-melee-draw.md) and
+[store-gold steering](research/store-gold-steering.md). The next boundary,
+turn 1724 draw 5, is a missing restore input (two Warlocks' lair links at
+1400), described in Q712. Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 
 The controlled prefix does not establish full-state or Heart-outcome parity.

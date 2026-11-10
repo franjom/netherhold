@@ -154,7 +154,7 @@ public sealed class KeeperTrainingStep
     /// drop follows only a lift.</summary>
     private void Move(KeeperCreatureView creature, TilePos slot)
     {
-        _commands.Add(new PickUpCreatureCommand(_view.PlayerId, creature.Id));
+        _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
         _prepared.Add(creature.Id);
         if (creature.CanPickUp) _commands.Add(new DropCommand(_view.PlayerId, slot));
     }

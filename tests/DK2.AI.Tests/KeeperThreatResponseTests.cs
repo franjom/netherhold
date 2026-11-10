@@ -55,7 +55,7 @@ public class KeeperThreatResponseTests
         // dispatched through the reinforcement arm. The nearest owned open tile is the attacked
         // tile itself, so DK2 moves nobody and still debits the fighter's threat, retiring it.
         Assert.Equal(message.Id, Assert.Single(commands.OfType<AcknowledgePlayerMessageCommand>()).MessageId);
-        Assert.DoesNotContain(commands, c => c is PickUpCreatureCommand or DropCommand);
+        Assert.DoesNotContain(commands, c => c is TakeCreatureCommand or DropCommand);
         Assert.True(keeper.State.FightGoingOn);
         Assert.True(keeper.State.HaveBeenAttacked);
         Assert.Equal(Hero, keeper.State.AttackingPlayerId);
@@ -143,7 +143,7 @@ public class KeeperThreatResponseTests
         // moves add 50 and the event retires at zero, ending the tick's allowance.
         Assert.Equal(
             [second.Id, first.Id],
-            commands.OfType<PickUpCreatureCommand>().Select(c => c.CreatureId).ToArray());
+            commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray());
         Assert.All(commands.OfType<DropCommand>(), d => Assert.Equal(KeeperWorld.HeartAt, d.Tile));
         Assert.Equal(2, commands.OfType<DropCommand>().Count());
         Assert.Equal(0, keeper.State.Responses.Count);
@@ -174,7 +174,7 @@ public class KeeperThreatResponseTests
 
         IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
 
-        Assert.Equal(settled.Id, Assert.Single(commands.OfType<PickUpCreatureCommand>()).CreatureId);
+        Assert.Equal(settled.Id, Assert.Single(commands.OfType<TakeCreatureCommand>()).CreatureId);
         Assert.NotEqual(fresh.Id, settled.Id);
         // One move of 50 against -100 leaves -50; the second attempt finds nobody and retires.
         Assert.Equal(0, keeper.State.Responses.Count);
@@ -193,7 +193,7 @@ public class KeeperThreatResponseTests
 
         IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
 
-        Assert.DoesNotContain(commands, c => c is PickUpCreatureCommand or DropCommand);
+        Assert.DoesNotContain(commands, c => c is TakeCreatureCommand or DropCommand);
         KeeperThreatResponse current = Assert.NotNull(keeper.State.Responses.Current);
         Assert.Equal(50, current.RemainingThreat);
         Assert.Equal(1, keeper.State.Responses.Count);
@@ -245,7 +245,7 @@ public class KeeperThreatResponseTests
 
         Assert.True(keeper.State.Responses.TryReceive(() => new KeeperThreatResponse(60, new TilePos(19, 15))));
         IReadOnlyList<PlayerCommand> commands = keeper.Think(view);
-        Assert.Equal(own.Id, Assert.Single(commands.OfType<PickUpCreatureCommand>()).CreatureId);
+        Assert.Equal(own.Id, Assert.Single(commands.OfType<TakeCreatureCommand>()).CreatureId);
         Assert.Equal(new TilePos(17, 17), Assert.Single(commands.OfType<DropCommand>()).Tile);
         Assert.Equal(new KeeperThreatResponse(10, new TilePos(17, 17)), keeper.State.Responses.Current);
     }
@@ -299,9 +299,11 @@ public class KeeperThreatResponseTests
         Open(world, 3, 3, 9, 9);
         CreatureState older = Fighter(world, Keeper, 6, 5);
         GameSimulation sim = Sim(world);
-        sim.Run(12);
-        CreatureState newer = Fighter(world, Keeper, 5, 6);
+        sim.Run(9);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, older.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
+        CreatureState newer = Fighter(world, Keeper, 5, 6);
+        sim.Tick();
 
         KeeperView view = KeeperViewSnapshot.FromBytes(
             KeeperViewSnapshot.ToBytes(new KeeperView(Db, world, Keeper)), Db);
@@ -348,8 +350,8 @@ public class KeeperThreatResponseTests
 
         // The defender engages on the first tick and its keeper receives type 6 for its tile;
         // outnumbered two to one with no owned tile in reach, the keeper pulls it back.
-        (long Tick, PlayerCommand Command) pick = Assert.Single(log, e => e.Command is PickUpCreatureCommand);
-        Assert.Equal(defender.Id, ((PickUpCreatureCommand)pick.Command).CreatureId);
+        (long Tick, PlayerCommand Command) pick = Assert.Single(log, e => e.Command is TakeCreatureCommand);
+        Assert.Equal(defender.Id, ((TakeCreatureCommand)pick.Command).CreatureId);
         Assert.Contains(log, e => e.Tick == pick.Tick && e.Command is AcknowledgePlayerMessageCommand);
         var drop = (DropCommand)Assert.Single(log, e => e.Command is DropCommand).Command;
         Assert.Equal(KeeperWorld.HeartAt, drop.Tile);
@@ -377,7 +379,7 @@ public class KeeperThreatResponseTests
         // Its stored room is the hero's Prison (0x0047B740 writes the membership 0x0048E6A0
         // reads): the walk finds it, permission refuses it, both attempts are spent for nothing.
         Assert.False(Assert.Single(new KeeperView(Db, world, Keeper).Creatures, c => c.Id == jailed.Id).PickupPermitted);
-        Assert.DoesNotContain(commands, c => c is PickUpCreatureCommand or DropCommand);
+        Assert.DoesNotContain(commands, c => c is TakeCreatureCommand or DropCommand);
         Assert.Equal(1, keeper.State.Responses.Count);
         Assert.Equal(-50, Assert.NotNull(keeper.State.Responses.Current).RemainingThreat);
     }
@@ -425,8 +427,9 @@ public class KeeperThreatResponseTests
         CreatureState near = world.SpawnCreature(db, KeeperWorld.FighterCreature, Keeper, new TilePos(6, 5));
         var sim = new GameSimulation(db, world, 1, [new HandSystem()]);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, held.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(held.InHand);
-        sim.Run(400);
+        sim.Run(398);
         // Counts as an ally at the fight but, just spawned past turn 300, is never withdrawn.
         world.SpawnCreature(db, KeeperWorld.FighterCreature, Keeper, new TilePos(5, 6));
         for (int i = 0; i < 4; i++) world.SpawnCreature(db, KeeperWorld.FighterCreature, Hero, new TilePos(7, 4 + i));
@@ -438,7 +441,7 @@ public class KeeperThreatResponseTests
         // 200 wanted against 100 allies withdraws -100. Permission passes and the hand refuses
         // (0x004BC500): DK2 debits the same creature's 50 on both attempts, -100 to 0, and
         // retires; the creature is asked for twice and never dropped.
-        Assert.Equal([near.Id, near.Id], commands.OfType<PickUpCreatureCommand>().Select(c => c.CreatureId).ToArray());
+        Assert.Equal([near.Id, near.Id], commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray());
         Assert.DoesNotContain(commands, c => c is DropCommand);
         Assert.Equal(0, keeper.State.Responses.Count);
         sim.Tick(new InputFrame(commands));

@@ -145,10 +145,10 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         creature.Body.Radius = SteeringMover.CrowdWordOf(definition.FootprintRadius.Raw);
         creature.Body.MaxForce = SeparationRules.ShippedMaxForce;
         // A party's shared pace holds until the creature runs (ADR-0216).
-        if (creature.Running) creature.PartySpeedRaw = 0;
+        if (creature.SpeedMode != CreatureSpeedMode.Walk) creature.PartySpeedRaw = 0;
         int cap = creature.PartySpeedRaw > 0
             ? Math.Min(SimulationTiming.LoaderRatePerTick(creature.PartySpeedRaw), MaxSpeedPerTick) << 4
-            : MaxSpeedOf(definition, creature.Running);
+            : MaxSpeedOf(definition, creature.SpeedMode);
         creature.Body.MaxSpeed = StatusEffectRules.SpeedCap(context.Database, definition, creature, cap);
         TerrainDef terrain = context.Database.TerrainById(context.World.Tile(creature.Tile).TerrainId);
         creature.Body.MaxSpeed = WaterSpeedRules.SpeedCap(terrain, definition, creature, creature.Body.MaxSpeed);
@@ -170,9 +170,18 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     /// tick rate as the loader does it, clamped, shifted up four. <c>0x004887D0</c> takes it from
     /// the shared definition (<c>+0x5B4</c> walking, <c>+0x5B8</c> running), so level never
     /// changes it (ADR-0518).</summary>
-    public static int MaxSpeedOf(CreatureDef definition, bool running = false)
+    public static int MaxSpeedOf(CreatureDef definition, bool running = false) =>
+        MaxSpeedOf(definition, running ? CreatureSpeedMode.Run : CreatureSpeedMode.Walk);
+
+    /// <summary>The cap for a speed mode: <c>+0x5BC</c> is the shuffle's.</summary>
+    public static int MaxSpeedOf(CreatureDef definition, CreatureSpeedMode mode)
     {
-        int raw = running ? definition.RunSpeed.Raw : definition.Speed.Raw;
+        int raw = mode switch
+        {
+            CreatureSpeedMode.Run => definition.RunSpeed.Raw,
+            CreatureSpeedMode.Shuffle => definition.ShuffleSpeed.Raw,
+            _ => definition.Speed.Raw,
+        };
         int perTick = SimulationTiming.LoaderRatePerTick(raw);
         return Math.Min(perTick, MaxSpeedPerTick) << 4;
     }

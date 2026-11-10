@@ -52,8 +52,9 @@ public sealed class CombatPitTests
 
     private static void Drop(GameSimulation sim, CreatureState creature, TilePos at)
     {
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, at)));
+        sim.Tick();
     }
 
     private static void RunUntil(GameSimulation sim, Func<bool> done, int limit = 400)
@@ -207,12 +208,16 @@ public sealed class CombatPitTests
         Drop(sim, b, OtherFloor);
         RunUntil(sim, () => a.AttackingId == b.Id);
 
+        // b stood on the map in state 75 for a turn before it was dropped, which advanced its scan
+        // counter; zero it for the phase this test was written for, where a's scan comes first.
+        b.FightProcessCounter = 0;
         CreatureStateMachine.TrySetState(new StateHookContext(world, db), b, CreatureStateMachine.Idle);
         b.StopMoving();
         sim.Tick();
         Assert.Equal(CombatPitRules.PlacingState, b.Dk2StateId);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, a.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, a.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.False(a.CombatPitFighter);
         Assert.False(a.AttackAbnormalTargets);
         Assert.Equal(CombatRules.NoTarget, a.AttackingId);

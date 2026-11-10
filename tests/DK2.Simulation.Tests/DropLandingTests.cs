@@ -32,9 +32,10 @@ public class DropLandingTests
         int stun = SimulationTiming.TicksFromSeconds((int)db.CreatureById(GoblinId).StunDuration.ToDouble());
         Assert.Equal(11, DropLandingRules.GetUpTicks(db.CreatureById(GoblinId)));
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         goblin.StateDeadlineTick = sim.World.CurrentTick.Value - 1000;
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        sim.Tick();
         long dropped = sim.World.CurrentTick.Value;
         Assert.Equal(255, goblin.Dk2StateId);
 
@@ -73,6 +74,137 @@ public class DropLandingTests
         Assert.Equal(ticks, DropLandingRules.GetUpTicks(goblin with { GetUpFrames = frames, GetUpFramesPerSecond = fps }));
     }
 
+    // Twelve drops in the Level 5 seed-1 capture: state 76 for the drop's turn at height 4352 (256 over
+    // the floor) on the packet's point, then the stun the turn after.
+    [Fact]
+    public void ADropFallsForItsOwnTurnAtTheCommandsPointAndLandsOnTheNext_ConfirmedInCapture()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
+        var point = new FpPosition2(new Fp32((Floor.X * Fp32.One) + 700), new Fp32((Floor.Y * Fp32.One) + 3100));
+
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor, 0, point)));
+        Assert.True(goblin.LandingPending);
+        Assert.False(goblin.InHand);
+        Assert.Equal((point.X.Raw, point.Y.Raw, DropLandingRules.FallingHeight), (goblin.PosX, goblin.PosY, goblin.PosZ));
+        Assert.Equal(256, DropLandingRules.FallingHeight);
+        Assert.NotEqual(255, goblin.Dk2StateId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "dropped_stunned");
+        ulong falling = sim.StateHash();
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db);
+        CreatureState loaded = restored.World.CreatureById(goblin.Id)!;
+        Assert.Equal((true, (byte)Keeper), (loaded.LandingPending, loaded.LandingDropperPlayerId));
+        Assert.Equal(falling, restored.StateHash());
+        goblin.LandingPending = false;
+        Assert.NotEqual(falling, sim.StateHash());
+        goblin.LandingPending = true;
+
+        sim.Tick();
+        Assert.False(goblin.LandingPending);
+        Assert.Equal((point.X.Raw, point.Y.Raw, 0, 255), (goblin.PosX, goblin.PosY, goblin.PosZ, goblin.Dk2StateId));
+        Assert.Contains(sink.Events, e => e.Kind == "dropped_stunned" && e.Tick.Value == sim.CurrentTick.Value - 1);
+    }
+
+    // The capture's two points, Warlocks turning 341 a turn: packet angle 1000 reads 659 in the drop
+    // turn's frame and 134 reads 0. That the difference is one turn toward 0 is a hypothesis they fit.
+    [Theory]
+    [InlineData(1000, 659)]
+    [InlineData(134, 0)]
+    public void TheCapturedWarlockHeadingsAreTheAngleLessOneTurnTowardZero(int angle, int seen)
+    {
+        int heading = angle;
+        DK2.Simulation.Steering.Bearing.TurnToward(ref heading, 0, 341);
+        Assert.Equal(seen, heading);
+    }
+
+    // Ours applies that rule to any creature; a drop without an angle keeping the heading is ours too.
+    [Theory]
+    [InlineData(1000)]
+    [InlineData(134)]
+    [InlineData(1900)]
+    public void ADropHeadsTheCreatureByTheCommandsAngleAndTurnsItOnceTowardZero(int angle)
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        (GameSimulation sim, _) = Simulation(db, world);
+        int rate = SimulationTiming.TurnRatePerTick(db.CreatureById(GoblinId));
+        Assert.InRange(rate, 1, 1023);
+        int expected = angle <= 1024 ? Math.Max(angle - rate, 0) : (angle + rate >= 2048 ? 0 : angle + rate);
+
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
+        goblin.Heading = 77;
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor, Heading: new Dk2Angle((ushort)angle))));
+        Assert.Equal(expected, goblin.Heading);
+
+        sim.Run(2);
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
+        goblin.Heading = 77;
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        Assert.Equal(77, goblin.Heading);   // no angle: the heading is kept
+    }
+
+    [Fact]
+    public void APointOutsideTheCommandsTileIsRefused()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor, 0,
+            new FpPosition2(new Fp32((Floor.X + 3) * Fp32.One), new Fp32(Floor.Y * Fp32.One)))));
+        Assert.True(goblin.InHand);
+        Assert.False(goblin.LandingPending);
+        Assert.Contains(sink.Events, e => e.Kind == "drop_refused");
+    }
+
+    // While it falls the creature is out of the hand but cannot be attacked, looked up for a fight (even
+    // forced: 0x0045A6D0 refuses state 76 outright), lifted with the cursor's permission or hit by a boulder's test.
+    [Fact]
+    public void AFallingCreatureIsUnattackableAndCannotBeLiftedByPermission()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        Assert.True(goblin.LandingPending);
+
+        Assert.True(HandRules.IsHeld(goblin));
+        Assert.False(Combat.CombatRules.IsAttackable(goblin));
+        Assert.False(Combat.CombatRules.MayLookForAFight(world, db, goblin, force: true));
+        Assert.False(HandRules.HasPickupPermission(world, db, goblin, new PlayerId(Keeper)));
+        goblin.LandingPending = false;
+        Assert.True(HandRules.HasPickupPermission(world, db, goblin, new PlayerId(Keeper)));
+    }
+
+    // A stored pick-up has no permission test, so it can lift a falling creature; the landing then
+    // leaves it alone. A creature that died on the way down does not get the stun either.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ALandingLeavesALiftedOrDeadCreatureAlone(bool lifted)
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        var sim = new GameSimulation(db, world, 7, [new HandSystem { StoredCommandPickups = true }, new CreatureStatusSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(lifted
+            ? InputFrame.Of(new DropCommand(Keeper, Floor), new PickUpCreatureCommand(Keeper, goblin.Id))
+            : InputFrame.Of(new DropCommand(Keeper, Floor)));
+        if (!lifted) goblin.Health = 0;
+
+        sim.Run(lifted ? 2 : 1);
+
+        Assert.False(goblin.LandingPending);
+        Assert.Equal(lifted, goblin.InHand);
+        Assert.NotEqual(255, goblin.Dk2StateId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "dropped_stunned");
+    }
+
     [Fact]
     public void AWorkerIsNotStunned()
     {
@@ -82,6 +214,7 @@ public class DropLandingTests
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        sim.Tick();
 
         Assert.NotEqual(255, imp.Dk2StateId);
     }
@@ -95,8 +228,9 @@ public class DropLandingTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        sim.Tick();
         long stunnedOn = sim.World.CurrentTick.Value - 1;
         for (int i = 0; i < 20; i++) sim.Tick();
 
@@ -121,8 +255,9 @@ public class DropLandingTests
         captive.PrisonOwnerPlayerId = Keeper;
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        sim.Tick();
 
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_freed");
         Assert.Equal(255, captive.Dk2StateId);
@@ -151,8 +286,10 @@ public class DropLandingTests
             [new HandSystem { StoredCommandPickups = true }, new CreatureStatusSystem(), new CreatureMovementSystem(), new CreatureJobSystem()]);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, foreign.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(foreign.InHand);
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        sim.Tick();
 
         Assert.Equal(stunned, foreign.Dk2StateId == 255);
         Assert.Equal((byte)owner, foreign.OwnerPlayerId);

@@ -229,6 +229,7 @@ public static class TrainingStep
         ShotState shot = ShotRules.Spawn(context.World, shotDefinition, trainee.OwnerPlayerId, trainee.PosX, trainee.PosY,
             (int)spell.ShotData1, (int)spell.ShotData2, trainee.Id, FightTargetKind.None, -1, PlayerIds.Neutral,
             target.TileIndex, x, y);
+        shot.PosZ = trainee.PosZ + definition.Spells[trainee.TrainingSpellSlot].OriginZ;
         ShotRules.Launch(shot, shotDefinition, x, y);
         ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)trainee.Heading),
             new Fp32(Fp32.One + trainee.PosZ + definition.Spells[trainee.TrainingSpellSlot].OriginZ));

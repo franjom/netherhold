@@ -807,12 +807,14 @@ public static class CombatTargetRules
             && (me.CreatureTypeId == CombatRules.ImpCreatureTypeId
                 || NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat)) me.StopMoving();
         if (!CombatRules.IsFighting(me)) me.CombatStateEnteredTick = context.Tick.Value;
-        me.Running = true; // state 199's entry sets the run speed (0x004887D0(1))
-        if (CreatureStateMachine.HasState(me)
+        bool enters = CreatureStateMachine.HasState(me)
             && (NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat
                 || (thing && me.Dk2StateId == Systems.StateShadow.TravelToPoint
-                    && me.UtilityNewState is CombatStates.RespondingToThreat or CombatStates.Withdrawn)))
-            CombatStates.Enter(context, me, CombatStates.Engaging);
+                    && me.UtilityNewState is CombatStates.RespondingToThreat or CombatStates.Withdrawn));
+        // The run speed is state 199's own, on its entry turn (CombatSystem.Fight); a creature with no
+        // state has no handler to set it.
+        if (!CreatureStateMachine.HasState(me)) me.Running = true;
+        if (enters) CombatStates.Enter(context, me, CombatStates.Engaging);
         context.Emit("combat", "engaged",
             $"creature={me.Id} type={mine.Name} player={me.OwnerPlayerId} {target} reach2={me.AttackRangeSquared}");
     }

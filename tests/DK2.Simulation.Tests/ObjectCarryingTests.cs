@@ -498,8 +498,9 @@ public class ObjectCarryingTests
         }
         Assert.Equal(book.Id, imp.CarriedObjectId);
 
-        TilePos where = imp.Tile;
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
+        TilePos where = imp.Tile; // the walk goes on in 75 until then, so this is where it was taken
 
         Assert.True(imp.InHand);
         Assert.Equal(-1, imp.CarriedObjectId);

@@ -304,8 +304,9 @@ handler 3's `SetState(1)` with its four exclusions (`keeper-spell-casting.md` §
 state hashing or simulation draws. Scope, restored-pose fallback and remaining effect-engine
 work: [shot-effects.md section7](shot-effects.md#7-ours).
 
-**Not built, named (Q398):** height — every shot flies flat and gravity, the lob and
-the aim's half-height are dropped, the overlap box's height test with them; the finder
+**Not built, named (Q398):** height beyond the stored one — a creature's targeted cast keeps a height and a pitched,
+massless climb that only the possessed picks read (ADR-0728); gravity, the lob, the floor stop
+and the overlap box's height test are not built; the finder
 takes the nearest overlap where DK2 takes tile order;
 objects and bodies as things hit (doors since ADR-0318, traps since ADR-0326) — a shot sent at a heart strikes within a
 quarter tile of its tile (ours, a stand-in: Q363); process type 28 (guided) and the unread

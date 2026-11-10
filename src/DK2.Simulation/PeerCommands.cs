@@ -64,8 +64,8 @@ public static class PeerCommands
     /// <summary>
     /// The network allow-list (R4). A command type added later is refused until it is listed here;
     /// <c>PeerCommandsTests</c> fails until each type is either listed or named as refused.
-    /// <para>Refused: <see cref="GrantCreatureLevelCommand"/> and <see cref="MintWageCommand"/> are the
-    /// computer keeper's (no human action issues them); <see cref="RevealMapCommand"/> is the result
+    /// <para>Refused: <see cref="GrantCreatureLevelCommand"/>, <see cref="MintWageCommand"/> and
+    /// <see cref="TakeCreatureCommand"/> are the computer keeper's (no human action issues them); <see cref="RevealMapCommand"/> is the result
     /// screen's and a cheat's. If a multiplayer result screen needs it, the relay issues it, not a peer.
     /// <see cref="MovePossessedCreatureCommand"/> is refused until the simulation validates a pose
     /// (speed, walls, bounds): <c>PossessionRules.Move</c> installs whatever position it is sent, as

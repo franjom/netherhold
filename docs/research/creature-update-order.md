@@ -28,7 +28,8 @@ success in a mood chooser skips the handler for that turn.
 `CreatureUpdateSystem` runs its steps one creature at a time, newest first by id. The declared steps live in
 [`SimulationSystems.CreatureUpdate`](../../src/DK2.Simulation/Systems/SimulationSystems.cs).
 Timed effects, the worker prelude and experience are included in this per-creature
-walk; captured resync-order limits remain [Q719](fight-scan-initial-phase.md#captured-input-and-encounter-controls-369).
+walk. The handlers of 255, 256 and 257 (`CreatureStatusSystem.Recovery`) run after
+`combat.States`, like the other state handlers (ADR-0731); captured resync-order limits remain [Q719](fight-scan-initial-phase.md#captured-input-and-encounter-controls-369).
 
 The [non-worker idle43/44 clock](idle-action-clock.md) polls after timed effects and
 the worker prelude, before combat, and advances after the creature's trigger root

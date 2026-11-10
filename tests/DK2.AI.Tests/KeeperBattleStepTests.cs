@@ -520,7 +520,7 @@ public class KeeperBattleStepTests
 
         // DK2's supportive scan skips no held creature and the ordinary arm of target 1 admits it,
         // so the lifted creature is the tick's Heal target; the retreat and the cast each spend one.
-        Assert.Equal([wounded.Id], commands.OfType<PickUpCreatureCommand>().Select(c => c.CreatureId));
+        Assert.Equal([wounded.Id], commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId));
         Assert.Single(commands.OfType<DropCommand>());
         Assert.Equal((KeeperSpellRules.Heal, wounded.Id), Assert.Single(commands.OfType<CastSpellOnCreatureCommand>()) is var cast ? (cast.SpellId, cast.CreatureId) : default);
         Assert.Equal(KeeperTask.Decide, keeper.State.Task);

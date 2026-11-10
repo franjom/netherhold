@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 457;
+    private const int FormatVersion = 462;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -238,6 +238,8 @@ public static class WorldSnapshot
             w.Write(p.HeroesDestroyed);
             w.Write(p.SlapCount);
             w.Write(p.PossessedCreatureId);
+            w.Write(p.PendingLiftCreatureId);
+            w.Write(p.PendingLiftTick);
             w.Write(p.ResearchPoints);
             w.Write(p.ResearchTarget);
             w.Write(p.NextFreeImpTick.Value);
@@ -415,6 +417,9 @@ public static class WorldSnapshot
             w.Write(c.JobTileIndex);
             w.Write(c.InHand);
             w.Write(c.PickupTick);
+            w.Write(c.LandingPending);
+            w.Write(c.LandingDropperPlayerId);
+            w.Write(c.CollapseDue);
             w.Write(c.DroppedTick);
             w.Write(c.DroppedOnARoom);
             w.Write(c.NextPayTryTick);
@@ -473,7 +478,7 @@ public static class WorldSnapshot
             w.Write(c.CurrentFear);
             w.Write(c.OverThreatCounter);
             w.Write(c.BackOffTimer);
-            w.Write(c.Running);
+            w.Write((byte)c.SpeedMode);
             w.Write(c.CombatStateEnteredTick);
             w.Write(c.StateEnteredTick);
             w.Write((byte)c.IdleAction);
@@ -676,6 +681,8 @@ public static class WorldSnapshot
             WriteLink(w, s.TileLink);
             w.Write(s.VelX);
             w.Write(s.VelY);
+            w.Write(s.PosZ);
+            w.Write(s.VelZ);
             w.Write(s.Health);
             w.Write(s.Age);
             w.Write(s.Data1);
@@ -1060,6 +1067,8 @@ public static class WorldSnapshot
                 HeroesDestroyed = r.ReadInt32(),
                 SlapCount = r.ReadInt32(),
                 PossessedCreatureId = r.ReadInt32(),
+                PendingLiftCreatureId = r.ReadInt32(),
+                PendingLiftTick = r.ReadInt64(),
                 ResearchPoints = r.ReadInt32(),
                 ResearchTarget = r.ReadInt32(),
                 NextFreeImpTick = new GameTick(r.ReadInt64()),
@@ -1222,6 +1231,9 @@ public static class WorldSnapshot
                 JobTileIndex = r.ReadInt32(),
                 InHand = r.ReadBoolean(),
                 PickupTick = r.ReadInt64(),
+                LandingPending = r.ReadBoolean(),
+                LandingDropperPlayerId = r.ReadByte(),
+                CollapseDue = r.ReadBoolean(),
                 DroppedTick = r.ReadInt64(),
                 DroppedOnARoom = r.ReadBoolean(),
                 NextPayTryTick = r.ReadInt64(),
@@ -1279,7 +1291,7 @@ public static class WorldSnapshot
                 CurrentFear = r.ReadUInt16(),
                 OverThreatCounter = r.ReadByte(),
                 BackOffTimer = r.ReadByte(),
-                Running = r.ReadBoolean(),
+                SpeedMode = (CreatureSpeedMode)r.ReadByte(),
                 CombatStateEnteredTick = r.ReadInt64(),
                 StateEnteredTick = r.ReadInt64(),
                 IdleAction = (IdleActionId)r.ReadByte(),
@@ -1507,6 +1519,8 @@ public static class WorldSnapshot
                 TileLink = ReadLink(r),
                 VelX = r.ReadInt32(),
                 VelY = r.ReadInt32(),
+                PosZ = r.ReadInt32(),
+                VelZ = r.ReadInt32(),
                 Health = r.ReadInt32(),
                 Age = r.ReadInt32(),
                 Data1 = r.ReadInt32(),

@@ -25,8 +25,9 @@ public class TrainingCycleTests
         var sim = new GameSimulation(db, world, 42,
             [new HandSystem(), new TrainingActionSystem(), new CreatureJobSystem()]);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, trainee.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(trainee.InHand);
-        sim.Run(20);
+        sim.Run(18);
         Assert.Equal(0, trainee.TrainingActionId);
         Assert.Equal(0, trainee.ActionUntilTick);
         Assert.Equal(0, target.ProcessState);

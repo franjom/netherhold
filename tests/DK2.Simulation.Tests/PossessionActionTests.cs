@@ -38,7 +38,7 @@ public sealed class PossessionActionTests
         me.SwingInProgress = true;
         me.PosZ = 100;
         me.LastPosX = 12;
-        sim.Tick(InputFrame.Of(Move(45000, 46000, 300, 0xFFFF)));
+        sim.Tick(InputFrame.Of(Move(45000, 46000, 0x1000 + 300, 0xFFFF)));
         Assert.Equal((45000, 46000, 300, 0x7FF), (me.PosX, me.PosY, me.PosZ, me.Heading));
         Assert.Equal(199, me.Dk2StateId);
         Assert.Equal(123, me.TargetTileIndex);
@@ -75,11 +75,14 @@ public sealed class PossessionActionTests
         Assert.Equal((45000, 46000, 0, 0), (me.PosX, me.PosY, me.PosZ, me.Heading));
     }
 
+    // The packet counts height from 4096 below the floor; PosZ is height above the floor. 1596 is the
+    // Level 5 capture's move height, where DK2's creature stands at 4096.
     [Theory]
-    [InlineData(0x3000, 0x3000)]
-    [InlineData(0x3001, 0x2000)]
-    [InlineData(0x10301, 0x301)]
-    public void SetterNarrowsHeightThenUsesItsStrictCap_StronglyInferredFromBinary(int supplied, int expected)
+    [InlineData(0x3000, 0x2000)]
+    [InlineData(0x3001, 0x1000)]
+    [InlineData(0x10301, 0)]
+    [InlineData(1596, 0)]
+    public void SetterNarrowsHeightCapsItAndRaisesItToTheFloor_StronglyInferredFromBinary(int supplied, int expected)
     {
         var (_, _, me, sim) = Setup();
         sim.Tick(InputFrame.Of(Move(45000, 46000, supplied, 1)));

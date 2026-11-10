@@ -142,6 +142,46 @@ public class CombatTests
         Assert.NotEqual(CombatRules.AttackMode.Victorious, demon.AttackType);
     }
 
+    // Level 5 seed 1, turn 1721: the Wizard collapsed on 1720; the Warlock whose cast had ended is idle
+    // on 1721, the three still casting clear the target on 1721 and are idle on 1722 (step 5, then 7).
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AFighterWithNoActionLeavesACollapsedTargetAtOnce_ABusyOneTheTurnAfter_ConfirmedInCapture(bool busy)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
+        CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
+        // The victim lies stunned (the Wizard was getting up): out of Combat, so its collapse releases nobody.
+        GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
+        new GameSimulation(db, world, sim.Rng, [new Lambda(context =>
+            CreatureStateMachine.TrySetState(context.Hooks, goblin, DropLandingRules.StunnedState, context.Tick.Value))]).Tick();
+        for (int i = 0; i < 20 && demon.FightTargetId != goblin.Id; i++) sim.Run(1);
+        Assert.Equal((goblin.Id, DropLandingRules.StunnedState), (demon.FightTargetId, goblin.Dk2StateId));
+        goblin.Health = 0;
+        goblin.CollapseDue = true;
+        new GameSimulation(db, world, sim.Rng, [new CollapseSystem()]).Tick();
+        Assert.True(CreatureDeathRules.IsDown(goblin));
+        Assert.Equal(goblin.Id, demon.FightTargetId);
+
+        // Held busy by a counted action for this turn, or free of every action.
+        demon.SwingInProgress = false;
+        demon.SwingTargetKind = FightTargetKind.None;
+        demon.ActionUntilTick = busy ? sim.CurrentTick.Value + 1 : 0;
+        sim.Run(1);
+
+        Assert.Equal(CombatRules.NoTarget, demon.FightTargetId);
+        Assert.Equal(busy, demon.Activity == CreatureActivity.Fighting);
+        sim.Run(1);
+        Assert.NotEqual(CreatureActivity.Fighting, demon.Activity);
+    }
+
+    private sealed class Lambda(Action<SimulationContext> body) : ISimulationSystem
+    {
+        public string Name => "test step";
+        public void Execute(SimulationContext context) => body(context);
+    }
+
     [Fact]
     public void AFighterWalksIntoReachBeforeItSwings()
     {

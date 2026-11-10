@@ -1,0 +1,17 @@
+# Multiplayer sizing (docs/plans/2026-11-09-seamless-lockstep.md, phase 0): level 11A with its four
+# computer keepers playing and the human slot idle, standing in for a busy multiplayer match.
+# Twenty game minutes (4,800 ticks at 4 a second), no scripted input. Read timings.txt for tick
+# cost, keeper cost and allocation; replay the journal for simulation-only speed (rejoin catch-up).
+id: perf-level11a-keepers-sizing-001
+question: >
+  What does a tick cost on a large map with four computer keepers, from the start to twenty game
+  minutes in, and how fast can its journal be replayed?
+map: campaign:level11A
+seed: 4
+duration_ticks: 4800
+viewing_player: 3
+computer_keepers: [4, 5, 6, 7]
+setup:
+  placed_things: true
+observe:
+  - state_hash

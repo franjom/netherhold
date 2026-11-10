@@ -191,6 +191,9 @@ public sealed class CombatSystem : ICreatureUpdateStep
     {
         WorldState world = context.World;
         long tick = context.Tick.Value;
+        // 0x0045EBC9: state 199 sets the run speed only when its entry stamp is this turn. A state set
+        // from another handler is met a turn later, so the speed mode then stands, a shuffle included.
+        if (creature.Dk2StateId == CombatStates.Engaging && creature.StateEnteredTick == tick) creature.Running = true;
         CombatMessageRules.UpdateBattle(world, creature, tick);
 
         if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: false))
@@ -224,8 +227,17 @@ public sealed class CombatSystem : ICreatureUpdateStep
                 // a collapsing victim fails IsAttackable at step 5 and is let go with none (Q511).
                 bool outright = dying.Dk2StateId == CreatureStateMachine.NoState
                     || !CreatureDeathRules.HasDyingState(world, context.Database, context.Database.CreatureById(dying.CreatureTypeId), dying);
-                if (outright) VictoryRules.TargetDied(context, creature);
-                else VictoryRules.TargetDown(context, creature);
+                if (outright)
+                {
+                    VictoryRules.TargetDied(context, creature);
+                    return;
+                }
+                // Step 5 clears the target and the handler goes on with none: a busy fighter returns at
+                // step 7 and seeks next turn; one with no action seeks now and ends the state on none.
+                VictoryRules.TargetDown(context, creature);
+                if (FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
+                if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+                    LetGo(context, creature, "target_down");
                 return;
             }
         }
@@ -373,7 +385,11 @@ public sealed class CombatSystem : ICreatureUpdateStep
         if (distance < creature.AttackRangeSquared / 4 && distance < sightSq / 4)
         {
             if (FearRules.StepBack(context, creature, definition, FearRules.CastStepBackLength(definition), _scratch))
+            {
+                // 0x0045FFC9: the shuffle speed, which holds until the next speed call.
+                creature.SpeedMode = CreatureSpeedMode.Shuffle;
                 context.Emit(SystemName, "steps_back", $"creature={creature.Id} target={previous}");
+            }
         }
         else
         {

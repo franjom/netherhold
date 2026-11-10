@@ -126,6 +126,7 @@ public class HandInputTests
 
         sim.Tick(input.Translate(Intent(Start, PointerButtonTransition.Pressed),
             PlayerInputSnapshot.Capture(view, world, Keeper, db, Start)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(creature.InHand);
         Assert.Single(world.Player(Keeper).Hand);
         sim.Tick(input.Translate(Intent(End, secondary: PointerButtonTransition.Pressed),

@@ -413,7 +413,7 @@ public static class ResearchStep
             // does is unread); before a first move, the definition's speed, as construction sets it.
             int current = watched.Body.MaxSpeed > 0
                 ? watched.Body.MaxSpeed >> 4
-                : CreatureMovementSystem.MaxSpeedOf(database.CreatureById(watched.CreatureTypeId), watched.Running) >> 4;
+                : CreatureMovementSystem.MaxSpeedOf(database.CreatureById(watched.CreatureTypeId), watched.SpeedMode) >> 4;
             StatusEffectRules.ModifySpeed(context, watched, 2 * current, 2 * SimulationTiming.OriginalTicksPerGameSecond);
         }
 

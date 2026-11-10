@@ -136,7 +136,7 @@ public static class CombatPitRules
 
     /// <summary><c>+0x16 != 2</c>: not in a hand and not carried (<c>combat-pit.md</c> §6).</summary>
     public static bool IsOnTheMap(CreatureState creature) =>
-        !HandRules.IsHeld(creature) && creature.CarriedByCreatureId < 0;
+        !creature.InHand && creature.CarriedByCreatureId < 0;   // the layer: a falling creature is on the map
 
     /// <summary><c>0x004E50F0(position, out, count, rimOnly, empty)</c>: from a random start, the
     /// first of the <paramref name="count"/> neighbours (4: orthogonal; 8: all round) that is the

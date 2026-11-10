@@ -42,9 +42,38 @@ compares it with world floor height (virtual `+0x204`). Above it, 76
 returns success without the room/stun transition. On contact it requests
 sound event `0xF6` from creature-definition sound category `+0x6E3`, except
 on a Temple floor accepted by `0x00454110`. These operations are STRONGLY INFERRED;
-there is no fixed descent duration in this handler. The human input's
-initial drop Z and complete trajectory still require a matched native
-capture. The requested position is supplied unchanged to `0x004BC710`.
+there is no fixed descent duration in this handler. The requested position
+is supplied unchanged to `0x004BC710`.
+
+**The fall takes one turn (CONFIRMED, Level 5 seed-1 capture, 2026-11-10).**
+All twelve hand drops in frames 1400 to 1900 (eleven Warlocks, one type 6)
+show the creature at the drop packet's exact x and y in state 76 at height
+4352 in the frame of the drop turn, then 255 from the next turn with action
+52 stamped that turn. The mechanism is a reading (STRONGLY INFERRED): 4352 is 8192 less 3840,
+one turn of gravity (variable 130 = 240, times 256, over 16) from the 0x2000
+the stored drop passes (`0x004C0F68`); the handler returns before its arms
+while the predicted height is above the floor, so the second update lands. The packet's third word differs between drops
+(0x3E80000, 0x860000) with the same result.
+
+**Built (ADR-0730, hash/save 459).** `HandSystem.Drop` releases the creature
+at the command's point (its tile's centre without one) at
+`DropLandingRules.FallingHeight`, and the landing's arms run at the start of
+the next tick. `LandingPending` and the dropper's player are hashed, saved
+and copied. While it falls the creature does not act (`HandRules.IsHeld`), is
+not in the hand (it can be hurt, healed and hit by a forced shot) and shows
+the computer keeper state 76. Ours keeps the creature's own state word
+through the fall; a flyer's descent (Z lowered 0x800 a turn) has no capture
+and falls like any other. Deviations: the Temple pool's sacrifice is still immediate (DK2's arm waits
+for the floor); a Torture Chamber tile does not snap the creature to its
+centre in the air; the view shows no landing pose for the fall turn. The
+keeper AI's own drops pass height 0 and the tile's centre plus 0x100
+(`0x004FF589`), so DK2 gives them no fall height; ours falls them the same
+turn count from the centre, which no capture confirms.
+
+With it the four Warlocks dropped at 1688 to 1693 stand on DK2's points and
+enter 255 and 257 on DK2's turns. The two that then entered the fight a turn
+off were the pick-up's turn and the fight scan's order (ADR-0731,
+[hand-pickup-turn.md](hand-pickup-turn.md)).
 
 The evil worker's landing art is already correct in our view: its `idle`
 key resolves to catalogue index 19 (native slot 20). Other creatures use
@@ -109,8 +138,8 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
   unsupported room drop states still idle. The Combat Pit's 137 is built
   (ADR-0227); the Heart's 71 is built under ADR-0400.
 - **Workers.** A worker getting up on a Heart runs state 71 (ADR-0400); an owned Portal/Hero Portal centre runs 197. Elsewhere it idles, although the native room-drop tail has no worker exclusion. The shared combat attempt runs before this fallback, and before keeper-worker landing dispatch (ADR-0698).
-- **The stun's count and stars** (ADR-0480): 255 and 256 count from the turn after they are set; the first counted turn asks for effect 101 once only while the duration hold remains active (zero duration skips it), at the creature's position on the floor, tied to the creature's mesh point 5000. Point 5000 is a KMF CTRL point, the head: slot `+0x10C` is the engine interface's `0x0059D380` (that the callers' object is that interface is HYPOTHESIS), which searches the drawn mesh's tagged points (`0x0059D260`); an animated entry is (primitive, vertex) evaluated at the drawn frame (`0x005835E0`). The view keeps each drawn creature's head and moves the effect and its stars with it each update, as `0x00434E80` does; a creature drawn with a static mesh is not resolved, so its stars stay where they were asked for. The drop goes straight to 255, so ours spends no turn in 76 and gets up one turn before DK2.
-- **Not modelled:** the landing's sound, fall and pit scatter. 257's facing step is built (ADR-0698), with a map-boundary check. The Casino countdown gate is built for Portal/Hero Portal room entry (ADR-0603), but remains absent from other room-drop branches. The Call To Arms branch is built (ADR-0279).
+- **The stun's count and stars** (ADR-0480): 255 and 256 count from the turn after they are set; the first counted turn asks for effect 101 once only while the duration hold remains active (zero duration skips it), at the creature's position on the floor, tied to the creature's mesh point 5000. Point 5000 is a KMF CTRL point, the head: slot `+0x10C` is the engine interface's `0x0059D380` (that the callers' object is that interface is HYPOTHESIS), which searches the drawn mesh's tagged points (`0x0059D260`); an animated entry is (primitive, vertex) evaluated at the drawn frame (`0x005835E0`). The view keeps each drawn creature's head and moves the effect and its stars with it each update, as `0x00434E80` does; a creature drawn with a static mesh is not resolved, so its stars stay where they were asked for.
+- **Not modelled:** the landing's sound and pit scatter (the fall is built, ADR-0730). 257's facing step is built (ADR-0698), with a map-boundary check. The Casino countdown gate is built for Portal/Hero Portal room entry (ADR-0603), but remains absent from other room-drop branches. The Call To Arms branch is built (ADR-0279).
 - **257's hold** is `ActionUntilTick`, set at the stun's end to `DropLandingRules.GetUpTicks`, the Getup animation's length (ADR-0348, Q527). Classic presentation plays 255's knockdown once and holds its final pose, then plays 257's Getup once from its state-entry stamp. Action 52's art selector is 24 (`0x00495F36`), action 53's is 27 (`0x00495F6E`); independently checked 2026-10-13.
 - **One word for `+0x7E`:** `StateDeadlineTick`, stamped with now by `AfterGettingUp` on the way into 250, as `0x004E8DA0` stamps `+0x2CC`.
 
@@ -120,7 +149,7 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 landing and to state 257 after its facing step. `GetUpStepY` round-trips file `0x128B`.
 Acquisition, approach, attacks and cleanup use the existing combat path. The helper is
 built; state 257 remains partial because of its worker room fallback described above.
-The fitted get-up hold and instantaneous hand landing remain deviations.
+The fitted get-up hold remains a deviation.
 
 The reviewer independently checked the binary and implementation with no remaining
 blockers; the corrected focused fixtures pass 30 tests. Release solution build:

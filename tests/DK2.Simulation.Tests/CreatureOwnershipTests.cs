@@ -64,6 +64,7 @@ public class CreatureOwnershipTests
         var second = Spawn(db, world);
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(3, first.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(first.InHand);
         Assert.Equal(new[] { second.Id, first.Id }, Order(world));
     }

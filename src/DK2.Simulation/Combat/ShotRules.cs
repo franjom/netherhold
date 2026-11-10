@@ -117,17 +117,34 @@ public static partial class ShotRules
         return shot;
     }
 
+    /// <summary>The lobbed launch's flag (definition flags bit 4, vtable slot <c>+0x68</c>).</summary>
+    public const uint Lobbed = 0x10u;
+
     /// <summary>The launch (§3): the definition's speed along the line to the aim, position units a
-    /// tick; a shot already at its aim does not move.</summary>
-    public static void Launch(ShotState shot, ShotDef definition, int aimX, int aimY)
+    /// tick; a shot already at its aim does not move. With an aim height, a massless shot also takes
+    /// the pitched vertical velocity; a shot with mass keeps its height (gravity is unbuilt, Q398).</summary>
+    public static void Launch(ShotState shot, ShotDef definition, int aimX, int aimY, int? aimZ = null)
     {
         shot.ViewHeading = new Dk2Angle((ushort)Steering.Bearing.Of(aimX - shot.PosX, aimY - shot.PosY));
         shot.HasLaunchHeading = true;
+        if (aimZ is { } height && definition.Mass == 0) shot.VelZ = VerticalVelocity(shot, definition, aimX, aimY, height);
         long dx = aimX - shot.PosX, dy = aimY - shot.PosY;
         long dist = Isqrt((dx * dx) + (dy * dy));
         if (dist == 0) return;
         shot.VelX = (int)(definition.Speed * dx / dist);
         shot.VelY = (int)(definition.Speed * dy / dist);
+    }
+
+    /// <summary><c>0x004AB8A0</c>'s third velocity word: speed shifted 4, times the cosine of the bearing
+    /// of (horizontal distance, shot height less aim height), shifted 16; a lobbed shot adds 0x400.</summary>
+    internal static int VerticalVelocity(ShotState shot, ShotDef definition, int aimX, int aimY, int aimZ)
+    {
+        long dx = Math.Abs((long)aimX - shot.PosX), dy = Math.Abs((long)aimY - shot.PosY);
+        uint squares = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));
+        int horizontal = IntegerMath.SquareRoot(squares) << 6;
+        int pitch = Steering.Bearing.Of(horizontal, shot.PosZ - aimZ);
+        int vertical = (int)(((long)(definition.Speed << 4) * TrapRules.Cosine(pitch)) >> 16);
+        return (definition.Flags & Lobbed) != 0 ? vertical + 0x400 : vertical;
     }
 
     /// <summary>A hit or death shot (§4): made where the parent is, aimed at the parent's target
@@ -138,6 +155,7 @@ public static partial class ShotRules
         if (childType == 0 || !context.Database.Shots.TryGetValue(childType, out ShotDef? definition)) return null;
         ShotState child = Spawn(context.World, definition, parent.OwnerPlayerId, parent.PosX, parent.PosY, parent.Data1, parent.Data2,
             parent.CasterId, parent.TargetKind, parent.TargetId, parent.TargetPlayerId, parent.TargetTileIndex, parent.TargetX, parent.TargetY);
+        child.PosZ = parent.PosZ;
         RequestTrail(context, child, parent.ViewHeading, parent.ViewHeight);
         context.Emit(SystemName, "shot_chained", $"shot={parent.Id} child={child.Id} type={definition.ShotId} data1={child.Data1} data2={child.Data2}");
         return child;

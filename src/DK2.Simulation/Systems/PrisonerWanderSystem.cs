@@ -61,6 +61,8 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             // original's decision state asks about hunger FIRST and wanders
             // only when the answer is no (PrisonerEatSystem, ADR-0074).
             if (creature.TargetObjectId >= 0) continue;
+            // In 75 the hand's preparation holds it: the prison handler does not run.
+            if (creature.Dk2StateId == HandRules.PreparationState) continue;
 
             // Searching again in 117, or finishing a meal in 119: neither rolls for a step.
             if (creature.Dk2StateId is PrisonRules.SeekingFoodState or PrisonRules.AfterEatingState) continue;

@@ -11095,8 +11095,8 @@ state was set; the first counted turn asks for 101 only while the duration hold 
 (ADR-0581), at the creature, one tile up (the height
 the foot dust is asked at) plus half its eye height. Hash 250, no new saved field.
 
-**Consequences.** A hand drop now lies 4 turns, gets up in 11 and stands from the 15th,
-one turn short of DK2's, which spends the drop turn in 76; that turn is not modelled. The
+**Consequences.** A hand drop lies 4 turns and gets up in 11; the drop turn in 76 before
+them is ADR-0730's. The
 effect's height is a GUESS for the unread mesh point, and the effect does not follow the
 creature: a stunned creature does not move, but one lifted while stunned leaves its stars.
 The skip is exact for a stun set after the victim's own update, as the hand's and
@@ -16960,8 +16960,12 @@ by us in a few regions, and runnable by anyone for private, LAN or community gam
   in the snapshot and the hash, and the journal records the merged frame. A departed keeper gets
   a caretaker for the rejoin window, then the computer keeper (owner, 2026-11-09). **No machine
   loads another's state:** rejoin and resync replay the journal locally, checked against the
-  agreed hashes. A machine still diverged after replay forks against computer keepers and the
-  match is no contest. Peers must match on a fingerprint of every data input before start.
+  agreed hashes. A machine still diverged after replay forks against computer keepers; with
+  three or more players the majority continues with that slot on the caretaker, with two the
+  match is no contest. Commits carry a chained hash; a new relay instance resumes from the
+  longest prefix every client holds and drops the tail. A prefix more than N turns short makes
+  its client a rejoiner, or, with two players, ends the match as no contest. Peers must match on a fingerprint of the
+  parsed game data before start.
 - **R7 transport.** Steam's authenticated, encrypted SDR. No custom crypto, no peer IP addresses.
 - **R8 backend.** Identity only from verified tickets; no secrets in the client. Unranked: with
   no server-side simulation, ranked play would need consensus plus reports.
@@ -16970,9 +16974,10 @@ by us in a few regions, and runnable by anyone for private, LAN or community gam
   and simulates as an authoritative peer: trusted AI, truth on desync, rejoin from the server.
   The official relay and the overseer speak one protocol.
 
-**Consequences.** Single-player goes through the same session, so its tests exercise R1-R4. The
-Unity (IL2CPP) build must reach the same hashes as CoreCLR; Linux and Windows already do in CI.
-`WorldSnapshot.Read` becomes network-facing and joins the fuzz targets.
+**Consequences.** Single-player goes through the same session, so its tests exercise R1-R4. CI
+compares Linux and Windows hashes on synthetic content only; real data and the Unity (IL2CPP)
+build need a machine with an install. Snapshots stay local (saves and checkpoints), so
+`WorldSnapshot.Read` faces only the player's own files.
 
 ## ADR-0725: the Portal Gem keeps a position: made at its carrier's point, dropped on its tile centre
 
@@ -17037,9 +17042,121 @@ included, cannot inherit stale cleanup.
 ownership fields. Target selection is unchanged; native target1463 remains
 unresolved, so this does not establish matched-attack or Heart parity.
 
-## ADR-0730: the computer keeper makes room for researchers and places creatures at their jobs
+## ADR-0728 - read possessed picks in the pose's height frame and give shots a height
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, simulation-core
 
-**Date:** 2026-11-10. **Status:** accepted. · **Systems:** computer-keeper
+**Context.** `possessed-pick-heights.md`: DK2's possessed swing at turn 1647
+takes the Wizard's Fireball, not the Wizard. Both picks compare thing heights
+with the packet pose's, whose floor is 4096; ours read things at height 0 and
+shots had no height at all.
+
+**Decision.** Add the floor to every thing height the two picks read. Store a
+shot's height and vertical velocity, set by the targeted cast's pitched launch
+and stepped each tick. Take a possessed move's height less the floor.
+
+**Consequences.** Hash/save458 adds the two shot fields. Collision stays flat:
+gravity, the floor stop and the overlap's height remain Q398.
+
+## ADR-0729 - keep a creature's speed mode until the next speed call
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, simulation-core
+
+**Context.** `step-back-speed-mode.md`: DK2's speed mode has three values and
+changes only at its setter. A fight's or a flight's step back sets the shuffle,
+and state 199 sets the run speed only on the turn it is entered, so the shuffle
+lasts through later approaches. Ours had a running flag that every engagement
+set again.
+
+**Decision.** Replace the flag with a three-valued mode. Both step backs set
+the shuffle; the fight update sets the run speed only on state 199's entry turn.
+
+**Consequences.** Shares hash/save458 with ADR-0728; the mode takes the flag's
+place in the hash, save and copy. The Level 5 control reaches turn 1719.
+
+## ADR-0730 - land a hand drop one turn later, at the command's point
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** creatures, combat, simulation-core
+
+**Context.** `hand-drop-landing.md` section 2: in twelve captured drops the
+creature is in state 76 for the drop's turn, 256 above the floor on the
+packet's point, and lands on the next. Ours landed in the drop's tick at the
+tile's centre.
+
+**Decision.** The drop only releases the creature, at the command's point when
+it has one; the landing's outcomes run at the start of the next tick. A falling
+creature does not act, but is not in the hand.
+
+**Consequences.** Hash/save459 adds the pending flag and the dropper. The
+command's encoding is unchanged: it already carried the point. Recorded
+journals move; the Level 1 win journal is re-recorded. The keeper AI's drops
+get the same fall although DK2 passes them no height (unconfirmed deviation).
+## ADR-0731 - take a prepared creature into the hand a turn after the pick-up
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** creatures, combat, simulation-core
+
+**Context.** `hand-pickup-turn.md`: DK2's pick-up puts the creature in state
+75 and the hand takes it before the keeper's next hand command, or a turn
+later. Until then its fight scan counts. The scan also precedes the state
+handler, so the turn a stun ends has no count. Ours inserted at once and ran
+the stun's handlers before the scan; dropped creatures fought a turn off.
+
+**Decision.** The pick-up prepares and records a pending lift on the keeper;
+`HandSystem.CompleteLift` inserts it before that keeper's next hand command or
+at the start of the second tick after; a command leaves the pending state
+only once it passes DK2's own test, so a drop with nothing else held does
+nothing. The computer keeper's routines insert directly in DK2, so they issue
+a new `TakeCreatureCommand`. The handlers of 255, 256 and 257 move to
+`CreatureStatusSystem.Recovery`, after the combat states.
+
+**Consequences.** Hash/save 460 adds the pending lift and its turn. The
+pick-up's encoding is unchanged; the take is codec kind 36 and refused from a
+peer. The hand's refusals are tested at the insert.
+Recorded journals move; the Level 1 win journal is re-recorded.
+## ADR-0732 - collapse in the thing pass and pick the fall heading
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** creatures, combat, simulation-core
+
+**Context.** `death-fall-heading.md`: DK2 collapses a creature inside the
+damage call and draws two fall headings from the world stream, redrawing
+until the direction is open. Ours collapsed in the once-a-second health pass
+and drew nothing, so the draw order parted at the first death after a blow.
+
+**Decision.** Damage that empties health marks the creature; `CollapseSystem`
+collapses the marked after the creature sweep, the shots and the traps.
+`DeathFallRules` makes the two picks at the collapse, before the gold drop.
+
+**Consequences.** Hash/save 461 adds the mark. A creature felled by a blow
+collapses up to three ticks sooner, and its dying window ends that much
+sooner. A blow during the creature sweep still draws after the sweep, not
+inside it. The heading ours stores from the first pick is unverified. The Level 1 win journal is re-recorded.
+## ADR-0733 - head a dropped creature by the drop's angle
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** creatures, combat, simulation-core
+
+**Context.** `drop-heading.md`: DK2's drop writes the packet's angle to the
+dropped thing's heading, and that turn's stopped route turns it once toward
+0. Ours kept the heading from before the pick-up, so a dropped creature faced
+its first target a turn early or late and its cast started a turn off.
+
+**Decision.** `DropCommand` carries an optional heading; the drop sets it and
+turns it once toward 0 by the creature's rate. Without one the heading stays.
+
+**Consequences.** The drop's encoding gains the angle, so hash/save 462
+refuses older journals; no state is added. The view and the computer keeper
+send no angle yet. The Level 1 win journal is re-recorded.
+## ADR-0734 - a fighter with no action leaves a collapsed target in the same turn
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures
+
+**Context.** `combat-fight-state.md` section 2: step 5 clears a target that
+has collapsed and the handler goes on with none; step 7 returns for a busy
+fighter; otherwise the out-of-reach arm seeks again and ends the state on
+none. Level 5 seed 1: the Wizard collapses on 1720; the Warlock whose cast had
+ended is idle on 1721, the three still casting on 1722. Ours let the target go
+and returned, so every fighter took the extra turn.
+
+**Decision.** After letting a collapsed target go, a fighter with no running
+action seeks a victim in the same call and leaves the fight if there is none.
+
+**Consequences.** No state or version change. The general invalid-target arm
+still seeks while busy, which step 7 would defer; no capture shows that case.
+
+## ADR-0735 - the computer keeper makes room for researchers and places creatures at their jobs
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** computer-keeper
 
 **Context.** Step 12 of DK2's keeper turn (`0x00500C20` at `0x00500FAE`) draws `random(3)` every
 turn. With allowance, Flags bit 2 (always on) and the roll at least `ProbabilityOfMovingCreatureForResearch`,
@@ -17063,6 +17180,7 @@ turn. The attack planner's gate runs the move. `KeeperCreatureView` carries `Cam
 `KeeperView` the hand's items; the observation format is 23.
 
 **Consequences.** No world state is added; hash and save formats are unchanged. The research roll
-shifts every keeper's stream each turn. Deviations are the training moves': the keeper's own
-stream (ADR-0244) and next-tick commands (ADR-0284). `+0x787`'s meaning remains UNKNOWN. STRONGLY
-INFERRED from the disassembly; no native capture compares the step.
+shifts every keeper's stream each turn. Lifts are takes (ADR-0731) and drops land a turn later
+(ADR-0730), as for the keeper's other moves; draws use the keeper's own stream (ADR-0244).
+`+0x787`'s meaning remains UNKNOWN. STRONGLY INFERRED from the disassembly; no native capture
+compares the step.

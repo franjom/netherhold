@@ -18,6 +18,7 @@ public class PeerCommandsTests
     [
         typeof(GrantCreatureLevelCommand), // computer keeper only
         typeof(MintWageCommand), // computer keeper only
+        typeof(TakeCreatureCommand), // computer keeper only
         typeof(RevealMapCommand), // result screen and cheat
         typeof(MovePossessedCreatureCommand), // until the simulation validates a pose
         typeof(SetAllianceCommand), // until alliance offers are modelled (consent)

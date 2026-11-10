@@ -62,7 +62,7 @@ public class KeeperRetreatStepTests
     }
 
     private static int[] Lifted(IReadOnlyList<PlayerCommand> commands) =>
-        commands.OfType<PickUpCreatureCommand>().Select(c => c.CreatureId).ToArray();
+        commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray();
 
     [Theory]
     [InlineData(299, true)]
@@ -79,7 +79,7 @@ public class KeeperRetreatStepTests
         if (!lifted) return;
         Assert.Equal(LairCentre, Assert.Single(commands.OfType<DropCommand>()).Tile);
         var ordered = commands.ToList();
-        Assert.Equal(ordered.FindIndex(c => c is PickUpCreatureCommand) + 1, ordered.FindIndex(c => c is DropCommand));
+        Assert.Equal(ordered.FindIndex(c => c is TakeCreatureCommand) + 1, ordered.FindIndex(c => c is DropCommand));
     }
 
     [Fact]
@@ -201,7 +201,9 @@ public class KeeperRetreatStepTests
         WorldState held = World();
         CreatureState later = Wounded(held, 299, 13, 17);
         CreatureState inHand = Wounded(held, 299, 17, 17);
-        new GameSimulation(Db, held, 1, [new HandSystem()]).Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, inHand.Id)));
+        var hand = new GameSimulation(Db, held, 1, [new HandSystem()]);
+        hand.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, inHand.Id)));
+        hand.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.Equal([later.Id], Lifted(NewKeeper().Think(Db, held)));
     }
 
@@ -215,7 +217,7 @@ public class KeeperRetreatStepTests
 
         IReadOnlyList<PlayerCommand> commands = NewKeeper().Think(Db, world);
 
-        Assert.DoesNotContain(commands, c => c is PickUpCreatureCommand or DropCommand);
+        Assert.DoesNotContain(commands, c => c is TakeCreatureCommand or DropCommand);
         // Two allowances reach the second creature.
         Assert.Equal([later.Id], Lifted(NewKeeper(speed: 2).Think(Db, world)));
     }
@@ -385,8 +387,8 @@ public class KeeperRetreatStepTests
 
         // Lifted on the first tick and put down on the Lair through the real hand; put down, its
         // counter is fresh, so nothing lifts it again.
-        (int Tick, PlayerCommand Command) pick = Assert.Single(log, e => e.Command is PickUpCreatureCommand);
-        Assert.Equal((0, creature.Id), (pick.Tick, ((PickUpCreatureCommand)pick.Command).CreatureId));
+        (int Tick, PlayerCommand Command) pick = Assert.Single(log, e => e.Command is TakeCreatureCommand);
+        Assert.Equal((0, creature.Id), (pick.Tick, ((TakeCreatureCommand)pick.Command).CreatureId));
         Assert.Equal(LairCentre, ((DropCommand)Assert.Single(log, e => e.Command is DropCommand).Command).Tile);
         Assert.Equal(LairCentre, creature.Tile);
         Assert.False(creature.InHand);

@@ -17,7 +17,7 @@ namespace DK2.AI;
 /// happy jobs names (JobRooms, <c>0x006ED490</c>), one allowance a try, the same item retried on a
 /// miss; then on <c>random(100) &lt; 10</c> lifts idle own creatures whose job room exists and whose
 /// job admits them, one allowance each, for a later turn to drop. Deviates as the training moves
-/// do: the keeper's own stream (ADR-0244) and next-tick commands (ADR-0284). ADR-0730.</remarks>
+/// do: the keeper's own stream (ADR-0244) and next-tick commands (ADR-0284). ADR-0735.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-management.md")]
 public sealed class KeeperResearchStep
 {
@@ -94,7 +94,8 @@ public sealed class KeeperResearchStep
                 if (KeeperMoodRemedies.JobRoom(job) is not RoomTypeId type
                     || _view.RandomRoomOfType(_view.PlayerId, type, _rng) is null) continue;
                 if (!MayPlace(job) || !creature.PickupPermitted) continue;
-                _commands.Add(new PickUpCreatureCommand(_view.PlayerId, creature.Id));
+                // DK2 rereads the hand's count; the take passes here, permitted with room in the hand.
+                _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
                 _prepared.Add(creature.Id);
                 held++;
                 allowance--;

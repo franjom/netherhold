@@ -99,8 +99,8 @@ It unmasks a disguised enemy and refuses it. Two more facts about the path:
 - `0x004C0BE0` also stops when the creature refuses state 75 and the retry through idle
   (`0x004BFBD0`, `0x004BFC24`). Ours goes ahead with the pick-up; that refusal is not modelled.
 - The dead test comes before that preparation. Bit 21 and states 51/52 come after it, in
-  `0x004BC500`, which state 1's exit callback `0x004C0EA0` runs one turn after the action. Ours
-  tests them before the preparation and inserts in the command's tick.
+  `0x004BC500`, which state 1's exit callback `0x004C0EA0` runs one turn after the action, as
+  ours does ([hand-pickup-turn.md](hand-pickup-turn.md), ADR-0731).
 So a recorded command lifts whatever its slot holds.
 Level 5 seed 2's pick-up of slot 439 at 1684 lifted the hero Wizard, and landing state 76 stunned
 it: 76's stun test is a non-worker, or a worker of a player numbered below 3, never the hand's

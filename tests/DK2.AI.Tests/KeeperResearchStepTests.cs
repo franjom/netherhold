@@ -61,9 +61,9 @@ public class KeeperResearchStepTests
     /// <summary>Step 12 alone on a fresh capture.</summary>
     private static (int Left, List<PlayerCommand> Commands) Step(
         WorldState world, int allowance = 4, byte probability = 0, ulong seed = 7, SimRandom? rng = null,
-        KeeperAIState? state = null)
+        KeeperAIState? state = null, GameDatabase? db = null)
     {
-        var view = new KeeperView(Db, world, Keeper);
+        var view = new KeeperView(db ?? Db, world, Keeper);
         KeeperAIParameters p = Parameters(probability);
         var commands = new List<PlayerCommand>();
         var step = new KeeperResearchStep(view, state ?? new KeeperAIState(), p, rng ?? new SimRandom(seed), commands,
@@ -91,13 +91,13 @@ public class KeeperResearchStepTests
     }
 
     private static int[] Lifted(IEnumerable<PlayerCommand> commands) =>
-        commands.OfType<PickUpCreatureCommand>().Select(c => c.CreatureId).ToArray();
+        commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray();
 
     private static TilePos[] Drops(IEnumerable<PlayerCommand> commands) =>
         commands.OfType<DropCommand>().Select(c => c.Tile).ToArray();
 
     private static void Hold(WorldState world, CreatureState creature) =>
-        new GameSimulation(Db, world, 1, [new HandSystem()]).Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        new GameSimulation(Db, world, 1, [new HandSystem()]).Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
 
     // ----------------------------------------------------------------- 0x004FA8D0
 
@@ -315,6 +315,8 @@ public class KeeperResearchStepTests
 
     [Theory]
     [InlineData(0, 10, true)]
+    [InlineData(9, 10, true)]
+    [InlineData(10, 11, false)]
     [InlineData(10, 50, false)]
     public void ThePickUpScanLiftsAnIdleCreatureItsJobAdmits_WithoutADrop(int low, int high, bool lifted)
     {
@@ -332,12 +334,103 @@ public class KeeperResearchStepTests
     }
 
     [Fact]
-    public void ThePickUpScanPassesOverADroppedToDoJobAndAFullHand()
+    public void ThePickUpScanPassesOverADroppedToDoJob()
     {
         ulong seed = SeedWhere(r => { r.NextInt(3); return r.NextInt(100) < KeeperResearchStep.PickUpPercent; });
         WorldState world = World(portal: false, training: true);
         Spawn(world, KeeperWorld.MoodyCreature).DroppedToDoJob = JobType.Train;
 
         Assert.Empty(Step(world, seed: seed).Commands);
+    }
+
+    private static ulong ScanSeed() =>
+        SeedWhere(r => { r.NextInt(3); return r.NextInt(100) < KeeperResearchStep.PickUpPercent; });
+
+    /// <summary>The scan's group-7 test has no state of its own to refuse: no needs-group state
+    /// carries activity code 5, so the activity test, asked first, always refuses them.</summary>
+    [Fact]
+    public void ThePickUpScanTakesOnlyIdleCreatures()
+    {
+        WorldState world = World(portal: false, training: true);
+        CreatureState moody = Spawn(world, KeeperWorld.MoodyCreature);
+        // A Training state, activity code 6, outside the needs group.
+        moody.Dk2StateId = Enumerable.Range(0, 281).First(id => CreatureStateTable.Get(id).Category == CreatureStateCategory.Training
+            && CreatureStateTable.Get(id).Group != NeedRules.NeedGroup);
+
+        Assert.Empty(Lifted(Step(world, seed: ScanSeed()).Commands));
+    }
+
+    [Fact]
+    public void ResearchAdmitsAnIdleCreatureWhileASpellAwaitsResearch()
+    {
+        WorldState world = World(portal: false, library: true);
+        world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Thunderbolt, Research);
+        CreatureState moody = Spawn(world, KeeperWorld.MoodyCreature);
+        // The roll, the gate's Library draw, then the scan's roll, its Library and the test's own.
+        ulong seed = SeedWhere(r => { r.NextInt(3); r.NextInt(1); return r.NextInt(100) < KeeperResearchStep.PickUpPercent; });
+
+        Assert.Equal([moody.Id], Lifted(Step(world, seed: seed).Commands));
+    }
+
+    [Fact]
+    public void AFullHandHoldsTheScanBack()
+    {
+        // The hand loop ends only on an empty hand or no allowance, so a hand with no room at all is
+        // the case the scan's own capacity test decides: nothing is lifted and nothing spent.
+        GameDatabase none = KeeperWorld.Database(handCapacity: 0);
+        WorldState world = World(portal: false, training: true);
+        Spawn(world, KeeperWorld.MoodyCreature, 13);
+
+        (int left, List<PlayerCommand> commands) = Step(world, allowance: 4, seed: ScanSeed(), db: none);
+
+        Assert.Equal((4, 0), (left, commands.Count));
+    }
+
+    [Fact]
+    public void TheScanStopsOnceTheHandIsFull()
+    {
+        GameDatabase two = KeeperWorld.Database(handCapacity: 1);
+        WorldState world = World(portal: false, training: true);
+        Spawn(world, KeeperWorld.MoodyCreature, 13);
+        Spawn(world, KeeperWorld.MoodyCreature, 16);
+
+        (int left, List<PlayerCommand> commands) = Step(world, seed: ScanSeed(), db: two);
+
+        // The first lift fills the one-item hand; the second Moody is never tried.
+        Assert.Single(Lifted(commands));
+        Assert.Equal(3, left);
+    }
+
+    [Fact]
+    public void ThePlacementDropsTheLastItemNotTheFirst()
+    {
+        WorldState world = World(portal: false, library: true);
+        Hold(world, Spawn(world, KeeperWorld.MoodyCreature));
+        world.Player(Keeper).Hand.Add(new HandItem(HandItemKind.Object, 999));
+
+        // An object on top: every pass retries it, and the Moody beneath is never dropped.
+        Assert.Empty(Drops(Step(world).Commands));
+    }
+
+    public static TheoryData<string> MoveGuards => ["stunned", "unpermitted", "dropped"];
+
+    [Theory]
+    [MemberData(nameof(MoveGuards))]
+    public void TheResearcherMoveKeepsTheGuards(string guard)
+    {
+        WorldState world = World();
+        CreatureState fighter = Spawn(world, KeeperWorld.FighterCreature);
+        switch (guard)
+        {
+            case "stunned": fighter.Dk2StateId = BoulderRules.StunnedState; break;
+            case "unpermitted": fighter.ManaRemovalStamp = 1; break;
+            case "dropped":
+                var clock = new GameSimulation(Db, world, 1, Array.Empty<ISimulationSystem>());
+                while (world.CurrentTick.Value + 1 < 301) clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+                fighter.DroppedTick = world.CurrentTick.Value - 300;
+                break;
+        }
+
+        Assert.Empty(Move(world));
     }
 }

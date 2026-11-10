@@ -333,7 +333,7 @@ public class NeedInterruptTests
         CreatureState goblin = world.SpawnCreature(db, QuickGoblin, Keeper, new TilePos(6, 4));
         goblin.HungerNeed = 1;
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, onARoom ? InTraining : new TilePos(6, 3))));
         Assert.Equal(onARoom, goblin.DroppedOnARoom);
 

@@ -30,7 +30,7 @@ public static class SimulationSystems
     /// <summary>The player's own hand and marks, before anything moves.</summary>
     private static ISimulationSystem[] Commands(bool storedPickups) =>
     [
-        // Hand first: one picked up this tick takes no step, and one dropped onto
+        // Hand first: one being lifted this tick takes no step, and one dropped onto
         // marked work starts on it at once (ADR-0062).
         new HandSystem { StoredCommandPickups = storedPickups },
         new RescuePrioritySystem(), // command-driven casualty marks before worker selection (ADR-0261)
@@ -77,18 +77,21 @@ public static class SimulationSystems
     [
         new FootprintSystem(),
         CreatureUpdate(),
+        new CollapseSystem(), // a creature the sweep's blows felled (0x004B2FB5 collapses in the damage call)
         // The doors' health after the creatures, as DK2's thing pass updates creatures first; ours
         // puts it before the shots, whose place in that pass is Q398 (door-blocking.md).
         new DoorHealthSystem(),
         // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.
         new TrainingActionSystem(), // creature action gates before the shots and object reactions they create
         new ShotSystem(),
+        new CollapseSystem(), // and one a shot felled, before the objects draw
         new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
         new ObjectMovementSystem(),
         // ObjectMovement steps Eggs and Coops with the birds; this retains only synthetic-data hatching.
         // The room walk lays afterwards (ADR-0634). Boulder and reaction passes remain separate.
         new HatcherySystem(lays: false, stepObjects: false),
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
+        new CollapseSystem(), // boulders and traps
         new ActionPointTriggerSystem(), // list 5, after creature work and before the player frame
         new EffectGeneratorSystem(), // list 7, the last of the thing pass's update walk (ADR-0648)
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
@@ -112,8 +115,9 @@ public static class SimulationSystems
     {
         var combat = new CombatSystem();
         var workers = new ImpTaskSystem();
+        var status = new CreatureStatusSystem();
         return new CreatureUpdateSystem(
-            new CreatureStatusSystem(), // 0x0048957D: timed effects before this creature's action and fight
+            status, // 0x0048957D: timed effects before this creature's action and fight
             workers.Prelude, // reinforcement's gold block precedes its action poll (0048904E/00489A68)
             combat, // the action runner, the fight scan and the fear radiation
             new CreatureExperienceSystem(), // 00476FC0 category update, before needs and the state handler
@@ -126,6 +130,7 @@ public static class SimulationSystems
             // The state handlers. A creature holds one state, so their order among themselves is
             // only which system owns it. A creature the scan engaged runs its fight state now (ADR-0555).
             combat.States, // the combat states, then the trap reveal (0x0048A0B4)
+            status.Recovery, // 255, 256 and 257, after the scan like every handler
             new TremorCreatureSystem(), // recovery handler; world Tremor runs after the entity pass
             new ReaperSystem(),
             new FinaleSystem(), // the finale Reaper's states 228-234; the fireworks after the last creature

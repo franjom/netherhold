@@ -96,8 +96,9 @@ public class CreaturePickupTests
         new GameSimulation(db, world, 42, [new HandSystem()]).Tick(InputFrame.Of(new PickUpCreatureCommand(3, rivals.Id)));
         Assert.False(rivals.InHand);
 
-        new GameSimulation(db, world, 42, [new HandSystem { StoredCommandPickups = true }])
-            .Tick(InputFrame.Of(new PickUpCreatureCommand(3, rivals.Id)));
+        var stored = new GameSimulation(db, world, 42, [new HandSystem { StoredCommandPickups = true }]);
+        stored.Tick(InputFrame.Of(new PickUpCreatureCommand(3, rivals.Id)));
+        stored.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(rivals.InHand);
         Assert.Contains(world.Player(3).Hand, item => item.Id == rivals.Id);
         Assert.Equal((byte)4, rivals.OwnerPlayerId);

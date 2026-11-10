@@ -148,6 +148,7 @@ public sealed class PossessionInputTests
         var sim = new GameSimulation(db, world, 1, [new HandSystem()]);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Rival, sneaker.Id)));
+        sim.Run(2); // the hand tests the disguise when it takes the creature, two turns after the command
 
         Assert.Equal(0, sneaker.SneakingAs);
         Assert.False(sneaker.InHand);

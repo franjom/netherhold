@@ -166,8 +166,8 @@ slaps have no command yet.
 that is or becomes state 75 even when the hand is full, and not when state 75 is refused. Creature
 `0xC3` and `0xC4` pass handle 0, so they neither use nor replace the creature's own voice; the object
 requests pass the object's handle. A drop sounds at the position the drop passes to `Hand_Drop` for any thing, AI drops included. For the human drop
-(`0x004C0EE0`) its height is never set (0), and X and Y are the live creature under the hand's position (height
-included) or else the pointer's; ours mirrors that, and deviates for the AI keepers, which drop with their own position. Of the 145 shipped objects only object 1 (`OBJECT_GOLD`) has samples for either (one each);
+(`0x004C0EE0`) its height is 0x2000 (`0x004C0F68`), and X and Y are the live creature under the hand's position
+or else the pointer's; ours mirrors that, and deviates for the AI keepers, which drop with their own position. Of the 145 shipped objects only object 1 (`OBJECT_GOLD`) has samples for either (one each);
 the treasury pile (object 3), gold bags and most others have an empty category, the chicken's has no
 group. A store's pile is object 3, so lifting store gold is silent.
 
@@ -322,7 +322,7 @@ Read 2026-11-02 for plan Phase W4. Every request passes the creature's own handl
 |---|---|---|---|
 | `0xE0` | [0x00459C20](functions/00459C20.md) at `0x00459C73`: state 193 once its action has ended, before the step off the hole, **only when the creature's owner is the local player** (game slot `+0x264`) | STRONGLY INFERRED | `CreatureJobSystem`, marked for its owner (`ViewerOnlyFor`) |
 | `0xE0`, or `0xFB` | [0x004872A0](functions/004872A0.md) at `0x00487BC4`, the constructor: the `0xE0` arm is only for the hero player's creatures (`[0x006F254C]`), turn 2 or later, world `+0x7239` bit 6 clear, on an explored tile; handle 0. A Horned Reaper (definition `+0x686` bit 14) jumps past those tests to `0xFB` at `0x00487BC4`, so it asks for every creation, and is silent (no creature category has `0xFB`) | STRONGLY INFERRED | waits: `WorldState.SpawnCreature` has no event path, and "explored" is the viewer's bit |
-| `0xF6` | [0x0046EAB0](functions/0046EAB0.md) at `0x0046EEA9`: state 76 after the floor-contact test, not on a Temple floor slot | STRONGLY INFERRED site | waits: ours has no fall (ADR-0209) and no contact moment |
+| `0xF6` | [0x0046EAB0](functions/0046EAB0.md) at `0x0046EEA9`: state 76 after the floor-contact test, not on a Temple floor slot | STRONGLY INFERRED site | waits: ours falls one turn (ADR-0730) but has no contact moment |
 | `0xCE` | [0x0046FA60](functions/0046FA60.md) at `0x0046FC7A`: state 83 when the art-12 gate holds and no action runs, with action 24; gated by an unread bed call (`0x0046FAF9`) | STRONGLY INFERRED site | waits: no action 24 clock, gate unread |
 | `0x111`, `0xCD` | [0x00463760](functions/00463760.md) at `0x00463859` (the chicken's own handle and category, at the bird) and `0x0046398D` (the eater's): state 93 | STRONGLY INFERRED | `CreatureEatSystem.Swallow` |
 | `0xC7` | [0x00481520](functions/00481520.md) at `0x00481549`: state 210's first act; the record had called it a display request | STRONGLY INFERRED | `TremorRules.RunRecovery` |

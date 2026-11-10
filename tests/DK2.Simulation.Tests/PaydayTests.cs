@@ -760,6 +760,7 @@ public class PaydayTests
         Assert.Equal(6, goblin.Dk2StateId);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
 
         Assert.True(HandRules.IsHeld(goblin));
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);

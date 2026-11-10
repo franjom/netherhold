@@ -47,13 +47,15 @@ does, and the gates that keep it true. It is written before any network code exi
 | **T**ampering | resync or rejoin snapshot crafted by a peer | R6: never loaded; journal replay only |
 | **T**ampering | different or edited game data on one machine | R6: data fingerprints compared before start |
 | **R**epudiation | loser disputes a result | R6: hashed input journal per match, kept by the relay |
-| **R**epudiation | peer reports wrong hashes to force resyncs | R6: consensus; a peer that keeps disagreeing is dropped |
+| **R**epudiation | peer reports wrong hashes to force resyncs | R6: it only forks itself; the others replay nothing they did not agree on |
+| **T**ampering | client supplies a forged journal when a relay instance is replaced | R6: resume from the longest chained-hash prefix every client holds |
+| **T**ampering | client claims a short journal to rewind the match past a lost fight | R6: a prefix more than N turns short makes it a rejoiner, or no contest with two players |
 | **I**nformation disclosure | map hack (whole state on every client) | accepted for lockstep (R9) |
 | **I**nformation disclosure | opponent's IP address | R7: relay by default |
 | **D**enial of service | malformed packet crashes the decoder | R1: bounded decoder, fuzzed |
 | **D**enial of service | malicious map crashes a peer at load | R5: file parsers fuzzed, transfer verified |
 | **D**enial of service | command flood, faked lag | R1 rate limits, R6 turn deadlines |
-| **D**enial of service | a command that throws in its handler, on every peer alike | R3: handlers never throw; a failing command is dropped deterministically |
+| **D**enial of service | a command that throws in its handler, on every peer alike | R3: handlers validate before mutating; a throw pauses the match with a dump on every machine |
 | **D**enial of service | hostile local save or checkpoint | R1: `WorldSnapshot.Read` bounded and fuzzed |
 | **E**levation of privilege | code execution through deserialization | R1: no polymorphic or reflective deserialization |
 | **E**levation of privilege | path traversal from a transferred file name | R5: never use a path from the wire |
@@ -86,7 +88,8 @@ does, and the gates that keep it true. It is written before any network code exi
 - **Closed, R2 and R4 (decoding):** `PeerCommands.Read` decodes a peer's command, refuses one
   whose `PlayerId` is not the authenticated sender, refuses the types no human may send, and
   refuses tile lists and sell waves that leave the map or exceed its tile count. Refused types:
-  `GrantCreatureLevelCommand` and `MintWageCommand` (the computer keeper's), `RevealMapCommand`
+  `GrantCreatureLevelCommand`, `MintWageCommand` and `TakeCreatureCommand` (the computer
+  keeper's), `RevealMapCommand`
   (result screen, cheat), `MovePossessedCreatureCommand` (until R3 validates a pose).
   `PeerCommandsTests` fails until every new command type is either allowed or named as refused.
   Journals keep using `CommandCodec.Read`, which accepts all.
@@ -95,9 +98,10 @@ does, and the gates that keep it true. It is written before any network code exi
 - **Unverified, R3:** many handlers refuse invalid commands (ADR-0279, ADR-0312), but nothing yet
   proves *every* handler validates ownership, cost and range against a hostile sender, or that
   none throws on a hostile value.
-- **Gap, R3 (possession):** `PossessionRules.Move` installs any position and heading, with no
-  speed, wall or bounds check (`PossessionRules.Movement.cs`). Validation must still allow the
-  Creature Teleport form, which has no speed bound.
+- **Gap, R3 (possession), mitigated by R4:** `MovePossessedCreatureCommand` is refused from
+  peers. `PossessionRules.Move` installs any position and heading, with no speed, wall or bounds
+  check (`PossessionRules.Movement.cs`). The plan replaces client poses with movement input that
+  the simulation applies, so teleports come only from the simulation's own spell.
 - **Gap, R3 (alliances), mitigated by R4:** `SetAllianceCommand` is refused from peers.
   `AllianceSystem` writes both players' alliance bits from one player's command, so making an
   alliance needs no consent. DK2 has an offer array
@@ -138,8 +142,8 @@ does, and the gates that keep it true. It is written before any network code exi
 3. **Game data:** we may not distribute DK2's data, so no server we run simulates. The relay
    is a data-free broker; a player who owns DK2 may self-host an overseer that simulates.
 4. **Desync:** detected by hashes and repaired by local journal replay; never by loading another
-   machine's state. A machine still diverged after replay forks against computer keepers and the
-   match is no contest (ADR-0724 R6).
+   machine's state. A machine still diverged after replay forks against computer keepers. With
+   three or more players the majority continues; with two the match is no contest (ADR-0724 R6).
 5. **Ranked:** not at launch. Without a server-side simulation it would need consensus plus
    reports, or self-hosted overseers.
 6. **Mods:** original maps plus hash- and size-verified custom maps. Arbitrary mods wait for

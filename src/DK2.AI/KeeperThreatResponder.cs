@@ -227,7 +227,7 @@ public sealed class KeeperThreatResponder
     /// and the next attempt may select it again.</summary>
     private void Move(KeeperCreatureView creature, TilePos to)
     {
-        _commands.Add(new PickUpCreatureCommand(_view.PlayerId, creature.Id));
+        _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
         if (!creature.CanPickUp) return;
         _commands.Add(new DropCommand(_view.PlayerId, to));
         _moved.Add(creature.Id);

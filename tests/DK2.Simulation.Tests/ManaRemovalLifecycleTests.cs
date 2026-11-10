@@ -140,20 +140,22 @@ public class ManaRemovalLifecycleTests
     public void AHeldWorkerCountsTowardTheFloorButIsNeverChosen()
     {
         var (db, world, imps) = Setup();
-        world.Player(Keeper).ManaPressure = Ready;
         imps[4].WorkerIdle = true;
         var (sim, events) = Run(db, world, new HandSystem(), new ManaRemovalSystem(), new ManaSystem());
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imps[4].Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(imps[4].InHand);
+        world.Player(Keeper).ManaPressure = Ready; // the scan comes once the worker is held
         sim.Run(3);
         int chosen = Field(Assert.Single(Of(events, "mana_removal_scan")), "chosen");
         Assert.NotEqual(imps[4].Id, chosen);
         Assert.NotEqual(-1, chosen);
 
         var (db2, world2, imps2) = Setup(imps: 4);
-        world2.Player(Keeper).ManaPressure = Ready;
         var (sim2, events2) = Run(db2, world2, new HandSystem(), new ManaRemovalSystem(), new ManaSystem());
         sim2.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imps2[0].Id)));
+        sim2.Run(2);
+        world2.Player(Keeper).ManaPressure = Ready;
         sim2.Run(3);
         Assert.Equal(-1, Field(Assert.Single(Of(events2, "mana_removal_scan")), "chosen"));
     }
@@ -216,6 +218,7 @@ public class ManaRemovalLifecycleTests
         Assert.Equal(0u, imp.ManaRemovalStamp);
         Assert.Single(Of(events, "mana_removal_cancelled"));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(imp.InHand);
     }
 

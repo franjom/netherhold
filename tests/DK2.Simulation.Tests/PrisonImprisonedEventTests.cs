@@ -193,8 +193,9 @@ public class PrisonImprisonedEventTests
 
     private static void PickUpAndDrop(GameSimulation sim, CreatureState creature, TilePos onto)
     {
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, onto)));
+        sim.Tick();
     }
 
     /// <summary>Root 5: an event-7 record whose child adds 1 to flag 1.</summary>

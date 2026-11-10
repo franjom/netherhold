@@ -107,7 +107,7 @@ public class KeeperPrisonerStepTests
     }
 
     private static int[] Lifted(IEnumerable<PlayerCommand> commands) =>
-        commands.OfType<PickUpCreatureCommand>().Select(c => c.CreatureId).ToArray();
+        commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray();
 
     private static TilePos[] Drops(IEnumerable<PlayerCommand> commands) =>
         commands.OfType<DropCommand>().Select(c => c.Tile).ToArray();
@@ -315,7 +315,9 @@ public class KeeperPrisonerStepTests
             case "held":
                 // Still listed in the Prison while the hand holds it, as the walk could meet it.
                 RoomPlace place = own.HeldPlace;
-                new GameSimulation(Db, world, 1, [new HandSystem()]).Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, own.Id)));
+                var hand = new GameSimulation(Db, world, 1, [new HandSystem()]);
+                hand.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, own.Id)));
+                hand.Run(2); // hand state 1 takes the prepared creature two turns after the command
                 Assert.True(own.InHand);
                 (own.HeldPlace, own.HeldPlaceSerial) = (place, 1);
                 break;

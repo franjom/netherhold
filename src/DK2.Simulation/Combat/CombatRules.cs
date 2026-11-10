@@ -209,7 +209,8 @@ public static class CombatRules
         && creature.Activity != CreatureActivity.Sleeping
         && (creature.Activity != CreatureActivity.Leaving || force)
         && (creature.Activity is not (CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm) || force)
-        && (!HandRules.IsHeld(creature) || force)
+        && (!creature.InHand || force)
+        && !creature.LandingPending   // state 76 is refused even when forced (0x0045A6D0)
         && (((((CreatureFightFlags)creature.Flags) & CreatureFightFlags.MayLookForAFight) == CreatureFightFlags.MayLookForAFight) || force)
         && !CreatureDeathRules.IsPossessed(world, creature)
         && !NoFightLookup(creature)

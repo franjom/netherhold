@@ -91,8 +91,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Reset mesh UV channels with explicit zero arrays after GPU fixtures; clearing them to empty can retain stale stream values after another UV channel changes.
 
-- Context-mode 1.0.169 can fail with missing better-sqlite3; use bounded native reads until its dependency is repaired.
-
 - D3D12 skips draws with an unbound declared StructuredBuffer even behind a runtime-disabled branch; use shader variants to omit inactive buffer resources.
 - Recentring a probe's Mesh.vertices around a moved Transform needs RecalculateBounds after each replacement; stale local bounds can cull unchanged world geometry.
 - Edit-mode world probes must explicitly prepare runtime transparent batches; an opaque capture can otherwise omit blended terrain entirely.
@@ -374,3 +372,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - If Docker tools are absent from chat, the local gateway still works via `docker mcp tools --gateway-arg=--profile=local call search_nodes query=topic`; CLI scalar tool arguments use key=value, not a raw JSON argument; nested objects require an MCP stdio JSON call.
 
 - Python on this Windows host may default to cp1252; pass encoding="utf-8-sig" when reading BOM Markdown before rewriting, or its header becomes mojibake.
+- The dk2kb MCP server (`kb_upsert`) writes records into the main clone, not the linked worktree you are in: edit the record file in the worktree by hand there, and restore anything it wrote to the main clone.

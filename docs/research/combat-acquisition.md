@@ -37,7 +37,8 @@ acquisition precedes both the state machine and steering on the same tick, and
 `CombatSystem.Update` (the action runner, the scan and the fear radiation) sits before
 `CreatureMovementSystem` and every job system. The combat states' handlers run later in the same
 creature's update, in `CombatSystem.States` after the needs routine (ADR-0555), so a creature the
-scan engages runs its fight state in that update.
+scan engages runs its fight state in that update. The stun's handlers (255 to 257) follow it
+there too (ADR-0731), so a scan that engages a creature in 257 comes before its get-up step.
 
 Creature order (rechecked 2026-10-10): `0x004B7830` runs complete creature
 updates newest first, because `0x004B4A10` links at the class-list head; see

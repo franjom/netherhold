@@ -16,8 +16,8 @@ namespace DK2.AI;
 /// <para>Built: the Combat Pit fighter's half-health and skill-level branches, the fighting
 /// creature's threshold branch, the dropped-counter guard, the other creature's threshold branch
 /// with its six exclusions, the Heart requirement and the allowance accounting.</para>
-/// <para>Deviates: the pick-up and drop are commands executed a tick later, so the drop is issued
-/// only when the pick-up is predicted from the captured permission, the allowance is spent as
+/// <para>Deviates: the pick-up and drop are commands executed a tick later (ADR-0731), so the drop
+/// is issued only when the pick-up is predicted from the captured permission, the allowance is spent as
 /// DK2's is either way, and a creature predicted prepared leaves the tick's fighters. The Lair is
 /// drawn with the keeper's own RNG; its drop tile is the bounding-box middle (ADR-0284).</para>
 /// </remarks>
@@ -65,7 +65,7 @@ public sealed class KeeperRetreatStep
                 // 0x0048E6A0 passed: 0x004BFBD0 prepares it, 0x004BC500 lifts it unless the hand
                 // refuses (CanPickUp), and 0x004BCAE0's answer decides the drop. A refused lift
                 // still spends the allowance and still leaves the creature prepared.
-                _commands.Add(new PickUpCreatureCommand(_view.PlayerId, creature.Id));
+                _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
                 Prepared.Add(creature.Id);
                 if (creature.CanPickUp) _commands.Add(new DropCommand(_view.PlayerId, Destination()));
             }

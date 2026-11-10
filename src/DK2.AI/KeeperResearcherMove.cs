@@ -14,7 +14,7 @@ namespace DK2.AI;
 /// where it leaves, so a researcher can come; only at the portal creature cap, and spending no
 /// allowance. Called by step 12, the Research job's placement test and the attack planner.</summary>
 /// <remarks>Deviates as the training moves do: the keeper's own stream (ADR-0244) and next-tick
-/// lift and drop commands (ADR-0284). The byte's meaning is UNKNOWN (ADR-0730).</remarks>
+/// lift and drop commands (ADR-0284). The byte's meaning is UNKNOWN (ADR-0735).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-management.md")]
 public sealed class KeeperResearcherMove
 {
@@ -70,7 +70,7 @@ public sealed class KeeperResearcherMove
         if (state is DropLandingRules.LandingState or PortalLeavingState or LeavingState
             || KeeperThreatResponder.IsStunned(state)) return;
         if (!leaver.PickupPermitted) return;
-        _commands.Add(new PickUpCreatureCommand(_view.PlayerId, leaver.Id));
+        _commands.Add(new TakeCreatureCommand(_view.PlayerId, leaver.Id));
         _prepared.Add(leaver.Id);
         if (leaver.CanPickUp) _commands.Add(new DropCommand(_view.PlayerId, _view.PositionOf(portal)));
     }

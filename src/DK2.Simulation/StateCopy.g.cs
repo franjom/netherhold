@@ -94,6 +94,9 @@ namespace DK2.Simulation
             LastAngryChoiceTick = other.LastAngryChoiceTick;
             PickupTick = other.PickupTick;
             DroppedTick = other.DroppedTick;
+            LandingPending = other.LandingPending;
+            LandingDropperPlayerId = other.LandingDropperPlayerId;
+            CollapseDue = other.CollapseDue;
             DroppedOnARoom = other.DroppedOnARoom;
             NextPayTryTick = other.NextPayTryTick;
             LastSlapTick = other.LastSlapTick;
@@ -155,7 +158,7 @@ namespace DK2.Simulation
             CurrentFear = other.CurrentFear;
             OverThreatCounter = other.OverThreatCounter;
             BackOffTimer = other.BackOffTimer;
-            Running = other.Running;
+            SpeedMode = other.SpeedMode;
             CombatStateEnteredTick = other.CombatStateEnteredTick;
             StateEnteredTick = other.StateEnteredTick;
             ActionArtSlot = other.ActionArtSlot;
@@ -397,6 +400,8 @@ namespace DK2.Simulation
             TileLink = other.TileLink;
             VelX = other.VelX;
             VelY = other.VelY;
+            PosZ = other.PosZ;
+            VelZ = other.VelZ;
             _viewHeading = other._viewHeading;
             ViewHeight = other.ViewHeight;
             PreviousViewPosition = other.PreviousViewPosition;

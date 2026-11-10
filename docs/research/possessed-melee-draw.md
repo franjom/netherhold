@@ -48,22 +48,21 @@ swings release the old shared ownership and retain their existing computed hold.
 An untimed possessed claim, conversion, dig or mine start releases it too.
 The general resource-identity and animation-chooser adapters remain partial.
 
-The native action target and retained target word are 1463; that record is
-absent from the captured frame. The modern event targets creature20, tagged436.
-Target selection is unchanged by this implementation; the native target kind
-remains UNKNOWN from this capture. Draw agreement cannot establish a matched
-attack, full state or Heart outcome. Command start-stamp conventions also
+The native action target and retained target word are 1463, the Wizard's
+Fireball, present in frame 1646; the modern event at this hash targeted the
+Wizard, creature20 tagged436. The pick is corrected in
+[the pick heights](possessed-pick-heights.md). Draw agreement cannot establish
+a matched attack, full state or Heart outcome. Command start-stamp conventions also
 retain their separate scope; no packet scheduling delay was introduced.
 
 ## Controlled result
 
 The `controlled457` replay (same 27 inputs; the earlier diagnostic clauses
-plus one pre-1400 guard on the new starter, 27 in total) matches 4783 ordered
-sites/preseeds through 1685, versus 4106 through 1646. Imp 455 matches 286/286
-native state/XY samples. Next is 1686 draw 1: native ObjectState.cpp:2782
-versus modern PlayerRooms.cpp:644, bound 1, FearRules.Withdraw for Imp 440 in
-state 203. It was taken on master's merge at hash 457 and repeats the
-branch's `controlled456-v4` run draw for draw (8617 rows).
+plus one pre-1400 guard on the new starter, 27 in total) matched 4783 ordered
+sites/preseeds through 1685, versus 4106 through 1646, and Imp 455's 286/286
+native state/XY samples. It was taken on master's merge at hash 457 and
+repeats the branch's `controlled456-v4` run draw for draw (8617 rows). The
+current boundary is in Q712.
 
 Evidence: `F:/DK2Evidence/studies/q712-possessed-melee1647--2026-11-08--001`;
 the controls and receipts are in `q712-possessed-melee-clock--2026-11-08--001`

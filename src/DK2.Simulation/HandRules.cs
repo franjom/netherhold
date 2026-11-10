@@ -40,8 +40,9 @@ public static class HandRules
     public const int PreparationState = 75;
 
     /// <summary>Whether this creature is in somebody's hand — DK2's <c>StateFlags1.InHand</c>.
-    /// Belongs beside <see cref="CreatureDeathRules.IsDown"/> wherever a system makes a creature act: a held creature does not walk, work, sleep or look for a lair.</summary>
-    public static bool IsHeld(CreatureState creature) => creature.InHand;
+    /// Belongs beside <see cref="CreatureDeathRules.IsDown"/> wherever a system makes a creature act: a held creature does not walk, work, sleep or look for a lair.
+    /// A creature falling from the hand (state 76's turn) does not act either.</summary>
+    public static bool IsHeld(CreatureState creature) => creature.InHand || creature.LandingPending;
 
     /// <summary>DK2's <c>LastDroppedCounter</c> (<c>+0x46D</c>): a word held at zero while the
     /// creature is in the hand and counted up once a turn otherwise, from its construction or
@@ -81,7 +82,7 @@ public static class HandRules
         // A nonzero removal stamp refuses any creature, an imp or not (0x0048E6A0, ADR-0277).
         if (creature.ManaRemovalStamp != 0) return false;
         if (!((definition.Flags & CreatureFlags.CanBePickedUp) == CreatureFlags.CanBePickedUp)) return false;
-        if (creature.Dk2StateId is 76 or 193) return false;
+        if (creature.LandingPending || creature.Dk2StateId is 76 or 193) return false;
         if (creature.OwnerPlayerId != playerId)
             return creature.IsTool || (creature.SneakingAs != 0 && creature.SneakingAs == playerId.Value)
                 || creature.PrisonOwnerPlayerId == playerId.Value;

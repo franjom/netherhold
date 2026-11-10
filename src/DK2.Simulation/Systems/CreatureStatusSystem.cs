@@ -21,7 +21,78 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    /// <summary>The handlers of 255, 256 and 257. They are state handlers, so in the creature's update
+    /// they follow its fight scan (<c>0x00488930</c>): the turn 255 ends has no scan, and a scan that
+    /// engages a creature in 257 comes before its get-up step.</summary>
+    public ICreatureUpdateStep Recovery { get; } = new RecoveryStep();
+
+    /// <summary>Alone, the timed effects and then the stun's handlers for each creature.</summary>
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this, Recovery);
+
+    private sealed class RecoveryStep : ICreatureUpdateStep
+    {
+        public string Name => "stun states";
+
+        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+        public void Update(SimulationContext context, CreatureState creature)
+        {
+            if (CreatureDeathRules.IsCorpse(creature)) return;
+            WorldState world = context.World;
+            GameDatabase database = context.Database;
+            CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+            if (creature.Activity == CreatureActivity.Stunned && !TremorRules.IsRecovering(creature))
+            {
+                if (creature.Dk2StateId == Combat.CombatStates.GettingUp)
+                {
+                    // 257 holds its get-up action, then tries combat before the room-drop fallback.
+                    if (context.Tick.Value >= creature.ActionUntilTick)
+                    {
+                        context.Emit(SystemName, "recovered", $"creature={creature.Id}");
+                        DropLandingRules.StepAfterGettingUp(context, creature, definition);
+                        if (!context.DropCombat.TryAcquire(context, creature, definition))
+                        {
+                            // 257's room-drop tail has no worker exclusion (0x00481351).
+                            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
+                                && !DropLandingRules.OnAHeart(world, database, creature)
+                                && !LeavingRules.IsDropCentre(world, database, creature.Tile, creature.OwnerPlayerId))
+                                Combat.CombatStates.Idle(context.Hooks, creature);
+                            else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
+                        }
+                        if (world.CreatureById(creature.Id) is null)
+                        {
+                            return;
+                        }
+                    }
+                }
+                else if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256
+                         && context.Tick.Value == creature.StateEnteredTick)
+                {
+                    // 255's handler (0x004810E0; 256 jumps to it) first runs the turn after SetState,
+                    // with Age 1; the stun set this turn has not started counting.
+                }
+                else
+                {
+                    if (creature.StunTicks > 0) creature.StunTicks--;
+                    if (creature.StunTicks == 0)
+                    {
+                        // The stun's end: action 53 (getting up) and SetState(257). 255's end arm then clears
+                        // PrisonOwner (+0x3CB := 0 at 0x004811E5): a freed prisoner was its jailer's to lift
+                        // while it lay stunned, and is no longer once up (owner, 2026-11-01).
+                        bool from255 = creature.Dk2StateId is Combat.CombatStates.Stunned or 256;
+                        Combat.CombatStates.Enter(context, creature, Combat.CombatStates.GettingUp);
+                        if (from255 && creature.Dk2StateId == Combat.CombatStates.GettingUp)
+                            creature.PrisonOwnerPlayerId = PrisonRules.NoPrison;
+                        creature.ActionUntilTick = context.Tick.Value + DropLandingRules.GetUpTicks(definition);
+                        context.Emit(SystemName, "getting_up", $"creature={creature.Id} until={creature.ActionUntilTick}");
+                    }
+                    else if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256
+                        && context.Tick.Value - creature.StateEnteredTick == 1)
+                        Combat.StatusEffectRules.RequestDazedEffect(context, creature);
+                }
+            }
+        }
+    }
 
     public void Update(SimulationContext context, CreatureState creature)
     {
@@ -33,57 +104,6 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         ReaperRules.AdvanceTimer(context, creature, definition);
         FinaleRules.HornyAmbience(context, SystemName, creature, definition);
-
-        if (creature.Activity == CreatureActivity.Stunned && !TremorRules.IsRecovering(creature))
-        {
-            if (creature.Dk2StateId == Combat.CombatStates.GettingUp)
-            {
-                // 257 holds its get-up action, then tries combat before the room-drop fallback.
-                if (context.Tick.Value >= creature.ActionUntilTick)
-                {
-                    context.Emit(SystemName, "recovered", $"creature={creature.Id}");
-                    DropLandingRules.StepAfterGettingUp(context, creature, definition);
-                    if (!context.DropCombat.TryAcquire(context, creature, definition))
-                    {
-                        // 257's room-drop tail has no worker exclusion (0x00481351).
-                        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
-                            && !DropLandingRules.OnAHeart(world, database, creature)
-                            && !LeavingRules.IsDropCentre(world, database, creature.Tile, creature.OwnerPlayerId))
-                            Combat.CombatStates.Idle(context.Hooks, creature);
-                        else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
-                    }
-                    if (world.CreatureById(creature.Id) is null)
-                    {
-                        return;
-                    }
-                }
-            }
-            else if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256
-                     && context.Tick.Value == creature.StateEnteredTick)
-            {
-                // 255's handler (0x004810E0; 256 jumps to it) first runs the turn after SetState,
-                // with Age 1; the stun set this turn has not started counting.
-            }
-            else
-            {
-                if (creature.StunTicks > 0) creature.StunTicks--;
-                if (creature.StunTicks == 0)
-                {
-                    // The stun's end: action 53 (getting up) and SetState(257). 255's end arm then clears
-                    // PrisonOwner (+0x3CB := 0 at 0x004811E5): a freed prisoner was its jailer's to lift
-                    // while it lay stunned, and is no longer once up (owner, 2026-11-01).
-                    bool from255 = creature.Dk2StateId is Combat.CombatStates.Stunned or 256;
-                    Combat.CombatStates.Enter(context, creature, Combat.CombatStates.GettingUp);
-                    if (from255 && creature.Dk2StateId == Combat.CombatStates.GettingUp)
-                        creature.PrisonOwnerPlayerId = PrisonRules.NoPrison;
-                    creature.ActionUntilTick = context.Tick.Value + DropLandingRules.GetUpTicks(definition);
-                    context.Emit(SystemName, "getting_up", $"creature={creature.Id} until={creature.ActionUntilTick}");
-                }
-                else if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256
-                    && context.Tick.Value - creature.StateEnteredTick == 1)
-                    Combat.StatusEffectRules.RequestDazedEffect(context, creature);
-            }
-        }
 
         // 67, 77 and 120, the slap's reaction (0x0046F1F0, ADR-0401), for every creature.
         if (creature.Activity == CreatureActivity.Slapped) SlapRules.React(context, SystemName, creature, definition);

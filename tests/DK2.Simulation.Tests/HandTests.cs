@@ -86,6 +86,7 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
 
         Assert.True(imp.InHand);
         Assert.Equal([imp.Id], HandIdsOf(world));
@@ -193,7 +194,7 @@ public class HandTests
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         GameSimulation sim = Simulation(db, world);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(1, 3))));
 
         Assert.False(imp.InHand);
@@ -209,7 +210,7 @@ public class HandTests
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         GameSimulation sim = Simulation(db, world);
 
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(8, 8))));
 
         // Refused, and the imp is still in the hand rather than lost in a wall.
@@ -457,8 +458,9 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Beside)));
+        sim.Tick();
         sim.Tick();   // 11 hands the imp to 10, which looks on its next update
 
         // The drop only buys the look, and the look is the first thing 10 does
@@ -499,8 +501,9 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, mark)));
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(4, 5))));
+        sim.Tick();
         sim.Tick();   // 11 hands the imp to 10, which looks on its next update
 
         Assert.Equal(expected, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
@@ -532,8 +535,9 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, mark)));
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(4, 5))));
+        sim.Tick();
         sim.Tick();
 
         Assert.Equal(expected, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
@@ -558,6 +562,7 @@ public class HandTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(5, 5))));
         sim.Tick();
+        sim.Tick();
 
         Assert.Equal(ImpTaskKind.None, imp.DroppedTask);
         Assert.Equal(80, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
@@ -580,6 +585,7 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(5, 5))));
+        sim.Tick();
         sim.Tick();
 
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
@@ -609,8 +615,9 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Beside)));
+        sim.Tick();
         sim.Tick();
 
         Assert.Equal(100, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
@@ -627,8 +634,9 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Beside)));
+        sim.Tick();
         sim.Tick();
 
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
@@ -671,8 +679,9 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, near, far)));
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(4, 5))));
+        sim.Tick();
         sim.Tick();   // 11 hands the imp to 10, which looks on its next update
 
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
@@ -708,8 +717,9 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Beside)));
+        sim.Tick();
         sim.Tick();
 
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
@@ -905,6 +915,7 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
 
         GameSimulation restored = WorldSnapshot.FromBytes(
             WorldSnapshot.ToBytes(sim), db, SimulationSystems.Default());
@@ -1344,7 +1355,7 @@ public class HandTests
     private static void PickUpAndDrop(
         GameSimulation sim, CreatureState creature, TilePos onto)
     {
-        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, onto)));
     }
 

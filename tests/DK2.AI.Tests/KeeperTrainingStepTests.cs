@@ -78,7 +78,7 @@ public class KeeperTrainingStepTests
     }
 
     private static int[] Lifted(IEnumerable<PlayerCommand> commands) =>
-        commands.OfType<PickUpCreatureCommand>().Select(c => c.CreatureId).ToArray();
+        commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray();
 
     private static TilePos[] Drops(IEnumerable<PlayerCommand> commands) =>
         commands.OfType<DropCommand>().Select(c => c.Tile).ToArray();
@@ -252,6 +252,7 @@ public class KeeperTrainingStepTests
         CreatureState creature = Fighter(world);
         var sim = new GameSimulation(Db, world, 1, [new HandSystem()]);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(creature.InHand);
 
         Assert.Empty(Run(world).Commands);
@@ -412,7 +413,7 @@ public class KeeperTrainingStepTests
 
         // Lifted once and put down on the room's one interior cell by the real hand; the drop on a
         // job room starts the Train job and remembers it (0x004E8DA0), and it earns experience.
-        Assert.Single(log, e => e.Command is PickUpCreatureCommand p && p.CreatureId == novice.Id);
+        Assert.Single(log, e => e.Command is TakeCreatureCommand p && p.CreatureId == novice.Id);
         Assert.Equal(TrainingSlot, ((DropCommand)Assert.Single(log, e => e.Command is DropCommand).Command).Tile);
         Assert.False(novice.InHand);
         Assert.Equal(JobType.Train, novice.DroppedToDoJob);
@@ -435,7 +436,7 @@ public class KeeperTrainingStepTests
         Assert.True(veteran.CombatPitFighter);
         Assert.Equal(CombatPitRules.WaitingState, veteran.Dk2StateId);
         // In the pit its category is the Pit's, so the step does not send it again.
-        Assert.Single(log, e => e.Command is PickUpCreatureCommand);
+        Assert.Single(log, e => e.Command is TakeCreatureCommand);
     }
 
     [Fact]
@@ -477,7 +478,7 @@ public class KeeperTrainingStepTests
         var commands = new List<PlayerCommand>();
         for (int tick = 0; tick < 16; tick++) commands.AddRange(keeper.Think(Db, world));
 
-        Assert.Equal(moved, commands.Any(c => c is PickUpCreatureCommand));
+        Assert.Equal(moved, commands.Any(c => c is TakeCreatureCommand));
     }
 
     /// <summary>A 4x3 room's two interior cells, in chain order for a room laid row by row.</summary>
@@ -597,7 +598,7 @@ public class KeeperTrainingStepTests
 
         // At level 4, at the Training cap and below the skill level, it is a Pit candidate; at
         // its old level 3 it would be sent to Training.
-        int at = commands.FindIndex(c => c is PickUpCreatureCommand pick && pick.CreatureId == levelled.Id);
+        int at = commands.FindIndex(c => c is TakeCreatureCommand pick && pick.CreatureId == levelled.Id);
         Assert.Equal(pit, at >= 0);
         if (pit) Assert.Equal(PitSlot, ((DropCommand)commands[at + 1]).Tile);
     }

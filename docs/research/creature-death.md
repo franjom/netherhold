@@ -337,7 +337,7 @@ system tests through `CreatureDeathRules.IsDown`.
 
 ### 5.2 Guard on health, not on state
 
-The collapse is *booked* once a game second, which leaves a window in which a
+The collapse is *booked* after the blow's pass (ADR-0732), else once a game second: a window in which a
 creature has no health and is still `Idle`. Guarding on "is dying" let two
 things happen in that window:
 

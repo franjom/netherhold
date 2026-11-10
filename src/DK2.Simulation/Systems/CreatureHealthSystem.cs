@@ -121,24 +121,28 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // second and so is never seen collapsed. CreatureDeathRules.Rescue
             // explains why reversing these two would undo every rescue.
             if (!CreatureDeathRules.HasCollapsed(state)) continue;
-
-            // Four gates, not one: no body, possessed, standing in a Prison or a
-            // Torture Chamber, or DieInstantly out of doors (Q303). Everything else
-            // gets its sixty seconds.
-            // A Vampire's run-out health first tries the reincarnation (0x0048FFC0, Q329).
-            if (CreatureDeathRules.CanBeResurrected(creature) && CreatureDeathRules.TryReincarnate(context, creature, state))
-            {
-                context.Emit(SystemName, "creature_reincarnated",
-                    $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} " +
-                    $"level={state.Level} at=({state.Tile.X},{state.Tile.Y})");
-                continue;
-            }
-
-            if (CreatureDeathRules.HasDyingState(world, database, creature, state))
-                Collapse(context, creature, state);
-            else
-                Die(context, SystemName, creature, state);
+            RunOutOfHealth(context, creature, state);
         }
+    }
+
+    /// <summary>What zero health leads to. Four gates, not one: no body, possessed, standing in a Prison
+    /// or a Torture Chamber, or DieInstantly out of doors (Q303); everything else gets its sixty
+    /// seconds. A Vampire's run-out health first tries the reincarnation (<c>0x0048FFC0</c>, Q329).</summary>
+    internal static void RunOutOfHealth(SimulationContext context, CreatureDef creature, CreatureState state)
+    {
+        state.CollapseDue = false;
+        if (CreatureDeathRules.CanBeResurrected(creature) && CreatureDeathRules.TryReincarnate(context, creature, state))
+        {
+            context.Emit(SystemName, "creature_reincarnated",
+                $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} " +
+                $"level={state.Level} at=({state.Tile.X},{state.Tile.Y})");
+            return;
+        }
+
+        if (CreatureDeathRules.HasDyingState(context.World, context.Database, creature, state))
+            Collapse(context, creature, state);
+        else
+            Die(context, SystemName, creature, state);
     }
 
     /// <summary>Tired and not asleep: the needs routine's health loss (NeedRules, ADR-0199).</summary>
@@ -285,7 +289,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
         if (!CreatureDeathRules.Collapse(context.Hooks, state)) return;
-        // Only when 216 took: 0x004596D0 returns before the drop if SetState refuses it.
+        // Only when 216 took: 0x004596D0 returns before the picks and the drop if SetState refuses it.
+        if (state.Dk2StateId == CreatureDeathRules.FallingState) DeathFallRules.Enter(context, state);
         int carried = state.GoldHeld;
         int dropped = state.Dk2StateId == CreatureDeathRules.FallingState
             ? FloorGold.DropFrom(context.World, context.Database, state, context.Rng)

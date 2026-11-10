@@ -72,7 +72,7 @@ public sealed class HandSoundTests
     }
 
     [Fact]
-    public void DroppingACreatureRequestsC4AtThePointerXYAndHeightZeroLikeTheHumanDropPathAndARefusedDropDoesNot()
+    public void DroppingACreatureRequestsC4AtThePointerXYAndTheDropsHeightLikeTheHumanDropPathAndARefusedDropDoesNot()
     {
         var (db, world, sim, events) = Setup();
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
@@ -88,7 +88,7 @@ public sealed class HandSoundTests
         Assert.Equal(ThingSoundEvent.Dropped, sound.Event);
         Assert.Equal("CREATURE_IMP", sound.Category);
         Assert.Equal(SoundSourceId.Of(new CreatureId(imp.Id)), sound.Source);
-        Assert.Equal(new FpPosition3(at.X, at.Y, new Fp32(0)), sound.Position);   // 0x004C0F0B never sets the height
+        Assert.Equal(new FpPosition3(at.X, at.Y, new Fp32(0x2000)), sound.Position);   // 0x004C0F68 writes the height
         Assert.False(sound.Voiced);
     }
 
@@ -113,12 +113,12 @@ public sealed class HandSoundTests
         Assert.Equal(ThingSoundEvent.Dropped, drop.Event);
         Assert.Equal("OBJECT_GOLD", drop.Category);
         Assert.Equal(lift.Source, drop.Source);
-        Assert.Equal(new FpPosition3(at.X, at.Y, new Fp32(0)), drop.Position);
+        Assert.Equal(new FpPosition3(at.X, at.Y, new Fp32(0x2000)), drop.Position);
         Assert.True(drop.Voiced);
     }
 
     [Fact]
-    public void ADropOntoALiveCreatureSoundsAtThatCreaturesPositionHeightIncluded()
+    public void ADropOntoALiveCreatureSoundsAtThatCreaturesPointAtTheDropsHeight()
     {
         var (db, world, sim, events) = Setup();
         ObjectState gold = FloorGold.Drop(world, db, (Floor.Y * world.Width) + Floor.X, 100)!;
@@ -128,7 +128,7 @@ public sealed class HandSoundTests
         var at = new FpPosition2(new Fp32((Elsewhere.X << 12) + 700), new Fp32((Elsewhere.Y << 12) + 900));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Elsewhere, under.Id, at)));
         ThingSoundRequest drop = Sounds(events).Single(s => s.Event == ThingSoundEvent.Dropped);
-        Assert.Equal(new FpPosition3(new Fp32(under.PosX), new Fp32(under.PosY), new Fp32(777)), drop.Position);
+        Assert.Equal(new FpPosition3(new Fp32(under.PosX), new Fp32(under.PosY), new Fp32(0x2000)), drop.Position);
     }
 
     [Fact]
