@@ -227,8 +227,17 @@ public sealed class CombatSystem : ICreatureUpdateStep
                 // a collapsing victim fails IsAttackable at step 5 and is let go with none (Q511).
                 bool outright = dying.Dk2StateId == CreatureStateMachine.NoState
                     || !CreatureDeathRules.HasDyingState(world, context.Database, context.Database.CreatureById(dying.CreatureTypeId), dying);
-                if (outright) VictoryRules.TargetDied(context, creature);
-                else VictoryRules.TargetDown(context, creature);
+                if (outright)
+                {
+                    VictoryRules.TargetDied(context, creature);
+                    return;
+                }
+                // Step 5 clears the target and the handler goes on with none: a busy fighter returns at
+                // step 7 and seeks next turn; one with no action seeks now and ends the state on none.
+                VictoryRules.TargetDown(context, creature);
+                if (FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
+                if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+                    LetGo(context, creature, "target_down");
                 return;
             }
         }

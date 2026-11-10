@@ -17139,3 +17139,18 @@ turns it once toward 0 by the creature's rate. Without one the heading stays.
 **Consequences.** The drop's encoding gains the angle, so hash/save 462
 refuses older journals; no state is added. The view and the computer keeper
 send no angle yet. The Level 1 win journal is re-recorded.
+## ADR-0734 - a fighter with no action leaves a collapsed target in the same turn
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures
+
+**Context.** `combat-fight-state.md` section 2: step 5 clears a target that
+has collapsed and the handler goes on with none; step 7 returns for a busy
+fighter; otherwise the out-of-reach arm seeks again and ends the state on
+none. Level 5 seed 1: the Wizard collapses on 1720; the Warlock whose cast had
+ended is idle on 1721, the three still casting on 1722. Ours let the target go
+and returned, so every fighter took the extra turn.
+
+**Decision.** After letting a collapsed target go, a fighter with no running
+action seeks a victim in the same call and leaves the fight if there is none.
+
+**Consequences.** No state or version change. The general invalid-target arm
+still seeks while busy, which step 7 would defer; no capture shows that case.
