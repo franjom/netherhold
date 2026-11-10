@@ -114,6 +114,25 @@ has loaded the solution, `findReferences` returns only same-file hits and
 gives no warning. Run one `workspaceSymbol` query first, then trust the
 results.
 
+## Large output — use context-mode
+
+The `MCP_DOCKER` server carries context-mode 2.1: `ctx_execute` (code, or a file through its
+`file` argument), `ctx_batch`, `ctx_index` (content, or a page through its `url` argument),
+`ctx_search` and `ctx_stats` (deferred in Claude Code: load them with `ToolSearch`). The 1.x
+names `ctx_execute_file`, `ctx_batch_execute` and `ctx_fetch_and_index` are gone; a client
+still offering them is connected to an old gateway and must reconnect. Use the tools when a
+command or file would put far more into context than the answer needs: a long test or harness
+log, a decompile, a capture CSV, a sweep across many files, a web page. Index or process it
+there and bring back only the lines that matter, instead of trimming by hand with `head`/`grep`.
+Never call `ctx_purge`, `ctx_upgrade`, `ctx_resume` or `ctx_doctor`; they are left out of the
+allowlist on purpose.
+
+It runs in a Linux container with Node, Python, Bash, Git and ripgrep. The project folder
+is mounted read-only at `/workspace`, so it can read but never write the repository. It has
+no .NET, Unity or Ghidra: build, test and query Ghidra on the host, then index their output
+with `ctx_index`. Its index is a shared cache, not memory or evidence; the memory graph and
+`F:\DK2Evidence` keep those roles. Setup and verification: `tools/context-mode/README.md`.
+
 ## Blender MCP
 
 The `blender` MCP server (mcp-for-blender, configured for Claude Code and Codex) controls a

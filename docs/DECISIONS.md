@@ -17156,6 +17156,37 @@ action seeks a victim in the same call and leaves the fight if there is none.
 
 **Consequences.** No state or version change. ADR-0736 builds the rest of
 step 5's tail, the general invalid-target arm included.
+
+## ADR-0735 - the computer keeper makes room for researchers and places creatures at their jobs
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** computer-keeper
+
+**Context.** Step 12 of DK2's keeper turn (`0x00500C20` at `0x00500FAE`) draws `random(3)` every
+turn. With allowance, Flags bit 2 (always on) and the roll at least `ProbabilityOfMovingCreatureForResearch`,
+it makes room for a researcher (`0x004FA8D0`) when a spell awaits research and a Library exists,
+then runs job placement (`0x00503690`) unless an attack response is queued. Ours had none of it:
+no roll, and the attack planner's research gate only counted the move
+([computer-keeper-management.md](research/computer-keeper-management.md) §11).
+
+**Decision.** `KeeperResearcherMove` mirrors `0x004FA8D0`. Fewer than two non-workers with Research
+in their happy jobs, and a non-researcher with the least descriptor byte `+0x787` (the last listed
+on a tie), let it pick a Portal, else a Hero Portal. At the portal creature cap, past the
+dropped-counter, hand, landing, stun and leaving (196, 197) guards and the permission, the candidate
+is dropped there to leave. It spends no allowance. `KeeperResearchStep` runs step 12. Job placement
+drops the hand's last item while it is a creature, at a room one of its happy jobs names through
+JobRooms; each try spends one allowance, and a miss retries the same item. Then `random(100) < 10`,
+drawn whatever the allowance, scans the owned list for idle creatures that pass the scan's filter.
+A creature is lifted for the first job whose room exists and whose test admits it: Research while
+a spell awaits research, running the move first when a Library exists; Train while the army is not
+ready; Manufacture always; Torture never. Each lift costs one allowance; the drop comes on a later
+turn. The attack planner's gate runs the move. `KeeperCreatureView` carries `CameThroughPortal` and
+`KeeperView` the hand's items; the observation format is 23.
+
+**Consequences.** No world state is added; hash and save formats are unchanged. The research roll
+shifts every keeper's stream each turn. Lifts are takes (ADR-0731) and drops land a turn later
+(ADR-0730), as for the keeper's other moves; draws use the keeper's own stream (ADR-0244).
+`+0x787`'s meaning remains UNKNOWN. STRONGLY INFERRED from the disassembly; no native capture
+compares the step.
+
 ## ADR-0736 - clear a collapsed target by the target word alone, and read the Imp's and the computer keeper's drops
 **Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, computer-keeper, keeper-spells
 

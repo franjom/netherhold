@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 22;
+    public const int FormatVersion = 23;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -57,7 +57,7 @@ public static class KeeperViewSnapshot
             w.Write(c.Experience); w.Write((int)c.DroppedToDoJob);
             for (int b = 0; b < CreatureAnger.Count; b++) w.Write(c.Anger[(AngerBucket)b]);
             w.Write(c.ActivityCode); w.Write(c.SpeedChanging);
-            w.Write(c.PlaceTile); w.Write(c.PlaceSerial); w.Write(c.OnTortureDevice);
+            w.Write(c.PlaceTile); w.Write(c.PlaceSerial); w.Write(c.OnTortureDevice); w.Write(c.CameThroughPortal);
         }
         w.Write(view.Traps.Count);
         foreach (KeeperTrapView t in view.Traps)
@@ -96,7 +96,8 @@ public static class KeeperViewSnapshot
         int[] sightRefused = view.SightRefusedTiles.ToArray();
         w.Write(sightRefused.Length);
         foreach (int index in sightRefused) w.Write(index);
-        w.Write(view.HandCount);
+        w.Write(view.HandItems.Count);
+        foreach (HandItem item in view.HandItems) { w.Write((byte)item.Kind); w.Write(item.Id); }
         w.Write(view.Doors.Count);
         foreach (KeeperDoorView d in view.Doors)
         {
@@ -149,6 +150,7 @@ public static class KeeperViewSnapshot
             {
                 Anger = anger, ActivityCode = r.ReadInt32(), SpeedChanging = r.ReadBoolean(),
                 PlaceTile = r.ReadInt32(), PlaceSerial = r.ReadInt64(), OnTortureDevice = r.ReadBoolean(),
+                CameThroughPortal = r.ReadBoolean(),
             };
             if (creatures[i].PlaceTile < -1 || creatures[i].PlaceTile >= tiles.Length)
                 throw new InvalidDataException("A creature's place is outside the observation.");
@@ -216,7 +218,8 @@ public static class KeeperViewSnapshot
             if ((uint)sightRefused[i] >= tiles.Length)
                 throw new InvalidDataException("Refused tile is outside the observation.");
         }
-        int handCount = r.ReadInt32();
+        var hand = new HandItem[ReadCount(r, 5)];
+        for (int i = 0; i < hand.Length; i++) hand[i] = new HandItem((HandItemKind)r.ReadByte(), r.ReadInt32());
         var doors = new KeeperDoorView[ReadCount(r, 10)];
         for (int i = 0; i < doors.Length; i++)
             doors[i] = new KeeperDoorView(r.ReadByte(), r.ReadByte(), r.ReadInt32(), r.ReadInt32());
@@ -224,7 +227,7 @@ public static class KeeperViewSnapshot
             throw new InvalidDataException("Trailing keeper observation data.");
         return new KeeperView(database, player, tick, status, alliedWith, playerIds, width, height, gold, imps,
             heart, tiles, availability, creatures, traps, rooms, messages, callToArms, mana, statuses, refused, heartRuined,
-            sightRefused, handCount, doors);
+            sightRefused, hand, doors);
     }
 
     private static int ReadCount(BinaryReader r, int minimumEntryBytes)

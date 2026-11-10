@@ -194,11 +194,10 @@ public class KeeperAttackPlannerTests
         (KeeperAttackPlanner planner, KeeperAIState state, _) = Planner(world, Attacker() with { IAAllSpellsResearched = gate });
 
         Assert.Equal(attacks, planner.Plan());
-        Assert.Equal(0, state.UnbuiltResearchMoves); // no Library to free a slot at
     }
 
     [Fact]
-    public void TheResearchGateDrawsARandomLibraryAndCountsTheMoveItWouldMake()
+    public void TheResearchGateDrawsARandomLibraryBeforeTheResearcherMove()
     {
         WorldState world = World();
         Fighter(world, Keeper, 15, 15); Fighter(world, Keeper, 16, 15);
@@ -215,8 +214,9 @@ public class KeeperAttackPlannerTests
 
         Assert.False(planner.Plan());
 
-        // 0x004C6460(6) draws random(libraries) before the move: the stream moved on by one draw.
-        Assert.Equal(1, state.UnbuiltResearchMoves);
+        // 0x004C6460(6) draws random(libraries) before the move, which with no Portal draws and
+        // moves nothing: the stream moved on by one draw.
+        Assert.Empty(commands);
         var expected = new SimRandom(5);
         expected.NextInt(1);
         Assert.Equal(expected.NextInt(1000), rng.NextInt(1000));
@@ -446,11 +446,11 @@ public class KeeperAttackPlannerTests
     {
         WorldState world = World(open: true);
         Fighter(world, Keeper, 15, 15); Fighter(world, Keeper, 16, 15);
-        // Seed 3 draws the diagonal away from the keeper's own land, which this test needs (no drop
-        // site within five of the call). The idle fighters' slap rolls and step 10's traps-and-doors
-        // roll share the stream, so a change to either moves the draw (seed 2 from 2026-10-06 until
-        // the traps-and-doors step, 2026-10-28).
-        var keeper = new KeeperAI(Keeper, Attacker(usage: 1), new SimRandom(3));
+        // Seed 4 draws the diagonal away from the keeper's own land, which this test needs (no drop
+        // site within five of the call). The idle fighters' slap rolls and steps 10's and 12's rolls
+        // share the stream, so a change to any moves the draw (seed 2 from 2026-10-06, 3 from the
+        // traps-and-doors step, 2026-10-28, 4 from the research roll, 2026-11-10).
+        var keeper = new KeeperAI(Keeper, Attacker(usage: 1), new SimRandom(4));
         var sim = new GameSimulation(Db, world, 1, CallSystems());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);

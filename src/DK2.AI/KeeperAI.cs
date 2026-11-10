@@ -111,7 +111,7 @@ public sealed class KeeperAI
         var retreat = new KeeperRetreatStep(view, _p, _rng, commands);
         var battle = new KeeperBattleStep(view, State, _p, _rng, commands, retreat.Prepared);
         var readiness = new KeeperReadiness(view, _p, commands);
-        var attack = new KeeperAttackPlanner(view, State, _p, _rng, commands, readiness, battle);
+        var attack = new KeeperAttackPlanner(view, State, _p, _rng, commands, readiness, battle, retreat.Prepared);
         if (budget > 0 && State.PlayersAttackedFlags != 0) budget = attack.Manage(budget);
         if (budget > 0 && State.CallToArmsInUse) battle.TestRemoval();
         if (budget > 0) budget = retreat.Run(budget);
@@ -125,12 +125,14 @@ public sealed class KeeperAI
         if (budget > 0 && _rng.NextInt(100) < 10)
             budget = new KeeperTrapDoorStep(view, _p, _rng, commands).Run(budget);
 
-        // 11. Imps while no fight is on, else the battle step; then 13. slaps.
+        // 11. Imps while no fight is on, else the battle step; 12. the research roll, drawn every
+        // turn, with the researcher move and job placement (0x00500FAE); then 13. slaps.
         if (budget > 0)
         {
             if (State.FightGoingOn) budget = battle.Run(budget);
             else CreateImps(view, commands, ref budget);
         }
+        budget = new KeeperResearchStep(view, State, _p, _rng, commands, readiness, retreat.Prepared).Run(budget);
         if (budget > 0) Slap(view, commands, ref budget);
 
         // 14. The prisoner step (0x005006D0), then Sight of Evil, each while allowance remains.
