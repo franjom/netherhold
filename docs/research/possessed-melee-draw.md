@@ -5,9 +5,10 @@ systems: [combat, creatures, simulation-core]
 
 ## Attribution
 
-The [hash-455 control](store-gold-steering.md) remains the last verified
-continuation. Its first mismatch names Warlock 437 in the modern stack;
-that identifies the modern consumer, not the native draw's owner.
+The [hash-455 control](store-gold-steering.md) stopped at 1647, where its
+first mismatch names Warlock 437 in the modern stack; that identifies the
+modern consumer, not the native draw's owner. The hash-457 control below
+continues it.
 
 CONFIRMED in the Level 5 seed-1 capture: possessed Imp 440 changes from
 no action/standing slot 39 at 1646 to action 17/slot 5 at 1647. The action
@@ -56,17 +57,17 @@ retain their separate scope; no packet scheduling delay was introduced.
 
 ## Controlled result
 
-The `controlled456-v4` replay (same 27 inputs; the earlier diagnostic clauses
+The `controlled457` replay (same 27 inputs; the earlier diagnostic clauses
 plus one pre-1400 guard on the new starter, 27 in total) matches 4783 ordered
 sites/preseeds through 1685, versus 4106 through 1646. Imp 455 matches 286/286
 native state/XY samples. Next is 1686 draw 1: native ObjectState.cpp:2782
 versus modern PlayerRooms.cpp:644, bound 1, FearRules.Withdraw for Imp 440 in
-state 203. That run was taken on the branch before master was merged, when
-this change was numbered hash 456, and before the untimed-start cancellation
-was added; that correction has its own failing-then-passing test.
+state 203. It was taken on master's merge at hash 457 and repeats the
+branch's `controlled456-v4` run draw for draw (8617 rows).
 
 Evidence: `F:/DK2Evidence/studies/q712-possessed-melee1647--2026-11-08--001`;
-the control and its receipts are in `q712-possessed-melee-clock--2026-11-08--001`.
+the controls and receipts are in `q712-possessed-melee-clock--2026-11-08--001`
+and `--2026-11-10--001` (`verification-summary457.json`).
 `observations.json` contains the native components, packet excerpt and modern
 events; the copied packet is SHA-256 checked and its source remains in place.
 The two raw shipped-data windows and source hashes bind the code/data reading.

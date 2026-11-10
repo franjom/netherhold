@@ -24,11 +24,11 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-Start with [possessed melee draw](research/possessed-melee-draw.md) for the
-current lead. [Store-gold steering](research/store-gold-steering.md) owns the
-last controlled result and its verification. The next
-boundary is recorded in [Q712](research/open-questions.md); investigate its native
-caller and guards before proposing another rule. Build only behavior supported
+[Possessed melee draw](research/possessed-melee-draw.md) owns the last controlled
+result (hash 457, ordered draws match through turn 1685) and its verification;
+[store-gold steering](research/store-gold-steering.md) owns the prefix before it.
+The next boundary, turn 1686, is recorded in [Q712](research/open-questions.md);
+investigate its native caller and guards before proposing another rule. Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 
 The controlled prefix does not establish full-state or Heart-outcome parity.

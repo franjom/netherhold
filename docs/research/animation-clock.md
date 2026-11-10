@@ -163,7 +163,8 @@ stream, so the capture checks the lengths and the rate of swaps, not the draw's
 position in DK2's stream.
 Imp dig art (slot 5, flags `0x28011`) has `0x8000`, so every fresh dig or mining
 install draws one number too, without swapping. Built in ADR-0515; tests:
-`IdleActionClockTests`.
+`IdleActionClockTests`. A possessed melee start installs through the same starter and
+draws the same coin (ADR-0726, [possessed-melee-draw.md](possessed-melee-draw.md)).
 
 ADR-0701 preserves the requested art slot while resolving its resource and mirrors
 the runner's count branches in `ActionAnimationClock`. Non-worker43/44 use the

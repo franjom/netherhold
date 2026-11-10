@@ -221,7 +221,8 @@ at the target (0x0048F3F0, 0x0048F390, 0x0045CB00) and its NHypnotisedAttacks
 PossessedTargetAttackTime +0x4D2 = now and PossessedTargetTag +0x4D0 = target are
 written, and +0x427 is stamped again; followers read +0x4D0 (see
 possession-arms-and-inputs.md §4). A refused start keeps the first stamp. The
-blow is action 17's swing 0x00498E30 into 0x00494D00. No target and def+0x686 bit
+blow is action 17's swing 0x00498E30 into 0x00494D00; the action runs the shared slot-5
+animation (ADR-0726, [possessed-melee-draw.md](possessed-melee-draw.md)). No target and def+0x686 bit
 0 runs the dig/claim arm; its [current implementation scope](possession-arms-and-inputs.md#3-dig-and-claim--strongly-inferred-by-listing) separates the timed Imp clock from other work adapters.
 
 The pick predicate 0x00516050 — STRONGLY INFERRED. Equal owners branch at 0x00516065.
