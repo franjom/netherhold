@@ -159,6 +159,7 @@ namespace DK2.Simulation
             OverThreatCounter = other.OverThreatCounter;
             BackOffTimer = other.BackOffTimer;
             SpeedMode = other.SpeedMode;
+            SpeedSetTick = other.SpeedSetTick;
             CombatStateEnteredTick = other.CombatStateEnteredTick;
             StateEnteredTick = other.StateEnteredTick;
             ActionArtSlot = other.ActionArtSlot;

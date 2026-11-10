@@ -326,12 +326,12 @@ public static class FearRules
 
         if (d > range)
         {
-            me.Running = true;
+            me.SetSpeedMode(CreatureSpeedMode.Run, context.Tick.Value);   // 0x00460880
             return;
         }
         if (StepBack(context, me, mine, FleeStepBackLength(mine), scratch))
         {
-            me.SpeedMode = CreatureSpeedMode.Shuffle;   // 0x00460806
+            me.SetSpeedMode(CreatureSpeedMode.Shuffle, context.Tick.Value);   // 0x00460806
             return;
         }
         if (Cornered(context, me, mine, scratch))

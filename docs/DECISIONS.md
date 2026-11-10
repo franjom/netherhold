@@ -17189,3 +17189,32 @@ computer keeper's creature from height 0, ours gives the hand's one-turn fall;
 bit 0 to `0x0046022F`, which ours does not mirror. No test covers the fear
 checks before the busy gate or a forced collapsed target. Other writers of
 `+0x529`, and an action at pick-up turning an Imp on the drop turn, were not read.
+## ADR-0736 - a speed a state handler sets is not modified that turn
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, simulation-core
+
+**Context.** `speed-set-turn.md`: Creature_Update (`0x00488930`) applies its
+speed modifiers (low health, water, lava, player bonus, possession and stat) before
+the action runner, ProcessFight and the state dispatcher, then restores the
+getter's speed at `0x0048A45C` if `+0x3BF` is set. The speed setter
+`0x004887D0` sets `+0x3BF` in every case. A handler's call therefore gives that
+turn's move the definition's speed, and the next update modifies it again. Level
+5 seed 1: hero 434 wading enters its fight on 1728 with cap 17680 and `+0x3BF` 1,
+then 8870 with `+0x3BF` 0. Ours halved the cap on the entry turn too: the hero
+moved 452 where DK2's moved 1111, and met Imp 445 a turn late.
+
+**Decision.** `CreatureState.SpeedSetTick` marks the turn of a handler's call
+(`SetSpeedMode`). `CreatureMovementSystem.Sync` skips the water and possession
+modifiers when the mark is this turn. The five calls whose DK2 sites were read
+carry it: state 199's entry-turn run (`0x0045EBC9`), spFighting's step-back
+shuffle and run (`0x0045FFC9`, `0x0045FFF6`) and the flee state's
+(`0x00460806`, `0x00460880`). Only the first is capture-backed.
+
+**Consequences.** Hash/save 464, pin `0x26EDB164EDD655D6`; `SpeedSetTick` is
+hashed, saved and copied. The Level 1 win journal is re-recorded (win tick 2303,
+gem (16,21) unchanged); the controlled Level 5 seed-1 replay goes from 6120
+ordered draws through turn 1755 to 6764 through 1788. Haste and Slow (Q399) are
+unchanged; they persist through the kept speed read, not through `+0x3BF`.
+Still deviating: 17 of DK2's 22 call sites of `0x004887D0` are unmarked in ours
+(listed in the note), among them Creature_FollowPossessedState, which calls it
+every run; a hasted creature in water on a marked turn is 1.5 x base in ours and
+base in DK2; the low-health and lava modifiers are unbuilt.

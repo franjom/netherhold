@@ -315,13 +315,13 @@ unsigned floor, through `0x0048D010`: in body units, `((cap >> 4) / 2) << 4`.
 After loader rounding/clamping, the ratio holds across levels; non-Water bridge terrain is skipped.
 Neither `ShuffleSpeed` nor `CanWalkOnWater` enters this modifier.
 The independently recomputed grounded-water flag `+0x3EA` bit 21 is not its gate.
-Order: non-worker low-health half-speed, water, player bonus, possession/stat modifier.
-At tick end persistent speed is restored unless `+0x3BF` was set; water does not set it.
+Order: non-worker low-health half-speed, water, lava (150/100, `0x0048984C`), player bonus, possession/stat modifier.
+At tick end persistent speed is restored unless `+0x3BF` was set; water does not set it. They run before the state handlers, so a speed a handler sets is not modified that turn ([speed-set-turn.md](speed-set-turn.md)).
 Flying's worker bits, five animation exceptions and mode-dependent bit precede
 `CanFly` outside states 217–218. Ours supports the trap subset: workers grounded,
 otherwise `CanFly` outside 217–218; other flight arms remain deviations.
 Lava's adjacent non-flying 150 % arm remains unbuilt. The owner saw slowdown; no live ratio was timed.
-Ours: walk/run (`MaxSpeedOf`), timed modifiers and `WaterSpeedRules`; shuffle and [injury speed/recharge branches](functions/00488930.md) remain unbuilt. The [current-state/speed gate](library-movement-gate.md) is mirrored for neutral non-Imps and implemented Library states, with the bounded [home-handover extension](lair-home-handover.md); other controllers retain their adapters. The body syncs to the entity in `Advance` and keeps its 16.16 position after a committed step; turn start re-syncs only a body whose entity moved (an adapter, Q736).
+Ours: walk/run/shuffle (`MaxSpeedOf`, ADR-0729), timed modifiers and `WaterSpeedRules`; the [injury speed/recharge branches](functions/00488930.md) remain unbuilt. The [current-state/speed gate](library-movement-gate.md) is mirrored for neutral non-Imps and implemented Library states, with the bounded [home-handover extension](lair-home-handover.md); other controllers retain their adapters. The body syncs to the entity in `Advance` and keeps its 16.16 position after a committed step; turn start re-syncs only a body whose entity moved (an adapter, Q736).
 
 ### 7.6 The state's option word (`0x004D0F60`)
 

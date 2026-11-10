@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**464** - `0x26EDB164EDD655D6`. A speed a state handler sets (state 199's entry-turn run, the step-back shuffle and run of spFighting and the flee state) is not halved by water or changed by possession that turn: `SpeedSetTick` is hashed, copied and saved (ADR-0736). Earlier saves are refused.
+
 **463** - `0xA5B5726883443E44`. A collapsed or invalid target is cleared without touching the attack nibble, reach or body, and the handler goes on through the fear checks, the busy return and the seek; a dropped Imp keeps the drop's angle; the computer keeper's tile drops pass the tile's centre plus `0x100` and angle 0 (ADR-0735). No new state; the version moves because recorded runs change.
 
 **462** - `0xB28FC3F5420EAA3D`. The drop command carries the packet's angle and the drop heads the creature by it (ADR-0733). No new state; the version moves so that journals with the old drop encoding are refused.

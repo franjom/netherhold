@@ -940,6 +940,18 @@ public sealed partial class CreatureState
     /// by <c>0x004887D0</c>): it holds until the next write, so a step back's shuffle outlasts the step.</summary>
     public CreatureSpeedMode SpeedMode;
 
+    /// <summary>The turn a state handler last set the speed (<c>0x004887D0</c> setting <c>+0x3BF</c>), or
+    /// -1. The update's speed modifiers (water at <c>0x0048970B</c>) run before the handler, so that
+    /// turn's move is at the unmodified speed; the next update modifies it again (ADR-0736).</summary>
+    public long SpeedSetTick = -1;
+
+    /// <summary><c>0x004887D0</c> as a state handler calls it: the mode and this turn's mark.</summary>
+    public void SetSpeedMode(CreatureSpeedMode mode, long tick)
+    {
+        SpeedMode = mode;
+        SpeedSetTick = tick;
+    }
+
     /// <summary>Whether the cap is the run speed (<c>0x004887D0(1)</c>); clearing it is the walk
     /// (<c>0x004887D0(0)</c>). A fight's run speed is state 199's, on its entry turn.</summary>
     public bool Running
@@ -1529,6 +1541,7 @@ public sealed partial class CreatureState
         hash.Add(OverThreatCounter);
         hash.Add(BackOffTimer);
         hash.Add((byte)SpeedMode);
+        hash.Add(SpeedSetTick);
         hash.Add(CombatStateEnteredTick);
         hash.Add(StateEnteredTick);
         hash.Add((byte)IdleAction);

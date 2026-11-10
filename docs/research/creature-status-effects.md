@@ -68,14 +68,16 @@ ticks); Slow: 20 % for 15 s. When the ticks run out the speed is set back to the
 definition's walk. The animation flag `+0x4DD` and body bits 16/23 are display.
 
 **The haste is held, not reapplied (2026-10-04).** Every tick `Creature_Update`
-`0x00488930` clears `+0x3BF`, keeps the speed the getter `vtable+0x90` returns, lets the
-tick's modifiers set scaled speeds through the setter `vtable+0x8C`, and at the end
-sets the kept speed back unless `+0x3BF` was set during the tick. A Haste or Slow write
-therefore persists while modifiers last one tick. `Creature_SetSpeedMode` `0x004887D0`
-(22 call sites, among them `spFighting` at `0x0045FFC9` and `0x0045FFF6` and the flee
-state at `0x00460806` and `0x00460880`) writes the definition's walk, run or third speed
-and sets `+0x3BF`, so it replaces the hasted speed while `+0x459` keeps counting.
-Which of those calls a hasted creature reaches in a given game was not traced.
+`0x00488930` clears `+0x3BF`, keeps the speed the getter `vtable+0x90` returns (`0x00489623`), lets the
+tick's modifiers set scaled speeds through the setter `vtable+0x8C`, and at `0x0048A45C` sets
+the kept speed back unless `+0x3BF` was set during the tick. A Haste or Slow speed
+therefore persists through the kept read, the speed the previous update restored, while modifiers last one
+tick; it does not persist because `0x0048CAD0` sets `+0x3BF`, which only protects writes made inside the update.
+`Creature_SetSpeedMode` `0x004887D0` (22 call sites, among them `spFighting` at `0x0045FFC9` and `0x0045FFF6` and the flee
+state at `0x00460806` and `0x00460880`) is unconditional: it writes the definition's walk, run or third speed
+and sets `+0x3BF`, so it replaces the hasted speed while `+0x459` keeps counting, and a handler's call
+gives that turn's move the definition's speed with the modifiers acting again from the next turn
+([speed-set-turn.md](speed-set-turn.md)). Which of those calls a hasted creature reaches in a given game was not traced.
 
 **Freeze** (`0x0048CB60(creature, ticks)`, type 11). Refused for `IsHorny` and
 while already frozen. `+0x447` = `ShotData1` × ticks-a-second (Mistress Freeze 10 s

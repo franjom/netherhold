@@ -150,6 +150,9 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             ? Math.Min(SimulationTiming.LoaderRatePerTick(creature.PartySpeedRaw), MaxSpeedPerTick) << 4
             : MaxSpeedOf(definition, creature.SpeedMode);
         creature.Body.MaxSpeed = StatusEffectRules.SpeedCap(context.Database, definition, creature, cap);
+        // The update's modifiers ran before the handler that set this turn's speed (0x004887D0), so the
+        // move is at the speed it wrote; they act again from the next turn.
+        if (creature.SpeedSetTick == context.Tick.Value) return;
         TerrainDef terrain = context.Database.TerrainById(context.World.Tile(creature.Tile).TerrainId);
         creature.Body.MaxSpeed = WaterSpeedRules.SpeedCap(terrain, definition, creature, creature.Body.MaxSpeed);
         PossessionRules.ApplySpeedModifier(context.Database, creature);
