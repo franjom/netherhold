@@ -185,12 +185,15 @@ public static class AutoFurnitureRules
     /// side byte, <c>casino.md</c> §3); -1 for a tile that is no wall slot of the room.</summary>
     public static int WallSide(WorldState world, GameDatabase database, RoomInstance room, int tileIndex)
     {
-        // Once per instance: the steering asks this for every wall object near every creature.
-        (int Tile, int Side)[] slots = room.WallSlots ??= WallSlotsInChainOrder(world, database, room);
-        foreach ((int tile, int side) in slots)
+        foreach ((int tile, int side) in WallSlotsOf(world, database, room))
             if (tile == tileIndex) return side;
         return -1;
     }
+
+    /// <summary><see cref="WallSlotsInChainOrder"/> once per instance: the steering asks for them for
+    /// every wall object near every creature, and the keeper's capture for each Torture Chamber.</summary>
+    public static (int Tile, int Side)[] WallSlotsOf(WorldState world, GameDatabase database, RoomInstance room) =>
+        room.WallSlots ??= WallSlotsInChainOrder(world, database, room);
 
     /// <summary>The wall slots in chain order, each with its side (<c>0x004E8210</c>'s walk with only its
     /// wall flag, which counts and indexes them in the slab chain's order).</summary>

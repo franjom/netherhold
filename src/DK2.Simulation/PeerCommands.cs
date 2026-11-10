@@ -69,14 +69,16 @@ public static class PeerCommands
     /// screen's and a cheat's. If a multiplayer result screen needs it, the relay issues it, not a peer.
     /// <see cref="MovePossessedCreatureCommand"/> is refused until the simulation validates a pose
     /// (speed, walls, bounds): <c>PossessionRules.Move</c> installs whatever position it is sent, as
-    /// DK2 trusted its own client to.</para>
+    /// DK2 trusted its own client to. <see cref="SetAllianceCommand"/> is refused until offers are
+    /// modelled: DK2's make handler (<c>0x00513FF0</c>) allies both players without reading the
+    /// target's offer, and only its HUD kept that consensual.</para>
     /// </summary>
     public static bool IsAllowedFromPeer(PlayerCommand command) => command is
         TagTilesCommand or BuildRoomCommand or SellRoomCommand or GuiButtonCommand or CreateImpCommand
         or PickUpCreatureCommand or PickUpObjectCommand or PickUpStoreGoldCommand or DropCommand
         or SlapCreatureCommand or CastSpellAtPlaceCommand or CastSpellOnCreatureCommand
         or RemoveCallToArmsCommand or PlaceDoorCommand or PlaceTrapCommand or LockDoorCommand
-        or PullCasinoLeverCommand or SetAllianceCommand or SkipCameraPathCommand
+        or PullCasinoLeverCommand or SkipCameraPathCommand
         or AcknowledgePlayerMessageCommand or LeavePossessionCommand or ActPossessedCreatureCommand
         or DismissFollowersCommand or ToggleSneakCommand or HypnotiseCommand or SetSniperModeCommand
         or SetRescuePriorityCommand or ContinueAfterResultCommand

@@ -8184,8 +8184,7 @@ spell 1 available at t1961 and he casts 14 times; before that the position draws
 taken before the availability test as DK2 takes them, shift his stream.
 
 **Deviations.** The keeper's own stream (ADR-0244) keeps DK2's draw order, not its
-values. The prisoner step before Sight (`0x005006D0`) is unbuilt: in DK2 a keeper with a
-Prison draws its rolls and may spend the last allowance there first. The gold gate tests
+values. The prisoner step before Sight (`0x005006D0`) was unbuilt here; ADR-0726 builds it. The gold gate tests
 our task state, not the task pool's kind-2 count; the cost arm with nothing stored takes
 the fresh scan's first deposit (Q539). Sight's shot (process 25, 64 updates, no
 collision) and the thing slot it would take are not created.
@@ -12581,9 +12580,8 @@ world holds. Imps refuse an allied, non-neutral tile in both claim priorities
 **Consequences.** On campaign levels keeper and hero creatures, traps, hearts and
 the keeper AI stop treating neutral creatures and unowned land as enemy; imps
 still claim neutral ground. Level 18's allied keepers leave each other's floor
-and creatures alone. Measured on Level 11A (Q652): our Drako no longer calls at
-Morgana's front, which DK2's capture does on turn 700; a known regression
-against that capture, downstream of the readers, and open.
+and creatures alone. On Level 11A over ten seeds they do not shift the share of
+Drako's first calls at Morgana's front measurably (5 against 4, Q652).
 
 ## ADR-0547 — Allies end games together, outside the campaign
 **Date:** 2026-10-26 · **Status:** accepted
@@ -16942,8 +16940,8 @@ is `docs/plans/2026-11-09-multiplayer-threat-model.md`; the netcode plan is
 
 **Decision.** Steam is the platform: SDR transport, Steam lobbies, login tickets verified
 server-side. No player hosts. The official relay is a broker: it orders commands, owns the
-turn clock, enforces deadlines, compares state hashes, stores input journals and forwards
-snapshots. It never loads game data or simulates. It is one program of our own, built on the
+turn clock, compares state hashes and data fingerprints, and stores input journals. It never
+loads game data, simulates or carries world state. It is one program of our own, built on the
 Steamworks game-server API (tickets checked by the relay; no Web API key in any client), hosted
 by us in a few regions, and runnable by anyone for private, LAN or community games (owner,
 2026-11-10). Every network feature obeys:
@@ -16957,13 +16955,13 @@ by us in a few regions, and runnable by anyone for private, LAN or community gam
 - **R4 allow-list.** Only human-issuable, validated commands cross the network (`PeerCommands`).
 - **R5 content.** Original maps, plus custom maps verified against a relay-checked hash and a
   size limit. Paths never come from a file. Arbitrary mods wait for fuzzed parsers.
-- **R6 turns, desync, departure.** Commands apply on a turn the relay sets, with an input delay
-  adapted to the peers. Every machine runs the computer keepers; their state is in the snapshot
-  and the hash, and the journal records the merged frame. A departed keeper is handed to the
-  computer keeper on an announced tick (owner, 2026-11-09). Desync is settled by consensus:
-  with three or more peers the majority's snapshot resyncs the rest; with two, one side is
-  resynced and repeated desync ends the match as no contest. A snapshot from a peer is untrusted
-  input and is accepted only if the loader's next hash matches the majority.
+- **R6 turns, desync, departure.** The relay puts each command in the turn open when it arrives;
+  there is no shared input delay. Every machine runs the computer keepers; their whole state is
+  in the snapshot and the hash, and the journal records the merged frame. A departed keeper gets
+  a caretaker for the rejoin window, then the computer keeper (owner, 2026-11-09). **No machine
+  loads another's state:** rejoin and resync replay the journal locally, checked against the
+  agreed hashes. A machine still diverged after replay forks against computer keepers and the
+  match is no contest. Peers must match on a fingerprint of every data input before start.
 - **R7 transport.** Steam's authenticated, encrypted SDR. No custom crypto, no peer IP addresses.
 - **R8 backend.** Identity only from verified tickets; no secrets in the client. Unranked: with
   no server-side simulation, ranked play would need consensus plus reports.
@@ -16998,7 +16996,33 @@ a map-placed or trigger-made gem still has none (Q755).
 STRONGLY INFERRED from the disassembly. See [campaign-win-sequence.md](research/campaign-win-sequence.md) §2
 and records `0048B3A0`, `0049AC80`.
 
-## ADR-0726 - run possessed melee through the shared action animation
+## ADR-0726: the computer keeper moves its prisoners
+
+**Date:** 2026-11-10. **Status:** accepted. · **Systems:** computer-keeper
+
+**Context.** Step 14 of DK2's keeper turn runs the prisoner step `0x005006D0` before Sight of Evil,
+whenever allowance remains. Ours skipped it, so a keeper never tortured, sacrificed or pitted its
+prisoners and never spent that allowance. The step draws one own Prison and walks its occupant list
+from the head; `0x004E5A70` head-inserts each claim, so the newest claim comes first
+([computer-keeper-management.md](research/computer-keeper-management.md) §1).
+
+**Decision.** `KeeperPrisonerStep` mirrors it: the first non-enemy occupant is taken outright, each
+enemy on `random(100) < 5`, and the walk stops at the first taken. One allowance is spent per
+selection, whatever follows. A non-enemy goes to a random Lair. An enemy goes by
+`ImprisonedCreatureAction`: 0 Torture Chamber, at a floor or wall slot (`0x004E8210(1, 1)`) with
+no creature on a torture device (`0x00485210`) on its tile; 1 nowhere; 2 Combat Pit; 3 Temple, the
+last two at the room's position. A missing room has no fallback. The guards run in DK2's order:
+the dropped counter, the hand, landing (76), stun, then permission. The occupant order comes from the
+existing `HeldPlaceSerial`; `KeeperCreatureView` carries the place, its serial and the
+torture-device test, and `KeeperRoomView` a Torture Chamber's wall slots. The observation format is 22.
+
+**Consequences.** No world state is added and the hash and save formats are unchanged; runs where a
+computer keeper holds prisoners take new trajectories. The deviations are the training moves': the
+keeper's own random stream (ADR-0244), and a lift and drop as next-tick commands (ADR-0284).
+A creature virtual, `0x00488750`, also head-inserts room holders, probably after loading; ours keeps
+claim order across a load. STRONGLY INFERRED from the disassembly; no native capture compares the step.
+
+## ADR-0727 - run possessed melee through the shared action animation
 **Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, simulation-core
 
 **Context.** `possessed-melee-draw.md` identifies the missing animation install

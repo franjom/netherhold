@@ -66,6 +66,11 @@ call except these, every one of which ours already mirrors:
 | Keeper attack plan `0x004FB022`, `0x004FB02A` | heroes and neutral skipped before the test | `KeeperAttackPlanner` |
 | NonFighter `0x0045BF71` | hero owner path | `CombatTargetRules` |
 
+The keeper's prisoner step (`0x005006D0`) has no neutral exemption either: it asks Player_IsEnemy
+of the occupant's owner. An allied occupant, neutral included (allied in every shipped level), is
+taken outright to a Lair; an unallied one is an enemy, taken on a 5 % roll. Built as
+`KeeperPrisonerStep` (ADR-0726).
+
 The interface's alliance panel and its message recipients (`0x004256B0`, `0x00425B50`,
 `0x004260F0`, `0x004051B5`, `0x004063FC`) also skip heroes and neutral explicitly; they decide
 nothing in the simulation. Two of `Combat_SelectAVictim`'s scans never ask the array at all (scan
@@ -86,9 +91,8 @@ themselves (combat-acquisition.md §3).
   only, no neutral exemption.
 - Creature_AttackAdjacentDoor (`0x004814B7`): a neutral door is attacked even when allied
   (`0x004814A7`).
-- The Reaper's forced target (`0x0045E208`, `0x0045E32A`) and the keeper's prisoner step
-  (`0x005006D0`): no neutral exemption, so neutral creatures are skipped and neutral prisoners go
-  to the release branch.
+- The Reaper's forced target (`0x0045E208`, `0x0045E32A`): no neutral exemption, so neutral
+  creatures are skipped.
 - Spell location validators 2 (`0x00517CB0`) and 3 (`0x00517DE0`): no neutral exemption; no
   shipped spell uses either.
 - Jobs/states 25 and 170 (`0x00481EF0`, `0x00482080`): the treasury they pass to `0x004C6930` is

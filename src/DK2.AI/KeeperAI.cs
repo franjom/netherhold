@@ -133,8 +133,8 @@ public sealed class KeeperAI
         }
         if (budget > 0) Slap(view, commands, ref budget);
 
-        // 14. DK2's prisoner step (0x005006D0) comes first and is unbuilt here, so a Prison selection
-        // that would take the last allowance does not hold Sight back (ADR-0352).
+        // 14. The prisoner step (0x005006D0), then Sight of Evil, each while allowance remains.
+        if (budget > 0) budget = new KeeperPrisonerStep(view, _p, _rng, commands, retreat.Prepared).Run(budget);
         if (budget > 0 && (_p.UseSightOfEvil & SightModeMask) != 0) SightOfEvil(view, commands, ref budget);
 
         // 15. The task machine, while the budget lasts.

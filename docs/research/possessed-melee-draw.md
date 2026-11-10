@@ -34,7 +34,7 @@ log has no per-call creature tag, so this attribution is not a tagged capture.
 
 ## Implementation boundary
 
-At hash/save457 (ADR-0726), PossessionRules.Melee reaches the shared slot-5
+At hash/save457 (ADR-0727), PossessionRules.Melee reaches the shared slot-5
 starter through PossessedMeleeRules. The mode-3 poll applies the existing blow
 before combat, retains independent sticky animation completion and advances
 the clip once at the end of the creature update. A wrap is observed by the

@@ -180,7 +180,7 @@ guards reject ranged resets and interrupted actions. Combat routes select
 walk/run independently of the Fighting activity label. ADR-0436.
 The simulation keeps melee busy through the animation-completion poll
 after impact (ADR-0447); a possessed melee holds the same way, through its
-own state (ADR-0726, [possessed-melee-draw.md](possessed-melee-draw.md)). Target validation and fear checks still run before
+own state (ADR-0727, [possessed-melee-draw.md](possessed-melee-draw.md)). Target validation and fear checks still run before
 the busy gate. Shipped Guard/Dwarf/Salamander regressions cover facing and
 post-impact holds; their normal efficiency-scaled recharge does not truncate
 these clips. This does not close Q582's original-game casualty comparison.

@@ -20,6 +20,7 @@ public class PeerCommandsTests
         typeof(MintWageCommand), // computer keeper only
         typeof(RevealMapCommand), // result screen and cheat
         typeof(MovePossessedCreatureCommand), // until the simulation validates a pose
+        typeof(SetAllianceCommand), // until alliance offers are modelled (consent)
     ];
 
     /// <summary>Large enough for every codec sample's tiles.</summary>
