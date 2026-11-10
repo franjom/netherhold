@@ -111,10 +111,7 @@ def main():
     gateway = Gateway(args.profile, args.project.resolve())
     try:
         names = gateway.initialize()
-        expected = {
-            "ctx_execute", "ctx_execute_file", "ctx_batch_execute", "ctx_index",
-            "ctx_search", "ctx_fetch_and_index", "ctx_stats",
-        }
+        expected = {"ctx_execute", "ctx_batch", "ctx_index", "ctx_search", "ctx_stats"}
         missing = expected - names
         unexpected = {name for name in names if name.startswith('ctx_')} - expected
         if missing or unexpected:
@@ -128,23 +125,25 @@ def main():
         ]:
             gateway.call("ctx_execute", {"language": language, "code": code},
                          language + "-ready")
-        gateway.call("ctx_execute_file", {
-            "path": "/workspace/README.md", "language": "javascript",
-            "code": "console.log(FILE_CONTENT.length > 0 ? 'file-readable' : 'empty')",
+        gateway.call("ctx_execute", {
+            "file": "/workspace/README.md", "language": "javascript",
+            "code": "const fs = require('fs'); console.log(fs.readFileSync(process.env.CTX_FILE, 'utf8').length > 0 ? 'file-readable' : 'empty')",
         }, "file-readable")
         gateway.call("ctx_execute", {
             "language": "python",
             "code": "import os, errno\ntry:\n fd = os.open('/workspace/README.md', os.O_WRONLY)\n os.close(fd)\n print('unexpected-writable')\nexcept OSError as e:\n print('read-only-confirmed' if e.errno in (errno.EROFS, errno.EACCES) else str(e))",
         }, "read-only-confirmed")
-        gateway.call("ctx_batch_execute", {
-            "commands": [{"label": "batch-marker", "command": "printf 'batch-marker-ready\\n'"}],
+        gateway.call("ctx_batch", {
+            "commands": ["printf 'batch-marker-ready\\n'"],
             "queries": ["batch-marker-ready"],
         }, "batch-marker-ready")
         gateway.call("ctx_index", {"content": "# Docker persistence\n\n" + marker,
                                    "source": marker})
         gateway.call("ctx_search", {"queries": [marker], "source": marker}, marker)
-        gateway.call("ctx_fetch_and_index", {
-            "url": "https://example.com", "source": "docker-smoke-example", "force": True,
+        # A fetched URL is labelled by the URL itself; `source` does not rename it.
+        gateway.call("ctx_index", {"url": "https://example.com"}, "https://example.com/")
+        gateway.call("ctx_search", {
+            "queries": ["Example Domain"], "source": "https://example.com/",
         }, "Example Domain")
         gateway.call("ctx_stats", {})
     finally:
