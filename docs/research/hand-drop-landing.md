@@ -73,7 +73,7 @@ height 0, angle 0 and the tile's centre plus `0x100` on each axis
 predicts the floor in its first update and the landing arms run in the first
 update after the drop; the AI drops in the keeper tick after the sweep, so DK2
 lands it in the next turn's sweep (STRONGLY INFERRED). Ours passes the point
-and angle (ADR-0735) but gives it the human one-turn fall from `0x2000`;
+and angle (ADR-0736) but gives it the human one-turn fall from `0x2000`;
 whether that makes ours a turn late depends on the phase at which our AI
 commands execute, which was not read (PLAUSIBLE).
 The angle's side is in [drop-heading.md](drop-heading.md).

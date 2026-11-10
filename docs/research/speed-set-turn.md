@@ -48,7 +48,7 @@ is capture-backed), [spFighting's](functions/0045F030.md) step-back shuffle
 [the flee state's](functions/004602E0.md) shuffle `0x00460806` and run
 `0x00460880`. The sites and modes are STRONGLY INFERRED.
 
-## Built (ADR-0736, hash/save 464)
+## Built (ADR-0737, hash/save 464)
 
 `CreatureState.SpeedSetTick` (hashed, saved, copied) and `SetSpeedMode(mode,
 tick)` store the turn of the last handler call. `CreatureMovementSystem.Sync`

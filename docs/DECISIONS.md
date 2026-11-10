@@ -17138,7 +17138,7 @@ turns it once toward 0 by the creature's rate. Without one the heading stays.
 
 **Consequences.** The drop's encoding gains the angle, so hash/save 462
 refuses older journals; no state is added. The view
-sends no angle yet; ADR-0735 gives the computer keeper's drops theirs and skips
+sends no angle yet; ADR-0736 gives the computer keeper's drops theirs and skips
 the Imp. The Level 1 win journal is re-recorded.
 ## ADR-0734 - a fighter with no action leaves a collapsed target in the same turn
 **Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures
@@ -17154,9 +17154,9 @@ and returned, so every fighter took the extra turn.
 **Decision.** After letting a collapsed target go, a fighter with no running
 action seeks a victim in the same call and leaves the fight if there is none.
 
-**Consequences.** No state or version change. ADR-0735 builds the rest of
+**Consequences.** No state or version change. ADR-0736 builds the rest of
 step 5's tail, the general invalid-target arm included.
-## ADR-0735 - clear a collapsed target by the target word alone, and read the Imp's and the computer keeper's drops
+## ADR-0736 - clear a collapsed target by the target word alone, and read the Imp's and the computer keeper's drops
 **Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, computer-keeper, keeper-spells
 
 **Context.** A read of DKII.EXE (commit 96bc9f26, `combat-fight-state.md` section 2
@@ -17189,7 +17189,7 @@ computer keeper's creature from height 0, ours gives the hand's one-turn fall;
 bit 0 to `0x0046022F`, which ours does not mirror. No test covers the fear
 checks before the busy gate or a forced collapsed target. Other writers of
 `+0x529`, and an action at pick-up turning an Imp on the drop turn, were not read.
-## ADR-0736 - a speed a state handler sets is not modified that turn
+## ADR-0737 - a speed a state handler sets is not modified that turn
 **Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, simulation-core
 
 **Context.** `speed-set-turn.md`: Creature_Update (`0x00488930`) applies its

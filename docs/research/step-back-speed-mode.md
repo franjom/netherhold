@@ -54,7 +54,7 @@ shuffle speed in mode 2.
 Tests cover the cap, the accessor, hash/save/copy and the entry-turn gate. No
 unit test stages either step back's write: those rest on the binary read and the
 control below, which applies all the rules together and so cannot separate
-them. The turn a handler sets the speed is not modified by water or possession: [speed-set-turn.md](speed-set-turn.md) (ADR-0736). The classic view shows the walk clip for the shuffle; DK2's animation
+them. The turn a handler sets the speed is not modified by water or possession: [speed-set-turn.md](speed-set-turn.md) (ADR-0737). The classic view shows the walk clip for the shuffle; DK2's animation
 chooser reads the mode and picks art slot 0x26.
 
 ## Controlled result

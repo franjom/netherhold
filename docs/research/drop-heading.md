@@ -60,7 +60,7 @@ systems: [keeper-spells, creatures, combat]
   only if turn 1 leaves the heading at or below 341, so the target's bearing
   must be at or below 341 for all four Warlocks.
 
-## Built (ADR-0733, ADR-0735, hash/save 463)
+## Built (ADR-0733, ADR-0736, hash/save 463)
 
 `DropCommand.Heading` carries the angle; `PacketLog` fills it from the packet.
 `HandSystem.Drop` sets the heading and, for a creature that is not an Imp,

@@ -942,7 +942,7 @@ public sealed partial class CreatureState
 
     /// <summary>The turn a state handler last set the speed (<c>0x004887D0</c> setting <c>+0x3BF</c>), or
     /// -1. The update's speed modifiers (water at <c>0x0048970B</c>) run before the handler, so that
-    /// turn's move is at the unmodified speed; the next update modifies it again (ADR-0736).</summary>
+    /// turn's move is at the unmodified speed; the next update modifies it again (ADR-0737).</summary>
     public long SpeedSetTick = -1;
 
     /// <summary><c>0x004887D0</c> as a state handler calls it: the mode and this turn's mark.</summary>

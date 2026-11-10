@@ -211,7 +211,7 @@ The [non-Imp stop/facing and attack-start scope](combat-stop-route.md) is built
 at hash 449. **Not built, named:** the independent physical `+0x46F` eligibility
 gate; waking a sleeper on the blow; the room notice (§2 step 4). Player event 6 (§1) is `CombatMessageRules.UpdateBattle`.
 
-**Step 5's clear, built (ADR-0734, ADR-0735; read 2026-11-10, STRONGLY INFERRED).**
+**Step 5's clear, built (ADR-0734, ADR-0736; read 2026-11-10, STRONGLY INFERRED).**
 `CombatSystem.WithoutTarget` follows DK2 after a cleared target: the fear checks
 of step 6, step 7's return for a running action, `SelectAVictim`, then the
 victory arm for nibble `0xF` or the end of the state. `VictoryRules.TargetDown`
