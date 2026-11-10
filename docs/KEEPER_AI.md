@@ -608,8 +608,10 @@ creature leaves).
   and no call is up, stage `CallToArmsPos` two tiles off the heart, then at the start room's
   `CentrePos` when a walker routes there, else at the first of its slabs that routes.
 - Task 7 stores the tunnel where its cursor's 3×3 holds land `0x004BF390` calls an enemy
-  and ends; the resume digs on. That the neutral player's unowned land counts, so the store
-  fires at the first step out, is a HYPOTHESIS from the zeroed alliance bytes (Q497).
+  and ends; the resume digs on. Every shipped level allies the keepers with the neutral
+  player ([alliances.md](research/alliances.md) §2), so unowned land is probably no enemy
+  land and the store does not fire at the first step out (HYPOTHESIS, `0x004FDB90`;
+  Q652 for the Level 11A call).
 
 **Room planner** (`0x4FC690`, when the attack planner declines):
 

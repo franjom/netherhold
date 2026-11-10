@@ -12581,9 +12581,8 @@ world holds. Imps refuse an allied, non-neutral tile in both claim priorities
 **Consequences.** On campaign levels keeper and hero creatures, traps, hearts and
 the keeper AI stop treating neutral creatures and unowned land as enemy; imps
 still claim neutral ground. Level 18's allied keepers leave each other's floor
-and creatures alone. Measured on Level 11A (Q652): our Drako no longer calls at
-Morgana's front, which DK2's capture does on turn 700; a known regression
-against that capture, downstream of the readers, and open.
+and creatures alone. On Level 11A over ten seeds they do not shift the share of
+Drako's first calls at Morgana's front measurably (5 against 4, Q652).
 
 ## ADR-0547 — Allies end games together, outside the campaign
 **Date:** 2026-10-26 · **Status:** accepted
