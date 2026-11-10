@@ -19,7 +19,7 @@ public static class CreatureCurrentAction
     /// (idle, flourish, a cast, the Workshop's work), the tunnel's dig, a trainee's swing, an imp's dig or mine loop,
     /// or an ordinary claim, floor-attack or room-conversion action.</summary>
     public static bool IsRunning(CreatureState creature, GameTick tick) =>
-        creature.PossessedExcavation.Kind != PossessedExcavationKind.None
+        creature.PossessedMelee.Active || creature.PossessedExcavation.Kind != PossessedExcavationKind.None
         || creature.ClaimAction.Kind != ClaimActionKind.None
         || creature.IdleAction != IdleActionId.None || creature.SwingInProgress || tick.Value < creature.ActionUntilTick || creature.Tunnel.Digging
         || creature.TrainingActionId != 0 || WorkLoopIndex(creature) != 0;
@@ -29,6 +29,7 @@ public static class CreatureCurrentAction
     /// or free-aimed cast in progress, 17 for a melee swing in its hold, 16 for a cast in its hold; 0 for none or one ours does not tell apart.</summary>
     public static int IndexOf(CreatureState creature, CreatureDef definition, GameTick tick)
     {
+        if (creature.PossessedMelee.Active) return CreatureActionTable.MeleeSwing;
         if (creature.PossessedExcavation.Kind != PossessedExcavationKind.None) return (int)creature.PossessedExcavation.Kind;
         if (creature.ClaimAction.Kind != ClaimActionKind.None) return (int)creature.ClaimAction.Kind;
         if (creature.IdleAction != IdleActionId.None) return (int)creature.IdleAction;

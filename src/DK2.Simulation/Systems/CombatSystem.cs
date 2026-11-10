@@ -69,6 +69,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         // state (ADR-0206), whose forced target would otherwise still be pursued (Q598).
         if (CreatureDeathRules.IsCorpse(creature)) return;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        PossessedMeleeRules.Poll(context, creature);
         ReinforcementActionRules.Poll(context, creature);
         ClaimActionRules.Poll(context, creature);
         // Action handlers continue while possession pauses state dispatch.

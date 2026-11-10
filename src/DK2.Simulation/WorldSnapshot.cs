@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 455;
+    private const int FormatVersion = 457;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -492,6 +492,9 @@ public static class WorldSnapshot
             w.Write(c.PossessedExcavation.Target.Y);
             w.Write(c.PossessedExcavation.AnimationComplete);
             w.Write(c.PossessedExcavation.OwnsClip);
+            w.Write(c.PossessedMelee.Active);
+            w.Write(c.PossessedMelee.AnimationComplete);
+            w.Write(c.PossessedMelee.OwnsClip);
             w.Write((byte)c.ClaimAction.Kind);
             w.Write(c.ClaimAction.Target.X);
             w.Write(c.ClaimAction.Target.Y);
@@ -1296,6 +1299,12 @@ public static class WorldSnapshot
                 {
                     Kind = (PossessedExcavationKind)r.ReadByte(),
                     Target = new DK2.Core.TilePos(r.ReadInt32(), r.ReadInt32()),
+                    AnimationComplete = r.ReadBoolean(),
+                    OwnsClip = r.ReadBoolean(),
+                },
+                PossessedMelee = new PossessedMeleeState
+                {
+                    Active = r.ReadBoolean(),
                     AnimationComplete = r.ReadBoolean(),
                     OwnsClip = r.ReadBoolean(),
                 },

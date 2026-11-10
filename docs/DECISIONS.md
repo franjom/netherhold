@@ -16930,3 +16930,18 @@ Retain the existing callback flags and force arithmetic.
 **Consequences.** Hash/save455 adds the persistent StoreGoldLinkOrder field.
 Initial mixed-object rank restore and the enumerator's existing partial
 adapters remain separate. Controlled agreement is not full-state or Heart parity.
+
+## ADR-0726 - run possessed melee through the shared action animation
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, simulation-core
+
+**Context.** `possessed-melee-draw.md` identifies the missing animation install
+when possession begins action 17, including its world-stream coin.
+
+**Decision.** Reuse the shared slot-5 starter, poll the blow before combat,
+and retain independent animation completion until both halves finish.
+Track ownership so replacement actions, an untimed possessed claim or dig
+included, cannot inherit stale cleanup.
+
+**Consequences.** Hash/save457 adds possessed-melee active, completion and
+ownership fields. Target selection is unchanged; native target1463 remains
+unresolved, so this does not establish matched-attack or Heart parity.

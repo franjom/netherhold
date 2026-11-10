@@ -81,6 +81,7 @@ internal sealed class StateModel
         ["ReinforcementActionsPolledThisTick"] = Caches, ["WorkerPreludeProcessedThisTick"] = Caches,
         ["ClaimActionsPolledThisTick"] = Caches, ["ClaimActionsAdvancedThisTick"] = Caches,
         ["IdleActionsPolledThisTick"] = Caches, ["IdleActionsAdvancedThisTick"] = Caches,
+        ["PossessedMeleePolledThisTick"] = Caches, ["PossessedMeleeAdvancedThisTick"] = Caches,
         ["PossessedExcavationsPolledThisTick"] = Caches, ["PossessedExcavationsAdvancedThisTick"] = Caches,
         ["WorkerPreludeClaimedThisTick"] = Caches, ["TremorRebellionStartedThisTick"] = Caches,
         ["UpdateStartStateId"] = Caches, ["DropCombat"] = Caches,

@@ -33,25 +33,41 @@ log has no per-call creature tag, so this attribution is not a tagged capture.
 
 ## Implementation boundary
 
-PossessionRules.Melee reaches FightRules.BeginPossessedAction, which records
-the swing and requests its sound. It does not install or advance the shared
-action animation. ActionAnimationClock already implements the installer coin,
-but the possessed-melee path does not reach it. This is an animation/action
-bridge omission; adding a draw to the Library search would conceal it.
+At hash/save457 (ADR-0726), PossessionRules.Melee reaches the shared slot-5
+starter through PossessedMeleeRules. The mode-3 poll applies the existing blow
+before combat, retains independent sticky animation completion and advances
+the clip once at the end of the creature update. A wrap is observed by the
+following poll; a frozen animation does not advance.
 
-No gameplay change or new continuation control was made in this lead.
+PossessedMeleeState stores active/completion/ownership in the hash, save and
+copy. Current-action queries retain the action after impact. Cancellation
+clears its pending swing and current target before handing the shared clip
+to a replacement, preserving same-resource phase reuse. Ordinary replacement
+swings release the old shared ownership and retain their existing computed hold.
+An untimed possessed claim, conversion, dig or mine start releases it too.
+The general resource-identity and animation-chooser adapters remain partial.
+
 The native action target and retained target word are 1463; that record is
-absent from the captured frame. The modern event targets creature 20, tagged
-436. Target selection therefore also differs; the native target kind remains
-UNKNOWN from this capture. Resolve that mapping before claiming a matched attack.
+absent from the captured frame. The modern event targets creature20, tagged436.
+Target selection is unchanged by this implementation; the native target kind
+remains UNKNOWN from this capture. Draw agreement cannot establish a matched
+attack, full state or Heart outcome. Command start-stamp conventions also
+retain their separate scope; no packet scheduling delay was introduced.
 
-Before implementing, connect action 17 to the shared starter/runner with
-replacement, ownership and completion tests; distinguish the command stamp
-from playback scheduling. Then repeat the same-input control. Do not insert
-a turn-1647 or creature-440 draw guard into production.
+## Controlled result
 
-Evidence: `F:/DK2Evidence/studies/q712-possessed-melee1647--2026-11-08--001`.
+The `controlled456-v4` replay (same 27 inputs; the earlier diagnostic clauses
+plus one pre-1400 guard on the new starter, 27 in total) matches 4783 ordered
+sites/preseeds through 1685, versus 4106 through 1646. Imp 455 matches 286/286
+native state/XY samples. Next is 1686 draw 1: native ObjectState.cpp:2782
+versus modern PlayerRooms.cpp:644, bound 1, FearRules.Withdraw for Imp 440 in
+state 203. That run was taken on the branch before master was merged, when
+this change was numbered hash 456, and before the untimed-start cancellation
+was added; that correction has its own failing-then-passing test.
+
+Evidence: `F:/DK2Evidence/studies/q712-possessed-melee1647--2026-11-08--001`;
+the control and its receipts are in `q712-possessed-melee-clock--2026-11-08--001`.
 `observations.json` contains the native components, packet excerpt and modern
 events; the copied packet is SHA-256 checked and its source remains in place.
 The two raw shipped-data windows and source hashes bind the code/data reading.
-The controlled prefix and all restore/full-state/Heart limits remain unchanged.
+All restore, full-state and Heart limits remain unchanged.

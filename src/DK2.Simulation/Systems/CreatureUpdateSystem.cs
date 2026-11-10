@@ -82,6 +82,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                 if (!actionPolled && (step is CombatSystem
                     || (!hasCombatStep && step is not CreatureStatusSystem and not ImpTaskSystem.WorkerPrelude)))
                 {
+                    PossessedMeleeRules.Poll(context, creature);
                     PossessedExcavationRules.Poll(context, creature);
                     ClaimActionRules.Poll(context, creature);
                     IdleActionRules.Poll(context, creature);
@@ -92,11 +93,13 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
             }
             if (!actionPolled && creature.LinkWorld is not null)
             {
+                PossessedMeleeRules.Poll(context, creature);
                 PossessedExcavationRules.Poll(context, creature);
                 ClaimActionRules.Poll(context, creature);
                 IdleActionRules.Poll(context, creature);
             }
             if (walkTriggers && creature.LinkWorld is not null) context.Triggers?.RunCreature(creature);
+            if (creature.LinkWorld is not null) PossessedMeleeRules.Advance(context, creature);
             if (creature.LinkWorld is not null) PossessedExcavationRules.Advance(context, creature);
             if (creature.LinkWorld is not null) ClaimActionRules.Advance(context, creature);
             if (creature.LinkWorld is not null) IdleActionRules.Advance(context, creature);

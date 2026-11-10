@@ -29,6 +29,7 @@ public sealed class ReinforcementActionStateTests
     {
         var sim = ReinforcementActionTests.Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
+        imp.Possessed = true;
         var commands = (List<ISimulationSystem>)sim.Systems;
         commands[0] = new Once(commands[0], context => FightRules.BeginPossessedAction(context, imp,
             SpellRules.MeleeSwing, 0, FightTargetKind.None, CombatRules.NoTarget));

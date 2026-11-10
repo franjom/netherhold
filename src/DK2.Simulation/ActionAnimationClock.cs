@@ -46,6 +46,8 @@ public static class ActionAnimationClock
     /// count is 0, the looping action of <c>0x00496980</c>.</summary>
     public static void Begin(CreatureState creature, CreatureDef definition, byte slot, SimRandom rng)
     {
+        PossessedMeleeRules.Cancel(creature);
+        creature.PossessedMelee = default;
         PossessedExcavationRules.Cancel(creature);
         creature.PossessedExcavation = default;
         ReinforcementActionRules.Cancel(creature);

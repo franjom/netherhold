@@ -47,6 +47,8 @@ public sealed class SimulationContext
     internal HashSet<CreatureState> ClaimActionsAdvancedThisTick { get; } = [];
     internal HashSet<CreatureState> IdleActionsPolledThisTick { get; } = [];
     internal HashSet<CreatureState> IdleActionsAdvancedThisTick { get; } = [];
+    internal HashSet<CreatureState> PossessedMeleePolledThisTick { get; } = [];
+    internal HashSet<CreatureState> PossessedMeleeAdvancedThisTick { get; } = [];
     internal HashSet<CreatureState> PossessedExcavationsPolledThisTick { get; } = [];
     internal HashSet<CreatureState> PossessedExcavationsAdvancedThisTick { get; } = [];
     internal HashSet<CreatureState> WorkerPreludeProcessedThisTick { get; } = [];

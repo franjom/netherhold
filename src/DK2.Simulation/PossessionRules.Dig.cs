@@ -93,6 +93,12 @@ public static partial class PossessionRules
     /// <summary>A begun action replaces the running one: a swing or cast not yet landed, or a claim.</summary>
     private static void BeginWork(SimulationContext context, CreatureState me)
     {
+        if (me.PossessedMelee.OwnsClip)
+        {
+            PossessedMeleeRules.Cancel(me);
+            ActionAnimationClock.Clear(me);
+            me.PossessedMelee = default;
+        }
         if (me.PossessedExcavation.OwnsClip)
         {
             PossessedExcavationRules.Cancel(me);

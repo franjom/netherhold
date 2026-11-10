@@ -121,6 +121,7 @@ public static class FightRules
     /// their holds, where a release a turn earlier gave 7 and 9 (ADR-0598).</summary>
     public static bool MeleeActionIsRunning(CreatureState creature, CreatureDef definition, GameTick tick)
     {
+        if (creature.PossessedMelee.Active) return true;
         if (creature.SwingInProgress) return true;
         if (creature.SwingKind != SpellRules.MeleeSwing
             || creature.SwingTargetKind == FightTargetKind.None
@@ -135,6 +136,10 @@ public static class FightRules
     /// target into the action, then tells the target it is attacked (§5). A zero wind-up lands now.</summary>
     public static void StartSwing(SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef mine, List<Fixed16Vector> scratch)
     {
+        PossessedMeleeRules.Cancel(me);
+        // Legacy swings use their computed hold and must release the previous shared clip.
+        if (me.PossessedMelee.OwnsClip) ActionAnimationClock.Clear(me);
+        me.PossessedMelee = default;
         PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
         ClaimActionRules.Cancel(me);
@@ -289,6 +294,7 @@ public static class FightRules
     /// <see cref="CastFires"/> says so. The ally arm passes <paramref name="tell"/> false: the ally is not told.</summary>
     public static void StartCast(SimulationContext context, CreatureState me, CreatureDef mine, int slot, bool tell = true)
     {
+        PossessedMeleeRules.Cancel(me);
         PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
         ClaimActionRules.Cancel(me);
@@ -465,11 +471,13 @@ public static class FightRules
     public static void BeginPossessedAction(
         SimulationContext context, CreatureState me, byte kind, int slot, FightTargetKind targetKind, int targetId, byte targetPlayer = 0)
     {
+        PossessedMeleeRules.Cancel(me);
         PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
         ClaimActionRules.Cancel(me);
-        me.SwingInProgress = true;
         me.ActionUntilTick = 0;
+        if (kind == SpellRules.MeleeSwing) PossessedMeleeRules.Begin(context, me);
+        me.SwingInProgress = true;
         me.SwingKind = kind;
         me.SwingSpellSlot = (byte)slot;
         me.SwingStartTick = context.Tick.Value;
