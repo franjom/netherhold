@@ -42,9 +42,21 @@ compares it with world floor height (virtual `+0x204`). Above it, 76
 returns success without the room/stun transition. On contact it requests
 sound event `0xF6` from creature-definition sound category `+0x6E3`, except
 on a Temple floor accepted by `0x00454110`. These operations are STRONGLY INFERRED;
-there is no fixed descent duration in this handler. The human input's
-initial drop Z and complete trajectory still require a matched native
-capture. The requested position is supplied unchanged to `0x004BC710`.
+there is no fixed descent duration in this handler. The requested position
+is supplied unchanged to `0x004BC710`.
+
+**The fall takes one turn (CONFIRMED, Level 5 seed-1 capture, 2026-11-10).**
+All twelve hand drops in frames 1400 to 1900 (eleven Warlocks, one type 6)
+show the creature at the drop packet's exact x and y in state 76 at height
+4352 in the frame of the drop turn, then 255 from the next turn with action
+52 stamped that turn. 4352 is 8192 less 3840, one turn of gravity (variable
+130 = 240, times 256, over 16) from the setter's capped height 0x2000: the
+drop starts a tile above the floor, the first update falls short of the
+floor and the second lands. The packet's third word differs between drops
+(0x3E80000, 0x860000) with the same result. Ours resolves the landing in
+the drop's own tick, at the tile's centre: one turn early and off the
+point. 257 then runs 1 to 5 turns in these frames where a fight takes the
+creature; the full Getup hold is not reached. Not built (Q680, Q712).
 
 The evil worker's landing art is already correct in our view: its `idle`
 key resolves to catalogue index 19 (native slot 20). Other creatures use
