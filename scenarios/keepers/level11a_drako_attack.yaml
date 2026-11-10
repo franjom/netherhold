@@ -21,10 +21,10 @@
 # record's own gold and keepers 4 to 7 all running, so Morgana's imps repair the wall Drako digs
 # (ADR-0387). What it does NOT establish: why the dug tile is claimed sooner and the call cast
 # sooner than DK2's (Q563). Since the level's alliances apply (ADR-0546), neutral land is no
-# enemy land, so the tunnel is not stored at its first step out. Drako then reaches Morgana's heart
-# without a call and first calls at Belial's on turn 732 (DK2: Morgana's wall, turn 700; Q652). The
-# run was widened from 700 to 1,200 turns so this regression still reaches a call and an engagement;
-# the wider window hides that difference from DK2 rather than settling it.
+# enemy land, so the tunnel is not stored at its first step out. Whether this seed's first call
+# goes to Morgana's wall or west to Belial's has flipped between builds (Q574; over ten seeds the
+# alliances do not measurably shift that share, Q652). The run is 1,200 turns so either branch
+# reaches a call and an engagement.
 id: keepers-level11a-drako-attack-001
 question: >
   Does Drako, unaided, tunnel from its Lair toward Morgana's heart, bridge the lava in the way, and

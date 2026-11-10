@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 21;
+    public const int FormatVersion = 22;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -57,6 +57,7 @@ public static class KeeperViewSnapshot
             w.Write(c.Experience); w.Write((int)c.DroppedToDoJob);
             for (int b = 0; b < CreatureAnger.Count; b++) w.Write(c.Anger[(AngerBucket)b]);
             w.Write(c.ActivityCode); w.Write(c.SpeedChanging);
+            w.Write(c.PlaceTile); w.Write(c.PlaceSerial); w.Write(c.OnTortureDevice);
         }
         w.Write(view.Traps.Count);
         foreach (KeeperTrapView t in view.Traps)
@@ -75,6 +76,8 @@ public static class KeeperViewSnapshot
             foreach (int index in room.ChainOrder) w.Write(index);
             w.Write(room.ObjectListHead);
             w.Write(room.Ruined);
+            w.Write(room.WallSlots.Count);
+            foreach (int index in room.WallSlots) w.Write(index);
         }
         w.Write(view.Messages.Count);
         foreach (PlayerMessage m in view.Messages)
@@ -142,7 +145,13 @@ public static class KeeperViewSnapshot
                 r.ReadInt32(), (JobType)r.ReadInt32());
             var anger = new CreatureAnger();
             for (int b = 0; b < CreatureAnger.Count; b++) anger[(AngerBucket)b] = r.ReadInt32();
-            creatures[i] = creatures[i] with { Anger = anger, ActivityCode = r.ReadInt32(), SpeedChanging = r.ReadBoolean() };
+            creatures[i] = creatures[i] with
+            {
+                Anger = anger, ActivityCode = r.ReadInt32(), SpeedChanging = r.ReadBoolean(),
+                PlaceTile = r.ReadInt32(), PlaceSerial = r.ReadInt64(), OnTortureDevice = r.ReadBoolean(),
+            };
+            if (creatures[i].PlaceTile < -1 || creatures[i].PlaceTile >= tiles.Length)
+                throw new InvalidDataException("A creature's place is outside the observation.");
         }
         var traps = new KeeperTrapView[ReadCount(r, 12)];
         for (int i = 0; i < traps.Length; i++)
@@ -171,7 +180,17 @@ public static class KeeperViewSnapshot
             for (int j = 0; j < chain.Length; j++) chain[j] = r.ReadInt32();
             if (!new HashSet<int>(chain).SetEquals(indices) || chain.Distinct().Count() != chain.Length)
                 throw new InvalidDataException("A room's chain order is not its tiles.");
-            rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY, slots, chain, r.ReadInt32(), r.ReadBoolean());
+            int objectListHead = r.ReadInt32();
+            bool ruined = r.ReadBoolean();
+            var walls = new int[ReadCount(r, 4)];
+            for (int j = 0; j < walls.Length; j++)
+            {
+                walls[j] = r.ReadInt32();
+                if (Array.IndexOf(indices, walls[j]) < 0)
+                    throw new InvalidDataException("Wall slot is not a tile of its room.");
+            }
+            rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY, slots, chain,
+                objectListHead, ruined, walls);
         }
         var messages = new PlayerMessage[ReadCount(r, 27)];
         for (int i = 0; i < messages.Length; i++)

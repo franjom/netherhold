@@ -11,6 +11,7 @@ selection and allowance rules, not proof that every requested game action succee
 
 ## 1. Prisoners — `0x005006D0`
 
+**BUILT** as `KeeperPrisonerStep` (ADR-0726), called at step 14 before Sight of Evil.
 Select one random owned Prison through `0x004C6460(11)`. An empty selected
 Prison ends the routine; it does not search the other Prisons. Walk its occupant
 list. The first non-enemy occupant is selected immediately, with no random

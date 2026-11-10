@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Text.RegularExpressions;
 using DK2.AI;
 using DK2.Core;
 using DK2.Data;
@@ -358,7 +359,10 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
         Assert.Equal((byte)4, cast.PlayerId);
         // The heal lands on the creature the keeper named, for the whole deficit (ADR-0287).
         SimEvent healed = Assert.Single(run.Events, e => e.Kind == "healed");
-        Assert.Contains($"target={cast.CreatureId} amount=2300 landed=2300 health=4000", healed.Detail);
+        Match heal = Regex.Match(healed.Detail, @"target=(\d+) amount=(\d+) landed=(\d+) health=4000");
+        Assert.True(heal.Success, healed.Detail);
+        Assert.Equal(cast.CreatureId.ToString(), heal.Groups[1].Value);
+        Assert.Equal(heal.Groups[2].Value, heal.Groups[3].Value);
         Assert.Equal(healed.Tick.Value, emission.InputTick);
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }

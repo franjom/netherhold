@@ -186,7 +186,8 @@ public static class CombatRules
         && !StatusEffectRules.IsInvisible(creature)
         && !AllSlotsTaken(creature);
 
-    private static bool OnTortureDevice(CreatureState creature) =>
+    /// <summary><c>0x00485210</c>: state 136, or the Torture category through a walk.</summary>
+    public static bool OnTortureDevice(CreatureState creature) =>
         creature.Dk2StateId == TortureRules.ReleasedState
         || CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Torture;
 
