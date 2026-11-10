@@ -88,7 +88,7 @@ public sealed class KeeperView : INavByteGrid
             foreach (CreatureState listed in world.OwnedCreatures(owner)) ranks[listed.Id] = rank++;
         }
         List<HandItem> hand = world.Player(playerId).Hand;
-        HandCount = hand.Count;
+        HandItems = hand.ToArray();
         KeeperSpellDef? thunderbolt = database.KeeperSpellById(KeeperSpellRules.Thunderbolt);
         KeeperSpellDef? heal = database.KeeperSpellById(KeeperSpellRules.Heal);
         KeeperSpellDef? chicken = database.KeeperSpellById(KeeperSpellRules.Chicken);
@@ -143,7 +143,7 @@ public sealed class KeeperView : INavByteGrid
                 hasState ? CreatureActivityRules.Code(database.CreatureById(c.CreatureTypeId), c) : 0,
                 c.SpeedEffectTicks > 0,
                 c.HeldPlace.TileIndex, c.HeldPlaceSerial,
-                hasState && DK2.Simulation.Combat.CombatRules.OnTortureDevice(c)));
+                hasState && DK2.Simulation.Combat.CombatRules.OnTortureDevice(c), c.CameThroughPortal));
         }
         Creatures = creatures.AsReadOnly();
         CallToArms = world.Player(playerId).CallToArms;
@@ -186,10 +186,10 @@ public sealed class KeeperView : INavByteGrid
         KeeperTileView[] tiles, AvailabilityState[] availability,
         KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages,
         CallToArmsState callToArms = default, int mana = 0, byte[]? statuses = null, IEnumerable<int>? callRefusedTiles = null,
-        bool[]? heartRuined = null, IEnumerable<int>? sightRefusedTiles = null, int handCount = 0,
+        bool[]? heartRuined = null, IEnumerable<int>? sightRefusedTiles = null, HandItem[]? hand = null,
         KeeperDoorView[]? doors = null)
     {
-        HandCount = handCount;
+        HandItems = hand ?? [];
         if (sightRefusedTiles is not null) _sightRefusedTiles.UnionWith(sightRefusedTiles);
         CallToArms = callToArms;
         Database = database;
@@ -357,7 +357,10 @@ public sealed class KeeperView : INavByteGrid
     public int ImpCount { get; }
 
     /// <summary>Things in this keeper's hand, against <see cref="HandRules.Capacity"/>.</summary>
-    public int HandCount { get; }
+    public int HandCount => HandItems.Count;
+
+    /// <summary>The hand's list in pick-up order (<c>player+0xB2</c>); a drop takes the last.</summary>
+    public IReadOnlyList<HandItem> HandItems { get; }
 
     /// <summary>The navigation byte captured for a tile (<see cref="INavByteGrid"/>).</summary>
     public byte NavByte(int x, int y) => _tiles[(y * Width) + x].NavigationByte;

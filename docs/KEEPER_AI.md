@@ -460,9 +460,11 @@ tick is skipped (the counters still run).
     `imps < MaximumImps` **and** `imps < ownedTiles / TilesPerImpRatio`, and Create Imp
     is available, cast it at the heart ± a random ±2-tile offset (budget −1). If
     `FightGoingOn`: the **battle step** instead (`0x503060`, §5.7).
-12. If `random(3) ≥ ProbabilityOfMovingCreatureForResearch` and budget and `Flags`
-    bit 2: if any keeper spell is in state 2 (read as "not yet researched") and a
-    Library (6) exists → **make room for a researcher** (`0x4FA8D0`). This is *not* a
+12. **Research** (`KeeperResearchStep`, ADR-0735). `random(3)` is drawn every turn,
+    whatever the budget. If it is ≥ `ProbabilityOfMovingCreatureForResearch` and budget
+    and `Flags` bit 2: if any keeper spell is in state 2 (read as "not yet researched")
+    and a Library (6) exists → **make room for a researcher** (`0x4FA8D0`,
+    `KeeperResearcherMove`, which spends no budget). This is *not* a
     move into the library. It counts own creatures whose descriptor job list contains
     Research (job 3); if **fewer than two** can research, it takes the non-researcher
     with the lowest value of an unnamed descriptor byte (`+0x787`, §7) and — only when
@@ -470,10 +472,12 @@ tick is skipped (the counters still run).
     × per-extra-portal count` ≤ creatures flagged as counting) and the creature is not
     in hand, not in a handful of states, and passing the dropped-counter guard —
     picks it up and **drops it at a Portal or Hero Portal**, so it leaves and frees a
-    slot for a creature that can research. Then, unless an event task is pending,
-    **job placement** (`0x503690`): drop what the hand holds into a room matching one
-    of the creature's jobs through the `JobRooms` table (§2.3); at 10 % pick up a
-    creature whose activity accessor returns 5 for the same (management audit §8).
+    slot for a creature that can research. Then, unless a respond-to-attack event is
+    queued, **job placement** (`0x503690`): drop what the hand holds into a room matching one
+    of the creature's jobs through the `JobRooms` table (§2.3), a budget point a try;
+    at 10 % (drawn whatever the budget) pick up a creature whose activity accessor
+    returns 5 for the first job whose room exists and whose test admits it, a budget
+    point each (`research/computer-keeper-management.md` §11).
 13. If budget and `Flags` bit 5: **slap** (`0x502F00`): accessor `0x00478A20 == 5`,
     health above half, `SpeedChangeTimer == 0`, and a 1 % roll (action 62).
     The accessor includes idle creatures and excludes ordinary research/training;
@@ -589,7 +593,7 @@ creature leaves).
   ordinary level-up (`0x0048B120`) before the final test; ours issues it as a command.
   Readiness runs before the rooms test, and again from the tick's training roll.
 - If `IAAllRoomsPlaced`, also require `AllRoomsBuilt`. If `IAAllSpellsResearched` (bit 0)
-  and any spell is at availability 2, run the research move (unbuilt) and refuse.
+  and any spell is at availability 2, run the research move (`KeeperResearcherMove`, ADR-0735) and refuse.
 - Target: with `IAOnlyAttackAttackers`, only the recorded attacker (then the flags are
   cleared); otherwise the **nearest enemy heart** (skipping ids 1 and 2, statuses 1/3 and
   allies) whose whole-list threat × `IAThreatSuperiority`% the keeper's meets or exceeds.
@@ -840,7 +844,7 @@ The third cast path (`0x004BC290`) is action 56's alone; the keeper never issues
   shipped list, Create Imp is every level's first research target while it is
   researchable, so a computer keeper there gets no paid imps until its Library has
   researched Create Imp. Once upgraded, its imps are level 4. The researcher
-  move (step 12) is still unbuilt; the `IAAllSpellsResearched` attack gate is built.
+  move (step 12) and the `IAAllSpellsResearched` attack gate are built.
 - **Terrain descriptor byte `+0x1CB` bit 0**, which the site finder and the expansion
   test accept as buildable alongside diggable rock and own floor.
 - **Room expansion's observed shape:** the binary accepts multiple sides in order;
@@ -1061,6 +1065,8 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `KeeperTrainingStep` | step 9's training moves | **exists** (ADR-0317) |
 | `KeeperRouteCache` | the routing mesh a keeper rebuilds only when the navigation bytes change | **exists** |
 | `KeeperTrapDoorStep` | step 10's traps and doors (§5.6) | **exists** (ADR-0561) |
+| `KeeperResearchStep` | step 12's research roll and job placement (§5.1) | **exists** (ADR-0735) |
+| `KeeperResearcherMove` | `0x4FA8D0`, the portal move that makes room for a researcher; run by step 12, the attack planner's research gate and the Research job's test | **exists** (ADR-0735) |
 | `KeeperPrisonerStep` | step 14's prisoner step (§5.8) | **exists** (ADR-0726) |
 | `IWorldView` | a general agent observation interface | **not added**: `KeeperView` supplies the current keeper boundary; extend it with verified observations as §12.4 grows |
 
@@ -1179,7 +1185,7 @@ Remaining M12 plan:
    ADR-0414 the rescue selector's, the other job-room finders' and the Graveyard's (Q542–Q544).
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
-3. **Dungeon management.** Add specials and research decisions; the prisoner step (ADR-0726), the training moves
+3. **Dungeon management.** Add specials; the research decisions (ADR-0735), the prisoner step (ADR-0726), the training moves
    (ADR-0317), the traps and doors (ADR-0561), the room needs (ADR-0327, ADR-0335) and every message the walk reads, with make
    happy and dispose (ADR-0353), are built. Acceptance: a verified need changes its orders. Reuse §12.3–12.4's
    existing commands and state.
@@ -1188,7 +1194,7 @@ Remaining M12 plan:
    bridges (ADR-0304): Nemesis on Level 18 grants levels, chooses Fabian and creeps the call
    toward her; Drako on Level 11A chooses Morgana, spans the lava with Stone Bridge, tunnels on
    and calls its army to her heart. The original comparison matches in outline (Q497;
-   timing is Q563). Left: the research move.
+   timing is Q563).
    Acceptance: the keeper prepares and launches an attack without scripted orders.
 5. **Personalities and comparison.** All nine profiles load (ADR-0410). Left: test
    deterministic command streams per profile and compare an active original keeper on the same stock map with availability
@@ -1205,6 +1211,7 @@ are §12.2's table.
 
 `KeeperAI.Think` also runs step 7's attack management, step 9's training moves
 (`KeeperTrainingStep`, ADR-0317), step 10's traps and doors (`KeeperTrapDoorStep`, ADR-0561)
+step 12's research roll and job placement (`KeeperResearchStep`, ADR-0735)
 and step 14's prisoner step (`KeeperPrisonerStep`, ADR-0726).
 `tests/DK2.AI.Tests` runs `KeeperAITests` against a synthetic 30×30 rock world
 (`KeeperWorld`): the creation-time directions for all four heart positions, the site
@@ -1255,5 +1262,3 @@ is captured separately from hand capacity; worker task exits and prison delivery
 flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273–0274), and
 the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery
 and expiry (ADR-0277); remaining gaps: `research/creature-pickup.md`.
-
-Not built: the researcher's portal move.

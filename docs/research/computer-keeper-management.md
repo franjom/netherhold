@@ -284,6 +284,10 @@ experiment would test the extrema and excluded endpoints.
 
 ## 11. Research slot and job placement — `0x004FA8D0`, `0x00503690`
 
+**BUILT** as `KeeperResearcherMove` (the move) and `KeeperResearchStep` (step 12 and job
+placement) (ADR-0735). Records: [004FA8D0](functions/004FA8D0.md), [00503690](functions/00503690.md),
+[004F8180](functions/004F8180.md), [00502E90](functions/00502E90.md), [00502EF0](functions/00502EF0.md).
+
 The slot selector excludes workers, counts creatures whose job list contains
 Research, and keeps a non-researcher with the smallest descriptor byte `+0x787`.
 Equal values replace the candidate, so the **last** minimum wins. The byte's
@@ -308,6 +312,7 @@ The job table initializer `0x004F8180` confirms the four room mappings in
 state-2 spell. With one, it calls eviction if a Library exists and returns true.
 The Training predicate `0x00502EF0` negates readiness, including that routine's
 direct level-up side effect. Thus predicate evaluation is not observational.
+The Manufacture predicate `0x004B4C20` returns 1 and the Torture predicate `0x00484940` returns 0.
 
 The caller `0x00500C20` draws the training roll and the research roll even with
 zero remaining allowance. The trap roll is budget-gated. The job helper's own

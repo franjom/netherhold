@@ -23,7 +23,7 @@ public class KeeperSightTests
 
     /// <summary>A keeper with nothing else to draw for: no room is available and its gold is above its
     /// TendancyMoney, so the tick's only draws are step 9's training roll, step 10's traps-and-doors
-    /// roll (no Workshop, so nothing after it) and step 14's.</summary>
+    /// roll (no Workshop, so nothing after it), step 12's research roll and step 14's.</summary>
     private static WorldState Idle(int sight = 3)
     {
         WorldState world = KeeperWorld.World(Db);
@@ -37,13 +37,16 @@ public class KeeperSightTests
     private static KeeperAI Keeper1(byte mode, SimRandom rng) =>
         new(Keeper, KeeperWorld.Parameters() with { UseSightOfEvil = mode }, rng);
 
-    /// <summary>DK2's draws for one tick, replayed: the training roll, the traps-and-doors roll, then
-    /// X, Y and the mode roll.</summary>
+    /// <summary>The ranges of one tick's draws in order: the training roll, the traps-and-doors roll,
+    /// step 12's research roll (its gate off, ProbabilityOfMovingCreatureForResearch 3), then X, Y and
+    /// the mode roll.</summary>
+    private static readonly int[] Tick = [100, 100, 3, Side, Side, 100];
+
+    /// <summary>DK2's draws for one tick, replayed.</summary>
     private static (int X, int Y, int Roll) Draws(int seed)
     {
         var twin = new SimRandom((ulong)seed);
-        twin.NextInt(100);
-        twin.NextInt(100);
+        for (int i = 0; i < 3; i++) twin.NextInt(Tick[i]);
         return (twin.NextInt(Side), twin.NextInt(Side), twin.NextInt(100));
     }
 
@@ -53,11 +56,11 @@ public class KeeperSightTests
             if (wanted(Draws(seed))) return seed;
     }
 
-    /// <summary>The next value after <paramref name="draws"/> draws from a fresh stream.</summary>
+    /// <summary>The next value after the tick's first <paramref name="draws"/> draws from a fresh stream.</summary>
     private static int After(int seed, int draws)
     {
         var twin = new SimRandom((ulong)seed);
-        for (int i = 0; i < draws; i++) twin.NextInt(100);
+        for (int i = 0; i < draws; i++) twin.NextInt(Tick[i]);
         return twin.NextInt(int.MaxValue);
     }
 
@@ -72,7 +75,7 @@ public class KeeperSightTests
 
         Assert.Equal(new CastSpellAtPlaceCommand(Keeper, KeeperSpellRules.SightOfEvil, x, y),
             Assert.Single(commands.OfType<CastSpellAtPlaceCommand>()));
-        Assert.Equal(After(seed, 5), rng.NextInt(int.MaxValue));
+        Assert.Equal(After(seed, 6), rng.NextInt(int.MaxValue));
     }
 
     [Fact]
@@ -82,7 +85,7 @@ public class KeeperSightTests
         var rng = new SimRandom((ulong)seed);
 
         Assert.Empty(Keeper1(1, rng).Think(Db, Idle()).OfType<CastSpellAtPlaceCommand>());
-        Assert.Equal(After(seed, 5), rng.NextInt(int.MaxValue));
+        Assert.Equal(After(seed, 6), rng.NextInt(int.MaxValue));
     }
 
     [Fact]
@@ -102,7 +105,7 @@ public class KeeperSightTests
         var rng = new SimRandom((ulong)seed);
 
         Assert.Empty(Keeper1(2, rng).Think(Db, Idle()).OfType<CastSpellAtPlaceCommand>());
-        Assert.Equal(After(seed, 5), rng.NextInt(int.MaxValue));
+        Assert.Equal(After(seed, 6), rng.NextInt(int.MaxValue));
     }
 
     [Fact]
@@ -119,7 +122,7 @@ public class KeeperSightTests
         var rng = new SimRandom(5);
 
         Assert.Empty(Keeper1(3, rng).Think(Db, Idle()).OfType<CastSpellAtPlaceCommand>());
-        Assert.Equal(After(5, 4), rng.NextInt(int.MaxValue));
+        Assert.Equal(After(5, 5), rng.NextInt(int.MaxValue));
     }
 
     [Fact]
@@ -128,7 +131,7 @@ public class KeeperSightTests
         var rng = new SimRandom(5);
 
         Assert.Empty(Keeper1(0, rng).Think(Db, Idle()).OfType<CastSpellAtPlaceCommand>());
-        Assert.Equal(After(5, 2), rng.NextInt(int.MaxValue));
+        Assert.Equal(After(5, 3), rng.NextInt(int.MaxValue));
     }
 
     [Theory]
@@ -141,7 +144,7 @@ public class KeeperSightTests
         var rng = new SimRandom((ulong)seed);
 
         Assert.Empty(Keeper1(1, rng).Think(Db, Idle(availability)).OfType<CastSpellAtPlaceCommand>());
-        Assert.Equal(After(seed, 5), rng.NextInt(int.MaxValue));
+        Assert.Equal(After(seed, 6), rng.NextInt(int.MaxValue));
     }
 
     /// <summary>With one allowance, a cast that spends it leaves task 0 unrun; Treasury is made

@@ -66,7 +66,8 @@ internal static class KeeperWorld
 
     /// <param name="workshop">Adds the Workshop, doors 1 (Wooden), 2 (a Barricade) and 3 and traps 1
     /// (trigger 0), 2 (the Boulder) and 3 (trigger 1), for the trap and door step.</param>
-    public static GameDatabase Database(int handCapacity = 64, bool workshop = false, bool torture = false)
+    public static GameDatabase Database(int handCapacity = 64, bool workshop = false, bool torture = false,
+        int firstPortalCreatures = 0)
     {
         return new(
         [
@@ -123,9 +124,11 @@ internal static class KeeperWorld
             Creature("Worker", WorkerCreature, CreatureFlags.IsWorker | CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp
                 | CreatureFlags.CanBeSlapped, hp: 500, threat: 2, JobClass.Scout, FightStyle.NonFighter),
             Creature("Fighter", FighterCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped
-                | CreatureFlags.CanWalkOnWater, hp: 1500, threat: FighterThreat, JobClass.Fighter, FightStyle.Blocker),
+                | CreatureFlags.CanWalkOnWater, hp: 1500, threat: FighterThreat, JobClass.Fighter, FightStyle.Blocker)
+                with { Unknown_0F4C = 30 },
+            // Descriptor byte +0x787 below the Fighter's: the researcher move's choice (0x004FA8D0).
             Creature("Sleeper", SleeperCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
-                JobClass.Fighter, FightStyle.Blocker) with { LairObjectId = BedObjectId, TimeSleep = 9 },
+                JobClass.Fighter, FightStyle.Blocker) with { LairObjectId = BedObjectId, TimeSleep = 9, Unknown_0F4C = 20 },
             Creature("Eater", EaterCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
                 JobClass.Fighter, FightStyle.Blocker) with { HungerFill = 1, HpFromChicken = 100 },
             Creature("Moody", MoodyCreature, CreatureFlags.IsEvil | CreatureFlags.CanBePickedUp, hp: 500, threat: 2,
@@ -135,7 +138,7 @@ internal static class KeeperWorld
                 HappyJobs = [new(JobType.Research, 0, 0, 50), new(JobType.Train, 0, 0, 50)],
             },
         ],
-        variables: Variables(handCapacity),
+        variables: Variables(handCapacity, firstPortalCreatures),
         keeperSpells: KeeperSpells(),
         objects: [Flag(), TrainingDummy(), Bed(), FloorGoldPile(), Hatchery(HatcheryRules.CoopObjectId, 0x00004000u, 0, 3252),
             Hatchery(HatcheryRules.EggObjectId, 0x00018602u, 0, 128), Hatchery(HatcheryRules.ChickenObjectId, 0x00230782u, 1, 128)],
@@ -360,7 +363,7 @@ internal static class KeeperWorld
             MaxBuildAreaMinY = 0,
             MaxBuildAreaMaxX = 29,
             MaxBuildAreaMaxY = 29,
-            ProbabilityOfMovingCreatureForResearch = 0,
+            ProbabilityOfMovingCreatureForResearch = 3, // never at or below random(3): step 12 draws only its roll
             SpecialSearchChance = 0,
             SpecialFindChance = 0,
             ImprisonedCreatureAction = 1,
@@ -421,9 +424,12 @@ internal static class KeeperWorld
         return dug;
     }
 
-    private static GlobalVariables Variables(int handCapacity)
+    private static GlobalVariables Variables(int handCapacity, int firstPortalCreatures)
     {
         var vars = new GlobalVariables();
+        // The portal creature cap's first-portal share; 0 puts any keeper with a portal at its cap.
+        Set(vars, VariableTypeId.CreaturesSupportedByFirstPortal, firstPortalCreatures);
+        Set(vars, VariableTypeId.CreaturesSupportedPerAdditionalPortal, 5);
         foreach (RoomTypeId room in new[] { RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery })
         {
             vars.Availabilities.Add(new AvailabilityEntry(1, Keeper, (int)room, 3));

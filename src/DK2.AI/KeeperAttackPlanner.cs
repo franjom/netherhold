@@ -19,7 +19,7 @@ namespace DK2.AI;
 /// <remarks>
 /// <para>Built: the gates, readiness with its level grants, both modes, the strength test, the
 /// nearest-heart choice, the room choices, stored tunnels resumed with the attack wait, the staging
-/// point, the front for every usage, the cast and usage 1's event; the research move is counted.</para>
+/// point, the front for every usage, the cast and usage 1's event; the research gate's researcher move.</para>
 /// <para>Deviates: a cast is a command a tick later, predicted from the captured permissions; the
 /// keeper's own RNG; a room's first slab is its first tile and its list order the capture's
 /// (ADR-0298).</para>
@@ -37,11 +37,13 @@ public sealed class KeeperAttackPlanner
     private readonly List<PlayerCommand> _commands;
     private readonly KeeperReadiness _readiness;
     private readonly KeeperBattleStep _battle;
+    private readonly KeeperResearcherMove _researcher;
     private readonly long _turn;
 
     public KeeperAttackPlanner(KeeperView view, KeeperAIState state, KeeperAIParameters parameters, SimRandom rng,
-        List<PlayerCommand> commands, KeeperReadiness readiness, KeeperBattleStep battle)
+        List<PlayerCommand> commands, KeeperReadiness readiness, KeeperBattleStep battle, HashSet<int>? prepared = null)
     {
+        _researcher = new KeeperResearcherMove(view, rng, commands, prepared ?? []);
         _view = view;
         _state = state;
         _p = parameters;
@@ -65,11 +67,10 @@ public sealed class KeeperAttackPlanner
         bool ready = _readiness.ArmyReady(); // its grants run before the rooms test
         if (ready && (!_p.IAAllRoomsPlaced || _state.AllRoomsBuilt))
         {
-            if ((_p.IAAllSpellsResearched & 1) != 0 && ResearchableSpellRemains())
+            if ((_p.IAAllSpellsResearched & 1) != 0 && KeeperResearchStep.ResearchableSpellRemains(_view))
             {
-                // 0x004C6460(6) draws a random own Library; with one, 0x004FA8D0 frees a portal
-                // slot, a move this build counts and does not make.
-                if (RandomRoomOfType(_view.PlayerId, RoomTypeId.Library) is not null) _state.UnbuiltResearchMoves++;
+                // 0x004C6460(6) draws a random own Library; with one, 0x004FA8D0 makes room for a researcher.
+                if (RandomRoomOfType(_view.PlayerId, RoomTypeId.Library) is not null) _researcher.Run();
                 return false;
             }
             if (!_p.IAOnlyAttackAttackers) ordinary = true;
@@ -83,16 +84,6 @@ public sealed class KeeperAttackPlanner
         }
         if (!ordinary) return attacker != 0 && AttackTheAttacker(attacker, superiority);
         return AttackTheNearest(superiority);
-    }
-
-    /// <summary>Spell ids 1 to the descriptor count at availability 2, the state the research
-    /// chooser looks for.</summary>
-    private bool ResearchableSpellRemains()
-    {
-        int count = _view.Database.KeeperSpells.Count;
-        for (int id = 1; id <= count; id++)
-            if (_view.Availability(AvailabilityKind.Spell, id) == 2) return true;
-        return false;
     }
 
     /// <summary>Attacker-only mode: the recorded attacker's stored tunnel is resumed without a wait
