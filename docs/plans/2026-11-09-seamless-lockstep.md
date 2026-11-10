@@ -125,8 +125,9 @@ late-game map with more creatures, and click-to-world-change latency in the Unit
    writes a dump, and the journal reproduces it. Phase 3 fuzzing removes the causes. IL2CPP
    builds keep null and bounds checks on for the simulation assemblies.
 6. **Handover test:** swap a player to the computer keeper at tick T over the campaign replays.
-   Define its side effects: the hand's contents dropped at the Heart, possession ended, a
-   personality chosen for a slot that had none.
+   Define its side effects: the hand's contents dropped at the Heart, a creature still landing
+   (`LandingPending`, which counts as held) resolved, possession ended, a personality chosen for a
+   slot that had none.
 7. **Diagnosis from the start:** per-subsystem hashes (tiles, creatures, players, generator,
    navigation, computer keepers) and a dump that names the first differing subsystem and entity.
 8. **Data fingerprint:** a hash of the parsed values the simulation reads (database, level data,
@@ -151,7 +152,8 @@ its sender sequence number (the client cannot know the tick in advance). The pre
 when the turn holding that sequence has run, replaced by the result or a refusal cue.
 
 - **Pick-up:** the creature or gold in the hand at once, hidden at its spot, with the sound.
-- **Drop:** the thing at the drop spot with the drop animation started.
+- **Drop:** the thing at the drop spot with the drop animation started. A dropped creature lands
+  a tick after its drop (the Q712 change, hash 459), so its preview lasts until the landing.
 - **Room, door and trap:** a ghost with the build sound.
 - **Slap and spells:** these animate already; add the sound at click time.
 - **Refusals and conflicts:** the simulation emits a refusal event per refused command; the
