@@ -96,6 +96,7 @@ namespace DK2.Simulation
             DroppedTick = other.DroppedTick;
             LandingPending = other.LandingPending;
             LandingDropperPlayerId = other.LandingDropperPlayerId;
+            CollapseDue = other.CollapseDue;
             DroppedOnARoom = other.DroppedOnARoom;
             NextPayTryTick = other.NextPayTryTick;
             LastSlapTick = other.LastSlapTick;

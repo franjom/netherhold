@@ -17109,3 +17109,19 @@ a new `TakeCreatureCommand`. The handlers of 255, 256 and 257 move to
 pick-up's encoding is unchanged; the take is codec kind 36 and refused from a
 peer. The hand's refusals are tested at the insert.
 Recorded journals move; the Level 1 win journal is re-recorded.
+## ADR-0732 - collapse in the thing pass and pick the fall heading
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** creatures, combat, simulation-core
+
+**Context.** `death-fall-heading.md`: DK2 collapses a creature inside the
+damage call and draws two fall headings from the world stream, redrawing
+until the direction is open. Ours collapsed in the once-a-second health pass
+and drew nothing, so the draw order parted at the first death after a blow.
+
+**Decision.** Damage that empties health marks the creature; `CollapseSystem`
+collapses the marked after the creature sweep, the shots and the traps.
+`DeathFallRules` makes the two picks at the collapse, before the gold drop.
+
+**Consequences.** Hash/save 461 adds the mark. A creature felled by a blow
+collapses up to three ticks sooner, and its dying window ends that much
+sooner. A blow during the creature sweep still draws after the sweep, not
+inside it. The heading ours stores from the first pick is unverified. The Level 1 win journal is re-recorded.

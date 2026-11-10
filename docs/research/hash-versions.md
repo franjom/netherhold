@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**461** - `0x37AC323C4B90D5D5`. Damage that empties a creature's health marks it (`CollapseDue`, hashed and saved) and it collapses in the same thing pass, picking its fall heading from the world stream (ADR-0732). Earlier saves are refused.
+
 **460** - `0x2AA60539641315F9`. A pick-up prepares the creature and the hand takes it a turn later: the keeper's pending lift and its turn are hashed and saved; the stun's handlers run after the fight scan (ADR-0731). Earlier saves are refused.
 
 **459** - `0xB393AD51151259B0`. A hand drop falls for its turn and lands on the next: the pending landing and the dropping player are hashed, copied and saved (ADR-0730). Earlier saves are refused.

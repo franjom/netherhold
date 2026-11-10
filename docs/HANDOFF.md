@@ -24,17 +24,18 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 460, ordered draws match through turn 1719) is
+The last controlled result (hash 461, ordered draws match through turn 1719) is
 in [Q712](research/open-questions.md), with its causes in
 [possessed pick heights](research/possessed-pick-heights.md),
 [step-back speed mode](research/step-back-speed-mode.md),
-[the hand drop's fall](research/hand-drop-landing.md) (ADR-0730) and
-[the pick-up's turn](research/hand-pickup-turn.md) (ADR-0731); earlier prefixes are
+[the hand drop's fall](research/hand-drop-landing.md) (ADR-0730),
+[the pick-up's turn](research/hand-pickup-turn.md) (ADR-0731) and
+[the fall heading](research/death-fall-heading.md) (ADR-0732); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
-[store-gold steering](research/store-gold-steering.md). The next boundary,
-turn 1720, is in Q712: build the dying creature's fall-heading pick
-([0048F410](research/functions/0048F410.md)), then read what turns a creature on its
-engagement turn, before proposing another rule. Build only behavior supported
+[store-gold steering](research/store-gold-steering.md). The boundary at turn
+1720 is now a timing one: ours lands the lethal Fireball a turn late. Next,
+per Q712: read what heads a dropped creature (`0x004BC710`) and what turns a
+creature on its engagement turn. Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 
 The controlled prefix does not establish full-state or Heart-outcome parity.

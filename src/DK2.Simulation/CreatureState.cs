@@ -616,6 +616,11 @@ public sealed partial class CreatureState
     public bool LandingPending;
     public byte LandingDropperPlayerId;
 
+    /// <summary>Damage took this creature's health to zero and its collapse has not been run. DK2's
+    /// health routine collapses at once (<c>0x004B2FB5</c>); ours at the next
+    /// <see cref="Systems.CollapseSystem"/> of the thing pass (ADR-0732).</summary>
+    public bool CollapseDue;
+
     /// <summary>DK2's <c>WasLastDroppedOnARoom</c> (<c>+0x3E6</c> bit 26): the last drop landed on
     /// a room tile (ADR-0202).</summary>
     public bool DroppedOnARoom;
@@ -1464,6 +1469,7 @@ public sealed partial class CreatureState
         hash.Add(PickupTick);
         hash.Add(LandingPending);
         hash.Add(LandingDropperPlayerId);
+        hash.Add(CollapseDue);
         hash.Add(DroppedTick);
         hash.Add(DroppedOnARoom);
         hash.Add(NextPayTryTick);

@@ -77,18 +77,21 @@ public static class SimulationSystems
     [
         new FootprintSystem(),
         CreatureUpdate(),
+        new CollapseSystem(), // a creature the sweep's blows felled (0x004B2FB5 collapses in the damage call)
         // The doors' health after the creatures, as DK2's thing pass updates creatures first; ours
         // puts it before the shots, whose place in that pass is Q398 (door-blocking.md).
         new DoorHealthSystem(),
         // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.
         new TrainingActionSystem(), // creature action gates before the shots and object reactions they create
         new ShotSystem(),
+        new CollapseSystem(), // and one a shot felled, before the objects draw
         new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
         new ObjectMovementSystem(),
         // ObjectMovement steps Eggs and Coops with the birds; this retains only synthetic-data hatching.
         // The room walk lays afterwards (ADR-0634). Boulder and reaction passes remain separate.
         new HatcherySystem(lays: false, stepObjects: false),
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
+        new CollapseSystem(), // boulders and traps
         new ActionPointTriggerSystem(), // list 5, after creature work and before the player frame
         new EffectGeneratorSystem(), // list 7, the last of the thing pass's update walk (ADR-0648)
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).

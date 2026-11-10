@@ -111,7 +111,9 @@ public static class StatusEffectRules
         if (target.InHand) return 0;   // the flag, which a drop clears: a falling creature can be hurt
         int scaled = (int)((long)damage * DamageMultiplier(world, database, target) / Base);
         if (IsStunned(target) && FearRules.NonImpAmongAttackers(world, target)) LengthenStun(database, definition, target);
-        return CreatureHealthRules.Apply(database, definition, target, -scaled, source);
+        int landed = CreatureHealthRules.Apply(database, definition, target, -scaled, source);
+        if (target.Health <= 0) target.CollapseDue = true;
+        return landed;
     }
 
     /// <summary><c>0x00481360</c>, from the damage routine (<c>0x004B2EBA</c>) for a stunned creature
