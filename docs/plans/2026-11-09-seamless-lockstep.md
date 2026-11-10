@@ -212,7 +212,8 @@ speed-hack test client is clamped.
 - **Victory, teams and fog settings** for multiplayer maps; what the result screen does, and
   whether `ContinueAfterResultCommand` and `SkipCameraPathCommand` mean anything in a match.
 - **Alliances need consent.** Today one player's command makes both allied
-  (`AllianceSystem.cs`). Check DK2's own rule first.
+  (`AllianceSystem.cs`). DK2 offers first (action 118) and makes on acceptance (123), but
+  only its HUD enforces that; our simulation should model offers and refuse an unoffered make.
 - **Slot lifecycle:** a defeated keeper becomes a spectator; a kicked player cannot rejoin; the
   match ends when no human remains.
 - **Spectators, replays and multiplayer save/resume**, all possible once computer keepers are in

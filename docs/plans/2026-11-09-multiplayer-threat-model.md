@@ -97,8 +97,11 @@ does, and the gates that keep it true. It is written before any network code exi
   speed, wall or bounds check (`PossessionRules.Movement.cs`). Validation must still allow the
   Creature Teleport form, which has no speed bound.
 - **Gap, R3 (alliances):** `AllianceSystem` writes both players' alliance bits from one
-  player's `SetAllianceCommand`, so making an alliance needs no consent. DK2's own rule is
-  unchecked.
+  player's `SetAllianceCommand`, so making an alliance needs no consent. DK2 has an offer array
+  (`player+0x1B6`, action 118) and its HUD sends "make" only to accept a pending offer, but
+  the make handler (`0x00513FF0`) checks nothing. The fix models offers and lets make succeed
+  only when the target's offer to the issuer stands, which refuses only what DK2's own HUD
+  never sends.
 - **Gap, R6 (computer keepers):** `KeeperAIState` and each keeper's random generator are outside
   the snapshot and the hash, so rejoin, resync and replays cannot reproduce them yet.
 - **Gap, R1 (snapshots):** `WorldSnapshot.Read` is not fuzzed; it bounds the grid only by
