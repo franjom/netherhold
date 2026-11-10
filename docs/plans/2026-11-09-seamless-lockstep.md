@@ -152,9 +152,11 @@ its sender sequence number (the client cannot know the tick in advance). The pre
 when the turn holding that sequence has run, replaced by the result or a refusal cue.
 
 - **Pick-up:** the creature or gold in the hand at once, hidden at its spot, with the sound. A
-  human pick-up is becoming two-step like DK2's hand state 1 (ADR-0731, planned): the creature
-  enters the hand at that player's next hand command or a turn later, so the preview lasts until
-  then.
+  human pick-up is two-step like DK2's hand state 1 (ADR-0731): the creature enters the hand
+  before that player's next valid hand command or two ticks later, so the preview lasts until
+  then. Meanwhile `PlayerInput` counts the pending lift as holding, so a quick second click sends
+  a drop the simulation ignores; the preview should show the creature as held and not offer
+  that drop.
 - **Drop:** the thing at the drop spot with the drop animation started. A dropped creature lands
   a tick after its drop (ADR-0730), so its preview lasts until the landing.
 - **Room, door and trap:** a ghost with the build sound.

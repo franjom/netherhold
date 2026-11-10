@@ -88,7 +88,8 @@ does, and the gates that keep it true. It is written before any network code exi
 - **Closed, R2 and R4 (decoding):** `PeerCommands.Read` decodes a peer's command, refuses one
   whose `PlayerId` is not the authenticated sender, refuses the types no human may send, and
   refuses tile lists and sell waves that leave the map or exceed its tile count. Refused types:
-  `GrantCreatureLevelCommand` and `MintWageCommand` (the computer keeper's), `RevealMapCommand`
+  `GrantCreatureLevelCommand`, `MintWageCommand` and `TakeCreatureCommand` (the computer
+  keeper's), `RevealMapCommand`
   (result screen, cheat), `MovePossessedCreatureCommand` (until R3 validates a pose).
   `PeerCommandsTests` fails until every new command type is either allowed or named as refused.
   Journals keep using `CommandCodec.Read`, which accepts all.
