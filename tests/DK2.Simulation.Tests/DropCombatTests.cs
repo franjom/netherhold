@@ -34,6 +34,7 @@ public class DropCombatTests
         sim.ObserveWith(sink);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Landing)));
+        sim.Tick();
         if (type == Dk2TerrainFixture.ImpCreatureId)
             Assert.Equal(FightTargetKind.Door, creature.FightTargetKind);
         else Assert.Equal(DropLandingRules.StunnedState, creature.Dk2StateId);
@@ -105,6 +106,7 @@ public class DropCombatTests
         var sim = new GameSimulation(db, world, 7, [new HandSystem()]);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Landing)));
+        sim.Tick();
         Assert.False(imp.InHand);
         Assert.Contains(imp, world.Creatures);
         Assert.Equal(199, imp.Dk2StateId);

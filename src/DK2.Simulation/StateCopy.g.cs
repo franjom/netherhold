@@ -94,6 +94,8 @@ namespace DK2.Simulation
             LastAngryChoiceTick = other.LastAngryChoiceTick;
             PickupTick = other.PickupTick;
             DroppedTick = other.DroppedTick;
+            LandingPending = other.LandingPending;
+            LandingDropperPlayerId = other.LandingDropperPlayerId;
             DroppedOnARoom = other.DroppedOnARoom;
             NextPayTryTick = other.NextPayTryTick;
             LastSlapTick = other.LastSlapTick;

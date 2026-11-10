@@ -190,7 +190,7 @@ public static class BoulderRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (creature.Dk2StateId is LandingState or StunnedState || CreatureDeathRules.IsDown(creature)) return;
+        if (creature.LandingPending || creature.Dk2StateId is LandingState or StunnedState || CreatureDeathRules.IsDown(creature)) return;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         int reach = half + ((ushort)definition.FootprintRadius.Raw >> 1);
         if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, creature.PosX, creature.PosY) >= (uint)(reach * reach) >> 12) return;

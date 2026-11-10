@@ -54,6 +54,7 @@ public sealed class CombatPitTests
     {
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, at)));
+        sim.Tick();
     }
 
     private static void RunUntil(GameSimulation sim, Func<bool> done, int limit = 400)

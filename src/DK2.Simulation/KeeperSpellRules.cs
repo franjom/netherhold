@@ -266,7 +266,7 @@ public static class KeeperSpellRules
     };
 
     private static bool TargetSix(GameDatabase database, PlayerId playerId, CreatureState target) =>
-        !StatusEffectRules.IsStunned(target) && !HandRules.IsHeld(target)
+        !StatusEffectRules.IsStunned(target) && !target.InHand
         && target.Dk2StateId is not (193 or 278 or 279 or 280)
         && !target.CombatPitFighter && !ChickenRules.IsChicken(target)
         && !((database.CreatureById(target.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)

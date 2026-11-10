@@ -249,6 +249,7 @@ public sealed class StructureBlocksTests
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(6, 6))));
+        sim.Tick();
         Assert.Equal(197, goblin.Dk2StateId);
         sim.Tick();
 
@@ -280,6 +281,7 @@ public sealed class StructureBlocksTests
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(5, 5))));
+        sim.Tick();
 
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
         Assert.Equal(new TilePos(5, 5), goblin.Tile);
@@ -343,12 +345,14 @@ public sealed class StructureBlocksTests
         // Not the raised 3x3, only its middle: a platform tile beside the centre
         // takes the imp as a normal drop (owner's photos, 2026-10-23).
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(9, 6))));
+        sim.Tick();
         Assert.Contains(world.Creatures, c => c.Id == imp.Id);
         Assert.Equal(new TilePos(9, 6), imp.Tile);
         Assert.False(imp.InHand);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+        sim.Tick();
 
         Assert.DoesNotContain(world.Creatures, c => c.Id == imp.Id);
         SimEvent left = Assert.Single(events.Events, e => e.Kind == "creature_left");

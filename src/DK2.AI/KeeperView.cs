@@ -100,7 +100,9 @@ public sealed class KeeperView : INavByteGrid
         {
             // A corpse record holds no state (-1) and no table row; it is never a candidate.
             bool hasState = CreatureStateMachine.HasState(c);
-            int resolved = hasState ? NeedRules.ResolvedStateId(c) : c.Dk2StateId;
+            // A creature falling from the hand is in DK2's state 76, which the steps leave alone.
+            int state = c.LandingPending ? DropLandingRules.LandingState : c.Dk2StateId;
+            int resolved = c.LandingPending ? state : hasState ? NeedRules.ResolvedStateId(c) : c.Dk2StateId;
             // The battle step's fighter: an own creature in the combat category through a walk.
             // DK2's held creature sits in state 76 or 78, outside that category; ours holds idle.
             bool fighter = hasState && c.OwnerPlayerId == playerId && !c.InHand
@@ -119,7 +121,7 @@ public sealed class KeeperView : INavByteGrid
                 c.PosX, c.PosY, c.InHand, c.CarriedByCreatureId, c.RescuePriorityMask,
                 HandRules.HasPickupPermission(world, database, c, playerId),
                 HandRules.CanPickUp(world, database, c, playerId),
-                c.Dk2StateId, resolved,
+                state, resolved,
                 hasState && DK2.Simulation.Combat.CombatRules.MayLookForAFight(world, database, c, false),
                 CreatureLevelRules.MaxHealth(database, database.CreatureById(c.CreatureTypeId), c.Level),
                 HandRules.LastDroppedCounter(c, world.CurrentTick.Value), hand.Contains(HandItem.Of(c)),

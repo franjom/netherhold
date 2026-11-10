@@ -78,6 +78,7 @@ public class TortureTests
     {
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, to)));
+        sim.Tick();
     }
 
     [Fact]

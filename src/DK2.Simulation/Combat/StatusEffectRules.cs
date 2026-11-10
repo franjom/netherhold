@@ -108,7 +108,7 @@ public static class StatusEffectRules
         target.HealthSourcePlayerId = source;
         if (damage <= 0) return 0;
         if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || ((definition.Flags & CreatureFlags.OnlyAttackableByHorny) == CreatureFlags.OnlyAttackableByHorny)) return 0;
-        if (HandRules.IsHeld(target)) return 0;
+        if (target.InHand) return 0;   // the flag, which a drop clears: a falling creature can be hurt
         int scaled = (int)((long)damage * DamageMultiplier(world, database, target) / Base);
         if (IsStunned(target) && FearRules.NonImpAmongAttackers(world, target)) LengthenStun(database, definition, target);
         return CreatureHealthRules.Apply(database, definition, target, -scaled, source);

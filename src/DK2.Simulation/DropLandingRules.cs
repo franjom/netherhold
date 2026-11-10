@@ -20,6 +20,14 @@ public static class DropLandingRules
     /// <summary>State 76, the landing (<c>0x0046EAB0</c>).</summary>
     public const int LandingState = 76;
 
+    /// <summary>The height the stored drop passes (<c>0x004C0F68</c>), a tile above a 0x1000 floor.</summary>
+    public const int DropHeight = 0x2000;
+
+    /// <summary>A dropped creature's height above the floor at the end of the drop's turn: the drop's
+    /// 0x2000, less the floor's 0x1000 and one turn of gravity (240 x 256 / 16 = 3840). The next turn's
+    /// step reaches the floor (CONFIRMED, twelve drops in the Level 5 capture).</summary>
+    public const int FallingHeight = DropHeight - 0x1000 - 3840;
+
     public const int StunnedState = Combat.CombatStates.Stunned;
     public const int GettingUpState = Combat.CombatStates.GettingUp;
 

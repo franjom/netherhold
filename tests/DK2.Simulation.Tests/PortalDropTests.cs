@@ -20,6 +20,7 @@ public sealed class PortalDropTests
         creature.GoldHeld = 350;
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(PlayerIds.FirstKeeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(PlayerIds.FirstKeeper, new TilePos(6, 6))));
+        sim.Tick();
         Assert.Equal(197, creature.Dk2StateId);
         Assert.Equal(JobType.None, creature.DroppedToDoJob);
         Assert.Contains(creature, sim.World.Creatures);

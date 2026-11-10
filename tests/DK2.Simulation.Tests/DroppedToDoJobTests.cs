@@ -60,6 +60,7 @@ public class DroppedToDoJobTests
     {
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Bench)));
+        sim.Tick();
         Assert.Equal(255, creature.Dk2StateId);
         for (int t = 0; t < 400 && creature.Dk2StateId is 255 or 257; t++) sim.Tick();
     }

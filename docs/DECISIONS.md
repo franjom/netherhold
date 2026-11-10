@@ -11095,8 +11095,8 @@ state was set; the first counted turn asks for 101 only while the duration hold 
 (ADR-0581), at the creature, one tile up (the height
 the foot dust is asked at) plus half its eye height. Hash 250, no new saved field.
 
-**Consequences.** A hand drop now lies 4 turns, gets up in 11 and stands from the 15th,
-one turn short of DK2's, which spends the drop turn in 76; that turn is not modelled. The
+**Consequences.** A hand drop lies 4 turns and gets up in 11; the drop turn in 76 before
+them is ADR-0730's. The
 effect's height is a GUESS for the unread mesh point, and the effect does not follow the
 creature: a stunned creature does not move, but one lifted while stunned leaves its stars.
 The skip is exact for a stun set after the victim's own update, as the hand's and
@@ -17071,3 +17071,20 @@ the shuffle; the fight update sets the run speed only on state 199's entry turn.
 
 **Consequences.** Shares hash/save458 with ADR-0728; the mode takes the flag's
 place in the hash, save and copy. The Level 5 control reaches turn 1719.
+
+## ADR-0730 - land a hand drop one turn later, at the command's point
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** creatures, combat, simulation-core
+
+**Context.** `hand-drop-landing.md` section 2: in twelve captured drops the
+creature is in state 76 for the drop's turn, 256 above the floor on the
+packet's point, and lands on the next. Ours landed in the drop's tick at the
+tile's centre.
+
+**Decision.** The drop only releases the creature, at the command's point when
+it has one; the landing's outcomes run at the start of the next tick. A falling
+creature does not act, but is not in the hand.
+
+**Consequences.** Hash/save459 adds the pending flag and the dropper. The
+command's encoding is unchanged: it already carried the point. Recorded
+journals move; the Level 1 win journal is re-recorded. The keeper AI's drops
+get the same fall although DK2 passes them no height (unconfirmed deviation).

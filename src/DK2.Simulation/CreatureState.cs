@@ -610,6 +610,12 @@ public sealed partial class CreatureState
     /// <c>LastDroppedCounter</c>, <see cref="HandRules.LastDroppedCounter"/> (ADR-0278).</summary>
     public long DroppedTick;
 
+    /// <summary>Set by a hand drop and cleared when the creature lands the turn after: DK2's state 76
+    /// falls for that turn (hand-drop-landing.md section 2). <see cref="LandingDropperPlayerId"/> is the
+    /// keeper whose hand it left, which the landing's room arms compare with the room's owner.</summary>
+    public bool LandingPending;
+    public byte LandingDropperPlayerId;
+
     /// <summary>DK2's <c>WasLastDroppedOnARoom</c> (<c>+0x3E6</c> bit 26): the last drop landed on
     /// a room tile (ADR-0202).</summary>
     public bool DroppedOnARoom;
@@ -1456,6 +1462,8 @@ public sealed partial class CreatureState
         hash.Add(JobTileIndex);
         hash.Add(InHand);
         hash.Add(PickupTick);
+        hash.Add(LandingPending);
+        hash.Add(LandingDropperPlayerId);
         hash.Add(DroppedTick);
         hash.Add(DroppedOnARoom);
         hash.Add(NextPayTryTick);

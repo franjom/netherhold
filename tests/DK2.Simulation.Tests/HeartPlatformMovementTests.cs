@@ -135,6 +135,7 @@ public sealed class HeartPlatformMovementTests
         var hand = new GameSimulation(db, world, 5, [new HandSystem()]);
         hand.Tick(InputFrame.Of(new Commands.PickUpCreatureCommand(PlayerIds.FirstKeeper, imp.Id)));
         hand.Tick(InputFrame.Of(new Commands.DropCommand(PlayerIds.FirstKeeper, new TilePos(x, y))));
+        hand.Tick();
         Assert.Equal(new TilePos(x, y), imp.Tile);
 
         Assert.True(steering.TryRoute(imp, new TilePos(10, 6), MoveOptions.Loose));

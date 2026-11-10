@@ -313,6 +313,7 @@ public class HandDropGateTests
                 sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
                 Assert.True(HandRules.DropLands(world, db, Keeper, HandItem.Of(imp), tile));
                 sim.Tick(InputFrame.Of(new DropCommand(Keeper, tile)));
+                sim.Tick();
                 Assert.Same(imp, world.CreatureById(imp.Id));
                 Assert.False(imp.InHand);
                 Assert.Equal(tile, imp.Tile);
@@ -324,6 +325,7 @@ public class HandDropGateTests
         world.Player(Keeper).Mana = 100;
         imp.GoldHeld = 75;
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+        sim.Tick();
         Assert.Null(world.CreatureById(imp.Id));
         Assert.Contains(events.Events, e => e.Kind == "creature_left" && e.Detail.Contains("via=thrown_in") && e.Detail.Contains("gold_lost=75"));
 
@@ -348,6 +350,7 @@ public class HandDropGateTests
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+        sim.Tick();
 
         Assert.Null(world.CreatureById(imp.Id));
         Assert.Equal(ceiling, world.Player(Keeper).Mana);
@@ -370,6 +373,7 @@ public class HandDropGateTests
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+        sim.Tick();
 
         Assert.Same(imp, world.CreatureById(imp.Id));
         Assert.Equal(100, world.Player(Keeper).Mana);

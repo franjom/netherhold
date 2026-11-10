@@ -928,6 +928,7 @@ public class PrisonTests
         GameSimulation sim = Simulation(db, world, sink);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, CellC)));
+        sim.Tick();
 
         // Admission (0x004E2C70), and its tenth, is the imp's alone (Q726): the hand's drop keeps the health.
         Assert.Equal(300, captive.Health);
@@ -952,6 +953,7 @@ public class PrisonTests
         GameSimulation sim = Simulation(db, world, sink);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        sim.Tick();
 
         // Loose but lying stunned, still its jailer's to lift until 255 ends (0x004811E5, ADR-0616).
         Assert.Equal(255, captive.Dk2StateId);
@@ -1811,10 +1813,12 @@ public class PrisonTests
         GameSimulation sim = Simulation(db, world, sink);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, CellC)));
+        sim.Tick();
         Assert.Equal(CreatureStateCategory.Prison, CreatureStateMachine.UpdatingCategory(captive));
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        sim.Tick();
         Assert.Equal(255, captive.Dk2StateId);
         Assert.True(PrisonRules.IsImprisoned(captive));   // until 255 ends (0x004811E5)
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");

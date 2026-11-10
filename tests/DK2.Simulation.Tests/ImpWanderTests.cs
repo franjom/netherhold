@@ -135,6 +135,7 @@ public class ImpWanderTests
         Assert.True(imp.InHand);
         Assert.True(imp.WorkerIdle);
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(7, 6))));
+        sim.Tick();
         Assert.False(imp.InHand);
         Assert.False(imp.WorkerIdle);
         Assert.True(imp.JustDropped);

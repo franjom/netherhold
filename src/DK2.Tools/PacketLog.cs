@@ -170,7 +170,11 @@ public sealed class PacketLog
                     break;
                 case 61:
                     var dropTile = new TilePos(checked((int)(a.First >> 12)), checked((int)(a.Second >> 12)));
-                    commands.Add(new DropCommand(player, dropAt?.Invoke(player, dropTile) ?? dropTile));
+                    // 0x004BC710 takes the packet's point; a stand-in tile has none.
+                    TilePos landing = dropAt?.Invoke(player, dropTile) ?? dropTile;
+                    commands.Add(landing == dropTile
+                        ? new DropCommand(player, landing, 0, new FpPosition2(new Fp32((int)a.First), new Fp32((int)a.Second)))
+                        : new DropCommand(player, landing));
                     break;
                 case 62:
                     commands.Add(new SlapCreatureCommand(player, Resolve(a.First, PacketEntityKind.Creature)));
