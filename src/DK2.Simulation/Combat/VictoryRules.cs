@@ -52,9 +52,14 @@ public static class VictoryRules
         me.FightTargetKind = FightTargetKind.None;
         me.FightTargetPlayerId = 0;
         me.FightTargetTileIndex = -1;
-        if (victory) me.AttackType = CombatRules.AttackMode.Victorious;
-        me.AttackRangeSquared = 0;
-        me.StopMoving();
+        // Step 5's unlink (0x0045F30B) writes the target word alone: the attack nibble, the reach and
+        // the body stay. Only the death unlink is built with the nibble and a stop.
+        if (victory)
+        {
+            me.AttackType = CombatRules.AttackMode.Victorious;
+            me.AttackRangeSquared = 0;
+            me.StopMoving();
+        }
         context.Emit(SystemName, victory ? "target_died" : "target_down", $"creature={me.Id} victim={victim}");
     }
 

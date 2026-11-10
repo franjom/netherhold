@@ -232,12 +232,14 @@ public sealed class CombatSystem : ICreatureUpdateStep
                     VictoryRules.TargetDied(context, creature);
                     return;
                 }
-                // Step 5 clears the target and the handler goes on with none: a busy fighter returns at
-                // step 7 and seeks next turn; one with no action seeks now and ends the state on none.
+                // A forced target that fails ends the fight with no other sought (0x0045F2FE).
+                if (creature.AttackAbnormalTargets)
+                {
+                    LetGo(context, creature, "forced_target_gone");
+                    return;
+                }
                 VictoryRules.TargetDown(context, creature);
-                if (FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
-                if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
-                    LetGo(context, creature, "target_down");
+                WithoutTarget(context, creature, definition, "target_down");
                 return;
             }
         }
@@ -266,9 +268,8 @@ public sealed class CombatSystem : ICreatureUpdateStep
             }
             // Unlinked in place and another sought, in 199; only none ends the state and runs the
             // Combat leave hook (§2 steps 5 and 10, ADR-0319).
-            CombatRules.Unlink(world, creature);
-            if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
-                LetGo(context, creature, "target_gone");
+            VictoryRules.TargetDown(context, creature);
+            WithoutTarget(context, creature, definition, "target_gone");
             return;
         }
 
@@ -395,6 +396,20 @@ public sealed class CombatSystem : ICreatureUpdateStep
         {
             creature.Running = true;
         }
+    }
+
+    /// <summary>After step 5 has cleared a target (<c>0x0045F30B</c>, which does not stop the body) the
+    /// handler goes on with none: the fear checks of step 6, step 7's return for a running action,
+    /// then a victim is sought and on none the victory arm or the state's end (<c>0x004601D7</c>).</summary>
+    private void WithoutTarget(SimulationContext context, CreatureState creature, CreatureDef definition, string reason)
+    {
+        if (FearRules.FearChecks(context, _sight!, _hearts, _rooms, creature, definition, _scratch)) return;
+        if (FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
+        if (CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch)) return;
+        if (creature.AttackType == CombatRules.AttackMode.Victorious)
+            VictoryRules.Victory(context, creature, definition);
+        else
+            LetGo(context, creature, reason);
     }
 
     private static void LetGo(SimulationContext context, CreatureState creature, string reason)

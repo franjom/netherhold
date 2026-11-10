@@ -67,7 +67,7 @@ public sealed class KeeperMoodRemedies
             && temple.FloorSlots.Count > 0)
         {
             TilePos slot = _view.FromIndex(temple.FloorSlots[_rng.NextInt(temple.FloorSlots.Count)]);
-            if (Lift(creature)) { _commands.Add(new DropCommand(_view.PlayerId, slot)); return true; }
+            if (Lift(creature)) { _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, slot)); return true; }
         }
         KeeperRoomView? room = _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Temple, _rng)
             ?? _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Portal, _rng)
@@ -139,7 +139,7 @@ public sealed class KeeperMoodRemedies
     private bool MoveTo(KeeperCreatureView creature, KeeperRoomView? room)
     {
         if (room is null || !Lift(creature)) return false;
-        _commands.Add(new DropCommand(_view.PlayerId, _view.PositionOf(room)));
+        _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, _view.PositionOf(room)));
         return true;
     }
 

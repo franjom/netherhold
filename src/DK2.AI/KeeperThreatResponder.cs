@@ -229,7 +229,7 @@ public sealed class KeeperThreatResponder
     {
         _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
         if (!creature.CanPickUp) return;
-        _commands.Add(new DropCommand(_view.PlayerId, to));
+        _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, to));
         _moved.Add(creature.Id);
     }
 

@@ -66,14 +66,16 @@ through the fall; a flyer's descent has no capture and ours falls it like any
 other. Deviations: the Temple pool's sacrifice is still immediate (DK2's arm waits
 for the floor); the arms below are not built, among them the Torture Chamber
 tile's snap to its centre in the air; the view shows no landing pose for the
-fall turn. The computer keeper's three drops (`0x004FF589`, `0x004FFA1A`,
-`0x004F95F4`) pass height 0, angle 0 and the tile's centre plus `0x100` on each
-axis (disassembly). `0x004B5020` raises a below-floor Z to the floor, so state
-76 predicts the floor in its first update and the landing arms run in the
-first update after the drop; the AI drops in the keeper tick after the sweep,
-so DK2 lands it in the next turn's sweep (STRONGLY INFERRED). Ours gives it the
-human one-turn fall from `0x2000`; whether that makes ours a turn late depends
-on the phase at which our AI commands execute, which was not read (PLAUSIBLE).
+fall turn. The computer keeper's tile drops (ten call sites of
+[004BC710](functions/004BC710.md) read) pass
+height 0, angle 0 and the tile's centre plus `0x100` on each axis
+(disassembly). `0x004B5020` raises a below-floor Z to the floor, so state 76
+predicts the floor in its first update and the landing arms run in the first
+update after the drop; the AI drops in the keeper tick after the sweep, so DK2
+lands it in the next turn's sweep (STRONGLY INFERRED). Ours passes the point
+and angle (ADR-0735) but gives it the human one-turn fall from `0x2000`;
+whether that makes ours a turn late depends on the phase at which our AI
+commands execute, which was not read (PLAUSIBLE).
 The angle's side is in [drop-heading.md](drop-heading.md).
 
 With it the four Warlocks dropped at 1688 to 1693 stand on DK2's points and

@@ -176,6 +176,42 @@ public class CombatTests
         Assert.NotEqual(CreatureActivity.Fighting, demon.Activity);
     }
 
+    // 0x0045F30B clears an invalid target without stopping the body, and 0x0045F632 returns for a
+    // running action before any victim is sought: the second enemy is taken the turn after.
+    [Fact]
+    public void ABusyFighterWhoseTargetIsTakenAwaySeeksOnlyWhenItsActionEnds()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
+        CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
+        GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
+        // Both enemies lie stunned: out of Combat, so neither starts a fight nor releases its attacker.
+        new GameSimulation(db, world, sim.Rng, [new Lambda(context =>
+            CreatureStateMachine.TrySetState(context.Hooks, goblin, DropLandingRules.StunnedState, context.Tick.Value))]).Tick();
+        for (int i = 0; i < 20 && demon.FightTargetId != goblin.Id; i++) sim.Run(1);
+        Assert.Equal(goblin.Id, demon.FightTargetId);
+        CreatureState other = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
+        new GameSimulation(db, world, sim.Rng, [new Lambda(context =>
+            CreatureStateMachine.TrySetState(context.Hooks, other, DropLandingRules.StunnedState, context.Tick.Value))]).Tick();
+
+        goblin.InHand = true;
+        demon.SwingInProgress = false;
+        demon.SwingTargetKind = FightTargetKind.None;
+        demon.ActionUntilTick = sim.CurrentTick.Value + 1;
+        demon.FightProcessCounter = 0;   // the update's own scan is not due in these two turns
+        var attack = demon.AttackType;
+        int reach = demon.AttackRangeSquared;
+        demon.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(123, 0);
+        sim.Run(1);
+        Assert.Equal(CombatRules.NoTarget, demon.FightTargetId);
+        Assert.Equal(CreatureActivity.Fighting, demon.Activity);
+        // The clear writes the target alone: nibble, reach and body are as they were.
+        Assert.Equal((attack, reach, 123), (demon.AttackType, demon.AttackRangeSquared, demon.Body.Vel.X));
+
+        sim.Run(1);
+        Assert.Equal(other.Id, demon.FightTargetId);
+    }
+
     private sealed class Lambda(Action<SimulationContext> body) : ISimulationSystem
     {
         public string Name => "test step";

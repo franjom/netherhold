@@ -156,7 +156,7 @@ public sealed class KeeperTrainingStep
     {
         _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
         _prepared.Add(creature.Id);
-        if (creature.CanPickUp) _commands.Add(new DropCommand(_view.PlayerId, slot));
+        if (creature.CanPickUp) _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, slot));
     }
 
     private int LevelOf(KeeperCreatureView creature) =>

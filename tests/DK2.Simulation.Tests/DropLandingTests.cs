@@ -108,7 +108,8 @@ public class DropLandingTests
     }
 
     // The capture's two points, Warlocks turning 341 a turn: packet angle 1000 reads 659 in the drop
-    // turn's frame and 134 reads 0. That the difference is one turn toward 0 is a hypothesis they fit.
+    // turn's frame and 134 reads 0. The read mechanism, not played: one Follow Path turn toward the
+    // stop's bearing 0 (drop-heading.md).
     [Theory]
     [InlineData(1000, 659)]
     [InlineData(134, 0)]
@@ -119,7 +120,7 @@ public class DropLandingTests
         Assert.Equal(seen, heading);
     }
 
-    // Ours applies that rule to any creature; a drop without an angle keeping the heading is ours too.
+    // A drop without an angle keeping the heading is ours.
     [Theory]
     [InlineData(1000)]
     [InlineData(134)]
@@ -143,6 +144,19 @@ public class DropLandingTests
         goblin.Heading = 77;
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         Assert.Equal(77, goblin.Heading);   // no angle: the heading is kept
+    }
+
+    // The update's steering gate skips type 1 (0x0048A225), so no path step turns a dropped Imp. Read
+    // from the binary; no capture shows an Imp dropped.
+    [Fact]
+    public void ADroppedImpKeepsTheCommandsAngle_ReadNotCaptured()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 3));
+        (GameSimulation sim, _) = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor, Heading: new Dk2Angle(1000))));
+        Assert.Equal(1000, imp.Heading);
     }
 
     [Fact]

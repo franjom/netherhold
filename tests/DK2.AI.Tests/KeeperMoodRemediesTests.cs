@@ -60,7 +60,7 @@ public class KeeperMoodRemediesTests
 
         Assert.True(handled);
         KeeperRoomView lair = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.Lair);
-        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(lair))], commands);
+        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), DropCommand.ByComputerKeeper(Keeper, view.PositionOf(lair))], commands);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class KeeperMoodRemediesTests
 
         Assert.True(handled);
         KeeperRoomView training = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.TrainingRoom);
-        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(training))], commands);
+        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), DropCommand.ByComputerKeeper(Keeper, view.PositionOf(training))], commands);
     }
 
     [Fact]
@@ -197,7 +197,7 @@ public class KeeperMoodRemediesTests
             Disposing(1));
 
         Assert.True(handled);
-        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, new TilePos(11, 11))], commands);
+        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), DropCommand.ByComputerKeeper(Keeper, new TilePos(11, 11))], commands);
     }
 
     [Fact]
@@ -211,7 +211,11 @@ public class KeeperMoodRemediesTests
 
         Assert.True(handled);
         KeeperRoomView temple = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.Temple);
-        Assert.Equal(new DropCommand(Keeper, view.PositionOf(temple)), commands[^1]);
+        Assert.Equal(DropCommand.ByComputerKeeper(Keeper, view.PositionOf(temple)), commands[^1]);
+        // The point and angle the computer keeper's drop sites pass: centre + 0x100 on each axis, angle 0.
+        TilePos at = view.PositionOf(temple);
+        Assert.Equal(new DropCommand(Keeper, at, 0,
+            new FpPosition2(new Fp32((at.X << 12) + 0x900), new Fp32((at.Y << 12) + 0x900)), new Dk2Angle(0)), commands[^1]);
     }
 
     [Theory]
@@ -226,7 +230,7 @@ public class KeeperMoodRemediesTests
 
         Assert.True(handled);
         KeeperRoomView portal = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == type);
-        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), new DropCommand(Keeper, view.PositionOf(portal))], commands);
+        Assert.Equal<PlayerCommand>([new TakeCreatureCommand(Keeper, creature.Id), DropCommand.ByComputerKeeper(Keeper, view.PositionOf(portal))], commands);
     }
 
     [Fact]

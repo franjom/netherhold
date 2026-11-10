@@ -466,13 +466,15 @@ public sealed class HandSystem : ISimulationSystem
         creature.PosY = command.Position?.Y.Raw ?? CreatureState.CentreOf(command.Tile.Y);
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.ClearJob();
-        // The drop writes the command's angle to the heading (0x004BCA08). The one turn toward 0 fits the
-        // captured headings (hypothesis: the stopped body's path step that turn); drop-heading.md.
+        // The drop writes the command's angle to the heading (0x004BCA08) after stopping the body at its
+        // own point. That turn's Follow Path then turns once toward the stop's bearing, 0; the update's
+        // steering gate (0x0048A225) leaves an Imp out, so an Imp keeps the angle (drop-heading.md).
         if (command.Heading is Dk2Angle angle)
         {
             int heading = angle.Value;
-            Steering.Bearing.TurnToward(ref heading, 0,
-                SimulationTiming.TurnRatePerTick(context.Database.CreatureById(creature.CreatureTypeId)));
+            if (creature.CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId)
+                Steering.Bearing.TurnToward(ref heading, 0,
+                    SimulationTiming.TurnRatePerTick(context.Database.CreatureById(creature.CreatureTypeId)));
             creature.Heading = heading;
         }
 

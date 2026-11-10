@@ -17137,9 +17137,9 @@ its first target a turn early or late and its cast started a turn off.
 turns it once toward 0 by the creature's rate. Without one the heading stays.
 
 **Consequences.** The drop's encoding gains the angle, so hash/save 462
-refuses older journals; no state is added. The view and the computer keeper
-send no angle yet. In DK2 the turn skips an Imp, and the computer keeper's
-drops pass angle 0 (`drop-heading.md`). The Level 1 win journal is re-recorded.
+refuses older journals; no state is added. The view
+sends no angle yet; ADR-0735 gives the computer keeper's drops theirs and skips
+the Imp. The Level 1 win journal is re-recorded.
 ## ADR-0734 - a fighter with no action leaves a collapsed target in the same turn
 **Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures
 
@@ -17154,5 +17154,38 @@ and returned, so every fighter took the extra turn.
 **Decision.** After letting a collapsed target go, a fighter with no running
 action seeks a victim in the same call and leaves the fight if there is none.
 
-**Consequences.** No state or version change. The general invalid-target arm
-still seeks while busy, which step 7 would defer; no capture shows that case.
+**Consequences.** No state or version change. ADR-0735 builds the rest of
+step 5's tail, the general invalid-target arm included.
+## ADR-0735 - clear a collapsed target by the target word alone, and read the Imp's and the computer keeper's drops
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, computer-keeper, keeper-spells
+
+**Context.** A read of DKII.EXE (commit 96bc9f26, `combat-fight-state.md` section 2
+and `drop-heading.md`) found four places where ours differed from DK2.
+Step 5 of the fight handler (`0x0045F030`) clears an invalid or collapsed
+target by writing the target word alone (`0x0045F30B..0x0045F37F`); the attack
+nibble, the reach and the body stay, and the handler falls into step 6's fear
+checks, step 7's return for a running action, then a seek (`0x004601D7`).
+Ours stopped the body, zeroed the reach, cleared the nibble on the general
+branch and sought before the fear checks and the busy test. The update's
+steering gate (`0x0048A225`) skips an Imp (type 1). The computer keeper's tile
+drops pass the tile's centre plus `0x100` on x and y and angle 0.
+
+**Decision.** `CombatSystem.WithoutTarget` runs after a cleared target: fear
+checks, the busy return, `SelectAVictim`, then the victory arm for nibble `0xF`
+or the end of the state. `VictoryRules.TargetDown` writes the target word
+alone, on the collapsed branch and the general one. A forced target
+(`+0x3E6` bit 2) that fails ends the fight with no seek (`0x0045F2FE`), on the
+collapsed branch too. A dropped Imp keeps the drop's angle.
+`DropCommand.ByComputerKeeper` carries the centre plus `0x100` and angle 0;
+six computer keeper sites use it, the drop on a creature (`0x004F9B5F`) not.
+
+**Consequences.** Hash/save 463, pin `0xA5B5726883443E44`; no new state. The
+Level 1 win journal is re-recorded (win tick 2303, gem (16,21)); the controlled
+Level 5 seed-1 replay is unchanged at 6120 ordered draws through turn 1755.
+Supersedes ADR-0734's note on the general arm. Still deviating: DK2 drops the
+computer keeper's creature from height 0, ours gives the hand's one-turn fall;
+`KeeperThreatResponder`'s DK2 site is not identified (`0x004FAAFE` or
+`0x004FE280`); `0x0045F2F1` and `0x0045F2F8` send a creature without `+0x46F`
+bit 0 to `0x0046022F`, which ours does not mirror. No test covers the fear
+checks before the busy gate or a forced collapsed target. Other writers of
+`+0x529`, and an action at pick-up turning an Imp on the drop turn, were not read.

@@ -67,7 +67,7 @@ public sealed class KeeperRetreatStep
                 // still spends the allowance and still leaves the creature prepared.
                 _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
                 Prepared.Add(creature.Id);
-                if (creature.CanPickUp) _commands.Add(new DropCommand(_view.PlayerId, Destination()));
+                if (creature.CanPickUp) _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, Destination()));
             }
             allowance--;
         }

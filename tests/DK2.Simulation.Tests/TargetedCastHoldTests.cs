@@ -85,6 +85,11 @@ public sealed class TargetedCastHoldTests
         Assert.Single(world.Shots);
         target.InHand = true;
         sim.Tick();
+        // Step 5 clears the target; step 7 then returns for the action still running (0x0045F632),
+        // and the state ends on the first turn with none.
+        Assert.Equal(FightTargetKind.None, caster.FightTargetKind);
+        Assert.Equal(199, caster.Dk2StateId);
+        for (int i = 0; i < 40 && caster.Dk2StateId == 199; i++) sim.Tick();
         Assert.Equal(1, caster.Dk2StateId);
     }
 

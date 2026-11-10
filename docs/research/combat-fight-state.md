@@ -211,17 +211,17 @@ The [non-Imp stop/facing and attack-start scope](combat-stop-route.md) is built
 at hash 449. **Not built, named:** the independent physical `+0x46F` eligibility
 gate; waking a sleeper on the blow; the room notice (§2 step 4). Player event 6 (§1) is `CombatMessageRules.UpdateBattle`.
 
-**Present deviations of the collapsed-target branch (ADR-0734; read
-2026-11-10, STRONGLY INFERRED).** It matches DK2 for a busy fighter and for one
-with no action, which seeks and ends the state on none. It differs in three
-places. It skips step 6, the fear checks DK2's step 5 falls into before the
-busy test. `VictoryRules.TargetDown` calls `StopMoving`, which DK2's step-5
-unlink does not; in 199 and 200 ours' `StopMoving` retains a self-route that
-then gives a steering turn toward 0 DK2 does not give at that point
-(PLAUSIBLE). Its `LetGo` on none ignores a nibble of `0xF`, DK2's victory arm.
-The general `!TargetIsValid` branch unlinks and seeks before the fear checks
-and the busy test, so it seeks while busy where DK2 returns 1 at step 7 after
-the same unlink; this is the case that branch's own comment describes.
+**Step 5's clear, built (ADR-0734, ADR-0735; read 2026-11-10, STRONGLY INFERRED).**
+`CombatSystem.WithoutTarget` follows DK2 after a cleared target: the fear checks
+of step 6, step 7's return for a running action, `SelectAVictim`, then the
+victory arm for nibble `0xF` or the end of the state. `VictoryRules.TargetDown`
+writes the target word alone, as `0x0045F30B` does: the attack nibble, the
+reach and the body stay. It serves the collapsed branch and the general
+invalid-target one. A forced target that fails ends the fight with no seek
+(`0x0045F2FE`), on both. Not mirrored: `0x0045F2F1` and `0x0045F2F8`, which send
+a creature with `+0x46F` bit 0 clear to `0x0046022F`. No test covers the fear
+checks before the busy gate or a forced collapsed target. Other writers of
+`+0x529` were not read.
 
 ## Confidence
 

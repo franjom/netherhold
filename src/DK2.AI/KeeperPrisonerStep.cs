@@ -123,6 +123,6 @@ public sealed class KeeperPrisonerStep
     {
         _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
         _prepared.Add(creature.Id);
-        if (creature.CanPickUp) _commands.Add(new DropCommand(_view.PlayerId, at));
+        if (creature.CanPickUp) _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, at));
     }
 }

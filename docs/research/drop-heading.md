@@ -60,22 +60,30 @@ systems: [keeper-spells, creatures, combat]
   only if turn 1 leaves the heading at or below 341, so the target's bearing
   must be at or below 341 for all four Warlocks.
 
-## Built (ADR-0733, hash/save 462)
+## Built (ADR-0733, ADR-0735, hash/save 463)
 
 `DropCommand.Heading` carries the angle; `PacketLog` fills it from the packet.
-`HandSystem.Drop` sets the heading and turns it once toward 0 by the
-creature's rate, standing in for the fall turn's path step, which a falling
-creature does not take in ours. A command without an angle keeps the heading:
-the computer keeper's drops and the view's.
+`HandSystem.Drop` sets the heading and, for a creature that is not an Imp,
+turns it once toward 0 by the creature's rate, standing in for the fall turn's
+path step, which a falling creature does not take in ours. An Imp keeps the
+angle. A command without an angle keeps the heading: the view's.
+
+`DropCommand.ByComputerKeeper` gives the computer keeper's tile drops the
+tile's centre plus `0x100` on each axis and angle 0; six sites in `src/DK2.AI`
+use it. Ten call sites of [004BC710](functions/004BC710.md) were read to pass
+that pair: `0x004F95F4` ([004F9520](functions/004F9520.md)), `0x004F96EA`,
+`0x004F98D0`, `0x004F9A2E`, `0x004FAAFE`, `0x004FE280`, `0x00500BFF`
+([005006D0](functions/005006D0.md)), `0x005037D4`, `0x004FF589`
+([004FF260](functions/004FF260.md)) and `0x004FFA1A`
+([004FF5C0](functions/004FF5C0.md)). The base value at `0x004FE8AD` was not
+read. `0x004F9B5F` drops at the other creature's own position, and ours'
+drop-on-a-creature form is unchanged. `KeeperThreatResponder`'s matching DK2
+site is not identified (candidates `0x004FAAFE`, `0x004FE280`).
 
 Deviations of that build from the reading:
 
-- The computer keeper's three drops
-  ([004FF260](functions/004FF260.md), [004FF5C0](functions/004FF5C0.md),
-  [004F9520](functions/004F9520.md)) pass angle 0, the tile's centre plus
-  `0x100` on each axis and height 0 (read by disassembly). Ours keeps the
-  creature's heading and gives them the human fall.
-- The turn applies to non-Imps. Ours turns every creature, an Imp included.
+- DK2's computer keeper passes height 0. Ours gives its drops the hand's
+  one-turn fall.
 - The turn's bearing is 0 only while the creature's x and y still equal the
   stop point. State 76's own arms can move it before the steering (the Torture
   snap, the Combat Pit scatter, the Heart push:
@@ -85,6 +93,7 @@ Deviations of that build from the reading:
   ([004D5A40](functions/004D5A40.md)); ours does not check it.
 - DK2 turns inside the creature's own update on the drop turn, ours in the
   command: the same unless something reads the heading between the two.
+- Not checked: whether an action at pick-up can turn an Imp on the drop turn.
 
 ## Unknown
 

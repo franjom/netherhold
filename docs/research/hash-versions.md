@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**463** - `0xA5B5726883443E44`. A collapsed or invalid target is cleared without touching the attack nibble, reach or body, and the handler goes on through the fear checks, the busy return and the seek; a dropped Imp keeps the drop's angle; the computer keeper's tile drops pass the tile's centre plus `0x100` and angle 0 (ADR-0735). No new state; the version moves because recorded runs change.
+
 **462** - `0xB28FC3F5420EAA3D`. The drop command carries the packet's angle and the drop heads the creature by it (ADR-0733). No new state; the version moves so that journals with the old drop encoding are refused.
 
 **461** - `0x37AC323C4B90D5D5`. Damage that empties a creature's health marks it (`CollapseDue`, hashed and saved) and it collapses in the same thing pass, picking its fall heading from the world stream (ADR-0732). Earlier saves are refused.
