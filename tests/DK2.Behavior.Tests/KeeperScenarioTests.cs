@@ -208,22 +208,34 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         GameDatabase database = ScenarioCorpus.Database;
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
 
-        // The training moves' own commands on the stock map, nothing added: each pick-up followed
-        // at once by a drop on an interior cell of Harkan's Training Room (ADR-0317).
+        // The keeper's own commands on the stock map, nothing added. A training move (ADR-0317) is a
+        // pick-up and a drop on the same tick, on an interior cell of Harkan's Training Room. Job
+        // placement (ADR-0730) lifts alone, and a later tick drops the held Black Knight at the
+        // Training Room's position.
         Assert.Empty(run.ExpectationFailures);
         List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is PickUpCreatureCommand or DropCommand).ToList();
         Assert.NotEmpty(moves);
-        Assert.All(moves.Chunk(2), pair => Assert.True(pair[0].Command is PickUpCreatureCommand && pair[1].Command is DropCommand
-            && pair[0].InputTick == pair[1].InputTick));
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level17")!;
         byte training = database.RoomById((byte)RoomTypeId.TrainingRoom).TerrainId;
-        foreach (DropCommand put in moves.Select(e => e.Command).OfType<DropCommand>())
-            for (int dy = -1; dy <= 1; dy++)
-                for (int dx = -1; dx <= 1; dx++)
-                {
-                    MapTile around = map[put.Tile.X + dx, put.Tile.Y + dy];
-                    Assert.Equal((training, (byte)4), (around.TerrainId, around.PlayerId));
-                }
+        bool IsHarkansTraining(TilePos at) => (map[at.X, at.Y].TerrainId, map[at.X, at.Y].PlayerId) == (training, (byte)4);
+        for (int i = 0; i < moves.Count; i++)
+        {
+            Assert.IsType<PickUpCreatureCommand>(moves[i].Command);
+            if (i + 1 < moves.Count && moves[i + 1].Command is DropCommand put && moves[i + 1].InputTick == moves[i].InputTick)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                    for (int dx = -1; dx <= 1; dx++)
+                        Assert.True(IsHarkansTraining(new TilePos(put.Tile.X + dx, put.Tile.Y + dy)), $"training move to {put.Tile}");
+                i++;
+                continue;
+            }
+            // A lone lift is job placement's; its drop comes on a later tick, the next command.
+            KeeperCommandEmission later = Assert.Single(moves.Skip(i + 1).Take(1));
+            DropCommand placed = Assert.IsType<DropCommand>(later.Command);
+            Assert.True(later.InputTick > moves[i].InputTick);
+            Assert.True(IsHarkansTraining(placed.Tile), $"job placement to {placed.Tile}");
+            i++;
+        }
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 }

@@ -104,6 +104,7 @@ public class KeeperGoldStepTests
         Keeper1(rng).Think(Db, world);
         twin.NextInt(100); // step 9's training roll, drawn every tick
         twin.NextInt(100); // step 10's traps-and-doors roll; no Workshop, so nothing after it
+        twin.NextInt(3);   // step 12's research roll, its gate off
 
         Assert.Equal(twin.NextInt(int.MaxValue), rng.NextInt(int.MaxValue));
     }
