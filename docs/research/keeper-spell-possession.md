@@ -303,8 +303,9 @@ sniper), with their implementation limits, are recorded in
 `MovePossessedCreatureCommand` (`PossessionRules.Move`): both packed-word
 branches, the 0x2000 height cap, the 0x7FF heading mask, the previous-position
 copy and the tile-chain relink. A possessed thing is always a creature here, so
-the zero branch's class test always passes. The setter's floor raise has no
-counterpart, because the floor is height 0 (M9/Q398). Nothing but possession
+the zero branch's class test always passes. The setter's floor raise is built for the
+4096 floor: a possessed move stores the packet's height less the floor, never below it
+(ADR-0728, [possessed-pick-heights.md](possessed-pick-heights.md)); other floors have no counterpart. Nothing but possession
 (and a save restore) writes PosZ/LastPosZ, so a creature leaving possession keeps its last Z (an M9
 note). Fog is not called directly: FogOfWarSystem covers 0x0048CC90's circle
 pass (PerceptionRange) every tick for every player; the line-of-sight square of
@@ -317,13 +318,14 @@ change relinks; a corpse is relinked as a new body. Melee builds the gate, the
 stamps, the pick, the swing on creatures, traps and doors, state131's stamp-only
 case, the gold pick-up and types 15/16/46 (impact only). Spells build the gates,
 the scan, self, teleport, speed (`StatusEffectRules.ModifySpeed`), action16 and
-action15 (`FightRules.BeginFreeAim`/`FireFreeAim`; the shot flies flat at the
-point's X/Y), shot type30's refusal and the slot stamp. The follower arm and
+action15 (`FightRules.BeginFreeAim`/`FireFreeAim`; the shot flies level from the
+caster's height toward the point's X/Y), shot type30's refusal and the slot stamp. The follower arm and
 +0x4D0/+0x4D2 are built (ADR-0445), and SneakingAs, hypnosis and SniperMode
 (ADR-0446); the chicken, type 14, action 17 on a Book Case, an Arch Pillar, a shot or
 a body and action 16 at a pillar (ADR-0468); dig and claim (ADR-0469), with the
 [bounded timed Imp excavation clock](possessed-excavation-clock.md) at 446. Not
-represented: the secret-door cell bit and heights. A slot outside the creature's spells is
+represented: the secret-door cell bit and the heights
+[named as unbuilt](possessed-pick-heights.md#implementation-adr-0728-hashsave-458). A slot outside the creature's spells is
 refused by `SpellOf`'s bound; spell level is not tested, as in the listing.
 Approximations: an object's position is its PosX/PosY when either is non-zero,
 else its tile's centre (`ObjectPosition`); at level load the per-tile link order

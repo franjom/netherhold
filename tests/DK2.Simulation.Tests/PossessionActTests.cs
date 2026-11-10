@@ -49,7 +49,7 @@ public sealed class PossessionActTests
     }
 
     private static ActPossessedCreatureCommand Act(CreatureState me, bool melee, int slot = 0, ushort yaw = East, ushort pitch = Level) =>
-        new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(yaw), new(pitch)), melee, new(slot));
+        new(Keeper, new(new(new(me.PosX), new(me.PosY), new(Fp32.One + me.PosZ)), new(yaw), new(pitch)), melee, new(slot));
 
     private static void Place(CreatureState c, int x, int y)
     {
@@ -258,6 +258,29 @@ public sealed class PossessionActTests
         Assert.Equal(b.Id, me.SwingTargetId);
     }
 
+    // The Level 5 seed-1 capture's turn 1647, moved six tiles west and 23 north: the Wizard on the tile
+    // south is met first; its Fireball, on the pose's own tile at 1220 above the floor (DK2's 5316), is
+    // nearer and replaces it. Read 4096 lower it does not: that row shows the pick turns on the shot's
+    // height, not the old build's state, where every thing stood at 0.
+    [Theory]
+    [InlineData(1220, FightTargetKind.Shot)]
+    [InlineData(1220 - Fp32.One, FightTargetKind.Creature)]
+    public void AShotAtItsFlightHeightReplacesTheFartherCreature_ConfirmedInCapture(int shotHeight, FightTargetKind expected)
+    {
+        var (db, world) = Open();
+        CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
+        Place(me, 43858, 43883);
+        CreatureState wizard = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 11));
+        Place(wizard, 42098, 45698);
+        ShotState shot = world.SpawnShot(Dk2TerrainFixture.FireballShotId, Rival, 43782, 44716);
+        shot.PosZ = shotHeight;
+        shot.Health = 59;
+        GameSimulation sim = Sim(db, world);
+        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper,
+            new(new(new(me.PosX), new(me.PosY), new(5768)), new(1191), new(462)), true, new(0))));
+        Assert.Equal(expected, me.SwingTargetKind);
+    }
+
     [Fact]
     public void ACandidateAtEqualDistanceDoesNotReplace_StronglyInferredFromBinary()
     {
@@ -344,7 +367,7 @@ public sealed class PossessionActTests
         long now = sim.CurrentTick.Value;
         sim.Tick(InputFrame.Of(Act(me, melee: false, slot: 0)));
         Assert.Equal(now, me.SpellStamps[0]);
-        Assert.Equal((me.PosX + 4096, me.PosY, 0, Level, PossessionRules.FreeAimRange),
+        Assert.Equal((me.PosX + 4096, me.PosY, Fp32.One, Level, PossessionRules.FreeAimRange),
             (me.SwingPointX, me.SwingPointY, me.SwingPointZ, me.SwingPitch, me.SwingRange));
         ShotState shot = Assert.Single(world.Shots);
         Assert.Equal(Dk2TerrainFixture.FireballShotId, shot.ShotTypeId);

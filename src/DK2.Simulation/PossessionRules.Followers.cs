@@ -71,7 +71,7 @@ public static partial class PossessionRules
             {
                 if (!MayFollow(database, c)) continue;
                 if (TrapRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY) >= FollowerScanLimit) continue;
-                var at = new Vec3(c.PosX, c.PosY, c.PosZ);
+                var at = new Vec3(c.PosX, c.PosY, FloorHeight + c.PosZ);
                 if (!InAimCone(aim.Yaw.Value, pose, at)) continue;
                 if (!LineOfSight.Clear(sight, me.PosX, me.PosY, c.PosX, c.PosY)) continue;
                 int score = 4096 - Dot(Normalised(at - pose), aimVector);

@@ -371,6 +371,25 @@ public class CombatFearTests
         Assert.Equal(0, goblin.OverThreatCounter);
     }
 
+    // State 199 sets the run speed on its entry turn only (0x0045EBC9): DK2's Wizard 436 keeps the
+    // shuffle of its step back at 1653 while it fights on (Level 5 seed-1 capture).
+    [Fact]
+    public void TheRunSpeedIsSetOnTheFightsEntryTurnAndNotAgain()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, goblin);
+        GameSimulation sim = Combat(db, world);
+        sim.Run(2);
+        Assert.Equal(CreatureActivity.Fighting, goblin.Activity);
+        Assert.Equal(CreatureSpeedMode.Run, goblin.SpeedMode);
+
+        goblin.SpeedMode = CreatureSpeedMode.Shuffle;
+        sim.Run(3);
+        Assert.Equal(CreatureActivity.Fighting, goblin.Activity);
+        Assert.Equal(CreatureSpeedMode.Shuffle, goblin.SpeedMode);
+    }
+
     [Fact]
     public void ThreeTicksOverTheThreshold_AndTheCreatureBacksOff_ForTheBackOffTimer()
     {

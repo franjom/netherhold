@@ -189,11 +189,14 @@ public sealed class ShotSystem : ISimulationSystem
             return false;
         }
 
+        // The stepper adds a sixteenth of the velocity a tick, truncated toward zero (shots.md section 6).
+        shot.PosZ += shot.VelZ / 16;
         if (definition.AirFriction != 0)
         {
             int keep = Math.Max(Fp32.One - definition.AirFriction, Fp32.One / 2);
             shot.VelX = (int)(((long)shot.VelX * keep) >> 12);
             shot.VelY = (int)(((long)shot.VelY * keep) >> 12);
+            shot.VelZ = (int)((long)shot.VelZ * keep / Fp32.One);   // the stepper truncates toward zero (0x004B26B2)
         }
         return true;
     }

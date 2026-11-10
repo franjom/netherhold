@@ -394,6 +394,7 @@ public static class FightRules
         }
 
         int aimX, aimY;
+        int? aimZ = null;
         int targetTile = -1;
         if (me.SwingTargetKind == FightTargetKind.Creature)
         {
@@ -403,6 +404,11 @@ public static class FightRules
             long tiles = ShotRules.Isqrt((long)distanceSquared << 4) >> 8;
             aimX = target.PosX + (int)((target.PosX - target.LastPosX) * tiles * 3 / 2);
             aimY = target.PosY + (int)((target.PosY - target.LastPosY) * tiles * 3 / 2);
+            // The aim's height: the target's, raised by half its level-scaled height; the lead is on x and y only.
+            CreatureDef theirs = database.CreatureById(target.CreatureTypeId);
+            int height = CreatureLevelRules.Scale((ushort)theirs.Height.Raw,
+                CreatureLevelRules.Percent(database, CreatureStatId.HeightTiles, target.Level));
+            aimZ = target.PosZ + (height / 2);
         }
         else if (me.SwingTargetKind == FightTargetKind.Heart)
         {
@@ -432,7 +438,8 @@ public static class FightRules
         (int originX, int originY) = ShotOrigin(me, mine.Spells[me.SwingSpellSlot]);
         ShotState shot = ShotRules.Spawn(world, shotDef, me.OwnerPlayerId, originX, originY, (int)spell.ShotData1, (int)spell.ShotData2,
             me.Id, me.SwingTargetKind, me.SwingTargetId, me.SwingTargetPlayerId, targetTile, aimX, aimY);
-        ShotRules.Launch(shot, shotDef, aimX, aimY);
+        shot.PosZ = me.PosZ + mine.Spells[me.SwingSpellSlot].OriginZ;
+        ShotRules.Launch(shot, shotDef, aimX, aimY, aimZ);
         ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)me.Heading),
             new Fp32(Fp32.One + me.PosZ + mine.Spells[me.SwingSpellSlot].OriginZ));
         RequestCastSound(context, me, spell, shotDef);   // 0x00498A8D
@@ -454,7 +461,7 @@ public static class FightRules
     /// <summary>Where action 16 makes the shot (<c>0x00498989</c>–<c>0x004989F5</c>, combat-spells.md §7
     /// step 4): my position plus the slot's origin turned by my heading through the sine tables
     /// <c>0x006C1488</c>/<c>0x006C1C88</c>, each product shifted down sixteen on its own. A possessed
-    /// creature adds only the height, which our flat flight drops (Q398).</summary>
+    /// creature adds only the height, which the caller sets on the shot (<see cref="ShotState.PosZ"/>, ADR-0728).</summary>
     public static (int X, int Y) ShotOrigin(CreatureState me, CreatureSpellSlot slot)
     {
         if (me.Possessed) return (me.PosX, me.PosY);
@@ -511,8 +518,8 @@ public static class FightRules
     /// <summary>Action 15's shot (<c>0x004984D0</c>): the spell's shot from the caster's own position,
     /// with no horizontal muzzle offset when possessed, the spell's two data words, launched at the
     /// action's point; in SniperMode the shot carries <c>+0x165</c> (<see cref="ShotState.Sniper"/>).
-    /// Height, pitch, the range word (<c>+0x155</c>) and the possessed flag (<c>+0x151</c>) are not
-    /// represented: shots fly flat (Q398).</summary>
+    /// The pitch, the range word (<c>+0x155</c>) and the possessed flag (<c>+0x151</c>) are not
+    /// represented: the shot starts at my height and flies level (Q398).</summary>
     public static void FireFreeAim(SimulationContext context, CreatureState me, CreatureDef mine)
     {
         me.SwingInProgress = false;
@@ -522,6 +529,7 @@ public static class FightRules
         ShotState shot = ShotRules.Spawn(context.World, shotDef, me.OwnerPlayerId, me.PosX, me.PosY, (int)spell.ShotData1, (int)spell.ShotData2,
             me.Id, FightTargetKind.None, CombatRules.NoTarget, 0, -1, me.SwingPointX, me.SwingPointY);
         shot.Sniper = me.Possessed && me.SniperMode;
+        shot.PosZ = me.PosZ;
         ShotRules.Launch(shot, shotDef, me.SwingPointX, me.SwingPointY);
         ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)me.Heading), new Fp32(Fp32.One + me.PosZ));
         RequestCastSound(context, me, spell, shotDef);   // 0x0049868C

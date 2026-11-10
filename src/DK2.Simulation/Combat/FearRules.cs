@@ -331,7 +331,7 @@ public static class FearRules
         }
         if (StepBack(context, me, mine, FleeStepBackLength(mine), scratch))
         {
-            me.Running = false;
+            me.SpeedMode = CreatureSpeedMode.Shuffle;   // 0x00460806
             return;
         }
         if (Cornered(context, me, mine, scratch))
@@ -894,7 +894,6 @@ public static class FearRules
     {
         CombatStates.Enter(context, me, CombatStates.Engaging);
         me.CombatStateEnteredTick = context.Tick.Value;
-        me.Running = true;
         context.Emit(SystemName, "fights_on", $"creature={me.Id} reason={reason}");
     }
 

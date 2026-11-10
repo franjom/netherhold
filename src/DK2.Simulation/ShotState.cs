@@ -9,7 +9,8 @@ namespace DK2.Simulation;
 /// <summary>A shot in flight — DK2's shot thing (docs/research/shots.md §1), made by a creature's
 /// spell cast (combat-spells.md §7) or by another shot it chained from. Positions are 1/4096
 /// tile; the velocity is position units a tick, so the definition's <c>Speed</c> is the distance
-/// covered each tick. Simulation flight remains planar; observation-only view origins
+/// covered each tick. Collision and flight stay planar; the height a creature's cast gives a shot
+/// is read only by the possessed picks (ADR-0728), and observation-only view origins
 /// approximate height separately (Q398, ADR-0595).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/shots.md")]
 public sealed partial class ShotState
@@ -52,6 +53,12 @@ public sealed partial class ShotState
 
     public int VelX;
     public int VelY;
+
+    /// <summary>Height above the floor (DK2's thing <c>+0x22</c> less the floor's 4096) and the launch's
+    /// vertical velocity in sixteenths of a position unit a tick (<c>0x004AB8A0</c>). Only the possessed
+    /// picks read the height; collision stays flat (Q398).</summary>
+    public int PosZ;
+    public int VelZ;
 
     // Observation metadata only: native view handles and their pose are not simulation inputs.
     // Like those handles, these values are excluded from the hash and snapshot.
@@ -109,6 +116,8 @@ public sealed partial class ShotState
         TileLink.HashInto(ref hash);
         hash.Add(VelX);
         hash.Add(VelY);
+        hash.Add(PosZ);
+        hash.Add(VelZ);
         hash.Add(Health);
         hash.Add(Age);
         hash.Add(Data1);

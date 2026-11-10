@@ -17036,3 +17036,33 @@ included, cannot inherit stale cleanup.
 **Consequences.** Hash/save457 adds possessed-melee active, completion and
 ownership fields. Target selection is unchanged; native target1463 remains
 unresolved, so this does not establish matched-attack or Heart parity.
+
+## ADR-0728 - read possessed picks in the pose's height frame and give shots a height
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, simulation-core
+
+**Context.** `possessed-pick-heights.md`: DK2's possessed swing at turn 1647
+takes the Wizard's Fireball, not the Wizard. Both picks compare thing heights
+with the packet pose's, whose floor is 4096; ours read things at height 0 and
+shots had no height at all.
+
+**Decision.** Add the floor to every thing height the two picks read. Store a
+shot's height and vertical velocity, set by the targeted cast's pitched launch
+and stepped each tick. Take a possessed move's height less the floor.
+
+**Consequences.** Hash/save458 adds the two shot fields. Collision stays flat:
+gravity, the floor stop and the overlap's height remain Q398.
+
+## ADR-0729 - keep a creature's speed mode until the next speed call
+**Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, simulation-core
+
+**Context.** `step-back-speed-mode.md`: DK2's speed mode has three values and
+changes only at its setter. A fight's or a flight's step back sets the shuffle,
+and state 199 sets the run speed only on the turn it is entered, so the shuffle
+lasts through later approaches. Ours had a running flag that every engagement
+set again.
+
+**Decision.** Replace the flag with a three-valued mode. Both step backs set
+the shuffle; the fight update sets the run speed only on state 199's entry turn.
+
+**Consequences.** Shares hash/save458 with ADR-0728; the mode takes the flag's
+place in the hash, save and copy. The Level 5 control reaches turn 1719.

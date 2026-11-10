@@ -246,9 +246,13 @@ public static partial class PossessionRules
         return best;
     }
 
+    /// <summary>The floor's height in the packet pose's frame (DK2's thing <c>+0x22</c> on plain floor):
+    /// the picks compare a thing's height with the pose's, and this simulation's floor is 0.</summary>
+    internal const int FloorHeight = Fp32.One;
+
     /// <summary>One tile's layer-0 chain, head first: every class this simulation represents. A heart's
     /// pillar is built with its heart, before anything that arrives later, so it comes last (HYPOTHESIS;
-    /// the chain order of things made at load is unread).</summary>
+    /// the chain order of things made at load is unread). Heights are in the pose's frame.</summary>
     internal static void ThingsOnTile(WorldState world, int tile, List<ChainThing> into, HeartSites? hearts = null)
     {
         into.Clear();
@@ -257,32 +261,32 @@ public static partial class PossessionRules
                 into.Add(CreatureDeathRules.IsCorpse(c)
                     // 0x004B0F20 constructs a body owned by the neutral player (0x004B0FAA); a Graveyard
                     // that takes it makes it its owner's (0x004B1700).
-                    ? new(ChainClass.Body, c, new(c.PosX, c.PosY, c.PosZ), (byte)c.BodyOwnerPlayerId, c.TileLink.Order)
-                    : new(ChainClass.Creature, c, new(c.PosX, c.PosY, c.PosZ), c.OwnerPlayerId, c.TileLink.Order));
+                    ? new(ChainClass.Body, c, new(c.PosX, c.PosY, FloorHeight + c.PosZ), (byte)c.BodyOwnerPlayerId, c.TileLink.Order)
+                    : new(ChainClass.Creature, c, new(c.PosX, c.PosY, FloorHeight + c.PosZ), c.OwnerPlayerId, c.TileLink.Order));
         foreach (ObjectState o in world.Objects)
             if (o.TileLink.TileIndex == tile)
                 into.Add(new(ChainClass.Object, o, ObjectPosition(world, o), o.OwnerPlayerId, o.TileLink.Order));
         foreach (TrapState t in world.Traps)
             if (t.TileLink.TileIndex == tile)
-                into.Add(new(ChainClass.Trap, t, new(t.PosX, t.PosY, 0), t.PlayerId, t.TileLink.Order));
+                into.Add(new(ChainClass.Trap, t, new(t.PosX, t.PosY, FloorHeight), t.PlayerId, t.TileLink.Order));
         foreach (DoorState d in world.Doors)
             if (d.TileLink.TileIndex == tile)
-                into.Add(new(ChainClass.Door, d, new(CreatureState.CentreOf(d.X), CreatureState.CentreOf(d.Y), 0), d.PlayerId, d.TileLink.Order));
+                into.Add(new(ChainClass.Door, d, new(CreatureState.CentreOf(d.X), CreatureState.CentreOf(d.Y), FloorHeight), d.PlayerId, d.TileLink.Order));
         foreach (ShotState s in world.Shots)
             if (s.TileLink.TileIndex == tile)
-                into.Add(new(ChainClass.Shot, s, new(s.PosX, s.PosY, 0), s.OwnerPlayerId, s.TileLink.Order));
+                into.Add(new(ChainClass.Shot, s, new(s.PosX, s.PosY, FloorHeight + s.PosZ), s.OwnerPlayerId, s.TileLink.Order));
         foreach (PillarThing p in Pillars(world, hearts))
             if (p.Target.Tile.Y * world.Width + p.Target.Tile.X == tile)
-                into.Add(new(ChainClass.Object, p, new(p.Target.X.Raw, p.Target.Y.Raw, 0), p.Owner, int.MinValue));
+                into.Add(new(ChainClass.Object, p, new(p.Target.X.Raw, p.Target.Y.Raw, FloorHeight), p.Owner, int.MinValue));
         into.Sort((a, b) => b.Order.CompareTo(a.Order));
     }
 
     /// <summary>An object's position: its own when it keeps one (a boulder, spell gold), else its tile's
-    /// centre, as the boulder's sweep takes it. Height is the floor, 0 here (Q398).</summary>
+    /// centre, as the boulder's sweep takes it. Height is the floor's (Q398).</summary>
     internal static Vec3 ObjectPosition(WorldState world, ObjectState o) =>
         o.PosX != 0 || o.PosY != 0
-            ? new(o.PosX, o.PosY, 0)
-            : new(CreatureState.CentreOf(o.TileIndex % world.Width), CreatureState.CentreOf(o.TileIndex / world.Width), 0);
+            ? new(o.PosX, o.PosY, FloorHeight)
+            : new(CreatureState.CentreOf(o.TileIndex % world.Width), CreatureState.CentreOf(o.TileIndex / world.Width), FloorHeight);
 
     /// <summary><c>0x00516050</c>. Same owner: objects only, in reach, of a listed type. Another owner:
     /// objects without definition flag bit 20, in reach, of a listed type or 94; traps not hidden;
@@ -438,7 +442,7 @@ public static partial class PossessionRules
             foreach (CreatureState c in world.OwnedCreatures(player))
             {
                 if (CreatureDeathRules.IsDown(c)) continue;
-                var at = new Vec3(c.PosX, c.PosY, c.PosZ);
+                var at = new Vec3(c.PosX, c.PosY, FloorHeight + c.PosZ);
                 if (!Scores(at, at, CreatureAndObjectScanLimit, out int score)) continue;
                 best = score;
                 chosen = new(FightTargetKind.Creature, c.Id, 0);
@@ -447,7 +451,7 @@ public static partial class PossessionRules
             {
                 TrapState trap = world.Traps[t];
                 if (trap.PlayerId != player || trap.Hidden || trap.UnderConstruction) continue;
-                var at = new Vec3(trap.PosX, trap.PosY, 0);
+                var at = new Vec3(trap.PosX, trap.PosY, FloorHeight);
                 if (!Scores(at, at, TrapAndDoorScanLimit, out int score)) continue;
                 best = score;
                 chosen = new(FightTargetKind.Trap, trap.Id, 0);
@@ -457,7 +461,7 @@ public static partial class PossessionRules
                 DoorState door = world.Doors[d];
                 // The cell's secret-door bit (+0xB bit 0) is not represented (Q288).
                 if (door.PlayerId != player || door.UnderConstruction) continue;
-                var at = new Vec3(CreatureState.CentreOf(door.X), CreatureState.CentreOf(door.Y), 0);
+                var at = new Vec3(CreatureState.CentreOf(door.X), CreatureState.CentreOf(door.Y), FloorHeight);
                 if (TrapRules.DistanceSquared(me.PosX, me.PosY, at.X, at.Y) >= TrapAndDoorScanLimit || !InAimCone(yaw, pose, at)) continue;
                 Vec3 direction = Normalised(at - pose);
                 if (!Scores(at, at - direction, TrapAndDoorScanLimit, out int score, direction)) continue;
@@ -469,7 +473,7 @@ public static partial class PossessionRules
                 for (int k = site.Pillars.Length - 1; k >= 0; k--)
                 {
                     HeartPillarTarget pillar = site.Pillars[k];
-                    var at = new Vec3(pillar.X.Raw, pillar.Y.Raw, 0);
+                    var at = new Vec3(pillar.X.Raw, pillar.Y.Raw, FloorHeight);
                     if (!Scores(at, at, CreatureAndObjectScanLimit, out int score)) continue;
                     best = score;
                     chosen = new(FightTargetKind.Heart, HeartPillarId.For(world, pillar).Value, site.Owner);

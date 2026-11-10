@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 457;
+    private const int FormatVersion = 458;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -473,7 +473,7 @@ public static class WorldSnapshot
             w.Write(c.CurrentFear);
             w.Write(c.OverThreatCounter);
             w.Write(c.BackOffTimer);
-            w.Write(c.Running);
+            w.Write((byte)c.SpeedMode);
             w.Write(c.CombatStateEnteredTick);
             w.Write(c.StateEnteredTick);
             w.Write((byte)c.IdleAction);
@@ -676,6 +676,8 @@ public static class WorldSnapshot
             WriteLink(w, s.TileLink);
             w.Write(s.VelX);
             w.Write(s.VelY);
+            w.Write(s.PosZ);
+            w.Write(s.VelZ);
             w.Write(s.Health);
             w.Write(s.Age);
             w.Write(s.Data1);
@@ -1279,7 +1281,7 @@ public static class WorldSnapshot
                 CurrentFear = r.ReadUInt16(),
                 OverThreatCounter = r.ReadByte(),
                 BackOffTimer = r.ReadByte(),
-                Running = r.ReadBoolean(),
+                SpeedMode = (CreatureSpeedMode)r.ReadByte(),
                 CombatStateEnteredTick = r.ReadInt64(),
                 StateEnteredTick = r.ReadInt64(),
                 IdleAction = (IdleActionId)r.ReadByte(),
@@ -1507,6 +1509,8 @@ public static class WorldSnapshot
                 TileLink = ReadLink(r),
                 VelX = r.ReadInt32(),
                 VelY = r.ReadInt32(),
+                PosZ = r.ReadInt32(),
+                VelZ = r.ReadInt32(),
                 Health = r.ReadInt32(),
                 Age = r.ReadInt32(),
                 Data1 = r.ReadInt32(),

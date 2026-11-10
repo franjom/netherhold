@@ -276,9 +276,11 @@ a fight on the way.
 
 `0x004887D0(mode, speed)` is the speed-mode setter (steering-behaviours.md §7.5):
 0 walk, 1 run, 2 shuffle. combat-fight-state.md §1 called its call at the fight
-state's entry a "cue": **a creature entering the fight runs**, a withdrawing one
-runs, a backing-off one shuffles as it steps and runs as it stands, and the
-arrival state walks again.
+state's entry a "cue": state 199's handler sets the run speed on the turn the
+state is entered, a withdrawing creature runs, a backing-off one shuffles as it
+steps and runs as it stands, and the arrival state walks again. The mode holds
+until the next call, so a step back's shuffle outlasts the step
+([step-back-speed-mode.md](step-back-speed-mode.md), ADR-0729).
 
 ## 7. Built and not built (ADR-0165)
 

@@ -12,8 +12,9 @@ public static partial class PossessionRules
     /// in the high 16) installs the pose through the position setter (<c>0x004B5020</c>: a height
     /// above 0x3000 becomes 0x2000) and the heading masked to 0x7FF. A zero word, the Creature
     /// Teleport form, installs the point at height 0, copies it to the previous position and leaves
-    /// the heading. Both go through the setter, which relinks the tile chain on a tile change. Its
-    /// floor raise has no counterpart: this simulation's floor is height 0 (M9/Q398). Fog follows
+    /// the heading. Both go through the setter, which relinks the tile chain on a tile change and
+    /// raises a height below the floor to it: the packet's height counts from 4096 below this
+    /// simulation's zero floor, so it is taken less the floor and never below it. Fog follows
     /// from the new position in FogOfWarSystem.</summary>
     public static void Move(SimulationContext context, CreatureState creature, PossessionPose pose)
     {
@@ -30,7 +31,7 @@ public static partial class PossessionRules
             creature.PosX = pose.Position.X.Raw;
             creature.PosY = pose.Position.Y.Raw;
             int height = unchecked((ushort)pose.Position.Z.Raw);
-            creature.PosZ = height > 0x3000 ? 0x2000 : height;
+            creature.PosZ = Math.Max((height > 0x3000 ? 0x2000 : height) - Fp32.One, 0);
             creature.Heading = pose.Heading.Value;
         }
 

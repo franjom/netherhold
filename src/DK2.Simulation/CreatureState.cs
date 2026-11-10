@@ -242,6 +242,14 @@ public enum CreatureActivity
     RunningFromThreat = 43,
 }
 
+/// <summary>DK2's creature speed mode (<c>+0x3BB</c>): the definition's walk, run or shuffle speed.</summary>
+public enum CreatureSpeedMode : byte
+{
+    Walk = 0,
+    Run = 1,
+    Shuffle = 2,
+}
+
 /// <summary>One creature in the world.</summary>
 /// <remarks><para>A class rather than a struct because a creature carries a path, and
 /// because creatures are few where tiles are tens of thousands.</para>
@@ -917,9 +925,17 @@ public sealed partial class CreatureState
     /// (<c>+0x532</c>), set on entering <see cref="CreatureActivity.Fleeing"/>.</summary>
     public byte BackOffTimer;
 
-    /// <summary>Whether the body's speed cap is the run speed: set on entering a fight or a
-    /// withdrawal (<c>0x004887D0(1)</c>), cleared when the creature stands down.</summary>
-    public bool Running;
+    /// <summary>Which of the definition's three speeds caps the body (DK2's <c>+0x3BB</c>, written only
+    /// by <c>0x004887D0</c>): it holds until the next write, so a step back's shuffle outlasts the step.</summary>
+    public CreatureSpeedMode SpeedMode;
+
+    /// <summary>Whether the cap is the run speed (<c>0x004887D0(1)</c>); clearing it is the walk
+    /// (<c>0x004887D0(0)</c>). A fight's run speed is state 199's, on its entry turn.</summary>
+    public bool Running
+    {
+        get => SpeedMode == CreatureSpeedMode.Run;
+        set => SpeedMode = value ? CreatureSpeedMode.Run : CreatureSpeedMode.Walk;
+    }
 
     /// <summary>The tick the current combat activity was entered — DK2's <c>state+0x18</c>;
     /// a withdrawal is refused in the state's first tick.</summary>
@@ -1187,7 +1203,7 @@ public sealed partial class CreatureState
 
     /// <summary>Action 15's parameters (<c>0x00496980</c> into the action block): the aimed point
     /// <c>+0x38D</c> (pose plus the unnormalised aim, 1/4096 tiles), the pitch and the range
-    /// <c>+0x3A1</c> (0x3000 or 0). The shot flies flat, so only the point's X and Y are read
+    /// <c>+0x3A1</c> (0x3000 or 0). The shot flies level, so only the point's X and Y are read
     /// (keeper-spell-possession.md, Possessed actions; Q398).</summary>
     public int SwingPointX;
     public int SwingPointY;
@@ -1498,7 +1514,7 @@ public sealed partial class CreatureState
         hash.Add(CurrentFear);
         hash.Add(OverThreatCounter);
         hash.Add(BackOffTimer);
-        hash.Add(Running);
+        hash.Add((byte)SpeedMode);
         hash.Add(CombatStateEnteredTick);
         hash.Add(StateEnteredTick);
         hash.Add((byte)IdleAction);

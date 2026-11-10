@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**458** - `0x373E8ECA6121DF76`. A shot carries its height above the floor and a vertical velocity, hashed, copied and saved; the possessed picks read thing heights in the pose's frame and a possessed move stores height above the floor (ADR-0728). A creature's three-valued speed mode replaces the running flag (ADR-0729). Earlier saves are refused.
+
 **457** - `0x5F26CA9E45B7878A`. A possessed melee runs through the shared slot-5 action animation: active, sticky animation-completion and clip-ownership fields are hashed, copied and saved (ADR-0727); earlier saves are refused. The branch verified this change as 456 before master took that number.
 
 **456** - `0x7D38792B75258DA5`. The Portal Gem is made at its carrier's point and dropped on the carrier's tile centre at height 0 (ADR-0725). No new saved fields; the pin moves only by the version fold (455 with the change keeps 0x38611F5ADC795D73); earlier saves are refused.

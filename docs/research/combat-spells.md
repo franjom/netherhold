@@ -175,7 +175,7 @@ first parameter (`+0x399`) and the target's tag in its second (`+0x39D`):
    shot's `+0x13D` = `ShotData1`, `+0x141` = `ShotData2`, `+0x145` = my tag,
    `+0x147` = the target's, `+0x16D` = my tag again.
 7. **Aim** = the target's position, height raised by half its `vtable+0x40`, plus
-   a lead of `(position − previous position) × tiles × 3 / 2`, where `tiles` is
+   on x and y a lead of `(position − previous position) × tiles × 3 / 2`, where `tiles` is
    `isqrt(16·d²) >> 8` — the whole tiles between us — and `vtable+0x2C` the
    previous frame's position (STRONGLY INFERRED, `combat-acquisition.md`). Then
    `0x004AB830(shot, &aim)` and `0x004AB8A0(shot, &aim)`, which turns the shot to
@@ -227,7 +227,7 @@ fight-starter's nibble in `Engage` and `EngageHeart`; the cooldown gate §4 with
 the work-rate divisor, a never-cast slot being `CreatureState.NeverUsed` (−1); the spell arm §6 as
 `FightRules.StartCast`, stamping the slot at the start; action 16 §7 as `CastFires`/`FireSpell`, firing when the turn is
 past start + delay, with the lead on the target's last move, from the slot's origin
-turned by the caster's heading (ADR-0489; the height is dropped with the flight's, Q398); the cannot-cast
+turned by the caster's heading (ADR-0489), the shot starting at the caster's height plus the slot's origin height and launched with the aim height (ADR-0728; gravity and the rest of the flight's height are Q398); the cannot-cast
 fallback §9 and the step-back §10 in `CombatSystem.CannotCast` (the step through
 `FearRules.StepBack` with `CastStepBackLength`, ADR-0593), except that
 nothing found leaves the creature idle where DK2 restores the old target. The
