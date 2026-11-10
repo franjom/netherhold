@@ -1,11 +1,11 @@
 # Agentic campaign playtesting
 
-**Date:** 2026-11-07. **Status:** owner-approved design; no implementation is claimed.
+**Date:** 2026-11-07. **Status:** owner-approved design; stages 1-2 are built (see Implementation), later stages are not.
 **Purpose:** reduce the owner's repeated playtesting while establishing a reusable
 foundation for external agents and a future Enhanced keeper.
 **Goals:** 2 (campaign compatibility), 6 (oracle testing) and 10 (agent interface),
 with support for 5 (fidelity), 9 (determinism) and 11 (presentation modes).
-**Implementation:** [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md), awaiting review and execution-method selection.
+**Implementation:** [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md), Task 1 (detached player contract), task 2 (visibility-safe observation builder), task 3 (action admission and receipts), task 4 (tick-loop integration, replay identity, run manifest), task 5 (the `CampaignPlayer` controller), task 6 (`run --campaign-player`, limits, evidence folder, verdicts) and task 7 (the Level 1 acceptance: seeds 1-3 won headless, each with the finale reaching the gem pickup, journals replayed without the controller) are built on `feature/campaign-player`, not merged; task 7's commit and integration are pending. Stages 3 onward are not built.
 
 ## Relationship to existing work
 

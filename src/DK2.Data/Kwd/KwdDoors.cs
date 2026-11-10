@@ -58,7 +58,7 @@ public static class KwdDoors
 
     private static void Validate(KwdChunk chunk)
     {
-        if (chunk.ItemCount < 0 || chunk.Content.Length != chunk.ItemCount * RecordSize)
+        if (chunk.ItemCount < 0 || chunk.Content.Length != (long)chunk.ItemCount * RecordSize)
             throw new InvalidDataException(
                 $"DOORS content is not {chunk.ItemCount} records of {RecordSize} bytes.");
     }

@@ -16931,6 +16931,73 @@ Retain the existing callback flags and force arithmetic.
 Initial mixed-object rank restore and the enumerator's existing partial
 adapters remain separate. Controlled agreement is not full-state or Heart parity.
 
+## ADR-0724 - multiplayer security: lockstep through a Steam relay that never holds game data
+**Date:** 2026-11-09 | **Status:** accepted | **Systems:** simulation-core, data-formats
+
+**Context.** Multiplayer and matchmaking are planned on deterministic lockstep (Q712). No network
+code exists yet. The owner requires that no player's departure ends a match. We have no right to
+distribute DK2's data, so no server we run can load it or run the simulation. The threat model
+is `docs/plans/2026-11-09-multiplayer-threat-model.md`; the netcode plan is
+`docs/plans/2026-11-09-seamless-lockstep.md`.
+
+**Decision.** Steam is the platform: SDR transport, Steam lobbies, login tickets verified
+server-side. No player hosts. The official relay is a broker: it orders commands, owns the
+turn clock, enforces deadlines, compares state hashes, stores input journals and forwards
+snapshots. It never loads game data or simulates. It is one program of our own, built on the
+Steamworks game-server API (tickets checked by the relay; no Web API key in any client), hosted
+by us in a few regions, and runnable by anyone for private, LAN or community games (owner,
+2026-11-10). Every network feature obeys:
+
+- **R1 bounded decoding.** Maximum message size, per-field limits (tile lists within the map),
+  one controlled exception type, rate limits per peer. No reflective deserialization.
+- **R2 sender identity.** The session supplies the authenticated sender; a command claiming
+  another player is refused (`PeerCommands.Read`).
+- **R3 validation in the simulation.** A command is a request. Its handler checks ownership,
+  cost, range, state and consent deterministically, and never throws on bad values.
+- **R4 allow-list.** Only human-issuable, validated commands cross the network (`PeerCommands`).
+- **R5 content.** Original maps, plus custom maps verified against a relay-checked hash and a
+  size limit. Paths never come from a file. Arbitrary mods wait for fuzzed parsers.
+- **R6 turns, desync, departure.** Commands apply on a turn the relay sets, with an input delay
+  adapted to the peers. Every machine runs the computer keepers; their state is in the snapshot
+  and the hash, and the journal records the merged frame. A departed keeper is handed to the
+  computer keeper on an announced tick (owner, 2026-11-09). Desync is settled by consensus:
+  with three or more peers the majority's snapshot resyncs the rest; with two, one side is
+  resynced and repeated desync ends the match as no contest. A snapshot from a peer is untrusted
+  input and is accepted only if the loader's next hash matches the majority.
+- **R7 transport.** Steam's authenticated, encrypted SDR. No custom crypto, no peer IP addresses.
+- **R8 backend.** Identity only from verified tickets; no secrets in the client. Unranked: with
+  no server-side simulation, ranked play would need consensus plus reports.
+- **R9 accepted risk.** Every client holds the full state, so a modified client defeats fog of war.
+- **Self-hosted overseer.** A player who owns DK2 may run a server that loads their own install
+  and simulates as an authoritative peer: trusted AI, truth on desync, rejoin from the server.
+  The official relay and the overseer speak one protocol.
+
+**Consequences.** Single-player goes through the same session, so its tests exercise R1-R4. The
+Unity (IL2CPP) build must reach the same hashes as CoreCLR; Linux and Windows already do in CI.
+`WorldSnapshot.Read` becomes network-facing and joins the fuzz targets.
+
+## ADR-0725: the Portal Gem keeps a position: made at its carrier's point, dropped on its tile centre
+
+**Date:** 2026-11-09. **Status:** accepted. Hash/save 456. · **Systems:** campaign-triggers, creatures
+
+**Context.** After Level 1's win our Reaper never reached the gem, so the win screen could not open.
+Action 20 made the gem with no position, and the carrier's drop moved only its tile, so the finale
+read the gem's tile as the map corner (0,0) and state 232's position test failed every turn. DK2
+creates the gem at the carrier's `+0x1A` point (`0x0049AD7D`), and its drop `0x0048B3A0` sets an
+object of type 28 on the carrier's tile centre at height 0 (`0x0048B3E3`-`0x0048B41F`).
+
+**Decision.** `TriggerExecutor.GivePortalGem` gives the gem its carrier's point; `ObjectCarryRules.Drop`
+sets a Portal Gem on the carrier's tile centre at height 0. The carry still never moves it (ADR-0680).
+
+**Consequences.** No new field. The gem's hashed position now differs from its creation (456); earlier
+saves are refused. Remake runs, not DK2 observations: `ReaperFinaleOnRealDataTests`' fixture replay has
+the Reaper take the gem 108 turns after the verdict; the live campaign-player seed-1 run, 130 ticks
+(win 2360, pickup 2490; [campaign-win-sequence.md](research/campaign-win-sequence.md) §2). Only action 20's gem gains a point:
+a map-placed or trigger-made gem still has none (Q755).
+
+STRONGLY INFERRED from the disassembly. See [campaign-win-sequence.md](research/campaign-win-sequence.md) §2
+and records `0048B3A0`, `0049AC80`.
+
 ## ADR-0726 - run possessed melee through the shared action animation
 **Date:** 2026-11-10 | **Status:** accepted | **Systems:** combat, creatures, simulation-core
 

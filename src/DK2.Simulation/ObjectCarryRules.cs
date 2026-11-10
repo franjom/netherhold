@@ -168,8 +168,9 @@ public static class ObjectCarryRules
 
     /// <summary><c>Creature_DropDraggedThing</c> (<c>0x0048B500</c>): the thing is set at the carrier's own point
     /// (<c>0x0048B52F</c>-<c>0x0048B535</c>, through the position setter), keeps its heading, and is let go. A loose
-    /// thing therefore lies where the imp stood, not on its tile's centre. The Portal Gem is not the take-hold's
-    /// (<c>0x0048B350</c>, whose drop twin <c>0x0048B3A0</c> is unread): it only takes the carrier's tile.</summary>
+    /// thing therefore lies where the imp stood, not on its tile's centre. The Portal Gem is held through
+    /// <c>0x0048B350</c>, and its drop twin <c>0x0048B3A0</c> sets an object of type 28 on the carrier's tile
+    /// centre at height 0 (<c>0x0048B3E3</c>-<c>0x0048B41F</c>).</summary>
     public static void Drop(WorldState world, CreatureState worker, ObjectState thing)
     {
         thing.TileIndex = (worker.Tile.Y * world.Width) + worker.Tile.X;
@@ -177,6 +178,12 @@ public static class ObjectCarryRules
         {
             thing.PosX = worker.PosX;
             thing.PosY = worker.PosY;
+        }
+        else
+        {
+            thing.PosX = CreatureState.CentreOf(worker.Tile.X);
+            thing.PosY = CreatureState.CentreOf(worker.Tile.Y);
+            thing.PosZ = 0;
         }
 
         PutDown(worker, thing);

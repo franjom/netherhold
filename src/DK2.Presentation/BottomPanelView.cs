@@ -95,6 +95,9 @@ public sealed class BottomPanelChoice
 /// <summary>Bottom-panel facts captured before worker dispatch. Research: bottom-panel-controls.md.</summary>
 public sealed class BottomPanelView
 {
+    /// <summary>The spell panel's Create Imp key, which it prices by the keeper's imp count.</summary>
+    public const byte CreateImpSpellId = 4;
+
     private readonly GameDatabase _database;
     private readonly PlayerId _player;
     private readonly BottomPanelChoice[] _choices;
@@ -270,7 +273,7 @@ public sealed class BottomPanelView
             choice.Upgraded = player && choice.Kind == BottomPanelChoiceKind.Spell && SpellUpgraded(world, choice.Key.Value);
             choice.ClearsToolOnClick = choice.Kind == BottomPanelChoiceKind.Room && available == 4;
             choice.Selectable = IsSelectable(available);
-            if (choice.Kind == BottomPanelChoiceKind.Spell && choice.Key.Value == 4 && player)
+            if (choice.Kind == BottomPanelChoiceKind.Spell && choice.Key.Value == CreateImpSpellId && player)
                 choice.Cost = ImpSupplyRules.CreateImpCost(world, _database, _player);
             choice.Affordable = choice.Cost <= (choice.Kind == BottomPanelChoiceKind.Spell ? mana : gold);
             choice.NeedsWorkshop = _workshopDim && choice.Kind is BottomPanelChoiceKind.Door or BottomPanelChoiceKind.Trap;
@@ -421,7 +424,7 @@ public sealed class BottomPanelView
             { SelectTool(PlayerToolMode.Hand); return true; }
             if (choice.Key != key || !choice.Selectable) continue;
             Selection = new(key, key.Kind == BottomPanelChoiceKind.Room ? PlayerToolMode.BuildRoom :
-                key.Kind == BottomPanelChoiceKind.Spell && key.Value == 4 ? PlayerToolMode.CreateImp : PlayerToolMode.Hand,
+                key.Kind == BottomPanelChoiceKind.Spell && key.Value == CreateImpSpellId ? PlayerToolMode.CreateImp : PlayerToolMode.Hand,
                 key.Kind == BottomPanelChoiceKind.Room ? (RoomTypeId)key.Value : default);
             foreach (BottomPanelChoice other in _choices) other.Selected = other.Key == key;
             if (Reaper is BottomPanelChoice special) special.Selected = false;
@@ -440,7 +443,7 @@ public sealed class BottomPanelView
     public void SelectTool(PlayerToolMode tool, RoomTypeId room = default)
     {
         Selection = new(tool == PlayerToolMode.BuildRoom ? new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, (byte)room) :
-            tool == PlayerToolMode.CreateImp ? new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, 4) : null, tool, room);
+            tool == PlayerToolMode.CreateImp ? new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, CreateImpSpellId) : null, tool, room);
         foreach (BottomPanelChoice choice in _choices) choice.Selected = Selection.Choice == choice.Key;
         if (Reaper is BottomPanelChoice reaper) reaper.Selected = Selection.Choice == reaper.Key;
     }

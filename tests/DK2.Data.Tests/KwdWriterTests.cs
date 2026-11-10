@@ -15,7 +15,7 @@ public class KwdWriterTests
     public void ParsedHeadersAndUndeclaredLevelTailSurviveWriting()
     {
         byte[] header = Enumerable.Range(0, 28).Select(i => (byte)(i + 31)).ToArray();
-        BinaryPrimitives.WriteUInt16LittleEndian(header, 1);
+        BinaryPrimitives.WriteInt32LittleEndian(header, 1); // a 32-bit count the 4 content bytes can hold
         byte[] first = Image(KwdRecordType.Variables, header, [1, 2, 3, 4], 2);
         byte[] second = Image(KwdRecordType.Level, header, [8, 7, 6, 5, 4], 3, 2);
         byte[] file = first.Concat(second).ToArray();

@@ -141,7 +141,7 @@ public static class KwdTerrainRooms
     {
         if (chunk.ItemCount == 0) return;
         int actual = chunk.Content.Length / chunk.ItemCount;
-        if (actual != expected || chunk.Content.Length != expected * chunk.ItemCount)
+        if (actual != expected || chunk.Content.Length != (long)expected * chunk.ItemCount)
             throw new InvalidDataException(
                 $"{what} record size is {actual}, expected {expected}.");
     }

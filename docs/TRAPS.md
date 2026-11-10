@@ -339,7 +339,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - UI Toolkit pointer event positions and worldBound are panel units; multiplying them by physical screen-height scaling truncates scrollbar travel above the reference resolution.
 - EditorApplication.update callbacks can outpace rendered play frames; UI capture probes must wait on Time.frameCount before checking page images.
 - Procedural class-grid UVs and Graphics.Blit image UVs can have opposite Y origins; check logical tile colours against UI overlay positions on the active graphics backend.
-- Run watchdog overlap timing checks without simultaneous Unity imports; helper-process startup contention can make parallel wall time exceed the serial comparison.
+- `WatchdogTests.WithTwoJobsTwoRunsOverlap` is wall-clock: rerun it alone after a failure in the full solution run or beside Unity imports; helper-process startup contention can make parallel wall time exceed the serial comparison.
 - Startup probes inherit the scene's Front End Return Page; reset it to None before expecting title/intros instead of diagnosing a missing repaint from a skipped stage.
 - UI Toolkit can log generateVisualContent exceptions while model updates continue; runtime probes must reject product log exceptions as well as failed assertions.
 - Codex CLI 0.164 rejects an env-only project MCP entry as "invalid transport" before merging user config; repeat that server's command and args in the project entry.

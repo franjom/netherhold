@@ -46,7 +46,7 @@ public static partial class KwdCreatures
             // reads the file's record into it, and nothing reads past 0x1548; the 5537-byte variant
             // is one shipped case.
             int recordSize = chunk.ItemCount == 0 ? RecordSize : chunk.Content.Length / chunk.ItemCount;
-            if (chunk.Content.Length != recordSize * chunk.ItemCount)
+            if (chunk.Content.Length != (long)recordSize * chunk.ItemCount)
                 throw new InvalidDataException("CREATURES content size does not divide into records.");
 
             var staged = new byte[RecordSize];

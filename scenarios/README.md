@@ -236,6 +236,10 @@ watches a hatchery lay and hatch. `scenarios/mana/` is the run in which time alo
 changes something. `scenarios/fog/` reveals part of a world through one creature's
 eyes (ADR-0076). `scenarios/creatures/` is the largest set: portals, hunger, eating,
 death, lairs, jobs, the hand, prisons, graveyards and the wage bill.
+`scenarios/campaign-player/` is shipped Level 1 for the campaign player: three seeds, nothing granted,
+played only under `run --campaign-player 3` (without it a file is Level 1 with nobody playing).
+A run claims acceptance only with `--player-receipt` from `tools/build_receipt.py` and an unmodified
+start; see the [harness README](../src/DK2.Harness/README.md).
 `scenarios/keepers/` runs computer keepers on shipped levels (`computer_keepers`),
 and `scenarios/spells/` casts Call to Arms. `scenarios/triggers/` checks that placed
 trigger roots run each game turn. `scenarios/smoke/` loads campaign level 1, with

@@ -44,7 +44,10 @@ public static class KwdTaggedRecords
                 $"{chunk.Type} is a fixed-stride record type, not a tagged one.", nameof(chunk));
 
         byte[] content = chunk.Content;
-        var records = new List<TaggedRecord>(chunk.ItemCount);
+        if (chunk.ItemCount < 0)
+            throw new InvalidDataException($"{chunk.Type}: negative record count {chunk.ItemCount}.");
+        // Every record has an 8-byte header, so the content bounds the capacity, not the count.
+        var records = new List<TaggedRecord>(Math.Min(chunk.ItemCount, content.Length / RecordHeaderSize));
         int at = 0;
 
         for (int i = 0; i < chunk.ItemCount; i++)
@@ -58,7 +61,7 @@ public static class KwdTaggedRecords
             int size = BinaryPrimitives.ReadInt32LittleEndian(content.AsSpan(at + 4));
             at += RecordHeaderSize;
 
-            if (size < 0 || at + size > content.Length)
+            if (size < 0 || size > content.Length - at)
                 throw new InvalidDataException(
                     $"{chunk.Type}: record {i} (tag {tag}) declares {size} payload bytes " +
                     $"but only {content.Length - at} remain.");

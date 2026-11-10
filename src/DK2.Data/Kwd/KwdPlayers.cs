@@ -45,7 +45,7 @@ public static partial class KwdPlayers
         {
             if (chunk.Type != KwdRecordType.Players) continue;
 
-            if (chunk.ItemCount == 0 || chunk.Content.Length != RecordSize * chunk.ItemCount)
+            if (chunk.ItemCount <= 0 || chunk.Content.Length != (long)RecordSize * chunk.ItemCount)
                 throw new InvalidDataException(
                     $"PLAYERS content of {chunk.Content.Length} bytes does not divide into " +
                     $"{chunk.ItemCount} records of {RecordSize}.");

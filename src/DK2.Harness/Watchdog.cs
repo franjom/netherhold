@@ -176,6 +176,10 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
 
         int exit = exited ? child.ExitCode : -1;
         string verdict = Classify(exited, exit, _cancelled);
+        // A player run writes <id>/<run id>/input.journal; take the one run folder's journal then.
+        if (!File.Exists(journalPath) && Directory.Exists(dir)
+            && Directory.GetFiles(dir, "input.journal", SearchOption.AllDirectories) is [string nested])
+            journalPath = nested;
         InputJournal? journal = ReadJournal(journalPath);
         File.WriteAllText(Path.Combine(dir, "stdout.log"), stdout.ToString());
         File.WriteAllText(Path.Combine(dir, "stderr.log"), stderr.ToString());

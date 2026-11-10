@@ -18,6 +18,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 ## Versions
 **457** - `0x5F26CA9E45B7878A`. A possessed melee runs through the shared slot-5 action animation: active, sticky animation-completion and clip-ownership fields are hashed, copied and saved (ADR-0726); earlier saves are refused. The branch verified this change as 456 before master took that number.
 
+**456** - `0x7D38792B75258DA5`. The Portal Gem is made at its carrier's point and dropped on the carrier's tile centre at height 0 (ADR-0725). No new saved fields; the pin moves only by the version fold (455 with the change keeps 0x38611F5ADC795D73); earlier saves are refused.
+
 **455** - `0x38611F5ADC795D73`. Tile-represented stored gold participates in the ordinary object-obstacle stream; its shared tile-link rank survives top-up, clears on emptying and renews on recreation (ADR-0723). StoreGoldLinkOrder is hashed, copied and saved; earlier saves are refused.
 
 **454** - `0xE47C63A5DCD4F64F`. Runtime bed creation draws and stores its heading after successful object creation and before the creation effect (ADR-0722). Synthetic world/database placement is unchanged. No new saved fields; earlier saves are refused.

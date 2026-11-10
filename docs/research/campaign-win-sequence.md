@@ -94,6 +94,23 @@ one. **Levels 10, 11A-C, 12, 13 and 17 have none**, so their finale is the lette
 and (§6) the win screen never starts (STRONGLY INFERRED from the corpus scan and the
 code; not observed).
 
+**Where a carried gem is at the win** (STRONGLY INFERRED, disassembly 2026-11-09). Step 2 and
+state 232 read the gem's own point `+0x1A`, not its carrier's. Action 20 creates the gem at
+the creature's point (`0x0049AD7D` passes `+0x1A` to `Object_Create`), and the carry
+`0x0048B350` never moves it. So a gem still in its carrier's arms is sought at the point
+where it was handed over. When the carrier dies, the drop `0x0048B3A0` runs (from
+`0x004881D6` and `0x004B2F4B`; possession and the worker-job leave hook use it too), unless
+the death is uncounted (`+0x3E6` bit `0x40`: Temple entry, trigger action 35 with 0), which
+destroys the carried thing instead (`0x0048819C`-`0x004881C2`). The drop sets the thing at the carrier's point, then sets a class-2
+object of type `0x1C` on the carrier's tile centre at height 0 (`0x0048B3E3`-`0x0048B41F`),
+and relinks it to that tile. Level 1's Lord drops the gem where he dies. Remake outputs, not
+observed in DK2 (ADR-0725): in `ReaperFinaleOnRealDataTests`' replay of its fixture journal the
+Lord dies on tile (15,22) and the Reaper takes the gem 108 turns after the verdict; in the
+receipted live seed-1 run of the campaign player (study
+`F:/DK2Evidence/studies/campaign-player-l01-acceptance--2026-11-09--002`) the Lord dies on tile
+(15,24) at tick 2335, the win is at tick 2360 and `gem_taken` at tick 2490, 130 ticks later.
+A map-placed gem: Q755.
+
 ## 3. The Reaper's states 228-234
 
 State-table rows 228-234 (`creature-state-table.md`). Age = state `+0x1C`, incremented
@@ -119,7 +136,16 @@ reaches the gem opens the win screen** (a Reaper whose route never succeeds stay
 `Camera_StartPath` `0x0044A370` refuses while the camera is in mode `0x12` (a path playing),
 10, 2 or `0xB`, or while view `+0xDD8` is set: path 101 is started once, at state 233's
 first turn, so it does not play if path 100 (350 frames, about 11.7 s) is still running then.
-Whether 230..233 outlasts path 100 is unmeasured.
+**Measured (2026-11-09, one native run).** A light probe of the owner's Level 1 win packet
+(`l1win927b.sav`, reads at the `World_UpdateTurn` return, pauses under 7 ms, 4 TPS held) gives the
+Reaper's states by completed turn: 228 at the win (1871) for 8 turns, 229 for 4, 230 for 38, 231 for
+19, 232 for 1, the walk 234 for 26 (landing (16,8) to gem (15,13)), 233 at 1967, the gem gone at
+1968: 97 turns from the win. 230..233 so spans 84 turns (21 s), longer than path 100's 11.7 s,
+so path 101 is not refused (inferred from the timings, not observed). The remake's seed-1
+campaign-player run has 8, 4, 37, 18, 1 and a 61-turn walk, 130 in all: the map-independent
+states agree within one turn each (230 and 231 are one shorter, Q756); the rest is walk distance.
+Evidence: `F:/DK2Evidence/studies/l01-finale-native-probe--2026-11-09--002` and
+`F:/DK2Evidence/studies/l01-finale-comparison--2026-11-09--001`.
 
 Effect names are `Effects.kwd`'s; the creature actions are the Horny's own (46 and 47 are
 read in keeper-spell-reaper.md; 59 is unread).
@@ -283,7 +309,7 @@ State 270's update handler is `Stub_ReturnTrue` `0x004B4C20` ([state-categories.
 | Item | Next |
 |---|---|
 | Creature action 59 | creature-action table |
-| What the state dispatcher does when 232 returns 0 | the state dispatcher |
+| What the state dispatcher does when 232 returns 0 (gem gone or not class 2; not reached on Level 1's win, where the gem lies on the floor) | the state dispatcher |
 | Bridge `+0x1221` bit `0x10` (action `0x84`); render point 8000 | `0x00441AA0`'s sink slot `+0x10C` |
 | Player `+0x76` bit `0x200000` setter; `0x0042F040`; `0x0042BC70` | slot scans |
 | World `+0x722F` (high byte of SpecialLevelIndex) reader | field scan |

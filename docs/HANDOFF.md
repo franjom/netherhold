@@ -59,8 +59,25 @@ These are entry points, not a new priority order.
   and rendered-HUD automation remain follow-up work; use the completion acceptance
   record above for the integrated walkthrough and its journals.
   Approved design: [agentic campaign playtesting](plans/2026-11-07-agentic-campaign-playtesting-design.md).
-  The [stages 1-2 plan](plans/2026-11-07-campaign-player-stages1-2.md) awaits owner review
-  and execution-method selection; implementation has not started.
+  The [stages 1-2 plan](plans/2026-11-07-campaign-player-stages1-2.md) runs inline in a
+  worktree on `feature/campaign-player` (not merged). Task 1, the detached player contract
+  (`DK2.Simulation.Players`, `DK2.AI.Players`), task 2, the visibility-safe observation
+  (`PlayerObservationBuilder` in `DK2.Presentation`), and task 3, bounded action admission
+  (`PlayerSession` in `DK2.Harness`, `PlayerActionAdapter` in `DK2.Presentation`), task 4,
+  the tick-loop integration (`RunOptions.PlayerRun`, `PlayerRunCoordinator`, replay of
+  `player.run.schema=1` journals, `PlayerRunManifest`), and task 5, the observation-only
+  `CampaignPlayer` strategy (`DK2.AI.Players`), and task 6, `run --campaign-player` with its
+  limits, evidence folder and verdicts (`PlayerRunCommand`, `PlayerRunReport`; see
+  [`DK2.Harness`](../src/DK2.Harness/README.md)), are built. Task 7, the Level 1 acceptance
+  (`scenarios/campaign-player/`, `CampaignPlayerLevel1Tests`; run with `run --campaign-player 3`),
+  is built on top of the Portal Gem fix (ADR-0725, hash 456, merged into this branch from fix/reaper-gem-pickup): from the unmodified
+  start the player won seeds 1, 2 and 3 (ticks 2360, 2244, 2216), each with the finale reaching the
+  gem pickup (ticks 2490, 2346, 2316), and every journal replayed all hashes without the controller.
+  The study is `F:/DK2Evidence/studies/campaign-player-l01-acceptance--2026-11-09--002`; the owner's
+  commit and integration are pending. This is Level 1 only, headless, not a whole-game or rendered
+  acceptance. Build the receipt with `tools/build_receipt.py`; a run given `--player-receipt <dir>`
+  can claim acceptance under the conditions in the [harness README](../src/DK2.Harness/README.md),
+  and prints `not claimed: <reasons>` otherwise.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.

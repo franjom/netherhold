@@ -143,10 +143,11 @@ public sealed partial class ObjectState
     /// (<c>def+0x104</c>, <c>0x0049B1C0</c>) and lost only to a boulder here (<see cref="BoulderRules"/>).</summary>
     public int Health;
 
-    /// <summary>The position, the header's <c>+0x1A/+0x1E</c>, in 1/4096 tiles. Kept only for an
-    /// boulder, landed gold, Rat or hatchery egg/chicken, and for a crate, book or Special an imp held (the
+    /// <summary>The position, the header's <c>+0x1A/+0x1E</c>, in 1/4096 tiles. Kept only for a
+    /// boulder, landed gold, Rat or hatchery egg/chicken, a crate, book or Special an imp held (the
     /// carrier's point, <see cref="ObjectCarryRules.Attach"/>, left where <see cref="ObjectCarryRules.Drop"/> sets
-    /// it down); other objects use the tile centre.</summary>
+    /// it down) and a Portal Gem action 20 gave (its carrier's point, then its drop tile's centre); other
+    /// objects, a map-placed gem included (Q755), have none and use the tile centre.</summary>
     public int PosX, PosY;
 
     /// <summary>The header heading (+0xF4), and process age (+0x13E). Chicken and Rat movement own them here.</summary>
