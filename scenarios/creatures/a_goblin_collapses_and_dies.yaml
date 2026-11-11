@@ -149,8 +149,9 @@ expect:
   - event: creature_died
     at_tick: 247
     because: >
-      240 ticks after the collapse: 60 game seconds at four ticks a second
-      (ADR-0089). The window is inviolable to further damage - a second blow
+      244 ticks after the collapse: the fall in state 216 (ADR-0739), then 60 game
+      seconds at four ticks a second (ADR-0089). The window is inviolable to
+      further damage - a second blow
       does not finish a collapsed creature early (Q110, creature-death.md 4).
   - event: corpse_rotted
     at_tick: 487

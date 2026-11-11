@@ -17282,3 +17282,44 @@ call is still early (Q563), and the shots are not at parity (four seeds stay at
 modelled (as in ADR-0593's step back); the probe and the travel share one router,
 where DK2's probe asks mode -2 and the travel `0x2000`; the same-tile shortcut is
 ADR-0388's approximation.
+
+## ADR-0739 - a shot probes ahead and heads what it hits, the collapse is inside the hit, state 216 holds then steps back
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** combat, creatures, simulation-core | Advances Q712
+
+**Context.** Level 5 seed 1: Wizard 436, hit on 1718-1720 by Fireballs, reads `+0xF4` 893 where
+ours kept the collapse's pick (1041), and the Wizard and the Thief lie down in 217 on 1726 and
+1870, six turns after the collapse, the Wizard having moved by the fall's step. Four rules read from
+`DKII.EXE` explain it; addresses and captures: `shot-probe-and-hit-heading.md`,
+`death-fall-heading.md`. Reviewer: rule 1 STRONGLY INFERRED and CONFIRMED against the capture
+for launched Fireballs, rule 2 STRONGLY INFERRED, rule 3 STRONGLY INFERRED with the creature case
+CONFIRMED on three shots, rule 4 STRONGLY INFERRED with the Wizard's displacement CONFIRMED.
+
+**Decision.**
+1. A hit on a creature whose shot has flags bit 8 sets the creature's `+0xF4` to the angle
+   distance of the shot's `+0xF4` from `0x400`, after the damage and ungated (`0x004ABD60`).
+   `ShotState.Heading` is set at launch and in `RequestTrail`; a hit-thing child is made with 0.
+2. The collapse is inside the damage call (`0x004B2CE0` at `0x004B2FB5`): `CollapseSystem.Now`
+   runs right after a shot's `ContactDamage`, so the hit's heading write follows the picks.
+   Other damage still collapses in the `CollapseSystem` passes (ADR-0732).
+3. With nothing struck a shot probes ahead (`ShotSystem.ProbeAhead`): the collision test at the
+   start and after half the velocity, a thing found cutting the velocity to the distance covered
+   so far, the start position restored.
+4. State 216 holds while the collapse's action runs, then `DeathFallRules.Fall` enters 217 and
+   steps the body back along its heading by vector 3's y (`CreatureDef.DeathFallStepY`) onto a
+   tile that is not solid and has the own tile's navigation byte. The dying countdown starts
+   at 217. The hold's end, `FallEndsAt` (turn + 1 + the hold of art slot 7), is a HYPOTHESIS:
+   both captured creatures have hold 5, so it cannot be told from "+6".
+
+**Consequences.** Hash/save 466, pin `0xD1AE562ED00A3875`; `ShotState.Heading` is hashed, saved and
+copied. The Level 1 win journal is re-recorded (win tick 2231, gem (16,23): remake output, nothing
+native confirms the 72-tick move). Three scenarios' deaths move 243 to 247 and 483 to 487. The
+controlled Level 5 seed-1 replay, run before the merge of master with this change at hash 465,
+goes from 6764 ordered draws through 1788 to 6810 through 1791; the next boundary is 1792 draw 1
+(Q712). Deviations and gaps, none with a capture: ours halves whole position units in the probe;
+the heart and door arms stand in for DK2's one search predicate (`0x004B5800`); a hit in the
+first probe iteration leaves velocity 0 and `Move` then requests a hit-solid effect; Guided
+Bolt's process 28 (`0x004AF3A0`) rewrites the shot's `+0xF4` and is unbuilt; the `+0xAB` stamp
+and 217's two-phase fall machine are unbuilt; `Fall` does not test `CarriedByCreatureId` or
+`InHand`, and `ActionUntilTick` is not cleared when a rescue leaves 216; the Thief's z drops
+4096 to 3924 on 1865 in 216, unexplained. Shot_Update runs Collide, the per-tick damage, then
+the mover; ours moves first, and a hit shot does not move in ours.

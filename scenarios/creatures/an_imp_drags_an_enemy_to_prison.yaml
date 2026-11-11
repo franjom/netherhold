@@ -183,7 +183,8 @@ expect:
   - event: creature_died
     at_tick: 247
     because: >
-      240 ticks later, the window untouched. The imp is claiming for all of it.
+      244 ticks after the collapse (the fall, then the 240-tick window), untouched.
+      The imp is claiming for all of it.
   - event: corpse_rotted
     at_tick: 487
     because: >

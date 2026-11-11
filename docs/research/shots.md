@@ -141,11 +141,16 @@ tick can pass a standing creature between two positions where a 2048 one cannot.
 set to the creature's tag, so it follows the creature ([shot-effects.md](shot-effects.md) §2); the **hit-thing shot** (`+0x69`) inherits my target
 position, data words, caster, target and possessed flag and is aimed at my target
 position; **process event 0x4**; `DamageType` 7 → **contact damage** (§7);
-per-class sounds; on a creature with `Flags` bit 8 the creature is turned to
-face away (`0x005119F0`, `0x0048FF70`) with its hit sound; `Flags` bit 1 → health
-0 (the shot dies). No hit: the velocity is applied in **two half-steps**, each
-checked against the world (`vtable+0x200`) and, for a possessed caster, the
-pick ray; the position moves only through passable spots.
+per-class sounds; on a creature with `Flags` bit 8 (the flags dword `+0x43` mask `0x100`) the
+creature's heading `+0xF4` is set to the angle distance of the shot's `+0xF4` from `0x400`
+(`0x005119F0`), with its hit sound (`0x0048FF70`, `0xDB`), whether or not the damage collapsed it;
+`Flags` bit 1 → health 0 (the shot dies). **No hit:** the shot probes ahead: the collide
+function is called again at the start and after half the velocity (twice), a thing found there
+cuts the velocity to the distance covered so far, and the start position is restored; the move
+itself is the mover's (§6). For a possessed caster the pick ray is tested as well (the
+earlier reading of this step, not re-read for ADR-0739). Evidence, the heading write and the order deviation (DK2 runs the
+per-tick damage and then the mover after Collide; ours moves first):
+[shot-probe-and-hit-heading.md](shot-probe-and-hit-heading.md) (ADR-0739).
 
 ## 5. The flags, as read
 
@@ -280,7 +285,7 @@ Every creature shot has radius 819 (a fifth of a tile).
 
 **Built (ADR-0167):** `ShotState` is the thing, `ShotSystem` its tick after the
 creatures have moved, `ShotRules` its rules: §3's launch at `Speed` a tick along the
-line to the aim; §4's order — a hit, else two half-steps refused by solid
+line to the aim; §4's order — a hit, else the probe ahead (ADR-0739) and two half-steps refused by solid
 tiles, a bounce for flags bit 3, else a stop that kills a bit-0 shot; the lifetime
 counting down; death chaining the death shot, none for a shot the world stopped;
 §4a's collide classes over creatures by alliance and owner, never the caster; §7's
