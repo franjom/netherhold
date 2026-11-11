@@ -294,8 +294,7 @@ imps at 20, 56, 112, 192 and 292 for the same sums.
 (64,38); from 101 one of Morgana's imps, which had been digging her own rock beside it, stands at
 (64,37) in states 23 and 24 and puts 3 back each tick, so the wall loses 3 a tick and falls at 387.
 Ours had no repair job, and ran Morgana's AI not at all, so her imps were reinforcing elsewhere.
-With both the wall falls at 362. What remains (Q563): Drako claims the hole at 375 where DK2's imps
-fight Morgana's in it until 638, and our call goes to (64,34) at 544, DK2's to (64,38) at 700.
+With both the wall falls at 362; what remains is Q563.
 
 **The hole is fought over (ADR-0388; numbers as at that ADR).** Ours let Drako's imp take Morgana's imp's claim of the
 hole, though each keeper has its own task pool, and two imps on one tile out of reach never closed
@@ -364,9 +363,7 @@ which DK2's Belial reinforces at 126 in seeds 1, 2, 4, 6, 7, 9 and 10; it falls 
 never reinforced but Drako's tunnel stalls at (45,43) and the call at 939 goes to Morgana. That
 the reinforced wall is what keeps Belial unroutable is STRONGLY INFERRED (the route test's result
 is not captured). The 126 is one imp's choice: its claim of (28,33) is taken at 61 by a digger
-whose wall had fallen, and it takes the reinforce. Two things DKII.EXE shows were missing from
-ours then: state 6 never looks at the task (`0x00470C80`), and a strike lands inside the
-striker's update (`0x00496E00`). A branch with both cost Level 1 and 3 replay wins and was held.
+whose wall had fallen, and it takes the reinforce.
 
 **Both built; the west turn is DK2's (2026-11-11, Q574 answered).** The strike order (ADR-0503,
 integrated by ADR-0512) and the walk (ADR-0516) are on master since 2026-10-18/19; the 16/20 and
@@ -382,6 +379,8 @@ is consistent, `computer-keeper-management.md` §8), 64 turns are slapped 41-47 
 of 10 against 7 of 10 is Fisher p about 0.37. Drako calls Morgana first in 7 seeds (184-848; DK2
 8, one west, one split); the west three call after (40,40) falls (seed 4: 617, 705; 7: 767, 784;
 8: 647, 665), as DK2's seed 3 does (its seed 8 splits).
+
+**Morgana's imps no longer lose their walk (2026-11-11, ADR-0738, Q563).** Drako's diggers behind her wall are within four tiles of her heart and unreachable, so her heart's dispatch reset her bridge imps' walks every fourth turn (ours; the binary asks `0x004D0E60` first). They stood at (63.19,36.47), outside range 5 of Drako's Sentry at (59,40), which costs him 250 mana a shot (`traps.md`): 1-16 shots before 700 over seeds 1-10, now 2-38 (DK2's capture: 20 by 460). Seed 3 to 700: income 57,850 (DK2 58,024), three 5,000 Heals as DK2's three, call 650 (699). Seeds 1, 6, 9, 10 still call at 184-536 while DK2's Drako spends 5,000 about every 70 ticks. Seed 9: the battle step picks Heal 286 times before 700 but finds a creature below half health within five tiles only at 101-107 (mana 3,265-3,593) and from 192; in between its mana reaches 10,000 and it calls at 184. So ours' fighters in the hole are not hurt enough, not refused: DK2 has about 11 imps fighting there, ours two or three.
 
 ## M12 acceptance against the two captures (2026-10-06)
 

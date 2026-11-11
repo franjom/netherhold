@@ -4,6 +4,8 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Navigation;
+using DK2.Simulation.Steering;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -47,6 +49,31 @@ public class HeartDefenceTests
         Assert.Equal(-1, FirstSent(db, world, defender, 8));
         Assert.Equal(17, defender.ReportTicks);
         Assert.False(defender.HasRoute);
+    }
+
+    [Fact]
+    public void HeartDispatch_004D99C9_AWorkerThatCannotReachTheIntruderKeepsItsOwnWalk()
+    {
+        // 0x004D0E60 routes into a local buffer: a refused responder's body is not touched, so a
+        // worker walking to its job walks on. Level 11A: Morgana's imps crossing her bridge kept
+        // losing that walk every fourth turn to Drako's diggers behind her wall (Q563).
+        (GameDatabase db, WorldState world) = World();
+        CreatureState walker = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 11, 14);
+        // Inside the reporting radius of (11,11), sealed in by rock on all eight sides.
+        CreatureState intruder = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 13, 8);
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if (dx != 0 || dy != 0) world.Tile(13 + dx, 8 + dy).TerrainId = Dk2TerrainFixture.Rock;
+        Assert.True(new WorldSteering(db, world).TryRouteTo(
+            walker, CreatureState.CentreOf(16), CreatureState.CentreOf(16), MoveOptions.Loose));
+        Fixed16Vector goal = walker.Body.PathTargetPos;
+        int distance = walker.Body.PathTotalDist;
+
+        Assert.Equal(-1, FirstSent(db, world, walker, 8));
+        Assert.True(walker.HasRoute);
+        Assert.Equal(goal, walker.Body.PathTargetPos);
+        Assert.Equal(distance, walker.Body.PathTotalDist);
+        Assert.NotEqual(intruder.Tile, walker.Destination);
     }
 
     [Theory]
