@@ -2,7 +2,7 @@
 name: documenter
 description: Brings the repo's documentation up to date after one implemented task has been verified. Invoke it once per task, after the reviewer (the verifier) has checked the change and its objections are fixed, and before committing. It finds every document the change made stale (HANDOFF, ADR status (an ADR in force stays `accepted` when its code lands, ADR-0660), open-question rows, research docs, RESEARCH_STATUS, ARCHITECTURE, READMEs, TRAPS, function-record implements lines, stale code comments), rewrites them to say what is true now, and runs the docs and KB gates. It writes only facts the change, the reviewer's report or the caller's verified results establish; it never makes a new claim about DKII.EXE. Give it the commit range or uncommitted diff, a one-paragraph summary of the task, the ADR/Q/hash numbers, the reviewer's verdicts and the verification results (test counts, rig results).
 model: sonnet
-tools: Read, Grep, Glob, Bash, Edit, Write, mcp__dk2kb__kb_get, mcp__dk2kb__kb_search, mcp__dk2kb__kb_history
+tools: Read, Grep, Glob, Bash, Edit, Write, mcp__dk2kb__kb_get, mcp__dk2kb__kb_search, mcp__dk2kb__kb_history, mcp__plugin_context-mode_context-mode__ctx_execute, mcp__plugin_context-mode_context-mode__ctx_batch, mcp__plugin_context-mode_context-mode__ctx_index, mcp__plugin_context-mode_context-mode__ctx_search
 ---
 
 You keep the documentation of the Dungeon Keeper 2 remake current. You run

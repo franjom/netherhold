@@ -45,7 +45,10 @@ Nothing happens unless the next-payday stamp at `player+0xB53` is non-zero and
      collect (`FUN_00472320`);
    - otherwise `creature+0x3E2` is set back to zero — the `GetPaid` flag is
      consumed — and nothing else is done for it.
-3. Message `0x2E` is ended.
+3. Player trigger event 46 (`0x2E`, the pay-day event) is fired for the player
+   (`0x004BE250`, the trigger event poster `0x004C7A50`). Level 1's pay-day speech hangs
+   off it; ours fires it from the same point (ADR-0749). An earlier reading took this
+   call for the message's end.
 4. The next payday is scheduled: `player+0xB53 = now + PayDayFrequencySeconds *
    ticksPerSecond`.
 5. `player+0xB4F` is set to `now`, recording when this payday began.
