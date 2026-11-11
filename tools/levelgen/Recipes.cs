@@ -147,6 +147,23 @@ public static class Recipes
                 var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
                 b.InsertThing(door with { X = 23, Y = 4, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
             }),
+        new("Q498Spells5", "Small",
+            "Q498Spells4 with the Heart's income at 500 a second (cap 500) instead of 60000, so mana stays below the "
+            + "200000 ceiling and a cast on a payment tick still shows its debit (Q498Spells4 hid Prince Felix's). For the "
+            + "owner's second Chicken on Prince Felix and the chamber-A door unlocked, not sold.",
+            b =>
+            {
+                SpellChambers(b);
+                b.SetAiFlag(Rival, false);
+                if (!b.RepointVariable(VariableTypeId.LevelRating, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 500)
+                    || !b.RepointVariable(VariableTypeId.AverageTime, VariableTypeId.MaximumManaGainPerSecond, 500))
+                    throw new InvalidOperationException("Small no longer carries LevelRating and AverageTime overrides");
+                if (!b.RepointAvailability(AvailabilityKind.Spell, Rival, 2, Keeper, 9, 3)
+                    || !b.RepointAvailability(AvailabilityKind.Spell, Rival, 4, Keeper, 11, 3))
+                    throw new InvalidOperationException("Small no longer carries keeper 4's spell rows 2 and 4");
+                var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
+                b.InsertThing(door with { X = 23, Y = 4, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
+            }),
     ];
 
     private const byte HatcheryTerrain = 13;
