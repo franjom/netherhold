@@ -55,8 +55,8 @@ These are entry points, not a new priority order.
   [combat acquisition](research/combat-acquisition.md) for the matched encounter
   checks still needed.
 - M12 keeper acceptance and remaining decisions: [Keeper AI §12.7–12.8](KEEPER_AI.md),
-  [native keeper comparisons](research/computer-keeper-observations.md), Q563,
-  Q574. Enhanced AI remains outside Classic fidelity scope.
+  [native keeper comparisons](research/computer-keeper-observations.md), Q563.
+  Enhanced AI remains outside Classic fidelity scope.
 - M7 trap/door comparisons: Q732 and the owner observations linked from
   [traps](research/traps.md). Keep original-game acceptance separate from built rules.
 - Possession camera and input: [build plan](plans/2026-10-12-possession-arms-build-plan.md)

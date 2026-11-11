@@ -99,7 +99,11 @@ public sealed class HeartDefenceSystem : IRoomTickStep
 
             // The Imp with 0x80, everyone else with 0 (0x004D99A4, 0x004D99F6).
             MoveOptions options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
-            // Retain the point using ADR-0388's tile approximation of 0x004CF490's triangle case.
+            // 0x004D0E60 first: a route query into a local buffer that leaves the body's path alone,
+            // so a worker that cannot reach the intruder keeps its own walk (0x004D99C9). Only then
+            // the travel routes the body; retain the point using ADR-0388's tile approximation of
+            // 0x004CF490's triangle case.
+            if (!CanRoute(context, c, def, intruder, options)) continue;
             if (!context.Navigation.TryRouteToStance(c, intruder.PosX, intruder.PosY, options)) continue;
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;
@@ -113,4 +117,24 @@ public sealed class HeartDefenceSystem : IRoomTickStep
             context.Emit(Name, "gathered",
                 $"player={owner} intruder={intruder.Id} at={intruder.PosX / Fp32.One},{intruder.PosY / Fp32.One} sent={sent}");
     }
+
+    /// <summary><c>0x004D0E60</c>: whether the creature can route from its position to the
+    /// intruder's, asked without loading a route into its body. Standing on the intruder's tile
+    /// passes, as the travel's own one-point route there does.</summary>
+    private static bool CanRoute(SimulationContext context, CreatureState c, CreatureDef def, CreatureState intruder, MoveOptions options)
+    {
+        if (c.Tile == intruder.Tile) return true;
+        List<Steering.Fixed16Vector> points = _routeScratch ??= [];
+        points.Clear();
+        // The found word is the route's point count (0x004D0F4B), as the travel's own test
+        // (RouteWindow.Request) asks for a non-empty route.
+        return context.Navigation.Route(
+            new Steering.Fixed16Vector(c.PosX << 4, c.PosY << 4),
+            new Steering.Fixed16Vector(intruder.PosX << 4, intruder.PosY << 4),
+            WorldSteering.ProfileOf(def, c.OwnerPlayerId, options), points, refresh: false)
+            && points.Count != 0;
+    }
+
+    // Per thread, as the other route queries' scratch: two worlds can tick at once.
+    [ThreadStatic] private static List<Steering.Fixed16Vector>? _routeScratch;
 }

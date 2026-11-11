@@ -36,7 +36,7 @@ when the tile is Lava. The heroes' frame (`0x004B9F3A`) returns before any draw.
 
 Before the neutral return, `Player_Tick` runs the player's trigger root and `0x004B9740`.
 `0x004B9740` draws on the world seed (Player.cpp lines 1048 and 1071) on turns divisible by
-9600 and 6000, behind world `+0x72A1` bit 4 and player `+0x19A == 0`. Nothing read so far keeps
+9600 and 6000, behind world `+0x72A1` bit 2 (mask 0x04) and player `+0x19A == 0`. Nothing read so far keeps
 the neutral player out of them, and ours makes neither draw for any player (Q738).
 
 ## Native draw log: Level 5 seed 1, turns 1401-1900

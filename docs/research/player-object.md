@@ -157,6 +157,12 @@ dumper simply names the offset is not separated here; either way, reading
 `ObjectiveTextId` as a plain scalar and the tally as starting later would be
 wrong, because both instructions above use `+0x19E` itself.
 
+World trigger action 4 (arm `0x00518F41`, [record](functions/00518AD0.md)) is a second writer: it stores the
+low word of its first dword at the local player's `+0x19E` and the low byte of its second dword at
+`+0x1BE`. No reader that draws it was found; the dumper (`0x004BD3C6`, `0x004BD4AF`) and the network
+copy (`0x0056EE44`) only carry it. So the kill tally and a scripted value share the offset, and the
+scripted write has no visible effect that was found ([audit 1000-1110](openkeeper-pr-audit-1000-1110.md), PR 1035).
+
 ## Starting gold is paid into the heart (Q75)
 
 Read 2026-09-28 with Ghidra 12.1.4. STRONGLY INFERRED from the binary; the

@@ -17249,3 +17249,36 @@ Still deviating: 17 of DK2's 22 call sites of `0x004887D0` are unmarked in ours
 (listed in the note), among them Creature_FollowPossessedState, which calls it
 every run; a hasted creature in water on a marked turn is 1.5 x base in ours and
 base in DK2; the low-health and lava modifiers are unbuilt.
+
+## ADR-0738 - the heart's dispatch asks before it routes a responder
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** combat, imps-tile-work | Advances Q563
+
+**Context.** The heart's dispatch (`0x004D9690`, ADR-0407) tests each candidate
+with `0x004D0E60` at `0x004D99C9` and only on success sends it through `0x00471890`
+to 254. `0x004D0E60` routes into a stack buffer (`SUB ESP,0x814`) and returns the
+found word; it writes creature `+0x3E6` bits 17-19 and the query globals, never
+the body's path. Ours called `TryRouteToStance`, whose failed request loads an
+empty, finished route (`0x004D5100`'s no-route case) into the body. Level 11A seed
+3: Drako's diggers behind Morgana's wall are within four tiles of her heart and
+unreachable, so every fourth turn her imps walking over her bridge to (59,36)
+lost their walk, entered 13 short of the stance and dropped the (59,36) dig
+(`out_of_reach`) from 101 on (ours' runs, not the binary). They stood at (63.19,36.47), outside Drako's Sentry
+at (59,40) (range 5), which fired once before 700. DK2's idle capture (2026-10-31) has
+them walking on the bridge at x about 62, and the Sentry costs Drako 250 mana a shot
+(the shipped Sentry's fire cost, `0x004A838D` debiting definition `+0x9A`, traps.md)
+about every 24 turns from 108: 20 shots by 460.
+
+**Decision.** `HeartDefenceSystem.Gather` asks `CanRoute` (the creature's position
+to the intruder's, a route query into a scratch list, no body write) before
+`TryRouteToStance`; a creature that fails it is skipped with its path intact.
+
+**Consequences.** Hash/save 465, pin `0xBA2DED67A3A0667C`; no new state. Level
+11A seeds 1-10, 1,500 turns (master `ea32b114` -> this): Drako's Sentry shots
+before 700 rise from 1-16 to 2-38 (16-38 in the six seeds where Morgana's imps
+work over the bridge); his first call's median moves from 408 to 456 (DK2: 335-939,
+the capture 700) and goes to Morgana in 8 of 10 (7; DK2 8 and one split). The
+call is still early (Q563), and the shots are not at parity (four seeds stay at
+2-6, one reaches 38). Still deviating: the probe's `+0x3E6` writes are not
+modelled (as in ADR-0593's step back); the probe and the travel share one router,
+where DK2's probe asks mode -2 and the travel `0x2000`; the same-tile shortcut is
+ADR-0388's approximation.

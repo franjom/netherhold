@@ -188,7 +188,16 @@ art `Torch1`.
 | 22 Hero Stone Bridge | 0,0,0 | 0 | 0 | 0 | |
 | 25 Hero Portal | 200,67,10 | 128 | | 8192 | *(none)* |
 
-Hero Stone Bridge has a mesh but a zero light. The art names were read from the
+Hero Stone Bridge (room 22) has a mesh but a zero light: RGB, intensity, height and radius are all 0
+in `Rooms.kwd`. The definition's runtime fields `+0x456..+0x45F` are zeroed in the constructor
+(`0x004EAC4F..0x004EAC71`) and copied from the loader's staging copy only behind the loader gates
+above ([record](functions/004EACC0.md)): `+0x456`, `+0x458` and `+0x45A` are three colour words,
+`+0x45C` comes from staging `+0x454` (`0x004EBD3F`), `+0x45E` is a byte (`0x004EBD53`) and `+0x45F` a
+dword (`0x004EBD66`). Which of intensity, height and radius each is stays unread (HYPOTHESIS: height
+`+0x45E`, radius `+0x45F`). A closed gate leaves 0 and an open one copies the file's 0, but the colour
++255 flag adds (`0x004EBCE6`, `0x004EBD08`, `0x004EBD2A`) are not gated, so the light is 0 only if
+those flag bits are clear (not read). No 1.25 default was found in `DKII.EXE`. The gates' source stays UNKNOWN. The art
+names were read from the
 file. The art flag is set by the loader for any non-empty art name; the file's art flags are
 not read (`0x004EBE58..0x004EBEE4`, re-read 2026-10-06).
 

@@ -287,7 +287,7 @@ the threat's position. Then every creature of the owner within
 Horny (`def+0x686` bit 14), under Call to Arms (`0x004888C0`), in the Combat category, refused by
 `0x0045A6D0(0)`, at or below a quarter of its level-scaled health, in group tag 3 (`0x004D9976`),
 dropped to a job (`+0x2BC`) or already walking to 254 (state 6, resume `0xFE`). A route
-(`Creature_CanRouteTo`, `0x80` for an Imp) is required; a willing torturee is kicked to 135 first;
+(`Creature_CanRouteTo`, `0x80` for an Imp), asked into a scratch buffer that leaves the creature's own path alone, is required (ours, ADR-0738); a willing torturee is kicked to 135 first;
 `Travel_RouteToPoint(&pos, 254, flags)`, its own run speed (`def+0x5B8`), `+0x2CC` zeroed. No worker
 is refused and no deficit is counted: every eligible creature goes.
 
@@ -302,7 +302,7 @@ the Combat category on 348-403 of the first 500 ticks in the four seeds whose wa
 
 **Built** (ADR-0407): `HeartDefenceSystem`, after the store sweep. Deviates: ours has no room ids,
 so every heart takes Morgana's phase (1100); the ruin gate reads the player's heart, not the
-room's `+0x9A`; the torturee's kick is not modelled; `+0x2CC` is `ReportTicks` and is reset; the job is let go as the
+room's `+0x9A`; the torturee's kick and the probe's `+0x3E6` writes are not modelled; `+0x2CC` is `ReportTicks` and is reset; the job is let go as the
 alarm's responders' is (ours; DK2's `0x00471890` is not read for it).
 
 The Level 5 branch comparison and score/point-route corrections are in

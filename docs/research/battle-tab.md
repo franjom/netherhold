@@ -38,8 +38,13 @@ the panel collapses. Its three static widget records (0x50 bytes, layout in
 All three draw through [Hud_DrawIconButton](functions/004129E0.md). The loader
 [0x00528300](functions/00528300.md) copies the record's dword at `+1` (the id) to the live
 widget's `+0x74`, the right-click callback to `+0x51` and the frame callback to `+0x24`, and
-starts the state `+0x61` at 1. Widgets 2 and 3 (Call to Arms disband, probably from the art; and
-an alarm icon) are not read here. The status line for a hovered widget is probably text
+starts the state `+0x61` at 1. Widget 2 is the Call to Arms cancel button (read 2026-11-11): its left click
+[0x004268A0](functions/004268A0.md) submits game action 0x81 ([0x005142E0](functions/005142E0.md))
+with the player's `+0x138` word, its right click [0x00426830](functions/00426830.md) zooms to the
+tile stored at player `+0x13A` (needs player `+0x76` bit 2), and its frame callback
+[0x00426920](functions/00426920.md) shows it only while [0x004C00D0](functions/004C00D0.md) passes
+(player `+0x76` bit 2, a live flag object with `+0x146` bit `0x10` clear, process state 13 or 14).
+Widget 3 (an alarm icon) is not read here. The status line for a hovered widget is probably text
 2166 "Battle Tab: right-click to zoom, click again to cycle.", by the tabs' id + 1 rule
 (bottom-panel-controls.md). The positions are static, so a hidden neighbour leaves its gap
 (STRONGLY INFERRED: no relayout of menu 43 was found).
@@ -217,6 +222,6 @@ on right click or F: idx = next local record after idx (wrapping); if any: glide
 
 - The fly-in object's art and motion: `0x0042F040`, `+0x4D1D` 0.15, `+0x4D54` 2441 (Q664).
 - Which samples sounds `0x30F`, `0x32B` and `0x32C` name in their banks (the category of the last two is `gui_button_tab_new_combat`, [sound-effects-interface.md section 10](sound-effects-interface.md#10-the-battle-fly-in-0x32b-0x32c)).
-- Widgets 2 and 3 of menu 43: their frame callbacks `0x00426920`/`0x00426B90` and clicks.
+- Widget 3 of menu 43: its frame callback `0x00426B90` and clicks (widget 2 is read, section 1).
 - Creature `+0x32D` (the second state field tested for 202) and record `+0x00`, `+0x12..+0x1A`.
 - Whether `Speech.str` 20..22 are ever spoken (Q663).

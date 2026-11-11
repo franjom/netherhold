@@ -153,7 +153,7 @@ DK2 restores only when the line's handle is non-zero and dead, so a refused requ
   message of type 52 (already built as `LowManaWarning`).
 - **Horny `0x1`** (`0x004B9BD6`, [Player_UpdateFlagNotifications](../research/functions/004B9740.md)), STRONGLY INFERRED site: the world's category at `+0xA3B7`
   (loaded first, `0x0050A25A`) is `SPEECH_HORNY`, not an effects category, and `0x1` is its group 1 (one sample). It is asked once (latch: player flag
-  `+0x76` bit `0x10000`) when, with no result on the player, world option bit 4 set (`+0x72A1`), the player's table of 0x11-byte records holds key 5 with
+  `+0x76` bit `0x10000`) when, with no result on the player, world option bit 2 (mask 0x04) set (`+0x72A1`), the player's table of 0x11-byte records holds key 5 with
   value 3 (STRONGLY INFERRED: the availability of spell 5, the Horned Reaper) and the mana
   affordability helper ([0x004C1740](../research/functions/004C1740.md)) passes for the spell's cost. No local-player test either. Waits: that function's body
   is not mirrored (the Mentor hint posts of types 88 to 95 are the same function), and the flag's other readers and writers are unread, so a
