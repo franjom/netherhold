@@ -1079,6 +1079,18 @@ public sealed class TriggerExecutor
                 + (uint)record.Parameters["Value"] * SimulationTiming.OriginalTicksPerGameSecond);
             return true;
         }
+        // Action 33 (0x0049AF3D): 0x004887D0(creature, byte 0 != 0, 0), walk on 0 and run on anything
+        // else, no other test (0049AC80.md). The call also marks the turn (+0x3BF), but the creature's
+        // own tree is walked at the tail of its update (0x0048A49D), after the speed restore, and the
+        // next update clears the mark (0x00489619) before its modifiers: the mark shields no move, so
+        // only the mode is kept, not SpeedSetTick (speed-set-turn.md). A tree reached by an event fired
+        // inside some handler would mark before the restore; that case is unread (one Level9 record).
+        if (context == TriggerContext.Creature && record.Type == 33 && run.Creature is not null)
+        {
+            run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
+            run.Creature.Running = Byte(record.Parameters, "Available") != 0;
+            return true;
+        }
         if (context == TriggerContext.Creature && record.Type == 42 && run.Creature is not null)
         {
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));

@@ -17282,3 +17282,29 @@ call is still early (Q563), and the shots are not at parity (four seeds stay at
 modelled (as in ADR-0593's step back); the probe and the travel share one router,
 where DK2's probe asks mode -2 and the travel `0x2000`; the same-tile shortcut is
 ADR-0388's approximation.
+
+## ADR-0739 - script walk/run and the tortured event
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** campaign-triggers, creatures, rooms
+
+**Context.** The OpenKeeper PR audit (openkeeper-pr-audit-1000-1110.md, #1102 and
+#1011) found two creature-tree hooks we lacked. Creature action 33 (72 shipped
+records: Level4, Level9, Level19, TrapTime) was an unperformed success. Arm
+`0x0049AF3D` calls `0x004887D0(creature, byte 0 != 0, 0)`: walk on 0, run otherwise
+(0049AC80.md). Creature event 8 (88 records, Level6a/6b) had no producer. State
+130 (`0x00484110`) sets 131, ignoring the result, then fires it at `0x004842BE`.
+
+**Decision.** `TriggerExecutor` performs 33 in a creature context by setting
+`CreatureState.Running` from byte 0. It does not set `SpeedSetTick`: the creature's
+root walk runs at the tail of its update (`0x0048A49D`), after the speed restore,
+and the next update clears `+0x3BF` at `0x00489619` before its modifiers, so the
+mark shields no move (speed-set-turn.md). `TortureRules` fires `Tortured` after its
+131 attempt wherever 130 runs: a drop on a device, the re-strap through 136 and a
+Mistress's self-strap. A re-strap whose 130 is refused no longer tries 131.
+
+**Consequences.** Hash/save 466, pin `0xD1AE562ED00A3875`; no new state, recorded
+runs of those levels change. Still deviating: 33 from a tree fired inside a handler
+(one Level9 record under event 6) would natively mark before the restore, unread;
+our strap entries refuse a creature its device will not hold before 130, where
+native 130 has no such test, so that attempt fires no event; the self-strap fires
+before it positions the creature. The portal drop's double sacked event (63, P61)
+was checked and is native (00459D50.md); it stays.

@@ -133,8 +133,18 @@ public static class TortureRules
     private static bool EnterTheDevice(in StateHookContext hooks, CreatureState creature)
     {
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
-        return CreatureStateMachine.TrySetState(hooks, creature, StrappingState)
-            && CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
+        if (!CreatureStateMachine.TrySetState(hooks, creature, StrappingState)) return false;
+        return EnterTortured(hooks, creature);
+    }
+
+    /// <summary>State 130's strap (<c>0x00484110</c>): 131, whose result it ignores, then creature
+    /// event 8, Tortured (<c>0x004842BE</c>). So the event fires on every strap and every re-strap,
+    /// for a captive and for a keeper's own creature alike.</summary>
+    private static bool EnterTortured(in StateHookContext hooks, CreatureState creature)
+    {
+        bool took = CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
+        hooks.FireCreatureEvent(creature, CreatureTriggerEvent.Tortured);
+        return took;
     }
 
     /// <summary>A keeper's own creature dropped on a free device of its own chamber: 1, 130 and
@@ -188,8 +198,7 @@ public static class TortureRules
         ObjectState? device = FreeDeviceAt(world, hooks.Database, KeeperOf(creature), tileIndex, creature.Id);
         if (device is null) return;
         StrapOn(hooks, creature, device);
-        CreatureStateMachine.TrySetState(hooks, creature, StrappingState);
-        CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
+        if (CreatureStateMachine.TrySetState(hooks, creature, StrappingState)) EnterTortured(hooks, creature);
     }
 
     /// <summary>130 for a creature that walked onto a free device of its own keeper's chamber,
@@ -202,7 +211,7 @@ public static class TortureRules
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, here, creature.Id);
         if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
-        if (!CreatureStateMachine.TrySetState(hooks, creature, TorturedState)) return false;
+        if (!EnterTortured(hooks, creature)) return false;
 
         StrapOn(hooks, creature, device);
         return true;
