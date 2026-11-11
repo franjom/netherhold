@@ -60,7 +60,8 @@ public class TorturerTests
         return world;
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink? sink = null)
+    private static GameSimulation Simulation(
+        GameDatabase db, WorldState world, ListEventSink? sink = null, TriggerTree? triggers = null)
     {
         var sim = new GameSimulation(db, world, seed: 42,
         [
@@ -69,7 +70,7 @@ public class TorturerTests
             new CreatureJobSystem(),
             new PrisonSystem(),
             new TortureSystem(),
-        ]);
+        ], triggers);
         if (sink is not null) sim.ObserveWith(sink);
         return sim;
     }
@@ -168,14 +169,17 @@ public class TorturerTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState mistress = world.SpawnCreature(db, MistressId, Keeper, Outside);
+        mistress.TriggerId = EventCounterTree.Root;
         int health = mistress.Health;
         var sink = new ListEventSink();
-        GameSimulation sim = Simulation(db, world, sink);
+        GameSimulation sim = Simulation(db, world, sink, EventCounterTree.For(CreatureTriggerEvent.Tortured));
 
         var seen = ImpStateTrace.Seen(sim, mistress, 30 * SimulationTiming.TicksPerSecond,
             () => TortureRules.IsBeingTortured(mistress));
         Assert.Contains((Walk, TortureRules.TorturerChoosingState, TortureRules.StrappingState), seen);
         Assert.Equal(TortureRules.TorturedState, mistress.Dk2StateId);
+        // Her own strapping in 130 fires Tortured like any other (0x004842BE).
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
         Assert.Equal(Wheel, mistress.Tile);
         Assert.False(PrisonRules.IsImprisoned(mistress));
 

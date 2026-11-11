@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**466** - `0xD1AE562ED00A3875`. Creature action 33 sets the walk or the run from byte 0, and state 130's strap fires creature event 8, Tortured, after its 131 attempt (ADR-0739). No new state; the version moves because recorded runs change.
+
 **465** - `0xBA2DED67A3A0667C`. The heart's dispatch asks whether a creature can route to the intruder without loading a route into its body (`0x004D0E60`), so a worker that cannot reach it keeps its own walk (ADR-0738). No new state; the version moves because recorded runs change.
 
 **464** - `0x26EDB164EDD655D6`. A speed a state handler sets (state 199's entry-turn run, the step-back shuffle and run of spFighting and the flee state) is not halved by water or changed by possession that turn: `SpeedSetTick` is hashed, copied and saved (ADR-0737). Earlier saves are refused.

@@ -66,6 +66,13 @@ above call `SetSpeedMode`.
   `0x00461B0F` and `0x00461B25` in Creature_FollowPossessedState. That function
   calls it every run, so an influenced follower's modifier is overwritten
   natively and not in ours.
+- Creature action 33's call (`0x0049AF4A`, ADR-0739) keeps the mode (`CreatureState.Running`)
+  and not the mark. The creature's own root walk is at `0x0048A49D`, after the restore at
+  `0x0048A45C..0x0048A47A`, so a mark set there is cleared by the next update's
+  `0x00489619` before it shields a move; the one reader of `+0x3BF` found is the restore
+  ([record](functions/004887D0.md), STRONGLY INFERRED). A tree fired from an event inside
+  a handler would mark before the restore; that case is unread (one Level9 record under
+  event 6).
 - Haste and Slow (Q399) are unchanged, with one numerically different case: a
   hasted creature in water on a marked turn is 1.5 x base in ours and base in
   DK2.

@@ -50,7 +50,8 @@ public class TortureTests
         return world;
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink? sink = null)
+    private static GameSimulation Simulation(
+        GameDatabase db, WorldState world, ListEventSink? sink = null, TriggerTree? triggers = null)
     {
         var sim = new GameSimulation(db, world, seed: 42,
         [
@@ -58,7 +59,7 @@ public class TortureTests
             new CreatureMovementSystem(),
             new PrisonSystem(),
             new TortureSystem(),
-        ]);
+        ], triggers);
         if (sink is not null) sim.ObserveWith(sink);
         return sim;
     }
@@ -283,6 +284,55 @@ public class TortureTests
         Assert.Equal(1000, captive.Health);
     }
 
+    /// <summary>State 130 fires creature event 8, Tortured, after it moves to 131 (<c>0x004842BE</c>):
+    /// once per strapping, then not again while the victim stays on.</summary>
+    [Fact]
+    public void ACaptiveStrappedOnTheWheelFiresTorturedOnce()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        captive.TriggerId = EventCounterTree.Root;
+        GameSimulation sim = Simulation(db, world, triggers: EventCounterTree.For(CreatureTriggerEvent.Tortured));
+
+        Carry(sim, captive, Wheel);
+        Assert.True(TortureRules.IsBeingTortured(captive));
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
+
+        sim.Run(5 * SimulationTiming.TicksPerSecond);
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
+    }
+
+    [Fact]
+    public void AnOwnGoblinStrappedOnTheWheelFiresTorturedToo()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, ChamberFloor);
+        goblin.TriggerId = EventCounterTree.Root;
+        GameSimulation sim = Simulation(db, world, triggers: EventCounterTree.For(CreatureTriggerEvent.Tortured));
+
+        Carry(sim, goblin, Wheel);
+
+        Assert.True(TortureRules.IsBeingTortured(goblin));
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
+    }
+
+    [Fact]
+    public void ACaptiveDroppedOffTheDeviceFiresNoTortured()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        captive.TriggerId = EventCounterTree.Root;
+        GameSimulation sim = Simulation(db, world, triggers: EventCounterTree.For(CreatureTriggerEvent.Tortured));
+
+        Carry(sim, captive, ChamberFloor);
+
+        Assert.False(TortureRules.IsBeingTortured(captive));
+        Assert.Equal(0, world.Triggers.Read(EventCounterTree.CountFlag));
+    }
+
     [Fact]
     public void AnOwnGoblinDroppedOnTheWheelIsStrappedStaysItsOwnAndTakesTheMood()
     {
@@ -385,12 +435,15 @@ public class TortureTests
         world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, beside)).AutoPlaced = true;
         CreatureState captive = Captive(db, world);
         Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
+        captive.TriggerId = EventCounterTree.Root;
         var sink = new ListEventSink();
-        GameSimulation sim = Simulation(db, world, sink);
+        GameSimulation sim = Simulation(db, world, sink, EventCounterTree.For(CreatureTriggerEvent.Tortured));
 
         world.RemoveObject(world.Objects.Single(o => o.TileIndex == Index(world, Wheel)).Id);
         sim.Run(1);
 
+        // 136 -> 130 -> 131 straps it on again, and 130 fires Tortured again (0x004842BE).
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
         Assert.True(TortureRules.IsBeingTortured(captive));
         Assert.Equal(beside, captive.Tile);
         Assert.Equal(TortureRules.TorturedState, captive.Dk2StateId);

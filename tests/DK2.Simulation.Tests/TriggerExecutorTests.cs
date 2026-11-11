@@ -2075,6 +2075,44 @@ public class TriggerExecutorTests
             },
         };
 
+    /// <summary>Creature action 33 (<c>0x0049AF3D</c>): byte 0 picks the walk (0) or the run
+    /// (anything else), and the arm returns 1. The turn mark is not taken: the next update clears it
+    /// before the speed modifiers run (speed-set-turn.md).</summary>
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    public void AlterSpeedSetsTheWalkOrTheRunFromByteZero(byte available, bool running)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState creature = world.SpawnCreature(
+            database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(4, 4));
+        creature.TriggerId = 5;
+        creature.Running = !running;
+        long markBefore = creature.SpeedSetTick;
+
+        TriggerRecord alterSpeed = new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-1), Type = 33, RepeatCount = 0, ChildTriggerId = 0xFFFE,
+            Parameters = new Dictionary<string, long> { ["Available"] = available },
+        };
+        TriggerRecord[] records =
+        [
+            Condition(5, repeat: 1, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            alterSpeed,
+            Action(2, 3, 0x0A, 1),
+        ];
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Equal(running, creature.Running);
+        Assert.Equal(markBefore, creature.SpeedSetTick);
+        Assert.Equal(1, world.Triggers.Read(3));
+        Assert.Empty(run.Partial);
+        Assert.Empty(run.Unhandled);
+    }
+
     // Action 20 (give the Portal Gem) is performed since ADR-0495: PortalGemOnRealDataTests.
     [Theory]
     [InlineData((byte)43)]
