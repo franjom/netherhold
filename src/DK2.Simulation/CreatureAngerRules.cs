@@ -100,6 +100,14 @@ public static class CreatureAngerRules
         WorldState world, CreatureDef creature, CreatureState state, AngerBucket bucket) =>
         world.Triggers.CreatureAngerEnabled ? Apply(creature, state, bucket, -state.Anger[bucket]) : 0;
 
+    /// <summary>Wipes all six grievances: DK2's <c>0x00486E20</c>, each counter less itself through
+    /// the clamp, behind the same world switch, as a torture conversion does (<c>0x004F283E</c>).</summary>
+    public static void ForgetAll(WorldState world, CreatureDef creature, CreatureState state)
+    {
+        for (int bucket = 0; bucket < CreatureAnger.Count; bucket++)
+            Forget(world, creature, state, (AngerBucket)bucket);
+    }
+
     /// <summary>The anger a creature must <b>exceed</b> to be angry: the ceiling itself. No variable
     /// states it — it is the owner's 2:1 ratio, angry at twice the time unhappy took.</summary>
     public static int AngryAt(CreatureDef creature) => Ceiling;

@@ -51,6 +51,26 @@ public enum PlayerMessageKind : uint
     /// built here; 1 alone is under the <c>+0xF56</c> deadline, which is not built).</summary>
     TrainingUnpaid = 55,
 
+    /// <summary>Type 57: a creature of the recipient's was converted in another keeper's Torture
+    /// Chamber, posted to the old owner before the owner changes (<c>0x004F2827</c>); Data1 the
+    /// creature. Row <c>0x20F0</c>: 240 seconds, tab, no duplicates. The name is ours.</summary>
+    CreatureConvertedAway = 57,
+
+    /// <summary>Type 58: the recipient's Torture Chamber converted a creature, posted to the new
+    /// owner (<c>0x004F2883</c>); Data1 the creature. Row <c>0x601E</c>: 30 seconds, tab,
+    /// duplicates allowed. The name is ours.</summary>
+    CreatureConverted = 58,
+
+    /// <summary>Type 59: torture reward 11, the reveal (<c>0x004F27C5</c>), after 97. Row <c>0x201E</c>:
+    /// 30 seconds, tab, no duplicates. The names of 59, 96 and 97 are ours.</summary>
+    InformationReveal = 59,
+
+    /// <summary>Type 96: a torture reward from 3 to 10, an information-panel row, after 97.</summary>
+    InformationUnlocked = 96,
+
+    /// <summary>Type 97: any torture reward, to the chamber's keeper (<c>0x004F2779</c>), posted first.</summary>
+    InformationLearned = 97,
+
     /// <summary>Type 32: a room taken from a non-neutral owner, to the new owner; Data1 the room type,
     /// Data2 the room (subtable <c>0x006A0060</c>, <see cref="PlayerMessageQueue.OwnershipLifetimeSeconds"/>).</summary>
     RoomCaptured = 32,
@@ -236,6 +256,10 @@ public sealed partial class PlayerMessageQueue
             PlayerMessageKind.CasinoJackpot or PlayerMessageKind.CasinoDrinking or PlayerMessageKind.JackpotUnpaid
                 or PlayerMessageKind.JackpotMissed or PlayerMessageKind.JackpotWinnerSlapped => (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.CasinoRowdy when data1 == CasinoStep.RowdyVariant => (uint)SimulationTiming.TicksFromSeconds(20),
+            PlayerMessageKind.CreatureConvertedAway => (uint)SimulationTiming.TicksFromSeconds(240),
+            PlayerMessageKind.CreatureConverted => (uint)SimulationTiming.TicksFromSeconds(30),
+            PlayerMessageKind.InformationReveal or PlayerMessageKind.InformationUnlocked
+                or PlayerMessageKind.InformationLearned => (uint)SimulationTiming.TicksFromSeconds(30),
             // An unlisted room type would take the table's terminator row: discarded for 41 and 43,
             // kept for one sweep for 42. Nothing here posts one, so it is refused.
             _ when IsRoomMessage(kind) && RoomLifetimeSeconds(kind, (RoomTypeId)data1) is int seconds =>
@@ -254,7 +278,7 @@ public sealed partial class PlayerMessageQueue
             || !world.Triggers.NotificationsEnabled && kind is not (PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech))
             return null;
         if (graveyardWanted && world.Player(recipient).GraveyardWantedPosted) return null;
-        if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy
+        if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy or PlayerMessageKind.CreatureConverted
             or PlayerMessageKind.CreatureArrived or PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech)
             && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);

@@ -945,6 +945,25 @@ public sealed partial class CreatureState
     /// turn's move is at the unmodified speed; the next update modifies it again (ADR-0737).</summary>
     public long SpeedSetTick = -1;
 
+    /// <summary>Radius-one sight passes left for <see cref="TortureSightPlayerId"/> (DK2's <c>+0x475</c>):
+    /// torture reward 11 sets 16 on the victim keeper's first creature on unexplored ground
+    /// (<c>0x004F2370</c>); each pass (<c>0x0048CC90</c>) spends one.</summary>
+    public byte TortureSightPasses;
+
+    /// <summary>Who those passes explore for (DK2's <c>+0x476</c>, the chamber's keeper).</summary>
+    public byte TortureSightPlayerId;
+
+    /// <summary>Ours: the tile of the last pass, so a pass is spent once per tile moved onto, as DK2's
+    /// update calls its pass when the creature's tile changes (<c>0x0048A817</c>); -1 when unset.</summary>
+    public int TortureSightTileIndex = -1;
+
+    /// <summary>The victim's roll about a wall wheel's axle, 0..0x7FF (DK2's <c>+0x68</c>): state 130's
+    /// strap (<c>0x0048439A</c>), 136's re-strap (<c>0x00484F8A</c>) and each turn of 131
+    /// (<c>0x00484742</c>) add the wheel's step (<see cref="TortureRules.WheelStep"/>). Zeroed by a
+    /// conversion (<c>0x004F28E9</c>), 135's kick (<c>0x004BDF17</c>) and 136 finding no device; a
+    /// creature lifted off and dropped back keeps it, as no zero is read on that path.</summary>
+    public ushort TortureRoll;
+
     /// <summary><c>0x004887D0</c> as a state handler calls it: the mode and this turn's mark.</summary>
     public void SetSpeedMode(CreatureSpeedMode mode, long tick)
     {
@@ -1542,6 +1561,10 @@ public sealed partial class CreatureState
         hash.Add(BackOffTimer);
         hash.Add((byte)SpeedMode);
         hash.Add(SpeedSetTick);
+        hash.Add(TortureSightPasses);
+        hash.Add(TortureSightPlayerId);
+        hash.Add(TortureSightTileIndex);
+        hash.Add(TortureRoll);
         hash.Add(CombatStateEnteredTick);
         hash.Add(StateEnteredTick);
         hash.Add((byte)IdleAction);

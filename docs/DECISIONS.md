@@ -17308,3 +17308,33 @@ our strap entries refuse a creature its device will not hold before 130, where
 native 130 has no such test, so that attempt fires no event; the self-strap fires
 before it positions the creature. The portal drop's double sacked event (63, P61)
 was checked and is native (00459D50.md); it stays.
+
+## ADR-0740 - torture conversion messages, reward 11 and the trough effect
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** rooms, creatures, camera-lighting
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1001, #1017,
+#1041, #1044) found three silent torture paths. Conversion (`0x004F2800`) posts
+message 57 to the old owner, wipes the anger buckets (`0x00486E20`), posts 58 to the
+new owner and fires creature event 9. Every information reward (`0x004F2370`) posts
+97, then 96 or, for 11, 59; reward 11 explores the victim keeper's newest room whose
+first slab is unexplored, or tags its first creature on unexplored ground with 16
+radius-one passes (`+0x475`/`+0x476`, spent by `0x0048CC90`). On a wall wheel the
+device handler `0x00499300` raises effect 274 (coals) or 279 (water) at the trough,
+once a game second, while the victim's roll `+0x68` is in `[0x3A0, 0x460)`.
+
+**Decision.** `TortureSystem` posts 57 and 58, calls `CreatureAngerRules.ForgetAll` and
+fires `Converted` in that order. `TortureInformationRules.Award` posts the messages and
+`RevealTo` explores or tags; `FogOfWarSystem` spends a pass each time a tagged creature
+moves onto another tile (the `0x0048A817` call). `CreatureState.TortureRoll` mirrors
+`+0x68`: a step at 130's strap, at 136's re-strap (`0x00484F8A`, from the tile stood on)
+and each 131 turn, zeroed by a conversion, 135's kick and 136 finding no device;
+`TortureSystem` raises the trough effect from it before the turn's step.
+
+**Consequences.** Hash/save 467, pin `0x9C21F0BD3DEABBA3`: four creature fields hashed,
+copied and saved. Deviations: DK2 has one explored layer, the local machine's, and
+uses it whoever tortured, and spends a tag only for the local player; ours uses the
+chamber keeper's layer for every keeper. With fog off ours reveals and tags nothing.
+A pass is spent only on a tile change, not on DK2's other callers. The roll's phase
+at the strap is inferred, and 131's art-17 gate (`0x004845DB`) is not modelled; nor are
+the roll zeroes in state 133 (`0x00484C80`) and the Combat enter hook (`0x0047A810`).
+Shipped effect 279 has no art and generates nothing (`Effects.kwd`, read 2026-11-11).

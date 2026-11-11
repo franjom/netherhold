@@ -160,6 +160,10 @@ namespace DK2.Simulation
             BackOffTimer = other.BackOffTimer;
             SpeedMode = other.SpeedMode;
             SpeedSetTick = other.SpeedSetTick;
+            TortureSightPasses = other.TortureSightPasses;
+            TortureSightPlayerId = other.TortureSightPlayerId;
+            TortureSightTileIndex = other.TortureSightTileIndex;
+            TortureRoll = other.TortureRoll;
             CombatStateEnteredTick = other.CombatStateEnteredTick;
             StateEnteredTick = other.StateEnteredTick;
             ActionArtSlot = other.ActionArtSlot;
