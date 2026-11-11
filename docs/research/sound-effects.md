@@ -326,7 +326,7 @@ Read 2026-11-02 for plan Phase W4. Every request passes the creature's own handl
 | `0xCE` | [0x0046FA60](functions/0046FA60.md) at `0x0046FC7A`: state 83 when the art-12 gate holds and no action runs, with action 24; gated by an unread bed call (`0x0046FAF9`) | STRONGLY INFERRED site | waits: no action 24 clock, gate unread |
 | `0x111`, `0xCD` | [0x00463760](functions/00463760.md) at `0x00463859` (the chicken's own handle and category, at the bird) and `0x0046398D` (the eater's): state 93 | STRONGLY INFERRED | `CreatureEatSystem.Swallow` |
 | `0xC7` | [0x00481520](functions/00481520.md) at `0x00481549`: state 210's first act; the record had called it a display request | STRONGLY INFERRED | `TremorRules.RunRecovery` |
-| `0xC7` | [0x00481020](functions/00481020.md) at `0x0048104C`: state 209's first act | STRONGLY INFERRED site | waits: ours has no state 209 |
+| `0xC7` | [0x00481020](functions/00481020.md) at `0x0048104C`: state 209's first act | STRONGLY INFERRED site | waits: Stun Imps enters 255 directly (`StatusEffectRules.StunFromStarter`), so 209's turn is not modelled |
 | `0xCB` | [0x004816F0](functions/004816F0.md) at `0x00481719`: state 213 every call | STRONGLY INFERRED site | nothing: state 213 is unreachable (room-return-states.md section 6) |
 | `0xDC` | [0x004611D0](functions/004611D0.md) at `0x004617E6` (withdraw) and [0x004752B0](functions/004752B0.md) at `0x004754AC` (the Scout's alarm), after the route and run speed | STRONGLY INFERRED | `FearRules.Withdraw`, `FearRules.RaiseAlarm` |
 | `0x2FA` | [0x00475660](functions/00475660.md) at `0x00475934`: state 251 after its responders are sent | STRONGLY INFERRED | `FearRules.RespondToThreat` |

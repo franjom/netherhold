@@ -147,6 +147,10 @@ public enum ThingSoundEvent : ushort
     SpecialReceivedImps = 0x8B,
     /// <summary>The Locate Hidden Land special is used (<c>0x004A4F70</c>).</summary>
     SpecialLocatedHiddenLand = 0x8F,
+    // The other specials' sounds, each asked by its arm of 0x004A3FC0 (specials.md §5).
+    SpecialRevealedMap = 0x84, SpecialMadeSafe = 0x85, SpecialDestroyedWalls = 0x86, SpecialIncreasedGold = 0x88,
+    SpecialBoostedMana = 0x89, SpecialStunnedImps = 0x8A, SpecialMadeHappy = 0x8C, SpecialMadeUnhappy = 0x8D,
+    SpecialKilledCreature = 0x8E, SpecialHealedAll = 0x310,
     /// <summary>The Workshop's steam effect and lava spill (<c>0x004F4C27</c>, <c>0x004F4DC7</c>).</summary>
     WorkshopSteamOrSpill = 0x2E9,
     /// <summary>The Workshop's smoke effect (<c>0x004F4F03</c>).</summary>

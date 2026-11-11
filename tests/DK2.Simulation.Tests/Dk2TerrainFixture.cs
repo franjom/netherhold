@@ -185,7 +185,8 @@ internal static class Dk2TerrainFixture
               TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
               660, 660, Rock, DirtPath, manaGain: 1),
             T(ReinforcedWall, "Reinforced Wall",
-              TerrainFlags.Solid | TerrainFlags.Ownable | TerrainFlags.Taggable | TerrainFlags.Attackable,
+              TerrainFlags.Solid | TerrainFlags.Ownable | TerrainFlags.Taggable | TerrainFlags.Attackable
+                | TerrainFlags.PlayerColouredWall,
               900, 900, ReinforcedWall, Rock, manaGain: 1),
             T(TreasuryTerrain, "Treasury", RoomTerrain, 10000, 10000, TreasuryTerrain, ClaimedPath),
             T(LairTerrain, "Lair", RoomTerrain, 10000, 10000, LairTerrain, ClaimedPath),
@@ -330,6 +331,12 @@ internal static class Dk2TerrainFixture
     /// <summary>Object id 140, the Transfer Creature Special.</summary>
     public const byte TransferCreatureSpecialObjectId = 140;
 
+    /// <summary>The other specials, shipped ids 119-123 and 125-128 (specials.md §2).</summary>
+    public const byte MakeSafeSpecialObjectId = 119, DestroyWallsSpecialObjectId = 120,
+        IncreaseGoldSpecialObjectId = 121, ManaBoostSpecialObjectId = 122, StunImpsSpecialObjectId = 123,
+        MakeHappySpecialObjectId = 125, MakeUnhappySpecialObjectId = 126, KillCreaturesSpecialObjectId = 127,
+        HealAllSpecialObjectId = 128;
+
     /// <summary>Object id 5, the Alarm trap's crate: <see cref="ObjectFlags.TypeCrate"/>, carried
     /// to the Workshop in state 32.</summary>
     public const byte AlarmCrateObjectId = 5;
@@ -434,6 +441,15 @@ internal static class Dk2TerrainFixture
         Carried(ReceiveImpsSpecialObjectId, "Special [ Receive Imps ]", ObjectFlags.TypeSpecial),
         Carried(LocateHiddenLandSpecialObjectId, "Special [ Locate Hidden Land ]", ObjectFlags.TypeSpecial),
         Carried(TransferCreatureSpecialObjectId, "Special [ Transfer Creature ]", ObjectFlags.TypeSpecial),
+        Carried(MakeSafeSpecialObjectId, "Special [ Make Safe ]", ObjectFlags.TypeSpecial),
+        Carried(DestroyWallsSpecialObjectId, "Special [ Destroy Walls ]", ObjectFlags.TypeSpecial),
+        Carried(IncreaseGoldSpecialObjectId, "Special [ Increase Gold ]", ObjectFlags.TypeSpecial),
+        Carried(ManaBoostSpecialObjectId, "Special [ Mana Boost ]", ObjectFlags.TypeSpecial),
+        Carried(StunImpsSpecialObjectId, "Special [ Stun Imps ]", ObjectFlags.TypeSpecial),
+        Carried(MakeHappySpecialObjectId, "Special [ Make Happy ]", ObjectFlags.TypeSpecial),
+        Carried(MakeUnhappySpecialObjectId, "Special [ Make Unhappy ]", ObjectFlags.TypeSpecial),
+        Carried(KillCreaturesSpecialObjectId, "Special [ Kill Creatures ]", ObjectFlags.TypeSpecial),
+        Carried(HealAllSpecialObjectId, "Special [ Heal All ]", ObjectFlags.TypeSpecial),
         Carried(AlarmCrateObjectId, "Crate Alarm", ObjectFlags.TypeCrate),
         Carried(WoodenDoorCrateObjectId, "Crate Wooden Door", ObjectFlags.TypeCrate),
 
@@ -1692,6 +1708,8 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.DungeonHeartHealthRegenerationPerSecond, 25);
         Set(vars, VariableTypeId.StunTimePercentageIncreaseWhenHit, 25); // shipped (ADR-0348)
         Set(vars, VariableTypeId.SpecialReceiveImpsAmount, 10); // shipped (specials.md)
+        Set(vars, VariableTypeId.SpecialIncreaseGoldAmount, 10000); // shipped (specials.md §4)
+        Set(vars, VariableTypeId.SpecialIncreaseManaAmount, 50000); // shipped (specials.md §4)
         // Variable 224's shipped MeleeDamage record, the possession bonus (Q337).
         vars.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeDamage, 60, 0, FirstPerson: true));
         return vars;
