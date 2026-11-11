@@ -181,6 +181,23 @@ public sealed class LevelBuilder
         return false;
     }
 
+    /// <summary>Turns one availability row the level carries into another (the editor adds no VARIABLES row);
+    /// returns false when the base carries no (<paramref name="kind"/>, <paramref name="fromPlayer"/>,
+    /// <paramref name="fromType"/>) row.</summary>
+    public bool RepointAvailability(AvailabilityKind kind, byte fromPlayer, int fromType, byte toPlayer, int toType, int value)
+    {
+        int chunk = ChunkOf(_variables, KwdRecordType.Variables);
+        var rows = Variables;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            if (rows[i] is not AvailabilityEntry a || a.Kind != (ushort)kind || a.PlayerId != fromPlayer || a.TypeId != fromType) continue;
+            _set.EditRecord<AvailabilityEntry>(new KwdRecordLocation(_variables, chunk, i),
+                r => r with { PlayerId = toPlayer, TypeId = toType, Value = value });
+            return true;
+        }
+        return false;
+    }
+
     /// <summary>The value GlobalVariables.kwd gives, for resetting a level override to campaign play.</summary>
     public int GlobalValue(VariableTypeId id)
     {

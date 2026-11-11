@@ -125,6 +125,17 @@ public static class Recipes
                     || !b.RepointVariable(VariableTypeId.AverageTime, VariableTypeId.MaximumManaGainPerSecond, 60000))
                     throw new InvalidOperationException("Small no longer carries LevelRating and AverageTime overrides");
             }),
+        new("Q498Spells3", "Small",
+            "Q498Spells2 with the spells: Small makes only Possession (2) and Create Imp (4) available (VARIABLES kind 5), "
+            + "so the owner had neither Chicken nor Inferno (2026-11-11). Keeper 4's two spell rows, unused with its AI "
+            + "off, become keeper 3's Inferno (9) and Chicken (11) at availability 3.",
+            b =>
+            {
+                Recipes.All.Single(r => r.Name == "Q498Spells2").Build(b);
+                if (!b.RepointAvailability(AvailabilityKind.Spell, Rival, 2, Keeper, 9, 3)
+                    || !b.RepointAvailability(AvailabilityKind.Spell, Rival, 4, Keeper, 11, 3))
+                    throw new InvalidOperationException("Small no longer carries keeper 4's spell rows 2 and 4");
+            }),
     ];
 
     private const byte HatcheryTerrain = 13;
