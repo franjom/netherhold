@@ -126,9 +126,9 @@ activator. That includes allies, heroes and the neutral player.
 - **123 Stun Imps.** Every worker (`IsWorker`, definition `+0x686` bit 0) of every other player
   is kicked to state 209, *stunned*, after a state-move test (`0x00477310`, SetState's transition
   rule asked without a transition: `functions/00477310.md`). State 209's handler (`0x00481020`) plays sound 199, begins action 52 and sets state 255, whose handler (`0x004810E0`) times `StunDuration` from the state's start turn (`functions/00481020.md`). Built as `StatusEffectRules.StunFromStarter`.
-  The owner's `Q747Specials` run (2026-11-11, no capture): keeper 4's Imps fell, got up in about 2 s, then
-  showed *stunned* for about 5 s more. The Imp's `StunDuration` is 0, so 255 alone would not hold them;
-  where the rest comes from is unread (Q759).
+  The owner's `Q747Specials` capture (2026-11-11, `q747a.dk2cap`): keeper 4's six Imps are in 255 the
+  turn after the box, 257 the next, and up 12 turns later, about 3 s in all, as ours. 209 never shows
+  in a captured turn. Off a room they then stand in 250 (Q759).
 - **124 Receive Imps.** It takes the first creature type with `IsWorker`, in the world's
   creature-type order: the Imp in shipped data. It creates `SpecialReceiveImpsAmount` (188; 10)
   of them for the keeper (`0x004B78D0`). They are spaced evenly on a circle of radius two tiles

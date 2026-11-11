@@ -185,6 +185,27 @@ public class CreatureStatusEffectTests
         Assert.Equal(DropLandingRules.StandingState, stunned.Dk2StateId);
     }
 
+    /// <summary>The owner's Q747Specials capture (q747a.dk2cap, Q759): keeper 4's Imps, stunned by the Stun
+    /// Imps special in a chamber off any room, go 255, 257 and then 250, as any creature does; 257's
+    /// tail (0x00481351) has no worker exclusion.</summary>
+    [Fact]
+    public void StunImps_Q747Capture_AWorkerGettingUpOffARoomStandsIn250NotIdle()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 8, 14);
+        ObjectState box = world.SpawnObject(db, Dk2TerrainFixture.StunImpsSpecialObjectId, PlayerIds.Neutral, (2 * world.Width) + 2);
+        var sim = new GameSimulation(db, world, 1,
+            [new SpecialSystem(), new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem()]);
+
+        sim.Tick(InputFrame.Of(new Commands.ActivateSpecialCommand(Keeper, box.Id)));
+        Assert.Equal(255, imp.Dk2StateId);
+        sim.Run(1);
+        Assert.Equal(DropLandingRules.GettingUpState, imp.Dk2StateId);
+
+        sim.Run(40);
+        Assert.Equal(DropLandingRules.StandingState, imp.Dk2StateId);
+    }
+
     [Fact]
     public void AFrozenCreatureIsNotStunned_TheRuleRefusesTwoFiftyFiveFromTwoEighteen()
     {
