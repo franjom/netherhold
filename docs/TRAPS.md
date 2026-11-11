@@ -46,9 +46,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - `dotnet run -m:1 -- ...` forwards the unrecognized MSBuild switch to the app; use `dotnet build -m:1`, then run the built DLL.
 
-- If Codex's Windows shell fails before startup with `setup refresh had errors`, an approved command outside the sandbox can still run; Docker context-mode uses `/workspace`, not Windows drive paths.
-
-- Docker MCP can list zero tools when a host mount is rejected; inspect `docker mcp gateway run --profile local --dry-run --verbose` and see `tools/context-mode/README.md` for the read-only allowlist.
+- If Codex's Windows shell fails before startup with `setup refresh had errors`, an approved command outside the sandbox can still run.
 
 - `git add` can stage deletions before rejecting an ignored path; inspect the index before retrying, since already-staged deletions no longer match a pathspec.
 
@@ -226,7 +224,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Host Python has Pillow but no NumPy; Blender's bundled Python supplies NumPy for mesh analysis.
 - Direct `.ps1` execution is blocked in the Codex host; use a process-scoped `powershell -NoProfile -ExecutionPolicy Bypass -File` invocation.
 - Workbench final renders do not reliably show `Object.show_wire`; label these clay views, not wireframe evidence.
-- Context-mode subprocess writes are discarded with its sandbox; use native tools for persistent build logs and artifacts.
 
 - A context-mode upgrade can arrive without `node_modules`, and FTS5 search then silently returns
   only old content; `ctx_doctor` names it. Install the bundle's externals out of tree with
@@ -328,7 +325,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Restoring source with `Copy-Item` can preserve a timestamp older than the compiled DLL; touch the restored file or rebuild before trusting an incremental regression retest.
 - Windows PowerShell Set-Content defaults to a legacy code page; pass -Encoding UTF8 for Python scripts containing non-ASCII prose.
 - An effect's GenerateIds are effect ids, not element ids, when the effect has flag `0x40` (types 4 and 18); a dump that resolved them as elements made the Inferno look like one spark (shot-effects.md §5).
-- Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here. Docker context-mode exposes this checkout read-only at /workspace, not F:/DK2Evidence.
+- Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here.
 - Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.
 - Windows PowerShell can strip nested quotes from Python `-c` arguments; use a script file for replacements containing quoted prose.
 - Keep isolated Unity project paths short: PackageCache importer paths can hit MAX_PATH (260 chars) and fail even when the project copy succeeded.
