@@ -141,7 +141,7 @@ runs only when that move is refused:
   with `KickToState(1)`.
 
 The kick's leave from category 15 frees the device. In the recruit a taken kick also zeroes `+0x64`,
-`+0x66` and `+0x68` (`0x004BDF17`–`0x004BDF1F`), the animation words 135's handler zeroes: presentation.
+`+0x66` and `+0x68` (`0x004BDF17`–`0x004BDF1F`), the words 135's handler zeroes; `+0x68` is the wall wheel's roll (functions/00499300.md), which `CallToArmsRules.Recruit` zeroes (ADR-0740).
 
 **Ours.** `CallToArmsRules.Recruit` kicks a willing torturee to 135 before 190 (idle if 190 is
 refused). Not built: the Heart's responder. A conversion goes 131 → 1, the same leave.

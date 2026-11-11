@@ -42,8 +42,9 @@ public sealed class TortureSystem : ISimulationSystem
             byte keeper = TortureRules.KeeperOf(creature);
             // The chamber freed, taken (0x004F1FB0), rebuilt (0x004F1F10) or beside a changed tile
             // (0x004E44E0) kicks its holders to 136 as a lost device does (ADR-0406).
+            ObjectState? device = null;
             if (RoomEvictRules.Kicked(world, database, creature, RoomTypeId.TortureChamber)
-                || TortureRules.FreeDeviceAt(world, database, keeper, here, creature.Id) is null)
+                || (device = TortureRules.FreeDeviceAt(world, database, keeper, here, creature.Id)) is null)
             {
                 // The device is gone: 131 goes to 136, which gets onto another free one within
                 // reach (ADR-0200). Failing that, or with the chamber gone, a captive standing
@@ -57,15 +58,59 @@ public sealed class TortureSystem : ISimulationSystem
                     continue;
                 }
 
+                creature.TortureRoll = 0; // 136's failure tail (0x00484CE0)
                 Free(context, creature, "device_gone");
                 continue;
             }
+
+            if (creature.Dk2StateId == TortureRules.TorturedState) TurnTheWheel(context, creature, device, here);
 
             if (CreatureStateMachine.UpdatingCategory(creature) != CreatureStateCategory.Torture) continue;
             if (!CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed)) continue;
 
             Act(context, creature, keeper);
         }
+    }
+
+    /// <summary>A victim on a wall wheel, each turn. First the device action's handler (<c>0x00499300</c>):
+    /// once a game second while the roll is in <c>[0x3A0, 0x460)</c>, the trough under the wheel raises
+    /// its effect at the trough's point, owned by the victim's own keeper, with the victim's heading;
+    /// water before coals, and nothing without a trough. That effect is not behind the sound switch
+    /// <c>0x00759ADC</c>. Then 131's body turns the victim a step (<c>0x00484742</c>).</summary>
+    private static void TurnTheWheel(SimulationContext context, CreatureState creature, ObjectState device, int here)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        if (RoomIndex.RoomAt(world, database, here) is not RoomInstance room
+            || !TortureRules.OnWallWheel(world, room, device)) return;
+
+        if (creature.TortureRoll is >= TortureRules.TroughEffectFirstRoll and < TortureRules.TroughEffectEndRoll
+            && (context.Tick.Value + 1) % SimulationTiming.OriginalTicksPerGameSecond == 0
+            && Trough(world, here) is ObjectState trough)
+        {
+            ushort effect = trough.ObjectTypeId == TortureRules.WaterTroughObjectId
+                ? TortureRules.WaterEffectId : TortureRules.CoalsEffectId;
+            (int x, int y) = AutoFurnitureRules.FurniturePosition(world, database, room, trough);
+            int z = EggLaunchRules.FloorHeight(world, database, new Fp32(x), new Fp32(y));
+            context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(effect),
+                new PlayerId(creature.OwnerPlayerId), new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)),
+                new Dk2Angle((ushort)creature.Heading)));
+        }
+
+        TortureRules.Roll(world, creature, device.TileIndex);
+    }
+
+    /// <summary><c>0x004537E0</c> on the device's tile: a water trough, else a coals one.</summary>
+    private static ObjectState? Trough(WorldState world, int tileIndex)
+    {
+        ObjectState? coals = null;
+        foreach (ObjectState thing in world.Objects)
+        {
+            if (thing.TileIndex != tileIndex || thing.InHand) continue;
+            if (thing.ObjectTypeId == TortureRules.WaterTroughObjectId) return thing;
+            if (thing.ObjectTypeId == TortureRules.CoalsTroughObjectId) coals ??= thing;
+        }
+        return coals;
     }
 
     private static void Act(SimulationContext context, CreatureState creature, byte keeper)
@@ -91,11 +136,12 @@ public sealed class TortureSystem : ISimulationSystem
             string information = "none";
             if (creature.OwnerPlayerId != keeper)
             {
-                int reward = TortureInformationRules.Give(world, context.Rng, definition, creature.OwnerPlayerId, keeper);
+                (int reward, RevealResult revealed) = TortureInformationRules.Award(
+                    world, database, context.Rng, definition, creature.OwnerPlayerId, keeper);
                 information = reward.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 context.Emit(SystemName, "information",
                     $"keeper={keeper} about={creature.OwnerPlayerId} reward={reward}" +
-                    (reward == TortureInformationRules.Reveal ? " reveal=unbuilt" : ""));
+                    (reward == TortureInformationRules.Reveal ? $" reveal={revealed}" : ""));
             }
             context.Emit(SystemName, "tortured_to_death",
                 $"creature={creature.Id} type={definition.Name} owner={creature.OwnerPlayerId} " +
@@ -122,10 +168,18 @@ public sealed class TortureSystem : ISimulationSystem
             return;
         }
 
+        // 0x004F2800, in its order: message 57 to the old owner, the owner change, every grievance
+        // wiped, the converting keeper's rescue bit cleared, message 58 to the new owner, creature
+        // event 9 on the convert (its tree now reads the new owner), then the statistic.
         byte from = creature.OwnerPlayerId;
-        context.World.ChangeCreatureOwner(context.Database, creature, keeper);
-        context.World.Player(keeper).Statistics.CreaturesConverted++; // 0x004F28FC
+        if (world.HasPlayer(from)) world.Messages.Post(world, from, PlayerMessageKind.CreatureConvertedAway, creature.Id, 0);
+        world.ChangeCreatureOwner(database, creature, keeper);
+        CreatureAngerRules.ForgetAll(world, definition, creature);
         RescuePriorityRules.Set(creature, keeper, false);
+        world.Messages.Post(world, keeper, PlayerMessageKind.CreatureConverted, creature.Id, 0);
+        context.FireCreatureEvent(creature, CreatureTriggerEvent.Converted);
+        creature.TortureRoll = 0; // 0x004F28E9
+        world.Player(keeper).Statistics.CreaturesConverted++; // 0x004F28FC
         context.Emit(SystemName, "converted",
             $"creature={creature.Id} type={definition.Name} from={from} to={keeper} " +
             $"at=({creature.Tile.X},{creature.Tile.Y})");

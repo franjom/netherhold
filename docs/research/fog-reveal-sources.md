@@ -142,8 +142,8 @@ Before either pass, a closed door at the source tile ends the update too
    and all four (±4,±4) corners are therefore absent even without blockers.
    The selected boundary still needs an original capture. For a
    creature the local player does not own, the radius is 1, but only while
-   `+0x475` counts down and `+0x476` names the local player (§3.7). Otherwise
-   there is no pass.
+   `+0x475` counts down and `+0x476` names the local player (§3.7; built, ADR-0740, guard order in
+   `functions/0048CC90.md`). Otherwise there is no pass.
 2. **Scanned: a strict circle, no occlusion.** Local player's creatures only.
    The radius is `def+0x783`, which the loader copies unrounded from staging
    `+0x10F1`. That is file `0x0D01`, **`PerceptionRange`**, `0x6000` (6
@@ -156,8 +156,8 @@ Before either pass, a closed door at the source tile ends the update too
 
 **Callers (13 sites).**
 - The creature update `0x00488930`: every update while the creature is
-  **Possessed** (`+0x3E6` bit 7, at `0x00488A6E`), and again at `0x0048A817`
-  under a condition not traced.
+  **Possessed** (`+0x3E6` bit 7, at `0x00488A6E`), and again at `0x0048A817`,
+  gated on a tile change (ADR-0740).
 - Level start (§3.3).
 - The hand drop `0x004BC710`.
 - Imp dig and mine work (`0x00496E00`, `0x004971D0`), which opens new ground.
@@ -257,10 +257,7 @@ Frosty's Lair's startup use is mapped in [portal-visibility.md](portal-visibilit
 
 ### 3.7 The Torture Chamber's information — `0x004F2370`
 
-Reward 11 either explores the first of the victim owner's rooms (the chain from the player's
-`+0x36`) whose first tile is not yet explored, every tile of it, or tags one of that player's
-creatures that stands on unexplored ground: `+0x475 = 16`, `+0x476 = the chamber's owner`. The tag
-feeds §3.1's radius-1 square. The heart branch has no local-player test in the lines read.
+Reward 11 either explores a room of the victim keeper, newest first, whose first slab is not yet explored (every tile of its chain through `0x00454B80`), or tags that keeper's first creature standing on unexplored ground: `+0x475 = 16`, `+0x476 = the chamber's keeper`. The walk, the skip test and the redraw command are in `torture-information.md` §4. The tag feeds §3.1's radius-1 square. Built (ADR-0740): `TortureInformationRules.RevealTo` and `FogOfWarSystem.TortureSightPass`, which use the chamber keeper's explored layer where DK2 uses the local machine's; with fog off nothing happens.
 
 ### 3.8 Game action `0x79` — `0x00514240`
 
@@ -320,7 +317,7 @@ Sight presentation is separate (`keeper-spell-sight.md`).
 | Source | Hook | State we lack |
 |---|---|---|
 | Split the layers | Built: independent masks, hash/snapshot, terrain selection and entity gates | none |
-| §3.1 explored square | Built: `DiscoverySight` reproduces the native table and angular grid; `FogOfWarSystem` applies the clamped `DistanceCanSee` square and `DiscoveryRules` the whole-room cases | the `+0x475`/`+0x476` torture tag |
+| §3.1 explored square | Built: `DiscoverySight` reproduces the native table and angular grid; `FogOfWarSystem` applies the clamped `DistanceCanSee` square and `DiscoveryRules` the whole-room cases | none |
 | §3.1 scanned circle | Built with exact position, per-term `>>12`, prisoner exclusion and source-tile closed-door guard (2026-10-14). Per-tick cadence and `InHand` exclusion stay ours | none |
 | §3.1 cadence | Tile-change and event-driven in DK2, every tick in ours; this can reveal earlier or re-explore after a clear | native request cadence |
 | §3.2 terrain change | Built in `TileWork.Convert` and `RoomRules.Place`/`Unmake`: ownership reveal and old-terrain re-shroud | remaining direct defeat/script terrain writes |
@@ -329,7 +326,7 @@ Sight presentation is separate (`keeper-spell-sight.md`).
 | §3.4 heart disc | do not build while var 19 is 4 (Q434) | — |
 | §3.5 room owner | Built: `RoomHealthRules.TransferOwnership` explores each slab for its new owner | remaining direct defeat/script ownership writes |
 | §3.6 action 17 | Built: `TriggerExecutor` explores or un-explores the rectangle for every viewer | none |
-| §3.7 torture | `TortureRules`, when reward 11 is built | the reward table |
+| §3.7 torture | Built (ADR-0740): `TortureInformationRules.RevealTo` explores a room or tags a creature | none |
 | §3.8, §3.9 | wait for their issuers | the game action, the ability |
 
 ## 6. Campaign start: nothing explores the rock around an owned room (Level6a, 2026-11-05)
