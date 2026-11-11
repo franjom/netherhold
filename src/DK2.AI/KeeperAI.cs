@@ -116,6 +116,9 @@ public sealed class KeeperAI
         if (budget > 0 && State.CallToArmsInUse) battle.TestRemoval();
         if (budget > 0) budget = retreat.Run(budget);
 
+        // 8. The specials step (0x00500DEF), every tick, spending no allowance.
+        KeeperSpecialStep.Run(view, commands);
+
         // 9. The training roll, drawn with or without allowance; readiness grants levels as it
         // tests, and a not-ready army gets the training moves (0x004FF5C0).
         if (_rng.NextInt(100) < 50 && budget > 0 && !readiness.ArmyReady())
