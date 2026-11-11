@@ -49,10 +49,12 @@ Ordered by shipped use and ordinary gameplay first.
    it; [0x0046D3C0](functions/0046D3C0.md) does the same for kind-12 corpses.
    Built (ADR-0742).
 6. **CREATE_PORTAL_GEM, world action 2 ([#1034](https://github.com/tonihele/OpenKeeper/pull/1034)).**
-   Five records in four campaign levels; answers the action-2 half of Q755
-   (level-placed gems are still unread). Fresh read: arm
-   `0x00518E92` uses the tile as stored (zero-based), centre plus floor height
-   from `0x004545C0`, then `Object_Create`.
+   Five records in four campaign levels; answers the action-2 half of Q755.
+   Fresh read: arm `0x00518E92` uses the tile as stored (zero-based), centre
+   plus floor height from `0x004545C0`, then `Object_Create`. Levels 18-20 also
+   place a gem on the same tile, which the THINGS loader `0x00520BB0` skips
+   (`0x00520BCA`), so the action is what makes it. Built (ADR-0748):
+   `TriggerExecutor.CreateObject` and `ThingProjection.PlaceObject`.
 7. **LEVEL_PAY_DAY, player event 46 ([#1032](https://github.com/tonihele/OpenKeeper/pull/1032)).**
    Fresh read of [0x004BE1A0](functions/004BE1A0.md): fired after the wage loop.
    One record, the level 1 tutorial pay-day speech, which never plays now.
@@ -135,7 +137,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 |---|---|---|
 | [1032](https://github.com/tonihele/OpenKeeper/pull/1032) | Gap: P46 producer | Fresh read of [0x004BE1A0](functions/004BE1A0.md): event at `0x004BE250` after the wage loop. Add `FirePlayerEvent` in `Systems/PaydaySystem.Clock`. |
 | [1033](https://github.com/tonihele/OpenKeeper/pull/1033) | Covered: hero gate collapse | `TriggerExecutor.CollapseGate`, `HeroGatesOnRealDataTests`; [0x004E9130](functions/004E9130.md). Heart arm declined (Q743). |
-| [1034](https://github.com/tonihele/OpenKeeper/pull/1034) | Gap: world action 2 | Fresh read of arm `0x00518E92`; Q755. Spawn at the zero-based tile centre with floor height. |
+| [1034](https://github.com/tonihele/OpenKeeper/pull/1034) | Built: world action 2 (ADR-0748) | Fresh read of arm `0x00518E92`; Q755. Spawn at the zero-based tile centre with floor height. `TriggerExecutor.CreateObject`; the loader's gem skip is `ThingProjection.PlaceObject`. |
 | [1035](https://github.com/tonihele/OpenKeeper/pull/1035) | Deliberate OpenKeeper deviation | Fresh read of arm `0x00518F41`: stores to local player `+0x19E`/`+0x1BE`; no reader draws it. Do not add UI. |
 | [1036](https://github.com/tonihele/OpenKeeper/pull/1036) | Gap: creature action 35 | [Action 35](trigger-action-arms.md); fresh read of [0x00487C70](functions/00487C70.md) killed-event gate. Built (ADR-0744): byte 0 sets `DeathUncounted` and the creature is removed. |
 | [1037](https://github.com/tonihele/OpenKeeper/pull/1037) | Covered: system messages toggle | `TriggerState.SetNotificationsEnabled`, `PlayerMessages`; [0x004C4600](functions/004C4600.md). |

@@ -109,7 +109,7 @@ Lord dies on tile (14,21) and the Reaper takes the gem inside the finale window 
 receipted live seed-1 run of the campaign player (study
 `F:/DK2Evidence/studies/campaign-player-l01-acceptance--2026-11-09--002`) the Lord dies on tile
 (15,24) at tick 2335, the win is at tick 2360 and `gem_taken` at tick 2490, 130 ticks later.
-A map-placed gem: Q755.
+A gem a level script makes with world action 2 stands at its tile's centre and floor height; the THINGS loader skips a gem the map places (ADR-0748, Q755).
 
 ## 3. The Reaper's states 228-234
 

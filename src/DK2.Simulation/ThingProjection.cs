@@ -118,8 +118,7 @@ public static class ThingProjection
                     break;
 
                 case ObjectThing t:
-                    PlaceObject(world, database, t);
-                    objects++;
+                    if (PlaceObject(world, database, t)) objects++;
                     break;
 
                 case ActionPointThing t:
@@ -272,14 +271,19 @@ public static class ThingProjection
         return state;
     }
 
-    private static void PlaceObject(WorldState world, GameDatabase database, ObjectThing thing)
+    /// <summary>The Things loader's object handler <c>0x00520BB0</c>. A Portal Gem (type 0x1C) is
+    /// skipped before anything is made (<c>0x00520BCA</c>); Levels 18, 19 and 20 place one where their
+    /// script later makes it with world action 2.</summary>
+    private static bool PlaceObject(WorldState world, GameDatabase database, ObjectThing thing)
     {
+        if (thing.ObjectId == TriggerExecutor.PortalGemObjectId) return false;
         ObjectState state = world.SpawnObject(
             database, thing.ObjectId, thing.PlayerId, (thing.Y * world.Width) + thing.X);
 
         // MoneyAmount is what a placed gold pile is worth. It is zero on every
         // object that is not gold, so this needs no type test.
         state.GoldHeld = thing.MoneyAmount;
+        return true;
     }
 
     private static void PlaceActionPoint(WorldState world, GameDatabase database, ActionPointThing thing)
