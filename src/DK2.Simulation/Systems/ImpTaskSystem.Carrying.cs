@@ -338,7 +338,8 @@ public sealed partial class ImpTaskSystem
             _bodyTiles,
             at => InScanRange(at)
                   && BodyToCarryAt(context, creature, definition, at, corpses, graveyard) is { } candidate
-                  && PointReachable(context, creature, candidate.PosX, candidate.PosY),
+                  && PointReachable(context, creature, candidate.PosX, candidate.PosY)
+                  && MayTakeBodyTask(context, creature, candidate, corpses),
             _route);
 
         if (!found) return false;
@@ -346,6 +347,14 @@ public sealed partial class ImpTaskSystem
         TilePos at = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
         CreatureState? body = BodyToCarryAt(context, creature, definition, at, corpses, graveyard);
         if (body is null) return false;
+
+        // 0x0046D810 and 0x0046D3C0 kick a held kind-13 or kind-12 task's holder to 10 before their own
+        // walk (0x0048AD30).
+        if (BodyTaskHolder(context, creature, world.TileIndex(at), corpses) is { } holder)
+        {
+            TakeTaskFrom(context, holder, creature, world.TileIndex(at));
+            ForgetBody(holder);
+        }
 
         // A walk that does not start takes nothing (Q590).
         if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot))
@@ -442,6 +451,36 @@ public sealed partial class ImpTaskSystem
         }
 
         return best;
+    }
+
+    /// <summary>The worker holding the kind-13 (collapsed creature) or kind-12 (corpse) task of this
+    /// body's tile: one of the asker's keeper walking to pick up that kind of body there. DK2 keeps
+    /// one task a body tile, so a second body of the kind on the tile is held too.</summary>
+    private static CreatureState? BodyTaskHolder(SimulationContext context, CreatureState asking, int tileIndex, bool corpses)
+    {
+        ImpTaskKind kind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
+        foreach (CreatureState other in context.World.Creatures)
+        {
+            if (other.Id == asking.Id || other.OwnerPlayerId != asking.OwnerPlayerId
+                || other.Activity != CreatureActivity.FetchingBody
+                || other.LastTaskKind != kind) continue;
+            if (other.TargetTileIndex == tileIndex) return other;
+        }
+        return null;
+    }
+
+    /// <summary>The per-body test of <c>0x0046D810</c> (collapsed) and <c>0x0046D3C0</c> (corpses): a
+    /// free task is taken; a held one only from a holder that may lose it
+    /// (<see cref="TaskStealing.CanLoseItsTask"/>) and is farther from the body than the asker,
+    /// strictly, each measured from where it stands to the body's own position. For a collapsed
+    /// creature DK2 reads the state-object word <c>+0x252</c> of the body, not the holder; nothing
+    /// read clears it on a collapse, so ours takes it as set (inferred).</summary>
+    private static bool MayTakeBodyTask(SimulationContext context, CreatureState asking, CreatureState body, bool corpses)
+    {
+        if (BodyTaskHolder(context, asking, context.World.TileIndex(body.Tile), corpses) is not { } holder) return true;
+        return TaskStealing.CanLoseItsTask(holder)
+            && TaskStealing.DistanceSquared(asking.PosX, asking.PosY, body.PosX, body.PosY)
+                < TaskStealing.DistanceSquared(holder.PosX, holder.PosY, body.PosX, body.PosY);
     }
 
     private static bool IsOwnCasualty(CreatureState worker, CreatureState body) =>

@@ -17379,3 +17379,29 @@ and 217's two-phase fall machine are unbuilt; `Fall` does not test `CarriedByCre
 `InHand`, and `ActionUntilTick` is not cleared when a rescue leaves 216; the Thief's z drops
 4096 to 3924 on 1865 in 216, unexplained. Shot_Update runs Collide, the per-tick damage, then
 the mover; ours moves first, and a hit shot does not move in ours.
+
+## ADR-0742 - a nearer imp takes over a collapsed creature's carry
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** imps-tile-work
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1023) found that
+several of our imps could walk to one collapsed creature: ours kept no holder for the
+carry. The rescue selector `0x0046D810` raises one kind-13 task on each body's tile
+and reads its holder. A free task is taken. A held one is taken only from a live
+creature with a state machine, not teleporting (51, 52), that may enter state 10, and
+that is strictly farther from the body than the taker (each axis `|d|^2 >> 12`,
+summed); the holder is kicked to 10 (`0x0048AD30`) before the taker's walk.
+
+The corpse selector `0x0046D3C0` does the same with a kind-12 task, testing the holder.
+
+**Decision.** `ImpTaskSystem`'s body search treats a worker of the same keeper walking
+to pick up the same kind of body (collapsed creature or corpse) on a tile as that
+tile's holder. A body whose
+holder cannot lose the task (`TaskStealing.CanLoseItsTask`) or is no farther is
+passed over; otherwise the holder loses its task (`TakeTaskFrom`) and the taker walks.
+
+**Consequences.** Hash/save 469, pin `0x358289A09AF5DF1C`; no new state, recorded runs change.
+Ours still picks the nearest body by walking distance, not DK2's three ordered loops,
+and DK2's test of the collapsed body's own `+0x252` (a state-object word) is taken as
+set, as nothing read clears it on a collapse. When a taker's walk fails after the kick,
+DK2 keeps the kicked holder named in the slot and tries the next body; ours ends the
+search and keeps no stale holder.
