@@ -136,6 +136,17 @@ public static class Recipes
                     || !b.RepointAvailability(AvailabilityKind.Spell, Rival, 4, Keeper, 11, 3))
                     throw new InvalidOperationException("Small no longer carries keeper 4's spell rows 2 and 4");
             }),
+        new("Q498Spells4", "Small",
+            "Q498Spells3 with chamber A's Goblin held: in the Q498Spells3 run (2026-11-11) it walked into keeper 4's "
+            + "Hatchery (room 1127, under the owner's fog) by turn 50, before any cast. A locked keeper-3 Wooden Door "
+            + "(DoorThing.Flags bit 0, doors-and-traps.md) at (23,4) holds it in the chamber until the owner unlocks it "
+            + "after the Chicken.",
+            b =>
+            {
+                Recipes.All.Single(r => r.Name == "Q498Spells3").Build(b);
+                var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
+                b.InsertThing(door with { X = 23, Y = 4, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
+            }),
     ];
 
     private const byte HatcheryTerrain = 13;
