@@ -1288,7 +1288,7 @@ public sealed class TriggerExecutor
     /// the terrain change, invalidates <see cref="TriggerRun.Rooms"/>; each scheduled walk
     /// also clears that cache as it starts, after intervening simulation work.</summary>
     public static bool Performs(byte type) =>
-        type is 1 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 50;
+        type is 1 or 2 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 50;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1416,6 +1416,7 @@ public sealed class TriggerExecutor
             return true;
         }
         if (record.Type == 1) return CreateCreature(record, context, p, run);
+        if (record.Type == 2) return CreateObject(record, context, p, partial);
         if (record.Type == 14) return CreateParty(record, context, p, run);
         if (record.Type == 22) return AlterTerrain(record, context, p, run);
         if (record.Type == 32) return CollapseGate(record, context, p, run);
@@ -1431,6 +1432,25 @@ public sealed class TriggerExecutor
             ? FlagWriteMode.Assign
             : (modeByte & 0x10) != 0 ? FlagWriteMode.Add : FlagWriteMode.Subtract;
         _state.Write(checked((byte)p["FlagId"]), mode, operand);
+        return true;
+    }
+
+    /// <summary>World action 2 (arm <c>0x00518E92</c>): an object of type byte 0 for player byte 1 at
+    /// the centre of the zero-based tile in the dword at +4, at its floor height (<c>0x004545C0</c>),
+    /// through <c>Object_Create</c>, whose result is ignored, so an undefined type makes nothing. The
+    /// shipped records make the Portal Gem of Levels 15A and 18-20 (ADR-0748). The player byte stands
+    /// for its TagId (Q305). DK2 does not test the tile; ours skips one off the map.</summary>
+    private bool CreateObject(
+        TriggerRecord record, TriggerContext context, IReadOnlyDictionary<string, long> p, List<BlockedTrigger> partial)
+    {
+        if (_world is null || _database is null) return Unperformed(record, context, partial);
+        int x = unchecked((ushort)p["PosX"]), y = unchecked((ushort)p["PosY"]);
+        byte objectTypeId = Byte(p, "ObjectId");
+        if (!_world.Contains(x, y) || _database.ObjectById(objectTypeId) is null) return true;
+        ObjectState thing = _world.SpawnObject(_database, objectTypeId, new PlayerId(Byte(p, "PlayerId")), (y * _world.Width) + x);
+        thing.PosX = CreatureState.CentreOf(x);
+        thing.PosY = CreatureState.CentreOf(y);
+        thing.PosZ = EggLaunchRules.FloorHeight(_world, _database, new Fp32(thing.PosX), new Fp32(thing.PosY));
         return true;
     }
 

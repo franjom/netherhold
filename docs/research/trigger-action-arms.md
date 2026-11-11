@@ -161,3 +161,30 @@ trigger 85 and Level 7's trigger 29 run the pair on a hero's creation (condition
 **STRONGLY INFERRED** for both arms; arm `0x14` was re-read by a second reader on 2026-10-17, arm
 `0x2A` has one reader. Action 20 ships in 14 levels and 42 in 21. 20 is performed in ours
 (ADR-0495); 42 stays partial.
+
+## World action 2 makes an object on a zero-based tile
+
+World arm `0x00518E92` of [`0x00518AD0`](functions/00518AD0.md): byte 00 is the object type,
+byte 01 the player, the dword at +4 the tile (x the low word, y the high word) **as written**,
+unlike action 22's one-based tile. The object goes to the tile's centre, `(n << 12) + 0x800`
+on each axis, at the floor height there (`0x004545C0`), through `Object_Create` (`0x004B7A90`)
+with the player record's TagId. The result is ignored and the arm returns 1. The only zero test
+is on the computed player address (`0x00518EC8`); the tile is not checked.
+
+Five shipped records, all type 28, the Portal Gem, for player 1:
+
+| Level | Tile | When |
+|---|---|---|
+| 15A | (0, 0) | a creature condition (type 4) in trigger 31 |
+| 18 | (47, 53) | flag 1 at most 1 (trigger 11), and flag 1 equal to 2 (trigger 13) |
+| 19 | (61, 41) | flag 5 equal to 3 (trigger 18) |
+| 20 | (49, 5) | flag 19 equal to 2 (trigger 57) |
+
+Levels 18, 19 and 20 also place a gem on that same tile in THINGS, but the object loader
+[`0x00520BB0`](functions/00520BB0.md) skips type 0x1C before making anything (`0x00520BCA`), so the
+script's gem is the only one. Level 15A's names the map corner; the creature its trigger hangs
+off plays no part in the world arm.
+
+**STRONGLY INFERRED.** Both arms are read from the disassembly by one reader. Built in
+`TriggerExecutor.CreateObject` and `ThingProjection.PlaceObject` (ADR-0748). A tile off the map
+makes nothing in ours; no shipped record names one.

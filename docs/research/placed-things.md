@@ -166,17 +166,19 @@ claim in §3 look false, because an empty slot's `InitialHealth` is 0.
 ## 6. What the projection places, and what it does not
 
 `ThingProjection.Place` places or stores every parsed THINGS record except rooms,
-which it counts as already-in-the-grid. Over the whole corpus that is **1944
-creatures, 788 objects, 1152 action points, 940 doors, 959 traps, 220 hero
-parties and one effect generator**, with 275 rooms recognised and zero records
-left not-yet-projected.
+which it counts as already-in-the-grid, and the Portal Gems of Levels 18-20, which
+the loader `0x00520BB0` skips (`0x00520BCA`, ADR-0748; the level script makes them
+with world action 2). Over the whole corpus that is **1944 creatures, 785 objects
+(788 records), 1152 action points, 940 doors, 959 traps, 220 hero parties and one
+effect generator**, with 275 rooms recognised and zero records left
+not-yet-projected.
 
 | record | status |
 |---|---|
 | KeeperCreatureThing | placed, with its own `PlayerId` |
 | NeutralCreatureThing | placed as `PlayerIds.Neutral` — the record carries no player field |
 | GoodCreatureThing | placed as `PlayerIds.Good` — likewise |
-| ObjectThing | placed, `MoneyAmount` becoming the object's gold |
+| ObjectThing | placed, `MoneyAmount` becoming the object's gold; a Portal Gem is skipped |
 | RoomThing | recognised, not placed (§4) |
 | ActionPointThing | placed as hashed level state (ADR-0103) |
 | DoorThing, TrapThing | verbatim ordered state without behaviour (ADR-0106) |

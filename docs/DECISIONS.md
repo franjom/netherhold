@@ -17454,3 +17454,22 @@ and `ObjectOn` ignore an object in the hand, which DK2 unlinks from its tile (`0
 Still deviating: with the bit set DK2 does not drop the carried thing but writes its
 health to 0 (its slot `+0x20`), so a carried object vanishes and a carried body goes
 through its own bookkeeping; the dragged thing (slot `+0x70`) is unread; ours drops both. Byte 1 has no shipped record.
+
+## ADR-0748 - level scripts make objects; a level-placed Portal Gem is not loaded
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** campaign-triggers, data-formats
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1034) found world
+action 2 unperformed. Its arm (`0x00518E92`) makes object type byte 0 for player byte 1 at
+the centre of the zero-based tile in the dword at +4, at the floor height there
+(`0x004545C0`), through `Object_Create`, ignoring the result. Five shipped records make the
+Portal Gem: Level 15A at tile (0, 0), Level 18 (twice), 19 and 20 on the tile their THINGS
+place a gem. The THINGS object loader (`0x00520BB0`) skips type 0x1C before making anything
+(`0x00520BCA`). Ours loaded those gems at point (0, 0), so a finale would seek the map corner.
+
+**Decision.** `TriggerExecutor.CreateObject` performs action 2 at the tile centre with
+`EggLaunchRules.FloorHeight`; an undefined type makes nothing and the action succeeds.
+`ThingProjection` skips a placed Portal Gem and does not count it.
+
+**Consequences.** Hash/save 473, pin `0xAF20C8CFAC1272A9`; no new state, recorded runs
+change. Deviation: DK2 does not test the tile; ours makes nothing off the map (no shipped
+record names one). Other placed objects still keep point (0, 0) (Q755).

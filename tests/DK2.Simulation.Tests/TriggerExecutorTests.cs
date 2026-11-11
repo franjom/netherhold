@@ -955,7 +955,8 @@ public class TriggerExecutorTests
     [Fact]
     public void OnlyActionsThatCannotAlterTerrainArePerformed()
     {
-        // 22 is the one that can, and it clears TriggerRun.Rooms after the write. 32 ruins a
+        // 22 is the one that can, and it clears TriggerRun.Rooms after the write. 2 makes an
+        // object and nothing more. 32 ruins a
         // gate's tiles without touching their terrain, which no room condition reads; 18 writes
         // only alliance bytes; 46 and 50 only the HUD's Current Holder and MaximumSlaps.
         // Anything added here without doing the same brings back the bug this test
@@ -964,7 +965,7 @@ public class TriggerExecutorTests
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
         Assert.Equal(
-            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)9, (byte)10, (byte)11, (byte)14, (byte)16, (byte)17, (byte)18, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)46, (byte)47, (byte)50],
+            [(byte)1, (byte)2, (byte)6, (byte)7, (byte)8, (byte)9, (byte)10, (byte)11, (byte)14, (byte)16, (byte)17, (byte)18, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)46, (byte)47, (byte)50],
             performed);
     }
 
@@ -1160,6 +1161,69 @@ public class TriggerExecutorTests
                 {
                     ["CreatureId"] = Dk2TerrainFixture.GoblinCreatureId,
                     ["PlayerId"] = Keeper, ["Level"] = level, ["Flag"] = 0x29,
+                    ["PosX"] = x, ["PosY"] = y,
+                },
+            },
+        ];
+        var tree = new TriggerTree(records, 5, playerRoots: []);
+        return new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+    }
+
+    /// <summary>World action 2 (<c>0x00518E92</c>): the object is made on the tile as written,
+    /// zero-based like action 1, at its centre and its floor height (<c>0x004545C0</c>), owned by the
+    /// record's player. Levels 15A, 18, 19 and 20 make their Portal Gem this way.</summary>
+    [Fact]
+    public void CreateObjectMakesItAtTheZeroBasedTileCentreOnTheFloor()
+    {
+        (WorldState world, GameDatabase database) = CreatureWorld();
+
+        TriggerRunResult result = RunCreateObject(world, database, Dk2TerrainFixture.LibraryBookObjectId, x: 4, y: 3);
+
+        ObjectState made = Assert.Single(world.Objects);
+        Assert.Equal(Dk2TerrainFixture.LibraryBookObjectId, made.ObjectTypeId);
+        Assert.Equal(Keeper, made.OwnerPlayerId);
+        Assert.Equal((3 * world.Width) + 4, made.TileIndex);
+        Assert.Equal((4 << 12) + 0x800, made.PosX);
+        Assert.Equal((3 << 12) + 0x800, made.PosY);
+        Assert.Equal(0x1000, made.PosZ);   // a plain floor tile's height
+        Assert.Empty(result.Partial);
+        Assert.Empty(result.Unhandled);
+    }
+
+    /// <summary><c>Object_Create</c> refuses a type with no definition, and the arm ignores its result
+    /// and returns 1: nothing is made and the action succeeds.</summary>
+    [Fact]
+    public void CreateObjectMakesNothingAndSucceedsForAnUndefinedType() =>
+        AssertCreateObjectMadeNothing(objectId: 255, x: 4, y: 3);
+
+    /// <summary>Ours, not DK2's: the arm does not test the tile, and no shipped record names one off the
+    /// map, so ours makes nothing there rather than an object outside the grid.</summary>
+    [Fact]
+    public void CreateObjectOffTheMapMakesNothingInOursAndSucceeds() =>
+        AssertCreateObjectMadeNothing(Dk2TerrainFixture.LibraryBookObjectId, x: 30_000, y: 3);
+
+    private static void AssertCreateObjectMadeNothing(byte objectId, int x, int y)
+    {
+        (WorldState world, GameDatabase database) = CreatureWorld();
+
+        TriggerRunResult result = RunCreateObject(world, database, objectId, x, y);
+
+        Assert.Empty(world.Objects);
+        Assert.Empty(result.Partial);
+        Assert.Empty(result.Unhandled);
+    }
+
+    private static TriggerRunResult RunCreateObject(WorldState world, GameDatabase database, byte objectId, int x, int y)
+    {
+        TriggerRecord[] records =
+        [
+            LevelTime(5, comparison: 5, seconds: 0, child: 0xFFFF),
+            new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = unchecked((ushort)-1), Type = 2,
+                Parameters = new Dictionary<string, long>
+                {
+                    ["ObjectId"] = objectId, ["PlayerId"] = Keeper, ["Unreached_0002"] = 0,
                     ["PosX"] = x, ["PosY"] = y,
                 },
             },

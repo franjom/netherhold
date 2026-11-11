@@ -446,7 +446,7 @@ public class PlacedThingsOnRealDataTests
         Assert.Equal(48, levelsWithDoorsOrTraps);
         Assert.Equal(35, levelsWithHeroParties);
         Assert.Equal(1944, creatures);
-        Assert.Equal(788, objects);
+        Assert.Equal(785, objects);   // 788 authored less the Portal Gems of Levels 18-20 (0x00520BCA skips type 28)
         Assert.Equal(1152, actionPoints);
         Assert.Equal(940, doors);
         Assert.Equal(959, traps);

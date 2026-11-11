@@ -72,6 +72,33 @@ public class PortalGemOnRealDataTests
         Assert.All(world.HeroSlots, slot => Assert.True(slot.IsFree));
     }
 
+    /// <summary>The Things loader (<c>0x00520BB0</c>) skips a level-placed Portal Gem
+    /// (<c>0x00520BCA</c>), so Level 19 starts without one though its map places one at (61, 41).
+    /// The gem comes from world action 2 under trigger 18 once flag 5 is 3, at that tile's centre
+    /// (arm <c>0x00518E92</c>), for player 1.</summary>
+    [InstallFact]
+    public void LevelNineteensGemIsNotPlacedButMadeByItsScriptOnTheMarkedTile()
+    {
+        GameSimulation simulation = Level("level19");
+        WorldState world = simulation.World;
+        Assert.DoesNotContain(world.Objects, o => o.ObjectTypeId == TriggerExecutor.PortalGemObjectId);
+
+        world.Triggers.Write(5, FlagWriteMode.Assign, 3);
+        simulation.Run(2);
+
+        ObjectState gem = Assert.Single(world.Objects, o => o.ObjectTypeId == TriggerExecutor.PortalGemObjectId);
+        Assert.Equal(PlayerIds.Good, gem.OwnerPlayerId);
+        Assert.Equal((41 * world.Width) + 61, gem.TileIndex);
+        Assert.Equal((61 << 12) + 0x800, gem.PosX);
+        Assert.Equal((41 << 12) + 0x800, gem.PosY);
+    }
+
+    [InstallTheory]
+    [InlineData("level18")]
+    [InlineData("level20")]
+    public void ALevelPlacedGemIsDroppedAtLoad(string name) =>
+        Assert.DoesNotContain(Level(name).World.Objects, o => o.ObjectTypeId == TriggerExecutor.PortalGemObjectId);
+
     private static GameSimulation Level(string name)
     {
         string install = Dk2InstallGate.Path;
