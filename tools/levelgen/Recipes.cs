@@ -110,7 +110,7 @@ public static class Recipes
             + "with a corridor to a keeper-4 Hatchery (the chickened walk); B, a keeper-4 Goblin with no way out (the 60 s "
             + "without a fight); C, Prince Felix (immune: the mana is still spent); D, a Knight to target with two Dwarves "
             + "one tile off and one three tiles off (Inferno's one-tile zone, 100 a tick for 30 ticks, and its recast timeout).",
-            SpellChambers),
+            b => SpellChambers(b)),
         new("Q498Spells2", "Small",
             "Q498Spells without the cheat, which crashed DK2 when typed there (2026-11-11): Small's LevelRating and "
             + "AverageTime overrides become DungeonHeartManaGenerationIncreasePerSecond and MaximumManaGainPerSecond, "
@@ -164,6 +164,44 @@ public static class Recipes
                 var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
                 b.InsertThing(door with { X = 23, Y = 4, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
             }),
+        new("Q747Specials", "Small",
+            "ADR-0747's open checks (2026-11-12), on the Q498 chambers with keeper 4's AI off: A, two keeper-4 Imps held "
+            + "by a locked keeper-3 door at (23,4), for Stun Imps (123: how long a stun lasts); B, three boxes on keeper 3's "
+            + "land, Stun Imps at (34,3), Heal All (128) at (35,3) and Kill Creatures (127) at (36,3), clicked with the hand; "
+            + "C, a level-4 Dwarf (Kill Creatures' plain target) and a level-10 Knight; D, two of keeper 3's level-1 "
+            + "Goblins, which the owner drops into C when ready so the Knight knocks one out for Heal All (does a "
+            + "knocked-out creature get up?).",
+            b =>
+            {
+                // Small's own Increase Level boxes are the object template; SpellChambers removes them.
+                var (box, boxImage) = b.Template<ObjectThing>(o => o.ObjectId == 117 && o.TriggerId == 0);
+                SpellChambers(b, q498Creatures: false);
+                b.SetAiFlag(Rival, false);
+                foreach ((int x, byte id) in new[] { (34, (byte)123), (35, (byte)128), (36, (byte)127) })
+                    b.InsertThing(box with { X = x, Y = 3, ObjectId = id, PlayerId = Neutral, TriggerId = 0 }, boxImage);
+
+                var (creature, creatureImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Rival && c.CreatureId == Imp);
+                void Creature(int x, int y, byte id, byte player, byte level) => b.InsertThing(creature with
+                {
+                    X = x, Y = y, CreatureId = id, PlayerId = player, Level = level, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+                }, creatureImage);
+                Creature(20, 3, Imp, Rival, 1);
+                Creature(22, 5, Imp, Rival, 1);
+                Creature(21, 10, Goblin, Keeper, 1);
+                Creature(22, 11, Goblin, Keeper, 1);
+
+                var (hero, heroImage) = b.Template<GoodCreatureThing>(g => g.CreatureId == Dwarf);
+                void Hero(int x, int y, byte id, byte level) => b.InsertThing(hero with
+                {
+                    X = x, Y = y, CreatureId = id, Level = level, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+                    TriggerId = 0, PartyId = 0, Flags2 = (byte)(hero.Flags2 & ~4),
+                }, heroImage);
+                Hero(40, 4, Dwarf, 4);
+                Hero(42, 4, Knight, 10);
+
+                var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
+                b.InsertThing(door with { X = 23, Y = 4, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
+            }),
     ];
 
     private const byte HatcheryTerrain = 13;
@@ -171,7 +209,7 @@ public static class Recipes
 
     /// <summary>The Q498 layout on Small: every tile impenetrable rock but keeper 3's walled Heart, keeper 4's, and
     /// four 3-tile-high chambers of keeper 3's Claimed Path along rows 3..5 and 9..11, none joined to a Heart.</summary>
-    private static void SpellChambers(LevelBuilder b)
+    private static void SpellChambers(LevelBuilder b, bool q498Creatures = true)
     {
         LevelMap map = b.Map;
         var rock = new MapTile(ImpenetrableRock, Neutral, 1, 0);
@@ -196,6 +234,7 @@ public static class Recipes
         var things = b.Things;
         for (int i = things.Count - 1; i >= 0; i--)
             if (things[i] is ObjectThing o && map[o.X, o.Y].TerrainId is not (9 or 14) && !Floor(o.X, o.Y)) b.RemoveThing(i);
+        if (!q498Creatures) return;
 
         var (keeper, keeperImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Rival && c.CreatureId == Imp);
         void Goblin4(int x, int y) => b.InsertThing(keeper with

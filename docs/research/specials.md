@@ -126,6 +126,9 @@ activator. That includes allies, heroes and the neutral player.
 - **123 Stun Imps.** Every worker (`IsWorker`, definition `+0x686` bit 0) of every other player
   is kicked to state 209, *stunned*, after a state-move test (`0x00477310`, SetState's transition
   rule asked without a transition: `functions/00477310.md`). State 209's handler (`0x00481020`) plays sound 199, begins action 52 and sets state 255, whose handler (`0x004810E0`) times `StunDuration` from the state's start turn (`functions/00481020.md`). Built as `StatusEffectRules.StunFromStarter`.
+  The owner's `Q747Specials` run (2026-11-11, no capture): keeper 4's Imps fell, got up in about 2 s, then
+  showed *stunned* for about 5 s more. The Imp's `StunDuration` is 0, so 255 alone would not hold them;
+  where the rest comes from is unread (Q759).
 - **124 Receive Imps.** It takes the first creature type with `IsWorker`, in the world's
   creature-type order: the Imp in shipped data. It creates `SpecialReceiveImpsAmount` (188; 10)
   of them for the keeper (`0x004B78D0`). They are spaced evenly on a circle of radius two tiles
@@ -146,9 +149,13 @@ activator. That includes allies, heroes and the neutral player.
 - **127 Kill Creatures.** It is targeted: it takes one creature, the action's parameter. If that
   creature exists and is not the keeper's, it plays its effect at the target and deals minus the
   target's health through the health routine. Otherwise it returns 0, and the box is still
-  consumed (§3).
+  consumed (§3). A level-4 Dwarf died outright (owner, `Q747Specials`, 2026-11-11). Against an
+  armoured target it is untestable solo: Armour is cast on one's own creatures and no computer
+  keeper casts it.
 - **128 Heal All.** Each of the keeper's creatures gains its level-scaled maximum less its
-  current health. Whether a creature knocked out (`creature-death.md`) gets up is not read.
+  current health. A knocked-out creature (`creature-death.md`) is not healed: the owner's Goblin lay
+  bleeding after it (`Q747Specials`, 2026-11-11), as ours skips one at zero health. Which refusal stops
+  it in DK2 is unread.
 - **129 Locate Hidden Land.** It switches on the global `0x00759B38`. Values 5, 8, 11 and 16
   write 1 into slots 0–3 of the profile's `Secret Levels` registry value (`0x00561420`,
   `campaign-progress-registry.md`); any other value writes nothing. Either way it increments the
