@@ -110,8 +110,9 @@ ADR-0721/hash453 implements ordinary actions4/5/10 in ClaimActionRules using
 the stored animation clock. The action point survives changes to the task;
 the early poll applies work before combat/state validation, and advancement
 follows the handlers. Handler completion and animation completion remain
-independent, including a zero-rate poll with a counted cycle. Attack-to-claim
-entry states retain the slot13 clip. Accepted action replacement cancels the
+independent, including a zero-rate poll with a counted cycle. The slot13 clip is
+kept only while the Imp is in the work state; the entry state drops it (below, ADR-0746).
+Accepted action replacement cancels the
 old action; the [worker category's leave hook](functions/004647D0.md) ends it
 before releasing its task. A paused state handler in possession still polls
 the running action, including actions4/5's existing recharge multiplier.
@@ -126,6 +127,51 @@ general queued art replacement and full captured-action restoration remain
 outside this change. The existing shared sound-start phase approximation is
 retained; this is not a complete native action or animation layer.
 
+## An attacked floor's claim starts its own clip (ADR-0746, hash/save 472)
+
+Capture, Level 5 seed 1, Imp slot 440 (state `+0x25E`, action `+0x3A9`, animation phase
+`+0xD8`, rate `+0xDC`, flags `+0xF1`; tile (16,38) has health 1 through 1789, then 186, 371,
+556, 660 on 1790-1793):
+
+| Turn | State | Action | Phase | Rate | Flags |
+|---:|---:|---:|---:|---:|---:|
+| 1784 | 20 | 5 | 1866 | 1862 | 5 |
+| 1785 | same | same | 3728 | same | 13 |
+| 1786 | same | same | 4096 | same | 15 |
+| 1787 | 15 | 0 | 0 | 0 | 3 |
+| 1788 | 16 | 0 | 0 | 0 | 3 |
+| 1789 | 16 | 4 | 1862 | 1862 | 1 |
+| 1790 | same | same | 3724 | same | 1 |
+| 1791 | same | same | 1490 | same | 5 |
+| 1792 | same | same | 3352 | same | 5 |
+| 1793 | same | same | 4096 | same | 15 |
+| 1794 | 10 | 0 | 0 | 0 | 3 |
+
+The finished attack clip is not carried
+into the claim: the Imp stands for two turns and action 4 begins at phase 0. Before ADR-0746 ours
+held phase 4096, rate 0, flags 15 from 1786 through 1792 and left state 16 on 1793.
+
+Binary reading (STRONGLY INFERRED, reviewer): the [runner](functions/00496AA0.md) clears only
+the action block (`+0x38D`-`+0x3AE`) at an action's end, not the animation at `creature+0x44`;
+`Creature_SetState` (`0x00476D30`) touches neither. [State 20](functions/00465F20.md), with no
+action running and the tile neutral, calls SetState(15) and starts no action. State 15's handler
+(`0x00465BC0`) checks tile and task and goes to 16 (`0x00465C5C`-`0x00465CB4`), starting no action;
+states 19 (`0x00465E60`) and 21 (`0x004662E0`) start none either. The
+[chooser](functions/0048BE50.md), called from `0x00488930` at `0x0048A4B5` after the action poll and
+the state dispatch, reads the action id `+0x3A9` (`0x0048C3B1`, `0x0048C369`). With an action running
+it takes the action's art slot through `0x00496DE0` (`0x0048C369`-`0x0048C3A6`,
+`0x0048C45B`-`0x0048C469`, `0x0048C51C`-`0x0048C535`); otherwise the standing or movement slot
+chosen on `+0x3BB` (`0x0048C3B1`-`0x0048C405`, `0x0048C46E`-`0x0048C47C`). At
+`0x0048C584`-`0x0048C5B7` it compares resource and slot with the installed clip, and a different
+slot goes on to install. So a turn that ends with no action running gets the standing clip.
+Between two actions of one work state the handler restarts the action in the same turn, before
+the chooser, so the [starter](functions/00496700.md) finds the slot-13 clip and keeps it.
+Not read: the chooser's install call after `0x0048C637`, the meaning of `+0x3BB`, states 17 and 18.
+
+Controlled replay (`F:/DK2Evidence/studies/q712-claim-clip--2026-11-11--001`, `controlled471`,
+the hash-468 diagnostic source plus ADR-0745 and this change): 6905 ordered draws through turn
+1798 (6831 through 1793 before). The boundary is turn 1799 draw 1, tracked in Q712.
+
 ## Implementation verification (2026-11-08)
 
 The final solution build and Unity compile pass; Unity reports two existing
@@ -134,7 +180,7 @@ CS0618 warnings at DungeonRunner.Hud.cs:83. The full solution has 8653 passed,
 action-clock set has 30 passed. On archived baseline f177790b, the nine core
 cases produce six expected failures and three passing controls. The complete
 attack-to-claim handover regression also fails there: baseline break tick 24
-becomes 26, followed by current claim hits 30–34 and state 10 at 34.
+becomes 26, followed by current claim hits 30–34 and state 10 at 36 (34 until ADR-0746).
 
 Implementation evidence is retained separately from the native study:
 `F:/DK2Evidence/studies/imp-claim-actions--2026-11-08--001/`.

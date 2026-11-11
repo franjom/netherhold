@@ -17455,6 +17455,96 @@ Still deviating: with the bit set DK2 does not drop the carried thing but writes
 health to 0 (its slot `+0x20`), so a carried object vanishes and a carried body goes
 through its own bookkeeping; the dragged thing (slot `+0x70`) is unread; ours drops both. Byte 1 has no shipped record.
 
+## ADR-0745 - a creature in state 217 keeps its steering body where it collapsed
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** creatures, navigation, simulation-core | Advances Q712, Q736
+
+**Context.** Level 5 seed 1: Wizard slot 436 collapses at (67803,135760) and enters 217 on 1726
+at entity (66542,132794); its steering body (`+0x1A8`) stays at (1084848,2172160) through 1790.
+On 1740 Warlock 441, whose query rectangle covers the body's tiles, is shoved from the body:
+velocity (479,-7648) to (-5236,-8644), heading 21 to 1728. DK2's `0x004D59A0` and
+`Body_Integrate` `0x004D5A40`, run in the emulator on the turn-1739 frame, return exactly the
+captured turn-1740 values. Ours re-synced the body to the entity, so Warlock 441 was not pushed.
+Binary reading (STRONGLY INFERRED, reviewer; outcome CONFIRMED in capture): state 216's step back
+writes the entity only (`0x004B5560`), 217's handler has no body writer, and the creature update's
+mover block (`0x0048A225..0x0048A248`) is skipped when bit 0 of the state's flag byte is clear,
+as it is for 216, 217 and 218. Evidence: `steering-body-retention.md`.
+
+**Decision.**
+1. `CreatureMovementSystem.SyncMovedBody` leaves a body in state 217 where it is; the entity
+   moves alone.
+2. `HandSystem.Drop` syncs the creature's body to the drop point itself, as `0x004BC710` does
+   through `0x004D1070` (`0x004BC7FB`). The drop had relied on the turn-start re-sync.
+3. Neighbour queries and the separation push already read the body (`WorldSteering.CollectNeighbours`,
+   `SeparationBehaviour.Push`); no change there.
+
+**Consequences.** Hash/save 471, pin `0xBE5B1B6917320A14`; no new state, recorded runs change.
+The Level 1 win journal is re-recorded (win tick 2297, gem (14,21): remake output, nothing native
+confirms it). Test: `DeathFallTests.TheFallenCreaturesBodyStaysWhereItFell_ConfirmedInCapture`.
+The controlled Level 5 seed-1 replay goes from 6810 ordered draws through 1791 to 6831 through
+1793, and Warlock 441's turn 1740 equals the capture; Warlocks 437, 438, 439 and 441 equal in
+position through 1793. The next boundary is 1794 draw 1: native `ObjectState.cpp:2851`, ours
+`ImpUtils.cpp:484` (Imp 440 choosing a start side). DK2's claim of (16,38), begun as an attack
+on an enemy tile, holds state 16 through 1793; ours leaves on 1793 (Q712).
+Still open: states 56 and 250 and the other bit-0-clear states re-sync in ours, and a door
+contact zeroes a native body (Q736); the `+0x4E9` timer path (`0x004889AB`), which calls
+`0x004D1070` after state `0xF2`, is unbuilt and what sets the timer is unread; 217's Temple-floor
+arm is not built; whether the cursor can pick up a creature in 217 is unchecked.
+
+## ADR-0746 - an attacked floor's claim starts its own clip; the slot-13 clip is kept only inside the work state
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** imps-tile-work, creatures | Advances Q712
+
+**Context.** ADR-0721 kept an Imp's slot-13 clip across an attack (state 20, action 5) turning
+into a claim (state 15, then 16, action 4), as it does between two actions of one work state.
+Level 5 seed 1, Imp slot 440 (capture): the attack clip completes on turn 1786 (phase 4096), the
+Imp stands in states 15 and 16 with phase 0 on 1787 and 1788, and action 4 shows on 1789 at
+phase 1862 (one clip step), so the claim's own clip begins from phase 0; state 10 follows on 1794.
+Ours held phase 4096, rate 0 through 1792 and left state 16 on 1793.
+Binary reading (STRONGLY INFERRED, reviewer): the action runner `0x00496AA0` clears the action block
+only, not the animation at `creature+0x44`; but states 20 (`0x00465F20`, no action running, tile
+neutral), 15 (`0x00465BC0`) and 21 start no action, so the chooser `0x0048BE50`, run after the
+state dispatch, finds no action and installs the standing clip. Between two actions of one work state
+the handler restarts the action before the chooser, so the starter `0x00496700` finds the clip.
+Evidence: `imp-claim-action-clock.md`.
+
+**Decision.** `ClaimActionRules.Advance` keeps the stored clip while the Imp is in the claim
+family's work state only; in the entry state (and any other) the clip is dropped, so the next
+action starts it afresh.
+
+**Consequences.** Hash/save 472, pin `0x28C747BEC02EA3BF`; no new state, recorded runs change.
+Test: `ClaimActionClockTests.AnAttackedFloorsClaimStartsItsOwnClipFromPhaseZero` (the Imp leaves
+on tick 36, was 34; 36 is the model's fresh-claim row, not a native number). The Level 1 win
+journal is re-recorded (win tick 2323, gem (14,21): remake output, nothing native confirms it).
+The controlled Level 5 seed-1 replay goes from 6831 ordered draws through turn 1793 to 6905 through
+1798. The next boundary is turn 1799 draw 1: native `Room.cpp:1563` (room point selection
+`0x004E4D90`), ours `State.cpp:1025` (neutral creature slot 447's idle draw); DK2 makes a room-point
+draw first that ours does not, and which creature makes it is unread (Q712).
+Not read: the chooser's install call after `0x0048C637`, the meaning of `+0x3BB`, states 17 and 18.
+
+## ADR-0747 - every special's arm is built, and action 88 uses up any box
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** keeper-spells, computer-keeper | Answers Q758
+
+**Context.** `SpecialSystem` applied 117, 124, 129 and 140 only; any other box stayed after
+action 88, so ADR-0743's specials step re-posted it every tick and it blocked every later box
+(Q758). DK2's dispatcher `0x004A3FC0` has an arm for each of 118-128, and action 88
+(`0x00513760`) destroys the box whatever the arm returns (specials.md §3-§5).
+
+**Decision.** `SpecialSystem` builds the ten arms as read: Reveal Map through
+`FinaleRules.RevealMap` (local player only); Make Safe (`0x004A43E0`) and Destroy Walls
+(`0x004A45F0`) through the new `TileWorkRules.ApplyDelta`, the raw `0x00452F60` with a signed
+amount, with the applier's follow-ups; Increase Gold (`0x004A4710`) through `GoldStore.Deposit`,
+the rest on the floor at the box; Mana Boost through the ceiling clamp; Stun Imps (`0x004A4870`)
+through `StatusEffectRules.StunFromStarter`, state 209's starter (`0x00481020`); Make Happy and
+Make Unhappy through `CreatureAngerRules.ForgetAll` and the new `SaturateAll` (`0x00486ED0`) with
+event 11; Kill Creatures (`0x004A4D80`) through the health routine's mirror `StatusEffectRules.Hurt`
+in the box owner's name, collapsing at once, and its sound only on a kill; Heal All
+(`0x004A4E50`). Each asks its §5 sound. A special with no arm (object 7) is used up too.
+
+**Consequences.** No hash or save change: no new state, the pin and the recorded runs hold.
+Deviations: Increase Gold fills tiles in index order, skips a ruined Heart and puts the rest in
+the box's cell; Heal All skips a creature at or below zero and the health routine's heal refusals;
+Stun Imps skips 209's turn, sound 199 and action 52 and fires no event 15 (HYPOTHESIS); Mana
+Boost's `+0x10EE` and Make Unhappy's `+0x457` are unkept; effects and message 49 are not modelled.
+
 ## ADR-0748 - level scripts make objects; a level-placed Portal Gem is not loaded
 **Date:** 2026-11-11 | **Status:** accepted | **Systems:** campaign-triggers, data-formats
 

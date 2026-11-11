@@ -108,6 +108,16 @@ public static class CreatureAngerRules
             Forget(world, creature, state, (AngerBucket)bucket);
     }
 
+    /// <summary>Saturates all six grievances: DK2's <c>0x00486ED0</c>, each counter plus 0xFFFE through
+    /// the clamp to <see cref="Saturation"/>, behind the world switch, posting nothing. The Make Unhappy
+    /// special's call (<c>0x0048B870</c>) tests <c>NeverAngered</c> before it, as <see cref="Apply(CreatureDef, CreatureState, AngerBucket, int)"/> does.</summary>
+    public static void SaturateAll(WorldState world, CreatureDef creature, CreatureState state)
+    {
+        if (!world.Triggers.CreatureAngerEnabled) return;
+        for (int bucket = 0; bucket < CreatureAnger.Count; bucket++)
+            Apply(creature, state, (AngerBucket)bucket, 0xFFFE);
+    }
+
     /// <summary>The anger a creature must <b>exceed</b> to be angry: the ceiling itself. No variable
     /// states it — it is the owner's 2:1 ratio, angry at twice the time unhappy took.</summary>
     public static int AngryAt(CreatureDef creature) => Ceiling;

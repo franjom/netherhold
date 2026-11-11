@@ -228,6 +228,26 @@ public static class StatusEffectRules
         return true;
     }
 
+    /// <summary>State 209's starter (<c>0x00481020</c>), as the Stun Imps special kicks a worker into
+    /// it: the move to 209 tested (<c>0x00477310</c>) and SetState's hand guard (<c>0x00476D30</c>
+    /// refuses a creature with <c>+0x3E6</c> bit 0), then <c>SetState(255)</c> for <c>StunDuration</c>
+    /// with the action ended. No event 15: <c>0x00481020</c> does not fire it, where
+    /// <c>0x00491830</c> does; its callees are unread (HYPOTHESIS). Not modelled: the turn spent in 209,
+    /// its sound 199 and action 52, begun before the SetState (a refusal of either leaves the
+    /// creature in 209 to try again), and its position write (<c>0x0048F690</c>).</summary>
+    public static bool StunFromStarter(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (creature.InHand || CreatureStateMachine.Classify(creature, StunStarterState) == StateTransition.Refused) return false;
+        creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
+        Stand(context, creature, CombatStates.Stunned);
+        CreatureStateMachine.EndAction(creature);
+        context.Emit(SystemName, "stunned", $"creature={creature.Id} ticks={creature.StunTicks} by=209");
+        return true;
+    }
+
+    /// <summary>State 209, the stun starter (<c>0x00481020</c>).</summary>
+    public const int StunStarterState = 209;
+
     /// <summary>Invisible (§2): the word set, then every attacker on my slots that is fighting me
     /// loses its target, my slots are emptied, and <see cref="CombatRules.IsAttackable"/> refuses me
     /// while the word runs.</summary>

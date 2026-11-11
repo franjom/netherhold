@@ -30,7 +30,8 @@ Confidence: **STRONGLY INFERRED (binary)**.
   and set `+0x3EA` bit 10. The rule admits 216 from every state: group 3 with
   category 23 is its passthrough (`creature-state-table.md` §2.2).
 - **216's handler** `0x00459850` returns 1 while an action runs (`0x00496D00`, the
-  fall), then sets **217**, steps the body back along its heading by the definition's third
+  fall), then sets **217**, steps the creature back (entity only; the steering body stays where it
+  fell, `steering-body-retention.md`) along its heading by the definition's third
   vector's y onto a tile that is not solid and has its own tile's navigation byte, and stamps
   `state+0xAB` with the turn plus 10 either way; it writes no heading (read 2026-11-10 and
   2026-11-11, which settles the earlier contradiction in favour of the step; evidence and capture:

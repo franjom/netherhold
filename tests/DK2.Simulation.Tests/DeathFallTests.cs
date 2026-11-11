@@ -186,6 +186,37 @@ public class DeathFallTests
         if (steps) Assert.Equal((goblin.PosX, goblin.PosY), (goblin.LastPosX, goblin.LastPosY));
     }
 
+    // Level 5: the Wizard's entity steps back on turn 1726 and its body is where it fell until the
+    // capture ends; a Warlock walking through that place on turn 1740 is pushed off it.
+    [Fact]
+    public void TheFallenCreaturesBodyStaysWhereItFell_ConfirmedInCapture()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        for (int ty = 1; ty < world.Height - 1; ty++)
+        for (int tx = 1; tx < world.Width - 1; tx++)
+            world.Tile(tx, ty).TerrainId = Dk2TerrainFixture.DirtPath;
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(16, 10));
+        CreatureDef stepping = db.CreatureById(goblin.CreatureTypeId) with { DeathFallStepY = 3223 };
+        goblin.Heading = 893;
+        DK2.Simulation.Navigation.WorldSteering.SyncBody(goblin);
+        var fell = goblin.Body.Pos;
+        int x = goblin.PosX, y = goblin.PosY;
+        var sim = new GameSimulation(db, world, 1, [new Run(context =>
+        {
+            if (goblin.Dk2StateId == CreatureDeathRules.DyingState) return;
+            CreatureStateMachine.TrySetState(context.Hooks, goblin, CreatureDeathRules.FallingState, context.Tick.Value);
+            DeathFallRules.Fall(context, goblin, stepping);
+        }), new DK2.Simulation.Systems.CreatureMovementSystem()]);
+
+        sim.Tick();
+        sim.Tick();
+        sim.Tick();
+
+        Assert.Equal((CreatureDeathRules.DyingState, x - 1261, y - 2966), (goblin.Dk2StateId, goblin.PosX, goblin.PosY));
+        Assert.Equal(fell, goblin.Body.Pos);
+    }
+
     private sealed class Run(Action<SimulationContext> body) : ISimulationSystem
     {
         public string Name => "test step";

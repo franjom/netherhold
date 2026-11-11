@@ -32,6 +32,15 @@ public sealed class ObjectSoundTests
             [Dk2TerrainFixture.ReceiveImpsSpecialObjectId] = "OBJECT_SPECIAL",
             [Dk2TerrainFixture.LocateHiddenLandSpecialObjectId] = "OBJECT_SPECIAL",
             [Dk2TerrainFixture.TransferCreatureSpecialObjectId] = "OBJECT_SPECIAL",
+            [Dk2TerrainFixture.MakeSafeSpecialObjectId] = "OBJECT_SPECIAL",
+            [Dk2TerrainFixture.DestroyWallsSpecialObjectId] = "OBJECT_SPECIAL",
+            [Dk2TerrainFixture.IncreaseGoldSpecialObjectId] = "OBJECT_SPECIAL",
+            [Dk2TerrainFixture.ManaBoostSpecialObjectId] = "OBJECT_SPECIAL",
+            [Dk2TerrainFixture.StunImpsSpecialObjectId] = "OBJECT_SPECIAL",
+            [Dk2TerrainFixture.MakeHappySpecialObjectId] = "OBJECT_SPECIAL",
+            [Dk2TerrainFixture.MakeUnhappySpecialObjectId] = "OBJECT_SPECIAL",
+            [Dk2TerrainFixture.KillCreaturesSpecialObjectId] = "OBJECT_SPECIAL",
+            [Dk2TerrainFixture.HealAllSpecialObjectId] = "OBJECT_SPECIAL",
             [BoulderRules.ObjectId] = "TRAP_BOULDER", [FloorGold.FloorGoldObjectId] = "OBJECT_GOLD",
         });
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
@@ -227,23 +236,40 @@ public sealed class ObjectSoundTests
 
     // ------------------------------------------------------------------------------------ the specials
 
+    private static readonly HashSet<ThingSoundEvent> SpecialSounds =
+    [
+        ThingSoundEvent.SpecialIncreasedLevel, ThingSoundEvent.SpecialRevealedMap, ThingSoundEvent.SpecialMadeSafe,
+        ThingSoundEvent.SpecialDestroyedWalls, ThingSoundEvent.SpecialIncreasedGold, ThingSoundEvent.SpecialBoostedMana,
+        ThingSoundEvent.SpecialStunnedImps, ThingSoundEvent.SpecialReceivedImps, ThingSoundEvent.SpecialMadeHappy,
+        ThingSoundEvent.SpecialMadeUnhappy, ThingSoundEvent.SpecialKilledCreature, ThingSoundEvent.SpecialHealedAll,
+        ThingSoundEvent.SpecialLocatedHiddenLand,
+    ];
+
     private static ThingSoundRequest Activate(byte objectTypeId, out ObjectState special)
     {
         var (db, world, sim, events) = Setup(new SpecialSystem());
         special = world.SpawnObject(db, objectTypeId, PlayerIds.Neutral, Tile);
         events.Clear();
         sim.Tick(InputFrame.Of(new ActivateSpecialCommand(Keeper, special.Id)));
-        ThingSoundRequest[] heard = Sounds(events).Where(s => s.Event is ThingSoundEvent.SpecialIncreasedLevel
-            or ThingSoundEvent.SpecialReceivedImps or ThingSoundEvent.SpecialLocatedHiddenLand).ToArray();
+        ThingSoundRequest[] heard = Sounds(events).Where(s => SpecialSounds.Contains(s.Event)).ToArray();
         return heard.Length == 1 ? heard[0] : default;
     }
 
-    /// <summary><c>Special_IncreaseLevel</c> (<c>0x004A42C0</c>, <c>0x80</c>), <c>Special_ReceiveImps</c> (<c>0x004A4980</c>,
-    /// <c>0x8B</c>) and <c>Special_LocateHiddenLand</c> (<c>0x004A4F70</c>, <c>0x8F</c>) end with the sound, with the
-    /// object's handle, in its category, at its position, whatever the arm did; the transfer arm asks none.</summary>
+    /// <summary>Each arm of <c>0x004A3FC0</c> ends with its sound (specials.md §5), with the object's handle,
+    /// in its category, at its position, whatever the arm did; the transfer arm asks none, and Kill
+    /// Creatures only when it kills.</summary>
     [Theory]
     [InlineData(Dk2TerrainFixture.IncreaseLevelSpecialObjectId, 0x80)]
+    [InlineData(Dk2TerrainFixture.RevealMapSpecialObjectId, 0x84)]
+    [InlineData(Dk2TerrainFixture.MakeSafeSpecialObjectId, 0x85)]
+    [InlineData(Dk2TerrainFixture.DestroyWallsSpecialObjectId, 0x86)]
+    [InlineData(Dk2TerrainFixture.IncreaseGoldSpecialObjectId, 0x88)]
+    [InlineData(Dk2TerrainFixture.ManaBoostSpecialObjectId, 0x89)]
+    [InlineData(Dk2TerrainFixture.StunImpsSpecialObjectId, 0x8A)]
     [InlineData(Dk2TerrainFixture.ReceiveImpsSpecialObjectId, 0x8B)]
+    [InlineData(Dk2TerrainFixture.MakeHappySpecialObjectId, 0x8C)]
+    [InlineData(Dk2TerrainFixture.MakeUnhappySpecialObjectId, 0x8D)]
+    [InlineData(Dk2TerrainFixture.HealAllSpecialObjectId, 0x310)]
     [InlineData(Dk2TerrainFixture.LocateHiddenLandSpecialObjectId, 0x8F)]
     public void AnActivatedSpecialRequestsItsOwnSoundAtItsPositionWithItsVoice(byte objectTypeId, int expected)
     {
@@ -257,9 +283,9 @@ public sealed class ObjectSoundTests
     }
 
     [Fact]
-    public void TheTransferSpecialAndAnUnbuiltOneRequestNoSpecialSound()
+    public void TheTransferSpecialAndARefusedKillRequestNoSpecialSound()
     {
         Assert.Equal(default, Activate(Dk2TerrainFixture.TransferCreatureSpecialObjectId, out _));
-        Assert.Equal(default, Activate(Dk2TerrainFixture.RevealMapSpecialObjectId, out _));
+        Assert.Equal(default, Activate(Dk2TerrainFixture.KillCreaturesSpecialObjectId, out _));
     }
 }

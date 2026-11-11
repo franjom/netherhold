@@ -18,6 +18,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 ## Versions
 **473** - `0xAF20C8CFAC1272A9`. World trigger action 2 makes its object at the zero-based tile's centre and floor height (`0x00518E92`), and the THINGS object loader skips a level-placed Portal Gem (`0x00520BCA`), so Levels 18-20 start without one and their script makes it (ADR-0748). No new state; the version moves because recorded runs change.
 
+**472** - `0x28C747BEC02EA3BF`. An Imp keeps its slot-13 clip between claim-family actions only while it is in the work state; an attacked floor's claim, which passes through the entry state, starts its own clip from phase 0 (ADR-0746). No new state; the version moves because recorded runs change (the Level 1 win journal is re-recorded, win tick 2323).
+
+**471** - `0xBE5B1B6917320A14`. A creature in state 217 keeps its steering body where it collapsed (`SyncMovedBody` leaves it), and the hand drop syncs the body to the drop point itself (ADR-0745). No new state; the version moves because recorded runs change.
+
 **470** - `0xB54DA1B30C835FF3`. Creature action 35's byte 0 removes the creature, standing or down, in the thing pass's second walk (`CreatureRemovalSystem`) through the death bookkeeping with no corpse, no killed event, no count and no gold spill; an object in a keeper's hand is no longer a fetch target (ADR-0744). No new state; the version moves because recorded runs change.
 
 **469** - `0x358289A09AF5DF1C`. A collapsed creature's or a corpse's carry has one holder per tile: a worker strictly nearer the body than the one walking to it takes the task and the holder returns to state 10; otherwise the body is passed over (ADR-0742). No new state; the version moves because recorded runs change.

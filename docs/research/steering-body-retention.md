@@ -46,10 +46,55 @@ after every step. Now `Advance` syncs the mover's own body just before it
 integrates, a committed step keeps the 16.16 position, and the solid reject and
 the door-contact path re-sync. `BeginTurn` and `Sync` re-sync a body only when
 its position shifted down four differs from the entity (`SyncMovedBody`). That is
-an adapter, not native: native leaves bodies stale while states 56/217/250 move
+an adapter, not native: native leaves bodies stale while states 56/250 move
 the entity (captured for up to 198 frames) and zeroes one at a door contact
-(Q736). The body position is hashed (`SteeringBody.HashInto`) and saved
-(`WorldSnapshot`, FormatVersion 392); the loader no longer re-syncs.
+(Q736); only state 217 is built as native does (next section). The body position
+is hashed (`SteeringBody.HashInto`) and saved (`WorldSnapshot`, FormatVersion 392);
+the loader no longer re-syncs.
+
+## State 217 leaves its body where it fell (ADR-0745, hash/save 471)
+
+Readings in DKII.EXE (STRONGLY INFERRED; the outcome CONFIRMED in capture):
+[00459850](functions/00459850.md)'s step back writes only the entity position and
+the last position, never `004D59A0`, `004D55B0` or `004D5B30`, so the body stays;
+[004599D0](functions/004599D0.md) has no body writer; and the mover block of
+[00488930](functions/00488930.md) is skipped when bit 0 of the state's flag byte is
+clear, as it is for 216, 217 and 218. Body writers that bit does not gate: the
+impulse commit (ours re-syncs it in `CreaturePhysicsRules`), the `+0x4E9` timer path
+`0x004889AB..0x004889D6` (SetState `0xF2` then `004D1070`; not built, the timer's
+setter unread) and the hand drop at `0x004BC7FB` ([004BC710](functions/004BC710.md);
+built, `HandSystem.Drop` syncs the body). Neighbours read the body, not the
+entity: [004D1170](functions/004D1170.md) builds its tile rectangle from the
+querying creature's body, finds candidates on chains that follow the entity, and
+[004D2B80](functions/004D2B80.md) pushes from body positions.
+
+Capture (Level 5 seed 1,
+`F:/DK2Evidence/studies/q712-native-drawlog-level5-seed1--2026-11-03--001`): Wizard
+436 collapses at entity (67803,135760) and enters 217 on 1726 at entity
+(66542,132794); its body stays (1084848,2172160) through 1790. On 1740 Warlock 441
+(body (1081312,2162240), query rectangle covering tiles (16,32) and (16,33)) goes
+from velocity (479,-7648) to (-5236,-8644), heading 21 to 1728. The remembered-entity
+id `+0x537` is 0 for all four Warlocks 1400..1800, so that arm is not involved.
+Emulator (`F:/DK2Evidence/studies/q712-stale-body--2026-11-11--001/emulator1739`):
+`004D59A0` then `Body_Integrate` `004D5A40` on the turn-1400 process dump overlaid with
+the turn-1739 frame return exactly the captured turn-1740 position, velocity, heading
+and window byte; called alone, Avoid_Walls and Repel_Obstacle return zero,
+Follow_Path returns the velocity negated (the brake) and Separation `004D2DF0` returns
+a large wrapped force.
+
+Controlled replay (same study, `controlled469`, on the hash-468 diagnostic source plus
+this change): 6831 ordered draws through 1793 (6810 through 1791 before); Warlock 441's
+turn 1740 equals the capture in position, velocity, heading and axes; Warlocks
+437/438/439/441 equal in position through 1793. The boundary moves to 1794 draw 1,
+native `ObjectState.cpp:2851`, ours `ImpUtils.cpp:484` (Imp 440 choosing a start
+side); that difference was Imp 440's claim clip after an attack, closed by ADR-0746
+([imp-claim-action-clock.md](imp-claim-action-clock.md)). Also open:
+Warlock 441 differs by one unit on 1794 (native (43274,127785), ours
+(43275,127784)); the Warlocks' later state 78 against our 1 is our idle stand-in for
+the hand's hold.
+
+Not checked: whether the cursor can pick up a creature in 217; the `+0x4E9` timer
+path; states 56/250 and the other bit-0-clear states, which ours still re-syncs (Q736).
 
 ## Gated control
 

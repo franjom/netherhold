@@ -464,6 +464,8 @@ public sealed class HandSystem : ISimulationSystem
         // drop with no pointer position (the keeper AI's).
         creature.PosX = command.Position?.X.Raw ?? CreatureState.CentreOf(command.Tile.X);
         creature.PosY = command.Position?.Y.Raw ?? CreatureState.CentreOf(command.Tile.Y);
+        // The drop stops the body at the new position itself (0x004BC7FB), in any state.
+        Navigation.WorldSteering.SyncBody(creature);
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.ClearJob();
         // The drop writes the command's angle to the heading (0x004BCA08) after stopping the body at its

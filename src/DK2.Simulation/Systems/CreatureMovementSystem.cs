@@ -161,10 +161,14 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     /// <summary>An adapter, not a native rule. Native writes a body only in <c>0x004D59A0</c>'s
     /// callers, the impulse commit <c>0x004B270B</c> and the resets <c>0x004D55B0</c>/<c>0x004D5B30</c>,
     /// never in a sweep, so a body still on its entity keeps its low four bits. Native also leaves
-    /// bodies stale while other paths move the entity (states 56/217/250) and zeroes one at a door
-    /// contact (Q736); ours re-syncs any body that no longer maps to its entity.</summary>
+    /// bodies stale while other paths move the entity (states 56/250) and zeroes one at a door
+    /// contact (Q736); ours re-syncs any body that no longer maps to its entity. Natively the mover
+    /// block is gated on the state table's bit 0; only state 217 is evidenced and left alone here:
+    /// the fall's step back moves the entity only, and neighbours are shoved from the body's old
+    /// place (Level 5, a Wizard's body 74 turns stale and a Warlock pushed off it on turn 1740).</summary>
     private static void SyncMovedBody(CreatureState creature)
     {
+        if (creature.Dk2StateId == CreatureDeathRules.DyingState) return;
         if (creature.Body.Pos.X >> 4 != creature.PosX || creature.Body.Pos.Y >> 4 != creature.PosY)
             WorldSteering.SyncBody(creature);
     }
