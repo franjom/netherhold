@@ -126,6 +126,7 @@ public static partial class ShotRules
     public static void Launch(ShotState shot, ShotDef definition, int aimX, int aimY, int? aimZ = null)
     {
         shot.ViewHeading = new Dk2Angle((ushort)Steering.Bearing.Of(aimX - shot.PosX, aimY - shot.PosY));
+        shot.Heading = shot.ViewHeading.Raw;
         shot.HasLaunchHeading = true;
         if (aimZ is { } height && definition.Mass == 0) shot.VelZ = VerticalVelocity(shot, definition, aimX, aimY, height);
         long dx = aimX - shot.PosX, dy = aimY - shot.PosY;
@@ -150,13 +151,16 @@ public static partial class ShotRules
     /// <summary>A hit or death shot (§4): made where the parent is, aimed at the parent's target
     /// position, inheriting its data words, caster and target, and not launched — the shipped
     /// explosions and clouds stand where they are made.</summary>
-    public static ShotState? Chain(SimulationContext context, ShotState parent, byte childType)
+    public static ShotState? Chain(SimulationContext context, ShotState parent, byte childType, bool onThing = false)
     {
         if (childType == 0 || !context.Database.Shots.TryGetValue(childType, out ShotDef? definition)) return null;
         ShotState child = Spawn(context.World, definition, parent.OwnerPlayerId, parent.PosX, parent.PosY, parent.Data1, parent.Data2,
             parent.CasterId, parent.TargetKind, parent.TargetId, parent.TargetPlayerId, parent.TargetTileIndex, parent.TargetX, parent.TargetY);
         child.PosZ = parent.PosZ;
         RequestTrail(context, child, parent.ViewHeading, parent.ViewHeight);
+        // The hit-thing child is made with a zeroed heading word (0x004ABF1A); the hit-solid child takes
+        // the parent's (0x004AB394). The death shot's argument is unread and keeps the parent's here.
+        if (onThing) child.Heading = 0;
         context.Emit(SystemName, "shot_chained", $"shot={parent.Id} child={child.Id} type={definition.ShotId} data1={child.Data1} data2={child.Data2}");
         return child;
     }

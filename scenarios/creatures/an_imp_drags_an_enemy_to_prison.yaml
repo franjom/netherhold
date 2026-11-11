@@ -181,11 +181,11 @@ expect:
       CreatureDyingStateDurationSeconds is 60 and the health phase books it on
       the first game second (ADR-0089).
   - event: creature_died
-    at_tick: 243
+    at_tick: 247
     because: >
       240 ticks later, the window untouched. The imp is claiming for all of it.
   - event: corpse_rotted
-    at_tick: 483
+    at_tick: 487
     because: >
       DeadBodyDiesAfterSeconds is 60 as well, and there is no graveyard here.
   - event: creature_imprisoned

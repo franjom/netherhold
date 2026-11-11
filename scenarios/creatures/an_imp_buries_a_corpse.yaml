@@ -133,7 +133,7 @@ observe:
 # inside the second.
 expect:
   - event: creature_died
-    at_tick: 243
+    at_tick: 247
     because: >
       CreatureDyingStateDurationSeconds is 60, so 240 ticks after the collapse
       the health phase books at tick 3 (ADR-0089). Nothing on this map can

@@ -363,7 +363,7 @@ public static class PrisonRules
     /// clears the dying flag (<c>0x0048B860</c>), drops the body and admits it (<c>0x004E2C70</c>),
     /// which adds a tenth of the level-scaled maximum, capped there. Ours holds the window spent as
     /// <c>DyingTicks</c>, so the countdown left is the window less it. Ours spends it a game second
-    /// at a time and from the fall (216) on, DK2 a tick at a time from 217: a few ticks coarser.</summary>
+    /// at a time from 217, DK2 a tick at a time from 217: a few ticks coarser.</summary>
     public static int AdmissionHealth(GameDatabase database, CreatureDef definition, CreatureState creature)
     {
         int max = CreatureHealthRules.MaxHealth(database, definition, creature);

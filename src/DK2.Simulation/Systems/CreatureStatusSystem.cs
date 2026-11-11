@@ -41,6 +41,11 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
             WorldState world = context.World;
             GameDatabase database = context.Database;
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+            if (creature.Dk2StateId == CreatureDeathRules.FallingState)
+            {
+                DeathFallRules.Fall(context, creature, definition);
+                return;
+            }
             if (creature.Activity == CreatureActivity.Stunned && !TremorRules.IsRecovering(creature))
             {
                 if (creature.Dk2StateId == Combat.CombatStates.GettingUp)
