@@ -53,7 +53,7 @@ public class KeeperSpecialStepTests
     }
 
     [Fact]
-    public void Special_005005C2_AnExcludedLastBoxSuppressesAnEarlierUsableOne()
+    public void Special_005005C2_AnExcludedLastBoxSuppressesAnEarlierUsableOne_OwnershipOrderByAscendingIdStandIn()
     {
         // The walk runs newest-owned first and keeps the last qualifying box: the older 127 wins
         // the scan and its id fails the switch, so the newer 117 is not used either.
@@ -65,7 +65,7 @@ public class KeeperSpecialStepTests
     }
 
     [Fact]
-    public void Special_005005C2_AnExcludedNewerBoxLeavesTheOlderUsableOneKept()
+    public void Special_005005C2_AnExcludedNewerBoxLeavesTheOlderUsableOneKept_OwnershipOrderByAscendingIdStandIn()
     {
         WorldState world = KeeperWorld.World(Db);
         ObjectState older = Box(world, KeeperWorld.IncreaseLevelObjectId, Own);

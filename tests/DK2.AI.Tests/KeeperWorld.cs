@@ -273,7 +273,6 @@ internal static class KeeperWorld
         }
     }
 
-    /// <summary>The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, 128 health.</summary>
     /// <summary>Specials 117 (usable by the keeper's step) and 127 (excluded, 0x00500520).</summary>
     public const byte IncreaseLevelObjectId = 117;
     public const byte KillCreaturesObjectId = 127;
@@ -286,6 +285,7 @@ internal static class KeeperWorld
         Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
     };
 
+    /// <summary>The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, 128 health.</summary>
     private static ObjectDef Flag() => new()
     {
         Name = "Call To Arms", ObjectId = CallToArmsRules.ObjectTypeId,

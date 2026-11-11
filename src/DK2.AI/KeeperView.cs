@@ -153,8 +153,7 @@ public sealed class KeeperView : INavByteGrid
         var specials = new List<KeeperSpecialView>();
         foreach (ObjectState o in world.Objects)
         {
-            // A held object is out of the dungeon (ObjectState.InHand); specials are never lifted.
-            if (o.OwnerPlayerId != playerId.Value || o.InHand || database.ObjectById(o.ObjectTypeId)?.IsSpecial != true) continue;
+            if (o.OwnerPlayerId != playerId.Value || database.ObjectById(o.ObjectTypeId)?.IsSpecial != true) continue;
             TilePos at = FromIndex(o.TileIndex);
             specials.Add(new KeeperSpecialView(o.Id, o.ObjectTypeId, at.X, at.Y, o.CarriedByCreatureId >= 0));
         }
@@ -347,7 +346,7 @@ public sealed class KeeperView : INavByteGrid
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
     public IReadOnlyList<KeeperTrapView> Traps { get; }
     public IReadOnlyList<KeeperDoorView> Doors { get; }
-    /// <summary>The keeper's own <c>TypeSpecial</c> objects outside the hand, by ascending object id.</summary>
+    /// <summary>The keeper's own <c>TypeSpecial</c> objects, by ascending object id.</summary>
     public IReadOnlyList<KeeperSpecialView> Specials { get; }
     public IReadOnlyList<PlayerMessage> Messages { get; }
 
