@@ -17563,3 +17563,18 @@ place a gem. The THINGS object loader (`0x00520BB0`) skips type 0x1C before maki
 **Consequences.** Hash/save 473, pin `0xAF20C8CFAC1272A9`; no new state, recorded runs
 change. Deviation: DK2 does not test the tile; ours makes nothing off the map (no shipped
 record names one). Other placed objects still keep point (0, 0) (Q755).
+
+## ADR-0749 - a payday fires the keeper's pay-day event
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** campaign-triggers, creatures
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1032) found player
+event 46 with no producer. The payday clock `0x004BE1A0` posts its announcement before the
+wage loop and, after the loop, fires event 46 for the paid player (`0x004BE250`) before it
+reschedules the next payday. One shipped record uses it: Level 1's trigger 263, which waits
+for the camera (type 72) and plays the tutorial's pay-day speech, 39.
+
+**Decision.** `PaydaySystem`'s clock calls `FirePlayerEvent(player, PayDay)` after its
+creature loop and before writing `NextPaydayTick`, once per keeper per payday.
+
+**Consequences.** Hash/save 474, pin `0xDCC53B2AA7221CA1`; no new state, recorded runs change.
+Level 1's first payday is 20 minutes in, so a fast win never hears it.

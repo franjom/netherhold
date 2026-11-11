@@ -7,6 +7,7 @@ using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Systems;
 using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
@@ -351,7 +352,33 @@ public class TriggerExecutorOnRealDataTests
         Assert.Equal(1, state.Read(5));
     }
 
-    private static (GameSimulation Simulation, TriggerTree Tree) LevelOne(ulong seed, bool withThings = false)
+    /// <summary>Level 1's only pay-day record (trigger 263, player event 46) waits for the camera
+    /// (type 72) and plays the tutorial's pay-day speech, 39. The clock fires the event
+    /// (<c>0x004BE250</c>). The payday is brought forward to the first turn the opening camera
+    /// paths leave free, rather than run to its 20 minutes.</summary>
+    [InstallFact]
+    public void LevelOnesPaydayPlaysTheTutorialsPayDaySpeech()
+    {
+        (GameSimulation simulation, _) = LevelOne(seed: 7, withThings: true, systems: [new PaydaySystem()]);
+        var events = new ListEventSink();
+        simulation.ObserveWith(events);
+        var keeper = new PlayerId(3);
+        // Path 1 at turn 0, path 201 from turn 53: wait for a turn after both with none playing.
+        do simulation.Tick();
+        while ((simulation.CurrentTick.Value < 60
+                || CameraPathRules.Playing(simulation.World.Player(keeper), simulation.CurrentTick))
+               && simulation.CurrentTick.Value < 4000);
+        Assert.False(CameraPathRules.Playing(simulation.World.Player(keeper), simulation.CurrentTick));
+        Assert.DoesNotContain(events.Events, e => e.ScriptedView is { Kind: ScriptedViewKind.Speech, Value: 39 });
+
+        simulation.World.Player(keeper).NextPaydayTick = new GameTick(simulation.CurrentTick.Value + 1);
+        simulation.Run(2);
+
+        Assert.Single(events.Events, e => e.ScriptedView is { Kind: ScriptedViewKind.Speech, Value: 39 });
+    }
+
+    private static (GameSimulation Simulation, TriggerTree Tree) LevelOne(
+        ulong seed, bool withThings = false, IEnumerable<ISimulationSystem>? systems = null)
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
@@ -367,6 +394,6 @@ public class TriggerExecutorOnRealDataTests
             records, level.TriggerId, things.OfType<HeroPartyThing>(),
             GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!
                 .Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
-        return (new GameSimulation(database, world, seed, triggers: tree), tree);
+        return (new GameSimulation(database, world, seed, systems, triggers: tree), tree);
     }
 }
