@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**468** - `0x4994F366AF069831`. A collapsed creature's or a corpse's carry has one holder per tile: a worker strictly nearer the body than the one walking to it takes the task and the holder returns to state 10; otherwise the body is passed over (ADR-0741). No new state; the version moves because recorded runs change.
+
 **467** - `0x9C21F0BD3DEABBA3`. A torture conversion posts messages 57 and 58, wipes the convert's anger and fires creature event 9; every torture reward posts 97 then 96 or 59, and reward 11 explores a room of the victim keeper or tags a creature for 16 radius-one passes; a wall wheel's victim carries a roll that raises the trough effect (ADR-0740). `TortureSightPasses`, `TortureSightPlayerId`, `TortureSightTileIndex` and `TortureRoll` are hashed, copied and saved. Earlier saves are refused.
 
 **466** - `0xD1AE562ED00A3875`. Creature action 33 sets the walk or the run from byte 0, and state 130's strap fires creature event 8, Tortured, after its 131 attempt (ADR-0739). No new state; the version moves because recorded runs change.

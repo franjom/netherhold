@@ -47,6 +47,7 @@ keeper per tick.
 | 7 | gold `0x0046B6D0` | `[0][0]` | the gold pile's own position | strictly nearer | kick first | free |
 | 8 | objects `0x0046B9C0` | `[0][0]` | the object's position | strictly nearer | kick first | free (`imp-task-objects-and-walks.md` §1) |
 | 11 | secret door `0x0046CB80` | `[side][1]` **of an unwritten id** (`imp-task-objects-and-walks.md` §2) | the side's stance point | taker < holder + `0x32` | kick first | free (`imp-task-objects-and-walks.md` §2) |
+| 12 | corpse carry `0x0046D3C0` | `[0][0]` of the corpse tile's task | the corpse's own position, against the taker's and the holder's | strictly nearer, and the holder's `+0x252` set, the holder's state not `0x33`/`0x34`, `0x00477310(10)` passing | kick first (kick `0x0046D6D9`; a refusal returns 0) | free |
 | 13 | body carry, rescue selection `0x0046D810` (three loops: foreign marked, own, unmarked foreign) | `[0][0]` of the body tile's task | the body's own position, against the taker's and the holder's | strictly nearer, and the body's `+0x252` set, the holder's state not `0x33`/`0x34`, `0x00477310(10)` passing | kick first (`0x0048AD30(10)`; a refusal returns 0) | free |
 
 The holder test is the same text in all eight (`0x0046AD30`–`0x0046AD68` in the claim
@@ -58,7 +59,7 @@ non-zero, state `+0x25E` not `0x33`/`0x34`, then `0x00477310(10)` with `ECX = cr
 Kind 13's selection `0x0046D810` repeats that test in each of its three loops (`0x0046DBB7` onward), but the
 `+0x252` word it reads is the body's (`[EDI+0x252]`, EDI the body), not the holder's; the other
 holder tests, the distance rule and the kick are the same. The take also stores the task entry in the
-imp's job block (`+0x8A..+0x96`, `+0x98 = 0xD`), as [function record](functions/0046D810.md) lists.
+imp's job block (`+0x8A..+0x96`, `+0x98 = 0xD`), as [function record](functions/0046D810.md) lists. The corpse selector `0x0046D3C0` tests the holder's `+0x252` instead (`0x0046D60A`). Both are built (ADR-0741): one holder per body tile, kick before the taker's walk, `+0x252` of a collapsed body taken as set (inferred, [function record](functions/0046D810.md)).
 
 Every handler above reads the holder's own `+0x1A/+0x1E` for its distance, after the holder test
 and in any state; none substitutes a stance point (re-read 2026-10-28: `0x00469AF0` both arms,
