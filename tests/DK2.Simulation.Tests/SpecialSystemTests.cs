@@ -381,4 +381,54 @@ public sealed class SpecialSystemTests
         foreach (byte type in new byte[] { 118, 119, 120, 121, 122, 123, 125, 126, 127, 128 })
             Use(sim, world, db, type);
     }
+
+    /// <summary>Stun Imps kicks through <c>SetState(209)</c>, whose hand guard (<c>0x00476D30</c>) refuses a
+    /// held creature: an enemy imp in its keeper's hand is not stunned.</summary>
+    [Fact]
+    public void StunImps_00476D30_LeavesAnImpInItsKeepersHand()
+    {
+        var (db, world, sim) = World();
+        CreatureState held = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(2, 2));
+        held.InHand = true;
+        Use(sim, world, db, Dk2TerrainFixture.StunImpsSpecialObjectId);
+        Assert.NotEqual(255, held.Dk2StateId);
+    }
+
+    /// <summary>Kill Creatures goes through the health routine (<c>0x004B2CE0</c>): its target collapses
+    /// inside the call, and one in a hand is refused.</summary>
+    [Fact]
+    public void KillCreatures_004B2CE0_CollapsesItsTargetAtOnceAndSparesOneInAHand()
+    {
+        var (db, world, sim) = World();
+        CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(3, 2));
+        CreatureState held = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(3, 2));
+        held.InHand = true;
+        ObjectState first = world.SpawnObject(db, Dk2TerrainFixture.KillCreaturesSpecialObjectId, PlayerIds.Neutral, 5);
+        ObjectState second = world.SpawnObject(db, Dk2TerrainFixture.KillCreaturesSpecialObjectId, PlayerIds.Neutral, 6);
+
+        sim.Tick(InputFrame.Of(new ActivateSpecialCommand(PlayerIds.FirstKeeper, first.Id, target.Id)));
+        Assert.True(target.Health <= 0);
+        Assert.False(target.CollapseDue);
+
+        sim.Tick(InputFrame.Of(new ActivateSpecialCommand(PlayerIds.FirstKeeper, second.Id, held.Id)));
+        Assert.Equal(1500, held.Health);
+        Assert.Null(world.ObjectById(second.Id));
+    }
+
+    /// <summary><c>0x00452F60</c> tests the maximum whichever way the delta went: a wall above its
+    /// <c>MaxHealth</c> worked down to it converts, and a destroyed type equal to the tile's own leaves
+    /// it at zero health.</summary>
+    [Fact]
+    public void ApplyDelta_00452F60_ConvertsAtTheMaximumFromAboveAndKeepsASelfDestroyingTileAtZero()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        var rock = new TileState { TerrainId = Dk2TerrainFixture.Rock, Health = 700 };
+        TileWorkResult down = TileWorkRules.ApplyDelta(db, ref rock, 660 - 700, PlayerIds.FirstKeeper);
+        Assert.Equal((TileWorkOutcome.Transformed, Dk2TerrainFixture.ReinforcedWall), (down.Outcome, rock.TerrainId));
+
+        var path = new TileState { TerrainId = Dk2TerrainFixture.DirtPath, Health = 10 };
+        Assert.Equal(Dk2TerrainFixture.DirtPath, db.TerrainById(Dk2TerrainFixture.DirtPath).DestroyedTypeTerrainId);
+        TileWorkResult zero = TileWorkRules.ApplyDelta(db, ref path, -10, PlayerIds.FirstKeeper);
+        Assert.Equal((TileWorkOutcome.Progressed, Dk2TerrainFixture.DirtPath, 0), (zero.Outcome, path.TerrainId, path.Health));
+    }
 }

@@ -246,8 +246,10 @@ public sealed class SpecialSystem : ISimulationSystem
 
     /// <summary>Special 121, <c>0x004A4710</c>: <c>SpecialIncreaseGoldAmount</c> into the keeper's
     /// Treasuries and Heart up to their capacity (<c>Room_DepositGold</c>), the rest put down at the box
-    /// (<c>0x004510C0</c>). DK2 fills them in its room-list order; ours in <see cref="GoldStore"/>'s tile
-    /// order, so only the split between rooms can differ. Returns the gold stored.</summary>
+    /// (<c>0x004510C0</c>). DK2 fills them room by room in its list order, each from the room's start
+    /// tile, with an unsigned space test (a room over capacity takes the rest), and a ruined Heart too;
+    /// ours fills <see cref="GoldStore"/>'s tiles in index order, so the split can differ, and puts the
+    /// rest down in the box's cell rather than at its point. Returns the gold stored.</summary>
     private static int AddGold(SimulationContext context, PlayerId playerId, ObjectState box)
     {
         int amount = context.Database[VariableTypeId.SpecialIncreaseGoldAmount];
@@ -263,8 +265,11 @@ public sealed class SpecialSystem : ISimulationSystem
     {
         CreatureState? target = context.World.CreatureById(command.TargetId);
         if (target is null || target.OwnerPlayerId == command.PlayerId.Value) return 0;
-        CreatureHealthRules.Apply(context.Database, context.Database.CreatureById(target.CreatureTypeId), target,
-            -target.Health, box.OwnerPlayerId);
+        // Through the health routine (0x004B2CE0): its refusals and multiplier apply, so an armoured
+        // creature takes half and lives; a creature brought to zero collapses inside the call.
+        StatusEffectRules.Hurt(context.World, context.Database, context.Database.CreatureById(target.CreatureTypeId),
+            target, target.Health, box.OwnerPlayerId);
+        CollapseSystem.Now(context, target);
         return 1;
     }
 
@@ -314,8 +319,10 @@ public sealed class SpecialSystem : ISimulationSystem
     }
 
     /// <summary>Special 128, <c>0x004A4E50</c>: each of the keeper's creatures gains its level-scaled
-    /// maximum less its health, in the keeper's name. DK2 tests nothing; ours skips a creature at or
-    /// below zero, as whether a knocked-out one gets up is unread.</summary>
+    /// maximum less its health, in the keeper's name. DK2's arm tests nothing; ours skips a creature at
+    /// or below zero, as whether a knocked-out one gets up is unread, and does not mirror the health
+    /// routine's refusals of a heal (<c>OnlyAttackableByHorny</c>, <c>+0x3E6</c> bit 0x200000, vtable
+    /// <c>+0x74</c>).</summary>
     private static int HealOwn(SimulationContext context, PlayerId playerId)
     {
         int affected = 0;

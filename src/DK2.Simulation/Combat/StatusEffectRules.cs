@@ -229,13 +229,15 @@ public static class StatusEffectRules
     }
 
     /// <summary>State 209's starter (<c>0x00481020</c>), as the Stun Imps special kicks a worker into
-    /// it: the move to 209 tested (<c>0x00477310</c>), then <c>SetState(255)</c> for
-    /// <c>StunDuration</c> with the action ended. Unlike <see cref="StunInto"/> no event 15 fires,
-    /// as only <c>0x00491830</c> fires it. Not modelled: the turn spent in 209, its sound 199 in the
-    /// creature's category and action 52's cycle, and its position write (<c>0x0048F690</c>).</summary>
+    /// it: the move to 209 tested (<c>0x00477310</c>) and SetState's hand guard (<c>0x00476D30</c>
+    /// refuses a creature with <c>+0x3E6</c> bit 0), then <c>SetState(255)</c> for <c>StunDuration</c>
+    /// with the action ended. No event 15: <c>0x00481020</c> does not fire it, where
+    /// <c>0x00491830</c> does; its callees are unread (HYPOTHESIS). Not modelled: the turn spent in 209,
+    /// its sound 199 and action 52, begun before the SetState (a refusal of either leaves the
+    /// creature in 209 to try again), and its position write (<c>0x0048F690</c>).</summary>
     public static bool StunFromStarter(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (CreatureStateMachine.Classify(creature, StunStarterState) == StateTransition.Refused) return false;
+        if (creature.InHand || CreatureStateMachine.Classify(creature, StunStarterState) == StateTransition.Refused) return false;
         creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
         Stand(context, creature, CombatStates.Stunned);
         CreatureStateMachine.EndAction(creature);
