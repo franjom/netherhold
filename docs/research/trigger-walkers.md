@@ -171,7 +171,8 @@ Shipped creature-event records: 3 (22), 4 (37), 6 (158), 8 (88), 10 (4),
 are the two filters; `SimulationContext.FireCreatureEvent` is the systems' hook.
 Wired: 3 at executor construction and from the party spawn, 6 from a new
 engagement (DK2 fires on every fight-start), 15 from the stun, 63/61 from the
-entrance arrival, 16 and 4 from the health system's collapse and death, 13 from
+entrance arrival and from the Portal drop gate (`LeavingRules.PortalDrop`, which fires them and then
+`Sack` fires them again, so a drop emits each twice), 16 and 4 from the health system's collapse and death, 13 from
 a gold steal, 7 from the Prison enter hook once its claim takes (ADR-0311),
 12 from `ThreatFleeRules` (ADR-0678), and 53 from `GuiButtonCommand` in
 `GameSimulation` (ADR-0670). Not yet wired, their sites above: 5/60, 8, 9,

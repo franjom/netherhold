@@ -231,7 +231,8 @@ The four half-piece cases, with their addresses:
 - **The decorated piece's parity.** For N and S faces it uses the room tile's x
   plus `+0x92`, with piece 8 on the even sum. For E and W faces it uses y plus
   `+0x96`, with piece 8 on the odd sum. A negative phase (−1 until the room has a
-  straight wall run on that axis; not tied to wall furniture, `floor-and-terrain-pieces.md`
+  straight wall run on that axis; computed from wall geometry, not from furniture, and
+  the same value the wall-furniture slots use, `floor-and-terrain-pieces.md`
   `room-floors-and-liquids.md` §5) means always piece 7. Torches
   (wall-torches.md §2) go on the opposite parity, but only Torture and Casino
   add the phase to the torch test. In other rooms with a phase, a decorated

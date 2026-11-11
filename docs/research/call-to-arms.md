@@ -46,7 +46,7 @@ keeper's call on, it makes no object when the standing flag is in the keeper's h
 State 12 (`0x0049FBA0`) runs the activation and, on animation ended/wrapped flags
 `+0xF1 & 6`, installs art5 and moves to 13. State 13 (`0x0049FC50`) sets the recall
 deadline one second on and moves to 14. State 14 (`0x0049FCB0`) reruns the activation
-whenever the deadline is past, every third time with an effect; an ending flag moves
+whenever the deadline is past, every third time with view effect 330 (`0x14A`); an ending flag moves
 to 15. State 15 (`0x0049FD80`) waits for completion of the slap's art7, releases the creatures and zeroes the object's health
 (`0x004B2AD0`), which the cleanup pass removes. States 20 (`0x0049FDC0`) and 19
 (`0x0049FE40`) install art6, mark ending and wait for its completion before the
