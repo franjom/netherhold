@@ -88,7 +88,7 @@ public sealed class ShotSystem : ISimulationSystem
             shot.TargetKind = FightTargetKind.None;
             shot.TargetId = CombatRules.NoTarget;
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
-            ShotRules.Chain(context, shot, definition.HitThingShotId);
+            ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
             ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, null);
             ShotRules.ContactDamageTrap(context, shot, definition, trapHit);
             if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
@@ -100,11 +100,15 @@ public sealed class ShotSystem : ISimulationSystem
             shot.TargetId = hit.Id;
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition,
                 attachedCreatureId: new CreatureId(hit.Id));
-            ShotRules.Chain(context, shot, definition.HitThingShotId);
+            ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
             ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, hit);
             ShotRules.ContactDamage(context, shot, definition, hit);
-            // 0x004AC099, after the damage and before the die-on-thing test: the creature is turned away (not built) and the hit sounds
-            // in its own category at its own position with the shot's handle.
+            CollapseSystem.Now(context, hit);   // inside the damage call (0x004B2FB5)
+            // 0x004AC05B..0x004AC099, after the damage and before the die-on-thing test: the creature's heading
+            // becomes the angle distance of the shot's heading from 0x400 (so a collapse's own pick is
+            // overwritten), and the hit sounds in its own category at its own position with the shot's handle.
+            if ((definition.Flags & ShotRules.TurnsCreature) != 0)
+                hit.Heading = Steering.Bearing.Distance(shot.Heading, 0x400);
             if ((definition.Flags & ShotRules.TurnsCreature) != 0 && database.CreatureById(hit.CreatureTypeId).SoundCategory is { Length: > 0 } struck
                 && !ReferenceEquals(context.Events, NullEventSink.Instance))
                 ThingSoundRules.Request(context, SystemName, new SoundSourceId(SoundSourceKind.Shot, shot.Id), struck, ThingSoundEvent.Struck,
@@ -114,19 +118,20 @@ public sealed class ShotSystem : ISimulationSystem
         else if (ShotRules.HitsHeart(world, database, shot, definition))
         {
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
-            ShotRules.Chain(context, shot, definition.HitThingShotId);
+            ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
             ShotRules.ContactDamageHeart(context, shot, definition);
             if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
         }
         else if (ShotRules.HitsDoor(world, shot, definition, out DoorState? door))
         {
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
-            ShotRules.Chain(context, shot, definition.HitThingShotId);
+            ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
             ShotRules.ContactDamageDoor(context, shot, definition, door!);
             if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
         }
         else
         {
+            ProbeAhead(context, shot, definition);
             stopped = !Move(context, shot, definition, start);
         }
 
@@ -139,6 +144,44 @@ public sealed class ShotSystem : ISimulationSystem
         if (shot.Health > 0 && !stopped && (definition.Flags & ShotRules.CountsDown) != 0) shot.Health--;
         if (shot.Health <= 0) Die(context, shot, definition, deathShot: !stopped, showDeathEffect: !stopped);
         if (!stopped) ShotRules.RequestTimedEffect(context, shot, definition, shot.ViewPosition);
+    }
+
+    /// <summary><c>0x004ABD60</c> with nothing struck: the collision test is repeated where the shot is and
+    /// half a move on, the shot put back afterwards. A thing found leaves the velocity at the distance
+    /// covered so far, for good, so the shot stops short of it and strikes at the start of its next
+    /// update. The move's end is not tested. Level 5, turn 1719: two Fireballs half their velocity
+    /// beside the Wizard and the newer strikes on 1720.</summary>
+    private static void ProbeAhead(SimulationContext context, ShotState shot, ShotDef definition)
+    {
+        WorldState world = context.World;
+        // A collide type with no search has no collision step at all (table 0x006E4FF0, types 0 and 5 up).
+        if (definition.CollideType == ShotRules.CollideNone || definition.CollideType > ShotRules.CollideBodies) return;
+        if (shot.VelX == 0 && shot.VelY == 0 && shot.VelZ == 0) return;
+        int startX = shot.PosX, startY = shot.PosY;
+        int halfX = shot.VelX / 2, halfY = shot.VelY / 2, halfZ = shot.VelZ / 2;
+        int doneX = 0, doneY = 0, doneZ = 0;
+        for (int step = 0; step < 2; step++)
+        {
+            if (ShotRules.FindHit(world, context.Database, shot, definition) != null
+                || ShotRules.FindTrapHit(world, shot, definition, out _) != null
+                || ShotRules.HitsHeart(world, context.Database, shot, definition)
+                || ShotRules.HitsDoor(world, shot, definition, out _))
+            {
+                shot.VelX = doneX;
+                shot.VelY = doneY;
+                shot.VelZ = doneZ;
+                break;
+            }
+            doneX += halfX;
+            doneY += halfY;
+            doneZ += halfZ;
+            // The probe point is taken wherever it lies on the map, solid or not (0x00509050).
+            if (!world.Contains(new TilePos((startX + doneX) >> 12, (startY + doneY) >> 12))) continue;
+            shot.PosX = startX + doneX;
+            shot.PosY = startY + doneY;
+        }
+        shot.PosX = startX;
+        shot.PosY = startY;
     }
 
     /// <summary>Two half-steps along the velocity, each refused by a solid tile (§4a, §6). False when

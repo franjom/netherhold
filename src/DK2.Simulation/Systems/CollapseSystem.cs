@@ -23,14 +23,19 @@ public sealed class CollapseSystem : ISimulationSystem
         _due.Clear();
         foreach (CreatureState creature in context.World.Creatures)
             if (creature.CollapseDue) _due.Add(creature);
-        foreach (CreatureState creature in _due)
-        {
-            creature.CollapseDue = false;
-            if (context.World.CreatureById(creature.Id) is null) continue;   // removed by an earlier death's triggers
-            if (!CreatureDeathRules.HasCollapsed(creature) || CreatureDeathRules.IsDying(creature)
-                || CreatureDeathRules.IsCorpse(creature) || PrisonRules.IsImprisoned(creature)) continue;
-            CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            CreatureHealthSystem.RunOutOfHealth(context, definition, creature);
-        }
+        foreach (CreatureState creature in _due) Now(context, creature);
+    }
+
+    /// <summary>Collapses one marked creature at once, as the damage call itself does. A shot's hit
+    /// uses it so that what the hit writes after the damage (the heading) follows the fall's picks.</summary>
+    public static void Now(SimulationContext context, CreatureState creature)
+    {
+        if (!creature.CollapseDue) return;
+        creature.CollapseDue = false;
+        if (context.World.CreatureById(creature.Id) is null) return;   // removed by an earlier death's triggers
+        if (!CreatureDeathRules.HasCollapsed(creature) || CreatureDeathRules.IsDying(creature)
+            || CreatureDeathRules.IsCorpse(creature) || PrisonRules.IsImprisoned(creature)) return;
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        CreatureHealthSystem.RunOutOfHealth(context, definition, creature);
     }
 }

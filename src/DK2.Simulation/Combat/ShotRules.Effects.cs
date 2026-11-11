@@ -16,7 +16,11 @@ public static partial class ShotRules
     {
         shot.ViewHeight = height;
         shot.PreviousViewPosition = shot.ViewPosition;
-        if (!shot.HasLaunchHeading) shot.ViewHeading = initialHeading;
+        if (!shot.HasLaunchHeading)
+        {
+            shot.ViewHeading = initialHeading;
+            shot.Heading = initialHeading.Raw;
+        }
         if (!context.Database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition)) return;
         RequestConstructionSounds(context, shot, definition);
         context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(definition.GeneralEffectId),

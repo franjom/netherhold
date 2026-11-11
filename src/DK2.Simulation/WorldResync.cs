@@ -111,6 +111,9 @@ public static class WorldResync
                 ours.PosY = native.Y;
                 ours.Health = 0;
                 if (!CreatureDeathRules.IsDying(ours)) CreatureDeathRules.Collapse(context.Hooks, ours);
+                // The native position is already the fallen one: 217 is entered here, with no step back.
+                if (native.State == CreatureDeathRules.DyingState && ours.Dk2StateId == CreatureDeathRules.FallingState)
+                    CreatureStateMachine.TrySetState(context.Hooks, ours, CreatureDeathRules.DyingState);
                 ours.DyingTicks = Math.Max(0, CreatureDeathRules.DyingWindowTicks(database) - native.Health);
                 placed++;
                 continue;

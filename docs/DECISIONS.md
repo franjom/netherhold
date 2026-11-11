@@ -17338,3 +17338,70 @@ A pass is spent only on a tile change, not on DK2's other callers. The roll's ph
 at the strap is inferred, and 131's art-17 gate (`0x004845DB`) is not modelled; nor are
 the roll zeroes in state 133 (`0x00484C80`) and the Combat enter hook (`0x0047A810`).
 Shipped effect 279 has no art and generates nothing (`Effects.kwd`, read 2026-11-11).
+
+## ADR-0741 - a shot probes ahead and heads what it hits, the collapse is inside the hit, state 216 holds then steps back
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** combat, creatures, simulation-core | Advances Q712
+
+**Context.** Level 5 seed 1: Wizard 436, hit on 1718-1720 by Fireballs, reads `+0xF4` 893 where
+ours kept the collapse's pick (1041), and the Wizard and the Thief lie down in 217 on 1726 and
+1870, six turns after the collapse, the Wizard having moved by the fall's step. Four rules read from
+`DKII.EXE` explain it; addresses and captures: `shot-probe-and-hit-heading.md`,
+`death-fall-heading.md`. Reviewer: rule 1 STRONGLY INFERRED and CONFIRMED against the capture
+for launched Fireballs, rule 2 STRONGLY INFERRED, rule 3 STRONGLY INFERRED with the creature case
+CONFIRMED on three shots, rule 4 STRONGLY INFERRED with the Wizard's displacement CONFIRMED.
+
+**Decision.**
+1. A hit on a creature whose shot has flags bit 8 sets the creature's `+0xF4` to the angle
+   distance of the shot's `+0xF4` from `0x400`, after the damage and ungated (`0x004ABD60`).
+   `ShotState.Heading` is set at launch and in `RequestTrail`; a hit-thing child is made with 0.
+2. The collapse is inside the damage call (`0x004B2CE0` at `0x004B2FB5`): `CollapseSystem.Now`
+   runs right after a shot's `ContactDamage`, so the hit's heading write follows the picks.
+   Other damage still collapses in the `CollapseSystem` passes (ADR-0732).
+3. With nothing struck a shot probes ahead (`ShotSystem.ProbeAhead`): the collision test at the
+   start and after half the velocity, a thing found cutting the velocity to the distance covered
+   so far, the start position restored.
+4. State 216 holds while the collapse's action runs, then `DeathFallRules.Fall` enters 217 and
+   steps the body back along its heading by vector 3's y (`CreatureDef.DeathFallStepY`) onto a
+   tile that is not solid and has the own tile's navigation byte. The dying countdown starts
+   at 217. The hold's end, `FallEndsAt` (turn + 1 + the hold of art slot 7), is a HYPOTHESIS:
+   both captured creatures have hold 5, so it cannot be told from "+6".
+
+**Consequences.** Hash/save 468, pin `0x4994F366AF069831`; `ShotState.Heading` is hashed, saved and
+copied. The Level 1 win journal is re-recorded (win tick 2231, gem (16,23): remake output, nothing
+native confirms the 72-tick move). Three scenarios' deaths move 243 to 247 and 483 to 487. The
+controlled Level 5 seed-1 replay, run before the merge of master with this change at hash 465,
+goes from 6764 ordered draws through 1788 to 6810 through 1791; the next boundary is 1792 draw 1
+(Q712). Deviations and gaps, none with a capture: ours halves whole position units in the probe;
+the heart and door arms stand in for DK2's one search predicate (`0x004B5800`); a hit in the
+first probe iteration leaves velocity 0 and `Move` then requests a hit-solid effect; Guided
+Bolt's process 28 (`0x004AF3A0`) rewrites the shot's `+0xF4` and is unbuilt; the `+0xAB` stamp
+and 217's two-phase fall machine are unbuilt; `Fall` does not test `CarriedByCreatureId` or
+`InHand`, and `ActionUntilTick` is not cleared when a rescue leaves 216; the Thief's z drops
+4096 to 3924 on 1865 in 216, unexplained. Shot_Update runs Collide, the per-tick damage, then
+the mover; ours moves first, and a hit shot does not move in ours.
+
+## ADR-0742 - a nearer imp takes over a collapsed creature's carry
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** imps-tile-work
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1023) found that
+several of our imps could walk to one collapsed creature: ours kept no holder for the
+carry. The rescue selector `0x0046D810` raises one kind-13 task on each body's tile
+and reads its holder. A free task is taken. A held one is taken only from a live
+creature with a state machine, not teleporting (51, 52), that may enter state 10, and
+that is strictly farther from the body than the taker (each axis `|d|^2 >> 12`,
+summed); the holder is kicked to 10 (`0x0048AD30`) before the taker's walk.
+
+The corpse selector `0x0046D3C0` does the same with a kind-12 task, testing the holder.
+
+**Decision.** `ImpTaskSystem`'s body search treats a worker of the same keeper walking
+to pick up the same kind of body (collapsed creature or corpse) on a tile as that
+tile's holder. A body whose
+holder cannot lose the task (`TaskStealing.CanLoseItsTask`) or is no farther is
+passed over; otherwise the holder loses its task (`TakeTaskFrom`) and the taker walks.
+
+**Consequences.** Hash/save 469, pin `0x358289A09AF5DF1C`; no new state, recorded runs change.
+Ours still picks the nearest body by walking distance, not DK2's three ordered loops,
+and DK2's test of the collapsed body's own `+0x252` (a state-object word) is taken as
+set, as nothing read clears it on a collapse. When a taker's walk fails after the kick,
+DK2 keeps the kicked holder named in the slot and tries the next body; ours ends the
+search and keeps no stale holder.

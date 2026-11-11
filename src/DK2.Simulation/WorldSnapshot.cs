@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 467;
+    private const int FormatVersion = 469;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -686,6 +686,7 @@ public static class WorldSnapshot
             WriteLink(w, s.TileLink);
             w.Write(s.VelX);
             w.Write(s.VelY);
+            w.Write(s.Heading);
             w.Write(s.PosZ);
             w.Write(s.VelZ);
             w.Write(s.Health);
@@ -1529,6 +1530,7 @@ public static class WorldSnapshot
                 TileLink = ReadLink(r),
                 VelX = r.ReadInt32(),
                 VelY = r.ReadInt32(),
+                Heading = r.ReadUInt16(),
                 PosZ = r.ReadInt32(),
                 VelZ = r.ReadInt32(),
                 Health = r.ReadInt32(),

@@ -228,6 +228,39 @@ public class CombatSpellTests
         Assert.Same(enemy, ShotRules.FindHit(world, db, shot, fireball));
     }
 
+    // 0x004ABD60: the test is repeated half a move on; a thing there cuts the velocity to that half for
+    // good and the shot strikes at the start of its next update. The hit then heads the creature by the
+    // shot's angle distance from half a turn (0x004AC05B). Level 5, turns 1719 and 1720: two Fireballs
+    // halve their velocity beside the Wizard, and the one that strikes leaves it heading 893.
+    [Fact]
+    public void AShotStopsHalfAMoveShortOfAThingAndStrikesNextTurn_AsTheCapturedFireballsDo()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        ShotDef fireball = db.Shots[Dk2TerrainFixture.FireballShotId];
+        CreatureState enemy = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 12, 10);
+        enemy.Heading = 77;
+        int health = enemy.Health;
+        ShotState shot = ShotRules.Spawn(world, fireball, Keeper, CreatureState.CentreOf(5), enemy.PosY, 300, 7,
+            3, FightTargetKind.Creature, enemy.Id, 0, -1, enemy.PosX, enemy.PosY);
+        ShotRules.Launch(shot, fireball, enemy.PosX, enemy.PosY);
+        int velocity = shot.VelX;
+        shot.VelZ = 40;
+        int height = shot.VelZ;
+        shot.PosX = enemy.PosX - (velocity / 2);
+        Assert.Null(ShotRules.FindHit(world, db, shot, fireball));
+        GameSimulation sim = Combat(db, world);
+
+        sim.Tick();
+        Assert.Equal((velocity / 2, enemy.PosX - (velocity / 2) + (velocity / 2), health, 77),
+            (shot.VelX, shot.PosX, enemy.Health, enemy.Heading));
+        Assert.Equal(height / 2, shot.VelZ);
+
+        sim.Tick();
+        Assert.True(enemy.Health < health);
+        Assert.Equal(DK2.Simulation.Steering.Bearing.Distance(shot.Heading, 0x400), enemy.Heading);
+        Assert.Equal(512, enemy.Heading);
+    }
+
     [Fact]
     public void AShotInFlightSurvivesASnapshot()
     {

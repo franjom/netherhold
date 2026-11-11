@@ -184,10 +184,14 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     private static void Dying(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
-        // 216's handler moves to 217 once the fall's action ends; ours has no animation and
-        // lies down on the first second (ADR-0206).
+        // 216's handler moves to 217 once the fall's action ends, in the creature's own update
+        // (DeathFallRules.Fall). Ours' adapter: a simulation run without that sweep ends the fall here.
+        // The countdown is 217's own, so it stands while the creature falls.
         if (state.Dk2StateId == CreatureDeathRules.FallingState)
-            CreatureStateMachine.TrySetState(context.Hooks, state, CreatureDeathRules.DyingState);
+        {
+            DeathFallRules.Fall(context, state, creature);
+            if (state.Dk2StateId == CreatureDeathRules.FallingState) return;
+        }
 
         // 217's handler clears CombatPitFighter: a knocked-out loser is no longer a fighter.
         if (state.Dk2StateId == CreatureDeathRules.DyingState) state.CombatPitFighter = false;
@@ -290,7 +294,11 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     {
         if (!CreatureDeathRules.Collapse(context.Hooks, state)) return;
         // Only when 216 took: 0x004596D0 returns before the picks and the drop if SetState refuses it.
-        if (state.Dk2StateId == CreatureDeathRules.FallingState) DeathFallRules.Enter(context, state);
+        if (state.Dk2StateId == CreatureDeathRules.FallingState)
+        {
+            DeathFallRules.Enter(context, state);
+            state.ActionUntilTick = DeathFallRules.FallEndsAt(context, creature);
+        }
         int carried = state.GoldHeld;
         int dropped = state.Dk2StateId == CreatureDeathRules.FallingState
             ? FloorGold.DropFrom(context.World, context.Database, state, context.Rng)

@@ -183,6 +183,7 @@ public static partial class KwdCreatures
             PrayerStepX = S32(0x127B),
             PrayerStepY = S32(0x127F),
             GetUpStepY = S32(0x128B),
+            DeathFallStepY = S32(0x1297),
             EntranceFrames = S32(EntranceBlock + 0x44),
             EntranceFramesPerSecond = S32(EntranceBlock + 0x48),
             // The Getup animation (block 27), which action 53 plays while state 257 waits.
