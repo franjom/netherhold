@@ -228,6 +228,24 @@ public static class StatusEffectRules
         return true;
     }
 
+    /// <summary>State 209's starter (<c>0x00481020</c>), as the Stun Imps special kicks a worker into
+    /// it: the move to 209 tested (<c>0x00477310</c>), then <c>SetState(255)</c> for
+    /// <c>StunDuration</c> with the action ended. Unlike <see cref="StunInto"/> no event 15 fires,
+    /// as only <c>0x00491830</c> fires it. Not modelled: the turn spent in 209, its sound 199 in the
+    /// creature's category and action 52's cycle, and its position write (<c>0x0048F690</c>).</summary>
+    public static bool StunFromStarter(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (CreatureStateMachine.Classify(creature, StunStarterState) == StateTransition.Refused) return false;
+        creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
+        Stand(context, creature, CombatStates.Stunned);
+        CreatureStateMachine.EndAction(creature);
+        context.Emit(SystemName, "stunned", $"creature={creature.Id} ticks={creature.StunTicks} by=209");
+        return true;
+    }
+
+    /// <summary>State 209, the stun starter (<c>0x00481020</c>).</summary>
+    public const int StunStarterState = 209;
+
     /// <summary>Invisible (§2): the word set, then every attacker on my slots that is fighting me
     /// loses its target, my slots are emptied, and <see cref="CombatRules.IsAttackable"/> refuses me
     /// while the word runs.</summary>

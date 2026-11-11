@@ -184,6 +184,36 @@ public static class TileWorkRules
         SlabChain.Changed(world, database, (at.Y * world.Width) + at.X, terrainBefore, ownerBefore);
     }
 
+    /// <summary><c>Tile_ApplyWork</c> (<c>0x00452F60</c>) with a caller's signed amount, as the Make Safe
+    /// and Destroy Walls specials call it: a negative one floors at zero and the tile becomes its
+    /// destroyed type; a positive one clamps at 32000 and at <c>MaxHealth</c> converts to the
+    /// max-health type in <paramref name="playerId"/>'s name, or only clamps when that type is the
+    /// tile's own. The caller does the applier's follow-ups.</summary>
+    public static TileWorkResult ApplyDelta(GameDatabase database, ref TileState tile, int delta, PlayerId playerId)
+    {
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        if (delta < 0)
+        {
+            int applied = Math.Max(delta, -tile.Health);
+            tile.Health += applied;
+            if (tile.Health > 0)
+                return new TileWorkResult(applied == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
+                    applied, 0, 0, tile.TerrainId);
+            int spilled = Convert(database, ref tile, BridgeRules.RevertsTo(database, tile), playerId, takeOwnership: false);
+            return new TileWorkResult(TileWorkOutcome.Destroyed, applied, 0, spilled, tile.TerrainId);
+        }
+        tile.Health = Math.Min(tile.Health + delta, MaxTileHealth);
+        if (tile.Health < terrain.MaxHealth)
+            return new TileWorkResult(delta == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed, delta, 0, 0, tile.TerrainId);
+        if (terrain.MaxHealthTypeTerrainId == tile.TerrainId)
+        {
+            tile.Health = terrain.MaxHealth;
+            return new TileWorkResult(TileWorkOutcome.Progressed, delta, 0, 0, tile.TerrainId);
+        }
+        int converted = Convert(database, ref tile, terrain.MaxHealthTypeTerrainId, playerId, takeOwnership: true);
+        return new TileWorkResult(TileWorkOutcome.Transformed, delta, 0, converted, tile.TerrainId);
+    }
+
     /// <summary>Health damage without mining yield, using the shared terrain conversion; the caller checks eligibility.</summary>
     public static TileWorkResult ApplyDamage(GameDatabase database, ref TileState tile, TileHealthDamage damage)
     {

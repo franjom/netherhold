@@ -223,7 +223,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unreachable(206, "Q455 (STRONGLY INFERRED): no fresh stock v1.70 game path from 205; restored saves are outside this scope (traps.md §11)"));
         rows.Add(Unreachable(207, "no 0xCF push, store or table slot is a state (call and raw byte scans): room-return-states.md §5"));
         rows.Add(Unreachable(208, "no 0xD0 push, store or table slot is a state (call and raw byte scans): room-return-states.md §5"));
-        rows.Add(Unbuilt(209, "not read"));
+        rows.Add(Unbuilt(209, "specials.md §4, read (0x00481020): sound 199, action 52, then SetState(255); Stun Imps enters 255 directly (StatusEffectRules.StunFromStarter)"));
         rows.Add(Built(210, typeof(TremorRules), nameof(TremorRules.KnockdownState)));
         rows.Add(Built(211, typeof(DropDeliveryRules), nameof(DropDeliveryRules.CelebratingState)));
         rows.Add(Unreachable(212, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
