@@ -166,7 +166,22 @@ chosen on `+0x3BB` (`0x0048C3B1`-`0x0048C405`, `0x0048C46E`-`0x0048C47C`). At
 slot goes on to install. So a turn that ends with no action running gets the standing clip.
 Between two actions of one work state the handler restarts the action in the same turn, before
 the chooser, so the [starter](functions/00496700.md) finds the slot-13 clip and keeps it.
-Not read: the chooser's install call after `0x0048C637`, the meaning of `+0x3BB`, states 17 and 18.
+The install, read 2026-11-11 (STRONGLY INFERRED, records [0048BE50](functions/0048BE50.md) and
+[004B37D0](functions/004B37D0.md)): the chooser reinstalls only when the resource or slot differs, through
+`0x004B37D0` on `creature+0x44`; a same-slot choice leaves phase, rate and flags alone. A fresh install
+writes phase 0, rate 0 and flags 3, and `0x004B41E0` then clears flag bit 1 and sets the rate for a type-6
+clip only. The Imp's standing pose is not type 6, which is why the capture shows phase 0, rate 0, flags 3;
+an action's first turn is the [starter's](functions/00496700.md) own immediate install (flags 1, rate 1862)
+plus the same turn's advance (phase 1862), and the chooser then finds slot 13 installed. `+0x3BB` is the
+movement mode (0 walk, 1 run, 2 the third); it picks slots 1, 2 and 38 only while the body moves, and the
+standing slot 39 is chosen at zero speed unless the mode is 2.
+
+States 17 and 18 (`0x00466080`, `0x00466180`): 17 starts no action. 18, with no action running, either
+starts action 10 in that call (the starter cannot refuse when none runs) or leaves for state 10, so "an action
+is running at the chooser" equals "in the work state" for 16, 18 and 20 alike, with one exception that
+holds for all three: the update whose handler (15, 17 or 19) sets the work state ends in it with no action
+running, and the chooser installs the standing clip. Ours drops the clip on an earlier update outside the
+work state, so its `OwnsClip` is already false there. Only a refused `SetState` would break the equality; none is known.
 
 Controlled replay (`F:/DK2Evidence/studies/q712-claim-clip--2026-11-11--001`, `controlled471`,
 the hash-468 diagnostic source plus ADR-0745 and this change): 6905 ordered draws through turn

@@ -56,13 +56,14 @@ the loader no longer re-syncs.
 
 Readings in DKII.EXE (STRONGLY INFERRED; the outcome CONFIRMED in capture):
 [00459850](functions/00459850.md)'s step back writes only the entity position and
-the last position, never `004D59A0`, `004D55B0` or `004D5B30`, so the body stays;
+the last position, never `004D59A0`, `004D55B0` or `004D5B30`, so the body stays (its one world virtual call, slot `+0x1D4`, is the read-only cell lookup [00508FE0](functions/00508FE0.md));
 [004599D0](functions/004599D0.md) has no body writer; and the mover block of
 [00488930](functions/00488930.md) is skipped when bit 0 of the state's flag byte is
 clear, as it is for 216, 217 and 218. Body writers that bit does not gate: the
 impulse commit (ours re-syncs it in `CreaturePhysicsRules`), the `+0x4E9` timer path
-`0x004889AB..0x004889D6` (SetState `0xF2` then `004D1070`; not built, the timer's
-setter unread) and the hand drop at `0x004BC7FB` ([004BC710](functions/004BC710.md);
+`0x004889AB..0x004889D6` (SetState `0xF2` then `004D1070`; the timer is the Horned Reaper's:
+the block sits behind the IsHorny definition test, only the timed-Reaper setter writes it nonzero, and
+`ReaperRules.AdvanceTimer` builds it; a creature in 217 reaches it only as such a Reaper) and the hand drop at `0x004BC7FB` ([004BC710](functions/004BC710.md);
 built, `HandSystem.Drop` syncs the body). Neighbours read the body, not the
 entity: [004D1170](functions/004D1170.md) builds its tile rectangle from the
 querying creature's body, finds candidates on chains that follow the entity, and
@@ -93,8 +94,7 @@ Warlock 441 differs by one unit on 1794 (native (43274,127785), ours
 (43275,127784)); the Warlocks' later state 78 against our 1 is our idle stand-in for
 the hand's hold.
 
-Not checked: whether the cursor can pick up a creature in 217; the `+0x4E9` timer
-path; states 56/250 and the other bit-0-clear states, which ours still re-syncs (Q736).
+Not checked: whether the cursor can pick up a creature in 217; states 56/250 and the other bit-0-clear states, which ours still re-syncs (Q736).
 
 ## Gated control
 
