@@ -507,6 +507,37 @@ public class CarryingTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
+    /// <summary>A creature a level script removed (action 35, byte 0) goes that turn through the death
+    /// bookkeeping with <c>+0x3E6</c> bit 0x40: no killed event, no corpse, its gold gone with it, and
+    /// no count (<c>0x00487CCB</c>).</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]   // already down: DK2's zero write removes it too, with no rescue window
+    public void ACreatureTheScriptRemovesLeavesNoCorpseNoGoldAndNoKilledEvent(bool down)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Rival, new TilePos(2, 2));
+        if (down) Down(new StateHookContext(world, db), goblin);
+        goblin.GoldHeld = 300;
+        goblin.TriggerId = EventCounterTree.Root;
+        goblin.CorpseSuppressed = true;
+        goblin.DeathUncounted = true;
+        goblin.Health = 0;
+        int lostBefore = world.Player(Rival).Statistics.OwnCreaturesKilled;
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, 42, [new CreatureRemovalSystem()], EventCounterTree.For(CreatureTriggerEvent.Killed));
+        sim.ObserveWith(sink);
+
+        sim.Tick();
+
+        Assert.DoesNotContain(world.Creatures, c => c.Id == goblin.Id);
+        Assert.Equal(0, FloorGold.Total(world, db));
+        Assert.Equal(0, world.Triggers.Read(EventCounterTree.CountFlag));
+        Assert.Equal(lostBefore, world.Player(Rival).Statistics.OwnCreaturesKilled);
+        Assert.Contains(sink.Events, e => e.Kind == "creature_died" && e.Detail.Contains("leaves_body=False"));
+    }
+
     /// <summary><c>0x0046D3C0</c>: a corpse's carry is held as a collapsed creature's is.</summary>
     [Theory]
     [InlineData(3, 2, true)]

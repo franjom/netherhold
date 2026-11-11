@@ -43,9 +43,12 @@ public static class ObjectCarryRules
     /// DK2's test is objects owned by nobody, standing on the imp's own floor or on water. "Owned
     /// by nobody" separates a loose book from one already shelved, and it is why a bed and a
     /// treasury's gold are never candidates: a bed belongs to the creature that put it down, and a
-    /// floor pile is owned by the level's floor-gold id, which is kind 7's business (Q144).</summary>
+    /// floor pile is owned by the level's floor-gold id, which is kind 7's business (Q144). An object
+    /// in a keeper's hand is not on the map in DK2, so no tile scan meets it; ours keeps its tile, so
+    /// tests <see cref="ObjectState.InHand"/>.</summary>
     public static bool IsLoose(GameDatabase database, ObjectState thing) =>
-        thing.OwnerPlayerId == PlayerIds.Unowned
+        !thing.InHand
+        && thing.OwnerPlayerId == PlayerIds.Unowned
         && thing.CarriedByCreatureId < 0
         && thing.CreatureId == 0
         && thing.GoldHeld == 0
@@ -109,7 +112,8 @@ public static class ObjectCarryRules
         foreach (ObjectState thing in world.Objects)
         {
             if (thing.TileIndex != tileIndex) continue;
-            if (thing.CarriedByCreatureId >= 0) continue;
+            // A held object is unlinked from its tile in DK2 (0x004B4F60), so it occupies none.
+            if (thing.CarriedByCreatureId >= 0 || thing.InHand) continue;
             if (best is null || thing.Id < best.Id) best = thing;
         }
         return best;

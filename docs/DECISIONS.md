@@ -17405,3 +17405,27 @@ and DK2's test of the collapsed body's own `+0x252` (a state-object word) is tak
 set, as nothing read clears it on a collapse. When a taker's walk fails after the kick,
 DK2 keeps the kicked holder named in the slot and tries the next body; ours ends the
 search and keeps no stale holder.
+
+## ADR-0744 - level scripts remove a creature without trace; a held object is not fetched
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** campaign-triggers, creatures, imps-tile-work
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1036, #1075) found
+two gaps. Creature action 35 (27 shipped records in Level6b, level8, Level9, Level19 and
+Level20, all byte 0) was unperformed. Its arm (`0x0049AC80` case `0x23`) clears the corpse
+bit `+0x3E6` 0x20, sets 0x40 and writes health 0 (slot `+0x20`); the pass after the turn's
+updates removes the creature through the death bookkeeping `0x00487C70`, whose 0x40 test
+(`0x00487CCB`) skips the killed event, the counts and the gold spill. And our loose-object
+test let an imp fetch an object in the keeper's hand, which in DK2 is off the map.
+
+**Decision.** `TriggerExecutor` performs 35's byte 0 by setting `CorpseSuppressed`,
+`DeathUncounted` and health 0; `CreatureRemovalSystem`, first of the thing pass's removals,
+takes such a creature, standing or already down, through `Die`, which now skips the killed
+event and the gold drop for it. (DK2's collapsed creature holds its countdown in health, so
+the zero write removes it too; ours keeps a collapsed creature at 0, so the flag decides.) Byte 1, the
+death fall `0x00459560`, stays unperformed; other values do nothing. `ObjectCarryRules.IsLoose`
+and `ObjectOn` ignore an object in the hand, which DK2 unlinks from its tile (`0x004B4F60`).
+
+**Consequences.** Hash/save 470, pin `0xB54DA1B30C835FF3`; no new state, recorded runs change.
+Still deviating: with the bit set DK2 does not drop the carried thing but writes its
+health to 0 (its slot `+0x20`), so a carried object vanishes and a carried body goes
+through its own bookkeeping; the dragged thing (slot `+0x70`) is unread; ours drops both. Byte 1 has no shipped record.

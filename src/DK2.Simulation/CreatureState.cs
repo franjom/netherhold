@@ -401,8 +401,9 @@ public sealed partial class CreatureState
     /// corpse bit <c>0x20</c> cleared, by the Temple entry (<c>0x00472A10</c>) and a creature
     /// trigger action (<c>0x0049AFAC</c>), each followed by the zero-health slot <c>+0x20</c>;
     /// the death bookkeeping then skips the gold spill and, with a credited player, every kill
-    /// count (<c>0x004882A9</c>). Nothing here sets it yet: our Temple sacrifice removes the
-    /// creature without the death bookkeeping, and the trigger action is not built.</summary>
+    /// count (<c>0x004882A9</c>), the killed event (<c>0x00487CCB</c>). Set by creature trigger
+    /// action 35's byte 0 (ADR-0744); our Temple sacrifice removes the creature without the death
+    /// bookkeeping, so does not set it.</summary>
     public bool DeathUncounted;
 
     /// <summary>Ticks since the hunger clock last ticked over, counting up towards the

@@ -324,8 +324,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     internal static void Die(
         SimulationContext context, string system, CreatureDef creature, CreatureState state)
     {
-        // 0x00487E4A: the cry, unless the removal counts nothing (+0x3E6 bit 0x40, DeathUncounted, which nothing in src sets yet, so this
-        // guard is inert). Not mirrored: the function head's skip while the world's level-leave probe (vtable +0x4C, 0x00487CB8) is nonzero, and the
+        // 0x00487E4A: the cry, unless the removal counts nothing (+0x3E6 bit 0x40, DeathUncounted, set by
+        // creature trigger action 35, CreatureRemovalSystem). Not mirrored: the function head's skip while the world's level-leave probe (vtable +0x4C, 0x00487CB8) is nonzero, and the
         // skip while world +0x7239 bit 0x80 is set (a saved game being restored, INFERRED); a simulation has neither. DK2 runs the bookkeeping for every freed
         // creature; ours asks it where the creature dies, not where the other removal paths (leaving, the Temple's pool) free one.
         if (!state.DeathUncounted) ThingSoundRules.Request(context, system, state, ThingSoundEvent.CreatureFreed);
@@ -333,7 +333,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         PossessionRules.CreatureFreed(context.World, state);
         if (state.Possessed && context.World.HasPlayer(state.OwnerPlayerId))
             PossessionRules.Leave(context, ref context.World.Player(state.OwnerPlayerId));
-        context.FireCreatureEvent(state, CreatureTriggerEvent.Killed);
+        // 0x00487CCB: +0x3E6 bit 0x40 jumps past the killed event (0x00487CF5).
+        if (!state.DeathUncounted) context.FireCreatureEvent(state, CreatureTriggerEvent.Killed);
 
         // A dead creature gives up its bed, or a lair leaks a tile forever.
         // Not on collapse — the rescue path carries it back to that bed. A
@@ -352,8 +353,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // (FloorGold.DropFrom). Reported as dropped-and-lost rather than as one
         // number, because the two are different amounts and the difference is
         // DK2's own quirk.
+        // Bit 0x40 also skips the carried-gold drop (0x0048814B): the gold goes with it.
         int carried = state.GoldHeld;
-        int dropped = FloorGold.DropFrom(context.World, context.Database, state, context.Rng);
+        int dropped = state.DeathUncounted ? 0 : FloorGold.DropFrom(context.World, context.Database, state, context.Rng);
+        if (state.DeathUncounted) state.GoldHeld = 0;
         PortalRules.ArrivalDied(context.World, state);
         CreditHeroKill(context.World, creature, state);
 
