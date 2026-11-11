@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**470** - `0xB54DA1B30C835FF3`. Creature action 35's byte 0 removes the creature, standing or down, in the thing pass's second walk (`CreatureRemovalSystem`) through the death bookkeeping with no corpse, no killed event, no count and no gold spill; an object in a keeper's hand is no longer a fetch target (ADR-0744). No new state; the version moves because recorded runs change.
+
 **469** - `0x358289A09AF5DF1C`. A collapsed creature's or a corpse's carry has one holder per tile: a worker strictly nearer the body than the one walking to it takes the task and the holder returns to state 10; otherwise the body is passed over (ADR-0742). No new state; the version moves because recorded runs change.
 
 **468** - `0x4994F366AF069831`. A shot carries its heading word (`ShotState.Heading`, hashed, copied and saved) and writes it to a creature it hits; it probes ahead of its move; a shot's hit collapses the creature inside the hit; state 216 holds for the collapse's action and steps back before 217, where the dying countdown starts (ADR-0741). Earlier saves are refused.
