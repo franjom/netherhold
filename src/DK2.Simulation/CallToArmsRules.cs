@@ -227,6 +227,8 @@ public static class CallToArmsRules
 
         var from = new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
         var to = new Steering.Fixed16Vector(CreatureState.CentreOf(tile.X) << 4, CreatureState.CentreOf(tile.Y) << 4);
+        // Route only appends: cleared so the per-thread list does not grow with every test.
+        RouteScratch.Clear();
         return context.Navigation.Route(from, to, WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, 0), RouteScratch);
     }
 
