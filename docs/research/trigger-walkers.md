@@ -172,10 +172,10 @@ are the two filters; `SimulationContext.FireCreatureEvent` is the systems' hook.
 Wired: 3 at executor construction and from the party spawn, 6 from a new
 engagement (DK2 fires on every fight-start), 15 from the stun, 63/61 from the
 entrance arrival and from the Portal drop gate (`LeavingRules.PortalDrop`, which fires them and then
-`Sack` fires them again, so a drop emits each twice), 16 and 4 from the health system's collapse and death, 13 from
+`Sack` fires them again, so a drop emits each twice, as the gate's direct call at `0x00459DCA` does natively, ADR-0739), 16 and 4 from the health system's collapse and death, 13 from
 a gold steal, 7 from the Prison enter hook once its claim takes (ADR-0311),
-12 from `ThreatFleeRules` (ADR-0678), and 53 from `GuiButtonCommand` in
-`GameSimulation` (ADR-0670). Not yet wired, their sites above: 5/60, 8, 9,
+12 from `ThreatFleeRules` (ADR-0678), 8 from `TortureRules` after state 130's 131 attempt (ADR-0739), 9 from `TortureSystem`'s conversion on the converted creature (ADR-0740), and 53 from `GuiButtonCommand` in
+`GameSimulation` (ADR-0670). Not yet wired, their sites above: 5/60,
 10, 11, 54, 65/58, 46, 56/57 and 59. The hunger subtract is mirrored without
 its event ([record](functions/00477AD0.md)); action 9 is unbuilt and ordinary
 tile work omits the breach pair. An event walk's blocked and partial records

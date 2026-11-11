@@ -7,7 +7,7 @@ Source(s):
 - `DKII.EXE` v1.70 (GOG), read 2026-11-11 for Q712 against the Level 5 seed-1 capture. Addresses
   are facts about the binary in our own words (ADR-0046).
 
-Questions: Q712. Decision: ADR-0739. [shots.md](shots.md) section 4a holds the rest of the
+Questions: Q712. Decision: ADR-0741. [shots.md](shots.md) section 4a holds the rest of the
 collision step; [death-fall-heading.md](death-fall-heading.md) the collapse's picks and the
 fall in state 216.
 
@@ -63,7 +63,7 @@ Capture: on 1719 shots 1483 and 1484 go (-2352,-58928,2170) to (-1176,-29464,108
 1484, strikes and 1483 flies on at the halved velocity. The Thief's shot 1641 halves on 1863 and
 strikes on 1864.
 
-## Built (ADR-0739, hash/save 466)
+## Built (ADR-0741, hash/save 468)
 
 - `ShotState.Heading` (saved, hashed, copied), set in `ShotRules.Launch` and `RequestTrail`;
   `ShotSystem` writes `Bearing.Distance(shot.Heading, 0x400)` to the creature after the damage.

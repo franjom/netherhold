@@ -4,7 +4,7 @@ systems: [rooms]
 # What torture tells a keeper: `0x004F2370`
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.
-- **Built:** ADR-0230, `TortureInformationRules`.
+- **Built:** ADR-0230, ADR-0740, `TortureInformationRules`.
 - Related: `state-category-hooks.md` §3.3 (the Torture hook), `fog-reveal-sources.md` §3.7.
 
 ## Result in one sentence
@@ -64,22 +64,32 @@ are the panel's text, which is not read.
 
 ## 4. Reward 11 — STRONGLY INFERRED
 
-Over the victim keeper's rooms (`player+0x36`, next `+8`), it skips each whose first tile
-(`+0x2D`, `+0x2E`) is explored (tile byte `+9` bit `0x20`). On the first that is not, it
-explores every tile of the room (`0x00454B80`), each with a 3 × 3 area of kind 6
-(`0x00517480`). With none, it takes the keeper's first creature standing on unexplored ground
-and writes `+0x475` = 16 and `+0x476` = the chamber's keeper (`fog-reveal-sources.md` §3.1).
+Over the victim keeper's rooms, newest first (`player+0x36`, next `+8`), it skips each whose first
+slab (`+0x2D`, `+0x2E`) is explored (tile byte `+9` bit `0x20`). On the first that is not, it
+explores every tile of the room's chain (`0x00454B80`), posting bridge command 6 after each, a
+3 × 3 redraw at x − 1, y − 1 through `0x00517480` (presentation only). With none, it takes the
+keeper's first creature (`player+6`, next `+0x10`) standing on unexplored ground and writes `+0x475`
+= 16 and `+0x476` = the chamber's keeper. `0x0048CC90` spends the passes (`fog-reveal-sources.md`
+§3.1, §3.7).
 
-## 5. The speech — STRONGLY INFERRED
+## 5. The messages — STRONGLY INFERRED
 
-Speech `0x61` goes to the chamber's keeper. Then `0x60` follows for 3–10, and `0x3B` for 11.
+Every reward posts message 97 (`0x61`) to the chamber's keeper first, then 96 (`0x60`) for 3–10 or
+59 (`0x3B`) for 11. All three are row `0x201E`: 30 seconds, deduplicated (`message-table.md`).
+Reward 6 maps to no message, and is never a candidate.
 
 ## 6. Ours
 
 - `InformationGiven` on the chamber's keeper holds the flags, bit `(k − 3) × 8 + victim's
   player id`.
-- `TortureSystem` emits `information` with the reward.
-- **Not built:**
-  - the panel;
-  - reward 11's reveal and tag (fog of war itself shipped under ADR-0076, so this no longer needs one);
-  - the speech.
+- `TortureSystem` emits `information` with the reward, and `reveal=` the reveal's result for 11.
+- `TortureInformationRules.Award` posts 97, then 96 or 59 (`InformationLearned`,
+  `InformationUnlocked`, `InformationReveal`). `RevealTo` explores a room or tags a creature;
+  `FogOfWarSystem.TortureSightPass` is the tag arm of `0x0048CC90`, spending a pass each time a
+  tagged creature moves onto another tile (ADR-0740, hash 467).
+- **Deviations.** DK2 has one explored layer, the local machine's, and tests and writes it
+  whoever tortured, spending a tag only for the local player; ours uses the chamber keeper's
+  layer for every keeper. With fog of war off, ours reveals and tags nothing. Command 6 is not
+  posted: the view rebuilds from the explored layer. A pass is spent only on a tile change, not at
+  DK2's other callers of `0x0048CC90`.
+- **Not built:** the enemy-information panel.

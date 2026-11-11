@@ -19,6 +19,17 @@ public static class TortureRules
     /// type: the Torture Wheel (8) and the Electric Chair (61). Coals and Water are decoration.</summary>
     public const byte WheelObjectId = 8;
     public const byte ElectricChairObjectId = 61;
+    public const byte CoalsTroughObjectId = 62;
+    public const byte WaterTroughObjectId = 63;
+
+    /// <summary>The Torture Coals Effect and the Torture-Water Effect (<c>0x112</c>, <c>0x117</c>). The
+    /// shipped 279 has no art and generates nothing, so only the coals show.</summary>
+    public const ushort CoalsEffectId = 0x112;
+    public const ushort WaterEffectId = 0x117;
+
+    /// <summary>The roll band in which a wall wheel's trough raises its effect, <c>[0x3A0, 0x460)</c>.</summary>
+    public const int TroughEffectFirstRoll = 0x3A0;
+    public const int TroughEffectEndRoll = 0x460;
 
     /// <summary>A creature dropped from the hand on a Torture Chamber goes to 130, the room's drop
     /// state (<c>+0x19</c>), as the slap's reaction sends a Torture Chamber's place-holder; 130
@@ -133,8 +144,18 @@ public static class TortureRules
     private static bool EnterTheDevice(in StateHookContext hooks, CreatureState creature)
     {
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
-        return CreatureStateMachine.TrySetState(hooks, creature, StrappingState)
-            && CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
+        if (!CreatureStateMachine.TrySetState(hooks, creature, StrappingState)) return false;
+        return EnterTortured(hooks, creature);
+    }
+
+    /// <summary>State 130's strap (<c>0x00484110</c>): 131, whose result it ignores, then creature
+    /// event 8, Tortured (<c>0x004842BE</c>). So the event fires on every strap and every re-strap,
+    /// for a captive and for a keeper's own creature alike.</summary>
+    private static bool EnterTortured(in StateHookContext hooks, CreatureState creature)
+    {
+        bool took = CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
+        hooks.FireCreatureEvent(creature, CreatureTriggerEvent.Tortured);
+        return took;
     }
 
     /// <summary>A keeper's own creature dropped on a free device of its own chamber: 1, 130 and
@@ -187,9 +208,14 @@ public static class TortureRules
         CreatureStateMachine.TrySetState(hooks, creature, ReleasedState);
         ObjectState? device = FreeDeviceAt(world, hooks.Database, KeeperOf(creature), tileIndex, creature.Id);
         if (device is null) return;
+        // 136's own wall-wheel arm (0x00484F8A) turns the victim a step from the tile it stands on,
+        // then 130's strap turns it again from the device's (0x0048439A).
+        int stood = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        if (RoomIndex.RoomAt(world, hooks.Database, stood) is RoomInstance stoodRoom
+            && device.ObjectTypeId == WheelObjectId && !AutoFurnitureRules.IsFloorSlot(world, stoodRoom, stood))
+            Roll(world, creature, stood);
         StrapOn(hooks, creature, device);
-        CreatureStateMachine.TrySetState(hooks, creature, StrappingState);
-        CreatureStateMachine.TrySetState(hooks, creature, TorturedState);
+        if (CreatureStateMachine.TrySetState(hooks, creature, StrappingState)) EnterTortured(hooks, creature);
     }
 
     /// <summary>130 for a creature that walked onto a free device of its own keeper's chamber,
@@ -202,16 +228,36 @@ public static class TortureRules
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, here, creature.Id);
         if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
-        if (!CreatureStateMachine.TrySetState(hooks, creature, TorturedState)) return false;
+        if (!EnterTortured(hooks, creature)) return false;
 
         StrapOn(hooks, creature, device);
         return true;
     }
 
+    /// <summary>A wheel on a wall slot: the arm of 130 and 131 that turns its victim (a wheel on a
+    /// floor slot turns itself, <c>0x0049EF60</c>, and a chair does neither).</summary>
+    public static bool OnWallWheel(WorldState world, RoomInstance room, ObjectState device) =>
+        device.ObjectTypeId == WheelObjectId && !AutoFurnitureRules.IsFloorSlot(world, room, device.TileIndex);
+
+    /// <summary>The wheel's turn a step, from its tile: <c>((x + y) &amp; 3) + 4</c> (<c>0x004F2930</c>),
+    /// forward when x + y is odd and back when even (<c>0x004F2910</c>).</summary>
+    public static int WheelStep(WorldState world, int tileIndex)
+    {
+        int sum = (tileIndex % world.Width) + (tileIndex / world.Width);
+        int rate = (sum & 3) + 4;
+        return (sum & 1) != 0 ? rate : -rate;
+    }
+
+    /// <summary>Adds one step to the victim's roll, masked to a turn.</summary>
+    public static void Roll(WorldState world, CreatureState creature, int tileIndex) =>
+        creature.TortureRoll = (ushort)((creature.TortureRoll + WheelStep(world, tileIndex)) & 0x7FF);
+
     private static void StrapOn(in StateHookContext hooks, CreatureState creature, ObjectState device)
     {
         RoomInstance room = RoomIndex.RoomAt(hooks.World, hooks.Database, device.TileIndex)!;
         (creature.PosX, creature.PosY) = AutoFurnitureRules.FurniturePosition(hooks.World, hooks.Database, room, device);
+        // 130's strap turns a wall wheel's victim one step (0x0048439A).
+        if (OnWallWheel(hooks.World, room, device)) Roll(hooks.World, creature, device.TileIndex);
         if (device.AutoPlaced && AutoFurnitureRules.IsWallFurniture(room.Definition, device))
         {
             int side = AutoFurnitureRules.WallSide(hooks.World, hooks.Database, room, device.TileIndex);

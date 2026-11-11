@@ -99,14 +99,14 @@ Thief's z drops 4096 to 3924 on 1865, during 216.
   pass still collapses whatever reaches zero another way.
 
 Deviations: DK2 collapses inside the damage call. Ours does for a shot's hit
-(`CollapseSystem.Now`, ADR-0739); other damage that empties health collapses in
+(`CollapseSystem.Now`, ADR-0741); other damage that empties health collapses in
 the passes above, so a blow struck during the creature sweep draws after the
 sweep. Not built: the
 definition's rotation (`+0x766`, 0 in every shipped record), the `+0x102` word
 (drawn and dropped, transient), the position from `0x0048F690`. A tile off the
 map blocks (ours).
 
-## Built since (ADR-0739, hash/save 466)
+## Built since (ADR-0741, hash/save 468)
 
 - `CreatureDef.DeathFallStepY` (the `KwdCreatures` reader and writer), and
   `DeathFallRules.Fall` in `CreatureStatusSystem`'s per-creature step: it waits for

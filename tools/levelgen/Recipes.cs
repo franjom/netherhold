@@ -104,7 +104,121 @@ public static class Recipes
             + "gold (the Heart's 16000 and the save's 115 Treasury tiles x 3000 hold it). The save's creatures and objects "
             + "are undecoded (Q182), so mpd1's own placed things stay.",
             b => FromSave(b, "MPT21.SAV", 250000)),
+        new("Q498Spells", "Small",
+            "Q498 (2026-11-11): Chicken and Inferno, cast by the owner with the mana cheat. Keeper 3's sealed Heart and four "
+            + "sealed chambers of its Claimed Path (both spells need the target on the caster's land): A, a keeper-4 Goblin "
+            + "with a corridor to a keeper-4 Hatchery (the chickened walk); B, a keeper-4 Goblin with no way out (the 60 s "
+            + "without a fight); C, Prince Felix (immune: the mana is still spent); D, a Knight to target with two Dwarves "
+            + "one tile off and one three tiles off (Inferno's one-tile zone, 100 a tick for 30 ticks, and its recast timeout).",
+            SpellChambers),
+        new("Q498Spells2", "Small",
+            "Q498Spells without the cheat, which crashed DK2 when typed there (2026-11-11): Small's LevelRating and "
+            + "AverageTime overrides become DungeonHeartManaGenerationIncreasePerSecond and MaximumManaGainPerSecond, "
+            + "60000 each (u16 words Level_InitTriggersAndStart adds to player +0x10E6 and +0x10DE, 0x0050BBBC and "
+            + "0x0050BA91), so the Heart refills mana to the 200000 ceiling within seconds; keeper 4's AI flag is off "
+            + "so it does not spend the same mana near the chambers.",
+            b =>
+            {
+                SpellChambers(b);
+                b.SetAiFlag(Rival, false);
+                if (!b.RepointVariable(VariableTypeId.LevelRating, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 60000)
+                    || !b.RepointVariable(VariableTypeId.AverageTime, VariableTypeId.MaximumManaGainPerSecond, 60000))
+                    throw new InvalidOperationException("Small no longer carries LevelRating and AverageTime overrides");
+            }),
+        new("Q498Spells3", "Small",
+            "Q498Spells2 with the spells: Small makes only Possession (2) and Create Imp (4) available (VARIABLES kind 5), "
+            + "so the owner had neither Chicken nor Inferno (2026-11-11). Keeper 4's two spell rows, unused with its AI "
+            + "off, become keeper 3's Inferno (9) and Chicken (11) at availability 3.",
+            b =>
+            {
+                Recipes.All.Single(r => r.Name == "Q498Spells2").Build(b);
+                if (!b.RepointAvailability(AvailabilityKind.Spell, Rival, 2, Keeper, 9, 3)
+                    || !b.RepointAvailability(AvailabilityKind.Spell, Rival, 4, Keeper, 11, 3))
+                    throw new InvalidOperationException("Small no longer carries keeper 4's spell rows 2 and 4");
+            }),
+        new("Q498Spells4", "Small",
+            "Q498Spells3 with chamber A's Goblin held: in the Q498Spells3 run (2026-11-11) it walked into keeper 4's "
+            + "Hatchery (room 1127, under the owner's fog) by turn 50, before any cast. A locked keeper-3 Wooden Door "
+            + "(DoorThing.Flags bit 0, doors-and-traps.md) at (23,4) holds it in the chamber until the owner unlocks it "
+            + "after the Chicken.",
+            b =>
+            {
+                Recipes.All.Single(r => r.Name == "Q498Spells3").Build(b);
+                var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
+                b.InsertThing(door with { X = 23, Y = 4, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
+            }),
+        new("Q498Spells5", "Small",
+            "Q498Spells4 with the Heart's income at 500 a second (cap 500) instead of 60000, so mana stays below the "
+            + "200000 ceiling and a cast on a payment tick still shows its debit (Q498Spells4 hid Prince Felix's). For the "
+            + "owner's second Chicken on Prince Felix and the chamber-A door unlocked, not sold.",
+            b =>
+            {
+                SpellChambers(b);
+                b.SetAiFlag(Rival, false);
+                if (!b.RepointVariable(VariableTypeId.LevelRating, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 500)
+                    || !b.RepointVariable(VariableTypeId.AverageTime, VariableTypeId.MaximumManaGainPerSecond, 500))
+                    throw new InvalidOperationException("Small no longer carries LevelRating and AverageTime overrides");
+                if (!b.RepointAvailability(AvailabilityKind.Spell, Rival, 2, Keeper, 9, 3)
+                    || !b.RepointAvailability(AvailabilityKind.Spell, Rival, 4, Keeper, 11, 3))
+                    throw new InvalidOperationException("Small no longer carries keeper 4's spell rows 2 and 4");
+                var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
+                b.InsertThing(door with { X = 23, Y = 4, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
+            }),
     ];
+
+    private const byte HatcheryTerrain = 13;
+    private const byte Knight = 13, PrinceFelix = 26;
+
+    /// <summary>The Q498 layout on Small: every tile impenetrable rock but keeper 3's walled Heart, keeper 4's, and
+    /// four 3-tile-high chambers of keeper 3's Claimed Path along rows 3..5 and 9..11, none joined to a Heart.</summary>
+    private static void SpellChambers(LevelBuilder b)
+    {
+        LevelMap map = b.Map;
+        var rock = new MapTile(ImpenetrableRock, Neutral, 1, 0);
+        var path = new MapTile(ClaimedPath, Keeper, 1, 0);
+        var hatchery = new MapTile(HatcheryTerrain, Rival, 1, 0);
+        // A: chamber x 20..22 with a corridor along row 4 to keeper 4's Hatchery at x 28..30, rows 3..5.
+        // B: x 34..36, rows 3..5.  C: x 40..42, rows 3..5.  D: x 20..26, rows 9..11.
+        static bool Floor(int x, int y) =>
+            (x is >= 20 and <= 22 && y is >= 3 and <= 5) || (x is >= 23 and <= 27 && y == 4)
+            || (x is >= 34 and <= 36 && y is >= 3 and <= 5)
+            || (x is >= 40 and <= 42 && y is >= 3 and <= 5)
+            || (x is >= 20 and <= 26 && y is >= 9 and <= 11);
+        static bool Hatchery(int x, int y) => x is >= 28 and <= 30 && y is >= 3 and <= 5;
+        for (int y = 1; y < map.Height - 1; y++)
+            for (int x = 1; x < map.Width - 1; x++)
+                if (Floor(x, y)) b.Paint(x, y, path);
+                else if (Hatchery(x, y)) b.Paint(x, y, hatchery);
+                else if (map[x, y].TerrainId is not (9 or 14)) b.Paint(x, y, rock);
+        // One sealed tile of the heroes' own, so the remake's harness makes player 1 too (levelgen README).
+        b.Paint(44, 28, new MapTile(ClaimedPath, Heroes, 1, 0));
+
+        var things = b.Things;
+        for (int i = things.Count - 1; i >= 0; i--)
+            if (things[i] is ObjectThing o && map[o.X, o.Y].TerrainId is not (9 or 14) && !Floor(o.X, o.Y)) b.RemoveThing(i);
+
+        var (keeper, keeperImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Rival && c.CreatureId == Imp);
+        void Goblin4(int x, int y) => b.InsertThing(keeper with
+        {
+            X = x, Y = y, CreatureId = Goblin, PlayerId = Rival, Level = 4, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+        }, keeperImage);
+        Goblin4(21, 4);
+        Goblin4(35, 4);
+
+        var (hero, heroImage) = b.Template<GoodCreatureThing>(g => g.CreatureId == Dwarf);
+        void Hero(int x, int y, byte id, byte level) => b.InsertThing(hero with
+        {
+            X = x, Y = y, CreatureId = id, Level = level, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+            TriggerId = 0, PartyId = 0, Flags2 = (byte)(hero.Flags2 & ~4),
+        }, heroImage);
+        Hero(41, 4, PrinceFelix, 4);
+        Hero(21, 10, Knight, 10);
+        Hero(22, 10, Dwarf, 4);
+        Hero(21, 11, Dwarf, 4);
+        Hero(24, 10, Dwarf, 4);
+    }
+
+    private const byte Rival = 4;
 
     /// <summary>Repaints the base level from a DK2 save of that level (terrain, owner and flags per tile)
     /// and drops placed objects now inside solid rock or wall.</summary>

@@ -202,8 +202,9 @@ public static class CallToArmsRules
             // leave from category 15 frees the device. A taken kick also zeroes +0x64, +0x66 and +0x68
             // (0x004BDF17-0x004BDF1F), the animation words 135's handler zeroes too: presentation. 135's handler 0x00484CC0 only returns 0, so a
             // refused route or 190 leaves it idle; ours idles it here, standing in for that handler.
-            if (creature.TortureVoluntary)
-                CreatureStateMachine.TrySetState(context.Hooks, creature, TortureRules.VoluntaryLeaveState, context.Tick.Value);
+            if (creature.TortureVoluntary
+                && CreatureStateMachine.TrySetState(context.Hooks, creature, TortureRules.VoluntaryLeaveState, context.Tick.Value))
+                creature.TortureRoll = 0;
             if (!CanRoute(context, creature, definition, tile)
                 || !CreatureStateMachine.TrySetState(context.Hooks, creature, GoingState, context.Tick.Value))
             {

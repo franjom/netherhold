@@ -136,7 +136,7 @@ expect:
     at_tick: 247
     because: >
       CreatureDyingStateDurationSeconds is 60, so 244 ticks after the collapse
-      at tick 3 (the fall, then the 240-tick window, ADR-0089, ADR-0739). Nothing
+      at tick 3 (the fall, then the 240-tick window, ADR-0089, ADR-0741). Nothing
       on this map can
       rescue them, so the window runs out untouched.
   - event: corpse_buried

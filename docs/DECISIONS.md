@@ -17283,7 +17283,63 @@ modelled (as in ADR-0593's step back); the probe and the travel share one router
 where DK2's probe asks mode -2 and the travel `0x2000`; the same-tile shortcut is
 ADR-0388's approximation.
 
-## ADR-0739 - a shot probes ahead and heads what it hits, the collapse is inside the hit, state 216 holds then steps back
+## ADR-0739 - script walk/run and the tortured event
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** campaign-triggers, creatures, rooms
+
+**Context.** The OpenKeeper PR audit (openkeeper-pr-audit-1000-1110.md, #1102 and
+#1011) found two creature-tree hooks we lacked. Creature action 33 (72 shipped
+records: Level4, Level9, Level19, TrapTime) was an unperformed success. Arm
+`0x0049AF3D` calls `0x004887D0(creature, byte 0 != 0, 0)`: walk on 0, run otherwise
+(0049AC80.md). Creature event 8 (88 records, Level6a/6b) had no producer. State
+130 (`0x00484110`) sets 131, ignoring the result, then fires it at `0x004842BE`.
+
+**Decision.** `TriggerExecutor` performs 33 in a creature context by setting
+`CreatureState.Running` from byte 0. It does not set `SpeedSetTick`: the creature's
+root walk runs at the tail of its update (`0x0048A49D`), after the speed restore,
+and the next update clears `+0x3BF` at `0x00489619` before its modifiers, so the
+mark shields no move (speed-set-turn.md). `TortureRules` fires `Tortured` after its
+131 attempt wherever 130 runs: a drop on a device, the re-strap through 136 and a
+Mistress's self-strap. A re-strap whose 130 is refused no longer tries 131.
+
+**Consequences.** Hash/save 466, pin `0xD1AE562ED00A3875`; no new state, recorded
+runs of those levels change. Still deviating: 33 from a tree fired inside a handler
+(one Level9 record under event 6) would natively mark before the restore, unread;
+our strap entries refuse a creature its device will not hold before 130, where
+native 130 has no such test, so that attempt fires no event; the self-strap fires
+before it positions the creature. The portal drop's double sacked event (63, P61)
+was checked and is native (00459D50.md); it stays.
+
+## ADR-0740 - torture conversion messages, reward 11 and the trough effect
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** rooms, creatures, camera-lighting
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1001, #1017,
+#1041, #1044) found three silent torture paths. Conversion (`0x004F2800`) posts
+message 57 to the old owner, wipes the anger buckets (`0x00486E20`), posts 58 to the
+new owner and fires creature event 9. Every information reward (`0x004F2370`) posts
+97, then 96 or, for 11, 59; reward 11 explores the victim keeper's newest room whose
+first slab is unexplored, or tags its first creature on unexplored ground with 16
+radius-one passes (`+0x475`/`+0x476`, spent by `0x0048CC90`). On a wall wheel the
+device handler `0x00499300` raises effect 274 (coals) or 279 (water) at the trough,
+once a game second, while the victim's roll `+0x68` is in `[0x3A0, 0x460)`.
+
+**Decision.** `TortureSystem` posts 57 and 58, calls `CreatureAngerRules.ForgetAll` and
+fires `Converted` in that order. `TortureInformationRules.Award` posts the messages and
+`RevealTo` explores or tags; `FogOfWarSystem` spends a pass each time a tagged creature
+moves onto another tile (the `0x0048A817` call). `CreatureState.TortureRoll` mirrors
+`+0x68`: a step at 130's strap, at 136's re-strap (`0x00484F8A`, from the tile stood on)
+and each 131 turn, zeroed by a conversion, 135's kick and 136 finding no device;
+`TortureSystem` raises the trough effect from it before the turn's step.
+
+**Consequences.** Hash/save 467, pin `0x9C21F0BD3DEABBA3`: four creature fields hashed,
+copied and saved. Deviations: DK2 has one explored layer, the local machine's, and
+uses it whoever tortured, and spends a tag only for the local player; ours uses the
+chamber keeper's layer for every keeper. With fog off ours reveals and tags nothing.
+A pass is spent only on a tile change, not on DK2's other callers. The roll's phase
+at the strap is inferred, and 131's art-17 gate (`0x004845DB`) is not modelled; nor are
+the roll zeroes in state 133 (`0x00484C80`) and the Combat enter hook (`0x0047A810`).
+Shipped effect 279 has no art and generates nothing (`Effects.kwd`, read 2026-11-11).
+
+## ADR-0741 - a shot probes ahead and heads what it hits, the collapse is inside the hit, state 216 holds then steps back
 **Date:** 2026-11-11 | **Status:** accepted | **Systems:** combat, creatures, simulation-core | Advances Q712
 
 **Context.** Level 5 seed 1: Wizard 436, hit on 1718-1720 by Fireballs, reads `+0xF4` 893 where
@@ -17310,7 +17366,7 @@ CONFIRMED on three shots, rule 4 STRONGLY INFERRED with the Wizard's displacemen
    at 217. The hold's end, `FallEndsAt` (turn + 1 + the hold of art slot 7), is a HYPOTHESIS:
    both captured creatures have hold 5, so it cannot be told from "+6".
 
-**Consequences.** Hash/save 466, pin `0xD1AE562ED00A3875`; `ShotState.Heading` is hashed, saved and
+**Consequences.** Hash/save 468, pin `0x4994F366AF069831`; `ShotState.Heading` is hashed, saved and
 copied. The Level 1 win journal is re-recorded (win tick 2231, gem (16,23): remake output, nothing
 native confirms the 72-tick move). Three scenarios' deaths move 243 to 247 and 483 to 487. The
 controlled Level 5 seed-1 replay, run before the merge of master with this change at hash 465,

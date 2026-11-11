@@ -24,20 +24,18 @@ Ordered by shipped use and ordinary gameplay first.
 1. **ALTER_SPEED, creature action 33 ([#1102](https://github.com/tonihele/OpenKeeper/pull/1102)).**
    72 shipped records (Level4, Level9, Level19, TrapTime). Arm `0x0049AF3D`
    calls [0x004887D0](functions/004887D0.md) with walk (0) or run (non-zero) from
-   the operand's low byte. The speed-mode infrastructure exists; only the arm
-   is missing. Mark the speed-set turn like the existing sites
-   ([speed-set turn](speed-set-turn.md)).
+   the operand's low byte. Built (ADR-0739): the mode only, not the speed-set
+   mark ([speed-set turn](speed-set-turn.md) "Deviations").
 2. **Creature event 8, tortured ([#1011](https://github.com/tonihele/OpenKeeper/pull/1011)).**
-   88 shipped records, the most of any unwired creature event. Fresh read:
+   88 shipped records. Fresh read:
    [0x00484110](functions/00484110.md) fires it at `0x004842BE`, once per strap
-   and again on each re-strap, also for a keeper's own creature. Fire it where
-   `TortureRules` completes state 130 to 131.
+   and again on each re-strap, also for a keeper's own creature. Built
+   (ADR-0739) in `TortureRules.EnterTheDevice`, `Restrap` and `TryStrapSelf`.
 3. **Torture conversion messages and event 9 ([#1001](https://github.com/tonihele/OpenKeeper/pull/1001), [#1017](https://github.com/tonihele/OpenKeeper/pull/1017)).**
    Fresh read of [0x004F2800](functions/004F2800.md): message 0x39 to the old owner,
    owner change, anger clear, message 0x3A to the new owner, creature event 9.
-   `TortureSystem` converts without any of the messages or the event, so a
-   conversion is invisible to both players. Event 9 has no shipped records;
-   the messages matter more.
+   Built (ADR-0740) in `TortureSystem`'s conversion block. Event 9 has no
+   shipped records; the messages matter more.
 4. **REMOVE_FROM_MAP, creature action 35 ([#1036](https://github.com/tonihele/OpenKeeper/pull/1036)).**
    27 records in five campaign levels. Fresh read:
    [0x00487C70](functions/00487C70.md) skips the killed event, the count and the
@@ -77,17 +75,17 @@ Ordered by shipped use and ordinary gameplay first.
     handler is unread, so "camera glide to the creature for any tree" is a
     HYPOTHESIS. Seven shipped records; ours treats it as a no-op.
 12. **Torture reward 11 room reveal ([#1044](https://github.com/tonihele/OpenKeeper/pull/1044)).**
-    Fog of war now exists, so the "unbuilt, needs fog" note in `TortureSystem`
-    is stale ([torture-information.md](torture-information.md) §6 already says
-    so). Build it from
-    §4 there and [fog-reveal-sources.md §3.7](fog-reveal-sources.md).
+    Built (ADR-0740) in `TortureInformationRules.RevealTo` and
+    `FogOfWarSystem.TortureSightPass`, from
+    [torture-information.md](torture-information.md) §4 and
+    [fog-reveal-sources.md §3.7](fog-reveal-sources.md).
 13. **Held object as a fetch target ([#1075](https://github.com/tonihele/OpenKeeper/pull/1075)), code-only.**
     `ObjectCarryRules.IsLoose` does not test `InHand`, so a book the keeper
     holds may still be chosen by `TryObjectAt`. Write the test first.
 14. **Presentation:** trough effects 274/279 once a game second
     ([#1041](https://github.com/tonihele/OpenKeeper/pull/1041), fresh read of
     [0x00499300](functions/00499300.md); the effects are not behind the
-    `0x00759ADC` sound gate); Torture Chamber and Casino torch phase
+    `0x00759ADC` sound gate), built (ADR-0740) in `TortureSystem.TurnTheWheel`; shipped 279 has no art and shows nothing. Still open: Torture Chamber and Casino torch phase
     ([#1040](https://github.com/tonihele/OpenKeeper/pull/1040),
     [wall torches §2](wall-torches.md)); Call to Arms HUD widget and the
     every-third-call effect 330 ([#1054](https://github.com/tonihele/OpenKeeper/pull/1054)).
@@ -111,11 +109,11 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 
 | PR | Finding for this project | Evidence / next action |
 |---|---|---|
-| [1001](https://github.com/tonihele/OpenKeeper/pull/1001) | Gap: creature event 9 on conversion | Fresh read of [0x004F2800](functions/004F2800.md): receiver is the converted creature, after the owner change. Wire in `Systems/TortureSystem` conversion block. No shipped records. Neutral recruitment fires event 10 instead (also unwired). |
+| [1001](https://github.com/tonihele/OpenKeeper/pull/1001) | Built: creature event 9 on conversion (ADR-0740) | Fresh read of [0x004F2800](functions/004F2800.md): receiver is the converted creature, after the owner change. Fired in `Systems/TortureSystem`'s conversion block. No shipped records. Neutral recruitment fires event 10 instead (also unwired). |
 | [1003](https://github.com/tonihele/OpenKeeper/pull/1003) | Gap: slap events 5 and P60 | Fresh read of [0x0048B8A0](functions/0048B8A0.md): sites `0x0048BCB2` (main path) and `0x0048BD08` (states 209/255), P60 to the slapped creature's owner; the damage-only arm fires nothing. Fire after `CreatureHealthRules.Apply` in `HandSystem.Slap`. |
 | [1005](https://github.com/tonihele/OpenKeeper/pull/1005) | Covered: stunned event 15 | `Combat/StatusEffectRules.Stun/StunInto`; [0x00491830](functions/00491830.md). No tree-level test. |
 | [1008](https://github.com/tonihele/OpenKeeper/pull/1008) | Covered: imprisoned event 7, known divergence | `CategoryHooks` Prison enter; `PrisonImprisonedEventTests`. Q504 rim/full-prison divergence stands. |
-| [1011](https://github.com/tonihele/OpenKeeper/pull/1011) | Gap: tortured event 8 | Fresh read of [0x00484110](functions/00484110.md), fire site `0x004842BE`. 88 shipped records. Wire in `TortureRules.EnterTheDevice/Restrap/TryStrapSelf`. |
+| [1011](https://github.com/tonihele/OpenKeeper/pull/1011) | Gap: tortured event 8 | Fresh read of [0x00484110](functions/00484110.md), fire site `0x004842BE`. 88 shipped records. Built (ADR-0739) in `TortureRules.EnterTheDevice/Restrap/TryStrapSelf`. |
 | [1013](https://github.com/tonihele/OpenKeeper/pull/1013) | Deliberate OpenKeeper deviation | Fresh reads of [0x00484110](functions/00484110.md) and [0x004F2180](functions/004F2180.md): the strap needs the device on the creature's own cell within one tile. OpenKeeper's move to a device elsewhere is not native. Ours matches. Room-drop state 76 (`0x004E8DA0`) not read. |
 | [1015](https://github.com/tonihele/OpenKeeper/pull/1015) | Covered: attacked event 6, two known deviations | `CombatTargetRules.Engage`; `TriggerEventTests`; [0x0045A550](functions/0045A550.md). Ours fires only on a new engagement and not on a failed registration. |
 | [1018](https://github.com/tonihele/OpenKeeper/pull/1018) | Gap: pick-up events P58 and 65 | [0x004BFBD0](functions/004BFBD0.md) fires both before any capacity test; fresh xref shows 17 call sites in 10 functions. Fire at the prepare step in `HandSystem.PickUp`, not after insertion. |
@@ -144,19 +142,19 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | [1092](https://github.com/tonihele/OpenKeeper/pull/1092) | Gap: world action 51 and the countdown | Fresh read of arm `0x0051986C` and `0x004B9740`. `TriggerState` world bit 0x04 has no setter or reader. |
 | [1094](https://github.com/tonihele/OpenKeeper/pull/1094) | Partial: emission covered, toggle missing | `EffectGeneratorSystem` (ADR-0648). Fresh read of arm `0x005197C8`: sets `+0x3C` from byte 1 == 1. No shipped use. SET_MUSIC_LEVEL already a success no-op in ours and native. |
 | [1100](https://github.com/tonihele/OpenKeeper/pull/1100) | Covered: creature moods switch | `SetCreatureAngerEnabled`, `CreatureAngerRules.Apply`; [creature-anger.md](creature-anger.md). |
-| [1102](https://github.com/tonihele/OpenKeeper/pull/1102) | Gap: creature action 33 | Fresh read of arm `0x0049AF3D`. 72 shipped records. |
+| [1102](https://github.com/tonihele/OpenKeeper/pull/1102) | Gap: creature action 33 | Fresh read of arm `0x0049AF3D`. 72 shipped records. Built (ADR-0739), mode only. |
 | [1104](https://github.com/tonihele/OpenKeeper/pull/1104) | Gap: creature action 36, no shipped use | Fresh read of arm `0x0049AFD0`: only operand 1 enables `MayLookForAFight`. |
 
 ### Rooms, torture and prison
 
 | PR | Finding for this project | Evidence / next action |
 |---|---|---|
-| [1017](https://github.com/tonihele/OpenKeeper/pull/1017) | Partial: devices covered; conversion messages missing | `TortureRules`, `TortureSystem`, `TortureTests`. Messages 57/58 and events 8/9 absent (items 2-3 above). Chair sparks and full clip unbuilt ([object-drawing.md §9](object-drawing.md)). OpenKeeper's torture sounds sit behind `0x00759ADC` natively (Q635). |
+| [1017](https://github.com/tonihele/OpenKeeper/pull/1017) | Covered: devices, conversion messages and events 8 and 9 | `TortureRules`, `TortureSystem`, `TortureTests`. Messages 57/58 and event 9 built (ADR-0740, item 3 above); event 8 built (ADR-0739). Chair sparks and full clip unbuilt ([object-drawing.md §9](object-drawing.md)). OpenKeeper's torture sounds sit behind `0x00759ADC` natively (Q635). |
 | [1040](https://github.com/tonihele/OpenKeeper/pull/1040) | Covered for wall furniture; gap in torch phase | `AutoFurnitureRules.WallSlots`; [auto-placed-furniture.md §4](auto-placed-furniture.md). `DK2.Presentation/TorchLayout` uses plain parity for rooms 12 and 15 ([wall-torches.md §2](wall-torches.md)). Lead: does the native Torture capacity count include the companion wheel? |
-| [1041](https://github.com/tonihele/OpenKeeper/pull/1041) | Partial: wall wheels covered; trough effects missing | Fresh read of [0x00499300](functions/00499300.md): effect 274 (coals) / 279 (water) once a game second while victim `+0x68` is in [0x3A0, 0x460) (meaning unread). |
+| [1041](https://github.com/tonihele/OpenKeeper/pull/1041) | Built: wall wheels and trough effects (ADR-0740) | Fresh read of [0x00499300](functions/00499300.md): effect 274 (coals) / 279 (water) once a game second while victim `+0x68` is in [0x3A0, 0x460) (meaning unread). `TortureSystem.TurnTheWheel`; the roll is `CreatureState.TortureRoll`. |
 | [1042](https://github.com/tonihele/OpenKeeper/pull/1042) | OpenKeeper-only fix | Device occupancy is derived from creature state; `WorldSnapshot` saves the torture fields. No round-trip test. |
 | [1043](https://github.com/tonihele/OpenKeeper/pull/1043) | Covered: own victims' mood | `TortureSystem.Act`, `TortureTests`; [state-category-hooks.md §3.3](state-category-hooks.md). |
-| [1044](https://github.com/tonihele/OpenKeeper/pull/1044) | Partial: information choice covered; reward 11 reveal missing | `TortureInformationRules`, `TortureInformationTests`. The fog note is stale. |
+| [1044](https://github.com/tonihele/OpenKeeper/pull/1044) | Built: information choice and reward 11 reveal (ADR-0740) | `TortureInformationRules`, `TortureInformationTests`. `RevealTo` and `FogOfWarSystem.TortureSightPass`. |
 | [1045](https://github.com/tonihele/OpenKeeper/pull/1045) | Covered, more faithful than the PR | `JailBreakRules`, `JailBreakTests`; [jail-break.md](jail-break.md). OpenKeeper freeing all allies' prisoners is its own. |
 | [1056](https://github.com/tonihele/OpenKeeper/pull/1056) | Deliberate OpenKeeper deviation | Fresh read: room 22 in `Rooms.kwd` has art `Torch1` with zero light and height; the def constructor zeroes `+0x456..+0x45C`. [wall-torches.md](wall-torches.md). |
 | [1058](https://github.com/tonihele/OpenKeeper/pull/1058) | Covered: Mistresses torture themselves | `TorturerStep`, `TortureRules.TryStrapSelf`, `TorturerTests`; Q419, Q426. No long-run hunger/pay test. |

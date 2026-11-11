@@ -50,7 +50,8 @@ public class TortureTests
         return world;
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink? sink = null)
+    private static GameSimulation Simulation(
+        GameDatabase db, WorldState world, ListEventSink? sink = null, TriggerTree? triggers = null)
     {
         var sim = new GameSimulation(db, world, seed: 42,
         [
@@ -58,7 +59,7 @@ public class TortureTests
             new CreatureMovementSystem(),
             new PrisonSystem(),
             new TortureSystem(),
-        ]);
+        ], triggers);
         if (sink is not null) sim.ObserveWith(sink);
         return sim;
     }
@@ -141,6 +142,201 @@ public class TortureTests
         sim.Run(10);
         Assert.Equal(970, captive.Health);
         Assert.Equal(0, captive.Anger.Treatment);
+    }
+
+    // A wheel over a coals trough on the chamber's rim: (7, 3) is not a floor slot, so a wall wheel.
+    // x + y = 10 is even, so the victim turns back 6 a turn.
+    private static readonly TilePos RimWheel = new(7, 3);
+
+    private static ViewEffectRequest[] TroughEffects(ListEventSink sink) =>
+        sink.Events.Where(e => e.EffectRequest is { } r && r.EffectId.Value is TortureRules.CoalsEffectId or TortureRules.WaterEffectId)
+            .Select(e => e.EffectRequest!.Value).ToArray();
+
+    private static (GameDatabase Db, WorldState World, CreatureState Captive) OnTheRimWheel(byte trough)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.SpawnObject(db, trough, Keeper, Index(world, RimWheel)).AutoPlaced = true;
+        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, RimWheel)).AutoPlaced = true;
+        CreatureState captive = Captive(db, world);
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, RimWheel)));
+        captive.Health = 1500;
+        return (db, world, captive);
+    }
+
+    [Fact]
+    public void TheStrapTurnsAWallWheelsVictimOneStep_AndEachTurnAnother_PhaseInferred()
+    {
+        (GameDatabase db, WorldState world, CreatureState captive) = OnTheRimWheel(TortureRules.CoalsTroughObjectId);
+        Assert.Equal(0x800 - 6, captive.TortureRoll);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Run(3);
+
+        Assert.Equal(0x800 - 24, captive.TortureRoll);
+    }
+
+    /// <summary><c>0x00499300</c>: in the roll band, once a game second, the coals raise 274 at the
+    /// trough's point, owned by the victim's own keeper, with its heading.</summary>
+    [Fact]
+    public void TheCoalsUnderAWallWheelGlowOnceASecondWhileTheVictimIsInTheBand()
+    {
+        (GameDatabase db, WorldState world, CreatureState captive) = OnTheRimWheel(TortureRules.CoalsTroughObjectId);
+        captive.TortureRoll = TortureRules.TroughEffectEndRoll - 1;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        // 0x45F down to 0x3A0 at 6 a turn is 33 turns in the band: 8 or 9 whole seconds.
+        sim.Run(40);
+
+        ViewEffectRequest[] effects = TroughEffects(sink);
+        Assert.InRange(effects.Length, 8, 9);
+        RoomInstance room = RoomIndex.RoomAt(world, db, Index(world, RimWheel))!;
+        ObjectState coals = world.Objects.Single(o => o.ObjectTypeId == TortureRules.CoalsTroughObjectId);
+        (int x, int y) = AutoFurnitureRules.FurniturePosition(world, db, room, coals);
+        Assert.All(effects, e =>
+        {
+            Assert.Equal(TortureRules.CoalsEffectId, e.EffectId.Value);
+            Assert.Equal(Rival, e.Owner.Value);
+            Assert.Equal((x, y), (e.Position.X.Raw, e.Position.Y.Raw));
+            Assert.Equal((ushort)captive.Heading, e.Heading.Value);
+        });
+        Assert.All(sink.Events.Where(e => e.EffectRequest?.EffectId.Value == TortureRules.CoalsEffectId),
+            e => Assert.Equal(0, (e.Tick.Value + 1) % SimulationTiming.OriginalTicksPerGameSecond));
+    }
+
+    [Fact]
+    public void AWaterTroughRaisesTheWaterEffect_AndOutsideTheBandNothing()
+    {
+        (GameDatabase db, WorldState world, CreatureState captive) = OnTheRimWheel(TortureRules.WaterTroughObjectId);
+        captive.TortureRoll = TortureRules.TroughEffectFirstRoll - 1;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        sim.Run(40);
+        Assert.Empty(TroughEffects(sink));
+
+        captive.TortureRoll = TortureRules.TroughEffectFirstRoll + 30;
+        sim.Run(8);
+        Assert.NotEmpty(TroughEffects(sink));
+        Assert.All(TroughEffects(sink), e => Assert.Equal(TortureRules.WaterEffectId, e.EffectId.Value));
+    }
+
+    [Fact]
+    public void WithBothTroughsUnderTheWheelTheWaterIsFound()
+    {
+        (GameDatabase db, WorldState world, CreatureState captive) = OnTheRimWheel(TortureRules.CoalsTroughObjectId);
+        world.SpawnObject(db, TortureRules.WaterTroughObjectId, Keeper, Index(world, RimWheel)).AutoPlaced = true;
+        captive.TortureRoll = TortureRules.TroughEffectFirstRoll + 30;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        sim.Run(8);
+
+        Assert.NotEmpty(TroughEffects(sink));
+        Assert.All(TroughEffects(sink), e => Assert.Equal(TortureRules.WaterEffectId, e.EffectId.Value));
+    }
+
+    /// <summary>The roll, and reward 11's tag, are creature state: hashed, saved and copied.</summary>
+    [Fact]
+    public void TheRollAndTheSightTagAreHashedSavedAndCopied()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Rival, Cell);
+        var sim = new GameSimulation(db, world, 1, []);
+        ulong before = sim.StateHash();
+        goblin.TortureRoll = 0x3A5;
+        ulong rolled = sim.StateHash();
+        Assert.NotEqual(before, rolled);
+        goblin.TortureSightPasses = 9;
+        ulong passes = sim.StateHash();
+        Assert.NotEqual(rolled, passes);
+        goblin.TortureSightPlayerId = Keeper;
+        ulong player = sim.StateHash();
+        Assert.NotEqual(passes, player);
+        goblin.TortureSightTileIndex = 77;
+        Assert.NotEqual(player, sim.StateHash());
+
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db);
+        CreatureState back = restored.World.CreatureById(goblin.Id)!;
+        Assert.Equal((0x3A5, 9, Keeper, 77), (back.TortureRoll, back.TortureSightPasses, back.TortureSightPlayerId, back.TortureSightTileIndex));
+        Assert.Equal(sim.StateHash(), restored.StateHash());
+
+        WorldState copy = World(db);
+        copy.SpawnCreature(db, GoblinId, Rival, Cell);
+        copy.CopyFrom(world);
+        CreatureState copied = copy.CreatureById(goblin.Id)!;
+        Assert.Equal((0x3A5, 9, Keeper, 77), (copied.TortureRoll, copied.TortureSightPasses, copied.TortureSightPlayerId, copied.TortureSightTileIndex));
+    }
+
+    [Fact]
+    public void AWheelOnAFloorSlotRaisesNoTroughEffect()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.SpawnObject(db, TortureRules.CoalsTroughObjectId, Keeper, Index(world, Wheel)).AutoPlaced = true;
+        CreatureState captive = Captive(db, world);
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
+        captive.Health = 1500;
+        captive.TortureRoll = 0x400;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        sim.Run(20);
+
+        Assert.Empty(TroughEffects(sink));
+        Assert.Equal(0x400, captive.TortureRoll);
+    }
+
+    /// <summary><c>0x004F2800</c>: message 57 to the old owner, the owner change, every grievance wiped,
+    /// message 58 to the new owner, then creature event 9 on the convert.</summary>
+    [Fact]
+    public void AConversionTellsBothKeepers_WipesItsGrievances_AndFiresConverted()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
+        captive.Health = 1500;
+        captive.Anger.Hunger = 9000;
+        captive.Anger.Treatment = 4000;
+        captive.TriggerId = EventCounterTree.Root;
+        GameSimulation sim = Simulation(db, world, triggers: EventCounterTree.For(CreatureTriggerEvent.Converted));
+
+        sim.Run(404);
+        Assert.DoesNotContain(world.Messages.Entries, m => m.Kind is PlayerMessageKind.CreatureConvertedAway or PlayerMessageKind.CreatureConverted);
+        Assert.Equal(0, world.Triggers.Read(EventCounterTree.CountFlag));
+        sim.Run(1);
+
+        Assert.Equal(Keeper, captive.OwnerPlayerId);
+        Assert.Equal(
+            new[] { (new PlayerId(Rival), PlayerMessageKind.CreatureConvertedAway), (new PlayerId(Keeper), PlayerMessageKind.CreatureConverted) },
+            world.Messages.Entries
+                .Where(m => m.Kind is PlayerMessageKind.CreatureConvertedAway or PlayerMessageKind.CreatureConverted)
+                .Select(m => (m.PlayerId, m.Kind)));
+        Assert.All(world.Messages.Entries.Where(m => m.Kind is PlayerMessageKind.CreatureConvertedAway or PlayerMessageKind.CreatureConverted),
+            m => Assert.Equal(captive.Id, m.Data1));
+        Assert.True(captive.Anger.IsCalm);
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
+    }
+
+    [Fact]
+    public void AConvertedMessageRepeatsForEachCreature_TheLostOneDoesNot()
+    {
+        GameDatabase db = Db;
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
+        world.Messages.Post(world, Keeper, PlayerMessageKind.CreatureConverted, 10, 0);
+        world.Messages.Post(world, Keeper, PlayerMessageKind.CreatureConverted, 11, 0);
+        world.Messages.Post(world, Rival, PlayerMessageKind.CreatureConvertedAway, 10, 0);
+        world.Messages.Post(world, Rival, PlayerMessageKind.CreatureConvertedAway, 11, 0);
+
+        Assert.Equal(2, world.Messages.Entries.Count(m => m.Kind == PlayerMessageKind.CreatureConverted));
+        Assert.Single(world.Messages.Entries, m => m.Kind == PlayerMessageKind.CreatureConvertedAway);
+        Assert.Equal((uint)SimulationTiming.TicksFromSeconds(30),
+            world.Messages.Entries.First(m => m.Kind == PlayerMessageKind.CreatureConverted).Timeout);
+        Assert.Equal((uint)SimulationTiming.TicksFromSeconds(240),
+            world.Messages.Entries.Single(m => m.Kind == PlayerMessageKind.CreatureConvertedAway).Timeout);
     }
 
     [Fact]
@@ -283,6 +479,55 @@ public class TortureTests
         Assert.Equal(1000, captive.Health);
     }
 
+    /// <summary>State 130 fires creature event 8, Tortured, after it moves to 131 (<c>0x004842BE</c>):
+    /// once per strapping, then not again while the victim stays on.</summary>
+    [Fact]
+    public void ACaptiveStrappedOnTheWheelFiresTorturedOnce()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        captive.TriggerId = EventCounterTree.Root;
+        GameSimulation sim = Simulation(db, world, triggers: EventCounterTree.For(CreatureTriggerEvent.Tortured));
+
+        Carry(sim, captive, Wheel);
+        Assert.True(TortureRules.IsBeingTortured(captive));
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
+
+        sim.Run(5 * SimulationTiming.TicksPerSecond);
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
+    }
+
+    [Fact]
+    public void AnOwnGoblinStrappedOnTheWheelFiresTorturedToo()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, ChamberFloor);
+        goblin.TriggerId = EventCounterTree.Root;
+        GameSimulation sim = Simulation(db, world, triggers: EventCounterTree.For(CreatureTriggerEvent.Tortured));
+
+        Carry(sim, goblin, Wheel);
+
+        Assert.True(TortureRules.IsBeingTortured(goblin));
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
+    }
+
+    [Fact]
+    public void ACaptiveDroppedOffTheDeviceFiresNoTortured()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        captive.TriggerId = EventCounterTree.Root;
+        GameSimulation sim = Simulation(db, world, triggers: EventCounterTree.For(CreatureTriggerEvent.Tortured));
+
+        Carry(sim, captive, ChamberFloor);
+
+        Assert.False(TortureRules.IsBeingTortured(captive));
+        Assert.Equal(0, world.Triggers.Read(EventCounterTree.CountFlag));
+    }
+
     [Fact]
     public void AnOwnGoblinDroppedOnTheWheelIsStrappedStaysItsOwnAndTakesTheMood()
     {
@@ -385,12 +630,15 @@ public class TortureTests
         world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, beside)).AutoPlaced = true;
         CreatureState captive = Captive(db, world);
         Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
+        captive.TriggerId = EventCounterTree.Root;
         var sink = new ListEventSink();
-        GameSimulation sim = Simulation(db, world, sink);
+        GameSimulation sim = Simulation(db, world, sink, EventCounterTree.For(CreatureTriggerEvent.Tortured));
 
         world.RemoveObject(world.Objects.Single(o => o.TileIndex == Index(world, Wheel)).Id);
         sim.Run(1);
 
+        // 136 -> 130 -> 131 straps it on again, and 130 fires Tortured again (0x004842BE).
+        Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));
         Assert.True(TortureRules.IsBeingTortured(captive));
         Assert.Equal(beside, captive.Tile);
         Assert.Equal(TortureRules.TorturedState, captive.Dk2StateId);

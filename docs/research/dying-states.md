@@ -50,7 +50,7 @@ Confidence: **STRONGLY INFERRED (binary)**.
 - **Death.** The countdown ending destroys the creature. With `DeadBodyOnDestroy`
   set, a `CDeadBody` thing is left in its place. So a corpse holds no creature
   state.
-- **Built** (ADR-0206, ADR-0739): collapse enters 216; `DeathFallRules.Fall` enters 217 when
+- **Built** (ADR-0206, ADR-0741): collapse enters 216; `DeathFallRules.Fall` enters 217 when
   the collapse's action is over (its end, `FallEndsAt`, is a HYPOTHESIS) and takes the step
   back; the countdown starts there; a rescue leaves through state 1 into the Sleeping state 83;
   a corpse hands its id back. **Ours:** the stamp and 217's two-phase fall machine are not

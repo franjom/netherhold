@@ -148,9 +148,9 @@ creature's heading `+0xF4` is set to the angle distance of the shot's `+0xF4` fr
 function is called again at the start and after half the velocity (twice), a thing found there
 cuts the velocity to the distance covered so far, and the start position is restored; the move
 itself is the mover's (§6). For a possessed caster the pick ray is tested as well (the
-earlier reading of this step, not re-read for ADR-0739). Evidence, the heading write and the order deviation (DK2 runs the
+earlier reading of this step, not re-read for ADR-0741). Evidence, the heading write and the order deviation (DK2 runs the
 per-tick damage and then the mover after Collide; ours moves first):
-[shot-probe-and-hit-heading.md](shot-probe-and-hit-heading.md) (ADR-0739).
+[shot-probe-and-hit-heading.md](shot-probe-and-hit-heading.md) (ADR-0741).
 
 ## 5. The flags, as read
 
@@ -285,7 +285,7 @@ Every creature shot has radius 819 (a fifth of a tile).
 
 **Built (ADR-0167):** `ShotState` is the thing, `ShotSystem` its tick after the
 creatures have moved, `ShotRules` its rules: §3's launch at `Speed` a tick along the
-line to the aim; §4's order — a hit, else the probe ahead (ADR-0739) and two half-steps refused by solid
+line to the aim; §4's order — a hit, else the probe ahead (ADR-0741) and two half-steps refused by solid
 tiles, a bounce for flags bit 3, else a stop that kills a bit-0 shot; the lifetime
 counting down; death chaining the death shot, none for a shot the world stopped;
 §4a's collide classes over creatures by alliance and owner, never the caster; §7's

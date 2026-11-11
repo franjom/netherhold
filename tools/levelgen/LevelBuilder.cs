@@ -41,6 +41,15 @@ public sealed class LevelBuilder
         _set.EditRecord<PlayerDef>(new KwdRecordLocation(_players, chunk, i), r => r with { StartingGold = gold });
     }
 
+    /// <summary>Sets a player's AI flag in the level's PLAYERS file; throws when the level has no such player.</summary>
+    public void SetAiFlag(byte playerId, bool on)
+    {
+        int chunk = ChunkOf(_players, KwdRecordType.Players);
+        var rows = KwdTypedRecords.Read(_set.Chunks(_players)[chunk]);
+        int i = Enumerable.Range(0, rows.Count).Single(k => rows[k] is PlayerDef p && p.PlayerId == playerId);
+        _set.EditRecord<PlayerDef>(new KwdRecordLocation(_players, chunk, i), r => r with { HasAiFlag = on });
+    }
+
     public static string MapsDir(string install) => Path.Combine(install, "Data", "editor", "maps");
 
     public LevelMap Map => _set.ReadMap(_map);
@@ -151,6 +160,39 @@ public sealed class LevelBuilder
         {
             if (rows[i] is not MiscVariable v || v.Id != id) continue;
             _set.EditRecord<MiscVariable>(new KwdRecordLocation(_variables, chunk, i), r => r with { Value = value });
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>Turns an override the level carries into one for another variable (the editor adds none), so a
+    /// level can carry a variable its base never overrode; returns false when the base carries no
+    /// <paramref name="from"/>.</summary>
+    public bool RepointVariable(VariableTypeId from, VariableTypeId to, int value)
+    {
+        int chunk = ChunkOf(_variables, KwdRecordType.Variables);
+        var rows = Variables;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            if (rows[i] is not MiscVariable v || v.Id != from) continue;
+            _set.EditRecord<MiscVariable>(new KwdRecordLocation(_variables, chunk, i), r => r with { Id = to, Value = value });
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>Turns one availability row the level carries into another (the editor adds no VARIABLES row);
+    /// returns false when the base carries no (<paramref name="kind"/>, <paramref name="fromPlayer"/>,
+    /// <paramref name="fromType"/>) row.</summary>
+    public bool RepointAvailability(AvailabilityKind kind, byte fromPlayer, int fromType, byte toPlayer, int toType, int value)
+    {
+        int chunk = ChunkOf(_variables, KwdRecordType.Variables);
+        var rows = Variables;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            if (rows[i] is not AvailabilityEntry a || a.Kind != (ushort)kind || a.PlayerId != fromPlayer || a.TypeId != fromType) continue;
+            _set.EditRecord<AvailabilityEntry>(new KwdRecordLocation(_variables, chunk, i),
+                r => r with { PlayerId = toPlayer, TypeId = toType, Value = value });
             return true;
         }
         return false;

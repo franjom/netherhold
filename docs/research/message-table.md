@@ -99,9 +99,9 @@ What OpenKeeper adds, and what this census says of it:
 | 54 | `0x36` | `0xA000` | 0 | 1 | list `0x006a0668`: 4 keys, 20 s, no default | **none** |  |
 | 55 | `0x37` | `0xA000` | 0 | 1 | list `0x006a0690`: 5 keys, 20/240 s, default 445 | Payday_FindMoney`472673`†; Training_EnterHook`47B25E`; TrainingCategory_UpdateHook`47B3AE`; Job_StartTrain`4852A5`; fn 0x004c33b0`4C365F`; fn 0x004c3860`4C3A01`; Player_BuildRoomRectangle`4C7083` | TrainingUnpaid |
 | 56 | `0x38` | `0x20F0` | 240 | 1 | speech 381 | (no function, 0x49938C)`49938C` |  |
-| 57 | `0x39` | `0x20F0` | 240 | 1 | speech 382 | fn 0x004f2800`4F2827` |  |
-| 58 | `0x3A` | `0x601E` | 30 | 1 | speech 380 | fn 0x004f2800`4F2883` |  |
-| 59 | `0x3B` | `0x201E` | 30 | 1 | speech 378 | Torture_RewardInformation`4F27C5` |  |
+| 57 | `0x39` | `0x20F0` | 240 | 1 | speech 382 | fn 0x004f2800`4F2827` | CreatureConvertedAway |
+| 58 | `0x3A` | `0x601E` | 30 | 1 | speech 380 | fn 0x004f2800`4F2883` | CreatureConverted |
+| 59 | `0x3B` | `0x201E` | 30 | 1 | speech 378 | Torture_RewardInformation`4F27C5` | InformationReveal |
 | 60 | `0x3C` | `0x20F0` | 240 | 1 | speech 383 | fn 0x00473130`4731D5` |  |
 | 61 | `0x3D` | `0x201E` | 30 | 1 | speech 388 | **none** |  |
 | 62 | `0x3E` | `0x603C` | 60 | 1 | speech 385 | Prison_ToggleDoor`4E3705` |  |
@@ -138,8 +138,8 @@ What OpenKeeper adds, and what this census says of it:
 | 93 | `0x5D` | `0x201E` | 30 | 1 | speech 27 | **none** |  |
 | 94 | `0x5E` | `0x201E` | 30 | 1 | speech 28 | **none** |  |
 | 95 | `0x5F` | `0x2032` | 50 | 1 | speech 1349 | fn 0x004b9740`4B9C6B` |  |
-| 96 | `0x60` | `0x201E` | 30 | 1 | speech 377 | Torture_RewardInformation`4F27C5`† |  |
-| 97 | `0x61` | `0x201E` | 30 | 1 | speech 379 | Torture_RewardInformation`4F2779` |  |
+| 96 | `0x60` | `0x201E` | 30 | 1 | speech 377 | Torture_RewardInformation`4F27C5`† | InformationUnlocked |
+| 97 | `0x61` | `0x201E` | 30 | 1 | speech 379 | Torture_RewardInformation`4F2779` | InformationLearned |
 | 98 | `0x62` | `0x20F0` | 240 | 1 | speech 370 | World_HostClockEvents`50A8CA` |  |
 | 99 | `0x63` | `0xA000` | 0 | 1 | list `0x006a0448`: 13 keys, 180/300/420/600 s, no default | Torture_FindForCreature`4F2D4A` | RoomWanted |
 

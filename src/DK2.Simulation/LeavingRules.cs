@@ -43,6 +43,8 @@ public static class LeavingRules
     {
         if (context.Tick.Value - state.StateEnteredTick == 1) state.StopMoving();
         if (!IsDropCentre(context.World, context.Database, state.Tile, state.OwnerPlayerId)) return false;
+        // DK2 fires 63 and 61 here (0x00459DB2, 0x00459DC3) and then calls 196's handler directly
+        // (0x00459DCA), which fires both again: a creature thrown in is sacked twice in its trees. Kept.
         context.FireCreatureEvent(state, CreatureTriggerEvent.Sacked);
         context.FirePlayerEvent(state.OwnerPlayerId, PlayerTriggerEvent.CreatureSacked);
         Sack(context, context.Database.CreatureById(state.CreatureTypeId), state, system, "thrown_in");

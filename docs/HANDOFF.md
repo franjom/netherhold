@@ -24,7 +24,7 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 466 with ADR-0739, the two Warlocks' beds restored
+The last controlled result (hash 468 with ADR-0741, the two Warlocks' beds restored
 as a replay input: 6810 ordered draws match through turn 1791) is in
 [Q712](research/open-questions.md), with its causes in
 [possessed pick heights](research/possessed-pick-heights.md),
@@ -32,8 +32,8 @@ as a replay input: 6810 ordered draws match through turn 1791) is in
 [a speed a handler sets](research/speed-set-turn.md) (ADR-0737),
 [the hand drop's fall](research/hand-drop-landing.md) (ADR-0730),
 [the pick-up's turn](research/hand-pickup-turn.md) (ADR-0731),
-[the fall heading and the fall's step](research/death-fall-heading.md) (ADR-0732, ADR-0739),
-[the shot's probe and the hit's heading](research/shot-probe-and-hit-heading.md) (ADR-0739),
+[the fall heading and the fall's step](research/death-fall-heading.md) (ADR-0732, ADR-0741),
+[the shot's probe and the hit's heading](research/shot-probe-and-hit-heading.md) (ADR-0741),
 [the drop's heading](research/drop-heading.md) (ADR-0733, ADR-0736) and
 [the fight's step 5](research/combat-fight-state.md) (ADR-0734, ADR-0736); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and

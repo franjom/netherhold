@@ -130,5 +130,5 @@ the three). `0x31C` is the victim's, at the shared tail of both devices; `0xCF` 
 and `0x156` the victim's at the chair's arm, after the device's `0xFB`, each in the creature's category (`+0x6E3`); `0x31C` has one
 sample in each of 25 creature categories (two in the Reaper's and the King's), `0xCF` 2 to 7 and `0x156` 1 or 2. The global has no store in the
 uninitialised data, so it is 0 unless an indirect write exists (HYPOTHESIS; Q635). **Decision: they wait, with the device sounds**: the
-handler has no mirror, and if the flag is 0 in vanilla, as the missing store suggests, DK2 is silent there and building them would add a
+handler's sound arms have no mirror (its trough effects do, ADR-0740), and if the flag is 0 in vanilla, as the missing store suggests, DK2 is silent there and building them would add a
 sound the original lacks.
