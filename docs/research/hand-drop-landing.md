@@ -133,7 +133,7 @@ After its landing work (the pit scatter, the fall, and the sound gate above), it
 4. **A non-worker, or a creature of player 1 or 2.**
    - **Taken over:** on a room that takes it over, `0x004E8DA0(0)`.
    - **Otherwise:** `0x00491830(255)` — `SetState(255)`, action 52, creature event 15. **This is the drop's stun.**
-5. **A keeper's worker** has its own arms (`0x00481400`, the Treasury, Portal, Heart, Workshop and Temple cases), and falls back to 11. Its Torture Chamber case (`0x0046F034`) sets 130 for any type id but 1, so a keeper's own Imp dropped on a wheel is not strapped (`TortureRules.TryStrapOwn`).
+5. **A keeper's worker** has its own arms (the Treasury, Portal, Heart, Workshop and Temple cases), and falls back to 11. (`0x00481400` is not one of them: it is the victim-or-door pick 257 runs for any creature.) Its Torture Chamber case (`0x0046F034`) sets 130 for any type id but 1, so a keeper's own Imp dropped on a wheel is not strapped (`TortureRules.TryStrapOwn`).
 
 **`0x004E8DA0(1)`, "does this tile take the creature over".** It returns 0 (yes) for:
 - a Portal (type3 only) tile whose cell byte `+0xC` is4; Hero Portal reaches its table state after getting up,
@@ -183,7 +183,7 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 - **Lair drops** run state 79; see lair-acquisition.md §9 and ADR-0450. Other
   unsupported room drop states still idle. The Combat Pit's 137 is built
   (ADR-0227); the Heart's 71 is built under ADR-0400.
-- **Workers.** A worker getting up on a Heart runs state 71 (ADR-0400); an owned Portal/Hero Portal centre runs 197. Elsewhere it idles, although the native room-drop tail has no worker exclusion. The shared combat attempt runs before this fallback, and before keeper-worker landing dispatch (ADR-0698).
+- **Workers.** A worker getting up on a Heart runs state 71 (ADR-0400); an owned Portal/Hero Portal centre runs 197. Elsewhere it takes the room-drop tail like any creature, which has no worker exclusion (`0x00481351`): a keeper's Imp stunned off any room stands in 250 (Q759, the owner's capture). The shared combat attempt runs before this fallback, and before keeper-worker landing dispatch (ADR-0698).
 - **The stun's count and stars** (ADR-0480): 255 and 256 count from the turn after they are set; the first counted turn asks for effect 101 once only while the duration hold remains active (zero duration skips it), at the creature's position on the floor, tied to the creature's mesh point 5000. Point 5000 is a KMF CTRL point, the head: slot `+0x10C` is the engine interface's `0x0059D380` (that the callers' object is that interface is HYPOTHESIS), which searches the drawn mesh's tagged points (`0x0059D260`); an animated entry is (primitive, vertex) evaluated at the drawn frame (`0x005835E0`). The view keeps each drawn creature's head and moves the effect and its stars with it each update, as `0x00434E80` does; a creature drawn with a static mesh is not resolved, so its stars stay where they were asked for.
 - **Not modelled:** the landing's sound and pit scatter (the fall is built, ADR-0730). 257's facing step is built (ADR-0698), with a map-boundary check. The Casino countdown gate is built for Portal/Hero Portal room entry (ADR-0603), but remains absent from other room-drop branches. The Call To Arms branch is built (ADR-0279).
 - **257's hold** is `ActionUntilTick`, set at the stun's end to `DropLandingRules.GetUpTicks`, the Getup animation's length (ADR-0348, Q527). Classic presentation plays 255's knockdown once and holds its final pose, then plays 257's Getup once from its state-entry stamp. Action 52's art selector is 24 (`0x00495F36`), action 53's is 27 (`0x00495F6E`); independently checked 2026-10-13.
@@ -194,7 +194,7 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 `DropCombatRules` connects the shared target attempt to hand/level-start keeper-worker
 landing and to state 257 after its facing step. `GetUpStepY` round-trips file `0x128B`.
 Acquisition, approach, attacks and cleanup use the existing combat path. The helper is
-built; state 257 remains partial because of its worker room fallback described above.
+built; 257's worker fallback is gone (Q759).
 The fitted get-up hold remains a deviation.
 
 The reviewer independently checked the binary and implementation with no remaining

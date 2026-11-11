@@ -57,12 +57,9 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
                         DropLandingRules.StepAfterGettingUp(context, creature, definition);
                         if (!context.DropCombat.TryAcquire(context, creature, definition))
                         {
-                            // 257's room-drop tail has no worker exclusion (0x00481351).
-                            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
-                                && !DropLandingRules.OnAHeart(world, database, creature)
-                                && !LeavingRules.IsDropCentre(world, database, creature.Tile, creature.OwnerPlayerId))
-                                Combat.CombatStates.Idle(context.Hooks, creature);
-                            else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
+                            // 257's room-drop tail has no worker exclusion (0x00481351): a stunned keeper's
+                            // Imp off any room stands guard in 250 like any creature (Q759, the owner's capture).
+                            DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
                         }
                         if (world.CreatureById(creature.Id) is null)
                         {

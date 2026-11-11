@@ -181,11 +181,6 @@ public static class DropLandingRules
         context.Emit(system, "standing", $"creature={creature.Id} until={creature.StateDeadlineTick + StandTicks}");
     }
 
-    /// <summary>Whether the creature stands on a Dungeon Heart's tile.</summary>
-    public static bool OnAHeart(WorldState world, GameDatabase database, CreatureState creature) =>
-        world.Contains(creature.Tile)
-        && RoomIndex.RoomAt(world, database, (creature.Tile.Y * world.Width) + creature.Tile.X)?.Definition.TypeId == RoomTypeId.DungeonHeart;
-
     /// <summary>The Dungeon Heart's drop state (<c>0x00459180</c>, refused-states.md §3).</summary>
     public const int HeartDropState = 71;
 
