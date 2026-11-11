@@ -116,9 +116,12 @@ internal static class ClaimActionRules
     internal static void Advance(SimulationContext context, CreatureState creature)
     {
         if (!creature.ClaimAction.OwnsClip || !context.ClaimActionsAdvancedThisTick.Add(creature)) return;
+        // The clip is kept between one action and the next of its work state only: a turn that ends
+        // with no action running gets the standing clip (the chooser 0x0048BE50). An attacked tile's
+        // claim passes through the entry state that way and begins its own clip from phase 0 (Level 5: an
+        // Imp's attack clip completes on turn 1786, it stands on 1787 and 1788, the claim's starts on 1789).
         bool sameJob = creature.TargetTileIndex >= 0 && IsFamily(creature.TargetWork)
-            && (creature.Dk2StateId == ImpStates.For(creature.TargetWork).Entry
-                || creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work);
+            && creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work;
         if (creature.ClaimAction.Kind == ClaimActionKind.None && !sameJob)
         {
             if (creature.ActionArtSlot == ArtSlot) ActionAnimationClock.Clear(creature);

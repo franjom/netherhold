@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**472** - `0x28C747BEC02EA3BF`. An Imp keeps its slot-13 clip between claim-family actions only while it is in the work state; an attacked floor's claim, which passes through the entry state, starts its own clip from phase 0 (ADR-0746). No new state; the version moves because recorded runs change (the Level 1 win journal is re-recorded, win tick 2323).
+
 **471** - `0xBE5B1B6917320A14`. A creature in state 217 keeps its steering body where it collapsed (`SyncMovedBody` leaves it), and the hand drop syncs the body to the drop point itself (ADR-0745). No new state; the version moves because recorded runs change.
 
 **470** - `0xB54DA1B30C835FF3`. Creature action 35's byte 0 removes the creature, standing or down, in the thing pass's second walk (`CreatureRemovalSystem`) through the death bookkeeping with no corpse, no killed event, no count and no gold spill; an object in a keeper's hand is no longer a fetch target (ADR-0744). No new state; the version moves because recorded runs change.

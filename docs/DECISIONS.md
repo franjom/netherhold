@@ -17489,3 +17489,33 @@ Still open: states 56 and 250 and the other bit-0-clear states re-sync in ours, 
 contact zeroes a native body (Q736); the `+0x4E9` timer path (`0x004889AB`), which calls
 `0x004D1070` after state `0xF2`, is unbuilt and what sets the timer is unread; 217's Temple-floor
 arm is not built; whether the cursor can pick up a creature in 217 is unchecked.
+
+## ADR-0746 - an attacked floor's claim starts its own clip; the slot-13 clip is kept only inside the work state
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** imps-tile-work, creatures | Advances Q712
+
+**Context.** ADR-0721 kept an Imp's slot-13 clip across an attack (state 20, action 5) turning
+into a claim (state 15, then 16, action 4), as it does between two actions of one work state.
+Level 5 seed 1, Imp slot 440 (capture): the attack clip completes on turn 1786 (phase 4096), the
+Imp stands in states 15 and 16 with phase 0 on 1787 and 1788, and action 4 shows on 1789 at
+phase 1862 (one clip step), so the claim's own clip begins from phase 0; state 10 follows on 1794.
+Ours held phase 4096, rate 0 through 1792 and left state 16 on 1793.
+Binary reading (STRONGLY INFERRED, reviewer): the action runner `0x00496AA0` clears the action block
+only, not the animation at `creature+0x44`; but states 20 (`0x00465F20`, no action running, tile
+neutral), 15 (`0x00465BC0`) and 21 start no action, so the chooser `0x0048BE50`, run after the
+state dispatch, finds no action and installs the standing clip. Between two actions of one work state
+the handler restarts the action before the chooser, so the starter `0x00496700` finds the clip.
+Evidence: `imp-claim-action-clock.md`.
+
+**Decision.** `ClaimActionRules.Advance` keeps the stored clip while the Imp is in the claim
+family's work state only; in the entry state (and any other) the clip is dropped, so the next
+action starts it afresh.
+
+**Consequences.** Hash/save 472, pin `0x28C747BEC02EA3BF`; no new state, recorded runs change.
+Test: `ClaimActionClockTests.AnAttackedFloorsClaimStartsItsOwnClipFromPhaseZero` (the Imp leaves
+on tick 36, was 34; 36 is the model's fresh-claim row, not a native number). The Level 1 win
+journal is re-recorded (win tick 2323, gem (14,21): remake output, nothing native confirms it).
+The controlled Level 5 seed-1 replay goes from 6831 ordered draws through turn 1793 to 6905 through
+1798. The next boundary is turn 1799 draw 1: native `Room.cpp:1563` (room point selection
+`0x004E4D90`), ours `State.cpp:1025` (neutral creature slot 447's idle draw); DK2 makes a room-point
+draw first that ours does not, and which creature makes it is unread (Q712).
+Not read: the chooser's install call after `0x0048C637`, the meaning of `+0x3BB`, states 17 and 18.

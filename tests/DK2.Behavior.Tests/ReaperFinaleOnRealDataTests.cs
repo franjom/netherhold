@@ -12,13 +12,13 @@ namespace DK2.Behavior.Tests;
 
 /// <summary>
 /// Level 1's Horned Reaper finale on a recorded win (campaign-win-sequence.md §2-§3): the campaign
-/// player's journal for seed 1, won by player 3 at tick 2297 with a 1,500-tick finale window. The Lord
+/// player's journal for seed 1, won by player 3 at tick 2323 with a 1,500-tick finale window. The Lord
 /// of the Land carries the Portal Gem (action 20) and drops it where he dies; the Reaper must reach it.
 /// </summary>
 public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
 {
     private const string Fixture = "tests/DK2.Behavior.Tests/Fixtures/level1-seed1-win/";
-    private const long WinTick = 2297;
+    private const long WinTick = 2323;
     /// <summary>The journal's finale window (its <c>player.limits</c> <c>finale_ticks</c>).</summary>
     private const long FinaleWindowTicks = 1500;
     private static readonly PlayerId Winner = new(3);
@@ -39,7 +39,7 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
             },
         };
         using FileStream journal = File.OpenRead(Dk2CaptureGate.PathFor(Fixture + "input.journal"));
-        // The journal was re-recorded at HashVersion 471 (a fallen creature's stale body moved the win). A later
+        // The journal was re-recorded at HashVersion 472 (an attacked floor's claim clip moved the win). A later
         // hash version replays it with its hashes as evidence, not a verdict.
         ScenarioResult result = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path).Replay(
             Scenario.Load(Dk2CaptureGate.PathFor(Fixture + "level1.yaml")), InputJournal.Read(journal), options,

@@ -87,9 +87,8 @@ this change): 6831 ordered draws through 1793 (6810 through 1791 before); Warloc
 turn 1740 equals the capture in position, velocity, heading and axes; Warlocks
 437/438/439/441 equal in position through 1793. The boundary moves to 1794 draw 1,
 native `ObjectState.cpp:2851`, ours `ImpUtils.cpp:484` (Imp 440 choosing a start
-side). Imp 440's claim of (16,38), begun as an attack on an enemy tile
-(`attack_to_claim` on 1787), holds state 16 through 1793 in DK2 (tile health 1, +185
-three times, +104 to 660 on 1793; state 10 on 1794); ours leaves on 1793. Also open:
+side); that difference was Imp 440's claim clip after an attack, closed by ADR-0746
+([imp-claim-action-clock.md](imp-claim-action-clock.md)). Also open:
 Warlock 441 differs by one unit on 1794 (native (43274,127785), ours
 (43275,127784)); the Warlocks' later state 78 against our 1 is our idle stand-in for
 the hand's hold.

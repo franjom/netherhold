@@ -46,8 +46,11 @@ public sealed class ClaimActionClockTests
         Assert.Equal(end, left);
     }
 
+    // Level 5: an Imp's attack clip completes on turn 1786, the claim's own starts from phase 0 on
+    // 1789, and the Imp leaves the turn after that clip completes. With five applications it
+    // completes a turn after the last, as a claim begun from a walk does.
     [Fact]
-    public void EnemyFloorHandsItsCompletedClipToClaiming()
+    public void AnAttackedFloorsClaimStartsItsOwnClipFromPhaseZero()
     {
         GameSimulation sim = Start(TileWorkKind.AttackTile);
         CreatureState imp = sim.World.Creatures[0];
@@ -68,7 +71,7 @@ public sealed class ClaimActionClockTests
         }
         Assert.Equal(26, broken);
         Assert.Equal(new[] { 30, 31, 32, 33, 34 }, claims);
-        Assert.Equal(34, left);
+        Assert.Equal(36, left);
     }
 
     [Theory]
