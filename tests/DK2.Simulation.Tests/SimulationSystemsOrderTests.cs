@@ -69,6 +69,7 @@ public class SimulationSystemsOrderTests
             "CollapseSystem",
             "ActionPointTriggerSystem",
             "EffectGeneratorSystem",
+            "CreatureRemovalSystem",
             "TrapRemovalSystem",
             "DoorRemovalSystem",
             "ReaperRemovalSystem",

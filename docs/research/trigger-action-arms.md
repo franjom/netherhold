@@ -106,7 +106,19 @@ The creature arm (`0x0049AC80`, case `0x23`) reads byte 00:
 - **1:** `Creature_EnterDeathFall` `0x00459560`, an ordinary death.
 - **Anything else:** nothing; the arm returns 1.
 
-**STRONGLY INFERRED.**
+**STRONGLY INFERRED.** Shipped: 27 records (Level6b, level8, Level9, Level19, Level20), all
+byte 0.
+
+Ours performs byte 0 (ADR-0744): `TriggerExecutor` sets `CorpseSuppressed`,
+`DeathUncounted` and health 0, and `CreatureRemovalSystem` runs first of the thing pass's
+second-walk removals and takes the creature through `CreatureHealthSystem.Die`, standing or
+already down. `Die` skips the killed event and the gold drop for it (`0x00487CCB` jumps past
+`0x00487CF5`); the portal tally, bed release, possession and follower steps still run, as
+natively. DK2's collapsed creature holds its dying countdown in health (`0x0048B770`), so the
+zero write removes it too; ours keeps a collapsed creature at 0, so the flag decides. Byte 1
+is unperformed. One deviation: with the bit set DK2 writes the carried thing's health to 0
+through its slot `+0x20` (for an object `0x004B2AD0`) instead of dropping it, and the dragged
+thing uses slot `+0x70`, which nothing reads; ours drops both.
 
 ## Actions 39, 40 and 41: the byte or word at 00 is a type id (Q227)
 

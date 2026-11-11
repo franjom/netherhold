@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
@@ -2111,6 +2112,78 @@ public class TriggerExecutorTests
         Assert.Equal(1, world.Triggers.Read(3));
         Assert.Empty(run.Partial);
         Assert.Empty(run.Unhandled);
+    }
+
+    /// <summary>Creature action 35 (<c>0x0049AC80</c> case <c>0x23</c>): byte 0 of 0 marks the creature
+    /// to leave no trace (corpse bit cleared, <c>+0x3E6</c> bit 0x40) at health 0; 1, the death fall, is
+    /// not built; anything else does nothing. Every case succeeds.</summary>
+    [Theory]
+    [InlineData(0, true, false)]
+    [InlineData(1, false, true)]
+    [InlineData(2, false, false)]
+    public void RemoveFromMapMarksTheCreatureToLeaveNoTrace(byte kind, bool removed, bool partial)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState creature = world.SpawnCreature(
+            database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(4, 4));
+        creature.TriggerId = 5;
+        int health = creature.Health;
+
+        TriggerRecord remove = new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-1), Type = 35, RepeatCount = 0, ChildTriggerId = 0xFFFE,
+            Parameters = new Dictionary<string, long> { ["DeathKind"] = kind },
+        };
+        TriggerRecord[] records =
+        [
+            Condition(5, repeat: 1, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            remove,
+            Action(2, 3, 0x0A, 1),
+        ];
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Equal(removed, creature.DeathUncounted);
+        Assert.Equal(removed, creature.CorpseSuppressed);
+        Assert.Equal(removed ? 0 : health, creature.Health);
+        Assert.Equal(1, world.Triggers.Read(3));
+        Assert.Equal(partial, run.Partial.Count == 1);
+        Assert.Empty(run.Unhandled);
+    }
+
+    /// <summary>Through the real system order: the creature's tree runs action 35 and the thing pass's
+    /// second walk removes the creature in the same tick, before the player frame.</summary>
+    [Fact]
+    public void ACreatureTheScriptRemovesIsGoneThatTick()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState creature = world.SpawnCreature(
+            database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(4, 4));
+        creature.TriggerId = 5;
+        TriggerRecord remove = new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-1), Type = 35, RepeatCount = 0, ChildTriggerId = 0xFFFE,
+            Parameters = new Dictionary<string, long> { ["DeathKind"] = 0 },
+        };
+        var tree = new TriggerTree(
+        [
+            Condition(5, repeat: 1, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            remove,
+            Action(2, 3, 0x0A, 1),
+        ], 0);
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(database, world, 1, SimulationSystems.Default(), tree);
+        sim.ObserveWith(sink);
+
+        for (int i = 0; i < 8 && world.Triggers.Read(3) == 0; i++) sim.Tick();
+
+        Assert.Equal(1, world.Triggers.Read(3));
+        Assert.DoesNotContain(world.Creatures, c => c.Id == creature.Id);
+        SimEvent died = Assert.Single(sink.Events, e => e.Kind == "creature_died");
+        Assert.Equal("creature-removal", died.System);
+        Assert.Contains("leaves_body=False", died.Detail);
     }
 
     // Action 20 (give the Portal Gem) is performed since ADR-0495: PortalGemOnRealDataTests.
