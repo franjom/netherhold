@@ -22,6 +22,17 @@
           }
         ]
       }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/tools/hooks/subagent-start.ps1\"",
+            "timeout": 15
+          }
+        ]
+      }
     ]
   },
   "permissions": {

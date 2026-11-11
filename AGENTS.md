@@ -116,22 +116,32 @@ results.
 
 ## Large output — use context-mode
 
-The `MCP_DOCKER` server carries context-mode 2.1: `ctx_execute` (code, or a file through its
-`file` argument), `ctx_batch`, `ctx_index` (content, or a page through its `url` argument),
-`ctx_search` and `ctx_stats` (deferred in Claude Code: load them with `ToolSearch`). The 1.x
-names `ctx_execute_file`, `ctx_batch_execute` and `ctx_fetch_and_index` are gone; a client
-still offering them is connected to an old gateway and must reconnect. Use the tools when a
-command or file would put far more into context than the answer needs: a long test or harness
-log, a decompile, a capture CSV, a sweep across many files, a web page. Index or process it
-there and bring back only the lines that matter, instead of trimming by hand with `head`/`grep`.
-Never call `ctx_purge`, `ctx_upgrade`, `ctx_resume` or `ctx_doctor`; they are left out of the
-allowlist on purpose.
+**This applies to every agent: the main session, every subagent (reviewer, documenter,
+unity-developer, Explore, general-purpose and any other) and Codex.** Context-mode is the
+default for anything that produces more than about 20 lines: builds, test runs, `kb check`,
+docs gates, DK2.Tools dumps (`kwd triggers`, `kwd things`), Ghidra or decompile listings,
+capture CSVs, logs, git log or diff over many files, searches across the tree, and web pages.
+Run it through `ctx_execute` and print only the answer (the counts, the failing test names,
+the matching lines), not the raw output. Plain Bash, PowerShell, Grep and Read are for
+small, known-size output and for edits. When you brief a subagent, say so in its prompt, and
+when you write or change an agent definition in `.claude/agents/`, list the context-mode tools
+in its `tools:` line.
 
-It runs in a Linux container with Node, Python, Bash, Git and ripgrep. The project folder
-is mounted read-only at `/workspace`, so it can read but never write the repository. It has
-no .NET, Unity or Ghidra: build, test and query Ghidra on the host, then index their output
-with `ctx_index`. Its index is a shared cache, not memory or evidence; the memory graph and
-`F:\DK2Evidence` keep those roles. Setup and verification: `tools/context-mode/README.md`.
+context-mode is the local Claude Code plugin (`context-mode`, tools named
+`mcp__plugin_context-mode_context-mode__*`); the Docker copy is gone, so ignore any
+`MCP_DOCKER__ctx_*` tools still offered. `ctx_execute` runs code (shell, PowerShell, Python,
+JavaScript) on the host in the project directory, so `dotnet`, the built DK2.Tools and the
+game install under `E:\` are all reachable, and only what the code prints comes back; it also
+takes a file through its `file` argument. `ctx_batch`, `ctx_index`, `ctx_search` and
+`ctx_stats` are deferred: load them with `ToolSearch`. Use them when a command or file would put
+far more into context than the answer needs: a build or test log, a decompile, a capture CSV, a
+sweep across many files, a web page. Process it there and print only the lines that matter.
+
+The plugin's hook redirects large Bash, PowerShell and Grep calls to `ctx_execute`. It needs
+Node 24.15 or newer; on an older Node the hook still blocks those tools while `ctx_execute` is
+missing, so stop and tell the owner rather than work around it. Run `ctx_doctor` after a
+context-mode error; do not call `ctx_purge` or `ctx_upgrade` unless the owner asks. Its index is
+a cache, not memory or evidence; the memory graph and `F:\DK2Evidence` keep those roles.
 
 ## Blender MCP
 
