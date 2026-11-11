@@ -200,11 +200,13 @@ public class KeeperViewTests
         WorldState world = KeeperWorld.World(db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
         world.Tile(new TilePos(10, 10)).SetTaggedBy(KeeperWorld.Keeper, true);
+        world.SpawnObject(db, KeeperWorld.IncreaseLevelObjectId, KeeperWorld.Keeper, (15 * world.Width) + 14);
         var captured = new KeeperView(db, world, KeeperWorld.Keeper);
         byte[] packet = KeeperViewSnapshot.ToBytes(captured);
         KeeperView restored = KeeperViewSnapshot.FromBytes(packet, db);
         Assert.Equal(packet, KeeperViewSnapshot.ToBytes(restored));
         Assert.True(restored.IsTaggedByMe(new TilePos(10, 10)));
+        Assert.Equal(captured.Specials, restored.Specials);
 
         var a = new KeeperAI(KeeperWorld.Keeper, KeeperWorld.Parameters(), new SimRandom(31));
         var b = new KeeperAI(KeeperWorld.Keeper, KeeperWorld.Parameters(), new SimRandom(31));

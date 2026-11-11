@@ -141,7 +141,8 @@ internal static class KeeperWorld
         variables: Variables(handCapacity, firstPortalCreatures),
         keeperSpells: KeeperSpells(),
         objects: [Flag(), TrainingDummy(), Bed(), FloorGoldPile(), Hatchery(HatcheryRules.CoopObjectId, 0x00004000u, 0, 3252),
-            Hatchery(HatcheryRules.EggObjectId, 0x00018602u, 0, 128), Hatchery(HatcheryRules.ChickenObjectId, 0x00230782u, 1, 128)],
+            Hatchery(HatcheryRules.EggObjectId, 0x00018602u, 0, 128), Hatchery(HatcheryRules.ChickenObjectId, 0x00230782u, 1, 128),
+            Special(IncreaseLevelObjectId), Special(KillCreaturesObjectId)],
         shots:
         [
             Shot("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, ShotRules.CreateObjectProcess),
@@ -271,6 +272,18 @@ internal static class KeeperWorld
                     world.SpawnObject(database, type, room.OwnerPlayerId, tile).AutoPlaced = true;
         }
     }
+
+    /// <summary>Specials 117 (usable by the keeper's step) and 127 (excluded, 0x00500520).</summary>
+    public const byte IncreaseLevelObjectId = 117;
+    public const byte KillCreaturesObjectId = 127;
+
+    /// <summary>A magic box: <c>TypeSpecial</c> (definition <c>+0xF4</c> bit 2) is the bit the specials step reads.</summary>
+    private static ObjectDef Special(byte id) => new()
+    {
+        Name = $"Special {id}", ObjectId = id, Flags = ObjectFlags.TypeSpecial, Hp = 128, ManaValue = 0,
+        RoomCapacity = 1, StartState = 0, PickUpPriority = 176, Width = new Fp32(1024), Height = new Fp32(1024),
+        Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
+    };
 
     /// <summary>The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, 128 health.</summary>
     private static ObjectDef Flag() => new()

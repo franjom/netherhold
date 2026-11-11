@@ -448,7 +448,7 @@ tick is skipped (the counters still run).
 8. **Collect specials** (`0x500520`, no budget): retain the last qualifying owned
    Special, then check its type before action 88. Accepted ids are 8, 117–126,
    128/129; an excluded last object can suppress an earlier accepted one.
-   Exact filter and remaining virtual-predicate question:
+   The predicate is "held by a creature". Built as `KeeperSpecialStep` (ADR-0743):
    `research/computer-keeper-management.md` §3.
 9. `random(100) < 50` and budget and army not ready-to-attack → **training moves**
    (`0x4FF5C0`): a creature with experience above ¾ of its next threshold, or at
@@ -1185,7 +1185,7 @@ Remaining M12 plan:
    ADR-0414 the rescue selector's, the other job-room finders' and the Graveyard's (Q542–Q544).
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
-3. **Dungeon management.** Add specials; the research decisions (ADR-0735), the prisoner step (ADR-0726), the training moves
+3. **Dungeon management.** The specials step (ADR-0743), the research decisions (ADR-0735), the prisoner step (ADR-0726), the training moves
    (ADR-0317), the traps and doors (ADR-0561), the room needs (ADR-0327, ADR-0335) and every message the walk reads, with make
    happy and dispose (ADR-0353), are built. Acceptance: a verified need changes its orders. Reuse §12.3–12.4's
    existing commands and state.

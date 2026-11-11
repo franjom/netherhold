@@ -150,6 +150,15 @@ public sealed class KeeperView : INavByteGrid
         Traps = world.Traps.Select(t => new KeeperTrapView(t.TrapId, t.PlayerId, t.X, t.Y,
             database.Traps[t.TrapId].Threat)).ToList().AsReadOnly();
         Doors = world.Doors.Select(d => new KeeperDoorView(d.DoorId, d.PlayerId, d.X, d.Y)).ToList().AsReadOnly();
+        var specials = new List<KeeperSpecialView>();
+        foreach (ObjectState o in world.Objects)
+        {
+            if (o.OwnerPlayerId != playerId.Value || database.ObjectById(o.ObjectTypeId)?.IsSpecial != true) continue;
+            TilePos at = FromIndex(o.TileIndex);
+            specials.Add(new KeeperSpecialView(o.Id, o.ObjectTypeId, at.X, at.Y, o.CarriedByCreatureId >= 0));
+        }
+        specials.Sort(static (a, b) => a.ObjectId.CompareTo(b.ObjectId));
+        Specials = specials.AsReadOnly();
     }
 
     /// <summary>The engagement target's owner as the battle step reads it: the creature's owner
@@ -187,7 +196,7 @@ public sealed class KeeperView : INavByteGrid
         KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages,
         CallToArmsState callToArms = default, int mana = 0, byte[]? statuses = null, IEnumerable<int>? callRefusedTiles = null,
         bool[]? heartRuined = null, IEnumerable<int>? sightRefusedTiles = null, HandItem[]? hand = null,
-        KeeperDoorView[]? doors = null)
+        KeeperDoorView[]? doors = null, KeeperSpecialView[]? specials = null)
     {
         HandItems = hand ?? [];
         if (sightRefusedTiles is not null) _sightRefusedTiles.UnionWith(sightRefusedTiles);
@@ -212,6 +221,7 @@ public sealed class KeeperView : INavByteGrid
         Creatures = Array.AsReadOnly(creatures);
         Traps = Array.AsReadOnly(traps);
         Doors = Array.AsReadOnly(doors ?? []);
+        Specials = Array.AsReadOnly(specials ?? []);
         Messages = Array.AsReadOnly(messages);
         AllRooms = Array.AsReadOnly(rooms);
         OwnRooms = rooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
@@ -336,6 +346,8 @@ public sealed class KeeperView : INavByteGrid
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
     public IReadOnlyList<KeeperTrapView> Traps { get; }
     public IReadOnlyList<KeeperDoorView> Doors { get; }
+    /// <summary>The keeper's own <c>TypeSpecial</c> objects, by ascending object id.</summary>
+    public IReadOnlyList<KeeperSpecialView> Specials { get; }
     public IReadOnlyList<PlayerMessage> Messages { get; }
 
     /// <summary>This keeper's Call to Arms: on, its flag's tile and the turn its upkeep starts.</summary>

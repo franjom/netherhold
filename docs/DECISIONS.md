@@ -17406,6 +17406,31 @@ set, as nothing read clears it on a collapse. When a taker's walk fails after th
 DK2 keeps the kicked holder named in the slot and tries the next body; ours ends the
 search and keeps no stale holder.
 
+## ADR-0743 - the computer keeper uses its specials every tick
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** computer-keeper | Opens Q758
+
+**Context.** Step 8 of the player tick, `Keeper_UseSpecials` `0x00500520` (called
+unconditionally at `0x00500DEF`, after the retreat and before the training roll), walks the
+keeper's object list (player `+0xA`, next `+0x10`) and keeps the last object whose definition
+carries `TypeSpecial`, whose tile the keeper owns and whose vtable `+0x74` (`0x004B7250`,
+`+0x146` bit 1) is clear. Take-hold `0x0049C250` sets that bit and the drop `0x004B7260`
+clears it, so it means "held by a creature". Only then the switch at `0x005005C2` tests the
+kept id: 8, 117-126, 128 and 129 post action 88 with no target. No allowance is spent.
+
+**Decision.** `KeeperSpecialStep` runs the scan over `KeeperView.Specials` (the keeper's own
+`TypeSpecial` objects outside the hand, with tile and carried flag) and posts
+`ActivateSpecialCommand`. The keeper observation packet is format 24.
+
+**Consequences.** The simulation hash is unchanged and the pinned runs still match, as none
+gives a keeper a special; a run where one does now differs. Deviations: `0x004B4C30` pushes
+at the list head (`Object_SetOwner` re-pushes a box whose owner changes), so DK2's scan ends
+at the object owned longest; ours keeps no ownership order and takes the lowest object id. Ours changes a box's
+owner only when an imp stores it (`ObjectCarryRules.Deliver`) or the level places it owned;
+whether DK2 gives a claimed tile's box to the claimer is unread. `SpecialSystem` destroys only the specials it
+applies (117, 124, 129, 140); for the others it reports `special_unimplemented` and leaves
+the box, so the keeper posts action 88 for it every tick, where DK2 would have used it up;
+such a box kept by the scan also blocks every later usable one (Q758).
+
 ## ADR-0744 - level scripts remove a creature without trace; a held object is not fetched
 **Date:** 2026-11-11 | **Status:** accepted | **Systems:** campaign-triggers, creatures, imps-tile-work
 
