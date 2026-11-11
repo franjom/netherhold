@@ -17379,3 +17379,78 @@ and 217's two-phase fall machine are unbuilt; `Fall` does not test `CarriedByCre
 `InHand`, and `ActionUntilTick` is not cleared when a rescue leaves 216; the Thief's z drops
 4096 to 3924 on 1865 in 216, unexplained. Shot_Update runs Collide, the per-tick damage, then
 the mover; ours moves first, and a hit shot does not move in ours.
+
+## ADR-0742 - a nearer imp takes over a collapsed creature's carry
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** imps-tile-work
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1023) found that
+several of our imps could walk to one collapsed creature: ours kept no holder for the
+carry. The rescue selector `0x0046D810` raises one kind-13 task on each body's tile
+and reads its holder. A free task is taken. A held one is taken only from a live
+creature with a state machine, not teleporting (51, 52), that may enter state 10, and
+that is strictly farther from the body than the taker (each axis `|d|^2 >> 12`,
+summed); the holder is kicked to 10 (`0x0048AD30`) before the taker's walk.
+
+The corpse selector `0x0046D3C0` does the same with a kind-12 task, testing the holder.
+
+**Decision.** `ImpTaskSystem`'s body search treats a worker of the same keeper walking
+to pick up the same kind of body (collapsed creature or corpse) on a tile as that
+tile's holder. A body whose
+holder cannot lose the task (`TaskStealing.CanLoseItsTask`) or is no farther is
+passed over; otherwise the holder loses its task (`TakeTaskFrom`) and the taker walks.
+
+**Consequences.** Hash/save 469, pin `0x358289A09AF5DF1C`; no new state, recorded runs change.
+Ours still picks the nearest body by walking distance, not DK2's three ordered loops,
+and DK2's test of the collapsed body's own `+0x252` (a state-object word) is taken as
+set, as nothing read clears it on a collapse. When a taker's walk fails after the kick,
+DK2 keeps the kicked holder named in the slot and tries the next body; ours ends the
+search and keeps no stale holder.
+
+## ADR-0743 - the computer keeper uses its specials every tick
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** computer-keeper | Opens Q758
+
+**Context.** Step 8 of the player tick, `Keeper_UseSpecials` `0x00500520` (called
+unconditionally at `0x00500DEF`, after the retreat and before the training roll), walks the
+keeper's object list (player `+0xA`, next `+0x10`) and keeps the last object whose definition
+carries `TypeSpecial`, whose tile the keeper owns and whose vtable `+0x74` (`0x004B7250`,
+`+0x146` bit 1) is clear. Take-hold `0x0049C250` sets that bit and the drop `0x004B7260`
+clears it, so it means "held by a creature". Only then the switch at `0x005005C2` tests the
+kept id: 8, 117-126, 128 and 129 post action 88 with no target. No allowance is spent.
+
+**Decision.** `KeeperSpecialStep` runs the scan over `KeeperView.Specials` (the keeper's own
+`TypeSpecial` objects outside the hand, with tile and carried flag) and posts
+`ActivateSpecialCommand`. The keeper observation packet is format 24.
+
+**Consequences.** The simulation hash is unchanged and the pinned runs still match, as none
+gives a keeper a special; a run where one does now differs. Deviations: `0x004B4C30` pushes
+at the list head (`Object_SetOwner` re-pushes a box whose owner changes), so DK2's scan ends
+at the object owned longest; ours keeps no ownership order and takes the lowest object id. Ours changes a box's
+owner only when an imp stores it (`ObjectCarryRules.Deliver`) or the level places it owned;
+whether DK2 gives a claimed tile's box to the claimer is unread. `SpecialSystem` destroys only the specials it
+applies (117, 124, 129, 140); for the others it reports `special_unimplemented` and leaves
+the box, so the keeper posts action 88 for it every tick, where DK2 would have used it up;
+such a box kept by the scan also blocks every later usable one (Q758).
+
+## ADR-0744 - level scripts remove a creature without trace; a held object is not fetched
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** campaign-triggers, creatures, imps-tile-work
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1036, #1075) found
+two gaps. Creature action 35 (27 shipped records in Level6b, level8, Level9, Level19 and
+Level20, all byte 0) was unperformed. Its arm (`0x0049AC80` case `0x23`) clears the corpse
+bit `+0x3E6` 0x20, sets 0x40 and writes health 0 (slot `+0x20`); the pass after the turn's
+updates removes the creature through the death bookkeeping `0x00487C70`, whose 0x40 test
+(`0x00487CCB`) skips the killed event, the counts and the gold spill. And our loose-object
+test let an imp fetch an object in the keeper's hand, which in DK2 is off the map.
+
+**Decision.** `TriggerExecutor` performs 35's byte 0 by setting `CorpseSuppressed`,
+`DeathUncounted` and health 0; `CreatureRemovalSystem`, first of the thing pass's removals,
+takes such a creature, standing or already down, through `Die`, which now skips the killed
+event and the gold drop for it. (DK2's collapsed creature holds its countdown in health, so
+the zero write removes it too; ours keeps a collapsed creature at 0, so the flag decides.) Byte 1, the
+death fall `0x00459560`, stays unperformed; other values do nothing. `ObjectCarryRules.IsLoose`
+and `ObjectOn` ignore an object in the hand, which DK2 unlinks from its tile (`0x004B4F60`).
+
+**Consequences.** Hash/save 470, pin `0xB54DA1B30C835FF3`; no new state, recorded runs change.
+Still deviating: with the bit set DK2 does not drop the carried thing but writes its
+health to 0 (its slot `+0x20`), so a carried object vanishes and a carried body goes
+through its own bookkeeping; the dragged thing (slot `+0x70`) is unread; ours drops both. Byte 1 has no shipped record.

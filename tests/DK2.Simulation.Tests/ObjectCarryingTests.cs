@@ -514,6 +514,49 @@ public class ObjectCarryingTests
             e => e.Kind == "object_dropped" && e.Detail.Contains("carrier_picked_up"));
     }
 
+    /// <summary>A book in the keeper's hand is off the map: no imp takes it as a fetch, and one already
+    /// walking to it gives up (OpenKeeper #1075 found ours could pick it).</summary>
+    [Fact]
+    public void ABookInTheKeepersHandIsNotFetched()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Library, Shelf, Shelf2);
+        ObjectState book = Drop(db, world, Loose);
+        Assert.True(ObjectCarryRules.IsLoose(db, book));
+        book.InHand = true;
+        Assert.False(ObjectCarryRules.IsLoose(db, book));
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        sim.Run(5 * Second);
+
+        Assert.Equal(-1, imp.CarriedObjectId);
+        Assert.Equal(-1, imp.TargetObjectId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "object_claimed");
+    }
+
+    [Fact]
+    public void AnImpWalkingToABookTheKeeperLiftsGivesUp()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Library, Shelf, Shelf2);
+        ObjectState book = Drop(db, world, Loose);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 5 * Second && imp.TargetObjectId != book.Id; i++) sim.Tick();
+        Assert.Equal(book.Id, imp.TargetObjectId);
+
+        book.InHand = true;
+        sim.Tick();
+
+        Assert.Equal(-1, imp.TargetObjectId);
+        Assert.Contains(sink.Events, e => e.Kind == "object_abandoned" && e.Detail.Contains("reason=gone"));
+    }
+
     [Fact]
     public void ACarriedBookSurvivesASnapshot()
     {

@@ -189,6 +189,42 @@ public class CarryingTests
         Assert.Equal(foreignWins ? foreign.Id : own.Id, imp.TargetBodyId);
     }
 
+    /// <summary><c>0x0046D810</c>: a collapsed creature's carry is one task on its tile. An imp strictly
+    /// nearer the body than the imp walking to it takes the task, and the holder goes back to choosing
+    /// (state 10); one no nearer leaves it, so two imps do not walk to the same body.</summary>
+    [Theory]
+    [InlineData(3, 2, true)]   // one tile from the body, the holder two
+    [InlineData(1, 2, false)]  // farther than the holder
+    [InlineData(3, 1, false)]  // as far as the holder: strictly nearer is needed
+    public void ANearerImpTakesOverACarry_AFartherOneLeavesIt(int x, int y, bool steals)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var lair = new TilePos(1, 1);
+        Paint(db, world, RoomTypeId.Lair, lair);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, lair);
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
+        goblin.PosX = CreatureState.CentreOf(3);
+        goblin.PosY = CreatureState.CentreOf(3);
+        Down(new StateHookContext(world, db), goblin);
+        CreatureState first = world.SpawnCreature(db, ImpId, Keeper, new TilePos(1, 3));
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, 42, [new ImpTaskSystem()]);
+        sim.ObserveWith(sink);
+        sim.Tick(InputFrame.Empty);
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(goblin.Id, first.TargetBodyId);
+
+        CreatureState second = world.SpawnCreature(db, ImpId, Keeper, new TilePos(x, y));
+        sim.Tick(InputFrame.Empty);
+        sim.Tick(InputFrame.Empty);
+
+        Assert.Equal(steals ? goblin.Id : -1, second.TargetBodyId);
+        Assert.Equal(steals ? -1 : goblin.Id, first.TargetBodyId);
+        Assert.Equal(steals, sink.Events.Any(e => e.Kind == "task_stolen" && e.Detail.Contains($"imp={second.Id} from={first.Id}")));
+        Assert.Equal(1, world.Creatures.Count(c => c.TargetBodyId == goblin.Id));
+    }
+
     [Fact]
     public void AnImpCarriesACollapsedCreatureBackToItsOwnBed()
     {
@@ -469,6 +505,65 @@ public class CarryingTests
             ImpStateTrace.Seen(sim, imp, 30 * Second,
                 () => sink.Events.Any(e => e.Kind == "corpse_laid")));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    /// <summary>A creature a level script removed (action 35, byte 0) goes that turn through the death
+    /// bookkeeping with <c>+0x3E6</c> bit 0x40: no killed event, no corpse, its gold gone with it, and
+    /// no count (<c>0x00487CCB</c>).</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]   // already down: DK2's zero write removes it too, with no rescue window
+    public void ACreatureTheScriptRemovesLeavesNoCorpseNoGoldAndNoKilledEvent(bool down)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Rival, new TilePos(2, 2));
+        if (down) Down(new StateHookContext(world, db), goblin);
+        goblin.GoldHeld = 300;
+        goblin.TriggerId = EventCounterTree.Root;
+        goblin.CorpseSuppressed = true;
+        goblin.DeathUncounted = true;
+        goblin.Health = 0;
+        int lostBefore = world.Player(Rival).Statistics.OwnCreaturesKilled;
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, 42, [new CreatureRemovalSystem()], EventCounterTree.For(CreatureTriggerEvent.Killed));
+        sim.ObserveWith(sink);
+
+        sim.Tick();
+
+        Assert.DoesNotContain(world.Creatures, c => c.Id == goblin.Id);
+        Assert.Equal(0, FloorGold.Total(world, db));
+        Assert.Equal(0, world.Triggers.Read(EventCounterTree.CountFlag));
+        Assert.Equal(lostBefore, world.Player(Rival).Statistics.OwnCreaturesKilled);
+        Assert.Contains(sink.Events, e => e.Kind == "creature_died" && e.Detail.Contains("leaves_body=False"));
+    }
+
+    /// <summary><c>0x0046D3C0</c>: a corpse's carry is held as a collapsed creature's is.</summary>
+    [Theory]
+    [InlineData(3, 2, true)]
+    [InlineData(1, 2, false)]
+    public void ANearerImpTakesOverACorpse_AFartherOneLeavesIt(int x, int y, bool steals)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Graveyard(db, world);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        CreatureDeathRules.BecomeCorpse(world, db, goblin);
+        CreatureState first = world.SpawnCreature(db, ImpId, Keeper, new TilePos(1, 3));
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, 42, [new ImpTaskSystem()]);
+        sim.ObserveWith(sink);
+        sim.Tick(InputFrame.Empty);
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(goblin.Id, first.TargetBodyId);
+
+        CreatureState second = world.SpawnCreature(db, ImpId, Keeper, new TilePos(x, y));
+        sim.Tick(InputFrame.Empty);
+        sim.Tick(InputFrame.Empty);
+
+        Assert.Equal(steals ? goblin.Id : -1, second.TargetBodyId);
+        Assert.Equal(steals ? -1 : goblin.Id, first.TargetBodyId);
+        Assert.Equal(1, world.Creatures.Count(c => c.TargetBodyId == goblin.Id));
     }
 
     [Fact]

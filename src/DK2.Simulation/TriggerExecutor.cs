@@ -1091,6 +1091,24 @@ public sealed class TriggerExecutor
             run.Creature.Running = Byte(record.Parameters, "Available") != 0;
             return true;
         }
+        // Action 35 (0x0049AC80 case 0x23), byte 0: 0 clears the corpse bit (+0x3E6 0x20), sets
+        // 0x40 (counts nothing) and writes health 0 through slot +0x20; the pass after the turn's
+        // updates removes it through the death bookkeeping (trigger-action-arms.md, "Action 35's
+        // byte 00"). 1 is an ordinary death fall (0x00459560), not built here; anything else does
+        // nothing. The arm returns 1 in every case.
+        if (context == TriggerContext.Creature && record.Type == 35 && run.Creature is not null)
+        {
+            run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
+            byte kind = Byte(record.Parameters, "DeathKind");
+            if (kind == 1) return Unperformed(record, context, run.Partial);
+            if (kind == 0)
+            {
+                run.Creature.CorpseSuppressed = true;
+                run.Creature.DeathUncounted = true;
+                run.Creature.Health = 0;
+            }
+            return true;
+        }
         if (context == TriggerContext.Creature && record.Type == 42 && run.Creature is not null)
         {
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));

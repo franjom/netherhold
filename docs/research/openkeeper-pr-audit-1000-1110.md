@@ -39,13 +39,15 @@ Ordered by shipped use and ordinary gameplay first.
 4. **REMOVE_FROM_MAP, creature action 35 ([#1036](https://github.com/tonihele/OpenKeeper/pull/1036)).**
    27 records in five campaign levels. Fresh read:
    [0x00487C70](functions/00487C70.md) skips the killed event, the count and the
-   gold spill when `+0x3E6` bit 0x40 is set, which our `DeathUncounted` mirrors
-   but nothing sets. The PR's claim that the killed event fires is wrong.
+   gold spill when `+0x3E6` bit 0x40 is set, which our `DeathUncounted` mirrors.
+   The PR's claim that the killed event fires is wrong. Built (ADR-0744): byte 0
+   sets the flag and `CreatureRemovalSystem` removes the creature through `Die`;
+   byte 1 (the death fall) has no shipped record and stays unperformed.
 5. **Imp body-carry takeover ([#1023](https://github.com/tonihele/OpenKeeper/pull/1023)).**
    Fresh read of [0x0046D810](functions/0046D810.md): a kind-13 body task has a
    holder, and a strictly nearer imp kicks a live holder to state 10 and takes
-   it. Ours has no per-body holder, so several imps can walk to one body.
-   Kind 12 (corpses) was not read.
+   it; [0x0046D3C0](functions/0046D3C0.md) does the same for kind-12 corpses.
+   Built (ADR-0742).
 6. **CREATE_PORTAL_GEM, world action 2 ([#1034](https://github.com/tonihele/OpenKeeper/pull/1034)).**
    Five records in four campaign levels; answers the action-2 half of Q755
    (level-placed gems are still unread). Fresh read: arm
@@ -79,9 +81,12 @@ Ordered by shipped use and ordinary gameplay first.
     `FogOfWarSystem.TortureSightPass`, from
     [torture-information.md](torture-information.md) §4 and
     [fog-reveal-sources.md §3.7](fog-reveal-sources.md).
-13. **Held object as a fetch target ([#1075](https://github.com/tonihele/OpenKeeper/pull/1075)), code-only.**
-    `ObjectCarryRules.IsLoose` does not test `InHand`, so a book the keeper
-    holds may still be chosen by `TryObjectAt`. Write the test first.
+13. **Held object as a fetch target ([#1075](https://github.com/tonihele/OpenKeeper/pull/1075)).**
+    Fresh read: `Hand_PickUp` ([0x004BC500](functions/004BC500.md)) unlinks the
+    object from its tile ([0x004B4F60](functions/004B4F60.md)), and the object scan
+    [0x0046B9C0](functions/0046B9C0.md) walks only the tile list, so DK2 never meets
+    a held object. Built (ADR-0744): `ObjectCarryRules.IsLoose` and `ObjectOn`
+    ignore an object in the hand.
 14. **Presentation:** trough effects 274/279 once a game second
     ([#1041](https://github.com/tonihele/OpenKeeper/pull/1041), fresh read of
     [0x00499300](functions/00499300.md); the effects are not behind the
@@ -132,7 +137,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | [1033](https://github.com/tonihele/OpenKeeper/pull/1033) | Covered: hero gate collapse | `TriggerExecutor.CollapseGate`, `HeroGatesOnRealDataTests`; [0x004E9130](functions/004E9130.md). Heart arm declined (Q743). |
 | [1034](https://github.com/tonihele/OpenKeeper/pull/1034) | Gap: world action 2 | Fresh read of arm `0x00518E92`; Q755. Spawn at the zero-based tile centre with floor height. |
 | [1035](https://github.com/tonihele/OpenKeeper/pull/1035) | Deliberate OpenKeeper deviation | Fresh read of arm `0x00518F41`: stores to local player `+0x19E`/`+0x1BE`; no reader draws it. Do not add UI. |
-| [1036](https://github.com/tonihele/OpenKeeper/pull/1036) | Gap: creature action 35 | [Action 35](trigger-action-arms.md); fresh read of [0x00487C70](functions/00487C70.md) killed-event gate. Set `DeathUncounted` for byte 0. |
+| [1036](https://github.com/tonihele/OpenKeeper/pull/1036) | Gap: creature action 35 | [Action 35](trigger-action-arms.md); fresh read of [0x00487C70](functions/00487C70.md) killed-event gate. Built (ADR-0744): byte 0 sets `DeathUncounted` and the creature is removed. |
 | [1037](https://github.com/tonihele/OpenKeeper/pull/1037) | Covered: system messages toggle | `TriggerState.SetNotificationsEnabled`, `PlayerMessages`; [0x004C4600](functions/004C4600.md). |
 | [1047](https://github.com/tonihele/OpenKeeper/pull/1047) | Covered: next room type | `TriggerState.SpecialInfoNextRoomTypeId`, `HudIndicators.NextRoom`, `HudIndicatorsTests`. |
 | [1048](https://github.com/tonihele/OpenKeeper/pull/1048) | Covered; PR's selection rules are its own | `FinaleRules`, `FinaleSystem`, `ReaperFinaleOnRealDataTests`; [campaign-win-sequence.md](campaign-win-sequence.md). |
@@ -171,14 +176,14 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 |---|---|---|
 | [1021](https://github.com/tonihele/OpenKeeper/pull/1021) | Unchanged since [its own review](openkeeper-1021-review.md) | Head is still `5367c0bf`. No dedicated test for the four-per-tick cap. |
 | [1022](https://github.com/tonihele/OpenKeeper/pull/1022) | Covered: dropped imp skips the cap | `ImpTaskSystem.Work`, `JustDropped`; [0x00463DF0](functions/00463DF0.md). Ours scans rings 1-3 (ADR-0292), not the PR's 2 tiles. |
-| [1023](https://github.com/tonihele/OpenKeeper/pull/1023) | Gap: nearer imp takes a body carry | Fresh read of [0x0046D810](functions/0046D810.md). `ImpTaskSystem.Carrying.TryTakeBody` has no holder. Add a kind-13 row to [imp-task-stealing.md](imp-task-stealing.md). |
+| [1023](https://github.com/tonihele/OpenKeeper/pull/1023) | Covered: nearer imp takes a body carry | ADR-0742; `ImpTaskSystem.Carrying.TryTakeBody`; [0x0046D810](functions/0046D810.md), [0x0046D3C0](functions/0046D3C0.md); kind-12 and kind-13 rows in [imp-task-stealing.md](imp-task-stealing.md) §2. |
 | [1026](https://github.com/tonihele/OpenKeeper/pull/1026) | OpenKeeper-only fix | jME entity-set queue. Code-only. |
 | [1046](https://github.com/tonihele/OpenKeeper/pull/1046) | Covered, ours goes further | `ResearchRules.SlapBonus`, `ResearchOnRealDataTests`; [library-and-research.md](library-and-research.md) §3-4, Q216. |
 | [1054](https://github.com/tonihele/OpenKeeper/pull/1054) | Simulation covered; HUD and effect missing | `CallToArmsRules`, `CallToArmsSystem`, `CallToArmsTests`; [call-to-arms.md](call-to-arms.md). Fresh reads: cancel is game action 0x81 (`0x005142E0`), widget `0x00426920`, effect 330 every third call in `0x0049FCB0`. |
 | [1057](https://github.com/tonihele/OpenKeeper/pull/1057) | Covered, ours more faithful | `JobRules.ChargesNoWorkAnger`; [0x004780E0](functions/004780E0.md). |
 | [1062](https://github.com/tonihele/OpenKeeper/pull/1062) | Covered | `HandCursorFeedback`, `WorldView.PreviewTags`; [sound-effects.md](sound-effects.md), [tag-highlight.md](tag-highlight.md). |
 | [1066](https://github.com/tonihele/OpenKeeper/pull/1066) | OpenKeeper debug extension | [cheats.md](cheats.md), ADR-0589. |
-| [1075](https://github.com/tonihele/OpenKeeper/pull/1075) | OpenKeeper-only crash; likely gap of ours | Code-only: `ObjectCarryRules.IsLoose` lacks `InHand`. Native `0x0046B9C0` not read. |
+| [1075](https://github.com/tonihele/OpenKeeper/pull/1075) | Gap of ours | Built (ADR-0744): a held object is off DK2's tile list (`0x004B4F60`), which `0x0046B9C0` walks; `IsLoose` and `ObjectOn` ignore `InHand`. |
 | [1095](https://github.com/tonihele/OpenKeeper/pull/1095) | Covered: manufacture rate | `ManufactureRules.PerOriginalTick`, `ManufactureTests`; [workshop-states.md](workshop-states.md). |
 | [1098](https://github.com/tonihele/OpenKeeper/pull/1098) | Gap, already Q678 | `ClassicSoundPlayer` uses Unity's default rolloff. Fresh read of the QMixer mapping ([0x0060CDB0](functions/0060CDB0.md)); third member is the constant 0.5, its use unread. |
 
