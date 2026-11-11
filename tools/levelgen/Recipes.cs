@@ -111,6 +111,20 @@ public static class Recipes
             + "without a fight); C, Prince Felix (immune: the mana is still spent); D, a Knight to target with two Dwarves "
             + "one tile off and one three tiles off (Inferno's one-tile zone, 100 a tick for 30 ticks, and its recast timeout).",
             SpellChambers),
+        new("Q498Spells2", "Small",
+            "Q498Spells without the cheat, which crashed DK2 when typed there (2026-11-11): Small's LevelRating and "
+            + "AverageTime overrides become DungeonHeartManaGenerationIncreasePerSecond and MaximumManaGainPerSecond, "
+            + "60000 each (u16 words Level_InitTriggersAndStart adds to player +0x10E6 and +0x10DE, 0x0050BBBC and "
+            + "0x0050BA91), so the Heart refills mana to the 200000 ceiling within seconds; keeper 4's AI flag is off "
+            + "so it does not spend the same mana near the chambers.",
+            b =>
+            {
+                SpellChambers(b);
+                b.SetAiFlag(Rival, false);
+                if (!b.RepointVariable(VariableTypeId.LevelRating, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 60000)
+                    || !b.RepointVariable(VariableTypeId.AverageTime, VariableTypeId.MaximumManaGainPerSecond, 60000))
+                    throw new InvalidOperationException("Small no longer carries LevelRating and AverageTime overrides");
+            }),
     ];
 
     private const byte HatcheryTerrain = 13;
