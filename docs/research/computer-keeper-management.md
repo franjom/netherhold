@@ -72,10 +72,9 @@ The accepted ids are 8, 117–126, 128 and 129; id 127 is excluded. Submit actio
 88 for that retained tag if accepted. An excluded last object suppresses an
 earlier accepted one; this is not a last-activatable-object search. The tick
 charges no allowance for this routine. RTTI resolves the object's primary vtable
-to `0x0066D654`; slot `+0x74` calls `0x004B7250`, which returns bit 1 of the
-object dword at `+0x146`. The gate is therefore a concrete bit test; its wider
-state meaning remains **UNKNOWN**, and must not be replaced by guessed ownership
-or pickup eligibility.
+to `0x0066D654`; slot `+0x74` calls `0x004B7250`: bit 1 of `+0x146`, set by take-hold
+and cleared by the drop, so a box a creature holds is skipped. The kept object is the one
+owned longest (`0x004B4C30`). **BUILT** as `KeeperSpecialStep` (ADR-0743, Q758).
 
 ## 4. Battle spells — `0x00503060`
 

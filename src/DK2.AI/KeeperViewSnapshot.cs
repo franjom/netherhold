@@ -12,7 +12,7 @@ namespace DK2.AI;
 /// <summary>A versioned observation packet. Static definitions are supplied on read.</summary>
 public static class KeeperViewSnapshot
 {
-    public const int FormatVersion = 23;
+    public const int FormatVersion = 24;
     private const uint Magic = 0x49414B44;
 
     public static byte[] ToBytes(KeeperView view)
@@ -102,6 +102,11 @@ public static class KeeperViewSnapshot
         foreach (KeeperDoorView d in view.Doors)
         {
             w.Write(d.DoorTypeId); w.Write(d.OwnerPlayerId); w.Write(d.X); w.Write(d.Y);
+        }
+        w.Write(view.Specials.Count);
+        foreach (KeeperSpecialView s in view.Specials)
+        {
+            w.Write(s.ObjectId); w.Write(s.ObjectTypeId); w.Write(s.X); w.Write(s.Y); w.Write(s.Carried);
         }
         w.Flush();
         return stream.ToArray();
@@ -223,11 +228,14 @@ public static class KeeperViewSnapshot
         var doors = new KeeperDoorView[ReadCount(r, 10)];
         for (int i = 0; i < doors.Length; i++)
             doors[i] = new KeeperDoorView(r.ReadByte(), r.ReadByte(), r.ReadInt32(), r.ReadInt32());
+        var specials = new KeeperSpecialView[ReadCount(r, 14)];
+        for (int i = 0; i < specials.Length; i++)
+            specials[i] = new KeeperSpecialView(r.ReadInt32(), r.ReadByte(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean());
         if (stream.Position != stream.Length)
             throw new InvalidDataException("Trailing keeper observation data.");
         return new KeeperView(database, player, tick, status, alliedWith, playerIds, width, height, gold, imps,
             heart, tiles, availability, creatures, traps, rooms, messages, callToArms, mana, statuses, refused, heartRuined,
-            sightRefused, hand, doors);
+            sightRefused, hand, doors, specials);
     }
 
     private static int ReadCount(BinaryReader r, int minimumEntryBytes)
