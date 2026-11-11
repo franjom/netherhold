@@ -326,15 +326,9 @@ ticks, against 2.8 expected if the step rolls every tick (`computer-keeper-manag
 **How ours turns west (2026-10-08, Q574).** Measured in ours: every seed plans Morgana at tick 1,
 stores the tunnel at (64,41) and resumes it; once it ends, the next plan finds her one tunnel used
 (`BreachAtXPoints` 1) and none stored, and picks Belial. The call goes to the first attacked
-player, in bit order, whose heart a walker reaches: Belial (4) before Morgana (6). Drako cannot pay
-for the call before about 480 (five imps bought by 331), so the west turn needs Belial's tunnel
-open by then, which happens only when Morgana's wall falls by about 90, her reinforcer slapped
-before it finished. Read in DKII.EXE and compared with our code: the planner `0x004FAEF0` (a used-up
-enemy's stored tunnel resumed, else skipped; the nearest heart among the rest that pass the
-strength test), the front `0x004FE9C0` (bits 0-15, each player's own heart, first routable), the
-slap step `0x00502F00` and the tick's allowance `0x00500C20` (a refused Create Imp spends none).
-Not shown in DK2: that Belial is the planner's second pick there too. Not found: what in DK2 keeps
-the wall up or the call on Morgana; the reading explains our west turn, not why DK2 differs.
+player, in bit order, whose heart a walker reaches: Belial (4) before Morgana (6). The planner
+`0x004FAEF0`, the front `0x004FE9C0`, the slap step `0x00502F00` and the allowance `0x00500C20`
+match ours (their records, 2026-10-08). Not shown in DK2: that Belial is the planner's second pick.
 
 **DK2 over ten seeds (2026-10-09).** The idle packet `m12l11a` replayed under DK2 seeds 1-10
 (`dk2runs/level11A-seeds`, 1,500 ticks; `run.ps1 -Level level11A -Packet m12l11a -Map 90x60`).
@@ -369,20 +363,25 @@ which DK2's Belial reinforces at 126 in seeds 1, 2, 4, 6, 7, 9 and 10; it falls 
 884 goes west; seed 8 at 480, falling at 751 before the call at 851, which splits. In seed 5 it is
 never reinforced but Drako's tunnel stalls at (45,43) and the call at 939 goes to Morgana. That
 the reinforced wall is what keeps Belial unroutable is STRONGLY INFERRED (the route test's result
-is not captured). Ours on master reinforces it at 339 at the earliest over seeds 1-10. The 126 is one imp's
-choice: its claim of (28,33) is taken at 61 by a digger whose wall had fallen, when the pool
-holds no dig (the next rectangle is tagged at 62), and it takes the reinforce beside it. Ours
-differs there in two ways DKII.EXE shows. State 6 never looks at the task (`0x00470C80`; seed 2's
-imps walk on to (29,33) after (28,33) fell, enter 13, then 10), where ours drops the walk at once;
-and a strike lands inside the striker's update, before any later imp chooses (`0x00496E00`),
-where ours applies all strikes after the imp pass. Built together on a branch, ours reinforces
-(40,40) at exactly 126 in 5 of 10 seeds, and every seed then calls Morgana when its call precedes
-the wall's fall and Belial when it follows. Not committed: Level 1 falls to 16/20 (the Hatchery
-block claimed late) and, with the walk alone, Level 3 seed 01 is lost (rooms claimed to DK2's 25
-tiles, as DK2's, and the 12-tile Workshop at 1009 refused for gold). Not a mining shortfall: on
-master ours mines the same gold tiles as DK2 at the same pace on Levels 1-3 (Level 3: 14 tiles by
-1500, DK2 15, the first six within 10-23 ticks; Level 2 14 by 1000 in nearly every seed, as DK2;
-Level 1 8 by 1000, as DK2). What the walk changes there is unmeasured (2026-10-09).
+is not captured). The 126 is one imp's choice: its claim of (28,33) is taken at 61 by a digger
+whose wall had fallen, and it takes the reinforce. Two things DKII.EXE shows were missing from
+ours then: state 6 never looks at the task (`0x00470C80`), and a strike lands inside the
+striker's update (`0x00496E00`). A branch with both cost Level 1 and 3 replay wins and was held.
+
+**Both built; the west turn is DK2's (2026-11-11, Q574 answered).** The strike order (ADR-0503,
+integrated by ADR-0512) and the walk (ADR-0516) are on master since 2026-10-18/19; the 16/20 and
+the lost Level 3 are not reproduced by the hash-328 sweep (`0c0f7042`: Level 1 19/20, Level 3
+14/20; `F:/DK2Evidence/studies/packet-replay-hash328--unknown-date--001`). Master `49a861a7`
+(after ADR-0736/0737, so Q652's counts moved), Level 11A seeds 1-10, 1,500 turns: Belial's imp
+takes the (40,40) reinforce at 60 in nine seeds and finishes it at 124 in 1, 4, 6, 9 (DK2: 126 in
+seven; DK2's take turn is not recorded). Five of the six misses are that imp slapped by its
+keeper in 60-124 (seeds 2, 3, 5, 7, 10, at 66-88), after which it digs; seed 8's took another
+reinforce at 48. Belial reinforces it late in 7 (434) and 10 (1,034); Drako's imps do in 2, 3, 5
+(581, 693, 617); 8 never. If the 1-in-100 slap roll runs every tick (unread; the capture's 0.82 %
+is consistent, `computer-keeper-management.md` §8), 64 turns are slapped 41-47 % of the time; 4
+of 10 against 7 of 10 is Fisher p about 0.37. Drako calls Morgana first in 7 seeds (184-848; DK2
+8, one west, one split); the west three call after (40,40) falls (seed 4: 617, 705; 7: 767, 784;
+8: 647, 665), as DK2's seed 3 does (its seed 8 splits).
 
 ## M12 acceptance against the two captures (2026-10-06)
 
@@ -400,4 +399,4 @@ record's gold. Ticks are DK2's (ours in brackets).
 | trains | Level 17 Training drops | the knights lifted at 6, 7, 11 (5, 6, 7) onto the same two cells, refused, lifted again | each knight's first re-lift 45-73 ticks after its refusal, later ones 4-6; DK2's every one 4 (Q509) |
 | defends | Level 11A, Morgana | repairs the wall from 101, which falls at 387 (seeds 1-10: 72-88 where her slapped reinforcer left it rock, else 240-404); her heart sends her imps to fight in the hole (ADR-0407): 11 engage in seed 7, 5 of Drako's and 6 of hers (DK2's capture: 6 of Drako's, 5 of hers); both lift a wounded imp out | the hole is claimed at 420 in seed 7 (638) (Q563) |
 | lays traps and doors | Level 17 Harkan's doors (ADR-0561) | the same door sites, (19,4) first; DK2 lays Magic 204, Wooden 915, Magic 1182 (three identical captures) | Training 12 -> 20 at 1111-1138 in DK2, 0 of 10 seeds in ours (the usual Magic Door leaves the keeper short at the decision); Prison 9 of 10 |
-| attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal | call 700 on (64,38) (seeds 1-10: Morgana first in 8, calls 192-741, on (64,38) in 2; seeds 4 and 5 turn west, Q574); Morgana falls 1,378 (666-1,028) (Q563) |
+| attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal | call 700 on (64,38) (master `49a861a7`, seeds 1-10: Morgana first in 7, calls 184-848; seeds 4, 7 and 8 turn west after (40,40) falls, as DK2's seeds 3 and 8 do, Q574); Morgana falls 1,378 (666-1,028) (Q563) |
