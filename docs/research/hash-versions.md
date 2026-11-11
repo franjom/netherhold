@@ -16,7 +16,9 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
-**468** - `0x4994F366AF069831`. A collapsed creature's or a corpse's carry has one holder per tile: a worker strictly nearer the body than the one walking to it takes the task and the holder returns to state 10; otherwise the body is passed over (ADR-0741). No new state; the version moves because recorded runs change.
+**469** - `0x358289A09AF5DF1C`. A collapsed creature's or a corpse's carry has one holder per tile: a worker strictly nearer the body than the one walking to it takes the task and the holder returns to state 10; otherwise the body is passed over (ADR-0742). No new state; the version moves because recorded runs change.
+
+**468** - `0x4994F366AF069831`. A shot carries its heading word (`ShotState.Heading`, hashed, copied and saved) and writes it to a creature it hits; it probes ahead of its move; a shot's hit collapses the creature inside the hit; state 216 holds for the collapse's action and steps back before 217, where the dying countdown starts (ADR-0741). Earlier saves are refused.
 
 **467** - `0x9C21F0BD3DEABBA3`. A torture conversion posts messages 57 and 58, wipes the convert's anger and fires creature event 9; every torture reward posts 97 then 96 or 59, and reward 11 explores a room of the victim keeper or tags a creature for 16 radius-one passes; a wall wheel's victim carries a roll that raises the trough effect (ADR-0740). `TortureSightPasses`, `TortureSightPlayerId`, `TortureSightTileIndex` and `TortureRoll` are hashed, copied and saved. Earlier saves are refused.
 

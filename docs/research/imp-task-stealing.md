@@ -59,7 +59,7 @@ non-zero, state `+0x25E` not `0x33`/`0x34`, then `0x00477310(10)` with `ECX = cr
 Kind 13's selection `0x0046D810` repeats that test in each of its three loops (`0x0046DBB7` onward), but the
 `+0x252` word it reads is the body's (`[EDI+0x252]`, EDI the body), not the holder's; the other
 holder tests, the distance rule and the kick are the same. The take also stores the task entry in the
-imp's job block (`+0x8A..+0x96`, `+0x98 = 0xD`), as [function record](functions/0046D810.md) lists. The corpse selector `0x0046D3C0` tests the holder's `+0x252` instead (`0x0046D60A`). Both are built (ADR-0741): one holder per body tile, kick before the taker's walk, `+0x252` of a collapsed body taken as set (inferred, [function record](functions/0046D810.md)).
+imp's job block (`+0x8A..+0x96`, `+0x98 = 0xD`), as [function record](functions/0046D810.md) lists. The corpse selector `0x0046D3C0` tests the holder's `+0x252` instead (`0x0046D60A`). Both are built (ADR-0742): one holder per body tile, kick before the taker's walk, `+0x252` of a collapsed body taken as set (inferred, [function record](functions/0046D810.md)).
 
 Every handler above reads the holder's own `+0x1A/+0x1E` for its distance, after the holder test
 and in any state; none substitutes a stance point (re-read 2026-10-28: `0x00469AF0` both arms,

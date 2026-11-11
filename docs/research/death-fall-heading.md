@@ -11,8 +11,11 @@ that frame with health 240, the dying countdown. Decoded with the stream's
 rotation, the values fall only in the sixteenths the rule below rejects until
 draw 18 (1041) and draw 29 (1036); 1036 is the creature's `+0x102` in the
 frame. Its `+0xF4` reads 893, not the first pick's 1041: the entry writes the
-pick there (read), so something later in the turn moved it; the rotation read
-below cannot. Ours stores 1041; that value is unverified.
+pick there, and the lethal Fireball's hit writes the creature's heading after
+the collapse's picks, inside the same turn
+([shot-probe-and-hit-heading.md](shot-probe-and-hit-heading.md) sections 1 and 2).
+The rotation read below could not explain the 148. Ours stores the pick and then
+the hit's write.
 
 ## Reading (STRONGLY INFERRED, binary 2026-11-10)
 
@@ -45,9 +48,10 @@ below cannot. Ours stores 1041; that value is unverified.
   it ends the running action, begins action 62, sets `+0x3E6` bit 21 and raises
   creature event 0x10, with no heading write.
 - State 216's handler ([00459850](functions/00459850.md)) writes no heading and
-  its flag byte is 0, so the update's steering skips it. The decompile of the
-  creature update has no `+0xF4` write and no call to the turn helper, and the
-  turn helper's callers are fight, travel and state code.
+  its flag byte is 0, so the update's steering skips it (its hold and step:
+  the next section). The decompile of the creature update has no `+0xF4` write
+  and no call to the turn helper, and the turn helper's callers are fight,
+  travel and state code.
 - `0x0048F690` pushes a creature to exactly m from a blocked tile edge when it
   lies within m of it, with m = half the footprint radius plus 0x80, testing
   the neighbour and its diagonals; it is not a general clamp.
@@ -60,6 +64,31 @@ below cannot. Ours stores 1041; that value is unverified.
   velocities (a net-sync style hash). That it feeds render interpolation is a
   HYPOTHESIS: the renderer was not read.
 
+## State 216 holds for the collapse's action, then steps back (STRONGLY INFERRED; the Wizard's displacement CONFIRMED)
+
+Handler [00459850](functions/00459850.md), read 2026-11-11:
+
+- It returns 1 while [00496D00](functions/00496D00.md) says an action runs (creature `+0x3A9`
+  other than 0 and `0x15`). Otherwise it calls SetState(217) through
+  [00476D30](functions/00476D30.md); a refusal returns 0 with no step and no stamp.
+- The step: vy is vector 3's y of the definition ([00494650](functions/00494650.md)(3), definition
+  `+0x6EC` + 36 + 4; file offset `0x1297`; the shipped Wizard 3223, Thief 3715, Goblin 2166).
+  x' = x + (S[h] * -vy >> 16) and y' = y - (C[h] * -vy >> 16), the sine and cosine tables at
+  `0x006C1488` and `0x006C1C88`, h the creature's heading `+0xF4`.
+- It is committed through [004B5560](functions/004B5560.md) and copied to `+0xF6` only when the
+  destination's terrain is not solid (terrain `+0x17B` bit 0) and its navigation byte (world
+  `+0x9F2`) equals the creature's own tile's (`0x00459944..0x0045996B`).
+- Then state `+0xAB` is set to the turn plus 10, step taken or not (`0x004599A5..0x004599B0`).
+  217's handler [004599D0](functions/004599D0.md) compares it with the turn at `0x00459A34` to hold
+  off its two-phase fall machine (state `+0xA7`, the z sink, effect `0x149`). None of that
+  machine is built, so the stamp is not built either.
+
+Capture: Wizard 436 is in 216 from 1720 and in 217 on 1726, moving (67803,135760) to
+(66542,132794). Thief 434 is in 216 on 1864 and 217 on 1870 and does not move; its destination
+tile x is 19 against its own 20, so the tile was solid or the navigation byte differed, and the
+capture cannot say which. Health stays 240 through 216 and counts down from 217. Unexplained: the
+Thief's z drops 4096 to 3924 on 1865, during 216.
+
 ## Built (ADR-0732, hash/save 461)
 
 - `DeathFallRules.Enter` makes the two picks; the first becomes the heading.
@@ -69,21 +98,33 @@ below cannot. Ours stores 1041; that value is unverified.
   the picks and the gold drop draw before the passes that follow. The health
   pass still collapses whatever reaches zero another way.
 
-Deviations: DK2 collapses inside the damage call, so a blow struck during the
-creature sweep draws there and ours after the sweep. Not built: the
+Deviations: DK2 collapses inside the damage call. Ours does for a shot's hit
+(`CollapseSystem.Now`, ADR-0741); other damage that empties health collapses in
+the passes above, so a blow struck during the creature sweep draws after the
+sweep. Not built: the
 definition's rotation (`+0x766`, 0 in every shipped record), the `+0x102` word
 (drawn and dropped, transient), the position from `0x0048F690`. A tile off the
 map blocks (ours).
 
-## Unknown
+## Built since (ADR-0741, hash/save 468)
 
-The Wizard's `+0xF4` of 893 in the frame (the first pick is 1041). The word
-`+0x102` still holds the second pick, 1036, though an update after the collapse
-would have copied `+0xF4` over it (`0x0048A007`): so the Wizard did not update
-after the collapse that turn, and yet something changed `+0xF4` by 148. A write
-watch on `+0xF4` of tag 436 in turn 1720, or the capture's per-call heading
-trace, would settle it, and whether the captured Wizard has a level-specific
-`+0x766` (a value of 148 is impossible anyway).
+- `CreatureDef.DeathFallStepY` (the `KwdCreatures` reader and writer), and
+  `DeathFallRules.Fall` in `CreatureStatusSystem`'s per-creature step: it waits for
+  `ActionUntilTick`, enters 217, then steps back as above. `CreatureHealthSystem.Dying` no
+  longer forces 217, does not count the dying window in 216 (the countdown starts when 217 is
+  entered) and calls `Fall` as an adapter for simulations assembled without the creature sweep.
+  `WorldResync` enters 217 directly for a creature DK2 has in 217.
+- Not built: the `+0xAB` stamp. `Fall` does not test `CarriedByCreatureId` or `InHand`, and
+  `ActionUntilTick` is not cleared when 216 is left by a rescue.
+
+## Hypothesis and unknown
+
+`DeathFallRules.FallEndsAt`, the turn the handler finds the action over, is the collapse turn
+plus 1 plus the hold of art slot 7 (HYPOTHESIS). Both captured creatures were felled by a shot
+after the creature sweep and both have hold 5, so "+1 + hold" cannot be told from "+6", and a
+creature felled before its own update is in no capture. The word `+0x102` still holds the
+second pick, 1036, in the Wizard's frame: the Wizard did not update after the collapse that
+turn, which fits the hit's write coming inside the same turn.
 
 ## Control
 
@@ -92,4 +133,5 @@ replays the 29 logged draws from the logged seed, for a layout (only the south
 open) fitted to the sixteenths the log rejects; the real tiles round the Wizard
 were not read, so it pins the redraw loop and the two picks, not the blocking. At hash 461 the controlled replay still stopped at 1720 draw 3, the lethal
 Fireball landing a turn late; with [the drop's heading](drop-heading.md)
-(hash 462) the 29 draws match in place and the prefix runs through 1722.
+(hash 462) the 29 draws match in place and the prefix runs through 1722. The
+current prefix is in Q712.

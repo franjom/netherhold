@@ -126,4 +126,69 @@ public class DeathFallTests
         var sim = new GameSimulation(db, world, new SimRandom(lcg), [new CollapseSystem()]);
         return (sim, goblin, lcg);
     }
+
+    // 0x005119F0 as the hit calls it (0x004AC05B): Level 5, turns 1718 to 1720, three Fireballs heading
+    // 5, 29 and 131 leave the Wizard heading 1019, 995 and 893.
+    [Theory]
+    [InlineData(5, 1019)]
+    [InlineData(29, 995)]
+    [InlineData(131, 893)]
+    public void AHitHeadsTheCreatureByTheShotsAngleDistanceFromHalfATurn_ConfirmedInCapture(int shotHeading, int creatureHeading) =>
+        Assert.Equal(creatureHeading, DK2.Simulation.Steering.Bearing.Distance(shotHeading, 0x400));
+
+    // The same arithmetic past half a turn and on it; no capture has these.
+    [Theory]
+    [InlineData(2035, 1011)]
+    [InlineData(1024, 0)]
+    public void TheAngleDistanceFromHalfATurnNeverPassesHalfATurn(int shotHeading, int creatureHeading) =>
+        Assert.Equal(creatureHeading, DK2.Simulation.Steering.Bearing.Distance(shotHeading, 0x400));
+
+    // 0x00459850: the Wizard's vector 3 y, 3223 in the shipped record, gives its captured step of 1261
+    // and 2966 at heading 893. The two refusals are read from the handler; the captured Thief stays
+    // where it fell, by one of them.
+    [Theory]
+    [InlineData(Dk2TerrainFixture.DirtPath, true)]
+    [InlineData(Dk2TerrainFixture.Rock, false)]
+    [InlineData(Dk2TerrainFixture.Water, false)]
+    public void TheFallStepsBackAlongTheHeadingWhenItsActionEnds_UnlessTheTileBehindIsSolidOrOfAnotherNavigationByte(
+        byte behind, bool steps)
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        for (int ty = 1; ty < world.Height - 1; ty++)
+        for (int tx = 1; tx < world.Width - 1; tx++)
+            world.Tile(tx, ty).TerrainId = Dk2TerrainFixture.DirtPath;
+        world.Tile(16, 9).TerrainId = behind;
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(16, 10));
+        CreatureDef stepping = db.CreatureById(goblin.CreatureTypeId) with { DeathFallStepY = 3223 };
+        // The Wizard's point within its tile, twenty-three rows up.
+        goblin.PosX = 67803;
+        goblin.PosY = 135760 - (23 << 12);
+        goblin.Heading = 893;
+        DK2.Simulation.Navigation.WorldSteering.SyncBody(goblin);
+        int x = goblin.PosX, y = goblin.PosY;
+        var sim = new GameSimulation(db, world, 1, [new Run(context =>
+        {
+            if (goblin.Dk2StateId != CreatureDeathRules.FallingState)
+            {
+                CreatureStateMachine.TrySetState(context.Hooks, goblin, CreatureDeathRules.FallingState, context.Tick.Value);
+                goblin.ActionUntilTick = context.Tick.Value + 2;
+            }
+            DeathFallRules.Fall(context, goblin, stepping);
+        })]);
+
+        sim.Tick();
+        sim.Tick();
+        Assert.Equal((CreatureDeathRules.FallingState, x, y), (goblin.Dk2StateId, goblin.PosX, goblin.PosY));
+        sim.Tick();
+        Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
+        Assert.Equal(steps ? (x - 1261, y - 2966) : (x, y), (goblin.PosX, goblin.PosY));
+        if (steps) Assert.Equal((goblin.PosX, goblin.PosY), (goblin.LastPosX, goblin.LastPosY));
+    }
+
+    private sealed class Run(Action<SimulationContext> body) : ISimulationSystem
+    {
+        public string Name => "test step";
+        public void Execute(SimulationContext context) => body(context);
+    }
 }

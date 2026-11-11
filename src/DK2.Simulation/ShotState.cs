@@ -54,6 +54,10 @@ public sealed partial class ShotState
     public int VelX;
     public int VelY;
 
+    /// <summary>The shot's heading (DK2's thing <c>+0xF4</c>): the bearing to its aim at the launch, or
+    /// the constructor's when nothing launches it. A hit reads it (<c>0x004AC05B</c>).</summary>
+    public ushort Heading;
+
     /// <summary>Height above the floor (DK2's thing <c>+0x22</c> less the floor's 4096) and the launch's
     /// vertical velocity in sixteenths of a position unit a tick (<c>0x004AB8A0</c>). Only the possessed
     /// picks read the height; collision stays flat (Q398).</summary>
@@ -116,6 +120,7 @@ public sealed partial class ShotState
         TileLink.HashInto(ref hash);
         hash.Add(VelX);
         hash.Add(VelY);
+        hash.Add(Heading);
         hash.Add(PosZ);
         hash.Add(VelZ);
         hash.Add(Health);

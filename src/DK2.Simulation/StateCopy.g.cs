@@ -405,6 +405,7 @@ namespace DK2.Simulation
             TileLink = other.TileLink;
             VelX = other.VelX;
             VelY = other.VelY;
+            Heading = other.Heading;
             PosZ = other.PosZ;
             VelZ = other.VelZ;
             _viewHeading = other._viewHeading;

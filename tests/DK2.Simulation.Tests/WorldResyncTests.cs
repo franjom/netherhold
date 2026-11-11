@@ -408,7 +408,7 @@ public class WorldResyncTests
         WorldResync.Apply(sim, State(world, [lying]), slot => slot == 600 ? goblin.Id : null);
 
         Assert.Equal(0, goblin.Health);
-        Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
+        Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
         Assert.Equal(CreatureDeathRules.DyingWindowTicks(database) - 172, goblin.DyingTicks);
         Assert.Equal(new TilePos(3, 2), goblin.Tile);
         Assert.True(CreatureDeathRules.IsDying(goblin));

@@ -105,6 +105,10 @@ public sealed record CreatureDef
     /// State 257 rotates its negation along the facing before looking for combat.</summary>
     public int GetUpStepY { get; init; }
 
+    /// <summary>Runtime vector 3's y component, file offset <c>0x1297</c>, in 1/4096 tiles. State 216
+    /// rotates its negation along the heading when the collapse's action ends (<c>0x00459850</c>).</summary>
+    public int DeathFallStepY { get; init; }
+
     /// <summary>The Entrance animation's frame count and rate (animation block 30, the one
     /// action 49 plays while state 193 waits). Zero when the creature has none, as the Imp.</summary>
     public int EntranceFrames { get; init; }

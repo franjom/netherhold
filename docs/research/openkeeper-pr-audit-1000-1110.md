@@ -45,7 +45,7 @@ Ordered by shipped use and ordinary gameplay first.
    Fresh read of [0x0046D810](functions/0046D810.md): a kind-13 body task has a
    holder, and a strictly nearer imp kicks a live holder to state 10 and takes
    it; [0x0046D3C0](functions/0046D3C0.md) does the same for kind-12 corpses.
-   Built (ADR-0741).
+   Built (ADR-0742).
 6. **CREATE_PORTAL_GEM, world action 2 ([#1034](https://github.com/tonihele/OpenKeeper/pull/1034)).**
    Five records in four campaign levels; answers the action-2 half of Q755
    (level-placed gems are still unread). Fresh read: arm
@@ -171,7 +171,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 |---|---|---|
 | [1021](https://github.com/tonihele/OpenKeeper/pull/1021) | Unchanged since [its own review](openkeeper-1021-review.md) | Head is still `5367c0bf`. No dedicated test for the four-per-tick cap. |
 | [1022](https://github.com/tonihele/OpenKeeper/pull/1022) | Covered: dropped imp skips the cap | `ImpTaskSystem.Work`, `JustDropped`; [0x00463DF0](functions/00463DF0.md). Ours scans rings 1-3 (ADR-0292), not the PR's 2 tiles. |
-| [1023](https://github.com/tonihele/OpenKeeper/pull/1023) | Covered: nearer imp takes a body carry | ADR-0741; `ImpTaskSystem.Carrying.TryTakeBody`; [0x0046D810](functions/0046D810.md), [0x0046D3C0](functions/0046D3C0.md); kind-12 and kind-13 rows in [imp-task-stealing.md](imp-task-stealing.md) §2. |
+| [1023](https://github.com/tonihele/OpenKeeper/pull/1023) | Covered: nearer imp takes a body carry | ADR-0742; `ImpTaskSystem.Carrying.TryTakeBody`; [0x0046D810](functions/0046D810.md), [0x0046D3C0](functions/0046D3C0.md); kind-12 and kind-13 rows in [imp-task-stealing.md](imp-task-stealing.md) §2. |
 | [1026](https://github.com/tonihele/OpenKeeper/pull/1026) | OpenKeeper-only fix | jME entity-set queue. Code-only. |
 | [1046](https://github.com/tonihele/OpenKeeper/pull/1046) | Covered, ours goes further | `ResearchRules.SlapBonus`, `ResearchOnRealDataTests`; [library-and-research.md](library-and-research.md) §3-4, Q216. |
 | [1054](https://github.com/tonihele/OpenKeeper/pull/1054) | Simulation covered; HUD and effect missing | `CallToArmsRules`, `CallToArmsSystem`, `CallToArmsTests`; [call-to-arms.md](call-to-arms.md). Fresh reads: cancel is game action 0x81 (`0x005142E0`), widget `0x00426920`, effect 330 every third call in `0x0049FCB0`. |

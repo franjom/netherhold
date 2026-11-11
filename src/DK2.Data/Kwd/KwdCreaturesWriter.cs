@@ -40,6 +40,7 @@ public static partial class KwdCreatures
         S32(0x127B, row.PrayerStepX);
         S32(0x127F, row.PrayerStepY);
         S32(0x128B, row.GetUpStepY);
+        S32(0x1297, row.DeathFallStepY);
         S32(EntranceBlock + 0x44, row.EntranceFrames);
         S32(EntranceBlock + 0x48, row.EntranceFramesPerSecond);
         void AnimationTiming(int slot, CreatureAnimationTiming timing)
