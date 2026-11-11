@@ -287,7 +287,7 @@ six stores the field scan found writes a nonzero value into a creature.
 - **Timing (ADR-0551):** a player's cast moves the turn it is made, the computer keeper's the next
   turn; ours matches both (`keeper-spell-casting.md` §4).
 - **UNKNOWN:** `+0xF2`.
-- **UNKNOWN:** the original run (Q498).
+- **The original run (Q498):** captured, §6.
 
 **Built (ADR-0302):** `KeeperSpellRules` casts both (selectors 1·3 and 1·5);
 `InfernoRules` is process 30; `ChickenRules` is process 15, state 96's handler and
@@ -303,3 +303,40 @@ chicken art and `+0xF2`. Level 18's Nemesis casts both unaided
 shot with process 30. The battle step's predicted permission for Chicken is
 Thunderbolt's location test with target 3, and for Inferno the location test alone,
 at the target's position.
+
+## 6. The original run (2026-11-11, Q498)
+
+The owner cast both spells in levelgen's `Q498Spells4` (Small with sealed chambers of keeper 3's
+Claimed Path, Heart income 60000/s so mana sits at the 200000 ceiling, keeper 4's AI off). Capture
+`q498d.dk2cap` and packet `q498sp4.sav` in `F:/DK2Evidence/studies/q498-spells--2026-11-11--001/payload`;
+casts read from the packet (kind 55 on a creature, 54 at a place; capture tick = packet turn + 1).
+CONFIRMED (capture) unless marked.
+
+| Cast (tick) | What the capture shows |
+|---|---|
+| Chicken, keeper-4 Goblin A behind a keeper-3 door (30) | `+0x44B` 240; alternates state 96 and 6 (the walk step) in its chamber; the door's lock (`+0x111`) goes 3 to 0 at 35 (packet kind 93, the owner's unlock), yet the chicken never reaches the door tile and does not walk to its Hatchery in 35-270; 89 at 270. One door, one chickened creature, its Hatchery route only; the route test's handling of an enemy door (`0x00471630`) is unread, and an unchickened Goblin A idled with no door too (332-349) |
+| Chicken, Goblin A after the door's sale (350) | 240 again; 351 state 7; in its Hatchery (28.45,4.5) and back in 96 at 397; there to 590, then 89 |
+| Chicken, Goblin B, no Hatchery reachable (595) | 240; wanders in its chamber; 89 at 835. Mana 200000 to 190000 at the cast |
+| Chicken, Prince Felix (846) | No timer, no state change (immune). Whether he cost the 10000 the capture cannot show: debits at 595, 887 and 1128 (ticks 3, 3, 0 mod 4) stay visible until the next reset of `+0x10F2` (598, 890, 1130), while the casts at 30, 350 and 846 (2 mod 4) show none. That fits the once-a-second payment refilling to the ceiling on those ticks (`mana.md`, `0x004C10E0`): STRONGLY INFERRED for Goblin A's two, untestable for the Prince here (`Q498Spells5`, income 500, is built for it) |
+| Inferno at (21.63, 10.46), the Knight's tile (887) | 50000 spent; the Knight (21.5,10.5) loses 100 a tick on 887-916, 30 hits; the Dwarf at (22.5,10.5), 0.87 tile from the cast point, takes 17 hits on 888-904 and is dying (state 216) at 905; the Dwarves 1.05 and 2.87 tiles off are never hit |
+| Inferno again (1128) | Accepted 241 ticks after the first; no cast reached the packet in between, and the shipped 240-tick timeout is not tested from below (the owner reports attempts refused before it). The Knight again loses 100 a tick for 30; the dying Dwarf is not hit |
+
+**Second run, `Q498Spells5`** (Heart income 500, so mana stays under the ceiling; capture `q498e.dk2cap`,
+packet `q498sp5.sav`, same folder):
+
+| Cast (tick) | What the capture shows |
+|---|---|
+| Chicken, Prince Felix (97) | Mana 10856 to 856: **the immune creature costs the full 10000**, and gets no timer and no state |
+| Door unlocked (125), Chicken on Goblin A (418) | Lock byte 3 to 0 at 125; before the cast and for the chicken's 240 ticks after it, Goblin A alternates 96 and 6 inside its chamber (x never above 22.84) and never enters 7. With the q498d run, an unlocked enemy door stopped a chicken's Hatchery route twice, as `door-blocking.md` reads option `0x80` (it refuses a foreign door whatever its lock); ours routes the chicken with `MoveOptions.Loose` the same way |
+
+The owner saw Chicken's recharge display start only once mana had refilled to 10000 (about tick 170),
+not at the cast, and recast at 418. The cast permission `0x004BBA40` tests the mana first (`0x004C1740`)
+and then the cooldown from the last-cast stamp, entry `+5`, written at the cast (`0x004BBAFF..0x004BBB36`):
+STRONGLY INFERRED, so the cast was allowed from 337. What the HUD's display counts from is unread
+(entry `+9` is the other stamp the cast writes).
+
+So the Inferno zone is centred on the cast point, not on a creature, and reaches a creature within one tile
+of it (0.87 hit, 1.05 not; a Knight-centred zone would put the second Dwarf at exactly 1.00, not
+below the strict bound). The Dwarf's first hit is one tick after the Knight's, which §4 step 3's
+reading explains (STRONGLY INFERRED): the first tick's bound is halved to about 0.71 tile, outside
+which the Dwarf at 0.87 stands. Ours has the same halving (`InfernoRules`, tested at 0.8 tile).
