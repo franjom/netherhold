@@ -17454,3 +17454,38 @@ and `ObjectOn` ignore an object in the hand, which DK2 unlinks from its tile (`0
 Still deviating: with the bit set DK2 does not drop the carried thing but writes its
 health to 0 (its slot `+0x20`), so a carried object vanishes and a carried body goes
 through its own bookkeeping; the dragged thing (slot `+0x70`) is unread; ours drops both. Byte 1 has no shipped record.
+
+## ADR-0745 - a creature in state 217 keeps its steering body where it collapsed
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** creatures, navigation, simulation-core | Advances Q712, Q736
+
+**Context.** Level 5 seed 1: Wizard slot 436 collapses at (67803,135760) and enters 217 on 1726
+at entity (66542,132794); its steering body (`+0x1A8`) stays at (1084848,2172160) through 1790.
+On 1740 Warlock 441, whose query rectangle covers the body's tiles, is shoved from the body:
+velocity (479,-7648) to (-5236,-8644), heading 21 to 1728. DK2's `0x004D59A0` and
+`Body_Integrate` `0x004D5A40`, run in the emulator on the turn-1739 frame, return exactly the
+captured turn-1740 values. Ours re-synced the body to the entity, so Warlock 441 was not pushed.
+Binary reading (STRONGLY INFERRED, reviewer; outcome CONFIRMED in capture): state 216's step back
+writes the entity only (`0x004B5560`), 217's handler has no body writer, and the creature update's
+mover block (`0x0048A225..0x0048A248`) is skipped when bit 0 of the state's flag byte is clear,
+as it is for 216, 217 and 218. Evidence: `steering-body-retention.md`.
+
+**Decision.**
+1. `CreatureMovementSystem.SyncMovedBody` leaves a body in state 217 where it is; the entity
+   moves alone.
+2. `HandSystem.Drop` syncs the creature's body to the drop point itself, as `0x004BC710` does
+   through `0x004D1070` (`0x004BC7FB`). The drop had relied on the turn-start re-sync.
+3. Neighbour queries and the separation push already read the body (`WorldSteering.CollectNeighbours`,
+   `SeparationBehaviour.Push`); no change there.
+
+**Consequences.** Hash/save 471, pin `0xBE5B1B6917320A14`; no new state, recorded runs change.
+The Level 1 win journal is re-recorded (win tick 2297, gem (14,21): remake output, nothing native
+confirms it). Test: `DeathFallTests.TheFallenCreaturesBodyStaysWhereItFell_ConfirmedInCapture`.
+The controlled Level 5 seed-1 replay goes from 6810 ordered draws through 1791 to 6831 through
+1793, and Warlock 441's turn 1740 equals the capture; Warlocks 437, 438, 439 and 441 equal in
+position through 1793. The next boundary is 1794 draw 1: native `ObjectState.cpp:2851`, ours
+`ImpUtils.cpp:484` (Imp 440 choosing a start side). DK2's claim of (16,38), begun as an attack
+on an enemy tile, holds state 16 through 1793; ours leaves on 1793 (Q712).
+Still open: states 56 and 250 and the other bit-0-clear states re-sync in ours, and a door
+contact zeroes a native body (Q736); the `+0x4E9` timer path (`0x004889AB`), which calls
+`0x004D1070` after state `0xF2`, is unbuilt and what sets the timer is unread; 217's Temple-floor
+arm is not built; whether the cursor can pick up a creature in 217 is unchecked.

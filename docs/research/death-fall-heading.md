@@ -77,7 +77,9 @@ Handler [00459850](functions/00459850.md), read 2026-11-11:
   `0x006C1488` and `0x006C1C88`, h the creature's heading `+0xF4`.
 - It is committed through [004B5560](functions/004B5560.md) and copied to `+0xF6` only when the
   destination's terrain is not solid (terrain `+0x17B` bit 0) and its navigation byte (world
-  `+0x9F2`) equals the creature's own tile's (`0x00459944..0x0045996B`).
+  `+0x9F2`) equals the creature's own tile's (`0x00459944..0x0045996B`). The step moves the
+  entity only; the steering body (creature `+0x124`) stays where the creature collapsed
+  ([steering-body-retention.md](steering-body-retention.md#state-217-leaves-its-body-where-it-fell-adr-0745-hashsave-471)).
 - Then state `+0xAB` is set to the turn plus 10, step taken or not (`0x004599A5..0x004599B0`).
   217's handler [004599D0](functions/004599D0.md) compares it with the turn at `0x00459A34` to hold
   off its two-phase fall machine (state `+0xA7`, the z sink, effect `0x149`). None of that
@@ -114,6 +116,7 @@ map blocks (ours).
   longer forces 217, does not count the dying window in 216 (the countdown starts when 217 is
   entered) and calls `Fall` as an adapter for simulations assembled without the creature sweep.
   `WorldResync` enters 217 directly for a creature DK2 has in 217.
+- Since ADR-0745 (hash/save 471) the step leaves the body: `SyncMovedBody` skips a creature in 217.
 - Not built: the `+0xAB` stamp. `Fall` does not test `CarriedByCreatureId` or `InHand`, and
   `ActionUntilTick` is not cleared when 216 is left by a rescue.
 
