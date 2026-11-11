@@ -14,7 +14,7 @@ Original version: DK2 v1.70 (GOG)
 Built: Increase Level and Receive Imps (`SpecialSystem`, `ActivateSpecialCommand`, ADR-0441), and the hand's arm
 (2026-10-21): a hand click on a special on the keeper's own tile activates it, a special is never lifted, and
 hovering one shows the pointing hand (owner report, 2026-10-21; the hover cursor's code is unread); the `+0x74` predicate is not mirrored, and 127/140 post
-the activation instead of entering targeting. Locate Hidden Land (129) and Transfer Creature (140) are built (hash 311): 129 counts in `WorldState.Carry` and the host applies it to the profile; 140 runs in campaign mode only (`WorldState.GameMode`) and kills its target bodyless. The hand's targeting mode (`+0x13DB` = 5) is built in `PlayerInputTranslator.Targeting`: a click on 127 or 140 waits for a creature (140 an own one, 127 another's, `0x00408D07`), posts the activation with its target and returns to the hand; the right button or another tool cancels. The spells panel's route (`0x0040A280`) is built too: `BottomPanelView.StoredSpecials` lists the Libraries' specials after the visible spells (full-colour GUI icon, hover shows the plain name), a click posts action 88 or, for 127/140, enters the hand's targeting mode, and the Spells tab ignores specials as DK2 does (`0x00416E20`). The packet replay reads action 88's target, the low word of the action's second dword (`0x00513760`). Ours stands in for Room_AddObject's head push by listing a Library's newest object first (we keep no room object list) and filters to the keeper's own boxes, which DK2 does not test. No shipped level places 127 or 140, and 129 is on levels 5 and 7 only. The computer keeper's step is built (ADR-0743). Everything else here is read and not built.
+the activation instead of entering targeting. Locate Hidden Land (129) and Transfer Creature (140) are built (hash 311): 129 counts in `WorldState.Carry` and the host applies it to the profile; 140 runs in campaign mode only (`WorldState.GameMode`) and kills its target bodyless. The hand's targeting mode (`+0x13DB` = 5) is built in `PlayerInputTranslator.Targeting`: a click on 127 or 140 waits for a creature (140 an own one, 127 another's, `0x00408D07`), posts the activation with its target and returns to the hand; the right button or another tool cancels. The spells panel's route (`0x0040A280`) is built too: `BottomPanelView.StoredSpecials` lists the Libraries' specials after the visible spells (full-colour GUI icon, hover shows the plain name), a click posts action 88 or, for 127/140, enters the hand's targeting mode, and the Spells tab ignores specials as DK2 does (`0x00416E20`). The packet replay reads action 88's target, the low word of the action's second dword (`0x00513760`). Ours stands in for Room_AddObject's head push by listing a Library's newest object first (we keep no room object list) and filters to the keeper's own boxes, which DK2 does not test. No shipped level places 127 or 140, and 129 is on levels 5 and 7 only. The computer keeper's step is built (ADR-0743). Every other arm of `0x004A3FC0` is built in `SpecialSystem` (ADR-0747) and asks its §5 sound, and action 88 uses up any special, armless object 7 too. Not modelled: the effects, message 49, and the unread words `+0x10EE` (122) and `+0x457` (126). Increase Gold, Heal All and Stun Imps also differ from DK2 as the ADR lists.
 
 ## 1. What a player sees — CONFIRMED (owner, 2026-10-09)
 
@@ -125,7 +125,7 @@ activator. That includes allies, heroes and the neutral player.
   dword `+0x10EE`, whose meaning is UNKNOWN.
 - **123 Stun Imps.** Every worker (`IsWorker`, definition `+0x686` bit 0) of every other player
   is kicked to state 209, *stunned*, after a state-move test (`0x00477310`, SetState's transition
-  rule asked without a transition: `functions/00477310.md`). How long it lasts is state 209's business and is unread here.
+  rule asked without a transition: `functions/00477310.md`). State 209's handler (`0x00481020`) plays sound 199, begins action 52 and sets state 255, whose handler (`0x004810E0`) times `StunDuration` from the state's start turn (`functions/00481020.md`). Built as `StatusEffectRules.StunFromStarter`.
 - **124 Receive Imps.** It takes the first creature type with `IsWorker`, in the world's
   creature-type order: the Imp in shipped data. It creates `SpecialReceiveImpsAmount` (188; 10)
   of them for the keeper (`0x004B78D0`). They are spaced evenly on a circle of radius two tiles
@@ -166,7 +166,7 @@ activator. That includes allies, heroes and the neutral player.
 
 Every arm plays an effect (world vtable `+0x38C`) at the object, or at the target for 127. It
 posts message 49 to the activator with a variant per subtype, and plays a sound (`0x0075B468`
-vtable `+0x20`) through the object's sound handle. Ours asks the sound of 117, 124 and 129 only
+vtable `+0x20`) through the object's sound handle. Ours asks every arm's sound except 140's, which has none, and 127's unless it kills
 (`SpecialSystem`, [sound-effects-objects.md](sound-effects-objects.md#1-objects-and-specials)).
 
 | Id | Effect | Message 49 variant | Sound |
@@ -214,6 +214,6 @@ Message 49 presumably carries the mentor's line for the special; its consumer is
   on the level: the random-special placer `0x0050F8C0` adds one and marks object `+0x188`, and
   the action above removes one. The placer runs every turn but never places one in v1.70
   (`binary-census.md` §4).
-- How long state 209 holds a stunned imp.
+- Whether event 15 fires on state 209's path: `0x00481020` has no `0x0049AA30` call, but its callees `0x0048F410`, `0x0048F690` and `0x004B5560` are unread (HYPOTHESIS: it does not).
 - Whether Heal All revives a knocked-out creature.
 - Who consumes messages 48 and 49.

@@ -17519,3 +17519,28 @@ The controlled Level 5 seed-1 replay goes from 6831 ordered draws through turn 1
 `0x004E4D90`), ours `State.cpp:1025` (neutral creature slot 447's idle draw); DK2 makes a room-point
 draw first that ours does not, and which creature makes it is unread (Q712).
 Not read: the chooser's install call after `0x0048C637`, the meaning of `+0x3BB`, states 17 and 18.
+
+## ADR-0747 - every special's arm is built, and action 88 uses up any box
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** keeper-spells, computer-keeper | Answers Q758
+
+**Context.** `SpecialSystem` applied 117, 124, 129 and 140 only; any other box stayed after
+action 88, so ADR-0743's specials step re-posted it every tick and it blocked every later box
+(Q758). DK2's dispatcher `0x004A3FC0` has an arm for each of 118-128, and action 88
+(`0x00513760`) destroys the box whatever the arm returns (specials.md §3-§5).
+
+**Decision.** `SpecialSystem` builds the ten arms as read: Reveal Map through
+`FinaleRules.RevealMap` (local player only); Make Safe (`0x004A43E0`) and Destroy Walls
+(`0x004A45F0`) through the new `TileWorkRules.ApplyDelta`, the raw `0x00452F60` with a signed
+amount, with the applier's follow-ups; Increase Gold (`0x004A4710`) through `GoldStore.Deposit`,
+the rest on the floor at the box; Mana Boost through the ceiling clamp; Stun Imps (`0x004A4870`)
+through `StatusEffectRules.StunFromStarter`, state 209's starter (`0x00481020`); Make Happy and
+Make Unhappy through `CreatureAngerRules.ForgetAll` and the new `SaturateAll` (`0x00486ED0`) with
+event 11; Kill Creatures (`0x004A4D80`) through the health routine's mirror `StatusEffectRules.Hurt`
+in the box owner's name, collapsing at once, and its sound only on a kill; Heal All
+(`0x004A4E50`). Each asks its §5 sound. A special with no arm (object 7) is used up too.
+
+**Consequences.** No hash or save change: no new state, the pin and the recorded runs hold.
+Deviations: Increase Gold fills tiles in index order, skips a ruined Heart and puts the rest in
+the box's cell; Heal All skips a creature at or below zero and the health routine's heal refusals;
+Stun Imps skips 209's turn, sound 199 and action 52 and fires no event 15 (HYPOTHESIS); Mana
+Boost's `+0x10EE` and Make Unhappy's `+0x457` are unkept; effects and message 49 are not modelled.
