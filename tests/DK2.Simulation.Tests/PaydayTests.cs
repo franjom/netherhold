@@ -951,4 +951,41 @@ public class PaydayTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "paid");
         Assert.DoesNotContain(sink.Events, e => e.ThingSound.HasValue);
     }
+
+    // ---- the pay-day event ------------------------------------------------
+
+    /// <summary>The clock fires player event 46 for the keeper once its creatures are handled
+    /// (<c>0x004BE250</c>), on the payday's turn and on each one after: a script counting it sees
+    /// 0 a tick before the first payday, 1 on it and 2 on the second.</summary>
+    [Fact]
+    public void EachPaydayFiresTheKeepersPayDayEventOnce()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        TriggerRecord[] records =
+        [
+            new GenericTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 5, Type = (byte)PlayerTriggerEvent.PayDay, RepeatCount = 255,
+                ChildTriggerId = 0xFFFF, NextTriggerId = 0, Parameters = new Dictionary<string, long>(),
+            },
+            new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 0xFFFF, Type = 7, RepeatCount = 0, ChildTriggerId = 0, NextTriggerId = 0,
+                Parameters = new Dictionary<string, long> { ["FlagId"] = 1, ["Flag"] = 0x12, ["Value"] = 1 },
+            },
+        ];
+        var sim = new GameSimulation(db, world, seed: 42, [new CreatureMovementSystem(), new PaydaySystem()],
+            new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]));
+
+        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++) sim.Tick(InputFrame.Empty);
+        Assert.Equal(0, world.Triggers.Read(1));
+
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(1, world.Triggers.Read(1));
+
+        for (int i = 0; i < PaydayRules.IntervalTicks(db); i++) sim.Tick(InputFrame.Empty);
+        Assert.Equal(2, world.Triggers.Read(1));
+    }
 }

@@ -109,6 +109,10 @@ public sealed class PaydaySystem : ICreatureUpdateStep
                     && !NeedRules.IsBusy(world, creature, now)) Decide(context, creature, database);
             }
 
+            // Player event 46 once every creature has been handled and before the reschedule
+            // (0x004BE250). Level 1's tutorial plays its pay-day speech from it.
+            context.FirePlayerEvent(playerId, PlayerTriggerEvent.PayDay);
+
             player.NextPaydayTick = new GameTick(now + PaydayRules.IntervalTicks(database));
             player.LastPaydayTick = context.Tick;
 

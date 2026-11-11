@@ -57,7 +57,8 @@ Ordered by shipped use and ordinary gameplay first.
    `TriggerExecutor.CreateObject` and `ThingProjection.PlaceObject`.
 7. **LEVEL_PAY_DAY, player event 46 ([#1032](https://github.com/tonihele/OpenKeeper/pull/1032)).**
    Fresh read of [0x004BE1A0](functions/004BE1A0.md): fired after the wage loop.
-   One record, the level 1 tutorial pay-day speech, which never plays now.
+   One record, the level 1 tutorial pay-day speech. Built (ADR-0749): `PaydaySystem`'s
+   clock fires it after the creature loop, before the reschedule.
 8. **Timer speech and countdown narration, world action 51 ([#1092](https://github.com/tonihele/OpenKeeper/pull/1092)).**
    On by default (world init `0x005099A0` sets world `+0x72A1` bits 0-2), so
    it should be heard in timed levels (86 action-23 records) unless one of
@@ -135,7 +136,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 
 | PR | Finding for this project | Evidence / next action |
 |---|---|---|
-| [1032](https://github.com/tonihele/OpenKeeper/pull/1032) | Gap: P46 producer | Fresh read of [0x004BE1A0](functions/004BE1A0.md): event at `0x004BE250` after the wage loop. Add `FirePlayerEvent` in `Systems/PaydaySystem.Clock`. |
+| [1032](https://github.com/tonihele/OpenKeeper/pull/1032) | Gap: P46 producer | Fresh read of [0x004BE1A0](functions/004BE1A0.md): event at `0x004BE250` after the wage loop. Built (ADR-0749): `FirePlayerEvent` in `PaydaySystem`'s clock. |
 | [1033](https://github.com/tonihele/OpenKeeper/pull/1033) | Covered: hero gate collapse | `TriggerExecutor.CollapseGate`, `HeroGatesOnRealDataTests`; [0x004E9130](functions/004E9130.md). Heart arm declined (Q743). |
 | [1034](https://github.com/tonihele/OpenKeeper/pull/1034) | Built: world action 2 (ADR-0748) | Fresh read of arm `0x00518E92`; Q755. Spawn at the zero-based tile centre with floor height. `TriggerExecutor.CreateObject`; the loader's gem skip is `ThingProjection.PlaceObject`. |
 | [1035](https://github.com/tonihele/OpenKeeper/pull/1035) | Deliberate OpenKeeper deviation | Fresh read of arm `0x00518F41`: stores to local player `+0x19E`/`+0x1BE`; no reader draws it. Do not add UI. |
