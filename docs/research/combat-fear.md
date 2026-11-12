@@ -223,7 +223,8 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    (room type byte `+0x18` == 9, `0x00460BC8`; other rooms are skipped) grown by
    `GuardRoomReportingDistanceTiles` (variable 190, ships 7) on every side counts
    heads with `0x004FAC40` over five tiles of its position — the summed
-   level-scaled `Threat` of each side's standing creatures — and **ends the state
+   level-scaled `Threat` of each side's creatures, a collapsed one included (only `+0x16 == 2`
+   is skipped, `0x004FAC7E`; DK2 frees a dead creature, ours skips its corpse; ADR-0758) — and **ends the state
    when its own side at three quarters outweighs the enemy's**; otherwise a
    `Scout` (`JobClass` 3) with Call to Arms off and nobody already responding
    within five tiles goes to the nearest room to raise the alarm

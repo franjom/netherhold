@@ -17860,3 +17860,36 @@ bit after a test arranges a world; `StateFlagAttackabilityTests` tests `ComputeA
 Rules (1) and (2) have no unit test of their own; the replay carries them. Owner questions: Q764.
 Evidence: `combat-acquisition.md` §4, `speed-set-turn.md`; study
 `F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`.
+
+## ADR-0758 - the head count skips a corpse and an off-map creature, not a collapsed one
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** combat, creatures
+
+**Context.** Q712's boundary at turn 1869: native Imp 454 (ours id 2) leaves the flee state 203 for
+walk state 6 with a `Room.cpp:1563` draw (`0x004E4D90`, the alarm's Guard Room point); ours ended the
+flee as "outnumbers" because Thief 434, collapsed on 1864, was left out of the heroes' count.
+The head count `0x004FAC40` has one skip: `+0x16 == 2` (`CMP [ESI+0x16],2; JZ` at
+`0x004FAC7E`/`0x004FAC82`), no health or state test. A collapsed creature is still on the list; DK2
+frees a dead one and unlinks it from its owner's list (`0x004B7A20` -> `0x00487C70` ->
+`0x004B4D40`). The trap part is off for all three callers (flag 0 at `0x0045C0CC`, `0x004608DE`,
+`0x004A87ED`). Distance arithmetic and threat scaling already matched. STRONGLY INFERRED (reviewer
+re-derived the skip and the callers); `functions/004FAC40.md` stays HYPOTHESIS overall.
+
+**Decision.** `FearRules.LocalStrength` skips ours' corpse (`CreatureDeathRules.IsCorpse`, which
+stands for DK2's freed creature) and a creature off the map (`!CombatPitRules.IsOnTheMap`, ours'
+mapping of `+0x16 == 2`); it no longer skips `CreatureDeathRules.IsDown`. Its three callers are the
+NonFighter arm (`0x0045C0EF`/`0x0045C11A`, `CombatTargetRules`), the flee state (`0x00460904`/
+`0x00460937`, `FearRules.FleeWalk`, then the alarm `0x004752B0` with `(theirs - ours) * 3/2` when
+`ours * 3/4 <= theirs`) and `Trap_Update` (`0x004A880E`/`0x004A8836`, `TrapRules.ReportToRoom`).
+`DK2.AI`'s `ThreatEvaluator` already agreed (layer 2 only).
+
+**Not built.** Ours books a collapse once a game second, so a creature that dies instantly (an
+Imp, room-attached) at health 0 and not yet dead is counted by ours where DK2 has freed it (Q765,
+PLAUSIBLE, not hit on Level 5). Other writers of layer 2 (`0x004B4F60`, through the creature's
+vtable `+0x10`, `0x00488750`) are unread.
+
+**Consequences.** Hash/save 483, pin `0x1A8E8DCA901EF87C`; recorded runs change. Level 1's journal is
+re-recorded with the same outcome (Lord of the Land 2277 at (14,20), Reaper 2301, gem 2403);
+`ReaperFinaleOnRealDataTests` follows. Controlled Level 5 replay (controlled503): every native draw
+of the capture's log matches, turns 1401-1900, 8466 draws (the log ends at 1900). Test:
+`LocalStrengthTests` fails on the old filter. Evidence: `combat-fear.md` §4 step 9; study
+`F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`, note `boundary-1869.md`.

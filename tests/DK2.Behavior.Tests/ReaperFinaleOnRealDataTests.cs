@@ -39,9 +39,8 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
             },
         };
         using FileStream journal = File.OpenRead(Dk2CaptureGate.PathFor(Fixture + "input.journal"));
-        // The journal was re-recorded at HashVersion 482 (attackability is the bit each creature's own
-        // update stores; a collapse ends the running action). A later hash version replays it with its
-        // hashes as evidence, not a verdict.
+        // The journal was re-recorded at HashVersion 483 (the head count counts a collapsed creature).
+        // A later hash version replays it with its hashes as evidence, not a verdict.
         ScenarioResult result = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path).Replay(
             Scenario.Load(Dk2CaptureGate.PathFor(Fixture + "level1.yaml")), InputJournal.Read(journal), options,
             acceptOtherHashVersion: true);

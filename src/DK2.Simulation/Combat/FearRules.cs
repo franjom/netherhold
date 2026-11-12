@@ -401,7 +401,8 @@ public static class FearRules
     }
 
     /// <summary><c>0x004FAC40</c> over creatures: the summed level-scaled <c>Threat</c> of a player's
-    /// standing creatures within five tiles of a point.</summary>
+    /// creatures within five tiles of a point. Only one off the map (<c>+0x16</c> == 2, <c>0x004FAC7E</c>)
+    /// is skipped: a collapsed creature counts. Ours' corpse stands for DK2's freed creature.</summary>
     public static int LocalStrength(SimulationContext context, PlayerId playerId, int x, int y)
     {
         WorldState world = context.World;
@@ -411,7 +412,7 @@ public static class FearRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
-            if (c.OwnerPlayerId != playerId || CreatureDeathRules.IsDown(c)) continue;
+            if (c.OwnerPlayerId != playerId || CreatureDeathRules.IsCorpse(c) || !CombatPitRules.IsOnTheMap(c)) continue;
             if (CombatRules.DistanceSquared(c.PosX, c.PosY, x, y) >= HeadCountRadiusSquared) continue;
             sum += ThreatAtLevel(database, database.CreatureById(c.CreatureTypeId), c.Level);
         }

@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**483** - `0x1A8E8DCA901EF87C`. The head count `0x004FAC40` skips a corpse and an off-map creature, not a collapsed one (`FearRules.LocalStrength`, ADR-0758). No new saved fields; earlier saves are refused.
+
 **482** - `0xD451662B0297D001`. A collapse ends the running action (`0x0048B80A..0x0048B817`); a weak fighter's melee hold survives the odd-turn stamp delay (`CreatureState.MeleeStampDelay`, ours alone); IsAttackable is the stored bit `+0x3EA` bit 6, refreshed where `0x0045A8B0` is called (`0x0048A037`, `0x0045AA08`, `0x0045EF39`, `0x0047511B`, ADR-0757). New per-creature fields `MeleeStampDelay` and `Attackable`.
 
 **481** - `0x078CC4ECABEC399A`. A non-worker under a fifth of its level-scaled maximum health moves at half speed and, on odd turns, its three spell stamps and melee stamp move one turn later (`0x0048962C..0x00489705`); the steering body's `is_blocker` and `ignore_blocker` bits are set and cleared by the fight state, the flee state, the withdraw tails and the fight-leave routine, and a Horned Reaper sets both every update, so Separation's arm 2 is reachable (`0x0045F030`, `0x004602E0`, `0x0045ADC0`, ADR-0756). No new saved state; the version moves because recorded runs change.
