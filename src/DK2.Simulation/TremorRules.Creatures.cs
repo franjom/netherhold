@@ -62,7 +62,7 @@ public static partial class TremorRules
 
     public static bool Respond(SimulationContext context, CreatureState creature, TilePos centre, Fp32 radius)
     {
-        if (!CombatRules.IsAttackable(creature) || creature.PrisonOwnerPlayerId != PrisonRules.NoPrison) return false;
+        if (!CombatRules.IsAttackableOnMap(creature) || creature.PrisonOwnerPlayerId != PrisonRules.NoPrison) return false;
         // Unmapped legacy activities cannot satisfy the original state-table gates.
         if (!CreatureStateMachine.HasState(creature)) return false;
         CreatureStateDef state = CreatureStateTable.Get(creature.Dk2StateId);

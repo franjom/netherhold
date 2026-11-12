@@ -73,12 +73,15 @@ public class CreatureNeedsTests
         Assert.Equal(0, CreatureHealthRules.Apply(db, goblin, state, 500, 0));
         Assert.Equal(1500, state.Health);
 
-        // Overkill lands only what was left.
+        // Overkill lands only what was left, but stays in the health: 0x004B2CE0 has no lower clamp, so a
+        // heal later in the same turn does not revive what the blow felled (ADR-0764). The collapse is booked.
         Assert.Equal(-1500, CreatureHealthRules.Apply(db, goblin, state, -99999, 0));
-        Assert.Equal(0, state.Health);
+        Assert.Equal(1500 - 99999, state.Health);
+        Assert.True(state.CollapseDue);
 
         // And healing from zero works, because zero is not a trapdoor in the
         // rules — the system, not the clamp, decides what death is.
+        state.Health = 0;
         Assert.Equal(200, CreatureHealthRules.Apply(db, goblin, state, 200, 0));
     }
 
@@ -758,12 +761,18 @@ public class CreatureNeedsTests
         state.Health = max - 5;
         Assert.Equal(5, CreatureHealthRules.OwnLandRegenPerTurn(world, db, imp, state));
 
-        // Out of health: nothing, whether or not the collapse has been booked.
+        // The block skips only the dying bit (0x00488A73, +0x3E6 bit 21): an Imp does not collapse, so at
+        // health below 1 it is healed until the removal walk (ADR-0764).
         state.Health = 0;
-        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerTurn(world, db, imp, state));
+        Assert.Equal(16, CreatureHealthRules.OwnLandRegenPerTurn(world, db, imp, state));
+
+        // One DK2's damage call collapses (a body-leaving definition) has the bit already: nothing, whether
+        // or not ours has run the collapse yet.
+        CreatureDef bodyLeaver = imp with { Flags = imp.Flags | CreatureFlags.GenerateDeadBody };
+        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerTurn(world, db, bodyLeaver, state));
 
         CreatureDeathRules.Collapse(new StateHookContext(world, db), state);
-        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerTurn(world, db, imp, state));
+        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerTurn(world, db, bodyLeaver, state));
     }
 
     [Fact]

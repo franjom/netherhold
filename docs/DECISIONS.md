@@ -18049,3 +18049,105 @@ kinds still reach only their own keeper.
 **Consequences.** No simulation state changes, so there is no hash or save version change; the
 record no longer reports partial. The glide keeps action 26's presentation (at most 500 ms,
 blocked in the modes that block a scripted move).
+
+## ADR-0762 - a swing's hold ends where DK2 ends the action, not on a state change
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** combat, creatures
+
+**Context.** `FightRules.MeleeActionIsRunning` ended action 17's post-impact hold when the creature's
+`StateEnteredTick` passed the swing's start. DK2 has no such rule: the action block (`+0x38D..+0x3AE`,
+index `+0x3A9`) is begun by `0x004969D0`, polled by the runner `0x00496AA0` (from `0x00489A68`) and cleared
+by it on completion or by `0x00496D20` / `0x00496D80`. The fleeing state 203 (`0x004602E0`) calls neither,
+so a swing's hold runs on through 199, 200 and 203. `0x00496D20` has 54 callers (listed in
+`functions/00496D20.md`); `0x00496D80` three (`0x00487467`, `0x0048D1A6`, `0x0046F8D9`); `+0x3A9` is written
+only at `0x00496903`, `0x00496C09`, `0x00496C72`, `0x00496D68`, `0x00496DAC` and `0x004997DE`.
+STRONGLY INFERRED (disassembly, caller scan).
+
+**Decision.** The hold's identity is the target the swing copied (`SwingTargetKind`);
+`CreatureStateMachine.EndAction` clears it, so every place ours already ends the action (combat enter
+`0x0047A810`, the two route helpers, collapse `0x0048B80C`, freeze, stun, tremor knockdown, the other
+action starters) ends the hold. The `StateEnteredTick` test is dropped from `FightRules` and from the
+presentation's melee and cast checks. Added callers: the pick-up (`0x004BFC44`, once state 75 is taken)
+and the slap (`0x0048B9BC`, `0x0048B9D4`, and the reaction's age-1 end `0x0046F20D`), which replaces the
+`ActionUntilTick = 0` stand-in.
+
+**Not built (Q770).** The other callers (casino, workshop, library, torture, temple, celebrate, heart
+destroyed, defeat, possession leave and the like) are not mapped to ours' states. A hold left running in a
+non-combat state is harmless: entering Combat ends it and only the fight states read it.
+
+**Consequences.** Hash/save 490. A fighter that flees or changes combat state within its hold stays busy
+as DK2's does; the Imp states 22, 16, 18 and 20 read the same busy test. Level 5: a fighter that swung and
+moves to a flee or another combat state within about ten turns. Tests: `MeleeHoldEndTests` (three, fail on
+the old code); `WorldViewTests` follow.
+
+## ADR-0763 - a lifted creature stays attackable until its own update refreshes the bit
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** combat, creatures
+
+**Context.** ADR-0757 made `IsAttackable` the stored bit `+0x3EA` bit 6 but kept a held-creature guard that
+cleared it at once. `Hand_PickUp` (`0x004BC500`; `0x004BC656` kicks state 78, `0x004BC687` calls
+`0x004B4F60`, which unlinks the thing and stores `+0x16 = 2`) never calls the recompute `0x0045A8B0`,
+whose first refusal is `+0x16 == 2` (`0x0045A8B3`). Its four callers are the creature update
+(`0x0048A037`; a held creature still reaches it), `0x0045AA08`, `0x0045EF39` and `0x0047511B`. The selectors
+(`0x0045B140`, `0x0045B500`, `0x0045B800`, `0x0045BAD0`) and the nearest-attacker scan (`0x0045C690`) test
+only the bit; `spFighting` tests `+0x16 == 2` first (`0x0045F2BE`). STRONGLY INFERRED.
+
+**Decision.** `CombatRules.IsAttackable` is the bit and the corpse test only. `ComputeAttackable` already
+refuses a held creature, so the bit clears at the creature's own next update (or a registration on it).
+`IsAttackableOnMap` adds the off-map test: `FightRules.TargetIsValid` uses it (`spFighting`), as do the
+trap, tremor, heart-defence and fear-guard readers whose DK2 order is unread (Q768; they keep the old
+behaviour). The selectors and `FearRules`' nearest-attacker scan read the bare bit and can choose a held
+creature for one update. Damage to a held creature is already refused (`StatusEffectRules.Hurt`,
+`0x004B2E41`). The held counter `+0x46D` resets only in state 76 (`0x00489A5F`), not in state 78: the
+comment is corrected, the behaviour is not (Q768).
+
+**Consequences.** Hash/save 490. Level 5: a fighter lifted while an enemy updated earlier in the same
+sweep still scans it. Test: `HeldAttackableTests` (fails on the old code). Q764's first question is
+answered.
+
+## ADR-0764 - own-land healing skips only the dying bit; damage keeps its overkill
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** creatures, combat
+
+**Context.** `OwnLandRegenPerTurn` returned 0 for any creature at health 0 or less. DK2's block
+(`0x00488A73`) skips only `+0x3E6` bit 21, set by `Creature_Collapse` (`0x0048B839`). The damage call
+collapses synchronously (`0x004B2F0E..0x004B2FB5`) when bit 21 is clear, health is at most 0, the
+definition has `GenerateDeadBody` (`+0x686` bit `0x8000`), the creature is not possessed (`+0x3E6` bit 7)
+and is not attached to a room of type 11 or 12 (else not `DieInstantly`, `0x0048E110`). Anything else, an
+Imp for one, sits at health below 1 with the bit clear until the thing pass's second walk (`0x004B7830`:
+slot `+0x28`, then `+0x30` through `0x0048AF80` to `0x00487C70`), and its own update heals it if that
+comes later in the turn. DK2 never clamps health: below 1 it is replaced only by the dying countdown
+(`0x004B2FA0`). STRONGLY INFERRED.
+
+**Decision.** `OwnLandRegenPerTurn` skips a dying or dead creature and one at zero that DK2 would have
+collapsed (`HasDyingState`). `CreatureHealthRules.Apply` no longer clamps damage at zero, so a blow's
+overkill stays and a regeneration smaller than it cannot revive the creature; a heal, or a dying or dead
+creature, keeps the zero floor, and the amount returned stays counted from zero. `Collapse` and
+`BecomeCorpse` put the health back to zero, where ours keeps the countdown in `DyingTicks`.
+
+**Not built (Q769, Q725).** DK2 frees a creature that does not collapse in the removal walk at the end of
+the thing pass; ours still kills it in the `CollapseSystem` pass after the creature sweep.
+
+**Consequences.** Hash/save 490. Level 5: an Imp (or other non-collapser) on its own land taken to health
+at most 0 by a blow earlier in the sweep and updated after it now regains about 16, and lives only if the
+blow left it above -16. Tests: `CollapseBookingTests` (three); `CreatureNeedsTests` and
+`HeroesDestroyedTests` follow (an overkill stays below zero).
+
+## ADR-0765 - every damage path books the collapse; a slap collapses inside the command
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** creatures, combat
+
+**Context.** Every DK2 damage path reaches `Thing_ModifyHealth` (`0x004B2CE0`), whose collapse (`0x004B2FB5`,
+`Creature_Collapse` `0x0048B770`) is synchronous. Ours booked it (`CollapseDue`, run by `CollapseSystem`,
+ADR-0732) only from `StatusEffectRules.Hurt`. Terrain (`0x0048A789`), the cannot-sleep drain
+(`0x00477E7B`), the slap (`0x0048B9A1`, `0x0048BBBC`, `0x0048BCFB`), the defeat and Disruption kills
+waited for the once-a-second health pass. Prison and torture victims never collapse (a room of type 11 or
+12 refuses it, `0x004B2F7E..0x004B2F89`), so nothing is booked for them (`CollapseSystem.Now` skips a
+prisoner). STRONGLY INFERRED.
+
+**Decision.** `CreatureHealthRules.Apply` books the collapse for any damage that leaves health at most 0
+(ADR-0764), which covers every caller. The terrain and drain paths run inside the health pass, whose tail
+already collapses in the same pass. `HandSystem.Slap` runs `CollapseSystem.Now` right after the damage for
+a creature DK2 collapses, so the fall's draws come at command time; one that does not collapse is left
+booked for the pass after the sweep.
+
+**Consequences.** Hash/save 490. A slapped creature at low health collapses on the slap's tick instead of
+up to a second later, and a defeated player's creatures collapse at the next sweep. Test:
+`CollapseBookingTests.ASlapThatEmptiesHealthCollapsesTheCreatureInsideTheCommand` (fails on the old code).
+Unchanged (Q771): damage to a held creature is not refused on the `Apply` paths (`0x004B2E41`).

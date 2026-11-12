@@ -26,7 +26,7 @@ public class HeroesDestroyedTests
 
         StatusEffectRules.Hurt(world, db, def, knight, 1_000_000, Keeper);
 
-        Assert.Equal(0, knight.Health);
+        Assert.True(knight.Health <= 0);   // not clamped at zero: 0x004B2CE0 keeps the overkill (ADR-0764)
         Assert.Equal(Keeper, knight.HealthSourcePlayerId);
         Assert.Equal(Keeper, CreatureHealthSystem.CreditHeroKill(world, def, knight));
         Assert.Equal(1, world.Player(Keeper).HeroesDestroyed);

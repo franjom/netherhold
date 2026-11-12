@@ -87,7 +87,8 @@ public static class SlapRules
             RoomTypeId.Prison => PrisonState,
             _ => ReactionState,
         };
-        if (target != ReactionState) creature.ActionUntilTick = 0;
+        // 0x0048B9BC and 0x0048B9D4 end the running action before the move; 77's reaction does at age 1 (0x0046F20D).
+        if (target != ReactionState) CreatureStateMachine.EndAction(creature);
         if (!CreatureStateMachine.TrySetState(context.Hooks, creature, target, context.Tick.Value)) return false;
         // DK2 moves only a walking state and the reaction zeroes the velocity, so the walk ends here;
         // ours' mover would carry on along a loaded route (CasinoJackpotRules.Kick does the same).
@@ -107,6 +108,7 @@ public static class SlapRules
         if (age == 0) return;
         if (age == 1)
         {
+            CreatureStateMachine.EndAction(creature);   // 0x0046F20D
             creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(definition, ReactionArtSlot, 0);
             context.Emit(system, "slap_reaction", $"creature={creature.Id} state={creature.Dk2StateId} until={creature.ActionUntilTick}");
             return;

@@ -34,7 +34,7 @@ public static class FightRules
                 CreatureState? target = world.CreatureById(me.FightTargetId);
                 if (target is null) return false;
                 if (me.CombatPitFighter) return CreatureStateMachine.HasState(target) && CombatPitRules.IsOnTheMap(target);
-                return CombatRules.IsAttackable(target);
+                return CombatRules.IsAttackableOnMap(target);   // spFighting tests +0x16 == 2 first (0x0045F2BE)
             case FightTargetKind.Heart:
                 return HeartPillarRules.TryResolve(world, database, me.FightTargetPlayerId, new HeartPillarId(me.FightTargetId), out HeartPillarTarget pillar)
                     && me.FightTargetTileIndex == pillar.Tile.Y * world.Width + pillar.Tile.X;
@@ -125,8 +125,7 @@ public static class FightRules
         if (creature.SwingInProgress) return true;
         if (creature.SwingKind != SpellRules.MeleeSwing
             || creature.SwingTargetKind == FightTargetKind.None
-            || creature.TimeLastUsedMelee - creature.MeleeStampDelay != creature.SwingStartTick
-            || creature.StateEnteredTick > creature.SwingStartTick) return false;
+            || creature.TimeLastUsedMelee - creature.MeleeStampDelay != creature.SwingStartTick) return false;
         long elapsed = tick.Value - creature.SwingStartTick;
         return elapsed >= 0 && elapsed < AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5));
     }

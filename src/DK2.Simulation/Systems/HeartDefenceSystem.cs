@@ -68,7 +68,7 @@ public sealed class HeartDefenceSystem : IRoomTickStep
             PlayerId other = world.PlayerAtIndex(p).PlayerId;
             if (other == owner || !CombatRules.IsHostile(world, owner.Value, other.Value)) continue;
             foreach (CreatureState c in world.OwnedCreatures(other))
-                if (CombatRules.DistanceSquared(x, y, c.PosX, c.PosY) < limit && CombatRules.IsAttackable(c))
+                if (CombatRules.DistanceSquared(x, y, c.PosX, c.PosY) < limit && CombatRules.IsAttackableOnMap(c))
                     return c;
         }
         return null;

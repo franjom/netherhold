@@ -64,7 +64,7 @@ public static class ThreatFleeRules
         if (CreatureDeathRules.IsPossessed(context.World, me) || CreatureDeathRules.IsDying(me)
             || ((definition.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless) || CasinoRules.IsFearlessFromGambling(context.World, me)) return;
         if (me.CurrentFear <= FearRules.FearThreshold(context.Database, definition, me.Level)) return;
-        if (!CreatureStateMachine.HasState(me) || !CombatRules.IsAttackable(me)) return;
+        if (!CreatureStateMachine.HasState(me) || !CombatRules.IsAttackableOnMap(me)) return;
         if (me.Dk2StateId == StateShadow.TravelToPoint && me.UtilityNewState == FledState) return;
         context.FireCreatureEvent(me, CreatureTriggerEvent.Afraid);
         if (NeedRules.ResolvedCategory(me) == CreatureStateCategory.Combat) return;

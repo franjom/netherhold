@@ -27,18 +27,23 @@ public static class CreatureHealthRules
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         CreatureLevelRules.MaxHealth(database, creature, state.Level);
 
-    /// <summary>Applies a health change and clamps it: positive heals, negative hurts. Returns the
-    /// amount that actually landed, which is less than asked for at either end.
-    /// <paramref name="source"/> (<c>0x004B2CE0</c>'s) is stamped first, for any delta; a site that
-    /// passes the creature's own <c>+0x36</c> passes <c>state.HealthSourcePlayerId</c>.</summary>
+    /// <summary>A health change as <c>Thing_ModifyHealth</c> (<c>0x004B2CE0</c>) makes it: heals stop at the
+    /// maximum, damage has no lower clamp (a blow's overkill stays, so a later heal does not revive what
+    /// it felled) and health at or below zero books the collapse (<see cref="CreatureState.CollapseDue"/>;
+    /// DK2 collapses inside the call, <c>0x004B2FB5</c>). A dying or dead creature keeps the zero floor and
+    /// books nothing. Returns what landed, counted from zero. The <paramref name="source"/> is stamped first,
+    /// for any delta (ADR-0764, ADR-0765).</summary>
     public static int Apply(
         GameDatabase database, CreatureDef creature, CreatureState state, int delta, byte source)
     {
         state.HealthSourcePlayerId = source;
         int before = state.Health;
         int max = MaxHealth(database, creature, state);
-        state.Health = Math.Clamp(before + delta, 0, max);
-        return state.Health - before;
+        bool floor = delta >= 0 || CreatureDeathRules.IsDying(state) || CreatureDeathRules.IsCorpse(state);
+        state.Health = Math.Min(before + delta, max);
+        if (floor && state.Health < 0) state.Health = 0;
+        if (!floor && state.Health <= 0) state.CollapseDue = true;
+        return Math.Max(state.Health, 0) - Math.Max(before, 0);
     }
 
     /// <summary>Whether this creature is at or below <c>CreatureCriticalHealthPercentageOfMax</c>
@@ -63,15 +68,18 @@ public static class CreatureHealthRules
     /// <summary>The creature update's own-land regeneration (<c>0x00488A73..0x00488C32</c>), every turn:
     /// on a tile its owner holds (<c>[tile+8] &amp; 0xFFF</c> == <c>+0x28</c>), the record's per-second value
     /// over the turn rate (the loader's <c>def+0x6A6</c>, Imp 67 to 16), level-scaled, negatives to 0 and
-    /// capped at <c>0xFFFE</c>, then cut so health stops at the level's maximum. Skipped for a dying
-    /// creature (<c>+0x3E6</c> bit 21); ours also for one down but not yet collapsed. Not built: a Good
+    /// capped at <c>0xFFFE</c>, then cut so health stops at the level's maximum. Skipped only for a dying
+    /// creature (<c>+0x3E6</c> bit 21, <c>0x0048B839</c>; ADR-0764): ours reads the bit as the dying state or a
+    /// pending collapse DK2's damage call would have made (<see cref="CreatureDeathRules.HasDyingState"/>). An
+    /// Imp or a possessed creature below 1 health is healed until the removal walk. Not built: a Good
     /// creature on Hero Lair terrain (35) takes the terrain's word instead (<c>0x00488A8F..0x00488AB3</c>),
     /// which <see cref="TerrainHealthPerSecond"/> stands in for; and the record's heal effect (def <c>+0x774</c>, <c>0x00488BF2</c>).</summary>
     public static int OwnLandRegenPerTurn(
         WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
     {
         int perTurn = creature.OwnLandHealthIncreasePerSecond / SimulationTiming.OriginalTicksPerGameSecond;
-        if (perTurn == 0 || CreatureDeathRules.IsDown(state)) return 0;
+        if (perTurn == 0 || CreatureDeathRules.IsDying(state) || CreatureDeathRules.IsCorpse(state)) return 0;
+        if (CreatureDeathRules.HasCollapsed(state) && CreatureDeathRules.HasDyingState(world, database, creature, state)) return 0;
         TilePos at = state.Tile;
         if (!world.Contains(at) || world.Tile(at.X, at.Y).OwnerPlayerId != state.OwnerPlayerId) return 0;
 

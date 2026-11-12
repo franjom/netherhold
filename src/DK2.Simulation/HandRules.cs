@@ -44,9 +44,9 @@ public static class HandRules
     /// A creature falling from the hand (state 76's turn) does not act either.</summary>
     public static bool IsHeld(CreatureState creature) => creature.InHand || creature.LandingPending;
 
-    /// <summary>DK2's <c>LastDroppedCounter</c> (<c>+0x46D</c>): a word held at zero while the
-    /// creature is in the hand and counted up once a turn otherwise, from its construction or
-    /// its last drop (<c>0x00489A4D</c>, <c>0x00489A5F</c>). Wraps as the word does. Read by the
+    /// <summary>DK2's <c>LastDroppedCounter</c> (<c>+0x46D</c>): counted up once a turn
+    /// (<c>0x00489A4D</c>) and held at zero only in state 76, the drop's landing (<c>0x00489A5F</c>), not in
+    /// the hand's state 78; ours reads zero in the hand and counts from the drop (Q768). Wraps as the word does. Read by the
     /// keeper's hand routines, which leave a creature alone for 300 turns after a drop.</summary>
     public static ushort LastDroppedCounter(CreatureState creature, long now) =>
         creature.InHand ? (ushort)0 : unchecked((ushort)(now - creature.DroppedTick));

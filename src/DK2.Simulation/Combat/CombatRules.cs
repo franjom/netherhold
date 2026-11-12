@@ -168,9 +168,18 @@ public static class CombatRules
     /// <summary>DK2's <c>IsAttackable</c>, <c>+0x3EA</c> bit 6, as every one of its readers sees it: the bit
     /// <see cref="RefreshAttackable"/> last stored (every <c>TEST [+0x3EA],0x40</c> reader), so a creature
     /// updated before another reads that one's value from its previous update. A corpse reads clear (DK2's
-    /// dead creature is freed); so does a held one, up to one update before DK2's own refresh clears it.</summary>
+    /// dead creature is freed). A held creature keeps the bit it had until its own next update clears it
+    /// (the pick-up does not call <c>0x0045A8B0</c>), so the selectors and the nearest-attacker scan, which
+    /// test only the bit, can still choose it (ADR-0763); <see cref="IsAttackableOnMap"/> adds the off-map test.</summary>
     public static bool IsAttackable(CreatureState creature) =>
-        creature.Attackable && !CreatureDeathRules.IsCorpse(creature) && !HandRules.IsHeld(creature);
+        creature.Attackable && !CreatureDeathRules.IsCorpse(creature);
+
+    /// <summary>The bit and the off-map test DK2 puts first where it reads one: <c>spFighting</c> tests
+    /// <c>+0x16 == 2</c> (<c>0x0045F2BE</c>, set by <c>0x004B4F60</c> when the hand takes the creature)
+    /// before the bit. Also what the trap, tremor, heart-defence and fear-guard readers use, whose own
+    /// order DK2 has not been read for: they kept the old held refusal.</summary>
+    public static bool IsAttackableOnMap(CreatureState creature) =>
+        IsAttackable(creature) && !HandRules.IsHeld(creature);
 
     /// <summary><c>0x0045A8B0</c>: stores <see cref="ComputeAttackable"/> in the bit. Called at the end of
     /// the creature's own update (<c>0x0048A037</c>), on a target whose registration took

@@ -16,6 +16,7 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**490** - `0x8C4B9A3EB1BADC9D`. A swing's hold ends only where DK2's end-action callers end it, and the pick-up and the slap are two (`0x00496D20`, `0x004BFC44`, `0x0048B9BC`, ADR-0762); a lifted creature keeps its stored attackable bit until its own update (`0x0045A8B3`, ADR-0763); own-land healing skips only the dying bit and damage keeps its overkill (`0x00488A73`, `0x004B2CE0`, ADR-0764); every damage path books the collapse and a slap collapses inside the command (ADR-0765). No new saved field; earlier saves are refused.
 **489** - `0x75143B944E18993D`. World action 51 sets or clears the saved world options bit `0x04` (arm `0x0051986C`), and the Mentor's time-limit countdown (`0x004B9740`, `TimeLimitCountdown`, ADR-0767) asks for its lines as view output. No new saved fields; earlier saves are refused.
 
 **486** - `0xFAAE067901CB6684`. The fighting arms' and the NonFighter arm's candidate walk follows DK2's list order, the player list then each player's creatures (`CombatTargetRules.Scan`, `WorldState.ActivePlayerOrder`, `CreatureOwnershipOrder`, ADR-0761). No new saved field; earlier saves are refused.

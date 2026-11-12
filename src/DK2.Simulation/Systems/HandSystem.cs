@@ -179,6 +179,8 @@ public sealed class HandSystem : ISimulationSystem
             CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
             prepared = CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value);
         }
+        // 0x004BFBD0 ends a running action once 75 is taken (0x004BFC44), a melee hold included.
+        if (prepared) CreatureStateMachine.EndAction(creature);
         // 0x004BFBD0 ends on the lift sound for a creature already in 75 too, and before the capacity test;
         // only a refusal of 75 itself leaves it silent. Handle 0: the creature's own voice is not used.
         if (prepared || creature.Activity == CreatureActivity.BeingLifted)
@@ -864,13 +866,15 @@ public sealed class HandSystem : ISimulationSystem
                 world.Player(creature.OwnerPlayerId).SlapCount++;
         }
 
+        // The slap's damage call collapses a creature that will, inside the call (0x004B2FB5, ADR-0765); one that
+        // does not (an Imp) is removed by the thing pass's walk, which CreatureHealthRules.Apply left booked.
+        if (creature.CollapseDue && CreatureDeathRules.HasDyingState(world, context.Database, definition, creature))
+            CollapseSystem.Now(context, creature);
+
         context.Emit(SystemName, "slapped",
             $"player={command.PlayerId} creature={creature.Id} " +
             $"health={creature.Health} damage={-hurt} anger={creature.Anger.Max} (+{anger}) " +
             $"efficiency={EfficiencyRules.Percent(creature, definition)}%");
-
-        // A slap can be the last one. Collapsing is CreatureHealthSystem's to
-        // notice, on this same tick, and nothing here short-circuits it.
     }
 
     /// <summary>What <c>Hand_SlapCreature</c> (<c>0x0048B8A0</c>) does with a slap.</summary>

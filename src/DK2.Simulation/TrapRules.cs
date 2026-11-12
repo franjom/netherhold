@@ -196,7 +196,7 @@ public static class TrapRules
                 if (creature.OwnerPlayerId != player || !IsHostileOnMap(world, trap.PlayerId, creature)) continue;
                 if ((int)DistanceSquared(trap.PosX, trap.PosY, creature.PosX, creature.PosY) >= limit) continue;
                 if (!LineOfSight.Clear(sight, creature.PosX, creature.PosY, trap.PosX, trap.PosY)) continue;
-                if (CombatRules.IsAttackable(creature)) return creature;
+                if (CombatRules.IsAttackableOnMap(creature)) return creature;
             }
         }
         return null;
@@ -506,7 +506,7 @@ public static class TrapRules
         if (now == trap.SightTurn + 1 && world.CreatureById(trap.SightTargetId) is { } kept && !CreatureDeathRules.IsCorpse(kept))
         {
             found = trap.SightTargetId;
-            if (!LineOfSight.Clear(sight, trap.PosX, trap.PosY, kept.PosX, kept.PosY) || !CombatRules.IsAttackable(kept)
+            if (!LineOfSight.Clear(sight, trap.PosX, trap.PosY, kept.PosX, kept.PosY) || !CombatRules.IsAttackableOnMap(kept)
                 || ((database.CreatureById(kept.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
                 found = 0;
             else
@@ -523,7 +523,7 @@ public static class TrapRules
             for (int i = creatures.Count - 1; i >= 0; i--)
             {
                 CreatureState creature = creatures[i];
-                if (creature.OwnerPlayerId != player || !CombatRules.IsAttackable(creature)) continue;
+                if (creature.OwnerPlayerId != player || !CombatRules.IsAttackableOnMap(creature)) continue;
                 if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
                 uint distance = DistanceSquared(creature.PosX, creature.PosY, trap.PosX, trap.PosY);
                 if (distance >= limit || distance >= best) continue;

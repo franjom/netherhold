@@ -195,6 +195,7 @@ public static class CreatureDeathRules
         LairRules.ReleaseBed(world, database, creature);
 
         CreatureStateMachine.Release(creature);
+        creature.Health = Math.Max(creature.Health, 0);
 
         // A fresh sixty seconds: the corpse and rescue windows share one field.
         creature.DyingTicks = 0;
@@ -232,6 +233,9 @@ public static class CreatureDeathRules
     {
         if (IsDying(creature)) return false;
 
+        // DK2 replaces the health with the dying countdown (0x004B2FA0); ours keeps the countdown in
+        // DyingTicks and the health at zero, whatever overkill the blow left (CreatureHealthRules.Apply).
+        creature.Health = 0;
         if (CreatureStateMachine.TrySetState(hooks, creature, FallingState))
         {
             creature.TurncoatTicks = 0;

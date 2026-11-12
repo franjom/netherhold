@@ -1859,8 +1859,7 @@ public sealed partial class WorldView
             || creature.SpellStamps[creature.SwingSpellSlot] != creature.SwingStartTick
             || creature.AttackType is not (DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtCreature
                 or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtThing
-                or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtAlly)
-            || creature.StateEnteredTick > creature.SwingStartTick) return false;
+                or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtAlly)) return false;
         if (!_castHoldTicks.TryGetValue(creature.CreatureTypeId, out int hold))
         {
             CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
@@ -1879,8 +1878,7 @@ public sealed partial class WorldView
             || creature.SwingTargetKind == DK2.Simulation.Combat.FightTargetKind.None
             || creature.TimeLastUsedMelee - creature.MeleeStampDelay != creature.SwingStartTick
             || creature.AttackType is not (DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtCreature
-                or DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing)
-            || creature.StateEnteredTick > creature.SwingStartTick) return false;
+                or DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing)) return false;
         if (!_meleeHoldTicks.TryGetValue(creature.CreatureTypeId, out int hold))
             _meleeHoldTicks[creature.CreatureTypeId] = hold = AnimationTimingRules.ActionHoldTicks(
                 _database.CreatureById(creature.CreatureTypeId).ArtSlot(5));

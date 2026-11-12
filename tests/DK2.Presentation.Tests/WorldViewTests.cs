@@ -460,9 +460,15 @@ public class WorldViewTests
         caster.Possessed = true;
         Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
         caster.Possessed = false;
+        // A state change alone does not end the action (DK2 has no such rule); the end-action callers
+        // do (0x00496D20), which clear the target the action copied.
         caster.StateEnteredTick = caster.SwingStartTick + 1;
-        Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
+        Assert.Equal(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
         caster.StateEnteredTick = caster.SwingStartTick;
+        DK2.Simulation.Combat.FightTargetKind kept = caster.SwingTargetKind;
+        caster.SwingTargetKind = DK2.Simulation.Combat.FightTargetKind.None;
+        Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
+        caster.SwingTargetKind = kept;
         caster.AttackType = DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing;
         Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
         caster.AttackType = DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtThing;
@@ -536,10 +542,15 @@ public class WorldViewTests
         CreatureView rendered = view.Creatures(world).Single(c => c.Id == giant.Id);
         Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "fighting"), rendered.Animation);
         Assert.Equal(new GameTick(giant.SwingStartTick), rendered.AnimationStartedAt);
+        // A state change alone keeps the hold; the end-action callers (0x00496D20) end it by clearing the copied target.
         giant.StateEnteredTick = giant.SwingStartTick + 1;
+        Assert.Equal(rendered.Animation, view.Creatures(world).Single(c => c.Id == giant.Id).Animation);
+        giant.StateEnteredTick = giant.SwingStartTick;
+        DK2.Simulation.Combat.FightTargetKind kept = giant.SwingTargetKind;
+        giant.SwingTargetKind = DK2.Simulation.Combat.FightTargetKind.None;
         Assert.Equal(AssetRef.ForCreature("Giant", AssetKind.Animation, "idle"),
             view.Creatures(world).Single(c => c.Id == giant.Id).Animation);
-        giant.StateEnteredTick = giant.SwingStartTick;
+        giant.SwingTargetKind = kept;
         int hold = AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5));
         for (int tick = 1; tick < hold - 1; tick++) simulation.Tick();
         Assert.Equal(rendered.Animation, view.Creatures(world).Single(c => c.Id == giant.Id).Animation);

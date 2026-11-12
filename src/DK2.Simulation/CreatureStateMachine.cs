@@ -93,7 +93,9 @@ public static class CreatureStateMachine
     /// <summary><c>0x00496D20</c>, reached through <c>0x00496D00</c>: ends whatever action the
     /// creature is running. DK2 has one action block; ours has a stand-in for each kind, all
     /// cleared. Its record byte is 1 for all 81 actions, so the end is never refused. The
-    /// running test's exception, action 21, has no starter, so ours skips that test.</summary>
+    /// running test's exception, action 21, has no starter, so ours skips that test. A swing's or
+    /// cast's hold after its impact has no field of its own: its identity is the target the action
+    /// copied, which the end clears (<see cref="Combat.FightRules.MeleeActionIsRunning"/>).</summary>
     internal static void EndAction(CreatureState creature)
     {
         PossessedMeleeRules.Cancel(creature);
@@ -103,6 +105,7 @@ public static class CreatureStateMachine
         TrainingStep.CancelAction(creature);
         IdleActionRules.Cancel(creature);
         creature.SwingInProgress = false;
+        creature.SwingTargetKind = Combat.FightTargetKind.None;
         creature.ActionUntilTick = 0;
         creature.Tunnel.Digging = false;
     }

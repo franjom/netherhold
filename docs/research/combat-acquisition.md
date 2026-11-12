@@ -155,6 +155,10 @@ invisible drop, a defection) and `CombatRules.IsAttackable` reads it; the test i
 down, captive, leaving, held, the lair walk and
 sleep, sixteen attackers, and `+0x46F` bit 3 of `CreatureState.Flags` (`CreatureFightFlags.Attackable`;
 the Jack's clear and the imp's prison delivery are its built writers, ADR-0615, ADR-0629).
+The pick-up (`0x004BC500`) does not call the refresh: a lifted creature keeps its bit until its own next
+update, and the selectors and the nearest-attacker scan, which read only the bit, can still choose it;
+`spFighting` tests `+0x16 == 2` first (`0x0045F2BE`). Ours: `IsAttackable` is the bit, `IsAttackableOnMap`
+adds the off-map test (ADR-0763, Q768).
 
 ## 5. Seeing and reaching
 

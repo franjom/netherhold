@@ -50,7 +50,9 @@ five hero guards restored at turn 1400: every native draw of the log matches, tu
 [the collapse's action end](research/functions/0048B770.md) (ADR-0757),
 [the head count's collapsed creature](research/combat-fear.md) (ADR-0758),
 [own-land regeneration every turn](research/creature-needs.md) (ADR-0759),
-[the fighting arms' candidate walk order](research/combat-target-selection.md) (ADR-0761); earlier prefixes are
+[the fighting arms' candidate walk order](research/combat-target-selection.md) (ADR-0761),
+[the melee hold's end, the lifted creature's bit, own-land healing and the collapse booking](research/open-questions.md)
+(ADR-0762 to ADR-0765, Q768 to Q771); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
 [store-gold steering](research/store-gold-steering.md). The capture's draw log ends at 1900;
 the remaining state differences are in Q712. Build only behavior supported
