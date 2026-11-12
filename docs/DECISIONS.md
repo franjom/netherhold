@@ -18158,3 +18158,27 @@ sweep. Ours books only on damage; DK2's gate also runs for a heal (`0x004B2E6B`,
 up to a second later, and a defeated player's creatures collapse at the next sweep. Test:
 `CollapseBookingTests.ASlapThatEmptiesHealthCollapsesTheCreatureInsideTheCommand` (fails on the old code).
 Unchanged (Q771): damage to a held creature is not refused on the `Apply` paths (`0x004B2E41`).
+
+## ADR-0766 - the flee state turns toward its target before it steps back
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** combat, creatures
+
+**Context.** Level 5 seed 1, Dwarf 435 (ours 21) in the flee state 203 on turn 1890: both games take the
+step back with the same length (def `+0x5BC` = 819, so -19648), but native slid (-135, +1220) and ours
+(-743, +977). Emulating `0x004B2030` on the 1889 image with ours' impulse lands on ours' point, so the pass
+is not the difference. `Combat_FleeState` (`0x004602E0`) at `0x004606B5..0x0046071C`, on all three paths to the stand-off
+range test (`0x004605F2`, `0x00460608`, `0x0046069E`), computes the distance to the `+0x502` thing's position
+(`+0x1A`) and calls the turn step `0x004B2AE0` toward it. The step back at `0x00460785` then reads the
+turned heading (`+0xF4`). Native's slide is ours' length along a heading of about 36, the bearing to its
+target 433. STRONGLY INFERRED (disassembly, emulation and capture).
+
+**Decision.** `FearRules`' back-off turns one step toward the target position (`Bearing.TurnToward` at the
+definition's turn rate) right after `FightRules.TargetPosition`, before the range test, the run and the step
+back. DK2 aims at the `+0x502` thing's `+0x1A`; ours takes the target position, the same point for a
+creature (a door or heart pillar target's point is not separately checked).
+
+**Consequences.** Hash/save 491. A backing-off creature faces its enemy and steps away from it instead of
+along whatever heading it had. Level 5 controlled replay (controlled509, controlled510): Dwarf 435 matches
+native every turn 1890-1897, its target and health differences are gone, and all 8466 draws through 1900
+still match. Level 1: the Lord dies at t2275 instead of t2277, still at (14,20); the Reaper comes at t2299
+and takes the gem at t2408 (journal re-recorded). Test:
+`CombatFearTests.ABackingOffCreatureTurnsTowardItsTargetBeforeItStepsBack` (fails on the old code).

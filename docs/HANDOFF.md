@@ -24,7 +24,7 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 490 with ADR-0765, the replay inputs including the
+The last controlled result (hash 491 with ADR-0766, the replay inputs including the
 five hero guards restored at turn 1400: every native draw of the log matches, turns 1401-1900) is in
 [Q712](research/open-questions.md), with its causes in
 [the Heart's pillars and centre-tile objects as obstacles, and the lava centre's refused route](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) (ADR-0750, ADR-0751, ADR-0755),
@@ -49,6 +49,7 @@ five hero guards restored at turn 1400: every native draw of the log matches, tu
 [the stored attackable bit](research/combat-acquisition.md#4-isattackable-is-a-stored-bit-refreshed-at-four-sites-0x0045a8b0) and
 [the collapse's action end](research/functions/0048B770.md) (ADR-0757),
 [the head count's collapsed creature](research/combat-fear.md) (ADR-0758),
+[the flee state's turn toward its target](research/combat-fear.md#4-state-203-fleeing-0x004602e0-in-order) (ADR-0766),
 [own-land regeneration every turn](research/creature-needs.md) (ADR-0759),
 [the fighting arms' candidate walk order](research/combat-target-selection.md) (ADR-0761),
 [the melee hold's end, the lifted creature's bit, own-land healing and the collapse booking](research/open-questions.md)

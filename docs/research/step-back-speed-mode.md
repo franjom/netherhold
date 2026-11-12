@@ -28,8 +28,8 @@ STRONGLY INFERRED from reads on 2026-11-10:
   step the test `0x00460DA0` allows, it calls the setter with (2, 0) at
   `0x0045FFC9` and then gives the impulse; outside either quarter (1, 0) at
   `0x0045FFF6`. A running action or a refused step makes no call.
-- [The flee state](functions/004602E0.md) does the same: (2, 0) at
-  `0x00460806` before its step back, (1, 0) at `0x00460880` beyond the
+- [The flee state](functions/004602E0.md) does the same, after turning one step
+  toward its target (`0x0046071C`, ADR-0766): (2, 0) at `0x00460806` before its step back, (1, 0) at `0x00460880` beyond the
   stand-off distance; a refused step makes no call.
 - [State 199's handler](functions/0045EB20.md) calls (1, 0) only when the
   state's entry stamp is the current turn. [Every accepted state change](functions/00476D30.md)

@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Steering;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -465,6 +466,33 @@ public class CombatFearTests
         Assert.Equal(10, goblin.OldFightTileX);
         Assert.Equal(goblin.OldFightTileX, goblin.OldFightTileY);
         Assert.True(goblin.OldFightTick > 0);
+    }
+
+    /// <summary>The flee state turns one step toward its target (<c>0x004B2AE0</c> at <c>0x0046071C</c>)
+    /// before the step back reads the heading, so a fleer facing north from a Demon to its east backs
+    /// off west, away from it, not south (Level 5 seed 1, Dwarf 435 on turn 1890; ADR-0766).</summary>
+    [Fact]
+    public void ABackingOffCreatureTurnsTowardItsTargetBeforeItStepsBack()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
+        GameSimulation sim = Combat(db, world);
+        for (int t = 0; t < 10 && goblin.Activity != CreatureActivity.Fleeing; t++) sim.Tick();
+        Assert.Equal(CreatureActivity.Fleeing, goblin.Activity);
+        Assert.True(goblin.BackOffTimer > 1);
+
+        goblin.Heading = 0;
+        int x = goblin.PosX, y = goblin.PosY;
+        int towardDemon = Bearing.Of(demon.PosX - x, demon.PosY - y);
+        Assert.InRange(towardDemon, 256, 768);   // east of the Goblin
+        int expected = 0;
+        Bearing.TurnToward(ref expected, towardDemon, SimulationTiming.TurnRatePerTick(db.CreatureById(goblin.CreatureTypeId)));
+        sim.Tick();
+
+        Assert.Equal(expected, goblin.Heading);
+        Assert.NotEqual(0, expected);
+        Assert.True(goblin.PosX < x, $"x {x} -> {goblin.PosX}");
     }
 
     [Fact]

@@ -186,12 +186,14 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    sight (Imp: a tile) or reached within hearing (Imp: nothing), and routable.
    A different one from my target: unlink, take it, register with my attack
    nibble; registration refused → clear the target, return 0.
-8. **Stand off.** `range = max(0x4000, target.AttackRangeSquared if the target is
+8. **Turn, then stand off.** One turn step toward the target's position (`0x004B2AE0` at
+   `0x0046071C`, on every path here; ADR-0766), so the step back runs away from it.
+   `range = max(0x4000, target.AttackRangeSquared if the target is
    in the combat group) × 5/4`. Farther than that: run speed, return 1. Nearer:
    the **step back** below. Impossible (it returns 0): cornered (§3.1) →
    `SetState(199)`, else `BackOffTimer = 0` (`+0x532`).
 
-   The step back (`0x00460DA0`) takes a vector along my heading (`+0xF4`) through
+   The step back (`0x00460DA0`) takes a vector along my heading (`+0xF4`, as turned in step 8) through
    the sine and cosine tables `0x006C1488` and `0x006C1C88`: `x = (L·sin) >> 16`,
    `y = −((L·cos) >> 16)`. Here `L = (def+0x5BC·3 & 0x1FFFFFFE)·−8`
    (`0x00460790`-`0x004607E5`): 24 ticks of the shuffle rate with its low four bits

@@ -334,6 +334,12 @@ public static class FearRules
         }
 
         if (!FightRules.TargetPosition(world, context.Database, me, out int tx, out int ty, out _)) return;
+        // One turn step toward the target (0x004B2AE0 at 0x0046071C) before the range test, so the
+        // step back below runs away from it (ADR-0766). DK2 aims at the +0x502 thing's position; ours
+        // takes the target position, the same point for a creature (door, trap and pillar points unread).
+        int heading = me.Heading;
+        Bearing.TurnToward(ref heading, Bearing.Of(tx - me.PosX, ty - me.PosY), SimulationTiming.TurnRatePerTick(mine));
+        me.Heading = heading;
         int d = CombatRules.DistanceSquared(me.PosX, me.PosY, tx, ty);
         int range = MinimumStandOffSquared;
         if (target != null && CombatRules.InCombat(target)) range = Math.Max(range, target.AttackRangeSquared);
