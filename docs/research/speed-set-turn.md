@@ -66,7 +66,10 @@ row at `[0x006E4154] + 0xE1 + level * 2`, divided by 100. When `max * 20 / 100` 
 water. On odd turns (`0x00517490 & 1`) `+0x41B`, `+0x41F`, `+0x423` (the three spell stamps) and
 `+0x427` (the melee stamp) each go up one, so a weak caster recharges at about half rate. Natively
 there is no zero guard; ours leaves its `NeverUsed` sentinel alone (DK2's 0 to 1 still reads as long
-ready).
+ready). Ours' melee hold takes the melee stamp as its swing's identity (DK2's hold is
+the action block `+0x3A9`), so ours also counts the delay in `CreatureState.MeleeStampDelay`
+and compares the stamp less that count (ADR-0757); without it Thief 434 walked five turns
+early. Every stamp write resets the count.
 
 Capture: Level 5 seed 1, Thief 434 (150 of 1500) in state 8 from 1851. Native velocity is exactly
 half ours. The emulated `Body_Integrate` (`0x004D5A40`) on the 1850 image gives ours' (759,-3363)

@@ -31,6 +31,6 @@ public class StateFlagAttackabilityTests
         goblin.UtilityNewState = resume;
         Assert.Equal(state, goblin.Dk2StateId);
 
-        Assert.Equal(attackable, CombatRules.IsAttackable(goblin));
+        Assert.Equal(attackable, CombatRules.ComputeAttackable(goblin));
     }
 }

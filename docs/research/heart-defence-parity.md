@@ -13,7 +13,7 @@ INFERRED behavior; captured transitions are CONFIRMED observations.
 |---|---|---|
 | `004D96A4`, room ruin bit | `HeartDefenceSystem.Execute` tests the room's ruin (`RoomRules.IsRuined`, ADR-0662) | Equivalent |
 | `004D96DC–004D96E7`, four-turn room-ID phase | Hard-coded phase zero | General mismatch; Level 5's captured room slot 1124 also has phase zero |
-| `004D96F0–004D9834`, enemy search | First attackable hostile within strict reporting radius, room position | Dispatch uses the room position; see the coordinate note below. Ours evaluates attackability; native reads its cached bit (`0045A8B0`) |
+| `004D96F0–004D9834`, enemy search | First attackable hostile within strict reporting radius, room position | Dispatch uses the room position; see the coordinate note below. Both read the stored bit (`0045A8B0`, ADR-0757); Door_Update's own reader is unmirrored |
 | `004D9867–004D98D0`, gathering radius, Horny | Strict gathering radius, definition Horny exclusion | Same rule; no worker exclusion or head count |
 | `004D98D8–004D9906`, Call to Arms, resolved Combat category, may-look gate | Same gates in `Gather` | Same ordinary Imp eligibility; physical-state approximations remain in the shared may-look predicate |
 | `004D990C–004D9967`, health | Greater than level-scaled maximum / 4 | Same rule |

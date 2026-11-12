@@ -438,6 +438,7 @@ public class ObjectCarryingTests
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
         ObjectCarryRules.TakeHold(imp, book);
         imp.Dk2StateId = state;
+        imp.UtilityNewState = CreatureStateMachine.Idle;   // a walk (state 6) names its activity by its resume state
         var sim = new GameSimulation(db, world, seed: 42, [new CarriedThingAttachSystem()]);
 
         imp.PosX += 0x2C3;

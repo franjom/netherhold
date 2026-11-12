@@ -31,6 +31,7 @@ public sealed class CombatRouteQueryTests
             world.Tile(x, y).TerrainId = rows[y][x] == '#' ? Dk2TerrainFixture.Rock : Dk2TerrainFixture.DirtPath;
         CreatureState fighter = world.SpawnCreature(db, fighterType, PlayerIds.Good, new TilePos(1, 5));
         CreatureState target = world.SpawnCreature(db, targetType, PlayerIds.FirstKeeper, new TilePos(1, 1));
+        world.RefreshAttackability();   // as after each creature's last update
 
         new GameSimulation(db, world, 1, [new Check(context =>
         {

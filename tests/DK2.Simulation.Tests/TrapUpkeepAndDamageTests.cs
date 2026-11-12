@@ -113,6 +113,7 @@ public sealed class TrapUpkeepAndDamageTests
         world.Player(Keeper).Mana = 1000;
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
         goblin.Health = 100000;
+        world.RefreshAttackability();   // as after each creature's last update
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new ShotSystem(), new TrapSystem(), new TrapRemovalSystem()]);
         sim.ObserveWith(sink);
@@ -136,6 +137,7 @@ public sealed class TrapUpkeepAndDamageTests
         CreatureState first = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
         CreatureState second = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
         first.Health = second.Health = 100000;
+        world.RefreshAttackability();
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new ShotSystem(), new TrapSystem()]);
         sim.ObserveWith(sink);

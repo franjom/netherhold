@@ -315,6 +315,7 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
             state.CurrentJob = JobType.KillPlayer;
             CreatureStateMachine.TrySetState(context.Hooks, state, CreatureStateMachine.Idle);
             state.RebelActive = true; // step 4 marks it again (rebellion.md §3)
+            Combat.CombatRules.RefreshAttackable(state);   // 0x0047511B
 
             CreatureDef creature = context.Database.CreatureById(state.CreatureTypeId);
             context.Emit(SystemName, "creature_defected",

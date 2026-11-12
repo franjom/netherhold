@@ -297,6 +297,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         if (state.Dk2StateId == CreatureDeathRules.FallingState)
         {
             DeathFallRules.Enter(context, state);
+            // 0x0048B80C..0x0048B817: the running action ends before action 62 begins, so a swing
+            // held when the blow came never lands.
+            CreatureStateMachine.EndAction(state);
             state.ActionUntilTick = DeathFallRules.FallEndsAt(context, creature);
         }
         int carried = state.GoldHeld;

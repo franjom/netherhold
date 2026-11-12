@@ -161,6 +161,7 @@ public class HeartDefenceTests
     /// <summary>The tick on which the creature is first walking to 254, or -1.</summary>
     private static long FirstSent(GameDatabase db, WorldState world, CreatureState creature, int ticks)
     {
+        world.RefreshAttackability();   // as after each creature's last update
         GameSimulation sim = new(db, world, 1, [new HeartDefenceSystem()]);
         for (int i = 0; i < ticks; i++)
         {

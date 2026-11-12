@@ -125,7 +125,7 @@ public static class FightRules
         if (creature.SwingInProgress) return true;
         if (creature.SwingKind != SpellRules.MeleeSwing
             || creature.SwingTargetKind == FightTargetKind.None
-            || creature.TimeLastUsedMelee != creature.SwingStartTick
+            || creature.TimeLastUsedMelee - creature.MeleeStampDelay != creature.SwingStartTick
             || creature.StateEnteredTick > creature.SwingStartTick) return false;
         long elapsed = tick.Value - creature.SwingStartTick;
         return elapsed >= 0 && elapsed < AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5));
@@ -149,6 +149,7 @@ public static class FightRules
         me.SwingStartTick = context.Tick.Value;
         me.AttackCreatureHits = unchecked((ushort)(me.AttackCreatureHits + 1));   // 0x0048F3E0
         me.TimeLastUsedMelee = context.Tick.Value;
+        me.MeleeStampDelay = 0;
         me.SwingTargetKind = me.FightTargetKind;
         me.SwingTargetId = me.FightTargetId;
         me.SwingTargetPlayerId = me.FightTargetPlayerId;

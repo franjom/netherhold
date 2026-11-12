@@ -17,6 +17,8 @@ internal static class ArrivedCreatures
     {
         CreatureState creature = world.SpawnCreature(database, creatureTypeId, ownerPlayerId, at);
         creature.LastFightScanTileIndex = -1;
+        // As after its last update: DK2's readers see the bit 0x0045A8B0 stored then.
+        Combat.CombatRules.RefreshAttackable(creature);
         return creature;
     }
 }

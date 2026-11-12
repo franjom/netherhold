@@ -34,6 +34,8 @@ public static class LowHealthSpeedRules
         long[] stamps = creature.SpellStamps;
         for (int i = 0; i < stamps.Length; i++)
             if (stamps[i] != CreatureState.NeverUsed) stamps[i]++;
-        if (creature.TimeLastUsedMelee != CreatureState.NeverUsed) creature.TimeLastUsedMelee++;
+        if (creature.TimeLastUsedMelee == CreatureState.NeverUsed) return;
+        creature.TimeLastUsedMelee++;
+        creature.MeleeStampDelay++;
     }
 }

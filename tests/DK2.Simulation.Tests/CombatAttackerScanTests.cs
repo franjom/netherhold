@@ -76,6 +76,7 @@ public class CombatAttackerScanTests
         CreatureState giant = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState imp = WorkingImp(db, world, 16);
         if (dead) giant.Health = 0;
+        world.RefreshAttackability();
         imp.EngagedMelee[0] = dead ? giant.Id : 9999;
 
         Combat(db, world).Tick();
@@ -140,6 +141,7 @@ public class CombatAttackerScanTests
         StatePlacement.Place(imp, state);
         imp.FightProcessCounter = 3;
         imp.LastFightScanTileIndex = imp.Tile.Y * world.Width + imp.Tile.X;
+        world.RefreshAttackability();   // as after each creature's last update
         return imp;
     }
 

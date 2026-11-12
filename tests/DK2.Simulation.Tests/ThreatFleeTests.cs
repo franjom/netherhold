@@ -105,6 +105,7 @@ public sealed class ThreatFleeTests
     private static (uint Before, uint After) Run(GameDatabase db, WorldState world, CreatureState me, int fear)
     {
         uint before = 0, after = 0;
+        world.RefreshAttackability();   // as after each creature's last update
         new GameSimulation(db, world, new SimRandom(new Dk2Lcg(42)), [new Probe(ctx =>
         {
             me.CurrentFear = (ushort)fear;

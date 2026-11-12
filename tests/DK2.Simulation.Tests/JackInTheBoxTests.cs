@@ -137,6 +137,7 @@ public class JackInTheBoxTests
         Assert.True(CombatRules.MayLookForAFight(world, db, jack, force: true));
         Assert.False(CombatRules.IsAttackable(jack));
         jack.Flags |= (byte)(CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable);
+        CombatRules.RefreshAttackable(jack);   // as after its next update
         Assert.True(CombatRules.MayLookForAFight(world, db, jack, force: false));
         Assert.True(CombatRules.IsAttackable(jack));
         Assert.Equal(9, goblin.Flags & 9);

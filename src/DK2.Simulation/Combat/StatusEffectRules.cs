@@ -270,6 +270,7 @@ public static class StatusEffectRules
             me.EngagedMelee[i] = CombatRules.NoTarget;
             me.EngagedRanged[i] = CombatRules.NoTarget;
         }
+        CombatRules.RefreshAttackable(me);   // 0x0045EF39
     }
 
     private static void Drop(WorldState world, CreatureState me, int attackerId)

@@ -1877,7 +1877,7 @@ public sealed partial class WorldView
         if (creature.SwingInProgress) return true;
         if (creature.Activity is not (CreatureActivity.Fighting or CreatureActivity.PitFighting)
             || creature.SwingTargetKind == DK2.Simulation.Combat.FightTargetKind.None
-            || creature.TimeLastUsedMelee != creature.SwingStartTick
+            || creature.TimeLastUsedMelee - creature.MeleeStampDelay != creature.SwingStartTick
             || creature.AttackType is not (DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtCreature
                 or DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing)
             || creature.StateEnteredTick > creature.SwingStartTick) return false;

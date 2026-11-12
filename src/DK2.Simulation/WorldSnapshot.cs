@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 481;
+    private const int FormatVersion = 482;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -467,6 +467,8 @@ public static class WorldSnapshot
             w.Write(c.FightTargetPlayerId);
             w.Write(c.FightTargetTileIndex);
             w.Write(c.TimeLastUsedMelee);
+            w.Write(c.MeleeStampDelay);
+            w.Write(c.Attackable);
             w.Write(c.SwingInProgress);
             w.Write(c.SwingStartTick);
             w.Write((byte)c.SwingTargetKind);
@@ -1286,6 +1288,8 @@ public static class WorldSnapshot
                 FightTargetPlayerId = r.ReadByte(),
                 FightTargetTileIndex = r.ReadInt32(),
                 TimeLastUsedMelee = r.ReadInt64(),
+                MeleeStampDelay = r.ReadInt32(),
+                Attackable = r.ReadBoolean(),
                 SwingInProgress = r.ReadBoolean(),
                 SwingStartTick = r.ReadInt64(),
                 SwingTargetKind = (Combat.FightTargetKind)r.ReadByte(),

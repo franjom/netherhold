@@ -36,6 +36,7 @@ public class RetreatTrackingTests
         knight.PosX = imp.PosX + 3000;
         knight.PosY = imp.PosY;
         if (tracking) knight.RetreatingCreature = 999;
+        world.RefreshAttackability();   // as after each creature's last update
         GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
 
         sim.Tick();
@@ -53,6 +54,7 @@ public class RetreatTrackingTests
         goblin.PosX = imp.PosX + 3000;
         goblin.PosY = imp.PosY;
         goblin.RetreatingCreature = 999;
+        world.RefreshAttackability();
         GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
 
         sim.Tick();

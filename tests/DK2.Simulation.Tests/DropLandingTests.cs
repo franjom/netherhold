@@ -327,8 +327,10 @@ public class DropLandingTests
 
         sim.Tick();
 
-        Assert.Equal([(newer.Id, false, CreatureStateMachine.Idle), (dropped.Id, true, 255)],
+        // In its own update the landed creature still holds the clear bit; 0x0048A037 stores it at the end.
+        Assert.Equal([(newer.Id, false, CreatureStateMachine.Idle), (dropped.Id, false, 255)],
             seen.Select(s => (s.Id, s.Attackable, s.State)).ToArray());
+        Assert.True(DK2.Simulation.Combat.CombatRules.IsAttackable(dropped));
     }
 
     private sealed class Watch(CreatureState watched, List<(int, bool, int)> seen) : ICreatureUpdateStep

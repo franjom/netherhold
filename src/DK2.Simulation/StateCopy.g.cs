@@ -147,6 +147,8 @@ namespace DK2.Simulation
             FightTargetPlayerId = other.FightTargetPlayerId;
             FightTargetTileIndex = other.FightTargetTileIndex;
             TimeLastUsedMelee = other.TimeLastUsedMelee;
+            MeleeStampDelay = other.MeleeStampDelay;
+            Attackable = other.Attackable;
             SwingInProgress = other.SwingInProgress;
             SwingStartTick = other.SwingStartTick;
             SwingTargetKind = other.SwingTargetKind;

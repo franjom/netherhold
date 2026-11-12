@@ -223,6 +223,7 @@ public class CombatApproachTests
         attacker.FightTargetKind = FightTargetKind.Creature;
         attacker.FightTargetId = fighter.Id;
         target.Dk2StateId = attacker.Dk2StateId = DropLandingRules.LandingState;
+        world.RefreshAttackability();   // as after each creature's last update
         new GameSimulation(db, world, 1, [new Probe(context =>
         {
             context.Navigation.Refresh();

@@ -17811,3 +17811,52 @@ ordered draws through turn 1866 (controlled498b), up from 7878 through 1862. New
 Tests: `LowHealthSpeedTests` (the boundary at levels 1 and 5, an Imp exempt, the odd-turn
 stamps) and `CombatSpellTests.AFighterInReachBlocksSeparationUntilItsFightEnds`. Owner questions:
 Q763. Evidence: study `F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`.
+
+## ADR-0757 - a collapse ends the running action; a weak fighter keeps its swing; attackability is a cached bit
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** combat, creatures
+
+**Context.** Q712's boundary at turn 1867 came from three differences around Level 5's Thief 434
+(ours id 22) and Warlock 433 (ours id 23).
+(1) `Creature_Collapse` (`0x0048B770`) ends the running action (`0x0048B80A..0x0048B817`, through
+`0x00496D00`/`0x00496D20`) after `0x004596D0` returns nonzero and before action 62 begins
+(`0x0048B828`). Ours left it running: a swing Thief 434 began on 1864 landed on Warlock 433 on 1866
+(-338), never natively.
+(2) ADR-0756's odd-turn `+0x427` increment moved ours' same-swing identity, `TimeLastUsedMelee ==
+SwingStartTick`, which is ours' construct (DK2's hold is the action block, `+0x3A9`). The weak
+Thief's hold ended early and it walked from 1846, native from 1851.
+(3) IsAttackable is creature `+0x3EA` bit 6, a stored bit. Its only writer is `0x0045A8B0` (the
+constructor's `AND ECX,0xFFC01000` at `0x00487586` clears it), called from four places: the
+creature's update after the dispatcher (`0x0048A037`), `RegisterAttacker` on the target when a slot
+was taken (`0x0045AA08`), the end of `DropAttackersOnInvisible` (`0x0045EF39`) and state 271 after
+the owner change (`0x0047511B`). 21 readers test the stored bit, so one updated earlier sees the
+bit from the creature's previous update. Native Thief 434 collapsed on 1864 after its own update;
+its bit is 1 at the end of 1864 and 0 at the end of 1865, and Warlock 433, updated before it, took
+434 again on 1865 and dropped it on 1866.
+STRONGLY INFERRED (reviewer: rules 1 and 3 by a static scan; a runtime copy of the dword is not
+excluded). Sites and readers: `functions/0045A8B0.md`, `functions/0048B770.md`.
+
+**Decision.** (1) `CreatureHealthSystem.Collapse` calls `CreatureStateMachine.EndAction` before the
+fall's hold; gold drops after it in ours, inside the 216 entry in DK2, with no draw effect.
+(2) `CreatureState.MeleeStampDelay` (ours alone) counts the low-health delay; the melee hold
+(`FightRules.MeleeActionIsRunning`, and the presentation melee check) compares `TimeLastUsedMelee -
+MeleeStampDelay`; every stamp write resets it (`StartSwing`, `PossessionRules.Act` twice).
+(3) `CreatureState.Attackable` is the bit. `CombatRules.ComputeAttackable` is the old predicate,
+`RefreshAttackable` stores it, `IsAttackable` reads it, and a corpse and a held creature read clear
+(the held guard acts up to one update before DK2's refresh). Refreshes: the end of each creature's
+steps in `CreatureUpdateSystem.Sweep`, `CombatRules.Register` on success,
+`StatusEffectRules.DropAttackers`, a defection. Not built: the readers in Door_Update (`0x004A6259`)
+and the Reaper's own flag (`0x0045E236`), and the presentation cast-animation check, which compares
+`SpellStamps[slot]` with `SwingStartTick` and breaks for a weak caster as (2) did (Q764).
+
+**Consequences.** Hash/save 482, pin `0xD451662B0297D001`, two new per-creature fields; recorded
+runs change. Level 1's journal is re-recorded: the Lord of the Land dies on 2277 at (14,20), the
+Reaper is created on 2301 and the gem is taken on 2403 (was 2327 at (13,21), 2351, 2449);
+`ReaperFinaleOnRealDataTests` follows. Controlled Level 5 replay (controlled502b): 7984 ordered
+draws through turn 1868, up from 7946 through 1866; Thief 434 matches native state and position
+every turn 1846-1866 and Warlock 433 matches state and target every turn 1863-1869. Tests: the
+`WorldState.RefreshAttackability()` helper (`AttackabilityRefresh.cs`) and `SpawnArrived` store the
+bit after a test arranges a world; `StateFlagAttackabilityTests` tests `ComputeAttackable`;
+`DropLandingTests` has the dropped creature clear inside its own update and attackable after it.
+Rules (1) and (2) have no unit test of their own; the replay carries them. Owner questions: Q764.
+Evidence: `combat-acquisition.md` §4, `speed-set-turn.md`; study
+`F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`.

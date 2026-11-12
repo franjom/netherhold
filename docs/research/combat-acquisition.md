@@ -128,10 +128,17 @@ Returns 1 only when every test passes. DK2's own field names throughout.
 Ours: `CombatRules.ScanIsDue`, with `LastFightScanTileIndex` (the creation tile for a made creature) for the previous
 position.
 
-## 4. `IsAttackable` is recomputed every tick (`0x0045A8B0`)
+## 4. `IsAttackable` is a stored bit, refreshed at four sites (`0x0045A8B0`)
 
-Bit 6 of `+0x3EA` is not stored state but the result of this routine, run after
-the state handler. It is **cleared** when any holds: `+0x16 == 2`;
+Bit 6 of `+0x3EA` is stored state. `0x0045A8B0` is its only writer, and the
+constructor's mask `AND ECX,0xFFC01000` (`0x00487586`) clears it. Four callers
+refresh it: the creature's update after the state handler (`0x0048A037`,
+unconditional), `RegisterAttacker` on the target when a slot was taken
+(`0x0045AA08`), the end of `DropAttackersOnInvisible` (`0x0045EF39`) and state 271
+after the owner change (`0x0047511B`). Its 21 readers test the stored bit (`TEST
+[+0x3EA],0x40`; list in [0045A8B0](functions/0045A8B0.md)), so a creature updated
+before another reads that one's bit from its previous update. A refresh **clears**
+it when any holds: `+0x16 == 2`;
 `CombatPitFighter` (bit 15); state 76; `CreatureDying`; `vtable+0x28` true;
 captive; tortured unless `TortureVoluntary`; `Leaving`; `InvisibleTimer`
 `+0x44F` nonzero; `Flags` `+0x46F` bit 3 clear; the state's flag byte bit 2 —
@@ -139,8 +146,13 @@ set on idle 75/76/235–237/242/269/272/273, **the lair walk 79–81 and all thr
 sleeping states 82–84**, dancing and gambling; or **all eight melee and all
 eight ranged slots taken** (§7). Otherwise set.
 
-So a sleeping creature cannot be attacked, as read (Q360 asks the owner). Ours:
-`CombatRules.IsAttackable` — down, captive, leaving, held, the lair walk and
+So a sleeping creature cannot be attacked, as read (Q360 asks the owner). Level 5:
+Thief 434 collapsed on 1864 after its own update, so its bit is 1 at the end of 1864
+and 0 at the end of 1865, and Warlock 433, updated before it, took it again on 1865
+and dropped it on 1866 (STRONGLY INFERRED, ADR-0757). Ours: `CombatRules.ComputeAttackable`
+stores the bit through `RefreshAttackable` (the creature's update, a taken slot, the
+invisible drop, a defection) and `CombatRules.IsAttackable` reads it; the test is
+down, captive, leaving, held, the lair walk and
 sleep, sixteen attackers, and `+0x46F` bit 3 of `CreatureState.Flags` (`CreatureFightFlags.Attackable`;
 the Jack's clear and the imp's prison delivery are its built writers, ADR-0615, ADR-0629).
 

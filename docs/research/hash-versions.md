@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**482** - `0xD451662B0297D001`. A collapse ends the running action (`0x0048B80A..0x0048B817`); a weak fighter's melee hold survives the odd-turn stamp delay (`CreatureState.MeleeStampDelay`, ours alone); IsAttackable is the stored bit `+0x3EA` bit 6, refreshed where `0x0045A8B0` is called (`0x0048A037`, `0x0045AA08`, `0x0045EF39`, `0x0047511B`, ADR-0757). New per-creature fields `MeleeStampDelay` and `Attackable`.
+
 **481** - `0x078CC4ECABEC399A`. A non-worker under a fifth of its level-scaled maximum health moves at half speed and, on odd turns, its three spell stamps and melee stamp move one turn later (`0x0048962C..0x00489705`); the steering body's `is_blocker` and `ignore_blocker` bits are set and cleared by the fight state, the flee state, the withdraw tails and the fight-leave routine, and a Horned Reaper sets both every update, so Separation's arm 2 is reachable (`0x0045F030`, `0x004602E0`, `0x0045ADC0`, ADR-0756). No new saved state; the version moves because recorded runs change.
 
 **480** - `0xE81971749FC20616`. A route is decided on the point asked for: where ADR-0439 would move the target (inside a live Heart's object 13 disk), the router is asked for the raw point first and a refusal is final, so a walker that cannot cross lava gets no route to the Heart's lava centre (`0x00471890`, `0x004D0F60`, `0x004D5100`, ADR-0755). No new saved state; the version moves because recorded runs change.

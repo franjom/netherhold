@@ -32,6 +32,7 @@ public sealed class TremorCreatureTests
         CreatureState creature = world.SpawnCreature(db, CreatureType, Keeper, at);
         Dk2TerrainFixture.SetKnownIdentities(world);
         creature.Dk2StateId = CreatureStateMachine.Idle;
+        world.RefreshAttackability();   // as after each creature's last update
         return (db, world, creature);
     }
 
@@ -84,6 +85,7 @@ public sealed class TremorCreatureTests
     {
         var (db, world, creature) = Setup();
         creature.Dk2StateId = state;
+        world.RefreshAttackability();
         new GameSimulation(db, world, new SimRandom(new NoDraws()), [new Probe(context =>
             Assert.True(TremorRules.Respond(context, creature, creature.Tile, new Fp32(3 * Fp32.One))))]).Tick();
         Assert.Equal(state, creature.Dk2StateId);

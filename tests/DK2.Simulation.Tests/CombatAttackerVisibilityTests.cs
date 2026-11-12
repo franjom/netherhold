@@ -26,6 +26,7 @@ public class CombatAttackerVisibilityTests
         CreatureState fighter = world.SpawnCreature(db, FighterType, Keeper, new TilePos(8, 8));
         CreatureState attacker = world.SpawnCreature(db, AttackerType, Keeper, new TilePos(11, 8));
         Assert.True(CombatRules.Register(fighter, attacker.Id, ranged: false));
+        world.RefreshAttackability();   // as after each creature's last update
 
         Run(db, world, context =>
         {
@@ -53,6 +54,7 @@ public class CombatAttackerVisibilityTests
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 8));
         CreatureState attacker = world.SpawnCreature(db, AttackerType, PlayerIds.Good, new TilePos(13, 8));
         Assert.True(CombatRules.Register(imp, attacker.Id, ranged: false));
+        world.RefreshAttackability();
 
         Run(db, world, context =>
         {

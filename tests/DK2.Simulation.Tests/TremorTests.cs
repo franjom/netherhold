@@ -199,6 +199,7 @@ public sealed class TremorTests
         TrapRules.RelinkCreatures(world);
         older.Dk2StateId = newer.Dk2StateId = CreatureStateMachine.Idle;
         older.Fleeing = newer.Fleeing = true;
+        world.RefreshAttackability();   // as after each creature's last update
         int olderHealth = older.Health, newerHealth = newer.Health;
         var draws = new Draws((49, 24), (100, 4), (100, 5), (5, 2), (5, 2));
         new GameSimulation(db, world, new SimRandom(draws),

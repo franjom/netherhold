@@ -99,7 +99,7 @@ When both hold, in this order:
 4. `RebelActive := 1`, `RebelLeader := 0` again.
 5. `0x0045A8B0` recomputes the targetable bit `+0x3EA` bit 6
    (`combat-acquisition.md` §4) — the creature has changed sides and is now a
-   target for its old friends.
+   target for its old friends. Ours: `CreatureAngerSystem` stores the bit there.
 6. `0x0045A6D0(0)`, the may-I-look-for-a-fight gate, at `0x00475125`, with its
    result discarded (EAX is reloaded at `0x0047512A`). **It has no effect**: the
    gate writes only its own stack frame and its callees (`0x00473990`,

@@ -113,6 +113,7 @@ public static partial class PossessionRules
         long now = context.Tick.Value;
         if (!CombatRules.SwingMayBegin(context.Database, me, mine, now)) return;
         me.TimeLastUsedMelee = now;
+        me.MeleeStampDelay = 0;
         ChainThing? picked = PickMeleeTarget(context.World, context.Database, me, mine, aim, combat.Hearts);
         if (picked is not { } target)
         {
@@ -154,6 +155,7 @@ public static partial class PossessionRules
         // DK2's second stamp. It writes the same tick as the first, so no test can tell it from its
         // absence; it is kept to mirror the binary.
         me.TimeLastUsedMelee = now;
+        me.MeleeStampDelay = 0;
     }
 
     /// <summary><c>CreatureAction_Begin(17, target)</c>, which every represented action takes; then

@@ -100,6 +100,9 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                 ClaimActionRules.Poll(context, creature);
                 IdleActionRules.Poll(context, creature);
             }
+            // 0x0048A037: after the state handler, before the dust, the reveal and the root walk;
+            // no step ours runs after the handler reads the bit.
+            if (creature.LinkWorld is not null) Combat.CombatRules.RefreshAttackable(creature);
             if (walkTriggers && creature.LinkWorld is not null) context.Triggers?.RunCreature(creature);
             if (creature.LinkWorld is not null) PossessedMeleeRules.Advance(context, creature);
             if (creature.LinkWorld is not null) PossessedExcavationRules.Advance(context, creature);

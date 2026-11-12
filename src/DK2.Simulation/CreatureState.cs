@@ -905,6 +905,13 @@ public sealed partial class CreatureState
     /// <see cref="NeverUsed"/> before the first.</summary>
     public long TimeLastUsedMelee = NeverUsed;
 
+    /// <summary>Ours alone: the low-health delay's moves of <see cref="TimeLastUsedMelee"/> since its last write,
+    /// so the modelled swing hold still knows its own stamp (ADR-0757).</summary>
+    public int MeleeStampDelay;
+
+    /// <summary>DK2's stored <c>IsAttackable</c> (<c>+0x3EA</c> bit 6), clear on creation (ADR-0757).</summary>
+    public bool Attackable;
+
     /// <summary>A melee swing in progress — DK2's creature action 17 being the current action —
     /// with the tick it began (<c>+0x3A5</c>) and the target it was started at (<c>+0x399</c>),
     /// which the blow lands on whether or not the engagement has moved since.</summary>
@@ -1544,6 +1551,8 @@ public sealed partial class CreatureState
         hash.Add(FightTargetPlayerId);
         hash.Add(FightTargetTileIndex);
         hash.Add(TimeLastUsedMelee);
+        hash.Add(MeleeStampDelay);
+        hash.Add(Attackable);
         hash.Add(SwingInProgress);
         hash.Add(SwingStartTick);
         hash.Add((byte)SwingTargetKind);

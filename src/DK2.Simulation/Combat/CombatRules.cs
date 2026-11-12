@@ -104,6 +104,7 @@ public static class CombatRules
         {
             if (slots[i] != NoTarget) continue;
             slots[i] = attackerId;
+            RefreshAttackable(target);   // 0x0045AA08: only when a slot was taken
             return true;
         }
         return false;
@@ -164,14 +165,25 @@ public static class CombatRules
         }
     }
 
-    /// <summary>DK2's <c>IsAttackable</c>, recomputed every tick by <c>0x0045A8B0</c> rather than
-    /// stored, so it is a predicate here. Cleared for a dying creature, a captive, one leaving, one
+    /// <summary>DK2's <c>IsAttackable</c>, <c>+0x3EA</c> bit 6, as every one of its readers sees it: the bit
+    /// <see cref="RefreshAttackable"/> last stored (every <c>TEST [+0x3EA],0x40</c> reader), so a creature
+    /// updated before another reads that one's value from its previous update. A corpse reads clear (DK2's
+    /// dead creature is freed); so does a held one, up to one update before DK2's own refresh clears it.</summary>
+    public static bool IsAttackable(CreatureState creature) =>
+        creature.Attackable && !CreatureDeathRules.IsCorpse(creature) && !HandRules.IsHeld(creature);
+
+    /// <summary><c>0x0045A8B0</c>: stores <see cref="ComputeAttackable"/> in the bit. Called at the end of
+    /// the creature's own update (<c>0x0048A037</c>), on a target whose registration took
+    /// (<c>0x0045AA08</c>), after the invisible drop (<c>0x0045EF39</c>) and a defection (<c>0x0047511B</c>).</summary>
+    public static void RefreshAttackable(CreatureState creature) => creature.Attackable = ComputeAttackable(creature);
+
+    /// <summary>The recompute's test (<c>0x0045A8B0</c>). Cleared for a dying creature, a captive, one leaving, one
     /// in a state whose table flag says so (<see cref="CreatureStateFlags.NotAttackable"/>, tested on
     /// the state held, so a walk to bed in state 6 is attackable; ADR-0585), one with all
     /// sixteen slots taken, one whose invisible word runs (creature-status-effects.md §2), and a
     /// Combat Pit fighter, which only its forced opponent reaches (combat-pit.md §4).
     /// State 76 and involuntary torture also prevent attackability.</summary>
-    public static bool IsAttackable(CreatureState creature) =>
+    public static bool ComputeAttackable(CreatureState creature) =>
         !CreatureDeathRules.IsDown(creature)
         // 76 carries the flag too; DK2 also tests it by number (0x0045A8CC).
         && creature.Dk2StateId != DropLandingRules.LandingState

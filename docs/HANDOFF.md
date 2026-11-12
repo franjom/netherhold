@@ -24,8 +24,8 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 481 with ADR-0756, the replay inputs including the
-five hero guards restored at turn 1400: 7946 ordered draws match through turn 1866) is in
+The last controlled result (hash 482 with ADR-0757, the replay inputs including the
+five hero guards restored at turn 1400: 7984 ordered draws match through turn 1868) is in
 [Q712](research/open-questions.md), with its causes in
 [the Heart's pillars and centre-tile objects as obstacles, and the lava centre's refused route](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) (ADR-0750, ADR-0751, ADR-0755),
 [the mover block for every non-Imp](research/steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers) (ADR-0751),
@@ -45,11 +45,12 @@ five hero guards restored at turn 1400: 7946 ordered draws match through turn 18
 [the fall heading and the fall's step](research/death-fall-heading.md) (ADR-0732, ADR-0741),
 [the shot's probe and the hit's heading](research/shot-probe-and-hit-heading.md) (ADR-0741),
 [the drop's heading](research/drop-heading.md) (ADR-0733, ADR-0736) and
-[the fight's step 5](research/combat-fight-state.md) (ADR-0734, ADR-0736); earlier prefixes are
+[the fight's step 5](research/combat-fight-state.md) (ADR-0734, ADR-0736),
+[the stored attackable bit](research/combat-acquisition.md#4-isattackable-is-a-stored-bit-refreshed-at-four-sites-0x0045a8b0) and
+[the collapse's action end](research/functions/0048B770.md) (ADR-0757); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
-[store-gold steering](research/store-gold-steering.md). The next boundary, turn 1867
-draw 7 (native `ImpUtils.cpp:484` where ours' rolls an anger percent at `State.cpp:1700`), is described
-in Q712. Build only behavior supported
+[store-gold steering](research/store-gold-steering.md). Read the boundary after turn 1868
+next (Q712). Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 
 The controlled prefix does not establish full-state or Heart-outcome parity.
