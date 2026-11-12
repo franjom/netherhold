@@ -168,8 +168,8 @@ holds the last half tile: three objects on each heart's centre
 tile — type 100 (flags `0x03014000`, width 12288), the visible `Dungeon Heart` 13
 (`0x00234000`, width 4096) and `Arches` 86 (`0x00014000`, width 2457). The
 Level 5 capture and the builder show three `Big Steps` (88, `0x00014000`, width 2457)
-as well (below); why the Level 10 dump omits them is unexplained (its filter or timing
-is unknown; Q760 asks whether the Big Steps persist on a Level 10 Heart). Their
+as well (below), and the owner confirms they are always on a Heart (Q760, 2026-11-12):
+the Level 10 dump missed them. Their
 definitions lack `SolidObstacle`, but the retained callback flag can make any of them a
 slide contact (§5).
 Over 564,231 Level 10 samples the ring

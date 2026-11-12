@@ -17632,6 +17632,6 @@ self-route for every non-Imp, and `HasRoute` also needs a nonzero total distance
 (`0x004739C0`) is not mirrored; a zero speed skips the whole mover block where DK2 skips only
 integration; Imps keep their adapters. Controlled replay (new rules gated at turn 1400):
 7071 ordered draws through turn 1809, the boundary unchanged at turn 1810 draw 1; before it no
-actor differs from the Heart-centre-only run. Level 10's object dump lists no Big Steps (Q760).
+actor differs from the Heart-centre-only run. The owner confirms the Big Steps are always there (Q760).
 Evidence: structure-blocks.md §5.3, steering-behaviours.md §7.5, stop-self-route.md,
 hero-party-walk.md §2.
