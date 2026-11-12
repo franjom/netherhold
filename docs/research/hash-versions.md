@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**485** - `0xA469A958CB662495`. World action 49 hands the room under its one-based tile to a player through `Room_TransferOwnership` directly (arm `0x005197F7`, `TriggerExecutor.ChangeRoomOwner`, ADR-0760), so the room keeps its health; a census of every level trigger file finds it only in Level 17. No new saved fields; earlier saves are refused.
+
 **484** - `0xC9F08E5143A26570`. Own-land regeneration moves from `CreatureHealthSystem`'s once-a-second pass to the creature's own update, every turn (`0x00488A73..0x00488C32`, `CreatureHealthRules.OwnLandRegenPerTurn`, ADR-0759): the record's per-second value over the turn rate, Imp 67 to 16. No new saved field; earlier saves are refused.
 
 **483** - `0x1A8E8DCA901EF87C`. The head count `0x004FAC40` skips a corpse and an off-map creature, not a collapsed one (`FearRules.LocalStrength`, ADR-0758). No new saved fields; earlier saves are refused.

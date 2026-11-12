@@ -965,7 +965,7 @@ public class TriggerExecutorTests
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
         Assert.Equal(
-            [(byte)1, (byte)2, (byte)6, (byte)7, (byte)8, (byte)9, (byte)10, (byte)11, (byte)14, (byte)16, (byte)17, (byte)18, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)46, (byte)47, (byte)50],
+            [(byte)1, (byte)2, (byte)6, (byte)7, (byte)8, (byte)9, (byte)10, (byte)11, (byte)14, (byte)16, (byte)17, (byte)18, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)46, (byte)47, (byte)49, (byte)50],
             performed);
     }
 
@@ -1284,6 +1284,79 @@ public class TriggerExecutorTests
         TriggerRunResult result = new TriggerExecutor(new TriggerTree(records, 5, playerRoots: []), world.Triggers, world, database).Run(1);
         Assert.False(world.Tile(3, 3).RoomRuined);
         Assert.Equal(declined, result.Partial.Count > 0);
+    }
+
+    /// <summary>Action 49 (<c>0x005197F7</c>): the room under the one-based tile passes whole to the
+    /// player through <c>Room_TransferOwnership</c> directly, so its damage stays (ADR-0760).</summary>
+    [Fact]
+    public void ChangeRoomOwnerHandsTheRoomUnderTheOneBasedTileOver_KeepingItsDamage()
+    {
+        (WorldState world, GameDatabase database) = HandoverWorld();
+        RoomInstance before = RoomIndex.RoomAt(world, database, (3 * world.Width) + 4)!;
+        int damaged = RoomHealthRules.Health(world, database, before) / 2;
+        RoomHealthRules.Set(world, database, before, damaged);
+
+        TriggerRunResult result = RunChangeRoomOwner(world, database, Rival, x: 5, y: 4);
+
+        foreach ((int x, int y) in HandoverRoomTiles)
+            Assert.Equal(Rival, world.Tile(x, y).OwnerPlayerId);
+        RoomInstance after = RoomIndex.RoomAt(world, database, (3 * world.Width) + 4)!;
+        Assert.Equal(Rival, after.OwnerPlayerId);
+        Assert.Equal(damaged, RoomHealthRules.Health(world, database, after));
+        Assert.Empty(result.Partial);
+        Assert.Empty(result.Unhandled);
+    }
+
+    /// <summary>The arm returns 1 without a transfer for a tile with no room, or a room the player
+    /// already owns; ours also skips a player the level lacks, which DK2 does not test.</summary>
+    [Theory]
+    [InlineData(Keeper, 5, 4)]   // already the owner
+    [InlineData(Rival, 3, 3)]    // no room under the tile
+    [InlineData(6, 5, 4)]        // a player the level lacks
+    public void ChangeRoomOwnerLeavesTheRoomAlone_AndSucceeds(byte player, int x, int y)
+    {
+        (WorldState world, GameDatabase database) = HandoverWorld();
+
+        TriggerRunResult result = RunChangeRoomOwner(world, database, player, x, y);
+
+        foreach ((int tx, int ty) in HandoverRoomTiles)
+            Assert.Equal(Keeper, world.Tile(tx, ty).OwnerPlayerId);
+        Assert.Empty(result.Partial);
+        Assert.Empty(result.Unhandled);
+    }
+
+    private const byte Rival = 4;
+    private static readonly (int X, int Y)[] HandoverRoomTiles = [(3, 2), (4, 2), (3, 3), (4, 3)];
+
+    private static (WorldState World, GameDatabase Database) HandoverWorld()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        foreach ((int x, int y) in HandoverRoomTiles)
+        {
+            ref TileState tile = ref world.Tile(x, y);
+            tile.TerrainId = Dk2TerrainFixture.LibraryTerrain;
+            tile.OwnerPlayerId = Keeper;
+        }
+        return (world, database);
+    }
+
+    private static TriggerRunResult RunChangeRoomOwner(WorldState world, GameDatabase database, byte player, int x, int y)
+    {
+        TriggerRecord[] records =
+        [
+            LevelTime(5, comparison: 5, seconds: 0, child: 0xFFFF),
+            new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = unchecked((ushort)-1), Type = 49,
+                Parameters = new Dictionary<string, long>
+                {
+                    ["Unreached_0000"] = 0, ["PlayerId"] = player, ["Unreached_0002"] = 0,
+                    ["PosX"] = x, ["PosY"] = y,
+                },
+            },
+        ];
+        return new TriggerExecutor(new TriggerTree(records, 5, playerRoots: []), world.Triggers, world, database).Run(1);
     }
 
     /// <summary>Action 18 (<c>0x00519376</c>): body byte 2 zero makes the two players allies, anything

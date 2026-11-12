@@ -93,8 +93,9 @@ public static class RoomHealthRules
     /// <summary>The part of <c>Room_TransferOwnership</c> (<c>0x004E5650</c>) built here: every tile
     /// to the new owner, a portal's clock restarted (<see cref="PortalRules.OnOwnerChanged"/>) and
     /// both keepers told (<see cref="PostTransfer"/>); a Treasury's gold is re-banked for the new owner
-    /// (<see cref="GoldStore.Recapture"/>, ADR-0668). It never writes the health.</summary>
-    private static void TransferOwnership(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId,
+    /// (<see cref="GoldStore.Recapture"/>, ADR-0668). It never writes the health, so world action 49
+    /// calls it directly and the room keeps its damage (ADR-0760).</summary>
+    internal static void TransferOwnership(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId,
         SimulationContext? context)
     {
         PostTransfer(world, room, room.OwnerPlayerId, playerId);

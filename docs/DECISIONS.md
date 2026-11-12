@@ -17931,3 +17931,24 @@ and 455 match native health every turn. Tests: `CreatureNeedsTests` (16 a turn, 
 `PossessionTests.OwnLandHealingContinuesEveryTurnWhileNeedsPause`. Evidence: `creature-needs.md`;
 study `F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`, `own-land-regen.md` and
 `own-land-regen-corrections.md`.
+
+## ADR-0760 - a level script hands a room over and keeps its damage
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** campaign-triggers, rooms
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1090) found world action
+49 with no arm. Its arm `0x005197F7` reads player byte 1 and a one-based tile from the dword at
++4. A null tile, a tile with no room or a room that player already owns returns 1; otherwise it
+calls `Room_TransferOwnership` (`0x004E5650`) directly at `0x00519860`, not the health applier
+`0x004E5300`, so the room keeps its health. It does not test that the player exists. Level 17's
+three records, each under its own flag (11, 12, 13), hand the room at (40, 40) to players 3, 4
+and 5. The OpenKeeper PR restores the room's health; DK2 does not.
+
+**Decision.** `TriggerExecutor` performs action 49: `ChangeRoomOwner` finds the room at the
+one-based tile and calls `RoomHealthRules.TransferOwnership`, now internal, with the running
+game's `SimulationContext` (the new `TriggerExecutor.Context`, set by `GameSimulation`) for the
+capture effects and a Treasury's re-banking. It clears the run's room cache. Ours also skips a
+tile off the map and a player the level lacks.
+
+**Consequences.** Hash/save 485, pin `0xA469A958CB662495`; no new state. A census of every
+level trigger file in the install finds action 49 only in Level 17 (its three records), so other levels' recorded runs keep their behaviour. The transfer stays as PARTIAL
+as before (`0x004E5650.md`).

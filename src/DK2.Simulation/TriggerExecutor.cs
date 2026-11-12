@@ -373,6 +373,10 @@ public sealed class TriggerExecutor
     /// only, like an event sink: nothing here reads a request back.</summary>
     internal Action<ScriptedViewRequest>? ViewRequested { get; set; }
     internal Action<string, ViewEffectRequest>? EffectRequested { get; set; }
+    /// <summary>The running game's context, for an action that runs a game routine needing one
+    /// (action 49's room handover requests its effects and re-banks a Treasury through it).
+    /// Null outside a <see cref="GameSimulation"/>: those effects are then not requested.</summary>
+    internal SimulationContext? Context { get; set; }
     internal Action<string, ThingSoundRequest>? SoundRequested { get; set; }
 
     public TriggerExecutor(
@@ -1285,10 +1289,11 @@ public sealed class TriggerExecutor
     };
 
     /// <summary>Whether this executor carries out an action type. Of these only action 22,
-    /// the terrain change, invalidates <see cref="TriggerRun.Rooms"/>; each scheduled walk
-    /// also clears that cache as it starts, after intervening simulation work.</summary>
+    /// the terrain change, and action 49, the room handover, invalidate
+    /// <see cref="TriggerRun.Rooms"/>; each scheduled walk also clears that cache as it starts,
+    /// after intervening simulation work.</summary>
     public static bool Performs(byte type) =>
-        type is 1 or 2 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 50;
+        type is 1 or 2 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 49 or 50;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1417,6 +1422,7 @@ public sealed class TriggerExecutor
         }
         if (record.Type == 1) return CreateCreature(record, context, p, run);
         if (record.Type == 2) return CreateObject(record, context, p, partial);
+        if (record.Type == 49) return ChangeRoomOwner(record, context, p, run);
         if (record.Type == 14) return CreateParty(record, context, p, run);
         if (record.Type == 22) return AlterTerrain(record, context, p, run);
         if (record.Type == 32) return CollapseGate(record, context, p, run);
@@ -1432,6 +1438,26 @@ public sealed class TriggerExecutor
             ? FlagWriteMode.Assign
             : (modeByte & 0x10) != 0 ? FlagWriteMode.Add : FlagWriteMode.Subtract;
         _state.Write(checked((byte)p["FlagId"]), mode, operand);
+        return true;
+    }
+
+    /// <summary>World action 49 (arm <c>0x005197F7</c>): the room at the one-based tile (PosX, PosY)
+    /// passes to player byte 1 through <c>Room_TransferOwnership</c> (<c>0x004E5650</c>, called
+    /// directly at <c>0x00519860</c>), not the health applier, so the room keeps its damage. A tile
+    /// with no room, or a room the player already owns, is left alone; the action succeeds either
+    /// way. DK2 does not test that the player exists; ours skips one the level lacks, and a tile off
+    /// the map. Level 17 hands one room to three keepers in turn (ADR-0760).</summary>
+    private bool ChangeRoomOwner(
+        TriggerRecord record, TriggerContext context, IReadOnlyDictionary<string, long> p, TriggerRun run)
+    {
+        if (_world is null || _database is null) return Unperformed(record, context, run.Partial);
+        int x = unchecked((ushort)p["PosX"]) - 1, y = unchecked((ushort)p["PosY"]) - 1;
+        var player = new PlayerId(Byte(p, "PlayerId"));
+        if (!_world.Contains(x, y) || !_world.HasPlayer(player)) return true;
+        if (RoomIndex.RoomAt(_world, _database, (y * _world.Width) + x) is not { } room
+            || room.OwnerPlayerId == player) return true;
+        RoomHealthRules.TransferOwnership(_world, _database, room, player, Context);
+        run.Rooms = null;
         return true;
     }
 

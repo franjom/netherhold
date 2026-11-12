@@ -324,7 +324,7 @@ Sight presentation is separate (`keeper-spell-sight.md`).
 | §3.3 seed | `WorldState.FromMap` applies terrain ownership reveal only; the separate mode-gated seed remains unbuilt | game mode, neighbour/flag/border seed |
 | §3.3 action points | Built: `ThingProjection`, flag `0x10`, inclusive rectangle for every viewer | none |
 | §3.4 heart disc | do not build while var 19 is 4 (Q434) | — |
-| §3.5 room owner | Built: `RoomHealthRules.TransferOwnership` explores each slab for its new owner | remaining direct defeat/script ownership writes |
+| §3.5 room owner | Built: `RoomHealthRules.TransferOwnership` explores each slab for its new owner | remaining direct defeat ownership writes |
 | §3.6 action 17 | Built: `TriggerExecutor` explores or un-explores the rectangle for every viewer | none |
 | §3.7 torture | Built (ADR-0740): `TortureInformationRules.RevealTo` explores a room or tags a creature | none |
 | §3.8, §3.9 | wait for their issuers | the game action, the ability |

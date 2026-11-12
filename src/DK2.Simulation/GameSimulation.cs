@@ -21,7 +21,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 484;
+    private const ulong HashVersion = 485;
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
@@ -99,6 +99,7 @@ public sealed class GameSimulation
         if (levelStart) HeroLairRules.InitializeLevelStart(world, database, rng);
         _context.Triggers = _triggers;
         _triggers.EffectRequested = _context.RequestEffect;
+        _triggers.Context = _context;
         _triggers.SoundRequested = _context.RequestSound;
         _triggers.ViewRequested = request => _context.Events.Emit(new SimEvent(_context.Tick,
             nameof(TriggerExecutor), "scripted_view",
