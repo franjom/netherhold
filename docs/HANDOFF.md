@@ -23,9 +23,10 @@ questions live in their canonical documents; this file links to them.
 
 ## Active continuation
 
-The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 491 with ADR-0766, the replay inputs including the
-five hero guards restored at turn 1400: every native draw of the log matches, turns 1401-1900) is in
+Q712, the Level 5 draw-continuation investigation, is answered through turn 1900.
+At hash 491 with ADR-0766, with the replay inputs including the five hero guards
+restored at turn 1400, the controlled replay matches all 8466 native draws of the
+capture's log, turns 1401-1900 (the log ends there). The result is in
 [Q712](research/open-questions.md), with its causes in
 [the Heart's pillars and centre-tile objects as obstacles, and the lava centre's refused route](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) (ADR-0750, ADR-0751, ADR-0755),
 [the mover block for every non-Imp](research/steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers) (ADR-0751),
@@ -55,8 +56,11 @@ five hero guards restored at turn 1400: every native draw of the log matches, tu
 [the melee hold's end, the lifted creature's bit, own-land healing and the collapse booking](research/open-questions.md)
 (ADR-0762 to ADR-0765, Q768 to Q771); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
-[store-gold steering](research/store-gold-steering.md). The capture's draw log ends at 1900;
-the remaining state differences are in Q712. Build only behavior supported
+[store-gold steering](research/store-gold-steering.md). The continuation is split into
+Q772 (past turn 1900, needs a wider capture), Q773 (six creatures with small position
+offsets and no draw affected) and Q774 (state words that differ in representation: held
+78, a collapsed creature's health countdown, Imp 440's states 10 and 22), besides
+Q764 to Q767 and Q733(d). Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 
 The controlled prefix does not establish full-state or Heart-outcome parity.
