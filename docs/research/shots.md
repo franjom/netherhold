@@ -117,15 +117,33 @@ hits otherwise (Firebomb 128 with bit 1 set dies on its first thing).
 **Who is hit.** A forced collision (`+0x14D`, set by the instant handler §8) hits
 the target `+0x147` if it is alive. Otherwise the `CollideType` routine
 (`0x006E4FF0`, filled by `0x004ABCA0`) calls the overlap finder
-`0x00451570(index, shot, predicate, 0, &out)`, which walks the tiles the shot's
-radius covers and returns the first thing that overlaps (`0x004B5590`) and
-passes the predicate — **never the caster** (`+0x145`), unless caster and target
-are one. Predicates: **1 friends** (`0x004B58E0`): a creature of my owner that is
+`0x00451570(index, shot, predicate, 0, &out)` (STRONGLY INFERRED, instructions
+re-read 2026-11-12, ADR-0754):
+
+- **Window.** Radius is the shot's vtable `+0x3C` (`0x004B7E10`, definition `+0x4F`
+  doubled), shifted right 1 at `0x0045158D`. The tiles run from (position − Radius) >> 12
+  to (position + Radius) >> 12 on each axis, clamped to 0..W−1 and 0..H−1 (lower clamp
+  `0x0045159B`/`0x004515B8`, upper `0x004515E4`/`0x004515F3`). A thing overlapping the shot
+  from a tile outside it is not found. Level 5, turn 1841: a Fireball's half-move probe at
+  (82962,60503) overlaps a Thief at (81814,60314) by the box (footprint 880, Radius 819), but
+  the window starts at tile x 20 and the Thief is on 19; native flew on, the Thief kept its health.
+- **Order.** y outer, x inner (`0x00451621`, `0x0045170C`..`0x0045171B`), each tile's chain
+  from tile word 0 (`0x0045165B`, next `+0x0C`). It returns the FIRST thing that passes the
+  overlap test (`0x004B5590`) and the predicate (`0x0045172D`, `0x00451742`), not the nearest.
+  The shot path is class `+0x12` == 1.
+- **Caster.** When the target word `+0x147` equals the caster word `+0x145` only the thing
+  with that id is considered (`0x00451669`), else any thing but the caster.
+- **Type 3** (`0x004AC330`, filled by `0x004ABCA0`; type 1 is `0x004AC2D0` with the friends
+  predicate `0x004B58E0`, type 2 `0x004AC300` with the enemies `0x004B5800`) does a whole
+  enemies walk (`0x004AC34C`) and, only if that returns nothing, a whole friends walk
+  (`0x004AC369`): an enemy anywhere in the window beats an earlier friend.
+
+Predicates: **1 friends** (`0x004B58E0`): a creature of my owner that is
 not dying (body bit 21, `creature-death.md`), a closed door of any owner, an Arch Pillar
 (object 94) of another owner or object 74; **2 enemies** (`0x004B5800`): a
 creature whose owner is hostile to mine (`0x004BF390`) and not dying, or a
 Turncoat; the same doors and objects; **any completed trap**, whoever owns it (re-read
-2026-10-02); **3 both**; **4** a dead body (class 6).
+2026-10-02); **3 both** (two walks, above); **4** a dead body (class 6).
 
 **The overlap test (`0x004B5590`, read 2026-09-23)** is a box, not a circle: on each
 axis the distance between the two things is strictly under **half the sum of their
@@ -288,7 +306,7 @@ creatures have moved, `ShotRules` its rules: §3's launch at `Speed` a tick alon
 line to the aim; §4's order — a hit, else the probe ahead (ADR-0741) and two half-steps refused by solid
 tiles, a bounce for flags bit 3, else a stop that kills a bit-0 shot; the lifetime
 counting down; death chaining the death shot, none for a shot the world stopped;
-§4a's collide classes over creatures by alliance and owner, never the caster; §7's
+§4a's collide classes over creatures by alliance and owner, in the finder's tile order (ADR-0754); §7's
 contact damage flat and the type-2 linear area; chained hit shots inheriting the data
 words. Corrections from the build's last read: flags **bit 3 bounces** (slot `+0x60`,
 `0x004AB810`), **bit 4 is the lobbed launch** (slot `+0x68`, the `+0x400` of §3), a
@@ -311,8 +329,9 @@ work: [shot-effects.md section7](shot-effects.md#7-ours).
 
 **Not built, named (Q398):** height beyond the stored one — a creature's targeted cast keeps a height and a pitched,
 massless climb that only the possessed picks read (ADR-0728); gravity, the lob, the floor stop
-and the overlap box's height test are not built; the finder
-takes the nearest overlap where DK2 takes tile order;
+and the overlap box's height test are not built; the finder's chain
+holds only creatures and traps in ours, with a trap ranked after its tile's creatures and a
+creature's rank possibly a turn stale (ASSUMED, ADR-0754, Q761);
 objects and bodies as things hit (doors since ADR-0318, traps since ADR-0326) — a shot sent at a heart strikes within a
 quarter tile of its tile (ours, a stand-in: Q363); process type 28 (guided) and the unread
 ones (Q394, Q395); a stopped or standing shot counts its lifetime down where DK2's physics returns 0 and does
@@ -352,6 +371,10 @@ handling; §7 contact and type-2 area arithmetic; §8's ten handlers as tabled.
 **STRONGLY INFERRED (data):** §9 and the radius.
 
 **STRONGLY INFERRED (binary, 2026-09-23):** §4a's overlap test; §8's types 3 and 34.
+
+**STRONGLY INFERRED (binary, 2026-11-12):** §4a's finder window, tile and chain order,
+first match, self-target branch and type 3's two walks (ADR-0754). **ASSUMED:** where a trap and
+a creature already on its tile stand in the chain (Q761).
 
 **STRONGLY INFERRED:** the bounce in §6; class 6 as dead bodies. (Body bit 21 was
 first read here as invisibility; it is the dying flag `0x0048B770` sets —

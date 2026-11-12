@@ -228,6 +228,61 @@ public class CombatSpellTests
         Assert.Same(enemy, ShotRules.FindHit(world, db, shot, fireball));
     }
 
+    // 0x00451570 walks only the tiles within the shot's Radius of it, row by row, and takes the first
+    // overlap. Level 5, turn 1841: a Fireball half a move on overlaps Thief 434 (x 19.97 tiles) by the
+    // box, but its window starts at tile 20, and it flies on as the capture shows.
+    [Fact]
+    public void AShotFindsOnlyCreaturesOnTheTilesItsRadiusCovers_TheFirstInTileOrder()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        ShotDef fireball = db.Shots[Dk2TerrainFixture.FireballShotId];
+        CreatureState edge = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 10);
+        edge.PosX = (7 << 12) - 10;
+        ShotState shot = ShotRules.Spawn(world, fireball, Keeper, (7 << 12) + fireball.Radius, edge.PosY, 300, 0,
+            0, FightTargetKind.None, 0, 0, -1, CreatureState.CentreOf(12), edge.PosY);
+        Assert.True(ShotRules.Overlaps(shot, fireball, edge, db.CreatureById(edge.CreatureTypeId)));
+        Assert.Null(ShotRules.FindHit(world, db, shot, fireball));
+        shot.PosX--;
+        Assert.Same(edge, ShotRules.FindHit(world, db, shot, fireball));
+
+        // Both overlap; the one a row up comes first in the walk although it is further.
+        CreatureState below = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 7, 10);
+        below.PosX = shot.PosX;
+        CreatureState above = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 7, 9);
+        above.PosX = shot.PosX;
+        above.PosY = (10 << 12) - 10;
+        shot.PosY = (10 << 12) + 100;
+        below.PosY = shot.PosY + 50;
+        Assert.Same(above, ShotRules.FindHit(world, db, shot, fireball));
+    }
+
+    // 0x00451669: when caster and target are one, the walk looks at that creature only.
+    // 0x004AC330: collide type 3 walks for enemies first and for friends only if that found nothing.
+    [Fact]
+    public void ASelfCastFindsOnlyItsCaster_AndBothTakesAnyEnemyBeforeAnEarlierFriend()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        ShotDef fireball = db.Shots[Dk2TerrainFixture.FireballShotId];
+        CreatureState friend = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 7, 9);
+        CreatureState caster = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 7, 10);
+        // The friend is a row up (first in the walk) and as near as the caster or enemy.
+        int y = (10 << 12) + 50;
+        friend.PosY = y - 100;
+        caster.PosY = y + 154;
+        ShotDef both = fireball with { CollideType = ShotRules.CollideBoth };
+        ShotState self = ShotRules.Spawn(world, both, Keeper, caster.PosX, y, 300, 0,
+            caster.Id, FightTargetKind.Creature, caster.Id, 0, -1, caster.PosX, caster.PosY);
+        Assert.Same(caster, ShotRules.FindHit(world, db, self, both));
+
+        ShotState shot = ShotRules.Spawn(world, both, Keeper, caster.PosX, y, 300, 0,
+            caster.Id, FightTargetKind.None, 0, 0, -1, caster.PosX, caster.PosY);
+        CreatureState enemy = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 7, 10);
+        enemy.PosY = y + 100;
+        Assert.Same(enemy, ShotRules.FindHit(world, db, shot, both));
+        world.RemoveCreature(enemy.Id);
+        Assert.Same(friend, ShotRules.FindHit(world, db, shot, both));
+    }
+
     // 0x004ABD60: the test is repeated half a move on; a thing there cuts the velocity to that half for
     // good and the shot strikes at the start of its next update. The hit then heads the creature by the
     // shot's angle distance from half a turn (0x004AC05B). Level 5, turns 1719 and 1720: two Fireballs

@@ -17697,3 +17697,38 @@ Thief slot 434. Not built: a possessed creature skips the dispatcher in DK2 (`0x
 so 76 never runs, while `LandDue` ignores possession; a landing into a non-stun state (worker
 11, Prison 114/115, Portal 197) runs ours' fight scan in the landed state where DK2 skipped it
 on the landing turn (pre-existing). Evidence: hand-drop-landing.md section 2.
+
+## ADR-0754 - a shot finds the first thing on the tiles its radius covers, not the nearest
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** combat
+
+**Context.** Q712. Ours searched every creature and took the nearest overlap. The finder
+`0x00451570` walks only the tiles from (position - Radius) >> 12 to (position + Radius) >> 12
+on each axis, Radius being the shot's `+0x3C` (`0x004B7E10`, definition `+0x4F` doubled)
+halved at `0x0045158D`, clamped to the map, y outer, x inner, each tile's chain from its
+head, and returns the first thing passing the overlap test (`0x004B5590`) and the predicate,
+not the nearest. When the target word equals the caster word only that creature is
+considered (`0x00451669`), else any but the caster. Collide type 3 (`0x004AC330`) does a whole
+enemies walk, and only if that finds nothing a whole friends walk (STRONGLY INFERRED,
+reviewer re-read the instructions). Level 5: native Fireball shot 1630 (Warlock slot 441,
+ours id 15) at its turn-1841 half-move probe (82962,60503) overlaps Thief 434 at (81814,60314)
+by the box, but the window starts at tile x 20 and the Thief is on 19; native flew on and the
+Thief kept 450. Ours probe-stopped and hit on 1842, killing it on 1845.
+
+**Decision.** `ShotRules.FindHit` takes the first admitted creature in `SearchWindow` order
+(tile row, tile column, chain rank) through one `Walk` per predicate; collide type 3 walks
+enemies, then friends only if no creature and no trap was found. `FindTrapHit` ranks traps
+in the same order and `ShotSystem` takes the creature or trap that comes first. ASSUMED
+(labelled in code): a trap ranks after its tile's creatures, whereas natively it is linked
+when made, so a creature already there would sit behind it; and a creature's chain rank can
+be a turn stale (`TrapRules.RelinkCreatures`). Doors and objects in the chain are still not
+walked (pre-existing).
+
+**Consequences.** Hash/save 479, pin `0x0177D6545A28A885`; no new state, recorded runs change
+(Level 1's journal re-recorded; the win is unchanged). Controlled Level 5 replay: 7671 ordered
+draws through turn 1848, up from 7616 through 1844. The new boundary is turn 1849 draw 1:
+native `Room.cpp:1563`, ours `ObjectState.cpp:2851` (a chicken roam). Native Imp 444 flees
+(203) on 1848 and starts an alarm walk on 1849, attacked by Dwarf 435 (ours id 21), which
+diverged on 1817: from state 90 native took 186 (tunnelling, its route to the Heart failed),
+ours 6/178 (routed). Retires Q398's "nearest overlap first" item; Q761 asks the owner two
+things the capture cannot settle. Evidence: shots.md section 4a;
+study `q712-shot-tile-walk--2026-11-12--001`.

@@ -76,12 +76,11 @@ public sealed class ShotSystem : ISimulationSystem
 
         bool stopped = false;
         bool forced = shot.ForcedCollision;
-        CreatureState? hit = ShotRules.FindHit(world, database, shot, definition);
-        // A forced collision searches nothing; otherwise the nearer of the creature and the trap.
-        int trapDistance = int.MaxValue;
-        TrapState? trapHit = forced ? null : ShotRules.FindTrapHit(world, shot, definition, out trapDistance);
-        if (trapHit != null && hit != null
-            && CombatRules.DistanceSquared(shot.PosX, shot.PosY, hit.PosX, hit.PosY) <= trapDistance) trapHit = null;
+        CreatureState? hit = ShotRules.FindHit(world, database, shot, definition, out long hitOrder);
+        // A forced collision searches nothing; otherwise the first of the creature and the trap in the walk.
+        long trapOrder = long.MaxValue;
+        TrapState? trapHit = forced ? null : ShotRules.FindTrapHit(world, shot, definition, out trapOrder);
+        if (trapHit != null && hit != null && hitOrder < trapOrder) trapHit = null;
         if (trapHit != null)
         {
             // The target word now names a trap, which no creature-side process handler acts on.

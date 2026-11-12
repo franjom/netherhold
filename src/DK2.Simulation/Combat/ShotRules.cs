@@ -166,47 +166,96 @@ public static partial class ShotRules
     }
 
     /// <summary>The collision's answer (§4a): a forced collision hits the target word's creature if
-    /// its tag is live, whatever the overlap, and spends the word; otherwise the overlap finder's,
-    /// the nearest standing creature the collide class admits — an enemy by alliance, a friend by
-    /// owner — that <see cref="Overlaps"/> the shot, never the caster unless it is the target.
+    /// its tag is live, whatever the overlap, and spends the word; otherwise the overlap finder's
+    /// (<c>0x00451570</c>): the first standing creature, in the <see cref="SearchWindow"/>, the collide
+    /// class admits — an enemy by alliance, a friend by owner — that <see cref="Overlaps"/> the shot.
     /// Traps are <see cref="FindTrapHit"/>; doors, objects and bodies are not looked for here; a shot
     /// aimed at a door is <see cref="HitsDoor"/>.</summary>
-    public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition)
+    public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition) =>
+        FindHit(world, database, shot, definition, out _);
+
+    /// <summary><see cref="FindHit(WorldState, GameDatabase, ShotState, ShotDef)"/>, with the found
+    /// creature's place in the walk (a forced hit's is <see cref="long.MinValue"/>).</summary>
+    public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition, out long bestOrder)
     {
+        bestOrder = long.MaxValue;
         if (shot.ForcedCollision)
         {
             // 0x004ABD60: the word is cleared either way, and a dead target, or one off the map
             // (layer +0x16 = 2: in a hand or carried), is a miss with no search.
             shot.ForcedCollision = false;
             CreatureState? forced = shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null;
+            bestOrder = long.MinValue;
             return forced is null || forced.Activity == CreatureActivity.Dead || !CombatPitRules.IsOnTheMap(forced) ? null : forced;
         }
         byte mode = definition.CollideType;
         if (mode is CollideNone or CollideBodies) return null;
+        if (mode != CollideBoth) return Walk(world, database, shot, definition, enemies: mode == CollideEnemies, out bestOrder);
+        // Both (0x004AC330): a whole enemies walk, then, only if it found nothing (a trap included),
+        // a whole friends walk.
+        CreatureState? enemy = Walk(world, database, shot, definition, enemies: true, out bestOrder);
+        if (enemy != null || FindTrapHit(world, shot, definition, out _) != null) return enemy;
+        return Walk(world, database, shot, definition, enemies: false, out bestOrder);
+    }
+
+    /// <summary>One <c>0x00451570</c> walk with the enemies (<c>0x004B5800</c>) or friends
+    /// (<c>0x004B58E0</c>) predicate: the first overlapping creature it admits, in
+    /// <see cref="SearchWindow"/> order. When caster and target are one only that creature is
+    /// looked at (<c>0x00451669</c>), else never the caster.</summary>
+    private static CreatureState? Walk(WorldState world, GameDatabase database, ShotState shot, ShotDef definition, bool enemies, out long bestOrder)
+    {
+        bestOrder = long.MaxValue;
+        var window = new SearchWindow(world, shot, definition);
+        bool selfTarget = shot.TargetKind == FightTargetKind.Creature && shot.TargetId == shot.CasterId;
         CreatureState? best = null;
-        int bestDistance = int.MaxValue;
         EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            // Never the caster, unless caster and target are one (§4a): a self-cast Invisible lands.
-            bool selfTarget = shot.TargetKind == FightTargetKind.Creature && shot.TargetId == shot.CasterId;
-            if ((candidate.Id == shot.CasterId && !selfTarget) || CreatureDeathRules.IsCorpse(candidate)) continue;
+            if ((candidate.Id == shot.CasterId) != selfTarget || CreatureDeathRules.IsCorpse(candidate)) continue;
             bool standing = !CreatureDeathRules.IsDown(candidate);
-            bool friend = standing && candidate.OwnerPlayerId == shot.OwnerPlayerId;
-            bool enemy = (standing && CombatRules.IsHostile(world, shot.OwnerPlayerId, candidate.OwnerPlayerId))
-                || TurncoatRules.IsActive(candidate);
-            if (mode == CollideEnemies && !enemy) continue;
-            if (mode == CollideFriends && !friend) continue;
-            if (mode == CollideBoth && !friend && !enemy) continue;
+            bool admitted = enemies
+                ? (standing && CombatRules.IsHostile(world, shot.OwnerPlayerId, candidate.OwnerPlayerId)) || TurncoatRules.IsActive(candidate)
+                : standing && candidate.OwnerPlayerId == shot.OwnerPlayerId;
+            if (!admitted) continue;
+            long order = window.Order(candidate.Tile, ChainRank(candidate));
+            if (order >= bestOrder) continue;
             if (!Overlaps(shot, definition, candidate, database.CreatureById(candidate.CreatureTypeId))) continue;
-            int distance = CombatRules.DistanceSquared(shot.PosX, shot.PosY, candidate.PosX, candidate.PosY);
-            if (distance >= bestDistance) continue;
             best = candidate;
-            bestDistance = distance;
+            bestOrder = order;
         }
         return best;
     }
+
+    /// <summary>The tiles <c>0x00451570</c> walks: from (position − reach) to (position + reach) on
+    /// each axis, clamped to the map, row by row, each tile's chain from its head, the reach being
+    /// half the shot's <c>+0x3C</c> (<c>0x00451585</c>), its <c>Radius</c>. A thing overlapping the
+    /// shot from a tile outside it is not found.</summary>
+    internal readonly struct SearchWindow(WorldState world, ShotState shot, ShotDef definition)
+    {
+        private readonly int _width = world.Width;
+        private readonly int _x0 = Math.Max(0, (shot.PosX - definition.Radius) >> 12);
+        private readonly int _x1 = Math.Min(world.Width - 1, (shot.PosX + definition.Radius) >> 12);
+        private readonly int _y0 = Math.Max(0, (shot.PosY - definition.Radius) >> 12);
+        private readonly int _y1 = Math.Min(world.Height - 1, (shot.PosY + definition.Radius) >> 12);
+
+        /// <summary>Where a thing on <paramref name="tile"/> comes, lower first, or
+        /// <see cref="long.MaxValue"/> outside; <paramref name="rankInTile"/> (0 up, under 2^33)
+        /// orders one tile's chain from its head.</summary>
+        public long Order(TilePos tile, long rankInTile) =>
+            tile.X < _x0 || tile.X > _x1 || tile.Y < _y0 || tile.Y > _y1
+                ? long.MaxValue
+                : ((long)(tile.Y * _width + tile.X) << 33) + rankInTile;
+    }
+
+    /// <summary>A creature's rank in its tile's chain: linked later (a higher
+    /// <see cref="CreatureState.ChainOrder"/>) is nearer the head. A creature that changed tiles
+    /// this turn keeps its rank until the relink (<c>TrapRules.RelinkCreatures</c>).</summary>
+    private static long ChainRank(CreatureState creature) => (long)int.MaxValue - creature.ChainOrder;
+
+    /// <summary>A trap's rank, after its tile's creatures. ASSUMED: DK2 links a trap into the
+    /// same chain when made, so a creature already standing there when it was built sits behind it.</summary>
+    private const long TrapRank = 1L << 32;
 
     /// <summary>The overlap test (<c>0x004B5590</c>, §4a): a box, not a circle — on each axis the
     /// distance is under half the sum of the two radii, the shot's being twice its <c>Radius</c>
@@ -221,23 +270,25 @@ public static partial class ShotRules
 
     /// <summary>The trap the enemies and both predicates admit (<c>0x004B5800</c>): any completed trap,
     /// of any owner, that <c>0x004B5590</c> overlaps — counted <c>0x800</c> wide when its owner is the
-    /// shot owner's enemy, else 0 wide (vtable <c>+0x3C</c>, <c>0x00402AD0</c>). The nearest, as
-    /// <see cref="FindHit"/> takes its creature; heights dropped (Q398).</summary>
-    public static TrapState? FindTrapHit(WorldState world, ShotState shot, ShotDef definition, out int distanceSquared)
+    /// shot owner's enemy, else 0 wide (vtable <c>+0x3C</c>, <c>0x00402AD0</c>). The first in the
+    /// <see cref="SearchWindow"/>, as <see cref="FindHit"/> takes its creature (<see cref="TrapRank"/>);
+    /// heights dropped (Q398).</summary>
+    public static TrapState? FindTrapHit(WorldState world, ShotState shot, ShotDef definition, out long order)
     {
-        distanceSquared = int.MaxValue;
+        order = long.MaxValue;
         if (definition.CollideType is not (CollideEnemies or CollideBoth)) return null;
+        var window = new SearchWindow(world, shot, definition);
         TrapState? best = null;
         foreach (TrapState trap in world.Traps)
         {
             if (trap.UnderConstruction) continue;
+            long at = window.Order(new TilePos(trap.X, trap.Y), TrapRank);
+            if (at >= order) continue;
             int width = CombatRules.IsHostile(world, shot.OwnerPlayerId, trap.PlayerId) ? EnemyTrapWidth : 0;
             int half = ((definition.Radius << 1) + width) / 2;
             if (Math.Abs(shot.PosX - trap.PosX) >= half || Math.Abs(shot.PosY - trap.PosY) >= half) continue;
-            int distance = CombatRules.DistanceSquared(shot.PosX, shot.PosY, trap.PosX, trap.PosY);
-            if (distance >= distanceSquared) continue;
             best = trap;
-            distanceSquared = distance;
+            order = at;
         }
         return best;
     }
