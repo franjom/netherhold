@@ -780,9 +780,10 @@ public static class FearRules
         return false;
     }
 
-    /// <summary>State 6 on the way to 251, then 251 and 252, a turn each: the walk's turn enters 251;
-    /// 251's handler dispatches the room (<see cref="RespondToThreat"/>) on the next; 252 holds while
-    /// the worker's action 79 plays (ADR-0580).</summary>
+    /// <summary>State 6 on the way to 251, then 251 and 252, a turn each: the walk's turn enters 251
+    /// (an Imp's, from the mover's step: ADR-0752); 251's handler dispatches the room
+    /// (<see cref="RespondToThreat"/>) on the next; 252 holds while the worker's action 79 plays
+    /// (ADR-0580).</summary>
     public static void RaisingAlarm(SimulationContext context, RoomCache rooms, CreatureState me, CreatureDef mine)
     {
         if (Systems.StateShadow.IsTravelling(me))

@@ -120,14 +120,16 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         }
 
         Advance(context, context.Navigation, creature, context.Database.CreatureById(creature.CreatureTypeId));
-        // State 6 integrates an Imp before its arrival test (0x00470C80).
-        // The withdrawal handler ran before this step, so finish its walk here.
-        if (creature.CreatureTypeId == ImpTypeId
-            && creature.Dk2StateId == StateShadow.TravelToPoint && creature.UtilityNewState == Combat.CombatStates.Withdrawn
+        // State 6 integrates an Imp before its arrival test (0x00470C80), for any resume. The
+        // withdrawal (202) and alarm (251) handlers ran before this step, so finish those walks here.
+        // Not built: other resumes, such as the Heart-defence report (254), still end a turn late.
+        if (creature.CreatureTypeId == ImpTypeId && creature.Dk2StateId == StateShadow.TravelToPoint
+            && creature.UtilityNewState is Combat.CombatStates.Withdrawn or Combat.CombatStates.RespondingToThreat
             && FollowPathRules.Progress(creature.Body) == Fixed16.One)
         {
             creature.StopMoving();
-            Combat.FearRules.Withdrawing(context, creature);
+            if (creature.UtilityNewState == Combat.CombatStates.Withdrawn) Combat.FearRules.Withdrawing(context, creature);
+            else Combat.CombatStates.Arrive(context, creature);
         }
     }
 

@@ -33,9 +33,9 @@ values. They do not establish full-state or Heart-outcome parity.
 STRONGLY INFERRED from a whole reread of [state 6](functions/00470C80.md): it
 integrates an Imp before testing progress exactly 1.0, then stops and resumes
 the saved state in the same call. The movement system now completes a type 1
-Imp's state-6 withdrawal walk to 202 after its movement step. Other work walks
-keep their existing handlers; other combat movement and empty-route adapters
-remain partial. State 202's own handler still waits until the next turn.
+Imp's state-6 withdrawal walk to 202 after its movement step; the alarm walk to
+251 follows below. Other work walks keep their existing handlers; other combat
+movement and empty-route adapters remain partial. State 202's own handler still waits until the next turn.
 The general state-6 hold during a kind-4 recoil action remains unmirrored.
 
 The [idle handler](functions/004773D0.md), reread whole with its worker-arm
@@ -65,6 +65,28 @@ second state-handler dispatch. The focused
 bit after dispatch. No blanket delay on a hero's first route step was added.
 
 Hash/save 450 changes behavior without new saved fields (ADR-0718).
+
+## An Imp's alarm walk (Q712, ADR-0752, hash 477)
+
+STRONGLY INFERRED from a whole reread of [state 6](functions/00470C80.md): the
+progress test, the stop and SetState with the saved resume do not depend on which
+resume it is. The alarm's 251 handler ran before the mover and waited for no route,
+so an Imp's alarm walk ended a turn late. CONFIRMED in the Level 5 capture: Imp
+slot 446, resume 251, reached (88155,79904) on turn 1803 with velocity 0, a
+zero-length self-route and state 251; ours stayed in 6 and overshot on 1804.
+`CreatureMovementSystem` now finishes an Imp's walk for resume 202 and 251 after
+its step (`CombatStates.Arrive` for 251). Other Imp resumes, such as the Heart-defence
+report 254, still end a turn late; a 254 attempt has no capture evidence. The
+action-kind-4 hold of state 6 is not modelled.
+
+Controlled replay (rules gated at turn 1400): 7600 ordered draws through turn 1843,
+up from 7071 through 1809. The next boundary, turn 1844 draw 1, is native
+`ObjectState.cpp:2851` (a Chicken roam) against ours `DeathFallRules.Pick`: ours'
+Warlock shot kills Thief slot 434 that turn, and slot 434 is about 1100 units off
+native in state 8 from turn 1811. Small differences remain before it (Imps 454,
+455, 445 a few units off at 1805; 441 in state 78 against ours 1 at 1805; 436's
+health at 1805). Study: `F:/DK2Evidence/studies/q712-withdraw-end--2026-11-12--001`
+(`README.md` names trace482, controlled483 and controlled484).
 
 ## Verification and remaining boundary
 

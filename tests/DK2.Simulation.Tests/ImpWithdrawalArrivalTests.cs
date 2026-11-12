@@ -35,6 +35,24 @@ public sealed class ImpWithdrawalArrivalTests
         Assert.Equal(ImpStates.Resting, imp.Dk2StateId);
     }
 
+    /// <summary>State 6 tests an Imp's progress after integrating it (<c>0x00470C80</c>), for any
+    /// resume: the alarm walk (251) ends on the turn of its last step. Level 5, Imp 446 on turn
+    /// 1803: stopped on its point and in 251 that turn.</summary>
+    [Fact]
+    public void AnImpsAlarmWalkEndsOnTheTurnOfItsLastStep()
+    {
+        const int resume = 251;
+        var (db, world, imp) = Setup();
+        Walk(imp, resume, remaining: 1024);
+        var combat = new CombatSystem();
+
+        new GameSimulation(db, world, 1,
+            [new CreatureUpdateSystem(combat.States, new CreatureMovementSystem())]).Tick();
+
+        Assert.Equal((resume, CreatureStateMachine.Idle), (imp.Dk2StateId, imp.UtilityNewState));
+        Assert.Equal(Fixed16Vector.Zero, imp.Body.Vel);
+    }
+
     [Theory]
     [InlineData(6, 202, 32768)]
     [InlineData(6, 25, 1024)]

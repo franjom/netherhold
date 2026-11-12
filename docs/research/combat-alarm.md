@@ -147,7 +147,10 @@ walk and the thirty ticks.
 **Built at hash 331** (ADR-0580): 251's handler runs the turn after the arrival, and
 a worker is held in 252 for action 79, one play of art slot 29 (`CountedHoldTicks`: 4 turns
 for the Imp; DK2 holds an Imp four ticks, 432 of 432); anyone else idles in the 251 turn. A
-responder's 254 counts from the turn after the arrival.
+responder's 254 counts from the turn after the arrival. An Imp's alarm walk is the exception:
+state 6 integrates an Imp and ends its walk in the same call, so the mover's step stops it
+on whole progress and enters 251 on the turn of its last step (ADR-0752,
+[combat-handler-handovers.md](combat-handler-handovers.md)).
 
 **Not built, named:** step 1's eight-tile test; the Turncoat side; the angry skip (`state+0x3C`);
 Jack, the other NonFighter. The `+0x6E3` sounds are built ([sound-effects.md section 11](sound-effects.md#11-arrival-rest-and-reactions)).

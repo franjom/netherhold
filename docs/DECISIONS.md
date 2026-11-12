@@ -17635,3 +17635,31 @@ integration; Imps keep their adapters. Controlled replay (new rules gated at tur
 actor differs from the Heart-centre-only run. The owner confirms the Big Steps are always there (Q760).
 Evidence: structure-blocks.md §5.3, steering-behaviours.md §7.5, stop-self-route.md,
 hero-party-walk.md §2.
+
+## ADR-0752 - an Imp's alarm walk ends on the turn of its last step
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** combat, creatures, navigation
+
+**Context.** Q712's boundary at turn 1810 was an Imp's walk that ended a turn late. State 6's
+handler (`0x00470C80`) integrates an Imp itself, then tests the body's route progress against
+whole (`0x004D54F0`) and on it calls the stop routine (`0x0048ECE0`), SetState with the saved
+resume (`+0xDF`) and sets the resume to 1; nothing in it depends on which resume (STRONGLY
+INFERRED, reviewer re-read). ADR-0718 finished only resume 202 after the mover. The alarm walk
+(251, `FearRules.RaiseAlarm`) is run by a handler that precedes the mover and waited for
+`!HasRoute`. CONFIRMED in capture: Level 5 Imp slot 446, walking resume 251, reached
+(88155,79904) on turn 1803 and that turn had velocity 0, a zero-length self-route and state 251;
+ours reached the same position, stayed in 6 and overshot on 1804.
+
+**Decision.** After `Advance`, `CreatureMovementSystem.Update` finishes an Imp's state-6 walk on
+whole progress for resume 202 or 251: `StopMoving`, then `FearRules.Withdrawing` (202) or
+`CombatStates.Arrive` (251). The Heart-defence report (254) is not included.
+
+**Consequences.** Hash/save 477, pin `0x31E6144EE6054DCF`; no new state, recorded runs change
+(Level 1's finale journal re-recorded; the win is unchanged: the Lord dies on turn 2323 at
+(13,22), the Reaper appears on 2347). Controlled Level 5 replay (new rules gated at turn 1400):
+7600 ordered draws through turn 1843, up from 7071 through 1809; the old turn-1810 difference
+of Imp 444 is gone. The new boundary is turn 1844 draw 1: native `ObjectState.cpp:2851` (a
+Chicken roam), ours `DeathFallRules.Pick`, because ours' Warlock shot kills Thief slot 434 that
+turn; slot 434 is already about 1100 units off native from turn 1811. Not built: other Imp
+resumes such as 254 still end a turn late (a 254 attempt left a velocity in a unit test and has
+no capture evidence); state 6's action-kind-4 hold is not modelled (pre-existing).
+Evidence: combat-handler-handovers.md ("An Imp's alarm walk"), combat-alarm.md section 5.
