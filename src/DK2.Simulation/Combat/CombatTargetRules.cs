@@ -520,10 +520,14 @@ public static class CombatTargetRules
         bool nearHeart = CombatRules.DistanceSquared(me.PosX, me.PosY, heartX, heartY) < HeartDefenceRadiusSquared;
 
         int best = int.MaxValue;
-        EntityList<CreatureState> creatures = world.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+        // The NonFighter arm reads the same lists (0x0045BEF8): the player list, then each player's creatures.
+        IReadOnlyList<CreatureState> owned = world.CreatureOwnershipOrder;
+        IReadOnlyList<PlayerId> players = world.ActivePlayerOrder;
+        for (int k = 0; k < players.Count; k++)
+        for (int i = 0; i < owned.Count; i++)
         {
-            CreatureState candidate = creatures[i];
+            CreatureState candidate = owned[i];
+            if (candidate.OwnerPlayerId != players[k]) continue;
             if (candidate.Id == me.Id || !TurncoatRules.AreCombatEnemies(world, me, candidate)) continue;
             CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
             int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
@@ -618,10 +622,15 @@ public static class CombatTargetRules
         GameDatabase database = context.Database;
         CreatureState? chosen = null;
 
-        EntityList<CreatureState> creatures = world.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+        // DK2's walk (0x0045B1A4..0x0045B404): the player list (+0x3A, activation reversed), then each
+        // player's creatures, newest first (+0x6, +0x10); the first strictly best stays.
+        IReadOnlyList<CreatureState> owned = world.CreatureOwnershipOrder;
+        IReadOnlyList<PlayerId> players = world.ActivePlayerOrder;
+        for (int k = 0; k < players.Count; k++)
+        for (int i = 0; i < owned.Count; i++)
         {
-            CreatureState candidate = creatures[i];
+            CreatureState candidate = owned[i];
+            if (candidate.OwnerPlayerId != players[k]) continue;
             if (!TurncoatRules.AreCombatEnemies(world, me, candidate)) continue;
             // Every arm but Blitzer passes over a candidate walking to 251 or 202 while I track one I
             // gave up on (0x0045B224, 0x0045B5E4, 0x0045BBB4; ADR-0584).

@@ -86,7 +86,7 @@ reimplementation writes one scan and five scoring expressions.
   is over whoever is already attacking it (`combat-acquisition.md` §6).
 - **two nested walks.** An outer list from `dword[player + 0x10FD]` linked by
   `word[+0x3A]`; for each node an inner list from its `word[+0x6]` linked by
-  `word[+0x10]`. Every candidate is visited — nothing exits early on a hit.
+  `word[+0x10]`. Every candidate is visited — nothing exits early; order: `combat-acquisition.md` §6.
 - **two ranges** out of the definition, `def+0x77B` and `def+0x77F`, each squared
   and shifted left 12; and the distance as `dx² + dy²` with each product shifted
   **right** 12. Both land in 1/4096 units, so the comparison is exact. Write `r`

@@ -17952,3 +17952,41 @@ tile off the map and a player the level lacks.
 **Consequences.** Hash/save 485, pin `0xA469A958CB662495`; no new state. A census of every
 level trigger file in the install finds action 49 only in Level 17 (its three records), so other levels' recorded runs keep their behaviour. The transfer stays as PARTIAL
 as before (`0x004E5650.md`).
+## ADR-0761 - the fighting arms walk the player list, then each player's creatures
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** combat, creatures
+
+**Context.** Q712, Level 5 turn 1876: Dwarf 435 re-selects during its approach between Imps 439 and
+441 dropped on the same point. Native takes 439 (keeper 3's list at frame 1876 runs 432, 433, 437,
+438, 439, 440, 441, ...; player chain 3 -> 2 -> 1); ours took 441, walking `world.Creatures` in id
+order. DK2's four fighting arms (`0x0045B140`, `0x0045B500`, `0x0045B800`, `0x0045BAD0`, one shared
+walk; the B800 and BAD0 bodies were not opened) and the NonFighter arm `0x0045BDF0` walk the game's
+player list (shared manager at `player+0x10FD`, head tag word `+0`, next `+0x3A`), then each player's
+creature list (head `+0x6`, next `+0x10`). There is no per-player filter: `Player_IsEnemy`
+`0x004BF390` is called per creature (`0x0045B1FA`). A candidate replaces the best only when strictly
+better (`CMP EBX,[EBP-0x10]; JGE` at `0x0045B337`), so a tie goes to the first met. The reviewer read
+the list building: `Players_Activate` `0x004C2460` prepends (`0x004C2478..0x004C2510`) and is reached
+per PLAYERS record in file order (`0x004C2340`); `Thing_LinkToOwner` `0x004B4C30` prepends a creature
+to its owner's list. STRONGLY INFERRED.
+
+**Decision.** `CombatTargetRules.Scan` (the four fighting arms) and the NonFighter loop walk
+`WorldState.ActivePlayerOrder` (ADR-0547, ADR-0646; last activated first), and for each player
+`WorldState.CreatureOwnershipOrder` (ADR-0273; newest first) filtered to that owner. The score and
+every skip are unchanged.
+
+**Not built (Q767).** Other DK2 readers of `+0x10FD` walk the same lists; ours' mirrors of them still
+walk id order, and the order is unread for each (PLAUSIBLE): scan F (`FriendlyScan`, strict nearest),
+`ReaperForcedTarget` `0x0045E1B0`, `Trap_FindSightTarget` `0x004A9400` and `Trap_Update`
+`0x004A84E0`, `Door_Update` `0x004A55F0`, `Heart_Update` `0x004D9690`,
+`ComputerPlayer_TestCallToArmsRemoval`, `ComputerPlayer_ReadRoomAttack` `0x004FA000` (an RNG draw per
+creature, so its order moves the stream), `Special_StunImps` `0x004A4870`, `Special_MakeUnhappy`
+`0x004A4C90`, `ImpTask_FindRescueWork` `0x0046E390`, `Heart_OnDestroyed` `0x004DA560`,
+`Shot_FearAtPoint` `0x004B32A0`, `Creature_LeaveFight` `0x0045ADC0`, `Creature_ToggleSneak`
+`0x0048EE90`.
+
+**Consequences.** Hash/save 486, pin `0xFAAE067901CB6684`; recorded runs change. Level 1's journal is
+re-recorded with the same outcome (Lord of the Land 2277 at (14,20), Reaper 2301, gem 2403);
+`ReaperFinaleOnRealDataTests` follows. Controlled Level 5 replay (controlled505; the prototype built
+descending-id, equivalent on Level 5) takes 439 at 1876 and still matches all 8466 native draws,
+turns 1401-1900. Tests: `CombatAcquisitionTests.OfTwoEnemiesAsNearTheOneFirstInItsOwnersListIsTaken`
+and `...WhoseOwnerIsFirstInThePlayerListIsTaken` fail on the old code. Evidence:
+`combat-target-selection.md` §2; study `F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`.

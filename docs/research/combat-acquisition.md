@@ -224,6 +224,16 @@ squared distance of `combat-target-selection.md` §2.
 | E | none, **or the target is an `IsWorker` creature** (a trap skips it); not Turncoat, not `IsHorny`, not an Imp | each hostile player's heart: `0x004C5F50` = `player+0xB43` tile → centre; its rooms `+0x36`/`+0x8` of type 5 with `+0x9A` bit 0 **clear** (not a ruin); their objects `+0xE`/`+0x12A` with `TypeId` `+0x12C` == **94, Arch Pillar** | heart centre within sight and seen; pillar `d < best` |
 | F | a friendly spell | own creatures in group 22 with health `+0x40` below a quarter of level-scaled `Hp` (`def+0x692`, table `+0xE1`), not `CombatPitFighter`, not captive or tortured, `0x0049A7A0` castable | seen or reached; then routed; AttackType 3 |
 
+**List order (STRONGLY INFERRED, ADR-0761).** Every walk of the player list (`[player+0x10FD]`, word `+0`
+head, `+0x3A` next) and then of a player's creatures (`+0x6` head, `+0x10` next) meets the last-activated
+player first (`0x004C2460` prepends; one activation per PLAYERS record in file order, `0x004C2340`) and
+that player's newest creature first (`0x004B4C30` prepends). The four fighting arms and the NonFighter
+arm have no per-player filter (`0x004BF390` is asked per creature, `0x0045B1FA`), and a candidate replaces
+the best only when strictly better (`0x0045B337`), so a tie goes to the first met. Level 5 turn 1876: two
+Imps as near, native Dwarf 435 takes 439, the one first in keeper 3's list. Ours walks
+`WorldState.ActivePlayerOrder`, then `CreatureOwnershipOrder`, in the arms; the other readers of the
+list are not built in that order (Q767).
+
 **Scan C's Imp exemption (STRONGLY INFERRED, assembly recheck 2026-10-11):** the
 comparisons at `0x0045D35D` and `0x0045D56B` let TypeId1 bypass sight/hearing
 distance for a registered attacker. Outer visibility and route checks still
@@ -308,7 +318,7 @@ the dispatch scan with each arm's score (`CombatRules.Score`), the alignment
 discount, `IsAttackable`, sight and reach, the route check, the final gate, the
 commit, registration, `AttackRangeSquared`, the fight-starter's event 6, and
 `CreatureActivity.Fighting` for state 199; the spell survey and scan F
-(ADR-0167, ADR-0170); scan C's registered-attacker precedence, distance exemption,
+(ADR-0167, ADR-0170); the arms' candidate walk in DK2's list order (combat-target-selection.md §2, ADR-0761); scan C's registered-attacker precedence, distance exemption,
 visibility, route and interleaved strict tie order; scan D and the fight against a trap (ADR-0340); **scan E**,
 with three virtual Arch Pillars at the builder's exact sub-tile positions
 (furniture-placement.md §6). Virtual Heart target ids encode slab and pillar

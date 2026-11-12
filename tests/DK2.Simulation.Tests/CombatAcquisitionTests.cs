@@ -39,6 +39,39 @@ public class CombatAcquisitionTests
         Assert.Equal(demon.Id, near.FightTargetId);
     }
 
+    /// <summary>The arms walk each player's creature list, newest first (0x0045B1C4..0x0045B3E9): of two
+    /// enemies as near, the one made last is met first and kept. Level 5, turn 1876: Dwarf 435 took Imp 439.</summary>
+    [Fact]
+    public void OfTwoEnemiesAsNearTheOneFirstInItsOwnersListIsTaken()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState older = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
+        CreatureState newer = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(3, 5));
+        // Made last, the Demon updates first and picks before either Goblin engages it.
+        CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        Assert.True(older.Id < newer.Id);
+
+        Combat(db, world).Run(1);
+
+        Assert.Equal(newer.Id, demon.FightTargetId);
+    }
+
+    /// <summary>Players are met in list order, the last activated first (<c>0x004C2460</c> prepends): here
+    /// Rival, then the hero side, so a Rival's creature as near wins over an older hero.</summary>
+    [Fact]
+    public void OfTwoEnemiesAsNearTheOneWhoseOwnerIsFirstInThePlayerListIsTaken()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState hero = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Good, new TilePos(7, 5));
+        CreatureState rival = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(3, 5));
+        CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        Assert.True(hero.Id < rival.Id);
+
+        Combat(db, world).Run(1);
+
+        Assert.Equal(rival.Id, demon.FightTargetId);
+    }
+
     [Fact]
     public void AlliesAndOwnCreaturesAreNotEnemies()
     {
