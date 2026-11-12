@@ -66,6 +66,8 @@ namespace DK2.Unity
             var category = new SoundCategory(database.Level?.SoundCategory.ToLowerInvariant() ?? "speech_mentor");
             _levelSpeechCategory = category;
             _scriptedView.SpeechRequested += (id, clear) => _soundPlayer.QueueSpeech(category, new SoundId((uint)id), clear, subtitle: true);
+            // The time-limit countdown speaks from the Mentor's own bank, count001..count018 (ADR-0767).
+            _scriptedView.MentorSpeechRequested += (id, clear) => _soundPlayer.QueueSpeech(SoundCategory.Mentor, new SoundId((uint)id), clear);
             _scriptedView.SpeechSkipped += () => _soundPlayer.StopSpeech((long)(UnityEngine.Time.unscaledTimeAsDouble * 1000));
         }
     }

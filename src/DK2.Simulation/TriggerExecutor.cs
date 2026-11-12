@@ -1293,7 +1293,7 @@ public sealed class TriggerExecutor
     /// <see cref="TriggerRun.Rooms"/>; each scheduled walk also clears that cache as it starts,
     /// after intervening simulation work.</summary>
     public static bool Performs(byte type) =>
-        type is 1 or 2 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 49 or 50;
+        type is 1 or 2 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 49 or 50 or 51;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1395,6 +1395,13 @@ public sealed class TriggerExecutor
         {
             // 0x004C8A25: world slot +0x370 stores the second dword whole as MaximumSlaps.
             _state.MaximumSlaps = unchecked((int)p["Value"]);
+            return true;
+        }
+        if (record.Type == 51)
+        {
+            // 0x0051986C: byte 0 equal to 1 sets world +0x72A1 bit 2, anything else clears it;
+            // the timer speech (0x004B9740) reads it. On by default (ADR-0767).
+            _state.SetTimerSpeechEnabled(Byte(p, "Available") == 1);
             return true;
         }
         if (record.Type == 44)

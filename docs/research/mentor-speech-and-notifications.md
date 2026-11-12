@@ -50,7 +50,7 @@ block — the Mentor's jokes and taunts — is `silly001`–`silly033` at ids
 
 Because sound events are 1-based and subtitles 0-based, **everything that reaches
 the speech queue passes `id + 1`**, and the queue subtracts one again for the
-subtitle. The countdown code passes 1..18 for ids 0..17. Keep this off-by-one in
+subtitle. The countdown code passes 1..18 for ids 0..17 (built as `TimeLimitCountdown`, ADR-0767, which queues them from the Mentor bank with no subtitle). Keep this off-by-one in
 mind; it is the reason a search for a line's id finds nothing.
 
 ## 2. The speech queue

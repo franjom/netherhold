@@ -64,7 +64,10 @@ Ordered by shipped use and ordinary gameplay first.
    it should be heard in timed levels (86 action-23 records) unless one of
    the 13 explicit action-51 records turns it off; which of those clear it
    depends on their byte 0, not checked. Fresh read of `0x004B9740`: equality
-   tests at 1800 to 60 s and 10 to 1 s, speech ids 1 to 18.
+   tests at 1800 to 60 s and 10 to 1 s, speech ids 1 to 18. Built (ADR-0767):
+   `TriggerExecutor` action 51 and `TimeLimitCountdown`; the function's other
+   arms (the Horny sound, messages 0x5F, 0x5A, 0x59, 0x58) stay unbuilt. Of the
+   13 records, Level 9 has one with byte 0 equal to 1.
 9. **CHANGE_ROOM_OWNER, world action 49 ([#1090](https://github.com/tonihele/OpenKeeper/pull/1090)).**
    Level17's three handovers. Fresh read: the arm calls
    [0x004E5650](functions/004E5650.md) directly, so no health reset. Do not
@@ -148,7 +151,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | [1052](https://github.com/tonihele/OpenKeeper/pull/1052) | OpenKeeper-only fix | Our `ActionPoints.FirstOrDefault` uses are null-checked. Code-only. |
 | [1059](https://github.com/tonihele/OpenKeeper/pull/1059) | Gap in an unbuilt mode (My Pet Dungeon) | Partial fresh read of `0x00514320` agrees with the PR. Revisit when the MPD session model lands. |
 | [1090](https://github.com/tonihele/OpenKeeper/pull/1090) | Built: world action 49 (ADR-0760) | Fresh read of arm `0x005197F7`: one-based tile, direct [0x004E5650](functions/004E5650.md), no health reset. `TriggerExecutor.ChangeRoomOwner` calls `RoomHealthRules.TransferOwnership`; `RoomHandoverOnRealDataTests`. |
-| [1092](https://github.com/tonihele/OpenKeeper/pull/1092) | Gap: world action 51 and the countdown | Fresh read of arm `0x0051986C` and `0x004B9740`. `TriggerState` world bit 0x04 has no setter or reader. |
+| [1092](https://github.com/tonihele/OpenKeeper/pull/1092) | Built: world action 51 and the countdown (ADR-0767) | Fresh read of arm `0x0051986C` and `0x004B9740`. `TriggerExecutor` sets `TriggerState.TimerSpeechEnabled`; `TimeLimitCountdown` asks for the Mentor lines. |
 | [1094](https://github.com/tonihele/OpenKeeper/pull/1094) | Partial: emission covered, toggle missing | `EffectGeneratorSystem` (ADR-0648). Fresh read of arm `0x005197C8`: sets `+0x3C` from byte 1 == 1. No shipped use. SET_MUSIC_LEVEL already a success no-op in ours and native. |
 | [1100](https://github.com/tonihele/OpenKeeper/pull/1100) | Covered: creature moods switch | `SetCreatureAngerEnabled`, `CreatureAngerRules.Apply`; [creature-anger.md](creature-anger.md). |
 | [1102](https://github.com/tonihele/OpenKeeper/pull/1102) | Gap: creature action 33 | Fresh read of arm `0x0049AF3D`. 72 shipped records. Built (ADR-0739), mode only. |

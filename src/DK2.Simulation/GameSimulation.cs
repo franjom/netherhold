@@ -21,7 +21,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 486;
+    private const ulong HashVersion = 489;
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
@@ -279,6 +279,9 @@ public sealed class GameSimulation
                 $"tag={partial.Tag} type={partial.Type} id={partial.TriggerId} "
                 + $"context={partial.Context}");
         }
+
+        // World_TickPlayers (0x0050A7F5) runs each player's 0x004B9740 after the trigger walk.
+        TimeLimitCountdown.Announce(World, World.Triggers, _triggers.ViewRequested);
 
         _triggerEmitter?.Emit(dk2Turn, World.Triggers, _triggers.Tree);
 

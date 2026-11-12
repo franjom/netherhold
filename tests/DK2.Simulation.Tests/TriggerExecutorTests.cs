@@ -965,7 +965,7 @@ public class TriggerExecutorTests
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
         Assert.Equal(
-            [(byte)1, (byte)2, (byte)6, (byte)7, (byte)8, (byte)9, (byte)10, (byte)11, (byte)14, (byte)16, (byte)17, (byte)18, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)46, (byte)47, (byte)49, (byte)50],
+            [(byte)1, (byte)2, (byte)6, (byte)7, (byte)8, (byte)9, (byte)10, (byte)11, (byte)14, (byte)16, (byte)17, (byte)18, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)46, (byte)47, (byte)49, (byte)50, (byte)51],
             performed);
     }
 
@@ -1774,7 +1774,6 @@ public class TriggerExecutorTests
     [Theory]
     [InlineData((byte)5)]
     [InlineData((byte)17)]
-    [InlineData((byte)51)]
     public void AnActionDk2SucceedsAtDescendsAndCountsAsPartial(byte type)
     {
         var state = new TriggerState();

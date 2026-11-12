@@ -75,6 +75,14 @@ public sealed partial class TriggerState
 
     internal void SetNotificationsEnabled(bool enabled) => SetWorldOption(0x02, enabled);
 
+    /// <summary>Bit <c>0x04</c> of the world options: on by default (world initialisation
+    /// <c>0x005099A0</c> ORs in <c>0x07</c> at <c>0x00509CE5</c>), set or cleared by world action
+    /// 51 (<c>0x0051986C</c>). <c>0x004B9740</c> does nothing while it is clear; of that function
+    /// ours mirrors only the time-limit countdown (<see cref="TimeLimitCountdown"/>).</summary>
+    public bool TimerSpeechEnabled => (_worldOptions & 0x04) != 0;
+
+    internal void SetTimerSpeechEnabled(bool enabled) => SetWorldOption(0x04, enabled);
+
     private void SetWorldOption(byte mask, bool enabled) =>
         _worldOptions = enabled
             ? (byte)(_worldOptions | mask)

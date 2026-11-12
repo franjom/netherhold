@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**489** - `0x75143B944E18993D`. World action 51 sets or clears the saved world options bit `0x04` (arm `0x0051986C`), and the Mentor's time-limit countdown (`0x004B9740`, `TimeLimitCountdown`, ADR-0767) asks for its lines as view output. No new saved fields; earlier saves are refused.
+
 **486** - `0xFAAE067901CB6684`. The fighting arms' and the NonFighter arm's candidate walk follows DK2's list order, the player list then each player's creatures (`CombatTargetRules.Scan`, `WorldState.ActivePlayerOrder`, `CreatureOwnershipOrder`, ADR-0761). No new saved field; earlier saves are refused.
 
 **485** - `0xA469A958CB662495`. World action 49 hands the room under its one-based tile to a player through `Room_TransferOwnership` directly (arm `0x005197F7`, `TriggerExecutor.ChangeRoomOwner`, ADR-0760), so the room keeps its health; a census of every level trigger file finds it only in Level 17. No new saved fields; earlier saves are refused.

@@ -17990,3 +17990,36 @@ descending-id, equivalent on Level 5) takes 439 at 1876 and still matches all 84
 turns 1401-1900. Tests: `CombatAcquisitionTests.OfTwoEnemiesAsNearTheOneFirstInItsOwnersListIsTaken`
 and `...WhoseOwnerIsFirstInThePlayerListIsTaken` fail on the old code. Evidence:
 `combat-target-selection.md` §2; study `F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`.
+
+## ADR-0767 - the Mentor counts down a timed level, and world action 51 switches it
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** campaign-triggers, audio
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1092) found world action
+51 and the time-limit countdown speech unbuilt. Action 51's arm `0x0051986C` sets world
+`+0x72A1` bit 2 when byte 0 is 1 and clears it otherwise; world initialisation turns it on
+(`0x00509CE5`). `0x004B9740`, run by `Player_Tick` for every player each turn after the trigger
+walk, returns unless that bit is set and the player's Status is 0; its countdown block also
+needs a game mode other than 4 and a non-zero `LevelTimeLimit`. It compares the time left with
+the turn rate times 1800, 1200, 600, 300, 240, 180, 120 and 60 (sound events 1 to 8) and 10 to
+1 (events 9 to 18, each after clearing the speech queue), enqueued as (id, the speech system's
+Mentor category handle, 0): the Mentor bank's `count001` to `count018`, not the level's bank,
+with no subtitle (third argument 0). The queue is the game's one speech queue, with no
+local-player test, and keeps one copy of a line, so each line is said once while any player is
+still playing. A census of the level trigger files finds 13 action-51
+records, in Levels 6b and 9 and Secret levels 1, 3, 4 and 5; one of Level 9's sets the bit.
+
+**Decision.** `TriggerState.TimerSpeechEnabled` exposes bit `0x04` of the saved world options;
+`TriggerExecutor` performs action 51. `TimeLimitCountdown` holds the countdown table; at the end
+of each turn `GameSimulation` asks it for every player still playing, in the world's player
+order, and when any is still playing sends one `ScriptedViewKind.MentorSpeech` request (sound
+id, clear flag) addressed to no keeper. The presentation passes it to every viewer and raises
+`MentorSpeechRequested`; the Unity runner queues the line from `SoundCategory.Mentor`. The function's other arms (the Horny sound, messages 0x5F, 0x5A, 0x59,
+0x58), which the same bit also silences, stay unbuilt.
+
+**Consequences.** Hash/save 489, pin `0x75143B944E18993D`; no new saved field (the bit was
+already saved). Levels with action 51 change state; the countdown itself is view output only.
+The marks multiply DK2's tick-rate global `0x006F2590` (variable 19, set from the level), which is
+4 in every shipped level (balance-variables-in-the-binary.md); ours uses
+`SimulationTiming.TicksPerSecond`, so a level with another rate would shift them. An action 51 in
+a player-rooted tree takes effect in DK2 for that player's own tick the same turn; ours reads the
+bit once at the end of the turn.

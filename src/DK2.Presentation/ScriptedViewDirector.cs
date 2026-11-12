@@ -46,7 +46,9 @@ public sealed class ScriptedViewDirector(
 
     public void Emit(in SimEvent simEvent)
     {
-        if (simEvent.ScriptedView is { } request && (request.Player == viewer || request.Kind == ScriptedViewKind.FlashButton))
+        // The flash descriptor and the Mentor countdown are not addressed to a keeper (ADR-0767).
+        if (simEvent.ScriptedView is { } request && (request.Player == viewer
+                || request.Kind is ScriptedViewKind.FlashButton or ScriptedViewKind.MentorSpeech))
             _requests.Enqueue(request);
         downstream?.Emit(simEvent);
     }
@@ -57,6 +59,9 @@ public sealed class ScriptedViewDirector(
     /// <summary>The win screen asked for (interface slot <c>+0x40</c>).</summary>
     public event Action? WinScreenRequested;
     public event Action<int, bool>? SpeechRequested;
+    /// <summary>A Mentor-bank line (sound event id, clear the queue first): the time-limit countdown,
+    /// which DK2 queues without a subtitle.</summary>
+    public event Action<int, bool>? MentorSpeechRequested;
     public event Action? SpeechSkipped;
 
     /// <summary>Game action 6: zoom to the first value over the second's milliseconds.</summary>
@@ -232,6 +237,9 @@ public sealed class ScriptedViewDirector(
                 break;
             // Action 0x84's bit is unread.
             case ScriptedViewKind.ViewFlag84:
+                break;
+            case ScriptedViewKind.MentorSpeech:
+                MentorSpeechRequested?.Invoke(request.Value, request.Flag);
                 break;
             case ScriptedViewKind.Speech:
                 SpeechRequested?.Invoke(request.Value, request.Flag);

@@ -85,6 +85,7 @@ panel slots, icon buttons, mana and gold) and what clears it are in [tab-alerts.
 - On running out in skirmish or multiplayer every keeper loses in active-list order through
   `VerdictRules.End` (ADR-0547); the campaign only sets the bit.
 - `SpecialInfoNextRoomTypeId` is set by action 47.
+- The Mentor's countdown speech at 1800 to 1 s left (`0x004B9740`, switched by world action 51) is built as `TimeLimitCountdown` (ADR-0767; record `functions/004B9740.md`).
 - Both are hashed and snapshotted (`HashVersion` 122).
 - **Not built:**
   - action 9's generic icon flash and chime (the mana/gold, tab and slot flashes are built; see tab-alerts.md).

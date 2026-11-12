@@ -57,6 +57,10 @@ public enum ScriptedViewKind : byte
     HideGui = 12,
     /// <summary>Bridge command10: add Value camera impulses for the local caster.</summary>
     CameraJitter = 13,
+
+    /// <summary>The time-limit countdown (<see cref="TimeLimitCountdown"/>): Mentor-bank sound event
+    /// Value, no subtitle, for every viewer; Flag clears the queue first.</summary>
+    MentorSpeech = 14,
 }
 
 /// <param name="Tick">For <see cref="ScriptedViewKind.CameraPath"/>, the tick the path started
