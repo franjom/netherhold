@@ -16,7 +16,9 @@ sidelined, possessed and Imp creatures before this test.
 
 `CreatureMovementSystem` includes route-less 199/200 for neighbour contact;
 the fixture explicitly loads an empty route. [Retained combat stops](combat-stop-route.md)
-have separate scope, and other route-less state dispatch remains unbuilt. No-route
+have separate scope. Neutral non-Imps also steer with no route in every state
+([steering-behaviours.md §7.5](steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers));
+other owned route-less state dispatch remains unbuilt. No-route
 `Follow_Path` brakes velocity without turning heading. Separation is soft,
 with the original overflow arithmetic and zero-distance exemption
 (navigation-and-steering.md section 3.2); it guarantees no rigid clearance.

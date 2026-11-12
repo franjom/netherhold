@@ -48,8 +48,9 @@ Hash/save441 (ADR-0709) adds virtual Hatchery78 geometry to the ordinary steerin
 including half-width, Obstacle/SolidObstacle flags, corner support and active
 physical-pillar suppression. Virtual entries share the row-major flag stream
 with stored objects. No physical objects or world draws are created.
-Only Hatchery pillars are in this slice. Other room pillars and native movement
-gate bits remain separate.
+Only Hatchery pillars are in this slice; the Heart's are in
+[structure-blocks.md §5.3](structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355).
+Other room pillars and native movement gate bits remain separate.
 
 Exact relative order against a non-Pillar stored obstacle on the same corner
 tile is not retained by virtual furniture. The candidate treats it as older

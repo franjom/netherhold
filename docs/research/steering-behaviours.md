@@ -77,7 +77,7 @@ Object order therefore matters even when a callback contributes no force. The en
 skips the `Dungeon Heart Obstacle` (object 100) in its tile walk and forwards
 the one on the heart room's centre once per query that touches heart terrain,
 with flag bits 0 and 1 (`structure-blocks.md` §5.3): a slide ring of 1.5 tiles
-plus the body's radius, which Level 7's imps rode in the capture. See [Hatchery pillars](hatchery-pillar-steering.md) and [stored gold](store-gold-steering.md) for represented geometry and ordering limits.
+plus the body's radius, which Level 7's imps rode in the capture. See [Hatchery pillars](hatchery-pillar-steering.md), [stored gold](store-gold-steering.md) and [the Heart's Arch Pillars](structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) for represented geometry and ordering limits.
 
 Two helpers seen on the way: `0x004D4600` projects a target onto the body's
 `local_xaxis`/`local_yaxis` (forward and lateral offsets, 16.16), and
@@ -299,7 +299,7 @@ position and that velocity, shifted up four (`0x004D59A0`), preserving 1/4096 pr
 integrate (`0x004D5A40`, unless speed is zero),
 read position down four (`0x004D5AC0`) and commit (`0x004B5560`) to the entity only. The main update
 first rejects off-map or solid positions through `0x004B35C0` and only then sets the body to the entity position with zero velocity. A committed step leaves the body at its 16.16 position and no sweep rewrites bodies, so `0x004D2B80` reads a neighbour's retained low four bits (ADR-0644; [binary readings, frames](steering-body-retention.md)).
-It requires state-table bit 0 at `0x006DA8C8 + state × 25`; route-less fight dispatch and remembered-entity activation are in [combat-spacing.md](combat-spacing.md).
+It requires state-table bit 0 at `0x006DA8C8 + state × 25` and has no route-count test (`0x004D5A40` skips only on zero maximum speed), so every non-Imp steers with no route, and `Follow_Path` with count 0 or finished brakes without turning (`0x004D4428`, `0x004D4550`; STRONGLY INFERRED, Q712, ADR-0750). Ours drops its route gate for neutrals only, so owned creatures remain narrower than DK2 (an adapter). Capture: Level 5 neutral 449, state 87, route count 0, finished set, moved from turn 1620 with velocity (-1666,11606), then 7540, 4898, 3182 (x0.65 a turn); why its route count was 0 is not read. Route-less fight dispatch and remembered-entity activation are in [combat-spacing.md](combat-spacing.md).
 
 **Speed.** Walk/run/shuffle: `def+0x5B4/+0x5B8/+0x5BC`, per tick. Loader `0x00492320`
 and stat setter `0x00494BA4` divide KWD rates by variable 19,

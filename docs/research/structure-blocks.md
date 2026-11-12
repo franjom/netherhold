@@ -186,6 +186,31 @@ ADR-0452 changed native routes and movement; the controls are in
 explicit deviation from native arrival/escape exceptions. Ruined Hearts lose
 this guard. Tests cover the core, corner movement, targets, arrival and ruin.
 
+**The Heart's Arch Pillars are enumerated like any object (Q712, ADR-0750; STRONGLY
+INFERRED, the outcome CONFIRMED in capture).** The tile walk
+(`0x004D13B8`..`0x004D14B6`) takes a thing of class (`+0x12`) 2 whose definition
+flags (`+0xF4`) hold `Obstacle` (`0x4000`), whose type byte `+0x12C` is not `0x64` and
+whose definition word `+0xF8 >> 1` is nonzero; size is that half-width shifted up
+four and position the thing's `+0x1A/+0x1E` shifted up four. Object 94 has
+`Obstacle` and not `SolidObstacle`, width 1228, so size 9824. Bit 0 comes from the
+retained byte: OR 1 for a `SolidObstacle` (`0x004D1439`), XOR 1 otherwise
+(`0x004D14A1`); the tail (`0x004D1503`..`0x004D15AD`) forwards only object 100,
+with OR 3. Ours adds a live Heart's three pillars at the builder's positions
+([furniture-placement.md](furniture-placement.md) §6) as the oldest thing on their
+tile, skipping a tile that holds a physical object 94 (`WorldSteering.AddVirtualHeartPillars`).
+Not built: the centre tile's objects 13, 86 and three of 88 (Big Steps), all
+`Obstacle` and non-solid, which toggle the retained flag for a query covering the
+centre tile; ours forwards 13 and 86 in its tail with fixed flags and 88 nowhere, so a
+pillar's slide or shove can differ from DK2 there. Not re-read: tile-chain order for
+"oldest".
+Capture (Level 5, turn 1778): object slot 1221 (type 94) at (72089,106906) and
+Imp 446 at (72937,107133), 877 units apart. Emulator
+(`F:/DK2Evidence/studies/q712-heart-pillars--2026-11-11--001/emulator1778`, the
+turn-1400 process dump overlaid with the turn-1778 frame): `Repel_Obstacle`
+`0x004D31D0` returns (96483,25827), the pillar-to-Imp direction at about maximum
+force, with two recorded contacts; Avoid_Walls and Separation return zero. One
+query; the match of positions is a fit, not a read.
+
 ### 5.4 The navigation cache and all known writers (Q209)
 
 The tile predicates are a family of world virtual methods. They read the

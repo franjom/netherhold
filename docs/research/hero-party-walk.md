@@ -113,7 +113,8 @@ The five shipped party jobs take these arms:
   action-point id, samples its rectangle up to four times and routes
   to state 174. State 174 replaces the value with action point
   `+0x33`, its next waypoint, sets a deadline from `+0x30`, and enters
-  175. State 175 wanders by adjacent tiles until that
+  175 (it neither stops nor routes; an arrival keeps its self-route,
+  [stop-self-route.md](stop-self-route.md#a-hero-arriving-at-an-action-point-keeps-its-self-route-q712-adr-0750)). State 175 wanders by adjacent tiles until that
   deadline and then returns to 173. The player word is ignored.
   **STRONGLY INFERRED** by `0x00471E80`, `0x00471EB0`, `0x00472150` and
   `0x004721C0`; action-point field names come from `action-points.md`.

@@ -1415,7 +1415,8 @@ public sealed partial class CreatureState
         Steering.RouteWindow.Load(Body, (OwnerPlayerId == PlayerIds.Neutral
             || ResearchStep.ResolvedCategory(this) == CreatureStateCategory.Research
             || (CreatureStateMachine.HasState(this)
-                && NeedRules.ResolvedStateId(this) is LairRules.MakingAHomeState or Combat.CombatStates.Engaging or 200))
+                && NeedRules.ResolvedStateId(this) is LairRules.MakingAHomeState or Combat.CombatStates.Engaging or 200
+                    or HeroJobRules.AtThePointState))
             && CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId
                 ? [new Steering.Fixed16Vector(Body.Pos.X & ~0xFF, Body.Pos.Y & ~0xFF)] : [], Body.Pos, 0);
         Body.Vel = Steering.Fixed16Vector.Zero;

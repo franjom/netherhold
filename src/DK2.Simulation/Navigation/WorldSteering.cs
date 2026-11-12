@@ -42,6 +42,8 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private readonly List<NavPoint> _waypoints = [];
     private readonly List<ObjectObstacle> _objectObstacles = [];
     private readonly HashSet<int> _physicalPillarTiles = [];
+    private readonly HashSet<int> _physicalHeartPillarTiles = [];
+    private readonly Dictionary<int, (long Tick, bool Standing, byte Mask)> _heartPillarMasks = [];
     private readonly HashSet<int> _physicalStorePileTiles = [];
 
     private readonly record struct ObjectObstacle(int TileIndex, long Order, Fixed16Vector Position, int Size, bool Solid);
@@ -538,6 +540,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         int y1 = Math.Min(_world.Height - 1, ((centre.Y >> 4) + half) >> 12);
         _objectObstacles.Clear();
         _physicalPillarTiles.Clear();
+        _physicalHeartPillarTiles.Clear();
         _physicalStorePileTiles.Clear();
         foreach (ObjectState device in _world.Objects)
         {
@@ -548,6 +551,8 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             if (definition is null) continue;
             if (!device.InHand && device.CarriedByCreatureId < 0 && (definition.Flags & ObjectFlags.Pillar) != 0)
                 _physicalPillarTiles.Add(device.TileLink.TileIndex);
+            if (!device.InHand && device.CarriedByCreatureId < 0 && device.ObjectTypeId == HeartPillarRules.ArchPillarObjectId)
+                _physicalHeartPillarTiles.Add(device.TileLink.TileIndex);
             if (!device.InHand && device.CarriedByCreatureId < 0
                 && device.ObjectTypeId == FloorGold.TreasuryPileObjectId)
                 _physicalStorePileTiles.Add(device.TileLink.TileIndex);
@@ -564,6 +569,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         }
         AddVirtualStorePiles(new TilePos(x0, y0), new TilePos(x1, y1));
         AddVirtualHatcheryPillars(new TilePos(x0, y0), new TilePos(x1, y1));
+        AddVirtualHeartPillars(new TilePos(x0, y0), new TilePos(x1, y1));
         _objectObstacles.Sort((left, right) => left.TileIndex != right.TileIndex
             ? left.TileIndex.CompareTo(right.TileIndex)
             : right.Order.CompareTo(left.Order));
@@ -636,6 +642,55 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
                     (CreatureState.CentreOf(y) + dy) << 4);
                 // Treat virtual furniture as oldest; exact mixed rebuild history is not retained.
                 _objectObstacles.Add(new ObjectObstacle(tileIndex, long.MinValue, position, size,
+                    (definition.Flags & ObjectFlags.SolidObstacle) != 0));
+            }
+        }
+    }
+
+    /// <summary>A live Heart's three Arch Pillars (object 94) are things on their tiles in DK2 and
+    /// reach the obstacle callback like any other (<c>0x004D12B0</c>); ours keeps them as positions
+    /// only. Level 5: an Imp passing the third pillar at 0.21 tile is shoved straight off it. Not
+    /// built: the Heart, Arches and Big Steps objects on the centre tile, which toggle the retained
+    /// flag for a query that covers them.</summary>
+    private void AddVirtualHeartPillars(TilePos minimum, TilePos maximum)
+    {
+        ObjectDef? definition = _database.ObjectById(HeartPillarRules.ArchPillarObjectId);
+        if (definition is null || (definition.Flags & ObjectFlags.Obstacle) == 0) return;
+        int size = (definition.Width.Raw >> 1) << 4;
+        if (size <= 0) return;
+        for (int y = minimum.Y; y <= maximum.Y; y++)
+        for (int x = minimum.X; x <= maximum.X; x++)
+        {
+            int tileIndex = y * _world.Width + x;
+            ref TileState tile = ref _world.TileAtIndex(tileIndex);
+            if (_physicalHeartPillarTiles.Contains(tileIndex)
+                || _database.RoomByTerrain(tile.TerrainId)?.TypeId != RoomTypeId.DungeonHeart) continue;
+            long tick = _world.CurrentTick.Value;
+            bool standing = false;
+            for (int i = 0; i < _world.PlayerCount; i++)
+            {
+                ref PlayerState player = ref _world.PlayerAtIndex(i);
+                if (player.PlayerId == tile.OwnerPlayerId) standing = !player.HeartRuined && player.HeartHealth > 0;
+            }
+            // The chain walk is kept for the turn; the Heart's standing is looked at every time.
+            if (!_heartPillarMasks.TryGetValue(tileIndex, out (long Tick, bool Standing, byte Mask) known)
+                || known.Tick != tick || known.Standing != standing)
+            {
+                byte mask = 0;
+                for (int ordinal = 0; ordinal < 3; ordinal++)
+                {
+                    HeartPillarId id = HeartPillarId.For(_world, HeartPillarRules.At(new TilePos(x, y), (HeartPillar)ordinal));
+                    if (HeartPillarRules.TryResolve(_world, _database, tile.OwnerPlayerId, id, out _)) mask |= (byte)(1 << ordinal);
+                }
+                _heartPillarMasks[tileIndex] = known = (tick, standing, mask);
+            }
+            for (int ordinal = 0; ordinal < 3; ordinal++)
+            {
+                if ((known.Mask & (1 << ordinal)) == 0) continue;
+                HeartPillarTarget pillar = HeartPillarRules.At(new TilePos(x, y), (HeartPillar)ordinal);
+                // Treat the builder's pillars as oldest; exact mixed rebuild history is not retained.
+                _objectObstacles.Add(new ObjectObstacle(tileIndex, long.MinValue,
+                    new Fixed16Vector(pillar.X.Raw << 4, pillar.Y.Raw << 4), size,
                     (definition.Flags & ObjectFlags.SolidObstacle) != 0));
             }
         }

@@ -17578,3 +17578,30 @@ creature loop and before writing `NextPaydayTick`, once per keeper per payday.
 
 **Consequences.** Hash/save 474, pin `0xDCC53B2AA7221CA1`; no new state, recorded runs change.
 Level 1's first payday is 20 minutes in, so a fast win never hears it.
+
+## ADR-0750 - Heart pillars steer, neutrals steer with no route, a hero keeps its stop's self-point
+**Date:** 2026-11-11 | **Status:** accepted | **Systems:** navigation, creatures, heroes
+
+**Context.** Three differences kept the Level 5 controlled replay at turn 1799 (Q712).
+(1) DK2's obstacle enumerator (`0x004D12B0`) forwards a Heart's Arch Pillars (object 94,
+Obstacle, width 1228) like any object; ours kept them as positions only, and at turn 1778 an
+Imp 877 units from one is shoved at about maximum force by `Repel_Obstacle` in DK2's frame.
+(2) The creature update's mover block (`0x0048A218`..`0x0048A287`) has no route-count test;
+a neutral non-Imp with route count 0 moved from turn 1620. (3) A hero arriving from state 6
+into 174 keeps the stop's self-point, because 174's handler (`0x00472150`) never stops or
+routes, and turns one rate step toward heading 0; 92 of 136 captured arrivals did.
+
+**Decision.** `WorldSteering.AddVirtualHeartPillars` adds a live Heart's three pillars at the
+builder's positions as the oldest thing on their tile, skipping a tile that holds a physical
+object 94. `CreatureMovementSystem` drops its route gate for neutral non-Imps only. State 174
+joins the states that keep the stop's self-route, and `HeroSystem` ends a walk on whole route
+progress (`0x00470C80`) instead of on `!HasRoute`.
+
+**Consequences.** Hash/save 475, pin `0x2D35D91DB836B396`; no new state, recorded runs
+change. Deviations: the Heart, Arches and Big Steps objects on the centre tile, which toggle
+the retained flag, are not built (a pillar's slide or shove can differ there); owned creatures
+keep the route gate (narrower than DK2); only resume 174 keeps the self-point. Controlled
+replay with the five hero guards restored at 1400 matches 7071 ordered draws through turn 1809
+(6905 through 1798 at 472); the new boundary is turn 1810, an Imp's withdrawal walk that
+ends a turn late in ours. Evidence: structure-blocks.md §5.3, steering-behaviours.md §7.5,
+stop-self-route.md.

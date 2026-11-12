@@ -412,6 +412,41 @@ public class HeroWalkTests
         Assert.True(positions.Count > 5, "the follower must keep moving after reaching its trailing tile");
     }
 
+    // Level 5: hero 450 arrives heading 1024 and stands at 683 the turn it enters 174 (rate 341).
+    [Fact]
+    public void AHeroEntersItsPointStateOnWholeRouteProgressAndTurnsOneStepTowardZeroOnce()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        ThingProjection.Place(world, db,
+        [
+            new ActionPointThing(new byte[56]) { StartX = 8, StartY = 5, EndX = 8, EndY = 5, ActionPointId = 3, WaitDelay = 5, Name = "" },
+        ]);
+        CreatureState hero = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(3, 5));
+        hero.GoodJob = JobType.SendToActionPoint;
+        hero.GoodJobActionPointId = 3;
+        GameSimulation sim = Simulation(db, world);
+        int rate = SimulationTiming.TurnRatePerTick(db.CreatureById(Knight));
+
+        int walking = 0;
+        for (int t = 0; t < 600 && hero.Dk2StateId != HeroJobRules.AtThePointState; t++)
+        {
+            walking = hero.Heading;
+            sim.Tick();
+        }
+
+        Assert.Equal(HeroJobRules.AtThePointState, hero.Dk2StateId);
+        Assert.Equal(DK2.Simulation.Steering.Fixed16.One, DK2.Simulation.Steering.FollowPathRules.Progress(hero.Body));
+        Assert.NotEqual(0, walking);
+        Assert.Equal(Math.Max(0, walking - rate), hero.Heading);
+        int arrived = hero.Heading;
+
+        sim.Tick();
+
+        // 174 lasts one turn; the stop's self-point is finished, so nothing turns it again.
+        Assert.Equal(HeroJobRules.RoamingState, hero.Dk2StateId);
+        Assert.Equal(arrived, hero.Heading);
+    }
+
     /// <summary>One handler a turn: the turn a walk ends the hero is in the state it resumes, which
     /// runs from the next turn. A follower that has reached its point is in 222 before it walks again.</summary>
     [Fact]

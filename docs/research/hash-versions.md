@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**475** - `0x2D35D91DB836B396`. A live Heart's three Arch Pillars are steering obstacles (`0x004D12B0`), a neutral non-Imp steers with no route (mover block of `0x00488930`), and a hero arriving from state 6 into 174 keeps the stop's self-point and turns one step toward heading 0 (ADR-0750). No new state; the version moves because recorded runs change.
+
 **474** - `0xDCC53B2AA7221CA1`. The payday clock fires player event 46 for the keeper after its creatures are handled and before the reschedule (`0x004BE250`), so Level 1's pay-day speech plays (ADR-0749). No new state; the version moves because recorded runs change.
 
 **473** - `0xAF20C8CFAC1272A9`. World trigger action 2 makes its object at the zero-based tile's centre and floor height (`0x00518E92`), and the THINGS object loader skips a level-placed Portal Gem (`0x00520BCA`), so Levels 18-20 start without one and their script makes it (ADR-0748). No new state; the version moves because recorded runs change.

@@ -41,11 +41,38 @@ Owner/category selection is implementation coverage, not a native predicate:
 the native helpers are generic. The [Library stop-route extension](library-stop-route.md)
 retains self-routes for resolved Research non-Imps, and the [combat extension](combat-stop-route.md)
 covers resolved fight states 199/200. The [home extension](lair-home-handover.md)
-retains the point for resolved non-Imp state 80. Other caller families retain their stop
-adapters. [Retained waypoint precision](stopped-waypoint-precision.md) has its
+retains the point for resolved non-Imp state 80, and a hero's arrival at an action point keeps it
+for resume state 174 ([below](#a-hero-arriving-at-an-action-point-keeps-its-self-route-q712-adr-0750)). Other caller
+families retain their stop adapters. [Retained waypoint precision](stopped-waypoint-precision.md) has its
 own bounded correction. The [current-state/speed gate](library-movement-gate.md)
 and remaining movement adapters keep their separate scopes.
 Hash/save 443 adds no fields; its remake regression pin is 0x5F32B8E99F7A1CD5.
+
+## A hero arriving at an action point keeps its self-route (Q712, ADR-0750)
+
+STRONGLY INFERRED from primary reads. [State 6](functions/00470C80.md) ends a walk on
+[whole progress](functions/004D54F0.md) (0x10000 when the finished bit is set or the
+total distance is 0), then [stops](functions/0048ECE0.md), enters `+0xDF` and resets it
+to 1. States 174 and 175 carry the mover bit (flag bytes `0x006DB9C6` and `0x006DB9DF`,
+written 1 by the table initialiser `0x0047E9C0`). The handler of
+[174](functions/00472150.md) reads the point id (`+0x40F`), sets the `+0x413`
+deadline and enters 175; it never stops, routes or writes the heading. The handler of
+[175](functions/004721C0.md) routes with resume 175 to a random neighbour and on deadline
+expiry enters 173; it writes no heading or self-route either. So after the stop the
+mover runs on 174 with an unfinished self-route: `Follow_Path` sets finished and calls
+the turn helper `0x004B2AE0` toward the path target, the creature's own position
+(bearing 0). The old `!HasRoute` arrival test coincided with native only when the route
+had been cleared.
+
+Capture (Level 5, hero slots 448 and 450-453, turns 1400-1900): 136 arrivals from state 6
+(resume 174) into 174, each with route count 1, finished 1 and target equal to the hero's
+own position; 92 turned exactly one rate step toward 0 (slot 450: 1024 to 683, rate 341;
+slot 453: 512 to 171), 44 were already at 0.
+
+Ours: `CreatureState.StopMoving` keeps the self-point for resolved state 174 and
+`HeroSystem` ends the walk on whole route progress (the heading turn follows from the
+mover). Built for resume 174 only; heroes arriving into other states do not get the
+turn, which is narrower than DK2.
 
 ## Controlled comparison and bootstrap limit
 

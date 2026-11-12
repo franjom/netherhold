@@ -24,9 +24,12 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 472 with ADR-0746, the two Warlocks' beds restored
-as a replay input: 6905 ordered draws match through turn 1798) is in
+The last controlled result (hash 475 with ADR-0750, the replay inputs now including the
+five hero guards restored at turn 1400: 7071 ordered draws match through turn 1809) is in
 [Q712](research/open-questions.md), with its causes in
+[the Heart's Arch Pillars as obstacles](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355),
+[the neutral route gate](research/steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers),
+[a hero's arrival at an action point](research/stop-self-route.md#a-hero-arriving-at-an-action-point-keeps-its-self-route-q712-adr-0750) (ADR-0750),
 [an attacked floor's claim clip](research/imp-claim-action-clock.md#an-attacked-floors-claim-starts-its-own-clip-adr-0746-hashsave-472) (ADR-0746),
 [a fallen creature's stale body](research/steering-body-retention.md#state-217-leaves-its-body-where-it-fell-adr-0745-hashsave-471) (ADR-0745),
 [possessed pick heights](research/possessed-pick-heights.md),
@@ -39,8 +42,8 @@ as a replay input: 6905 ordered draws match through turn 1798) is in
 [the drop's heading](research/drop-heading.md) (ADR-0733, ADR-0736) and
 [the fight's step 5](research/combat-fight-state.md) (ADR-0734, ADR-0736); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
-[store-gold steering](research/store-gold-steering.md). The next boundary, turn 1799
-draw 1 (a room-point draw DK2 makes first; which creature makes it is unread), is described
+[store-gold steering](research/store-gold-steering.md). The next boundary, turn 1810
+draw 1 (an Imp's withdrawal walk that ends a turn late in ours), is described
 in Q712. Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 
