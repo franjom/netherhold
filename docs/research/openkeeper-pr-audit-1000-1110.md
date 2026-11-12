@@ -78,11 +78,15 @@ Ordered by shipped use and ordinary gameplay first.
     [0x0048B8A0](functions/0048B8A0.md) and [0x004BFBD0](functions/004BFBD0.md).
     One shipped record each.
 11. **Creature action 43 (found while checking [#1029](https://github.com/tonihele/OpenKeeper/pull/1029)).**
-    Fresh read of [0x0049AC80](functions/0049AC80.md): arm 0x2B queues world
-    action 4 with the creature's tile, with no ownership test. Unlike action 26
-    it puts the creature's id, not a player id, in the player word, and the
-    handler is unread, so "camera glide to the creature for any tree" is a
-    HYPOTHESIS. Seven shipped records; ours treats it as a no-op.
+    Built (ADR-0768). Fresh read of [0x0049AC80](functions/0049AC80.md): arm
+    0x2B calls `World_DispatchAction` directly with game action 4 and the
+    creature's tile, with no ownership test. Unlike action 26 it puts the
+    creature's tag, not a player id, in the player word. The bridge observer
+    ([0x0043B180](functions/0043B180.md)) hands it to the id-4 handler
+    [0x00442650](functions/00442650.md) with no local-player test, which
+    glides the camera to the tile centre and ignores the tag, so any tree
+    moves the viewer's camera (STRONGLY INFERRED, read, not observed in play).
+    Seven shipped records (Level1 x2, Level2 x2, Level3, Level15a, Level15b).
 12. **Torture reward 11 room reveal ([#1044](https://github.com/tonihele/OpenKeeper/pull/1044)).**
     Built (ADR-0740) in `TortureInformationRules.RevealTo` and
     `FogOfWarSystem.TortureSightPass`, from
@@ -130,7 +134,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | [1015](https://github.com/tonihele/OpenKeeper/pull/1015) | Covered: attacked event 6, two known deviations | `CombatTargetRules.Engage`; `TriggerEventTests`; [0x0045A550](functions/0045A550.md). Ours fires only on a new engagement and not on a failed registration. |
 | [1018](https://github.com/tonihele/OpenKeeper/pull/1018) | Gap: pick-up events P58 and 65 | [0x004BFBD0](functions/004BFBD0.md) fires both before any capacity test; fresh xref shows 17 call sites in 10 functions. Fire at the prepare step in `HandSystem.PickUp`, not after insertion. |
 | [1020](https://github.com/tonihele/OpenKeeper/pull/1020) | Covered: sacked events 63 / P61 | `LeavingRules.PortalDrop` and `Sack`; [0x00459D50](functions/00459D50.md), [0x0045A0D0](functions/0045A0D0.md). No test reads the events. |
-| [1029](https://github.com/tonihele/OpenKeeper/pull/1029) | Deliberate OpenKeeper deviation; exposed creature action 43 gap | Fresh read: hero and neutral trees dispatch to their own owner, and [0x004C4600](functions/004C4600.md) enqueues speech only for the local player. Ours already behaves so. See item 11 above for action 43. |
+| [1029](https://github.com/tonihele/OpenKeeper/pull/1029) | Deliberate OpenKeeper deviation; exposed creature action 43 gap | Fresh read: hero and neutral trees dispatch to their own owner, and [0x004C4600](functions/004C4600.md) enqueues speech only for the local player. Ours already behaves so. Creature action 43 is built (ADR-0768), see item 11 above. |
 | [1030](https://github.com/tonihele/OpenKeeper/pull/1030) | Covered: condition 64 by the named party | `TriggerExecutor.PartyMembersMissing`; [dispatch tables](trigger-dispatch-tables.md). Code-only; no test for a member tree naming another party. |
 | [1031](https://github.com/tonihele/OpenKeeper/pull/1031) | Covered: area condition 70 | `TriggerAreaConditions.PossessedCreatureExists`; Q280. |
 | [1106](https://github.com/tonihele/OpenKeeper/pull/1106) | Covered for the reachable site | `StealGoldRules.AtTheGold` fires event 13 first. Fresh xref: four native sites; only state 165 is reachable with shipped data ([steal-gold.md](steal-gold.md) §7-8). No test. |

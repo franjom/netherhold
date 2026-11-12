@@ -1120,6 +1120,16 @@ public sealed class TriggerExecutor
             HeroSlotRules.Mark(_world.HeroSlotArray, run.Creature.Id, unchecked((byte)record.Parameters["TargetId"]));
             return true;
         }
+        // Creature action 43 (0x0049B0DE): game action 4 to the creature's tile, handed straight to
+        // World_DispatchAction, whose view observer runs the camera glide (0x00442650) with no
+        // owner or local-player test, so any creature's tree moves the viewer's camera (ADR-0768).
+        if (context == TriggerContext.Creature && record.Type == 43 && run.Creature is not null)
+        {
+            run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
+            var tile = new TilePos((run.Creature.PosX >> 12) & 0xFFFF, (run.Creature.PosY >> 12) & 0xFFFF);
+            ViewRequested?.Invoke(new ScriptedViewRequest(ScriptedViewKind.CameraMove, PlayerIds.Unowned, 0, tile, false));
+            return true;
+        }
         if (context == TriggerContext.Creature && CreatureOwnsAction(record.Type))
             return Unperformed(record, context, run.Partial);
         if (context == TriggerContext.Creature && PlayerOwnsAction(record.Type))

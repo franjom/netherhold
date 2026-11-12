@@ -312,6 +312,42 @@ public class CameraPathPlaybackTests
     public void AGlideLastsTwentyFiveAndAHalfMillisecondsASquareTileAndAtMostHalfASecond(float x, float y, double ms) =>
         Assert.Equal(ms, ScriptedViewDirector.GlideMilliseconds(x, y), 3);
 
+    /// <summary>A creature tree's glide (creature action 43) is addressed to no keeper and reaches
+    /// every viewer; one addressed to another keeper does not (ADR-0768).</summary>
+    [Theory]
+    [InlineData(PlayerIds.Unowned, true)]
+    [InlineData(PlayerIds.FirstKeeper, true)]
+    [InlineData(PlayerIds.FirstKeeper + 1, false)]
+    public void AGlideAddressedToNoKeeperReachesEveryViewer(byte addressee, bool taken)
+    {
+        var director = new ScriptedViewDirector(new PlayerId(PlayerIds.FirstKeeper), _ => null, _ => null);
+        director.Emit(new SimEvent(default, "t", "scripted_view", "")
+        {
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraMove, addressee, 0, new TilePos(7, 2), false),
+        });
+        director.Update(0, 0);
+
+        Assert.Equal(taken, director.TryTakeCameraMove(out TilePos tile));
+        if (taken) Assert.Equal(new TilePos(7, 2), tile);
+    }
+
+    /// <summary>Only the kinds DK2 sends to no keeper in particular broadcast: a camera zoom
+    /// addressed to no keeper reaches nobody.</summary>
+    [Fact]
+    public void OtherKindsAddressedToNoKeeperReachNobody()
+    {
+        var director = new ScriptedViewDirector(new PlayerId(PlayerIds.FirstKeeper), _ => null, _ => null);
+        int zooms = 0;
+        director.ZoomRequested += (_, _) => zooms++;
+        director.Emit(new SimEvent(default, "t", "scripted_view", "")
+        {
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraZoom, PlayerIds.Unowned, 5, default, false),
+        });
+        director.Update(0, 0);
+
+        Assert.Equal(0, zooms);
+    }
+
     [Fact]
     public void TheDirectorHandsOverTheViewersLatestGlideOnce()
     {

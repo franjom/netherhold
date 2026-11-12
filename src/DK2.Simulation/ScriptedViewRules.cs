@@ -28,8 +28,8 @@ public enum ScriptedViewKind : byte
     /// a Portal introduction (type 14).</summary>
     Speech = 4,
 
-    /// <summary>Action 26: the keeper camera glides to the centre of
-    /// <see cref="ScriptedViewRequest.Tile"/> (game action 4, <c>0x00442650</c>).</summary>
+    /// <summary>Action 26, or creature action 43 for every viewer: the camera glides to the centre
+    /// of <see cref="ScriptedViewRequest.Tile"/> (game action 4, <c>0x00442650</c>).</summary>
     CameraMove = 5,
 
     /// <summary>World action 9: replace or clear the shared HUD FlashButton descriptor.</summary>

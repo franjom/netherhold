@@ -18023,3 +18023,29 @@ The marks multiply DK2's tick-rate global `0x006F2590` (variable 19, set from th
 `SimulationTiming.TicksPerSecond`, so a level with another rate would shift them. An action 51 in
 a player-rooted tree takes effect in DK2 for that player's own tick the same turn; ours reads the
 bit once at the end of the turn.
+
+## ADR-0768 - a creature's script glides every viewer's camera to the creature
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** campaign-triggers, camera-lighting
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, item 11) found creature
+action 43 treated as a no-op. Its arm in the creature dispatcher (`0x0049B0DE`) packs the
+creature's tile (`x | y << 16`, each its position `>> 12`), builds game action 4 with the
+creature's tag (`+4`) in the player word and the yaw words zero, and calls `World_DispatchAction`
+(`0x0050E5C0`) directly; it returns 1. The dispatcher offers the record to the bridge observer
+`[[world+4]+0x10]`, whose dispatch (`0x0043B180`) calls the handler for id 4 with no player test,
+and the world's own table has no handler for 4. That handler (`0x00442650`) reads only the tile
+and the yaw words and glides the camera to the tile centre. So any creature's tree, a hero's
+included, moves the local viewer's camera to the creature; the tag is ignored. STRONGLY
+INFERRED: read in DKII.EXE, not yet observed in the running game. Action 26,
+by contrast, tests the local player first. Seven shipped records: Levels 1 and 2 (two each), 3,
+15a and 15b.
+
+**Decision.** `TriggerExecutor` performs creature action 43: it sends a
+`ScriptedViewKind.CameraMove` to the creature's tile addressed to no keeper
+(`PlayerIds.Unowned`) and descends. `ScriptedViewDirector` passes a camera move, like the flash
+descriptor and the Mentor countdown, to every viewer when it is addressed to no keeper; other
+kinds still reach only their own keeper.
+
+**Consequences.** No simulation state changes, so there is no hash or save version change; the
+record no longer reports partial. The glide keeps action 26's presentation (at most 500 ms,
+blocked in the modes that block a scripted move).

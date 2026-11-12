@@ -2323,30 +2323,37 @@ public class TriggerExecutorTests
     }
 
     // Action 20 (give the Portal Gem) is performed since ADR-0495: PortalGemOnRealDataTests.
+    /// <summary>Creature action 43 (<c>0x0049B0DE</c>): game action 4 to the creature's tile, the
+    /// camera glide, for every viewer whoever owns the creature; it succeeds and descends (ADR-0768).</summary>
     [Theory]
-    [InlineData((byte)43)]
-    public void CreatureOwnedActionsSucceedAndRemainExplicitlyPartial(byte type)
+    [InlineData(PlayerIds.Good)]
+    [InlineData(PlayerIds.FirstKeeper)]
+    public void CreatureActionFortyThreeGlidesEveryViewersCameraToTheCreature(byte owner)
     {
         GameDatabase database = TestWorld.Database();
         WorldState world = TestWorld.World(database);
         CreatureState creature = world.SpawnCreature(
-            database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(4, 4));
+            database, Dk2TerrainFixture.ImpCreatureId, owner, new TilePos(4, 6));
         creature.TriggerId = 5;
+        creature.PosX = (4 << 12) + 3000;   // off the tile centre: the arm takes the tile, position >> 12
+        creature.PosY = (6 << 12) + 100;
 
         TriggerRecord[] records =
         [
             Condition(5, repeat: 1, child: 0xFFFF, next: 0, FlagEqualsZero()),
-            Typed214(1, type, child: 0xFFFE),
+            Typed214(1, 43, child: 0xFFFE),
             Action(2, 3, 0x0A, 1),
         ];
-        TriggerRunResult run = new TriggerExecutor(
-            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+        var simulation = new GameSimulation(database, world, seed: 1, [], new TriggerTree(records, 0));
+        var events = new ListEventSink();
+        simulation.ObserveWith(events);
+        simulation.Tick();
 
         Assert.Equal(1, world.Triggers.Read(3));
-        Assert.Equal(
-            new BlockedTrigger(214, type, 0xFFFF, TriggerContext.Creature),
-            Assert.Single(run.Partial));
-        Assert.Empty(run.Unhandled);
+        ScriptedViewRequest request = Assert.Single(events.Events, e => e.ScriptedView is not null).ScriptedView!.Value;
+        Assert.Equal(new ScriptedViewRequest(ScriptedViewKind.CameraMove, PlayerIds.Unowned, 0, new TilePos(4, 6), false), request);
+        Assert.DoesNotContain(simulation.LastTriggerRun!.Partial, x => x.Type == 43);
+        Assert.Empty(simulation.LastTriggerRun.Unhandled);
     }
 
     [Fact]

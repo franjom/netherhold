@@ -160,7 +160,7 @@ handlers come from the (id, handler) pairs at `0x0066CE30`, 37 pairs (STRONGLY I
 
 | Id | Handler | Effect (camera = bridge `+0x3E5`) |
 |---|---|---|
-| 4 | `0x00442650` | glide the focus to the tile centre (≤ 500 ms) |
+| 4 | `0x00442650` | glide the focus to the tile centre (≤ 500 ms); also creature trigger action 43 (`0x0049AC80`) |
 | 6 | `0x00442290` | `Camera_SetZoom(rec[0], rec[1])`: zoom, timed when rec[1] ≠ 0 |
 | 15 | `0x00442780` | if the camera mode is 7, `Camera_SetYaw(0)`; then `Camera_RequestMode(rec[0], 0)` |
 | 17 | `0x004427D0` | creature id to camera `+0xE02` (followed creature), yaw request |

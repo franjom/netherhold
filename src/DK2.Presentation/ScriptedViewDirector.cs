@@ -46,9 +46,12 @@ public sealed class ScriptedViewDirector(
 
     public void Emit(in SimEvent simEvent)
     {
-        // The flash descriptor and the Mentor countdown are not addressed to a keeper (ADR-0767).
+        // The kinds DK2 sends to no keeper in particular (the flash descriptor, the Mentor countdown,
+        // a creature tree's camera glide) reach every viewer when addressed to no keeper
+        // (ADR-0767, ADR-0768); any other kind only its own keeper.
         if (simEvent.ScriptedView is { } request && (request.Player == viewer
-                || request.Kind is ScriptedViewKind.FlashButton or ScriptedViewKind.MentorSpeech))
+                || request.Player == PlayerIds.Unowned
+                    && request.Kind is ScriptedViewKind.FlashButton or ScriptedViewKind.MentorSpeech or ScriptedViewKind.CameraMove))
             _requests.Enqueue(request);
         downstream?.Emit(simEvent);
     }

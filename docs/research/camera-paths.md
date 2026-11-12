@@ -346,7 +346,7 @@ A script can also move the keeper camera itself, with action 26:
 - Level 11A's entrance condition (trigger 49) runs one at once, on point 7.
 - Level 1 uses its 26s in later tutorial steps.
 - The level-won sequence `0x004BF9E0` queues the same action 4 to a position from
-  `0x004C5F50`.
+  `0x004C5F50`; so does creature action 43, with no local-player test (ADR-0768).
 
 The 18 action 27s, the timed camera turns, are in levels 6b, 11A and 20. None sits
 under a condition 72: they hang off flags, timers, a creature count and one type-4
