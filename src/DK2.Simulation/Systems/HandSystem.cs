@@ -38,6 +38,16 @@ public sealed class HandSystem : ISimulationSystem
     /// For packet playback only (ADR-0616); play keeps the permission here, our authoritative place.</summary>
     public bool StoredCommandPickups { get; init; }
 
+    /// <summary>Whether the creature sweep (<see cref="CreatureUpdateSystem"/>) lands last turn's drops
+    /// (<see cref="LandDue"/>); a host without it leaves this off and they land here.</summary>
+    public bool LandsInCreatureUpdate { get; init; }
+
+    /// <summary>A drop due this turn lands at the start of the creature's own update.</summary>
+    internal static void LandDue(SimulationContext context, CreatureState creature)
+    {
+        if (context.LandingDueThisTick.Remove(creature) && creature.LandingPending) Land(context, creature);
+    }
+
     public void Execute(SimulationContext context)
     {
         // The clocks first, then the keeper. A slap sets WorkFasterTicks to its
@@ -46,11 +56,16 @@ public sealed class HandSystem : ISimulationSystem
         // input path, so its two never meet on one tick either.
         Tend(context);
 
-        // Last turn's drops land before this turn's commands, in creature order.
+        // Last turn's drops land in their own update, as 76's handler (0x0046EAB0) runs in the
+        // creature's slot; a host without the creature sweep lands them here, in creature order.
         _landing.Clear();
         foreach (CreatureState creature in context.World.Creatures)
             if (creature.LandingPending) _landing.Add(creature);
-        foreach (CreatureState creature in _landing) Land(context, creature);
+        foreach (CreatureState creature in _landing)
+        {
+            if (LandsInCreatureUpdate) context.LandingDueThisTick.Add(creature);
+            else Land(context, creature);
+        }
 
         // Hand state 1 lasts one turn: last turn's keeper frame (0x004C0AA0), after the creatures, took
         // a creature prepared the turn before.
@@ -483,6 +498,7 @@ public sealed class HandSystem : ISimulationSystem
         // State 76 falls for the rest of this turn and lands on the next (hand-drop-landing.md section 2).
         creature.PosZ = creature.LastPosZ = DropLandingRules.FallingHeight;
         creature.LandingPending = true;
+        context.LandingDueThisTick.Remove(creature);   // a re-drop this turn lands on the next
         creature.LandingDropperPlayerId = command.PlayerId.Value;
         context.Emit(SystemName, "dropped_falling",
             $"player={command.PlayerId} creature={creature.Id} tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
@@ -887,7 +903,7 @@ public sealed class HandSystem : ISimulationSystem
     {
         room = null;
         if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return SlapOutcome.Uncounted;
-        if (creature.Dk2StateId is 76 or 101 or 193) return SlapOutcome.Nothing;
+        if (creature.LandingPending || creature.Dk2StateId is 76 or 101 or 193) return SlapOutcome.Nothing;
         if (creature.Dk2StateId is 209 or 255) return SlapOutcome.Short;
         room = creature.HeldPlace.IsHeld
             ? RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex)

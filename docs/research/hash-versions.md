@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**478** - `0xBFF8D4CC34F9F802`. A hand drop lands at the start of its creature's own update in the sweep, as state 76's handler runs there (`0x0046EAB0` through the dispatcher `0x00476FC0`); a slap on a creature still landing gets the Nothing outcome (ADR-0753). No new saved state (`SimulationContext.LandingDueThisTick` is a per-turn cache); the version moves because recorded runs change.
+
 **477** - `0x31E6144EE6054DCF`. An Imp's state-6 walk resuming 251 (the alarm walk) ends on the turn of its last step, as 202's does: the mover's step stops it on whole progress and enters 251 (`0x00470C80`, ADR-0752). No new state; the version moves because recorded runs change.
 
 **476** - `0xF9D4FF60F004C5DA`. The Heart's centre-tile objects (86, three of 88, 13) are walked as things on their tile and the tail forwards only object 100 (`0x004D12B0`); every non-Imp takes the mover block's bit gate and zero-speed return with no route test (`0x00488930`) and keeps the stop's one-point self-route (`0x0048ECE0`); a zero-length route is not `HasRoute` (`0x004D54F0`); state 222 turns toward its leader first (`0x00461F25`) (ADR-0751). No new state; the version moves because recorded runs change.

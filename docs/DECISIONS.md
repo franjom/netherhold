@@ -17081,7 +17081,7 @@ packet's point, and lands on the next. Ours landed in the drop's tick at the
 tile's centre.
 
 **Decision.** The drop only releases the creature, at the command's point when
-it has one; the landing's outcomes run at the start of the next tick. A falling
+it has one; the landing's outcomes run on the next tick, in the creature's own update (ADR-0753). A falling
 creature does not act, but is not in the hand.
 
 **Consequences.** Hash/save459 adds the pending flag and the dropper. The
@@ -17663,3 +17663,37 @@ turn; slot 434 is already about 1100 units off native from turn 1811. Not built:
 resumes such as 254 still end a turn late (a 254 attempt left a velocity in a unit test and has
 no capture evidence); state 6's action-kind-4 hold is not modelled (pre-existing).
 Evidence: combat-handler-handovers.md ("An Imp's alarm walk"), combat-alarm.md section 5.
+
+## ADR-0753 - a hand drop lands in its creature's own update
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** creatures, combat, simulation-core
+
+**Context.** Q712. ADR-0730 landed every pending drop at the start of the turn, before any
+creature updated. State 76's handler (`0x0046EAB0`) is called through the state table
+(`0x006DB01C`) by the dispatcher `0x00476FC0`, whose only caller is `Creature_Update`
+(`0x0048A030`), so it and its stun (`0x00491830` at `0x0046F199`) run in the dropped
+creature's own slot of the sweep (STRONGLY INFERRED, reviewer re-read; one drop plus the
+twelve one-turn falls of the capture). A creature updated earlier reads state 76: its
+attackability bit (`0x0045A8CC`, cached by `0x0045A8B0` at the end of the creature's own
+update) and the pick-up permission (`0x0048E6A0`) refuse `0x4C`. Level 5: Warlock slot 438,
+dropped on 1810, is in 76 at the end of 1810 and in 255 at the end of 1811; Thief slot 434,
+updated before it, went for slot 439 on 1811 though 438 was nearer. Ours targeted 438 and
+ended 1107 units off native.
+
+**Decision.** In the default list `HandSystem.LandsInCreatureUpdate` is true: `HandSystem`
+puts last turn's pending drops into `SimulationContext.LandingDueThisTick`, and
+`CreatureUpdateSystem` lands each at the start of that creature's update
+(`HandSystem.LandDue`). A host without the sweep keeps the turn-start landing;
+`GameSimulation` throws if the flag is set without a `CreatureUpdateSystem`. A re-drop in
+the same turn leaves the due set and lands next turn. A slap on a creature still landing
+gets state 76's outcome, Nothing (`0x0048B8A0` lists `0x4C` as a no-count state).
+
+**Consequences.** Hash/save 478, pin `0xBFF8D4CC34F9F802`; no new saved state
+(`LandingDueThisTick` is a per-turn cache), recorded runs change (Level 1's journal
+re-recorded; the win is unchanged, turn 2347). Controlled Level 5 replay (new rules gated at
+turn 1400): 7616 matched draws through turn 1844, up from 7600 through 1843; slot 434
+matches native on 1811 to 1813. The new boundary is turn 1845 draw 1: native
+`ObjectState.cpp:2708`, ours `Creature.cpp:6461`, ours' Warlock shot (caster 19) killing
+Thief slot 434. Not built: a possessed creature skips the dispatcher in DK2 (`0x0048A028`)
+so 76 never runs, while `LandDue` ignores possession; a landing into a non-stun state (worker
+11, Prison 114/115, Portal 197) runs ours' fight scan in the landed state where DK2 skipped it
+on the landing turn (pre-existing). Evidence: hand-drop-landing.md section 2.

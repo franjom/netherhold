@@ -80,13 +80,12 @@ report 254, still end a turn late; a 254 attempt has no capture evidence. The
 action-kind-4 hold of state 6 is not modelled.
 
 Controlled replay (rules gated at turn 1400): 7600 ordered draws through turn 1843,
-up from 7071 through 1809. The next boundary, turn 1844 draw 1, is native
-`ObjectState.cpp:2851` (a Chicken roam) against ours `DeathFallRules.Pick`: ours'
-Warlock shot kills Thief slot 434 that turn, and slot 434 is about 1100 units off
-native in state 8 from turn 1811. Small differences remain before it (Imps 454,
-455, 445 a few units off at 1805; 441 in state 78 against ours 1 at 1805; 436's
-health at 1805). Study: `F:/DK2Evidence/studies/q712-withdraw-end--2026-11-12--001`
-(`README.md` names trace482, controlled483 and controlled484).
+up from 7071 through 1809; the later boundary and its cause (a drop's landing in the
+creature's own update, ADR-0753) are in Q712 and
+[hand-drop-landing.md](hand-drop-landing.md). Small differences remain at 1805 (Imps
+454, 455, 445 a few units off; 441 in state 78 against ours 1; 436's health). Study:
+`F:/DK2Evidence/studies/q712-withdraw-end--2026-11-12--001` (`README.md` names trace482,
+controlled483 and controlled484).
 
 ## Verification and remaining boundary
 

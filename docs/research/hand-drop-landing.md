@@ -57,8 +57,8 @@ while the predicted height is above the floor, so the second update lands. The p
 
 **Built (ADR-0730, hash/save 459).** `HandSystem.Drop` releases the creature
 at the command's point (its tile's centre without one) at
-`DropLandingRules.FallingHeight`, and the landing's arms run at the start of
-the next tick. `LandingPending` and the dropper's player are hashed, saved
+`DropLandingRules.FallingHeight`, and the landing's arms run in the creature's
+own update on the next turn (below). `LandingPending` and the dropper's player are hashed, saved
 and copied. While it falls the creature does not act (`HandRules.IsHeld`), is
 not in the hand (it can be hurt, healed and hit by a forced shot) and shows
 the computer keeper state 76. Ours keeps the creature's own state word
@@ -72,11 +72,39 @@ height 0, angle 0 and the tile's centre plus `0x100` on each axis
 (disassembly). `0x004B5020` raises a below-floor Z to the floor, so state 76
 predicts the floor in its first update and the landing arms run in the first
 update after the drop; the AI drops in the keeper tick after the sweep, so DK2
-lands it in the next turn's sweep (STRONGLY INFERRED). Ours passes the point
+lands it in the next turn's sweep, in the creature's own slot (STRONGLY INFERRED). Ours passes the point
 and angle (ADR-0736) but gives it the human one-turn fall from `0x2000`;
 whether that makes ours a turn late depends on the phase at which our AI
 commands execute, which was not read (PLAUSIBLE).
 The angle's side is in [drop-heading.md](drop-heading.md).
+
+**Where in the turn the landing runs (ADR-0753, hash/save 478; STRONGLY INFERRED:
+one drop plus the twelve one-turn falls).** The state-table init stores `0x0046EAB0`
+at `0x006DB01C` (`0x006DA8B0` plus 76 times `0x19`); the dispatcher `0x00476FC0`
+calls through it and its only caller is `Creature_Update` (`0x0048A030`), so 76's
+body, the stun included (`0x00491830` at `0x0046F199`: SetState 255, action `0x34`,
+event `0xF`), runs in the dropped creature's own slot of the creature sweep, not at
+the start of the turn. The other callers of the stun (`0x004AF31E`, `0x004A0DAE`,
+`0x004AF655`) run in the shot and object lists after the creatures; `0x004BC710`
+enters 76 by `KickToState(0x4C)` and never stuns. A creature updated earlier in the
+sweep still reads 76: `0x0045A8CC` refuses state `0x4C` in the attackability bit
+(`+0x3EA` bit `0x40`), which `0x0045A8B0` caches at the end of the creature's own
+update (`0x0048A037`), and the cursor pick-up permission `0x0048E6A0` refuses `0x4C`
+(`0x0048E6F6`). Level 5 capture: Warlock slot 438 dropped on 1810 is in 76 at the end
+of 1810 and in 255 at the end of 1811; Thief slot 434, updated before 438, entered its
+approach on 1811 toward slot 439's position though 438 was nearer; ours with the
+turn-start landing targeted 438 and ended 1107 units off native. Ours now:
+`HandSystem` moves last turn's pending drops into `SimulationContext.LandingDueThisTick`
+and `CreatureUpdateSystem` calls `HandSystem.LandDue` at the start of each creature's
+update (`HandSystem.LandsInCreatureUpdate`, set in `SimulationSystems.Commands`); a
+host without the sweep keeps the turn-start landing, and `GameSimulation` refuses the
+flag without a `CreatureUpdateSystem`. A re-drop in the same turn leaves the due set
+and lands next turn. A slap on a creature still landing gets the outcome of state 76,
+Nothing (the slap record `0x0048B8A0` lists `0x4C` as a no-count state). Not built:
+a possessed creature skips the dispatcher (`0x0048A028`), so DK2 never runs 76 for
+it, where ours' `LandDue` ignores possession; a landing into a non-stun state (worker
+to 11, Prison 114/115, Portal 197) runs ours' own fight scan in the landed state,
+where DK2 skipped it on the landing turn (pre-existing).
 
 With it the four Warlocks dropped at 1688 to 1693 stand on DK2's points and
 enter 255 and 257 on DK2's turns. The two that then entered the fight a turn

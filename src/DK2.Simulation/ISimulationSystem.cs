@@ -42,6 +42,8 @@ public sealed class SimulationContext
     // runs on the next turn (0x00476FC0 runs one handler a turn).
     internal HashSet<CreatureState> IdledByCombatHandlerThisTick { get; } = [];
     internal HashSet<CreatureState> IdledByLairHandlerThisTick { get; } = [];
+    // Cleared before every turn; last turn's drops the creature sweep lands in their own slots.
+    internal HashSet<CreatureState> LandingDueThisTick { get; } = [];
     internal HashSet<CreatureState> ReinforcementActionsPolledThisTick { get; } = [];
     internal HashSet<CreatureState> ClaimActionsPolledThisTick { get; } = [];
     internal HashSet<CreatureState> ClaimActionsAdvancedThisTick { get; } = [];

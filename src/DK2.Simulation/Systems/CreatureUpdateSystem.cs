@@ -74,6 +74,8 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
             if (i < 0) break;
             CreatureState creature = creatures[i];
             below = creature.Id;
+            HandSystem.LandDue(context, creature);
+            if (creature.LinkWorld is null) continue;
             context.UpdateStartStateId = creature.Dk2StateId;
             bool actionPolled = false;
             foreach (ICreatureUpdateStep step in steps)

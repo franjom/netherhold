@@ -24,8 +24,8 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 477 with ADR-0752, the replay inputs including the
-five hero guards restored at turn 1400: 7600 ordered draws match through turn 1843) is in
+The last controlled result (hash 478 with ADR-0753, the replay inputs including the
+five hero guards restored at turn 1400: 7616 ordered draws match through turn 1844) is in
 [Q712](research/open-questions.md), with its causes in
 [the Heart's pillars and centre-tile objects as obstacles](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) (ADR-0750, ADR-0751),
 [the mover block for every non-Imp](research/steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers) (ADR-0751),
@@ -38,14 +38,14 @@ five hero guards restored at turn 1400: 7600 ordered draws match through turn 18
 [possessed pick heights](research/possessed-pick-heights.md),
 [step-back speed mode](research/step-back-speed-mode.md),
 [a speed a handler sets](research/speed-set-turn.md) (ADR-0737),
-[the hand drop's fall](research/hand-drop-landing.md) (ADR-0730),
+[the hand drop's fall and its landing in the creature's own update](research/hand-drop-landing.md) (ADR-0730, ADR-0753),
 [the pick-up's turn](research/hand-pickup-turn.md) (ADR-0731),
 [the fall heading and the fall's step](research/death-fall-heading.md) (ADR-0732, ADR-0741),
 [the shot's probe and the hit's heading](research/shot-probe-and-hit-heading.md) (ADR-0741),
 [the drop's heading](research/drop-heading.md) (ADR-0733, ADR-0736) and
 [the fight's step 5](research/combat-fight-state.md) (ADR-0734, ADR-0736); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
-[store-gold steering](research/store-gold-steering.md). The next boundary, turn 1844
+[store-gold steering](research/store-gold-steering.md). The next boundary, turn 1845
 draw 1 (ours' Warlock shot kills a Thief that native's does not), is described
 in Q712. Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.

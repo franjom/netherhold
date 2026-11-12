@@ -309,6 +309,36 @@ public class DropLandingTests
         Assert.Equal((byte)owner, foreign.OwnerPlayerId);
     }
 
+    /// <summary>76's handler (<c>0x0046EAB0</c>) lands a drop in the creature's own update, so a
+    /// newer creature updated before it that turn still finds it landing and not attackable. Level 5,
+    /// turn 1811: a Thief updated before the Warlock dropped on 1810 and chose another target.</summary>
+    [Fact]
+    public void ADropLandsInItsOwnUpdate_ACreatureUpdatedBeforeItStillSeesItLanding()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState dropped = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        CreatureState newer = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 4));
+        var seen = new List<(int Id, bool Attackable, int State)>();
+        var sim = new GameSimulation(db, world, 7,
+            [new HandSystem { LandsInCreatureUpdate = true }, new CreatureUpdateSystem(new Watch(dropped, seen))]);
+        sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, dropped.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        seen.Clear();
+
+        sim.Tick();
+
+        Assert.Equal([(newer.Id, false, CreatureStateMachine.Idle), (dropped.Id, true, 255)],
+            seen.Select(s => (s.Id, s.Attackable, s.State)).ToArray());
+    }
+
+    private sealed class Watch(CreatureState watched, List<(int, bool, int)> seen) : ICreatureUpdateStep
+    {
+        public string Name => "watch";
+        public void Execute(SimulationContext context) { }
+        public void Update(SimulationContext context, CreatureState creature) =>
+            seen.Add((creature.Id, Combat.CombatRules.IsAttackable(watched), watched.Dk2StateId));
+    }
+
     private static (GameDatabase, WorldState) World()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
