@@ -552,7 +552,8 @@ public class HeroWalkTests
 
     /// <summary>177's fallback (<c>0x004625F7</c>) walks to the <c>DungeonHeartPosition</c> tile
     /// itself, the heart's centre, when the target player has no creature left.
-    /// The core guard resolves that target outside the central object's disk.</summary>
+    /// The core guard resolves that target outside the central object's disk; this world has no lava
+    /// byte on the centre, which DK2's Heart has, and with it a walker gets no route (ADR-0755).</summary>
     [Fact]
     public void KillCreatures_WithNoCreatureLeft_WalksToTheLiveHeartsEdge()
     {

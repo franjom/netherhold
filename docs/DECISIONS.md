@@ -10105,13 +10105,14 @@ replace production playback. Frame caching quantizes motion and is diagnostic on
 
 ## ADR-0439 — Keep live Hearts closed during movement exceptions
 
-**Status:** accepted, 2026-10-11. Owner requests rim-only movement around live
-Hearts; destroyed Hearts remain walkable.
+**Status:** accepted, 2026-10-11; narrowed by ADR-0755 (the edge move ends only a route
+that exists). Owner requests rim-only movement around live Hearts; destroyed Hearts
+remain walkable.
 
 **Decision.** Reject movement segments through the central object's small disk;
 ADR-0505 restores this guard after ADR-0452's platform expansion. Include arrival snaps,
 fallback steps and committed coordinate rounding. A body already inside may
-move outward. Move interior targets to the near edge so assaults can finish.
+move outward. Move interior targets of a route that exists to the near edge so assaults can finish.
 Preserve DK2's navigation bytes and obstacle exemptions. Ruined Hearts leave
 the structure mask and virtual obstacle list. Bump hash/save formats to 227.
 
@@ -17732,3 +17733,43 @@ diverged on 1817: from state 90 native took 186 (tunnelling, its route to the He
 ours 6/178 (routed). Retires Q398's "nearest overlap first" item; Q761 asks the owner two
 things the capture cannot settle. Evidence: shots.md section 4a;
 study `q712-shot-tile-walk--2026-11-12--001`.
+
+## ADR-0755 - a route is decided on the point asked for; a live Heart's lava centre is refused
+**Date:** 2026-11-12 | **Status:** accepted | Narrows ADR-0439 | **Systems:** navigation, creatures
+
+**Context.** Q712's boundary at turn 1849 began on 1817. Level 5 Dwarf slot 435 (ours id 21),
+in state 90, drew the Heart tile `random(25)` = 12 (draw 249796340), the centre (16,25). DK2
+entered state 186 (tunnelling) on 1817 aimed at (67584,104448): its route failed. The
+1400 memory image's navigation byte there is 3, lava, written by `DungeonHeart_Build`
+(`0x004DBB65`, Q601). Ours moved the target onto the platform (ADR-0439) before the router
+was asked, so the route existed and the Dwarf walked in state 6.
+`Travel_RouteToPoint` (`0x00471890`) asks `0x004B35C0` (byte 3 passes), then the route request
+`0x004D0F60`, which returns whether points were found; on either refusal (`0x00471964`) it
+returns 0 without option bit 0, and with it, for a creature whose definition `+0x686` bit 0
+is set and whose owner is the global `0x006F254C`, calls `0x00485B80` (state 186, point
+`>> 12` at `+0xB7/+0xB9`, resume at `+0xD3`), whose only callers are the two failure paths.
+The request stores the raw point at body `+0xA4/+0xA8` on failure (`0x004D5100`). The step
+cost (`0x004C8BD0`) is 0 when a lava tile is entered from non-lava with the lava flag
+`0x006EC9DC` clear, and both searches pass the entered tile (`0x004CD233`, `0x004CD6C8`).
+STRONGLY INFERRED (reviewer re-read); not read: the search's impassable-seed handling and the
+region pre-check `0x004C9400`. A request within one triangle does not search.
+
+**Decision.** `WorldSteering.Route` asks the router for the raw point first when
+`ConstrainTarget` would move it (inside a live Heart's object 13 disk, width 4096, a
+0.5-tile radius, wholly inside the centre tile); a refusal returns false. `RouteWindow.Request`
+asks `Route` with the raw point and constrains the loaded target only when the route exists; a
+refused route keeps the raw point. ADR-0439 is narrowed, not withdrawn: its edge move still
+ends a route that exists (lava walkers, a body already in that triangle, unstamped synthetic
+worlds). The disk guard on movement segments is unchanged.
+
+**Consequences.** Hash/save 480, pin `0xE81971749FC20616`, no new state; recorded runs change
+(Level 1's journal re-recorded, the win unchanged). A walker that cannot cross lava gets no
+route to a live Heart's centre, so a hero with a kill-creatures job and nobody left falls to
+tunnelling where its definition allows (Q762); `HeroWalkTests`' walk to a creature's tile
+holds only where the centre is unstamped. Controlled Level 5 replay: 7878 ordered draws
+through turn 1862, up from 7671 through 1848. New boundary: turn 1863 draw 2, native
+`ObjectState.cpp:2523`, ours `Creature.cpp:6461` (a death fall): Warlock 17's shot kills
+Thief 434 (ours 22), which started its approach (state 8) on 1851 and moves about twice
+native's distance a turn from its first step. Test:
+`HeartCentreRouteOnRealDataTests`. Evidence: structure-blocks.md §5.3, §5.4; study
+`F:/DK2Evidence/studies/q712-heart-lava-target--2026-11-12--001`.

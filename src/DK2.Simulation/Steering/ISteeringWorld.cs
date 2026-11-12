@@ -17,7 +17,8 @@ public interface ISteeringWorld
     /// <summary>Whether a movement segment avoids live Heart cores (ADR-0439).</summary>
     bool CanMove(Fixed16Vector from, Fixed16Vector to);
 
-    /// <summary>Moves a target inside a live Heart core onto its edge (ADR-0439).</summary>
+    /// <summary>Moves a target inside a live Heart core onto its edge (ADR-0439); a route is asked for the
+    /// point itself first and this applies only where it exists (ADR-0755).</summary>
     Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target);
 
     /// <summary>Every <c>Obstacle</c> the gated enumerator (<c>0x004D12B0</c>) yields within

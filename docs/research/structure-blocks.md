@@ -188,6 +188,25 @@ ADR-0452 changed native routes and movement; the controls are in
 explicit deviation from native arrival/escape exceptions. Ruined Hearts lose
 this guard. Tests cover the core, corner movement, targets, arrival and ruin.
 
+**A route to a live Heart's centre is refused first (Q712, ADR-0755; STRONGLY INFERRED
+from a re-read, the outcome CONFIRMED in capture).** Object 13's disk, width 4096, is a
+0.5-tile radius, wholly inside the centre tile, which carries the lava byte 3 (§5.4). The
+target move now applies only to a route that exists: `WorldSteering.Route` asks the router
+for the raw point first and a refusal is final, and a refused route keeps the raw point as
+its target (DK2's `0x004D5100` stores it at body `+0xA4/+0xA8` on failure). A non-lava walker
+therefore gets no route to the centre; the edge move still ends routes of lava walkers,
+bodies already in that triangle, and worlds that stamp no byte 3 (synthetic worlds, so
+`HeroWalkTests`' `KillCreatures_WithNoCreatureLeft_WalksToTheLiveHeartsEdge` holds only
+there). Capture (Level 5, seed 1): Dwarf slot 435 (ours id 21), state 90 on 1816, drew the
+Heart tile `random(25)` = 12 (draw 249796340), the centre (16,25); DK2 entered state 186 on
+1817 aimed at (67584,104448) where ours had walked in state 6. `Travel_RouteToPoint`
+(`0x00471890`, [record](functions/00471890.md)) sends a refusal to its failure path:
+nothing without option bit 0, state 186 with it for a creature allowed to tunnel.
+Not read: the search's impassable-seed handling and the region pre-check `0x004C9400`.
+Open for the owner: Q762, and Q585 must cover heroes refused at the centre. Test:
+`HeartCentreRouteOnRealDataTests`; study
+`F:/DK2Evidence/studies/q712-heart-lava-target--2026-11-12--001`.
+
 **The Heart's Arch Pillars are enumerated like any object (Q712, ADR-0750; STRONGLY
 INFERRED, the outcome CONFIRMED in capture).** The tile walk
 (`0x004D13B8`..`0x004D14B6`) takes a thing of class (`+0x12`) 2 whose definition
@@ -250,6 +269,10 @@ The terrain writer selects the silent setter while world flag
 `+0x7239 & 0x40` is set and the notifying setter otherwise. The door paths
 always notify. None of these writers reads an object definition, object flags,
 or object size, and the door overlays never set bit 3.
+
+Byte 3 on a heart's chain tile 12 decides routability for a walker that cannot cross lava:
+the step cost `0x004C8BD0` is 0 entering a lava tile from a non-lava one with the lava flag
+`0x006EC9DC` clear, and the route to the centre is refused (§5.3, ADR-0755; STRONGLY INFERRED).
 
 **STRONGLY INFERRED:** furniture is not turned into an impassable *tile*.
 Q209's premise was wrong. The nav cache holds terrain, door, and a few

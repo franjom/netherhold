@@ -511,13 +511,21 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points, bool refresh)
         => Route(from, to, mover, points, refresh, RoutePointKind.GateMidpoints);
 
-    /// <summary>The route with the caller's point kind; combat queries measure funnel corners.</summary>
+    /// <summary>The route with the caller's point kind; combat queries measure funnel corners. A
+    /// point the router refuses is refused even where ADR-0439 would move it to a live core's edge.</summary>
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points, bool refresh,
         RoutePointKind pointKind)
     {
         if (refresh || _router is null) Refresh();
-        to = ConstrainTarget(from, to);
         using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRoute);
+        Fixed16Vector constrained = ConstrainTarget(from, to);
+        // DK2 decides on the point asked for: a live Heart's centre carries the builder's lava byte
+        // (Q601), so a walker that cannot cross lava gets no route there and a hero tunnels instead
+        // (Level 5, turn 1817). ADR-0439's edge point is only where a route that exists ends.
+        if (constrained != to && !_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8),
+                new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints, pointKind))
+            return false;
+        to = constrained;
         if (!_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8), new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints, pointKind))
             return false;
         foreach (NavPoint p in _waypoints) points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));

@@ -24,10 +24,10 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 479 with ADR-0754, the replay inputs including the
-five hero guards restored at turn 1400: 7671 ordered draws match through turn 1848) is in
+The last controlled result (hash 480 with ADR-0755, the replay inputs including the
+five hero guards restored at turn 1400: 7878 ordered draws match through turn 1862) is in
 [Q712](research/open-questions.md), with its causes in
-[the Heart's pillars and centre-tile objects as obstacles](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) (ADR-0750, ADR-0751),
+[the Heart's pillars and centre-tile objects as obstacles, and the lava centre's refused route](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) (ADR-0750, ADR-0751, ADR-0755),
 [the mover block for every non-Imp](research/steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers) (ADR-0751),
 [the generic stop self-point](research/stop-self-route.md#every-non-imp-stops-the-same-way-q712-adr-0751) and
 [a hero's arrival at an action point](research/stop-self-route.md#a-hero-arriving-at-an-action-point-keeps-its-self-route-q712-adr-0750) (ADR-0750),
@@ -46,8 +46,8 @@ five hero guards restored at turn 1400: 7671 ordered draws match through turn 18
 [the drop's heading](research/drop-heading.md) (ADR-0733, ADR-0736) and
 [the fight's step 5](research/combat-fight-state.md) (ADR-0734, ADR-0736); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
-[store-gold steering](research/store-gold-steering.md). The next boundary, turn 1849
-draw 1 (native's Imp 444 starts an alarm walk where ours' draws a chicken roam), is described
+[store-gold steering](research/store-gold-steering.md). The next boundary, turn 1863
+draw 2 (native `ObjectState.cpp:2523` where ours' draws Thief 434's death fall), is described
 in Q712. Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 

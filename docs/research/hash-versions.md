@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**480** - `0xE81971749FC20616`. A route is decided on the point asked for: where ADR-0439 would move the target (inside a live Heart's object 13 disk), the router is asked for the raw point first and a refusal is final, so a walker that cannot cross lava gets no route to the Heart's lava centre (`0x00471890`, `0x004D0F60`, `0x004D5100`, ADR-0755). No new saved state; the version moves because recorded runs change.
+
 **479** - `0x0177D6545A28A885`. A shot's overlap finder walks only the tiles its Radius covers and takes the first thing in tile and chain order, not the nearest; collide type 3 does a whole enemies walk and then a whole friends walk (`0x00451570`, `0x004AC330`, ADR-0754). No new saved state; the version moves because recorded runs change.
 
 **478** - `0xBFF8D4CC34F9F802`. A hand drop lands at the start of its creature's own update in the sweep, as state 76's handler runs there (`0x0046EAB0` through the dispatcher `0x00476FC0`); a slap on a creature still landing gets the Nothing outcome (ADR-0753). No new saved state (`SimulationContext.LandingDueThisTick` is a per-turn cache); the version moves because recorded runs change.
