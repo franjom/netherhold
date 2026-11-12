@@ -203,7 +203,7 @@ steering body sits at `entity+0x124`, which is how the two connect.
 | gate | a push only while `0 < d <= rA + rB` |
 | ratio | `r = (d << 16) / (rA + rB)` |
 | arm 1 | `r <= 0x28F` (about 1 %) -> magnitude is A's `max_force` |
-| arm 2 | B `is_blocker` and A not `ignore_blocker` -> `2^32 / r - 1.0` |
+| arm 2 | B `is_blocker` and A not `ignore_blocker` -> `2^32 / r - 1.0`; reachable since ADR-0756 ([who sets the bits](combat-category-hooks.md#3-the-fields)) |
 | arm 3 | otherwise `root = isqrt(r)`; `root = 0` -> `max_force`, else `2^32 / root - 1.0` |
 | cosine | `c = n . normalise(A.vel)`; `k = (c + 1.0) / 2` |
 | size | `F = table[B.size - 1][A.size - 1]`: `B / (A + B)` over size classes 1-5 (definition `+0x624`, KWD `0xEA8`; Imp 1, Bile Demon and Giant 5), except cell (A 4, B 5), which holds 0.75 |

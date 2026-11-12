@@ -208,6 +208,11 @@ public sealed class CombatSystem : ICreatureUpdateStep
             return;
         }
 
+        // spFighting clears the body's blocker and ignore-blocker bits on every entry (0x0045F0CB); only
+        // the attack path below sets the first again, so a fighter at its post is not pushed by Separation.
+        creature.Body.IsBlocker = false;
+        creature.Body.IgnoreBlocker = false;
+
         // Step 1: a target that has died is dropped with the 0xF nibble (§6); the victory arm runs next tick.
         // A healer holds no attacker slot on its ally, so an ally's death marks nothing.
         if (creature.FightTargetKind == FightTargetKind.Creature && creature.AttackType != CombatRules.AttackMode.SpellAtAlly)
@@ -278,6 +283,10 @@ public sealed class CombatSystem : ICreatureUpdateStep
         // Busy (0x00496D00): the state handler does not select another attack or approach.
         if (FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
 
+        // 0x0045F667: a live target and no action: the body blocks and stops ignoring blockers.
+        creature.Body.IsBlocker = true;
+        creature.Body.IgnoreBlocker = false;
+
         // Step 8: a Support re-acquires every tick, keeping a new target and restoring the old one
         // when nothing is found (combat-fight-state.md §2).
         if (definition.FightStyle == FightStyle.Support && !FightRules.Reacquire(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
@@ -312,8 +321,10 @@ public sealed class CombatSystem : ICreatureUpdateStep
             return;
         }
 
-        // Out of reach: a creature target is chosen afresh, and no choice ends the fight. A forced
-        // target is kept and walked to (0x0045F885).
+        // Out of reach: both blocker bits clear (0x0045F861, 0x0045F875), a creature target is chosen
+        // afresh, and no choice ends the fight. A forced target is kept and walked to (0x0045F885).
+        creature.Body.IsBlocker = false;
+        creature.Body.IgnoreBlocker = false;
         if (creature.FightTargetKind == FightTargetKind.Creature && !creature.AttackAbnormalTargets)
         {
             int previous = creature.FightTargetId;

@@ -384,6 +384,9 @@ public static class CombatRules
     {
         WorldState world = hooks.World;
         CombatPitRules.ClearForcedTarget(world, creature);
+        // Its epilogue clears the body's blocker and ignore-blocker bits (0x0045AF8F..0x0045AFA6).
+        creature.Body.IsBlocker = false;
+        creature.Body.IgnoreBlocker = false;
         if (AttackerCount(creature) == 0) return;
         bool dead = creature.Health <= 0 && !CreatureDeathRules.HasDyingState(
             world, hooks.Database, hooks.Database.CreatureById(creature.CreatureTypeId), creature);

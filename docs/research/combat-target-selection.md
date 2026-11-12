@@ -309,7 +309,7 @@ candidate (`0x0045C17C`, `0x0045C19F`), and three copies of one inlined disengag
 (`0x45C389`, `0x45C41D`, `0x45C509`) after the alarm or the withdraw state has taken the
 creature: each puts the stashed tag back, strikes my tag out of that creature's `+0x504`
 and `+0x514` arrays (the first through `0x0045E450`), zeroes `+0x502`, sets or clears
-bit 0 of `me+0x233` by whether I am a hero, and returns **`0xEA60`** — "I left; stop
+bit 0 of `me+0x233` (the body's `ignore_blocker`, combat-category-hooks.md §3) by whether I am a hero, and returns **`0xEA60`** — "I left; stop
 looking", which the acquirer answers with success (§2). It is the one place the repo
 has seen the engagement arrays written.
 

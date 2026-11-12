@@ -189,7 +189,7 @@ Two other limits are already established in native research and rechecked here:
   leaves category 22, whose unregister is a no-op unless the old tag already names that hero;
   every success exit zeroes the tag, as ours does. Ours passes the candidate's position
   directly, as the binary does. Unmodelled: the release's victory-nibble gate and the exit
-  tail's forced-target and `+0x232`/`+0x233` writes ([the function record](functions/0045BDF0.md)).
+  tail's forced-target and `+0x232`/`+0x233` writes (still unbuilt after ADR-0756; [the function record](functions/0045BDF0.md)).
 - Native completes a creature's update before the next; our combat, movement and
   worker-job passes remain separate. The established ordering is in
   [combat acquisition](combat-acquisition.md#1-where-in-the-tick) and

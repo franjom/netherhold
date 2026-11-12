@@ -24,8 +24,8 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 480 with ADR-0755, the replay inputs including the
-five hero guards restored at turn 1400: 7878 ordered draws match through turn 1862) is in
+The last controlled result (hash 481 with ADR-0756, the replay inputs including the
+five hero guards restored at turn 1400: 7946 ordered draws match through turn 1866) is in
 [Q712](research/open-questions.md), with its causes in
 [the Heart's pillars and centre-tile objects as obstacles, and the lava centre's refused route](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) (ADR-0750, ADR-0751, ADR-0755),
 [the mover block for every non-Imp](research/steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers) (ADR-0751),
@@ -37,7 +37,8 @@ five hero guards restored at turn 1400: 7878 ordered draws match through turn 18
 [a fallen creature's stale body](research/steering-body-retention.md#state-217-leaves-its-body-where-it-fell-adr-0745-hashsave-471) (ADR-0745),
 [possessed pick heights](research/possessed-pick-heights.md),
 [step-back speed mode](research/step-back-speed-mode.md),
-[a speed a handler sets](research/speed-set-turn.md) (ADR-0737),
+[a speed a handler sets, and the low-health half speed](research/speed-set-turn.md) (ADR-0737, ADR-0756),
+[the body's blocker bits a fight sets](research/navigation-and-steering.md#32-three-of-the-eight-do-nothing-and-separation-is-read-to-its-store) (ADR-0756),
 [the hand drop's fall and its landing in the creature's own update](research/hand-drop-landing.md) (ADR-0730, ADR-0753),
 [the shot finder's tile window and first-match order](research/shots.md#4a-collision-0x004abd60) (ADR-0754),
 [the pick-up's turn](research/hand-pickup-turn.md) (ADR-0731),
@@ -46,8 +47,8 @@ five hero guards restored at turn 1400: 7878 ordered draws match through turn 18
 [the drop's heading](research/drop-heading.md) (ADR-0733, ADR-0736) and
 [the fight's step 5](research/combat-fight-state.md) (ADR-0734, ADR-0736); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
-[store-gold steering](research/store-gold-steering.md). The next boundary, turn 1863
-draw 2 (native `ObjectState.cpp:2523` where ours' draws Thief 434's death fall), is described
+[store-gold steering](research/store-gold-steering.md). The next boundary, turn 1867
+draw 7 (native `ImpUtils.cpp:484` where ours' rolls an anger percent at `State.cpp:1700`), is described
 in Q712. Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 

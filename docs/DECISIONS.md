@@ -17773,3 +17773,41 @@ Thief 434 (ours 22), which started its approach (state 8) on 1851 and moves abou
 native's distance a turn from its first step. Test:
 `HeartCentreRouteOnRealDataTests`. Evidence: structure-blocks.md §5.3, §5.4; study
 `F:/DK2Evidence/studies/q712-heart-lava-target--2026-11-12--001`.
+
+## ADR-0756 - a creature under a fifth of its health crawls; a fighter at its post blocks Separation
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** combat, creatures, navigation
+
+**Context.** Q712's boundary at turn 1863 was Thief 434's death fall. Thief 434 (150 of 1500
+health) was in state 8 from 1851, and its native velocity was exactly half ours: the emulated
+`Body_Integrate` (`0x004D5A40`) on the 1850 image gives ours' (759,-3363) with the full speed and
+native's (379,-1682) with body `+0xE2` = 4912. The cause is the low-health branch of the creature
+update (`0x0048962C..0x00489705`, speed-set-turn.md). A second difference followed: Warlock 438
+stepping back beside Warlock 437 on 1844 had native `+0x232` = 0xC1 from 1841, and the emulated
+Separation (`0x004D2DF0`) at that position returns 0, where ours' saturated and pushed it. The
+bits are the body's `is_blocker` (`+0x10E` bit 7) and `ignore_blocker` (`+0x10F` bit 0), which
+callback arm 2 of `0x004D2B80` reads and ours never set.
+STRONGLY INFERRED (reviewer re-read the disassembly); sites in speed-set-turn.md,
+navigation-and-steering.md §3.2 and combat-fight-state.md.
+
+**Decision.** `LowHealthSpeedRules` (a worker is exempt; maximum health is the level-scaled `Hp`;
+threshold `max * 20 / 100` above health) halves the speed cap in `CreatureMovementSystem.Sync`
+before `WaterSpeedRules`, under the `SpeedSetTick` guard, and on odd turns moves the three spell
+stamps and the melee stamp one turn later at the end of `CreatureStatusSystem.Update`; ours
+leaves its `NeverUsed` sentinel alone where DK2's 0 becomes 1. The body bits follow
+`spFighting`: cleared on entry, `IsBlocker` set once a live target is held and no action runs,
+both cleared out of reach (`CombatSystem.Fight`); `FearRules` clears both on the flee entry and
+writes `IgnoreBlocker` = owner is not Good at both withdraw sites; `CombatRules.LeaveFight`
+clears both; a Horned Reaper sets both every update. Not built: the NonFighter arm's tail write,
+`0x004D5B30`/`0x004D55B0`, the flee state's write at `0x00460A3F`, and the lava modifier.
+
+**Consequences.** Hash/save 481, pin `0x078CC4ECABEC399A`, no new state; recorded runs change.
+Level 1's journal is re-recorded: the Lord of the Land dies on 2327 at (13,21), the Reaper is
+created on 2351 and the gem is taken on 2449 (was 2323 at (13,22), 2347); the
+`ReaperFinaleOnRealDataTests` figures follow. `level17_player5_retreat.yaml` runs 200 turns,
+as its 60-of-4000 Black Knight walks to its bed at half speed. Controlled Level 5 replay: 7946
+ordered draws through turn 1866 (controlled498b), up from 7878 through 1862. New boundary: turn
+1867 draw 7, native `ImpUtils.cpp:484`, ours `State.cpp:1700` (a `random(100)` anger roll,
+`CreatureAngerRules.RollPercent` from `CreatureJobSystem.Choose`, tag 438 in state 89).
+Tests: `LowHealthSpeedTests` (the boundary at levels 1 and 5, an Imp exempt, the odd-turn
+stamps) and `CombatSpellTests.AFighterInReachBlocksSeparationUntilItsFightEnds`. Owner questions:
+Q763. Evidence: study `F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`.

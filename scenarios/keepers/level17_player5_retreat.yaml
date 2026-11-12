@@ -13,7 +13,9 @@
 # Player 5 rather than Harkan: Harkan owns a Training Room, and its training moves (step 9, no
 # health gate) lift the same knight there while the retreat still passes over it on its way to
 # bed (level17_harkan_training.yaml, ADR-0317). Player 5 owns no Training Room or Combat Pit, and
-# is given the mana Harkan had here so its own spells and imps are not starved.
+# is given the mana Harkan had here so its own spells and imps are not starved. At 60 health the
+# Knight is under a fifth of its maximum and walks to its bed at half speed (0x0048962C), hence
+# 200 turns.
 #
 # What this run does NOT establish: DK2's timing, or that DK2 lifts a sleeper as often. No
 # original run of a keeper's retreat has been compared (Q486).
@@ -22,7 +24,7 @@ question: >
   Does Level 17's player 5, unaided, lift a wounded creature of its own and put it down in a Lair?
 map: campaign:level17
 seed: 12345
-duration_ticks: 130
+duration_ticks: 200
 viewing_player: 5
 computer_keepers: [5]
 setup:

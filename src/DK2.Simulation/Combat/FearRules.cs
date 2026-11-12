@@ -213,7 +213,10 @@ public static class FearRules
         long tick = context.Tick.Value;
         if (ShouldWithdraw(context.World, context.Database, hearts, me, mine) && tick != me.CombatStateEnteredTick
             && Withdraw(context, sight, hearts, rooms, me, mine, StagedTarget(context.World, me), scratch))
+        {
+            WithdrawnBody(me);
             return true;
+        }
         if (!OverThreat(context.World, context.Database, me, mine)) return false;
         PossessionRules.DropFollowFromFear(context.World, me);   // 0x0045F425: a follower lets go first
         EnterFlee(context, me, mine);
@@ -258,6 +261,12 @@ public static class FearRules
             $"creature={me.Id} type={mine.Name} fear={me.CurrentFear} threshold={threshold} backoff={timer}");
     }
 
+    /// <summary>A withdrawal taken from the fight or the flee state: the body's ignore-blocker bit
+    /// set for a keeper's creature and cleared for a hero's (<c>0x0045F3D6..0x0045F409</c>, §4 step 4),
+    /// after the travel's leave hook cleared it. The NonFighter arm's own write is not built.</summary>
+    private static void WithdrawnBody(CreatureState me) =>
+        me.Body.IgnoreBlocker = me.OwnerPlayerId != PlayerIds.Good;
+
     /// <summary>The definition's run speed per tick, as the loader keeps it (<c>def+0x5B8</c>).</summary>
     public static int RunPerTick(CreatureDef definition) => SimulationTiming.LoaderRatePerTick(definition.RunSpeed.Raw);
 
@@ -273,6 +282,9 @@ public static class FearRules
         long tick = context.Tick.Value;
 
         if (me.FightTargetKind == FightTargetKind.Creature && world.CreatureById(me.FightTargetId) is null) ClearTarget(world, me);
+        // The two steering body bits (0x0046037B..0x004603A3).
+        me.Body.IsBlocker = false;
+        me.Body.IgnoreBlocker = false;
 
         if (me.BackOffTimer == 0)
         {
@@ -285,7 +297,10 @@ public static class FearRules
 
         if (ShouldWithdraw(world, database, hearts, me, mine) && tick != me.CombatStateEnteredTick
             && Withdraw(context, sight, hearts, rooms, me, mine, StagedTarget(world, me), scratch))
+        {
+            WithdrawnBody(me);
             return;
+        }
 
         bool afraid = OverThreat(world, database, me, mine);
         if (!afraid || me.FightTargetKind == FightTargetKind.None)

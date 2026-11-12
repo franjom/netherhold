@@ -47,7 +47,8 @@ current state id, `+0x18` the turn entered. `EDI` is the engagement record
 1. **A dead target is dropped**, as in §1: "dead" is a freed slot (`[0x006ED540 + tag]`
    is 0, `0x0045F05C`), not health, so a collapsed target is kept until step 5
    (`combat-category-hooks.md` §5). Two steering body bits are cleared
-   (`body+0x10E` bit 7, `+0x10F` bit 0); the approach sets the first again (§3).
+   (`body+0x10E` bit 7 `is_blocker`, `+0x10F` bit 0 `ignore_blocker`) on every entry path
+   (`0x0045F0CB..0x0045F0F0`); step 7 sets the first again and step 10 clears both.
 2. **Assertions**, then return 0: possessed; not a fighter (`Flags +0x46F` bit 0)
    and not `AttackAbnormalTargets`.
 3. **No target → `SelectAVictim`**; success returns 1. Otherwise an AttackType
@@ -70,20 +71,25 @@ current state id, `+0x18` the turn entered. `EDI` is the engagement record
    heart, the state a turn old — hands to the withdraw state `0x004611D0`; else
    the counter `0x0045EC80` over `CurrentFear` (`+0x526`, filled by `0x0045E4F0`)
    against the level-scaled `Fear` sends the creature into state **203** with its
-   `BackOffTimer`. All of it is combat-fear.md §3; **built (ADR-0165)**.
+   `BackOffTimer`. All of it is combat-fear.md §3; **built (ADR-0165)**. A successful
+   withdraw writes `ignore_blocker` = owner is not Good (`0x0045F3D6..0x0045F409`; ADR-0756).
 7. **Busy** (`0x00496D00`: current action `+0x3A9` nonzero and not 21) → return 1.
    A swinging creature neither moves nor looks. A fighter whose target step 5
    just cleared returns here too (`0x0045F632`), without seeking. Not busy with
    no target (`0x0045F654`..): an empty engagement record and `+0x502` go to
    `SelectAVictim` (`0x004601D7`); success returns 1, failure (`0x004601F9`)
-   returns 0, or takes the victory arm `0x00460FE0` when the nibble is `0xF`.
+   returns 0, or takes the victory arm `0x00460FE0` when the nibble is `0xF`. With a live
+   target and no action running, the code after this return sets `is_blocker` and clears
+   `ignore_blocker` (`0x0045F667..0x0045F68F`), before the in-reach test and the Support
+   re-acquire, so a fighter at its post is not pushed by Separation
+   (navigation-and-steering.md §3.2; built, ADR-0756).
 8. **Support re-acquires every tick**: a fight type 4 creature without
    `AttackAbnormalTargets` unlinks, runs `SelectAVictim`, keeps a new target,
    and restores the old one if none is found (the *"failed to re-aquire"*
    assertion is this path failing to restore).
 9. **In reach?** `0x0045E8F0`: `d < AttackRangeSquared` **and** line of sight
    (`0x004512F0`, flag 3 set when a door stands on the target's tile). Yes → §4.
-10. **Out of reach.** Not busy; then, for a creature target without
+10. **Out of reach.** Not busy; both body bits clear (`0x0045F861`, `0x0045F875`); then, for a creature target without
     `AttackAbnormalTargets`, **unlink and run `SelectAVictim` again** — every
     tick out of reach. No target → return 0 (the state ends). A target whose
     state is 6 resuming 202 or 251 keeps `+0x53D`; another creature target

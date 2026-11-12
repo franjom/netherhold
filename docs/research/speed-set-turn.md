@@ -56,6 +56,29 @@ returns after the status cap and before `WaterSpeedRules.SpeedCap` and
 `PossessionRules.ApplySpeedModifier` when the mark is this turn. The five sites
 above call `SetSpeedMode`.
 
+## Low health: half speed and slower recharge (ADR-0756, hash/save 481)
+
+STRONGLY INFERRED (reviewer re-read the disassembly of `0x0048962C..0x00489705`). A worker
+(definition `+0x686` bit 0; `0x00489632..0x00489639` jumps past the branch) is skipped. Otherwise
+the maximum health is definition `+0x692` (`Hp`), raw at level 1 and else scaled by the Health stat
+row at `[0x006E4154] + 0xE1 + level * 2`, divided by 100. When `max * 20 / 100` is above the health
+(`+0x40`, signed, strict) the getter's speed `* 50 / 100` goes through the setter `+0x8C`, before
+water. On odd turns (`0x00517490 & 1`) `+0x41B`, `+0x41F`, `+0x423` (the three spell stamps) and
+`+0x427` (the melee stamp) each go up one, so a weak caster recharges at about half rate. Natively
+there is no zero guard; ours leaves its `NeverUsed` sentinel alone (DK2's 0 to 1 still reads as long
+ready).
+
+Capture: Level 5 seed 1, Thief 434 (150 of 1500) in state 8 from 1851. Native velocity is exactly
+half ours. The emulated `Body_Integrate` (`0x004D5A40`) on the 1850 image gives ours' (759,-3363)
+and native's (379,-1682) with body `+0xE2` = 4912. Study
+`F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`.
+
+Built: `LowHealthSpeedRules.IsWeak` / `SpeedCap` in `CreatureMovementSystem.Sync` before
+`WaterSpeedRules`, under the `SpeedSetTick` guard, and `DelayRecharge` at the end of
+`CreatureStatusSystem.Update`, before the state handler. Tests: `LowHealthSpeedTests`.
+`scenarios/keepers/level17_player5_retreat.yaml` runs 200 turns because its 60-of-4000 Black Knight
+walks to its bed at half speed.
+
 ## Deviations
 
 - 17 of DK2's 22 call sites of `0x004887D0` are unmarked in ours:
@@ -76,7 +99,7 @@ above call `SetSpeedMode`.
 - Haste and Slow (Q399) are unchanged, with one numerically different case: a
   hasted creature in water on a marked turn is 1.5 x base in ours and base in
   DK2.
-- Low-health and lava modifiers remain unbuilt.
+- The lava modifier remains unbuilt.
 - Not settled: reuse of the kept-speed slot in `0x00489F98..0x00489FFF`;
   whether the action runner or ProcessFight reach `0x004887D0` indirectly; the
   state id of Creature_FollowPossessedState's handler.

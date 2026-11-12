@@ -141,5 +141,7 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
         }
 
         StatusEffectRules.UpdateBurning(context, creature, definition);
+        // The low-health branch's stamp half, before the handler reads the recharges (0x004896C8).
+        LowHealthSpeedRules.DelayRecharge(database, definition, creature, context.Tick.Value);
     }
 }

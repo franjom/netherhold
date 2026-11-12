@@ -140,6 +140,13 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         creature.Body.Radius = SteeringMover.CrowdWordOf(definition.FootprintRadius.Raw);
         creature.Body.MaxForce = SeparationRules.ShippedMaxForce;
+        // A Horned Reaper (flag bit 14) leaves every update as a blocker that ignores blockers
+        // (0x0048A04D, after the handler; also 0x00488A03).
+        if ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
+        {
+            creature.Body.IsBlocker = true;
+            creature.Body.IgnoreBlocker = true;
+        }
         // A party's shared pace holds until the creature runs (ADR-0216).
         if (creature.SpeedMode != CreatureSpeedMode.Walk) creature.PartySpeedRaw = 0;
         int cap = creature.PartySpeedRaw > 0
@@ -149,6 +156,7 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         // The update's modifiers ran before the handler that set this turn's speed (0x004887D0), so the
         // move is at the speed it wrote; they act again from the next turn.
         if (creature.SpeedSetTick == context.Tick.Value) return;
+        creature.Body.MaxSpeed = LowHealthSpeedRules.SpeedCap(context.Database, definition, creature, creature.Body.MaxSpeed);
         TerrainDef terrain = context.Database.TerrainById(context.World.Tile(creature.Tile).TerrainId);
         creature.Body.MaxSpeed = WaterSpeedRules.SpeedCap(terrain, definition, creature, creature.Body.MaxSpeed);
         PossessionRules.ApplySpeedModifier(context.Database, creature);

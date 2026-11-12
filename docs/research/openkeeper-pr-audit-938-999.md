@@ -16,10 +16,8 @@ identified below. No OpenKeeper code was copied.
 
 ## What merits work
 
-1. Injury speed/recharge penalties: the new instruction check supports both
-   missing branches; see [the update record](functions/00488930.md). These
-   affect ordinary combat and movement. Preserve native turn phase and our
-   timestamp sentinel mapping rather than OpenKeeper's elapsed-time approximation.
+1. Injury speed/recharge penalties: built (ADR-0756, hash 481) with native turn
+   phase and our timestamp sentinel mapping; see [the update record](functions/00488930.md).
 2. Room condition 68 and breach events: these have shipped script uses; see
    [room conditions](room-conditions.md), [tile work](functions/00452F60.md)
    and [wall action](functions/00498BB0.md). The latter record's old reading
@@ -41,8 +39,8 @@ Source file names below are relative to `src/DK2.Simulation/` unless qualified.
 |---|---|---|
 | [938](https://github.com/tonihele/OpenKeeper/pull/938) | Partial: water covered; lava speed missing | `WaterSpeedRules.SpeedCap`; [steering section 7.5](steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers) already records the unbuilt lava arm. |
 | [939](https://github.com/tonihele/OpenKeeper/pull/939) | Covered: party minimum walking speed | `HeroPartyRules`, `HeroWalkTests`; [party walk](hero-party-walk.md). |
-| [940](https://github.com/tonihele/OpenKeeper/pull/940) | Gap: injured attack recharge | `CombatRules` lacks the timestamp delay; [fresh injury reading](functions/00488930.md). |
-| [941](https://github.com/tonihele/OpenKeeper/pull/941) | Gap: injured walking speed | `CreatureMovementSystem.Sync`, `StatusEffectRules.SpeedCap`; same [injury reading](functions/00488930.md). |
+| [940](https://github.com/tonihele/OpenKeeper/pull/940) | Covered: injured attack recharge | Covered since ADR-0756: `LowHealthSpeedRules.DelayRecharge`; [injury reading](functions/00488930.md). |
+| [941](https://github.com/tonihele/OpenKeeper/pull/941) | Covered since ADR-0756: injured walking speed | `LowHealthSpeedRules.SpeedCap` in `CreatureMovementSystem.Sync`; same [injury reading](functions/00488930.md). |
 | [942](https://github.com/tonihele/OpenKeeper/pull/942) | Covered: room hover text | `DK2.Presentation/WorldHoverText`, `WorldHoverTextTests`; [hover text](world-hover-text.md). |
 | [943](https://github.com/tonihele/OpenKeeper/pull/943) | Covered: enemy terrain/door hover text | Same presenter and tests; [hover text](world-hover-text.md). |
 | [944](https://github.com/tonihele/OpenKeeper/pull/944) | Covered: carried dying clock pause | `CreatureHealthSystem`, `CarryingTests`. |

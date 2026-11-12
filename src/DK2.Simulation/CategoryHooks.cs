@@ -263,8 +263,8 @@ public static class CategoryHooks
             "combat experience in 199/200, not a worker or Good, a live creature target (ADR-0366)",
             typeof(Systems.CreatureExperienceSystem), nameof(Systems.CreatureExperienceSystem.CombatExperiencePerOriginalTick)),
         new(CreatureStateCategory.Combat, HookKind.Leave, 0x0047A980, HookStatus.Partial,
-            "0x0045ADC0 (forced target, engagement, every attacker) and the walk speed, on every route out "
-            + "(ADR-0319); not modelled: ReportingTo +0x3D5, +0x232 bit 7 and +0x233 bit 0 (combat-category-hooks.md §3)")
+            "0x0045ADC0 (forced target, engagement, every attacker, the body's blocker bits) and the walk speed, "
+            + "on every route out (ADR-0319); not modelled: ReportingTo +0x3D5 (combat-category-hooks.md §3)")
         {
             Leave = static (in StateHookContext hooks, CreatureState creature) => CombatRules.LeaveCombat(in hooks, creature),
         },

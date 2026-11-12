@@ -164,11 +164,13 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
 
 ## 4. State 203, fleeing (`0x004602E0`), in order
 
-1. A dead target is dropped; two steering body bits cleared.
+1. A dead target is dropped; two steering body bits cleared (`0x0046037B..0x004603A3`;
+   built, ADR-0756).
 2. **`BackOffTimer == 0` → the run** (step 9). Else decrement it.
 3. Room notice; target validity as in the fight state — invalid → unlink, clear.
 4. Withdraw (§3.2) with the turn-old test; success → return 1, and the body's
-   `+0x10F` bit 0 is set for a keeper's creature and cleared for a hero's.
+   `+0x10F` bit 0 is set for a keeper's creature and cleared for a hero's (built at both
+   withdraw sites, `FearRules.WithdrawnBody`, ADR-0756).
 5. The counter (§3.3). **Not afraid, or no target → `SetState(199)`**, back to
    the fight, unless `PossessedCreatureFollowing` is set.
 6. The gate `0x0045A6D0(0)` refusing → return 0: **the state ends** and the
@@ -313,8 +315,8 @@ word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 The stunned gate is built (ADR-0559), beside the chicken's (ADR-0302): a stunned creature's
 `TempFear` piles up and its first standing tick hands the whole intake over.
 
-**Not built:** hero gates; the owner modifiers (Q375); the two spell sources of §2; the body bit
-`+0x10F`.0. `ThreatThing` is built for traps and the Boulder (ADR-0678); its timed-effect source
+**Not built:** hero gates; the owner modifiers (Q375); the two spell sources of §2; the alarm
+path's write of body bit `+0x10F`.0 (`0x00460A3F`). `ThreatThing` is built for traps and the Boulder (ADR-0678); its timed-effect source
 (`+0x463`/`+0x465`/`+0x467`, `0x0048E38C`) is not.
 
 Withdrawal is built through step 5 (ADR-0544 failed pick, ADR-0545 the away

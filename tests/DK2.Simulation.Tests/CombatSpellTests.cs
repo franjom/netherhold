@@ -87,6 +87,32 @@ public class CombatSpellTests
         Assert.DoesNotContain(warlock.Id, goblin.EngagedMelee);
     }
 
+    // spFighting (0x0045F030) clears the body's blocker bit on entry and sets it on the attack path
+    // (0x0045F667), so Separation does not push a fighter at its post; the fight's leave clears it
+    // (0x0045AF8F). Level 5, turn 1844: Warlock 438 stepping back beside Warlock 437 was not pushed.
+    [Fact]
+    public void AFighterInReachBlocksSeparationUntilItsFightEnds()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
+        GameSimulation sim = Combat(db, world);
+
+        bool blocked = false;
+        for (int i = 0; i < 30 && !blocked; i++)
+        {
+            sim.Tick();
+            blocked = warlock.Body.IsBlocker && !warlock.Body.IgnoreBlocker;
+        }
+        Assert.True(blocked);
+
+        // The Combat leave hook alone (0x0045ADC0 through idle) clears both, with no further fight tick.
+        warlock.Body.IgnoreBlocker = true;
+        CombatRules.Disengage(new StateHookContext(world, db), warlock);
+        Assert.False(warlock.Body.IsBlocker);
+        Assert.False(warlock.Body.IgnoreBlocker);
+    }
+
     [Fact]
     public void TheShotLeavesTwelveTicksAfterTheCastAndLandsThreeHundred()
     {

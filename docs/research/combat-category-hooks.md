@@ -50,7 +50,9 @@ word `+0x3D5` = 0.
    attacker whose `+0x502` is me gets the victory nibble (`+0x529 |= 0xF`) **only if my health
    `+0x40` is at or below 0**, has `+0x502` cleared, and with `AttackAbnormalTargets` loses its
    forced target too (`0x0048F3F0`). The slot is cleared either way.
-4. `+0x232` bit 7 and `+0x233` bit 0 cleared.
+4. `+0x232` bit 7 and `+0x233` bit 0 cleared: the steering body's `is_blocker` and
+   `ignore_blocker` (body `+0x10E` bit 7, `+0x10F` bit 0), in the routine's one epilogue
+   (`0x0045AF8F..0x0045AFA6`). Built (ADR-0756).
 
 Two list walks before and after store nothing. The route helpers `0x00471890` and
 `Travel_RouteToRoom` also call `0x0045ADC0` when a walk takes a category-22 creature to a
@@ -65,7 +67,18 @@ resume outside 22 (`travel-states.md` §2), because entering a walk runs no hook
 | `+0x95`, `+0x97`, `+0x99` | none | a signed triple: torture and `0x004A7040` write it, `0x0049B9F0` reads it as three ints | not modelled |
 | `+0x502`, slots `+0x504`/`+0x514` | — | the engagement and the attacker slots | `FightTarget*`, `EngagedMelee`/`EngagedRanged` |
 | `+0x3F9`, `+0x3E6` bit 2 | `AttackingId`, `AttackAbnormalTargets` | the forced target | the same names |
-| `+0x232` bit 7, `+0x233` bit 0 | none | `+0x233` bit 0 is the acquirer's hero bit (`combat-target-selection.md` §3) | not modelled |
+| `+0x232` bit 7, `+0x233` bit 0 | `is_blocker`, `ignore_blocker` (body `+0x10E` bit 7, `+0x10F` bit 0; the dumper's names) | the body bits below; the older docs' "hero bit" for `+0x233` bit 0 is `ignore_blocker` | `Body.IsBlocker`, `Body.IgnoreBlocker`; the NonFighter tail, `0x004D5B30` and `0x00460A3F` are not built |
+
+**The body bits** (STRONGLY INFERRED, reviewer re-read, ADR-0756; built). Separation's arm 2
+(`navigation-and-steering.md` §3.2) reads them. `spFighting` clears both on every entry, sets
+`is_blocker` and clears `ignore_blocker` once a live target is held and no action runs, and
+clears both out of reach (`combat-fight-state.md` §2); the flee state clears both on entry;
+both withdraw tails write `ignore_blocker` = owner is not Good (`combat-fear.md` §4);
+`0x0045ADC0` clears both (§2 step 4); a Horned Reaper sets both every update
+([record](functions/00488930.md)); route requests keep bit 7. So a fighter at its post blocks
+a neighbour that is not ignoring blockers, and a withdrawing keeper's creature passes through.
+Not built: the NonFighter arm's tail write (`0x0045BDF0`), `Steering_ResetBody` (`0x004D5B30`,
+`0x004D55B0`) and the flee state's write at `0x00460A3F`.
 
 **Speed mode.** `0x004887D0(0, 0)` is mode 0, walk, with no explicit speed, so the
 definition's walk speed (`hero-party-walk.md`): ours is `Running = false`. It also ends a
