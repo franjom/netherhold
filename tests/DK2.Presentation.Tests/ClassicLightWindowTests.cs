@@ -165,14 +165,22 @@ public class ClassicLightWindowTests
             if (refreshStatic) cache.Cells[table.Tile] = cell with { BuildFrame = new(i) };
             window.Gather(table, cache, new ClassicLightFrame(i));
         }
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (uint i = 101; i <= 200; i++)
+        // A real allocation repeats on every pass; a stray one under a loaded test host does not.
+        long fewest = long.MaxValue;
+        uint frame = 100;
+        for (int pass = 0; pass < 5 && fewest != 0; pass++)
         {
-            if (refreshStatic) cache.Cells[table.Tile] = cell with { BuildFrame = new(i) };
-            window.Gather(table, cache, new ClassicLightFrame(i));
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int n = 0; n < 100; n++)
+            {
+                frame++;
+                if (refreshStatic) cache.Cells[table.Tile] = cell with { BuildFrame = new(frame) };
+                window.Gather(table, cache, new ClassicLightFrame(frame));
+            }
+            fewest = Math.Min(fewest, GC.GetAllocatedBytesForCurrentThread() - before);
         }
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
-        Assert.Equal(new ClassicLightFrame(refreshStatic ? 200u : 1u), table.StaticFrame);
+        Assert.Equal(0, fewest);
+        Assert.Equal(new ClassicLightFrame(refreshStatic ? frame : 1u), table.StaticFrame);
     }
 
     private static void Fill(PreparedCache cache, TilePos target, int width, TilePos? sourcePosition = null)

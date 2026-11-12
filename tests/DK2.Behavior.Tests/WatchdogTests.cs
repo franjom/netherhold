@@ -82,20 +82,53 @@ public class WatchdogTests : IDisposable
         new Watchdog(Path.Combine(_root, "out"), limits, (_, _) => new ProcessStartInfo("dotnet", "--version"))
             .Watch(files, TextWriter.Null);
 
+    /// <summary>Overlap is read from the children's own markers, not from elapsed time, so a loaded
+    /// machine cannot fail it: with two jobs each child sees the other start before it ends; with one,
+    /// the second starts only after the first is done.</summary>
     [Fact]
     public void WithTwoJobsTwoRunsOverlap()
     {
-        TimeSpan serial = TimeWatch(1), parallel = TimeWatch(2);
-        Assert.True(parallel < serial * 0.75, $"serial {serial}, parallel {parallel}");
+        string serial = Run(1, waitSeconds: 1), parallel = Run(2, waitSeconds: 60);
+        Assert.True(File.Exists(Path.Combine(parallel, "a.saw-other")) && File.Exists(Path.Combine(parallel, "b.saw-other")),
+            "with two jobs both children run at once");
+        Assert.True(File.Exists(Path.Combine(serial, "b.after-other")) && !File.Exists(Path.Combine(serial, "a.saw-other")),
+            "with one job the second child starts after the first is done");
 
-        TimeSpan TimeWatch(int jobs)
+        string Run(int jobs, int waitSeconds)
         {
-            var limits = new WatchLimits(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5), 20, Jobs: jobs);
-            var timer = Stopwatch.StartNew();
-            new Watchdog(Path.Combine(_root, $"out{jobs}"), limits, (_, _) => Sleep(2))
-                .Watch([_good, _good], TextWriter.Null);
-            return timer.Elapsed;
+            string markers = Path.Combine(_root, $"markers{jobs}");
+            Directory.CreateDirectory(markers);
+            var limits = new WatchLimits(TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(5), 20, Jobs: jobs);
+            new Watchdog(Path.Combine(_root, $"out{jobs}"), limits,
+                    (job, _) => Rendezvous(markers, job.Label, job.Label == "a" ? "b" : "a", waitSeconds))
+                .Watch([new WatchJob(_good, [], "a"), new WatchJob(_good, [], "b")], TextWriter.Null);
+            return markers;
         }
+    }
+
+    /// <summary>A child that marks its start, notes whether the other child had already finished, waits
+    /// up to <paramref name="waitSeconds"/> for the other to start, notes whether it did, and marks its end.</summary>
+    private static ProcessStartInfo Rendezvous(string dir, string me, string other, int waitSeconds)
+    {
+        var start = new ProcessStartInfo(OperatingSystem.IsWindows() ? "powershell" : "sh") { CreateNoWindow = true };
+        if (OperatingSystem.IsWindows())
+        {
+            string Q(string name) => "'" + Path.Combine(dir, name).Replace("'", "''") + "'";
+            foreach (string arg in new[] { "-NoProfile", "-NonInteractive", "-Command",
+                $"Set-Content {Q(me + ".started")} ''; if (Test-Path {Q(other + ".done")}) {{ Set-Content {Q(me + ".after-other")} '' }}; " +
+                $"$t=[DateTime]::UtcNow.AddSeconds({waitSeconds}); while (-not (Test-Path {Q(other + ".started")}) -and [DateTime]::UtcNow -lt $t) {{ Start-Sleep -Milliseconds 50 }}; " +
+                $"if (Test-Path {Q(other + ".started")}) {{ Set-Content {Q(me + ".saw-other")} '' }}; Set-Content {Q(me + ".done")} ''" })
+                start.ArgumentList.Add(arg);
+        }
+        else
+        {
+            const string script = "d=$1; : > \"$d/$2.started\"; [ -e \"$d/$3.done\" ] && : > \"$d/$2.after-other\"; i=0; " +
+                "while [ ! -e \"$d/$3.started\" ] && [ $i -lt $(($4*20)) ]; do sleep 0.05; i=$((i+1)); done; " +
+                "[ -e \"$d/$3.started\" ] && : > \"$d/$2.saw-other\"; : > \"$d/$2.done\"";
+            foreach (string arg in new[] { "-c", script, "dk2-watch", dir, me, other, waitSeconds.ToString() })
+                start.ArgumentList.Add(arg);
+        }
+        return start;
     }
 
     [Fact]
