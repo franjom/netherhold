@@ -93,14 +93,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 CannotSleep(context, database, creature, state);
             }
 
-            // Healing sources add: nothing in the data or in OpenKeeper makes them
-            // exclusive, and the own-land term is zero for 44 of the 46 creatures
-            // anyway (Q100). Own-land regeneration is suppressed at zero health
-            // and lair healing is not, because a bed is the one route back —
-            // otherwise King Reginald, at 400 a second on his own land, would be
-            // unkillable at home.
-            int regen = CreatureHealthRules.OwnLandRegenPerSecond(world, creature, state)
-                        + (state.Possessed ? 0 : CreatureHealthRules.LairHealPerSecond(world, database, state));
+            // The lair heal, once a second; own-land regeneration is the creature update's, every
+            // turn (RegenerateOnOwnLand). Lair healing is not gated at zero health: a bed is the one
+            // route back from a collapse.
+            int regen = state.Possessed ? 0 : CreatureHealthRules.LairHealPerSecond(world, database, state);
 
             if (regen != 0)
             {
@@ -282,6 +278,20 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         }
 
         context.World.RemoveCreature(state.Id);
+    }
+
+    /// <summary>The own-land regeneration, first in the creature's own update (<c>0x00488C32</c>), with
+    /// the creature's own <c>+0x36</c> as the source. Ours alone skips a prisoner, whose health is PrisonSystem's (ADR-0064).</summary>
+    internal static void RegenerateOnOwnLand(SimulationContext context, CreatureDef creature, CreatureState state)
+    {
+        if (PrisonRules.IsImprisoned(state)) return;
+        int regen = CreatureHealthRules.OwnLandRegenPerTurn(context.World, context.Database, creature, state);
+        if (regen == 0) return;
+        int landed = CreatureHealthRules.Apply(context.Database, creature, state, regen, state.HealthSourcePlayerId);
+        if (landed != 0 && !ReferenceEquals(context.Events, NullEventSink.Instance))
+            context.Emit(SystemName, "creature_health",
+                $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} delta={landed} " +
+                $"health={state.Health}/{CreatureHealthRules.MaxHealth(context.Database, creature, state)}");
     }
 
     /// <summary>

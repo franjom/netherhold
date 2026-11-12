@@ -17893,3 +17893,41 @@ re-recorded with the same outcome (Lord of the Land 2277 at (14,20), Reaper 2301
 of the capture's log matches, turns 1401-1900, 8466 draws (the log ends at 1900). Test:
 `LocalStrengthTests` fails on the old filter. Evidence: `combat-fear.md` §4 step 9; study
 `F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`, note `boundary-1869.md`.
+
+## ADR-0759 - own-land regeneration is the creature update's, every turn
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** creatures, combat
+
+**Context.** Q712, Level 5: Imp 444 hit on turn 1847 went native 625, 476, 492, 508, 524, 540, +16
+a turn. Ours had 460 and then +67 a second, because `CreatureHealthSystem` regenerated once a game
+second (ADR-0048). The creature update `0x00488930` does it every turn at `0x00488A73..0x00488C32`
+(record `functions/00488930.md`, 2026-10-31 reading). STRONGLY INFERRED (reviewer re-derived).
+
+**Decision.** `CreatureHealthRules.OwnLandRegenPerTurn` replaces `OwnLandRegenPerSecond`. Skipped for
+a dying creature (`+0x3E6` bit 21, `0x00488A73`; ours `IsDown`, since ours books the collapse later).
+On a tile its owner holds (`[tile+8] & 0xFFF` == `+0x28`) the amount is def `+0x6A6`, the record's
+per-second value divided by the turn rate by the loader (`0x00493920..0x00493945`, unsigned DIV, no
+floor; Imp 67 to 16), at level 1; else scaled by the level stat 28 (`[0x006E4154]+0x2C7`) over 100.
+Negative gives 0, cap `0xFFFE`, then cut so health stops at the level maximum
+(`0x00488BB0..0x00488BE9`); applied through `0x004B2CE0` with source `+0x36`.
+`CreatureHealthSystem.RegenerateOnOwnLand` is called from `CreatureStatusSystem.Update` after
+`ReaperRules.AdvanceTimer` and before `FinaleRules.HornyAmbience`. Binary order: Reaper timer
+`0x004889A2`, Horned Reaper bits and music `0x00488A03..0x00488A44`, dying arm `0x00488A5E`,
+possessed `0x00488A6E`, regeneration, hypnosis quota `0x00488C37`, Horny ambience `0x00488EB5`, gold
+`0x0048904E`, timed effects `0x0048957D`; the slap reaction `0x0046F1F0` runs from the dispatcher
+`0x0048A030`. Ours alone skips a prisoner (ADR-0064). The lair heal stays once a second (unread).
+
+**Not built (Q766).** (a) A Good creature on Hero Lair terrain (35) takes the terrain word `+0x1A9`
+as damage every turn instead (`0x00488A8F..0x00488AB3`, terrain def loaded
+`0x00488973..0x00488989`); ours' `TerrainHealthPerSecond` still heals every creature on terrain 35
+once a second (Q118), and the `+0x1A9` = `TerrainDef.Damage` mapping is unread. (b) The heal effect
+spawned at `0x00488BF2` (def `+0x774`, file `0xCFD`; King Reginald's is effect 308); whether it
+draws RNG is unread.
+
+**Consequences.** Hash/save 484, pin `0xC9F08E5143A26570`; recorded runs change. Level 1's journal is
+re-recorded with the same outcome (2277 at (14,20), 2301, 2403). `HandTests.FiveSlapsKillAnImp`
+sets the Imp's tile Neutral so the slaps alone are measured. Controlled Level 5 replay
+(controlled504b): all 8466 native draws of turns 1401-1900 still match, and Imps 442, 444, 446, 454
+and 455 match native health every turn. Tests: `CreatureNeedsTests` (16 a turn, cap 5, zero-health 0),
+`PossessionTests.OwnLandHealingContinuesEveryTurnWhileNeedsPause`. Evidence: `creature-needs.md`;
+study `F:/DK2Evidence/studies/q712-thief-run--2026-11-12--001`, `own-land-regen.md` and
+`own-land-regen-corrections.md`.

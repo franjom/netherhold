@@ -105,6 +105,8 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
 
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         ReaperRules.AdvanceTimer(context, creature, definition);
+        // 0x00488A73: after the Reaper's timer, before the hypnosis quota and the Horny ambience (0x00488EB5).
+        CreatureHealthSystem.RegenerateOnOwnLand(context, definition, creature);
         FinaleRules.HornyAmbience(context, SystemName, creature, definition);
 
         // 67, 77 and 120, the slap's reaction (0x0046F1F0, ADR-0401), for every creature.

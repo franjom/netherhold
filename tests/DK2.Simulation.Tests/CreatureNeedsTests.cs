@@ -33,7 +33,7 @@ public class CreatureNeedsTests
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world) =>
-        new(db, world, seed: 42, [new CreatureHealthSystem()]);
+        new(db, world, seed: 42, [new CreatureUpdateSystem(new CreatureStatusSystem()), new CreatureHealthSystem()]);
 
     private static void Paint(
         GameDatabase db, WorldState world, RoomTypeId type, TilePos at, byte owner)
@@ -120,8 +120,8 @@ public class CreatureNeedsTests
 
         Simulation(db, world).Run(Second);
 
-        // 67 a second, once.
-        Assert.Equal(167, imp.Health);
+        // 67 a second is 16 a turn, every turn (0x00488A73).
+        Assert.Equal(164, imp.Health);
     }
 
     [Fact]
@@ -276,9 +276,9 @@ public class CreatureNeedsTests
 
         Simulation(db, world).Run(Second);
 
-        // 67 from its own land — a lair tile its keeper owns is its own land —
+        // 16 a turn from its own land — a lair tile its keeper owns is its own land —
         // and nothing from the lair, because it cannot sleep in one.
-        Assert.Equal(167, state.Health);
+        Assert.Equal(164, state.Health);
     }
 
     // ---- hunger -----------------------------------------------------------
@@ -750,15 +750,20 @@ public class CreatureNeedsTests
         CreatureState state = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
 
-        // Alive on its own land: the record's rate.
-        Assert.Equal(67, CreatureHealthRules.OwnLandRegenPerSecond(world, imp, state));
+        // Wounded on its own land: the record's 67 over the four turns of a second, 16 a turn
+        // (0x00488ADE), and no more than reaches the maximum (0x00488BE9).
+        state.Health = 100;
+        Assert.Equal(16, CreatureHealthRules.OwnLandRegenPerTurn(world, db, imp, state));
+        int max = CreatureLevelRules.MaxHealth(db, imp, state.Level);
+        state.Health = max - 5;
+        Assert.Equal(5, CreatureHealthRules.OwnLandRegenPerTurn(world, db, imp, state));
 
         // Out of health: nothing, whether or not the collapse has been booked.
         state.Health = 0;
-        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerSecond(world, imp, state));
+        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerTurn(world, db, imp, state));
 
         CreatureDeathRules.Collapse(new StateHookContext(world, db), state);
-        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerSecond(world, imp, state));
+        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerTurn(world, db, imp, state));
     }
 
     [Fact]

@@ -223,7 +223,7 @@ public sealed class PossessionTests
     [Theory]
     [InlineData(Dk2TerrainFixture.ImpCreatureId)]
     [InlineData(Dk2TerrainFixture.GoblinCreatureId)]
-    public void OwnLandHealingContinuesWhileNeedsPause_ExistingPerSecondCadenceDeviation(byte creatureType)
+    public void OwnLandHealingContinuesEveryTurnWhileNeedsPause(byte creatureType)
     {
         var (db, world, target) = Setup();
         CreatureState imp = world.SpawnCreature(db, creatureType, Keeper, target.Tile);
@@ -231,11 +231,12 @@ public sealed class PossessionTests
         imp.Health = 100;
         imp.HungerTicks = 17;
         world.Player(Keeper).PossessedCreatureId = imp.Id;
-        int regen = CreatureHealthRules.OwnLandRegenPerSecond(world, db.CreatureById(imp.CreatureTypeId), imp);
+        int regen = CreatureHealthRules.OwnLandRegenPerTurn(world, db, db.CreatureById(imp.CreatureTypeId), imp);
         if (creatureType == Dk2TerrainFixture.ImpCreatureId) Assert.True(regen > 0);
-        var sim = new GameSimulation(db, world, 1, [new CreatureHealthSystem()]);
-        sim.Run(SimulationTiming.TicksPerSecond);
-        Assert.Equal(100 + regen, imp.Health);
+        var sim = new GameSimulation(db, world, 1, [new CreatureUpdateSystem(new CreatureStatusSystem()), new CreatureHealthSystem()]);
+        const int Turns = SimulationTiming.TicksPerSecond;
+        sim.Run(Turns);
+        Assert.Equal(100 + (Turns * regen), imp.Health);
         Assert.Equal(17, imp.HungerTicks);
     }
 

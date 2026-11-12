@@ -81,6 +81,16 @@ name, which is the only reason the numbers above can be trusted.
 `OwnLandHealthIncreasePerSecond` is non-zero for **exactly two of 46 creatures**:
 the Imp at 67 a second and King Reginald at 400. Everyone else is zero.
 
+**Cadence — STRONGLY INFERRED (binary, Level 5 capture; ADR-0759).** DK2 applies it in the
+creature's own update, every turn, not once a second (`0x00488A73..0x00488C32`, record
+`functions/00488930.md`). The loader divides the per-second value by the turn rate (unsigned, no
+floor): the Imp gains 16 a turn. The amount is level-scaled, capped at `0xFFFE`, and cut so health
+stops at the level maximum. Level 5's Imp 444, hit on turn 1847, read 476, 492, 508, 524, 540 in
+DK2's own log. `CreatureHealthRules.OwnLandRegenPerTurn` builds it, from
+`CreatureHealthSystem.RegenerateOnOwnLand` in the creature update; the lair heal stays once a
+second. Not built: a Good creature on Hero Lair terrain (35) takes the terrain's damage word
+instead, and a heal effect spawns at `0x00488BF2` (Q766).
+
 Same shape as mana, where three terrain types out of 41 generate any (ADR-0017),
 and the reason to read a whole column before believing a rule is general.
 Implemented as data — a no-op for 44 creatures without a special case — and
@@ -182,7 +192,8 @@ bed this tick is not charged for the second it arrived, and before experience.
   **`WorldState.SpawnCreature` takes the `GameDatabase`** for that one line: a
   creature spawned at zero health dies on the tick it arrives, so there must be
   no overload that leaves health out.
-- Own-land regeneration, per the record, **suppressed at zero health** (§7, Q99).
+- Own-land regeneration, per the record, every turn and **suppressed at zero health** (§7, Q99;
+  ADR-0759).
 - **Hazard and healing terrain** (`TerrainHealthPerSecond`), gated on the
   creature's own crossing flag — §3.
 - **Beds and sleep** (`LairRules` + `CreatureSleepSystem`, ADR-0049 then
@@ -268,16 +279,17 @@ The guard this changed: **own-land regeneration is suppressed at zero health and
 lair healing is not**, because the owner's answer gives exactly one route off the
 floor and a bed is it. Without that, a creature at zero health near its bed
 walked there and healed and never collapsed, and an Imp on its own land could not
-be killed at home.
+be killed at home. (DK2's own skip is the dying flag, which ours books later: ours reads
+`IsDown`.)
 
 ### Q100 — does regeneration care what the creature is doing? No
 
 The owner recorded a wounded imp regenerating **while digging** and **while
 running through the dungeon**, so regeneration is not restricted to resting,
 idling, sleeping or standing still — which is what this project already did.
-**Working** is answered; *fighting* and *being carried* are not, and own-land
-regeneration is 67 a second on an imp, meaningful inside a fight and irrelevant
-outside one. **Q152**, along with the Hand of Evil and possession.
+**Working** is answered; the binary's regeneration block has no activity gate (ADR-0759), so
+*fighting* and *being carried* are read, not watched. Own-land regeneration is 16 a turn on an
+imp, meaningful inside a fight and irrelevant outside one. **Q152**, along with the Hand of Evil and possession.
 
 ### Q103 — the sleep cycle is 240 seconds up and 9 down
 

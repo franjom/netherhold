@@ -60,24 +60,26 @@ public static class CreatureHealthRules
             < MaxHealth(database, creature, state)
               * database[VariableTypeId.CreatureSleepsWhenBelowPercentHealth];
 
-    /// <summary>Health per second for a creature standing on land its own keeper owns — the
-    /// record's <c>OwnLandHealthIncreasePerSecond</c>, or 0 off its own land. The tile test is ours:
-    /// HYPOTHESIS (Q100), comparing the tile's owner against the creature's as OpenKeeper does. UNKNOWN whether DK2 also requires the creature to be idle, or excludes it while fighting or working.</summary>
-    public static int OwnLandRegenPerSecond(
-        WorldState world, CreatureDef creature, CreatureState state)
+    /// <summary>The creature update's own-land regeneration (<c>0x00488A73..0x00488C32</c>), every turn:
+    /// on a tile its owner holds (<c>[tile+8] &amp; 0xFFF</c> == <c>+0x28</c>), the record's per-second value
+    /// over the turn rate (the loader's <c>def+0x6A6</c>, Imp 67 to 16), level-scaled, negatives to 0 and
+    /// capped at <c>0xFFFE</c>, then cut so health stops at the level's maximum. Skipped for a dying
+    /// creature (<c>+0x3E6</c> bit 21); ours also for one down but not yet collapsed. Not built: a Good
+    /// creature on Hero Lair terrain (35) takes the terrain's word instead (<c>0x00488A8F..0x00488AB3</c>),
+    /// which <see cref="TerrainHealthPerSecond"/> stands in for; and the record's heal effect (def <c>+0x774</c>, <c>0x00488BF2</c>).</summary>
+    public static int OwnLandRegenPerTurn(
+        WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
     {
-        int rate = creature.OwnLandHealthIncreasePerSecond;
-        if (rate == 0) return 0;
-
-        // Standing on your own land does not pick you up off the floor, or an Imp would be
-        // unkillable at home. Q99 gives one route back from a collapse: an imp carrying the
-        // creature to its bed, which is why lair healing is deliberately not gated this way.
-        if (CreatureDeathRules.IsDown(state)) return 0;
-
+        int perTurn = creature.OwnLandHealthIncreasePerSecond / SimulationTiming.OriginalTicksPerGameSecond;
+        if (perTurn == 0 || CreatureDeathRules.IsDown(state)) return 0;
         TilePos at = state.Tile;
-        if (!world.Contains(at)) return 0;
+        if (!world.Contains(at) || world.Tile(at.X, at.Y).OwnerPlayerId != state.OwnerPlayerId) return 0;
 
-        return world.Tile(at.X, at.Y).OwnerPlayerId == state.OwnerPlayerId ? rate : 0;
+        int amount = Math.Min(Math.Max(CreatureLevelRules.Scale(perTurn,
+            CreatureLevelRules.Percent(database, CreatureStatId.OwnLandHealthIncreasePerSecond, state.Level)), 0), 0xFFFE);
+        if (amount == 0) return 0;
+        int max = CreatureLevelRules.MaxHealth(database, creature, state.Level);
+        return state.Health + amount > max ? max - state.Health : amount;
     }
 
     /// <summary>Health per second from the terrain a creature is standing on —

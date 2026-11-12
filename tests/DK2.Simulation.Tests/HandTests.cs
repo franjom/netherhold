@@ -430,6 +430,8 @@ public class HandTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        // Off its own land, where the creature update's regeneration (0x00488A73) gives it nothing back.
+        world.Tile(Floor.X, Floor.Y).OwnerPlayerId = PlayerIds.Neutral;
         GameSimulation sim = Simulation(db, world);
 
         Assert.Equal(500, imp.Health);

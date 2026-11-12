@@ -156,10 +156,9 @@ Positive health changes through0x004B2CE0 do not take possession's damage
 multiplier. Q152's possession continuation is settled; the hand/scheduling
 observation remains open.
 
-Stage7a preserves the existing modern own-land cadence (67 once per second,
-rather than16 each original turn), explicitly a pre-existing deviation.
-It continues that healing while possession pauses needs and sleeping-state
-healing. This does not claim exact original health timing.
+Own-land healing is built every turn, 16 for an Imp, from the creature update
+(ADR-0759, replacing Stage7a's once-a-second cadence); it continues while
+possession pauses needs and sleeping-state healing.
 
 STRONGLY INFERRED integration: simulation systems reproduce the researched
 branches independently; their registration order is ADR-0013/Q398, not a
