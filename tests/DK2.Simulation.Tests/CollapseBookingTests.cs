@@ -73,6 +73,25 @@ public class CollapseBookingTests
     }
 
     [Fact]
+    public void AHealLiftsNegativeHealthFromWhereItStandsNotFromZero()
+    {
+        (GameDatabase db, WorldState world) = Open();
+        CreatureState imp = world.SpawnCreature(db, Imp, Keeper, new TilePos(9, 9));
+        CreatureDef def = db.CreatureById(Imp);
+        CreatureHealthRules.Apply(db, def, imp, -(imp.Health + 100), PlayerIds.Good);
+
+        // 0x004B2EEC..0x004B2F03 adds the delta to the health as it is: -100 healed 16 is -84.
+        CreatureHealthRules.Apply(db, def, imp, 16, PlayerIds.Good);
+        Assert.Equal(-84, imp.Health);
+        CreatureHealthRules.Apply(db, def, imp, 16, PlayerIds.Good);
+        Assert.Equal(-68, imp.Health);
+
+        // Two heals in one turn leave what DK2 would leave dead still dead, and a heal books nothing new.
+        new GameSimulation(db, world, 7, [new CollapseSystem()]).Tick();
+        Assert.DoesNotContain(world.Creatures, c => c.Id == imp.Id);
+    }
+
+    [Fact]
     public void AnImpFelledByMoreThanItsHealingDiesAfterTheUpdate()
     {
         (GameDatabase db, WorldState world) = Open();

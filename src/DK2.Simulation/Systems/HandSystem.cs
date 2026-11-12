@@ -173,6 +173,7 @@ public sealed class HandSystem : ISimulationSystem
         // 0x004BFBD0 runs before 0x004BC500 tests the hand: state 75, through idle when the
         // current category is outside its mask, so a full hand still takes a fighter out of
         // its fight and leaves it there (HandRules.PreparationState).
+        bool alreadyPrepared = creature.Dk2StateId == HandRules.PreparationState;   // 0x004BFBF8: 75 skips the end
         bool prepared = CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value);
         if (!prepared)
         {
@@ -180,7 +181,7 @@ public sealed class HandSystem : ISimulationSystem
             prepared = CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value);
         }
         // 0x004BFBD0 ends a running action once 75 is taken (0x004BFC44), a melee hold included.
-        if (prepared) CreatureStateMachine.EndAction(creature);
+        if (prepared && !alreadyPrepared) CreatureStateMachine.EndAction(creature);
         // 0x004BFBD0 ends on the lift sound for a creature already in 75 too, and before the capacity test;
         // only a refusal of 75 itself leaves it silent. Handle 0: the creature's own voice is not used.
         if (prepared || creature.Activity == CreatureActivity.BeingLifted)
@@ -846,7 +847,10 @@ public sealed class HandSystem : ISimulationSystem
         int hurt, anger = 0;
         if (outcome == SlapOutcome.DamageOnly)
             // Every slap arm passes the slapping player's TagId (+0x04) as the source (0x0048B9A1, 0x0048BBBC, 0x0048BCFB).
+        {
             hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage, command.PlayerId.Value);
+            CollapseInTheDamageCall(context, creature, definition);
+        }
         else
         {
             creature.LastSlapTick = context.Tick.Value;
@@ -860,21 +864,26 @@ public sealed class HandSystem : ISimulationSystem
                     : CreatureAngerRules.Slap(world, definition, creature);
             }
             hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage, command.PlayerId.Value);
+            CollapseInTheDamageCall(context, creature, definition);
             if (outcome == SlapOutcome.Full)
                 StatusEffectRules.ModifySpeed(context, creature, SlapRules.SpeedPercent, SlapRules.SpeedSeconds);
             if (outcome != SlapOutcome.Uncounted && world.HasPlayer(creature.OwnerPlayerId))
                 world.Player(creature.OwnerPlayerId).SlapCount++;
         }
 
-        // The slap's damage call collapses a creature that will, inside the call (0x004B2FB5, ADR-0765); one that
-        // does not (an Imp) is removed by the thing pass's walk, which CreatureHealthRules.Apply left booked.
-        if (creature.CollapseDue && CreatureDeathRules.HasDyingState(world, context.Database, definition, creature))
-            CollapseSystem.Now(context, creature);
-
         context.Emit(SystemName, "slapped",
             $"player={command.PlayerId} creature={creature.Id} " +
             $"health={creature.Health} damage={-hurt} anger={creature.Anger.Max} (+{anger}) " +
             $"efficiency={EfficiencyRules.Percent(creature, definition)}%");
+    }
+
+    /// <summary>The slap's damage call collapses a creature that will, inside the call and ahead of the speed
+    /// change, the count and the rest (<c>0x0048BBBC</c> before <c>0x0048BC2B</c>; ADR-0765); one that does not (an
+    /// Imp) is removed by the thing pass's walk, which <see cref="CreatureHealthRules.Apply"/> left booked.</summary>
+    private static void CollapseInTheDamageCall(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (creature.CollapseDue && CreatureDeathRules.HasDyingState(context.World, context.Database, definition, creature))
+            CollapseSystem.Now(context, creature);
     }
 
     /// <summary>What <c>Hand_SlapCreature</c> (<c>0x0048B8A0</c>) does with a slap.</summary>

@@ -27,11 +27,11 @@ public static class CreatureHealthRules
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         CreatureLevelRules.MaxHealth(database, creature, state.Level);
 
-    /// <summary>A health change as <c>Thing_ModifyHealth</c> (<c>0x004B2CE0</c>) makes it: heals stop at the
-    /// maximum, damage has no lower clamp (a blow's overkill stays, so a later heal does not revive what
-    /// it felled) and health at or below zero books the collapse (<see cref="CreatureState.CollapseDue"/>;
-    /// DK2 collapses inside the call, <c>0x004B2FB5</c>). A dying or dead creature keeps the zero floor and
-    /// books nothing. Returns what landed, counted from zero. The <paramref name="source"/> is stamped first,
+    /// <summary>A health change as <c>Thing_ModifyHealth</c> (<c>0x004B2CE0</c>) makes it: the delta is added with
+    /// no lower clamp (<c>0x004B2EEC..0x004B2F03</c>), so a blow's overkill stays and a heal lifts it from there.
+    /// The cut at the maximum is ours (DK2's callers cut the heal). Damage that leaves health at or below zero
+    /// books the collapse (<see cref="CreatureState.CollapseDue"/>; DK2 collapses inside the call, <c>0x004B2FB5</c>,
+    /// for a heal too). A dying or dead creature keeps the zero floor and books nothing. Returns what landed, counted from zero. The <paramref name="source"/> is stamped first,
     /// for any delta (ADR-0764, ADR-0765).</summary>
     public static int Apply(
         GameDatabase database, CreatureDef creature, CreatureState state, int delta, byte source)
@@ -39,10 +39,10 @@ public static class CreatureHealthRules
         state.HealthSourcePlayerId = source;
         int before = state.Health;
         int max = MaxHealth(database, creature, state);
-        bool floor = delta >= 0 || CreatureDeathRules.IsDying(state) || CreatureDeathRules.IsCorpse(state);
+        bool floor = CreatureDeathRules.IsDying(state) || CreatureDeathRules.IsCorpse(state);
         state.Health = Math.Min(before + delta, max);
         if (floor && state.Health < 0) state.Health = 0;
-        if (!floor && state.Health <= 0) state.CollapseDue = true;
+        if (!floor && delta < 0 && state.Health <= 0) state.CollapseDue = true;
         return Math.Max(state.Health, 0) - Math.Max(before, 0);
     }
 

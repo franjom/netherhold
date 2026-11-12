@@ -11,9 +11,10 @@ using DK2.Simulation.Systems;
 namespace DK2.Simulation.Tests;
 
 /// <summary>Action 17's hold after its impact ends only where DK2's end-action callers end it
-/// (<c>0x00496D20</c>, <c>0x00496D80</c>; ADR-0762), never because the creature's state changed: the
-/// flee state 203 (<c>0x004602E0</c>) never ends it, the pick-up (<c>0x004BFC44</c>) and the slap
-/// (<c>0x0048B9BC</c>, <c>0x0046F20D</c>) do.</summary>
+/// (<c>0x00496D20</c>, <c>0x00496D80</c>; ADR-0762), never because the creature's state changed: a bare move
+/// into the flee state 203 (<c>0x004602E0</c>) keeps it, a successful withdraw route
+/// (<c>0x00471890</c>, <c>0x00471949</c>), the pick-up (<c>0x004BFC44</c>) and the slap
+/// (<c>0x0048B9BC</c>, <c>0x0046F20D</c>) end it.</summary>
 public class MeleeHoldEndTests
 {
     private const byte Keeper = 3;
@@ -57,6 +58,37 @@ public class MeleeHoldEndTests
 
         Assert.True(FightRules.MeleeActionIsRunning(fighter, def, now));
         Assert.Equal(CreatureActionTable.MeleeSwing, CreatureCurrentAction.IndexOf(fighter, def, now));
+    }
+
+    [Fact]
+    public void ARouteStartedByAWithdrawEndsTheHold()
+    {
+        (GameDatabase db, WorldState world, CreatureState fighter, CreatureDef def) = Fight();
+        GameTick now = Swung(fighter, 100);
+        Assert.True(FightRules.MeleeActionIsRunning(fighter, def, now));
+
+        // 0x004611D0 starts its walk through 0x00471890, which ends a running action (0x00471949); ours
+        // reaches it through BeginTravel to the walk state with the withdrawn state as the resume.
+        CreatureStateMachine.BeginTravel(new StateHookContext(world, db), fighter, 6, 202);   // 202: the withdrawn state
+
+        Assert.False(FightRules.MeleeActionIsRunning(fighter, def, now));
+    }
+
+    [Fact]
+    public void APickUpOfACreatureAlreadyInState75KeepsTheHold()
+    {
+        (GameDatabase db, WorldState world, CreatureState fighter, CreatureDef def) = Fight();
+        var hooks = new StateHookContext(world, db);
+        Assert.True(CreatureStateMachine.TrySetState(hooks, fighter, CreatureStateMachine.Idle));
+        Assert.True(CreatureStateMachine.TrySetState(hooks, fighter, HandRules.PreparationState));
+        var sim = new GameSimulation(db, world, 1, [new HandSystem()]);
+        GameTick now = Swung(fighter, sim.CurrentTick.Value);
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, fighter.Id)));
+
+        // 0x004BFBF8 compares the state with 75 and skips the preparation, end-action call included.
+        Assert.Equal(HandRules.PreparationState, fighter.Dk2StateId);
+        Assert.True(FightRules.MeleeActionIsRunning(fighter, def, now));
     }
 
     [Fact]

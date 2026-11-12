@@ -24,9 +24,10 @@ public class HeroesDestroyedTests
         CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good);
         CreatureDef def = db.CreatureById(knight.CreatureTypeId);
 
+        int before = knight.Health;
         StatusEffectRules.Hurt(world, db, def, knight, 1_000_000, Keeper);
 
-        Assert.True(knight.Health <= 0);   // not clamped at zero: 0x004B2CE0 keeps the overkill (ADR-0764)
+        Assert.Equal(before - 1_000_000, knight.Health);   // not clamped at zero: 0x004B2CE0 keeps the overkill (ADR-0764)
         Assert.Equal(Keeper, knight.HealthSourcePlayerId);
         Assert.Equal(Keeper, CreatureHealthSystem.CreditHeroKill(world, def, knight));
         Assert.Equal(1, world.Player(Keeper).HeroesDestroyed);

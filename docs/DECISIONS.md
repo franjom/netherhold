@@ -18056,8 +18056,10 @@ blocked in the modes that block a scripted move).
 **Context.** `FightRules.MeleeActionIsRunning` ended action 17's post-impact hold when the creature's
 `StateEnteredTick` passed the swing's start. DK2 has no such rule: the action block (`+0x38D..+0x3AE`,
 index `+0x3A9`) is begun by `0x004969D0`, polled by the runner `0x00496AA0` (from `0x00489A68`) and cleared
-by it on completion or by `0x00496D20` / `0x00496D80`. The fleeing state 203 (`0x004602E0`) calls neither,
-so a swing's hold runs on through 199, 200 and 203. `0x00496D20` has 54 callers (listed in
+by it on completion or by `0x00496D20` / `0x00496D80`. The flee state 203 (`0x004602E0`) calls neither itself:
+a bare move into it, the step back and the run keep the hold. Its withdraw (`0x004611D0`) goes through
+`Travel_RouteToPoint` `0x00471890`, which on success ends a running action (`0x00471949`, after the test at
+`0x0047193D`); ours does the same through `BeginTravel` to the walk state. `0x00496D20` has 54 callers (listed in
 `functions/00496D20.md`); `0x00496D80` three (`0x00487467`, `0x0048D1A6`, `0x0046F8D9`); `+0x3A9` is written
 only at `0x00496903`, `0x00496C09`, `0x00496C72`, `0x00496D68`, `0x00496DAC` and `0x004997DE`.
 STRONGLY INFERRED (disassembly, caller scan).
@@ -18076,7 +18078,8 @@ non-combat state is harmless: entering Combat ends it and only the fight states 
 
 **Consequences.** Hash/save 490. A fighter that flees or changes combat state within its hold stays busy
 as DK2's does; the Imp states 22, 16, 18 and 20 read the same busy test. Level 5: a fighter that swung and
-moves to a flee or another combat state within about ten turns. Tests: `MeleeHoldEndTests` (three, fail on
+moves to a flee or another combat state within about ten turns without a route start. The pick-up skips
+the end for a creature already in state 75 (`0x004BFBF8`). Tests: `MeleeHoldEndTests` (five, three fail on
 the old code); `WorldViewTests` follow.
 
 ## ADR-0763 - a lifted creature stays attackable until its own update refreshes the bit
@@ -18113,13 +18116,15 @@ definition has `GenerateDeadBody` (`+0x686` bit `0x8000`), the creature is not p
 and is not attached to a room of type 11 or 12 (else not `DieInstantly`, `0x0048E110`). Anything else, an
 Imp for one, sits at health below 1 with the bit clear until the thing pass's second walk (`0x004B7830`:
 slot `+0x28`, then `+0x30` through `0x0048AF80` to `0x00487C70`), and its own update heals it if that
-comes later in the turn. DK2 never clamps health: below 1 it is replaced only by the dying countdown
-(`0x004B2FA0`). STRONGLY INFERRED.
+comes later in the turn. DK2 never clamps health: the delta is added as it stands (`0x004B2EEC..0x004B2F03`)
+and below 1 it is replaced by the dying countdown (`0x004B2FA0`), set to 1 for a definition with `+0x686`
+bit 14 (`0x004B3175..0x004B317F`) or taken by the Vampire arm (`0x0048FFC0`). STRONGLY INFERRED.
 
 **Decision.** `OwnLandRegenPerTurn` skips a dying or dead creature and one at zero that DK2 would have
-collapsed (`HasDyingState`). `CreatureHealthRules.Apply` no longer clamps damage at zero, so a blow's
-overkill stays and a regeneration smaller than it cannot revive the creature; a heal, or a dying or dead
-creature, keeps the zero floor, and the amount returned stays counted from zero. `Collapse` and
+collapsed (`HasDyingState`). `CreatureHealthRules.Apply` no longer clamps at zero, so a blow's overkill
+stays and a heal lifts the health from where it stands (-100 healed 16 is -84); the cut at the maximum is
+ours, DK2's callers cut the heal. A dying or dead creature keeps the zero floor, and the amount returned
+stays counted from zero. `Collapse` and
 `BecomeCorpse` put the health back to zero, where ours keeps the countdown in `DyingTicks`.
 
 **Not built (Q769, Q725).** DK2 frees a creature that does not collapse in the removal walk at the end of
@@ -18138,14 +18143,15 @@ blow left it above -16. Tests: `CollapseBookingTests` (three); `CreatureNeedsTes
 ADR-0732) only from `StatusEffectRules.Hurt`. Terrain (`0x0048A789`), the cannot-sleep drain
 (`0x00477E7B`), the slap (`0x0048B9A1`, `0x0048BBBC`, `0x0048BCFB`), the defeat and Disruption kills
 waited for the once-a-second health pass. Prison and torture victims never collapse (a room of type 11 or
-12 refuses it, `0x004B2F7E..0x004B2F89`), so nothing is booked for them (`CollapseSystem.Now` skips a
-prisoner). STRONGLY INFERRED.
+12 refuses it, `0x004B2F7E..0x004B2F89`): `Apply` books them too, `CollapseSystem.Now` skips an imprisoned
+creature, and a torture victim goes on to `RunOutOfHealth` and `Die` as before. STRONGLY INFERRED.
 
 **Decision.** `CreatureHealthRules.Apply` books the collapse for any damage that leaves health at most 0
 (ADR-0764), which covers every caller. The terrain and drain paths run inside the health pass, whose tail
-already collapses in the same pass. `HandSystem.Slap` runs `CollapseSystem.Now` right after the damage for
-a creature DK2 collapses, so the fall's draws come at command time; one that does not collapse is left
-booked for the pass after the sweep.
+already collapses in the same pass. `HandSystem.Slap` runs `CollapseSystem.Now` right after the damage, ahead
+of the speed change (`0x0048BC2B`), the count (`0x0048BCAA`) and the rest, for a creature DK2 collapses, so
+the fall's draws come at command time; one that does not collapse is left booked for the pass after the
+sweep. Ours books only on damage; DK2's gate also runs for a heal (`0x004B2E6B`, Q769).
 
 **Consequences.** Hash/save 490. A slapped creature at low health collapses on the slap's tick instead of
 up to a second later, and a defeated player's creatures collapse at the next sweep. Test:
