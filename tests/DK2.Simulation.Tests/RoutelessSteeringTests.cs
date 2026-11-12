@@ -10,19 +10,22 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>A neutral creature with the mover bit in its state steers with no route loaded; the
-/// move gate of <see cref="CreatureMovementSystem.Update"/>.</summary>
-public class NeutralRoutelessSteeringTests
+/// <summary>A non-Imp with the mover bit in its state steers with no route loaded, whoever owns it
+/// (the mover block <c>0x0048A218</c>..<c>0x0048A287</c> has no route test); the move gate of
+/// <see cref="CreatureMovementSystem.Update"/>.</summary>
+public class RoutelessSteeringTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Goblin = Dk2TerrainFixture.GoblinCreatureId;
 
     // Level 5: neutral slot 449 stands in 87 with no route, is pushed on turn 1620 when another
     // neutral walks into it, then its velocity falls by the follow-path brake each turn.
-    [Fact]
-    public void ANeutralInTheWanderStateWithNoRouteIsPushedByAnOverlappingNeighbour()
+    [Theory]
+    [InlineData(PlayerIds.Neutral)]
+    [InlineData(Keeper)]
+    public void ACreatureInTheWanderStateWithNoRouteIsPushedByAnOverlappingNeighbour(byte owner)
     {
-        (GameSimulation sim, CreatureState idler, CreatureState neighbour) = Pair(PlayerIds.Neutral, ImpStates.Wandering);
+        (GameSimulation sim, CreatureState idler, CreatureState neighbour) = Pair(owner, ImpStates.Wandering);
         Assert.Equal(0, idler.Body.PathTotalCount);
         int x = idler.PosX, y = idler.PosY;
 
@@ -47,8 +50,9 @@ public class NeutralRoutelessSteeringTests
         Assert.True(idler.Body.Vel.Length() < pushed, "no route and no neighbour: the brake slows it");
     }
 
+    /// <summary>State 1 lacks the mover bit, so nothing steers an idle creature.</summary>
     [Fact]
-    public void AnOwnedCreatureInAnOrdinaryIdleStateWithNoRouteDoesNotMove()
+    public void AnOwnedCreatureInIdleStateOneWithNoRouteDoesNotMove()
     {
         (GameSimulation sim, CreatureState idler, _) = Pair(Keeper, CreatureStateMachine.Idle);
         int x = idler.PosX, y = idler.PosY;
@@ -57,6 +61,21 @@ public class NeutralRoutelessSteeringTests
 
         Assert.Equal((x, y), (idler.PosX, idler.PosY));
         Assert.Equal(Fixed16Vector.Zero, idler.Body.Vel);
+    }
+
+    /// <summary>State 3 lacks the mover bit: a creature in it does not walk a route it holds.</summary>
+    [Fact]
+    public void ACreatureHoldingARouteInAStateWithoutTheMoverBitStands()
+    {
+        (GameSimulation sim, CreatureState idler, _) = Pair(Keeper, 3);
+        var aim = new Fixed16Vector(CreatureState.CentreOf(9) << 4, idler.PosY << 4);
+        RouteWindow.Load(idler.Body, [aim], aim, 0);
+        Assert.True(idler.HasRoute);
+        int x = idler.PosX, y = idler.PosY;
+
+        sim.Run(3);
+
+        Assert.Equal((x, y), (idler.PosX, idler.PosY));
     }
 
     [Fact]

@@ -253,12 +253,14 @@ public static class HeroJobRules
         return Walk(context, creature, CreatureState.CentreOf(position % w), CreatureState.CentreOf(position / w), AtTheHeartState, Navigation.MoveOptions.Plain);
     }
 
-    /// <summary>State 222 (<c>0x00461F00</c>): <c>max(PositionInParty &gt;&gt; 1, 1)</c> free tiles
-    /// behind the leader's facing, turning a quarter on a blocked step and giving up after five
-    /// turns, then a random sub-tile point there. Always succeeds, routed or not.</summary>
+    /// <summary>State 222 (<c>0x00461F00</c>): first a turn step toward the leader (<c>0x004B2AE0</c>
+    /// at <c>0x00461F25</c>), then <c>max(PositionInParty &gt;&gt; 1, 1)</c> free tiles behind the
+    /// leader's facing, turning a quarter on a blocked step and giving up after five turns, then a
+    /// random sub-tile point there. Always succeeds, routed or not.</summary>
     public static bool Follow(SimulationContext context, CreatureState creature)
     {
         if (context.World.CreatureById(creature.LeaderId) is not { } leader) return true;
+        CasinoStep.TurnTo(context, creature, leader.PosX, leader.PosY);
         (int x, int y) = FollowTile(context.World, context.Database, creature, leader);
         (int ox, int oy) = SubTile[context.Rng.NextInt(SubTile.Length)];
         if (context.World.Contains(new TilePos(x, y))

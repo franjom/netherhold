@@ -245,10 +245,12 @@ public class KeeperHealTests
 
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new CreatureMovementSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, KeeperSpellRules.Heal, target.Id)));
-        Assert.Equal((CreatureStateMachine.Idle, 1500, false), (target.Dk2StateId, target.Health, target.IsRouted));
+        Assert.Equal((CreatureStateMachine.Idle, 1500), (target.Dk2StateId, target.Health));
+        // The stop's zero-length self-point replaces the walk (0x004D1070).
+        Assert.Equal((1, 0), (target.Body.PathTotalCount, target.Body.PathTotalDist));
         sim.Run(12);
 
-        // No route to follow: the body brakes where the heal found it, four tiles short of the aim.
+        // State 1 lacks the mover bit: the body stands where the heal found it, four tiles short of the aim.
         Assert.Equal(10, target.Tile.X);
     }
 
@@ -263,7 +265,7 @@ public class KeeperHealTests
 
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new CreatureMovementSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, KeeperSpellRules.Heal, target.Id)));
-        Assert.Equal((1500, true), (target.Health, target.IsRouted));
+        Assert.Equal((1500, true), (target.Health, target.HasRoute));
         sim.Run(12);
 
         Assert.True(target.Tile.X > 10, $"the creature stood still at {target.Tile}");
@@ -362,6 +364,7 @@ public class KeeperHealTests
     {
         var aim = new DK2.Simulation.Steering.Fixed16Vector(CreatureState.CentreOf(toX) << 4, creature.PosY << 4);
         DK2.Simulation.Steering.RouteWindow.Load(creature.Body, [aim], aim, 0);
+        (creature.Dk2StateId, creature.UtilityNewState) = (6, CreatureStateMachine.Idle);
     }
 
     private static (GameDatabase, WorldState, CreatureState) Setup(KeeperSpellDef? spell = null, Action<GameDatabase, WorldState>? before = null)

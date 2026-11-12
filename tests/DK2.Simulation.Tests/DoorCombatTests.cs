@@ -72,6 +72,7 @@ public class DoorCombatTests
         Assert.False(steering.TryRoute(world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, West), East, MoveOptions.Loose));
         world.RemoveCreature(world.Creatures[^1].Id);
         Assert.True(routes.TryRoute(goblin, East, MoveOptions.Plain));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
 
         for (int i = 0; i < 400 && world.Doors.Count > 0; i++) sim.Run(1);
 
@@ -87,6 +88,7 @@ public class DoorCombatTests
         Assert.NotEqual(CreatureActivity.Fighting, goblin.Activity);
         routes.Refresh();
         Assert.True(routes.TryRoute(goblin, East, MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         for (int i = 0; i < 200 && goblin.Tile != East; i++) sim.Run(1);
         Assert.Equal(East, goblin.Tile);
     }
@@ -101,6 +103,7 @@ public class DoorCombatTests
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
         Assert.True(Routes(db, world).TryRoute(warlock, East, MoveOptions.Plain));
+        (warlock.Dk2StateId, warlock.UtilityNewState) = (6, 1); // walking (6), resuming idle
 
         for (int i = 0; i < 1200 && world.Doors.Count > 0; i++) sim.Run(1);
 
@@ -131,6 +134,7 @@ public class DoorCombatTests
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
         Assert.True(Routes(db, world).TryRoute(goblin, East, MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
 
         bool opened = false;
         for (int i = 0; i < 200 && goblin.Tile != East; i++)
@@ -161,6 +165,7 @@ public class DoorCombatTests
         sim.Run(1);
         Assert.True(door.Open);
         Assert.True(Routes(db, world).TryRoute(goblin, East, MoveOptions.Plain));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
 
         for (int i = 0; i < 60 && !sink.Events.Any(e => e.Kind == "meets_door"); i++) sim.Run(1);
         Assert.Contains(sink.Events, e => e.Kind == "meets_door");
@@ -179,6 +184,7 @@ public class DoorCombatTests
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
         Assert.True(Routes(db, world).TryRoute(goblin, East, MoveOptions.Leaving));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
 
         for (int i = 0; i < 60; i++) sim.Run(1);
         Assert.Equal(rebel, sink.Events.Any(e => e.Kind == "meets_door"));

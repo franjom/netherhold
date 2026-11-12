@@ -17598,10 +17598,40 @@ joins the states that keep the stop's self-route, and `HeroSystem` ends a walk o
 progress (`0x00470C80`) instead of on `!HasRoute`.
 
 **Consequences.** Hash/save 475, pin `0x2D35D91DB836B396`; no new state, recorded runs
-change. Deviations: the Heart, Arches and Big Steps objects on the centre tile, which toggle
-the retained flag, are not built (a pillar's slide or shove can differ there); owned creatures
-keep the route gate (narrower than DK2); only resume 174 keeps the self-point. Controlled
+change. Deviations closed by ADR-0751: the Heart centre tile's objects, the owned creatures'
+route gate, and the self-point kept for resume 174 only. Controlled
 replay with the five hero guards restored at 1400 matches 7071 ordered draws through turn 1809
 (6905 through 1798 at 472); the new boundary is turn 1810, an Imp's withdrawal walk that
 ends a turn late in ours. Evidence: structure-blocks.md §5.3, steering-behaviours.md §7.5,
 stop-self-route.md.
+
+## ADR-0751 - the Heart centre's objects are walked, every non-Imp steers route-less and stops on a self-point
+**Date:** 2026-11-12 | **Status:** accepted | **Systems:** navigation, creatures, heroes
+
+**Context.** ADR-0750 left three gaps (Q712). (1) The obstacle enumerator's tile walk
+(`0x004D13B8`..`0x004D14B6`) forwards every class-2 `Obstacle` thing except type 100; the
+tail forwards only 100. Level 5's Heart centre tile (16,25) at turn 1400 holds, head first,
+six Chickens, 86, 88, 88, 88, 13, 100 (CONFIRMED in capture, the builder `0x004DB700`'s order),
+so 86, 88 and 13 each toggle the retained flag bit. (2) The mover block of `0x00488930`
+(`0x0048A218`..`0x0048A287`) has no owner or route test for any non-Imp. (3) The stop path
+(`0x0048ECE0`, `0x004D1070`, `0x004D0F60`) routes to the creature's own position for any
+creature, and `0x004D54F0` calls a zero-length route whole progress. State 222 (`0x00461F00`)
+first turns toward its leader (`0x004B2AE0`, `0x00461F25`): the native mover alone returns zero
+force on Level 5's slot 434 at turn 1777, yet it moved.
+
+**Decision.** `WorldSteering.AddVirtualHeartCentreObjects` puts 86, 88, 88, 88, 13 into the
+tile walk as the oldest things on the centre tile; the tail emits only 100.
+`CreatureMovementSystem` applies the state-table bit gate and a zero-speed return to every
+non-Imp; Imps keep their route-gate adapter. `CreatureState.StopMoving` keeps the one-point
+self-route for every non-Imp, and `HasRoute` also needs a nonzero total distance
+(`TravelArrivalSystem` tests route count, finished and progress directly).
+`HeroJobRules.Follow` turns toward the leader first.
+
+**Consequences.** Hash/save 476, pin `0xF9D4FF60F004C5DA`; no new state, recorded runs change
+(Level 1's finale journal re-recorded: win tick 2347). Deviations: the prisoner latch gate
+(`0x004739C0`) is not mirrored; a zero speed skips the whole mover block where DK2 skips only
+integration; Imps keep their adapters. Controlled replay (new rules gated at turn 1400):
+7071 ordered draws through turn 1809, the boundary unchanged at turn 1810 draw 1; before it no
+actor differs from the Heart-centre-only run. Level 10's object dump lists no Big Steps (Q760).
+Evidence: structure-blocks.md §5.3, steering-behaviours.md §7.5, stop-self-route.md,
+hero-party-walk.md §2.

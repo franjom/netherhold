@@ -37,15 +37,14 @@ idle-return walk over at whole progress. The neutral state 1 frame skips steerin
 perform the one stationary turn. No future heading, route, completion deadline
 or draw is supplied. The type 1 Imp stop adapter is unchanged.
 
-Owner/category selection is implementation coverage, not a native predicate:
-the native helpers are generic. The [Library stop-route extension](library-stop-route.md)
-retains self-routes for resolved Research non-Imps, and the [combat extension](combat-stop-route.md)
-covers resolved fight states 199/200. The [home extension](lair-home-handover.md)
-retains the point for resolved non-Imp state 80, and a hero's arrival at an action point keeps it
-for resume state 174 ([below](#a-hero-arriving-at-an-action-point-keeps-its-self-route-q712-adr-0750)). Other caller
-families retain their stop adapters. [Retained waypoint precision](stopped-waypoint-precision.md) has its
+The native helpers are generic, and since ADR-0751 (hash/save 476) so is ours:
+`CreatureState.StopMoving` keeps the one-point zero-length self-route for every non-Imp, which
+replaces the owner/category lists of the earlier extensions ([Library](library-stop-route.md),
+[combat](combat-stop-route.md), [home](lair-home-handover.md) and a hero's arrival at an action
+point, [below](#a-hero-arriving-at-an-action-point-keeps-its-self-route-q712-adr-0750)). The Imp stop
+adapter still clears the route. [Retained waypoint precision](stopped-waypoint-precision.md) has its
 own bounded correction. The [current-state/speed gate](library-movement-gate.md)
-and remaining movement adapters keep their separate scopes.
+now covers every non-Imp too.
 Hash/save 443 adds no fields; its remake regression pin is 0x5F32B8E99F7A1CD5.
 
 ## A hero arriving at an action point keeps its self-route (Q712, ADR-0750)
@@ -69,10 +68,25 @@ Capture (Level 5, hero slots 448 and 450-453, turns 1400-1900): 136 arrivals fro
 own position; 92 turned exactly one rate step toward 0 (slot 450: 1024 to 683, rate 341;
 slot 453: 512 to 171), 44 were already at 0.
 
-Ours: `CreatureState.StopMoving` keeps the self-point for resolved state 174 and
-`HeroSystem` ends the walk on whole route progress (the heading turn follows from the
-mover). Built for resume 174 only; heroes arriving into other states do not get the
-turn, which is narrower than DK2.
+Ours: `CreatureState.StopMoving` keeps the self-point for every non-Imp (ADR-0751; ADR-0750
+built resume 174 only) and `HeroSystem` ends the walk on whole route progress (the heading turn
+follows from the mover). A zero-length route is not walking: `0x004D54F0` returns 0x10000 for it,
+so `CreatureState.HasRoute` also requires a nonzero total distance, and `TravelArrivalSystem`
+tests route count, finished and progress directly so that it still stops a zero-length walk.
+
+## Every non-Imp stops the same way (Q712, ADR-0751)
+
+STRONGLY INFERRED from primary reads (the reviewer re-read them): the
+[stop wrapper](functions/0048ECE0.md) calls the [body helper](functions/004D1070.md), which
+requests a route to the creature's own `+0x1A` position with option word 0
+(`0x004D0F60`) and then sets the body (`0x004D59A0`), for any creature. Level 5 controlled
+replay with the rules gated at turn 1400 (study
+`F:/DK2Evidence/studies/q712-heart-centre--2026-11-12--001`): the mover bit and the generic
+self-point without the follower turn (`controlled479`) match 7031 ordered draws through turn
+1806, a follower a turn late; with the follower turn
+([hero-party-walk.md](hero-party-walk.md) §2) and the `HasRoute` change, 7071 through 1809, the
+boundary unchanged at turn 1810 draw 1 (native ImpUtils.cpp:484). After it, slots 433, 437, 438,
+439 and 441 match native at 1839-1841 where the Heart-centre-only run (`controlled478`) did not.
 
 ## Controlled comparison and bootstrap limit
 

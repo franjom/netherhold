@@ -219,6 +219,7 @@ public class WorldViewTests
         CreatureStateMachine.BeginTravel(new StateHookContext(world, database), imp,
             pointTravelState, ImpStates.For(TileWorkKind.Claim).Entry);
         imp.Body.PathTotalCount = 1;
+        imp.Body.PathTotalDist = 0x10000;
         imp.Body.MaxSpeed = 768 << 4;
         var view = new WorldView(database);
         CreatureView waiting = view.Creatures(world).Single(c => c.Id == imp.Id);
@@ -366,6 +367,7 @@ public class WorldViewTests
             1, FirstWalkableTile(database, world));
         creature.Dk2StateId = 200;
         creature.Body.PathTotalCount = 1;
+        creature.Body.PathTotalDist = 0x10000;
         creature.Body.PathFinished = false;
         creature.Possessed = true;
         creature.LastPosX = creature.PosX - 2048;
@@ -413,6 +415,7 @@ public class WorldViewTests
             1, FirstWalkableTile(database, world));
         caster.Dk2StateId = 200;
         caster.Body.PathTotalCount = 1;
+        caster.Body.PathTotalDist = 0x10000;
         caster.Body.PathFinished = false;
         caster.SwingInProgress = true;
         caster.SwingKind = kind;
@@ -556,6 +559,7 @@ public class WorldViewTests
         giant.Dk2StateId = 200;
         giant.Running = running;
         giant.Body.PathTotalCount = 1;
+        giant.Body.PathTotalDist = 0x10000;
         giant.Body.PathFinished = false;
         giant.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == giant.Id);
@@ -842,6 +846,7 @@ public class WorldViewTests
         imp.Dk2StateId = 6;
         imp.UtilityNewState = 13;
         imp.Body.PathTotalCount = 1;
+        imp.Body.PathTotalDist = 0x10000;
         imp.Body.PathFinished = false;
         imp.Running = running;
         imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(128 << 4, 0);
@@ -877,6 +882,7 @@ public class WorldViewTests
         imp.Dk2StateId = 6;
         imp.UtilityNewState = 13;
         imp.Body.PathTotalCount = 1;
+        imp.Body.PathTotalDist = 0x10000;
         imp.Body.PathFinished = false;
         imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(x, y);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
@@ -898,6 +904,7 @@ public class WorldViewTests
             1, FirstWalkableTile(database, world));
         prisoner.Dk2StateId = PrisonRules.InTheCellState;
         prisoner.Body.PathTotalCount = walking ? (byte)1 : (byte)0;
+        prisoner.Body.PathTotalDist = 0x10000;
         prisoner.Body.PathFinished = !walking;
         prisoner.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == prisoner.Id);
@@ -920,6 +927,7 @@ public class WorldViewTests
         guard.Dk2StateId = walking ? 6 : resumeState;
         guard.UtilityNewState = resumeState;
         guard.Body.PathTotalCount = walking ? (byte)1 : (byte)0;
+        guard.Body.PathTotalDist = 0x10000;
         guard.Body.PathFinished = !walking;
         guard.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == guard.Id);
@@ -941,6 +949,7 @@ public class WorldViewTests
         creature.Dk2StateId = 6;
         creature.UtilityNewState = CreatureStateMachine.Idle;
         creature.Body.PathTotalCount = 1;
+        creature.Body.PathTotalDist = 0x10000;
         creature.Body.PathFinished = false;
         creature.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(65536, 0);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);

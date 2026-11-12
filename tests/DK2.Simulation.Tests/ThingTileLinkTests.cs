@@ -150,6 +150,7 @@ public sealed class ThingTileLinkTests
         var navigation = new WorldSteering(db, world);
         navigation.Refresh();
         Assert.True(navigation.TryRouteTo(walker, CreatureState.CentreOf(15), CreatureState.CentreOf(10), MoveOptions.Plain));
+        (walker.Dk2StateId, walker.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var sim = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
         int changes = 0;
         for (int i = 0; i < 400 && walker.Tile.X < 15; i++)

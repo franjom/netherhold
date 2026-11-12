@@ -163,13 +163,15 @@ imp 427 rode that ring for nine ticks before turning in to a job on the platform
 (arrival exemption, steering-behaviours.md §2). Imp 428 jittered eight ticks at
 the heart's wall, then walked straight across the platform at full speed,
 passing 0.64 tiles from the centre: **escape mode does switch the obstacle off
-in DK2**, as ours does. **The Level 10 object dump (2026-09-18)** shows what
-holds the last half tile: each heart's centre tile carries three objects —
-type 100 (flags `0x03014000`, width 12288), the visible `Dungeon Heart` 13
+in DK2**, as ours does. **The Level 10 object dump (2026-09-18)** lists what
+holds the last half tile: three objects on each heart's centre
+tile — type 100 (flags `0x03014000`, width 12288), the visible `Dungeon Heart` 13
 (`0x00234000`, width 4096) and `Arches` 86 (`0x00014000`, width 2457). The
-latter two pass the enumerator's per-tile walk with reach 0.5
-and 0.3 tiles plus the body's radius. Their definitions lack `SolidObstacle`,
-but the retained callback flag can make either a slide contact (§5).
+Level 5 capture and the builder show three `Big Steps` (88, `0x00014000`, width 2457)
+as well (below); why the Level 10 dump omits them is unexplained (its filter or timing
+is unknown; Q760 asks whether the Big Steps persist on a Level 10 Heart). Their
+definitions lack `SolidObstacle`, but the retained callback flag can make any of them a
+slide contact (§5).
 Over 564,231 Level 10 samples the ring
 peaks in the same 1.375–1.625 band and the closest approaches are 0.64 and
 0.95 tiles; Level 7's were 0.50–0.60.
@@ -198,11 +200,6 @@ retained byte: OR 1 for a `SolidObstacle` (`0x004D1439`), XOR 1 otherwise
 with OR 3. Ours adds a live Heart's three pillars at the builder's positions
 ([furniture-placement.md](furniture-placement.md) §6) as the oldest thing on their
 tile, skipping a tile that holds a physical object 94 (`WorldSteering.AddVirtualHeartPillars`).
-Not built: the centre tile's objects 13, 86 and three of 88 (Big Steps), all
-`Obstacle` and non-solid, which toggle the retained flag for a query covering the
-centre tile; ours forwards 13 and 86 in its tail with fixed flags and 88 nowhere, so a
-pillar's slide or shove can differ from DK2 there. Not re-read: tile-chain order for
-"oldest".
 Capture (Level 5, turn 1778): object slot 1221 (type 94) at (72089,106906) and
 Imp 446 at (72937,107133), 877 units apart. Emulator
 (`F:/DK2Evidence/studies/q712-heart-pillars--2026-11-11--001/emulator1778`, the
@@ -210,6 +207,19 @@ turn-1400 process dump overlaid with the turn-1778 frame): `Repel_Obstacle`
 `0x004D31D0` returns (96483,25827), the pillar-to-Imp direction at about maximum
 force, with two recorded contacts; Avoid_Walls and Separation return zero. One
 query; the match of positions is a fit, not a read.
+
+**The centre tile's other objects are walked too (Q712, ADR-0751; CONFIRMED in capture).**
+Level 5 native capture, turn 1400, Heart centre tile (16,25), chain head first: six
+Chickens (type 9, no `Obstacle`), 86, 88, 88, 88, 13, 100. This matches the builder's
+order ([furniture-placement.md](furniture-placement.md) §6: `0x004DB700` index 12 makes
+100, 13, 88 three times, 86, the newest at the head). Objects.kwd: 13 width 4096 flags
+`0x234000`; 86 and 88 width 2457 flags `0x14000`. All are `Obstacle` and not solid, so
+the tile walk forwards each with the retained bit toggled (`0x004D14A1`); the tail
+(`0x004D1503`..`0x004D15AD`) forwards only 100, with OR 3. Ours
+(`WorldSteering.AddVirtualHeartCentreObjects`) puts 86, 88, 88, 88, 13 into the tile
+walk as the oldest things on the centre tile, in that order, and the tail emits only
+100. Study `F:/DK2Evidence/studies/q712-heart-centre--2026-11-12--001/chain1400`;
+replay in [steering-behaviours.md](steering-behaviours.md) §7.5.
 
 ### 5.4 The navigation cache and all known writers (Q209)
 

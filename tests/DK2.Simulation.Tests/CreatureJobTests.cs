@@ -321,10 +321,12 @@ public sealed class CreatureJobTests
         goblin.Anger.Treatment = CreatureAngerRules.UnhappyAt(db.CreatureById(GoblinId));
         goblin.GoldHeld = 100;
 
-        // Five seconds: the choice is the subject. In this room every tile holds an Obstacle, which
-        // no shipped Casino does, and a gambler later steps off it (ADR-0403).
+        // The choice is the subject, so it is read on the goblin's arrival. In this room every tile
+        // holds an Obstacle, which no shipped Casino does, and a standing gambler is later shoved
+        // off it (ADR-0403; route-less steering, ADR-0751).
         Dk2TerrainFixture.SetKnownIdentities(world);
-        Simulation(db, world).Run(Second * 5);
+        GameSimulation sim = Simulation(db, world);
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CasinoStep.AtTheTableState; tick++) sim.Tick();
 
         Assert.Equal(JobType.Drink, goblin.CurrentJob);
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);

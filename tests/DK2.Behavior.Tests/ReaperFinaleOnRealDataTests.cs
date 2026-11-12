@@ -12,13 +12,13 @@ namespace DK2.Behavior.Tests;
 
 /// <summary>
 /// Level 1's Horned Reaper finale on a recorded win (campaign-win-sequence.md §2-§3): the campaign
-/// player's journal for seed 1, won by player 3 at tick 2323 with a 1,500-tick finale window. The Lord
+/// player's journal for seed 1, won by player 3 at tick 2347 with a 1,500-tick finale window. The Lord
 /// of the Land carries the Portal Gem (action 20) and drops it where he dies; the Reaper must reach it.
 /// </summary>
 public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
 {
     private const string Fixture = "tests/DK2.Behavior.Tests/Fixtures/level1-seed1-win/";
-    private const long WinTick = 2323;
+    private const long WinTick = 2347;
     /// <summary>The journal's finale window (its <c>player.limits</c> <c>finale_ticks</c>).</summary>
     private const long FinaleWindowTicks = 1500;
     private static readonly PlayerId Winner = new(3);
@@ -39,7 +39,7 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
             },
         };
         using FileStream journal = File.OpenRead(Dk2CaptureGate.PathFor(Fixture + "input.journal"));
-        // The journal was re-recorded at HashVersion 472 (an attacked floor's claim clip moved the win). A later
+        // The journal was re-recorded at HashVersion 476 (route-less steering for every non-Imp moved the win). A later
         // hash version replays it with its hashes as evidence, not a verdict.
         ScenarioResult result = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path).Replay(
             Scenario.Load(Dk2CaptureGate.PathFor(Fixture + "level1.yaml")), InputJournal.Read(journal), options,
@@ -50,7 +50,7 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
         SimEvent created = Assert.Single(result.Events, e => e.Kind == "reaper_created");
         Assert.True(created.Tick.Value == WinTick,
             $"The replay no longer wins at t{WinTick} (t{created.Tick.Value}); the journal needs re-recording.");
-        Assert.True(gemAtWin == (14, 21), $"The gem is at {gemAtWin} at the win, not where the Lord died (14,21).");
+        Assert.True(gemAtWin == (13, 22), $"The gem is at {gemAtWin} at the win, not where the Lord died (13,22).");
         Assert.InRange(pickup, WinTick + 1, WinTick + FinaleWindowTicks);
         Assert.Contains(result.Events, e => e.Kind == "gem_taken" && e.Tick.Value == pickup);
         output.WriteLine($"pickup t{pickup}; first hash difference from the journal: t{result.Replay!.FirstDivergentTick}");

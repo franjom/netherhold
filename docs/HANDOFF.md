@@ -24,12 +24,14 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 The latest Q712 work is the bounded Level 5 draw-continuation investigation.
-The last controlled result (hash 475 with ADR-0750, the replay inputs now including the
+The last controlled result (hash 476 with ADR-0751, the replay inputs including the
 five hero guards restored at turn 1400: 7071 ordered draws match through turn 1809) is in
 [Q712](research/open-questions.md), with its causes in
-[the Heart's Arch Pillars as obstacles](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355),
-[the neutral route gate](research/steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers),
+[the Heart's pillars and centre-tile objects as obstacles](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) (ADR-0750, ADR-0751),
+[the mover block for every non-Imp](research/steering-behaviours.md#75-the-creatures-tick-0x004d5a40-and-its-callers) (ADR-0751),
+[the generic stop self-point](research/stop-self-route.md#every-non-imp-stops-the-same-way-q712-adr-0751) and
 [a hero's arrival at an action point](research/stop-self-route.md#a-hero-arriving-at-an-action-point-keeps-its-self-route-q712-adr-0750) (ADR-0750),
+[a follower's turn toward its leader](research/hero-party-walk.md) (ADR-0751),
 [an attacked floor's claim clip](research/imp-claim-action-clock.md#an-attacked-floors-claim-starts-its-own-clip-adr-0746-hashsave-472) (ADR-0746),
 [a fallen creature's stale body](research/steering-body-retention.md#state-217-leaves-its-body-where-it-fell-adr-0745-hashsave-471) (ADR-0745),
 [possessed pick heights](research/possessed-pick-heights.md),

@@ -524,13 +524,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return true;
     }
 
-    /// <summary>The three objects a running game holds on a heart's centre tile (Level 10 object
-    /// dump, structure-blocks.md §5.3): the <c>Dungeon Heart Obstacle</c> (100, width 3.0, solid),
-    /// which DK2's enumerator skips on its tile and forwards once from the room's centre with flag
-    /// bits 0 and 1, and the visible <c>Dungeon Heart</c> (13, width 1.0) and <c>Arches</c> (86,
-    /// width 0.6), plain shoves. Torture devices also contribute their shipped position,
-    /// Obstacle flag and width/2. Ordinary queries retain the binary's flag toggle
-    /// and tile-head order (structure-blocks.md §5).</summary>
+    /// <summary>The <c>Dungeon Heart Obstacle</c> (100, width 3.0, solid) on a heart's centre tile
+    /// is skipped by DK2's tile walk and forwarded once from the room's centre with flag bits 0
+    /// and 1 (structure-blocks.md §5.3); the tile's other objects are walked like any. Torture
+    /// devices also contribute their shipped position, Obstacle flag and width/2. Ordinary
+    /// queries retain the binary's flag toggle and tile-head order (structure-blocks.md §5).</summary>
     public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into)
     {
         int half = Math.Min((range / 2) >> 4, Fp32.One);
@@ -570,6 +568,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         AddVirtualStorePiles(new TilePos(x0, y0), new TilePos(x1, y1));
         AddVirtualHatcheryPillars(new TilePos(x0, y0), new TilePos(x1, y1));
         AddVirtualHeartPillars(new TilePos(x0, y0), new TilePos(x1, y1));
+        AddVirtualHeartCentreObjects(new TilePos(x0, y0), new TilePos(x1, y1));
         _objectObstacles.Sort((left, right) => left.TileIndex != right.TileIndex
             ? left.TileIndex.CompareTo(right.TileIndex)
             : right.Order.CompareTo(left.Order));
@@ -587,12 +586,34 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         {
             var pos = new Fixed16Vector(
                 CreatureState.CentreOf(index % _world.Width) << 4, CreatureState.CentreOf(index / _world.Width) << 4);
-            foreach (byte id in HeartObjectIds)
+            if (!_database.Objects.TryGetValue(DungeonHeartObstacleObjectId, out ObjectDef? def)) continue;
+            int size = (def.Width.Raw << 4) >> 1;
+            if ((pos - centre).Octile() > range + size) continue;
+            into.Add(new SteeringObstacle(pos, size, (def.Flags & ObjectFlags.SolidObstacle) == ObjectFlags.SolidObstacle, true));
+        }
+    }
+
+    /// <summary>The Heart's centre tile holds, head first, Arches (86), three Big Steps (88) and
+    /// the Heart (13) before object 100 (<c>0x004DB700</c>; Level 5 capture, turn 1400). All are
+    /// <c>Obstacle</c> and not solid, so each flips the retained bit in the tile walk
+    /// (<c>0x004D14A1</c>); only 100 is left to the tail (structure-blocks.md §5.3).</summary>
+    private void AddVirtualHeartCentreObjects(TilePos minimum, TilePos maximum)
+    {
+        if (_structures is null) return;
+        foreach (int index in _structures.HeartCentres)
+        {
+            int x = index % _world.Width, y = index / _world.Width;
+            if (x < minimum.X || x > maximum.X || y < minimum.Y || y > maximum.Y) continue;
+            var position = new Fixed16Vector(CreatureState.CentreOf(x) << 4, CreatureState.CentreOf(y) << 4);
+            for (int i = 0; i < HeartCentreChain.Length; i++)
             {
-                if (!_database.Objects.TryGetValue(id, out ObjectDef? def)) continue;
-                int size = (def.Width.Raw << 4) >> 1;
-                if ((pos - centre).Octile() > range + size) continue;
-                into.Add(new SteeringObstacle(pos, size, ((def.Flags & ObjectFlags.SolidObstacle) == ObjectFlags.SolidObstacle), id == DungeonHeartObstacleObjectId));
+                if (_database.ObjectById(HeartCentreChain[i]) is not { } definition
+                    || (definition.Flags & ObjectFlags.Obstacle) == 0) continue;
+                int size = (definition.Width.Raw >> 1) << 4;
+                if (size <= 0) continue;
+                // Oldest things on the tile, in the builder's order: the head (86) is the newest.
+                _objectObstacles.Add(new ObjectObstacle(index, long.MinValue + HeartCentreChain.Length - i, position, size,
+                    (definition.Flags & ObjectFlags.SolidObstacle) != 0));
             }
         }
     }
@@ -649,9 +670,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     /// <summary>A live Heart's three Arch Pillars (object 94) are things on their tiles in DK2 and
     /// reach the obstacle callback like any other (<c>0x004D12B0</c>); ours keeps them as positions
-    /// only. Level 5: an Imp passing the third pillar at 0.21 tile is shoved straight off it. Not
-    /// built: the Heart, Arches and Big Steps objects on the centre tile, which toggle the retained
-    /// flag for a query that covers them.</summary>
+    /// only. Level 5: an Imp passing the third pillar at 0.21 tile is shoved straight off it.</summary>
     private void AddVirtualHeartPillars(TilePos minimum, TilePos maximum)
     {
         ObjectDef? definition = _database.ObjectById(HeartPillarRules.ArchPillarObjectId);
@@ -699,10 +718,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// <summary>OBJECTS record 100, the invisible object a heart keeps creatures off with.</summary>
     public const byte DungeonHeartObstacleObjectId = 100;
 
-    /// <summary>OBJECTS records 13 (<c>Dungeon Heart</c>) and 86 (<c>Arches</c>), also on the centre.</summary>
-    public const byte DungeonHeartObjectId = 13, ArchesObjectId = 86;
+    /// <summary>OBJECTS records 13 (<c>Dungeon Heart</c>), 86 (<c>Arches</c>) and 88 (<c>Big Steps</c>), also on the centre.</summary>
+    public const byte DungeonHeartObjectId = 13, ArchesObjectId = 86, BigStepsObjectId = 88;
 
-    private static readonly byte[] HeartObjectIds = [DungeonHeartObstacleObjectId, DungeonHeartObjectId, ArchesObjectId];
+    private static readonly byte[] HeartCentreChain =
+        [ArchesObjectId, BigStepsObjectId, BigStepsObjectId, BigStepsObjectId, DungeonHeartObjectId];
 
     /// <summary>The crowd probe <c>0x004D15E0</c>: tiles from the floor of the square's low edge to
     /// the ceiling of its high edge, both inclusive, and every creature standing on one of them adds

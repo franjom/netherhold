@@ -46,13 +46,13 @@ public sealed class StoppedWaypointTests
     }
 
     [Fact]
-    public void AnOwnedIdleStopKeepsItsExistingEmptyRouteAdapter()
+    public void AnOwnedIdleStopKeepsItsSelfPoint()
     {
         var (_, _, creature) = Setup(PlayerIds.FirstKeeper, CreatureStateMachine.Idle);
 
         creature.StopMoving();
 
-        Assert.Equal(0, creature.Body.PathTotalCount);
+        Assert.Equal(1, creature.Body.PathTotalCount);
         Assert.Equal(new Fixed16Vector(428192, 1972704), creature.Body.Pos);
     }
 

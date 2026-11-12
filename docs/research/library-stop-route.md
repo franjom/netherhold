@@ -15,7 +15,7 @@ Modern 447 discarded the stopped point. It missed the stationary turn at
 1577, made its first actual shelf-walk step at 1580 rather than 1579, and drew
 for reading at 1589. Retaining the point alone also exposes both Library
 handover adapters: an unfinished zero-length self-route has whole progress
-while HasRoute remains true.
+while HasRoute then stayed true (a zero-length route is not HasRoute since ADR-0751).
 
 ## Binary rule and implementation
 

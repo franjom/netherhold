@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**476** - `0xF9D4FF60F004C5DA`. The Heart's centre-tile objects (86, three of 88, 13) are walked as things on their tile and the tail forwards only object 100 (`0x004D12B0`); every non-Imp takes the mover block's bit gate and zero-speed return with no route test (`0x00488930`) and keeps the stop's one-point self-route (`0x0048ECE0`); a zero-length route is not `HasRoute` (`0x004D54F0`); state 222 turns toward its leader first (`0x00461F25`) (ADR-0751). No new state; the version moves because recorded runs change.
+
 **475** - `0x2D35D91DB836B396`. A live Heart's three Arch Pillars are steering obstacles (`0x004D12B0`), a neutral non-Imp steers with no route (mover block of `0x00488930`), and a hero arriving from state 6 into 174 keeps the stop's self-point and turns one step toward heading 0 (ADR-0750). No new state; the version moves because recorded runs change.
 
 **474** - `0xDCC53B2AA7221CA1`. The payday clock fires player event 46 for the keeper after its creatures are handled and before the reschedule (`0x004BE250`), so Level 1's pay-day speech plays (ADR-0749). No new state; the version moves because recorded runs change.

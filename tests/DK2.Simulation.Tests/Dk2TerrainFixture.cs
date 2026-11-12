@@ -410,8 +410,8 @@ internal static class Dk2TerrainFixture
             TooltipStringId = 0,
         },
 
-        // The two visible objects a running heart also holds on its centre tile (the Level 10
-        // object dump): both plain Obstacle shoves, widths 1.0 and 0.6 tiles.
+        // Visible objects a running heart also holds on its centre tile (the Level 10 object
+        // dump): plain Obstacle things, widths 1.0 and 0.6 tiles.
         new ObjectDef
         {
             Name = "Dungeon Heart",
@@ -427,6 +427,16 @@ internal static class Dk2TerrainFixture
         {
             Name = "Arches",
             ObjectId = Navigation.WorldSteering.ArchesObjectId,
+            Flags = ObjectFlags.Obstacle | ObjectFlags.BoulderCanRollThrough,
+            Hp = 1, ManaValue = 0, RoomCapacity = 0, StartState = 0, PickUpPriority = 0,
+            Width = new Fp32(2457), Height = new Fp32(4096), Mass = new Fp32(8192), Speed = new Fp32(0),
+            NameStringId = 0, TooltipStringId = 0,
+        },
+        // Big Steps, three on the centre tile: flags and width as shipped (0x14000, 2457).
+        new ObjectDef
+        {
+            Name = "Big Steps",
+            ObjectId = Navigation.WorldSteering.BigStepsObjectId,
             Flags = ObjectFlags.Obstacle | ObjectFlags.BoulderCanRollThrough,
             Hp = 1, ManaValue = 0, RoomCapacity = 0, StartState = 0, PickUpPriority = 0,
             Width = new Fp32(2457), Height = new Fp32(4096), Mass = new Fp32(8192), Speed = new Fp32(0),

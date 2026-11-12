@@ -33,6 +33,7 @@ public class PortalCrystalArrivalTests
         Assert.False(PortalRules.StillJoining(world, creature, definition));
         var navigation = new WorldSteering(db, world);
         Assert.True(navigation.TryRoute(creature, new TilePos(x, y), MoveOptions.ExactSpot));
+        (creature.Dk2StateId, creature.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem()]);
         for (int tick = 0; tick < 600 && !creature.Body.PathFinished; tick++) sim.Tick();
         Assert.Equal(new TilePos(x, y), creature.Tile);

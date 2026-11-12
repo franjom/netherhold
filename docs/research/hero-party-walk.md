@@ -159,8 +159,9 @@ with 223/224. `0x00461F00` reads `MyLeadersId`, chooses a tile behind
 that thing's heading, adds one of nine sub-tile offsets, and calls
 `0x00471890(point, 222, 0x80)`. When the leader is itself travelling
 in state 6, the reference point is its stored movement target rather
-than its current position. **STRONGLY INFERRED** by
-`0x00461F00`-`0x004620D4`.
+than its current position. First it turns toward the leader's position with `0x004B2AE0`
+(`0x00461F25`, one rate step); ours does too (`HeroJobRules.Follow`, ADR-0751; capture and
+emulator in [the record](functions/00461F00.md)). **STRONGLY INFERRED** by `0x00461F00`-`0x004620D4`.
 
 Same-tile destinations are real walks here, too (binary recheck, 2026-10-11):
 the tail draws one of nine offsets and passes the resulting point, resume 222

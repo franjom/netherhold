@@ -51,7 +51,6 @@ public sealed class HeroSystem : ICreatureUpdateStep
         {
             if (!IsHeroResume(creature.UtilityNewState)) return;
             // State 6 resumes on whole progress (0x00470C80); a stop's own self-point has it at once.
-            // Only a resume into 174 keeps that self-point (StopMoving), as far as the capture shows.
             if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return;
             creature.StopMoving();
             StateShadow.Arrive(context, SystemName, creature);

@@ -28,6 +28,7 @@ public sealed class CreatureFootstepViewTests
         CreatureState creature = world.SpawnCreature(database, database.CreatureByName(name)!.CreatureId, 2, new TilePos(1, 1));
         CreatureStateMachine.BeginTravel(new StateHookContext(world, database), creature, 6, ImpStates.For(TileWorkKind.Claim).Entry);
         creature.Body.PathTotalCount = 1;
+        creature.Body.PathTotalDist = 0x10000;
         creature.Body.MaxSpeed = 768 << 4;
         creature.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(128 << 4, 0);
         return (database, world, creature, new WorldView(database));

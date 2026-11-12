@@ -115,12 +115,14 @@ public sealed class CombatStoppedRouteTests
         Assert.False(caster.Body.PathFinished);
     }
 
+    /// <summary>The stop (<c>0x0048ECE0</c> through <c>0x004D1070</c>) is generic: every non-Imp keeps
+    /// its one-point self-route, of length zero, whatever its state; ours' Imp adapter clears it.</summary>
     [Theory]
-    [InlineData(Dk2TerrainFixture.ImpCreatureId, FightState)]
-    [InlineData(Dk2TerrainFixture.GoblinCreatureId, CreatureStateMachine.Idle)]
-    [InlineData(Dk2TerrainFixture.GoblinCreatureId, 259)]
-    [InlineData(Dk2TerrainFixture.GoblinCreatureId, 260)]
-    public void OtherCallerFamiliesRetainTheirEmptyRouteStopAdapter(byte type, int state)
+    [InlineData(Dk2TerrainFixture.ImpCreatureId, FightState, 0)]
+    [InlineData(Dk2TerrainFixture.GoblinCreatureId, CreatureStateMachine.Idle, 1)]
+    [InlineData(Dk2TerrainFixture.GoblinCreatureId, 259, 1)]
+    [InlineData(Dk2TerrainFixture.GoblinCreatureId, 260, 1)]
+    public void EveryNonImpStopKeepsAZeroLengthSelfRoute(byte type, int state, int points)
     {
         var (db, world, _, _) = Setup();
         var creature = world.SpawnCreature(db,
@@ -128,7 +130,9 @@ public sealed class CombatStoppedRouteTests
             PlayerIds.FirstKeeper, new TilePos(10, 10));
         StatePlacement.Place(creature, state);
         creature.StopMoving();
-        Assert.Equal(0, creature.Body.PathTotalCount);
+        Assert.Equal(points, creature.Body.PathTotalCount);
+        Assert.Equal(0, creature.Body.PathTotalDist);
+        Assert.False(creature.HasRoute);
     }
 
     private static void Load(CreatureState caster, bool finished)

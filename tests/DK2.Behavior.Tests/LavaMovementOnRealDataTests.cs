@@ -57,6 +57,7 @@ public class LavaMovementOnRealDataTests
             .OrderBy(p => Math.Abs(p.X - creature.Tile.X) + Math.Abs(p.Y - creature.Tile.Y))
             .First(p => navigation.TryRoute(creature, p, MoveOptions.ExactSpot));
         _output.WriteLine($"from={creature.Tile}; lava destination={lava}; creature owner={creature.OwnerPlayerId}; lava owner={world.Tile(lava).OwnerPlayerId}");
+        (creature.Dk2StateId, creature.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var movement = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
         for (int t = 0; t < 300 && creature.Tile != lava; t++) movement.Tick();
         Assert.Equal(lava, creature.Tile);
@@ -82,6 +83,7 @@ public class LavaMovementOnRealDataTests
         Assert.True(definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava));
         CreatureState creature = world.SpawnCreature(db, definition.CreatureId, new PlayerId(3), start);
         Assert.True(navigation.TryRoute(creature, destination, MoveOptions.ExactSpot));
+        (creature.Dk2StateId, creature.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var simulation = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
         bool enteredLava = false;
         for (int t = 0; t < 300 && creature.Tile != destination; t++)

@@ -22,9 +22,10 @@ Hash/save 445 extends the already built state/speed gate from neutral
 non-Imps to the Library states recognized by `ResearchStep.IsResearchState`.
 The current state's flag remains decisive: 53, 54 and 56 hold; 57, 59, 60 and 62
 retain their movement-enabled behavior.
-These caller families are an implementation boundary, not a native predicate.
-Other mover adapters and the general owned-creature stop route remain partial.
-See ADR-0713.
+See ADR-0713. The caller families were an implementation boundary, not a native
+predicate: ADR-0751 (hash/save 476) applies the gate and the zero-speed return to every
+non-Imp, and the stop's self-route likewise ([stop-self-route.md](stop-self-route.md)).
+The Imp adapter and the unmirrored prisoner latch gate stay (steering-behaviours.md §7.5).
 
 ## Native boundary and controlled result
 

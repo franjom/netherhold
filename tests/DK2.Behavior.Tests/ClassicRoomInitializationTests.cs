@@ -54,6 +54,7 @@ public class ClassicRoomInitializationTests
         var navigation = new WorldSteering(db, world);
         navigation.Refresh();
         Assert.True(navigation.TryRoute(dwarf, new TilePos(11, 13), MoveOptions.Plain));
+        (dwarf.Dk2StateId, dwarf.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var centre = new Fixed16Vector(CreatureState.CentreOf(12) << 4, CreatureState.CentreOf(13) << 4);
         int closest = int.MaxValue, contacts = 0;
         for (int tick = 0; tick < 80 && !dwarf.Body.PathFinished; tick++)
@@ -116,6 +117,7 @@ public class ClassicRoomInitializationTests
         Assert.True(found);
         CreatureState dwarf = world.SpawnCreature(db, 14, PlayerIds.Good, land);
         Assert.True(navigation.TryRoute(dwarf, water, MoveOptions.Plain));
+        (dwarf.Dk2StateId, dwarf.UtilityNewState) = (6, 1); // walking (6), resuming idle
         new GameSimulation(db, world, 1, [new CreatureMovementSystem()]).Run(30);
         Assert.Equal(water, dwarf.Tile);
     }

@@ -12,8 +12,8 @@ using DK2.Simulation.Steering;
 namespace DK2.Simulation.Systems;
 
 /// <summary>DK2's per-tick mover update (<c>0x004D5A40</c> and its four callers;
-/// docs/research/steering-behaviours.md §7.5): every creature that has a route or is still moving
-/// puts its body on its position, runs the four weighted behaviours through the Euler step, and
+/// docs/research/steering-behaviours.md §7.5): every non-Imp whose state has the mover bit, routed
+/// or not, puts its body on its position, runs the four weighted behaviours through the Euler step, and
 /// takes the new position if the tile under it is not solid, keeping the body's 16.16 position;
 /// otherwise the body is put back on the entity with no velocity. The body's speed cap is the
 /// definition's speed at the creature's level, per tick, capped at just under a tile
@@ -93,25 +93,17 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             creature.TremorRoutePaused = false;
         }
 
-        // Native tests the current state's bit after its handler. Mirror this for neutrals and
-        // the built Library states; the remaining mover adapters stay partial (library-movement-gate.md).
-        if ((creature.OwnerPlayerId == PlayerIds.Neutral || ResearchStep.IsResearchState(creature.Dk2StateId)
-            || creature.Dk2StateId == LairRules.MakingAHomeState
-            || context.UpdateStartStateId == LairRules.MakingAHomeState
-            || context.IdledByLairHandlerThisTick.Contains(creature))
-            && creature.CreatureTypeId != ImpTypeId
+        // The mover block (0x0048A218..0x0048A287) runs for a non-Imp whose current state, after
+        // its handler, has the table's bit 0, with no route test. Not mirrored: the prisoner latch
+        // gate 0x004739C0, and a zero speed skips only integration (0x004D5A40), not the whole block.
+        if (creature.CreatureTypeId != ImpTypeId
             && (creature.Body.MaxSpeed == 0 || !CreatureStateMachine.HasState(creature)
                 || (CreatureStateTable.Get(creature.Dk2StateId).Flags & CreatureStateFlags.Unread0) == 0)) return;
 
-        // Native fight states 199/200 have the movement bit even without a route: contact
-        // steering and braking still run (combat-spacing.md).
-        // Other states retain the route gate until their movement dispatch is mirrored. The
-        // approach, state 8, keeps 199's exemption it had as a flag: whether its mover
-        // (0x00470C80) steers with no route is unread (ADR-0483).
-        // DK2 has no route test here; ours drops it for neutrals only (steering-body-retention.md).
-        if (creature.Body.PathTotalCount == 0
-            && creature.Dk2StateId is not (CombatStates.Engaging or 200 or CombatStates.Approaching)
-            && (creature.OwnerPlayerId != PlayerIds.Neutral || creature.CreatureTypeId == ImpTypeId)) return;
+        // Ours' Imp adapter keeps a route gate; fight states 199/200 and the approach (8) steer
+        // without one (combat-spacing.md, ADR-0483).
+        if (creature.CreatureTypeId == ImpTypeId && creature.Body.PathTotalCount == 0
+            && creature.Dk2StateId is not (CombatStates.Engaging or 200 or CombatStates.Approaching)) return;
 
         if (creature.CreatureTypeId == ImpTypeId)
         {

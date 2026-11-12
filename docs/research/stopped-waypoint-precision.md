@@ -41,7 +41,7 @@ The [endpoint builder](functions/004D0150.md) and
 The regular WorldSteering route path already converts through 16.8; the direct
 stop adapter bypassed that conversion. StopMoving now rounds only its retained
 waypoint down to the 1/256-tile grid. Body position and PathTargetPos stay exact.
-Retained-route caller coverage is unchanged; other stop adapters remain partial.
+Every non-Imp stop retains the route since ADR-0751 ([stop-self-route.md](stop-self-route.md)); Imp stops keep their adapter.
 
 The focused [Avoid Walls tail](functions/004D35C0.md) reads the current window
 point for its escape nudge. The [separation callback](functions/004D2B80.md)

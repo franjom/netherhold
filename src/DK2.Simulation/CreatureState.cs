@@ -1394,9 +1394,9 @@ public sealed partial class CreatureState
     /// <summary>The eight ranged attackers engaged with this creature — DK2's <c>+0x504</c>.</summary>
     public readonly int[] EngagedRanged = new int[Combat.CombatRules.Slots];
 
-    /// <summary>Walking somewhere it has not reached: a route is loaded and <c>path_finished</c>
-    /// is clear. The mover's arrival test sets the flag (steering-behaviours.md §5.2).</summary>
-    public bool HasRoute => Body.PathTotalCount != 0 && !Body.PathFinished;
+    /// <summary>Walking somewhere it has not reached: a route of nonzero length with <c>path_finished</c>
+    /// clear; a zero-length one, a stop's self-point too, is whole progress (<c>0x004D54F0</c>).</summary>
+    public bool HasRoute => Body.PathTotalCount != 0 && !Body.PathFinished && Body.PathTotalDist != 0;
 
     /// <summary>A route was requested and found, arrived or not; retained self-routes count.</summary>
     public bool IsRouted => Body.PathTotalCount != 0;
@@ -1406,19 +1406,13 @@ public sealed partial class CreatureState
 
     /// <summary>Stops the body where the creature stands, with zero velocity:
     /// <c>Creature_StopMoving</c> (<c>0x0048ECE0</c>) through <c>0x004D1070</c>, which requests a
-    /// route to itself and zeroes velocity (<c>0x004D59A0</c>). Neutral, resolved Research and fight states
-    /// 199/200 non-Imp controllers retain that route; other stop adapters remain partial (combat-stop-route.md).</summary>
+    /// route to itself and zeroes velocity (<c>0x004D59A0</c>); ours' Imp adapter clears it (stop-self-route.md).</summary>
     public void StopMoving()
     {
         Body.Pos = new Steering.Fixed16Vector(PosX << 4, PosY << 4);
         // Route points make the native 16.8 round trip; the target keeps 16.16 (0x004D5100).
-        Steering.RouteWindow.Load(Body, (OwnerPlayerId == PlayerIds.Neutral
-            || ResearchStep.ResolvedCategory(this) == CreatureStateCategory.Research
-            || (CreatureStateMachine.HasState(this)
-                && NeedRules.ResolvedStateId(this) is LairRules.MakingAHomeState or Combat.CombatStates.Engaging or 200
-                    or HeroJobRules.AtThePointState))
-            && CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId
-                ? [new Steering.Fixed16Vector(Body.Pos.X & ~0xFF, Body.Pos.Y & ~0xFF)] : [], Body.Pos, 0);
+        Steering.RouteWindow.Load(Body, CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId
+            ? [new Steering.Fixed16Vector(Body.Pos.X & ~0xFF, Body.Pos.Y & ~0xFF)] : [], Body.Pos, 0);
         Body.Vel = Steering.Fixed16Vector.Zero;
         // 0x0048ECE0 clears +0x3E6 bits 17 and 18 and 0x004D0F60 rewrites them from option word 0.
         RouteOptions = Navigation.MoveOptions.Plain;

@@ -23,6 +23,7 @@ public class LeavingRouteTests
         CreatureState creature = world.SpawnCreature(database, 7, PlayerIds.FirstKeeper, new TilePos(1, 1));
         creature.Dk2StateId = LeavingRules.ChoosingState;
         creature.Body.PathTotalCount = 1;
+        creature.Body.PathTotalDist = 0x10000;
         Assert.True(creature.HasRoute);
         bool succeeded = false;
         TilePos selected = creature.Tile;

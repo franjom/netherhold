@@ -47,9 +47,10 @@ preserve the existing route. The old no-route contact regression now explicitly
 loads an empty route; approach-exit assertions use whole progress.
 See ADR-0717 and [Library stopped routes](library-stop-route.md).
 
-The family selection is implementation coverage, not a native owner/state guard.
-Victory and type 1 Imp stops retain their existing adapters. The victory movement and
-body-facing adapters need their own paired treatment before widening this scope.
+The family selection was implementation coverage, not a native owner/state guard;
+ADR-0751 (hash/save 476) keeps the self-route for every non-Imp stop
+([stop-self-route.md](stop-self-route.md)). Type 1 Imp stops retain their adapter. The victory
+movement and body-facing adapters still need their own paired treatment.
 Other combat limits, including the independent physical +0x46F eligibility gate,
 remain partial. No full-state, unconditional replay or Heart parity follows.
 

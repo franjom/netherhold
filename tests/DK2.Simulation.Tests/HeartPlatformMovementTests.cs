@@ -70,6 +70,7 @@ public sealed class HeartPlatformMovementTests
         var (db, world, steering, goblin) = Setup(new TilePos(2, 6));
         HeartRuin.Set(world, PlayerIds.FirstKeeper, ruined);
         Assert.True(steering.TryRoute(goblin, new TilePos(10, 6), MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
         bool crossedCore = false;
         goblin.Body.EscapeStuckMode = true;
@@ -90,6 +91,7 @@ public sealed class HeartPlatformMovementTests
     {
         var (db, world, steering, goblin) = Setup(new TilePos(5, 6));
         Assert.True(steering.TryRoute(goblin, new TilePos(10, 6), MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
         for (int tick = 0; tick < 60; tick++)
         {
@@ -118,6 +120,7 @@ public sealed class HeartPlatformMovementTests
     {
         var (db, world, steering, goblin) = Setup(new TilePos(6, 6));
         Assert.True(steering.TryRoute(goblin, new TilePos(10, 6), MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
         for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(10, 6); tick++) sim.Tick(InputFrame.Empty);
         Assert.Equal(new TilePos(10, 6), goblin.Tile);
@@ -150,6 +153,7 @@ public sealed class HeartPlatformMovementTests
         var (db, world, steering, goblin) = Setup(new TilePos(2, 6));
         byte[] nativeBytes = WorldSteering.CaptureNavigationBytes(db, world);
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), MoveOptions.ExactSpot));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         Assert.Equal(Point(-0.625, 0), goblin.Body.PathTargetPos);
         int before = steering.Rebuilds;
         HeartRuin.Set(world, PlayerIds.FirstKeeper, true);
@@ -158,6 +162,7 @@ public sealed class HeartPlatformMovementTests
         Assert.Equal(nativeBytes, WorldSteering.CaptureNavigationBytes(db, world));
         Assert.Equal(DK2.Pathfinding.NavBytes.Floor, steering.NavByte(6, 6));
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), MoveOptions.ExactSpot));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         Assert.Equal(Point(0, 0), goblin.Body.PathTargetPos);
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
         for (int tick = 0; tick < 400 && !goblin.Body.PathFinished; tick++) sim.Tick(InputFrame.Empty);

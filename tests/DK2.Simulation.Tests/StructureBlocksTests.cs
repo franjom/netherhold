@@ -463,7 +463,9 @@ public sealed class StructureBlocksTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 6));
         Assert.False(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
         Assert.True(steering.TryRoute(goblin, new TilePos(9, 6), Navigation.MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Leaving));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
     }
 
     /// <summary>The native cache retains floor; only targets inside the small core are moved.</summary>
@@ -479,30 +481,32 @@ public sealed class StructureBlocksTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 6));
         var steering = new Navigation.WorldSteering(db, world);
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         Assert.Equal(DK2.Pathfinding.NavBytes.Floor, steering.NavByte(6, 6));
         Assert.Equal(new DK2.Simulation.Steering.Fixed16Vector((6 << 16) - (1 << 13),
             (6 << 16) + (1 << 15)), goblin.Body.PathTargetPos);
         Assert.True(steering.TryRoute(goblin, new TilePos(4, 6), Navigation.MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
     }
 
-    /// <summary>A running heart's centre tile holds three objects (Level 10 dump): the solid
-    /// obstacle (100, width 3.0) DK2's enumerator forwards once per query with flag bits 0 and 1,
-    /// and the visible heart (13) and arches (86), plain shoves. The native obstacles remain;
-    /// the off-axis walk follows the obstacle ring.</summary>
+    /// <summary>A running heart's centre tile holds, head first, Arches (86), three Big Steps (88),
+    /// the Heart (13) and the solid obstacle (100, width 3.0) (Level 5 capture, turn 1400). The
+    /// tile walk forwards the first five, each flipping the retained bit; only 100 comes from the
+    /// tail, with flag bits 0 and 1. The off-axis walk follows the obstacle ring.</summary>
     [Fact]
-    public void TheHeartHasItsThreeObstaclesAndAnOffAxisWalkerStaysOnTheRim()
+    public void TheHeartsCentreObjectsToggleTheRetainedBitAndAnOffAxisWalkerStaysOnTheRim()
     {
         (WorldState world, Navigation.WorldSteering steering, CreatureState goblin, GameSimulation sim) =
             HeartWalk(new TilePos(2, 4), new TilePos(10, 7));
 
         var obstacles = new List<DK2.Simulation.Steering.SteeringObstacle>();
-        steering.CollectObstacles(new DK2.Simulation.Steering.Fixed16Vector(6 << 16, 6 << 16), 1 << 16, obstacles);
-        Assert.Equal(3, obstacles.Count);
-        DK2.Simulation.Steering.SteeringObstacle heart = Assert.Single(obstacles, o => o.Solid);
-        Assert.Equal(3 << 15, heart.Size);
-        Assert.True(heart.Flag2);
-        Assert.Contains(obstacles, o => !o.Solid && o.Size == 1 << 15);
-        Assert.Contains(obstacles, o => !o.Solid && o.Size == (2457 << 4) >> 1);
+        var centre = new DK2.Simulation.Steering.Fixed16Vector(CreatureState.CentreOf(6) << 4, CreatureState.CentreOf(6) << 4);
+        steering.CollectObstacles(centre, 1 << 16, obstacles);
+        DK2.Simulation.Steering.SteeringObstacle[] onCentre = obstacles.Where(o => o.Pos == centre).ToArray();
+        const int arch = (2457 >> 1) << 4, heartSize = (4096 >> 1) << 4;
+        Assert.Equal([(arch, true), (arch, false), (arch, true), (arch, false), (heartSize, true), (3 << 15, true)],
+            onCentre.Select(o => (o.Size, o.Solid)).ToArray());
+        Assert.Equal([false, false, false, false, false, true], onCentre.Select(o => o.Flag2).ToArray());
 
         int closest = int.MaxValue;
         for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(10, 7); tick++)
@@ -546,6 +550,7 @@ public sealed class StructureBlocksTests
         steering.CollectObstacles(new((6 << 16) + 0x8000, (6 << 16) + 0x8000), 1 << 16, obstacles);
         Assert.Empty(obstacles);
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(6, 6); tick++) sim.Tick(InputFrame.Empty);
         Assert.Equal(new TilePos(6, 6), goblin.Tile);
     }
@@ -583,6 +588,7 @@ public sealed class StructureBlocksTests
     {
         var (world, steering, goblin, sim) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.ExactSpot));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         Assert.True((goblin.Body.PathTargetPos - HeartRelativePoint(0, 0)).Length() > 1 << 15);
         for (int tick = 0; tick < 400 && !goblin.Body.PathFinished; tick++) sim.Tick(InputFrame.Empty);
         Assert.True(goblin.Body.PathFinished);
@@ -590,6 +596,7 @@ public sealed class StructureBlocksTests
         HeartRuin.Set(world, Keeper, true);
         Assert.Equal(HeartRelativePoint(0, 0), steering.ConstrainTarget(goblin.Body.Pos, HeartRelativePoint(0, 0)));
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.ExactSpot));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         Assert.Equal(HeartRelativePoint(0, 0), goblin.Body.PathTargetPos);
     }
 
@@ -633,6 +640,7 @@ public sealed class StructureBlocksTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, from);
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
         Assert.True(steering.TryRoute(goblin, to, Navigation.MoveOptions.Loose));
+        (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         return (world, steering, goblin, sim);
     }
 }

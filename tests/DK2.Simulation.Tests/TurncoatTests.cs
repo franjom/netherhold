@@ -239,7 +239,7 @@ public sealed class TurncoatTests
         })]);
         sim.Run(1);
         Assert.Equal(CreatureStateMachine.Idle, target.Dk2StateId);
-        Assert.False(target.IsRouted);
+        Assert.Equal((1, 0), (target.Body.PathTotalCount, target.Body.PathTotalDist));
     }
 
     [Fact]

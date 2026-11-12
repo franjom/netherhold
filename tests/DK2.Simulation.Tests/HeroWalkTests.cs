@@ -239,6 +239,30 @@ public class HeroWalkTests
         Assert.Equal((x, y), HeroJobRules.FollowTile(world, db, follower, leader));
     }
 
+    /// <summary>State 222 first turns one rate step toward the leader (<c>0x004B2AE0</c> at
+    /// <c>0x00461F25</c>). Level 5, slot 434 on turn 1777: from heading 19 to 531, so its walk's
+    /// first step left only 43 to turn and it moved that turn.</summary>
+    [Fact]
+    public void AFollowerTurnsOneStepTowardItsLeaderBeforeChoosingItsTrailingPoint()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(9, 8));
+        StatePlacement.Place(leader, HeroJobRules.NoPointState);
+        CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(5, 5));
+        follower.LeaderId = leader.Id;
+        follower.PositionInParty = 1;
+        StatePlacement.Place(follower, HeroJobRules.FollowingState);
+        int toward = DK2.Simulation.Steering.Bearing.Of(leader.PosX - follower.PosX, leader.PosY - follower.PosY);
+        follower.Heading = (toward + 1024) & 0x7FF;
+        int expected = follower.Heading;
+        DK2.Simulation.Steering.Bearing.TurnToward(ref expected, toward, SimulationTiming.TurnRatePerTick(db.CreatureById(Knight)));
+
+        new GameSimulation(db, world, 7, [new HeroSystem()]).Tick();
+
+        Assert.NotEqual((toward + 1024) & 0x7FF, expected);
+        Assert.Equal(expected, follower.Heading);
+    }
+
     [Fact]
     public void FollowersChooseBeforeTheLeaderStartsItsNextWalk()
     {
