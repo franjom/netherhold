@@ -157,8 +157,8 @@ public static class CreatureDeathRules
         creature.Activity == CreatureActivity.Dead;
 
     /// <summary>Whether this creature is off its feet: out of health, or already dying. Every system
-    /// guards on this, not <see cref="IsDying"/>: the collapse is booked once a game second
-    /// (<see cref="Systems.CreatureHealthSystem"/>), so a creature can have no health and still be idle;
+    /// guards on this, not <see cref="IsDying"/>: the damage books the collapse and
+    /// <see cref="Systems.CollapseSystem"/> runs it after the creature sweep (ADR-0765), so a creature can have no health and still be idle until then;
     /// guarding on <c>IsDying</c> alone let a creature at zero health walk to its bed under
     /// <c>CreatureSleepsWhenBelowPercentHealth</c> and heal, and let an Imp regenerate 67 a second on its own land back to 500.</summary>
     public static bool IsDown(CreatureState creature) =>

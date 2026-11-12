@@ -240,7 +240,7 @@ corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamageP
   257). The 6000 Hp Dwarf's second hit was 3000 × 2 = 6000, 3000 → −3000. CONFIRMED (binary and capture).
 - **No floor at zero.** That routine does not clamp a negative result. Health stays below zero unless the
   creature has `GenerateDeadBody`, is not dying or possessed and no room it is in refuses; that sets the dying countdown (`creature-death.md` §2.1, which ours keeps as `DyingTicks`). What landed,
-  and so the wear, is health before less after: 6000 here. Ours clamps at 0 (`CreatureHealthRules.Apply`),
+  and so the wear, is health before less after: 6000 here. Ours keeps the overkill in health since ADR-0764 but counts what landed from zero (`CreatureHealthRules.Apply`),
   so it lands 3000 and the wear grows by 3000 (Q725).
 - **Open:** the 3780 Dwarf's second hit (780 → −2220) and the level-1 Dwarf's (500 → 0) were not doubled.
   So each was outside the stunned family when struck (`0x0048F350` tests only states 209, 255, 256 and

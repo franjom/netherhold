@@ -40,7 +40,7 @@ before this read (PLAUSIBLE; the wiring was not re-read).
 [004B2CE0](functions/004B2CE0.md) calls [Creature_Collapse](functions/0048B770.md) at `0x004B2FB5`
 inside the damage call, and contact damage ends with that call (`0x004AC589`). So the collapse's
 picks and gold drop draw before the hit's heading write and before anything later in the shot's
-tick. Damage from elsewhere still collapses in the `CollapseSystem` passes (ADR-0732).
+tick. Damage from elsewhere still collapses in the `CollapseSystem` passes (ADR-0732; the slap's, inside its call, ADR-0765).
 
 ## 3. The shot probes ahead (loop and rounding STRONGLY INFERRED; the creature case CONFIRMED)
 

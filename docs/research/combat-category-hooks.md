@@ -140,8 +140,8 @@ comes from a victim that dies outright (STRONGLY INFERRED: the destroy path from
 the death bookkeeping is not traced). Built as ADR-0364: ours gives it only for an outright death
 and lets a collapsing victim go through `VictoryRules.TargetDown` (Q511).
 
-Ours books a blow's collapse later in the same thing pass (ADR-0732; other losses up to a
-game second later) and keeps health at or
+Ours books every damage path's collapse and runs it later in the same thing pass (ADR-0732, ADR-0765)
+and keeps health at or
 below 0 while dying. So the hook's test is ours as: health at or below 0 **and** no dying
 state (`CreatureDeathRules.HasDyingState`), the creature that dies outright.
 

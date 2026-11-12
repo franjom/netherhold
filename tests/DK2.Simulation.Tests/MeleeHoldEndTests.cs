@@ -86,7 +86,7 @@ public class MeleeHoldEndTests
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, fighter.Id)));
 
-        // 0x004BFBF8 compares the state with 75 and skips the preparation, end-action call included.
+        // 0x004BFBF8 compares the activity code with 0x4B, state 75's, and skips the preparation and the end.
         Assert.Equal(HandRules.PreparationState, fighter.Dk2StateId);
         Assert.True(FightRules.MeleeActionIsRunning(fighter, def, now));
     }

@@ -90,9 +90,8 @@ public sealed class DoorSystem : ISimulationSystem
     /// sets 3, and an effect handler sets 0. Modes 1 and 2 retain their read eligibility arms.</summary>
     /// <remarks>DK2's third test is the creature flag <c>+0x3E6</c> bit 21, <c>CreatureDying</c>.
     /// Ours is <see cref="CreatureDeathRules.IsDown"/>, which is that state plus the tick window
-    /// in which a creature is out of health and has not been booked as collapsed yet — the guard
-    /// every other system here uses, and a wider door than the original's by at most one game
-    /// second.</remarks>
+    /// in which a creature is out of health and its booked collapse has not run yet — the guard
+    /// every other system here uses, and a wider door than the original's until that pass.</remarks>
     public static bool Eligible(SimulationContext context, DoorState door, CreatureState creature)
     {
         if (!context.World.AreAllied(door.PlayerId, creature.OwnerPlayerId)) return false;

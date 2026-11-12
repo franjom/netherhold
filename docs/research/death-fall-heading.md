@@ -94,14 +94,15 @@ Thief's z drops 4096 to 3924 on 1865, during 216.
 ## Built (ADR-0732, hash/save 461)
 
 - `DeathFallRules.Enter` makes the two picks; the first becomes the heading.
-- `StatusEffectRules.Hurt` marks a creature it brings to zero health
-  (`CreatureState.CollapseDue`, hashed and saved). `CollapseSystem` collapses
+- `CreatureHealthRules.Apply` marks a creature it brings to zero health or below
+  (`CreatureState.CollapseDue`, hashed and saved; every damage path, ADR-0765,
+  after `StatusEffectRules.Hurt` alone, ADR-0732). `CollapseSystem` collapses
   the marked after the creature sweep, after the shots and after the traps, so
   the picks and the gold drop draw before the passes that follow. The health
-  pass still collapses whatever reaches zero another way.
+  pass's tail collapses what its own terrain and drain damage marked.
 
 Deviations: DK2 collapses inside the damage call. Ours does for a shot's hit
-(`CollapseSystem.Now`, ADR-0741); other damage that empties health collapses in
+(`CollapseSystem.Now`, ADR-0741) and a slap (ADR-0765); other damage that empties health collapses in
 the passes above, so a blow struck during the creature sweep draws after the
 sweep. Not built: the
 definition's rotation (`+0x766`, 0 in every shipped record), the `+0x102` word

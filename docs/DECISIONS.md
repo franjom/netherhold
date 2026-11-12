@@ -18079,7 +18079,8 @@ non-combat state is harmless: entering Combat ends it and only the fight states 
 **Consequences.** Hash/save 490. A fighter that flees or changes combat state within its hold stays busy
 as DK2's does; the Imp states 22, 16, 18 and 20 read the same busy test. Level 5: a fighter that swung and
 moves to a flee or another combat state within about ten turns without a route start. The pick-up skips
-the end for a creature already in state 75 (`0x004BFBF8`). Tests: `MeleeHoldEndTests` (five, three fail on
+the end when the activity code (`0x00478A20`) is 0x4B (`0x004BFBF8`), state 75's category's; ours tests
+state 75, the other states sharing that code unread (Q768). Tests: `MeleeHoldEndTests` (five, three fail on
 the old code); `WorldViewTests` follow.
 
 ## ADR-0763 - a lifted creature stays attackable until its own update refreshes the bit

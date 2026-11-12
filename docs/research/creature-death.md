@@ -337,7 +337,7 @@ system tests through `CreatureDeathRules.IsDown`.
 
 ### 5.2 Guard on health, not on state
 
-The collapse is *booked* after the blow's pass (ADR-0732), else once a game second: a window in which a
+The collapse is *booked* by every damage path and run after the creature sweep (ADR-0732, ADR-0765): a window in which a
 creature has no health and is still `Idle`. Guarding on "is dying" let two
 things happen in that window:
 
@@ -346,7 +346,7 @@ things happen in that window:
   so it **never collapsed at all** whenever a bed was in reach.
 - **An Imp at zero health on its own land** regenerated its 67 a second before
   the collapse was booked, climbed back to 500, and **could not be killed at
-  home**.
+  home**. DK2 itself heals an Imp below 1 health until the removal walk frees it; ours until the `CollapseSystem` pass (ADR-0764, Q769).
 
 So every system guards on `CreatureDeathRules.IsDown` — *no health, or already
 dying* — not on the state. This matters beyond the current cadence: **combat will
@@ -354,7 +354,7 @@ subtract health per tick, not per second.**
 
 Two corollaries:
 
-- **Own-land regeneration is suppressed at zero health; lair healing is not.**
+- **Own-land regeneration is suppressed for a dying creature (DK2's bit 21, ADR-0764); lair healing is not.**
   The owner's answer gives exactly one route off the floor, so passive
   regeneration must not be a second one — and lair healing must still work at
   zero, because that *is* the rescue. The Imp's instant death removed the guard's

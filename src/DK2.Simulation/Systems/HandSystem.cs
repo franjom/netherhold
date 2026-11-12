@@ -173,7 +173,7 @@ public sealed class HandSystem : ISimulationSystem
         // 0x004BFBD0 runs before 0x004BC500 tests the hand: state 75, through idle when the
         // current category is outside its mask, so a full hand still takes a fighter out of
         // its fight and leaves it there (HandRules.PreparationState).
-        bool alreadyPrepared = creature.Dk2StateId == HandRules.PreparationState;   // 0x004BFBF8: 75 skips the end
+        bool alreadyPrepared = creature.Dk2StateId == HandRules.PreparationState;   // 0x004BFBF8: activity code 0x4B (state 75's) skips the end (Q768)
         bool prepared = CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value);
         if (!prepared)
         {

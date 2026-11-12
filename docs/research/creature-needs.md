@@ -85,7 +85,7 @@ the Imp at 67 a second and King Reginald at 400. Everyone else is zero.
 creature's own update, every turn, not once a second (`0x00488A73..0x00488C32`, record
 `functions/00488930.md`). The loader divides the per-second value by the turn rate (unsigned, no
 floor): the Imp gains 16 a turn. The amount is level-scaled, capped at `0xFFFE`, and cut so health
-stops at the level maximum. Level 5's Imp 444, hit on turn 1847, read 476, 492, 508, 524, 540 in
+stops at the level maximum. Only a dying creature (bit 21) is skipped, not one at health 0 (ADR-0764). Level 5's Imp 444, hit on turn 1847, read 476, 492, 508, 524, 540 in
 DK2's own log. `CreatureHealthRules.OwnLandRegenPerTurn` builds it, from
 `CreatureHealthSystem.RegenerateOnOwnLand` in the creature update; the lair heal stays once a
 second. Not built: a Good creature on Hero Lair terrain (35) takes the terrain's damage word
