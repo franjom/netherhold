@@ -94,6 +94,9 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
             foreach (ObjectState chicken in _chickens)
             {
                 if (chicken.TileIndex != tileIndex || world.ObjectById(chicken.Id) is null) continue;
+                // DK2 zeroes the bird's health (0x004892EF-0x00489318, vtable +0x20) and its own update, after the
+                // creature's, removes it. Ours walks over after the objects have updated, so the bird has had
+                // this turn's update already and goes now (Q796; a second walker this turn finds none, a deviation).
                 world.RemoveObject(chicken.Id);
                 CreatureActionSounds.Begin(context, Name, creature, CreatureActionTable.Eat);
                 context.Emit(Name, "chicken_walked_over",

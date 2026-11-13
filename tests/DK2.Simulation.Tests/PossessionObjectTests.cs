@@ -44,7 +44,7 @@ public sealed class PossessionObjectTests
 
     private static GameSimulation Sim(GameDatabase db, WorldState world, params ISimulationSystem[] more)
     {
-        var sim = new GameSimulation(db, world, 1, [new PossessionSystem(), .. more]);
+        var sim = new GameSimulation(db, world, 1, [new PossessionSystem(), .. more, new ChickenTailSystem()]);
         sim.Tick();
         sim.Tick();
         return sim;

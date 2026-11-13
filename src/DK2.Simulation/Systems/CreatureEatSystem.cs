@@ -377,7 +377,11 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         int before = creature.Health;
         int gained = EatingRules.Eat(database, definition, creature, context.Tick.Value);
         ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.Ate);
-        context.World.RemoveObject(chicken.Id);
+        // The bird is not removed here: its death-effect bit is cleared and its health zeroed (0x0046399E,
+        // vtable +0x20 = 0x004B2AD0), so its own update this turn still runs its process and then removes it
+        // (0x0049BD20's tail, ChickenMovementRules.Decay), with no death effect (Q796).
+        chicken.DeathEffectCleared = true;
+        chicken.Health = 0;
 
         context.Emit(SystemName, "chicken_eaten",
             $"creature={creature.Id} type={definition.Name} " +

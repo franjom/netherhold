@@ -273,7 +273,7 @@ it faces it. Then `(|dx|^2>>12)+(|dy|^2>>12)` from the creature's point at or be
 state 92 again (ADR-0786, Q793). The prison's distance test (`0x00473750`) is unread:
 ours' is tile-based (`ReachTilesSquared`). In order: an effect on the bird, bucket 1
 (`AngerNoFood`) forgotten (`Anger_ForgetBucket(1)`, every bird; ADR-0651), the health
-top-up above, the subtract, an effect on the creature, the bird destroyed, `LastAteTime`
+top-up above, the subtract, an effect on the creature, the bird's health zeroed (its own update deletes it, [hatchery-roaming.md](hatchery-roaming.md#6-how-a-meal-removes-the-bird--strongly-inferred-q796)), `LastAteTime`
 stamped.
 
 **The subtract is where the two paths differ:**

@@ -169,6 +169,11 @@ public sealed partial class ObjectState
     public int HatcheryRoomAnchorTileIndex = -1;
     public int ChickenReactionTicks;
 
+    /// <summary><c>+0x146</c> bit 0 cleared: no death effect when the object's health runs out. Object_Init sets
+    /// the bit for every object (<c>0x0049B378</c>); a creature eating a chicken clears it before zeroing the
+    /// bird's health (<c>0x0046399E</c>), so the eaten bird goes without one.</summary>
+    public bool DeathEffectCleared;
+
     /// <summary>Object move block +0x15C..+0x172; the Chicken is its first supported user.</summary>
     public byte MoveResumeState;
     public int MoveDestinationX, MoveDestinationY, MoveVelocityX, MoveVelocityY;
@@ -226,6 +231,7 @@ public sealed partial class ObjectState
         hash.Add(HatcheryRoomAnchorTileIndex);
         hash.Add(ChickenScared);
         hash.Add(ChickenReactionTicks);
+        hash.Add(DeathEffectCleared);
         hash.Add(MoveResumeState);
         hash.Add(MoveDestinationX);
         hash.Add(MoveDestinationY);

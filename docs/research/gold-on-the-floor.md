@@ -349,7 +349,7 @@ neutral workers.
    `0x0048AB60`.
 6. The walk goes on to the next pile, so every pile on the tile goes in one tick until the
    purse is full. After that each take is zero.
-7. **Side arm:** a neutral Chicken (type 9) is destroyed, and the creature starts action 26
+7. **Side arm:** a neutral Chicken (type 9) has its health zeroed (its own update deletes it that turn, [hatchery-roaming.md](hatchery-roaming.md#6-how-a-meal-removes-the-bird--strongly-inferred-q796)), and the creature starts action 26
    (`0x1A`, eating) at its own position, except on a Portal (3) or Hatchery (4) tile. No hunger,
    health or purse change; built with the action's begin sound only (ADR-0775).
 

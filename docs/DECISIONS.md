@@ -18674,3 +18674,40 @@ through 1987 at 501); the divergence moves to turn 2003 draw 7 (Q796) and the Wa
 the barricade test's z frame, and a presentation that still draws on its own ground projection. Two suspected
 DK2 defects in `0x004545C0` are built as they are (ADR-0783). Tests: `FloorHeightTests`, `DeathFallTests`.
 Simulation 5373, AI 512, Behavior 620 (5 skipped), Presentation 1669, all other suites pass.
+
+## ADR-0789 - an eaten chicken stays until its own update removes it
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 504
+
+**Context.** Level 5 seed 1 (Q796): at hash 503 native turn 2003 has two reaction draws (`ObjectState.cpp:2782`,
+birds 1269 and 1279) where ours drew none for the second: ours' bird 110 (1279) was eaten at 2003 and removed at
+once. DK2 does not delete the bird at the meal. State 93 (`0x00463760`, `0x00463996`-`0x004639A8`) clears the
+bird's `+0x146` bit 0, the death-effect permission `Object_Init` (`0x0049B378`) sets for every object, and calls its
+vtable `+0x20`; the object vtable's slot (`0x0066D674`) is `0x004B2AD0`, which only writes health `+0x40` = 0.
+`World_UpdateThings` (`0x004B7830`) updates creatures before objects, so the bird's `Object_Update` (`0x0049BD20`)
+runs its process (`0x0049EED0`) first, then its health <= 0 tail (a death effect only with the bit and definition
+`+0x119`), and the second walk (`0x004B5C30`, `0x0049BEC0`, `Thing_Delete` `0x004B7B10`) removes it that turn.
+The native searches (`0x004537E0`, state 92's ranking, the walk-over chain) never test health, so a health-0 bird
+is still found that turn. The prison eat (`0x00473860`), the walk-over arm (`0x004892EF`-`0x00489318`) and the
+possessed arm (`0x00514830`: meal `0x00514BF2`-`0x00514C02` clears the bit, kill `0x005149DD`-`0x005149F2` leaves
+it) do the same. STRONGLY INFERRED (disassembly; the reviewer agrees on every site and on the update order); read,
+not captured.
+
+**Decision.** `ObjectState.DeathEffectCleared` (the bit, hashed, saved, copied) is new. `CreatureEatSystem.Swallow`
+and `PossessionRules.EatChicken` set the bird's health to 0 (a meal also sets the flag; the possessed kill keeps
+the bit so the effect is asked) instead of removing it, and `ChickenMovementRules.Decay`, now public, removes the
+bird in its own update, skipping the death effect when the flag is set. `WalkOverGoldSystem` and
+`PrisonerEatSystem` keep immediate removal on purpose: ours run them after the object update (the end of
+`ThingPass`, Needs), so a deferred bird would get a second update next turn. Evidence and residuals:
+[hatchery-roaming.md](research/hatchery-roaming.md#6-how-a-meal-removes-the-bird--strongly-inferred-q796).
+
+**Consequences.** Hash and save 504; earlier saves are refused. Pin `0x4EFF17A136B204AF`. Level 5 seed 1
+(controlled550): 10074 draws match through 2006 (10033 through 2002 at 503); the next boundary is turn 2007 draw 4,
+native `Hatchery.cpp:289` against ours' `Treasure.cpp:132` (Q797). Level 1's seed-1 win tick moves from 2566 to
+2571 (the Lord dies at (15,22) at 2547, the gem is taken at 2677); the journal is re-recorded, ours' output,
+unverified against DK2. Recorded deviations: a second walker the same turn finds no bird in ours, and prison food
+that is not a chicken likewise. Residuals: a held bird's `Tick` returns before `Decay` (native runs the tail for
+every object); two meals on one tile the same turn are not pinned by a test; the `+0x278` refusal call at
+`0x004637B3` and whether `Thing_Delete` asks the `0xF4` sound are unread. Tests:
+`EatingTests.AnEatenBirdStaysUntilItsOwnUpdateRemovesItWithoutADeathEffect` (a control bird whose definition has a
+death effect, id 99); the harnesses that lack the object update gain `ChickenTailSystem`. Simulation 5374,
+AI 512, Behavior 620 (5 skipped), Presentation 1669, all other suites pass.

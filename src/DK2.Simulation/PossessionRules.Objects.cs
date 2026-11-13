@@ -21,14 +21,17 @@ public static partial class PossessionRules
     /// then the heal, the lesser of what is missing and <c>HpFromChicken</c> (an unsigned test); the bird
     /// goes either way. No state change and no hunger-clock restart, unlike state 93. The meal asks <c>0xCD</c>
     /// with the creature's handle and <c>0x111</c> with the bird's (<c>0x00514BC2</c>, <c>0x00514BEA</c>), after the
-    /// heal; the death effect and action 26 on art 13 are presentation.</summary>
+    /// heal; action 26 on art 13 is presentation. The bird is not deleted here: its health is zeroed through
+    /// vtable <c>+0x20</c> and its own update this turn removes it (Q796). The kill (<c>0x005149DD</c>-<c>0x005149F2</c>)
+    /// leaves the death-effect bit <c>+0x146</c> bit 0 set, so that update asks the effect; the meal
+    /// (<c>0x00514BF2</c>-<c>0x00514C02</c>) clears it.</summary>
     internal static void EatChicken(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState chicken)
     {
         GameDatabase database = context.Database;
         bool bile = me.CreatureTypeId == Systems.CreatureJobSystem.BileDemonTypeId;
         if (me.HungerNeed == 0 && !bile)
         {
-            context.World.RemoveObject(chicken.Id);
+            chicken.Health = 0;
             context.Emit(ActSystem, "possessed_chicken_killed", $"creature={me.Id} chicken={chicken.Id}");
             return;
         }
@@ -48,7 +51,8 @@ public static partial class PossessionRules
         int gained = CreatureHealthRules.Apply(database, mine, me, heal, chicken.OwnerPlayerId); // 0x00514B9E: the chicken's owner
         ThingSoundRules.Request(context, ActSystem, me, ThingSoundEvent.Ate);
         ThingSoundRules.Request(context, ActSystem, chicken, ThingSoundEvent.ChickenEaten);
-        context.World.RemoveObject(chicken.Id);
+        chicken.DeathEffectCleared = true;
+        chicken.Health = 0;
         context.Emit(ActSystem, "possessed_chicken_eaten",
             $"creature={me.Id} chicken={chicken.Id} gained={gained} need={me.HungerNeed}");
     }

@@ -368,6 +368,7 @@ namespace DK2.Simulation
             ChickenScared = other.ChickenScared;
             HatcheryRoomAnchorTileIndex = other.HatcheryRoomAnchorTileIndex;
             ChickenReactionTicks = other.ChickenReactionTicks;
+            DeathEffectCleared = other.DeathEffectCleared;
             MoveResumeState = other.MoveResumeState;
             MoveDestinationX = other.MoveDestinationX;
             MoveDestinationY = other.MoveDestinationY;

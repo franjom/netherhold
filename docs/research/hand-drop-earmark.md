@@ -72,7 +72,11 @@ Failure clears the field. Success does not start a fetch or move:
 - **Chicken, type 9** (`0x0049F0DD`–`0x0049F13D`): the recipient receives the
   ordinary one-chicken effect through `0x00463A10`—one hunger unit removed and
   the normal health gain when applicable. The hunger anger bucket is cleared,
-  another tabled calming amount is applied, and the chicken is destroyed.
+  another tabled calming amount is applied, and the chicken's death-effect bit is cleared and its
+  health zeroed through vtable `+0x20` (`0x0049F11C`-`0x0049F12E`); this runs inside the bird's own
+  update, so the thing pass's second walk deletes it the same turn ([how a meal removes the
+  bird](hatchery-roaming.md#6-how-a-meal-removes-the-bird--strongly-inferred-q796); ours removes it at once
+  there, which ends the turn the same way).
 - **Gold, types 1–3** (`0x0049F13E`–`0x0049F1CD`): half the pile's `GoldHeld`
   is added to the creature's purse, capped by its level-scaled `MaxGoldHeld`.
   Its **entire current `WageOwed` is cleared**, independently of the pile's

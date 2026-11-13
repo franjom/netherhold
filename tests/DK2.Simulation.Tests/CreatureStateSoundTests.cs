@@ -164,7 +164,7 @@ public sealed class CreatureStateSoundTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         goblin.Health = 500;
         goblin.HungerNeed = 1;
-        var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureEatSystem()]);
+        var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureEatSystem(), new ChickenTailSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         // A chicken keeps no height here, so the request takes the floor's (a deviation, ThingSoundRules): the

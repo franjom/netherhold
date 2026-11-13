@@ -223,6 +223,8 @@ public sealed class PrisonerEatSystem : ISimulationSystem
 
         int before = creature.Health;
         int gained = EatingRules.EatInPrison(context.Database, definition, creature, context.Tick.Value);
+        // DK2 zeroes the food's health (0x00473860, vtable +0x20) and its own update removes it that turn. Ours
+        // eats after the objects have updated, so it goes now (Q796).
         context.World.RemoveObject(food.Id);
 
         context.Emit(SystemName, "prisoner_ate",

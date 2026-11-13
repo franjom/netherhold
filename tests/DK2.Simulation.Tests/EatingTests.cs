@@ -32,7 +32,7 @@ public class EatingTests
     {
         var sim = new GameSimulation(
             db, world, seed: 42,
-            [new CreatureMovementSystem(), new CreatureEatSystem()]);
+            [new CreatureMovementSystem(), new CreatureEatSystem(), new ChickenTailSystem()]);
         if (sink is not null) sim.ObserveWith(sink);
         return sim;
     }
@@ -253,6 +253,47 @@ public class EatingTests
         Assert.Equal(3000, goblin.Anger.Lair);
     }
 
+    // The meal zeroes the bird's health and clears its death-effect bit (0x0046399E, vtable +0x20 = 0x004B2AD0); the
+    // bird is removed by its own update's tail that turn, which still runs its process first (Q796).
+    [Fact]
+    public void AnEatenBirdStaysUntilItsOwnUpdateRemovesItWithoutADeathEffect()
+    {
+        // A chicken definition with a death effect, so that leaving it out can be seen.
+        GameDatabase db = new(Db.Terrain.Values, Db.Rooms.Values, Db.Creatures.Values, Db.Variables,
+            objects: Db.Objects.Values.Select(o => o.ObjectId == HatcheryRules.ChickenObjectId ? o with { DeathEffectId = 99 } : o));
+        WorldState world = World(db);
+        Floor(world, 1, 1, 10, 10);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+        ObjectState first = Chicken(db, world, 7, 6);
+        ObjectState second = Chicken(db, world, 8, 8);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Health = 500;
+        MakeHungry(goblin);
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, seed: 42, [new CreatureMovementSystem(), new CreatureEatSystem()]);
+        sim.ObserveWith(sink);
+
+        for (int i = 0; i < Second * 40 && !sink.Events.Any(e => e.Kind == "chicken_eaten"); i++) sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "chicken_eaten");
+        ObjectState bird = first.Health == 0 ? first : second, other = ReferenceEquals(bird, first) ? second : first;
+        Assert.Same(bird, world.ObjectById(bird.Id));
+        Assert.Equal((0, true), (bird.Health, bird.DeathEffectCleared));
+        Assert.False(other.DeathEffectCleared);
+
+        // A bird whose health runs out uneaten still asks for its death effect: exactly one request, the other's.
+        other.Health = 0;
+        var tailSink = new ListEventSink();
+        var tail = new GameSimulation(db, world, seed: 42, [new ChickenTailSystem()]);
+        tail.ObserveWith(tailSink);
+        tail.Tick();
+
+        Assert.Null(world.ObjectById(bird.Id));
+        Assert.Null(world.ObjectById(other.Id));
+        ViewEffectRequest death = Assert.Single(tailSink.Events, e => e.EffectRequest is not null).EffectRequest!.Value;
+        Assert.Equal(new FpPosition3(new Fp32(other.PosX), new Fp32(other.PosY), new Fp32(other.PosZ)), death.Position);
+    }
+
     [Fact]
     public void AHungryGoblinWalksToTheHatcheryAndEatsTheChicken()
     {
@@ -294,7 +335,7 @@ public class EatingTests
         Assert.Equal(EatingRules.AfterMealState, goblin.Dk2StateId);
         goblin.HungerNeed = initialNeed == 1 ? 1 : 0;
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,
-            [new CreatureMovementSystem(), new CreatureEatSystem()]);
+            [new CreatureMovementSystem(), new CreatureEatSystem(), new ChickenTailSystem()]);
         Assert.Equal(sim.StateHash(), restored.StateHash());
         CreatureState restoredGoblin = restored.World.Creatures.Single(c => c.Id == goblin.Id);
         sim.Tick();

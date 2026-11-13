@@ -42,7 +42,7 @@ its +0x146 bit 0 (EnableDeathEffect) is set and its health set to 0 (vtable +0x2
    chicken; chicken +0x146 bit 0 cleared; chicken health set to 0.
 4. When art 13's byte +0xB bit 0 is set, `BeginAt(26, creature position, 0, 0, 0)`.
 
-No state change and no LastAteTime stamp, unlike the Hatchery's state 93.
+No state change and no LastAteTime stamp, unlike the Hatchery's state 93. The bird is not deleted in the arm: its own update removes it that turn ([hatchery-roaming.md](hatchery-roaming.md#6-how-a-meal-removes-the-bird--strongly-inferred-q796)).
 
 **Training Dummy (14).** `Object_SetProcessState(18)` (`0x0049EF60`) writes +0x13A =
 18, +0x13E = 0, with no guard, so a second hit restarts it. State 18 (`0x004A13F0`):

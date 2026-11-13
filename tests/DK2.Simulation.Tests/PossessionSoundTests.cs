@@ -35,7 +35,7 @@ public sealed class PossessionSoundTests
         ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, PlayerIds.Neutral, (me.Tile.Y * world.Width) + me.Tile.X);
         chicken.PosX = me.PosX + 200;
         chicken.PosY = me.PosY;
-        var sim = new GameSimulation(db, world, 1, [new PossessionSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new PossessionSystem(), new ChickenTailSystem()]);
         sim.Tick();
         sim.Tick();
         me.HungerNeed = hunger;
@@ -93,7 +93,7 @@ public sealed class PossessionSoundTests
         ObjectState anvil = world.SpawnObject(db, 15, PlayerIds.Neutral, (me.Tile.Y * world.Width) + me.Tile.X);
         anvil.PosX = me.PosX + 200;
         anvil.PosY = me.PosY;
-        var sim = new GameSimulation(db, world, 1, [new PossessionSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new PossessionSystem(), new ChickenTailSystem()]);
         sim.Tick();
         sim.Tick();
         var events = new ListEventSink();
@@ -125,7 +125,7 @@ public sealed class PossessionSoundTests
         imp.Possessed = true;
         imp.Heading = East;
         world.Player(Keeper).PossessedCreatureId = imp.Id;
-        var sim = new GameSimulation(db, world, 1, [new PossessionSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new PossessionSystem(), new ChickenTailSystem()]);
         sim.Tick();
         sim.Tick();
         var events = new ListEventSink();

@@ -114,7 +114,7 @@ Each selection resets age. Our collapsed-height Hand landing does this
 immediately, preventing a previously moving bird from resuming its old target.
 Process 6 performs its separate owned-Hatchery check on its next tick.
 Production worker carry accepts books, specials and crates, so chickens cannot
-reach its put-down route. Recipient feeding removes the Chicken instead.
+reach its put-down route. Recipient feeding removes the Chicken instead (health zeroed in its own update, §6).
 
 Avoidance scans the eight compass neighbours, then the current tile, taking
 the newest linked creature on each tile. The original rejects workers and
@@ -156,3 +156,36 @@ ours' removal and re-add; a partial conversion is unread. Unbuilt: `Object_SetOw
 the object trigger event 18, adoption at level load (process 6 registers such birds on their first
 turn). Existing laying capacity continues
 counting eggs as reservations; the original room list counts only chickens.
+
+## 6. How a meal removes the bird — STRONGLY INFERRED (Q796)
+
+A creature's meal does not delete the bird. The Hatchery meal (state 93, `0x00463760`,
+`0x00463996`-`0x004639A8`) clears the bird's `+0x146` bit 0, the death-effect permission that
+`Object_Init` (`0x0049B378`) sets for every object, and calls its vtable `+0x20`. The object vtable
+starts at `0x0066D654`; slot `+0x20` (`0x0066D674`) is `0x004B2AD0`, which only writes health
+`+0x40` = 0. `World_UpdateThings` (`0x004B7830`) updates creatures (list 0) before objects (list 2),
+so the bird's `Object_Update` (`0x0049BD20`) still runs its process (`0x0049EED0`) that turn, then
+its health <= 0 tail (a death effect only with bit 0 and definition `+0x119`: none for a meal), and
+the second walk (vtable `+0x28` `0x004B5C30`, `+0x30` `0x0049BEC0`, then `Thing_Delete`
+`0x004B7B10`) removes it the same turn. The searches (`0x004537E0`, state 92's ranking, the
+walk-over chain) never test health, so a health-0 bird is still visible to a creature updated
+later that turn. Hatchery generation runs after the second walk and never counts it. The prison's
+eat (`0x00473860` vtable `+0x20`, bit cleared at `0x00473863`-`0x0047386B`, any TypeFood object),
+the creature update's walk-over arm (`0x004892EF`-`0x00489318`, both branches, chain walk
+`0x00489278`-`0x004892C7`) and the possessed arm (`0x00514830`: the meal clears bit 0 at
+`0x00514BF2`-`0x00514C02`; the kill, `0x005149DD`-`0x005149F2`, leaves it set, so the bird's update
+asks the death effect) do the same. Reviewer re-read, not captured.
+
+Evidence: Level 5 seed 1, native turn 2003 has two reaction draws (`ObjectState.cpp:2782`, birds
+1269 and 1279); ours' bird 110 (1279) was eaten at 2003 and removed, so it never drew.
+
+Ours (ADR-0789, hash 504): `ObjectState.DeathEffectCleared` is hashed and saved. `CreatureEatSystem.Swallow`
+and `PossessionRules.EatChicken` zero the bird's health (a meal also sets the flag; the possessed kill
+keeps the effect) and `ChickenMovementRules.Decay` removes it in its own update, asking the death
+effect unless the flag is set. `WalkOverGoldSystem` and `PrisonerEatSystem` still remove at once, on
+purpose: ours run them after the object update, so deferring would give the bird a second update
+next turn. Recorded deviation: a second walker the same turn finds no bird, and prison food that is
+not a chicken likewise. Residuals: a held bird's `Tick` returns before `Decay` (native runs the tail
+for every object), reachable only if a health-0 bird is lifted before its update; two meals on one
+tile the same turn are not pinned by a test; the `+0x278` refusal call at `0x004637B3` and whether
+`Thing_Delete` asks the `0xF4` sound are unread (ours' `RemoveObject` asks it).

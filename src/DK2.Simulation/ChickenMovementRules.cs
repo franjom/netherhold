@@ -58,16 +58,18 @@ public static class ChickenMovementRules
     /// <summary>The object update's tail after the process (<c>0x0049BD20</c>): a definition with
     /// <c>DieOverTime</c>, or <c>DieOverTimeIfNotInRoom</c> while no room holds the bird (<c>+0x138</c>,
     /// ours the Hatchery anchor), loses one health a turn; at none it asks for its definition's death
-    /// effect (<c>+0x119</c>; <c>Object_Init</c> sets the <c>+0x146</c> bit that allows it) at its point,
-    /// heading and owner, and the thing pass's second walk removes it the same turn (ADR-0650).</summary>
-    private static void Decay(SimulationContext context, ObjectState chicken)
+    /// effect (<c>+0x119</c>; <c>Object_Init</c> sets the <c>+0x146</c> bit that allows it, and a meal clears it:
+    /// <see cref="ObjectState.DeathEffectCleared"/>) at its point, heading and owner, and the thing pass's second
+    /// walk removes it the same turn (ADR-0650). A creature's meal zeroes the bird's health in its own update,
+    /// before the objects', so the eaten bird's process still runs this turn first (Q796).</summary>
+    public static void Decay(SimulationContext context, ObjectState chicken)
     {
         ObjectDef definition = context.Database.ObjectById(chicken.ObjectTypeId)!;
         bool decays = ((definition.Flags & ObjectFlags.DieOverTime) == ObjectFlags.DieOverTime)
             || (((definition.Flags & ObjectFlags.DieOverTimeIfNotInRoom) == ObjectFlags.DieOverTimeIfNotInRoom) && chicken.HatcheryRoomAnchorTileIndex < 0);
         if (decays && chicken.Health > 0) chicken.Health--;
         if (chicken.Health > 0) return;
-        if (definition.DeathEffectId != 0)
+        if (definition.DeathEffectId != 0 && !chicken.DeathEffectCleared)
             context.RequestEffect("chicken", new ViewEffectRequest(new EffectId(definition.DeathEffectId), new PlayerId(chicken.OwnerPlayerId),
                 new FpPosition3(new Fp32(chicken.PosX), new Fp32(chicken.PosY), new Fp32(chicken.PosZ)), new Dk2Angle((ushort)chicken.Heading)));
         context.Emit("chicken", "chicken_died", $"object={chicken.Id}");
