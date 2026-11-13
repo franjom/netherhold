@@ -18740,3 +18740,40 @@ every object); two meals on one tile the same turn are not pinned by a test; the
 `EatingTests.AnEatenBirdStaysUntilItsOwnUpdateRemovesItWithoutADeathEffect` (a control bird whose definition has a
 death effect, id 99); the harnesses that lack the object update gain `ChickenTailSystem`. Simulation 5374,
 AI 512, Behavior 620 (5 skipped), Presentation 1669, all other suites pass.
+
+## ADR-0790 - a Hatchery's laying capacity counts only the birds in its room list
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 506
+
+**Context.** Level 5 seed 1 (Q797): at hash 504 native turn 2007 lays by the capacity path (`Hatchery.cpp:289`, slab
+then offsets) where ours laid nothing. Native room 1117 held 8 birds (1279 was eaten at 2003) and the keeper 12
+free-range ones. Ours had 8 anchored birds plus free-range bird 141 standing on a Hatchery tile: `Flock` counted 9
+against capacity 9 (a tile each), the room was full, and the free-range census 12 reached the cap 12. DK2's
+`Hatchery_LayEgg` (`0x004DE620`) opens with `Room_HasCapacity` (`0x004E53B0`, units = the definition's byte `+0x114`,
+pushed at `0x004DE666`); a Hatchery takes the common tail (`0x004E542F`-`0x004E544C`): units + UsedCapacity (`+0x6B`)
+<= TotalCapacity (`+0x67`). `+0x6B` is written only by `Room_AddObject` (`0x004E5FF0`, which adds on success),
+`Room_UnlinkObject` (`0x004E6130`), `Room_Construct` and other rooms' corpse and claim paths: nothing counts by tile,
+and neither the hatch nor `Object_Init` adds. A hatched bird joins on its first process-6 run (`0x004A1F87`, room word
+`+0x138` zero, an owned Hatchery tile, before its `Random_Next(4)`), or through `Hatchery_AdoptChickens` (`0x004DEB70`).
+The hand's lift (`0x004C0CB0`) unlinks it. The full room's coop lay tests the keeper's byte `+0x1C1` against variable
+86 (`0x004DE8B5`-`0x004DE8C2`): a census of chickens still eligible to escape (`Object_Init` sets `+0x14A` for type 9,
+`Thing_LinkToOwner` `0x004B4C30` adds, `Thing_UnlinkFromOwner` `0x004B4D40` subtracts, admission `0x004C0010` clears the
+flag and subtracts, leaving a room `0x004BFFD0` restores and adds); ours' count of the owner's `ChickenCanEscape`
+chickens is that census. STRONGLY INFERRED: the capture agrees on the outcome, not only the reading; the reviewer
+re-derived each site.
+
+**Decision.** `HatcheryRules.Flock` counts the chickens whose `HatcheryRoomAnchorTileIndex` lies inside the room.
+`HatcheryRules.Birds`, an observation that feeds a log line, keeps the tile fallback. `FreeRangeCap`'s comment, which
+said the cap was exposed and not enforced, now states the census. Evidence:
+[hatchery.md section 3](research/hatchery.md#3-where-an-egg-appears) and
+[hatchery-roaming.md section 5](research/hatchery-roaming.md#5-persistent-room-membership--strongly-inferred).
+
+**Consequences.** Hash and save 506; earlier saves are refused. Pin `0xE6E078713DEF83F3`. Level 5 seed 1
+(controlled553): 10163 draws match through 2014 (10074 through 2006 at 504); the next boundary is turn 2015 draw 1,
+native `ObjectState.cpp:2708` (a chicken reaction) against ours' `Object.cpp:63` (our laid egg hatching, Q798). Level 1's
+seed-1 journal is re-recorded and its win tick is unchanged, 2571. Residuals: `Flock` counts birds against tiles x
+`RoomCapacity` where DK2 sums units (equal, `RoomCapacity` is 1 in the shipped data); whether the room merge and cut paths
+(`0x004E4480`, `Room_Rebuild` `0x004EDFC0`) rewrite `+0x6B` is unread; why bird 141 was not admitted earlier in ours is a
+question for a capture. Tests: `HatcheryTests.AFreeRangeBirdStandingInTheRoomDoesNotFillIt` (fails on the tile
+fallback); the hatchery tests that lay, hatch or spawn without ticking admit their birds in setup;
+`SnapshotTests.Read_RejectsUnsupportedVersion` flips the version byte, because format 506 (`0x01FA`) collided with the
+250 it wrote. Simulation 5377, AI 512, Behavior 620 (5 skipped), Presentation 1669, all other suites pass.

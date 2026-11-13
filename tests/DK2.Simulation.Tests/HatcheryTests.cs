@@ -442,7 +442,8 @@ public class HatcheryTests
         for (int i = 0; i < 9; i++)
         {
             ObjectState? egg = HatcheryRules.TryLayEgg(world, db, room, rng);
-            if (egg is not null) HatcheryRules.Hatch(world, db, egg);
+            // The bird joins the room's list in its first update (Room_AddObject); here, at once.
+            if (egg is not null) Admit(HatcheryRules.Hatch(world, db, egg), room);
         }
 
         Assert.Equal(9, HatcheryRules.Flock(world, room));
@@ -471,6 +472,36 @@ public class HatcheryTests
         Assert.Equal((byte)32, Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, db, room, rng)).ProcessState);
     }
 
+    /// <summary>What Room_AddObject (0x004E5FF0) leaves on an admitted bird: in the room's list, no longer free-range.</summary>
+    private static void Admit(ObjectState bird, RoomInstance room)
+    {
+        bird.HatcheryRoomAnchorTileIndex = room.TileIndices[0];
+        bird.ChickenCanEscape = false;
+    }
+
+    // Room_HasCapacity (0x004E53B0) reads the room's used capacity, which only a bird in the room's list adds to:
+    // a free-range bird crossing a Hatchery tile does not fill it (Level 5 seed 1, turn 2007, Q797).
+    [Fact]
+    public void AFreeRangeBirdStandingInTheRoomDoesNotFillIt()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomInstance room = Hatchery(db, world, 2, 2, 3, 3);
+        HatcheryRules.PlaceCoops(world, db, room);
+        foreach (int tile in room.TileIndices.Skip(1))
+        {
+            ObjectState member = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, tile);
+            member.ChickenCanEscape = false;
+            member.HatcheryRoomAnchorTileIndex = room.TileIndices[0];
+        }
+        ObjectState visitor = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, room.TileIndices[0]);
+        visitor.ChickenCanEscape = true;
+
+        Assert.Equal(8, HatcheryRules.Flock(world, room));
+        Assert.False(HatcheryRules.FlockIsFull(world, db, room));
+        Assert.Equal((byte)32, Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, db, room, new SimRandom(3))).ProcessState);
+    }
+
     [Fact]
     public void EatingOneMakesRoomForAnother()
     {
@@ -486,7 +517,8 @@ public class HatcheryTests
         for (int i = 0; i < 9; i++)
         {
             ObjectState? laid = HatcheryRules.TryLayEgg(world, db, room, rng);
-            if (laid is not null) HatcheryRules.Hatch(world, db, laid);
+            // The bird joins the room's list in its first update (Room_AddObject); here, at once.
+            if (laid is not null) Admit(HatcheryRules.Hatch(world, db, laid), room);
         }
         Assert.Equal(9, HatcheryRules.Flock(world, room));
         Assert.Equal((byte)24, Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, db, room, rng)).ProcessState);

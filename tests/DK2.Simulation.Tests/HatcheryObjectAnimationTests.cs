@@ -20,7 +20,12 @@ public class HatcheryObjectAnimationTests
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), 3);
         RoomInstance room = RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Hatchery);
         HatcheryRules.PlaceCoops(world, db, room);
-        foreach (int tile in room.TileIndices) world.SpawnObject(db, 9, 3, tile);
+        foreach (int tile in room.TileIndices)
+        {
+            ObjectState bird = world.SpawnObject(db, 9, 3, tile);
+            bird.HatcheryRoomAnchorTileIndex = room.TileIndices[0]; // in the room's list, as an admitted bird
+            bird.ChickenCanEscape = false;
+        }
         ObjectState egg = Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, db, room, new SimRandom(7)));
         Assert.Equal((byte)24, egg.ProcessState);
         Assert.Contains(world.Objects, o => o.ObjectTypeId == 35 && o.ProcessState == 29);

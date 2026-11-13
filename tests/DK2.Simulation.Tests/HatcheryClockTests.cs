@@ -173,6 +173,7 @@ public class HatcheryClockTests
         {
             ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, tile);
             chicken.ChickenCanEscape = false;
+            chicken.HatcheryRoomAnchorTileIndex = room.TileIndices[0]; // in the room's list
         }
         for (int i = 0; i < HatcheryRules.FreeRangeCap(db); i++)
             world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 0);

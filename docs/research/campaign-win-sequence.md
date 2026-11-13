@@ -105,7 +105,7 @@ destroys the carried thing instead (`0x0048819C`-`0x004881C2`). The drop sets th
 object of type `0x1C` on the carrier's tile centre at height 0 (`0x0048B3E3`-`0x0048B41F`),
 and relinks it to that tile. Level 1's Lord drops the gem where he dies. Remake outputs, not
 observed in DK2 (ADR-0725): in `ReaperFinaleOnRealDataTests`' replay of its fixture journal the
-Lord dies on tile (15,22) at tick 2547, the Reaper is created at tick 2571, the win tick, and takes the gem at 2677 (the journal is re-recorded at hash 504, ADR-0789); in the
+Lord dies on tile (15,22) at tick 2547, the Reaper is created at tick 2571, the win tick, and takes the gem at 2677 (the journal is re-recorded at hash 506, ADR-0790; the win tick is unchanged); in the
 receipted live seed-1 run of the campaign player (study
 `F:/DK2Evidence/studies/campaign-player-l01-acceptance--2026-11-09--002`) the Lord dies on tile
 (15,24) at tick 2335, the win is at tick 2360 and `gem_taken` at tick 2490, 130 ticks later.

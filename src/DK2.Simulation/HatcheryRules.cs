@@ -128,15 +128,20 @@ public static class HatcheryRules
     /// <summary>How many chickens — hatched birds, not eggs — belong to this room.
     /// <para>Eggs are excluded on purpose. A room at capacity in chickens can
     /// still hold an egg that has not hatched, and counting the egg would make
-    /// the room stop a bird early.</para></summary>
+    /// the room stop a bird early.</para>
+    /// <para>Only the room's own birds count: Room_HasCapacity (<c>0x004E53B0</c>) reads the room's used capacity
+    /// (<c>+0x6B</c>), which a bird adds to only when it joins the room's list (<c>0x004E5FF0</c>). A free-range bird
+    /// standing on a Hatchery tile is not counted (Q797).</para></summary>
     public static int Flock(WorldState world, RoomInstance hatchery)
     {
         int count = 0;
         EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
-            if (objects[i].ObjectTypeId != ChickenObjectId) continue;
-            if (!BelongsToHatchery(objects[i], hatchery)) continue;
+            ObjectState bird = objects[i];
+            // A bird in the room's list is never in the hand (the lift unlinks it, 0x004C0CB0) nor carried.
+            if (bird.ObjectTypeId != ChickenObjectId) continue;
+            if (bird.HatcheryRoomAnchorTileIndex < 0 || !hatchery.Contains(bird.HatcheryRoomAnchorTileIndex)) continue;
             count++;
         }
         return count;
@@ -527,10 +532,11 @@ public static class HatcheryRules
     /// <summary><c>MaxFreeRangeChickensPerPlayer</c> — <b>12</b> in the shipped table, and
     /// the original does check it before laying at a coop: variable 86, one byte
     /// wide, with exactly one reader in the binary.
-    /// <para>Trap: it does not cap a hatchery's flock. The owner watched a 5x5
-    /// hold more than twenty chickens, so whatever counter it is compared
-    /// against, it is not "chickens this keeper owns" (<see cref="TryLayEgg"/>).
-    /// Exposed, not enforced.</para></summary>
+    /// <para>It does not cap a hatchery's flock (the owner watched a 5x5 hold more than twenty chickens): it is
+    /// compared, at a full room's coop lay (<c>0x004DE8B5</c>-<c>0x004DE8C2</c>), with the keeper's free-range
+    /// census <c>+0x1C1</c>, the owner's chickens still eligible to escape, which a bird joining a room's list
+    /// leaves (<c>0x004C0010</c>) and leaving one rejoins (<c>0x004BFFD0</c>). <see cref="TryLayEgg"/> counts it
+    /// so.</para></summary>
     public static int FreeRangeCap(GameDatabase database) =>
         database[VariableTypeId.MaxFreeRangeChickensPerPlayer];
 }

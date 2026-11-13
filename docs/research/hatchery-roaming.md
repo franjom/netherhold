@@ -133,7 +133,10 @@ Successful admission calls `0x004C0010`, which clears Chicken eligibility
 `+0x14A` through `0x0049CE30` and decrements the owner's nonzero counter
 `+0x1C1`. Therefore registered birds cannot take the creature-escape path.
 `0x004E6130` clears membership and gives capacity back; `0x004BFFD0` restores
-eligibility and increments that counter. Normal movement retains membership.
+eligibility and increments that counter. The counter is the census the free-range cap tests at a full room's
+coop lay ([hatchery.md §5](hatchery.md#5-free-range-chickens-and-what-caps-a-flock)): `Object_Init` sets the flag for a
+Chicken before `Thing_LinkToOwner` (`0x004B4C30`) counts it and `Thing_UnlinkFromOwner` (`0x004B4D40`) takes it off, so
+ours' count of the owner's chickens with `ChickenCanEscape` set is the same set (ADR-0790, STRONGLY INFERRED). Normal movement retains membership.
 Hand lift detaches a room object (`0x004C0CB0`), and removal releases it.
 Room teardown (`0x004E39C0`) detaches ordinary room objects without deleting them.
 Conditional decay in `0x0049BD20` tests membership zero, not physical room tiles: a bird no
@@ -146,16 +149,16 @@ the hand does not decay (STRONGLY INFERRED, binary only, no capture). Ours retur
 
 Our saved/hashed Hatchery anchor identifies the current derived room containing
 that tile. Northwest growth retains membership; an invalidated or differently
-owned anchor releases it. Capacity counting follows the saved membership even
-outside the room. A tile add, a merge and a removal release the birds of every room they free
+owned anchor releases it. Capacity counting follows the saved membership inside the room's tiles (`HatcheryRules.Flock`; a free-range bird
+standing there does not count, ADR-0790). A tile add, a merge and a removal release the birds of every room they free
 (`0x004E39C0`: the absorbed rooms, or the whole old room) and then adopt the birds standing on the
 Hatchery's tiles (`Hatchery_AdoptChickens`, `0x004DEB70`; `ChickenMovementRules.AdoptOnChain`,
 ADR-0652, STRONGLY INFERRED, no capture covers a change). An adopted bird stops decaying. A capture
 conversion (`Room_MergeNeighbours`, `0x004EC900`, and the owner-change slot `0x004DE5D0`) runs through
 ours' removal and re-add; a partial conversion is unread. Unbuilt: `Object_SetOwner`'s owner-list relink,
 the object trigger event 18, adoption at level load (process 6 registers such birds on their first
-turn). Existing laying capacity continues
-counting eggs as reservations; the original room list counts only chickens.
+turn). Laying capacity counts chickens only and none by tile, as the
+original's used capacity does ([hatchery.md §3](hatchery.md#3-where-an-egg-appears)).
 
 ## 6. How a meal removes the bird — STRONGLY INFERRED (Q796)
 

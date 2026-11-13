@@ -395,7 +395,7 @@ public class SnapshotTests
     public void Read_RejectsUnsupportedVersion()
     {
         byte[] bytes = WorldSnapshot.ToBytes(TestWorld.Simulation());
-        bytes[4] = 250; // format version field, immediately after the 4-byte magic
+        bytes[4] ^= 0xFF; // format version field, immediately after the 4-byte magic (a fixed value can match a real version: 506 is 0x01FA)
 
         Assert.Throws<SaveIncompatibleException>(
             () => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));

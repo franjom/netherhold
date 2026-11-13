@@ -112,6 +112,19 @@ instructions 2026-10-02:
    coops (object 35) on `+0x0E`, pick **one at random**, and lay the egg there.
 
 So the coop is where a full room lays, which fits §5's free-range counter.
+
+**What the capacity counts** (STRONGLY INFERRED; the capture agrees on the outcome, Q797, ADR-0790). `0x004E53B0`
+passes while the definition's units (`+0x114`, pushed at `0x004DE666`) plus the room's used capacity (`+0x6B`) stay
+within its total (`+0x67`; the common tail `0x004E542F`-`0x004E544C`). `+0x6B` is written only by the room-list add
+(`0x004E5FF0`) and unlink (`0x004E6130`), by `Room_Construct` and by other rooms' corpse and claim paths. Nothing counts
+by tile, and neither the hatch nor `Object_Init` adds: a hatched bird joins on its first process-6 run (`0x004A1F87`,
+before its `Random_Next(4)`; [hatchery-roaming.md §5](hatchery-roaming.md#5-persistent-room-membership--strongly-inferred))
+or through `0x004DEB70`, and the hand's lift unlinks it (`0x004C0CB0`). A free-range bird standing on a Hatchery tile
+therefore does not fill the room. Level 5 seed 1, turn 2007: room 1117 had 8 birds and the keeper 12 free-range ones,
+and it laid by the capacity path where ours, counting a bird standing on the tile, found the room full.
+`HatcheryRules.Flock` counts the chickens anchored in the room; `Birds`, an observation, keeps the tile fallback. Unread:
+whether the room merge and cut paths (`0x004E4480`, `0x004EDFC0`) rewrite `+0x6B`. `Flock` counts birds where DK2 sums
+units (equal while the Chicken's `RoomCapacity` is 1).
 `HatcheryRules.TryLayEgg` implements the capacity path and retains the resulting
 coordinates through hatching and presentation (ADR-0428). Presentation-only room
 pillars are excluded using the same corner predicate as the view. The full-room
@@ -247,6 +260,7 @@ The Chicken carries `DieOverTimeIfNotInRoom`, not `DieOverTime`. Conditional
 decay tests persistent room membership, not whether the bird physically stands
 on room tiles; the registration and free-range census are confirmed in
 [hatchery-roaming.md §5](hatchery-roaming.md#5-persistent-room-membership--strongly-inferred).
+The counter the cap is tested against is that census (`+0x1C1`), read at a full room's coop lay.
 
 The object union corroborates the name from the other side: a `Chicken` object's
 per-kind state is **`FreeRange`, `PeckingTimer`, `StayThere`,
@@ -260,7 +274,7 @@ Chickens and Rats, using shipped integer art timing (ADR-0699). Standalone
 last-generated stamp; an attempted lay stamps the turn even on refusal. Coops
 are placed by `HatcheryRules.RebuildCoops` on a room change, not by the system
 (ADR-0672). Startup and room-change clock handling are described in [hatchery-startup.md](hatchery-startup.md#built-scope).
-`HatcheryRules` counts registered chickens for room capacity;
+`HatcheryRules.Flock` counts the chickens anchored in the room for capacity;
 eggs consume none. Full rooms use the coop branch below the owner's free-range
 cap. Metadata-free synthetic definitions retain the ADR-0066 two-second hatch
 fallback. Object animation and launch evidence lives in
