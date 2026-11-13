@@ -18279,3 +18279,28 @@ flag's position, heading and owner each time the counter wraps to 0.
 Call to Arms widget (`0x00426920`, visible under `0x004C00D0`, its click game action 0x81 into
 `0x0049C6A0`) stays unbuilt: ours has no Battle tab, and the cancel itself already exists as
 `RemoveCallToArmsCommand`.
+
+## ADR-0781 - the steering crowd probe counts a creature by its tile link
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** navigation, creatures
+
+**Context.** Level 5 seed 1 past turn 1900 (Q772): Imp 446 (ours 10) drifts one unit on native turn
+1884 and the drift reaches the draws at 1938 (Warlock 441 pushed differently, a chicken's avoid one
+turn early). Emulating `0x004D5A40` on the native 1882 image with ours' input body gives native's
+velocity (12976, -27279); ours gave (12963, -27281). Ours' follow-path crowd was 4944: Warlock 432,
+picked up on 1881 and in the hand (native state 78) on 1882-1883, still counted on (16,21). Native's
+probe `0x004D15E0` at the same point returns 0 (emulated): it walks each tile's thing chain
+(`0x004D1663..0x004D1687`, class 0 adds word `+0x200`), and the pick-up's `0x004B4F60` has unlinked
+the held creature. Ours summed every creature whose position fell in the square. STRONGLY INFERRED
+(disassembly, emulation and capture).
+
+**Decision.** `WorldSteering.CrowdWeight` counts a creature by its `TileLink`, skipping an unlinked one
+(in the hand or carried) and a corpse (DK2's body is a class-6 thing, `0x004B0F20`, which the class-0 test
+at `0x004D1673` passes over). The separation neighbour query `0x004D1170` walks the same chains
+(`0x004D1245`, `0x004D1254`, `0x004D126A`), so `CollectNeighbours` takes the same test.
+
+**Consequences.** Hash/save 496 (495 is ADR-0770's). A creature in the hand or a corpse no longer slows
+walkers aiming near it, nor pushes or is pushed by its neighbours. Level 5 diag replay at these rules
+(controlled526): draws match through 1944 (9148); Imp 446 matches native every turn 1883-1944. The next stop
+is Warlock 441's hunger at 1945 (Q772, Q674). Level 1 (journal re-recorded): the Lord now dies at t2303 on
+(13,18), not t2275 on (14,20); the Reaper comes at t2327 and takes the gem at t2447. That shift is ours'
+output, unverified against DK2. Tests: `CrowdProbeTests` (three; each fails on the old code).

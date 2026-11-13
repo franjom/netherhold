@@ -17,6 +17,9 @@ height but clamps to **width−1**, preserving a native non-square-map quirk.
 Inner map-bound guards still reject invalid cells. Evidence: decompile and
 assembly `0x004D1182..0x004D129F`, read 2026-10-17.
 
+The candidates are the class-0 things on each tile's chain, so a creature in the hand and a
+corpse are never neighbours (ADR-0781, [0x004D1170](functions/004D1170.md)).
+
 The query is broadphase, not rigid collision. Arrival suppression and the
 overflowing soft-force arithmetic remain as documented in
 [navigation and steering](navigation-and-steering.md#32-three-of-the-eight-do-nothing-and-separation-is-read-to-its-store).

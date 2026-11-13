@@ -26,7 +26,7 @@ public interface ISteeringWorld
     void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into);
 
     /// <summary>The crowd probe <c>0x004D15E0</c>: the signed sum of creature word <c>+0x200</c> over
-    /// every creature on a tile of the axis-aligned square of side <paramref name="span"/> centred on
+    /// every living creature linked to a tile of the axis-aligned square of side <paramref name="span"/> centred on
     /// <paramref name="point"/> (tiles taken by floor and ceiling of the square's edges). Capped at
     /// 1.0, it comes off the seek gain near a waypoint (§5.4).</summary>
     int CrowdWeight(Fixed16Vector point, int span);

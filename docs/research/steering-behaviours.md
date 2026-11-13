@@ -246,8 +246,8 @@ Facing the aim, the force is a desired velocity minus `vel`:
   always): `c = min(1.0, crowd)` and `k = 1.02 - c` for creatures (`0x1051E`) or
   `1.825 - c` for imps (`0x1D332`); force `= (aim - pos) x k - vel`. `crowd` is
   the probe `0x004D15E0`: the signed sum of creature word `+0x200` over every
-  creature on a tile of the **0.95-tile square** centred on `subpath[idx]`
-  (edges by floor and ceiling; a square, not a circle). The creature
+  creature linked to a tile of the **0.95-tile square** centred on `subpath[idx]` (floor and
+  ceiling edges; a square; one in the hand counts nowhere, ADR-0781). The creature
   initialiser writes that word as `(v >> 1) << 4` (`0x00487B0B`), where `v` is
   virtual slot `0x3C` of `CCreature` (vtable `0x0066D524`, `0x004B5D60`): the
   definition word `+0x63A`, loaded from the KWD creature `u16` at `0xEA0`, a

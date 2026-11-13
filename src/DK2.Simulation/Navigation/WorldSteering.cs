@@ -733,7 +733,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         [ArchesObjectId, BigStepsObjectId, BigStepsObjectId, BigStepsObjectId, DungeonHeartObjectId];
 
     /// <summary>The crowd probe <c>0x004D15E0</c>: tiles from the floor of the square's low edge to
-    /// the ceiling of its high edge, both inclusive, and every creature standing on one of them adds
+    /// the ceiling of its high edge, both inclusive, and every creature linked to one of them adds
     /// its radius word, the asking creature included.</summary>
     public int CrowdWeight(Fixed16Vector point, int span)
     {
@@ -743,8 +743,8 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         int sum = 0;
         foreach (CreatureState c in _world.Creatures)
         {
-            TilePos t = c.Tile;
-            if (t.X >= x0 && t.X <= x1 && t.Y >= y0 && t.Y <= y1) sum += (short)c.Body.Radius;
+            if (!InTileChain(c, out int tx, out int ty)) continue;
+            if (tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1) sum += (short)c.Body.Radius;
         }
 
         return sum;
@@ -761,10 +761,23 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         if (y1 >= Height) y1 = Width - 1;
         foreach (CreatureState c in _world.Creatures)
         {
-            TilePos tile = c.Tile;
-            if (!_world.Contains(tile.X, tile.Y) || tile.X < x0 || tile.X > x1 || tile.Y < y0 || tile.Y > y1) continue;
+            if (!InTileChain(c, out int tx, out int ty) || tx < x0 || tx > x1 || ty < y0 || ty > y1) continue;
             into.Add(new SteeringNeighbour(c.Body, _database.CreatureById(c.CreatureTypeId).SizeClass));
         }
+    }
+
+    /// <summary>The tile whose thing chain holds a creature, as the probe <c>0x004D15E0</c> and the neighbour
+    /// query <c>0x004D1170</c> walk it (cell word 0, next via <c>+0xC</c>, class 0 only): none while it is in
+    /// the hand or carried (the pick-up's <c>0x004B4F60</c> unlinks it) or once it is a corpse (DK2's body is a
+    /// class-6 thing, <c>0x004B0F20</c>; ADR-0781).</summary>
+    private bool InTileChain(CreatureState c, out int tx, out int ty)
+    {
+        tx = ty = 0;
+        if (!c.TileLink.IsLinked || CreatureDeathRules.IsCorpse(c)) return false;
+        int index = c.TileLink.TileIndex;
+        ty = index / Width;
+        tx = index - (ty * Width);
+        return true;
     }
 
     /// <summary>The remembered entity is not supplied to <c>Separation</c> yet
