@@ -103,8 +103,8 @@ Ordered by shipped use and ordinary gameplay first.
     [0x00499300](functions/00499300.md); the effects are not behind the
     `0x00759ADC` sound gate), built (ADR-0740) in `TortureSystem.TurnTheWheel`; shipped 279 has no art and shows nothing. Torture Chamber and Casino torch phase
     ([#1040](https://github.com/tonihele/OpenKeeper/pull/1040),
-    [wall torches §2](wall-torches.md)): built (ADR-0769) in `TorchLayout`. Still open: Call to Arms HUD widget and the
-    every-third-call effect 330 ([#1054](https://github.com/tonihele/OpenKeeper/pull/1054)).
+    [wall torches §2](wall-torches.md)): built (ADR-0769) in `TorchLayout`. Call to Arms recall effect 330
+    every third pass ([#1054](https://github.com/tonihele/OpenKeeper/pull/1054)): built (ADR-0771); the HUD widget is still missing.
 15. **Sound distances ([#1098](https://github.com/tonihele/OpenKeeper/pull/1098)), Q678.**
     Fresh read: 2 mixer units per tile, minimum one tile, maximum from the
     sound group floored at 2.1 units, and a third member that is the constant
@@ -190,7 +190,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | [1023](https://github.com/tonihele/OpenKeeper/pull/1023) | Covered: nearer imp takes a body carry | ADR-0742; `ImpTaskSystem.Carrying.TryTakeBody`; [0x0046D810](functions/0046D810.md), [0x0046D3C0](functions/0046D3C0.md); kind-12 and kind-13 rows in [imp-task-stealing.md](imp-task-stealing.md) §2. |
 | [1026](https://github.com/tonihele/OpenKeeper/pull/1026) | OpenKeeper-only fix | jME entity-set queue. Code-only. |
 | [1046](https://github.com/tonihele/OpenKeeper/pull/1046) | Covered, ours goes further | `ResearchRules.SlapBonus`, `ResearchOnRealDataTests`; [library-and-research.md](library-and-research.md) §3-4, Q216. |
-| [1054](https://github.com/tonihele/OpenKeeper/pull/1054) | Simulation covered; HUD and effect missing | `CallToArmsRules`, `CallToArmsSystem`, `CallToArmsTests`; [call-to-arms.md](call-to-arms.md). Fresh reads: cancel is game action 0x81 (`0x005142E0`), widget `0x00426920`, effect 330 every third call in `0x0049FCB0`. |
+| [1054](https://github.com/tonihele/OpenKeeper/pull/1054) | Simulation and recall effect covered; HUD missing | `CallToArmsRules`, `CallToArmsRules.RecallEffectId`, `CallToArmsSystem`, `CallToArmsTests`, ADR-0771; [call-to-arms.md](call-to-arms.md). Fresh reads: cancel is game action 0x81 (`0x005142E0`), widget `0x00426920`, effect 330 every third call in `0x0049FCB0`. |
 | [1057](https://github.com/tonihele/OpenKeeper/pull/1057) | Covered, ours more faithful | `JobRules.ChargesNoWorkAnger`; [0x004780E0](functions/004780E0.md). |
 | [1062](https://github.com/tonihele/OpenKeeper/pull/1062) | Covered | `HandCursorFeedback`, `WorldView.PreviewTags`; [sound-effects.md](sound-effects.md), [tag-highlight.md](tag-highlight.md). |
 | [1066](https://github.com/tonihele/OpenKeeper/pull/1066) | OpenKeeper debug extension | [cheats.md](cheats.md), ADR-0589. |

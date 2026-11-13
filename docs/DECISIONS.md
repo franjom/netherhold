@@ -18260,3 +18260,22 @@ the creature's velocity is zeroed after the events.
 **Consequences.** Hash/save 495, pin `0xDFC50CFE61D3FADF`; no new state. Level 1's tutorial now
 speaks at the first slap and the first lift. Ours keys "already in 75" on the state id where DK2
 tests the activity code 0x4B (Q768), so a state sharing that code would fire events in ours.
+
+## ADR-0771 - the Call to Arms flag's recall raises effect 330 every third pass
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** keeper-spells, camera-lighting
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, item 14, #1054) left the
+flag's recall effect open. Process state 14 (`0x0049FCB0`) reruns the recruitment whenever its
+due turn is past, adds one to the byte counter `+0x14E`, and when it reaches 3 raises view effect
+330 (`0x14A`) through world slot `+0x38C` at the object's point, heading and owner, and resets
+the counter. Ours already kept that counter (`ObjectState.ProcessCount`) but asked for nothing.
+STRONGLY INFERRED: read in DKII.EXE (decompile re-read 2026-11-11, disassembly 2026-11-13). State
+13 (`0x0049FC50`) zeroes the counter at `0x0049FC82` as it moves to 14, as ours does.
+
+**Decision.** `CallToArmsSystem` requests effect 330 (`CallToArmsRules.RecallEffectId`) at the
+flag's position, heading and owner each time the counter wraps to 0.
+
+**Consequences.** View output only: no simulation state, hash or save change. The Battle tab's
+Call to Arms widget (`0x00426920`, visible under `0x004C00D0`, its click game action 0x81 into
+`0x0049C6A0`) stays unbuilt: ours has no Battle tab, and the cancel itself already exists as
+`RemoveCallToArmsCommand`.

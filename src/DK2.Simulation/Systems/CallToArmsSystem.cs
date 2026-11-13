@@ -12,8 +12,9 @@ namespace DK2.Simulation.Systems;
 /// the slap that removes it (action 63) and the three heeding states 190 to 192.</summary>
 /// <remarks>Deviates: a handler that changes the flag's state runs the next state in the same
 /// tick, so activation reaches the recall and a fade reaches the removal without a tick between;
-/// DK2's object update order between those states was not read. The flag's effects and sound
-/// are display and absent. A flag in the hand is not processed (ADR-0279).</remarks>
+/// DK2's object update order between those states was not read. Of the flag's effects and sound
+/// only the recall's effect 330 is asked for (ADR-0771). A flag in the hand is not processed
+/// (ADR-0279).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/call-to-arms.md")]
 public sealed class CallToArmsSystem : ISimulationSystem
 {
@@ -115,8 +116,14 @@ public sealed class CallToArmsSystem : ISimulationSystem
                         CallToArmsRules.Activate(context, SystemName, flag);
                         if (world.ObjectById(flag.Id) is null) return;
                         flag.ProcessDeadline = now + SimulationTiming.OriginalTicksPerGameSecond;
-                        // Every third recall plays the flag's effect, which is display.
+                        // Every third recall raises view effect 330 at the flag's point, with its
+                        // heading and owner, and restarts the count (0x0049FCB0, ADR-0771).
                         flag.ProcessCount = (byte)((flag.ProcessCount + 1) % 3);
+                        if (flag.ProcessCount == 0)
+                            context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(CallToArmsRules.RecallEffectId),
+                                new PlayerId(flag.OwnerPlayerId),
+                                new FpPosition3(new Fp32(flag.PosX), new Fp32(flag.PosY), new Fp32(flag.PosZ)),
+                                new Dk2Angle((ushort)flag.Heading)));
                     }
                     break;
                 case CallToArmsRules.Releasing:

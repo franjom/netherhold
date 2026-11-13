@@ -46,8 +46,10 @@ keeper's call on, it makes no object when the standing flag is in the keeper's h
 State 12 (`0x0049FBA0`) runs the activation and, on animation ended/wrapped flags
 `+0xF1 & 6`, installs art5 and moves to 13. State 13 (`0x0049FC50`) sets the recall
 deadline one second on and moves to 14. State 14 (`0x0049FCB0`) reruns the activation
-whenever the deadline is past, every third time with view effect 330 (`0x14A`); an ending flag moves
-to 15. State 15 (`0x0049FD80`) waits for completion of the slap's art7, releases the creatures and zeroes the object's health
+whenever the deadline is strictly below the game turn (a pass every 5 turns at 4 per game
+second, Q132), every third time with view effect 330 (`0x14A`); an ending flag moves to 15 and
+the pass still runs. State 13 zeroes the pass counter and its state-14 store overwrites an ending
+flag's state-15 store, so DK2 passes once through 14 first. State 15 (`0x0049FD80`) waits for completion of the slap's art7, releases the creatures and zeroes the object's health
 (`0x004B2AD0`), which the cleanup pass removes. States 20 (`0x0049FDC0`) and 19
 (`0x0049FE40`) install art6, mark ending and wait for its completion before the
 same health zero, with no release. Selectors and timing are built; see
@@ -103,13 +105,16 @@ new cast replaces the dead tag. This is the code's consequence, unobserved (Q483
 Built: the cast command (action 54) with selectors 4/4, the Create Object process, the
 flag's process states, activation, recruit, release, the slap (action 63), the prepaid
 clock and the upkeep, the unaffordable fade, message 84, states 190–192 with the run
-speed hooks, and the five readers above. The observation (schema 9) carries each
+speed hooks, the recall's effect 330 every third pass (ADR-0771), and the five readers above. The observation (schema 9) carries each
 creature's `0x004888C0` answer and the keeper's call.
 
-Not built: the Heart-slab nudge, the flag's effects and sound, the thrown flag's flight
+Not built: the Heart-slab nudge, the flag's other effects and sound, the Battle tab's Call to
+Arms widget (ours has no Battle tab; the cancel is `RemoveCallToArmsCommand`), the thrown flag's flight
 on a slap, `TortureVoluntary` recruits, the Reaper timer, and the unread order between
 DK2's object and creature updates (ours runs creatures first, then flags, and chains a
-flag's states). The hand's own relocation of the flag works through the recall reading
+flag's states). Two ending-flag deviations: a flag ending in state 13 goes to Releasing at
+once where DK2 passes once through 14, and a Recalling flag ending goes to Releasing without
+the recruitment and effect of that last pass. The hand's own relocation of the flag works through the recall reading
 the flag's current tile. Selectors other than 4/4 and spells other than 3 at a place
 are refused. Q483 asks for the original run: the flag's tile against the click, the
 prepaid period, the milling radius and what a keeper out of mana is left with.

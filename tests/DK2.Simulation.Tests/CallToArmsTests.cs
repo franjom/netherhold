@@ -110,6 +110,36 @@ public sealed class CallToArmsTests
         Assert.Contains(sink.Events, e => e.Kind == "call_to_arms_raised");
     }
 
+    /// <summary>The recall runs once a game second, and every third run raises effect 330 at the flag
+    /// with its owner (<c>0x0049FCB0</c>, ADR-0771).</summary>
+    [Fact]
+    public void EveryThirdRecallRaisesTheFlagsEffect()
+    {
+        var (db, world) = Setup();
+        var sink = new ListEventSink();
+        GameSimulation sim = Sim(db, world);
+        sim.ObserveWith(sink);
+        sim.Tick(InputFrame.Of(Cast(Flag)));
+        ObjectState flag = FlagOf(world)!;
+        flag.Heading = 0x123;
+        int recalls = 0;
+        for (int i = 0; i < 40; i++)
+        {
+            long deadline = flag.ProcessDeadline;
+            bool recalling = flag.ProcessState == CallToArmsRules.Recalling;
+            sim.Tick();
+            if (recalling && flag.ProcessDeadline != deadline) recalls++;
+        }
+
+        ViewEffectRequest[] effects = sink.Events
+            .Where(e => e.EffectRequest is { } r && r.EffectId == new EffectId(CallToArmsRules.RecallEffectId))
+            .Select(e => e.EffectRequest!.Value).ToArray();
+        Assert.Equal(recalls / 3, effects.Length);
+        Assert.True(effects.Length >= 2);
+        Assert.All(effects, r => Assert.Equal((new PlayerId(Keeper), flag.PosX, flag.PosY, flag.PosZ, new Dk2Angle(0x123)),
+            (r.Owner, r.Position.X.Raw, r.Position.Y.Raw, r.Position.Z.Raw, r.Heading)));
+    }
+
     [Theory]
     [InlineData(0, KeeperSpellRefusal.UnsupportedSpell)]
     [InlineData(1, KeeperSpellRefusal.UnsupportedFlags)]

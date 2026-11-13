@@ -47,6 +47,9 @@ public static class CallToArmsRules
     /// <summary>Message 84: a creature could not route to the flag (<c>0x00455DA0</c>).</summary>
     public const int UnreachableMessage = 84;
 
+    /// <summary>The view effect every third recall raises at the flag (<c>0x14A</c>, <c>0x0049FCB0</c>).</summary>
+    public const int RecallEffectId = 330;
+
     /// <summary>Whether the call is on and its flag still stands (<c>0x004C0090</c>).</summary>
     public static bool IsLive(WorldState world, in PlayerState player)
     {
