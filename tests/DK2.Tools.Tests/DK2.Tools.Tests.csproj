@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DK2.Tools\DK2.Tools.csproj" />
+    <ProjectReference Include="..\DK2.TestSupport\DK2.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

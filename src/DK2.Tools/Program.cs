@@ -24,6 +24,7 @@ internal partial class Program
                 : Usage(),
             ["replay"] = args => args.Length >= 4 ? ReplayCommands.Replay(args) : Usage(),
             ["journal-report"] = JournalReportCommand.Run,
+            ["snapshot-diff"] = args => SnapshotDiffCommand.Run(args),
             ["decide"] = args => args.Length == 4 ? ReplayCommands.Decide(args[1], args[2], args[3]) : Usage(),
             ["sgmap"] = args => SgmapCommand.Run(args[1..], Repo.FindRepoRoot()),
             ["verification-ledger"] = args => VerificationLedger.Run(args[1..], Repo.FindRepoRoot()),
@@ -116,6 +117,8 @@ internal partial class Program
 
         Console.WriteLine("  journal-report <input.journal> <hashes.tsv> <new-report.html>");
         Console.WriteLine("                                         offline hash comparison and nearby commands");
+        Console.WriteLine("  snapshot-diff <before> <after> <new-report.json> [--level <name>]");
+        Console.WriteLine("                                         decoded creature, player and tile field differences");
 
         Console.WriteLine("  decide <level> <decisions.jsonl> <out.tsv>");
 

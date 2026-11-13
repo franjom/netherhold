@@ -13,8 +13,8 @@ and `decide` (comparing simulation runs with recorded captures), `coverage`, `kb
 (the function knowledge base), `docs` (doc budgets and the system tags of ADR-0643),
 `wiki` (the generated wiki pages, `Wiki/`), `simmatrix` (which simulation system reads and
 writes which state, `SimMatrix/`; `wiki` writes it too), `status`, `sgmap` and
-`verification-ledger`, and `journal-report` (offline comparison of a journal with supplied
-hashes). Install-reading commands need `DK2_DIR`.
+`verification-ledger`, `journal-report` (offline comparison of a journal with supplied
+hashes), and `snapshot-diff` (decoded saved-snapshot field comparison). Install-reading commands need `DK2_DIR`.
 
 Depends on `DK2.Assets`, `DK2.Convert`, `DK2.Core`, `DK2.Data`, `DK2.Data.Model` and
 `DK2.Simulation`, on YamlDotNet for `docs/systems.yaml`, and on Microsoft.CodeAnalysis.CSharp
@@ -49,5 +49,36 @@ or an output error; 3 means incomplete comparison without an observed mismatch.
 A cut final journal record is reported as truncated; malformed records are
 rejected. The TSV carries no build or scenario metadata, so its provenance is
 not verified. Matching records establish neither successful gameplay nor DK2
-parity. This report provides whole-state hash context; subsystem and entity
-diffs remain planned in [the crash-tooling plan](../../docs/plans/2026-10-18-crash-and-debug-tooling.md#6-analysis-tools-with-a-gui).
+parity. This report provides whole-state hash context. For saved-snapshot field
+changes, see [snapshot comparison](#snapshot-comparison); integrated replay diffs
+remain planned in [the crash-tooling plan](../../docs/plans/2026-10-18-crash-and-debug-tooling.md#6-analysis-tools-with-a-gui).
+
+## Snapshot comparison
+
+    dotnet run --project src/DK2.Tools -c Release -- snapshot-diff before.dk2g after.dk2g new-report.json
+    dotnet run --project src/DK2.Tools -c Release -- snapshot-diff before.snapshot after.snapshot new-report.json --level Level1
+
+Accepts our DK2G saved sessions or raw DK2S snapshots. Raw snapshots require
+`--level <campaign-level>`; saved-session levels must agree, and an explicit
+level must match them. Decoding uses the current `WorldSnapshot.FromBytes`
+format and original campaign data from the installed game (`DK2_DIR`). The
+original database is absent from snapshots, so level-data provenance is not
+verified. The command executes no ticks, changes no inputs, and requires a
+new output path.
+
+The schema-1 JSON report includes source-file and snapshot-payload SHA-256
+fingerprints, format version, ticks, scope and limits. Sorted changes contain
+`path`, `kind`, `before` and `after`, with invariant text values or JSON null.
+It compares creature fields by creature ID, player fields by player ID, tiles
+by coordinates, and snapshot tick, dimensions, fog, mode and RNG. Nested
+collections and identity additions/removals are included. Computed getters
+and world/delegate references are excluded.
+
+Exit codes: 0 means identical snapshot payload bytes; 1 means projected field
+changes (also used for CLI usage errors); 2 means an input, game-data or output
+failure; 3 means different payload bytes without projected field changes.
+Save-container headers and campaign profiles are excluded from payload equality.
+Shots, objects, queues, navigation and other state outside the named projection
+are not compared field by field. An empty change list does not establish whole-world
+identity or DK2 parity; use `snapshotBytesEqual` to distinguish payload equality
+from changes outside the projection.

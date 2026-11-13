@@ -116,9 +116,11 @@ between debug and release.
 ### 6. Analysis tools, with a GUI
 
 Items 1–5 produce files. This item is about reading them: opening a crash
-bundle or a journal and seeing what happened. The offline `journal-report` CLI is
-built; usage and evidence limits are in the [Tools README](../../src/DK2.Tools/README.md#offline-journal-report).
-The replay library, Unity mode and richer analysis below remain planned.
+bundle or a journal and seeing what happened. The offline `journal-report` and
+`snapshot-diff` CLIs are built; usage and evidence limits are in the
+[Tools README](../../src/DK2.Tools/README.md#offline-journal-report)
+([snapshot comparison](../../src/DK2.Tools/README.md#snapshot-comparison)).
+The replay library, Unity mode and integrated analysis below remain planned.
 
 **Core, engine-neutral (`src/`, a new `DK2.Diagnostics` or similar):** one
 library that every front end uses.

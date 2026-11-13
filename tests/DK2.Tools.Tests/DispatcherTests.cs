@@ -34,6 +34,7 @@ public class DispatcherTests
     [InlineData("kwd", "corpus", "extra")]
     [InlineData("capture-diff")]
     [InlineData("journal-report")]
+    [InlineData("snapshot-diff")]
     [InlineData("wad", "list")]
     public void UnknownOrIncompleteCommandPrintsUsageAndExitsOne(params string[] args)
     {
@@ -48,7 +49,7 @@ public class DispatcherTests
         string[] expected =
         [
             "capture-diff", "convert", "coverage", "decide", "docs", "journal-report", "kb", "kwd", "replay", "sdt", "sgmap", "simmatrix",
-            "status", "str", "trigger-diff", "trigger-run", "verification-ledger", "wad", "where", "wiki",
+            "snapshot-diff", "status", "str", "trigger-diff", "trigger-run", "verification-ledger", "wad", "where", "wiki",
         ];
         Assert.Equal(expected, Program.Registry.Keys.Order(StringComparer.Ordinal));
     }
