@@ -177,7 +177,7 @@ first parameter (`+0x399`) and the target's tag in its second (`+0x39D`):
 7. **Aim** = the target's position, height raised by half its `vtable+0x40`, plus
    on x and y a lead of `(position − previous position) × tiles × 3 / 2`, where `tiles` is
    `isqrt(16·d²) >> 8` — the whole tiles between us — and `vtable+0x2C` the
-   previous frame's position (STRONGLY INFERRED, `combat-acquisition.md`). Then
+   previous frame's position (STRONGLY INFERRED, `combat-acquisition.md`); ours reads `LastPosX`/`LastPosY`, which `PreviousPositionStep` sets at DK2's place in the update (ADR-0787). Then
    `0x004AB830(shot, &aim)` and `0x004AB8A0(shot, &aim)`, which turns the shot to
    face the aim (`0x0065FB54`, atan2) and launches it. **Return 0** marks handler
    completion; the post-shot busy lifetime is the Q720 boundary linked above.

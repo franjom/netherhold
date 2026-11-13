@@ -383,5 +383,5 @@ public class CombatSpellTests
         world.SpawnArrived(db, type, owner, new TilePos(x, y));
 
     private static GameSimulation Combat(GameDatabase db, WorldState world) =>
-        new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
+        new(db, world, 1, [new CombatSystem(), new PreviousPositionStep(), new CreatureMovementSystem(), new ShotSystem()]);
 }

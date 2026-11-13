@@ -1263,6 +1263,16 @@ public sealed partial class CreatureState
     /// position DK2's <c>vtable+0x2C</c> returns, which a shot's aim leads by (shots.md §7).</summary>
     public int LastPosX;
     public int LastPosY;
+
+    /// <summary><see cref="LastPosX"/> and <see cref="LastPosY"/> as they stood before this update's copy
+    /// (<see cref="Systems.PreviousPositionStep"/>), for the tile-entry arms DK2 runs ahead of it; null between
+    /// updates, so neither saved nor hashed.</summary>
+    internal (int X, int Y)? LastPosBeforeCopy;
+
+    /// <summary>The previous position the update's tile-entry flag (<c>0x00488F61</c>) compares against, for a
+    /// reader that runs after ours' copy and before the mover (the room attack): last turn's copy, which DK2
+    /// reads before this turn's is taken.</summary>
+    internal (int X, int Y) TileEntryLastPos => LastPosBeforeCopy ?? (LastPosX, LastPosY);
     public int LastPosZ;
 
     /// <summary>The status words of creature-status-effects.md §1, tick countdowns stepped by

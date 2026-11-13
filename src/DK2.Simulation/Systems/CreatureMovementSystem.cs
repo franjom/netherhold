@@ -74,10 +74,6 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     /// mover's tile crossing is in a later mover's crowd query (imp-first-integration.md).</summary>
     public void Update(SimulationContext context, CreatureState creature)
     {
-        // The previous frame's position (DK2's vtable+0x2C): where the creature stood before
-        // this tick's move, which a shot's aim leads by (shots.md §7).
-        creature.LastPosX = creature.PosX;
-        creature.LastPosY = creature.PosY;
         // The physical pass (0x004B2030 at 0x0048A204) runs on every creature, ahead of the steering gate.
         CreaturePhysicsRules.Step(context, creature);
         Sync(context, creature);

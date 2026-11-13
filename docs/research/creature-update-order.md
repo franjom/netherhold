@@ -15,6 +15,7 @@ walk in `imp-task-objects-and-walks.md`, and the sweep in [004B7830](functions/0
 | Payday clock, once per player | `0x004BE1A0` from `0x0050A450` at `0x0050A7BE`, before the sweep | STRONGLY INFERRED |
 | Creature sweep, newest first, one whole update at a time | `0x004B7830` at `0x0050A7D7` | STRONGLY INFERRED |
 | Fight scan | `0x0045E9F0` at `0x00489AC7` | STRONGLY INFERRED |
+| Previous-position copy: the position into `+0xF6`, z into `+0xFE`, the heading word `+0xF4` into `+0x102`; no path around it | `0x00489FE6`-`0x0048A00E`, before the dispatcher | STRONGLY INFERRED |
 | Dispatcher: category hook, need-anger `0x00478D00`, needs routine `0x00477C20`, unhappy or angry chooser, then the state handler | `0x00476FC0` at `0x0048A030` | STRONGLY INFERRED |
 | Physical commit | `0x004B2030` at `0x0048A204` | STRONGLY INFERRED |
 | Steering step; its gate skips the Imp (`+0x36F == 1`) | `0x0048A266`, gate `0x0048A210`-`0x0048A248` | STRONGLY INFERRED |
@@ -30,6 +31,12 @@ success in a mood chooser skips the handler for that turn.
 Timed effects, the worker prelude and experience are included in this per-creature
 walk. The handlers of 255, 256 and 257 (`CreatureStatusSystem.Recovery`) run after
 `combat.States`, like the other state handlers (ADR-0731); captured resync-order limits remain [Q719](fight-scan-initial-phase.md#captured-input-and-encounter-controls-369).
+
+`PreviousPositionStep` runs right after `CombatSystem` and sets `LastPosX`/`LastPosY` to the position at once
+(ADR-0787). The update's tile-entry flag (`0x00488F61`-`0x00488F96`) is taken before the copy, so the step
+stashes the pair it replaced in `CreatureState.LastPosBeforeCopy` until the update ends, and the room attack
+reads it through `TileEntryLastPos`. The claim on the way (`0x0048905E`) runs in ours after the mover and reads the
+copy: the pair DK2 compares at the next update's entry, one update early. Ours copies x and y only.
 
 The [non-worker idle43/44 clock](idle-action-clock.md) polls after timed effects and
 the worker prelude, before combat, and advances after the creature's trigger root
@@ -51,6 +58,11 @@ the worker prelude, before combat, and advances after the creature's trigger roo
   [`SimulationSystems.Default`](../../src/DK2.Simulation/Systems/SimulationSystems.cs).
 - The clock's collect decision keeps our mask test and busy test. `0x00472320` makes neither.
 - The fireworks run after the last creature's update, not in the player frame.
+- The fight scan's moved-tile bypass (`0x0045EA9E`) reads `+0xF6` before the copy; ours uses
+  `LastFightScanTileIndex`. The carried-thing routines `0x0048B438`, `0x0048B547` and `0x0048B629` write a
+  carried thing's `+0xF6`; ours has no counterpart. The experience drain (`0x00485880` at `0x00489584`) runs
+  before the copy and ours after it; it does not move the creature. Reviewer's observations (ADR-0787), unchecked
+  against a native log.
 
 ## 3. Measurements
 

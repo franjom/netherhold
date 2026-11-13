@@ -84,7 +84,8 @@ state 193 explicitly replaces the reference with its displaced Portal-exit
 point ([joining-state record](functions/00459C20.md), Q731). This qualifies the
 ordinary-movement comparison; it establishes no measured dust behavior or
 additional code fix. The modern approximation still uses its current tile
-for the terrain test.
+for the terrain test. Ours' copy into the previous-position word is `PreviousPositionStep` (ADR-0787), before
+the handler as DK2's; `MovementDustSystem` keeps its own `LastDustTile` and does not read it.
 Held creatures and corpses are skipped as the other mirrors of this update do
 (ADR-0206); whether the thing pass updates them is unread. The existing type-4
 particle consumer and install sprite provider draw element 264.

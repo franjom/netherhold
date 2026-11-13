@@ -29,7 +29,8 @@ public static class RoomAttackRules
     {
         if (creature.OwnerPlayerId != PlayerIds.Good || !creature.DestroysRooms || creature.CombatPitFighter) return false;
         TilePos at = creature.Tile;
-        if (at.X == creature.LastPosX >> 12 && at.Y == creature.LastPosY >> 12) return false;
+        (int lastX, int lastY) = creature.TileEntryLastPos;
+        if (at.X == lastX >> 12 && at.Y == lastY >> 12) return false;
 
         WorldState world = context.World;
         GameDatabase database = context.Database;

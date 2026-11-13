@@ -93,6 +93,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                 step.Update(context, creature);
                 if (creature.LinkWorld is null) break;
             }
+            creature.LastPosBeforeCopy = null; // PreviousPositionStep's stash ends with the update
             if (!actionPolled && creature.LinkWorld is not null)
             {
                 PossessedMeleeRules.Poll(context, creature);
