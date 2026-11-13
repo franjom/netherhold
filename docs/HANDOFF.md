@@ -24,7 +24,7 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 Q712, the Level 5 draw-continuation investigation, is answered through turn 1900.
-At hash 500 with ADR-0786, with the replay inputs including the five hero guards
+At hash 501 with ADR-0787, with the replay inputs including the five hero guards
 restored at turn 1400, the controlled replay matches all 8466 native draws of the
 capture's log, turns 1401-1900 (the log ends there). The result is in
 [Q712](research/open-questions.md), with its causes in
@@ -57,13 +57,14 @@ capture's log, turns 1401-1900 (the log ends there). The result is in
 [the hunger retry as a stamp and the hatchery walk's arrival draw](research/eating.md#9-implementation) (ADR-0784),
 [state 92 running a turn after the shortcut, choosing the bird by the original's ranking, walking to it and preparing it](research/travel-states.md#8-worked-example-a-hungry-creature-eats--strongly-inferred) (ADR-0785),
 [state 93's turn toward the bird and its 0x1000 reach, and the stance route's point on the 16.8 grid](research/stopped-waypoint-precision.md) (ADR-0786),
+[the previous-position copy before the state handler](research/creature-update-order.md) (ADR-0787),
 [own-land regeneration every turn](research/creature-needs.md) (ADR-0759),
 [the fighting arms' candidate walk order](research/combat-target-selection.md) (ADR-0761),
 [the melee hold's end, the lifted creature's bit, own-land healing and the collapse booking](research/open-questions.md)
 (ADR-0762 to ADR-0765, Q768 to Q771); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
 [store-gold steering](research/store-gold-steering.md). The continuation is split into
-Q772 (past turn 1900: draws match through 1987 at hash 500, next is Q794, turn 1988 draw 4), Q773 (five creatures with small position
+Q772 (past turn 1900: draws match through 1987 at hash 501; turn 1988 draw 4 still differs, Q794, and the first position split is Warlocks 437 and 438 at 1923, Q795), Q773 (five creatures with small position
 offsets and no draw affected) and Q774 (state words that differ in representation: held
 78, a collapsed creature's health countdown, Imp 440's states 10 and 22), besides
 Q764 to Q767 and Q733(d). Build only behavior supported

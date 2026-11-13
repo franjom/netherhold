@@ -18573,3 +18573,43 @@ on today's screens. Each frame spawns, draws, then steps, DK2's order; the step 
 hidden, the camera letterboxed or the game paused (ours: the options panel open). Not mirrored:
 the graphics detail gate (ours has no detail setting) and the skip in camera modes 2, 7 and
 `0x12`. The IMGUI draw is over the scene but under UI Toolkit panels, where DK2 draws it above all.
+
+## ADR-0787 - the previous-position copy runs before the state handler, as DK2's update does
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** creatures, combat
+
+**Context.** Level 5 seed 1 (Q794): at hash 500 Dwarf 435's knock-back and the spell aim that leads by its step
+parted from native. DK2's creature update copies the position into `+0xF6`, z into `+0xFE` and the heading word
+`+0xF4` into `+0x102` at `0x00489FE6`-`0x0048A00E`: after the action runner and `ProcessFight` (`0x00489AC7`),
+before the dispatcher call (`0x0048A030`), with no path around it. Ours copied x and y in
+`CreatureMovementSystem.Update`, after the state handlers, so a handler's knock-back moved the creature into the
+copy, and a spell's lead (`FightRules.FireSpell`: `target.Pos + (Pos - LastPos) * tiles * 3 / 2`) read a different
+pair. STRONGLY INFERRED (disassembly; the reviewer's Ghidra re-read agrees on the location, the 12-byte copy,
+`+0xF4` into `+0x102`, the absence of a bypass and the order).
+
+**Decision.** `PreviousPositionStep` runs right after `CombatSystem` in `SimulationSystems.CreatureUpdate()` and
+sets `LastPosX`/`LastPosY` to the position at once; `CreatureMovementSystem` no longer copies. The update's
+tile-entry flag (`0x00488F61`-`0x00488F96`, the position's tile against the copy's) is taken before the copy, so
+the step keeps the pair it replaced in `CreatureState.LastPosBeforeCopy` (internal, transient: not saved, not
+hashed, cleared at the end of each creature's update in `CreatureUpdateSystem.Sweep`). The flag's room-attack
+consumer (`0x00488FB6`, ours' `RoomAttackRules.TryBegin` through `HeroSystem`) reads
+`CreatureState.TileEntryLastPos`, the stash or else `LastPos`. Its claim-on-the-way consumer (gate `0x0048905E`,
+call `0x00489076` to `0x00464170`, which does not read `+0xF6`) runs in ours after the mover and keeps reading
+`LastPos`, this update's copy: the pair DK2 compares at the next update's entry, one update early as before. The
+Imp arm reads `LastPos` for that reason; the stash there would compare across two moves. Ours copies x and y
+only; `+0x102` is not modelled and z stays with the height rules.
+
+**Consequences.** Hash/save 501; earlier saves are refused (`LastPosBeforeCopy` is copied by `StateCopy` but
+neither saved nor hashed); pin `0x69FB301550B7AA69`. Level 5 diag controlled545: 9828 draws match through 1987 and
+the boundary is unchanged, turn 1988 draw 4 (native `ObjectState.cpp:2851`, ours `:2708`, bird 123); Dwarf 435's
+position matches native 1401-1995. Warlocks 437 and 438 first part at 1923, 433 at 1928 (Q795). A deferred
+commit of the copy (controlled540) regressed the replay to 1720: it overwrote resets made later in the update.
+Level 1 (journal re-recorded): the win tick is unchanged, 2566; ours' output, unverified against DK2. Tests:
+`PreviousPositionStepTests` (the copy is the position before the handler moves the creature; a reset later in the
+update is kept); `RoomAttackTests` composes the step, `HeroSystem` and the mover in one `CreatureUpdateSystem` and
+fails if `RoomAttackRules` ignores the stash (mutation-checked); `SimulationSystemsOrderTests` pins the step after
+combat; the `CombatSpellTests` rig adds the step. Reviewer's observations, not acted on and unchecked against a
+native log: `ProcessFight`'s moved-tile bypass (`0x0045EA9E`) reads `+0xF6` before the copy, where ours uses
+`LastFightScanTileIndex`; the carried-thing routines `0x0048B438`, `0x0048B547` and `0x0048B629` write a carried
+thing's `+0xF6`, which ours does not; the post-copy readers (`0x0048A5AE`, `0x0048A5E6` the presentation bridge,
+`0x0048C2FB` the possessed animation) and the experience drain (`0x00485880`, before the copy in DK2, after it in
+ours, and it does not move the creature) have no simulation effect. Note: [creature-update-order.md](research/creature-update-order.md).

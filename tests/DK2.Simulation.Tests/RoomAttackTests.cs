@@ -154,10 +154,12 @@ public class RoomAttackTests
         knight.LastPosX = CreatureState.CentreOf(x - 1);
         knight.LastPosY = CreatureState.CentreOf(y);
 
-        // The mover runs last, so the first tick sees the step in as the position pair above,
-        // which is what the mover would have left; after that it carries the walk to the centre.
+        // One creature update, as SimulationSystems composes it: this update's copy (0x00489FE6) runs before
+        // the hero's handler, so the arm sees the step in only through the pair the copy replaced; then the
+        // mover carries the walk to the centre.
         var sim = new GameSimulation(Db, world, seed: 1,
-            [new Systems.TileWorkSystem(), new Systems.HeroSystem(), new Systems.CreatureMovementSystem()]);
+            [new Systems.TileWorkSystem(), new Systems.CreatureUpdateSystem(
+                new Systems.PreviousPositionStep(), new Systems.HeroSystem(), new Systems.CreatureMovementSystem())]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         return (sim, knight, sink);

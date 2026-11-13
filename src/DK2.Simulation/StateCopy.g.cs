@@ -249,6 +249,7 @@ namespace DK2.Simulation
             SwingRange = other.SwingRange;
             LastPosX = other.LastPosX;
             LastPosY = other.LastPosY;
+            LastPosBeforeCopy = other.LastPosBeforeCopy;
             LastPosZ = other.LastPosZ;
             ArmourTicks = other.ArmourTicks;
             InvulnerableTicks = other.InvulnerableTicks;

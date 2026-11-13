@@ -36,6 +36,7 @@ public class SimulationSystemsOrderTests
             "CreatureUpdateSystem/CreatureStatusSystem",
             "CreatureUpdateSystem/WorkerPrelude", // ADR-0638: reinforcement gold precedes its action poll.
             "CreatureUpdateSystem/CombatSystem",
+            "CreatureUpdateSystem/PreviousPositionStep",
             "CreatureUpdateSystem/CreatureExperienceSystem",
             "CreatureUpdateSystem/TravelArrivalSystem",
             "CreatureUpdateSystem/CreatureEatSystem",
