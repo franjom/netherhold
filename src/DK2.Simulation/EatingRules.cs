@@ -39,11 +39,11 @@ public static class EatingRules
     /// <see cref="InHatcheryState"/> while a helping is owed, else idle.</summary>
     public const int AfterMealState = 94;
 
-    /// <summary>How near a creature must be to eat: one tile, squared.
-    /// <para>The original's test is <c>dx² + dy² &lt; 0x1001</c> on fixed-point
-    /// positions with 4096 to the tile, so a bird exactly one tile away is in
-    /// reach and one further is not. Ours is in whole tiles, and the two agree on
-    /// every position ours can produce.</para></summary>
+    /// <summary>How near a prisoner must be to eat: one tile, squared, in whole tiles.
+    /// <para>The hatchery's state 93 does not use it: it tests
+    /// <c>(|dx|² &gt;&gt; 12) + (|dy|² &gt;&gt; 12) &lt;= 0x1000</c> on the fixed-point
+    /// positions (<c>CreatureEatSystem.Fetching</c>, ADR-0786). The prison's own test
+    /// (<c>0x00473750</c>) is unread.</para></summary>
     public const int ReachTilesSquared = 1;
 
     /// <summary>How long between attempts to go and eat: <b>one game second</b>.

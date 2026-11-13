@@ -272,7 +272,7 @@ restored from a save.
    room: stop, `SetState(92)`, `+0xDF = 1`. The hooks compare category(`+0x40` = 91) =
    8 with 92's 8, so none run. During the walk category 8's update hook would run, but
    category 8 has none. 92's handler runs the next turn, as in step 3 (ours' arrival
-   still runs it on the same tick: PLAUSIBLE, Q174).
+   into 92 still runs it on the same tick: PLAUSIBLE, Q174).
 5. **State 92** (`0x00463500`): on its first tick (`Age == 1`) it stops the body. The
    tile must be a type-4 room of the creature's owner (`0x004539B0(4, owner, 0)`). It
    picks the nearest chicken (eating.md §6), then `0x00471890(point, 93, 0xE8)` for the
@@ -284,11 +284,18 @@ restored from a save.
    dispatcher drops to state 1 (`0x004772B0`), the bird untouched. With no chicken it
    calls `SetState(91)`, and the hatchery is looked up again next tick. The prepared
    bird runs process 8 about 33 turns (`0x004A24A0`, eating.md §6).
-6. **State 6** until the path is finished: stop, `SetState(93)`, `+0xDF = 1`. 93's
-   handler runs the next turn (ours eats on the arrival tick: PLAUSIBLE, Q174).
-7. **State 93** eats (eating.md §7) and stores `HungerNeed != 0` in `+0xAB`. **State
-   94** (`0x00463720`) returns 1 while busy; then, if `+0xAB` is set, `SetState(92)`
-   for another bird, else it returns 0.
+6. **State 6** (`0x00470C80`) is a plain walk: it reads only its own gates and the
+   path progress (`0x004D5B20` = `0x10000`), never the bird. At the path's end: stop,
+   `SetState(93)`, `+0xDF = 1`. 93's handler runs the next turn (ADR-0786; ours' fetching
+   ends state 6 on no route where native waits for the progress: PLAUSIBLE).
+7. **State 93** (`0x00463760`): the bird by the tag `+0xAF` (the slot in use, class 2;
+   the refusal call `[ESI+0xC]` vtable `+0x278` at `0x004637B3` is unread); any failure
+   sets 92. The turn step `0x004B2AE0` (`0x004637CC`) turns the creature's `+0x1A`
+   toward the bird, and a nonzero out-word returns 1, staying in 93. Then
+   `(|dx|^2>>12)+(|dy|^2>>12)` from the creature's point: above `0x1000` (`JA` at
+   `0x00463828`) sets 92, so exactly `0x1000` still eats. Then the meal (eating.md §7),
+   storing `HungerNeed != 0` in `+0xAB`. **State 94** (`0x00463720`) returns 1 while busy;
+   then, if `+0xAB` is set, `SetState(92)` for another bird, else it returns 0.
 
 **What a build copies:** the caller's whole contribution is one call with *(target,
 resume, options)*. The helper owns the transition, the slot and the destination; the

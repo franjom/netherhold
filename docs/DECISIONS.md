@@ -18494,7 +18494,51 @@ at 733). Tests: `EatingTests` gains
 3x3-hatchery tests, `CreatureStateSoundTests` and the `SlabChainTests` tie test moved their birds off the coop
 tiles. Residuals (PLAUSIBLE, not yet
 checked against a native log; Q174, record `0x00463500`): ours' arrival paths still run the next handler on the
-same tick (seeking hands state 7's arrival to 92 and picks the bird in one call; fetching hands state 6's
-arrival to 93 and eats at once), where one handler per turn costs each handover a turn; ours' fetching
-abandons mid-walk if the bird is gone, where native state 6 is a plain walk and 93 tests the bird; ours'
-obstacle test excludes a held thing but not a carried one (minor).
+same tick (seeking hands state 7's arrival to 92 and picks the bird in one call; ADR-0786 builds the 93 half),
+where one handler per turn costs each handover a turn; ours' obstacle test excludes a held thing but not a carried one (minor).
+
+## ADR-0786 - hatchery state 93 turns to face the bird before it eats, and a stance route's point sits on the 16.8 grid
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** creatures, navigation
+
+**Context.** Level 5 seed 1, native 1982, draw 8 (Q793): at hash 499 ours ate bird 109 on the walk's arrival
+tick; native 1315 stayed alive and drew. State 6 (`0x00470C80`) reads only its own gates and the path progress
+(`0x004D5B20` == `0x10000`), never the bird; its arrival hands over to 93 (`0x00463760`), whose handler runs the
+next turn (the dispatcher has one handler call, `0x004772AA`; `SetState` runs none). State 93 takes the bird by
+the tag `+0xAF` (slot in use `0x0046377A`, class 2 `0x0046378F`; a refusal call, `[ESI+0xC]` vtable `+0x278` at
+`0x004637B3`-`0x004637BB`, is unread) and any failure sets 92 (`0x004639F1`). The turn step `0x004B2AE0`
+(`0x004637CC`) turns the creature's `+0x1A` toward the bird, and a nonzero out-word returns 1, staying in 93.
+Then `(|dx|^2>>12)+(|dy|^2>>12)` from the creature's point: `CMP 0x1000` `JA` to 92 (`0x00463823`-`0x00463828`), so
+exactly `0x1000` still eats; then the meal (`0x0046382E`-`0x004639E0`). With that alone ours stopped exactly on
+the bird's point and ate two turns early. Native stops at (50224,104608), short of the bird at (50225,104616),
+and turns 1821, 1480, 1139, 984, 341 a turn. The cause is the route: a one-triangle route goes
+`0x004D0F60`, `0x004D59E0`, `0x004D5100`, which queries shifted right eight (`0x004D5138`-`0x004D5147`) and loads
+its points back shifted left eight (`0x004D520D`, `0x004D530F`-`0x004D531C`), while `+0xA4`/`+0xA8` keep the raw
+destination. `0x004D59E0` has one caller, `0x004D1054`, and `0x004D0F60` is called by `0x00471890`, `0x00471A70`,
+`0x00471D10`, `0x0047138F`, `0x00461940`, `0x004744AD`, `0x00519F70` and `0x004D1080`, so every creature route
+request goes this way. STRONGLY INFERRED (disassembly, reviewer-confirmed; the rounding's universality is by xref).
+
+**Decision.** `CreatureEatSystem.Fetching` is native states 6 and 93. In 6 a plain walk ends in `Arrive`, which
+hands over to 93; 93 runs the next turn: the bird by `TargetObjectId`, `IsEdibleChicken` or `BackToTheSearch`;
+`CasinoStep.TurnTo`, staying while it returns nonzero; above `0x1000` `BackToTheSearch`; else `Swallow`.
+`WorldSteering.TryRouteToStance`'s same-tile branch loads its single route point on the 1/256-tile grid
+(`(v>>8)<<8` in body units) with `PathTargetPos` exact: the second bypass of the 16.8 conversion after
+`StopMoving`'s (ADR-0719). Every caller sees it: dig and reinforce, fight approach, hero follow and wait,
+training, heart defence, Imp wander and the bird walk.
+
+**Consequences.** Hash/save 500 (499 is ADR-0785's); earlier saves are refused; pin `0x7661AD5B99569DAE`. Closes
+Q793. Level 5 diag: the 93 change alone (controlled534) matched 9828 draws through 1987 but ate two turns early;
+adding the rounding (controlled535) fell back to 1944, because it changes the replay's own run before turn 1400 and
+the creature that becomes 441 spawned with tag 438. Replay tooling, not production: study
+`q712-needs-restore--2026-11-13--001` holds native's needs stamps at 1400 and diag `q712-long536` restores them.
+Then controlled536 has 441 match native's state, point and heading through the meal, and 9828 draws through
+1987. The next stop is turn 1988, draw 4 (Q794). Level 1 (journal re-recorded): the Lord dies at t2542 on (15,23),
+the Reaper at t2566 (the win), the gem taken at t2680; ours' output, unverified against DK2. Scenario
+`a_goblin_eats_a_chicken`: meals at 729 and 734. Tests: `RouteRequestVelocityTests` gains
+`AOneTrianglePointComesBackOnTheQueryGridWhileTheTargetStaysExact`; `EatingTests` gains
+`StateNinetyThreeTurnsToFaceTheBirdBeforeItEats` and
+`StateNinetyThreeGoesBackToTheSearchWhenTheBirdIsBeyondItsReach`, and the walk test expects (93, 92) between 6 and
+94. Residuals (PLAUSIBLE, Q174, record `0x00463500`): ours' arrival into 92 (Seeking) still runs it on the same
+tick; `Fetching` ends state 6 on no route, where native's 6 hands over at progress exactly `0x10000`
+(`0x00470DE1`-`0x00470DE6`); 93's `+0x278` refusal is unread and native never tests type 9 in 93, which
+`IsEdibleChicken` does; the rounding's only direct evidence is one sample, with no from-turn-0 regression across
+the other callers; the prison eat (`0x00473750`) keeps ours' tile-based `ReachTilesSquared`, its own test unread.

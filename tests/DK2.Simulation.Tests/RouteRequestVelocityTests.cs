@@ -40,6 +40,17 @@ public class RouteRequestVelocityTests
     }
 
     [Fact]
+    public void AOneTrianglePointComesBackOnTheQueryGridWhileTheTargetStaysExact()
+    {
+        // 0x004D5100 queries >> 8 and loads the points << 8 (ADR-0719); the target is kept raw.
+        var (db, world, imp) = MovingImp();
+        int x = imp.PosX + 17, y = imp.PosY + 9;
+        Assert.True(new WorldSteering(db, world).TryRouteToStance(imp, x, y, MoveOptions.ExactSpot));
+        Assert.Equal(new Fixed16Vector(x << 4, y << 4), imp.Body.PathTargetPos);
+        Assert.Equal(new Fixed16Vector((x << 4) & ~0xFF, (y << 4) & ~0xFF), imp.Body.CurrentPoint);
+    }
+
+    [Fact]
     public void StopMovingDropsTheRouteAndStopsTheBodyWhereTheCreatureStands()
     {
         var (_, _, imp) = MovingImp();

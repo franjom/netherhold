@@ -182,6 +182,54 @@ public class EatingTests
     }
 
     [Fact]
+    public void StateNinetyThreeTurnsToFaceTheBirdBeforeItEats()
+    {
+        // 0x00463760 calls the turn step 0x004B2AE0 each turn and returns, staying in 93, until it
+        // faces the bird; only then the range test and the meal.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+        ObjectState bird = Chicken(db, world, 7, 6);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 6));
+        goblin.PosX = bird.PosX;
+        goblin.PosY = bird.PosY + 1024;                                 // a quarter tile south of it
+        goblin.Heading = DK2.Simulation.Steering.Bearing.Of(0, 1024);                           // facing away
+        MakeHungry(goblin);
+        goblin.TargetObjectId = bird.Id;
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, EatingRules.EatState);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick();
+        Assert.Equal(EatingRules.EatState, goblin.Dk2StateId);
+        Assert.NotNull(world.ObjectById(bird.Id));
+        for (int t = 0; t < 20 && world.ObjectById(bird.Id) is not null; t++) sim.Tick();
+        Assert.Null(world.ObjectById(bird.Id));
+    }
+
+    [Fact]
+    public void StateNinetyThreeGoesBackToTheSearchWhenTheBirdIsBeyondItsReach()
+    {
+        // Facing it, but (dx^2>>12)+(dy^2>>12) above 0x1000 (JA at 0x00463828): state 92 again, no meal.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+        ObjectState bird = Chicken(db, world, 7, 6);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 8));
+        goblin.PosX = bird.PosX;
+        goblin.PosY = bird.PosY + (2 * 4096);
+        goblin.Heading = DK2.Simulation.Steering.Bearing.Of(0, -2 * 4096);                      // already facing it
+        MakeHungry(goblin);
+        goblin.TargetObjectId = bird.Id;
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), goblin, EatingRules.EatState);
+
+        Simulation(db, world).Tick();
+
+        Assert.Equal(EatingRules.InHatcheryState, goblin.Dk2StateId);
+        Assert.NotNull(world.ObjectById(bird.Id));
+        Assert.Equal(1, goblin.HungerNeed);
+    }
+
+    [Fact]
     public void EachChickenWipesTheHungerGrievanceAndNoOther()
     {
         // 0x00463760 forgets bucket 1 on every bird, before the health and the pay-off
@@ -299,6 +347,7 @@ public class EatingTests
 
         Assert.Equal(
             [(7, EatingRules.FindHatcheryState), (6, EatingRules.InHatcheryState),
+             (EatingRules.EatState, EatingRules.InHatcheryState),
              (EatingRules.AfterMealState, EatingRules.InHatcheryState),
              (CreatureStateMachine.Idle, EatingRules.InHatcheryState)],
             seen);
@@ -627,7 +676,8 @@ public class EatingTests
         state.Health = 1;
         state.HungerNeed = 5;
 
-        Simulation(db, world).Run(Second * 30);
+        // Each bird is a walk, a turn in 93 to face it (0x004B2AE0) and the meal's hold in 94.
+        Simulation(db, world).Run(Second * 60);
 
         Assert.Equal(0, state.HungerNeed);
         Assert.DoesNotContain(

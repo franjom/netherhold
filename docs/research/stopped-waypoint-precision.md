@@ -43,6 +43,18 @@ stop adapter bypassed that conversion. StopMoving now rounds only its retained
 waypoint down to the 1/256-tile grid. Body position and PathTargetPos stay exact.
 Every non-Imp stop retains the route since ADR-0751 ([stop-self-route.md](stop-self-route.md)); Imp stops keep their adapter.
 
+The stance same-tile adapter (`WorldSteering.TryRouteToStance`) was a second bypass: its
+one-triangle route goes through `0x004D0F60`, `0x004D59E0` and `0x004D5100`, which query
+shifted right eight and load the point back shifted left eight, while `+0xA4`/`+0xA8` keep
+the raw destination. Since ADR-0786 (hash 500) it loads the point on the 1/256-tile grid
+with `PathTargetPos` exact. Every creature route request goes this way (the only caller of
+`0x004D59E0` is `0x004D1054`), so every caller sees the rounding: dig and reinforce,
+fight approach, hero follow and wait, training, heart defence, Imp wander, the bird walk.
+STRONGLY INFERRED; the universality is by xref. The only direct evidence is one sample
+(Level 5 seed 1, Warlock 441 stops at (50224,104608) short of the bird, study
+`q712-thief-run--2026-11-12--001`, controlled536); no from-turn-0 regression covers the
+other callers.
+
 The focused [Avoid Walls tail](functions/004D35C0.md) reads the current window
 point for its escape nudge. The [separation callback](functions/004D2B80.md)
 uses retained body positions and the existing wrapped scaling; the focused

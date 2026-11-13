@@ -283,8 +283,17 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
-        GameDatabase database = context.Database;
 
+        // State 6 is a plain walk to the bird's point: it does not look at the bird, and its
+        // arrival hands over to 93, whose handler runs on the next turn (one handler a turn).
+        if (StateShadow.IsTravelling(creature))
+        {
+            if (creature.HasRoute) return;
+            Arrive(context, creature);
+            return;
+        }
+
+        // 93 (0x00463760): the bird by its tag; gone, or not one to eat, is 92 again.
         ObjectState? chicken = creature.TargetObjectId >= 0
             ? world.ObjectById(creature.TargetObjectId)
             : null;
@@ -298,20 +307,19 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
             return;
         }
 
-        // Still walking: state 6 hands over to 93 only at its arrival.
-        if (creature.HasRoute) return;
+        // A turn step toward the bird each turn until it faces it (0x004B2AE0 at 0x004637CC).
+        if (CasinoStep.TurnTo(context, creature, chicken.PosX, chicken.PosY) != 0) return;
 
-        // A route that ran out short of the bird (it moved, or a waypoint stopped being walkable)
-        // is a failed approach, and the search starts again from where the creature now stands.
-        if (EatingRules.DistanceSquared(world, creature.Tile, chicken.TileIndex)
-            > EatingRules.ReachTilesSquared)
+        // Then within 0x1000 of it, each term squared and shifted right by 12 (0x00463823), or 92
+        // again: the walk ran out short of the bird, or the bird moved.
+        long dx = Math.Abs((long)chicken.PosX - creature.PosX);
+        long dy = Math.Abs((long)chicken.PosY - creature.PosY);
+        if (unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12)) > 0x1000)
         {
             BackToTheSearch(context, creature);
             return;
         }
 
-        // Within reach: state 6's arrival hands over to 93, which eats.
-        if (StateShadow.IsTravelling(creature)) Arrive(context, creature);
         Swallow(context, creature, definition, chicken);
     }
 

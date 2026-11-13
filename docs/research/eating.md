@@ -26,7 +26,7 @@ retry at most:                  once a game second
 walk to:                        the nearest reachable Hatchery of your OWN keeper
 choose, on arrival:             the nearest chicken by straight-line squared distance
                                 — nothing is reserved
-eat, within one tile:           health += min(HpFromChicken, maximum - current)
+eat, within one tile, facing:   health += min(HpFromChicken, maximum - current)
                                 HungerNeed -= 1                 (in a hatchery)
                                 HungerNeed -= HungerFill        (in a PRISON)
                                 the hunger clock restarts
@@ -229,7 +229,8 @@ health and a chicken worth **250**, and the **Firefly** eats two chickens for
 5. No chicken: re-enter and try again next update.
 6. A chicken: remember **its thing id on the creature** (`+0xaf`), route to its
    own point resuming in `0x5D` (a failed route drops to state 1) and prepare the
-   bird: process 8 holds it about 33 turns (travel-states.md §8, ADR-0785).
+   bird: process 8 holds it about 33 turns. The walk never looks at the bird; 93
+   tests it (travel-states.md §8, ADR-0785, ADR-0786).
 
 ### In a prison — `FUN_00473550` (state `0x75`, 117)
 
@@ -258,19 +259,22 @@ how a difference like that gets lost.
 
 ### Nothing is reserved
 
-The chosen bird's id lives on the creature and nowhere else. Two hungry
-creatures can pick the same one; the second to arrive finds it gone and searches
-again. **CONFIRMED by the owner** for prisoners (Q172, 2026-09-05): *"if I drop
-a chicken in a prison with creatures in they rush toward that chicken, the first
-one to it gets it, eats it, and its health replenishes by some amount"*.
+The chosen bird's id lives on the creature and nowhere else. Two hungry creatures can
+pick the same one; the second to arrive finds it gone (93 sets 92) and searches again.
+**CONFIRMED by the owner** for prisoners (Q172, 2026-09-05): *"if I drop a chicken in a
+prison with creatures in they rush toward that chicken, the first one to it gets it, eats
+it, and its health replenishes by some amount"*.
 
 ## 7. Eating, and the two amounts
 
-Within a squared distance of `0x1001` — one tile in a fixed point whose tile is
-4096 — the creature eats. In order: an effect on the bird, the creature's bucket 1
-(`AngerNoFood`) forgotten (`Anger_ForgetBucket(1)`, every bird; ADR-0651), the health top-up
-above, the subtract, an effect on the creature, the bird destroyed,
-`LastAteTime` stamped.
+State 93 (`0x00463760`, travel-states.md §8) turns toward the bird (`0x004B2AE0`) until
+it faces it. Then `(|dx|^2>>12)+(|dy|^2>>12)` from the creature's point at or below `0x1000`
+(one tile is 4096; `JA` at `0x00463828`) eats, so exactly `0x1000` still does; above it,
+state 92 again (ADR-0786, Q793). The prison's distance test (`0x00473750`) is unread:
+ours' is tile-based (`ReachTilesSquared`). In order: an effect on the bird, bucket 1
+(`AngerNoFood`) forgotten (`Anger_ForgetBucket(1)`, every bird; ADR-0651), the health
+top-up above, the subtract, an effect on the creature, the bird destroyed, `LastAteTime`
+stamped.
 
 **The subtract is where the two paths differ:**
 
@@ -340,9 +344,10 @@ prison path. `CreatureState.HungerNeed` is the accumulator (§3's "it adds"),
 hungry creature writes `travel-states.md` §8's chain - 91, state 7 into 92, state 6 into
 93, then 94 - and drops to state 1 on leaving (`EatingRules.FindHatcheryState` et al.;
 it handed the id back until ADR-0209). The walk's point is `0x004E4C10`'s, one
-`Room.cpp:1509` draw ([temple-states.md](temple-states.md) §9, ADR-0784).
-State 92 runs the turn after 91's inside shortcut and walks even to a bird underfoot
-(ADR-0785); ours' arrivals into 92 and 93 still run the next handler on the same tick (Q174).
+`Room.cpp:1509` draw ([temple-states.md](temple-states.md) §9, ADR-0784). State 92 runs
+the turn after 91's inside shortcut and walks even to a bird underfoot (ADR-0785); 93
+runs the turn after 6's arrival (ADR-0786); ours' arrival into 92 still runs it on the
+same tick (Q174).
 
 **Ours, and said so in the code:** composing the walk and the in-room search
 into one step where DK2 has `0x5A` and `0x5B`; driving the retry from the eat
@@ -364,10 +369,8 @@ run of `MOV`s as the state table (`0x004798f4`–`0x0047a773`, no function).
 | `+0x38` | the category's own index |
 | `+0x3c` | a small id whose role is traced and whose meaning is open |
 
-**All 32 records are recovered, and their home is `state-categories.md`.** The
-row above is a summary; that note has the values, the accounting behind them, and
-two corrections to what this section used to say — the mask's direction, and the
-hook slot being four dwords rather than one used word.
+**All 32 records are recovered, and their home is `state-categories.md`**, which has
+the values and the accounting behind them; the table above is a summary.
 
 **The state record's group tag looks like a priority** — 0, 1, 2, 3, 4, 6, 7, 8,
 9, 10, 12, 13, 50, 100, with the idle state at 100 — and **7 is the value the
@@ -382,12 +385,8 @@ Groups relevant here:
 | 9 | 0x52–0x54 | `FUN_004b4c20` | `FUN_0047ac00` | `FUN_0047ab90` | **sleeping** |
 | 14 | 0x72–0x77 | `FUN_0047b740` | **`FUN_0047b7c0`** | `FUN_0047b920` | **the prison** |
 
-**That last row is Q173.** `FUN_0047b7c0` — the routine that applies
-`PrisonModifyCreatureHealthPerSecond` and had no callers anywhere — is
-category 14's per-tick update hook, and category 14 is exactly the six states of
-`PrisonState.cpp`. The "long run of stores at `0x00699990` alongside four sibling
-handlers, each with a small integer" that Q173 recorded was this table being
-filled, and the small integers were category indices.
+**That last row is Q173**, answered there: the prison drain `FUN_0047b7c0` is
+category 14's update hook.
 
 **And the dispatcher, from `FUN_00476fc0`:**
 

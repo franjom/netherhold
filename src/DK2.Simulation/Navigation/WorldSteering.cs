@@ -499,7 +499,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         ResetBodyForRequest(creature);
         creature.RouteOptions = options;
         var target = ConstrainTarget(creature.Body.Pos, new Fixed16Vector((int)x << 4, (int)y << 4));
-        RouteWindow.Load(creature.Body, [target], target, options.PathFlags());
+        // The one-triangle route's point comes back through the query's 16.8 (0x004D5138-0x004D5147,
+        // 0x004D530F-0x004D531C), so it sits on the 1/256-tile grid; the target stays exact (ADR-0719).
+        var point = new Fixed16Vector((target.X >> 8) << 8, (target.Y >> 8) << 8);
+        RouteWindow.Load(creature.Body, [point], target, options.PathFlags());
         return true;
     }
 
