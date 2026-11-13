@@ -18182,3 +18182,27 @@ native every turn 1890-1897, its target and health differences are gone, and all
 still match. Level 1: the Lord dies at t2275 instead of t2277, still at (14,20); the Reaper comes at t2299
 and takes the gem at t2408 (journal re-recorded). Test:
 `CombatFearTests.ABackingOffCreatureTurnsTowardItsTargetBeforeItStepsBack` (fails on the old code).
+
+## ADR-0769 - Torture Chamber and Casino torches follow the room's wall phase
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** camera-lighting, rooms
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, item 14, #1040) left the
+torch phase of these two rooms open: `TorchLayout` used the plain parity everywhere. The room
+loader sets definition `+0x482` only for RoomId 12 (Torture Chamber) and 15 (Casino)
+(`0x004EBD6C..0x004EBD86`). For a floor in such a room the torch parity helpers add the room's
+wall phase: `0x00452F20` (north and south faces) returns 1 when x + `room+0x92` is odd,
+`0x00452EC0` (east and west) when y + `room+0x96` is even, and each returns 0 (no torch) when
+that phase is negative. The phases are `0x004ECEB0`'s: x & 1 and 1 - (y & 1) of the first
+straight wall in the slab chain, -1 while there is none; the level start turns a level room's
+-1 into 0 (`0x0050BB63..0x0050BB83`) before its torch pass. So torches fall between the wall furniture. STRONGLY INFERRED:
+read in DKII.EXE (both helpers re-read 2026-11-13), not yet observed in play.
+
+**Decision.** `TorchLayout`'s parity test adds the phase for a floor in a Torture Chamber or
+Casino and refuses a face whose phase is negative, except in the level-start layout, where a
+negative phase counts as 0. The phases are kept per room for one update. The phase calculation moves out of
+`WorldView` into `RoomWallPhases`, which both use. Like `WorldView`, it finds the phase afresh
+from the room as it stands, where DK2 keeps it once set.
+
+**Consequences.** Presentation only: no simulation state, hash or save change. Torches already
+lit stay until their wall or floor changes, as before; a room whose phase moves as it grows may
+keep torches laid out under the old phase, as DK2's would under its kept one.

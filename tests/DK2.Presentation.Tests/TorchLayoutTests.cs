@@ -203,6 +203,86 @@ public class TorchLayoutTests
         Assert.Equal(before.Intensity, after.Intensity);
     }
 
+    /// <summary>In a Torture Chamber or Casino the torch parity adds the room's wall phase
+    /// (<c>0x00452F20</c>, <c>0x00452EC0</c>, definition <c>+0x482</c>), so no torch hangs on a
+    /// wall that carries the room's furniture; the plain parity would have put one there (ADR-0769).</summary>
+    [InstallTheory]
+    [InlineData(RoomTypeId.TortureChamber)]
+    [InlineData(RoomTypeId.Casino)]
+    public void TortureChamberAndCasinoTorchesFallBetweenTheirWallFurniture(RoomTypeId type)
+    {
+        (GameDatabase db, WorldState world) = Load();
+        (int left, int top) = SolidBlock(db, world, 9);
+        RoomDef def = db.Room(type);
+        for (int y = top + 2; y < top + 7; y++)
+            for (int x = left + 2; x < left + 7; x++)
+            {
+                world.Tile(x, y).TerrainId = def.TerrainId;
+                world.Tile(x, y).OwnerPlayerId = 1;
+            }
+        var layout = new TorchLayout(db);
+        layout.Update(world);
+
+        RoomInstance room = RoomIndex.RoomAt(world, db, ((top + 2) * world.Width) + left + 2)!;
+        (int Tile, int Side)[] slots = AutoFurnitureRules.WallSlotsOf(world, db, room);
+        Assert.NotEmpty(slots);
+        bool plainWouldCollide = false;
+        foreach ((int tile, int side) in slots)
+        {
+            int fx = tile % world.Width, fy = tile / world.Width;
+            var wall = new TilePos(fx + Dx[side], fy + Dy[side]);
+            Assert.False(layout.At(tile) is TorchView torch && torch.Wall == wall, $"torch on furniture wall at {wall}");
+            int face = (side + 2) % 4;
+            plainWouldCollide |= face % 2 == 0 ? (fx & 1) == 1 : (fy & 1) == 0;
+        }
+        Assert.True(plainWouldCollide);
+        Assert.Contains(room.TileIndices, i => layout.At(i) is not null);
+    }
+
+    /// <summary>A one-wide Torture Chamber has no straight wall on a north or south side, so its
+    /// north-south phase is negative. A level room has it turned to 0 before the torch pass
+    /// (<c>0x0050BB63</c>), so its end walls take plain-parity torches; a room built in play keeps the
+    /// negative phase, which refuses those faces (<c>0x00452F40</c>, ADR-0769).</summary>
+    [InstallTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AOneWideChambersEndWallsTakeTorchesOnlyAtTheLevelStart(bool atLevelStart)
+    {
+        (GameDatabase db, WorldState world) = Load();
+        SolidBlock(db, world, 9);
+        var layout = new TorchLayout(db);
+        if (!atLevelStart) layout.Update(world);
+        RoomDef chamber = db.Room(RoomTypeId.TortureChamber);
+        const int x = 5;   // odd, so the plain parity lets a north face pass
+        for (int y = 4; y <= 8; y++)
+        {
+            world.Tile(x, y).TerrainId = chamber.TerrainId;
+            world.Tile(x, y).OwnerPlayerId = 1;
+        }
+
+        layout.Update(world);
+
+        RoomInstance room = RoomIndex.RoomAt(world, db, (4 * world.Width) + x)!;
+        Assert.Equal(-1, RoomWallPhases.Of(world, db, room).NorthSouth);
+        bool northTorch = layout.At((4 * world.Width) + x) is TorchView top && top.Wall == new TilePos(x, 3);
+        Assert.Equal(atLevelStart, northTorch);
+    }
+
+    /// <summary>Paints a <paramref name="size"/>-square block at (2, 2) with a diggable solid wall that
+    /// carries torches and room walls, and returns its top-left corner.</summary>
+    private static (int Left, int Top) SolidBlock(GameDatabase db, WorldState world, int size)
+    {
+        TerrainDef wall = db.Terrain.Values.First(t => t.IsSolid && !t.IsImpenetrable
+            && t.Flags.HasFlag(TerrainFlags.Torch) && t.Flags.HasFlag(TerrainFlags.AllowRoomWalls));
+        for (int y = 2; y < 2 + size; y++)
+            for (int x = 2; x < 2 + size; x++)
+            {
+                world.Tile(x, y).TerrainId = wall.TerrainId;
+                world.Tile(x, y).OwnerPlayerId = 0;
+            }
+        return (2, 2);
+    }
+
     private static bool FaceOk(GameDatabase db, WorldState world, int fx, int fy, int d)
     {
         int wx = fx - Dx[d], wy = fy - Dy[d];

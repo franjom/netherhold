@@ -101,9 +101,9 @@ Ordered by shipped use and ordinary gameplay first.
 14. **Presentation:** trough effects 274/279 once a game second
     ([#1041](https://github.com/tonihele/OpenKeeper/pull/1041), fresh read of
     [0x00499300](functions/00499300.md); the effects are not behind the
-    `0x00759ADC` sound gate), built (ADR-0740) in `TortureSystem.TurnTheWheel`; shipped 279 has no art and shows nothing. Still open: Torture Chamber and Casino torch phase
+    `0x00759ADC` sound gate), built (ADR-0740) in `TortureSystem.TurnTheWheel`; shipped 279 has no art and shows nothing. Torture Chamber and Casino torch phase
     ([#1040](https://github.com/tonihele/OpenKeeper/pull/1040),
-    [wall torches §2](wall-torches.md)); Call to Arms HUD widget and the
+    [wall torches §2](wall-torches.md)): built (ADR-0769) in `TorchLayout`. Still open: Call to Arms HUD widget and the
     every-third-call effect 330 ([#1054](https://github.com/tonihele/OpenKeeper/pull/1054)).
 15. **Sound distances ([#1098](https://github.com/tonihele/OpenKeeper/pull/1098)), Q678.**
     Fresh read: 2 mixer units per tile, minimum one tile, maximum from the
@@ -166,7 +166,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | PR | Finding for this project | Evidence / next action |
 |---|---|---|
 | [1017](https://github.com/tonihele/OpenKeeper/pull/1017) | Covered: devices, conversion messages and events 8 and 9 | `TortureRules`, `TortureSystem`, `TortureTests`. Messages 57/58 and event 9 built (ADR-0740, item 3 above); event 8 built (ADR-0739). Chair sparks and full clip unbuilt ([object-drawing.md §9](object-drawing.md)). OpenKeeper's torture sounds sit behind `0x00759ADC` natively (Q635). |
-| [1040](https://github.com/tonihele/OpenKeeper/pull/1040) | Covered for wall furniture; gap in torch phase | `AutoFurnitureRules.WallSlots`; [auto-placed-furniture.md §4](auto-placed-furniture.md). `DK2.Presentation/TorchLayout` uses plain parity for rooms 12 and 15 ([wall-torches.md §2](wall-torches.md)). Lead: does the native Torture capacity count include the companion wheel? |
+| [1040](https://github.com/tonihele/OpenKeeper/pull/1040) | Covered for wall furniture; built for the torch phase (ADR-0769) | `AutoFurnitureRules.WallSlots`; [auto-placed-furniture.md §4](auto-placed-furniture.md). `DK2.Presentation/TorchLayout` adds the room's wall phase for rooms 12 and 15 ([wall-torches.md §2](wall-torches.md)). Lead: does the native Torture capacity count include the companion wheel? |
 | [1041](https://github.com/tonihele/OpenKeeper/pull/1041) | Built: wall wheels and trough effects (ADR-0740) | Fresh read of [0x00499300](functions/00499300.md): effect 274 (coals) / 279 (water) once a game second while victim `+0x68` is in [0x3A0, 0x460) (meaning unread). `TortureSystem.TurnTheWheel`; the roll is `CreatureState.TortureRoll`. |
 | [1042](https://github.com/tonihele/OpenKeeper/pull/1042) | OpenKeeper-only fix | Device occupancy is derived from creature state; `WorldSnapshot` saves the torture fields. No round-trip test. |
 | [1043](https://github.com/tonihele/OpenKeeper/pull/1043) | Covered: own victims' mood | `TortureSystem.Act`, `TortureTests`; [state-category-hooks.md §3.3](state-category-hooks.md). |

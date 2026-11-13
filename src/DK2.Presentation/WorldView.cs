@@ -1260,7 +1260,7 @@ public sealed partial class WorldView
         {
             RoomTypeId? type = room.Definition.TypeId;
             int door = type is RoomTypeId.Prison or RoomTypeId.CombatPit ? JailBreakRules.DoorTile(world, room) : -1;
-            (int northSouth, int eastWest) = WallPhases(world, room);
+            (int northSouth, int eastWest) = RoomWallPhases.Of(world, _database, room);
             int first = SlabChain.FirstSlab(world, room);
             _roomFacts.Add(new RoomFacts(first % world.Width, first / world.Width, door, northSouth, eastWest));
             _rooms.Add(room);
@@ -1269,53 +1269,6 @@ public sealed partial class WorldView
                 _checkerSlots.UnionWith(AutoFurnitureRules.FloorSlotSet(world, room));
         }
     }
-
-    /// <summary>
-    /// The room's wall phases <c>0x004ECEB0</c> (room-floors-and-liquids.md §5): walking the slab chain, the first straight
-    /// wall on a north or south side sets the north-south phase to x &amp; 1, on an east or west
-    /// side the east-west phase to 1 − (y &amp; 1); −1 while none is found. Bridges take 0 and 0.
-    /// <para>Deviates: DK2 keeps a phase once set while the room grows, and the level start turns a
-    /// level room's −1 into 0; this finds it afresh from the room as it stands.</para>
-    /// </summary>
-    private (int NorthSouth, int EastWest) WallPhases(WorldState world, RoomInstance room)
-    {
-        if (BridgeRules.IsBridge(room.Definition)) return (0, 0);
-        int northSouth = -1, eastWest = -1, width = world.Width;
-        foreach (int tile in SlabChain.Order(world, room))
-        {
-            int x = tile % width, y = tile / width;
-            for (int side = 0; side < 4; side++)
-            {
-                if (!StraightWall(world, room, x, y, side)) continue;
-                if ((side & 1) == 0) { if (northSouth < 0) northSouth = x & 1; }
-                else if (eastWest < 0) eastWest = 1 - (y & 1);
-            }
-            if (northSouth >= 0 && eastWest >= 0) break;
-        }
-        return (northSouth, eastWest);
-    }
-
-    /// <summary>A straight wall on a side: the tile outside AllowRoomWalls, the two tiles along the
-    /// wall in this room, and both diagonals outside solid and AllowRoomWalls.</summary>
-    private bool StraightWall(WorldState world, RoomInstance room, int x, int y, int side)
-    {
-        int d = side * 2;
-        return WallTile(world, x + Dx8[d], y + Dy8[d], solid: false)
-            && InRoom(world, room, x + Dx8[(d + 6) & 7], y + Dy8[(d + 6) & 7])
-            && InRoom(world, room, x + Dx8[(d + 2) & 7], y + Dy8[(d + 2) & 7])
-            && WallTile(world, x + Dx8[(d + 7) & 7], y + Dy8[(d + 7) & 7], solid: true)
-            && WallTile(world, x + Dx8[(d + 1) & 7], y + Dy8[(d + 1) & 7], solid: true);
-    }
-
-    private bool WallTile(WorldState world, int x, int y, bool solid)
-    {
-        if (!world.Contains(x, y)) return false;
-        TerrainDef terrain = _database.TerrainById(world.Tile(x, y).TerrainId);
-        return ((terrain.Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls) && (!solid || terrain.IsSolid);
-    }
-
-    private static bool InRoom(WorldState world, RoomInstance room, int x, int y) =>
-        world.Contains(x, y) && room.Contains((y * world.Width) + x);
 
     /// <summary>Whether the whole wall on <paramref name="side"/> is the decorated piece 8: on north
     /// and south faces where x plus the north-south phase is even, on east and west faces where y

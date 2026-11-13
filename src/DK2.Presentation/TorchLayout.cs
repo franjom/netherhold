@@ -91,8 +91,8 @@ public readonly struct TorchView : IEquatable<TorchView>
 /// room changed.
 /// <para>Deviates: the level start refreshes each floor tile's walls in row order with every tile
 /// already loaded, where DK2 refreshes while it loads (Q446); the Torture Chamber's and Casino's
-/// torch phase follows their wall furniture in DK2 and the plain parity here, since ours keeps no
-/// furniture phase; the terrain-art gate (§1 step 3) is not tested, being inert in shipped data.</para>
+/// phase is found afresh from the room as it stands (<see cref="RoomWallPhases"/>); the terrain-art
+/// gate (§1 step 3) is not tested, being inert in shipped data.</para>
 /// </summary>
 public sealed class TorchLayout
 {
@@ -113,6 +113,9 @@ public sealed class TorchLayout
     private byte[] _terrain = [];
     private int _width;
     private readonly HashSet<int> _changed = [];
+    // One Update's Torture Chamber and Casino wall phases, per floor tile of the room.
+    private readonly Dictionary<int, (int NorthSouth, int EastWest)> _phases = [];
+    private bool _levelStart;
 
     public TorchLayout(GameDatabase database)
     {
@@ -138,6 +141,7 @@ public sealed class TorchLayout
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         _changed.Clear();
+        _phases.Clear();
 
         if (_terrain.Length != world.TileCount || _width != world.Width)
         {
@@ -172,9 +176,12 @@ public sealed class TorchLayout
     /// the first wall in row order takes a floor: its N wall, then W, then E, then S.</summary>
     private void LayOut(WorldState world)
     {
+        // 0x0050BB63..0x0050BB83, before the torch pass: a level room's negative phase becomes 0.
+        _levelStart = true;
         for (int y = 0; y < world.Height; y++)
             for (int x = 0; x < world.Width; x++)
                 if (Qualifies(world, x, y)) Refresh(world, x, y);
+        _levelStart = false;
     }
 
     /// <summary>The terrain setter's torch work in a running game (<c>0x0044FC40</c>): when the
@@ -237,11 +244,10 @@ public sealed class TorchLayout
         for (int d = 0; d < 4; d++)
         {
             int fx = x + Dx[d], fy = y + Dy[d];
-            if (!world.Contains(fx, fy) || Solid(world, fx, fy) || !ParityPasses(d, fx, fy)
-                || world.DoorAt(fx, fy) is not null)
-                continue;
+            if (!world.Contains(fx, fy) || Solid(world, fx, fy)) continue;
             int floor = (fy * _width) + fx;
-            if (_torches[floor] is not null) continue;
+            if (_torches[floor] is not null || !ParityPasses(world, d, fx, fy) || world.DoorAt(fx, fy) is not null)
+                continue;
             Set(floor, Create(world, floor, fx, fy, x, y, d));
         }
     }
@@ -272,9 +278,32 @@ public sealed class TorchLayout
         && ((_database.TerrainById(world.Tile(x, y).TerrainId).Flags & TerrainFlags.Torch) == TerrainFlags.Torch)
         && world.DoorAt(x, y) is null;
 
-    /// <summary>§2: a N or S face needs the floor's x odd, an E or W face its y even.</summary>
-    private static bool ParityPasses(int face, int fx, int fy) =>
-        face % 2 == 0 ? (fx & 1) == 1 : (fy & 1) == 0;
+    /// <summary>§2 (<c>0x00452F20</c>, <c>0x00452EC0</c>): a N or S face needs the floor's x plus the
+    /// phase odd, an E or W face its y plus the phase even. The phase is 0 except on a floor in a
+    /// Torture Chamber or Casino (definition <c>+0x482</c>), where it is the room's north-south or
+    /// east-west wall phase, so the torches fall between the wall furniture; a negative phase there
+    /// means no torch on that face, except at the level start, which has made it 0 (ADR-0769).</summary>
+    private bool ParityPasses(WorldState world, int face, int fx, int fy)
+    {
+        int phase = 0;
+        int floor = (fy * _width) + fx;
+        if (RoomOf(world.Tile(fx, fy).TerrainId)?.TypeId is RoomTypeId.TortureChamber or RoomTypeId.Casino)
+        {
+            if (!_phases.TryGetValue(floor, out (int NorthSouth, int EastWest) phases)
+                && RoomIndex.RoomAt(world, _database, floor) is { } room)
+            {
+                phases = RoomWallPhases.Of(world, _database, room);
+                foreach (int tile in room.TileIndices) _phases[tile] = phases;
+            }
+            phase = face % 2 == 0 ? phases.NorthSouth : phases.EastWest;
+            if (phase < 0)
+            {
+                if (!_levelStart) return false;
+                phase = 0;
+            }
+        }
+        return face % 2 == 0 ? ((fx + phase) & 1) == 1 : ((fy + phase) & 1) == 0;
+    }
 
     private bool Solid(WorldState world, int x, int y) =>
         _database.TerrainById(world.Tile(x, y).TerrainId).IsSolid;

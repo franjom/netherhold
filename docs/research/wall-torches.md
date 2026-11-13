@@ -73,10 +73,15 @@ takes its torch from the wall on its N side first, then W, then E, then S.
 | N and S | `(F.x + phase)` is odd | `0x00452F20` |
 | E and W | `(F.y + phase)` is even | `0x00452EC0` |
 
-`phase` is 0 unless F lies in a room whose runtime definition has `+0x482`
-set. Then it is the room's wall-furniture phase: `room+0x92` for N and S,
+`phase` is 0 unless F's room has a runtime definition with `+0x482` set (the
+gate tests F's tile room index, then the definition: `0x00439D9E..0x00439DB8`).
+Then it is the room's wall-furniture phase: `room+0x92` for N and S,
 `room+0x96` for E and W (`auto-placed-furniture.md`). A negative phase means no
-torch on that face.
+torch on that face, except at level start, where `0x0050BB63..0x0050BB83` has
+turned a level room's -1 into 0 before the torch pass (`0x0050C4DC`, by address
+order, not flow-traced). **Built (ADR-0769)**: `TorchLayout.ParityPasses` adds the
+phase (`RoomWallPhases`), refuses a negative one except in the level-start layout,
+and keeps the phases per room for one update.
 
 The room loader sets `+0x482` to 1 only for **RoomId 12 (Torture Chamber) and
 15 (Casino)** (`0x004EBD6C..0x004EBD86`). In those two rooms torches alternate
@@ -92,7 +97,7 @@ parity applies.
 | Each floor tile tries N, W, S, E | **No.** Each *wall* tries N, E, S, W; the first wall refreshed takes the floor tile. At level start that works out as N, W, E, S per floor (§6) |
 | A room with no torch art gets no torch | **No.** It gets the light without a mesh (§4) |
 | — | Door tiles are excluded, as wall and as floor |
-| — | Torture Chamber and Casino follow their furniture phase |
+| — | Torture Chamber and Casino follow their furniture phase (§2) |
 
 `AllowRoomWalls`, ownership and `PlayerColouredWall` are never read.
 
@@ -368,6 +373,7 @@ column ((15,6) with medium confidence).
 | — | The meaning of light flag bits `0x2` and `0x40` in `0x4052` | Engine-side; matters only for matching the lighting |
 | — | The loader-side gate dwords at intermediate `+0x64..+0x78` (§4) | Read the room loader's caller; a level override is the likely reading |
 | — | `0x004559B0`, called three times in the refresh | Not read; probably the tile's room lookup |
+| — | The Torture Chamber and Casino phase is found afresh from the room as it stands; DK2 keeps it once set (ADR-0769). Whether in play DK2 sets a newly built tile's room index before the terrain setter's torch refresh | Read the build order of `0x004ED1A0` against the setter `0x0044FC40` |
 
 ## 8. How this was checked
 

@@ -220,6 +220,9 @@ STRONGLY INFERRED (disassembly `0x004ECEB0..0x004ED189`, `0x004544B1..0x00454507
   slots. **It does not depend on wall furniture**: every non-bridge room gets a phase once it has
   a straight wall, so a Lair or Treasury shows piece 8 too. −1 means no straight wall found yet
   (a room built in play), and a level-placed room without one has 0.
+- Built as `RoomWallPhases.Of` (`DK2.Presentation`), found afresh from the room as it stands where
+  DK2 keeps a set phase. Its readers are `WorldView`'s piece 8 (which keeps −1) and, for the Torture
+  Chamber and Casino, `TorchLayout` (wall-torches.md §2, ADR-0769).
 
 ## 6. The liquid surface
 
