@@ -176,9 +176,8 @@ starts the same group (music.md section 3, HYPOTHESIS); both are the same missin
 STRONGLY INFERRED site and gates ([battle-tab.md section 5](battle-tab.md), [0x0042C0D0](../research/functions/0042C0D0.md), [0x0042C390](../research/functions/0042C390.md)):
 `0x32B` at `0x0042C102` (graphics detail at least 3, no fly-in running) and `0x32C` at `0x0042C66E` (the overlay reports done, the camera is not letterboxed),
 nonpositional, handle 0, slot 15 (`gui_button_tab_new_combat`; the data has both groups there, `0x32B` with two samples). They were listed as "tab
-scroll"; they are the notice that flies in when a fight starts. Waits: the fly-in overlay (`0x0042F040`) is not built (Q664). The Battle
-tab's three buttons are built (ADR-0773) without the blades' `0x30F` (Q775). The latch (`+0x4D75`) outlives the sound, so building the start without the end would change when a
-second fly-in may play.
+scroll"; they are the notice that flies in when a fight starts. Built with the fly-in (ADR-0774, `BattleFlyIn`): `0x32B` at the start, `0x32C` when
+the tablet is done, the latch between them. The Battle tab's three buttons are built (ADR-0773) without the blades' `0x30F` (Q775).
 
 ## 11. Status of the plan's items
 
@@ -186,7 +185,7 @@ second fly-in may play.
 |---|---|
 | cheat entry `0x133` (and `0x134`, `0x135`) | waits: the typed entry (ADR-0589, not built) |
 | icon pages `0x33A` (`0x004125A7`, `0x00413AA3`) | built now (`FlashChime`); the press category of the slots corrected |
-| tab scroll `0x32B`, `0x32C` | waits: the Battle tab fly-in overlay (the tab's buttons are built, ADR-0773) |
+| tab scroll `0x32B`, `0x32C` | built with the fly-in (ADR-0774) |
 | blades `0x30F` (`0x00412AF3..0x00412BA7`) | waits: why the repeated request is heard once (Q775) |
 | front-end map `0x32A` | built now |
 | options `0x33C`, `0x341` | waits: in-game Save and Load pages |

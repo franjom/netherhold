@@ -33,6 +33,10 @@ writes a self-contained, escaped HTML report; the output path must not exist.
 It needs no game install and does not run a replay. Supply hashes from an
 existing harness replay separately.
 
+Commands are decoded by this build's codec. Older journals can use incompatible
+command payloads despite sharing the v1 envelope; those inputs are refused.
+The command does not migrate journal encodings.
+
 The report includes journal metadata, SHA-256 fingerprints of both inputs,
 the first divergent hash with three hash ticks on either side, nearby commands
 in journal order, and missing or truncated evidence. Hash tick T is the state

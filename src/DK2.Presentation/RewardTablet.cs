@@ -10,7 +10,9 @@ namespace DK2.Presentation;
 /// <summary>The win screen's reward tablet (interface <c>+0x4C6E</c>, campaign-win-sequence.md §5):
 /// the mesh <c>Tablet</c>, its front showing the reward's GUI icon, grows to 0.75 while it turns once
 /// about two axes, settles, and holds 2 s; while it grows two sparkles leave each of its control points.
-/// Lengths are DK2 screen pixels, kept here relative to the tablet's centre.</summary>
+/// Lengths are DK2 screen pixels. The win screen's tablet stands still, so its positions are relative to
+/// its centre; the Battle tab's fly-in (<c>+0x4D05</c>, <see cref="BattleFlyIn"/>) is the same object
+/// with a start and target point, a start and end scale, a 2 s start gate and no hold.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/campaign-win-sequence.md")]
 public sealed class RewardTablet
 {
@@ -38,6 +40,27 @@ public sealed class RewardTablet
     private Sparkle[] _sparkles = new Sparkle[256];
     private int _sparkleCount;
     private double _holdEnds;
+    private bool _holdArmed;
+    private double _startsAt;
+    private readonly float _endScale;
+    private readonly double _holdMilliseconds;
+    private float _targetX, _targetY;
+
+    /// <summary>The win screen's tablet: from scale 0 to <see cref="FinalScale"/> in place, a 2 s hold.</summary>
+    public RewardTablet() : this(FinalScale, HoldMilliseconds) { }
+
+    /// <param name="endScale">The target scale <c>+0x1C</c>.</param>
+    /// <param name="holdMilliseconds">The hold <c>+0x57</c> in milliseconds after the sparkles are gone.</param>
+    public RewardTablet(float endScale, double holdMilliseconds)
+    {
+        _endScale = endScale;
+        _holdMilliseconds = holdMilliseconds;
+    }
+
+    /// <summary><c>+0x00</c>/<c>+0x04</c>: the tablet's centre, in the caller's pixel frame (the win
+    /// screen's is its own centre, so 0).</summary>
+    public float X { get; private set; }
+    public float Y { get; private set; }
 
     public int Frame { get; private set; }
     /// <summary><c>+0x18</c>: 0 at the start of each item.</summary>
@@ -66,7 +89,20 @@ public sealed class RewardTablet
         Frame = 0;
         Scale = 0;
         Done = false;
-        _holdEnds = 0;
+        _holdArmed = false;
+        _startsAt = 0;
+        X = Y = _targetX = _targetY = 0;
+    }
+
+    /// <summary>A start as <c>0x0042C0D0</c> makes the fly-in's: at (<paramref name="x"/>,
+    /// <paramref name="y"/>) and <paramref name="scale"/>, gliding to the target after the real clock
+    /// reaches <paramref name="startsAt"/> (<c>+0x53</c>; the fly-in's is interface <c>+0x4D58</c>).</summary>
+    public void Start(float x, float y, float scale, float targetX, float targetY, double startsAt)
+    {
+        Restart();
+        X = x; Y = y; Scale = scale;
+        _targetX = targetX; _targetY = targetY;
+        _startsAt = startsAt;
     }
 
     /// <summary>The draw's turn (<c>0x0042F040</c>): <see cref="Angle"/> about axes 2 and 0. The order and
@@ -81,14 +117,24 @@ public sealed class RewardTablet
     /// <see cref="Scale"/> × 4096 (<c>0x00577DC0</c>; z is depth).</summary>
     public Vector3 Project(Vector3 point, in Matrix4x4 turn) => Vector3.Transform(point, turn) * (Scale * PixelsPerUnit);
 
-    /// <summary>One drawn frame: <c>0x0042F040</c>'s sparkles, then <c>0x0042EE80</c>'s step.</summary>
+    /// <summary>One drawn frame: <c>0x0042F040</c>'s sparkles, then <c>0x0042EE80</c>'s step. DK2 draws
+    /// between the two (<c>0x0042F430</c>, then the step at <c>0x0042F43B</c>); a caller that draws
+    /// in that order calls <see cref="Spawn"/>, draws, then <see cref="Step"/>.</summary>
     /// <param name="points">The mesh's control points; each gives two sparkles while the tablet grows.
     /// DK2 takes every point at graphics detail 5 and above and every second one below; the remake
     /// has no detail setting and always takes every point.</param>
     /// <param name="random">MSVC <c>rand</c>'s 0..32767 in DK2 (<c>0x006359F0</c>); presentation only.</param>
     public void DrawFrame(double now, ReadOnlySpan<Vector3> points, Random random)
     {
-        if (Frame < GrowFrames && points.Length > 0)
+        Spawn(now, points, random);
+        Step(now);
+    }
+
+    /// <summary><c>0x0042F2B1</c>..<c>0x0042F394</c>: past the start gate and below frame 32, two
+    /// sparkles from each control point at the tablet's current place.</summary>
+    public void Spawn(double now, ReadOnlySpan<Vector3> points, Random random)
+    {
+        if (Frame < GrowFrames && points.Length > 0 && now >= _startsAt)
         {
             Matrix4x4 turn = Turn();
             for (int i = points.Length - 1; i >= 0; i--)
@@ -97,14 +143,13 @@ public sealed class RewardTablet
                 for (int k = 0; k < 2; k++)
                     Add(new Sparkle
                     {
-                        X = at.X, Y = at.Y,
+                        X = X + at.X, Y = Y + at.Y,
                         VelocityX = (random.Next(32768) - 16384) / 8192f,
                         VelocityY = (random.Next(32768) - 16384) / 8192f,
                         Life = random.Next(32768) / 8192 + 8,
                     });
             }
         }
-        Step(now);
     }
 
     private void Add(in Sparkle sparkle)
@@ -113,13 +158,14 @@ public sealed class RewardTablet
         _sparkles[_sparkleCount++] = sparkle;
     }
 
-    /// <summary><c>0x0042EE80</c>. Each sparkle loses a frame and leaves at 0, else moves; then the turn
-    /// and scale take the frame's step: scale closes 1/(32 − frame) of the gap to 0.75 (the position
-    /// lerp is idle, start and target both being the centre), frame 32 shrinks it by 5 %, frame 33 sets
-    /// 0.75. Past frame 34 with no sparkles a 2 s hold is armed, and when it passes the item is done.
-    /// DK2 gates all but the sparkles on the start time <c>+0x53</c>, which <c>0x0042BE90</c> sets to the
-    /// clock, so the gate never holds and is left out.</summary>
-    private void Step(double now)
+    /// <summary><c>0x0042EE80</c>. Each sparkle loses a frame and leaves at 0, else moves; then, once
+    /// the real clock has reached the start gate, the turn, position and scale take the frame's step:
+    /// position and scale each close 1/(32 − frame) of their gap to the target (on the win screen the
+    /// position lerp is idle, start and target both being the centre), frame 32 shrinks the scale by
+    /// 5 %, frame 33 sets the target scale. Past frame 34 with no sparkles the hold is armed, and when
+    /// it passes the item is done. The win screen's gate is the clock itself (<c>0x0042BE90</c>), so it
+    /// never holds; the fly-in's is now + 2 s (<c>0x0042EEE8</c>..<c>0x0042EEF1</c>).</summary>
+    public void Step(double now)
     {
         int kept = 0;
         for (int i = 0; i < _sparkleCount; i++)
@@ -131,19 +177,22 @@ public sealed class RewardTablet
             _sparkles[kept++] = s;
         }
         _sparkleCount = kept;
+        if (now < _startsAt) return;
 
         int frame = Frame;
         Angle = 0;
         if (frame < GrowFrames)
         {
             Angle = frame * (AngleUnitsPerTurn / GrowFrames);
-            Scale += (FinalScale - Scale) / (GrowFrames - frame);
+            X += (_targetX - X) / (GrowFrames - frame);
+            Y += (_targetY - Y) / (GrowFrames - frame);
+            Scale += (_endScale - Scale) / (GrowFrames - frame);
         }
         if (frame == GrowFrames) Scale *= 0.95f;
-        if (frame == GrowFrames + 1) Scale = FinalScale;
+        if (frame == GrowFrames + 1) Scale = _endScale;
         Frame = frame + 1;
         if (Frame <= GrowFrames + 2 || _sparkleCount != 0) return;
-        if (_holdEnds == 0) _holdEnds = now + HoldMilliseconds;
+        if (!_holdArmed) { _holdArmed = true; _holdEnds = now + _holdMilliseconds; }
         else if (now >= _holdEnds) Done = true;
     }
 }

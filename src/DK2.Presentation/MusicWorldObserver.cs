@@ -31,6 +31,11 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
     private IReadOnlyList<BattleViewSnapshot>? _snapshotView;
     public IReadOnlyList<BattleViewSnapshot> Battles => _snapshotView ??= Array.AsReadOnly(_snapshots);
 
+    /// <summary>How many times one of the viewer's creatures has joined a battle that held none of the
+    /// viewer's: each is a call of the fly-in (<c>0x00504FB0</c> → interface slot <c>+0x4C</c>,
+    /// battle-tab.md §5). The view compares it with the count it last saw.</summary>
+    public int ViewerBattleEntries { get; private set; }
+
     public void Capture(WorldState world, GameDatabase database, GameTick tick)
     {
         if (_lastTick == tick.Value) return;
@@ -91,6 +96,8 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
                     }
                 Battle chosen = nearest is not null && distance <= 0x1900 ? nearest
                     : _battles.FirstOrDefault(b => b.Members.Count == 0) ?? nearest!;
+                if (creature.OwnerPlayerId == viewer && !chosen.Members.Keys.Any(id => world.CreatureById(id)!.OwnerPlayerId == viewer))
+                    ViewerBattleEntries++;
                 chosen.Members.Add(creature.Id, tick.Value + 4 * SimulationTiming.TicksPerSecond);
                 Recenter(chosen, world);
             }

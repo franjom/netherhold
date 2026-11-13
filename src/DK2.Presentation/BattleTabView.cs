@@ -31,8 +31,8 @@ public readonly record struct BattleTabSnapshot(bool Battle, bool CallToArms, bo
 /// the cancel's left click a <c>RemoveCallToArmsCommand</c> (game action 0x81) and its right click
 /// a glide to <see cref="CallToArmsTile"/>.</summary>
 /// <remarks>Not built: the blades' sound <c>0x30F</c>, which the draw requests on every frame with
-/// an odd phase although the owner hears one sound at a battle's start (Q775), and the fly-in
-/// notice (<c>0x0042C0D0</c>, Q664).</remarks>
+/// an odd phase although the owner hears one sound at a battle's start (Q775). The fly-in notice
+/// is <see cref="BattleFlyIn"/> (ADR-0774).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/battle-tab.md#6-drawing--strongly-inferred")]
 public static class BattleTabView
 {

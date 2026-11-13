@@ -60,6 +60,10 @@ namespace DK2.Unity
         private MessageTabsView _messageView;
         private ClassicMessageTabs _messageTabs;
         private ClassicBattleTab _battleTab;
+        private readonly BattleFlyIn _battleFlyIn = new BattleFlyIn();
+        private readonly System.Random _flyInRandom = new System.Random(1);
+        private int _flyInEntries;
+        private bool _tabletArtTried;
         private uint _gotoMessage;
         private GameTick _gotoTick;
         private (float X, float Y)? _gotoLocation;
@@ -332,6 +336,36 @@ namespace DK2.Unity
             }
         }
 
+        /// <summary>The fly-in's start (<c>0x0042C0D0</c>): once for each new entry of one of the viewer's
+        /// creatures into a battle with none of the viewer's, refused while one runs. Its points are in
+        /// the tablet's frame, DK2 pixels on a 768-high screen (as the win screen draws it).</summary>
+        private void StartBattleFlyIn()
+        {
+            if (_musicObserver == null || _musicObserver.ViewerBattleEntries == _flyInEntries) return;
+            _flyInEntries = _musicObserver.ViewerBattleEntries;
+            float unit = Screen.height / 768f;
+            Vector2 target = _battleTab.BattleCentre(_bottomPanel.Collapsed);
+            _battleFlyIn.Start(Time.realtimeSinceStartupAsDouble * 1000,
+                BattleFlyIn.StartReferenceX / 2560f * Screen.width / unit, BattleFlyIn.StartReferenceY / 1920f * Screen.height / unit,
+                target.x / unit, target.y / unit);
+            _soundPlayer?.Play(_battleFlyIn.Sounds);
+        }
+
+        /// <summary>One drawn frame of the fly-in (<c>0x0042C390</c>'s tail): only while the HUD shows,
+        /// the camera is not letterboxed and the game is not paused (ours pauses while the options
+        /// panel is open); spawn, draw, then step, as <c>0x0042F040</c> does; its end sound when done.</summary>
+        private void DrawBattleFlyIn()
+        {
+            if (Event.current.type != EventType.Repaint || !_battleFlyIn.Running) return;
+            if (!_tabletArtTried) { _tabletArt ??= LoadTabletArt(); _tabletArtTried = true; }
+            double now = Time.realtimeSinceStartupAsDouble * 1000;
+            if (!_battleFlyIn.BeginFrame(now, PlayedHud.ShowNormalHud, _scriptedView.LetterboxBar > 0, _hudControls.OptionsVisible,
+                    _tabletArt != null ? _tabletArt.Points : System.Array.Empty<System.Numerics.Vector3>(), _flyInRandom)) return;
+            if (_tabletArt != null) DrawTablet(_tabletArt, _battleFlyIn.Tablet, BattleFlyIn.FightItem, 0f, 0f);
+            _battleFlyIn.EndFrame(now);
+            _soundPlayer?.Play(_battleFlyIn.Sounds);
+        }
+
         /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
         private void PostGuiButton(GuiButtonTarget target) =>
             _pendingCommands.Add(new GuiButtonCommand(new PlayerId((byte)viewingPlayerId), target));
@@ -588,6 +622,7 @@ namespace DK2.Unity
             _battleTab.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
                 _musicObserver == null ? default : BattleTabView.Capture(World, _simulation.Database, new PlayerId((byte)viewingPlayerId), _musicObserver.Battles),
                 (long)(Time.realtimeSinceStartupAsDouble * 1000));
+            StartBattleFlyIn();
             _overviewView.Capture(World);
             _overviewPanel.Draw(CurrentHud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);

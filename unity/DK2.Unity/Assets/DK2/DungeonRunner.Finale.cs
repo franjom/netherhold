@@ -105,7 +105,8 @@ namespace DK2.Unity
         private void DrawWinScreen()
         {
             if (_winScreen == null || !_winScreen.Started || _winScreen.Current is not RewardItem item) return;
-            if (_tabletArt != null && Event.current.type == EventType.Repaint) DrawTablet(_tabletArt, _winScreen.Tablet, item.Id);
+            if (_tabletArt != null && Event.current.type == EventType.Repaint)
+                DrawTablet(_tabletArt, _winScreen.Tablet, item.Id, Screen.width * RewardTablet.CentreX, Screen.height * RewardTablet.CentreY);
             if ((_soundPlayer == null || !_soundPlayer.SpeechEnabled) && _winScreen.Text is string text)
                 DrawSubtitleText(new Rect(0f, Screen.height * 0.70f, Screen.width, Screen.height / 8f), text);
         }
@@ -155,14 +156,15 @@ namespace DK2.Unity
             return material;
         }
 
-        /// <summary>The tablet in screen pixels (0x0042F040): turned and scaled about (½ width, 5/12
-        /// height), DK2's pixels taken as 768-high reference units; faces wound away from the viewer are
-        /// left out. Then its sparkles, each a TabletSparkle square as wide as its frames left (LIKELY),
-        /// alpha-blended (the sprite's blend is unread).</summary>
-        private void DrawTablet(TabletArt art, RewardTablet tablet, byte itemId)
+        /// <summary>The tablet in screen pixels (0x0042F040): turned and scaled about its centre, the
+        /// origin plus its position (the win screen's is ½ width, 5/12 height with position 0; the
+        /// fly-in's origin is the top left), DK2's pixels taken as 768-high reference units; faces wound
+        /// away from the viewer are left out. Then its sparkles, each a TabletSparkle square as wide as
+        /// its frames left (LIKELY), alpha-blended (the sprite's blend is unread).</summary>
+        private void DrawTablet(TabletArt art, RewardTablet tablet, byte itemId, float originX, float originY)
         {
             float unit = Screen.height / 768f;
-            float cx = Screen.width * RewardTablet.CentreX, cy = Screen.height * RewardTablet.CentreY;
+            float cx = originX + tablet.X * unit, cy = originY + tablet.Y * unit;
             System.Numerics.Matrix4x4 turn = tablet.Turn();
             GL.PushMatrix();
             GL.LoadPixelMatrix(0, Screen.width, Screen.height, 0);
@@ -200,7 +202,7 @@ namespace DK2.Unity
                 GL.Color(Color.white);
                 foreach (RewardTablet.Sparkle s in sparkles)
                 {
-                    float x = cx + s.X * unit, y = cy + s.Y * unit, half = s.Life * unit / 2;
+                    float x = originX + s.X * unit, y = originY + s.Y * unit, half = s.Life * unit / 2;
                     GL.TexCoord2(0, 0); GL.Vertex3(x - half, y - half, 0);
                     GL.TexCoord2(1, 0); GL.Vertex3(x + half, y - half, 0);
                     GL.TexCoord2(1, 1); GL.Vertex3(x + half, y + half, 0);
