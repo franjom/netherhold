@@ -18595,8 +18595,8 @@ consumer (`0x00488FB6`, ours' `RoomAttackRules.TryBegin` through `HeroSystem`) r
 `CreatureState.TileEntryLastPos`, the stash or else `LastPos`. Its claim-on-the-way consumer (gate `0x0048905E`,
 call `0x00489076` to `0x00464170`, which does not read `+0xF6`) runs in ours after the mover and keeps reading
 `LastPos`, this update's copy: the pair DK2 compares at the next update's entry, one update early as before. The
-Imp arm reads `LastPos` for that reason; the stash there would compare across two moves. Ours copies x and y
-only; `+0x102` is not modelled and z stays with the height rules.
+Imp arm reads `LastPos` for that reason; the stash there would compare across two moves. Ours copies x and y,
+and z since hash 503 (ADR-0788); `+0x102` is not modelled.
 
 **Consequences.** Hash/save 501; earlier saves are refused (`LastPosBeforeCopy` is copied by `StateCopy` but
 neither saved nor hashed); pin `0x69FB301550B7AA69`. Level 5 diag controlled545: 9828 draws match through 1987 and
@@ -18639,3 +18639,38 @@ holds their cells, five `WalkOverGoldTests` and the `NeedInterruptTests` rows fo
 cycle, replacing the creature's current action), and the walk's order of chickens against piles
 on one tile, unread; the creature's tile is taken after it moved (DK2: at the update's entry), and
 the room from the tile's terrain. The Level 1 seed-1 win tick and its journal are unchanged.
+
+## ADR-0788 - a creature has DK2's floor height, and the physical pass drops it to it
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** creatures, rooms, simulation-core | **Hash/save:** 503
+
+**Context.** Level 5 seed 1 (Q795): at hash 502 Warlocks 437 and 438 part from native at turn 1923, pushed by
+dying Dwarf 435's steering body. DK2 keeps every thing's absolute height `z` (`+0x22`) and a floor word (`+0x26`)
+that the position setter `0x004B5020` recomputes from `Tile_FloorHeight` (`0x004545C0`) on every position write.
+The physical pass `0x004B2030` runs for every creature every update, in any state, and adds gravity (variable
+130, 240, `<< 8` a pass) on the vertical word `+0x10C` while a non-flying creature is above its floor; the
+commit goes through the setter, and every commit, a fall alone included, writes the steering body from the
+entity. The collapse entries `0x00459560` and `0x004596D0` never call `StopMoving` (`0x0048ECE0`): they put the
+creature through the setter and zero `+0x104..+0x118`. Ours had no creature floor word, no gravity in the pass
+and a `Collapse` that stopped the body, so a Thief collapsing over a liquid bank (floor 3924 under `z` 4096)
+stayed put and the dying body's stale point pushed neighbours differently. STRONGLY INFERRED: two disassembly
+reads and the reviewer's Ghidra re-read agree on the floor function, the gravity gate, the setter, the walking
+commit and the body resync; read, not captured (the capture's water walks match `z(t+1) = floor(t)`).
+
+**Decision.** `FloorHeightRules` ports `0x004545C0` whole and `EggLaunchRules.FloorHeight` delegates to it.
+`CreaturePhysicsRules.Step` adds the gravity, the z sub-step and `SetHeight` (the setter's height half: raise to
+the floor and zero the vertical vector, `0x3000` to `0x2000`) to the horizontal pass, resyncs the body on every
+commit, and spends the vertical vector undamped. The walking commit calls `SetHeight`. `Collapse` no longer
+calls `StopMoving`; it zeroes the persistent vectors and calls `SetHeight`. `PreviousPositionStep` copies z into
+`LastPosZ`. `OwnsHeight` leaves the imp's creation fall (214), a party's arrival, a hand drop's landing, the
+hand and possession on their own height rules. Details: [creature-height.md](research/creature-height.md).
+
+**Consequences.** Hash and save 503; earlier saves are refused. Pin `0x3EFE23273149E807`. Every caller of the
+floor height now gets the full function (eggs, the heart and thing sounds, the hand, Imp supply, torture, a
+scripted object's z): the Heart's blow sound is at z 0 at the Heart's centre. Level 1's journal is re-recorded
+and its win tick is unchanged, 2566. Level 5 seed 1 (controlled548): 10033 draws match through 2002 (9828
+through 1987 at 501); the divergence moves to turn 2003 draw 7 (Q796) and the Warlocks no longer part at
+1923. Approximations: a Portal's piece 4 and the Heart's centre piece are derived from neighbours, and
+`0x00454110`'s per-type rule is its interior test. Residuals, in the note: the flying slot's other arms,
+the barricade test's z frame, and a presentation that still draws on its own ground projection. Two suspected
+DK2 defects in `0x004545C0` are built as they are (ADR-0783). Tests: `FloorHeightTests`, `DeathFallTests`.
+Simulation 5373, AI 512, Behavior 620 (5 skipped), Presentation 1669, all other suites pass.

@@ -230,6 +230,10 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         {
             creature.PosX = x;
             creature.PosY = y;
+            // The commit is the position setter (0x0048A457 -> 0x004B5020): a higher floor raises the
+            // creature at once; a lower one leaves it for the next physical pass to drop (Q795).
+            if (CreaturePhysicsRules.OwnsHeight(creature))
+                CreaturePhysicsRules.SetHeight(context.World, database, creature, creature.PosZ);
         }
         else
         {

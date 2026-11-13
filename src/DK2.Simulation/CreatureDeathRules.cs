@@ -246,7 +246,14 @@ public static class CreatureDeathRules
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;
         creature.TimerTicks = 0;
-        creature.StopMoving();
+        // The entries put the creature through the position setter where it stands and clear the persistent
+        // and temporary vectors (0x00459635-0x00459658): a push or a fall in progress stops dead.
+        creature.PhysicalVelocityX = creature.PhysicalVelocityY = creature.CreationVelocityZ = 0;
+        if (CreaturePhysicsRules.OwnsHeight(creature))
+            CreaturePhysicsRules.SetHeight(hooks.World, hooks.Database, creature, creature.PosZ);
+        // No stop: neither entry (0x00459560, 0x004596D0) nor the damage call 0x0048B770 reaches 0x0048ECE0, so
+        // the body keeps its last step's 16.16 point and velocity until a physical commit (a fall to a lower
+        // floor) puts it back on the entity; a neighbour is pushed off where it is (Q795).
         return true;
     }
 

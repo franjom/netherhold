@@ -90,7 +90,8 @@ public sealed class HeartSoundTests
         Assert.Equal(ThingSoundEvent.HeartDamaged, hit.Event);
         Assert.Equal((ushort)0x329, (ushort)hit.Event);
         Assert.Equal(Heart, hit.Category);
-        Assert.Equal(At(12, 12, 0x1000), hit.Position);
+        // The Heart's centre piece has floor 0 (0x004545C0's +0xC == 0x40 arm), where its object stands (Q795).
+        Assert.Equal(At(12, 12, 0), hit.Position);
         Assert.True(hit.Voiced);
         Assert.Equal(SoundSourceKind.Room, hit.Source.Kind);
         Assert.Null(hit.ViewerOnlyFor);

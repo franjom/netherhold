@@ -7,8 +7,9 @@ systems: [art-assets, presentation-unity]
 liquid bank at the body's sub-tile position and retains both tick heights for
 interpolation with horizontal movement. Bridges use 0x1199; ordinary floors
 use 0x1000. Flying creatures retain their existing height (steering-behaviours.md
-§7.5); attached victims retain their device pose. Full creature vertical physics
-remains unbuilt.
+§7.5); attached victims retain their device pose. The simulation's own creature
+height and fall are built (ADR-0788, creature-height.md); this projection does not
+read them yet.
 
 **STRONGLY INFERRED (binary, `0x004545C0`, water/lava arm; instructions rechecked
 2026-10-12):** the liquid floor starts at 0xA66. The same-liquid neighbour mask

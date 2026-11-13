@@ -328,7 +328,10 @@ public class TempleStateTests
         GameDatabase db = Db();
         WorldState world = World(db, 5);
         CreatureState it = Worshipper(db, world, new TilePos(3, 3));
-        var at = new FpPosition3(new Fp32(it.PosX), new Fp32(it.PosY), new Fp32(it.PosZ));
+        // The pool's floor is 0, a tile below the ordinary floor it was placed on: the first physical pass
+        // drops it one step of gravity (0x004B2030, Q795) before the offering's sound.
+        int fall = unchecked((byte)db[VariableTypeId.GravityConstant]) * 0x100 / 16;
+        var at = new FpPosition3(new Fp32(it.PosX), new Fp32(it.PosY), new Fp32(it.PosZ - fall));
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world);
         sim.ObserveWith(sink);

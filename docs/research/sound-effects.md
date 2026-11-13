@@ -257,7 +257,7 @@ that category and in 27 creature categories (the creature death sound, Phase W6)
 The blow and the destruction share the room's handle (`+0x14`), the collapse passes the player's (`+0x10A2`), so ours
 voices it as a `Player` source. `0x316` and `0x33E` exist only in `room_casino`, so the plan's "heart" label was the casino's
 category, played by the heart's room frame during the dance, never otherwise. Deviations: the heart object's
-position is taken as the centre tile at the floor height of the room (`0x1000`), as ours keeps no heart object; ours has no
+position is taken as the centre tile at its floor height (0 on the Heart's centre piece, `FloorHeightRules`, ADR-0788), as ours keeps no heart object; ours has no
 invulnerability flag, so the blow sound before that test has no extra case.
 
 ## 9. Workshop, casino, prison and portal

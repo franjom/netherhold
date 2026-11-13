@@ -15,9 +15,9 @@ namespace DK2.Simulation.Systems;
 /// after this step, so the step keeps the pair it replaced in <see cref="CreatureState.LastPosBeforeCopy"/> until
 /// the update ends. The flag's claim on the way (<c>0x0048905E</c>) runs in ours after the mover and reads this
 /// copy: the pair native compares at the next update's entry, one update early (as before). A rule that sets
-/// the position later in the update (a landing, a fall) sets the copy with it. Ours keeps x and y here; native
-/// also copies z into <c>+0xFE</c> (<see cref="CreatureState.LastPosZ"/> stays with the rules that move height)
-/// and the heading word <c>+0xF4</c> into <c>+0x102</c>, which ours does not hold.</remarks>
+/// the position later in the update (a landing, a fall) sets the copy with it. The copy takes z into
+/// <c>+0xFE</c> too (<see cref="CreatureState.LastPosZ"/>; the imp's creation fall and a party's arrival rewrite
+/// it in their own steps), and the heading word <c>+0xF4</c> into <c>+0x102</c>, which ours does not hold.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/functions/00488930.md")]
 public sealed class PreviousPositionStep : ICreatureUpdateStep
 {
@@ -30,5 +30,6 @@ public sealed class PreviousPositionStep : ICreatureUpdateStep
         creature.LastPosBeforeCopy = (creature.LastPosX, creature.LastPosY);
         creature.LastPosX = creature.PosX;
         creature.LastPosY = creature.PosY;
+        creature.LastPosZ = creature.PosZ;
     }
 }

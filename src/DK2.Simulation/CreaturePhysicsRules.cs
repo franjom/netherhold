@@ -13,8 +13,14 @@ namespace DK2.Simulation;
 /// for every creature each update, between the state handler and the steering step), spent as
 /// docs/research/door-push.md describes: sub-steps of a sixteenth of the vector, a wall or door body
 /// reflecting and halving the component it stops, a commit that drops
-/// <see cref="CreatureDef.AirFriction"/> of the vector. Not built: the temporary vector and the
-/// vertical one (<see cref="Combat.FearRules.Slide"/>, <see cref="PartyArrivalRules"/> spend theirs).</summary>
+/// <see cref="CreatureDef.AirFriction"/> of the horizontal vector. Gravity (<c>0x004B2069</c>-<c>0x004B20A5</c>):
+/// a creature that is not flying (<c>vtable+0x88</c>) and stands above its floor gains
+/// <see cref="VariableTypeId.GravityConstant"/> x 256 downward on the vertical vector, which no friction
+/// damps; the commit's position setter (<c>0x004B5020</c>) clamps the height to the floor
+/// (<see cref="FloorHeightRules"/>) and zeroes that vector, and every commit, a fall alone included, puts
+/// the steering body back on the entity (Q795). Not built: the temporary vector
+/// (<see cref="Combat.FearRules.Slide"/> spends its own); the imp's creation fall, a party's arrival and a
+/// hand drop's landing keep their own height rules.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/door-push.md")]
 public static class CreaturePhysicsRules
 {
@@ -27,31 +33,49 @@ public static class CreaturePhysicsRules
 
     public static void Step(SimulationContext context, CreatureState creature)
     {
-        int velocityX = creature.PhysicalVelocityX, velocityY = creature.PhysicalVelocityY;
-        if ((velocityX == 0 && velocityY == 0) || !creature.TileLink.IsLinked) return;
-
+        if (!creature.TileLink.IsLinked) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        WorldSteering navigation = context.Navigation;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
+        bool ownsHeight = OwnsHeight(creature);
+        int velocityZ = 0;
+        if (ownsHeight)
+        {
+            int floor = FloorHeightRules.RelativeAt(world, database, creature.PosX, creature.PosY);
+            // Native raises a creature onto a higher floor when its position is set; ours' other position
+            // writers do not ask the floor, so the pass catches it up first.
+            if (creature.PosZ < floor) SetHeight(world, database, creature, creature.PosZ);
+            if (creature.PosZ > floor && !WaterSpeedRules.IsFlying(definition, creature))
+                creature.CreationVelocityZ -= unchecked((byte)database[VariableTypeId.GravityConstant]) * 0x100;
+            // 0x004B2740: on or below the floor the vertical vector is spent.
+            if (creature.PosZ <= floor) creature.CreationVelocityZ = 0;
+            velocityZ = creature.CreationVelocityZ;
+        }
+
+        int velocityX = creature.PhysicalVelocityX, velocityY = creature.PhysicalVelocityY;
+        if (velocityX == 0 && velocityY == 0 && velocityZ == 0) return;
+
+        WorldSteering navigation = context.Navigation;
         int startX = creature.PosX, startY = creature.PosY, z = creature.PosZ;
         byte startNav = navigation.NavByte(startX >> 12, startY >> 12);
         // Set while the creature is inside a door body already: it may stay in one, but not enter another.
         bool insideDoor = DoorRules.BlocksAt(context, startX, startY, z, out _);
 
-        int steps = Math.Min(16, (IntegerMath.Length(velocityX, velocityY, 0) >> 14) + 1);
-        int baseX = startX, baseY = startY, lastX = startX, lastY = startY;
+        int steps = Math.Min(16, (IntegerMath.Length(velocityX, velocityY, velocityZ) >> 14) + 1);
+        int baseX = startX, baseY = startY, lastX = startX, lastY = startY, baseZ = z, lastZ = z;
         int step = 1;
         do
         {
             int deltaX = (int)((long)step * velocityX / steps) / 16, deltaY = (int)((long)step * velocityY / steps) / 16;
             int nextX = baseX + deltaX, nextY = baseY + deltaY;
-            bool blocked = Blocked(context, navigation, startNav, nextX, nextY, z, ref insideDoor);
+            int nextZ = baseZ + ((int)((long)step * velocityZ / steps) / 16);
+            bool blocked = Blocked(context, navigation, startNav, nextX, nextY, nextZ, ref insideDoor);
             if (!blocked)
             {
                 lastX = nextX;
                 lastY = nextY;
+                lastZ = nextZ;
                 step++;
                 continue;
             }
@@ -73,6 +97,7 @@ public static class CreaturePhysicsRules
 
             baseX = lastX;
             baseY = lastY;
+            baseZ = lastZ;
             steps -= step;
             step = 1;
         }
@@ -89,6 +114,12 @@ public static class CreaturePhysicsRules
 
         creature.PosX = lastX;
         creature.PosY = lastY;
+        if (ownsHeight)
+        {
+            // 0x004B267C: a sixteenth that truncates to no change moves the height by the whole vector.
+            if (lastZ == z) lastZ = z + velocityZ;
+            SetHeight(world, database, creature, lastZ);
+        }
         int friction = 0x1000 - (ushort)definition.AirFriction;
         if (friction < 0) friction = 0x800;
         creature.PhysicalVelocityX = creature.PhysicalVelocityX * friction / 0x1000;
@@ -97,9 +128,33 @@ public static class CreaturePhysicsRules
         WorldSteering.SyncBody(creature);
     }
 
+    /// <summary>The height half of the position setter (<c>0x004B5020</c>): below the floor it is raised to
+    /// it and the vertical vector is zeroed; above 0x3000 (absolute) it drops to 0x2000.</summary>
+    internal static void SetHeight(WorldState world, GameDatabase database, CreatureState creature, int z)
+    {
+        int floor = FloorHeightRules.RelativeAt(world, database, creature.PosX, creature.PosY);
+        if (z < floor)
+        {
+            z = floor;
+            creature.CreationVelocityZ = 0;
+        }
+        else if (z > 0x3000 - FloorHeightRules.Ordinary)
+        {
+            z = 0x2000 - FloorHeightRules.Ordinary;
+        }
+        creature.PosZ = z;
+    }
+
+    /// <summary>Whether the generic height rules own this creature's height: not while the imp's creation
+    /// fall, a party's arrival, a hand drop's landing, the hand or possession move it by their own rules.</summary>
+    public static bool OwnsHeight(CreatureState creature) =>
+        !creature.ArrivalHeightActive && !creature.LandingPending && !creature.InHand && !creature.Possessed
+        && creature.Dk2StateId != ImpCreationRules.FallingState;
+
     /// <summary>One sub-step's stop test (<c>0x004B2150</c>–<c>0x004B2340</c>): off the map, a creature not
     /// standing in a portal hole stepping into one, terrain with the Solid flag, or a door body entered
-    /// from outside; a barricade's body never stops it here (the walk's solid test does).</summary>
+    /// from outside; a barricade's body never stops it here (the walk's solid test does). The door test
+    /// takes the sub-step's point, its height included (<c>0x004B2250</c>-<c>0x004B231D</c>).</summary>
     private static bool Blocked(
         SimulationContext context, WorldSteering navigation, byte startNav, int x, int y, int z, ref bool insideDoor)
     {

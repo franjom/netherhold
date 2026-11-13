@@ -36,7 +36,7 @@ walk. The handlers of 255, 256 and 257 (`CreatureStatusSystem.Recovery`) run aft
 (ADR-0787). The update's tile-entry flag (`0x00488F61`-`0x00488F96`) is taken before the copy, so the step
 stashes the pair it replaced in `CreatureState.LastPosBeforeCopy` until the update ends, and the room attack
 reads it through `TileEntryLastPos`. The claim on the way (`0x0048905E`) runs in ours after the mover and reads the
-copy: the pair DK2 compares at the next update's entry, one update early. Ours copies x and y only.
+copy: the pair DK2 compares at the next update's entry, one update early. Ours copies x, y and z (z since ADR-0788); the heading word into `+0x102` is not modelled.
 
 The [non-worker idle43/44 clock](idle-action-clock.md) polls after timed effects and
 the worker prelude, before combat, and advances after the creature's trigger root

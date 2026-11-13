@@ -77,6 +77,28 @@ public class DeathFallTests
         Assert.Equal(8, ((goblin.Heading + 0x20) & 0x7FF) >> 7);   // the south, the only open side
     }
 
+    // Neither death entry nor the damage call stops the body (no 0x0048ECE0): it keeps its last step's
+    // 16.16 point and velocity, which neighbours are pushed off (Q795).
+    [Fact]
+    public void TheCollapseLeavesTheBodyWhereItsLastStepPutIt()
+    {
+        (GameSimulation sim, CreatureState goblin, _) = Setup(5, open: [(0, 1)]);
+        var body = new DK2.Simulation.Steering.Fixed16Vector((goblin.PosX << 4) + 4, (goblin.PosY << 4) + 13);
+        var velocity = new DK2.Simulation.Steering.Fixed16Vector(-1596, -13075);
+        goblin.Body.Pos = body;
+        goblin.Body.Vel = velocity;
+        goblin.PhysicalVelocityX = 500;
+        goblin.PhysicalVelocityY = -700;
+        goblin.Health = 0;
+        goblin.CollapseDue = true;
+        sim.Tick();
+
+        Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
+        Assert.Equal((body, velocity), (goblin.Body.Pos, goblin.Body.Vel));
+        // The entries clear the persistent and temporary vectors (0x00459635-0x00459658).
+        Assert.Equal((0, 0, 0), (goblin.PhysicalVelocityX, goblin.PhysicalVelocityY, goblin.CreationVelocityZ));
+    }
+
     // A diagonal is open only when its own tile and both orthogonal tiles beside it are.
     [Fact]
     public void ADiagonalNeedsBothOfItsOrthogonalNeighboursOpen()

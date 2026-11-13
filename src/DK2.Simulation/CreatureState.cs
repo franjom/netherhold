@@ -318,8 +318,9 @@ public sealed partial class CreatureState
 
     public int PosZ;
 
-    /// <summary>The persistent vertical vector (+0x10C), currently used only for a point-cast
-    /// Imp's creation fall and party arrival. PosZ is height above the simulation's zero floor.</summary>
+    /// <summary>The persistent vertical vector (+0x10C): gravity adds to it in the physical pass and the
+    /// position setter clears it at the floor (<see cref="CreaturePhysicsRules"/>); the imp's creation
+    /// fall and a party's arrival spend it by their own rules. PosZ is height above the ordinary floor.</summary>
     public int CreationVelocityZ;
 
     public bool ArrivalHeightActive;

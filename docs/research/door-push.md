@@ -78,13 +78,14 @@ couple of seconds", which is a recollection and not measured; the binary's numbe
 
 Built: the push (§1), the persistent vector's horizontal arm (§2), `AirFriction` read from the file
 (`CreatureDef.AirFriction`), state and snapshot fields `PhysicalVelocityX/Y`, the call position (the
-creature's movement step, doors after the creatures).
+creature's movement step, doors after the creatures). The vertical component is built too, with the floor
+height, gravity and the setter's clamp (ADR-0788, [creature-height.md](creature-height.md)).
 
 Not built, and ours differs:
-- The vertical component and the temporary vector are not in the pass: the Imp's creation fall and party
-  arrival keep their own height code, and the flee step back its own slide (`FearRules.Slide`).
-- Creature height is `PosZ` (zero floor), so a barricade body test `z < 0x1801` is true for any grounded
-  creature and for none that is high; DK2's floor height is not read.
+- The temporary vector is not in the pass: the Imp's creation fall and party arrival keep their own height
+  code, and the flee step back its own slide (`FearRules.Slide`).
+- The barricade body test `z < 0x1801` is given `PosZ`, which is zero at the ordinary floor, where DK2 gives
+  the absolute `z` (creature-height.md section 6).
 - Other callers of `0x004B1F20`, the lock mode 3 shove (`0x004A55F0` step 8, `+0x104/+0x108` written
   directly) and the Secret Door reveal. The pass's terrain tests (stop test, reflect arm, commit gate) are built.
 - Whether the presence dword for file `+0xEAC` is set in every shipped record is not read; the value is

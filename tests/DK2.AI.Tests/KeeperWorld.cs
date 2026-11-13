@@ -463,6 +463,8 @@ internal static class KeeperWorld
         vars.Misc[VariableTypeId.DungeonHeartHealthRegenerationPerSecond] = new MiscVariable(VariableTypeId.DungeonHeartHealthRegenerationPerSecond, 25, 0, 0);
         // What the hand and a fight read once creatures exist, at the shipped values.
         Set(vars, VariableTypeId.MaxNumberOfThingsInHand, handCapacity);
+        // The shipped gravity (variable 130): a creature above a lower floor falls to it (Q795).
+        Set(vars, VariableTypeId.GravityConstant, 240);
         Set(vars, VariableTypeId.ChickenGenerationTimePerHatchery, 16);
         Set(vars, VariableTypeId.MaxFreeRangeChickensPerPlayer, 12);
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);

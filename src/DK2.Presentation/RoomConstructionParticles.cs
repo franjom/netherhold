@@ -773,7 +773,9 @@ public readonly record struct EffectAttachment(bool CreatureExists, FpPosition3?
     public static EffectAttachment AtPreviousBody(CreatureState? creature, Fp32 groundHeight) =>
         creature == null || CreatureDeathRules.IsCorpse(creature) ? Gone
             : At(new FpPosition3(new Fp32(creature.LastPosX), new Fp32(creature.LastPosY),
-                new Fp32(groundHeight.Raw + creature.LastPosZ)));
+                // A height the simulation owns is already on its floor (Q795): ordinary floor plus it.
+                new Fp32((CreaturePhysicsRules.OwnsHeight(creature) ? FloorHeightRules.Ordinary : groundHeight.Raw)
+                    + creature.LastPosZ)));
 }
 
 /// <summary>An effect instance's light this update: its descriptor, the instance's owner and point
