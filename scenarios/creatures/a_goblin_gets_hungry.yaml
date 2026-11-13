@@ -36,18 +36,32 @@ observe:
 expect:
   - event: creature_hungry
     detail: "need=1 after=180s"
-    at_tick: 719
     count: 3
     because: >
-      HungerRate is 180 game seconds and the health phase runs on the last tick
-      of each one: 180 x 4 - 1 (ADR-0089). All THREE, because a bed has nothing
-      to do with hunger - the goblin with no lair owes exactly what the two in
-      bed owe.
-  - event: going_to_sleep
-    at_tick: 960
+      HungerRate is 180 game seconds, 720 ticks from each spawn stamp. All
+      THREE, because a bed has nothing to do with hunger - the
+      goblin with no lair owes exactly what the two in bed owe.
+  - event: creature_hungry
+    detail: "creature=3 type=Goblin player=3 need=1"
+    at_tick: 724
     because: >
-      TimeAwake is 240 game seconds from the spawn timestamp, so 240 x 4.
-      Only the two with beds set off; the third has nowhere to go (ADR-0579).
+      The stamps are staggered by thing tag (0x00476B40, ADR-0782): tags 455, 454
+      and 453 stamp our ticks 6, 5 and 4, so the three fall hungry a tick apart.
+  - event: creature_hungry
+    detail: "creature=1 type=Goblin player=3 need=1"
+    at_tick: 726
+    because: >
+      Tag 455, the first taken from the pool, stamps last.
+  - event: going_to_sleep
+    at_tick: 965
+    because: >
+      TimeAwake is 240 game seconds from the spawn stamp, so 240 x 4 after tag
+      454's tick 5. Only the two with beds set off; the third has nowhere to go
+      (ADR-0579).
+  - event: going_to_sleep
+    at_tick: 966
+    because: >
+      And the first Goblin a tick later, from tag 455's tick 6 (ADR-0782).
   - event: woke_up
     detail: "slept=36"
     because: >

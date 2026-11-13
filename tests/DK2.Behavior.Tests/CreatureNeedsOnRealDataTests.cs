@@ -279,7 +279,7 @@ public class CreatureNeedsOnRealDataTests
             HungerNeed = 2,
         };
 
-        CreatureHealthRules.Eat(db, jack, state);
+        CreatureHealthRules.Eat(db, jack, state, 0);
 
         Assert.Equal(240, state.Health);
     }

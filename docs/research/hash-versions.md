@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**497** - `0xC0F44DA0A3DA6698`. The needs clocks start from the constructor's stamp, the turn rounded down to 8 ORed with the low bits of the thing id (`0x00476B40`), and the hunger clock is a stamp that runs in the needs routine before the state handler (`0x00477C20`, ADR-0782). The field `CreatureState.HungerTicks` is replaced by `LastAteTick` (long); earlier saves are refused. Level 1's seed-1 win is now the Reaper at t2299 with the gem at (14,19); the journal is re-recorded.
+
 **496** - `0x46E5EA4A8894F350`. The steering crowd probe counts a creature by the tile it is linked to, so one in the hand counts nowhere (`0x004D15E0`, ADR-0781). No new saved field; earlier saves are refused.
 
 **495** - `0xDFC50CFE61D3FADF`. The hand fires its trigger events (ADR-0770): a slap creature event 5 and player event 60 to the slapped creature's owner, after the count on the main path and before it on the short path (`0x0048BCB2`, `0x0048BD08`); a lift player event 58 to the lifting keeper and creature event 65 at the prepare step (`0x004BFCB0`, `0x004BFCBD`). Level 1's tutorial speaks lines 29 and 60 from them. No new saved fields; earlier saves are refused.

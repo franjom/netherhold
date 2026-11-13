@@ -223,7 +223,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         CreatureAngerRules.Forget(context.World, definition, creature, AngerBucket.Hunger);
 
         int before = creature.Health;
-        int gained = EatingRules.EatInPrison(context.Database, definition, creature);
+        int gained = EatingRules.EatInPrison(context.Database, definition, creature, context.Tick.Value);
         context.World.RemoveObject(food.Id);
 
         context.Emit(SystemName, "prisoner_ate",

@@ -262,8 +262,8 @@ public static class EatingRules
     /// <c>LastAteTime</c> as the periodic increment does, so the next helping is
     /// a full <c>HungerRate</c> after the last bird rather than after the last
     /// <i>full</i> meal.</para></summary>
-    public static int Eat(GameDatabase database, CreatureDef creature, CreatureState state) =>
-        Swallow(database, creature, state, 1);
+    public static int Eat(GameDatabase database, CreatureDef creature, CreatureState state, long now) =>
+        Swallow(database, creature, state, 1, now);
 
     /// <summary>Eat one chicken in a prison, which pays off <b>the whole of
     /// <c>HungerFill</c></b> rather than one.
@@ -272,22 +272,23 @@ public static class EatingRules
     /// passes a literal 1, so one bird dropped into a cell fills whatever is in
     /// there. Called by <see cref="Systems.PrisonerEatSystem"/>.</para></summary>
     public static int EatInPrison(
-        GameDatabase database, CreatureDef creature, CreatureState state) =>
-        Swallow(database, creature, state, HungerFill(database, creature, state.Level));
+        GameDatabase database, CreatureDef creature, CreatureState state, long now) =>
+        Swallow(database, creature, state, HungerFill(database, creature, state.Level), now);
 
     /// <summary>The hunger clock: one helping every <c>HungerRate</c> seconds, added
     /// rather than assigned, with the clock restarted whether or not anything
-    /// was eaten. Returns true when a helping landed.</summary>
-    public static bool Tick(GameDatabase database, CreatureDef creature, CreatureState state)
+    /// was eaten. Returns true when a helping landed. The stamp moves to now, not on by the rate
+    /// (<c>0x00477D2D</c>), so a late check does not carry its lateness forward.</summary>
+    public static bool Tick(GameDatabase database, CreatureDef creature, CreatureState state, long now)
     {
         int fill = HungerFill(database, creature, state.Level);
         if (fill <= 0) return false;
 
         int rate = HungerRateSeconds(creature);
         if (rate <= 0 || rate >= CreatureHealthRules.Never) return false;
-        if (state.HungerTicks < SimulationTiming.TicksFromSeconds(rate)) return false;
+        if (now - state.LastAteTick < SimulationTiming.TicksFromSeconds(rate)) return false;
 
-        state.HungerTicks = 0;
+        state.LastAteTick = now;
         state.HungerNeed += fill;
         return true;
     }
@@ -296,15 +297,15 @@ public static class EatingRules
     /// (<c>0x00463A10</c>, reached from the drop's landing hook), which pays off one helping and
     /// heals only while food is still owed. Ours keeps the creature's own target: the bird came to
     /// it, and a chase for another is not this bird's business. Returns the health gained.</summary>
-    public static int EatDropped(GameDatabase database, CreatureDef creature, CreatureState state) =>
-        StillOwesFood(state) ? Swallow(database, creature, state, 1, keepTarget: true) : 0;
+    public static int EatDropped(GameDatabase database, CreatureDef creature, CreatureState state, long now) =>
+        StillOwesFood(state) ? Swallow(database, creature, state, 1, now, keepTarget: true) : 0;
 
     private static int Swallow(
-        GameDatabase database, CreatureDef creature, CreatureState state, int pays,
+        GameDatabase database, CreatureDef creature, CreatureState state, int pays, long now,
         bool keepTarget = false)
     {
         state.HungerNeed = Math.Max(0, state.HungerNeed - pays);
-        state.HungerTicks = 0;
+        state.LastAteTick = now;
         if (!keepTarget) state.TargetObjectId = NoChicken;
 
         // The eater's own owner is the source (0x0046394C; the prisoner's meal 0x00473857 likewise).

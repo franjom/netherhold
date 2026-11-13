@@ -191,6 +191,15 @@ public sealed class SleepDebtTests
         Assert.NotEqual(before, sim.StateHash());
     }
 
+    /// <summary>The hunger clock alone: the eat step would also move a creature out of state 93.</summary>
+    private sealed class HungerClockStep : ICreatureUpdateStep
+    {
+        public string Name => "HungerClock";
+        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public void Update(SimulationContext context, CreatureState creature) =>
+            CreatureEatSystem.Clock(context, context.Database.CreatureById(creature.CreatureTypeId), creature);
+    }
+
     private static void MakeOverdue(CreatureState creature) => creature.LastSleptTick = new GameTick(-8);
 
     private static (GameSimulation Sim, CreatureState Creature) Start(bool healthOnly = false)
@@ -201,9 +210,11 @@ public sealed class SleepDebtTests
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper.Value]);
         RoomRules.Place(database, ref world.Tile(Bed), database.Room(RoomTypeId.Lair), Keeper);
-        CreatureState creature = world.SpawnCreature(database, definition.CreatureId, Keeper, Bed);
+        CreatureState creature = world.SpawnCreature(database, definition.CreatureId, Keeper, Bed).Unstaggered();
         LairRules.PlaceBed(world, database, creature, world.TileIndex(Bed));
-        ISimulationSystem[] systems = healthOnly ? [new CreatureHealthSystem()] : [new CreatureSleepSystem()];
+        ISimulationSystem[] systems = healthOnly
+            ? [new CreatureUpdateSystem(new HungerClockStep())]
+            : [new CreatureSleepSystem()];
         return (new GameSimulation(database, world, 42, systems), creature);
     }
 }

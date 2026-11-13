@@ -44,9 +44,12 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         GameDatabase database = context.Database;
         if (creature.Possessed) return;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-
-
         if (!CreatureHealthRules.CanGetHungry(definition)) return;
+
+        // The clock first, ahead of the attempt and of every state handler (0x00477C20 under 0x00476FC0).
+        if (!CreatureDeathRules.IsDying(creature) && !CreatureDeathRules.IsCorpse(creature))
+            Clock(context, definition, creature);
+
         if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) return;
 
         // A creature walking out for good does not stop for lunch, for the
@@ -97,6 +100,22 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
                 TrySetOutForAHatchery(context, creature, definition);
                 break;
         }
+    }
+
+    /// <summary>The hunger clock: a helping added once <c>HungerRate</c> has passed since the stamp.
+    /// Group 7 and the clock flags defer the update, not elapsed time (ADR-0579).</summary>
+    public static void Clock(SimulationContext context, CreatureDef definition, CreatureState creature)
+    {
+        if (!NeedRules.HungerClockRuns(creature)) return;
+
+        // The clock ADDS a helping; it does not raise a flag. A creature with nowhere to eat
+        // therefore accumulates, and owes every helping it missed (docs/research/eating.md).
+        if (!EatingRules.Tick(context.Database, definition, creature, context.Tick.Value)) return;
+
+        context.Emit(SystemName, "creature_hungry",
+            $"creature={creature.Id} type={definition.Name} " +
+            $"player={creature.OwnerPlayerId} need={creature.HungerNeed} " +
+            $"after={EatingRules.HungerRateSeconds(definition)}s");
     }
 
     /// <summary>Chooses a hatchery and sets off for it, or says why not.</summary>
@@ -344,7 +363,7 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         // Then the hunger grievance is wiped, every bird and before the meal (0x00463760, ADR-0651).
         CreatureAngerRules.Forget(context.World, definition, creature, AngerBucket.Hunger);
         int before = creature.Health;
-        int gained = EatingRules.Eat(database, definition, creature);
+        int gained = EatingRules.Eat(database, definition, creature, context.Tick.Value);
         ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.Ate);
         context.World.RemoveObject(chicken.Id);
 

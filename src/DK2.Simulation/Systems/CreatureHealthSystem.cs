@@ -7,7 +7,8 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>Hunger clock updates each tick; regeneration, damage and death once per game second.</summary>
+/// <summary>Regeneration, damage and death once per game second; the hunger clock is the needs
+/// routine's, in <see cref="CreatureEatSystem"/>.</summary>
 /// <remarks>Zero health enters the rescue window rather than immediately creating a corpse.
 /// Lair healing follows the sleep step so a rescued sleeper can recover before collapse is booked.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-needs.md")]
@@ -19,7 +20,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        bool healthDue = (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0;
+        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -28,24 +29,12 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState state = world.Creatures[i];
-            if (!healthDue)
-            {
-                if (!state.Possessed && !CreatureDeathRules.IsDying(state) && !CreatureDeathRules.IsCorpse(state))
-                    Hunger(context, database.CreatureById(state.CreatureTypeId), state);
-                continue;
-            }
 
             // A prisoner's HEALTH belongs to PrisonSystem alone: it withers at
             // PrisonModifyCreatureHealthPerSecond and dies into a Skeleton, not a
             // collapse, so nothing here touches its health or dying clock
-            // (ADR-0064). Its HUNGER is this system's: DK2 suppresses the hunger
-            // clock on a state-flag bit only the fifteen drinking, gambling and
-            // dancing states set, so a prisoner does get hungry (ADR-0074).
-            if (PrisonRules.IsImprisoned(state))
-            {
-                if (!state.Possessed) Hunger(context, database.CreatureById(state.CreatureTypeId), state);
-                continue;
-            }
+            // (ADR-0064). Its hunger clock runs in the needs routine like anyone's (ADR-0074).
+            if (PrisonRules.IsImprisoned(state)) continue;
 
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
@@ -71,8 +60,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 }
             }
 
-            // A dying creature does nothing but die: no hunger clock and, above
-            // all, no regeneration. A corpse counts its own clock down and does
+            // A dying creature does nothing but die: above all, no regeneration. A corpse counts its own clock down and does
             // nothing else — no health to regenerate, no hunger to feel, nothing
             // left to collapse into.
             if (CreatureDeathRules.IsCorpse(state))
@@ -87,11 +75,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 continue;
             }
 
-            if (!state.Possessed)
-            {
-                Hunger(context, creature, state);
-                CannotSleep(context, database, creature, state);
-            }
+            if (!state.Possessed) CannotSleep(context, database, creature, state);
 
             // The lair heal, once a second; own-land regeneration is the creature update's, every
             // turn (RegenerateOnOwnLand). Lair healing is not gated at zero health: a bed is the one
@@ -152,28 +136,6 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         context.Emit(SystemName, "creature_cannot_sleep_health",
             $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} delta={landed} " +
             $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)}");
-    }
-
-    private static void Hunger(
-        SimulationContext context, CreatureDef creature, CreatureState state)
-    {
-        if (!CreatureHealthRules.CanGetHungry(creature)) return;
-
-        state.HungerTicks++;
-
-        // Group 7 and clock flags defer the update, not elapsed time (ADR-0579).
-        if (!NeedRules.HungerClockRuns(state)) return;
-
-        // The clock ADDS a helping and restarts; it does not raise a flag. A
-        // creature with nowhere to eat therefore accumulates, and owes every
-        // helping it missed (EatingRules.Tick, docs/research/eating.md).
-        int rate = EatingRules.HungerRateSeconds(creature);
-        if (!EatingRules.Tick(context.Database, creature, state)) return;
-
-        context.Emit(SystemName, "creature_hungry",
-            $"creature={state.Id} type={creature.Name} " +
-            $"player={state.OwnerPlayerId} need={state.HungerNeed} " +
-            $"after={rate}s");
     }
 
     /// <summary>Counts the rescue window down, and kills what it runs out on.</summary>

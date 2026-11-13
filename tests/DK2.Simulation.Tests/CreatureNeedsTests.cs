@@ -33,7 +33,7 @@ public class CreatureNeedsTests
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world) =>
-        new(db, world, seed: 42, [new CreatureUpdateSystem(new CreatureStatusSystem()), new CreatureHealthSystem()]);
+        new(db, world, seed: 42, [new CreatureUpdateSystem(new CreatureStatusSystem(), new CreatureEatSystem()), new CreatureHealthSystem()]);
 
     private static void Paint(
         GameDatabase db, WorldState world, RoomTypeId type, TilePos at, byte owner)
@@ -294,11 +294,43 @@ public class CreatureNeedsTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         GameSimulation sim = Simulation(db, world);
 
-        sim.Run(Second * 179);
+        // From its own staggered stamp, not from the spawn tick.
+        sim.Run((int)goblin.LastAteTick + (Second * 180));
         Assert.Equal(0, goblin.HungerNeed);
 
-        sim.Run(Second);
+        sim.Tick();
         Assert.Equal(1, goblin.HungerNeed);
+    }
+
+    [Fact]
+    public void SpawnStampsAreStaggeredByTheThingTag()
+    {
+        // 0x00476B40: DK2's turn (our tick + 1) rounded down to 8, ORed with the tag's low bits.
+        // Level 5's Warlock 441 entered on DK2 turn 1147 and carries 1145 (2026-11-03 capture). Only the
+        // id's low three bits count; the creature pool hands out tags from 455 down.
+        Assert.Equal(1145 - 1, NeedRules.SpawnStamp(1146, 441));
+        Assert.Equal(1145 - 1, NeedRules.SpawnStamp(1146, 441 & 0xFF));
+        Assert.Equal(1144 + 7 - 1, NeedRules.SpawnStamp(1150, 455));
+
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 2));
+        Assert.Equal(6, first.LastAteTick);     // tag 455
+        Assert.Equal(5, second.LastAteTick);    // tag 454
+        foreach (CreatureState c in new[] { first, second })
+        {
+            Assert.Equal(c.LastAteTick, c.LastSleptTick.Value);
+            Assert.Equal(c.LastAteTick + NeedRules.RetryTurns, c.NextSleepTryTick.Value);
+            Assert.Equal(c.LastAteTick, c.NextPayTryTick);
+        }
+
+        // So the two fall hungry a turn apart, the second first.
+        GameSimulation sim = Simulation(db, world);
+        sim.Run(5 + (Second * 180) + 1);
+        Assert.Equal((0, 1), (first.HungerNeed, second.HungerNeed));
+        sim.Tick();
+        Assert.Equal((1, 1), (first.HungerNeed, second.HungerNeed));
     }
 
     [Fact]
@@ -312,7 +344,7 @@ public class CreatureNeedsTests
         Simulation(db, world).Run(Second * 600);
 
         Assert.Equal(0, imp.HungerNeed);
-        Assert.Equal(0, imp.HungerTicks);   // the clock does not even run
+        Assert.Equal(NeedRules.SpawnStamp(0, imp.NativeSlotTag), imp.LastAteTick); // the clock does not even run
     }
 
     [Fact]
@@ -345,10 +377,10 @@ public class CreatureNeedsTests
         // rather than as a number: two periods owe twice as much as one.
         GameDatabase db = Db;
         WorldState world = World(db);
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2)).Unstaggered();
         GameSimulation sim = Simulation(db, world);
 
-        sim.Run(Second * 180);
+        sim.Run((Second * 180) + 1);
         Assert.Equal(1, goblin.HungerNeed);
 
         sim.Run(Second * 180);
@@ -364,18 +396,18 @@ public class CreatureNeedsTests
         CreatureState state = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
 
         state.HungerNeed = 2;               // two helpings owed
-        state.HungerTicks = 999;
+        state.LastAteTick = -999;
         state.Health = 500;
 
-        CreatureHealthRules.Eat(db, goblin, state);
+        CreatureHealthRules.Eat(db, goblin, state, 10);
         Assert.Equal(1, state.HungerNeed);
-        Assert.Equal(0, state.HungerTicks);         // EVERY chicken restarts it
+        Assert.Equal(10, state.LastAteTick);        // EVERY chicken restarts it
         Assert.Equal(875, state.Health);            // 375 from the chicken
 
-        state.HungerTicks = 999;
-        CreatureHealthRules.Eat(db, goblin, state);
+        state.LastAteTick = -999;
+        CreatureHealthRules.Eat(db, goblin, state, 20);
         Assert.Equal(0, state.HungerNeed);
-        Assert.Equal(0, state.HungerTicks);
+        Assert.Equal(20, state.LastAteTick);
     }
 
     // ---- terrain health deltas --------------------------------------------
@@ -776,20 +808,21 @@ public class CreatureNeedsTests
     }
 
     [Fact]
-    public void ADyingCreatureDoesNotGetHungrier()
+    public void ADyingCreatureIsNotGivenAHelping()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
 
         goblin.Health = 0;
-        Simulation(db, world).Run(Second * 30);
+        GameSimulation sim = Simulation(db, world);
+        sim.Run(Second);                        // the collapse is booked at the end of the second
+        Assert.True(CreatureDeathRules.IsDying(goblin));
 
-        // One second's worth, from the second it dropped — the collapse is
-        // booked at the end of that second, after the hunger clock has already
-        // ticked. From then on the clock is frozen: a creature lying on the
-        // floor is not working towards its next meal.
-        Assert.Equal(Second, goblin.HungerTicks);
+        // Long overdue, but the clock is not asked while it lies on the floor. The stamp keeps
+        // the time, so a rescued creature owes the helping at once (eating.md section 3).
+        goblin.LastAteTick = -1_000_000;
+        sim.Run(Second * 30);
         Assert.Equal(0, goblin.HungerNeed);
     }
 

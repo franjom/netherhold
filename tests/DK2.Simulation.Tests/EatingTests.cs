@@ -102,12 +102,14 @@ public class EatingTests
         int period = SimulationTiming.TicksFromSeconds(
             EatingRules.HungerRateSeconds(goblin));
 
+        long now = 0;
         for (int helping = 1; helping <= 5; helping++)
         {
-            state.HungerTicks = period;
-            Assert.True(EatingRules.Tick(db, goblin, state));
+            Assert.False(EatingRules.Tick(db, goblin, state, now + period - 1));
+            now += period;
+            Assert.True(EatingRules.Tick(db, goblin, state, now));
             Assert.Equal(helping, state.HungerNeed);
-            Assert.Equal(0, state.HungerTicks);
+            Assert.Equal(now, state.LastAteTick);
         }
     }
 
@@ -119,10 +121,10 @@ public class EatingTests
         var state = new CreatureState
         {
             Id = 1, CreatureTypeId = Dk2TerrainFixture.ImpCreatureId,
-            OwnerPlayerId = Keeper, Health = 100, HungerTicks = 999_999,
+            OwnerPlayerId = Keeper, Health = 100,
         };
 
-        Assert.False(EatingRules.Tick(db, imp, state));
+        Assert.False(EatingRules.Tick(db, imp, state, 999_999));
         Assert.Equal(0, state.HungerNeed);
         Assert.False(EatingRules.IsHungry(db, imp, state));
     }
@@ -579,8 +581,8 @@ public class EatingTests
             OwnerPlayerId = Keeper, Health = 1, HungerNeed = 5,
         };
 
-        EatingRules.Eat(db, demon, free);
-        EatingRules.EatInPrison(db, demon, caged);
+        EatingRules.Eat(db, demon, free, 0);
+        EatingRules.EatInPrison(db, demon, caged, 0);
 
         Assert.Equal(4, free.HungerNeed);
         Assert.Equal(0, caged.HungerNeed);
@@ -599,7 +601,7 @@ public class EatingTests
             Health = 1400, HungerNeed = 1,
         };
 
-        int gained = EatingRules.Eat(db, goblin, state);
+        int gained = EatingRules.Eat(db, goblin, state, 0);
 
         Assert.Equal(100, gained);              // not the record's 375
         Assert.Equal(1500, state.Health);
@@ -613,13 +615,13 @@ public class EatingTests
         var state = new CreatureState
         {
             Id = 1, CreatureTypeId = GoblinId, OwnerPlayerId = Keeper,
-            Health = 100, HungerNeed = 3, HungerTicks = 999,
+            Health = 100, HungerNeed = 3, LastAteTick = -999,
         };
 
-        EatingRules.Eat(db, goblin, state);
+        EatingRules.Eat(db, goblin, state, 50);
 
         Assert.Equal(2, state.HungerNeed);      // still owes two
-        Assert.Equal(0, state.HungerTicks);     // and the clock still restarted
+        Assert.Equal(50, state.LastAteTick);    // and the clock still restarted
     }
 
     // ---- what this does not do ----------------------------------------------

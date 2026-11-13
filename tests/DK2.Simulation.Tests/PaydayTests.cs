@@ -235,7 +235,7 @@ public class PaydayTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Treasury(world, new TilePos(1, 3), 2000);
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor).Unstaggered();
         goblin.WageOwed = 500;
         goblin.SkipNextPayment = true;
 
@@ -702,7 +702,7 @@ public class PaydayTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Treasury(world, Floor, 2000);
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor).Unstaggered();
         goblin.WageOwed = 500;
         var sink = new ListEventSink();
 
@@ -728,7 +728,7 @@ public class PaydayTests
             GameDatabase db = Db;
             WorldState world = World(db);
             for (int x = 2; x <= 4; x++) Treasury(world, new TilePos(x, 2), gold);
-            CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 3));
+            CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 3)).Unstaggered();
             goblin.WageOwed = owed;
             var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(42)),
                 [new CreatureMovementSystem(), new PaydaySystem()]);
@@ -749,7 +749,7 @@ public class PaydayTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Treasury(world, new TilePos(1, 3), 2000);
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor).Unstaggered();
         goblin.WageOwed = 500;
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, seed: 42,

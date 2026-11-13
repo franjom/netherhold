@@ -1101,6 +1101,7 @@ public sealed partial class WorldState
             throw new ArgumentOutOfRangeException(nameof(at), at, "Spawn tile is outside the map.");
 
         NativeCreatureTag slot = CreatureSlots.Take();
+        long stamp = NeedRules.SpawnStamp(CurrentTick.Value, slot.Value);
         var creature = new CreatureState
         {
             Id = _nextCreatureId++,
@@ -1116,8 +1117,11 @@ public sealed partial class WorldState
             // 0x004872F0: the constructor copies the position into +0xF6, so its first fight scan
             // finds no tile change and waits for the phase above (ADR-0645).
             LastFightScanTileIndex = (at.Y * Width) + at.X,
-            LastSleptTick = CurrentTick,
-            NextSleepTryTick = new GameTick(CurrentTick.Value + NeedRules.RetryTurns),
+            // 0x00476B40 stamps the needs clocks staggered by the tag; +0x50 has no stamp here.
+            LastAteTick = stamp,
+            LastSleptTick = new GameTick(stamp),
+            NextSleepTryTick = new GameTick(stamp + NeedRules.RetryTurns),
+            NextPayTryTick = stamp,
             DroppedTick = CurrentTick.Value, // the counter starts at zero (0x00487711)
 
             // The database is a parameter for this one line: a creature spawned at

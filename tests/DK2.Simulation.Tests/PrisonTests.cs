@@ -51,6 +51,7 @@ public class PrisonTests
             new CreatureMovementSystem(),
             new ImpTaskSystem(),
             new CreatureSleepSystem(),
+            new CreatureUpdateSystem(new CreatureEatSystem()),
             new CreatureHealthSystem(),
             new PrisonSystem(),
             new PrisonerEatSystem(),
@@ -748,21 +749,23 @@ public class PrisonTests
     {
         // DK2 suppresses the hunger clock on a bit of the state record's flag
         // byte, and the fifteen states that set it are drinking, gambling and
-        // dancing — the Casino, not the Prison (ADR-0074). A prisoner's clock ran
-        // only as a side effect of the health system skipping prisoners so that
-        // exactly one system settled their second (ADR-0064).
+        // dancing — the Casino, not the Prison (ADR-0074). A prisoner's clock runs
+        // in the needs routine like anyone's.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
         CreatureDef goblin = db.CreatureById(GoblinId);
 
-        Assert.Equal(0, captive.HungerTicks);
+        // A helping falls due five seconds in.
+        int period = SimulationTiming.TicksFromSeconds(EatingRules.HungerRateSeconds(goblin));
+        captive.LastAteTick = world.CurrentTick.Value - period + (5 * Second);
+        captive.HungerNeed = 0;
 
         GameSimulation sim = Simulation(db, world);
         for (int i = 0; i < 10 * Second; i++) sim.Tick();
 
-        Assert.Equal(10 * Second, captive.HungerTicks);
+        Assert.Equal(EatingRules.HungerFill(db, goblin, captive.Level), captive.HungerNeed);
 
         // Ten seconds is as far as this can be taken: a Goblin's HungerRate is 180
         // game seconds and PrisonModifyCreatureHealthPerSecond turns a fresh one to bone

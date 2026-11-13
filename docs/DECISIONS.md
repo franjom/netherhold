@@ -18304,3 +18304,33 @@ walkers aiming near it, nor pushes or is pushed by its neighbours. Level 5 diag 
 is Warlock 441's hunger at 1945 (Q772, Q674). Level 1 (journal re-recorded): the Lord now dies at t2303 on
 (13,18), not t2275 on (14,20); the Reaper comes at t2327 and takes the gem at t2447. That shift is ours'
 output, unverified against DK2. Tests: `CrowdProbeTests` (three; each fails on the old code).
+
+## ADR-0782 - the needs clocks start from the constructor's stagger, and hunger's is a stamp checked first
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** creatures
+
+**Context.** Level 5 seed 1 past turn 1944 (Q772): Warlock 441 was hungry on native turn 1945 before
+the job chooser; ours a turn later, in the health pass. `CreatureState_Construct` `0x00476B40` stamps
+`+0x48`, `+0x50`, `+0x54`, `+0x5C` and `+0x60` with the turn rounded down to 8 ORed with the low bits of the
+16-bit thing id at creature `+4` (stores at `0x00476B8F`, `0x00476B9A`, `0x00476BA8`, `0x00476BB3`,
+`0x00476BC3`; its only caller is `0x004873C5`). The needs routine `0x00477C20`, under the dispatcher
+`0x00476FC0`, compares `rate + [+0x48] <= now` unsigned (`0x00477D13`), skips on flag bit 3, and stamps now
+(`0x00477D2D`); eating stamps now (`0x004639B8`). STRONGLY INFERRED (disassembly, confirmed by the
+reviewer; the replay at 1945 fits the phase below).
+
+**Decision.** `NeedRules.SpawnStamp` gives the stamp in our tick frame; `WorldState.SpawnCreature` applies it
+to `LastAteTick`, `LastSleptTick`, `NextSleepTryTick` (due four turns on) and `NextPayTryTick`. The rounding
+is on DK2's turn, our tick + 1 (ADR-0119); the capture cannot tell the phases apart, so the phase is STRONGLY
+INFERRED. `CreatureState.HungerTicks`, an age counter, becomes `LastAteTick`, a stamp: a helping falls due
+when now minus it reaches `HungerRate`, and the check and eating stamp now. The clock moves from
+`CreatureHealthSystem` to `CreatureEatSystem.Clock`, the top of the eat step and before the job chooser.
+Prisoners still accrue. A held or possessed creature is not swept, but the stamp keeps elapsed time, so a
+helping falls due on its first update after release (PLAUSIBLE: native held and possessed updates unread).
+
+**Consequences.** Hash/save 497 (496 is ADR-0781's); earlier saves are refused. Closes Q102. In Q674 the
+hunger-before-handlers part is built; still open there: the clock and the attempt are not gated on
+`NeedRules.IsAsked` (native runs `0x00477C20` only for keeper-owned non-workers), `+0x50` is not a stamp
+(`FoodAttemptTicks` counts down), and native's early return in `0x00476FC0` while `+0x44` is non-zero is
+unread. Level 5 diag replay (controlled528b): draws match through 1944 (9148), Warlock 441 hungry at 1945
+before the chooser; the next stop is the hatchery set-out's arrival tile (Q790). Level 1: the seed-1 win is
+now the Reaper at t2299 with the gem at (14,19); the journal is re-recorded, ours' output and unverified
+against DK2. Scenarios `a_goblin_gets_hungry` and `a_goblin_eats_a_chicken` are re-pinned.

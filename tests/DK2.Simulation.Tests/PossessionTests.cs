@@ -229,7 +229,7 @@ public sealed class PossessionTests
         CreatureState imp = world.SpawnCreature(db, creatureType, Keeper, target.Tile);
         imp.Possessed = true;
         imp.Health = 100;
-        imp.HungerTicks = 17;
+        imp.LastAteTick = 17;
         world.Player(Keeper).PossessedCreatureId = imp.Id;
         int regen = CreatureHealthRules.OwnLandRegenPerTurn(world, db, db.CreatureById(imp.CreatureTypeId), imp);
         if (creatureType == Dk2TerrainFixture.ImpCreatureId) Assert.True(regen > 0);
@@ -237,7 +237,7 @@ public sealed class PossessionTests
         const int Turns = SimulationTiming.TicksPerSecond;
         sim.Run(Turns);
         Assert.Equal(100 + (Turns * regen), imp.Health);
-        Assert.Equal(17, imp.HungerTicks);
+        Assert.Equal(17, imp.LastAteTick);
     }
 
     [Fact]

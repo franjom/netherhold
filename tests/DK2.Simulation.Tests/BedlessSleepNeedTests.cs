@@ -109,7 +109,7 @@ public sealed class BedlessSleepNeedTests
                 world.Tile(x, y).OwnerPlayerId = 3;
                 if (x >= 6) RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Lair), 3);
             }
-        CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 3, new TilePos(2, 2));
+        CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 3, new TilePos(2, 2)).Unstaggered();
         var events = new ListEventSink();
         ICreatureUpdateStep[] steps = withChooser
             ? [new CreatureSleepSystem(), new CreatureJobSystem()]

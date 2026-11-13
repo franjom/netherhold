@@ -306,12 +306,11 @@ fields, so it never sends either for a bed —
 `LairRules.NeedsBed` does the same (`lair-acquisition.md` §5). Pinned by
 `TheDwarfAndTheStoneKnightCarryABedIdAndAreNeverSentForOne`.
 
-### Q102 — how fast does hunger actually arrive? UNKNOWN
+### Q102 — how fast does hunger actually arrive? ANSWERED (binary)
 
-The record says 180 seconds for a Goblin, and ours starts the clock at spawn.
-Whether DK2 starts it at spawn, at the first meal, or at level start is not
-settled. *How to see it:* start a level, note the clock when your first goblin
-arrives, and note when it first heads for the hatchery.
+The record says 180 seconds for a Goblin, counted from a stamp the constructor
+sets at spawn and staggers over eight turns by the thing id (ADR-0782); ours does
+the same. Evidence: `creature-needs-routine.md` §3.
 
 ## Tests
 
@@ -330,5 +329,5 @@ three sets of §3 and the two records of §3 by name, plus
 
 ## Open questions
 
-- **Q102** (above), **Q118** (the water slowdown and the hazard cadence),
+- **Q118** (the water slowdown and the hazard cadence),
   **Q152** (regeneration in combat, in the hand, under possession).

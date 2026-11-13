@@ -69,7 +69,7 @@ public static class DropDeliveryRules
         }
         else
         {
-            int healed = EatingRules.EatDropped(database, definition, creature);
+            int healed = EatingRules.EatDropped(database, definition, creature, context.Tick.Value);
             CreatureAngerRules.Forget(world, definition, creature, AngerBucket.Hunger);
             result = new DropDelivery(Gold: false, Healed: healed, Pocketed: 0, WageCleared: 0);
         }

@@ -72,13 +72,17 @@ after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
   passes: a helping overdue on leaving the state lands at once.
 - **When the clock starts** (Q102, read 2026-10-04, STRONGLY INFERRED). At spawn.
   `CreatureState_Construct` `0x00476B40` is called only from `Creature_Construct`
-  (`0x004873C5`). It stamps `+0x48` with the current turn rounded down to a multiple of 8,
-  ORed with the creature's entity id & 7, so creatures are staggered across 8 turns.
-  `+0x4C` starts at 0, and the same stamp goes into `+0x50`, `+0x54`, `+0x5C` and `+0x60`.
-  Two later writes move the stamp: the clock above (`0x00477D2D`) and eating a chicken
+  (`0x004873C5`). It stamps `+0x48`, `+0x50`, `+0x54`, `+0x5C` and `+0x60` with the current
+  turn rounded down to a multiple of 8, ORed with the low three bits of the 16-bit thing id
+  at creature `+4` (stores at `0x00476B8F`, `0x00476B9A`, `0x00476BA8`, `0x00476BB3`,
+  `0x00476BC3`), so creatures spawned together are staggered across 8 turns. `+0x4C` and
+  `+0x58` start at 0.
+  Two later writes move the `+0x48` stamp: the clock above (`0x00477D2D`) and eating a chicken
   (`0x00463760`, at `0x004639B8`). No other store to the state object's `+0x48` was found in
-  `.text`, so a pick-up or drop does not reset it (cseg was not scanned). Ours starts the
-  clock at spawn with no stagger.
+  `.text`, so a pick-up or drop does not reset it (cseg was not scanned). Ours stamps the
+  same way (`NeedRules.SpawnStamp`, ADR-0782) except `+0x50`. The rounding is on DK2's turn,
+  our tick + 1; STRONGLY INFERRED for the phase, since the capture cannot tell the phases
+  apart and the replay match at 1945 fits it.
 - **The attempt.** When `+0x4C` has reached `HungerFill`, the mask admits it, and at
   least 4 turns have passed since `+0x50`: `+0x50` is set to now, and unless
   the busy test refuses, `0x004633D0` tries to eat. Success returns 1.
@@ -159,11 +163,20 @@ one-second throttle for autonomous lair attempts.
   defer overdue hunger/debt updates without stopping elapsed time. Captivity
   permits clock updates but blocks bed attempts. Tired attempts stamp the
   four-turn retry before checking busy; the wounded branch can bypass the gate.
-- **Remaining clock gaps:** constructor stamps still use the spawn tick rather
-  than the native entity-id eight-turn stagger (Q102). Hunger updates still run
-  in the health pass after creature handlers, rather than ahead of sleep/pay
-  decisions in the native needs routine (Q674). Native capture timing has not
-  been compared for this change.
+- **The hunger clock is a stamp** (ADR-0782, hash/save 497): `CreatureState.LastAteTick`
+  replaces the age counter, a helping falls due when now minus it reaches `HungerRate`, and
+  the check stamps now (`0x00477D2D`), as eating does (`0x004639B8`). It runs in
+  `CreatureEatSystem.Clock`, at the top of the eat step, before the job chooser
+  (`0x00477C20` under `0x00476FC0`), and no longer in the health pass. Prisoners still
+  accrue. A held or possessed creature is not swept, but the stamp keeps elapsed time, so a
+  helping falls due on its first update after release (PLAUSIBLE: native held and possessed
+  updates not read). The spawn stamps are built (§3).
+- **Remaining clock gaps (Q674):** the clock and the eat attempt are not gated on
+  `NeedRules.IsAsked`, where native `0x00476FC0` runs `0x00477C20` only for non-workers owned by
+  a keeper (neither the hero player `[0x006F254C]` nor the neutral `[0x006F2548]`);
+  `FoodAttemptTicks` counts down only while the creature is hungry and may be asked, where
+  native `+0x50` is a stamp; native returns early in `0x00476FC0` while state `+0x44` is
+  non-zero (PLAUSIBLE, writer not traced).
 - Need attempts run eat, then sleep, then pay, as steps of `CreatureUpdateSystem`
   inside each creature's update (ADR-0554); the payday clock's own call skips the stamp and
   runs before the creatures ([payday.md](payday.md) §2).

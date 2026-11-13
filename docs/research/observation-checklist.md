@@ -167,9 +167,9 @@ dig markers are visible to you. Ours assumes per player (STRONGLY INFERRED).
 ## 3. Creatures, mood and needs
 
 ### Q102 — when does a creature's hunger clock start?
-Implemented: at spawn, counting to the record's `HungerRate` (180 s for a
-Goblin). It could equally start at the first meal, at level start, or reset when
-the creature is picked up.
+Read from the binary and built: at spawn, counting to the record's `HungerRate`
+(180 s for a Goblin), staggered over eight turns by the thing id (ADR-0782). A
+running game would only confirm it, and whether the hand resets it.
 
 **Do:** take one fresh arrival, do not touch it, and time its first walk to the
 hatchery. Then repeat with one you pick up and drop halfway through.

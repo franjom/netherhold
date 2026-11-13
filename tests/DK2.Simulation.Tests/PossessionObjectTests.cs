@@ -76,14 +76,14 @@ public sealed class PossessionObjectTests
         ObjectState chicken = InFront(db, world, me, HatcheryRules.ChickenObjectId);
         GameSimulation sim = Sim(db, world);
         me.HungerNeed = 3;
-        me.HungerTicks = 77;
+        me.LastAteTick = 77;
         me.Anger[AngerBucket.Hunger] = 100;
         int max = CreatureHealthRules.MaxHealth(db, db.CreatureById(me.CreatureTypeId), me);
         me.Health = max - 100;
         sim.Tick(InputFrame.Of(Act(me)));
         Assert.Null(world.ObjectById(chicken.Id));
         Assert.Equal(2, me.HungerNeed);          // the Goblin's HungerFill is 1
-        Assert.Equal(77, me.HungerTicks);
+        Assert.Equal(77, me.LastAteTick);
         Assert.Equal(200, me.Anger[AngerBucket.Hunger]);   // + bucket / fill: an add, not a forget
         Assert.Equal(max, me.Health);            // the missing 100 is under HpFromChicken's 375
     }

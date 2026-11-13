@@ -220,7 +220,7 @@ public class NeedInterruptTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 4));
-        var sim = new GameSimulation(db, world, seed: 42, [new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, seed: 42, [new CreatureUpdateSystem(new CreatureEatSystem())]);
         StatePlacement.Place(goblin, 145);
         Assert.False(NeedRules.HungerClockRuns(goblin));
         Assert.False(NeedRules.TirednessClockRuns(goblin));

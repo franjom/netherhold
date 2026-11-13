@@ -67,7 +67,7 @@ namespace DK2.Simulation
             Health = other.Health;
             HealthSourcePlayerId = other.HealthSourcePlayerId;
             DeathUncounted = other.DeathUncounted;
-            HungerTicks = other.HungerTicks;
+            LastAteTick = other.LastAteTick;
             HungerNeed = other.HungerNeed;
             FoodOwedAfterMeal = other.FoodOwedAfterMeal;
             FoodAttemptTicks = other.FoodAttemptTicks;

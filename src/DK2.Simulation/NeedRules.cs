@@ -59,6 +59,13 @@ public static class NeedRules
     /// and pay's <c>+0x60</c> are stamped four turns on.</summary>
     public const int RetryTurns = 4;
 
+    /// <summary>The constructor's stamp for <c>+0x48</c>, <c>+0x50</c>, <c>+0x54</c>, <c>+0x5C</c> and
+    /// <c>+0x60</c> (<c>0x00476B40</c>): the turn rounded down to 8, ORed with the low three bits of the
+    /// thing id (creature <c>+4</c>, ours' native tag), so creatures spawned together fall due across
+    /// eight turns (Q102).
+    /// The rounding is on DK2's turn, our tick + 1 (ADR-0119); the stamp comes back as our tick.</summary>
+    public static long SpawnStamp(long tick, int thingTag) => (((tick + 1) & ~7L) | (uint)(thingTag & 7)) - 1;
+
     /// <summary>How long a creature dropped on a room is left alone: five seconds of
     /// <c>LastDroppedCounter</c> (<c>+0x46D</c>, <c>5 ×</c> variable 19 turns).</summary>
     public const int DroppedOnARoomGraceTicks = 5 * SimulationTiming.OriginalTicksPerGameSecond;

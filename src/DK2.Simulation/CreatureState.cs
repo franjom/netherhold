@@ -406,14 +406,13 @@ public sealed partial class CreatureState
     /// bookkeeping, so does not set it.</summary>
     public bool DeathUncounted;
 
-    /// <summary>Ticks since the hunger clock last ticked over, counting up towards the
-    /// record's <c>HungerRate</c> in seconds — DK2's <c>LastAteTime</c> read as
-    /// an age rather than a stamp.
-    /// <para>Reset both by each helping of hunger the clock adds and by each
-    /// chicken swallowed, so a creature part-way through a Bile Demon's five
-    /// birds is not also accumulating a sixth. Counts from spawn, so a creature
-    /// arrives fed.</para></summary>
-    public int HungerTicks;
+    /// <summary>The hunger clock's stamp, DK2's <c>LastAteTime</c> (<c>+0x48</c>): a helping falls
+    /// due once the record's <c>HungerRate</c> has passed since it.
+    /// <para>Moved to now by each helping the clock adds and by each chicken swallowed, so a
+    /// creature part-way through a Bile Demon's five birds is not also accumulating a sixth.
+    /// The constructor sets it to the spawn turn staggered by the thing id
+    /// (<see cref="NeedRules.SpawnStamp"/>), so a creature arrives fed.</para></summary>
+    public long LastAteTick;
 
     /// <summary>How much hunger this creature has stored up — DK2's own
     /// <c>HungerNeed</c>, by the name its debug dump prints.
@@ -1474,7 +1473,7 @@ public sealed partial class CreatureState
         hash.Add(Health);
         hash.Add(HealthSourcePlayerId);
         hash.Add(DeathUncounted);
-        hash.Add(HungerTicks);
+        hash.Add(LastAteTick);
         hash.Add(HungerNeed);
         hash.Add(FoodOwedAfterMeal);
         hash.Add(FoodAttemptTicks);

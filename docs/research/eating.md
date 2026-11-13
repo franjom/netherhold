@@ -113,9 +113,10 @@ sets off to eat does not also consider its bed this tick.
    already attending to a need — the routine returns 0.
 2. `fill` is `def.HungerFill` scaled by the creature's level through stat row 9.
    If `fill` is zero, the whole hunger block is skipped.
-3. **Accumulation.** When `now >= LastAteTime + def.HungerRateTicks` and the
-   current state's flags do not have bit `8` set (8 = the Casino), `LastAteTime`
-   becomes `now` and `fill` is **added** to `HungerNeed`. Nothing caps it.
+3. **Accumulation.** When `now >= LastAteTime + def.HungerRateTicks` (unsigned,
+   `0x00477D13`) and the state's flags lack bit `8` (the Casino), `LastAteTime`
+   becomes `now` (`0x00477D2D`) and `fill` is **added** to `HungerNeed`; nothing
+   caps it. It starts as the constructor's staggered stamp (`creature-needs-routine.md` §3).
 4. **Attempt.** When `HungerNeed >= fill`, the category is not 8 (8 = already
    eating) and `now >= LastAttemptedHunger + 4`, `LastAttemptedHunger` becomes
    `now` and `FUN_004633d0` is tried; if it succeeds — the creature goes to
@@ -324,9 +325,9 @@ its arguments.
 ## 9. Implementation
 
 ADR-0067: `EatingRules` + `CreatureEatSystem`, with `PrisonerEatSystem` for the
-prison path. `CreatureState.HungerNeed` is the accumulator (§3's "it adds") and
-`CreatureState.FoodAttemptTicks` the retry stamp, gated by
-`EatingRules.RetryTicks` — one game second. `EatingRules` carries `HungerFill`
+prison path. `CreatureState.HungerNeed` is the accumulator (§3's "it adds"),
+`LastAteTick` the clock's stamp, checked by `CreatureEatSystem.Clock` at the top of the eat step (ADR-0782), and
+`FoodAttemptTicks` the retry countdown, gated by `EatingRules.RetryTicks` — one game second. `EatingRules` carries `HungerFill`
 (level-scaled by stat row 9), `HungerRateSeconds`, `IsHungry`, `StillOwesFood`,
 `IsFood` (the `TypeFood` flag, for the prison) and `IsEdibleChicken` (object id
 9, for the hatchery) as the two predicates of §6, `HatcheryUnder` /

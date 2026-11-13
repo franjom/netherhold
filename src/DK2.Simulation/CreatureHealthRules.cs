@@ -133,10 +133,10 @@ public static class CreatureHealthRules
     /// the hunger clock and restores <c>HpFromChicken</c>, capped at the level-scaled maximum. The
     /// clamp is load-bearing, not defensive: <c>HpFromChicken</c> is 0 for the Firefly even though
     /// it eats two, and 250 for Jack, whose whole maximum is 240.</summary>
-    public static void Eat(GameDatabase database, CreatureDef creature, CreatureState state)
+    public static void Eat(GameDatabase database, CreatureDef creature, CreatureState state, long now)
     {
         if (!EatingRules.StillOwesFood(state)) return;
 
-        EatingRules.Eat(database, creature, state);
+        EatingRules.Eat(database, creature, state, now);
     }
 }
