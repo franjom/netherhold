@@ -115,9 +115,10 @@ Ordered by shipped use and ordinary gameplay first.
 16. **No shipped use:** SET_FIGHT_FLAG ([#1104](https://github.com/tonihele/OpenKeeper/pull/1104)),
     TOGGLE_EFFECT_GENERATOR ([#1094](https://github.com/tonihele/OpenKeeper/pull/1094)).
     One-line arms; do them when convenient.
-17. **Tests only:** tree-level tests for events 15, 13, 63 and 61; condition 64
-    in a member tree naming another party; the four-per-tick imp cap and its
-    dropped-imp bypass; a strapped-victim snapshot round trip.
+17. **Tests only:** done (2026-11-13). `TriggerEventProducerTests` (events 15,
+    13, 63 and 61 at tree level), `HeroPartyTests.Condition64InAMembersTreeMeasuresTheNamedParty_NotItsOwn`,
+    `ImpSelectionCapTests` (the four-per-tick cap, the dropped-imp bypass, per keeper) and
+    `TortureTests.AStrappedVictimSurvivesASaveAndTheTortureGoesOnIdentically`.
 
 ## All 81 PRs
 
@@ -129,17 +130,17 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 |---|---|---|
 | [1001](https://github.com/tonihele/OpenKeeper/pull/1001) | Built: creature event 9 on conversion (ADR-0740) | Fresh read of [0x004F2800](functions/004F2800.md): receiver is the converted creature, after the owner change. Fired in `Systems/TortureSystem`'s conversion block. No shipped records. Neutral recruitment fires event 10 instead (also unwired). |
 | [1003](https://github.com/tonihele/OpenKeeper/pull/1003) | Gap: slap events 5 and P60 | Fresh read of [0x0048B8A0](functions/0048B8A0.md): sites `0x0048BCB2` (main path) and `0x0048BD08` (states 209/255), P60 to the slapped creature's owner; the damage-only arm fires nothing. Built (ADR-0770) in `HandSystem.Slap`. |
-| [1005](https://github.com/tonihele/OpenKeeper/pull/1005) | Covered: stunned event 15 | `Combat/StatusEffectRules.Stun/StunInto`; [0x00491830](functions/00491830.md). No tree-level test. |
+| [1005](https://github.com/tonihele/OpenKeeper/pull/1005) | Covered: stunned event 15 | `Combat/StatusEffectRules.Stun/StunInto`; [0x00491830](functions/00491830.md). Tree-level test: `TriggerEventProducerTests`. |
 | [1008](https://github.com/tonihele/OpenKeeper/pull/1008) | Covered: imprisoned event 7, known divergence | `CategoryHooks` Prison enter; `PrisonImprisonedEventTests`. Q504 rim/full-prison divergence stands. |
 | [1011](https://github.com/tonihele/OpenKeeper/pull/1011) | Gap: tortured event 8 | Fresh read of [0x00484110](functions/00484110.md), fire site `0x004842BE`. 88 shipped records. Built (ADR-0739) in `TortureRules.EnterTheDevice/Restrap/TryStrapSelf`. |
 | [1013](https://github.com/tonihele/OpenKeeper/pull/1013) | Deliberate OpenKeeper deviation | Fresh reads of [0x00484110](functions/00484110.md) and [0x004F2180](functions/004F2180.md): the strap needs the device on the creature's own cell within one tile. OpenKeeper's move to a device elsewhere is not native. Ours matches. Room-drop state 76 (`0x004E8DA0`) not read. |
 | [1015](https://github.com/tonihele/OpenKeeper/pull/1015) | Covered: attacked event 6, two known deviations | `CombatTargetRules.Engage`; `TriggerEventTests`; [0x0045A550](functions/0045A550.md). Ours fires only on a new engagement and not on a failed registration. |
 | [1018](https://github.com/tonihele/OpenKeeper/pull/1018) | Gap: pick-up events P58 and 65 | [0x004BFBD0](functions/004BFBD0.md) fires both before any capacity test; fresh xref shows 17 call sites in 10 functions. Built (ADR-0770) at the prepare step in `HandSystem.PickUp`, for a fresh state 75 only. |
-| [1020](https://github.com/tonihele/OpenKeeper/pull/1020) | Covered: sacked events 63 / P61 | `LeavingRules.PortalDrop` and `Sack`; [0x00459D50](functions/00459D50.md), [0x0045A0D0](functions/0045A0D0.md). No test reads the events. |
+| [1020](https://github.com/tonihele/OpenKeeper/pull/1020) | Covered: sacked events 63 / P61 | `LeavingRules.PortalDrop` and `Sack`; [0x00459D50](functions/00459D50.md), [0x0045A0D0](functions/0045A0D0.md). `TriggerEventProducerTests` reads both events for a creature that walks out; the thrown-in double firing has no test. |
 | [1029](https://github.com/tonihele/OpenKeeper/pull/1029) | Deliberate OpenKeeper deviation; exposed creature action 43 gap | Fresh read: hero and neutral trees dispatch to their own owner, and [0x004C4600](functions/004C4600.md) enqueues speech only for the local player. Ours already behaves so. Creature action 43 is built (ADR-0768), see item 11 above. |
-| [1030](https://github.com/tonihele/OpenKeeper/pull/1030) | Covered: condition 64 by the named party | `TriggerExecutor.PartyMembersMissing`; [dispatch tables](trigger-dispatch-tables.md). Code-only; no test for a member tree naming another party. |
+| [1030](https://github.com/tonihele/OpenKeeper/pull/1030) | Covered: condition 64 by the named party | `TriggerExecutor.PartyMembersMissing`; [dispatch tables](trigger-dispatch-tables.md). Test: `HeroPartyTests.Condition64InAMembersTreeMeasuresTheNamedParty_NotItsOwn`. |
 | [1031](https://github.com/tonihele/OpenKeeper/pull/1031) | Covered: area condition 70 | `TriggerAreaConditions.PossessedCreatureExists`; Q280. |
-| [1106](https://github.com/tonihele/OpenKeeper/pull/1106) | Covered for the reachable site | `StealGoldRules.AtTheGold` fires event 13 first. Fresh xref: four native sites; only state 165 is reachable with shipped data ([steal-gold.md](steal-gold.md) §7-8). No test. |
+| [1106](https://github.com/tonihele/OpenKeeper/pull/1106) | Covered for the reachable site | `StealGoldRules.AtTheGold` fires event 13 first. Fresh xref: four native sites; only state 165 is reachable with shipped data ([steal-gold.md](steal-gold.md) §7-8). Test: `TriggerEventProducerTests`. |
 | [1110](https://github.com/tonihele/OpenKeeper/pull/1110) | Covered: P61 to the owner | `LeavingRules`, `TriggerExecutor.FirePlayerEvent`; [0x0045A0D0](functions/0045A0D0.md). |
 
 ### Script actions
@@ -170,7 +171,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | [1017](https://github.com/tonihele/OpenKeeper/pull/1017) | Covered: devices, conversion messages and events 8 and 9 | `TortureRules`, `TortureSystem`, `TortureTests`. Messages 57/58 and event 9 built (ADR-0740, item 3 above); event 8 built (ADR-0739). Chair sparks and full clip unbuilt ([object-drawing.md §9](object-drawing.md)). OpenKeeper's torture sounds sit behind `0x00759ADC` natively (Q635). |
 | [1040](https://github.com/tonihele/OpenKeeper/pull/1040) | Covered for wall furniture; built for the torch phase (ADR-0769) | `AutoFurnitureRules.WallSlots`; [auto-placed-furniture.md §4](auto-placed-furniture.md). `DK2.Presentation/TorchLayout` adds the room's wall phase for rooms 12 and 15 ([wall-torches.md §2](wall-torches.md)). Lead: does the native Torture capacity count include the companion wheel? |
 | [1041](https://github.com/tonihele/OpenKeeper/pull/1041) | Built: wall wheels and trough effects (ADR-0740) | Fresh read of [0x00499300](functions/00499300.md): effect 274 (coals) / 279 (water) once a game second while victim `+0x68` is in [0x3A0, 0x460) (meaning unread). `TortureSystem.TurnTheWheel`; the roll is `CreatureState.TortureRoll`. |
-| [1042](https://github.com/tonihele/OpenKeeper/pull/1042) | OpenKeeper-only fix | Device occupancy is derived from creature state; `WorldSnapshot` saves the torture fields. No round-trip test. |
+| [1042](https://github.com/tonihele/OpenKeeper/pull/1042) | OpenKeeper-only fix | Device occupancy is derived from creature state; `WorldSnapshot` saves the torture fields. Test: `TortureTests.AStrappedVictimSurvivesASaveAndTheTortureGoesOnIdentically`. |
 | [1043](https://github.com/tonihele/OpenKeeper/pull/1043) | Covered: own victims' mood | `TortureSystem.Act`, `TortureTests`; [state-category-hooks.md §3.3](state-category-hooks.md). |
 | [1044](https://github.com/tonihele/OpenKeeper/pull/1044) | Built: information choice and reward 11 reveal (ADR-0740) | `TortureInformationRules`, `TortureInformationTests`. `RevealTo` and `FogOfWarSystem.TortureSightPass`. |
 | [1045](https://github.com/tonihele/OpenKeeper/pull/1045) | Covered, more faithful than the PR | `JailBreakRules`, `JailBreakTests`; [jail-break.md](jail-break.md). OpenKeeper freeing all allies' prisoners is its own. |
@@ -187,7 +188,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 
 | PR | Finding for this project | Evidence / next action |
 |---|---|---|
-| [1021](https://github.com/tonihele/OpenKeeper/pull/1021) | Unchanged since [its own review](openkeeper-1021-review.md) | Head is still `5367c0bf`. No dedicated test for the four-per-tick cap. |
+| [1021](https://github.com/tonihele/OpenKeeper/pull/1021) | Unchanged since [its own review](openkeeper-1021-review.md) | Head is still `5367c0bf`. Test: `ImpSelectionCapTests`. |
 | [1022](https://github.com/tonihele/OpenKeeper/pull/1022) | Covered: dropped imp skips the cap | `ImpTaskSystem.Work`, `JustDropped`; [0x00463DF0](functions/00463DF0.md). Ours scans rings 1-3 (ADR-0292), not the PR's 2 tiles. |
 | [1023](https://github.com/tonihele/OpenKeeper/pull/1023) | Covered: nearer imp takes a body carry | ADR-0742; `ImpTaskSystem.Carrying.TryTakeBody`; [0x0046D810](functions/0046D810.md), [0x0046D3C0](functions/0046D3C0.md); kind-12 and kind-13 rows in [imp-task-stealing.md](imp-task-stealing.md) §2. |
 | [1026](https://github.com/tonihele/OpenKeeper/pull/1026) | OpenKeeper-only fix | jME entity-set queue. Code-only. |

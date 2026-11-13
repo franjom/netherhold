@@ -238,6 +238,39 @@ public class TortureTests
     }
 
     /// <summary>The roll, and reward 11's tag, are creature state: hashed, saved and copied.</summary>
+    /// <summary>A victim strapped to the wheel survives a save: the device's occupancy is derived
+    /// from the creature's state, and the torture fields (duration, target tile, roll) are saved
+    /// (OpenKeeper #1042; audit 1000-1110 item 17), so the restored run tortures on exactly as the
+    /// original does, hurt for hurt.</summary>
+    [Fact]
+    public void AStrappedVictimSurvivesASaveAndTheTortureGoesOnIdentically()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        GameSimulation original = Simulation(db, world);
+        Carry(original, captive, Wheel);
+        original.Run(7);
+        Assert.True(TortureRules.IsBeingTortured(captive));
+
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), db,
+            [new HandSystem(), new CreatureMovementSystem(), new PrisonSystem(), new TortureSystem()]);
+        CreatureState back = restored.World.CreatureById(captive.Id)!;
+        Assert.True(TortureRules.IsBeingTortured(back));
+        Assert.Equal((captive.TorturedDuration, captive.TortureTargetTile, captive.TortureRoll, captive.PrisonOwnerPlayerId),
+            (back.TorturedDuration, back.TortureTargetTile, back.TortureRoll, back.PrisonOwnerPlayerId));
+
+        int durationAtSave = captive.TorturedDuration;
+        for (int t = 0; t < 200; t++)
+        {
+            original.Tick();
+            restored.Tick();
+            Assert.True(original.StateHash() == restored.StateHash(), $"restored torture diverged {t} ticks after loading");
+        }
+        Assert.Equal(captive.Health, back.Health);
+        Assert.True(back.TorturedDuration > durationAtSave);   // the device went on working after the load
+    }
+
     [Fact]
     public void TheRollAndTheSightTagAreHashedSavedAndCopied()
     {

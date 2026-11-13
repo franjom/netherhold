@@ -208,6 +208,65 @@ public class HeroPartyTests
         Assert.Equal(0, world.Triggers.Read(10));
     }
 
+    /// <summary>Condition 64 in a creature tree measures the party it names, not the one the
+    /// creature belongs to (<c>0x005187AD</c> reads the record's party id): a party-0 member whose
+    /// tree asks about party 1 sees party 1's losses only.</summary>
+    [Fact]
+    public void Condition64InAMembersTreeMeasuresTheNamedParty_NotItsOwn()
+    {
+        (WorldState world, GameDatabase database) = World();
+        Place(world, database, partyId: 0, members:
+        [
+            Member(Goblin, level: 1, gold: 0, health: 100, flags: 0x0B, trigger: 7),
+            Member(Goblin, level: 1, gold: 0, health: 100, flags: 0x0D),
+        ]);
+        ThingProjection.Place(world, database,
+        [
+            new HeroPartyThing(new byte[555])
+            {
+                Name = "other", TriggerId = 5, PartyId = 1,
+                Members = [Member(Goblin, level: 1, gold: 0, health: 100, flags: 0x0B, party: 1)],
+            },
+        ]);
+        foreach (HeroPartyState party in world.HeroParties)
+            Assert.True(HeroPartyRules.Spawn(
+                new StateHookContext(world, database), null, Tree(0, 0), party, PointId, partyType: 0, _ => { }));
+        CreatureState asker = world.Creatures.Single(c => c.TriggerId == 7);
+        CreatureState ownMate = world.Creatures.Single(c => c.PartyId == 0 && c.Id != asker.Id);
+        CreatureState other = world.Creatures.Single(c => c.PartyId == 1);
+        var sim = new GameSimulation(database, world, 7,
+            [new Systems.CreatureHealthSystem()], MemberTree(asker: 7, partyId: 1, atLeast: 1));
+
+        ownMate.Health = 0;   // its own party loses a member: not the party the tree names
+        sim.Run(SimulationTiming.TicksPerSecond * 2);
+        Assert.Equal(0, world.Triggers.Read(10));
+
+        other.Health = 0;
+        sim.Run(SimulationTiming.TicksPerSecond * 2);
+        Assert.Equal(1, world.Triggers.Read(10));
+    }
+
+    /// <summary>A creature tree rooted at <paramref name="asker"/> asking <c>missing members of the
+    /// party &gt;= atLeast</c>, setting flag 10.</summary>
+    private static TriggerTree MemberTree(ushort asker, byte partyId, int atLeast) =>
+        new(
+        [
+            new GenericTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = asker, Type = 64, RepeatCount = 1,
+                ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+                Parameters = new Dictionary<string, long>
+                {
+                    ["Comparison"] = 5, ["PartyId"] = partyId, ["Value"] = atLeast,
+                },
+            },
+            new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 0xFFFF, Type = 7, RepeatCount = 0,
+                Parameters = new Dictionary<string, long> { ["FlagId"] = 10, ["Flag"] = 0x0A, ["Value"] = 1 },
+            },
+        ], 0, playerRoots: []);
+
     /// <summary>A world root asking <c>missing members of the party &gt;= atLeast</c>, setting flag 10.</summary>
     private static TriggerTree MissingTree(byte partyId, int atLeast) =>
         new(
