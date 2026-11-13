@@ -18568,7 +18568,8 @@ draws the tablet with the win screen's `DrawTablet`, last in `OnGUI`.
 **Consequences.** View and audio only: no simulation state, hash or save change. DK2 draws the
 tablet at a fixed pixel size (61 x 61 in the owner's 1600 x 1200 screenshot); ours, as the win
 screen does, takes DK2's pixels as 768-high units, so it is drawn about 1.6 times larger at 1200
-lines. Each frame spawns, draws, then steps, DK2's order; the step and draw wait while the HUD is
+lines. The owner chose this deviation for both tablets (2026-11-13): DK2's fixed size is too small
+on today's screens. Each frame spawns, draws, then steps, DK2's order; the step and draw wait while the HUD is
 hidden, the camera letterboxed or the game paused (ours: the options panel open). Not mirrored:
 the graphics detail gate (ours has no detail setting) and the skip in camera modes 2, 7 and
 `0x12`. The IMGUI draw is over the scene but under UI Toolkit panels, where DK2 draws it above all.
