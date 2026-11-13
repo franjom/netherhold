@@ -199,9 +199,11 @@ must not fix it on your own.
   - the manual contradicting the binary.
 - **File it** in issue #2 only after an independent `reviewer` agrees, in the
   DK2-017 to DK2-019 entry format. Its status is binary-read or reproduced, and its
-  disposition (fix, preserve or defer) stays open.
-- **Keep ours faithful** until the owner sets a disposition. A fix then needs its own
-  ADR as a deliberate deviation.
+  disposition is *defer*.
+- **Build the defect, do not fix it (ADR-0783).** Implement DK2's defect as DK2 does
+  it, so runs stay comparable with DK2. You may comment the mirroring code with its DK2
+  number. Fixes wait until the owner declares the game complete. Tracking does not wait:
+  mark and file a defect when you find it.
 - **Check DK2 itself.** When a native capture diverges, also ask whether DK2 is the one
   that is wrong.
 

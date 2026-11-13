@@ -18334,3 +18334,24 @@ unread. Level 5 diag replay (controlled528b): draws match through 1944 (9148), W
 before the chooser; the next stop is the hatchery set-out's arrival tile (Q790). Level 1: the seed-1 win is
 now the Reaper at t2299 with the gem at (14,19); the journal is re-recorded, ours' output and unverified
 against DK2. Scenarios `a_goblin_gets_hungry` and `a_goblin_eats_a_chicken` are re-pinned.
+
+## ADR-0783 - original DK2 defects are built faithfully now and fixed only once the game is complete
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** tooling-process
+
+**Context.** Issue #2 tracks behaviour of DKII.EXE that looks unintended (DK2-001 to DK2-032; the reviewed
+binary candidates are DK2-017 to DK2-032). Each needed a fix, preserve or defer disposition. The project
+proves itself by comparing our runs with native captures (Goal 6), and a fixed defect makes runs diverge
+where DK2 is the reference.
+
+**Decision.** The owner's policy, 2026-11-13: every original defect is **built as DK2 does it** while the
+reimplementation is in progress, so runs stay comparable with DK2. Fixing waits until the owner declares the
+game complete; then each tracked defect is fixed or changed under its own ADR. The default disposition of a
+new candidate is therefore *defer*. A mechanic not yet built is built with its defect. What must not lapse is
+the tracking: a suspected defect is marked in its function record (`Suspected DK2 defect:`) and filed in
+issue #2 after an independent review, as AGENTS.md *Fidelity* says, when it is found, not later. Already
+decided exceptions stand: DK2-017 and DK2-018 (ADR-0589) are fixed now because they are a hang and a cheat
+input leak, not gameplay that captures compare.
+
+**Consequences.** DK2-019's existing deferral becomes the rule. Code that mirrors a filed defect may say so
+in a comment naming its DK2 number, so the later fix pass can find every site. A deviation made before
+completion needs an ADR that says why parity does not matter there.
