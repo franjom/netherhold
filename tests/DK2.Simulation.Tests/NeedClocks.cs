@@ -14,9 +14,19 @@ internal static class NeedClocks
     internal static CreatureState Unstaggered(this CreatureState creature, long tick = 0)
     {
         creature.LastAteTick = tick;
+        creature.LastFoodAttemptTick = tick;
         creature.LastSleptTick = new GameTick(tick);
         creature.NextSleepTryTick = new GameTick(tick + NeedRules.RetryTurns);
         creature.NextPayTryTick = tick;
+        return creature;
+    }
+
+    /// <summary>Hungry, and with its last try to eat long past (<c>+0x50</c>), as a creature that
+    /// has been on the map a while: it may try at once.</summary>
+    internal static CreatureState Hungry(this CreatureState creature, int need)
+    {
+        creature.HungerNeed = need;
+        creature.LastFoodAttemptTick = -EatingRules.RetryTicks;
         return creature;
     }
 }

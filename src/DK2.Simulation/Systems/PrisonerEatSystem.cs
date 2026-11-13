@@ -95,9 +95,8 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             // which is 4, and four DK2 ticks is one game second (Q1/Q132). So
             // the number to use is one game second and not the variable's own
             // value read as seconds, which would be four times too slow.
-            creature.FoodAttemptTicks--;
-            if (creature.FoodAttemptTicks > 0) continue;
-            creature.FoodAttemptTicks = EatingRules.RetryTicks;
+            if (context.Tick.Value < creature.LastFoodAttemptTick + EatingRules.RetryTicks) continue;
+            creature.LastFoodAttemptTick = context.Tick.Value;
 
             Search(context, creature, definition);
         }

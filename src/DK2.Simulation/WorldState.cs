@@ -1117,8 +1117,9 @@ public sealed partial class WorldState
             // 0x004872F0: the constructor copies the position into +0xF6, so its first fight scan
             // finds no tile change and waits for the phase above (ADR-0645).
             LastFightScanTileIndex = (at.Y * Width) + at.X,
-            // 0x00476B40 stamps the needs clocks staggered by the tag; +0x50 has no stamp here.
+            // 0x00476B40 stamps the needs clocks staggered by the thing id.
             LastAteTick = stamp,
+            LastFoodAttemptTick = stamp,
             LastSleptTick = new GameTick(stamp),
             NextSleepTryTick = new GameTick(stamp + NeedRules.RetryTurns),
             NextPayTryTick = stamp,

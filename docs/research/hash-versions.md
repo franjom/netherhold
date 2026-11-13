@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**498** - `0x942FBDD992F685AF`. The hunger retry is a stamp, `+0x50` (`0x00477DAE`, `0x00477DBC`; the prison's `0x004731F0` adds balance variable 21 in raw turns), and a creature's walk to a hatchery ends at `0x004E4C10`'s point through `0x00471A70`, one `Room.cpp:1509` draw (ADR-0784). The field `CreatureState.FoodAttemptTicks` (int) is replaced by `LastFoodAttemptTick` (long), which `0x00476B40` also stamps at spawn; earlier saves are refused. Level 1's seed-1 win: the Lord dies at t2270 on (15,19), the Reaper at t2294, the gem taken at t2391; the journal is re-recorded.
+
 **497** - `0xC0F44DA0A3DA6698`. The needs clocks start from the constructor's stamp, the turn rounded down to 8 ORed with the low bits of the thing id (`0x00476B40`), and the hunger clock is a stamp that runs in the needs routine before the state handler (`0x00477C20`, ADR-0782). The field `CreatureState.HungerTicks` is replaced by `LastAteTick` (long); earlier saves are refused. Level 1's seed-1 win is now the Reaper at t2299 with the gem at (14,19); the journal is re-recorded.
 
 **496** - `0x46E5EA4A8894F350`. The steering crowd probe counts a creature by the tile it is linked to, so one in the hand counts nowhere (`0x004D15E0`, ADR-0781). No new saved field; earlier saves are refused.

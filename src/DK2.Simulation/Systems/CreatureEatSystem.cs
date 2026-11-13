@@ -17,8 +17,8 @@ namespace DK2.Simulation.Systems;
 /// hungry creatures may race for one and the loser looks again (Q172, owner). An
 /// empty hatchery is not a failure — it lays. Prisoners eat by their own states, one
 /// bird paying off a whole <c>HungerFill</c> (<see cref="PrisonerEatSystem"/>). Ours:
-/// composing the walk with the in-room search, the walking routine being unestablished
-/// (Q174); the retry cadence living here; and no post-meal wander round the hatchery
+/// composing the walk with the in-room search; trying each candidate hatchery in turn where
+/// DK2's finder returns one room (Q790); the retry cadence living here; and no post-meal wander round the hatchery
 /// (the original's state 0x5F, cosmetic — Q175).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/eating.md")]
 public sealed class CreatureEatSystem : ICreatureUpdateStep
@@ -90,9 +90,8 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
 
                 // At most one attempt a game second, the original's
                 // LastAttemptedHunger test.
-                creature.FoodAttemptTicks--;
-                if (creature.FoodAttemptTicks > 0) break;
-                creature.FoodAttemptTicks = EatingRules.RetryTicks;
+                if (context.Tick.Value < creature.LastFoodAttemptTick + EatingRules.RetryTicks) break;
+                creature.LastFoodAttemptTick = context.Tick.Value;
 
                 // The busy test comes after the stamp, so a busy creature spends the try.
                 if (NeedRules.IsBusy(context.World, creature, context.Tick.Value)) break;
@@ -123,7 +122,8 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
     /// (<see cref="EatingRules.HoldsAChicken"/>). Rooms are visited nearest first by squared
     /// distance to the room's centre, and the first this creature can reach wins; equal
     /// distances fall back to the lowest tile index (ADR-0001). Ours: DK2 measures to the
-    /// room's first slab and breaks ties by its room list. The finder runs before the
+    /// room's first slab and breaks ties by its room list, and tries one room once, where ours
+    /// draws a point again for each candidate whose point or route fails (Q790). The finder runs before the
     /// already-inside shortcut, as <c>Hunger_TryToEat</c> calls it before state 91, so a
     /// creature in an empty hatchery does not enter the chain. A failure posts the original's
     /// 41, 42 or 43 by its own gates (<see cref="RoomNeedRules.NoHatcheryFor"/>).</remarks>
@@ -165,7 +165,9 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
                 break;
             }
 
-            int target = ArrivalTile(world, room);
+            // 0x004634B0 walks through the room helper 0x00471A70, whose point is 0x004E4C10's
+            // random(size) along the slab chain (Room.cpp:1509), as every room walk's is.
+            if (RoomWalkRules.ArrivalTile(context, room) is not int target) continue;
             var at = new TilePos(target % world.Width, target / world.Width);
             if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) continue;
 
@@ -421,15 +423,4 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
     private static int CentreTileIndex(WorldState world, RoomInstance room) =>
         ((room.MinY + ((room.MaxY - room.MinY) / 2)) * world.Width)
         + room.MinX + ((room.MaxX - room.MinX) / 2);
-
-    /// <summary>
-    /// Which tile of the room to walk at: its centre when that tile is part of
-    /// the room, and its lowest tile index otherwise — a hatchery need not be
-    /// rectangular, and an L-shaped one has a centre that is not in it.
-    /// </summary>
-    private static int ArrivalTile(WorldState world, RoomInstance room)
-    {
-        int centre = CentreTileIndex(world, room);
-        return EatingRules.Contains(room, centre) ? centre : room.TileIndices[0];
-    }
 }

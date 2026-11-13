@@ -144,11 +144,11 @@ owes every helping it missed when a hatchery finally appears. This project had
 it the other way round until 2026-09-06 — the accumulator was *set* to
 `HungerFill`, which saturates. Observable, and a test says so.
 
-**The retry is four game ticks.** Written as a literal `4` here; the prison's
-copy of the same test (`FUN_004731f0`) reads
-`TimeBetweenReattemptingHungerSeconds`, which **is** 4. Four ticks is one game
-second on every shipped level (Q1/Q132), so the two paths agree whichever way
-the variable's name is read.
+**The retry is a stamp, four game ticks.** The attempt runs when `now >= +0x50 + 4`
+(`0x00477DAE`) and stamps now (`0x00477DBC`) before the busy test, so the time passes
+while the creature walks. The prison's copy (`FUN_004731f0`) adds balance variable 21,
+`TimeBetweenReattemptingHungerSeconds` (`0x006F2598`, raw turns, read at `0x004732AB`),
+shipped 4, and stamps at `0x004732C0`; the two paths agree on every shipped level.
 
 **The units corroborate Q132 for free.** The record loader (`FUN_00492320`)
 writes
@@ -327,7 +327,7 @@ its arguments.
 ADR-0067: `EatingRules` + `CreatureEatSystem`, with `PrisonerEatSystem` for the
 prison path. `CreatureState.HungerNeed` is the accumulator (§3's "it adds"),
 `LastAteTick` the clock's stamp, checked by `CreatureEatSystem.Clock` at the top of the eat step (ADR-0782), and
-`FoodAttemptTicks` the retry countdown, gated by `EatingRules.RetryTicks` — one game second. `EatingRules` carries `HungerFill`
+`LastFoodAttemptTick` the retry stamp `+0x50`, gated by `EatingRules.RetryTicks` (ADR-0784). `EatingRules` carries `HungerFill`
 (level-scaled by stat row 9), `HungerRateSeconds`, `IsHungry`, `StillOwesFood`,
 `IsFood` (the `TypeFood` flag, for the prison) and `IsEdibleChicken` (object id
 9, for the hatchery) as the two predicates of §6, `HatcheryUnder` /
@@ -339,7 +339,8 @@ prison path. `CreatureState.HungerNeed` is the accumulator (§3's "it adds"),
 **On DK2's state ids since ADR-0176**, the first errand to be: beside its activity a
 hungry creature writes `travel-states.md` §8's chain - 91, state 7 into 92, state 6 into
 93, then 94 - and drops to state 1 on leaving (`EatingRules.FindHatcheryState` et al.;
-it handed the id back until ADR-0209).
+it handed the id back until ADR-0209). The walk's point is `0x004E4C10`'s, one
+`Room.cpp:1509` draw ([temple-states.md](temple-states.md) §9, ADR-0784).
 
 **Ours, and said so in the code:** composing the walk and the in-room search
 into one step where DK2 has `0x5A` and `0x5B`; driving the retry from the eat

@@ -170,7 +170,7 @@ the point from `0x004E4C10(room)`:
 
 So no job walk ends in a Temple's pool, on furniture, or against a wall's furniture.
 `RoomWalkRules.ArrivalTile` is this; `CreatureJobSystem.TrySetOut` uses it for every job room
-(ADR-0403). The Casino's floor point `0x004E4EA0` (`casino.md` §3) is the same walk without the wall
+(ADR-0403) and `CreatureEatSystem` for the hatchery walk (ADR-0784). The Casino's floor point `0x004E4EA0` (`casino.md` §3) is the same walk without the wall
 test or the Lair clause.
 
 **Measured.** The change reaches every job, not just the Temple's. Against master `95daa5f6`:

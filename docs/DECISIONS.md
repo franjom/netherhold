@@ -18355,3 +18355,33 @@ input leak, not gameplay that captures compare.
 **Consequences.** DK2-019's existing deferral becomes the rule. Code that mirrors a filed defect may say so
 in a comment naming its DK2 number, so the later fix pass can find every site. A deviation made before
 completion needs an ADR that says why parity does not matter there.
+
+## ADR-0784 - a hatchery walk ends at the room walk's point, and the hunger retry is a stamp
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** creatures
+
+**Context.** Level 5 seed 1 past turn 1944 (Q790). At native 1945 Warlock 441 sets off for its hatchery and
+DK2 draws `Room.cpp:1509`; ours drew nothing. State 91's handler `0x004634B0` walks through the room helper
+`0x00471A70(room, 92, 0x80)`, whose point is `Room_WalkPoint` `0x004E4C10`: `random(size)` along the slab chain.
+Ours chose the centre tile without a draw. At 1954 a blueprint walker reset (`0x004E8D30`) kicks the Warlock
+from its walk to state 1. Native retries eating at once, since `+0x50` was stamped at 1945 and the test is
+`[+0x50]+4 <= now` (`0x00477DAE`, stamp `0x00477DBC` before the busy test), and re-routes with another draw.
+Ours' countdown `FoodAttemptTicks` still read 3. The prison's copy `0x004731F0` adds balance variable 21
+(`0x006F2598`, `TimeBetweenReattemptingHungerSeconds`, stored raw by `0x0051CDE4`, read at `0x004732AB`,
+shipped 4) to `+0x50` and stamps at `0x004732C0`. `0x00476B40` stamps `+0x50` at spawn too. STRONGLY INFERRED:
+the reviewer confirmed both claims by reading the code; the replay supports them but cannot isolate them.
+
+**Decision.** `CreatureEatSystem.TrySetOutForAHatchery` takes its walk point from `RoomWalkRules.ArrivalTile`
+(one draw, as every room walk) and skips a room with no point; a creature already inside draws nothing, as
+before. `CreatureState.FoodAttemptTicks` (int, a countdown) becomes `LastFoodAttemptTick` (long): an attempt
+runs when now >= it + `EatingRules.RetryTicks` (4) and stamps now, in `CreatureEatSystem` and
+`PrisonerEatSystem`. The prison's variable 21 is 4 on every shipped level, so one constant serves both.
+`WorldState.SpawnCreature` sets the stamp from `NeedRules.SpawnStamp`.
+
+**Consequences.** Hash/save 498 (497 is ADR-0782's); earlier saves are refused; pin `0x942FBDD992F685AF`.
+Closes Q790, Q674's `+0x50` part and ADR-0782's "`+0x50` not modelled at spawn". Level 5 diag replay: the
+arrival tile alone (controlled529) matched 9309 draws through 1953; both changes (controlled530) match 9666
+through 1976. The next stop is turn 1977 draw 25, native `ObjectState.cpp:2708`, ours `Treasure.cpp:132`
+(Q791). Level 1 (journal re-recorded): the Lord dies at t2270 on (15,19), the Reaper at t2294, the gem taken at
+t2391; ours' output, unverified against DK2. Residual (PLAUSIBLE): ours draws again for each candidate
+hatchery whose point or route fails, where native's finder returns one room and the helper tries once
+(Q790, record `0x004634B0`). Unchecked: whether a loose chicken is an obstacle for `0x004E4C10`.

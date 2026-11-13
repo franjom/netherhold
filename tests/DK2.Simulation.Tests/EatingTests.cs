@@ -81,8 +81,7 @@ public class EatingTests
             db, HatcheryRules.ChickenObjectId, owner, (y * world.Width) + x);
 
     /// <summary>Makes this creature owe exactly one chicken, without waiting three minutes.</summary>
-    private static void MakeHungry(CreatureState creature, int need = 1) =>
-        creature.HungerNeed = need;
+    private static void MakeHungry(CreatureState creature, int need = 1) => creature.Hungry(need);
 
     // ---- the clock ----------------------------------------------------------
 
@@ -266,12 +265,12 @@ public class EatingTests
         // state 7 resuming in 92, and 92 walks to the bird in state 6 resuming in 93.
         // States inside one tick are transient, so the saved caller is the evidence:
         // StateBeforeUtilityState is DK2's own record of where each walk came from.
-        // The bird is in a corner so the second walk is long enough to be seen.
+        // The arrival tile is a seeded draw (0x004E4C10); the bird is in a corner it does not pick, so the bird walk is seen.
         GameDatabase db = Db;
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        Chicken(db, world, 8, 8);
+        Chicken(db, world, 6, 6);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         goblin.Health = 500;

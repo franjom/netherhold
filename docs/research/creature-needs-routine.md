@@ -80,12 +80,14 @@ after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
   Two later writes move the `+0x48` stamp: the clock above (`0x00477D2D`) and eating a chicken
   (`0x00463760`, at `0x004639B8`). No other store to the state object's `+0x48` was found in
   `.text`, so a pick-up or drop does not reset it (cseg was not scanned). Ours stamps the
-  same way (`NeedRules.SpawnStamp`, ADR-0782) except `+0x50`. The rounding is on DK2's turn,
+  same way (`NeedRules.SpawnStamp`, ADR-0782; `+0x50` as `LastFoodAttemptTick`, ADR-0784). The rounding is on DK2's turn,
   our tick + 1; STRONGLY INFERRED for the phase, since the capture cannot tell the phases
   apart and the replay match at 1945 fits it.
 - **The attempt.** When `+0x4C` has reached `HungerFill`, the mask admits it, and at
-  least 4 turns have passed since `+0x50`: `+0x50` is set to now, and unless
-  the busy test refuses, `0x004633D0` tries to eat. Success returns 1.
+  least 4 turns have passed since `+0x50` (`0x00477DAE`): `+0x50` is set to now
+  (`0x00477DBC`), and unless the busy test refuses, `0x004633D0` tries to eat. Success
+  returns 1. The stamp is `CreatureState.LastFoodAttemptTick` (ADR-0784, hash/save 498);
+  the prison's copy adds balance variable 21 in raw turns (`0x004731F0`, [eating.md](eating.md) §3).
 
 **Sleep**, when the definition's `+0x5D6` is non-zero:
 
@@ -170,12 +172,11 @@ one-second throttle for autonomous lair attempts.
   (`0x00477C20` under `0x00476FC0`), and no longer in the health pass. Prisoners still
   accrue. A held or possessed creature is not swept, but the stamp keeps elapsed time, so a
   helping falls due on its first update after release (PLAUSIBLE: native held and possessed
-  updates not read). The spawn stamps are built (§3).
+  updates not read). The spawn stamps are built (§3), and `+0x50`, the retry, is a stamp too.
 - **Remaining clock gaps (Q674):** the clock and the eat attempt are not gated on
   `NeedRules.IsAsked`, where native `0x00476FC0` runs `0x00477C20` only for non-workers owned by
   a keeper (neither the hero player `[0x006F254C]` nor the neutral `[0x006F2548]`);
-  `FoodAttemptTicks` counts down only while the creature is hungry and may be asked, where
-  native `+0x50` is a stamp; native returns early in `0x00476FC0` while SuspendTime `+0x44` is
+  native returns early in `0x00476FC0` while SuspendTime `+0x44` is
   non-zero. That is Q499's Wait hold, armed only by job 22 (`0x00486CC0`). A keeper's
   non-worker can reach it through the Prison drop's `DroppedToDoJobId` 22 (STRONGLY INFERRED,
   [wait-hold.md](wait-hold.md); not seen in play).

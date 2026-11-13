@@ -1384,8 +1384,7 @@ public class PrisonTests
         GameDatabase db, WorldState world, TilePos cell)
     {
         CreatureState captive = Prisoner(db, world, cell);
-        captive.HungerNeed = EatingRules.HungerFill(db, db.CreatureById(GoblinId), captive.Level);
-        return captive;
+        return captive.Hungry(EatingRules.HungerFill(db, db.CreatureById(GoblinId), captive.Level));
     }
 
     private static ObjectState Chicken(GameDatabase db, WorldState world, TilePos at) =>

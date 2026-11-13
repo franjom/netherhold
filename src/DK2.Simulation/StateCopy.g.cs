@@ -70,7 +70,7 @@ namespace DK2.Simulation
             LastAteTick = other.LastAteTick;
             HungerNeed = other.HungerNeed;
             FoodOwedAfterMeal = other.FoodOwedAfterMeal;
-            FoodAttemptTicks = other.FoodAttemptTicks;
+            LastFoodAttemptTick = other.LastFoodAttemptTick;
             LastSleptTick = other.LastSleptTick;
             LastBedExitTick = other.LastBedExitTick;
             SleepDebtTicks = other.SleepDebtTicks;

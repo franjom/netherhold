@@ -285,7 +285,7 @@ public sealed class TremorCreatureTests
         world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, world.TileIndex(food));
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
         creature.Dk2StateId = CreatureStateMachine.Idle;
-        creature.HungerNeed = 1;
+        creature.Hungry(1);
         creature.Fleeing = true;
         new GameSimulation(db, world, 42,
             [new TremorCreatureSystem(), new CreatureEatSystem(), new CreatureJobSystem()]).Tick();

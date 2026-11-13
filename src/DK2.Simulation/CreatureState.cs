@@ -428,13 +428,12 @@ public sealed partial class CreatureState
     /// after the eating action ends (eating.md §7).</summary>
     public bool FoodOwedAfterMeal;
 
-    /// <summary>Countdown to the next attempt to go and eat — DK2's
-    /// <c>LastAttemptedHunger</c> read as a countdown rather than a stamp.
-    /// <para>A hungry creature that cannot find a hatchery does not search again
-    /// until this runs out: <see cref="EatingRules.RetryTicks"/>, one game
-    /// second. Separate from <see cref="TimerTicks"/>, the shared idle
-    /// re-decision, because a creature must be able to wait on both at once.</para></summary>
-    public int FoodAttemptTicks;
+    /// <summary>The last attempt to go and eat, DK2's <c>LastAttemptedHunger</c> (<c>+0x50</c>).
+    /// <para>No new attempt until <see cref="EatingRules.RetryTicks"/> have passed since it
+    /// (<c>0x00477DAE</c>; the prison's <c>0x004731F0</c> likewise). A stamp, so the time passes
+    /// while the creature is walking or busy. Separate from <see cref="TimerTicks"/>, the shared
+    /// idle re-decision, because a creature must be able to wait on both at once.</para></summary>
+    public long LastFoodAttemptTick;
 
     // No LairTileIndex: the bed records whose it is, not the creature, as DK2
     // does (Lair.CreatureId, a u16 at the first offset of the object's union).
@@ -1476,7 +1475,7 @@ public sealed partial class CreatureState
         hash.Add(LastAteTick);
         hash.Add(HungerNeed);
         hash.Add(FoodOwedAfterMeal);
-        hash.Add(FoodAttemptTicks);
+        hash.Add(LastFoodAttemptTick);
         hash.Add(LastSleptTick.Value);
         hash.Add(LastBedExitTick.Value);
         hash.Add(SleepDebtTicks);
