@@ -1696,6 +1696,7 @@ namespace DK2.Unity
             || (_gameOptionsPanel != null && _gameOptionsPanel.ContainsPointer(position))
             || (_bottomPanel != null && _bottomPanel.ContainsPointer(position))
             || (_messageTabs != null && _messageTabs.ContainsPointer(position))
+            || (_battleTab != null && _battleTab.ContainsPointer(position))
             || (_overviewPanel != null && _overviewPanel.ContainsPointer(position))
             || (_optionsPanel != null && _optionsPanel.ContainsPointer(position)) || _hudControls.FullMapVisible
             || (_queryPanel != null && _queryTarget != CreatureQueryTarget.None && !HudModal

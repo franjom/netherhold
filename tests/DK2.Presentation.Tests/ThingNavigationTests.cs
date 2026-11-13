@@ -52,4 +52,54 @@ public sealed class ThingNavigationTests
         Assert.Equal(new TilePos(1, 2), navigation.Next(doors, 2));   // restarts at the head
         Assert.Equal(new TilePos(2, 2), navigation.Next([Door(2, 2)], 2));   // a removed last thing restarts too
     }
+
+    private static ThingNavigationEntry Trap(int id, byte kind, bool alarm = false, bool ringing = false,
+        byte owner = PlayerIds.FirstKeeper) => new(id, new PlayerId(owner), kind, new TilePos(id, 4), alarm, ringing);
+
+    [Fact]
+    public void TheAlarmCycleWalksRingingAlarmsAfterTheLastTrap()
+    {
+        // 0x00426A00: from the trap after the last one, the next of the alarm kind that rings.
+        var navigation = new ThingNavigation(PlayerIds.FirstKeeper);
+        ThingNavigationEntry[] traps =
+            [Trap(9, 1, true, true), Trap(8, 2), Trap(7, 1, true, false), Trap(6, 1, true, true)];
+        Assert.Equal(new TilePos(9, 4), navigation.NextAlarm(traps));
+        Assert.Equal(new TilePos(6, 4), navigation.NextAlarm(traps));   // 7 is quiet, skipped
+        Assert.Equal(new TilePos(9, 4), navigation.NextAlarm(traps));   // past the end: the head
+    }
+
+    [Fact]
+    public void PastTheEndOnlyTheFirstAlarmIsTried()
+    {
+        // 0x00426B05..0x00426B2F stops at the head's first trap of the alarm kind: a quiet one
+        // there hides a later ringing one, and the last trap clears.
+        var navigation = new ThingNavigation(PlayerIds.FirstKeeper);
+        ThingNavigationEntry[] traps = [Trap(9, 1, true, false), Trap(8, 1, true, true)];
+        Assert.Null(navigation.NextAlarm(traps));
+        Assert.Equal(new TilePos(9, 4), navigation.Next(traps, 1));
+        Assert.Equal(new TilePos(8, 4), navigation.NextAlarm(traps));   // after the quiet one, the walk finds it
+        Assert.Null(navigation.NextAlarm(traps));                       // past the end, the quiet head again
+    }
+
+    [Fact]
+    public void TheAlarmAndTheWorkshopShareTheLastTrap()
+    {
+        // Both keep HUD +0x12E: the Workshop's last trap is where the alarm's walk goes on from.
+        var navigation = new ThingNavigation(PlayerIds.FirstKeeper);
+        ThingNavigationEntry[] traps = [Trap(9, 1, true, true), Trap(8, 2), Trap(7, 1, true, true)];
+        Assert.Equal(new TilePos(8, 4), navigation.Next(traps, 2));
+        Assert.Equal(new TilePos(7, 4), navigation.NextAlarm(traps));
+        Assert.Equal(new TilePos(9, 4), navigation.Next(traps, 1));   // after 7: past the end, the head
+    }
+
+    [Fact]
+    public void WithNoAlarmTrapTheLastTrapStays()
+    {
+        // No trap of the viewer has the alarm's shot: 0x00426A65 returns before touching +0x12E.
+        var navigation = new ThingNavigation(PlayerIds.FirstKeeper);
+        ThingNavigationEntry[] traps = [Trap(9, 2), Trap(8, 2), Trap(7, 1, true, true, PlayerIds.FirstKeeper + 1)];
+        Assert.Equal(new TilePos(9, 4), navigation.Next(traps, 2));
+        Assert.Null(navigation.NextAlarm(traps));
+        Assert.Equal(new TilePos(8, 4), navigation.Next(traps, 2));
+    }
 }

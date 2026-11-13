@@ -292,7 +292,7 @@ immediately after that dot. Other-player creature loops have no such ring.
 For an owned trap whose definition's **shot id** `+0xBB` is 13 (Alarm and Hero
 Alarm in shipped data; see traps.md), the magenta RGB (220,50,255) outline is
 drawn while unsigned `worldTurn <= RechargeAt`. The inclusive deadline comes
-from `0x004AA2F0`; it is not the complete firing-readiness predicate. Radius
+from `0x004AA2F0` (the Battle tab's alarm button uses the same test, [battle-tab.md](battle-tab.md) section 1); it is not the complete firing-readiness predicate. Radius
 is `worldTurn % 30`, in raster units in both modes, with no distance scaling.
 The ordinary trap marker is drawn first. This branch does not separately test
 construction status. Transient signal slots, player flag `+0x76` bit 4 and the

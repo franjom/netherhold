@@ -59,6 +59,7 @@ namespace DK2.Unity
         private ClassicGameOptionsPanel _gameOptionsPanel;
         private MessageTabsView _messageView;
         private ClassicMessageTabs _messageTabs;
+        private ClassicBattleTab _battleTab;
         private uint _gotoMessage;
         private GameTick _gotoTick;
         private (float X, float Y)? _gotoLocation;
@@ -176,6 +177,8 @@ namespace DK2.Unity
                 (x, y) => StartGlide(new TilePos((int)Math.Floor(x), (int)Math.Floor(y))),
                 PlayerNames(campaignLevel ? GameDatabaseLoader.LoadCampaignPlayers(install, levelName) : null));
             _startup.Step("hud.messages");
+            _battleTab = new ClassicBattleTab(transform, bottomAssets);
+            _battleTab.Clicked += BattleTabClicked;
         }
 
         /// <summary>Player <c>+0xEEA</c>, the name the Current Holder box shows: the level's Players
@@ -224,7 +227,7 @@ namespace DK2.Unity
 
         private void DisposeHudControls()
         {
-            _gameOptionsPanel?.Dispose(); _overviewPanel?.Dispose(); _bottomPanel?.Dispose(); _messageTabs?.Dispose(); _optionsPanel?.Dispose(); _fullMap?.Dispose(); _queryPanel?.Dispose();
+            _gameOptionsPanel?.Dispose(); _overviewPanel?.Dispose(); _bottomPanel?.Dispose(); _messageTabs?.Dispose(); _battleTab?.Dispose(); _optionsPanel?.Dispose(); _fullMap?.Dispose(); _queryPanel?.Dispose();
             _statusFlowerArt?.Dispose();
             _savePanel?.Dispose();
             _hudSources?.Dispose();
@@ -300,6 +303,33 @@ namespace DK2.Unity
                 _thingEntries.Add(new ThingNavigationEntry(trap.Id, new PlayerId(trap.PlayerId), trap.TrapId, new TilePos(trap.X, trap.Y)));
             }
             if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
+        }
+
+        /// <summary>Menu 43's clicks (docs/research/battle-tab.md): the blades' right click is the
+        /// F key's zoom (0x00426960); the cancel's left click submits action 0x81 (0x004268A0) and its
+        /// right click glides to the call's tile (0x00426830); the alarm's right click (0x00426A00)
+        /// walks the ringing alarms on the Workshop trap cycle's last trap. Left clicks on the blades
+        /// and the alarm do nothing (their records have no left-click callback).</summary>
+        private void BattleTabClicked(BattleTabButton button, int mouse)
+        {
+            if (_hudControls.InputSuppressed || HudModal) return;
+            var viewer = new PlayerId((byte)viewingPlayerId);
+            switch (button)
+            {
+                case BattleTabButton.Battle when mouse == 1:
+                    ApplyHudAction(ClassicHudAction.NavigateFight);
+                    break;
+                case BattleTabButton.CallToArms when mouse == 0:
+                    _pendingCommands.Add(new RemoveCallToArmsCommand(viewer));
+                    break;
+                case BattleTabButton.CallToArms when mouse == 1:
+                    if (BattleTabView.CallToArmsTile(World, viewer) is TilePos flag) StartGlide(flag);
+                    break;
+                case BattleTabButton.Alarm when mouse == 1:
+                    BattleTabView.TrapEntries(World.Traps, _simulation.Database, World.CurrentTick, _thingEntries);
+                    if (_trapNavigation.NextAlarm(_thingEntries) is TilePos alarm) StartGlide(alarm);
+                    break;
+            }
         }
 
         /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
@@ -555,6 +585,9 @@ namespace DK2.Unity
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
                 HudIndicatorSnapshot.Capture(World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)),
                 _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
+            _battleTab.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
+                _musicObserver == null ? default : BattleTabView.Capture(World, _simulation.Database, new PlayerId((byte)viewingPlayerId), _musicObserver.Battles),
+                (long)(Time.realtimeSinceStartupAsDouble * 1000));
             _overviewView.Capture(World);
             _overviewPanel.Draw(CurrentHud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);
@@ -603,6 +636,7 @@ namespace DK2.Unity
                 return _portraitHover;
             }
             if (_messageTabs != null && _messageTabs.ContainsPointer(Input.mousePosition)) return _messageTabs.HoverText;
+            if (_battleTab != null && _battleTab.ContainsPointer(Input.mousePosition)) return _battleTab.HoverText;
             if (_bottomPanel.ContainsPointer(Input.mousePosition)) return _bottomPanel.HoverText;
             if (_minimap != null && HudWidgetText.ForAction(_minimap.HoveredControl(Input.mousePosition)) is int corner)
             {

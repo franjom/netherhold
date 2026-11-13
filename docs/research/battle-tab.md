@@ -18,8 +18,9 @@ The battle records themselves were first read for the census
 ([binary-census.md §3](binary-census.md#3-battles-are-presentation)); this page is the home of
 the whole mechanism, from the records to the HUD. Read-only membership is built
 for music; `BattleNavigation` selects the next local record and the rebound
-Zoom To Fight action glides to its tile centre. The visual battle tab and its
-fly-in remain pending.
+Zoom To Fight action glides to its tile centre. The tab's three buttons are built
+(ADR-0773: `BattleTabView`, `ClassicBattleTab`); the blades' sound `0x30F` (Q775),
+the fly-in (Q664) and the minimap's battle ring remain pending.
 
 ## 1. Where the tab lives — STRONGLY INFERRED
 
@@ -44,7 +45,13 @@ with the player's `+0x138` word, its right click [0x00426830](functions/00426830
 tile stored at player `+0x13A` (needs player `+0x76` bit 2), and its frame callback
 [0x00426920](functions/00426920.md) shows it only while [0x004C00D0](functions/004C00D0.md) passes
 (player `+0x76` bit 2, a live flag object with `+0x146` bit `0x10` clear, process state 13 or 14).
-Widget 3 (an alarm icon) is not read here. The status line for a hovered widget is probably text
+Widget 3 is the alarm (read 2026-11-13): its frame callback [0x00426B90](functions/00426B90.md)
+shows it while any trap of the player has the Alarm shot (definition `+0xBB` = 13) and is within
+its recharge deadline ([0x004AA2F0](functions/004AA2F0.md), the minimap ring's test); its right
+click [0x00426A00](functions/00426A00.md) glides to the player's next such trap after the one at
+interface `+0x12E`, the Workshop trap cycle's slot, so the two cycles move each other on. Past the
+end of the list it tries only the first Alarm Trap from the head, and a quiet one there ends the
+walk with nothing. The status line for a hovered widget is probably text
 2166 "Battle Tab: right-click to zoom, click again to cycle.", by the tabs' id + 1 rule
 (bottom-panel-controls.md). The positions are static, so a hidden neighbour leaves its gap
 (STRONGLY INFERRED: no relayout of menu 43 was found).
@@ -140,9 +147,10 @@ Hud_DrawIconButton's menu-43 arm (`0x00412AF3..0x00412BA7`) runs for a widget in
   each **150 ms**, a 600 ms loop; widget 2 alternates two frames every 300 ms;
 - widget 1 only: on every draw while the phase is odd, sound id `0x30F` is requested with
   bank argument `[0x006ACB94]` and handle 0 through `[0x0075B468]` slot `+0x24`.
-  Whether the service restarts or ignores a sound already playing is unread.
+  Whether the service restarts or ignores a sound already playing is unread. The group has one
+  sample in slot 15's category; ours does not play it (Q775, ADR-0773).
 
-The art is the whole flash: there is no tint, sparkle or FlashButton involvement
+The art is the whole flash: the battle code adds no tint or sparkle (Hud_DrawIconButton's generic flash arm `0x00412E40..0x00412EAC` dims any state-1 widget whose id matches the session's flash record, so a script FlashButton on id 1 to 3 might reach these too; who writes that record for them is unread)
 ([tab-alerts.md](tab-alerts.md) is a separate, script-only alert).
 
 **Minimap.** [Minimap_DrawThings](functions/0041CC50.md) (`0x0041D860..0x0041D9B9`) draws, for
@@ -222,6 +230,6 @@ on right click or F: idx = next local record after idx (wrapping); if any: glide
 
 - The fly-in object's art and motion: `0x0042F040`, `+0x4D1D` 0.15, `+0x4D54` 2441 (Q664).
 - Which samples sounds `0x30F`, `0x32B` and `0x32C` name in their banks (the category of the last two is `gui_button_tab_new_combat`, [sound-effects-interface.md section 10](sound-effects-interface.md#10-the-battle-fly-in-0x32b-0x32c)).
-- Widget 3 of menu 43: its frame callback `0x00426B90` and clicks (widget 2 is read, section 1).
+- Why the blades' repeated `0x30F` is heard once (Q775).
 - Creature `+0x32D` (the second state field tested for 202) and record `+0x00`, `+0x12..+0x1A`.
 - Whether `Speech.str` 20..22 are ever spoken (Q663).

@@ -18277,8 +18277,7 @@ flag's position, heading and owner each time the counter wraps to 0.
 
 **Consequences.** View output only: no simulation state, hash or save change. The Battle tab's
 Call to Arms widget (`0x00426920`, visible under `0x004C00D0`, its click game action 0x81 into
-`0x0049C6A0`) stays unbuilt: ours has no Battle tab, and the cancel itself already exists as
-`RemoveCallToArmsCommand`.
+`0x0049C6A0`) is built by ADR-0773; the cancel itself is `RemoveCallToArmsCommand`.
 
 ## ADR-0781 - the steering crowd probe counts a creature by its tile link
 **Date:** 2026-11-13 | **Status:** accepted | **Systems:** navigation, creatures
@@ -18418,3 +18417,33 @@ the pan follows the camera's turn. A head-relative group plays without a positio
 tile-granular in ours (`ListenerFocus`); DK2's listener orientation, the source cone and the
 instance range override (instance flag `0x200`) are not mirrored. Voice counts and fades remain
 unread (Q678).
+
+## ADR-0773 - the Battle tab's three buttons are built as DK2's menu 43
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** hud-front-end, combat
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, #1054) left the Call to Arms
+cancel without a button, and battle-tab.md left the tab itself pending: only the F key's zoom
+(`BattleNavigation`) was built. Menu 43 holds three static 128-unit buttons at x 2080 + 0, 136 and
+264 on the tab row (1460, or 1772 with the panel collapsed, `0x00417170`). The crossed blades show
+while a live battle record holds a creature of the viewer (`0x004269D0`) and their right click is the
+F key's cycle (`0x00426960`). The Call to Arms cancel shows while the call is on and its flag is live,
+not in a hand and activated or recalling (`0x004C00D0`); its left click is game action 0x81
+(`0x004268A0`), its right click glides to the call's tile (`0x00426830`). The third button, read now,
+is the alarm: it shows while an Alarm Trap of the viewer (shot 13) is within its recharge deadline
+(`0x00426B90`, `0x004AA2F0`), and its right click (`0x00426A00`) walks those traps on the Workshop
+trap cycle's last trap (interface `+0x12E`); past the end only the first Alarm Trap is tried. The
+draw (`0x00412AF3..0x00412BA7`) steps on the real clock at 150 ms: blades and alarm cycle four
+frames, the cancel two at 300 ms. STRONGLY INFERRED: read, not captured.
+
+**Decision.** `BattleTabView` (DK2.Presentation) holds the menu's places, art and the three
+visibility tests; `ThingNavigation.NextAlarm` is the alarm's walk on the same instance as the
+Workshop's trap cycle. Unity's `ClassicBattleTab` draws the buttons beside the message tabs and
+raises their clicks; `DungeonRunner` routes them to the F key's cycle, a `RemoveCallToArmsCommand`,
+a glide to the call's tile and the alarm walk. `HumanCommandPolicy` now classes the cancel as Play
+(version 2). The blades' sound `0x30F`, which the draw asks for on every frame with an odd phase
+and whose group has one sample in its category, is not played: the owner hears one sound at a
+battle's start, and why the repeats are not heard is unread (Q775). The fly-in (Q664) stays unbuilt.
+
+**Consequences.** View and input only: no simulation state, hash or save change. The blades'
+status line, Text.str 2166, follows the tabs' id + 1 pairing (HYPOTHESIS). The battle-age minimap
+ring (battle-tab.md section 6) is not part of this change.

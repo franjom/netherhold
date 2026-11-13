@@ -80,6 +80,14 @@ public sealed class InterfaceSoundMapsTests
         Assert.True(Samples(category, id) > 0);
     }
 
+    // The Battle tab's blades ask 0x30F in slot 15's category on every odd-phase draw (0x00412AF3..0x00412BA7);
+    // the group is there with one sample, so a silent bank is not why the owner hears one sound only (Q775).
+    [InstallFact]
+    public void TheBladesFlashSoundHasOneSampleInTheNewCombatCategory()
+    {
+        Assert.Equal(1, Samples("gui_button_tab_new_combat", 0x30F));
+    }
+
     // The mana warning 0xF (0x004C1226) asks the Dungeon Heart's category: no Global category has it, so DK2 is silent there too.
     [InstallFact]
     public void TheManaWarningGroupAndGroupOneAreInNoGlobalCategory()

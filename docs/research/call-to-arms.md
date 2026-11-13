@@ -105,11 +105,10 @@ new cast replaces the dead tag. This is the code's consequence, unobserved (Q483
 Built: the cast command (action 54) with selectors 4/4, the Create Object process, the
 flag's process states, activation, recruit, release, the slap (action 63), the prepaid
 clock and the upkeep, the unaffordable fade, message 84, states 190–192 with the run
-speed hooks, the recall's effect 330 every third pass (ADR-0771), and the five readers above. The observation (schema 9) carries each
+speed hooks, the recall's effect 330 every third pass (ADR-0771), the Battle tab's cancel button (ADR-0773), and the five readers above. The observation (schema 9) carries each
 creature's `0x004888C0` answer and the keeper's call.
 
-Not built: the Heart-slab nudge, the flag's other effects and sound, the Battle tab's Call to
-Arms widget (ours has no Battle tab; the cancel is `RemoveCallToArmsCommand`), the thrown flag's flight
+Not built: the Heart-slab nudge, the flag's other effects and sound, the thrown flag's flight
 on a slap, `TortureVoluntary` recruits, the Reaper timer, and the unread order between
 DK2's object and creature updates (ours runs creatures first, then flags, and chains a
 flag's states). Two ending-flag deviations: a flag ending in state 13 goes to Releasing at

@@ -37,6 +37,7 @@ namespace DK2.Unity
             if (_resourceHud != null) _resourceHud.UiScale = scale;
             if (_hoverHud != null) _hoverHud.UiScale = scale;
             if (_messageTabs != null) _messageTabs.UiScale = scale;
+            if (_battleTab != null) _battleTab.UiScale = scale;
             if (_overviewPanel != null) _overviewPanel.UiScale = scale;
             if (_queryPanel != null) _queryPanel.UiScale = scale;
             if (_handCursor != null) _handCursor.UiScale = scale;

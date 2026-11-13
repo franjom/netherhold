@@ -34,7 +34,7 @@ public enum HumanCommandClass
 public static class HumanCommandPolicy
 {
     /// <summary>Bumped whenever a classification changes; the fuzzer's name carries it.</summary>
-    public const int Version = 1;
+    public const int Version = 2;
 
     /// <summary>Where human input becomes commands, relative to the repository root; every
     /// <c>.cs</c> file below them is scanned, so a new input file cannot escape the check. Today the
@@ -65,6 +65,8 @@ public static class HumanCommandPolicy
         [typeof(GuiButtonCommand)] = HumanCommandClass.Play,
         // The Hand's press on a door, Hand_Click's hover-kind-5 arm (action 93).
         [typeof(LockDoorCommand)] = HumanCommandClass.Play,
+        // The Battle tab's Call to Arms cancel, a left click (0x004268A0, action 0x81; version 2).
+        [typeof(RemoveCallToArmsCommand)] = HumanCommandClass.Play,
         [typeof(SkipCameraPathCommand)] = HumanCommandClass.OutsidePlay,
         [typeof(RevealMapCommand)] = HumanCommandClass.OutsidePlay,
         [typeof(ContinueAfterResultCommand)] = HumanCommandClass.OutsidePlay,
@@ -72,7 +74,6 @@ public static class HumanCommandPolicy
         [typeof(SetAllianceCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(AcknowledgePlayerMessageCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(SetRescuePriorityCommand)] = HumanCommandClass.NoHumanPathYet,
-        [typeof(RemoveCallToArmsCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(LeavePossessionCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(ActPossessedCreatureCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(DismissFollowersCommand)] = HumanCommandClass.NoHumanPathYet,
