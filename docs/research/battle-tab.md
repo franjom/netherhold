@@ -197,7 +197,7 @@ effect. The sound: one at the start of the fight, then the blades flash silently
 button shows while the Alarm Trap with a Dwarf beside it rings (the minimap's magenta ring pulses
 there) and goes once the Dwarf is dealt with. **Its right click does nothing**, nor does a left
 click, while the level's other Alarm Trap, placed after it and quiet, heads the trap list: the head
-restart of [0x00426A00](functions/00426A00.md) observed (the list order itself is a HYPOTHESIS:
+restart of [0x00426A00](functions/00426A00.md) observed (DK2-033, issue #2) (the list order itself is a HYPOTHESIS:
 placed things linked at the head). The shared last trap could not be tried: without a Workshop the
 panel's trap slots are disabled.
 
