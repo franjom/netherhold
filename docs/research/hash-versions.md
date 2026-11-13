@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**495** - `0xDFC50CFE61D3FADF`. The hand fires its trigger events (ADR-0770): a slap creature event 5 and player event 60 to the slapped creature's owner, after the count on the main path and before it on the short path (`0x0048BCB2`, `0x0048BD08`); a lift player event 58 to the lifting keeper and creature event 65 at the prepare step (`0x004BFCB0`, `0x004BFCBD`). Level 1's tutorial speaks lines 29 and 60 from them. No new saved fields; earlier saves are refused.
+
 **493** - `0x95C6ADDCCFDD08B9`. A guard post's target is read by the slot's facing, which `0x00462BB0` returns (`0x00462CD3`), and a miss is 8 only: a slot-7 post and the north-west corner are walked to, and slots 2, 5 and 6 take the other offset pair (ADR-0780). No new saved field; earlier saves are refused.
 
 **491** - `0x934774BEF5844744`. The flee state turns one step toward its target (`0x004B2AE0` at `0x0046071C`) before the stand-off test and the step back, so it backs away from the enemy (ADR-0766). No new saved field; earlier saves are refused.

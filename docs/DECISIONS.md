@@ -18234,3 +18234,29 @@ controlled516): draws match through 1937 (9037), 432 follows native every turn 1
 stop is creature 441's steering at native 1932 (Q772). Level 1 outcome unchanged (journal re-recorded).
 Tests: `GuardTests.AGuardWhoseNearestPostIsTheSouthWestCornerWalksToIt` (fails on the old code),
 `EveryCornerOfARectangularRoomIsAPost`, `ALegEndsOnTheQuarterAgainstItsWall` (slot 5's point by facing 2).
+
+## ADR-0770 - the hand fires its slap and pick-up trigger events
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** campaign-triggers, creatures
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, item 10, #1003 and #1018)
+found four events with no producer. `Hand_SlapCreature` (`0x0048B8A0`) fires creature event 5 on
+the slapped creature and then player event 60 to its owner (`creature+0x2A`), on its two
+counting paths only: the main path after its NumberOfSlaps count (`0x0048BCAA`, events
+`0x0048BCB2`/`0x0048BCC0`), states 209 and 255 before theirs (events `0x0048BD08`/`0x0048BD16`,
+count `0x0048BD77`). The damage-only and refused arms fire nothing. `Hand_PrepareCreature`
+(`0x004BFBD0`), once it takes state 75 afresh, stamps `+0x2CC` and fires player event 58 to the
+lifting keeper (`0x004BFCB0`) and creature event 65 (`0x004BFCBD`); a creature already in 75
+jumps past all of it (`0x004BFBFB`) to the lift sound alone. All before the hand's capacity test.
+The hand callback `0x004C0BE0` stops the creature afterwards (`0x004C0C82..0x004C0C95`). Both events run the trees at once. Shipped users:
+Level 1's triggers 212 (event 60, speech 29) and 257 (event 58, speech 60), Level 6a's creature
+trigger 24 (event 65). STRONGLY INFERRED: read in DKII.EXE (disassembly re-read 2026-11-13).
+
+**Decision.** `HandSystem.Slap` fires both slap events for the Full and Short outcomes, Full
+after the count and Short before it. `HandSystem.PickUp` fires both lift events only when it
+takes 75 afresh, after the lift's own clean-up (load, job, Pit mark), which DK2 runs in
+SetState(75) and the prepare body before them; the sound keeps its condition and position, and
+the creature's velocity is zeroed after the events.
+
+**Consequences.** Hash/save 495, pin `0xDFC50CFE61D3FADF`; no new state. Level 1's tutorial now
+speaks at the first slap and the first lift. Ours keys "already in 75" on the state id where DK2
+tests the activity code 0x4B (Q768), so a state sharing that code would fire events in ours.

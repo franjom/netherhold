@@ -7,6 +7,7 @@ using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
 using DK2.TestSupport;
 
@@ -375,6 +376,33 @@ public class TriggerExecutorOnRealDataTests
         simulation.Run(2);
 
         Assert.Single(events.Events, e => e.ScriptedView is { Kind: ScriptedViewKind.Speech, Value: 39 });
+    }
+
+    /// <summary>Level 1's tutorial reacts to the hand: trigger 212 waits for player event 60 (a slap,
+    /// <c>0x0048BCC0</c>) and plays speech 29, trigger 257 for player event 58 (a lift,
+    /// <c>0x004BFCB0</c>) and plays speech 60, each once the camera is free (ADR-0770).</summary>
+    [InstallTheory]
+    [InlineData(true, 29)]
+    [InlineData(false, 60)]
+    public void LevelOnesTutorialSpeaksWhenTheKeeperSlapsOrLiftsACreature(bool slap, int speech)
+    {
+        (GameSimulation simulation, _) = LevelOne(seed: 7, withThings: true, systems: [new HandSystem()]);
+        var events = new ListEventSink();
+        simulation.ObserveWith(events);
+        var keeper = new PlayerId(3);
+        do simulation.Tick();
+        while ((simulation.CurrentTick.Value < 60
+                || CameraPathRules.Playing(simulation.World.Player(keeper), simulation.CurrentTick))
+               && simulation.CurrentTick.Value < 4000);
+        Assert.DoesNotContain(events.Events, e => e.ScriptedView is { Kind: ScriptedViewKind.Speech } v && v.Value == speech);
+
+        CreatureState imp = simulation.World.Creatures.First(c => c.OwnerPlayerId == keeper.Value);
+        simulation.Tick(InputFrame.Of(slap
+            ? new SlapCreatureCommand(keeper, imp.Id)
+            : new PickUpCreatureCommand(keeper, imp.Id)));
+        simulation.Run(2);
+
+        Assert.Single(events.Events, e => e.ScriptedView is { Kind: ScriptedViewKind.Speech } v && v.Value == speech);
     }
 
     private static (GameSimulation Simulation, TriggerTree Tree) LevelOne(

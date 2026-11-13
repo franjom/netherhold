@@ -182,11 +182,8 @@ public sealed class HandSystem : ISimulationSystem
         }
         // 0x004BFBD0 ends a running action once 75 is taken (0x004BFC44), a melee hold included.
         if (prepared && !alreadyPrepared) CreatureStateMachine.EndAction(creature);
-        // 0x004BFBD0 ends on the lift sound for a creature already in 75 too, and before the capacity test;
-        // only a refusal of 75 itself leaves it silent. Handle 0: the creature's own voice is not used.
-        if (prepared || creature.Activity == CreatureActivity.BeingLifted)
-            ThingSoundRules.RequestUnvoiced(context, SystemName, creature, ThingSoundEvent.PickedUp,
-                new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)));
+        bool lifted = prepared || creature.Activity == CreatureActivity.BeingLifted;
+        var liftedAt = new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
         // Leaving its state lets go of the job and the load, and the creature stops where it stands
         // (0x004C0BE0); 75 replaces a landing still pending.
         DropLoad(context, creature);
@@ -194,12 +191,25 @@ public sealed class HandSystem : ISimulationSystem
         CombatPitRules.Unmark(world, creature);   // 0x004BFBD0 clears the fight and Pit marks
         creature.ClearJob();
         TrainingStep.CancelAction(creature);
-        creature.Body.Vel = Steering.Fixed16Vector.Zero;
         if (creature.LandingPending)
         {
             creature.LandingPending = false;
             creature.PosZ = creature.LastPosZ = 0;
         }
+        // 0x004BFBD0, once it has taken 75 afresh, ends its block with the +0x2CC stamp, player event
+        // 58 to the lifting keeper (0x004BFCB0) and creature event 65 (0x004BFCBD); a creature already
+        // in 75 jumps past them (0x004BFBFB) to the lift sound alone. All before the capacity test;
+        // only a refusal of 75 itself leaves it silent (ADR-0770). Handle 0: the creature's own voice
+        // is not used.
+        if (prepared && !alreadyPrepared)
+        {
+            context.FirePlayerEvent(command.PlayerId, PlayerTriggerEvent.CreaturePickedUp);
+            context.FireCreatureEvent(creature, CreatureTriggerEvent.PickedUp);
+        }
+        if (lifted)
+            ThingSoundRules.RequestUnvoiced(context, SystemName, creature, ThingSoundEvent.PickedUp, liftedAt);
+        // The hand callback (0x004C0BE0) stops the creature after the prepare step (0x004C0C82).
+        creature.Body.Vel = Steering.Fixed16Vector.Zero;
         // Hand state 1 is entered; its exit callback (0x004C0EA0) is the insert.
         ref PlayerState keeper = ref world.Player(command.PlayerId);
         keeper.PendingLiftCreatureId = creature.Id;
@@ -867,14 +877,26 @@ public sealed class HandSystem : ISimulationSystem
             CollapseInTheDamageCall(context, creature, definition);
             if (outcome == SlapOutcome.Full)
                 StatusEffectRules.ModifySpeed(context, creature, SlapRules.SpeedPercent, SlapRules.SpeedSeconds);
+            // Creature event 5 on the slapped creature, then player event 60 to its owner: the main
+            // path after its count (0x0048BCAA, 0x0048BCB2), the short path before it (0x0048BD08,
+            // count 0x0048BD77). Both run the trees at once, so a tree sees the count accordingly.
+            if (outcome == SlapOutcome.Short) FireSlapped(context, creature);
             if (outcome != SlapOutcome.Uncounted && world.HasPlayer(creature.OwnerPlayerId))
                 world.Player(creature.OwnerPlayerId).SlapCount++;
+            if (outcome == SlapOutcome.Full) FireSlapped(context, creature);
         }
 
         context.Emit(SystemName, "slapped",
             $"player={command.PlayerId} creature={creature.Id} " +
             $"health={creature.Health} damage={-hurt} anger={creature.Anger.Max} (+{anger}) " +
             $"efficiency={EfficiencyRules.Percent(creature, definition)}%");
+    }
+
+    /// <summary><c>Hand_SlapCreature</c>'s two events (ADR-0770); the damage-only and refused arms fire none.</summary>
+    private static void FireSlapped(SimulationContext context, CreatureState creature)
+    {
+        context.FireCreatureEvent(creature, CreatureTriggerEvent.Slapped);
+        context.FirePlayerEvent(new PlayerId(creature.OwnerPlayerId), PlayerTriggerEvent.CreatureSlapped);
     }
 
     /// <summary>The slap's damage call collapses a creature that will, inside the call and ahead of the speed
