@@ -23,6 +23,7 @@ internal partial class Program
                     args[1], int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture), args[3])
                 : Usage(),
             ["replay"] = args => args.Length >= 4 ? ReplayCommands.Replay(args) : Usage(),
+            ["journal-report"] = JournalReportCommand.Run,
             ["decide"] = args => args.Length == 4 ? ReplayCommands.Decide(args[1], args[2], args[3]) : Usage(),
             ["sgmap"] = args => SgmapCommand.Run(args[1..], Repo.FindRepoRoot()),
             ["verification-ledger"] = args => VerificationLedger.Run(args[1..], Repo.FindRepoRoot()),
@@ -111,8 +112,10 @@ internal partial class Program
         Console.WriteLine("                                         the same, driven by a captured task-pool log");
 
         Console.WriteLine("  capture-diff <ours.csv> <capture.csv> [--anchor tN]");
-
         Console.WriteLine("                                         event set and stamp-aligned capture timing");
+
+        Console.WriteLine("  journal-report <input.journal> <hashes.tsv> <new-report.html>");
+        Console.WriteLine("                                         offline hash comparison and nearby commands");
 
         Console.WriteLine("  decide <level> <decisions.jsonl> <out.tsv>");
 
