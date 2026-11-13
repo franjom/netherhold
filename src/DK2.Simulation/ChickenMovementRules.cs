@@ -300,10 +300,12 @@ public static class ChickenMovementRules
     }
 
     // Hatchery pillars are drawn from room geometry rather than stored as simulation objects.
-    private static bool HasHatcheryPillar(SimulationContext context, TilePos tile)
+    private static bool HasHatcheryPillar(SimulationContext context, TilePos tile) =>
+        HasHatcheryPillar(context.World, context.Database, tile);
+
+    /// <summary>Whether a virtual Hatchery pillar (object 78, an Obstacle) stands on this tile.</summary>
+    internal static bool HasHatcheryPillar(WorldState world, GameDatabase database, TilePos tile)
     {
-        WorldState world = context.World;
-        GameDatabase database = context.Database;
         if (database.ObjectById(HatcheryRules.PillarObjectId) is not { } definition
             || (definition.Flags & ObjectFlags.Obstacle) == 0) return false;
         int index = tile.Y * world.Width + tile.X;

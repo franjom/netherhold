@@ -160,7 +160,7 @@ public sealed class CreatureStateSoundTests
         for (int y = 6; y < 9; y++)
         for (int x = 6; x < 9; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), Keeper);
-        ObjectState bird = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, (7 * world.Width) + 7);
+        ObjectState bird = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, (6 * world.Width) + 7);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         goblin.Health = 500;
         goblin.HungerNeed = 1;

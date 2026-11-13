@@ -197,7 +197,7 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
             Shadow(context, creature, CreatureStateMachine.Idle);
             Shadow(context, creature, EatingRules.InHatcheryState);
             creature.StopMoving();
-            Seeking(context, creature, definition);
+            // 91's handler only sets 92; 92's handler runs on the next turn (0x00471A70).
             return true;
         }
 
@@ -259,7 +259,7 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
             return;
         }
 
-        ObjectState? chicken = EatingRules.NearestChickenIn(world, room, creature.Tile);
+        ObjectState? chicken = EatingRules.NearestChickenIn(world, database, room, creature.PosX, creature.PosY);
         if (chicken is null)
         {
             // Standing in an empty hatchery is the original's holding pattern,
@@ -298,14 +298,14 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
             return;
         }
 
+        // Still walking: state 6 hands over to 93 only at its arrival.
+        if (creature.HasRoute) return;
+
+        // A route that ran out short of the bird (it moved, or a waypoint stopped being walkable)
+        // is a failed approach, and the search starts again from where the creature now stands.
         if (EatingRules.DistanceSquared(world, creature.Tile, chicken.TileIndex)
             > EatingRules.ReachTilesSquared)
         {
-            // Still walking. A route that ran out short of the bird — a waypoint
-            // that stopped being walkable — is a failed approach, and the search
-            // starts again from where the creature now stands.
-            if (creature.HasRoute) return;
-
             BackToTheSearch(context, creature);
             return;
         }
@@ -320,30 +320,32 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         CreatureDef definition, ObjectState chicken)
     {
         WorldState world = context.World;
-        GameDatabase database = context.Database;
 
-        creature.TargetObjectId = chicken.Id;
         creature.StopMoving();
 
-        // 92 hands the bird to the position helper: state 6, resuming in 93. That helper has
-        // no already-there shortcut, unlike the room one - so even a bird underfoot is a
-        // walk, and it is its arrival that reaches 93 (travel-states.md 2.1, 8).
-        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, EatingRules.EatState);
-
-        int x = chicken.TileIndex % world.Width;
-        int y = chicken.TileIndex / world.Width;
-
-        // Already on it or beside it: eat this tick, no walk at all.
-        if (EatingRules.DistanceSquared(world, creature.Tile, chicken.TileIndex)
-            <= EatingRules.ReachTilesSquared)
+        // 92 hands the bird's own point to the position helper 0x00471890(point, 93, 0xE8): state 6,
+        // resuming in 93. It has no already-there shortcut, so even a bird underfoot is a walk, and
+        // its arrival reaches 93 (travel-states.md 2.1, 8). A failed route returns 0 (0x004636B1), and
+        // the dispatcher drops a handler's 0 to state 1 (0x004772B0), as 92's other failures do.
+        if (!TunnelRules.RouteOrTunnel(context, SystemName, creature, chicken.PosX, chicken.PosY,
+                StateShadow.TravelToPoint, EatingRules.EatState, Navigation.MoveOptions.ExactSpot,
+                chicken.PosX >> 12, chicken.PosY >> 12))
         {
-            if (StateShadow.IsTravelling(creature)) Arrive(context, creature);
-            Swallow(context, creature, definition, chicken);
+            GiveUp(context, creature);
             return;
         }
 
-        context.Navigation.TryRoute(creature, new TilePos(x, y), Navigation.MoveOptions.ExactSpot);
+        // Then the bird is prepared (0x004636B3-0x004636E4): its fear marker (0x0049CE70(1), +0x152),
+        // process 8, whose first turn draws the reaction timer and then holds it still, and both scale
+        // words at 1.0. Ours keeps no +0x58/+0x5C, which it also clears.
+        creature.FoodOwedAfterMeal = false;     // +0xAB
+        creature.TargetObjectId = chicken.Id;   // +0xAF
+        chicken.ChickenScared = true;
+        ChickenMovementRules.SetProcess(chicken, ChickenProcess.Reaction);
+        chicken.ChickenScale = new Fp32(Fp32.One);
 
+        int x = chicken.TileIndex % world.Width;
+        int y = chicken.TileIndex / world.Width;
         context.Emit(SystemName, "chicken_chosen",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} chicken={chicken.Id} " +

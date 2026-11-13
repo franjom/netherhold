@@ -134,30 +134,39 @@ public static class EatingRules
         && room.Definition.TypeId == RoomTypeId.Hatchery
         && room.OwnerPlayerId == playerId;
 
-    /// <summary>The nearest chicken in this room by <b>straight-line squared distance</b>
-    /// — the original's ranking exactly, and deliberately not a path length.
-    /// <para>Ties keep the first object met along the room's slab chain.</para></summary>
+    /// <summary>The nearest chicken in this room by <b>straight-line squared distance</b>, state 92's
+    /// ranking (<c>0x00463587</c>-<c>0x00463663</c>), and deliberately not a path length.
+    /// <para>Along the slab chain from the first slab, each tile's first chicken in its thing chain (<c>0x004537E0(9)</c>) is
+    /// ranked from the creature's own point, each term squared and shifted right by 12 in 32 bits, and kept
+    /// when strictly nearer (unsigned, from <c>0xFFFFFFFF</c>) and its tile holds no obstacle
+    /// (<c>0x00453600</c>, asked only of a nearer bird). Ties keep the first met.</para></summary>
     public static ObjectState? NearestChickenIn(
-        WorldState world, RoomInstance room, TilePos from)
+        WorldState world, GameDatabase database, RoomInstance room, int fromX, int fromY)
     {
         ObjectState? best = null;
-        long bestDistance = long.MaxValue;
+        uint bestDistance = uint.MaxValue;
 
         EntityList<ObjectState> objects = world.Objects;
         foreach (int tile in SlabChain.Order(world, room))
-        for (int i = 0; i < objects.Count; i++)
         {
-            ObjectState thing = objects[i];
-            if (!IsEdibleChicken(thing)) continue;
-            if (thing.TileIndex != tile) continue;
+            // The tile's first chicken from the chain's head (the latest to arrive, ThingTileLink).
+            ObjectState? thing = null;
+            for (int i = 0; i < objects.Count; i++)
+            {
+                ObjectState candidate = objects[i];
+                if (candidate.TileLink.TileIndex != tile || !IsEdibleChicken(candidate)) continue;
+                if (thing is null || candidate.TileLink.Order > thing.TileLink.Order) thing = candidate;
+            }
+            if (thing is null) continue;
 
-            int x = thing.TileIndex % world.Width;
-            int y = thing.TileIndex / world.Width;
-            long dx = x - from.X;
-            long dy = y - from.Y;
-            long distance = (dx * dx) + (dy * dy);
-
+            long dx = Math.Abs((long)fromX - thing.PosX);
+            long dy = Math.Abs((long)fromY - thing.PosY);
+            uint distance = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));
             if (distance >= bestDistance) continue;
+            // 0x00453600 is asked of the tile under the bird's point; ours' Hatchery pillars are virtual.
+            var under = new TilePos(thing.PosX >> 12, thing.PosY >> 12);
+            if (CasinoStep.HasObstacle(world, database, (under.Y * world.Width) + under.X)
+                || ChickenMovementRules.HasHatcheryPillar(world, database, under)) continue;
 
             best = thing;
             bestDistance = distance;
@@ -165,6 +174,11 @@ public static class EatingRules
 
         return best;
     }
+
+    /// <summary>As above, from the centre of <paramref name="from"/>.</summary>
+    public static ObjectState? NearestChickenIn(
+        WorldState world, GameDatabase database, RoomInstance room, TilePos from) =>
+        NearestChickenIn(world, database, room, CreatureState.CentreOf(from.X), CreatureState.CentreOf(from.Y));
 
     /// <summary>The nearest <b>food-flagged</b> object in this room — the <i>prison</i>
     /// search, and a different question from <see cref="NearestChickenIn"/>.

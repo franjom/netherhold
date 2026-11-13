@@ -263,22 +263,29 @@ restored from a save.
    then `0x00471A70(room, 92, 0x80)`. It returns the helper's result, so no hatchery or
    no route means idle.
 3. **In the helper:** already on a tile of that room means `SetState(1)`,
-   `SetState(92)`, done. Otherwise a point in the room, route word `0x80`, then
+   `SetState(92)`, done (`0x00471AAE`-`0x00471AC0`). `SetState` runs no handler and
+   the dispatcher calls one handler per turn (`0x004772AA`), so 92 first runs the next
+   turn. Otherwise a point in the room, route word `0x80`, then
    `SetState(7)`: 91 is category 8, so `+0x40` = 91 and no hooks run. Then `+0xDF` = 92
    and the room layout of §2.2.
 4. **State 7**, every tick until the path is finished and the tile is still that
    room: stop, `SetState(92)`, `+0xDF = 1`. The hooks compare category(`+0x40` = 91) =
    8 with 92's 8, so none run. During the walk category 8's update hook would run, but
-   category 8 has none.
+   category 8 has none. 92's handler runs the next turn, as in step 3 (ours' arrival
+   still runs it on the same tick: PLAUSIBLE, Q174).
 5. **State 92** (`0x00463500`): on its first tick (`Age == 1`) it stops the body. The
    tile must be a type-4 room of the creature's owner (`0x004539B0(4, owner, 0)`). It
-   picks the nearest chicken (eating.md §6), then `0x00471890(&chicken, 93, 0xE8)`:
-   `SetState(6)` saves `+0x40` = 92, and `+0xDF` = 93. It then writes the eat byte
-   `+0xAB` = 0 and the chicken's tag to `+0xAF`, calls `0x0049CE70(1)` and
+   picks the nearest chicken (eating.md §6), then `0x00471890(point, 93, 0xE8)` for the
+   bird's own point. That helper has no already-there shortcut, so even a bird underfoot
+   is a walk. On success `SetState(6)` saves `+0x40` = 92, and `+0xDF` = 93. The handler then
+   writes the eat byte `+0xAB` = 0 and the chicken's tag to `+0xAF`, calls `0x0049CE70(1)` and
    `0x0049EF60(8)` on the chicken, and sets the chicken's `+0x48/+0x4C` to `0x1000`
-   and its `+0x58/+0x5C` to 0. With no chicken it calls `SetState(91)`, and the
-   hatchery is looked up again next tick.
-6. **State 6** until the path is finished: stop, `SetState(93)`, `+0xDF = 1`.
+   and its `+0x58/+0x5C` to 0. A failed route returns 0 (`0x004636B1`), which the
+   dispatcher drops to state 1 (`0x004772B0`), the bird untouched. With no chicken it
+   calls `SetState(91)`, and the hatchery is looked up again next tick. The prepared
+   bird runs process 8 about 33 turns (`0x004A24A0`, eating.md §6).
+6. **State 6** until the path is finished: stop, `SetState(93)`, `+0xDF = 1`. 93's
+   handler runs the next turn (ours eats on the arrival tick: PLAUSIBLE, Q174).
 7. **State 93** eats (eating.md §7) and stores `HungerNeed != 0` in `+0xAB`. **State
    94** (`0x00463720`) returns 1 while busy; then, if `+0xAB` is set, `SetState(92)`
    for another bird, else it returns 0.

@@ -166,11 +166,12 @@ public sealed class SlabChainTests
     {
         (GameDatabase db, WorldState world, GameSimulation sim) = World();
         RoomInstance room = Drag(db, world, sim, RoomTypeId.Hatchery, 4, 2, 8, 6);
-        ObjectState west = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 3 * world.Width + 5);
-        ObjectState east = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 3 * world.Width + 7);
+        // Row 4: the coops stand on (5,3) and (7,3), Obstacles that 92 skips a bird on (0x00453600).
+        ObjectState west = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 4 * world.Width + 5);
+        ObjectState east = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 4 * world.Width + 7);
 
         Assert.True(west.TileIndex < east.TileIndex);
-        Assert.Same(east, EatingRules.NearestChickenIn(world, room, new TilePos(6, 3)));
+        Assert.Same(east, EatingRules.NearestChickenIn(world, db, room, new TilePos(6, 3)));
     }
 
     [Fact]

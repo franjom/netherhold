@@ -216,18 +216,20 @@ health and a chicken worth **250**, and the **Firefly** eats two chickens for
 1. The tile underfoot must be a room of **type 4** owned by **this creature's own
    keeper**. The "allow allied" argument is passed as **false**, so an ally's
    hatchery is no use to you.
-2. Walk the room's tile chain. On each tile take the first thing that is an
-   object **whose object type id is 9** — the Chicken, by id.
-3. Rank by **straight-line squared distance** in the engine's fixed point
-   (`dx² + dy²`, each term `>> 12`). Not a path length. Not a ring search.
-4. A candidate is skipped when its tile carries an object whose definition flags
-   have `0x4000` — **`ObjectFlags.Obstacle`**, bit 14, named in `ObjectDef.cs`
-   since it was written and counted in `structure-blocks.md` §5. A chicken
-   behind the coop is passed over, and the coop carries the bit itself. Not
-   modelled here.
+2. Walk the room's tile chain from its first slab. On each tile take the first
+   thing in the tile's thing chain, from its head (the latest to arrive), that is
+   an object **whose object type id is 9** — the Chicken, by id (`0x004537E0`).
+3. Rank by **straight-line squared distance** in the engine's fixed point, from
+   the creature's own point (`dx² + dy²`, each term `>> 12`, 32-bit unsigned). A
+   rank no lower than the best skips, so a tie keeps the first. Not a path length.
+4. A strictly nearer bird is then asked `0x00453600` of the tile under its point: an
+   object with `0x4000` (**`ObjectFlags.Obstacle`**, `structure-blocks.md` §5) skips
+   the bird, so one behind a coop is passed over, the coop carrying the bit itself
+   (ours adds the virtual pillars; evidence for 2 and 4: Q792).
 5. No chicken: re-enter and try again next update.
-6. A chicken: remember **its thing id on the creature** (`+0xaf`) and route to
-   it, resuming in `0x5D`.
+6. A chicken: remember **its thing id on the creature** (`+0xaf`), route to its
+   own point resuming in `0x5D` (a failed route drops to state 1) and prepare the
+   bird: process 8 holds it about 33 turns (travel-states.md §8, ADR-0785).
 
 ### In a prison — `FUN_00473550` (state `0x75`, 117)
 
@@ -313,8 +315,6 @@ its arguments.
     **`SetState(1)`** — so a creature whose handler fails is dropped to state 1
     and asks again a second later. `FUN_004ded00`'s out-parameter, which the
     attempt discards, is the chosen room; the 91 handler asks again.
-- ~~What object flag `0x4000` means~~ — **answered 2026-09-11**: bit 14 is
-  `ObjectFlags.Obstacle`, which `ObjectDef.cs` has always named (§6 step 4).
 - **Whether hunger really outranks sleep in play.** It does in the routine's
   source order; whether a player would ever see the difference depends on
   category gating that is not decoded.
@@ -341,6 +341,8 @@ hungry creature writes `travel-states.md` §8's chain - 91, state 7 into 92, sta
 93, then 94 - and drops to state 1 on leaving (`EatingRules.FindHatcheryState` et al.;
 it handed the id back until ADR-0209). The walk's point is `0x004E4C10`'s, one
 `Room.cpp:1509` draw ([temple-states.md](temple-states.md) §9, ADR-0784).
+State 92 runs the turn after 91's inside shortcut and walks even to a bird underfoot
+(ADR-0785); ours' arrivals into 92 and 93 still run the next handler on the same tick (Q174).
 
 **Ours, and said so in the code:** composing the walk and the in-room search
 into one step where DK2 has `0x5A` and `0x5B`; driving the retry from the eat

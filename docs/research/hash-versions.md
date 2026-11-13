@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**499** - `0xC5D693654AA084D8`. Hatchery state 92 runs the turn after the room helper's inside shortcut, routes to the bird's own point through `0x00471890` with no already-there shortcut, drops a failed route to state 1, and prepares the bird: its scared marker, process 8 (held about 33 turns) and scale 1.0 (`0x00463500`, `0x004A24A0`, ADR-0785). The bird chosen is the first of each tile's thing chain, ranked from the creature's own point, with the obstacle skip (`0x0046356C`-`0x00463663`). No saved field changes; earlier saves are refused. Level 1's seed-1 win: the Lord dies at t2255 on (14,21), the Reaper at t2279, the gem taken at t2395; the journal is re-recorded.
+
 **498** - `0x942FBDD992F685AF`. The hunger retry is a stamp, `+0x50` (`0x00477DAE`, `0x00477DBC`; the prison's `0x004731F0` adds balance variable 21 in raw turns), and a creature's walk to a hatchery ends at `0x004E4C10`'s point through `0x00471A70`, one `Room.cpp:1509` draw (ADR-0784). The field `CreatureState.FoodAttemptTicks` (int) is replaced by `LastFoodAttemptTick` (long), which `0x00476B40` also stamps at spawn; earlier saves are refused. Level 1's seed-1 win: the Lord dies at t2270 on (15,19), the Reaper at t2294, the gem taken at t2391; the journal is re-recorded.
 
 **497** - `0xC0F44DA0A3DA6698`. The needs clocks start from the constructor's stamp, the turn rounded down to 8 ORed with the low bits of the thing id (`0x00476B40`), and the hunger clock is a stamp that runs in the needs routine before the state handler (`0x00477C20`, ADR-0782). The field `CreatureState.HungerTicks` is replaced by `LastAteTick` (long); earlier saves are refused. Level 1's seed-1 win is now the Reaper at t2299 with the gem at (14,19); the journal is re-recorded.
@@ -398,6 +400,4 @@ split slots and constraint insertion (ADR-0486); `WorldSnapshot.FormatVersion`
 
 **250** — `0xBD323E55AFE88884`. The stun (255, 256) counts from the turn after it is set, as 255's Age does, so a hand drop lies one turn longer than under 249, as Level 1's capture measured; 255's first call asks for the Creature Dazed Effect (ADR-0480); no new saved field.
 
-[Versions 170–249](hash-versions-170-249.md) retain the preceding pins and their reasons.
-
-[Versions 9–169](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 170–249](hash-versions-170-249.md) and [versions 9–169](hash-versions-early.md) retain the earlier pins and their reasons.

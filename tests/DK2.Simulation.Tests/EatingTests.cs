@@ -56,7 +56,9 @@ public class EatingTests
         }
     }
 
-    /// <summary>Paints a w-by-h hatchery with its top-left corner at (x,y).</summary>
+    /// <summary>Paints a w-by-h hatchery with its top-left corner at (x,y). Once the simulation runs, a
+    /// 3x3's centre holds its coop, an Obstacle state 92 skips a bird on (0x00453600), so the 3x3
+    /// tests put their birds on (7,6).</summary>
     private static RoomInstance Hatchery(
         GameDatabase db, WorldState world, int x, int y, int w, int h, byte owner)
     {
@@ -146,8 +148,8 @@ public class EatingTests
             basis.Variables, objects: basis.Objects.Values);
         WorldState world = World(db);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        ObjectState bird = Chicken(db, world, 7, 7);
-        ObjectState nextBird = Chicken(db, world, 7, 7);
+        ObjectState bird = Chicken(db, world, 7, 6);
+        ObjectState nextBird = Chicken(db, world, 7, 6);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 7));
         MakeHungry(goblin, 2);
         goblin.TargetObjectId = bird.Id;
@@ -167,7 +169,14 @@ public class EatingTests
         sim.Tick();
         Assert.Equal(EatingRules.InHatcheryState, goblin.Dk2StateId);
         Assert.NotNull(world.ObjectById(nextBird.Id));
+        // 92 walks even to a bird underfoot (0x00471890 has no already-there shortcut): state 6
+        // resuming 93, and the bird held in its reaction process; the meal comes at the arrival.
         sim.Tick();
+        Assert.Equal(6, goblin.Dk2StateId);     // the travel-to-point state
+        Assert.Equal(EatingRules.EatState, goblin.UtilityNewState);
+        Assert.Equal((byte)ChickenProcess.Reaction, nextBird.ProcessState);
+        Assert.True(nextBird.ChickenScared);
+        for (int t = 0; t < 40 && world.ObjectById(nextBird.Id) is not null; t++) sim.Tick();
         Assert.Null(world.ObjectById(nextBird.Id));
         Assert.Equal(EatingRules.AfterMealState, goblin.Dk2StateId);
     }
@@ -180,7 +189,7 @@ public class EatingTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        ObjectState bird = Chicken(db, world, 7, 7);
+        ObjectState bird = Chicken(db, world, 7, 6);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 7));
         MakeHungry(goblin, 2);
         goblin.Anger.Hunger = 5000;
@@ -203,7 +212,7 @@ public class EatingTests
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        ObjectState bird = Chicken(db, world, 7, 7);
+        ObjectState bird = Chicken(db, world, 7, 6);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         goblin.Health = 500;
@@ -227,7 +236,7 @@ public class EatingTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        ObjectState bird = Chicken(db, world, 7, 7);
+        ObjectState bird = Chicken(db, world, 7, 6);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 7));
         MakeHungry(goblin, initialNeed);
         goblin.TargetObjectId = bird.Id;
@@ -302,19 +311,46 @@ public class EatingTests
     }
 
     [Fact]
+    public void ABirdTheRouteRefusesDropsTheEaterToIdleAsDk2sStateNinetyTwoReturningZero()
+    {
+        // 0x00463500 returns 0 when 0x00471890 cannot route to the bird (0x004636B1), and the
+        // dispatcher drops a handler's 0 to state 1 (0x004772B0); the bird is not prepared.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Floor(world, 1, 1, 10, 10);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+        ObjectState bird = Chicken(db, world, 7, 6);
+        bird.PosX = CreatureState.CentreOf(0);     // its point on rock, still listed on (7,6)
+        bird.PosY = CreatureState.CentreOf(0);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 6));
+        MakeHungry(goblin);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick();                                 // already inside: 91 sets 1, then 92
+        Assert.Equal(EatingRules.InHatcheryState, goblin.Dk2StateId);
+        sim.Tick();                                 // 92 runs a turn later and its route fails
+        Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
+        Assert.Equal(EatingRules.NoChicken, goblin.TargetObjectId);
+        Assert.False(bird.ChickenScared);
+        Assert.NotEqual((byte)ChickenProcess.Reaction, bird.ProcessState);
+    }
+
+    [Fact]
     public void AGoblinStandingInTheHatcheryDoesNotNeedToWalkAnywhere()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        Chicken(db, world, 7, 7);
+        Chicken(db, world, 7, 6);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 7));
         goblin.Health = 500;
         MakeHungry(goblin);
 
-        Simulation(db, world).Run(Second);
+        // No walk to the room; 92 still walks the tile to the bird (0x00471890 has no shortcut).
+        Simulation(db, world).Run(Second * 3);
 
         Assert.Equal(875, goblin.Health);
         Assert.Equal(0, goblin.HungerNeed);
@@ -452,7 +488,45 @@ public class EatingTests
         // Spawn order puts the far one first, so an implementation that took the
         // first it met would take the wrong bird.
         Assert.True(far.Id < near.Id);
-        Assert.Same(near, EatingRules.NearestChickenIn(world, room, new TilePos(5, 5)));
+        Assert.Same(near, EatingRules.NearestChickenIn(world, db, room, new TilePos(5, 5)));
+    }
+
+    [Fact]
+    public void OfTwoBirdsOnOneTileTheLatestToArriveIsTheOneRanked()
+    {
+        // 0x004537E0 gives a tile's first chicken from the head of its thing chain, and a thing
+        // that changes tile goes to the head (0x004B5020): the newcomer, not the older object.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Floor(world, 1, 1, 10, 10);
+        RoomInstance room = Hatchery(db, world, 5, 5, 5, 5, Keeper);
+
+        ObjectState settled = Chicken(db, world, 6, 8);
+        ObjectState newcomer = Chicken(db, world, 8, 5);
+        newcomer.TileIndex = settled.TileIndex;     // walks onto the settled bird's tile
+        newcomer.PosX = settled.PosX;
+        newcomer.PosY = settled.PosY;
+
+        // Object order puts the settled bird first, so taking the first in the list would be wrong.
+        Assert.True(settled.Id < newcomer.Id);
+        Assert.Same(newcomer, EatingRules.NearestChickenIn(world, db, room, new TilePos(5, 5)));
+    }
+
+    [Fact]
+    public void ANearerBirdOnACoopIsPassedOverForTheNextNearest()
+    {
+        // 0x00453600, asked only of a nearer bird: an Obstacle object under it skips it and the
+        // best so far stands.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Floor(world, 1, 1, 10, 10);
+        RoomInstance room = Hatchery(db, world, 5, 5, 5, 5, Keeper);
+        world.SpawnObject(db, HatcheryRules.CoopObjectId, Keeper, (6 * world.Width) + 6);
+
+        ObjectState onTheCoop = Chicken(db, world, 6, 6);
+        ObjectState further = Chicken(db, world, 8, 8);
+
+        Assert.Same(further, EatingRules.NearestChickenIn(world, db, room, new TilePos(5, 5)));
     }
 
     [Fact]
@@ -469,7 +543,7 @@ public class EatingTests
         ObjectState first = Chicken(db, world, 6, 7);
         Chicken(db, world, 8, 7);
 
-        Assert.Same(first, EatingRules.NearestChickenIn(world, room, new TilePos(7, 7)));
+        Assert.Same(first, EatingRules.NearestChickenIn(world, db, room, new TilePos(7, 7)));
     }
 
     [Fact]
@@ -481,7 +555,7 @@ public class EatingTests
         RoomInstance room = Hatchery(db, world, 6, 6, 3, 3, Keeper);
         Chicken(db, world, 2, 2);
 
-        Assert.Null(EatingRules.NearestChickenIn(world, room, new TilePos(7, 7)));
+        Assert.Null(EatingRules.NearestChickenIn(world, db, room, new TilePos(7, 7)));
     }
 
     [Fact]
@@ -491,10 +565,10 @@ public class EatingTests
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
         RoomInstance room = Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        ObjectState bird = Chicken(db, world, 7, 7);
+        ObjectState bird = Chicken(db, world, 7, 6);
         bird.CarriedByCreatureId = 99;
 
-        Assert.Null(EatingRules.NearestChickenIn(world, room, new TilePos(7, 7)));
+        Assert.Null(EatingRules.NearestChickenIn(world, db, room, new TilePos(7, 7)));
     }
 
     // ---- the race -----------------------------------------------------------
@@ -638,7 +712,7 @@ public class EatingTests
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        Chicken(db, world, 7, 7);
+        Chicken(db, world, 7, 6);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         StatePlacement.As(goblin, CreatureActivity.Sleeping);
@@ -659,7 +733,7 @@ public class EatingTests
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        Chicken(db, world, 7, 7);
+        Chicken(db, world, 7, 6);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Rival, new TilePos(7, 7));
         StatePlacement.As(goblin, CreatureActivity.Imprisoned);
@@ -680,7 +754,7 @@ public class EatingTests
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
-        Chicken(db, world, 7, 7);
+        Chicken(db, world, 7, 6);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         StatePlacement.As(goblin, CreatureActivity.Leaving);
@@ -716,6 +790,6 @@ public class EatingTests
 
         Assert.True(EatingRules.IsFood(db, thing));                 // by the flag
         Assert.False(EatingRules.IsEdibleChicken(thing));           // but not by id
-        Assert.Null(EatingRules.NearestChickenIn(world, room, new TilePos(7, 7)));
+        Assert.Null(EatingRules.NearestChickenIn(world, db, room, new TilePos(7, 7)));
     }
 }

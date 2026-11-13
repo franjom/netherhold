@@ -18447,3 +18447,54 @@ battle's start, and why the repeats are not heard is unread (Q775). The fly-in (
 **Consequences.** View and input only: no simulation state, hash or save change. The blades'
 status line, Text.str 2166, follows the tabs' id + 1 pairing (HYPOTHESIS). The battle-age minimap
 ring (battle-tab.md section 6) is not part of this change.
+
+## ADR-0785 - hatchery state 92 runs the turn after the shortcut, walks to the bird and prepares it
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** creatures
+
+**Context.** Level 5 seed 1 past turn 1976 (Q791): at native 1977, draw 25, DK2 draws
+`ObjectState.cpp:2708` where ours drew `Treasure.cpp:132`. The room helper `0x00471A70`, for a creature
+already inside the room, does `SetState(1)` then `SetState(92)` and returns (`0x00471AAE`-`0x00471AC0`).
+`SetState` `0x00476D30` runs no handler and the dispatcher has one handler call (`0x004772AA`), so
+state 92 (`0x00463500`) first runs the next turn; ours ran it on the same tick. State 92 routes to the bird's own
+point through `0x00471890(point, 93, 0xE8)`, which has no already-there shortcut, so even a bird underfoot is
+a walk. A failed route returns 0 (`0x004636B1`) and the dispatcher drops a handler's 0 to state 1
+(`0x004772B0`). On success `0x004636B3`-`0x004636E4` prepares the bird: `0x0049CE70(1)` (for a chicken the
+scared marker `+0x152`), `0x0049EF60(8)` (process 8), `+0x48` and `+0x4C` = `0x1000`, `+0x58` and `+0x5C` = 0;
+`+0xAB` is cleared as a DWORD and `+0xAF` takes the bird's tag. Process 8 (`0x004A24A0`) draws
+`random(16)+8` at age 1 (`ObjectState.cpp:2708`, `0x004A24C9`) and a scared food bird then sets its timer to 32
+and returns, so the bird is held about 33 turns. The choice (Q792, `0x0046356C`-`0x00463663`) walks the slab
+chain from its first slab; per tile `0x004537E0(9)` gives the first class-2 object of type 9 in layer 0 of the
+thing chain, from the head (a thing changing tile goes to the head, `0x004B5020`; a carried or held thing is off
+the chain). Rank is `(|dx|^2 >> 12) + (|dy|^2 >> 12)` in 32 bits from the creature's own point to the bird's,
+unsigned from `0xFFFFFFFF`; a rank no lower than the best skips, so a tie keeps the first. Only a strictly
+nearer bird is asked `0x00453600` of the tile under its point (`0x00463647`); an obstacle skips it. STRONGLY
+INFERRED (disassembly, reviewer-confirmed; the 1977 draw is confirmed by the capture, and the chain head
+rule was observed once; the obstacle skip is read, not yet observed).
+
+**Decision.** In `CreatureEatSystem` the already-inside shortcut no longer runs state 92's handler on the
+same tick. State 92 routes to the bird's point with `TunnelRules.RouteOrTunnel` (exact spot), so a bird
+underfoot is a walk and nothing eats within reach; a failed route calls `GiveUp`. On success the bird gets
+`ChickenScared`, `ChickenMovementRules.SetProcess(Reaction)` and `ChickenScale` 1.0, `FoodOwedAfterMeal` is
+cleared and `TargetObjectId` takes the bird. Fetching eats only after the route ends. Ours keeps no
+`+0x58`/`+0x5C`. `EatingRules.NearestChickenIn` ports the choice: the tile's linked chicken with the highest
+`ThingTileLink.Order`, the rank above from the creature's `PosX`/`PosY`, and the obstacle test as
+`CasinoStep.HasObstacle` plus `ChickenMovementRules.HasHatcheryPillar` (ours' Hatchery pillars are virtual).
+
+**Consequences.** Hash/save 499 (498 is ADR-0784's); earlier saves are refused; pin `0xC5D693654AA084D8`.
+Closes Q791 and Q792. Level 5 diag replay: the state 92 changes alone (controlled531) matched 9694 draws
+through 1977; ours then fetched bird 104 where DK2 fetched 109 (both on tile (12,25)); the ranking with the
+obstacle skip (controlled533) still chose 104, and with the chain head too (controlled533b) it chooses 109 and
+matches 9756 draws through 1981. The next stop is turn 1982, draw 8, native `ObjectState.cpp:2782` (Q793). Level 1
+(journal re-recorded): the Lord dies at t2255 on (14,21), the Reaper at t2279, the gem taken at t2395; ours'
+output, unverified against DK2. The determinism pin is unchanged by the ranking (that world makes no chicken
+choice). Scenario `a_goblin_eats_a_chicken` is re-pinned (creature 2 eats bird 21 at 728, creature 1 bird 17
+at 733). Tests: `EatingTests` gains
+`ABirdTheRouteRefusesDropsTheEaterToIdleAsDk2sStateNinetyTwoReturningZero`,
+`OfTwoBirdsOnOneTileTheLatestToArriveIsTheOneRanked` and `ANearerBirdOnACoopIsPassedOverForTheNextNearest`; the
+3x3-hatchery tests, `CreatureStateSoundTests` and the `SlabChainTests` tie test moved their birds off the coop
+tiles. Residuals (PLAUSIBLE, not yet
+checked against a native log; Q174, record `0x00463500`): ours' arrival paths still run the next handler on the
+same tick (seeking hands state 7's arrival to 92 and picks the bird in one call; fetching hands state 6's
+arrival to 93 and eats at once), where one handler per turn costs each handover a turn; ours' fetching
+abandons mid-walk if the bird is gone, where native state 6 is a plain walk and 93 tests the bird; ours'
+obstacle test excludes a held thing but not a carried one (minor).
