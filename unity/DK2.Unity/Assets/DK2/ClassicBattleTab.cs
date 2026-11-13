@@ -65,8 +65,8 @@ namespace DK2.Unity
         }
 
         /// <summary>The blades' texts: Text.str 2165 "Zoom to Battle" as the name, 2166 "Battle Tab:
-        /// right-click to zoom, click again to cycle." as the status line (the tabs' id + 1 pairing,
-        /// HYPOTHESIS). The cancel and the alarm have no text.</summary>
+        /// right-click to zoom, click again to cycle." as the status line (seen in DK2, 2026-11-13,
+        /// battle-tab.md section 8). The cancel and the alarm have no text.</summary>
         public HoverTextSnapshot HoverText
         {
             get

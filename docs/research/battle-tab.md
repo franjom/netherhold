@@ -185,6 +185,22 @@ the battle**, not on every flash: an outcome, not a mechanism — it fits the fl
 or a service that ignores a repeated `0x30F` (§6); which, is unread. Whether the Mentor's fight
 lines are ever spoken: the owner does not know (Q663 stays open).
 
+2026-11-13, in the levelgen level `BattleTab` (DK2 v1.70, screenshots `SCRSHOTS/SHOT0017..0051`,
+1600 x 1200): the blades sit at reference x 2080, y 1460 with the panel open and y 1772 with it
+collapsed; with the blades hidden, the Call to Arms cancel keeps its slot at x 2216 and the alarm
+its slot at x 2344 (§1's static places). The cancel alternates two frames; a left click cancels the
+call and a right click glides to the flag; right-clicking the blades or F alternates between two
+fights. Hovering the blades puts "Battle Tab: right-click to zoom, click again to cycle." (Text.str
+2166) on the status line; the alarm shows none. The fly-in is the blades' icon on its dark square,
+seen still near (1792, 192) in two consecutive shots, then gliding to the tab with a glitter
+effect. The sound: one at the start of the fight, then the blades flash silently (Q775). The alarm
+button shows while the Alarm Trap with a Dwarf beside it rings (the minimap's magenta ring pulses
+there) and goes once the Dwarf is dealt with. **Its right click does nothing**, nor does a left
+click, while the level's other Alarm Trap, placed after it and quiet, heads the trap list: the head
+restart of [0x00426A00](functions/00426A00.md) observed (the list order itself is a HYPOTHESIS:
+placed things linked at the head). The shared last trap could not be tried: without a Workshop the
+panel's trap slots are disabled.
+
 ## 9. Link to the music work
 
 [Battle_Update](functions/00505310.md) is where battle threat is summed and handed on. Per

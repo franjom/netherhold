@@ -202,7 +202,78 @@ public static class Recipes
                 var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
                 b.InsertThing(door with { X = 23, Y = 4, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
             }),
+        new("BattleTab", "Small",
+            "ADR-0773's play checks (2026-11-13), the Battle tab (menu 43) in DK2 itself, on Small with keeper 4's AI off and "
+            + "keeper 3's Heart sealed. P (x 20..26, rows 9..11): six level-4 Goblins of keeper 3 to drop into F1 and F2 and "
+            + "to cast Call to Arms on (keeper 4's spell row 2 becomes keeper 3's Call to Arms, mana 500 a second). F1 "
+            + "(x 20..22, rows 3..5) and F2 (x 34..36, rows 3..5): a level-2 Dwarf each, 14 tiles apart, so each drop "
+            + "makes its own battle (the blades, F and right-click cycling, the fly-in). A (x 20..24, rows 20..22): an "
+            + "Alarm Trap at (23,21) with a level-1 Dwarf two tiles off, so it rings from the start. B (x 34..38, rows "
+            + "20..22): an Alarm Trap at (36,21) and no enemy, placed after A so it heads keeper 3's trap list "
+            + "(HYPOTHESIS: the loader links each at the head): 0x00426A00 predicts the alarm's right click does "
+            + "nothing while B is quiet, goes to A once the Workshop's Alarm slot has been right-clicked (the shared "
+            + "+0x12E), and goes to A directly once B is sold.",
+            b =>
+            {
+                BattleTabChambers(b);
+                b.SetAiFlag(Rival, false);
+                if (!b.RepointVariable(VariableTypeId.LevelRating, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 500)
+                    || !b.RepointVariable(VariableTypeId.AverageTime, VariableTypeId.MaximumManaGainPerSecond, 500))
+                    throw new InvalidOperationException("Small no longer carries LevelRating and AverageTime overrides");
+                if (!b.RepointAvailability(AvailabilityKind.Spell, Rival, 2, Keeper, CallToArms, 3))
+                    throw new InvalidOperationException("Small no longer carries keeper 4's spell row 2");
+            }),
     ];
+
+    private const byte CallToArms = 3;
+
+    /// <summary>The BattleTab layout: every tile impenetrable rock but the Hearts and five sealed chambers of keeper
+    /// 3's Claimed Path (P, F1, F2, A, B; see the recipe), none joined to a Heart or to each other.</summary>
+    private static void BattleTabChambers(LevelBuilder b)
+    {
+        LevelMap map = b.Map;
+        var rock = new MapTile(ImpenetrableRock, Neutral, 1, 0);
+        var path = new MapTile(ClaimedPath, Keeper, 1, 0);
+        static bool Floor(int x, int y) =>
+            (x is >= 20 and <= 26 && y is >= 9 and <= 11)
+            || (x is >= 20 and <= 22 && y is >= 3 and <= 5)
+            || (x is >= 34 and <= 36 && y is >= 3 and <= 5)
+            || (x is >= 20 and <= 24 && y is >= 20 and <= 22)
+            || (x is >= 34 and <= 38 && y is >= 20 and <= 22);
+        for (int y = 1; y < map.Height - 1; y++)
+            for (int x = 1; x < map.Width - 1; x++)
+                if (Floor(x, y)) b.Paint(x, y, path);
+                else if (map[x, y].TerrainId is not (9 or 14)) b.Paint(x, y, rock);
+        // One sealed tile of the heroes' own, so the remake's harness makes player 1 too (levelgen README).
+        b.Paint(44, 28, new MapTile(ClaimedPath, Heroes, 1, 0));
+
+        var things = b.Things;
+        for (int i = things.Count - 1; i >= 0; i--)
+            if (things[i] is ObjectThing o && map[o.X, o.Y].TerrainId is not (9 or 14)) b.RemoveThing(i);
+
+        var (keeper, keeperImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Rival && c.CreatureId == Imp);
+        for (int x = 20; x <= 25; x++)
+            b.InsertThing(keeper with
+            {
+                X = x, Y = 10, CreatureId = Goblin, PlayerId = Keeper, Level = 4, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+            }, keeperImage);
+
+        var (hero, heroImage) = b.Template<GoodCreatureThing>(g => g.CreatureId == Dwarf);
+        void Hero(int x, int y, byte level) => b.InsertThing(hero with
+        {
+            X = x, Y = y, CreatureId = Dwarf, Level = level, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+            TriggerId = 0, PartyId = 0, Flags2 = (byte)(hero.Flags2 & ~4),
+        }, heroImage);
+        Hero(21, 4, 2);
+        Hero(35, 4, 2);
+        Hero(21, 21, 1);
+
+        // By name, not a remembered id: trap 1 is the Gas Trap (the first BattleTab build placed two of those).
+        byte alarm = DK2.Data.GameDatabaseLoader.Load(b.Install).Traps.Values.Single(t => t.Name == "Alarm Trap").TrapId;
+        var (trap, trapImage) = b.Template<TrapThing>(t => t.TrapId == alarm);
+        b.InsertThing(trap with { X = 23, Y = 21, TrapId = alarm, PlayerId = Keeper }, trapImage);   // A, ringing
+        b.InsertThing(trap with { X = 36, Y = 21, TrapId = alarm, PlayerId = Keeper }, trapImage);   // B, quiet, placed last
+    }
 
     private const byte HatcheryTerrain = 13;
     private const byte Knight = 13, PrinceFelix = 26;

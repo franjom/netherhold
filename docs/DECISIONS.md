@@ -18445,7 +18445,7 @@ and whose group has one sample in its category, is not played: the owner hears o
 battle's start, and why the repeats are not heard is unread (Q775). The fly-in (Q664) stays unbuilt.
 
 **Consequences.** View and input only: no simulation state, hash or save change. The blades'
-status line, Text.str 2166, follows the tabs' id + 1 pairing (HYPOTHESIS). The battle-age minimap
+status line, Text.str 2166, follows the tabs' id + 1 pairing (seen in DK2 on 2026-11-13, battle-tab.md section 8). The battle-age minimap
 ring (battle-tab.md section 6) is not part of this change.
 
 ## ADR-0785 - hatchery state 92 runs the turn after the shortcut, walks to the bird and prepares it
