@@ -80,6 +80,7 @@ Then check each place the AGENTS.md table says owns a kind of fact:
 | how to run or verify | `unity/README.md`, tool READMEs, `docs/EXPERIMENTS.md` | a switch, a command, a rig path |
 | a trap that cost time | `docs/TRAPS.md` | a line whose cause this change fixed (delete it) |
 | keeper AI | `docs/KEEPER_AI.md` | a connected step still listed as missing |
+| a suspected original DK2 defect | the record's `Suspected DK2 defect:` line, and its issue #2 entry (AGENTS.md *Fidelity*) | a reviewer's suspected defect with no marker; a marker still `unfiled` after filing; a disposition the owner set that the record does not say |
 
 ## 3. How to write it
 
@@ -137,5 +138,7 @@ Return, briefly:
    on a binary claim or confidence, a figure that needs a measurement you were
    not given, or anything you could not settle from your sources.
 3. **Gates:** the `docs` and `kb check` results.
+4. **Suspected defects marked:** each record where you added or updated a
+   `Suspected DK2 defect:` line. You do not edit issue #2; the caller does.
 
 "Nothing was stale" is a valid result if you say what you searched.

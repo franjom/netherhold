@@ -106,6 +106,14 @@ least once.
 - **Outcome or mechanism.** An observation names an outcome. Check that the
   branch did not file it under the first mechanism that came to mind.
 
+### Code that looks unintended
+
+While you read, note DK2 code that looks like an original defect. The patterns are in
+AGENTS.md *Fidelity*. Note it even if the branch mirrors it faithfully. It is
+not a finding against the branch: list it under *Suspected original defects* in your
+report, with the addresses. Argue the strongest case that it is intentional, then give
+your verdict. Do not ask for a fix; the owner decides a disposition in issue #2.
+
 ## 2. Check the mirroring code against the record
 
 For each `implements:` path and each `src/` change that touches a mechanic:
@@ -186,13 +194,14 @@ Return findings ranked most severe first. For each one, give:
   overstated confidence that a test pins, or a provenance breach), `major`,
   or `minor`.
 
-After the findings, add three short lists:
+After the findings, add four short lists:
 
 1. **Claims you re-derived and agree with**, each with its confidence. This
    tells the caller what is now checked.
 2. **Claims you could not check**, and why.
 3. **Questions for the owner.** The owner has played DK2, so list
    observable behaviour that only a play-through or a capture can settle.
+4. **Suspected original defects** (see *Code that looks unintended*), or "none seen".
 
 Do not soften a finding, and do not pad the report. "No findings" is a
 valid result if you say what you checked.

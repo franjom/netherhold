@@ -183,6 +183,28 @@ are made and checked). ADR-0242.
 
 Do not "fix" strange DK2 behavior without documenting the deviation.
 
+**Suspected original defects (issue #2).** If DKII.EXE does something that looks
+unintended, record it as a candidate and keep reading. It is not a conclusion, and you
+must not fix it on your own.
+- **Mark it** in the function's record body with a line starting `Suspected DK2
+  defect:`, followed by `DK2-NNN` once it is filed, or `unfiled`. Add one sentence and
+  the addresses. One grep for that phrase lists every candidate.
+- **Watch for these patterns:**
+  - a game turn stored where a countdown is read, or the reverse (DK2-020);
+  - a field set on one path and cleared on only some exits;
+  - a loop waiting on a callee that can refuse (DK2-017);
+  - a remainder dropped by integer division (DK2-019), or signed and unsigned mixed;
+  - a check every sibling arm makes but one;
+  - a variable loaded from data and never read;
+  - the manual contradicting the binary.
+- **File it** in issue #2 only after an independent `reviewer` agrees, in the
+  DK2-017 to DK2-019 entry format. Its status is binary-read or reproduced, and its
+  disposition (fix, preserve or defer) stays open.
+- **Keep ours faithful** until the owner sets a disposition. A fix then needs its own
+  ADR as a deliberate deviation.
+- **Check DK2 itself.** When a native capture diverges, also ask whether DK2 is the one
+  that is wrong.
+
 ## Agent skills
 
 Before starting a task, review the available skill descriptions. Read and follow
