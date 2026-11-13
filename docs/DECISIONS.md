@@ -18442,7 +18442,7 @@ raises their clicks; `DungeonRunner` routes them to the F key's cycle, a `Remove
 a glide to the call's tile and the alarm walk. `HumanCommandPolicy` now classes the cancel as Play
 (version 2). The blades' sound `0x30F`, which the draw asks for on every frame with an odd phase
 and whose group has one sample in its category, is not played: the owner hears one sound at a
-battle's start, and why the repeats are not heard is unread (Q775). The fly-in (Q664) stays unbuilt.
+battle's start, and why the repeats are not heard is unread (Q775). The fly-in (Q664) is built by ADR-0774.
 
 **Consequences.** View and input only: no simulation state, hash or save change. The blades'
 status line, Text.str 2166, follows the tabs' id + 1 pairing (seen in DK2 on 2026-11-13, battle-tab.md section 8). The battle-age minimap
@@ -18542,3 +18542,33 @@ tick; `Fetching` ends state 6 on no route, where native's 6 hands over at progre
 (`0x00470DE1`-`0x00470DE6`); 93's `+0x278` refusal is unread and native never tests type 9 in 93, which
 `IsEdibleChicken` does; the rounding's only direct evidence is one sample, with no from-turn-0 regression across
 the other callers; the prison eat (`0x00473750`) keeps ours' tile-based `ReachTilesSquared`, its own test unread.
+
+## ADR-0774 - the Battle tab's fly-in is the second reward tablet
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** hud-front-end, combat, audio
+
+**Context.** ADR-0773 built the Battle tab without its fly-in (Q664). The owner's play of the
+levelgen level BattleTab (battle-tab.md section 8) saw it: the blades' icon, still near the top
+right, then gliding to the tab with a glitter effect, and one sound at a fight's start. Read now
+(battle-tab.md section 5): `0x0042C0D0` starts the interface's second reward tablet (`+0x4D05`)
+with the Fight reward's icon at scale 0.15 on reference (1840, 240), bound for the blades' centre,
+behind a 2 s real-clock gate and with no hold; `0x0042EE80` moves position and scale 1/(32 − frame)
+of their gaps per drawn frame to the target and 0, one turn in 32 frames, with the win screen's
+sparkles; `0x0042C390` steps and draws it only while the GUI is shown and the camera not
+letterboxed, and when done plays `0x32C` and clears the latch that refuses a second start.
+STRONGLY INFERRED: read, the look seen by the owner, the timings not measured.
+
+**Decision.** `RewardTablet` gains the fields the win screen leaves idle: a position and target, an
+end scale, a hold length and the start gate; the win screen's construction is unchanged.
+`BattleFlyIn` (DK2.Presentation) holds the latch, the start and end sounds (`0x32B`, `0x32C` in
+`gui_button_tab_new_combat`) and the gate on the GUI and the letterbox. `MusicWorldObserver`
+counts each entry of a viewer's creature into a battle that held none of the viewer's;
+`DungeonRunner` starts the fly-in on a new count, targets `ClassicBattleTab.BattleCentre` and
+draws the tablet with the win screen's `DrawTablet`, last in `OnGUI`.
+
+**Consequences.** View and audio only: no simulation state, hash or save change. DK2 draws the
+tablet at a fixed pixel size (61 x 61 in the owner's 1600 x 1200 screenshot); ours, as the win
+screen does, takes DK2's pixels as 768-high units, so it is drawn about 1.6 times larger at 1200
+lines. Each frame spawns, draws, then steps, DK2's order; the step and draw wait while the HUD is
+hidden, the camera letterboxed or the game paused (ours: the options panel open). Not mirrored:
+the graphics detail gate (ours has no detail setting) and the skip in camera modes 2, 7 and
+`0x12`. The IMGUI draw is over the scene but under UI Toolkit panels, where DK2 draws it above all.

@@ -2013,6 +2013,7 @@ namespace DK2.Unity
             DrawCinematic();
             DrawCampaignResultPrompt();
             DrawWinScreenPreview();
+            DrawBattleFlyIn();   // last, above the rest, as 0x0042C390 ends DK2's overlay pass
             if (showDiagnostics) DrawDiagnostics();
         }
 

@@ -13,7 +13,8 @@ namespace DK2.Unity
     /// <summary>Menu 43, the Battle tab right of the message tabs: the crossed blades, the Call to
     /// Arms cancel and the alarm (docs/research/battle-tab.md, <see cref="BattleTabView"/>). Clicks
     /// are raised as <see cref="Clicked"/>; the blades take only the right click, the cancel both,
-    /// the alarm only the right. Not built: the blades' sound 0x30F (Q775) and the fly-in (Q664).</summary>
+    /// the alarm only the right. Not built: the blades' sound 0x30F (Q775). The fly-in is
+    /// DungeonRunner.DrawBattleFlyIn (ADR-0774).</summary>
     public sealed class ClassicBattleTab : IDisposable
     {
         private static readonly BattleTabButton[] Buttons = { BattleTabButton.Battle, BattleTabButton.CallToArms, BattleTabButton.Alarm };
@@ -76,6 +77,18 @@ namespace DK2.Unity
                     _battleHover = new HoverTextSnapshot(_assets.Text(BattleTabView.BattleStatusText), _assets.Text(BattleTabView.BattleText), default);
                 return _battleHover;
             }
+        }
+
+        /// <summary>The blades' centre in screen pixels from the top left (<c>0x00426D80</c>), placed
+        /// or not: the fly-in's target, read once when it starts.</summary>
+        public Vector2 BattleCentre(bool collapsed)
+        {
+            float factor = ClassicHudScaling.Layout(UiScale).Factor, height = Height;
+            int half = BattleTabView.ButtonSize / 2;
+            int top = BattleTabView.MenuY + (collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0);
+            // The panel is bottom-docked: its root sits height / factor - height down, then scales.
+            return new Vector2(V(BattleTabView.MenuX + BattleTabView.LocalX(BattleTabButton.Battle) + half) * factor,
+                height - height * factor + V(top + half) * factor);
         }
 
         public bool ContainsPointer(Vector3 screen)

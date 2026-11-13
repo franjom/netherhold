@@ -20,7 +20,7 @@ the whole mechanism, from the records to the HUD. Read-only membership is built
 for music; `BattleNavigation` selects the next local record and the rebound
 Zoom To Fight action glides to its tile centre. The tab's three buttons are built
 (ADR-0773: `BattleTabView`, `ClassicBattleTab`); the blades' sound `0x30F` (Q775),
-the fly-in (Q664) and the minimap's battle ring remain pending.
+the fly-in is built too (ADR-0774); the minimap's battle ring remains pending.
 
 ## 1. Where the tab lives — STRONGLY INFERRED
 
@@ -122,21 +122,39 @@ shared world state and the local player word `+0x7243` per machine (no multiplay
   **F**, no modifier: the manual's "Zoom To Next Fight", Text.str 126.
 - No sound, speech or packet besides the camera action.
 
-## 5. The fly-in notice — trigger, latch and sounds STRONGLY INFERRED; its look UNKNOWN
+## 5. The fly-in notice — STRONGLY INFERRED
 
-When a local player's creature joins a record that held none of that player's creatures,
+**Start.** When a local player's creature joins a record that held none of that player's creatures,
 Battle_JoinNearest calls interface slot `+0x4C` ([Hud_StartBattleFlyIn](functions/0042C0D0.md),
 interface `[[world+4]+0xC]`, vtable `0x0066C4A4`). It acts only when graphics detail
 `0x00759AEC` is at least 3 and no fly-in is already running (`+0x4D75` zero). It plays sound
-`0x32B`, sets `+0x4D75`, and starts the overlay object at `+0x4D05` from reference point
-(1840, 240) toward the centre of menu 43's widget 1 ([0x00426D80](functions/00426D80.md)), with
-float `0.15` at `+0x4D1D`, a real-clock stamp now + 2000 ms at `+0x4D58` and the value 2441 at
-`+0x4D54`. The interface frame update ([0x0042C390](functions/0042C390.md)) steps it while the
-camera is not letterboxed; when interface `+0xF5` is set and the object reports done (`+0x4D50`)
-it plays sound `0x32C` and clears `+0x4D75` (with `+0xF5` zero the latch stays and no later
-fly-in plays). That update skips camera modes 2, 7 and `0x12` and a paused game.
-What the object draws, and what 0.15, 2000 ms and 2441 mean, are unread (`0x0042F040`).
-Whether this or the tab is the "box" of the census is not settled; the owner sees both (§8).
+`0x32B`, sets `+0x4D75`, and starts the interface's second reward tablet (`+0x4D05`, the win
+screen's being `+0x4C6E`; loaded by [0x0042BB30](functions/0042BB30.md)) on reference point
+(1840, 240) bound for the centre of menu 43's widget 1 ([0x00426D80](functions/00426D80.md)),
+read once. Its fields: start scale 0.15 (`+0x4D1D`), end scale 0, a real-clock start gate now +
+2000 ms (`+0x4D58`), hold 0 s, and the texture fraction 2441 = (31 << 12) / 52 (`+0x4D54`), the
+Fight reward's: Tablet.kmf's front shows frame 30, `gui\icons\A-fight-00`, fixed.
+
+**Motion** ([0x0042EE80](functions/0042EE80.md), drawn by [0x0042F040](functions/0042F040.md)).
+Until the gate it stands still at scale 0.15 (61 screen pixels: the owner's 1600 x 1200 screenshot
+measures 61 x 61, so the size does not follow the resolution), unturned; only its sparkles
+age. Then for 32 drawn frames it closes 1/(32 − frame) of the gap to the target in position and
+in scale, a straight line at constant speed, turning frame × 64 of 2048 units about two axes: one
+turn as it shrinks to a point on the blades. While the frame is below 32 each draw sends two
+sparkles from each of the mesh's 16 edge control points (8 below graphics detail 5), the win
+screen's TabletSparkle spray, so the glitter trails the tablet and drifts 8..11 frames after it.
+Past frame 34 with no sparkles left the hold arms and the next call reports done (`+0x50`), about
+40 drawn frames after the gate.
+
+**End** ([0x0042C390](functions/0042C390.md)). The whole tail, draw and step, runs only while
+the GUI is shown (`+0xF5`, [Hud_ShowGui](functions/00402B70.md)) and the camera's letterbox
+count is 0, and is skipped in camera modes 2, 7 and `0x12` and a paused game. When done, it plays
+`0x32C` and clears `+0x4D75`. With the GUI hidden the start sound has played and the latch waits;
+once the GUI returns the tablet glides at once (its gate long passed) and ends normally. It is
+the last call of the overlay pass ([0x00403FB0](functions/00403FB0.md)), above the HUD.
+
+Built (ADR-0774): `BattleFlyIn` over a generalised `RewardTablet`, started from
+`MusicWorldObserver.ViewerBattleEntries`, drawn by `DungeonRunner.DrawBattleFlyIn`.
 
 ## 6. Drawing — STRONGLY INFERRED
 
@@ -244,7 +262,8 @@ on right click or F: idx = next local record after idx (wrapping); if any: glide
 
 ## UNKNOWN
 
-- The fly-in object's art and motion: `0x0042F040`, `+0x4D1D` 0.15, `+0x4D54` 2441 (Q664).
+- The fly-in's renderer: whether `0x00579730` scales the tablet by resolution, the sparkles' blend
+  and drawn size, and the order and sense of the two turns.
 - Which samples sounds `0x30F`, `0x32B` and `0x32C` name in their banks (the category of the last two is `gui_button_tab_new_combat`, [sound-effects-interface.md section 10](sound-effects-interface.md#10-the-battle-fly-in-0x32b-0x32c)).
 - Why the blades' repeated `0x30F` is heard once (Q775).
 - Creature `+0x32D` (the second state field tested for 202) and record `+0x00`, `+0x12..+0x1A`.
