@@ -65,20 +65,32 @@ never swings at or kills it. Both working and walking Imps react this way.
 This is an observation, not a tick/position capture. Binary scan C (§6)
 explains the trigger without changing the ordinary Imp's one-tile sight cap.
 
-Modern Level7 seeds1 and7, hash228: Giant1 registers on Imp27 at142, distance
-3.478 tiles. Imp fear reaches160 at143, but absent scan C it keeps traveling
-and claiming until withdrawing at153. The Giant starts its swing then and
-kills it at156: 562 damage against500 HP. With scan C, acquisition is144,
-flee state203 is145, withdrawal146; the Giant drops its target at156 without
-ever swinging, and the Imp retains500 HP at180. These are modern probes;
-matched original timings and broader casualty parity remain Q582. Hash229's
-later deaths (seed7 at237, seed1 at286) exposed the fixed Portal-centre alarm
-route; combat-alarm.md §2 now supplies its original random-point selection.
-Hash230 still loses Imp27 later: seed1 at244 and seed7 at266, after it returns
-to work. Those later approaches need matched original captures; the correction
-does not establish full casualty or damage parity. Route
-velocity reset remains unbuilt (steering-behaviours.md §7.6); the swing has no
-impact-time range test (combat-fight-state.md §4).
+### Q582 reassessment — 2026-11-13
+
+The old hash 228–230 timings are superseded by a modern measurement at
+master `7310716c`, hash/save 502: stock Level7, no player commands, campaign
+scripts and the default systems, Xoshiro seeds 1 and 7, through 600 completed ticks.
+The registered-attacker scan is built (§6); the initial retreat succeeds:
+
+| Seed | Giant first targets Imp27, completed tick | Imp27 enters 203, completed tick | Imp27 reaches 202, completed tick | HP on arrival | Later local Imp death, event tick |
+|---|---:|---:|---:|---:|---|
+| 1 | 144 | 145 | 183 | 500 | Imp27 at 222 |
+| 7 | 145 | 146 | 185 | 500 | Imp28 at 454 |
+
+Each run has one local Imp death by 600. Both fatal hits are from Giant 1 and
+record `blow=-562 landed=-500 health=-62`; both victims have already completed
+an earlier retreat and are travelling toward state 202 again when hit. Samples use
+completed ticks; event ticks retain the emitter's stamp. Seed 1's repeat matches
+all 601 hashes. Source, runtime, input fingerprints, snapshots and traces are in
+`F:/DK2Evidence/studies/q582-current-baseline--2026-11-13--001`;
+`reassessment.json` derives the table, and `manifest-reassessment.json` verifies it.
+
+These are modern results, not an original-game casualty comparison. Q582 remains
+a matched-native acceptance gap; current excess deaths are not established.
+No Level7-named capture path was found in the searched native archive, and none
+of the 22 installed replay packets names Level7 (inventory in `reassessment.json`).
+A fresh original later-encounter recording is needed before judging fear, damage
+or survival differences. The swing's range rule belongs to combat-fight-state.md §4.
 
 `ProcessFight` is one of twelve callers of `SelectAVictim`. Six sit inside
 `spFighting` (re-acquisition); one in the possession handler; one at

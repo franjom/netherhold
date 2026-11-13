@@ -81,7 +81,7 @@ exposure is Q710 in [Level 4 outcomes](research/level4-outcomes.md).
 
 These are entry points, not a new priority order.
 
-- Owner's standing priority: excess Level 7 Imp deaths, Q582. See
+- Owner's standing priority: Level 7 Imp-casualty comparison, Q582. See
   [combat acquisition](research/combat-acquisition.md) for the matched encounter
   checks still needed.
 - M12 keeper acceptance and remaining decisions: [Keeper AI §12.7–12.8](KEEPER_AI.md),

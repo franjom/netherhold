@@ -300,10 +300,10 @@ destinations and the run, with failure/fallback differences below;
 ADR-0208. The arrival's turn ends in 202, which idles on the next turn, and a creature a
 combat handler leaves in state 1 runs 1's handler the turn after (ADR-0580).
 
-The first Level7 death in Q582 takes the NonFighter hero-avoidance path
+The initial Level7 reaction in Q582 takes the NonFighter hero-avoidance path
 (combat-alarm.md §1), which calls withdrawal without waiting for CurrentFear
 or the over-threat counter. Its healthy retreat decision is already observed;
-the unresolved timing and movement comparison is in combat-acquisition.md §1.
+the current baseline and unmatched original comparison are in combat-acquisition.md §1.
 
 **Approximated, named:** the step back's vector, tests and slide are DK2's (§4 step 8,
 `FearRules.StepBack`, `FearRules.Slide`, ADR-0593, ADR-0594), except that the commit's creature
