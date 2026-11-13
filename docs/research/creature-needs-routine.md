@@ -175,8 +175,10 @@ one-second throttle for autonomous lair attempts.
   `NeedRules.IsAsked`, where native `0x00476FC0` runs `0x00477C20` only for non-workers owned by
   a keeper (neither the hero player `[0x006F254C]` nor the neutral `[0x006F2548]`);
   `FoodAttemptTicks` counts down only while the creature is hungry and may be asked, where
-  native `+0x50` is a stamp; native returns early in `0x00476FC0` while state `+0x44` is
-  non-zero (PLAUSIBLE, writer not traced).
+  native `+0x50` is a stamp; native returns early in `0x00476FC0` while SuspendTime `+0x44` is
+  non-zero. That is Q499's Wait hold, armed only by job 22 (`0x00486CC0`). A keeper's
+  non-worker can reach it through the Prison drop's `DroppedToDoJobId` 22 (STRONGLY INFERRED,
+  [wait-hold.md](wait-hold.md); not seen in play).
 - Need attempts run eat, then sleep, then pay, as steps of `CreatureUpdateSystem`
   inside each creature's update (ADR-0554); the payday clock's own call skips the stamp and
   runs before the creatures ([payday.md](payday.md) §2).

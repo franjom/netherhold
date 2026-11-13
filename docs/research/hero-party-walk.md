@@ -76,7 +76,7 @@ The five shipped party jobs take these arms:
   standing job), 127 placed Good creatures and 7 script actions set
   objective 22 (Q499). Not read: whether a waiting hero's fight response
   runs inside the skipped dispatcher body or enters through `SetState`.
-  State 176 plays action 43
+  Keepers' creatures too: [wait-hold.md](wait-hold.md). State 176 plays action 43
   while parked; after its deadline it picks a point in the current
   tile, reloads a random 50..84-tick deadline, and walks back to 176.
   Both job words are ignored.

@@ -165,7 +165,7 @@ After its landing work (the pit scatter, the fall, and the sound gate above), it
 
 **`0x004E8DA0(1)`, "does this tile take the creature over".** It returns 0 (yes) for:
 - a Portal (type3 only) tile whose cell byte `+0xC` is4; Hero Portal reaches its table state after getting up,
-- a Prison or Temple tile the cell test `0x00454110` refuses,
+- a Prison tile the cell test `0x00454110` accepts, i.e. an interior floor cell (the Prison arm `0x004E8E82` returns 0 when the test is true; re-read 2026-11-13), and a Temple tile under its own arm `0x004E8ECE` (not re-read),
 - a free torture device under the creature (`0x004F2180`),
 - a Combat Pit tile the cell test refuses (its floor).
 
