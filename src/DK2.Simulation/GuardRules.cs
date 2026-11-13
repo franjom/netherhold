@@ -24,8 +24,10 @@ public static class GuardRules
     /// <summary>State 100, arrived at a Guard Post: back to the room.</summary>
     public const int AtThePostState = 100;
 
-    /// <summary>No post slot (<c>0x00462BB0</c>'s miss).</summary>
-    public const int NoSlot = 8;
+    /// <summary>Ours' marker for no post slot. <c>0x00462BB0</c> returns 8 for a miss and the pair's
+    /// facing for a hit (<c>0x00462CD3</c>), so the ninth pair (mask 10, facing 0) is a post; ours
+    /// returns the pair index, which can be 8, and so marks the miss apart.</summary>
+    public const int NoSlot = 9;
 
     /// <summary>The nine <c>(mask, facing)</c> pairs at <c>0x00698540</c>; the mask is the
     /// tile's neighbours on the keeper's Guard Room, west 1, east 2, north 4, south 8.</summary>
@@ -45,8 +47,9 @@ public static class GuardRules
         return tile.OwnerPlayerId == owner && RoomRules.RoomOn(database, tile)?.RoomId == (byte)RoomTypeId.GuardRoom;
     }
 
-    /// <summary><c>0x00462BB0</c>: the post slot of (x, y), or <see cref="NoSlot"/>. The tile
-    /// may hold any room; the mask counts the keeper's Guard Room around it.</summary>
+    /// <summary><c>0x00462BB0</c>: the post slot (pair index) of (x, y) with its facing, or
+    /// <see cref="NoSlot"/>. The tile may hold any room; the mask counts the keeper's Guard Room
+    /// around it.</summary>
     public static int Slot(WorldState world, GameDatabase database, int x, int y, PlayerId owner, out int facing)
     {
         facing = 0;
@@ -88,13 +91,14 @@ public static class GuardRules
     private static bool IsPost(WorldState world, GameDatabase database, int x, int y, PlayerId owner) =>
         world.Contains(new TilePos(x, y)) && Slot(world, database, x, y, owner, out _) != NoSlot;
 
-    /// <summary>State 97's target for a post of <paramref name="slot"/>: the offsets are read
-    /// four bytes into <see cref="Offsets"/>, so slot 7's y is the source-path string's first
-    /// word and lands off the map. Null for the miss, whose pair lies wholly in the string.</summary>
-    public static (int X, int Y)? PostPoint(TilePos post, int slot)
+    /// <summary>State 97's target for a post whose slot gave <paramref name="facing"/>: <c>0x00462BB0</c>
+    /// returns the pair's facing, not its index (<c>0x00462CD3</c>), and state 97 reads the offsets four
+    /// bytes into <see cref="Offsets"/> by it (<c>0x00462AFB</c>, <c>0x00462B32</c>). Null for the miss
+    /// (<see cref="NoSlot"/>), whose pair lies in the source-path string after the table.</summary>
+    public static (int X, int Y)? PostPoint(TilePos post, int facing)
     {
-        if (slot >= NoSlot) return null;
-        return ((post.X << 12) | Offsets[(2 * slot) + 1], (post.Y << 12) | Offsets[(2 * slot) + 2]);
+        if (facing >= NoSlot) return null;
+        return ((post.X << 12) | Offsets[(2 * facing) + 1], (post.Y << 12) | Offsets[(2 * facing) + 2]);
     }
 
     /// <summary>State 98's target for a leg ending on <paramref name="at"/> with

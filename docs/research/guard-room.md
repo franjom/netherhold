@@ -29,7 +29,7 @@ Post flag.
 1. The creature must stand on a tile of its own keeper's Guard Room (`0x004539B0(9, owner,
    0)` on the tile under it). Otherwise the handler returns 0: idle.
 2. **A square spiral** from the creature's tile finds the first tile, in map bounds (world
-   vslot `+0x1FC`), whose slot (§2) is not 8. The order is (x, y), (x+1, y), (x+1, y+1),
+   vslot `+0x1FC`), for which §2 does not return 8 (the miss). The order is (x, y), (x+1, y), (x+1, y+1),
    (x, y+1), (x−1, y+1), (x−1, y), (x−1, y−1), (x, y−1), (x+1, y−1), (x+2, y−1), …: legs of
    1, 2, 2, 3, 3, …, alternating vertical and horizontal, the first leg downwards. The
    search stops once a leg would reach twice the map's larger side (vslots `+0x1CC`,
@@ -39,11 +39,13 @@ Post flag.
    `MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds` (60), stored raw by the loader
    (`0x0051D2D8`), so these are turns.
 5. The target is `(x << 12) | ox`, `(y << 12) | oy`, with `(ox, oy)` read from
-   `0x0069858C + 8 × slot` and `0x00698590 + 8 × slot`: four bytes into the direction table
-   of §3. So slots 0, 1, 4 and 5 take `(0x600, 0xA00)` and slots 2, 3 and 6 `(0xA00,
-   0x600)`. **Slot 7's y reads `0x006985C8`, the first dword of the source-path string**
-   (`0x445C3A44`), so its target is far off the map. Slot 8, the nothing-found case, reads
-   the string for both.
+   `0x0069858C + 8 × f` and `0x00698590 + 8 × f` (`0x00462AFB`, `0x00462B32`): four bytes into
+   the direction table of §3, where **f is what `0x00462BB0` returns, the slot's facing**
+   (§2; `0x00462CD3`), not the slot. So facings 0 and 1 (slots 0, 1, 2, 4, 6) take `(0x600,
+   0xA00)` and facings 2 and 3 (slots 3, 5, 7) `(0xA00, 0x600)`.
+   Only the nothing-found case (8) reads the source-path string at `0x006985C8`, off the map.
+   Level 5 seed 1, turn 1922: native creature 432 at the slot-7 post (19,21) stores facing 3 and
+   routes to `(0x13A00, 0x15600)` (ADR-0780; an earlier reading here indexed by the slot).
 6. `0x00471890(&target, 98, 0x80)`: state 6, resuming 98. A failed route returns 0: idle.
 
 ## 2. The post slot (`0x00462BB0(x, y)`)
@@ -57,20 +59,17 @@ four neighbours on the keeper's own Guard Room make a mask: west 1, east 2, nort
 | mask | 0 | 1 | 2 | 4 | 8 | 5 | 9 | 6 | 10 |
 | facing | 1 | 1 | 0 | 3 | 1 | 2 | 1 | 3 | 0 |
 
-A hit writes the facing to `state+0xAB` and returns the slot; a miss returns 8. So a post
+A hit writes the facing to `state+0xAB` and returns that facing (`0x00462CD3..0x00462CE5`); a
+miss returns 8. So a post
 is meant to be a room tile with no more than two Guard Room neighbours, not in a straight
 line. Edge and interior tiles, and the middle of a one-wide run (masks 3 and 12), are never
 posts, and a room tile of another kind beside the Guard Room qualifies, since the tile itself
-is not tested for type. Two quirks leave a rectangular room with **two working corners of
-four**:
-
-- **The north-west corner is no post.** Its mask, 10 (east and south), is the ninth pair,
-  found at index 8, which is also the miss. Every caller compares with 8, so the spiral
-  passes it over.
-- **The south-west corner fails.** Mask 6 (east and north) is slot 7, whose target is off the
-  map (§1.5), so a guard whose nearest post it is goes idle.
-
-The south-east (slot 5, facing 2) and north-east (slot 6, facing 1) corners work.
+is not tested for type. All four corners of a rectangular room are posts: south-east (slot 5,
+facing 2), north-east (slot 6, facing 1), south-west (slot 7, facing 3) and north-west (the
+ninth pair, mask 10, facing 0). The return is the facing, so the north-west corner returns 0,
+not 8, and the spiral's three probes (`0x004629E4`, `0x00462A3C`, `0x00462A87`, each `CMP EAX,8`)
+accept it. An earlier reading took the return for the pair index and so made the north-west
+corner the miss and the south-west corner's target the string (ADR-0780 corrects both).
 
 ## 3. State 98: round the room's edge
 
@@ -205,6 +204,6 @@ the creature lists are walked in our orders (traps oldest first, creatures as th
 
 ## Open questions
 
-- Are the two corner quirks visible in play: does a guard never start from the north-west
-  corner, and does one standing nearest the south-west corner go idle instead of patrolling?
+- Does a native capture show a guard at a north-west post (facing 0)? The south-west case is
+  seen (Level 5 seed 1, turn 1922, ADR-0780).
 - What bits 22–25 of `+0x3E6` mean.

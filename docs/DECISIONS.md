@@ -4634,7 +4634,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Every test passed after the assignments were removed, which is what ADR-0210's per-tick check predicted. Negative controls on the table: sleeping read as idle and a walk not named by its resume fail behaviour tests across the suite (the first also hung one, so the control harness now kills a test after 90 s). 81 ignoring the job, the hand drop always idle and an unmapped state read as idle fail only the table's own tests: 77 lasts within a tick and no system enters an unmapped state, but no simulation test covers a Sleep-job creature standing in 81, which is a gap.
 
 ## ADR-0212 — Guard duty is states 97, 98 and 99
-**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/guard-room.md`
+**Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · amended by ADR-0780: the post finder returns the facing, so all four corners are posts (the two-corner consequence below no longer holds) · Research: `docs/research/guard-room.md`
 
 **Context.** The Guard job walked to a Guard Room and stood in state 97 doing nothing. Its category, 11, has no update hook: the enter hook only claims the room position (`state-category-hooks.md`). What guard duty is lives in the three handlers, now read.
 
@@ -18206,3 +18206,31 @@ from the room as it stands, where DK2 keeps it once set.
 **Consequences.** Presentation only: no simulation state, hash or save change. Torches already
 lit stay until their wall or floor changes, as before; a room whose phase moves as it grows may
 keep torches laid out under the old phase, as DK2's would under its kept one.
+
+## ADR-0780 - a guard post's target is read by the slot's facing
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** rooms, creatures
+
+**Context.** Level 5 seed 1 past turn 1900 (Q772): the controlled replay's first draw difference is
+at 1924, an extra lair walk by creature 432 (ours 24). On 1922 both enter state 97 at the Guard Post
+(19,21), whose Guard Room neighbours are east and north (mask 6, slot 7, facing 3). Native routes to
+`(0x13A00, 0x15600)` and walks in state 6 resuming 98 (facing 3 at `state+0xAB`, deadline 2027); ours'
+`GuardRules.PostPoint` read the offsets by the slot, took y from the source-path string at
+`0x006985C8`, could not route and went idle. The binary: `0x00462BB0` returns the pair's facing
+(`[index*8 + 0x00698544]`, `0x00462CD3..0x00462CE5`), and state 97 (`0x00462930`) indexes the offsets
+at `0x0069858C`/`0x00698590` by that return value (`0x00462AEE..0x00462B32`). guard-room.md §1 had
+indexed them by the slot. STRONGLY INFERRED (disassembly and capture).
+
+**Decision.** `PostPoint` takes the facing; `GuardStep.ToThePost` passes the facing, or `NoSlot` for
+the miss, which alone still reads the string and refuses. Since the return is the facing, the ninth
+pair (mask 10, facing 0) returns 0, not the miss value 8, and the spiral's probes (`CMP EAX,8` at
+`0x004629E4`, `0x00462A3C`, `0x00462A87`) accept it: `NoSlot` becomes ours' own marker (9), so the
+north-west corner is a post.
+
+**Consequences.** Hash/save 493. A rectangular Guard Room has four working corners: a guard at a
+slot-7 post walks to it instead of idling, and the north-west corner is found and walked to; slots
+2, 5 and 6 take the other offset pair; slots 0, 1, 3 and 4 are unchanged. ADR-0212's two corner
+quirks no longer hold. Level 5 controlled replay (diag
+controlled516): draws match through 1937 (9037), 432 follows native every turn 1922-1938; the next
+stop is creature 441's steering at native 1932 (Q772). Level 1 outcome unchanged (journal re-recorded).
+Tests: `GuardTests.AGuardWhoseNearestPostIsTheSouthWestCornerWalksToIt` (fails on the old code),
+`EveryCornerOfARectangularRoomIsAPost`, `ALegEndsOnTheQuarterAgainstItsWall` (slot 5's point by facing 2).

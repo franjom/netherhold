@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**493** - `0x95C6ADDCCFDD08B9`. A guard post's target is read by the slot's facing, which `0x00462BB0` returns (`0x00462CD3`), and a miss is 8 only: a slot-7 post and the north-west corner are walked to, and slots 2, 5 and 6 take the other offset pair (ADR-0780). No new saved field; earlier saves are refused.
+
 **491** - `0x934774BEF5844744`. The flee state turns one step toward its target (`0x004B2AE0` at `0x0046071C`) before the stand-off test and the step back, so it backs away from the enemy (ADR-0766). No new saved field; earlier saves are refused.
 
 **490** - `0x8C4B9A3EB1BADC9D`. A swing's hold ends only where DK2's end-action callers end it, and the pick-up and the slap are two (`0x00496D20`, `0x004BFC44`, `0x0048B9BC`, ADR-0762); a lifted creature keeps its stored attackable bit until its own update (`0x0045A8B3`, ADR-0763); own-land healing skips only the dying bit and damage keeps its overkill (`0x00488A73`, `0x004B2CE0`, ADR-0764); every damage path books the collapse and a slap collapses inside the command (ADR-0765). No new saved field; earlier saves are refused.

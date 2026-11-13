@@ -52,10 +52,10 @@ public sealed class GuardTests
     }
 
     [Fact]
-    public void OfARectangularRoomsCornersOnlyTwoArePosts_TheNorthWestsSlotIsTheMissValue()
+    public void EveryCornerOfARectangularRoomIsAPost()
     {
-        // The ninth pair (mask 10) is found at index 8, which is also the miss, so callers
-        // cannot tell the north-west corner from a tile that is no post.
+        // 0x00462BB0 returns the pair's facing on a hit (0x00462CD3) and 8 only for a miss, so the
+        // ninth pair (mask 10, facing 0) is a post like the other corners (ADR-0780).
         (GameDatabase db, WorldState world) = World();
         int SlotOf(int x, int y, out int f) => GuardRules.Slot(world, db, x, y, Keeper, out f);
 
@@ -65,7 +65,9 @@ public sealed class GuardTests
         Assert.Equal(1, ne);
         Assert.Equal(7, SlotOf(5, 5, out int sw));   // east and north
         Assert.Equal(3, sw);
-        Assert.Equal(GuardRules.NoSlot, SlotOf(5, 3, out _));   // east and south: index 8
+        Assert.Equal(8, SlotOf(5, 3, out int nw));   // east and south: the ninth pair
+        Assert.Equal(0, nw);
+        Assert.Equal(new TilePos(5, 3), GuardRules.NearestPost(world, db, 5, 3, Keeper));
         Assert.Equal(GuardRules.NoSlot, SlotOf(6, 3, out _));   // an edge
         Assert.Equal(GuardRules.NoSlot, SlotOf(6, 4, out _));   // the middle
     }
@@ -117,18 +119,20 @@ public sealed class GuardTests
     }
 
     [Fact]
-    public void AGuardWhoseNearestPostIsTheSouthWestCornerGoesIdle_Dk2ReadsItsOffsetPastTheTable()
+    public void AGuardWhoseNearestPostIsTheSouthWestCornerWalksToIt()
     {
-        // Slot 7's y offset is read from 0x006985C8, the source-path string after the table,
-        // so the target is off the map and the route fails. Unconfirmed in play.
+        // Slot 7 faces 3, and the target is read by the facing (0x00462CD3, 0x00462AFB): (0xA00, 0x600)
+        // on the post tile. Level 5 seed 1, turn 1922: native creature 432 at a slot-7 post (19,21)
+        // routes to (0x13A00, 0x15600) and walks in state 6 resuming 98 (ADR-0780).
         (GameDatabase db, WorldState world) = World();
         CreatureState goblin = Guard(db, world, new TilePos(5, 5));
         var sink = new ListEventSink();
 
         Simulation(db, world, sink).Run(4);
 
-        Assert.DoesNotContain(sink.Events, e => e.Kind == "guard_to_post");
-        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.Contains(sink.Events, e => e.Kind == "guard_to_post" && e.Detail.Contains("slot=7 facing=3"));
+        Assert.Equal(((5 << 12) | 0xA00, (5 << 12) | 0x600), GuardRules.PostPoint(new TilePos(5, 5), 3));
+        Assert.NotEqual(CreatureActivity.Idle, goblin.Activity);
     }
 
     [Fact]
@@ -163,7 +167,8 @@ public sealed class GuardTests
     {
         Assert.Equal(((5 << 12) | 0x600, (5 << 12) | 0xA00), GuardRules.LegPoint(new TilePos(5, 5), 3));
         Assert.Equal(((7 << 12) | 0xA00, (3 << 12) | 0x600), GuardRules.LegPoint(new TilePos(7, 3), 1));
-        Assert.Equal(((7 << 12) | 0x600, (5 << 12) | 0xA00), GuardRules.PostPoint(new TilePos(7, 5), 5));
+        // A post's target is read by the slot's facing (0x00462CD3): slot 5 faces 2.
+        Assert.Equal(((7 << 12) | 0xA00, (5 << 12) | 0x600), GuardRules.PostPoint(new TilePos(7, 5), 2));
     }
 
     [Fact]

@@ -24,7 +24,7 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 Q712, the Level 5 draw-continuation investigation, is answered through turn 1900.
-At hash 491 with ADR-0766, with the replay inputs including the five hero guards
+At hash 493 with ADR-0780, with the replay inputs including the five hero guards
 restored at turn 1400, the controlled replay matches all 8466 native draws of the
 capture's log, turns 1401-1900 (the log ends there). The result is in
 [Q712](research/open-questions.md), with its causes in
@@ -51,13 +51,14 @@ capture's log, turns 1401-1900 (the log ends there). The result is in
 [the collapse's action end](research/functions/0048B770.md) (ADR-0757),
 [the head count's collapsed creature](research/combat-fear.md) (ADR-0758),
 [the flee state's turn toward its target](research/combat-fear.md#4-state-203-fleeing-0x004602e0-in-order) (ADR-0766),
+[a guard post's target, read by the slot's facing](research/guard-room.md#1-state-97-to-the-nearest-post) (ADR-0780),
 [own-land regeneration every turn](research/creature-needs.md) (ADR-0759),
 [the fighting arms' candidate walk order](research/combat-target-selection.md) (ADR-0761),
 [the melee hold's end, the lifted creature's bit, own-land healing and the collapse booking](research/open-questions.md)
 (ADR-0762 to ADR-0765, Q768 to Q771); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
 [store-gold steering](research/store-gold-steering.md). The continuation is split into
-Q772 (past turn 1900, needs a wider capture), Q773 (six creatures with small position
+Q772 (past turn 1900: draws match through 1937 at hash 493, next is creature 441's steering at native 1932), Q773 (six creatures with small position
 offsets and no draw affected) and Q774 (state words that differ in representation: held
 78, a collapsed creature's health countdown, Imp 440's states 10 and 22), besides
 Q764 to Q767 and Q733(d). Build only behavior supported

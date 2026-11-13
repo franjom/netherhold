@@ -49,7 +49,7 @@ public static class GuardStep
         if (slot != GuardRules.NoSlot) creature.GuardFacing = facing;
         creature.GuardDeadlineTick = context.Tick.Value + 75 + Random(context, VariableTypeId.MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds);
 
-        if (GuardRules.PostPoint(post, slot) is not (int x, int y) || !Walk(context, creature, x, y, GuardRules.PatrolState)) return false;
+        if (GuardRules.PostPoint(post, slot == GuardRules.NoSlot ? GuardRules.NoSlot : facing) is not (int x, int y) || !Walk(context, creature, x, y, GuardRules.PatrolState)) return false;
         context.Emit(system, "guard_to_post", $"creature={creature.Id} post=({post.X},{post.Y}) slot={slot} facing={creature.GuardFacing}");
         return true;
     }
