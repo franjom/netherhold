@@ -380,7 +380,7 @@ by the owner agrees with the code.
 - The one-shot atmosphere's delay-chained player (vtable `0x006740B0`) and the options-screen
   player (`0x006741C8`), not re-read.
 - Whether `SoundQuality == 1` is Low (the value order of its three labels).
-- Item fields `+0x14/15`, `+0x22` (a float: 20.0, 100.0, 0.1) and group `+0x0C` (6000, 1000, 149).
+- Item fields `+0x14/15` and group `+0x0C` (6000, 1000, 149). Item `+0x22` is the audible maximum distance in mixer units ([0x0060CDB0](functions/0060CDB0.md)).
 - Whether a level's variables override 215–217 (no shipped level was checked).
 
 ## Runtime boundary

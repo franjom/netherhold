@@ -105,11 +105,13 @@ Ordered by shipped use and ordinary gameplay first.
     ([#1040](https://github.com/tonihele/OpenKeeper/pull/1040),
     [wall torches §2](wall-torches.md)): built (ADR-0769) in `TorchLayout`. Call to Arms recall effect 330
     every third pass ([#1054](https://github.com/tonihele/OpenKeeper/pull/1054)): built (ADR-0771); the HUD widget is still missing.
-15. **Sound distances ([#1098](https://github.com/tonihele/OpenKeeper/pull/1098)), Q678.**
-    Fresh read: 2 mixer units per tile, minimum one tile, maximum from the
-    sound group floored at 2.1 units, and a third member that is the constant
-    0.5. What QMixer does with the third member is not established, so do not
-    read it as the PR's rolloff without a test.
+15. **Sound distances ([#1098](https://github.com/tonihele/OpenKeeper/pull/1098)), Q678:**
+    built (ADR-0772). 2 mixer units per tile, minimum one tile, maximum the
+    current item's float (`+0x22`, mostly 20 or 100 units: 10 or 50 tiles)
+    floored at 2.1 units, and a third member 0.5 that QMixer reads as the
+    rolloff `scale` ([qmixer-distance.md](qmixer-distance.md)). Open: voice
+    counts and fades, DirectSound's own rolloff on a 3D voice, the listener
+    orientation and the source cone.
 16. **No shipped use:** SET_FIGHT_FLAG ([#1104](https://github.com/tonihele/OpenKeeper/pull/1104)),
     TOGGLE_EFFECT_GENERATOR ([#1094](https://github.com/tonihele/OpenKeeper/pull/1094)).
     One-line arms; do them when convenient.
@@ -196,7 +198,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | [1066](https://github.com/tonihele/OpenKeeper/pull/1066) | OpenKeeper debug extension | [cheats.md](cheats.md), ADR-0589. |
 | [1075](https://github.com/tonihele/OpenKeeper/pull/1075) | Gap of ours | Built (ADR-0744): a held object is off DK2's tile list (`0x004B4F60`), which `0x0046B9C0` walks; `IsLoose` and `ObjectOn` ignore `InHand`. |
 | [1095](https://github.com/tonihele/OpenKeeper/pull/1095) | Covered: manufacture rate | `ManufactureRules.PerOriginalTick`, `ManufactureTests`; [workshop-states.md](workshop-states.md). |
-| [1098](https://github.com/tonihele/OpenKeeper/pull/1098) | Gap, already Q678 | `ClassicSoundPlayer` uses Unity's default rolloff. Fresh read of the QMixer mapping ([0x0060CDB0](functions/0060CDB0.md)); third member is the constant 0.5, its use unread. |
+| [1098](https://github.com/tonihele/OpenKeeper/pull/1098) | Gap, already Q678 | Built (ADR-0772): `ClassicSoundPlayer` samples DK2's QMixer curve ([0x0060CDB0](functions/0060CDB0.md), [qmixer-distance.md](qmixer-distance.md)); the third member 0.5 is QMixer's rolloff `scale`. |
 
 ### Engine, rendering and tooling
 

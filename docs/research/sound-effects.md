@@ -107,7 +107,8 @@ frame's load, normal before any) and when native first stamps it in a level
 voices, 12-tile eligibility and 250 ms fades. Those constants are visible in
 OpenKeeper, but the category/instance paths read here do not establish their
 native equivalents or prove their absence. OpenKeeper's additional three
-footsteps per 200 ms window is likewise not established as native.
+footsteps per 200 ms window is likewise not established as native. The distance a voice is audible over is
+read separately: [qmixer-distance.md](qmixer-distance.md), built in ours by ADR-0772.
 
 ## 5. SFX.map group flags and parameter id
 

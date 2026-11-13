@@ -109,7 +109,7 @@ Imp action 1's possessed (`0x00514FC9`), training (`0x00485E7D`) and other begin
 
 **The loop model chosen (remake policy, Q678 stays open).** A request for a live voice of equal or higher priority is retained (`SoundVoiceBindings.CanRetain`), so a thing that asks again every update, as DK2's burning, boulder and tremor do, loops by being asked.
 `ClassicSoundPlayer` keeps four rules of its own: a group with flag `0x08` plays looping; a `SoundRequest` with `Stop` ends the named voice at once and is exempt from the throttle; once a frame `FollowVoices` moves each playing voice to its thing's position
-(creature, object, shot) without restarting it; a looping voice whose thing has left the world is stopped, so no loop outlives its thing. Unity's default 3D rolloff stays, and no voice count, distance or fade is imported.
+(creature, object, shot) without restarting it; a looping voice whose thing has left the world is stopped, so no loop outlives its thing. Distance fading is DK2's QMixer mapping (ADR-0772, [qmixer-distance.md](qmixer-distance.md)); no voice count or fade is imported.
 
 Marked deviations: a replay is applied once per rendered frame, where DK2 applies it once per update; the party's explored-tile gates (the music at volume 1, the end sound not asked) are not applied, so a party in
 unexplored ground is as audible as the camera's distance allows, and the base volume V (`0x0075AD17`) is read as 1; `0x316` is one request per update where DK2 asks once per dancer; the global volume `+0x54` sets at the party's end is not built (what it scales is unread).

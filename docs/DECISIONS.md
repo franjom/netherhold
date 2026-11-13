@@ -18385,3 +18385,36 @@ through 1976. The next stop is turn 1977 draw 25, native `ObjectState.cpp:2708`,
 t2391; ours' output, unverified against DK2. Residual (PLAUSIBLE): ours draws again for each candidate
 hatchery whose point or route fails, where native's finder returns one room and the helper tries once
 (Q790, record `0x004634B0`). Unchecked: whether a loose chicken is an obstacle for `0x004E4C10`.
+
+## ADR-0772 - sounds fade with DK2's QMixer distance mapping
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** audio
+
+**Context.** The OpenKeeper audit (openkeeper-pr-audit-1000-1110.md, item 15, #1098) and Q678 left
+sound distances open; `ClassicSoundPlayer` used Unity's default rolloff. `SoundInstance_BindVoice`
+(`0x0060CDB0`) gives every spatial voice a distance mapping that reaches QMixer through the
+device's block applier (`0x00617510`, backend slot `+0x70`, wrapper `0x0061AE30`): minimum 2.0,
+maximum the current item's float `+0x22` (floored to 2.1 when 2.0 or less), scale 0.5, in mixer
+units of two per tile (`0x0060E4B0`). A group whose flag word has `0x200` is head-relative and gets
+none. The shipped maps (205 files) carry 20.0 (ten tiles) for most spatial items and 100.0 (fifty)
+for a few, the Stone Knight's among them. QMIXER.DLL (imported into its own Ghidra project) turns
+the mapping into a linear amplitude: 1 within the minimum, `min / (min + scale × (d − min))` out
+to the maximum, 0 beyond it (`0x18009150`, `0x18009460`; qmixer-distance.md). DK2 sets no listener
+rolloff. The distance is flat and from the camera's focus: `Sound_RequestPositional` (`0x005678F0`)
+hands the mixer x and y less the listener's `+0x4C`/`+0x50`, with the vertical slot 0, and QMixer's
+listener sits at the origin. STRONGLY INFERRED: read in DKII.EXE and QMIXER.DLL, not measured in
+play. DK2 tries an A3D backend first (`0x00618040`, identity a HYPOTHESIS); without it, as on current
+Windows, QMixer plays. DK2's init asks QMixer for every buffer kind (`0x0061A576..0x0061A59D`); on a
+voice made as a DirectSound 3D buffer, DirectSound's own distance model may apply too (open).
+
+**Decision.** `SoundDistanceMapping` (DK2.Presentation) reads an item's mapping and computes the
+factor; `SoundResolver.DistanceMappingOf` gives a group's (null when head-relative). The Unity
+player gives each spatial voice a custom rolloff curve sampled from that factor, in tiles, which
+steps to silence just past the maximum (Unity holds a custom curve's last value beyond its range),
+sampled at one tile and geometrically beyond. Each spatial source stands at Unity's listener plus
+its flat offset from the screen-centre focus, renewed every frame, so Unity's distance is DK2's and
+the pan follows the camera's turn. A head-relative group plays without a position.
+
+**Consequences.** View output only: no simulation state, hash or save change. The focus is
+tile-granular in ours (`ListenerFocus`); DK2's listener orientation, the source cone and the
+instance range override (instance flag `0x200`) are not mirrored. Voice counts and fades remain
+unread (Q678).

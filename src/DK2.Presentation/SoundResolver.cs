@@ -19,6 +19,52 @@ public sealed class SoundRand(uint seed)
     }
 }
 
+/// <summary>A voice's QMixer distance mapping in mixer units (two per tile, <c>0x0060E4B0</c>).</summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/qmixer-distance.md")]
+public readonly record struct SoundDistanceMapping(float Minimum, float Maximum, float Scale)
+{
+    public const float UnitsPerTile = 2f;
+
+    /// <summary><c>0x0060CDB0</c>'s mapping for an item: 2.0, the item's float <c>+0x22</c> (file bytes 26..29 of
+    /// <see cref="SoundItem.Unknown0x08"/>) floored to 2.1 when 2.0 or less, and 0.5.</summary>
+    public static SoundDistanceMapping Of(SoundItem item)
+    {
+        float maximum = BitConverter.Int32BitsToSingle(System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(item.Unknown0x08.AsSpan(0x22 - 8)));
+        // FCOMP then TEST AH,0x41 also floors an unordered (NaN) value.
+        return new SoundDistanceMapping(2f, maximum > 2f ? maximum : 2.1f, 0.5f);
+    }
+
+    /// <summary>QMixer's distance factor, a linear amplitude (QMIXER.DLL <c>0x18009150</c>, <c>0x18009460</c>,
+    /// qmixer-distance.md): 0 beyond <see cref="Maximum"/>, 1 within <see cref="Minimum"/>, otherwise
+    /// <c>min / (min + scale × (d − min))</c>; DK2's mapping gives 4 / (d + 2), 2 / (tiles + 1).</summary>
+    public float Factor(float distanceUnits)
+    {
+        if (distanceUnits > Maximum) return 0f;
+        if (distanceUnits <= Minimum || Scale == 0f) return 1f;
+        return Minimum / (Minimum + (Scale * (distanceUnits - Minimum)));
+    }
+
+    /// <summary>The range a rolloff curve spans, in mixer units: a hair past <see cref="Maximum"/>, so the curve can
+    /// fall to silence there (an engine curve holds its last value beyond its range).</summary>
+    public float CurveRange => Maximum * 1.01f;
+
+    /// <summary><paramref name="into"/>'s points of the rolloff curve over <see cref="CurveRange"/>: x the fraction
+    /// of the range, y <see cref="Factor"/>, at 0, at <see cref="Minimum"/> and geometrically spaced out to
+    /// <see cref="Maximum"/> (dense where the curve bends); the last point steps to 0.</summary>
+    public void RolloffPoints(List<(float X, float Y)> into, int samples = 32)
+    {
+        into.Clear();
+        float range = CurveRange;
+        into.Add((0f, Factor(0f)));
+        for (int i = 0; i < samples; i++)
+        {
+            float d = i == samples - 1 ? Maximum : Minimum * (float)Math.Pow(Maximum / Minimum, (double)i / (samples - 1));
+            into.Add((d / range, Factor(d)));
+        }
+        into.Add((1f, 0f));
+    }
+}
+
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-playback.md#category-and-sample-selection")]
 public sealed class SoundResolver(BankMap banks, SfxMap map)
 {
@@ -31,6 +77,20 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
     /// <summary>Whether the group has exactly one item with samples, the only kind <see cref="Resolve"/> plays; a linked or delayed group has its own director.</summary>
     public bool IsSingleItem(SoundId id) =>
         map.Groups.FirstOrDefault(g => g.Id == id) is { Items.Count: 1 } group && group.Items[0].Sounds.Count > 0;
+
+    /// <summary>The voice's distance mapping in mixer units, two to a tile (<c>0x0060E4B0</c>), as <c>SoundInstance_BindVoice</c>
+    /// (<c>0x0060CDB0</c>) builds it for QMixer: minimum 2.0 (one tile), maximum the item's float at <c>+0x22</c> raised to 2.1
+    /// when it is 2.0 or less, scale 0.5 (<c>0x0060CFE0</c>). Null for a group whose flag word has <c>0x200</c>: that voice is
+    /// head-relative and gets no mapping. Uses the group's first item, the one <see cref="Resolve"/> plays. Not mirrored:
+    /// an instance started with a range (instance flag <c>0x200</c>, <c>0x0060CF12..0x0060CF27</c>) takes the mixer ratio
+    /// times that range instead of the item's float; which requests pass one is unread.</summary>
+    public SoundDistanceMapping? DistanceMappingOf(SoundId id)
+    {
+        SoundGroup? group = map.Groups.FirstOrDefault(g => g.Id == id);
+        if (group is not { Items.Count: > 0 }) return null;
+        if ((System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(group.Unknown0x08.AsSpan(8)) & 0x200) != 0) return null;
+        return SoundDistanceMapping.Of(group.Items[0]);
+    }
 
     public SoundPriority? PriorityOf(SoundId id)
     {

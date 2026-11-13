@@ -305,16 +305,47 @@ namespace DK2.Unity
             // A group whose flag word has bit 0x08 repeats on its own (repeat count 9999, 0x0060CDB0), until its thing's next request or stop
             // replaces it or its thing is gone (FollowVoices); every other sound plays its sample out and is asked for again by its thing.
             source.Stop(); source.clip = clip; source.loop = resolver.IsLooping(request.Id);
-            // Remake policy, not DK2's: Unity's default 3D rolloff and no voice budget. DK2's distances,
-            // voice limits and fades are unread (Q678), so none are copied from OpenKeeper.
-            source.spatialBlend = request.World.HasValue ? 1 : 0;
-            if (request.World is System.Numerics.Vector3 world) source.transform.position = new Vector3(world.X, world.Y, world.Z);
+            // DK2's distance mapping (0x0060CDB0 into QMixer, qmixer-distance.md): full volume within a tile, 2 / (tiles + 1)
+            // out to the item's own maximum, silence past it. A head-relative group (flag 0x200) has none and plays without a
+            // position. No voice budget: DK2's voice limits and fades are unread (Q678).
+            SoundDistanceMapping? mapping = request.World.HasValue ? resolver.DistanceMappingOf(request.Id) : null;
+            source.spatialBlend = mapping.HasValue ? 1 : 0;
+            if (mapping is SoundDistanceMapping distances) ApplyRolloff(source, distances);
+            if (request.World is System.Numerics.Vector3 world) Place(source, world.X, world.Z);
             // A request made at the camera's point with a distance volume (the Casino party's music, 0x004D63D0): nonspatial, scaled by FollowVoices.
             if (request.VolumeAnchor is System.Numerics.Vector3 anchor && request.Voice != SoundVoiceId.None) _anchors[request.Voice] = anchor;
             else _anchors.Remove(request.Voice);
             source.volume = _master * EffectVolume * (request.VolumeAnchor is System.Numerics.Vector3 near ? AnchoredVolume.Of(near, ListenerFocus) : 1f);
             source.Play();
             _voices.Assign(request.Voice, request.Id, source, priority);
+        }
+
+        private readonly Dictionary<SoundDistanceMapping, AnimationCurve> _rolloffs = new Dictionary<SoundDistanceMapping, AnimationCurve>();
+        private readonly List<(float X, float Y)> _rolloffPoints = new List<(float X, float Y)>();
+
+        /// <summary>A custom rolloff over the mapping's range in tiles (one Unity unit), one curve per mapping (a few shipped values).</summary>
+        private void ApplyRolloff(AudioSource source, SoundDistanceMapping mapping)
+        {
+            if (!_rolloffs.TryGetValue(mapping, out AnimationCurve curve))
+            {
+                mapping.RolloffPoints(_rolloffPoints);
+                var keys = new Keyframe[_rolloffPoints.Count];
+                for (int i = 0; i < keys.Length; i++) keys[i] = new Keyframe(_rolloffPoints[i].X, _rolloffPoints[i].Y);
+                // Straight segments between the points, so the step to silence past the maximum does not overshoot.
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    float into = i > 0 ? (keys[i].value - keys[i - 1].value) / (keys[i].time - keys[i - 1].time) : 0f;
+                    float outOf = i < keys.Length - 1 ? (keys[i + 1].value - keys[i].value) / (keys[i + 1].time - keys[i].time) : 0f;
+                    keys[i].inTangent = into;
+                    keys[i].outTangent = outOf;
+                }
+                curve = new AnimationCurve(keys);
+                _rolloffs[mapping] = curve;
+            }
+            source.rolloffMode = AudioRolloffMode.Custom;
+            source.minDistance = mapping.Minimum / SoundDistanceMapping.UnitsPerTile;
+            source.maxDistance = mapping.CurveRange / SoundDistanceMapping.UnitsPerTile;
+            source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, curve);
         }
 
         private readonly Dictionary<string, SoundVoiceId> _terrainBeds = new Dictionary<string, SoundVoiceId>();
@@ -337,7 +368,7 @@ namespace DK2.Unity
                     _terrainBeds[emitter.Category] = voice = new SoundVoiceId(0x80000000u | (0x7Eu << 24) | (uint)_terrainBeds.Count);
                 var position = new System.Numerics.Vector3(emitter.Position.X, emitter.Position.Y, emitter.Position.Z);
                 if (_voices.TryGet(voice, out _, out AudioSource source) && source != null && source.isPlaying)
-                    source.transform.position = new Vector3(position.X, source.transform.position.y, position.Z);
+                    Place(source, position.X, position.Z);
                 else
                     Play(new SoundRequest(new SoundCategory(emitter.Category.ToLowerInvariant()), new SoundId(0x2EA), position, voice));
             }
@@ -376,8 +407,36 @@ namespace DK2.Unity
                     _voices.Release(voice);
                 }
                 else if (fate == VoiceLocator.Fate.Moves && source.isPlaying)
-                    source.transform.position = new Vector3(x, height ?? source.transform.position.y, z);
+                    Place(source, x, z);
             }
+            foreach (KeyValuePair<AudioSource, Vector2> placed in _flat)
+                if (placed.Key != null && placed.Key.isPlaying) Relocate(placed.Key, placed.Value);
+        }
+
+        // DK2 hands the mixer each source flat and relative to its listener point, the camera's focus (0x005678F0: x and y less
+        // the listener's +0x4C/+0x50, the vertical slot 0), and QMixer's listener sits at the origin. Unity's listener is the
+        // camera, above and behind that focus, so each spatial source stands at the listener plus its flat offset from the focus:
+        // Unity's distance is then DK2's, and the pan still follows the camera's turn (ADR-0772).
+        private readonly Dictionary<AudioSource, Vector2> _flat = new Dictionary<AudioSource, Vector2>();
+        private Transform _listener;
+
+        private void Place(AudioSource source, float x, float z)
+        {
+            var flat = new Vector2(x, z);
+            _flat[source] = flat;
+            Relocate(source, flat);
+        }
+
+        private void Relocate(AudioSource source, Vector2 flat)
+        {
+            if (_listener == null)
+            {
+                AudioListener listener = UnityEngine.Object.FindAnyObjectByType<AudioListener>();
+                if (listener != null) _listener = listener.transform;
+            }
+            source.transform.position = ListenerFocus is System.Numerics.Vector3 focus && _listener != null
+                ? _listener.position + new Vector3(flat.x - focus.X, 0f, flat.y - focus.Z)
+                : new Vector3(flat.x, 0f, flat.y);
         }
 
         private SoundResolver Resolver(SoundCategory category)
