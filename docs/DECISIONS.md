@@ -18640,6 +18640,35 @@ cycle, replacing the creature's current action), and the walk's order of chicken
 on one tile, unread; the creature's tile is taken after it moved (DK2: at the update's entry), and
 the room from the tile's terrain. The Level 1 seed-1 win tick and its journal are unchanged.
 
+## ADR-0776 - a slapped Horny departs
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** keeper-spells, creatures | **Hash/save:** 505
+
+**Context.** The OpenKeeper 1113-1161 audit (item 4, #1138) re-read the slap predicate
+`0x004918B0`: it refuses a Horny only while `+0x46F` bit 0 is clear. `Hand_SlapCreature`
+`0x0048B8A0` tests IsHorny first (`0x0048B8B1`) and on a Horny runs, at `0x0048B8BC`..`0x0048B916`,
+the same sequence as the Reaper's countdown end (`0x004889AB`..`0x00488A00`): state 242 through
+`0x00476D30`, `+0x46F` bits 0 and 3 cleared (`0x0048DF10(0)`, `0x0048DFA0(0)`), the move stopped
+(`0x004D1070`), velocity zeroed; then it returns, with no slap tick, damage, anger, bonus, events or
+count. Ours refused a Horny outright in `HandRules.CanSlap` (Q158), and its unreached `Uncounted`
+arm would have applied the anger and the bonus. The computer keeper's slap step `0x00502F00` takes
+any own creature whose activity code `0x00478A20` is 5 (category 28, which holds the Reaper's states
+235-238 and 242, gives 5), health above half and no speed change, at 1 in 100, and posts action
+0x3E; its executor `0x00513690` starts the slap effect (slot 5), whose start callback `0x004C0F80`
+calls `0x0048B8A0` without `0x004918B0`; the human hand posts the same action, so the predicate is a
+UI gate only. STRONGLY INFERRED: read, not observed.
+
+**Decision.** `HandRules.CanSlap` admits a Horny while `ReaperCanAcquireFight` (ours' `+0x46F` bit 0
+for a Horny) is set and it is not in state 76. `HandSystem.OutcomeOf` returns `SlapOutcome.Dismissed` for a Horny, and
+`HandSystem.Slap` calls `ReaperRules.Depart` and emits `slap_dismissed`, nothing else.
+
+**Consequences.** Hash and save 505. A Horny can be slapped once its greeting ends, and the slap
+sends it away; departing clears the bit, so a second slap is refused. Through `CanSlap` the
+computer keeper's slap step can now dismiss its own idle Reaper, as DK2's can (a suspected original
+defect, DK2-034 in issue #2). Not mirrored: DK2's computer path skips `0x004918B0`, so it can also slap a Reaper
+still arriving or greeting; `KeeperAI.Slap` filters on `CanSlap` and ours' command executor refuses
+it. DK2's state 238 (`0x004748E0`) re-rolls at once and departs with no target; ours' 238 is unbuilt
+and holds, so ours' window for the slap is longer. Tests: `HornySlapTests`.
+
 ## ADR-0788 - a creature has DK2's floor height, and the physical pass drops it to it
 **Date:** 2026-11-13 | **Status:** accepted | **Systems:** creatures, rooms, simulation-core | **Hash/save:** 503
 

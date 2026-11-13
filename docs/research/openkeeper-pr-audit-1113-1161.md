@@ -19,7 +19,7 @@ that match our records.
 
 ## What merits work
 
-Ordered by ordinary gameplay first. Items 1 to 3 are done; 4 onward are open.
+Ordered by ordinary gameplay first. Items 1 to 4 are done; 5 onward are open.
 
 1. **A prisoner dropped on a Prison's rim ([#1153](https://github.com/tonihele/OpenKeeper/pull/1153)).**
    Fresh read of [0x004E8DA0](functions/004E8DA0.md): room type 11 routes to arm `0x004E8E82`,
@@ -41,8 +41,10 @@ Ordered by ordinary gameplay first. Items 1 to 3 are done; 4 onward are open.
    A hungry or owed-wages maker test is not written.
 4. **Slapping a Horny ([#1138](https://github.com/tonihele/OpenKeeper/pull/1138)).** Fresh
    read of [0x004918B0](functions/004918B0.md): the slap predicate refuses state 0x4C, and a
-   Horny only while `+0x46F` bit 0 is clear. `HandRules.CanSlap` refuses a Horny outright (Q158).
-   No shipped consequence known; low value.
+   Horny only while `+0x46F` bit 0 is clear. `Hand_SlapCreature` [0x0048B8A0](functions/0048B8A0.md)
+   dismisses a Horny (state 242, nothing else). Built in ADR-0776 (hash 505): `HandRules.CanSlap`
+   admits a Horny with bit 0 set, `HandSystem.Slap` calls `ReaperRules.Depart`; tests in
+   `HornySlapTests`. The computer keeper's step has no such gate ([0x00502F00](functions/00502F00.md)).
 
 ## All 46 PRs
 
@@ -81,7 +83,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | [1134](https://github.com/tonihele/OpenKeeper/pull/1134) | Covered, ours goes further | [0x004B2CE0](functions/004B2CE0.md), [0x0048F350](functions/0048F350.md). `StatusEffectRules.DamageMultiplier` (frozen, armour or possession, stunned states, the Pit). Tests: `CreatureStatusEffectTests`, `CombatPitTests`. |
 | [1135](https://github.com/tonihele/OpenKeeper/pull/1135) | Covered | [0x004BC710](functions/004BC710.md), [0x0049EF90](functions/0049EF90.md), [0x0048AE70](functions/0048AE70.md), [0x00481610](functions/00481610.md). `DropDeliveryRules`, `HandTests.GoldDroppedOntoACreatureClearsItsWholeWageForHalfThePile`. |
 | [1136](https://github.com/tonihele/OpenKeeper/pull/1136) | Covered, one known approximation | [0x004510C0](functions/004510C0.md) merges within 0x40 of the miner; ours per third-of-a-tile cell (`FloorGold.PutDown`), as the record states. Tests: `GoldCarryingTests`, `GoldLandingTests`. |
-| [1138](https://github.com/tonihele/OpenKeeper/pull/1138) | Covered; a small difference for a Horny | Fresh read of [0x004918B0](functions/004918B0.md); [0x0048E6A0](functions/0048E6A0.md). `HandRules.HasPickupPermission`, `HandSystem.OutcomeOf`. Item 4 above. |
+| [1138](https://github.com/tonihele/OpenKeeper/pull/1138) | Covered; the Horny slap built in ADR-0776 | Fresh read of [0x004918B0](functions/004918B0.md); [0x0048E6A0](functions/0048E6A0.md). `HandRules.HasPickupPermission`, `HandRules.CanSlap`, `HandSystem.OutcomeOf`. Item 4 above. |
 | [1147](https://github.com/tonihele/OpenKeeper/pull/1147) | OpenKeeper-only fix (entity-filter cost); behaviour covered | `CallToArmsRules.WithinFightDistance` reads the owner's single call. `CallToArmsTests`. |
 | [1151](https://github.com/tonihele/OpenKeeper/pull/1151) | OpenKeeper-only fix (stale tasks in its queue) | Ours keeps no task queue: [imp-task-stealing.md](imp-task-stealing.md), `ImpTaskSystem`. |
 | [1154](https://github.com/tonihele/OpenKeeper/pull/1154) | Covered for leaders and followers; its "theft-capable member" is its own | [hero-party-walk.md](hero-party-walk.md) §1, §5, [steal-gold.md](steal-gold.md) §3; `HeroSystem.StandingJob`, `StealGoldRules.InTheTreasury`, `HeroPartyRules.KnockedOut` (ADR-0218). The steal arm `0x00481FA0` has no capability test. |

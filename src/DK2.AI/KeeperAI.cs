@@ -204,6 +204,7 @@ public sealed class KeeperAI
             if (budget <= 0) return;
             // 0x00502F00: the activity code, health above half, the speed timer, then 1 in 100.
             if (c.OwnerPlayerId != PlayerId || c.ActivityCode != CreatureActivityRules.Slappable) continue;
+            // DK2's step has no 0x004918B0 gate, so it also slaps a Reaper not yet idle (ADR-0776); ours does not.
             if (!c.CanSlap) continue;
             CreatureDef def = view.Database.CreatureById(c.CreatureTypeId);
             if (c.Health * 2 <= CreatureLevelRules.MaxHealth(view.Database, def, c.Level)) continue;

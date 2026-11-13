@@ -56,7 +56,7 @@ idles, and 1 sends it to 10 on its next turn.
 - Action 19's length is `AnimationTimingRules.CountedHoldTicks` for art slot 4, count 0, HYPOTHESIS as for
   the other actions; it starts at the first turn after the slap (ours' `Age` 1).
 - **Not modelled:** the knock-back's velocity (ADR-0373), so the door-tile stop in §2 step 2; a
-  Horny is not slappable in ours (`HandRules.CanSlap`), so 242 and 238 are not reached.
+  a slapped Horny departs in 242 before the move (ADR-0776), so the Horny arm to 238 here is not reached.
 - The move stops the creature's walk (`StopMoving`): DK2 moves only a walking state and the
   reaction zeroes the velocity, where ours' mover would follow a loaded route.
 - A slapped Imp now pays the reaction and a fresh task choice before its faster swings: in the

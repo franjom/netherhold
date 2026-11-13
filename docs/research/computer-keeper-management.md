@@ -203,6 +203,7 @@ The actual gates are accessor `0x00478A20 == 5`, health strictly above half
 maximum, creature `u16 +0x459 == 0`, then `random(100) == 0`. Each submitted
 action 62 spends one allowance. `+0x459` is `SpeedChangeTimer`, not
 `LastSlapTick` or `WorkFasterTimer` (`hand-of-evil.md` §§4–5).
+The step has no Horny gate and skips the hand's slap predicate `0x004918B0`, so a computer keeper can dismiss its own Reaper (ADR-0776; [0x00502F00](functions/00502F00.md)).
 
 The accessor's 5 does **not** mean working. State-object `+0x3C` values 1/2
 override it with 26/25. For nonworkers it reads the category's `+0x3C` default,

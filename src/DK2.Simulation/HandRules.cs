@@ -325,16 +325,18 @@ public static class HandRules
     /// <summary>Whether <paramref name="creature"/> may be slapped by
     /// <paramref name="playerId"/>: <see cref="CreatureFlags.CanBeSlapped"/>, the keeper's own
     /// creature at liberty, not in a hand, not down, and no timing gate (see
-    /// <see cref="KnockBackWindowSeconds"/>). A prisoner may be slapped only by its jailer. Horny is
-    /// excluded before every other test, as in the original: a slap on
-    /// <see cref="CreatureFlags.IsHorny"/> runs another routine and never reaches the work bonus
-    /// (Q158).</summary>
+    /// <see cref="KnockBackWindowSeconds"/>). A prisoner may be slapped only by its jailer. A
+    /// <see cref="CreatureFlags.IsHorny"/> creature only while its <c>+0x46F</c> bit 0
+    /// (<see cref="CreatureState.ReaperCanAcquireFight"/>) is set, as <c>0x004918B0</c> asks: clear
+    /// while it arrives and once it departs; the slap itself sends it away (ADR-0776).</summary>
     public static bool CanSlap(
         GameDatabase database, CreatureState creature, PlayerId playerId)
     {
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if (!((definition.Flags & CreatureFlags.CanBeSlapped) == CreatureFlags.CanBeSlapped)) return false;
-        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return false;
+        // 0x004918B0 refuses state 76 (0x4C) for everyone; ours tests it in the slap's outcome, which a Horny skips.
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
+            && (!creature.ReaperCanAcquireFight || creature.Dk2StateId == 76)) return false;
         if (creature.InHand) return false;
 
         // A prisoner answers to its jailer and to nobody else, its own keeper included:

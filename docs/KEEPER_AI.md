@@ -1135,7 +1135,8 @@ named quirk the harness can assert on.
   timer and a 1-in-100 roll (ADR-0376). Our slap arms the timer for 400 ticks as DK2's
   does (ADR-0612), so the step tests it alone
   (`research/computer-keeper-management.md` §8; the human slap has no cooldown,
-  `research/hand-of-evil.md` §4).
+  `research/hand-of-evil.md` §4). DK2's step has no Horny gate, so it can dismiss its own Reaper;
+  ours slaps only what `CanSlap` admits (ADR-0776).
 
 ### 12.6 Tests
 

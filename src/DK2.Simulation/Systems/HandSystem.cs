@@ -847,6 +847,14 @@ public sealed class HandSystem : ISimulationSystem
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         SlapOutcome outcome = OutcomeOf(world, context.Database, definition, creature, command.PlayerId.Value, out RoomInstance? room);
+        if (outcome == SlapOutcome.Dismissed)
+        {
+            // 0x0048B8BC..0x0048B916: what the countdown's end does (0x004889AB), then return:
+            // no slap tick, damage, anger, bonus, events or count.
+            ReaperRules.Depart(context, creature);
+            context.Emit(SystemName, "slap_dismissed", $"player={command.PlayerId} creature={creature.Id}");
+            return;
+        }
         // The main path's state move (0x0048BA00): refused, the slap does nothing more (ADR-0401).
         if (outcome == SlapOutcome.Full && !SlapRules.Move(context, creature, room))
             outcome = SlapOutcome.Nothing;
@@ -867,7 +875,7 @@ public sealed class HandSystem : ISimulationSystem
         else
         {
             creature.LastSlapTick = context.Tick.Value;
-            if (outcome is SlapOutcome.Full or SlapOutcome.Uncounted)
+            if (outcome == SlapOutcome.Full)
             {
                 // Rewritten, not added to: ten slaps are worth one, which the owner
                 // established by trying (docs/research/tile-work.md).
@@ -884,7 +892,7 @@ public sealed class HandSystem : ISimulationSystem
             // path after its count (0x0048BCAA, 0x0048BCB2), the short path before it (0x0048BD08,
             // count 0x0048BD77). Both run the trees at once, so a tree sees the count accordingly.
             if (outcome == SlapOutcome.Short) FireSlapped(context, creature);
-            if (outcome != SlapOutcome.Uncounted && world.HasPlayer(creature.OwnerPlayerId))
+            if (world.HasPlayer(creature.OwnerPlayerId))
                 world.Player(creature.OwnerPlayerId).SlapCount++;
             if (outcome == SlapOutcome.Full) FireSlapped(context, creature);
         }
@@ -922,9 +930,9 @@ public sealed class HandSystem : ISimulationSystem
         Short,
         /// <summary>The main path, after the state move (67, 77 or 120) is taken.</summary>
         Full,
-        /// <summary>A Horny: DK2 puts it in state 242 and returns, uncounted. Not reached in ours:
-        /// <see cref="HandRules.CanSlap"/> refuses a Horny before <see cref="OutcomeOf"/> runs.</summary>
-        Uncounted,
+        /// <summary>A Horny: it departs (<see cref="ReaperRules.Depart"/>, state 242) and nothing else
+        /// happens (ADR-0776).</summary>
+        Dismissed,
     }
 
     /// <summary>The arms of <c>Hand_SlapCreature</c> (<c>0x0048B8A0</c>, Q278, ADR-0373). States 76,
@@ -933,14 +941,14 @@ public sealed class HandSystem : ISimulationSystem
     /// one the slapper does not own returns; a Torture Chamber (type 12) takes damage only. With no
     /// room, states 67, 120, 132 and 197 return. Only the main path and the short path add to the
     /// owner's <c>NumberOfSlaps</c> (<c>+0xEE6</c>), which condition type 71 reads. A Horny is
-    /// tested before all of it (<see cref="SlapOutcome.Uncounted"/>). The main path then makes the
+    /// tested before all of it (<see cref="SlapOutcome.Dismissed"/>). The main path then makes the
     /// state move (<see cref="SlapRules.Move"/>) and stops if it is refused. After a taken move the
     /// state-83 arm (<c>0x0048BA1A</c>) cannot match: the state is the move's.</summary>
     private static SlapOutcome OutcomeOf(
         WorldState world, GameDatabase database, CreatureDef definition, CreatureState creature, byte slapper, out RoomInstance? room)
     {
         room = null;
-        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return SlapOutcome.Uncounted;
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return SlapOutcome.Dismissed;
         if (creature.LandingPending || creature.Dk2StateId is 76 or 101 or 193) return SlapOutcome.Nothing;
         if (creature.Dk2StateId is 209 or 255) return SlapOutcome.Short;
         room = creature.HeldPlace.IsHeld
