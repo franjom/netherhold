@@ -185,6 +185,8 @@ public class NeedInterruptTests
     [Theory]
     [InlineData(53, true)]    // Research
     [InlineData(108, true)]   // Training
+    [InlineData(63, true)]    // Manufacture: the mask's category 5 (0x00476D30), a maker breaks off too
+    [InlineData(64, true)]    // Manufacture
     [InlineData(101, true)]   // Temple
     [InlineData(145, true)]   // Casino
     [InlineData(142, true)]   // Spectating

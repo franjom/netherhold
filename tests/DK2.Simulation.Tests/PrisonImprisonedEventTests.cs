@@ -87,10 +87,11 @@ public class PrisonImprisonedEventTests
         Assert.Equal(2, world.Triggers.Read(1));
     }
 
-    /// <summary>A known divergence, not DK2's behaviour: DK2's claim refuses a rim slab
-    /// (<c>0x00454110</c>) and its hook returns 0 before event 7. Ours lacks that test (Q504).</summary>
+    /// <summary>A rim slab is no floor slot (<c>0x00454110</c>), so the drop's Prison arm
+    /// (<c>0x004E8DA0</c>, <c>0x004E8E82</c>) does not take the prisoner back: it lands stunned and
+    /// loose, its jailer word kept until 255 ends, and event 7 is not fired (ADR-0775).</summary>
     [Fact]
-    public void AHandDropOnThePrisonsRimFiresImprisoned_WhereDk2sClaimWouldRefuse_Q504()
+    public void AHandDropOnThePrisonsRimLeavesItStunnedAndLoose_FiringNoImprisoned()
     {
         (GameDatabase db, WorldState world) = PrisonWorld();
         CreatureState captive = Captive(db, world);
@@ -99,8 +100,9 @@ public class PrisonImprisonedEventTests
         PickUpAndDrop(sim, captive, Rim);
 
         Assert.Equal(Rim, captive.Tile);
-        Assert.Equal(PrisonRules.DecidingState, captive.Dk2StateId);
-        Assert.Equal(1, world.Triggers.Read(1));
+        Assert.Equal(255, captive.Dk2StateId);
+        Assert.True(PrisonRules.IsImprisoned(captive));   // until 255 ends (0x004811E5)
+        Assert.Equal(0, world.Triggers.Read(1));
     }
 
     /// <summary>A refused claim returns 0 before event 7 (<c>0x0047B78C</c>), leaving the creature

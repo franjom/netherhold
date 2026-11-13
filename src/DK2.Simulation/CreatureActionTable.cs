@@ -25,6 +25,8 @@ public static class CreatureActionTable
     public const int RepairWall = 8;
     /// <summary>Action 15, the free-aim cast of a possessed creature (<c>0x00496980(15, ...)</c>).</summary>
     public const int FreeAimCast = 15;
+    /// <summary>The eating action: art 13 for a cycle, a null handler (eating-action.md).</summary>
+    public const int Eat = 26;
     /// <summary>Action 16, the spell cast.</summary>
     public const int SpellCast = 16;
     /// <summary>Action 17, the melee swing.</summary>

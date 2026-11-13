@@ -23,6 +23,8 @@ public sealed class WalkOverGoldTests
         public CreatureState Spawn(byte creatureId, byte owner = Keeper) =>
             World.SpawnCreature(Db, creatureId, owner, Spot);
         public void Tick() => Sim.Tick();
+        public ObjectState Chicken(byte owner = PlayerIds.Neutral) =>
+            World.SpawnObject(Db, HatcheryRules.ChickenObjectId, new PlayerId(owner), Index);
     }
 
     private static Run Start(byte terrain = Dk2TerrainFixture.ClaimedPath)
@@ -221,5 +223,88 @@ public sealed class WalkOverGoldTests
         run.Tick();
 
         Assert.Equal(taken, imp.GoldHeld);
+    }
+
+    /// <summary>The chicken side arm (<c>0x004892C5</c>..<c>0x0048932E</c>, ADR-0775): a loose neutral
+    /// Chicken underfoot is destroyed and action 26 begins, whatever the creature's hunger, and nothing
+    /// of the creature's changes.</summary>
+    [Fact]
+    public void ACreatureStandingOnALooseNeutralChickenEatsItWhateverItsHunger()
+    {
+        Run run = Start();
+        CreatureState goblin = run.Spawn(Dk2TerrainFixture.GoblinCreatureId);
+        goblin.HungerNeed = 0;
+        goblin.Health = 100;
+        ObjectState chicken = run.Chicken();
+        var sink = new ListEventSink();
+        run.Sim.ObserveWith(sink);
+
+        run.Tick();
+
+        Assert.Null(run.World.ObjectById(chicken.Id));
+        Assert.Equal((0, 100, 0), (goblin.HungerNeed, goblin.Health, goblin.GoldHeld));
+        Assert.Contains(sink.Events, e => e.Kind == "chicken_walked_over");
+    }
+
+    [Theory]
+    [InlineData(Dk2TerrainFixture.HatcheryTerrain)]
+    [InlineData(Dk2TerrainFixture.PortalTerrain)]
+    public void NotOnAHatcheryOrPortalTile(byte terrain)
+    {
+        Run run = Start(terrain);
+        run.Spawn(Dk2TerrainFixture.GoblinCreatureId);
+        ObjectState chicken = run.Chicken();
+
+        run.Tick();
+
+        Assert.NotNull(run.World.ObjectById(chicken.Id));
+    }
+
+    [Fact]
+    public void OnATreasuryTileTheChickenIsStillEaten_TheSkipIsTheGoldsAlone()
+    {
+        // 0x00489346 tests the Treasury on the gold arm only.
+        Run run = Start(Dk2TerrainFixture.TreasuryTerrain);
+        run.Spawn(Dk2TerrainFixture.GoblinCreatureId);
+        ObjectState chicken = run.Chicken();
+
+        run.Tick();
+
+        Assert.Null(run.World.ObjectById(chicken.Id));
+    }
+
+    [Fact]
+    public void ACasinoTileOrALandingCreatureSkipsTheChicken()
+    {
+        // 0x00489248..0x0048926A skip the whole walk on a Casino tile; 0x004892A6 refuses state 76.
+        Run casino = Start(Dk2TerrainFixture.CasinoTerrain);
+        casino.Spawn(Dk2TerrainFixture.GoblinCreatureId);
+        ObjectState there = casino.Chicken();
+        casino.Tick();
+        Assert.NotNull(casino.World.ObjectById(there.Id));
+
+        Run landing = Start();
+        CreatureState goblin = landing.Spawn(Dk2TerrainFixture.GoblinCreatureId);
+        StatePlacement.Place(goblin, DropLandingRules.LandingState);
+        ObjectState under = landing.Chicken();
+        landing.Tick();
+        Assert.NotNull(landing.World.ObjectById(under.Id));
+    }
+
+    [Fact]
+    public void AKeepersOwnChickenAndAKeepersImpAreLeftAlone()
+    {
+        // The arm wants the neutral owner; a keeper's worker never reaches it (0x00489551).
+        Run run = Start();
+        run.Spawn(Dk2TerrainFixture.GoblinCreatureId);
+        ObjectState owned = run.Chicken(Keeper);
+        run.Tick();
+        Assert.NotNull(run.World.ObjectById(owned.Id));
+
+        Run imps = Start();
+        imps.Spawn(Dk2TerrainFixture.ImpCreatureId);
+        ObjectState loose = imps.Chicken();
+        imps.Tick();
+        Assert.NotNull(imps.World.ObjectById(loose.Id));
     }
 }

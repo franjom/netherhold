@@ -18613,3 +18613,29 @@ native log: `ProcessFight`'s moved-tile bypass (`0x0045EA9E`) reads `+0xF6` befo
 thing's `+0xF6`, which ours does not; the post-copy readers (`0x0048A5AE`, `0x0048A5E6` the presentation bridge,
 `0x0048C2FB` the possessed animation) and the experience drain (`0x00485880`, before the copy in DK2, after it in
 ours, and it does not move the creature) have no simulation effect. Note: [creature-update-order.md](research/creature-update-order.md).
+
+## ADR-0775 - a Prison takes a dropped prisoner only on its interior, and a creature eats a loose neutral chicken it stands on
+**Date:** 2026-11-13 | **Status:** accepted | **Systems:** rooms, creatures | **Hash/save:** 502
+
+**Context.** The OpenKeeper 1113-1161 audit (openkeeper-pr-audit-1113-1161.md, items 1 and 2)
+found two gaps by fresh reads. The hand drop's room hook `0x004E8DA0` routes a Prison (type 11)
+to arm `0x004E8E82`, which takes the creature back only when Room_IsFloorSlot `0x00454110`
+accepts the cell, an interior tile for a Prison; `HandSystem.DropIntoACell` took it on any tile of
+the keeper's Prison. And the creature update `0x00488930`'s walk over its own tile's things
+(`0x004892C5`..`0x0048932E`), for every creature the worker arm does not take, destroys a loose
+Chicken owned by the neutral player unless the creature is in state 76 or on a Portal or Hatchery
+tile, and starts the eating action 26 at its position: no hunger test or change, no health and no
+purse. A Casino tile or `+0x3F2` skips the whole walk. Ours had no such arm. STRONGLY INFERRED:
+read, not captured.
+
+**Decision.** `DropIntoACell` requires `RoomInstance.IsInterior`; a rim drop takes the existing
+off-Prison path (state 255 with the jailer word kept until it ends). `WalkOverGoldSystem` collects
+loose neutral chickens with the piles and, before the gold, destroys those on the tile and asks
+action 26's begin sound (`CreatureActionSounds`, 0xCD); the Treasury skip stays the gold's alone.
+
+**Consequences.** Hash and save 502. Tests: `PrisonImprisonedEventTests.AHandDropOnThePrisonsRim*`
+(the Q504 divergence it pinned is gone), two PrisonTests moved to the 5x5 Prison whose interior
+holds their cells, five `WalkOverGoldTests` and the `NeedInterruptTests` rows for Manufacture states 63 and 64. Not mirrored: action 26 itself (art 13 for a
+cycle, replacing the creature's current action), and the walk's order of chickens against piles
+on one tile, unread; the creature's tile is taken after it moved (DK2: at the update's entry), and
+the room from the tile's terrain. The Level 1 seed-1 win tick and its journal are unchanged.

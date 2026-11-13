@@ -924,7 +924,7 @@ public class PrisonTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world);
+        BigPrison(db, world);   // CellC is an interior tile only of the 5x5 (0x004E8DA0 takes no rim drop)
         CreatureState captive = Prisoner(db, world, CellA);
         captive.Health = 300;
 
@@ -1809,7 +1809,7 @@ public class PrisonTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world);
+        BigPrison(db, world);   // CellC is an interior tile only of the 5x5 (0x004E8DA0 takes no rim drop)
         CreatureState captive = Prisoner(db, world, CellA);
 
         var sink = new ListEventSink();

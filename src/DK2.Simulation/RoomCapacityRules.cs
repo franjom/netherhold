@@ -99,7 +99,8 @@ public static class RoomCapacityRules
         if (room is null || !Admits(room, creature)) return false;
 
         // A Combat Pit fighter links in without the test or the units. The Prison's position
-        // tests (0x00453A20(11), 0x00454110) and its overcrowding roll are not built (Q504).
+        // tests (0x00453A20(11), 0x00454110) and its overcrowding roll are not built here (Q504);
+        // its callers test the interior first (ADR-0775).
         if (room.Definition.TypeId == RoomTypeId.CombatPit && creature.CombatPitFighter)
         {
             creature.HeldPlace = new RoomPlace(tile, 0);

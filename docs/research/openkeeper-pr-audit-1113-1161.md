@@ -19,26 +19,26 @@ that match our records.
 
 ## What merits work
 
-Ordered by ordinary gameplay first.
+Ordered by ordinary gameplay first. Items 1 to 3 are done; 4 onward are open.
 
 1. **A prisoner dropped on a Prison's rim ([#1153](https://github.com/tonihele/OpenKeeper/pull/1153)).**
    Fresh read of [0x004E8DA0](functions/004E8DA0.md): room type 11 routes to arm `0x004E8E82`,
    which takes the creature only when Room_IsFloorSlot `0x00454110` accepts the cell, so only
    interior tiles; the Prison claim `0x004E5A70` uses the same test. A rim drop is stunned and
-   loose, its jailer word kept until 255 ends. Ours: `HandSystem.DropIntoACell` takes it on any
-   tile of the keeper's Prison. Next: require the interior, and add a rim-drop test beside
-   `PrisonTests.DroppingAPrisonerBackOnAPrisonTilePutsItStraightBack`. No shipped script involved.
+   loose, its jailer word kept until 255 ends. Built in ADR-0775 (hash 502):
+   `HandSystem.DropIntoACell` requires the interior; `PrisonImprisonedEventTests` pins the rim
+   drop. No shipped script involved.
 2. **The walk-over chicken (found through [#1124](https://github.com/tonihele/OpenKeeper/pull/1124)).**
    Fresh read of [0x00488930](functions/00488930.md) `0x004892C5..0x0048932E`: a creature the
    worker arm does not take, standing on a loose neutral Chicken (object type 9), not in state 76
    and not on a Portal or Hatchery tile, destroys it and starts action 26 at its position. No
    hunger test or change, no health top-up. A Casino tile or `+0x3F2` skips the whole walk.
-   Ours: `WalkOverGoldSystem` documents the arm as not built. Next: build it beside the gold arm
-   with a test next to `WalkOverGoldTests`; Q494 stays the observable check.
+   Built in ADR-0775 (hash 502) in `WalkOverGoldSystem`, with the action's begin sound only;
+   tests in `WalkOverGoldTests`. Q494 stays the observable check.
 3. **Tests only: needs and pay interrupt Workshop work too ([#1126](https://github.com/tonihele/OpenKeeper/pull/1126), [#1130](https://github.com/tonihele/OpenKeeper/pull/1130)).**
    The shared mask `0x800A3C3B` ([0x00476D30](functions/00476D30.md)) admits category 5,
-   Manufacture; `NeedInterruptTests` pins only Training. Add states 63 and 64 to
-   `TheThreeNeedsShareOneMask` and a hungry or owed-wages maker test.
+   Manufacture; `NeedInterruptTests` rows for states 63 and 64 now pin it (ADR-0775 change).
+   A hungry or owed-wages maker test is not written.
 4. **Slapping a Horny ([#1138](https://github.com/tonihele/OpenKeeper/pull/1138)).** Fresh
    read of [0x004918B0](functions/004918B0.md): the slap predicate refuses state 0x4C, and a
    Horny only while `+0x46F` bit 0 is clear. `HandRules.CanSlap` refuses a Horny outright (Q158).
@@ -66,7 +66,7 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 | [1149](https://github.com/tonihele/OpenKeeper/pull/1149) | Covered: Casino capacity is furniture + 1, or 0 with none | [0x004E53B0](functions/004E53B0.md), [0x004E5A70](functions/004E5A70.md). `AutoFurnitureTests`. |
 | [1150](https://github.com/tonihele/OpenKeeper/pull/1150) | Covered: drop validity, including the rules the PR lists as unbuilt | `HandRules.MapAllowsCreature`, `CanDrop`, `IsSolidOrDoor`, `IsHeartInner`; [0x00450910](functions/00450910.md), [0x00450BE0](functions/00450BE0.md), [0x00450D40](functions/00450D40.md), [0x004DA150](functions/004DA150.md), [0x0040D8F0](functions/0040D8F0.md). Tests: `HandDropGateTests`. |
 | [1152](https://github.com/tonihele/OpenKeeper/pull/1152) | OpenKeeper-only fix (stale room-instance owner) | Fresh read of [0x0046EAB0](functions/0046EAB0.md) `0x0046EF29..0x0046EF99`: the enemy-room arm compares the landing tile's owner, never a room object's. Our `RoomInstance` is derived from tiles and cannot go stale. |
-| [1153](https://github.com/tonihele/OpenKeeper/pull/1153) | **Gap: a prisoner dropped on a Prison's rim is taken in** | Item 1 above; fresh read of [0x004E8DA0](functions/004E8DA0.md). |
+| [1153](https://github.com/tonihele/OpenKeeper/pull/1153) | **Was a gap, built in ADR-0775: a prisoner dropped on a Prison's rim was taken in** | Item 1 above; fresh read of [0x004E8DA0](functions/004E8DA0.md). |
 
 ### Creatures, imps, spells and sound
 
@@ -74,9 +74,9 @@ Source files are relative to `src/DK2.Simulation/` unless qualified.
 |---|---|---|
 | [1122](https://github.com/tonihele/OpenKeeper/pull/1122) | Covered: a gem face takes no damage and pays on every blow | [0x004971D0](functions/004971D0.md); `TileWorkRules.Apply` (ADR-0470). Test: `TileWorkTests.AGemFace_IsNeverDamagedAndPaysTheGemsRateEveryStrike_ConfirmedByBinaryAndOwner`. |
 | [1123](https://github.com/tonihele/OpenKeeper/pull/1123) | Covered: three workers per open side, twelve at most | [0x00507BB0](functions/00507BB0.md), [0x00469AF0](functions/00469AF0.md). `MiningSlots` (PerFace 3), `ImpTaskSystem.Selection`, `TaskStealingTests`; a side counts only when reachable (ADR-0472). |
-| [1124](https://github.com/tonihele/OpenKeeper/pull/1124) | Covered, more faithful than the PR; it surfaced the walk-over chicken gap | [0x00477C20](functions/00477C20.md): the clock adds its fill once the rate has passed and stamps now; each chicken subtracts 1. `EatingRules.Tick`, `CreatureEatSystem.Clock`; tests `CreatureNeedsTests.TheHungerClockAccumulatesRatherThanSaturating`, `EachChickenPaysOffOneAndRestartsTheClock`. The PR's catch-up is an artefact of its idle-only polling. Item 2 above. |
+| [1124](https://github.com/tonihele/OpenKeeper/pull/1124) | Covered, more faithful than the PR; it surfaced the walk-over chicken gap, built in ADR-0775 | [0x00477C20](functions/00477C20.md): the clock adds its fill once the rate has passed and stamps now; each chicken subtracts 1. `EatingRules.Tick`, `CreatureEatSystem.Clock`; tests `CreatureNeedsTests.TheHungerClockAccumulatesRatherThanSaturating`, `EachChickenPaysOffOneAndRestartsTheClock`. The PR's catch-up is an artefact of its idle-only polling. Item 2 above. |
 | [1125](https://github.com/tonihele/OpenKeeper/pull/1125) | Covered | [0x00457880](functions/00457880.md) zeroes the balance on promotion (Q127, ADR-0083). `CreatureLevelRules`; test `CreatureLevelTests.TheHitThatReachesThreeThousandBuysLevelTwo`. |
-| [1126](https://github.com/tonihele/OpenKeeper/pull/1126) | Covered, with a test gap | The need mask admits Manufacture ([0x00476D30](functions/00476D30.md), [creature-needs-routine.md](creature-needs-routine.md) §2); `NeedRules.Admits`. Item 3 above. |
+| [1126](https://github.com/tonihele/OpenKeeper/pull/1126) | Covered; Manufacture states 63 and 64 pinned in `NeedInterruptTests` (ADR-0775 change) | The need mask admits Manufacture ([0x00476D30](functions/00476D30.md), [creature-needs-routine.md](creature-needs-routine.md) §2); `NeedRules.Admits`. Item 3 above. |
 | [1130](https://github.com/tonihele/OpenKeeper/pull/1130) | Covered: the walk to a Treasury or Heart for pay | [0x00472320](functions/00472320.md), [0x00472390](functions/00472390.md), [0x00472740](functions/00472740.md), [0x004F4510](functions/004F4510.md). `PaydaySystem`, `PaydayTests`. Ours follows the native walk and its 4-turn retry; the PR's random tile and delay are its own. |
 | [1134](https://github.com/tonihele/OpenKeeper/pull/1134) | Covered, ours goes further | [0x004B2CE0](functions/004B2CE0.md), [0x0048F350](functions/0048F350.md). `StatusEffectRules.DamageMultiplier` (frozen, armour or possession, stunned states, the Pit). Tests: `CreatureStatusEffectTests`, `CombatPitTests`. |
 | [1135](https://github.com/tonihele/OpenKeeper/pull/1135) | Covered | [0x004BC710](functions/004BC710.md), [0x0049EF90](functions/0049EF90.md), [0x0048AE70](functions/0048AE70.md), [0x00481610](functions/00481610.md). `DropDeliveryRules`, `HandTests.GoldDroppedOntoACreatureClearsItsWholeWageForHalfThePile`. |

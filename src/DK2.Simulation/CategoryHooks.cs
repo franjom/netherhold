@@ -187,8 +187,8 @@ public static class CategoryHooks
             Enter = static (in StateHookContext hooks, CreatureState creature) =>
             {
                 // DK2 returns 0 on a refused claim before event 7. Our claim lacks the Prison's position
-                // tests and capacity (Q504), so 7 also fires on a rim tile or into a full Prison, where
-                // DK2's claim would refuse.
+                // tests and capacity (Q504); the hand drop and the imp's admission test the interior
+                // first (ADR-0775, PrisonRules.AdmitsAt), so 7 can still fire into a full Prison.
                 if (!RoomCapacityRules.Claim(in hooks, creature)) return false;
                 hooks.FireCreatureEvent(creature, CreatureTriggerEvent.Imprisoned);
                 return true;

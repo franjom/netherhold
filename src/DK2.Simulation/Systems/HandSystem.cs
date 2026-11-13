@@ -689,7 +689,10 @@ public sealed class HandSystem : ISimulationSystem
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
             if (!PrisonRules.IsPrisonOf(room, command.PlayerId)) continue;
-            if (!room.TileIndices.Contains(here)) continue;
+            // Only a floor slot takes it back: 0x004E8DA0's Prison arm 0x004E8E82 asks
+            // Room_IsFloorSlot 0x00454110, an interior tile for a Prison. On the rim it is stunned
+            // and loose, its jailer word kept until 255 ends, as off the Prison (ADR-0775).
+            if (!room.TileIndices.Contains(here) || !room.IsInterior(here)) continue;
 
             PrisonRules.Imprison(context.Hooks, creature, command.PlayerId, here, dropped: true);
 

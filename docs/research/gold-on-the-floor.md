@@ -350,7 +350,8 @@ neutral workers.
 6. The walk goes on to the next pile, so every pile on the tile goes in one tick until the
    purse is full. After that each take is zero.
 7. **Side arm:** a neutral Chicken (type 9) is destroyed, and the creature starts action 26
-   (`0x1A`, eating) at its own position, except on a Portal (3) or Hatchery (4) tile.
+   (`0x1A`, eating) at its own position, except on a Portal (3) or Hatchery (4) tile. No hunger,
+   health or purse change; built with the action's begin sound only (ADR-0775).
 
 **Conditions (Q2).**
 
@@ -396,8 +397,7 @@ the level row. The worker arm also uses variable 74, which is **340** on every s
   it half through `Purse_Receive` and settles its owed wage and pay anger.
 
 **Unread** (Q494 is the observable check): whether `0x00488930` runs for a creature in the
-Hand, whether a falling pile (§6) is on the tile list yet, and what the chicken arm does to
-hunger.
+Hand, and whether a falling pile (§6) is on the tile list yet.
 
 **Ours:** both arms built: workers ADR-0293, the creature arm `WalkOverGoldSystem` (ADR-0300;
-the take compares unsigned, `0x004893B1`). Ordinary reinforcement's [Prelude](reinforcement-action-clock.md#implementation-and-scope) runs its existing worker block before the action poll; other worker families retain their existing phase. The walk-over chicken is not built.
+the take compares unsigned, `0x004893B1`). Ordinary reinforcement's [Prelude](reinforcement-action-clock.md#implementation-and-scope) runs its existing worker block before the action poll; other worker families retain their existing phase. The walk-over chicken side arm (item 7) is built in the same system, except action 26 itself (ADR-0775).

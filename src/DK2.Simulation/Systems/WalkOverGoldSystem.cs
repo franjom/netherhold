@@ -12,13 +12,18 @@ namespace DK2.Simulation.Systems;
 /// each neutral gold pile on its own tile into its purse, every tick, up to its level-scaled
 /// <c>MaxGoldHeld</c> (gold-on-the-floor.md §12, ADR-0300). Ours is a pass over the whole list after
 /// every creature's update (<see cref="CreatureUpdateSystem"/>), not inside each one.
-/// <para>Not built: the chicken side arm (a neutral Chicken eaten, action 26). Deviates: every
-/// take here follows every worker-arm take, and the tile's piles are walked newest first, the
-/// tile list's own link order being unread (ADR-0300).</para></summary>
+/// <para>The same walk destroys a loose neutral Chicken on the tile and starts the eating action 26
+/// (<c>0x004892C5</c>..<c>0x0048932E</c>, ADR-0775): no hunger, health or purse change. Deviates:
+/// every take here follows every worker-arm take, at the creature's tile after it moved where DK2
+/// reads it at the update's entry; the tile's things are walked chickens first, then piles newest
+/// first, the tile list's own order being unread (ADR-0300); the room is the tile's terrain's, the
+/// same as DK2's room object while every room tile carries its room's terrain; and of action 26
+/// only its begin sound is mirrored, not the art-13 cycle that replaces the current action.</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/gold-on-the-floor.md")]
 public sealed class WalkOverGoldSystem : ISimulationSystem
 {
     private readonly List<ObjectState> _piles = [];
+    private readonly List<ObjectState> _chickens = [];
 
     public string Name => "walk-over gold";
 
@@ -28,12 +33,14 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
         GameDatabase database = context.Database;
 
         _piles.Clear();
+        _chickens.Clear();
         for (int i = world.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState thing = world.Objects[i];
             if (IsTakeable(thing)) _piles.Add(thing);
+            else if (IsLooseNeutralChicken(thing)) _chickens.Add(thing);
         }
-        if (_piles.Count == 0) return;
+        if (_piles.Count == 0 && _chickens.Count == 0) return;
 
         EntityList<CreatureState> creatures = world.Creatures;
         for (int i = creatures.Count - 1; i >= 0; i--)
@@ -63,15 +70,38 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
         thing.ObjectTypeId is >= 1 and <= 3 && thing.OwnerPlayerId == PlayerIds.Neutral
         && !thing.InHand && thing.CarriedByCreatureId < 0 && thing.TileIndex >= 0 && thing.GoldHeld > 0;
 
+    /// <summary>A Chicken (object 9) owned by the neutral player, on a tile and in nobody's hands.</summary>
+    private static bool IsLooseNeutralChicken(ObjectState thing) =>
+        EatingRules.IsEdibleChicken(thing) && thing.OwnerPlayerId == PlayerIds.Neutral && thing.TileIndex >= 0;
+
     private void TakeFromTile(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (creature.CasinoBigWinnerTicks != 0 || creature.Dk2StateId == DropLandingRules.LandingState) return;
-
+        // A Casino tile and +0x3F2 skip the whole walk (0x00489248..0x0048926A), chickens included.
+        if (creature.CasinoBigWinnerTicks != 0) return;
         int tileIndex = (creature.Tile.Y * world.Width) + creature.Tile.X;
         RoomDef? room = database.RoomByTerrain(world.TileAtIndex(tileIndex).TerrainId);
-        if (room is { RoomId: (byte)RoomTypeId.Casino or (byte)RoomTypeId.Treasury }) return;
+        if (room is { RoomId: (byte)RoomTypeId.Casino }) return;
+        if (creature.Dk2StateId == DropLandingRules.LandingState) return;
+
+        // The chicken arm (0x004892A6..0x0048932E): not in 76 (tested above), not on a Portal or
+        // Hatchery tile; whatever the creature's hunger the bird is destroyed and action 26 begins at
+        // its own position, the begin's result ignored. Its sound, as at the other CreatureActionSounds
+        // callers, assumes a begin not refused (0x00496743 refuses over some current actions; ours
+        // has no action layer to refuse it).
+        if (room is not { RoomId: (byte)RoomTypeId.Portal or (byte)RoomTypeId.Hatchery })
+            foreach (ObjectState chicken in _chickens)
+            {
+                if (chicken.TileIndex != tileIndex || world.ObjectById(chicken.Id) is null) continue;
+                world.RemoveObject(chicken.Id);
+                CreatureActionSounds.Begin(context, Name, creature, CreatureActionTable.Eat);
+                context.Emit(Name, "chicken_walked_over",
+                    $"creature={creature.Id} chicken={chicken.Id} at=({tileIndex % world.Width},{tileIndex / world.Width}) " +
+                    $"need={creature.HungerNeed}");
+            }
+
+        if (room is { RoomId: (byte)RoomTypeId.Treasury }) return;
 
         // A Skeleton's maximum is 0, so with an empty purse it lacks nothing and takes nothing.
         int max = CreatureLevelRules.MaxGoldHeld(database, definition, creature.Level);
