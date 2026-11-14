@@ -102,6 +102,118 @@ public class TortureTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void LiftingACaptiveOffTheWheelKeepsItCaptiveUntilReturnedToPrison(int phase)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        Carry(sim, captive, Wheel);
+        while (sim.CurrentTick.Value % SimulationTiming.TicksPerSecond != phase) sim.Tick();
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick();
+        Assert.Equal(Keeper, captive.PrisonOwnerPlayerId);
+        Assert.False(CarryRules.IsCarryable(captive));
+        sim.Tick();
+        Assert.True(captive.InHand);
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Cell)));
+        sim.Tick();
+
+        Assert.Equal(Keeper, captive.PrisonOwnerPlayerId);
+        Assert.Equal(Rival, captive.OwnerPlayerId);
+        Assert.True(PrisonRules.IsImprisoned(captive));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "prisoner_freed");
+    }
+
+    [Fact]
+    public void AnImpLeavesALivingCaptiveOnTheWheel()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
+        captive.Health = 1000;
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, ChamberFloor);
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, seed: 42,
+        [new CreatureMovementSystem(), new ImpTaskSystem(), new PrisonSystem(), new TortureSystem()]);
+        sim.ObserveWith(sink);
+
+        sim.Run(20);
+
+        Assert.True(captive.Health > 0);
+        Assert.True(TortureRules.IsBeingTortured(captive));
+        Assert.Equal(Wheel, captive.Tile);
+        Assert.Equal(Keeper, captive.PrisonOwnerPlayerId);
+        Assert.Equal(-1, captive.CarriedByCreatureId);
+        Assert.Equal(-1, imp.CarriedCreatureId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "body_claimed");
+    }
+
+    [Fact]
+    public void ADeathOnTheWheelLeavesACorpseRatherThanACasualtyForPrison()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = Captive(db, world);
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
+        captive.Health = 10;
+        var sim = new GameSimulation(db, world, seed: 42,
+        [new TortureSystem(), new CollapseSystem(), new CreatureHealthSystem()]);
+
+        sim.Run(4);
+        Assert.True(TortureRules.IsBeingTortured(captive));
+        sim.Tick();
+
+        Assert.True(CreatureDeathRules.IsCorpse(captive));
+        Assert.False(CreatureDeathRules.IsDying(captive));
+        Assert.False(PrisonRules.IsImprisoned(captive));
+        Assert.True(CarryRules.IsCarryable(captive));
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    public void ATorturedVampireReincarnatesWhenEligibleOtherwiseLeavesNoBody(int level, bool graveyard)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        if (graveyard)
+            for (int y = 6; y <= 8; y++)
+                for (int x = 7; x <= 9; x++)
+                    RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Graveyard), Rival);
+        CreatureState vampire = world.SpawnCreature(db, Dk2TerrainFixture.VampireCreatureId, Rival, Wheel);
+        vampire.Level = level;
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), vampire, Keeper, Index(world, Wheel)));
+        vampire.Health = 10;
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, seed: 42, [new TortureSystem(), new CollapseSystem()]);
+        sim.ObserveWith(sink);
+
+        sim.Run(5);
+
+        if (level > 1 && graveyard)
+        {
+            Assert.Same(vampire, world.CreatureById(vampire.Id));
+            Assert.True(vampire.Health > 0);
+            Assert.Equal(level - 1, vampire.Level);
+            Assert.DoesNotContain(sink.Events, e => e.Kind is "information" or "tortured_to_death");
+        }
+        else
+        {
+            Assert.Null(world.CreatureById(vampire.Id));
+            Assert.Contains(sink.Events, e => e.Kind == "tortured_to_death");
+        }
+    }
+
     [Fact]
     public void ACaptiveDroppedOnTheChamberFloorOffTheDeviceGoesFree()
     {

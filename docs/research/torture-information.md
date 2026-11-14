@@ -82,6 +82,10 @@ Reward 6 maps to no message, and is never a candidate.
 
 - `InformationGiven` on the chamber's keeper holds the flags, bit `(k − 3) × 8 + victim's
   player id`.
+- `TortureSystem` tries Vampire reincarnation before testing whether the victim died; a
+  survivor continues the act. A lethal act awards information, releases the device and
+  settles death immediately, without an unconscious rescue window (hash/save 521).
+  Killed-trigger custody visibility remains unverified.
 - `TortureSystem` emits `information` with the reward, and `reveal=` the reveal's result for 11.
 - `TortureInformationRules.Award` posts 97, then 96 or 59 (`InformationLearned`,
   `InformationUnlocked`, `InformationReveal`). `RevealTo` explores a room or tags a creature;

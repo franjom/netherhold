@@ -623,6 +623,23 @@ public class WorldViewTests
     }
 
     [InstallFact]
+    public void APickupShowsTheCreatureAtLiftHeightBeforeHandInsertion()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureDef imp = database.CreatureByName("Imp")!;
+        CreatureState lifted = world.SpawnCreature(database, imp.CreatureId, 1, FirstWalkableTile(database, world));
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, database), lifted, HandRules.PreparationState));
+
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == lifted.Id);
+        Assert.False(lifted.InHand);
+        Assert.Equal(0x2000, rendered.Height);
+        Assert.Equal(0x2000, rendered.PreviousHeight);
+
+        lifted.InHand = true;
+        Assert.DoesNotContain(new WorldView(database).Creatures(world), c => c.Id == lifted.Id);
+    }
+
+    [InstallFact]
     public void GroundedCreatureFeetSitBelowTheWaterSurface()
     {
         string install = Dk2InstallGate.Path;

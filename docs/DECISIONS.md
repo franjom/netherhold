@@ -4359,7 +4359,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 1. **The hand drop is state 77** (`PrisonRules.HandDropState`), for a prison drop as well; ADR-0191's 120 is corrected.
 2. **`TortureRules.TryStrap`**: a captive dropped on a free Torture Wheel (8) or Electric Chair (61) in its keeper's Torture Chamber goes 77 → 130 → 131 and stays that keeper's captive (`CreatureActivity.BeingTortured`), so every rule that leaves prisoners alone leaves it alone. Dropped anywhere else in the chamber, it goes free, as elsewhere.
 3. **`TortureSystem`** is the category 15 hook on the countdown (ADR-0192). Each act adds 4 to `CreatureState.TorturedDuration` (hashed, kept across strappings) and applies `TortureHpChange` through `StatusEffectRules.Hurt`; the mood applies only in the creature's own keeper's chamber. Past the level-scaled `TortureTimeToConvert` × 4, an enemy dies on a roll under variable 234 (0) or joins the chamber's keeper.
-4. **Ours, stated:** a victim at zero health is let go to the health system, and a convert is let go (Q425).
+4. **Ours, stated:** lethal acts settle death directly; see [torture-information.md §6](research/torture-information.md#6-ours). A convert is let go (Q425).
 
 **Consequences.**
 - A Goblin converts on its 81st act, 101 s after being strapped on, having lost 810 health. A captive fresh from a cell (250 then; 390 since ADR-0628) dies first, as the manual says a victim may.
