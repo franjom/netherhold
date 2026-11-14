@@ -96,7 +96,7 @@ then WIN_GAME, action 10); on Level 10 it is destroying player 4's (Asmodeus's) 
 | Level | Rerun, seeds 1-3 | Win needs | Rival keeper | Open questions touching the outcome |
 |---|---|---|---|---|
 | 4 | lost 14419, lost 4656, no result | assault on the Lord about 50 tiles north, in a keep with doors and traps | none | Q710, Q612 |
-| 5 | lost 7622, 8087, 8141 | assault on the Lord at (40,14); Heart defence first | none | Q772, Q719, Q762, Q763, Q700 |
+| 5 | lost 7622, 8087, 8141 | assault on the Lord at (40,14); Heart defence first | none | Q772, Q719, Q762, Q763 |
 | 6a | lost 4542, 6523, 6072 | the Lord at (40,43), 22 tiles from the Heart; empty creature pool, so only the starting roster | none | none names the level (Q748 is observation only) |
 | 6b | no result (over the 64 MiB output budget) | the Lord at (16,7), about 68 tiles away | none | none names the level |
 | 7 | lost 6045, 6190, no result (2379 own creatures died) | assault on the Lord at (55,36) | Gormagon (player 4) | Q582, Q586 |
