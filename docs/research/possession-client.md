@@ -8,7 +8,10 @@ simulation side is [keeper-spell-possession.md](keeper-spell-possession.md) and
 [possession-arms-and-inputs.md](possession-arms-and-inputs.md); the camera's scripted
 requests are [camera-possession-guards.md](camera-possession-guards.md). Each function's
 record in `functions/` holds its read's scope. Everything here is **STRONGLY INFERRED**
-(read, not seen running) unless marked. Nothing here is built yet.
+(read, not seen running) unless marked; the reviewer re-read it on 2026-11-14. Callees
+named but not read are taken by name: the world slots `+0x1CC`, `+0x1D0`, `+0x1D4`,
+`+0x204`, `+0x20C` and `+0x240`, and the key test `0x004097E0`. Nothing here is built
+yet.
 
 OpenKeeper (`view/Possession*.java`, `Settings.java`, pull requests #782 and #1193) was
 used for leads only: which creature fields a first-person view reads and the default
@@ -25,10 +28,11 @@ posts the camera's place as the creature's pose.
   flags `+0xD92`, mode `+0xDA8`. The point every possession routine uses is focus plus
   offset.
 - **The pose packet.** `0x004039A0`, at `0x00403BAE`–`0x00403C65`: in camera mode 2,
-  with a live possessed creature, when the turn counter `[[interface+4]+4]` differs from
+  with a live possessed creature, when the counter `[[interface+4]+4]` differs from
   the interface's `+0x10B4` (which it then sets), it posts game action 25 with
   X = focus X + offset X, Y = focus Y + offset Y, and the word
-  `(yaw << 16) | def+0x65C`. So one pose a turn; the height sent is the definition's eye
+  `(yaw << 16) | def+0x65C`. That the counter is the game turn is HYPOTHESIS (action 25
+  is recorded once a turn in captures, ADR-0728); the height sent is the definition's eye
   height, never the camera's own Z; the heading is the camera's yaw. The handler's
   treatment of that word is `GameAction_PossessionMovement` (built, ADR-0728).
 - **The view listens to action 25 too** (`0x00442870`): only for a packet whose word is
@@ -56,10 +60,12 @@ when the creature's `+0x447` is non-zero. Binding ids are DK2's own (§5).
    released with the bit set posts it with 0. The handler `0x00517310` does one thing:
    when the sender's possessed-thing word is non-zero it sets that thing's `+0x3E6` bit
    12 to the record's bit 0. No class, liveness or definition test.
-4. **Keys**, skipped when `+0x3E6` bit 13 is set or the claim bob `+0x389` is running:
-   ScrollLeft/ScrollRight (18, 19) strafe by ∓ two thirds of the unit; ScrollDown (17)
-   backs at half the unit; ScrollUp (16) goes forward one unit. Opposite keys
-   cancel by sum.
+4. **Keys.** `+0x3E6` bit 13 skips steps 4 to 6 whole; a requested claim bob (`+0x389`
+   non-zero) skips only the keys. Two axis values, strafe and forward, start at zero:
+   ScrollLeft (18) subtracts two thirds of the unit from strafe and ScrollRight (19)
+   adds it; ScrollDown (17) **sets** forward to half the unit; ScrollUp (16) then
+   subtracts one unit. So forward is negative when walking forward, which is the sign
+   step 8's formulas need, and both held gives minus half a unit.
 5. **Walk cycle.** Standing still on the ground zeroes the counter `0x006CE968` and
    stamps `0x006CE970`; otherwise the counter is elapsed ms ÷ 50. A flier
    (vtable `+0x88` non-zero) always counts.
@@ -73,15 +79,19 @@ when the creature's `+0x447` is non-zero. Binding ids are DK2's own (§5).
    fixed point.
 10. **Slide.** `Possession_CanStepToTile` (`0x0040F6B0`) is asked for the X-only tile,
     the Y-only tile and the diagonal. If any refuses, the refused axis is snapped back to
-    its tile edge (the far edge when moving positive); with both free and only the
-    diagonal blocked, the axis with the smaller travel is snapped.
+    its tile edge (the far edge when moving positive). With both free and only the
+    diagonal blocked, the axis with the **larger** travel is snapped: X when
+    |dx| ≥ |dy|, else Y (`0x0040EFB3`–`0x0040EFF5`).
 11. The width is taken off again and `0x004D1BC0` resolves the point against things
     (§2b), with the creature's `+0x1A8/+0x1AC` temporarily set to the start × 16.
 12. The move is dropped if world slot `+0x20C` at the point or `+0x240` at its tile
     answers non-zero.
 13. **Height.** Ground: floor height (world `+0x204`) + `def+0x65C` + bob, where bob is
     sin(`def+0x86B` × counter, 32 steps a cycle) × `def+0x867`, shifted right 7 then 12,
-    halved when backing. Flier: camera Z + dz, raised to floor + eye height, plus the bob.
+    halved when backing. Flier: when the camera's Z is below floor + eye height the
+    shortfall is added to dz first, then Z + dz, plus the bob; so a flier below eye
+    height lands at floor + eye + its own dz. When the creature is not live the start
+    Z is posted unchanged.
 14. On the ground it posts view action `0x80` with the waddle's roll and plays footstep
     sounds 0x332 and 0x333 alternately at each half cycle (0x337 and 0x338 on terrain
     whose `+0x17B` bit 7 is set), placed to the left and right of the heading by an
@@ -133,22 +143,32 @@ sweep, run once for the step:
   record, [classic-camera.md](classic-camera.md) §1) has zoom 0, so the offset vector is
   zero and the camera sits on its focus; lens 4096, half the ordinary view's, so twice
   its field of view; view distance 49152 (12 tiles); position Z 6144 with clip Z
-  4096..8192; flags 0x2A; and a starting pitch of 512, the horizon (the reader names
-  that field `AngleRoll`). Presets 10 and 11 differ only in view distance (32768 for 10).
+  4096..8192; flags 0x2A. Presets 10 and 11 differ only in view distance (32768 for 10).
+  A level's own camera records can override a preset; whether any shipped level
+  overrides preset 2 was not checked.
+- **The starting pitch is a constant**, not data: entering mode 2, `Camera_SetMode`
+  stores 0x200, the horizon, as the pitch target (`0x0044B5B6` for a creature,
+  `0x0044B62A` for an object) and takes the roll target from the preset's `AnglePitch`
+  word, 0 for preset 2 (`0x0044B5C6`). The 512 in the preset's `AngleRoll` field is not
+  read for this mode.
 - `Camera_AdjustAngles` (`0x00449D40`) adds each delta modulo 0x800 unless its lock bit
   in `+0xD92` is set (1 yaw, 2 roll, 4 pitch) or a timed transition (`+0xDD8`) runs. In
-  modes 1, 2, 10 and 11 it applies no range clamp itself; flags 0x2A lock the roll
-  against action 8 and leave yaw and pitch free.
+  modes 1, 2, 10 and 11 it applies no range clamp itself; flags 0x2A carry only the roll
+  lock, so action 8 turns and pitches freely.
 - **Pitch is limited in `Camera_Update`** (`0x0044BED0`, mode-2 arm, live creature): each
   update, while camera `+0xE38` is zero, pitch is held to 0x100..0x300, which is 45
   degrees either side of the horizon at 0x200. A
   non-zero `+0xE38` instead drives the pitch itself, stepping by 0x20 an update (its
   writers are UNREAD). The same arm calls `Camera_ClaimBob`, and while `+0xE3C` bit 0 is
   set lifts the focus height by a 500 ms triangular bump of 0x800 (0x400 with bit 2).
-- `0x0044DD40` (view `0x7F`, modes 1, 2 and 10): adds the argument to the roll, limits it
-  to ±0x40, then halves it toward zero on every call: a lean into the turn that decays.
+- `0x0044DD40` (view `0x7F`, modes 1, 2 and 10): adds the argument to the roll, limits a
+  positive roll to 0x40, then halves it toward zero on every call: a lean into the turn
+  that decays. The negative side (0x400 and above) has no limit: its test compares the
+  roll with 0x40 from the wrong side and never fires (`0x0044DD7C`–`0x0044DD8E`). A
+  suspected defect of the original, built as it is (ADR-0783).
 - `0x0044DE20` (view `0x80`, same modes): sets the roll outright, the waddle.
-- `Camera_ClaimBob` (`0x0044DCB0`) is the 16-frame dip a possessed claim starts.
+- `Camera_ClaimBob` (`0x0044DCB0`) is the 16-frame rise and return a possessed claim
+  starts; its first call clears the request `+0x389`.
 
 ## 4. Attacking and abilities
 
@@ -173,13 +193,16 @@ The interface byte `+0x13D9` holds the selection: bit 0 melee, bits 1–2 a spec
 - The left mouse button reaches the same `Possession_SubmitAttack` from `Hand_Click`
   (`0x00407666`).
 - **`Possession_SubmitAttack`** (`0x004100F0`) does nothing when the creature's `+0x447`
-  is non-zero or `+0x3E6` bit 11 is set. With bits 1–2 = 2 it posts action `0x1C`, with 4
-  action `0x1B` (hypnosis), each only when `0x00494700` answers for that ability.
-  Otherwise it posts action 26: dword 0 = X | yaw << 20, dword 1 = Y | pitch << 20,
+  is non-zero or `+0x3E6` bit 11 is set. Melee (bit 0) is tested first and wins over the
+  specials. Without it, bits 1–2 = 2 post action `0x1C` when ability 0 is kind 1, and
+  bits 1–2 = 4 post action `0x1B` (hypnosis) when ability 1 is kind 5.
+- **Action 26 is the fall-through as well as the normal case**: a melee whose recharge
+  gate fails, a special whose kind test fails and spell slot 3 all post it anyway, and
+  the handler's own gates decide. Dword 0 = X | yaw << 20, dword 1 = Y | pitch << 20,
   dword 2 = Z | roll << 14 | melee << 27 | slot << 28, from the camera's focus plus
-  offset and its three angles. That is the layout the handler reads
-  (keeper-spell-possession.md, "Action26 packet"); the roll is the field no arm reads.
-  Before posting it starts the swing or cast presentation (`0x005075A0`) when the melee
+  offset and its three angles; the slot keeps four bits. That is the layout the handler
+  reads (keeper-spell-possession.md, "Action26 packet"); the roll is the field no arm
+  reads. The swing or cast presentation (`0x005075A0`) starts first only when the melee
   recharge gate or `Spell_CanCast` passes.
 
 ## 5. Bindings
@@ -212,9 +235,10 @@ that request between an ordinary mode and mode 2 (preset 10's fly-in) is UNREAD.
 pitch and requests the saved mode.
 
 `Hud_PollOrdinaryCameraInput` sends mode 1 to `0x0040F820`: the scroll keys post actions
-`0x18` (∓0x23) and `0x17` (∓0x100) instead of moving a camera, which fits the
-third-person presentation bit of action 20 (HYPOTHESIS). Mode 10 goes to `0x0040E670`
-(UNREAD). Mode 11 is entered from mode 2 by the leave handler `0x00442820`.
+`0x18` (∓0x23) and `0x17` (∓0x100) instead of moving a camera. Neither id is in the view
+table, the second view table at `0x0066D0D8` or the game-action table, so the mode may be
+inert; what it was for is UNKNOWN. Mode 10 goes to `0x0040E670` (UNREAD). Mode 11 is
+entered from mode 2 by the leave handler `0x00442820` (its record is HYPOTHESIS).
 
 ## 7. Not read yet
 
