@@ -19,6 +19,8 @@ public sealed record GameSettings
     public int GameSpeed { get; init; } = 4;
     public int ScrollSpeed { get; init; } = 10;
     public int UiScale { get; init; } = 100;
+    /// <summary>Ours, not DK2's: multisample anti-aliasing samples per pixel (1 = off, 2, 4 or 8).</summary>
+    public int Msaa { get; init; } = 1;
     public bool WaterTranslucency { get; init; } = true;
     public bool EnvironmentMapping { get; init; } = true;
     public bool Headphones { get; init; } = false;
@@ -50,6 +52,7 @@ public sealed record GameSettings
         GameSpeed = Math.Clamp(GameSpeed, 1, 16),
         ScrollSpeed = Math.Clamp(ScrollSpeed, 5, 20),
         UiScale = Math.Clamp(UiScale, 50, 200),
+        Msaa = Msaa >= 8 ? 8 : Msaa >= 4 ? 4 : Msaa >= 2 ? 2 : 1,
         Bindings = Array.AsReadOnly((Bindings ?? Array.Empty<GameKeyBinding>())
             .Where(b => (int)b.Action >= 0 && (int)b.Action < 64 && b.ScanCode >= 0 && b.ScanCode < 256
                 && (b.Modifiers & ~KeyModifiers.All) == 0).GroupBy(b => b.Action).Select(g => g.Last()).ToArray()),

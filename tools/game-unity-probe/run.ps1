@@ -19,6 +19,14 @@ param(
     [switch]$Windowed,
     [switch]$Release,
     [int]$FrameCap = 60,
+    # game-settings.ini lines separated by ';' (e.g. 'Gamma=45;Msaa=4'), kept in the run directory.
+    [string]$ProbeSettings = '',
+    # Play second at which to save the window as screenshot.png (0 = none; needs -Windowed).
+    [int]$Screenshot = 0,
+    # Settings variants separated by '|' (e.g. 'Msaa=1|Msaa=4'): benchmark them on a still, paused frame (README).
+    [string]$Benchmark = '',
+    [int]$BenchmarkRounds = 6,
+    [int]$BenchmarkSegment = 4,
     [switch]$SkipSync
 )
 $ErrorActionPreference = 'Stop'
@@ -36,12 +44,12 @@ Set-Content -LiteralPath "$run/backend.txt" -Value $backend
 git -C $repo rev-parse HEAD | Set-Content -LiteralPath "$run/commit.txt"
 git -C $repo status --short | Set-Content -LiteralPath "$run/worktree-status.txt"
 
-function Run-Native([string]$Executable, [string[]]$Arguments, [int]$Minutes, [int[]]$Ok = @(0)) {
+function Run-Native([string]$Executable, [string[]]$Arguments, [int]$Minutes, [int[]]$Ok = @(0), [string]$WindowStyle = 'Hidden') {
     $quoted = foreach ($argument in $Arguments) {
         if ($argument.Contains('"')) { throw 'Embedded quotes in process argument' }
         '"' + $argument + '"'
     }
-    $process = Start-Process -FilePath $Executable -ArgumentList ($quoted -join ' ') -WindowStyle Hidden -PassThru
+    $process = Start-Process -FilePath $Executable -ArgumentList ($quoted -join ' ') -WindowStyle $WindowStyle -PassThru
     $deadline = (Get-Date).AddMinutes($Minutes)
     while (!$process.WaitForExit(1000)) {
         if ((Get-Date) -gt $deadline) { $process.Kill(); throw "Timed out: $Executable; $run" }
@@ -67,7 +75,11 @@ $playerArguments = $(if ($Windowed) { @('-screen-fullscreen', '0', '-screen-widt
     '-captureTo', "$CaptureTo", '-frameCap', "$FrameCap", '-markers', $(if ($Markers) { $Markers } else { ',' }), '-workerTicks', $(if ($WorkerTicks) { '1' } else { '0' }),
     '-probeOutput', $run, '-logFile', "$run/player.log")
 if ($RecordFrames) { $playerArguments += @('-recordFrames', "$run/recorder") }
-Run-Native $player $playerArguments ([math]::Ceiling($Seconds / 60) + 5) @(0, 2)
+if ($ProbeSettings) { $playerArguments += @('-probeSettings', $ProbeSettings) }
+if ($Screenshot -gt 0) { $playerArguments += @('-probeScreenshot', "$Screenshot") }
+if ($Benchmark) { $playerArguments += @('-benchmark', $Benchmark, '-benchmarkRounds', "$BenchmarkRounds", '-benchmarkSegment', "$BenchmarkSegment") }
+# A hidden window can skip all screen rendering (docs/TRAPS.md), so a windowed run is shown.
+Run-Native $player $playerArguments ([math]::Ceiling($Seconds / 60) + 5) @(0, 2) $(if ($Windowed) { 'Normal' } else { 'Hidden' })
 if (!(Test-Path -LiteralPath "$run/summary.txt")) { throw "No summary; see $run/player.log" }
 Get-Content -LiteralPath "$run/summary.txt"
 Write-Output $run

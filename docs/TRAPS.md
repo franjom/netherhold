@@ -321,7 +321,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A sandbox account can differ from the checkout owner; use per-command `git -c safe.directory=D:/DungeonKeeperRemake` (or inherited `GIT_CONFIG_COUNT` entries for repo tools), without changing the owner's global Git config.
 - `hand-cursor-rendering.md` contains legacy single-byte section signs among UTF-8 text; strict UTF-8 patching rejects it. Keep unrelated byte normalization out of a cursor fix.
 - Matched-state probes must restore constructor-owned fields before binding RNG; otherwise fixture setup can consume draws before the decision (research/decision-parity-audit.md).
-- A hidden standalone Unity window can skip all screen rendering despite active CPU loops; require camera render callbacks and a nonblank PNG before treating its timings as rendered performance.
+- A hidden standalone Unity window can skip all screen rendering despite active CPU loops; require camera render callbacks and a nonblank PNG before treating its timings as rendered performance. `game-unity-probe -Windowed` ran hidden until 2026-11-14 (0 GPU frames, black screenshot).
+- The URP renderer asset has `postProcessData` unset, so URP runs no post-processing and a Volume (`ColorAdjustments.postExposure`) does nothing in a player; a screenshot at Gamma 20/30/45 showed the same mean brightness. Draw a pass from `endCameraRendering` instead (`ClassicSettingsRendering`).
+- `game-unity-probe` runs before 2026-11-14 built a default scene (stock camera, shadow-casting light, fog of war off, wrong ambient and camera preset), so their lighting, GPU and frame numbers are not comparable with later runs, which build `Dungeon.unity`.
+- PowerShell variable names are case-insensitive: a `$r` loop variable overwrote an earlier `$R`. Use distinct names.
 - Mono Stopwatch and Unity frame timestamps can have different epochs despite equal frequencies; align Windows captures with QueryPerformanceCounter.
 - ShaderUtil reports an uninitialized SRP compatibility result before a shader has actually drawn; check after a GPU render.
 - Start PresentMon before creating the graphics context, retain its process Handle for ExitCode, reject lost ETW events, and stop only the probe's own named session on failure.

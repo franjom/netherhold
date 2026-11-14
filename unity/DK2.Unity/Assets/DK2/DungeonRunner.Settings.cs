@@ -54,8 +54,8 @@ namespace DK2.Unity
             _gameSettings = settings;
             classicScrollSpeed = settings.ScrollSpeed;
             if (_classicCameraControls != null) _classicCameraControls.ScrollSpeed = settings.ScrollSpeed;
-            if (_settingsRendering == null) _settingsRendering = new ClassicSettingsRendering(transform);
-            _settingsRendering.Apply(settings.Gamma);
+            if (_settingsRendering == null) _settingsRendering = new ClassicSettingsRendering();
+            _settingsRendering.Apply(settings);
             ApplySoundSettings(settings);
             ApplyHudScale();
             SettingsChanged?.Invoke(settings);

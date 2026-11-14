@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Text;
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Data.Settings;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 using Unity.Profiling;
@@ -86,13 +87,29 @@ namespace DK2.Unity
         private int _frame, _gcCount, _errors;
         private string _firstError;
         private long _lastFrameTicks, _playStart = -1;
-        private bool _wave1, _wave2, _capturing, _captured;
+        private bool _wave1, _wave2, _capturing, _captured, _shot;
+        private float _screenshotAt;
+
+        // -benchmark "Msaa=1|Msaa=4": GPU cost of settings variants on a still frame. The fly-by is
+        // skipped, the simulation paused (speed 0) and the camera left where the level puts it;
+        // then the variants take turns, -benchmarkSegment seconds each, -benchmarkRounds times
+        // round, so a GPU clock change lands on every variant alike. The first second of each
+        // segment is dropped (the switch, and FrameTimingManager's few frames of lag).
+        private string[] _variants;
+        private int _rounds, _segmentIndex = -1;
+        private float _segmentSeconds, _segmentStart, _settleUntil = -1;
+        private const float SegmentWarmUp = 1;
+        private List<double>[] _segmentGpu;
+        private GameSettings _benchmarkBase;
+        private Vector3 _benchmarkCamera;
+        // FrameTimingManager's latest GPU frame time; it lags a few frames, and is 0 headless.
+        private readonly FrameTiming[] _timing = new FrameTiming[1];
 
         private struct Row
         {
             public int Frame, Collections;
             public float Seconds;
-            public double FrameMs;
+            public double FrameMs, GpuMs;
             public long Ticks, GridCalls, GcBytes;
             // The draw clock in ticks and the camera after the runner's last Update, and whether a
             // scripted camera path was playing: the evenness of a fly-by against wall time.
@@ -133,6 +150,18 @@ namespace DK2.Unity
             // Off unless asked: a full Profiler capture adds overhead to the frames it records.
             _captureFrom = Seconds("-captureFrom", 0);
             _captureTo = Seconds("-captureTo", 0);
+            _screenshotAt = Seconds("-probeScreenshot", 0);
+            string benchmark = Arg("-benchmark", "");
+            if (benchmark.Length > 0)
+            {
+                _variants = benchmark.Split('|');
+                _rounds = int.Parse(Arg("-benchmarkRounds", "6"), CultureInfo.InvariantCulture);
+                _segmentSeconds = Seconds("-benchmarkSegment", 4);
+                _segmentGpu = new List<double>[_variants.Length * _rounds];
+                for (int i = 0; i < _segmentGpu.Length; i++) _segmentGpu[i] = new List<double>(4096);
+                // Long enough for the whole benchmark whatever -probeSeconds said.
+                _duration = Math.Max(_duration, 60 + _segmentGpu.Length * _segmentSeconds);
+            }
             string extra = Arg("-markers", "");
             if (extra.Length > 0)
                 Recorded = Standard.Concat(extra.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -144,12 +173,18 @@ namespace DK2.Unity
             _rows = new Row[capacity];
             _values = new double[capacity * Recorded.Length];
 
-            // The production runner, configured as its Inspector would be, before its Start runs.
-            _runner = gameObject.AddComponent<DungeonRunner>();
+            // The game's own Dungeon scene runner (GameProbeBuild builds that scene), so its camera,
+            // light and every Inspector value (lighting mode, ambient, fog, camera preset) are the
+            // game's; the fields below are set before its Start runs.
+            _runner = FindAnyObjectByType<DungeonRunner>();
+            if (_runner == null) throw new InvalidOperationException("no DungeonRunner in the built scene");
             Set("installDirectory", Arg("-dk2Install", "E:/GogGames/Dungeon Keeper 2"));
             Set("levelName", Arg("-level", "Level1"));
             Set("seed", ulong.Parse(Arg("-seed", "1"), CultureInfo.InvariantCulture));
             Set("prefetchFirstFrameArt", Arg("-prefetchArt", "1") != "0");
+            // The scene's fog of war stands unless -fogOfWar 0/1 overrides it.
+            string fog = Arg("-fogOfWar", "");
+            if (fog.Length > 0) Set("fogOfWar", fog != "0");
             // By default the probe measures the tick's own cost, so it runs inline on the main
             // thread rather than on the runner's worker thread (ADR-0458). With -workerTicks 1 the
             // game's own path runs instead: the recorders collect on every thread
@@ -157,6 +192,11 @@ namespace DK2.Unity
             // worker's time and wait_tick_ms is how long the next Update's join blocked.
             _workerTicks = Arg("-workerTicks", "0") != "0";
             Set("tickOnWorkerThread", _workerTicks);
+            // The run's game-settings.ini and campaign profile live in the run directory, so a run
+            // never reads or writes the player's own (brightness and MSAA change the GPU's work).
+            // -probeSettings "Gamma=45;Msaa=4" gives its lines; without it every setting is default.
+            File.WriteAllText(Path.Combine(_output, "game-settings.ini"), Arg("-probeSettings", "").Replace(';', '\n') + "\n");
+            Set("campaignProfileFile", Path.Combine(_output, "campaign-profile.dk2p"));
             _pending = (List<PlayerCommand>)typeof(DungeonRunner)
                 .GetField("_pendingCommands", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
 
@@ -173,6 +213,7 @@ namespace DK2.Unity
         {
             try
             {
+                FrameTimingManager.CaptureFrameTimings();
                 long now = _clock.ElapsedTicks;
                 double frameMs = (now - _lastFrameTicks) * 1000.0 / Stopwatch.Frequency;
                 _lastFrameTicks = now;
@@ -197,6 +238,17 @@ namespace DK2.Unity
 
                 // A player tagging walls round the heart, twice: the imps dig, the mesh rebuilds and
                 // the chunks redraw, which is what play does.
+                // -probeScreenshot <s>: the window as drawn at that play second, for comparing looks.
+                if (!_shot && _screenshotAt > 0 && seconds >= _screenshotAt)
+                {
+                    _shot = true;
+                    StartCoroutine(SaveScreenshot());
+                }
+                if (_variants != null)
+                {
+                    if (Benchmark(seconds) || seconds >= _duration) Finish();
+                    return;
+                }
                 if (!_wave1 && seconds >= 5) { _wave1 = true; TagAroundHeart(8); }
                 if (!_wave2 && seconds >= 60) { _wave2 = true; TagAroundHeart(16); }
 
@@ -238,6 +290,7 @@ namespace DK2.Unity
             _rows[_count++] = new Row
             {
                 Frame = frame, Seconds = seconds, FrameMs = frameMs, Collections = collections,
+                GpuMs = FrameTimingManager.GetLatestTimings(1, _timing) > 0 ? _timing[0].gpuFrameTime : double.NaN,
                 Ticks = _recorders[Tick].Valid ? _recorders[Tick].GetSample(0).Count : 0,
                 GridCalls = _recorders[Grid].Valid ? _recorders[Grid].GetSample(0).Count : 0,
                 GcBytes = _gcAllocated.Valid ? _gcAllocated.LastValue : -1,
@@ -245,6 +298,92 @@ namespace DK2.Unity
                 Camera = camera != null ? camera.transform.position : default,
                 Path = _runner.ScriptedView != null && _runner.ScriptedView.PathPlaying,
             };
+        }
+
+        /// <summary>One frame of the benchmark; true when every segment has run.</summary>
+        private bool Benchmark(float seconds)
+        {
+            if (_segmentIndex < 0)
+            {
+                if (_runner.ScriptedView != null && _runner.ScriptedView.PathPlaying)
+                {
+                    // As Space does (0x00405362): end the path, and tell the simulation.
+                    if (_runner.ScriptedView.Skip())
+                        _pending.Add(new SkipCameraPathCommand(new PlayerId((byte)PlayerIds.FirstKeeper)));
+                    return false;
+                }
+                if (_settleUntil < 0)
+                {
+                    Set("speed", 0f);
+                    _settleUntil = seconds + 2;
+                    return false;
+                }
+                if (seconds < _settleUntil) return false;
+                _benchmarkBase = _runner.Settings;
+                _benchmarkCamera = Camera.main != null ? Camera.main.transform.position : default;
+                StartSegment(0, seconds);
+                return false;
+            }
+            if (seconds - _segmentStart >= SegmentWarmUp && _rows[_count - 1].GpuMs > 0)
+                _segmentGpu[_segmentIndex].Add(_rows[_count - 1].GpuMs);
+            if (seconds - _segmentStart < _segmentSeconds) return false;
+            if (_segmentIndex + 1 == _segmentGpu.Length)
+            {
+                ApplySettings(_benchmarkBase);
+                WriteBenchmark();
+                return true;
+            }
+            StartSegment(_segmentIndex + 1, seconds);
+            return false;
+        }
+
+        private void StartSegment(int index, float seconds)
+        {
+            _segmentIndex = index;
+            _segmentStart = seconds;
+            // Later lines win in GameSettingsFile.Read, so the variant overrides the run's settings.
+            string variant = _variants[index % _variants.Length].Replace(';', '\n');
+            ApplySettings(GameSettingsFile.Read(GameSettingsFile.Write(_benchmarkBase) + variant + "\n"));
+        }
+
+        private void ApplySettings(GameSettings settings) =>
+            typeof(DungeonRunner).GetMethod("ApplyGameSettings", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(_runner, new object[] { settings });
+
+        private void WriteBenchmark()
+        {
+            static double Median(IEnumerable<double> values)
+            {
+                double[] v = values.OrderBy(x => x).ToArray();
+                return v.Length == 0 ? double.NaN : v.Length % 2 == 1 ? v[v.Length / 2] : (v[v.Length / 2 - 1] + v[v.Length / 2]) / 2;
+            }
+            Vector3 camera = Camera.main != null ? Camera.main.transform.position : default;
+            var text = new StringBuilder();
+            text.AppendLine(FormattableString.Invariant(
+                $"benchmark: {_variants.Length} variants x {_rounds} rounds, {_segmentSeconds:F1} s segments ({SegmentWarmUp:F1} s dropped), simulation paused, {Screen.width}x{Screen.height}, {SystemInfo.graphicsDeviceType}, {SystemInfo.graphicsDeviceName}"));
+            text.AppendLine(FormattableString.Invariant(
+                $"camera {( (camera - _benchmarkCamera).sqrMagnitude < 1e-6f ? "still" : "MOVED")} at ({_benchmarkCamera.x:F2}, {_benchmarkCamera.y:F2}, {_benchmarkCamera.z:F2})"));
+            text.AppendLine("variant | GPU ms: median of segment medians, lowest and highest segment median, frames");
+            for (int v = 0; v < _variants.Length; v++)
+            {
+                double[] medians = Enumerable.Range(0, _rounds).Select(r => Median(_segmentGpu[r * _variants.Length + v])).ToArray();
+                int frames = Enumerable.Range(0, _rounds).Sum(r => _segmentGpu[r * _variants.Length + v].Count);
+                text.AppendLine(FormattableString.Invariant(
+                    $"  {_variants[v],-40} {Median(medians),7:F3}  [{medians.Min():F3} .. {medians.Max():F3}]  {frames}"));
+            }
+            File.WriteAllText(Path.Combine(_output, "benchmark.txt"), text.ToString());
+            Debug.Log("DK2 game probe: benchmark\n" + text);
+        }
+
+        // The project leaves the ScreenCapture module out, so the finished frame is read back here.
+        private System.Collections.IEnumerator SaveScreenshot()
+        {
+            yield return new WaitForEndOfFrame();
+            var image = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+            image.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
+            image.Apply();
+            File.WriteAllBytes(Path.Combine(_output, "screenshot.png"), image.EncodeToPNG());
+            Destroy(image);
         }
 
         private double Value(int row, int marker) => _values[row * Recorded.Length + marker];
@@ -292,6 +431,10 @@ namespace DK2.Unity
                 text.AppendLine("markers never recorded (NaN in the CSV): " + string.Join(", ", neverValid));
             text.AppendLine(FormattableString.Invariant(
                 $"{rows.Length} frames after {WarmUpSeconds} s of play: frame p50 {P(.5):F2} ms, p95 {P(.95):F2}, p99 {P(.99):F2}, max {frames.LastOrDefault():F2}"));
+            double[] gpu = rows.Select(i => _rows[i].GpuMs).Where(v => v > 0).OrderBy(v => v).ToArray();
+            double G(double p) => gpu.Length == 0 ? double.NaN : gpu[Math.Min(gpu.Length - 1, (int)Math.Ceiling(gpu.Length * p) - 1)];
+            text.AppendLine(FormattableString.Invariant(
+                $"gpu ({gpu.Length} frames timed): p50 {G(.5):F3} ms, p95 {G(.95):F3}, mean {(gpu.Length == 0 ? double.NaN : gpu.Average()):F3}"));
             text.AppendLine(FormattableString.Invariant(
                 $"frames over 33 ms: {rows.Count(i => _rows[i].FrameMs > 33)}; with a tick: {rows.Count(i => _rows[i].Ticks > 0)}; gen-0 collections: {rows.Sum(i => _rows[i].Collections)}; GC allocated {rows.Where(i => _rows[i].GcBytes > 0).Sum(i => _rows[i].GcBytes) / 1048576.0:F1} MB"));
             text.AppendLine(FormattableString.Invariant(
@@ -387,13 +530,14 @@ namespace DK2.Unity
         private void WriteCsv()
         {
             var csv = new StringBuilder();
-            csv.AppendLine("frame,play_seconds,frame_ms,ticks,grid_nearest_calls,gc_alloc_bytes,gc_collections,render_tick,cam_x,cam_y,cam_z,path," +
+            csv.AppendLine("frame,play_seconds,frame_ms,gpu_ms,ticks,grid_nearest_calls,gc_alloc_bytes,gc_collections,render_tick,cam_x,cam_y,cam_z,path," +
                            string.Join(",", Recorded.Select(r => r.Column)));
             for (int i = 0; i < _count; i++)
             {
                 Row r = _rows[i];
                 csv.Append(r.Frame).Append(',').Append(r.Seconds.ToString("F3", CultureInfo.InvariantCulture)).Append(',')
-                    .Append(r.FrameMs.ToString("F3", CultureInfo.InvariantCulture)).Append(',').Append(r.Ticks).Append(',')
+                    .Append(r.FrameMs.ToString("F3", CultureInfo.InvariantCulture)).Append(',')
+                    .Append(r.GpuMs.ToString("F3", CultureInfo.InvariantCulture)).Append(',').Append(r.Ticks).Append(',')
                     .Append(r.GridCalls).Append(',').Append(r.GcBytes).Append(',').Append(r.Collections).Append(',')
                     .Append(Exact(r.RenderTick)).Append(',').Append(Exact(r.Camera.x)).Append(',')
                     .Append(Exact(r.Camera.y)).Append(',').Append(Exact(r.Camera.z)).Append(',').Append(r.Path ? 1 : 0);

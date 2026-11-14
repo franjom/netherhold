@@ -147,3 +147,10 @@ tester's FPS counter is not one, and the policy above does not accept it. Eviden
 `F:\DK2Evidence\` like any capture that cannot be regenerated here.
 Measurements so far, all on the owner's laptop and headless, are in the
 [parallelism plan](plans/2026-10-17-parallelism-design.md), addendum 2026-11-06.
+
+GPU cost of MSAA and brightness (`game-unity-probe -Benchmark`, Level1, 1920x1080, Vulkan, an AMD
+Radeon integrated GPU, 12 rounds of 4 s, camera still, simulation paused; branch HEAD `c4eda66e` plus the display-settings
+change): median GPU ms per frame, 1x MSAA 2.094 [1.932..3.803], 2x 2.599 [2.474..3.685], 4x 2.694 [2.567..3.581],
+8x 3.129 [3.009..3.623], Gamma 45 at 1x 2.301 [2.215..3.961]. The frame there is CPU-bound (frame p50
+4.60 ms), so 4x MSAA does not change its frame rate on that machine. Probe runs before 2026-11-14 are
+not comparable (docs/TRAPS.md).
