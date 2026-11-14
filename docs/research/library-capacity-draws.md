@@ -61,7 +61,7 @@ The claim fallback completes every matching room's capacity check even after
 finding a usable room; see [004C6AE0](functions/004C6AE0.md).
 The public numeric query stays pure. Detached setup hooks check shelf
 availability without a stream. Existing constructors remain available.
-The Guard Room extra and existing geometry adapters remain outside this change.
+The Guard Room extra was built separately in [guard-job-memory.md](guard-job-memory.md); geometry adapters remain outside this change.
 
 The frozen435 baseline and final436 control use identical declared1400
 inputs. Baseline retains347 ordered sites/preseeds through1425; final436

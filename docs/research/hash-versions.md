@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**520** - `0xF5D7D4C89778DF7F`. FormatVersion also 520. Adds saved/hashed remembered job and room reference: idle 89 retries after the dropped job, Guard prefers its saved room and reserves assigned capacity, and cursor pickup clears memory while direct keeper pickup preserves it. ADR-0804; [scope and identity limits](guard-job-memory.md). Earlier saves are refused.
+
 **519** - `0x44364F0B11C49031`. FormatVersion also 519. Behaviour only: a finished research goes to a random Library that takes the book and has a place-holder (the chooser `0x004C6CF0` and `0x004E5480`: shelf search per Library, then the place-holder test, then `random(count)`; `ResearchTreeRules.ChooseLibrary`), and a place-holder the creature sweep has not reached yet runs state 60 at Age 1 in the tick it is kicked (`ResearchStep.Cheer`, `SimulationContext.CreaturesUpdatedThisTick`; ADR-0803, Q810, `0x00476FC0`). No fields added. Earlier saves are refused. Level 1's journal is re-recorded.
 
 **518** - `0x88B5ED2C9365EB93`. FormatVersion also 518. One creature field: `Creeping` (`+0x3E6` bit 12), set by `SetCreepingCommand`, cleared on leaving possession, and read by the combat scans and the sneak's watcher test as a share of the squared distance (ADR-0802). No run changes unless a possessed creature creeps.

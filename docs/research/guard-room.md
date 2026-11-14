@@ -208,6 +208,7 @@ the post's effect; `state+0x3C`. §7 is unreachable in shipped play (Q375). **Ou
 room type; a target off the map is a failed route; rooms have no ids, so `+0x113` is the
 room's first slab tile and a creature's `RoomId` its held place (ADR-0309); the trap list and
 the creature lists are walked in our orders (traps oldest first, creatures as the alarm's).
+The remembered-job/saved-room adapter and its remaining native identity limits are in [guard-job-memory.md](guard-job-memory.md) (ADR-0804).
 
 ## Open questions
 

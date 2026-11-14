@@ -80,6 +80,8 @@ namespace DK2.Simulation
             Anger = other.Anger;
             Mood = other.Mood;
             CurrentJob = other.CurrentJob;
+            ReturnToJob = other.ReturnToJob;
+            ReturnRoom = other.ReturnRoom;
             DroppedToDoJob = other.DroppedToDoJob;
             JobTileIndex = other.JobTileIndex;
             LastHappyChoiceTick = other.LastHappyChoiceTick;

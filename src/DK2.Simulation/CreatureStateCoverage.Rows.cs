@@ -110,8 +110,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(94, typeof(EatingRules), nameof(EatingRules.AfterMealState)));
         rows.Add(Unbuilt(95, "its handler 0x00458680 waits out an action, then idles (functions/00458680.md); not built"));
         rows.Add(Built(96, typeof(ChickenRules), nameof(ChickenRules.ChickenState)));
-        rows.Add(Built(97, typeof(GuardRules), nameof(GuardRules.ToThePostState),
-            "guard tests place a guard in 97 rather than enter it, and none walks it back from 99"));
+        rows.Add(Built(97, typeof(GuardRules), nameof(GuardRules.ToThePostState)));
         rows.Add(Built(98, typeof(GuardRules), nameof(GuardRules.PatrolState)));
         rows.Add(Built(99, typeof(GuardRules), nameof(GuardRules.LostState)));
         rows.Add(Built(100, typeof(GuardRules), nameof(GuardRules.AtThePostState)));

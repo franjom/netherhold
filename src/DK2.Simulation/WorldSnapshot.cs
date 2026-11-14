@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 519;
+    private const int FormatVersion = 520;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -414,6 +414,10 @@ public static class WorldSnapshot
             w.Write(c.LastUnhappyChoiceTick);
             w.Write((int)c.CurrentJob);
             w.Write((int)c.DroppedToDoJob);
+            w.Write((int)c.ReturnToJob);
+            w.Write(c.ReturnRoom.Position.Value);
+            w.Write(c.ReturnRoom.Tile.X);
+            w.Write(c.ReturnRoom.Tile.Y);
             w.Write(c.JobTileIndex);
             w.Write(c.InHand);
             w.Write(c.PickupTick);
@@ -1238,6 +1242,8 @@ public static class WorldSnapshot
                 LastUnhappyChoiceTick = r.ReadInt64(),
                 CurrentJob = (JobType)r.ReadInt32(),
                 DroppedToDoJob = (JobType)r.ReadInt32(),
+                ReturnToJob = (JobType)r.ReadInt32(),
+                ReturnRoom = new RoomReference(new RoomListPosition(r.ReadInt64()), new TilePos(r.ReadInt32(), r.ReadInt32())),
                 JobTileIndex = r.ReadInt32(),
                 InHand = r.ReadBoolean(),
                 PickupTick = r.ReadInt64(),

@@ -226,6 +226,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             creature.DroppedToDoJob = JobType.None;
         }
 
+        if (creature.Dk2StateId == IdleChooserState && creature.ReturnToJob != JobType.None
+            && TryTake(context, creature, definition, creature.ReturnToJob, roll: -1, "remembered", report: false))
+            return;
+
         CreatureMood mood = creature.Dk2StateId == IdleChooserState
             ? CreatureMood.Content : CreatureAngerRules.MoodOf(definition, creature);
 
@@ -483,8 +487,16 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
                     ? a.Distance.CompareTo(b.Distance)
                     : a.FirstTile.CompareTo(b.FirstTile));
 
+        RoomInstance? savedGuardRoom = job == JobType.Guard && creature.ReturnToJob == JobType.Guard
+            ? creature.ReturnRoom.Resolve(world, database, creature.OwnerPlayerId, RoomTypeId.GuardRoom) : null;
+        if (savedGuardRoom is not null && RoomCapacityRules.HasRoom(world, database, savedGuardRoom, creature.Id))
+            candidates.Insert(0, (0, savedGuardRoom.TileIndices[0], savedGuardRoom));
+        else savedGuardRoom = null;
+
         foreach ((_, _, RoomInstance room) in candidates)
         {
+            bool reusingGuardRoom = savedGuardRoom is not null;
+            savedGuardRoom = null;
             // 0x00471A70: already in the room it enters the state at once; otherwise it walks to the
             // room point 0x004E4C10, which is never a furniture slot (ADR-0403).
             int here = world.Contains(creature.Tile) ? (creature.Tile.Y * world.Width) + creature.Tile.X : -1;
@@ -497,6 +509,15 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
 
             creature.JobTileIndex = target;
             bool entered = SetOutInState(context, creature, job);
+            if (job == JobType.Guard)
+            {
+                if (!entered) continue;
+                if (!reusingGuardRoom)
+                {
+                    creature.ReturnRoom = RoomReference.Capture(world, room);
+                    creature.ReturnToJob = JobType.Guard;
+                }
+            }
 
             // Standing in it already - a creature that rolls Train while stood
             // in the training room. No walk to make, so it is at work now.

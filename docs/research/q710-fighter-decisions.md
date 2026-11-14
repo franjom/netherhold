@@ -185,7 +185,7 @@ The supported job fields omit a separate native input: `ReturnToJobId`, state
 `+0x68`, captured as 6 (Guard); saved room `+0x6C` is 1116. Current job `+0x64`
 is a distinct field. Binary recheck of [004778E0](functions/004778E0.md)
 confirms that the remembered job is tried after the dropped job and before the
-happy chooser. Production has no remembered-job field or retry. Its function
+happy chooser. Copied source `5dd771cf` has no remembered-job field or retry. Its function
 record is corrected to PARTIAL; the whole-function confidence is unchanged.
 
 A final diagnostic mode dispatches captured Guard through the existing managed
@@ -200,7 +200,6 @@ restore, and no corresponding native chooser event at label 5002 is established.
 This scratch probe retries the fixed captured value on later chooser calls,
 without native writer/pickup lifecycle or saved-post reuse. Conclusions use
 only its first eligible state-89 call; later probe outcomes are not fidelity
-evidence. The next bounded implementation candidate is the remembered Guard
-job field, retry and lifecycle, including the saved-post backend. Q710 remains
+evidence. The subsequent bounded implementation is in [guard-job-memory.md](guard-job-memory.md). Q710 remains
 OPEN: no global exposure cause or matched-input outcome has been established;
 unavailable routes, later birth populations and other Q719 inputs remain limits.

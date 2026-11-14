@@ -5033,7 +5033,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - the file's value in the chooser;
   - and in the pit.
 - **Guessed:** that every creature has actions 43 and 44, and their length.
-- **Not built:** the idle sound, `ReturnToJobId`, and the Call To Arms and casino arms of 89.
+- **Not built:** the idle sound and casino arm of 89. Call To Arms was built later (ADR-0279); remembered-job priority is ADR-0804.
 - No new state; `HashVersion` stays **118**.
 
 ## ADR-0229 — A rescuer breaks a Prison's door open, and the prisoners walk out through it
@@ -19190,3 +19190,22 @@ chooser's other caller `0x004C3CA4`, unread. No unit test pins the draw order; o
 kicker's own dispatch re-reads its state after the hook (`0x0047727F`) and runs 60 at Age 0, which ours skips; with an action running
 that call returns 1 and draws nothing, matching 2145, otherwise it would differ. A capture of a researcher kicked in 53 or 54 with no
 action would settle it.
+
+## ADR-0804 - remember Guard assignments independently of current work
+
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 520
+
+**Context.** Q710's captured fighter retains a Guard job that idle 89 retries
+before a fresh chooser roll. CurrentJob cannot represent that independent memory.
+The [rule, implementation and limits](research/guard-job-memory.md) are binary-backed.
+
+**Decision.** Store ReturnToJob and a typed room reference, retry after the dropped
+job, and retain memory on refusal. Guard prefers a valid saved room and remembers
+a new one only on successful routing. Capacity includes remembered assignments.
+Cursor pickup clears memory; the direct computer-keeper hand path preserves it.
+Copying, hashing and snapshot serialization include both fields.
+
+**Consequences.** Hash/save 520; older snapshots are refused. The determinism pin
+is `0xF5D7D4C89778DF7F`. Room-list identity adapts native room tags; the native
+allocator, generic finder/navigation and remaining Guard scratch are partial.
+Q710's aggregate outcome remains open.
