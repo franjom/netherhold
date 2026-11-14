@@ -1,11 +1,12 @@
 # Agentic campaign playtesting
 
-**Date:** 2026-11-07. **Status:** owner-approved design; stages 1-2 are built (see Implementation), later stages are not.
-**Purpose:** reduce the owner's repeated playtesting while establishing a reusable
-foundation for external agents and a future Enhanced keeper.
+**Date:** 2026-11-07. **Status:** owner-approved design; stages 1-2 are built and merged (see Implementation), later stages are not. Stages re-ordered by the owner on 2026-11-14 (see Owner direction).
+**Purpose:** reduce the owner's repeated playtesting with a capable campaign bot that
+needs no AI model, while establishing a reusable foundation for external agents and a
+future Enhanced keeper.
 **Goals:** 2 (campaign compatibility), 6 (oracle testing) and 10 (agent interface),
 with support for 5 (fidelity), 9 (determinism) and 11 (presentation modes).
-**Implementation:** [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md), Task 1 (detached player contract), task 2 (visibility-safe observation builder), task 3 (action admission and receipts), task 4 (tick-loop integration, replay identity, run manifest), task 5 (the `CampaignPlayer` controller), task 6 (`run --campaign-player`, limits, evidence folder, verdicts) and task 7 (the Level 1 acceptance: seeds 1-3 won headless, each with the finale reaching the gem pickup, journals replayed without the controller) are built on `feature/campaign-player`, not merged; task 7's commit and integration are pending. Stages 3 onward are not built.
+**Implementation:** [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md), Task 1 (detached player contract), task 2 (visibility-safe observation builder), task 3 (action admission and receipts), task 4 (tick-loop integration, replay identity, run manifest), task 5 (the `CampaignPlayer` controller), task 6 (`run --campaign-player`, limits, evidence folder, verdicts) and task 7 (the Level 1 acceptance: seeds 1-3 won headless, each with the finale reaching the gem pickup, journals replayed without the controller) are built and merged to master. Stages 3 onward are not built.
 
 ## Relationship to existing work
 
@@ -40,6 +41,27 @@ equivalence, complete level coverage, correct UI input or correct audiovisual
 output. Each of those requires separate evidence and explicit coverage.
 Expectations about DK2 must cite researched rules or original-game evidence;
 neither the agent's opinion nor agreement with our own code establishes fidelity.
+
+## Owner direction (2026-11-14)
+
+The primary deliverable is a capable bot: a controller that needs no AI model and
+plays the whole campaign competently, level by level as each level becomes playable.
+It is the stage 1-2 campaign player grown to every level, not a separate program.
+Its routines should carry across levels; a level-specific routine is acceptable
+only where the level demands it, and is recorded as such. It plays from the same
+player-visible observation and normal commands, so its wins mean what a player's
+wins mean.
+
+AI agents come after that, in two roles:
+
+- **Supervisor.** An agent watches the bot at checkpoints, analyzes and checks its
+  play, and changes its strategy. The bot still plays every turn; replay still needs
+  no model.
+- **Skirmish playtester.** An agent runs the bot on skirmish maps to check that the
+  game plays well and does not crash, and reports what it finds.
+
+The bot is a player-side controller. It is not the Enhanced keeper, which remains a
+computer opponent outside Classic fidelity scope, though the two may share routines.
 
 ## Proposed components and boundaries
 
@@ -235,10 +257,12 @@ These are separate implementation increments, not one large implementation plan.
 |---|---|
 | 1. Player contract and host | Player-visible observation and normal-command adapter over the existing harness. Prove hidden-information isolation, stale/wrong-run rejection, action deduplication, bounds and recorded-input reproduction. |
 | 2. Level 1 baseline | Unattended goal-directed attempt using reusable action routines. Reach the actual win verdict, or stop with a reproducible technical finding or explicit controller limitation. No human rescue or hidden-state action oracle. |
-| 3. Agent supervision | A local external controller can select objectives and recover through the same contract. Bound calls/tokens/time and record responses; replay still needs no model. Try a second level to assess routine reuse. |
-| 4. Rendered gameplay | Run the controller in an isolated release Unity player, prove desktop/input isolation, collect linked visual/audio evidence and review selected milestones. |
-| 5. UI and campaign loop | Extend Stage D virtual input through the real UI; exercise launch/briefing, gameplay interactions, save/load, results and continuation with no desktop input injection. |
-| 6. Regression portfolio | Representative levels, seeds and strategies with reproducible findings, coverage and explicit untested areas; review missed bugs and false positives. |
+| 3. Capable campaign bot | Extend the stage 2 controller, with no model, to every campaign level the simulation can complete. A level counts once the bot wins it unattended on declared seeds, with the journals replayed. A level it cannot win is reported with the reason: a controller limitation, or a missing mechanic filed as its own task. The routines are shared across levels; level-specific ones are listed. Each newly playable level is added as it lands. Start with Level 2. |
+| 4. Agent supervision | A local external agent supervises the stage 3 bot through the same contract: it reads checkpoint summaries, analyzes and checks the play, and changes the bot's strategy. Bound calls/tokens/time and record responses; replay still needs no model. Requires stage 3 on at least the levels it is tried on. |
+| 5. Rendered gameplay | Run the controller in an isolated release Unity player, prove desktop/input isolation, collect linked visual/audio evidence and review selected milestones. |
+| 6. UI and campaign loop | Extend Stage D virtual input through the real UI; exercise launch/briefing, gameplay interactions, save/load, results and continuation with no desktop input injection. |
+| 7. Regression portfolio | Representative levels, seeds and strategies with reproducible findings, coverage and explicit untested areas; review missed bugs and false positives. |
+| 8. Skirmish playtesting | An agent runs the bot, supervised as in stage 4, on skirmish maps. It reports crashes, stalls and suspicious play with reproducible journals. It needs skirmish setup in the simulation and a bot that plays against opponents without campaign objectives. |
 
 First reviewable implementation scope is stages 1-2. Define its Level 1 objective
 sequence from the shipped level and existing research before coding assertions.
@@ -253,7 +277,8 @@ unbounded series of gameplay fixes as completion of this increment.
 
 Track human review time, useful reproducible findings, false alarms, coverage,
 success by level/seed, run cost and model usage. Broader automation should reduce
-repeated owner work; it does not require every level-specific routine to generalize.
+repeated owner work. Stage 3 prefers routines that generalize; a level-specific one
+is allowed where the level demands it, and is listed in the run report.
 Use headless checks frequently and selected rendered runs for presentation work.
 Runs remain explicitly launched and bounded; no unattended schedule is authorized
 by this design. Provider selection, credentials and any external data transfer
@@ -273,8 +298,9 @@ then use packet replay for detailed state capture. The
 still apply. Bot completion supplies a reference scenario, not exhaustive DK2
 behavior coverage. Bound any feasibility trial by the manual work it replaces.
 
-Model training, reinforcement learning, distributed execution, a general native
+Model training, reinforcement learning, distributed execution, a native-game
 campaign bot and a production Enhanced keeper are outside the first increments.
+The stage 3 bot plays this remake, not the original game.
 Their future value motivates clean interfaces, not early implementation of them.
 
 ## Next design gate
@@ -287,9 +313,11 @@ preserve player-information isolation, snapshot lifetime and deterministic
 outcomes for the same applied inputs; reducing fidelity or evidence coverage is
 not an optimization. Apply this requirement to later implementation plans too.
 
-The owner approved this design. Review the [stages 1-2 implementation plan](2026-11-07-campaign-player-stages1-2.md)
-and select an execution method before implementation. Later stages require their
-own concrete plans and measured acceptance.
+The owner approved this design, and stages 1-2 are built. Stage 3, the capable
+bot, is next and needs its own concrete plan. The
+agent supervision plan (`2026-11-09-campaign-player-stage3-agent-supervision.md`)
+now covers stage 4 and waits on stage 3. Every later stage needs its own concrete
+plan and measured acceptance.
 Implementation must retain the repository's reviewer/documenter protocol and
 verify that observation, monitoring and recording do not change simulation
 outcomes for the same applied input frames. This document records requirements

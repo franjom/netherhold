@@ -107,8 +107,8 @@ These are entry points, not a new priority order.
   and rendered-HUD automation remain follow-up work; use the completion acceptance
   record above for the integrated walkthrough and its journals.
   Approved design: [agentic campaign playtesting](plans/2026-11-07-agentic-campaign-playtesting-design.md).
-  The [stages 1-2 plan](plans/2026-11-07-campaign-player-stages1-2.md) runs inline in a
-  worktree on `feature/campaign-player` (not merged). Task 1, the detached player contract
+  The [stages 1-2 plan](plans/2026-11-07-campaign-player-stages1-2.md) is built and merged
+  to master. Task 1, the detached player contract
   (`DK2.Simulation.Players`, `DK2.AI.Players`), task 2, the visibility-safe observation
   (`PlayerObservationBuilder` in `DK2.Presentation`), and task 3, bounded action admission
   (`PlayerSession` in `DK2.Harness`, `PlayerActionAdapter` in `DK2.Presentation`), task 4,
@@ -121,11 +121,14 @@ These are entry points, not a new priority order.
   is built on top of the Portal Gem fix (ADR-0725, hash 456, merged into this branch from fix/reaper-gem-pickup): from the unmodified
   start the player won seeds 1, 2 and 3 (ticks 2360, 2244, 2216), each with the finale reaching the
   gem pickup (ticks 2490, 2346, 2316), and every journal replayed all hashes without the controller.
-  The study is `F:/DK2Evidence/studies/campaign-player-l01-acceptance--2026-11-09--002`; the owner's
-  commit and integration are pending. This is Level 1 only, headless, not a whole-game or rendered
+  The study is `F:/DK2Evidence/studies/campaign-player-l01-acceptance--2026-11-09--002`.
+  This is Level 1 only, headless, not a whole-game or rendered
   acceptance. Build the receipt with `tools/build_receipt.py`; a run given `--player-receipt <dir>`
   can claim acceptance under the conditions in the [harness README](../src/DK2.Harness/README.md),
   and prints `not claimed: <reasons>` otherwise.
+  Next (owner direction, 2026-11-14): stage 3 of the design, a capable bot that needs no model
+  and plays every campaign level as it becomes playable, starting with Level 2.
+  Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.

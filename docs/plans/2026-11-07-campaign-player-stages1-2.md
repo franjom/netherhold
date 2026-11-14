@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-07. Design approved by the owner; inline execution
-in a worktree on `feature/campaign-player` (not merged). Tasks 1-7 (stages 1-2) are built on the branch; task 7's commit and integration are pending the owner. No later stage is built.
+in a worktree on `feature/campaign-player`, now merged to master. Tasks 1-7 (stages 1-2) are built. No later stage is built.
 **Goal:** attempt Level 1 unattended through a player-visible interface, preserve
 the input journal and produce a truthful, replayable completion/failure report.
 **Architecture:** extend the existing scenario loop. Put engine-neutral player
@@ -432,7 +432,7 @@ Report finale coverage separately: reached gem pickup (tick), not reached within
 the window (a suspected anomaly, not a defeat), not applicable (no gem on the
 level) or skipped (window 0, listed as unchecked coverage). The finale outcome
 never changes the Won verdict. Headless camera holds in states 229/230 never
-wait, so headless finale timing does not certify rendered timing (stage 4).
+wait, so headless finale timing does not certify rendered timing (stage 5).
 Exit 0 requires a qualifying completed run, 1 a non-completed attempt, 2 invalid
 configuration/incomplete evidence; watch retains its existing aggregate/limit
 exit meanings. A sourced gameplay violation is a report finding, not an invented
