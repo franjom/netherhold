@@ -76,17 +76,20 @@ the gate.
 
 ## Task 0a: baselines and acceptance of Levels 1-3
 
-- [ ] **Baselines.** On current master, run Levels 1, 2 and 3 on seeds 1-3 and record per run:
-      result tick, final hash, SHA-256 of `input.journal` and of `player-decisions.tsv`, in
-      `scenarios/campaign-player/baselines.tsv` with the commit and HashVersion. This is a
+- [x] **Baselines.** On current master, run Levels 1, 2 and 3 on seeds 1-3 and record per run:
+      result tick, final hash, and SHA-256 of `hashes.tsv` (the state-hash series),
+      `player-decisions.tsv` and `player-actions.tsv`, in `scenarios/campaign-player/baselines.tsv`
+      with the commit and HashVersion. The journal itself carries a start time, so it is not
+      hashed; a rerun reproduced all three files exactly. This is a
       record, not a standing test: simulation changes re-roll seeds, and the existing Level 1
       tests assert relations on purpose. Task 1's byte-for-byte check is a one-off comparison on
-      one commit, before and after the refactor.
-- [ ] **A `--seed` override** on `run`, `watch` and `replay` (and later `tune`): the manifest
+      one commit, before and after the refactor. **Done 2026-11-14** (commit 20a6a48c, hash 516; recorded twice, identical).
+- [x] **A `--seed` override** on `run`, `watch` and `replay` (and later `tune`): the manifest
       records the effective seed, and `replay` refuses a journal whose header seed differs from
       the one it would run. Tests: an overridden seed replays; a mismatch is refused.
-- [ ] **Acceptance of Levels 1, 2 and 3** on accept seeds 11-20 from a receipted build, evidence
-      under `F:/DK2Evidence/studies/`, ladder rows with counts and intervals.
+- [x] **Acceptance of Levels 1, 2 and 3** on accept seeds 11-20 from a receipted build, evidence
+      under `F:/DK2Evidence/studies/`, ladder rows with counts and intervals. **Done 2026-11-14:**
+      30 of 30 won and claimed ([ladder](../research/campaign-bot-ladder.md) section 2).
 - [ ] Reviewer, documenter, commit.
 
 ## Task 0b: ladder scenarios, triage and the driver

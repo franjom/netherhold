@@ -34,7 +34,8 @@ passes two tests:
 
 - it **must** carry bit 10 (`0x400`) — the flag the community already named
   `AvailableViaPortal`, which turns out to mean exactly what it says;
-- it **must not** carry bit 27 (`0x8000000`) — `IsUnique`;
+- it **must not** carry bit 27 (`0x8000000`) — `IsUnique`, though the test reads the definition fetched by the
+  mapped base type and never fires on a Unique definition itself (below, ADR-0801);
 - and a **hero** portal (room type 25) tests a *different* bit in a *second*
   flag word instead, which this project does not parse.
 
@@ -66,14 +67,15 @@ ADR-0047. Now `PortalRules.CanComeFromPortal`, tested both ways in
 `PortalTests` and asserted as an exact nine-name set across all 66 levels in
 `PortalOnRealDataTests`.
 
-### The IsUnique half never fires on shipped data
+### The IsUnique half never fires on a Unique definition
 
 No campaign level makes a unique creature available or pools one — checked
-across all 66. So that half is **unfalsifiable from the files** and rests on the
-binary alone. It is implemented anyway, because **all thirteen unique creatures
-do carry `AvailableViaPortal`** — which is precisely why DK2 needs a second
-test. Without it, a level that pooled a Unique Dark Angel would get one out of a
-portal. Both premises are now checked tests rather than remarks.
+across all 66. **All thirteen unique creatures do carry `AvailableViaPortal`.**
+The skip reads the definition that `0x0050D390` fetches by the index's mapped
+base type, so it is the unflagged base definition: a Unique definition does not
+make the pick refuse it, it adds a second candidate of its base type
+(STRONGLY INFERRED, ADR-0801; [rules](portal-creature-action.md#the-portals-type-pick-built-2026-09-28-adr-0272)). `PortalSystem.Candidates`
+reproduces this. Both premises are checked tests.
 
 ---
 

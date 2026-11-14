@@ -217,7 +217,7 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         }
     }
 
-    private static string FailureReport(
+    internal static string FailureReport(
         string file, string id, string verdict, int exit, TimeSpan limit, string journalPath,
         InputJournal? journal, string stderr)
     {
@@ -237,7 +237,9 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
             text.AppendLine();
             text.AppendLine("Reproduce at that commit:");
             text.AppendLine();
-            text.AppendLine($"    dotnet run --project src/DK2.Harness -- replay \"{file}\" \"{journalPath}\"");
+            string seed = Header(journal, "seed");
+            text.AppendLine($"    dotnet run --project src/DK2.Harness -- replay \"{file}\" \"{journalPath}\"" +
+                (seed == "unknown" ? "" : $" --seed {seed}"));
         }
         string tail = string.Join('\n', stderr.Split('\n').TakeLast(40));
         if (tail.Trim().Length > 0)

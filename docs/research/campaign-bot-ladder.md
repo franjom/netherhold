@@ -17,7 +17,7 @@ The player's own default cap, `--player-max-ticks 14400` (one hour of game time)
 
 | Result | Levels |
 |---|---|
-| Won, all seeds | 2, 3 (rerun after ADR-0800, below) |
+| Won, all seeds | 2, 3 (rerun after ADR-0800, below; accepted, section 2) |
 | Lost, all seeds | 5, 10, 13, 14, 15a, 20 |
 | Lost or no result | 4, 6a, 6b, 7 |
 | No result | 8, 9, 11A, 11B, 11C, 12, 15b, 16, 18, 19 |
@@ -32,7 +32,24 @@ controller. In each the Lord of the Land died in the keeper's area. Before ADR-0
 Level 2's own availability table (`level2Variables.kld`, `kwd vars -a`) makes the Treasury
 UNAVAILABLE and the Training Room AVAILABLE; the controller built only a Lair and a Hatchery.
 
-## 2. The common pattern: the controller waits
+## 2. Acceptance of Levels 1-3 (2026-11-14)
+
+Won on the ladder (plan: at least 9 of 10 accept seeds, journals replayed). A fresh receipted
+Release build of master `179d9e38` (clean tree, hash 516) ran the unchanged controller on accept
+seeds 11-20 with `watch <scenario> --campaign-player 3 --player-receipt <dir> --seeds 11-20`. Every
+run claimed acceptance: Completed, the Reaper took the Portal Gem, and the journal replayed without
+the controller with every hash matching.
+
+| Level | Won | 95% Wilson interval | Win ticks |
+|---|---|---|---|
+| 1 | 10 / 10 | 72-100% | 2079-2489 |
+| 2 | 10 / 10 | 72-100% | 3821-4761 |
+| 3 | 10 / 10 | 72-100% | 3595-6906 |
+
+Evidence: `F:/DK2Evidence/studies/campaign-bot-l01-l03-acceptance--2026-11-14--001` (receipt, 30 run
+folders, `manifest.json`, `files.sha256.csv`).
+
+## 3. The common pattern: the controller waits
 
 Share of decisions that were "wait: nothing offered to do", seed 1:
 
@@ -57,7 +74,7 @@ Share of decisions that were "wait: nothing offered to do", seed 1:
 On every losing level the controller builds at most one 3x3 of each room in its fixed list and
 then waits for 70-98% of its decisions. It has no routine for anything else to do.
 
-## 3. Level 4
+## 4. Level 4
 
 Seed 1 lost its Heart at 5249 to player 1; seeds 2-3 had no result. The controller built one 3x3
 Treasury, Lair and Hatchery by about tick 1300; 15, 54 and 32 creatures came through the portal and
@@ -68,7 +85,7 @@ spells AVAILABLE. Our Level 4 outcomes do not yet match DK2's spread even under 
 input (37 of 60 seeds overrun at hash 328, [level4-outcomes.md](level4-outcomes.md); residual Q710),
 so a controller loss there is not wholly the controller's.
 
-## 4. Limits
+## 5. Limits
 
 - Three seeds per level; one run per seed. Win rates are not estimated.
 - Every level was started from its level file alone. Whether a campaign's carried-over rewards

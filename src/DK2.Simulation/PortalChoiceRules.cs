@@ -13,8 +13,9 @@ namespace DK2.Simulation;
 /// weight is its first attraction room's contribution less one per creature of the type
 /// held, or a flat 1.0 (3.0 for the Goblin's lair) when that room is the Lair. A type first
 /// noticed after tick 1 starts with a boost of 10.0, which multiplies by 200; after every
-/// pick every boost and sack block drops by 1.0. The two variables named for this in the
-/// balance table are read by nothing (Q90); the rule is hardcoded.</remarks>
+/// pick every boost and sack block drops by 1.0 for each definition that maps to its type.
+/// The two variables named for this in the balance table are read by nothing (Q90); the
+/// rule is hardcoded.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/portal-creature-action.md")]
 public static class PortalChoiceRules
 {
@@ -27,14 +28,19 @@ public static class PortalChoiceRules
     private const byte GoblinLairObjectId = 0x16;
 
     /// <summary><c>0x004DBD90</c>: gives each admitted type without a row one, boosted unless
-    /// it is Lair-attracted or the game has not passed tick 1 (the level-start pass).</summary>
-    public static void Notice(WorldState world, PlayerId playerId, IReadOnlyList<CreatureDef> admitted)
+    /// it is Lair-attracted or the game has not passed tick 1 (the level-start pass). Only a
+    /// type whose weight is positive is noticed (0x004DBF3D sets the flag after that test), so
+    /// a type with no attracting room, or all of its room's contribution already held, waits
+    /// for the pick in which it carries weight and is boosted then.</summary>
+    public static void Notice(
+        WorldState world, PlayerId playerId, IReadOnlyList<CreatureDef> admitted, IReadOnlyList<RoomInstance> keeperRooms)
     {
         ref PlayerState player = ref world.Player(playerId);
         foreach (CreatureDef creature in admitted)
         {
             int at = IndexOf(player.EntranceInfo, creature.CreatureId);
             if (at >= 0) continue;
+            if (BaseWeight(world, creature, keeperRooms, playerId) <= 0) continue;
 
             int boost = world.CurrentTick.Value > 1 && !IsLairAttracted(creature) ? Fresh : 0;
             int insert = ~at;
@@ -68,13 +74,13 @@ public static class PortalChoiceRules
     }
 
     /// <summary>Draws one of <paramref name="admitted"/> as <c>0x004DBF90</c> does, or null when
-    /// none carries weight, then takes 1.0 off every boost and block. One draw per call that
-    /// found a candidate.</summary>
+    /// none carries weight, then decays the boosts and blocks (<see cref="Decay"/>). One draw per
+    /// call that found a candidate.</summary>
     public static CreatureDef? Pick(
-        WorldState world, SimRandom rng, PlayerId playerId, IReadOnlyList<CreatureDef> admitted,
-        IReadOnlyList<RoomInstance> keeperRooms)
+        WorldState world, GameDatabase database, SimRandom rng, PlayerId playerId,
+        IReadOnlyList<CreatureDef> admitted, IReadOnlyList<RoomInstance> keeperRooms)
     {
-        Notice(world, playerId, admitted);
+        Notice(world, playerId, admitted, keeperRooms);
         ref PlayerState player = ref world.Player(playerId);
 
         var entries = new List<(CreatureDef Creature, long Weight)>();
@@ -109,16 +115,45 @@ public static class PortalChoiceRules
             }
         }
 
-        for (int i = 0; i < player.EntranceInfo.Count; i++)
-        {
-            EntranceInfoState row = player.EntranceInfo[i];
-            player.EntranceInfo[i] = row with
-            {
-                Boost = row.Boost != 0 ? row.Boost - One : 0,
-                Block = row.Block != 0 ? row.Block - One : 0,
-            };
-        }
+        Decay(ref player, database);
         return chosen;
+    }
+
+    /// <summary>The definition indices 0x004DBF90 walks, and the rows of the entrance table: one per
+    /// creature type, 1 to 46.</summary>
+    public const int RowCount = 46;
+
+    /// <summary>The decay after a pick that had a candidate (0x004DC5F2 to 0x004DC72F): for each
+    /// definition index 0 to 45 it takes 1.0 off the boost (all 46), then 1.0 off the block, of
+    /// the first row whose type is the index's, each only while non-zero. A unique definition
+    /// counts for its base type (0x00494360), so a type with a unique variant loses 2.0 a pick
+    /// and one without 1.0. An index past the definition count has type 0, whose first row is
+    /// the empty one past the definitions (0x004B8640 types rows by index), so it docks nothing.
+    /// The definition table is in id order in the shipped data (index = id - 1).</summary>
+    private static void Decay(ref PlayerState player, GameDatabase database)
+    {
+        int index = 0;
+        for (int id = 0; id <= byte.MaxValue && index < RowCount; id++)
+        {
+            if (!database.Creatures.TryGetValue((byte)id, out CreatureDef? definition)) continue;
+            byte type = (definition.Flags & CreatureFlags.IsUnique) != 0 ? definition.UniqueBaseCreatureId : definition.CreatureId;
+            DecayRowOf(ref player, type);
+            index++;
+        }
+    }
+
+    private static void DecayRowOf(ref PlayerState player, byte type)
+    {
+        // A type without a row here was never noticed, and its native row has nothing to take off.
+        int at = IndexOf(player.EntranceInfo, type);
+        if (at < 0) return;
+
+        EntranceInfoState row = player.EntranceInfo[at];
+        player.EntranceInfo[at] = row with
+        {
+            Boost = row.Boost != 0 ? row.Boost - One : 0,
+            Block = row.Block != 0 ? row.Block - One : 0,
+        };
     }
 
     private static bool IsLairAttracted(CreatureDef creature) =>
