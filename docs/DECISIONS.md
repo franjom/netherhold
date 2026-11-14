@@ -3878,7 +3878,7 @@ spell arms. `HashVersion` 71.
 **Context.** Every creature fought with melee because the spell survey was not
 built, and a caster without shots would have stood at range firing nothing. Both
 halves were read to the byte: the survey keeps the castable attack spell whose
-next-ready time is latest; in reach and off cooldown the caster stamps the slot
+next-ready time is earliest; in reach and off cooldown the caster stamps the slot
 and starts action 16, whose handler fires a shot of the spell's `ShotTypeId`
 `ShotDelay` ticks later, aimed with a lead of the target's last move per tile; the
 shot flies `Speed` position units a tick, hits the first thing of its collide class
@@ -3900,6 +3900,11 @@ status spells (Freeze, Slow, Haste, Heal, Armour, Invulnerable, Invisible,
 Lightning, Drain) flew and landed doing nothing until ADR-0168 built their
 creature side; the friendly arm waits on the buff table (Q394). `HashVersion` 72.
 
+
+**Amendment 2026-11-14 (Q732).** Use the strictly smaller signed, wrapping
+32-bit readiness sum, with the existing recharge modifier helper and first-slot
+ties. The old greater comparison was reversed; evidence and bounded results:
+`combat-spells.md` §5. Hash/save 508.
 ## ADR-0168 — Status effects are tick countdowns on the creature, read by the health routine and the gates
 
 **Status.** Accepted 2026-09-23 · `HashVersion` 73 · Research:

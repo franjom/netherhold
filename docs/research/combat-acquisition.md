@@ -219,9 +219,8 @@ is waived for a Support with a tile to back on to (`0x0045CCB2`–`0x0045CCD4`;
 an earlier reading had it as a second requirement; ADR-0325); the spell
 definition from the world's `vtable+0xE8`. Its
 flag byte `+0x27`: bit 2 → a friendly spell (range `+0x31`, bit 7 kept as its
-kind); bit 0 → an **attack spell**, the one whose next-ready time `stamp +
-recharge` is latest kept (`0x004F7AB0` is the recharge in ticks, not a strength
-— corrected 2026-09-23, `combat-spells.md` §5); bit 1 with target class 4
+kind); bit 0 → an attack spell, selected by the readiness order in
+`combat-spells.md` §5; bit 1 with target class 4
 (`vtable+0x1B0(def+0x44)[0x6A]`) → a thing-targeting spell. The bits are named
 from the roster in `combat-spells.md` §2. The attack survey is built (ADR-0167); the
 friendly survey is built too (ADR-0170, `spell-friendly-arm.md`); the thing-targeting spell is not.

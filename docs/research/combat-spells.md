@@ -23,8 +23,8 @@ strongest" — the routine it compares by is the **recharge**. `combat-fight-sta
 `ShotDelay` ticks later, aimed at the target's centre with a lead of one and a half
 times its last movement per tile of range. Shot release completes the handler;
 [Q720](fight-scan-initial-phase.md#next-matched-divergence-q720-pre-edit) records
-the post-shot busy lifetime built in ADR-0624/hash 368. The survey keeps the attack spell whose next-ready time is latest, so a
-fresh Warlock throws Firebomb before Fireball. A friendly spell is cast once and
+the post-shot busy lifetime built in ADR-0624/hash 368. The attack survey's
+readiness order is in §5. A friendly spell is cast once and
 the target dropped. A spell the creature cannot cast makes it look for another
 target, then step back or run. **Built for the attack spells** (ADR-0167, §11); the
 friendly arm waits on the buff table (Q394).
@@ -115,11 +115,14 @@ elapsed, 100 when ready, for the possession display.
 ## 5. Which spell the survey picks (corrects `combat-acquisition.md` §6)
 
 Over the castable slots (§4, level allowing) with bit 0: the first is taken; each
-later one **replaces the best when its `stamp + R` is greater** (`0x0045CE28`,
-signed). Fresh, every stamp is 0 and the longest recharge wins — Firebomb over
-Fireball, Freeze over Lightning; once cast, a spell's stamp keeps it ahead for as
-long as it is castable at all. The earlier reading called this "the strongest by
-`0x004F7AB0`"; that routine is the recharge, and the order is readiness. The
+later one replaces it only when its signed 32-bit `stamp + R` is smaller.
+Both additions wrap; equality retains the first eligible slot. `R` is the
+existing recharge helper's interval, including possession/influence modifiers,
+without the eligibility gate's separate work-rate division. With equal stamps,
+the shortest interval wins. STRONGLY INFERRED: independently reviewed disassembly
+`0x0045CDAB`–`0x0045CE40`, especially signed `JGE` at `0x0045CE2A`,
+2026-11-14; see [function record](functions/0045CB00.md). The old greater reading
+had the comparison reversed. The
 chosen spell's `Range` becomes `(range >> 12) × range`, the range² the
 fight-starter stores. A friendly slot (bit 2) is the **last** castable one — each
 overwrites the saved slot (`spell-friendly-arm.md` §8.1; an earlier reading said
@@ -134,6 +137,33 @@ its Fireball cools. The waiver sits before the slot's flags are read, so it cove
 thing-targeting (bit 1) slot too; the friendly arm re-tests `0x0048C800` at `0x0045CCEB`
 and is not waived. Built for the attack survey as `SpellRules.SurveyAttack(whileRecharging)`
 (ADR-0325); the thing-targeting survey is not built.
+
+### Q732: current trap comparison, 2026-11-14
+
+Archived `M7Q362` level files, default campaign systems, no commands, Xoshiro
+seeds 1 and 7, 170 completed ticks. Baseline: master `0e12fe09`, hash 506.
+Candidate: the isolated hash-508 branch plus its archived source patch, before
+integration with Claude's in-flight hash 507. Both seeds give these first state-199 times:
+
+| Creature | Native recorded label | Baseline completed tick | Candidate completed tick |
+|---|---:|---:|---:|
+| Black Knight | 26 | 26 | 26 |
+| Bile Demon | 46 | 46 | 46 |
+| Vampire | 22 | 15 | 24 |
+
+The Vampire initially casts spell 10 at baseline event tick 15; the candidate
+swings at 24 and hits the trap at 26. Native capture: attack byte 4 and range
+2304 from label 9, state 199 at 22: CONFIRMED melee, not a ranged cast. The
+candidate corrects that choice, not the residual timing. These legacy polling
+labels are separate from modern completed ticks; native seed, full initial
+state and RNG alignment are not established. Equal table entries do not close
+movement parity. The `M7Q513a` boulder traces are unchanged by the candidate;
+their two seeds still differ. Seed-1 repeats match all 171 hashes in both maps.
+
+Source, runtime, inputs, raw traces and manifests:
+`F:/DK2Evidence/studies/q732-current-baseline--2026-11-14--002` and
+`F:/DK2Evidence/studies/q732-earlier-ready--2026-11-14--002`.
+Q732 remains open for matched timing, movement and boulder comparisons.
 
 ## 6. The spell arm of `spFighting` (nibbles 0 and 2), `0x0045FB65`
 

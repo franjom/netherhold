@@ -18,6 +18,64 @@ public class CombatSpellTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
+    [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(20, 0, 1)]
+    [InlineData(0, 20, 0)]
+    public void AttackSurveyChoosesTheEarlierReadySpell(long fireballStamp, long firebombStamp, int expectedSlot)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
+        warlock.Level = 8;
+        warlock.SpellStamps[0] = fireballStamp;
+        warlock.SpellStamps[1] = firebombStamp;
+        int selected = SpellRules.SurveyAttack(db, warlock, db.CreatureById(warlock.CreatureTypeId), 100, out CreatureSpellDef? spell);
+        Assert.Equal(expectedSlot, selected);
+        Assert.Equal(expectedSlot == 0 ? Dk2TerrainFixture.FireballSpellId : Dk2TerrainFixture.FirebombSpellId, spell!.CreatureSpellId);
+    }
+    [Fact]
+    public void AttackSurveyKeepsTheFirstSlotWhenReadyTurnsTie()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
+        warlock.Level = 8;
+        warlock.SpellStamps[0] = SpellRules.RechargeTicks(db.CreatureSpells[Dk2TerrainFixture.FirebombSpellId])
+            - SpellRules.RechargeTicks(db.CreatureSpells[Dk2TerrainFixture.FireballSpellId]);
+        warlock.SpellStamps[1] = 0;
+        Assert.Equal(0, SpellRules.SurveyAttack(db, warlock, db.CreatureById(warlock.CreatureTypeId), 100, out _));
+    }
+    [Theory]
+    [InlineData(6, 0)]
+    [InlineData(7, 1)]
+    public void AttackSurveyUsesThePossessedRechargeBeforeComparing(long fireballStamp, int expectedSlot)
+    {
+        GameDatabase basis = Dk2TerrainFixture.Database();
+        var variables = new GlobalVariables();
+        foreach (var entry in basis.Variables.Misc) variables.Misc[entry.Key] = entry.Value;
+        variables.Misc[VariableTypeId.FirstPersonRechargeModifyPercentage] =
+            new(VariableTypeId.FirstPersonRechargeModifyPercentage, 50, 0, 0);
+        variables.CreatureStats.Add(new((int)CreatureStatId.MeleeRecharge, 25, 9, true));
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, variables,
+            creatureSpells: basis.CreatureSpells.Values);
+        var warlock = new CreatureState { CreatureTypeId = Dk2TerrainFixture.WarlockCreatureId, Level = 8, Possessed = true };
+        warlock.SpellStamps[0] = fireballStamp;
+        warlock.SpellStamps[1] = 0;
+        Assert.Equal(12, CombatRules.RechargeTicks(db, warlock, SpellRules.RechargeTicks(db.CreatureSpells[Dk2TerrainFixture.FireballSpellId])));
+        Assert.Equal(18, CombatRules.RechargeTicks(db, warlock, SpellRules.RechargeTicks(db.CreatureSpells[Dk2TerrainFixture.FirebombSpellId])));
+        Assert.Equal(expectedSlot, SpellRules.SurveyAttack(db, warlock, db.CreatureById(warlock.CreatureTypeId), 100, out _));
+    }
+    [Theory]
+    [InlineData(2147483640)]
+    [InlineData(-2147483640)]
+    public void AttackSurveyComparesTheWrappingSigned32BitReadyTurn(long fireballStamp)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
+        warlock.Level = 8;
+        warlock.SpellStamps[0] = fireballStamp;
+        warlock.SpellStamps[1] = 0;
+        Assert.Equal(0, SpellRules.SurveyAttack(db, warlock, db.CreatureById(warlock.CreatureTypeId), 100, out _, whileRecharging: true));
+    }
 
     [Theory]
     [InlineData(0, false, false, true)]
@@ -195,6 +253,8 @@ public class CombatSpellTests
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
         warlock.Level = 8;
+        // Keep the Firebomb first in readiness; this test checks its impact, not the survey.
+        warlock.SpellStamps[0] = 20;
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
         CreatureState bystander = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 9, 10);
         GameSimulation sim = Combat(db, world);

@@ -73,7 +73,7 @@ public static class SpellRules
     }
 
     /// <summary>The survey's attack choice (§5): over the castable attack slots the creature's level
-    /// allows, the one whose <c>stamp + recharge</c> is latest — fresh, the longest recharge. The
+    /// allows, the earliest signed 32-bit <c>stamp + recharge</c>, keeping the first tie. The
     /// slot index, or −1 with <paramref name="chosen"/> null. With <paramref name="skipStatus"/>, as
     /// against a forced thing, a status spell (flag bit 3) is passed over inside the loop. With
     /// <paramref name="whileRecharging"/> — a Support creature that has a tile to back on to
@@ -85,7 +85,7 @@ public static class SpellRules
     {
         chosen = null;
         int best = -1;
-        long bestReady = long.MinValue;
+        int bestReady = int.MaxValue;
         int count = Math.Min(definition.Spells.Count, Slots);
         for (int i = 0; i < count; i++)
         {
@@ -93,8 +93,8 @@ public static class SpellRules
             if (!whileRecharging && !CanCast(database, me, definition, i, tick)) continue;
             CreatureSpellDef? spell = SpellOf(database, definition, i);
             if (spell is null || !IsAttack(spell) || (skipStatus && IsStatus(spell))) continue;
-            long ready = me.SpellStamps[i] + RechargeTicks(spell);
-            if (best >= 0 && ready <= bestReady) continue;
+            int ready = unchecked((int)me.SpellStamps[i] + CombatRules.RechargeTicks(database, me, RechargeTicks(spell)));
+            if (best >= 0 && ready >= bestReady) continue;
             best = i;
             bestReady = ready;
             chosen = spell;

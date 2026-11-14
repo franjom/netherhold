@@ -364,17 +364,9 @@ keeps a keeper Boulder trap sealed away: Secret4's trigger 4 (type 28) loses the
   struck the Troll on turn 12 (1000 → 500, stunned 256) and it was dying (216, health 240) on turn 13.
   CONFIRMED (observed), as §13 predicts for Level 20's (12,5). Ours also drops the neutral one (measured; Q732 for the rest).
 
-*Ours against these* (our run, same levels and level variables; DK2's capture turns run one behind ours), Q732:
-- Until ADR-0645 ours sent every placed creature at its trap on turn 1: its first fight scan saw a tile change from -1.
-  It now holds the creation tile, as DK2's constructor does (`0x004872F0`), and waits for its phase.
-- `M7Q513a` since: both Trolls idle 89, 3, 87 as DK2's, and the x 3 Troll no longer fights. Our 87 then walks
-  where DK2's goes 87 → 1 and stands, so our x 7 Troll moves and sets the trap off on turn 4, DK2's on turn 8.
-  The boulder hits for 500 and stuns (256) in both. DK2's Troll is dying (216, health 240) the next turn, when
-  the boulder strikes again from 0.24 tiles; ours stays stunned 8 turns (Q737).
-- `M7Q362` since: all three hit on turn 7, the Sentries fire again on 26, and each takes its Sentry within two
-  turns of the hit. The Knight's fight lasts 11 turns and the Bile Demon's 6, as DK2's, but ours arrive earlier
-  (Knight 23 against 26, Bile Demon 34 against 46), and our Vampire casts from 2.8 tiles where DK2's walks in to melee.
-
+Current modern runs, the corrected Vampire attack choice, and the remaining
+clock, movement and Boulder limits are recorded once in `combat-spells.md` §5
+(Q732); the Boulder's repeated-hit question remains Q737.
 ## Built (ADR-0321) and left
 
 Built: §2's fields; §3 steps 2, 3, 4, 5 (ADR-0330), 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain
