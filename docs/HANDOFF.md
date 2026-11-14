@@ -98,7 +98,7 @@ These are entry points, not a new priority order.
   Enhanced AI remains outside Classic fidelity scope.
 - M7 trap/door comparisons: Q732's survey correction and bounded results are in
   [combat spells](research/combat-spells.md#q732-current-trap-comparison-2026-11-14);
-  Q737's stun recheck and remaining native gap are in
+  Q737's native closure and scope are in
   [boulder](research/boulder.md#9c-q737-recheck-stun-duration-does-not-establish-the-next-state).
   Owner observations are in [traps](research/traps.md); original-game acceptance remains open.
 - Possession camera and input: [build plan](plans/2026-10-12-possession-arms-build-plan.md)

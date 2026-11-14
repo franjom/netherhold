@@ -366,7 +366,8 @@ keeps a keeper Boulder trap sealed away: Secret4's trigger 4 (type 28) loses the
 
 Current modern runs, the corrected Vampire attack choice, and the remaining
 clock, movement and Boulder limits are recorded once in `combat-spells.md` §5
-(Q732); the Boulder's repeated-hit question remains Q737.
+(Q732); the Boulder's resolved interruption question is in `boulder.md` §9c
+(Q737), with wear accounting still open in Q725.
 ## Built (ADR-0321) and left
 
 Built: §2's fields; §3 steps 2, 3, 4, 5 (ADR-0330), 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain

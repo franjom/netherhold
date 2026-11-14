@@ -281,15 +281,44 @@ amendment); the paired 256 control still flees without spending its stun timer.
 This guard leaves all twelve actor/object/trap/event traces of the two tested
 seeds and seed-1 repeat unchanged.
 
-Fear interrupting the original Troll before its second hit is HYPOTHESIS,
-not a captured transition. The strike precedes the roll, so post-roll distance
-does not exclude an earlier collision. Q737 remains open: capture the loaded
-interval and state immediately before the following object pass. No change
-to the Troll's stun duration is justified.
+The fresh native experiment below closes Q737. No change to the Troll's stun
+duration is justified.
 
 Evidence, observers, traces and verification receipts:
 `F:/DK2Evidence/studies/q737-current-baseline--2026-11-14--001` and
 `F:/DK2Evidence/studies/q737-stun-exemption--2026-11-14--001`.
+
+#### Native update boundaries, 2026-11-14
+
+Built the unchanged `M7Q513a` recipe with documented levelgen tooling; all six
+files match the archived experiment byte for byte. A fresh no-input native
+DX run, without seed injection, captured four consecutive before/after
+`Creature_Update` calls for Troll 453 and full readable memory at every stop.
+This reproduces the legacy phenotype, not its unknown seed or initial state.
+
+CONFIRMED from independently decoded memory:
+
+| Native boundary | State | Health word | Entry | Loaded interval | Boulder wear |
+|---|---:|---:|---:|---:|---:|
+| Turn 12 before update | 256 | 500 | 11 | 8 | 500 |
+| Turn 12 after update | 6, resume 221 | 500 | 12 | 8 | 500 |
+| Turn 13 before update | 216 | 240 | 12 | 8 | 760 |
+
+The Troll leaves stun after one tick, with fear 1752, clears its threat tag and
+moves north from y29694 to y29479. The loaded stun interval is eight, so this
+is an interruption, not expiry. STRONGLY INFERRED from the already-read fear
+prelude and strike gates: threat flight replaces 256 before dispatch, allowing
+the next Boulder strike. Dying 216 and increased wear are present before the
+following creature update. The dying health word remains a countdown; Q725's
+separate wear-accounting gap remains open. Post-roll distance excludes no hit.
+
+Evidence: `F:/DK2Evidence/studies/q737-native-experiment--2026-11-14--001`,
+`run-002/verified.json` and `analysis.json`. All eight memory images, address
+maps and source/input hashes verify. The owner reported an unresponsive game
+and terminated it; the saved receipt contains all four pairs, no capture or
+cleanup error and a closed owned child. Capture pauses are not timing data.
+The first attempt failed at graphics startup and is retained as `run-001`.
+Recorder and reproduction: [Q737 boundary experiment](../../tools/oracle/q737-boundary.md).
 
 ## 10. Built and not built (ADR-0333)
 

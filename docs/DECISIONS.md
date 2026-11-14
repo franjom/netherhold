@@ -15000,7 +15000,7 @@ up to nine turns later: `level18_nemesis_heal` heals 2300 (the sleeper has regai
 `level18_nemesis_inferno_chicken` moves to seed 1 and `a_goblin_eats_a_chicken` re-picks bird 19.
 Separately, `level17_harkan_call_to_arms` moves to seed 2: since ADR-0639 (hash 390, bisected) seed
 12345's lifts on turns 37-39 took the Call's turn. A creature `WorldResync` adds holds its made tile too.
-Remaining comparisons: Q732 (`combat-spells.md` §5) and Q737 (`boulder.md` §9c).
+Q732 remains a comparison (`combat-spells.md` §5); Q737's closure is in `boulder.md` §9c.
 
 ## ADR-0642: one confidence scale for notes, records and code
 
@@ -15927,7 +15927,7 @@ STRONGLY INFERRED from the disassembly. Records `00488930` and `0045C5D0` hold t
 
 **Amendment 2026-11-14 (hash/save 512).** Mirror the missing state-255 exemption
 before event 12; state 256 remains eligible. This corrects the ordinary-stun
-guard, not the unobserved original Q737 transition. See `boulder.md` §9c.
+guard; the separate native Q737 explanation is in `boulder.md` §9c.
 ## ADR-0679: a closed door pushes creatures off its tile, through the physical pass
 
 **Date:** 2026-11-05. **Status:** accepted. Hash/save 423. · **Systems:** doors-traps, creatures
