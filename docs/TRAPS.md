@@ -11,6 +11,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
 
 ## Shell and files
+- Normalize hash-manifest relative keys to one path separator before updating entries; mixed slashes can retain duplicate paths and invalidate setup provenance.
 - Build a hash manifest's inventory before opening its output file; otherwise a recursive scan can include the manifest's own empty-file hash.
 - An isolated native DK2 runtime needs `DK2TextureCache` as well as `Data`; omitting it crashed startup with `EngineTestLight` missing.
 - During a solution test run, an app's `bin` can retain old dependency copies until that project builds; wait for its build before checking schema compatibility.
@@ -260,6 +261,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Decode imported Python source with `utf-8-sig` before `compile`; Windows default `Path.read_text` can corrupt UTF-8 BOM source and evidence-scorer text.
 
 ## Captures
+- When carrying delta CSV rows forward each tick, retain persistent death/ghost exclusions; copying the row map alone reintroduces excluded actors.
 
 - Windows text writes can translate LF to CRLF; hash the written test file for raw proof identity, rather than the pre-write string.
 

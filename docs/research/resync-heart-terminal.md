@@ -94,7 +94,7 @@ in 5300..5450, and Goblin/Troll target turns against any living owner-1 Guard in
 The post-fix default cases have no retained pre-restore result. Two lose later:
 state 6/generator 101 at stamp 5731 and state 8/generator 101 at 5756.
 
-Q710 stays OPEN: the directional state-7/state-8 and fighter-exposure gap remains,
+Q710 stays OPEN; the [fighter-decision study](q710-fighter-decisions.md) continues the input comparison. The state-7/state-8 and fighter-exposure gap remains,
 without a causal AI rule. Default Xoshiro ignores captured RNG state; LCG controls
 still lack matched initialization/history. Legacy polling labels, the stale-row
 exclusion heuristic, unrecovered counters and other Q719 inputs limit both cohorts.

@@ -88,7 +88,7 @@ Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [Q714 restore and recheck](research/resync-heart-terminal.md) reuses existing recordings and retains the documented partial-state limits.
+exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) reuses existing recordings and identifies the next input-coverage check, without a causal closure.
 
 ## Other pending work
 
