@@ -79,6 +79,10 @@ public static class JournalHeader
             throw new InvalidOperationException(
                 $"'{scenario.SourcePath}' is not the scenario file the journal recorded " +
                 $"(SHA-256 {recorded}, this file {current}).");
+        string seed = Value(journal, "seed"), runs = scenario.Seed.ToString(CultureInfo.InvariantCulture);
+        if (seed != "unknown" && seed != runs)
+            throw new InvalidOperationException(
+                $"The journal ran seed {seed}; this replay would run seed {runs}. Replay it with --seed {seed}.");
         ReplayTicks(scenario, journal);
     }
 

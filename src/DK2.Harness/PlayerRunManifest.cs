@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -21,14 +22,15 @@ namespace DK2.Harness;
 public static class PlayerRunManifest
 {
     public const string FileName = "player-run-manifest.json";
-    public const int Schema = 1;
+    /// <summary>2 adds <see cref="Identity.Seed"/>; schema-1 evidence ran its scenario file's own seed.</summary>
+    public const int Schema = 2;
 
     /// <summary>Assemblies a manifest must name; without them it identifies no build.</summary>
     private static readonly string[] Required = ["DK2.Harness", "DK2.Simulation"];
 
     public sealed record Identity(
         int Schema, string RunId, string ScenarioSha256, string DataSha256, int DataFiles,
-        IReadOnlyDictionary<string, string> Assemblies, string SourceSha256, int SourceFiles);
+        IReadOnlyDictionary<string, string> Assemblies, string SourceSha256, int SourceFiles, ulong? Seed = null);
 
     /// <summary>A replay may proceed only with no blocking difference.</summary>
     public sealed record Verification(IReadOnlyList<string> Blocking, IReadOnlyList<string> Diagnostic)
@@ -42,7 +44,7 @@ public static class PlayerRunManifest
         (string data, int dataFiles) = DataHash(installDirectory);
         (string source, int sourceFiles) = SourceHash(scenario.SourcePath);
         return new Identity(Schema, runId.Value, JournalHeader.Sha256(scenario.SourcePath), data, dataFiles,
-            Assemblies(), source, sourceFiles);
+            Assemblies(), source, sourceFiles, scenario.Seed);
     }
 
     public static void Write(string directory, Scenario scenario, string? installDirectory, PlayerRunId runId)
@@ -52,6 +54,14 @@ public static class PlayerRunManifest
         // CreateNew: evidence is never overwritten, and a second writer cannot race the first.
         using var file = new FileStream(Path.Combine(directory, FileName), FileMode.CreateNew, FileAccess.Write);
         file.Write(json);
+    }
+
+    private static ulong? FileSeed(Scenario scenario)
+    {
+        try { return Scenario.Load(scenario.SourcePath).Seed; }
+        // Any failure (a YAML syntax error is its own exception type) reads as no seed; the scenario
+        // hash comparison then names the real difference.
+        catch (Exception ex) when (ex is not OutOfMemoryException) { return null; }
     }
 
     public static Verification Verify(string directory, Scenario scenario, string? installDirectory, PlayerRunId runId)
@@ -64,7 +74,7 @@ public static class PlayerRunManifest
             return Blocked($"incomplete evidence: {FileName} could not be read ({ex.GetType().Name}: {ex.Message})");
         }
         if (recorded?.Assemblies is null || recorded.RunId is null) return Blocked($"incomplete evidence: {FileName} is empty or malformed");
-        if (recorded.Schema != Schema) return Blocked($"incomplete evidence: manifest schema {recorded.Schema}, this build reads {Schema}");
+        if (recorded.Schema is not (1 or Schema)) return Blocked($"incomplete evidence: manifest schema {recorded.Schema}, this build reads 1 and {Schema}");
 
         Identity current;
         try { current = Compute(scenario, installDirectory, runId); }
@@ -73,6 +83,9 @@ public static class PlayerRunManifest
         if (recorded.RunId != current.RunId) blocking.Add($"the manifest is run '{recorded.RunId}', not '{current.RunId}'");
         if (recorded.ScenarioSha256 != current.ScenarioSha256)
             blocking.Add($"scenario differs: recorded {recorded.ScenarioSha256}, now {current.ScenarioSha256}");
+        // Schema 1 has no seed: it ran the file's own, which the scenario hash above ties down.
+        ulong? recordedSeed = recorded.Schema == 1 ? FileSeed(scenario) : recorded.Seed;
+        if (recordedSeed != current.Seed) blocking.Add($"seed differs: recorded {recordedSeed?.ToString(CultureInfo.InvariantCulture) ?? "none"}, now {current.Seed?.ToString(CultureInfo.InvariantCulture)}");
         if (recorded.DataSha256 != current.DataSha256)
             blocking.Add($"installed data differs: recorded {recorded.DataSha256} over {recorded.DataFiles} files, now {current.DataSha256} over {current.DataFiles}");
         foreach (string name in Required)

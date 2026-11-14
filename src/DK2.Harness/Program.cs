@@ -28,6 +28,8 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
                 --coverage            coverage.tsv: triggers reached, states, events
                 --progress <ticks>    progress.tsv and stall candidates (40 with --fuzz)
                 --snapshot-check <ticks>  save, restore and compare every that many ticks
+                --seed <n>            run on seed n instead of the scenario file's; the journal and
+                    the player-run manifest record it
                 --campaign-player <player>  the observation-only campaign player plays that keeper,
                     into <out>/<scenario-id>/<run-id>/ (never an existing folder): input.journal,
                     player-run-manifest.json, player-run.json, player-decisions.tsv, player-actions.tsv.
@@ -48,19 +50,24 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
                     otherwise player-run.json says what was missing.
                     Not covered: Unity rendering, audio, the real UI, an external agent, the front end.
 
-          replay <scenario.yaml> <input.journal> [--out <dir>]
+          replay <scenario.yaml> <input.journal> [--out <dir>] [--seed <n>]
               Re-runs a journal without its keepers or controllers and compares
               every recorded hash. Exit 0 when all match, 1 on a divergence or
-              a repeated failure.
+              a repeated failure. A journal recorded on another seed than the one
+              the replay would run is refused; give that seed with --seed.
 
           watch <scenario.yaml|directory> [--out <dir>] [--timeout-seconds 600]
                 [--budget-minutes 30] [--max-runs 20] [--jobs 1] [run options] [--fuzz-seeds <n>]
+                [--seeds <a>-<b>]
               Runs each scenario in its own process, at most --jobs at a time, and kills a
               run that outlives its limit. Each watch writes a new folder with
               watch-summary.tsv and, for a run that did not pass, failure.md
               beside its journal. Exit 1 when a run did not pass, 4 when a limit
               left scenarios unrun. --fuzz passes through as given; with
               --fuzz-seeds n each scenario runs n times, with fuzz seeds 1 to n.
+              --seeds a-b runs each scenario once per seed a to b, from 1 (not with
+              --seed or --fuzz-seeds); --seed passes through to every run. Under
+              random: dk2, seed 0 is the level-start seed, the same game as seed 1.
 
           list [directory]
               Lists the scenarios found (default: scenarios/).
@@ -133,6 +140,11 @@ switch (args[0])
                 "--campaign-player a keeper id not also fuzzed, with --player-* limits as --help gives them.");
             return 2;
         }
+        if (!HarnessCommandLine.SeedOverride(args, out ulong? seedOverride))
+        {
+            Console.Error.WriteLine("--seed takes a whole number of at least 0.");
+            return 2;
+        }
 
         int failures = 0, incomplete = 0;
         foreach (string file in files)
@@ -140,6 +152,7 @@ switch (args[0])
             try
             {
                 Scenario scenario = Scenario.Load(file);
+                if (seedOverride is ulong runSeed) scenario.OverrideSeed(runSeed);
                 if (template.Player is not null)
                 {
                     int exit = PlayerRunCommand.Run(runner, database, install, scenario, template, outRoot,
@@ -148,6 +161,8 @@ switch (args[0])
                     else if (exit != 0) failures++;
                     continue;
                 }
+                // Same folder with or without --seed: watch reads <out>/<id>/input.journal, and the
+                // journal header records the seed run.
                 string outDir = Path.Combine(outRoot, scenario.Id);
                 Directory.CreateDirectory(outDir);
                 ScenarioResult result;
@@ -199,6 +214,20 @@ switch (args[0])
         }
 
         Scenario scenario = Scenario.Load(args[1]);
+        if (!HarnessCommandLine.SeedOverride(args, out ulong? replaySeed))
+        {
+            Console.Error.WriteLine("--seed takes a whole number of at least 0.");
+            return 2;
+        }
+        try
+        {
+            if (replaySeed is ulong seed) scenario.OverrideSeed(seed);
+        }
+        catch (InvalidDataException ex)
+        {
+            Console.Error.WriteLine($"not replayed: {ex.Message}");
+            return 2;
+        }
         InputJournal journal;
         try
         {
@@ -285,7 +314,9 @@ switch (args[0])
         if (HarnessCommandLine.WatchJobs(files, args, perRun.Value) is { } jobs) { }
         else
         {
-            Console.Error.WriteLine("A run option is malformed, --fuzz-seeds was given without --fuzz, --player-run-id was given " +
+            Console.Error.WriteLine("A run option is malformed, --seed is not a whole number, --seeds is not a range a-b from 1 " +
+                "(under 10,000 seeds), --seed and --seeds or --seeds and --fuzz-seeds were given together, " +
+                "--fuzz-seeds was given without --fuzz, --player-run-id was given " +
                 "(each watched run names its own), or --player-wall-seconds is not below --timeout-seconds; see --help.");
             return 2;
         }

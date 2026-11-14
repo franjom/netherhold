@@ -87,6 +87,11 @@ Under `watch`, the player flags go to each child; `--player-run-id` is refused, 
 defaults to 30 s below `--timeout-seconds` and must stay below it, and the child's journal is read
 from its run folder.
 
+**Seeds.** `run` and `replay` take `--seed <n>` to run a scenario on another seed than its file's;
+`watch` passes `--seed` through and `--seeds a-b` runs each scenario once per seed. The journal header
+and the player-run manifest (schema 2; schema-1 evidence ran its file's own seed) record the seed
+run, and `replay` refuses a journal recorded on another seed than the one it would run.
+
 Level 1 (task 7): `watch scenarios/campaign-player --campaign-player 3` plays shipped Level 1 on
 seeds 1-3 from its unmodified start; `CampaignPlayerLevel1Tests` (installed data) checks the start,
 the native win, the controller-free replay and the Reaper's gem pickup. `watch` reads the folder

@@ -1,0 +1,12 @@
+# Campaign player baselines (stage 3 plan, Task 0a): a record, not a test. Journals hold a start time, so the
+# state-hash series and the decision and action logs are hashed instead; a rerun reproduced all three.
+scenario	seed	outcome	result_tick	final_hash	hashes_sha256	decisions_sha256	actions_sha256	commit	hash_version
+campaign-player-level1	1	Completed	2384	0bc7ad60097efef4	b60a3064972a357d	03709b99c6203891	4f8895c33c5ef294	20a6a48c	516
+campaign-player-level1-seed2	2	Completed	2305	b12d50d8cf60f2fd	0e91e0b73a9d9482	720ede41d95e69d4	b19eeabfee7dfb2e	20a6a48c	516
+campaign-player-level1-seed3	3	Completed	2293	60be603a8af27765	afbab6f29ac5ad9c	9d87c30235ca205c	3fbff9c6f9cfebb8	20a6a48c	516
+campaign-player-level2-seed1	1	Completed	3741	cca6ae39c43e53b5	8a84d40b6e7e34f2	916525da8dd19fe1	90d74d068898ecc2	20a6a48c	516
+campaign-player-level2-seed2	2	Completed	4582	e132b99ceadb76f3	565c5be2196a3bb0	98aab9ee85804d7b	708df03fc8728126	20a6a48c	516
+campaign-player-level2-seed3	3	Completed	4657	d9d6a3946fe342cb	d9f8f13c76999823	41d81630f80ef5ad	2a6b25d293e5d258	20a6a48c	516
+campaign-player-level3-seed1	1	Completed	3656	70ae5778e63105ee	f5a7f10086b12649	3e8304ae28cac8d8	b431eded1a995134	20a6a48c	516
+campaign-player-level3-seed2	2	Completed	4559	b6e715322d26d74b	0a30c5abe4a8e196	80063b9d456fdaf3	fe9808b3f871ab2d	20a6a48c	516
+campaign-player-level3-seed3	3	Completed	5319	86cc076b79a0ccc3	b991d0e08daa4c01	bab60dd280f98cfd	2622f02ca92f9ec9	20a6a48c	516
