@@ -179,7 +179,10 @@ its Lord of the Land died there. **Caveat: that walk is Q525.** In DK2's capture
 party stays near its gate until about 3170; in ours it reached the keeper's rooms from about
 2307 in half the seeds. ADR-0800 fixed the walk rule after these runs (Q525 answered; the party
 now leaves when its corridor wall is breached, [level2-party-release.md](../research/level2-party-release.md)),
-so the wins may lean on the old walk and are not accepted until they are rerun. Level 2 needs no new routine to be won today; Task 5 reduces
+so the wins were rerun on master after ADR-0800 (2026-11-14, same controller, no receipt):
+Level 2 won seeds 1-3 at ticks 3741, 4582 and 4657, Level 3 at 3656, 4559 and 5319, every journal
+replayed without the controller, and the Lord of the Land still died in the keeper's area. The
+wins do not lean on the old walk; acceptance still needs a receipted build. Level 2 needs no new routine to be won today; Task 5 reduces
 to a receipted acceptance, and the first level the default strategy cannot win becomes the real
 driver for Tasks 1-4. Scenarios: `scenarios/campaign-player/level2/`.
 
