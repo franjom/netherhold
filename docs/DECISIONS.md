@@ -19040,10 +19040,7 @@ CONFIRMED (reviewer, disassembly). Native pillars are real things linked to thei
 (controlled569): 11679 draws match through 2122 (11627 through 2119 at 514); the next boundary is turn 2123 draw 1, native
 `ObjectState.cpp:2851` against ours' `Room.cpp:1509` (`RoomWalkRules.ArrivalTile` from `LairSeeker.TrySetOutForALair`, creature 434
 in state 1), Q807. Level 1's journal is re-recorded: win 2384 (was 2374), gem taken at 2480 (was 2490), the Lord dies on (15,20)
-(was (14,20)); `ReaperFinaleOnRealDataTests` follows (remake output, not a DK2 fact). Residuals, not built (Q808): native places real
-pillars in Treasury 76, Torture 82, Graveyard 84, Casino 85, Combat Pit 79 and Crypt 141 too, which ours does not model (PLAUSIBLE
-that a room walk to one ends on a corner native skips, unless their shipped flags lack Obstacle, unchecked); other native callers of
-`0x00453600` whose counterparts miss virtual pillars: `Object_Process10LooseMove` `0x004A28D6` (minor), `Creature_FindWanderPoint`
-`0x00480B05`/`0x00480CE9`/`0x00480E3D`; `0x00461BB0` and Training_DisturbedState109 unread. Already covered: `Eat_ChooseChicken`
-`0x00463647`, the chicken's process 6 `0x004A2046`. Test: `EatingTests.AWalkToTheHatcheryNeverEndsOnAPillarCorner` (fails without the
+(was (14,20)); `ReaperFinaleOnRealDataTests` follows (remake output, not a DK2 fact). The flags, complete caller census and
+remaining implementation gaps are in [Q808](research/room-pillar-obstacles.md); outcome/RNG parity is not established there.
+Test: `EatingTests.AWalkToTheHatcheryNeverEndsOnAPillarCorner` (fails without the
 fix; a synthetic 78 with Obstacle|Pillar). Full suite passes (Simulation 5401, Behavior 620 with 5 skipped).

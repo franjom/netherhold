@@ -84,8 +84,8 @@ Level 5 seed 1, creature 439, tick 2055 (Hatchery 1117, slab chain identical to 
 (11,25) (10,26) (11,24) (10,25) (10,24)): both draws were index 4 of 9. The coop (35) is on (11,25) and a pillar on each corner tile. From
 index 4 native skips (11,25) (floor slot), (10,26) (pillar) and (11,24) (wall slot; HYPOTHESIS, [0x00454230](functions/00454230.md), supported
 by the outcome) and ends on (10,25); ours, with the pillar virtual, took (10,26). `RoomWalkRules.ArrivalTile` now also skips a tile where
-`ChickenMovementRules.HasHatcheryPillar` holds. The other rooms' pillars and the other `0x00453600` callers that miss a virtual pillar are
-[Q808](open-questions.md).
+`ChickenMovementRules.HasHatcheryPillar` holds. The other generated pillars and caller coverage gaps are in the
+[Q808 census](room-pillar-obstacles.md).
 
 ## Regression evidence
 
