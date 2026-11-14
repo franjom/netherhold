@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-14, revised the same day after two adversarial reviews;
-approved by the owner on 2026-11-14. Tasks 0a-2 are built; Task 3 is next.
+approved by the owner on 2026-11-14. Tasks 0a-3a are built; Task 3b is next.
 **Goal:** grow the Level 1 campaign player into a bot that needs no AI model and wins every
 campaign level the simulation can complete, level by level as each becomes playable, from
 player-visible observation and normal commands only.
@@ -185,7 +185,72 @@ what a working slice and the triage needed, not guessed.
 - [x] Reviewer, documenter, commit. Two reviewer passes and a documenter pass, 2026-11-14; code
       in 207f3a58.
 
-## Task 3: the playbook format
+## Task 3a: keeper knowledge (owner direction, 2026-11-14)
+
+The bot built every room as one fixed square and could not tell a working room from a useless one
+(Task 2 ended Level 3 games with a 5-tile Training Room and a 7-tile Workshop; furniture stands
+only on interior tiles, `AutoFurnitureRules`). The owner: the bot must be fed basic information
+and common-sense strategy, for instance that a Library's shelves set how many Warlocks it draws.
+Three layers, kept apart so each says where it comes from:
+
+1. **Room facts, generated** (`knowledge/rooms.yaml`, by `keeper-knowledge` in DK2.Harness; never
+   hand-written; the folder is outside `scenarios/` because every yaml there is a scenario). For
+   every buildable room type and each square side 3-7, the simulation's own rules are run on a
+   synthetic room painted on Level 1's map, ringed by wall (terrain 9) and again by open ground
+   (terrain 3): floor slots, capacity, attraction (`AttractionBudget.Contribution`), gold held
+   (`GoldStore`), furniture, cost (`RoomDef`), and per creature type the room tiles, gold and mana
+   its portal asks and whether a keeper's portal offers it at all (`PortalRules.CanComeFromPortal`).
+   The file's header names the research docs its readings rest on; their confidence is the
+   confidence of the facts. Definition data, like `WorkerTypes`: loaded before tick 0, read-only
+   during play. A test compares the committed file with a fresh generation.
+2. **Rules, written** (`knowledge/rules.yaml`): common-sense strategy, one rule per entry with an
+   id, the plain sentence, its source, a status (`proposed`, `tested`, `held`, `refuted`) and a
+   machine form: `attraction-target`, `tile-target`, `research-shelves`, `built-in` (a strategy
+   value already carries it) or `manual` (no form yet). `applies` is `always` or `playbook` (only
+   when a level's playbook asks; Task 3b). A rule's status changes only with evidence (a tuner run
+   or a cited source), never by assertion. Community claims enter only after a check against
+   the binary or a run; none is a rule yet (R1-R5 come from the owner and `rooms.yaml`); DK1, DK
+   Online and later games are excluded. `KeeperKnowledgeFile.Load` refuses a file with a wrong
+   `hash_version`, an inexact room name, bad sizes, a negative value, a duplicate rule or a
+   target without facts.
+3. **Playbooks** (Task 3b): per level, what the level offers and the targets the rules imply.
+
+The player (`CampaignPlayer`) sizes a room at the larger of its smallest useful side (a Temple
+draws nothing below 5x5) and the side the attraction, floor-slot or tile targets need. With no free
+square that big it digs one out (`PlayerStrategy.Sites`, default `RoomSites.Oversized`: only a room
+larger than `RoomSide`; `All`, `None`), one site at a time, and waits for gold rather than settling
+smaller while a free target square exists; a site not dug within 2400 ticks is given up and the
+room settles for less. A room that caps creatures stays pending while its tiles rise, and a short
+one is finished (three tries). R2 sets the Library's slot target from the research the level starts
+with: floor slots = researchable items / 2 + 1 (`ResearchableItems`; Levels 2 and 7: 2 items, a 4x4
+Library; Levels 4, 6a, 6b, 10: 1; the others 0, a 3x3).
+
+- [x] Tests first: `KeeperKnowledgeTests` (installed data: a Library's shelves and a Temple's hand
+      follow their square, the committed facts equal a fresh generation, each level's research
+      sets the shelves, the repository's files load, bad files are refused with every problem
+      named) and `CampaignPlayerTests.Knowledge` (sizing, sites, repair, waiting for gold, targets).
+      **Done 2026-11-14:** `DK2.AI.Tests` 551 pass, `DK2.Behavior.Tests` 643 pass and 5 skipped;
+      the test that a site dug in time but short of gold is not settled fails without its fix.
+- [x] `keeper-knowledge` command, `rooms.yaml` generated and committed, `rules.yaml` started: R1
+      smallest useful size, R2 research shelves (R2b, the Warlock form, is manual), R3 Treasury
+      growth (built in, tested in Task 2), R4 25 Hatchery tiles for Bile Demons (playbook), R5
+      size by the creatures wanted (manual). `--player-knowledge <dir|none>` (default the
+      repository's `knowledge/`) is passed through `watch`; the verdict's `knowledge` section holds
+      both files' SHA-256, the acting rules, the research count and the slot targets;
+      `tools/build_receipt.py` hashes `knowledge/` too.
+- [x] Community research (2026-11-14, background): DK2-only claims from public guides. None became
+      a rule: the claims that Goblins need a 5-tile Lair and Bile Demons a 9-tile Lair are checked
+      against the binary under Q816.
+- [x] Measure as Task 2 did (seeds 1-3, Levels 1-10, Task 2 player against Task 3a); Levels 1-3
+      re-accepted on seeds 11-20. **Done 2026-11-14,** hash 519 unchanged: Levels 1-3 won 10/10
+      each, all claimed; on the diagnosis seeds one Level 2 seed is better, two Level 6a and one
+      Level 10 seed lose at other ticks, the rest are identical, and Levels 5-10 are still not won
+      ([ladder](../research/campaign-bot-ladder.md) section 8). Open: Q813 (Specials in the
+      Library), Q814 (one site at a time), Q815 (the site scan's cost), Q816.
+- [x] Reviewer (no blocker; it confirmed the knowledge stays within the observation boundary),
+      documenter. Commit: 5118067a.
+
+## Task 3b: the playbook format
 
 **Produces:** `scenarios/campaign-player/playbooks/<level>.yaml`, loaded to an immutable
 `Playbook` (DK2.AI; the YAML loader in DK2.Harness):
@@ -243,6 +308,29 @@ replay tests updated.
 | Every offered spell, not only Create Imp | spells the level gives | the Spell panel |
 | `PlaceDoor`, `PlaceTrap` actions | defend a route | the panel's build intents |
 | `CastSpell(spell, target)` | offered spells | the existing spell intent path |
+| Each own creature's level (1-10), health in petals (six down to one) and mood (happy, unhappy, angry) | the status flower shows them (`status-flowers.md`: H-00..H-05, SL-01..SL-10, SM-*) | the creature's flower |
+| `CastSpell(Heal, creature)` | heal a creature in the Pit | the spell panel and the existing spell intent path |
+
+**The Combat Pit routine (owner direction, 2026-11-14).** Once the rows above exist: creatures below
+`CombatPitMaxExperienceLevel` (variable 192, ships 8; `combat-pit.md`) are dropped into an owned Combat Pit;
+one at a single petal is healed with Heal when the mana allows, otherwise lifted and dropped in a Hatchery to
+eat; one that reaches the cap is lifted and dropped in its Lair (unhappy, tired) or a Hatchery (hurt, hungry).
+Training Room work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Tests first on
+synthetic observations; measured on the ladder like Task 2.
+
+**The Imp scouting routine (owner direction, 2026-11-14; first aimed at Level 6a).** Unknown ground
+(`PlayerTile.IsKnown` false) hides gold, gems, water to bridge and enemies. The bot lifts an own Imp, drops
+it on a dirt-path tile at the edge of what it knows, lets its sight reveal the ground around it
+(`FogOfWarSystem`, `fog-reveal-sources.md`), then lifts it again and drops it further on, or back on own
+ground. The drop is legal by the binary's gate: `0x00450910` lets a worker down on neutral, roomless dry floor
+(`HandRules.MapAllowsCreature`); water, lava, rock and enemy ground are refused. What it reveals feeds the
+existing plans: gold and gem tiles to dig, a Wooden Bridge over water that joins two pieces of ground, enemies
+to avoid (`_sightings`). The Imp must not die: never drop it within sight of a known enemy, never leave it on
+neutral ground longer than the reveal needs, and lift it at once if it is hit (its petals, the row above) or an
+enemy comes into view. A rule R6 (`kind: manual`, `applies: playbook`) goes into `knowledge/rules.yaml` with
+the routine, not before, so the Task 3a evidence keeps the rules hash it ran with. Tests first on synthetic
+observations (drop legal and refused, lift on threat, bridge planned from revealed water); measured on Level
+6a and the ladder like Task 2.
 
 Possession (`PossessionCommands`) is not added here; a level that needs it is recorded as a
 controller limitation until a later task.

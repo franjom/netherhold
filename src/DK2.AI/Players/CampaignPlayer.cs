@@ -42,8 +42,27 @@ public sealed class CampaignPlayer : IPlayerController
     private readonly HashSet<TilePos> _sightings = [], _danger = [];
     private int _dangerRadius = -1;
 
-    /// <summary>A build sent at <paramref name="Since"/> while the player owned <paramref name="Tiles"/> of its type.</summary>
-    private readonly record struct PendingRoom(TilePos Corner, GameTick Since, int Tiles);
+    /// <summary>A build of a <paramref name="Side"/> square sent at <paramref name="Since"/> while the player
+    /// owned <paramref name="Tiles"/> of its type.</summary>
+    private readonly record struct PendingRoom(TilePos Corner, int Side, GameTick Since, int Tiles, bool Grew = false);
+
+    /// <summary>A square a build left short of whole, to be finished (Task 3a), and the tries left.</summary>
+    private readonly record struct Repair(TilePos Corner, int Side, int Tries);
+
+    private readonly Dictionary<RoomTypeId, Repair> _repairs = [];
+
+    /// <summary>A square being dug out for a room (Task 3a), marked at <paramref name="Since"/>.</summary>
+    private readonly record struct Site(RoomTypeId Room, TilePos Corner, int Side, GameTick Since);
+
+    private Site? _site;
+    private readonly HashSet<TilePos> _failedSites = [];
+    private readonly HashSet<(RoomTypeId Room, int Side)> _settled = [];
+
+    /// <summary>A site still not free to build on after this long is given up for the next smaller side.</summary>
+    private const int SiteTicks = 2400;
+
+    private enum SiteState { None, Marked, Waiting }
+    private const int RepairTries = 3;
 
     /// <summary>What counts as progress: each only when it rises.</summary>
     private readonly record struct Gains(int Floor, int RoomTiles, int Creatures, int Gold)
@@ -134,17 +153,31 @@ public sealed class CampaignPlayer : IPlayerController
             if (receipt.Status != PlayerReceiptStatus.Queued) _sent.Remove(receipt.Id);
         }
         var done = new List<RoomTypeId>();
-        foreach (KeyValuePair<RoomTypeId, PendingRoom> pending in _pendingRooms)
+        var building = new List<KeyValuePair<RoomTypeId, PendingRoom>>();
+        foreach ((RoomTypeId room, PendingRoom pending) in _pendingRooms)
         {
-            // Done when the type owns more tiles than when it was sent (this square or another).
-            if (OwnedTiles(observation, pending.Key) > pending.Value.Tiles) done.Add(pending.Key);
-            else if (observation.Stamp.Tick.Value - pending.Value.Since.Value >= _options.PendingRoomTicks)
+            int owned = OwnedTiles(observation, room);
+            bool stale = observation.Stamp.Tick.Value - pending.Since.Value >= _options.PendingRoomTicks;
+            if (_options.Knowledge.Room(room) is not { CapsCreatures: true })
             {
-                Tried(pending.Key).Add(pending.Value.Corner);
-                done.Add(pending.Key);
+                // An area room: done when the type owns more tiles than when it was sent (this square or another).
+                if (owned > pending.Tiles) done.Add(room);
+                else if (stale) { Tried(room).Add(pending.Corner); done.Add(room); }
+            }
+            // A room that draws creatures works by its furniture, which needs the whole square (Task 3a):
+            // pending while DK2's wave lays it; one that stops short is finished later.
+            else if (PlayerActionRoutines.RoomCovers(observation, pending.Corner, pending.Side, room)) { done.Add(room); _repairs.Remove(room); }
+            else if (owned > pending.Tiles) building.Add(new(room, pending with { Tiles = owned, Since = observation.Stamp.Tick, Grew = true }));
+            else if (stale)
+            {
+                done.Add(room);
+                if (!pending.Grew) Tried(room).Add(pending.Corner);
+                else _repairs[room] = new Repair(pending.Corner, pending.Side,
+                    _repairs.TryGetValue(room, out Repair before) && before.Corner == pending.Corner ? before.Tries : RepairTries);
             }
         }
         foreach (RoomTypeId room in done) _pendingRooms.Remove(room);
+        foreach ((RoomTypeId room, PendingRoom pending) in building) _pendingRooms[room] = pending;
         foreach (PlayerVisibleThing thing in observation.Things)
             if (PlayerActionRoutines.IsThreat(observation, thing) && _sightings.Add(thing.Tile) && _dangerRadius >= 0)
                 AddClearance(thing.Tile, _dangerRadius);
@@ -197,7 +230,9 @@ public sealed class CampaignPlayer : IPlayerController
     /// affordable waits and the next may go.</summary>
     private bool Room(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
+        AgeSite(observation);
         if (_pendingRooms.Count > 0 || !Fits(actions, 2)) return false;
+        if (_repairs.Count > 0 && Finish(observation, actions)) return true;
         bool waiting = false;
         foreach (RoomTypeId room in _strategy.Rooms)
         {
@@ -214,20 +249,126 @@ public sealed class CampaignPlayer : IPlayerController
         return false;
     }
 
+    /// <summary>Whether a missing listed room is offered but costs more than the gold: priced at the side
+    /// <see cref="Build"/> waits for (its target, while a free square of it exists), else its smallest.</summary>
     private bool Unaffordable(PlayerObservation observation, RoomTypeId room)
     {
+        int target = TargetSide(room);
+        int side = target > SmallestSide(room)
+            && PlayerActionRoutines.RoomSquares(observation, PlayerActionRoutines.Home(observation), target).Exists(c => !Tried(room).Contains(c))
+            ? target : SmallestSide(room);
         foreach (PlayerRoomOffer offer in observation.Offers.Rooms)
-            if (offer.Room == room) return (long)offer.Cost.Value * _strategy.RoomSide * _strategy.RoomSide > observation.Gold.Value;
+            if (offer.Room == room) return (long)offer.Cost.Value * side * side > observation.Gold.Value;
         return false;
     }
 
+    /// <summary>The side a new room of this type is built at (Task 3a): the strategy's square, raised to the
+    /// smallest side at which the room does anything (a Temple draws nothing below 5x5) and to the side
+    /// its attraction and floor-slot targets need; never above the largest side the knowledge measured.</summary>
+    private int TargetSide(RoomTypeId room)
+    {
+        int side = SmallestSide(room);
+        if (_options.Knowledge.Room(room) is not RoomFacts facts) return side;
+        if (_strategy.AttractionTargets.TryGetValue(room, out int target))
+            side = Math.Max(side, facts.SideFor(target) ?? facts.Sizes[^1].Side);
+        if (_strategy.SlotTargets.TryGetValue(room, out int slots))
+            side = Math.Max(side, facts.SideForSlots(slots) ?? facts.Sizes[^1].Side);
+        return side;
+    }
+
+    /// <summary>The smallest side a room of this type is built at: the strategy's square, or the smallest at
+    /// which the room does anything when that is larger.</summary>
+    private int SmallestSide(RoomTypeId room) =>
+        Math.Max(_strategy.RoomSide, _options.Knowledge.Room(room)?.SmallestUsefulSide ?? 0);
+
+    /// <summary>Builds <paramref name="room"/> at its target side, or, only with no free square that big, the
+    /// largest smaller side down to its smallest useful one; a free square it cannot yet pay for is waited
+    /// for, not swapped for a smaller room. Growth uses the smallest side.</summary>
     private bool Build(PlayerObservation observation, TilePos home, RoomTypeId room, bool grow, List<PlayerAction> actions)
     {
-        if (PlayerActionRoutines.BuildRoom(observation, home, room, _strategy.RoomSide, Tried(room), grow) is not PlayerAction.BuildRoom build) return false;
-        if (PlayerActionRoutines.SelectRoom(observation, room) is PlayerAction press) actions.Add(press);
-        actions.Add(build);
-        _pendingRooms[room] = new PendingRoom(build.From, observation.Stamp.Tick, OwnedTiles(observation, room));
-        return true;
+        int largest = grow ? SmallestSide(room) : TargetSide(room);
+        for (int side = largest; side >= SmallestSide(room); side--)
+        {
+            if (PlayerActionRoutines.BuildRoom(observation, home, room, side, Tried(room), grow) is not PlayerAction.BuildRoom build)
+            {
+                if (PlayerActionRoutines.RoomSquares(observation, home, side).Exists(c => !Tried(room).Contains(c))) return false;
+                // No free square this big for a room that must be larger than the plain square (a Library for
+                // its Warlocks, a Temple): dig one out at the target side, and wait for it rather than settle.
+                if (!grow && side == largest && (_strategy.Sites == RoomSites.All || _strategy.Sites == RoomSites.Oversized && side > _strategy.RoomSide))
+                    switch (DigSite(observation, home, room, side, actions))
+                    {
+                        case SiteState.Marked: return true;
+                        case SiteState.Waiting: return false;
+                    }
+                continue;
+            }
+            if (_site is Site built && built.Room == room) _site = null;
+            if (PlayerActionRoutines.SelectRoom(observation, room) is PlayerAction press) actions.Add(press);
+            actions.Add(build);
+            _pendingRooms[room] = new PendingRoom(build.From, side, observation.Stamp.Tick, OwnedTiles(observation, room));
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>Gives up an open site that has had its time, or whose room the strategy no longer builds or
+    /// the player already owns, so one forgotten site cannot hold every later one back. A site dug out in time
+    /// whose room still waits for gold is closed without settling: the free square stays for the build.</summary>
+    private void AgeSite(PlayerObservation observation)
+    {
+        if (_site is not Site open) return;
+        bool wanted = (_strategy.Rooms.Contains(open.Room) || _strategy.ExtraRooms.Contains(open.Room)) && !Owns(observation, open.Room);
+        if (wanted && observation.Stamp.Tick.Value - open.Since.Value < SiteTicks) return;
+        if (wanted && PlayerActionRoutines.SquareFree(observation, open.Corner, open.Side)) { _site = null; return; }
+        _failedSites.Add(open.Corner);
+        if (wanted) _settled.Add((open.Room, open.Side));   // not dug out in time: that room settles for less
+        _site = null;
+    }
+
+    /// <summary>The site for <paramref name="room"/> (Task 3a): waiting while its marks are dug, given up after
+    /// <see cref="SiteTicks"/>; otherwise, with digging on and no other site open, the square of
+    /// <paramref name="side"/> needing the least digging is marked in one drag. One site at a time.</summary>
+    private SiteState DigSite(PlayerObservation observation, TilePos home, RoomTypeId room, int side, List<PlayerAction> actions)
+    {
+        if (_site is Site open)
+        {
+            // This room's site is being dug, or another room's is (one at a time): wait rather than settle
+            // for a smaller room for good. AgeSite gives a site up once it has had its time.
+            return SiteState.Waiting;
+        }
+        if (_settled.Contains((room, side))) return SiteState.None;
+        if (_strategy.Dig == DigMode.Off || (observation.Offers.Actions & PlayerActionKinds.TagArea) == 0 || !Fits(actions, 1)
+            || !observation.Offers.Rooms.Any(o => o.Room == room)) return SiteState.None;
+        bool breach = _strategy.Breach == BreachMode.Always;
+        if (!breach) EnsureClearance();
+        if (PlayerActionRoutines.RoomSite(observation, home, side, _failedSites, breach ? null : _danger, breach) is not TilePos corner)
+            return SiteState.None;
+        actions.Add(new PlayerAction.TagArea(corner, new TilePos(corner.X + side - 1, corner.Y + side - 1)));
+        _site = new Site(room, corner, side, observation.Stamp.Tick);
+        return SiteState.Marked;
+    }
+
+    /// <summary>Finishes a square a build left short (Task 3a): the same rectangle again, when the panel
+    /// offers the room and the player can pay for the missing tiles; given up after a few tries or once
+    /// the square holds anything but the room's own tiles and free own floor.</summary>
+    private bool Finish(PlayerObservation observation, List<PlayerAction> actions)
+    {
+        foreach (RoomTypeId room in _repairs.Keys.OrderBy(r => r).ToList())
+        {
+            Repair repair = _repairs[room];
+            int missing = PlayerActionRoutines.MissingRoomTiles(observation, repair.Corner, repair.Side, room);
+            if (missing <= 0 || repair.Tries <= 0) { _repairs.Remove(room); continue; }
+            PlayerRoomOffer? offer = null;
+            foreach (PlayerRoomOffer candidate in observation.Offers.Rooms) if (candidate.Room == room) offer = candidate;
+            if ((observation.Offers.Actions & PlayerActionKinds.BuildRoom) == 0 || offer is not PlayerRoomOffer priced
+                || (long)priced.Cost.Value * missing > observation.Gold.Value) continue;
+            if (PlayerActionRoutines.SelectRoom(observation, room) is PlayerAction press) actions.Add(press);
+            actions.Add(new PlayerAction.BuildRoom(room, repair.Corner, new TilePos(repair.Corner.X + repair.Side - 1, repair.Corner.Y + repair.Side - 1)));
+            _repairs[room] = repair with { Tries = repair.Tries - 1 };
+            _pendingRooms[room] = new PendingRoom(repair.Corner, repair.Side, observation.Stamp.Tick, OwnedTiles(observation, room), Grew: true);
+            return true;
+        }
+        return false;
     }
 
     /// <summary>A Lair or Hatchery with fewer tiles than the own non-workers need, or a Treasury once
@@ -236,6 +377,7 @@ public sealed class CampaignPlayer : IPlayerController
     {
         int tiles = OwnedTiles(observation, room);
         if (tiles == 0) return false;
+        if (_strategy.TileTargets.TryGetValue(room, out int target) && tiles < target) return true;
         switch (room)
         {
             case RoomTypeId.Lair:
@@ -307,7 +449,8 @@ public sealed class CampaignPlayer : IPlayerController
     private bool Dig(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
         if (_strategy.Dig == DigMode.Off || (observation.Offers.Actions & PlayerActionKinds.TagArea) == 0) return false;
-        int room = _strategy.MaxOutstandingTags - Outstanding(observation);
+        // A room site's marks are its own (Task 3a): they do not hold the frontier back.
+        int room = _strategy.MaxOutstandingTags - Outstanding(observation) + SiteMarks(observation);
         int added = 0;
         TilePos from = _strategy.Dig == DigMode.Toward && _strategy.DigTarget is TilePos target ? target : home;
         foreach (TilePos tile in Frontier(observation, from, preferGold: _strategy.Dig == DigMode.GoldFirst))
@@ -389,17 +532,21 @@ public sealed class CampaignPlayer : IPlayerController
     private List<TilePos> Frontier(PlayerObservation observation, TilePos from, bool preferGold)
     {
         if (_strategy.Breach == BreachMode.Always) return PlayerActionRoutines.Frontier(observation, from, preferGold, _abandoned);
-        if (_dangerRadius != _strategy.EnemyClearanceTiles)
-        {
-            _danger.Clear();
-            _dangerRadius = _strategy.EnemyClearanceTiles;
-            foreach (TilePos seen in _sightings) AddClearance(seen, _dangerRadius);
-        }
+        EnsureClearance();
         List<TilePos> safe = PlayerActionRoutines.Frontier(observation, from, preferGold, _abandoned, breach: false, avoid: _danger, tagged: true);
         // Develop first: the breach waits until no safe tile is left, marked or not.
         if (safe.Count == 0 && _strategy.Breach == BreachMode.WhenDeveloped) return PlayerActionRoutines.Frontier(observation, from, preferGold, _abandoned);
         safe.RemoveAll(t => (observation.Tiles[t].Flags & PlayerTileFlags.Tagged) != 0);
         return safe;
+    }
+
+    /// <summary>Rebuilds the tiles near enemy sightings when the strategy's clearance changed.</summary>
+    private void EnsureClearance()
+    {
+        if (_dangerRadius == _strategy.EnemyClearanceTiles) return;
+        _danger.Clear();
+        _dangerRadius = _strategy.EnemyClearanceTiles;
+        foreach (TilePos seen in _sightings) AddClearance(seen, _dangerRadius);
     }
 
     private void AddClearance(TilePos seen, int r)
@@ -420,6 +567,20 @@ public sealed class CampaignPlayer : IPlayerController
         int rooms = 0;
         foreach (PlayerRoomSummary room in observation.Rooms) rooms += room.TileCount;
         return new Gains(floor, rooms, observation.Creatures.Count, observation.Gold.Value);
+    }
+
+    /// <summary>The open room site's tiles that still carry a dig mark.</summary>
+    private int SiteMarks(PlayerObservation observation)
+    {
+        if (_site is not Site site) return 0;
+        int marks = 0;
+        for (int dy = 0; dy < site.Side; dy++)
+            for (int dx = 0; dx < site.Side; dx++)
+            {
+                var at = new TilePos(site.Corner.X + dx, site.Corner.Y + dy);
+                if (observation.Tiles.Contains(at) && (observation.Tiles[at].Flags & PlayerTileFlags.Tagged) != 0) marks++;
+            }
+        return marks;
     }
 
     private static int Outstanding(PlayerObservation observation)

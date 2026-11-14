@@ -1,0 +1,57 @@
+# Common-sense strategy the campaign player reads (campaign bot stage 3 plan, Task 3a).
+# One rule per entry: the plain sentence, who said it, its status, and, where the strategy can act on
+# it, a machine form. Facts (what the game does) live in rooms.yaml, generated; these are judgements
+# (what a keeper should do), and the tuner may refute them.
+#   status: proposed (not yet measured), tested (measured, result in `evidence`), held (measured and
+#           kept), refuted (measured and dropped; the loader ignores it). A status changes only with
+#           evidence: a run or a cited source, never by assertion.
+#   form kinds the loader applies: attraction-target { room, value }, tile-target { room, tiles },
+#   research-shelves { room } (floor slots for the level's research count).
+#   built-in names a strategy value that already carries the rule; manual means no form yet.
+#   applies: always, or playbook (only when a level's playbook asks; Task 3b).
+rules:
+  - id: R1
+    rule: "Do not build a room smaller than the size at which it does anything: a Temple draws nothing below 5x5."
+    source: "owner, 2026-11-14 (the owner's own 3x5 and 5x5 Temple, binary-entrance.md); rooms.yaml adds the Casino, which draws nothing at 3x3 on open ground (5 walled)"
+    status: proposed
+    form: { kind: built-in, path: "the sizing step, from rooms.yaml's attraction" }
+    applies: always
+
+  - id: R2
+    rule: "Size the Library for the level's research: every spell, door and trap researched is a book on a shelf, and an upgrade needs a shelf with room."
+    source: "owner, 2026-11-14 (shelves set how many spells can be researched and upgraded); research-tree.md section 4 and library-and-research.md section 7: a book per item, at most two per floor slot (0x004E1AC0), an upgrade makes no book but needs a slot with room"
+    status: proposed
+    form: { kind: research-shelves, room: Library }
+    note: "floor slots = researchable items / 2 + 1, the items being the research list's entries still researchable at the level's own start (KeeperKnowledgeFile.ResearchableItems; the list, research-tree.md section 1, holds spells, doors and traps); 3x3 has 1 slot, 4x4 4, 5x5 9 (rooms.yaml). Specials share the slots (0x004E1AC0) and are not counted: a Library that shelves them needs more (open: whether a shipped level routes Specials to the Library)"
+    applies: always
+
+  - id: R2b
+    rule: "A Library's shelves and furniture set how many Warlocks it draws; size it for the Warlocks you want."
+    source: "owner, 2026-11-14"
+    status: proposed
+    form: { kind: manual }
+    note: "walled attraction 6 / 9 / 18 at 3x3 / 4x4 / 5x5 (rooms.yaml); R2 usually decides the size first"
+    applies: playbook
+
+  - id: R3
+    rule: "Grow the Treasury when gold has nowhere to go."
+    source: "owner, 2026-11-14"
+    status: tested
+    form: { kind: built-in, path: strategy.TreasuryFullPercent }
+    evidence: "Task 2 (F:/DK2Evidence/studies/campaign-bot-task2-development--2026-11-14--001)"
+    applies: always
+
+  - id: R4
+    rule: "Bile Demons come only to a keeper with 25 Hatchery tiles: grow the Hatchery to 25 where the level offers them."
+    source: "rooms.yaml (creature needs, generated from Creatures.kwd; Giants share the need but never come by a keeper's portal)"
+    status: proposed
+    form: { kind: tile-target, room: Hatchery, tiles: 25 }
+    applies: playbook
+
+  - id: R5
+    rule: "Size a room that draws creatures for the creatures you want from it, not by a fixed square."
+    source: "owner, 2026-11-14"
+    status: proposed
+    form: { kind: manual }
+    note: "R2 is its first instance; per-level targets belong to the playbooks (Task 3b)."
+    applies: playbook

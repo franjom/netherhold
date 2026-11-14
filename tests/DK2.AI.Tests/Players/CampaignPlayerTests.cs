@@ -21,7 +21,7 @@ public partial class CampaignPlayerTests
 
     /// <summary>'.' own floor, 'H' own heart, '#' diggable rock, '$' gold seam, 'R' impenetrable rock,
     /// '?' unseen, 't' an own dig mark on unseen ground, 'e' enemy floor, 'T' own Treasury, 'L' own Lair,
-    /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison.</summary>
+    /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison, 'B' own Library.</summary>
     private static PlayerTileGrid Map(params string[] rows)
     {
         var tiles = new PlayerTile[rows.Length * rows[0].Length];
@@ -36,6 +36,7 @@ public partial class CampaignPlayerTests
                     'G' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.TrainingRoom),
                     'W' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Workshop),
                     'P' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Prison),
+                    'B' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Library),
                     'H' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid, Me, RoomTypeId.DungeonHeart),
                     '#' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable, default, default),
                     '$' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable | PlayerTileFlags.GoldSeam, default, default),

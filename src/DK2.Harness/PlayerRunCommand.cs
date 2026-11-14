@@ -35,6 +35,20 @@ public static class PlayerRunCommand
         Func<PlayerRunOptions, PlayerRunOptions>? tune, string? harnessDirectory = null)
     {
         if (template.Player is not CampaignPlayerSpec spec) throw new ArgumentException("No campaign player.", nameof(template));
+        // The repository's knowledge unless the command named a directory or none (Task 3a).
+        if (spec.Knowledge is null) spec = spec with { Knowledge = KeeperKnowledgeFile.DefaultDirectory(scenario.SourcePath) ?? KeeperKnowledgeFile.None };
+        // What the level lets the player research, read from its files as a player knows it (Task 3a).
+        if (spec.Researchable is null && installDirectory is not null)
+            spec = spec with { Researchable = KeeperKnowledgeFile.ResearchableItems(installDirectory, scenario.Map, spec.Player) };
+        if (spec.KnowledgeDirectory is string knowledgeDirectory)
+        {
+            try { KeeperKnowledgeFile.Load(knowledgeDirectory, spec.Researchable); }
+            catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or YamlDotNet.Core.YamlException)
+            {
+                error.WriteLine($"{scenario.Id}: refused: {ex.Message}");
+                return 2;
+            }
+        }
         BuildReceipt.Verification? receipt = null;
         if (spec.Receipt is string receiptDirectory)
         {
@@ -250,8 +264,13 @@ public static class PlayerRunCommand
     {
         IEnumerable<CreatureTypeId> workers = database.Creatures.Values
             .Where(c => (c.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker).Select(c => new CreatureTypeId(c.CreatureId));
+        KeeperKnowledgeFile.Loaded? knowledge = spec.KnowledgeDirectory is string directory ? KeeperKnowledgeFile.Load(directory, spec.Researchable) : null;
         var controller = new CampaignPlayer(new CampaignPlayerOptions(id, spec.Player, workers)
         {
+            Knowledge = knowledge?.Knowledge ?? KeeperKnowledge.None,
+            AttractionTargets = knowledge?.AttractionTargets ?? new Dictionary<RoomTypeId, int>(),
+            TileTargets = knowledge?.TileTargets ?? new Dictionary<RoomTypeId, int>(),
+            SlotTargets = knowledge?.SlotTargets ?? new Dictionary<RoomTypeId, int>(),
             // Definition data, as a player reads it off the level's variables: a heart stores on its
             // sixteen non-platform tiles (Q52, ADR-0027).
             GoldPerTreasuryTile = database[VariableTypeId.MaxGoldPerTreasuryTile],
