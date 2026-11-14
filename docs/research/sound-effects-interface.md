@@ -55,7 +55,7 @@ STRONGLY INFERRED: the latch starts at zero (no store at construction was found;
 slot panels, so a tab flash and a slot flash drawn in one bright frame use the tab's category.
 
 All six categories have `0x33A` with one sample (entry 49 of 740 ms, the same in each), so the slot makes no audible difference. Built:
-`FlashChime` (latch), `ClassicBottomPanel` (tab loop, `DrawPanel`), paused while Options is open. Tests: `InterfaceSoundTests`,
+`FlashChime` (latch), `BottomPanelHud` (tab loop), paused while Options is open. Tests: `InterfaceSoundTests`,
 `InterfaceSoundMapsTests`.
 
 ## 3. Cheat entry `0x133`, `0x134`, `0x135`

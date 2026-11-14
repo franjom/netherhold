@@ -157,7 +157,7 @@ texture at `+0xF`, so `+0x1B96` is entry 261's texture.
 
 ## 6. The Reaper's `_timerImages` — STRONGLY INFERRED, already built
 
-`ClassicBottomPanel._timerImages` are the Reaper one-shot countdown digits (`Gui\spells\rt-0..9`)
+`BottomPanelHud._timerImages` are the Reaper one-shot countdown digits (`Gui\spells\rt-0..9`)
 drawn by 0x00424840 in menu41 ([keeper-spell-reaper.md](keeper-spell-reaper.md)). They are
 complete for that use, and no slot indicator uses them. The x centring is the one
 owner-comparison item that page leaves.
@@ -185,7 +185,8 @@ owner-comparison item that page leaves.
   is the research target. State 1 is `Selectable`; state 2 is a visible slot at availability 2 or 4.
   The recharge percent is set at p = 0 too, since the grey tint and the skipped flash apply there.
   Tests: `BottomPanelIndicatorsTests`.
-- **Unity.** `ClassicBottomPanel.SlotSector` is a `generateVisualContent` fan of at most five
+- **Panel.** `BottomPanelHud` (ADR-0805) emits the sector as a draw; `HudSector.Fan` builds the fan and
+  `HudCanvas` (Unity) renders it as a `generateVisualContent` mesh of at most five
   triangles: centre, 12 o'clock, each square corner the sweep passes, the end point. It reallocates
   only when its texture, tint or percent changes. Draw order is icon, recharge/manufacture sector,
   selection, research sector (the inferred depth reading of §1). Base tints follow the slot draw's

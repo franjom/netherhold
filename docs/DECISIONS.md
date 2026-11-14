@@ -19191,6 +19191,43 @@ kicker's own dispatch re-reads its state after the hook (`0x0047727F`) and runs 
 that call returns 1 and draws nothing, matching 2145, otherwise it would differ. A capture of a researcher kicked in 53 or 54 with no
 action would settle it.
 
+## ADR-0805 - the HUD's DK2 logic moves into DK2.Presentation as a draw list, so a Godot adapter can replace Unity's
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** hud-front-end, presentation-unity
+
+**Context.** The owner is preparing a switch from Unity to Godot: distributing GPLv3 code linked to Unity's closed runtime is
+ADR-0041's open question, and Godot is MIT. A Godot adapter will be built beside `unity/DK2.Unity` while work on the Unity one
+continues. The HUD (about 5,500 lines in 21 Unity files) holds DK2 logic in Unity code: layout, draw order, tints, hit areas,
+pointer state and the commands a click posts. Left there, every HUD fix would have to be made twice during the port.
+
+**Decision.**
+1. **Presentation decides, adapters draw.** A HUD panel's DK2 behaviour is an engine-free class in `DK2.Presentation`
+   (`BottomPanelHud` first). Each frame it writes a `HudFrame` (`HudDrawList.cs`): textured quads and radial sectors in
+   native virtual units (1920 high), back to front. It takes pointer input in the same units and raises the panel's commands.
+2. **An adapter renders a `HudFrame` and forwards input; nothing more.** DK2's render flag 8 is `HudBlend.Additive`; an
+   engine without additive UI blending uses `HudImagePixels.AdditiveOverAlpha`. Pixel changes that are part of DK2's look
+   (the Reaper talisman's quarters) are `HudImageVariant`s, applied by `HudImagePixels`, so every engine gets the same pixels.
+3. **Panel by panel, Unity kept working.** Each step adds the model and its tests, turns the Unity class into a facade with
+   the same public API over `HudCanvas`, and deletes the old Unity logic. Order: bottom panel (done), resource HUD, message
+   tabs, hover HUD, creature query and overview, options and save/load, front-end menu, minimap and full-map markers.
+
+**Where new files go.**
+
+| What | Where |
+|---|---|
+| A HUD panel's DK2 behaviour, layout, draw list, pixel variants | `src/DK2.Presentation/<Panel>Hud.cs`, flat like the rest of the project; tests in `tests/DK2.Presentation.Tests/<Panel>HudTests.cs` |
+| Any other engine-neutral rule or value | where ADR-0002 and `ARCHITECTURE.md` already put it; never in an adapter |
+| Unity: the one `HudFrame` renderer | `unity/DK2.Unity/Assets/DK2/HudCanvas.cs`; a panel's Unity file is only its facade |
+| Godot: the adapter | `godot/DK2.Godot/` (the Godot project root), C# using `ProjectReference`s to `src/`; outside `DK2.slnx` until CI builds it. Its HUD renderer mirrors `HudCanvas` |
+| Engine-specific on purpose | 3D overlays (hover outline, placement, possession), movie playback, the GPU minimap image, shaders and GPU light buffers: written once per engine |
+
+New DK2 behaviour written into a Unity or Godot file is a defect under this ADR.
+
+**Consequences.** `ClassicBottomPanel` is 150 lines of glue over `BottomPanelHud`; its public API is unchanged, so `DungeonRunner`
+did not change. The panel's hit testing and click handling are unit-tested without an engine (`BottomPanelHudTests`). Unity's
+additive stand-ins were two bakes, luminance-as-alpha for the hover art and peak-as-alpha for sparkles; both now use the second.
+The hover art is near grey (mean chroma 7.6/255), so the hover highlight shifts by a few levels at most. `IClassicBottomPanelAssets`
+extends `IBottomPanelArt`. No Godot code exists yet, and ADR-0041's question stays open until the engine decision is made.
+
 ## ADR-0806 - remember Guard assignments independently of current work
 
 **Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 520
