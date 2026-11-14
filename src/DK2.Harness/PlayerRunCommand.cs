@@ -252,6 +252,10 @@ public static class PlayerRunCommand
             .Where(c => (c.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker).Select(c => new CreatureTypeId(c.CreatureId));
         var controller = new CampaignPlayer(new CampaignPlayerOptions(id, spec.Player, workers)
         {
+            // Definition data, as a player reads it off the level's variables: a heart stores on its
+            // sixteen non-platform tiles (Q52, ADR-0027).
+            GoldPerTreasuryTile = database[VariableTypeId.MaxGoldPerTreasuryTile],
+            HeartGold = 16 * database[VariableTypeId.MaxGoldPerDungeonHeartTile],
             AdvanceTicks = spec.IntervalTicks,
             StallWindowTicks = spec.StallTicks,
             RecoveryAttempts = spec.Retries,

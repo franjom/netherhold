@@ -88,7 +88,7 @@ Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the completed input inventory and bed control. The next step is diagnostic inline job/needs restoration, without a causal outcome closure.
+exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the inline-field and remembered-job controls. The next bounded implementation candidate is the remembered Guard field/retry/lifecycle and saved-post backend; outcome causation remains open.
 
 ## Other pending work
 
@@ -134,13 +134,27 @@ These are entry points, not a new priority order.
   can claim acceptance under the conditions in the [harness README](../src/DK2.Harness/README.md),
   and prints `not claimed: <reasons>` otherwise.
   Next (owner direction, 2026-11-14): stage 3 of the design, a capable bot that needs no model
-  and plays every campaign level as it becomes playable; it wins Levels 1-3 today
-  ([ladder](research/campaign-bot-ladder.md))
+  and plays every campaign level as it becomes playable
   ([plan](plans/2026-11-14-campaign-bot-stage3.md): strategy, per-level playbooks, a self-play tuner).
+  Tasks 0a-2 are built: `PlayerStrategy` drives the routines, and the player now develops (grows
+  outgrown rooms, builds the other offered rooms, digs within `BreachMode`; carrying creatures to
+  rooms is `UseRooms`, empty by default). It wins Levels 1-3 on accept seeds 11-20 (10/10 each,
+  hash 519); Level 4 won 2 of 3 diagnosis seeds but stays out of the driver choice while Q710 is
+  open, and Level 6b got worse ([ladder](research/campaign-bot-ladder.md) section 7). Next: Task 3,
+  the playbook format.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.
+- Rendering cost candidates, none measured yet. Measure each with `game-unity-probe -Benchmark`
+  ([README](../tools/game-unity-probe/README.md)) before changing anything:
+  - Overdraw of large additive and transparent effects in a busy battle (`ClassicEffect.shader`,
+    `ClassicLightning`, `ClassicTorchFlames`, `ClassicHoverOutline`): trim quads to the visible texels
+    where the frame is fill-bound. Needs a busy scene, not Level1's opening.
+  - Off-screen and menu work only when something changed: `MinimapGpuMap` command buffers,
+    `ClassicFullMap`'s blit and preview target, `ClassicFrontEndMenu`'s font-atlas blit.
+  - `ClassicCreatureShadows`: skip the coverage redraw when no caster moved. It is already cheap
+    (R8 targets, frustum-culled casters), so this is the lowest priority.
 
 ## Workspace and evidence
 

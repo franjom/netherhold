@@ -539,8 +539,8 @@ verification, not owner gameplay or matched-original acceptance.
 
 `run-options.ps1` creates an isolated Unity project and runs `OptionsSettingsProbe`.
 Build the Release adapter first. The probe renders Graphics, Sound and Control,
-checks the live/revert transaction and key capture, and verifies the URP brightness
-override. It writes regenerated menu captures and logs under `build/`; it does not
+checks the live/revert transaction and key capture, and verifies that Gamma reaches the
+brightness curve. It writes regenerated menu captures and logs under `build/`; it does not
 load or write the owner's profile/settings. The integrated scale/audio/key probe
 checks the gameplay consumers separately.
 

@@ -58,10 +58,9 @@ namespace DK2.Unity.Editor
                     .GetValue(runner) as ClassicCameraControls;
                 if (controls == null) return;
                 if (controls.ScrollSpeed != 17) throw new Exception("Loaded scroll speed was not applied: " + controls.ScrollSpeed);
-                GameObject settings = GameObject.Find("DK2 display settings");
-                Volume volume = settings == null ? null : settings.GetComponent<Volume>();
-                if (volume == null || !volume.sharedProfile.TryGet<ColorAdjustments>(out var colour)
-                    || Math.Abs(colour.postExposure.value - Mathf.Log(1.5f, 2)) > .001f)
+                var display = typeof(DungeonRunner).GetField("_settingsRendering", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(runner) as ClassicSettingsRendering;
+                if (display == null || !display.DrawsBrightness || Math.Abs(display.BrightnessExponent - 30f / 45f) > .0001f)
                     throw new Exception("Loaded gamma was not applied.");
                 int stage = SessionState.GetInt(Active + ".stage", 0);
                 if (stage == 0)

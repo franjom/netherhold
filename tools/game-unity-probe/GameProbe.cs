@@ -102,6 +102,7 @@ namespace DK2.Unity
         private List<double>[] _segmentGpu;
         private GameSettings _benchmarkBase;
         private Vector3 _benchmarkCamera;
+        private bool _segmentShot;
         // FrameTimingManager's latest GPU frame time; it lags a few frames, and is 0 headless.
         private readonly FrameTiming[] _timing = new FrameTiming[1];
 
@@ -242,7 +243,7 @@ namespace DK2.Unity
                 if (!_shot && _screenshotAt > 0 && seconds >= _screenshotAt)
                 {
                     _shot = true;
-                    StartCoroutine(SaveScreenshot());
+                    StartCoroutine(SaveScreenshot("screenshot.png"));
                 }
                 if (_variants != null)
                 {
@@ -324,6 +325,13 @@ namespace DK2.Unity
                 StartSegment(0, seconds);
                 return false;
             }
+            // The first round leaves a picture of each variant: benchmark-<n>.png, n as listed, taken
+            // inside the dropped warm-up so its read-back stall is not timed.
+            if (_segmentIndex < _variants.Length && !_segmentShot && seconds - _segmentStart >= SegmentWarmUp / 2)
+            {
+                _segmentShot = true;
+                StartCoroutine(SaveScreenshot($"benchmark-{_segmentIndex}.png"));
+            }
             if (seconds - _segmentStart >= SegmentWarmUp && _rows[_count - 1].GpuMs > 0)
                 _segmentGpu[_segmentIndex].Add(_rows[_count - 1].GpuMs);
             if (seconds - _segmentStart < _segmentSeconds) return false;
@@ -341,6 +349,7 @@ namespace DK2.Unity
         {
             _segmentIndex = index;
             _segmentStart = seconds;
+            _segmentShot = false;
             // Later lines win in GameSettingsFile.Read, so the variant overrides the run's settings.
             string variant = _variants[index % _variants.Length].Replace(';', '\n');
             ApplySettings(GameSettingsFile.Read(GameSettingsFile.Write(_benchmarkBase) + variant + "\n"));
@@ -376,13 +385,13 @@ namespace DK2.Unity
         }
 
         // The project leaves the ScreenCapture module out, so the finished frame is read back here.
-        private System.Collections.IEnumerator SaveScreenshot()
+        private System.Collections.IEnumerator SaveScreenshot(string name)
         {
             yield return new WaitForEndOfFrame();
             var image = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
             image.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
             image.Apply();
-            File.WriteAllBytes(Path.Combine(_output, "screenshot.png"), image.EncodeToPNG());
+            File.WriteAllBytes(Path.Combine(_output, name), image.EncodeToPNG());
             Destroy(image);
         }
 

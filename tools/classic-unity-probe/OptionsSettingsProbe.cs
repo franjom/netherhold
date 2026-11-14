@@ -58,15 +58,15 @@ namespace DK2.Unity.Editor
                     _options.Edit(s => s with { Gamma = 45, UiScale = 125 });
                     if (_options.Current.Gamma != 30) throw new Exception("Graphics applied before Confirm.");
                     _options.Accept();
-                    // Exercise actual URP volume API resolution and setting writes, without loading a game.
+                    // The runner's own settings path, without loading a game: Gamma 45 draws the curve at 30/45.
                     var runner = _owner.AddComponent<DungeonRunner>(); runner.enabled = false;
                     typeof(DungeonRunner).GetField("_frontEndMenu", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(runner, _menu);
                     typeof(DungeonRunner).GetMethod("ApplyGameSettings", BindingFlags.NonPublic | BindingFlags.Instance)
                         .Invoke(runner, new object[] { _options.Current });
-                    var profile = UnityEngine.Object.FindAnyObjectByType<Volume>();
-                    if (profile == null || !profile.sharedProfile.TryGet<ColorAdjustments>(out var colour)
-                        || Math.Abs(colour.postExposure.value - Mathf.Log(1.5f, 2)) > .001f)
-                        throw new Exception("Gamma did not reach URP colour adjustment.");
+                    var display = typeof(DungeonRunner).GetField("_settingsRendering", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .GetValue(runner) as ClassicSettingsRendering;
+                    if (display == null || !display.DrawsBrightness || Math.Abs(display.BrightnessExponent - 30f / 45f) > .0001f)
+                        throw new Exception("Gamma did not reach the brightness curve.");
                     Show(FrontEndPage.Sound); _stage++; return;
                 }
                 if (_stage == 2)
@@ -84,7 +84,7 @@ namespace DK2.Unity.Editor
                         throw new Exception("Key capture failed.");
                     _options.Accept();
                     if (_options.Current.Binding(GameAction.Heart).ScanCode != 0x20) throw new Exception("Binding not retained.");
-                    Debug.Log("Options settings verification passed: graphics/sound/controls art; live/revert; key capture; URP gamma.");
+                    Debug.Log("Options settings verification passed: graphics/sound/controls art; live/revert; key capture; brightness curve.");
                     EditorApplication.Exit(0);
                 }
             }

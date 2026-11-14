@@ -71,7 +71,8 @@ folder is never reused): the manifest before the first tick, a budgeted `input.j
 standard report files, `player-decisions.tsv`, `player-actions.tsv`, and `player-run.json` last,
 once the whole folder is known to fit the budget. The JSON holds the verdict, every limit, the
 finale coverage, any suspected anomaly (a win whose Horned Reaper finale was `NotReached`),
-`acceptance_claimed` and `receipt`. Without a matching receipt the acceptance line reads
+`development` (from the last observation: tick, gold, owned room tiles by type, own creatures by
+type id), `acceptance_claimed` and `receipt`. Without a matching receipt the acceptance line reads
 `not claimed: ` followed by every reason (see "Build receipt and acceptance" below).
 
 | Verdict | Meaning | Exit |

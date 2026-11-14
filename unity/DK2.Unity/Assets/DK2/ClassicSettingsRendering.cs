@@ -11,20 +11,21 @@ using UnityEngine.Rendering;
 namespace DK2.Unity
 {
     /// <summary>
-    /// The display settings: brightness and multisampling. Brightness multiplies the main camera's
-    /// finished image by gamma/30 (0.5..2), our brightness proxy, not native gamma-ramp emulation.
-    /// It is one full-screen triangle drawn over that image with a multiplying blend, and nothing
-    /// at the default gamma. The project renders in Gamma colour space, so the multiply is on
-    /// display-encoded values and the top of the slider clips bright pixels to white. The UI
-    /// Toolkit HUD draws after the camera and is not scaled. (A URP Volume's postExposure did
-    /// nothing here: the renderer has no post-processing data, so URP runs no post-processing.)
+    /// The display settings: brightness and multisampling. Brightness is a gamma curve over the
+    /// main camera's finished image, pow(c, 30 / Gamma), our stand-in for DK2's display gamma ramp:
+    /// the image is copied and redrawn through the curve by one full-screen triangle, and nothing
+    /// is drawn at the default gamma. Black and white stay put, so no end of the slider clips (a
+    /// multiply clipped highlights from about Gamma 40). The project renders in Gamma colour
+    /// space, so the curve is on display-encoded values. The UI Toolkit HUD draws after the camera
+    /// and keeps its brightness. (A URP Volume's postExposure did nothing here: the renderer has no
+    /// post-processing data, so URP runs no post-processing.)
     /// </summary>
     public sealed class ClassicSettingsRendering : IDisposable
     {
         private const int DefaultGamma = 30;
-        private static readonly int ScaleId = Shader.PropertyToID("_Scale"), DstBlendId = Shader.PropertyToID("_DstBlend");
+        private static readonly int SourceId = Shader.PropertyToID("_DK2BrightnessSource"), ExponentId = Shader.PropertyToID("_Exponent");
 
-        private readonly Material _exposure;
+        private readonly Material _curve;
         private readonly CommandBuffer _commands = new CommandBuffer { name = "DK2 brightness" };
         // The URP asset is shared with the editor: its sample count is restored on Dispose so a
         // Play session never leaves a changed asset to be saved.
@@ -36,7 +37,7 @@ namespace DK2.Unity
         public ClassicSettingsRendering()
         {
             Shader shader = Resources.Load<Shader>("Shaders/ClassicExposure");
-            if (shader != null) _exposure = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+            if (shader != null) _curve = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
             else Debug.LogWarning("DK2 display settings: Shaders/ClassicExposure is missing; brightness will not change");
             // UniversalRenderPipelineAsset.msaaSampleCount, by reflection: the adapter compiles without URP's assemblies.
             _msaa = _pipeline != null ? _pipeline.GetType().GetProperty("msaaSampleCount") : null;
@@ -44,17 +45,15 @@ namespace DK2.Unity
             else Debug.LogWarning("DK2 display settings: the render pipeline has no msaaSampleCount; MSAA will not change");
         }
 
+        /// <summary>Whether the curve is drawn, and its exponent (30 / Gamma; 1 when not drawn).</summary>
+        public bool DrawsBrightness => _drawing;
+        public float BrightnessExponent { get; private set; } = 1;
+
         public void Apply(GameSettings settings)
         {
-            float scale = settings.Gamma / (float)DefaultGamma;
-            bool draw = _exposure != null && settings.Gamma != DefaultGamma;
-            if (draw)
-            {
-                // Darken: dst * scale. Brighten: dst * (scale - 1) + dst.
-                bool brighten = scale > 1;
-                _exposure.SetFloat(ScaleId, brighten ? scale - 1 : scale);
-                _exposure.SetFloat(DstBlendId, (float)(brighten ? BlendMode.One : BlendMode.Zero));
-            }
+            bool draw = _curve != null && settings.Gamma != DefaultGamma;
+            BrightnessExponent = draw ? DefaultGamma / (float)settings.Gamma : 1;
+            if (draw) _curve.SetFloat(ExponentId, BrightnessExponent);
             if (draw != _drawing)
             {
                 if (draw) RenderPipelineManager.endCameraRendering += AfterCamera;
@@ -68,11 +67,18 @@ namespace DK2.Unity
         private void AfterCamera(ScriptableRenderContext context, Camera camera)
         {
             if (camera != Camera.main) return;
+            RenderTexture texture = camera.targetTexture;
+            RenderTargetIdentifier target = texture != null
+                ? new RenderTargetIdentifier(texture) : new RenderTargetIdentifier(BuiltinRenderTextureType.CameraTarget);
             _commands.Clear();
-            _commands.SetRenderTarget(camera.targetTexture != null
-                ? new RenderTargetIdentifier(camera.targetTexture) : new RenderTargetIdentifier(BuiltinRenderTextureType.CameraTarget));
+            // The whole target, so the triangle reads the source at its own pixel position.
+            _commands.GetTemporaryRT(SourceId, texture != null ? texture.width : Screen.width,
+                texture != null ? texture.height : Screen.height, 0, FilterMode.Point, RenderTextureFormat.ARGB32);
+            _commands.Blit(target, SourceId);
+            _commands.SetRenderTarget(target);
             _commands.SetViewport(camera.pixelRect);
-            _commands.DrawProcedural(Matrix4x4.identity, _exposure, 0, MeshTopology.Triangles, 3);
+            _commands.DrawProcedural(Matrix4x4.identity, _curve, 0, MeshTopology.Triangles, 3);
+            _commands.ReleaseTemporaryRT(SourceId);
             context.ExecuteCommandBuffer(_commands);
             context.Submit();
         }
@@ -83,7 +89,7 @@ namespace DK2.Unity
             _drawing = false;
             if (_msaa != null) _msaa.SetValue(_pipeline, _originalMsaa);
             _commands.Release();
-            if (_exposure != null) UnityEngine.Object.Destroy(_exposure);
+            if (_curve != null) UnityEngine.Object.Destroy(_curve);
         }
     }
 }

@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-14, revised the same day after two adversarial reviews;
-approved by the owner on 2026-11-14. Task 0a is in progress.
+approved by the owner on 2026-11-14. Tasks 0a-2 are built; Task 3 is next.
 **Goal:** grow the Level 1 campaign player into a bot that needs no AI model and wins every
 campaign level the simulation can complete, level by level as each becomes playable, from
 player-visible observation and normal commands only.
@@ -29,9 +29,9 @@ direction. **Evidence:** [campaign bot ladder](../research/campaign-bot-ladder.m
 
 ## What the evidence says
 
-From the [ladder](../research/campaign-bot-ladder.md): the unchanged controller wins Levels 1-3
-(Levels 2-3 rerun after ADR-0800) and nothing after. On every losing level it builds at most one
-3x3 of each room in its fixed list and then waits for 70-98% of its decisions. So:
+From the [ladder](../research/campaign-bot-ladder.md): the controller before Task 2 won Levels 1-3
+(Levels 2-3 rerun after ADR-0800) and nothing after. On every losing level it built at most one
+3x3 of each room in its fixed list and then waited for 70-98% of its decisions. So:
 
 - The first gap is **development**: keep building, growing and using what the level offers.
   It shows on every level, so it is measured across the ladder, not on one level.
@@ -136,23 +136,54 @@ marks to be dug). With digging off, the frontier is no pending work, so an idle 
 The gap every losing level shares. Built before the playbook format so the format is shaped by
 what a working slice and the triage needed, not guessed.
 
-- [ ] Tests first (synthetic observations): with no room missing, the bot extends an existing
+- [x] Tests first (synthetic observations): with no room missing, the bot extends an existing
       room or builds another of a type the panel offers when its creature count outgrows it
       (lair and hatchery per creature, treasury when gold has nowhere to go); it builds offered
       rooms not in its list in a default order (Training Room before Workshop, for one); it uses
       a Training Room it owns (drops creatures there) and a Workshop if the level gives doors or
-      traps; it does not wait while an offered, affordable build remains.
-- [ ] **Bounded digging.** Frontier digging stays within the outstanding-tag bound and a distance
+      traps; it does not wait while an offered, affordable build remains. **Done 2026-11-14:**
+      16 tests in `CampaignPlayerTests.Development.cs`; `DK2.AI.Tests` 540 pass (524 before).
+- [x] **Bounded digging.** Frontier digging stays within the outstanding-tag bound and a distance
       from owned territory, and never marks a tile that would open onto ground another player
       owns or where an enemy was seen; a test shows a closed corridor stays closed. Digging
-      breaches release heroes (Level 2's party, `level2-party-release.md`).
-- [ ] Implement in `PlayerActionRoutines`; the strategy gains the ordering and sizing values.
-- [ ] Measure per ladder level, before and after: rooms and room tiles owned, creatures housed
+      breaches release heroes (Level 2's party, `level2-party-release.md`). **Done 2026-11-14,**
+      as `PlayerStrategy.Breach` (`BreachMode`): `Never` and `WhenDeveloped` mark no tile beside
+      another side's open ground or within `EnemyClearanceTiles` (3) of any enemy sighting;
+      `WhenDeveloped` (the default) breaches only once no safe tile is left, marked or not;
+      `Always` is the pre-Task-2 frontier. The distance bound is the frontier's own: only a tile beside own floor is marked. A first default of `Never` could not win Level 1 (it
+      stopped digging at tick 3253), hence `WhenDeveloped`. Tests: a closed corridor stays closed
+      while safe ground remains; with none left the default opens it; ground near a sighting stays
+      unmarked after the enemy leaves.
+- [x] Implement in `PlayerActionRoutines`; the strategy gains the ordering and sizing values.
+      **Done 2026-11-14.** `PlayerStrategy` gains `ExtraRooms` (Training Room, Library, Workshop,
+      Prison, Temple, Graveyard, Torture Chamber, Casino, Combat Pit: each built once, rebuilt if
+      lost, after every listed room stands and none has outgrown itself), `LairTilesPerCreature`
+      1, `CreaturesPerHatcheryTile` 2, `TreasuryFullPercent` 80, `UseRooms`, `TilesPerWorkingCreature`
+      3, `UseRoomEveryTicks` 200, `UseRoomMinGold` 1000, `Breach`, `EnemyClearanceTiles` 3.
+      `CampaignPlayerOptions` gains `GoldPerTreasuryTile` and `HeartGold`, definition data the
+      harness passes (`MaxGoldPerTreasuryTile`; sixteen heart tiles of `MaxGoldPerDungeonHeartTile`,
+      Q52, ADR-0027); unknown, no Treasury grows for want of room. Growth and extras wait while a
+      missing listed room is offered but unaffordable; a pending build completes when its type's
+      tile count rises; a Work step carries an idle own non-worker to a room `UseRooms` names.
+      `IsThreat` treats an enemy on the player's own Prison or Torture Chamber as a captive.
+      **`UseRooms` defaults to empty:** with the Training Room on by default Level 3 accept seeds
+      12 and 13 were lost (8/10); on those two seeds training off won both, extras off won both
+      and `Breach = Always` still lost seed 13, so the training lifts were the cause. A level's
+      strategy names the rooms it uses.
+- [x] Measure per ladder level, before and after: rooms and room tiles owned, creatures housed
       and trained, win or loss. The share of wait decisions is reported but is not a goal.
-- [ ] Levels 1-3 rerun on accept seeds 11-20 (behaviour changed on purpose): the ladder rows
+      **Done 2026-11-14,** seeds 1-3 diagnosis only, no rate claimed; the table is in the
+      [ladder](../research/campaign-bot-ladder.md) section 7. Room tiles rise 2-3x on most levels
+      and the wait share stays 55-100%. Level 3 seed 3 is a loss; Level 6b is worse (one timeout,
+      two defeats against three timeouts); Level 5 now survives to the cap but waits 97%; Level
+      4 wins 2 of 3.
+- [x] Levels 1-3 rerun on accept seeds 11-20 (behaviour changed on purpose): the ladder rows
       are updated, and a level that drops below 9 of 10 is reported, not hidden. New baselines go
-      into `baselines.tsv` with the commit.
-- [ ] Reviewer, documenter, commit.
+      into `baselines.tsv` with the commit. **Done 2026-11-14:** 10/10 on each of Levels 1-3 from
+      a receipted build, all acceptance claimed ([ladder](../research/campaign-bot-ladder.md)
+      section 7); `baselines.tsv` re-recorded at hash 519 (commit 207f3a58).
+- [x] Reviewer, documenter, commit. Two reviewer passes and a documenter pass, 2026-11-14; code
+      in 207f3a58.
 
 ## Task 3: the playbook format
 

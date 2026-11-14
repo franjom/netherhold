@@ -22,6 +22,19 @@ public static class PlayerActionRoutines
     public static bool IsEnemy(in PlayerVisibleThing thing, PlayerId self) =>
         thing.Kind == PlayerThingKind.Creature && thing.Owner != self && thing.Owner != PlayerIds.Neutral && thing.Owner != PlayerIds.Unowned;
 
+    /// <summary>An enemy (<see cref="IsEnemy"/>) that is not a captive: one standing on the player's own
+    /// Prison or Torture Chamber is taken for its prisoner, since a visible creature keeps its owner. The
+    /// observation has no captive flag, so a free hero crossing those tiles is not answered until it steps off.</summary>
+    public static bool IsThreat(PlayerObservation observation, in PlayerVisibleThing thing)
+    {
+        PlayerId self = observation.Stamp.Player;
+        if (!IsEnemy(thing, self)) return false;
+        PlayerTileGrid grid = observation.Tiles;
+        if (!grid.Contains(thing.Tile)) return true;
+        PlayerTile on = grid[thing.Tile];
+        return on.Owner != self || on.Room is not (RoomTypeId.Prison or RoomTypeId.TortureChamber);
+    }
+
     /// <summary>Own claimed ground a creature can stand on: known, not solid or liquid, the player's.</summary>
     public static bool IsOwnFloor(in PlayerTile tile, PlayerId self) =>
         tile.IsKnown && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Water | PlayerTileFlags.Lava)) == 0 && tile.Owner == self;
@@ -46,11 +59,14 @@ public static class PlayerActionRoutines
         return new TilePos(grid.Width / 2, grid.Height / 2);
     }
 
-    /// <summary>Tiles worth a dig mark: not already marked, not in <paramref name="skip"/>, beside own
-    /// floor, and either known diggable rock or not yet seen (a mark on unseen ground is a bet the game
-    /// allows a human too; whether it sticks follows the human path). Gold seams first when
-    /// <paramref name="preferGold"/>, then nearest <paramref name="home"/>, then Y, then X.</summary>
-    public static List<TilePos> Frontier(PlayerObservation observation, TilePos home, bool preferGold, ICollection<TilePos> skip)
+    /// <summary>Tiles worth a dig mark: not already marked, not in <paramref name="skip"/> or
+    /// <paramref name="avoid"/>, beside own floor, and either known diggable rock or not yet seen (a mark on
+    /// unseen ground is a bet the game allows a human too; whether it sticks follows the human path).
+    /// Without <paramref name="breach"/>, a tile beside open ground another player owns is left standing,
+    /// so a closed corridor stays closed. With <paramref name="tagged"/>, marked tiles are listed too. Gold seams first when <paramref name="preferGold"/>, then nearest
+    /// <paramref name="home"/>, then Y, then X.</summary>
+    public static List<TilePos> Frontier(PlayerObservation observation, TilePos home, bool preferGold, ICollection<TilePos> skip,
+        bool breach = true, ICollection<TilePos>? avoid = null, bool tagged = false)
     {
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
@@ -60,9 +76,9 @@ public static class PlayerActionRoutines
             {
                 var at = new TilePos(x, y);
                 PlayerTile tile = grid[at];
-                if ((tile.Flags & PlayerTileFlags.Tagged) != 0 || skip.Contains(at)) continue;
+                if (!tagged && (tile.Flags & PlayerTileFlags.Tagged) != 0 || skip.Contains(at) || avoid?.Contains(at) == true) continue;
                 bool diggable = !tile.IsKnown || (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Diggable)) == (PlayerTileFlags.Solid | PlayerTileFlags.Diggable);
-                if (!diggable || !BesideOwnFloor(grid, at, self)) continue;
+                if (!diggable || !BesideOwnFloor(grid, at, self) || !breach && BesideOthersGround(grid, at, self)) continue;
                 int gold = preferGold && (tile.Flags & PlayerTileFlags.GoldSeam) != 0 ? 0 : 1;
                 candidates.Add((gold, DistanceSquared(at, home), at));
             }
@@ -75,18 +91,46 @@ public static class PlayerActionRoutines
     }
 
     /// <summary>The build for <paramref name="room"/> on the best free square of own floor not in
-    /// <paramref name="tried"/>, when the panel offers it and the player can pay for the whole square.</summary>
-    public static PlayerAction.BuildRoom? BuildRoom(PlayerObservation observation, TilePos home, RoomTypeId room, int side, ICollection<TilePos> tried)
+    /// <paramref name="tried"/>, when the panel offers it and the player can pay for the whole square.
+    /// With <paramref name="grow"/>, a square touching a tile of the same room comes first, so the
+    /// room is extended rather than split.</summary>
+    public static PlayerAction.BuildRoom? BuildRoom(PlayerObservation observation, TilePos home, RoomTypeId room, int side, ICollection<TilePos> tried,
+        bool grow = false)
     {
         if ((observation.Offers.Actions & PlayerActionKinds.BuildRoom) == 0) return null;
         PlayerRoomOffer? offer = null;
         foreach (PlayerRoomOffer candidate in observation.Offers.Rooms)
             if (candidate.Room == room) offer = candidate;
         if (offer is not PlayerRoomOffer priced || (long)priced.Cost.Value * side * side > observation.Gold.Value) return null;
-        foreach (TilePos corner in RoomSquares(observation, home, side))
+        List<TilePos> squares = RoomSquares(observation, home, side);
+        if (grow)
+            foreach (TilePos corner in squares)
+                if (!tried.Contains(corner) && Touches(observation.Tiles, corner, side, room, observation.Stamp.Player))
+                    return new PlayerAction.BuildRoom(room, corner, new TilePos(corner.X + side - 1, corner.Y + side - 1));
+        foreach (TilePos corner in squares)
             if (!tried.Contains(corner))
                 return new PlayerAction.BuildRoom(room, corner, new TilePos(corner.X + side - 1, corner.Y + side - 1));
         return null;
+    }
+
+    /// <summary>The tile of the own <paramref name="room"/> nearest <paramref name="home"/>, then Y, then X, not in
+    /// <paramref name="skip"/>; null when none shows.</summary>
+    public static TilePos? NearestRoomTile(PlayerObservation observation, RoomTypeId room, TilePos home, ICollection<TilePos>? skip = null)
+    {
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        TilePos? best = null;
+        long bestDistance = long.MaxValue;
+        for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var at = new TilePos(x, y);
+                PlayerTile tile = grid[at];
+                if (tile.Room != room || tile.Owner != self || !tile.IsKnown || skip?.Contains(at) == true) continue;
+                long d = DistanceSquared(at, home);
+                if (d < bestDistance) { bestDistance = d; best = at; }
+            }
+        return best;
     }
 
     /// <summary>Top-left corners of free squares of own floor, nearest home first, then Y, then X.</summary>
@@ -117,13 +161,12 @@ public static class PlayerActionRoutines
         return null;
     }
 
-    /// <summary>The visible enemy nearest <paramref name="home"/>, or null.</summary>
+    /// <summary>The visible threat (<see cref="IsThreat"/>) nearest <paramref name="home"/>, or null.</summary>
     public static PlayerVisibleThing? NearestEnemy(PlayerObservation observation, TilePos home)
     {
-        PlayerId self = observation.Stamp.Player;
         PlayerVisibleThing? enemy = null;
         foreach (PlayerVisibleThing thing in observation.Things)
-            if (IsEnemy(thing, self) && (enemy is null || DistanceSquared(thing.Tile, home) < DistanceSquared(enemy.Value.Tile, home)))
+            if (IsThreat(observation, thing) && (enemy is null || DistanceSquared(thing.Tile, home) < DistanceSquared(enemy.Value.Tile, home)))
                 enemy = thing;
         return enemy;
     }
@@ -207,6 +250,34 @@ public static class PlayerActionRoutines
                 if (!IsOwnFloor(tile, self) || tile.Room != default || (tile.Flags & PlayerTileFlags.Tagged) != 0) return false;
             }
         return true;
+    }
+
+    /// <summary>Whether a tile of the square at <paramref name="corner"/> has a 4-neighbour outside it showing the player's own <paramref name="room"/>.</summary>
+    private static bool Touches(PlayerTileGrid grid, TilePos corner, int side, RoomTypeId room, PlayerId self)
+    {
+        for (int i = 0; i < side; i++)
+        {
+            if (Shows(corner.X + i, corner.Y - 1) || Shows(corner.X + i, corner.Y + side)
+                || Shows(corner.X - 1, corner.Y + i) || Shows(corner.X + side, corner.Y + i)) return true;
+        }
+        return false;
+
+        bool Shows(int x, int y) => grid.Contains(new TilePos(x, y)) && grid[new TilePos(x, y)] is var t && t.Room == room && t.Owner == self;
+    }
+
+    /// <summary>Whether a 4-neighbour is known open ground of another side: a hero or rival keeper,
+    /// neither neutral nor unowned.</summary>
+    private static bool BesideOthersGround(PlayerTileGrid grid, TilePos at, PlayerId self)
+    {
+        foreach ((int dx, int dy) in Neighbours)
+        {
+            var next = new TilePos(at.X + dx, at.Y + dy);
+            if (!grid.Contains(next)) continue;
+            PlayerTile tile = grid[next];
+            if (tile.IsKnown && (tile.Flags & PlayerTileFlags.Solid) == 0
+                && tile.Owner != self && tile.Owner != PlayerIds.Neutral && tile.Owner != PlayerIds.Unowned) return true;
+        }
+        return false;
     }
 
     private static bool BesideOwnFloor(PlayerTileGrid grid, TilePos at, PlayerId self)

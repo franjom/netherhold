@@ -20,7 +20,7 @@ public sealed record GameSettings
     public int ScrollSpeed { get; init; } = 10;
     public int UiScale { get; init; } = 100;
     /// <summary>Ours, not DK2's: multisample anti-aliasing samples per pixel (1 = off, 2, 4 or 8).</summary>
-    public int Msaa { get; init; } = 1;
+    public int Msaa { get; init; } = 4;
     public bool WaterTranslucency { get; init; } = true;
     public bool EnvironmentMapping { get; init; } = true;
     public bool Headphones { get; init; } = false;

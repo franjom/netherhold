@@ -9,6 +9,8 @@ player 3, through `watch <dir> --campaign-player 3`. Diagnosis only: no build re
 it is an acceptance claim. Plan: [stage 3](../plans/2026-11-14-campaign-bot-stage3.md). Scenarios
 for the won levels are in `scenarios/campaign-player/level2/` and `level3/`; the others were
 generated in a scratch folder like them (`map: campaign:<level>`, `duration_ticks: 57600`).
+Sections 1-6 describe the controller before Task 2 (the strategy-driven refactor of Task 1 played
+the same); section 7 is the developing controller after it.
 
 The player's own default cap, `--player-max-ticks 14400` (one hour of game time), applied, so
 "no result" means none within that hour, not that the level cannot be won.
@@ -120,7 +122,7 @@ established; `campaign-win-sequence.md` section 5 covers what is read of them.
 **Output budget.** A 4-hour player run writes more than the 64 MiB default (6b: 109 MB, 8: 83 MB);
 per-level caps need `--player-output-mib` too.
 
-## 6. Limits
+## 6. Limits (sections 1-5)
 
 - Three seeds per level; one run per seed. Win rates are not estimated.
 - Every level was started from its level file alone. Whether a campaign's carried-over rewards
@@ -128,3 +130,49 @@ per-level caps need `--player-output-mib` too.
   checked here.
 - All runs used viewing player 3; none was refused, but which player each level gives the human
   was not checked against its PLAYERS records.
+
+## 7. Task 2: development (2026-11-14)
+
+Plan: [stage 3, Task 2](../plans/2026-11-14-campaign-bot-stage3.md). The player now grows an
+outgrown Lair, Hatchery or Treasury, builds the panel's other rooms once each, and holds digging back
+from other sides' open ground and from enemy sightings until no safe tile is left (`BreachMode`
+`WhenDeveloped`). It carries idle creatures to a Training Room or Workshop only when a level's strategy
+names it (`UseRooms`, empty by default). Build: base `18ed2ec6` plus the Task 2 change, hash 519.
+Evidence: `F:/DK2Evidence/studies/campaign-bot-task2-development--2026-11-14--001` (add-only,
+`manifest.json`; the full per-seed table is `payload/scripts-and-tables/t2-after.md`).
+
+**Diagnosis, seeds 1-3, unchanged player (before) against Task 2 (after).** Seeds claim nothing.
+Outcomes are wins, Defeated (Heart lost) or timed out at the 57600 cap; room tiles are the mean of
+the three seeds at the last observation.
+
+| Level | Before | After | Room tiles before / after | Wait share after |
+|---|---|---|---|---|
+| 1 | 3/3 won | 3/3 won | 18 / 18 | 70-75% |
+| 2 | 3/3 won | 3/3 won (later, ticks 4198-5245) | 18 / 42 (adds Library, Training Room) | 74-78% |
+| 3 | 3/3 won | 2/3 won; seed 3 Defeated at 9402 | 26 / 61 | 65-73% |
+| 4 | 0/3 (2 Defeated, 1 timed out) | 2/3 won (ticks 21245, 16688); seed 3 Defeated at 6959 | 54 / 161 | 73-77% |
+| 5 | 3 Defeated (7622-8141) | 3 survive to the cap | 47 / 77 | 97% |
+| 6a | 3 Defeated | 3 Defeated, sooner (3854-4920) | 131 / 166 | 72-80% |
+| 6b | 3 timed out | 1 timed out, 2 Defeated (seed 3 at 4444): worse | 92 / 126 | 55-91% |
+| 7 | 2 Defeated, 1 timed out | same | 101 / 134 | 83-87% |
+| 8 | 3 timed out | same (idle 99%) | 16 / 16 | 99-100% |
+| 9 | 3 Defeated | 3 Defeated | 63 / 69 | 67-69% |
+| 10 | 3 Defeated | 3 Defeated | 25 / 70 | 75-81% |
+
+Room tiles rise 2-3 times on most levels; the wait share is reported, not a goal. Level 3 seed 3 and
+Level 6b are worse than before. Level 5 no longer loses its Heart but does nothing for 97% of its
+decisions. The Level 4 wins are diagnosis seeds on a level whose outcomes still differ from DK2's
+(Q710, section 4): Level 4 stays out of the driver choice and is not accepted.
+
+**Strategy decisions.** A first default of never breaching could not win Level 1 (it stopped digging at
+tick 3253), so the default breaches once no safe tile is left. An earlier accept with the Training Room
+carrying on by default lost Level 3 accept seeds 12 and 13 (8/10). On those two seeds, training off won
+both, extras off won both, and always breaching still lost seed 13, so carrying creatures to the
+training lifts was the cause and `UseRooms` defaults to empty.
+
+**Re-acceptance of Levels 1-3 on accept seeds 11-20** (receipted build, dirty tree recorded with
+`tracked.patch`): Level 1 10/10, Level 2 10/10, Level 3 10/10 (each 72-100% Wilson), all acceptance
+claimed, finale `ReachedPickup`. Two later edits (clearing refused work tiles; one `IsThreat` doc line)
+change no default decision: the nine seed 1-3 baseline games rerun identical in hashes, decisions and
+actions. `scenarios/campaign-player/baselines.tsv` is re-recorded at hash 519.
+

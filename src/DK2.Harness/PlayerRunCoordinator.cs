@@ -128,6 +128,9 @@ public sealed class PlayerRunCoordinator
     public PlayerFinaleCoverage Finale { get; private set; }
     public GameTick? FinalePickupTick { get; private set; }
 
+    /// <summary>The last observation the controller was given, for the verdict's development summary.</summary>
+    public PlayerObservation? LastObservation { get; private set; }
+
     /// <summary>Called after input tick <paramref name="completedTick"/> completed. Returns the
     /// commands for the next input frame; with <paramref name="anotherTick"/> false it only records the
     /// result, since no frame follows to carry a decision.</summary>
@@ -200,6 +203,7 @@ public sealed class PlayerRunCoordinator
         var stamp = new PlayerStamp(_options.RunId, _options.Player, world.CurrentTick, new PlayerRevision(++_revision));
         PlayerObservationCapture capture = _builder.Capture(world, stamp, _session.TakeReceipts());
         _session.Observe(capture);
+        LastObservation = capture.Observation;
 
         PlayerDecision? decision;
         try { decision = _options.Controller.Decide(capture.Observation); }
