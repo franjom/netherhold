@@ -77,7 +77,9 @@ public static class KeyboardSetup
         new((GameAction)56, 1754u),
         new((GameAction)57, 1269u),
     });
+    /// <summary>The actions a key reaches. Of the possession keys, PickLock and the two abilities are not built.</summary>
     public static bool IsBuilt(GameAction action) => action is >= GameAction.ZoomIn and <= GameAction.RotateRight
+        or GameAction.Sniper or (>= GameAction.Fire and <= GameAction.Spell3) or GameAction.SelectAlly or GameAction.RemoveAlly
         or GameAction.Options or GameAction.ObjectsOnly or GameAction.AmbientUp or GameAction.AmbientDown
         or GameAction.NextFight or GameAction.TogglePanel or GameAction.Heart or GameAction.FullMap
         or GameAction.Portal or GameAction.MouseRotate or GameAction.MouseZoom;

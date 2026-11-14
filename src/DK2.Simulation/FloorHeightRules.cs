@@ -150,7 +150,7 @@ public static class FloorHeightRules
         return mask;
     }
 
-    private static bool IsPortalCentre(WorldState world, TileState tile, TilePos at)
+    public static bool IsPortalCentre(WorldState world, TileState tile, TilePos at)
     {
         foreach (int k in (ReadOnlySpan<int>)[0, 2, 4, 6])
         {

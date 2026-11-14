@@ -105,16 +105,23 @@ public sealed class ClassicCamera
         Vector3 offset = ToUnity(Vector3.TransformNormal(new Vector3(0, 0, -distance), inverseView));
         Vector3 forward = ToUnity(Vector3.TransformNormal(Vector3.UnitZ, inverseView));
         Vector3 up = ToUnity(Vector3.TransformNormal(-Vector3.UnitY, inverseView));
-        float focalPixels = (float)(new Fp32(_profile.Lens) * new Fp32(320 * Fp32.One)).ToDouble();
-        // Match the reference horizontal coverage before applying viewport cropping.
-        if (ReferenceScreenWidth is int reference)
-            focalPixels *= viewport.ScreenWidth / (float)reference;
-        float fov = (float)(2 * Math.Atan(viewport.Height / (2.0 * focalPixels)) * 180 / Math.PI);
+        float fov = VerticalFieldOfView(_profile.Lens, viewport, ReferenceScreenWidth);
         return new ClassicCameraPose(focus + offset, forward, up, fov,
             NativeViewDistance,
             90f - new Dk2Angle(_profile.AnglePitch).Value * (360f / 2048),
             _yaw.Value * (360f / 2048),
             1f - 2f * ProjectionCentre);
+    }
+
+    /// <summary>The vertical field of view, in degrees, of a preset's lens: 320 pixels of focal length
+    /// to a lens of one, on a screen <paramref name="referenceScreenWidth"/> wide when that is given.</summary>
+    public static float VerticalFieldOfView(int lens, CameraViewport viewport, int? referenceScreenWidth)
+    {
+        float focalPixels = (float)(new Fp32(lens) * new Fp32(320 * Fp32.One)).ToDouble();
+        // Match the reference horizontal coverage before applying viewport cropping.
+        if (referenceScreenWidth is int reference)
+            focalPixels *= viewport.ScreenWidth / (float)reference;
+        return (float)(2 * Math.Atan(viewport.Height / (2.0 * focalPixels)) * 180 / Math.PI);
     }
 
     private static float Radians(Dk2Angle angle) => angle.Value * ((float)Math.PI / 1024);

@@ -19,6 +19,13 @@ public class KeyboardSetupTests
         Assert.True(KeyboardSetup.IsBuilt(GameAction.MouseRotate));
     }
     [Fact]
+    public void ThePossessionKeysAreBuiltExceptThePickLockAndTheTwoAbilities()
+    {
+        GameAction[] unbuilt = [GameAction.PickLock, GameAction.PrimaryAbility, GameAction.SecondaryAbility];
+        for (GameAction action = GameAction.Sniper; action <= GameAction.RemoveAlly; action++)
+            Assert.Equal(Array.IndexOf(unbuilt, action) < 0, KeyboardSetup.IsBuilt(action));
+    }
+    [Fact]
     public void RebindingBuiltActionIsLiveAndCancelRestoresIt()
     {
         var options = new OptionsPagesController(new GameSettings()); options.Enter(FrontEndPage.Controls);

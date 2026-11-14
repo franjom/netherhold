@@ -25,12 +25,14 @@ namespace DK2.Unity.Editor
             string output = args[at + 1];
             Directory.CreateDirectory(Path.GetDirectoryName(output));
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, Backend(args));
+            // FrameTimingManager's GPU time (gpu_ms) needs the player's frame timing stats.
+            PlayerSettings.enableFrameTimingStats = true;
             IncludeShadersFoundByName();
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-            EditorSceneManager.SaveScene(scene, "Assets/GameProbe.unity");
+            // The game's scene, not a default one: a default scene's camera and shadow-casting light
+            // drew neither the game's lighting nor its GPU cost.
             BuildReport report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = new[] { "Assets/GameProbe.unity" },
+                scenes = new[] { "Assets/DK2/Scenes/Dungeon.unity" },
                 locationPathName = output,
                 target = BuildTarget.StandaloneWindows64,
                 // -probeRelease 1 builds without development options: the probe's own recorders then read

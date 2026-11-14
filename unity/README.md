@@ -324,7 +324,7 @@ the bottleneck, and CPU Timeline/GC allocation call stacks for script spikes.
 Verify final performance in a release build, which strips profiler calls.
 Players build with IL2CPP (ADR-0690): the editor needs its Windows IL2CPP module
 and Visual Studio's C++ tools, and a first-use cost seen in Play mode (Mono) may not
-exist in the player. `tools/game-unity-probe/run.ps1 -Il2cpp` measures the player.
+exist in the player. `tools/game-unity-probe/run.ps1 -Il2cpp` measures the player, and its `-Benchmark` compares the GPU cost of settings (README there).
 
 A release player records its own frames when asked (`FrameRecorder`, ADR-0691):
 `-recordFrames [directory]` on the command line, or a file named `record-frames`
