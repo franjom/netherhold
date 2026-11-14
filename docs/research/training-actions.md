@@ -43,6 +43,11 @@ second's), and keeps the nearest squared fixed-point XY distance.
 Strict comparison preserves the first object on a distance tie. A chance
 failure across an existing type repeats that type's scan.
 
+The machine selector does not count trainees, reserve machines or penalize an
+occupied dummy. State 108's random dummy approach likewise has no occupied-angle
+test. Nearest-machine selection can therefore concentrate arrivals at one dummy;
+this does not establish how general movement collision or separation spaces them.
+
 `0x004F3310` walks the room slab chain, excluding floor and wall furniture
 slots. It probes a line from each cell centre to the target's actual position
 through world virtual slot `+0x30C`. An improving distance candidate draws
