@@ -60,6 +60,12 @@ AI agents come after that, in two roles:
 - **Skirmish playtester.** An agent runs the bot on skirmish maps to check that the
   game plays well and does not crash, and reports what it finds.
 
+Training the bot means building that knowledge, not training a model: a playbook per
+level holds what a veteran player knows (layout, resources, what the script does and
+when), shared routines hold how to play, and a self-play tuner searches the playbooks'
+numbers on the headless simulation. Strategy notes from human footage come later and
+are kept only if self-play shows they help (`tools/footage/README.md`).
+
 The bot is a player-side controller. It is not the Enhanced keeper, which remains a
 computer opponent outside Classic fidelity scope, though the two may share routines.
 
@@ -257,7 +263,7 @@ These are separate implementation increments, not one large implementation plan.
 |---|---|
 | 1. Player contract and host | Player-visible observation and normal-command adapter over the existing harness. Prove hidden-information isolation, stale/wrong-run rejection, action deduplication, bounds and recorded-input reproduction. |
 | 2. Level 1 baseline | Unattended goal-directed attempt using reusable action routines. Reach the actual win verdict, or stop with a reproducible technical finding or explicit controller limitation. No human rescue or hidden-state action oracle. |
-| 3. Capable campaign bot | Extend the stage 2 controller, with no model, to every campaign level the simulation can complete. A level counts once the bot wins it unattended on declared seeds, with the journals replayed. A level it cannot win is reported with the reason: a controller limitation, or a missing mechanic filed as its own task. The routines are shared across levels; level-specific ones are listed. Each newly playable level is added as it lands. Start with Level 2. |
+| 3. Capable campaign bot | Extend the stage 2 controller, with no model, to every campaign level the simulation can complete. A level counts once the bot wins it unattended on declared seeds, with the journals replayed. A level it cannot win is reported with the reason: a controller limitation, or a missing mechanic filed as its own task. The routines are shared across levels; level-specific ones are listed. Each newly playable level is added as it lands. Start with Level 2. Its knowledge is per-level playbooks (veteran knowledge, owner decision 2026-11-14) and shared routines, tuned by self-play over seeds; no model is trained. Plan: [stage 3](2026-11-14-campaign-bot-stage3.md). |
 | 4. Agent supervision | A local external agent supervises the stage 3 bot through the same contract: it reads checkpoint summaries, analyzes and checks the play, and changes the bot's strategy. Bound calls/tokens/time and record responses; replay still needs no model. Requires stage 3 on at least the levels it is tried on. |
 | 5. Rendered gameplay | Run the controller in an isolated release Unity player, prove desktop/input isolation, collect linked visual/audio evidence and review selected milestones. |
 | 6. UI and campaign loop | Extend Stage D virtual input through the real UI; exercise launch/briefing, gameplay interactions, save/load, results and continuation with no desktop input injection. |
@@ -314,7 +320,7 @@ outcomes for the same applied inputs; reducing fidelity or evidence coverage is
 not an optimization. Apply this requirement to later implementation plans too.
 
 The owner approved this design, and stages 1-2 are built. Stage 3, the capable
-bot, is next and needs its own concrete plan. The
+bot, is next: [its plan](2026-11-14-campaign-bot-stage3.md). The
 agent supervision plan (`2026-11-09-campaign-player-stage3-agent-supervision.md`)
 now covers stage 4 and waits on stage 3. Every later stage needs its own concrete
 plan and measured acceptance.

@@ -130,7 +130,8 @@ These are entry points, not a new priority order.
   can claim acceptance under the conditions in the [harness README](../src/DK2.Harness/README.md),
   and prints `not claimed: <reasons>` otherwise.
   Next (owner direction, 2026-11-14): stage 3 of the design, a capable bot that needs no model
-  and plays every campaign level as it becomes playable, starting with Level 2.
+  and plays every campaign level as it becomes playable, starting with Level 2
+  ([plan](plans/2026-11-14-campaign-bot-stage3.md): strategy, per-level playbooks, a self-play tuner).
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
