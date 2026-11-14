@@ -252,7 +252,7 @@ are disabled until runtime consumers exist. Gameplay startup/restart apply loade
 Gamma and ScrollSpeed after camera creation, then audio values after player creation.
 Rebound gameplay keys use the shared resolver; modal text/key capture suppresses them.
 
-`Msaa` (1, 2, 4 or 8; rounded down, default 1) is a remake setting with no Options control: it is read from
+`Msaa` (1, 2, 4 or 8; rounded down, default 4) is a remake setting with no Options control: it is read from
 `game-settings.ini` and sets the URP asset's sample count.
 
 UiScale is a remake setting (50..200%). Gameplay HUD transforms share inverse
