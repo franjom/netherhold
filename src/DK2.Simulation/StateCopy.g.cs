@@ -277,6 +277,7 @@ namespace DK2.Simulation
             PossessedTargetTick = other.PossessedTargetTick;
             SneakingAs = other.SneakingAs;
             SniperMode = other.SniperMode;
+            Creeping = other.Creeping;
             HypnotisedCreatureId = other.HypnotisedCreatureId;
             HypnosisOwnerPlayerId = other.HypnosisOwnerPlayerId;
             Hypnotised = other.Hypnotised;

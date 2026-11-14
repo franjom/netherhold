@@ -1347,6 +1347,12 @@ public sealed partial class CreatureState
     /// <c>+0x3EA</c> bit 0, AttackCreatureHits <c>+0x4D9</c> and NHypnotisedAttacks <c>+0x4DB</c>.</summary>
     public ushort SneakingAs;
     public bool SniperMode;
+
+    /// <summary>DK2's Creeping, <c>+0x3E6</c> bit 12: set and cleared by the possessor's creep key
+    /// (game action 0x22) and cleared on leaving possession. The combat scans and a sneak's watchers
+    /// judge a creeping creature at <see cref="DK2.Data.Model.CreatureDef.CreepingDistancePercent"/>
+    /// of its squared distance (<see cref="PossessionRules.CreepingDistance"/>).</summary>
+    public bool Creeping;
     public int HypnotisedCreatureId;
     public byte HypnosisOwnerPlayerId;
     public bool Hypnotised;
@@ -1742,6 +1748,7 @@ public sealed partial class CreatureState
         hash.Add(PossessedTargetTick);
         hash.Add(SneakingAs);
         hash.Add(SniperMode);
+        hash.Add(Creeping);
         hash.Add(HypnotisedCreatureId);
         hash.Add(HypnosisOwnerPlayerId);
         hash.Add(Hypnotised);

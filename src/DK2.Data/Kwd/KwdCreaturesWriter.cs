@@ -85,6 +85,9 @@ public static partial class KwdCreatures
         U16(0xEAC, (ushort)row.AirFriction);
         S32(0xEA4, row.Height.Raw);
         S32(0xEB0, row.EyeHeight.Raw);
+        S32(0xDBC, row.FirstPersonWaddle);
+        S32(0xDC0, row.FirstPersonBob);
+        U8(0xD3D, row.FirstPersonWalkCycleScale);
         S32(0xEC8, row.DistanceCanSee.Raw);
         S32(0xECC, row.DistanceCanHear.Raw);
         S32(0xD01, row.PerceptionRange.Raw);
@@ -134,6 +137,7 @@ public static partial class KwdCreatures
         S32(0xED8, row.IdleDuration.Raw);
         S32(0xEDC, row.SlapFearlessDuration.Raw);
         S16(0xEE8, row.PossessionManaCost);
+        S32(0xEE4, row.CreepingDistancePercent);
         U8(0xF52, (byte)row.LairObjectId);
         U16(0xF24, row.NameStringId);
         U16(0xF26, row.TooltipStringId);

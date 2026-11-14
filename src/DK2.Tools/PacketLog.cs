@@ -141,6 +141,10 @@ public sealed class PacketLog
                 case 21:
                     commands.Add(new LeavePossessionCommand(player));
                     break;
+                case 34:
+                    // 0x00517310: bit 0 of the first dword is the possessed creature's Creeping bit.
+                    commands.Add(new SetCreepingCommand(player, (a.First & 1) != 0));
+                    break;
                 case 25:
                     // 0x005146B0: X, Y, then Z in the word's low half and the heading in its high half.
                     commands.Add(new MovePossessedCreatureCommand(player, new PossessionPose(

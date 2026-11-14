@@ -20,6 +20,7 @@ public class KwdCreaturesWriterTests
             "EntranceOffsetX:E94:4 EntranceOffsetY:E98:4 PrayerStepX:127B:4 PrayerStepY:127F:4 GetUpStepY:128B:4 DeathFallStepY:1297:4 EntranceFrames:A3C:4 EntranceFramesPerSecond:A40:4 GetUpFrames:940:4 GetUpFramesPerSecond:944:4 " +
             "AngryArtType:364:1 AngryArtFlags:354:4 AngryFrames:358:4 AngryFramesPerSecond:35C:4 " +
             "Speed:EB4:4 RunSpeed:EB8:4 ShuffleSpeed:D37:4 Height:EA4:4 EyeHeight:EB0:4 AirFriction:EAC:2 " +
+            "FirstPersonWaddle:DBC:4 FirstPersonBob:DC0:4 FirstPersonWalkCycleScale:D3D:1 " +
             "DistanceCanSee:EC8:4 DistanceCanHear:ECC:4 PerceptionRange:D01:4 FootprintRadius:EA0:4 SizeClass:EA8:4 TurnRate:F20:2 " +
             "Hp:F0C:2 HpFromChicken:F0E:2 HungerRate:EBC:4 HungerFill:F4E:1 Unknown_0F4C:F4C:1 " +
             "TimeAwake:EC0:4 TimeSleep:EC4:4 OwnLandHealthIncreasePerSecond:EEA:2 DecomposeValue:F22:2 " +
@@ -29,7 +30,7 @@ public class KwdCreaturesWriterTests
             "ExpPerSecondTraining:F06:2 ResearchPerSecond:F08:2 ManufacturePerSecond:F0A:2 ManaGeneratedByPrayerPerSecond:F18:2 JobClass:F02:1 " +
             "UnhappyThreshold:F4F:1 AngerNoLair:F28:2 AngerNoFood:F2A:2 AngerNoPay:F2C:2 AngerNoWork:F2E:2 " +
             "AngerSlap:F30:2 AngerInHand:F32:2 DropDeliveryCalm:FCB:2 TortureHpChange:107F:2 TortureMoodChange:1081:2 TortureTimeToConvert:EF4:4 " +
-            "GuardDuration:ED4:4 IdleDuration:ED8:4 SlapFearlessDuration:EDC:4 PossessionManaCost:EE8:2 LairObjectId:F52:1 " +
+            "GuardDuration:ED4:4 IdleDuration:ED8:4 SlapFearlessDuration:EDC:4 PossessionManaCost:EE8:2 CreepingDistancePercent:EE4:4 LairObjectId:F52:1 " +
             "CloneCreatureId:D3B:1 NameStringId:F24:2 TooltipStringId:F26:2 DescriptionStringId:F38:2 SpecialNameStringId:14DF:2 IntroductionStringId:CFF:2 UnhappySpeechId:D05:2 AngrySpeechId:D07:2 LeftSpeechId:D09:2 EntranceEffectId:F36:2",
             excludedProperties: ["Attractions", "Spells", "Resistances", "HappyJobs", "UnhappyJobs", "AngryJobs", "HateJobs", "AlternativeJobs",
                 "KnockdownAnimation", "GetUpAnimation", "KnockdownFallbackAnimation", "GetUpFallbackAnimation",

@@ -80,6 +80,7 @@ public static class HumanCommandPolicy
         [typeof(ToggleSneakCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(HypnotiseCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(SetSniperModeCommand)] = HumanCommandClass.NoHumanPathYet,
+        [typeof(SetCreepingCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(MovePossessedCreatureCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(GrantCreatureLevelCommand)] = HumanCommandClass.ComputerKeeperOnly,
         [typeof(MintWageCommand)] = HumanCommandClass.ComputerKeeperOnly,

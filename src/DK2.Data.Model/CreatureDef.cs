@@ -178,6 +178,18 @@ public sealed record CreatureDef
 
     public required Fp32 Height { get; init; }
     public required Fp32 EyeHeight { get; init; }
+
+    /// <summary>File <c>+0xDBC</c> (<c>def+0x863</c>): the scale of the possessed view's waddle, the
+    /// side-to-side sway and roll of the walk cycle (docs/research/possession-client.md §2).</summary>
+    public int FirstPersonWaddle { get; init; }
+
+    /// <summary>File <c>+0xDC0</c> (<c>def+0x867</c>): the scale of the possessed view's vertical bob.</summary>
+    public int FirstPersonBob { get; init; }
+
+    /// <summary>File <c>+0xD3D</c> (<c>def+0x86B</c>): how fast the possessed view's walk cycle
+    /// runs, in table steps per 50 ms.</summary>
+    public byte FirstPersonWalkCycleScale { get; init; }
+
     public required Fp32 DistanceCanSee { get; init; }
     public required Fp32 DistanceCanHear { get; init; }
     /// <summary>
@@ -277,6 +289,11 @@ public sealed record CreatureDef
     public required Fp32 IdleDuration { get; init; }
     public required Fp32 SlapFearlessDuration { get; init; }
     public required short PossessionManaCost { get; init; }
+
+    /// <summary>File <c>+0xEE4</c> (<c>def+0x760</c>): the per cent of its true squared distance at
+    /// which a creeping creature is judged by the combat scans and by a sneak's watchers. 50 on
+    /// every shipped creature but the Horned Reaper's 0 (combat-target-selection.md §2).</summary>
+    public int CreepingDistancePercent { get; init; }
     public required byte LairObjectId { get; init; }
     /// <summary>The same source byte as UniqueBaseCreatureId (Q528); editing either view updates both.</summary>
     public required byte CloneCreatureId { get => _baseCreatureId; init => _baseCreatureId = value; }

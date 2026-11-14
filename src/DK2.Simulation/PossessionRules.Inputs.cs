@@ -25,8 +25,8 @@ public static partial class PossessionRules
 
     /// <summary>ToggleSneak (<c>0x0048EE90</c>): a disguise as the owner of the tile named, ended by a
     /// second press, a tile of its own or the neutral player's, or a watcher allied to that owner
-    /// within its sight and in sight. Creeping (<c>+0x3E6</c> bit 12), which scales the distance, and
-    /// <c>0x00455990</c>, called first, are not represented. DK2 reads any tile unchecked; a tile off
+    /// within its sight and in sight; a creeping sneaker's distance is scaled first
+    /// (<see cref="CreepingDistance"/>). <c>0x00455990</c>, called first, is not represented. DK2 reads any tile unchecked; a tile off
     /// this map changes nothing.</summary>
     public static void ToggleSneak(SimulationContext context, ISightBlocker sight, CreatureState me, int tileX, int tileY)
     {
@@ -43,7 +43,8 @@ public static partial class PossessionRules
             {
                 if (!world.AreAllied(TurncoatRules.CombatSide(c), owner)) continue;
                 int range = CombatRules.RangeSquared(context.Database.CreatureById(c.CreatureTypeId).DistanceCanSee);
-                if (unchecked((int)TrapRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY)) >= range) continue;
+                int d = CreepingDistance(context.Database, me, unchecked((int)TrapRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY)));
+                if (d >= range) continue;
                 if (!LineOfSight.Clear(sight, me.PosX, me.PosY, c.PosX, c.PosY)) continue;
                 me.SneakingAs = 0;
                 return;
@@ -180,4 +181,24 @@ public static partial class PossessionRules
     /// <summary>Command 39 (<c>0x005171D0</c>): the flag takes the packet's value, for any possessed
     /// creature.</summary>
     public static void SetSniperMode(CreatureState me, bool on) => me.SniperMode = on;
+
+    // ------------------------------------------------------------------ creep
+
+    /// <summary>Game action 0x22 (<c>0x00517310</c>): the possessed creature's Creeping bit takes
+    /// the packet's bit 0, with no other test.</summary>
+    public static void SetCreeping(CreatureState me, bool on) => me.Creeping = on;
+
+    /// <summary>The weighting every combat scan and the sneak's watcher test apply straight after
+    /// the squared distance, before the alignment discount (<c>0x0045B282</c>-<c>0x0045B2E8</c> and
+    /// its ten copies): a creeping creature's distance times its definition's per cent, over 100.
+    /// Above level 1 the per cent is first scaled by the level row, a signed product divided by 100
+    /// toward zero; the distance product keeps its low 32 bits and divides unsigned.</summary>
+    public static int CreepingDistance(GameDatabase database, CreatureState creeper, int distanceSquared)
+    {
+        if (!creeper.Creeping) return distanceSquared;
+        int percent = database.CreatureById(creeper.CreatureTypeId).CreepingDistancePercent;
+        if (creeper.Level != 1)
+            percent = unchecked(database.StatPercent(CreatureStatId.CreepingDistance, creeper.Level) * percent) / 100;
+        return unchecked((int)((uint)(distanceSquared * percent) / 100u));
+    }
 }

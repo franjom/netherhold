@@ -64,6 +64,10 @@ public enum CreatureStatId
     RunSpeed = 22,
 
     TortureTimeToConvert = 24,
+    /// <summary>Scales <c>CreepingDistancePercent</c> above level 1 (the row at
+    /// <c>[0x006E4154]+0x2A3</c>; docs/research/combat-target-selection.md §2).</summary>
+    CreepingDistance = 26,
+
     PossessionManaCost = 27,
 
     /// <summary>Own-land regeneration. 100% at every level, so an Imp heals at 67 for ever.</summary>

@@ -63,6 +63,7 @@ public static class CommandCodec
             case ToggleSneakCommand c: Head(w, 25, c); w.Write(c.TileX); w.Write(c.TileY); break;
             case HypnotiseCommand c: Head(w, 26, c); Aim(w, c.Aim); break;
             case SetSniperModeCommand c: Head(w, 27, c); w.Write(c.On); break;
+            case SetCreepingCommand c: Head(w, 37, c); w.Write(c.On); break;
             case MovePossessedCreatureCommand c:
                 Head(w, 28, c); Position(w, c.Pose.Position); w.Write(c.Pose.Heading.Raw); break;
             case SetRescuePriorityCommand c: Head(w, 29, c); w.Write(c.CreatureId); w.Write(c.Enabled); break;
@@ -113,6 +114,7 @@ public static class CommandCodec
                 : new CreateImpCommand(player, r.ReadBoolean() ? ReadTile(r) : null),
             5 => new PickUpCreatureCommand(player, r.ReadInt32()),
             36 => new TakeCreatureCommand(player, r.ReadInt32()),
+            37 => new SetCreepingCommand(player, r.ReadBoolean()),
             6 => new PickUpObjectCommand(player, r.ReadInt32()),
             7 => new PickUpStoreGoldCommand(player, ReadTile(r)),
             8 => new DropCommand(player, ReadTile(r), r.ReadInt32(), r.ReadBoolean() ? ReadPosition(r) : null,

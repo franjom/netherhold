@@ -81,6 +81,7 @@ public static class PeerCommands
         or PullCasinoLeverCommand or SkipCameraPathCommand
         or AcknowledgePlayerMessageCommand or LeavePossessionCommand or ActPossessedCreatureCommand
         or DismissFollowersCommand or ToggleSneakCommand or HypnotiseCommand or SetSniperModeCommand
+        or SetCreepingCommand
         or SetRescuePriorityCommand or ContinueAfterResultCommand
         or ActivateSpecialCommand or WithdrawCounterGoldCommand;
 }

@@ -211,6 +211,9 @@ public static partial class KwdCreatures
             AirFriction = U16(0xEAC),
             Height = Fp(0xEA4),
             EyeHeight = Fp(0xEB0),
+            FirstPersonWaddle = S32(0xDBC),
+            FirstPersonBob = S32(0xDC0),
+            FirstPersonWalkCycleScale = U8(0xD3D),
             DistanceCanSee = Fp(0xEC8),
             DistanceCanHear = Fp(0xECC),
             PerceptionRange = Fp(0xD01),
@@ -281,6 +284,7 @@ public static partial class KwdCreatures
             IdleDuration = Fp(0xED8),
             SlapFearlessDuration = Fp(0xEDC),
             PossessionManaCost = S16(0xEE8),
+            CreepingDistancePercent = S32(0xEE4),
             LairObjectId = U8(0xF52),
             CloneCreatureId = U8(OffsetBaseCreatureId),
 
