@@ -249,6 +249,48 @@ corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamageP
   or a state change earlier in the Dwarf's update, remain. Not read.
   Ours, on a synthetic corridor (scratch probe, not a test), lands the second hit in 257 as DK2 does.
 
+### 9c. Q737 recheck: stun duration does not establish the next state
+
+Rechecked 2026-11-14 on master `0a9a4154`, hash 511, using the archived
+`M7Q513a` level files, default campaign systems, no commands, Xoshiro seeds
+1 and 7, and 170 completed ticks. In seed 1, the Troll enters 256 at completed
+tick 9 and reaches 257 at 17. In seed 7, it enters 256 at 11 but leaves for
+221 at 14 with 6 `StunTicks` remaining. The old claim that ours invariably
+holds 256 for eight turns is superseded.
+
+The original capture retains these sampled observations (CONFIRMED):
+
+| Recorded label | Troll state | Health word | State-entry stamp | State age | Boulder wear |
+|---|---:|---:|---:|---:|---:|
+| 12 | 256 | 500 | 11 | 0 | 500 |
+| 13 | 216 | 240 | 12 | 0 | 760 |
+
+At label 12, fear is 1752, the threat tag is the live Boulder 1155, attackability
+is set and the fearless deadline is zero. The Troll moves north before the
+next sampled state; its persistent physical vectors remain zero. The loaded
+definition's stun interval and intermediate state are absent from this legacy
+capture. The dying health word is a countdown; wear accounting is also Q725
+(§9b). These labels are not aligned modern completed ticks, and the native
+seed and full initial state are unknown.
+
+STRONGLY INFERRED: state 256 jumps to the ordinary-stun handler, whose hold
+tests unsigned `now - entry < StunDuration`. However, the earlier fear prelude
+excludes only 255 (`0x00489B84`–`0x00489B8F`), allowing fear to interrupt 256.
+The missing 255 exemption in our mirror is corrected in hash 512 (ADR-0678
+amendment); the paired 256 control still flees without spending its stun timer.
+This guard leaves all twelve actor/object/trap/event traces of the two tested
+seeds and seed-1 repeat unchanged.
+
+Fear interrupting the original Troll before its second hit is HYPOTHESIS,
+not a captured transition. The strike precedes the roll, so post-roll distance
+does not exclude an earlier collision. Q737 remains open: capture the loaded
+interval and state immediately before the following object pass. No change
+to the Troll's stun duration is justified.
+
+Evidence, observers, traces and verification receipts:
+`F:/DK2Evidence/studies/q737-current-baseline--2026-11-14--001` and
+`F:/DK2Evidence/studies/q737-stun-exemption--2026-11-14--001`.
+
 ## 10. Built and not built (ADR-0333)
 
 **Built:** §1; §2's fields as `ObjectState` (`Health`, `PosX/PosY`, `RollX/RollY`, `RollSpeed`, `Wear`,

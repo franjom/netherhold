@@ -15000,8 +15000,7 @@ up to nine turns later: `level18_nemesis_heal` heals 2300 (the sleeper has regai
 `level18_nemesis_inferno_chicken` moves to seed 1 and `a_goblin_eats_a_chicken` re-picks bird 19.
 Separately, `level17_harkan_call_to_arms` moves to seed 2: since ADR-0639 (hash 390, bisected) seed
 12345's lifts on turns 37-39 took the Call's turn. A creature `WorldResync` adds holds its made tile too.
-Left in Q732: the walk to the trap, the Vampire's ranged cast, the idle wander; Q737: the
-boulder-struck Troll's death a turn later.
+Remaining comparisons: Q732 (`combat-spells.md` §5) and Q737 (`boulder.md` §9c).
 
 ## ADR-0642: one confidence scale for notes, records and code
 
@@ -15902,7 +15901,7 @@ the fear accumulator and before the dispatcher. `Creature_AddThreat` (`0x0045C5D
 copies in the accumulator (`0x0045E4F0`) name the source of any positive threat at `+0x533`; the last
 writer wins. Ours added the threat but kept no source.
 - Gates: not possessed or dying, not `IsFearless` and past `FearlessUntil`, `CurrentFear` over the level's
-  `Fear`, a state, attackable, not already walking to 221. It then fires creature event 12.
+  `Fear`, a state other than 255, attackable, not already walking to 221. It then fires creature event 12.
 - Outside the Combat category, with a live thing: a creature, or a thing at 25 tiles squared (five tiles)
   or more, is cleared with no flight. Nearer, zero tile offsets take `random(2)`, and up to five tries of `random(|4dx|)`,
   `random(|4dy|)` look for a point the world holds with a clear line to it.
@@ -15920,11 +15919,15 @@ systems leave a fleeing creature alone. State 221 is the new `RunningFromThreat`
 - Two new saved and hashed creature fields, `ThreatThingKind` and `ThreatThingId`.
 - Creature event 12 (Afraid) now fires.
 - Not mirrored: the timed-effect threat source (`+0x463`/`+0x467`); the owner discount (Q375); the
-  attackable bit as the previous turn computed it (ours is live); state 6's generic work during the walk;
+  state 6's generic work during the walk;
   the needs and anger checks DK2 runs in states 6 and 221; an Imp's task release by its state hooks.
 
 STRONGLY INFERRED from the disassembly. Records `00488930` and `0045C5D0` hold the detail.
 
+
+**Amendment 2026-11-14 (hash/save 512).** Mirror the missing state-255 exemption
+before event 12; state 256 remains eligible. This corrects the ordinary-stun
+guard, not the unobserved original Q737 transition. See `boulder.md` §9c.
 ## ADR-0679: a closed door pushes creatures off its tile, through the physical pass
 
 **Date:** 2026-11-05. **Status:** accepted. Hash/save 423. · **Systems:** doors-traps, creatures

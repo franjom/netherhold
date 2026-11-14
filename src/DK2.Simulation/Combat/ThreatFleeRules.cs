@@ -26,7 +26,7 @@ public readonly record struct ThreatSource(byte Kind, int Id)
 /// <summary><c>Creature_Update</c>'s flight from its threat (<c>0x00489AD3</c>-<c>0x00489E27</c>, ADR-0678),
 /// after the fear accumulator (<c>0x00489ACE</c>) and before the state dispatcher.</summary>
 /// <remarks>For a creature not possessed, not dying, not <c>IsFearless</c> and past its <c>FearlessUntil</c>,
-/// when <see cref="CreatureState.CurrentFear"/> is over the level-scaled threshold, the state is
+/// when <see cref="CreatureState.CurrentFear"/> is over the level-scaled threshold, the state is not 255 and is
 /// set, the creature attackable (<c>+0x3EA</c> bit 0x40) and not already on a walk to 221, it fires creature
 /// event 12 (<c>0x0049AA30</c>). Outside the Combat category, with a live <c>ThreatThing</c>, it clears a
 /// creature, or a thing 25 tiles squared (five tiles) away or more; nearer, it takes the tile
@@ -64,6 +64,7 @@ public static class ThreatFleeRules
         if (CreatureDeathRules.IsPossessed(context.World, me) || CreatureDeathRules.IsDying(me)
             || ((definition.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless) || CasinoRules.IsFearlessFromGambling(context.World, me)) return;
         if (me.CurrentFear <= FearRules.FearThreshold(context.Database, definition, me.Level)) return;
+        if (me.Dk2StateId == CombatStates.Stunned) return;
         if (!CreatureStateMachine.HasState(me) || !CombatRules.IsAttackableOnMap(me)) return;
         if (me.Dk2StateId == StateShadow.TravelToPoint && me.UtilityNewState == FledState) return;
         context.FireCreatureEvent(me, CreatureTriggerEvent.Afraid);

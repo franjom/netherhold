@@ -17,6 +17,50 @@ public sealed class ThreatFleeTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private static readonly TilePos Me = new(8, 6);
+    [Theory]
+    [InlineData(255, false)]
+    [InlineData(256, true)]
+    public void TheThreatFlightExemptsOnlyTheOrdinaryStun(int state, bool flees)
+    {
+        (GameDatabase db, WorldState world, CreatureState me) = Open();
+        Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), me, state));
+        me.StunTicks = 8;
+        ObjectState thing = world.SpawnObject(db, Navigation.WorldSteering.DungeonHeartObstacleObjectId,
+            PlayerIds.Good, (7 * world.Width) + 9);
+        Place(thing, 9, 7);
+        ThreatFleeRules.Record(me, 10, ThreatSource.OfObject(thing));
+        me.TriggerId = 5;
+        var triggers = new TriggerTree([
+            new GenericTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 5, Type = (byte)CreatureTriggerEvent.Afraid,
+                RepeatCount = 255, ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+                Parameters = new Dictionary<string, long>(),
+            },
+            new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 0xFFFF, Type = 7, RepeatCount = 0,
+                ChildTriggerId = 0, NextTriggerId = 0,
+                Parameters = new Dictionary<string, long> { ["FlagId"] = 0, ["Flag"] = 0x12, ["Value"] = 1 },
+            },
+        ], 0);
+        (uint before, uint after) = Run(db, world, me, fear: 60000, triggers);
+        Assert.Equal(flees ? 6 : state, me.Dk2StateId);
+        Assert.Equal(8, me.StunTicks);
+        Assert.Equal(flees ? 1 : 0, world.Triggers.Read(0));
+        if (flees)
+        {
+            Assert.Equal(ThreatFleeRules.FledState, me.UtilityNewState);
+            Assert.NotEqual(before, after);
+            Assert.Equal(ThreatSource.None, me.ThreatThingKind);
+        }
+        else
+        {
+            Assert.Equal(before, after);
+            Assert.Equal(ThreatSource.Object, me.ThreatThingKind);
+            Assert.Equal(thing.Id, me.ThreatThingId);
+        }
+    }
 
     /// <summary>Afraid, with a live thing a tile away on both axes: one try of <c>random(4)</c> twice
     /// finds a point (the open floor holds every point), then idle and the walk to 221; the thing is
@@ -102,7 +146,7 @@ public sealed class ThreatFleeTests
         thing.PosY = CreatureState.CentreOf(y);
     }
 
-    private static (uint Before, uint After) Run(GameDatabase db, WorldState world, CreatureState me, int fear)
+    private static (uint Before, uint After) Run(GameDatabase db, WorldState world, CreatureState me, int fear, TriggerTree? triggers = null)
     {
         uint before = 0, after = 0;
         world.RefreshAttackability();   // as after each creature's last update
@@ -113,7 +157,7 @@ public sealed class ThreatFleeTests
             before = ((Dk2Lcg)ctx.Rng.Algorithm).Seed;
             ThreatFleeRules.Turn(ctx, new WorldSight(ctx.Navigation, ctx.World, ctx.Database), me, ctx.Database.CreatureById(me.CreatureTypeId));
             after = ((Dk2Lcg)ctx.Rng.Algorithm).Seed;
-        })]).Tick();
+        })], triggers).Tick();
         return (before, after);
     }
 
