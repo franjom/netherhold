@@ -155,6 +155,13 @@ session. Never edit or save the owner's open file without asking. Setup, version
 concurrency and troubleshooting: `tools/blender/MCP.md`. Asset work follows
 `docs/ART_DIRECTION.md` and `docs/ASSET_PIPELINE.md`.
 
+## Gameplay footage tools
+
+A YouTube Data API key (`YOUTUBE_API_KEY`, user environment), `yt-dlp` and `ffmpeg` are set up
+for strategy notes from human play. **The key is a secret: never print, log or commit it.**
+Footage is not evidence of DK2 behaviour. Video and frames need the creator's permission and
+stay outside the clone. Setup, rules and sources: `tools/footage/README.md`.
+
 ## Architecture
 
 Game simulation must remain independent from Unity wherever practical.
