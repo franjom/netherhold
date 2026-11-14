@@ -101,6 +101,14 @@ longer fit, through ordinary untag actions.
 
 ```yaml
 level: campaign:level2
+available:                # generated from the level file, never hand-written (see below)
+  rooms: { Lair: Available, Hatchery: Available, TrainingRoom: Available, Treasury: Unavailable }
+  spells: { ... }
+  creatures: { Goblin: ... }
+  traps: {}
+  doors: {}
+  unlocks: [ { room: ..., by: "trigger N" } ]  # MAKE actions in the level's script
+  rewards-next: [ ... ]                      # what winning unlocks, from NextRewards
 notes:                    # veteran knowledge; each item cites a doc, a trigger id or a map dump
   - { kind: gold, at: [x, y], source: "..." }
   - { kind: portal, at: [x, y], source: "..." }
@@ -118,14 +126,28 @@ phases:                   # first whose 'until' is not met is active
 tunable: [ room-side, max-outstanding-tags, phases.open.until.creatures ]
 ```
 
+**What the level allows is generated, not written.** `run playbook-available <level>` reads the
+level with the simulation's own start-up code and writes what the panel offers the player at
+the first playable tick (rooms, creatures, spells, traps, doors), plus every `MAKE` action in
+the level's script and its trigger as `unlocks`. It does not re-derive the rules from the raw
+`Availability` entries (`level2Variables.kld` lists only Treasury and Training Room, yet Lair
+and Hatchery are offered), so it cannot drift from what the game does. The loader refuses a
+playbook whose `available` block differs from the level file, and refuses any strategy, phase
+or goal that names a room, spell, creature, trap or door the level does not offer or will not
+unlock. The bot still checks the panel's offers in play; the playbook only stops it planning
+around something the level never gives (Level 2 offers no Treasury, for one).
+
 `until` conditions read only the observation (tick, owned room tiles by type, creature count,
 gold, a notice kind seen, a tile seen or owned). `tunable` names the values the tuner may change
 and their ranges.
 
-- [ ] Write `PlaybookTests`: a valid file loads; every problem is reported (unknown room, tile
-      off the map, an `until` on hidden state, a tunable that names nothing, a note without a
+- [ ] Write `PlaybookTests`: a valid file loads; every problem is reported (unknown room, a
+      room or spell the level does not offer, an `available` block that differs from the level
+      file, tile off the map, an `until` on hidden state, a tunable that names nothing, a note without a
       source); phases keep their order.
-- [ ] Implement `Playbook` (DK2.AI, no YAML dependency) and the loader (DK2.Harness).
+- [ ] Implement `Playbook` (DK2.AI, no YAML dependency), the loader and `playbook-available`
+      (DK2.Harness). Test `playbook-available` against Level 1 and Level 2's shipped files
+      (install-gated): Level 2 offers Lair, Hatchery and Training Room and not the Treasury.
 - [ ] `run --campaign-player` takes `--playbook <file>`; the manifest records its SHA-256 and the
       report names it. Replay refuses a journal whose playbook hash differs.
 - [ ] Write `playbooks/level1.yaml` expressing today's Level 1 behaviour; Level 1 seed 1 still
@@ -150,10 +172,29 @@ and their ranges.
 unchanged Level 1 controller, `watch scenarios/campaign-player/level2 --campaign-player 3`, won
 all three seeds: seed 1 at tick 3963, seed 2 at 3708, seed 3 at 5421 (the owner's native win:
 3263). Each journal replayed every hash without the controller. It built only a Lair and a
-Hatchery (no Treasury square was found); in each seed the hero party came into the dungeon and
-its Lord of the Land died there. Level 2 therefore needs no new routine to be won; Task 5 reduces
+Hatchery: Level 2's own availability table (`level2Variables.kld`, `kwd vars -a`) sets the Treasury
+UNAVAILABLE (1) and the Training Room AVAILABLE (3), so the default list's Treasury was never
+offered and the Training Room, which is not in that list, was never built, which is why the playbook gets a generated `available` block (Task 2); in each seed the hero party came into the dungeon and
+its Lord of the Land died there. **Caveat: that walk is Q525, open.** In DK2's capture the
+party stays near its gate until about 3170; in ours it reaches the keeper's rooms from about
+2307 in half the seeds. The wins may lean on that difference, so they are not accepted until
+Q525 is settled. Level 2 needs no new routine to be won today; Task 5 reduces
 to a receipted acceptance, and the first level the default strategy cannot win becomes the real
 driver for Tasks 1-4. Scenarios: `scenarios/campaign-player/level2/`.
+
+**Ladder diagnosis, Levels 3-20 (2026-11-14, same controller, seeds 1-3, no receipt).** The
+player's default cap of 14,400 ticks applied, so "no result" means none in that hour.
+
+| Result | Levels |
+|---|---|
+| Won, all seeds | 3 (ticks 3539, 4671, 5588; the Lord of the Land dies in the keeper's area; journals replay) |
+| Defeated, all seeds | 5, 10, 13, 14, 15a, 20 |
+| Defeated or no result | 4, 6a, 6b, 7 |
+| No result | 8, 9, 11A, 11B, 11C, 12, 15b, 16, 18, 19 |
+| Controller gave up (stall) | 17, seeds 2-3 |
+
+Runs took 45-320 s each. Level 4 is the first level the default strategy cannot win, so it,
+not Level 2, drives Tasks 1-4. Scenarios: `scenarios/campaign-player/level3/`.
 
 - [ ] Write `scenarios/campaign-player/level2.yaml` like `level1.yaml` (unmodified start, fog,
       viewing player 3, placed things). Run unattended with the Level 1 strategy, seeds 1-3.
