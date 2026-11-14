@@ -5033,7 +5033,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - the file's value in the chooser;
   - and in the pit.
 - **Guessed:** that every creature has actions 43 and 44, and their length.
-- **Not built:** the idle sound and casino arm of 89. Call To Arms was built later (ADR-0279); remembered-job priority is ADR-0805.
+- **Not built:** the idle sound and casino arm of 89. Call To Arms was built later (ADR-0279); remembered-job priority is ADR-0806.
 - No new state; `HashVersion` stays **118**.
 
 ## ADR-0229 — A rescuer breaks a Prison's door open, and the prisoners walk out through it
@@ -19191,7 +19191,7 @@ kicker's own dispatch re-reads its state after the hook (`0x0047727F`) and runs 
 that call returns 1 and draws nothing, matching 2145, otherwise it would differ. A capture of a researcher kicked in 53 or 54 with no
 action would settle it.
 
-## ADR-0805 - remember Guard assignments independently of current work
+## ADR-0806 - remember Guard assignments independently of current work
 
 **Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 520
 

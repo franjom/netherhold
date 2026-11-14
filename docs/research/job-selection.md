@@ -197,7 +197,7 @@ the happy and unhappy choosers, the gate and its three timestamps
 `AngerNoWork` and its asymmetry (`JobRules.ChargesNoWorkAnger`, content only),
 `JobRules.RoomFor` from §6, the Temple's per-second effect (`PrayingCalm`,
 `PrayingHeal`), and training's award and bill (`training.md`).
-Remembered-job priority and bounded Guard room reuse are built in [guard-job-memory.md](guard-job-memory.md) (ADR-0805).
+Remembered-job priority and bounded Guard room reuse are built in [guard-job-memory.md](guard-job-memory.md) (ADR-0806).
 
 **Ours, and stated as such at the call sites:**
 
