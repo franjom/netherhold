@@ -2,8 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
-**Status:** execution plan, 2026-11-14, revised the same day after an adversarial review;
-awaiting owner review. Nothing here is built.
+**Status:** execution plan, 2026-11-14, revised the same day after two adversarial reviews;
+approved by the owner on 2026-11-14. Task 0a is in progress.
 **Goal:** grow the Level 1 campaign player into a bot that needs no AI model and wins every
 campaign level the simulation can complete, level by level as each becomes playable, from
 player-visible observation and normal commands only.
