@@ -197,6 +197,29 @@ player's default cap of 14,400 ticks applied, so "no result" means none in that 
 Runs took 45-320 s each. Level 4 is the first level the default strategy cannot win, so it,
 not Level 2, drives Tasks 1-4. Scenarios: `scenarios/campaign-player/level3/`.
 
+**Level 4 diagnosis (2026-11-14, from the ladder runs).** Seed 1 lost its Heart at 5249 to
+player 1; seeds 2-3 had no result by 14,400. In all three the controller built one 3x3
+Treasury, Lair and Hatchery by about tick 1300 and then spent two thirds of its decisions on
+"wait: nothing offered to do". Portal creatures came (15, 54, 32) and died untrained
+(5-23 Dark Elves, 5-22 Goblins, 1-8 Imps a run). Level 4's file
+(`level4Variables.kld`, `kwd vars -a`) makes the Training Room and Workshop AVAILABLE, the
+Portal and Guard Room UNAVAILABLE_ROOM (claim only: three neutral Guard Rooms draw Dark
+Elves, `auto-placed-furniture.md`), the Wooden door, one trap type and two spells AVAILABLE.
+Gaps, each a routine or action kind for Task 4:
+
+1. Rooms from what the level offers, not a fixed list (Training Room, Workshop here).
+2. Rooms sized and added as the creature count grows, not one 3x3 of each.
+3. Claim goals: neutral rooms and portals the playbook names.
+4. Protect the gold route: research shows Level 4 is lost through Imps killed between the hero
+   entrance and the Heart as parties 3 and 4 arrive (`level4-outcomes.md`); hold fighters
+   there and stop digging on that route.
+5. Train creatures; place doors and traps; cast spells. Doors, traps and spells need new
+   player action kinds (the contract has none today).
+6. Something to do when nothing is offered: keep growing and training instead of waiting.
+
+Caveat: ours does not yet match DK2's Level 4 outcome spread (residual Q710, after Q665), so
+a Level 4 loss is not wholly the controller's; acceptance there waits on that question.
+
 - [ ] Write `scenarios/campaign-player/level2.yaml` like `level1.yaml` (unmodified start, fog,
       viewing player 3, placed things). Run unattended with the Level 1 strategy, seeds 1-3.
       Disclose the outcome and the stall or loss reason.
