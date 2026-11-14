@@ -45,6 +45,13 @@ public sealed record CampaignPlayerOptions
 
     public bool AllowsSpecial(ObjectTypeId type) => _specials is null || _specials.Contains(type);
 
+    /// <summary>Gold one Treasury tile holds (definition data, the host's <c>MaxGoldPerTreasuryTile</c>);
+    /// null when unknown, and then no Treasury grows for want of room.</summary>
+    public int? GoldPerTreasuryTile { get; init; }
+
+    /// <summary>Gold an own Dungeon Heart holds (definition data from the host); null counts none.</summary>
+    public int? HeartGold { get; init; }
+
     /// <summary>Ticks between ordinary decisions.</summary>
     public int AdvanceTicks { get; init; } = 4;
 
@@ -97,6 +104,8 @@ public sealed record CampaignPlayerOptions
         if (EngagedTiles < 0) throw new ArgumentOutOfRangeException(nameof(EngagedTiles));
         if (RecoveryAttempts < 0) throw new ArgumentOutOfRangeException(nameof(RecoveryAttempts));
         if (Rooms is null) throw new ArgumentNullException(nameof(Rooms));
+        if (GoldPerTreasuryTile is <= 0) throw new ArgumentOutOfRangeException(nameof(GoldPerTreasuryTile));
+        if (HeartGold is < 0) throw new ArgumentOutOfRangeException(nameof(HeartGold));
 
         static void Positive(int value, string name)
         {

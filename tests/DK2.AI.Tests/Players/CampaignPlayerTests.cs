@@ -13,14 +13,15 @@ namespace DK2.AI.Tests.Players;
 
 /// <summary>The campaign player decides from detached observations alone (campaign player plan,
 /// task 5). Every fixture here is an observation drawn as a map; no world or privileged view.</summary>
-public class CampaignPlayerTests
+public partial class CampaignPlayerTests
 {
     private static readonly PlayerId Me = new(3), Heroes = new(PlayerIds.Good);
     private static readonly PlayerRunId Run = new("campaign-player-test");
     private static readonly CreatureTypeId Imp = new(1), Goblin = new(7);
 
     /// <summary>'.' own floor, 'H' own heart, '#' diggable rock, '$' gold seam, 'R' impenetrable rock,
-    /// '?' unseen, 't' an own dig mark on unseen ground, 'e' enemy floor, 'T' own Treasury.</summary>
+    /// '?' unseen, 't' an own dig mark on unseen ground, 'e' enemy floor, 'T' own Treasury, 'L' own Lair,
+    /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison.</summary>
     private static PlayerTileGrid Map(params string[] rows)
     {
         var tiles = new PlayerTile[rows.Length * rows[0].Length];
@@ -30,6 +31,11 @@ public class CampaignPlayerTests
                 {
                     '.' => new PlayerTile(PlayerTileFlags.Known, Me, default),
                     'T' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Treasury),
+                    'L' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Lair),
+                    'A' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Hatchery),
+                    'G' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.TrainingRoom),
+                    'W' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Workshop),
+                    'P' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Prison),
                     'H' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid, Me, RoomTypeId.DungeonHeart),
                     '#' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable, default, default),
                     '$' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable | PlayerTileFlags.GoldSeam, default, default),
@@ -59,7 +65,8 @@ public class CampaignPlayerTests
 
     private static PlayerObservation Observe(long revision = 1, string[]? map = null, int gold = 5000, int hand = 0,
         PlayerPhase phase = PlayerPhase.Playing, IReadOnlyList<PlayerRoomOffer>? rooms = null, IReadOnlyList<PlayerVisibleThing>? things = null,
-        IReadOnlyList<PlayerRoomSummary>? owned = null, IReadOnlyList<PlayerReceipt>? receipts = null, long tick = -1)
+        IReadOnlyList<PlayerRoomSummary>? owned = null, IReadOnlyList<PlayerReceipt>? receipts = null, long tick = -1,
+        IReadOnlyList<PlayerCreatureSummary>? creatures = null)
     {
         rooms ??= [new PlayerRoomOffer(RoomTypeId.Treasury, new GoldAmount(50), true), new PlayerRoomOffer(RoomTypeId.Lair, new GoldAmount(50), true)];
         things ??= [];
@@ -84,6 +91,7 @@ public class CampaignPlayerTests
             Tiles = Map(map ?? Dungeon),
             Things = things,
             Rooms = owned ?? [],
+            Creatures = creatures ?? [],
             Receipts = receipts ?? [],
             Offers = new PlayerOffers
             {
