@@ -36,6 +36,13 @@ owner resolution. The routine refuses an unresolved owner or an allocated-creatu
 count at least `0x1C0` (448). Neither body searches for a vacant walkable
 tile. Occupying the Portal therefore does not itself refuse creation.
 
+STRONGLY INFERRED (ADR-0793, Q800): the creation point's z is zeroed (`0x004DC9D6`, `0x004DC9DD`, `0x004DC9E1`;
+again at `0x004DCA3F`). `0x004872A0` runs the position setter at `0x004872E6` (`0x004B5560` -> `0x004B5020`), which
+raises only a z below the floor, then copies the set position into `+0xF6`. An arrival therefore stands at
+max(0, floor), 0 at a portal centre (Level 5 capture: joining creature 437 at z 0, floor 0). Ours sets `PosZ` and
+`LastPosZ` to that ([creature-height.md](creature-height.md#5-ours-adr-0788-hash-503)); ours' earlier arrival
+stood a tile above the portal floor, which made a chicken ignore it (bird 122 at turn 1508).
+
 STRONGLY INFERRED: after initialization the creator sets body `+0x3E6` bit 1,
 starts creature action 49 (`0x31`, Entrance), sets `+0xF4=0x400`, enters state 193 for a keeper
 Portal (278 for a Hero Portal), and stores the originating room id at

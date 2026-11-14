@@ -305,17 +305,26 @@ public class ChickenMovementTests
         Assert.Equal(256, ChickenMovementRules.RuntimeSpeed(db.ObjectById(HatcheryRules.ChickenObjectId)!));
     }
 
+    // 0x0049CEC0 passes over a creature above its floor word (+0x22 > +0x26): one still falling to a lower floor.
     [Theory]
-    [InlineData(false, false, true)]
-    [InlineData(true, false, false)]
-    [InlineData(false, true, false)]
-    public void AReactionEscapesAGroundedCreatureButNotAWorkerOrAScaredChicken(bool worker, bool scared, bool escapes)
+    [InlineData(false, false, true, 0)]
+    [InlineData(true, false, false, 0)]
+    [InlineData(false, true, false, 0)]
+    [InlineData(false, false, false, 1)]
+    [InlineData(false, false, true, 0, true)]   // no flying test: a flier on its floor word is escaped
+    public void AReactionEscapesAGroundedCreatureButNotAWorkerOrAScaredChicken(
+        bool worker, bool scared, bool escapes, int aboveFloor, bool flies = false)
     {
         var (db, world, chicken) = HatchBird();
         CreatureDef def = db.Creatures.Values.First(c => c.Flags.HasFlag(CreatureFlags.IsWorker) == worker
             && !c.Flags.HasFlag(CreatureFlags.CanFly));
+        if (flies)
+            db = new GameDatabase(db.Terrain.Values, db.Rooms.Values,
+                db.Creatures.Values.Select(c => c.CreatureId == def.CreatureId ? c with { Flags = c.Flags | CreatureFlags.CanFly } : c),
+                db.Variables, objects: db.Objects.Values);
         CreatureState creature = world.SpawnCreature(db, def.CreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         creature.PosX -= 256;
+        creature.PosZ = FloorHeightRules.RelativeAt(world, db, creature.PosX, creature.PosY) + aboveFloor;
         chicken.ProcessState = (byte)ChickenProcess.Reaction;
         chicken.ProcessAgeTicks = 1;
         chicken.ChickenReactionTicks = 7;

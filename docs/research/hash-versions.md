@@ -16,6 +16,7 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**509** - `0x169996EEBEF051DA`. FormatVersion also 509. Behaviour only, two fixes. A chicken's reaction (`Object_TryAvoidNearbyCreature`, `0x0049CEC0`) passes over a neighbour creature whose z is above its floor word, or a worker, and has no flying test (`ChickenMovementRules`; ADR-0793). A portal arrival is made at height 0 and the position setter raises it only to a higher floor, so it stands on the portal centre's floor (`PortalRules.CreateArrival`, `0x004DC9A0`). No fields added. Positions and draws that change: a chicken near a creature stepping down a bank or a flier retargets differently, and a joining creature is a tile lower. Earlier saves are refused. Level 1's seed-1 win tick is unchanged (2374); the gem is taken at 2483 (was 2485); the journal is re-recorded.
 **508** - `0x4F9C4551F5D94E18`. FormatVersion also 508. Behaviour only: the attack-spell survey takes the strictly earlier signed 32-bit ready sum, keeps first ties and uses the existing recharge modifier helper (ADR-0167 amendment, Q732; combat-spells.md §5). No fields added. Earlier saves are refused.
 
 

@@ -403,9 +403,12 @@ public static class ChickenMovementRules
                     && (first is null || creature.TileLink.Order > first.TileLink.Order)) first = creature;
             if (first is null) continue;
             CreatureDef definition = context.Database.CreatureById(first.CreatureTypeId);
-            // Full ground-height physics is absent; supported flight and vertical position gate this scan.
-            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || WaterSpeedRules.IsFlying(definition, first)
-                || first.PosZ > Fp32.One) continue;
+            // 0x0049CEC0: a worker (def +0x686 bit 0) is passed over, and so is a creature above its floor word
+            // (+0x22 > +0x26 at 0x0049CF68-0x0049CF6F), which its last position set refreshed: one still falling
+            // to a lower floor (Q800). There is no flying test; a native flier stands on its floor word.
+            // Ours' floor at the creature's point stands for that word.
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
+                || first.PosZ > FloorHeightRules.RelativeAt(world, context.Database, first.PosX, first.PosY)) continue;
             int heading = Bearing.Of(chicken.PosX - first.PosX, chicken.PosY - first.PosY);
             var target = new ObjectMovePoint(new Fp32(chicken.PosX + (unchecked(TrapRules.Sine(heading) << 11) >> 16)),
                 new Fp32(chicken.PosY + (unchecked(TrapRules.Cosine(heading) * -0x800) >> 16)));

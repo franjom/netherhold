@@ -63,6 +63,11 @@ public static class PortalRules
         CreatureState? creature = world.TrySpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
             new TilePos(entrance % world.Width, entrance / world.Width));
         if (creature is null) return null;
+        // 0x004DC9D6-0x004DC9E1 zeroes the point, so the creature is made at height 0 and its position set raises
+        // it to the floor only where that is higher: a portal centre's floor is 0 (Q800; capture: 437 at z 0).
+        creature.PosZ = Math.Max(-FloorHeightRules.Ordinary,
+            FloorHeightRules.RelativeAt(world, database, creature.PosX, creature.PosY));
+        creature.LastPosZ = creature.PosZ;   // 0x004872A0 copies the set position into +0xF6 after the setter
         creature.Heading = 0x400;
         creature.CameThroughPortal = true;
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;

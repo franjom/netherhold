@@ -21,6 +21,17 @@ public class PortalCreatureActionTests
         Assert.Equal(0, world.Tile(6, 6).EntranceCreaturesGenerated);
     }
 
+    // 0x004DC9D6-0x004DC9E1 zeroes the arrival's point: it is made at height 0, the portal centre's floor (Q800).
+    [Fact]
+    public void AnArrivalStandsOnThePortalCentresFloor()
+    {
+        var (db, world) = Setup();
+        Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
+        CreatureState creature = Assert.IsType<CreatureState>(PortalRules.CreateScriptedArrival(new StateHookContext(world, db), 3, 7, 1));
+        Assert.Equal(0, FloorHeightRules.At(world, db, creature.PosX, creature.PosY));
+        Assert.Equal(-FloorHeightRules.Ordinary, creature.PosZ);
+    }
+
     [Fact]
     public void ScriptedPromotionsReachTheSimulationEffectSink()
     {

@@ -4,7 +4,7 @@ systems: [creatures, rooms, simulation-core]
 # Mechanic: a creature's height, its floor, and the physical pass's fall (Q795)
 
 Source(s): DKII.EXE v1.70, disassembly of `0x004545C0`, `0x00454110`, `0x00450470`, `0x004B2030`,
-`0x004B2740`, `0x004B5020`, `0x0048A457`, `0x00459560` and `0x004596D0`, read twice on 2026-11-13 (the
+`0x004B2740`, `0x004B5020`, `0x0048A457`, `0x00459560`, `0x004596D0` and `0x0049CEC0`, read twice on 2026-11-13 (the
 reviewer's Ghidra re-read agrees on every item marked STRONGLY INFERRED).
 Original version: DK2 v1.70 (GOG)
 
@@ -102,6 +102,14 @@ at turn 1864 has floor word 3924 under `z` 4096.
 - `CreatureMovementSystem` commits through `SetHeight`; `CreatureDeathRules.Collapse` does not call `StopMoving`,
   zeroes `PhysicalVelocityX/Y` and `CreationVelocityZ` (`+0x10C`), and calls `SetHeight`.
 - `PreviousPositionStep` copies z into `LastPosZ` (`+0xFE`) with x and y (record 00488930).
+- The floor word is read by the chicken's avoidance (`0x0049CEC0`, `0x0049CF68`): a creature whose `z` is above it
+  is passed over (ADR-0793, Q800). Ours compares `PosZ` with `RelativeAt` at the creature's point, which is fresh
+  where native's word is stale under a stationary creature whose floor changed. Ours' `SpawnCreature`, hand drop
+  and possession leave `PosZ` 0 relative, so on a floor below the ordinary one a creature is above its floor
+  until gravity drops it; native z at those creation points is unread.
+- `PortalRules.CreateArrival` sets `PosZ` to `max(-Ordinary, RelativeAt)` and `LastPosZ` with it: absolute height
+  0 at a portal centre, as the constructor's setter leaves the zeroed creation point
+  ([portal-creature-action.md](portal-creature-action.md#the-scripted-call)).
 - `EggLaunchRules.FloorHeight` delegates to `FloorHeightRules`, so every caller gets the full function: eggs,
   `HeartSoundRules`, `ThingSoundRules`, `HandSystem`, `ImpSupplySystem`, `TortureSystem` and
   `TriggerExecutor`'s object z. The Heart's blow sound is now at z 0 at the Heart's centre.
@@ -109,7 +117,9 @@ at turn 1864 has floor word 3924 under `z` 4096.
 ## 6. Not built
 
 - The flying slot's other arms (`0x0048ED40`: a worker's `+0x3E6` bit 8, five animations that answer no,
-  `0x00494700(0) == 3`, a Vampire bat). Flyers have no altitude in ours, so this changes nothing today.
+  `0x00494700(0) == 3`, a Vampire bat). Flyers have no altitude in ours, so this changes nothing today. On the
+  Level 3 native capture Fireflies (CanFly) stand at z == floor word in 1832 of 2358 samples and below it in
+  the rest, so native fliers are not above their floor word and the chicken's avoidance reacts to them.
 - The `0x004B267C` small-vector rule is built but unreachable for a creature: its gravity step is never small.
 - The walking commit's blocked path does not call `SetHeight`; the next pass's raise covers it.
 - The setter's layer-2 raw copy has no counterpart.

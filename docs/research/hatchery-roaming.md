@@ -75,7 +75,7 @@ Process 8's countdown, art and Horny marker are already recorded in
 [object-drawing.md](object-drawing.md#8-furniture-eggs-and-chickens) and
 [special-role-idle.md](special-role-idle.md). The normal loop returns to process
 6 after its `random(16)+8` countdown. `0x0049CEC0` can instead start a
-half-tile escape from a grounded creature, resuming process 8 and adding
+half-tile escape from a creature that is not above its floor, resuming process 8 and adding
 definition speed again; see its function record for the eligibility gates.
 
 Process 10 is broader than an owned-room wander. It has Chicken/free-range
@@ -116,12 +116,21 @@ Process 6 performs its separate owned-Hatchery check on its next tick.
 Production worker carry accepts books, specials and crates, so chickens cannot
 reach its put-down route. Recipient feeding removes the Chicken instead (health zeroed in its own update, §6).
 
-Avoidance scans the eight compass neighbours, then the current tile, taking
-the newest linked creature on each tile. The original rejects workers and
-creatures above their ground-height word, then attempts a half-tile escape
-with doubled speed and resume 8. Our absent ground-height word is approximated
-by supported flight and `PosZ <= 0x1000`; complete vertical physics remains
-unbuilt. Audio's global footstep alternation, the existing presentation size
+Avoidance (STRONGLY INFERRED, Q800, ADR-0793) scans the eight compass neighbours
+(table `0x006BC3B0`: N, NE, E, SE, S, SW, W, NW), then the current tile, taking
+the newest linked creature on each tile (the chain head's first creature,
+`0x00453670`). The original passes over a worker and a creature whose z `+0x22`
+is above its floor word `+0x26` (`0x0049CF68`-`0x0049CF6F`), then attempts a
+half-tile escape with doubled speed and resume 8. There is no flying test: on
+the Level 3 native capture Fireflies stand at z == floor word in 1832 of 2358
+samples, so native chickens react to fliers. Ours compares `PosZ` with
+`FloorHeightRules.RelativeAt` at the creature's point, the word
+`Thing_SetPosition` refreshes on every set ([creature-height.md](creature-height.md)).
+Native's word is stale if the floor changes under a stationary creature; ours
+reads the fresh floor. Ours' `SpawnCreature`, hand drop and possession leave
+`PosZ` 0 relative, so on a floor below the ordinary one a creature is briefly
+above its floor until gravity drops it; native z at those creation points is
+unread. Audio's global footstep alternation, the existing presentation size
 approximation and Chicken KMF Walk/Eat/Scared playback and render interpolation are built;
 see kmf-animation-playback.md §7.
 

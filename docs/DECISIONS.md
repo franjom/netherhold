@@ -10022,8 +10022,8 @@ Retain Hatchery capacity through a saved room anchor; registration disables
 escape, and successful hand lift releases membership.
 
 **Consequences.** Roaming consumes the simulation stream and can change later
-choices. The absent ground-height word uses the documented supported-flight
-approximation. Free-range process 10 and Prison process 3 remain unbuilt (Q584);
+choices. The ground-height word was first approximated by supported flight;
+ADR-0793 replaces that with the floor word's test. Free-range process 10 and Prison process 3 remain unbuilt (Q584);
 Chicken animation, footstep audio and original timing comparisons remain open.
 All 60 Level 1–3 replays remain valid; wins change from 19/8/17 to 19/5/17
 (modern regression results, not original parity).
@@ -18835,3 +18835,36 @@ fed-on-the-way exit (`!StillOwesFood`) claims no wait. See
 Level 1's journal win tick is 2374 (see ADR-0791). Residual, a possible fidelity gap and not a defect (Q801): 92 with no
 chicken in an owned hatchery calls `SetState(91)` at `0x004636F8` and 91 then resets 92, a per-turn flip; ours holds in 92.
 Test: `EatingTests.AFullCreatureLeavingTheMealIsIdleForATurnBeforeItChoosesAgain` (fails with the marker removed).
+
+## ADR-0793 - a chicken's reaction passes over a creature above its floor, and a portal arrival is made at height 0
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 509
+
+**Context.** Q800, Level 5 seed 1, controlled replay at hash 507: native draws a chicken's reaction at turn 2019 where ours
+roams. `Object_TryAvoidNearbyCreature` (`0x0049CEC0`; process 9's step calls it at `0x0049FB8A` for type 9, process 8 also uses
+it) takes each neighbour tile's first creature (`0x00453670`, table `0x006BC3B0`: N, NE, E, SE, S, SW, W, NW, then the centre)
+and passes over it when its z `+0x22` is above its floor word `+0x26` (`0x0049CF68`-`0x0049CF6F`) or it is a worker (definition
+`+0x686` bit 0, `0x0049CF75`-`0x0049CF82`). There is no flying test; ours had `PosZ > Fp32.One` and a flying test. The word is
+refreshed by `Thing_SetPosition` (`0x004B5020`) on every set. Capture: Level 5 Warlock 441 at our tick 1971 has z 4096 over floor
+word 3584 (stepping down a bank), so native chicken 1441 retargets a turn after ours did; on the Level 3 native capture
+Fireflies (CanFly) stand at z == floor word in 1832 of 2358 samples, so native chickens react to fliers. The arrival:
+`Portal_CreateArrival` (`0x004DC9A0`) zeroes the creation point (`0x004DC9D6`-`0x004DC9E1`, z again at `0x004DCA3F`), sets x and
+y to the room centre plus `0x1800`, and `0x004B78D0` -> `0x004B7900` -> `0x004872A0` runs the position setter (`0x004872E6`),
+which raises only a z below the floor, then copies the position into `+0xF6`. So the arrival stands at max(0, floor), 0 at a
+portal centre (capture: joining creature 437 at z 0, floor 0). Ours left it a tile above; with the avoidance fix alone the replay
+regressed to turn 1557, bird 122 ignoring it at 1508. STRONGLY INFERRED: read, re-derived by the reviewer; the capture agrees.
+
+**Decision.** `ChickenMovementRules` passes over a worker and a creature with `PosZ > FloorHeightRules.RelativeAt` at its point;
+the flying test is gone. `PortalRules.CreateArrival` sets `PosZ = max(-Ordinary, RelativeAt)` and `LastPosZ` with it. Evidence:
+[hatchery-roaming.md](research/hatchery-roaming.md#4-implementation-boundary),
+[portal-creature-action.md](research/portal-creature-action.md#the-scripted-call).
+
+**Consequences.** Hash and save 509 (with ADR-0791 and ADR-0792 at 507, and the spell survey at 508); earlier saves are refused.
+Pin `0x169996EEBEF051DA`. Level 5 seed 1 (controlled561): 10339 draws match through 2028 (10217 through 2018 at 507). The next
+boundary is turn 2029 draw 1, native `ObjectState.cpp:2782` against ours' `GuardState.cpp:297`, guard 432 in state 98, Q802;
+432 splits in position at 1967, then 439 at 2034 (now 1-2 units), 437 at 2054, 438 at 2060, 433 at 2093, 441 at 2095. Level 1's
+journal is re-recorded: win 2374 unchanged, gem taken at 2483 (was 2485). Caveats: native's word is stale if the floor changes
+under a stationary creature, ours reads the fresh floor; ours' `SpawnCreature`, hand drop and possession leave `PosZ` 0 relative,
+so on a floor below the ordinary one a creature is above its floor until gravity drops it, and native z at those creation points
+is unread. Tests: `ChickenMovementTests.AReactionEscapesAGroundedCreatureButNotAWorkerOrAScaredChicken` (an above-floor row fails
+on the old rule, a flier-on-its-floor row fails with the flying test) and `PortalCreatureActionTests.AnArrivalStandsOnThePortalCentresFloor`.
+Full suite passes (Simulation 5390, Behavior 620 with 5 skipped).
