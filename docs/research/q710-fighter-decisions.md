@@ -26,6 +26,7 @@ The following additive studies retain their scripts, results and SHA-256 manifes
 | `q710-decision-summary--2026-11-14--002` | Selected raw native states/bed links, paired observer rows and old/current metrics, with hashes of the preceding manifests |
 | `q710-428-inventory--2026-11-14--003` | Native 428's inline state/needs fields and bed 2356's reciprocal link, type, tile and room membership |
 | `q710-428-bed-control--2026-11-14--002` | Hash-519 logical bed-ownership intervention, immediate field assertions and first acquisition trace; four completed replays, including byte-identical plain/off/on observation controls |
+| `q710-428-inline-control--2026-11-14--001` | Six hash-519 replays: supported needs/job field restores, a diagnostic remembered-job retry, boundary assertions and native 428's state census |
 
 Ordinary CSV rows at turn 5000 precede `WorldResync.Apply`. The sidecar records
 the actual `ResyncReport.Pairs` and the state immediately after that call; it
@@ -143,6 +144,63 @@ All four replays complete through label 6000. This is a single-actor decision
 control, not a Guard-room outcome comparison. Native 428 already has state
 6/resume 98 and current job 6 at the restore label; the control retains modern
 state, chooser/needs history and reconstructed navigation. It does not establish
-matched inputs or native timing. The next bounded task is restoring the captured
-inline fighter job/needs inputs diagnostically, with the unavailable route and
-later birth populations kept explicit. Q719 and unrecovered history remain limits.
+matched inputs or native timing.
+
+## Inline job and needs controls at hash 519
+
+Copied source `5dd771cf` has the same production source/configuration as the
+previous control. Native seed 7/default generator 101 and the actual 428→76
+pair are retained. Observation off/on reproduce the original five ordinary
+telemetry files byte-for-byte; the bed-only repeat also reproduces its previous
+five files. The new copied build has zero warnings/errors; all six replays
+complete through label 6000.
+
+The needs mode restores seven supported fields: last ate, hunger, last food
+attempt, last slept, sleep debt, sleep retry and pay retry. It copies literal
+stored timestamps; sleep retry is the captured last attempt plus four, while
+pay retry is already a deadline. This is not verified clock alignment or a
+polling-label shift. The jobs mode adds current job, dropped job and the three
+chooser timestamps. Before/after sidecars assert every assigned value, no
+other observed fighter-field changes and unchanged RNG state at the boundary.
+Native state/resume, route, mood, wages and other unselected history remain
+modern. Writing current job 6 does not restore the native Guard activity.
+
+Restoring needs changes this actor's later travel exposure, while adding the
+supported job fields leaves this measured window unchanged:
+
+| Actor 428 comparison, labels 5300–5450 | State 7 / resume 97 | State 6 / resume 98 |
+|---|---:|---:|
+| Native capture | 97 | 49 |
+| Bed only | 0 | 141 |
+| Bed + supported needs | 105 | 42 |
+| Bed + supported needs and jobs | 105 | 42 |
+
+Each row covers the same 151 observation labels; other states account for the
+remainder. The native pointer, type and owner stay constant, and every label is
+present and untorn. Native and needs-restored 428 both begin the Hatchery walk
+at label 5031. Neither this label agreement nor the closer exposure counts
+establish native route/timing parity or a campaign outcome improvement.
+
+The supported job fields omit a separate native input: `ReturnToJobId`, state
+`+0x68`, captured as 6 (Guard); saved room `+0x6C` is 1116. Current job `+0x64`
+is a distinct field. Binary recheck of [004778E0](functions/004778E0.md)
+confirms that the remembered job is tried after the dropped job and before the
+happy chooser. Production has no remembered-job field or retry. Its function
+record is corrected to PARTIAL; the whole-function confidence is unchanged.
+
+A final diagnostic mode dispatches captured Guard through the existing managed
+backend at that priority. At label 5002, both the ordinary jobs-restored replay
+and the probe enter state 97. Their decisions differ: ordinary selection logs
+`roll=28 how=rolled` and changes the happy-choice timestamp to 5001; the probe
+logs an accepted remembered-job attempt with `roll=-1` and retains captured
+timestamp 2584. Identical state ids therefore hide a real decision-path gap.
+This is a counterfactual state-89 probe: native 428 was already travelling at
+restore, and no corresponding native chooser event at label 5002 is established.
+
+This scratch probe retries the fixed captured value on later chooser calls,
+without native writer/pickup lifecycle or saved-post reuse. Conclusions use
+only its first eligible state-89 call; later probe outcomes are not fidelity
+evidence. The next bounded implementation candidate is the remembered Guard
+job field, retry and lifecycle, including the saved-post backend. Q710 remains
+OPEN: no global exposure cause or matched-input outcome has been established;
+unavailable routes, later birth populations and other Q719 inputs remain limits.
