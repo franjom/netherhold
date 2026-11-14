@@ -485,12 +485,14 @@ public struct PlayerState
     public List<BlueprintRef> Blueprints;
 
     /// <summary>DK2's <c>Status</c> at <c>player+0x19A</c>: one of <see cref="PlayerStatus"/>,
-    /// written once by <see cref="WorldState.EndGame"/> and never changed after (ADR-0162).</summary>
+    /// written once during ordinary play by <see cref="WorldState.EndGame"/> (ADR-0162).
+    /// A captured terminal section can replace it through <see cref="WorldResync"/>.</summary>
     public byte Status;
 
     /// <summary>The tick <see cref="Status"/> left <see cref="PlayerStatus.Playing"/>. DK2
     /// snapshots the end-of-level statistics at that moment; this is the one of them a
-    /// deterministic replay cannot recompute.</summary>
+    /// deterministic replay cannot recompute. A native terminal resync whose exact stamp is
+    /// unavailable uses <see cref="WorldResync.UnknownVerdictTick"/>.</summary>
     public GameTick StatusTick;
 
     /// <summary>The dungeon heart object's health, <c>object+0x40</c>. Starts at

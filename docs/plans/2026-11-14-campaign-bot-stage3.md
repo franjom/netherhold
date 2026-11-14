@@ -38,8 +38,7 @@ From the [ladder](../research/campaign-bot-ladder.md): the unchanged controller 
 - The **driver level** is chosen in Task 0b by triage, not assumed. Levels whose losses touch an
   open outcome question are excluded while it stays open: Level 4 (Q710: ours overruns in 37 of 60
   seeds even under the owner's replayed input) and Level 5 (Q712, Q772: Heart defence).
-  On present evidence Level 6b (2 own deaths, no result, one room built) and Level 9 (no deaths,
-  no result) look like losses of the controller's own; triage confirms or replaces them.
+  Triage (2026-11-14, [ladder](../research/campaign-bot-ladder.md) section 5) chose **Level 6a**.
 
 ## Global constraints
 
@@ -94,10 +93,10 @@ the gate.
 
 ## Task 0b: ladder scenarios, triage and the driver
 
-- [ ] **Ladder scenarios.** Commit Levels 4-20 as `scenarios/campaign-ladder/<level>.yaml`
+- [x] **Ladder scenarios.** Commit Levels 4-20 as `scenarios/campaign-ladder/<level>.yaml`
       (outside `scenarios/campaign-player`, which `watch` reads recursively), with
       `duration_ticks` at the per-level cap.
-- [ ] **Triage of every losing level up to 10** (4, 5, 6a, 6b, 7, 8, 9, 10). For each, in the
+- [x] **Triage of every losing level up to 10** (4, 5, 6a, 6b, 7, 8, 9, 10). For each, in the
       ladder doc: the win condition from its triggers; which player the PLAYERS records give the
       human (all runs used 3); whether the loss was the tick cap (rerun "no result" levels with
       `--player-max-ticks 57600 --player-wall-seconds 1800 --timeout-seconds 2400`); open
@@ -105,28 +104,32 @@ the gate.
       additions (Task 4) it would need. Check whether `PreviousRewards` change any level's start
       in DK2 (`campaign-win-sequence.md` section 5; ours reads them only in the presentation) and
       file a question if they might.
-- [ ] **Choose the driver**: the earliest losing level whose loss is the controller's and touches
+- [x] **Choose the driver**: the earliest losing level whose loss is the controller's and touches
       no open outcome question. If none qualifies, take the losing level with the fewest open
       outcome questions, list them on its row, and say its acceptance waits on them.
 - [ ] Reviewer, documenter, commit.
 
 ## Task 1: a strategy the routines read
 
-**Produces:** `PlayerStrategy` (immutable record): `Rooms` (build order), `RoomSide`, `Dig`
-(`Off`, `GoldFirst`, `Frontier`, `Toward(TilePos)`), `MaxOutstandingTags`, `Fight` (`Engage`,
-`HoldHome`, `Off`), `UseSpecials`, `AdvanceTicks`; defaults equal today's
-`CampaignPlayerOptions`. `Validate()` returns every problem. `CampaignPlayer` gains `Strategy` and
-`Apply(PlayerStrategy next)`; giving up marks and squares that no longer fit goes out as ordinary
-untags, spread over decisions within `MaxActionsPerDecision`.
+**Produces:** `PlayerStrategy` (immutable record, `src/DK2.AI/Players/PlayerStrategy.cs`): `Rooms`
+(build order), `RoomSide`, `Dig` (`Off`, `GoldFirst`, `Frontier`, `Toward` with `DigTarget`),
+`MaxOutstandingTags`, `Fight` (`Engage`; `HoldHome`, which answers only an enemy within
+`HomeGuardTiles` of home; `Off`), `UseSpecials`, `AdvanceTicks` (1-40); defaults equal today's
+`CampaignPlayerOptions` (`CampaignPlayerOptions.Strategy`). `Validate()` returns every problem.
+`CampaignPlayer` gains `Strategy` and `Apply(PlayerStrategy next)`, called between decisions: a
+refused strategy leaves the current one; a pending room no longer listed is given up; turning
+digging off takes the standing marks back as untags spread over decisions (other changes leave
+marks to be dug). With digging off, the frontier is no pending work, so an idle player is not stalled.
 
-- [ ] Tests first (`PlayerStrategyTests`): defaults equal today's options; validation names each
+- [x] Tests first (`PlayerStrategyTests`): defaults equal today's options; validation names each
       problem; `Toward` off the map is refused; an empty room list is allowed.
-- [ ] Refactor the routines to read the strategy (`csharp-refactoring`), behaviour-preserving.
-- [ ] `Apply` tests: `HoldHome` lifts no fighter toward an enemy; `Dig = Off` tags nothing; a
+- [x] Refactor the routines to read the strategy (`csharp-refactoring`), behaviour-preserving.
+- [x] `Apply` tests: `HoldHome` lifts no fighter toward an enemy; `Dig = Off` tags nothing; a
       removed room's pending square is given up; untags spread across decisions.
-- [ ] One-off check on one commit: every Task 0a baseline reproduces byte for byte (journal and
-      decisions) before and after the refactor.
-- [ ] Reviewer, documenter, commit.
+- [x] One-off check on one commit: every Task 0a baseline reproduces byte for byte (journal and
+      decisions) before and after the refactor. **Done 2026-11-14:** all nine identical at base `3f5c89db`
+      (hash 517); `baselines.tsv` was re-recorded there, since master had moved from hash 516.
+- [x] Reviewer, documenter, commit.
 
 ## Task 2: development, a thin vertical slice
 
@@ -170,7 +173,7 @@ events:             # what the script does, from the level's triggers
 phases: [...]       # Task 5
 tunable:            # integer values only, each with a range
   - { path: strategy.room-side, min: 3, max: 6, provenance: tuned, proven-on: "<commit>" }
-caps: { max-ticks: 57600, max-actions: 8192, wall-seconds: 2400 }   # per level
+caps: { max-ticks: 57600, max-actions: 8192, wall-seconds: 2400, output-mib: 256 }   # per level
 ```
 
 - **`playbook-available <level>`** (DK2.Harness, an authoring tool, not run-time): builds the
@@ -240,7 +243,8 @@ Task 2 routine.
 
 ## Task 6: the driver level
 
-The level chosen in Task 0b (record it here when chosen).
+**Level 6a** (chosen 2026-11-14): kill the Lord of the Land at (40,43), 22 tiles from the Heart, with
+the starting roster only (no portal creatures); the Heart falls at ticks 4542-6523 today.
 
 - [ ] Diagnose it with Tasks 2-5 in place; write its playbook (every note and event cited).
 - [ ] Iterate on the tune seeds only; a change that helps is checked on the select seeds.

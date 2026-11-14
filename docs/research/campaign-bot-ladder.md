@@ -85,7 +85,42 @@ spells AVAILABLE. Our Level 4 outcomes do not yet match DK2's spread even under 
 input (37 of 60 seeds overrun at hash 328, [level4-outcomes.md](level4-outcomes.md); residual Q710),
 so a controller loss there is not wholly the controller's.
 
-## 5. Limits
+## 5. Triage of Levels 4-10 and the driver (2026-11-14)
+
+Reruns with the 4-hour cap (`scenarios/campaign-ladder/`, `--seeds 1-3 --player-max-ticks 57600
+--player-wall-seconds 1800`) on master at hash 516, plus the level files (`kwd triggers`, `kwd
+things`, `kwd vars -a`) and the open questions. Every level gives the human player 3 (PLAYERS
+records). On Levels 4-9 the win is killing the Lord of the Land (a "killed" condition sets a flag,
+then WIN_GAME, action 10); on Level 10 it is destroying player 4's (Asmodeus's) Heart.
+
+| Level | Rerun, seeds 1-3 | Win needs | Rival keeper | Open questions touching the outcome |
+|---|---|---|---|---|
+| 4 | lost 14419, lost 4656, no result | assault on the Lord about 50 tiles north, in a keep with doors and traps | none | Q710, Q612 |
+| 5 | lost 7622, 8087, 8141 | assault on the Lord at (40,14); Heart defence first | none | Q772, Q719, Q762, Q763 |
+| 6a | lost 4542, 6523, 6072 | the Lord at (40,43), 22 tiles from the Heart; empty creature pool, so only the starting roster | none | none names the level (Q748 is observation only) |
+| 6b | no result (over the 64 MiB output budget) | the Lord at (16,7), about 68 tiles away | none | none names the level |
+| 7 | lost 6045, 6190, no result (2379 own creatures died) | assault on the Lord at (55,36) | Gormagon (player 4) | Q582, Q586 |
+| 8 | no result (over the output budget) | the Lord starts 4 tiles from the keeper's camera: defence | Dante (player 4, no AI) | Q589, Q345 |
+| 9 | lost 7491, 7127, 6845 (scripted loss) | the Lord comes in a hero party | none | none names the level |
+| 10 | lost 4338, 4317, 4311 | destroy Asmodeus's Heart | Asmodeus (player 4) | Q757 (computer keepers) |
+
+Every defeat on Levels 4-7 and 10 is the keeper's Heart destroyed. Level 9 changed since the 1-hour
+ladder (no result then); master moved several hash versions between the two.
+
+**Driver: Level 6a**, the earliest losing level whose loss is the controller's and that no open
+outcome question names. It has no portal creatures, so it tests defending with and directing the
+starting roster, and the Lord is near. Generic combat questions (Q567, Q725, Q764, Q770) apply to
+every level. Levels 6b and 9 also qualify and come next.
+
+**Rewards.** Each level's `PreviousRewards` equal the previous level's `NextRewards`, and every
+reward item for Levels 5-10 is already in that level's own availability table, so the level files
+carry their unlocks themselves. Whether DK2 also applies `PreviousRewards` at a level's start is not
+established; `campaign-win-sequence.md` section 5 covers what is read of them.
+
+**Output budget.** A 4-hour player run writes more than the 64 MiB default (6b: 109 MB, 8: 83 MB);
+per-level caps need `--player-output-mib` too.
+
+## 6. Limits
 
 - Three seeds per level; one run per seed. Win rates are not estimated.
 - Every level was started from its level file alone. Whether a campaign's carried-over rewards

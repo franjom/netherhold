@@ -5,6 +5,8 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Systems;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace DK2.Simulation.Tests;
 
@@ -14,6 +16,171 @@ namespace DK2.Simulation.Tests;
 public class WorldResyncTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
+
+    private static ResyncState WithPlayerState(WorldState world, int status, int health, bool ruined = false)
+    {
+        JsonNode state = JsonNode.Parse(JsonSerializer.Serialize(State(world, [])))!;
+        JsonNode player = state["Players"]![0]!;
+        player["Terminal"] = JsonNode.Parse($$"""
+            {"Status":{{status}},"KilledByPlayer":{{(status == 0 ? 0 : 1)}},
+            "HeartDiedTick":{{(status == 0 ? 0 : 123)}},"KeeperFrameAfterDefeat":false}
+            """);
+        player["Heart"] = JsonNode.Parse($$"""
+            {"Health":{{health}},"LastAttacker":1,"RoomRuined":{{ruined.ToString().ToLowerInvariant()}},
+            "RegenCountdown":3,"RoomTag":77}
+            """);
+        return state.Deserialize<ResyncState>()!;
+    }
+
+    [Fact]
+    public void CapturedPlayingRevivesTheHeartAndClearsOnlyTheStaleSample()
+    {
+        GameSimulation sim = Start(0);
+        ref PlayerState player = ref sim.World.Player(Keeper);
+        player.Status = PlayerStatus.Lost;
+        player.StatusTick = new GameTick(4473);
+        player.KilledByPlayerId = PlayerIds.Good;
+        player.HeartHealth = 0;
+        player.HeartRuined = true;
+        player.HeartDiedTick = new GameTick(4473);
+        player.KeeperFrameAfterDefeat = true;
+        player.GoldMined = 101;
+        player.Statistics = new PlayerLevelStatistics
+        {
+            EnemyCreaturesKilled = 7, MoneySpent = 900, Sampled = true, LevelWon = true,
+            LandOwned = 55, ManaStored = 88, CreaturesCommanded = 9, CreatureTraining = 8192,
+            EndTurn = 4473, AtVerdict = new LevelCounters { MoneySpent = 700 },
+        };
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+
+        WorldResync.Apply(sim, WithPlayerState(sim.World, 0, 100000), _ => null, ResyncParts.Players);
+
+        Assert.Equal(PlayerStatus.Playing, player.Status);
+        Assert.Equal(GameTick.Zero, player.StatusTick);
+        Assert.Equal(100000, player.HeartHealth);
+        Assert.Equal(PlayerIds.Good, player.HeartLastAttackerPlayerId);
+        Assert.Equal(0, player.KilledByPlayerId);
+        Assert.Equal(GameTick.Zero, player.HeartDiedTick);
+        Assert.False(player.KeeperFrameAfterDefeat);
+        Assert.False(player.HeartRuined);
+        Assert.Equal(3, player.HeartRegenCountdown);
+        Assert.Equal(101, player.GoldMined);
+        Assert.Equal(7, player.Statistics.EnemyCreaturesKilled);
+        Assert.Equal(900, player.Statistics.MoneySpent);
+        Assert.False(player.Statistics.Sampled);
+        Assert.False(player.Statistics.LevelWon);
+        Assert.Equal(0, player.Statistics.LandOwned);
+        Assert.Equal(0, player.Statistics.ManaStored);
+        Assert.Equal(0, player.Statistics.CreaturesCommanded);
+        Assert.Equal(0, player.Statistics.CreatureTraining);
+        Assert.Equal(0, player.Statistics.EndTurn);
+        Assert.Equal(0, player.Statistics.AtVerdict.MoneySpent);
+        Assert.Empty(events.Events);
+        sim.Tick();
+        Assert.Equal(PlayerStatus.Playing, sim.World.Player(Keeper).Status);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void CapturedTerminalStatusStaysTerminalWithoutInventingItsVerdictTick(int status)
+    {
+        GameSimulation sim = Start(0);
+
+        ResyncReport report = WorldResync.Apply(sim, WithPlayerState(sim.World, status, 0, true), _ => null, ResyncParts.Players);
+
+        PlayerState player = sim.World.Player(Keeper);
+        Assert.Equal((byte)status, player.Status);
+        Assert.Equal(-1, player.StatusTick.Value);
+        Assert.Equal(0, player.HeartHealth);
+        Assert.True(player.HeartRuined);
+        Assert.Equal(PlayerIds.Good, player.KilledByPlayerId);
+        Assert.Equal(new GameTick(122), player.HeartDiedTick);
+        Assert.False(player.Statistics.Sampled);
+        Assert.Equal(-1, player.Statistics.EndTurn);
+        Assert.Contains(report.Notes, n => n.Contains("verdict tick") && n.Contains("unavailable"));
+    }
+
+    [Fact]
+    public void LegacyOrSkippedPlayerMetadataLeavesTheExistingHeartAndVerdictAlone()
+    {
+        GameSimulation sim = Start(0);
+        ref PlayerState player = ref sim.World.Player(Keeper);
+        player.Status = PlayerStatus.Lost;
+        player.StatusTick = new GameTick(44);
+        player.HeartHealth = 123;
+        player.Statistics.Sampled = true;
+
+        WorldResync.Apply(sim, State(sim.World, []), _ => null, ResyncParts.Players);
+        Assert.Equal(PlayerStatus.Lost, player.Status);
+        Assert.Equal(123, player.HeartHealth);
+        Assert.True(player.Statistics.Sampled);
+        WorldResync.Apply(sim, WithPlayerState(sim.World, 0, 100000), _ => null, ResyncParts.None);
+        Assert.Equal(PlayerStatus.Lost, player.Status);
+        Assert.Equal(new GameTick(44), player.StatusTick);
+        Assert.Equal(123, player.HeartHealth);
+        Assert.True(player.Statistics.Sampled);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HeartRoomRuinIsRestoredOnlyOnTheCapturedRoomTiles(bool ruined)
+    {
+        GameSimulation sim = Start(0);
+        ResyncState state = WithPlayerState(sim.World, 0, -25, ruined);
+        state.Tiles[2] = 77;
+        state.Tiles[5] = 88;
+        sim.World.TileAtIndex(0).RoomRuined = !ruined;
+        sim.World.TileAtIndex(1).RoomRuined = !ruined;
+
+        WorldResync.Apply(sim, state, _ => null, ResyncParts.Players);
+
+        Assert.Equal(-25, sim.World.Player(Keeper).HeartHealth);
+        Assert.Equal(PlayerStatus.Playing, sim.World.Player(Keeper).Status);
+        Assert.Equal(ruined, sim.World.TileAtIndex(0).RoomRuined);
+        Assert.Equal(!ruined, sim.World.TileAtIndex(1).RoomRuined);
+    }
+
+    [Fact]
+    public void RestoredRegenerationCountdownAdvancesFromTheNativePhase()
+    {
+        GameSimulation sim = Start(0);
+        // The fixture's authored room can be made a Heart without adding an object.
+        RoomDef heart = sim.Database.Room(RoomTypeId.DungeonHeart);
+        RoomRules.Place(sim.Database, ref sim.World.Tile(4, 4), heart, Keeper);
+        ResyncState state = WithPlayerState(sim.World, 0, 50000);
+        WorldResync.Apply(sim, state, _ => null, ResyncParts.Players);
+        while (!HeartIntroRules.SequenceOver(HeartIntroRules.Turn(sim.CurrentTick), sim.Database)) sim.Tick();
+        // Opening ticks can also run the counter at their boundary; restore immediately before measuring.
+        WorldResync.Apply(sim, state, _ => null, ResyncParts.Players);
+        for (int i = 0; i < 3; i++) sim.Tick();
+        Assert.Equal(50000, sim.World.Player(Keeper).HeartHealth);
+        sim.Tick();
+        Assert.Equal(50025, sim.World.Player(Keeper).HeartHealth);
+    }
+
+    [Fact]
+    public void TerminalFlagsCanBeTrueWhileUnavailableHeartMetadataStaysOurs()
+    {
+        GameSimulation sim = Start(0);
+        sim.World.Player(Keeper).HeartHealth = 1234;
+        ResyncState state = WithPlayerState(sim.World, PlayerStatus.Conquered, 0);
+        ResyncPlayer native = state.Players[0];
+        state = state with { Players = [native with { Heart = null, Terminal = native.Terminal! with { KeeperFrameAfterDefeat = true } }] };
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+
+        ResyncReport report = WorldResync.Apply(sim, state, _ => null, ResyncParts.Players);
+
+        Assert.True(sim.World.Player(Keeper).KeeperFrameAfterDefeat);
+        Assert.Equal(1234, sim.World.Player(Keeper).HeartHealth);
+        Assert.Equal(PlayerStatus.Conquered, sim.World.Player(Keeper).Status);
+        Assert.Empty(events.Events);
+        Assert.Contains(report.Notes, n => n.Contains("Heart unavailable"));
+    }
 
     private static GameSimulation Start(int imps)
     {

@@ -382,4 +382,140 @@ public class CampaignPlayerTests
         PlayerObservation other = Observe() is var o ? new PlayerObservation { Stamp = o.Stamp with { RunId = new PlayerRunId("other") } } : null!;
         Assert.Throws<ArgumentException>(() => Player().Decide(other));
     }
+
+    // ---- The strategy the routines read (campaign bot stage 3 plan, Task 1) ----
+
+    [Fact]
+    public void HoldHomeAnswersOnlyAnEnemyNearHomeAndOffAnswersNone()
+    {
+        PlayerVisibleThing far = new(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        PlayerVisibleThing near = new(Handle(0), PlayerThingKind.Creature, new TilePos(6, 7), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        PlayerVisibleThing goblin = new(Handle(2), PlayerThingKind.Creature, new TilePos(3, 2), Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin);
+
+        CampaignPlayer hold = Player();
+        hold.Apply(hold.Strategy with { Fight = FightMode.HoldHome, HomeGuardTiles = 3 });
+        Assert.DoesNotContain(hold.Decide(Observe(things: [far, goblin], gold: 0)).Actions, a => a is PlayerAction.PickUp);
+        Assert.Equal(new PlayerAction.PickUp(Handle(2)), hold.Decide(Observe(revision: 2, things: [near, goblin], gold: 0)).Actions[0]);
+
+        CampaignPlayer off = Player();
+        off.Apply(off.Strategy with { Fight = FightMode.Off });
+        Assert.DoesNotContain(off.Decide(Observe(things: [near, goblin], gold: 0)).Actions, a => a is PlayerAction.PickUp);
+
+        // Holding a fighter with no enemy it answers, either drops it near home, not beside the far enemy.
+        foreach (CampaignPlayer player in new[] { hold, off })
+        {
+            PlayerObservation holding = Observe(revision: 3, things: [far], hand: 1, gold: 0);
+            TilePos nearHome = PlayerActionRoutines.NearestOwnFloor(holding, PlayerActionRoutines.Home(holding), [])!.Value;
+            Assert.Equal(new PlayerAction.DropAt(nearHome), player.Decide(holding).Actions[0]);
+            Assert.NotEqual(new TilePos(8, 8), nearHome);
+        }
+    }
+
+    [Fact]
+    public void FrontierDigsNearestHomeGoldOrNot()
+    {
+        CampaignPlayer player = Player();
+        player.Apply(player.Strategy with { Dig = DigMode.Frontier });
+        TilePos first = Assert.IsType<PlayerAction.TagArea>(player.Decide(Observe(gold: 0, rooms: [])).Actions[0]).From;
+        Assert.NotEqual(new TilePos(5, 9), first);                          // gold first would take the seam
+        Assert.Equal(PlayerActionRoutines.Frontier(Observe(gold: 0, rooms: []), new TilePos(5, 5), preferGold: false, [])[0], first);
+    }
+
+    [Fact]
+    public void UntaggingOutlastsARecoveryThatFillsTheDecisionAndStopsWhenDiggingResumes()
+    {
+        string[] marked = [.. Dungeon];
+        marked[1] = "Rtttttt###R";
+        CampaignPlayer player = Player(o => o with { StallWindowTicks = 8 });
+        player.Apply(player.Strategy with { Dig = DigMode.Off });
+        Assert.Equal(4, player.Decide(Observe(map: marked, gold: 0, rooms: [], tick: 4)).Actions.Count);
+        // No gain for the window: the recovery's untags fill the decision, and the step must not end.
+        PlayerDecision recovery = player.Decide(Observe(revision: 2, map: marked, gold: 0, rooms: [], tick: 20));
+        Assert.Equal(4, recovery.Actions.Count);
+        Assert.Equal(recovery.Actions.Count, recovery.Actions.Distinct().Count());
+        marked[1] = "R####tt###R";
+        Assert.Equal(2, player.Decide(Observe(revision: 3, map: marked, gold: 0, rooms: [], tick: 24)).Actions.Count);
+
+        // Turning digging back on mid-untag leaves the remaining marks to be dug.
+        CampaignPlayer resumed = Player();
+        resumed.Apply(resumed.Strategy with { Dig = DigMode.Off });
+        resumed.Apply(resumed.Strategy with { Dig = DigMode.GoldFirst });
+        Assert.DoesNotContain(resumed.Decide(Observe(map: marked, gold: 0, rooms: [])).Actions, a => a is PlayerAction.TagArea { Untag: true });
+    }
+
+    [Fact]
+    public void AnIdlePlayerWithDiggingOffIsNotALimitation()
+    {
+        static CampaignPlayer Idle(DigMode dig)
+        {
+            CampaignPlayer player = Player(o => o with { StallWindowTicks = 8, RecoveryAttempts = 0 });
+            player.Apply(player.Strategy with { Dig = dig });
+            return player;
+        }
+        foreach (DigMode dig in new[] { DigMode.Off, DigMode.GoldFirst })
+        {
+            CampaignPlayer player = Idle(dig);
+            player.Decide(Observe(gold: 0, rooms: [], tick: 4));
+            PlayerDecision later = player.Decide(Observe(revision: 2, gold: 0, rooms: [], tick: 40));
+            // With a frontier still to dig, no gain is a stall; with digging off it is not.
+            Assert.Equal(dig == DigMode.GoldFirst, later.IsLimitation);
+        }
+    }
+
+    [Fact]
+    public void DigOffTagsNothingAndTakesItsMarksBackAcrossDecisions()
+    {
+        string[] marked = [.. Dungeon];
+        marked[1] = "Rtttttt###R";
+        CampaignPlayer player = Player();
+        player.Apply(player.Strategy with { Dig = DigMode.Off });
+
+        PlayerDecision first = player.Decide(Observe(map: marked, gold: 0, rooms: []));
+        Assert.Equal(4, first.Actions.Count);
+        Assert.All(first.Actions, a => Assert.True(a is PlayerAction.TagArea { Untag: true }));
+
+        marked[1] = "R####tt###R";
+        PlayerDecision second = player.Decide(Observe(revision: 2, map: marked, gold: 0, rooms: []));
+        Assert.Equal([new PlayerAction.TagArea(new TilePos(5, 1), new TilePos(5, 1), Untag: true),
+                      new PlayerAction.TagArea(new TilePos(6, 1), new TilePos(6, 1), Untag: true)], second.Actions);
+
+        Assert.Empty(player.Decide(Observe(revision: 3, gold: 0, rooms: [])).Actions);
+    }
+
+    [Fact]
+    public void ARemovedRoomsPendingSquareIsGivenUp()
+    {
+        CampaignPlayer player = Player();
+        Assert.Contains(player.Decide(Observe()).Actions, a => a is PlayerAction.BuildRoom { Room: RoomTypeId.Treasury });
+        // The Treasury is pending, which holds every other build until it lands or is given up.
+        Assert.DoesNotContain(player.Decide(Observe(revision: 2)).Actions, a => a is PlayerAction.BuildRoom);
+
+        player.Apply(player.Strategy with { Rooms = [RoomTypeId.Lair] });
+        Assert.Contains(player.Decide(Observe(revision: 3)).Actions, a => a is PlayerAction.BuildRoom { Room: RoomTypeId.Lair });
+    }
+
+    [Fact]
+    public void TowardOrdersTheFrontierByDistanceToItsTarget()
+    {
+        // Gold first would mark the seam at (5,9) first; toward (9,5) marks (9,5).
+        Assert.Equal(new PlayerAction.TagArea(new TilePos(5, 9), new TilePos(5, 9)), Player().Decide(Observe(gold: 0, rooms: [])).Actions[0]);
+        CampaignPlayer player = Player();
+        player.Apply(player.Strategy with { Dig = DigMode.Toward, DigTarget = new TilePos(9, 5) });
+        Assert.Equal(new PlayerAction.TagArea(new TilePos(9, 5), new TilePos(9, 5)), player.Decide(Observe(gold: 0, rooms: [])).Actions[0]);
+    }
+
+    [Fact]
+    public void SpecialsOffLeavesAnOfferedSpecialAndABadStrategyIsRefused()
+    {
+        PlayerVisibleThing special = new(Handle(0), PlayerThingKind.Special, new TilePos(3, 3), Me, PlayerThingActions.Activate, objectType: new ObjectTypeId(88));
+        CampaignPlayer player = Player();
+        player.Apply(player.Strategy with { UseSpecials = false });
+        Assert.DoesNotContain(player.Decide(Observe(things: [special], gold: 0)).Actions, a => a is PlayerAction.ActivateSpecial);
+
+        var refused = Assert.Throws<ArgumentException>(() => player.Apply(player.Strategy with { RoomSide = 0, AdvanceTicks = 0 }));
+        Assert.Contains("RoomSide", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("AdvanceTicks", refused.Message, StringComparison.Ordinal);
+        Assert.False(player.Strategy.UseSpecials); // the refused strategy left the current one in place
+        Assert.Throws<ArgumentException>(() => player.Apply(player.Strategy with { Dig = DigMode.Toward, DigTarget = new TilePos(30, 30) }));
+    }
 }

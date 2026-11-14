@@ -22,7 +22,16 @@ public sealed record ResyncState(
 }
 
 /// <summary><c>money</c> is player <c>+0x7E</c>, <c>mana</c> <c>+0x82</c> (player-object.md).</summary>
-public sealed record ResyncPlayer(int Id, int Money, int Mana, ResyncManufacture? Manufacture = null);
+public sealed record ResyncPlayer(int Id, int Money, int Mana, ResyncManufacture? Manufacture = null,
+    ResyncTerminal? Terminal = null, ResyncHeart? Heart = null);
+
+/// <summary>Full-player status, translated killer tag, native death turn and flag bit 22.
+/// The native result's whole seconds do not identify an exact verdict tick.</summary>
+public sealed record ResyncTerminal(int Status, int KilledByPlayer, long HeartDiedTick, bool KeeperFrameAfterDefeat);
+
+/// <summary>The recorded Heart site's room and its type-13 object, or zero health when that
+/// object's captured list contains none. Native room tags identify tiles in <see cref="ResyncState.Tiles"/>.</summary>
+public sealed record ResyncHeart(int Health, int LastAttacker, bool RoomRuined, int RegenCountdown, int RoomTag);
 
 /// <summary>The manufacture list (the push <c>0x005066E0</c>): the points word <c>player+0x217</c>
 /// and the ring at <c>+0x219</c> from its head, each entry's cost, kind (0 a door, 1 a trap), type
@@ -113,7 +122,7 @@ public enum ResyncParts
     Fear = 1 << 8,
     /// <summary>A worker's job, gold in hand and last task.</summary>
     Jobs = 1 << 9,
-    /// <summary>Each keeper's mana and manufacture list.</summary>
+    /// <summary>Each keeper's mana, manufacture list and optional captured Heart/terminal state.</summary>
     Players = 1 << 10,
     /// <summary>The trigger flag and timer banks.</summary>
     Triggers = 1 << 11,

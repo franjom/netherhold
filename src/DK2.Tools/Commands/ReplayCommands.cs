@@ -210,7 +210,7 @@ internal static class ReplayCommands
             {
                 PlayerState player = world.Player(p.PlayerId);
                 Console.WriteLine($"  result: player {p.PlayerId} status={player.Status} "
-                    + $"at tick={player.StatusTick.Value}");
+                    + $"at tick={(player.StatusTick == WorldResync.UnknownVerdictTick ? "unknown" : player.StatusTick.Value.ToString())}");
             }
         }
 

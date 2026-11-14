@@ -12931,6 +12931,10 @@ the same packets, so that the next few hundred choices are made from DK2's input
   corridor. ADR-0558 copies them.
 - No simulation rule changed; the hash and the pin stand.
 
+**Amendment (2026-11-14, Q714).** Optional captured Heart/terminal sections restore
+under the player part, without verdict side effects; unknown native result history
+is explicit. Old JSON retains its prior behavior. See [scope and limits](research/resync-heart-terminal.md).
+
 ## ADR-0557 — A crate is paid for at the cost in the manufacture ring's slot 0, not the head order's
 **Date:** 2026-10-28 · **Status:** accepted · Hash/save 317 · Q618 (answered), Q665 · Research: `docs/research/state-category-hooks.md` §3.4, functions/00506B50.md
 

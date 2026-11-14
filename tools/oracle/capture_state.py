@@ -190,6 +190,76 @@ def manufacture(player):
             "slotZeroCost": struct.unpack_from("<H", player, ring)[0]}
 
 
+def player_id(tag, by_tag):
+    if not tag:
+        return 0
+    if tag not in by_tag:
+        raise ValueError('unresolved player tag %d' % tag)
+    return by_tag[tag]
+
+
+def player_terminal(raw, by_tag):
+    if raw is None or len(raw) < 0xEE6:
+        raise ValueError('terminal state requires a full player region')
+    return dict(status=struct.unpack_from('<I', raw, 0x19A)[0],
+                killedByPlayer=player_id(struct.unpack_from('<H', raw, 0x132)[0], by_tag),
+                heartDiedTick=struct.unpack_from('<I', raw, 0xEE2)[0],
+                keeperFrameAfterDefeat=bool(struct.unpack_from('<I', raw, 0x76)[0] & (1 << 22)))
+
+
+def active_player_tags(snap):
+    # World_TickPlayers: world+7A, then player+3A. Allocated slots need not be initialized players.
+    players = {}
+    for index in range(dk2capture.PLAYER_COUNT):
+        raw = snap.player(index)
+        if raw is not None:
+            players[struct.unpack_from('<H', raw, 4)[0]] = raw
+    tag = struct.unpack_from('<H', snap.region(dk2capture.REGION_WORLD), 0x7A)[0]
+    tags = set()
+    while tag:
+        if tag in tags or tag not in players:
+            raise ValueError('incomplete or cyclic active player list')
+        tags.add(tag)
+        tag = struct.unpack_from('<H', players[tag], 0x3A)[0]
+    return tags
+
+
+def player_heart(snap, raw, records, by_tag):
+    # Original Heart site: player+B43. Follow its room's list, not the first owned Heart.
+    x, y = struct.unpack_from('<HH', raw, 0xB43)
+    width, height = snap.map_size()
+    if x >= width or y >= height:
+        return None
+    room_tag = struct.unpack_from('<H', snap.tile(x, y), 2)[0] & 0xFFF
+    rooms = [r for r in records if r.kind == 'room' and r.f('tag') == room_tag and r.f('type_id') == 5]
+    if not rooms:
+        return None
+    if len(rooms) != 1:
+        raise ValueError('ambiguous Heart room')
+    room = rooms[0]
+    active = snap.region(dk2capture.REGION_ACTIVE)
+    if not room_tag or room.slot is None or room.slot >= len(active) or not active[room.slot]:
+        return None
+    objects = {r.slot: r for r in records if r.kind == 'object' and r.slot is not None}
+    tag, seen, hearts = room.u(0x0E, '<H'), set(), []
+    while tag:
+        if tag in seen or tag not in objects or tag >= len(active) or not active[tag]:
+            raise ValueError('incomplete or cyclic Heart room object list')
+        seen.add(tag)
+        item = objects[tag]
+        if item.u(0x138, '<H') != room_tag:
+            raise ValueError('Heart object list has mismatched room membership')
+        if item.f('type_id') == 13:
+            hearts.append(item)
+        tag = item.u(0x12A, '<H')
+    if len(hearts) > 1:
+        raise ValueError('ambiguous Heart objects in room')
+    heart = hearts[0] if hearts else None
+    return dict(health=heart.u(0x40, '<i') if heart else 0,
+                lastAttacker=player_id(heart.u(0x36, '<H'), by_tag) if heart else 0,
+                roomRuined=bool(room.u(0x9A, '<B') & 1), regenCountdown=room.u(0x56, '<B'), roomTag=room_tag)
+
+
 def state(snap):
     table = snap.region(dk2capture.REGION_THING_TABLE)
     active = snap.region(dk2capture.REGION_ACTIVE)
@@ -209,6 +279,8 @@ def state(snap):
             health.append(struct.unpack_from("<H", t, 0x06)[0])
     paddr, _ = snap.regions[dk2capture.REGION_PLAYERS]
     players, marks = [], []
+    records = list(snap.records())
+    active_players = active_player_tags(snap)
     for i in range(dk2capture.PLAYER_COUNT):
         if snap.player(i) is None:
             continue
@@ -216,7 +288,9 @@ def state(snap):
                   "ptr": paddr + i * dk2capture.PLAYER_SIZE,
                   "money": struct.unpack_from("<i", snap.player(i), 0x7E)[0],
                   "mana": struct.unpack_from("<i", snap.player(i), 0x82)[0],
-                  "manufacture": manufacture(snap.player(i))}
+                  "manufacture": manufacture(snap.player(i)),
+                  "terminal": player_terminal(snap.player(i), by_tag) if dk2capture.field("player", "tag", snap.player(i)) in active_players else None,
+                  "heart": player_heart(snap, snap.player(i), records, by_tag) if dk2capture.field("player", "tag", snap.player(i)) in active_players else None}
         pool = snap.regions.get(dk2capture.REGION_POOL + i)
         if pool is not None and pool[1] is not None:
             player["pool"] = pool_entries(pool[1])
@@ -225,7 +299,7 @@ def state(snap):
                       for n, e in enumerate(digs)]
         players.append(player)
     rooms, creatures, doors, traps, objects = [], [], [], [], []
-    for r in snap.records():
+    for r in records:
         if not r.raw:
             continue
         if r.kind == "room":

@@ -30,10 +30,10 @@ public sealed record ResyncReport(
 /// Continues our simulation from a DK2 capture's state, the controlled-input test (ADR-0556,
 /// ADR-0558, <c>resync-replay.md</c>): between two ticks of a replay the native tick's tiles,
 /// marks, doors, traps, crates, manufacture list, trigger banks, Portal clocks, creatures (made or removed to
-/// match; pose, level, health, fear, fight return), Imp jobs, floor gold, mana and seed are copied over ours,
+/// match; pose, level, health, fear, fight return), Imp jobs, floor gold, mana, optional Heart/terminal state and seed are copied over ours,
 /// and the replay goes on with the same packets (ADR-0560, Q665). An Imp on tile work or a crate
 /// trip is sent to the same work by our own walk, any other chooses again; another creature keeps
-/// its state when DK2's is the same or both stand free, else goes to idle. Rooms, the pool's
+/// its state when DK2's is the same or both stand free, else goes to idle. Room layouts, the pool's
 /// holders, trigger records' state, lairs and parties stay ours; DK2's money is only reported.
 /// </summary>
 public static class WorldResync
@@ -224,6 +224,7 @@ public static class WorldResync
         {
             if (!PlayerIds.IsKeeper((byte)player.Id) || !world.HasPlayer((byte)player.Id)) continue;
             ref PlayerState keeper = ref world.Player((byte)player.Id);
+            ApplyPlayerState(world, state, player, ref keeper, notes);
             notes.Add($"player {player.Id}: DK2 money {player.Money}, mana {player.Mana} (ours {keeper.Mana}); mana copied, money reported only");
             keeper.Mana = player.Mana;
             if (player.Manufacture is { } making)
@@ -251,6 +252,49 @@ public static class WorldResync
             doorsAndTraps, crates, crateTrips, paired, idle, triggerValues, added, removed,
             pairs.Where(p => p.Ours is not null).Select(p => (p.Native.Slot, p.Ours!.Id)).ToList(), portalClocks);
     }
+
+    private static void ApplyPlayerState(
+        WorldState world, ResyncState state, ResyncPlayer native, ref PlayerState player, List<string> notes)
+    {
+        if (native.Terminal is { } terminal)
+        {
+            if (terminal.Status is < PlayerStatus.Playing or > PlayerStatus.Lost
+                || terminal.KilledByPlayer is < 0 or > byte.MaxValue || terminal.HeartDiedTick < 0)
+                throw new InvalidDataException($"player {native.Id}: invalid captured terminal state");
+            player.Status = (byte)terminal.Status;
+            player.KilledByPlayerId = (byte)terminal.KilledByPlayer;
+            player.HeartDiedTick = new GameTick(terminal.HeartDiedTick == 0 ? 0 : terminal.HeartDiedTick - 1);
+            player.KeeperFrameAfterDefeat = terminal.KeeperFrameAfterDefeat;
+            player.StatusTick = terminal.Status == PlayerStatus.Playing ? GameTick.Zero : UnknownVerdictTick;
+            ref PlayerLevelStatistics stats = ref player.Statistics;
+            stats.Sampled = false;
+            stats.LandOwned = stats.ManaStored = stats.CreaturesCommanded = stats.CreatureTraining = 0;
+            stats.LevelWon = false;
+            stats.EndTurn = player.StatusTick.Value;
+            stats.AtVerdict = default;
+            if (terminal.Status != PlayerStatus.Playing)
+                notes.Add($"player {native.Id}: exact verdict tick and sampled result unavailable; status restored without verdict side effects");
+        }
+        else notes.Add($"player {native.Id}: captured terminal state unavailable; retained ours");
+
+        if (native.Heart is not { } heart)
+        {
+            notes.Add($"player {native.Id}: captured Heart unavailable; retained ours");
+            return;
+        }
+        if (heart.LastAttacker is < 0 or > byte.MaxValue || heart.RegenCountdown is < 0 or > byte.MaxValue
+            || heart.RoomTag is <= 0 or > 0xFFF)
+            throw new InvalidDataException($"player {native.Id}: invalid captured Heart state");
+        player.HeartHealth = heart.Health;
+        player.HeartLastAttackerPlayerId = (byte)heart.LastAttacker;
+        player.HeartRuined = heart.RoomRuined;
+        player.HeartRegenCountdown = (byte)heart.RegenCountdown;
+        for (int i = 0; i < world.TileCount; i++)
+            if (state.Tiles[(3 * i) + 2] == heart.RoomTag) world.TileAtIndex(i).RoomRuined = heart.RoomRuined;
+    }
+
+    /// <summary>A native status supplies no exact verdict turn; zero would falsely mean the first tick.</summary>
+    public static readonly GameTick UnknownVerdictTick = new(-1);
 
     /// <summary>Each keeper's Portal clock and tally (<c>room[0x49]</c>, <c>room[0x4D]</c>; the roll is due
     /// at <c>room[0x49] + (n² + base) × variable19</c>, <c>0x004DBBE0</c>) onto its centre tile, as the

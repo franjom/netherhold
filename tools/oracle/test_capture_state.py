@@ -51,6 +51,108 @@ class BodyWindowTests(unittest.TestCase):
         self.assertEqual(result["radius"], 4576)
 
 
+class TerminalStateTests(unittest.TestCase):
+    def heart_snapshot(self, present=True):
+        player = bytearray(0x1125)
+        struct.pack_into('<HH', player, 0xB43, 1, 1)
+        room = Record(0)
+        room.kind, room.slot = 'room', 77
+        room.f = lambda name: {'tag': 77, 'type_id': 5, 'player': 93}[name]
+        room.raw[0x56] = 3
+        room.raw[0x9A] = 1
+        struct.pack_into('<H', room.raw, 0x0E, 88 if present else 0)
+        heart = Record(-25)
+        heart.kind, heart.slot = 'object', 88
+        heart.f = lambda name: {'type_id': 13}[name]
+        struct.pack_into('<H', heart.raw, 0x36, 99)
+        struct.pack_into('<H', heart.raw, 0x138, 77)
+        active = bytearray(100)
+        active[77], active[88] = 3, 2
+        tile = bytearray(12)
+        struct.pack_into('<H', tile, 2, 77)
+        snap = types.SimpleNamespace(map_size=lambda: (3, 3), tile=lambda x, y: tile,
+                                     region=lambda kind: active)
+        return player, room, heart, snap
+
+    def test_heart_comes_from_recorded_site_and_linked_object_with_translated_source(self):
+        player, room, heart, snap = self.heart_snapshot()
+        with mock.patch.object(capture_state, 'dk2capture', types.SimpleNamespace(REGION_ACTIVE=1)):
+            result = capture_state.player_heart(snap, player, [room, heart], {93: 3, 99: 4})
+        self.assertEqual(result, dict(health=-25, lastAttacker=4, roomRuined=True, regenCountdown=3, roomTag=77))
+
+    def test_captured_absent_heart_is_zero_health_not_unavailable(self):
+        player, room, heart, snap = self.heart_snapshot(False)
+        with mock.patch.object(capture_state, 'dk2capture', types.SimpleNamespace(REGION_ACTIVE=1)):
+            result = capture_state.player_heart(snap, player, [room, heart], {93: 3})
+        self.assertEqual(result['health'], 0)
+        self.assertEqual(result['lastAttacker'], 0)
+
+    def test_uncaptured_or_wrong_site_is_unavailable_instead_of_a_dead_heart(self):
+        player, room, heart, snap = self.heart_snapshot()
+        self.assertIsNone(capture_state.player_heart(snap, player, [], {}))
+
+    def test_wrong_room_membership_is_rejected(self):
+        player, room, heart, snap = self.heart_snapshot()
+        struct.pack_into('<H', heart.raw, 0x138, 78)
+        with mock.patch.object(capture_state, 'dk2capture', types.SimpleNamespace(REGION_ACTIVE=1)):
+            with self.assertRaisesRegex(ValueError, 'room'):
+                capture_state.player_heart(snap, player, [room, heart], {93: 3, 99: 4})
+
+    def test_another_owned_ruin_does_not_replace_the_heart_at_the_recorded_site(self):
+        player, room, heart, snap = self.heart_snapshot()
+        other = Record(0)
+        other.kind, other.slot = 'room', 78
+        other.f = lambda name: {'tag': 78, 'type_id': 5, 'player': 93}[name]
+        other.raw[0x9A] = 1
+        with mock.patch.object(capture_state, 'dk2capture', types.SimpleNamespace(REGION_ACTIVE=1)):
+            result = capture_state.player_heart(snap, player, [other, room, heart], {93: 3, 99: 4})
+        self.assertEqual(result['roomTag'], 77)
+        self.assertEqual(result['health'], -25)
+
+    def test_a_claimed_ruin_at_the_original_site_is_not_discarded_by_new_ownership(self):
+        player, room, heart, snap = self.heart_snapshot(False)
+        struct.pack_into('<H', player, 4, 93)
+        room.f = lambda name: {'tag': 77, 'type_id': 5, 'player': 99}[name]
+        with mock.patch.object(capture_state, 'dk2capture', types.SimpleNamespace(REGION_ACTIVE=1)):
+            result = capture_state.player_heart(snap, player, [room, heart], {93: 3, 99: 4})
+        self.assertTrue(result['roomRuined'])
+        self.assertEqual(result['health'], 0)
+
+    def test_active_player_list_excludes_allocated_but_uninitialized_slots(self):
+        raw = [bytearray(0x1125) for _ in range(3)]
+        for index, tag in enumerate([93, 94, 95]):
+            struct.pack_into('<H', raw[index], 4, tag)
+        struct.pack_into('<H', raw[0], 0x3A, 95)
+        world = bytearray(0x80)
+        struct.pack_into('<H', world, 0x7A, 93)
+        snap = types.SimpleNamespace(player=lambda index: raw[index], region=lambda kind: world)
+        with mock.patch.object(capture_state, 'dk2capture', types.SimpleNamespace(REGION_WORLD=1, PLAYER_COUNT=3)):
+            self.assertEqual(capture_state.active_player_tags(snap), {93, 95})
+
+    def test_full_player_status_and_killer_tags_are_read_without_a_fake_verdict_tick(self):
+        raw = bytearray(0x1125)
+        struct.pack_into('<I', raw, 0x19A, 3)
+        struct.pack_into('<H', raw, 0x132, 99)
+        struct.pack_into('<I', raw, 0xEE2, 124)
+        struct.pack_into('<I', raw, 0x76, 1 << 22)
+        result = capture_state.player_terminal(raw, {99: 4})
+        self.assertEqual(result, dict(status=3, killedByPlayer=4, heartDiedTick=124, keeperFrameAfterDefeat=True))
+        self.assertNotIn('statusTick', result)
+
+    def test_short_player_head_cannot_silently_become_playing(self):
+        with self.assertRaisesRegex(ValueError, 'full player'):
+            capture_state.player_terminal(bytes(0x40), {})
+
+    def test_unresolved_nonzero_killer_tag_is_rejected(self):
+        raw = bytearray(0x1125)
+        struct.pack_into('<H', raw, 0x132, 99)
+        with self.assertRaisesRegex(ValueError, 'player tag'):
+            capture_state.player_terminal(raw, {})
+
+    def test_zero_killer_stays_zero_in_a_playing_capture(self):
+        self.assertEqual(capture_state.player_terminal(bytes(0x1125), {})['killedByPlayer'], 0)
+
+
 class CompletenessTests(unittest.TestCase):
     def snapshot(self):
         return types.SimpleNamespace(tick=7, torn=False, regions={1: (0x1000, None)})

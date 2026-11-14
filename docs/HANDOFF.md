@@ -83,11 +83,11 @@ Q764 to Q767 and Q733(d). Build only behavior supported
 by the binary or a capture; do not tune rules to outcome averages.
 
 The controlled prefix does not establish full-state or Heart-outcome parity.
-Restore and adapter gaps remain separate: Q713, Q714, Q719, Q723, Q736 and Q738
+Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [hash-516 recheck](research/level4-outcomes.md#q710-recheck-at-hash-516-2026-11-14) reuses existing recordings and retains the Q714/Q719 limits.
+exposure is Q710; the [Q714 restore and recheck](research/resync-heart-terminal.md) reuses existing recordings and retains the documented partial-state limits.
 
 ## Other pending work
 

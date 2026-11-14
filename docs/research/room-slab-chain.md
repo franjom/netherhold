@@ -106,8 +106,8 @@ it calls `Player_RoomAvailability` `0x004BAB20` or tests the ROOMS bit 0x80 as a
 their callees is a direct caller of `0x004BAB20` either; deeper callees were not walked.
 `0x004F0390` (called once at queue time) only tests bit 0x80 to choose which rooms to
 re-finish. STRONGLY INFERRED: our build command ignoring `Availability` matches DK2's
-simulation. HYPOTHESIS: the build menu is the gate; `0x00410990` also reads availability, into a
-state word, but who calls it is not traced.
+simulation. The separate [icon-selection gate](bottom-panel-controls.md#availability-4-and-construction-q700)
+refuses availability 4 even while ownership makes the room visible (Q700).
 
 ## 3. Adding a tile: join, create or merge — STRONGLY INFERRED
 

@@ -53,4 +53,32 @@ public class DispatcherTests
         ];
         Assert.Equal(expected, Program.Registry.Keys.Order(StringComparer.Ordinal));
     }
+
+    [Theory]
+    [InlineData("terminal")]
+    [InlineData("heart")]
+    public void IncompleteResyncSectionsReturnAnInputErrorBeforeOpeningThePacket(string section)
+    {
+        string path = Path.GetTempFileName();
+        TextWriter original = Console.Error;
+        using var captured = new StringWriter();
+        try
+        {
+            File.WriteAllText(path, $$$"""
+                {"tick":5000,"width":1,"height":1,"tiles":[0,0,0],
+                 "players":[{"id":3,"money":0,"mana":0,"{{{section}}}":{}}],"creatures":[]}
+                """);
+            Console.SetError(captured);
+            int code = Program.Dispatch(["replay", "level4", "-", path + ".csv", "--packet", path + ".missing",
+                "--packet-offset", "69", "--resync", path, "--resync-at", "5000"]);
+            Assert.Equal(2, code);
+            Assert.Contains(path, captured.ToString());
+            Assert.Contains("capture", captured.ToString());
+        }
+        finally
+        {
+            Console.SetError(original);
+            File.Delete(path);
+        }
+    }
 }

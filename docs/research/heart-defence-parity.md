@@ -124,7 +124,7 @@ byte-identical to the archived hash361 controls. Scores and comparison:
 `resync-contamination-analysis.json`; native control inherited from hash361).
 The sensitivity recheck identifies the same eight generator-404 terminal cases;
 hash361/362 means are both 11.925 for all 40 runs and 10.03125 for the 32-pair
-subset. Q714 and the prior-history
+subset. At hash361/362, Q714 and the prior-history
 terminal states persist unchanged. Level 4's raw increase against hash360 remains visible. Its interpretation is confounded by the
 [Heart/terminal-state restore omission](resync-replay.md#heart-and-terminal-state-restoration-q714).
 The loss before 5000 itself is unexplained and may be a regression. A descriptive
@@ -132,7 +132,7 @@ sensitivity analysis retains 32 pairs without detected pre-resync terminal state
 master 9.91, fixed 10.03 Imp deaths/run (exact 9.90625/10.03125), mean change 0.125,
 paired sign-flip p = 0.875. This outcome-selected subset is not an unbiased regression
 check. The full 40 paired change is 1.85, p = 0.1796875; primary scorer files exclude
-nothing. Q710/Q714 remain open; no regression-free verdict follows.
+nothing. Q710 remains open; Q714's later [bounded restore](resync-heart-terminal.md) does not turn this historical subset into a regression-free verdict.
 
 Level 5 score files (`score-r1400.out`, `score-r3400.out`) are in the
 `F:/DK2Evidence/studies/heart-defence-baseline-l5--2026-11-01--001/` and

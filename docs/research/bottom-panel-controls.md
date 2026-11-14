@@ -71,6 +71,35 @@ from intermediate+0x496, file+0x3C2, the existing RoomDef.OrderInEditor field.
 The model sorts by that field. Secondary room-slot navigation uses the separate
 [callback](functions/004118B0.md); its adapter ordering limitation is below.
 
+### Availability 4 and construction (Q700)
+
+**ANSWERED, STRONGLY INFERRED (binary recheck 2026-11-14).** Owning a room
+changes the visibility gate above, not its selection gate. The selector pushes
+the resolved room type at `0x004108C3..0x004108CA`; its comparison at `0x004108CF`
+branches on 4 to `0x00410971`, which clears tool mode `+0x13DB`. It does not enter
+room-placement mode. [Visible count](functions/00409CF0.md) uses the same ownership
+filter as the resolver, and [HUD refresh](functions/00407260.md) consumes that count.
+
+Construction has a separate boundary. The reviewed room-mode release of
+[Hand_Click](functions/004075E0.md) submits action `0x2F` from the selected room;
+the [packet/queue/wave path](room-slab-chain.md#2-building-the-action-and-its-wave--strongly-inferred)
+tests placement, cost and queue capacity, not room availability. An admitted
+request is therefore not rejected solely for value 4. This does not prove that
+an existing tool survives every HUD or hotkey transition.
+
+[OpenKeeper PR #681](https://github.com/tonihele/OpenKeeper/pull/681), merged
+2026-11-09 with source head `5042d17bd54383e69a5fbf92991190f14dd67484`, asserts that
+owning such a room enables building it through the panel. Its description and
+comment thread provide no native capture or reproducible observation; that
+assertion does not override the selection instructions. No original-game build
+was observed here. The modern selector and build-command boundary already match
+the reviewed paths, so Q700 requires no gameplay change.
+
+Auxiliary setter-callers were also checked: [category grant](functions/004E12A0.md),
+[category removal](functions/004E1590.md) and [record dispatch](functions/0051CAE0.md).
+They do not establish every possible table write or the live value after a room
+is captured; the answer above conditions on availability actually remaining 4.
+
 ## Spells and workshop (partially STRONGLY INFERRED)
 
 ### Unknown-slot brightness (2026-10-25)
