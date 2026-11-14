@@ -43,7 +43,8 @@ public struct PlayerLevelStatistics
     /// <summary><c>+0x172</c>: 1 for status 2 (won), else 0.</summary>
     public bool LevelWon;
     /// <summary>The game turn of the verdict; <c>TimeTaken</c> (<c>+0x17F</c>) is this over the
-    /// level's TicksPerSecond, which the simulation does not hold.</summary>
+    /// level's TicksPerSecond, which the simulation does not hold. A native resync can leave
+    /// this unknown (-1), with <see cref="Sampled"/> false.</summary>
     public long EndTurn;
     /// <summary>The running counters as the verdict copied them (<c>0x004BEF0F</c>); play goes on after it.</summary>
     public LevelCounters AtVerdict;

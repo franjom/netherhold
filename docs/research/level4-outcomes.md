@@ -393,5 +393,5 @@ sensitivity, not an unbiased parity test. One repeated case matches all five tel
 
 Q710 stays OPEN. Default Xoshiro ignores captured RNG state; LCG controls still lack
 matched initialization/history and complete restoration (Q719). Legacy native polling
-labels and the historical stale-row exclusion heuristic also limit comparison. The
-residual direction persists, but identifies no causal AI rule; close restore limits first.
+labels and the historical stale-row exclusion heuristic also limit comparison.
+This is the pre-Q714 baseline; see the [bounded restore and recheck](resync-heart-terminal.md#level-4-recheck) for the subsequent comparison.
