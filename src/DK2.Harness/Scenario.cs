@@ -352,6 +352,15 @@ public sealed class Scenario
             throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' needs a 32-bit seed under random: dk2.");
     }
 
+    /// <summary>Runs this scenario on <paramref name="seed"/> instead of its file's (<c>--seed</c>),
+    /// with the file's own check: a dk2 generator takes a 32-bit seed.</summary>
+    public void OverrideSeed(ulong seed)
+    {
+        if (Random == "dk2" && seed > uint.MaxValue)
+            throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' needs a 32-bit seed under random: dk2; --seed {seed} is not one.");
+        Seed = seed;
+    }
+
     /// <summary>The simulation's generator, as <see cref="Random"/> selects it.</summary>
     public SimRandom CreateRandom()
     {

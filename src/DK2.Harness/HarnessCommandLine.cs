@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Globalization;
 using DK2.Data.Model;
 
 namespace DK2.Harness;
@@ -81,6 +82,10 @@ public static class HarnessCommandLine
             if (Value(args, "--player-wall-seconds") is null)
                 wall = ["--player-wall-seconds", Math.Max(1, timeoutSeconds - 30).ToString(System.Globalization.CultureInfo.InvariantCulture)];
         }
+        if (!SeedOverride(args, out ulong? runSeed) || SeedRange(args) is not { } seedRange) return null;
+        // One seed or a range, not both; a range under --fuzz-seeds would multiply two seed axes.
+        if (runSeed is not null && seedRange.Count > 0) return null;
+        if (seedRange.Count > 0 && Value(args, "--fuzz-seeds") is not null) return null;
         string? fuzz = Value(args, "--fuzz");
         int? seeds = null;
         if (Value(args, "--fuzz-seeds") is not null)
@@ -96,11 +101,18 @@ public static class HarnessCommandLine
                 // A child may run from another folder: it gets the receipt's absolute path.
                 common.AddRange([flag, flag == "--player-receipt" ? template.Player!.Receipt! : v]);
         common.AddRange(wall);
+        if (runSeed is ulong one) common.AddRange(["--seed", one.ToString(CultureInfo.InvariantCulture)]);
 
         var jobs = new List<WatchJob>();
         foreach (string file in files)
         {
-            if (fuzz is null) jobs.Add(new WatchJob(file, common, ""));
+            if (seedRange.Count > 0)
+                foreach (ulong each in seedRange)
+                {
+                    string text = each.ToString(CultureInfo.InvariantCulture);
+                    jobs.Add(new WatchJob(file, fuzz is null ? [.. common, "--seed", text] : [.. common, "--fuzz", fuzz, "--seed", text], $"seed {text}"));
+                }
+            else if (fuzz is null) jobs.Add(new WatchJob(file, common, runSeed is ulong labelled ? $"seed {labelled.ToString(CultureInfo.InvariantCulture)}" : ""));
             else if (seeds is null) jobs.Add(new WatchJob(file, [.. common, "--fuzz", fuzz], $"fuzz {fuzz}"));
             else
             {
@@ -119,6 +131,34 @@ public static class HarnessCommandLine
     {
         int index = Array.IndexOf(args, name);
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+    }
+
+    /// <summary><c>--seed n</c>: the seed to run instead of the scenario file's. False when the flag is
+    /// present without a whole number of at least 0; true with null when it is absent.</summary>
+    public static bool SeedOverride(string[] args, out ulong? seed)
+    {
+        seed = null;
+        if (Array.IndexOf(args, "--seed") < 0) return true;
+        if (Value(args, "--seed") is not string value || !ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out ulong parsed))
+            return false;
+        seed = parsed;
+        return true;
+    }
+
+    /// <summary><c>--seeds a-b</c>: every seed from a to b, inclusive. Null when malformed or reversed;
+    /// empty when the flag is absent.</summary>
+    private static List<ulong>? SeedRange(string[] args)
+    {
+        if (Array.IndexOf(args, "--seeds") < 0) return [];
+        string[] parts = Value(args, "--seeds")?.Split('-') ?? [];
+        if (parts.Length != 2
+            || !ulong.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out ulong first)
+            || !ulong.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out ulong last)
+            // From 1: under random: dk2, seed 0 is the level-start seed, the same game as seed 1.
+            || first == 0 || last < first || last - first >= 10_000) return null;
+        var seeds = new List<ulong>();
+        for (ulong s = first; s <= last; s++) seeds.Add(s);
+        return seeds;
     }
 
     /// <summary>The fallback when the option is absent; null when present but not a whole number of at least 0.</summary>
