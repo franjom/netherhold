@@ -45,8 +45,12 @@ public static class HarnessCommandLine
             string? receipt = Value(args, "--player-receipt");
             if (Array.IndexOf(args, "--player-receipt") >= 0
                 && (receipt is null || receipt.Length == 0 || receipt.StartsWith("--", StringComparison.Ordinal))) return null;
+            string? knowledge = Value(args, "--player-knowledge");
+            if (Array.IndexOf(args, "--player-knowledge") >= 0
+                && (knowledge is null || knowledge.Length == 0 || knowledge.StartsWith("--", StringComparison.Ordinal))) return null;
             campaign = new CampaignPlayerSpec(new PlayerId(id), maxTicks, wall, interval, actions, stall, retries, finale, output,
-                receipt is null ? null : Path.GetFullPath(receipt));
+                receipt is null ? null : Path.GetFullPath(receipt),
+                knowledge is null || knowledge == KeeperKnowledgeFile.None ? knowledge : Path.GetFullPath(knowledge));
         }
         else if (Array.Exists(args, a => a.StartsWith("--player-", StringComparison.Ordinal))) return null;
         // A misspelt limit must not silently fall back to its default.
@@ -60,7 +64,7 @@ public static class HarnessCommandLine
     [
         "--campaign-player", "--player-max-ticks", "--player-wall-seconds", "--player-interval-ticks",
         "--player-max-actions", "--player-stall-ticks", "--player-retries", "--player-finale-ticks", "--player-output-mib",
-        "--player-receipt",
+        "--player-receipt", "--player-knowledge",
     ];
 
     /// <summary>
@@ -99,7 +103,8 @@ public static class HarnessCommandLine
         foreach (string flag in (string[])["--progress", "--snapshot-check", .. PlayerFlags])
             if (Value(args, flag) is string v)
                 // A child may run from another folder: it gets the receipt's absolute path.
-                common.AddRange([flag, flag == "--player-receipt" ? template.Player!.Receipt! : v]);
+                common.AddRange([flag, flag == "--player-receipt" ? template.Player!.Receipt!
+                    : flag == "--player-knowledge" ? template.Player!.Knowledge! : v]);
         common.AddRange(wall);
         if (runSeed is ulong one) common.AddRange(["--seed", one.ToString(CultureInfo.InvariantCulture)]);
 

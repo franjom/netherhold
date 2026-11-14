@@ -20,8 +20,12 @@ public enum PlayerRunOutcome : byte { Completed, Defeated, ControllerLimited, Te
 public sealed record CampaignPlayerSpec(
     Data.Model.PlayerId Player, int MaxTicks = 14400, int WallSeconds = 600, int IntervalTicks = 4,
     int MaxActions = 4096, int StallTicks = 1200, int Retries = 3, int FinaleTicks = 400, int OutputMiB = 64,
-    string? Receipt = null)
+    string? Receipt = null, string? Knowledge = null, int? Researchable = null)
 {
+    /// <summary>The knowledge directory the player reads (Task 3a), or null for none; <c>run</c> fills in
+    /// the repository's <c>knowledge/</c> unless <c>--player-knowledge</c> names one or <c>none</c>.</summary>
+    public string? KnowledgeDirectory => Knowledge is null || Knowledge == KeeperKnowledgeFile.None ? null : Knowledge;
+
     /// <summary>Bytes kept back from the output budget for the final journal record and report.</summary>
     public const long ReserveBytes = 1024 * 1024;
 
@@ -125,10 +129,22 @@ public static class PlayerRunReport
             receipts = player.Decisions.SelectMany(d => d.Receipts).GroupBy(r => $"{r.Status}/{r.Reason}")
                 .OrderBy(g => g.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count()),
             development = Development(player.LastObservation),
+            knowledge = spec.KnowledgeDirectory is string knowledge ? KnowledgeSummary(knowledge, spec.Researchable) : null,
             coverage_limits = PlayerObservationBuilder.CoverageLimits,
             untested = Untested,
             manifest = PlayerRunManifest.FileName,
         }, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>Which knowledge the player read (Task 3a): the two files' SHA-256 and the rules that acted.</summary>
+    private static object KnowledgeSummary(string directory, int? researchable)
+    {
+        KeeperKnowledgeFile.Loaded loaded = KeeperKnowledgeFile.Load(directory, researchable);
+        return new
+        {
+            rooms_sha256 = loaded.RoomsSha256, rules_sha256 = loaded.RulesSha256, acting_rules = loaded.ActingRules, researchable,
+            slot_targets = loaded.SlotTargets.OrderBy(t => t.Key).ToDictionary(t => t.Key.ToString(), t => t.Value),
+        };
     }
 
     /// <summary>What the player had built and kept by its last observation (campaign bot stage 3 plan,

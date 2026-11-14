@@ -152,6 +152,41 @@ public static class PlayerActionRoutines
         return result;
     }
 
+    /// <summary>Where to dig out a square of <paramref name="side"/> for a room (Task 3a): every tile own floor
+    /// with no room, or known diggable rock; at least one tile own floor, so it joins the dungeon; none in
+    /// <paramref name="avoid"/> and, without <paramref name="breach"/>, none beside another side's open ground.
+    /// Fewest rock tiles first, then nearest <paramref name="home"/>, then Y, then X; null when none.</summary>
+    public static TilePos? RoomSite(PlayerObservation observation, TilePos home, int side, ICollection<TilePos> skip,
+        ICollection<TilePos>? avoid, bool breach)
+    {
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        TilePos? best = null;
+        (int Rock, long Distance, int Y, int X) bestKey = (int.MaxValue, long.MaxValue, int.MaxValue, int.MaxValue);
+        for (int y = 0; y + side <= grid.Height; y++)
+            for (int x = 0; x + side <= grid.Width; x++)
+            {
+                var corner = new TilePos(x, y);
+                if (skip.Contains(corner)) continue;
+                int rock = 0, floor = 0;
+                bool ok = true;
+                for (int dy = 0; ok && dy < side; dy++)
+                    for (int dx = 0; ok && dx < side; dx++)
+                    {
+                        var at = new TilePos(x + dx, y + dy);
+                        PlayerTile tile = grid[at];
+                        if (avoid?.Contains(at) == true || !breach && BesideOthersGround(grid, at, self)) ok = false;
+                        else if (IsOwnFloor(tile, self) && tile.Room == default) floor++;
+                        else if (tile.IsKnown && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Diggable)) == (PlayerTileFlags.Solid | PlayerTileFlags.Diggable)) rock++;
+                        else ok = false;
+                    }
+                if (!ok || floor == 0 || rock == 0) continue;
+                var key = (rock, DistanceSquared(new TilePos(x + side / 2, y + side / 2), home), y, x);
+                if (key.CompareTo(bestKey) < 0) { bestKey = key; best = corner; }
+            }
+        return best;
+    }
+
     /// <summary>The panel button that selects <paramref name="room"/>, when offered.</summary>
     public static PlayerAction? SelectRoom(PlayerObservation observation, RoomTypeId room)
     {
@@ -231,13 +266,36 @@ public static class PlayerActionRoutines
         return true;
     }
 
+    /// <summary>How many tiles of the square at <paramref name="corner"/> do not show <paramref name="room"/>
+    /// yet could take it (own floor, no other room, not marked); -1 when one of them could not, so the square
+    /// cannot be finished as it stands.</summary>
+    public static int MissingRoomTiles(PlayerObservation observation, TilePos corner, int side, RoomTypeId room)
+    {
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        int missing = 0;
+        for (int dy = 0; dy < side; dy++)
+            for (int dx = 0; dx < side; dx++)
+            {
+                var at = new TilePos(corner.X + dx, corner.Y + dy);
+                if (!grid.Contains(at)) return -1;
+                PlayerTile tile = grid[at];
+                if (tile.Room == room && tile.Owner == self) continue;
+                if (!IsOwnFloor(tile, self) || tile.Room != default || (tile.Flags & PlayerTileFlags.Tagged) != 0) return -1;
+                missing++;
+            }
+        return missing;
+    }
+
     public static long DistanceSquared(TilePos a, TilePos b)
     {
         long dx = a.X - b.X, dy = a.Y - b.Y;
         return dx * dx + dy * dy;
     }
 
-    private static bool SquareFree(PlayerObservation observation, TilePos corner, int side)
+    /// <summary>Whether every tile of the square at <paramref name="corner"/> is the player's own claimed floor,
+    /// in no room and untagged: ready to build on.</summary>
+    public static bool SquareFree(PlayerObservation observation, TilePos corner, int side)
     {
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;

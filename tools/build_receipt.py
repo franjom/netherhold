@@ -7,7 +7,7 @@ Builds the solution in Release from scratch (--no-incremental) and writes, into 
   head.txt        the commit
   status.txt      git status --porcelain=v1 (a dirty tree is allowed and recorded)
   tracked.patch   git diff HEAD --binary, with tracked.patch.sha256 beside it
-  source.sha256   every tracked or untracked, not ignored file under src/, tests/, scenarios/ and the
+  source.sha256   every tracked or untracked, not ignored file under src/, tests/, scenarios/, knowledge/ and the
                   root build files, hashed before the build and checked again after it
   build.log       the build's output
   output.sha256   every file in the harness output folder but .pdb symbols (assemblies, deps.json,
@@ -25,7 +25,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCES = ['src', 'tests', 'scenarios', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props',
+SOURCES = ['src', 'tests', 'scenarios', 'knowledge', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props',
            'DK2.slnx', 'global.json', '.editorconfig']
 HARNESS = ROOT / 'src/DK2.Harness/bin/Release/net10.0'
 

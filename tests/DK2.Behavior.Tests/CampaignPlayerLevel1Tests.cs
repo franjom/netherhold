@@ -39,7 +39,8 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
             (int X, int Y) gemTile = default;
             (int X, int Y)? gemPoint = null;
             var othersWon = new List<PlayerId>();
-            var spec = new CampaignPlayerSpec(Keeper);
+            // The knowledge `run` reads by default (Task 3a), so this attempt plays as the command does.
+            var spec = new CampaignPlayerSpec(Keeper, Knowledge: KeeperKnowledgeFile.DefaultDirectory(ScenarioCorpus.PathOf(ScenarioFile)));
             using var journal = new MemoryStream();
             ScenarioResult result = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path).Run(scenario, new RunOptions
             {

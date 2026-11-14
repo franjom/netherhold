@@ -37,6 +37,19 @@ public enum FightMode
     Off,
 }
 
+/// <summary>Which rooms get a square dug out for them when no free square is big enough (Task 3a).</summary>
+public enum RoomSites
+{
+    None,
+
+    /// <summary>Only a room that must be larger than <see cref="PlayerStrategy.RoomSide"/>: a Library sized for its
+    /// Warlocks, a Temple. Sites for every room lost Level 4's two diagnosis wins (2026-11-14).</summary>
+    Oversized,
+
+    /// <summary>Every room; won Level 3 seed 3 and held Levels 6b and 7 longer on the diagnosis seeds.</summary>
+    All,
+}
+
 /// <summary>When the frontier may open onto others' ground (campaign bot stage 3 plan, Task 2).</summary>
 public enum BreachMode
 {
@@ -65,7 +78,7 @@ public sealed record PlayerStrategy
     /// <summary>Rooms to keep, in the order they are built.</summary>
     public IReadOnlyList<RoomTypeId> Rooms { get; init; } = [RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery];
 
-    /// <summary>A room is built as a square of this side.</summary>
+    /// <summary>A room is built as a square of at least this side; <see cref="KeeperKnowledge"/> and the targets raise it (Task 3a).</summary>
     public int RoomSide { get; init; } = 3;
 
     public DigMode Dig { get; init; } = DigMode.GoldFirst;
@@ -123,6 +136,22 @@ public sealed record PlayerStrategy
     /// <summary>When digging may open onto ground another player owns or near where an enemy was seen.</summary>
     public BreachMode Breach { get; init; } = BreachMode.WhenDeveloped;
 
+    /// <summary>Per room type, the attraction a new room of that type should reach (Task 3a): it is built at the
+    /// smallest side whose attraction does, from <see cref="KeeperKnowledge"/>; e.g. a Library for four
+    /// Warlocks. Without knowledge of the room, ignored.</summary>
+    public IReadOnlyDictionary<RoomTypeId, int> AttractionTargets { get; init; } = new Dictionary<RoomTypeId, int>();
+
+    /// <summary>Per room type, the floor slots a new room should have (Task 3a): a Library holds two research
+    /// books per slot and needs a free one for each upgrade, so its target follows the level's research.</summary>
+    public IReadOnlyDictionary<RoomTypeId, int> SlotTargets { get; init; } = new Dictionary<RoomTypeId, int>();
+
+    /// <summary>Per listed room type, the tiles it should grow to (Task 3a); e.g. a Hatchery of 25 tiles,
+    /// which Bile Demons and Giants need.</summary>
+    public IReadOnlyDictionary<RoomTypeId, int> TileTargets { get; init; } = new Dictionary<RoomTypeId, int>();
+
+    /// <summary>Which rooms get a square dug out when none is free (Task 3a).</summary>
+    public RoomSites Sites { get; init; } = RoomSites.Oversized;
+
     /// <summary>While breaching is held back, no tile within this many tiles of an enemy sighting is marked.</summary>
     public int EnemyClearanceTiles { get; init; } = 3;
 
@@ -148,6 +177,15 @@ public sealed record PlayerStrategy
         if (UseRoomEveryTicks < 0) problems.Add($"UseRoomEveryTicks {UseRoomEveryTicks} is negative");
         if (UseRoomMinGold < 0) problems.Add($"UseRoomMinGold {UseRoomMinGold} is negative");
         if (EnemyClearanceTiles < 0) problems.Add($"EnemyClearanceTiles {EnemyClearanceTiles} is negative");
+        if (AttractionTargets is null) problems.Add("AttractionTargets is null");
+        else foreach (KeyValuePair<RoomTypeId, int> t in AttractionTargets.Where(t => t.Value <= 0))
+            problems.Add($"AttractionTargets[{t.Key}] {t.Value} is not positive");
+        if (SlotTargets is null) problems.Add("SlotTargets is null");
+        else foreach (KeyValuePair<RoomTypeId, int> t in SlotTargets.Where(t => t.Value <= 0))
+            problems.Add($"SlotTargets[{t.Key}] {t.Value} is not positive");
+        if (TileTargets is null) problems.Add("TileTargets is null");
+        else foreach (KeyValuePair<RoomTypeId, int> t in TileTargets.Where(t => t.Value <= 0))
+            problems.Add($"TileTargets[{t.Key}] {t.Value} is not positive");
         if (Dig == DigMode.Toward && DigTarget is null) problems.Add("Dig Toward needs a DigTarget");
         if (Dig != DigMode.Toward && DigTarget is not null) problems.Add($"DigTarget is set but Dig is {Dig}");
         if (DigTarget is TilePos target && mapWidth is int width && mapHeight is int height

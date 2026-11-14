@@ -52,13 +52,27 @@ public sealed record CampaignPlayerOptions
     /// <summary>Gold an own Dungeon Heart holds (definition data from the host); null counts none.</summary>
     public int? HeartGold { get; init; }
 
+    /// <summary>The room facts (stage 3 plan, Task 3a): definition data generated from the game's rules,
+    /// loaded by the host before tick 0. <see cref="KeeperKnowledge.None"/> sizes every room by
+    /// <see cref="RoomSide"/> alone, as before Task 3a.</summary>
+    public KeeperKnowledge Knowledge { get; init; } = KeeperKnowledge.None;
+
+    /// <summary>The strategy's <see cref="PlayerStrategy.AttractionTargets"/> at the start.</summary>
+    public IReadOnlyDictionary<RoomTypeId, int> AttractionTargets { get; init; } = new Dictionary<RoomTypeId, int>();
+
+    /// <summary>The strategy's <see cref="PlayerStrategy.SlotTargets"/> at the start.</summary>
+    public IReadOnlyDictionary<RoomTypeId, int> SlotTargets { get; init; } = new Dictionary<RoomTypeId, int>();
+
+    /// <summary>The strategy's <see cref="PlayerStrategy.TileTargets"/> at the start.</summary>
+    public IReadOnlyDictionary<RoomTypeId, int> TileTargets { get; init; } = new Dictionary<RoomTypeId, int>();
+
     /// <summary>Ticks between ordinary decisions.</summary>
     public int AdvanceTicks { get; init; } = 4;
 
     /// <summary>Rooms to keep, in the order they are built.</summary>
     public IReadOnlyList<RoomTypeId> Rooms { get; init; } = [RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery];
 
-    /// <summary>A room is built as a square of this side.</summary>
+    /// <summary>A room is built as a square of at least this side; <see cref="Knowledge"/> and the targets raise it (Task 3a).</summary>
     public int RoomSide { get; init; } = 3;
 
     /// <summary>A build the observation still does not show after this long is given up for another square.</summary>
@@ -90,6 +104,9 @@ public sealed record CampaignPlayerOptions
         RoomSide = RoomSide,
         MaxOutstandingTags = MaxOutstandingTags,
         AdvanceTicks = AdvanceTicks,
+        AttractionTargets = AttractionTargets,
+        SlotTargets = SlotTargets,
+        TileTargets = TileTargets,
     };
 
     public void Validate()
@@ -106,6 +123,7 @@ public sealed record CampaignPlayerOptions
         if (Rooms is null) throw new ArgumentNullException(nameof(Rooms));
         if (GoldPerTreasuryTile is <= 0) throw new ArgumentOutOfRangeException(nameof(GoldPerTreasuryTile));
         if (HeartGold is < 0) throw new ArgumentOutOfRangeException(nameof(HeartGold));
+        if (Knowledge is null) throw new ArgumentNullException(nameof(Knowledge));
 
         static void Positive(int value, string name)
         {

@@ -48,6 +48,8 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
                     matching receipt, a shipped level's unmodified start, a Completed run whose Reaper
                     took the gem, and a controller-free replay of the journal with every hash matching;
                     otherwise player-run.json says what was missing.
+                    --player-knowledge <dir|none>  the player's room facts and rules (default: the
+                    repository's knowledge/; none runs without); bad knowledge is refused (exit 2).
                     Not covered: Unity rendering, audio, the real UI, an external agent, the front end.
 
           replay <scenario.yaml> <input.journal> [--out <dir>] [--seed <n>]
@@ -72,6 +74,11 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
           list [directory]
               Lists the scenarios found (default: scenarios/).
 
+          keeper-knowledge [--out <file>]
+              Writes the room facts the campaign player reads (stage 3 plan, Task 3a):
+              every buildable room painted as a 3x3 to 7x7 square, measured by the
+              simulation's own furniture, attraction and gold rules. Default: stdout.
+
         The DK2 installation is located via the DK2_DIR environment variable.
         """);
     return 0;
@@ -79,6 +86,23 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
 
 switch (args[0])
 {
+    case "keeper-knowledge":
+    {
+        string? install = Dk2Install.Find();
+        if (install is null)
+        {
+            Console.Error.WriteLine("No Dungeon Keeper 2 installation found. Set DK2_DIR to the folder containing DKII.EXE.");
+            return 3;
+        }
+        int outAt = Array.IndexOf(args, "--out");
+        if (outAt >= 0 && outAt + 1 >= args.Length)
+        {
+            Console.Error.WriteLine("--out needs a file.");
+            return 2;
+        }
+        return KeeperKnowledgeCommand.Run(install, outAt >= 0 ? args[outAt + 1] : null, Console.Out);
+    }
+
     case "list":
     {
         string dir = args.Length > 1 ? args[1] : "scenarios";
