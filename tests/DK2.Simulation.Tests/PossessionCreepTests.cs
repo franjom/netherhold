@@ -45,7 +45,7 @@ public sealed class PossessionCreepTests
     }
 
     [Fact]
-    public void TheCreepCommandSetsAndClearsTheBit_ConfirmedFromBinary()
+    public void TheCreepCommandSetsAndClearsTheBit_StronglyInferredFromBinary()
     {
         var (db, world, me) = Open();
         GameSimulation sim = Sim(db, world);
@@ -57,7 +57,7 @@ public sealed class PossessionCreepTests
     }
 
     [Fact]
-    public void LeavingPossessionEndsCreeping_ConfirmedFromBinary()
+    public void LeavingPossessionEndsCreeping_StronglyInferredFromBinary()
     {
         var (db, world, me) = Open();
         GameSimulation sim = Sim(db, world);
@@ -73,8 +73,9 @@ public sealed class PossessionCreepTests
     [InlineData(true, 50, 4096 * 25, 4096 * 25 / 2)]
     [InlineData(true, 50, 3, 1)]                      // truncates
     [InlineData(true, 0, 4096 * 25, 0)]               // the Horned Reaper's per cent
-    [InlineData(true, 50, 100_000_000, 7_050_327)]    // the product keeps its low 32 bits, then divides unsigned
-    public void ACreepersDistanceIsItsPerCentOfTheTrueOne_ConfirmedFromBinary(bool creeping, int percent, int distance, int expected)
+    [InlineData(true, 50, 50_000_000, 25_000_000)]    // the product wraps negative as a signed word; the divide is unsigned
+    [InlineData(true, 50, 100_000_000, 7_050_327)]    // and it keeps only its low 32 bits
+    public void ACreepersDistanceIsItsPerCentOfTheTrueOne_StronglyInferredFromBinary(bool creeping, int percent, int distance, int expected)
     {
         var (db, _, me) = Open(percent);
         me.Creeping = creeping;
@@ -87,7 +88,7 @@ public sealed class PossessionCreepTests
     [Theory]
     [InlineData(false, Rival)]
     [InlineData(true, 0)]
-    public void ACreepingSneakerIsJudgedCloserByAWatcher_ConfirmedFromBinary(bool creeping, byte disguise)
+    public void ACreepingSneakerIsJudgedCloserByAWatcher_StronglyInferredFromBinary(bool creeping, byte disguise)
     {
         var (db, world, me) = Open();
         world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));

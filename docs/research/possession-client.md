@@ -119,7 +119,8 @@ update applies to the body speed (`LowHealthSpeedRules`, keeper-spell-possession
 
 ### 2b. The thing resolver, `0x004D1BC0`
 
-Arguments: the wanted X and Y, the creature, two outputs. It is the steering layer's
+Arguments: the wanted X and Y, the creature, two outputs; the caller stacks a sixth
+value the callee never reads. It is the steering layer's
 sweep, run once for the step:
 
 1. The direction is the wanted point × 16 less the body point `+0x1A8/+0x1AC`,
@@ -133,10 +134,10 @@ sweep, run once for the step:
    is the creature itself. A kept candidate **replaces** the last one: the callbacks do
    not compare distances, so the last one enumerated wins.
 4. With none kept, the outputs are the wanted point. Otherwise the outputs are the kept
-   thing's centre plus (its radius + the body radius) along a normalised vector, ÷ 16.
-   Which two points that vector joins is HYPOTHESIS (wanted point less the thing's
-   centre): the decompiler dropped the subtraction's left operand. `0x004D2230` is
-   UNREAD.
+   thing's centre plus (its radius + the body radius) along the normalised vector from
+   that centre to the wanted point × 16, then ÷ 16 (`0x004D1D8D`–`0x004D1D9C`, read by
+   the reviewer). A kept creature replaces a kept obstacle: both share one slot.
+   `0x004D2230` is UNREAD.
 
 ## 3. Angles and roll
 
@@ -232,8 +233,9 @@ neighbouring routine ending at `0x00448438` plays the definition's sound `def+0x
 and requests mode 2 the same way (its head is UNREAD). What `Camera_SetMode` does with
 that request between an ordinary mode and mode 2 (preset 10's fly-in) is UNREAD.
 
-**Leaving.** `Camera_Update`'s mode 11 arm waits 2000 ms from `+0xDDC`, zeroes the
-pitch and requests the saved mode.
+**Leaving.** `Camera_Update`'s mode 11 arm, while no timed transition (`+0xDD8`) runs,
+waits 2000 ms from `+0xDDC`, zeroes the pitch, calls `0x005976D0` and requests the
+mode at `+0xDE4`.
 
 `Hud_PollOrdinaryCameraInput` sends mode 1 to `0x0040F820`: the scroll keys post actions
 `0x18` (∓0x23) and `0x17` (∓0x100) instead of moving a camera. Neither id is in the view

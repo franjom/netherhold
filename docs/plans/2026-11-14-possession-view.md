@@ -75,8 +75,7 @@ Done (possession-client.md):
 
 Still needed before tasks 3 and 4:
 
-- `0x004D2230`, the resolver's touch-distance helper, and the one vector in
-  `0x004D1BC0` the decompiler left ambiguous: read the listing.
+- `0x004D2230`, the resolver's touch-distance helper.
 - Whether `src/` already mirrors the speed's terrain arm (§2a).
 - The file offsets of the ability kinds `def+0x673/+0x674`, and the handlers of actions
   `0x1C`, `0x1E`, `0x1F` and `0x89`, for the abilities beyond melee, sneak and hypnosis.
@@ -89,8 +88,8 @@ has no stat rows.
 Can follow a first playable version: entering and leaving (task 5), Mouse Sensitivity,
 and how the preset's lens and view distance reach the renderer.
 
-The reviewer re-read the first commit's records and its corrections are applied
-(96059659). The second commit's records and the creep change are not reviewed yet.
+The reviewer has re-read all three changes (the client note, the prerequisite reads and
+creep) and its corrections are applied. The documenter pass has not been run.
 
 ## Owner decisions wanted
 
