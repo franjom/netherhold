@@ -15,7 +15,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: advances ADR-0135 (ADR-0212, ADR-0330). `creature-state-table.md` owns the rows (97–100, category 11,
+Questions: advances ADR-0135 (ADR-0212, ADR-0330, ADR-0794). `creature-state-table.md` owns the rows (97–100, category 11,
 labels "guarding" and "on patrol to a Guard Post"); `state-category-hooks.md` owns the
 category's enter hook, which only claims the room position.
 
@@ -196,7 +196,14 @@ unlabelled states, no level using it), not read.
 ## 8. Built and not built
 
 **Built** (ADR-0212, ADR-0330): §1–§6 as `GuardRules`, `GuardStep` (run by the Guard job
-once a turn) and `TrapRules` (the post's room and report). **Not built:** the `+0x3E6` bits;
+once a turn) and `TrapRules` (the post's room and report).
+**Arrival holds a turn** (ADR-0794, Q802, STRONGLY INFERRED). State 6's arrival (`0x00470C80`; state 7's, `0x00471460`, has the
+same shape) stops the creature, calls `SetState(+0xDF)` and returns, and the dispatcher makes one handler call a turn
+(`0x004772AA`), so the handler of 97, 98 or 100 first runs the turn after: 6 into 98 (after 97's or 100's route, or a
+leg's), 6 into 100 (the Guard Post walk), 7 into 97 (job start). Level 5 seed 1: guard 432 holds 98 for exactly one turn at
+each arrival (ticks 1930, 1950, 1966), its heading turning toward 0 by up to 512 in that turn. `GuardStep.Turn` returns
+`StateShadow.Arrive`'s result for it; the turn toward the next leg then comes a turn later, as in the capture. 99's `Lost`
+is a plain `SetState(97)`, with no walk before it. **Not built:** the `+0x3E6` bits;
 the post's effect; `state+0x3C`. §7 is unreachable in shipped play (Q375). **Ours:** the room test is our tile owner and
 room type; a target off the map is a failed route; rooms have no ids, so `+0x113` is the
 room's first slab tile and a creature's `RoomId` its held place (ADR-0309); the trap list and

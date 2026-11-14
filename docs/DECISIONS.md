@@ -18868,3 +18868,31 @@ so on a floor below the ordinary one a creature is above its floor until gravity
 is unread. Tests: `ChickenMovementTests.AReactionEscapesAGroundedCreatureButNotAWorkerOrAScaredChicken` (an above-floor row fails
 on the old rule, a flier-on-its-floor row fails with the flying test) and `PortalCreatureActionTests.AnArrivalStandsOnThePortalCentresFloor`.
 Full suite passes (Simulation 5390, Behavior 620 with 5 skipped).
+
+## ADR-0794 - a guard's walk arriving holds its next handler a turn
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 510
+
+**Context.** Q802, Level 5 seed 1, controlled replay at hash 509: native draws `ObjectState.cpp:2782` at turn 2029 where ours
+draws `GuardState.cpp:297`, guard 432 in state 98. The travel handler of state 6 (`0x00470C80`; state 7, `0x00471460`, has the
+same shape) on whole progress (`0x00470DE6`) stops the creature (`0x0048ECE0` at `0x00470DF0`), calls `SetState(+0xDF, 0)` at
+`0x00470E00`, writes `+0xDF = 1` either way and returns 1, or 0 on a refusal (`0x00470E05`-`0x00470E0F`). The dispatcher
+(`0x00476FC0`) makes one handler call a turn (`0x004772AA`, a call through the table `0x006DA8B0 + 25 * state`) and drops a 0 to
+`SetState(1, 0)` (`0x004772AC`-`0x004772B7`). So the handler of 97, 98 or 100 first runs the turn after the arrival. Capture:
+guard 432 holds state 98 for exactly one turn at each arrival (ticks 1930, 1950, 1966); in that turn its heading turns toward 0
+by up to 512, which ours' steering does once the handler waits. Ours ran the new state's handler in the arrival tick, so at
+1966 it turned toward the next leg and walked a turn early (first split 1967), which surfaced as the 2029 boundary.
+STRONGLY INFERRED: read, re-derived by the reviewer; the capture agrees.
+
+**Decision.** `GuardStep.Turn` returns `StateShadow.Arrive`'s result on a travelling guard's arrival, as `CasinoStep`,
+`ResearchStep`, `TempleStep`, `TrainingStep` and `WorkshopStep` already do. It covers 6 into 98 (`ToThePost`, `AtThePost`), 6
+into 100 (`ToAGuardPost`) and 7 into 97 (job start); 99's `Lost`, a plain `SetState(97)`, is unchanged. Evidence:
+[guard-room.md](research/guard-room.md#8-built-and-not-built), [travel-states.md](research/travel-states.md#1-the-protocol-at-a-glance--strongly-inferred).
+
+**Consequences.** Hash and save 510; earlier saves are refused. Pin `0xCDCDDF2220AAD403`. Level 5 seed 1 (controlled562):
+guard 432's position, state and heading match for the whole window (bar 1882-1884, which predates this) and 10614 draws match
+through 2049 (10339 through 2028 at 509). The next boundary is turn 2050 draw 5, native `ObjectState.cpp:2030` against ours'
+chicken roam (bird 125), Q803; first creature position splits: 438 at 2060, 437 at 2090, 433 at 2093, 441 at 2095, 439 at 2111.
+Level 1's journal is re-recorded: win 2374 and gem 2483 unchanged. Q174's residual (ours' arrival into 92 runs the handler the
+same tick) is unchanged. Not checked natively: `TorturerStep` drops the arrival result and runs `StrapSelf` in the arrival tick
+(PLAUSIBLE only). Test: `GuardTests.AnArrivingGuardStandsInNinetyEightForATurnBeforeItsNextLeg` (fails without the fix); only the
+98 arrival is covered. Full suite passes (Simulation 5391, Behavior 620 with 5 skipped).

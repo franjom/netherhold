@@ -118,6 +118,31 @@ public sealed class GuardTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
+    // The travel handler's arrival sets 98 and returns; the dispatcher's one handler call a turn
+    // (0x004772AA) leaves 98's own handler, the next leg, to the following turn (Q802).
+    [Fact]
+    public void AnArrivingGuardStandsInNinetyEightForATurnBeforeItsNextLeg()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState goblin = Guard(db, world, Centre);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        long arrived = -1;
+        for (int t = 0; t < 40 * SimulationTiming.TicksPerSecond && arrived < 0; t++)
+        {
+            int before = goblin.Dk2StateId;
+            sim.Tick();
+            if (before == 6 && goblin.Dk2StateId == GuardRules.PatrolState) arrived = sim.CurrentTick.Value - 1;
+        }
+
+        Assert.True(arrived >= 0);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "guard_leg" && e.Tick.Value <= arrived);
+        sim.Tick();
+        Assert.Equal(6, goblin.Dk2StateId);
+        Assert.Contains(sink.Events, e => e.Kind == "guard_leg" && e.Tick.Value == arrived + 1);
+    }
+
     [Fact]
     public void AGuardWhoseNearestPostIsTheSouthWestCornerWalksToIt()
     {

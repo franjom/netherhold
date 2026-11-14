@@ -12,7 +12,7 @@ only in [training.md](training.md); this is the natural machine cycle.
 State 108 (`0x00485310`) stops movement. Below the training cap, when the
 keeper can afford training and the creature stands in its own Training Room,
 it chooses a machine through `0x004F2FF0`. The machine position is saved in
-state `+0xAB/+0xAF`. Object 14 uses a random angle in 0–2047 and radius
+state `+0xAB/+0xAF`. Object 14 uses a random angle in 0–2047 (`TrainState.cpp:101`, `0x00485455`) and radius
 `0x7FF` around that position. Object 29 uses `0x004F3310` to select a room
 cell with a clear line to the machine. The route resumes in state 111 with
 movement option `0x80`. Without a machine, the fallback is a random room
@@ -36,9 +36,10 @@ a repeating choose, approach, face, strike/cast, choose cycle.
 `0x004F2F50` scans the first three creature spell slots in order, requiring
 the level, a nonzero spell definition, its attack flag and casting readiness.
 No ready attack spell makes `0x004F2FF0` prefer object 14 then 29. Otherwise
-an RNG draw with bound two chooses the type order. Within each type it scans
+an RNG draw with bound two (`Training.cpp:148`, `0x004F3021` and `0x004F3032`) chooses the type order. Within each type it scans
 the room's linked object list, draws RNG(100) for every matching candidate
-even with chance 100, and keeps the nearest squared fixed-point XY distance.
+even with chance 100 (`Training.cpp:188` at `0x004F3092` in the first type's loop, `Training.cpp:220` at `0x004F31E7` in the
+second's), and keeps the nearest squared fixed-point XY distance.
 Strict comparison preserves the first object on a distance tie. A chance
 failure across an existing type repeats that type's scan.
 

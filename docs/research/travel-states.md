@@ -44,6 +44,9 @@ caller polls.
 | 7 | travel handler, on arrival | `0x0048ECE0` (stop), `SetState(+0xDF)`, `+0xDF = 1`, return that `SetState`'s result |
 
 A zero return reaches the dispatcher (`0x00476FC0`), which sets state 1 (eating.md §8).
+The dispatcher makes one handler call a turn (`0x004772AA`), so the resume state's handler first runs the turn after the
+arrival. Ours mirrors that for eating's 93 (ADR-0786) and a guard's 97, 98 and 100 (ADR-0794; state 98 stands one turn at each
+arrival of guard 432, Level 5 ticks 1930, 1950 and 1966, [guard-room.md §8](guard-room.md#8-built-and-not-built)).
 
 ## 2. The route helpers
 

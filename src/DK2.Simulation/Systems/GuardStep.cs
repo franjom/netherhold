@@ -24,7 +24,9 @@ public static class GuardStep
         {
             if (creature.HasRoute) return true;
             creature.StopMoving();
-            StateShadow.Arrive(context, system, creature);
+            // The travel handler's arrival sets the resume state and returns (travel-states.md §1 step 7);
+            // the dispatcher makes one handler call a turn (0x004772AA), so 97's, 98's or 100's runs next turn.
+            return StateShadow.Arrive(context, system, creature);
         }
 
         return creature.Dk2StateId switch
