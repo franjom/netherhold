@@ -177,9 +177,9 @@ UNAVAILABLE (1) and the Training Room AVAILABLE (3), so the default list's Treas
 offered and the Training Room, which is not in that list, was never built, which is why the playbook gets a generated `available` block (Task 2); in each seed the hero party came into the dungeon and
 its Lord of the Land died there. **Caveat: that walk is Q525.** In DK2's capture the
 party stays near its gate until about 3170; in ours it reached the keeper's rooms from about
-2307 in half the seeds. ADR-0800 fixed the walk rule after these runs (the packet replay still
-has room attacks in 2 of 6 seeds), so the wins may lean on that difference and are not accepted
-until they are rerun. Level 2 needs no new routine to be won today; Task 5 reduces
+2307 in half the seeds. ADR-0800 fixed the walk rule after these runs (Q525 answered; the party
+now leaves when its corridor wall is breached, [level2-party-release.md](../research/level2-party-release.md)),
+so the wins may lean on the old walk and are not accepted until they are rerun. Level 2 needs no new routine to be won today; Task 5 reduces
 to a receipted acceptance, and the first level the default strategy cannot win becomes the real
 driver for Tasks 1-4. Scenarios: `scenarios/campaign-player/level2/`.
 

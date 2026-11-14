@@ -19086,8 +19086,9 @@ of the room flag. Record: `functions/00471EB0.md`.
 
 **Consequences.** Hash and save 516 with ADR-0799. Level 2 packet replay, seeds 1-6: the party now patrols to its gate. Room
 attacks before 3657: seeds 2 and 3 none (before: from 2336 and 3655); 4 and 5 none either way; 1 and 6 still, from 2283 and
-2515 (before: 3155 and 2289). In those two the owner's tag of (12,15) at 2142 is dug at once by an Imp already working that
-wall, and a trigger on the dig sends the party to KillPlayer at 2150; DK2's pool holds that tag untaken until the owner's untag
-at 2209. HYPOTHESIS: Imp-work timing (ours claims (11,15) at 2076, DK2 at 2178) rather than a rule; open in Q525. Tests:
+2515 (before: 3155 and 2289). In those two the owner's tag of (12,15) at 2142 is dug (2147, 2198) and a trigger on the dig
+sends the party to KillPlayer; DK2's pool holds that tag untaken until the owner's untag at 2209. Resynced from DK2's state at
+2100, ours leaves it untaken and releases the party after the later breach, as DK2 (Q809,
+[level2-party-release.md](research/level2-party-release.md)). Tests:
 `HeroWalkTests.SendToActionPoint_OnTheHerosOwnHeroGate_WalksOntoIt` (fails without the fix) and
-`HeroWalkTests.SendToActionPoint_RefusesAFinishedWallOfItsOwnPlayer`.
+`HeroWalkTests.StateOneSeventyThreesTileTest_BarsOnlyAFinishedOrImpenetrableWallOfItsOwnPlayer`.
