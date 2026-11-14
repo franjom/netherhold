@@ -61,6 +61,7 @@ public class CommandCodecTests
         new ToggleSneakCommand(P, 11, 12),
         new HypnotiseCommand(P, Aim),
         new SetSniperModeCommand(P, true),
+        new SetCreepingCommand(P, true),
         new MovePossessedCreatureCommand(P, new PossessionPose(F3, new Dk2Angle(2_000))),
         new SetRescuePriorityCommand(P, 48, true),
         new ContinueAfterResultCommand(P),

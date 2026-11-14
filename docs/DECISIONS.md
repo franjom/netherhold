@@ -19123,3 +19123,29 @@ re-recorded; win tick 2384 and gem tile (15,20) are unchanged. Tests (each fails
 `ADuplicateEntryTakesItsOwnShareOfTheDraw` pins the existing draw. The suite passes (Simulation 5416, Behavior 620 with 5
 skipped). Not built, impact unverified: the level-start notice pass (`0x0050BDD6`); native Notice has no portal-room-kind check,
 where ours admits by kind first.
+
+## ADR-0802 - a possessed creature creeps, and a creeping creature is judged at a share of its distance
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** keeper-spells, combat | **Hash/save:** 518
+
+**Context.** The possession view's movement step posts game action 0x22 from the creep key
+([possession-client.md](research/possession-client.md) §2). Its handler `0x00517310` sets the possessed thing's `+0x3E6`
+bit 12, Creeping. The bit's readers were listed long ago and not built
+([combat-target-selection.md](research/combat-target-selection.md) §2): the four fight-style selectors, both sites of the
+NonFighter arm, both scans of `0x0045CB00` and of `0x0045C690`, and `Creature_ToggleSneak`. Each multiplies a creeping
+creature's squared distance by `def+0x760` (file `0xEE4`; 50 on every shipped creature, 0 on the Horned Reaper) over 100,
+straight after the distance and before the alignment discount. STRONGLY INFERRED: the handler, `0x0045B282`, the NonFighter site `0x0045BFC9` and the sneak's read whole; the
+other eight checked for the same instruction order by listing.
+
+**Decision.** `CreatureState.Creeping`, hashed and saved. `SetCreepingCommand` (codec 37, allowed from a peer) sets it on the
+sender's possessed creature; leaving possession clears it, as `0x0048EE70` does. `CreatureDef.CreepingDistancePercent` is
+parsed and written. `PossessionRules.CreepingDistance` is the weighting, with DK2's arithmetic: above level 1 the per cent
+times the level row (`CreatureStatId.CreepingDistance`) divided by 100 toward zero, then the distance product's low 32 bits
+divided unsigned by 100. It is applied in `CombatTargetRules` (the arms, the NonFighter arm, scan C), in
+`FearRules`' nearest attacker and in `ToggleSneak`. The packet replay decodes action 34.
+
+**Consequences.** Hash and save 518; earlier saves are refused. Pin `0x88B5ED2C9365EB93`. Nothing changes unless a possessed creature
+creeps, and nothing can press the key until the possession view is built, so no existing replay is affected; no native
+recording with action 34 has been replayed. A creeping creature reads closer, not further: it is found sooner by enemies
+and by a sneak's watchers. Whether DK2 meant that is not known; built as read (ADR-0783). Tests: `PossessionCreepTests`
+(the command, the clear, the arithmetic, the watcher, the snapshot) and the codec round trip. Not covered by a test: the
+level row, since the fixture database carries none, and each scan site separately.

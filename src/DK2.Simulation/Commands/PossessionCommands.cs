@@ -59,6 +59,13 @@ public sealed record HypnotiseCommand(PlayerId PlayerId, PossessionAim Aim) : Pl
     }
 }
 
+/// <summary>Game action 0x22 (<c>0x00517310</c>), sent by the possession movement step
+/// <c>0x0040E910</c> when the creep key is pressed or released: Creeping on or off.</summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/possession-client.md")]
+public sealed record SetCreepingCommand(PlayerId PlayerId, bool On) : PlayerCommand(PlayerId)
+{
+}
+
 /// <summary>Command 39 (<c>0x005171D0</c>), sent by the input routine <c>0x0040FDF0</c> with the new
 /// value: SniperMode on or off.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/possession-arms-and-inputs.md")]

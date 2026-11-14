@@ -137,6 +137,7 @@ public static partial class KwdCreatures
         S32(0xED8, row.IdleDuration.Raw);
         S32(0xEDC, row.SlapFearlessDuration.Raw);
         S16(0xEE8, row.PossessionManaCost);
+        S32(0xEE4, row.CreepingDistancePercent);
         U8(0xF52, (byte)row.LairObjectId);
         U16(0xF24, row.NameStringId);
         U16(0xF26, row.TooltipStringId);

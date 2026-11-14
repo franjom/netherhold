@@ -81,17 +81,16 @@ Still needed before tasks 3 and 4:
 - The file offsets of the ability kinds `def+0x673/+0x674`, and the handlers of actions
   `0x1C`, `0x1E`, `0x1F` and `0x89`, for the abilities beyond melee, sneak and hypnosis.
 
-Creep (task 2) is larger than a flag. The bit is read by the five combat target arms,
-four more scans and the sneak's watcher test, each scaling a creeping creature's
-apparent distance by `def+0x760` (file `0xEE4`, level-scaled by stat 26, 50 on every
-shipped creature but the Horned Reaper's 0); `CombatTargetRules` records that weighting
-as unbuilt (combat-target-selection.md §2). The task is the flag, the command, the
-clear on leaving, the field and those readers, with a hash and save version.
+Creep (task 2) is built (ADR-0802, hash and save 518): the flag, `SetCreepingCommand`,
+the clear on leaving, `CreepingDistancePercent` and the weighting at the combat scans and
+the sneak's watcher test. Its level row is not covered by a test: the fixture database
+has no stat rows.
 
 Can follow a first playable version: entering and leaving (task 5), Mouse Sensitivity,
 and how the preset's lens and view distance reach the renderer.
 
-Owed: the reviewer pass on the function records (started on the first commit).
+The reviewer re-read the first commit's records and its corrections are applied
+(96059659). The second commit's records and the creep change are not reviewed yet.
 
 ## Owner decisions wanted
 

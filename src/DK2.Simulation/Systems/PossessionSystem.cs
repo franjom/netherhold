@@ -32,6 +32,7 @@ public sealed class PossessionSystem : ISimulationSystem
             else if (command is ToggleSneakCommand sneak) PossessionRules.ToggleSneak(context, sight, creature, sneak.TileX, sneak.TileY);
             else if (command is HypnotiseCommand hypnotise) PossessionRules.Hypnotise(context, sight, command.PlayerId, creature, hypnotise.Aim);
             else if (command is SetSniperModeCommand sniper) PossessionRules.SetSniperMode(creature, sniper.On);
+            else if (command is SetCreepingCommand creep) PossessionRules.SetCreeping(creature, creep.On);
         }
         foreach (CreatureState creature in context.World.Creatures)
         {

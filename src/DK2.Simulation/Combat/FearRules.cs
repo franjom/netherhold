@@ -445,7 +445,7 @@ public static class FearRules
             CreatureState? c = world.CreatureById(id);
             if (c is null) continue;
 
-            int d = CombatRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY);
+            int d = PossessionRules.CreepingDistance(database, c, CombatRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY));
             if (CombatRules.OppositeAlignment(mine, database.CreatureById(c.CreatureTypeId))) d = CombatRules.Discounted(d);
             if (d >= best || !CombatRules.IsAttackable(c) || PossessionRules.IsDisguisedFrom(me, c)) continue;
 

@@ -284,6 +284,7 @@ public static partial class KwdCreatures
             IdleDuration = Fp(0xED8),
             SlapFearlessDuration = Fp(0xEDC),
             PossessionManaCost = S16(0xEE8),
+            CreepingDistancePercent = S32(0xEE4),
             LairObjectId = U8(0xF52),
             CloneCreatureId = U8(OffsetBaseCreatureId),
 

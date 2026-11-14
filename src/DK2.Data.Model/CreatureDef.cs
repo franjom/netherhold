@@ -289,6 +289,11 @@ public sealed record CreatureDef
     public required Fp32 IdleDuration { get; init; }
     public required Fp32 SlapFearlessDuration { get; init; }
     public required short PossessionManaCost { get; init; }
+
+    /// <summary>File <c>+0xEE4</c> (<c>def+0x760</c>): the per cent of its true squared distance at
+    /// which a creeping creature is judged by the combat scans and by a sneak's watchers. 50 on
+    /// every shipped creature but the Horned Reaper's 0 (combat-target-selection.md §2).</summary>
+    public int CreepingDistancePercent { get; init; }
     public required byte LairObjectId { get; init; }
     /// <summary>The same source byte as UniqueBaseCreatureId (Q528); editing either view updates both.</summary>
     public required byte CloneCreatureId { get => _baseCreatureId; init => _baseCreatureId = value; }

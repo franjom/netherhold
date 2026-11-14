@@ -530,7 +530,8 @@ public static class CombatTargetRules
             if (candidate.OwnerPlayerId != players[k]) continue;
             if (candidate.Id == me.Id || !TurncoatRules.AreCombatEnemies(world, me, candidate)) continue;
             CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
-            int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+            int d = PossessionRules.CreepingDistance(database,
+                candidate, CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY));
 
             // The escape (0x00494360 == 1, combat-alarm.md §6): an enemy Imp — by its base type, so a
             // unique's archetype counts — is judged by the shared template anywhere, not only near the heart.
@@ -581,7 +582,7 @@ public static class CombatTargetRules
 
     /// <summary>Scan C: registered attackers precede the fight-style arm. Imps bypass its
     /// sight/hearing distance cap, but still need visibility and a route (combat-acquisition.md §6).
-    /// A candidate disguised as the searcher's side is skipped; creeping-distance weighting remains unbuilt.</summary>
+    /// A candidate disguised as the searcher's side is skipped.</summary>
     private static CreatureState? ScanAttackers(
         SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition,
         int sightSq, int hearSq, List<Fixed16Vector> scratch, ref int best)
@@ -597,7 +598,8 @@ public static class CombatTargetRules
                 CreatureState? candidate = context.World.CreatureById(id);
                 if (candidate is null || !CombatRules.IsAttackable(candidate)) continue;
                 CreatureDef theirs = context.Database.CreatureById(candidate.CreatureTypeId);
-                int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+                int d = PossessionRules.CreepingDistance(context.Database,
+                candidate, CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY));
                 if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
                 if (d >= best || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
                 if (PossessionRules.IsDisguisedFrom(me, candidate)) continue;   // 0x0045D2DC, 0x0045D4EA
@@ -638,7 +640,8 @@ public static class CombatTargetRules
                 && ApproachRules.IsRetreating(candidate)) continue;
 
             CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
-            int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+            int d = PossessionRules.CreepingDistance(database,
+                candidate, CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY));
             if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
 
             CombatRules.CountEngaged(world, database, candidate, out int melee, out int ranged);

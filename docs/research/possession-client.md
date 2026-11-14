@@ -10,8 +10,8 @@ requests are [camera-possession-guards.md](camera-possession-guards.md). Each fu
 record in `functions/` holds its read's scope. Everything here is **STRONGLY INFERRED**
 (read, not seen running) unless marked; the reviewer re-read it on 2026-11-14. Callees
 named but not read are taken by name: the world slots `+0x1CC`, `+0x1D0`, `+0x1D4`,
-`+0x204`, `+0x20C` and `+0x240`, and the key test `0x004097E0`. Nothing here is built
-yet.
+`+0x204`, `+0x20C` and `+0x240`, and the key test `0x004097E0`. Built so far: the
+creature fields of §5a and creep (ADR-0802); the view itself is not.
 
 OpenKeeper (`view/Possession*.java`, `Settings.java`, pull requests #782 and #1193) was
 used for leads only: which creature fields a first-person view reads and the default
@@ -59,7 +59,8 @@ when the creature's `+0x447` is non-zero. Binding ids are DK2's own (§5).
 3. **Creep** (binding 4): held with the bit clear posts game action `0x22` with 1;
    released with the bit set posts it with 0. The handler `0x00517310` does one thing:
    when the sender's possessed-thing word is non-zero it sets that thing's `+0x3E6` bit
-   12 to the record's bit 0. No class, liveness or definition test.
+   12 to the record's bit 0. No class, liveness or definition test. Built as
+   `SetCreepingCommand`; its readers are combat-target-selection.md §2.
 4. **Keys.** `+0x3E6` bit 13 skips steps 4 to 6 whole; a requested claim bob (`+0x389`
    non-zero) skips only the keys. Two axis values, strafe and forward, start at zero:
    ScrollLeft (18) subtracts two thirds of the unit from strafe and ScrollRight (19)

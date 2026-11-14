@@ -117,8 +117,9 @@ Then, per candidate and in this order:
    candidate's `def+0x760` for a level-1 creature and otherwise that value scaled
    by a word from a table indexed by its **experience level** (`byte[cand+0x403]`,
    `combat.md` §4). **`def+0x760` is file `0xEE4`** — loaded from staging
-   `EBP+0x12D4` — a field this project does not parse, sitting in the gap between
-   `SlapFearlessDuration` (`0xEDC`) and `PossessionManaCost` (`0xEE8`). It is
+   `EBP+0x12D4` — `CreatureDef.CreepingDistancePercent`, scaled above level 1 by the row
+   at `[0x006E4154]+0x2A3`. Built with its arithmetic in `PossessionRules.CreepingDistance`
+   (ADR-0802). It is
    **50 on all 46 creatures except the Horned Reaper, where it is 0**
    (`dk2tools kwd creaturehex EE4 4`). So the bit **halves a candidate's apparent
    distance, and makes the Horned Reaper's zero** — with the bit set it is the
@@ -370,8 +371,7 @@ The capture lacks temporary route results/waypoints; neither Goblin pick require
 
 ## 6. What is left
 
-Small and named. What `def+0x760`'s file field `0xEE4` should be called, and the
-per-level table at `dword[0x006E4154] + 0x2A3` it is scaled by. The arm is built
+Small and named. The arm is built
 since ADR-0166 (combat-alarm.md). Bit 12 is `Creeping`, the starting
 score is `0x7FFFFFFF`, and the `+0x4FE` record is laid out in
 `combat-acquisition.md`, which owns the acquirer.
