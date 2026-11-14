@@ -2,340 +2,462 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Buffers;
 using System.Buffers.Binary;
 
 namespace DK2.Art.Textures;
 
 /// <summary>
-/// Decodes the 8x8 coefficient blocks used by DK2's engine texture cache.
-/// Numeric decode tables are format data corroborated with OpenKeeper.
+/// DKII.EXE's two 8x8 block image codecs, written from the binary. Engine textures
+/// (setup 0x005B26F0, block 0x0065C290, 32-bit output 0x0065CA50) carry a predicted DC
+/// and luma/chroma; .444 loading screens (0x005D77A0, block 0x00668810) carry an absolute
+/// RGB DC. Both share the AC code, zigzag and dequantisation tables and the separable
+/// transform. Output is RGBA, four bytes per pixel, rows top first. The x87 arithmetic
+/// is reproduced exactly with integers scaled by 2^25 (see <see cref="Units"/>).
 /// </summary>
 internal sealed class Dk2TextureDecoder
 {
-    private static readonly int[] QuantizerSource =
-    [
-        0x2000, 0x1712, 0x187e, 0x1b37, 0x2000, 0x28ba, 0x3b21, 0x73fc,
-        0x1712, 0x10a2, 0x11a8, 0x139f, 0x1712, 0x1d5d, 0x2aa1, 0x539f,
-        0x187e, 0x11a8, 0x12bf, 0x14d4, 0x187e, 0x1f2c, 0x2d41, 0x58c5,
-        0x1b37, 0x139f, 0x14d4, 0x1725, 0x1b37, 0x22a3, 0x3249, 0x62a3,
-        0x2000, 0x1712, 0x187e, 0x1b37, 0x2000, 0x28ba, 0x3b21, 0x73fc,
-        0x28ba, 0x1d5d, 0x1f2c, 0x22a3, 0x28ba, 0x33d6, 0x4b42, 0x939f,
-        0x3b21, 0x2aa1, 0x2d41, 0x3249, 0x3b21, 0x4b42, 0x6d41, 0xd650,
-        0x73fc, 0x539f, 0x58c5, 0x62a3, 0x73fc, 0x939f, 0xd650, 0x1a463,
-    ];
+    private const int BlockSide = 8;
+    private const int BlockArea = BlockSide * BlockSide;
+    private const int EndOfBlock = 0x41;
 
-    private static readonly int[] CoefficientControl =
-    [
-        0x00000000, 0x0000003f, 0x00000037, 0x0000003e, 0x0000003d, 0x00000036,
-        0x0000002f, 0x00000027, 0x0000002e, 0x00000035, 0x0000003c, 0x0000003b,
-        0x00000034, 0x0000002d, 0x00000026, 0x0000001f, 0x00000017, 0x0000001e,
-        0x00000025, 0x0000002c, 0x00000033, 0x0000003a, 0x00000039, 0x00000032,
-        0x0000002b, 0x00000024, 0x0000001d, 0x00000016, 0x0000000f, 0x00000007,
-        0x0000000e, 0x00000015, 0x0000001c, 0x00000023, 0x0000002a, 0x00000031,
-        0x00000038, 0x00000030, 0x00000029, 0x00000022, 0x0000001b, 0x00000014,
-        0x0000000d, 0x00000006, 0x00000005, 0x0000000c, 0x00000013, 0x0000001a,
-        0x00000021, 0x00000028, 0x00000020, 0x00000019, 0x00000012, 0x0000000b,
-        0x00000004, 0x00000003, 0x0000000a, 0x00000011, 0x00000018, 0x00000010,
-        0x00000009, 0x00000002, 0x00000001, 0x00000008,
-        0x00040102, 0x00040301, 0x00030201, 0x00030201,
-        0x00024100, 0x00024100, 0x00024100, 0x00024100,
-        0x00020101, 0x00020101, 0x00020101, 0x00020101,
-        0x00064200, 0x00064200, 0x00064200, 0x00064200,
-        0x00070302, 0x00070302, 0x00070a01, 0x00070a01,
-        0x00070104, 0x00070104, 0x00070901, 0x00070901,
-        0x00060801, 0x00060801, 0x00060801, 0x00060801,
-        0x00060701, 0x00060701, 0x00060701, 0x00060701,
-        0x00060202, 0x00060202, 0x00060202, 0x00060202,
-        0x00060601, 0x00060601, 0x00060601, 0x00060601,
-        0x00080e01, 0x00080106, 0x00080d01, 0x00080c01,
-        0x00080402, 0x00080203, 0x00080105, 0x00080b01,
-        0x00050103, 0x00050103, 0x00050103, 0x00050103,
-        0x00050103, 0x00050103, 0x00050103, 0x00050103,
-        0x00050501, 0x00050501, 0x00050501, 0x00050501,
-        0x00050501, 0x00050501, 0x00050501, 0x00050501,
-        0x00050401, 0x00050401, 0x00050401, 0x00050401,
-        0x00050401, 0x00050401, 0x00050401, 0x00050401,
-        0x000a1101, 0x000a0602, 0x000a0107, 0x000a0303,
-        0x000a0204, 0x000a1001, 0x000a0f01, 0x000a0502,
-        0x000c010b, 0x000c0902, 0x000c0503, 0x000c010a,
-        0x000c0304, 0x000c0802, 0x000c1601, 0x000c1501,
-        0x000c0109, 0x000c1401, 0x000c1301, 0x000c0205,
-        0x000c0403, 0x000c0108, 0x000c0702, 0x000c1201,
-        0x000d0b02, 0x000d0a02, 0x000d0603, 0x000d0404,
-        0x000d0305, 0x000d0207, 0x000d0206, 0x000d010f,
-        0x000d010e, 0x000d010d, 0x000d010c, 0x000d1b01,
-        0x000d1a01, 0x000d1901, 0x000d1801, 0x000d1701,
-        0x000e011f, 0x000e011e, 0x000e011d, 0x000e011c,
-        0x000e011b, 0x000e011a, 0x000e0119, 0x000e0118,
-        0x000e0117, 0x000e0116, 0x000e0115, 0x000e0114,
-        0x000e0113, 0x000e0112, 0x000e0111, 0x000e0110,
-        0x000f0128, 0x000f0127, 0x000f0126, 0x000f0125,
-        0x000f0124, 0x000f0123, 0x000f0122, 0x000f0121,
-        0x000f0120, 0x000f020e, 0x000f020d, 0x000f020c,
-        0x000f020b, 0x000f020a, 0x000f0209, 0x000f0208,
-        0x00100212, 0x00100211, 0x00100210, 0x0010020f,
-        0x00100703, 0x00101102, 0x00101002, 0x00100f02,
-        0x00100e02, 0x00100d02, 0x00100c02, 0x00102001,
-        0x00101f01, 0x00101e01, 0x00101d01, 0x00101c01,
-    ];
+    /// <summary>Decodes an engine texture (EngineTextures.dat payload after its header).</summary>
+    public static byte[] Decode(ReadOnlySpan<byte> compressed, int width, int height, bool alpha) =>
+        DecodeImage(compressed, width, height, alpha, engineTexture: true);
 
-    private static readonly int[] Quantizer = QuantizerSource.Select(value =>
-        ((value & unchecked((int)0xfffe0000)) >> 3) + ((value & 0x1ffff) << 3)).ToArray();
+    /// <summary>Decodes an unmasked .444 payload (after its 8-byte header) to padded RGBA.
+    /// Assumes 64- or 53-bit x87 precision (both give these pixels); 0x005D77A0 sets none and the
+    /// game's precision there is an open question (the 0x00668810 record). The mask path is not decoded.</summary>
+    internal static byte[] DecodeLoadingScreen(ReadOnlySpan<byte> compressed, int width, int height, bool alpha) =>
+        DecodeImage(compressed, width, height, alpha, engineTexture: false);
 
-    private readonly uint[] _bits;
-    private readonly int[] _coefficients = new int[256];
-    private readonly int[] _firstPass = new int[288];
-    private readonly int[] _samples = new int[512];
-    private int _bitPosition;
-    private long _lumaPredictor;
-    private long _bluePredictor;
-    private long _redPredictor;
-    private long _alphaPredictor;
-
-    private Dk2TextureDecoder(ReadOnlySpan<byte> compressed)
+    private static byte[] DecodeImage(ReadOnlySpan<byte> compressed, int width, int height, bool alpha, bool engineTexture)
     {
-        if ((compressed.Length & 3) != 0)
-            throw new InvalidDataException("Engine texture payload is not a whole number of words.");
-        _bits = new uint[compressed.Length / 4];
-        for (int i = 0; i < _bits.Length; i++)
-            _bits[i] = BinaryPrimitives.ReadUInt32LittleEndian(compressed[(i * 4)..]);
-    }
-
-    public static byte[] Decode(ReadOnlySpan<byte> compressed, int width, int height, bool alpha)
-        => Decode(compressed, width, height, alpha, directRgb: false);
-
-    internal static byte[] DecodeLoadingScreen(ReadOnlySpan<byte> compressed, int width, int height, bool alpha)
-        => Decode(compressed, width, height, alpha, directRgb: true);
-
-    private static byte[] Decode(ReadOnlySpan<byte> compressed, int width, int height, bool alpha, bool directRgb)
-    {
-        if (width <= 0 || height <= 0 || (width & 7) != 0 || (height & 7) != 0)
-            throw new InvalidDataException("Engine texture dimensions must be positive multiples of eight.");
-        var decoder = new Dk2TextureDecoder(compressed);
+        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
         byte[] pixels = new byte[checked(width * height * 4)];
-        for (int y = 0; y < height; y += 8)
-            for (int x = 0; x < width; x += 8)
-                decoder.DecodeBlock(pixels, width, x, y, alpha, directRgb);
+        // The native reader always fetches the dword after the current one (0x00665EF0's
+        // SHLD pair), so two zero words of padding keep the last code readable.
+        int wordCount = (compressed.Length + 3) / 4 + 2;
+        uint[] words = ArrayPool<uint>.Shared.Rent(wordCount);
+        try
+        {
+            var bits = new BitReader(words, wordCount, compressed);
+            int channels = alpha ? 4 : 3;
+            Span<int> planes = stackalloc int[4 * BlockArea];
+            Span<int> coefficients = stackalloc int[BlockArea];
+            Span<int> columns = stackalloc int[BlockArea];
+            Span<int> predictors = stackalloc int[4];
+            predictors.Clear();
+            for (int top = 0; top < height; top += BlockSide)
+            {
+                for (int left = 0; left < width; left += BlockSide)
+                {
+                    for (int channel = 0; channel < channels; channel++)
+                    {
+                        Span<int> plane = planes.Slice(channel * BlockArea, BlockArea);
+                        if (engineTexture)
+                            DecodeEngineChannel(ref bits, ref predictors[channel], plane, coefficients, columns);
+                        else
+                            DecodeLoadingChannel(ref bits, plane, coefficients, columns);
+                    }
+                    if (engineTexture) WriteEngineBlock(planes, alpha, pixels, width, height, left, top);
+                    else WriteLoadingBlock(planes, alpha, pixels, width, height, left, top);
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<uint>.Shared.Return(words);
+        }
         return pixels;
     }
 
-    private void DecodeBlock(byte[] output, int width, int left, int top, bool alpha, bool directRgb)
+    // 0x0065C290, one channel: a DC difference added to the channel's running predictor,
+    // then either the DC-only shortcut (0x0065C120) or the full AC decode and transform.
+    private static void DecodeEngineChannel(ref BitReader bits, ref int predictor, Span<int> plane,
+        Span<int> coefficients, Span<int> columns)
     {
-        DecodeChannel(ref _lumaPredictor, 0, directRgb);
-        DecodeChannel(ref _bluePredictor, 9, directRgb);
-        DecodeChannel(ref _redPredictor, 18, directRgb);
-        if (alpha) DecodeChannel(ref _alphaPredictor, 27, directRgb);
-
-        for (int y = 0; y < 8; y++)
-            for (int x = 0; x < 8; x++)
-            {
-                int sample = y * 64 + x;
-                int pixel = ((top + y) * width + left + x) * 4;
-                if (directRgb)
-                {
-                    output[pixel] = ClampByte((int)(((long)_samples[sample] + 0x8000) >> 16));
-                    output[pixel + 1] = ClampByte((int)(((long)_samples[sample + 9] + 0x8000) >> 16));
-                    output[pixel + 2] = ClampByte((int)(((long)_samples[sample + 18] + 0x8000) >> 16));
-                    output[pixel + 3] = alpha ? ClampByte(_samples[sample + 27] >> 16) : (byte)255;
-                    continue;
-                }
-                double luma = 1.169 * (_samples[sample] - 1_048_576f);
-                double blue = 2.0250001 * (_samples[sample + 9] - 8_388_608f) + luma;
-                double red = 1.602 * (_samples[sample + 18] - 8_388_608f) + luma;
-                double green = -0.391 * (_samples[sample + 9] - 8_388_608f)
-                    - 0.81300002 * (_samples[sample + 18] - 8_388_608f) + luma;
-                output[pixel] = ClampByte(ConvertColor(red));
-                output[pixel + 1] = ClampByte(ConvertColor(green));
-                output[pixel + 2] = ClampByte(ConvertColor(blue));
-                output[pixel + 3] = alpha ? ClampByte(_samples[sample + 27] >> 16) : (byte)255;
-            }
-    }
-
-    private void DecodeChannel(ref long predictor, int sampleOffset, bool directRgb)
-    {
-        if (directRgb)
+        predictor = unchecked(predictor + bits.ReadDcDifference());
+        if (bits.Peek() >> 30 == 2)
         {
-            int dc = (int)ReadBits(_bitPosition, 8);
-            _bitPosition = DecodeCoefficients(dc, _bitPosition + 8);
-            for (int i = 0; i < 8; i++) TransformColumns(i * 8, i);
-            for (int i = 0; i < 8; i++) TransformRows(i * 9, i * 64 + sampleOffset);
+            // An immediate end-of-block code: the plane is the DC in 16.16, no dequantisation.
+            bits.Skip(2);
+            plane.Fill(unchecked(predictor << 16));
             return;
         }
-        int prefix = (int)ReadBits(_bitPosition, 8);
-        (int skip, int bits) = Prefix(prefix);
-        _bitPosition += skip;
-        int delta = 0;
-        if (bits != 0)
-        {
-            delta = (int)ReadBits(_bitPosition, bits);
-            if ((delta & (1 << (bits - 1))) == 0) delta -= (1 << bits) - 1;
-            _bitPosition += bits;
-        }
-        predictor += delta;
-        if (ReadBits(_bitPosition, 2) == 2)
-        {
-            _bitPosition += 2;
-            for (int y = 0; y < 8; y++)
-                for (int x = 0; x < 8; x++)
-                    _samples[y * 64 + x + sampleOffset] = unchecked((int)predictor << 16);
-            return;
-        }
-
-        _bitPosition = DecodeCoefficients(unchecked((int)predictor), _bitPosition);
-        for (int i = 0; i < 8; i++) TransformColumns(i * 8, i);
-        for (int i = 0; i < 8; i++) TransformRows(i * 9, i * 64 + sampleOffset);
+        DecodeCoefficients(ref bits, predictor, coefficients);
+        InverseTransform(coefficients, columns, plane, engineTexture: true);
     }
 
-    private int DecodeCoefficients(int dc, int position)
+    // 0x00668810, one channel: an absolute unsigned 8-bit DC, then the AC decode and transform.
+    private static void DecodeLoadingChannel(ref BitReader bits, Span<int> plane,
+        Span<int> coefficients, Span<int> columns)
     {
-        _coefficients[0] = unchecked(dc * Quantizer[0]);
-        Array.Clear(_coefficients, 1, _coefficients.Length - 1);
-        int zigzag = 0x3f;
-        int lookahead = 0;
-        int control = 0;
-        bool selected = false;
+        int dc = (int)(bits.Peek() >> 24);
+        bits.Skip(8);
+        DecodeCoefficients(ref bits, dc, coefficients);
+        InverseTransform(coefficients, columns, plane, engineTexture: false);
+    }
+
+    // 0x00665EF0 (loading screens) and 0x00659608 (engine textures) read the same codes
+    // through the same tables. A slot counter runs down from 63 through the zigzag table;
+    // short codes carry run+1 and a magnitude followed by a sign bit, escapes carry a 6-bit
+    // run and an 8-bit level whose 0x00 and 0x80 forms extend to a further positive or
+    // negative byte. Every value is stored premultiplied by its dequantisation step.
+    private static void DecodeCoefficients(ref BitReader bits, int dc, Span<int> coefficients)
+    {
+        coefficients.Clear();
+        ReadOnlySpan<int> step = Dequantisation;
+        coefficients[0] = unchecked(dc * step[0]);
+        ReadOnlySpan<byte> zigzag = ZigzagSlots;
+        int slotCounter = 63;
         while (true)
         {
-            if (!selected) lookahead = (int)ReadBits(position, 17);
-            int index = lookahead;
-            if (index >= 0x8000 || selected)
+            uint window = bits.Peek();
+            uint code = LookupAcCode(window);
+            int length = (int)code >> 16;
+            int run = (int)(code >> 8) & 0xFF;
+            bits.Skip(length);
+            if (run == EndOfBlock) return;
+            int level, slot;
+            if (run < EndOfBlock)
             {
-                if (!selected) control = CoefficientControl[60 + (index >> 13)];
-                selected = false;
-                if ((control & 0xff00) == 0x4100) return position + (control >> 16);
-                int coefficient;
-                if ((control & 0xff00) > 0x4100)
-                {
-                    position += control >> 16;
-                    int extended = (int)ReadBits(position, 14);
-                    position += 14;
-                    zigzag -= (extended & 0xff00) >> 8;
-                    coefficient = extended & 0xff;
-                    if (coefficient != 0)
-                    {
-                        if (coefficient != 0x80)
-                        {
-                            if (coefficient > 0x80) coefficient -= 0x100;
-                        }
-                        else
-                        {
-                            coefficient = (int)ReadBits(position, 8) - 0x100;
-                            position += 8;
-                        }
-                    }
-                    else
-                    {
-                        coefficient = (int)ReadBits(position, 8);
-                        position += 8;
-                    }
-                    zigzag--;
-                }
-                else
-                {
-                    int length = control >> 16;
-                    zigzag -= (control & 0xff00) >> 8;
-                    int signMask = (lookahead & (1 << (16 - length))) != 0 ? -1 : 0;
-                    coefficient = (control & 0xff) ^ signMask;
-                    position++;
-                    coefficient -= signMask;
-                    position += length;
-                }
-                if (zigzag < 0 || zigzag >= 64)
-                    throw new InvalidDataException("Texture coefficient run exceeds its block.");
-                int outputIndex = CoefficientControl[zigzag + 1];
-                _coefficients[outputIndex] = unchecked((short)coefficient * Quantizer[outputIndex]);
-                continue;
+                slotCounter -= run;
+                slot = slotCounter + 1;
+                level = (int)(code & 0xFF);
+                if (((window >> (31 - length)) & 1) != 0) level = -level;
+                bits.Skip(1);
             }
-
-            if (index >= 0x800) control = CoefficientControl[72 + (index >> 9)];
-            else if (index >= 0x400) control = CoefficientControl[128 + (index >> 7)];
-            else if (index >= 0x200) control = CoefficientControl[128 + (index >> 5)];
-            else if (index >= 0x100) control = CoefficientControl[144 + (index >> 4)];
-            else if (index >= 0x80) control = CoefficientControl[160 + (index >> 3)];
-            else if (index >= 0x40) control = CoefficientControl[176 + (index >> 2)];
-            else if (index >= 0x20) control = CoefficientControl[192 + (index >> 1)];
-            else throw new InvalidDataException("Invalid texture coefficient code.");
-            selected = true;
+            else
+            {
+                uint escape = bits.Peek() >> 18;
+                bits.Skip(14);
+                slot = slotCounter - (int)(escape >> 8);
+                slotCounter = slot - 1;
+                level = (int)(escape & 0xFF);
+                if (level == 0 || level == 0x80)
+                {
+                    int extension = (int)(bits.Peek() >> 24);
+                    bits.Skip(8);
+                    level = level == 0 ? extension : extension - 0x100;
+                }
+                else if (level > 0x80)
+                {
+                    level -= 0x100;
+                }
+            }
+            // The binary keeps this counter in one byte and never bounds it: a run past slot 1 wraps it
+            // to 0xFF and the zigzag lookup reads the table after it (0x006597D2..0x00659929). Slot 0 is
+            // the DC term, which no AC code reaches in a well-formed stream, so anything outside 1..63 is
+            // malformed input and is refused here rather than mirrored.
+            if (slot < 1 || slot >= BlockArea) throw new InvalidDataException("Texture AC run passes the end of the block.");
+            int index = zigzag[slot];
+            coefficients[index] = unchecked(level * step[index]);
         }
     }
 
-    private void TransformColumns(int input, int output)
+    // The 17 leading bits pick one of eight sub-tables by their leading zeros (0x00666077
+    // onward); all eight live in one 160-entry run, so each reduces to an offset into it.
+    // Entry: bits 16..31 code length (signed), 8..15 run+1 or 0x41/0x42, 0..7 magnitude.
+    private static uint LookupAcCode(uint window)
     {
-        if ((_coefficients[input + 1] | _coefficients[input + 2] | _coefficients[input + 3]
-            | _coefficients[input + 4] | _coefficients[input + 5] | _coefficients[input + 6] | _coefficients[input + 7]) == 0)
+        uint prefix = window >> 15;
+        int index;
+        if (prefix >= 0x8000) index = (int)(prefix >> 13) - 4;
+        else if (prefix >= 0x800) index = (int)(prefix >> 9) + 8;
+        else if (prefix >= 0x400) index = (int)(prefix >> 7) + 64;
+        else if (prefix >= 0x200) index = (int)(prefix >> 5) + 64;
+        else if (prefix >= 0x100) index = (int)(prefix >> 4) + 80;
+        else if (prefix >= 0x80) index = (int)(prefix >> 3) + 96;
+        else if (prefix >= 0x40) index = (int)(prefix >> 2) + 112;
+        else if (prefix >= 0x20) index = (int)(prefix >> 1) + 128;
+        else throw new InvalidDataException("Invalid texture AC code.");
+        return AcCodes[index];
+    }
+
+    // First pass (0x00666210 / 0x00659930) on each coefficient row r writes column r of the
+    // intermediate block; the second pass (0x00666370 / 0x00659A90) on each intermediate row
+    // writes one output row. Only the second pass of the loading-screen path stores its
+    // rounded products as 64-bit integers.
+    private static void InverseTransform(ReadOnlySpan<int> coefficients, Span<int> columns, Span<int> plane, bool engineTexture)
+    {
+        for (int row = 0; row < BlockSide; row++)
+            Transform8(coefficients.Slice(row * BlockSide, BlockSide), columns, row, BlockSide, engineTexture, wideStore: false);
+        for (int row = 0; row < BlockSide; row++)
+            Transform8(columns.Slice(row * BlockSide, BlockSide), plane, row * BlockSide, 1, engineTexture, wideStore: !engineTexture);
+    }
+
+    private static void Transform8(ReadOnlySpan<int> x, Span<int> output, int start, int stride, bool engineTexture, bool wideStore)
+    {
+        int x0 = x[0], x1 = x[1], x2 = x[2], x3 = x[3], x4 = x[4], x5 = x[5], x6 = x[6], x7 = x[7];
+        if ((x1 | x2 | x3 | x4 | x5 | x6 | x7) == 0)
         {
-            int value = _coefficients[input];
-            for (int i = 0; i < 8; i++) _firstPass[output + i * 9] = value;
+            // The binary takes this branch in the first pass only; the full arithmetic gives the same values.
+            for (int i = 0; i < BlockSide; i++) output[start + i * stride] = x0;
             return;
         }
-        Transform(_coefficients, input, _firstPass, output, 9);
+        unchecked
+        {
+            int sum35 = x3 + x5, diff53 = x5 - x3, sum17 = x1 + x7, diff17 = x1 - x7;
+            int oddSum = sum17 + sum35;
+            // Odd half: three products on the FPU (operands summed before rounding), one in Q31.
+            long shared = ((long)diff17 + diff53) * Units.Rotate3827;
+            int a = Units.ToInt(diff53 * Units.Rotate5412 + shared, wideStore);
+            int d = Units.ToInt(diff17 * Units.Rotate13066 - shared, wideStore);
+            int m = ScaleBySqrtHalf(sum17 - sum35, engineTexture);
+            int b = a + m, c = m + d;
+            d += oddSum;
+
+            int n = ScaleBySqrtHalf(x2 - x6, engineTexture);
+            int evenSum = x2 + x6 + n;
+            int sum04 = x0 + x4, diff04 = x0 - x4;
+            int e0 = sum04 + evenSum, e3 = sum04 - evenSum, e1 = diff04 + n, e2 = diff04 - n;
+
+            output[start] = e0 + d;
+            output[start + stride] = e1 + c;
+            output[start + 2 * stride] = e2 + b;
+            output[start + 3 * stride] = e3 + a;
+            output[start + 4 * stride] = e3 - a;
+            output[start + 5 * stride] = e2 - b;
+            output[start + 6 * stride] = e1 - c;
+            output[start + 7 * stride] = e0 - d;
+        }
     }
 
-    private void TransformRows(int input, int output) => Transform(_firstPass, input, _samples, output, 1);
-
-    private static void Transform(int[] source, int input, int[] destination, int output, int stride)
+    // Both multiply by 0x5A82799A (sqrt(1/2) in Q31). The loading-screen transform keeps
+    // product bits 31..62 (ADD/ADC); the engine transform doubles the high dword alone and
+    // so drops bit 31 (0x006599AB).
+    private static int ScaleBySqrtHalf(int value, bool engineTexture)
     {
-        int differenceA = source[input + 5] - source[input + 3];
-        int differenceB = source[input + 1] - source[input + 7];
-        int sumA = source[input + 3] + source[input + 5];
-        int sumB = source[input + 7] + source[input + 1];
-        int centre = unchecked(sumA + sumB);
-        int diagonal = sumB - sumA;
-        double combined = differenceB + differenceA;
-        int rotatedA = Round(differenceA * 0.54119611 + 0.38268343 * combined);
-        int rotatedB = Round(differenceB * 1.306563 - 0.38268343 * combined);
-        int norm = unchecked((int)(((long)diagonal * 0x5a82799a) >> 32) * 2);
-        int axisA = rotatedA + norm;
-        int axisB = rotatedB + norm;
-        int centreB = rotatedB + centre;
-        int evenA = source[input + 6];
-        int evenB = source[input + 2];
-        int pairSum = evenA + evenB;
-        int pairDifference = evenB - evenA;
-        int outerSum = source[input + 4] + source[input];
-        int outerDifference = source[input] - source[input + 4];
-        int evenNorm = unchecked((int)(((long)pairDifference * 0x5a82799a) >> 32) * 2);
-
-        destination[output + 2 * stride] = unchecked(outerDifference - evenNorm + axisA);
-        destination[output + 5 * stride] = unchecked(outerDifference - evenNorm - axisA);
-        destination[output + 3 * stride] = unchecked(outerSum - pairSum - evenNorm + rotatedA);
-        destination[output + 4 * stride] = unchecked(outerSum - pairSum - evenNorm - rotatedA);
-        destination[output] = unchecked(pairSum + evenNorm + outerSum + centreB);
-        destination[output + stride] = unchecked(axisB + evenNorm + outerDifference);
-        destination[output + 6 * stride] = unchecked(evenNorm + outerDifference - axisB);
-        destination[output + 7 * stride] = unchecked(pairSum + evenNorm + outerSum - centreB);
+        long product = (long)value * 0x5A82799A;
+        return unchecked(engineTexture ? (int)(product >> 32) * 2 : (int)(product >> 31));
     }
 
-    private uint ReadBits(int position, int count)
+    // 0x0065CA50: Y, Cb, Cr and optional alpha planes in 16.16 to RGBA, eight pixels a row.
+    private static void WriteEngineBlock(ReadOnlySpan<int> planes, bool alpha, byte[] pixels, int width, int height, int left, int top)
     {
-        int word = position >> 5;
-        int shift = position & 31;
-        if ((uint)word >= _bits.Length) throw new InvalidDataException("Texture bitstream ended early.");
-        ulong first = ((ulong)_bits[word] << shift) & uint.MaxValue;
-        ulong second = shift != 0 && word + 1 < _bits.Length ? _bits[word + 1] >> (32 - shift) : 0;
-        return (uint)((first | second) >> (32 - count));
+        ReadOnlySpan<int> luma = planes.Slice(0, BlockArea);
+        ReadOnlySpan<int> blueDiff = planes.Slice(BlockArea, BlockArea);
+        ReadOnlySpan<int> redDiff = planes.Slice(2 * BlockArea, BlockArea);
+        ReadOnlySpan<int> opacity = planes.Slice(3 * BlockArea, BlockArea);
+        int rows = Math.Min(BlockSide, height - top), cols = Math.Min(BlockSide, width - left);
+        for (int row = 0; row < rows; row++)
+        {
+            int target = ((top + row) * width + left) * 4;
+            for (int col = 0; col < cols; col++, target += 4)
+            {
+                int i = row * BlockSide + col;
+                long y = Units.RoundToExtendedGrid(((long)luma[i] - Units.LumaBlack) * Units.LumaScale);
+                long cb = (long)blueDiff[i] - Units.ChromaZero, cr = (long)redDiff[i] - Units.ChromaZero;
+                pixels[target] = Units.ToColour(cr * Units.RedFromCr + y);
+                pixels[target + 1] = Units.ToColour(cb * Units.GreenFromCb + cr * Units.GreenFromCr + y);
+                pixels[target + 2] = Units.ToColour(cb * Units.BlueFromCb + y);
+                pixels[target + 3] = alpha ? Clamp(opacity[i] >> 16) : (byte)255;
+            }
+        }
     }
 
-    private static (int Skip, int Bits) Prefix(int value)
+    // 0x00668810's unmasked output: R, G, B rounded from 16.16 by +0x8000, alpha truncated.
+    private static void WriteLoadingBlock(ReadOnlySpan<int> planes, bool alpha, byte[] pixels, int width, int height, int left, int top)
     {
-        if (value < 64) return (2, 0);
-        if (value < 128) return (2, 1);
-        if (value < 192) return (2, 2);
-        if (value < 224) return (3, 3);
-        if (value < 240) return (4, 4);
-        if (value < 248) return (5, 5);
-        if (value < 252) return (6, 6);
-        if (value < 254) return (7, 7);
-        if (value == 254) return (8, 8);
-        return (0, 0);
+        int rows = Math.Min(BlockSide, height - top), cols = Math.Min(BlockSide, width - left);
+        for (int row = 0; row < rows; row++)
+        {
+            int target = ((top + row) * width + left) * 4;
+            for (int col = 0; col < cols; col++, target += 4)
+            {
+                int i = row * BlockSide + col;
+                pixels[target] = Clamp(unchecked(planes[i] + 0x8000) >> 16);
+                pixels[target + 1] = Clamp(unchecked(planes[BlockArea + i] + 0x8000) >> 16);
+                pixels[target + 2] = Clamp(unchecked(planes[2 * BlockArea + i] + 0x8000) >> 16);
+                pixels[target + 3] = alpha ? Clamp(planes[3 * BlockArea + i] >> 16) : (byte)255;
+            }
+        }
     }
 
-    private static int ConvertColor(double value)
+    // The native lookup tables (0x005B21E0, 0x005D7360) map -0x180..0x27F to 0..255 by
+    // clamping. Natively an index outside that range reads the neighbouring channel's table and
+    // can set another byte; shipped data never gets there, and here it simply clamps.
+    private static byte Clamp(int value) => (byte)(value < 0 ? 0 : value > 255 ? 255 : value);
+
+    /// <summary>
+    /// Exact x87 arithmetic for the transform and colour conversion. Every float constant is
+    /// an integer mantissa times a power of two, so each product is held exactly as a count
+    /// of 2^-25; rounding steps are then explicit, round-half-to-even as the FPU does.
+    /// </summary>
+    private static class Units
     {
-        double biased = value + 6.75539944108852e15;
-        long rounded = (long)(biased + (biased > 0 ? 0.5 : -0.5));
-        return unchecked((int)(uint)rounded) >> 16;
+        private const int FractionBits = 25;
+
+        // Transform rotations at 0x007AF5F4..FC (loading) and 0x007AF03C..44 (engine): equal floats.
+        public static readonly long Rotate5412 = FromFloatBits(0x3F0A8BD4);
+        public static readonly long Rotate13066 = FromFloatBits(0x3FA73D75);
+        public static readonly long Rotate3827 = FromFloatBits(0x3EC3EF15);
+
+        // Colour conversion floats at 0x007AF000..18.
+        public static readonly long LumaBlack = 16 << 16;
+        public static readonly long ChromaZero = 128 << 16;
+        public static readonly long LumaScale = FromFloatBits(0x3F95A1CB);
+        public static readonly long GreenFromCr = FromFloatBits(0xBF5020C5);
+        public static readonly long GreenFromCb = FromFloatBits(0xBEC83127);
+        public static readonly long RedFromCr = FromFloatBits(0x3FCD0E56);
+        public static readonly long BlueFromCb = FromFloatBits(0x4001999A);
+
+        private static long FromFloatBits(uint bits)
+        {
+            int exponent = (int)((bits >> 23) & 0xFF) - 127 - 23;
+            long mantissa = (bits & 0x7FFFFF) | 0x800000;
+            long scaled = mantissa << (exponent + FractionBits);
+            return (bits & 0x80000000) != 0 ? -scaled : scaled;
+        }
+
+        // FISTP to a dword: nearest-even; out of range gives the integer-indefinite value.
+        // A qword store keeps the low dword instead.
+        public static int ToInt(long units, bool wideStore)
+        {
+            long value = RoundShift(units, FractionBits);
+            if (value >= int.MinValue && value <= int.MaxValue) return (int)value;
+            return wideStore ? unchecked((int)value) : int.MinValue;
+        }
+
+        // 0x005B26F0 sets 64-bit precision and the conversion adds the double at 0x007AF048,
+        // 1.5*2^52 + 0x8008. Sums near that bias keep 2^-11 on the FPU; storing the double
+        // keeps integers; the low dword shifted right 16 indexes the clamp table.
+        public static long RoundToExtendedGrid(long units) => RoundShift(units, FractionBits - 11) << (FractionBits - 11);
+
+        public static byte ToColour(long units)
+        {
+            long integer = RoundShift(RoundShift(units, FractionBits - 11), 11);
+            return Clamp(unchecked((int)(integer + 0x8008)) >> 16);
+        }
+
+        private static long RoundShift(long value, int shift)
+        {
+            long quotient = value >> shift;
+            long remainder = value - (quotient << shift);
+            long half = 1L << (shift - 1);
+            if (remainder > half || (remainder == half && (quotient & 1) != 0)) quotient++;
+            return quotient;
+        }
     }
-    private static int Round(double value) => (int)(value + (value > 0 ? 0.5 : -0.5));
-    private static byte ClampByte(int value) => (byte)Math.Clamp(value, 0, 255);
+
+    // Bits are taken most significant first from little-endian dwords (the SHLD pair).
+    private struct BitReader
+    {
+        private readonly uint[] _words;
+        private readonly int _limit;
+        private int _position;
+
+        public BitReader(uint[] words, int wordCount, ReadOnlySpan<byte> bytes)
+        {
+            _words = words;
+            _limit = wordCount;
+            _position = 0;
+            int whole = bytes.Length / 4;
+            for (int i = 0; i < whole; i++) words[i] = BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(i * 4));
+            Array.Clear(words, whole, wordCount - whole);
+            for (int i = whole * 4; i < bytes.Length; i++) words[whole] |= (uint)bytes[i] << ((i & 3) * 8);
+        }
+
+        public uint Peek()
+        {
+            int word = _position >> 5;
+            if (word + 1 >= _limit) throw new InvalidDataException("Texture bitstream ends inside a block.");
+            ulong pair = ((ulong)_words[word] << 32) | _words[word + 1];
+            return (uint)((pair << (_position & 31)) >> 32);
+        }
+
+        public void Skip(int count) => _position += count;
+
+        // 0x0065C290: the leading byte indexes 0x007AF4E0 for a size (high nibble) and a
+        // prefix length (low nibble). The value has that many bits; a clear top bit makes it
+        // negative by subtracting 2^size - 1.
+        public int ReadDcDifference()
+        {
+            byte entry = DcCodes[(int)(Peek() >> 24)];
+            _position += entry & 0xF;
+            int size = entry >> 4;
+            if (size == 0) return 0;
+            int value = (int)(Peek() >> (32 - size));
+            _position += size;
+            return (value & (1 << (size - 1))) != 0 ? value : value - ((1 << size) - 1);
+        }
+    }
+
+    // 0x007AF0E0 (engine) and 0x007AF680 (loading screens), identical: block position of
+    // each slot. The slot counter starts at 63, so the first AC value lands at slot 63.
+    private static ReadOnlySpan<byte> ZigzagSlots =>
+    [
+        0, 63, 55, 62, 61, 54, 47, 39, 46, 53, 60, 59, 52, 45, 38, 31,
+        23, 30, 37, 44, 51, 58, 57, 50, 43, 36, 29, 22, 15, 7, 14, 21,
+        28, 35, 42, 49, 56, 48, 41, 34, 27, 20, 13, 6, 5, 12, 19, 26,
+        33, 40, 32, 25, 18, 11, 4, 3, 10, 17, 24, 16, 9, 2, 1, 8,
+    ];
+
+    // 0x007AF1E0..0x007AF460 (engine) and 0x007AF780..0x007AFA00 (loading screens), identical.
+    private static readonly uint[] AcCodes =
+    [
+        0x40102, 0x40301, 0x30201, 0x30201, 0x24100, 0x24100, 0x24100, 0x24100,
+        0x20101, 0x20101, 0x20101, 0x20101, 0x64200, 0x64200, 0x64200, 0x64200,
+        0x70302, 0x70302, 0x70A01, 0x70A01, 0x70104, 0x70104, 0x70901, 0x70901,
+        0x60801, 0x60801, 0x60801, 0x60801, 0x60701, 0x60701, 0x60701, 0x60701,
+        0x60202, 0x60202, 0x60202, 0x60202, 0x60601, 0x60601, 0x60601, 0x60601,
+        0x80E01, 0x80106, 0x80D01, 0x80C01, 0x80402, 0x80203, 0x80105, 0x80B01,
+        0x50103, 0x50103, 0x50103, 0x50103, 0x50103, 0x50103, 0x50103, 0x50103,
+        0x50501, 0x50501, 0x50501, 0x50501, 0x50501, 0x50501, 0x50501, 0x50501,
+        0x50401, 0x50401, 0x50401, 0x50401, 0x50401, 0x50401, 0x50401, 0x50401,
+        0xA1101, 0xA0602, 0xA0107, 0xA0303, 0xA0204, 0xA1001, 0xA0F01, 0xA0502,
+        0xC010B, 0xC0902, 0xC0503, 0xC010A, 0xC0304, 0xC0802, 0xC1601, 0xC1501,
+        0xC0109, 0xC1401, 0xC1301, 0xC0205, 0xC0403, 0xC0108, 0xC0702, 0xC1201,
+        0xD0B02, 0xD0A02, 0xD0603, 0xD0404, 0xD0305, 0xD0207, 0xD0206, 0xD010F,
+        0xD010E, 0xD010D, 0xD010C, 0xD1B01, 0xD1A01, 0xD1901, 0xD1801, 0xD1701,
+        0xE011F, 0xE011E, 0xE011D, 0xE011C, 0xE011B, 0xE011A, 0xE0119, 0xE0118,
+        0xE0117, 0xE0116, 0xE0115, 0xE0114, 0xE0113, 0xE0112, 0xE0111, 0xE0110,
+        0xF0128, 0xF0127, 0xF0126, 0xF0125, 0xF0124, 0xF0123, 0xF0122, 0xF0121,
+        0xF0120, 0xF020E, 0xF020D, 0xF020C, 0xF020B, 0xF020A, 0xF0209, 0xF0208,
+        0x100212, 0x100211, 0x100210, 0x10020F, 0x100703, 0x101102, 0x101002, 0x100F02,
+        0x100E02, 0x100D02, 0x100C02, 0x102001, 0x101F01, 0x101E01, 0x101D01, 0x101C01,
+    ];
+
+    // 0x007AF4E0, indexed by the next eight bits.
+    private static ReadOnlySpan<byte> DcCodes =>
+    [
+        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+        0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+        0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12,
+        0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12,
+        0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12,
+        0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
+        0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33,
+        0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
+        0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x66, 0x66, 0x66, 0x66, 0x77, 0x77, 0x88, 0x00,
+    ];
+
+    // 0x006C10C0 (engine) and 0x00672608 (loading screens), identical, times 8 as the setup
+    // routines 0x005B2450 and 0x005D7360 store them: the DC step is 65536, so DC is 16.16.
+    private static readonly int[] Dequantisation = BuildDequantisation(
+    [
+        8192, 5906, 6270, 6967, 8192, 10426, 15137, 29692,
+        5906, 4258, 4520, 5023, 5906, 7517, 10913, 21407,
+        6270, 4520, 4799, 5332, 6270, 7980, 11585, 22725,
+        6967, 5023, 5332, 5925, 6967, 8867, 12873, 25251,
+        8192, 5906, 6270, 6967, 8192, 10426, 15137, 29692,
+        10426, 7517, 7980, 8867, 10426, 13270, 19266, 37791,
+        15137, 10913, 11585, 12873, 15137, 19266, 27969, 54864,
+        29692, 21407, 22725, 25251, 29692, 37791, 54864, 107619,
+    ]);
+
+    private static int[] BuildDequantisation(int[] table)
+    {
+        for (int i = 0; i < table.Length; i++) table[i] *= 8;
+        return table;
+    }
 }

@@ -79,8 +79,10 @@ There are two unrelated stores:
   height, stored size, two scaled dimensions, and an alpha flag, followed by a
   compressed bitstream.
 
-The model texture codec is **STRONGLY INFERRED** against the shipped cache and corroborated
-with OpenKeeper. It predicts colour-channel DC values between 8×8 blocks,
+The model texture codec is **STRONGLY INFERRED** against the shipped cache and the executable:
+`Dk2TextureDecoder` is written from DKII.EXE and its output equals the executable's own block
+decoders run in emulation on all 5,767 engine textures ([texture-codec.md](../../docs/research/texture-codec.md)).
+It predicts colour-channel DC values between 8×8 blocks,
 entropy-decodes quantized coefficients, performs two integer inverse transforms,
 converts the resulting luma/chroma planes to RGBA, and optionally decodes an alpha
 plane. Names ending in `MM0` are the highest-resolution mipmap and are selected for

@@ -23,6 +23,10 @@ questions live in their canonical documents; this file links to them.
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
   resource strip is moved too (`KeeperResourceHud`); it builds and its model is tested, but it has not been run in
   the Unity editor. Next: the message tabs, then the order in the ADR. No Godot code existed on that date.
+- OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
+  earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
+  own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,
+  is open). Remaining: the items in ADR-0003's audit list, as `THIRD-PARTY-NOTICES.md` lists them.
 - Presented-world P1 and its follow-ups are merged. Measurements and remaining
   performance targets: [presented-world result](plans/2026-11-06-presented-world.md#result-measured-2026-11-06)
   and [performance policy](PERFORMANCE.md).

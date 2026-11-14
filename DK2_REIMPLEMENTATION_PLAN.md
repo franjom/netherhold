@@ -119,8 +119,9 @@ rescaled — §8.1 says why, and §8's Run column is the live ordering.
 
 **Licensing — resolved.** The project is GPL-3.0-or-later with a clean-room policy
 (ADR-0041, amending ADR-0003). Flame publishes **no licence at all**
-(`"license": null` on the GitHub API) and OpenKeeper is GPLv3 [KNOWN]; neither has its
-*code* copied here, and both are used as research references. §10.1 has the boundary.
+(`"license": null` on the GitHub API) and OpenKeeper is GPLv3 [KNOWN]. Both are research
+references, facts only; OpenKeeper code taken before 2026-11-14 is listed in
+`THIRD-PARTY-NOTICES.md` and being rewritten from the binary (ADR-0003). §10.1 has the boundary.
 
 ---
 
@@ -344,9 +345,8 @@ box and still ship a working patched game. It is the opposite of our priority.
    it never appears in `src/`, `tests/` or the Unity adapter, not even in a comment. Names
    are not copyrightable and a citation is not a copy; the source tree is the one place a
    copying argument could be made, so that is where the rule is absolute, and
-   `FlameIdentifierTests` checks the shape of it. OpenKeeper's precedent — names used with
-   attribution in `THIRD-PARTY-NOTICES.md` — does not transfer, because it rests on a
-   licence Flame does not have.
+   `FlameIdentifierTests` checks the shape of it. OpenKeeper's few remaining names, listed in
+   `THIRD-PARTY-NOTICES.md` and being rewritten, rest on a licence Flame does not have.
 
 ---
 
@@ -1222,7 +1222,7 @@ it; the ADR carries the reason.
 | Decision | Settled by |
 |---|---|
 | Project licence | **GPL-3.0-or-later** (ADR-0041, amending ADR-0003). Every source file carries `SPDX-License-Identifier: GPL-3.0-or-later`, enforced by `LicenseHeaderTests` rather than an analyser. |
-| Clean-room policy | **In force** (ADR-0041). Under GPLv3 copying OpenKeeper's code would be lawful; it is still not done, because the brief asks for clean-room behavioural reimplementation. |
+| Clean-room policy | **In force** (ADR-0041). Under GPLv3 copying OpenKeeper's code would be lawful; ADR-0003 (owner, 2026-11-14) makes it facts only, because the brief asks for clean-room behavioural reimplementation and the project must be able to grant licence exceptions. Code taken earlier is rewritten from the binary one item at a time. |
 | Flame identifiers in the repository | **May be cited in a document, never in `src/`, `tests/` or `unity/`**, comments included (ADR-0080, `FlameIdentifierTests`). |
 | Vendoring Flame's `mapping/*.map` as research data | **Not vendored, and better than vendored**: the whole repository is cloned outside the tree at a pinned commit (R15, §2.2.1). |
 | Decompiler output | **Never enters the repository, anywhere** (ADR-0046). `reverse-engineering/` is gitignored except its README. |
@@ -1259,8 +1259,8 @@ manual's description of intended behaviour.
 **What this forbids:** transliterating an OpenKeeper Java method into C#; copying Flame's
 reconstructed C++ function bodies; vendoring either project's source into `src/`.
 
-Full boundary table: `docs/research/external-resources.md`. Attribution for adopted
-OpenKeeper names: `THIRD-PARTY-NOTICES.md`.
+Full boundary table: `docs/research/external-resources.md`. OpenKeeper material still in
+the tree, awaiting rewrite: `THIRD-PARTY-NOTICES.md`.
 
 ### 10.2 Smaller decisions
 

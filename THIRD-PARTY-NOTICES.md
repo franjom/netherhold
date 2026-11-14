@@ -27,10 +27,6 @@ earlier, are being rewritten from the binary and leave this list when done.
 - [OpenKeeper](https://github.com/tonihele/OpenKeeper) - GNU GPL version 3
   or later, Copyright (C) 2014-2016 OpenKeeper, Toni Helenius and contributors.
   Material derived from it that is still in this tree:
-  - `src/DK2.Art/Dk2TextureDecoder.cs`: the engine-texture decoder follows
-    `tools.convert.textures.Dk2TextureDecoder` and
-    `enginetextures.EngineTextureDecoder` (whose header credits texture
-    extraction code by George Gensure and original code by Hoenir).
   - `src/DK2.Data/Kwd/KwdAdditionalRecords.cs`: field order, widths and names
     of creature spells, shots, effects and effect elements, from `KwdFile`.
   - `ObjectFlags` (`src/DK2.Data.Model/ObjectDef.cs`) and `CreatureStatId`:

@@ -128,6 +128,18 @@ public class FrontEndImageTests
         Assert.Equal(42, bmpCount); Assert.Equal(29, loadingCount);
     }
 
+    // Pixels from DKII.EXE's own block decoder 0x00668810 run on Unicorn at 64-bit x87
+    // precision; the precision the game runs it at is open (see the 0x00668810 record).
+    [InstallFact]
+    public void LoadingScreenDecodesToTheNativePixelsAt64BitPrecision_Q812()
+    {
+        using var wad = WadArchive.Open(Path.Combine(Dk2InstallGate.Path, "Data", "FrontEnd.WAD"));
+        using var images = new WadImageSource(wad, _ => throw new Exception("PNG decoder called for a .444"));
+        Assert.Equal("LoadingScreen640x480.444", wad.Entries[363].Name);
+        Assert.Equal("41C66558F80803B9A8CE8087BDCBAFCB4F09E913A22919FB63400D7CAEE5CFEF", System.Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(images.Read(363).Pixels)));
+    }
+
     [InstallFact]
     public void PngBytesReachTheInjectedRuntimeDecoder()
     {

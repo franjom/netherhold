@@ -10,8 +10,9 @@ to be re-argued.
 
 **Revised 2026-09-04**: this project moved from MIT to GPLv3 (ADR-0041), which
 removed the *legal* half of that boundary and left the *methodological* half
-standing. The section below separates the two, because they no longer say the
-same thing.
+standing. **Revised 2026-11-14**: the owner withdrew the permission to reuse
+OpenKeeper's implementation; ADR-0003 is the rule, and this file records the
+reasoning. The section below separates the licence from the project rule.
 
 ---
 
@@ -21,12 +22,12 @@ same thing.
 ADR-0041; it was MIT until then, ADR-0003). Every source file carries
 `SPDX-License-Identifier: GPL-3.0-or-later` and a test enforces it.
 
-**Read the next two paragraphs together, because the interesting part of this
-file is that they now disagree.**
+**The licence and the project rule differ for OpenKeeper: the licence would
+allow combining its code, ADR-0003 does not.**
 
 | source | licence | what the *licence* permits | what this project *does* |
 |---|---|---|---|
-| **OpenKeeper** | **GPLv3** | code may be combined with a GPLv3 work, with attribution and notices retained | **facts only, with provenance — still no code.** A project choice now, not a legal limit. See below |
+| **OpenKeeper** | **GPLv3** | code may be combined with a GPLv3 work, with attribution and notices retained | **facts only, with provenance (ADR-0003, owner 2026-11-14): file layouts, values and behaviour descriptions. No code or identifier is copied or transliterated.** Code taken earlier is listed in `THIRD-PARTY-NOTICES.md` and is being rewritten from the binary |
 | Flame | unlicensed (re-checked 2026-09-06 against both the GitHub API and the clone: no `LICENSE`, `COPYING` or equivalent anywhere in the tree) | **nothing** | facts only, with provenance — **and never one of its identifiers**, see below |
 | Dethware `DK2` (music and sound research, github.com/Dethware/DK2) | unlicensed (no `LICENSE` in the tree, checked 2026-10-27) | **nothing** | facts only, re-derived from the binary, never its identifiers (`music.md`) |
 | GLKeeper | MIT | inclusion in a GPLv3 work is fine (MIT is one-way compatible) | adapted once, for the WAD decompressor, attributed in `THIRD-PARTY-NOTICES.md` |
@@ -35,29 +36,36 @@ file is that they now disagree.**
 | the shipped DK2 manual | EA copyright | nothing may be redistributed | quoted in short excerpts for research (`manual-1999.md`); the PDF stays in gitignored `original-reference/` |
 | the DK2 install itself | proprietary | **nothing may be redistributed** | no executable, model, texture, audio, video or map file is ever committed |
 
-### The licence bar on OpenKeeper is gone. The project bar is not.
+### The licence would allow reuse. The project rule does not.
 
 Until 2026-09-04 the rule "no OpenKeeper code" had a legal reason: GPLv3 is
 copyleft, so copying its Java into an MIT project was the one outcome the
-licence choice ruled out. **That reason no longer exists** — this project is
-GPLv3, and GPLv3 code may be combined with it.
+licence choice ruled out. After the move to GPLv3 that reason was gone, and the
+rule stood on the reasons below. On 2026-11-14 the owner withdrew the
+permission to reuse implementation that ADR-0003 had carried.
 
-Three things still forbid it, and none of them was ever a licence consequence:
-
-1. **The brief.** It asks for *clean-room behavioural reimplementation based on
+1. **Licence exceptions.** The project must be able to grant its own licence
+   exceptions (an engine linking exception needs every copyright holder;
+   ADR-0003, ADR-0805). Code taken from OpenKeeper carries its authors'
+   copyright and blocks that.
+2. **The brief.** It asks for *clean-room behavioural reimplementation based on
    observed behaviour and documented research rather than copying proprietary
    implementation wholesale*. Reading somebody else's implementation makes a
    clean-room claim harder to make honestly, whatever the licence says.
-2. **The owner's standing instruction**, given when OpenKeeper was first cloned:
+3. **The owner's standing instruction**, given when OpenKeeper was first cloned:
    *"if someone has already done the research and it is solid, not refutable, why
    wander around? I need you to just reference it and compare with our own
    findings, not copy it."* Reference and compare — not adopt.
-3. **It has been working.** Under the facts-only rule OpenKeeper has confirmed
-   three scan-derived offsets, **every** record type's on-disk size (eight of
-   them new, each correct to the byte on the first attempt), the MAP flags byte
+4. **It has been working.** Under the facts-only rule OpenKeeper has confirmed
+   three scan-derived offsets, **every** record type's on-disk size (eight
+   of them new, each correct to the byte on the first attempt), the MAP flags byte
    from an independent direction, and one place where its own layout is
-   incomplete (Q70). The worked cases below are the record. A rule
-   that has produced that much corroboration is not obviously worth relaxing.
+   incomplete (Q70). The worked cases below are the record.
+
+A rule read from OpenKeeper is STRONGLY INFERRED at best, never CONFIRMED
+(ADR-0003). Its code is rewritten from the binary: the engine-texture decoder
+was the first, and its output now equals DKII.EXE's own block decoders run in
+emulation (`texture-codec.md`).
 
 The fourth worked case below is the template to keep, and the sharpest illustration of
 why "reference, don't copy" is a *good* rule rather than a merely lawful one. On
@@ -68,12 +76,11 @@ reading their code could have given, because their code does not know what the
 shipped maps contain either. Theirs said *how a tile could be closed*; ours said
 *whether any tile is*.
 
-**If the owner wants to change this, it takes its own ADR** — plus an entry in
+**If the owner wants to change this, it takes its own ADR**, plus an entry in
 `THIRD-PARTY-NOTICES.md` and retained upstream copyright notices, because GPLv3
-attribution is an obligation and not a courtesy. Not a quiet copy. The one place
-worth even asking about is the file-format readers, which are the most complete
-in existence — and which are also the part already reproduced here independently
-and cross-validated to the byte. Their **gameplay** code is the part where the
+attribution is an obligation and not a courtesy. The file-format readers are the
+most complete in existence, and are also the part already reproduced here
+independently and cross-validated to the byte. Their **gameplay** code is the part where the
 clean-room argument would cost something, and also the part with the least
 behind it. Checked 2026-09-16 at `fee2624d`: the creature AI is a 19-state FSM
 with threat/fear flee arithmetic, tasks and moods — broader than ours, and not
@@ -112,7 +119,7 @@ there is no `UnexploreIfDug…` re-shroud and no torture reveal.
 - **Provenance matters more, not less.** Under GPLv3 a borrowed *implementation*
   carries attribution and notice-retention obligations, so the line between "we
   learned a fact from them" and "we took code from them" has to stay visible in
-  the record. Every research note already states its source; keep doing that.
+  the record (`THIRD-PARTY-NOTICES.md` lists what is still in the tree). Every research note already states its source; keep doing that.
 
 **If a specific case looks borderline, flag it to the owner rather than
 deciding.** That instruction is in the brief and this file does not override it.
@@ -334,11 +341,10 @@ clause for Flame, because Flame is the only source here that grants *nothing*.
 chose to call the state-category array `g_stateEntries` is an editorial act by an
 author who has published no licence permitting its reuse.
 
-**The OpenKeeper precedent does not transfer.** This project does use
-OpenKeeper's names — `CreatureStatId`'s members, for one — under ADR-0003's
-second amendment, with attribution in `THIRD-PARTY-NOTICES.md`. That rests on
-OpenKeeper being GPLv3 and this project being GPLv3. Flame has no licence for
-that arrangement to hang on.
+**The OpenKeeper precedent does not transfer.** A few OpenKeeper names, such as
+`CreatureStatId`'s members, are still in the tree under `THIRD-PARTY-NOTICES.md`
+and are being rewritten (ADR-0003). They stay only because GPLv3 allows it and
+this project is GPLv3. Flame has no licence for that arrangement to hang on.
 
 **So, in practice:** consult it freely, navigate a Ghidra database with it (that
 database lives outside the repository and is never distributed), confirm
