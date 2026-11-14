@@ -46,6 +46,7 @@ public sealed class HeroSystem : ICreatureUpdateStep
     {
         // The creature update's room arm runs before any state handler, whatever the state.
         if (RoomAttackRules.TryBegin(context, SystemName, creature)) return;
+        if (creature.Dk2StateId == DropLandingRules.HeartDropState) return;   // the stun recovery step's (Q759)
 
         if (StateShadow.IsTravelling(creature))
         {

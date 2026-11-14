@@ -13073,7 +13073,7 @@ stalled for gold in 3 of 10 seeds, after Magic Doors DK2 had not laid yet.
 - CONFIRMED (three idle DK2 Level 17 captures, identical): Harkan lays a Magic Door at 204, a
   Wooden Door at 915 and a Magic Door at 1182. STRONGLY INFERRED: the Wooden Door is one of the
   1-in-100 stops (the captures are one sample; Harkan's door availability at 915 is not captured).
-  It left 12,650 gold when the Training Room expansion was decided against 500 x 25 = 12,500, which is
+  It left 12,630 gold when the Training Room expansion was decided against 500 x 25 = 12,500, which is
   why DK2 grows Training 12 -> 20 tiles at 1111-1138.
 - Our door sites match DK2's ((19,4) first, (15,20), (15-16,2)). Ours over 10 seeds: Prison
   finished in 9 of 10; Training grown in 0 of 10 (9 of 10 without the step). With the usual
@@ -19047,3 +19047,50 @@ that a room walk to one ends on a corner native skips, unless their shipped flag
 `0x00480B05`/`0x00480CE9`/`0x00480E3D`; `0x00461BB0` and Training_DisturbedState109 unread. Already covered: `Eat_ChooseChicken`
 `0x00463647`, the chicken's process 6 `0x004A2046`. Test: `EatingTests.AWalkToTheHatcheryNeverEndsOnAPillarCorner` (fails without the
 fix; a synthetic 78 with Obstacle|Pillar). Full suite passes (Simulation 5401, Behavior 620 with 5 skipped).
+## ADR-0799 - a creature getting up on a Heart holds 71 a turn, and 71's 11 another
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 516
+
+**Context.** Q759. The owner's `Q747Specials` capture (`q747a.dk2cap`, Heart centre (35,35)): the Heart's four Imps get up
+from Stun Imps in 71 at turn 48; at 49 the three on the rim are in 11 and the one on (36,36), inside the inner 3x3, is gone;
+at 50 the three are in 10. Ours ran 71's handler in the turn 257's tail set it. That tail, `Room_DropCreature(0)`
+(`0x004E8DA0`), only kicks 1 and then the room's drop state (`0x004E9025`-`0x004E903A`; `KickToState` is `SetState` alone,
+which calls no handler), and the dispatcher makes one handler call a turn (`0x004772AA`, ADR-0794). So 71 (`0x00459180`)
+runs the next turn and the 11 it sets the turn after. STRONGLY INFERRED: read and re-derived by the reviewer; the capture
+agrees for workers. The non-worker 188 arm and the mana credit follow by the same reading and are not in the capture.
+
+**Decision.** `DropLandingRules.AfterGettingUp` only moves a creature on a Heart into 71. The stun recovery step runs 71
+(`DropLandingRules.RunHeartDrop`) on a turn after `StateEnteredTick`; the job, hero and worker handlers leave a creature in
+71 alone. The worker wander's 11 waits a turn after its entry. A worker whose 11 is refused tries 188 (`0x0045928E`). 71
+reads as idle. Evidence: [hand-drop-landing.md](research/hand-drop-landing.md#differences-in-ours),
+[refused-states.md](research/refused-states.md).
+
+**Consequences.** Hash and save 516; earlier saves are refused (no field added). Pin `0x614011C35E7D9DB0`. Unchanged: the
+hand's Heart-centre disposal (`HandSystem`, 76's arm) is still immediate; the other rooms' drop states (79, 137, 197, the job
+rooms') follow the same two kicks by inference and are not checked against ours or a capture. Residual (rare): when 71
+returns 0 (off a Heart, or 188 refused) ours idles inside the stun step, so a later handler can run state 1 in that turn.
+Tests: `CreatureStatusEffectTests.StunImps_Q747Capture_AWorkerGettingUpOnTheHeartHoldsSeventyOneOneTurn`,
+`RefusedStateTests.OnTheHeartInTheWholeUpdate_71HoldsATurnThen11ThenTheWorkerChooses` (whole update), and the two
+`RefusedStateTests` that now see 71 for a turn before 11, 188 or the give-back.
+
+## ADR-0800 - a hero's action-point walk is barred by its own finished walls, not its own rooms
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, heroes | **Hash/save:** 516
+
+**Context.** Q525. Level 2's party 1 patrols between action point 9 at (13,13) (next 2) and action point 2 at (12..14,7)
+(next 9, wait 10), and point 2 lies on its own Hero Gate (terrain 37, player 1). DK2's capture (`level2-live2/seed01`): the
+leader cycles 173, 174, 175 between the two points from turn 4 to about 3100. Ours refused every tile of point 2 as "a room of
+its own keeper", so the leader retried 173 every three turns at (13,13), beside the keeper's dungeon; in the packet replay its
+Dwarves fought keeper Imps from about 2150 and knocked down rooms (ADR-0342) in 4 of 6 seeds. State 173's tile test
+(`0x00471EB0`, `0x00472061`-`0x004720E6`) refuses a tile only for the point's flag 0x40 over solid terrain, a finished wall
+(`Tile_IsFinishedWall`, `0x00453CC0`) or an impenetrable tile of the creature's own player, or water or lava the definition
+cannot cross; it has no room test. STRONGLY INFERRED: read.
+
+**Decision.** `HeroJobRules.MayStand` tests `ReinforcementRules.IsFinished` (our `0x00453CC0`) for the own-player bar in place
+of the room flag. Record: `functions/00471EB0.md`.
+
+**Consequences.** Hash and save 516 with ADR-0799. Level 2 packet replay, seeds 1-6: the party now patrols to its gate. Room
+attacks before 3657: seeds 2 and 3 none (before: from 2336 and 3655); 4 and 5 none either way; 1 and 6 still, from 2283 and
+2515 (before: 3155 and 2289). In those two the owner's tag of (12,15) at 2142 is dug at once by an Imp already working that
+wall, and a trigger on the dig sends the party to KillPlayer at 2150; DK2's pool holds that tag untaken until the owner's untag
+at 2209. HYPOTHESIS: Imp-work timing (ours claims (11,15) at 2076, DK2 at 2178) rather than a rule; open in Q525. Tests:
+`HeroWalkTests.SendToActionPoint_OnTheHerosOwnHeroGate_WalksOntoIt` (fails without the fix) and
+`HeroWalkTests.SendToActionPoint_RefusesAFinishedWallOfItsOwnPlayer`.

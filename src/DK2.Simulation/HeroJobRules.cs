@@ -124,8 +124,8 @@ public static class HeroJobRules
     }
 
     /// <summary>State 173 (<c>0x00471EB0</c>): four tries at a random tile of the action point's
-    /// rectangle — upper bounds excluded — that the creature may stand on and that is not a room or
-    /// wall of its own keeper; the first that routes wins, resuming 174.</summary>
+    /// rectangle — upper bounds excluded — that the creature may stand on and that is not a finished or
+    /// impenetrable wall of its own player; the first that routes wins, resuming 174.</summary>
     public static bool ToThePoint(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
@@ -316,14 +316,17 @@ public static class HeroJobRules
         return (x, y);
     }
 
-    private static bool MayStand(
+    /// <summary>State 173's tile test (<c>0x00472061</c>-<c>0x004720E6</c>): whether one of the action point's
+    /// tiles is one the hero may be sent to.</summary>
+    public static bool MayStand(
         WorldState world, GameDatabase database, CreatureDef definition, CreatureState creature,
         ActionPointState point, int x, int y)
     {
         ref TileState tile = ref world.Tile(x, y);
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
         if ((point.Flags & 0x40) != 0 && terrain.IsSolid) return false;
-        if (terrain.IsRoom && tile.OwnerPlayerId == creature.OwnerPlayerId) return false;
+        // A finished wall of its own player (0x00453CC0 at 0x00472080), not a room: a Hero Gate is no bar (Q525).
+        if (ReinforcementRules.IsFinished(database, tile) && tile.OwnerPlayerId == creature.OwnerPlayerId) return false;
         if (terrain.IsImpenetrable && tile.OwnerPlayerId == creature.OwnerPlayerId) return false;
         if (terrain.IsWater && ((definition.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater)) return true;
         if (terrain.IsLava && ((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava)) return true;

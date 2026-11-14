@@ -133,11 +133,12 @@ public static class DropLandingRules
                 return;
             }
 
-            // The Heart's drop state, 71 (0x00459180), through 1 (KickToState(1), KickToState(71)).
+            // The Heart's drop state, 71 (0x00459180), through 1 (KickToState(1), KickToState(71)): SetState
+            // alone, so its handler is the next turn's (RunHeartDrop; the Q747Specials capture, Q759).
             if (type == RoomTypeId.DungeonHeart)
             {
                 StateShadow.ToIdle(context, system, creature);
-                if (StateShadow.TryMove(context, system, creature, HeartDropState)) HeartDrop(context, system, creature, definition, room!);
+                StateShadow.TryMove(context, system, creature, HeartDropState);
                 return;
             }
 
@@ -187,16 +188,22 @@ public static class DropLandingRules
     /// <summary>The worker states 71 sends to: 11 off the Heart's inner 3×3 or with no Heart object.</summary>
     private const int WorkerAfterDropState = ImpStates.AfterDrop;
 
-    /// <summary>71's handler, run in the turn it is entered (ours; DK2 runs it the next): a non-worker
-    /// goes to 188 for its wages; a worker off the inner 3×3 (<c>0x004DA150</c>), or with no Heart object,
-    /// to 11; a worker on it is given back, the tile owner credited Create Imp's mana cost
-    /// (<c>Player_AddMana</c>, capped at the threshold), its gold lost, and it is gone (as state 196).
-    /// A keeper's hand-dropped worker never comes here: 76's worker arm sets 71 on the centre only
-    /// (cell byte <c>0x40</c>), which ours disposes in <see cref="Systems.HandSystem"/>, and a platform
-    /// tile goes to 11 (refused-states.md §3). This arm is a worker getting up on the Heart (257).</summary>
-    private static void HeartDrop(SimulationContext context, string system, CreatureState creature, CreatureDef definition, RoomInstance heart)
+    /// <summary>71's handler, run on a turn the creature began in 71, never the turn it is set (SetState
+    /// calls no handler): off a Heart idle; a non-worker to 188 for its wages; a worker off the inner 3×3
+    /// (<c>0x004DA150</c>), or with no Heart object, to 11; a worker on it is given back, the tile owner
+    /// credited Create Imp's mana cost (<c>Player_AddMana</c>, capped at the threshold), its gold lost, and
+    /// it is gone (as state 196). A keeper's hand-dropped worker never comes here: 76's worker arm sets 71
+    /// on the centre only (cell byte <c>0x40</c>), which ours disposes in <see cref="Systems.HandSystem"/>
+    /// (refused-states.md §3). This arm is a creature getting up on the Heart (257).</summary>
+    internal static void RunHeartDrop(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        if (RoomIndex.RoomAt(world, context.Database, here) is not { Definition.TypeId: RoomTypeId.DungeonHeart } heart)
+        {
+            StateShadow.ToIdle(context, system, creature);
+            return;
+        }
         if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
         {
             if (!StateShadow.TryMove(context, system, creature, PaydayRules.ArrivingState)) StateShadow.ToIdle(context, system, creature);
@@ -209,7 +216,10 @@ public static class DropLandingRules
         bool heartObject = !RoomRules.IsRuined(world, heart);
         if (!inner || !heartObject)
         {
-            if (!StateShadow.TryMove(context, system, creature, WorkerAfterDropState)) StateShadow.ToIdle(context, system, creature);
+            // A refused 11 falls through to 188 (0x0045928E), as a non-worker's would.
+            if (!StateShadow.TryMove(context, system, creature, WorkerAfterDropState)
+                && !StateShadow.TryMove(context, system, creature, PaydayRules.ArrivingState))
+                StateShadow.ToIdle(context, system, creature);
             return;
         }
 

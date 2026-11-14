@@ -128,7 +128,7 @@ activator. That includes allies, heroes and the neutral player.
   rule asked without a transition: `functions/00477310.md`). State 209's handler (`0x00481020`) plays sound 199, begins action 52 and sets state 255, whose handler (`0x004810E0`) times `StunDuration` from the state's start turn (`functions/00481020.md`). Built as `StatusEffectRules.StunFromStarter`.
   The owner's `Q747Specials` capture (2026-11-11, `q747a.dk2cap`): keeper 4's six Imps are in 255 the
   turn after the box, 257 the next, and up 12 turns later, about 3 s in all, as ours. 209 never shows
-  in a captured turn. Off a room they then stand in 250 (Q759).
+  in a captured turn. Off a room they then stand in 250; on a Heart they enter 71 (up at 48, 71's handler and then 11 a turn each later; Q759, ADR-0799).
 - **124 Receive Imps.** It takes the first creature type with `IsWorker`, in the world's
   creature-type order: the Imp in shipped data. It creates `SpecialReceiveImpsAmount` (188; 10)
   of them for the keeper (`0x004B78D0`). They are spaced evenly on a circle of radius two tiles

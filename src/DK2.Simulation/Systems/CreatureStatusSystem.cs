@@ -46,6 +46,13 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
                 DeathFallRules.Fall(context, creature, definition);
                 return;
             }
+            // 71, which 257's tail sets: its handler is a later turn's (0x00459180).
+            if (creature.Dk2StateId == DropLandingRules.HeartDropState)
+            {
+                if (context.Tick.Value > creature.StateEnteredTick)
+                    DropLandingRules.RunHeartDrop(context, SystemName, creature, definition);
+                return;
+            }
             if (creature.Activity == CreatureActivity.Stunned && !TremorRules.IsRecovering(creature))
             {
                 if (creature.Dk2StateId == Combat.CombatStates.GettingUp)

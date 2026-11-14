@@ -206,6 +206,41 @@ public class CreatureStatusEffectTests
         Assert.Equal(DropLandingRules.StandingState, imp.Dk2StateId);
     }
 
+    /// <summary>The same capture (Q759): the Heart's four Imps are in 71 the turn they get up and 71's
+    /// handler (0x00459180) runs the next, sending three off the inner 3x3 to 11 and giving one back.
+    /// 257's tail only sets 71; SetState calls no handler.</summary>
+    [Fact]
+    public void StunImps_Q747Capture_AWorkerGettingUpOnTheHeartHoldsSeventyOneOneTurn()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        for (int y = 10; y <= 14; y++)
+            for (int x = 10; x <= 14; x++)
+            {
+                ref TileState tile = ref world.Tile(new TilePos(x, y));
+                tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+                tile.OwnerPlayerId = Rival;
+                RoomRules.Place(db, ref tile, db.Room(RoomTypeId.DungeonHeart), Rival);
+            }
+        CreatureState rim = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 10, 12);
+        CreatureState inner = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 11, 11);
+        world.Player(Rival).Mana = 0;
+        ObjectState box = world.SpawnObject(db, Dk2TerrainFixture.StunImpsSpecialObjectId, PlayerIds.Neutral, (2 * world.Width) + 2);
+        var sim = new GameSimulation(db, world, 1,
+            [new SpecialSystem(), new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ImpTaskSystem()]);
+
+        sim.Tick(InputFrame.Of(new Commands.ActivateSpecialCommand(Keeper, box.Id)));
+        for (int i = 0; i < 40 && rim.Dk2StateId != DropLandingRules.HeartDropState; i++) sim.Tick();
+
+        Assert.Equal(DropLandingRules.HeartDropState, rim.Dk2StateId);
+        Assert.Equal(DropLandingRules.HeartDropState, inner.Dk2StateId);
+        Assert.Same(inner, world.CreatureById(inner.Id));
+
+        sim.Tick();
+        Assert.Equal(ImpStates.AfterDrop, rim.Dk2StateId);
+        Assert.Null(world.CreatureById(inner.Id));
+        Assert.Equal(db.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost, world.Player(Rival).Mana);
+    }
+
     [Fact]
     public void AFrozenCreatureIsNotStunned_TheRuleRefusesTwoFiftyFiveFromTwoEighteen()
     {

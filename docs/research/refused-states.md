@@ -46,7 +46,7 @@ handler never runs. Ours ends 68 idle, which is the same.
 3. A worker off the Heart's inner 3×3 (`0x004DA150` returns 1 unless the tile is the room's
    `+0x2D`/`+0x2E` plus 1 to 3 on each axis), or with no Heart object (`+0x12C` = 13) on the room's
    object list (`+0x0E`, link `+0x12A`) within `(dx² >> 12) + (dy² >> 12) < 0x1000000`, which is 64
-   tiles and so any of the room's: `SetState(11)`.
+   tiles and so any of the room's: `SetState(11)`, and if 11 is refused `SetState(188)` (`0x0045928E`).
 4. Otherwise it is given back: `Player_AddMana(tile owner, Create Imp's mana cost)` (spell 4's
    `+0x58` through `0x0050DD60`), `DeadBodyOnDestroy` cleared, its gold lost (`Purse_Spend`), and it
    is destroyed (vtable `+0x20`), the tail of state 196 (`0x004592C3`–`0x00459309`).
@@ -65,8 +65,8 @@ enters 71 and is not given back, which is what the owner's photos of 2026-10-23 
 inner 3×3 test (step 3) is met only by a worker that reaches 71 through 257's tail after a stun.
 The Heart's `+0x1D` = 71 is never read for a Heart.
 
-**Ours.** `DropLandingRules.HeartDrop`, after the get-up: ours sends a worker getting up on a Heart
-there. A hand-dropped worker is not stunned and never reaches it: `HandSystem` gives back an Imp
+**Ours.** `DropLandingRules.AfterGettingUp` sets 71 for a worker getting up on a Heart and
+`RunHeartDrop` runs it. A hand-dropped worker is not stunned and never reaches it: `HandSystem` gives back an Imp
 dropped on its Heart's centre (`DisposalRules`, ADR-0148), crediting the tile owner the same mana
 through `DropLandingRules.CreditWorkerGivenBack` (`Player_AddMana` `0x004C19C0` adds, then clamps a
 gain at the ceiling `+0x10EA`), and lands one on the eight platform tiles (ADR-0526 amendment).
@@ -75,8 +75,11 @@ nothing: `DisposalRules.Disposes` requires the Heart's room not ruined (`TileSta
 landing victim-or-door pick is built (ADR-0698). The Heart object is ours' living Heart (the room not ruined), and the inner
 3×3 is measured from the room's bounding box: STRONGLY INFERRED that `+0x2D`/`+0x2E` is that corner,
 the first slab of a 5×5 Heart (Q515); the owner's play no longer bears on it. The mana is Create
-Imp's cost, STRONGLY INFERRED: `0x0050DD60` reads keeper spell 4's `+0x58`. 71's handler runs in the turn
-it is entered.
+Imp's cost, STRONGLY INFERRED: `0x0050DD60` reads keeper spell 4's `+0x58`. The kicks into 71 and into 11
+are bare SetStates and the dispatcher makes one handler call a turn (`0x004772AA`), so 71 holds a
+turn before its handler runs and the 11 it sets holds a turn more (ADR-0799): the owner's
+`q747a.dk2cap` has 71 at 48, 11 at 49 and 10 at 50, and the Imp on (36,36) given back at 49. Ours
+matches; the other rooms' drop states follow the same two kicks by inference.
 
 Owner play questions, not yet asked: does the mana bar rise by Create Imp's cost when an Imp is
 disposed of on the Heart's centre; what happens to an Imp dropped on a ruined Heart's centre

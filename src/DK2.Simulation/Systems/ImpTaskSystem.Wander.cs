@@ -57,6 +57,8 @@ public sealed partial class ImpTaskSystem
         switch (creature.Dk2StateId)
         {
             case ImpStates.AfterDrop:
+                // 71's handler sets 11 earlier in this update; 11's own handler is the next turn's (Q759).
+                if (context.Tick.Value <= creature.StateEnteredTick) return true;
                 creature.WorkerIdle = false;
                 if (StateShadow.TryMove(context, SystemName, creature, ImpStates.TaskSelection))
                 {

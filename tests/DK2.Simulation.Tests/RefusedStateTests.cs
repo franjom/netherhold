@@ -216,6 +216,10 @@ public class RefusedStateTests
         var sim = new GameSimulation(db, world, seed: 7, [new CreatureStatusSystem()]);
 
         sim.Tick();
+        // 257's tail only sets 71; its handler is the next turn's (Q759).
+        Assert.Equal(DropLandingRules.HeartDropState, imp.Dk2StateId);
+        Assert.Equal(1000, world.Player(Keeper).Mana);
+        sim.Tick();
 
         Assert.Null(world.CreatureById(imp.Id));
         Assert.Equal(1000 + db.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost, world.Player(Keeper).Mana);
@@ -231,9 +235,34 @@ public class RefusedStateTests
         var sim = new GameSimulation(db, world, seed: 7, [new CreatureStatusSystem()]);
 
         sim.Tick();
+        Assert.Equal(DropLandingRules.HeartDropState, imp.Dk2StateId);
+        Assert.Equal(DropLandingRules.HeartDropState, goblin.Dk2StateId);
+        sim.Tick();
 
         Assert.Equal(ImpStates.AfterDrop, imp.Dk2StateId);
         Assert.Equal(188, goblin.Dk2StateId);
+    }
+
+    /// <summary>The same in the whole per-creature update (<see cref="SimulationSystems.Default"/>): the job,
+    /// hero and worker handlers that follow the stun step leave 71 alone in its entry turn, and the 11 it
+    /// sets waits a turn more before 10, as the Q747Specials capture shows (71 at 48, 11 at 49, 10 at 50).</summary>
+    [Fact]
+    public void OnTheHeartInTheWholeUpdate_71HoldsATurnThen11ThenTheWorkerChooses()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = WithAHeart(db);
+        CreatureState imp = GettingUp(db, world, Imp, new TilePos(3, 3));
+        CreatureState goblin = GettingUp(db, world, Goblin, new TilePos(5, 5));
+        var sim = new GameSimulation(db, world, seed: 7, SimulationSystems.Default());
+
+        sim.Tick();
+        Assert.Equal(DropLandingRules.HeartDropState, imp.Dk2StateId);
+        Assert.Equal(DropLandingRules.HeartDropState, goblin.Dk2StateId);
+        sim.Tick();
+        Assert.Equal(ImpStates.AfterDrop, imp.Dk2StateId);
+        Assert.Equal(188, goblin.Dk2StateId);
+        sim.Tick();
+        Assert.Equal(ImpStates.TaskSelection, imp.Dk2StateId);
     }
 
     // ------------------------------------------------------------------------------- 86

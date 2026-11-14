@@ -72,6 +72,61 @@ public class HeroWalkTests
         Assert.InRange(hero.Tile.Y, 4, 6);
     }
 
+    /// <summary>Level 2's party 1 patrols between action points 9 and 2, and 2 lies on its own Hero Gate
+    /// (Q525). State 173's tile test (0x00471EB0) bars only a finished or impenetrable wall of the hero's
+    /// own player, not its own room, so the hero walks onto the gate.</summary>
+    [Fact]
+    public void SendToActionPoint_OnTheHerosOwnHeroGate_WalksOntoIt()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        for (int x = 11; x <= 13; x++)
+        {
+            ref TileState tile = ref world.Tile(x, 5);
+            tile.TerrainId = Dk2TerrainFixture.HeroGate3By1Terrain;
+            tile.OwnerPlayerId = PlayerIds.Good;
+        }
+        ThingProjection.Place(world, db,
+        [
+            new ActionPointThing(new byte[56]) { StartX = 11, StartY = 5, EndX = 13, EndY = 5, ActionPointId = 2, WaitDelay = 10, Name = "" },
+        ]);
+        CreatureState hero = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(4, 5));
+        hero.GoodJob = JobType.SendToActionPoint;
+        hero.GoodJobActionPointId = 2;
+        GameSimulation sim = Simulation(db, world);
+
+        for (int t = 0; t < 200 && hero.Dk2StateId != HeroJobRules.RoamingState; t++) sim.Tick();
+
+        Assert.Equal(HeroJobRules.RoamingState, hero.Dk2StateId);
+        Assert.InRange(hero.Tile.X, 11, 12);
+        Assert.Equal(5, hero.Tile.Y);
+    }
+
+    /// <summary>The bars state 173's tile test keeps (0x00472080, 0x004720A0): a finished wall of the hero's
+    /// own player (0x00453CC0: owned, solid, goldless, at full health) is refused; one short of full health,
+    /// or another player's, is not; the hero's own room is not barred at all.</summary>
+    [Theory]
+    [InlineData(Dk2TerrainFixture.Rock, PlayerIds.Good, 0, false)]
+    [InlineData(Dk2TerrainFixture.Rock, PlayerIds.Good, 1, true)]
+    [InlineData(Dk2TerrainFixture.Rock, Keeper, 0, true)]
+    [InlineData(Dk2TerrainFixture.HeroGate3By1Terrain, PlayerIds.Good, 0, true)]
+    public void StateOneSeventyThreesTileTest_BarsOnlyAFinishedOrImpenetrableWallOfItsOwnPlayer(
+        byte terrain, byte owner, int damage, bool may)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        ref TileState tile = ref world.Tile(8, 5);
+        tile.TerrainId = terrain;
+        tile.OwnerPlayerId = owner;
+        tile.Health = db.TerrainById(terrain).MaxHealth - damage;
+        ThingProjection.Place(world, db,
+        [
+            new ActionPointThing(new byte[56]) { StartX = 8, StartY = 5, EndX = 8, EndY = 5, ActionPointId = 2, Name = "" },
+        ]);
+        CreatureState hero = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(4, 5));
+        ActionPointState point = world.ActionPoints.First(p => p.Id == 2);
+
+        Assert.Equal(may, HeroJobRules.MayStand(world, db, db.CreatureById(Knight), hero, point, 8, 5));
+    }
+
     [Fact]
     public void KillCreatures_NamingNoPlayer_TakesTheStrongest_AndWalksToItsFirstCreature()
     {
