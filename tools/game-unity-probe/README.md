@@ -61,6 +61,7 @@ rebuilds and terrain chunks redraw. Each run directory holds:
 | `game-settings.ini`, `campaign-profile.dk2p` | The settings (`-ProbeSettings` lines, else defaults) and profile this run used |
 | `screenshot.png` | Only with `-Screenshot`: the window at that play second, read back after the frame (the project has no ScreenCapture module) |
 | `benchmark.txt` | Only with `-Benchmark`: per variant, the median of the segment medians of GPU ms, the lowest and highest segment median and the frame count, and whether the camera stayed still |
+| `benchmark-<n>.png` | Only with `-Benchmark`: the window in each variant's first round, n in the order the variants are listed, taken inside the dropped warm-up so the read-back is not timed |
 | `capture.raw` | Only with `-CaptureFrom 20 -CaptureTo 50`: a Unity Profiler capture of that window. Open **Window → Analysis → Profiler**, then **Load**, and click a spike. A full capture adds overhead to the frames it records, so read its shape, not its numbers |
 | `player.log`, `build.log` | Unity's logs |
 
@@ -71,7 +72,7 @@ such run, and `gpu_ms` is empty. So this is the CPU work of simulation, presenta
 and frame times are lower bounds for a windowed game. `gpu_ms` is FrameTimingManager's latest GPU frame
 time, which lags a few frames. Compare GPU cost between settings with `-Benchmark`, not between
 gameplay runs: those varied more between identical runs than between settings. A benchmark pauses the
-simulation (speed 0), skips the fly-by, keeps the camera still, cycles the variants in
+simulation (speed 0; presentation effects such as the Heart still animate, so expect some noise between variants), skips the fly-by, keeps the camera still, cycles the variants in
 `-BenchmarkSegment` second segments `-BenchmarkRounds` times, and drops the first second of each. Rows are
 formatted only after the run, so the GC columns are the game's own allocation. The tags go in at wall-clock times, so which tick they
 land on, and the digging after, differs between runs: compare the shape over several

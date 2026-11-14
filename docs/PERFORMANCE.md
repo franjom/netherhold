@@ -151,6 +151,14 @@ Measurements so far, all on the owner's laptop and headless, are in the
 GPU cost of MSAA and brightness (`game-unity-probe -Benchmark`, Level1, 1920x1080, Vulkan, an AMD
 Radeon integrated GPU, 12 rounds of 4 s, camera still, simulation paused; branch HEAD `c4eda66e` plus the display-settings
 change): median GPU ms per frame, 1x MSAA 2.094 [1.932..3.803], 2x 2.599 [2.474..3.685], 4x 2.694 [2.567..3.581],
-8x 3.129 [3.009..3.623], Gamma 45 at 1x 2.301 [2.215..3.961]. The frame there is CPU-bound (frame p50
-4.60 ms), so 4x MSAA does not change its frame rate on that machine. Probe runs before 2026-11-14 are
-not comparable (docs/TRAPS.md).
+8x 3.129 [3.009..3.623], Gamma 45 at 1x with the earlier multiply 2.301 [2.215..3.961]. The frame there
+is CPU-bound (frame p50 4.60 ms), so 4x MSAA does not change its frame rate on that machine. Probe runs
+before 2026-11-14 are not comparable (docs/TRAPS.md).
+
+Brightness as a gamma curve (`pow(c, 30/Gamma)` in one full-screen pass, replacing the multiply), same
+probe and scene, MSAA 4, 12 rounds of 4 s, a later session in which the machine ran slower overall (frame
+p50 7.0 ms against 4.6 ms above), so compare only within this table. Median GPU ms per frame: Gamma 30
+(no pass) 5.068 [4.275..5.292]; Gamma 45 multiply 5.147 [4.938..7.252], curve 5.263 [4.238..5.345]; Gamma 20
+multiply 4.933 [4.376..5.400], curve 5.238 [4.779..5.382]. The curve costs at most about 0.3 ms over the
+multiply. The benchmark pauses the simulation, but presentation effects such as the Heart still animate,
+which adds noise between variants. D3D12 and OpenGLCore were not measured.
