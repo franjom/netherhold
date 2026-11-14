@@ -16,7 +16,7 @@ public class GameSettingsFileTests
             SpeechSwitch = false, MusicSwitch = false, SfxSwitch = false, QSound = true,
             EnvironmentalEffects = false, WaterTranslucency = false, EnvironmentMapping = false,
             Headphones = true, InvertMouse = true, GameSpeed = 11, ScrollSpeed = 17,
-            MouseSensitivity = 19, UiScale = 150,
+            MouseSensitivity = 19, UiScale = 150, Msaa = 4,
             Bindings = new[] { new GameKeyBinding(GameAction.Heart, 0x20, KeyModifiers.Control) } };
         GameSettings restored = GameSettingsFile.Read(GameSettingsFile.Write(original) + "FutureOption=91\n");
         Assert.Equal(GameSettingsFile.Write(original), GameSettingsFile.Write(restored));
@@ -33,6 +33,16 @@ public class GameSettingsFileTests
         Assert.Equal(5, s.ScrollSpeed); Assert.Equal(200, s.UiScale);
         Assert.Equal(new GameSettings().SpeechVolume, s.SpeechVolume);
     }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(1, 1)]
+    [InlineData(3, 2)]
+    [InlineData(4, 4)]
+    [InlineData(7, 4)]
+    [InlineData(64, 8)]
+    public void MsaaRoundsDownToASupportedSampleCount(int stored, int expected) =>
+        Assert.Equal(expected, GameSettingsFile.Read($"Msaa={stored}\n").Msaa);
 
     [Fact]
     public void MissingFileReturnsDefaultsWithoutCreatingAFile()

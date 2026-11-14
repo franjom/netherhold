@@ -175,7 +175,7 @@ public static class ManufactureRules
 
     /// <summary><c>0x004C3B50</c>: the keeper's Workshop nearest the manufacturer with somebody at
     /// work in it. Ours, stated: distance to the first tile rather than to the room's position
-    /// word, and the unread fallback <c>0x004C6CF0</c> is a failure that keeps the points.</summary>
+    /// word, and the fallback through <c>0x004C6CF0</c> (at <c>0x004C3CA4</c>, unread) is a failure that keeps the points.</summary>
     private static RoomInstance? Workshop(WorldState world, GameDatabase database, CreatureState creature)
     {
         RoomInstance? best = null;

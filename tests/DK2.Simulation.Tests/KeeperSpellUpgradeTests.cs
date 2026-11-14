@@ -101,6 +101,7 @@ public sealed class KeeperSpellUpgradeTests
         StatePlacement.As(it, CreatureActivity.AtWork);
         StatePlacement.Place(it, JobRules.StateFor(it.CurrentJob)!.Value);
         it.JobTileIndex = (at.Y * world.Width) + at.X;
+        it.HeldPlace = new RoomPlace(it.JobTileIndex, RoomCapacityRules.Units);   // the enter hook's claim
         return world;
     }
 

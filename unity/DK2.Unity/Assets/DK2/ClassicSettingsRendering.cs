@@ -3,53 +3,87 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.Reflection;
 using DK2.Data.Settings;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace DK2.Unity
 {
-    /// <summary>URP owns display correction. Exposure is our brightness proxy, not native gamma-ramp emulation.</summary>
+    /// <summary>
+    /// The display settings: brightness and multisampling. Brightness multiplies the main camera's
+    /// finished image by gamma/30 (0.5..2), our brightness proxy, not native gamma-ramp emulation.
+    /// It is one full-screen triangle drawn over that image with a multiplying blend, and nothing
+    /// at the default gamma. The project renders in Gamma colour space, so the multiply is on
+    /// display-encoded values and the top of the slider clips bright pixels to white. The UI
+    /// Toolkit HUD draws after the camera and is not scaled. (A URP Volume's postExposure did
+    /// nothing here: the renderer has no post-processing data, so URP runs no post-processing.)
+    /// </summary>
     public sealed class ClassicSettingsRendering : IDisposable
     {
-        private readonly Transform _parent;
-        private GameObject _owner;
-        private ScriptableObject _profile;
-        private object _exposure;
-        private Component _cameraData;
-        private bool _originalPost;
-        public ClassicSettingsRendering(Transform parent) { _parent = parent; }
-        public void Apply(int gamma)
+        private const int DefaultGamma = 30;
+        private static readonly int ScaleId = Shader.PropertyToID("_Scale"), DstBlendId = Shader.PropertyToID("_DstBlend");
+
+        private readonly Material _exposure;
+        private readonly CommandBuffer _commands = new CommandBuffer { name = "DK2 brightness" };
+        // The URP asset is shared with the editor: its sample count is restored on Dispose so a
+        // Play session never leaves a changed asset to be saved.
+        private readonly RenderPipelineAsset _pipeline = GraphicsSettings.currentRenderPipeline;
+        private readonly PropertyInfo _msaa;
+        private readonly int _originalMsaa = 1;
+        private bool _drawing;
+
+        public ClassicSettingsRendering()
         {
-            if (_exposure == null)
-            {
-                // Resolve the installed SRP assemblies at runtime so the compile harness needs no copied package DLLs.
-                Type volumeType = Type.GetType("UnityEngine.Rendering.Volume, Unity.RenderPipelines.Core.Runtime");
-                Type profileType = Type.GetType("UnityEngine.Rendering.VolumeProfile, Unity.RenderPipelines.Core.Runtime");
-                Type colourType = Type.GetType("UnityEngine.Rendering.Universal.ColorAdjustments, Unity.RenderPipelines.Universal.Runtime");
-                if (volumeType == null || profileType == null || colourType == null) return;
-                _owner = new GameObject("DK2 display settings"); _owner.transform.SetParent(_parent, false);
-                Component volume = _owner.AddComponent(volumeType);
-                _profile = ScriptableObject.CreateInstance(profileType);
-                volumeType.GetProperty("isGlobal").SetValue(volume, true);
-                volumeType.GetField("sharedProfile").SetValue(volume, _profile);
-                object colour = profileType.GetMethod("Add", new[] { typeof(Type), typeof(bool) }).Invoke(_profile, new object[] { colourType, true });
-                _exposure = colourType.GetField("postExposure").GetValue(colour);
-                _exposure.GetType().GetProperty("overrideState").SetValue(_exposure, true);
-                Type cameraType = Type.GetType("UnityEngine.Rendering.Universal.UniversalAdditionalCameraData, Unity.RenderPipelines.Universal.Runtime");
-                if (cameraType != null && Camera.main != null)
-                {
-                    _cameraData = Camera.main.GetComponent(cameraType) ?? Camera.main.gameObject.AddComponent(cameraType);
-                    _originalPost = (bool)cameraType.GetProperty("renderPostProcessing").GetValue(_cameraData);
-                    cameraType.GetProperty("renderPostProcessing").SetValue(_cameraData, true);
-                }
-            }
-            _exposure.GetType().GetProperty("value").SetValue(_exposure, Mathf.Log(gamma / 30f, 2));
+            Shader shader = Resources.Load<Shader>("Shaders/ClassicExposure");
+            if (shader != null) _exposure = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+            else Debug.LogWarning("DK2 display settings: Shaders/ClassicExposure is missing; brightness will not change");
+            // UniversalRenderPipelineAsset.msaaSampleCount, by reflection: the adapter compiles without URP's assemblies.
+            _msaa = _pipeline != null ? _pipeline.GetType().GetProperty("msaaSampleCount") : null;
+            if (_msaa != null) _originalMsaa = (int)_msaa.GetValue(_pipeline);
+            else Debug.LogWarning("DK2 display settings: the render pipeline has no msaaSampleCount; MSAA will not change");
         }
+
+        public void Apply(GameSettings settings)
+        {
+            float scale = settings.Gamma / (float)DefaultGamma;
+            bool draw = _exposure != null && settings.Gamma != DefaultGamma;
+            if (draw)
+            {
+                // Darken: dst * scale. Brighten: dst * (scale - 1) + dst.
+                bool brighten = scale > 1;
+                _exposure.SetFloat(ScaleId, brighten ? scale - 1 : scale);
+                _exposure.SetFloat(DstBlendId, (float)(brighten ? BlendMode.One : BlendMode.Zero));
+            }
+            if (draw != _drawing)
+            {
+                if (draw) RenderPipelineManager.endCameraRendering += AfterCamera;
+                else RenderPipelineManager.endCameraRendering -= AfterCamera;
+                _drawing = draw;
+            }
+
+            if (_msaa != null && (int)_msaa.GetValue(_pipeline) != settings.Msaa) _msaa.SetValue(_pipeline, settings.Msaa);
+        }
+
+        private void AfterCamera(ScriptableRenderContext context, Camera camera)
+        {
+            if (camera != Camera.main) return;
+            _commands.Clear();
+            _commands.SetRenderTarget(camera.targetTexture != null
+                ? new RenderTargetIdentifier(camera.targetTexture) : new RenderTargetIdentifier(BuiltinRenderTextureType.CameraTarget));
+            _commands.SetViewport(camera.pixelRect);
+            _commands.DrawProcedural(Matrix4x4.identity, _exposure, 0, MeshTopology.Triangles, 3);
+            context.ExecuteCommandBuffer(_commands);
+            context.Submit();
+        }
+
         public void Dispose()
         {
-            if (_cameraData != null) _cameraData.GetType().GetProperty("renderPostProcessing").SetValue(_cameraData, _originalPost);
-            if (_owner != null) UnityEngine.Object.Destroy(_owner);
-            if (_profile != null) UnityEngine.Object.Destroy(_profile);
+            if (_drawing) RenderPipelineManager.endCameraRendering -= AfterCamera;
+            _drawing = false;
+            if (_msaa != null) _msaa.SetValue(_pipeline, _originalMsaa);
+            _commands.Release();
+            if (_exposure != null) UnityEngine.Object.Destroy(_exposure);
         }
     }
 }

@@ -291,7 +291,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   definition's crate object: trap file `0x20E`, door `0x246`) on the room's first chain
   tile, owned by the keeper when the room has space, and adds to `ItemsManufactured`
   (`player+0x162`). The points go to 0 and the order is popped. With no Workshop, the
-  unread `0x004C6CF0`.
+  room chooser `0x004C6CF0` ([read for the Library](research-tree.md#4-delivering-it-a-book-on-a-library-shelf);
+  this caller, `0x004C3CA4`, is unread).
 - **The pushes.** `0x005066E0(kind, type)`: refused past 128; counts the keeper's
   blueprints of the type (doors with `+0x109`, traps with `+0x10C` bit 5) against its
   crates of the type, and queues one order only while blueprints outnumber crates. Its

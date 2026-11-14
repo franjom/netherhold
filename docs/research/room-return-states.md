@@ -67,6 +67,16 @@ doors, `0x004E0A50` traps, `0x004E0F00` spells).
 (`0x004969D0`, simulation stream, line `0x1A5` at `0x00476248`); started, `SetState(1)`,
 `SetState(61)` (`0x00476267`, `0x00476272`) and 0, so the dispatcher sets 1 in the same call.
 
+**The tick it is kicked.** The dispatcher `0x00476FC0` adds 1 to the state's `Age` (`+0x1C`,
+`0x00477022`-`0x00477029`) after the Suspend (`+0x44`) early return and before the handler call;
+`SetState` zeroes `Age` at `0x00476F98` (and Suspend at `0x00476F9B`), and its failure return
+(`0x00476FAD`) skips the zeroing. A place-holder the research sweep has not reached yet that tick
+therefore runs 60 at `Age` 1 in its own update, in the tick the item is shelved. HYPOTHESIS: the
+kicker's own dispatch re-reads its state after the hook (`0x0047727F`), so it runs 60 at `Age` 0 in
+the same call. With an action running that returns 1 and draws nothing, which matches Level 5's
+tick 2145; otherwise it would draw. A capture of a researcher kicked in 53 or 54 with no action
+running would settle it.
+
 **61** (`0x00476290`): while an action runs 1; with a research target (player `+0x213`)
 `SetState(53)` and 1; otherwise 0. Its one entry is 60's, which leaves it in the same call (as 69,
 `refused-states.md` §2): its handler never runs, and the cheering researcher is idle, playing action
@@ -76,7 +86,9 @@ Owner, 2026-10-07: in play the researchers cheer, wander off and pick a new job,
 it is available, which is this reading.
 
 **Ours.** `ResearchStep.Cheer` in `ResearchTreeRules.Deliver`, before the item's grant, and 60's arm in
-`ResearchStep`. The leave from the Research category releases the place. The action's length is the
+`ResearchStep`. A kicked place-holder not yet updated this tick (not in
+`SimulationContext.CreaturesUpdatedThisTick`) has `StateEnteredTick` backdated by 1 (ADR-0803); the
+kicker's Age-0 run is not built. The leave from the Research category releases the place. The action's length is the
 counted clip (`AnimationTimingRules.CountedHoldTicks`), HYPOTHESIS. Not read: whether state 1's handler
 cuts action 35 short.
 

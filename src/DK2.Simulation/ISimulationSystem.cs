@@ -72,6 +72,11 @@ public sealed class SimulationContext
     /// Never an input to the following turn.</summary>
     internal int UpdateStartStateId { get; set; } = CreatureStateMachine.NoState;
 
+    /// <summary>The creatures whose update has begun this tick (<see cref="Systems.CreatureUpdateSystem"/>),
+    /// so a state set on one not in it is set before its own dispatch counts the Age up. Cleared
+    /// before every turn; never an input to the following one.</summary>
+    internal HashSet<CreatureState> CreaturesUpdatedThisTick { get; } = [];
+
     /// <summary>The mesh, the router and the steering probes over <see cref="World"/>. Systems
     /// request routes through it; the movement system steps bodies against it.</summary>
     public Navigation.WorldSteering Navigation { get; }

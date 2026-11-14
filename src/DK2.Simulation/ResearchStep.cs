@@ -91,7 +91,13 @@ public static class ResearchStep
             CreatureState c = creatures[i];
             if (!c.HeldPlace.In(library) || c.Dk2StateId == CelebratingState) continue;
             c.StopMoving();
-            StateShadow.TryMove(context, system, c, CelebratingState);
+            // DK2's dispatcher counts a state's Age (+0x1C) up before each handler call (0x00477029) and
+            // SetState zeroes it (0x00476F98), so a place-holder the sweep has yet to reach this tick
+            // runs 60 at Age 1 in its own update now. HYPOTHESIS: the kicker's dispatch re-reads its
+            // state after the hook (0x0047727F) and so runs 60 at Age 0, which ours skips; with an
+            // action running that call returns 1 and draws nothing, as Level 5's 2145 shows.
+            if (StateShadow.TryMove(context, system, c, CelebratingState) && !context.CreaturesUpdatedThisTick.Contains(c))
+                c.StateEnteredTick = context.Tick.Value - 1;
         }
     }
 

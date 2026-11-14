@@ -80,7 +80,7 @@ internal sealed class StateModel
         ["IdledByLairHandlerThisTick"] = Caches,
         ["IdledByEatHandlerThisTick"] = Caches,
         ["LandingDueThisTick"] = Caches,
-        ["ReinforcementActionsPolledThisTick"] = Caches, ["WorkerPreludeProcessedThisTick"] = Caches,
+        ["ReinforcementActionsPolledThisTick"] = Caches, ["WorkerPreludeProcessedThisTick"] = Caches, ["CreaturesUpdatedThisTick"] = Caches,
         ["ClaimActionsPolledThisTick"] = Caches, ["ClaimActionsAdvancedThisTick"] = Caches,
         ["IdleActionsPolledThisTick"] = Caches, ["IdleActionsAdvancedThisTick"] = Caches,
         ["PossessedMeleePolledThisTick"] = Caches, ["PossessedMeleeAdvancedThisTick"] = Caches,
