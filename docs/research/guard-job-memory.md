@@ -27,7 +27,7 @@ and insert path does not perform that command clear. In the clone, interactive
 permission rejection precedes command execution; stored packet commands clear
 before hand-state refusal, while a released corpse record fails live lookup.
 
-ADR-0804/hash and save 520 implement the bounded keeper-job starter behavior.
+ADR-0805/hash and save 520 implement the bounded keeper-job starter behavior.
 The write/retry integration is in `CreatureJobSystem`; other Guard starter paths
 are unchanged. The fields are
 `CreatureState.ReturnToJob` and `ReturnRoom`; ordinary job clearing preserves
