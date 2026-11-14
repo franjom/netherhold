@@ -16,8 +16,8 @@ public enum HumanCommandClass
     /// <summary>A human issues it only outside play: an intro camera path or the result screen.</summary>
     OutsidePlay,
 
-    /// <summary>DK2's human can do it, but no input path of ours issues it yet (possession input,
-    /// alliances, the casino lever, message acknowledgement, rescue priority).</summary>
+    /// <summary>DK2's human can do it, but no input path of ours issues it yet (the possessed
+    /// creature's two abilities, alliances, the casino lever, message acknowledgement, rescue priority).</summary>
     NoHumanPathYet,
 
     /// <summary>Only the computer keeper issues it; no human action corresponds.</summary>
@@ -34,12 +34,12 @@ public enum HumanCommandClass
 public static class HumanCommandPolicy
 {
     /// <summary>Bumped whenever a classification changes; the fuzzer's name carries it.</summary>
-    public const int Version = 2;
+    public const int Version = 3;
 
     /// <summary>Where human input becomes commands, relative to the repository root; every
     /// <c>.cs</c> file below them is scanned, so a new input file cannot escape the check. Today the
-    /// builders are PlayerInput, PlacementCursor, KeeperResourceInteraction and DungeonRunner(.Hud,
-    /// .Finale).</summary>
+    /// builders are PlayerInput, PlacementCursor, KeeperResourceInteraction, PossessionControls and DungeonRunner
+    /// (.Hud, .Finale, .Possession).</summary>
     public static readonly IReadOnlyList<string> SourceRoots = ["src/DK2.Presentation", "unity/DK2.Unity/Assets/DK2"];
 
     public static readonly IReadOnlyDictionary<Type, HumanCommandClass> Classes = new Dictionary<Type, HumanCommandClass>
@@ -74,14 +74,15 @@ public static class HumanCommandPolicy
         [typeof(SetAllianceCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(AcknowledgePlayerMessageCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(SetRescuePriorityCommand)] = HumanCommandClass.NoHumanPathYet,
-        [typeof(LeavePossessionCommand)] = HumanCommandClass.NoHumanPathYet,
-        [typeof(ActPossessedCreatureCommand)] = HumanCommandClass.NoHumanPathYet,
-        [typeof(DismissFollowersCommand)] = HumanCommandClass.NoHumanPathYet,
+        // The first-person view, DungeonRunner.Possession over PossessionControls (version 3); the two abilities are not built.
+        [typeof(LeavePossessionCommand)] = HumanCommandClass.Play,
+        [typeof(ActPossessedCreatureCommand)] = HumanCommandClass.Play,
+        [typeof(DismissFollowersCommand)] = HumanCommandClass.Play,
+        [typeof(SetSniperModeCommand)] = HumanCommandClass.Play,
+        [typeof(SetCreepingCommand)] = HumanCommandClass.Play,
+        [typeof(MovePossessedCreatureCommand)] = HumanCommandClass.Play,
         [typeof(ToggleSneakCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(HypnotiseCommand)] = HumanCommandClass.NoHumanPathYet,
-        [typeof(SetSniperModeCommand)] = HumanCommandClass.NoHumanPathYet,
-        [typeof(SetCreepingCommand)] = HumanCommandClass.NoHumanPathYet,
-        [typeof(MovePossessedCreatureCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(GrantCreatureLevelCommand)] = HumanCommandClass.ComputerKeeperOnly,
         [typeof(MintWageCommand)] = HumanCommandClass.ComputerKeeperOnly,
         [typeof(TakeCreatureCommand)] = HumanCommandClass.ComputerKeeperOnly,

@@ -541,8 +541,9 @@ namespace DK2.Unity
             _presenter.Present(world);
             _startup.Step("present");
             _startup.Breakdown("present", artBefore, _classic?.Breakdown.Snapshot());
-            CameraThing profile = GameDatabaseLoader.LoadCameraPresets(install, campaignLevel ? levelName : null)
-                .FirstOrDefault(c => c.CameraId == (ushort)cameraPreset);
+            IReadOnlyList<CameraThing> presets = GameDatabaseLoader.LoadCameraPresets(install, campaignLevel ? levelName : null);
+            CameraThing profile = presets.FirstOrDefault(c => c.CameraId == (ushort)cameraPreset);
+            _possessionPreset = presets.FirstOrDefault(c => c.CameraId == PossessionCamera.PresetId);
             if (classicMeshes && profile != null)
             {
                 _classicCamera = new ClassicCamera(profile with
@@ -778,6 +779,7 @@ namespace DK2.Unity
             _runtimeReleased = true;
             WaitForTick();
             _presented = _spare = null;
+            EndPossessionView();
             _deferredEvents = null;
             _ticksPending = 0;
             CloseInputJournals("destroyed");
@@ -951,6 +953,7 @@ namespace DK2.Unity
                 _minimap?.SetVisibility(hud);
                 _hoverHud?.SetVisibility(hud);
                 _resourceHud?.SetVisibility(hud);
+                UpdatePossession(hud.AllowOrdinaryInput && !HudModal && !_scriptedView.PathPlaying);
                 if (_scriptedView.PathPlaying)
                 {
                     _classicCameraControls?.AdvancePointer(default, false, false);
@@ -961,7 +964,7 @@ namespace DK2.Unity
                 {
                     Glide();
                     FollowScriptedCreature();
-                    if (hud.AllowOrdinaryInput && !HudModal) ControlCamera();
+                    if (hud.AllowOrdinaryInput && !HudModal && !Possessing) ControlCamera();
                     else
                     {
                         _classicCameraControls?.AdvancePointer(default, false, false);
@@ -987,6 +990,7 @@ namespace DK2.Unity
                 // fast-forward the game by a thousand ticks in one frame.
                 ticks = (int)Math.Min(_tickDebt, Math.Max(1, maxTicksPerFrame));
                 _tickDebt -= ticks;
+                if (ticks > 0) QueuePossessionPose();
                 if (ticks > 0 && _pendingCommands.Count > 0)
                 {
                     firstInput = new InputFrame(_pendingCommands.ToArray());
@@ -1242,6 +1246,13 @@ namespace DK2.Unity
         {
             if (!CurrentHud.AllowOrdinaryInput)
             {
+                _input.CancelPointerGesture();
+                return;
+            }
+            // Possessing, the pointer is the view's: only a modal panel takes its clicks.
+            if (Possessing)
+            {
+                if (HudModal) QueueHudInput();
                 _input.CancelPointerGesture();
                 return;
             }
@@ -1588,6 +1599,7 @@ namespace DK2.Unity
 
         private void ApplyClassicCamera()
         {
+            if (Possessing) { ApplyPossessionCamera(); return; }
             Camera camera = Camera.main;
             if (camera == null || camera.pixelWidth <= 0 || camera.pixelHeight <= 0) return;
             int screenWidth = camera.targetTexture != null ? camera.targetTexture.width : Screen.width;
@@ -1773,7 +1785,7 @@ namespace DK2.Unity
             _hoverSnapshot = HoverTextSnapshot.Empty;
             Vector3 mouse = Input.mousePosition;
             bool inside = mouse.x >= 0 && mouse.y >= 0 && mouse.x < Screen.width && mouse.y < Screen.height;
-            bool allowed = visibility.AllowOrdinaryInput && Application.isFocused && inside;
+            bool allowed = visibility.AllowOrdinaryInput && Application.isFocused && inside && !_possessionPointerLocked;
             HandCursorKind cursor = HandCursorKind.Point;
             PlacementFeedback placement = PlacementFeedback.None;
             _debugHoverTile = null;

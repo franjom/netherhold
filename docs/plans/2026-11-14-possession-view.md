@@ -1,8 +1,8 @@
 # Possession view: first-person camera and input
 
-**Status:** parked by the owner, 2026-11-14, until the prerequisites below are researched
-and built. Nothing here is built; the research note and its function records are on the
-branch, not yet through the reviewer pass.
+**Status:** built to the point of the first editor run, 2026-11-14. Tasks 1 to 4 and the
+Unity wiring of task 6 are on the branch, compiled and unit-tested, not seen running.
+Task 5 (the timed move in and out) is not built: the view cuts.
 **Goal:** a keeper who casts Possession sees through the creature and controls it as in
 DK2: walk, strafe, run, creep, look, attack, cast, and leave.
 **Research:** [possession-client.md](../research/possession-client.md) (read today), with
@@ -100,3 +100,13 @@ creep) and its corrections are applied. The documenter pass has not been run.
    checkout holds your edited `Dungeon.unity`; confirm the run, or take that step.
 3. **Order.** Tasks 3 and 4 give a playable result without task 2 (no creep, walk and
    run only). Say if creep can follow, or must land first.
+
+## Left after the first build
+
+Not built, each its own later task: hiding the possessed creature's own model (the camera
+sits inside it); suppressing its animation footsteps beside the view's; the near clip,
+lighting distance and ambience listener, which still follow the ordinary camera; the two
+ability keys; the possession HUD, so HUD shortcuts still act; the third-person view.
+
+Remake choices to check in play: one host pixel of mouse travel is one unit of DK2's
+delta; the roll's sign; the vertical field of view held at 73.7 degrees on wide screens.
