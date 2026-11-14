@@ -146,6 +146,15 @@ These are entry points, not a new priority order.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.
+- Rendering cost candidates, none measured yet. Measure each with `game-unity-probe -Benchmark`
+  ([README](../tools/game-unity-probe/README.md)) before changing anything:
+  - Overdraw of large additive and transparent effects in a busy battle (`ClassicEffect.shader`,
+    `ClassicLightning`, `ClassicTorchFlames`, `ClassicHoverOutline`): trim quads to the visible texels
+    where the frame is fill-bound. Needs a busy scene, not Level1's opening.
+  - Off-screen and menu work only when something changed: `MinimapGpuMap` command buffers,
+    `ClassicFullMap`'s blit and preview target, `ClassicFrontEndMenu`'s font-atlas blit.
+  - `ClassicCreatureShadows`: skip the coverage redraw when no caster moved. It is already cheap
+    (R8 targets, frustum-culled casters), so this is the lowest priority.
 
 ## Workspace and evidence
 
