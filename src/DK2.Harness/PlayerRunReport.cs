@@ -124,11 +124,25 @@ public static class PlayerRunReport
             decisions = player.Decisions.Count,
             receipts = player.Decisions.SelectMany(d => d.Receipts).GroupBy(r => $"{r.Status}/{r.Reason}")
                 .OrderBy(g => g.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count()),
+            development = Development(player.LastObservation),
             coverage_limits = PlayerObservationBuilder.CoverageLimits,
             untested = Untested,
             manifest = PlayerRunManifest.FileName,
         }, new JsonSerializerOptions { WriteIndented = true });
     }
+
+    /// <summary>What the player had built and kept by its last observation (campaign bot stage 3 plan,
+    /// Task 2): owned room tiles by type, own creatures by type id, gold. Null when it never decided.</summary>
+    private static object? Development(PlayerObservation? last) => last is null ? null : new
+    {
+        tick = last.Stamp.Tick.Value,
+        gold = last.Gold.Value,
+        room_tiles = last.Rooms.GroupBy(r => r.Type.ToString()).OrderBy(g => g.Key, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Sum(r => r.TileCount)),
+        creatures = last.Creatures.Count,
+        creature_types = last.Creatures.GroupBy(c => c.Type.Value).OrderBy(g => g.Key)
+            .ToDictionary(g => g.Key.ToString(CultureInfo.InvariantCulture), g => g.Count()),
+    };
 
     /// <summary>The decision and action tables: what the controller saw and sent.</summary>
     public static void WriteTables(string directory, ScenarioResult result)

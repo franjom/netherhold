@@ -37,6 +37,20 @@ public enum FightMode
     Off,
 }
 
+/// <summary>When the frontier may open onto others' ground (campaign bot stage 3 plan, Task 2).</summary>
+public enum BreachMode
+{
+    /// <summary>Never: a wall between the player and another side's open ground, or near where an enemy
+    /// was seen, stays standing.</summary>
+    Never,
+
+    /// <summary>Only once no other tile is left to mark: develop first, then dig on toward the rest of the map.</summary>
+    WhenDeveloped,
+
+    /// <summary>Any frontier tile, nearest first, as before Task 2.</summary>
+    Always,
+}
+
 /// <summary>
 /// The values the campaign player's routines read (campaign bot stage 3 plan, Task 1). Test policy for
 /// this controller, not a claim about DK2's own keepers. The defaults are the controller's behaviour
@@ -73,6 +87,45 @@ public sealed record PlayerStrategy
     /// <summary>Ticks between ordinary decisions, 1 to <see cref="MaxAdvanceTicks"/>.</summary>
     public int AdvanceTicks { get; init; } = 4;
 
+    /// <summary>Rooms the panel offers that are not in <see cref="Rooms"/>, built once each in this
+    /// order after every listed room stands and none has outgrown itself (stage 3 plan, Task 2).</summary>
+    public IReadOnlyList<RoomTypeId> ExtraRooms { get; init; } =
+    [
+        RoomTypeId.TrainingRoom, RoomTypeId.Library, RoomTypeId.Workshop, RoomTypeId.Prison, RoomTypeId.Temple,
+        RoomTypeId.Graveyard, RoomTypeId.TortureChamber, RoomTypeId.Casino, RoomTypeId.CombatPit,
+    ];
+
+    /// <summary>A listed Lair grows while it has fewer tiles than this many per own non-worker creature.</summary>
+    public int LairTilesPerCreature { get; init; } = 1;
+
+    /// <summary>A listed Hatchery grows while it has fewer tiles than one per this many own non-workers.</summary>
+    public int CreaturesPerHatcheryTile { get; init; } = 2;
+
+    /// <summary>A listed Treasury grows once the player's gold reaches this share (percent) of what its
+    /// heart and treasuries hold; only when the options know the per-tile capacities.</summary>
+    public int TreasuryFullPercent { get; init; } = 80;
+
+    /// <summary>Rooms the hand keeps working, in order: an idle own non-worker is carried to one
+    /// that has fewer creatures on it than its tiles allow (<see cref="TilesPerWorkingCreature"/>).
+    /// None by default: carrying fighters to the Training Room lost Level 3 accept seeds 12 and 13
+    /// that the player wins without it (stage 3 plan, Task 2), so a level's strategy names it.</summary>
+    public IReadOnlyList<RoomTypeId> UseRooms { get; init; } = [];
+
+    /// <summary>A used room wants one creature on it per this many of its tiles.</summary>
+    public int TilesPerWorkingCreature { get; init; } = 3;
+
+    /// <summary>At most one creature is carried to a used room per this many ticks.</summary>
+    public int UseRoomEveryTicks { get; init; } = 200;
+
+    /// <summary>No creature is carried to a used room while gold is below this.</summary>
+    public int UseRoomMinGold { get; init; } = 1000;
+
+    /// <summary>When digging may open onto ground another player owns or near where an enemy was seen.</summary>
+    public BreachMode Breach { get; init; } = BreachMode.WhenDeveloped;
+
+    /// <summary>While breaching is held back, no tile within this many tiles of an enemy sighting is marked.</summary>
+    public int EnemyClearanceTiles { get; init; } = 3;
+
     /// <summary>Every problem with this strategy, empty when it may be applied. With the map's size,
     /// a dig target outside it is one.</summary>
     public IReadOnlyList<string> Validate(int? mapWidth = null, int? mapHeight = null)
@@ -84,6 +137,17 @@ public sealed record PlayerStrategy
         if (MaxOutstandingTags <= 0) problems.Add($"MaxOutstandingTags {MaxOutstandingTags} is not positive");
         if (HomeGuardTiles < 0) problems.Add($"HomeGuardTiles {HomeGuardTiles} is negative");
         if (AdvanceTicks is < 1 or > MaxAdvanceTicks) problems.Add($"AdvanceTicks {AdvanceTicks} is outside 1 to {MaxAdvanceTicks}");
+        if (ExtraRooms is null) problems.Add("ExtraRooms is null");
+        else if (ExtraRooms.Distinct().Count() != ExtraRooms.Count) problems.Add("ExtraRooms names a room twice");
+        if (UseRooms is null) problems.Add("UseRooms is null");
+        else if (UseRooms.Distinct().Count() != UseRooms.Count) problems.Add("UseRooms names a room twice");
+        if (LairTilesPerCreature < 0) problems.Add($"LairTilesPerCreature {LairTilesPerCreature} is negative");
+        if (CreaturesPerHatcheryTile <= 0) problems.Add($"CreaturesPerHatcheryTile {CreaturesPerHatcheryTile} is not positive");
+        if (TreasuryFullPercent is < 1 or > 100) problems.Add($"TreasuryFullPercent {TreasuryFullPercent} is outside 1 to 100");
+        if (TilesPerWorkingCreature <= 0) problems.Add($"TilesPerWorkingCreature {TilesPerWorkingCreature} is not positive");
+        if (UseRoomEveryTicks < 0) problems.Add($"UseRoomEveryTicks {UseRoomEveryTicks} is negative");
+        if (UseRoomMinGold < 0) problems.Add($"UseRoomMinGold {UseRoomMinGold} is negative");
+        if (EnemyClearanceTiles < 0) problems.Add($"EnemyClearanceTiles {EnemyClearanceTiles} is negative");
         if (Dig == DigMode.Toward && DigTarget is null) problems.Add("Dig Toward needs a DigTarget");
         if (Dig != DigMode.Toward && DigTarget is not null) problems.Add($"DigTarget is set but Dig is {Dig}");
         if (DigTarget is TilePos target && mapWidth is int width && mapHeight is int height
