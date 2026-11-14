@@ -5,11 +5,11 @@ systems: [creatures, rooms, tooling-process]
 
 ## Verdict
 
-Q710 remains OPEN. The existing recordings expose unequal fighter inputs before
-the first post-restore decision, and different later birth populations. They do
-not isolate a causal AI-rule difference or explain the complete Guard-room gap.
+Q710 remains OPEN. A bed-ownership control prevents one restored fighter's home
+acquisition attempt. Unequal fighter inputs and later birth populations still
+prevent a causal AI-rule comparison or explanation of the complete Guard-room gap.
 This is a bounded continuation of the [post-Q714 comparison](resync-heart-terminal.md#level-4-recheck).
-No native game was launched and no simulation behavior was changed.
+No native game was launched and no production simulation code was changed.
 
 ## Evidence and controls (2026-11-14)
 
@@ -24,6 +24,8 @@ The following additive studies retain their scripts, results and SHA-256 manifes
 | `q710-room-observer--2026-11-14--002` | Actual restore pairings and an immediate post-restore sidecar for native seed 7 / generator 101; observer off and on each reproduce all five archived telemetry files byte-for-byte |
 | `q710-current-h518--2026-11-14--001` | Two diagnostic replays, generators 101 and 202, at examined source `7d6c318a`, hash 518 |
 | `q710-decision-summary--2026-11-14--002` | Selected raw native states/bed links, paired observer rows and old/current metrics, with hashes of the preceding manifests |
+| `q710-428-inventory--2026-11-14--003` | Native 428's inline state/needs fields and bed 2356's reciprocal link, type, tile and room membership |
+| `q710-428-bed-control--2026-11-14--002` | Hash-519 logical bed-ownership intervention, immediate field assertions and first acquisition trace; four completed replays, including byte-identical plain/off/on observation controls |
 
 Ordinary CSV rows at turn 5000 precede `WorldResync.Apply`. The sidecar records
 the actual `ResyncReport.Pairs` and the state immediately after that call; it
@@ -81,7 +83,7 @@ found no partner; it does not prove that native could never produce that actor.
 “Initial or retained” likewise does not prove exact matched identity. The
 population split reduces a confounder but does not produce matched histories.
 
-## Examined hash-518 snapshot and the next controlled comparison
+## Examined hash-518 snapshot
 
 The old comparison predates [Q807's portal rules](portal-creature-action.md#the-portals-type-pick-built-2026-09-28-adr-0272)
 and subsequent changes. Reusing seed-7 inputs at hash 518 gives:
@@ -97,10 +99,50 @@ two runs describe examined source `7d6c318a`, not the latest master. They are
 not a replacement cohort, an isolated Q807 intervention or evidence of a general
 improvement/regression.
 
-The next bounded task is to inventory the capture's coverage of actor 428's
-state/resume, route and needs inputs and the mapping of its bed 2356. Legacy
-captures may lack route allocation or history. A diagnostic restore on current
-code must assert the inputs it actually restores immediately at the boundary,
-then trace the first bed-ownership decision with remaining mismatches explicit.
-Keep later birth populations separate. Bed restoration alone cannot establish
-matched inputs; Q719 and unrecovered history still limit outcome claims.
+## Bed-ownership control at hash 519
+
+The inventory verifies the exact untorn native label 5000: creature 428's full
+`0x53F` bytes and bed 2356's full `0x189` bytes are retained. The bed is type 20,
+owner 3, tile (27,59), in Lair room 1111, and points back to 428. Inline state,
+resume, current/return job and needs fields are available; their meanings follow
+[the job object](creature-job-object.md). The legacy recorder excludes pointed-to
+path buffers and the navigation cache; see [capture coverage](../../reverse-engineering/README.md#legacy-polling-captures-dk2recordpy-dk2capturepy).
+This prevents reconstructing the full native route from these frames.
+
+The diagnostic uses copied source `d0d3d065`, hash 519, native seed 7 and default
+generator 101. The unmodified build, instrumented build with observation off,
+and instrumented build with observation on produce identical bytes in all five
+ordinary telemetry files. Both builds pass with zero warnings/errors.
+
+Immediately after restore, the actual pair for native 428 is modern 76, idle
+state 1/resume 0, without a bed. The intervention creates one logical type-20
+bed for that pair on the free owned Lair tile (27,59). All non-bed creature
+fields recorded by the sidecar are asserted unchanged at that boundary, as is
+the full RNG state.
+Object count increases 154→155 and the next-object id 1036→1037; the linked
+object is bed 1036. Creation forwards two ordinary sound requests, events 241
+and 242. These allocation/linking/callback effects are part of the intervention.
+It does not restore native raw object position, flags, process state, heading or
+identity; the logical bed tile is the asserted placement input.
+
+| Replay label | Ordinary restore: state / resume | Bed-ownership control: state / resume |
+|---|---|---|
+| 5001 | 89 / 0 | 89 / 0 |
+| 5002 | 7 / 80 (walk to make a home) | 97 / 0 (Guard entry) |
+| 5003 | 7 / 80 | 6 / 98 (Guard walk) |
+
+The ordinary replay reaches the acquisition helper's existing bed test at world
+tick 5001 and reads false. The control never calls the helper for this actor:
+`CreatureJobSystem` checks `HasBed` before calling it. The caller-side bypass is
+STRONGLY INFERRED from the unchanged source and observed ownership; no flipped
+inner helper guard was observed. The native [acquisition guard](functions/0046F390.md) reading
+is unchanged. Thus missing bed ownership explains this modern home-acquisition
+attempt, rather than demonstrating a different native job-selection rule.
+
+All four replays complete through label 6000. This is a single-actor decision
+control, not a Guard-room outcome comparison. Native 428 already has state
+6/resume 98 and current job 6 at the restore label; the control retains modern
+state, chooser/needs history and reconstructed navigation. It does not establish
+matched inputs or native timing. The next bounded task is restoring the captured
+inline fighter job/needs inputs diagnostically, with the unavailable route and
+later birth populations kept explicit. Q719 and unrecovered history remain limits.
