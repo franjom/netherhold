@@ -111,6 +111,9 @@ public static class ActivityRules
         >= PrisonRules.AdmittedState and <= 121 => CreatureActivity.Imprisoned,
         TortureRules.TorturerFacingState or TortureRules.TorturerWhippingState => CreatureActivity.AtWork,
         GuardRules.PatrolState or GuardRules.LostState or 100 => CreatureActivity.AtWork,
+        // A torturer whose walk to a free device arrived stands in 130 until its handler straps her on
+        // the next turn (0x00470DE6, 0x00484110): still her job.
+        TortureRules.StrappingState when creature.CurrentJob == JobType.Torture => CreatureActivity.AtWork,
         TortureRules.StrappingState or TortureRules.TorturedState or 132 or RescueRules.FreedState
             or TortureRules.ReleasedState => CreatureActivity.BeingTortured,
         RescueRules.RescuingState or JailBreakRules.BreakingOutState => CreatureActivity.Rescuing,

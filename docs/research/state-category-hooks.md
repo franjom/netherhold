@@ -193,7 +193,8 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
 - **The torturer.** The job handler `0x00483AE0` walks in 7 resuming in **127**
   (`0x00483B90`). 127 looks for a creature in 129 on the chamber's slabs and walks
   beside it (6, resuming 128); failing that, it walks onto a free device resuming 130,
-  setting `+0x3EA` bit 14. **134** (`0x00484950`) walks to the nearest category-15
+  setting `+0x3EA` bit 14. A walk's arrival (6, `0x00470DE6`-`0x00470E18`) runs no handler, so 128 and 130 first run
+  the turn after (ADR-0797). **134** (`0x00484950`) walks to the nearest category-15
   creature nearby. Owner (2026-09-24): only the Mistress tortures, going to the chamber to
   whip victims on the devices. Only the two Mistresses carry the job (50 %).
 - **The whip** (read 2026-09-24). **128** (`0x00483E90`) finds, on the target tile

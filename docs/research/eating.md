@@ -347,8 +347,8 @@ failure and 92's not-in-hatchery exit (`0x0046370D`, ADR-0792; `EatingRules.Find
 it handed the id back until ADR-0209). The walk's point is `0x004E4C10`'s, one
 `Room.cpp:1509` draw ([temple-states.md](temple-states.md) §9, ADR-0784). State 92 runs
 the turn after 91's inside shortcut and walks even to a bird underfoot (ADR-0785); 93
-runs the turn after 6's arrival (ADR-0786); ours' arrival into 92 still runs it on the
-same tick (Q174).
+runs the turn after 6's arrival (ADR-0786), as 92 does after 7's; 92 with no bird sets 91 (ADR-0797, Q801). A creature
+fed on its walk does not then eat a chicken (owner, 2026-11-14; ours gives up, the native mechanism is unread).
 
 **Ours, and said so in the code:** composing the walk and the in-room search
 into one step where DK2 has `0x5A` and `0x5B`; driving the retry from the eat

@@ -27,9 +27,10 @@ public static class TorturerStep
         if (StateShadow.IsTravelling(creature))
         {
             if (creature.HasRoute) return true;
+            // State 6's arrival sets the resume state and returns 1 (0x00470DE6-0x00470E18); the dispatcher
+            // makes one handler call a turn (0x004772AA), so 128's or 130's own handler runs the next turn.
             creature.StopMoving();
-            StateShadow.Arrive(context, system, creature);
-            if (creature.Dk2StateId == TortureRules.StrappingState) return StrapSelf(context, system, creature);
+            return StateShadow.Arrive(context, system, creature);
         }
 
         return creature.Dk2StateId switch
@@ -37,6 +38,7 @@ public static class TorturerStep
             TortureRules.TorturerChoosingState => Choose(context, system, creature),
             TortureRules.TorturerFacingState => Face(context, system, creature),
             TortureRules.TorturerWhippingState => Whip(context, system, creature),
+            TortureRules.StrappingState => StrapSelf(context, system, creature),   // 0x00484110
             _ => false,
         };
     }

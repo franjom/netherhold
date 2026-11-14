@@ -18822,7 +18822,8 @@ at `0x0046374B` when not busy (`0x00496D00`) and `+0xAB` is 0. The dispatcher `0
 94's exit in `CreatureEatSystem` before the handler step and `CreatureJobSystem`'s idle chooser ran the same tick. State 92
 (`0x00463500`) returns 0 in two places, both to `0x0046370D`: a failed route (`0x004636AF`/`0x004636B1`) and its tile check
 (`0x0046353D`-`0x00463566`, not in an own hatchery). Its body (`0x00463500`-`0x00463715`) has no hunger test, so ours' exit for
-a creature fed on the way has no counterpart. STRONGLY INFERRED: read, not captured.
+a creature fed on the way has no counterpart (owner, 2026-11-14: such a creature does not then eat a chicken; the native
+mechanism is unread). STRONGLY INFERRED: read, not captured.
 
 **Decision.** `CreatureEatSystem.GiveUp` takes `handlerReturnedZero` and, when it is true and the creature lands in state 1,
 adds it to the new context set `IdledByEatHandlerThisTick` (cleared each tick, read by `SimulationContext.IdleHandlerWaits`
@@ -18835,8 +18836,8 @@ fed-on-the-way exit (`!StillOwesFood`) claims no wait. See
 2018; the next boundary is turn 2019 draw 1, native `ObjectState.cpp:2708` (a chicken's reaction) against ours'
 `ObjectState.cpp:2851` (a roam, bird 121), Q800. First creature position splits: Warlock 439 at 2034 (unchanged), 433 now
 2093 (was 2042), 441 at 2095. `a_goblin_eats_a_chicken.yaml`: creature 1 eats bird 21 at 734, creature 2 bird 15 at 735.
-Level 1's journal win tick is 2374 (see ADR-0791). Residual, a possible fidelity gap and not a defect (Q801): 92 with no
-chicken in an owned hatchery calls `SetState(91)` at `0x004636F8` and 91 then resets 92, a per-turn flip; ours holds in 92.
+Level 1's journal win tick is 2374 (see ADR-0791). Q801 (92 with no chicken calls `SetState(91)` at `0x004636F8`, and 91's
+handler runs a turn later) is answered and built by ADR-0797.
 Test: `EatingTests.AFullCreatureLeavingTheMealIsIdleForATurnBeforeItChoosesAgain` (fails with the marker removed).
 
 ## ADR-0793 - a chicken's reaction passes over a creature above its floor, and a portal arrival is made at height 0
@@ -18896,8 +18897,7 @@ guard 432's position, state and heading match for the whole window (bar 1882-188
 through 2049 (10339 through 2028 at 509). The next boundary is turn 2050 draw 5, native `ObjectState.cpp:2030` against ours'
 chicken roam (bird 125), Q803; first creature position splits: 438 at 2060, 437 at 2090, 433 at 2093, 441 at 2095, 439 at 2111.
 Level 1's journal is re-recorded: win 2374 and gem 2483 unchanged. Q174's residual (ours' arrival into 92 runs the handler the
-same tick) is unchanged. Not checked natively: `TorturerStep` drops the arrival result and runs `StrapSelf` in the arrival tick
-(PLAUSIBLE only). Test: `GuardTests.AnArrivingGuardStandsInNinetyEightForATurnBeforeItsNextLeg` (fails without the fix); only the
+same tick) and the torturer's arrival are built by ADR-0797. Test: `GuardTests.AnArrivingGuardStandsInNinetyEightForATurnBeforeItsNextLeg` (fails without the fix); only the
 98 arrival is covered. Full suite passes (Simulation 5391, Behavior 620 with 5 skipped).
 
 ## ADR-0795 - a struck object's state 18 runs in the object pass, in thing order
@@ -18915,7 +18915,7 @@ tagged `0x7EE` (`0x004A141B`-`0x004A142D`), before the effect (vtable `+0x38C`) 
 order among the birds. STRONGLY INFERRED: read, re-derived by the reviewer; the capture agrees (turn 2050 draw log).
 
 **Decision.** `ObjectMovementSystem`'s newest-first loop dispatches an object in state 18 to `ObjectReactionRules.Step` first,
-by state and whatever the type (not in hand, not carried), as the one update does. `ObjectReactionSystem` keeps only the
+by state and whatever the type (not in hand, not carried: no native counterpart, and it cannot fire, ADR-0797), as the one update does. `ObjectReactionSystem` keeps only the
 casino lever's states 48 and 49. Callers that set 18: the training blow `0x00498CA0` (target `+0x399`, no type test), the
 possessed melee `0x00514830` (type 14 only: jump table `0x005153D0`, arm at `0x005149BB`) and the Casino wheel at `0x00456AB7`
 (type 0x1E; ours builds no wheel objects, a known residual in `CasinoStep.cs`). The other callers of `0x0049EF60` (about 60)
@@ -18925,9 +18925,12 @@ were not scanned for 0x12. Evidence: [object-drawing.md](research/object-drawing
 11440 draws match through 2106 (10614 through 2049 at 510). The next boundary is turn 2107 draw 1, native `ObjectState.cpp:2782`
 against ours' `ResearchState.cpp:215` (creature 441, state 54, `ResearchStep.AtTheShelf`), Q804; first creature position
 splits: 441 at 2095, 433 at 2110, 439 at 2111, 437 at 2128, 438 at 2149; guard 432 none. Level 1's journal is re-recorded: win
-2374 and gem 2483 unchanged. Residual: the casino lever's 48 and 49 (`0x004A3AF0`, `0x004A3B90`; they draw nothing) still run in
-`ObjectReactionSystem`; `CasinoSystem` sets them in the room tick, which natively runs after the thing pass (`0x004EC450`), so ours
-may reach the lever's art end a tick early (PLAUSIBLE; setter `0x004D6890` not traced). Test:
+2374 and gem 2483 unchanged. The casino lever's 48 and 49 (`0x004A3AF0`, `0x004A3B90`; they draw nothing) still run in
+`ObjectReactionSystem`. Natively the setter `0x004D6890` reaches 48 and 49 only from the game-action handler `0x00513E97` ->
+`0x004D69D0` (second argument 0 at `0x004D6A1A`), dispatched at the start of `World_UpdateTurn` (`0x0050A527`) before the thing sweep
+(`0x0050A7D7`); `Casino_Rebuild` (`0x004D6ED0`) passes 1 (art only, no state). Ours sets them in the command stage and steps them
+the same tick, so the art ends on the same tick and only the in-tick position differs (STRONGLY INFERRED, reviewer; ADR-0797).
+Test:
 `ObjectReactionTests.AStruckObjectDrawsInThingOrderAmongTheBirds` (fails 3 of 3 without the fix); the reaction, sound and training
 test hosts now use `ObjectMovementSystem`. Full suite passes.
 
@@ -18965,3 +18968,51 @@ torture `+0xAB`, DeathFall. Possible original quirk, not a filed defect: the fin
 state, so an unrelated state's scratch use silently frees a held point. Tests:
 `EatingTests.TheMealsStoresOverwriteALibraryTargetPointLeftInTheSharedScratch` and `LibraryStateTests.AfterAMealTheSeekersOldTargetIsFreeAgain`
 (both fail without the overlay), and a negative control in `EatingTests` (a refused route leaves the target). Full suite passes.
+
+## ADR-0797 - a torturer's arrival and the eating arrivals hand over a turn later, and state 92 with no bird sets 91
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 514
+
+**Context.** Follow-ups from a binary audit of ADR-0791 to ADR-0795 (owner-requested); the reviewer re-derived each claim in Ghidra.
+(1) State 6's arrival (`0x00470DE6`-`0x00470E18`: route done, stop `0x0048ECE0`, `SetState(resume, 0)`, `+0xDF` = 1, return 1; a
+refusal returns 0) runs no handler in the same tick: the dispatcher makes one handler call a turn (`0x004772AA`; a 0 at
+`0x004772AE` goes to `SetState(1)`, `0x004772B0`). Ours dropped a torturer's arrival result and ran 128's and 130's handlers in the
+arrival tick. CONFIRMED; this was ADR-0794's PLAUSIBLE torture residual. (2) State 7's arrival (`0x004715AF`-`0x004715D6`) asks for
+a room on the tile with `room+4` equal to `+0xE3` (stamped at `0x00471BAB`) and `room+0x18` equal to `+0xE5`, with no owner test;
+success (`0x004715D8`-`0x004715F4`) stops, calls `SetState(+0xDF)` and returns 1; a refused `SetState` (`0x00471606`) or a mismatch
+(`0x00471619`) returns 0. CONFIRMED. (3) State 92 with no takeable bird (`0x004636F3`-`0x004636FD`) calls `SetState(91, 0)` and
+returns 1. CONFIRMED. State 91's handler (`0x004634B0`) runs a turn later: the finder `0x004DED00` (type 4, ObjectList `+0x0C`
+non-zero, `Creature_CanReachRoom`; it posts 41, 42 or 43 itself on failure), then `0x00471A70(room, 92, 0x80)` (inside arm
+`0x00471A97`-`0x00471AC5`: `SetState(1)`, `SetState(92)`; outside: a walk in 7 with a `Room.cpp:1509` point); a failure returns 0.
+
+**Decision.** `TorturerStep` returns `StateShadow.Arrive`'s result, so 128 (face, whip) and 130 (strap self, handler `0x00484110`,
+`TortureRules.TryStrapSelf` through `StrapSelf`) run the next turn; `ActivityRules` maps 130 to `AtWork` while `CurrentJob` is
+Torture, so the job system runs her 130 handler. `CreatureEatSystem.Seeking`: a travelling creature over a Hatchery room of any
+owner stops, enters 92 and returns (92's handler, with its owner test `0x004539B0`, runs next turn); none, or a refused
+`SetState`, idles it with the one-turn wait. 92 with no bird sets 91, and a creature in 91 that is not travelling runs
+`TrySetOutForAHatchery`, which models the finder and the helper (a fair model, CONFIRMED); with no stocked hatchery reached it
+idles with the wait and the keeper hears the hatchery message. Q801 is answered and built. Evidence:
+[travel-states.md](research/travel-states.md#8-worked-example-a-hungry-creature-eats--strongly-inferred),
+[state-category-hooks.md](research/state-category-hooks.md#33-torture-127135-read-2026-09-24).
+
+Recorded, code unchanged. The owner (2026-11-14): a Training Dummy or Casino wheel cannot be picked up in the hand, so ADR-0795's
+`!InHand && CarriedByCreatureId < 0` test on a state-18 object has no native counterpart (`0x0049BD20`, `0x0049EED0` test no held
+flag; lifting sets process 0x16 at `0x004C0CFF`) and cannot fire in play; and a creature fed on its walk does not then eat a chicken
+(ours gives up there; the native mechanism is unread). A hand-dropped creature's z is not left at 0: `HandSystem` sets
+`PosZ = DropLandingRules.FallingHeight`, 256 above the floor, native 4352 absolute against a floor word of 4096 (CONFIRMED).
+ADR-0795's casino-lever residual and the `0x004DE620` double-lay note were wrong and are corrected in place (ADR-0795, record).
+
+**Consequences.** Hash and save 514; earlier saves are refused. Pin `0x7B147A9A89A1F0EF`. Level 5 seed 1 (controlled566) is
+unchanged: 11627 draws match through 2119, the boundary is turn 2120 draw 7 (Q805), and its draws equal controlled564's until
+turn 2126. Level 1's journal is re-recorded: win 2374 unchanged, gem taken at 2490 (was 2483), the Lord dies at (14,20) (was
+(14,21)); `ReaperFinaleOnRealDataTests` follows (remake output, not a DK2 fact). Residuals, not built: every other entry into 130
+(state 76's Torture Chamber arm `0x0046F044`-`0x0046F056`, and a captive's `EnterTheDevice`, `TryStrapOwn`, `Restrap`) also straps a
+turn later natively (CONFIRMED that native defers; STRONGLY INFERRED that nothing else calls `0x00484110`, whose only xref is the
+state table at `0x0047DD24`), where ours straps, enters 131 and fires event 8 in the same tick; state 7's arrival tests the room
+type and ours cannot test the id, so a walk ending in another hatchery than its target differs (HYPOTHESIS); state 92 has a third
+gate, `0x004DEC40`, after the owner test and before the bird loop (`0x0046355C`-`0x00463566`), which counts things of resolved
+category 8 over the room's tiles and returns 0 unless the count is at most `room+0xA7`; unmodelled, meaning undecoded (Q806).
+Tests: `TorturerTests.AMistressArrivingAtTheVictimStandsInOneTwentyEightForATurnBeforeTheWhip` (fails with the old `TorturerStep`),
+the self-strap test (130 for a turn, then 131), `EatingTests.TheWalksAreDk2sStateSevenToTheRoomAndStateSixToTheBird` (92 seen a
+turn), `TwoHungryGoblinsRace...` (the loser idles, `hatchery_empty`) and
+`InAHatcheryWhoseOnlyBirdIsOnACoopTheEaterAlternatesNinetyTwoAndNinetyOne`. Full suite passes (Simulation 5400, Behavior 620 with
+5 skipped).

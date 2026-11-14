@@ -14,8 +14,8 @@ namespace DK2.Simulation.Systems;
 /// (docs/research/eating.md): the walk is to a room and not to a bird, the nearest
 /// reachable hatchery of the creature's own keeper; the bird is chosen on arrival
 /// (<see cref="EatingRules.NearestChickenIn"/>) and nothing is reserved, so two
-/// hungry creatures may race for one and the loser looks again (Q172, owner). An
-/// empty hatchery is not a failure — it lays. Prisoners eat by their own states, one
+/// hungry creatures may race for one and the loser looks again (Q172, owner). A
+/// hatchery with no bird to take sends 92 to 91, whose finder idles the creature unless a stocked one is reached (ADR-0797). Prisoners eat by their own states, one
 /// bird paying off a whole <c>HungerFill</c> (<see cref="PrisonerEatSystem"/>). Ours:
 /// composing the walk with the in-room search; trying each candidate hatchery in turn where
 /// DK2's finder returns one room (Q790); the retry cadence living here; and no post-meal wander round the hatchery
@@ -221,9 +221,8 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
     /// tile underfoot decides: not a hatchery of this keeper's (sold, captured
     /// or a blocked route) ends the state and leaves the creature idle to try
     /// again; a hatchery with a chicken in it starts the short walk to that
-    /// chicken; a hatchery with none leaves the creature standing there,
-    /// hungry, to ask again next second — which is the original's own
-    /// answer.</para>
+    /// chicken; a hatchery with none sets 91, whose handler runs a turn later
+    /// (ADR-0797).</para>
     /// </summary>
     private void Seeking(
         SimulationContext context, CreatureState creature, CreatureDef definition)
@@ -232,6 +231,39 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        bool travelling = StateShadow.IsTravelling(creature);
+
+        // 92 found no bird and set 91 (0x004636F8); 91's handler (0x004634B0) runs a turn later: the
+        // finder (0x004DED00) and the room helper (0x00471A70), whose inside arm sets 1 and 92 again.
+        // No stocked hatchery reached returns 0, and the dispatcher drops it to 1 (0x004772B0).
+        if (!travelling && creature.Dk2StateId == EatingRules.FindHatcheryState)
+        {
+            if (!TrySetOutForAHatchery(context, creature, definition)) GiveUp(context, creature, handlerReturnedZero: true);
+            return;
+        }
+
+        // State 7's arrival (0x004715AF-0x004715D6) asks only for a room of the walk's id and type under
+        // the creature, not its owner: then it stops, sets 92 and returns 1, so 92's own tile check
+        // (owner included) runs the next turn (0x004715E0-0x004715F4, one handler call a turn). No room
+        // there returns 0 (0x00471619): idle, its chooser a turn later. Ours tests the type, not the id.
+        if (travelling)
+        {
+            if (!HatcheryRoomUnder(world, database, creature))
+            {
+                context.Emit(SystemName, "food_attempt_failed",
+                    $"creature={creature.Id} type={definition.Name} " +
+                    $"player={creature.OwnerPlayerId} " +
+                    $"at=({creature.Tile.X},{creature.Tile.Y}) " +
+                    $"need={creature.HungerNeed} reason=not_in_hatchery");
+                GiveUp(context, creature, handlerReturnedZero: true);
+                return;
+            }
+
+            creature.StopMoving();
+            // A refused SetState returns 0 too (0x00471606).
+            if (!StateShadow.Arrive(context, SystemName, creature)) GiveUp(context, creature, handlerReturnedZero: true);
+            return;
+        }
 
         RoomInstance? room = EatingRules.HatcheryUnder(world, database, creature);
         if (room is null)
@@ -241,15 +273,10 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
                 $"player={creature.OwnerPlayerId} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) " +
                 $"need={creature.HungerNeed} reason=not_in_hatchery");
-            // 92's own tile check fails to 0x0046370D; a walk that has not yet handed over to 92 is not 92's.
-            GiveUp(context, creature, handlerReturnedZero: !StateShadow.IsTravelling(creature));
+            // 92's own tile check fails to 0x0046370D.
+            GiveUp(context, creature, handlerReturnedZero: true);
             return;
         }
-
-        // The walk is over and the room is still this keeper's hatchery: state 7's arrival,
-        // which hands over to 92. A creature already standing in 92 asking again is not
-        // arriving, so this happens once per walk.
-        if (StateShadow.IsTravelling(creature)) Arrive(context, creature);
 
         // Nothing left to pay off — fed on the way, or the last bird went down
         // last tick. Note this is StillOwesFood and not IsHungry: it takes a
@@ -263,8 +290,8 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         ObjectState? chicken = EatingRules.NearestChickenIn(world, database, room, creature.PosX, creature.PosY);
         if (chicken is null)
         {
-            // Standing in an empty hatchery is the original's holding pattern,
-            // not a failure. It stays in the state and asks again.
+            // No bird: 92 sets 91 and returns 1 (0x004636F3-0x004636F8); 91 decides a turn later.
+            Shadow(context, creature, EatingRules.FindHatcheryState);
             return;
         }
 
@@ -441,6 +468,11 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
 
     private static void Arrive(SimulationContext context, CreatureState creature) =>
         StateShadow.Arrive(context, SystemName, creature);
+
+    /// <summary>State 7's arrival test: a Hatchery room, of any owner, on the creature's tile.</summary>
+    private static bool HatcheryRoomUnder(WorldState world, GameDatabase database, CreatureState creature) =>
+        RoomIndex.RoomAt(world, database, (creature.Tile.Y * world.Width) + creature.Tile.X) is { } room
+        && room.Definition.TypeId == RoomTypeId.Hatchery;
 
     private static void Shadow(SimulationContext context, CreatureState creature, int state) =>
         StateShadow.Move(context, SystemName, creature, state);

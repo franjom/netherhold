@@ -86,6 +86,33 @@ public class TorturerTests
         return captive;
     }
 
+    // State 6's arrival sets 128 and returns (0x00470DE6-0x00470E18); the dispatcher's one handler call
+    // a turn (0x004772AA) leaves 128's own handler, and the whip, to the following turn.
+    [Fact]
+    public void AMistressArrivingAtTheVictimStandsInOneTwentyEightForATurnBeforeTheWhip()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Victim(db, world);
+        CreatureState mistress = world.SpawnCreature(db, MistressId, Keeper, Outside);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        long arrived = -1;
+        for (int t = 0; t < 30 * SimulationTiming.TicksPerSecond && arrived < 0; t++)
+        {
+            int before = mistress.Dk2StateId;
+            sim.Tick();
+            if (before == Walk && mistress.Dk2StateId == TortureRules.TorturerFacingState) arrived = sim.CurrentTick.Value - 1;
+        }
+
+        Assert.True(arrived >= 0);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "whip_started");
+        sim.Tick();
+        Assert.Equal(TortureRules.TorturerWhippingState, mistress.Dk2StateId);
+        Assert.Contains(sink.Events, e => e.Kind == "whip_started" && e.Tick.Value == arrived + 1);
+    }
+
     [Fact]
     public void AMistressWalksToTheVictimAndWhipsItThroughIdleWithoutHurtingIt()
     {
@@ -175,8 +202,12 @@ public class TorturerTests
         GameSimulation sim = Simulation(db, world, sink, EventCounterTree.For(CreatureTriggerEvent.Tortured));
 
         var seen = ImpStateTrace.Seen(sim, mistress, 30 * SimulationTiming.TicksPerSecond,
-            () => TortureRules.IsBeingTortured(mistress));
+            () => mistress.Dk2StateId == TortureRules.StrappingState);
         Assert.Contains((Walk, TortureRules.TorturerChoosingState, TortureRules.StrappingState), seen);
+        // State 6's arrival sets 130 and returns; 130's handler (0x00484110) straps her on the next turn.
+        Assert.False(TortureRules.IsBeingTortured(mistress));
+        sim.Tick();
+        Assert.True(TortureRules.IsBeingTortured(mistress));
         Assert.Equal(TortureRules.TorturedState, mistress.Dk2StateId);
         // Her own strapping in 130 fires Tortured like any other (0x004842BE).
         Assert.Equal(1, world.Triggers.Read(EventCounterTree.CountFlag));

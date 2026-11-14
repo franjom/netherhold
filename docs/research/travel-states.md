@@ -45,8 +45,9 @@ caller polls.
 
 A zero return reaches the dispatcher (`0x00476FC0`), which sets state 1 (eating.md §8).
 The dispatcher makes one handler call a turn (`0x004772AA`), so the resume state's handler first runs the turn after the
-arrival. Ours mirrors that for eating's 93 (ADR-0786) and a guard's 97, 98 and 100 (ADR-0794; state 98 stands one turn at each
-arrival of guard 432, Level 5 ticks 1930, 1950 and 1966, [guard-room.md §8](guard-room.md#8-built-and-not-built)).
+arrival. Ours mirrors that for eating's 92 and 93 (ADR-0797, ADR-0786), a guard's 97, 98 and 100 (ADR-0794; state 98 stands one turn at each
+arrival of guard 432, Level 5 ticks 1930, 1950 and 1966, [guard-room.md §8](guard-room.md#8-built-and-not-built)) and a torturer's 128 and 130
+([state-category-hooks.md §3.3](state-category-hooks.md#33-torture-127135-read-2026-09-24), ADR-0797).
 
 ## 2. The route helpers
 
@@ -264,18 +265,20 @@ restored from a save.
    (eating.md §3).
 2. **State 91** (`0x004634B0`): `0x004DED00` finds a hatchery for the creature's owner,
    then `0x00471A70(room, 92, 0x80)`. It returns the helper's result, so no hatchery or
-   no route means idle.
+   no route means idle. When 92 sets 91 the handler runs a turn later.
 3. **In the helper:** already on a tile of that room means `SetState(1)`,
    `SetState(92)`, done (`0x00471AAE`-`0x00471AC0`). `SetState` runs no handler and
    the dispatcher calls one handler per turn (`0x004772AA`), so 92 first runs the next
    turn. Otherwise a point in the room, route word `0x80`, then
    `SetState(7)`: 91 is category 8, so `+0x40` = 91 and no hooks run. Then `+0xDF` = 92
    and the room layout of §2.2.
-4. **State 7**, every tick until the path is finished and the tile is still that
-   room: stop, `SetState(92)`, `+0xDF = 1`. The hooks compare category(`+0x40` = 91) =
+4. **State 7**, every tick until the path is finished (`0x004715AF`-`0x004715D6`): the tile
+   must have a room whose id (`+4`) equals `+0xE3` and type (`+0x18`) equals `+0xE5`, with no
+   owner test. Then stop, `SetState(92)`, `+0xDF = 1`, return 1; a refused `SetState` or a
+   mismatch returns 0 (idle). The hooks compare category(`+0x40` = 91) =
    8 with 92's 8, so none run. During the walk category 8's update hook would run, but
-   category 8 has none. 92's handler runs the next turn, as in step 3 (ours' arrival
-   into 92 still runs it on the same tick: PLAUSIBLE, Q174).
+   category 8 has none. 92's handler, with its owner test, runs the next turn, as in step 3
+   (ADR-0797; ours tests the room type, not the id: HYPOTHESIS).
 5. **State 92** (`0x00463500`): on its first tick (`Age == 1`) it stops the body. The
    tile must be a type-4 room of the creature's owner (`0x004539B0(4, owner, 0)`). It
    picks the nearest chicken (eating.md §6), then `0x00471890(point, 93, 0xE8)` for the
@@ -285,7 +288,9 @@ restored from a save.
    `0x0049EF60(8)` on the chicken, and sets the chicken's `+0x48/+0x4C` to `0x1000`
    and its `+0x58/+0x5C` to 0. A failed route returns 0 (`0x004636B1`), which the
    dispatcher drops to state 1 (`0x004772B0`), the bird untouched. With no chicken it
-   calls `SetState(91)`, and the hatchery is looked up again next tick. The prepared
+   calls `SetState(91)` and returns 1 (`0x004636F3`-`0x004636FD`); 91's handler runs a turn later (step 2), so
+   in a hatchery whose only bird is on a coop the creature alternates 92 and 91 a turn each
+   (Q801, ADR-0797). A third gate, `0x004DEC40`, sits before the bird loop (Q806, unmodelled). The prepared
    bird runs process 8 about 33 turns (`0x004A24A0`, eating.md §6). The `+0xAB`/`+0xAF` stores
    here and in state 93 overlay a held Library target point ([library-states.md](library-states.md) §4).
 6. **State 6** (`0x00470C80`) is a plain walk: it reads only its own gates and the

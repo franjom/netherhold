@@ -39,7 +39,7 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
             },
         };
         using FileStream journal = File.OpenRead(Dk2CaptureGate.PathFor(Fixture + "input.journal"));
-        // The journal was re-recorded at HashVersion 513 (the meal overwrites a Library target point, Q804).
+        // The journal was re-recorded at HashVersion 514 (the eating and torture arrivals wait a turn, ADR-0797).
         // A later hash version replays it with its hashes as evidence, not a verdict.
         ScenarioResult result = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path).Replay(
             Scenario.Load(Dk2CaptureGate.PathFor(Fixture + "level1.yaml")), InputJournal.Read(journal), options,
@@ -50,7 +50,7 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
         SimEvent created = Assert.Single(result.Events, e => e.Kind == "reaper_created");
         Assert.True(created.Tick.Value == WinTick,
             $"The replay no longer wins at t{WinTick} (t{created.Tick.Value}); the journal needs re-recording.");
-        Assert.True(gemAtWin == (14, 21), $"The gem is at {gemAtWin} at the win, not where the Lord died (14,21).");
+        Assert.True(gemAtWin == (14, 20), $"The gem is at {gemAtWin} at the win, not where the Lord died (14,20).");
         Assert.InRange(pickup, WinTick + 1, WinTick + FinaleWindowTicks);
         Assert.Contains(result.Events, e => e.Kind == "gem_taken" && e.Tick.Value == pickup);
         output.WriteLine($"pickup t{pickup}; first hash difference from the journal: t{result.Replay!.FirstDivergentTick}");

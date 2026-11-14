@@ -434,8 +434,11 @@ public class EatingTests
             last = goblin.Dk2StateId;
         }
 
+        // State 7's arrival sets 92 and returns (0x004715E0-0x004715F4), so 92 is seen for a turn
+        // before its own handler walks to the bird.
         Assert.Equal(
-            [(7, EatingRules.FindHatcheryState), (6, EatingRules.InHatcheryState),
+            [(7, EatingRules.FindHatcheryState), (EatingRules.InHatcheryState, EatingRules.FindHatcheryState),
+             (6, EatingRules.InHatcheryState),
              (EatingRules.EatState, EatingRules.InHatcheryState),
              (EatingRules.AfterMealState, EatingRules.InHatcheryState),
              (CreatureStateMachine.Idle, EatingRules.InHatcheryState)],
@@ -669,6 +672,38 @@ public class EatingTests
         Assert.Same(further, EatingRules.NearestChickenIn(world, db, room, new TilePos(5, 5)));
     }
 
+    // 92 finds no bird it may take (the only one is on a coop, 0x00453600) and sets 91 (0x004636F8);
+    // 91's finder still counts the room stocked (0x004DED00, ObjectList) and the room helper's inside
+    // arm sets 1 and 92 (0x00471AAE-0x00471AC0): the two alternate a turn each (Q801).
+    [Fact]
+    public void InAHatcheryWhoseOnlyBirdIsOnACoopTheEaterAlternatesNinetyTwoAndNinetyOne()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Floor(world, 1, 1, 10, 10);
+        Hatchery(db, world, 5, 5, 5, 5, Keeper);
+        world.SpawnObject(db, HatcheryRules.CoopObjectId, Keeper, (6 * world.Width) + 6);
+        Chicken(db, world, 6, 6);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(8, 8));
+        MakeHungry(goblin);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick();
+        Assert.Equal(EatingRules.InHatcheryState, goblin.Dk2StateId);   // already inside: 1, then 92
+        var states = new List<int>();
+        for (int i = 0; i < 6; i++)
+        {
+            sim.Tick();
+            states.Add(goblin.Dk2StateId);
+        }
+
+        Assert.Equal(
+            [EatingRules.FindHatcheryState, EatingRules.InHatcheryState, EatingRules.FindHatcheryState,
+             EatingRules.InHatcheryState, EatingRules.FindHatcheryState, EatingRules.InHatcheryState],
+            states);
+        Assert.Equal(CreatureActivity.SeekingFood, goblin.Activity);
+    }
+
     [Fact]
     public void ATieGoesToTheOlderChicken()
     {
@@ -741,10 +776,12 @@ public class EatingTests
         Assert.Equal(875, near.Health);
         Assert.Equal(500, far.Health);              // and got nothing for the walk
 
-        // The loser is told the bird went, and is left standing in the hatchery
-        // looking for another rather than dropped back to idle.
+        // The loser is told the bird went and goes back to 92, which finds none and sets 91
+        // (0x004636F8); 91's finder (0x004DED00) takes only a stocked hatchery, so it idles.
         Assert.Contains(sink.Events, e => e.Kind == "chicken_lost");
-        Assert.Equal(CreatureActivity.SeekingFood, far.Activity);
+        Assert.Contains(sink.Events, e => e.Kind == "food_attempt_failed" && e.Detail.Contains($"creature={far.Id} ")
+            && e.Detail.Contains("reason=hatchery_empty"));
+        Assert.Equal(CreatureActivity.Idle, far.Activity);
     }
 
     [Fact]
