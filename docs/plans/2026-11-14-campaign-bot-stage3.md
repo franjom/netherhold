@@ -2,294 +2,311 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
-**Status:** execution plan, 2026-11-14, awaiting owner review. Nothing here is built.
+**Status:** execution plan, 2026-11-14, revised the same day after an adversarial review;
+awaiting owner review. Nothing here is built.
 **Goal:** grow the Level 1 campaign player into a bot that needs no AI model and wins every
 campaign level the simulation can complete, level by level as each becomes playable, from
 player-visible observation and normal commands only.
-**Architecture:** the bot stays one controller (`CampaignPlayer`, `DK2.AI`) driven by two kinds
-of data: a `PlayerStrategy` its routines read, and a per-level **playbook** that holds what a
-veteran player knows about the level and switches the strategy by phase. A **self-play tuner**
-in `DK2.Harness` searches a playbook's numbers over seeds on the headless simulation and
-proposes better values. The bot's knowledge is the playbooks and the shared routines, all
+**Architecture:** one controller (`CampaignPlayer`, `DK2.AI`) driven by a `PlayerStrategy` its
+routines read and a per-level **playbook** (veteran knowledge and phases). A **tuner** in
+`DK2.Harness` searches a playbook's integer values over declared seed sets. Knowledge lives in
 reviewable files; no model is trained or consulted.
-**Tech Stack:** existing netstandard2.1 assemblies (`DK2.Simulation.Players`, `DK2.AI.Players`,
-`DK2.Presentation`), `DK2.Harness` (.NET 10) with its YAML scenario loader, xUnit 2/VSTest.
+**Tech Stack:** netstandard2.1 `DK2.Simulation.Players`, `DK2.AI.Players`, `DK2.Presentation`;
+`DK2.Harness` (.NET 10); xUnit 2/VSTest.
 **Spec:** [design](2026-11-07-agentic-campaign-playtesting-design.md), stage 3 row and Owner
-direction; stages 1-2 as built in [their plan](2026-11-07-campaign-player-stages1-2.md).
+direction. **Evidence:** [campaign bot ladder](../research/campaign-bot-ladder.md).
 
 ## Owner decisions (2026-11-14)
 
-- The bot needs no AI model, during play or to replay. AI agents come later, as supervisor
-  (stage 4) and skirmish playtester (stage 8).
+- The bot needs no AI model, during play or to replay. Agents come later: supervisor (stage 4),
+  skirmish playtester (stage 8).
 - It should play the whole campaign competently, each level as the simulation makes it playable.
-- **Veteran knowledge:** a playbook may hold everything a player who has beaten the level knows:
-  layout, gold, portals, hero gates and what the level's script does and when. It is written from
-  the level files and the research. During play the bot still sees only the player observation.
-- "Training" means building this knowledge (playbooks, shared routines) and tuning it by
-  self-play. Strategy notes from human footage come later, under the footage rules in
-  `tools/footage/README.md` (sources by number only; never an author's name).
-- Level 2 is the first new level.
+- **Veteran knowledge:** a playbook may hold what a player who has beaten the level knows: layout,
+  gold, portals, hero gates, and what the level's script does and when. During play the bot
+  still sees only the player observation.
+- "Training" means building that knowledge and tuning it by self-play. Footage notes come later
+  under `tools/footage/README.md` (sources by number only, never an author's name).
+
+## What the evidence says
+
+From the [ladder](../research/campaign-bot-ladder.md): the unchanged controller wins Levels 1-3
+(Levels 2-3 rerun after ADR-0800) and nothing after. On every losing level it builds at most one
+3x3 of each room in its fixed list and then waits for 70-98% of its decisions. So:
+
+- The first gap is **development**: keep building, growing and using what the level offers.
+  It shows on every level, so it is measured across the ladder, not on one level.
+- The **driver level** is chosen in Task 0b by triage, not assumed. Levels whose losses touch an
+  open outcome question are excluded while it stays open: Level 4 (Q710: ours overruns in 37 of 60
+  seeds even under the owner's replayed input) and Level 5 (Q712, Q772: Heart defence).
+  On present evidence Level 6b (2 own deaths, no result, one room built) and Level 9 (no deaths,
+  no result) look like losses of the controller's own; triage confirms or replaces them.
 
 ## Global constraints
 
 - **Observation boundary.** During play the bot reads only `PlayerObservation`. A playbook is
-  prior knowledge loaded before tick 0; it never reads simulation state at run time.
-- **Normal commands only**, through `PlayerActionAdapter`; no scenario grants, no scripted help.
-- **Determinism.** The same build, scenario, seed and playbook give the same journal. The run
-  manifest records the playbook's SHA-256. Every journal replays without the controller.
-- **No DK2 behaviour changes to help the bot win.** A mechanic that blocks a win is filed as its
-  own question/task with evidence; the level is reported as blocked, not forced.
-- **Every win is disclosed with its seeds; every loss with its reason.** A controller limitation
-  is a valid result, not a failure to hide.
+  prior knowledge loaded before tick 0 and never reads simulation state at run time. Every playbook
+  and every new observation field gets an isolation review (reviewer pass): nothing in it may come
+  from state a player cannot see or know from the level files.
+- **Normal commands only**, through `PlayerActionAdapter`.
+- **Determinism.** The same build, scenario, seed and playbook give the same journal. Replay reads
+  the journal only; it never needs the controller or the playbook. A run stopped by wall time or
+  output budget is **invalid**, never scored as a loss.
+- **No DK2 behaviour changes to help the bot win.** A blocking mechanic is filed as a question.
+- **Honest results.** Win rates are reported with their seed counts and a 95% Wilson interval;
+  three seeds is a diagnosis, not a rate. Every loss is reported with its reason.
 - Evidence of acceptance runs goes add-only under `F:/DK2Evidence/studies/` with a receipt
-  (`tools/build_receipt.py`), as for Level 1.
-- Reviewer, then documenter, before each commit; docs and KB gates; worktrees only.
+  (`tools/build_receipt.py`). Reviewer, then documenter, before each commit; worktrees only.
 
 ## .NET skills and optimization gate
 
-The [stages 1-2 gate](2026-11-07-campaign-player-stages1-2.md#net-skills-and-optimization-gate)
-applies unchanged: `csharp-refactoring` for Task 1, `run-tests` for every test command,
-`analyzing-dotnet-performance` on the routines and the tuner, and a measurement before any
-optimization claim. The tuner's throughput (runs per minute per core) is measured and recorded.
+As in the [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md#net-skills-and-optimization-gate):
+`csharp-refactoring` for Task 1, `run-tests` for test commands, `analyzing-dotnet-performance` on
+routines and the tuner, and a measurement before any optimization claim. The tuner has a
+throughput gate (Task 7).
 
-## Concepts
+## Seeds
 
-| Term | What it is | Where |
-|---|---|---|
-| Strategy | The values the routines read: rooms and order, room size, dig mode, fight mode, specials, cadence | `DK2.AI.Players.PlayerStrategy` |
-| Playbook | One level's veteran knowledge: map notes, ordered phases (when → strategy changes and goals), known events | `scenarios/campaign-player/playbooks/levelN.yaml`, loaded to `DK2.AI.Players.Playbook` |
-| Goal | A target a phase sets: dig toward a tile, claim a portal, hold home, attack a gate | part of a phase |
-| Ladder | Per level: Won (seeds), Controller limitation, Blocked by a mechanic (question id), Not yet tried | `scenarios/campaign-player/README.md` |
+Declared once, used everywhere: **tune** seeds 1-5, **select** seeds 6-10, **accept** seeds
+11-20. Diagnosis runs may use any seeds and claim nothing. A level is **Won** on the ladder when a
+receipted build wins at least 9 of the 10 accept seeds and every journal replays. That means
+"usually wins", not a measured rate: 9/10 has a 95% Wilson lower bound near 60%, passes a true
+90% bot about 74% of the time and a true 70% bot about 15%. The select-seed check is a filter
+(a two-win margin out of 5 still passes by chance about 17% of the time); the accept seeds are
+the gate.
 
-## Entry points and file ownership
+## Task 0a: baselines and acceptance of Levels 1-3
 
-| Task | Files |
-|---|---|
-| 1 | `src/DK2.AI/Players/PlayerStrategy.cs` (new), `CampaignPlayer.cs`, `CampaignPlayerOptions.cs`, `PlayerActionRoutines.cs`; `tests/DK2.AI.Tests/Players/PlayerStrategyTests.cs` (new) |
-| 2 | `src/DK2.AI/Players/Playbook.cs` (new), `src/DK2.Harness/` playbook loader and manifest; `tests/DK2.AI.Tests/Players/PlaybookTests.cs`, harness loader tests |
-| 3 | `CampaignPlayer.cs` phase runner and goals; `tests/DK2.AI.Tests/Players/CampaignPlayerPhaseTests.cs` |
-| 4 | Level 2 diagnosis; new routines or action kinds in `PlayerActionRoutines.cs`, `PlayerAction.cs`, `PlayerActionAdapter` |
-| 5 | `scenarios/campaign-player/level2*.yaml`, `playbooks/level2.yaml`; `tests/DK2.Behavior.Tests/CampaignPlayerLevel2Tests.cs` |
-| 6 | `src/DK2.Harness/` `tune` command; tests beside the existing player-run tests in `tests/DK2.Behavior.Tests/` |
-| 7 | `scenarios/campaign-player/README.md` ladder, `playbooks/level1.yaml`, HANDOFF, harness README |
+- [ ] **Baselines.** On current master, run Levels 1, 2 and 3 on seeds 1-3 and record per run:
+      result tick, final hash, SHA-256 of `input.journal` and of `player-decisions.tsv`, in
+      `scenarios/campaign-player/baselines.tsv` with the commit and HashVersion. This is a
+      record, not a standing test: simulation changes re-roll seeds, and the existing Level 1
+      tests assert relations on purpose. Task 1's byte-for-byte check is a one-off comparison on
+      one commit, before and after the refactor.
+- [ ] **A `--seed` override** on `run`, `watch` and `replay` (and later `tune`): the manifest
+      records the effective seed, and `replay` refuses a journal whose header seed differs from
+      the one it would run. Tests: an overridden seed replays; a mismatch is refused.
+- [ ] **Acceptance of Levels 1, 2 and 3** on accept seeds 11-20 from a receipted build, evidence
+      under `F:/DK2Evidence/studies/`, ladder rows with counts and intervals.
+- [ ] Reviewer, documenter, commit.
+
+## Task 0b: ladder scenarios, triage and the driver
+
+- [ ] **Ladder scenarios.** Commit Levels 4-20 as `scenarios/campaign-ladder/<level>.yaml`
+      (outside `scenarios/campaign-player`, which `watch` reads recursively), with
+      `duration_ticks` at the per-level cap.
+- [ ] **Triage of every losing level up to 10** (4, 5, 6a, 6b, 7, 8, 9, 10). For each, in the
+      ladder doc: the win condition from its triggers; which player the PLAYERS records give the
+      human (all runs used 3); whether the loss was the tick cap (rerun "no result" levels with
+      `--player-max-ticks 57600 --player-wall-seconds 1800 --timeout-seconds 2400`); open
+      questions touching its outcome; the gap that lost it; and the observation or action
+      additions (Task 4) it would need. Check whether `PreviousRewards` change any level's start
+      in DK2 (`campaign-win-sequence.md` section 5; ours reads them only in the presentation) and
+      file a question if they might.
+- [ ] **Choose the driver**: the earliest losing level whose loss is the controller's and touches
+      no open outcome question. If none qualifies, take the losing level with the fewest open
+      outcome questions, list them on its row, and say its acceptance waits on them.
+- [ ] Reviewer, documenter, commit.
 
 ## Task 1: a strategy the routines read
 
-Moved here from the stage 4 plan (its Task 1), unchanged in substance: the playbook needs it first.
-
 **Produces:** `PlayerStrategy` (immutable record): `Rooms` (build order), `RoomSide`, `Dig`
 (`Off`, `GoldFirst`, `Frontier`, `Toward(TilePos)`), `MaxOutstandingTags`, `Fight` (`Engage`,
-`HoldHome`, `Off`), `UseSpecials`, `AdvanceTicks`. Defaults equal today's `CampaignPlayerOptions`.
-`Validate()` returns every problem rather than throwing on the first. `CampaignPlayer` gains
-`Strategy` and `Apply(PlayerStrategy next)`; applying drops pending squares and dig marks that no
-longer fit, through ordinary untag actions.
+`HoldHome`, `Off`), `UseSpecials`, `AdvanceTicks`; defaults equal today's
+`CampaignPlayerOptions`. `Validate()` returns every problem. `CampaignPlayer` gains `Strategy` and
+`Apply(PlayerStrategy next)`; giving up marks and squares that no longer fit goes out as ordinary
+untags, spread over decisions within `MaxActionsPerDecision`.
 
-- [ ] Write `PlayerStrategyTests`: defaults equal today's options; validation names each problem;
-      `Toward` outside the map is refused; an empty room list is allowed. Run; expect failures.
-- [ ] Write a test that the default strategy makes identical decisions to today's on the
-      existing observation fixtures (`CampaignPlayerTests` stay green unchanged).
-- [ ] Refactor the routines to read the strategy (`csharp-refactoring`); behaviour-preserving.
-- [ ] Add `Apply` tests: `HoldHome` lifts no fighter toward an enemy; `Dig = Off` tags nothing;
-      a removed room's pending square is given up; `Toward` orders the frontier by distance.
-- [ ] Run `CampaignPlayerLevel1Tests` with `DK2_REQUIRE_INSTALL=1`: seed 1 still wins at the tick
-      and final hash the test currently records.
+- [ ] Tests first (`PlayerStrategyTests`): defaults equal today's options; validation names each
+      problem; `Toward` off the map is refused; an empty room list is allowed.
+- [ ] Refactor the routines to read the strategy (`csharp-refactoring`), behaviour-preserving.
+- [ ] `Apply` tests: `HoldHome` lifts no fighter toward an enemy; `Dig = Off` tags nothing; a
+      removed room's pending square is given up; untags spread across decisions.
+- [ ] One-off check on one commit: every Task 0a baseline reproduces byte for byte (journal and
+      decisions) before and after the refactor.
 - [ ] Reviewer, documenter, commit.
 
-## Task 2: the playbook format
+## Task 2: development, a thin vertical slice
 
-**Produces:** a YAML playbook per level and its immutable form:
+The gap every losing level shares. Built before the playbook format so the format is shaped by
+what a working slice and the triage needed, not guessed.
+
+- [ ] Tests first (synthetic observations): with no room missing, the bot extends an existing
+      room or builds another of a type the panel offers when its creature count outgrows it
+      (lair and hatchery per creature, treasury when gold has nowhere to go); it builds offered
+      rooms not in its list in a default order (Training Room before Workshop, for one); it uses
+      a Training Room it owns (drops creatures there) and a Workshop if the level gives doors or
+      traps; it does not wait while an offered, affordable build remains.
+- [ ] **Bounded digging.** Frontier digging stays within the outstanding-tag bound and a distance
+      from owned territory, and never marks a tile that would open onto ground another player
+      owns or where an enemy was seen; a test shows a closed corridor stays closed. Digging
+      breaches release heroes (Level 2's party, `level2-party-release.md`).
+- [ ] Implement in `PlayerActionRoutines`; the strategy gains the ordering and sizing values.
+- [ ] Measure per ladder level, before and after: rooms and room tiles owned, creatures housed
+      and trained, win or loss. The share of wait decisions is reported but is not a goal.
+- [ ] Levels 1-3 rerun on accept seeds 11-20 (behaviour changed on purpose): the ladder rows
+      are updated, and a level that drops below 9 of 10 is reported, not hidden. New baselines go
+      into `baselines.tsv` with the commit.
+- [ ] Reviewer, documenter, commit.
+
+## Task 3: the playbook format
+
+**Produces:** `scenarios/campaign-player/playbooks/<level>.yaml`, loaded to an immutable
+`Playbook` (DK2.AI; the YAML loader in DK2.Harness):
 
 ```yaml
-level: campaign:level2
-available:                # generated from the level file, never hand-written (see below)
-  rooms: { Lair: Available, Hatchery: Available, TrainingRoom: Available, Treasury: Unavailable }
-  spells: { ... }
-  creatures: { Goblin: ... }
-  traps: {}
-  doors: {}
-  unlocks: [ { room: ..., by: "trigger N" } ]  # MAKE actions in the level's script
-  rewards-next: [ ... ]                      # what winning unlocks, from NextRewards
-notes:                    # veteran knowledge; each item cites a doc, a trigger id or a map dump
-  - { kind: gold, at: [x, y], source: "..." }
-  - { kind: portal, at: [x, y], source: "..." }
-  - { kind: hero-gate, at: [x, y], source: "..." }
-events:                   # what the script does, from the level's triggers
-  - { id: first-wave, when: "trigger 65531 / about tick N", expect: "...", source: "..." }
-phases:                   # first whose 'until' is not met is active
-  - name: open
-    strategy: { rooms: [Treasury, Lair, Hatchery], dig: GoldFirst }
-    goals: [ { dig-toward: [x, y] } ]
-    until: { rooms: 3, creatures: 4 }
-  - name: defend
-    strategy: { fight: HoldHome }
-    until: { event-seen: first-wave }
-tunable: [ room-side, max-outstanding-tags, phases.open.until.creatures ]
+level: campaign:level6b
+available:          # generated by `playbook-available`, never hand-written
+  start: { rooms: [...], spells: [...], doors: [...], traps: [...] }   # what the panel offers
+  creatures: [...]  # from the level's creature availability: veteran knowledge, not seen in play
+  may-change: [ { item: ..., to: available, by: "trigger N MAKE" }, { item: ..., to: available, by: research },
+                { item: ..., to: unavailable, by: "trigger N MAKE" } ]
+notes:              # veteran knowledge; each cites a doc, a trigger id or a map dump
+  - { kind: gold, at: [x, y], source: "...", provenance: researched }
+events:             # what the script does, from the level's triggers
+  - { id: first-wave, when: "trigger N, about tick T", expect: "...", source: "..." }
+phases: [...]       # Task 5
+tunable:            # integer values only, each with a range
+  - { path: strategy.room-side, min: 3, max: 6, provenance: tuned, proven-on: "<commit>" }
+caps: { max-ticks: 57600, max-actions: 8192, wall-seconds: 2400 }   # per level
 ```
 
-**What the level allows is generated, not written.** `run playbook-available <level>` reads the
-level with the simulation's own start-up code and writes what the panel offers the player at
-the first playable tick (rooms, creatures, spells, traps, doors), plus every `MAKE` action in
-the level's script and its trigger as `unlocks`. It does not re-derive the rules from the raw
-`Availability` entries (`level2Variables.kld` lists only Treasury and Training Room, yet Lair
-and Hatchery are offered), so it cannot drift from what the game does. The loader refuses a
-playbook whose `available` block differs from the level file, and refuses any strategy, phase
-or goal that names a room, spell, creature, trap or door the level does not offer or will not
-unlock. The bot still checks the panel's offers in play; the playbook only stops it planning
-around something the level never gives (Level 2 offers no Treasury, for one).
+- **`playbook-available <level>`** (DK2.Harness, an authoring tool, not run-time): builds the
+  level's start with the simulation's own start-up code, reads what the panel offers at the first
+  playable tick (`BottomPanelView`, as `PlayerObservationBuilder.CaptureOffers` does, including
+  Door and Trap choices), and lists every `MAKE` action in the triggers and every research path
+  (`ResearchTreeRules`) as `may-change`, including MAKE actions that take something away. The
+  loader **warns** when a plan uses an item that only `may-change` to available and **refuses**
+  only items that are neither available at start nor may become available.
+- **Caps** override the CLI defaults unless a flag is given explicitly, which wins. The scenario's
+  `duration_ticks` must be at least `max-ticks`, and `wall-seconds` must stay below `watch`'s
+  `--timeout-seconds`; the loader refuses otherwise.
+- Values carry **provenance**: `researched` (with a source) or `tuned` (with the commit it was
+  proven on). A tuned value is flagged stale when the HashVersion recorded with its `proven-on` commit
+  differs from the current one.
+- The run manifest records the playbook's SHA-256 as information. `PlayerRunManifest.Schema`
+  goes to 2; `Verify` accepts 1 and 2 so stored evidence stays readable.
 
-`until` conditions read only the observation (tick, owned room tiles by type, creature count,
-gold, a notice kind seen, a tile seen or owned). `tunable` names the values the tuner may change
-and their ranges.
+- [ ] Tests first: `PlaybookTests` (DK2.AI, unit): order, provenance, integer ranges, every
+      problem reported. Install-gated tests: `playbook-available` on Level 2 lists Lair, Hatchery
+      and Training Room and not the Treasury; a playbook naming the Treasury on Level 2 is refused.
+- [ ] Implement `Playbook`, the loader, `playbook-available`, `--playbook` (added to
+      `HarnessCommandLine.PlayerFlags` and passed through `watch`), and per-level caps.
+- [ ] `playbooks/level1.yaml` reproduces Level 1's Task 2 baseline.
+- [ ] Isolation review of the format and of `level1.yaml`. Reviewer, documenter, commit.
 
-- [ ] Write `PlaybookTests`: a valid file loads; every problem is reported (unknown room, a
-      room or spell the level does not offer, an `available` block that differs from the level
-      file, tile off the map, an `until` on hidden state, a tunable that names nothing, a note without a
-      source); phases keep their order.
-- [ ] Implement `Playbook` (DK2.AI, no YAML dependency), the loader and `playbook-available`
-      (DK2.Harness). Test `playbook-available` against Level 1 and Level 2's shipped files
-      (install-gated): Level 2 offers Lair, Hatchery and Training Room and not the Treasury.
-- [ ] `run --campaign-player` takes `--playbook <file>`; the manifest records its SHA-256 and the
-      report names it. Replay refuses a journal whose playbook hash differs.
-- [ ] Write `playbooks/level1.yaml` expressing today's Level 1 behaviour; Level 1 seed 1 still
-      wins with it, at the recorded tick and hash.
-- [ ] Reviewer, documenter, commit.
+## Task 4: observation and action additions
 
-## Task 3: phases and goals in the controller
+Only what the panels show a player. Each addition: tests first, an admission test in
+`PlayerActionAdapter`, an isolation review, and an observation schema bump with the journal and
+replay tests updated.
 
-- [ ] Tests first (`CampaignPlayerPhaseTests`, synthetic observations): the first phase whose
-      `until` is unmet is active; reaching its condition applies the next phase's strategy on the
-      next decision; a goal `dig-toward` orders dig marks toward the tile; `hold-home` keeps
-      fighters home; `claim-portal` digs to and claims the portal's tiles; the phase change and
-      reason appear in the decision's reason text (journalled).
-- [ ] Implement in `CampaignPlayer` through `Apply`; no new observation fields unless a test
-      shows one is needed, and then only player-visible ones (reviewed for isolation).
-- [ ] Level 1 still wins with its playbook.
-- [ ] Reviewer, documenter, commit.
+| Addition | Why | Source of truth |
+|---|---|---|
+| Door and Trap offers in `PlayerOffers` | the panel shows them; `CaptureOffers` keeps only Room and Spell today | `BottomPanelChoiceKind.Door/Trap` |
+| Every offered spell, not only Create Imp | spells the level gives | the Spell panel |
+| `PlaceDoor`, `PlaceTrap` actions | defend a route | the panel's build intents |
+| `CastSpell(spell, target)` | offered spells | the existing spell intent path |
 
-## Task 4: what Level 2 needs
+Possession (`PossessionCommands`) is not added here; a level that needs it is recorded as a
+controller limitation until a later task.
 
-**Diagnosis run (2026-11-14, master at hash 513, no receipt, not an acceptance claim).** The
-unchanged Level 1 controller, `watch scenarios/campaign-player/level2 --campaign-player 3`, won
-all three seeds: seed 1 at tick 3963, seed 2 at 3708, seed 3 at 5421 (the owner's native win:
-3263). Each journal replayed every hash without the controller. It built only a Lair and a
-Hatchery: Level 2's own availability table (`level2Variables.kld`, `kwd vars -a`) sets the Treasury
-UNAVAILABLE (1) and the Training Room AVAILABLE (3), so the default list's Treasury was never
-offered and the Training Room, which is not in that list, was never built, which is why the playbook gets a generated `available` block (Task 2); in each seed the hero party came into the dungeon and
-its Lord of the Land died there. **Caveat: that walk is Q525.** In DK2's capture the
-party stays near its gate until about 3170; in ours it reached the keeper's rooms from about
-2307 in half the seeds. ADR-0800 fixed the walk rule after these runs (Q525 answered; the party
-now leaves when its corridor wall is breached, [level2-party-release.md](../research/level2-party-release.md)),
-so the wins were rerun on master after ADR-0800 (2026-11-14, same controller, no receipt):
-Level 2 won seeds 1-3 at ticks 3741, 4582 and 4657, Level 3 at 3656, 4559 and 5319, every journal
-replayed without the controller, and the Lord of the Land still died in the keeper's area. The
-wins do not lean on the old walk; acceptance still needs a receipted build. Level 2 needs no new routine to be won today; Task 5 reduces
-to a receipted acceptance, and the first level the default strategy cannot win becomes the real
-driver for Tasks 1-4. Scenarios: `scenarios/campaign-player/level2/`.
+Only the rows the triage and the driver need are built; the others wait. Doors and traps are
+Workshop stock: if the panel shows a stock count, the offer carries it; manufacturing is a
+Task 2 routine.
 
-**Ladder diagnosis, Levels 3-20 (2026-11-14, same controller, seeds 1-3, no receipt).** The
-player's default cap of 14,400 ticks applied, so "no result" means none in that hour.
+- [ ] One branch per row; reviewer, documenter, commit each.
 
-| Result | Levels |
-|---|---|
-| Won, all seeds | 3 (ticks 3539, 4671, 5588; the Lord of the Land dies in the keeper's area; journals replay) |
-| Defeated, all seeds | 5, 10, 13, 14, 15a, 20 |
-| Defeated or no result | 4, 6a, 6b, 7 |
-| No result | 8, 9, 11A, 11B, 11C, 12, 15b, 16, 18, 19 |
-| Controller gave up (stall) | 17, seeds 2-3 |
+## Task 5: phases and goals
 
-Runs took 45-320 s each. Level 4 is the first level the default strategy cannot win, so it,
-not Level 2, drives Tasks 1-4. Scenarios: `scenarios/campaign-player/level3/`.
+- **Phases are latched.** The playbook's phases form a sequence; the bot moves from phase *i* to
+  *i+1* when *i*'s `until` is first met and never moves back. Each change is journalled in the
+  decision reason.
+- **Conditions** (observation only): tick, owned room tiles by type, creature count, gold,
+  `enemy-visible`, a notice kind seen (only where the level's playbook shows it sends one), a tile
+  seen or owned.
+- **Goals:** `dig-toward(tile)`, `hold-at(tile)` (drop fighters there and keep them there),
+  `avoid(region)` (no dig marks there), `claim(tile)` (dig to it; success is the tile owned, since
+  imps claim by walking over it), `hold-home`.
+- **Precedence:** the active phase sets the strategy; a later stage 4 supervisor change holds
+  until the next phase change, which wins. The active phase's name and index are part of the
+  stage 4 checkpoint summary, so a supervisor sees what will override it.
 
-**Level 4 diagnosis (2026-11-14, from the ladder runs).** Seed 1 lost its Heart at 5249 to
-player 1; seeds 2-3 had no result by 14,400. In all three the controller built one 3x3
-Treasury, Lair and Hatchery by about tick 1300 and then spent two thirds of its decisions on
-"wait: nothing offered to do". Portal creatures came (15, 54, 32) and died untrained
-(5-23 Dark Elves, 5-22 Goblins, 1-8 Imps a run). Level 4's file
-(`level4Variables.kld`, `kwd vars -a`) makes the Training Room and Workshop AVAILABLE, the
-Portal and Guard Room UNAVAILABLE_ROOM (claim only: three neutral Guard Rooms draw Dark
-Elves, `auto-placed-furniture.md`), the Wooden door, one trap type and two spells AVAILABLE.
-Gaps, each a routine or action kind for Task 4:
+- [ ] Tests first (`CampaignPlayerPhaseTests`): latching (a condition that later fails does not
+      return the bot to an earlier phase); each goal; each condition; the precedence rule.
+- [ ] Implement through `Apply`. Isolation review. Reviewer, documenter, commit.
 
-1. Rooms from what the level offers, not a fixed list (Training Room, Workshop here).
-2. Rooms sized and added as the creature count grows, not one 3x3 of each.
-3. Claim goals: neutral rooms and portals the playbook names.
-4. Protect the gold route: research shows Level 4 is lost through Imps killed between the hero
-   entrance and the Heart as parties 3 and 4 arrive (`level4-outcomes.md`); hold fighters
-   there and stop digging on that route.
-5. Train creatures; place doors and traps; cast spells. Doors, traps and spells need new
-   player action kinds (the contract has none today).
-6. Something to do when nothing is offered: keep growing and training instead of waiting.
+## Task 6: the driver level
 
-Caveat: ours does not yet match DK2's Level 4 outcome spread (residual Q710, after Q665), so
-a Level 4 loss is not wholly the controller's; acceptance there waits on that question.
+The level chosen in Task 0b (record it here when chosen).
 
-- [ ] Write `scenarios/campaign-player/level2.yaml` like `level1.yaml` (unmodified start, fog,
-      viewing player 3, placed things). Run unattended with the Level 1 strategy, seeds 1-3.
-      Disclose the outcome and the stall or loss reason.
-- [ ] Read Level 2's objective, events and layout from the level files, the existing research
-      (for example `bottom-panel-controls.md`: Create Imp and Thunderbolt are offered) and the run.
-      List each gap as one of: a missing routine, a missing action kind (a spell cast, for one),
-      or a missing mechanic in the simulation.
-- [ ] A missing mechanic: file it as an open question with its evidence; it is not built here.
-- [ ] A missing routine or action kind: tests first, then the routine; a new action kind goes
-      through `PlayerActionAdapter` with an admission test and an isolation review, like the
-      stage 1 actions. Prefer routines that serve any level over Level 2-only code.
-- [ ] Reviewer, documenter, commit per routine.
+- [ ] Diagnose it with Tasks 2-5 in place; write its playbook (every note and event cited).
+- [ ] Iterate on the tune seeds only; a change that helps is checked on the select seeds.
+- [ ] Accept on seeds 11-20 from a receipted build: at least 9 of 10, journals replayed, evidence
+      under `F:/DK2Evidence/studies/`. Otherwise record the reason and stop at a reproducible
+      report.
+- [ ] Rerun the ladder; record the change per level. Reviewer, documenter, commit.
 
-## Task 5: Level 2 playbook and acceptance
+## Task 7: the tuner
 
-- [ ] Write `playbooks/level2.yaml` from Task 4's reading; every note and event cites its source.
-- [ ] Iterate: run seeds 1-3, read the reports, change the playbook or a routine. Keep a short
-      log of what each change fixed in the plan's as-built section.
-- [ ] Acceptance as for Level 1: seeds 1-3 won unattended from a receipted build, every journal
-      replayed without the controller, evidence add-only under `F:/DK2Evidence/studies/`.
-      `CampaignPlayerLevel2Tests` (install-gated) pins seed 1's win tick and hash.
-- [ ] If Level 2 cannot be won, record why (limitation or blocked by a question id) and stop at
-      a reproducible report; do not change DK2 behaviour.
-- [ ] Reviewer, documenter, commit.
+**Produces:** `DK2.Harness tune <scenario> --playbook <file> --candidates N --jobs J --out <dir>`,
+using the declared tune and select seeds.
 
-## Task 6: the self-play tuner
+- **Deterministic.** Batch-synchronous: a seeded coarse grid over the integer tunables, every
+  candidate run on every tune seed, the whole batch finished before the next batch of local steps
+  is generated. The budget is a candidate count, not minutes. The candidate list and order are
+  written before the first run.
+- **Runs in process** only after a test shows that the same seed gives identical hashes run
+  sequentially and run concurrently in one process (no mutable statics in the simulation or the
+  controller); otherwise one process per run. One loaded database and one manifest source hash
+  are shared; seeds come from the Task 0a `--seed` override. A light evidence mode keeps only the
+  per-run summary; the full folder is written for the incumbent and the proposal.
+- **Early stop:** a candidate's run ends at 1.5 times the slowest win the incumbent has on this
+  level (any seed), or at the level cap if it has none, and counts as not won.
+- **Invalid runs** (wall-time stop, output budget, technical failure) are rerun once with twice
+  the wall limit, then reported. If more than a tenth of a batch is invalid, the batch is void and
+  the report says so, so slow candidates are not quietly dropped.
+- **Score:** wins on the tune seeds; ties broken by fewer own creatures lost. Ticks are reported,
+  not scored.
+- **Acceptance of a proposal:** at least two more wins than the incumbent on the select seeds,
+  then the Task 6 acceptance on seeds 11-20. Tuned values get `provenance: tuned` and the commit.
+- **Cost gate:** measure the mean cost of one run on the driver level (tune and select seeds,
+  with early stop) first. The owner sets a CPU-hour budget per search (4 unless stated); the
+  candidate count is the budget divided by the cost of one candidate on 5 tune seeds plus the
+  finalists on 5 select seeds. Below 10 candidates, cut the tunables instead.
 
-**Produces:** `run tune --playbook <file> --seeds 1-N --budget-minutes M --jobs J --out <dir>`.
-It varies the playbook's `tunable` values (seeded, deterministic candidate order: a coarse grid,
-then local steps around the best), runs every candidate on every seed through the existing run
-path, and scores each: wins first, then fewer ticks to win, fewer creatures lost, more gold left.
-It writes `tune-report.md` (every candidate and score) and `proposal.yaml`; it never overwrites
-the playbook.
+- [ ] Tests first: candidate generation is deterministic and in range; the batch order does not
+      depend on completion order; invalid runs are excluded; the score ranks as above.
+- [ ] Implement; measure throughput; tune only levels the bot sometimes loses. Reviewer,
+      documenter, commit.
 
-- [ ] Tests first: candidate generation is deterministic and stays in range; scoring orders the
-      cases above; the budget stops the search and the report says so; a candidate whose run
-      fails technically is reported, not scored as a loss.
-- [ ] Implement on the existing runner and `--jobs`; no second simulation loop.
-- [ ] Measure runs per minute per core on Level 1 and record it; note the cost of a 3-seed,
-      50-candidate search.
-- [ ] Tune Level 1 and Level 2 once; accept a proposal only if it wins on seeds it was not
-      tuned on (hold out at least two), and record before/after in the ladder.
-- [ ] Reviewer, documenter, commit.
+## Task 8: the ladder and the per-level loop
 
-## Task 7: the ladder and the per-level loop
+- [ ] The ladder lives in [campaign-bot-ladder.md](../research/campaign-bot-ladder.md): per
+      level, status (Won with count and interval; Controller limitation; Blocked: question id;
+      Not yet tried), its playbook, level-specific routines, and the open questions that touch its
+      outcome.
+- [ ] Per-level procedure there: triage, playbook, iterate on tune seeds, tune if it sometimes
+      loses, accept on 11-20, ladder row.
+- [ ] A long-category regression (not in the default test run) reruns the accept seeds of every
+      Won level and flags a level that wins 7 or fewer of 10 (a true 90% bot does so about 7% of the time).
+      A seed-level change is not a failure.
+- [ ] HANDOFF and harness README. Reviewer, documenter, commit.
 
-- [ ] Add the ladder to `scenarios/campaign-player/README.md`: one row per campaign level with
-      status (Won: seeds and date; Controller limitation; Blocked: question id; Not yet tried),
-      its playbook, and the level-specific routines it needs, if any.
-- [ ] Write the per-level procedure there: scenario file → default run → reading (Task 4) →
-      playbook → iterate → tune with hold-out seeds → acceptance → ladder row.
-- [ ] Add a regression test that runs seed 1 of every Won level (install-gated, long category),
-      so a later simulation change that breaks a win is seen.
-- [ ] Update HANDOFF and the harness README entry points.
-- [ ] Reviewer, documenter, commit.
+After Task 8 each further level repeats Task 6 (and 7 when it sometimes loses), one level per
+branch, in campaign order, returning to excluded levels when their questions close.
 
-After Task 7, each further level is a repetition of Tasks 4-5 (and 6 when worth it), one level
-per branch, in campaign order, skipping levels the simulation cannot yet complete and returning
-to them when it can.
+## Known limits
+
+- Variant levels (6a/6b, 11A-C, 15a/b) are separate ladder rows. Secret levels are out of scope.
+- Multi-keeper levels depend on the Classic keeper AI's own fidelity; their rows list the open
+  keeper questions.
+- The Horned Reaper finale applies only where a Portal Gem exists (Q656).
 
 ## Later, not in this plan
 
-- **Strategy notes from footage.** Under `tools/footage/README.md`: notes cite a source number
-  and timestamp, never an author. A note becomes a playbook or strategy option only after the
-  tuner shows it wins more on hold-out seeds.
-- Agent supervision (stage 4), skirmish (stage 8), rendered play and the real UI (stages 5-6).
-- Reinforcement learning or any trained model.
+Strategy notes from footage (kept only if the tuner shows a gain on select seeds); possession;
+agent supervision (stage 4); skirmish (stage 8); rendered play and the real UI (stages 5-6);
+any trained model.
 
 ## Out of scope
 
