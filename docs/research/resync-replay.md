@@ -373,14 +373,13 @@ spread over 8 native seeds, and resyncs at 2400 from each.
 
 ## Heart and terminal-state restoration (Q714)
 
-Creature-slot and scan-clock restore limits are tracked separately in [Q719](fight-scan-initial-phase.md#resync-inputs-q719). The [latest 366-370 comparison](fight-scan-initial-phase.md#death-scores-and-level-4-comparison-limit) retains this Heart/terminal restore limit; the hash-361 example below is historical.
-
-`WorldResync.Apply` copies mana and manufacture state but leaves our Heart health, ruin flag, player status and recorded result untouched.
-In the hash 361 Level 4 control, generator 404 lost its Heart at 4966 before all eight resyncs at 5000; status 3 and defeat-driven leaving persisted afterward. Hash 362 and provisional 363 reproduce all creature/event outputs exactly ([comparison](party-arrival-lifecycle.md#death-scores)), leaving this limit unchanged. Baseline had no detected pre-resync terminal cases; Level 5 had none on either build.
-Native seed 1 at 5000 records status 0 in the full player region, room 1114 unruined and Heart object 1401 at 100000 health. The short player record cannot supply that status.
-Export and restore these fields from the existing full-player and room/object captures, with tests; do not force Playing for a potentially ended native state.
-Evidence under `F:/DK2Evidence/studies/heart-defence-fixed-l4--2026-11-01--001/`: `resync-terminal-controls.json`, `native-terminal-control.json`, `resync-contamination-analysis.json`.
-The omission confounds the raw post-resync comparison; it does not explain the loss before 5000, which may itself be a regression. Outcome-selected exclusions are descriptive sensitivity analysis, not an unbiased no-regression test. [Scores](heart-defence-parity.md#outcome-resyncs).
+`WorldResync.Apply` leaves Heart health/ruin, player status and recorded result untouched. The [hash-516 recheck](level4-outcomes.md#q710-recheck-at-hash-516-2026-11-14)
+observes earlier Lost status retained across restore despite native Playing status;
+the earlier hash-361 control is in [Heart defence outcomes](heart-defence-parity.md#outcome-resyncs).
+Native seed 1 at 5000 has room 1114 unruined and Heart object 1401 at 100000 health (`F:/DK2Evidence/studies/heart-defence-fixed-l4--2026-11-01--001/native-terminal-control.json`).
+Export full-player and room/object fields and restore exact native values with tests; the short player record cannot supply status. Do not force Playing.
+This omission confounds post-resync comparisons without explaining pre-restore loss. Outcome-selected exclusions are descriptive sensitivity analysis, not an unbiased parity test.
+Creature-slot and scan-clock limits remain [Q719](fight-scan-initial-phase.md#resync-inputs-q719).
 
 ## Limits
 

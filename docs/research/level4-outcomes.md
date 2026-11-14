@@ -362,5 +362,36 @@ on) and `F:/DK2Evidence/studies/l04-resync5000--2026-10-31--001/payload/README.m
   melee fighters near the loose Guards (Goblins 58 / 83, Trolls 80 / 136 a run), with more of them walking to rooms
   (state 7, 0.28 / 0.19) and fewer approaching a fight (state 8, 0.026 / 0.069), so the Guards carry 380 against 600
   attacker-turns a run. No rule difference was identified; the residual is Q710.
-- Measurement traps: ours' `creature_died` fires after the 240-turn dying window; and a creature our run lost before a
+- Historical measurement traps: a death event can follow a dying window; and a creature our run lost before a
   resync without a death event stays frozen in a carried-forward CSV (drop those with no row and no event since).
+
+## Q710 recheck at hash 516 (2026-11-14)
+
+Evidence: `F:/DK2Evidence/studies/q710-current-baseline-h516--2026-11-14--001`,
+`analysis-v3.json`, run receipts and `native-status-audit.json`. Frozen build `600261af`,
+original `l4live.sav` (SHA-256 `3ea2de4eee882f816538ccf2a8f1b2cd9683c1d047e21acdf7911a95e3d2977c`),
+eight archived native states restored after completed turn 5000, packet offset 69,
+`--births`, ending at 6000. No new native run was needed.
+
+| Cohort | Runs | Imp exits/deaths per run | State 7 share | State 8 share | Melee Guard-target turns per run |
+|---|---:|---:|---:|---:|---:|
+| Native | 8 | 6.5 | 0.1855 | 0.0695 | 274 |
+| Default Xoshiro, historical generator seeds | 40 | 10.025 | 0.1915 | 0.0273 | 156.25 |
+| Same, nonterminal at restore | 32 | 8.125 | 0.2392 | 0.0341 | 195.3125 |
+| DK2 LCG, generator seed matching native capture label | 8 | 9.375 | 0.2216 | 0.0316 | 180 |
+
+Deaths count native Imp slot exits versus modern events in 5001..6000; all modern
+Imp death durations here are zero, so backdating changes none. State shares pool
+owner-3 Dark Elf/Goblin/Troll fighter-turns in 5300..5450. Target turns count Goblin/
+Troll targets naming any living owner-1 Guard in 5000..6000, not the older all-type metric.
+
+CONFIRMED: all 24 native player frames at labels 4999..5001 are untorn and Playing.
+All eight generator-101 modern runs retain Lost with status stamp 4473 across restore
+([Q714](resync-replay.md#heart-and-terminal-state-restoration-q714)). Two of the remaining
+32 lose later (state 8, generators 404/505, stamps 5852/5318). Exclusions describe
+sensitivity, not an unbiased parity test. One repeated case matches all five telemetry files.
+
+Q710 stays OPEN. Default Xoshiro ignores captured RNG state; LCG controls still lack
+matched initialization/history and complete restoration (Q719). Legacy native polling
+labels and the historical stale-row exclusion heuristic also limit comparison. The
+residual direction persists, but identifies no causal AI rule; close restore limits first.

@@ -86,7 +86,7 @@ Restore and adapter gaps remain separate: Q713, Q714, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710 in [Level 4 outcomes](research/level4-outcomes.md).
+exposure is Q710; the [hash-516 recheck](research/level4-outcomes.md#q710-recheck-at-hash-516-2026-11-14) reuses existing recordings and retains the Q714/Q719 limits.
 
 ## Other pending work
 
