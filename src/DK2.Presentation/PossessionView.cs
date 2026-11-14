@@ -72,8 +72,8 @@ public sealed class PossessionView
     public int Roll { get; private set; }
 
     /// <summary>Puts the camera on a creature just possessed: on its point at eye height, level. The
-    /// starting pitch is <c>Camera_SetMode</c>'s constant; taking the yaw from the creature's heading
-    /// is a HYPOTHESIS (the timed move into mode 2 is unread).</summary>
+    /// starting pitch is <c>Camera_SetMode</c>'s constant. That the view starts facing the creature's
+    /// heading is the owner's recollection (2026-11-14); the timed move into mode 2 is unread.</summary>
     public void Enter(int x, int y, int floorHeight, in PossessedBody body)
     {
         X = x; Y = y; Z = floorHeight + body.EyeHeight;

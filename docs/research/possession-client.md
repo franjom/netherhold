@@ -10,8 +10,10 @@ requests are [camera-possession-guards.md](camera-possession-guards.md). Each fu
 record in `functions/` holds its read's scope. Everything here is **STRONGLY INFERRED**
 (read, not seen running) unless marked; the reviewer re-read it on 2026-11-14. Callees
 named but not read are taken by name: the world slots `+0x1CC`, `+0x1D0` and `+0x1D4`
-and the key test `0x004097E0`. Built so far: the
-creature fields of §5a and creep (ADR-0802); the view itself is not.
+and the key test `0x004097E0`. Built: the creature
+fields of §5a, creep (ADR-0802), and the view (`PossessionView`, `PossessionWorld`,
+`PossessionControls`, `PossessionCamera`, wired in `DungeonRunner.Possession`), which
+compiles and is unit-tested but has not been seen running.
 
 OpenKeeper (`view/Possession*.java`, `Settings.java`, pull requests #782 and #1193) was
 used for leads only: which creature fields a first-person view reads and the default
@@ -250,6 +252,18 @@ mode at `+0xDE4`.
 table, the second view table at `0x0066D0D8` or the game-action table, so the mode may be
 inert; what it was for is UNKNOWN. Mode 10 goes to `0x0040E670` (UNREAD). Mode 11 is
 entered from mode 2 by the leave handler `0x00442820` (its record is HYPOTHESIS).
+
+## 6a. The owner's recollection, 2026-11-14
+
+Three things the reads above do not settle, as the owner remembers the original (not
+re-observed that day, so not CONFIRMED):
+
+- The right mouse button leaves possession.
+- The view starts facing the way the creature faced.
+- A possession starts with melee selected.
+
+The remake builds all three that way. The binary's sender of the leave action and the
+initial value of the selection byte `+0x13D9` are still unread.
 
 ## 7. Not read yet
 

@@ -12,7 +12,7 @@ namespace DK2.Presentation;
 /// <summary>What the possessor has selected and what Fire sends (possession-client.md §4): DK2's
 /// interface byte <c>+0x13D9</c>, bit 0 melee and bits 3 to 7 the spell slot. The two special
 /// abilities (bits 1 and 2, bindings 10 and 11) are not built: their kinds are not parsed yet.
-/// That a possession starts on melee is a HYPOTHESIS.</summary>
+/// That a possession starts on melee is the owner's recollection (2026-11-14), not a read.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/possession-client.md")]
 public sealed class PossessionControls
 {
