@@ -85,6 +85,9 @@ public static partial class KwdCreatures
         U16(0xEAC, (ushort)row.AirFriction);
         S32(0xEA4, row.Height.Raw);
         S32(0xEB0, row.EyeHeight.Raw);
+        S32(0xDBC, row.FirstPersonWaddle);
+        S32(0xDC0, row.FirstPersonBob);
+        U8(0xD3D, row.FirstPersonWalkCycleScale);
         S32(0xEC8, row.DistanceCanSee.Raw);
         S32(0xECC, row.DistanceCanHear.Raw);
         S32(0xD01, row.PerceptionRange.Raw);

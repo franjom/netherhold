@@ -48,12 +48,14 @@ mode 2, ordinary input is allowed and the possessed creature is live. It returns
 when the creature's `+0x447` is non-zero. Binding ids are DK2's own (§5).
 
 1. **Frame time** is the millisecond clock less the last call's stamp (`0x006CE964`).
-2. **Step length.** `0x0048ABB0(mode)` gives the speed: mode 0 by default, mode 1 while
-   Run (binding 5) is held, mode 2 while the creature's Creeping bit (`+0x3E6` bit 12) is
-   set, which wins. The forward unit is speed × `[interface+4]+8` × frame ms ÷ 1000 (the
+2. **Step length.** `0x0048ABB0(mode)` gives the speed (§2a): mode 0 by default, mode 1
+   while Run (binding 5) is held, mode 2 while the creature's Creeping bit (`+0x3E6` bit
+   12) is set, which wins. The forward unit is speed × `[interface+4]+8` × frame ms ÷ 1000 (the
    `0x10624DD3` multiply, high dword, then >> 6), truncated.
 3. **Creep** (binding 4): held with the bit clear posts game action `0x22` with 1;
-   released with the bit set posts it with 0.
+   released with the bit set posts it with 0. The handler `0x00517310` does one thing:
+   when the sender's possessed-thing word is non-zero it sets that thing's `+0x3E6` bit
+   12 to the record's bit 0. No class, liveness or definition test.
 4. **Keys**, skipped when `+0x3E6` bit 13 is set or the claim bob `+0x389` is running:
    ScrollLeft/ScrollRight (18, 19) strafe by ∓ two thirds of the unit; ScrollDown (17)
    backs at half the unit; ScrollUp (16) goes forward one unit. Opposite keys
@@ -73,8 +75,8 @@ when the creature's `+0x447` is non-zero. Binding ids are DK2's own (§5).
     the Y-only tile and the diagonal. If any refuses, the refused axis is snapped back to
     its tile edge (the far edge when moving positive); with both free and only the
     diagonal blocked, the axis with the smaller travel is snapped.
-11. The width is taken off again and `0x004D1BC0` resolves the point against things, with
-    the creature's `+0x1A8/+0x1AC` temporarily set to the start × 16.
+11. The width is taken off again and `0x004D1BC0` resolves the point against things
+    (§2b), with the creature's `+0x1A8/+0x1AC` temporarily set to the start × 16.
 12. The move is dropped if world slot `+0x20C` at the point or `+0x240` at its tile
     answers non-zero.
 13. **Height.** Ground: floor height (world `+0x204`) + `def+0x65C` + bob, where bob is
@@ -88,6 +90,42 @@ when the creature's `+0x447` is non-zero. Binding ids are DK2's own (§5).
 16. **Look**, always: view action 8 with yaw delta = mouse X × 2; view action `0x7F` with
     mouse X when `def+0x686` bit 28 is set; view action 8 with pitch delta =
     −mouse Y × 2, or + when Invert Mouse (`0x00759C19`) is set.
+
+### 2a. The speed, `0x0048ABB0`
+
+The definition's walk, run or shuffle speed (`def+0x5B4/+0x5B8/+0x5BC`), then in order:
+
+- Not a worker (`def+0x686` bit 0 clear) and health below 20% of its maximum (the
+  level-scaled `def+0x692`, each step truncated): × 20 ÷ 100.
+- Not flying, by the terrain under it: `+0x17B` bit 7 gives × 50 ÷ 100, else bit 8 gives
+  × 150 ÷ 100.
+- Possessed: × (100 + first-person stat 21) ÷ 100. Otherwise, influenced
+  (`+0x3EA` bit 3): the same product ÷ 200.
+
+Every division truncates. The low-health and possession arms repeat what the creature
+update applies to the body speed (`LowHealthSpeedRules`, keeper-spell-possession.md
+"Modifiers"); the terrain arm's counterpart in `src/` was not looked for.
+
+### 2b. The thing resolver, `0x004D1BC0`
+
+Arguments: the wanted X and Y, the creature, two outputs. It is the steering layer's
+sweep, run once for the step:
+
+1. The direction is the wanted point × 16 less the body point `+0x1A8/+0x1AC`,
+   normalised; its length plus the body radius `+0x200` is the reach.
+2. It asks the two steering enumerators within that reach: obstacles (`[0x006ED400]`,
+   callback `0x004D1B40`) and creatures (`[0x006ED3FC]`, callback `0x004D1AB0`). Both
+   are described in [steering-behaviours.md](steering-behaviours.md).
+3. Each callback asks `0x004D2230` for the distance along the direction at which the
+   two circles touch (the radii summed). A candidate is kept when that distance lies
+   within ±(reach − own radius); an obstacle whose flag bit 2 is set is skipped, and so
+   is the creature itself. A kept candidate **replaces** the last one: the callbacks do
+   not compare distances, so the last one enumerated wins.
+4. With none kept, the outputs are the wanted point. Otherwise the outputs are the kept
+   thing's centre plus (its radius + the body radius) along a normalised vector, ÷ 16.
+   Which two points that vector joins is HYPOTHESIS (wanted point less the thing's
+   centre): the decompiler dropped the subtraction's left operand. `0x004D2230` is
+   UNREAD.
 
 ## 3. Angles and roll
 
@@ -121,8 +159,17 @@ The interface byte `+0x13D9` holds the selection: bit 0 melee, bits 1–2 a spec
   creature whose `+0x447` is zero): Melee (6) sets bit 0 and clears bits 1–2; Spell1–3
   (7, 8, 9) call `Possession_SelectAbility` with 0, 1, 2 and SelectAlly (12) with 3, then
   clear bits 1–2; PickLock (2) is the Library special or the inert action 36; the two
-  abilities (10, 11) go through `0x0040FA90` and `0x0040FDA0` (UNREAD); RemoveAlly (13)
-  posts action 38; Sniper (1) is `0x0040FDF0`; Fire (3) calls `Possession_SubmitAttack`.
+  abilities (10, 11) are below; RemoveAlly (13) posts action 38; Sniper (1) is
+  `0x0040FDF0`; Fire (3) calls `Possession_SubmitAttack`.
+- **The two abilities.** `0x00494700(n)` returns the definition byte `def+0x673+n`, the
+  kind of special ability n (0 or 1). PrimaryAbility (`0x0040FA90`) switches on kind 0's
+  value: 1 sets the selection byte to 2, so Fire posts action `0x1C`; 3 posts action
+  `0x1E` at once; 6 posts `0x1D`, the sneak toggle, with the camera's tile; 7 posts
+  `0x1F`; 9 asks world slot `+0x334`, the melee pick, for a target at the camera pose
+  and posts `0x89` with (target, possessed thing, 2000). Kinds 3, 6, 7 and 9 then start
+  the presentation `0x005075A0` with `def+0x682` and `def+0x791`. SecondaryAbility
+  (`0x0040FDA0`) acts only on kind 5: it sets the selection byte to 4, so Fire posts the
+  hypnosis action `0x1B`. The file offsets of `def+0x673/+0x674` are UNREAD.
 - The left mouse button reaches the same `Possession_SubmitAttack` from `Hand_Click`
   (`0x00407666`).
 - **`Possession_SubmitAttack`** (`0x004100F0`) does nothing when the creature's `+0x447`
@@ -143,7 +190,26 @@ from `0x005604C0`): 1 Sniper, 2 PickLock, 3 Fire, 4 Creep, 5 Run, 6 Melee, 7–9
 10–11 the abilities, 12 SelectAlly, 13 RemoveAlly, and 16–19 the scroll keys, which are
 forward, back and the strafes here.
 
+## 5a. Creature fields
+
+`CreatureDef_BuildFromRecord` (`0x00492320`, staging offset = file offset + 0x3F0) fills
+the fields the step reads: body width `def+0x63A` from file `0xEA0` (`FootprintRadius`),
+eye height `def+0x65C` from `0xEB0` (`EyeHeight`), waddle `def+0x863` from the dword at
+`0xDBC`, bob `def+0x867` from the dword at `0xDC0`, and the walk-cycle scale `def+0x86B`
+from the byte at `0xD3D`, zero-extended. The lean flag is `def+0x686` bit 28, file
+`0xEFC`.
+
 ## 6. The other possession modes
+
+**Entering.** The view handler `0x00448440` (table entry at `0x0066D12C`) takes a
+record of a thing id and a player; for the view's own player, when the thing is a
+creature or an object (class 0 or 2), it requests camera mode 2 with the thing id. A
+neighbouring routine ending at `0x00448438` plays the definition's sound `def+0x6E3`
+and requests mode 2 the same way (its head is UNREAD). What `Camera_SetMode` does with
+that request between an ordinary mode and mode 2 (preset 10's fly-in) is UNREAD.
+
+**Leaving.** `Camera_Update`'s mode 11 arm waits 2000 ms from `+0xDDC`, zeroes the
+pitch and requests the saved mode.
 
 `Hud_PollOrdinaryCameraInput` sends mode 1 to `0x0040F820`: the scroll keys post actions
 `0x18` (∓0x23) and `0x17` (∓0x100) instead of moving a camera, which fits the
@@ -154,10 +220,10 @@ third-person presentation bit of action 20 (HYPOTHESIS). Mode 10 goes to `0x0040
 
 - How the first-person preset's lens and view distance reach the renderer, and the
   writers of camera `+0xE38` and `+0xE3C`.
-- Who requests mode 2 when Possession lands, and the timed moves in and out (modes 10
-  and 11).
-- `Possession_SelectAbility`'s level gate in full, `0x0040FA90`, `0x0040FDA0`,
-  `0x00494700` and `0x005075A0`.
+- The timed move from an ordinary mode into mode 2 (mode 10), and who raises the view
+  event `0x00448440` handles.
+- `Possession_SelectAbility`'s level gate in full, `0x005075A0`, `0x004D2230`, and the
+  handlers of actions `0x1C`, `0x1E`, `0x1F` and `0x89`.
 - The possession HUD (`0x00420D10`), the colour ramps (Q745) and the cast effect (Q749).
 - The units of the mouse delta `Input_DrainMouseDelta` returns, and what Mouse
   Sensitivity does to it.

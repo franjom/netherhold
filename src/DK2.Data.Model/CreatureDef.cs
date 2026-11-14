@@ -178,6 +178,18 @@ public sealed record CreatureDef
 
     public required Fp32 Height { get; init; }
     public required Fp32 EyeHeight { get; init; }
+
+    /// <summary>File <c>+0xDBC</c> (<c>def+0x863</c>): the scale of the possessed view's waddle, the
+    /// side-to-side sway and roll of the walk cycle (docs/research/possession-client.md §2).</summary>
+    public int FirstPersonWaddle { get; init; }
+
+    /// <summary>File <c>+0xDC0</c> (<c>def+0x867</c>): the scale of the possessed view's vertical bob.</summary>
+    public int FirstPersonBob { get; init; }
+
+    /// <summary>File <c>+0xD3D</c> (<c>def+0x86B</c>): how fast the possessed view's walk cycle
+    /// runs, in table steps per 50 ms.</summary>
+    public byte FirstPersonWalkCycleScale { get; init; }
+
     public required Fp32 DistanceCanSee { get; init; }
     public required Fp32 DistanceCanHear { get; init; }
     /// <summary>

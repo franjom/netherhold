@@ -64,24 +64,34 @@ view (camera mode 1, action 20), the colour ramps (Q745), the cast effect (Q749)
 
 ## Prerequisites
 
-Before the view can be built (tasks 3 and 4):
+Done (possession-client.md):
 
-- The creature fields of task 1, whose file offsets are unread.
-- The thing resolver `0x004D1BC0`, unread.
-- The tile test `0x0040F6B0`: its room-type refusals are HYPOTHESIS and need a re-read.
-- The speed selection `0x0048ABB0`: no equivalent found in `src/`.
-- Ability selection: `Possession_SelectAbility`'s level gate, `0x0040FA90`, `0x0040FDA0`
-  and `0x00494700`. Melee alone does not need them.
+- Creature fields: `FirstPersonWaddle`, `FirstPersonBob` and `FirstPersonWalkCycleScale`
+  are parsed and written; body width, eye height, the three speeds and the lean flag
+  were parsed already (§5a).
+- Read: the speed selection (§2a), the thing resolver (§2b), the tile test, the creep
+  handler, the two ability keys and the ability kind accessor (§4), and what requests
+  mode 2 (§6).
 
-Can follow a first playable version:
+Still needed before tasks 3 and 4:
 
-- Creep (task 2), the only item that changes simulation state.
-- Entering and leaving (task 5).
-- What Mouse Sensitivity does to the mouse delta, and how the preset's lens and view
-  distance reach the renderer.
+- `0x004D2230`, the resolver's touch-distance helper, and the one vector in
+  `0x004D1BC0` the decompiler left ambiguous: read the listing.
+- Whether `src/` already mirrors the speed's terrain arm (§2a).
+- The file offsets of the ability kinds `def+0x673/+0x674`, and the handlers of actions
+  `0x1C`, `0x1E`, `0x1F` and `0x89`, for the abilities beyond melee, sneak and hypnosis.
 
-Owed on what is already written: the reviewer pass on the 10 new and 7 updated function
-records, and a read of the documents `kb check` lists as citing the changed records.
+Creep (task 2) is larger than a flag. The bit is read by the five combat target arms,
+four more scans and the sneak's watcher test, each scaling a creeping creature's
+apparent distance by `def+0x760` (file `0xEE4`, level-scaled by stat 26, 50 on every
+shipped creature but the Horned Reaper's 0); `CombatTargetRules` records that weighting
+as unbuilt (combat-target-selection.md §2). The task is the flag, the command, the
+clear on leaving, the field and those readers, with a hash and save version.
+
+Can follow a first playable version: entering and leaving (task 5), Mouse Sensitivity,
+and how the preset's lens and view distance reach the renderer.
+
+Owed: the reviewer pass on the function records (started on the first commit).
 
 ## Owner decisions wanted
 
