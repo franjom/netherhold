@@ -62,7 +62,7 @@ namespace DK2.Unity
             if (entered)
             {
                 _possessionView.Enter(creature.PosX, creature.PosY,
-                    _possessionWorld.FloorHeight(creature.PosX, creature.PosY), _possessionWorld.Body());
+                    creature.PosZ + FloorHeightRules.Ordinary, _possessionWorld.Body());
                 _possessionControls.Reset();
                 _creepingSent = null;
                 _possessionMilliseconds = 0;

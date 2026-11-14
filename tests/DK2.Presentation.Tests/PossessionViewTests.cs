@@ -160,6 +160,7 @@ public sealed class PossessionViewTests
     [InlineData(0, 10, true, 0, PossessionView.Horizon + 20)]
     [InlineData(0, -200, false, 0, PossessionView.MaxPitch)]
     [InlineData(0, 200, false, 0, PossessionView.MinPitch)]
+    [InlineData(0, 400, false, 0, PossessionView.MaxPitch)]         // a flick past zero wraps, and the clamp sends it up
     public void TheMouseTurnsAndPitchesWithinFortyFiveDegrees_StronglyInferredFromBinary(int mouseX, int mouseY, bool invert, int yaw, int pitch)
     {
         PossessionView view = At(0x5800, 0x5800);
@@ -183,6 +184,32 @@ public sealed class PossessionViewTests
 
         left.Step(16, default, -100, 0, false, body, new World());
         Assert.Equal(0x800 - 50, left.Roll);
+    }
+
+    /// <summary>Scale 4, two cycle steps in: the 64-step sine is at an eighth, so a waddle of 1.0 adds 90 to the strafe
+    /// and rolls the view by 11.</summary>
+    [Fact]
+    public void TheWaddleSwaysAndRollsTheView_StronglyInferredFromBinary()
+    {
+        PossessionView view = At(0x5800, 0x5800);
+
+        view.Step(100, Forward, 0, 0, false, Body(waddle: 0x1000), new World());
+
+        Assert.Equal((0x5800 + 90, 0x5800 - 40, 11), (view.X, view.Y, view.Roll));
+    }
+
+    /// <summary>Ten cycle steps in the sine is negative: the roll's word reaches the lean unmasked, whose decay
+    /// zeroes it; a creature that does not lean keeps it, masked.</summary>
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 0x800 - 11)]
+    public void ANegativeWaddleIsZeroedByTheLean_StronglyInferredFromBinary(bool leans, int roll)
+    {
+        PossessionView view = At(0x5800, 0x5800);
+
+        view.Step(500, Forward, 0, 0, false, Body(waddle: 0x1000, leans: leans), new World());
+
+        Assert.Equal(roll, view.Roll);
     }
 
     [Fact]

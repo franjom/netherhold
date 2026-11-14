@@ -74,9 +74,9 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
     public bool Frozen => Creature.FrozenTicks != 0;
 
     /// <summary><c>0x0040F6B0</c>: not solid; when the two navigation bytes differ and the creature
-    /// does not stand in a doorway, a step the cost function allows (doors not respected, water and lava
-    /// by the definition or by flying); and not a Hero Gate tile, a Portal's centre or a Temple's floor
-    /// slot. DK2's portal-hole grant (<c>+0x3E6</c> bit 19) is not represented.</summary>
+    /// does not stand in a doorway, a step the cost function allows (doors respected when the
+    /// creature's <c>+0x3E6</c> bit 19 is set, water and lava by the definition or by flying, no
+    /// portal-hole grant); and not a Hero Gate tile, a Portal's centre or a Temple's floor slot.</summary>
     public bool CanStepTo(int tileX, int tileY)
     {
         WorldState world = World;
@@ -88,9 +88,8 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
         if (from != to && !NavBytes.IsDoor(from))
         {
             bool flies = WaterSpeedRules.IsFlying(def, me);
-            var mover = new MoverProfile(
-                flies || (def.Flags & CreatureFlags.CanWalkOnWater) != 0,
-                flies || (def.Flags & CreatureFlags.CanWalkOnLava) != 0, me.OwnerPlayerId);
+            MoverProfile mover = WorldSteering.ProfileOf(def, me.OwnerPlayerId, (MoveOptions)((int)me.RouteOptions & 0x80));
+            if (flies) mover = mover with { CanWalkOnWater = true, CanWalkOnLava = true };
             if (MeshRouter.TransitionCost(to, from, mover) == 0) return false;
         }
 
@@ -107,8 +106,9 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
 
     /// <summary><c>0x004D1BC0</c>: the step swept from the start against the obstacles and creatures
     /// the steering enumerators return. The last thing touched within the step's length is kept, with
-    /// no nearest test, and the wanted point is put on its edge. That the obstacle flag skipped is the
-    /// enumerator's second bit is a HYPOTHESIS.</summary>
+    /// no nearest test, and the wanted point is put on its edge. The obstacles DK2's callback skips
+    /// (flag value 4) are a class this enumerator never returns, so none is skipped here: the Dungeon
+    /// Heart's centre, whose flags are 3, stops a possessed step as it does in DK2.</summary>
     public (int X, int Y) ResolveAgainstThings(int startX, int startY, int wantedX, int wantedY)
     {
         CreatureState me = Creature;
@@ -126,7 +126,6 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
         _steering!.CollectObstacles(start, reach, _obstacles);
         foreach (SteeringObstacle obstacle in _obstacles)
         {
-            if (obstacle.Flag2) continue;
             int at = TouchDistance(start, direction, obstacle.Pos, obstacle.Size + radius);
             if (at == int.MaxValue || at < -length || at > length) continue;
             (kept, centre, keptRadius) = (true, obstacle.Pos, obstacle.Size);

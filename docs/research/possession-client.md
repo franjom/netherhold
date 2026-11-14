@@ -102,7 +102,8 @@ when the creature's `+0x447` is non-zero. Binding ids are DK2's own (§5).
 14. On the ground it posts view action `0x80` with the waddle's roll and plays footstep
     sounds 0x332 and 0x333 alternately at each half cycle (0x337 and 0x338 on terrain
     whose `+0x17B` bit 7 is set), placed to the left and right of the heading by an
-    offset scaled from 0x30000, or 0x2000 when Run is held (units UNREAD).
+    offset of spread × sin >> 16, then ÷ 16, with a spread of 0x30000, or 0x2000 when Run
+    is held.
 15. It posts view action 2 with (x, y, height): the camera's new focus.
 16. **Look**, always: view action 8 with yaw delta = mouse X × 2; view action `0x7F` with
     mouse X when `def+0x686` bit 28 is set; view action 8 with pitch delta =
@@ -136,8 +137,10 @@ sweep, run once for the step:
    are described in [steering-behaviours.md](steering-behaviours.md).
 3. Each callback asks `0x004D2230` for the distance along the direction at which the
    two circles touch (the radii summed). A candidate is kept when that distance lies
-   within ±(reach − own radius); an obstacle whose flag bit 2 is set is skipped, and so
-   is the creature itself. A kept candidate **replaces** the last one: the callbacks do
+   within ±(reach − own radius), which is ± the step's length; an obstacle whose flag
+   value 4 is set is skipped (only the class-3 things the enumerator adds while this
+   routine runs carry it; the Dungeon Heart's centre, flags 3, is kept), and so is the
+   creature itself. A kept candidate **replaces** the last one: the callbacks do
    not compare distances, so the last one enumerated wins.
 4. With none kept, the outputs are the wanted point. Otherwise the outputs are the kept
    thing's centre plus (its radius + the body radius) along the normalised vector from
@@ -146,8 +149,7 @@ sweep, run once for the step:
 5. `0x004D2230(point, direction, centre, radius)` works in doubles, every input times
    2⁻¹⁶: with Δ = point − centre, a = D·D, b = 2 Δ·D, c = Δ·Δ − radius², it answers
    0x7FFFFFFF when b² − 4ac ≤ 0, else the smaller of the quadratic's two roots, each
-   times 65536 and truncated (computed as q/a and c/q with q = (√disc − b)/2; which
-   divisor is which was not separated).
+   times 65536 and truncated (q/a first, then c/q, with q = (√disc − b)/2).
 
 ## 3. Angles and roll
 
@@ -259,7 +261,8 @@ Three things the reads above do not settle, as the owner remembers the original 
 re-observed that day, so not CONFIRMED):
 
 - The right mouse button leaves possession.
-- The view starts facing the way the creature faced.
+- The view starts facing the way the creature faced. Since read: `Camera_SetMode` targets
+  the creature's heading (`0x0044B638`).
 - A possession starts with melee selected.
 
 The remake builds all three that way. The binary's sender of the leave action and the

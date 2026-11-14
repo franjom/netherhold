@@ -54,6 +54,7 @@ public sealed class PossessionControlsTests
         var body = new PossessedBody(100, 200, 50, false, false, false, false, 0x200, 0x600, 0, 0, 4, false, 0x155);
         view.Enter(0x5800, 0x6800, 0x1000, body);
         var controls = new PossessionControls();
+        controls.SelectMelee();
 
         ActPossessedCreatureCommand fire = controls.Fire(Keeper, view);
         MovePossessedCreatureCommand pose = PossessionControls.Pose(Keeper, view, body);

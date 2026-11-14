@@ -71,12 +71,13 @@ public sealed class PossessionView
     public int Pitch { get; private set; } = Horizon;
     public int Roll { get; private set; }
 
-    /// <summary>Puts the camera on a creature just possessed: on its point at eye height, level. The
-    /// starting pitch is <c>Camera_SetMode</c>'s constant. That the view starts facing the creature's
-    /// heading is the owner's recollection (2026-11-14); the timed move into mode 2 is unread.</summary>
-    public void Enter(int x, int y, int floorHeight, in PossessedBody body)
+    /// <summary>Puts the camera where <c>Camera_SetMode</c> sends it for a creature just possessed
+    /// (<c>0x0044B5ED</c>-<c>0x0044B657</c>): on its point, its own height plus the eye height, facing
+    /// its heading, level. DK2 flies the camera there in a timed move, during which the look is
+    /// dropped; that move is not modelled, so this view cuts.</summary>
+    public void Enter(int x, int y, int creatureHeight, in PossessedBody body)
     {
-        X = x; Y = y; Z = floorHeight + body.EyeHeight;
+        X = x; Y = y; Z = creatureHeight + body.EyeHeight;
         Yaw = body.Heading & AngleMask; Pitch = Horizon; Roll = 0;
         _clock = _cycleStamp = 0; _cycle = _lastCycle = 0;
         _leftFootDue = 0x600; _rightFootDue = 0x200;
@@ -134,6 +135,7 @@ public sealed class PossessionView
         if (body.LeansWhenTurning) Lean(mouseX);
         Pitch = (Pitch + (invertMouse ? mouseY : -mouseY) * 2) & AngleMask;
         Pitch = Math.Clamp(Pitch, MinPitch, MaxPitch);
+        Roll &= AngleMask;      // Camera_Update masks the roll; the lean above saw the waddle's word unmasked
 
         _lastCycle = _cycle;
         return new PossessionFrame(setCreeping, left, right);
@@ -172,7 +174,7 @@ public sealed class PossessionView
         if (!body.Flying)
         {
             z = floor + Bob(body, backing);
-            Roll = Over4096(Over4096(TrapRules.Sine((int)((uint)body.WalkCycleScale * _cycle & 0x3F) * 32) * body.Waddle)) & AngleMask;
+            Roll = Over4096(Over4096(TrapRules.Sine((int)((uint)body.WalkCycleScale * _cycle & 0x3F) * 32) * body.Waddle)) & 0xFFFF;
             Footsteps(x, y, z, run, body, world, ref left, ref right);
         }
         else
@@ -221,7 +223,8 @@ public sealed class PossessionView
 
     /// <summary><c>0x0044DD40</c>: the lean into a turn. Only a positive roll is limited; the test on
     /// the negative side never fires in DK2, and is kept that way (ADR-0783). Every call then halves
-    /// the roll toward zero, and a roll of one either side stays.</summary>
+    /// the roll toward zero, and a roll of one either side stays. A negative waddle arrives as an
+    /// unmasked word, which the decay's own test zeroes.</summary>
     private void Lean(int mouseX)
     {
         if (mouseX != 0)
@@ -235,7 +238,7 @@ public sealed class PossessionView
         else
         {
             int step = Over((0x800 - Roll) * 0x20, 6);
-            Roll = Roll <= 0x800 - step ? (Roll + step) & AngleMask : 0;
+            Roll = Roll <= 0x800 - (step & 0xFFFF) ? (Roll + step) & AngleMask : 0;
         }
     }
 
