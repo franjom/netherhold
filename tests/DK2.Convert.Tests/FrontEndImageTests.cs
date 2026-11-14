@@ -131,7 +131,7 @@ public class FrontEndImageTests
     // Pixels from DKII.EXE's own block decoder 0x00668810 run on Unicorn at 64-bit x87
     // precision; the precision the game runs it at is open (see the 0x00668810 record).
     [InstallFact]
-    public void LoadingScreenDecodesToTheNativePixels()
+    public void LoadingScreenDecodesToTheNativePixelsAt64BitPrecision_Q812()
     {
         using var wad = WadArchive.Open(Path.Combine(Dk2InstallGate.Path, "Data", "FrontEnd.WAD"));
         using var images = new WadImageSource(wad, _ => throw new Exception("PNG decoder called for a .444"));

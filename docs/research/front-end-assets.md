@@ -114,7 +114,8 @@ advance for the extended positive/negative AC forms.
 
 Our decoder implements the unmasked path, pads to 8-pixel blocks and crops to the
 header size; masked images are refused. Emulated `0x00668810` gives the same pixels
-for all 29 shipped images ([texture-codec.md](texture-codec.md) §3-4).
+for all 29 shipped images at 64- or 53-bit x87 precision; at 24-bit, 18 differ, and which
+precision the game uses there is Q812 ([texture-codec.md](texture-codec.md) §3-4).
 OpenKeeper's `LoadingScreenFile` and `LoadingScreenTextureDecoder` corroborated
 the header and RGB/DC distinction (facts only; THIRD-PARTY-NOTICES.md).
 

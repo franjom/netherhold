@@ -147,8 +147,11 @@ internal sealed class Dk2TextureDecoder
                     level -= 0x100;
                 }
             }
-            // The binary does not bound the counter; a stream that runs it below the table is malformed.
-            if ((uint)slot >= BlockArea) throw new InvalidDataException("Texture AC run passes the end of the block.");
+            // The binary keeps this counter in one byte and never bounds it: a run past slot 1 wraps it
+            // to 0xFF and the zigzag lookup reads the table after it (0x006597D2..0x00659929). Slot 0 is
+            // the DC term, which no AC code reaches in a well-formed stream, so anything outside 1..63 is
+            // malformed input and is refused here rather than mirrored.
+            if (slot < 1 || slot >= BlockArea) throw new InvalidDataException("Texture AC run passes the end of the block.");
             int index = zigzag[slot];
             coefficients[index] = unchecked(level * step[index]);
         }
@@ -274,7 +277,8 @@ internal sealed class Dk2TextureDecoder
     }
 
     // The native lookup tables (0x005B21E0, 0x005D7360) map -0x180..0x27F to 0..255 by
-    // clamping; indices outside that range read past them and are clamped here.
+    // clamping. Natively an index outside that range reads the neighbouring channel's table and
+    // can set another byte; shipped data never gets there, and here it simply clamps.
     private static byte Clamp(int value) => (byte)(value < 0 ? 0 : value > 255 ? 255 : value);
 
     /// <summary>
