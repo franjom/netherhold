@@ -1,0 +1,12 @@
+id: campaign-player-level3-seed1
+question: >
+  Shipped Level 3 from its unmodified start, DK2 random seed 1, played by the default campaign player
+  (campaign bot stage 3 plan, ladder diagnosis). The file grants nothing; not an acceptance claim.
+map: campaign:level3
+seed: 1
+random: dk2
+fog_of_war: true
+viewing_player: 3
+duration_ticks: 14400
+setup:
+  placed_things: true
