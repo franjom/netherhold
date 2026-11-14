@@ -290,7 +290,7 @@ restored from a save.
    dispatcher drops to state 1 (`0x004772B0`), the bird untouched. With no chicken it
    calls `SetState(91)` and returns 1 (`0x004636F3`-`0x004636FD`); 91's handler runs a turn later (step 2), so
    in a hatchery whose only bird is on a coop the creature alternates 92 and 91 a turn each
-   (Q801, ADR-0797). A third gate, `0x004DEC40`, sits before the bird loop (Q806, unmodelled). The prepared
+   (Q801, ADR-0797; the owner saw no flicker in such a hatchery on 2026-11-14, consistent: the alternation has no walk or new animation). A third gate, `0x004DEC40`, sits before the bird loop (Q806, unmodelled). The prepared
    bird runs process 8 about 33 turns (`0x004A24A0`, eating.md §6). The `+0xAB`/`+0xAF` stores
    here and in state 93 overlay a held Library target point ([library-states.md](library-states.md) §4).
 6. **State 6** (`0x00470C80`) is a plain walk: it reads only its own gates and the

@@ -166,7 +166,7 @@ the point from `0x004E4C10(room)`:
 2. From there, round the chain for at most `size + 1` tiles (wrapping to the first slab), the first
    tile that is no floor slot (`0x00454110`), no wall slot (`0x00454230`), of nav class 0
    (`0x00455000`), and either a Lair's tile (`0x00453A20(2)`) or holding no Obstacle object
-   (`0x00453600`, `+0xF4` bit `0x4000`). Its centre is the point; with none, 0 and no walk.
+   (`0x00453600`, `+0xF4` bit `0x4000`; ours' virtual Hatchery pillars count, [Q805](hatchery-pillar-steering.md#room-walks-adr-0798)). Its centre is the point; with none, 0 and no walk.
 
 So no job walk ends in a Temple's pool, on furniture, or against a wall's furniture.
 `RoomWalkRules.ArrivalTile` is this; `CreatureJobSystem.TrySetOut` uses it for every job room

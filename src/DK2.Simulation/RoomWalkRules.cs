@@ -28,7 +28,9 @@ public static class RoomWalkRules
         {
             int tile = chain[(start + k) % chain.Length];
             if (slots.Contains(tile) || CasinoStep.NavClass(database, world.TileAtIndex(tile)) != 0) continue;
-            if (room.Definition.TypeId != RoomTypeId.Lair && CasinoStep.HasObstacle(world, database, tile)) continue;
+            if (room.Definition.TypeId != RoomTypeId.Lair && (CasinoStep.HasObstacle(world, database, tile)
+                    || ChickenMovementRules.HasHatcheryPillar(world, database, new TilePos(tile % world.Width, tile / world.Width))))
+                continue;   // DK2's Hatchery pillars are Obstacle things on their tiles; ours keeps them virtual (Q805)
             return tile;
         }
 

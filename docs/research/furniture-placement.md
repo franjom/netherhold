@@ -141,8 +141,10 @@ heading uses the mesh conversion in `object-drawing.md` §4. Level 8's Torture C
 (11,14), (13,14), as ours places and draws them at tile centres.
 
 The [virtual Hatchery steering geometry](hatchery-pillar-steering.md) is built
-at 441. Physical pillar creation/destruction, movement-bit writes and other
-room pillars remain outside that bounded implementation.
+at 441, and a room walk's point skips a Hatchery pillar corner too
+([room walks](hatchery-pillar-steering.md#room-walks-adr-0798), ADR-0798). Physical pillar
+creation/destruction, movement-bit writes and other room pillars remain outside that bounded
+implementation (Q808).
 
 ## 6. The Dungeon Heart (`DungeonHeart_Build` `0x004DB700`)
 

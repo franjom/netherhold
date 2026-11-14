@@ -672,6 +672,45 @@ public class EatingTests
         Assert.Same(further, EatingRules.NearestChickenIn(world, db, room, new TilePos(5, 5)));
     }
 
+    // A room walk's point (0x004E4C10) passes over a tile holding an Obstacle; DK2's Hatchery pillars
+    // (object 78) are Obstacle things on the corner tiles, so a walk never ends on one. Level 5 seed 1,
+    // tick 2055: from the coop at chain index 4, native skips the pillar corner (10,26) (Q805).
+    [Fact]
+    public void AWalkToTheHatcheryNeverEndsOnAPillarCorner()
+    {
+        GameDatabase basis = Db;
+        ObjectDef pillar = basis.ObjectById(Navigation.WorldSteering.ArchesObjectId)! with
+        {
+            ObjectId = HatcheryRules.PillarObjectId, Flags = ObjectFlags.Obstacle | ObjectFlags.Pillar,
+        };
+        GameDatabase db = new(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
+            objects: basis.Objects.Values.Where(o => o.ObjectId != HatcheryRules.PillarObjectId).Append(pillar));
+        WorldState world = World(db);
+        Floor(world, 1, 1, 10, 10);
+        RoomInstance room = Hatchery(db, world, 5, 5, 3, 3, Keeper);
+        int[] corners = [(5 * world.Width) + 5, (5 * world.Width) + 7, (7 * world.Width) + 5, (7 * world.Width) + 7];
+        Assert.All(corners, c => Assert.NotEmpty(AutoFurnitureRules.RoomPillarCorners(world, room, new TilePos(c % world.Width, c / world.Width))));
+
+        var points = new HashSet<int>();
+        for (ulong seed = 1; seed <= 40; seed++)
+        {
+            var sim = new GameSimulation(db, world, seed, [new Probe(context =>
+            {
+                if (RoomWalkRules.ArrivalTile(context, room) is int tile) points.Add(tile);
+            })]);
+            sim.Tick();
+        }
+
+        Assert.NotEmpty(points);
+        Assert.DoesNotContain(points, corners.Contains);
+    }
+
+    private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
+    {
+        public string Name => "Probe";
+        public void Execute(SimulationContext context) => body(context);
+    }
+
     // 92 finds no bird it may take (the only one is on a coop, 0x00453600) and sets 91 (0x004636F8);
     // 91's finder still counts the room stocked (0x004DED00, ObjectList) and the room helper's inside
     // arm sets 1 and 92 (0x00471AAE-0x00471AC0): the two alternate a turn each (Q801).

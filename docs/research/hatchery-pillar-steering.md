@@ -73,6 +73,20 @@ records the2 inherited observation-only runtime differences. Scripts are in
 1439 query tile chains. Physical pillar creation/destruction and lifetime
 remain outside this virtual geometry correction.
 
+## Room walks (ADR-0798)
+
+The virtual pillar is also seen by a room walk's point. `Room_WalkPoint` ([record](functions/004E4C10.md); [rule](temple-states.md#9-where-a-walk-to-a-room-ends-0x004e4c10--strongly-inferred)) rejects a tile on which
+`0x00453600` finds a kind-2 thing whose definition flags have `0x4000` (Obstacle), outside a Lair: CONFIRMED by disassembly (`0x004E4CE5`).
+Native pillars are things linked to their own corner tile (STRONGLY INFERRED: `0x004EF1F0` creates them, `0x0049B21B` links them on
+layer 0 and `0x004B4E70` by position>>12; capture (44031,107520) = (43008,108544) + (0x3FF,-0x400)). So a walk's point is never a pillar corner.
+
+Level 5 seed 1, creature 439, tick 2055 (Hatchery 1117, slab chain identical to ours' at 1400 and 2056: (12,26) (12,25) (11,26) (12,24)
+(11,25) (10,26) (11,24) (10,25) (10,24)): both draws were index 4 of 9. The coop (35) is on (11,25) and a pillar on each corner tile. From
+index 4 native skips (11,25) (floor slot), (10,26) (pillar) and (11,24) (wall slot; HYPOTHESIS, [0x00454230](functions/00454230.md), supported
+by the outcome) and ends on (10,25); ours, with the pillar virtual, took (10,26). `RoomWalkRules.ArrivalTile` now also skips a tile where
+`ChickenMovementRules.HasHatcheryPillar` holds. The other rooms' pillars and the other `0x00453600` callers that miss a virtual pillar are
+[Q808](open-questions.md).
+
 ## Regression evidence
 
 Twelve focused cases fail6/pass6 before the change: four inward corner poses

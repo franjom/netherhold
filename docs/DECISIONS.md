@@ -19016,3 +19016,34 @@ the self-strap test (130 for a turn, then 131), `EatingTests.TheWalksAreDk2sStat
 turn), `TwoHungryGoblinsRace...` (the loser idles, `hatchery_empty`) and
 `InAHatcheryWhoseOnlyBirdIsOnACoopTheEaterAlternatesNinetyTwoAndNinetyOne`. Full suite passes (Simulation 5400, Behavior 620 with
 5 skipped).
+
+## ADR-0798 - a room walk's point passes over a tile holding a Hatchery pillar
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 515
+
+**Context.** Q805, Level 5 seed 1, controlled replay at hash 514: boundary at turn 2120 draw 7, native `ObjectState.cpp:2851` (a
+roam) against ours' `ObjectState.cpp:2708` (a reaction, bird 141). Creature 439 (ours' id 17) walked to the Hatchery from tick 2055:
+native's target (body `+0x1C8`/`+0x1CC`) is the centre of (10,25), ours' of (10,26), and at 2111 the two routes turned differently.
+Both drew the same `Room.cpp:1509` value, index 4 of 9 along a slab chain that is identical (1400 and 2056): (12,26) (12,25) (11,26)
+(12,24) (11,25) (10,26) (11,24) (10,25) (10,24). Natively the four corner tiles hold a Hatchery Pillar (78) and (11,25) the coop (35).
+From index 4: (11,25) is a floor slot, skipped; (10,26) holds a pillar, skipped natively, but ours keeps Hatchery pillars virtual and
+took it; (11,24) is a wall slot, skipped; (10,25) is taken. `Room_WalkPoint` (`0x004E4C10`) rejects a tile that `0x00453600` finds an
+Obstacle thing on (a kind-2 thing whose definition flags have `0x4000`, ours' `ObjectFlags.Obstacle`; `0x004E4CE5`), outside a Lair.
+CONFIRMED (reviewer, disassembly). Native pillars are real things linked to their own corner tile (`0x004EF1F0`, `0x0049B21B`,
+`0x004B4E70`; STRONGLY INFERRED); the wall slot of (11,24) rests on `0x00454230`'s HYPOTHESIS record and the outcome.
+
+**Decision.** `RoomWalkRules.ArrivalTile`'s obstacle test, outside a Lair, also skips a tile where
+`ChickenMovementRules.HasHatcheryPillar` holds (ours' virtual Hatchery pillar, object 78, Obstacle). Evidence:
+[hatchery-pillar-steering.md](research/hatchery-pillar-steering.md#room-walks-adr-0798),
+[temple-states.md](research/temple-states.md#9-where-a-walk-to-a-room-ends-0x004e4c10--strongly-inferred).
+
+**Consequences.** Hash and save 515; earlier saves are refused (no field added). Pin `0xB9F5118F71673E61`. Level 5 seed 1
+(controlled569): 11679 draws match through 2122 (11627 through 2119 at 514); the next boundary is turn 2123 draw 1, native
+`ObjectState.cpp:2851` against ours' `Room.cpp:1509` (`RoomWalkRules.ArrivalTile` from `LairSeeker.TrySetOutForALair`, creature 434
+in state 1), Q807. Level 1's journal is re-recorded: win 2384 (was 2374), gem taken at 2480 (was 2490), the Lord dies on (15,20)
+(was (14,20)); `ReaperFinaleOnRealDataTests` follows (remake output, not a DK2 fact). Residuals, not built (Q808): native places real
+pillars in Treasury 76, Torture 82, Graveyard 84, Casino 85, Combat Pit 79 and Crypt 141 too, which ours does not model (PLAUSIBLE
+that a room walk to one ends on a corner native skips, unless their shipped flags lack Obstacle, unchecked); other native callers of
+`0x00453600` whose counterparts miss virtual pillars: `Object_Process10LooseMove` `0x004A28D6` (minor), `Creature_FindWanderPoint`
+`0x00480B05`/`0x00480CE9`/`0x00480E3D`; `0x00461BB0` and Training_DisturbedState109 unread. Already covered: `Eat_ChooseChicken`
+`0x00463647`, the chicken's process 6 `0x004A2046`. Test: `EatingTests.AWalkToTheHatcheryNeverEndsOnAPillarCorner` (fails without the
+fix; a synthetic 78 with Obstacle|Pillar). Full suite passes (Simulation 5401, Behavior 620 with 5 skipped).
