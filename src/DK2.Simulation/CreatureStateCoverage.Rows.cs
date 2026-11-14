@@ -280,7 +280,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(263, typeof(TremorRules), nameof(TremorRules.WaitingState)));
         rows.Add(Built(264, typeof(TremorRules), nameof(TremorRules.GettingUpState)));
         rows.Add(Unbuilt(265, "partly read in imp-task-objects-and-walks.md 3, steering-behaviours.md; not built"));
-        rows.Add(Unbuilt(266, "not read"));
+        rows.Add(Unbuilt(266, "read in room-pillar-obstacles.md; not built"));
         rows.Add(Built(267, typeof(RoomAttackRules), nameof(RoomAttackRules.DestroyRoomTile)));
         rows.Add(Unbuilt(268, "its handler 0x00458680 waits out an action, then idles; no SetState or walk pushes 0x10C (room-health.md §5); +0xDF stores and room tables unscanned"));
         rows.Add(Built(269, typeof(PartyArrivalRules), nameof(PartyArrivalRules.WaitingState)));

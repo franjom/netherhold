@@ -144,7 +144,7 @@ The [virtual Hatchery steering geometry](hatchery-pillar-steering.md) is built
 at 441, and a room walk's point skips a Hatchery pillar corner too
 ([room walks](hatchery-pillar-steering.md#room-walks-adr-0798), ADR-0798). Physical pillar
 creation/destruction, movement-bit writes and other room pillars remain outside that bounded
-implementation (Q808).
+implementation; see the [coverage census](room-pillar-obstacles.md) (Q808).
 
 ## 6. The Dungeon Heart (`DungeonHeart_Build` `0x004DB700`)
 
