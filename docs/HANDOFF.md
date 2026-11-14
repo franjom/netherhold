@@ -93,7 +93,7 @@ Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The next step is a controlled post-build comparison with remaining restore inputs explicit; outcome causation remains open.
+exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [post-build paired control](research/q710-fighter-decisions.md#post-build-paired-control-at-bb2a395b) is complete; next is broader fighter-input restoration/comparison, with outcome causation still open.
 
 ## Other pending work
 

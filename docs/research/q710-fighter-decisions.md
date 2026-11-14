@@ -5,9 +5,10 @@ systems: [creatures, rooms, tooling-process]
 
 ## Verdict
 
-Q710 remains OPEN. A bed-ownership control prevents one restored fighter's home
-acquisition attempt. Unequal fighter inputs and later birth populations still
-prevent a causal AI-rule comparison or explanation of the complete Guard-room gap.
+Q710 remains OPEN. Local bed and remembered-job controls establish particular
+modern decision effects. The post-build paired control below does not measure a
+production before/after improvement or explain the complete Guard-room gap;
+unequal restore inputs and later birth populations remain limits.
 This is a bounded continuation of the [post-Q714 comparison](resync-heart-terminal.md#level-4-recheck).
 No native game was launched and no production simulation code was changed.
 
@@ -203,3 +204,48 @@ only its first eligible state-89 call; later probe outcomes are not fidelity
 evidence. The subsequent bounded implementation is in [guard-job-memory.md](guard-job-memory.md). Q710 remains
 OPEN: no global exposure cause or matched-input outcome has been established;
 unavailable routes, later birth populations and other Q719 inputs remain limits.
+
+## Post-build paired control at bb2a395b
+
+The accepted study uses copied source `bb2a395b`, native seed 7 and modern
+generator seed 101, with native Dark Elf 428 paired to modern 45. All four managed replays
+complete from the turn-5000 restore through label 6000. Plain and observed
+controls reproduce all five ordinary telemetry files byte-for-byte; the scratch
+changes are in Tools only, with no Simulation source change.
+
+Both interventions restore the same supported inline needs/jobs and retain the
+existing linked bed, at tile index 2976 versus native 2977. One deliberately
+clears remembered job/room; the other restores captured Guard 6 and room tag 1116,
+mapped to modern reference 22, the owned eastern Guard room at (43..45,51..53).
+Boundary RNG and every recorded non-memory actor field agree; only four recorded
+memory components differ. This asserts sidecar coverage, not equality of every
+`CreatureState` or private field. Recorded non-memory actor fields remain equal
+through label 5239. At 5240, the cleared control rolls Training (`roll=94`,
+`how=rolled`, happy stamp 5239); restored memory retries Guard (`roll=-1`,
+`how=remembered`, happy stamp 2584).
+
+The ordinary current baseline already has remembered Guard 6 and
+western room reference 28. The cleared control is counterfactual, not the
+ordinary pre-fix production path. The measured window is labels 5300..5450:
+
+| Actor 428 observation | 7 / resume 97 | 97 | 6 / resume 98 | 98 |
+|---|---:|---:|---:|---:|
+| Native | 97 | 1 | 49 | 4 |
+| Restored-memory control | 82 | 1 | 64 | 4 |
+| Ordinary current baseline | 66 | 1 | 81 | 3 |
+
+The cleared control spends all 151 labels in Training. All 451 native frames
+from 5000..5450 are untorn, with stable pointer/type/owner and remembered job 6,
+room tag 1116. Native and modern start in state 6/resume 98, but route buffers
+remain unavailable. Room mapping, other actors' reservations, later births and
+other restore/history gaps preclude matched-input or global outcome claims.
+The next bounded comparison must restore/assert broader fighter inputs while
+retaining those limits, rather than repeat this completed local control.
+
+Evidence: `F:/DK2Evidence/studies/q710-built-comparison--2026-11-14--002`;
+`analysis.json`, `decision-path-comparison.json` and `native-memory-observations.json`.
+`manifest-verified.json` is authoritative: 113 entries, excluding itself.
+`scope-assessment.json` corrects the immutable setup's idle-state claim;
+`manifest-assessment.json` identifies the two retained invalid self-entries.
+Trial 001 remains an aborted setup because its old bed-placement precondition
+failed: this baseline already has a bed.
