@@ -107,6 +107,20 @@ public class TextureTests
         Assert.Contains(alpha, value => value < 255);
     }
 
+    // Pixels from DKII.EXE's own block decoder 0x0065CA50 run on Unicorn (64-bit x87
+    // precision, as 0x005B26F0 sets). The first two are images the earlier decoder got wrong by one.
+    [InstallTheory]
+    [InlineData(@"GUI\C-Spells\c-windMM0", "4A3D5E99736DCA7D3423D4E49B8F33D130EFCFCBCAE678001E574F31415257E4")]
+    [InlineData(@"GUI\Filters\F-FrozenMM1", "1B76CA86F1F1BC28AA179FD79804E284492CC890C2103BDDFA2E9611DE3AEBFD")]
+    [InlineData("ImpHornMM3", "F9F86665E7875CC6A00E2DFD026359B56FC7E53B7DF12625CAE0195ABE3A1DFF")]
+    public void EngineTextureDecodesToTheNativePixels(string name, string sha256)
+    {
+        using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(Dk2InstallGate.Path);
+        Assert.True(textures.TryGetEntry(name, out EngineTextureEntry entry));
+        Assert.Equal(sha256, System.Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(textures.Decode(entry).Pixels)));
+    }
+
     private static (int Width, int Height, byte[] Pixels) DecodePng(byte[] png)
     {
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png[..8]);

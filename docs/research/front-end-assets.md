@@ -112,10 +112,9 @@ This differs from engine textures' predicted DC and luma/chroma conversion.
 These are STRONGLY INFERRED from the binary, including the corrected escape
 advance for the extended positive/negative AC forms.
 
-F1 implements the unmasked path, pads to 8-pixel blocks and crops to the header
-size. Synthetic tests cover absolute DC, channel order, cropping, alpha, extended
-escapes and the fifth AC coefficient; all shipped BMP/.444 entries decode.
-This is not a matched native pixel oracle. Masked images are explicitly refused.
+Our decoder implements the unmasked path, pads to 8-pixel blocks and crops to the
+header size; masked images are refused. Emulated `0x00668810` gives the same pixels
+for all 29 shipped images ([texture-codec.md](texture-codec.md) §3-4).
 OpenKeeper's `LoadingScreenFile` and `LoadingScreenTextureDecoder` corroborated
 the header and RGB/DC distinction (facts only; THIRD-PARTY-NOTICES.md).
 

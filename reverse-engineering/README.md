@@ -59,6 +59,7 @@ committed (owner, 2026-10-15). `tools/oracle/purity.py` lists ported candidates 
 (new complete captures discover their verified decoder and memory timeline;
 legacy captures use the retained F: archive or an explicit `DK2_CAPTURE_DECODER`).
 For new recordings, use the [complete native capture guide](../tools/oracle/native-capture.md).
+`tools/oracle/texture_blocks.py` decodes a whole engine texture or .444 with the original's block decoders, the oracle for `Dk2TextureDecoder`.
 To add a function: read it in Ghidra for its calling
 convention, out-pointer and record layout, check it reads no mutable global, and add a
 test after `OriginalFixed16Tests` that sweeps the band edges and counts the arms it
