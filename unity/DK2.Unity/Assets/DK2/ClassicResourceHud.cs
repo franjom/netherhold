@@ -3,8 +3,6 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
-using System.Collections.Generic;
-using System.Globalization;
 using DK2.Art.Textures;
 using DK2.Presentation;
 using UnityEngine;
@@ -38,32 +36,32 @@ namespace DK2.Unity
         }
     }
 
-    /// <summary>Original resource artwork and numeric sprites in retained UI Toolkit elements.</summary>
+    /// <summary>Unity glue for <see cref="KeeperResourceHud"/> (ADR-0805): one UI Toolkit panel holding a
+    /// <see cref="HudCanvas"/> that never takes the pointer. The strip's DK2 layout is the model's.</summary>
     public sealed class ClassicResourceHud : IDisposable
     {
         private readonly GameObject _owner;
         private readonly PanelSettings _settings;
         private readonly VisualElement _root;
-        private readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
+        private readonly HudCanvas _canvas;
         private readonly IClassicResourceAssets _assets;
-        private readonly Image[] _backgrounds = new Image[4];
-        private readonly Image _heart, _heartFill, _heartAlarm, _payday, _paydayFill;
-        private readonly GaugeTexture _healthGauge, _paydayGauge;
-        private readonly KeeperResourceAnimation _animation = new KeeperResourceAnimation();
-        private KeeperResourceSnapshot _lastSnapshot;
-        private KeeperResourceFrame _lastFrame;
-        private Vector2Int _lastSize;
-        private bool _drawn;
-        private readonly NumericRow _gold, _mana, _income, _upkeep;
-        private bool _visible = true, _allowInput = true;
+        private readonly KeeperResourceHud _hud = new KeeperResourceHud();
+        private readonly HudFrame _frame = new HudFrame();
         private Vector2Int _viewport;
         public int UiScale { get; set; } = 100;
         private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale, _viewport.x, _viewport.y);
-        private int Width => Mathf.RoundToInt(ScaleLayout.LogicalWidth);
-        private int Height => _viewport.y > 0 ? _viewport.y : Screen.height;
+        private HudScreen Screen => new HudScreen(Mathf.RoundToInt(ScaleLayout.LogicalWidth),
+            _viewport.y > 0 ? _viewport.y : UnityEngine.Screen.height);
         public PanelSettings Panel => _settings;
-        public float Bottom => 68 * Height / 768f;
-        public Rect Bounds => new Rect(0, 0, Mathf.Min(Width, V(1020)), Bottom);
+        public float Bottom => KeeperResourceHud.Bottom(Screen);
+        public Rect Bounds
+        {
+            get
+            {
+                HudScreen screen = Screen; HudRect r = KeeperResourceHud.Bounds(screen);
+                return new Rect(0, 0, r.Width * screen.Scale, r.Height * screen.Scale);
+            }
+        }
 
         public ClassicResourceHud(Transform parent, IClassicResourceAssets assets)
         {
@@ -77,44 +75,32 @@ namespace DK2.Unity
             var document = _owner.AddComponent<UIDocument>(); document.panelSettings = _settings;
             _root = document.rootVisualElement; _root.pickingMode = PickingMode.Ignore;
             _root.style.width = Length.Percent(100); _root.style.height = Length.Percent(100);
-            for (int i = 0; i < _backgrounds.Length; i++)
-                _backgrounds[i] = Picture(Texture("GUI\\Windows\\Mana-Bg-0" + (i % 2)));
-            // Back to front: the gauge ring, its frame, the alarm. The owner's DK2 screenshot shows the
-            // riveted frame over the ring; 0x00422F60 and 0x00415000 push layers 3, 2, 1, which fits if a
-            // lower layer is in front (inferred; the partial fill's order is unread).
-            _healthGauge = new GaugeTexture(Texture("GUI\\Windows\\heart-hp"), "Heart health gauge");
-            _heartFill = Picture(_healthGauge.Texture);
-            _heart = Picture(Texture("GUI\\Windows\\heart-bg"));
-            _heartAlarm = Picture(Texture("GUI\\Windows\\heart-alarm"));
-            _paydayGauge = new GaugeTexture(Texture("GUI\\Windows\\payday-Hp"), "Payday countdown gauge");
-            _paydayFill = Picture(_paydayGauge.Texture);
-            _payday = Picture(Texture("GUI\\Windows\\payday-BG"));
-            _gold = new NumericRow(this); _mana = new NumericRow(this);
-            _income = new NumericRow(this); _upkeep = new NumericRow(this);
-            // The counters' glyphs, like the panels above: decoded here rather than by the first draw
-            // with the HUD visible, which comes after the opening camera path (ADR-0688).
-            foreach (string family in new[] { LargeDigits, SmallDigits, RateDigits })
-                for (int digit = 0; digit <= 9; digit++) Texture(family + digit.ToString(CultureInfo.InvariantCulture));
-            Texture(MinusSign);
-            foreach (string suffix in new[] { "in", "out", "+", "-" }) Texture(RateDigits + suffix);
+            _canvas = new HudCanvas(assets.Image, null);
+            _root.Add(_canvas);
+            // Decoded here rather than by the first draw with the HUD visible, which comes after the
+            // opening camera path (ADR-0688).
+            foreach (HudImage image in KeeperResourceHud.Images()) _canvas.Preload(image);
         }
-
-        // The glyph families: one texture per digit, icon or sign after the prefix.
-        private const string LargeDigits = "GUI\\Icons\\i-", SmallDigits = "GUI\\Icons\\lo-";
-        private const string RateDigits = "GUI\\Icons\\Mana\\s-", MinusSign = "GUI\\Icons\\i--";
 
         public void SetVisibility(HudVisibility visibility)
         {
-            _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
-            _root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
+            _hud.SetVisibility(visibility);
+            _root.style.display = visibility.ShowNormalHud ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
-        public bool ContainsPointer(Vector3 screenPosition) => _visible && _allowInput &&
-            Bounds.Contains(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false));
+        public bool ContainsPointer(Vector3 screenPosition)
+        {
+            HudScreen screen = Screen;
+            Vector2 local = ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false);
+            return _hud.ContainsPointer(screen, screen.Virtual(local.x), screen.Virtual(local.y));
+        }
 
-        public KeeperResourceKind ResourceAt(Vector3 screenPosition) => !_visible || !_allowInput
-            ? KeeperResourceKind.None : KeeperResourceInteraction.HitTest(
-                new System.Numerics.Vector2(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false).x, ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false).y), Height);
+        public KeeperResourceKind ResourceAt(Vector3 screenPosition)
+        {
+            HudScreen screen = Screen;
+            Vector2 local = ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false);
+            return _hud.ResourceAt(screen, screen.Virtual(local.x), screen.Virtual(local.y));
+        }
 
         public void Draw(KeeperResourceSnapshot snapshot) => Draw(snapshot, default);
 
@@ -125,143 +111,19 @@ namespace DK2.Unity
             KeeperResourceFlash flash = KeeperResourceFlash.None)
         {
             _viewport = viewport;
-            ClassicHudScaling.Apply(_settings, _root, ScaleLayout, false);
-            if (!_visible) return;
-            KeeperResourceFrame frame = _animation.Evaluate(snapshot, milliseconds, flash);
-            var size = new Vector2Int(Width, Height);
-            if (_drawn && _lastSnapshot == snapshot && _lastFrame == frame && _lastSize == size) return;
-            _drawn = true; _lastSnapshot = snapshot; _lastFrame = frame; _lastSize = size;
-            int dx = V(12), y = V(12), height = V(124) - y;
-            int manaWidth = V(224), goldLeft = V(516), goldWidth = V(740) - goldLeft;
-            Place(_backgrounds[0], 4 * dx, y, manaWidth, height);
-            Place(_backgrounds[1], 4 * dx + manaWidth, y, manaWidth, height);
-            Place(_backgrounds[2], goldLeft + 4 * dx, y, goldWidth, height);
-            Place(_backgrounds[3], goldLeft + 4 * dx + goldWidth, y, goldWidth, height);
-            Place(_heart, 0, 3, V(160), V(160));
-            Place(_heartAlarm, 0, 3, V(160), V(160));
-            _heartAlarm.style.display = frame.ShowHeartAlarm ? DisplayStyle.Flex : DisplayStyle.None;
-            Place(_heartFill, 0, 3, V(160), V(160));
-            _healthGauge.Update(snapshot.HeartHealth);
-            Place(_payday, goldLeft, y, V(160), V(160));
-            Place(_paydayFill, goldLeft, y, V(160), V(160));
-            _paydayGauge.Update(snapshot.Payday);
-            string family = Width >= 640 ? LargeDigits : SmallDigits;
-            _mana.Draw(snapshot.Mana.Value, family, V(172), V(32), V(48), V(40), 7,
-                new Color32(0, 252, 156, 255));
-            _mana.SetVisible(frame.ShowManaNumbers);
-            Color32 goldColour = frame.GoldColour == KeeperGoldColour.Money ? new Color32(238, 182, 0, 255)
-                : frame.GoldColour == KeeperGoldColour.AffordableBill ? new Color32(0, 178, 235, 255)
-                : new Color32(255, 75, 75, 255);
-            _gold.Draw(frame.GoldNumber.Value, family, V(680), V(40), V(48), V(40), 7, goldColour);
-            _gold.SetVisible(frame.ShowGoldNumber);
-            bool rates = Width > 600;
-            _income.SetVisible(rates); _upkeep.SetVisible(rates);
-            if (rates)
-            {
-                _income.Draw(snapshot.Income.Value, RateDigits, V(184), V(88), V(64), V(16), 0,
-                    new Color32(50, 255, 50, 255), "in", "+");
-                _upkeep.Draw(snapshot.Upkeep.Value, RateDigits, V(360), V(88), V(64), V(16), 0,
-                    new Color32(255, 50, 50, 255), "out", "-");
-                if (!frame.ShowManaNumbers) { _income.SetVisible(false); _upkeep.SetVisible(false); }
-            }
-        }
-
-        private int V(int coordinate) => Mathf.FloorToInt(coordinate * Height / 1920f);
-        private sealed class GaugeTexture : IDisposable
-        {
-            public Texture2D Texture { get; }
-            private readonly Color32[] _original, _pixels;
-            private HudGaugeFraction _fraction;
-            private bool _drawn;
-            public GaugeTexture(Texture2D original, string name)
-            {
-                _original = original.GetPixels32(); _pixels = new Color32[_original.Length];
-                // sRGB like the background it overlays; a linear texture rendered washed out and soft.
-                Texture = new Texture2D(original.width, original.height, TextureFormat.RGBA32, false)
-                    { name = name, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
-            }
-            public void Update(HudGaugeFraction fraction)
-            {
-                if (_drawn && _fraction == fraction) return;
-                _drawn = true; _fraction = fraction;
-                int width = Texture.width, height = Texture.height;
-                for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++)
-                {
-                    int index = y * width + x;
-                    var point = new System.Numerics.Vector2(x + .5f - width / 2f, height / 2f - y - .5f);
-                    Color32 source = _original[index];
-                    _pixels[index] = fraction.Contains(point) ? source : new Color32(0, 0, 0, source.a);
-                }
-                Texture.SetPixels32(_pixels); Texture.Apply();
-            }
-            public void Dispose() => UnityEngine.Object.Destroy(Texture);
-        }
-        private Texture2D Texture(string name)
-        {
-            if (!_textures.TryGetValue(name, out Texture2D texture))
-            {
-                texture = MinimapFrameVisual.Decode(_assets.Image(name));
-                _textures.Add(name, texture);
-            }
-            return texture;
-        }
-        private Image Picture(Texture2D texture)
-        {
-            var image = new Image { image = texture, pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
-            image.style.position = Position.Absolute; _root.Add(image); return image;
-        }
-        private static void Place(VisualElement element, float x, float y, float width, float height)
-        { element.style.left = x; element.style.top = y; element.style.width = width; element.style.height = height; }
-
-        private sealed class NumericRow
-        {
-            private readonly ClassicResourceHud _hud;
-            private readonly Image[] _glyphs = new Image[13];
-            private int _value;
-            private string _digits, _family;
-            public NumericRow(ClassicResourceHud hud)
-            { _hud = hud; for (int i = 0; i < _glyphs.Length; i++) _glyphs[i] = hud.Picture(null); }
-            private bool _visible = true;
-            private int _used;
-            public void SetVisible(bool visible)
-            {
-                _visible = visible;
-                for (int i = 0; i < _glyphs.Length; i++)
-                    _glyphs[i].style.display = visible && i < _used ? DisplayStyle.Flex : DisplayStyle.None;
-            }
-            public void Draw(int value, string family, float x, float y, float size, float advance, int slots,
-                Color color, string icon = null, string sign = null)
-            {
-                bool changed = _digits == null || value != _value || family != _family;
-                if (changed)
-                { _value = value; _family = family; _digits = value.ToString(CultureInfo.InvariantCulture); }
-                int prefix = icon == null ? 0 : 2;
-                _used = prefix + _digits.Length;
-                x += Mathf.Max(0, slots - _digits.Length) * advance;
-                for (int i = 0; i < _glyphs.Length; i++)
-                {
-                    Image glyph = _glyphs[i];
-                    bool used = i < prefix + _digits.Length;
-                    glyph.style.display = used && _visible ? DisplayStyle.Flex : DisplayStyle.None;
-                    if (!used) continue;
-                    if (changed)
-                    {
-                        string suffix = i == 0 && prefix != 0 ? icon : i == 1 && prefix != 0 ? sign : _digits[i - prefix].ToString();
-                        glyph.image = _hud.Texture(suffix == "-" && prefix == 0 ? MinusSign : family + suffix);
-                    }
-                    glyph.tintColor = color;
-                    Place(glyph, x + i * advance, y, size, size);
-                }
-            }
+            HudScaleLayout layout = ScaleLayout;
+            ClassicHudScaling.Apply(_settings, _root, layout, false);
+            HudScreen screen = Screen;
+            _frame.Clear();
+            _hud.Build(screen, snapshot, milliseconds, flash, _frame);
+            _canvas.Present(_frame, screen.Scale, layout.Factor);
         }
 
         public void Dispose()
         {
             _root.RemoveFromHierarchy();
+            _canvas.Dispose();
             UnityEngine.Object.Destroy(_owner); UnityEngine.Object.Destroy(_settings);
-            _healthGauge.Dispose(); _paydayGauge.Dispose();
-            foreach (Texture2D texture in _textures.Values) UnityEngine.Object.Destroy(texture);
             if (_assets is IDisposable disposable) disposable.Dispose();
         }
     }

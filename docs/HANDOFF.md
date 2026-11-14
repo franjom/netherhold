@@ -20,8 +20,9 @@ questions live in their canonical documents; this file links to them.
 - Engine switch (owner, 2026-11-14): a Godot adapter is being prepared because GPLv3 code linked to
   Unity's runtime is [ADR-0041](DECISIONS.md)'s open question. [ADR-0805](DECISIONS.md) moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
-  panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. Next:
-  the resource HUD, then the order in the ADR. No Godot code existed on that date.
+  panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
+  resource strip is moved too (`KeeperResourceHud`); it builds and its model is tested, but it has not been run in
+  the Unity editor. Next: the message tabs, then the order in the ADR. No Godot code existed on that date.
 - Presented-world P1 and its follow-ups are merged. Measurements and remaining
   performance targets: [presented-world result](plans/2026-11-06-presented-world.md#result-measured-2026-11-06)
   and [performance policy](PERFORMANCE.md).

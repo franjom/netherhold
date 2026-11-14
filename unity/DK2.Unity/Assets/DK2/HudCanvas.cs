@@ -19,17 +19,19 @@ namespace DK2.Unity
         private readonly Func<string, RgbaImage> _load;
         private readonly Func<float, float, bool> _hit;
         private readonly Dictionary<(HudImage, HudBlend), Texture2D> _textures = new Dictionary<(HudImage, HudBlend), Texture2D>();
+        private readonly Dictionary<(HudImage, HudBlend), LiveTexture> _live = new Dictionary<(HudImage, HudBlend), LiveTexture>();
         private readonly HudFrame _shown = new HudFrame();
         private Texture2D[] _resolved = new Texture2D[256];
         private float _scale = 1, _pixelsPerUnit = 1;
 
         /// <param name="load">Reads a catalogue image by name.</param>
-        /// <param name="hit">Whether the model has a widget at a point in virtual units.</param>
+        /// <param name="hit">Whether the model has a widget at a point in virtual units; null for a panel
+        /// that never takes the pointer.</param>
         public HudCanvas(Func<string, RgbaImage> load, Func<float, float, bool> hit)
         {
             _load = load ?? throw new ArgumentNullException(nameof(load));
-            _hit = hit ?? throw new ArgumentNullException(nameof(hit));
-            pickingMode = PickingMode.Position;
+            _hit = hit ?? ((x, y) => false);
+            pickingMode = hit == null ? PickingMode.Ignore : PickingMode.Position;
             style.position = Position.Absolute; style.left = 0; style.top = 0;
             style.width = Length.Percent(100); style.height = Length.Percent(100);
             generateVisualContent += Draw;
@@ -58,10 +60,17 @@ namespace DK2.Unity
         /// layout placed the retained images this canvas replaces.</summary>
         private Rect Snapped(HudRect r)
         {
-            float p = _pixelsPerUnit, s = _scale;
-            float left = Mathf.Round(r.X * s * p) / p, top = Mathf.Round(r.Y * s * p) / p;
-            float right = Mathf.Round((r.X + r.Width) * s * p) / p, bottom = Mathf.Round((r.Y + r.Height) * s * p) / p;
+            float left = Edge(r.X), top = Edge(r.Y), right = Edge(r.X + r.Width), bottom = Edge(r.Y + r.Height);
             return new Rect(left, top, right - left, bottom - top);
+        }
+
+        /// <summary>A virtual coordinate as a local one on the screen-pixel grid, halves rounded up like
+        /// layout rounding. The local value is first cleaned to 1/1024 so the float round trip of a whole
+        /// local pixel (pixels / scale * scale) cannot land a hair under a half and round the other way.</summary>
+        private float Edge(float v)
+        {
+            float local = Mathf.Round(v * _scale * 1024f) / 1024f;
+            return Mathf.Floor(local * _pixelsPerUnit + .5f) / _pixelsPerUnit;
         }
 
         public override bool ContainsPoint(Vector2 localPoint) => _hit(localPoint.x / _scale, localPoint.y / _scale);
@@ -103,24 +112,64 @@ namespace DK2.Unity
         private static void Vertex(MeshWriteData mesh, float x, float y, float u, float v, Color32 tint) =>
             mesh.SetNextVertex(new Vertex { position = new Vector3(x, y, UnityEngine.UIElements.Vertex.nearZ), tint = tint, uv = new Vector2(u, v) });
 
+        /// <summary>Decodes an image now rather than at the first frame that draws it.</summary>
+        public void Preload(HudImage image, HudBlend blend = HudBlend.Alpha) => Texture(image, blend);
+
         /// <summary>The image as a texture, its variant applied; UI Toolkit has no additive blending, so an
         /// additive draw gets <see cref="HudImagePixels.AdditiveOverAlpha"/>.</summary>
         private Texture2D Texture(HudImage image, HudBlend blend)
         {
             if (image.IsNone) return null;
+            if (image.IsLive) return Live(image, blend);
             if (_textures.TryGetValue((image, blend), out Texture2D texture)) return texture;
             RgbaImage source = _load(image.Path);
-            byte[] pixels = HudImagePixels.Apply(source.Pixels, source.Width, source.Height, image.Variant, image.Pieces);
+            byte[] pixels = HudImagePixels.Apply(source.Pixels, source.Width, source.Height, image);
             if (blend == HudBlend.Additive) pixels = HudImagePixels.AdditiveOverAlpha(pixels);
             texture = MinimapFrameVisual.Decode(new RgbaImage(source.Width, source.Height, pixels));
             _textures.Add((image, blend), texture);
             return texture;
         }
 
+        /// <summary>A live image keeps one texture per <see cref="HudImage.Slot"/>, refilled in place when its
+        /// parameter changes (a gauge's fraction), so a moving gauge creates no textures.</summary>
+        private Texture2D Live(HudImage image, HudBlend blend)
+        {
+            if (!_live.TryGetValue((image.Slot, blend), out LiveTexture live))
+            {
+                RgbaImage source = _load(image.Path);
+                live = new LiveTexture
+                {
+                    Source = source, Pixels = new byte[source.Pixels.Length], Rows = new byte[source.Pixels.Length],
+                    Texture = new Texture2D(source.Width, source.Height, TextureFormat.RGBA32, false)
+                        { name = image.Path, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp },
+                };
+                _live.Add((image.Slot, blend), live);
+            }
+            else if (live.Current == image) return live.Texture;
+            live.Current = image;
+            RgbaImage s = live.Source;
+            HudImagePixels.Fill(s.Pixels, s.Width, s.Height, image, live.Pixels);
+            byte[] pixels = blend == HudBlend.Additive ? HudImagePixels.AdditiveOverAlpha(live.Pixels) : live.Pixels;
+            // Unity textures run bottom-up.
+            int row = s.Width * 4;
+            for (int y = 0; y < s.Height; y++) Buffer.BlockCopy(pixels, y * row, live.Rows, (s.Height - 1 - y) * row, row);
+            live.Texture.LoadRawTextureData(live.Rows); live.Texture.Apply(false);
+            return live.Texture;
+        }
+
+        private sealed class LiveTexture
+        {
+            public RgbaImage Source;
+            public byte[] Pixels, Rows;
+            public Texture2D Texture;
+            public HudImage Current;
+        }
+
         public void Dispose()
         {
             foreach (Texture2D texture in _textures.Values) UnityEngine.Object.Destroy(texture);
-            _textures.Clear();
+            foreach (LiveTexture live in _live.Values) UnityEngine.Object.Destroy(live.Texture);
+            _textures.Clear(); _live.Clear();
         }
     }
 }

@@ -13,6 +13,16 @@ public readonly record struct HudRect(float X, float Y, float Width, float Heigh
     public static implicit operator HudRect(BottomPanelRect rect) => new(rect.X, rect.Y, rect.Width, rect.Height);
 }
 
+/// <summary>The HUD's surface in the adapter's local pixels: virtual unit v sits at v * <see cref="Scale"/>.
+/// Panels that DK2 lays out in whole screen pixels use it to reproduce that rounding.</summary>
+public readonly record struct HudScreen(int Width, int Height)
+{
+    public float Scale => Height / 1920f;
+    public float VirtualWidth => Width / Scale;
+    /// <summary>Virtual units for a length in local pixels.</summary>
+    public float Virtual(float pixels) => pixels / Scale;
+}
+
 /// <summary>An 8-bit RGBA tint multiplied into the image.</summary>
 public readonly record struct HudColor(byte R, byte G, byte B, byte A = 255)
 {
@@ -31,12 +41,20 @@ public enum HudImageVariant : byte
     TalismanArc,
     /// <summary>Only the last of those quarters (the one-shot blink).</summary>
     TalismanQuarter,
+    /// <summary>A gauge ring filled clockwise from 12 o'clock to <see cref="HudImage.Gauge"/>, the rest black.
+    /// Live: a renderer keeps one texture per path and refills it when the fraction changes.</summary>
+    Gauge,
 }
 
 /// <summary>An image by catalogue name, plus a variant. The default value is "no image": nothing is drawn.</summary>
-public readonly record struct HudImage(string? Path, HudImageVariant Variant = HudImageVariant.None, byte Pieces = 0)
+public readonly record struct HudImage(string? Path, HudImageVariant Variant = HudImageVariant.None, byte Pieces = 0,
+    HudGaugeFraction Gauge = default)
 {
     public bool IsNone => Path is null;
+    /// <summary>The variant's pixels change over time; see <see cref="HudImageVariant.Gauge"/>.</summary>
+    public bool IsLive => Variant == HudImageVariant.Gauge;
+    /// <summary>This image with its live parameter cleared: the identity a renderer keeps one texture for.</summary>
+    public HudImage Slot => IsLive ? new HudImage(Path, Variant, Pieces) : this;
     public static implicit operator HudImage(string? path) => new(path);
 }
 

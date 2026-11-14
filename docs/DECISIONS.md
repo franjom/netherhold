@@ -19208,7 +19208,7 @@ pointer state and the commands a click posts. Left there, every HUD fix would ha
    engine without additive UI blending uses `HudImagePixels.AdditiveOverAlpha`. Pixel changes that are part of DK2's look
    (the Reaper talisman's quarters) are `HudImageVariant`s, applied by `HudImagePixels`, so every engine gets the same pixels.
 3. **Panel by panel, Unity kept working.** Each step adds the model and its tests, turns the Unity class into a facade with
-   the same public API over `HudCanvas`, and deletes the old Unity logic. Order: bottom panel (done), resource HUD, message
+   the same public API over `HudCanvas`, and deletes the old Unity logic. Order: bottom panel (done), resource HUD (done), message
    tabs, hover HUD, creature query and overview, options and save/load, front-end menu, minimap and full-map markers.
 
 **Where new files go.**

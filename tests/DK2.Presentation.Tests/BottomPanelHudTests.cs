@@ -205,10 +205,10 @@ public sealed class BottomPanelHudTests
     {
         byte[] opaque = Enumerable.Repeat((byte)255, 2 * 2 * 4).ToArray();
         static bool[] Kept(byte[] p) => [p[3] != 0, p[7] != 0, p[11] != 0, p[15] != 0];   // TL, TR, BL, BR
-        Assert.Equal([true, false, false, false], Kept(HudImagePixels.Apply(opaque, 2, 2, HudImageVariant.TalismanArc, 1)));
-        Assert.Equal([true, true, false, false], Kept(HudImagePixels.Apply(opaque, 2, 2, HudImageVariant.TalismanArc, 2)));
-        Assert.Equal([true, true, false, true], Kept(HudImagePixels.Apply(opaque, 2, 2, HudImageVariant.TalismanArc, 3)));
-        Assert.Equal([false, false, false, true], Kept(HudImagePixels.Apply(opaque, 2, 2, HudImageVariant.TalismanQuarter, 3)));
+        Assert.Equal([true, false, false, false], Kept(HudImagePixels.Apply(opaque, 2, 2, new HudImage("t", HudImageVariant.TalismanArc, 1))));
+        Assert.Equal([true, true, false, false], Kept(HudImagePixels.Apply(opaque, 2, 2, new HudImage("t", HudImageVariant.TalismanArc, 2))));
+        Assert.Equal([true, true, false, true], Kept(HudImagePixels.Apply(opaque, 2, 2, new HudImage("t", HudImageVariant.TalismanArc, 3))));
+        Assert.Equal([false, false, false, true], Kept(HudImagePixels.Apply(opaque, 2, 2, new HudImage("t", HudImageVariant.TalismanQuarter, 3))));
         Assert.All(opaque, b => Assert.Equal(255, b));
     }
 
