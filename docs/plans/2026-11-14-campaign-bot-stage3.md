@@ -87,8 +87,9 @@ the gate.
 - [x] **A `--seed` override** on `run`, `watch` and `replay` (and later `tune`): the manifest
       records the effective seed, and `replay` refuses a journal whose header seed differs from
       the one it would run. Tests: an overridden seed replays; a mismatch is refused.
-- [ ] **Acceptance of Levels 1, 2 and 3** on accept seeds 11-20 from a receipted build, evidence
-      under `F:/DK2Evidence/studies/`, ladder rows with counts and intervals.
+- [x] **Acceptance of Levels 1, 2 and 3** on accept seeds 11-20 from a receipted build, evidence
+      under `F:/DK2Evidence/studies/`, ladder rows with counts and intervals. **Done 2026-11-14:**
+      30 of 30 won and claimed ([ladder](../research/campaign-bot-ladder.md) section 2).
 - [ ] Reviewer, documenter, commit.
 
 ## Task 0b: ladder scenarios, triage and the driver
