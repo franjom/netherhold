@@ -6,7 +6,7 @@ systems: [imps-tile-work]
 **STRONGLY INFERRED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
 12.1.4/PyGhidra on a worker copy of Claude's project, 2026-09-30. Decompiler output stayed
 under `reverse-engineering/` (ADR-0046); every fact below is in our words with its
-address. No capture was compared here; §10 names the checks. The sibling
+address. No capture was compared here except §7's `l2live2` count; §10 names the checks. The sibling
 `imp-task-objects-and-walks.md` finishes the rows this note skimmed (kinds 8 and 11, the
 kicked imp's mover, the walk's end) and checks them against captures. `imp-task-priority.md` owns the
 selection order and §7 there is superseded by this note. `travel-states.md` owns the walk
@@ -30,9 +30,9 @@ holder through the creature wrapper `0x0048AD30`, which adds `0x24E` and calls
 The holder's job block, route and last-kind byte are left as they were; only its state
 changes. Nothing marks a fresh taker, a worker at work or a state set this tick as
 protected. There is no give-up in a walk, no timeout, and no explicit anti-ping-pong
-rule: trades end because the comparison is strict, the holder keeps moving toward the
+rule: trades usually end because the comparison is strict, the holder keeps moving toward the
 point while the loser has to reselect, and reselection is capped at four imps per
-keeper per tick.
+keeper per tick; §7 has the dig-walk case where neither moves.
 
 ## 2. Every handler that steals
 
@@ -221,9 +221,11 @@ the four-per-tick cap and rescan. Two imps can trade at most while their distanc
 by less than the measure's bias: none for claim, reinforce, gold, objects and mining; the
 wall centre against the side centre in the dig walk's kind-1 arm (an imp beside the wall
 but not beside the side tile can take from one at the same distance); `0x32` in the dig handler and kind 11,
-which only the drop scan and `0x00464170` reach. Each trade moves the new holder toward
-the stance, so the window closes within a few ticks. This is arithmetic, not a rule; the
-capture check in §10 is what would show a long trade.
+which only the drop scan and `0x00464170` reach. A trade moves the new holder toward the stance only when it gets a state-6 tick. In the dig walk, two imps at
+nearly one point with the side beyond the wall each pass the test; the newer is updated first (§8), the older retakes in the
+same turn and ends it holding, so neither walks until a free slot opens or the four-per-tick cap rests one (34 turns in a
+Level 2 resync, [level2-party-release.md](level2-party-release.md) §4). DK2's `l2live2` capture has no imp in state 10 for
+more than two frames.
 
 **Two ghosts the code allows.**
 
@@ -272,8 +274,8 @@ the **head** of list `kind` (`thing.next = head; head.prev = thing; head = thing
 `[0x006E504C] + kind*2`, the object the constructor `0x004B5A10` zeroes); `0x004B4AB0`
 unlinks. So within kind 0, creatures are updated **newest first**, and a reused slot moves
 to the front. Imps created by the same drop or portal in the same tick are updated in
-reverse creation order, and a thief older than its victim has its victim reselect in the
-same tick; a thief newer than its victim leaves it until the next tick. STRONGLY INFERRED
+reverse creation order, and a thief newer than its victim has its victim reselect in the
+same tick; a thief older than its victim leaves it until the next tick. STRONGLY INFERRED
 that `[0x006E504C]` is world `+0x08`: the walker takes `LEA ECX,[world+8]`, and the
 global is written only by the constructor `0x004B5A10` and the teardown `0x004B5FD0`.
 
@@ -307,7 +309,8 @@ Captures: `reverse-engineering/dk2runs/level1-live1*/`, `level2-live2/`; decode 
    leave state 10 in the same frame; one with a higher order in the next.
 3. §5 route: **done, `imp-task-objects-and-walks.md` §3.** A loser does not move while it stays in 10, 11 or 12.
 4. §7 trades: count chains of `lost` lines on one task alternating between two imps; the
-   claim kinds should show none, digging only chains of a few frames.
+   claim kinds should show none, digging only chains of a few frames. `l2live2` (2026-11-14): no imp in state 10
+   for more than two frames.
 5. §8: read the eight heads at world `+0x08` from a frame and check the creature list is
    in descending creation order.
 6. §3: no kind-3 task should ever be taken on a tile whose navigation byte's high nibble

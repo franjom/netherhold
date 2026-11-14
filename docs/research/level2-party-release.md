@@ -31,8 +31,8 @@ and ours' replay of the same packet through the frozen rig `F:/DK2Evidence/rigs/
 | 1, 6 | built (site claimed by 480 in seed 1) | researched at 1484/1593; six Imps made | (12,15) dug at 2147/2198 (seed 1 by an Imp that was reinforcing it) | trigger 31 at 2148/2199 |
 | 2-5 | refused, no claimed tile yet (seed 2 claims the site 731-800) | `not_available`: nothing researched | the 3045 tag is never dug (four Imps resting far south) | not before 3657 |
 
-Ours also claims (11,15) at 2094-2105 in seed 1 against DK2's 2178. Each split is an owner command landing on ground ours has
-or has not claimed yet; why ours' Imp work runs ahead of or behind DK2's before 2100 is not traced (Q809).
+Rerun 2026-11-14 at hash 516 (six seeds, same rig): the same split. Ours also claims (11,15) at 2094-2105 in seed 1
+against DK2's 2178. Each split is an owner command landing on ground ours has or has not claimed yet; §4 traces why.
 
 ## 3. Resynced from DK2's state at 2100
 
@@ -50,5 +50,31 @@ Outputs were not kept; rerun from these commands.
 From DK2's ground state ours follows the same mechanism in the same order, within about 30 turns: the 2142 tag untaken, the
 breach after the 3046 tag, then the release. The lag from breach to release is 3 turns in DK2 and 4-15 in ours (the leader's
 patrol phase and wander draws differ; the run does not draw from DK2's generator). The resync does not restore spell
-availability: seeds 2 and 3 still refuse Create Imp and keep four Imps where DK2 reaches ten. Not checked: in resync seed 1,
-Imps 5 and 26 pass the DigOwnWall task on (12,15) back and forth each turn from about 3078 to 3111.
+availability: legacy captures hold the player record but not the heap tables its `+0x6E`/`+0x72` pair points to
+([player-object.md](player-object.md)), so seeds 2 and 3 still refuse Create Imp and keep four Imps where DK2 reaches ten.
+In resync seed 1, Imps 5 and 26 trade the DigOwnWall task on (12,15) twice a turn from 3078 to 3111 without moving; that is
+DK2's steal rule, not an ours fault (§4).
+## 4. What splits the runs before 2100 (Q809)
+Sources: DK2's `tiles.csv` and `creature-map.csv` beside the capture; ours' `events.tsv` and `ours-creatures.csv` from the rerun.
+- **The Library site.** DK2 digs (12..15,31..34) from 310 to 397 and claims it from 445 to 686 (terrain flips), the last
+  tile one turn before the owner's drag at 687. Ours digs it from 184-282 to 336-357 (seed 6: 568), about 100 turns ahead of
+  DK2 in every seed (unexplained; the site's tags land at 79-105). By 687 seeds 1 and 6 have claimed all 16 tiles (last at
+  504/588), seeds 2-5 none (first at 695-874). New claims by 200: DK2 10 (14 tiles with the 4 it starts with), seeds 1 and
+  6 10, seeds 2-5 0.
+- **One dedicated claimer.** In DK2 and in ours, a worker keeps the kind it last took, and a marked dig outranks a claim.
+  DK2's Imp 449 found nothing at 22 (three Imps held the first wall's slots), rested 23-48, wandered 49-55 and chose at 57,
+  while (19,33) was being mined by the other three: it took the (19,34) claim and claimed every tile to 320. Ours' seeds 1
+  and 6 reproduce this (Imp 6 rests, then claims from 59/51). In seeds 2-5 the resting Imp chooses at 72-78, after (19,33)
+  is mined out and (18,33) opens, so it digs and all four stay diggers until digs run short (first claim `job_taken` 244-368). DK2's
+  diggers also turn to claims only then (Imp 448 chooses at 211; ours' seed 6 at 211, `job_taken`). The split is the rest roll and the wander
+  walk's length (DK2 6 turns; ours 1-20), random draws on both sides (STRONGLY INFERRED for the mechanism). DK2 has the same
+  spread on another packet: replaying `l2win928` under seeds 1-7 it first claims at 162-171 in three and 321-459 in four
+  (Q484). HYPOTHESIS that ours' draw distributions match DK2's: one `l2live2` run cannot show it.
+- **The (12,15) trade.** `0x00469AF0` takes a free slot first; with every slot held it measures a taker from its point
+  to the wall's centre (`0x00469BD4`-`0x00469C4B`, `[EBP-0x3C]`) and a holder from its point to the side tile's centre
+  (`0x00469D96`-`0x00469DE1`), strictly, read 2026-11-14. In resync seed 1 (12,15)'s only open side is (11,15) and its other
+  slots are held; seen from about (25,38), each of two Imps at nearly one point is nearer the wall than the other is to the
+  side. The newer Imp, updated first, kicks the older before its walk handler runs, and the older retakes in the same turn
+  ([imp-task-stealing.md](imp-task-stealing.md) §5, §8), so the older ends each turn holding and neither walks. It ends when
+  a new side opens (3112, after (13,15) is dug) or the keeper's fifth selection in a turn rests one of them. DK2's run has
+  no Imp in state 10 for more than two frames; ours has this one, 34.

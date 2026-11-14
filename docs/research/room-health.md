@@ -9,7 +9,7 @@ systems: [rooms]
 | Confidence | **CONFIRMED** by capture: the applier, growth, the conversion rate and both arms' arithmetic, the takeover and its reset. **STRONGLY INFERRED** (binary): the removal share, action 11 and who starts it, action 12 and that nothing starts it |
 | Implementation | `RoomHealthRules`, `TileState.RoomHealthLost`, `SlabChain`, `Systems/RoomHealthSystem`, `Systems/TileWorkSystem` (ADR-0336); `RoomAttackRules`, `Systems/HeroSystem`, `TileWorkKind.AttackRoom` and `RepairRoom` (ADR-0342) |
 | Tests | `RoomHealthTests`, `RoomConversionTests`, `RoomAttackTests`, `RoomHealthOnRealDataTests` |
-| Open questions | Q523 (job 11's room attack, unbuilt); Q809 (Level 2's replay breach timing; Q525 answered) |
+| Open questions | Q523 (job 11's room attack, unbuilt); none for Level 2's party walk (Q525 and Q809 answered) |
 
 Field names are DK2's own (`room-object.md`, dumper `0x004E70B6`): room `+0x35` `Health`,
 `+0x1D` `PlayerId`, `+0xA7` `Size`, `+0x9A` bit 0 `Destroyed`. Terrain `+0x1AB` is
