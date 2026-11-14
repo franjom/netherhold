@@ -158,7 +158,11 @@ concurrency and troubleshooting: `tools/blender/MCP.md`. Asset work follows
 ## Gameplay footage tools
 
 A YouTube Data API key (`YOUTUBE_API_KEY`, user environment), `yt-dlp` and `ffmpeg` are set up
-for strategy notes from human play. **The key is a secret: never print, log or commit it.**
+for strategy notes from human play, to build a more capable, more challenging bot, not to
+train an AI model on anyone's videos. **The key is a secret: never print, log or commit it.**
+**HARD RULE: never name a footage author.** No creator, streamer or channel name or handle in
+the repository, commits, KB, notes, reports or summaries; use source numbers (`S1`, ...); only the
+owner keeps the mapping, outside the clone.
 Footage is not evidence of DK2 behaviour. Video and frames need the creator's permission and
 stay outside the clone. Setup, rules and sources: `tools/footage/README.md`.
 

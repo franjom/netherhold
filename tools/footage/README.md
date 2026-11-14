@@ -2,7 +2,8 @@
 
 Footage of human play feeds strategy notes for the campaign bot (stages 3 and 8 of the
 [agentic campaign playtesting design](../../docs/plans/2026-11-07-agentic-campaign-playtesting-design.md)).
-It shows how people play. It is not evidence of how DK2 behaves and never changes a simulation
+The purpose is a more capable, more challenging bot, not training an AI model on anyone's
+videos. It shows how people play. It is not evidence of how DK2 behaves and never changes a simulation
 rule; that still comes from the binary and native captures.
 
 ## Set up on the owner's machine (2026-11-14)
@@ -25,11 +26,15 @@ Checked 2026-11-14: the key answers a `channels` lookup and both tools run.
 
 ## Rules
 
+- **HARD RULE: never name a footage author.** No creator, streamer or channel name or handle
+  appears in the repository, a commit message, a KB record, a note, a report or a conversation
+  summary. Refer to a source only by its local number (`S1`, `S2`, ...). Only the owner keeps the
+  mapping from number to channel and video, outside the clone; agents never write it down.
 - Metadata and transcripts are fine. Downloading a video or cutting frames from it needs the
   creator's permission, recorded here with its date and scope before the first download.
 - Footage, frames and transcripts stay outside the clone and outside `F:\DK2Evidence`, under
   `F:\DK2Footage`. Delete video and frames once a stream's notes are written; keep the notes.
-- Every note cites the video id and timestamp. A strategy from footage is kept only if
+- Every note cites its source number and timestamp, never a video id or URL. A strategy from footage is kept only if
   self-play shows it helps.
 - Read the transcript first to find the moments worth frames; a 3-hour stream at one frame
   every 5 s is about 2,000 images, too many to read.
