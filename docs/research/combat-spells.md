@@ -142,8 +142,8 @@ and is not waived. Built for the attack survey as `SpellRules.SurveyAttack(while
 
 Archived `M7Q362` level files, default campaign systems, no commands, Xoshiro
 seeds 1 and 7, 170 completed ticks. Baseline: master `0e12fe09`, hash 506.
-Candidate: the isolated hash-508 branch plus its archived source patch, before
-integration with Claude's in-flight hash 507. Both seeds give these first state-199 times:
+Candidate: hash 508, rebased onto master `c915a9c3` (hash 507). Its bounded
+traces remain unchanged after that rebase. Both seeds give these first state-199 times:
 
 | Creature | Native recorded label | Baseline completed tick | Candidate completed tick |
 |---|---:|---:|---:|
@@ -162,7 +162,7 @@ their two seeds still differ. Seed-1 repeats match all 171 hashes in both maps.
 
 Source, runtime, inputs, raw traces and manifests:
 `F:/DK2Evidence/studies/q732-current-baseline--2026-11-14--002` and
-`F:/DK2Evidence/studies/q732-earlier-ready--2026-11-14--002`.
+`F:/DK2Evidence/studies/q732-earlier-ready--2026-11-14--003`.
 Q732 remains open for matched timing, movement and boulder comparisons.
 
 ## 6. The spell arm of `spFighting` (nibbles 0 and 2), `0x0045FB65`

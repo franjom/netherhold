@@ -92,8 +92,9 @@ These are entry points, not a new priority order.
 - M12 keeper acceptance and remaining decisions: [Keeper AI §12.7–12.8](KEEPER_AI.md),
   [native keeper comparisons](research/computer-keeper-observations.md), Q563.
   Enhanced AI remains outside Classic fidelity scope.
-- M7 trap/door comparisons: Q732 and the owner observations linked from
-  [traps](research/traps.md). Keep original-game acceptance separate from built rules.
+- M7 trap/door comparisons: Q732's current survey correction and bounded results
+  are in [combat spells](research/combat-spells.md#q732-current-trap-comparison-2026-11-14);
+  owner observations are in [traps](research/traps.md). Original-game acceptance remains open.
 - Possession camera and input: [build plan](plans/2026-10-12-possession-arms-build-plan.md)
   and [owner play questions](research/possession-arms-and-inputs.md).
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
