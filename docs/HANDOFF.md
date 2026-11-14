@@ -134,9 +134,14 @@ These are entry points, not a new priority order.
   can claim acceptance under the conditions in the [harness README](../src/DK2.Harness/README.md),
   and prints `not claimed: <reasons>` otherwise.
   Next (owner direction, 2026-11-14): stage 3 of the design, a capable bot that needs no model
-  and plays every campaign level as it becomes playable; it wins Levels 1-3 today
-  ([ladder](research/campaign-bot-ladder.md))
+  and plays every campaign level as it becomes playable
   ([plan](plans/2026-11-14-campaign-bot-stage3.md): strategy, per-level playbooks, a self-play tuner).
+  Tasks 0a-2 are built: `PlayerStrategy` drives the routines, and the player now develops (grows
+  outgrown rooms, builds the other offered rooms, digs within `BreachMode`; carrying creatures to
+  rooms is `UseRooms`, empty by default). It wins Levels 1-3 on accept seeds 11-20 (10/10 each,
+  hash 519); Level 4 won 2 of 3 diagnosis seeds but stays out of the driver choice while Q710 is
+  open, and Level 6b got worse ([ladder](research/campaign-bot-ladder.md) section 7). Next: Task 3,
+  the playbook format.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

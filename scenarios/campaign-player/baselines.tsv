@@ -1,13 +1,14 @@
 # Campaign player baselines (stage 3 plan, Task 0a): a record, not a test. Journals hold a start time, so the
 # state-hash series and the decision and action logs are hashed instead; a rerun reproduced all three.
-# Re-recorded at hash 517 (3f5c89db, q807's portal rules); the hash-516 rows were at 20a6a48c.
+# Re-recorded at hash 519 by Task 2's developing player (207f3a58, Task 2: base 18ed2ec6 plus its change;
+# recorded before the commit, tree identical); hash 517 rows were at 3f5c89db, hash 516 at 20a6a48c. Level 3 seed 3 is now a loss.
 scenario	seed	outcome	result_tick	final_hash	hashes_sha256	decisions_sha256	actions_sha256	commit	hash_version
-campaign-player-level1	1	Completed	2384	bdb8a105b974e841	cc09db386485b148	03709b99c6203891	4f8895c33c5ef294	3f5c89db	517
-campaign-player-level1-seed2	2	Completed	2305	2d71d808cc9dcc5d	685bdb264aae295b	720ede41d95e69d4	b19eeabfee7dfb2e	3f5c89db	517
-campaign-player-level1-seed3	3	Completed	2293	659ded9260c1bb71	51058b1476f182c4	9d87c30235ca205c	3fbff9c6f9cfebb8	3f5c89db	517
-campaign-player-level2-seed1	1	Completed	3741	2c5cc599c0b6912e	2c00c16b6b9f0192	916525da8dd19fe1	90d74d068898ecc2	3f5c89db	517
-campaign-player-level2-seed2	2	Completed	4582	e0470c2e7555233a	945efc9af93ea0f7	98aab9ee85804d7b	708df03fc8728126	3f5c89db	517
-campaign-player-level2-seed3	3	Completed	4657	2570be6a1f932375	87667bd7df8eb77b	41d81630f80ef5ad	2a6b25d293e5d258	3f5c89db	517
-campaign-player-level3-seed1	1	Completed	7270	c10f9f01991f66ab	ec94a0793fbb8e29	42316b5540716f15	3810a40c38db6186	3f5c89db	517
-campaign-player-level3-seed2	2	Completed	4277	7c3b5a68cebbc01f	5be8d17392ae57b4	6fbd0885a0d63780	94d45a4c8d3b4b45	3f5c89db	517
-campaign-player-level3-seed3	3	Completed	4094	80159217a3868d97	a7cb249ef2f834a4	ca4c5b0e164e876f	c78dac9ee02f1145	3f5c89db	517
+campaign-player-level1	1	Completed	2334	df88f4f47e3b62e7	af0dd929c39ec446	2e54c28c979f528c	ff837473f685ac91	207f3a58	519
+campaign-player-level1-seed2	2	Completed	2384	58cc7218f05e4077	6b7d21707c30be86	49eb15edab6e0323	f5c8d5724267eb32	207f3a58	519
+campaign-player-level1-seed3	3	Completed	2293	0ba16e1bc0a24fb6	05ab9e6e60987d5c	3f609e6c499790b8	5ac286f92cc13bfd	207f3a58	519
+campaign-player-level2-seed1	1	Completed	4656	1e3a6827f9721410	71039bd921206962	ccfebc6022f58afd	c9a2680e8e22e44c	207f3a58	519
+campaign-player-level2-seed2	2	Completed	5245	7408506bd9610ba7	7b7a1f983f8b69c8	516c9325c759fbb4	7b9615731faeebaa	207f3a58	519
+campaign-player-level2-seed3	3	Completed	4198	50bdba211b484566	9dceebe1aba92c28	cd7f2e40f5559813	706e355eee1189e6	207f3a58	519
+campaign-player-level3-seed1	1	Completed	7104	99df5994c3838cef	df05a2ccda3b81b0	67ad40a48d306ff1	642a0e57bd4fe165	207f3a58	519
+campaign-player-level3-seed2	2	Completed	6002	0e7b2b42e1bf98cc	f5ebdac32a50356c	2b07ebc32c6a9dcd	a17d64edd67e514d	207f3a58	519
+campaign-player-level3-seed3	3	Defeated	9402	d3cffcd4684349d6	bea5558d46c1f984	2c01f631a0eaaa57	1f7c228181246b6b	207f3a58	519
