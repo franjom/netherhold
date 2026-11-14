@@ -74,7 +74,7 @@ public sealed class PossessionView
     /// <summary>Puts the camera where <c>Camera_SetMode</c> sends it for a creature just possessed
     /// (<c>0x0044B5ED</c>-<c>0x0044B657</c>): on its point, its own height plus the eye height, facing
     /// its heading, level. DK2 flies the camera there in a timed move, during which the look is
-    /// dropped; that move is not modelled, so this view cuts.</summary>
+    /// dropped: <see cref="PossessionFlight"/> is that move, and this is where it lands.</summary>
     public void Enter(int x, int y, int creatureHeight, in PossessedBody body)
     {
         X = x; Y = y; Z = creatureHeight + body.EyeHeight;

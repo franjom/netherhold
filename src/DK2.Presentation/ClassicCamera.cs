@@ -90,27 +90,56 @@ public sealed class ClassicCamera
             sine * screenDirection.X + cosine * screenDirection.Y);
     }
 
-    public ClassicCameraPose Pose(Vector3 focus, CameraViewport viewport)
+    public ClassicCameraPose Pose(Vector3 focus, CameraViewport viewport) => Pose(focus, State(focus), viewport, 0);
+
+    /// <summary>The camera's own values at <paramref name="focus"/>, as a timed move starts from them.</summary>
+    public CameraFlightState State(Vector3 focus) => new(
+        (int)MathF.Round(focus.X * Fp32.One), (int)MathF.Round(-focus.Z * Fp32.One), (int)MathF.Round(focus.Y * Fp32.One),
+        Zoom.Raw, _profile.Lens, _profile.ViewDistance, _yaw.Value, _profile.AnglePitch, _profile.AngleRoll);
+
+    /// <summary>Where <c>Camera_SetMode</c>'s ordinary arm (<c>0x0044AFA0</c>-<c>0x0044B0F0</c>) sends a
+    /// camera coming from <paramref name="from"/>: over the same point, at the zoom the ordinary mode
+    /// was left with, the yaw rounded to a multiple of 8 (0x800 for the last four, as in DK2), the
+    /// preset's pitch, roll, lens and view distance. The focus height is the caller's; DK2 takes the preset's.</summary>
+    public CameraFlightState Return(in CameraFlightState from, int focusHeight) => new(
+        from.X, from.Y, focusHeight, Zoom.Raw, _profile.Lens, _profile.ViewDistance,
+        (from.Yaw + 4) & 0xFFF8, _profile.AnglePitch, _profile.AngleRoll);
+
+    /// <summary>Takes the yaw a timed move ended on, whatever the preset locks.</summary>
+    public void Face(Dk2Angle yaw) => _yaw = new Dk2Angle((ushort)(yaw.Value & 2047));
+
+    /// <summary>The pose of any camera state. <paramref name="firstPersonShare"/> runs from 0, this
+    /// camera's own projection, to 1, the first-person one (the axis at the screen's middle and
+    /// <see cref="PossessionCamera.VerticalFieldOfView"/>'s angle): the two differ only by remake
+    /// choices, so a move between them blends them.</summary>
+    public ClassicCameraPose Pose(in CameraFlightState state, CameraViewport viewport, float firstPersonShare) => Pose(
+        new Vector3(state.X / (float)Fp32.One, state.Z / (float)Fp32.One, -state.Y / (float)Fp32.One), state, viewport, firstPersonShare);
+
+    private ClassicCameraPose Pose(Vector3 focus, in CameraFlightState state, CameraViewport viewport, float firstPersonShare)
     {
         if (viewport.ScreenWidth <= 0 || viewport.Width <= 0 || viewport.Height <= 0
             || viewport.Width > viewport.ScreenWidth)
             throw new ArgumentOutOfRangeException(nameof(viewport));
 
-        Matrix4x4 nativeView = Matrix4x4.CreateRotationZ(-Radians(_yaw))
-            * Matrix4x4.CreateRotationX(-Radians(new Dk2Angle(_profile.AnglePitch)))
-            * Matrix4x4.CreateRotationZ(-Radians(new Dk2Angle(_profile.AngleRoll)));
+        var yaw = new Dk2Angle((ushort)(state.Yaw & 2047));
+        var pitch = new Dk2Angle((ushort)(state.Pitch & 2047));
+        Matrix4x4 nativeView = Matrix4x4.CreateRotationZ(-Radians(yaw))
+            * Matrix4x4.CreateRotationX(-Radians(pitch))
+            * Matrix4x4.CreateRotationZ(-Radians(new Dk2Angle((ushort)(state.Roll & 2047))));
         Matrix4x4 inverseView = Matrix4x4.Transpose(nativeView);
         int framedWidth = ReferenceScreenWidth ?? viewport.ScreenWidth;
-        float distance = (float)Zoom.ToDouble() * 640f / framedWidth;
+        float distance = (float)new Fp32(state.Zoom).ToDouble() * 640f / framedWidth;
         Vector3 offset = ToUnity(Vector3.TransformNormal(new Vector3(0, 0, -distance), inverseView));
         Vector3 forward = ToUnity(Vector3.TransformNormal(Vector3.UnitZ, inverseView));
         Vector3 up = ToUnity(Vector3.TransformNormal(-Vector3.UnitY, inverseView));
-        float fov = VerticalFieldOfView(_profile.Lens, viewport, ReferenceScreenWidth);
+        float fov = VerticalFieldOfView(state.Lens, viewport, ReferenceScreenWidth);
+        if (firstPersonShare > 0)
+            fov += (VerticalFieldOfView(state.Lens, new CameraViewport(640, 640, 480), null) - fov) * firstPersonShare;
         return new ClassicCameraPose(focus + offset, forward, up, fov,
-            NativeViewDistance,
-            90f - new Dk2Angle(_profile.AnglePitch).Value * (360f / 2048),
-            _yaw.Value * (360f / 2048),
-            1f - 2f * ProjectionCentre);
+            Math.Max(state.ViewDistance / (float)Fp32.One, 2f * (float)new Fp32(state.Zoom).ToDouble()),
+            90f - pitch.Value * (360f / 2048),
+            yaw.Value * (360f / 2048),
+            (1f - 2f * ProjectionCentre) * (1 - firstPersonShare));
     }
 
     /// <summary>The vertical field of view, in degrees, of a preset's lens: 320 pixels of focal length

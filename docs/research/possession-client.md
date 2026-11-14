@@ -236,24 +236,86 @@ eye height `def+0x65C` from `0xEB0` (`EyeHeight`), waddle `def+0x863` from the d
 from the byte at `0xD3D`, zero-extended. The lean flag is `def+0x686` bit 28, file
 `0xEFC`.
 
-## 6. The other possession modes
+## 6. Entering, leaving and the other possession modes
 
-**Entering.** The view handler `0x00448440` (table entry at `0x0066D12C`) takes a
-record of a thing id and a player; for the view's own player, when the thing is a
-creature or an object (class 0 or 2), it requests camera mode 2 with the thing id. A
-neighbouring routine ending at `0x00448438` plays the definition's sound `def+0x6E3`
-and requests mode 2 the same way (its head is UNREAD). What `Camera_SetMode` does with
-that request between an ordinary mode and mode 2 (preset 10's fly-in) is UNREAD.
+**The timed move (STRONGLY INFERRED).** `Camera_SetMode` (`0x0044ACE0`) sorts modes into
+classes (1, 2, 10 and 11; 3, 4, 5, 9, 13, 14 and 15; 7; 18; the rest) and gives a change
+500 ms inside a class and 2000 ms across classes, or none when the old mode is 7 and the
+new one is not, or camera flag `+0xE3C` bit 6 is set; it refuses the change when flag
+byte `+0xD92` has bit 7. It fills the target view (`+0xDB6` X, Y, Z, `+0xDC2`
+zoom, `+0xDC6` yaw, `+0xDC8` pitch, `+0xDCA` roll, `+0xDCC` from the preset's file
+`0x24` and `+0xDD0` from its file `0x3C` (our `ViewDistance` and `Lens`; which the
+renderer takes as which is UNREAD), `+0xDD4` mode) and `Camera_CommitMode` (`0x0044BD70`) stores the start `+0xDDC` and the
+end `+0xDD8`. Each frame `Camera_Update` (`0x0044C875`-`0x0044C9DB`) moves every value by
+`(target - value) * (now - start) / (end - start)` in whole numbers and then makes
+`start = now`; an angle's gap is the 11-bit difference with its sign, so it turns the
+short way. When `end <= now`, `Camera_CommitMode(0)` copies the target in.
 
-**Leaving.** `Camera_Update`'s mode 11 arm, while no timed transition (`+0xDD8`) runs,
-waits 2000 ms from `+0xDDC`, zeroes the pitch, calls `0x005976D0` and requests the
-mode at `+0xDE4`.
+**Entering (STRONGLY INFERRED).** The view handler `0x00448440` (table entry
+`0x0066D12C`) takes a thing id and a player; for the view's own player and a creature or
+an object (class 0 or 2) it requests mode 2 with the thing id. A neighbouring routine
+ending at `0x00448438` plays the definition's sound `def+0x6E3` and requests mode 2 the
+same way (its head is UNREAD). `Camera_RequestMode` (`0x0044A5D0`) keeps the ordinary mode
+in `+0xDE4` and sets flag bit 7. For a creature the target is its point, its `+0x22` plus
+`def+0x65C`, its heading, pitch `0x200` and preset 2's zoom and its two `+0xDCC` and
+`+0xDD0` values (the second halved when creature byte `+0x36F` is `0x2D`). The mode word `+0xDA8` stays the
+ordinary one for the 2000 ms, so the first-person step, the look and the once-a-turn pose
+(§1, §2) do not run. On landing the commit sets `+0xDA8 = 2`, the latch `0x00759AE8` and
+flag bit 8, and clears bit 0 of the thing's byte `+0xF3`: the possessed creature's own
+model stops being drawn only then. In the last 256 ms, with flag bit 7 set, `0x005976D0`
+starts a 256 ms colour change from the creature's `def+0x86F` (Q745).
 
-`Hud_PollOrdinaryCameraInput` sends mode 1 to `0x0040F820`: the scroll keys post actions
-`0x18` (∓0x23) and `0x17` (∓0x100) instead of moving a camera. Neither id is in the view
-table, the second view table at `0x0066D0D8` or the game-action table, so the mode may be
-inert; what it was for is UNKNOWN. Mode 10 goes to `0x0040E670` (UNREAD). Mode 11 is
-entered from mode 2 by the leave handler `0x00442820` (its record is HYPOTHESIS).
+**Leaving (STRONGLY INFERRED).** Game action 21 (`0x15`) is also in the view table, at
+`0x00442820`. With a first word of 0 it requests mode 3; `Camera_RequestMode`, leaving a
+class-1 mode for an ordinary one, sets bit 0 of the thing's `+0xF3` again, swaps in the
+mode kept at `+0xDE4` and starts colour change 0 over 256 ms. `Camera_SetMode`'s ordinary
+arm targets the camera's own X and Y, the preset's height (file `Z`, offset 8), the zoom
+the ordinary mode was left with (`+0xDE0`; the preset's when flag bit 6 is set), the yaw
+rounded to a multiple of 8 (`(yaw + 4) & 0xFFF8`, which can be `0x800`), and the preset's
+pitch, roll and two `+0xDCC`/`+0xDD0` values. `+0xDA8` becomes the ordinary mode at once
+and the move takes 2000 ms. Posters of action 21 with zeros: the upkeep failure
+(`0x004C13BA`), a death that leaves no thing behind (`0x004880D5`), creature code at
+`0x00489F50`, `0x00489F9D` and `0x00489FDD`, and `Player_EndLevelStatistics`
+(`0x004BEA98`, `0x004BEEAB`). Which of them, if any, is the player's own leave is UNREAD;
+the remake takes that leave to be the same record.
+
+**The mode-11 view (STRONGLY INFERRED, not built).** A first word of 1 requests mode 11,
+and only from mode 2. `Creature_DeathBookkeeping` posts it with the id of the thing the
+dead creature leaves behind (`0x00488095`), and `Object_OnDelete` with id 0
+(`0x0049B702`). The move takes 3000 ms with the `+0xDCC` target 0 and colour change 9
+over 1500 ms. For a class-6 thing the target is an eye height from it along its heading
+tables, at floor height plus `0x100`, with random yaw, roll and pitch, and the thing's
+draw bit is cleared at the request; otherwise the camera's own point at floor height
+plus `0x100`, roll 200, pitch 400. 2000 ms after landing `Camera_Update` zeroes the pitch
+and requests the kept ordinary mode.
+
+**Other modes.** `Hud_PollOrdinaryCameraInput` sends mode 1 to `0x0040F820`: the scroll
+keys post actions `0x18` (∓0x23) and `0x17` (∓0x100) instead of moving a camera. Neither
+id is in the view table, the second view table at `0x0066D0D8` or the game-action table,
+so the mode may be inert; what it was for is UNKNOWN. Mode 10's input is `0x0040E670`:
+bindings 16 to 19 post action 3 with steps of 0x100 (0x800 with binding 21 held) and the
+mouse posts action 8 with twice its delta; nothing read enters mode 10.
+
+**The model (STRONGLY INFERRED) and the footsteps (HYPOTHESIS).** The draw bit is the
+only thing found that hides the possessed creature: `Thing_DrawRenderInfo` (`0x0059B880`) builds a body draw only with it
+set and tests neither the camera nor the possessed flag. The shadow goes with the body
+(`0x00584900` queues it from the same draw object) and so does the status flower
+(`0x0048E830` tests the bit); no write was found for a carried object or an attached
+effect. Only the possessor's machine clears the bit, so other players see the creature.
+The ordinary footstep arm (`0x0043CC30` at `0x0043CD52`) tests none of the bit, the
+possessed flag or the camera, and it asks on the creature's own sound handle (`+0x2E`)
+while the view's step asks on handle 0, so neither cuts the other: a creature with
+authored marks should sound its `0x314` and `0x315` steps beside the view's `0x332` and
+`0x333`. Unread: whether the tile pass runs in mode 2 and visits the possessed creature's
+tile, and whether the sound manager takes both.
+
+**The remake.** `PossessionFlight` runs the 2000 ms move both ways with the formula
+above; the picture comes from the ordinary camera's pose formula, and the two remake
+projection choices (§3) are blended by the move's progress. The model is hidden from the
+landing to the leave, with its shadow, and both kinds of footstep sound. Every end of a possession flies out the ordinary way, death
+included. The colour changes are not built. The focus height of the way back is the
+ordinary camera's own, which is the preset's unless something moved it. The view cannot
+be left until the move in has landed (remake choice: DK2's leave during it is unread).
 
 ## 6a. The owner's recollection, 2026-11-14
 
@@ -272,8 +334,8 @@ initial value of the selection byte `+0x13D9` are still unread.
 
 - How the first-person preset's lens and view distance reach the renderer, and the
   writers of camera `+0xE38` and `+0xE3C`.
-- The timed move from an ordinary mode into mode 2 (mode 10), and who raises the view
-  event `0x00448440` handles.
+- Who raises the view event `0x00448440` handles, who posts the player's own leave, and
+  the colour changes of `0x005976D0`.
 - `Possession_SelectAbility`'s level gate in full, `0x005075A0`, `0x004D2230`, and the
   handlers of actions `0x1C`, `0x1E`, `0x1F` and `0x89`.
 - The map and cell accessors the step calls, taken by name: world slots `+0x1CC` and
