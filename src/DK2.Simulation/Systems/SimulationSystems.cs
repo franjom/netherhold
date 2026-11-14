@@ -88,7 +88,7 @@ public static class SimulationSystems
         new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
         new ObjectMovementSystem(),
         // ObjectMovement steps Eggs and Coops with the birds; this retains only synthetic-data hatching.
-        // The room walk lays afterwards (ADR-0634). Boulder and reaction passes remain separate.
+        // The room walk lays afterwards (ADR-0634). A struck object's state 18 runs in ObjectMovement's pass (Q803).
         new HatcherySystem(lays: false, stepObjects: false),
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
         new CollapseSystem(), // boulders and traps
@@ -207,7 +207,7 @@ public static class SimulationSystems
     /// in each creature's update (<see cref="ThingPass"/>).</summary>
     private static ISimulationSystem[] Needs() =>
     [
-        new ObjectReactionSystem(),
+        new ObjectReactionSystem(), // the casino lever's 48/49 only, still outside the object pass (residual, Q803)
 
         // Health, prison: one asleep this tick heals this second; health settles damage before
         // death is checked; the health system skips prisoners, so exactly one system settles a

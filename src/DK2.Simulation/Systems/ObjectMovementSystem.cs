@@ -6,7 +6,7 @@ using DK2.Core;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>Chicken, Rat, Egg and Coop handlers share the object's newest-first update order.</summary>
+/// <summary>Chicken, Rat, Egg, Coop and struck-object handlers share the object's newest-first update order.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/prison-rats.md")]
 public sealed class ObjectMovementSystem : ISimulationSystem
 {
@@ -17,7 +17,11 @@ public sealed class ObjectMovementSystem : ISimulationSystem
         for (int i = context.World.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState thing = context.World.Objects[i];
-            if (thing.ObjectTypeId == RatRules.RatObjectId) RatRules.Tick(context, thing);
+            // State 18 (0x004A13F0) is an object process like the others, dispatched by state whatever the type
+            // and run in the same pass in thing order (0x0049BD20): its first random(2) falls among the birds' draws (Q803).
+            if (thing.ProcessState == ObjectReactionRules.StruckProcess && !thing.InHand && thing.CarriedByCreatureId < 0)
+                ObjectReactionRules.Step(context, thing);
+            else if (thing.ObjectTypeId == RatRules.RatObjectId) RatRules.Tick(context, thing);
             else if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.Tick(context, thing);
             else if (thing.ObjectTypeId is HatcheryRules.EggObjectId or HatcheryRules.CoopObjectId)
                 HatcherySystem.StepObject(context, thing);

@@ -213,7 +213,7 @@ public sealed class ObjectSoundTests
     [Fact]
     public void AStruckTrainingDummyRequests311OnceOnTheFirstUpdateOfItsSpinAndNoOtherObjectDoes()
     {
-        var (db, world, sim, events) = Setup(new ObjectReactionSystem());
+        var (db, world, sim, events) = Setup(new ObjectMovementSystem());
         ObjectState dummy = world.SpawnObject(db, Dk2TerrainFixture.TrainingDummyObjectId, Keeper, Tile);
         ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, Tile + 1);
         events.Clear();

@@ -235,7 +235,8 @@ with #6 and returns to #0 when slowed. Nothing read installs #7 `Idle`: UNKNOWN.
 
 **Training Dummy (14): STRONGLY INFERRED.** The training blow (`0x00498CA0`) sets state 18
 (`0x004A13F0`). It installs #5 `Recoil_back` if loaded (sound 0x311 for type 14), spins the
-heading with a decaying speed until below 0x40 per turn, and reinstalls #0 when the clip ends.
+heading with a decaying speed until below 0x40 per turn, and reinstalls #0 when the clip ends. It runs in the object pass in thing
+order (the update order below), so its first `random(2)` falls among the birds' draws (Q803, ADR-0795).
 
 The same pattern elsewhere: object 109 states 44/45 (#0, #5 played once, toggled by
 `0x004E35C0`); the Prison door object 116 states 46/47 (#0, toggled by `0x004E3680`);
@@ -244,7 +245,7 @@ The classic Prison door view retains its opening stamp and plays #0 once
 when the simulated door opens; its closing lifecycle is not yet modelled (ADR-0438).
 
 **Object update order (STRONGLY INFERRED, 2026-10-11).** `0x0049BD20` runs the process,
-then physical movement (`0x004B2030`), then animation (`0x004B3AD0`). The object
+then physical movement (`0x004B2030`), then animation (`0x004B3AD0`). The process runner `0x0049EED0` has no type test, and the one object vtable's slot 0x14 reaches it for every object the thing sweep visits, so every object type's process state, state 18 included, runs in the sweep's object pass in thing order (STRONGLY INFERRED, ADR-0795). The object
 vtable `0x0066D654` has ground response `0x0049CD70` at +0x64 and mass test
 `0x004B7230` at +0x88. Mass's runtime low signed word zero suppresses gravity.
 Gravity subtracts variable 130 × 256 from persistent vertical velocity while

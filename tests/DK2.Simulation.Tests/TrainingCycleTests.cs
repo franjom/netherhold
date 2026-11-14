@@ -211,6 +211,6 @@ public class TrainingCycleTests
         new CreatureUpdateSystem(new CreatureJobSystem(), new CreatureMovementSystem()),
         new TrainingActionSystem(),
         new ShotSystem(),
-        new ObjectReactionSystem(),
+        new ObjectMovementSystem(),
     ];
 }

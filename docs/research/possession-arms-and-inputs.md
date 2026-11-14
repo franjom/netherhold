@@ -49,7 +49,7 @@ No state change and no LastAteTime stamp, unlike the Hatchery's state 93. The bi
 at age 1, +0x14A = now, direction −1 when random(2) = 1 else +1, speed 0x200, the
 effect def+0x117, art 5, sound 0x311. Each tick u = 0x200·dir·9 / ((now + 3 −
 stamp)·3) and heading = (heading + u − dir·64) & 0x7FF while |u| > 0x40, about 20
-ticks; then +0xD4 and +0xD8 are zeroed and it returns 0. No damage.
+ticks; then +0xD4 and +0xD8 are zeroed and it returns 0, which the object updater (`0x0049EED0`) turns into a cleared state. It runs in the object pass in thing order ([object-drawing.md](object-drawing.md#8-furniture-eggs-and-chickens), ADR-0795). No damage.
 
 **Anvil, Steel Bucket, Work Bench (15, 16, 46).** A hit point from world+4→+0x10
 vtable +0x10C, else the object's position; `Attack_LookupImpactPair(def+0x77A, object
@@ -79,8 +79,7 @@ A spell at an Arch Pillar is the ordinary `Begin(16, slot, target)`: action 16
 so the shot aims at the pillar's position plus the lead, and its damage reaches the
 heart through the forward above.
 
-UNREAD: what removes a shot whose Health a blow takes to ≤ 0; what the object
-updater does when state 18 returns 0.
+UNREAD: what removes a shot whose Health a blow takes to ≤ 0.
 
 ## 3. Dig and claim — STRONGLY INFERRED by listing
 

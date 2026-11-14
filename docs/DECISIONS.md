@@ -18896,3 +18896,34 @@ Level 1's journal is re-recorded: win 2374 and gem 2483 unchanged. Q174's residu
 same tick) is unchanged. Not checked natively: `TorturerStep` drops the arrival result and runs `StrapSelf` in the arrival tick
 (PLAUSIBLE only). Test: `GuardTests.AnArrivingGuardStandsInNinetyEightForATurnBeforeItsNextLeg` (fails without the fix); only the
 98 arrival is covered. Full suite passes (Simulation 5391, Behavior 620 with 5 skipped).
+
+## ADR-0795 - a struck object's state 18 runs in the object pass, in thing order
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** simulation-core, creatures | **Hash/save:** 511
+
+**Context.** Q803, Level 5 seed 1, controlled replay at hash 510: native draws `ObjectState.cpp:2030` at turn 2050 draw 5,
+between two chicken draws, where ours drew the Training Dummy's `random(2)` after every chicken. The object class has one
+vtable (`0x0066D654`, installed at `0x004B720C`) whose slot 0x14 (`0x0066D668`) is the object update `0x0049BD20`, which the
+thing sweep `0x004B7830` calls on every member of each list. It calls the process runner `0x0049EED0` at `0x0049BD60` (its only
+caller), which has no type test: state `+0x13A` of 0 loads the definition's start state with age 0; otherwise it increments the
+age `+0x13E` (`0x0049EF10`-`0x0049EF17`), calls the table handler (`0x0049EF1D`-`0x0049EF3E`) and a 0 return clears the state
+(`0x0049EF42`-`0x0049EF44`). `0x0049E600` stores `0x004A13F0` into entry 18 (`0x0049E81D`-`0x0049E822`). `Object_SetProcessState`
+(`0x0049EF60`) stores age 0, so the first update sees age 1 (tested at `0x004A13F8`), and state 18's first act is `random(2)`
+tagged `0x7EE` (`0x004A141B`-`0x004A142D`), before the effect (vtable `+0x38C`) and the sound. So a struck object draws in thing
+order among the birds. STRONGLY INFERRED: read, re-derived by the reviewer; the capture agrees (turn 2050 draw log).
+
+**Decision.** `ObjectMovementSystem`'s newest-first loop dispatches an object in state 18 to `ObjectReactionRules.Step` first,
+by state and whatever the type (not in hand, not carried), as the one update does. `ObjectReactionSystem` keeps only the
+casino lever's states 48 and 49. Callers that set 18: the training blow `0x00498CA0` (target `+0x399`, no type test), the
+possessed melee `0x00514830` (type 14 only: jump table `0x005153D0`, arm at `0x005149BB`) and the Casino wheel at `0x00456AB7`
+(type 0x1E; ours builds no wheel objects, a known residual in `CasinoStep.cs`). The other callers of `0x0049EF60` (about 60)
+were not scanned for 0x12. Evidence: [object-drawing.md](research/object-drawing.md#8-furniture-eggs-and-chickens).
+
+**Consequences.** Hash and save 511; earlier saves are refused. Pin `0x21AAB3680D4E6038`. Level 5 seed 1 (controlled563):
+11440 draws match through 2106 (10614 through 2049 at 510). The next boundary is turn 2107 draw 1, native `ObjectState.cpp:2782`
+against ours' `ResearchState.cpp:215` (creature 441, state 54, `ResearchStep.AtTheShelf`), Q804; first creature position
+splits: 441 at 2095, 433 at 2110, 439 at 2111, 437 at 2128, 438 at 2149; guard 432 none. Level 1's journal is re-recorded: win
+2374 and gem 2483 unchanged. Residual: the casino lever's 48 and 49 (`0x004A3AF0`, `0x004A3B90`; they draw nothing) still run in
+`ObjectReactionSystem`; `CasinoSystem` sets them in the room tick, which natively runs after the thing pass (`0x004EC450`), so ours
+may reach the lever's art end a tick early (PLAUSIBLE; setter `0x004D6890` not traced). Test:
+`ObjectReactionTests.AStruckObjectDrawsInThingOrderAmongTheBirds` (fails 3 of 3 without the fix); the reaction, sound and training
+test hosts now use `ObjectMovementSystem`. Full suite passes.

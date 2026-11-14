@@ -67,8 +67,8 @@ before that emission. The common action-table/count timing is described in
 
 `0x004B7830` updates creature class 0 before shot class 1 and object class 2.
 The default host therefore polls training actions in `TrainingActionSystem`
-before `ShotSystem` and `ObjectReactionSystem`: an emitted shot takes its
-first step and a struck dummy initializes its reaction on that same turn.
+before `ShotSystem` and `ObjectMovementSystem`: an emitted shot takes its
+first step and a struck dummy initializes its reaction on that same turn, in the object pass in thing order (ADR-0795).
 The isolated job-system host retains a guarded poll fallback; completed
 handler work never runs twice.
 

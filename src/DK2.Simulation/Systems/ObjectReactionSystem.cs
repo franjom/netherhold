@@ -13,9 +13,8 @@ public sealed class ObjectReactionSystem : ISimulationSystem
         for (int index = context.World.Objects.Count - 1; index >= 0; index--)
         {
             ObjectState target = context.World.Objects[index];
-            if (target.ProcessState == ObjectReactionRules.StruckProcess && !target.InHand && target.CarriedByCreatureId < 0)
-                ObjectReactionRules.Step(context, target);
-            else if (target.ObjectTypeId == AutoFurnitureRules.CasinoLeverObjectId && target.ProcessState is 48 or 49)
+            // State 18 runs in ObjectMovementSystem's thing-order pass (Q803). The lever's 48/49 stays here (draws nothing).
+            if (target.ObjectTypeId == AutoFurnitureRules.CasinoLeverObjectId && target.ProcessState is 48 or 49)
             {
                 target.ProcessAgeTicks++;
                 if (target.ProcessAgeTicks == 1) target.ProcessDeadline = context.Tick.Value;
