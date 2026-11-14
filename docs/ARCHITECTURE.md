@@ -281,6 +281,11 @@ renders campaign level 1 as coloured boxes rather than DK2's walls (Q71).
 edges to `PlayerInputTranslator`; gesture-to-command behaviour remains in the
 Unity-free presentation assembly (ADR-0104).
 
+**HUD (ADR-0805).** A HUD panel's DK2 behaviour lives in `DK2.Presentation` and writes a `HudFrame`
+(`HudDrawList.cs`). The adapter draws it with `HudCanvas` and forwards pointer input. The bottom panel
+has moved; the other panels are still Unity code until they move in the order ADR-0805 lists. The ADR's
+table says where new HUD files go, including the future `godot/DK2.Godot` adapter.
+
 `unity/DK2.Unity.Compile` compiles the adapter against Unity's real module
 assemblies, which is the only way "do not commit code you have not built" reaches
 Unity code. It is outside `DK2.slnx` on purpose. See `unity/README.md`.

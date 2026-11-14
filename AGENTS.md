@@ -172,6 +172,9 @@ Game simulation must remain independent from Unity wherever practical.
 
 Unity is presentation/integration.
 
+A switch to Godot is being prepared (ADR-0805). DK2 behaviour never goes into an engine adapter; a HUD panel's
+logic goes in `DK2.Presentation` as a draw list, and ADR-0805's table says where each kind of new file goes.
+
 ## Original assets
 
 Original DK2 assets may be used for development/reference.

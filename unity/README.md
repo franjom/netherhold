@@ -202,6 +202,12 @@ judgement in it beyond "file or placeholder". `DungeonRunner` reads the pointer 
 `PlayerIntent`, translates it through `PlayerInput`, and sends the simulation only
 `InputFrame`s; `TilePicker` decides which tile a ray hits.
 
+The HUD follows the same split (ADR-0805). A moved panel is an engine-free model in `src/DK2.Presentation`
+that writes a `HudFrame` draw list; `HudCanvas` renders it as UI Toolkit quads and fan meshes, snapped to
+screen pixels, and the panel's own file is a facade that forwards pointer events. The bottom panel is
+moved (`BottomPanelHud`, `ClassicBottomPanel`); the other panels still hold their logic here until their
+turn in the ADR. New DK2 behaviour goes in `DK2.Presentation`, never in these files.
+
 **Read `src/DK2.Presentation/TextRenderer.cs` before changing anything here.** It is
 the same job against a character grid, it runs in CI, and a disagreement between the
 two is a bug in one of them rather than a matter of taste.

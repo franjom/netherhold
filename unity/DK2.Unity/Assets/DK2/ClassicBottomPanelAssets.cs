@@ -15,15 +15,12 @@ using DK2.Presentation;
 
 namespace DK2.Unity
 {
-    public interface IClassicBottomPanelAssets
+    /// <summary>The install's HUD art; <see cref="IBottomPanelArt"/> is the part the engine-free panel reads.</summary>
+    public interface IClassicBottomPanelAssets : IBottomPanelArt
     {
         RgbaImage Image(string name);
-        string Icon(BottomPanelChoiceKey key);
-        /// <summary>An upgraded spell's icon, the record's second art name (file <c>+0x120</c>), or null.</summary>
-        string UpgradedIcon(BottomPanelChoiceKey key) => null;
         string Name(BottomPanelChoiceKey key, string fallback);
         int Order(BottomPanelChoiceKey key);
-        string Text(uint id);
         BitmapFont Font(int screenHeight);
     }
 

@@ -181,7 +181,7 @@ with the remembered open set kept across a collapse; `BottomPanelOpenSet` is the
 menus. `BottomPanelLayout.PanelOf` is 0x00417310, `Grid` and `BottomPanelGrid` (`Slot`,
 `PageSize`, `WidgetBank`) are 0x00417470 including the single-panel 128-unit switch at 7+ entries,
 `PreviousPage`/`NextPage` the arrows and `OverviewColumns` menu 5's column count.
-`ClassicBottomPanel` reads Shift without Ctrl/Alt from the release event, draws up to two panels
+`BottomPanelHud` reads Shift without Ctrl/Alt from the release event (`ClassicBottomPanel` passes it on), draws up to two panels
 (26 slots each), each with its own arrows and page, the selected overlay on every open tab and
 `gui\icons\tab-lock` over the pinned one (between the overlay and the hover);
 `ClassicCreatureOverview` moves with its panel and narrows to `(W − 432) / 116` columns. Ours, not
@@ -202,11 +202,12 @@ the item grids keep the 1800-unit reference span. Not wired: sound `0x138` on ex
 `BottomPanelFlash` (Presentation) resolves the active FLASH_BUTTON target against the open
 panel to a tab or slot and the real-clock dark half, and says when using the item clears it
 (`0x00426F30`); `DungeonRunner.DrawHudControls` clears through `ScriptedViewDirector.ClearFlash`.
-`ClassicBottomPanel` tints the flashing tab or slot `0x32` on the dark half and draws four
+`BottomPanelHud` tints the flashing tab or slot `0x32` on the dark half and draws four
 `GSparkle0..15` at the read positions. `BottomPanelSparkles` seeds them as 0x004033F0 does and
 advances them once per rendered frame, with its own `Dk2Lcg`, never the simulation's stream.
 The interface seed's value at reset is unread, so it is a constructor parameter. UI Toolkit
-has no additive images, so each sparkle keeps its colour with its brightness as alpha.
+has no additive images, so each sparkle keeps its colour with its brightness as alpha
+(`HudImagePixels.AdditiveOverAlpha`, ADR-0805).
 Deviation: the modulo is taken in virtual units, not screen pixels. The sparkle is 88 units on
 264-unit slots (`+0x3C == 6`) and 64 on tabs and 128-unit slots (`BottomPanelSparkles.SizeFor`,
 section 3). `BottomPanelFlash` takes the set of open panels, so with a pinned tab both panels

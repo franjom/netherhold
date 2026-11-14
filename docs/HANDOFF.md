@@ -17,6 +17,11 @@ questions live in their canonical documents; this file links to them.
   and [HUD comparison checklist](research/hud-comparison-checklist.md).
   Lighting acceptance and remaining comparison/performance limits live in
   [classic lighting verification](research/classic-lighting-verification.md).
+- Engine switch (owner, 2026-11-14): a Godot adapter is being prepared because GPLv3 code linked to
+  Unity's runtime is [ADR-0041](DECISIONS.md)'s open question. [ADR-0805](DECISIONS.md) moves each HUD
+  panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
+  panel is moved (`BottomPanelHud`, `HudCanvas`) and had not been run in the Unity editor at 2026-11-14. Next:
+  the resource HUD, then the order in the ADR. No Godot code existed on that date.
 - Presented-world P1 and its follow-ups are merged. Measurements and remaining
   performance targets: [presented-world result](plans/2026-11-06-presented-world.md#result-measured-2026-11-06)
   and [performance policy](PERFORMANCE.md).
