@@ -72,7 +72,7 @@ internal sealed class StateModel
     internal static readonly IReadOnlyDictionary<string, int> ContextMembers = new Dictionary<string, int>(StringComparer.Ordinal)
     {
         ["World"] = World, ["Rng"] = Rng, ["Navigation"] = Navigation, ["Events"] = EventsOut, ["Triggers"] = LevelScript,
-        ["Database"] = Excluded, ["_profiler"] = Excluded, ["_requestEffect"] = Excluded, ["_requestSound"] = Excluded,
+        ["Database"] = Excluded, ["_profiler"] = Excluded, ["_requestEffect"] = Excluded, ["_requestSound"] = Excluded, ["_emit"] = Excluded,
         ["Tick"] = World,
         ["_input"] = CommandsIn, ["_commands"] = CommandsIn,
         ["TremorRecoveryCompletedThisTick"] = Caches, ["TremorMoodDispatchedThisTick"] = Caches,
@@ -91,7 +91,7 @@ internal sealed class StateModel
 
     /// <summary><c>SimulationContext</c> members that only hand out a reference: reading them is plumbing.</summary>
     internal static readonly IReadOnlySet<string> PlumbingMembers =
-        new HashSet<string>(["World", "Database", "Rng", "Navigation", "Events", "Triggers", "DropCombat", "_profiler", "_requestEffect", "_requestSound"], StringComparer.Ordinal);
+        new HashSet<string>(["World", "Database", "Rng", "Navigation", "Events", "Triggers", "DropCombat", "_profiler", "_requestEffect", "_requestSound", "_emit"], StringComparer.Ordinal);
 
     /// <summary>Types whose column is fixed whatever reaches them, by simple name.</summary>
     internal static readonly IReadOnlyDictionary<string, int> TypeColumns = new Dictionary<string, int>(StringComparer.Ordinal)

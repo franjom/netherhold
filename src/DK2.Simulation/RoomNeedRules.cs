@@ -548,14 +548,19 @@ public static class RoomNeedRules
     }
 
     /// <summary>Posts, and reports a new record; a retained duplicate comes back unchanged and unreported.</summary>
-    internal static PlayerMessage? Post(SimulationContext context, PlayerId player, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
+    internal static PlayerMessage? Post(SimulationContext context, PlayerId player, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0) =>
+        PostReported(context.World, player, kind, room, roomTag, nameof(RoomNeedRules), context.Emit);
+
+    /// <summary>Posts a room message and passes a new record to <paramref name="emit"/> as a
+    /// <c>room_message</c> from <paramref name="system"/>; a retained duplicate is not reported.</summary>
+    internal static PlayerMessage? PostReported(WorldState world, PlayerId player, PlayerMessageKind kind, RoomTypeId room,
+        int roomTag, string system, Action<string, string, string> emit)
     {
-        IReadOnlyList<PlayerMessage> entries = context.World.Messages.Entries;
+        IReadOnlyList<PlayerMessage> entries = world.Messages.Entries;
         uint lastBefore = entries.Count == 0 ? 0 : entries[^1].Id;
-        PlayerMessage? posted = context.World.Messages.PostRoom(context.World, player.Value, kind, room, roomTag);
+        PlayerMessage? posted = world.Messages.PostRoom(world, player.Value, kind, room, roomTag);
         if (posted is PlayerMessage message && message.Id != lastBefore && entries[^1].Id == message.Id)
-            context.Emit(nameof(RoomNeedRules), "room_message",
-                $"player={player} kind={(int)kind} room={room} id={message.Id}");
+            emit(system, "room_message", $"player={player} kind={(int)kind} room={room} id={message.Id}");
         return posted;
     }
 }

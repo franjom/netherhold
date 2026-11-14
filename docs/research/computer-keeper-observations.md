@@ -238,6 +238,8 @@ the knights in 108 until 676; with states 108 and 110 built (ADR-0393) they are 
 and lifted again, about every 25 ticks: each knight's first re-lift 45, 57 or 73 ticks after its
 refusal, later ones mostly 4 to 6, as DK2's.
 
+**Training growth after the 42 (2026-11-14, Q757).** DK2: 42 at 679, 12,630 gold at 924. Ours posts the Training 42 at 697, 673 and 680 (seeds 13, 1, 2; the claim posts it, `RoomCapacityRules.PostFull`) and takes the expansion request at 1019, 976 and 1056 with 6,866, 1,810 and 5,398 gold against 12,500, so the planner drops it. Gold is STRONGLY INFERRED as the cause (the door step spends 6,000 per Magic Door; the 42 is on time). That DK2's door history would clear 12,500 in ours is not shown: with one Magic and one Wooden Door ours' three seeds would still sit 134, 1,602 and 5,190 short; the rest is mined-gold income and Prison timing. Ours' doors come at 345/345/522 and 816/781/660 (DK2 204 and 915). Open in Q757: that cadence, and mined income at the decision in seeds 1 and 2.
+
 ## Second same-map comparison: Level 11A, Drako, 2,400 ticks (2026-10-06)
 
 Captured as Level 17 was, with the owner idle (`m12-level11A-20261006-105700`, local, since lost; re-captured 2026-10-31 as `F:\DK2Evidence\captures\native\native-dk2runs--unknown-date--001\payload\m12-level11A-20261031`, whose wall timeline repeats the table's DK2 column). Ours is
@@ -307,14 +309,6 @@ do not know (2026-10-06).
 alliances, give Raksha three creatures and drive speech and the camera. The tunnels, bridges
 and calls are the keeper's own.
 
-**Ten seeds (2026-10-06, after ADR-0393).** Level 11A with keepers 4 to 7, seeds 1001-1010,
-1,800 ticks. The wall falls at 361-403 (DK2 387, inside the spread); everything after it is
-early in every seed: Drako claims the hole at 374-448 (638), calls at 417-602 (700), first
-strikes Morgana's heart at 381-641 (Drako's army crosses only after its call, from 707) and
-she falls at 803-997 (1,378). So the gap is systematic. In DK2, 11 imps fight in the hole
-(6 of Drako's, 5 of Morgana's), against 3 a side in ours, and Drako's mana drops 5,000 three
-times before the call; ours casts Heal before 700 in one seed of ten (Q563).
-
 **Ten seeds after the slap's reaction (2026-10-08, ADR-0405).** Seeds 1-10, 1,500 ticks. The
 keepers' slaps now redirect imps, so the wall falls at 72-390: early when Morgana's keeper slaps
 the imp reinforcing (64,38) before it finishes, near DK2's 387 when nothing interrupts her
@@ -380,7 +374,9 @@ of 10 against 7 of 10 is Fisher p about 0.37. Drako calls Morgana first in 7 see
 8, one west, one split); the west three call after (40,40) falls (seed 4: 617, 705; 7: 767, 784;
 8: 647, 665), as DK2's seed 3 does (its seed 8 splits).
 
-**Morgana's imps no longer lose their walk (2026-11-11, ADR-0738, Q563).** Drako's diggers behind her wall are within four tiles of her heart and unreachable, so her heart's dispatch reset her bridge imps' walks every fourth turn (ours; the binary asks `0x004D0E60` first). They stood at (63.19,36.47), outside range 5 of Drako's Sentry at (59,40), which costs him 250 mana a shot (`traps.md`): 1-16 shots before 700 over seeds 1-10, now 2-38 (DK2's capture: 20 by 460). Seed 3 to 700: income 57,850 (DK2 58,024), three 5,000 Heals as DK2's three, call 650 (699). Seeds 1, 6, 9, 10 still call at 184-536 while DK2's Drako spends 5,000 about every 70 ticks. Seed 9: the battle step picks Heal 286 times before 700 but finds a creature below half health within five tiles only at 101-107 (mana 3,265-3,593) and from 192; in between its mana reaches 10,000 and it calls at 184. So ours' fighters in the hole are not hurt enough, not refused: DK2 has about 11 imps fighting there, ours two or three.
+**Morgana's imps no longer lose their walk (2026-11-11, ADR-0738, Q563).** Drako's diggers behind her wall are within four tiles of her heart and unreachable, so her heart's dispatch reset her bridge imps' walks every fourth turn (ours; the binary asks `0x004D0E60` first). They stood at (63.19,36.47), outside range 5 of Drako's Sentry at (59,40), which costs him 250 mana a shot (`traps.md`): 1-16 shots before 700 over seeds 1-10, now 2-38 (DK2's capture: 20 by 460). Seed 3 to 700: income 57,850 (DK2 58,024), three 5,000 Heals as DK2's three, call 650 (699).
+
+**The early fall and the call race, current build (2026-11-14, Q563).** Seeds 1-10, 500 ticks: (64,38) falls by 90 in 5 seeds (1, 3, 6, 9, 10; 58-87), DK2's packet replay in 4 of 10 (61-91), not separable (Fisher p 1.0). Ours' causes are the slap step as mirrored (`functions/00502F00.md`): Morgana's keeper slaps her (64,38) reinforcer (seeds 1, 9, 10), or Drako slaps his own Imp reinforcing (63,41) at 6-8 (seeds 3, 6, 9), which then digs (64,41) at 12-14, so Drako tags (64,38) at 42-43 before Morgana's reinforce finishes (about 62). DK2's idle capture: Morgana's reinforce rises 9 a tick from 165 to 651, then 900 (about 55 ticks); Drako's four Imps reinforce (63,41) at 16-20 to 75-76, (64,41) is dug at 52, and his creatures are slapped at 17, 26 and 29. HYPOTHESIS: DK2's four early falls are the same draw; its cause was not traced. Seeds 1-10, 1,500 ticks: Drako claims (64,38) 94-1,247 ticks after the fall (median about 376; DK2's one capture 251); first calls 188-764, 8 of 10 at Morgana (DK2 335-939, 8 of 10); 3-8 of Drako's and 7-20 of Morgana's Imps engage in the hole within 300 ticks of the fall. Ours calls before DK2's first only in the early-fall seeds 10, 6 and 1 (188, 252, 321): at about 190 the battle step casts Heal only with a creature below half health within five tiles, else mana reaches 10,000 and Drako calls; seed 10 Heals at 257, 318 and 380, DK2's seed 10 spends 5,000 at 195, 263, 323 and 381. Open: ours' late falls (248-380, median 250) against DK2's one capture, 387; the early-fall call race needs a new native multi-seed run (owner).
 
 ## M12 acceptance against the two captures (2026-10-06)
 
@@ -396,6 +392,6 @@ record's gold. Ticks are DK2's (ours in brackets).
 | builds to a need | Level 17 Prison; Level 11A Morgana's Lair | Harkan's Prison first, on the same 25 tiles in 6 of ten seeds (the site's origin is a random room), laid row by row from (16,22); paths dug before rectangles: Morgana's path 8, 106 (7, 100-104), Lair 202 (111-196) (ADR-0394, ADR-0395) | Prison 855 (557-868 on that site) |
 | recruits | Level 11A imps | five imps at 1,500-7,500 mana, ticks 23-307 (20-292), in the Level 11A section | — |
 | trains | Level 17 Training drops | the knights lifted at 6, 7, 11 (5, 6, 7) onto the same two cells, refused, lifted again | each knight's first re-lift 45-73 ticks after its refusal, later ones 4-6; DK2's every one 4 (Q509) |
-| defends | Level 11A, Morgana | repairs the wall from 101, which falls at 387 (seeds 1-10: 72-88 where her slapped reinforcer left it rock, else 240-404); her heart sends her imps to fight in the hole (ADR-0407): 11 engage in seed 7, 5 of Drako's and 6 of hers (DK2's capture: 6 of Drako's, 5 of hers); both lift a wounded imp out | the hole is claimed at 420 in seed 7 (638) (Q563) |
+| defends | Level 11A, Morgana | repairs the wall from 101, which falls at 387 (seeds 1-10, 2026-11-14: 58-87 in 5 where a slap leaves it rock, else 248-380); her heart sends her imps to fight in the hole (ADR-0407): within 300 ticks of the fall 3-8 of Drako's and 7-20 of hers engage (DK2's capture: 6 of Drako's, 5 of hers); both lift a wounded imp out | the hole is claimed 94-1,247 ticks after the fall, median about 376 (DK2 251) (Q563) |
 | lays traps and doors | Level 17 Harkan's doors (ADR-0561) | the same door sites, (19,4) first; DK2 lays Magic 204, Wooden 915, Magic 1182 (three identical captures) | Training 12 -> 20 at 1111-1138 in DK2, 0 of 10 seeds in ours (the usual Magic Door leaves the keeper short at the decision); Prison 9 of 10 |
 | attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal | call 700 on (64,38) (master `49a861a7`, seeds 1-10: Morgana first in 7, calls 184-848; seeds 4, 7 and 8 turn west after (40,40) falls, as DK2's seeds 3 and 8 do, Q574); Morgana falls 1,378 (666-1,028) (Q563) |

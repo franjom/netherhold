@@ -45,6 +45,11 @@ public readonly struct StateHookContext
 
     private readonly Action<string, ThingSoundRequest>? _requestSound;
 
+    /// <summary>The simulation's event sink (system, kind, detail); null for detached hooks, which emit nothing.</summary>
+    internal Action<string, string, string>? EmitEvent { get; init; }
+
+    internal void Emit(string system, string kind, string detail) => EmitEvent?.Invoke(system, kind, detail);
+
     /// <summary>A world sound a hook asks for; nothing without a simulation context behind it, as with effects.</summary>
     public void RequestSound(string system, ThingSoundRequest request) => _requestSound?.Invoke(system, request);
 
