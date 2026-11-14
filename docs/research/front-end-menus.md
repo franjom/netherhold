@@ -238,10 +238,15 @@ are captured on entry but have no restore call in D0x1C. This oddity is preserve
 D1's suggested default-block address, [save restore](functions/0055B980.md), does not
 initialize defaults. Unresolved defaults in `GameSettings` remain HYPOTHESIS.
 Our file and display correction differ from the registry/device implementation:
-UTF-8 settings beside the campaign profile, and a full-screen multiply over the
-camera image (Gamma / 30, nothing at 30; `ClassicSettingsRendering`) as a brightness
-proxy for Gamma. It does not reproduce the native gamma ramp, and the UI Toolkit HUD is
-not scaled; whether the original's ramp covers the HUD is not known.
+UTF-8 settings beside the campaign profile, and a gamma curve over the camera image
+as a brightness proxy for Gamma. `ClassicSettingsRendering` runs from
+`RenderPipelineManager.endCameraRendering` on `Camera.main`: it copies the camera target
+into a temporary ARGB32 render texture and redraws it with one full-screen triangle
+through `pow(c, 30 / Gamma)` (`Hidden/DK2/Classic Exposure`); nothing is drawn at Gamma
+30. Black and white stay fixed, so the slider does not clip highlights, which the earlier
+multiply did from about Gamma 40. The project is in Gamma colour space, so the curve acts
+on display-encoded values. It does not reproduce the native gamma ramp, and the UI Toolkit
+HUD is not changed by brightness; whether the original's ramp covers the HUD is not known.
 
 Keyboard Setup's roster/capture is recorded in [the row mapping](functions/00560FD0.md)
 and [key assignment](functions/00561200.md). The adapter shows all63 native action
@@ -253,7 +258,8 @@ Gamma and ScrollSpeed after camera creation, then audio values after player crea
 Rebound gameplay keys use the shared resolver; modal text/key capture suppresses them.
 
 `Msaa` (1, 2, 4 or 8; rounded down, default 4) is a remake setting with no Options control: it is read from
-`game-settings.ini` and sets the URP asset's sample count.
+`game-settings.ini` and sets the URP asset's sample count. A file saved after the key existed
+keeps its stored value; a fresh file gets 4.
 
 UiScale is a remake setting (50..200%). Gameplay HUD transforms share inverse
 pointer mapping and bottom docking. Its effective factor is capped at the
