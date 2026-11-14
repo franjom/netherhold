@@ -69,16 +69,18 @@ new output path.
 The schema-1 JSON report includes source-file and snapshot-payload SHA-256
 fingerprints, format version, ticks, scope and limits. Sorted changes contain
 `path`, `kind`, `before` and `after`, with invariant text values or JSON null.
-It compares creature fields by creature ID, player fields by player ID, tiles
-by coordinates, and snapshot tick, dimensions, fog, mode and RNG. Nested
-collections and identity additions/removals are included. Computed getters
-and world/delegate references are excluded.
+It compares creature fields by creature ID, object fields by instance ID,
+player fields by player ID, tiles by coordinates, and snapshot tick, dimensions,
+fog, mode and RNG. Effect generators are paired by saved-list slot, not
+`GeneratorId`, which can repeat; insertion or removal can shift later pairs.
+Nested collections, byte payload contents and identity additions/removals are
+included. Computed getters and world/delegate references are excluded.
 
 Exit codes: 0 means identical snapshot payload bytes; 1 means projected field
 changes (also used for CLI usage errors); 2 means an input, game-data or output
 failure; 3 means different payload bytes without projected field changes.
 Save-container headers and campaign profiles are excluded from payload equality.
-Shots, objects, queues, navigation and other state outside the named projection
+Shots, queues, navigation and other state outside the named projection
 are not compared field by field. An empty change list does not establish whole-world
 identity or DK2 parity; use `snapshotBytesEqual` to distinguish payload equality
 from changes outside the projection.

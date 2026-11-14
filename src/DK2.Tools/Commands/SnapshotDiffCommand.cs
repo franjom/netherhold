@@ -46,11 +46,13 @@ internal static class SnapshotDiffCommand
                 After = Source(after, newSimulation),
                 SnapshotBytesEqual = equal,
                 Verdict = verdict,
-                Scope = new[] { "snapshot metadata and RNG", "creature fields", "player fields", "tile fields" },
+                Scope = new[] { "snapshot metadata and RNG", "creature fields", "player fields", "tile fields",
+                    "object fields", "effect-generator fields by saved-list slot" },
                 Limitations = new[]
                 {
                     "Decoded fields only; computed properties and world back-references are excluded.",
-                    "Other state, including shots, objects, queues, navigation and campaign profile, is outside the field comparison.",
+                    "Effect generators are paired by saved-list slot, not GeneratorId; insertion/removal can shift subsequent pairs.",
+                    "Other state, including shots, queues, navigation and campaign profile, is outside the field comparison.",
                     "The original database is not embedded in a snapshot; supplied level-data provenance is not verified.",
                     "Values are invariant text; no simulation ticks are executed and no input files are changed.",
                 },

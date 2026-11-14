@@ -15,6 +15,93 @@ namespace DK2.Tools.Tests;
 public class SnapshotDiffTests
 {
     [Fact]
+    public void ObjectFieldsAreComparedByInstanceIdWithoutChangingInputs()
+    {
+        var f = new Fixture();
+        ObjectState before = f.Before.Simulation.World.SpawnObject(f.Database, 9, new PlayerId(3), 1);
+        ObjectState after = f.After.Simulation.World.SpawnObject(f.Database, 9, new PlayerId(3), 1);
+        before.TimerTicks = 20;
+        after.TimerTicks = 12;
+        after.ProcessState = 8;
+        after.PosX += 17;
+        f.Write();
+        byte[] beforeBytes = File.ReadAllBytes(f.BeforePath), afterBytes = File.ReadAllBytes(f.AfterPath);
+
+        Assert.Equal(1, f.Run());
+        using JsonDocument report = f.Report();
+        AssertChange(report, "objects[1].TimerTicks", "20", "12");
+        AssertChange(report, "objects[1].ProcessState", "0", "8");
+        AssertChange(report, "objects[1].PosX", before.PosX.ToString(), after.PosX.ToString());
+        Assert.DoesNotContain(Changes(report), c => c.GetProperty("path").GetString()!.Contains("LinkWorld", StringComparison.Ordinal));
+        Assert.Equal(beforeBytes, File.ReadAllBytes(f.BeforePath));
+        Assert.Equal(afterBytes, File.ReadAllBytes(f.AfterPath));
+        Assert.Contains("object fields", report.RootElement.GetProperty("scope").EnumerateArray().Select(s => s.GetString()));
+    }
+    [Fact]
+    public void ObjectRemovalAndReplacementDoNotPairDifferentInstanceIds()
+    {
+        var f = new Fixture();
+        f.Before.Simulation.World.SpawnObject(f.Database, 9, new PlayerId(3), 1);
+        ObjectState removed = f.After.Simulation.World.SpawnObject(f.Database, 9, new PlayerId(3), 1);
+        f.After.Simulation.World.RemoveObject(removed.Id);
+        f.After.Simulation.World.SpawnObject(f.Database, 9, new PlayerId(3), 1);
+        f.Write();
+
+        Assert.Equal(1, f.Run());
+        using JsonDocument report = f.Report();
+        Assert.Contains(Changes(report), c => c.GetProperty("path").GetString() == "objects[1].$exists"
+            && c.GetProperty("kind").GetString() == "removed");
+        Assert.Contains(Changes(report), c => c.GetProperty("path").GetString() == "objects[2].$exists"
+            && c.GetProperty("kind").GetString() == "added");
+    }
+    [Fact]
+    public void DuplicateGeneratorIdsRemainSeparateSavedSlotsIncludingBytePayloads()
+    {
+        var f = new Fixture();
+        foreach (GameSimulation simulation in new[] { f.Before.Simulation, f.After.Simulation })
+        {
+            var generators = (IList<EffectGeneratorState>)simulation.World.EffectGenerators;
+            generators.Add(Generator(7, 10));
+            generators.Add(Generator(7, 20));
+        }
+        var after = (IList<EffectGeneratorState>)f.After.Simulation.World.EffectGenerators;
+        after[1] = Generator(7, uint.MaxValue, [11, 99], [0, 0, 0, 0, 0, 255]);
+        f.Write();
+
+        Assert.Equal(1, f.Run());
+        using JsonDocument report = f.Report();
+        AssertChange(report, "effectGenerators[1].NextDueTurn", "20", "4294967295");
+        AssertChange(report, "effectGenerators[1].EffectIds[1]", "12", "99");
+        AssertChange(report, "effectGenerators[1].Unknown001E[5]", "0", "255");
+        Assert.DoesNotContain(Changes(report), c => c.GetProperty("path").GetString()!.StartsWith("effectGenerators[0]", StringComparison.Ordinal));
+        Assert.Contains("effect-generator fields by saved-list slot", report.RootElement.GetProperty("scope").EnumerateArray().Select(s => s.GetString()));
+        Assert.Equal(1, f.Run(output: f.Output + ".second.json"));
+        Assert.Equal(File.ReadAllText(f.Output), File.ReadAllText(f.Output + ".second.json"));
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GeneratorSlotsReportExistenceAndFields(bool removed)
+    {
+        var f = new Fixture();
+        GameSimulation populated = removed ? f.Before.Simulation : f.After.Simulation;
+        ((IList<EffectGeneratorState>)populated.World.EffectGenerators).Add(Generator(5, 42));
+        f.Write();
+
+        Assert.Equal(1, f.Run());
+        using JsonDocument report = f.Report();
+        JsonElement existence = Assert.Single(Changes(report), c => c.GetProperty("path").GetString() == "effectGenerators[0].$exists");
+        Assert.Equal(removed ? "removed" : "added", existence.GetProperty("kind").GetString());
+        JsonElement due = Assert.Single(Changes(report), c => c.GetProperty("path").GetString() == "effectGenerators[0].NextDueTurn");
+        Assert.Equal("42", due.GetProperty(removed ? "before" : "after").GetString());
+        Assert.Equal(JsonValueKind.Null, due.GetProperty(removed ? "after" : "before").ValueKind);
+    }
+    private static EffectGeneratorState Generator(byte id, uint dueTurn, ushort[]? effects = null, byte[]? unknown = null) => new()
+    {
+        GeneratorId = id, NextDueTurn = dueTurn, EffectIds = effects ?? [11, 12],
+        Unknown_001E = unknown ?? new byte[EffectGeneratorState.Unknown001ELength],
+    };
+    [Fact]
     public void ReportsCreaturePlayerAndTileChangesWithoutChangingInputs()
     {
         var f = new Fixture();
@@ -259,7 +346,13 @@ public class SnapshotDiffTests
                     GuardDuration = default, IdleDuration = default, SlapFearlessDuration = default,
                     PossessionManaCost = default, LairObjectId = default, CloneCreatureId = default,
                     NameStringId = default, TooltipStringId = default, IntroductionStringId = default,
-                }], variables);
+                }], variables, objects: [new ObjectDef
+                {
+                    Name = "fixture", ObjectId = 9, Flags = ObjectFlags.None, Hp = 100,
+                    ManaValue = 0, RoomCapacity = 0, StartState = 0, PickUpPriority = 0,
+                    Width = default, Height = default, Mass = default, Speed = default,
+                    NameStringId = 0, TooltipStringId = 0,
+                }]);
             Before = Make(beforeWidth, beforeHeight);
             After = Make(afterWidth, afterHeight);
         }

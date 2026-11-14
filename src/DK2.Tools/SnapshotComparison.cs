@@ -21,6 +21,13 @@ internal static class SnapshotComparison
         var rightCreatures = right.Creatures.ToDictionary(c => c.Id);
         foreach (int id in leftCreatures.Keys.Concat(rightCreatures.Keys).Distinct().Order())
             Entity($"creatures[{id}]", leftCreatures.GetValueOrDefault(id), rightCreatures.GetValueOrDefault(id));
+        var leftObjects = left.Objects.ToDictionary(o => o.Id);
+        var rightObjects = right.Objects.ToDictionary(o => o.Id);
+        foreach (int id in leftObjects.Keys.Concat(rightObjects.Keys).Distinct().Order())
+            Entity($"objects[{id}]", leftObjects.GetValueOrDefault(id), rightObjects.GetValueOrDefault(id));
+        for (int slot = 0; slot < Math.Max(left.EffectGenerators.Count, right.EffectGenerators.Count); slot++)
+            Entity($"effectGenerators[{slot}]", slot < left.EffectGenerators.Count ? left.EffectGenerators[slot] : null,
+                slot < right.EffectGenerators.Count ? right.EffectGenerators[slot] : null);
         var leftPlayers = Enumerable.Range(0, left.PlayerCount).Select(i => left.PlayerAtIndex(i)).ToDictionary(p => p.PlayerId.Value);
         var rightPlayers = Enumerable.Range(0, right.PlayerCount).Select(i => right.PlayerAtIndex(i)).ToDictionary(p => p.PlayerId.Value);
         foreach (byte id in leftPlayers.Keys.Concat(rightPlayers.Keys).Distinct().Order())

@@ -29,6 +29,7 @@ internal static class SnapshotFields
         {
             if (depth > 32) throw new InvalidDataException($"Snapshot field nesting exceeds 32 at {name}.");
             if (item is null) { Put(name, null); return; }
+            if (item is ReadOnlyMemory<byte> bytes) { Walk(bytes.ToArray(), name, depth + 1); return; }
             Type type = item.GetType();
             if (type.IsPrimitive || type.IsEnum || item is string or decimal)
             {
