@@ -54,6 +54,8 @@ public sealed class PrisonSystem : ISimulationSystem
             // A prisoner in the keeper's hand is between cells, not out of one.
             // Where it lands is the drop's business (HandSystem).
             if (HandRules.IsHeld(creature)) continue;
+            // Pickup preparation leaves the wheel before insertion into the hand (ADR-0731).
+            if (creature.Dk2StateId == HandRules.PreparationState) continue;
             if (TortureRules.IsBeingTortured(creature)) continue;   // TortureSystem's
             // Dropped outside a cell and lying stunned: 255's end clears the word (0x004811E5, ADR-0616).
             if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256) continue;

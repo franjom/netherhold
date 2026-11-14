@@ -91,8 +91,8 @@ through 89.
 
 ## 5. Ours
 
-- The raw89 path runs the dispatcher mood prelude before `Choose`, then the happy chooser
-  for every mood and the fallback to 3. See [its function record](functions/004778E0.md).
+- The raw89 path runs the dispatcher mood prelude, the [job retries](guard-job-memory.md),
+  then the happy chooser for every mood and the fallback to 3. See [its function record](functions/004778E0.md).
 - Raw 1 (`DispatchIdle`, ADR-0574) is the prelude, the Fleeing clear and the fight return,
   then 5, 238 or 89, and ends the turn; 89's body runs on a later turn. A Horny that is not
   fleeing still chooses inside state 1, since its 238 handler is not built. Angry selection
@@ -105,7 +105,6 @@ through 89.
   is not built, since it has no effect.
 - **Not built:**
   - the idle sound;
-  - `ReturnToJobId`;
   - the casino arm. The Call To Arms arm is built (`call-to-arms.md`, ADR-0279).
 
 ## 6. Two more `AngerNoWork` sites (Q438) — STRONGLY INFERRED, not built

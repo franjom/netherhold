@@ -5,9 +5,10 @@ systems: [creatures, rooms, tooling-process]
 
 ## Verdict
 
-Q710 remains OPEN. A bed-ownership control prevents one restored fighter's home
-acquisition attempt. Unequal fighter inputs and later birth populations still
-prevent a causal AI-rule comparison or explanation of the complete Guard-room gap.
+Q710 remains OPEN. Local bed and remembered-job controls establish particular
+modern decision effects. The post-build paired control below does not measure a
+production before/after improvement or explain the complete Guard-room gap;
+unequal restore inputs and later birth populations remain limits.
 This is a bounded continuation of the [post-Q714 comparison](resync-heart-terminal.md#level-4-recheck).
 No native game was launched and no production simulation code was changed.
 
@@ -185,7 +186,7 @@ The supported job fields omit a separate native input: `ReturnToJobId`, state
 `+0x68`, captured as 6 (Guard); saved room `+0x6C` is 1116. Current job `+0x64`
 is a distinct field. Binary recheck of [004778E0](functions/004778E0.md)
 confirms that the remembered job is tried after the dropped job and before the
-happy chooser. Production has no remembered-job field or retry. Its function
+happy chooser. Copied source `5dd771cf` has no remembered-job field or retry. Its function
 record is corrected to PARTIAL; the whole-function confidence is unchanged.
 
 A final diagnostic mode dispatches captured Guard through the existing managed
@@ -200,7 +201,114 @@ restore, and no corresponding native chooser event at label 5002 is established.
 This scratch probe retries the fixed captured value on later chooser calls,
 without native writer/pickup lifecycle or saved-post reuse. Conclusions use
 only its first eligible state-89 call; later probe outcomes are not fidelity
-evidence. The next bounded implementation candidate is the remembered Guard
-job field, retry and lifecycle, including the saved-post backend. Q710 remains
+evidence. The subsequent bounded implementation is in [guard-job-memory.md](guard-job-memory.md). Q710 remains
 OPEN: no global exposure cause or matched-input outcome has been established;
 unavailable routes, later birth populations and other Q719 inputs remain limits.
+
+## Post-build paired control at bb2a395b
+
+The accepted study uses copied source `bb2a395b`, native seed 7 and modern
+generator seed 101, with native Dark Elf 428 paired to modern 45. All four managed replays
+complete from the turn-5000 restore through label 6000. Plain and observed
+controls reproduce all five ordinary telemetry files byte-for-byte; the scratch
+changes are in Tools only, with no Simulation source change.
+
+Both interventions restore the same supported inline needs/jobs and retain the
+existing linked bed, at tile index 2976 versus native 2977. One deliberately
+clears remembered job/room; the other restores captured Guard 6 and room tag 1116,
+mapped to modern reference 22, the owned eastern Guard room at (43..45,51..53).
+Boundary RNG and every recorded non-memory actor field agree; only four recorded
+memory components differ. This asserts sidecar coverage, not equality of every
+`CreatureState` or private field. Recorded non-memory actor fields remain equal
+through label 5239. At 5240, the cleared control rolls Training (`roll=94`,
+`how=rolled`, happy stamp 5239); restored memory retries Guard (`roll=-1`,
+`how=remembered`, happy stamp 2584).
+
+The ordinary current baseline already has remembered Guard 6 and
+western room reference 28. The cleared control is counterfactual, not the
+ordinary pre-fix production path. The measured window is labels 5300..5450:
+
+| Actor 428 observation | 7 / resume 97 | 97 | 6 / resume 98 | 98 |
+|---|---:|---:|---:|---:|
+| Native | 97 | 1 | 49 | 4 |
+| Restored-memory control | 82 | 1 | 64 | 4 |
+| Ordinary current baseline | 66 | 1 | 81 | 3 |
+
+The cleared control spends all 151 labels in Training. All 451 native frames
+from 5000..5450 are untorn, with stable pointer/type/owner and remembered job 6,
+room tag 1116. Native and modern start in state 6/resume 98, but route buffers
+remain unavailable. Room mapping, other actors' reservations, later births and
+other restore/history gaps preclude matched-input or global outcome claims.
+The broader comparison is completed in the [fighter cohort](#fighter-cohort-at-7904875f);
+its hybrid inputs still limit the verdict.
+
+Evidence: `F:/DK2Evidence/studies/q710-built-comparison--2026-11-14--002`;
+`analysis.json`, `decision-path-comparison.json` and `native-memory-observations.json`.
+`manifest-verified.json` is authoritative: 113 entries, excluding itself.
+`scope-assessment.json` corrects the immutable setup's idle-state claim;
+`manifest-assessment.json` identifies the two retained invalid self-entries.
+Trial 001 remains an aborted setup because its old bed-placement precondition
+failed: this baseline already has a bed.
+
+## Fighter cohort at 7904875f
+
+The accepted hash-521 study uses source `7904875f`, eight native turn-5000
+states and modern generator 101. Each state has ordinary, history and
+history-memory arms, running through managed turn 6000. All 26 replays,
+including observation controls, complete with exit 0. Plain/off/on controls
+match all five ordinary telemetry files byte-for-byte. Only two scratch Tools
+files change; production Simulation source is unchanged.
+
+The initial cohort is 58 living owner-3 actors of types 6/7/10. Captured memory
+is Guard 6 in 21 actors, naming valid rooms 1116/1117/1120; the other 37 have
+None. All 49 nonnull native bed links are reciprocally checked. The history
+arm copies literal needs stamps/debt, current/dropped job and chooser history;
+sleep attempt plus four remains an adapter. History-memory adds captured
+None/Guard and mapped room references. All 24 arm boundary assertions pass,
+including unchanged RNG; history versus history-memory differs only in four
+recorded memory components. These are selected-field assertions, not complete
+native-state restoration. The added field restore excludes corpse/dying actors.
+
+Stored-target exposure counts live owner-3 Goblin/Troll rows naming a living
+owner-1 Guard (type 25), requiring positive signed health and state other than
+216/217. Modern rows come from the actual live world each label; native rows
+come from raw captures. The target window is 5001..6000; fighter-state counts
+use 5300..5450. This measures stored targets, not attacks. These filters/windows
+differ from historical carried-CSV metrics: no cross-version comparison follows.
+Observation labels are not aligned execution timestamps.
+
+| Mean observations with a Guard target | Native | Ordinary | History | History-memory |
+|---|---:|---:|---:|---:|
+| All eligible actors | 273.75 | 242.375 | 250.625 | 195.25 |
+| Initially paired cohort | 266 | 239.5 | 232.25 | 193.625 |
+
+| Native capture seed | Native | Ordinary | History | History-memory |
+|---|---:|---:|---:|---:|
+| 1 | 470 | 305 | 314 | 181 |
+| 2 | 342 | 276 | 438 | 438 |
+| 3 | 441 | 499 | 317 | 385 |
+| 4 | 274 | 235 | 213 | 135 |
+| 5 | 73 | 56 | 68 | 81 |
+| 6 | 196 | 81 | 147 | 147 |
+| 7 | 117 | 96 | 82 | 82 |
+| 8 | 277 | 391 | 426 | 113 |
+
+Adding memory lowers exposure in three cases, raises it in two and leaves
+three unchanged. One modern generator and eight capture histories establish
+descriptive differences, not a population estimate, regression/improvement
+verdict or causal AI-rule explanation.
+
+At the boundary, 22/58 actors mismatch bed presence, 53/58 mismatch bed tile
+or presence, and 50/58 mismatch state/resume: 46 state ids differ and four
+retain the same walking state with a different resume. No actor matches both
+bed and state/resume, or even bed plus active state alone. The interventions
+preserve the existing bed/state/route restoration while copying selected history.
+The next bounded controls need compatible bed ownership/positions and
+state/resume at restore, with unavailable native path buffers explicit.
+Outside-cohort dying reservations, later births and other Q719/history gaps
+remain limits. These mismatches block a matched-input verdict; they do not
+prove the global cause. No production restorer or AI rule is changed.
+
+Evidence: `F:/DK2Evidence/studies/q710-fighter-cohort--2026-11-14--002`;
+`analysis.json`, `boundary-assessment.json` and `scope.json`.
+`manifest-reviewed-input.json` verifies 332 files. No native game was launched.

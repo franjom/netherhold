@@ -17,6 +17,12 @@ questions live in their canonical documents; this file links to them.
   and [HUD comparison checklist](research/hud-comparison-checklist.md).
   Lighting acceptance and remaining comparison/performance limits live in
   [classic lighting verification](research/classic-lighting-verification.md).
+- Engine switch (owner, 2026-11-14): a Godot adapter is being prepared because GPLv3 code linked to
+  Unity's runtime is [ADR-0041](DECISIONS.md)'s open question. [ADR-0805](DECISIONS.md) moves each HUD
+  panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
+  panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
+  resource strip is moved too (`KeeperResourceHud`); it builds and its model is tested, but it has not been run in
+  the Unity editor. Next: the message tabs, then the order in the ADR. No Godot code existed on that date.
 - Presented-world P1 and its follow-ups are merged. Measurements and remaining
   performance targets: [presented-world result](plans/2026-11-06-presented-world.md#result-measured-2026-11-06)
   and [performance policy](PERFORMANCE.md).
@@ -88,7 +94,7 @@ Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the inline-field and remembered-job controls. The next bounded implementation candidate is the remembered Guard field/retry/lifecycle and saved-post backend; outcome causation remains open.
+exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [fighter-cohort comparison](research/q710-fighter-decisions.md#fighter-cohort-at-7904875f) is complete; next are compatible bed ownership/position and state/resume restore controls, with native routes unavailable and outcome causation still open.
 
 ## Other pending work
 
@@ -149,6 +155,15 @@ These are entry points, not a new priority order.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.
+- Rendering cost candidates, none measured yet. Measure each with `game-unity-probe -Benchmark`
+  ([README](../tools/game-unity-probe/README.md)) before changing anything:
+  - Overdraw of large additive and transparent effects in a busy battle (`ClassicEffect.shader`,
+    `ClassicLightning`, `ClassicTorchFlames`, `ClassicHoverOutline`): trim quads to the visible texels
+    where the frame is fill-bound. Needs a busy scene, not Level1's opening.
+  - Off-screen and menu work only when something changed: `MinimapGpuMap` command buffers,
+    `ClassicFullMap`'s blit and preview target, `ClassicFrontEndMenu`'s font-atlas blit.
+  - `ClassicCreatureShadows`: skip the coverage redraw when no caster moved. It is already cheap
+    (R8 targets, frustum-culled casters), so this is the lowest priority.
 
 ## Workspace and evidence
 

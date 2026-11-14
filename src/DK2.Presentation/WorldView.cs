@@ -1532,6 +1532,8 @@ public sealed partial class WorldView
                 new FpPosition3(new(posX), new(posY), new(FloorZ))).Raw;
             int previousHeight = flying ? FloorZ : CreatureGroundHeight(world,
                 new FpPosition3(new(creature.LastPosX), new(creature.LastPosY), new(FloorZ))).Raw;
+            // State 75 raises the creature before insertion into the hand (0x0046EA60).
+            if (creature.Dk2StateId == HandRules.PreparationState) height = previousHeight = 0x2000;
             bool creationJump = IsCreationJump(creature, world.CurrentTick);
             if (creature.Dk2StateId == ImpCreationRules.FallingState)
             {

@@ -11,6 +11,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
 
 ## Shell and files
+- Codex MCP calls can time out after 300 seconds despite a larger `ctx_execute` budget; run long suites in a background wrapper that saves its exit receipt.
 - Normalize hash-manifest relative keys to one path separator before updating entries; mixed slashes can retain duplicate paths and invalidate setup provenance.
 - Build a hash manifest's inventory before opening its output file; otherwise a recursive scan can include the manifest's own empty-file hash.
 - An isolated native DK2 runtime needs `DK2TextureCache` as well as `Data`; omitting it crashed startup with `EngineTestLight` missing.
@@ -261,6 +262,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Decode imported Python source with `utf-8-sig` before `compile`; Windows default `Path.read_text` can corrupt UTF-8 BOM source and evidence-scorer text.
 
 ## Captures
+- State-copy comparisons can pass when a missing field stays at its default; regenerate `StateCopy.g.cs` and exercise non-default values for every added field.
 - When carrying delta CSV rows forward each tick, retain persistent death/ghost exclusions; copying the row map alone reintroduces excluded actors.
 
 - Windows text writes can translate LF to CRLF; hash the written test file for raw proof identity, rather than the pre-write string.
@@ -324,6 +326,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `hand-cursor-rendering.md` contains legacy single-byte section signs among UTF-8 text; strict UTF-8 patching rejects it. Keep unrelated byte normalization out of a cursor fix.
 - Matched-state probes must restore constructor-owned fields before binding RNG; otherwise fixture setup can consume draws before the decision (research/decision-parity-audit.md).
 - A hidden standalone Unity window can skip all screen rendering despite active CPU loops; require camera render callbacks and a nonblank PNG before treating its timings as rendered performance. `game-unity-probe -Windowed` ran hidden until 2026-11-14 (0 GPU frames, black screenshot).
+- Unity can redirect `%LOCALAPPDATA%/Unity/Editor/Editor.log` to `<project>/Logs/Editor.log`; follow its redirect before diagnosing startup or compiler errors.
 - The URP renderer asset has `postProcessData` unset, so URP runs no post-processing and a Volume (`ColorAdjustments.postExposure`) does nothing in a player; a screenshot at Gamma 20/30/45 showed the same mean brightness. Draw a pass from `endCameraRendering` instead (`ClassicSettingsRendering`).
 - `game-unity-probe` runs before 2026-11-14 built a default scene (stock camera, shadow-casting light, fog of war off, wrong ambient and camera preset), so their lighting, GPU and frame numbers are not comparable with later runs, which build `Dungeon.unity`.
 - PowerShell variable names are case-insensitive: a `$r` loop variable overwrote an earlier `$R`. Use distinct names.

@@ -611,6 +611,26 @@ namespace DK2.Unity
             _creatureShadows.Render(camera);
         }
 
+        private int _hiddenCreatureId;
+        private readonly List<Renderer> _hiddenRenderers = new List<Renderer>();
+
+        /// <summary>Leaves one creature's model out of the picture, or none with 0: the possessed
+        /// creature seen from its own eyes, whose draw bit (thing <c>+0xF3</c> bit 0) DK2 clears
+        /// (possession-client.md §6). Its clip, its head point and its place go on as before.</summary>
+        public void HideCreature(int creatureId)
+        {
+            if (_hiddenCreatureId == creatureId) return;
+            if (_creatures.TryGetValue(_hiddenCreatureId, out GameObject shown) && shown != null) SetRenderingOff(shown, false);
+            _hiddenCreatureId = creatureId;
+        }
+
+        private void SetRenderingOff(GameObject go, bool off)
+        {
+            go.GetComponentsInChildren(true, _hiddenRenderers);
+            foreach (Renderer renderer in _hiddenRenderers) renderer.forceRenderingOff = off;
+            _hiddenRenderers.Clear();
+        }
+
         public void SetCreatureFrameTime(GameTick tick, float fraction)
         {
             _renderSeconds = (tick.Value + (double)Mathf.Clamp01(fraction)) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond;
@@ -643,6 +663,8 @@ namespace DK2.Unity
                     _meshCreatures.Contains(entry.Key) ? ground.y : position.y, ground.z);
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
                 if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
+                // Every frame: a new look or a restored model brings its own renderers.
+                if (entry.Key == _hiddenCreatureId) SetRenderingOff(go, true);
                 // 0x0043CD84: the pass tests the clip's marks at each drawn frame and requests the creature's footstep.
                 if (player != null && player.FootstepCrossing != 0 && CreatureFootstepRequested != null)
                     CreatureFootstepRequested(entry.Key, pose, player.FootstepCrossing, go.transform.position);

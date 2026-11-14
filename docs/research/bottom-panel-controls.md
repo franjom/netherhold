@@ -165,7 +165,7 @@ The adapter routes supported choice keys to the host's existing command
 interfaces. Affordability is display feedback; simulation rules remain the
 authority for cast/placement validation. Create Imp cost uses the existing
 ImpSupplyRules.CreateImpCost, including the live additional-imp multiplier.
-Cooldown wedges and research/manufacture progress are built (`BottomPanelChoice.Indicators`, `ClassicBottomPanel.SlotSector`). Their native contract (three clockwise texture sectors drawn by the slot draw,
+Cooldown wedges and research/manufacture progress are built (`BottomPanelChoice.Indicators`, `BottomPanelHud` with `HudSector.Fan`). Their native contract (three clockwise texture sectors drawn by the slot draw,
 no digits or crate counts) is in [panel-indicators.md](panel-indicators.md) (read 2026-10-23). The FlashButton tab/slot flash is built ([tab-alerts.md](tab-alerts.md):
 level-script only, never raised by research). Default creature overview roster, counters and input use a separate retained helper;
 see [creature overview](creature-overview.md) for confirmed producers and the
@@ -193,7 +193,7 @@ outside the ten digit descriptors has not been established.
 ## Install asset metadata (STRONGLY INFERRED shipped data)
 
 All original artwork remains in the install and is accessed through
-IClassicBottomPanelAssets. Rooms use the existing art catalogue. Additional
+IClassicBottomPanelAssets (an `IBottomPanelArt`). Rooms use the existing art catalogue. Additional
 records are read with KwdReader and their known record sizes; no bitmap is
 written to the repository.
 
@@ -218,8 +218,9 @@ with BF4 glyphs. It creates no additional text strip or typography.
 
 ## Input contract and verification
 
-ClassicBottomPanel retains its widgets, caches decoded native textures and
-captures the pointer from primary press to release/cancel. Release outside the
+BottomPanelHud (ADR-0805) retains the widgets and captures the pointer from primary press
+to release/cancel; the Unity adapter `ClassicBottomPanel` forwards pointer events and caches
+decoded native textures. Release outside the
 pressed control cancels activation. SetVisibility cancels when ordinary input
 is disabled; the host must also call CancelPointerGesture on focus loss and
 cancel any in-progress world gesture on a HUD press. ContainsPointer includes

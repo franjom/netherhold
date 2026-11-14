@@ -103,10 +103,14 @@ creep) and its corrections are applied. The documenter pass has not been run.
 
 ## Left after the first build
 
-Not built, each its own later task: hiding the possessed creature's own model (the camera
-sits inside it); suppressing its animation footsteps beside the view's; the near clip,
-lighting distance and ambience listener, which still follow the ordinary camera; the two
-ability keys; the possession HUD, so HUD shortcuts still act; the third-person view.
+Built since: the 2000 ms move in and out (`PossessionFlight`) and the hidden model, both
+as read in possession-client.md section 6. The creature's ordinary footsteps stay beside
+the view's: no read shows DK2 silencing them (HYPOTHESIS).
+
+Not built, each its own later task: the death view (camera mode 11) and the colour
+changes of entering and leaving; the near clip, lighting distance and ambience listener,
+which still follow the ordinary camera; the two ability keys; the possession HUD, so HUD
+shortcuts still act; the third-person view.
 
 Remake choices to check in play: one host pixel of mouse travel is one unit of DK2's
 delta; the roll's sign; the vertical field of view held at 73.7 degrees on wide screens.

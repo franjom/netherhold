@@ -495,6 +495,12 @@ public sealed partial class CreatureState
     /// <see cref="CreatureActivity.AtWork"/>.</summary>
     public JobType CurrentJob;
 
+    /// <summary>Native state +0x68: retried by idle 89 before the happy chooser, independently of CurrentJob.</summary>
+    public JobType ReturnToJob;
+
+    /// <summary>Saved Guard Room, native state +0x6C; room-list identity adapts the native thing tag.</summary>
+    public RoomReference ReturnRoom = RoomReference.None;
+
     /// <summary>DK2's <c>DroppedToDoJobId</c> (<c>creature+0x2BC</c>): the job of the room the hand
     /// last dropped this creature on (<c>0x004E8DA0</c>). Idle's chooser 89 tries it first and
     /// clears it only when it is refused, so a creature dropped in a Workshop keeps going back
@@ -1532,6 +1538,10 @@ public sealed partial class CreatureState
         hash.Add(LastHappyChoiceTick);
         hash.Add(LastUnhappyChoiceTick);
         hash.Add((int)CurrentJob);
+        hash.Add((int)ReturnToJob);
+        hash.Add(ReturnRoom.Position.Value);
+        hash.Add(ReturnRoom.Tile.X);
+        hash.Add(ReturnRoom.Tile.Y);
         hash.Add((int)DroppedToDoJob);
         hash.Add(JobTileIndex);
         hash.Add(InHand);

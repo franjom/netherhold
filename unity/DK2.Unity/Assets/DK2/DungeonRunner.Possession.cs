@@ -29,7 +29,24 @@ namespace DK2.Unity
         private bool? _creepingSent;
         private bool _possessionPointerLocked;
 
+        private readonly PossessionFlight _possessionFlight = new PossessionFlight();
+        private bool _possessionFlyingOut;
+
         private bool Possessing => _possessed != null;
+
+        /// <summary>The camera is the possession's: in first person, or on the timed move to or from it.</summary>
+        private bool PossessionCameraHeld => Possessing || _possessionFlyingOut;
+
+        /// <summary>The id of the creature whose own model is left out of the picture, or 0. DK2 clears
+        /// the thing's draw bit (<c>+0xF3</c> bit 0) when the move into first person lands
+        /// (<c>Camera_CommitMode</c>, <c>0x0044BD70</c>) and sets it again as the move out is asked for
+        /// (<c>Camera_RequestMode</c>, <c>0x0044A5D0</c>).</summary>
+        private int PossessionHiddenCreatureId => Possessing && !_possessionFlight.Active ? _possessed.Id : 0;
+
+        private bool PossessionCanFly =>
+            _classicCamera != null && !frameWholeMap && _possessionPreset != null && _possessionPreset.Lens > 0;
+
+        private static long PossessionClock => (long)(Time.unscaledTimeAsDouble * 1000d);
 
         /// <summary>Follows the viewer's possession in the presented world and, while it lasts and
         /// <paramref name="inputAllowed"/>, runs one frame of the view. The navigation bytes are taken
@@ -44,8 +61,17 @@ namespace DK2.Unity
             {
                 if (Possessing)
                 {
+                    bool fly = PossessionCanFly;
+                    CameraFlightState from = _possessionFlight.Active ? _possessionFlight.State
+                        : fly ? PossessionFlight.FirstPerson(_possessionView, _possessionPreset) : default;
                     EndPossessionView();
-                    if (_classicCamera == null || frameWholeMap) LookAt(world);
+                    if (fly) BeginPossessionFlyOut(from);
+                    else if (_classicCamera == null || frameWholeMap) LookAt(world);
+                }
+                if (_possessionFlyingOut)
+                {
+                    _possessionFlight.Step(PossessionClock);
+                    _possessionFlyingOut = _possessionFlight.Active;
                 }
                 return;
             }
@@ -68,12 +94,29 @@ namespace DK2.Unity
                 _possessionMilliseconds = 0;
                 _possessionMouse = default;
                 _input.CancelPointerGesture();
+                // DK2 flies the camera to the eye in a timed move (Camera_SetMode 0x0044ACE0). Remake choice: a move out still running is turned round.
+                if (PossessionCanFly)
+                    _possessionFlight.Start(
+                        _possessionFlyingOut ? _possessionFlight.State
+                            : _classicCamera.State(new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z)),
+                        PossessionFlight.FirstPerson(_possessionView, _possessionPreset), PossessionClock);
+                else _possessionFlight.Cancel();
+                _possessionFlyingOut = false;
             }
 
+            // The first-person step, the look and the once-a-turn pose are mode 2's: none runs until the move lands.
+            bool flying = _possessionFlight.Active;
+            if (flying) _possessionFlight.Step(PossessionClock);
             bool active = inputAllowed && Application.isFocused;
             bool lockedBefore = _possessionPointerLocked;
             LockPossessionPointer(active);
-            if (active) StepPossession(creature, viewer, lookAllowed: lockedBefore);
+            if (flying)
+            {
+                _possessionMilliseconds = 0;
+                _possessionMouse = default;
+                _possessionHeld = uint.MaxValue;
+            }
+            else if (active) StepPossession(creature, viewer, lookAllowed: lockedBefore);
             if (!_scriptedView.PathPlaying && (_classicCamera == null || frameWholeMap)) ApplyPossessionCamera();
         }
 
@@ -157,9 +200,39 @@ namespace DK2.Unity
         /// frame about to be handed to a tick.</summary>
         private void QueuePossessionPose()
         {
-            if (!Possessing) return;
+            if (!Possessing || _possessionFlight.Active) return;
             _pendingCommands.Insert(0, PossessionControls.Pose(
                 new PlayerId((byte)viewingPlayerId), _possessionView, _possessionWorld.Body()));
+        }
+
+        /// <summary>Starts the move back to the ordinary camera (Camera_SetMode's ordinary arm): the
+        /// ordinary camera is over the eye's point and faces the way the view did from the start, and the
+        /// picture flies there. The focus is kept inside the map as the ordinary camera's always is.</summary>
+        private void BeginPossessionFlyOut(in CameraFlightState from)
+        {
+            int one = Fp32.One;
+            CameraFlightState to = _classicCamera.Return(from, Mathf.RoundToInt(_cameraFocus.y * one));
+            to = new CameraFlightState(
+                Mathf.Clamp(to.X, 0, Mathf.RoundToInt(_cameraBounds.x * one) - 1),
+                Mathf.Clamp(to.Y, 0, Mathf.RoundToInt(_cameraBounds.y * one) - 1),
+                to.Z, to.Zoom, to.Lens, to.ViewDistance, to.Yaw, to.Pitch, to.Roll);
+            _classicCamera.Face(new Dk2Angle((ushort)to.Yaw));
+            _cameraFocus = new Vector3(to.X / (float)one, _cameraFocus.y, -to.Y / (float)one);
+            _possessionFlight.Start(from, to, PossessionClock);
+            _possessionFlyingOut = _possessionFlight.Active;
+        }
+
+        /// <summary>The picture during the timed move, from the ordinary camera's own pose formula.</summary>
+        private void ApplyPossessionFlight()
+        {
+            Camera camera = Camera.main;
+            if (camera == null || camera.pixelWidth <= 0 || camera.pixelHeight <= 0) return;
+            int screenWidth = camera.targetTexture != null ? camera.targetTexture.width : Screen.width;
+            if (screenWidth <= 0) return;
+            float progress = _possessionFlight.Progress;
+            ApplyCameraPose(camera, _classicCamera.Pose(_possessionFlight.State,
+                new CameraViewport(screenWidth, camera.pixelWidth, camera.pixelHeight),
+                _possessionFlyingOut ? 1f - progress : progress));
         }
 
         private void ApplyPossessionCamera()
@@ -196,6 +269,8 @@ namespace DK2.Unity
             _possessed = null;
             _possessionWorld = null;
             _possessionBoundWorld = null;
+            _possessionFlight.Cancel();
+            _possessionFlyingOut = false;
             LockPossessionPointer(false);
         }
     }

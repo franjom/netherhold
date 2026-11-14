@@ -19,6 +19,9 @@ then counts each turn in 257; at ten the scan runs and the creature goes to
 199 before 257's facing step. Four dropped Warlocks (tags 437 to 441, turns
 1682 to 1705) fit turn for turn.
 
+Owner recollection (2026-11-14): native pickup feels instantaneous compared with the clone.
+This is not a timed experiment; the capture above retains the one-turn state transition.
+
 ## Reading (STRONGLY INFERRED, binary 2026-11-10)
 
 - The hand's action record is `+0x186` (state), `+0x18A` (turn entered) and
@@ -84,7 +87,10 @@ then counts each turn in 257; at ten the scan runs and the creature goes to
   are tested there.
 - `CreatureStatusSystem.Recovery` holds the handlers of 255, 256 and 257 and
   runs after `combat.States` in the creature's update.
-- A prisoner in 75 does not roll its wander.
+- A prisoner in 75 does not roll its wander; `PrisonSystem` preserves its custody while
+  pickup preparation leaves the torture device, before insertion into the hand.
+- `WorldView` draws state 75 at absolute height `0x2000` from preparation, with the same
+  previous height. Native interpolation during the lift remains unverified.
 
 Deviations: the timed insert (`HandSystem.Execute`) runs at the start of the
 second tick after the command, stamped one turn earlier; DK2's runs in the
@@ -92,8 +98,7 @@ keeper's frame of the first turn after it, once that turn's sweep is done. The
 creature is in 75 through that sweep and in 78 for the next in both; only the
 hand's list differs in between. A creature that left 75 before the insert is
 still taken, but ours leaves its state (DK2 forces it into 78, the leave hooks
-run); 75's own height (`0x2000` each update) is not set; a
-mint-wage command does not leave the hand's state (unread). The view still
+run); a mint-wage command does not leave the hand's state (unread). The view still
 counts a queued creature pick-up as holding, so a quick second click sends a
 drop the simulation ignores.
 

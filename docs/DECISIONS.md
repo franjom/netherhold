@@ -20,16 +20,17 @@
 - Now enforced from the built artefact: `ArchitectureTests.UnityLoadableAssemblies_TargetNetStandard21` reads `TargetFrameworkAttribute` off the compiled assembly. A constraint expressed only in build configuration is a claim that itself needs a test.
 
 ## ADR-0003 — Clean-room use of reference projects
-**Date:** 2026-08-29 · **Status:** amended: licence half superseded by ADR-0041 (2026-09-04); source-use rule amended 2026-09-04 (owner; the "second amendment" cited across the repo): OpenKeeper may supply implementation, with attribution · **Systems:** legal, tooling-process
+**Date:** 2026-08-29 · **Status:** amended: licence half superseded by ADR-0041 (2026-09-04); source-use rule: OpenKeeper is facts only (owner, 2026-11-14), withdrawing the 2026-09-04 reuse permission · **Systems:** legal, tooling-process
 
 **Context.** Written while the project was MIT. OpenKeeper is GPLv3; Flame carries no licence.
 **Decision.**
 - **Flame:** no reuse rights at all. Facts only; never one of its identifiers in `src/`, `tests/` or `unity/`, comments included (`FlameIdentifierTests`). A document may cite a Flame name as Flame's (ADR-0080).
-- **OpenKeeper:** originally facts only, no code copied or transliterated. Owner, 2026-09-04: *"if any of your doubts can be answered from OpenKeeper, feel free to copy, reuse, whatever, we are now on the same license as them."* OpenKeeper may now be a source of implementation wherever it answers a question the shipped data cannot. Two non-optional obligations: (1) every borrowed implementation gets an entry in `THIRD-PARTY-NOTICES.md` naming the upstream class and what was taken (GPLv3 notice retention); facts-only consultation gets a project-level acknowledgment, with detailed provenance in research notes rather than per-PR notices (owner, 2026-11-08); (2) a rule taken from OpenKeeper is STRONGLY INFERRED, never CONFIRMED — OpenKeeper is itself a reimplementation and can be wrong.
+- **OpenKeeper:** facts only (owner, 2026-11-14): file layouts, values and behaviour descriptions may be consulted; no code is copied, transliterated or restructured from it, and its identifiers are not carried over. The 2026-09-04 permission to reuse implementation is withdrawn, because the project must be able to grant its own licence exceptions (an engine linking exception needs every copyright holder; ADR-0041, ADR-0805). Consultation gets a project-level acknowledgment, with provenance in research notes (owner, 2026-11-08). A rule read from OpenKeeper is STRONGLY INFERRED at best, never CONFIRMED: OpenKeeper is itself a reimplementation and can be wrong.
+- **Code already taken under the withdrawn permission** is listed in `THIRD-PARTY-NOTICES.md` with its upstream, as GPLv3 requires while it remains, and is rewritten from the binary one item at a time; an item leaves the list when its rewrite is verified. The 2026-11-14 audit found: `Dk2TextureDecoder` (code-level), the `KwdAdditionalRecords` readers, `ObjectFlags` and `CreatureStatId` (names and order), `Dk2StringTable` (borderline), `PortalRules.IsUnlocked`/`PoolLimit` (rules).
 - Every research note in `docs/research/` records provenance, so a borrowed fact can be traced to its source.
 **Consequences.**
 - First use: the portal (ADR-0042) took three composition rules from OpenKeeper's `CreatureSpawnSystem`, plus its note that two portals producing on one tick is an original quirk replicated deliberately.
-- Caution from the same use: OpenKeeper's portal hands a creature to whoever claims an idle one only because it resets the clock to Java's `Double.MIN_VALUE` — the smallest positive double, not the sentinel it is read as. A bug is indistinguishable from a decision without reading the code closely; reuse is permitted, trust is not.
+- Caution from the same use: OpenKeeper's portal hands a creature to whoever claims an idle one only because it resets the clock to Java's `Double.MIN_VALUE` — the smallest positive double, not the sentinel it is read as. A bug is indistinguishable from a decision without reading the code closely; the binary settles it.
 - The licence boundary table lives in `docs/research/external-resources.md`.
 
 ## ADR-0004 — xoshiro256** as the simulation RNG
@@ -4358,7 +4359,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 1. **The hand drop is state 77** (`PrisonRules.HandDropState`), for a prison drop as well; ADR-0191's 120 is corrected.
 2. **`TortureRules.TryStrap`**: a captive dropped on a free Torture Wheel (8) or Electric Chair (61) in its keeper's Torture Chamber goes 77 → 130 → 131 and stays that keeper's captive (`CreatureActivity.BeingTortured`), so every rule that leaves prisoners alone leaves it alone. Dropped anywhere else in the chamber, it goes free, as elsewhere.
 3. **`TortureSystem`** is the category 15 hook on the countdown (ADR-0192). Each act adds 4 to `CreatureState.TorturedDuration` (hashed, kept across strappings) and applies `TortureHpChange` through `StatusEffectRules.Hurt`; the mood applies only in the creature's own keeper's chamber. Past the level-scaled `TortureTimeToConvert` × 4, an enemy dies on a roll under variable 234 (0) or joins the chamber's keeper.
-4. **Ours, stated:** a victim at zero health is let go to the health system, and a convert is let go (Q425).
+4. **Ours, stated:** lethal acts settle death directly; see [torture-information.md §6](research/torture-information.md#6-ours). A convert is let go (Q425).
 
 **Consequences.**
 - A Goblin converts on its 81st act, 101 s after being strapped on, having lost 810 health. A captive fresh from a cell (250 then; 390 since ADR-0628) dies first, as the manual says a victim may.
@@ -5033,7 +5034,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - the file's value in the chooser;
   - and in the pit.
 - **Guessed:** that every creature has actions 43 and 44, and their length.
-- **Not built:** the idle sound, `ReturnToJobId`, and the Call To Arms and casino arms of 89.
+- **Not built:** the idle sound and casino arm of 89. Call To Arms was built later (ADR-0279); remembered-job priority is ADR-0806.
 - No new state; `HashVersion` stays **118**.
 
 ## ADR-0229 — A rescuer breaks a Prison's door open, and the prisoners walk out through it
@@ -19190,3 +19191,59 @@ chooser's other caller `0x004C3CA4`, unread. No unit test pins the draw order; o
 kicker's own dispatch re-reads its state after the hook (`0x0047727F`) and runs 60 at Age 0, which ours skips; with an action running
 that call returns 1 and draws nothing, matching 2145, otherwise it would differ. A capture of a researcher kicked in 53 or 54 with no
 action would settle it.
+
+## ADR-0805 - the HUD's DK2 logic moves into DK2.Presentation as a draw list, so a Godot adapter can replace Unity's
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** hud-front-end, presentation-unity
+
+**Context.** The owner is preparing a switch from Unity to Godot: distributing GPLv3 code linked to Unity's closed runtime is
+ADR-0041's open question, and Godot is MIT. A Godot adapter will be built beside `unity/DK2.Unity` while work on the Unity one
+continues. The HUD (about 5,500 lines in 21 Unity files) holds DK2 logic in Unity code: layout, draw order, tints, hit areas,
+pointer state and the commands a click posts. Left there, every HUD fix would have to be made twice during the port.
+
+**Decision.**
+1. **Presentation decides, adapters draw.** A HUD panel's DK2 behaviour is an engine-free class in `DK2.Presentation`
+   (`BottomPanelHud` first). Each frame it writes a `HudFrame` (`HudDrawList.cs`): textured quads and radial sectors in
+   native virtual units (1920 high), back to front. It takes pointer input in the same units and raises the panel's commands.
+2. **An adapter renders a `HudFrame` and forwards input; nothing more.** DK2's render flag 8 is `HudBlend.Additive`; an
+   engine without additive UI blending uses `HudImagePixels.AdditiveOverAlpha`. Pixel changes that are part of DK2's look
+   (the Reaper talisman's quarters) are `HudImageVariant`s, applied by `HudImagePixels`, so every engine gets the same pixels.
+3. **Panel by panel, Unity kept working.** Each step adds the model and its tests, turns the Unity class into a facade with
+   the same public API over `HudCanvas`, and deletes the old Unity logic. Order: bottom panel (done), resource HUD (done), message
+   tabs, hover HUD, creature query and overview, options and save/load, front-end menu, minimap and full-map markers.
+
+**Where new files go.**
+
+| What | Where |
+|---|---|
+| A HUD panel's DK2 behaviour, layout, draw list, pixel variants | `src/DK2.Presentation/<Panel>Hud.cs`, flat like the rest of the project; tests in `tests/DK2.Presentation.Tests/<Panel>HudTests.cs` |
+| Any other engine-neutral rule or value | where ADR-0002 and `ARCHITECTURE.md` already put it; never in an adapter |
+| Unity: the one `HudFrame` renderer | `unity/DK2.Unity/Assets/DK2/HudCanvas.cs`; a panel's Unity file is only its facade |
+| Godot: the adapter | `godot/DK2.Godot/` (the Godot project root), C# using `ProjectReference`s to `src/`; outside `DK2.slnx` until CI builds it. Its HUD renderer mirrors `HudCanvas` |
+| Engine-specific on purpose | 3D overlays (hover outline, placement, possession), movie playback, the GPU minimap image, shaders and GPU light buffers: written once per engine |
+
+New DK2 behaviour written into a Unity or Godot file is a defect under this ADR.
+
+**Consequences.** `ClassicBottomPanel` is 150 lines of glue over `BottomPanelHud`; its public API is unchanged, so `DungeonRunner`
+did not change. The panel's hit testing and click handling are unit-tested without an engine (`BottomPanelHudTests`). Unity's
+additive stand-ins were two bakes, luminance-as-alpha for the hover art and peak-as-alpha for sparkles; both now use the second.
+The hover art is near grey (mean chroma 7.6/255), so the hover highlight shifts by a few levels at most. `IClassicBottomPanelAssets`
+extends `IBottomPanelArt`. No Godot code exists yet, and ADR-0041's question stays open until the engine decision is made.
+
+## ADR-0806 - remember Guard assignments independently of current work
+
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 520
+
+**Context.** Q710's captured fighter retains a Guard job that idle 89 retries
+before a fresh chooser roll. CurrentJob cannot represent that independent memory.
+The [rule, implementation and limits](research/guard-job-memory.md) are binary-backed.
+
+**Decision.** Store ReturnToJob and a typed room reference, retry after the dropped
+job, and retain memory on refusal. Guard prefers a valid saved room and remembers
+a new one only on successful routing. Capacity includes remembered assignments.
+Cursor pickup clears memory; the direct computer-keeper hand path preserves it.
+Copying, hashing and snapshot serialization include both fields.
+
+**Consequences.** Hash/save 520; older snapshots are refused. The determinism pin
+is `0xF5D7D4C89778DF7F`. Room-list identity adapts native room tags; the native
+allocator, generic finder/navigation and remaining Guard scratch are partial.
+Q710's aggregate outcome remains open.

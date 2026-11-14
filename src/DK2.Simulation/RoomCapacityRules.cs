@@ -16,7 +16,7 @@ namespace DK2.Simulation;
 /// place is claimed or released. Only the rooms whose
 /// <see cref="AutoFurnitureRules.TryTotalCapacity"/> is read are limited; a Guard Room's cap is its
 /// tile count (ADR-0440). Workshop and Library extras are built (ADR-0214, ADR-0704); the Guard
-/// Room's extra (its creatures on guard duty, <c>+0x2B6 == 6</c>, added to the used sum) is not.</remarks>
+/// Room additionally counts its owner's remembered Guard assignments, including guards away from it.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public static class RoomCapacityRules
 {
@@ -47,7 +47,7 @@ public static class RoomCapacityRules
         return used;
     }
 
-    /// <summary>The numeric/Workshop subset of <c>0x004E53B0</c>: true while <paramref name="units"/> places are free, and
+    /// <summary>The numeric/Workshop/Guard subset of <c>0x004E53B0</c>: true while <paramref name="units"/> places are free, and
     /// always for a room whose capacity is not read. A Workshop must also have space for its
     /// crates (<c>0x004F6140</c>, <see cref="CrateRules.WorkshopHasRoom"/>). This pure query omits the
     /// Library shelf gate; execution uses the state-hook overload (ADR-0704).</summary>
@@ -57,7 +57,12 @@ public static class RoomCapacityRules
         if (room.Definition.TypeId == RoomTypeId.Workshop && !CrateRules.WorkshopHasRoom(world, database, room))
             return false;
         if (!AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity)) return true;
-        return Occupants(world, room, exceptId) + units <= capacity;
+        int rememberedGuards = 0;
+        if (room.Definition.TypeId == RoomTypeId.GuardRoom)
+            foreach (CreatureState creature in world.OwnedCreatures(room.OwnerPlayerId))
+                if (creature.ReturnToJob == JobType.Guard
+                    && creature.ReturnRoom.RefersTo(world, room)) rememberedGuards++;
+        return Occupants(world, room, exceptId) + rememberedGuards + units <= capacity;
     }
 
     /// <summary>The execution capacity test: Library shelf search before numeric fullness.

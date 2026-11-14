@@ -15,10 +15,10 @@ namespace DK2.Simulation.Systems;
 /// captive. Past the level-scaled <see cref="TortureRules.ConversionThreshold"/> the duration
 /// resets, and an enemy dies on a <c>TortureChanceOfDyingWhenConverted</c> roll (shipped 0) or
 /// else joins the chamber's keeper.
-/// <para>Ours, stated: a captive whose health reaches zero is let go of there and then, and the
-/// health system takes it; DK2 knocks it out on the device and then kills it, revealing
-/// information (<c>0x004F2370</c>, <see cref="TortureInformationRules"/>, ADR-0230). A convert is let go of too, and stands in the
-/// chamber idle as its new keeper's, and beds down like any other creature (owner, Q425).</para></remarks>
+/// <para>Reincarnation is tried before testing for an information reward. A lethal act awards
+/// information, releases the device and settles death immediately without a rescue window
+/// (<see cref="TortureInformationRules"/>, ADR-0230). A convert is released and stands idle
+/// as its new keeper's, and beds down like any other creature (owner, Q425).</para></remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public sealed class TortureSystem : ISimulationSystem
 {
@@ -125,6 +125,12 @@ public sealed class TortureSystem : ISimulationSystem
             ? Combat.StatusEffectRules.Hurt(world, database, definition, creature, -definition.TortureHpChange, creature.OwnerPlayerId)
             : CreatureHealthRules.Apply(database, definition, creature, definition.TortureHpChange, creature.OwnerPlayerId);
 
+        if (creature.Health <= 0 && CreatureDeathRules.CanBeResurrected(definition)
+            && CreatureDeathRules.TryReincarnate(context, definition, creature))
+            context.Emit(SystemName, "creature_reincarnated",
+                $"creature={creature.Id} type={definition.Name} player={creature.OwnerPlayerId} " +
+                $"level={creature.Level} at=({creature.Tile.X},{creature.Tile.Y})");
+
         // Only a creature tortured in its own keeper's chamber takes the mood: selector 8, bucket 5.
         if (creature.OwnerPlayerId == keeper)
             CreatureAngerRules.Apply(world, definition, creature, AngerBucket.Treatment, definition.TortureMoodChange,
@@ -147,6 +153,9 @@ public sealed class TortureSystem : ISimulationSystem
                 $"creature={creature.Id} type={definition.Name} owner={creature.OwnerPlayerId} " +
                 $"keeper={keeper} duration={creature.TorturedDuration} information={information}");
             Free(context, creature, "health_gone");
+            // A Torture Chamber skips the unconscious window; detaching first must not turn death into rescue.
+            creature.CollapseDue = false;
+            CreatureHealthSystem.Die(context, SystemName, definition, creature);
             return;
         }
 

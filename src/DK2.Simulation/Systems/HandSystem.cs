@@ -158,6 +158,13 @@ public sealed class HandSystem : ISimulationSystem
         WorldState world = context.World;
         CreatureState? creature = world.CreatureById(creatureId);
         if (creature is null || !world.HasPlayer(playerId)) return;
+        // Command 57's clear precedes hand admission (0x00513480).
+        // Direct keeper preparation/insertion does not execute that wrapper.
+        if (stored && !direct && CreatureStateMachine.HasState(creature))
+        {
+            creature.ReturnToJob = JobType.None;
+            creature.ReturnRoom = RoomReference.None;
+        }
         LeaveHandState(context, playerId);
         var command = new PickUpCreatureCommand(playerId, creatureId);
 
@@ -168,6 +175,12 @@ public sealed class HandSystem : ISimulationSystem
                 $"player={command.PlayerId} creature={command.CreatureId} " +
                 $"held={world.Player(command.PlayerId).Hand.Count} reason=permission");
             return;
+        }
+
+        if (!stored && !direct)
+        {
+            creature.ReturnToJob = JobType.None;
+            creature.ReturnRoom = RoomReference.None;
         }
 
         // 0x004BFBD0 runs before 0x004BC500 tests the hand: state 75, through idle when the

@@ -21,13 +21,25 @@ research provenance belongs in `docs/research/`, not in this notice file.
 ## Research references
 
 These projects were consulted for file formats, structure and behaviour.
-No code was copied from them; implementations were written independently.
+The project's rule is facts only (ADR-0003). The exceptions below, taken
+earlier, are being rewritten from the binary and leave this list when done.
 
 - [OpenKeeper](https://github.com/tonihele/OpenKeeper) - GNU GPL version 3
   or later, Copyright (C) 2014-2016 OpenKeeper, Toni Helenius and contributors.
-  Also informed the creature-generation logic in `PortalRules.cs` and
-  `Systems/PortalSystem.cs`, independently reimplemented from OpenKeeper's
-  `toniarts.openkeeper.game.logic.CreatureSpawnSystem` (ADR-0003, ADR-0042).
+  Material derived from it that is still in this tree:
+  - `src/DK2.Art/Dk2TextureDecoder.cs`: the engine-texture decoder follows
+    `tools.convert.textures.Dk2TextureDecoder` and
+    `enginetextures.EngineTextureDecoder` (whose header credits texture
+    extraction code by George Gensure and original code by Hoenir).
+  - `src/DK2.Data/Kwd/KwdAdditionalRecords.cs`: field order, widths and names
+    of creature spells, shots, effects and effect elements, from `KwdFile`.
+  - `ObjectFlags` (`src/DK2.Data.Model/ObjectDef.cs`) and `CreatureStatId`:
+    member names and order, from `GameObject.ObjectFlag` and
+    `Variable.CreatureStats.StatType`.
+  - `src/DK2.Data/Text/Dk2StringTable.cs`: the string-table reader's structure
+    is close to `str.StrFile`.
+  - `PortalRules.IsUnlocked` and `PoolLimit`: rules from
+    `game.logic.CreatureSpawnSystem` (ADR-0042).
 - [ufdada/dk2-tools](https://github.com/ufdada/dk2-tools) - binary-format
   research reference.
 - [DiaLight/Flame](https://github.com/DiaLight/Flame) - structure and symbol

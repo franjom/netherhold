@@ -1,7 +1,7 @@
 """Writes src/DK2.Simulation/StateCopy.g.cs: a CopyFrom (and a Clone) for each simulation state class,
 derived from the class's own field and auto-property declarations, so the presented world (ADR-0693)
-can be brought up to date in place. Rerun after adding a field to one of the classes below; the
-reflection test StateCopyTests.CopyCoversEveryField fails until you do.
+can be brought up to date in place. Rerun after adding a field to one of the classes below;
+see docs/TRAPS.md for the non-default-copy regression requirement.
 
     python tools/state-copy/generate.py
 
