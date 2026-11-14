@@ -137,7 +137,7 @@ resolver does not play (it plays single-item groups; the linked picker is music'
 | possessed creature `0xC9`/`0xCC` (action 18) | `0x00499A40`, sound-effects-combat.md section 5 | STRONGLY INFERRED site | waits: first person |
 | possessed footsteps `0x332`, `0x333`; wading `0x337`, `0x338` | the Hand's possessed movement at `0x0040F3FF` and `0x0040F504`: handle 0, the creature's category, alternating each 0x800 units of an accumulator, plus 5 while wading | STRONGLY INFERRED sites | waits: the first-person movement input is unbuilt; `0x332`/`0x333` have samples in 25 creature categories |
 
-First person is unbuilt in the Unity adapter (HANDOFF, possession camera and input), so what needs the possessed view waits: lava, the flyers' beds, the flies, `0xC9`/`0xCC` and the possessed footsteps.
+The possessed footsteps are asked by the first-person view (`PossessionFootsteps`), beside the creature's ordinary ones, which no read shows DK2 silencing (possession-client.md section 6, HYPOTHESIS). What else needs the possessed view still waits: lava, the flyers' beds, the flies and `0xC9`/`0xCC`.
 
 Marked deviations: the two-category limit's ordering is inferred; the emitter's point is the mean of its cells' centres, DK2's a weighted point; the listener is the screen's centre tile, DK2's a camera field; the Temple's waterless and the first-person categories are not asked;
 a bed ends with its sample and the next frame asks again, DK2's next grid build; a category that leaves the grid is stopped at once, not with the `0x46` command; the beds in linked groups (Library, Portal, Temple, Prison, Hero Gate) are silent until a linked picker plays them.

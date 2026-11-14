@@ -964,7 +964,7 @@ namespace DK2.Unity
                 {
                     Glide();
                     FollowScriptedCreature();
-                    if (hud.AllowOrdinaryInput && !HudModal && !Possessing) ControlCamera();
+                    if (hud.AllowOrdinaryInput && !HudModal && !PossessionCameraHeld) ControlCamera();
                     else
                     {
                         _classicCameraControls?.AdvancePointer(default, false, false);
@@ -1020,6 +1020,7 @@ namespace DK2.Unity
             _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
             _scene.SetCreatureFrameTime(World.CurrentTick, fraction);
             _worldView.SetPossessionView(World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
+            _scene.HideCreature(PossessionHiddenCreatureId);
             long presentStarted = _recorder?.Stamp() ?? 0;
             using (PresentMarker.Auto()) _presenter.Present(World);
             _recorder?.Spent(FrameRecorder.Part.Present, presentStarted);
@@ -1599,6 +1600,7 @@ namespace DK2.Unity
 
         private void ApplyClassicCamera()
         {
+            if (_possessionFlight.Active) { ApplyPossessionFlight(); return; }
             if (Possessing) { ApplyPossessionCamera(); return; }
             Camera camera = Camera.main;
             if (camera == null || camera.pixelWidth <= 0 || camera.pixelHeight <= 0) return;
@@ -1607,6 +1609,11 @@ namespace DK2.Unity
             ClassicCameraPose pose = _classicCamera.Pose(
                 new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z),
                 new CameraViewport(screenWidth, camera.pixelWidth, camera.pixelHeight));
+            ApplyCameraPose(camera, pose);
+        }
+
+        private static void ApplyCameraPose(Camera camera, in ClassicCameraPose pose)
+        {
             camera.orthographic = false;
             camera.ResetProjectionMatrix();
             camera.fieldOfView = pose.VerticalFieldOfView;
