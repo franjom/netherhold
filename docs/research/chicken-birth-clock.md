@@ -65,6 +65,18 @@ The adapter only suspends live creation draws during the 1400 restore and
 rebinds afterward; production runs the rule from startup. No later capture
 supplies a deadline, draw site or other input.
 
+## Floor egg: the clip starts the turn after the lay (ADR-0791)
+
+STRONGLY INFERRED from the read of [Hatchery_LayEgg](functions/004DE620.md); the Level 5 seed 1 capture agrees on
+the outcome (Q798): all 22 floor lays in its draw log hatch at lay + 9 (`Object.cpp:63`), where ours hatched at lay + 8.
+The free-tile path installs #0 with a full reset (`0x004DE863`-`0x004DE896`) and does not advance it. An animation
+advances only in the object's own update (`0x0049BD20`, `Thing_AdvanceAnimation` at `0x0049BDEE`), and rooms tick
+after things (`0x0050A7ED`; the lay's only caller is `0x004DE0BC` in `Hatchery_Tick`), so the first advance is the next
+turn's. State 32 (`0x004A1CF0`) polls the previous advance's flags and makes the chicken one update after it installs
+#5, as above. Built at 507: the free path of `HatcheryRules.TryLayEgg` stamps the egg's `ProcessDeadline` one turn on;
+the launch path restamps inside the egg's own update (state 24) and is unchanged. Not read: the installs in
+`Room_SetGoldPileArt` (`0x004F44E9`) and `Room_Rebuild` (`0x004EE771`); the coop path installs no art in the room pass.
+
 ## Verification at 439
 
 The original counterfactual fails four cases with two passing positive

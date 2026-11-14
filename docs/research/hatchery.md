@@ -126,7 +126,8 @@ and it laid by the capacity path where ours, counting a bird standing on the til
 whether the room merge and cut paths (`0x004E4480`, `0x004EDFC0`) rewrite `+0x6B`. `Flock` counts birds where DK2 sums
 units (equal while the Chicken's `RoomCapacity` is 1).
 `HatcheryRules.TryLayEgg` implements the capacity path and retains the resulting
-coordinates through hatching and presentation (ADR-0428). Presentation-only room
+coordinates through hatching and presentation (ADR-0428). A floor egg's clip first
+advances the turn after the lay, so it hatches at lay + 9 ([chicken-birth-clock.md](chicken-birth-clock.md), ADR-0791). Presentation-only room
 pillars are excluded using the same corner predicate as the view. The full-room
 coop path and free-range gate are built; launch physics limits are in object-drawing.md section 8.
 

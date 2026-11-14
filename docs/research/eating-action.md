@@ -22,7 +22,7 @@ rate or its first cycle flag. Fresh installation and same-turn advancement
 use `FirstCycleHoldTicks`; its integer clock is keeper-spell-reaper.md.
 
 Built under ADR-0432: state 94 persists until the action deadline, then uses
-the saved decision to search again or idle. Missing art starts no action; the
+the saved decision to search again or idle (state 1's chooser then runs the next turn, ADR-0792). Missing art starts no action; the
 next handler poll decides. Presentation resolves art 13 or its fallback 8 and
 restarts from the state-entry stamp. Our next-tick render clock is one greater
 than the executing tick, so the playback origin is `(stamp + 1)/4` seconds.

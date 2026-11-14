@@ -221,7 +221,8 @@ Books and research play no part. #0 and #8 `book_case4` are not chosen there.
     It then shows the egg at z `0x13E8`, heading = the coop's + `random(0x100)` − 0x80, and
     launches it (0x6000 along the heading, 0x3000 up). In flight it adds 0x40 per turn to
     three RenderInfo angles. Landed (|vx|+|vy| ≤ 0x1000), it goes to state 32.
-- *Free-tile path, capacity left:* the egg goes straight to state 32 with #0.
+- *Free-tile path, capacity left:* the egg goes straight to state 32 with #0, installed fresh in the room pass and not
+  advanced on its lay turn; the clip first advances next turn ([chicken-birth-clock.md](chicken-birth-clock.md), ADR-0791).
 - State 32 (`0x004A1CF0`): while #0 `Egg-Hatch_Start` (45 frames at 30 fps) is installed
   and RenderInfo `+0xAD` bits 1–2 report it ended or wrapped, it installs #5
   `Egg-Hatch_End`. On the next turn, with any other art installed, it creates the Chicken

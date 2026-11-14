@@ -62,7 +62,7 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
             if (context.Tick.Value < creature.ActionUntilTick) return;
             creature.ActionUntilTick = 0;
             if (creature.FoodOwedAfterMeal) BackToTheSearch(context, creature);
-            else GiveUp(context, creature);
+            else GiveUp(context, creature, handlerReturnedZero: true);
             return;
         }
 
@@ -241,7 +241,8 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
                 $"player={creature.OwnerPlayerId} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) " +
                 $"need={creature.HungerNeed} reason=not_in_hatchery");
-            GiveUp(context, creature);
+            // 92's own tile check fails to 0x0046370D; a walk that has not yet handed over to 92 is not 92's.
+            GiveUp(context, creature, handlerReturnedZero: !StateShadow.IsTravelling(creature));
             return;
         }
 
@@ -339,7 +340,7 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
                 StateShadow.TravelToPoint, EatingRules.EatState, Navigation.MoveOptions.ExactSpot,
                 chicken.PosX >> 12, chicken.PosY >> 12))
         {
-            GiveUp(context, creature);
+            GiveUp(context, creature, handlerReturnedZero: true);
             return;
         }
 
@@ -410,12 +411,17 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         creature.StopMoving();
     }
 
-    /// <summary>Out of the eating states entirely, and idle: state 1.</summary>
-    private static void GiveUp(SimulationContext context, CreatureState creature)
+    /// <summary>Out of the eating states entirely, and idle: state 1. When it stands for state 92's or 94's
+    /// handler returning 0 (94's at <c>0x0046374B</c>, 92's at <c>0x0046370D</c>), the dispatcher drops it to 1
+    /// (<c>0x004772B0</c>) after its one handler call (<c>0x004772AA</c>), so 1's own handler waits for the next
+    /// turn (Q799). The fed-on-the-way exit has no counterpart in 92's body and does not claim the wait.</summary>
+    private static void GiveUp(SimulationContext context, CreatureState creature, bool handlerReturnedZero = false)
     {
         creature.TargetObjectId = EatingRules.NoChicken;
         Shadow(context, creature, CreatureStateMachine.Idle);
         creature.StopMoving();
+        if (handlerReturnedZero && creature.Dk2StateId == CreatureStateMachine.Idle)
+            context.IdledByEatHandlerThisTick.Add(creature);
     }
 
     /// <summary>From idle into state 91, the needs routine's entry into eating

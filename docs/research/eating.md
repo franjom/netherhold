@@ -90,7 +90,7 @@ recovered and named. Two facts from it that this mechanic needs:
 | `0x5B` (91) | `FUN_004634b0` | eating | find a hatchery, walk there in state 7, resume in `0x5C` |
 | `0x5C` (92) | `FUN_00463500` | eating | **in the hatchery**: find the nearest chicken, walk to it in state 6, resume in `0x5D` |
 | `0x5D` (93) | `FUN_00463760` | eating | **eat** the chosen chicken if within a tile |
-| `0x5E` (94) | `FUN_00463720` | eating | after the meal: wait while busy, then back to `0x5C` if the eat byte `+0xab` (`HungerNeed != 0`) is set, else idle |
+| `0x5E` (94) | `FUN_00463720` | eating | after the meal: wait while busy, then back to `0x5C` if the eat byte `+0xab` (`HungerNeed != 0`) is set, else idle (state 1's chooser runs a turn later, ADR-0792) |
 | `0x5F` (95) | `FUN_00458680` | eating | wait out the eating animation |
 | `0x73` (115) | `FUN_004731f0` | being held captive | the prison's copy of the hunger test |
 | `0x75` (117) | `FUN_00473550` | being held captive | **in the prison**: find the nearest *food-flagged* object **and walk to it**, resuming in `0x76` |
@@ -342,7 +342,8 @@ prison path. `CreatureState.HungerNeed` is the accumulator (§3's "it adds"),
 
 **On DK2's state ids since ADR-0176**, the first errand to be: beside its activity a
 hungry creature writes `travel-states.md` §8's chain - 91, state 7 into 92, state 6 into
-93, then 94 - and drops to state 1 on leaving (`EatingRules.FindHatcheryState` et al.;
+93, then 94 - and drops to state 1 on leaving, whose own chooser waits a turn after 94's exit, 92's route
+failure and 92's not-in-hatchery exit (`0x0046370D`, ADR-0792; `EatingRules.FindHatcheryState` et al.;
 it handed the id back until ADR-0209). The walk's point is `0x004E4C10`'s, one
 `Room.cpp:1509` draw ([temple-states.md](temple-states.md) §9, ADR-0784). State 92 runs
 the turn after 91's inside shortcut and walks even to a bird underfoot (ADR-0785); 93

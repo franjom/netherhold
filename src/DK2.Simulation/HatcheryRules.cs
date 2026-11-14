@@ -398,6 +398,10 @@ public static class HatcheryRules
         if (candidates.Count == 0) return null;
         int chosen = candidates[rng.NextInt(candidates.Count)];
         ObjectState egg = Lay(world, database, hatchery, chosen);
+        // 0x004DE863-0x004DE896 installs #0 fresh and does not advance it. The room pass runs after the thing
+        // pass, so the clip's first advance (0x004B3AD0, in the egg's own update) comes next turn; the stamp
+        // names the turn of that first advance, as state 24's reinstall in the egg's update does.
+        egg.ProcessDeadline = world.CurrentTick.Value + 1;
         egg.PosX = CreatureState.CentreOf(chosen % world.Width) + rng.NextInt(0x800) - 0x400;
         egg.PosY = CreatureState.CentreOf(chosen / world.Width) + rng.NextInt(0x800) - 0x400;
         return egg;

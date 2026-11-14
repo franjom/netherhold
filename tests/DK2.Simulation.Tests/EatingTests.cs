@@ -181,6 +181,28 @@ public class EatingTests
         Assert.Equal(EatingRules.AfterMealState, goblin.Dk2StateId);
     }
 
+    // 94's handler returns 0 (0x0046374B) and the dispatcher drops it to 1 after its one handler call
+    // (0x004772AA, 0x004772B0): state 1's own chooser runs the next turn, not the same one (Q799).
+    [Fact]
+    public void AFullCreatureLeavingTheMealIsIdleForATurnBeforeItChoosesAgain()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+        CreatureState fed = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 7));
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), fed, EatingRules.AfterMealState);
+        CreatureState control = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 6));
+        CreatureStateMachine.TrySetState(new StateHookContext(world, db), control, CreatureStateMachine.Idle);
+        var sim = new GameSimulation(db, world, seed: 42,
+            [new CreatureMovementSystem(), new CreatureEatSystem(), new CreatureJobSystem(), new ChickenTailSystem()]);
+
+        sim.Tick();
+        Assert.NotEqual(CreatureStateMachine.Idle, control.Dk2StateId);   // an idle creature's chooser runs at once
+        Assert.Equal(CreatureStateMachine.Idle, fed.Dk2StateId);
+        sim.Tick();
+        Assert.NotEqual(CreatureStateMachine.Idle, fed.Dk2StateId);
+    }
+
     [Fact]
     public void StateNinetyThreeTurnsToFaceTheBirdBeforeItEats()
     {

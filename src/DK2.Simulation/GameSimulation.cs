@@ -21,7 +21,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 506;
+    private const ulong HashVersion = 507;
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
@@ -201,6 +201,7 @@ public sealed class GameSimulation
         _context.AngryChooserRanThisTick.Clear();
         _context.IdledByCombatHandlerThisTick.Clear();
         _context.IdledByLairHandlerThisTick.Clear();
+        _context.IdledByEatHandlerThisTick.Clear();
         _context.LandingDueThisTick.Clear();
         _context.ReinforcementActionsPolledThisTick.Clear();
         _context.ClaimActionsPolledThisTick.Clear();

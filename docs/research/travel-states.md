@@ -295,7 +295,7 @@ restored from a save.
    `(|dx|^2>>12)+(|dy|^2>>12)` from the creature's point: above `0x1000` (`JA` at
    `0x00463828`) sets 92, so exactly `0x1000` still eats. Then the meal (eating.md §7),
    storing `HungerNeed != 0` in `+0xAB`. **State 94** (`0x00463720`) returns 1 while busy;
-   then, if `+0xAB` is set, `SetState(92)` for another bird, else it returns 0.
+   then, if `+0xAB` is set, `SetState(92)` for another bird, else it returns 0 (`0x0046374B`); the dispatcher drops that 0 to state 1 after its one handler call, so state 1's chooser first runs the next turn (ADR-0792).
 
 **What a build copies:** the caller's whole contribution is one call with *(target,
 resume, options)*. The helper owns the transition, the slot and the destination; the

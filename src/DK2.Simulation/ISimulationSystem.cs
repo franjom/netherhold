@@ -42,6 +42,7 @@ public sealed class SimulationContext
     // runs on the next turn (0x00476FC0 runs one handler a turn).
     internal HashSet<CreatureState> IdledByCombatHandlerThisTick { get; } = [];
     internal HashSet<CreatureState> IdledByLairHandlerThisTick { get; } = [];
+    internal HashSet<CreatureState> IdledByEatHandlerThisTick { get; } = [];
     // Cleared before every turn; last turn's drops the creature sweep lands in their own slots.
     internal HashSet<CreatureState> LandingDueThisTick { get; } = [];
     internal HashSet<CreatureState> ReinforcementActionsPolledThisTick { get; } = [];
@@ -56,12 +57,13 @@ public sealed class SimulationContext
     internal HashSet<CreatureState> WorkerPreludeProcessedThisTick { get; } = [];
     internal HashSet<CreatureState> WorkerPreludeClaimedThisTick { get; } = [];
 
-    /// <summary>The creature is in state 1 because a combat or home handler set it this turn, so 1's own
+    /// <summary>The creature is in state 1 because a combat, home or eating handler set it this turn, so 1's own
     /// handler waits for the next turn. A host sweeping steps alone on a context of its own
     /// (<see cref="Systems.CreatureUpdateSystem.RunAlone"/>) never clears the set.</summary>
     internal bool IdleHandlerWaits(CreatureState creature) =>
         creature.Dk2StateId == CreatureStateMachine.Idle
-            && (IdledByCombatHandlerThisTick.Contains(creature) || IdledByLairHandlerThisTick.Contains(creature));
+            && (IdledByCombatHandlerThisTick.Contains(creature) || IdledByLairHandlerThisTick.Contains(creature)
+                || IdledByEatHandlerThisTick.Contains(creature));
     internal HashSet<CreatureState> TremorRebellionStartedThisTick { get; } = [];
 
     /// <summary>The state the creature being updated held when its update began

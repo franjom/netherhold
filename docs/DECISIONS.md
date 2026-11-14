@@ -18777,3 +18777,56 @@ question for a capture. Tests: `HatcheryTests.AFreeRangeBirdStandingInTheRoomDoe
 fallback); the hatchery tests that lay, hatch or spawn without ticking admit their birds in setup;
 `SnapshotTests.Read_RejectsUnsupportedVersion` flips the version byte, because format 506 (`0x01FA`) collided with the
 250 it wrote. Simulation 5377, AI 512, Behavior 620 (5 skipped), Presentation 1669, all other suites pass.
+
+## ADR-0791 - a floor egg's clip first advances on the turn after it is laid
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures, rooms | **Hash/save:** 507
+
+**Context.** Level 5 seed 1 (Q798), hash 506: ours hatched the egg laid at turn 2007 at 2015 (`Object.cpp:63`, the bird's
+size draw) where DK2 draws a chicken reaction (`ObjectState.cpp:2708`). All 22 floor lays in the native draw log hatch at
+lay + 9; ours hatched at lay + 8. `Hatchery_LayEgg` (`0x004DE620`), free-tile path: create (`0x004B7A90`, type `0x2F`,
+`0x004DE822`), room `+0x51` incremented (`0x004DE830`-`0x004DE83A`), state 32 through `0x0049EF60` (`0x004DE83D`), then
+`0x004DE863`-`0x004DE896` clears `+0xF1` bit 0 and installs #0 through `0x004B37D0` with a full reset (fourth argument 1,
+`0x004DE869`). Nothing there advances the clip. An animation advances only in the object's own update (`0x0049BD20`:
+process, physics `0x004B2030`, then `Thing_AdvanceAnimation` `0x004B3AD0` at `0x0049BDEE`), and rooms tick after things
+(`World_UpdateTurn` `0x0050A450` calls `RoomManager_TickRooms` `0x004EC450` at `0x0050A7ED`; the lay's only caller is
+`0x004DE0BC` in `Hatchery_Tick`). So the clip first advances next turn. State 32 (`0x004A1CF0`, `0x004A1D1C`-`0x004A1D25`)
+polls the previous advance's flags (`+0xF1 & 6`, the ended bit set in `0x004B3C10`), installs #5 and makes the chicken one
+update later. STRONGLY INFERRED: read, and the capture agrees on the outcome.
+
+**Decision.** The free path of `HatcheryRules.TryLayEgg` stamps the egg's `ProcessDeadline` at the current tick + 1, the turn
+of the first advance, as state 24's reinstall inside the egg's own update does. The launch path is unchanged. Evidence:
+[chicken-birth-clock.md](research/chicken-birth-clock.md#floor-egg-the-clip-starts-the-turn-after-the-lay-adr-0791).
+
+**Consequences.** Hash and save 507 (with ADR-0792); earlier saves are refused. Pin `0x24EAACECA26F0714`. Level 5 seed 1
+(controlled554, this fix alone): 10172 draws match through 2015 (10163 through 2014 at 506). Level 1's seed-1 journal is
+re-recorded; its win tick moves from 2571 to 2374 with ADR-0792. Residuals the reviewer listed: `0x004B37D0` sets `+0xAD`
+bits 0-1 and `0x004B41E0` clears bit 1 again for type 6 art; the coop path installs no art in the room pass; the casino
+lever's install is in the command pass, which agrees; the installs in `Room_SetGoldPileArt` (`0x004F44E9`) and
+`Room_Rebuild` (`0x004EE771`) are unread. Test: `HatcheryObjectAnimationTests.AnEggLaidOnTheFloorStartsItsClipOnTheNextTurn`
+(fails with the stamp removed). Full suite 9238 passed, 30 skipped, 0 failed.
+
+## ADR-0792 - a creature the eating handlers drop to idle chooses again a turn later
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** creatures | **Hash/save:** 507
+
+**Context.** Q799, found on the Level 5 seed 1 controlled replay. State 94's handler `Eat_AfterMeal` (`0x00463720`) returns 0
+at `0x0046374B` when not busy (`0x00496D00`) and `+0xAB` is 0. The dispatcher `0x00476FC0` makes one handler call
+(`0x004772AA`) and drops a 0 to state 1 (`0x004772B0`-`0x004772B7`), so state 1's chooser first runs the next turn. Ours ran
+94's exit in `CreatureEatSystem` before the handler step and `CreatureJobSystem`'s idle chooser ran the same tick. State 92
+(`0x00463500`) returns 0 in two places, both to `0x0046370D`: a failed route (`0x004636AF`/`0x004636B1`) and its tile check
+(`0x0046353D`-`0x00463566`, not in an own hatchery). Its body (`0x00463500`-`0x00463715`) has no hunger test, so ours' exit for
+a creature fed on the way has no counterpart. STRONGLY INFERRED: read, not captured.
+
+**Decision.** `CreatureEatSystem.GiveUp` takes `handlerReturnedZero` and, when it is true and the creature lands in state 1,
+adds it to the new context set `IdledByEatHandlerThisTick` (cleared each tick, read by `SimulationContext.IdleHandlerWaits`
+beside the combat and lair sets, registered in the SimMatrix `StateModel`). It is true for the 94 exit, 92's route failure, and
+92's not-in-hatchery exit only when the creature is not still travelling (a walk not yet handed to 92 is not 92's). The
+fed-on-the-way exit (`!StillOwesFood`) claims no wait. See
+[travel-states.md section 8](research/travel-states.md#8-worked-example-a-hungry-creature-eats--strongly-inferred).
+
+**Consequences.** Hash and save 507 (with ADR-0791). Level 5 seed 1 (controlled555, both fixes): 10217 draws match through
+2018; the next boundary is turn 2019 draw 1, native `ObjectState.cpp:2708` (a chicken's reaction) against ours'
+`ObjectState.cpp:2851` (a roam, bird 121), Q800. First creature position splits: Warlock 439 at 2034 (unchanged), 433 now
+2093 (was 2042), 441 at 2095. `a_goblin_eats_a_chicken.yaml`: creature 1 eats bird 21 at 734, creature 2 bird 15 at 735.
+Level 1's journal win tick is 2374 (see ADR-0791). Residual, a possible fidelity gap and not a defect (Q801): 92 with no
+chicken in an owned hatchery calls `SetState(91)` at `0x004636F8` and 91 then resets 92, a per-turn flip; ours holds in 92.
+Test: `EatingTests.AFullCreatureLeavingTheMealIsIdleForATurnBeforeItChoosesAgain` (fails with the marker removed).
