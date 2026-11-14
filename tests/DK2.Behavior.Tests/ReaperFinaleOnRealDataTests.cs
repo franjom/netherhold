@@ -39,7 +39,7 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
             },
         };
         using FileStream journal = File.OpenRead(Dk2CaptureGate.PathFor(Fixture + "input.journal"));
-        // The journal was re-recorded at HashVersion 517 (a portal notices a type only while it carries weight, the decay runs once per definition index that maps to the type, and a Unique definition is a second candidate of its base type).
+        // The journal was re-recorded at HashVersion 519 (a finished research goes to a Library with a place-holder, and the place-holder not yet updated that tick cheers at once).
         // A later hash version replays it with its hashes as evidence, not a verdict.
         ScenarioResult result = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path).Replay(
             Scenario.Load(Dk2CaptureGate.PathFor(Fixture + "level1.yaml")), InputJournal.Read(journal), options,

@@ -24,8 +24,8 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 Q712, the Level 5 draw-continuation investigation, is answered through turn 1900.
-At hash 517 with ADR-0801, with the replay inputs including the five hero guards
-restored at turn 1400, the controlled replay matches all 8466 native draws of the
+At hash 519 with ADR-0803, with the replay inputs including the five hero guards
+and the keeper's research points restored at turn 1400, the controlled replay matches all 8466 native draws of the
 capture's log, turns 1401-1900 (the log ends there). The result is in
 [Q712](research/open-questions.md), with its causes in
 [the Heart's pillars and centre-tile objects as obstacles, and the lava centre's refused route](research/structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355) (ADR-0750, ADR-0751, ADR-0755),
@@ -70,13 +70,14 @@ capture's log, turns 1401-1900 (the log ends there). The result is in
 [a torturer's arrival and state 7's arrival into 92 hand over a turn later, and 92 with no bird sets 91](research/travel-states.md#8-worked-example-a-hungry-creature-eats--strongly-inferred) (ADR-0797),
 [a room walk's point passes over a Hatchery pillar corner](research/hatchery-pillar-steering.md#room-walks-adr-0798) (ADR-0798),
 [the portal's entrance rules: notice only a weighted type, decay per definition index, a Unique definition as a second candidate](research/portal-creature-action.md#the-portals-type-pick-built-2026-09-28-adr-0272) (ADR-0801),
+[a finished research goes to a random Library with a place-holder, and an unreached place-holder cheers the same tick](research/research-tree.md#4-delivering-it-a-book-on-a-library-shelf) (ADR-0803),
 [own-land regeneration every turn](research/creature-needs.md) (ADR-0759),
 [the fighting arms' candidate walk order](research/combat-target-selection.md) (ADR-0761),
 [the melee hold's end, the lifted creature's bit, own-land healing and the collapse booking](research/open-questions.md)
 (ADR-0762 to ADR-0765, Q768 to Q771); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
 [store-gold steering](research/store-gold-steering.md). The continuation is split into
-Q772 (past turn 1900: draws match through 2144 at hash 517; turn 2145 draw 1 differs, Q810), Q773 (five creatures with small position
+Q772 (past turn 1900: draws match through 2155 at hash 519; turn 2156 draw 1 differs, Q811), Q773 (five creatures with small position
 offsets and no draw affected) and Q774 (state words that differ in representation: held
 78, a collapsed creature's health countdown, Imp 440's states 10 and 22), besides
 Q764 to Q767 and Q733(d). Build only behavior supported

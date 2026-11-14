@@ -98,10 +98,14 @@ Progress for the interface is `points × 100 / cost`, capped at 100 (`0x00507060
 
 ## 4. Delivering it: a book on a Library shelf
 
-`0x004C6CF0` counts the keeper's rooms of type **6 (Library)** that accept the
-book and are not locked (`room+0x0A` zero). It then takes a **random one**
-(`0x005558D0` draws `random(count)`) and hands it the result (`0x004E0870`,
-this = the room):
+`0x004C6CF0` (called from `0x004C2FB0` with type 6 and the Spell Book definition's byte `+0x114`
+as units, read at `0x004C2F9E`) walks the keeper's room list (`table[player+0x36]`, next at `+8`)
+twice. Pass 1 counts each room of type **6 (Library)** for which `0x004E5480(units)` accepts the
+book (`0x004C6D19`) and whose place-holder list head `room+0x0A` is non-zero (`0x004C6D22`): a
+Library nobody holds a place in is not counted. It then takes a **random one** (`0x005558D0`
+draws `random(count)`, line `0x462` at `0x004C6D55`; no draw and 0 returned when the count is 0).
+Pass 2 re-tests each room the same way (`0x004C6D7C`, `0x004C6D85`) up to the drawn one
+(`0x004C6D8E`) and hands it the result (`0x004E0870`, this = the room):
 
 - **No storage position** (`0x004E1AC0`, §7) means refused. After a timer, and
   only if the keeper has no other room that could take it, message **0x19** is
@@ -116,6 +120,23 @@ this = the room):
   `+0x14A` = the research kind and `+0x14E` = the type id. The room then takes it
   (`0x004E12A0`): the book becomes the room owner's, and the keeper's table sets
   that item **AVAILABLE (3)**. A spell also sends message **0x16**.
+
+**The room test `0x004E5480` and the draw order.** Its Library arm runs the shelf search
+(`0x004E54B6`, one draw) and refuses when there is none; any room then needs
+`+0x6F + units <= +0x67` (signed, `0x004E54E3`), `+0x6F` being the units of the objects linked into
+the room (`Room_AddObject` `0x004E5FF0` adds the definition's byte `+0x114` to `+0x6B` and `+0x6F`,
+`0x004E6130` takes it off); type `0xA` tests crate space instead. Native's draws at Level 5
+seed 1 tick 2145, one Library: `Library.cpp:1068` (pass 1's shelf search), `PlayerRooms.cpp:1122`
+(the chooser's `random(count)`), `Library.cpp:1068` (pass 2), `Library.cpp:1068` (`0x004E0870`'s own
+search, `0x004E088C`), `ResearchState.cpp:421` ([60's cheer](room-return-states.md#2-60-and-61-the-research-cheer--strongly-inferred)).
+
+**Ours.** `ResearchTreeRules.ChooseLibrary` and `Takes` (shelf search first, then the place-holder
+test, `HeldPlace.In(library)`); the `research_no_shelf` event fires when no Library takes the
+result (ADR-0803). Not modelled: the capacity half of `0x004E5480`. Unverified: room order
+(`RoomIndex.Build` against the native list; it matters with two or more Libraries). Unread: whether
+books pass through `0x004E5FF0` (`0x004E12A0`), and the chooser's other caller `0x004C3CA4` in
+`0x004C3B50` (the Workshop pick, [state-category-hooks.md](state-category-hooks.md)). No unit test
+pins the shelf-search-before-place-holder order; only the Level 5 replay shows it.
 
 **The book on the shelf is the availability.** When a book leaves the keeper's
 possession (`0x004E1590`), the game looks for another book of the same kind and

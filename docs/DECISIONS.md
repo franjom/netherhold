@@ -19153,3 +19153,40 @@ recording with action 34 has been replayed. A creeping creature reads closer, no
 and by a sneak's watchers. Whether DK2 meant that is not known; built as read (ADR-0783). Tests: `PossessionCreepTests`
 (the command, the clear, the arithmetic, the watcher, the snapshot) and the codec round trip. Not covered by a test: the
 level row, since the fixture database carries none, and each scan site separately.
+
+## ADR-0803 - a finished research goes to a random Library that takes it and has a place-holder, and an unreached place-holder cheers the same tick
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** rooms, creatures | **Hash/save:** 519
+
+**Context.** Q810, Level 5 seed 1 controlled replay: native completes its first research at tick 2145 and draws, in order,
+`Library.cpp:1068` (the shelf search `0x004E1AC0`), `PlayerRooms.cpp:1122`, the shelf search twice, then the state-60 cheer's
+`ResearchState.cpp:421` ([research-tree.md](research/research-tree.md#4-delivering-it-a-book-on-a-library-shelf)). Ours drew
+`random(Library count)` first and ran the second researcher's state 60 a turn late. STRONGLY INFERRED (bodies read; reviewer
+CONFIRMED each address in Ghidra):
+
+1. The chooser `0x004C6CF0` (type 6, units = the Spell Book definition's byte `+0x114`) walks the keeper's room list twice. Each
+   Library must pass `0x004E5480(units)`, whose Library arm runs the shelf search (one draw), and then have a non-zero place-holder
+   head `room+0x0A`. It draws `random(count)` between the passes, and none when the count is 0. `0x004E0870` then searches again.
+2. The dispatcher `0x00476FC0` adds 1 to the state Age (`+0x1C`) after the Suspend return and before the handler call; SetState
+   zeroes it. A place-holder the sweep has not reached yet therefore runs 60 at Age 1 in its own update the same tick
+   ([room-return-states.md](research/room-return-states.md#2-60-and-61-the-research-cheer--strongly-inferred)).
+
+**Decision.** `ResearchTreeRules.ChooseLibrary` and `Takes` build 1: the shelf search first, then the `HeldPlace.In(library)` test;
+the `research_no_shelf` event fires when no Library takes the result. `ResearchStep.Cheer` builds 2: a kicked creature not in the
+per-tick set `SimulationContext.CreaturesUpdatedThisTick` (filled by `CreatureUpdateSystem`, cleared in `GameSimulation`, a cache in
+`StateModel`) gets `StateEnteredTick` backdated by 1. Records: `0x004C6CF0`, `0x004E5480`, `0x004E0870`, `0x00476FC0`,
+`0x00476D30`, `0x004E5FF0`, `0x004E6130`.
+
+**Consequences.** Hash and save 519; earlier saves are refused (no field added). Pin `0x44364F0B11C49031`. All five native draws of
+2145 reproduce. With the native 1400 research points restored (165, read from capture frame 1401; the old replay restored 0),
+controlled590 matches 12141 draws through tick 2155 (11959 through 2144 at 517); the next boundary is 2156, Q811. Level 1's journal
+is re-recorded; the Reaper constants are unchanged. Tests, each mutation-checked to fail without its rule, both `_BinaryInferred`:
+`ResearchTreeTests.ALibraryWithNoPlaceHolderTakesNothing_BinaryInferred` and
+`ThePlaceHolderNotYetUpdatedRuns60InTheTickTheItemIsShelved_BinaryInferred`; the Researcher fixtures now set `HeldPlace`, as the
+enter hook does. The suite passes (Simulation 5439, Behavior 636 with 5 skipped).
+
+Not built or not pinned: the capacity half of `0x004E5480` (a documented deviation); room order from `RoomIndex.Build`, unverified
+against the native list and visible only with two or more Libraries; whether books pass through `0x004E5FF0` (`0x004E12A0`), and the
+chooser's other caller `0x004C3CA4`, unread. No unit test pins the draw order; only the replay shows it. HYPOTHESIS (open): the
+kicker's own dispatch re-reads its state after the hook (`0x0047727F`) and runs 60 at Age 0, which ours skips; with an action running
+that call returns 1 and draws nothing, matching 2145, otherwise it would differ. A capture of a researcher kicked in 53 or 54 with no
+action would settle it.

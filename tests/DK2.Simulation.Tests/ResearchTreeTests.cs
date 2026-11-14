@@ -57,14 +57,16 @@ public sealed class ResearchTreeTests
     }
 
     /// <summary>The fixture's Vampire at work in the Library: one research point a tick.</summary>
-    private static CreatureState Researcher(GameDatabase db, WorldState world)
+    private static CreatureState Researcher(GameDatabase db, WorldState world) => Researcher(db, world, new TilePos(1, 1));
+
+    private static CreatureState Researcher(GameDatabase db, WorldState world, TilePos at)
     {
-        var at = new TilePos(1, 1);
         CreatureState it = world.SpawnCreature(db, Dk2TerrainFixture.VampireCreatureId, Keeper, at);
         it.CurrentJob = JobType.Research;
         StatePlacement.As(it, CreatureActivity.AtWork);
         StatePlacement.Place(it, JobRules.StateFor(it.CurrentJob)!.Value);
         it.JobTileIndex = (at.Y * world.Width) + at.X;
+        it.HeldPlace = new RoomPlace(it.JobTileIndex, RoomCapacityRules.Units);   // the enter hook's claim
         return it;
     }
 
@@ -208,6 +210,49 @@ public sealed class ResearchTreeTests
 
         Assert.Equal(shelfFree, seen.Contains(ResearchStep.CelebratingState));
         Assert.Equal(shelfFree, events.Events.Any(e => e.Kind == "research_completed"));
+    }
+
+    /// <summary>0x004C6CF0 counts only a Library whose place-holder list (room+0x0A) is not
+    /// empty: with nobody holding a place in it, nothing is delivered and the points bank.</summary>
+    [Fact]
+    public void ALibraryWithNoPlaceHolderTakesNothing_BinaryInferred()
+    {
+        GameDatabase db = Db(cost: 40);
+        WorldState world = World(db);
+        CreatureState it = Researcher(db, world);
+        it.HeldPlace = RoomPlace.None;
+        (GameSimulation sim, ListEventSink events) = Simulation(db, world);
+
+        for (int i = 0; i < Second * 12; i++)
+        {
+            sim.Tick();
+            it.HeldPlace = RoomPlace.None;   // keep the place empty; the job's own claim would refill it
+        }
+
+        Assert.Equal(Researchable, world.Availability(Keeper, SpellKind, CreateImp));
+        Assert.True(world.Player(Keeper).ResearchPoints >= 40);
+        Assert.Contains(events.Events, e => e.Kind == "research_no_shelf");
+    }
+
+    /// <summary>DK2's dispatcher counts a state's Age up before the handler (0x00477029): the
+    /// place-holder the sweep has yet to reach when the item is shelved runs 60 in that same tick.
+    /// The fixture's Vampire has no art in slot 8, so 60's handler returns 0 and drops it to idle:
+    /// having run it means having left 60. What the kicker's own Age-0 call does is not pinned.</summary>
+    [Fact]
+    public void ThePlaceHolderNotYetUpdatedRuns60InTheTickTheItemIsShelved_BinaryInferred()
+    {
+        // Cost 39 with two researchers, newest updated first: the newer one's credit reaches it.
+        GameDatabase db = Db(cost: 39);
+        WorldState world = World(db);
+        CreatureState older = Researcher(db, world, new TilePos(1, 1));
+        CreatureState newer = Researcher(db, world, new TilePos(3, 3));
+        (GameSimulation sim, ListEventSink events) = Simulation(db, world);
+
+        for (int i = 0; i < Second * 12 && !events.Events.Any(e => e.Kind == "research_completed"); i++) sim.Tick();
+        Assert.Contains(events.Events, e => e.Kind == "research_completed" && e.Detail.Contains("book=", StringComparison.Ordinal));
+
+        Assert.NotEqual(ResearchStep.CelebratingState, older.Dk2StateId);
+        Assert.Equal(ResearchStep.CelebratingState, newer.Dk2StateId);   // ours: the kicker is not run at Age 0
     }
 
     // ---- books ------------------------------------------------------------

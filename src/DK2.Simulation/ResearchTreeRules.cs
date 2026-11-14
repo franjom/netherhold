@@ -15,8 +15,8 @@ namespace DK2.Simulation;
 /// has a bonus shot. A finished item becomes a book on a Library shelf, and <b>the book is
 /// the availability</b>. A finished upgrade makes no book and sets the spell's
 /// <see cref="AvailabilityState.Upgraded"/>, which switches its casts to the bonus shot.</para>
-/// <para>Deviations: the Library's two accept tests (<c>0x004E5480</c> and the lock at
-/// <c>room+0x0A</c>) are not modelled, so every owned Library is a candidate; the
+/// <para>Deviations: the capacity half of the Library's accept test (<c>0x004E5480</c>) is
+/// not modelled (its shelf search and the place-holder gate are); the
 /// "no shelf" message 0x19 and its timer are not modelled; the book's room tag is stood in for
 /// by its owner.</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/research-tree.md")]
@@ -129,21 +129,13 @@ public static class ResearchTreeRules
         entry.Kind is < KindRoom or > KindSpell
         || (entry.Kind == KindSpell && IsUpgradeTarget(context.World, context.Database, playerId, entry));
 
-    /// <summary><c>0x004C6CF0</c> then <c>0x004E0870</c>: a random one of the keeper's Libraries
-    /// takes the result if it has a shelf. False when there is no Library or no shelf.</summary>
+    /// <summary><c>0x004C6CF0</c> then <c>0x004E0870</c>: a random one of the keeper's taking
+    /// Libraries (<see cref="ChooseLibrary"/>) takes the result if it has a shelf. False when
+    /// none takes it or it has no shelf.</summary>
     private static bool Deliver(SimulationContext context, PlayerId playerId, ResearchEntry entry)
     {
-        WorldState world = context.World;
-        GameDatabase database = context.Database;
-
-        var libraries = new List<RoomInstance>();
-        foreach (RoomInstance room in RoomIndex.Build(world, database))
-            if (room.OwnerPlayerId == playerId && room.Definition.TypeId == RoomTypeId.Library)
-                libraries.Add(room);
-        if (libraries.Count == 0) return false;
-
-        RoomInstance library = libraries[context.Rng.NextInt(libraries.Count)];
-        if (FindShelf(context, library) < 0)
+        RoomInstance? library = ChooseLibrary(context, playerId);
+        if (library is null || FindShelf(context, library) < 0)
         {
             context.Emit(SystemName, "research_no_shelf",
                 $"player={playerId} kind={entry.Kind} type={entry.TypeId}");
@@ -155,6 +147,47 @@ public static class ResearchTreeRules
         if (AvailabilityKindOf(entry.Kind) == AvailabilityKind.None) return false;
         Grant(context, library, entry);
         return true;
+    }
+
+    /// <summary><c>0x004C6CF0</c> (line <c>0x462</c>): counts the keeper's Libraries that take a
+    /// book (<c>0x004E5480</c>, whose Library arm searches for a shelf, <c>0x004E1AC0</c>, a draw
+    /// each) and have a place-holder (<c>room+0x0A</c>, the list's head, non-zero), draws
+    /// <c>random(count)</c>, then walks the rooms again, testing each the same way, until the
+    /// drawn one. No draw with none. Rooms are taken in the keeper's room order.</summary>
+    private static RoomInstance? ChooseLibrary(SimulationContext context, PlayerId playerId)
+    {
+        WorldState world = context.World;
+        var libraries = new List<RoomInstance>();
+        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+            if (room.OwnerPlayerId == playerId && room.Definition.TypeId == RoomTypeId.Library)
+                libraries.Add(room);
+
+        int count = 0;
+        foreach (RoomInstance library in libraries)
+            if (Takes(context, library)) count++;
+        if (count == 0) return null;
+
+        int pick = context.Rng.NextInt(count);
+        foreach (RoomInstance library in libraries)
+        {
+            if (!Takes(context, library)) continue;
+            if (pick == 0) return library;
+            pick--;
+        }
+        return null;
+    }
+
+    /// <summary>One room's test in <see cref="ChooseLibrary"/>: the shelf search first, then the
+    /// place-holder head. 0x004E5480's capacity half is not modelled: room <c>+0x6F</c>, the units
+    /// of the objects linked into the room (<c>0x004E5FF0</c> adds, <c>0x004E6130</c> takes off),
+    /// plus the book's units must stay within <c>+0x67</c> (signed, <c>0x004E54E3</c>).</summary>
+    private static bool Takes(SimulationContext context, RoomInstance library)
+    {
+        if (FindShelf(context, library) < 0) return false;
+        EntityList<CreatureState> creatures = context.World.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+            if (creatures[i].HeldPlace.In(library)) return true;
+        return false;
     }
 
     /// <summary>The grant functions (<c>0x004E0F00</c> for spells, <c>0x004E0BE0</c> doors,
