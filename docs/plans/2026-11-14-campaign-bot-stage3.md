@@ -248,7 +248,7 @@ Library; Levels 4, 6a, 6b, 10: 1; the others 0, a 3x3).
       ([ladder](../research/campaign-bot-ladder.md) section 8). Open: Q813 (Specials in the
       Library), Q814 (one site at a time), Q815 (the site scan's cost), Q816.
 - [x] Reviewer (no blocker; it confirmed the knowledge stays within the observation boundary),
-      documenter. Commit: pending.
+      documenter. Commit: 5118067a.
 
 ## Task 3b: the playbook format
 
