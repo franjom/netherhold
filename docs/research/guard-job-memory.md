@@ -70,4 +70,4 @@ with `tools/state-copy/generate.py`, and existing API signatures are unchanged.
 These tests establish the bounded implementation; Q710's aggregate exposure and
 matched-input outcome remain open. Native capture routes and other restore
 inputs are still unavailable or incomplete.
-The [post-build Q710 control](q710-fighter-decisions.md#post-build-paired-control-at-bb2a395b) records local decision effects and remaining comparison limits.
+The [Q710 fighter cohort](q710-fighter-decisions.md#fighter-cohort-at-7904875f) records the post-build history/memory comparison and remaining input limits.

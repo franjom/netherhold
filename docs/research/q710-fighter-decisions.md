@@ -239,8 +239,8 @@ from 5000..5450 are untorn, with stable pointer/type/owner and remembered job 6,
 room tag 1116. Native and modern start in state 6/resume 98, but route buffers
 remain unavailable. Room mapping, other actors' reservations, later births and
 other restore/history gaps preclude matched-input or global outcome claims.
-The next bounded comparison must restore/assert broader fighter inputs while
-retaining those limits, rather than repeat this completed local control.
+The broader comparison is completed in the [fighter cohort](#fighter-cohort-at-7904875f);
+its hybrid inputs still limit the verdict.
 
 Evidence: `F:/DK2Evidence/studies/q710-built-comparison--2026-11-14--002`;
 `analysis.json`, `decision-path-comparison.json` and `native-memory-observations.json`.
@@ -249,3 +249,66 @@ Evidence: `F:/DK2Evidence/studies/q710-built-comparison--2026-11-14--002`;
 `manifest-assessment.json` identifies the two retained invalid self-entries.
 Trial 001 remains an aborted setup because its old bed-placement precondition
 failed: this baseline already has a bed.
+
+## Fighter cohort at 7904875f
+
+The accepted hash-521 study uses source `7904875f`, eight native turn-5000
+states and modern generator 101. Each state has ordinary, history and
+history-memory arms, running through managed turn 6000. All 26 replays,
+including observation controls, complete with exit 0. Plain/off/on controls
+match all five ordinary telemetry files byte-for-byte. Only two scratch Tools
+files change; production Simulation source is unchanged.
+
+The initial cohort is 58 living owner-3 actors of types 6/7/10. Captured memory
+is Guard 6 in 21 actors, naming valid rooms 1116/1117/1120; the other 37 have
+None. All 49 nonnull native bed links are reciprocally checked. The history
+arm copies literal needs stamps/debt, current/dropped job and chooser history;
+sleep attempt plus four remains an adapter. History-memory adds captured
+None/Guard and mapped room references. All 24 arm boundary assertions pass,
+including unchanged RNG; history versus history-memory differs only in four
+recorded memory components. These are selected-field assertions, not complete
+native-state restoration. The added field restore excludes corpse/dying actors.
+
+Stored-target exposure counts live owner-3 Goblin/Troll rows naming a living
+owner-1 Guard (type 25), requiring positive signed health and state other than
+216/217. Modern rows come from the actual live world each label; native rows
+come from raw captures. The target window is 5001..6000; fighter-state counts
+use 5300..5450. This measures stored targets, not attacks. These filters/windows
+differ from historical carried-CSV metrics: no cross-version comparison follows.
+Observation labels are not aligned execution timestamps.
+
+| Mean observations with a Guard target | Native | Ordinary | History | History-memory |
+|---|---:|---:|---:|---:|
+| All eligible actors | 273.75 | 242.375 | 250.625 | 195.25 |
+| Initially paired cohort | 266 | 239.5 | 232.25 | 193.625 |
+
+| Native capture seed | Native | Ordinary | History | History-memory |
+|---|---:|---:|---:|---:|
+| 1 | 470 | 305 | 314 | 181 |
+| 2 | 342 | 276 | 438 | 438 |
+| 3 | 441 | 499 | 317 | 385 |
+| 4 | 274 | 235 | 213 | 135 |
+| 5 | 73 | 56 | 68 | 81 |
+| 6 | 196 | 81 | 147 | 147 |
+| 7 | 117 | 96 | 82 | 82 |
+| 8 | 277 | 391 | 426 | 113 |
+
+Adding memory lowers exposure in three cases, raises it in two and leaves
+three unchanged. One modern generator and eight capture histories establish
+descriptive differences, not a population estimate, regression/improvement
+verdict or causal AI-rule explanation.
+
+At the boundary, 22/58 actors mismatch bed presence, 53/58 mismatch bed tile
+or presence, and 50/58 mismatch state/resume: 46 state ids differ and four
+retain the same walking state with a different resume. No actor matches both
+bed and state/resume, or even bed plus active state alone. The interventions
+preserve the existing bed/state/route restoration while copying selected history.
+The next bounded controls need compatible bed ownership/positions and
+state/resume at restore, with unavailable native path buffers explicit.
+Outside-cohort dying reservations, later births and other Q719/history gaps
+remain limits. These mismatches block a matched-input verdict; they do not
+prove the global cause. No production restorer or AI rule is changed.
+
+Evidence: `F:/DK2Evidence/studies/q710-fighter-cohort--2026-11-14--002`;
+`analysis.json`, `boundary-assessment.json` and `scope.json`.
+`manifest-reviewed-input.json` verifies 332 files. No native game was launched.
