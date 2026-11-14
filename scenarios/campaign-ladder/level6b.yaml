@@ -1,0 +1,13 @@
+id: campaign-ladder-level6b
+question: >
+  Campaign bot ladder (stage 3 plan, Task 0b): can the campaign player win shipped level6b from its
+  unmodified start? Seeds come from --seed/--seeds (the file's seed is 1). The file grants nothing;
+  a diagnosis run claims nothing.
+map: campaign:level6b
+seed: 1
+random: dk2
+fog_of_war: true
+viewing_player: 3
+duration_ticks: 57600
+setup:
+  placed_things: true
