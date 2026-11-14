@@ -89,7 +89,8 @@ from its run folder.
 
 Level 1 (task 7): `watch scenarios/campaign-player --campaign-player 3` plays shipped Level 1 on
 seeds 1-3 from its unmodified start; `CampaignPlayerLevel1Tests` (installed data) checks the start,
-the native win, the controller-free replay and the Reaper's gem pickup.
+the native win, the controller-free replay and the Reaper's gem pickup. `watch` reads the folder
+recursively, so it now also plays `level2/` (Level 2, seeds 1-3); give `.../level2` alone for those.
 
 ### Build receipt and acceptance
 

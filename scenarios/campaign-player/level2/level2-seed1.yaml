@@ -1,0 +1,13 @@
+id: campaign-player-level2-seed1
+question: >
+  Shipped Level 2 from its unmodified start, DK2 random seed 1, played by the Level 1 campaign player's
+  default strategy: where does it win, stall or lose (campaign bot stage 3 plan, task 4 diagnosis)?
+  The file grants nothing. Every outcome is disclosed; none is an acceptance claim.
+map: campaign:level2
+seed: 1
+random: dk2
+fog_of_war: true
+viewing_player: 3
+duration_ticks: 28800
+setup:
+  placed_things: true

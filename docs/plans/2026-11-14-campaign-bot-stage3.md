@@ -146,6 +146,15 @@ and their ranges.
 
 ## Task 4: what Level 2 needs
 
+**Diagnosis run (2026-11-14, master at hash 513, no receipt, not an acceptance claim).** The
+unchanged Level 1 controller, `watch scenarios/campaign-player/level2 --campaign-player 3`, won
+all three seeds: seed 1 at tick 3963, seed 2 at 3708, seed 3 at 5421 (the owner's native win:
+3263). Each journal replayed every hash without the controller. It built only a Lair and a
+Hatchery (no Treasury square was found); in each seed the hero party came into the dungeon and
+its Lord of the Land died there. Level 2 therefore needs no new routine to be won; Task 5 reduces
+to a receipted acceptance, and the first level the default strategy cannot win becomes the real
+driver for Tasks 1-4. Scenarios: `scenarios/campaign-player/level2/`.
+
 - [ ] Write `scenarios/campaign-player/level2.yaml` like `level1.yaml` (unmodified start, fog,
       viewing player 3, placed things). Run unattended with the Level 1 strategy, seeds 1-3.
       Disclose the outcome and the stall or loss reason.
