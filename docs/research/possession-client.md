@@ -9,8 +9,8 @@ simulation side is [keeper-spell-possession.md](keeper-spell-possession.md) and
 requests are [camera-possession-guards.md](camera-possession-guards.md). Each function's
 record in `functions/` holds its read's scope. Everything here is **STRONGLY INFERRED**
 (read, not seen running) unless marked; the reviewer re-read it on 2026-11-14. Callees
-named but not read are taken by name: the world slots `+0x1CC`, `+0x1D0`, `+0x1D4`,
-`+0x204`, `+0x20C` and `+0x240`, and the key test `0x004097E0`. Built so far: the
+named but not read are taken by name: the world slots `+0x1CC`, `+0x1D0` and `+0x1D4`
+and the key test `0x004097E0`. Built so far: the
 creature fields of §5a and creep (ADR-0802); the view itself is not.
 
 OpenKeeper (`view/Possession*.java`, `Settings.java`, pull requests #782 and #1193) was
@@ -28,11 +28,12 @@ posts the camera's place as the creature's pose.
   flags `+0xD92`, mode `+0xDA8`. The point every possession routine uses is focus plus
   offset.
 - **The pose packet.** `0x004039A0`, at `0x00403BAE`–`0x00403C65`: in camera mode 2,
-  with a live possessed creature, when the counter `[[interface+4]+4]` differs from
+  with a live possessed creature, when the game turn `[[interface+4]+4]` differs from
   the interface's `+0x10B4` (which it then sets), it posts game action 25 with
   X = focus X + offset X, Y = focus Y + offset Y, and the word
-  `(yaw << 16) | def+0x65C`. That the counter is the game turn is HYPOTHESIS (action 25
-  is recorded once a turn in captures, ADR-0728); the height sent is the definition's eye
+  `(yaw << 16) | def+0x65C`. `interface+4` is the game container, whose `+4` is the turn
+  ([0x00517490](functions/00517490.md)), so this is one pose a turn; the height sent is
+  the definition's eye
   height, never the camera's own Z; the heading is the camera's yaw. The handler's
   treatment of that word is `GameAction_PossessionMovement` (built, ADR-0728).
 - **The view listens to action 25 too** (`0x00442870`): only for a packet whose word is
@@ -55,7 +56,9 @@ when the creature's `+0x447` is non-zero. Binding ids are DK2's own (§5).
 2. **Step length.** `0x0048ABB0(mode)` gives the speed (§2a): mode 0 by default, mode 1
    while Run (binding 5) is held, mode 2 while the creature's Creeping bit (`+0x3E6` bit
    12) is set, which wins. The forward unit is speed × `[interface+4]+8` × frame ms ÷ 1000 (the
-   `0x10624DD3` multiply, high dword, then >> 6), truncated.
+   `0x10624DD3` multiply, high dword, then >> 6), truncated. The container's `+8` is the
+   turns a second, 4 ([0x00526020](functions/00526020.md)), so the per-turn speed
+   becomes a distance for the frame.
 3. **Creep** (binding 4): held with the bit clear posts game action `0x22` with 1;
    released with the bit set posts it with 0. The handler `0x00517310` does one thing:
    when the sender's possessed-thing word is non-zero it sets that thing's `+0x3E6` bit
@@ -85,8 +88,9 @@ when the creature's `+0x447` is non-zero. Binding ids are DK2's own (§5).
     |dx| ≥ |dy|, else Y (`0x0040EFB3`–`0x0040EFF5`).
 11. The width is taken off again and `0x004D1BC0` resolves the point against things
     (§2b), with the creature's `+0x1A8/+0x1AC` temporarily set to the start × 16.
-12. The move is dropped if world slot `+0x20C` at the point or `+0x240` at its tile
-    answers non-zero.
+12. The move is dropped if the point's navigation byte is solid (world slot `+0x20C`,
+    `0x005090C0`) or its tile holds a built, closed door (slot `+0x240` → `0x00450F70`:
+    a thing of class 4 whose construction word `+0x109` and open word `+0x10D` are 0).
 13. **Height.** Ground: floor height (world `+0x204`) + `def+0x65C` + bob, where bob is
     sin(`def+0x86B` × counter, 32 steps a cycle) × `def+0x867`, shifted right 7 then 12,
     halved when backing. Flier: when the camera's Z is below floor + eye height the
@@ -137,7 +141,11 @@ sweep, run once for the step:
    thing's centre plus (its radius + the body radius) along the normalised vector from
    that centre to the wanted point × 16, then ÷ 16 (`0x004D1D8D`–`0x004D1D9C`, read by
    the reviewer). A kept creature replaces a kept obstacle: both share one slot.
-   `0x004D2230` is UNREAD.
+5. `0x004D2230(point, direction, centre, radius)` works in doubles, every input times
+   2⁻¹⁶: with Δ = point − centre, a = D·D, b = 2 Δ·D, c = Δ·Δ − radius², it answers
+   0x7FFFFFFF when b² − 4ac ≤ 0, else the smaller of the quadratic's two roots, each
+   times 65536 and truncated (computed as q/a and c/q with q = (√disc − b)/2; which
+   divisor is which was not separated).
 
 ## 3. Angles and roll
 
@@ -251,6 +259,9 @@ entered from mode 2 by the leave handler `0x00442820` (its record is HYPOTHESIS)
   event `0x00448440` handles.
 - `Possession_SelectAbility`'s level gate in full, `0x005075A0`, `0x004D2230`, and the
   handlers of actions `0x1C`, `0x1E`, `0x1F` and `0x89`.
+- The map and cell accessors the step calls, taken by name: world slots `+0x1CC` and
+  `+0x1D0` (`0x00508FA0`, `0x00508FB0`, width and height) and `+0x1D4` (`0x00508FE0`,
+  the cell at a position).
 - The possession HUD (`0x00420D10`), the colour ramps (Q745) and the cast effect (Q749).
 - The units of the mouse delta `Input_DrainMouseDelta` returns, and what Mouse
   Sensitivity does to it.
