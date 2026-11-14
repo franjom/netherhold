@@ -65,6 +65,17 @@ picks one by its rank along the chain, and its centre is the point; with none co
 stays zero. Then `random(0x800)` (line `0x599`) moves it `(cos << 7) >> 16`, `(sin << 7) >> 16`,
 and it returns 0.
 
+**The shared scratch (STRONGLY INFERRED, ADR-0796, Q804).** The state object's bytes `+0xA9`..`+0xB0`
+are one block that each state lays out its own way, and the finder reads every holder's `+0x2F7`/`+0x2FB`
+whatever its state. State 92 (`0x00463500`), after a taken route, stores dword `+0xAB` = 0 (`0x004636C5`) and
+word `+0xAF` = the chicken's thing word (`0x004636D4`); state 93 (`0x00463760`) stores word `+0xAF` = 0
+(`0x00463831`), then dword `+0xAB` = (hunger still owed) (`0x0046395A`-`0x00463968`). Those bytes are the
+target point's, so a seeker that has eaten no longer holds its old point: native Warlock 441 took Book Case
+1624 at turn 2094, the Book Case it had read before its meal, because its old point no longer
+matched (captured `+0x2F7`/`+0x2FB` agree). Not
+built: `Creature_IdleInner` (`0x004776C0`) stores dword `+0xA7`, which would clear the point's low X
+word (HYPOTHESIS on impact); sulking 85, guard 98, Training 108, casino and torture scratch are unread.
+
 **The furniture.** The Library lists a Book Case in slot 0 (floor) and a Library Book in slot 3
 (wall; `LibraryOnRealDataTests`). The wall pass moves a book `0x700` toward its wall (arm `0x004EECEB`,
 sides at `0x004EF1B0`), as the Casino's alcove (`casino.md` §3); 53 stands at its tile's centre a
@@ -130,6 +141,9 @@ held room (`0x004E4D90(pt, 1, 0)`), resuming 53.
 - `0x004C6AE0`'s capacity test counts the creature's own place, as ours does. The
   [Library shelf gate](library-capacity-draws.md#built-at436-adr-0704) is built at 436;
   execution checks shelf space before numeric fullness on the shared world stream.
+- `CreatureState.OverlayStateScratch` patches the bytes 92 and 93 store over `StateTargetX`/`StateTargetY`
+  (ADR-0796); ours stores the chicken's id where DK2 stores its thing-table slot (both off the map unless the
+  id is 5 or less), and the `Creature_IdleInner` store above is not built.
 - Ties in the finder (equal squared distance) go to the first object in `world.Objects` order; DK2
   walks the room's object list, whose order ours does not keep. Ours takes any object of the two
   types on the room's tiles.

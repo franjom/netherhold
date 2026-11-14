@@ -316,6 +316,32 @@ public class EatingTests
         Assert.Equal(new FpPosition3(new Fp32(other.PosX), new Fp32(other.PosY), new Fp32(other.PosZ)), death.Position);
     }
 
+    // The state scratch is one block: 92's +0xAB/+0xAF and 93's stores land on the bytes of a Library
+    // target point (+0xA9/+0xAD) left from before the meal. Level 5 seed 1, Warlock 441: (0x5800, 0x1D800)
+    // becomes (0x5800, bird << 16) at 92, then (0x5800 | owed << 16, 0) at 93, so its old bookcase is free (Q804).
+    [Fact]
+    public void TheMealsStoresOverwriteALibraryTargetPointLeftInTheSharedScratch()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Floor(world, 1, 1, 10, 10);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+        ObjectState bird = Chicken(db, world, 7, 6);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Health = 500;
+        MakeHungry(goblin);
+        (goblin.StateTargetX, goblin.StateTargetY) = (0x5800, 0x1D800);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        for (int i = 0; i < Second * 40 && !sink.Events.Any(e => e.Kind == "chicken_chosen"); i++) sim.Tick();
+        Assert.Equal((0x5800, (bird.Id & 0xFFFF) << 16), (goblin.StateTargetX, goblin.StateTargetY));
+
+        for (int i = 0; i < Second * 40 && !sink.Events.Any(e => e.Kind == "chicken_eaten"); i++) sim.Tick();
+        Assert.Contains(sink.Events, e => e.Kind == "chicken_eaten");
+        Assert.Equal((0x5800 | ((goblin.FoodOwedAfterMeal ? 1 : 0) << 16), 0), (goblin.StateTargetX, goblin.StateTargetY));
+    }
+
     [Fact]
     public void AHungryGoblinWalksToTheHatcheryAndEatsTheChicken()
     {
@@ -437,6 +463,7 @@ public class EatingTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 6));
         MakeHungry(goblin);
+        (goblin.StateTargetX, goblin.StateTargetY) = (0x5800, 0x1D800);   // stores only follow a taken route
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick();                                 // already inside: 91 sets 1, then 92
@@ -446,6 +473,7 @@ public class EatingTests
         Assert.Equal(EatingRules.NoChicken, goblin.TargetObjectId);
         Assert.False(bird.ChickenScared);
         Assert.NotEqual((byte)ChickenProcess.Reaction, bird.ProcessState);
+        Assert.Equal((0x5800, 0x1D800), (goblin.StateTargetX, goblin.StateTargetY));
     }
 
     [Fact]

@@ -286,7 +286,8 @@ restored from a save.
    and its `+0x58/+0x5C` to 0. A failed route returns 0 (`0x004636B1`), which the
    dispatcher drops to state 1 (`0x004772B0`), the bird untouched. With no chicken it
    calls `SetState(91)`, and the hatchery is looked up again next tick. The prepared
-   bird runs process 8 about 33 turns (`0x004A24A0`, eating.md §6).
+   bird runs process 8 about 33 turns (`0x004A24A0`, eating.md §6). The `+0xAB`/`+0xAF` stores
+   here and in state 93 overlay a held Library target point ([library-states.md](library-states.md) §4).
 6. **State 6** (`0x00470C80`) is a plain walk: it reads only its own gates and the
    path progress (`0x004D5B20` = `0x10000`), never the bird. At the path's end: stop,
    `SetState(93)`, `+0xDF = 1`. 93's handler runs the next turn (ADR-0786; ours' fetching

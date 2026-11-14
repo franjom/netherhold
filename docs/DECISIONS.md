@@ -18930,3 +18930,38 @@ splits: 441 at 2095, 433 at 2110, 439 at 2111, 437 at 2128, 438 at 2149; guard 4
 may reach the lever's art end a tick early (PLAUSIBLE; setter `0x004D6890` not traced). Test:
 `ObjectReactionTests.AStruckObjectDrawsInThingOrderAmongTheBirds` (fails 3 of 3 without the fix); the reaction, sound and training
 test hosts now use `ObjectMovementSystem`. Full suite passes.
+
+## ADR-0796 - the eating states' stores overlay a held Library target point
+**Date:** 2026-11-14 | **Status:** accepted | **Systems:** simulation-core, creatures, rooms | **Hash/save:** 513
+
+**Context.** Q804, Level 5 seed 1, controlled replay at hash 511: boundary at turn 2107 draw 1, native `ObjectState.cpp:2782`
+against ours' `ResearchState.cpp:215` (creature 441, state 54). At turn 2094 native Warlock 441 in state 53 (the Library
+chooser `0x00475A20`) picked Book Case 1624 at (5,29), the nearest (squared distance 17.2M against 20.2M for the book at (6,28));
+ours picked the book at (6,28). The finder `0x004E1ED0` skips an object whose position equals a place-holder's target point
+(state `+0xA9`/`+0xAD`, creature `+0x2F7`/`+0x2FB`), and ours kept 441's old point from its earlier read there. Natively the
+state object's scratch is one block that each state lays out its own way. State 92 (`0x00463500`), after a taken route
+(`0x004636AF`), stores dword `+0xAB` = 0 (`0x004636C5`) and word `+0xAF` = the chicken's thing word `+0x4`
+(`0x004636CB`, `0x004636D4`). State 93 (`0x00463760`) stores word `+0xAF` = 0 (`0x00463831`, after the reach test), then dword
+`+0xAB` = (`0x00477AD0(1) != 0`) (`0x0046395A`-`0x00463968`). These alias the target point's bytes. The capture of 441's
+`+0x2F7`/`+0x2FB` agrees byte for byte: (22528,120832) from its read, y = `0x0523<<16` at 1977, (`0x15800`, 0) at 1985,
+(22528, `0x04FF<<16`) at 1998, (22528, 0) at 2003, unchanged to 2093. CONFIRMED (reviewer, binary re-derived).
+
+**Decision.** `CreatureState.OverlayStateScratch(offset, size, value)` patches the bytes a store covers within
+`+0xA9`..`+0xB0` of `StateTargetX` (bytes A9-AC) and `StateTargetY` (AD-B0), little endian. `CreatureEatSystem` calls it at
+92's taken route (dword `+0xAB` 0, word `+0xAF` the chicken's id) and at 93's bite (word `+0xAF` 0, then dword `+0xAB` 1 or 0
+for food still owed). A failed route stores nothing, as natively; the dropped-bird eat (`0x00463A10`) stores nothing in the
+range. Evidence: [library-states.md](research/library-states.md#4-the-finder-0x004e1ed0--strongly-inferred-the-variant-seed-strongly-inferred).
+
+**Consequences.** Hash and save 513; earlier saves are refused (no field added). Pin `0x36D3C7753FA1EEB2`. Level 5 seed 1
+(controlled564): 11627 draws match through 2119 plus 6 draws of 2120; the next boundary is turn 2120 draw 7, native
+`ObjectState.cpp:2851` (a roam) against ours' `ObjectState.cpp:2708` (a reaction, bird 141), Q805. First creature position
+splits: 439 at 2111, 437 at 2128, 438 at 2149, 433 and 441 at 2150 (441 was 2095); guard 432 none. Level 1's journal is
+re-recorded: win 2374 and gem 2483 unchanged. STRONGLY INFERRED, harmless: ours stores the chicken's id where native stores its
+thing-table slot (`+0x4`); both put y = id<<16 off the map unless id <= 5, where only the bare-tile branch could notice.
+Residual, not built: `Creature_IdleInner` (`0x004776C0`) stores dword `+0xA7` (`0x00477720`, `0x004777A6`: 0; `0x0047782F`: turn
++ 0x84), which would zero the target's low X word for a held-Library creature after a meal (HYPOTHESIS on impact; 441's state-1
+visit at 2015 left x unchanged). Also unread: sulking 85, guard 98 (`+0xAB`, `0x00463094`), Training 108, casino `+0xAC`,
+torture `+0xAB`, DeathFall. Possible original quirk, not a filed defect: the finder reads every holder's point whatever its
+state, so an unrelated state's scratch use silently frees a held point. Tests:
+`EatingTests.TheMealsStoresOverwriteALibraryTargetPointLeftInTheSharedScratch` and `LibraryStateTests.AfterAMealTheSeekersOldTargetIsFreeAgain`
+(both fail without the overlay), and a negative control in `EatingTests` (a refused route leaves the target). Full suite passes.

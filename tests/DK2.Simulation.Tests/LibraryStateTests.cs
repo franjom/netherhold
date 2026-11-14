@@ -148,6 +148,33 @@ public class LibraryStateTests
         Assert.NotEqual(first!.Id, second?.Id);
     }
 
+    // State 92's stores over the shared scratch (0x004636C5, 0x004636D4) leave the old point off the
+    // map, so the finder (0x004E1ED0) no longer counts it: Level 5's Warlock 441 re-picks its Book Case (Q804).
+    [Fact]
+    public void AfterAMealTheSeekersOldTargetIsFreeAgain()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 5);
+        new GameSimulation(db, world, seed: 1, [new AutoFurnitureSystem()]).Tick();
+        CreatureState it = Researcher(db, world, new TilePos(3, 3));
+        ObjectState? first = null, held = null, again = null;
+        var sim = new GameSimulation(db, world, seed: 1, [new Probe(context =>
+        {
+            ResearchStep.Find(context, Library(db, world), it, out first, out _);
+            (it.StateTargetX, it.StateTargetY) = (CreatureState.CentreOf(first!.TileIndex % world.Width),
+                CreatureState.CentreOf(first.TileIndex / world.Width));
+            ResearchStep.Find(context, Library(db, world), it, out held, out _);
+            it.OverlayStateScratch(0xAB, 4, 0);
+            it.OverlayStateScratch(0xAF, 2, 1441);
+            ResearchStep.Find(context, Library(db, world), it, out again, out _);
+        })]);
+
+        sim.Tick();
+
+        Assert.NotEqual(first!.Id, held?.Id);
+        Assert.Equal(first.Id, again?.Id);
+    }
+
     [Fact]
     public void AnIntruderDisturbsAWorriedLongReaderInto59AndChargesACalmOneAngerNoWork()
     {

@@ -1193,6 +1193,26 @@ public sealed partial class CreatureState
     public int StateTargetX;
     public int StateTargetY;
 
+    /// <summary>The state object's scratch is one block that each state lays out its own way, so a store
+    /// another state makes over bytes <c>+0xA9</c>-<c>+0xB0</c> rewrites those bytes of the target point:
+    /// state 92's <c>+0xAB</c>/<c>+0xAF</c> (<c>0x004636C5</c>, <c>0x004636D4</c>) and 93's (<c>0x00463831</c>,
+    /// <c>0x00463968</c>). <paramref name="offset"/> is the state offset, <paramref name="size"/> 1, 2 or 4 bytes.</summary>
+    public void OverlayStateScratch(int offset, int size, int value)
+    {
+        const int First = 0xA9, Last = 0xB0;
+        ulong window = (uint)StateTargetX | ((ulong)(uint)StateTargetY << 32);
+        for (int i = 0; i < size; i++)
+        {
+            int at = offset + i;
+            if (at < First || at > Last) continue;
+            int shift = (at - First) * 8;
+            window = (window & ~(0xFFUL << shift)) | ((ulong)(byte)(value >> (i * 8)) << shift);
+        }
+
+        StateTargetX = (int)(uint)window;
+        StateTargetY = (int)(uint)(window >> 32);
+    }
+
     /// <summary>How a manufacturer works its machine, state <c>+0xB9</c> (creature <c>+0x307</c>): 1 at
     /// it, 2 at a stand point beside it, 0 for neither (workshop-states.md §3).</summary>
     public byte MachineMode;

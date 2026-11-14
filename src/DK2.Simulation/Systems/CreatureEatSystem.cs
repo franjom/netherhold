@@ -349,6 +349,9 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         // words at 1.0. Ours keeps no +0x58/+0x5C, which it also clears.
         creature.FoodOwedAfterMeal = false;     // +0xAB
         creature.TargetObjectId = chicken.Id;   // +0xAF
+        // Both stores land in the scratch a Library or Workshop target point shares (Q804).
+        creature.OverlayStateScratch(0xAB, 4, 0);
+        creature.OverlayStateScratch(0xAF, 2, chicken.Id);
         chicken.ChickenScared = true;
         ChickenMovementRules.SetProcess(chicken, ChickenProcess.Reaction);
         chicken.ChickenScale = new Fp32(Fp32.One);
@@ -393,6 +396,9 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         // 93 has eaten; 94 waits out the meal and decides.
         creature.FoodOwedAfterMeal = EatingRules.StillOwesFood(creature);
         creature.TargetObjectId = EatingRules.NoChicken;
+        // +0xAF cleared (0x00463831), then +0xAB the decision (0x00463968), over the shared scratch (Q804).
+        creature.OverlayStateScratch(0xAF, 2, 0);
+        creature.OverlayStateScratch(0xAB, 4, creature.FoodOwedAfterMeal ? 1 : 0);
         creature.StopMoving();
         creature.ActionUntilTick = context.Tick.Value;
         if (AnimationTimingRules.ResolvesPresent(definition, 13))
