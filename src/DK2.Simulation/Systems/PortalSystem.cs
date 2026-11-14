@@ -148,7 +148,7 @@ public sealed class PortalSystem : IRoomTickStep
         RoomDef portal, out string candidateNames)
     {
         List<CreatureDef> candidates = Candidates(context, ownedRooms, playerId, portal, out candidateNames);
-        return PortalChoiceRules.Pick(context.World, context.Rng, playerId, candidates, ownedRooms);
+        return PortalChoiceRules.Pick(context.World, context.Database, context.Rng, playerId, candidates, ownedRooms);
     }
 
     private static List<CreatureDef> Candidates(
@@ -171,8 +171,19 @@ public sealed class PortalSystem : IRoomTickStep
         var rejected = new List<string>();
         var money = new GoldAmount(GoldStore.Total(world, playerId));
         var mana = new ManaAmount(world.Player(playerId).Mana);
-        foreach (CreatureDef creature in database.Creatures.Values.OrderBy(c => c.CreatureId))
+        int definitionIndex = 0;
+        foreach (CreatureDef definition in database.Creatures.Values.OrderBy(c => c.CreatureId))
         {
+            // 0x004DBF90 walks definition indices 0 to 45 and fetches the definition to gate by the
+            // index's TYPE (0x0050D420 -> 0x00494360), which for a Unique definition is its base
+            // type: the gates, including the Unique skip (+0x686 bit 0x8000000), read the unflagged
+            // base definition, so every Unique definition adds a second entry of its base type at
+            // its own index. A likely original defect, built faithfully (ADR-0783).
+            if (definitionIndex++ >= PortalChoiceRules.RowCount) break;
+            bool uniqueIndex = (definition.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique;
+            CreatureDef creature = definition;
+            if (uniqueIndex && !database.Creatures.TryGetValue(definition.UniqueBaseCreatureId, out creature!)) continue;
+
             // Cheapest gate and the most fundamental: two creature flags, and
             // the only one of the four that does not consult the level at all.
             if (!PortalRules.CanComeFromPortal(creature, portal)) continue;
@@ -184,13 +195,13 @@ public sealed class PortalSystem : IRoomTickStep
             int limit = PortalRules.PoolLimit(database, playerId, creature.CreatureId);
             if (limit <= PortalRules.CreatureCountOfType(world, playerId, creature.CreatureId))
             {
-                rejected.Add($"{creature.Name}:pool");
+                if (!uniqueIndex) rejected.Add($"{creature.Name}:pool");
                 continue;
             }
 
             if (!PortalRules.IsAttracted(creature, ownedRooms, money, mana))
             {
-                rejected.Add($"{creature.Name}:room");
+                if (!uniqueIndex) rejected.Add($"{creature.Name}:room");
                 continue;
             }
 
@@ -198,7 +209,7 @@ public sealed class PortalSystem : IRoomTickStep
             // contribution less one per creature of the type already held.
             if (!AttractionBudget.Admits(world, creature, ownedRooms, playerId))
             {
-                rejected.Add($"{creature.Name}:budget");
+                if (!uniqueIndex) rejected.Add($"{creature.Name}:budget");
                 continue;
             }
 

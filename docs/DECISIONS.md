@@ -5779,7 +5779,7 @@ taken, and 193 reads as idle to other systems. `StateEnteredTick` already existe
 so no new state and no version change.
 
 ## ADR-0272 — Weigh the portal's pick as DK2 does, boosting a new type
-**Date:** 2026-09-28 · **Status:** accepted
+**Date:** 2026-09-28 · **Status:** accepted · notice gate and decay step amended by ADR-0801
 
 **Context.** Our portal drew uniformly among admitted types, so in the Level 2
 replay Goblins arrived where DK2 sent Warlocks and the replay stopped at 1504.
@@ -5788,9 +5788,9 @@ Q90 had found the two named percentage variables unread. Evidence:
 
 **Decision.** `PortalChoiceRules` weighs each admitted type as `0x004DBF90` does:
 room contribution less held, or 1.0 / 3.0 for Lair types. It applies the row's
-boost and block and makes one draw over shares of 100.0. Every boost and block
-then drops by 1.0. `Notice` gives each newly admitted type a row, boosted to 10.0
-after tick 1 unless it is Lair-attracted. `PlayerState.EntranceInfo` holds the rows.
+boost and block and makes one draw over shares of 100.0. The boosts and blocks
+then decay (step and per-index rule: ADR-0801). `Notice` gives each newly admitted type that carries weight a row,
+boosted to 10.0 after tick 1 unless it is Lair-attracted. `PlayerState.EntranceInfo` holds the rows.
 
 **Reason.** The rule is hardcoded in the binary. It is what makes a newly available
 creature arrive first.
@@ -7028,9 +7028,8 @@ banked any roll that produced nothing (`portals.md` §4, never read from the bin
   matches DK2 relative to the claim to the tick: +227/+315/+423/+559/+731/+947 against seed
   01's +228/+316/+424/+560/+732/+948. Before, it ran 152 ticks early, so the old 20/20 rested
   in part on a wrong clock. Where seed 5 loses its time is unread: the portal's schedule is
-  not it. Re-measure after Q507.
-- Not built: `0x004DCF50`, the special arrival outside single player. The boost's decay step
-  differs from the capture (Q507).
+  not it. The decay step (Q507) is answered by ADR-0801.
+- Not built: `0x004DCF50`, the special arrival outside single player.
 
 ## ADR-0315 — A room drag is priced whole before a tile is laid
 **Date:** 2026-10-02 · **Status:** accepted · Research: `rooms-and-gold.md`, *What a room costs*; `room-slab-chain.md` §2
@@ -19092,3 +19091,35 @@ sends the party to KillPlayer; DK2's pool holds that tag untaken until the owner
 [level2-party-release.md](research/level2-party-release.md)). Tests:
 `HeroWalkTests.SendToActionPoint_OnTheHerosOwnHeroGate_WalksOntoIt` (fails without the fix) and
 `HeroWalkTests.StateOneSeventyThreesTileTest_BarsOnlyAFinishedOrImpenetrableWallOfItsOwnPlayer`.
+
+## ADR-0801 - a portal notices a type only while it weighs, decays once per definition index, and counts a Unique definition twice
+**Date:** 2026-11-14 | **Status:** accepted; amends ADR-0272 | **Systems:** creatures | **Hash/save:** 517
+
+**Context.** Q807, Level 5 seed 1, controlled replay: at tick 2115 native's portal made a Troll and ours a Dark Elf. Three rules of
+the pick `0x004DBF90` and the noticing pass `0x004DBD90` were missing. STRONGLY INFERRED (body read; reviewer CONFIRMED all three
+against the binary; addresses and offsets in [portal-creature-action.md](research/portal-creature-action.md#the-portals-type-pick-built-2026-09-28-adr-0272)):
+1. A type gets its entrance row, flag and fresh 10.0 boost only when its weight is above 0. A type with no attracting room, or
+   with its room's whole contribution already held, waits until it carries weight.
+2. The decay after a pick with candidates runs once per definition index: 46 boost steps, then 46 block steps, each on the first
+   row whose type is the index's, only while non-zero. A Unique definition's type is its base type, so the 13 types with a Unique
+   variant lose 2.0 per pick and the rest 1.0. An index past the definition count types no row and docks nothing.
+3. The Unique skip tests the definition fetched by the mapped base type, so it never fires: each Unique definition is a second
+   candidate entry of its base type. `0x004DBD90` has the same shape. Native flags rows by position, but the pick and the decay
+   read only the first row of a type, so one row per type is equivalent.
+
+**Decision.** `PortalChoiceRules.Notice` skips a type of weight 0; `PortalChoiceRules.Decay` (replacing the one-step loop) maps each
+definition index to its type as `0x00494360` does; `PortalSystem.Candidates` walks definition indices 0 to 45 and fetches a Unique
+definition's base for the gates. Rules 2 and 3 are suspected original defects (marker on the `0x004DBF90` record, issue #2),
+built as DK2 has them (ADR-0783). Records: `0x004DBF90`, `0x004DBD90`, `0x0050D420`, `0x0050D390`, `0x00494360`, `0x004B8640`.
+
+**Consequences.** Hash and save 517; earlier saves are refused (no field added). Pin `0x633D1DAD7286ED22`. The rules reproduce all
+four native picks of the Level 5 capture (2115 Troll, 2411 Troll, 2767 Dark Elf, 3191 Warlock), each draw
+`ror13(LCG step) % total` with the base row's boost. The diagnostic replay (controlled580, native 1400 entrance table restored)
+matches 11959 draws through tick 2144 (11679 through 2122 at 515); the next boundary is tick 2145, Q810. Level 1's journal is
+re-recorded; win tick 2384 and gem tile (15,20) are unchanged. Tests (each fails without its rule), all `_BinaryInferred`:
+`PortalChoiceTests.ATypeIsNoticedOnlyWhileItCarriesWeight`, `ATypeWhoseRoomIsAlreadyFullyHeldIsNotNoticed`,
+`ATypeWithAUniqueVariantLosesTwoPerPick_AndOneWithoutIsDockedOne`, `TheDoubleDecayStopsAtZero_AndNeverGoesBelow`,
+`IndicesPastTheDefinitionCountDockNoRow`, and `PortalTests.AUniqueDefinitionIsASecondCandidateOfItsBaseType`;
+`ADuplicateEntryTakesItsOwnShareOfTheDraw` pins the existing draw. The suite passes (Simulation 5416, Behavior 620 with 5
+skipped). Not built, impact unverified: the level-start notice pass (`0x0050BDD6`); native Notice has no portal-room-kind check,
+where ours admits by kind first.

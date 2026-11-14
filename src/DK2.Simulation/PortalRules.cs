@@ -354,7 +354,8 @@ public static class PortalRules
     /// <b>exclusive by room type, not by owner</b>, so neither portal emits the
     /// other's creatures. STRONGLY INFERRED (binary, ADR-0046, binary-entrance.md §1; owner).
     /// Not redundant: nine hero creatures are AVAILABLE and pooled for keepers 3–6 on
-    /// the three Frosty levels without the flag. The IsUnique half never fires on shipped data, but all thirteen uniques carry the portal flag, which is why DK2 needs it.</summary>
+    /// the three Frosty levels without the flag. The IsUnique half never fires for a Unique definition itself: <c>PortalSystem.Candidates</c>
+    /// passes the base definition its type maps to (ADR-0801).</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/portals.md")]
     public static bool CanComeFromPortal(CreatureDef creature, RoomDef portal)
     {

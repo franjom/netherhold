@@ -654,6 +654,37 @@ public class PortalTests
         Assert.Equal(1, Goblins(world));
     }
 
+    /// <summary>0x004DBF90 gates each definition index by the index's type, which for a Unique
+    /// definition is its base: the Unique skip reads the unflagged base, so the Unique Goblin is a
+    /// second Goblin entry in the draw, a likely original defect built faithfully (ADR-0783).</summary>
+    [Fact]
+    public void AUniqueDefinitionIsASecondCandidateOfItsBaseType_BinaryInferred()
+    {
+        GameDatabase fixture = Dk2TerrainFixture.Database();
+        CreatureDef goblin = fixture.CreatureById(GoblinId);
+        CreatureDef uniqueGoblin = goblin with
+        {
+            CreatureId = 40, Name = "Unique Goblin", Flags = goblin.Flags | CreatureFlags.IsUnique, UniqueBaseCreatureId = GoblinId,
+        };
+        var level = new GlobalVariables();
+        level.CreaturePool.Add(new CreaturePoolEntry(GoblinId, 15, Keeper));
+        level.Availabilities.Add(new AvailabilityEntry(2, Keeper, GoblinId, 3));
+        GameDatabase db = Dk2TerrainFixture.Database(uniqueGoblin).ForLevel(level);
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+        var sim = new GameSimulation(db, world, seed: 99, [new PortalSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(25 * SimulationTiming.TicksPerSecond);
+
+        SimEvent roll = sink.Events.First(e => e.Kind == "roll");
+        Assert.Contains("candidates=[Goblin,Goblin ", roll.Detail);
+        Assert.Contains("chosen=Goblin", roll.Detail);
+        Assert.Equal(1, Goblins(world));
+    }
+
     // ---- PortalsOpen (action 37) -------------------------------------------
 
     /// <summary>The negative control: the same portal, open, produces on its first roll.</summary>

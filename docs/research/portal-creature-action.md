@@ -102,30 +102,58 @@ that arithmetic. Its existing unmodelled adjustment is covered by Q427.
 
 ## The portal's type pick (built 2026-09-28, ADR-0272)
 
-Read with Ghidra 12.1.4. STRONGLY INFERRED from the binary; the order it predicts
-matches the Level 2 recording.
+Read with Ghidra 12.1.4. STRONGLY INFERRED from the binary (body read; the notice gate,
+the decay and the Unique rule were re-read by the reviewer, 2026-11-14, ADR-0801). The
+order it predicts matches the Level 2 recording and the four picks of the Level 5 seed 1
+capture (2115 Troll, 2411 Troll, 2767 Dark Elf, 3191 Warlock).
 
-- **The weight.** `0x004DBF90` walks the 46 types, unless the keeper's free lair space
-  (`0x004C6DD0`) is negative: then it, and the noticing pass below, do nothing (ADR-0614).
-  For each type the keeper may
-  receive (the same gates as ours), the weight is taken from its first attraction.
+- **The candidates.** `0x004DBF90` walks definition indices 0 to 45, unless the keeper's
+  free lair space (`0x004C6DD0`) is negative: then it, and the noticing pass below, do
+  nothing (ADR-0614). World vtable slot `+0xB8` (`0x0050D420`; vtable `0x0066E3EC`,
+  definitions at `+0x15C4`, stride `0x897`) gives an index's type through `0x00494360`:
+  the base type at `+0x5B3` when definition `+0x686` has `0x8000000` (Unique), else the
+  own id at `+0x770`. Past the definition count it returns 0 (`0x0050D450`). Slot `+0xC0`
+  (`0x0050D390`) fetches the definition by that type (`0x004DC001`-`0x004DC050`). A type
+  the keeper may receive passes the same gates as ours; the weight is taken from its first attraction.
   A Lair gives a flat 1.0, or 3.0 when the definition's lair object (`+0x771`) is
   `0x16`, the Goblin's. Any other room gives each of the keeper's rooms of that
   type's contribution (`0x004DCE70`), less 1.0 per creature of the type held.
   A type whose weight is 0 here is not a candidate.
+- **Unique definitions are second candidates. Suspected DK2 defect.** The fetch uses the
+  mapped base type, so the Unique skip (`+0x686` bit `0x8000000`) tests the unflagged base
+  definition and never fires. Each Unique definition adds a second entry of its base type
+  at its own index; `0x004DBD90` (`0x004DBDDE`-`0x004DBDFF`) has the same shape. Native
+  flags entrance rows by position, but the pick and the decay read only the first row of a
+  type, so one row per type is equivalent (`PortalSystem.Candidates`). The shipped
+  `Creatures.kwd` has 46 definitions with index = id - 1; the capture's six entries (order
+  Warlock, Dark Elf, Troll, Warlock, Troll, Dark Elf) all used the base row's boost.
 - **The modifiers.** The player's `CreatureEntranceInfo` table (`+0xB57`, 18-byte
   rows, named by the player dumper `0x004BCF10`) holds a boost at row `+0x06` and a
   sack block at `+0x0E`, both in 1/4096. A boost of exactly 10.0 multiplies the
   weight by 200, any other by itself, at least 1.0. A block of exactly 10.0 zeroes
   it, any other divides by itself, at least 1.0.
 - **The draw.** The weights become shares of 100.0 and a running total. One random
-  number below the total picks the first entry whose running total reaches it. The
+  number below the total picks the first entry whose running total reaches it; in the
+  capture it is `ror13(LCG step(preseed)) % total` (409598 at 2115). The
   creature is made (`0x004DC9A0`) and the portal's tally goes up.
-- **The decay.** After every pick, every non-zero boost and block drops by 1.0.
-- **Noticing.** `0x004DBD90` runs once at level start (`0x0050BDD6`) and before each
-  pick. It gives each admitted type without a row one. After tick 1, a type not
-  attracted by the Lair starts with a boost of 10.0. So a type that becomes
-  available mid-game is almost certain next, then weighted 9, 8, 7 and so on.
+- **The decay. Suspected DK2 defect.** After a pick with candidates, `0x004DC5F2`-`0x004DC68E`
+  does 46 boost steps and a second loop from `0x004DC694` 46 block steps (block at `+0xB65`).
+  Step i works on the first row whose type is index i's type and takes `0x1000` (1.0) off
+  only while non-zero (boost at `+0xB5D`, `0x004DC64F`-`0x004DC67E`). So a type with a Unique
+  variant loses 2.0 a pick: Firefly, Goblin, Warlock, Troll, Dark Elf, Skeleton, Mistress,
+  Salamander, Rogue, Bile Demon, Vampire, Black Knight and Dark Angel (13); the others 1.0
+  (the seed-04 capture's Warlock boost reads 8.0, 6.0, 4.0 at 967, 1051, 1147; Q507). The
+  player initialiser `0x004B8640` types rows by index, and rows past the definition count stay
+  type 0 and empty, so indices past the count dock nothing (`PortalChoiceRules.Decay`).
+- **Noticing.** `0x004DBD90` runs at level start (`0x0050BDD6`) and before each pick. It gives
+  each admitted type without a row one, but only when the type's weight is above 0
+  (`TEST EDI,EDI; JBE` at `0x004DBF35`; flag `0x004DBF3D`). After tick 1 a type not
+  attracted by the Lair starts with a boost of 10.0 (`0xA000`, `0x004DBF4E`-`0x004DBF5C`).
+  So a type that becomes available mid-game is almost certain next, then weighted 9, 8, 7
+  and so on, or 8, 6, 4 for a type with a Unique variant. A type with no attracting room, or
+  its room's contribution all held, is not noticed until the pick in which it carries weight.
+  Not built, impact unverified: the level-start pass (`0x0050BDD6`) never runs in `src/`,
+  and native Notice has no portal-room-kind check where ours admits by kind first.
 - **The block.** `0x004DC7E0` sets 10.0 on the type named as last sacked
   (`+0xB47`, `EntranceLastSackedCreatureTypeId`). Built at hash/save 346;
   see [creature-leaving.md section 2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).

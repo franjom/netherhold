@@ -60,8 +60,10 @@ The candidate builder `FUN_004dbf90`, per creature type, in one condition:
 `room+0x18` is the room type id. **The room type selects which creature flag is
 required, and the two are exclusive.** A Portal can never emit a hero and a Hero
 Portal can never emit an evil creature — **by room type, not by owner** — so it
-holds however the room changed hands. The uniqueness test sits outside the `or`
-and refuses both sides.
+holds however the room changed hands. The uniqueness test sits outside the `or`,
+but it reads the definition fetched by the index's mapped base type, so it never
+fires on a Unique definition itself (ADR-0801; see
+[portal-creature-action.md](portal-creature-action.md#the-portals-type-pick-built-2026-09-28-adr-0272)).
 
 That is the mechanism behind *"not something a keeper can use"*: not a
 prohibition on keepers, but that a keeper's claimed Hero Portal is still room

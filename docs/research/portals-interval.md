@@ -10,7 +10,7 @@ systems: [creatures]
 | Confidence | **CONFIRMED** — formula, per-portal clock, per-portal tally, the reset, the restamp at every due roll and the `PortalsOpen` gate. The one-off residual in run 1 is unexplained |
 | Implementation | `PortalRules.SpawnIntervalTicks`, `PortalRules.OnOwnerChanged`, `PortalRules.PortalsOpen`, `PlayerState.PortalsClosed`, `TileState.EntranceCreaturesGenerated`, `TileState.EntranceIdleTicks`; ADR-0086, ADR-0314 |
 | Tests | `PortalTests`, `LevelVariablesOnRealDataTests` |
-| Open questions | none on the clock; Q86, Q97, Q505 and Q508 (the decrement on death) are closed; whether leaving the dungeon also decrements is unread. Q90's weighting is in `portals.md`; Q507 (the boost's decay step) |
+| Open questions | none on the clock; Q86, Q97, Q505 and Q508 (the decrement on death) are closed; whether leaving the dungeon also decrements is unread. Q90's weighting is in `portals.md`; Q507 (the boost's decay step) is closed, ADR-0801 |
 
 The mechanic and the other four gates: `portals.md`.
 
@@ -177,9 +177,9 @@ first roll (n = 0, 80 ticks) and at every roll after.
 entrance row first shows a boost at the closed roll (967 in seed 04), and that
 boost falls at each later roll (8.0, 6.0, 4.0 at 967, 1051, 1147). The decay
 loop runs only when the pick found a weighted type, so at 967 the pick had a
-candidate and the creator refused it. It was not an empty pick. The step is
-2.0 per roll, where `PortalChoiceRules` decays 1.0. That is Q507, and it was
-left alone here.
+candidate and the creator refused it. It was not an empty pick. The 2.0 step is
+the Warlock's Unique variant decaying the same row a second time
+([portal-creature-action.md](portal-creature-action.md#the-portals-type-pick-built-2026-09-28-adr-0272), Q507, ADR-0801).
 
 **Ours, before ADR-0314.** Action 37 was reported partial and did nothing, so
 our portals never closed. Our clock also counted up from the last *arrival*, so
