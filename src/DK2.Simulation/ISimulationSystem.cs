@@ -25,6 +25,7 @@ public sealed class SimulationContext
         Events = events;
         _requestEffect = RequestEffect;
         _requestSound = RequestSound;
+        _emit = Emit;
         Navigation = new Navigation.WorldSteering(database, world);
     }
 
@@ -157,9 +158,10 @@ public sealed class SimulationContext
 
     private readonly Action<string, ViewEffectRequest> _requestEffect;
     private readonly Action<string, ThingSoundRequest> _requestSound;
+    private readonly Action<string, string, string> _emit;
 
     /// <summary>The world, database, triggers and presentation requests available to a state hook.</summary>
-    public StateHookContext Hooks => new(World, Database, Triggers, _requestEffect, _requestSound) { Rng = Rng };
+    public StateHookContext Hooks => new(World, Database, Triggers, _requestEffect, _requestSound) { Rng = Rng, EmitEvent = _emit };
 
     public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type) =>
         Triggers?.FireCreatureEvent(creature, type, TriggerTurn);

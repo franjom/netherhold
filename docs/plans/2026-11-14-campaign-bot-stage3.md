@@ -175,10 +175,11 @@ all three seeds: seed 1 at tick 3963, seed 2 at 3708, seed 3 at 5421 (the owner'
 Hatchery: Level 2's own availability table (`level2Variables.kld`, `kwd vars -a`) sets the Treasury
 UNAVAILABLE (1) and the Training Room AVAILABLE (3), so the default list's Treasury was never
 offered and the Training Room, which is not in that list, was never built, which is why the playbook gets a generated `available` block (Task 2); in each seed the hero party came into the dungeon and
-its Lord of the Land died there. **Caveat: that walk is Q525, open.** In DK2's capture the
-party stays near its gate until about 3170; in ours it reaches the keeper's rooms from about
-2307 in half the seeds. The wins may lean on that difference, so they are not accepted until
-Q525 is settled. Level 2 needs no new routine to be won today; Task 5 reduces
+its Lord of the Land died there. **Caveat: that walk is Q525.** In DK2's capture the
+party stays near its gate until about 3170; in ours it reached the keeper's rooms from about
+2307 in half the seeds. ADR-0800 fixed the walk rule after these runs (the packet replay still
+has room attacks in 2 of 6 seeds), so the wins may lean on that difference and are not accepted
+until they are rerun. Level 2 needs no new routine to be won today; Task 5 reduces
 to a receipted acceptance, and the first level the default strategy cannot win becomes the real
 driver for Tasks 1-4. Scenarios: `scenarios/campaign-player/level2/`.
 

@@ -226,6 +226,7 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         // A hero worker is HeroSystem's: DK2's state 1 sends a hero to 90 before it tests the
         // worker flag (ADR-0216).
         if (HeroJobRules.IsHero(creature)) return;
+        if (creature.Dk2StateId == DropLandingRules.HeartDropState) return;   // the stun recovery step's (Q759)
 
         // Held: out of the dungeon until put down (ADR-0062). Down: its job was cleared when it
         // dropped, so this only stops it taking a new one (ADR-0051). A prisoner as a rule, not a

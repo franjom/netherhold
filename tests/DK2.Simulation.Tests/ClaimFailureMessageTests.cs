@@ -69,6 +69,37 @@ public class ClaimFailureMessageTests
             (message.Kind, message.PlayerId, message.Data1, message.Data2));
     }
 
+    /// <summary>The claim's 42 is reported as the room finders' posts are, so a run's event log shows
+    /// when a full Training Room first asks its keeper to grow it (Q757).</summary>
+    [Fact]
+    public void ARefusedClaimsNew42IsReportedOnceAsARoomMessage()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Room(db, world, RoomTypeId.TrainingRoom, 5, 1);
+        Dk2TerrainFixture.FurnishRooms(db, world);
+        CreatureState[] goblins = [.. Enumerable.Range(0, 4).Select(_ => world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 2)))];
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, 1, [new ClaimAll(goblins)]);
+        sim.ObserveWith(sink);
+        sim.Tick();
+
+        SimEvent posted = Assert.Single(sink.Events, e => e.Kind == "room_message");
+        Assert.Equal(nameof(RoomCapacityRules), posted.System);
+        Assert.Contains($"player={Keeper} kind={(int)PlayerMessageKind.RoomFull} room=TrainingRoom", posted.Detail);
+    }
+
+    /// <summary>Sets each creature to the Training state through the running simulation's hooks.</summary>
+    private sealed class ClaimAll(CreatureState[] creatures) : ISimulationSystem
+    {
+        public string Name => "claim-all";
+
+        public void Execute(SimulationContext context)
+        {
+            foreach (CreatureState creature in creatures) CreatureStateMachine.TrySetState(context.Hooks, creature, TrainState);
+        }
+    }
+
     [Fact]
     public void AnotherRoomOfTheTypeWithAPlaceItCanReachRaisesNothing()
     {

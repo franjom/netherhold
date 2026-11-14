@@ -258,12 +258,12 @@ Level 17 (three identical idle DK2 captures, 2026-10-28). Harkan's PLAYERS recor
 DoorPreference 0 and TrapVsDoor 4, so a door is laid whenever a site passes and each eligible
 door stops the scan 1 time in 100. He lays a Magic Door at tick 204, a Wooden Door at 915 and a
 Magic Door at 1182 (sites (19,4), (15,20), (15-16,2)); ours picks the same sites. The Wooden Door
-is STRONGLY INFERRED to be one of the 1-in-100 stops: the captures are one sample and his door
-availability at 915 is not captured. It leaves 12,650 gold when the Training Room expansion is
-decided against 500 x 25 = 12,500, which is why DK2 grows Training 12 -> 20 tiles at 1111-1138.
-Ours, 10 seeds x 3000 ticks: the usual Magic Door leaves the keeper short at that
-decision and the planner drops the request, so Training grew in 0 of 10 (9 of 10 without the step)
-and Harkan's Prison finished in 9 of 10 (10 of 10). Evidence paths: ADR-0561.
+is STRONGLY INFERRED to be one of the 1-in-100 stops (one sample); a door availability effect is
+ruled out (Level 17's script writes none for player 4; setter `0x004BAD30` writes +5, not +1:
+`functions/004FFD80.md`). DK2 holds 12,630 gold at 924 (`dk2_harkan_money_840_1260.txt`) at its
+Training decision against 500 x 25 = 12,500 and grows Training 12 -> 20 tiles at 1111-1138. Ours is
+short of gold and the planner drops it: Training grew in 0 of 10 seeds x 3000 ticks (9 of 10 without
+the door step), the Prison in 9 of 10 (10 of 10); see `computer-keeper-observations.md`, Q757.
 
 ## 10. Room expansion — `0x004FBE00`
 

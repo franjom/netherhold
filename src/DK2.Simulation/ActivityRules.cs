@@ -95,7 +95,8 @@ public static class ActivityRules
         ImpStates.PickingUpCorpse or ImpStates.PickingUpCasualty => CreatureActivity.FetchingBody,
         >= ImpStates.CarryingCorpse and <= ImpStates.PuttingDownTheRefusedBody => CreatureActivity.CarryingBody,
         SlapRules.ReactionState or SlapRules.WorkshopState or SlapRules.PrisonState => CreatureActivity.Slapped,
-        DropLandingRules.LandingState or DropLandingRules.StandingState or ImpCreationRules.FallingState => CreatureActivity.Idle,
+        DropLandingRules.LandingState or DropLandingRules.StandingState or DropLandingRules.HeartDropState
+            or ImpCreationRules.FallingState => CreatureActivity.Idle,
         HandRules.PreparationState => CreatureActivity.BeingLifted,
         PortalRules.JoiningState => CreatureActivity.Idle,
         PartyArrivalRules.WaitingState => CreatureActivity.Arriving,

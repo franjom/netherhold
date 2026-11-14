@@ -62,7 +62,7 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
                 && !LeavingRules.PortalDrop(context, creature, SystemName)) StateShadow.ToIdle(context, SystemName, creature);
             return;
         }
-
+        if (creature.Dk2StateId == DropLandingRules.HeartDropState) return;   // the stun recovery step's (Q759)
 
         // Workers have their own whole system and their own priority order
         // (ADR-0018). DK2 dispatches them before any of this too - an Imp's

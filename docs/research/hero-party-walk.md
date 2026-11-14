@@ -345,8 +345,8 @@ arms for jobs 18, 19, 22 and 23 with states 173–178 and 227, the follower's 22
 pace. Checked against the binary while building: state 90's failure deadline is `now + 12`
 at `0x004778BB`; state 176 compares `+0x7E`, not the `+0x44` its entry writes; state 173 draws
 the tile's y before its x and excludes the rectangle's upper bounds; its tile test rejects a
-room or impenetrable tile of the hero's own keeper and any impenetrable tile a creature cannot
-wade; state 178 is `XOR EAX,EAX; RET`. Definition byte `+0x787` is file byte `0x0F4C`
+finished wall or impenetrable tile of the hero's own player (no room test: `functions/00471EB0.md`,
+ADR-0800) and any impenetrable tile a creature cannot wade; state 178 is `XOR EAX,EAX; RET`. Definition byte `+0x787` is file byte `0x0F4C`
 (loader `0x0049348A`): Imp 10, Dwarf 15, King Reginald 125, Dark Angel 232.
 The section 5 re-lead is built (ADR-0218), StealGold (ADR-0219, `steal-gold.md`), and 223/224 with the tunnelling behind them (ADR-0222, `tunnelling.md`).
 

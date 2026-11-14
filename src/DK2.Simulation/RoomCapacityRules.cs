@@ -110,14 +110,14 @@ public static class RoomCapacityRules
         if (!HasRoom(hooks, room, creature))
         {
             if (!SearchesElsewhere(world, room) || !AnotherHasRoom(hooks, room, creature))
-                PostFull(world, room, (RoomTypeId)room.Definition.RoomId);
+                PostFull(hooks, room, (RoomTypeId)room.Definition.RoomId);
             return false;
         }
         creature.HeldPlace = new RoomPlace(tile, Units);
         creature.HeldPlaceStamp = SlabChain.HoldersStamp(world, room);
         creature.HeldPlaceSerial = world.NextPlaceClaim++;
         if (room.Definition.TypeId == RoomTypeId.Prison && Occupants(world, room) > PrisonRules.Capacity(room))
-            PostFull(world, room, RoomTypeId.Prison);
+            PostFull(hooks, room, RoomTypeId.Prison);
         return true;
     }
 
@@ -137,11 +137,17 @@ public static class RoomCapacityRules
         return true;
     }
 
-    private static void PostFull(WorldState world, RoomInstance room, RoomTypeId type)
+    /// <summary>The 42 itself; a new record is reported as <see cref="RoomNeedRules"/>' posts are (Q757).
+    /// Hooks built without the simulation's event sink (triggers, setup, projection) post it unreported.</summary>
+    private static void PostFull(in StateHookContext hooks, RoomInstance room, RoomTypeId type)
     {
-        if (world.HasPlayer(room.OwnerPlayerId))
-            world.Messages.PostRoom(world, room.OwnerPlayerId, PlayerMessageKind.RoomFull, type);
+        WorldState world = hooks.World;
+        if (!world.HasPlayer(room.OwnerPlayerId)) return;
+        RoomNeedRules.PostReported(world, room.OwnerPlayerId, PlayerMessageKind.RoomFull, type, 0,
+            nameof(RoomCapacityRules), hooks.EmitEvent ?? NoEvent);
     }
+
+    private static void NoEvent(string system, string kind, string detail) { }
 
     /// <summary>The release <c>0x004E5E00</c>, behind the leave hooks' <c>+0x3B9</c> test.</summary>
     /// <remarks>DK2 subtracts the definition's units only while the room's count holds them, so a
