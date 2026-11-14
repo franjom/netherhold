@@ -113,6 +113,36 @@ ours lacked was the shine of his armour: `frontenv`/`KnightBack` are environment
 `DefaultEnvMap`. That pass is now built for every model, kmf-materials.md §8. Whether
 the owner's missing corpse is still missing after it is a play question (Q622).
 
+## 4. Lair rescue keeps the health word (Q728)
+
+STRONGLY INFERRED from fresh retail-binary reads, 2026-11-14; no new native
+rescue observation. State 45 (`0x00468420`) drops a carried own creature and
+calls `Creature_ClearDying` (`0x0048B860`) before kicking it to state 1.
+Its Lair branch then requests state 79; its worker branch stops at state 1.
+The clear routine only removes the dying flag. It writes no health.
+
+The drop callback `0x004B5E00` clears BeingDragged, not health. The kick
+`0x0048AD30` forwards to SetState. On the ordinary dying-to-idle-to-Lair
+path, category 23 has no leave hook, category 7 has no enter hook, and
+category 6's enter hook is the success stub `0x004B4C20`. These assignments
+are in the runtime table initializer `0x004798F0`; zeroed file-image table
+bytes are not evidence of the runtime hook values. The already-read state
+79 bed selector also does not replace health.
+
+Thus the positive countdown still in creature `+0x40` becomes ordinary
+health when the dying flag is cleared. A casualty delivered with 180 ticks
+remaining has health 180 at that handover, before subsequent health updates;
+delivery does not reset it to zero, maximum health or a new fixed minimum.
+This conclusion concerns delivery, not the complete subsequent bed timeline
+or state 45's existing fall-through question.
+
+The remake stores this countdown separately as `DyingTicks`. Both
+`CreatureDeathRules.Rescue` and `RescueIntoLair` clear it while retaining
+health zero. Q728's native rule is answered; restoring the remaining value
+into health at successful rescue is an unbuilt fidelity correction. The
+existing immediate bed placement and healing-order simplifications remain
+separate. No simulation change is made by this research.
+
 ## Open questions
 
 - Which of `0x00459560`'s five callers is the ordinary collapse, and what the

@@ -278,8 +278,8 @@ binary and data, read 2026-10-28:
   through 87, with no blank entry reached (the one blank, `Track_1_2` #36, is unreachable).
   **STRONGLY INFERRED** (data). The segment end (slot 0, `0x006164D0`, read by the 2026-10-28 reviewer)
   picks with `+0x44` and queues the chosen sound, so at level 1 the picker never runs dry and
-  the music should not stop by itself: **STRONGLY INFERRED** (the stream playing one queued
-  segment into the next is unread).
+  the music should not stop by itself: **STRONGLY INFERRED**. The measured streamed
+  MPEG boundary is in [music-segment-length.md](music-segment-length.md) (Q703).
 - **Every other call on `CSoundSystem`** (RTTI of vtable `0x0066F7FC`), found by a capstone scan
   of all calls made through `[0x0075B468]` (the 8 raise and 3 set sites as control):
   - `+0x64` `0x00567E70`, from `World_LoadLevelKwd` only: `StopSFX`, then `StopHandle` on
@@ -393,3 +393,4 @@ If a host skips simulation turns between captures, transient requests can be mis
 view does not restore native audio handles or L from a save. The speech line's duck is built ([sound-effects-interface.md section 7](sound-effects-interface.md#7-the-speech-line-and-its-duck)); the atmosphere
 player, options/front-end music and idle taunts remain unimplemented (the front end's only music request is silent: [section 9](sound-effects-interface.md#9-the-front-ends-atmosphere-and-music-request-0x2ea-0x155)). A32-source effect pool
 is a remake resource budget, not an established native cap. Hearing acceptance remains open.
+The unbuilt decoded-length trim is tracked in [Q703](music-segment-length.md).

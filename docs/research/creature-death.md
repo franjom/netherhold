@@ -130,7 +130,7 @@ Land — **before** it reads the bit; a party member's or placed hero's Flags2 b
 (`0x00520460`, ADR-0636: a Secret4 placed Dwarf died outright), and trigger action type 1 sets the
 bit from its `Flag` byte's bit 2 (`trigger-dispatch-tables.md`). Entering the window, DK2 writes
 `CreatureDyingStateDurationSeconds × 4` = 240 into the health field (`0x004B2FA0`), so health
-doubles as the rescue clock; we hold a separate `DyingTicks` and leave health at zero.
+doubles as the rescue clock; the unbuilt delivery handover is [Q728](dying-states.md#4-lair-rescue-keeps-the-health-word-q728).
 
 ### 2.2 A corpse is not an object
 

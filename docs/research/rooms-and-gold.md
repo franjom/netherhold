@@ -287,7 +287,7 @@ no worker to receive the gold.
 | the per-room gate | `RoomDef.ReturnPercentage` | **100** buildable, **0** hero gates |
 | what a tile cost | `RoomDef.Cost`, per tile (Q32) | 200 treasury … 3000 temple |
 | what a tile becomes | `TerrainDef.DestroyedTypeTerrainId` | 8, Claimed Path, for every room terrain |
-| doors and traps | `DoorSellValuePercentageOfCost`, `TrapSellValuePercentageOfCost` | **50** each |
+| doors and traps | see [door-trap-sales.md](door-trap-sales.md) (Q702) | separate sale paths |
 
 So a treasury tile returns 100 of its 200 and a temple tile 1500 of its 3000,
 exactly the 50 % per tile the owner measured in the original. **Trap:

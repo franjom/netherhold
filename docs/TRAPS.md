@@ -11,6 +11,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
 
 ## Shell and files
+- Build a hash manifest's inventory before opening its output file; otherwise a recursive scan can include the manifest's own empty-file hash.
 - An isolated native DK2 runtime needs `DK2TextureCache` as well as `Data`; omitting it crashed startup with `EngineTestLight` missing.
 - During a solution test run, an app's `bin` can retain old dependency copies until that project builds; wait for its build before checking schema compatibility.
 - For `Unknown journal record 0` on an old v1 journal, check `CommandCodec` history: hash 462 added the Drop heading marker without changing the envelope version.

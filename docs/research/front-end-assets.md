@@ -242,11 +242,11 @@ Menu style selection and measurement: [menu implementation boundary](front-end-m
 `u32 headerSize (40)`, `u32 storedSize`, `char[16] name`, `u16 sampleRate`,
 `u8 bitsPerSample`, `u8 type`, then three `u32`s. The payload follows the header.
 
-The `u32` at entry `+32` is exposed as `SampleCountField`; its units/trimming are
-UNKNOWN. All 211 PCM entries have zero; all 7,749 MPEG entries differ from full-frame
-sample and PCM-byte counts. AmbienceHD entry 1 declares 237,182 versus 119,040 mono
-samples (238,080 bytes). A pre-padding PCM-byte length remains possible; C1 must
-establish units before asserting decoder output equality (Q677).
+The `u32` at entry `+32` is exposed as `SampleCountField`. The measured streamed
+type-0x25 boundary is answered in [music-segment-length.md](music-segment-length.md)
+(Q703); other playback modes remain Q677. All 211 PCM entries have zero; all
+7,749 MPEG entries differ from full-frame sample and PCM-byte counts. AmbienceHD
+entry 1 declares 237,182 versus 119,040 mono samples (238,080 bytes); padded output is not the declared boundary.
 
 | Type | Meaning | Where |
 |---|---|---|
