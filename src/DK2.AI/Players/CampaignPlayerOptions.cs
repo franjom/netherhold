@@ -75,6 +75,16 @@ public sealed record CampaignPlayerOptions
     /// <summary>At most this many actions per decision (the host's per-decision bound).</summary>
     public int MaxActionsPerDecision { get; init; } = 4;
 
+    /// <summary>The strategy a new <see cref="CampaignPlayer"/> starts with: these options' rooms, room
+    /// side, mark bound and advance, gold-first digging, engaging fighters and specials on.</summary>
+    public PlayerStrategy Strategy => new()
+    {
+        Rooms = Rooms,
+        RoomSide = RoomSide,
+        MaxOutstandingTags = MaxOutstandingTags,
+        AdvanceTicks = AdvanceTicks,
+    };
+
     public void Validate()
     {
         Positive(AdvanceTicks, nameof(AdvanceTicks));

@@ -111,21 +111,25 @@ the gate.
 
 ## Task 1: a strategy the routines read
 
-**Produces:** `PlayerStrategy` (immutable record): `Rooms` (build order), `RoomSide`, `Dig`
-(`Off`, `GoldFirst`, `Frontier`, `Toward(TilePos)`), `MaxOutstandingTags`, `Fight` (`Engage`,
-`HoldHome`, `Off`), `UseSpecials`, `AdvanceTicks`; defaults equal today's
-`CampaignPlayerOptions`. `Validate()` returns every problem. `CampaignPlayer` gains `Strategy` and
-`Apply(PlayerStrategy next)`; giving up marks and squares that no longer fit goes out as ordinary
-untags, spread over decisions within `MaxActionsPerDecision`.
+**Produces:** `PlayerStrategy` (immutable record, `src/DK2.AI/Players/PlayerStrategy.cs`): `Rooms`
+(build order), `RoomSide`, `Dig` (`Off`, `GoldFirst`, `Frontier`, `Toward` with `DigTarget`),
+`MaxOutstandingTags`, `Fight` (`Engage`; `HoldHome`, which answers only an enemy within
+`HomeGuardTiles` of home; `Off`), `UseSpecials`, `AdvanceTicks` (1-40); defaults equal today's
+`CampaignPlayerOptions` (`CampaignPlayerOptions.Strategy`). `Validate()` returns every problem.
+`CampaignPlayer` gains `Strategy` and `Apply(PlayerStrategy next)`, called between decisions: a
+refused strategy leaves the current one; a pending room no longer listed is given up; turning
+digging off takes the standing marks back as untags spread over decisions (other changes leave
+marks to be dug). With digging off, the frontier is no pending work, so an idle player is not stalled.
 
-- [ ] Tests first (`PlayerStrategyTests`): defaults equal today's options; validation names each
+- [x] Tests first (`PlayerStrategyTests`): defaults equal today's options; validation names each
       problem; `Toward` off the map is refused; an empty room list is allowed.
-- [ ] Refactor the routines to read the strategy (`csharp-refactoring`), behaviour-preserving.
-- [ ] `Apply` tests: `HoldHome` lifts no fighter toward an enemy; `Dig = Off` tags nothing; a
+- [x] Refactor the routines to read the strategy (`csharp-refactoring`), behaviour-preserving.
+- [x] `Apply` tests: `HoldHome` lifts no fighter toward an enemy; `Dig = Off` tags nothing; a
       removed room's pending square is given up; untags spread across decisions.
-- [ ] One-off check on one commit: every Task 0a baseline reproduces byte for byte (journal and
-      decisions) before and after the refactor.
-- [ ] Reviewer, documenter, commit.
+- [x] One-off check on one commit: every Task 0a baseline reproduces byte for byte (journal and
+      decisions) before and after the refactor. **Done 2026-11-14:** all nine identical at base `3f5c89db`
+      (hash 517); `baselines.tsv` was re-recorded there, since master had moved from hash 516.
+- [x] Reviewer, documenter, commit.
 
 ## Task 2: development, a thin vertical slice
 

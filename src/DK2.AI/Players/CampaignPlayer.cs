@@ -10,18 +10,21 @@ namespace DK2.AI.Players;
 
 /// <summary>
 /// A goal-directed campaign player that sees only <see cref="PlayerObservation"/>s (campaign player
-/// plan, task 5). Each decision, within the action budget: skip an offered intro; answer the nearest
-/// visible enemy (lift an own fighter not already near it, drop it on own floor beside it); with a
-/// fighter held and no enemy, drop it near home; activate an allowed special; press and build the
-/// next missing room; mark the nearest diggable frontier, gold first. It checks postconditions, not
-/// receipts: a room is done when it covers its square, a drop when the hand empties, progress when
-/// floor, rooms, creatures or gold gain. Without a gain for the stall window it untags and skips its
-/// marks and squares, and after its recovery attempts reports a limitation. It reads nothing but the
-/// observation: no Lord position, trigger id, hidden map data or recorded timeline. Not thread-safe.
+/// plan, task 5). Each decision, within the action budget: skip an offered intro; answer enemies,
+/// activate specials, build the next missing room and mark the frontier, as its
+/// <see cref="PlayerStrategy"/> says (stage 3 plan, Task 1; the options' by default, changed between
+/// decisions by <see cref="Apply"/>). It checks postconditions, not receipts: a room is done when it
+/// covers its square, a drop when the hand empties, progress when floor, rooms, creatures or gold
+/// gain. Without a gain for the stall window it untags and skips its marks and squares, and after its
+/// recovery attempts reports a limitation. It reads nothing but the observation: no Lord position,
+/// trigger id, hidden map data or recorded timeline. Not thread-safe.
 /// </summary>
 public sealed class CampaignPlayer : IPlayerController
 {
     private readonly CampaignPlayerOptions _options;
+    private PlayerStrategy _strategy;
+    private bool _untagAll;
+    private (int Width, int Height)? _map;
     private readonly Dictionary<RoomTypeId, PendingRoom> _pendingRooms = [];
     private readonly Dictionary<RoomTypeId, HashSet<TilePos>> _triedSquares = [];
     private readonly Dictionary<PlayerActionId, PlayerAction> _sent = [];
@@ -47,10 +50,32 @@ public sealed class CampaignPlayer : IPlayerController
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         options.Validate();
+        _strategy = options.Strategy;
+        IReadOnlyList<string> problems = _strategy.Validate();
+        if (problems.Count > 0) throw new ArgumentException("The options' strategy is refused: " + string.Join("; ", problems), nameof(options));
         _best = new Gains(-1, -1, -1, -1);
     }
 
     public CampaignPlayerOptions Options => _options;
+
+    /// <summary>The strategy the routines read now.</summary>
+    public PlayerStrategy Strategy => _strategy;
+
+    /// <summary>Makes <paramref name="next"/> the strategy from the next decision on (campaign bot stage 3
+    /// plan, Task 1). Refused, leaving the current one, with every problem named, when it does not
+    /// validate (against the map's size once an observation has been seen). A pending room no longer
+    /// listed is given up; with digging turned off, the standing marks are taken back over the next
+    /// decisions, within the action bound. Call it between decisions, never during one.</summary>
+    public void Apply(PlayerStrategy next)
+    {
+        if (next is null) throw new ArgumentNullException(nameof(next));
+        IReadOnlyList<string> problems = next.Validate(_map?.Width, _map?.Height);
+        if (problems.Count > 0) throw new ArgumentException("The strategy is refused: " + string.Join("; ", problems), nameof(next));
+        foreach (RoomTypeId room in _pendingRooms.Keys.Where(r => !next.Rooms.Contains(r)).ToList()) _pendingRooms.Remove(room);
+        if (next.Dig == DigMode.Off && _strategy.Dig != DigMode.Off) _untagAll = true;
+        if (next.Dig != DigMode.Off) _untagAll = false;
+        _strategy = next;
+    }
 
     public PlayerDecision Decide(PlayerObservation observation)
     {
@@ -58,8 +83,9 @@ public sealed class CampaignPlayer : IPlayerController
         if (observation.Stamp.RunId != _options.RunId || observation.Stamp.Player != _options.Player)
             throw new ArgumentException("The observation belongs to another run or player.", nameof(observation));
 
+        _map = (observation.Tiles.Width, observation.Tiles.Height);
         Learn(observation);
-        if (observation.Phase == PlayerPhase.Ended) return PlayerDecision.Wait(_options.AdvanceTicks, "await verdict: the game has ended");
+        if (observation.Phase == PlayerPhase.Ended) return PlayerDecision.Wait(_strategy.AdvanceTicks, "await verdict: the game has ended");
         if (observation.Phase == PlayerPhase.Intro)
             return (observation.Offers.Actions & PlayerActionKinds.SkipIntro) != 0
                 ? Send([new PlayerAction.SkipIntro()], "skip the intro") : PlayerDecision.Wait(1, "intro playing");
@@ -69,19 +95,20 @@ public sealed class CampaignPlayer : IPlayerController
         var why = new List<string>(4);
         if (Stalled(observation, home, actions) is PlayerDecision limited) return limited;
         if (actions.Count > 0) why.Add("recover");
+        if (_untagAll && Untag(observation, actions)) why.Add("untag");
         if (Hand(observation, home, actions)) why.Add("hand");
         if (Room(observation, home, actions)) why.Add("room");
-        if (Fits(actions, 1) && PlayerActionRoutines.Special(observation, _options) is PlayerAction special) { actions.Add(special); why.Add("special"); }
+        if (_strategy.UseSpecials && Fits(actions, 1) && PlayerActionRoutines.Special(observation, _options) is PlayerAction special) { actions.Add(special); why.Add("special"); }
         if (Dig(observation, home, actions)) why.Add("dig");
         return actions.Count == 0
-            ? PlayerDecision.Wait(_options.AdvanceTicks, "wait: nothing offered to do")
+            ? PlayerDecision.Wait(_strategy.AdvanceTicks, "wait: nothing offered to do")
             : Send(actions, string.Join(", ", why));
     }
 
     private PlayerDecision Send(List<PlayerAction> actions, string reason)
     {
         foreach (PlayerAction action in actions) _sent[new PlayerActionId(_nextActionId++)] = action;
-        return new PlayerDecision(actions, _options.AdvanceTicks, reason);
+        return new PlayerDecision(actions, _strategy.AdvanceTicks, reason);
     }
 
     /// <summary>Reads receipts for builds refused because of their square, and releases rooms the
@@ -118,7 +145,11 @@ public sealed class CampaignPlayer : IPlayerController
         _lastDrop = null;
         if (observation.HandCount == 0) _failedDrops.Clear();
         if (!Fits(actions, 1)) return false;
-        PlayerVisibleThing? enemy = PlayerActionRoutines.NearestEnemy(observation, home);
+        // Engage answers the nearest enemy, HoldHome only one near home, Off none; with none, anything
+        // held goes down near home.
+        PlayerVisibleThing? enemy = _strategy.Fight == FightMode.Off ? null : PlayerActionRoutines.NearestEnemy(observation, home);
+        if (_strategy.Fight == FightMode.HoldHome && enemy is PlayerVisibleThing far
+            && PlayerActionRoutines.DistanceSquared(far.Tile, home) > (long)_strategy.HomeGuardTiles * _strategy.HomeGuardTiles) enemy = null;
         if (observation.HandCount > 0)
         {
             if ((observation.Offers.Actions & PlayerActionKinds.DropAt) == 0
@@ -142,10 +173,10 @@ public sealed class CampaignPlayer : IPlayerController
     private bool Room(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
         if (_pendingRooms.Count > 0 || !Fits(actions, 2)) return false;
-        foreach (RoomTypeId room in _options.Rooms)
+        foreach (RoomTypeId room in _strategy.Rooms)
         {
             if (Owns(observation, room)
-                || PlayerActionRoutines.BuildRoom(observation, home, room, _options.RoomSide, Tried(room)) is not PlayerAction.BuildRoom build) continue;
+                || PlayerActionRoutines.BuildRoom(observation, home, room, _strategy.RoomSide, Tried(room)) is not PlayerAction.BuildRoom build) continue;
             if (PlayerActionRoutines.SelectRoom(observation, room) is PlayerAction press) actions.Add(press);
             actions.Add(build);
             _pendingRooms[room] = new PendingRoom(build.From, observation.Stamp.Tick);
@@ -157,10 +188,11 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>Dig marks up to the outstanding bound, skipping abandoned tiles.</summary>
     private bool Dig(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
-        if ((observation.Offers.Actions & PlayerActionKinds.TagArea) == 0) return false;
-        int room = _options.MaxOutstandingTags - Outstanding(observation);
+        if (_strategy.Dig == DigMode.Off || (observation.Offers.Actions & PlayerActionKinds.TagArea) == 0) return false;
+        int room = _strategy.MaxOutstandingTags - Outstanding(observation);
         int added = 0;
-        foreach (TilePos tile in PlayerActionRoutines.Frontier(observation, home, preferGold: true, _abandoned))
+        TilePos from = _strategy.Dig == DigMode.Toward && _strategy.DigTarget is TilePos target ? target : home;
+        foreach (TilePos tile in PlayerActionRoutines.Frontier(observation, from, preferGold: _strategy.Dig == DigMode.GoldFirst, _abandoned))
         {
             if (room-- <= 0 || !Fits(actions, 1)) break;
             actions.Add(new PlayerAction.TagArea(tile, tile));
@@ -185,7 +217,8 @@ public sealed class CampaignPlayer : IPlayerController
             return null;
         }
         if (observation.Stamp.Tick.Value - _gainTick.Value < _options.StallWindowTicks) return null;
-        List<TilePos> frontier = PlayerActionRoutines.Frontier(observation, home, preferGold: false, _abandoned);
+        // With digging off the frontier is no pending work: an idle, non-digging player is not stalled.
+        List<TilePos> frontier = _strategy.Dig == DigMode.Off ? [] : PlayerActionRoutines.Frontier(observation, home, preferGold: false, _abandoned);
         int marks = Outstanding(observation);
         if (_pendingRooms.Count == 0 && marks == 0 && frontier.Count == 0) return null;
 
@@ -204,9 +237,32 @@ public sealed class CampaignPlayer : IPlayerController
                 _abandoned.Add(at);
                 if (Fits(actions, 1)) actions.Add(new PlayerAction.TagArea(at, at, Untag: true));
             }
-        for (int i = 0; i < frontier.Count && i < _options.MaxOutstandingTags; i++) _abandoned.Add(frontier[i]);
+        for (int i = 0; i < frontier.Count && i < _strategy.MaxOutstandingTags; i++) _abandoned.Add(frontier[i]);
         _gainTick = observation.Stamp.Tick;
         return null;
+    }
+
+    /// <summary>Takes back the player's standing marks, within the action bound and skipping any this
+    /// decision already untags; done only when the observation shows none.</summary>
+    private bool Untag(PlayerObservation observation, List<PlayerAction> actions)
+    {
+        if ((observation.Offers.Actions & PlayerActionKinds.TagArea) == 0) return false;
+        PlayerTileGrid grid = observation.Tiles;
+        bool standing = false;
+        int added = 0;
+        for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var at = new TilePos(x, y);
+                if ((grid[at].Flags & PlayerTileFlags.Tagged) == 0) continue;
+                standing = true;
+                var untag = new PlayerAction.TagArea(at, at, Untag: true);
+                if (!Fits(actions, 1) || actions.Contains(untag)) continue;
+                actions.Add(untag);
+                added++;
+            }
+        if (!standing) _untagAll = false;
+        return added > 0;
     }
 
     private static Gains Measure(PlayerObservation observation)
