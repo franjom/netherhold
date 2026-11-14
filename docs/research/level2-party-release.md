@@ -57,19 +57,39 @@ DK2's steal rule, not an ours fault (§4).
 ## 4. What splits the runs before 2100 (Q809)
 Sources: DK2's `tiles.csv` and `creature-map.csv` beside the capture; ours' `events.tsv` and `ours-creatures.csv` from the rerun.
 - **The Library site.** DK2 digs (12..15,31..34) from 310 to 397 and claims it from 445 to 686 (terrain flips), the last
-  tile one turn before the owner's drag at 687. Ours digs it from 184-282 to 336-357 (seed 6: 568), about 100 turns ahead of
-  DK2 in every seed (unexplained; the site's tags land at 79-105). By 687 seeds 1 and 6 have claimed all 16 tiles (last at
-  504/588), seeds 2-5 none (first at 695-874). New claims by 200: DK2 10 (14 tiles with the 4 it starts with), seeds 1 and
-  6 10, seeds 2-5 0.
+  tile one turn before the owner's drag at 687. Ours digs it from 184-282 to 336-357 (seed 6: 568): the first site tile
+  falls 115-125 turns before DK2's in seeds 1, 3 and 5, about 58 in seeds 2 and 4, 28 in seed 6 (see "The dig lead"). By
+  687 seeds 1 and 6 have claimed all 16 tiles (last at 504/588), seeds 2-5 none (first at 695-874). New claims by 200: DK2
+  10 (14 tiles with the 4 it starts with), seeds 1 and 6 10, seeds 2-5 0.
 - **One dedicated claimer.** In DK2 and in ours, a worker keeps the kind it last took, and a marked dig outranks a claim.
   DK2's Imp 449 found nothing at 22 (three Imps held the first wall's slots), rested 23-48, wandered 49-55 and chose at 57,
-  while (19,33) was being mined by the other three: it took the (19,34) claim and claimed every tile to 320. Ours' seeds 1
+  while (19,33) was being mined by the other three: it took the (19,34) claim and claimed until about 281. Ours' seeds 1
   and 6 reproduce this (Imp 6 rests, then claims from 59/51). In seeds 2-5 the resting Imp chooses at 72-78, after (19,33)
-  is mined out and (18,33) opens, so it digs and all four stay diggers until digs run short (first claim `job_taken` 244-368). DK2's
-  diggers also turn to claims only then (Imp 448 chooses at 211; ours' seed 6 at 211, `job_taken`). The split is the rest roll and the wander
-  walk's length (DK2 6 turns; ours 1-20), random draws on both sides (STRONGLY INFERRED for the mechanism). DK2 has the same
-  spread on another packet: replaying `l2win928` under seeds 1-7 it first claims at 162-171 in three and 321-459 in four
-  (Q484). HYPOTHESIS that ours' draw distributions match DK2's: one `l2live2` run cannot show it.
+  is mined out and (18,33) opens, so it digs and all four stay diggers until digs run short (first claim `job_taken`
+  244-368). DK2's diggers also turn to claims only then (Imp 448 chooses at 211; ours' seed 6 at 211, `job_taken`). The
+  split is the rest and the wander walk's length (DK2 6 turns; ours 1-20), random draws on both sides (STRONGLY INFERRED
+  for the mechanism). Over 40 ours seeds of `l2live2`, 24 get the early claimer (60%), so seeds 1-6's 2 of 6 is ordinary
+  (P(at most 2) = 0.18): the Imp that finds nothing at its first reselection claims early after a 20-26 tick rest and a
+  short walk, late after a 1-tick rest. DK2 has a spread too: replaying `l2win928` under seeds 1-7 it first claims at
+  162-171 in three and 321-459 in four (Q484; those captures are gone); ours gets 15 of 40 early, at 138-172 (Fisher
+  p=1.0; seven seeds cannot tell a rate).
+- **The draws.** Native captures of Levels 2-5 against ours' replays (2026-11-14): the rest before a wander falls on
+  1/20/25/26 ticks at 27/37/23/13% in DK2 (n=2056) and 26/37/24/13% in ours (n=3077, chi-square p=0.73), STRONGLY
+  INFERRED that the rest lengths match. Walk lengths match in Levels 3-5 (Level 4 Mann-Whitney p=0.24), but Level 4's
+  arrival distances do not (Kolmogorov-Smirnov p=0.0007; 8% of DK2's walks end 9 or more tiles away, 1.7% of ours'),
+  unexplained. Level 2's own walks are HYPOTHESIS (DK2 n=79, one run).
+- **The dig lead.** Every corridor and site tile is tagged by game turn 108 in both (DK2's pool shows the last at capture
+  frame 109), and DK2's pool holds (17,33)'s kind-1 task from 36, but no worker takes it until 284. At each DK2 dig or mine
+  choice from 72 to 283, with walls measured from the Imp's tile and seams from its last seam after a mine, (17,33) is
+  never strictly nearer than the task taken (ties at 141 and for two of three choices at 209-211). DK2's Imps follow the
+  north gold to 206, the east block (21..24,32..34) from 222 to 282, and the former claimer Imp 449 takes (17,33) at 284
+  while walking (why it left claims then is unread). Tiles dug by 150/200/250/290: DK2 15/19/24/31; seed 6, with a
+  claimer and DK2's order, 15/19/23/30 and (17,33) at 266. Seeds 2-5 have no claimer, so four Imps dig where DK2 has three;
+  seeds 2 and 4 dig the east block alongside the north gold (from 110; DK2 from 222) and reach (17,33) last, at 226/221.
+  Seeds 1, 3 and 5 take the west corridor before the north gold ((17,33) at 162-176); seed 1 has a claimer, and its Imp 5,
+  standing at (20,33) at 96, takes (21,33) where DK2's Imp 448 at (19,33) mined (19,32). HYPOTHESIS: the lead is the
+  claimer split plus Imp positions at near-tied choices, not a rule difference; a resync near 90 from DK2's positions
+  would test it.
 - **The (12,15) trade.** `0x00469AF0` takes a free slot first; with every slot held it measures a taker from its point
   to the wall's centre (`0x00469BD4`-`0x00469C4B`, `[EBP-0x3C]`) and a holder from its point to the side tile's centre
   (`0x00469D96`-`0x00469DE1`), strictly, read 2026-11-14. In resync seed 1 (12,15)'s only open side is (11,15) and its other

@@ -14,7 +14,9 @@ the owner's "waiting" needs state 88). State ids, labels and categories come fro
 states 10 and 12 that this note expands.
 
 **Built subset:** `ImpTaskSystem.Wander.cs` (ADR-0224) runs rest and wandering,
-with its documented action-duration and destination approximations. The stored
+with its documented action-duration and destination approximations. Against native captures of Levels 2-5 (2026-11-14) its rest lengths and its Level 3-5 walk lengths match DK2's
+(STRONGLY INFERRED); Level 4's wander arrival distances differ and are unexplained
+([level2-party-release.md](level2-party-release.md) §4). The stored
 idle flag at `+0x3D1` is maintained and persisted (ADR-0274); its removal reader
 is audited in `imp-mana-removal.md`.
 
