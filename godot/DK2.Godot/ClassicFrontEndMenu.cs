@@ -58,7 +58,7 @@ public partial class ClassicFrontEndMenu : Node
         _assets = new ClassicFrontEndMenuAssets(install);
         Func<int, IReadOnlyList<KcsFrame>?> paths = EngineCameraPaths.Loader(install);
         _session = new FrontEndSession(path => paths((int)path));
-        _hud = new FrontEndMenuHud(_session, _assets, HudFit, KeyName);
+        _hud = new FrontEndMenuHud(_session, _assets, HudFit, ClassicKeyNames.Name);
         _hud.Model.QuitRequested += Quit;
         _session.PageChanged += PageChanged;
         _canvas = new HudCanvas { Name = "HudCanvas", Load = _assets.Load };
@@ -115,9 +115,6 @@ public partial class ClassicFrontEndMenu : Node
         Vector2 size = GetViewport().GetVisibleRect().Size;
         return new HudScaleLayout((int)size.X, (int)size.Y, percent).EffectivePercent;
     }
-
-    /// <summary>A key's name for the controls settings page, which is not wired yet (no options controller).</summary>
-    private static string KeyName(KeyScanCode scan) => scan.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private static void PageChanged(FrontEndPage page) => GD.Print("DK2.Godot front end: page ", page.ToString());
 

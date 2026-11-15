@@ -32,6 +32,12 @@ public sealed class ClassicHudControls
     /// panels draw (save, load, game options).</summary>
     public bool OptionsMenuVisible => OptionsVisible && OptionsPage != ClassicOptionsPage.Save
         && OptionsPage != ClassicOptionsPage.Load && !GameOptionsVisible;
+    /// <summary>The options menu's own page under the HUD's visibility: <see cref="OptionsMenuVisible"/> while the normal
+    /// HUD shows.</summary>
+    public bool OptionsMenuShown(HudVisibility hud) => hud.ShowNormalHud && OptionsMenuVisible;
+    /// <summary>The game options pages (<see cref="GameOptionsHud"/>) under the HUD's visibility: <see cref="GameOptionsVisible"/>
+    /// while the normal HUD shows.</summary>
+    public bool GameOptionsShown(HudVisibility hud) => hud.ShowNormalHud && GameOptionsVisible;
     /// <summary>A panel that holds the screen is open (the options menu or the full map): the other panels and the world
     /// take no ordinary input.</summary>
     public bool Modal => OptionsVisible || FullMapVisible;

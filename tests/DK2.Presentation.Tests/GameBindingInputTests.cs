@@ -75,4 +75,13 @@ public class GameBindingInputTests
         Assert.Equal(8, (int)ClassicHudAction.ZoomOut);
         Assert.NotEqual(ClassicHudAction.ShowObjective, ClassicHudAction.NavigatePortal);
     }
+
+    [Fact]
+    public void ItAnswersTheHeldModifiersAndAnyKeyPressedThisFrame()
+    {
+        var keys = new GameBindingInput(new GameSettings(), KeyModifiers.Shift | KeyModifiers.Alt, _ => true, s => s.Value == 0x30);
+        Assert.Equal(KeyModifiers.Shift | KeyModifiers.Alt, keys.Modifiers);
+        Assert.True(keys.KeyPressed(new KeyScanCode(0x30)));
+        Assert.False(keys.KeyPressed(new KeyScanCode(0x31)));
+    }
 }

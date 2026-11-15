@@ -332,4 +332,25 @@ public sealed class ClassicHudControlsTests
         controls.UpdateResult(new HudResultState(HasResult: true));
         Assert.False(controls.ShortcutContext(new HudVisibility(true, true), true, false).OrdinaryInput);   // input suppressed
     }
+
+    [Fact]
+    public void TheMenuPageAndTheGameOptionsPagesShowUnderTheNormalHudOnly()
+    {
+        var controls = new ClassicHudControls();
+        var shown = new HudVisibility(true, true);
+        Assert.False(controls.OptionsMenuShown(shown));
+        Assert.False(controls.GameOptionsShown(shown));
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.True(controls.OptionsMenuShown(shown));
+        Assert.True(controls.OptionsMenuShown(new HudVisibility(true, false)));   // input does not matter
+        Assert.False(controls.OptionsMenuShown(new HudVisibility(false, true)));  // a hidden HUD hides it
+        Assert.False(controls.GameOptionsShown(shown));
+        controls.Apply(ClassicHudAction.OpenGameOptions);
+        Assert.False(controls.OptionsMenuShown(shown));
+        Assert.True(controls.GameOptionsShown(shown));
+        Assert.True(controls.GameOptionsShown(new HudVisibility(true, false)));
+        Assert.False(controls.GameOptionsShown(new HudVisibility(false, true)));
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.False(controls.GameOptionsShown(shown));
+    }
 }

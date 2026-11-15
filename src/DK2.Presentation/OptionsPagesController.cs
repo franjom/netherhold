@@ -59,6 +59,18 @@ public sealed class OptionsPagesController
         }
         CapturingAction = null; return true;
     }
+    /// <summary>The adapters' poll while a key is captured: binds the first key that went down this frame that
+    /// <see cref="CaptureKey"/> takes with the held modifiers, trying keys in scan-code order (a lone modifier is refused,
+    /// so capture waits for the key it modifies). DK2's own order for two keys down in one frame is not known. Returns
+    /// whether one was bound.</summary>
+    public bool CapturePressedKey(GameBindingInput keys)
+    {
+        if (CapturingAction == null) return false;
+        KeyModifiers modifiers = keys.Modifiers;
+        for (int scan = 1; scan < 256; scan++)
+            if (keys.KeyPressed(new KeyScanCode(scan)) && CaptureKey(new KeyScanCode(scan), modifiers)) return true;
+        return false;
+    }
     public void CancelKeyCapture() => CapturingAction = null;
 
     /// <summary>The slider drag's test sounds (docs/research/sound-effects-interface.md section 4).</summary>

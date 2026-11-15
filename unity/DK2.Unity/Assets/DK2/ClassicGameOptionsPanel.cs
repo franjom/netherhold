@@ -27,7 +27,7 @@ namespace DK2.Unity
         {
             if (sources == null) throw new ArgumentNullException(nameof(sources));
             var assets = new InstallClassicOptionsAssets(sources);
-            _hud = new GameOptionsHud(model, assets.Text, assets.Font, scan => ClassicKeyBindings.Key(scan).ToString());
+            _hud = new GameOptionsHud(model, assets.Text, assets.Font, ClassicKeyNames.Name);
             Panel = ScriptableObject.CreateInstance<PanelSettings>();
             Panel.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
             Panel.scaleMode = PanelScaleMode.ConstantPixelSize; Panel.scale = 1; Panel.sortingOrder = 15;
@@ -76,10 +76,7 @@ namespace DK2.Unity
         /// <summary>Polls the keyboard while a key is being captured.</summary>
         public void PollKeyboard()
         {
-            if (!_hud.Visible || Model.Settings.CapturingAction == null) return;
-            foreach (KeyCode key in Enum.GetValues(typeof(KeyCode)))
-                if ((int)key < (int)KeyCode.Mouse0 && Input.GetKeyDown(key))
-                    Model.Settings.CaptureKey(ClassicKeyBindings.ScanCode(key), ClassicKeyBindings.Modifiers);
+            _hud.CaptureKey(ClassicKeyBindings.Read(Model.Settings.Current));
         }
         public void Draw()
         {

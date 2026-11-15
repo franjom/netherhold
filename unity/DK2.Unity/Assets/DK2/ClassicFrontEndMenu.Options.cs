@@ -16,9 +16,7 @@ namespace DK2.Unity
         {
             OptionsPagesController options = Model.Options;
             if (options == null || Model.Page != options.Page || options.CapturingAction == null) return;
-            foreach (KeyCode key in Enum.GetValues(typeof(KeyCode)))
-                if ((int)key < (int)KeyCode.Mouse0 && Input.GetKeyDown(key))
-                    options.CaptureKey(ClassicKeyBindings.ScanCode(key), ClassicKeyBindings.Modifiers);
+            options.CapturePressedKey(ClassicKeyBindings.Read(options.Current));
         }
     }
 }

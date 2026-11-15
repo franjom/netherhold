@@ -24,6 +24,10 @@ public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modi
 {
     public bool Held(GameAction action, bool exactModifiers = false) => Matches(action, held, exactModifiers);
     public bool Pressed(GameAction action) => Matches(action, pressed, exact: true);
+    /// <summary>Shift, Control and Alt as held now.</summary>
+    public KeyModifiers Modifiers => modifiers;
+    /// <summary>Whether a key went down this frame, whatever it is bound to.</summary>
+    public bool KeyPressed(KeyScanCode scan) => pressed(scan);
     private bool Matches(GameAction action, Func<KeyScanCode, bool> read, bool exact)
     {
         if (!KeyboardSetup.IsBuilt(action)) return false;

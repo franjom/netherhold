@@ -362,8 +362,8 @@ namespace DK2.Unity
             ApplyHudAction(shortcut);
             HudVisibility hud = CurrentHud;
             _bottomPanel?.SetVisibility(_hudControls.ModalInput(hud));
-            _optionsPanel?.SetVisible(hud.ShowNormalHud && _hudControls.OptionsMenuVisible);
-            _gameOptionsPanel?.Show(hud.ShowNormalHud && _hudControls.GameOptionsVisible);
+            _optionsPanel?.SetVisible(_hudControls.OptionsMenuShown(hud));
+            _gameOptionsPanel?.Show(_hudControls.GameOptionsShown(hud));
             _optionsPanel?.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
             _fullMap?.SetVisible(camera.ShowNormalHud && _hudControls.FullMapVisible);
             _queryPanel?.Draw(_queryView.Snapshot, hud, HudModal);

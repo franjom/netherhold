@@ -165,4 +165,51 @@ public sealed class GameOptionsHudTests
         Assert.False(hud.Hits(title.X + 1, title.Y + 1));
         Assert.False(hud.PointerDown(title.X + 1, title.Y + 1, 0));
     }
+
+    private static GameBindingInput Pressed(KeyModifiers modifiers, params int[] scans) =>
+        new(new GameSettings(), modifiers, _ => false, s => scans.Contains(s.Value));
+
+    [Fact]
+    public void ACapturingRowTakesThePressedKeyItAcceptsWithTheHeldModifiers()
+    {
+        (GameOptionsHud hud, OptionsPagesController settings) = Open();
+        Assert.False(hud.CaptureKey(Pressed(KeyModifiers.None, 0x30)));   // nothing is capturing
+        hud.Model.Navigate(InGameOptionsPage.Controls);
+        hud.Model.Navigate(InGameOptionsPage.Keyboard);
+        Assert.True(settings.BeginKeyCapture(GameAction.Heart));
+        Assert.False(hud.CaptureKey(Pressed(KeyModifiers.None)));         // no key went down
+        Assert.False(hud.CaptureKey(Pressed(KeyModifiers.Shift, 0x2A)));  // a lone modifier waits for its key
+        Assert.Equal(GameAction.Heart, settings.CapturingAction);
+        Assert.True(hud.CaptureKey(Pressed(KeyModifiers.Shift, 0x2A, 0x30)));
+        Assert.Null(settings.CapturingAction);
+        Assert.Equal(new GameKeyBinding(GameAction.Heart, 0x30, KeyModifiers.Shift), settings.Pending.Binding(GameAction.Heart));
+    }
+
+    /// <summary>Two keys down in one frame: the adapters try them in scan-code order. A (scan 0x1E) comes before Space
+    /// (0x39), where Unity's KeyCode order (Space 32, A 97) is the other way round. DK2's own order is not known: its key
+    /// capture (0x0042B770) is unread, and plausibly takes the keys in event order.</summary>
+    [Fact]
+    public void TwoKeysDownInOneFrameAreTriedInScanOrderAsDk2sOrderIsNotKnown()
+    {
+        (GameOptionsHud hud, OptionsPagesController settings) = Open();
+        hud.Model.Navigate(InGameOptionsPage.Controls);
+        hud.Model.Navigate(InGameOptionsPage.Keyboard);
+        Assert.True(settings.BeginKeyCapture(GameAction.Heart));
+        Assert.True(hud.CaptureKey(Pressed(KeyModifiers.None, 0x39, 0x1E)));
+        Assert.Equal(new GameKeyBinding(GameAction.Heart, 0x1E), settings.Pending.Binding(GameAction.Heart));
+    }
+
+    [Fact]
+    public void PagesNeverShownCaptureNoKey()
+    {
+        var controls = new ClassicHudControls(); controls.Apply(ClassicHudAction.ToggleOptions);
+        var settings = new OptionsPagesController(new GameSettings());
+        var model = new InGameOptionsController(controls, settings);
+        var hud = new GameOptionsHud(model, id => "AA", _ => Font, scan => "K" + scan.Value);
+        model.Open();   // the pages' model, without Show(true)
+        Assert.True(model.Navigate(InGameOptionsPage.Controls));
+        Assert.True(settings.BeginKeyCapture(GameAction.Heart));
+        Assert.False(hud.CaptureKey(Pressed(KeyModifiers.None, 0x30)));
+        Assert.Equal(GameAction.Heart, settings.CapturingAction);
+    }
 }

@@ -35,7 +35,7 @@ namespace DK2.Unity
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
             _hud = new FrontEndMenuHud(session, assets, percent => ClassicHudScaling.Layout(percent).EffectivePercent,
-                scan => ClassicKeyBindings.Key(scan).ToString(), campaign, options);
+                ClassicKeyNames.Name, campaign, options);
             _panel = ScriptableObject.CreateInstance<PanelSettings>();
             _panel.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
             _panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;

@@ -99,14 +99,40 @@ group 2 is a list to audit, not a finding.
       filling in its name, space, 2, Backspace, 3 giving "Mine run 3_", Back returning to the root with
       Save and Load enabled, and on the Load page "The save is truncated (byte 3)." clearing when a good
       save is selected; a real keyboard and mouse, Ctrl+letter, the wheel, the tick count while the page
-      is open and the Unity runtime are unverified). Godot opens the query panel on the viewer's first creature only with the
+      is open and the Unity runtime are unverified) and the Game Options pages (`ClassicGameOptionsPanel.cs` over
+      `GameOptionsHud`: the root, graphics, sound, controls and keyboard pages; hover and press; a slider drag
+      holds until the left button is released; Back and Continue; key capture through `ClassicKeyboard`, with
+      `capturingKey` now `_optionsPages.CapturingAction != null`; the settings persist through
+      `GameSettingsFile` to `user://game-settings.ini` (`%APPDATA%/Godot/app_userdata/DK2.Godot/`, never Unity's
+      file) or the file `--settings <file>` names, a failed load warning and using the defaults, a failed save
+      warning; `ApplySettings` sets the game speed, the key bindings and the HUD scale, and its panel list is the
+      twin of `DungeonRunner.ApplyHudScale`'s, so the two change together; moved into `DK2.Presentation` with
+      tests: `ClassicHudControls.OptionsMenuShown` and `GameOptionsShown`, `OptionsPagesController.CapturePressedKey`,
+      now the one key-capture loop for both adapters' front ends and in-game pages (it replaces Unity's two
+      `Enum.GetValues(KeyCode)` loops), `GameOptionsHud.CaptureKey`, `GameBindingInput.Modifiers` and `KeyPressed`,
+      and `ClassicKeyNames`, the one table of 99 key names, which equals Unity's `KeyCode.ToString()` names (a
+      script comparison found no difference), used by both front ends and `ClassicKeyBindings.Name`; they are not
+      DK2's own names, [Q857](research/open-questions.md); Godot's controls page now shows names instead of
+      numbers; the slider test sounds are dropped; when two keys go down in one frame during capture they are
+      tried in scan-code order, where Unity tried `KeyCode` order, and DK2's order is unknown (`0x0042B770` takes
+      one key and modifiers pair per call, and the path from the OS message is unread); Movie Maker probe
+      captures with synthesized input show all pages, master volume 25 after a click on the track, the Sniper row
+      capturing and then bound to J, `MasterVolume=25` and `Key.1=36,0` in the settings file, and Continue closing
+      the menu, matching the Unity HUD captures in `build/igo-154026` for layout, labels, tints and key names;
+      real input, hover lighting, slider drag motion, the key-list arrows and thumb, the settings IO fallback and
+      the Unity runtime are unverified; whether a wheel scroll ends a slider drag in DK2 is
+      [Q858](research/open-questions.md)). Not wired on the Game Options pages: sound volumes, switches, quality,
+      headphones and QSound (no sound player), gamma, shadows, water and environment mapping (no 3D renderer),
+      scroll speed, mouse sensitivity and invert (no camera or possession); their values change and nothing acts
+      on them. `_Ready` reads the saved settings, so a Movie Maker capture recipe passes `--settings <temp file>`
+      for repeatable frames. Godot opens the query panel on the viewer's first creature only with the
       test-scene argument `--query-first-creature`, as it has no world picking yet, and
       the battle tab with `--stage-battle`, which spawns a hero Knight on the tile of the viewer's
       first creature, Level1 having no early fight. Not wired in Godot for the battle tab: the
       blades' zoom, the glides and the fly-in (need the camera). Godot opens the options menu at
-      start with the test-scene argument `--open-options [Entry]`, which refuses an unsupported
-      entry (Game Options only; `Save` and `Load` open their pages), and lists saves from the directory
-      `--saves <dir>` names. Not wired on the save and load pages: the submit, that is writing or
+      start with the test-scene argument `--open-options [Entry]`, which refuses an entry the menu does
+      not support (`GameOptions`, `Save` and `Load` open their pages), lists saves from the directory
+      `--saves <dir>` names, and reads the settings from the file `--settings <file>` names. Not wired on the save and load pages: the submit, that is writing or
       loading a save (Godot prints that the page's submit is not wired; it needs the runner's campaign
       profile, `LoadFrontEndProfile`, and `ApplyCampaignCarry` with `_playedSlot`, the session mode and
       the return page, and a save built from a made-up profile would be harmful, since Unity's
@@ -114,18 +140,15 @@ group 2 is a list to audit, not a finding.
       lists `user://Saves`, `%APPDATA%/Godot/app_userdata/DK2.Godot/Saves`, not created at startup, which
       is not Unity's `persistentDataPath/Saves`, so Unity's saves are not listed); the open and close
       sounds; and `PointerOverHud` leaves the save page out, as in Unity, so tooltips from panels
-      beneath it may show (see [Q855](research/open-questions.md)). Not wired in the options menu: Game
-      Options (greyed; the later panel `ClassicGameOptionsPanel`); the session action after Yes on
+      beneath it may show (see [Q855](research/open-questions.md)). Not wired in the options menu: the session action after Yes on
       Restart, Return to Menu and Quit, taken and dropped with a `GD.Print` because it needs the
       runner (step 2); the other HUD keys (GUI toggle, full map, heart, portal and fight
       navigation); `AllowOptionsKey`, passed true, where Unity's scripted camera path holds the key
-      back (step 2); `capturingKey`, passed false until the controls page; the settings file, so
-      the default bindings apply; the open and close sounds 0x139 and 0x13A; and the minimap corner
+      back (step 2); the open and close sounds 0x139 and 0x13A; and the minimap corner
       button that opens the menu in DK2 and Unity, the minimap not being ported. Not wired in
       Godot: sound and
       speech, the Level6a torture-speech sink, the goto camera glide,
-      scripted-view visibility (step 2). Remaining: `ClassicGameOptionsPanel`,
-      `ClassicFullMap`, `DungeonMinimap`,
+      scripted-view visibility (step 2). Remaining: `ClassicFullMap`, `DungeonMinimap`,
       `ClassicHudScaling`, `ClassicBitmapText`, `MinimapFrameVisual`.
       The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
       every Unity panel uses it (the hover HUD still sizes from

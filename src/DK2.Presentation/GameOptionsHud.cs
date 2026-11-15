@@ -265,6 +265,10 @@ public sealed class GameOptionsHud
         return true;
     }
 
+    /// <summary>While the pages show, binds this frame's key to the row being captured
+    /// (<see cref="OptionsPagesController.CapturePressedKey"/>). Returns whether one was bound.</summary>
+    public bool CaptureKey(GameBindingInput keys) => _visible && Model.Settings.CapturePressedKey(keys);
+
     /// <summary>A held slider follows the pointer; the key list's held thumb drags the list.</summary>
     public void PointerMove(float x, float y)
     {
