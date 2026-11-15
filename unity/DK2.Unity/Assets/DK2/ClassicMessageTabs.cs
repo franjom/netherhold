@@ -24,7 +24,6 @@ namespace DK2.Unity
         private bool _optionsOpen;
         public int UiScale { get; set; } = 100;
         private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(_optionsOpen ? 100 : UiScale);
-        private HudScreen Screen => new HudScreen(Mathf.RoundToInt(ScaleLayout.LogicalWidth), UnityEngine.Screen.height);
 
         /// <param name="resolve">A message string reference to its text (Speech.str, level table, Text.str).</param>
         /// <param name="briefing">A line of the level's briefing table, or null.</param>
@@ -81,7 +80,7 @@ namespace DK2.Unity
             HudScaleLayout layout = ScaleLayout;
             ClassicHudScaling.Apply(_settings, _root, layout, true);
             _root.style.display = visibility.ShowNormalHud ? DisplayStyle.Flex : DisplayStyle.None;
-            HudScreen screen = Screen;
+            HudScreen screen = layout.Screen;
             Vector2 pointer = _canvas.WorldToLocal(ClassicHudScaling.PanelPointer(_root, Input.mousePosition, screen.Height)) / screen.Scale;
             _frame.Clear();
             _hud.Build(screen, UnityEngine.Screen.width, visibility, collapsed, indicators,

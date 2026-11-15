@@ -134,15 +134,20 @@ These are entry points, not a new priority order.
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
 - Godot adapter (ADR-0805, ADR-0810): not wired are the 3D station scenery, movies, sound and keyboard.
   The road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md); its step 1a is
-  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them). Step 1b has two
-  panels: the in-game bottom panel and the resource strip (`ClassicResourceHud` over `KeeperResourceHud`) run over a live
+  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them). Step 1b has three
+  panels: the in-game bottom panel, the resource strip (`ClassicResourceHud` over `KeeperResourceHud`) and the message tabs
+  (`ClassicMessageTabs` over `MessageTabsHud`) run over a live
   Level1 simulation in the test scene `godot/DK2.Godot/InGameHud.tscn` (`InGameHud`, `ClassicBottomPanel`; the main menu
-  stays the default scene). The strip matched a Unity capture by eye at 1920x1080. Their shared logic (`InstallBottomPanelArt`,
-  `BottomPanelHud.OpenAtLevelStart`, `PlayerInputTranslator.ChooseStoredSpecial`, `TickPacer`, `CampaignLevelData`, `HudScaleLayout.Screen`) lives in
+  stays the default scene). The strip matched a Unity capture by eye at 1920x1080; the open message panel matches Unity's probe capture. Their shared logic (`InstallBottomPanelArt`,
+  `BottomPanelHud.OpenAtLevelStart`, `PlayerInputTranslator.ChooseStoredSpecial`, `TickPacer`, `CampaignLevelData`, `HudScaleLayout.Screen`,
+  `MessageTextTables`, `PlayerNames`, `MessageTabsView.LocationOncePerTick`) lives in
   `DK2.Presentation`. `HudSector` (triangle fan) and additive blend both draw in Godot (research-pie sweep 1..99% and
   additive hover and sparkles captured); no Unity hover or sparkle capture exists to compare pixels. Not wired in Godot,
   still Unity runner logic (plan step 2): HUD hiding during the opening camera path, the resource flash, the flash-button hint, the tool state
-  after choosing a panel slot, right-click navigation (needs a camera). Next: the remaining group-1 panels, one per change.
+  after choosing a panel slot, right-click navigation (needs a camera); for the tabs also sound and speech, the Level6a torture-speech
+  sink, the goto camera glide and the tabs inside `HudModal`/options. Known bug in both adapters' `MessageTextTables`: the briefing file
+  name for secret levels and My Pet Dungeon is wrong, so their objective panels show no briefing lines ([Q854](research/open-questions.md);
+  fix in plan step 1c). Next: the remaining group-1 panels, one per change.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)

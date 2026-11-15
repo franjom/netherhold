@@ -6,7 +6,7 @@
 # on purpose: Godot AI's dock registers Claude Code against the editor's working directory, so a
 # 'local'-scope entry lands on this repository and not on godot/DK2.Godot.
 # Extra arguments go to Godot, e.g. -Console --headless --import, or -Console --headless --build-solutions --quit.
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [string] $InstallRoot = $(if ($env:DK2_GODOT_ROOT) { $env:DK2_GODOT_ROOT } else { Join-Path $env:LOCALAPPDATA 'Programs\Godot' }),
     # Use the console build: waits for exit and prints to this terminal (scripted and headless runs).

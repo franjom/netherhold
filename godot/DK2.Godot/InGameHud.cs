@@ -16,9 +16,10 @@ namespace DK2.GodotAdapter;
 /// <summary>Scene root of <c>InGameHud.tscn</c>: a campaign level started as Unity's <c>DungeonRunner</c> starts one
 /// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
 /// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported so far
-/// (migration plan step 1b): the resource strip and the bottom panel. Not wired, because their logic is still Unity's
-/// runner (plan step 2): driving the shared <c>ScriptedViewDirector</c> (the level's opening camera path, HUD hiding,
-/// FLASH_BUTTON, the resource flash), the tool a selection sets, camera glides for room, door and trap navigation, and sound. User arguments after <c>--</c>:
+/// (migration plan step 1b): the resource strip, the bottom panel and the message tabs. Not wired, because their logic is
+/// still Unity's runner (plan step 2): driving the shared <c>ScriptedViewDirector</c> (the level's opening camera path, HUD
+/// hiding, FLASH_BUTTON, the resource flash), the tool a selection sets, camera glides for room, door and trap navigation
+/// and for a message's goto button, the options menu's effect on the tabs, and sound. User arguments after <c>--</c>:
 /// <c>--level &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>.</summary>
 public partial class InGameHud : Node
 {
@@ -39,6 +40,8 @@ public partial class InGameHud : Node
     private ClassicResourceHud? _resources;
     private ClassicBottomPanel? _panel;
     private BottomPanelHud? _model;
+    private MessageTabsView? _messageView;
+    private ClassicMessageTabs? _messages;
     private double _elapsed;
 
     public override void _Ready()
@@ -74,6 +77,18 @@ public partial class InGameHud : Node
         _model.Selected += SelectPanelChoice;
         _model.SpecialChosen += ActivateStoredSpecial;
         _model.GuiButton += PostGuiButton;
+        // Added after the panel, so it draws over it and takes the mouse first, as Unity's sorting order 14 over 12.
+        _messageView = new MessageTabsView(_viewer, level.Database);
+        var messageText = new MessageTextTables(_sources, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning));
+        InstallHudSources sources = _sources;
+        GameSimulation simulation = _simulation;
+        MessageTabsView messageView = _messageView;
+        _messages = new ClassicMessageTabs { Name = "MessageTabs" };
+        // No camera yet: the goto button shows for a message with a location, as in Unity, but moves nothing.
+        _messages.Open(_art, _art.Font, _messageView,
+            messageText.Resolve, messageText.Briefing, message => messageView.LocationOncePerTick(simulation.World, message),
+            goTo: null, PlayerNames.From(level.Players));
+        AddChild(_messages);
         for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture));
     }
@@ -81,7 +96,7 @@ public partial class InGameHud : Node
     public override void _Process(double delta)
     {
         if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
-            || _resources == null) return;
+            || _resources == null || _messageView == null || _messages == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
@@ -90,8 +105,12 @@ public partial class InGameHud : Node
         _resources.Draw(_resourceView.Capture(_simulation.World), unchecked((uint)milliseconds));
         _view.Capture(_simulation.World);
         _panel.Draw(milliseconds);
+        _messageView.Capture(_simulation.World, milliseconds);
         // No sound player yet: drop the requests so they do not pile up.
-        _model.Sounds.Clear(); _view.Sounds.Clear();
+        _model.Sounds.Clear(); _view.Sounds.Clear(); _messageView.Sounds.Clear(); _messageView.Speech.Clear();
+        // Visible and taking input: the scripted view and the options menu that would hide or hold the tabs are not wired.
+        _messages.Draw(new HudVisibility(true, true), _model.Collapsed,
+            HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer));
 
         // Clamped as Unity's runner clamps it (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap.
         _pacer.Accrue(Math.Min(delta, MaximumFrameSeconds), 1f, _gameSpeed);
@@ -132,6 +151,6 @@ public partial class InGameHud : Node
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
         }
         _art?.Dispose(); _sources?.Dispose();
-        _panel = null; _model = null; _view = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;
+        _panel = null; _model = null; _view = null; _messages = null; _messageView = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;
     }
 }

@@ -64,9 +64,6 @@ namespace DK2.Unity
         private readonly System.Random _flyInRandom = new System.Random(1);
         private int _flyInEntries;
         private bool _tabletArtTried;
-        private uint _gotoMessage;
-        private GameTick _gotoTick;
-        private (float X, float Y)? _gotoLocation;
 
         private HudVisibility CurrentHud => _hudWarmFrames > 0
             ? new HudVisibility(ShowNormalHud: true, AllowOrdinaryInput: false)
@@ -144,7 +141,7 @@ namespace DK2.Unity
             _startup.Step("hud.options");
             _fullMap = new ClassicFullMap(transform, _minimap);
             _fullMap.SetLegendAssets(new InstallClassicOptionsAssets(_hudSources),
-                PlayerNames(campaignLevel ? GameDatabaseLoader.LoadCampaignPlayers(install, levelName) : null),
+                PlayerNames.From(campaignLevel ? GameDatabaseLoader.LoadCampaignPlayers(install, levelName) : null),
                 new InstallClassicResourceAssets(_hudSources));
             _startup.Step("hud.fullmap");
             _identityNames = new InstallClassicCreatureNames(install);
@@ -157,59 +154,18 @@ namespace DK2.Unity
             _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources), _installArt, _classic);
             _startup.Step("hud.flowers");
             // Reuse the model already observing events before the initial simulation tick.
-            Dk2StringTable speech = OpenText(Path.Combine(_hudSources.TextDirectory, "Speech.str"));
-            string levelFile = LevelTextTable.FileName(database.Level?.TextTableId ?? 0);
-            Dk2StringTable level = levelFile == null ? null : OpenText(Path.Combine(_hudSources.TextDirectory, levelFile));
-            Dk2StringTable briefing = levelFile == null ? null
-                : OpenText(Path.Combine(_hudSources.TextDirectory, Path.GetFileNameWithoutExtension(levelFile) + "_BRIEFING.str"));
+            var messageText = new MessageTextTables(_hudSources, database.Level?.TextTableId ?? 0, Debug.LogWarning);
             _messageTabs = new ClassicMessageTabs(transform, bottomAssets, new InstallClassicOptionsAssets(_hudSources), _messageView,
-                reference => MessageText(reference, speech, _hudStrings, level),
-                line => briefing != null && briefing.TryResolve((uint)line, out string text) ? text : null,
-                message =>
-                {
-                    // Once a tick: a room's location is a flood fill (RoomIndex.RoomAt).
-                    GameTick tick = World.CurrentTick;
-                    if (_gotoMessage != message.Id || _gotoTick != tick)
-                        (_gotoMessage, _gotoTick, _gotoLocation) = (message.Id, tick, _messageView.Location(World, message));
-                    return _gotoLocation;
-                },
+                messageText.Resolve, messageText.Briefing,
+                message => _messageView.LocationOncePerTick(World, message),
                 // 0x00415B30 submits game action 4 with the point's tile (x >> 12, y >> 12): the focus
                 // glides to that tile's centre (0x00442650), as room navigation does. x and y are tiles;
                 // DK2 first drops an off-map point (World_ContainsPosition), ours clamps in StartGlide.
                 (x, y) => StartGlide(new TilePos((int)Math.Floor(x), (int)Math.Floor(y))),
-                PlayerNames(campaignLevel ? GameDatabaseLoader.LoadCampaignPlayers(install, levelName) : null));
+                PlayerNames.From(campaignLevel ? GameDatabaseLoader.LoadCampaignPlayers(install, levelName) : null));
             _startup.Step("hud.messages");
             _battleTab = new ClassicBattleTab(transform, bottomAssets);
             _battleTab.Clicked += BattleTabClicked;
-        }
-
-        /// <summary>Player <c>+0xEEA</c>, the name the Current Holder box shows: the level's Players
-        /// record name, or DK2's own "Good Player" / "Neutral Player" (0x006A6D50, 0x006A6D68) when
-        /// that is empty, by the record's kind (0x0051EFE0: 1 good, 2 neutral), else "Keeper %d" with
-        /// its Number (0x0051F0B0, 0x006A6D88), which a level load sets to the id. STRONGLY INFERRED.</summary>
-        private static Func<byte, string> PlayerNames(List<PlayerDef> players)
-        {
-            var names = new Dictionary<byte, string>();
-            if (players != null)
-                foreach (PlayerDef player in players)
-                    if (!string.IsNullOrEmpty(player.Name)) names[player.PlayerId] = player.Name;
-            return id => names.TryGetValue(id, out string name) ? name
-                : id == PlayerIds.Good ? "Good Player" : id == PlayerIds.Neutral ? "Neutral Player" : "Keeper " + id;
-        }
-
-        private static Dk2StringTable OpenText(string path)
-        {
-            try { return File.Exists(path) ? Dk2StringTable.Open(path) : null; }
-            catch (Exception ex) { Debug.LogWarning($"{Path.GetFileName(path)} unavailable: {ex.Message}"); return null; }
-        }
-
-        /// <summary>A message string reference (0x004C51D0): below -10000 Speech.str entry -10000 - ref,
-        /// -128..-1 the level's table entry -1 - ref, a positive one Text.str.</summary>
-        private static string MessageText(int reference, Dk2StringTable speech, Dk2StringTable text, Dk2StringTable level)
-        {
-            Dk2StringTable table = reference < -10000 ? speech : reference < 0 ? level : reference > 0 ? text : null;
-            uint id = reference < -10000 ? (uint)(-10000 - reference) : reference < 0 ? (uint)(-1 - reference) : (uint)reference;
-            return table != null && table.TryResolve(id, out string value) ? value : null;
         }
 
         /// <summary>Captures the flowers from the settled world (before the worker tick starts) and

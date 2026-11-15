@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel and the resource strip are done; the other group-1 panels remain.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel, the resource strip and the message tabs are done; the other group-1 panels remain.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -38,18 +38,28 @@ group 2 is a list to audit, not a finding.
       Unity probe capture of the same state. Done: the bottom panel (`InGameHud.tscn`,
       `ClassicBottomPanel.cs`; `HudSector` and additive blend both draw in Godot) and the resource
       strip (`ClassicResourceHud.cs`; mana rising once per simulated second, strip matches a Unity
-      capture by eye). Remaining: `ClassicMessageTabs`, `ClassicHoverHud`, `ClassicCreatureQueryPanel`,
+      capture by eye) and the message tabs (`ClassicMessageTabs.cs`: tabs sliding in, message panel,
+      Review Objective panel, right-click dismiss; the open panel matches Unity's probe capture at
+      1920x1080; `PlayerNames`, `MessageTextTables` and `MessageTabsView.LocationOncePerTick` moved
+      from Unity's `DungeonRunner.Hud.cs` into `DK2.Presentation`). Not wired in Godot: sound and
+      speech, the Level6a torture-speech sink, the goto camera glide, the tabs inside
+      `HudModal`/options, scripted-view visibility (step 2). A status line needs the tabs'
+      `HoverText`. Remaining: `ClassicHoverHud`, `ClassicCreatureQueryPanel`,
       `ClassicCreatureOverview`, `ClassicOptionsPanel`, `ClassicGameOptionsPanel`,
       `ClassicSaveLoadPanel`, `ClassicBattleTab`, `ClassicFullMap`, `DungeonMinimap`,
       `ClassicHudScaling`, `ClassicBitmapText`, `ClassicCreatureNames`, `MinimapFrameVisual`.
-      Before the message-tabs and full-map panels, move the `PlayerNames` and `MessageText`
-      helpers from `DungeonRunner.Hud.cs` into `DK2.Presentation`. The screen-size rule (rounded
-      logical width over full height) is now `HudScaleLayout.Screen`; Unity's
-      `ClassicCreatureOverview`, `ClassicCreatureQueryPanel`, `ClassicHoverHud` and
-      `ClassicMessageTabs` still repeat it inline and switch to `layout.Screen` when ported.
+      The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
+      Unity's `ClassicMessageTabs` uses it, `ClassicCreatureOverview`, `ClassicCreatureQueryPanel` and
+      `ClassicHoverHud` still repeat it inline and switch to `layout.Screen` when ported.
 - [ ] 1c. Fix `FrontEndMenuController.UpdatePointer` (`DK2.Presentation`), which allocates (LINQ
       `First`) on every hovered frame. Also `KeeperResourceView.Capture` (`DK2.Presentation`, shared
-      with Unity), which allocates two `int[]` per tick.
+      with Unity), which allocates two `int[]` per tick. Also `MessageTextTables`
+      (`DK2.Presentation`, a pure move from Unity, so both adapters have it): it builds the briefing
+      file name from the level table's rule (`SECRET1_BRIEFING.str`, `MYPETDUNGEON_BRIEFING.str`,
+      absent from the install), where `DKII.EXE`'s 0x00553800 table gives `LEVELS1_BRIEFING.str`,
+      `LEVELMPD1_BRIEFING.str` and so on; secret-level and My Pet Dungeon objective panels show no
+      briefing lines. Use `BriefingTextTable.FileName`, as `CampaignBriefingLoader` does
+      ([Q854](research/open-questions.md)).
 
 ## Step 2: move game-flow logic out of Unity
 

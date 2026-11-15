@@ -8,14 +8,18 @@ movies, sound and keyboard; the model disables the campaign, save and movie butt
 pages open but their controls are inert. Like Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
-Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Two panels
+Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Three panels
 are there so far: the resource strip at the top left (`ClassicResourceHud` over `KeeperResourceHud`, fed by
-`KeeperResourceView`: mana with its income and upkeep, gold, the Heart and payday gauges), which takes no input, and the
-bottom panel (`ClassicBottomPanel` over `BottomPanelHud`), whose clicks post the commands Unity's do. The level's
-scripted view (the shared `ScriptedViewDirector`: opening camera path, HUD hiding, FLASH_BUTTON, the resource flash),
-the tool a selection sets, camera glides and sound are not wired, because the code that drives them is still in Unity's
-runner (plan step 2). The level start (`CampaignLevelData`), tick
-pacing (`TickPacer`), the panel's opening state and the stored-special click are shared with Unity in `DK2.Presentation`. Run it by naming the scene, with
+`KeeperResourceView`: mana with its income and upkeep, gold, the Heart and payday gauges), which takes no input; the
+bottom panel (`ClassicBottomPanel` over `BottomPanelHud`), whose clicks post the commands Unity's do; and the message
+tabs above it (`ClassicMessageTabs` over `MessageTabsHud` and `MessageTabsView`: the level's messages sliding in, a left
+click opening one in the message panel, a right click dismissing it, the Review Objective button's objective panel, the
+level's indicators). The level's scripted view (the shared `ScriptedViewDirector`: opening camera path, HUD hiding,
+FLASH_BUTTON, the resource flash), the tool a selection sets, camera glides (a message's goto button shows but moves
+nothing), the options menu and sound are not wired, because the code that drives them is still in Unity's runner (plan
+step 2). The level start (`CampaignLevelData`), tick pacing (`TickPacer`), the panel's opening state, the stored-special
+click, the message string tables (`MessageTextTables`) and player names (`PlayerNames`) are shared with Unity in
+`DK2.Presentation`. Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
@@ -30,6 +34,7 @@ Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agent
 | `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level, no 3D world (see above) |
 | `DK2.Godot/ClassicResourceHud.cs` | the keeper's resource strip: `KeeperResourceHud` drawn by `HudCanvas`, top-docked, no input |
 | `DK2.Godot/ClassicBottomPanel.cs` | the keeper's bottom panel: `BottomPanelHud` drawn by `HudCanvas`, mouse forwarded |
+| `DK2.Godot/ClassicMessageTabs.cs` | the message tabs, message and objective panels, indicators: `MessageTabsHud` drawn by `HudCanvas`, bottom-docked, mouse forwarded |
 | `DK2.Godot/HudCanvas*.cs` | the one `HudFrame` renderer every panel draws through |
 
 ## Setting up a machine
