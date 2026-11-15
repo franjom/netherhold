@@ -145,7 +145,7 @@ uses DK2's own bitmap font from the install.
 - [Architecture](docs/ARCHITECTURE.md): simulation, data, assets, AI and presentation boundaries.
 - [Research status](docs/RESEARCH_STATUS.md) and [experiments](docs/EXPERIMENTS.md): evidence and fidelity coverage.
 - [Decisions](docs/DECISIONS.md): architectural and behavioral choices.
-- [Godot project](godot/README.md): the Godot adapter's toolchain (a bootstrap scene so far).
+- [Godot project](godot/README.md): the Godot adapter's toolchain and its classic front-end menu.
 - [Command-line tools](src/DK2.Tools/README.md): data inspection, conversion and repository checks.
 - [Contributor instructions](AGENTS.md): research rules, documentation budgets and evidence storage.
 - [Art direction](docs/ART_DIRECTION.md) and [asset pipeline](docs/ASSET_PIPELINE.md): visual fidelity and asset work.

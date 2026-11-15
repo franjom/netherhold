@@ -122,7 +122,8 @@ namespace DK2.Unity.Editor
         private static void CheckFrontEnd()
         {
             var simulation = (GameSimulation)Field("_simulation").GetValue(_runner);
-            if (simulation.World.CurrentTick.Value != 0 || Field("_hudSources").GetValue(_runner) != null
+            // The front end builds the HUD sources for its save list (InitializeSaves); the gameplay HUD is the bottom panel.
+            if (simulation.World.CurrentTick.Value != 0 || Field("_bottomPanel").GetValue(_runner) != null
                 || _runner.SessionMode != GameSessionMode.FrontEnd) throw new Exception("Front end ticked or created gameplay HUD.");
             if (UnityEngine.Object.FindObjectsByType<DungeonRunner>(FindObjectsSortMode.None).Length != 1)
                 throw new Exception("Multiple active runners survived switching.");

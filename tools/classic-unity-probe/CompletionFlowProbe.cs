@@ -136,7 +136,20 @@ namespace DK2.Unity.Editor
                 if (EditorApplication.timeSinceStartup > _deadline) throw new Exception("Completion probe total deadline reached.");
                 if (_unexpectedLog != null) throw new Exception("Unexpected runtime/editor product error: " + _unexpectedLog);
                 if (!Ready()) return;
-                if (_flow == null) _flow = Flow().GetEnumerator();
+                if (_flow == null) { _flow = Flow().GetEnumerator(); _pendingClicks.Clear(); }
+                // A menu click's clip decodes on a worker and plays when ready (ClassicSoundPlayer.PlayDecoded); its
+                // check waits for it here, before any later gate, instead of racing the decode where it was asked.
+                if (_pendingClicks.Count > 0)
+                {
+                    AudioSource played = Effects().LastOrDefault(source => source.clip != null);
+                    if (played == null)
+                    {
+                        if (Now - _pendingSince > 5) throw new Exception(string.Join(", ", _pendingClicks) + " clip never decoded.");
+                        return;
+                    }
+                    foreach (string click in _pendingClicks) CheckClip(played, click);
+                    _pendingClicks.Clear();
+                }
                 if (_gate == null)
                 {
                     if (!_flow.MoveNext()) { Finish(true, "All scheduled runtime checks completed."); return; }
@@ -306,7 +319,7 @@ namespace DK2.Unity.Editor
             ResetAttract(); Require(_runner.FrontEndMenu.Model.Activate(new FrontEndWidgetId((ushort)id)), "Menu refused widget" + id);
             int sounds = _runner.FrontEndMenu.Model.Sounds.Pending.Count;
             _runner.SoundPlayer.Play(_runner.FrontEndMenu.Model.Sounds);
-            if (sounds > 0) CheckClip(Effects().Last(source => source.clip != null), "menu-click-" + id);
+            if (sounds > 0) { if (_pendingClicks.Count == 0) _pendingSince = Now; _pendingClicks.Add("menu-click-" + id); }
             Observe("fixture", "menu-action-" + id, "Real model Activate and SoundPlayer request consumer; sound requests=" + sounds + "; no OS input.");
         }
         private static void Select(CampaignSlot slot) { ResetAttract(); Require(_runner.CampaignMap.Select(slot), "Map selection refused " + slot); }
@@ -348,6 +361,8 @@ namespace DK2.Unity.Editor
             else Require(request != ClassicSessionAction.Quit, "Probe never confirms application Quit.");
             Observe("fixture", "queued-session-consumer", "Consumed " + request + " and selected the same pending request as the host mouse-click arm; not physical UI input.");
         }
+        private static readonly List<string> _pendingClicks = new List<string>();
+        private static double _pendingSince;
         private static List<AudioSource> Effects() => Field<List<AudioSource>>(_runner.SoundPlayer, "_effects");
         private static void CheckEffect(string name, float volume)
         { var source = Effects().Last(item => item.clip != null); CheckClip(source, name); Require(Math.Abs(source.volume - volume) < .001f, "Effect source volume mismatch."); }
