@@ -17,13 +17,14 @@ namespace DK2.GodotAdapter;
 /// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
 /// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported so far
 /// (migration plan step 1b): the resource strip, the bottom panel, the creature overview in its Creatures panel, the
-/// message tabs and the hover HUD, whose status line and tooltip show what <see cref="HudHoverText"/> picks from the
-/// panels under the pointer. Not wired, because their logic is still Unity's runner (plan step 2) or needs the 3D world
-/// (step 3): the overview's pickup (the hand) and focus (the camera), driving the shared
-/// <c>ScriptedViewDirector</c> (the level's opening camera path, HUD hiding, FLASH_BUTTON, the resource flash), the tool a
-/// selection sets, camera glides for room, door and trap navigation and for a message's goto button, the options menu's
-/// effect on the tabs, sound, world hover (things and tiles under the pointer) and the hand cursor. User arguments after
-/// <c>--</c>: <c>--level &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>.</summary>
+/// creature query details, the message tabs and the hover HUD (status line and tooltip from <see cref="HudHoverText"/>).
+/// Not wired, because their logic is still Unity's runner (plan step 2) or needs the 3D world (step 3): the overview's
+/// pickup (the hand) and focus (the camera), the query tool (world click, cancels, the camera following and turning to
+/// it), driving the shared <c>ScriptedViewDirector</c> (the level's opening camera path, HUD hiding, FLASH_BUTTON, the
+/// resource flash), the tool a selection sets, camera glides for room, door and trap navigation and for a message's
+/// goto button, the options menu's effect on the tabs, sound, world hover (things and tiles) and the hand cursor. User
+/// arguments after <c>--</c>: <c>--level &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>, and <c>--query-first-creature</c>
+/// (stands in for the query tool's world click: queries the viewer's first owned creature).</summary>
 public partial class InGameHud : Node, IHudHoverSources
 {
     /// <summary>DungeonRunner's <c>maxTicksPerFrame</c> in the Dungeon scene.</summary>
@@ -49,6 +50,8 @@ public partial class InGameHud : Node, IHudHoverSources
     private HudHoverText? _hudHover;
     private CreatureOverview? _overviewView;
     private ClassicCreatureOverview? _overview;
+    private CreatureQueryView? _queryView;
+    private ClassicCreatureQueryPanel? _queryPanel;
     /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
     private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
@@ -103,6 +106,11 @@ public partial class InGameHud : Node, IHudHoverSources
         // Its Requested (a pickup or a focus) is not handled: the hand and the camera are not ported.
         _overview.Open(overviewArt, _overviewView);
         AddChild(_overview);
+        // Unity gives it the overview's sorting order 13 and creates it after the overview; added after it here.
+        _queryView = new CreatureQueryView(level.Database, _sources.Strings.Resolve, _viewer, new InstallClassicCreatureNames(install));
+        _queryPanel = new ClassicCreatureQueryPanel { Name = "CreatureQuery" };
+        _queryPanel.Open(_art.Font, _sources.Texture);
+        AddChild(_queryPanel);
         // Added after the panel, so it draws over it and takes the mouse first, as Unity's sorting order 14 over 12.
         _messageView = new MessageTabsView(_viewer, level.Database);
         var messageText = new MessageTextTables(_sources, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning));
@@ -123,6 +131,12 @@ public partial class InGameHud : Node, IHudHoverSources
         // Unity's runner also passes the played campaign slot, which only world hover reads.
         _typeText = new WorldHoverText(level.Database, _sources.Strings.Resolve, _viewer);
         for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
+        if (Array.IndexOf(args, "--query-first-creature") >= 0)
+            foreach (CreatureState creature in _simulation.World.OwnedCreatures(_viewer))
+            {
+                _queryView.Query(new CreatureQueryTarget(creature.Id));
+                break;
+            }
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture));
     }
 
@@ -130,7 +144,7 @@ public partial class InGameHud : Node, IHudHoverSources
     {
         if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
             || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
-            || _overviewView == null || _overview == null) return;
+            || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
@@ -150,13 +164,15 @@ public partial class InGameHud : Node, IHudHoverSources
         // After the tabs, as DungeonRunner draws it; the options menu and full map that would close it are not wired.
         _overviewView.Capture(_simulation.World);
         _overview.Draw(visibility, _model.PanelArea(BottomPanelCategory.Creatures));
+        // Last, as DungeonRunner.DrawHudControls captures and draws it; HudModal, which would hide it, is not wired.
+        _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility);
         // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; elsewhere
         // nothing, because world hover needs the 3D world.
         _hover.SetVisibility(visibility, milliseconds);
         _pointer = GetViewport().GetMousePosition();
         bool inside = _pointerInWindow && GetViewport().GetVisibleRect().HasPoint(_pointer);
         bool allowed = visibility.AllowOrdinaryInput && GetWindow().HasFocus() && inside;
-        HoverTextSnapshot hover = allowed && PointerOverHud(_pointer) ? _hudHover.Capture(this, _resourceFacts) : HoverTextSnapshot.Empty;
+        HoverTextSnapshot hover = allowed && PointerOverHud(_pointer, visibility) ? _hudHover.Capture(this, _resourceFacts) : HoverTextSnapshot.Empty;
         _hover.Draw(hover, _pointer, _cursorReach, milliseconds);
 
         // Clamped as Unity's runner clamps it (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap.
@@ -167,11 +183,13 @@ public partial class InGameHud : Node, IHudHoverSources
         for (int i = 0; i < ticks; i++) _simulation.Tick(TickPacer.InputFor(i, first));
     }
 
-    /// <summary>DungeonRunner.SelectPanelChoice's pointer resets; the tool it then sets lives in the runner (plan step 2).</summary>
+    /// <summary>DungeonRunner.SelectPanelChoice's pointer resets and its query clear; the tool it then sets lives in the
+    /// runner (plan step 2).</summary>
     private void SelectPanelChoice(BottomPanelSelection selection)
     {
         _input.CancelPointerGesture();
         _input.CancelTool();
+        _queryView?.Clear();
     }
 
     /// <summary>A stored special's slot: action 88, or targeting with the panel back on the hand.</summary>
@@ -184,11 +202,13 @@ public partial class InGameHud : Node, IHudHoverSources
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
     /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap, the battle tab, the
-    /// creature query, the options and full map are not ported).</summary>
-    private bool PointerOverHud(Vector2 position) =>
+    /// options and full map are not ported).</summary>
+    private bool PointerOverHud(Vector2 position, HudVisibility visibility) =>
         (_hover != null && _hover.ContainsPointer(position)) || (_resources != null && _resources.ContainsPointer(position))
         || (_panel != null && _panel.ContainsPointer(position)) || (_messages != null && _messages.ContainsPointer(position))
-        || (_overview != null && _overview.ContainsPointer(position));
+        || (_overview != null && _overview.ContainsPointer(position))
+        || (_queryPanel != null && _queryView != null && _queryView.Target != CreatureQueryTarget.None
+            && _queryPanel.ContainsPointer(position, visibility));
 
     // The panels under the pointer for HudHoverText, answered as Unity's runner answers; the ones not ported give the
     // empty answer.
@@ -223,7 +243,7 @@ public partial class InGameHud : Node, IHudHoverSources
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
         }
         _art?.Dispose(); _sources?.Dispose();
-        _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null;
+        _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _queryPanel = null; _queryView = null;
         _panel = null; _model = null; _view = null; _messages = null; _messageView = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;
     }
 }

@@ -134,22 +134,22 @@ These are entry points, not a new priority order.
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
 - Godot adapter (ADR-0805, ADR-0810): not wired are the 3D station scenery, movies, sound and keyboard.
   The road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md); its step 1a is
-  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them). Step 1b has five
+  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them). Step 1b has six
   panels: the in-game bottom panel, the resource strip (`ClassicResourceHud` over `KeeperResourceHud`), the message tabs
   (`ClassicMessageTabs` over `MessageTabsHud`), the hover HUD (`ClassicHoverHud`: wooden bar, status line, tooltip) and the creature
-  overview (`ClassicCreatureOverview` over `CreatureOverviewHud`) run over a live
+  overview (`ClassicCreatureOverview` over `CreatureOverviewHud`) and the creature query details (`ClassicCreatureQueryPanel` over `CreatureQueryHud`) run over a live
   Level1 simulation in the test scene `godot/DK2.Godot/InGameHud.tscn` (`InGameHud`, `ClassicBottomPanel`; the main menu
   stays the default scene). The strip matched a Unity capture by eye at 1920x1080; the open message panel matches Unity's probe capture. Their shared logic (`InstallBottomPanelArt`,
   `BottomPanelHud.OpenAtLevelStart`, `PlayerInputTranslator.ChooseStoredSpecial`, `TickPacer`, `CampaignLevelData`, `HudScaleLayout.Screen`,
   `MessageTextTables`, `PlayerNames`, `MessageTabsView.LocationOncePerTick`, `HudHoverText`,
-  `InstallCreatureOverviewArt`, the overview's modifier chord in `CreatureOverviewHud.TryPress`) lives in
-  `DK2.Presentation`. Hover text from the strip, bottom panel and tabs shows in Godot (Movie Maker 1920x1080 frames: mana, gold, the Rooms tab, a Hatchery slot, Review Objective, a message tab); no Unity hover capture exists to compare. The overview's art and layout match Unity's 1024x768 capture by eye at 1920x1080; Movie Maker frames show the Imp portrait's status text, the Jobs selector's tooltip and a click switching to Jobs mode (its page strips look greyer than Unity's, probably the disabled tint for a single page at that width, unverified). `HudSector` (triangle fan) and additive blend both draw in Godot (research-pie sweep 1..99% and
+  `InstallCreatureOverviewArt`, the overview's modifier chord in `CreatureOverviewHud.TryPress`, `CreatureQueryView`, `InstallClassicCreatureNames`) lives in
+  `DK2.Presentation`. Hover text from the strip, bottom panel and tabs shows in Godot (Movie Maker 1920x1080 frames: mana, gold, the Rooms tab, a Hatchery slot, Review Objective, a message tab); no Unity hover capture exists to compare. The overview's art and layout match Unity's 1024x768 capture by eye at 1920x1080; Movie Maker frames show the Imp portrait's status text, the Jobs selector's tooltip and a click switching to Jobs mode (its page strips look greyer than Unity's, probably the disabled tint for a single page at that width, unverified). The query details show "Shintaro the Imp. Blood Group: BA. Current Wage: 0. Gold Held: 0." above the bottom panel in a Movie Maker frame (no Unity capture to compare); the scene opens them on the viewer's first creature only with `--query-first-creature`, since Godot has no world picking. `HudSector` (triangle fan) and additive blend both draw in Godot (research-pie sweep 1..99% and
   additive hover and sparkles captured); no Unity hover or sparkle capture exists to compare pixels. Not wired in Godot,
   still Unity runner logic (plan step 2): HUD hiding during the opening camera path, the resource flash, the flash-button hint, the tool state
   after choosing a panel slot, right-click navigation (needs a camera); for the tabs also sound and speech, the Level6a torture-speech
   sink, the goto camera glide and the tabs inside `HudModal`/options; for the hover HUD world hover (things and tiles, needs the world and a camera), the
   hand cursor's resolution (Godot uses the small pointing finger's reach, valid only while nothing is held), and the battle tab and
-  minimap hover text (they answer empty until ported); for the creature overview the pickup and focus a column press asks for (needs the hand, cursor feedback and camera). Known bug in both adapters' `MessageTextTables`: the briefing file
+  minimap hover text (they answer empty until ported); for the creature overview the pickup and focus a column press asks for (needs the hand, cursor feedback and camera); for the query details the query tool (world click, right-click and stored-special/gold cancels), the camera follow and turn, and `HudModal` hiding. Known bug in both adapters' `MessageTextTables`: the briefing file
   name for secret levels and My Pet Dungeon is wrong, so their objective panels show no briefing lines ([Q854](research/open-questions.md);
   fix in plan step 1c). Next: the remaining group-1 panels, one per change.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).

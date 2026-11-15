@@ -8,7 +8,7 @@ movies, sound and keyboard; the model disables the campaign, save and movie butt
 pages open but their controls are inert. Like Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
-Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Five panels
+Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Six panels
 are there so far: the hover HUD (`ClassicHoverHud` over `HoverHud`: the wooden bar under the other panels, the status
 line and the delayed tooltip over them), which shows what the shared `HudHoverText` picks from the panels under the
 pointer (the resource strip, the bottom panel, the creature overview, the message tabs; world hover needs the 3D world
@@ -19,7 +19,10 @@ bottom panel (`ClassicBottomPanel` over `BottomPanelHud`), whose clicks post the
 overview in its Creatures panel (`ClassicCreatureOverview` over `CreatureOverviewHud`, fed by `CreatureOverview` and
 `InstallCreatureOverviewArt`: the worker column and a column per owned type, counts by mode, the mode buttons and page
 strips, which change it; a press on a column or worker row raises the pickup or focus it asks for, which nothing handles
-yet, because the hand and the camera are not ported); and the message
+yet, because the hand and the camera are not ported); the creature query details (`ClassicCreatureQueryPanel` over
+`CreatureQueryHud`, fed by `CreatureQueryView`: the queried creature's text, with its inert scroll bar when the text is
+taller than the widget), which take no input; choosing a creature needs the query tool's world click, so the scene's `--query-first-creature` argument
+queries the viewer's first owned creature instead); and the message
 tabs above it (`ClassicMessageTabs` over `MessageTabsHud` and `MessageTabsView`: the level's messages sliding in, a left
 click opening one in the message panel, a right click dismissing it, the Review Objective button's objective panel, the
 level's indicators). The level's scripted view (the shared `ScriptedViewDirector`: opening camera path, HUD hiding,
@@ -27,10 +30,12 @@ FLASH_BUTTON, the resource flash), the tool a selection sets, camera glides (a m
 nothing), the options menu and sound are not wired, because the code that drives them is still in Unity's runner (plan
 step 2). The level start (`CampaignLevelData`), tick pacing (`TickPacer`), the panel's opening state, the stored-special
 click, the message string tables (`MessageTextTables`), player names (`PlayerNames`) and which panel's hover text wins
-(`HudHoverText`) and the creature overview's install art (`InstallCreatureOverviewArt`) are shared with Unity in
+(`HudHoverText`), the creature overview's install art (`InstallCreatureOverviewArt`), the query target and its details
+(`CreatureQueryView`) and the creature names it shows (`InstallClassicCreatureNames`) are shared with Unity in
 `DK2.Presentation`. Run it by naming the scene, with
 optional user arguments after `--`:
-`<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1).
+`<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
+`--query-first-creature` to show the query details).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
 
 | File | Role |
@@ -45,6 +50,7 @@ Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agent
 | `DK2.Godot/ClassicResourceHud.cs` | the keeper's resource strip: `KeeperResourceHud` drawn by `HudCanvas`, top-docked, no input |
 | `DK2.Godot/ClassicBottomPanel.cs` | the keeper's bottom panel: `BottomPanelHud` drawn by `HudCanvas`, mouse forwarded |
 | `DK2.Godot/ClassicCreatureOverview.cs` | the creature overview in the Creatures panel: `CreatureOverviewHud` drawn by `HudCanvas`, bottom-docked, presses forwarded without taking them from the panel |
+| `DK2.Godot/ClassicCreatureQueryPanel.cs` | the creature query details: `CreatureQueryHud` drawn by `HudCanvas`, bottom-docked, no input |
 | `DK2.Godot/ClassicMessageTabs.cs` | the message tabs, message and objective panels, indicators: `MessageTabsHud` drawn by `HudCanvas`, bottom-docked, mouse forwarded |
 | `DK2.Godot/HudCanvas*.cs` | the one `HudFrame` renderer every panel draws through |
 

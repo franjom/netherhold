@@ -1708,7 +1708,7 @@ namespace DK2.Unity
             || (_battleTab != null && _battleTab.ContainsPointer(position))
             || (_overviewPanel != null && _overviewPanel.ContainsPointer(position))
             || (_optionsPanel != null && _optionsPanel.ContainsPointer(position)) || _hudControls.FullMapVisible
-            || (_queryPanel != null && _queryTarget != CreatureQueryTarget.None && !HudModal
+            || (_queryPanel != null && _queryView.Target != CreatureQueryTarget.None && !HudModal
                 && _queryPanel.ContainsPointer(position, CurrentHud));
 
         /// <summary>The Hand's light follows the pick (0x0043B220, <see cref="ClassicPointLight.FromHand"/>).

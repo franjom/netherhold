@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel, the resource strip, the message tabs, the hover HUD and the creature overview are done; the other group-1 panels remain.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel, the resource strip, the message tabs, the hover HUD and the creature overview and the creature query details are done; the other group-1 panels remain.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -57,18 +57,25 @@ group 2 is a list to audit, not a finding.
       Unity's `CreatureOverviewAssets.cs` into `DK2.Presentation` with an `[InstallFact]` test, and
       `CreatureOverviewHud.TryPress` now takes raw shift/control/alt and decides the chord (Shift
       alone picks the lowest level, Ctrl alone the highest, otherwise a plain pickup) itself,
-      where Unity's `DungeonRunner.Hud.cs` and the Godot panel each had a copy). Not wired in
+      where Unity's `DungeonRunner.Hud.cs` and the Godot panel each had a copy) and the creature
+      query details (`ClassicCreatureQueryPanel.cs`: `CreatureQueryHud` drawn bottom-docked, no
+      input; the Movie Maker capture shows "Shintaro the Imp. Blood Group: BA. Current Wage: 0.
+      Gold Held: 0." above the bottom panel; no Unity capture of the panel exists to compare;
+      `ClassicCreatureNames` (`InstallClassicCreatureNames`) and `CreatureQueryView`, the query
+      target, its snapshot and the per-frame capture that were Unity runner fields, moved into
+      `DK2.Presentation` as pure moves with tests; both adapters clear the view when a bottom-panel
+      choice is selected). Godot opens the panel on the viewer's first creature only with the
+      test-scene argument `--query-first-creature`, as it has no world picking yet. Not wired in
       Godot: sound and
       speech, the Level6a torture-speech sink, the goto camera glide, the tabs inside
-      `HudModal`/options, scripted-view visibility (step 2). Remaining: `ClassicCreatureQueryPanel`,
-      `ClassicOptionsPanel`, `ClassicGameOptionsPanel`,
+      `HudModal`/options, scripted-view visibility (step 2). Remaining: `ClassicOptionsPanel`,
+      `ClassicGameOptionsPanel`,
       `ClassicSaveLoadPanel`, `ClassicBattleTab`, `ClassicFullMap`, `DungeonMinimap`,
-      `ClassicHudScaling`, `ClassicBitmapText`, `ClassicCreatureNames`, `MinimapFrameVisual`.
+      `ClassicHudScaling`, `ClassicBitmapText`, `MinimapFrameVisual`.
       The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
-      Unity's `ClassicMessageTabs`, `ClassicHoverHud` and `ClassicCreatureOverview` use it (the hover HUD still sizes from
+      every Unity panel uses it (the hover HUD still sizes from
       `UnityEngine.Screen`, not a fixture viewport, a possible cause of a mis-sized bar in a probe
-      capture, unverified); `ClassicCreatureQueryPanel` still repeats
-      it inline and switches to `layout.Screen` when ported.
+      capture, unverified).
 - [ ] 1c. Fix `FrontEndMenuController.UpdatePointer` (`DK2.Presentation`), which allocates (LINQ
       `First`) on every hovered frame. Also `KeeperResourceView.Capture` (`DK2.Presentation`, shared
       with Unity), which allocates two `int[]` per tick. Also `MessageTextTables`
@@ -99,7 +106,10 @@ group 2 is a list to audit, not a finding.
       and focus flow a column press starts (`DungeonRunner.Hud.cs` around lines 431-451:
       `CreatureOverview.Select`, the pickup preview, the hand and cursor feedback, the camera
       focus), `HudModal`/options hiding, and `QueueHudInput`'s order and the possession/modal gate,
-      none wired in Godot, where a column press raises a pickup or focus nothing handles.
+      none wired in Godot, where a column press raises a pickup or focus nothing handles. From the
+      creature query details: the query tool (select it, world click to query, which needs
+      picking, right-click cancel, the stored-special and gold cancels), the camera follow and
+      turn (`ClassicCreatureQueryRules.FollowHeading`) and `HudModal` hiding, none wired in Godot.
 - [ ] Move the behaviour into `DK2.Presentation` or the simulation, with tests; leave Unity a
       facade over it, as ADR-0805 did for the HUD.
 

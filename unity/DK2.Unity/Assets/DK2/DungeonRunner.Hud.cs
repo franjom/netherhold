@@ -40,10 +40,8 @@ namespace DK2.Unity
         private readonly HandCursorFeedback _cursorFeedback = new HandCursorFeedback();
         // Where the hand points in the world (interface +0x1078/+0x107C): the last pick, kept while the pointer is over the HUD.
         private FpPosition2? _pointerWorld;
-        private ClassicCreatureQuery _creatureQuery;
+        private CreatureQueryView _queryView;
         private ClassicCreatureQueryPanel _queryPanel;
-        private CreatureQueryTarget _queryTarget;
-        private CreatureQuerySnapshot _querySnapshot = CreatureQuerySnapshot.Empty;
         private StatusFlowers _statusFlowers;
         private ClassicStatusFlowers _statusFlowerArt;
         private TransparentTerrain _statusFlowerBlended;
@@ -141,7 +139,7 @@ namespace DK2.Unity
             _identityNames = new InstallClassicCreatureNames(install);
             _hudStrings = _hudSources.Strings;
             _hudHover = new HudHoverText(_hudStrings.Resolve);
-            _creatureQuery = new ClassicCreatureQuery(database, _hudStrings.Resolve, new PlayerId((byte)viewingPlayerId));
+            _queryView = new CreatureQueryView(database, _hudStrings.Resolve, new PlayerId((byte)viewingPlayerId), _identityNames);
             _startup.Step("hud.names");
             _queryPanel = new ClassicCreatureQueryPanel(transform, new InstallClassicOptionsAssets(_hudSources), _hudSources.Texture);
             _startup.Step("hud.query");
@@ -191,7 +189,7 @@ namespace DK2.Unity
             _input.CancelPointerGesture();
             _input.CancelTool();
             _panelChoice = selection.Choice;
-            _queryTarget = CreatureQueryTarget.None;
+            _queryView?.Clear();
             _queryTool = false; _selectedCorner = ClassicHudAction.None;
             tool = selection.Tool == PlayerToolMode.BuildRoom ? DungeonToolMode.BuildRoom
                 : selection.Tool == PlayerToolMode.CreateImp ? DungeonToolMode.CreateImp : DungeonToolMode.Hand;
@@ -378,7 +376,7 @@ namespace DK2.Unity
             _gameOptionsPanel?.Show(hud.ShowNormalHud && _hudControls.GameOptionsVisible);
             _optionsPanel?.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
             _fullMap?.SetVisible(camera.ShowNormalHud && _hudControls.FullMapVisible);
-            _queryPanel?.Draw(_querySnapshot, hud, HudModal);
+            _queryPanel?.Draw(_queryView.Snapshot, hud, HudModal);
             _overviewPanel?.Draw(hud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
         }
 
@@ -475,13 +473,13 @@ namespace DK2.Unity
         {
             if (_queryTool)
             {
-                if (_queryTarget == CreatureQueryTarget.None && Input.GetMouseButtonDown(0) && !PointerOverHud(Input.mousePosition)
+                if (_queryView.Target == CreatureQueryTarget.None && Input.GetMouseButtonDown(0) && !PointerOverHud(Input.mousePosition)
                     && ScreenToTile(Input.mousePosition) is TilePos queryTile)
                 {
                     WorldHoverHit hit = ResolveWorldHover(queryTile);
                     if (hit.Kind == WorldHoverKind.Creature)
                     {
-                        _queryTarget = new CreatureQueryTarget(hit.EntityId); _glideMilliseconds = 0;
+                        _queryView.Query(new CreatureQueryTarget(hit.EntityId)); _glideMilliseconds = 0;
                         if (_classicCamera != null && Camera.main != null)
                         {
                             var focus = new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z);
@@ -494,7 +492,7 @@ namespace DK2.Unity
                 }
                 if (Input.GetMouseButtonDown(1))
                 {
-                    _queryTarget = CreatureQueryTarget.None; _queryTool = false;
+                    _queryView.Clear(); _queryTool = false;
                     _selectedCorner = ClassicHudAction.None; tool = DungeonToolMode.Hand;
                 }
                 return true;
@@ -576,12 +574,7 @@ namespace DK2.Unity
             _overviewPanel.Draw(CurrentHud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);
             _optionsPanel.Draw(Input.mousePosition); _fullMap.Draw();
-            CreatureState creature = World.CreatureById(_queryTarget.Value);
-            string name = creature == null ? "" : _identityNames.Name(new CreatureNameIndex(creature.NameIndex));
-            string blood = creature == null ? "" : _identityNames.BloodGroup(new CreatureBloodGroupIndex(creature.BloodGroupIndex));
-            _querySnapshot = _creatureQuery.Capture(World, _queryTarget, name, blood);
-            _queryTarget = _querySnapshot.Target;
-            _queryPanel.Draw(_querySnapshot, CurrentHud, HudModal);
+            _queryPanel.Draw(_queryView.Capture(World), CurrentHud, HudModal);
         }
 
         private bool HoldingGold()
@@ -589,8 +582,8 @@ namespace DK2.Unity
 
         private void FollowQueriedCreature()
         {
-            if (!_queryTool || _queryTarget == CreatureQueryTarget.None || _scriptedView.PathPlaying || HudModal) return;
-            if (_scene.TryGetCreaturePosition(_queryTarget, out Vector3 position))
+            if (!_queryTool || _queryView.Target == CreatureQueryTarget.None || _scriptedView.PathPlaying || HudModal) return;
+            if (_scene.TryGetCreaturePosition(_queryView.Target, out Vector3 position))
             {
                 _cameraFocus = new Vector3(position.x, _cameraFocus.y, position.z);
                 if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();

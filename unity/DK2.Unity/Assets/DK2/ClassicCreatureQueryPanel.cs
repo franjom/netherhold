@@ -43,13 +43,11 @@ namespace DK2.Unity
             _root.style.display = DisplayStyle.None;
         }
 
-        private static HudScreen Screen(HudScaleLayout layout) => new HudScreen(Mathf.RoundToInt(layout.LogicalWidth), layout.Height);
-
         public void Draw(CreatureQuerySnapshot snapshot, HudVisibility visibility, bool otherPanelOpen = false, Vector2Int viewport = default)
         {
             _layout = ClassicHudScaling.Layout(UiScale, viewport.x, viewport.y);
             ClassicHudScaling.Apply(_settings, _root, _layout, true);
-            HudScreen screen = Screen(_layout);
+            HudScreen screen = _layout.Screen;
             _frame.Clear();
             _hud.Build(screen, snapshot, visibility, otherPanelOpen, _frame);
             _root.style.display = _frame.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
@@ -58,7 +56,7 @@ namespace DK2.Unity
 
         public bool ContainsPointer(Vector3 screenPosition, HudVisibility visibility)
         {
-            Vector2 at = ClassicHudScaling.LocalPointer(screenPosition, _layout, true) / Screen(_layout).Scale;
+            Vector2 at = ClassicHudScaling.LocalPointer(screenPosition, _layout, true) / _layout.Screen.Scale;
             return _hud.ContainsPointer(at.x, at.y, visibility);
         }
 
