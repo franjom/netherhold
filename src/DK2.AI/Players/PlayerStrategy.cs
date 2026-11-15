@@ -185,6 +185,10 @@ public sealed record PlayerStrategy
     /// Prison nine tiles and more from the Heart all game, Q843).</summary>
     public int EnemyNearTiles { get; init; } = 8;
 
+    /// <summary>The trap routine (defence plan D4): at most this many own traps and trap blueprints on the corridors
+    /// attackers take to the Heart, bought only with gold above <see cref="UseRoomMinGold"/>. 0 places none.</summary>
+    public int MaxTraps { get; init; } = 8;
+
     /// <summary>While breaching is held back, no tile within this many tiles of an enemy sighting is marked.</summary>
     public int EnemyClearanceTiles { get; init; } = 3;
 
@@ -200,6 +204,7 @@ public sealed record PlayerStrategy
         if (MaxImps <= 0) problems.Add($"MaxImps {MaxImps} is not positive");
         if (MinImps < 0) problems.Add($"MinImps {MinImps} is negative");   // above MaxImps, the cap wins
         if (ManaReserve < 0) problems.Add($"ManaReserve {ManaReserve} is negative");
+        if (MaxTraps < 0) problems.Add($"MaxTraps {MaxTraps} is negative");
         if (ImpPriceSeconds <= 0) problems.Add($"ImpPriceSeconds {ImpPriceSeconds} is not positive");
         if (Rooms is null) problems.Add("Rooms is null");
         else if (Rooms.Distinct().Count() != Rooms.Count) problems.Add("Rooms names a room twice");

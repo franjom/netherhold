@@ -189,8 +189,9 @@ These are entry points, not a new priority order.
   (`strategy.create-imps`, off by default; Level 6a seeds 1-3 show no gain; Q842 open;
   [plan](plans/2026-11-14-campaign-bot-stage3.md)). The bot defends its whole dungeon (an enemy within 8 tiles of own ground, the one nearest the Heart
   first, Q847) and drops fighters in a formation by fighting style (observation schema 6; Q848-Q850 answered by the owner;
-  [defence plan](plans/2026-11-15-campaign-bot-defence.md), D1-D3 built). Next: D4, traps on the attack routes, then D6,
-  attack spells that never hit own creatures or walls, then D5, measuring the lost levels 6a, 7, 11a and 15a.
+  [defence plan](plans/2026-11-15-campaign-bot-defence.md), D1-D4 built). It also places traps on the corridors the
+  attacks take (`strategy.max-traps`, 8; the trap for a site follows its kind, Q851; Q852 open). Next: D6, attack spells
+  that never hit own creatures or walls, then D5, measuring the lost levels 6a, 7, 11a and 15a (traps alone turn none).
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

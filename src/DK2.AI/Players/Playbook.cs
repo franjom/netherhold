@@ -82,6 +82,7 @@ public sealed record Playbook
         ["strategy.scouts"] = new(0, 1, (s, v) => s with { Scouts = v }),
         ["strategy.create-imps"] = new(0, 1, (s, v) => s with { CreateImps = v }),
         ["strategy.max-imps"] = new(1, 40, (s, v) => s with { MaxImps = v }),
+        ["strategy.max-traps"] = new(0, 64, (s, v) => s with { MaxTraps = v }),
         ["strategy.min-imps"] = new(0, 40, (s, v) => s with { MinImps = v }),
         ["strategy.mana-reserve"] = new(0, 1_000_000, (s, v) => s with { ManaReserve = v }),
         ["strategy.imp-price-seconds"] = new(1, 3600, (s, v) => s with { ImpPriceSeconds = v }),
