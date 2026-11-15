@@ -5,11 +5,11 @@ systems: [creatures, rooms, tooling-process]
 
 ## Verdict
 
-Q710 remains OPEN. The first managed draw in the frozen control is a lair
-search by an unmatched moving fighter, at a different site from native. Equal seed
-pairs and total draws do not establish call-order or behavioral parity. Next
-inventory captured route/body coverage for those moving actors before promising
-a matched continuation; the full Guard-room cause remains unresolved.
+Q710 remains OPEN. The completed inventory retains the two moving actors'
+current body/path windows, but the restore contract does not carry them. This
+supports preparing a guarded short continuation, not a fully matched route or
+an explanation of the Guard-room cause. Equal seeds/counts remain insufficient
+for call-order or behavioral parity.
 
 Production code is unchanged by these studies. Throwaway tooling is archived
 with external evidence; the targeted owned native replay below follows the
@@ -304,16 +304,49 @@ Evidence: `q710-preceding-rng--2026-11-15--001`,
 (49-row matrix and boundaries), `binary-read-facts.json`,
 `replays-verified.json` and the source-provenance receipt.
 
+## Route/body inventory at 65a0290c
+
+This inventory adds no managed replay or native launch. It checks raw 1343-byte
+actor records, including the embedded body at +0x124, for 420/422 across ten
+frames. Five local phase pairs are new native returns 4999..5003 versus retained
+polling 5000..5004. All 20 actor snapshots agree in the projected state/control,
+entity/body and heading fields; this does not establish full-world equivalence.
+
+| Boundary actor | Total / window points | Point index | Tail distance |
+|---|---|---:|---:|
+| 420 | 3 / 3 | 1 | 0 |
+| 422 | 1 / 1 | 0 | 0 |
+
+The last active point equals the target. These complete current paths fit in
+the saved windows. Five raw segment slots exist, but only count-minus-one active
+segments are interpreted. Actor 422 reaches state 98 at new return 5001 and has
+a new state-6 route by 5002; a captured window cannot be reused indefinitely.
+
+The exported seed08 creature rows contain state 6/job resume 98 but no body/route,
+heading or bed binding fields. The checked `ResyncCreature` likewise has no body/path/
+bed binding fields. `WorldResync`'s non-worker branch is text-identical to frozen
+`0b71f052`: pose/health copy, then retention of the modern state when both
+states belong to `FreeStates`. For these actors it retains modern idle; it does
+not actively reset native state 6 to 1 or restore the saved moving resume/body.
+These are source bindings checked at `65a0290c`, not a new runtime comparison.
+
+The navigation pointee at world+0x9F2 lies outside every saved region/record span
+in the ten checked frames. This scoped absence neither inventories the entire
+archive nor proves map data absent. Complete current windows do not supply a
+future route query's navigation context or all neighbour/action/animation inputs.
+
+The MovementEnd extraction width is bound to the [state-6 record](functions/00470C80.md).
+`width-correction.json` qualifies rejected inventory001; the corrected002 payloads
+remain byte-identical for the sampled values. No long-lived route claim follows.
+Evidence: `q710-route-body-inputs--2026-11-15--002`, `route-body-inputs.json`,
+`coverage.json`, `width-correction.json`, and `manifest-final-review.json`
+(six entries, excluding itself). Four current-source bindings are verified.
+
 ## Next trace and remaining limits
 
-Inventory which route/body fields and histories the capture retains for moving
-420/422 before promising a matched moving-route control. Then control their bed,
-state/resume and available body inputs and recheck the bounded prefix, keeping
-unavailable inputs explicit. Rebind the experiment to a source-bound current
-baseline before implementation; these findings concern frozen `0b71f052`.
-A native replay is not currently needed.
-
-Native predicate results and per-call actor/range, body/world/clock state, route
-buffers, outside-cohort reservations and birth histories remain unmatched.
-No AI defect, global outcome, fidelity verdict, arbitrary RNG burns or picker
-fix follows from equal endpoint seeds or the four-position offset.
+Prepare a source-bound guarded short moving-body continuation; no such control
+is yet implemented or proved matched. Guard arrival/stop, refill, stuck requery
+and new routes, and stop before unprovided context is required. Keep neighbours,
+action/animation, mesh/cache, world history and broader-cohort differences explicit.
+Bind the current managed baseline before implementation. No new native recording
+is currently prescribed, and no AI/picker/production correction follows.
