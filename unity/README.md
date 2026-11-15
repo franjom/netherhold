@@ -208,8 +208,8 @@ The HUD follows the same split (ADR-0805). A moved panel is an engine-free model
 that writes a `HudFrame` draw list; `HudCanvas` renders it as UI Toolkit quads and fan meshes, snapped to
 screen pixels, and the panel's own file is a facade that forwards pointer events. The bottom panel is
 moved (`BottomPanelHud`, `ClassicBottomPanel`), the resource strip (`KeeperResourceHud`,
-`ClassicResourceHud`) and the message tabs (`MessageTabsHud`, `ClassicMessageTabs`) have moved too; the other panels still hold their logic here until their turn in the ADR. A gauge is a live
-`HudImage`: `HudCanvas` keeps one texture per gauge and refills it when the fraction changes. Text is a `HudText` that `HudCanvas` rasterizes through `HudTextPixels` (the one rasterizer for every panel) and destroys when no frame uses it; a draw's `Clip` window and `Uv` are snapped to pixels before `HudQuads.Cut`, and `HudQuads.Tiled` lays out repeating frame pieces. New DK2 behaviour goes in `DK2.Presentation`, never in these files.
+`ClassicResourceHud`) the message tabs (`MessageTabsHud`, `ClassicMessageTabs`) and the hover HUD (`HoverHud`, `ClassicHoverHud`: two `HudCanvas`es, the bar at sort order 10 and the text and popup at 17) have moved too; the other panels still hold their logic here until their turn in the ADR. A gauge is a live
+`HudImage`: `HudCanvas` keeps one texture per gauge and refills it when the fraction changes. Text is a `HudText` that `HudCanvas` rasterizes through `HudTextPixels` (the one rasterizer for every panel) (Point-filtered, so the UI scale keeps hard edges; `HudText.Centred` centres each line) and destroys when no frame uses it; a draw's `Clip` window and `Uv` are snapped to pixels before `HudQuads.Cut`, and `HudQuads.Tiled` lays out repeating frame pieces, square or rectangular. New DK2 behaviour goes in `DK2.Presentation`, never in these files.
 
 **Read `src/DK2.Presentation/TextRenderer.cs` before changing anything here.** It is
 the same job against a character grid, it runs in CI, and a disagreement between the

@@ -179,6 +179,8 @@ namespace DK2.Unity
             byte[] pixels = HudImagePixels.Apply(source.Pixels, source.Width, source.Height, image);
             if (blend == HudBlend.Additive) pixels = HudImagePixels.AdditiveOverAlpha(pixels);
             texture = MinimapFrameVisual.Decode(new RgbaImage(source.Width, source.Height, pixels));
+            // Set text keeps hard bitmap edges when the UI scale stretches it, as the panels' own text did.
+            if (image.Text != null) texture.filterMode = FilterMode.Point;
             _textures.Add((image, blend), texture);
             return texture;
         }

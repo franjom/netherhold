@@ -49,8 +49,9 @@ public enum HudImageVariant : byte
 }
 
 /// <summary>Text set in a bitmap font, white with the glyphs' coverage as alpha; a tint colours it.
-/// <paramref name="WrapWidth"/> is in the font's pixels. Fonts compare by reference.</summary>
-public sealed record HudText(BitmapFont Font, string Text, int WrapWidth);
+/// <paramref name="WrapWidth"/> is in the font's pixels. <paramref name="Centred"/> centres each line on the
+/// widest. Fonts compare by reference.</summary>
+public sealed record HudText(BitmapFont Font, string Text, int WrapWidth, bool Centred = false);
 
 /// <summary>An image by catalogue name plus a variant, or set text. The default value is "no image":
 /// nothing is drawn.</summary>
@@ -110,15 +111,20 @@ public static class HudQuads
 
     /// <summary>Covers <paramref name="area"/> with the image repeated at <paramref name="tile"/> square from
     /// its top-left, the last row and column cropped (CSS background-repeat).</summary>
-    public static void Tiled(HudFrame frame, HudImage image, HudRect area, float tile, HudColor tint)
+    public static void Tiled(HudFrame frame, HudImage image, HudRect area, float tile, HudColor tint) =>
+        Tiled(frame, image, area, tile, tile, tint);
+
+    /// <summary>As <see cref="Tiled(HudFrame, HudImage, HudRect, float, HudColor)"/> with a
+    /// <paramref name="tileWidth"/> x <paramref name="tileHeight"/> tile.</summary>
+    public static void Tiled(HudFrame frame, HudImage image, HudRect area, float tileWidth, float tileHeight, HudColor tint)
     {
-        if (tile <= 0 || area.Width <= 0 || area.Height <= 0) return;
-        for (float y = 0; y < area.Height; y += tile)
-        for (float x = 0; x < area.Width; x += tile)
+        if (tileWidth <= 0 || tileHeight <= 0 || area.Width <= 0 || area.Height <= 0) return;
+        for (float y = 0; y < area.Height; y += tileHeight)
+        for (float x = 0; x < area.Width; x += tileWidth)
         {
-            float w = Math.Min(tile, area.Width - x), h = Math.Min(tile, area.Height - y);
+            float w = Math.Min(tileWidth, area.Width - x), h = Math.Min(tileHeight, area.Height - y);
             frame.Add(new HudDraw(HudDrawKind.Quad, image, new HudRect(area.X + x, area.Y + y, w, h), tint,
-                Uv: new HudRect(0, 0, w / tile, h / tile)));
+                Uv: new HudRect(0, 0, w / tileWidth, h / tileHeight)));
         }
     }
 }

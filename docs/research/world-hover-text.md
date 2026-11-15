@@ -218,29 +218,36 @@ text_box-tlMM0 and text_box-mMM0 are **16×16**.
 pieces and their alpha. Popup rendering starts about 98 reference pixels to
 the cursor's right at width 640, flips left near the right edge, and clamps
 vertically. Exact piece scaling and all layout helper semantics remain
-**UNKNOWN**; the Unity renderer uses a retained nine-slice approximation. DK2 scales
-the Hand by width/640 too; ours scales the Hand by height/480, so the adapter scales
+**UNKNOWN**; `HoverHud` uses a nine-slice approximation. DK2 scales
+the Hand by width/640 too; ours scales the Hand by height/480, so `HoverHud` scales
 the 98/30/40 offsets by height/480 to keep the gap the Hand's size (owner, 2026-10-19). The 98 is read as the
 Point hand's reach (82 wide, hotspot 2) plus 18; over the HUD the 42-wide small pointer uses 58 (owner, 2026-10-20). Since the claw tip went on the pointer (owner, 2026-10-24, [hand-cursor-rendering.md](hand-cursor-rendering.md)), the reach is `HandCursor.Reach`, the frame width minus the least tip X over the loop: Point 82 (offset 100), SmallPoint 42 (offset 60), Idle 83 (offset 101).
 
 ## Implementation limits
 
 `WorldHoverText` captures immutable strings only on settled ticks or target
-changes. The Unity UI Toolkit renderer never reads simulation state and reads
-assets through `IClassicHoverAssets`. It retains status/tooltip images and
-rasterizes original BF4 text only when strings, fonts or wrapping change.
-The wooden bar and its Bar-01 cap sit in their own panel (order 10), from x0 across the
-screen under the resource panels (11); the text clip stays at x1020 and stops before the cap.
+changes. `HoverHud` (`DK2.Presentation`, ADR-0805) turns the snapshot into two draw
+lists, which `ClassicHoverHud` draws through two `HudCanvas`es; it never reads simulation
+state and reads assets through `IClassicHoverAssets`. `HudTextPixels` rasterizes the
+original BF4 text only when a string, font or wrap width changes.
+The wooden bar and its Bar-01 cap are the first list (sort order 10), from x0 across the
+screen under the resource panels (11); the status text and the popup are the second (17), over every
+panel but the full map (20). The text clip starts 12 px into the strip at x1020 and stops 12 px before the cap
+(our insets; DK2's widget is 1440 wide).
 The cap is a 128-unit square at (W-80, 0), taller than the 88-unit bar ([0x0042E140](functions/0042E140.md)).
-Its status clip scrolls the retained text image; nine retained images form
-the popup frame. Its physical-pixel panel keeps the approved font readable.
+Bar-00 tiles at the texture's aspect (128x64 gives 176 wide), not DK2's virtual 512x88; open with the owner.
+The popup frame is nine pieces. Its physical-pixel panel keeps the approved font readable.
+Against the old Unity renderer (accepted 2026-11-15): text width is the glyph extents rather than the
+advance sum, 1 to 2 px narrower; glyph pixels left of x0 are clipped; the status line wraps through
+`BitmapTextLayout.Wrap`. The popup's placement covers the world arm only; the GUI arm is in
+[0x0042E590](functions/0042E590.md).
 
 DK2's strip and popup share style 0x00741320, whose file DK2 picks by width through
 0x00553690 (base 10 at widths other than 400/512/800/1024; 14 at 1024). Ours is the
 owner's choice, not DK2's: the strip uses the largest shipped size within height/60,
 vertically centred, and the popup half that, height/120. On 2026-10-19 the owner
 approved that size and rejected a DK2-proportioned height/96, top-aligned trial. Scrolling is time-based at 60 pixels
-per second, approximating the original's one-pixel-per-callback motion.
+per second, approximating the original's one-pixel-per-callback motion (0x0042E140).
 Ordinary room templates, doors, traps, dead bodies and the Casino/Prison
 fixture branches are built as described above; the dead-body line and the
 other-keeper door and trap names are formatted but, as in DK2, no pick reaches
@@ -252,7 +259,7 @@ ownership arm (`0x005992B0` kind 4) is built as `HoverPickRules.ResolvesObject`
 than displaying raw localization tokens. See `fog-of-war.md` for fog assets.
 
 The Unity integration captures text after presenting settled poses and before
-dispatching worker ticks; retained UI is refreshed before the dispatch too.
+dispatching worker ticks; the HUD is refreshed before the dispatch too.
 OnGUI does not draw this HUD. Picking first tests
 Unity renderer bounding boxes up to the picked terrain plane, an approximation
 of DK2's rendered hit result. Its fallback scans retained visible poses in a

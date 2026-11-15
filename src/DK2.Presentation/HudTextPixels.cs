@@ -23,10 +23,11 @@ public static class HudTextPixels
     {
         Bounds(text, out IReadOnlyList<BitmapTextLine> lines, out width, out height, out int minY);
         BitmapFont font = text.Font;
+        int widest = Widest(text, lines);
         var pixels = new byte[width * height * 4];
         for (int row = 0; row < lines.Count; row++)
         {
-            int pen = 0;
+            int pen = Indent(text, lines[row], widest);
             foreach (char c in lines[row].Text)
             {
                 BitmapGlyph? glyph = font.Find(c); if (glyph == null) continue;
@@ -53,10 +54,10 @@ public static class HudTextPixels
         BitmapFont font = text.Font;
         lines = BitmapTextLayout.Wrap(font, text.Text, text.WrapWidth > 0 ? text.WrapWidth : 32767);
         width = 1; minY = 0;
-        int maxY = font.LineHeight;
+        int maxY = font.LineHeight, widest = Widest(text, lines);
         foreach (BitmapTextLine line in lines)
         {
-            int pen = 0;
+            int pen = Indent(text, line, widest);
             foreach (char c in line.Text)
             {
                 BitmapGlyph? glyph = font.Find(c); if (glyph == null) continue;
@@ -67,4 +68,15 @@ public static class HudTextPixels
         }
         height = Math.Max(1, (Math.Max(1, lines.Count) - 1) * font.LineHeight + maxY - minY);
     }
+
+    private static int Widest(HudText text, IReadOnlyList<BitmapTextLine> lines)
+    {
+        if (!text.Centred) return 0;
+        int widest = 0;
+        foreach (BitmapTextLine line in lines) widest = Math.Max(widest, line.Width);
+        return widest;
+    }
+
+    /// <summary>Where a line's pen starts: 0, or half the gap to the widest line when centred.</summary>
+    private static int Indent(HudText text, BitmapTextLine line, int widest) => text.Centred ? (widest - line.Width) / 2 : 0;
 }
