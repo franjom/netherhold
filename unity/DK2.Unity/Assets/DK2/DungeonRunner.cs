@@ -1045,6 +1045,8 @@ namespace DK2.Unity
             _scene.HideCreature(PossessionHiddenCreatureId);
             long presentStarted = _recorder?.Stamp() ?? 0;
             using (PresentMarker.Auto()) _presenter.Present(World);
+            // DK2 draws the roof in camera modes 2, 10 and 11: the span the possessed model is hidden for.
+            _scene.SetCeilingVisible(PossessionHiddenCreatureId != 0, World, _simulation.Database);
             _recorder?.Spent(FrameRecorder.Part.Present, presentStarted);
             if (_gemIdleEffects != null)
             {

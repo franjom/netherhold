@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Numerics;
+
 namespace DK2.Presentation.Tests;
 
 /// <summary>The possession view's roof (kwd-terrain-rooms.md, Ceiling: the possession-view roof).</summary>
@@ -124,5 +126,107 @@ public sealed class TerrainCeilingTests
             },
             TerrainCeiling.Triangles.ToArray());
         Assert.Equal((1f, 0.5f), TerrainCeiling.Uv(1, 2));
+    }
+
+    private static TerrainCeilingField Field(bool[] map)
+    {
+        var field = new TerrainCeilingField(Size, Size);
+        Assert.True(field.Refresh(map, []));
+        return field;
+    }
+
+    private static (Vector3[] Positions, Vector3[] Normals) Piece(TerrainCeilingField field, int x, int y)
+    {
+        var positions = new Vector3[TerrainCeiling.Vertices];
+        var normals = new Vector3[TerrainCeiling.Vertices];
+        field.Piece(x, y, null, positions, normals);
+        return (positions, normals);
+    }
+
+    private static void AssertSame((Vector3[] Positions, Vector3[] Normals) expected, (Vector3[] Positions, Vector3[] Normals) actual)
+    {
+        Assert.Equal(expected.Positions, actual.Positions);
+        Assert.Equal(expected.Normals, actual.Normals);
+    }
+
+    private static bool[] Scattered()
+    {
+        var random = new Random(679);
+        var map = new bool[Size * Size];
+        for (int i = 0; i < map.Length; i++) map[i] = random.Next(5) == 0;
+        return map;
+    }
+
+    [Fact]
+    public void TheFieldGivesEveryPieceTheHeightsOfTheRule()
+    {
+        bool[] map = Scattered();
+        TerrainCeilingField field = Field(map);
+
+        for (int y = 0; y < Size; y++)
+            for (int x = 0; x < Size; x++)
+            {
+                Assert.Equal(!map[(y * Size) + x], field.Has(x, y));
+                if (!field.Has(x, y)) continue;
+                float[] z = Heights(map, x, y);
+                Vector3[] positions = Piece(field, x, y).Positions;
+                for (int i = 0; i < TerrainCeiling.Vertices; i++)
+                    Assert.Equal(new Vector3(x + (i % 3 * 0.5f), y + (i / 3 * 0.5f), z[i]), positions[i]);
+            }
+    }
+
+    /// <summary>In DK2's frame (z down) every triangle's cross product of its first two edges points
+    /// up, away from the side the roof is seen from, and the normals point down at that side.</summary>
+    [Fact]
+    public void EveryTriangleTurnsTheSameWayAndTheNormalsFaceDown()
+    {
+        (Vector3[] positions, Vector3[] normals) = Piece(Field(Map((12, 12))), 14, 12);
+
+        ReadOnlySpan<byte> triangles = TerrainCeiling.Triangles;
+        for (int i = 0; i < triangles.Length; i += 3)
+        {
+            Vector3 a = positions[triangles[i]], b = positions[triangles[i + 1]], c = positions[triangles[i + 2]];
+            Assert.True(Vector3.Cross(b - a, c - a).Z < 0);
+        }
+        Assert.All(normals, normal =>
+        {
+            Assert.True(normal.Z > 0);
+            Assert.Equal(1f, normal.Length(), 5);
+        });
+        // The roof rises to the east here, so its underside also faces east.
+        Assert.True(normals[4].X > 0);
+        Assert.Equal(new Vector3(0, 0, 1), Piece(Field(Map()), 12, 12).Normals[4]);
+    }
+
+    [Fact]
+    public void ARefreshReportsTheTilesThatChangedAndMatchesAFreshRead()
+    {
+        bool[] map = Scattered();
+        TerrainCeilingField field = Field(map);
+        var changed = new List<int>();
+        Assert.False(field.Refresh(map, changed));
+
+        map[(12 * Size) + 12] ^= true;
+        map[(3 * Size) + 20] ^= true;
+        Assert.True(field.Refresh(map, changed));
+
+        Assert.Equal([(3 * Size) + 20, (12 * Size) + 12], changed);
+        TerrainCeilingField fresh = Field(map);
+        for (int y = 0; y < Size; y++)
+            for (int x = 0; x < Size; x++)
+                AssertSame(Piece(fresh, x, y), Piece(field, x, y));
+    }
+
+    [Fact]
+    public void AChangeReachesNoPieceBeyondTheChangeReach()
+    {
+        TerrainCeilingField open = Field(Map()), closed = Field(Map((12, 12)));
+
+        for (int y = 0; y < Size; y++)
+            for (int x = 0; x < Size; x++)
+                if (Math.Max(Math.Abs(x - 12), Math.Abs(y - 12)) > TerrainCeiling.ChangeReach)
+                    AssertSame(Piece(open, x, y), Piece(closed, x, y));
+        Assert.NotEqual(Piece(open, 12 - TerrainCeiling.ChangeReach, 12).Normals, Piece(closed, 12 - TerrainCeiling.ChangeReach, 12).Normals);
+        Assert.NotEqual(Piece(open, 12 + TerrainCeiling.ChangeReach, 12).Normals, Piece(closed, 12 + TerrainCeiling.ChangeReach, 12).Normals);
     }
 }

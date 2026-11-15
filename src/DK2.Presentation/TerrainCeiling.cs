@@ -28,6 +28,15 @@ public static class TerrainCeiling
     /// <summary>Above this the centre and the open edge midpoints are never drawn (-2.5).</summary>
     public const float OpenLimit = -2.5f;
 
+    /// <summary>How far, in tiles on each axis, a tile opening or closing reaches a drawn piece: the
+    /// nibble window reaches 4, a piece reads the nibbles of its four corners, and
+    /// <see cref="TerrainCeilingField"/>'s normals read half a tile further.</summary>
+    public const int ChangeReach = 5;
+
+    /// <summary>How far a change of the terrain lattice at a tile reaches a piece's bent vertices:
+    /// a change forgets its 3 by 3 cells, and a piece is bent by the 3 by 3 cells around its tile.</summary>
+    public const int BendReach = 2;
+
     private const int Reach = 4, NoneFound = 16, FarthestCounted = 13;
 
     private static readonly byte[] TriangleIndices = BuildTriangles();
