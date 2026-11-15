@@ -300,8 +300,8 @@ Pending pickups first queue a drop on a successful gate. The dispatcher
 `0x0040E0D0` checks actual hand membership through `0x004BCAE0` at `0x0040E175`.
 Only with the queued flag at entry `+0x0C` set and the dispatched flag at
 `+0x10` clear does it call `0x0040DAB0` (`0x0040E1A7`), then marks it dispatched.
-Thus queuing the click does not itself request the animation. The complete
-pending-entry scheduling and its millisecond alignment remain unmodelled.
+Thus queuing the click does not itself request the animation. Pending-entry
+dispatch and timeout are now mirrored; see [hand-pickup-turn.md](hand-pickup-turn.md).
 
 **Built (ADR-0582):** `HandSystem` emits typed accepted-drop feedback after
 its creature/object guards, including disposal and delivery routes. The local
@@ -313,4 +313,4 @@ cases, mixed stacks, other-player filtering and worker-thread delivery.
 
 **Timing limit:** our animation starts after command execution and the next
 render-thread drain. DK2 requests it at packet submission after its input gate;
-this change does not claim that phase or the native pending-entry scheduler.
+that submission phase remains unmodelled.

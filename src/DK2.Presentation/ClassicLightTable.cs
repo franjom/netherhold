@@ -21,6 +21,7 @@ public sealed class ClassicLightTable
     public int Count { get; private set; }
     public ClassicLightFrame StaticFrame { get; private set; }
     public ReadOnlySpan<ClassicPointLight> Lights => _lights.AsSpan(0, Count);
+    internal ulong Revision { get; private set; }
 
     /// <summary>Replaces static candidates in encounter order and invalidates the gathered cache stamp.</summary>
     public void RebuildStatic(ReadOnlySpan<ClassicPointLight> candidates)
@@ -31,6 +32,7 @@ public sealed class ClassicLightTable
 
     internal void BeginStatic()
     {
+        Revision++;
         Count = StaticCount = 0;
         StaticFrame = default;
     }
@@ -40,7 +42,11 @@ public sealed class ClassicLightTable
     /// <summary>A freed neighbour cell's sources are gone: the static selection empties but keeps
     /// its stamp (<c>0x00576010</c>). The binary zeroes only the static count; zeroing Count too is
     /// safe because every Gather rebuilds the dynamic part (BeginDynamic) before the table is read.</summary>
-    internal void DropStatic() => Count = StaticCount = 0;
+    internal void DropStatic()
+    {
+        Revision++;
+        Count = StaticCount = 0;
+    }
 
     internal void AppendStatic(ReadOnlySpan<ClassicPointLight> candidates)
     {
@@ -56,7 +62,11 @@ public sealed class ClassicLightTable
         AppendDynamic(candidates);
     }
 
-    internal void BeginDynamic() => Count = StaticCount;
+    internal void BeginDynamic()
+    {
+        Revision++;
+        Count = StaticCount;
+    }
 
     internal void AppendDynamic(ReadOnlySpan<ClassicPointLight> candidates)
     {

@@ -53,7 +53,7 @@ representative regression coverage before claiming the target is met.
 
 The target is currently unmet. Arrival measurements and optimization evidence
 have one home: [portal arrival performance](research/portal-arrival-performance.md).
-The unresolved Level6a Editor post-Escape investigation is recorded in
+The closed Unity FPS investigation and scoped engine-neutral cache measurements are in
 [Level6a Editor performance](research/level6a-editor-performance.md).
 
 This target is the Unity frame. The headless simulation has its own opt-in budget
