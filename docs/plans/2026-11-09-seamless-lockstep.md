@@ -46,12 +46,12 @@ of work and the exit test for each step. Two critical reviews (2026-11-10) are f
   jitter buffer: roughly 450 to 600 ms. **Instant previews are required, not polish.**
 - **Interpolation exists** for creatures, shots, lights and the camera path. Headings snap.
 - **Ticks run in batches on a worker thread**; only a batch's first tick carries commands. The
-  options menu and losing window focus (`runInBackground: 0`) both stop ticks.
+  options menu and losing window focus (Unity's `runInBackground: 0`) both stop ticks.
 - **At-once feedback** exists for tag tiles, the minimap pick-up, and the slap and spell cursors.
   Pick-up in the world, drop, room, door and trap placement show nothing until the tick.
 - **Refused from peers for now:** `MovePossessedCreatureCommand` (any pose is installed) and
   `SetAllianceCommand` (DK2's make handler ignores offers; only its HUD asked for consent).
-- **Computer keepers do not run in Unity.** Their state is outside the snapshot and the hash:
+- **Computer keepers do not run in the game client.** Their state is outside the snapshot and the hash:
   `KeeperAIState`, a private generator, `KeeperStaging`, and history-dependent routing
   (`KeeperRouteCache`, whose answers depend on past queries, and `KeeperAI._directionsFixed`).
 - **Game data is outside the hash.** The snapshot omits the database on purpose and the hash
@@ -59,7 +59,7 @@ of work and the exit test for each step. Two critical reviews (2026-11-10) are f
   creature file desync silently.
 - **Determinism evidence is thinner than it looks.** CI compares Linux and Windows hashes only on
   synthetic content (`DK2_DIR=/nonexistent`); no real map or keeper run is compared across
-  platforms, and nothing compares IL2CPP. There are 13 `[ThreadStatic]` fields in 11 files.
+  platforms, and nothing compares a shipped client build. There are 13 `[ThreadStatic]` fields in 11 files.
   Some rules take the first match from a database `Dictionary` (`ReaperRules.cs`,
   `HeroPartyRules.cs`, `CrateRules.cs`), which depends on insertion order. The trap sine table
   is built with `Math.Sin` (`TrapRules.cs`).
@@ -77,7 +77,7 @@ spread between runs is wide; the faster runs are quoted.
 |---|---|---|
 | tick, live with keepers | median 8 ms, 99th percentile 44 to 58 ms, worst 330 to 400 ms on tick 1 and 49 ms after it (speed-budget run) | median 3 %; only the first tick exceeds a whole tick |
 | computer keepers | 4.6 ms a tick for four (about 1.1 ms each) | the largest single cost |
-| allocation | 665 KB a tick (2.6 MB a second), 555 KB of it keeper AI | a GC risk under IL2CPP |
+| allocation | 665 KB a tick (2.6 MB a second), 555 KB of it keeper AI | collector pressure in the client |
 | journal replay, no AI, hashing every tick | 5 to 6 ms a tick, about 40 to 50 times real time | 20 minutes replays in about 30 s |
 | exact snapshot (`FromBytes`) | 900 KB raw, 40 to 60 KB compressed, write 3 to 4 ms, read 2.5 ms | a checkpoint costs about one tick's median |
 | journal | 128 KB for 20 minutes, AI commands included | human commands alone are far smaller |
@@ -91,15 +91,17 @@ What follows:
   barrier hides it. After it the worst tick was 49 ms in a clean run, though a busy machine showed
   one of 390 ms, so phase 4 must not treat one long tick as a slow machine.
 - **The keeper AI is the budget.** It is most of the time and of the allocation, on every
-  machine for every keeper. Reducing its allocation is worth doing before IL2CPP numbers.
+  machine for every keeper. Reducing its allocation is worth doing before client-build numbers.
 - **Rollback is out.** A tick plus a restore costs about 10 ms, so re-simulating even two ticks
   inside a 16 ms frame does not fit.
 - **`LoadGame` is not a checkpoint.** It reloads as DK2 loads a save (room chains re-added row by
   row), so its hash differs by design; checkpoints use `FromBytes`.
 - The snapshot does not yet hold computer keeper state (phase 1), so it will grow.
 
-**Still to measure:** the same run in an IL2CPP player build and on a minimum-spec machine, a
-late-game map with more creatures, and click-to-world-change latency in the Unity build.
+**Still to measure:** the same run in the shipped client build and on a minimum-spec machine, a
+late-game map with more creatures, and click-to-world-change latency in the client. The owner is
+moving the client from Unity to Godot (ADR-0805); Godot's desktop C# runs on the CoreCLR measured
+here, so these numbers should carry over, and the IL2CPP question goes away on desktop.
 
 ## Phase 1: session layer and determinism, single-player first
 
@@ -122,8 +124,9 @@ late-game map with more creatures, and click-to-world-change latency in the Unit
    - **A slot that began human** never receives the computer keeper's own perks
      (`GrantCreatureLevelCommand`, `MintWageCommand`), so leaving never pays.
 5. **Handlers validate before they mutate.** A throw is a bug: the match pauses, every machine
-   writes a dump, and the journal reproduces it. Phase 3 fuzzing removes the causes. IL2CPP
-   builds keep null and bounds checks on for the simulation assemblies.
+   writes a dump, and the journal reproduces it. Phase 3 fuzzing removes the causes. Any
+   ahead-of-time build (IL2CPP, or Godot's on mobile or web) keeps null and bounds checks on
+   for the simulation assemblies.
 6. **Handover test:** swap a player to the computer keeper at tick T over the campaign replays.
    Define its side effects: the hand's contents dropped at the Heart, a creature still landing
    (`LandingPending`, which counts as held) or still being lifted (ADR-0731) resolved, possession
@@ -136,14 +139,16 @@ late-game map with more creatures, and click-to-world-change latency in the Unit
 9. **Determinism hardening:** order database iteration explicitly (or prove it is insertion
    order on every runtime); pin the sine table with a checksum test; audit the 13
    `[ThreadStatic]` fields.
-10. **Parity gates:** an IL2CPP player build replays journals and must report the CoreCLR
-    hashes. Real-data cross-platform runs need an install, which CI may not hold, so they run on
+10. **Parity gates:** the shipped client build replays journals and must report the test
+    run's hashes. On Godot desktop that is the same runtime; an ahead-of-time target needs it
+    in full. Real-data cross-platform runs need an install, which CI may not hold, so they run on
     a self-hosted runner or a release checklist machine.
 11. **Simulated latency** (delay, jitter, loss) on `LocalGameSession`, for phases 2 and 5.
 
 **Exit:** single-player plays as before; replays reproduce their hashes (after the bump); a
-campaign level runs with its computer keepers in Unity; **snapshot at tick T, reload, continue
-with keepers, equal hashes**; a handover at any tick keeps replays deterministic; IL2CPP matches.
+campaign level runs with its computer keepers in the client; **snapshot at tick T, reload, continue
+with keepers, equal hashes**; a handover at any tick keeps replays deterministic; the client
+build matches.
 
 ## Phase 2: instant acknowledgement, and the possession prototype
 
@@ -212,7 +217,7 @@ game-server API, and lobby behaviour.
    lag) and plays slightly faster or slower to keep it at target. This controls how far behind
    the display runs; it is not clock sync.
 4. **The client keeps ticking** when the window loses focus or a menu opens
-   (`runInBackground`, the options-menu pause) during a match.
+   (no pause on focus loss, no options-menu pause, in whichever engine) during a match.
 5. **A slow machine is not a slow link.** A client that cannot simulate at the relay's pace is
    warned and, if it falls a set number of turns behind, gets the caretaker. Phase 0 sets the
    minimum spec.
@@ -284,7 +289,8 @@ possession verdict could call for it, and it would stay inside the session layer
 - **Computer keeper determinism and cost**, now that every machine runs every keeper and its
   state, routing cache included, must round-trip through the snapshot.
 - **A handover into a dungeon the AI did not build**, tested in phase 1.
-- **IL2CPP versus CoreCLR**, and real data across platforms, which CI cannot hold.
+- **Client build versus test runtime** (small on Godot desktop, real for any ahead-of-time
+  target), and real data across platforms, which CI cannot hold.
 - **Rejoin time** grows with match length if checkpoints are sparse; phase 0 sizes it.
 - **The worker thread and the session**: the tick thread waits for frames without blocking the
   main thread.
