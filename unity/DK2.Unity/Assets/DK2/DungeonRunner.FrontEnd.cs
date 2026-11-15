@@ -81,7 +81,7 @@ namespace DK2.Unity
 
         private void StartFrontEnd(string install, WorldState world)
         {
-            var paths = CameraPathLoader(install);
+            var paths = EngineCameraPaths.Loader(install);
             _frontEnd = new FrontEndSession(path => paths((int)path), frontEndReturnPage);
             _frontEndStarted = Time.realtimeSinceStartupAsDouble;
             var menuAssets = new InstallClassicFrontEndMenuAssets(install);

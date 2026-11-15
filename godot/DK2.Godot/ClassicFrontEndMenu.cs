@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data.Model;
 using DK2.Data.Settings;
 using DK2.Presentation;
 using Godot;
@@ -55,7 +56,8 @@ public partial class ClassicFrontEndMenu : Node
     {
         if (_hud != null) throw new InvalidOperationException("The menu is already open.");
         _assets = new ClassicFrontEndMenuAssets(install);
-        _session = new FrontEndSession(FrontEndCameraPaths.Loader(install));
+        Func<int, IReadOnlyList<KcsFrame>?> paths = EngineCameraPaths.Loader(install);
+        _session = new FrontEndSession(path => paths((int)path));
         _hud = new FrontEndMenuHud(_session, _assets, HudFit, KeyName);
         _hud.Model.QuitRequested += Quit;
         _session.PageChanged += PageChanged;
@@ -102,8 +104,8 @@ public partial class ClassicFrontEndMenu : Node
         _frame.Clear();
         _hud.Build(_frame);
         float pixelsPerUnit = FrontEndBox.Scale(width, height);
-        var origin = new Vector2(MathF.Floor((width - FrontEndBox.Width * pixelsPerUnit) / 2 + .5f),
-            MathF.Floor((height - FrontEndBox.Height * pixelsPerUnit) / 2 + .5f));
+        (float left, float top) = FrontEndBox.Origin(width, height);
+        var origin = new Vector2(MathF.Floor(left + .5f), MathF.Floor(top + .5f));
         _canvas.Present(_frame, origin, 1f / FrontEndBox.VirtualPerUnit, pixelsPerUnit);
     }
 

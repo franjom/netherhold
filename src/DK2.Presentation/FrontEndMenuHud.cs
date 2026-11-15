@@ -33,11 +33,18 @@ public static class FrontEndBox
     /// <summary>Screen pixels per 640 x 480 unit: the largest scale at which the whole box fits.</summary>
     public static float Scale(int screenWidth, int screenHeight) => Math.Min(screenWidth / (float)Width, screenHeight / (float)Height);
 
+    /// <summary>The centred box's top-left corner in screen pixels from the top-left (not rounded).</summary>
+    public static (float Left, float Top) Origin(int screenWidth, int screenHeight)
+    {
+        float scale = Scale(screenWidth, screenHeight);
+        return ((screenWidth - Width * scale) / 2, (screenHeight - Height * scale) / 2);
+    }
+
     /// <summary>A screen point (pixels from the top-left) in 640 x 480 units, the box centred.</summary>
     public static FrontEndPoint ToUnits(float x, float yFromTop, int screenWidth, int screenHeight)
     {
         float scale = Scale(screenWidth, screenHeight);
-        float left = (screenWidth - Width * scale) / 2, top = (screenHeight - Height * scale) / 2;
+        (float left, float top) = Origin(screenWidth, screenHeight);
         return new FrontEndPoint((x - left) / scale, (yFromTop - top) / scale);
     }
 }

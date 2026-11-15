@@ -14,7 +14,7 @@ Confidence: **CONFIRMED** = the running game shows it (owner observation, native
 | Asset class | Files | Repo reader | Missing piece | Size |
 |---|---|---|---|---|
 | `FrontEnd.WAD` container | 1 archive, 445 entries | `DK2.Data.Wad.WadArchive` | indexed extraction built in F1; the by-name map still keeps the last (§1.3) | small |
-| PNG (371) | `FrontEnd.WAD` | `WadImageSource` injects the runtime PNG decoder; Unity `ClassicFrontEndAssets` supplies it | built in F1 | small |
+| PNG (371) | `FrontEnd.WAD` | `WadImageSource` injects the runtime PNG decoder; `InstallFrontEndSources` (`DK2.Presentation`) takes it from each engine adapter | built in F1 | small |
 | BMP, 24-bit (42) | `FrontEnd.WAD` | `DK2.Art.Textures.BmpImageReader` | built in F1; all 42 decode | small |
 | `.444` compressed images (29) | `FrontEnd.WAD` | `LoadingScreenImageReader` and the texture decoder's direct-RGB mode | built in F1; all 29 unmasked images decode; masked variant refused | small |
 | GIF (1), PSD (1), `HiScores.dat` (1) | `FrontEnd.WAD` | none | GIF: the age-rating icon. PSD: the title screen's source, probably unused. HiScores: see §8 | small |

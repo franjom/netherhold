@@ -4,26 +4,20 @@
 
 using DK2.Art.Textures;
 using DK2.Data.Model;
-using DK2.Data.Text;
-using DK2.Data.Wad;
 using DK2.Presentation;
 using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>What the front-end menu reads from the install, mirroring Unity's <c>InstallClassicFrontEndMenuAssets</c>:
-/// the default Text.str, the BF4 fonts, and FrontEnd.WAD's images through the replaceable texture source
-/// (<see cref="WadImageSource"/>), decoded once and kept in memory. Only the PNG decoder is Godot's.</summary>
+/// <summary>What the front-end menu reads from the install: the shared <see cref="InstallFrontEndSources"/> (as Unity's
+/// <c>InstallClassicFrontEndMenuAssets</c> uses it) with Godot's PNG decoder, plus the replacement TrueType face.</summary>
 public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposable
 {
-    private readonly string _textDirectory;
-    private readonly WadImageSource _images;
-    private readonly WadDirectoryIndex _imageIndex;
-    private readonly Dictionary<string, RgbaImage> _pixels = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, BitmapFont> _fonts = new(StringComparer.Ordinal);
-    private Dk2StringTable? _strings;
+    private readonly InstallFrontEndSources _sources;
     private FontFile? _replacementFont;
     private bool _replacementSearched;
+
+    public ClassicFrontEndMenuAssets(string install) => _sources = new InstallFrontEndSources(install, DecodePng);
 
     /// <summary>Bullfrog's DungeonKeeperII TrueType face, or null when this machine has none. It is not ours to ship, so
     /// it is never committed or imported: it is read from an absolute path, in order DK2_REPLACEMENT_FONT, then
@@ -60,46 +54,14 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
         return File.Exists(unity) ? unity : null;
     }
 
-    public ClassicFrontEndMenuAssets(string install)
-    {
-        ArgumentNullException.ThrowIfNull(install);
-        _textDirectory = System.IO.Path.Combine(install, "Data", "Text", "Default");
-        _images = new WadImageSource(WadArchive.Open(System.IO.Path.Combine(install, "Data", "FrontEnd.WAD")), DecodePng);
-        _imageIndex = new WadDirectoryIndex(_images.Entries);
-    }
+    public string Text(uint id) => _sources.Text(id);
 
-    private Dk2StringTable Strings => _strings ??= Dk2StringTable.Open(System.IO.Path.Combine(_textDirectory, "Text.str"));
-
-    public string Text(uint id) => Strings.TryResolve(id, out string text) ? text : string.Empty;
-
-    public BitmapFont Font(FrontEndFont font)
-    {
-        string file = font.FileName;
-        if (!_fonts.TryGetValue(file, out BitmapFont? loaded))
-        {
-            loaded = Bf4FontReader.Open(System.IO.Path.Combine(_textDirectory, file));
-            _fonts.Add(file, loaded);
-        }
-        return loaded;
-    }
+    public BitmapFont Font(FrontEndFont font) => _sources.Font(font);
 
     /// <summary>A front-end image's pixels by name; the menu's <see cref="HudCanvas"/> reads its art through this.</summary>
-    public RgbaImage Load(string name)
-    {
-        string path = name + ".png";
-        if (!_pixels.TryGetValue(path, out RgbaImage? pixels))
-        {
-            pixels = _images.Read(_imageIndex.Find(path));
-            _pixels.Add(path, pixels);
-        }
-        return pixels;
-    }
+    public RgbaImage Load(string name) => _sources.Load(name);
 
-    public (int Width, int Height)? ImageSize(string name)
-    {
-        try { RgbaImage image = Load(name); return (image.Width, image.Height); }
-        catch (FileNotFoundException) { return null; }
-    }
+    public (int Width, int Height)? ImageSize(string name) => _sources.ImageSize(name);
 
     private static RgbaImage DecodePng(byte[] bytes)
     {
@@ -111,7 +73,7 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
 
     public void Dispose()
     {
-        _images.Dispose();
+        _sources.Dispose();
         _replacementFont?.Dispose(); _replacementFont = null;
     }
 }

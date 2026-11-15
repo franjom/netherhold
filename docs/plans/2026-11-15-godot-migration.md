@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1 is under way.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`); 1b is next.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -28,7 +28,7 @@ group 2 is a list to audit, not a finding.
 
 ## Step 1: shared loaders, then the in-game HUD in Godot
 
-- [ ] 1a. Move the engine-neutral loading code both adapters need into `src/`, with tests, and
+- [x] 1a. Move the engine-neutral loading code both adapters need into `src/`, with tests, and
       make Unity and Godot call it: `InstallHudSources` (strings, BF4 fonts),
       `ClassicFrontEndAssets` (WAD image index and loading; PNG decode stays per engine),
       `DungeonRunner.CameraPathLoader`, and the 640x480 box origin (a `FrontEndBox` helper beside

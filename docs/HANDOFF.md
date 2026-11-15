@@ -132,8 +132,9 @@ These are entry points, not a new priority order.
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
 - Godot adapter (ADR-0805, ADR-0810): not wired are the 3D station scenery, movies, sound and keyboard.
-  The road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md); next is its
-  step 1a, moving the loaders the adapter copied out of Unity into `src/` (ADR-0805). Untested in Godot until the
+  The road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md); its step 1a is
+  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them), next is 1b, the bottom
+  panel. Untested in Godot until the
   bottom panel is ported: `HudSector` drawn through `CanvasItemAddPolygon` (a degenerate fan may fail; a triangle array
   is safer) and the native additive blend against Unity's `AdditiveOverAlpha` look.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
