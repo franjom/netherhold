@@ -49,15 +49,12 @@ namespace DK2.Unity
             try
             {
                 Func<string, RgbaImage> load = loadTexture ?? opened.Decode;
-                Frame = load("GUI\\Map\\map");
-                CameraFootprint = load("GUI\\Map\\mapcamerabox");
-                North = load("GUI\\Map\\north");
+                Frame = load(MinimapHud.FrameArt);
+                CameraFootprint = load(MinimapHud.FootprintArt);
+                North = load(MinimapHud.NorthArt);
                 for (int i = 0; i < 4; i++)
-                {
-                    string suffix = i.ToString("00");
-                    _corners[i * 2] = load("GUI\\Map\\" + (i == 3 ? "selected-" : "") + "mapbf-" + suffix);
-                    _corners[i * 2 + 1] = load("GUI\\Map\\" + (i == 3 ? "" : "selected-") + "mapbf-" + suffix);
-                }
+                    for (int active = 0; active < 2; active++)
+                        _corners[i * 2 + active] = load(MinimapHud.CornerArt((MinimapCorner)i, active != 0));
             }
             finally
             {
@@ -71,78 +68,80 @@ namespace DK2.Unity
         }
     }
 
+    /// <summary>The minimap's Unity side: <see cref="MinimapHud"/> (ADR-0805) drawn by a <see cref="HudCanvas"/> over
+    /// the engine's own GPU disc (<see cref="MinimapGpuMap"/>) and camera footprint. The panel is DK2's 1024x768,
+    /// height-matched and docked to the bottom.</summary>
     public sealed class DungeonMinimap : IDisposable
     {
-        private const float Left = 12.8f, Bottom = 11.2f, Diameter = 169.6f;
+        private readonly MinimapHud _hud;
         private readonly GameObject _root;
         private readonly PanelSettings _settings;
         private readonly VisualElement _hudRoot;
-        private HudVisibility _visibility = new HudVisibility(true, true);
         private readonly Image _image;
         private readonly Texture2D _backdrop;
-        private readonly MinimapPalette _palette;
-        private readonly MinimapClassGrid _grid;
         private readonly MinimapGpuMap _gpu;
-        private readonly MinimapFrameVisual _frame;
         private readonly MinimapFootprintVisual _footprint;
-        private readonly MinimapNorthVisual _north;
-        private readonly List<MinimapMarker> _markers = new List<MinimapMarker>();
-        private WorldState _capturedWorld;
-        private long _capturedTick = -1;
-        private int _capturedPreview = -1;
-        private MinimapZoom _zoom = MinimapZoom.WholeMap;
+        private readonly HudCanvas _canvas;
+        private readonly HudFrame _frame = new HudFrame();
+        private Vector3 _pointer;
+        private Dk2Angle _heading;
         public int UiScale { get; set; } = 100;
         private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale);
+
         public ClassicHudAction HandleCornerPress(Vector3 screenPosition, bool primaryPressed, bool secondaryPressed)
         {
-            if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || Screen.height <= 0
-                || !primaryPressed && !secondaryPressed) return ClassicHudAction.None;
-            return ClassicHudControlLayout.ActionAt(ReferencePoint(screenPosition), !primaryPressed);
+            if (Screen.height <= 0) return ClassicHudAction.None;
+            Vector2 at = Virtual(screenPosition);
+            return _hud.CornerPress(at.x, at.y, primaryPressed, secondaryPressed);
         }
 
         /// <summary>The corner control under the pointer, for its tooltip; None off the corners.</summary>
         public ClassicHudAction HoveredControl(Vector3 screenPosition)
-            => !_visibility.ShowNormalHud || Screen.height <= 0 ? ClassicHudAction.None
-                : ClassicHudControlLayout.ActionAt(ReferencePoint(screenPosition), false);
+        {
+            if (Screen.height <= 0) return ClassicHudAction.None;
+            Vector2 at = Virtual(screenPosition);
+            return _hud.HoveredControl(at.x, at.y);
+        }
 
         public void UpdateControls(Vector3 screenPosition, ClassicHudAction selected, bool optionsVisible)
-            => _frame.UpdateControls(ReferencePoint(screenPosition), selected, optionsVisible);
+        {
+            _pointer = screenPosition;
+            _hud.SetControls(selected, optionsVisible);
+            Present();
+        }
 
-        private System.Numerics.Vector2 ReferencePoint(Vector3 point)
+        /// <summary>A screen position in the panel's virtual units: 2.5 a 1024x768 unit, docked to the bottom.</summary>
+        private Vector2 Virtual(Vector3 point)
         {
             float scale = Screen.height / 768f * ScaleLayout.Factor;
-            return new System.Numerics.Vector2(point.x / scale, 768 - point.y / scale);
+            return new Vector2(point.x / scale, 768 - point.y / scale) * 2.5f;
         }
 
         public RenderTexture ClassTexture => _gpu.Classes;
         public Texture PaletteTexture => _gpu.PaletteTexture;
-        public MinimapPalette Palette => _palette;
-        public int MapWidth => _grid.Width;
-        public int MapHeight => _grid.Height;
+        public MinimapPalette Palette => _hud.Palette;
+        public int MapWidth => _hud.MapWidth;
+        public int MapHeight => _hud.MapHeight;
 
-        public void ZoomIn() => _zoom = _zoom.ZoomIn();
-        public void ZoomOut() => _zoom = _zoom.ZoomOut();
+        public void ZoomIn() => _hud.ZoomIn();
+        public void ZoomOut() => _hud.ZoomOut();
         public void HandleZoomPress(Vector3 screenPosition, bool primaryPressed, bool secondaryPressed)
         {
-            if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput) return;
-            if (!primaryPressed && !secondaryPressed || Screen.height <= 0) return;
-            float scale = Screen.height / 768f * ScaleLayout.Factor;
-            if (!MinimapControlLayout.IsMagnifier(new System.Numerics.Vector2(
-                screenPosition.x / scale, 768 - screenPosition.y / scale))) return;
-            if (primaryPressed) ZoomIn();
-            else if (secondaryPressed) ZoomOut();
+            if (Screen.height <= 0) return;
+            Vector2 at = Virtual(screenPosition);
+            _hud.ZoomPress(at.x, at.y, primaryPressed, secondaryPressed);
         }
 
         public bool TryNavigate(Vector3 screenPosition, Camera camera, Vector3 focus, out TilePos target)
         {
             target = default;
-            if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || camera == null || Screen.height <= 0) return false;
-            float scale = Screen.height / 768f * ScaleLayout.Factor;
-            var point = new System.Numerics.Vector2(screenPosition.x / scale, 768 - screenPosition.y / scale);
-            var heading = new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(camera.transform.eulerAngles.y * (2048f / 360))));
-            return MinimapNavigation.TryResolve(point, new MinimapNavigationView(
-                _grid.Width, _grid.Height, _zoom, FixedFocus(focus), heading), out target);
+            if (camera == null || Screen.height <= 0) return false;
+            Vector2 at = Virtual(screenPosition);
+            return _hud.TryNavigate(at.x, at.y, FixedFocus(focus), Heading(camera), out target);
         }
+
+        private static Dk2Angle Heading(Camera camera) =>
+            new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(camera.transform.eulerAngles.y * (2048f / 360))));
 
         private static FpPosition3 FixedFocus(Vector3 focus) => new FpPosition3(
             new Fp32((int)(focus.x * Fp32.One)), new Fp32((int)(-focus.z * Fp32.One)), new Fp32(0));
@@ -151,6 +150,7 @@ namespace DK2.Unity
         {
             _backdrop = Decode(assets.BackdropPng); _backdrop.wrapMode = TextureWrapMode.Repeat;
             Texture2D source = Decode(assets.PalettePng);
+            MinimapPalette palette;
             try
             {
                 if (source.width < 37) throw new InvalidOperationException("Native minimap palette is too short.");
@@ -160,11 +160,11 @@ namespace DK2.Unity
                     Color32 colour = source.GetPixel(i, source.height - 1);
                     pixels[i] = (uint)(colour.r << 16 | colour.g << 8 | colour.b);
                 }
-                _palette = new MinimapPalette(pixels);
+                palette = new MinimapPalette(pixels);
             }
             finally { UnityEngine.Object.Destroy(source); }
-            _grid = new MinimapClassGrid(width, height);
-            _gpu = new MinimapGpuMap(width, height, _palette, _backdrop);
+            _hud = new MinimapHud(palette, width, height);
+            _gpu = new MinimapGpuMap(width, height, palette, _backdrop);
             _settings = ScriptableObject.CreateInstance<PanelSettings>();
             _settings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
             // Over the bottom panel (12) and creature panels (13), as DK2 draws the minimap over the
@@ -176,22 +176,31 @@ namespace DK2.Unity
             _root = new GameObject("Dungeon HUD"); _root.transform.SetParent(parent, false);
             var document = _root.AddComponent<UIDocument>(); document.panelSettings = _settings;
             _hudRoot = document.rootVisualElement;
-            document.rootVisualElement.style.width = Length.Percent(100);
-            document.rootVisualElement.style.height = Length.Percent(100);
-            document.rootVisualElement.pickingMode = PickingMode.Ignore;
+            _hudRoot.style.width = Length.Percent(100);
+            _hudRoot.style.height = Length.Percent(100);
+            _hudRoot.pickingMode = PickingMode.Ignore;
+            HudRect disc = MinimapHud.Disc;
             _image = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
             _image.style.position = Position.Absolute;
-            _image.style.left = Left; _image.style.bottom = Bottom;
-            _image.style.width = Diameter; _image.style.height = Diameter;
-            document.rootVisualElement.Add(_image);
+            _image.style.left = disc.X / 2.5f; _image.style.bottom = 768 - (disc.Y + disc.Height) / 2.5f;
+            _image.style.width = disc.Width / 2.5f; _image.style.height = disc.Height / 2.5f;
+            _hudRoot.Add(_image);
             // Our choice, the native z-order being unread: under the frame, as the map is. The native
             // corner clamp is to the disc's square, so a clamped corner can leave the circle, and the
             // ring covers it (minimap-rendering.md).
             _footprint = new MinimapFootprintVisual(assets.CameraFootprint, width, height);
-            document.rootVisualElement.Add(_footprint);
-            _frame = new MinimapFrameVisual(document.rootVisualElement, assets);
-            _north = new MinimapNorthVisual(assets.North);
-            document.rootVisualElement.Add(_north);
+            _hudRoot.Add(_footprint);
+            var art = new Dictionary<string, RgbaImage>(StringComparer.Ordinal)
+            {
+                [MinimapHud.FrameArt] = assets.Frame,
+                [MinimapHud.NorthArt] = assets.North,
+            };
+            for (int i = 0; i < 4; i++)
+                for (int active = 0; active < 2; active++)
+                    art[MinimapHud.CornerArt((MinimapCorner)i, active != 0)] = assets.Corner((MinimapCorner)i, active != 0);
+            _canvas = new HudCanvas(path => art[path], null);
+            _hudRoot.Add(_canvas);
+            foreach (HudImage image in MinimapHud.Images()) _canvas.Preload(image);
         }
 
         private static Texture2D Decode(byte[] png)
@@ -205,25 +214,17 @@ namespace DK2.Unity
         // Capture is called while the simulation worker is joined. Draw reads only GPU state.
         public void Capture(WorldState world, WorldView view, INavByteGrid navigation)
         {
-            if (_capturedWorld == world && _capturedTick == world.CurrentTick.Value && _capturedPreview == view.PreviewVersion) return;
-            _capturedWorld = world; _capturedTick = world.CurrentTick.Value; _capturedPreview = view.PreviewVersion;
-            for (int y = 0; y < world.Height; y++)
-                for (int x = 0; x < world.Width; x++)
-                {
-                    var at = new DK2.Core.TilePos(x, y);
-                    _grid.Set(at, view.MinimapColourAt(world, navigation, at));
-                }
-            _gpu.UploadChanges(_grid);
-            if (_palette.AdvanceNeutralCycle(world.CurrentTick, PlayerIds.Neutral)) _gpu.UpdatePalette(_palette);
-            view.CaptureMinimapMarkers(world, _palette, _markers);
-            _gpu.UploadMarkers(_markers);
+            if (!_hud.Capture(world, view, navigation, out bool paletteChanged)) return;
+            _gpu.UploadChanges(_hud.Grid);
+            if (paletteChanged) _gpu.UpdatePalette(_hud.Palette);
+            _gpu.UploadMarkers(_hud.Markers);
             _gpu.SetHeartTrail(view.MinimapHeartTile, world.CurrentTick);
         }
 
         public void Draw(Camera camera, Vector3? focus = null)
         {
             _settings.scale = ScaleLayout.Factor;
-            if (!_visibility.ShowNormalHud || camera == null) return;
+            if (!_hud.Visibility.ShowNormalHud || camera == null) return;
             Vector3 centre = focus ?? camera.transform.position;
             if (!focus.HasValue)
             {
@@ -231,67 +232,53 @@ namespace DK2.Unity
                 Ray ray = camera.ViewportPointToRay(new Vector3(.5f, .5f, 0));
                 if (floor.Raycast(ray, out float distance)) centre = ray.GetPoint(distance);
             }
-            _gpu.SetView(_zoom, FixedFocus(centre));
-            _gpu.Render(camera.transform.eulerAngles.y, Mathf.CeilToInt(Diameter * Screen.height / 768f * ScaleLayout.Factor));
+            MinimapZoom zoom = _hud.Zoom;
+            _gpu.SetView(zoom, FixedFocus(centre));
+            _gpu.Render(camera.transform.eulerAngles.y, Mathf.CeilToInt(MinimapHud.Disc.Width / 2.5f * Screen.height / 768f * ScaleLayout.Factor));
             if (_image.image != _gpu.Disc) _image.image = _gpu.Disc;
-            _footprint.UpdateCamera(_zoom.IsWholeMap ? camera : null);
-            _north.UpdateHeading(new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(
-                camera.transform.eulerAngles.y * (2048f / 360)))), Screen.height, ScaleLayout.Factor);
+            _footprint.UpdateCamera(zoom.IsWholeMap ? camera : null);
+            _heading = Heading(camera);
+            Present();
+        }
+
+        /// <summary>Builds the frame, corners and north sprite into the canvas, which covers the panel's bottom
+        /// 768 units (the panel is 768 / factor tall).</summary>
+        private void Present()
+        {
+            if (Screen.height <= 0) return;
+            float factor = ScaleLayout.Factor;
+            _canvas.style.top = 768 / factor - 768; _canvas.style.height = 768;
+            var screen = new HudScreen(Mathf.RoundToInt(Screen.width / factor), Screen.height);
+            Vector2 at = Virtual(_pointer);
+            _frame.Clear();
+            _hud.Build(screen, (at.x, at.y), _heading, _frame);
+            _canvas.Present(_frame, 1 / 2.5f, Screen.height / 768f * factor);
         }
 
         public bool ContainsPointer(Vector3 position)
         {
-            return _visibility.ShowNormalHud && _visibility.AllowOrdinaryInput && MinimapFrameVisual.ContainsPointer(position, ScaleLayout.Factor);
+            if (Screen.height <= 0) return false;
+            Vector2 at = Virtual(position);
+            return _hud.ContainsPointer(at.x, at.y);
         }
 
         public void SetVisibility(HudVisibility visibility)
         {
-            if (_visibility.ShowNormalHud != visibility.ShowNormalHud)
+            if (_hud.Visibility.ShowNormalHud != visibility.ShowNormalHud)
+            {
                 _hudRoot.style.display = visibility.ShowNormalHud ? DisplayStyle.Flex : DisplayStyle.None;
-            _visibility = visibility;
+                if (visibility.ShowNormalHud) _canvas.Invalidate();
+            }
+            _hud.SetVisibility(visibility);
         }
 
         public void Dispose()
         {
             _gpu.Dispose();
-            _frame.Dispose();
+            _canvas.Dispose();
             _footprint.Dispose();
-            _north.Dispose();
             UnityEngine.Object.Destroy(_root); UnityEngine.Object.Destroy(_settings);
             UnityEngine.Object.Destroy(_backdrop);
-        }
-    }
-
-    public sealed class MinimapNorthVisual : Image, IDisposable
-    {
-        private readonly Texture2D _texture;
-        private Dk2Angle _heading;
-        private int _screenHeight;
-        private float _uiFactor = 1;
-
-        public MinimapNorthVisual(RgbaImage source)
-        {
-            _texture = MinimapFrameVisual.Decode(source);
-            image = _texture; pickingMode = PickingMode.Ignore;
-            scaleMode = ScaleMode.StretchToFill;
-            style.position = Position.Absolute;
-            // Use the native 8x8 draw descriptor in HUD units, independently of cache resolution.
-            style.width = 8; style.height = 8;
-        }
-
-        public void UpdateHeading(Dk2Angle heading, int screenHeight, float uiFactor = 1)
-        {
-            if (screenHeight <= 0 || _heading == heading && _screenHeight == screenHeight && _uiFactor == uiFactor) return;
-            _heading = heading; _screenHeight = screenHeight; _uiFactor = uiFactor;
-            System.Numerics.Vector2 origin = MinimapNorth.SpriteOriginPixels(heading, screenHeight);
-            float scale = screenHeight / 768f;
-            style.left = origin.X / scale; style.top = origin.Y / scale + 768 / uiFactor - 768;
-        }
-
-        public void Dispose()
-        {
-            RemoveFromHierarchy();
-            UnityEngine.Object.Destroy(_texture);
         }
     }
 

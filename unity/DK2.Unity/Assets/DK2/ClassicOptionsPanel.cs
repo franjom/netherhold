@@ -90,17 +90,6 @@ namespace DK2.Unity
             _hud.Build(screen, (at.x, at.y), _frame);
             _canvas.Present(_frame, screen.Scale, 1);
         }
-        /// <summary>Text set by <see cref="HudTextPixels"/>, the one rasterizer every panel and engine shares.</summary>
-        internal static Texture2D TextTexture(BitmapFont font,string text,int wrapWidth=0)
-        {
-            byte[] set=HudTextPixels.Render(new HudText(font,text,wrapWidth),out int width,out int height);
-            // Unity textures run bottom-up.
-            var rows=new byte[set.Length]; int row=width*4;
-            for(int y=0;y<height;y++) Buffer.BlockCopy(set,y*row,rows,(height-1-y)*row,row);
-            var texture=new Texture2D(width,height,TextureFormat.RGBA32,false)
-                { filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp };
-            texture.LoadRawTextureData(rows); texture.Apply(false,true); return texture;
-        }
         public void Dispose()
         {
             _canvas.Dispose();

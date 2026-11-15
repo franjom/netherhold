@@ -288,7 +288,7 @@ a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is Uni
 
 **HUD (ADR-0805).** A HUD panel's DK2 behaviour lives in `DK2.Presentation` and writes a `HudFrame`
 (`HudDrawList.cs`). The adapter draws it with `HudCanvas` and forwards pointer input. The bottom panel,
-the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages, and the front-end menu have moved; the minimap and full-map markers are still Unity code until they move in the order ADR-0805 lists. A
+the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages, the front-end menu, and the minimap and full-map markers have moved (`MinimapHud`, `FullMapHud`); the minimap's GPU disc and camera footprint stay Unity code. A
 front-end label is a `HudLabel` in BF4 glyph boxes: `HudCanvas` draws the shared bitmap (`HudLabelPixels`) or the replacement TrueType glyphs in those boxes. The ADR's
 table says where new HUD files go, including the `godot/DK2.Godot` adapter, which today is a bootstrap scene that loads `DK2.Presentation` (ADR-0810; toolchain in `godot/README.md`). Its csproj is outside `DK2.slnx` and CI.
 

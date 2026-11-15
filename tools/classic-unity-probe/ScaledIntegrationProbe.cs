@@ -177,12 +177,14 @@ namespace DK2.Unity.Editor
         private static void CheckMinimapAndGold()
         {
             var minimap = Field<DungeonMinimap>("_minimap");
-            var corners = (Image[])Get(Get(minimap, "_frame"), "_corners");
-            var panel = (PanelSettings)Get(minimap, "_settings");
-            Vector3 point = ScreenPoint(corners[3], panel);
+            // The magnifier's centre, (169.6, 745.6) of 1024x768 docked to the bottom, at the scaled panel's pixels (ADR-0805).
+            float scale = Screen.height / 768f * ClassicHudScaling.Layout(minimap.UiScale).Factor;
+            var point = new Vector3(169.6f * scale, (768 - 745.6f) * scale, 0);
             if (minimap.HandleCornerPress(point, true, false) != ClassicHudAction.ZoomIn || !minimap.ContainsPointer(point)) throw new Exception("Scaled magnifier hit mismatch.");
-            Set(minimap, "_zoom", MinimapZoom.WholeMap); minimap.HandleZoomPress(point, true, false);
-            if (((MinimapZoom)Get(minimap, "_zoom")).Level != 0) throw new Exception("Magnifier handler did not zoom.");
+            var hud = (MinimapHud)Get(minimap, "_hud");
+            while (!hud.Zoom.IsWholeMap) hud.ZoomOut();
+            minimap.HandleZoomPress(point, true, false);
+            if (hud.Zoom.Level != 0) throw new Exception("Magnifier handler did not zoom.");
             var resources = Field<ClassicResourceHud>("_resourceHud");
             var glyphs = (Image[])Get(Get(resources, "_gold"), "_glyphs");
             Image gold = glyphs.First(g => g.style.display.value == DisplayStyle.Flex);

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DK2.Art.Textures;
 using DK2.Core;
 using DK2.Data;
 using DK2.Presentation;
@@ -36,10 +37,10 @@ namespace DK2.Unity.HudProbe
         private string _output;
         private Report _report;
         private MinimapGpuMap _liveGpu;
-        private MinimapFrameVisual _frame;
+        private MinimapHud _minimapHud;
+        private HudCanvas _minimapCanvas;
         private MinimapFootprintVisual _footprint;
         private MinimapFootprintVisual _wideFootprint;
-        private MinimapNorthVisual _north;
         private ClassicTileHoverOutline _tileOutline;
         private RenderTexture _outlineTarget;
         private ClassicHoverHud _hoverHud;
@@ -99,7 +100,6 @@ namespace DK2.Unity.HudProbe
                 AssertDisc(disc);
                 AddImage(root, disc, left: 260, top: 420, width: 224, height: 224);
                 AddLiveLevel(root, palette, backdrop);
-                _frame = new MinimapFrameVisual(root, frameAssets);
                 _footprint = new MinimapFootprintVisual(frameAssets.CameraFootprint, 128, 128);
                 root.Add(_footprint);
                 var footprintCamera = Own(new GameObject("Footprint probe camera"));
@@ -116,8 +116,14 @@ namespace DK2.Unity.HudProbe
                 wideRoot.Add(_wideFootprint);
                 camera.orthographicSize = 40; camera.aspect = 2;
                 _wideFootprint.UpdateCamera(camera);
-                _north = new MinimapNorthVisual(frameAssets.North);
-                root.Add(_north);
+                // The frame, corners and north sprite, drawn as the game draws them (ADR-0805).
+                var minimapArt = new Dictionary<string, RgbaImage>
+                    { [MinimapHud.FrameArt] = frameAssets.Frame, [MinimapHud.NorthArt] = frameAssets.North };
+                for (int i = 0; i < 8; i++)
+                    minimapArt[MinimapHud.CornerArt((MinimapCorner)(i / 2), i % 2 != 0)] = frameAssets.Corner((MinimapCorner)(i / 2), i % 2 != 0);
+                _minimapHud = new MinimapHud(new MinimapPalette(new uint[37]), 128, 128);
+                _minimapCanvas = new HudCanvas(path => minimapArt[path], null);
+                root.Add(_minimapCanvas);
                 VerifyHoverAssets(root);
                 const string text = "Dungeon Heart 100%";
                 var reference = Own(HudFontPilot.Raster(assets.ReferenceFont, text));
@@ -525,7 +531,9 @@ namespace DK2.Unity.HudProbe
         {
             int width = _view == 0 ? 1024 : 2560, height = _view == 0 ? 768 : 1440;
             _panel = Own(new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32)); _panel.Create();
-            _north.UpdateHeading(new Dk2Angle((ushort)(_view == 0 ? 0 : 256)), height);
+            var minimapFrame = new HudFrame();
+            _minimapHud.Build(new HudScreen(width, height), (-1, -1), new Dk2Angle((ushort)(_view == 0 ? 0 : 256)), minimapFrame);
+            _minimapCanvas.Present(minimapFrame, 1 / 2.5f, height / 768f);
             _settings.targetTexture = _panel; _frames = 0;
             ConfigureControlsPilot(width, height);
             _resourceTarget = Own(new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32)); _resourceTarget.Create();
@@ -716,10 +724,9 @@ namespace DK2.Unity.HudProbe
         private void OnDestroy()
         {
             _liveGpu?.Dispose();
-            _frame?.Dispose();
+            _minimapCanvas?.Dispose();
             _footprint?.Dispose();
             _wideFootprint?.Dispose();
-            _north?.Dispose();
             _tileOutline?.Dispose();
             _hoverHud?.Dispose();
             DisposeControlsPilot();

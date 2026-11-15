@@ -583,7 +583,7 @@ live-scene visual acceptance.
 
 ## Known-broken probes
 
-Three probes fail identically on HEAD without the front-end menu move (checked 2026-11-15), so a failure
+Four probes fail on HEAD without the minimap and full-map move (checked 2026-11-15), so a failure
 is not evidence of a regression there. Fix each before relying on it.
 
 - `run-front-end.ps1` without `-Menus` or `-Campaign` (the session run): its "no front-end HUD" check forbids the `_hudSources` that `InitializeSaves` creates.
@@ -591,3 +591,5 @@ is not evidence of a regression there. Fix each before relying on it.
 - `run-completion-flow.ps1`: throws "Sequence contains no matching element" at `CompletionFlowProbe.cs:309`,
   `Effects().Last(clip != null)`. The reviewer reads it as a race, a sound decode not finished because front-end
   sessions skip sound prefetch; not confirmed.
+
+- `run-scaled-integration.ps1` (`ScaledIntegrationProbe`): reflects on `ClassicCreatureOverview._modeHover`, `_modeHovers` and `_workerHighlight`, `ClassicBottomPanel._icons`, `_slots` and `_root`, and `ClassicResourceHud._gold`, which earlier panel moves removed. Its minimap check reads the magnifier from 1024x768 units and the zoom through `DungeonMinimap._hud`; that part was updated for ADR-0805 and is untested, because the probe fails earlier on the other reflections.

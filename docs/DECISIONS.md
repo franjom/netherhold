@@ -19207,7 +19207,7 @@ pointer state and the commands a click posts. Left there, every HUD fix would ha
    (the Reaper talisman's quarters) are `HudImageVariant`s, applied by `HudImagePixels`, so every engine gets the same pixels.
 3. **Panel by panel, Unity kept working.** Each step adds the model and its tests, turns the Unity class into a facade with
    the same public API over `HudCanvas`, and deletes the old Unity logic. Order: bottom panel (done), resource HUD (done), message
-   tabs (done), hover HUD (done), creature query and overview (done), options menu and save/load (done), game-options panel (done), front-end menu (done), minimap and full-map markers.
+   tabs (done), hover HUD (done), creature query and overview (done), options menu and save/load (done), game-options panel (done), front-end menu (done), minimap and full-map markers (done).
 4. **The replacement font is drawn in BF4 glyph boxes** (owner, 2026-11-15). The model lays every front-end label out as
    BF4 glyph boxes (`HudLabel`). A renderer draws either the shared BF4 bitmap or its own engine's TrueType glyphs in those
    boxes; a label whose font lacks a glyph, and every glow, is the bitmap. Only the TrueType rasterizing is per engine.

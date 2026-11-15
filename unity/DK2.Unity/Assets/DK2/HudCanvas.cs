@@ -232,31 +232,36 @@ namespace DK2.Unity
                 HudDraw draw = draws[i];
                 var tint = new Color32(draw.Tint.R, draw.Tint.G, draw.Tint.B, draw.Tint.A);
                 if (_glyphs[i] != null) { DrawGlyphs(context, draw, _glyphs[i], texture, tint); continue; }
-                Rect r = Snapped(draw.Rect);
                 if (draw.Kind != HudDrawKind.Sector)
                 {
-                    if (r.width <= 0 || r.height <= 0) continue;
-                    // UV from the image's top-left, to Unity's bottom-up texture space.
-                    HudRect uv = draw.Uv ?? new HudRect(0, 0, 1, 1);
-                    if (draw.Clip is HudRect clip)
+                    // A run of quads on one texture is one mesh: a full map's hundreds of creature squares are one
+                    // allocation, not one each. Only neighbours join, so the back-to-front order is kept.
+                    int end = i + 1;
+                    while (end < draws.Length && end - i < MaxBatch && _resolved[end] == texture && _glyphs[end] == null && draws[end].Kind != HudDrawKind.Sector) end++;
+                    if (_batch.Length < end - i) _batch = new BatchQuad[Math.Max(end - i, _batch.Length * 2)];
+                    int count = 0;
+                    for (int k = i; k < end; k++)
+                        if (Quad(draws[k], out _batch[count].Rect, out _batch[count].Uv)) _batch[count++].Tint = new Color32(draws[k].Tint.R, draws[k].Tint.G, draws[k].Tint.B, draws[k].Tint.A);
+                    i = end - 1;
+                    if (count == 0) continue;
+                    MeshWriteData quads = context.Allocate(count * 4, count * 6, texture);
+                    for (int k = 0; k < count; k++)
                     {
-                        // Quad and window both on the pixel grid, then cut: the overflow-hidden box's own rule.
-                        Rect c = Snapped(clip);
-                        if (!HudQuads.Cut(new HudRect(r.x, r.y, r.width, r.height), uv, new HudRect(c.x, c.y, c.width, c.height),
-                            out HudRect cut, out uv)) continue;
-                        r = new Rect(cut.X, cut.Y, cut.Width, cut.Height);
+                        Rect q = _batch[k].Rect; HudRect uv = _batch[k].Uv; Color32 colour = _batch[k].Tint;
+                        // UV from the image's top-left, to Unity's bottom-up texture space.
+                        float u0 = uv.X, u1 = uv.X + uv.Width, v0 = 1 - uv.Y, v1 = 1 - (uv.Y + uv.Height);
+                        Vertex(quads, q.xMin, q.yMin, u0, v0, colour);
+                        Vertex(quads, q.xMax, q.yMin, u1, v0, colour);
+                        Vertex(quads, q.xMax, q.yMax, u1, v1, colour);
+                        Vertex(quads, q.xMin, q.yMax, u0, v1, colour);
+                        // Clockwise on screen: UI Toolkit's winding.
+                        ushort first = (ushort)(k * 4);
+                        quads.SetNextIndex(first); quads.SetNextIndex((ushort)(first + 1)); quads.SetNextIndex((ushort)(first + 2));
+                        quads.SetNextIndex(first); quads.SetNextIndex((ushort)(first + 2)); quads.SetNextIndex((ushort)(first + 3));
                     }
-                    float u0 = uv.X, u1 = uv.X + uv.Width, v0 = 1 - uv.Y, v1 = 1 - (uv.Y + uv.Height);
-                    MeshWriteData quad = context.Allocate(4, 6, texture);
-                    Vertex(quad, r.xMin, r.yMin, u0, v0, tint);
-                    Vertex(quad, r.xMax, r.yMin, u1, v0, tint);
-                    Vertex(quad, r.xMax, r.yMax, u1, v1, tint);
-                    Vertex(quad, r.xMin, r.yMax, u0, v1, tint);
-                    // Clockwise on screen: UI Toolkit's winding.
-                    quad.SetNextIndex(0); quad.SetNextIndex(1); quad.SetNextIndex(2);
-                    quad.SetNextIndex(0); quad.SetNextIndex(2); quad.SetNextIndex(3);
                     continue;
                 }
+                Rect r = Snapped(draw.Rect);
                 // The fan is laid over the snapped rect in local units, as the old sector element's content rect was.
                 int n = HudSector.Fan(new HudRect(r.x, r.y, r.width, r.height), draw.Percent, fan);
                 if (n == 0) continue;
@@ -265,6 +270,28 @@ namespace DK2.Unity
                 for (int k = 1; k < n - 1; k++)
                 { mesh.SetNextIndex(0); mesh.SetNextIndex((ushort)k); mesh.SetNextIndex((ushort)(k + 1)); }
             }
+        }
+
+        /// <summary>Quads in one mesh at most: its indices are 16-bit, four vertices a quad.</summary>
+        private const int MaxBatch = 16383;
+        private struct BatchQuad { public Rect Rect; public HudRect Uv; public Color32 Tint; }
+        private BatchQuad[] _batch = new BatchQuad[16];
+
+        /// <summary>A quad's snapped rect and image part, cut to its clip window; false when nothing is left.</summary>
+        private bool Quad(HudDraw draw, out Rect r, out HudRect uv)
+        {
+            r = Snapped(draw.Rect);
+            uv = draw.Uv ?? new HudRect(0, 0, 1, 1);
+            if (r.width <= 0 || r.height <= 0) return false;
+            if (draw.Clip is HudRect clip)
+            {
+                // Quad and window both on the pixel grid, then cut: the overflow-hidden box's own rule.
+                Rect c = Snapped(clip);
+                if (!HudQuads.Cut(new HudRect(r.x, r.y, r.width, r.height), uv, new HudRect(c.x, c.y, c.width, c.height),
+                    out HudRect cut, out uv)) return false;
+                r = new Rect(cut.X, cut.Y, cut.Width, cut.Height);
+            }
+            return true;
         }
 
         /// <summary>A label as its font's glyphs, each in the box the bitmap layout gives it: the glyph's ink box
