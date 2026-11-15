@@ -184,9 +184,9 @@ handler returns 1 (the table's handlers read here), so a room's border and healt
   draws and appears to refund the sale value. `BridgeBurnSystem` is our stand-in, a per-tile countdown run in the
   work phase before the walk (Q67), with no refund; it is not a step.
 
-DK2 handlers with no step of ours: Torture, Temple, Graveyard (section 7); the Combat Pit's own turn `0x004D7A60`
-(two sound timers, as the Torture Chamber's, drawing `random(4 x ticks)` and `random(32 x ticks)` and the slot
-pick, and message 9: its creature states are `CombatPitSystem`'s, in the thing pass); the hero gate type 21
+The Combat Pit room step is built; its timers, effects and message are in
+[combat-pit.md section 9](combat-pit.md#9-what-is-built-adr-0213-hashsave-523).
+DK2 handlers with no step of ours: Torture, Temple, Graveyard (section 7); the hero gate type 21
 `0x004DF6E0` (five inline draws); the Prison `0x004E2AC0` (door auto-close, no draws); the Lair and Crypt
 `0x004B4C20` (nothing). Every step of ours has a DK2 counterpart; `BridgeBurnSystem` stands in for one.
 

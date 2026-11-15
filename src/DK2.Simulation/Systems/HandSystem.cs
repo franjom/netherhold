@@ -595,13 +595,27 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
+        // Native76 takes an enemy room's drop state before it distinguishes workers.
+        RoomInstance? pit = CombatPitRules.PitAt(world, context.Database, landingTileIndex);
+        PlayerId tileOwner = world.Tile(command.Tile.X, command.Tile.Y).OwnerPlayerId;
+        bool enemyPit = tileOwner != creature.OwnerPlayerId && tileOwner != PlayerIds.Neutral;
+        if (pit is not null && enemyPit && CombatPitRules.IsFloor(pit, landingTileIndex)
+            && CombatPitSystem.Move(context, creature, CombatPitRules.ArrivingState))
+        {
+            creature.PrisonOwnerPlayerId = pit.OwnerPlayerId;
+            context.Emit(SystemName, "dropped_in_pit",
+                $"player={command.PlayerId} creature={creature.Id} " +
+                $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
+            return;
+        }
+
         // A creature lifted out of a cell stays that keeper's prisoner while in
         // the hand, and where it lands decides whether it stays one: back onto
         // a tile of one of the keeper's prisons and it is imprisoned again,
         // anywhere else and it is loose (ADR-0064). The third destination the owner
         // named is a torture device in the keeper's own Torture Chamber (ADR-0193).
         bool freed = false;
-        if (PrisonRules.IsImprisoned(creature))
+        if (PrisonRules.HasKeeperBinding(creature) && creature.OwnerPlayerId != command.PlayerId)
         {
             if (TortureRules.TryStrap(context.Hooks, creature, command.PlayerId, landingTileIndex))
             {
@@ -644,13 +658,14 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        // An own non-worker on the floor of the keeper's Combat Pit: the room record's state,
-        // 137, through 1 (0x004E8DA0(0), combat-pit.md §1).
-        RoomInstance? pit = CombatPitRules.PitAt(world, context.Database, landingTileIndex);
-        if (creature.OwnerPlayerId == command.PlayerId && pit?.OwnerPlayerId == command.PlayerId
-            && !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && CombatPitRules.IsFloor(pit, landingTileIndex)
+        // The ordinary room branch includes low-Number workers. A keeper worker's switch has no pit arm.
+        bool ordinaryRoomDrop = (definition.Flags & CreatureFlags.IsWorker) == 0
+            || creature.OwnerPlayerId < PlayerIds.FirstKeeper;
+        if (ordinaryRoomDrop && creature.CasinoBigWinnerTicks == 0
+            && pit is not null && CombatPitRules.IsFloor(pit, landingTileIndex)
             && CombatPitSystem.Move(context, creature, CombatPitRules.ArrivingState))
         {
+            creature.DroppedToDoJob = JobType.None;
             context.Emit(SystemName, "dropped_in_pit",
                 $"player={command.PlayerId} creature={creature.Id} " +
                 $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");

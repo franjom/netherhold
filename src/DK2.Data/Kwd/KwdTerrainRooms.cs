@@ -31,6 +31,7 @@ public static class KwdTerrainRooms
         U16(RoomLayout.NameString, record.NameStringId);
         U16(RoomLayout.Cost, record.Cost);
         U16(RoomLayout.CreatedObjectEffect, record.CreatedObjectEffectId);
+        U16(RoomLayout.RoomEffect421, record.RoomEffect421Id);
         U16(RoomLayout.RoomEffect425, record.RoomEffect425Id);
         U16(RoomLayout.RoomEffect427, record.RoomEffect427Id);
         U16(RoomLayout.RoomEffect429, record.RoomEffect429Id);
@@ -108,7 +109,7 @@ public static class KwdTerrainRooms
         internal const int SizeX = 0x41B, SizeY = 0x41C, Health = 0x41D;
         internal const int TorchIntensity = 0x36E, TorchHeight = 0x380, TorchRgb = 0x397;
         internal const int TorchRadius = 0x3C3, TorchArt = 0x3C7, CreatedObjectEffect = 0x384;
-        internal const int RoomEffect425 = 0x386, RoomEffect427 = 0x388, RoomEffect429 = 0x38A;
+        internal const int RoomEffect421 = 0x382, RoomEffect425 = 0x386, RoomEffect427 = 0x388, RoomEffect429 = 0x38A;
     }
 
     public static List<TerrainDef> ParseTerrain(IEnumerable<KwdChunk> chunks)
@@ -213,6 +214,7 @@ public static class KwdTerrainRooms
             Construction = (TileConstruction)U8(RoomLayout.Construction),
             CreatedCreatureId = U8(RoomLayout.Creature),
             CreatedObjectEffectId = U16(RoomLayout.CreatedObjectEffect),
+            RoomEffect421Id = U16(RoomLayout.RoomEffect421),
             RoomEffect425Id = U16(RoomLayout.RoomEffect425),
             RoomEffect427Id = U16(RoomLayout.RoomEffect427),
             RoomEffect429Id = U16(RoomLayout.RoomEffect429),

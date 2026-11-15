@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -49,7 +49,7 @@ public sealed class PrisonSystem : ISimulationSystem
 
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!PrisonRules.IsImprisoned(creature)) continue;
+            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) continue;
 
             // A prisoner in the keeper's hand is between cells, not out of one.
             // Where it lands is the drop's business (HandSystem).
@@ -78,7 +78,7 @@ public sealed class PrisonSystem : ISimulationSystem
         {
             CreatureState creature = creatures[i];
             if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) continue;
-            if (!PrisonRules.IsImprisoned(creature) || !JailBreakRules.IsEscaping(creature)) continue;
+            if ((!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) || !JailBreakRules.IsEscaping(creature)) continue;
             if (StateShadow.IsTravelling(creature))
             {
                 if (creature.HasRoute) continue;
@@ -159,7 +159,7 @@ public sealed class PrisonSystem : ISimulationSystem
         {
             CreatureState creature = world.Creatures[i];
             if (creature.Possessed) continue;
-            if (!PrisonRules.IsImprisoned(creature)) continue;
+            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) continue;
             if (HandRules.IsHeld(creature)) continue;
             if (creature.Health <= 0) continue;   // SlayTheFallen's, on the second
 
@@ -206,7 +206,7 @@ public sealed class PrisonSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = world.Creatures[i];
-            if (!PrisonRules.IsImprisoned(creature) || HandRules.IsHeld(creature)) continue;
+            if ((!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) || HandRules.IsHeld(creature)) continue;
             if (TortureRules.IsBeingTortured(creature)) continue;
             if (creature.Health <= 0) Slain(context, creature);
         }

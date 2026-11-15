@@ -113,7 +113,7 @@ public sealed class HeartSites
 /// engagement and sets the reach (docs/research/combat-acquisition.md §6–§8), and the withdrawal of
 /// a hurt creature in place of the fight (combat-fear.md §3), and the attack-spell survey that lets
 /// a caster engage at its spell's range (combat-spells.md §5, ADR-0167). Not built and named there:
-/// the thing-targeting survey and scans A and B.</summary>
+/// the thing-targeting survey and scan B.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-acquisition.md")]
 public static class CombatTargetRules
 {
@@ -132,9 +132,10 @@ public static class CombatTargetRules
         SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef definition,
         List<Fixed16Vector> scratch)
     {
-        if (me.AttackAbnormalTargets)
+        if (me.AttackAbnormalTargets && me.AttackingKind == FightTargetKind.Door
+            && context.World.DoorById(me.AttackingId) is not null)
         {
-            if (!Forced(context, sight, me, definition, scratch)) return false;
+            if (!ForcedDoor(context, sight, me, definition, scratch)) return false;
         }
         else if (!Choose(context, sight, hearts, rooms, me, definition, scratch, out bool left)) return false;
         else if (left) return true;
@@ -145,36 +146,6 @@ public static class CombatTargetRules
         if (FearRules.ShouldWithdraw(context.World, context.Database, hearts, me, definition) && !CreatureDeathRules.IsDown(me))
             FearRules.Withdraw(context, sight, hearts, rooms, me, definition, staged: null, scratch);
         return true;
-    }
-
-    /// <summary>The forced target (<c>AttackingId</c>, combat-pit.md §4): taken with no
-    /// attackability, sight, hostility or range test, but a route to it must be found, or an attack
-    /// spell must see it. As for a door, the forced arm leaves the running best at
-    /// <c>0x7FFFFFFF</c>, so a surveyed attack spell, status ones included, is cast however near the
-    /// target is (<c>0x0045CF05</c>, Q510). A dead one is cleared. Not built: scan A, and the scans
-    /// D, E and F a forced creature target still runs (door-blocking.md §2).</summary>
-    private static bool Forced(
-        SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, List<Fixed16Vector> scratch)
-    {
-        if (me.AttackingKind == FightTargetKind.Door) return ForcedDoor(context, sight, me, definition, scratch);
-        CreatureState? target = context.World.CreatureById(me.AttackingId);
-        if (target is null || !CreatureStateMachine.HasState(target))
-        {
-            CombatPitRules.ClearForcedTarget(context.World, me);
-            return false;
-        }
-
-        int spellSlot = -1;
-        CreatureSpellDef? spell = null;
-        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
-            spellSlot = SpellRules.SurveyAttack(context.Database, me, definition, context.Tick.Value, out spell,
-                whileRecharging: SpellWhileRecharging(context, me, definition, scratch));
-        if (CombatPitRules.IsOnTheMap(target)
-            && !CanReach(context.Navigation, me, definition, target.PosX, target.PosY, int.MaxValue, scratch)
-            && (spell is null || !LineOfSight.Clear(sight, me.PosX, me.PosY, target.PosX, target.PosY)))
-            return false;
-
-        return Engage(context, me, definition, target, context.Database.CreatureById(target.CreatureTypeId), spellSlot, spell, forced: true);
     }
 
     /// <summary>A forced door (door-blocking.md, <c>0x0045CB00</c>): taken with no route, sight or
@@ -277,14 +248,24 @@ public static class CombatTargetRules
         }
 
         int best = int.MaxValue;
-        CreatureState? chosen = ScanAttackers(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        bool forced = me.AttackAbnormalTargets;
+        CreatureState? chosen = forced ? world.CreatureById(me.AttackingId) : null;
+        if (forced && (chosen is null || !CreatureStateMachine.HasState(chosen)))
+        {
+            CombatPitRules.ClearForcedTarget(world, me);
+            forced = false;
+            chosen = ScanMissingForced(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        }
+        bool runOrdinaryScans = !forced && chosen is null;
+        if (runOrdinaryScans)
+            chosen = ScanAttackers(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
         // 0x0045D5BF: a follower takes its leader's last melee target over scan A's pick; with a
         // creature chosen no fight-style arm runs (0x0045D5F5).
-        if (PossessionRules.LeaderTarget(world, me) is { } leaders)
+        if (runOrdinaryScans && PossessionRules.LeaderTarget(world, me) is { } leaders)
         {
             chosen = leaders;
         }
-        if (chosen is null && definition.FightStyle == FightStyle.NonFighter)
+        if (runOrdinaryScans && chosen is null && definition.FightStyle == FightStyle.NonFighter)
         {
             if (NonFighter(context, sight, hearts, rooms, me, definition, scratch, out chosen) && chosen is null)
             {
@@ -292,11 +273,11 @@ public static class CombatTargetRules
                 return true;
             }
         }
-        else if (chosen is null) chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        else if (runOrdinaryScans && chosen is null) chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
 
         // 0x0045D69D-0x0045D701: strategy scores choose the creature; the later
         // Heart comparison and commit use its plain distance, even if its route fails.
-        if (chosen is not null)
+        if (chosen is not null && !forced)
             best = CombatRules.DistanceSquared(me.PosX, me.PosY, chosen.PosX, chosen.PosY);
 
         // The route check on the arm's creature (0x0045D74A), before the thing scans: unwalkable, it is
@@ -325,7 +306,7 @@ public static class CombatTargetRules
         if (friendly != null)
         {
             CreatureState? ally = FriendlyScan(context, sight, me, definition, friendly, sightSq, hearSq, scratch);
-            if (ally != null && EngageAlly(context, me, definition, ally, friendlySlot, friendly, scratch)) return true;
+            if (ally != null) return EngageAlly(context, me, definition, ally, friendlySlot, friendly, scratch);
         }
 
         if (heartTile >= 0)
@@ -338,7 +319,32 @@ public static class CombatTargetRules
 
         if (trap != null) return EngageTrap(context, sight, me, definition, trap, trapDistance, sightSq, hearSq, spellSlot, spell);
         if (chosen is null) return false;
+        if (forced)
+            return Engage(context, me, definition, chosen, database.CreatureById(chosen.CreatureTypeId), spellSlot, spell, forced: true);
         return Commit(context, sight, me, definition, chosen, spellSlot, spell);
+    }
+
+    /// <summary>0045CE9F: after a missing forced tag, scan attackable creatures by raw distance without hostility checks.</summary>
+    private static CreatureState? ScanMissingForced(
+        SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition,
+        int sightSq, int hearSq, List<Fixed16Vector> scratch, ref int best)
+    {
+        if (me.CreatureTypeId == CombatRules.ImpCreatureTypeId) { sightSq = MeleeDecisionDistance; hearSq = 0; }
+        CreatureState? chosen = null;
+        IReadOnlyList<CreatureState> owned = context.World.CreatureOwnershipOrder;
+        foreach (PlayerId player in context.World.ActivePlayerOrder)
+        foreach (CreatureState candidate in owned)
+        {
+            if (candidate.OwnerPlayerId != player || candidate.Id == me.Id || !CombatRules.IsAttackable(candidate)) continue;
+            int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+            if (distance >= best) continue;
+            bool seen = distance < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+            if (!seen && !(distance < hearSq
+                && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch))) continue;
+            best = distance;
+            chosen = candidate;
+        }
+        return chosen;
     }
 
     /// <summary>Scan D (<c>0x0045D7A5</c>–<c>0x0045D8D8</c>): each hostile player's traps, newest linked

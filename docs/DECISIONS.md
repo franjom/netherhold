@@ -4004,8 +4004,9 @@ amount, then armours it, then hastens it; a Thief in a fight vanishes on its own
 spell; a hurt fighter at half health gets nothing. A Support that was struck turns
 to melee for one tick and is back on its spell the next. A Haste at 3686 units a
 tick can pass a standing ally, as DK2's per-tick finder would (Q401, an owner
-question). Not built: the Support's escape gate on the survey, the Turncoat, pit
-and torture refusals, the Imp's Teleport and Haste paths (Q401).
+question). Remaining: the Support's escape gate on the survey, the Turncoat, and
+the Imp's Teleport and Haste paths (Q401). The pit/torture exclusions are built; see
+`combat-pit.md` section 9.
 
 ## ADR-0171 — A cell bites in fours, and anger cools in seven states not three
 **Date:** 2026-09-23 · **Status:** accepted · closes Q402, closes Q123's live divergence · Research: `docs/research/state-category-hooks.md` §3, `state-categories.md` §7.2, `prison.md`, `creature-anger.md`
@@ -4667,14 +4668,14 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 2. `CombatPitSystem` runs 137, 138, 139 and 141 once a turn after the combat system, and idle's return of a fighter to 138. A state entered this turn runs from the next.
 3. The fight is the combat system's: a creature with `AttackAbnormalTargets` skips the look gate, and `SelectAVictim` takes its `AttackingId` with no attackability, sight or hostility test. A pit fighter is not attackable, keeps a target that is not attackable, is released without victory when its opponent is knocked out, hits at variable 225 (double) and takes variable 239 of 128.
 4. Hand: an own non-worker dropped on the keeper's pit floor goes 1 → 137; the pick-up clears the fighter and its forced target. 217 clears the fighter. The experience adder refuses a fighter at `CombatPitMaxExperienceLevel`, and reaching it sets 1.
-5. A sale or build touching a pit throws the fighters on it out to 141.
+5. Room lifecycle callbacks reset floor fighters or release attached holders as appropriate; surviving room runtime is preserved. See `combat-pit.md` section 9.
 6. `CreatureState` gains `CombatPitFighter`, `AttackAbnormalTargets`, `AttackingId` and `PitStateEnteredTick`; `CreatureActivity.PitFighting`. `HashVersion` and `FormatVersion` 109, pin `0x1754FA244591A3A6`.
 
 **Consequences.**
 - **The knockout ends the fight with no victory**, CONFIRMED by the owner (2026-09-25): the winner takes another fighter or walks about, and the mentor announces the fight over. The loser's leave hook `0x0045ADC0` releases every attacker, and gives the victory nibble only to one whose target's health is below 1, which a knockout's is not. (The first build of this ADR had the winner swinging at the unconscious loser; the owner's memory sent the reading back to the leave hook.)
 - **A waiting fighter's anger rises every turn**: `angerNoWork` into buckets 0 and 3 each turn it waits in 139.
-- **Nothing enters 140**, the victor's celebration: no literal, no computed id, no room record names it. It is not built; whole-image scans found no gameplay entry, and a save load can restore it (Q431, open).
-- Not built: a captive dropped in the pit (ours holds captivity in `PrisonOwnerPlayerId`, which DK2's pit writes for every fighter), 142–144 (built later, ADR-0227), action `0x2C` at the cap, scan A for a dead forced target, the room's sounds and messages, and state 76.
+- **No ordinary entry to 140 was found** (Q431, open). Its save-restored handler is built; see `combat-pit.md` sections 1 and 9.
+- Completion scope and remaining limits, including binding, actions, room effects and messages: `combat-pit.md` sections 9-10. Spectators: ADR-0227; landing state 76: ADR-0226.
 - `state-category-hooks.md` named the pit's and the spectators' enter-hook bit as 23; it is 15, `CombatPitFighter`. `+0x16 == 2` is "off the map" (Q364).
 - Eleven tests. Eighteen negative controls each fail a named test: attackability, the forced branch, the blow's stance, the damage taken, the knocked-out target, the enemy-first search, the pick-up clear, the sale's reset, idle's return, the step's floor, the anger, the experience cap, the cap's move to 1, the same-turn wait, 141's wait, the knockout not counting as a death, 138 on the rim and the drop on the rim. The rim case first survived, and its test was added.
 
@@ -4949,7 +4950,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - **Tests changed to the new sequence.** Seven tests and one scenario now wait out the stun. `AFreezeIsTwoEighteen_…` ends in 250 off a room.
 - The need-grace test uses a Goblin with the shipped one-second stun, since the fixture's five seconds is a deliberate test value.
-- **Not built:** the other rooms' drop states on getting up (they idle; the pit's: ADR-0227), Call To Arms (built later, ADR-0279), `+0x2CC`, and the landing's sound, fall and pit scatter. The worker combat attempt is built under ADR-0698.
+- **Not built:** the other rooms' drop states on getting up (they idle; the pit's: ADR-0227), Call To Arms (built later, ADR-0279), `+0x2CC`, and the landing's sound and fall. Pit scatter is built (`combat-pit.md` section 9). The worker combat attempt is built under ADR-0698.
 - Three new tests. Six negative controls each fail a named test: no stun, no 250, a zero-length 250, a freed prisoner stunned, a worker stunned, and the room ignored on getting up.
 - No new state; `HashVersion` stays **117**.
 
@@ -4959,24 +4960,21 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Context.** 142–144 were unbuilt, and ours said 138 on the rim idled because 142 was missing. The binary says something else. Spectating's entry mask `0x8002383B` lacks the Combat Pit's bit, so DK2's own `SetState(142)` from 138 is refused, and 138 idles there too. The way in is **job 26**, whose handler `0x00457780` wants a fight on in one of the keeper's pits. Its only caller is state 89's fallback `0x00478680`, after the mood chooser fails. No shipped creature lists job 26.
 
 **Decision.** `CombatPitSpectatorRules`:
-1. **A fight is on** (`0x004D7CF0`) when a creature on the pit's floor is in a Combat-category state (a walk counted by its resume state). Found, it stamps the pit's `+0x53` (ours: `PitFightSeenTick` on the pit's lowest tile).
+1. **A fight is on** (`0x004D7CF0`) when a creature on the pit's floor is in a Combat-category state (a walk counted by its resume state). Found, it stamps the pit's `+0x53` (ours: migrated tile-backed `PitFightSeenTick`; see `combat-pit.md` section 9).
 2. **Job 26** (`0x00457780`):
-   - On the rim of an own or allied pit with a fight on, or one seen under 16 turns ago: 142 in place.
+   - On the rim of an own or allied pit with a fight on, or one seen under variable 19 * 4 turns ago: 142 in place.
    - Otherwise the nearest own pit with a fight on, reachable and with a place, preferring one with no occupant of the other side (`0x004D8510`). The creature walks into it, to a rim tile, resuming 142.
 3. **142** picks a free rim tile next to it: always when another creature shares its tile, otherwise on `random(100)` ≤ 35; else it keeps its own position. The point is in the tile's middle third, and it walks there resuming 143. A refused walk runs job 26 again.
 4. **143** goes back to 142 if its tile is shared. Otherwise it turns to the pit's centre, waiting while it turns, cheers (action 70, or 69 on `random(100)` > 30), and enters 144.
-5. **144** waits out the cheer and picks again. Once more than 16 turns have passed with no fight seen, it idles. Moved since it last looked, it picks again at once.
+5. **144** waits out the cheer and picks again. Once more than variable 19 * 4 turns have passed with no fight seen, it idles. Moved since it last looked, it picks again at once.
 6. **Getting up on a pit** takes its drop state 137 through 1 (ADR-0226's unbuilt list loses the pit).
 7. **The Spectating hook's calm** runs each fifth turn, as before, and the three handlers follow it.
 
 **Consequences.**
-- **Unreachable with shipped data until `0x00478680` is built.** That is the next change; it also makes idle creatures fall back to Train and Drink.
-- **Guessed:**
-  - The cheer's length, 8 turns (`CheerGuessTicks`).
-  - That every creature has the cheer animations.
-  - Room `+0x27` as the room's centre.
-  - The route point `0x004E5000` as the room's first standable tile.
-- **Not built:** the finder's messages `0x2A`–`0x2C`.
+- State 89's fallback caller is built (ADR-0228), as are the finder's messages (ADR-0413).
+- Counted actions, art availability, centroid facing, room route and timing now follow the
+  implementation described in `combat-pit-spectators.md` section 5. Its shared parity
+  limits remain; the fixed eight-turn cheer guess has been removed.
 - **Tests.** `CombatPitSpectatorTests` has eight tests, two of them theories. `CombatPitTests` gains the rim get-up and renames the 138 test for the gate.
 - **Nine negative controls each fail a named test:**
   - no fight seen;
@@ -14792,7 +14790,7 @@ ours, with no draw, where Room_Rebuild places them at room change with one draw 
 furniture list lacks the Workshop
 Pillars; the lava-spill effect sits at the object's floor position, not its unread mesh point (the owner is the
 object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not (Q733). The Torture
-Chamber, Temple, Graveyard, Combat Pit and hero gate handlers draw the world stream too and are not built.
+Chamber, Temple, Graveyard and hero gate handlers draw the world stream too and are not built. The Combat Pit handler is built; see `combat-pit.md` section 9.
 Hash/save 385: sixteen bytes a tile. No scenario moved and no fixture holds a Workshop, so the pin moved only
 with the version.
 

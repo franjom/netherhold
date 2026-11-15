@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -94,7 +94,7 @@ public static class HandRules
         // The stored room must be nobody's or the owner's. A Prison writes that membership on
         // entry (0x0047B740 calls 0x004E5A70), so an own creature in another keeper's cells is
         // refused; other rooms' membership is not stored here (creature-pickup.md).
-        return !PrisonRules.IsImprisoned(creature) || creature.PrisonOwnerPlayerId == playerId.Value;
+        return !PrisonRules.HasKeeperBinding(creature) || creature.PrisonOwnerPlayerId == playerId.Value;
     }
 
     /// <summary>Whether this object is in somebody's hand.</summary>
@@ -167,7 +167,7 @@ public static class HandRules
         TilePos tile, out bool disposed)
     {
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-        disposed = !PrisonRules.IsImprisoned(creature)
+        disposed = (creature.OwnerPlayerId == playerId || !PrisonRules.HasKeeperBinding(creature))
             && DisposalRules.Disposes(world, database, definition, tile, playerId);
         return disposed || IsHeartPlatformRing(world, database, tile)
             || new WorldPathGrid(database, world, definition).IsWalkable(tile.X, tile.Y);
@@ -223,7 +223,7 @@ public static class HandRules
     /// such bit: a prisoner was knocked out to be taken, and a creature still on the floor is; one
     /// that got up again is missed.</summary>
     private static bool HasBeenKnockedOut(CreatureState creature) =>
-        PrisonRules.IsImprisoned(creature) || CreatureDeathRules.HasCollapsed(creature);
+        PrisonRules.HasKeeperBinding(creature) || CreatureDeathRules.HasCollapsed(creature);
 
     /// <summary><c>0x00450910</c> (CWorld slot <c>+0x230</c>): whether a creature of this type may be
     /// dropped here. A worker goes onto allied ground or neutral roomless dry floor, a non-worker
@@ -342,7 +342,7 @@ public static class HandRules
         // A prisoner answers to its jailer and to nobody else, its own keeper included:
         // "a keeper can't slap its own creature in someone else's dungeon" (owner,
         // 2026-09-11, ADR-0140). Anything at liberty is its owner's as before.
-        if (PrisonRules.IsImprisoned(creature))
+        if (PrisonRules.HasKeeperBinding(creature))
             return creature.PrisonOwnerPlayerId == playerId.Value
                    && !CreatureDeathRules.IsDown(creature);
 

@@ -35,7 +35,7 @@ public static partial class PossessionRules
         return c.FollowLeaderId == 0
             && !((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
             && CreatureStateTable.Get(c.Dk2StateId).Group != 1
-            && c.PrisonOwnerPlayerId == PrisonRules.NoPrison && !c.CombatPitFighter
+            && c.PrisonOwnerPlayerId == PrisonRules.NoPrison
             && !c.RebelActive
             && CreatureAngerRules.MoodOf(def, c) == CreatureMood.Content;
     }
@@ -144,6 +144,7 @@ public static partial class PossessionRules
             return true;
         }
         if (c.Dk2StateId != FollowingState) return false;
+        if (context.UpdateStartStateId != FollowingState) return true;
         if (!Follow(context, c)) StateShadow.ToIdle(context, system, c);
         return true;
     }

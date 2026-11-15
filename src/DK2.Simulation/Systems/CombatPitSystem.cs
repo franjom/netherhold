@@ -8,14 +8,16 @@ using DK2.Simulation.Combat;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>The Combat Pit's states, once a turn: 137, 138, 139 and 141, 139's one-tile walks, and
+public enum CombatPitActionId : byte { None = 0, Victory = 35, AtLevelCap = 44, SpectatorCheer = 69, SpectatorOtherCheer = 70 }
+
+/// <summary>The Combat Pit's states, once a turn: 137 through141, 139's one-tile walks, and
 /// idle's return of a fighter to 138 (<c>combat-pit.md</c> §2, ADR-0213). The fight is the combat
 /// system's, through the forced target 139 hands out.</summary>
 /// <remarks>Runs in the creature's update after <see cref="CombatSystem"/>, as DK2's state
 /// handler follows its fight processing, and before the movement. A state entered this turn runs from the next, as
 /// DK2's dispatcher does. 138 on the rim of the keeper's own pit hands the creature to the
-/// spectators' 142 (<see cref="CombatPitSpectatorRules"/>, ADR-0227). Not built: 140, which
-/// nothing enters; action <c>0x2C</c> at the level cap.</remarks>
+/// spectators' 142 (<see cref="CombatPitSpectatorRules"/>, ADR-0227). State140 can be restored
+/// from a save; no ordinary gameplay entry has been found.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-pit.md")]
 public sealed class CombatPitSystem : ICreatureUpdateStep
 {
@@ -34,7 +36,14 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
         if (state == CreatureStateMachine.Idle)
         {
             // 1's handler sends a fighter back; not in the turn a combat handler set 1 (0x00476FC0).
-            if (creature.CombatPitFighter && !context.IdleHandlerWaits(creature)) BackToThePit(context, creature);
+            if (context.IdleHandlerWaits(creature)) return;
+            if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
+            if (creature.CombatPitFighter) BackToThePit(context, creature);
+            else
+            {
+                creature.PrisonOwnerPlayerId = PrisonRules.NoPrison;
+                creature.CurrentJob = JobType.None;
+            }
             return;
         }
 
@@ -54,6 +63,7 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
             CombatPitRules.ArrivingState => Arriving(context, creature),
             CombatPitRules.PlacingState => Placing(context, creature),
             CombatPitRules.WaitingState => Waiting(context, creature),
+            CombatPitRules.VictoryState => Victory(context, creature),
             _ => ThrownOut(context, creature),
         };
         if (!stays) StateShadow.ToIdle(context, SystemName, creature);
@@ -62,6 +72,7 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
     /// <summary>Idle (<c>0x004773D0</c>): 1 and then 138; refused, no longer a fighter.</summary>
     private static void BackToThePit(SimulationContext context, CreatureState creature)
     {
+        CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
         if (!Move(context, creature, CombatPitRules.PlacingState)) creature.CombatPitFighter = false;
     }
 
@@ -99,6 +110,7 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
 
         creature.CombatPitFighter = true;
         if (!Move(context, creature, CombatPitRules.WaitingState)) return false;
+        creature.PrisonOwnerPlayerId = pit.OwnerPlayerId;
         context.Emit(SystemName, "pit_fighter", $"creature={creature.Id} player={creature.OwnerPlayerId} tile={here}");
         return true;
     }
@@ -111,6 +123,15 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
         GameDatabase database = context.Database;
         int here = TileIndex(world, creature);
         RoomInstance? pit = CombatPitRules.PitAt(world, database, here);
+        if (creature.Level >= database[VariableTypeId.CombatPitMaxExperienceLevel])
+        {
+            if (context.Tick.Value - creature.PitStateEnteredTick == 1)
+            {
+                BeginAction(context, creature, CombatPitActionId.AtLevelCap);
+                return true;
+            }
+            if (CreatureCurrentAction.IsRunning(creature, context.Tick)) return true;
+        }
         if (creature.Level < database[VariableTypeId.CombatPitMaxExperienceLevel]
             && creature.FightTargetKind == FightTargetKind.None && pit != null
             && CombatPitRules.Opponent(world, database, pit, creature) is { } opponent)
@@ -136,6 +157,77 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
         return true;
     }
 
+    private static bool Victory(SimulationContext context, CreatureState creature)
+    {
+        uint age = unchecked((uint)(context.Tick.Value - creature.PitStateEnteredTick));
+        uint limitTicks = unchecked((uint)(CombatPitRules.NativeTicksPerGameSecond(context.Database) * 4));
+        if (age <= limitTicks)
+        {
+            if (!CreatureCurrentAction.IsRunning(creature, context.Tick))
+                BeginAction(context, creature, CombatPitActionId.Victory);
+            return true;
+        }
+        if (CreatureCurrentAction.IsRunning(creature, context.Tick)) return true;
+        Move(context, creature, CombatPitRules.PlacingState);
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        int anger = unchecked((short)context.Database[VariableTypeId.ModifyAngerOfCombatPitVictor]);
+        CreatureAngerRules.Apply(context.World, definition, creature, AngerBucket.Treatment, anger, AngerComplaint.General);
+        return true;
+    }
+
+    private static void BeginAction(SimulationContext context, CreatureState creature, CombatPitActionId action)
+    {
+        CreatureStateMachine.EndAction(creature);
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        byte slot = action == CombatPitActionId.Victory ? (byte)8 : (byte)31;
+        ActionAnimationClock.Begin(creature, definition, slot, context.Rng);
+        creature.CombatPitAction = action;
+        creature.ActionHandlerDone = false;
+        context.CombatPitActionsPolledThisTick.Add(creature);
+        CreatureActionSounds.Begin(context, SystemName, creature, (int)action);
+    }
+
+    internal static void BeginCheerAction(SimulationContext context, string system, CreatureState creature,
+        CombatPitActionId action, byte cycles)
+    {
+        CreatureStateMachine.EndAction(creature);
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        byte slot = action == CombatPitActionId.SpectatorCheer ? (byte)8 : (byte)20;
+        ActionAnimationClock.BeginCounted(creature, definition, slot, cycles, context.Rng);
+        creature.CombatPitAction = action;
+        creature.ActionHandlerDone = false;
+        context.CombatPitActionsPolledThisTick.Add(creature);
+        CreatureActionSounds.Begin(context, system, creature, (int)action);
+    }
+
+    public static void PollAction(SimulationContext context, CreatureState creature)
+    {
+        if (creature.CombatPitAction == CombatPitActionId.None
+            || !context.CombatPitActionsPolledThisTick.Add(creature)) return;
+        creature.ActionHandlerDone = creature.CombatPitAction == CombatPitActionId.AtLevelCap;
+        if (creature.InHand) CancelAction(creature);
+        else if (ActionAnimationClock.CountedActionEnded(creature))
+        {
+            creature.CombatPitAction = CombatPitActionId.None;
+            creature.ActionHandlerDone = false;
+            creature.ActionCount = 0;
+        }
+    }
+
+    public static void AdvanceAction(SimulationContext context, CreatureState creature)
+    {
+        if (creature.CombatPitAction == CombatPitActionId.None
+            || !context.CombatPitActionsAdvancedThisTick.Add(creature)) return;
+        ActionAnimationClock.Advance(creature, context.Database.CreatureById(creature.CreatureTypeId));
+    }
+
+    public static void CancelAction(CreatureState creature)
+    {
+        if (creature.CombatPitAction == CombatPitActionId.None) return;
+        creature.CombatPitAction = CombatPitActionId.None;
+        ActionAnimationClock.Clear(creature);
+    }
+
     /// <summary>141: a turn's wait, then 138 on any pit.</summary>
     private static bool ThrownOut(SimulationContext context, CreatureState creature)
     {
@@ -144,10 +236,8 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
             && Move(context, creature, CombatPitRules.PlacingState);
     }
 
-    /// <summary>The room reset <c>0x004D7E00</c> and the freed room's <c>0x004D8000</c>: every
-    /// fighter on the pit's tiles stops being one, loses its forced target and goes to 141.</summary>
-    /// <remarks>Ours is called with the pit as it was before a sale, or as it is after a build,
-    /// and covers the attached list with the same walk.</remarks>
+    /// <summary>0x004D7E00: clear on-map fighters on the rebuilt room's tiles, then release
+    /// all remaining attached creatures to 141. The free/owner callback releases only holders.</summary>
     public static void Reset(SimulationContext context, RoomInstance pit)
     {
         WorldState world = context.World;
@@ -161,6 +251,24 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
             if (!CreatureStateMachine.TrySetState(context.Hooks, creature, CombatPitRules.ThrownOutState)) continue;
             creature.PitStateEnteredTick = context.Tick.Value;
             context.Emit(SystemName, "pit_thrown_out", $"creature={creature.Id} player={creature.OwnerPlayerId}");
+        }
+        ReleaseAttached(context, place => place.In(pit));
+    }
+
+    /// <summary>0x004D8000, also the tail of 0x004D7E00: release the room's attached list.
+    /// The predicate retains the old room's membership while its tiles are rebuilt.</summary>
+    internal static void ReleaseAttached(SimulationContext context, Predicate<RoomPlace> belongs)
+    {
+        while (true)
+        {
+            CreatureState? holder = null;
+            foreach (CreatureState candidate in context.World.Creatures)
+                if (candidate.HeldPlace.IsHeld && belongs(candidate.HeldPlace)
+                    && (holder is null || candidate.HeldPlaceSerial > holder.HeldPlaceSerial)) holder = candidate;
+            if (holder is null) return;
+            if (!CreatureStateMachine.TrySetState(context.Hooks, holder, CombatPitRules.ThrownOutState)) continue;
+            holder.PitStateEnteredTick = context.Tick.Value;
+            context.Emit(SystemName, "pit_thrown_out", $"creature={holder.Id} player={holder.OwnerPlayerId}");
         }
     }
 

@@ -58,17 +58,11 @@ public static class CreatureDeathRules
     /// <summary>The room this creature is attached to, DK2's <c>RoomId</c> at <c>+0x3B9</c>, which
     /// the gates read (<c>0x004B2F61</c>) — not the room under its feet. A room's add-creature
     /// routine (<c>0x004E5A70</c>) writes it for a creature that joins the room as a user: its
-    /// prisoners and torture victims, and a creature using it for its job. So a hero fighting
-    /// on a keeper's Lair is attached to nothing and a Lord Of The Land dies outright there, as
-    /// the Level 2 capture shows at 3241. Ours derives it: STRONGLY INFERRED from the writers.</summary>
+    /// prisoners and torture victims, and a creature using it for its job. Pit fighters hold a
+    /// zero-capacity place; the keeper binding and the current position are independent.</summary>
     public static RoomInstance? AttachedRoom(WorldState world, GameDatabase database, CreatureState state)
     {
-        int tile = -1;
-        if (PrisonRules.IsImprisoned(state) || TortureRules.IsBeingTortured(state))
-            tile = (state.Tile.Y * world.Width) + state.Tile.X;
-        else if (state.CurrentJob != JobType.None && state.Activity == CreatureActivity.AtWork)
-            tile = state.JobTileIndex;
-        return tile < 0 ? null : RoomIndex.RoomAt(world, database, tile);
+        return state.HeldPlace.IsHeld ? RoomIndex.RoomAt(world, database, state.HeldPlace.TileIndex) : null;
     }
 
     /// <summary>The two rooms that kill outright: a creature dying on their tiles gets no

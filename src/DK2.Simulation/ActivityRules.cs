@@ -138,7 +138,7 @@ public static class ActivityRules
         _ when CasinoJackpotRules.IsWinnerState(state) => CreatureActivity.CollectingWinnings,
         CrateRules.FetchTrapCrateState or CrateRules.FetchDoorCrateState => CreatureActivity.FetchingObject,
         CrateRules.InstallTrapState or CrateRules.InstallDoorState => CreatureActivity.CarryingObject,
-        >= CombatPitRules.ArrivingState and <= CombatPitRules.WaitingState or CombatPitRules.ThrownOutState => CreatureActivity.PitFighting,
+        >= CombatPitRules.ArrivingState and <= CombatPitRules.ThrownOutState => CreatureActivity.PitFighting,
         _ when JobStates.Contains(state) => CreatureActivity.AtWork,
         _ => null,
     };

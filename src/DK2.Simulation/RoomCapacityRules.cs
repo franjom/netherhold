@@ -109,6 +109,8 @@ public static class RoomCapacityRules
         if (room.Definition.TypeId == RoomTypeId.CombatPit && creature.CombatPitFighter)
         {
             creature.HeldPlace = new RoomPlace(tile, 0);
+            creature.HeldPlaceStamp = SlabChain.HoldersStamp(world, room);
+            creature.HeldPlaceSerial = world.NextPlaceClaim++;
             return true;
         }
 

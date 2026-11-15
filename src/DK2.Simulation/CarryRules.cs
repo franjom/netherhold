@@ -25,7 +25,7 @@ public static class CarryRules
     public static bool IsCarryable(CreatureState body) =>
         !body.InHand
         && body.CarriedByCreatureId < 0
-        && !PrisonRules.IsImprisoned(body)
+        && !body.HeldPlace.IsHeld
         && (CreatureDeathRules.IsDying(body) || CreatureDeathRules.IsCorpse(body));
 
     /// <summary>Whether <paramref name="worker"/> may carry <paramref name="body"/>. A carrier

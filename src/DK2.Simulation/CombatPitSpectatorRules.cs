@@ -30,17 +30,14 @@ public static class CombatPitSpectatorRules
     /// <summary>144 (<c>0x004580D0</c>): wait out the cheer, then look again.</summary>
     public const int CheeringState = 144;
 
-    /// <summary>Variable 19 × 4, four game seconds: how long after the last fight a spectator keeps
-    /// watching.</summary>
+    /// <summary>The shipped quiet-window length. Runtime comparisons use the resolved native
+    /// tick rate multiplied by four game seconds.</summary>
     public const int QuietTicks = 4 * SimulationTiming.OriginalTicksPerGameSecond;
 
     /// <summary>142 keeps its own position unless <c>random(100)</c> is at most this, or another
     /// creature shares its tile.</summary>
     public const int MoveChance = 35;
 
-    /// <summary>The cheer's length, ours: actions 69 and 70 run for their animation, which is not
-    /// read. A HYPOTHESIS, like the imp's idle actions (<see cref="ImpTaskSystem.IdleActionGuessTicks"/>).</summary>
-    public const int CheerGuessTicks = 8;
 
     public static bool IsSpectatorState(int state) => state is ChoosingState or FacingState or CheeringState;
 
@@ -66,8 +63,11 @@ public static class CombatPitSpectatorRules
     }
 
     /// <summary>The turns since the pit last had a fight (<c>now − room+0x53</c>).</summary>
-    private static long SinceTheFight(SimulationContext context, RoomInstance room) =>
-        context.Tick.Value - context.World.TileAtIndex(room.TileIndices[0]).PitFightSeenTick;
+    private static uint SinceTheFight(SimulationContext context, RoomInstance room) =>
+        unchecked((uint)(context.Tick.Value - context.World.TileAtIndex(room.TileIndices[0]).PitFightSeenTick));
+
+    private static uint QuietLimitTicks(SimulationContext context) =>
+        unchecked((uint)(CombatPitRules.NativeTicksPerGameSecond(context.Database) * 4));
 
     /// <summary>Job 26, <c>CombatPitSpectate</c> (<c>0x00457780</c>). On the rim of its own or an
     /// ally's Combat Pit with a fight on, or one seen less than <see cref="QuietTicks"/> ago: 142 where
@@ -80,7 +80,7 @@ public static class CombatPitSpectatorRules
         if (CombatPitRules.PitAt(world, context.Database, here) is { } pit
             && (pit.OwnerPlayerId == creature.OwnerPlayerId || world.AreAllied(creature.OwnerPlayerId, pit.OwnerPlayerId))
             && !CombatPitRules.IsFloor(pit, here)
-            && (FightOn(context, pit) || SinceTheFight(context, pit) < QuietTicks)
+            && (FightOn(context, pit) || SinceTheFight(context, pit) < QuietLimitTicks(context))
             && Enter(context, system, creature))
             return true;
 
@@ -132,17 +132,18 @@ public static class CombatPitSpectatorRules
     private static bool Reachable(SimulationContext context, CreatureState creature, CreatureDef definition,
         RoomInstance room, List<Steering.Fixed16Vector> scratch)
     {
-        var grid = new WorldPathGrid(context.Database, context.World, definition);
         int w = context.World.Width;
-        foreach (int tile in room.TileIndices)
+        foreach (int tile in SlabChain.Order(context.World, room))
         {
-            if (!grid.IsWalkable(tile % w, tile / w)) continue;
+            if (CombatPitRules.IsFloor(room, tile)
+                || CasinoStep.NavClass(context.Database, context.World.TileAtIndex(tile)) != 0) continue;
             return CombatTargetRules.CanReach(context.Navigation, creature, definition,
                 CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), int.MaxValue, scratch);
         }
 
         return false;
     }
+
 
     /// <summary><c>0x0045C640</c> over the room's occupants, the holders of its places: a good
     /// creature objects to an evil one, anyone else to a good one.</summary>
@@ -261,8 +262,8 @@ public static class CombatPitSpectatorRules
             return true;
         }
 
-        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
-        if (RoomIndex.RoomAt(world, context.Database, here) is { } room)
+        if (creature.HeldPlace.IsHeld
+            && RoomIndex.RoomAt(world, context.Database, creature.HeldPlace.TileIndex) is { } room)
         {
             (int cx, int cy) = Middle(room);
             int heading = creature.Heading;
@@ -273,18 +274,21 @@ public static class CombatPitSpectatorRules
             if (left != 0) return true;
         }
 
-        int action = context.Rng.NextInt(100) > 30 ? 69 : 70;
-        if (action == 69) context.Rng.NextInt(2);
-        creature.ActionUntilTick = context.Tick.Value + CheerGuessTicks;
-        context.Emit(system, "spectator_cheer", $"creature={creature.Id} action={action}");
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        if (AnimationTimingRules.ResolvesPresent(definition, 8) || AnimationTimingRules.ResolvesPresent(definition, 20))
+        {
+            CombatPitActionId action = context.Rng.NextInt(100) > 30
+                ? CombatPitActionId.SpectatorCheer : CombatPitActionId.SpectatorOtherCheer;
+            byte cycles = action == CombatPitActionId.SpectatorCheer ? (byte)(context.Rng.NextInt(2) + 1) : (byte)1;
+            CombatPitSystem.BeginCheerAction(context, system, creature, action, cycles);
+            context.Emit(system, "spectator_cheer", $"creature={creature.Id} action={(int)action}");
+        }
         if (CreatureStateMachine.TrySetState(context.Hooks, creature, CheeringState)) creature.PitStateEnteredTick = context.Tick.Value;
         return true;
     }
 
-    /// <summary>The room's <c>+0x27</c>, its position tile. Its meaning is inferred: 89's fallback
-    /// aims two tiles either side of the Heart's, which fits a centre. Ours: the middle of the
-    /// bounding box.</summary>
-    internal static (int X, int Y) Middle(RoomInstance room) => ((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
+    /// <summary>The attached room's native CentrePos (<c>+0x27</c>).</summary>
+    internal static (int X, int Y) Middle(RoomInstance room) => (room.CentreFieldX, room.CentreFieldY);
 
     /// <summary>144: moved since it last looked (and not at <c>Age</c> 1), it tries 142 and ends
     /// the cheer. Otherwise it remembers where it stands, waits out the cheer, and then: no fight
@@ -295,18 +299,18 @@ public static class CombatPitSpectatorRules
         bool moved = creature.SpectatorPosX != creature.PosX || creature.SpectatorPosY != creature.PosY;
         if (now - creature.PitStateEnteredTick != 1 && moved && Choosing(context, creature))
         {
-            creature.ActionUntilTick = 0;
+            CreatureStateMachine.EndAction(creature);
             return true;
         }
 
         creature.SpectatorPosX = creature.PosX;
         creature.SpectatorPosY = creature.PosY;
-        if (now < creature.ActionUntilTick) return true;
+        if (CreatureCurrentAction.IsRunning(creature, context.Tick)) return true;
 
         WorldState world = context.World;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (RoomIndex.RoomAt(world, context.Database, here) is { } room
-            && !FightOn(context, room) && SinceTheFight(context, room) > QuietTicks)
+            && !FightOn(context, room) && SinceTheFight(context, room) > QuietLimitTicks(context))
             return false;
         return Choosing(context, creature);
     }

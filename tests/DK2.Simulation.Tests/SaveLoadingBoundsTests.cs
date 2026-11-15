@@ -140,8 +140,8 @@ public class SaveLoadingBoundsTests
     {
         byte[] bytes = Snapshot();
         int tileCountOffset = 63 + BitConverter.ToInt32(bytes, 59);
-        // Tile records are 137 bytes at format455, including the stored-pile link order.
-        int countOffset = tileCountOffset + 4 + BitConverter.ToInt32(bytes, tileCountOffset) * 137 + 32;
+        // Tile records are 140 bytes at format523, including the three pit runtime bytes.
+        int countOffset = tileCountOffset + 4 + BitConverter.ToInt32(bytes, tileCountOffset) * 140 + 32;
         Assert.Equal(0, BitConverter.ToInt32(bytes, countOffset));
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);

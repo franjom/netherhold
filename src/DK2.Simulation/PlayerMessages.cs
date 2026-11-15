@@ -11,6 +11,7 @@ public enum PlayerMessageKind : uint
 {
     HeartAttacked = 1,
     CombatStarted = 6,
+    CombatPitFightOver = 9,
 
     /// <summary>Type 13: the first Portal arrival of a type without a level introduction override.</summary>
     CreatureArrived = 13,
@@ -241,6 +242,7 @@ public sealed partial class PlayerMessageQueue
         {
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
             PlayerMessageKind.CombatStarted => 0,
+            PlayerMessageKind.CombatPitFightOver => (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.CreatureArrived or PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech =>
                 (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.CallToArmsUnreachable => (uint)SimulationTiming.TicksFromSeconds(50),
@@ -279,7 +281,7 @@ public sealed partial class PlayerMessageQueue
             || !world.Triggers.NotificationsEnabled && kind is not (PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech))
             return null;
         if (graveyardWanted && world.Player(recipient).GraveyardWantedPosted) return null;
-        if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy or PlayerMessageKind.CreatureConverted
+        if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy or PlayerMessageKind.CreatureConverted or PlayerMessageKind.CombatPitFightOver
             or PlayerMessageKind.CreatureArrived or PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech)
             && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);

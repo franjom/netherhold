@@ -13,6 +13,11 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-pit.md")]
 public static class CombatPitRules
 {
+    /// <summary>LEVEL configuration precedes referenced VARIABLES. Fixtures without either use the shipped rate.</summary>
+    public static int NativeTicksPerGameSecond(GameDatabase database) =>
+        database.Variables.Misc.TryGetValue(VariableTypeId.TicksPerSecond, out MiscVariable? value)
+            ? value.Value : database.Level?.TicksPerSecond ?? SimulationTiming.OriginalTicksPerGameSecond;
+
     /// <summary>137, the arrival: every fighter already in the pit is placed again.</summary>
     public const int ArrivingState = 137;
 
@@ -21,6 +26,7 @@ public static class CombatPitRules
 
     /// <summary>139, waiting for an opponent.</summary>
     public const int WaitingState = 139;
+    public const int VictoryState = 140;
 
     /// <summary>141, thrown out by the room's reset.</summary>
     public const int ThrownOutState = 141;
@@ -63,7 +69,7 @@ public static class CombatPitRules
 
     /// <summary>Whether this is a state the pit's step runs.</summary>
     public static bool IsPitState(int stateId) =>
-        stateId is ArrivingState or PlacingState or WaitingState or ThrownOutState;
+        stateId is ArrivingState or PlacingState or WaitingState or VictoryState or ThrownOutState;
 
     /// <summary><c>0x0048F390</c>, both ways: each drops its old forced target and the engagement it
     /// drove, and takes the other, and both are fighters.</summary>
@@ -142,8 +148,8 @@ public static class CombatPitRules
     /// first of the <paramref name="count"/> neighbours (4: orthogonal; 8: all round) that is the
     /// same room, not solid, and floor exactly when the creature's own tile is, or with
     /// <paramref name="rimOnly"/> not floor; with <paramref name="empty"/>, nobody stands on it
-    /// (<c>0x00453670</c>). -1 when none is. <c>0x00455000</c>'s byte is not read: a DoubleQuad pit's floor slots carry 4
-    /// and its rim 0, the difference the floor test stands for. 139 passes <c>(4, 0, 0)</c>, 142 <c>(4 or 8, 1, 1)</c>.</summary>
+    /// (<c>0x00453670</c>) and the same full navigation byte (<c>0x00455000</c>). -1 when none is.
+    /// 139 passes <c>(4, 0, 0)</c>, 142 <c>(4 or 8, 1, 1)</c>.</summary>
     public static int NeighbourStep(SimulationContext context, RoomInstance pit, CreatureState creature,
         int count = 4, bool rimOnly = false, bool empty = false)
     {
@@ -151,6 +157,8 @@ public static class CombatPitRules
         TilePos at = creature.Tile;
         int here = (at.Y * world.Width) + at.X;
         bool floor = IsFloor(pit, here);
+        context.Navigation.Refresh();
+        byte navigation = context.Navigation.NavByte(at.X, at.Y);
         (int Dx, int Dy)[] table = count == 4 ? Directions : EightDirections;
         int start = context.Rng.NextInt(count);
         for (int i = 0; i < count; i++)
@@ -162,6 +170,7 @@ public static class CombatPitRules
             if (!pit.Contains(index)) continue;
             if (context.Database.TerrainById(world.TileAtIndex(index).TerrainId).IsSolid) continue;
             if (IsFloor(pit, index) != (!rimOnly && floor)) continue;
+            if (context.Navigation.NavByte(next.X, next.Y) != navigation) continue;
             if (empty && AnyoneOn(world, next, null)) continue;
             return index;
         }

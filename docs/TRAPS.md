@@ -386,3 +386,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Python on this Windows host may default to cp1252; pass encoding="utf-8-sig" when reading BOM Markdown before rewriting, or its header becomes mojibake.
 - The dk2kb MCP server (`kb_upsert`) writes records into the main clone, not the linked worktree you are in: edit the record file in the worktree by hand there, and restore anything it wrote to the main clone.
+- The first `GameSimulation.Tick` executes tick 0; raw placed-state age fixtures need an entry stamp of -1, not 0.

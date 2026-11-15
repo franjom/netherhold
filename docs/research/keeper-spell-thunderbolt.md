@@ -125,8 +125,8 @@ A group-1 Prison state
 can transition to 255 (group 3/category 7, all-bits entry mask), but process 9
 does not ask while that binding is set (`0x004AF2E3`–`0x004AF2EB`). `StatusEffectRules.Lightning` now tests the existing binding and resolved
 category after damage, before calling `Stun` (ADR-0581, hash/save 332). General
-stun callers retain their own gates. Combat Pit's missing binding write
-remains a representation gap; see [combat-pit.md section 10](combat-pit.md#10-read-not-built).
+stun callers retain their own gates. Combat Pit binding is written at hash/save 523;
+see [combat-pit.md section 9](combat-pit.md#9-what-is-built-adr-0213-hashsave-523).
 
 Zero `StunDuration` is not replaced by a minimum or the knockdown clip length.
 The first call of 255's handler takes the elapsed-duration exit at

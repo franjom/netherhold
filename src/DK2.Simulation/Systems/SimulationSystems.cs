@@ -180,6 +180,7 @@ public static class SimulationSystems
             new HatcheryLayStep(), // the Hatchery's handler, its egg (0x004DE0A0), and the coops ours places in its stead
             new HatedCompanySystem(), // the Library, Training Room, Guard Room and Workshop handlers' shared step
             new WorkshopTimerSystem(), // the Workshop handler's four effect timers, which draw the world stream (workshop-timers.md)
+            new CombatPitRoomStep(),
             new RoomBorderFlameSystem(), // the room tick's border flames (0x004E7CD0), before its health step
             new RoomHealthSystem()), // the room tick's health step (0x004E4B00)
     ];

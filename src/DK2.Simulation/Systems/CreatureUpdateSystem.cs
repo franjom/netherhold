@@ -89,6 +89,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                     PossessedExcavationRules.Poll(context, creature);
                     ClaimActionRules.Poll(context, creature);
                     IdleActionRules.Poll(context, creature);
+                    CombatPitSystem.PollAction(context, creature);
                     actionPolled = true;
                 }
                 step.Update(context, creature);
@@ -101,6 +102,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                 PossessedExcavationRules.Poll(context, creature);
                 ClaimActionRules.Poll(context, creature);
                 IdleActionRules.Poll(context, creature);
+                CombatPitSystem.PollAction(context, creature);
             }
             // 0x0048A037: after the state handler, before the dust, the reveal and the root walk;
             // no step ours runs after the handler reads the bit.
@@ -110,6 +112,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
             if (creature.LinkWorld is not null) PossessedExcavationRules.Advance(context, creature);
             if (creature.LinkWorld is not null) ClaimActionRules.Advance(context, creature);
             if (creature.LinkWorld is not null) IdleActionRules.Advance(context, creature);
+            if (creature.LinkWorld is not null) CombatPitSystem.AdvanceAction(context, creature);
         }
     }
 }

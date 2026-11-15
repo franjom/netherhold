@@ -108,8 +108,6 @@ public sealed class RoomBuildSystem : ISimulationSystem
                     if (built)
                     {
                         new AutoFurnitureSystem().Execute(context);
-                        foreach (RoomInstance pit in CombatPitRules.PitsUnder(world, context.Database, [pos]))
-                            CombatPitSystem.Reset(context, pit);
                     }
                     EmitConstructionEffect(context, playerId, pos);
                     wave = wave with { AccumulatedCost = unchecked((ushort)(wave.AccumulatedCost + cost)) };
@@ -237,10 +235,6 @@ public sealed class RoomBuildSystem : ISimulationSystem
             $"player={command.PlayerId} room={room.Name} tiles={built} cost={spent} " +
             $"refused={Describe(refusals)}" + (first is TilePos f ? $" first=({f.X},{f.Y})" : ""));
 
-        // A Combat Pit that took a tile is rebuilt, and its reset throws its fighters out (0x004D7E00).
-        if (built > 0)
-            foreach (RoomInstance pit in CombatPitRules.PitsUnder(world, context.Database, command.Tiles))
-                CombatPitSystem.Reset(context, pit);
 
         // The computer keeper's wrapper 0x004C5B40 closes a one-tile rectangle after every tile, built or
         // not, so its walkers are reset; once is enough, as a kicked walker is in 1 and not reset again.

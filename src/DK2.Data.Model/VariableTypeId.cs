@@ -38,6 +38,8 @@ public enum VariableTypeId
     Research = 17,
 
     ChickenGenerationTimePerHatchery = 18,
+    /// <summary>Native game ticks per second; a VARIABLES override of the LEVEL record's tick rate.</summary>
+    TicksPerSecond = 19,
     GoldMinedFromGems = 20,
     TimeBetweenReattemptingHungerSeconds = 21,
     TimeBetweenReattemptingSleepSeconds = 22,

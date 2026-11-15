@@ -78,6 +78,8 @@ public sealed record RoomDef
 
     /// <summary>Effect after room object creation, ROOMS file ushort at 0x384.</summary>
     public ushort CreatedObjectEffectId { get; init; }
+    /// <summary>ROOMS file ushort at 0x382, runtime +0x421: the first Combat Pit ambient effect.</summary>
+    public ushort RoomEffect421Id { get; init; }
 
     /// <summary>ROOMS file ushort at 0x386, runtime <c>+0x425</c>: the room's own effect, read by several
     /// handlers. The Portal's pre-arrival buildup (94); the effect a gold deposit asks for on each store

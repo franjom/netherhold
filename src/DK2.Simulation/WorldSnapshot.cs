@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 522;
+    private const int FormatVersion = 523;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -182,6 +182,9 @@ public static class WorldSnapshot
             w.Write(t.HatcheryStartupIntervalTicks);
             w.Write(t.ChickensGenerated);
             w.Write(t.PitFightSeenTick);
+            w.Write(t.PitAmbientShortTicks);
+            w.Write(t.PitAmbientLongTicks);
+            w.Write(t.PitPreviousStandingCount);
             w.Write(t.CasinoParty);
             w.Write(t.CasinoPartyStartTick);
             w.Write(t.PrisonDoor);
@@ -496,6 +499,7 @@ public static class WorldSnapshot
             w.Write(c.CombatStateEnteredTick);
             w.Write(c.StateEnteredTick);
             w.Write((byte)c.IdleAction);
+            w.Write((byte)c.CombatPitAction);
             w.Write(c.ActionArtSlot);
             w.Write(c.ActionAnimationPhase);
             w.Write(c.ActionAnimationRate);
@@ -1025,6 +1029,9 @@ public static class WorldSnapshot
                 HatcheryStartupIntervalTicks = r.ReadInt32(),
                 ChickensGenerated = r.ReadInt32(),
                 PitFightSeenTick = r.ReadInt64(),
+                PitAmbientShortTicks = r.ReadByte(),
+                PitAmbientLongTicks = r.ReadByte(),
+                PitPreviousStandingCount = r.ReadByte(),
                 CasinoParty = r.ReadByte(),
                 CasinoPartyStartTick = r.ReadInt64(),
                 PrisonDoor = r.ReadByte(),
@@ -1324,6 +1331,7 @@ public static class WorldSnapshot
                 CombatStateEnteredTick = r.ReadInt64(),
                 StateEnteredTick = r.ReadInt64(),
                 IdleAction = (IdleActionId)r.ReadByte(),
+                CombatPitAction = (Systems.CombatPitActionId)r.ReadByte(),
                 ActionArtSlot = r.ReadByte(),
                 ActionAnimationPhase = r.ReadInt32(),
                 ActionAnimationRate = r.ReadInt32(),

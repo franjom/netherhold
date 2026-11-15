@@ -25,7 +25,10 @@ public sealed class CombatPitSpectatorTests
 
     private static (GameDatabase, WorldState) World()
     {
-        CreatureDef watcher = Dk2TerrainFixture.Goblin() with { CreatureId = Watcher, Name = "Watching Goblin", HappyJobs = [new(JobType.CombatPitSpectate, 0, 0, 100)] };
+        var art = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        art[8] = art[20] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 20, FramesPerSecond = 20 };
+        CreatureDef watcher = Dk2TerrainFixture.Goblin() with
+        { CreatureId = Watcher, Name = "Watching Goblin", HappyJobs = [new(JobType.CombatPitSpectate, 0, 0, 100)], ArtSlots = art };
         GameDatabase db = Dk2TerrainFixture.Database(watcher,
             watcher with { CreatureId = SlowTurner, Name = "Slow Goblin", TurnRate = 256 });
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
@@ -160,10 +163,10 @@ public sealed class CombatPitSpectatorTests
     }
 
     /// <summary>142 walks to a point in the middle third of a rim tile, 143 turns to the pit and
-    /// cheers, 144 waits out the cheer (ours: a GUESSED length) and picks again while the fight is on.
+    /// cheers, 144 waits out the counted clip and picks again while the fight is on.
     /// Every spot is on the rim.</summary>
     [Fact]
-    public void WhileTheFightLastsItCyclesThroughASpotTheCheerAndBack_AlwaysOnTheRim_CheerLengthGuessed()
+    public void WhileTheFightLastsItCyclesThroughASpotTheCountedCheerAndBack_AlwaysOnTheRim()
     {
         (GameDatabase db, WorldState world) = World();
         AFight(db, world);
@@ -206,7 +209,9 @@ public sealed class CombatPitSpectatorTests
         }
         Assert.Contains(sink.Events, e => e.Kind == "spectator_cheer");
         Assert.True(facing >= 3, $"143 held for {facing} turns");
-        int toTheMiddle = DK2.Simulation.Steering.Bearing.Of(CreatureState.CentreOf(6) - watcher.PosX, CreatureState.CentreOf(4) - watcher.PosY);
+        RoomInstance pit = Pit(db, world);
+        int toTheMiddle = DK2.Simulation.Steering.Bearing.Of(CreatureState.CentreOf(pit.CentreFieldX) - watcher.PosX,
+            CreatureState.CentreOf(pit.CentreFieldY) - watcher.PosY);
         Assert.Equal(0, DK2.Simulation.Steering.Bearing.Distance(watcher.Heading, toTheMiddle));
     }
 

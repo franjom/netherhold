@@ -21,6 +21,7 @@ public static class CreatureCurrentAction
     public static bool IsRunning(CreatureState creature, GameTick tick) =>
         creature.PossessedMelee.Active || creature.PossessedExcavation.Kind != PossessedExcavationKind.None
         || creature.ClaimAction.Kind != ClaimActionKind.None
+        || creature.CombatPitAction != CombatPitActionId.None
         || creature.IdleAction != IdleActionId.None || creature.SwingInProgress || tick.Value < creature.ActionUntilTick || creature.Tunnel.Digging
         || creature.TrainingActionId != 0 || WorkLoopIndex(creature) != 0;
 
@@ -33,6 +34,7 @@ public static class CreatureCurrentAction
         if (creature.PossessedExcavation.Kind != PossessedExcavationKind.None) return (int)creature.PossessedExcavation.Kind;
         if (creature.ClaimAction.Kind != ClaimActionKind.None) return (int)creature.ClaimAction.Kind;
         if (creature.IdleAction != IdleActionId.None) return (int)creature.IdleAction;
+        if (creature.CombatPitAction != CombatPitActionId.None) return (int)creature.CombatPitAction;
         if (creature.TrainingActionId != 0)
             return creature.TrainingActionId == (byte)TrainingActionKind.Spell ? CreatureActionTable.TrainSpell : CreatureActionTable.TrainMelee;
         if (WorkLoopIndex(creature) is var work and not 0) return work;

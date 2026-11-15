@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -40,7 +40,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // PrisonModifyCreatureHealthPerSecond and dies into a Skeleton, not a
             // collapse, so nothing here touches its health or dying clock
             // (ADR-0064). Its hunger clock runs in the needs routine like anyone's (ADR-0074).
-            if (PrisonRules.IsImprisoned(state)) continue;
+            if (PrisonRules.IsPrisonInmate(state)) continue;
 
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
@@ -222,10 +222,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     }
 
     /// <summary>The own-land regeneration, first in the creature's own update (<c>0x00488C32</c>), with
-    /// the creature's own <c>+0x36</c> as the source. Ours alone skips a prisoner, whose health is PrisonSystem's (ADR-0064).</summary>
+    /// the creature's own <c>+0x36</c> as the source. Ours alone skips a Prison inmate, whose health is PrisonSystem's (ADR-0064); a pit binding does not suppress it.</summary>
     internal static void RegenerateOnOwnLand(SimulationContext context, CreatureDef creature, CreatureState state)
     {
-        if (PrisonRules.IsImprisoned(state)) return;
+        if (PrisonRules.IsPrisonInmate(state)) return;
         int regen = CreatureHealthRules.OwnLandRegenPerTurn(context.World, context.Database, creature, state);
         if (regen == 0) return;
         int landed = CreatureHealthRules.Apply(context.Database, creature, state, regen, state.HealthSourcePlayerId);

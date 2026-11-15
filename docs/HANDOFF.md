@@ -9,6 +9,7 @@ questions live in their canonical documents; this file links to them.
   Generate counts with `dk2tools status`; use `dk2tools coverage` for implementation
   coverage. Neither counts nor historical test totals are maintained here.
 - Current simulation/save composition: [hash versions](research/hash-versions.md).
+  Combat Pit completion and remaining parity limits: [canonical scope](research/combat-pit.md#9-what-is-built-adr-0213-hashsave-523).
   Behavioral parity with DK2 remains incomplete; bounded replay controls do not
   establish full-state, campaign-outcome or interactive-play acceptance.
 - Classic rendering, HUD and front-end integration are on master. Owner play,

@@ -180,6 +180,7 @@ namespace DK2.Simulation
             ActionHandlerDone = other.ActionHandlerDone;
             ActionCount = other.ActionCount;
             IdleAction = other.IdleAction;
+            CombatPitAction = other.CombatPitAction;
             ReinforcementAction = other.ReinforcementAction;
             PossessedExcavation = other.PossessedExcavation;
             PossessedMelee = other.PossessedMelee;

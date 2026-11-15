@@ -98,6 +98,7 @@ public static class RoomHealthRules
     internal static void TransferOwnership(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId,
         SimulationContext? context)
     {
+        CombatPitRoomRuntime pit = CombatPitRoomStep.Read(world, room.TileIndices[0]);
         PostTransfer(world, room, room.OwnerPlayerId, playerId);
         LevelStatisticsRules.CreditRoomTakeover(world, room.Definition, room.TileCount, playerId);
         RoomListPosition listPosition = RoomLists.Next(world);
@@ -119,9 +120,14 @@ public static class RoomHealthRules
         // Treasury's re-banks its gold for the new owner (0x004F3C40, ADR-0668).
         HatcheryRules.ReownCoops(world, room, playerId);
         SlabChain.Kick(world, room);
+        if (room.Definition.TypeId == RoomTypeId.CombatPit && context is not null)
+            Systems.CombatPitSystem.ReleaseAttached(context, place => place.In(room));
         GoldStore.Recapture(world, database, room, context?.Rng, context);
         if (RoomIndex.RoomAt(world, database, room.TileIndices[0]) is { } merged)
+        {
             RoomLists.Set(world, merged.TileIndices, listPosition);
+            if (room.Definition.TypeId == RoomTypeId.CombatPit) CombatPitRoomStep.Place(world, merged.TileIndices, pit);
+        }
     }
 
     /// <summary>The transfer's messages: 35 to the old owner (<c>0x004E58F4</c>), then 32 to the new,
@@ -172,6 +178,13 @@ public static class RoomHealthRules
         if (applied == RoomHealthOutcome.TookOver)
         {
             HatcheryRules.OnCaptureMerge(world, database, room);
+            if (room.Definition.TypeId == RoomTypeId.CombatPit && context is not null
+                && RoomIndex.RoomAt(world, database, room.TileIndices[0]) is { } mergedPit
+                && mergedPit.TileCount > room.TileCount)
+            {
+                Systems.CombatPitSystem.ReleaseAttached(context, place => !place.In(room) && place.In(mergedPit));
+                Systems.CombatPitSystem.Reset(context, mergedPit);
+            }
             SlabChain.ObserveCaptureMerges(world, room);
         }
         TileWorkOutcome outcome = applied == RoomHealthOutcome.TookOver

@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -14,8 +14,8 @@ namespace DK2.Simulation;
 /// <para>Only an imp captures: CONFIRMED (owner, 2026-09-05) — the keeper's hand moves
 /// a prisoner already taken, never takes one, which is what
 /// <see cref="HandRules.CanPickUp"/> says. DK2's creature dump names <c>PrisonOwner</c>
-/// at <c>0x3cb</c> — the keeper whose prison holds the creature, not who owns it —
-/// reproduced as <see cref="CreatureState.PrisonOwnerPlayerId"/> (ADR-0046,
+/// at <c>0x3cb</c> — the room keeper binding shared with Torture and Combat Pit —
+/// reproduced as <see cref="CreatureState.PrisonOwnerPlayerId"/>; see <see cref="IsPrisonInmate"/> for Prison state (ADR-0046,
 /// docs/research/prison.md).</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/prison.md")]
 public static class PrisonRules
@@ -227,9 +227,18 @@ public static class PrisonRules
         return held;
     }
 
-    /// <summary>Whether this creature is somebody's prisoner.</summary>
-    public static bool IsImprisoned(CreatureState creature) =>
+    /// <summary>The native keeper binding at +0x3CB, shared by prisoners, torture victims and pit fighters.</summary>
+    public static bool HasKeeperBinding(CreatureState creature) =>
         creature.PrisonOwnerPlayerId != NoPrison;
+
+    /// <summary>Compatibility name for <see cref="HasKeeperBinding"/>; this does not test Prison membership.</summary>
+    public static bool IsImprisoned(CreatureState creature) => HasKeeperBinding(creature);
+
+    /// <summary>Native 0x00473990: resolved Prison category or raw state 126, independently of the binding.</summary>
+    public static bool IsPrisonInmate(CreatureState creature) =>
+        CreatureStateMachine.HasState(creature)
+        && (NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Prison
+            || creature.Dk2StateId == ReturningState);
 
     /// <summary>Whether <paramref name="room"/> is a prison belonging to <paramref name="playerId"/>.</summary>
     public static bool IsPrisonOf(RoomInstance room, PlayerId playerId) =>
@@ -337,7 +346,7 @@ public static class PrisonRules
         int count = 0;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!IsImprisoned(creature)) continue;
+            if (!HasKeeperBinding(creature) || !IsPrisonInmate(creature)) continue;
             if (creature.PrisonOwnerPlayerId != room.OwnerPlayerId) continue;
 
             int tileIndex = (creature.Tile.Y * world.Width) + creature.Tile.X;
@@ -351,7 +360,7 @@ public static class PrisonRules
     {
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!IsImprisoned(creature)) continue;
+            if (!HasKeeperBinding(creature) || !IsPrisonInmate(creature)) continue;
             if (HandRules.IsHeld(creature)) continue;
             if ((creature.Tile.Y * world.Width) + creature.Tile.X == tileIndex) return creature;
         }
