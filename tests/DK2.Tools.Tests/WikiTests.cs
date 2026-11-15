@@ -62,12 +62,13 @@ public class WikiTests
     }
 
     [Fact]
-    public void TheRealSystemListLoadsAndHasTheIssuesNineteenSystems()
+    public void TheRealSystemListLoadsAndHasTheIssuesNineteenSystemsPlusTheGodotAdapter()
     {
         var catalog = SystemCatalog.Load(Root);
-        Assert.Equal(19, catalog.Systems.Count);
+        Assert.Equal(20, catalog.Systems.Count);
         Assert.Equal("simulation-core", catalog.Systems[0].Id);
         Assert.True(catalog.Contains("imps-tile-work"));
+        Assert.True(catalog.Contains("presentation-godot"));
     }
 
     [Theory]
