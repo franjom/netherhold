@@ -50,8 +50,8 @@ namespace DK2.Unity
         private Vector2Int _viewport;
         public int UiScale { get; set; } = 100;
         private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale, _viewport.x, _viewport.y);
-        private HudScreen Screen => new HudScreen(Mathf.RoundToInt(ScaleLayout.LogicalWidth),
-            _viewport.y > 0 ? _viewport.y : UnityEngine.Screen.height);
+        // ScaleLayout's height is the viewport's, or Screen.height without one.
+        private HudScreen Screen => ScaleLayout.Screen;
         public PanelSettings Panel => _settings;
         public float Bottom => KeeperResourceHud.Bottom(Screen);
         public Rect Bounds

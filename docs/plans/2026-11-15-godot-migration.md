@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`); 1b is next.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel and the resource strip are done; the other group-1 panels remain.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -35,15 +35,29 @@ group 2 is a list to audit, not a finding.
       `ToUnits`). Delete the Godot copies (`FrontEndCameraPaths.cs`, the loading half of
       `ClassicFrontEndMenuAssets.cs`).
 - [ ] 1b. Port group 1, one panel per change, each checked with a Movie Maker capture against the
-      Unity probe capture of the same state. Start with the bottom panel: it exercises
-      `HudSector` and additive blend, both untested in Godot (`docs/HANDOFF.md`).
+      Unity probe capture of the same state. Done: the bottom panel (`InGameHud.tscn`,
+      `ClassicBottomPanel.cs`; `HudSector` and additive blend both draw in Godot) and the resource
+      strip (`ClassicResourceHud.cs`; mana rising once per simulated second, strip matches a Unity
+      capture by eye). Remaining: `ClassicMessageTabs`, `ClassicHoverHud`, `ClassicCreatureQueryPanel`,
+      `ClassicCreatureOverview`, `ClassicOptionsPanel`, `ClassicGameOptionsPanel`,
+      `ClassicSaveLoadPanel`, `ClassicBattleTab`, `ClassicFullMap`, `DungeonMinimap`,
+      `ClassicHudScaling`, `ClassicBitmapText`, `ClassicCreatureNames`, `MinimapFrameVisual`.
+      Before the message-tabs and full-map panels, move the `PlayerNames` and `MessageText`
+      helpers from `DungeonRunner.Hud.cs` into `DK2.Presentation`. The screen-size rule (rounded
+      logical width over full height) is now `HudScaleLayout.Screen`; Unity's
+      `ClassicCreatureOverview`, `ClassicCreatureQueryPanel`, `ClassicHoverHud` and
+      `ClassicMessageTabs` still repeat it inline and switch to `layout.Screen` when ported.
 - [ ] 1c. Fix `FrontEndMenuController.UpdatePointer` (`DK2.Presentation`), which allocates (LINQ
-      `First`) on every hovered frame.
+      `First`) on every hovered frame. Also `KeeperResourceView.Capture` (`DK2.Presentation`, shared
+      with Unity), which allocates two `int[]` per tick.
 
 ## Step 2: move game-flow logic out of Unity
 
 - [ ] Audit each group-2 file: list what is DK2 behaviour (rules, timing, ordering, defaults)
-      and what is drawing or engine plumbing. Record the split in this plan.
+      and what is drawing or engine plumbing. Record the split in this plan. Known from the
+      bottom panel, not yet wired in Godot: HUD hiding during the opening camera path
+      (`ScriptedViewDirector`), the resource flash, the flash-button hint, the tool state after choosing a panel
+      slot, right-click navigation (needs a camera).
 - [ ] Move the behaviour into `DK2.Presentation` or the simulation, with tests; leave Unity a
       facade over it, as ADR-0805 did for the HUD.
 

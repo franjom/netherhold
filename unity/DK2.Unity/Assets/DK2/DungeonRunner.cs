@@ -195,7 +195,8 @@ namespace DK2.Unity
         private string _subtitleFontFile;
         private ClassicBitmapText _subtitleFont;
         private RoomTypeId[] _roomIds = Array.Empty<RoomTypeId>();
-        private double _tickDebt;
+        private readonly TickPacer _tickPacer = new TickPacer();
+        private double _tickDebt => _tickPacer.Debt;
 
         // The presented world (ADR-0694): the frame reads this copy while the worker ticks the live
         // one. The worker copies live into the spare after its batch; the frame takes the spare over,
@@ -316,39 +317,29 @@ namespace DK2.Unity
             _startup.Step("install");
 
             bool campaignLevel = string.IsNullOrWhiteSpace(saveFile);
-            GameDatabase database = campaignLevel
-                ? GameDatabaseLoader.LoadForCampaignLevel(install, levelName)
-                : GameDatabaseLoader.Load(install);
+            // A campaign level's records are the shared loader's (the Godot adapter starts levels the same way).
+            CampaignLevelData campaign = campaignLevel ? CampaignLevelData.Load(install, levelName) : null;
+            GameDatabase database = campaign?.Database ?? GameDatabaseLoader.Load(install);
             _startup.Step("database");
 
             Func<GameSimulation> warmupCopy = null;
-            LevelMap map = campaignLevel
-                ? GameDatabaseLoader.LoadCampaignMap(install, levelName)
-                    ?? throw new InvalidOperationException($"the install has no '{levelName}' map.")
-                : LoadSave(install);
+            LevelMap map = campaign?.Map ?? LoadSave(install);
 
             PlayerDef startingCameraPlayer = null;
             int cameraTicksPerSecond = SimulationTiming.OriginalTicksPerGameSecond;
             if (campaignLevel)
             {
-                var level = GameDatabaseLoader.LoadCampaignLevel(install, levelName)
-                    ?? throw new InvalidOperationException($"the install has no '{levelName}' level definition.");
+                var level = campaign.Level;
                 cameraTicksPerSecond = level.TicksPerSecond;
                 _levelTicksPerSecond = level.TicksPerSecond;
-                var players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName)
-                    ?? throw new InvalidOperationException($"the install has no '{levelName}' players.");
+                var players = campaign.Players;
                 startingCameraPlayer = players.FirstOrDefault(p => p.PlayerId == viewingPlayerId);
-                var things = GameDatabaseLoader.LoadCampaignThings(install, levelName)
-                    ?? throw new InvalidOperationException($"the install has no '{levelName}' things.");
-                var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, levelName)
-                    ?? throw new InvalidOperationException($"the install has no '{levelName}' triggers.");
                 _simulation = _resumeSimulation ?? (frontEnd
                     ? new GameSimulation(database, WorldState.FromMap(database, map,
                         players.Select(player => player.PlayerId), fogOfWarEnabled: false), seed)
-                    : CampaignSimulationFactory.Create(database, map, level,
-                        players, things, triggers, seed, fogOfWarEnabled: fogOfWar));
+                    : campaign.CreateSimulation(seed, fogOfWar));
                 if (!frontEnd && _resumeSimulation == null)
-                    warmupCopy = () => CampaignSimulationFactory.Create(database, map, level, players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
+                    warmupCopy = () => campaign.CreateSimulation(seed, fogOfWar);
             }
             else
             {
@@ -518,12 +509,9 @@ namespace DK2.Unity
             world.HeartHealthChanged += _heartHealthObserver;
             _heartHealthWorld = world;
             _startup.Step("script");
-            // The Heart's plug lid is asked for on game turn 1 and by nothing earlier, so DK2 draws
-            // no frame before its first turn (heart-intro.md §4, an inference from 0x004D9A60's
-            // guard). The first tick runs here, and the effect model one update, so the first frame
-            // shows the lid and not the open pit beneath it.
-            // A restored checkpoint already includes its starting turn.
-            if (_resumeSession == null) RunTicks(1, InputFrame.Empty);
+            // The level's first turn runs before its first frame (CampaignLevelData.TicksBeforeFirstFrame), and
+            // the effect model one update; a restored checkpoint already includes its starting turn.
+            if (_resumeSession == null) RunTicks(CampaignLevelData.TicksBeforeFirstFrame, InputFrame.Empty);
             if (!frontEnd && tickOnWorkerThread)
             {
                 _presented = WorldState.CopyOf(_simulation.World);
@@ -1001,18 +989,12 @@ namespace DK2.Unity
             InputFrame firstInput = InputFrame.Empty;
             if (speed > 0f && !_hudControls.OptionsVisible)
             {
-                double advance = elapsed * SimulationTiming.TicksPerSecond * speed * (_gameSettings.GameSpeed / 4.0);
-                _tickDebt += advance;
-                _drawLag.Observe(advance);
-
-                // Whole ticks only, and a cap so a long editor stall does not
-                // fast-forward the game by a thousand ticks in one frame.
-                ticks = (int)Math.Min(_tickDebt, Math.Max(1, maxTicksPerFrame));
-                _tickDebt -= ticks;
+                _drawLag.Observe(_tickPacer.Accrue(elapsed, speed, _gameSettings.GameSpeed));
+                ticks = _tickPacer.Take(maxTicksPerFrame);
                 if (ticks > 0) QueuePossessionPose();
-                if (ticks > 0 && _pendingCommands.Count > 0)
+                firstInput = TickPacer.FirstInput(ticks, _pendingCommands);
+                if (firstInput.Commands != null)
                 {
-                    firstInput = new InputFrame(_pendingCommands.ToArray());
                     JournalHandOff();
                     _pendingCommands.Clear();
                 }
@@ -1141,7 +1123,7 @@ namespace DK2.Unity
             long started = _recorder?.Stamp() ?? 0;
             for (int i = 0; i < ticks; i++)
             {
-                InputFrame input = i == 0 ? firstInput : InputFrame.Empty;
+                InputFrame input = TickPacer.InputFor(i, firstInput);
                 using (TickMarker.Auto())
                 {
                     // On the worker path the capture is the main thread's, from the presented world,

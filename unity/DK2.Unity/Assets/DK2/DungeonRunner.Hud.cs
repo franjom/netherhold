@@ -111,9 +111,7 @@ namespace DK2.Unity
             Dk2ArtCatalogue heldArt = _hudSources.Catalogue;
             _placementOverlay.CreatureIconName = id => heldArt.CreatureIcons.TryGetValue(id, out Dk2ArtResource icon) ? icon.Name : null;
             _placementOverlay.ObjectIconName = id => heldArt.Objects.TryGetValue(id, out IReadOnlyList<Dk2ArtResource> art) && art.Count > 1 ? art[1].Name : null;
-            _bottomPanel.SelectCategory(BottomPanelCategory.Creatures);
-            // The panel starts with Creatures open; nobody clicked its tab, so its press sound is not played.
-            _bottomPanel.Sounds.Clear();
+            _bottomPanel.OpenAtLevelStart();
             _bottomPanel.Selected += SelectPanelChoice;
             _bottomPanel.SpecialChosen += ActivateStoredSpecial;
             _roomNavigation = new RoomNavigation(new PlayerId((byte)viewingPlayerId));
@@ -249,15 +247,13 @@ namespace DK2.Unity
             if (selection.Tool == PlayerToolMode.BuildRoom) selectedRoomId = selection.Room;
         }
 
-        /// <summary>SpellPanel_ActivateSpecial (<c>0x0040A280</c>): action 88 at once, or the hand's targeting
-        /// mode for Kill Creatures and Transfer Creature. Mode 5 overwrites the tool without Hud_CancelSelectedTool,
-        /// and targeting lasts only under the hand, so the panel returns to the hand.</summary>
+        /// <summary>A stored special's slot (<see cref="PlayerInputTranslator.ChooseStoredSpecial(PlayerId, BottomPanelChoice, BottomPanelView)"/>):
+        /// action 88 is posted, or targeting began and the runner's tool returns to the hand with the panel's.</summary>
         private void ActivateStoredSpecial(BottomPanelChoice special)
         {
             // 0x00411140 ignores a special's slot while the Options menu is open (+0x2722).
             if (_hudControls.OptionsVisible) return;
-            _input.CancelPointerGesture();
-            if (_input.ActivateStoredSpecial(new PlayerId((byte)viewingPlayerId), special.ObjectId, special.Key.Value) is PlayerCommand command)
+            if (_input.ChooseStoredSpecial(new PlayerId((byte)viewingPlayerId), special, _bottomView) is PlayerCommand command)
             {
                 _pendingCommands.Add(command);
                 return;
@@ -265,7 +261,6 @@ namespace DK2.Unity
             _panelChoice = null;
             _queryTool = false; _selectedCorner = ClassicHudAction.None;
             tool = DungeonToolMode.Hand;
-            _bottomView.SelectTool(PlayerToolMode.Hand);
         }
 
         private void NavigateRoom(RoomTypeId type)

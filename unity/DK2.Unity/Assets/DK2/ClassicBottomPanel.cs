@@ -70,6 +70,8 @@ namespace DK2.Unity
         public int UiScale { get; set; } = 100;
         public BottomPanelRect? PanelArea(BottomPanelCategory category) => _hud.PanelArea(category);
         public void SelectCategory(BottomPanelCategory category) { _hud.SelectCategory(category); SyncCapture(); }
+        /// <summary>The panel as a level starts (<see cref="BottomPanelHud.OpenAtLevelStart"/>).</summary>
+        public void OpenAtLevelStart() { _hud.OpenAtLevelStart(); SyncCapture(); }
 
         private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale, _viewport.x, _viewport.y);
         private int Height => _viewport.y > 0 ? _viewport.y : Screen.height;
