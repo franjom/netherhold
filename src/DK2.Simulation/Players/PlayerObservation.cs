@@ -62,10 +62,23 @@ public sealed class PlayerTileGrid
 /// <summary>An owned room as the HUD shows it.</summary>
 public readonly record struct PlayerRoomSummary(RoomTypeId Type, int TileCount);
 
+/// <summary>A creature's mood as its status flower shows it (SM-Happy, SM-Sad, SM-Angry).</summary>
+public enum PlayerCreatureMood : byte { Happy = 0, Unhappy = 1, Angry = 2 }
+
 /// <summary>An owned creature from the creature overview. <paramref name="Tile"/> is null while it is
-/// held; <paramref name="Handle"/> is set only when it is also a visible target.</summary>
+/// held; <paramref name="Handle"/> is set only when it is also a visible target. <paramref name="Level"/>
+/// (1-10), <paramref name="Petals"/> and <paramref name="Mood"/> are what its status flower shows when
+/// hovered (status-flowers.md: SL-01..SL-10, H-00..H-05, SM-*; campaign bot stage 3 plan, Task 4): six
+/// petals at full health, one fewer per quarter lost, so two in the last quarter and one only once
+/// collapsed or dying. A creature whose flower never shows (held, joining, an own Horny,
+/// <c>StatusFlowerRules.NeverShows</c>) has level 0, 0 petals and no mood: unknown.</summary>
 public readonly record struct PlayerCreatureSummary(
-    CreatureTypeId Type, TilePos? Tile, bool InHand, PlayerThingHandle? Handle = null);
+    CreatureTypeId Type, TilePos? Tile, bool InHand, PlayerThingHandle? Handle = null,
+    int Level = 0, int Petals = 0, PlayerCreatureMood? Mood = null)
+{
+    /// <summary>Whether the flower's level, petals and mood are known.</summary>
+    public bool FlowerKnown => Level > 0;
+}
 
 public enum PlayerThingKind : byte { Creature, Object, Special, StoreGold, Door }
 
@@ -156,7 +169,8 @@ public sealed class PlayerOffers
 /// </summary>
 public sealed class PlayerObservation
 {
-    public const int SchemaVersion = 1;
+    /// <summary>2 adds each own creature's level, petals and mood (Task 4).</summary>
+    public const int SchemaVersion = 2;
 
     public required PlayerStamp Stamp { get; init; }
     public PlayerPhase Phase { get; init; } = PlayerPhase.Playing;
