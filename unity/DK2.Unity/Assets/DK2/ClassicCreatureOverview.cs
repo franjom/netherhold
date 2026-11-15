@@ -42,13 +42,11 @@ namespace DK2.Unity
             _root.style.display = DisplayStyle.None;
         }
 
-        private HudScreen Screen(HudScaleLayout layout) => new HudScreen(Mathf.RoundToInt(layout.LogicalWidth), layout.Height);
-
         /// <summary>A screen position in virtual units of the bottom-docked panel.</summary>
         private Vector2 Virtual(Vector3 pointer)
         {
             HudScaleLayout layout = ScaleLayout;
-            return ClassicHudScaling.LocalPointer(pointer, layout, true) / Screen(layout).Scale;
+            return ClassicHudScaling.LocalPointer(pointer, layout, true) / layout.Screen.Scale;
         }
 
         /// <summary><paramref name="area"/> is the Creatures panel's place (ClassicBottomPanel.PanelArea), null while it is closed.</summary>
@@ -60,7 +58,7 @@ namespace DK2.Unity
             ClassicHudScaling.Apply(_settings, _root, layout, true);
             bool visible = visibility.ShowNormalHud && area.HasValue;
             _root.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-            HudScreen screen = Screen(layout);
+            HudScreen screen = layout.Screen;
             Vector2 at = Virtual(pointer);
             _frame.Clear();
             _hud.Build(screen, _width, visibility, area, (at.x, at.y), _frame);
@@ -76,10 +74,10 @@ namespace DK2.Unity
 
         public bool ContainsPointer(Vector3 pointer) { Vector2 at = Virtual(pointer); return _hud.ContainsPointer(at.x, at.y); }
 
-        public bool TryPress(Vector3 pointer, bool primary, bool secondary, bool lowestLevel, bool highestLevel, out CreatureOverviewRequest request)
+        public bool TryPress(Vector3 pointer, bool primary, bool secondary, bool shift, bool control, bool alt, out CreatureOverviewRequest request)
         {
             Vector2 at = Virtual(pointer);
-            return _hud.TryPress(at.x, at.y, primary, secondary, lowestLevel, highestLevel, out request);
+            return _hud.TryPress(at.x, at.y, primary, secondary, shift, control, alt, out request);
         }
 
         public void Dispose()

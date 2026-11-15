@@ -196,9 +196,11 @@ public sealed class CreatureOverviewHud
     public bool ContainsPointer(float x, float y) => _visible && new HudRect(X(472), 1600, _areaWidth, 320).Contains(x, y);
 
     /// <summary>A press: a mode button or a page strip changes the panel and returns false; a worker row or a
-    /// column returns the pickup or focus it asks for.</summary>
-    public bool TryPress(float x, float y, bool primary, bool secondary, bool lowestLevel, bool highestLevel, out CreatureOverviewRequest request)
+    /// column returns the pickup or focus it asks for. Of the modifier keys held, Shift alone picks the lowest level and
+    /// Ctrl alone the highest; any other combination is the plain pickup.</summary>
+    public bool TryPress(float x, float y, bool primary, bool secondary, bool shift, bool control, bool alt, out CreatureOverviewRequest request)
     {
+        bool lowestLevel = shift && !control && !alt, highestLevel = control && !shift && !alt;
         request = default;
         if (!_visible || !primary && !secondary) return false;
         if (primary)

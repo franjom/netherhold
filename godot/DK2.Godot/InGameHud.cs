@@ -16,9 +16,10 @@ namespace DK2.GodotAdapter;
 /// <summary>Scene root of <c>InGameHud.tscn</c>: a campaign level started as Unity's <c>DungeonRunner</c> starts one
 /// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
 /// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported so far
-/// (migration plan step 1b): the resource strip, the bottom panel, the message tabs and the hover HUD, whose status line
-/// and tooltip show what <see cref="HudHoverText"/> picks from the panels under the pointer. Not wired, because their
-/// logic is still Unity's runner (plan step 2) or needs the 3D world (step 3): driving the shared
+/// (migration plan step 1b): the resource strip, the bottom panel, the creature overview in its Creatures panel, the
+/// message tabs and the hover HUD, whose status line and tooltip show what <see cref="HudHoverText"/> picks from the
+/// panels under the pointer. Not wired, because their logic is still Unity's runner (plan step 2) or needs the 3D world
+/// (step 3): the overview's pickup (the hand) and focus (the camera), driving the shared
 /// <c>ScriptedViewDirector</c> (the level's opening camera path, HUD hiding, FLASH_BUTTON, the resource flash), the tool a
 /// selection sets, camera glides for room, door and trap navigation and for a message's goto button, the options menu's
 /// effect on the tabs, sound, world hover (things and tiles under the pointer) and the hand cursor. User arguments after
@@ -46,6 +47,10 @@ public partial class InGameHud : Node, IHudHoverSources
     private ClassicMessageTabs? _messages;
     private ClassicHoverHud? _hover;
     private HudHoverText? _hudHover;
+    private CreatureOverview? _overviewView;
+    private ClassicCreatureOverview? _overview;
+    /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
+    private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
     /// <summary>The pointer in screen pixels from the top left, polled each frame as Unity reads
     /// <c>Input.mousePosition</c> (an event a panel handles never reaches this node).</summary>
@@ -91,6 +96,13 @@ public partial class InGameHud : Node, IHudHoverSources
         _model.Selected += SelectPanelChoice;
         _model.SpecialChosen += ActivateStoredSpecial;
         _model.GuiButton += PostGuiButton;
+        // Added after the panel and before the tabs, so it draws between them, as Unity's sorting order 13 between 12 and 14.
+        var overviewArt = new InstallCreatureOverviewArt(install, level.Database, _art.Image, _art.Text);
+        _overviewView = new CreatureOverview(level.Database, _viewer, overviewArt.Name, overviewArt.Order);
+        _overview = new ClassicCreatureOverview { Name = "CreatureOverview" };
+        // Its Requested (a pickup or a focus) is not handled: the hand and the camera are not ported.
+        _overview.Open(overviewArt, _overviewView);
+        AddChild(_overview);
         // Added after the panel, so it draws over it and takes the mouse first, as Unity's sorting order 14 over 12.
         _messageView = new MessageTabsView(_viewer, level.Database);
         var messageText = new MessageTextTables(_sources, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning));
@@ -108,6 +120,8 @@ public partial class InGameHud : Node, IHudHoverSources
         _hover.Open(_sources);
         AddChild(_hover);
         _hudHover = new HudHoverText(_sources.Strings.Resolve);
+        // Unity's runner also passes the played campaign slot, which only world hover reads.
+        _typeText = new WorldHoverText(level.Database, _sources.Strings.Resolve, _viewer);
         for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture));
     }
@@ -115,7 +129,8 @@ public partial class InGameHud : Node, IHudHoverSources
     public override void _Process(double delta)
     {
         if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
-            || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null) return;
+            || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
+            || _overviewView == null || _overview == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
@@ -132,6 +147,9 @@ public partial class InGameHud : Node, IHudHoverSources
         var visibility = new HudVisibility(true, true);
         _messages.Draw(visibility, _model.Collapsed,
             HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer));
+        // After the tabs, as DungeonRunner draws it; the options menu and full map that would close it are not wired.
+        _overviewView.Capture(_simulation.World);
+        _overview.Draw(visibility, _model.PanelArea(BottomPanelCategory.Creatures));
         // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; elsewhere
         // nothing, because world hover needs the 3D world.
         _hover.SetVisibility(visibility, milliseconds);
@@ -166,15 +184,18 @@ public partial class InGameHud : Node, IHudHoverSources
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
     /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap, the battle tab, the
-    /// creature overview and query, the options and full map are not ported).</summary>
+    /// creature query, the options and full map are not ported).</summary>
     private bool PointerOverHud(Vector2 position) =>
         (_hover != null && _hover.ContainsPointer(position)) || (_resources != null && _resources.ContainsPointer(position))
-        || (_panel != null && _panel.ContainsPointer(position)) || (_messages != null && _messages.ContainsPointer(position));
+        || (_panel != null && _panel.ContainsPointer(position)) || (_messages != null && _messages.ContainsPointer(position))
+        || (_overview != null && _overview.ContainsPointer(position));
 
-    // The panels under the pointer for HudHoverText; the ones not ported give the empty answer.
-    int IHudHoverSources.OverviewTextId() => 0;
-    CreatureOverviewType? IHudHoverSources.OverviewColumn() => null;
-    HoverTextSnapshot IHudHoverSources.CreatureTypeText(CreatureOverviewType column) => HoverTextSnapshot.Empty;
+    // The panels under the pointer for HudHoverText, answered as Unity's runner answers; the ones not ported give the
+    // empty answer.
+    int IHudHoverSources.OverviewTextId() => _overview?.HoveredTextId(_pointer) ?? 0;
+    CreatureOverviewType? IHudHoverSources.OverviewColumn() => _overview?.HoveredColumnType(_pointer);
+    HoverTextSnapshot IHudHoverSources.CreatureTypeText(CreatureOverviewType column) =>
+        _typeText != null && _simulation != null ? _typeText.CreatureType(_simulation.Database.CreatureById(column.Value)) : HoverTextSnapshot.Empty;
     bool IHudHoverSources.OverMessageTabs() => _messages != null && _messages.ContainsPointer(_pointer);
     HoverTextSnapshot IHudHoverSources.MessageTabsText() => _messages?.HoverText ?? HoverTextSnapshot.Empty;
     bool IHudHoverSources.OverBattleTab() => false;
@@ -202,7 +223,7 @@ public partial class InGameHud : Node, IHudHoverSources
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
         }
         _art?.Dispose(); _sources?.Dispose();
-        _hover = null; _hudHover = null;
+        _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null;
         _panel = null; _model = null; _view = null; _messages = null; _messageView = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;
     }
 }

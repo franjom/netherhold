@@ -64,7 +64,7 @@ public sealed class CreatureOverviewHudTests
     {
         (CreatureOverviewHud hud, CreatureOverviewType goblin) = Overview();
         Build(hud);
-        Assert.False(hud.TryPress(700, 1616 + 64 + 10, true, false, false, false, out _));
+        Assert.False(hud.TryPress(700, 1616 + 64 + 10, true, false, false, false, false, out _));
         Assert.Equal(CreatureOverviewMode.Jobs, hud.Mode);
         HudDraw[] draws = Build(hud);
         Assert.Equal("GUI\\Tabs\\t-cp-jobs", draws[^1].Image.Path);
@@ -72,9 +72,24 @@ public sealed class CreatureOverviewHudTests
         Assert.Equal(2316 + 2, hud.HoveredTextId(700, 1690));
 
         // The third jobs row (64 apart from 1616), focused with the secondary button.
-        Assert.True(hud.TryPress(930, 1616 + 2 * 64 + 5, false, true, false, false, out CreatureOverviewRequest request));
+        Assert.True(hud.TryPress(930, 1616 + 2 * 64 + 5, false, true, false, false, false, out CreatureOverviewRequest request));
         Assert.Equal(new CreatureOverviewRequest(goblin, CreatureOverviewSelection.FocusNext,
             CreatureOverview.RowFilter(CreatureOverviewMode.Jobs, 2)), request);
+    }
+
+    [InstallTheory]
+    [InlineData(false, false, false, CreatureOverviewSelection.PickupNext)]
+    [InlineData(true, false, false, CreatureOverviewSelection.PickupLowestLevel)]
+    [InlineData(false, true, false, CreatureOverviewSelection.PickupHighestLevel)]
+    [InlineData(true, true, false, CreatureOverviewSelection.PickupNext)]
+    [InlineData(true, false, true, CreatureOverviewSelection.PickupNext)]
+    [InlineData(false, true, true, CreatureOverviewSelection.PickupNext)]
+    public void APrimaryColumnPressPicksUpByTheOneModifierHeld(bool shift, bool control, bool alt, CreatureOverviewSelection expected)
+    {
+        (CreatureOverviewHud hud, _) = Overview();
+        Build(hud);
+        Assert.True(hud.TryPress(930, 1616 + 2 * 64 + 5, true, false, shift, control, alt, out CreatureOverviewRequest request));
+        Assert.Equal(expected, request.Selection);
     }
 
     [InstallFact]
@@ -94,7 +109,7 @@ public sealed class CreatureOverviewHudTests
     {
         (CreatureOverviewHud hud, _) = Overview();
         Build(hud);
-        hud.TryPress(700, 1616 + 2 * 64 + 10, true, false, false, false, out _);
+        hud.TryPress(700, 1616 + 2 * 64 + 10, true, false, false, false, false, out _);
         Assert.Equal(CreatureOverviewMode.Fighting, hud.Mode);
         HudDraw lit = Assert.Single(Build(hud, (930, 1616 + 84 + 5)), d => d.Image.Path == "GUI\\Tabs\\t-cp-hilight" && d.Rect.X == 924);
         Assert.Equal(new HudRect(924, 1616 + 84, 108, 84), lit.Rect);

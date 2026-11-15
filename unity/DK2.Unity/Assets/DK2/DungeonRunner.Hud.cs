@@ -428,8 +428,8 @@ namespace DK2.Unity
             bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
             bool control = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
             bool alt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
-            if (_overviewPanel.TryPress(Input.mousePosition, primary, secondary, shift && !control && !alt,
-                control && !shift && !alt, out CreatureOverviewRequest request))
+            if (_overviewPanel.TryPress(Input.mousePosition, primary, secondary, shift, control, alt,
+                out CreatureOverviewRequest request))
             {
                 CreatureOverviewAction selected = _overviewView.Select(World, request.Type, request.Selection, request.Filter);
                 if (selected.Kind == CreatureOverviewActionKind.Pickup)

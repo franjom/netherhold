@@ -111,7 +111,7 @@ namespace DK2.Unity.HudProbe
             for(int mode=0;mode<4;mode++)
             {
                 float scale=_overviewTarget.height/1920f;
-                _controlsOverview.TryPress(new Vector3(710*scale,_overviewTarget.height-(1630+64*mode)*scale,0),true,false,false,false,out _);
+                _controlsOverview.TryPress(new Vector3(710*scale,_overviewTarget.height-(1630+64*mode)*scale,0),true,false,false,false,false,out _);
                 if(_controlsOverview.Mode!=(CreatureOverviewMode)mode) throw new InvalidOperationException("Creature overview mode input failed.");
             }
         }

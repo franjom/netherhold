@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel, the resource strip, the message tabs and the hover HUD are done; the other group-1 panels remain.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel, the resource strip, the message tabs, the hover HUD and the creature overview are done; the other group-1 panels remain.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -47,17 +47,28 @@ group 2 is a list to audit, not a finding.
       `DungeonRunner.CaptureHudHover` into `HudHoverText` behind `IHudHoverSources`, which the
       Unity runner implements; Movie Maker 1920x1080 frames show status line and tooltip for
       mana, gold, the Rooms tab, a Hatchery slot, Review Objective and a message tab; no Unity
-      hover capture exists to compare). Not wired in Godot: sound and
+      hover capture exists to compare) and the creature overview (`ClassicCreatureOverview.cs`:
+      worker column, a column per owned type, counts by mode, mode buttons, page strips, hover
+      text through `IHudHoverSources`, mode and page presses; art and layout match Unity's
+      1024x768 capture by eye at 1920x1080, and Movie Maker frames show the Imp portrait's status
+      text, the Jobs selector's tooltip and a click switching to Jobs mode; the page strips look
+      greyer than Unity's, probably the disabled tint for one page at that width, unverified;
+      `InstallCreatureOverviewArt`, the `Creatures.kwd` portrait and order reader, moved from
+      Unity's `CreatureOverviewAssets.cs` into `DK2.Presentation` with an `[InstallFact]` test, and
+      `CreatureOverviewHud.TryPress` now takes raw shift/control/alt and decides the chord (Shift
+      alone picks the lowest level, Ctrl alone the highest, otherwise a plain pickup) itself,
+      where Unity's `DungeonRunner.Hud.cs` and the Godot panel each had a copy). Not wired in
+      Godot: sound and
       speech, the Level6a torture-speech sink, the goto camera glide, the tabs inside
       `HudModal`/options, scripted-view visibility (step 2). Remaining: `ClassicCreatureQueryPanel`,
-      `ClassicCreatureOverview`, `ClassicOptionsPanel`, `ClassicGameOptionsPanel`,
+      `ClassicOptionsPanel`, `ClassicGameOptionsPanel`,
       `ClassicSaveLoadPanel`, `ClassicBattleTab`, `ClassicFullMap`, `DungeonMinimap`,
       `ClassicHudScaling`, `ClassicBitmapText`, `ClassicCreatureNames`, `MinimapFrameVisual`.
       The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
-      Unity's `ClassicMessageTabs` and `ClassicHoverHud` use it (the hover HUD still sizes from
+      Unity's `ClassicMessageTabs`, `ClassicHoverHud` and `ClassicCreatureOverview` use it (the hover HUD still sizes from
       `UnityEngine.Screen`, not a fixture viewport, a possible cause of a mis-sized bar in a probe
-      capture, unverified); `ClassicCreatureOverview` and `ClassicCreatureQueryPanel` still repeat
-      it inline and switch to `layout.Screen` when ported.
+      capture, unverified); `ClassicCreatureQueryPanel` still repeats
+      it inline and switches to `layout.Screen` when ported.
 - [ ] 1c. Fix `FrontEndMenuController.UpdatePointer` (`DK2.Presentation`), which allocates (LINQ
       `First`) on every hovered frame. Also `KeeperResourceView.Capture` (`DK2.Presentation`, shared
       with Unity), which allocates two `int[]` per tick. Also `MessageTextTables`
@@ -69,7 +80,8 @@ group 2 is a list to audit, not a finding.
       ([Q854](research/open-questions.md)). Also the hover text, shared with Unity:
       `BottomPanelHud.HoverText` and `MessageTabsHud.HoverText` build strings on each call while
       hovered, and `KeeperResourceInteraction.ResourceHover` rebuilds a `Dictionary` whenever the
-      snapshot (tick included) changes.
+      snapshot (tick included) changes. Also `WorldHoverText.CreatureType`, which builds a
+      `Dictionary` and strings on each call while a creature overview column is hovered.
 
 ## Step 2: move game-flow logic out of Unity
 
@@ -82,8 +94,12 @@ group 2 is a list to audit, not a finding.
       pointing finger's reach, valid only while nothing is held; Unity's runner resolves the
       held, slap and tag cursors, and "over the HUD means SmallPoint" is itself HYPOTHESIS there);
       the "pointer over HUD" membership list and the `AllowOrdinaryInput` && focus && inside gate,
-      runner logic that Godot's `InGameHud` duplicates; the creature overview, battle tab and
-      minimap hover text, which answer empty until those panels are ported.
+      runner logic that Godot's `InGameHud` duplicates; the battle tab and minimap hover text,
+      which answer empty until those panels are ported. From the creature overview: the pickup
+      and focus flow a column press starts (`DungeonRunner.Hud.cs` around lines 431-451:
+      `CreatureOverview.Select`, the pickup preview, the hand and cursor feedback, the camera
+      focus), `HudModal`/options hiding, and `QueueHudInput`'s order and the possession/modal gate,
+      none wired in Godot, where a column press raises a pickup or focus nothing handles.
 - [ ] Move the behaviour into `DK2.Presentation` or the simulation, with tests; leave Unity a
       facade over it, as ADR-0805 did for the HUD.
 
@@ -99,7 +115,9 @@ group 2 is a list to audit, not a finding.
 
 - [ ] Sound and movies (decoding stays in `src/`).
 - [ ] Godot equivalents of the probes that are still needed (headless scenes, Movie Maker
-      captures; keep the Python summarisers).
+      captures; keep the Python summarisers). `tools/hud-probe` is deleted here; its
+      `HudPilot.Compile.csproj` already fails to compile (25 errors: `ClassicHudScaling` and
+      `Input` missing from its compile list, stale signatures), so do not repair it.
 - [ ] Performance targets set again in Godot (owner, 2026-11-15: Unity FPS work stopped).
 - [ ] Tester package as a Godot export (export templates, committed export preset).
 - [ ] CI builds `godot/DK2.Godot` (no editor needed) and the architecture gate checks Godot.
