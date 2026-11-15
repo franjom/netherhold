@@ -400,5 +400,5 @@ corner where both axes change, 0 where the tiles agree.
 - How the Tremor table at entry `+0x58` enters the draw, and whether it is rebuilt per
   frame.
 - `0x0059F3C0`, a sibling rest-grid builder (3 × 3 × 3 points, offset 0.5 and −0.05
-  with the same flags): its caller and purpose were not read.
+  with the same flags): its caller is `0x005A081C` in the procedural-art draw; purpose unread.
 - The new-entry flag from `0x0059A570` (entry `+0x18` bit 0) was not read.

@@ -177,27 +177,94 @@ the dump agrees (every record's `0x1D6` is its own id and the values are sensibl
 
 `KwdTerrainRooms` reads all eight into `TerrainDef.Wibble`; [terrain-lattice.md](terrain-lattice.md) uses them.
 
-## Ceiling fields: bounded binary audit (2026-10-29, Q679)
+## Ceiling: the possession-view roof (Q679)
 
-STRONGLY INFERRED: `0x0043AD70` loads common resource `Ceiling` as type 1 with
-flags `0x20000`, through the same loader interface as torch resources.
-Loading a texture does not establish a ceiling mesh or its visibility rules.
+Read in `DKII.EXE` 2026-11-15 (`0x0043C310`, `0x005A1CA0`, `0x00586BC0`, `0x00587060`,
+`0x00452340`, `0x0044F880`, `0x005091C0`, `0x00575A00`, `0x005737E0`); records in
+`docs/research/functions/`. Facts in our words. Coordinates are the engine frame
+(DK2 fixed point 4096 a tile for positions; heights here are tile units, up is negative z, the
+floor is z = -1 and a full-height wall top z = -2).
 
-The shipped `Rooms.kwd` has 26 records; all have zero at file `+0x368`
-and an empty tenth art block (file `+0x314`, conventionally ceiling art).
-`RoomDef.CeilingHeight` preserves the four bytes, but its height meaning is
-UNDETERMINED: `0x004EACC0` reads intermediate `+0x43C` (file `+0x368`)
-and stores only its low byte at runtime `+0x455` (`0x004EAD4B..51`).
-A whole-executable instruction scan for `+0x455`, with that store as its
-positive control, found initialization/stores but no room-definition reader.
-The other matching readers use creature records. This does not exclude
-computed or indirect access.
+**Which tiles (STRONGLY INFERRED).** The terrain renderer `0x0043C310` submits one ceiling per
+tile through sink slot `+0x104` (`0x005A1CA0`; the only call) when the tile is explored (cell
+`+8` bit `0x2000`) or a possession camera (modes 2, 10, 11) is active, its terrain lacks Solid
+(`+0x17B` bit 0), its cell lacks `+8` bit `0x4000` (pillar), and game mode is not 5. That is
+the arm taken when the renderer's third argument is zero; the other arm (`0x0043CA5F`) submits no
+ceiling, and which callers take it is UNREAD. Water, lava,
+rooms of any height and doors all get one; solid tiles and pillars get none. A tile with a room
+uses the room definition's own art record at `+0x87` when its `+0x92` bit 0 is set, else the
+common one. HYPOTHESIS: that record is the ceiling art of `Rooms.kwd` (empty in all 26 shipped
+rooms), so every room uses the common record; the loader's copy to `+0x87` was not read.
 
-Neither the original ceiling draw path nor its geometry, room-art override,
-height curve or possession-only visibility is established by this audit.
-Do not import OpenKeeper's distance curve as original behavior. Close Q679
-by tracing a native ceiling draw or capturing the possessed original view
-with controlled room widths; keep any resulting evidence in `F:/DK2Evidence`.
+**What is drawn (STRONGLY INFERRED).** One material for everything: view `+0x3CA` holds the
+record of `Ceiling` (loaded by `0x0043AD70`, type 1, so the material `S_Ceiling` of the engine
+texture `Ceiling`, mips `CeilingMM0..3` in `DK2TextureCache/EngineTextures.dir`). A piece is a
+3 x 3 vertex grid at half-tile spacing over the tile, `(x + c/2, y + r/2)`, 8 triangles with the
+diagonal alternating by (row + column) parity, UV `(c/2, r/2)` (the whole texture once per
+tile; a -64/32768 bias on v is cancelled by a bit of the packing), normals pointing down,
+instance tint black. For the quad at row i, column j with corners v00 = 3i + j, v01 = v00 + 1,
+v10 = v00 + 3, v11 = v00 + 4: (v01, v00, v11) and (v11, v00, v10) when i + j is even, else
+(v01, v00, v10) and (v11, v01, v10). The item has draw
+flag 8: `0x00587060` skips it unless frame global `0x00760B60` is set, which is true only in
+camera modes 2, 10, 11 (and a camera path started with plain = 0). It is cached with the tile and rebuilt on terrain change; the cell
+invalidation at the camera latch flip (`0x00571DA0`) rebuilds it on entering and leaving possession.
+
+**The height (STRONGLY INFERRED).** The vault is a height field, not the lattice. Each tile cell
+holds a nibble (word `+2` bits 12..15) = `min(15, isqrt(16 * d2))`, where `d2` is the squared
+distance from the tile's min corner `(x, y)` to the nearest solid-or-pillar tile square
+(`0x005091C0`: terrain Solid or cell bit `0x4000`). A tile on the
+negative side counts one nearer, so every tile touching the corner has `d2` = 0. `d2` is 0, 1, 2,
+4, 5, 8, 9, 10, 13, else 16, giving nibble 0, 4, 5, 8, 11, 12, 14, 15 (`isqrt` floors). It is
+set for all tiles at level start (`0x0050BE14`), where tiles outside the map are skipped, and
+re-derived by `0x00452340` when a tile's work changes its terrain (digging and claiming pass
+through it; `Tile_SetTerrain` calls it only with its sixth argument set and world flag `+0x7239`
+bit `0x40` clear), pillars are placed or a room is removed. That routine works twice: over
+11 x 11 tiles skipping tiles outside the map, then again over the middle 8 x 8 (x-3..x+4,
+y-3..y+4) counting tiles outside the map as solid, and the second result stays. The two differ
+only within four tiles of a map edge that is not solid; whether any shipped map has one is
+not checked.
+
+```
+S(r, c) = (2-c)(2-r) N[x][y] + (2-c) r N[x][y+1] + c (2-r) N[x+1][y] + c r N[x+1][y+1]
+z = -2 - S/16 + S*S/2048               // exact; up = -z; S = 0 is -2, S = 60 is -3.9921875
+centre (r = c = 1), and each edge midpoint whose orthogonal neighbour tile is on the map and
+open at its centre (not nav-solid, not pillar; `0x00509100`): z = min(z, -2.5)
+```
+
+So the roof is 1 tile over the floor where a corner touches a wall, about 1.9 at one tile out
+(n = 4: z = -2.875), 2.5 at two, 2.9 at three, and levels off just under 3 tiles above the floor
+(z = -4) at four tiles or more from any wall: low at walls, high over open space. Vertices go
+through the terrain lattice sampler `0x0058F030` like wall pieces, which moves only those with z
+in (-2.5, -2.0]: the corners at a wall and the unclamped edge midpoints near one follow the bent
+wall tops, and the centre never moves (HYPOTHESIS that the
+lattice window is the tile's own during the build; the call chain from the cache build was not read).
+Lighting normals come from height differences with a constant z component of 4.0, spread
+bilinearly (`0x005A18A0`); the exact corner pairing is UNREAD, so an adapter may use mesh normals.
+
+**Which tiles are visible in possession (HYPOTHESIS).** In possession `0x00575A00` caps the
+view distance at 32 tiles and enumerates tiles by rings around the camera tile (`0x005737E0`,
+`0x00572F60`), keeping those inside the view polygon and not hidden by blocked tiles in angle:
+a 2D line-of-sight set. The renderer's view distance is camera `+0xD8A` (`0x0044D550` =
+max(2 * zoom, `+0xD8A`) / 4096; the commit copies preset `ViewDistance` into it and the lens
+into `+0xD8E`); preset 2 gives 12 tiles, 8 for mode 10. The occluder bit (cache entry `+0x18` bit 0)
+and the interval store `0x00573470` are UNREAD.
+
+**Darkening (HYPOTHESIS).** No fog write, depth term or fog string was found. Default
+ambient is 0 (`classic-lighting.md` section 8) and the ceiling's tint is black, as the terrain
+pieces' own is, so the surface would be lit only by the point lights its mesh overlaps
+(`0x0057AC10`), falling to black beyond their radius; how a tint combines with light is unread:
+the roof 3 tiles up over a wide cave may be out of every light's reach. That floors and walls
+also fade is not explained by a read term; the 12-tile polygon end is a hard cut. Not read: the
+body of `0x00587060` after the queue, the vertex light loop for this item class.
+
+**Not read:** wall faces or tops set only for possession (the item flag `0x10` setters for
+terrain pieces; only the Sight fog mesh, flags `0x2090`, is known to carry it, so it is hidden
+in possession); the cull mode against the triangle order; the meaning of material flag `0x20000`.
+
+Earlier audit, still true: all 26 shipped room records have zero `+0x368` and empty ceiling
+art (file `+0x314`); `0x004EACC0` keeps only its low byte at runtime `+0x455`, which no reader
+was found for. The room ceiling height is not an input to the drawn roof. OpenKeeper's distance curve
+is not used: this section replaces it.
 
 ## Confidence
 

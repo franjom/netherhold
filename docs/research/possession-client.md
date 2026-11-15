@@ -246,8 +246,8 @@ classes (1, 2, 10 and 11; 3, 4, 5, 9, 13, 14 and 15; 7; 18; the rest) and gives 
 new one is not, or camera flag `+0xE3C` bit 6 is set; it refuses the change when flag
 byte `+0xD92` has bit 7. It fills the target view (`+0xDB6` X, Y, Z, `+0xDC2`
 zoom, `+0xDC6` yaw, `+0xDC8` pitch, `+0xDCA` roll, `+0xDCC` from the preset's file
-`0x24` and `+0xDD0` from its file `0x3C` (our `ViewDistance` and `Lens`; which the
-renderer takes as which is UNREAD), `+0xDD4` mode) and `Camera_CommitMode` (`0x0044BD70`) stores the start `+0xDDC` and the
+`0x24` and `+0xDD0` from its file `0x3C` (our `ViewDistance` and `Lens`; the commit
+copies them to `+0xD8A`, the renderer's view distance, and `+0xD8E`, the lens), `+0xDD4` mode) and `Camera_CommitMode` (`0x0044BD70`) stores the start `+0xDDC` and the
 end `+0xDD8`. Each frame `Camera_Update` (`0x0044C875`-`0x0044C9DB`) moves every value by
 `(target - value) * (now - start) / (end - start)` in whole numbers and then makes
 `start = now`; an angle's gap is the 11-bit difference with its sign, so it turns the
@@ -355,7 +355,9 @@ eighteen as a possessed Warlock, are in
   camera fills a side of the screen, stretched. The large pieces at the edge of the
   Imp's shot are probably the same (HYPOTHESIS), not a first-person model.
 - **A ceiling**, vaulted over rooms and corridors, which the ordinary view does not
-  draw, fading to black with distance, as the far floor and walls do.
+  draw, fading to black with distance, as the far floor and walls do. Its mechanism is read
+  (a per-tile height-field roof drawn only in the possession modes): `kwd-terrain-rooms.md`,
+  *Ceiling: the possession-view roof*.
 - **A HUD of its own.** Along the top: the mana counter, a portrait, a health bar, the
   gold carried, then icons that differ by creature (the Imp a pickaxe and a boot, the
   Warlock three). At the left three counters and the minimap; at the bottom left one
@@ -365,8 +367,7 @@ eighteen as a possessed Warlock, are in
 ## 7. Not read yet
 
 - The warp of the first-person picture (§6b).
-- How the first-person preset's lens and view distance reach the renderer, and the
-  writers of camera `+0xE38` and `+0xE3C`.
+- The writers of camera `+0xE38` and `+0xE3C`.
 - Who raises the view event `0x00448440` handles, who posts the player's own leave, and
   the colour changes of `0x005976D0`.
 - `Possession_SelectAbility`'s level gate in full, `0x005075A0`, and the
