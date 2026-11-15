@@ -552,7 +552,9 @@ The menu probe also checks each page's Confirm and Cancel pixels separately.
 `run-in-game-options.ps1` uses an isolated project with the Release adapter.
 It exercises the native in-game Game Options pages over Level1, live slider drag,
 Back/Continue, key capture/cancellation, persistence and paused/resumed ticks.
-The 2560x1440 target also checks actual thumb-pointer events reach the keyboard
+The panel has no named UI Toolkit elements, so the probe drives `GameOptionsHud`
+(widget and slider rectangles, key rows, `PointerDown`/`PointerMove`/`PointerUp`).
+The 2560x1440 target also checks thumb-pointer events reach the keyboard
 scrollbar maximum. Each page checks Continue and Back pixels after rendered
 play frames. Captures contain the options UI layer, not the level image.
 The fixture ends the bootstrap presentation path/letterbox without advancing the
@@ -566,5 +568,15 @@ It checks saved/live audio source state and rebound Heart/Fight navigation.
 The2026-10-29 regression failed at125% before the pointer fix
 (`build/isc-214713/unity.log`) and passed afterward (`build/isc-214759/unity.log`).
 These use explicit adapter input/battle fixtures and UI-layer captures; OS input,
-human hearing and original-game comparison remain unverified. All launchers copy
+human hearing and original-game comparison remain unverified. Those launchers copy
 the eight game assemblies plus NLayer through `unity/copy-runtime-assemblies.ps1`.
+
+`run-hover-outline.ps1` uses an existing isolated tag-overlay probe project (the
+`.tag-overlay-probe` marker is required); `-Project` and `-Log` override its defaults.
+It copies the current hover shader and runs `HoverOutlineFiniteProbe` with D3D11
+and a graphics lease. Twelve profile cases and 32 thin-ribbon raster cases check
+finite additive output across 158720 pixels with 1x and 4x sampling. It does not
+open or save the owner's scene. The 2026-11-15 regression failed four profile and
+16 raster cases before the clamp (`build/hover-outline-raster-red.log`) and passed
+all 44 afterward (`build/hover-outline-final.log`). This is a shader check, not
+live-scene visual acceptance.

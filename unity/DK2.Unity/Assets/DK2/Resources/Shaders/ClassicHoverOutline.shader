@@ -25,7 +25,9 @@ Shader "DK2/Hand Hover Outline"
             }
             float4 Frag(Varyings i) : SV_Target
             {
-                float centre = 1 - abs(i.across * 2 - 1);
+                // MSAA can shade a covered sample with UVs extrapolated beyond the ribbon.
+                // Keep the fractional power nonnegative so those edges cannot produce NaNs.
+                float centre = saturate(1 - abs(i.across * 2 - 1));
                 // Exponent 2.15: the half-brightness core is 27.5% of the band, a third wider than
                 // the cubic first tried (owner, 2026-10-19).
                 float profile = pow(centre, 2.15);

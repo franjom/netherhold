@@ -20,13 +20,14 @@ questions live in their canonical documents; this file links to them.
 - Engine switch (owner, 2026-11-15): the switch to Godot is decided ([ADR-0805](DECISIONS.md)).
   Stop Unity FPS optimization; continue engine-independent Q710 simulation/replay work.
   Engine-neutral lighting-cache measurements are in [Level6a performance](research/level6a-editor-performance.md);
-  local pickup feedback and dust coverage are in [the pick-up's turn](research/hand-pickup-turn.md).
+  local pickup dust timing (ADR-0808) and verification are in [the pick-up's turn](research/hand-pickup-turn.md).
+  The hover-cage shader check is in [hand cursor rendering](research/hand-cursor-rendering.md#selection-outline-rendering); live-scene acceptance remains open.
   GPLv3 code linked to Unity's runtime remains [ADR-0041](DECISIONS.md)'s open question. ADR-0805 moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
-  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`) and the in-game options menu and save browser (`OptionsHud`, `SaveLoadHud`) are moved too; they build and their models are
+  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`) and the in-game options menu, save browser and settings pages (`OptionsHud`, `SaveLoadHud`, `GameOptionsHud`) are moved too; they build and their models are
   tested, but none has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
-  background-repeat are unchecked. Next: the game-options panel (sliders, key list), then the front-end menu and the rest of the order in the ADR. No Godot code existed on that date.
+  background-repeat are unchecked. Next: the front-end menu, then the minimap and full-map markers (the rest of the order in the ADR). No Godot code existed on that date.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,

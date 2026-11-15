@@ -40,6 +40,8 @@ public readonly record struct ViewEffectRequest(
     public EffectHeightSpace HeightSpace { get; init; }
     public FpPosition3? GroundAnchor { get; init; }
     public CreatureId GroundCreatureId { get; init; }
+    /// <summary>Presentation correlation only; does not attach or move the effect.</summary>
+    public CreatureId SourceCreatureId { get; init; }
     /// <summary>The number a cost-number effect shows (effect <c>+0x12F</c>, written by
     /// <c>0x00441060</c>); null for every other effect. A request carrying one is shown only to its
     /// <see cref="Owner"/>'s own view (<see cref="CostNumberRules"/>).</summary>

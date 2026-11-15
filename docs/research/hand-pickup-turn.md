@@ -82,7 +82,7 @@ The owner reports small dust clouds after disappearance (2026-11-15).
 The successful packet-time preparation requests the shipped dust effect;
 arguments and timing are in [004C0BE0](functions/004C0BE0.md), appearance in
 [creature movement dust](creature-movement-dust.md#2-shipped-dust---strongly-inferred-data).
-The local hide and the later dust request are separate steps.
+These native steps remain separate; the local dust timing choice is ADR-0808.
 
 ## Built (ADR-0731; current hash/save 521)
 
@@ -115,6 +115,12 @@ The local hide and the later dust request are separate steps.
   `HeldItemStack` consume this engine-neutral state through a small adapter bridge.
 - Successful human `HandSystem.PickUp` preparation requests dust effect117 with the
   reviewed owner, position and heading; direct computer-keeper pickup excludes it.
+  Its `SourceCreatureId` correlates feedback without attaching dust to the creature.
+- ADR-0808 shows local dust with accepted world-click and overview pickups.
+  `RequestPickupDust` generates the first eight particles immediately, without a second
+  wave at 50 ms. `LocalPickupEffectSink` consumes one matching Hand echo by keeper and
+  source creature; other effects pass through. Tokens survive hand acknowledgement,
+  expire after 2001 ms and clear on reset. Without a dust renderer, no echo is consumed.
   These changes add no simulation state or RNG and leave hash/save 521 unchanged.
 
 Deviations: the timed insert (`HandSystem.Execute`) runs at the start of the
@@ -125,6 +131,14 @@ hand's list differs in between. A creature that left 75 before the insert is
 still taken, but ours leaves its state (DK2 forces it into 78, the leave hooks
 run); a mint-wage command does not leave the hand's state (unread). Accepted-drop
 cursor animation retains ADR-0582's execution-time policy; packet-submit timing remains partial.
+
+## Local dust verification (2026-11-15)
+
+`LocalPickupFeedbackTests` passed 15 cases. Disabling the local dust callback
+made `PickupDustIsVisibleBeforeAnySimulationTickAndTheAuthoritativeEchoIsConsumedOnce`
+fail on the missing immediate dust request; restoring it passed. The counterfactual
+logs and manifest are in `build/pickup-feedback-verification/` (`pickup-red.txt`,
+`pickup-green.txt`). Owner acceptance in the live scene remains open.
 
 ## Unknown
 
