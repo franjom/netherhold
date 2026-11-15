@@ -164,7 +164,7 @@ STRONGLY INFERRED integration: simulation systems reproduce the researched
 branches independently; their registration order is ADR-0013/Q398, not a
 claim of the original's whole thing-pass schedule. New creature flags and
 the typed influence deadline are hashed and saved together (version175).
-Camera, input devices and Unity remain outside this task. Pending actions
+Camera, input devices and Unity were outside this task; the view is [possession-client.md](possession-client.md). Pending actions
 must carry pose/aim/slot semantics rather than an AI target-tag shortcut.
 
 ## Possessed actions (Stage7b)

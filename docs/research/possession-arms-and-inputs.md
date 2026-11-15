@@ -11,7 +11,8 @@ Variable 19 (`0x006F2590`) is the level's TicksPerSecond.
 
 Built: §1–2 objects, pillars, shots and bodies (ADR-0468), §3 dig and claim (ADR-0469)
 and the gem rule (Q587, ADR-0470), §4 followers (ADR-0445) and §5 inputs (ADR-0446);
-the build plan is plans/2026-10-12-possession-arms-build-plan.md.
+the build plan is plans/2026-10-12-possession-arms-build-plan.md. The client side that sends
+these packets (camera, keys, movement) is [possession-client.md](possession-client.md).
 
 Object types named below: 9 Chicken, 14 Training Dummy, 15 Anvil, 16 Steel Bucket,
 46 Work Bench, 64 Book Case, 94 Arch Pillar. A dead body is class 6, not an object

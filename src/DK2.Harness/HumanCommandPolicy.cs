@@ -74,7 +74,7 @@ public static class HumanCommandPolicy
         [typeof(SetAllianceCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(AcknowledgePlayerMessageCommand)] = HumanCommandClass.NoHumanPathYet,
         [typeof(SetRescuePriorityCommand)] = HumanCommandClass.NoHumanPathYet,
-        // The first-person view, DungeonRunner.Possession over PossessionControls (version 3); the two abilities are not built.
+        // The first-person view, PossessionSession over PossessionControls (version 3); the two abilities are not built.
         [typeof(LeavePossessionCommand)] = HumanCommandClass.Play,
         [typeof(ActPossessedCreatureCommand)] = HumanCommandClass.Play,
         [typeof(DismissFollowersCommand)] = HumanCommandClass.Play,

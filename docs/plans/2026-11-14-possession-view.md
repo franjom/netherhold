@@ -1,8 +1,8 @@
 # Possession view: first-person camera and input
 
-**Status:** built to the point of the first editor run, 2026-11-14. Tasks 1 to 4 and the
-Unity wiring of task 6 are on the branch, compiled and unit-tested, not seen running.
-Task 5 (the timed move in and out) is not built: the view cuts.
+**Status:** built to the point of the first editor run, 2026-11-15. Tasks 1 to 6 are on master,
+compiled and unit-tested, not seen running in an editor, no owner play acceptance. What is not
+built is listed under "Left after the first build".
 **Goal:** a keeper who casts Possession sees through the creature and controls it as in
 DK2: walk, strafe, run, creep, look, attack, cast, and leave.
 **Research:** [possession-client.md](../research/possession-client.md) (read today), with
@@ -52,9 +52,9 @@ simulation side, which is built.
    from the camera pose; Sniper, RemoveAlly and leave map to the existing commands.
    Needs `Possession_SelectAbility`, `0x0040FA90`, `0x0040FDA0` and `0x00494700` read.
 5. **Entering and leaving.** Read who requests mode 2 when the spell lands and the
-   timed moves of modes 10 and 11, then drive `ClassicCamera`'s mode from them. Until
-   read, enter and leave cut directly, stated as a deviation.
-6. **Unity.** `DungeonRunner` feeds `PossessionView` while a creature is possessed:
+   timed moves of modes 10 and 11, then drive `ClassicCamera`'s mode from them. Built as
+   `PossessionFlight`: the 2000 ms move in and out; the death view (camera mode 11) is not.
+6. **Unity.** `DungeonRunner.Possession.cs` feeds `PossessionSession` (which drives `PossessionView`) while a creature is possessed:
    captured cursor, raw mouse delta, the preset's lens and view distance on the camera,
    the possessed creature's own model hidden. One editor run to see it; owner play
    acceptance after.
@@ -73,23 +73,18 @@ Done (possession-client.md):
   handler, the two ability keys and the ability kind accessor (§4), and what requests
   mode 2 (§6).
 
-Still needed before tasks 3 and 4:
-
-- `0x004D2230`, the resolver's touch-distance helper.
-- Whether `src/` already mirrors the speed's terrain arm (§2a).
-- The file offsets of the ability kinds `def+0x673/+0x674`, and the handlers of actions
-  `0x1C`, `0x1E`, `0x1F` and `0x89`, for the abilities beyond melee, sneak and hypnosis.
+Still needed for the two ability keys, which are not built: the file offsets of the ability
+kinds `def+0x673/+0x674`, and the handlers of actions `0x1C`, `0x1E`, `0x1F` and `0x89`.
 
 Creep (task 2) is built (ADR-0802, hash and save 518): the flag, `SetCreepingCommand`,
 the clear on leaving, `CreepingDistancePercent` and the weighting at the combat scans and
 the sneak's watcher test. Its level row is not covered by a test: the fixture database
 has no stat rows.
 
-Can follow a first playable version: entering and leaving (task 5), Mouse Sensitivity,
-and how the preset's lens and view distance reach the renderer.
+Can follow a first playable version: Mouse Sensitivity's units, and how the preset's lens
+and view distance reach the renderer (possession-client.md §7).
 
-The reviewer has re-read all three changes (the client note, the prerequisite reads and
-creep) and its corrections are applied. The documenter pass has not been run.
+The reviewer re-read each change and its corrections are applied.
 
 ## Owner decisions wanted
 
@@ -98,8 +93,6 @@ creep) and its corrections are applied. The documenter pass has not been run.
    unaffected; say whether multiplayer validation is in scope here or stays with M14.
 2. **Unity editor.** Task 6 needs an isolated editor run from the worktree. The main
    checkout holds your edited `Dungeon.unity`; confirm the run, or take that step.
-3. **Order.** Tasks 3 and 4 give a playable result without task 2 (no creep, walk and
-   run only). Say if creep can follow, or must land first.
 
 ## Left after the first build
 
