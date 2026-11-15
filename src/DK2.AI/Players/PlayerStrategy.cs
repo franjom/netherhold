@@ -152,6 +152,10 @@ public sealed record PlayerStrategy
     /// <summary>Which rooms get a square dug out when none is free (Task 3a).</summary>
     public RoomSites Sites { get; init; } = RoomSites.Oversized;
 
+    /// <summary>The Combat Pit routine (stage 3 plan, Task 4; owner direction): at most this many own creatures
+    /// fighting in an owned Combat Pit at once; 0 (the default) leaves the Pit alone. Two pair off.</summary>
+    public int PitFighters { get; init; }
+
     /// <summary>While breaching is held back, no tile within this many tiles of an enemy sighting is marked.</summary>
     public int EnemyClearanceTiles { get; init; } = 3;
 
@@ -160,6 +164,7 @@ public sealed record PlayerStrategy
     public IReadOnlyList<string> Validate(int? mapWidth = null, int? mapHeight = null)
     {
         var problems = new List<string>();
+        if (PitFighters < 0) problems.Add($"PitFighters {PitFighters} is negative");
         if (Rooms is null) problems.Add("Rooms is null");
         else if (Rooms.Distinct().Count() != Rooms.Count) problems.Add("Rooms names a room twice");
         if (RoomSide <= 0) problems.Add($"RoomSide {RoomSide} is not positive");

@@ -174,7 +174,8 @@ These are entry points, not a new priority order.
   branch: each own creature's level, petals and mood, every offered spell with `CastSpell`, then door and trap
   offers with `PlaceDoor` and `PlaceTrap` (observation schema 4; Q819, Q820, Q825 and Q826 open, Q821-Q823
   answered by the owner). Its observation and action rows are all built except Possession; the routines that
-  use them (Combat Pit, Imp scouting) come next.
+  use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default, not measured: only Level 15a and
+  later offer a Pit; Q827-Q831 open); Imp scouting comes next.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
