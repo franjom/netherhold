@@ -17,8 +17,9 @@ questions live in their canonical documents; this file links to them.
   and [HUD comparison checklist](research/hud-comparison-checklist.md).
   Lighting acceptance and remaining comparison/performance limits live in
   [classic lighting verification](research/classic-lighting-verification.md).
-- Engine switch (owner, 2026-11-14): a Godot adapter is being prepared because GPLv3 code linked to
-  Unity's runtime is [ADR-0041](DECISIONS.md)'s open question. [ADR-0805](DECISIONS.md) moves each HUD
+- Engine switch (owner, 2026-11-15): the switch to Godot is decided ([ADR-0805](DECISIONS.md)).
+  Stop Unity FPS optimization; continue engine-independent Q710 simulation/replay work.
+  GPLv3 code linked to Unity's runtime remains [ADR-0041](DECISIONS.md)'s open question. ADR-0805 moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
   resource strip (`KeeperResourceHud`) and the message tabs (`MessageTabsHud`) are moved too; they build and their models are
@@ -99,7 +100,7 @@ Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [fighter-cohort comparison](research/q710-fighter-decisions.md#fighter-cohort-at-7904875f) is complete; next are compatible bed ownership/position and state/resume restore controls, with native routes unavailable and outcome causation still open.
+exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [compatible-bed/point controls](research/q710-fighter-decisions.md#compatible-bed-and-point-controls-at-d6d9b5f7) are complete; next match room-point selection/RNG/slab-chain inputs for the stationary continuation, retaining unmatched body/world/clock and cohort limits.
 
 ## Other pending work
 

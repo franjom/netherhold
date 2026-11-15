@@ -14,6 +14,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Codex MCP calls can time out after 300 seconds despite a larger `ctx_execute` budget; run long suites in a background wrapper that saves its exit receipt.
 - Normalize hash-manifest relative keys to one path separator before updating entries; mixed slashes can retain duplicate paths and invalidate setup provenance.
 - Build a hash manifest's inventory before opening its output file; otherwise a recursive scan can include the manifest's own empty-file hash.
+- `git archive` can export CRLF while `git show` returns an LF blob; compare blobs with blobs and archived files with their own manifests.
 - An isolated native DK2 runtime needs `DK2TextureCache` as well as `Data`; omitting it crashed startup with `EngineTestLight` missing.
 - During a solution test run, an app's `bin` can retain old dependency copies until that project builds; wait for its build before checking schema compatibility.
 - For `Unknown journal record 0` on an old v1 journal, check `CommandCodec` history: hash 462 added the Drop heading marker without changing the envelope version.

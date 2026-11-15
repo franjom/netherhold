@@ -303,8 +303,8 @@ or presence, and 50/58 mismatch state/resume: 46 state ids differ and four
 retain the same walking state with a different resume. No actor matches both
 bed and state/resume, or even bed plus active state alone. The interventions
 preserve the existing bed/state/route restoration while copying selected history.
-The next bounded controls need compatible bed ownership/positions and
-state/resume at restore, with unavailable native path buffers explicit.
+The [compatible bed/state control](#compatible-bed-and-point-controls-at-d6d9b5f7)
+completes that local test; unavailable native path buffers remain explicit.
 Outside-cohort dying reservations, later births and other Q719/history gaps
 remain limits. These mismatches block a matched-input verdict; they do not
 prove the global cause. No production restorer or AI rule is changed.
@@ -312,3 +312,61 @@ prove the global cause. No production restorer or AI rule is changed.
 Evidence: `F:/DK2Evidence/studies/q710-fighter-cohort--2026-11-14--002`;
 `analysis.json`, `boundary-assessment.json` and `scope.json`.
 `manifest-reviewed-input.json` verifies 332 files. No native game was launched.
+
+## Compatible bed and point controls at d6d9b5f7
+
+The accepted hash-521 study uses source `d6d9b5f7`, native seed 8 and modern
+Xoshiro seed 101, with Troll 440 paired to modern 27. Nine accepted managed replays complete:
+six main controls, one read-only destination observer and point flag off/on.
+Plain/off/on main controls match each other. The destination observer and point
+flag off each reproduce the native-bed run's five telemetry files byte-for-byte.
+Main instrumentation changes two scratch Tools
+files; the point counterfactual adds one scratch `CreatureJobSystem` change.
+No production code is changed and no native game is launched.
+
+This actor's restored pose, health and idle state 1/resume 1 match the capture;
+it has no active modern route and is not held. No native state is forced. Only its literal supported
+needs, current/dropped job 5, chooser stamps and remembered None are copied.
+Native bed 1753 is object type 25, owner 3, linked back to 440, at tile index
+3077=(27,61), effective centre (112640,251904). The baseline bed is 853 at
+2789=(39,55). Sham releases/recreates that old tile; native-bed mode instead
+recreates at the captured tile. Both create id 1048, advance next id to 1049,
+retain 138 objects and preserve RNG. Managed bed PosX/PosY stay zero under the
+existing tile-centre convention: this matches logical position, not native raw
+position, pooled identity or the complete object state.
+
+Across 1000 labels, sham versus baseline agrees on every recorded fighter
+field other than bed id; the scorer's world metrics and RNG also match.
+Native-bed versus sham likewise agrees except the changed bed tile. Bed location has no observed
+effect through 6000 for this actor/control; this is not global bed irrelevance.
+Native and history-restored state sequences agree at label 5001 (89) and 5002
+(7/resume 63). A read-only probe then finds native room 1110, Workshop type 10,
+with stored destination (124928,198656)=(30,48); modern JobTile is 2480=(30,49).
+The [travel fields](travel-states.md) are decoded only while state 7 is active;
+stale idle union bytes are not interpreted as a destination.
+
+The flagged point control runs after the ordinary picker, retaining its draw.
+It validates Workshop membership, furniture/navigation and absence of Obstacle,
+then substitutes tile 2430=(30,48) only for 440's first call at managed tick
+5001/replay label 5002. Normal routing follows; no path is injected. Flag on
+records exactly one substitution at 5002 and its RNG after that step matches off.
+
+| State-63 arrival label | Value |
+|---|---:|
+| Ordinary point / flag off | 5018 |
+| Captured-point substitution | 5025 |
+| Native capture | 5026 |
+
+Substitution shifts seven labels and leaves one label different. It establishes
+neither timing parity nor correct native RNG/picker inputs, steering, full body
+or world fidelity. Modern Xoshiro 101, native picker/slab-chain inputs and the
+rest of the world remain unmatched. Q710 stays OPEN. Next: match room-point
+selection, RNG and slab-chain inputs for this stationary continuation, retaining
+body/world/clock and broader-cohort limits; do not repeat bed relocation or
+infer a one-tick steering correction.
+
+Evidence: `F:/DK2Evidence/studies/q710-compatible-bed--2026-11-15--002`;
+`analysis.json`, `interpretation.json`, `destination-probe/analysis.json` and
+`point-control/analysis.json`. `manifest-reviewed-input.json` verifies 223 files,
+excluding itself. Trial 001's rejected raw-position assertion is retained
+outside the nine accepted replays.
