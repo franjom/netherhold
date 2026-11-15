@@ -54,9 +54,10 @@ public partial class CampaignPlayerTests
     public void AnIdleHealthyFighterIsLiftedOntoThePitsInterior()
     {
         CampaignPlayer player = PitPlayer();
-        var idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6);
-        PlayerDecision lift = player.Decide(PitView([idle]));
-        Assert.Contains(new PlayerAction.PickUp(idle.Thing.Handle), lift.Actions);
+        var idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 0);
+        var partner = Goblin1(new TilePos(10, 6), level: 4, petals: 6, ordinal: 1);      // two can pair
+        PlayerDecision lift = player.Decide(PitView([idle, partner]));
+        Assert.Contains(new PlayerAction.PickUp(idle.Thing.Handle), lift.Actions);       // the lower level first
         Assert.Contains("pit", lift.Reason, StringComparison.Ordinal);
 
         PlayerDecision drop = player.Decide(PitView([], hand: 1, revision: 2));
@@ -67,12 +68,35 @@ public partial class CampaignPlayerTests
     [Theory]
     [InlineData(4, PlayerCreatureMood.Happy, false)]     // hurt: not sent in
     [InlineData(6, PlayerCreatureMood.Angry, false)]     // angry: not sent in
-    [InlineData(6, PlayerCreatureMood.Unhappy, true)]
-    public void OnlyAHealthyNotAngryCreatureBelowTheCapIsSentIn(int petals, PlayerCreatureMood mood, bool lifted)
+    [InlineData(6, PlayerCreatureMood.Unhappy, false)]   // happy first (owner, 2026-11-15)
+    [InlineData(6, PlayerCreatureMood.Happy, true)]
+    public void OnlyAHealthyHappyCreatureBelowTheCapIsSentIn(int petals, PlayerCreatureMood mood, bool lifted)
     {
-        var idle = Goblin1(new TilePos(9, 6), level: 3, petals, mood);
-        Assert.Equal(lifted, PitPlayer().Decide(PitView([idle])).Actions.OfType<PlayerAction.PickUp>().Any());
-        Assert.Empty(PitPlayer().Decide(PitView([Goblin1(new TilePos(9, 6), level: 8, petals: 6)])).Actions.OfType<PlayerAction.PickUp>());
+        // A fighter already on the floor waits for a partner, so one candidate is enough.
+        var waiting = Goblin1(new TilePos(3, 3), level: 3, petals: 6, ordinal: 1);
+        var idle = Goblin1(new TilePos(9, 6), level: 3, petals, mood, ordinal: 0);
+        Assert.Equal(lifted, PitPlayer().Decide(PitView([waiting, idle])).Actions.Contains(new PlayerAction.PickUp(idle.Thing.Handle)));
+        Assert.DoesNotContain(new PlayerAction.PickUp(idle.Thing.Handle),
+            PitPlayer().Decide(PitView([waiting, Goblin1(new TilePos(9, 6), level: 8, petals: 6)])).Actions);
+    }
+
+    [Fact]
+    public void ALoneCandidateIsNotSentInAndALoneVictorGoesToItsLair()
+    {
+        // One idle creature and an empty floor: nobody to fight, so it stays where it is.
+        Assert.Empty(PitPlayer().Decide(PitView([Goblin1(new TilePos(9, 6), level: 3, petals: 6)])).Actions.OfType<PlayerAction.PickUp>());
+
+        // Two were fighting; one is left: the victor goes to its Lair before it grows unhappy (owner, 2026-11-15).
+        CampaignPlayer player = PitPlayer();
+        var a = Goblin1(new TilePos(3, 3), level: 3, petals: 6, ordinal: 0);
+        var b = Goblin1(new TilePos(4, 4), level: 3, petals: 6, ordinal: 1);
+        Assert.Empty(player.Decide(PitView([a, b])).Actions.OfType<PlayerAction.PickUp>());
+        var spare = Goblin1(new TilePos(9, 6), level: 2, petals: 6, ordinal: 2);
+        Assert.Contains(new PlayerAction.PickUp(a.Thing.Handle), player.Decide(PitView([a, spare], revision: 2)).Actions);
+        Assert.Equal(new TilePos(8, 8), Assert.Single(player.Decide(PitView([], hand: 1, revision: 3)).Actions.OfType<PlayerAction.DropAt>()).Tile);
+
+        // A fighter alone on the floor with no one idle to join it goes to its Lair too.
+        Assert.Contains(new PlayerAction.PickUp(a.Thing.Handle), PitPlayer().Decide(PitView([a])).Actions);
     }
 
     [Fact]
@@ -128,8 +152,9 @@ public partial class CampaignPlayerTests
 
         // Without a Lair there is no bed to carry it to: no Imp is sent, and the rest of the routine goes on.
         var idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 3);
+        var partner = Goblin1(new TilePos(10, 6), level: 4, petals: 6, ordinal: 4);
         PlayerDecision noBed = PitPlayer().Decide(Observe(1, map: PitMap, rooms: [], owned: [new(RoomTypeId.CombatPit, 16)], tick: 1000,
-            things: [body.Thing, near, idle.Thing], creatures: [body.Flower, idle.Flower]));
+            things: [body.Thing, near, idle.Thing, partner.Thing], creatures: [body.Flower, idle.Flower, partner.Flower]));
         Assert.Equal([new PlayerAction.PickUp(idle.Thing.Handle)], noBed.Actions.OfType<PlayerAction.PickUp>());
     }
 

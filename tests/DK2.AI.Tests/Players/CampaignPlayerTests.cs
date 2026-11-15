@@ -38,6 +38,9 @@ public partial class CampaignPlayerTests
                     'P' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Prison),
                     'B' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Library),
                     'C' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.CombatPit),
+                    'n' => new PlayerTile(PlayerTileFlags.Known, new PlayerId(PlayerIds.Neutral), default),
+                    'd' => new PlayerTile(PlayerTileFlags.Known, default, default),   // dirt path: not ownable, so no owner shows
+                    'h' => new PlayerTile(PlayerTileFlags.Known, Heroes, default),   // hero-owned floor
                     'H' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid, Me, RoomTypeId.DungeonHeart),
                     '#' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable, default, default),
                     '$' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable | PlayerTileFlags.GoldSeam, default, default),

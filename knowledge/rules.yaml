@@ -55,3 +55,19 @@ rules:
     form: { kind: manual }
     note: "R2 is its first instance; per-level targets belong to the playbooks (Task 3b)."
     applies: playbook
+
+  - id: R6
+    rule: "Scout unknown ground with an Imp: drop it on unowned or neutral roomless floor at the edge of what you know, away from enemies and their ground, let it look for a moment, lift it again; never let it die."
+    source: "owner, 2026-11-14 (first aimed at Level 6a); the drop is legal on neutral roomless dry floor (0x00450910, HandRules); owner, 2026-11-15: an Imp left on dirt path stands 1-2 s, then returns to own ground"
+    status: proposed
+    form: { kind: manual }
+    note: "built as CampaignPlayer's scouting routine, switched on by a playbook's strategy.scouts (Task 4)"
+    applies: playbook
+
+  - id: R7
+    rule: "Train in the Combat Pit to its level cap: send in happy, healthy creatures in pairs (content counts as happy); heal a fighter at two petals or feed it; send an Imp to a beaten one; take the capped and a lone victor to their Lair (a hurt happy one to a Hatchery)."
+    source: "owner, 2026-11-14 and 2026-11-15"
+    status: proposed
+    form: { kind: manual }
+    note: "built as CampaignPlayer's Combat Pit routine, switched on by a playbook's strategy.pit-fighters (Task 4)"
+    applies: playbook

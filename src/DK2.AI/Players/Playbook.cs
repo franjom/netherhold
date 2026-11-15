@@ -78,6 +78,7 @@ public sealed record Playbook
         ["strategy.use-room-min-gold"] = new(0, 1_000_000, (s, v) => s with { UseRoomMinGold = v }),
         ["strategy.enemy-clearance-tiles"] = new(0, 32, (s, v) => s with { EnemyClearanceTiles = v }),
         ["strategy.pit-fighters"] = new(0, 16, (s, v) => s with { PitFighters = v }),
+        ["strategy.scouts"] = new(0, 1, (s, v) => s with { Scouts = v }),
     };
 
     /// <summary>The paths a tunable may name, in order.</summary>
@@ -140,6 +141,8 @@ public sealed record Playbook
                 problems.Add(Invariant($"tunable {t.Path}: value {t.Value} is not within min {t.Min} and max {t.Max}"));
             if (t.Min < knob.Floor || t.Max > knob.Ceiling)
                 problems.Add(Invariant($"tunable {t.Path}: range {t.Min}-{t.Max} leaves {knob.Floor}-{knob.Ceiling}"));
+            if (t.Path == "strategy.pit-fighters" && t.Value == 1)
+                problems.Add("tunable strategy.pit-fighters: one fighter has no one to pair with; use 0 or 2 or more");
             switch (t.Provenance)
             {
                 case PlaybookProvenance.Researched when string.IsNullOrWhiteSpace(t.Source):
