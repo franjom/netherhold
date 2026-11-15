@@ -18,7 +18,7 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
-    public sealed partial class DungeonRunner
+    public sealed partial class DungeonRunner : IHudHoverSources
     {
         private readonly ClassicHudControls _hudControls = new ClassicHudControls();
         private BottomPanelView _bottomView;
@@ -36,13 +36,7 @@ namespace DK2.Unity
         private KeeperResourceSnapshot _resources;
         private IClassicCreatureNames _identityNames;
         private Dk2StringTable _hudStrings;
-        private KeeperResourceKind _resourceHoverKind;
-        private int _cornerHoverId;
-        private HoverTextSnapshot _cornerHover;
-        private CreatureOverviewType? _portraitHoverType;
-        private HoverTextSnapshot _portraitHover;
-        private KeeperResourceSnapshot _resourceHoverFacts;
-        private HoverTextSnapshot _resourceHover;
+        private HudHoverText _hudHover;
         private readonly HandCursorFeedback _cursorFeedback = new HandCursorFeedback();
         // Where the hand points in the world (interface +0x1078/+0x107C): the last pick, kept while the pointer is over the HUD.
         private FpPosition2? _pointerWorld;
@@ -146,6 +140,7 @@ namespace DK2.Unity
             _startup.Step("hud.fullmap");
             _identityNames = new InstallClassicCreatureNames(install);
             _hudStrings = _hudSources.Strings;
+            _hudHover = new HudHoverText(_hudStrings.Resolve);
             _creatureQuery = new ClassicCreatureQuery(database, _hudStrings.Resolve, new PlayerId((byte)viewingPlayerId));
             _startup.Step("hud.names");
             _queryPanel = new ClassicCreatureQueryPanel(transform, new InstallClassicOptionsAssets(_hudSources), _hudSources.Texture);
@@ -602,38 +597,23 @@ namespace DK2.Unity
             }
         }
 
-        private HoverTextSnapshot CaptureHudHover()
-        {
-            if (_overviewPanel != null && _overviewPanel.HoveredTextId(Input.mousePosition) is int widget && widget != 0)
-            {
-                if (_cornerHoverId != widget) { _cornerHoverId = widget; _cornerHover = HudWidgetText.Hover(widget, _hudStrings.Resolve); }
-                return _cornerHover;
-            }
-            if (_overviewPanel != null && _overviewPanel.HoveredColumnType(Input.mousePosition) is CreatureOverviewType column)
-            {
-                if (_portraitHoverType != column)
-                {
-                    _portraitHoverType = column;
-                    _portraitHover = _hoverText.CreatureType(_simulation.Database.CreatureById(column.Value));
-                }
-                return _portraitHover;
-            }
-            if (_messageTabs != null && _messageTabs.ContainsPointer(Input.mousePosition)) return _messageTabs.HoverText;
-            if (_battleTab != null && _battleTab.ContainsPointer(Input.mousePosition)) return _battleTab.HoverText;
-            if (_bottomPanel.ContainsPointer(Input.mousePosition)) return _bottomPanel.HoverText;
-            if (_minimap != null && HudWidgetText.ForAction(_minimap.HoveredControl(Input.mousePosition)) is int corner)
-            {
-                if (_cornerHoverId != corner) { _cornerHoverId = corner; _cornerHover = HudWidgetText.Hover(corner, _hudStrings.Resolve); }
-                return _cornerHover;
-            }
-            KeeperResourceKind kind = _resourceHud.ResourceAt(Input.mousePosition);
-            if (kind == KeeperResourceKind.None) return HoverTextSnapshot.Empty;
-            if (_resourceHoverKind != kind || _resourceHoverFacts != _resources)
-            {
-                _resourceHoverKind = kind; _resourceHoverFacts = _resources;
-                _resourceHover = KeeperResourceInteraction.ResourceHover(_resources, kind, _hudStrings.Resolve);
-            }
-            return _resourceHover;
-        }
+        /// <summary>Which panel's text the status line shows over the HUD: <see cref="HudHoverText"/>, asking the
+        /// panels below.</summary>
+        private HoverTextSnapshot CaptureHudHover() => _hudHover.Capture(this, _resources);
+
+        int IHudHoverSources.OverviewTextId() => _overviewPanel != null ? _overviewPanel.HoveredTextId(Input.mousePosition) : 0;
+        CreatureOverviewType? IHudHoverSources.OverviewColumn() =>
+            _overviewPanel != null ? _overviewPanel.HoveredColumnType(Input.mousePosition) : null;
+        HoverTextSnapshot IHudHoverSources.CreatureTypeText(CreatureOverviewType column) =>
+            _hoverText.CreatureType(_simulation.Database.CreatureById(column.Value));
+        bool IHudHoverSources.OverMessageTabs() => _messageTabs != null && _messageTabs.ContainsPointer(Input.mousePosition);
+        HoverTextSnapshot IHudHoverSources.MessageTabsText() => _messageTabs.HoverText;
+        bool IHudHoverSources.OverBattleTab() => _battleTab != null && _battleTab.ContainsPointer(Input.mousePosition);
+        HoverTextSnapshot IHudHoverSources.BattleTabText() => _battleTab.HoverText;
+        bool IHudHoverSources.OverBottomPanel() => _bottomPanel.ContainsPointer(Input.mousePosition);
+        HoverTextSnapshot IHudHoverSources.BottomPanelText() => _bottomPanel.HoverText;
+        ClassicHudAction IHudHoverSources.MinimapControl() =>
+            _minimap != null ? _minimap.HoveredControl(Input.mousePosition) : ClassicHudAction.None;
+        KeeperResourceKind IHudHoverSources.Resource() => _resourceHud.ResourceAt(Input.mousePosition);
     }
 }

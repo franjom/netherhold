@@ -61,7 +61,7 @@ namespace DK2.Unity
         public PanelSettings Panel => _settings;
         public int UiScale { get; set; } = 100;
         private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale);
-        private HudScreen Screen => new HudScreen(Mathf.RoundToInt(ScaleLayout.LogicalWidth), UnityEngine.Screen.height);
+        private HudScreen Screen => ScaleLayout.Screen;
         public Rect StatusBounds => Local(_hud.StatusBounds(Screen));
         /// <summary>The wooden bar: the whole width, behind the Heart, mana and gold panels, as in DK2.</summary>
         public Rect BarBounds => Local(_hud.BarBounds(Screen));
@@ -149,7 +149,7 @@ namespace DK2.Unity
         {
             HudScaleLayout layout = ScaleLayout;
             _settings.scale = _barSettings.scale = layout.Factor;
-            HudScreen screen = Screen;
+            HudScreen screen = layout.Screen;
             float toVirtual = layout.Factor * screen.Scale;
             _frame.Clear(); _barFrame.Clear();
             _hud.Build(screen, UnityEngine.Screen.height / toVirtual, snapshot,

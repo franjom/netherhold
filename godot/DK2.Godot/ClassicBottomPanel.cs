@@ -46,6 +46,17 @@ public partial class ClassicBottomPanel : Node
         if (_canvas != null) _canvas.Visible = visibility.ShowNormalHud;
     }
 
+    /// <summary>The hovered widget's texts, or the open panel's description, for the status line.</summary>
+    public HoverTextSnapshot HoverText => _hud?.HoverText ?? HoverTextSnapshot.Empty;
+
+    /// <summary>Whether a screen pixel (top-left origin) is the panel's, so a host keeps it from the world.</summary>
+    public bool ContainsPointer(Vector2 screenPosition)
+    {
+        if (_hud == null || _layout.Height <= 0) return false;
+        (float x, float y) = ToVirtual(screenPosition);
+        return _hud.ContainsPointer(x, y);
+    }
+
     public void CancelPointerGesture() { _hud?.CancelPointerGesture(); SyncCapture(); }
 
     /// <summary>The panel as a level starts (<see cref="BottomPanelHud.OpenAtLevelStart"/>).</summary>

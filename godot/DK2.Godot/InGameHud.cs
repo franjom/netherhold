@@ -16,12 +16,14 @@ namespace DK2.GodotAdapter;
 /// <summary>Scene root of <c>InGameHud.tscn</c>: a campaign level started as Unity's <c>DungeonRunner</c> starts one
 /// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
 /// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported so far
-/// (migration plan step 1b): the resource strip, the bottom panel and the message tabs. Not wired, because their logic is
-/// still Unity's runner (plan step 2): driving the shared <c>ScriptedViewDirector</c> (the level's opening camera path, HUD
-/// hiding, FLASH_BUTTON, the resource flash), the tool a selection sets, camera glides for room, door and trap navigation
-/// and for a message's goto button, the options menu's effect on the tabs, and sound. User arguments after <c>--</c>:
-/// <c>--level &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>.</summary>
-public partial class InGameHud : Node
+/// (migration plan step 1b): the resource strip, the bottom panel, the message tabs and the hover HUD, whose status line
+/// and tooltip show what <see cref="HudHoverText"/> picks from the panels under the pointer. Not wired, because their
+/// logic is still Unity's runner (plan step 2) or needs the 3D world (step 3): driving the shared
+/// <c>ScriptedViewDirector</c> (the level's opening camera path, HUD hiding, FLASH_BUTTON, the resource flash), the tool a
+/// selection sets, camera glides for room, door and trap navigation and for a message's goto button, the options menu's
+/// effect on the tabs, sound, world hover (things and tiles under the pointer) and the hand cursor. User arguments after
+/// <c>--</c>: <c>--level &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>.</summary>
+public partial class InGameHud : Node, IHudHoverSources
 {
     /// <summary>DungeonRunner's <c>maxTicksPerFrame</c> in the Dungeon scene.</summary>
     private const int MaxTicksPerFrame = 2;
@@ -42,6 +44,18 @@ public partial class InGameHud : Node
     private BottomPanelHud? _model;
     private MessageTabsView? _messageView;
     private ClassicMessageTabs? _messages;
+    private ClassicHoverHud? _hover;
+    private HudHoverText? _hudHover;
+    private KeeperResourceSnapshot _resourceFacts;
+    /// <summary>The pointer in screen pixels from the top left, polled each frame as Unity reads
+    /// <c>Input.mousePosition</c> (an event a panel handles never reaches this node).</summary>
+    private Vector2 _pointer;
+    private bool _pointerInWindow = true;
+    /// <summary>The reach of the small pointing finger, the cursor Unity's runner shows over the HUD while nothing is held
+    /// and no spell is armed. Valid only until the runner's cursor resolution (DungeonRunner.cs, held hand, slap and tag
+    /// cursors; itself HYPOTHESIS over the HUD) moves into src in plan step 2; world hover and the hand cursor are not
+    /// ported, so today a status line or tooltip only ever shows over the HUD with nothing held.</summary>
+    private readonly float _cursorReach = HandCursor.Reach(HandCursorKind.SmallPoint);
     private double _elapsed;
 
     public override void _Ready()
@@ -89,6 +103,11 @@ public partial class InGameHud : Node
             messageText.Resolve, messageText.Briefing, message => messageView.LocationOncePerTick(simulation.World, message),
             goTo: null, PlayerNames.From(level.Players));
         AddChild(_messages);
+        // Its bar's canvas draws under the panels and its text's over them by z index (ClassicHoverHud), not tree order.
+        _hover = new ClassicHoverHud { Name = "HoverHud" };
+        _hover.Open(_sources);
+        AddChild(_hover);
+        _hudHover = new HudHoverText(_sources.Strings.Resolve);
         for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture));
     }
@@ -96,21 +115,31 @@ public partial class InGameHud : Node
     public override void _Process(double delta)
     {
         if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
-            || _resources == null || _messageView == null || _messages == null) return;
+            || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         long milliseconds = (long)(_elapsed * 1000);
         // displayHealth follows the normal HUD's visibility in Unity; the scripted view that hides it is not wired.
-        _resources.Draw(_resourceView.Capture(_simulation.World), unchecked((uint)milliseconds));
+        _resourceFacts = _resourceView.Capture(_simulation.World);
+        _resources.Draw(_resourceFacts, unchecked((uint)milliseconds));
         _view.Capture(_simulation.World);
         _panel.Draw(milliseconds);
         _messageView.Capture(_simulation.World, milliseconds);
         // No sound player yet: drop the requests so they do not pile up.
         _model.Sounds.Clear(); _view.Sounds.Clear(); _messageView.Sounds.Clear(); _messageView.Speech.Clear();
         // Visible and taking input: the scripted view and the options menu that would hide or hold the tabs are not wired.
-        _messages.Draw(new HudVisibility(true, true), _model.Collapsed,
+        var visibility = new HudVisibility(true, true);
+        _messages.Draw(visibility, _model.Collapsed,
             HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer));
+        // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; elsewhere
+        // nothing, because world hover needs the 3D world.
+        _hover.SetVisibility(visibility, milliseconds);
+        _pointer = GetViewport().GetMousePosition();
+        bool inside = _pointerInWindow && GetViewport().GetVisibleRect().HasPoint(_pointer);
+        bool allowed = visibility.AllowOrdinaryInput && GetWindow().HasFocus() && inside;
+        HoverTextSnapshot hover = allowed && PointerOverHud(_pointer) ? _hudHover.Capture(this, _resourceFacts) : HoverTextSnapshot.Empty;
+        _hover.Draw(hover, _pointer, _cursorReach, milliseconds);
 
         // Clamped as Unity's runner clamps it (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap.
         _pacer.Accrue(Math.Min(delta, MaximumFrameSeconds), 1f, _gameSpeed);
@@ -136,6 +165,25 @@ public partial class InGameHud : Node
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
+    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap, the battle tab, the
+    /// creature overview and query, the options and full map are not ported).</summary>
+    private bool PointerOverHud(Vector2 position) =>
+        (_hover != null && _hover.ContainsPointer(position)) || (_resources != null && _resources.ContainsPointer(position))
+        || (_panel != null && _panel.ContainsPointer(position)) || (_messages != null && _messages.ContainsPointer(position));
+
+    // The panels under the pointer for HudHoverText; the ones not ported give the empty answer.
+    int IHudHoverSources.OverviewTextId() => 0;
+    CreatureOverviewType? IHudHoverSources.OverviewColumn() => null;
+    HoverTextSnapshot IHudHoverSources.CreatureTypeText(CreatureOverviewType column) => HoverTextSnapshot.Empty;
+    bool IHudHoverSources.OverMessageTabs() => _messages != null && _messages.ContainsPointer(_pointer);
+    HoverTextSnapshot IHudHoverSources.MessageTabsText() => _messages?.HoverText ?? HoverTextSnapshot.Empty;
+    bool IHudHoverSources.OverBattleTab() => false;
+    HoverTextSnapshot IHudHoverSources.BattleTabText() => HoverTextSnapshot.Empty;
+    bool IHudHoverSources.OverBottomPanel() => _panel != null && _panel.ContainsPointer(_pointer);
+    HoverTextSnapshot IHudHoverSources.BottomPanelText() => _panel?.HoverText ?? HoverTextSnapshot.Empty;
+    ClassicHudAction IHudHoverSources.MinimapControl() => ClassicHudAction.None;
+    KeeperResourceKind IHudHoverSources.Resource() => _resources?.ResourceAt(_pointer) ?? KeeperResourceKind.None;
+
     private static string? Argument(string[] args, string name)
     {
         for (int i = 0; i + 1 < args.Length; i++) if (args[i] == name) return args[i + 1];
@@ -144,6 +192,9 @@ public partial class InGameHud : Node
 
     public override void _Notification(int what)
     {
+        // Unity's Input.mousePosition leaves the screen with the pointer; Godot stops reporting it instead.
+        if (what == NotificationWMMouseExit) { _pointerInWindow = false; return; }
+        if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
         // Freed, not merely removed from the tree: a reparented scene keeps its level.
         if (what != NotificationPredelete) return;
         if (_model != null)
@@ -151,6 +202,7 @@ public partial class InGameHud : Node
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
         }
         _art?.Dispose(); _sources?.Dispose();
+        _hover = null; _hudHover = null;
         _panel = null; _model = null; _view = null; _messages = null; _messageView = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;
     }
 }
