@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Globalization;
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Data.Settings;
@@ -20,10 +21,11 @@ namespace DK2.GodotAdapter;
 /// battle tab, the hover HUD (<see cref="HudHoverText"/>), the options menu (<see cref="ClassicHudControls"/>, opened by
 /// the options key; while it is open the level pauses and the other panels take no input, as Unity's <c>HudModal</c>) and
 /// its save and load pages (writing and reading a save are not wired) and game options pages (<see cref="ClassicGameOptionsPanel"/>;
-/// the settings are read from and saved to <c>user://game-settings.ini</c>). Not wired (logic still in Unity's runner, or
+/// the settings are read from and saved to <c>user://game-settings.ini</c>) and the full map (<see cref="ClassicFullMap"/>, opened
+/// by its key, closed by it, Escape or a left or right press; while it shows the normal HUD hides). Not wired (logic still in Unity's runner, or
 /// needing the 3D world): the list is in docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c>
 /// (<c>--level</c>, <c>--seed</c>, <c>--query-first-creature</c>, <c>--stage-battle</c> (<see cref="StageBattle"/>),
-/// <c>--open-options</c>, <c>--saves</c>, <c>--settings</c>): godot/README.md.</summary>
+/// <c>--open-options</c>, <c>--saves</c>, <c>--settings</c>, <c>--open-full-map</c>): godot/README.md.</summary>
 public partial class InGameHud : Node, IHudHoverSources
 {
     /// <summary>DungeonRunner's <c>maxTicksPerFrame</c> in the Dungeon scene.</summary>
@@ -68,6 +70,8 @@ public partial class InGameHud : Node, IHudHoverSources
     /// <summary>The save and load pages' list, as Unity's runner keeps it.</summary>
     private SaveSlotsView? _saves;
     private ClassicSaveLoadPanel? _saveLoad;
+    /// <summary>The full map, over its own class grid (Unity's runner shares the minimap's; the minimap is not ported).</summary>
+    private ClassicFullMap? _fullMap;
     /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
     private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
@@ -179,6 +183,14 @@ public partial class InGameHud : Node, IHudHoverSources
         _hover = new ClassicHoverHud { Name = "HoverHud" };
         _hover.Open(_sources);
         AddChild(_hover);
+        // Last, so it draws over every panel and takes the mouse first, as Unity's sorting order 20 over the rest. Its grid
+        // is read through a world view of its own, which only the full map uses here.
+        var minimap = new MinimapHud(ClassicFullMap.DecodePalette(InstallMinimapAssets.PalettePngOf(install)),
+            _simulation.World.Width, _simulation.World.Height);
+        _fullMap = new ClassicFullMap { Name = "FullMap" };
+        _fullMap.Open(minimap, new WorldView(level.Database, _viewer), _art.Font, PlayerNames.From(level.Players), _sources.Texture);
+        _fullMap.Pressed += FullMapPressed;
+        AddChild(_fullMap);
         _hudHover = new HudHoverText(_sources.Strings.Resolve);
         // Unity's runner also passes the played campaign slot, which only world hover reads.
         _typeText = new WorldHoverText(level.Database, _sources.Strings.Resolve, _viewer);
@@ -192,6 +204,7 @@ public partial class InGameHud : Node, IHudHoverSources
                 break;
             }
         if (Array.IndexOf(args, "--stage-battle") >= 0) StageBattle(_simulation);
+        if (Array.IndexOf(args, "--open-full-map") >= 0) ApplyHudAction(ClassicHudAction.ToggleFullMap);
         if (Array.IndexOf(args, "--open-options") >= 0)
         {
             ApplyHudAction(ClassicHudAction.ToggleOptions);
@@ -212,24 +225,28 @@ public partial class InGameHud : Node, IHudHoverSources
             || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
             || _battles == null || _battleTab == null || _options == null || _saveLoad == null || _optionsPages == null
-            || _gameOptionsPanel == null) return;
+            || _gameOptionsPanel == null || _fullMap == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         // Once per settled turn, before the HUD draws, as DungeonRunner.UpdateWorldSound captures it.
         _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
-        // The options key, as DungeonRunner.UpdateHudControls reads it. Only the menu's toggle is applied: the other HUD
-        // keys' panels and camera are not ported. AllowOptionsKey is always true: the scripted camera path that holds the
-        // key back (DungeonRunner's pathWasPlaying) is not ported (plan step 2). While the keyboard page captures a key, no
-        // shortcut fires.
-        var visibility = new HudVisibility(true, true);
+        // The HUD keys, as DungeonRunner.UpdateHudControls reads them. Only the options menu's and the full map's toggles
+        // are applied: the other keys' GUI toggle and camera moves are not ported. AllowOptionsKey is always true: the
+        // scripted camera path that holds the key back (DungeonRunner's pathWasPlaying) is not ported (plan step 2). While
+        // the keyboard page captures a key, no shortcut fires. The camera's visibility is the scripted view's, not wired:
+        // always shown, taking input.
+        var camera = new HudVisibility(true, true);
         ClassicHudAction shortcut = _keyboard.Read(_settings).HudShortcut(
-            _hudControls.ShortcutContext(visibility, allowOptionsKey: true, capturingKey: _optionsPages.CapturingAction != null),
+            _hudControls.ShortcutContext(camera, allowOptionsKey: true, capturingKey: _optionsPages.CapturingAction != null),
             _keyboard.EscapePressed);
-        if (shortcut == ClassicHudAction.ToggleOptions) ApplyHudAction(shortcut);
+        if (shortcut is ClassicHudAction.ToggleOptions or ClassicHudAction.ToggleFullMap) ApplyHudAction(shortcut);
+        // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): the full map hides the normal HUD.
+        HudVisibility visibility = _hudControls.Visibility(camera);
         bool modal = _hudControls.Modal;
         _panel.SetVisibility(_hudControls.ModalInput(visibility));
         _options.SetVisible(_hudControls.OptionsMenuShown(visibility));
         _gameOptionsPanel.Show(_hudControls.GameOptionsShown(visibility));
+        _fullMap.SetVisible(_hudControls.FullMapShown(camera));
         _options.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
         // DungeonRunner.DrawSavePanel's in-game branch, with this frame's typing (Unity reads Input.inputString there).
         (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(visibility);
@@ -239,9 +256,10 @@ public partial class InGameHud : Node, IHudHoverSources
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         long milliseconds = (long)(_elapsed * 1000);
-        // displayHealth follows the normal HUD's visibility in Unity; the scripted view that hides it is not wired.
-        _resourceFacts = _resourceView.Capture(_simulation.World);
-        _resources.Draw(_resourceFacts, unchecked((uint)milliseconds));
+        // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
+        _resourceFacts = _resourceView.Capture(_simulation.World, displayHealth: visibility.ShowNormalHud);
+        _resources.SetVisibility(visibility);
+        if (visibility.ShowNormalHud) _resources.Draw(_resourceFacts, unchecked((uint)milliseconds));
         _view.Capture(_simulation.World);
         _model.GamePaused = _hudControls.TicksPaused;
         _panel.Draw(milliseconds);
@@ -261,8 +279,11 @@ public partial class InGameHud : Node, IHudHoverSources
         // After the battle tab, as DungeonRunner draws it; the options menu closes it.
         _overviewView.Capture(_simulation.World);
         _overview.Draw(visibility, modal ? null : _model.PanelArea(BottomPanelCategory.Creatures));
-        // After the overview, as DungeonRunner.DrawHudControls draws it (the minimap and full map are not ported).
+        // After the overview, as DungeonRunner.DrawHudControls draws it (the minimap is not ported).
         _options.Draw();
+        // DungeonRunner.DrawHudControls captures it after the bottom panel and draws it after the menu.
+        _fullMap.Capture(_simulation.World, _simulation.Database, _simulation.Navigation, _viewer);
+        _fullMap.Draw();
         // DungeonRunner.DrawHudControls draws it after the save browser; the two never show together.
         _gameOptionsPanel.Draw();
         // Last, as DungeonRunner.DrawHudControls captures and draws it; the options menu hides it.
@@ -321,6 +342,18 @@ public partial class InGameHud : Node, IHudHoverSources
         if (action == ClassicHudAction.None || _hudControls.InputSuppressed) return;
         _input.CancelPointerGesture(); _panel?.CancelPointerGesture();
         _hudControls.Apply(action);
+    }
+
+    /// <summary>A press on the open full map, as DungeonRunner.QueueHudInput applies it (<see cref="FullMapHud.Press"/>): both
+    /// close the map. The left press's camera move to the tile under the pointer is not wired: there is no camera (plan
+    /// step 2).</summary>
+    private void FullMapPressed(FullMapPress press, TilePos tile)
+    {
+        // The facade's Visible lags a frame; a second press in the frame that closed the map must not reopen it.
+        if (!_hudControls.FullMapVisible) return;
+        if (press == FullMapPress.GoToTile)
+            GD.Print("DK2.Godot: the full map's move to tile (", tile.X, ", ", tile.Y, ") is not wired yet.");
+        ApplyHudAction(FullMapHud.Action(press));
     }
 
     /// <summary>A press on an options menu entry, as DungeonRunner.QueueHudInput applies it
@@ -404,15 +437,15 @@ public partial class InGameHud : Node, IHudHoverSources
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
-    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap and full map are not
-    /// ported).</summary>
+    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap is not ported); the open
+    /// full map holds the whole screen.</summary>
     private bool PointerOverHud(Vector2 position, HudVisibility visibility) =>
         (_hover != null && _hover.ContainsPointer(position)) || (_resources != null && _resources.ContainsPointer(position))
         || (_panel != null && _panel.ContainsPointer(position)) || (_messages != null && _messages.ContainsPointer(position))
         || (_battleTab != null && _battleTab.ContainsPointer(position))
         || (_overview != null && _overview.ContainsPointer(position))
         || (_options != null && _options.ContainsPointer(position))
-        || (_gameOptionsPanel != null && _gameOptionsPanel.ContainsPointer(position))
+        || (_gameOptionsPanel != null && _gameOptionsPanel.ContainsPointer(position)) || _hudControls.FullMapVisible
         || (_queryPanel != null && _queryView != null && _queryView.Target != CreatureQueryTarget.None
             && _queryPanel.ContainsPointer(position, visibility));
 
@@ -458,12 +491,13 @@ public partial class InGameHud : Node, IHudHoverSources
         }
         if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
         if (_options != null) _options.Pressed -= OptionsPressed;
+        if (_fullMap != null) _fullMap.Pressed -= FullMapPressed;
         if (_saveLoad != null)
         {
             _saveLoad.Submit -= SaveLoadSubmitted; _saveLoad.HudAction -= ApplyHudAction;
         }
         if (_optionsPages != null) { _optionsPages.Applied -= ApplySettings; _optionsPages.SaveRequested -= SaveSettings; }
-        _battleTab = null; _battles = null; _options = null; _saveLoad = null; _saves = null;
+        _battleTab = null; _battles = null; _options = null; _saveLoad = null; _saves = null; _fullMap = null;
         _gameOptionsPanel = null; _gameOptions = null; _optionsPages = null;
         _art?.Dispose(); _sources?.Dispose();
         _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _queryPanel = null; _queryView = null;

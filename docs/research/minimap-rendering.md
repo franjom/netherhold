@@ -113,9 +113,9 @@ The loader consumes 37 RGB pixels from the decoded image in this slot order:
 | 23–29 | 27–33 |
 | 30–36 | 36–42 |
 
-Entries use opaque ARGB packing; class 1 is the separate backdrop. Later neutral
-cycling uses the banks described above. The loader also publishes the three
-seven-colour groups through interface slot `+0x294`; those consumers are unread.
+Entries use opaque ARGB packing; class 1 is the separate backdrop. Later neutral cycling uses the banks described above. The loader also publishes the three seven-colour groups through interface slot
+`+0x294`; those consumers are unread. DKII.EXE's PNG read `0x005B6030` ([record](functions/005B6030.md)) sets no gamma transform, so a PNG's stored bytes are drawn although nearly every shipped PNG
+declares a gAMA. Godot's decoder applies it, so the Godot adapter strips it first (`PngChunks.WithoutColourSpace`); Unity's `LoadImage` is assumed to ignore it, unverified ([Q859](open-questions.md)).
 
 The background call in `0x00419180` was checked in assembly at
 `0x004192D0..0x0041930C`: it loads `Gui\Map\Map-bg.png` into HUD descriptor

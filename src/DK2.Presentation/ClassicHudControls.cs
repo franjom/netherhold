@@ -77,6 +77,9 @@ public sealed class ClassicHudControls
         return action;
     }
     public bool FullMapVisible { get; private set; }
+    /// <summary>The full map under the camera's visibility (the scripted view's, before this state's own gates, which
+    /// hide the normal HUD under the map): <see cref="FullMapVisible"/> while the camera shows the normal HUD.</summary>
+    public bool FullMapShown(HudVisibility camera) => camera.ShowNormalHud && FullMapVisible;
     public bool InputSuppressed { get; private set; }
 
     public void SetGuiVisible(bool visible) => GuiVisible = visible;

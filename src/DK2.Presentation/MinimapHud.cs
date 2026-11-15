@@ -46,6 +46,8 @@ public sealed class MinimapHud
     private WorldState? _capturedWorld;
     private long _capturedTick = -1;
     private int _capturedPreview = -1;
+    /// <summary>The last capture read the markers too.</summary>
+    private bool _markersCaptured;
 
     public MinimapHud(MinimapPalette palette, int mapWidth, int mapHeight)
     {
@@ -135,19 +137,32 @@ public sealed class MinimapHud
     /// <summary>Reads the class grid and markers once per tick or preview change; call while the simulation is joined.</summary>
     /// <param name="paletteChanged">The neutral colour cycle moved.</param>
     /// <returns>False when nothing was read: the world, tick and preview are the last capture's.</returns>
-    public bool Capture(WorldState world, WorldView view, INavByteGrid navigation, out bool paletteChanged)
+    public bool Capture(WorldState world, WorldView view, INavByteGrid navigation, out bool paletteChanged) =>
+        Capture(world, view, navigation, markers: true, out paletteChanged);
+
+    /// <summary><see cref="Capture(WorldState, WorldView, INavByteGrid, out bool)"/> without the markers, for a host that
+    /// reads only the class grid and palette (the full map without a minimap); <see cref="Markers"/> is left as it was.</summary>
+    public bool CaptureGrid(WorldState world, WorldView view, INavByteGrid navigation, out bool paletteChanged) =>
+        Capture(world, view, navigation, markers: false, out paletteChanged);
+
+    private bool Capture(WorldState world, WorldView view, INavByteGrid navigation, bool markers, out bool paletteChanged)
     {
         paletteChanged = false;
-        if (_capturedWorld == world && _capturedTick == world.CurrentTick.Value && _capturedPreview == view.PreviewVersion) return false;
-        _capturedWorld = world; _capturedTick = world.CurrentTick.Value; _capturedPreview = view.PreviewVersion;
-        for (int y = 0; y < world.Height; y++)
-            for (int x = 0; x < world.Width; x++)
-            {
-                var at = new TilePos(x, y);
-                _grid.Set(at, view.MinimapColourAt(world, navigation, at));
-            }
-        paletteChanged = Palette.AdvanceNeutralCycle(world.CurrentTick, PlayerIds.Neutral);
-        view.CaptureMinimapMarkers(world, Palette, _markers);
+        bool same = _capturedWorld == world && _capturedTick == world.CurrentTick.Value && _capturedPreview == view.PreviewVersion;
+        if (same && (_markersCaptured || !markers)) return false;
+        if (!same)
+        {
+            _capturedWorld = world; _capturedTick = world.CurrentTick.Value; _capturedPreview = view.PreviewVersion;
+            for (int y = 0; y < world.Height; y++)
+                for (int x = 0; x < world.Width; x++)
+                {
+                    var at = new TilePos(x, y);
+                    _grid.Set(at, view.MinimapColourAt(world, navigation, at));
+                }
+            paletteChanged = Palette.AdvanceNeutralCycle(world.CurrentTick, PlayerIds.Neutral);
+        }
+        if (markers) view.CaptureMinimapMarkers(world, Palette, _markers);
+        _markersCaptured = markers;
         return true;
     }
 

@@ -334,6 +334,23 @@ public sealed class ClassicHudControlsTests
     }
 
     [Fact]
+    public void TheFullMapShowsWhileTheCameraShowsTheNormalHudAndHidesTheNormalHud()
+    {
+        var controls = new ClassicHudControls();
+        var shown = new HudVisibility(true, true);
+        Assert.False(controls.FullMapShown(shown));
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+        Assert.True(controls.FullMapShown(shown));
+        Assert.True(controls.FullMapShown(new HudVisibility(true, false)));    // input does not matter
+        Assert.False(controls.FullMapShown(new HudVisibility(false, true)));   // a scripted view that hides the HUD hides it
+        Assert.False(controls.Visibility(shown).ShowNormalHud);               // the panels hide under it
+        Assert.True(controls.Modal);
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+        Assert.False(controls.FullMapShown(shown));
+        Assert.True(controls.Visibility(shown).ShowNormalHud);
+    }
+
+    [Fact]
     public void TheMenuPageAndTheGameOptionsPagesShowUnderTheNormalHudOnly()
     {
         var controls = new ClassicHudControls();

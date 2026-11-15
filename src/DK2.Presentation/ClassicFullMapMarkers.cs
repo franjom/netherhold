@@ -13,8 +13,9 @@ public static class ClassicFullMapMarkers
     private static readonly string?[] RoomNames = { null, "treasury", "lair", "portal", "hatchery", "heart",
         "dark_library", "training", "Bridge_Wooden", "guard_room", "workshop", "prison", "torture", "temple",
         "graveyard", "casino", "pit", "Bridge_Stone", null, null, null, "guard_room", "Bridge_Wooden" };
-    public static string? RoomArt(RoomTypeId roomType) => (byte)roomType < RoomNames.Length
-        && RoomNames[(byte)roomType] is string name ? "gui\\rooms\\" + name : null;
+    /// <summary>The room icons' paths, built once: the full map asks each frame while a room is hovered.</summary>
+    private static readonly string?[] RoomArts = Array.ConvertAll(RoomNames, name => name == null ? null : "gui\\rooms\\" + name);
+    public static string? RoomArt(RoomTypeId roomType) => (byte)roomType < RoomArts.Length ? RoomArts[(byte)roomType] : null;
 
     public static bool TryRoom(RoomTypeId roomType, TilePos centre, bool explored, out MinimapMarker marker)
     {

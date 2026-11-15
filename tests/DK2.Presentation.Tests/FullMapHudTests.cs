@@ -137,4 +137,58 @@ public sealed class FullMapHudTests
         Assert.Equal(new TilePos(0, 0), hud.ResolvePointer(1920, 1080, new(267, 74)));
         Assert.Equal(new TilePos(7, 7), hud.ResolvePointer(1920, 1080, new(267 + 863, 74 + 863)));
     }
+
+    [Fact]
+    public void ALeftPressGoesToTheTileARightPressClosesAndTheLeftWins()
+    {
+        Assert.Equal(FullMapPress.None, FullMapHud.Press(primary: false, secondary: false));
+        Assert.Equal(FullMapPress.GoToTile, FullMapHud.Press(primary: true, secondary: false));
+        Assert.Equal(FullMapPress.Close, FullMapHud.Press(primary: false, secondary: true));
+        Assert.Equal(FullMapPress.GoToTile, FullMapHud.Press(primary: true, secondary: true));
+        Assert.Equal(ClassicHudAction.None, FullMapHud.Action(FullMapPress.None));
+        Assert.Equal(ClassicHudAction.ToggleFullMap, FullMapHud.Action(FullMapPress.Close));
+        Assert.Equal(ClassicHudAction.ToggleFullMap, FullMapHud.Action(FullMapPress.GoToTile));
+    }
+
+    private sealed class FloorGrid : DK2.Pathfinding.INavByteGrid
+    {
+        public int Width => 8;
+        public int Height => 8;
+        public byte NavByte(int x, int y) => 0;
+    }
+
+    [Fact]
+    public void TheMinimapsGridOnlyCaptureSkipsTheMarkersAndAFullCaptureOfTheSameTickStillReadsThem()
+    {
+        (GameDatabase db, WorldState world) = Map();
+        var minimap = new MinimapHud(Palette(), 8, 8);
+        var view = new WorldView(db, new PlayerId(3));
+        Assert.True(minimap.CaptureGrid(world, view, new FloorGrid(), out _));
+        Assert.Empty(minimap.Markers);
+        Assert.Equal(new MinimapColourClass(26 + 2), minimap.Grid[new TilePos(3, 3)]);   // the grid was read: player 2's treasury
+        Assert.False(minimap.CaptureGrid(world, view, new FloorGrid(), out _));   // same tick: nothing to read
+        Assert.True(minimap.Capture(world, view, new FloorGrid(), out bool paletteChanged));
+        Assert.False(paletteChanged);                                             // the grid was current; only the markers were read
+        Assert.NotEmpty(minimap.Markers);                                         // the viewer's Heart ring
+        Assert.False(minimap.Capture(world, view, new FloorGrid(), out _));
+        Assert.False(minimap.CaptureGrid(world, view, new FloorGrid(), out _));
+
+        // A new capture key (here another world, as a new tick is): a grid-only capture leaves the markers stale, so a
+        // full capture of that key rereads them.
+        (_, WorldState next) = Map();
+        Assert.True(minimap.CaptureGrid(next, view, new FloorGrid(), out _));
+        Assert.True(minimap.Capture(next, view, new FloorGrid(), out _));
+        Assert.NotEmpty(minimap.Markers);
+    }
+
+    [Fact]
+    public void RoomArtIsTheSameStringEachTimeAndNoneForAnUnlistedRoom()
+    {
+        Assert.Equal("gui\\rooms\\treasury", ClassicFullMapMarkers.RoomArt(RoomTypeId.Treasury));
+        Assert.Same(ClassicFullMapMarkers.RoomArt(RoomTypeId.Treasury), ClassicFullMapMarkers.RoomArt(RoomTypeId.Treasury));
+        Assert.Null(ClassicFullMapMarkers.RoomArt((RoomTypeId)0));
+        for (byte unlisted = 18; unlisted <= 20; unlisted++) Assert.Null(ClassicFullMapMarkers.RoomArt((RoomTypeId)unlisted));
+        Assert.Equal("gui\\rooms\\Bridge_Wooden", ClassicFullMapMarkers.RoomArt((RoomTypeId)22));
+        Assert.Null(ClassicFullMapMarkers.RoomArt((RoomTypeId)200));
+    }
 }

@@ -178,6 +178,21 @@ public sealed class MinimapTests
     }
 
     [Fact]
+    public void ThePaletteIsReadFromTheStripsTopRowAsRgbIgnoringAlpha()
+    {
+        uint[] source = SourcePixels();
+        var row = new byte[40 * 4];
+        for (int i = 0; i < source.Length; i++)
+        {
+            row[i * 4] = (byte)(source[i] >> 16); row[i * 4 + 1] = (byte)(source[i] >> 8); row[i * 4 + 2] = (byte)source[i];
+            row[i * 4 + 3] = 0x12;
+        }
+        Assert.Equal(new MinimapPalette(source).Colours.ToArray(), MinimapPalette.FromTopRow(row).Colours.ToArray());
+        Assert.Throws<InvalidOperationException>(() => MinimapPalette.FromTopRow(new byte[37 * 4 - 1]));
+        Assert.Equal(new MinimapPalette(source).Colours.ToArray(), MinimapPalette.FromTopRow(row.AsSpan(0, 37 * 4)).Colours.ToArray());
+    }
+
+    [Fact]
     public void NeutralCycleCopiesCurrentBanksIncludingTheSelfCopyPhase()
     {
         var palette = new MinimapPalette(SourcePixels());

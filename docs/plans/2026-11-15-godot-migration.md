@@ -142,13 +142,44 @@ group 2 is a list to audit, not a finding.
       sounds; and `PointerOverHud` leaves the save page out, as in Unity, so tooltips from panels
       beneath it may show (see [Q855](research/open-questions.md)). Not wired in the options menu: the session action after Yes on
       Restart, Return to Menu and Quit, taken and dropped with a `GD.Print` because it needs the
-      runner (step 2); the other HUD keys (GUI toggle, full map, heart, portal and fight
+      runner (step 2); the other HUD keys (GUI toggle, heart, portal and fight
       navigation); `AllowOptionsKey`, passed true, where Unity's scripted camera path holds the key
       back (step 2); the open and close sounds 0x139 and 0x13A; and the minimap corner
-      button that opens the menu in DK2 and Unity, the minimap not being ported. Not wired in
+      button that opens the menu in DK2 and Unity, the minimap not being ported. Godot also has the
+      full map (`ClassicFullMap.cs` over `FullMapHud`: M, scan 0x32, opens it, and M, Escape or a
+      left or right press closes it; it draws the map image, the creature squares, the keepers' legend and the
+      hovered room's icon on two `HudCanvas` layers over one reused `Image` and `ImageTexture`, uploaded
+      only when a tick changes a pixel; the panels below hide through `_hudControls.Visibility(camera)`,
+      Unity's `PlayedHud`, and the resource strip through `SetVisibility`; `PointerOverHud` includes
+      it; a second press in the frame that closed it is ignored, because the facade's `Visible` lags a
+      frame; test-scene argument `--open-full-map`; the `ApplySettings` panel list does not include it,
+      as neither adapter scales the full map). New in `DK2.Presentation`: `FullMapImage`, the CPU twin of
+      `DK2FullMap.shader` (class 1 is black); `PngChunks.WithoutColourSpace`, which drops gAMA, cHRM,
+      sRGB and iCCP; `MinimapHud.CaptureGrid`, a grid-only capture Godot uses (Unity's `Capture` is
+      unchanged). Moved from Unity as pure moves, with tests, and every Unity call site calls them:
+      `ClassicHudControls.FullMapShown`, `FullMapHud.Press` and `Action` (a left press goes to the tile
+      and closes, a right press closes, any other press is consumed and does nothing; both adapters apply
+      `ApplyHudAction(FullMapHud.Action(press))`), `MinimapPalette.FromTopRow` (Unity's per-pixel
+      `GetPixel` became `GetPixels32` plus `FromTopRow`, the same row), and `IMinimapAssets` with
+      `InstallMinimapAssets` and a palette-only `PalettePngOf`, from Unity's `DungeonMinimap.cs`.
+      Godot's PNG decoder applies gAMA (231,24,24 decoded as 209,2,2) and nearly every shipped PNG
+      declares one (FrontEnd.WAD 356 of 371, EngineTextures.WAD all 102), where DKII.EXE draws the
+      stored bytes ([0x005B6030](research/functions/005B6030.md)); so the map's palette
+      (`ClassicFullMap.DecodePalette`) and the front end's art (`ClassicFrontEndMenuAssets.DecodePng`)
+      decode through `WithoutColourSpace`, and the Godot front end now draws brighter than before, as
+      Unity does. That Unity's `LoadImage` ignores gAMA is assumed and unverified
+      ([Q859](research/open-questions.md)). A Movie Maker capture on Level1 (fog on) matches Unity's
+      `level1-heart-courtyard-1024x768-fullmap.png` byte for byte in four map colours, (231,24,24),
+      (142,0,0), (126,109,33) and (185,0,34), and in the "Player" legend's place and colour;
+      synthesized Escape, M, left and right presses opened and closed it. Real input, the room hover,
+      a legend with several keepers, the Unity runtime and the front end's brightness against Unity's are
+      unverified. Not wired on the full map: the camera move on a left press (Godot prints that it is not
+      wired; step 2), the camera preview at the top right (needs the 3D world), and opening it with a
+      right click on the minimap (not ported); the dig-tag and pickup previews are step 2 below, and
+      whether the wheel does anything over it is [Q860](research/open-questions.md). Not wired in
       Godot: sound and
       speech, the Level6a torture-speech sink, the goto camera glide,
-      scripted-view visibility (step 2). Remaining: `ClassicFullMap`, `DungeonMinimap`,
+      scripted-view visibility (step 2). Remaining: `DungeonMinimap`,
       `ClassicHudScaling`, `ClassicBitmapText`, `MinimapFrameVisual`.
       The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
       every Unity panel uses it (the hover HUD still sizes from
@@ -168,7 +199,10 @@ group 2 is a list to audit, not a finding.
       snapshot (tick included) changes. Also `WorldHoverText.CreatureType`, which builds a
       `Dictionary` and strings on each call while a creature overview column is hovered. Also
       `MusicWorldObserver.Capture`, which allocates per tick (`Keys.ToArray()`, LINQ `Any` with
-      closures) and now runs on Godot's tick path as well as Unity's.
+      closures) and now runs on Godot's tick path as well as Unity's. Also
+      `WorldView.CaptureMinimapMarkers`, which rebuilds `RoomIndex` and scans the whole map for the
+      heart on each captured tick; shared with Unity, while Godot's full map avoids it through
+      `MinimapHud.CaptureGrid`.
 
 ## Step 2: move game-flow logic out of Unity
 
@@ -193,7 +227,11 @@ group 2 is a list to audit, not a finding.
       pages: move "build a `SavedSession` from the running session" (the campaign profile, its carry,
       the header, `WorldSnapshot.ToBytes` through `SavedSessionFile.Save` and `PathForName`) into
       `DK2.Presentation`, and the load (rebuilding the database, the triggers, the simulation and the
-      session) with it; decide the save folder both adapters share.
+      session) with it; decide the save folder both adapters share. From the full map: the camera
+      move to the tile under a left press (`FullMapPressed` prints that it is not wired; Unity sends
+      the camera there), the camera preview at the top right, and a shared `WorldView`: Godot's full
+      map has a `WorldView` of its own, so it will not see the tag previews or pickup previews that
+      Unity's runner's view holds, which is invisible until dig input is ported.
 - [ ] Move the behaviour into `DK2.Presentation` or the simulation, with tests; leave Unity a
       facade over it, as ADR-0805 did for the HUD.
 

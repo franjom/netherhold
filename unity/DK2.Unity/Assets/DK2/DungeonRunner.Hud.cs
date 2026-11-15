@@ -365,7 +365,7 @@ namespace DK2.Unity
             _optionsPanel?.SetVisible(_hudControls.OptionsMenuShown(hud));
             _gameOptionsPanel?.Show(_hudControls.GameOptionsShown(hud));
             _optionsPanel?.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
-            _fullMap?.SetVisible(camera.ShowNormalHud && _hudControls.FullMapVisible);
+            _fullMap?.SetVisible(_hudControls.FullMapShown(camera));
             _queryPanel?.Draw(_queryView.Snapshot, hud, HudModal);
             _overviewPanel?.Draw(hud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
         }
@@ -374,15 +374,15 @@ namespace DK2.Unity
         {
             if (_hudControls.FullMapVisible)
             {
-                if (Input.GetMouseButtonDown(0))
+                FullMapPress press = FullMapHud.Press(Input.GetMouseButtonDown(0), Input.GetMouseButtonDown(1));
+                if (press == FullMapPress.GoToTile)
                 {
                     TilePos tile = _fullMap.ResolvePointer(Input.mousePosition);
                     _cameraFocus = new Vector3(Mathf.Clamp(tile.X + .5f, 0, _cameraBounds.x - 1f / Fp32.One), _cameraFocus.y,
                         Mathf.Clamp(-tile.Y - .5f, -_cameraBounds.y + 1f / Fp32.One, 0));
                     _glideMilliseconds = 0;
-                    ApplyHudAction(ClassicHudAction.ToggleFullMap);
                 }
-                else if (Input.GetMouseButtonDown(1)) ApplyHudAction(ClassicHudAction.ToggleFullMap);
+                ApplyHudAction(FullMapHud.Action(press));
                 return true;
             }
             if (_hudControls.OptionsVisible)

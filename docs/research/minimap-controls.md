@@ -105,8 +105,8 @@ check. Type131's view table entry is `0x00441F50`: it sets tile-centre X/Y with
 the camera's existing height and calls the guarded, clamped immediate focus
 setter. This is distinct from the minimap's command4 timed glide.
 Secondary `0x00408EE0` exits to mode3 without navigating. `ClassicFullMapLayout`
-mirrors that display/pointer geometry; `ClassicFullMap` draws cached class and
-palette textures, with the markers drawn by `FullMapHud` (ADR-0805). Supplementary overlays read the settled world.
+mirrors that display/pointer geometry; Unity's `ClassicFullMap` draws cached class and
+palette textures, and Godot's uploads a CPU image (`FullMapImage`), with the markers drawn by `FullMapHud` in both (ADR-0805). Supplementary overlays read the settled world.
 
 ### Full-map markers and legend
 

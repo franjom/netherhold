@@ -9,6 +9,10 @@ using DK2.Simulation;
 
 namespace DK2.Presentation;
 
+/// <summary>A mouse press on the open full map (<see cref="FullMapHud.Press"/>); both acting ones close the map
+/// (<see cref="ClassicHudAction.ToggleFullMap"/>).</summary>
+public enum FullMapPress : byte { None, Close, GoToTile }
+
 /// <summary>The engine-free full map's overlay (ADR-0805): its black backdrop, the hovered room's icon, a square per
 /// visible creature and the keepers' legend, over the map image and the camera preview that the engine draws where
 /// <see cref="Layout"/> and <see cref="ClassicFullMapLayout.Preview"/> put them. Laid out in screen pixels
@@ -47,6 +51,16 @@ public sealed class FullMapHud
 
     public ClassicFullMapLayout Layout(int screenWidth, int screenHeight) =>
         ClassicFullMapLayout.Fit(screenWidth, screenHeight, _mapWidth, _mapHeight);
+
+    /// <summary>What a mouse press does while the map is open (DungeonRunner.QueueHudInput's full-map branch): the left
+    /// button sends the camera to the tile under the pointer and closes the map, else the right button closes it. The
+    /// open map takes every press, acted on or not.</summary>
+    public static FullMapPress Press(bool primary, bool secondary) =>
+        primary ? FullMapPress.GoToTile : secondary ? FullMapPress.Close : FullMapPress.None;
+
+    /// <summary>The HUD action a press applies: every acting press closes the map.</summary>
+    public static ClassicHudAction Action(FullMapPress press) =>
+        press == FullMapPress.None ? ClassicHudAction.None : ClassicHudAction.ToggleFullMap;
 
     /// <summary>The tile under a screen pixel, measured from the top-left.</summary>
     public TilePos ResolvePointer(int screenWidth, int screenHeight, Vector2 pixel) =>

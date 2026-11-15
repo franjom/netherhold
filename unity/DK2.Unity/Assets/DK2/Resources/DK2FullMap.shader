@@ -25,6 +25,7 @@ Shader "Hidden/DK2/FullMap"
                 #endif
                 float2 packed = floor(tex2D(_Classes, uv).rg * 255 + .5);
                 float tileClass = packed.x + packed.y * 256;
+                // The CPU twin is DK2.Presentation's FullMapImage.Update (the Godot full map): the two change together.
                 return tileClass == 1 ? fixed4(0,0,0,1)
                     : fixed4(tex2D(_Palette,float2((tileClass+.5)*_Palette_TexelSize.x,.5)).rgb,1);
             }

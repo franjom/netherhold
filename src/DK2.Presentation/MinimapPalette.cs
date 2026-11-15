@@ -43,6 +43,17 @@ public sealed class MinimapPalette
         }
     }
 
+    /// <summary>The palette from the native colour strip (EngineTextures.WAD's <c>GUI\Map\MapColours.png</c>,
+    /// <see cref="IMinimapAssets.PalettePng"/>): its top row's first 37 pixels, given as RGBA bytes; alpha is ignored.</summary>
+    public static MinimapPalette FromTopRow(ReadOnlySpan<byte> rgbaTopRow)
+    {
+        if (rgbaTopRow.Length < 37 * 4) throw new InvalidOperationException("Native minimap palette is too short.");
+        Span<uint> pixels = stackalloc uint[37];
+        for (int i = 0; i < pixels.Length; i++)
+            pixels[i] = (uint)(rgbaTopRow[i * 4] << 16 | rgbaTopRow[i * 4 + 1] << 8 | rgbaTopRow[i * 4 + 2]);
+        return new MinimapPalette(pixels);
+    }
+
     public ReadOnlySpan<uint> Colours => _colours;
 
     public bool AdvanceNeutralCycle(GameTick tick, PlayerId neutralPlayer)
