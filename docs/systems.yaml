@@ -53,6 +53,9 @@ systems:
   - id: presentation-unity
     title: Unity presentation
     scope: The Unity adapter, rendering, terrain meshes and the presentation boundary.
+  - id: presentation-godot
+    title: Godot presentation
+    scope: The Godot adapter, its toolchain and editor tooling, and its side of the presentation boundary.
   - id: tooling-process
     title: Tooling and process
     scope: Research method, the binary and its tools, captures, the harness and verification.

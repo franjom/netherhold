@@ -8,6 +8,7 @@ agent (Claude's private memory and Codex's are not shared; this file is). Add a 
 that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps live in
 `.agents/skills/ghidra-queries/SKILL.md`, DK2 facts in `docs/research/`.
 
+- Godot AI 4.4.1's dock shows Claude Code red ("verification still reads error") for a working `local`-scope entry; check with `claude mcp get godot-ai` from the repo root, and do not run its suggested `remove --scope user`.
 - Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
 
 ## Shell and files
