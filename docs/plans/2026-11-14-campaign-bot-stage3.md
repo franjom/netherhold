@@ -466,28 +466,52 @@ least 3 Imps, one of them unhurt to send, and `UseRoomEveryTicks` since the last
 3955, 3934 and 2982; scouting on Defeated at ticks 3951, 4094 and 3837, so no gain is shown yet. Removing the
 drop-toward-enemy rule or the allied-ground rule fails its test. Open: Q834, Q835, Q838.
 
-**The Imp creation routine, R8 (owner direction, 2026-11-15; not built).** The campaign bot casts no Create
-Imp today (`PlayerAction.CreateImpAt` is offered and adapted, but only the computer keeper, `KeeperAI.CreateImps`,
-uses the spell). The owner's play:
-1. Keep an optimal Imp count, set by the current mana income and the current Create Imp price (the price rises
-   with each Imp above the free minimum: `ImpSupplyRules.CreateImpBaseCost`, `MinimumImps`).
-2. While a Library and Warlocks can research the Create Imp upgrade, hold back mass production until it lands:
-   the owner says an upgraded spell gives a level 4 Imp instead of level 1. That is a lead, not a fact (Q837).
-   Check the binary before the routine relies on it.
-3. Balance that wait against how badly Imps are needed now: digging, claiming and gold waiting.
-4. Never more than 15-20 Imps. The cap becomes a playbook tunable (`strategy.max-imps`, researched 15-20).
-5. Keep a mana reserve for attack and defence spells (Heal, Thunderbolt, Call to Arms and the like). Imps never
-   spend mana below it, so the keeper can still defend itself. The reserve is a tunable too.
+**The Imp creation routine, R8 (owner direction, 2026-11-15; built 2026-11-15).** `CampaignPlayer.CreateImp` is off
+unless `PlayerStrategy.CreateImps` is 1 (default 0; playbook tunable `strategy.create-imps`, 0-1); rule R8 in
+`knowledge/rules.yaml`. Before it, only the computer keeper (`KeeperAI.CreateImps`) cast Create Imp. It needs
+observation schema 5, presentation only (the simulation and its hash are unchanged): `PlayerObservation.ManaIncome` and
+`ManaUpkeep` are the mana orb's two figures, from the same `ManaRules` calls as `KeeperResourceView`, and
+`PlayerSpellOffer.Upgraded` is the slot's upgraded icon ([panel-indicators.md](../research/panel-indicators.md)).
 
-R8 (`kind: manual`, `applies: playbook`) goes into `knowledge/rules.yaml` with the routine, as R6 and R7 did.
-Tests first on synthetic observations: no cast at the cap, none below the reserve, a hold while the upgrade is
-researchable and need is low, a cast when need is high. Then measured on the ladder.
+| Tunable | Path | Default | Range |
+|---|---|---|---|
+| `CreateImps` | `strategy.create-imps` | 0 (off) | 0-1 |
+| `MaxImps` | `strategy.max-imps` | 16 | 1-40; the owner's band is 15-20 |
+| `MinImps` | `strategy.min-imps` | 6 | 0-40; above `MaxImps` the cap wins |
+| `ManaReserve` | `strategy.mana-reserve` | 15000 | 0-1000000 |
+| `ImpPriceSeconds` | `strategy.imp-price-seconds` | 60 | 1-3600 |
+
+One cast per 8 ticks, on own floor nearest the dig mark nearest home (a tile where a cast was refused, learned from
+the receipt, is skipped). It casts only if all of these hold:
+1. Own Imps are fewer than `min(target, MaxImps)`, where `target = max(MinImps, ceil(marks / 3))`.
+2. The price leaves `ManaReserve` intact, so Heal, Thunderbolt and Call to Arms can still be cast.
+3. The price is at most `ImpPriceSeconds` of net income (orb income minus upkeep). A heuristic, Q842; it ignores the
+   new Imp's own upkeep (7/s).
+4. No enemy in sight within 10 tiles (Chebyshev) of the birth tile (Q840).
+
+The upgrade wait: while Create Imp is not upgraded and an own non-worker stood in an own Library within 1200 ticks,
+the target is `MinImps` unless the need is at least twice the Imps there are. An upgraded cast makes a level 4 Imp
+(shot 60, `0x004AFE50`; Q837). The Library upgrades a spell only after everything researchable is done
+(`0x004C3000`), so the wait lasts at most 4800 ticks (20 game minutes), Q839.
+
+Why no cast near an enemy: the first Level 6a measurement found the routine buying about 50 Imps in the last 900 ticks of a
+lost keeper. Heroes killed each new Imp beside the Heart, the price fell back, and the bot bought again.
+
+`DK2.AI.Tests` 587, `DK2.Simulation.Tests` 5479 and `DK2.Behavior.Tests` 671 (5 skipped) pass; Level 1 seed 1 is
+unchanged (Completed at tick 2334, final hash af7204fe4c0f8594). Breaking the reserve, price, upgrade-wait or cap rule
+each fails a test. **Level 6a, seeds 1-3:** routine off Defeated at ticks 3955, 3934 and 2982; routine on (after the
+fight rule) Defeated at 3930, 3954 and 5274, with 4, 1 and 2 casts. The first "on" run, before the fight rule, was
+Defeated at 4144, 4302 and 3953 with 63, 55 and 53 casts. No gain is shown; the bot loses Level 6a either way.
+Reviewer: no blocker. Open, bot only: Q839-Q842; the observation builder computes the orb figures on every observation,
+even with the routine off (minor cost); the Behavior test compares `ManaRules` with `ManaRules` through the HUD, so it
+proves the wiring, not the figures; the fight rule counts any enemy, including a rival keeper's creatures parked in view,
+and does not try another tile.
 
 Possession (`PossessionCommands`) is not added here; a level that needs it is recorded as a
 controller limitation until a later task.
 
-Every row above is built; the routines that use them are separate: the Combat Pit and Imp scouting routines
-are built; Imp creation (R8) and defending a route with doors and traps are not. Manufacturing doors and traps is a Task 2
+Every row above is built; the routines that use them are separate: the Combat Pit, Imp scouting and Imp
+creation (R8) routines are built; defending a route with doors and traps is not. Manufacturing doors and traps is a Task 2
 routine.
 
 - [ ] One branch per row; reviewer, documenter, commit each.

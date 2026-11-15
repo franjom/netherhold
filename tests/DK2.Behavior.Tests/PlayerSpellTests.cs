@@ -63,6 +63,22 @@ public class PlayerSpellTests
     }
 
     [InstallFact]
+    public void TheObservationCarriesTheManaOrbsFiguresAndAnUpgradedSpell()
+    {
+        Setup s = Level1();
+        PlayerObservation seen = Capture(s).Observation;
+        KeeperResourceSnapshot orb = new KeeperResourceView(s.Database, Keeper).Capture(s.World);
+        Assert.Equal(orb.Income, seen.ManaIncome);
+        Assert.Equal(orb.Upkeep, seen.ManaUpkeep);
+        Assert.True(seen.ManaIncome.Value > 0, "Level 1's heart earns mana");
+        Assert.True(seen.ManaUpkeep.Value > 0, "the Imp costs upkeep");
+
+        Assert.False(Assert.Single(seen.Offers.Spells, o => o.Spell == BottomPanelView.CreateImpSpellId).Upgraded);
+        s.World.SetUpgraded(Keeper, AvailabilityKind.Spell, BottomPanelView.CreateImpSpellId, true);
+        Assert.True(Assert.Single(Capture(s).Observation.Offers.Spells, o => o.Spell == BottomPanelView.CreateImpSpellId).Upgraded);
+    }
+
+    [InstallFact]
     public void PossessionIsNotOfferedAndAJustCastSpellIsNotReady()
     {
         Setup s = Level1();

@@ -134,6 +134,8 @@ public sealed class PlayerObservationBuilder
             Result = result,
             Gold = new GoldAmount(GoldStore.Total(world, _player)),
             Mana = new ManaAmount(keeper.Mana),
+            ManaIncome = new ManaPerSecond(ManaRules.GainPerSecondByPlayerIndex(world, _database)[PlayerIndex(world)]),
+            ManaUpkeep = new ManaPerSecond(ManaRules.UpkeepPerSecondByPlayerIndex(world, _database, world.CurrentTick)[PlayerIndex(world)]),
             HandCount = keeper.Hand.Count,
             Tiles = grid,
             Rooms = _rooms,
@@ -214,6 +216,14 @@ public sealed class PlayerObservationBuilder
             default:
                 throw new InvalidOperationException($"No observation for input target kind {target.Kind}.");
         }
+    }
+
+    /// <summary>The observed player's index in the world's player table, which <c>ManaRules</c>' per-player arrays use.</summary>
+    private int PlayerIndex(WorldState world)
+    {
+        int index = 0;
+        while (world.PlayerAtIndex(index).PlayerId != _player) index++;
+        return index;
     }
 
     private void CaptureCreatures(WorldState world)
@@ -309,15 +319,16 @@ public sealed class PlayerObservationBuilder
                 if (choice.Key.Value == PossessionRules.SpellId || _database.KeeperSpellById(choice.Key.Value) is not KeeperSpellDef spell) continue;
                 // The click casts a thing spell on the hovered creature, any other at the ground (PlacementCursor.Spell);
                 // the slot's recharge pie is BottomPanelView's own reading of the spell's row.
-                bool ready = true;
+                bool ready = true, upgraded = false;
                 foreach (AvailabilityState row in world.Player(_player).Availabilities)
                     if (row.Kind == AvailabilityKind.Spell && row.TypeId == choice.Key.Value)
                     {
                         ready = BottomPanelProgress.RechargePercent(row.LastCastTick, world.CurrentTick.Value, spell.CooldownRaw) == 100;
+                        upgraded = row.Upgraded;   // the slot's upgraded icon (panel-indicators.md)
                         break;
                     }
                 _spellOffers.Add(new PlayerSpellOffer(choice.Key.Value, choice.Name, new ManaAmount(choice.Cost), choice.Affordable,
-                    KeeperSpellRules.TargetsAThing(spell.TargetSelector), ready));
+                    KeeperSpellRules.TargetsAThing(spell.TargetSelector), ready, upgraded));
             }
         }
 

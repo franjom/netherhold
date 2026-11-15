@@ -173,12 +173,13 @@ These are entry points, not a new priority order.
   open, Levels 5-10 are not won ([ladder](research/campaign-bot-ladder.md) sections 7-8). Open
   from Tasks 3a and 3b: Q813-Q818. Task 4, the observation and action additions, is built one row per
   branch: each own creature's level, petals and mood, every offered spell with `CastSpell`, then door and trap
-  offers with `PlaceDoor` and `PlaceTrap` (observation schema 4; Q819, Q820, Q825 and Q826 open, Q821-Q823
+  offers with `PlaceDoor` and `PlaceTrap` (observation schema 5; Q819, Q820, Q825 and Q826 open, Q821-Q823
   answered by the owner). Its observation and action rows are all built except Possession; the routines that
   use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default, not measured: only Level 15a and
   later offer a Pit; Q827, Q828, Q831 and Q836 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
-  seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Next: Imp creation, R8 (cap of 15-20 Imps, a mana reserve, Q837
-  open; [plan](plans/2026-11-14-campaign-bot-stage3.md)) and the last Task 4 row, defending a route with doors and traps.
+  seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Imp creation, R8, is built too
+  (`strategy.create-imps`, off by default; observation schema 5; Level 6a seeds 1-3 show no gain; Q839-Q842 open;
+  [plan](plans/2026-11-14-campaign-bot-stage3.md)). Next: the last Task 4 row, defending a route with doors and traps.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

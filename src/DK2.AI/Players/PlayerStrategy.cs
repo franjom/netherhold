@@ -160,6 +160,25 @@ public sealed record PlayerStrategy
     /// look at unknown ground from unowned or neutral floor at the edge of what the player knows; 0 (the default) does not.</summary>
     public int Scouts { get; init; }
 
+    /// <summary>The Imp creation routine (rule R8; owner direction, 2026-11-15): 1 casts Create Imp when the Imps are
+    /// fewer than the work wants and the mana income pays the price back; 0 (the default) never casts it.</summary>
+    public int CreateImps { get; init; }
+
+    /// <summary>R8: never more own Imps than this (owner: 15 to 20, so the bot does not spend everything on Imps).</summary>
+    public int MaxImps { get; init; } = 16;
+
+    /// <summary>R8: the Imps kept whatever the dig backlog, and the most bought while the Library is still to upgrade
+    /// Create Imp (an upgraded cast makes a level 4 Imp, a plain one level 1). Never above <see cref="MaxImps"/>.</summary>
+    public int MinImps { get; init; } = 6;
+
+    /// <summary>R8: mana never spent on an Imp, kept for the spells that attack and defend (Heal 5000, Thunderbolt 6000,
+    /// Call To Arms 10000).</summary>
+    public int ManaReserve { get; init; } = 15000;
+
+    /// <summary>R8: an Imp is bought only when its price is at most this many seconds of net mana income (orb income
+    /// less upkeep). A heuristic: the price climbs 1500 with each Imp, so this sets how many the income carries.</summary>
+    public int ImpPriceSeconds { get; init; } = 60;
+
     /// <summary>While breaching is held back, no tile within this many tiles of an enemy sighting is marked.</summary>
     public int EnemyClearanceTiles { get; init; } = 3;
 
@@ -171,6 +190,11 @@ public sealed record PlayerStrategy
         // One fighter has no one to pair with and would be lifted straight out again (the lone-victor rule).
         if (PitFighters is < 0 or 1) problems.Add($"PitFighters {PitFighters} is neither 0 nor 2 or more");
         if (Scouts is < 0 or > 1) problems.Add($"Scouts {Scouts} is not 0 or 1");
+        if (CreateImps is < 0 or > 1) problems.Add($"CreateImps {CreateImps} is not 0 or 1");
+        if (MaxImps <= 0) problems.Add($"MaxImps {MaxImps} is not positive");
+        if (MinImps < 0) problems.Add($"MinImps {MinImps} is negative");   // above MaxImps, the cap wins
+        if (ManaReserve < 0) problems.Add($"ManaReserve {ManaReserve} is negative");
+        if (ImpPriceSeconds <= 0) problems.Add($"ImpPriceSeconds {ImpPriceSeconds} is not positive");
         if (Rooms is null) problems.Add("Rooms is null");
         else if (Rooms.Distinct().Count() != Rooms.Count) problems.Add("Rooms names a room twice");
         if (RoomSide <= 0) problems.Add($"RoomSide {RoomSide} is not positive");
