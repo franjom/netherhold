@@ -165,7 +165,8 @@ These are entry points, not a new priority order.
   alone, exists and plays as without one. The bot wins Levels 1-3 on accept seeds 11-20 (10/10 each,
   hash 519); Level 4 won 2 of 3 diagnosis seeds but stays out of the driver choice while Q710 is
   open, Levels 5-10 are not won ([ladder](research/campaign-bot-ladder.md) sections 7-8). Open
-  from Tasks 3a and 3b: Q813-Q818. Next: Task 4, the observation and action additions.
+  from Tasks 3a and 3b: Q813-Q818. Task 4, the observation and action additions, is built one row per
+  branch: each own creature's level, petals and mood (observation schema 2; Q819, Q820); the rest wait.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

@@ -220,8 +220,28 @@ public sealed class PlayerObservationBuilder
             // Every own creature's place is the viewer's to know: the creature panel's Focus
             // (0x00417F60) jumps the camera to any not held or joining, prisoners included.
             TilePos? tile = creature.InHand ? null : creature.Tile;
-            _creatures.Add(new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand,
-                _creatureHandles.TryGetValue(creature.Id, out PlayerThingHandle handle) ? handle : null));
+            // What the status flower shows its owner (status-flowers.md section 3): the level badge,
+            // the petal ring (six petals at full health, one fewer per quarter lost, one while dying)
+            // and the mood icon.
+            CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
+            PlayerThingHandle? seen = _creatureHandles.TryGetValue(creature.Id, out PlayerThingHandle handle) ? handle : null;
+            if (StatusFlowerRules.NeverShows(definition, creature, _player))
+            {
+                // Held, joining or never flowered: no hover shows a player these (0x0048E830).
+                _creatures.Add(new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand, seen));
+                continue;
+            }
+            bool dying = creature.Dk2StateId is CreatureDeathRules.FallingState or CreatureDeathRules.DyingState
+                || CreatureDeathRules.HasCollapsed(creature);
+            int petals = 6 - StatusFlowerRules.Ring(dying, creature.Health, CreatureHealthRules.MaxHealth(_database, definition, creature));
+            PlayerCreatureMood mood = creature.Mood switch
+            {
+                CreatureMood.Angry => PlayerCreatureMood.Angry,
+                CreatureMood.Unhappy => PlayerCreatureMood.Unhappy,
+                _ => PlayerCreatureMood.Happy,
+            };
+            _creatures.Add(new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand, seen,
+                CreatureLevelRules.Clamp(creature.Level), petals, mood));
         }
     }
 
