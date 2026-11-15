@@ -24,8 +24,8 @@ public sealed class MessageTextTables
         _speech = Open(Path.Combine(directory, "Speech.str"), warn);
         string? levelFile = LevelTextTable.FileName(textTableId);
         _level = levelFile == null ? null : Open(Path.Combine(directory, levelFile), warn);
-        _briefing = levelFile == null ? null
-            : Open(Path.Combine(directory, Path.GetFileNameWithoutExtension(levelFile) + "_BRIEFING.str"), warn);
+        string? briefingFile = BriefingTextTable.FileName(textTableId);
+        _briefing = briefingFile == null ? null : Open(Path.Combine(directory, briefingFile), warn);
     }
 
     /// <summary>A message string reference's text, or null (<see cref="Resolve(int, Dk2StringTable?, Dk2StringTable?, Dk2StringTable?)"/>).</summary>

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Model;
+using DK2.Data.Text;
 using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;
@@ -67,6 +68,30 @@ public sealed class MessageTextTablesTests
         Assert.Equal("Build a 3x3 Hatchery", tables.Briefing(4));
         Assert.Equal("", tables.Briefing(5));
         Assert.Null(tables.Briefing(1000));
+    }
+
+    // Q854: the secret levels and My Pet Dungeon take their briefing from the 0x00553800 table's names
+    // (LEVELS1_BRIEFING.str, LEVELMPD1_BRIEFING.str), not from the level table's rule (SECRET1_BRIEFING.str, which is
+    // absent from the install).
+    [InstallTheory]
+    [InlineData("secret1", "LEVELS1_BRIEFING.str")]
+    [InlineData("secret5", "LEVELS5_BRIEFING.str")]
+    [InlineData("MPD1", "LEVELMPD1_BRIEFING.str")]
+    [InlineData("MPD6", "LEVELMPD6_BRIEFING.str")]
+    public void ASecretLevelOrMyPetDungeonShowsItsBriefingLines(string levelName, string briefingFile)
+    {
+        string path = Path.Combine(Dk2InstallGate.Path, "Data", "Text", "Default", briefingFile);
+        Assert.True(File.Exists(path), briefingFile);
+        var file = Dk2StringTable.Open(path);
+        Assert.True(file.TryResolve(2, out string? mainObjective) && mainObjective.Length > 0, briefingFile);
+
+        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, levelName);
+        using var sources = new InstallHudSources(Dk2InstallGate.Path);
+        var warnings = new List<string>();
+        var tables = new MessageTextTables(sources, level.Database.Level!.TextTableId, warnings.Add);
+
+        Assert.Equal(mainObjective, tables.Briefing(2));
+        Assert.Empty(warnings);
     }
 
     [InstallFact]

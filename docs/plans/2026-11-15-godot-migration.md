@@ -218,13 +218,11 @@ group 2 is a list to audit, not a finding.
       capture, unverified).
 - [ ] 1c. Fix `FrontEndMenuController.UpdatePointer` (`DK2.Presentation`), which allocates (LINQ
       `First`) on every hovered frame. Also `KeeperResourceView.Capture` (`DK2.Presentation`, shared
-      with Unity), which allocates two `int[]` per tick. Also `MessageTextTables`
-      (`DK2.Presentation`, a pure move from Unity, so both adapters have it): it builds the briefing
-      file name from the level table's rule (`SECRET1_BRIEFING.str`, `MYPETDUNGEON_BRIEFING.str`,
-      absent from the install), where `DKII.EXE`'s 0x00553800 table gives `LEVELS1_BRIEFING.str`,
-      `LEVELMPD1_BRIEFING.str` and so on; secret-level and My Pet Dungeon objective panels show no
-      briefing lines. Use `BriefingTextTable.FileName`, as `CampaignBriefingLoader` does
-      ([Q854](research/open-questions.md)). Also the hover text, shared with Unity:
+      with Unity), which allocates two `int[]` per tick. Done: `MessageTextTables` (`DK2.Presentation`, both adapters) takes
+      the briefing file from `BriefingTextTable.FileName`, as `CampaignBriefingLoader` does, so
+      secret-level and My Pet Dungeon objective panels show their briefing lines
+      ([Q854](research/open-questions.md), whose play-through question stays open). Also the hover
+      text, shared with Unity:
       `BottomPanelHud.HoverText` and `MessageTabsHud.HoverText` build strings on each call while
       hovered, and `KeeperResourceInteraction.ResourceHover` rebuilds a `Dictionary` whenever the
       snapshot (tick included) changes. Also `WorldHoverText.CreatureType`, which builds a
