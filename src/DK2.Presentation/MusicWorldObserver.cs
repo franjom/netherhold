@@ -22,6 +22,7 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
     private sealed class Battle
     {
         public readonly Dictionary<int, long> Members = new();
+        public readonly List<int> Scratch = new();
         public int X, Y;
     }
     private readonly Battle[] _battles = Enumerable.Range(0, 8).Select(_ => new Battle()).ToArray();
@@ -60,8 +61,14 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
         foreach (Battle battle in _battles)
         {
             int threat = 0;
-            foreach (int id in battle.Members.Keys.ToArray())
+            // The members are visited from a copy, in the dictionary's order, because the loop removes from it; the
+            // copy is the battle's own list, kept between ticks.
+            List<int> ids = battle.Scratch;
+            ids.Clear();
+            foreach (int member in battle.Members.Keys) ids.Add(member);
+            for (int i = 0; i < ids.Count; i++)
             {
+                int id = ids[i];
                 CreatureState? creature = world.CreatureById(id);
                 bool fighting = creature is not null && Fighting(creature);
                 if (creature is null || !CreatureStateMachine.HasState(creature) || creature.Health <= 0
@@ -82,7 +89,7 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
             if (!world.HasPlayer(player)) continue;
             foreach (CreatureState creature in world.OwnedCreatures(player))
             {
-                if (!Fighting(creature) || _battles.Any(b => b.Members.ContainsKey(creature.Id))
+                if (!Fighting(creature) || InABattle(creature.Id)
                     || creature.FightTargetKind != FightTargetKind.Creature || world.CreatureById(creature.FightTargetId) is null) continue;
                 Battle? nearest = null;
                 long distance = long.MaxValue;
@@ -95,8 +102,8 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
                         if (squared < distance) { distance = squared; nearest = battle; }
                     }
                 Battle chosen = nearest is not null && distance <= 0x1900 ? nearest
-                    : _battles.FirstOrDefault(b => b.Members.Count == 0) ?? nearest!;
-                if (creature.OwnerPlayerId == viewer && !chosen.Members.Keys.Any(id => world.CreatureById(id)!.OwnerPlayerId == viewer))
+                    : FirstEmptyBattle() ?? nearest!;
+                if (creature.OwnerPlayerId == viewer && !HoldsCreatureOf(chosen, world, viewer))
                     ViewerBattleEntries++;
                 chosen.Members.Add(creature.Id, tick.Value + 4 * SimulationTiming.TicksPerSecond);
                 Recenter(chosen, world);
@@ -110,6 +117,28 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
             _snapshots[i] = new BattleViewSnapshot(new BattleViewSlot(i),
                 new TilePos(battle.X / Fp32.One, battle.Y / Fp32.One), owners, battle.Members.Count);
         }
+    }
+
+    // Loops in place of LINQ and its closures: these run for every fighting creature on every tick.
+    private bool InABattle(int creatureId)
+    {
+        for (int i = 0; i < _battles.Length; i++)
+            if (_battles[i].Members.ContainsKey(creatureId)) return true;
+        return false;
+    }
+
+    private Battle? FirstEmptyBattle()
+    {
+        for (int i = 0; i < _battles.Length; i++)
+            if (_battles[i].Members.Count == 0) return _battles[i];
+        return null;
+    }
+
+    private static bool HoldsCreatureOf(Battle battle, WorldState world, PlayerId owner)
+    {
+        foreach (int id in battle.Members.Keys)
+            if (world.CreatureById(id)!.OwnerPlayerId == owner) return true;
+        return false;
     }
 
     private static bool Fighting(CreatureState creature) =>

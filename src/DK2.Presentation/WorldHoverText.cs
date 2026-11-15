@@ -27,6 +27,9 @@ public sealed class WorldHoverText
     private readonly PlayerId _viewer;
     private readonly CampaignSlot _playedSlot;
     private readonly Dictionary<int, string> _tokens = new();
+    private readonly Dictionary<int, string> _typeTokens = new();
+    private CreatureDef? _typeDefinition;
+    private HoverTextSnapshot _typeSnapshot;
     private IReadOnlyList<RoomInstance> _rooms = Array.Empty<RoomInstance>();
     private WorldState? _world;
     private GameTick _tick;
@@ -110,19 +113,21 @@ public sealed class WorldHoverText
     {
         if (definition is null) throw new ArgumentNullException(nameof(definition));
         if (definition.DescriptionStringId == 0) return HoverTextSnapshot.Empty;
-        var tokens = new Dictionary<int, string>
+        // The text is a function of the definition alone, so the last one built is kept: the pointer rests on a portrait
+        // for many frames, and a rebuild would allocate its dictionary and strings each time.
+        if (ReferenceEquals(definition, _typeDefinition)) return _typeSnapshot;
+        _typeTokens[27] = _resolve(definition.JobClass switch
         {
-            [27] = _resolve(definition.JobClass switch
-            {
-                JobClass.Thinker => 2419u, JobClass.Fighter => 2417u, JobClass.Scout => 2420u, _ => 2418u,
-            }),
-            [28] = _resolve(definition.FightStyle switch
-            {
-                FightStyle.Blitzer => 2424u, FightStyle.Blocker => 2423u, FightStyle.Flanker => 2425u,
-                FightStyle.Support => 2426u, _ => 2427u,
-            }),
-        };
-        return new(Substitute(_resolve(definition.DescriptionStringId), tokens), "", default);
+            JobClass.Thinker => 2419u, JobClass.Fighter => 2417u, JobClass.Scout => 2420u, _ => 2418u,
+        });
+        _typeTokens[28] = _resolve(definition.FightStyle switch
+        {
+            FightStyle.Blitzer => 2424u, FightStyle.Blocker => 2423u, FightStyle.Flanker => 2425u,
+            FightStyle.Support => 2426u, _ => 2427u,
+        });
+        _typeSnapshot = new(Substitute(_resolve(definition.DescriptionStringId), _typeTokens), "", default);
+        _typeDefinition = definition;
+        return _typeSnapshot;
     }
 
     /// <summary><c>0x0049C8C0</c>: the definition's tooltip, except loose gold (1/2: 2544, 3: 2543 with
@@ -402,6 +407,23 @@ public sealed class WorldHoverText
     }
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary><see cref="Substitute(string, IReadOnlyDictionary{int, string})"/> for the one token a text carries,
+    /// without the dictionary: the same output, for a caller that builds a single string.</summary>
+    public static string Substitute(string template, int token, string value)
+    {
+        var result = new StringBuilder(template.Length);
+        for (int i = 0; i < template.Length; i++)
+        {
+            if (template[i] != '%' || i + 1 == template.Length || template[i + 1] < '0' || template[i + 1] > '9')
+            { result.Append(template[i]); continue; }
+            int found = 0;
+            while (i + 1 < template.Length && template[i + 1] >= '0' && template[i + 1] <= '9')
+                found = found * 10 + template[++i] - '0';
+            if (found == token) result.Append(value);
+        }
+        return result.ToString();
+    }
 
     public static string Substitute(string template, IReadOnlyDictionary<int, string> values)
     {

@@ -40,17 +40,20 @@ public sealed partial class WorldView
             _minimapHeartWorld = world;
             _minimapHeartTile = new(FearRules.NoHeartTile, FearRules.NoHeartTile);
         }
+        bool hasRooms = world.Width > 1 && world.Height > 1;
+        // The room sweep is kept per world and revalidated here; the heart is read from it rather than found by a second
+        // pass over every tile.
+        IReadOnlyList<RoomInstance>? rooms = hasRooms ? RoomIndex.Build(world, _database) : null;
         if (world.HasPlayer(_viewingPlayerId))
         {
-            FindMinimapHeart(world);
+            FindMinimapHeart(world, rooms);
             MinimapHeartTile = _minimapHeartTile;
             // DK2 retains the player's last Heart position after its room is ruined.
             output.Add(MinimapMarkerRules.ReportingRing(TileCentre(_minimapHeartTile),
                 ReportingDistance(VariableTypeId.DungeonHeartReportingDistanceTiles), bounds, world.Width));
         }
-        if (world.Width > 1 && world.Height > 1)
+        if (rooms is not null)
         {
-            IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, _database);
             int distance = unchecked((byte)ReportingDistance(VariableTypeId.GuardRoomReportingDistanceTiles));
             for (int i = 0; i < rooms.Count; i++)
             {
@@ -132,18 +135,34 @@ public sealed partial class WorldView
 
     private int ReportingDistance(VariableTypeId variable) => _database.Variables.TryGet(variable, out int distance) ? distance : 0;
 
-    private void FindMinimapHeart(WorldState world)
+    /// <summary>The middle of the box round the viewer's heart tiles, kept as it was when none is left. With the room sweep
+    /// it is the box round the viewer's rooms on the heart terrain (a room is a run of one terrain and one owner, so those
+    /// rooms' tiles are exactly the viewer's heart tiles, and a room's box is its tiles'); without it, a pass over the
+    /// map.</summary>
+    private void FindMinimapHeart(WorldState world, IReadOnlyList<RoomInstance>? rooms)
     {
         if (!_minimapHeartTerrain.HasValue) return;
         int minX = world.Width, minY = world.Height, maxX = -1, maxY = -1;
-        for (int y = 0; y < world.Height; y++)
-            for (int x = 0; x < world.Width; x++)
+        if (rooms is not null)
+        {
+            for (int i = 0; i < rooms.Count; i++)
             {
-                TileState tile = world.Tile(x, y);
-                if (tile.OwnerPlayerId != _viewingPlayerId || tile.TerrainId != _minimapHeartTerrain.Value) continue;
-                minX = Math.Min(minX, x); minY = Math.Min(minY, y);
-                maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y);
+                RoomInstance room = rooms[i];
+                if (room.OwnerPlayerId != _viewingPlayerId
+                    || world.TileAtIndex(room.Tiles[0]).TerrainId != _minimapHeartTerrain.Value) continue;
+                minX = Math.Min(minX, room.MinX); minY = Math.Min(minY, room.MinY);
+                maxX = Math.Max(maxX, room.MaxX); maxY = Math.Max(maxY, room.MaxY);
             }
+        }
+        else
+            for (int y = 0; y < world.Height; y++)
+                for (int x = 0; x < world.Width; x++)
+                {
+                    TileState tile = world.Tile(x, y);
+                    if (tile.OwnerPlayerId != _viewingPlayerId || tile.TerrainId != _minimapHeartTerrain.Value) continue;
+                    minX = Math.Min(minX, x); minY = Math.Min(minY, y);
+                    maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y);
+                }
         if (maxX >= 0) _minimapHeartTile = new((minX + maxX) / 2, (minY + maxY) / 2);
     }
 

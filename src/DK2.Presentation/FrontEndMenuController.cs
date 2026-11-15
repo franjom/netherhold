@@ -89,13 +89,16 @@ public sealed class FrontEndMenuController : IDisposable
     {
         _underPointer = null;
         var point = new FrontEndPoint(pointer.X, pointer.Y);
-        foreach (FrontEndWidget widget in Widgets)
-            if (IsEnabled(widget) && _hitBounds(widget).Contains(point))
-            { _underPointer = widget.Id; break; }
+        // Loops, not foreach and LINQ: this runs every frame, and an enumerator and a closure here allocate each time.
+        IReadOnlyList<FrontEndWidget> widgets = Widgets;
+        for (int i = 0; i < widgets.Count; i++)
+            if (IsEnabled(widgets[i]) && _hitBounds(widgets[i]).Contains(point))
+            { _underPointer = widgets[i].Id; break; }
         if (_underPointer is FrontEndWidgetId hovered)
         {
-            FrontEndWidget widget = Widgets.First(w => w.Id == hovered);
-            if (widget.Draw == FrontEndDrawKind.Label)
+            int first = 0;
+            while (widgets[first].Id != hovered) first++;
+            if (widgets[first].Draw == FrontEndDrawKind.Label)
             {
                 HoverState state = Hover(hovered);
                 if (!state.SoundPlayed) { RequestSound(0x30f, SoundCategory.FrontEnd); state.SoundPlayed = true; }

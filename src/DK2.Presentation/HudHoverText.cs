@@ -69,9 +69,12 @@ public sealed class HudHoverText
         if (HudWidgetText.ForAction(hud.MinimapControl()) is int corner) return Widget(corner);
         KeeperResourceKind kind = hud.Resource();
         if (kind == KeeperResourceKind.None) return HoverTextSnapshot.Empty;
-        if (_resourceKind != kind || _resourceFacts != resources)
+        // Compared without the two fields that move every turn (the tick and the payday gauge counting down to it), so a
+        // still pointer over the strip rebuilds the text when a resource changes and not on every tick.
+        KeeperResourceSnapshot facts = resources with { Tick = default, Payday = default };
+        if (_resourceKind != kind || _resourceFacts != facts)
         {
-            _resourceKind = kind; _resourceFacts = resources;
+            _resourceKind = kind; _resourceFacts = facts;
             _resource = KeeperResourceInteraction.ResourceHover(resources, kind, _resolve);
         }
         return _resource;

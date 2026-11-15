@@ -52,15 +52,12 @@ public static class KeeperResourceInteraction
         if (kind == KeeperResourceKind.Heart)
         {
             description = snapshot.HeartTile is null || snapshot.HeartHealth.Maximum <= 0 ? ""
-                : WorldHoverText.Substitute(description, new Dictionary<int, string>
-                {
-                    [19] = unchecked(snapshot.HeartHealth.Value * 100 / snapshot.HeartHealth.Maximum)
-                        .ToString(CultureInfo.InvariantCulture),
-                });
+                : WorldHoverText.Substitute(description, 19,
+                    unchecked(snapshot.HeartHealth.Value * 100 / snapshot.HeartHealth.Maximum)
+                        .ToString(CultureInfo.InvariantCulture));
         }
         else if (kind == KeeperResourceKind.Payday)
-            description = WorldHoverText.Substitute(description, new Dictionary<int, string>
-            { [20] = snapshot.WageBill.Value.ToString(CultureInfo.InvariantCulture) });
+            description = WorldHoverText.Substitute(description, 20, snapshot.WageBill.Value.ToString(CultureInfo.InvariantCulture));
         return new HoverTextSnapshot(description, resolve((uint)id),
             new WorldHoverHit(WorldHoverKind.Widget, default, id));
     }

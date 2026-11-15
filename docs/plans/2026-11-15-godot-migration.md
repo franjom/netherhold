@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Next is 1c.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Next is step 2.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -222,22 +222,32 @@ group 2 is a list to audit, not a finding.
       half up) is `HudScaleLayout.BottomOriginPixels`, which the six Godot panels that place themselves
       (bottom panel, message tabs, creature overview, creature query, battle tab, minimap) call instead of
       each repeating the expression. Unity at runtime was not run, and no subtitle was seen on screen.
-- [ ] 1c. Fix `FrontEndMenuController.UpdatePointer` (`DK2.Presentation`), which allocates (LINQ
-      `First`) on every hovered frame. Also `KeeperResourceView.Capture` (`DK2.Presentation`, shared
-      with Unity), which allocates two `int[]` per tick. Done: `MessageTextTables` (`DK2.Presentation`, both adapters) takes
-      the briefing file from `BriefingTextTable.FileName`, as `CampaignBriefingLoader` does, so
-      secret-level and My Pet Dungeon objective panels show their briefing lines
-      ([Q854](research/open-questions.md), whose play-through question stays open). Also the hover
-      text, shared with Unity:
-      `BottomPanelHud.HoverText` and `MessageTabsHud.HoverText` build strings on each call while
-      hovered, and `KeeperResourceInteraction.ResourceHover` rebuilds a `Dictionary` whenever the
-      snapshot (tick included) changes. Also `WorldHoverText.CreatureType`, which builds a
-      `Dictionary` and strings on each call while a creature overview column is hovered. Also
-      `MusicWorldObserver.Capture`, which allocates per tick (`Keys.ToArray()`, LINQ `Any` with
-      closures) and now runs on Godot's tick path as well as Unity's. Also
-      `WorldView.CaptureMinimapMarkers`, which rebuilds `RoomIndex` and scans the whole map for the
-      heart on each captured tick; shared with Unity, and now on Godot's tick too
-      (`ClassicMinimap.Capture`).
+- [x] 1c. Allocation fixes in `DK2.Presentation` code that Godot's frame or tick path now runs
+      (bytes measured on a warmed second call, behaviour unchanged, pinned by
+      `PresentationAllocationTests`):
+      `FrontEndMenuController.UpdatePointer` uses index loops instead of `foreach` and LINQ `First`
+      (152 B to 0 per hovered frame); `HudHoverText` compares the resource snapshot with `Tick` and
+      `Payday` zeroed, since no hover text reads either, and `KeeperResourceInteraction.ResourceHover`
+      substitutes through a `WorldHoverText.Substitute(template, token, value)` overload instead of a
+      `Dictionary` (400 B to 0 while only the tick moves; a Gold or Mana change still rebuilds, as an
+      existing test requires); `WorldHoverText.CreatureType` caches the last definition and reuses its
+      token dictionary (800 B to 0 for the same definition); `MusicWorldObserver.Capture` copies each
+      battle's keys into a `List<int>` and uses loops for `Any`/`FirstOrDefault` in the same order
+      (672 B to 216 B per tick); `WorldView.CaptureMinimapMarkers` finds the heart from the union box of
+      the viewer's heart-terrain rooms in the `RoomIndex` it already builds, not a whole-map scan (equal
+      to the old scan's box on Level1-10 for four players and on a synthetic two-heart map; a fallback
+      scan covers 1-wide or 1-high maps). That one never allocated: the change is a CPU saving that
+      nothing measures, and its test is a regression guard. `BottomPanelHud.HoverText` and
+      `MessageTabsHud.HoverText` already allocated 0 B; tests now pin that. Also done:
+      `MessageTextTables` (`DK2.Presentation`, both adapters) takes the briefing file from
+      `BriefingTextTable.FileName`, as `CampaignBriefingLoader` does, so secret-level and My Pet Dungeon
+      objective panels show their briefing lines ([Q854](research/open-questions.md), whose play-through
+      question stays open). Left for a simulation-side change, not fixed here: `KeeperResourceView.Capture`
+      allocates 208 B per tick, all inside `DK2.Simulation` (`ManaRules.GainPerSecondByPlayerIndex` 136 B
+      for three arrays, the upkeep call 32 B, about 40 B untraced, perhaps `GoldStore.Total` or
+      `CasinoJackpotRules.WageBill`; the view allocates nothing), where buffer or span overloads in
+      `ManaRules` would remove it; and `MusicWorldObserver.Capture`'s remaining 216 B, three
+      `WorldState.OwnedCreatures` iterators, where a struct enumerator would remove it.
 
 ## Step 2: move game-flow logic out of Unity
 
