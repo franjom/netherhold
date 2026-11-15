@@ -6,6 +6,7 @@ using DK2.Core;
 using DK2.Assets;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Systems;
 
 namespace DK2.Presentation;
 
@@ -158,6 +159,21 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         }
         if (HeartPlugBlocksMana(request)) return;
         AddEmitterChain(definition, request);
+    }
+    /// <summary>Shows local pickup feedback on the click frame, before the next effect-clock step.</summary>
+    public void RequestPickupDust(in ViewEffectRequest request)
+    {
+        if (request.EffectId.Value != MovementDustSystem.FootDustEffectId)
+            throw new ArgumentException("Pickup feedback requires dust.", nameof(request));
+        int previousId = _lastEmitterId;
+        Request(request);
+        for (int i = _emitters.Count - 1; i >= 0 && _emitters[i].Id > previousId; i--)
+        {
+            Emitter emitter = _emitters[i];
+            emitter.Age++;
+            Generate(emitter);
+            emitter.Health--;
+        }
     }
 
     private bool AllowsEffect(ViewEffectRequest request, EffectDef definition) =>

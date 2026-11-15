@@ -19266,3 +19266,22 @@ and hand pickup must use the relocated body position too, not a display offset.
 fix or a claim that DK2's placement is defective. Current simulation and rendering
 stay unchanged. The precise free-tile eligibility, tie order and no-space fallback
 are left for the implementation design when the owner releases the deferral.
+
+## ADR-0808 - show pickup dust with local disappearance
+
+**Date:** 2026-11-15 | **Status:** accepted | **Systems:** keeper-spells, creatures, presentation-unity
+
+**Context.** The creature already hides on the accepted local click, while its
+simulation-requested dust arrives later. The owner reports that visible gap.
+The native timing remains [hand-pickup-turn.md](research/hand-pickup-turn.md)'s rule.
+
+**Decision.** Predict the dust with local pickup feedback and generate its first
+wave immediately. Correlate the later Hand effect by its lifting keeper and
+source creature, consuming one matching echo. Preserve other effects, and expire
+the prediction with the local feedback window or a session reset.
+
+**Consequences.** This is a presentation timing choice, not a claim that DK2
+creates dust at click time. Authoritative hand timing, simulation state, RNG and
+hash/save 521 are unchanged. The effect event gains source metadata without
+attaching the cloud to the moving creature. Both world clicks and overview
+pickups use the same feedback event.

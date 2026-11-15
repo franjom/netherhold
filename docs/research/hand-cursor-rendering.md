@@ -289,6 +289,12 @@ until compared against the native procedural grid builder. The pulse draws
 the previous level, advances only on active draws, clamps overshoot and retains
 the native strict endpoint reversal.
 
+The adapter clamps the profile input to 0..1 before the fractional power, so
+MSAA edge extrapolation cannot produce a negative base and NaNs. The in-band
+profile is unchanged. D3D11 finite/additive regression results and the isolated
+launcher are documented in [the probe guide](../../tools/classic-unity-probe/README.md);
+owner acceptance in the live scene remains open.
+
 ## Refused drop feedback (STRONGLY INFERRED, binary 2026-10-29)
 
 The click arm of `0x00408EE0` tests `0x0040D8F0` before submitting a normal

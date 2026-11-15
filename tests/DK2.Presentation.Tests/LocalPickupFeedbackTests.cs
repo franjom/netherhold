@@ -7,11 +7,135 @@ using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
+using DK2.Simulation.Systems;
 using DK2.TestSupport;
 namespace DK2.Presentation.Tests;
 public sealed class LocalPickupFeedbackTests
 {
     private static readonly PlayerId Keeper = new(3);
+    [InstallFact]
+    public void PickupDustIsVisibleBeforeAnySimulationTickAndTheAuthoritativeEchoIsConsumedOnce()
+    {
+        var (db, world, creature) = Fixture();
+        var pending = new LocalPickupFeedback();
+        long now = 0;
+        var effects = new RoomConstructionParticles(db, 1, () => new EffectTime(now));
+        var delivered = new List<ViewEffectRequest>();
+        pending.DustRequested += request => { delivered.Add(request); effects.RequestPickupDust(request); };
+        var events = new ListEventSink();
+        var sink = new LocalPickupEffectSink(pending, events);
+        var simulation = new GameSimulation(db, world, 1, [new HandSystem()]);
+        simulation.ObserveWith(sink);
+        var tick = world.CurrentTick;
+        creature.PosX += 321;
+        creature.Heading = 0x321;
+
+        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+
+        ViewEffectRequest dust = Assert.Single(delivered);
+        Assert.Equal(new CreatureId(creature.Id), dust.SourceCreatureId);
+        Assert.Equal(Keeper, dust.Owner);
+        Assert.Equal(new FpPosition3(new(creature.PosX), new(creature.PosY), new(0x1000)), dust.Position);
+        Assert.Equal(new Dk2Angle(0x321), dust.Heading);
+        Assert.Equal(tick, world.CurrentTick);
+        Assert.Equal(8, effects.Particles.Count);
+        Assert.False(creature.InHand);
+        Assert.Empty(events.Events);
+
+        // A moving creature's authoritative point may differ from its clicked position.
+        creature.PosX += 777;
+        simulation.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        Assert.DoesNotContain(events.Events, e => e.EffectRequest.HasValue);
+        Assert.Single(delivered);
+        Assert.Equal(8, effects.Particles.Count);
+        Assert.Contains(events.Events, e => e.Kind == "lift_prepared");
+        now = 51;
+        effects.UpdateNow();
+        Assert.Equal(8, effects.Particles.Count);
+        var echo = new SimEvent(world.CurrentTick, "Hand", "effect_requested", "") { EffectRequest = dust };
+        sink.Emit(echo);
+        Assert.Single(events.Events, e => e.EffectRequest.HasValue);
+    }
+    [InstallFact]
+    public void RejectedOrRepeatedLocalPickupDoesNotEmitDust()
+    {
+        var (db, world, creature) = Fixture();
+        var pending = new LocalPickupFeedback();
+        var dust = new List<ViewEffectRequest>();
+        pending.DustRequested += dust.Add;
+        creature.Health = 0;
+        Assert.False(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        Assert.Empty(dust);
+        creature.Health = 100;
+        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 1));
+        Assert.False(pending.TryQueue(world, db, Keeper, new(creature.Id), 2));
+        Assert.Single(dust);
+    }
+    [InstallTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ResetOrTimeoutReleasesTheDustEchoSuppression(bool timeout)
+    {
+        var (db, world, creature) = Fixture();
+        var pending = new LocalPickupFeedback();
+        ViewEffectRequest dust = default;
+        pending.DustRequested += request => dust = request;
+        var events = new ListEventSink();
+        var sink = new LocalPickupEffectSink(pending, events);
+        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        if (timeout) pending.Advance(world, 2001); else pending.Reset();
+        sink.Emit(new SimEvent(world.CurrentTick, "Hand", "effect_requested", "") { EffectRequest = dust });
+        Assert.Single(events.Events);
+    }
+    [InstallFact]
+    public void DustFromOtherCreaturesOwnersOrSourcesIsNotConsumed()
+    {
+        var (db, world, creature) = Fixture();
+        var pending = new LocalPickupFeedback();
+        ViewEffectRequest dust = default;
+        pending.DustRequested += request => dust = request;
+        var events = new ListEventSink();
+        var sink = new LocalPickupEffectSink(pending, events);
+        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        void Emit(string system, ViewEffectRequest request) => sink.Emit(
+            new SimEvent(world.CurrentTick, system, "effect_requested", "") { EffectRequest = request });
+        Emit("Hand", dust with { SourceCreatureId = new(creature.Id + 1) });
+        Emit("Hand", dust with { Owner = PlayerIds.Neutral });
+        Emit("movement dust", dust);
+        Emit("Hand", dust with { EffectId = new(100) });
+        Assert.Equal(4, events.Events.Count);
+        Emit("Hand", dust);
+        Assert.Equal(4, events.Events.Count);
+    }
+    [InstallFact]
+    public void DustEchoStillMatchesAfterTheHandAcknowledgesTheLocalPickup()
+    {
+        var (db, world, creature) = Fixture();
+        var pending = new LocalPickupFeedback();
+        ViewEffectRequest dust = default;
+        pending.DustRequested += request => dust = request;
+        var events = new ListEventSink();
+        var sink = new LocalPickupEffectSink(pending, events);
+        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        creature.InHand = true;
+        world.Player(Keeper).Hand.Add(HandItem.Of(creature));
+        pending.Advance(world, 100);
+        Assert.Equal(0, pending.Count);
+        sink.Emit(new SimEvent(world.CurrentTick, "Hand", "effect_requested", "") { EffectRequest = dust });
+        Assert.Empty(events.Events);
+    }
+    [InstallFact]
+    public void WithoutADustRendererTheAuthoritativeEffectIsPreserved()
+    {
+        var (db, world, creature) = Fixture();
+        var pending = new LocalPickupFeedback();
+        var events = new ListEventSink();
+        var simulation = new GameSimulation(db, world, 1, [new HandSystem()]);
+        simulation.ObserveWith(new LocalPickupEffectSink(pending, events));
+        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        simulation.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        Assert.Single(events.Events, e => e.EffectRequest.HasValue);
+    }
     [InstallFact]
     public void RetainedQueuedAndDispatchedHeldEntriesStillConsumePendingCapacity()
     {
