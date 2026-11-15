@@ -188,7 +188,7 @@ public class PlayerContractsTests
     {
         var observation = new PlayerObservation { Stamp = Stamp() };
 
-        Assert.Equal(2, PlayerObservation.SchemaVersion);
+        Assert.Equal(3, PlayerObservation.SchemaVersion);
         Assert.Equal(PlayerPhase.Playing, observation.Phase);
         Assert.Equal(PlayerResult.Playing, observation.Result);
         Assert.Empty(observation.Rooms);
@@ -247,7 +247,7 @@ public class PlayerContractsTests
     {
         Type[] actions = ActionTypes();
         Assert.Equal(
-            ["ActivateSpecial", "BuildRoom", "CreateImpAt", "DropAt", "PickUp", "SelectPanel", "SkipIntro", "Slap", "TagArea"],
+            ["ActivateSpecial", "BuildRoom", "CastSpell", "CreateImpAt", "DropAt", "PickUp", "SelectPanel", "SkipIntro", "Slap", "TagArea"],
             actions.Select(t => t.Name).Order(StringComparer.Ordinal));
         Assert.All(actions, t => Assert.True(t.IsSealed, t.Name));
         // A record keeps a protected copy constructor, so closure rests on the abstract Family
