@@ -179,6 +179,11 @@ public sealed record PlayerStrategy
     /// less upkeep). A heuristic: the price climbs 1500 with each Imp, so this sets how many the income carries.</summary>
     public int ImpPriceSeconds { get; init; } = 60;
 
+    /// <summary>How near (tiles) an enemy in sight must be to home (or the Combat Pit) to stop the peaceful routines:
+    /// sending creatures to rooms, the Pit, scouting. Further off it is ignored (Level 15a's hero Guards stand in their
+    /// Prison nine tiles and more from the Heart all game, Q843).</summary>
+    public int EnemyNearTiles { get; init; } = 8;
+
     /// <summary>While breaching is held back, no tile within this many tiles of an enemy sighting is marked.</summary>
     public int EnemyClearanceTiles { get; init; } = 3;
 
@@ -212,6 +217,7 @@ public sealed record PlayerStrategy
         if (UseRoomEveryTicks < 0) problems.Add($"UseRoomEveryTicks {UseRoomEveryTicks} is negative");
         if (UseRoomMinGold < 0) problems.Add($"UseRoomMinGold {UseRoomMinGold} is negative");
         if (EnemyClearanceTiles < 0) problems.Add($"EnemyClearanceTiles {EnemyClearanceTiles} is negative");
+        if (EnemyNearTiles < 0) problems.Add($"EnemyNearTiles {EnemyNearTiles} is negative");
         if (AttractionTargets is null) problems.Add("AttractionTargets is null");
         else foreach (KeyValuePair<RoomTypeId, int> t in AttractionTargets.Where(t => t.Value <= 0))
             problems.Add($"AttractionTargets[{t.Key}] {t.Value} is not positive");
