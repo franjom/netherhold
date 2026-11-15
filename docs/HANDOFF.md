@@ -132,14 +132,10 @@ These are entry points, not a new priority order.
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
 - Godot adapter (ADR-0805, ADR-0810): not wired are the 3D station scenery, movies, sound and keyboard.
-  Next: move the engine-neutral asset glue the adapter copied out of Unity into `src/` (`DK2.Data`, `DK2.Art` or
-  `DK2.Presentation`) so both adapters share it, which ADR-0805's table requires: `FrontEndCameraPaths.cs` (Unity's
-  `DungeonRunner.CameraPathLoader`), `ClassicFrontEndMenuAssets.cs` (the strings and fonts of `InstallHudSources`, the
-  WAD loading of `ClassicFrontEndAssets`; only the PNG decode is Godot's) and the 640x480 menu-box centring in
-  `ClassicFrontEndMenu.cs` (`FrontEndBox.ToUnits`' formula). Untested in Godot until the bottom panel is ported:
-  `HudSector` drawn through `CanvasItemAddPolygon` (a degenerate fan may fail; a triangle array is safer) and the
-  native additive blend against Unity's `AdditiveOverAlpha` look. `FrontEndMenuController.UpdatePointer`
-  (`DK2.Presentation`) allocates (LINQ `First`) on every hovered frame.
+  The road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md); next is its
+  step 1a, moving the loaders the adapter copied out of Unity into `src/` (ADR-0805). Untested in Godot until the
+  bottom panel is ported: `HudSector` drawn through `CanvasItemAddPolygon` (a degenerate fan may fail; a triangle array
+  is safer) and the native additive blend against Unity's `AdditiveOverAlpha` look.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)
