@@ -65,6 +65,8 @@ godot/**/obj/
 godot/**/addons/godot_ai/
 godot/**/addons/.godot_ai_update/
 godot/**/mono_crash.*.json
+# A local project-settings override for fixed-size captures (godot/README.md).
+godot/**/override.cfg
 # Bullfrog's DungeonKeeperII.ttf for the front end's replacement font: not ours to ship (godot/README.md).
 godot/**/Fonts/
 

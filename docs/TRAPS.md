@@ -9,6 +9,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 `.agents/skills/ghidra-queries/SKILL.md`, DK2 facts in `docs/research/`.
 
 - Godot AI 4.4.1's dock shows Claude Code red ("verification still reads error") for a working `local`-scope entry; check with `claude mcp get godot-ai` from the repo root, and do not run its suggested `remove --scope user`.
+- Godot 4.8 beta 3 on this machine (project `window/size/mode=3`) ignores `--windowed` and `--resolution`; the window takes the desktop size and a Movie Maker PNG is a 1920x1080 cut of it. Use a temporary `godot/DK2.Godot/override.cfg` (`window/size/mode=0`) for captures.
+- Godot 4.8 beta 3's `CanvasItemAddTriangleArray` errors (span overload) or crashes the process silently (index array longer than `count`); pass exact-size arrays and count -1 (`HudCanvas.SectorBuffers`).
 - Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
 
 ## Shell and files
