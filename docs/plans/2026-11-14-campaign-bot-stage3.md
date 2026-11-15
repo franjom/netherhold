@@ -350,14 +350,19 @@ replay tests updated.
 `PlayerStrategy.PitFighters` is above 0 (default 0; playbook tunable `strategy.pit-fighters`, 0-16). It needs an
 owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since its last act; the first that can act:
 
-1. A creature collapsed on the Pit (one petal) gets the nearest liftable own Imp dropped beside it
-   (`PlayerActionRoutines.RescueDropTile`: an own floor tile within `ImpTaskSystem.DropScanTiles` of the body that is
-   not the Pit's interior, where the hand refuses a worker), so the Imp carries it to its bed (`CarryUnconscious`). Only
-   with an own Lair, once per 400 ticks per body tile. Owner, 2026-11-15: "if a creature gets defeated in the combat
-   pit, its body then appears on the combat pit rim, bot should grab an imp and drop it onto that bleeding creature so
-   it gets dragged to its bed to recover". The simulation does not yet throw the loser to the rim (state 217's throw
-   is read, not built: `combat-pit.md` section 10), so in it the body lies on the interior and the Imp lands on the
-   rim beside it (Q827).
+1. A creature collapsed on the Pit (one petal) gets the nearest liftable own Imp dropped on it, so the Imp carries it
+   to its bed (`CarryUnconscious`). This runs before the interval check: a collapsed creature dies within
+   `CreatureDyingStateDurationSeconds` = 60 s (240 ticks), so the rescue does not wait for `UseRoomEveryTicks`. Only
+   with an own Lair, once per 400 ticks per body tile, rescues at least 40 ticks apart, and not for a body on an own
+   worker's tile (it is being carried). A beaten fighter sinks into the floor and rises on a random rim tile (state 217,
+   `combat-pit.md` section 4). A body on the rim is fetched at once, the Imp dropped on the body's own tile
+   (`PlayerActionRoutines.RescueDropTile`: the nearest own floor tile within `ImpTaskSystem.DropScanTiles` that is not
+   the Pit's interior, where the hand refuses a worker). A body still on the floor is left to sink and rise, timed per
+   floor tile, and fetched there only after `RiseTicks` = 40 ticks, an estimate: state 217 waits ten turns, then sinks
+   and rises 0x200 a turn, and the collapse before it is unread. Owner, 2026-11-15: "if a creature gets defeated in the
+   combat pit, its body then appears on the combat pit rim, bot should grab an imp and drop it onto that bleeding
+   creature so it gets dragged to its bed to recover". The Imp sent is the liftable one nearest the body (Q827,
+   Q844-Q846).
 2. A fighter on the floor (interior) at two petals (the last quarter, owner-confirmed 2026-11-15; a living creature
    shows at least two): `CastSpell(Heal)` when Heal is offered, affordable and recharged, else lifted to the nearest
    Hatchery tile (Q828, Q831).
@@ -365,7 +370,8 @@ owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since
    ships 8; `combat-pit.md`): to its Lair when unhappy or angry (owner, 2026-11-15: "mood matters too, unhappy goes to
    lair"), else to a Hatchery at four petals or fewer, else to its Lair.
 4. A lone fighter on the floor (its opponent gone, or none to come) is a victor: it is lifted to its Lair before it
-   grows unhappy (owner, 2026-11-15; whether it does, and how fast, is Q836).
+   grows unhappy (owner, 2026-11-15; whether it does, and how fast, is Q836). "A pair fought" is remembered across the
+   routine's interval, so a fight wholly inside one interval still leaves its victor lifted.
 5. Below `PitFighters` fighters on the floor, and only when two can pair: the lowest-level idle own non-worker on plain
    floor or watching from the rim (job 26), at five petals or more, Happy and below the cap, is lifted onto an
    interior Pit tile (`InteriorRoomTile`, `IsInterior`); a drop there starts the fight (`combat-pit.md` section 9).
@@ -376,11 +382,13 @@ owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since
 
 A refused Pit drop goes to its own set, not the Work routine's. The harness passes `CombatPitMaxLevel`. Training Room
 work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Known gaps: a refused Heal is retried each
-interval (cast outcomes are not read), and `Pit` allocates per decision when on. `DK2.AI.Tests` 579 (with the
-scouting tests) and `DK2.Behavior.Tests` 670 (5 skipped) pass; Level 1 seed 1 is unchanged (Completed at tick 2334, final hash
-af7204fe4c0f8594). **Not measured:** only Levels 15a and later offer a Combat Pit, and a Level 15a smoke run
-(`pit-fighters` 2 against 0) ended Defeated at tick 3469 both ways before any Pit was built; measure when the bot
-reaches Level 15.
+interval (cast outcomes are not read), and `Pit` allocates per decision when on. `DK2.AI.Tests` 592 and
+`DK2.Behavior.Tests` 672 (5 skipped) pass, the latter with an end-to-end test (a beaten Goblin rises on the rim, the
+bot drops one Imp there, the Goblin ends asleep in its bed); Level 1 seed 1 is unchanged (Completed at tick 2334, final
+hash fd4199d3977b784f). Limits: that test covers the rim path only (the floor fallback is covered by unit tests), and a
+floor-tile entry can survive up to 12 ticks when the routine is skipped. **Not measured:** only Levels 15a and later
+offer a Combat Pit. A Level 15a campaign run built a 3x3 Pit, but the routine never acted and the bot mostly waited;
+the cause is not investigated (Q843).
 
 **Built: creature level, petals and mood.** `PlayerCreatureSummary` gains `Level`, `Petals`, `Mood`
 (`PlayerCreatureMood`: Happy, Unhappy, Angry) and `FlowerKnown`, filled by

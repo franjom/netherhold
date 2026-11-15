@@ -498,8 +498,10 @@ public sealed class CampaignPlayer : IPlayerController
     {
         if (_strategy.PitFighters <= 0 || observation.HandCount > 0 || !Fits(actions, 1)
             || OwnedTiles(observation, RoomTypeId.CombatPit) == 0
-            || _lastPitTick is GameTick last && observation.Stamp.Tick.Value - last.Value < _strategy.UseRoomEveryTicks
             || PlayerActionRoutines.NearestEnemy(observation, home) is not null) return false;
+        long now = observation.Stamp.Tick.Value;
+        // A rescue does not wait for the interval: a collapsed creature dies within 60 s (CreatureDyingStateDurationSeconds).
+        bool paced = _lastPitTick is GameTick last && now - last.Value < _strategy.UseRoomEveryTicks;
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         var flowers = new Dictionary<PlayerThingHandle, PlayerCreatureSummary>();
@@ -509,19 +511,26 @@ public sealed class CampaignPlayer : IPlayerController
         PlayerVisibleThing? downed = null, hurt = null, done = null, recruit = null, alone = null;
         PlayerCreatureSummary doneFlower = default, recruitFlower = default;
         int recruits = 0;
-        PlayerVisibleThing? carrier = null;
+        var workers = new List<PlayerVisibleThing>();
+        var workerTiles = new HashSet<TilePos>();
+        var bodies = new List<(PlayerVisibleThing Thing, bool Floor)>();
         foreach (PlayerVisibleThing thing in observation.Things)
         {
             if (thing.Kind != PlayerThingKind.Creature || thing.Owner != self || thing.CreatureType is not CreatureTypeId type || !grid.Contains(thing.Tile)) continue;
             if (_options.IsWorker(type))
             {
-                if ((thing.Actions & PlayerThingActions.PickUp) != 0) carrier = Nearer(carrier, thing);
+                if ((thing.Actions & PlayerThingActions.PickUp) != 0) workers.Add(thing);
+                workerTiles.Add(thing.Tile);
                 continue;
             }
             if (!flowers.TryGetValue(thing.Handle, out PlayerCreatureSummary flower)) continue;
             PlayerTile on = grid[thing.Tile];
             bool floor = on.Room == RoomTypeId.CombatPit && PlayerActionRoutines.IsInterior(grid, thing.Tile, RoomTypeId.CombatPit, self);
-            if (on.Room == RoomTypeId.CombatPit && flower.Petals <= 1) { downed ??= thing; continue; }
+            if (on.Room == RoomTypeId.CombatPit && flower.Petals <= 1)
+            {
+                bodies.Add((thing, floor));
+                continue;
+            }
             if (floor)
             {
                 fighting++;
@@ -541,20 +550,53 @@ public sealed class CampaignPlayer : IPlayerController
         bool picks = (observation.Offers.Actions & PlayerActionKinds.PickUp) != 0;
         // A lone fighter on the floor is a victor whose opponent is gone, or one nobody will come to fight: left there it
         // grows unhappy (owner, 2026-11-15), so it goes to its Lair, unless a partner is on its way.
-        bool paired = _pitPaired;
-        _pitPaired = fighting >= 2;
-        bool lone = fighting == 1 && (paired || recruits == 0 || fighting >= _strategy.PitFighters);
-        if (downed is PlayerVisibleThing body && carrier is PlayerVisibleThing imp && picks && Owns(observation, RoomTypeId.Lair)
-            && !(_rescues.TryGetValue(body.Tile, out GameTick sent) && observation.Stamp.Tick.Value - sent.Value < RescueTicks)
-            && PlayerActionRoutines.RescueDropTile(observation, body.Tile) is TilePos beside)
+        // A beaten fighter sinks into the floor and rises on the rim (state 217, combat-pit.md): the Imp goes to it there.
+        // Each floor tile's body is timed from when it was first seen there; one fetched after RiseTicks on the floor
+        // all the same. A body on an own worker's tile is being carried already.
+        var stillSinking = new Dictionary<TilePos, GameTick>();
+        foreach ((PlayerVisibleThing body, bool floor) in bodies)
+        {
+            if (workerTiles.Contains(body.Tile)) continue;
+            if (!floor) { downed ??= body; continue; }
+            GameTick first = _sinking.TryGetValue(body.Tile, out (GameTick First, GameTick Seen) seen) && now - seen.Seen.Value <= SinkSeenTicks
+                ? seen.First : observation.Stamp.Tick;
+            stillSinking[body.Tile] = first;
+        }
+        _sinking.Clear();
+        foreach (KeyValuePair<TilePos, GameTick> body in stillSinking)
+        {
+            _sinking[body.Key] = (body.Value, observation.Stamp.Tick);
+            if (downed is null && now - body.Value.Value >= RiseTicks)
+                foreach ((PlayerVisibleThing thing, bool floor) in bodies)
+                    if (floor && thing.Tile == body.Key) { downed = thing; break; }
+        }
+        // A pair seen fighting on any decision is remembered until the routine next runs: a fight may begin and end
+        // inside its interval.
+        if (fighting >= 2) _pitPaired = true;
+        // The liftable own Imp nearest the body carries it.
+        PlayerVisibleThing? carrier = null;
+        if (downed is PlayerVisibleThing target)
+            foreach (PlayerVisibleThing worker in workers)
+                if (carrier is not PlayerVisibleThing b || PlayerActionRoutines.DistanceSquared(worker.Tile, target.Tile)
+                    < PlayerActionRoutines.DistanceSquared(b.Tile, target.Tile)) carrier = worker;
+        if (downed is PlayerVisibleThing body2 && carrier is PlayerVisibleThing imp && picks && Owns(observation, RoomTypeId.Lair)
+            && !(_lastRescueTick is GameTick rescued && now - rescued.Value < RescueGapTicks)
+            && !(_rescues.TryGetValue(body2.Tile, out GameTick sent) && now - sent.Value < RescueTicks)
+            && PlayerActionRoutines.RescueDropTile(observation, body2.Tile) is TilePos beside)
         {
             actions.Add(new PlayerAction.PickUp(imp.Handle));
             _carryTo = beside;
             _carryForPit = true;
             _carryWorker = true;
-            _rescues[body.Tile] = observation.Stamp.Tick;
+            _rescues[body2.Tile] = observation.Stamp.Tick;
+            _lastRescueTick = observation.Stamp.Tick;
+            return true;
         }
-        else if (hurt is PlayerVisibleThing low && HealOffered(observation)) actions.Add(new PlayerAction.CastSpell(HealSpell, Target: low.Handle));
+        if (paced) return false;
+        bool paired = _pitPaired;
+        _pitPaired = fighting >= 2;
+        bool lone = fighting == 1 && (paired || recruits == 0 || fighting >= _strategy.PitFighters);
+        if (hurt is PlayerVisibleThing low && HealOffered(observation)) actions.Add(new PlayerAction.CastSpell(HealSpell, Target: low.Handle));
         else if (hurt is PlayerVisibleThing tired && Lift(observation, tired, RoomTypeId.Hatchery, home, actions)) { }
         else if (done is PlayerVisibleThing capped && Lift(observation, capped,
                      doneFlower.Mood != PlayerCreatureMood.Happy ? RoomTypeId.Lair : doneFlower.Petals <= 4 ? RoomTypeId.Hatchery : RoomTypeId.Lair,
@@ -570,10 +612,6 @@ public sealed class CampaignPlayer : IPlayerController
         else return false;
         _lastPitTick = observation.Stamp.Tick;
         return true;
-
-        PlayerVisibleThing? Nearer(PlayerVisibleThing? best, PlayerVisibleThing candidate) =>
-            downed is not PlayerVisibleThing at || best is not PlayerVisibleThing b
-            || PlayerActionRoutines.DistanceSquared(candidate.Tile, at.Tile) < PlayerActionRoutines.DistanceSquared(b.Tile, at.Tile) ? candidate : best;
     }
 
     /// <summary>The Imp scouting routine (stage 3 plan, Task 4; owner direction, 2026-11-14): one own Imp at a time is
@@ -825,6 +863,21 @@ public sealed class CampaignPlayer : IPlayerController
 
     /// <summary>How near (tiles) an enemy may come to a scouting Imp, or its target, before it is kept away or lifted.</summary>
     private const int ScoutDangerTiles = 8;
+
+    /// <summary>Each Pit floor tile a beaten fighter lies on: when it was first and last seen there.</summary>
+    private readonly Dictionary<TilePos, (GameTick First, GameTick Seen)> _sinking = [];
+    private GameTick? _lastRescueTick;
+
+    /// <summary>How long (ticks) a beaten fighter may lie on the Pit's floor before an Imp is sent to it there. An estimate:
+    /// state 217 (0x004599D0, combat-pit.md) waits ten turns, then sinks and rises 0x200 a turn; the collapse before it
+    /// is unread, so 40 leaves room.</summary>
+    private const int RiseTicks = 40;
+
+    /// <summary>A floor body unseen for longer than this (ticks) is timed afresh when seen again.</summary>
+    private const int SinkSeenTicks = 12;
+
+    /// <summary>Ticks between two rescues: a carried body moves tile by tile and must not draw a second Imp.</summary>
+    private const int RescueGapTicks = 40;
 
     /// <summary>How long (ticks) after sending an Imp to a collapsed creature another is not sent to the same tile.</summary>
     private const int RescueTicks = 400;
