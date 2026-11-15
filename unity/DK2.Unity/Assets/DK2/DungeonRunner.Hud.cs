@@ -391,7 +391,7 @@ namespace DK2.Unity
                 if (Input.GetMouseButtonDown(0))
                 {
                     ClassicOptionsAction action = _optionsPanel.ActionAt(Input.mousePosition);
-                    if (action is ClassicOptionsAction.Save or ClassicOptionsAction.Load) _saves.Refresh();
+                    if (OptionsHud.RefreshesSaves(action)) _saves.Refresh();
                     ApplyHudAction(OptionsHud.HudAction(action));
                     ClassicSessionAction session = _hudControls.TakeSessionAction();
                     if (session == ClassicSessionAction.Restart)

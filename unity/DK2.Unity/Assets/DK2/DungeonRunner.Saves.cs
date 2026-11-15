@@ -32,8 +32,7 @@ namespace DK2.Unity
                 ? Path.Combine(Application.persistentDataPath, "Saves") : savedSessionDirectory;
             _saves = new SaveSlotsView(directory);
             _savePanel = new ClassicSaveLoadPanel(transform, new InstallClassicOptionsAssets(_hudSources));
-            _savePanel.Back += () => ApplyHudAction(ClassicHudAction.BackToOptions);
-            _savePanel.Continue += () => ApplyHudAction(ClassicHudAction.ToggleOptions);
+            _savePanel.HudAction += ApplyHudAction;
             _savePanel.Submit += () =>
             {
                 if (_hudControls.OptionsPage == ClassicOptionsPage.Save) SaveSession();
@@ -92,9 +91,14 @@ namespace DK2.Unity
 
         private void DrawSavePanel(bool frontEnd)
         {
-            bool shown = frontEnd ? _frontEnd.Page == FrontEndPage.Load && !_frontEnd.PathPlaying
-                : _hudControls.OptionsVisible && _hudControls.OptionsPage is ClassicOptionsPage.Save or ClassicOptionsPage.Load;
-            _savePanel?.Show(_saves, shown && (frontEnd || CurrentHud.ShowNormalHud), _hudControls.OptionsPage == ClassicOptionsPage.Save, frontEnd);
+            if (frontEnd)
+            {
+                _savePanel?.Show(_saves, _frontEnd.Page == FrontEndPage.Load && !_frontEnd.PathPlaying,
+                    _hudControls.OptionsPage == ClassicOptionsPage.Save, frontEnd: true);
+                return;
+            }
+            (bool shown, bool saving) = _hudControls.SaveLoadPage(CurrentHud);
+            _savePanel?.Show(_saves, shown, saving);
         }
     }
 }

@@ -23,8 +23,8 @@ namespace DK2.Unity
         private readonly HudCanvas _canvas;
         private readonly HudFrame _frame = new HudFrame();
         public event Action Submit { add => _hud.Submit += value; remove => _hud.Submit -= value; }
-        public event Action Back { add => _hud.Back += value; remove => _hud.Back -= value; }
-        public event Action Continue { add => _hud.Continue += value; remove => _hud.Continue -= value; }
+        /// <summary>A press on the Back or Continue line, with the options menu's action it applies.</summary>
+        public event Action<ClassicHudAction> HudAction { add => _hud.HudAction += value; remove => _hud.HudAction -= value; }
 
         public ClassicSaveLoadPanel(Transform parent, IClassicOptionsAssets assets)
         {

@@ -35,6 +35,13 @@ public sealed class ClassicHudControls
     /// <summary>A panel that holds the screen is open (the options menu or the full map): the other panels and the world
     /// take no ordinary input.</summary>
     public bool Modal => OptionsVisible || FullMapVisible;
+    /// <summary>Whether the named-save browser shows (<see cref="SaveLoadHud"/>): the options menu open on its save or
+    /// load page.</summary>
+    public bool SaveLoadVisible => OptionsVisible && OptionsPage is ClassicOptionsPage.Save or ClassicOptionsPage.Load;
+    /// <summary>The in-game save browser's showing under the HUD's visibility (DungeonRunner.DrawSavePanel): shown while
+    /// <see cref="SaveLoadVisible"/> and the normal HUD shows; saving on the save page, where the name is typed in.</summary>
+    public (bool Shown, bool Saving) SaveLoadPage(HudVisibility hud) =>
+        (hud.ShowNormalHud && SaveLoadVisible, OptionsPage == ClassicOptionsPage.Save);
     /// <summary>The save page's name field takes the keys, so no HUD shortcut fires.</summary>
     public bool EditingText => OptionsVisible && OptionsPage == ClassicOptionsPage.Save;
     /// <summary>No turn runs, and none accrues, while the options menu is open; the bottom panel shows the game paused.</summary>

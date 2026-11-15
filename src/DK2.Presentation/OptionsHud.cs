@@ -50,7 +50,9 @@ public sealed class OptionsHud
     public void SetVisible(bool visible) => _visible = visible;
 
     /// <summary>The <see cref="ClassicHudControls"/> action a press on an entry applies; none for a title or nothing.
-    /// Save and Load open their pages; the host also refreshes its save list for them.</summary>
+    /// Save and Load open their pages; the host also refreshes its save list for them (<see cref="RefreshesSaves"/>).
+    /// The save browser's Back and Continue lines (<see cref="SaveLoadHud"/>) apply the <see cref="ClassicOptionsAction.Back"/>
+    /// and <see cref="ClassicOptionsAction.ContinueGame"/> entries' actions.</summary>
     public static ClassicHudAction HudAction(ClassicOptionsAction action) => action switch
     {
         ClassicOptionsAction.ContinueGame => ClassicHudAction.ToggleOptions,
@@ -67,6 +69,10 @@ public sealed class OptionsHud
         ClassicOptionsAction.Load => ClassicHudAction.OpenLoad,
         _ => ClassicHudAction.None,
     };
+
+    /// <summary>Whether a press on an entry rereads the save list (<see cref="SaveSlotsView.Refresh"/>) before its page
+    /// opens: Save and Load.</summary>
+    public static bool RefreshesSaves(ClassicOptionsAction action) => action is ClassicOptionsAction.Save or ClassicOptionsAction.Load;
 
     public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation)
     {

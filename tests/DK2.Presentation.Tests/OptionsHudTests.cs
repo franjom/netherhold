@@ -127,7 +127,7 @@ public sealed class OptionsHudTests
         SaveSlotsView view = Saves(0);
         int submitted = 0, back = 0;
         hud.Submit += () => submitted++;
-        hud.Back += () => back++;
+        hud.HudAction += action => back += action == ClassicHudAction.BackToOptions ? 1 : 100;
         hud.Show(view, visible: true, save: true);
         hud.Type("AB\bC");
         Assert.Equal("AC", view.Name);
@@ -143,6 +143,49 @@ public sealed class OptionsHudTests
         Assert.True(hud.PointerDown(backEntry.Rect.X + 1, backEntry.Rect.Y + 1, 0));
         Assert.Equal(1, back);
         Assert.False(hud.PointerDown(backEntry.Rect.X + 1, backEntry.Rect.Y + 1, 1));
+    }
+
+    [Fact]
+    public void TypingReadsOnlyTheGivenPartOfAReusedBuffer()
+    {
+        var hud = new SaveLoadHud(id => "text " + id, _ => Font);
+        SaveSlotsView view = Saves(0);
+        int submitted = 0;
+        hud.Submit += () => submitted++;
+        hud.Show(view, visible: true, save: true);
+        char[] buffer = { 'A', 'B', '\b', 'C', '\n', 'Z' };
+        hud.Type(buffer.AsSpan(0, 4));
+        Assert.Equal("AC", view.Name);
+        Assert.Equal(0, submitted);
+        hud.Type(buffer.AsSpan(4, 1));
+        Assert.Equal(1, submitted);
+        Assert.Equal("AC", view.Name);
+    }
+
+    [Theory]
+    [InlineData(ClassicOptionsAction.Save, true)]
+    [InlineData(ClassicOptionsAction.Load, true)]
+    [InlineData(ClassicOptionsAction.GameOptions, false)]
+    [InlineData(ClassicOptionsAction.ContinueGame, false)]
+    [InlineData(ClassicOptionsAction.Back, false)]
+    [InlineData(ClassicOptionsAction.None, false)]
+    public void OnlySaveAndLoadRereadTheSaveList(ClassicOptionsAction entry, bool expected) =>
+        Assert.Equal(expected, OptionsHud.RefreshesSaves(entry));
+
+    [Fact]
+    public void TheBackAndContinueLinesRaiseTheMenusBackAndContinueGameActions()
+    {
+        var hud = new SaveLoadHud(id => "text " + id, _ => Font);
+        var raised = new List<ClassicHudAction>();
+        hud.HudAction += raised.Add;
+        hud.Show(Saves(1), visible: true, save: false);
+        HudDraw[] draws = Build(hud);
+        HudDraw back = Assert.Single(draws, d => d.Image.Text!.Text == "text 20");
+        HudDraw continueGame = Assert.Single(draws, d => d.Image.Text!.Text == "text 142");
+        Assert.True(hud.PointerDown(back.Rect.X + 1, back.Rect.Y + 1, 0));
+        Assert.True(hud.PointerDown(continueGame.Rect.X + 1, continueGame.Rect.Y + 1, 0));
+        Assert.Equal(new[] { ClassicHudAction.BackToOptions, ClassicHudAction.ToggleOptions }, raised);
+        Assert.Equal(new[] { OptionsHud.HudAction(ClassicOptionsAction.Back), OptionsHud.HudAction(ClassicOptionsAction.ContinueGame) }, raised);
     }
 
     [Fact]

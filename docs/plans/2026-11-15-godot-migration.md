@@ -83,14 +83,39 @@ group 2 is a list to audit, not a finding.
       `HudModal` into `DK2.Presentation` with tests, and Unity calls them; a Movie Maker probe with
       synthesized Escape and clicks shows the root menu, the objective page, the Restart
       confirmation and the menu closed again; a real key press or click, right and middle press
-      swallowing and the tick count during the pause are unverified). Godot opens the query panel on the viewer's first creature only with the
+      swallowing and the tick count during the pause are unverified) and the save and load pages
+      (`ClassicSaveLoadPanel.cs` over `SaveLoadHud`: the slots listed read-only through
+      `SavedSessionFile.List`, an unreadable save showing its error; a press selects a slot and fills in
+      the name; the name is typed through `ClassicKeyboard`, which feeds the new `TypedTextBuffer` and
+      `TypedKey` in `DK2.Presentation`, the counterpart of Unity's `Input.inputString` (Backspace gives
+      `\b`, Enter and KpEnter `\n`, a character above the BMP a surrogate pair; 64 characters a frame,
+      refusing everything after an overflow until cleared); Back and Continue work; Escape is ignored
+      while typing on the Save page and closes the menu on the Load page; `ClassicHudControls.SaveLoadVisible`
+      and `SaveLoadPage(HudVisibility)` (returns `(Shown, Saving)`), `OptionsHud.RefreshesSaves` and
+      `SaveLoadHud.HudAction`, which replaces its `Back` and `Continue` events and raises
+      `OptionsHud.HudAction(Back/ContinueGame)`, moved into `DK2.Presentation` and Unity calls them;
+      `SaveLoadHud.Type` takes a `ReadOnlySpan<char>`; Movie Maker probe captures with synthesized input
+      and a scratch saves folder (four header-only saves and a truncated one) show a click on a slot
+      filling in its name, space, 2, Backspace, 3 giving "Mine run 3_", Back returning to the root with
+      Save and Load enabled, and on the Load page "The save is truncated (byte 3)." clearing when a good
+      save is selected; a real keyboard and mouse, Ctrl+letter, the wheel, the tick count while the page
+      is open and the Unity runtime are unverified). Godot opens the query panel on the viewer's first creature only with the
       test-scene argument `--query-first-creature`, as it has no world picking yet, and
       the battle tab with `--stage-battle`, which spawns a hero Knight on the tile of the viewer's
       first creature, Level1 having no early fight. Not wired in Godot for the battle tab: the
       blades' zoom, the glides and the fly-in (need the camera). Godot opens the options menu at
       start with the test-scene argument `--open-options [Entry]`, which refuses an unsupported
-      entry. Not wired in the options menu: Save, Load and Game Options (greyed; the later panels
-      `ClassicSaveLoadPanel` and `ClassicGameOptionsPanel`); the session action after Yes on
+      entry (Game Options only; `Save` and `Load` open their pages), and lists saves from the directory
+      `--saves <dir>` names. Not wired on the save and load pages: the submit, that is writing or
+      loading a save (Godot prints that the page's submit is not wired; it needs the runner's campaign
+      profile, `LoadFrontEndProfile`, and `ApplyCampaignCarry` with `_playedSlot`, the session mode and
+      the return page, and a save built from a made-up profile would be harmful, since Unity's
+      `LoadSession` writes `session.Profile` over the player's profile file); the save folder (Godot
+      lists `user://Saves`, `%APPDATA%/Godot/app_userdata/DK2.Godot/Saves`, not created at startup, which
+      is not Unity's `persistentDataPath/Saves`, so Unity's saves are not listed); the open and close
+      sounds; and `PointerOverHud` leaves the save page out, as in Unity, so tooltips from panels
+      beneath it may show (see [Q855](research/open-questions.md)). Not wired in the options menu: Game
+      Options (greyed; the later panel `ClassicGameOptionsPanel`); the session action after Yes on
       Restart, Return to Menu and Quit, taken and dropped with a `GD.Print` because it needs the
       runner (step 2); the other HUD keys (GUI toggle, full map, heart, portal and fight
       navigation); `AllowOptionsKey`, passed true, where Unity's scripted camera path holds the key
@@ -100,7 +125,7 @@ group 2 is a list to audit, not a finding.
       Godot: sound and
       speech, the Level6a torture-speech sink, the goto camera glide,
       scripted-view visibility (step 2). Remaining: `ClassicGameOptionsPanel`,
-      `ClassicSaveLoadPanel`, `ClassicFullMap`, `DungeonMinimap`,
+      `ClassicFullMap`, `DungeonMinimap`,
       `ClassicHudScaling`, `ClassicBitmapText`, `MinimapFrameVisual`.
       The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
       every Unity panel uses it (the hover HUD still sizes from
@@ -141,7 +166,11 @@ group 2 is a list to audit, not a finding.
       `ClassicHudControls.Modal`, wired in Godot), none wired in Godot, where a column press raises a pickup or focus nothing handles. From the
       creature query details: the query tool (select it, world click to query, which needs
       picking, right-click cancel, the stored-special and gold cancels), the camera follow and
-      turn (`ClassicCreatureQueryRules.FollowHeading`), none wired in Godot.
+      turn (`ClassicCreatureQueryRules.FollowHeading`), none wired in Godot. From the save and load
+      pages: move "build a `SavedSession` from the running session" (the campaign profile, its carry,
+      the header, `WorldSnapshot.ToBytes` through `SavedSessionFile.Save` and `PathForName`) into
+      `DK2.Presentation`, and the load (rebuilding the database, the triggers, the simulation and the
+      session) with it; decide the save folder both adapters share.
 - [ ] Move the behaviour into `DK2.Presentation` or the simulation, with tests; leave Unity a
       facade over it, as ADR-0805 did for the HUD.
 

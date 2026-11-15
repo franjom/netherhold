@@ -238,6 +238,49 @@ public sealed class ClassicHudControlsTests
     }
 
     [Fact]
+    public void TheSaveBrowserShowsOnlyOnTheSaveAndLoadPagesWhileOpen()
+    {
+        var controls = new ClassicHudControls();
+        Assert.False(controls.SaveLoadVisible);
+        controls.Apply(ClassicHudAction.OpenSave);
+        Assert.False(controls.SaveLoadVisible);   // the menu is closed
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.False(controls.SaveLoadVisible);
+        controls.Apply(ClassicHudAction.OpenSave);
+        Assert.True(controls.SaveLoadVisible);
+        Assert.True(controls.EditingText);
+        controls.Apply(ClassicHudAction.BackToOptions);
+        controls.Apply(ClassicHudAction.OpenLoad);
+        Assert.True(controls.SaveLoadVisible);
+        Assert.False(controls.EditingText);
+        controls.Apply(ClassicHudAction.BackToOptions);
+        controls.Apply(ClassicHudAction.OpenGameOptions);
+        Assert.False(controls.SaveLoadVisible);
+        controls.Apply(ClassicHudAction.BackToOptions);
+        controls.Apply(ClassicHudAction.OpenLoad);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.False(controls.SaveLoadVisible);
+    }
+
+    [Fact]
+    public void TheSaveBrowserShowsWithTheNormalHudAndSavesOnlyOnTheSavePage()
+    {
+        var controls = new ClassicHudControls();
+        var shown = new HudVisibility(true, true);
+        Assert.Equal((false, false), controls.SaveLoadPage(shown));
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.OpenSave);
+        Assert.Equal((true, true), controls.SaveLoadPage(shown));
+        Assert.Equal((true, true), controls.SaveLoadPage(new HudVisibility(true, false)));   // input does not matter
+        Assert.Equal((false, true), controls.SaveLoadPage(new HudVisibility(false, true)));  // a hidden HUD hides it
+        controls.Apply(ClassicHudAction.BackToOptions);
+        controls.Apply(ClassicHudAction.OpenLoad);
+        Assert.Equal((true, false), controls.SaveLoadPage(shown));
+        controls.Apply(ClassicHudAction.BackToOptions);
+        Assert.Equal((false, false), controls.SaveLoadPage(shown));
+    }
+
+    [Fact]
     public void TheOptionsMenuAndTheFullMapAreModalAndHoldPanelInputButNotTheirShowing()
     {
         var controls = new ClassicHudControls();

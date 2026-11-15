@@ -17,13 +17,14 @@ namespace DK2.GodotAdapter;
 /// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
 /// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported (plan step
 /// 1b): the resource strip, the bottom panel, the creature overview, the creature query details, the message tabs, the
-/// battle tab, the hover HUD (<see cref="HudHoverText"/>) and the options menu (<see cref="ClassicHudControls"/>, opened by
-/// the options key; while it is open the level pauses and the other panels take no input, as Unity's <c>HudModal</c>).
-/// Not wired (logic still in Unity's runner, or needing the 3D world): the list is in docs/plans/2026-11-15-godot-migration.md.
-/// User arguments after <c>--</c>: <c>--level
-/// &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>, <c>--query-first-creature</c> (queries the viewer's first creature, for the
-/// query tool's world click), <c>--stage-battle</c> (<see cref="StageBattle"/>) and <c>--open-options [entry]</c> (opens
-/// the options menu, then presses a <see cref="ClassicOptionsAction"/> entry by name, such as <c>RestartLevel</c>).</summary>
+/// battle tab, the hover HUD (<see cref="HudHoverText"/>), the options menu (<see cref="ClassicHudControls"/>, opened by
+/// the options key; while it is open the level pauses and the other panels take no input, as Unity's <c>HudModal</c>) and
+/// its save and load pages (writing and reading a save are not wired). Not wired (logic still in Unity's runner, or
+/// needing the 3D world): the list is in docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c>:
+/// <c>--level &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>, <c>--query-first-creature</c> (queries the viewer's first creature),
+/// <c>--stage-battle</c> (<see cref="StageBattle"/>), <c>--open-options [entry]</c> (opens the options menu, then presses
+/// a <see cref="ClassicOptionsAction"/> entry by name, such as <c>RestartLevel</c> or <c>Save</c>) and <c>--saves
+/// &lt;directory&gt;</c> (the saves directory, <c>user://Saves</c> by default).</summary>
 public partial class InGameHud : Node, IHudHoverSources
 {
     /// <summary>DungeonRunner's <c>maxTicksPerFrame</c> in the Dungeon scene.</summary>
@@ -59,6 +60,9 @@ public partial class InGameHud : Node, IHudHoverSources
     private MusicWorldObserver? _battles;
     private ClassicBattleTab? _battleTab;
     private ClassicOptionsPanel? _options;
+    /// <summary>The save and load pages' list, as Unity's runner keeps it.</summary>
+    private SaveSlotsView? _saves;
+    private ClassicSaveLoadPanel? _saveLoad;
     /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
     private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
@@ -137,11 +141,23 @@ public partial class InGameHud : Node, IHudHoverSources
         _battleTab.Clicked += BattleTabClicked;
         AddChild(_battleTab);
         // After every panel it covers, so it draws over them and takes the mouse first, as Unity's sorting order 15. Its
-        // save, load and game options entries stay greyed: those pages are other panels, not ported yet.
+        // game options entry stays greyed: that page is another panel, not ported yet.
         _options = new ClassicOptionsPanel { Name = "Options" };
         _options.Open(_sources.Text, _art.Font);
+        _options.SetSupported(ClassicOptionsAction.Save, true);
+        _options.SetSupported(ClassicOptionsAction.Load, true);
         _options.Pressed += OptionsPressed;
         AddChild(_options);
+        // Unity's runner lists Application.persistentDataPath/Saves unless savedSessionDirectory names another; Godot's
+        // counterpart of that path is user://Saves. Listing only reads: nothing is created there.
+        string savesDirectory = Argument(args, "--saves") ?? ProjectSettings.GlobalizePath("user://Saves");
+        _saves = new SaveSlotsView(savesDirectory);
+        // After the menu, as Unity's sorting order 16 over its 15.
+        _saveLoad = new ClassicSaveLoadPanel { Name = "SaveLoad" };
+        _saveLoad.Open(_sources.Text, _art.Font);
+        _saveLoad.Submit += SaveLoadSubmitted;
+        _saveLoad.HudAction += ApplyHudAction;
+        AddChild(_saveLoad);
         // Its bar's canvas draws under the panels and its text's over them by z index (ClassicHoverHud), not tree order.
         _hover = new ClassicHoverHud { Name = "HoverHud" };
         _hover.Open(_sources);
@@ -160,14 +176,14 @@ public partial class InGameHud : Node, IHudHoverSources
         if (Array.IndexOf(args, "--open-options") >= 0)
         {
             ApplyHudAction(ClassicHudAction.ToggleOptions);
-            // Only an entry the menu takes a press on: an unsupported one (save, load, game options) is ignored, as a click.
+            // Only an entry the menu takes a press on: an unsupported one (game options) is ignored, as a click.
             if (Enum.TryParse(Argument(args, "--open-options"), out ClassicOptionsAction entry))
             {
                 if (_options.Supported(entry)) OptionsPressed(entry);
                 else GD.PushWarning("DK2.Godot: --open-options ignores " + entry + ", which the menu does not support.");
             }
         }
-        GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture));
+        GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture), ", saves in ", savesDirectory);
     }
 
     public override void _Process(double delta)
@@ -175,7 +191,7 @@ public partial class InGameHud : Node, IHudHoverSources
         if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
             || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
-            || _battles == null || _battleTab == null || _options == null) return;
+            || _battles == null || _battleTab == null || _options == null || _saveLoad == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         // Once per settled turn, before the HUD draws, as DungeonRunner.UpdateWorldSound captures it.
@@ -187,12 +203,15 @@ public partial class InGameHud : Node, IHudHoverSources
         var visibility = new HudVisibility(true, true);
         ClassicHudAction shortcut = _keyboard.Read(_settings).HudShortcut(
             _hudControls.ShortcutContext(visibility, allowOptionsKey: true, capturingKey: false), _keyboard.EscapePressed);
-        _keyboard.EndFrame();
         if (shortcut == ClassicHudAction.ToggleOptions) ApplyHudAction(shortcut);
         bool modal = _hudControls.Modal;
         _panel.SetVisibility(_hudControls.ModalInput(visibility));
         _options.SetVisible(visibility.ShowNormalHud && _hudControls.OptionsMenuVisible);
         _options.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
+        // DungeonRunner.DrawSavePanel's in-game branch, with this frame's typing (Unity reads Input.inputString there).
+        (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(visibility);
+        _saveLoad.Show(_saves, saveLoadShown, saving, _keyboard.Typed);
+        _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         long milliseconds = (long)(_elapsed * 1000);
         // displayHealth follows the normal HUD's visibility in Unity; the scripted view that hides it is not wired.
@@ -268,8 +287,8 @@ public partial class InGameHud : Node, IHudHoverSources
         if (BattleTabView.Action(button, mouse) == BattleTabAction.CancelCallToArms) _pending.Add(new RemoveCallToArmsCommand(_viewer));
     }
 
-    /// <summary>DungeonRunner.ApplyHudAction for the actions this scene applies: the options key and the options menu's
-    /// entries. The camera's and the minimap's actions (navigation, zoom, the query and sell corners) are not applied.</summary>
+    /// <summary>DungeonRunner.ApplyHudAction for the actions this scene applies: the options key, the options menu's
+    /// entries and the save browser's Back and Continue lines. The camera's and the minimap's actions (navigation, zoom, the query and sell corners) are not applied.</summary>
     private void ApplyHudAction(ClassicHudAction action)
     {
         if (action == ClassicHudAction.None || _hudControls.InputSuppressed) return;
@@ -278,15 +297,23 @@ public partial class InGameHud : Node, IHudHoverSources
     }
 
     /// <summary>A press on an options menu entry, as DungeonRunner.QueueHudInput applies it
-    /// (<see cref="OptionsHud.HudAction"/>). The session a confirmed restart, return or quit asks for is taken and dropped:
-    /// loading a level and leaving the game are the runner's (plan step 2). Save, Load and Game Options are unsupported
-    /// here, so the menu never raises them and <c>--open-options</c> refuses them.</summary>
+    /// (<see cref="OptionsHud.HudAction"/>), the save list reread first for Save and Load. The session a confirmed restart,
+    /// return or quit asks for is taken and dropped: loading a level and leaving the game are the runner's (plan step 2).
+    /// Game Options is unsupported here, so the menu never raises it and <c>--open-options</c> refuses it.</summary>
     private void OptionsPressed(ClassicOptionsAction action)
     {
+        if (OptionsHud.RefreshesSaves(action)) _saves?.Refresh();
         ApplyHudAction(OptionsHud.HudAction(action));
         ClassicSessionAction session = _hudControls.TakeSessionAction();
         if (session != ClassicSessionAction.None) GD.Print("DK2.Godot: the options menu's ", session.ToString(), " is not wired yet.");
     }
+
+    /// <summary>The save browser's Enter, or a press on its name or Load line. Unity's runner writes the session there
+    /// (DungeonRunner.SaveSession: the campaign profile and its carry, the header, the world snapshot) or rebuilds the world
+    /// and the session from the chosen save (LoadSession); both need the runner's session and campaign profile, so the
+    /// request is dropped here (plan step 2), and nothing is written.</summary>
+    private void SaveLoadSubmitted() =>
+        GD.Print("DK2.Godot: the ", _hudControls.OptionsPage.ToString(), " page's submit is not wired yet.");
 
     /// <summary>DungeonRunner.SelectPanelChoice's pointer resets and its query clear; the tool it then sets lives in the
     /// runner (plan step 2).</summary>
@@ -359,7 +386,11 @@ public partial class InGameHud : Node, IHudHoverSources
         }
         if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
         if (_options != null) _options.Pressed -= OptionsPressed;
-        _battleTab = null; _battles = null; _options = null;
+        if (_saveLoad != null)
+        {
+            _saveLoad.Submit -= SaveLoadSubmitted; _saveLoad.HudAction -= ApplyHudAction;
+        }
+        _battleTab = null; _battles = null; _options = null; _saveLoad = null; _saves = null;
         _art?.Dispose(); _sources?.Dispose();
         _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _queryPanel = null; _queryView = null;
         _panel = null; _model = null; _view = null; _messages = null; _messageView = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;

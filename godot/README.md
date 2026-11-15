@@ -8,7 +8,7 @@ movies, sound and keyboard; the model disables the campaign, save and movie butt
 pages open but their controls are inert. Like Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
-Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Eight panels
+Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Nine panels
 are there so far: the hover HUD (`ClassicHoverHud` over `HoverHud`: the wooden bar under the other panels, the status
 line and the delayed tooltip over them), which shows what the shared `HudHoverText` picks from the panels under the
 pointer (the resource strip, the bottom panel, the creature overview, the message tabs, the battle tab; world hover needs
@@ -33,7 +33,7 @@ click opening one in the message panel, a right click dismissing it, the Review 
 level's indicators). The level's scripted view (the shared `ScriptedViewDirector`: opening camera path, HUD hiding,
 FLASH_BUTTON, the resource flash), the tool a selection sets, camera glides (a message's goto button shows but moves
 nothing) and sound are not wired, because the code that drives them is still in Unity's runner (plan
-step 2). The options menu (`ClassicOptionsPanel` over `OptionsHud`) opens on Escape (`ClassicKeyboard` maps Godot physical keys to DirectInput scan codes, the inverse of Unity's `ClassicKeyBindings.Key`; the two tables change together) and pauses the level; its root, objective, exit and confirmation pages work, Save, Load and Game Options are greyed, and the session action after a confirmed restart, return or quit is dropped. `--open-options [Entry]` opens it at start and refuses an unsupported entry. The level start (`CampaignLevelData`), tick pacing (`TickPacer`), the panel's opening state, the stored-special
+step 2). The options menu (`ClassicOptionsPanel` over `OptionsHud`) opens on Escape (`ClassicKeyboard` maps Godot physical keys to DirectInput scan codes, the inverse of Unity's `ClassicKeyBindings.Key`; the two tables change together) and pauses the level; its root, objective, exit and confirmation pages work, Game Options is greyed, and the session action after a confirmed restart, return or quit is dropped. `--open-options [Entry]` opens it at start and refuses an unsupported entry (only Game Options now). Its Save and Load pages are `ClassicSaveLoadPanel` over `SaveLoadHud`: the saves are listed read-only from `user://Saves` (`%APPDATA%/Godot/app_userdata/DK2.Godot/Saves`, not Unity's `persistentDataPath/Saves`, and not created at startup) or from the directory `--saves <dir>` names, a press on a slot selects it and fills in the name, the name is typed through `ClassicKeyboard`, and Back and Continue work. Submitting, which writes or loads a save, is not wired: Godot prints that and does nothing, as it needs the runner's campaign profile (plan step 2). The level start (`CampaignLevelData`), tick pacing (`TickPacer`), the panel's opening state, the stored-special
 click, the message string tables (`MessageTextTables`), player names (`PlayerNames`) and which panel's hover text wins
 (`HudHoverText`), the creature overview's install art (`InstallCreatureOverviewArt`), the query target and its details
 (`CreatureQueryView`), the creature names it shows (`InstallClassicCreatureNames`), and the battle tab's place, hover
@@ -41,7 +41,7 @@ text and click actions (`BattleTabView.MenuTop`, `BattleTabHoverText`, `BattleTa
 `DK2.Presentation`. Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
-`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab, `--open-options [Entry]` to open the options menu at an entry).
+`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
 
 | File | Role |
@@ -58,6 +58,7 @@ Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agent
 | `DK2.Godot/ClassicCreatureOverview.cs` | the creature overview in the Creatures panel: `CreatureOverviewHud` drawn by `HudCanvas`, bottom-docked, presses forwarded without taking them from the panel |
 | `DK2.Godot/ClassicCreatureQueryPanel.cs` | the creature query details: `CreatureQueryHud` drawn by `HudCanvas`, bottom-docked, no input |
 | `DK2.Godot/ClassicBattleTab.cs` | the battle tab: `BattleTabHud` drawn by `HudCanvas`, bottom-docked, presses on a shown button taken and raised |
+| `DK2.Godot/ClassicSaveLoadPanel.cs` | the options menu's Save and Load pages: `SaveLoadHud` drawn by `HudCanvas` over the whole screen, taking every mouse press while it shows, the typed name from `ClassicKeyboard` |
 | `DK2.Godot/ClassicMessageTabs.cs` | the message tabs, message and objective panels, indicators: `MessageTabsHud` drawn by `HudCanvas`, bottom-docked, mouse forwarded |
 | `DK2.Godot/HudCanvas*.cs` | the one `HudFrame` renderer every panel draws through |
 

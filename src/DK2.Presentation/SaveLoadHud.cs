@@ -27,8 +27,9 @@ public sealed class SaveLoadHud
 
     /// <summary>Enter in the name, or a press on the name or the Load entry.</summary>
     public event Action? Submit;
-    public event Action? Back;
-    public event Action? Continue;
+    /// <summary>A press on the Back or Continue line: the options menu's action it applies, the same as that menu's own
+    /// Back and Continue Game entries (<see cref="OptionsHud.HudAction"/>; DungeonRunner.InitializeSaves applied them).</summary>
+    public event Action<ClassicHudAction>? HudAction;
 
     /// <param name="text">A string table entry by id.</param>
     /// <param name="font">The legible font for a screen height.</param>
@@ -51,12 +52,14 @@ public sealed class SaveLoadHud
 
     public void Error(string message) { _error = message; _revision = -1; }
 
-    /// <summary>Typed characters for the in-game save name: backspace deletes, Enter submits.</summary>
-    public void Type(string characters)
+    /// <summary>Typed characters for the in-game save name: backspace deletes, Enter submits. A span, so a host can pass
+    /// its own reused buffer (a string converts).</summary>
+    public void Type(ReadOnlySpan<char> characters)
     {
         if (!Visible || _frontEnd || !_save) return;
-        foreach (char c in characters)
+        for (int i = 0; i < characters.Length; i++)
         {
+            char c = characters[i];
             string name = _view!.Name;
             if (c == '\b') { if (name.Length > 0) _view.SetName(name[..^1]); }
             else if (c == '\n' || c == '\r') Submit?.Invoke();
@@ -98,8 +101,8 @@ public sealed class SaveLoadHud
                 _revision = -1;
                 break;
             case Press.Submit: Submit?.Invoke(); break;
-            case Press.Continue: Continue?.Invoke(); break;
-            case Press.Back: Back?.Invoke(); break;
+            case Press.Continue: HudAction?.Invoke(OptionsHud.HudAction(ClassicOptionsAction.ContinueGame)); break;
+            case Press.Back: HudAction?.Invoke(OptionsHud.HudAction(ClassicOptionsAction.Back)); break;
         }
         return true;
     }

@@ -11,12 +11,16 @@ namespace DK2.GodotAdapter;
 /// <summary>The keyboard as the settings' DirectInput scan codes, the Godot counterpart of Unity's
 /// <c>ClassicKeyBindings</c>: the host feeds it key events, and <see cref="Read"/> answers held keys and the keys pressed
 /// since the last <see cref="EndFrame"/> (Unity's <c>GetKey</c> and <c>GetKeyDown</c>) to <see cref="GameBindingInput"/>.
-/// Keys are read by their physical position, as scan codes are; a key Unity's table has no entry for is ignored.</summary>
+/// Keys are read by their physical position, as scan codes are; a key Unity's table has no entry for is ignored. It also
+/// keeps the text typed since the last <see cref="EndFrame"/> (<see cref="Typed"/>, Unity's <c>Input.inputString</c>) for the
+/// save page's name, whose editing rules are <see cref="SaveLoadHud.Type"/>'s.</summary>
 public sealed class ClassicKeyboard
 {
     private readonly bool[] _held = new bool[256];
     private readonly bool[] _pressed = new bool[256];
     private readonly Func<KeyScanCode, bool> _readHeld, _readPressed;
+    /// <summary>This frame's typed characters (<see cref="TypedTextBuffer"/> decides them and the cap).</summary>
+    private readonly TypedTextBuffer _typed = new();
 
     public ClassicKeyboard()
     {
@@ -35,9 +39,14 @@ public sealed class ClassicKeyboard
 
     public GameBindingInput Read(GameSettings settings) => new(settings, Modifiers, _readHeld, _readPressed);
 
+    /// <summary>The characters typed since the last <see cref="EndFrame"/>, key repeats included, as Unity's
+    /// <c>Input.inputString</c> gives them (<see cref="TypedTextBuffer"/>).</summary>
+    public ReadOnlySpan<char> Typed => _typed.Text;
+
     /// <summary>Takes a key event; returns whether it was a key the table knows.</summary>
     public bool Feed(InputEventKey key)
     {
+        if (key.Pressed) Type(key);
         int scan = ScanCode(key.PhysicalKeycode, key.Location);
         if (scan == 0) return false;
         if (key.Pressed) { if (!key.Echo && !_held[scan]) _pressed[scan] = true; _held[scan] = true; }
@@ -46,10 +55,21 @@ public sealed class ClassicKeyboard
     }
 
     /// <summary>Forgets the keys pressed this frame; call once the frame has read them.</summary>
-    public void EndFrame() => Array.Clear(_pressed);
+    public void EndFrame() { Array.Clear(_pressed); _typed.Clear(); }
 
     /// <summary>Releases every key, for a window that lost focus and so misses the releases.</summary>
-    public void ReleaseAll() { Array.Clear(_held); Array.Clear(_pressed); }
+    public void ReleaseAll() { Array.Clear(_held); Array.Clear(_pressed); _typed.Clear(); }
+
+    /// <summary>A pressed key as <see cref="TypedTextBuffer"/> takes it: Backspace and either Enter by their logical key,
+    /// anything else by its Unicode code point (0 for none, which types nothing).</summary>
+    private void Type(InputEventKey key)
+    {
+        Key logical = key.Keycode;
+        TypedKey kind = logical == Key.Backspace ? TypedKey.Backspace
+            : logical is Key.Enter or Key.KpEnter ? TypedKey.Enter : TypedKey.Other;
+        long unicode = key.Unicode;
+        _typed.Add(kind, unicode is > 0 and <= uint.MaxValue ? (uint)unicode : 0);
+    }
 
     /// <summary>The scan code of a physical key; 0 for none. A key with no side (<see cref="KeyLocation.Unspecified"/>)
     /// reads as the left one. This is the inverse of Unity's <c>ClassicKeyBindings.Key</c> table (0x01..0xD3), checked
