@@ -67,6 +67,25 @@ public sealed class TerrainLattice
 
     private bool _highWalls = true;
 
+    /// <summary>
+    /// The possession cameras' latch <c>0x00759AE8</c> (camera modes 2, 10 and 11): while it is set
+    /// the levels rest at their full spacing whatever <see cref="HighWalls"/> says, so a possessed
+    /// creature never sees over a wall (<c>0x005A3220</c>). Changing it forgets every cell, as each
+    /// flip of the latch does (<c>0x00571DA0</c>).
+    /// </summary>
+    public bool Possession
+    {
+        get => _possession;
+        set
+        {
+            if (_possession == value) return;
+            _possession = value;
+            InvalidateAll();
+        }
+    }
+
+    private bool _possession;
+
     /// <summary>Forgets the cells a change at (x, y) reaches: its own and its eight neighbours'.</summary>
     public void Invalidate(int x, int y)
     {
@@ -124,7 +143,7 @@ public sealed class TerrainLattice
     private void Build(int x, int y, int index)
     {
         Span<Vector3> cell = _points.AsSpan(index * Points, Points);
-        (float s, float o) = _highWalls ? (0.5f, 0f) : (0.25f, 0.75f);
+        (float s, float o) = _highWalls || _possession ? (0.5f, 0f) : (0.25f, 0.75f);
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < 2; j++)
                 for (int k = 0; k < 5; k++)
