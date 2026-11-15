@@ -181,10 +181,10 @@ expect:
       CreatureDyingStateDurationSeconds is 60 and the health phase books it on
       the first game second (ADR-0089).
   - event: creature_died
-    at_tick: 247
+    at_tick: 250
     because: >
-      244 ticks after the collapse (the fall, then the 240-tick window), untouched.
-      The imp is claiming for all of it.
+      The collapse action ends in state 216 at turn 10; state 217 counts
+      240 turns from 11 through 250. The imp is claiming for all of it.
   - event: corpse_rotted
     at_tick: 487
     because: >

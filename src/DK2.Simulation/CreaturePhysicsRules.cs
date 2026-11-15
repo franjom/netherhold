@@ -42,10 +42,12 @@ public static class CreaturePhysicsRules
         int velocityZ = 0;
         if (ownsHeight)
         {
-            int floor = FloorHeightRules.RelativeAt(world, database, creature.PosX, creature.PosY);
+            int floor = creature.IsPitTransporting
+                ? creature.PitTransportFloorHeight.Raw - FloorHeightRules.Ordinary
+                : FloorHeightRules.RelativeAt(world, database, creature.PosX, creature.PosY);
             // Native raises a creature onto a higher floor when its position is set; ours' other position
             // writers do not ask the floor, so the pass catches it up first.
-            if (creature.PosZ < floor) SetHeight(world, database, creature, creature.PosZ);
+            if (!creature.IsPitTransporting && creature.PosZ < floor) SetHeight(world, database, creature, creature.PosZ);
             if (creature.PosZ > floor && !WaterSpeedRules.IsFlying(definition, creature))
                 creature.CreationVelocityZ -= unchecked((byte)database[VariableTypeId.GravityConstant]) * 0x100;
             // 0x004B2740: on or below the floor the vertical vector is spent.
@@ -133,6 +135,8 @@ public static class CreaturePhysicsRules
     internal static void SetHeight(WorldState world, GameDatabase database, CreatureState creature, int z)
     {
         int floor = FloorHeightRules.RelativeAt(world, database, creature.PosX, creature.PosY);
+        if (creature.IsPitTransporting)
+            creature.PitTransportFloorHeight = new Fp32(floor + FloorHeightRules.Ordinary);
         if (z < floor)
         {
             z = floor;

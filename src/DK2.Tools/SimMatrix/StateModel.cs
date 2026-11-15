@@ -81,6 +81,7 @@ internal sealed class StateModel
         ["IdledByEatHandlerThisTick"] = Caches,
         ["LandingDueThisTick"] = Caches,
         ["ReinforcementActionsPolledThisTick"] = Caches, ["WorkerPreludeProcessedThisTick"] = Caches, ["CreaturesUpdatedThisTick"] = Caches,
+        ["DyingStatesUpdatedThisTick"] = Caches,
         ["ClaimActionsPolledThisTick"] = Caches, ["ClaimActionsAdvancedThisTick"] = Caches,
         ["IdleActionsPolledThisTick"] = Caches, ["IdleActionsAdvancedThisTick"] = Caches,
         ["PossessedMeleePolledThisTick"] = Caches, ["PossessedMeleeAdvancedThisTick"] = Caches,

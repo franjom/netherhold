@@ -5,15 +5,15 @@ systems: [creatures, rooms, tooling-process]
 
 ## Verdict
 
-Q710 remains OPEN. For the selected stationary Troll continuation, the modern
-Workshop slab chain already matches the capture. A same-world algorithm/seed
-switch still selects a different point. Neither control identifies the native
-picker call, establishes matched inputs or explains the full Guard-room gap.
-The next requirement is a provenanced native per-call trace around the target
-picker, with actor, predicate and checkpoint context.
+Q710 remains OPEN. The first managed draw in the frozen control is a lair
+search by an unmatched moving fighter, at a different site from native. Equal seed
+pairs and total draws do not establish call-order or behavioral parity. Next
+inventory captured route/body coverage for those moving actors before promising
+a matched continuation; the full Guard-room cause remains unresolved.
 
-No native game was launched. Production code is unchanged by these studies;
-scratch observers and interventions are retained outside the repository.
+Production code is unchanged by these studies. Throwaway tooling is archived
+with external evidence; the targeted owned native replay below follows the
+earlier managed controls.
 [Remembered Guard memory](guard-job-memory.md) is a separate bounded build.
 
 ## Evidence and controls (2026-11-14)
@@ -219,19 +219,101 @@ Evidence: `q710-room-point-inputs--2026-11-15--001`,
 `manifest-reviewed-input.json` (193 files, excluding itself), `analysis.json`,
 `rng-switch/analysis.json`, `interpretation.json`, `retained-log-assessment.json`.
 
+## Native room draw trace at 9ac4c16e
+
+One owned native `l4live` packet replay uses the original map-gated seed-8
+helper. The owner is warned before debugger pauses. Five world-return checkpoints
+cover labels 4999..5003, alongside native RNG logging; no full-process dump is
+made. Receipts report the owned game closed and the packet unchanged.
+
+For actor 440's listed fields, room 1110, slab chain and world seed, each new
+return checkpoint C matches retained polling label C+1: 4999..5003 map locally
+to 5000..5004. Every same-label comparison fails and is preserved in
+`checkpoint-comparison.json`; successful comparisons are in
+`phase-projection-comparison.json`. The known world-call-before-clock-increment
+order ([world tick](functions/00526590.md), [clock read](functions/00517490.md))
+supports this sampled phase mapping. It is not a global polling reindex,
+managed-tick identity or full actor/needs/body/world equivalence.
+
+The new-return interval 5000..5001 corresponds to retained 5001..5002 and
+contains 23 logged draws. Its sole `Room.cpp:1509` row is ordinal 2, preseed
+2060768411, postseed 152469822. The complete appended log has 180 rows and
+179 consecutive LCG links; 45 rows precede the first checkpoint and 135 are
+attributed across four intervals, with counts 26/23/48/38.
+
+Actor 440 is the only captured creature newly storing a state-7 destination
+in both corresponding 448-creature windows: (30,48), resume 63. The native log
+records site/preseed, not actor, range or predicate results. This association
+therefore remains contextual. Failed walk attempts and per-call actor identities
+remain unobserved.
+Assuming room 1110 and range 15, the logged draw gives index 6/start (31,47).
+Applying the prior observed modern eligibility mask then selects (30,48),
+consistent with the native point, not proof of native eligibility or a fix.
+The former six arithmetic matches are narrowed to this observed site ordinal;
+no output-matching seed or arbitrary RNG burn is selected.
+
+Evidence: `q710-native-room-draw-seed8--2026-11-15--006`,
+`interpretation.json`, `draw-attribution.json`,
+`phase-projection-comparison.json`, `native-transition-context.json` and
+`log-sequence-validation.json`. `manifest-final-review.json` verifies 36 files,
+excluding itself.
+
+## Preceding draw attribution at c0a88b63
+
+This research branch reuses frozen managed source `0b71f052`, hash 521, and the
+prior same-world native-RNG control; it is not a latest-master production run.
+The 882 baseline source hashes match that Git snapshot. Six scratch files differ
+from base, only three of them additional observers. Off/read runs both complete
+6000 turns; all seven ordinary telemetry/picker/sidecar files match each other
+and the prior native-RNG-on control byte-for-byte. Neutrality is limited to those
+outputs, not all private fields. No native game is launched.
+
+The matrix records 49 modern `NextInt` calls over world ticks 5000/5001,
+compared with the previously local-phase-bound native return intervals:
+
+| Interval | Modern calls | Native logged draws |
+|---|---:|---:|
+| 5000 | 30 | 26 |
+| 5001 | 19 | 23 |
+| Combined | 49 | 49 |
+
+Both end at seed 145474329. Every pre/post seed pair matches by combined global
+ordinal from the same LCG start, not by caller identity or behavioral order.
+The first recorded managed draw has update context modern 75/native pair 420,
+starting state 1: the source-backed visible path is `CreatureSleepSystem` through
+`LairSeeker` to `ArrivalTile`, range 4, not an exhaustive runtime call graph.
+Native's first site is `GoodState.cpp:253`. The
+[primary reread](functions/00461F00.md) establishes fixed range 9 there,
+STRONGLY INFERRED; the log does not directly record its actor or range.
+
+| Frozen boundary actor | Native state/resume | Native bed | Modern state/resume | Modern bed/route |
+|---|---|---:|---|---|
+| 420 | 6 / 98 | 3029 | 1 / 0 | none / none |
+| 422 | 6 / 98 | 3191 | 1 / 0 | none / none |
+
+Their poses and health agree, but the selected control intentionally restores
+only stationary actor 440; these moving actors remain unmatched. This does not
+report a bed intervention for 420/422. Troll 440's room draw is global ordinal
+32 in managed execution versus 28 natively, with preseeds 966827007 versus
+2060768411. Four LCG positions do not identify four extra/unnecessary calls,
+a picker defect or an RNG-burn correction. Per-call native actor/range and
+predicate attribution remain conditional.
+
+Evidence: `q710-preceding-rng--2026-11-15--001`,
+`manifest-reviewed-input.json` (62 entries, excluding itself), `analysis.json`
+(49-row matrix and boundaries), `binary-read-facts.json`,
+`replays-verified.json` and the source-provenance receipt.
+
 ## Next trace and remaining limits
 
-The located `q712-native-drawlog-level4-seed1--2026-11-04--001` is a provenanced
-natural seed-1 trace: frames 1400..1900, draws 1401..1900. That trace and the checked
-seed-8 capture siblings do not identify seed 8's target at 5001. This is a scoped
-inventory of checked locations, not an exhaustive archive-absence claim.
+Inventory which route/body fields and histories the capture retains for moving
+420/422 before promising a matched moving-route control. Then control their bed,
+state/resume and available body inputs and recheck the bounded prefix, keeping
+unavailable inputs explicit. Rebind the experiment to a source-bound current
+baseline before implementation; these findings concern frozen `0b71f052`.
+A native replay is not currently needed.
 
-Locate or obtain a provenanced per-call `Room.cpp:1509` trace around seed-8
-labels 5001..5002, with actor/predicate context and matching RNG checkpoints.
-The existing packet recording can drive a new trace; no manual owner replay is
-needed. Warn before any future debugger pause/full-memory read; focused RNG
-logging does not require a full-memory dump. No launch is made by this research.
-
-Native eligibility/call identity, body/world/clock state, route buffers, outside-
-cohort reservations and birth histories remain unmatched. Q710 stays OPEN: no
-causal AI-rule correction, global outcome or native-fidelity verdict is established.
+Native predicate results and per-call actor/range, body/world/clock state, route
+buffers, outside-cohort reservations and birth histories remain unmatched.
+No AI defect, global outcome, fidelity verdict, arbitrary RNG burns or picker
+fix follows from equal endpoint seeds or the four-position offset.

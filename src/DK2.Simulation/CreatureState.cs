@@ -466,6 +466,14 @@ public sealed partial class CreatureState
     /// <c>DeadBodyDiesAfterSeconds</c> (also 60). Reset to zero at the
     /// transition, so a corpse gets its own full sixty seconds.</para></summary>
     public int DyingTicks;
+    /// <summary>State +0xA7: the pit loser's sinking/rising phase.</summary>
+    public PitTransportPhase PitTransportPhase;
+    /// <summary>State +0xAB, stamped by 216: transport starts strictly after this turn.</summary>
+    public GameTick PitTransportAfter;
+    /// <summary>The retained native floor word during raw pit transport position writes.</summary>
+    public Fp32 PitTransportFloorHeight;
+    public bool IsPitTransporting => Dk2StateId == CreatureDeathRules.DyingState
+        && PitTransportPhase != PitTransportPhase.None;
 
     /// <summary>How cross this creature is — six counters, one per grievance, each
     /// running from 0 to <see cref="CreatureAngerRules.Saturation"/> (65533).
@@ -1525,6 +1533,9 @@ public sealed partial class CreatureState
         hash.Add(NextSleepTryTick.Value);
         hash.Add(SleepTicks);
         hash.Add(DyingTicks);
+        hash.Add((byte)PitTransportPhase);
+        hash.Add(PitTransportAfter.Value);
+        hash.Add(PitTransportFloorHeight.Raw);
         Anger.Hash(ref hash);
         hash.Add(WageOwed);
         hash.Add(PayAttemptsFailed);

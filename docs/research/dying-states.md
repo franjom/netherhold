@@ -37,8 +37,9 @@ Confidence: **STRONGLY INFERRED (binary)**.
   2026-11-11, which settles the earlier contradiction in favour of the step; evidence and capture:
   [death-fall-heading.md](death-fall-heading.md)). The health stays at the countdown's start
   through 216: the countdown runs only from 217.
-- **217's handler** `0x004599D0` plays the fall in two phases (`state+0xA7` 1, then
-  2), held off until the turn passes the `+0xAB` stamp (`0x00459A34`). Each turn it calls the health routine in its dying-countdown mode
+- **217's handler** `0x004599D0` clears the pit-fighter flag and runs the Combat Pit's
+  sink/transport/rise sequence when applicable (see `combat-pit.md` section 4).
+  Outside those early-return branches it calls the health routine in its dying-countdown mode
   (`0x004B2CE0` with −1, §4), but only while the creature's `BeingDragged` (`+0x3C7`,
   read through vtable `+0x74`, `0x004B5DE0`) is 0 (`0x00459BE8`–`0x00459C00`). The health
   routine refuses any change to a dragged creature as well (`0x004B2E08`). So **the rescue
@@ -54,9 +55,10 @@ Confidence: **STRONGLY INFERRED (binary)**.
 - **Built** (ADR-0206, ADR-0741): collapse enters 216; `DeathFallRules.Fall` enters 217 when
   the collapse's action is over (its end, `FallEndsAt`, is a HYPOTHESIS) and takes the step
   back; the countdown starts there; a rescue leaves through state 1 into the Sleeping state 83;
-  a corpse hands its id back. **Ours:** the stamp and 217's two-phase fall machine are not
-  built; a rescue lies down in its bed (ADR-0063) rather than running `0x0046F390`; the corpse
-  stays in the creature list.
+  a corpse hands its id back. Since hash/save 522, `DyingStateRules` runs 216/217 once per
+  turn, including the pit transport and its stamp (see `combat-pit.md` section 4 for limits).
+  **Ours:** a rescue lies down in its bed (ADR-0063) rather than running
+  `0x0046F390`; the corpse stays in the creature list.
 
 ## 2. A corpse is a thing of its own
 

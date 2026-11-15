@@ -147,17 +147,19 @@ expect:
       game second, so a creature at zero health goes down within four ticks.
       The routine that writes it is FUN_004B2CE0 (combat.md 1).
   - event: creature_died
-    at_tick: 247
+    at_tick: 250
     because: >
-      244 ticks after the collapse: the fall in state 216 (ADR-0741), then 60 game
-      seconds at four ticks a second (ADR-0089). The window is inviolable to
+      State 216 ends at turn 10 with this scenario's collapse action; state 217
+      counts turns 11 through 250, 60 game seconds at four ticks a second
+      (ADR-0089). The window is inviolable to
       further damage - a second blow
       does not finish a collapsed creature early (Q110, creature-death.md 4).
   - event: corpse_rotted
     at_tick: 487
     because: >
-      A further 240 ticks. Both timers are creature variables and both read 60,
-      so the corpse lasts exactly as long as the body did.
+      The corpse counts 240 ticks in four-tick batches at game-second boundaries,
+      reaching its limit at 487. This existing batching makes the elapsed time
+      from death at 250 three ticks shorter than the counted duration.
   - event: creature_rescued
     absent: true
     because: >

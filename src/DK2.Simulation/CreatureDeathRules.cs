@@ -243,6 +243,9 @@ public static class CreatureDeathRules
         }
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
+        creature.PitTransportPhase = PitTransportPhase.None;
+        creature.PitTransportAfter = default;
+        creature.PitTransportFloorHeight = default;
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;
         creature.TimerTicks = 0;
