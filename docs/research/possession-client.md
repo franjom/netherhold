@@ -12,8 +12,10 @@ record in `functions/` holds its read's scope. Everything here is **STRONGLY INF
 named but not read are taken by name: the world slots `+0x1CC`, `+0x1D0` and `+0x1D4`
 and the key test `0x004097E0`. Built: the creature
 fields of §5a, creep (ADR-0802), and the view (`PossessionView`, `PossessionWorld`,
-`PossessionControls`, `PossessionCamera`, wired in `DungeonRunner.Possession`), which
-compiles and is unit-tested but has not been seen running.
+`PossessionControls`, `PossessionCamera`, `PossessionFlight`), driven by `PossessionSession`:
+a host reads its input into a `PossessionInput` and applies the camera pose, pointer
+lock, hidden creature, commands and sounds it answers (ADR-0805). Unity's side is
+`DungeonRunner.Possession`. It compiles and is unit-tested but has not been seen running.
 
 OpenKeeper (`view/Possession*.java`, `Settings.java`, pull requests #782 and #1193) was
 used for leads only: which creature fields a first-person view reads and the default

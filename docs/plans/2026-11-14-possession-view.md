@@ -107,6 +107,13 @@ Built since: the 2000 ms move in and out (`PossessionFlight`) and the hidden mod
 as read in possession-client.md section 6. The creature's ordinary footsteps stay beside
 the view's: no read shows DK2 silencing them (HYPOTHESIS).
 
+For the Godot switch (ADR-0805) the wiring's rules moved out of Unity into
+`PossessionSession` (`DK2.Presentation`): when a possession starts and ends, the timed
+moves, key presses, the commands, the hidden creature and the pointer lock. A host only
+fills a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is that
+for Unity, and a Godot adapter writes the same few lines. The first-person roll is now
+applied through an up vector the session computes, the same picture as before.
+
 Not built, each its own later task: the death view (camera mode 11) and the colour
 changes of entering and leaving; the near clip, lighting distance and ambience listener,
 which still follow the ordinary camera; the two ability keys; the possession HUD, so HUD
