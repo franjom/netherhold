@@ -53,6 +53,13 @@ public class HudScaleLayoutTests
         var layout = new HudScaleLayout(width, height, percent);
         Assert.Equal(new HudScreen(expectedWidth, height), layout.Screen);
     }
+    [Theory]
+    [InlineData(1024, 768, 100, 0)]
+    [InlineData(1024, 768, 50, 384)]       // 768 - 768 * 0.5
+    [InlineData(4, 5, 50, 3)]              // 5 - 2.5 = 2.5 rounds half up, not to even
+    public void TheBottomOriginIsTheScaledOffsetRoundedHalfUp(int width, int height, int percent, float expected) =>
+        Assert.Equal(expected, new HudScaleLayout(width, height, percent).BottomOriginPixels);
+
     [Fact]
     public void DefaultScalePreservesTheExistingCoordinates()
     {

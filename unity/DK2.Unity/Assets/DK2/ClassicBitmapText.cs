@@ -20,6 +20,9 @@ namespace DK2.Unity
         private readonly BitmapFont _font;
         private readonly Texture2D _atlas;
         private readonly Dictionary<char, Rect> _uv = new Dictionary<char, Rect>();
+        private IReadOnlyList<BitmapTextLine> _wrapped;
+        private string _wrappedText;
+        private int _wrapWidth;
 
         public ClassicBitmapText(BitmapFont font)
         {
@@ -67,34 +70,29 @@ namespace DK2.Unity
         public void Dispose() => Object.Destroy(_atlas);
 
         /// <summary>Draws <paramref name="text"/> wrapped to <paramref name="box"/>, each line
-        /// centred and the block centred: the subtitle's flags 0x44 (horizontal and vertical
-        /// mode 2 of 0x0062CA70/0x0062CA00; that 2 is centre is INFERRED).
-        /// <paramref name="scale"/> magnifies the font's pixels.</summary>
+        /// centred and the block centred (<see cref="BitmapTextPlacement"/>).
+        /// <paramref name="scale"/> magnifies the font's pixels. The wrap is kept while the text
+        /// and the wrap width stay the same, so a repaint does not wrap again.</summary>
         public void DrawCentred(Rect box, string text, float scale)
         {
-            IReadOnlyList<BitmapTextLine> lines = BitmapTextLayout.Wrap(_font, text, Mathf.FloorToInt(box.width / scale));
-            DrawLines(box, lines, scale);
+            int wrapWidth = BitmapTextPlacement.WrapWidth(box.width, scale);
+            if (_wrapped == null || wrapWidth != _wrapWidth || !string.Equals(text, _wrappedText, System.StringComparison.Ordinal))
+            {
+                _wrapped = BitmapTextLayout.Wrap(_font, text, wrapWidth);
+                _wrappedText = text;
+                _wrapWidth = wrapWidth;
+            }
+            DrawLines(box, _wrapped, scale);
         }
 
-        /// <summary>Draws retained layout without allocating another wrap result each repaint.</summary>
+        /// <summary>Blits the glyphs <see cref="BitmapTextPlacement.Place"/> places for retained layout.</summary>
         public void DrawLines(Rect box, IReadOnlyList<BitmapTextLine> lines, float scale, bool centred = true)
         {
-            float lineHeight = _font.LineHeight * scale;
-            float top = box.y + (box.height - lines.Count * lineHeight) / 2f;
-            for (int i = 0; i < lines.Count; i++)
+            foreach (PlacedBitmapGlyph placed in BitmapTextPlacement.Place(
+                _font, new HudRect(box.x, box.y, box.width, box.height), lines, scale, centred))
             {
-                float pen = centred ? box.x + (box.width - lines[i].Width * scale) / 2f : box.x;
-                float y = top + i * lineHeight;
-                foreach (char c in lines[i].Text)
-                {
-                    BitmapGlyph glyph = _font.Find(c);
-                    if (glyph == null) continue;
-                    if (_uv.TryGetValue(c, out Rect uv) && glyph.Width > 0)
-                        GUI.DrawTextureWithTexCoords(new Rect(
-                            Mathf.Round(pen + glyph.OffsetX * scale), Mathf.Round(y + glyph.OffsetY * scale),
-                            glyph.Width * scale, glyph.Height * scale), _atlas, uv);
-                    pen += glyph.Advance * scale;
-                }
+                if (_uv.TryGetValue(placed.Glyph.Character, out Rect uv))
+                    GUI.DrawTextureWithTexCoords(new Rect(placed.Rect.X, placed.Rect.Y, placed.Rect.Width, placed.Rect.Height), _atlas, uv);
             }
         }
     }

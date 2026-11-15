@@ -168,3 +168,124 @@ public static class BitmapTextLayout
         return lines;
     }
 }
+
+/// <summary>One glyph placed on screen: the font's glyph, whose pixels are the source, and its rectangle in the box's
+/// pixels. A renderer finds the glyph's cell in its own atlas by <see cref="BitmapGlyph.Character"/> and blits it,
+/// unfiltered, into <see cref="Rect"/>.</summary>
+public readonly record struct PlacedBitmapGlyph(BitmapGlyph Glyph, HudRect Rect);
+
+/// <summary>
+/// Places laid-out lines in a box: the block centred vertically and, when centred, each line centred horizontally;
+/// the subtitle's flags 0x44 (horizontal and vertical mode 2 of 0x0062CA70/0x0062CA00; that 2 is centre is INFERRED).
+/// A glyph sits at the pen plus its offset, scaled, its corner rounded to a whole pixel, and the pen then moves on by
+/// its advance. A character the font lacks is skipped and takes no space; a glyph with no width takes its advance but
+/// is not placed. <paramref name="scale"/> magnifies the font's pixels.
+/// </summary>
+public static class BitmapTextPlacement
+{
+    /// <summary>The wrap width, in font pixels, for a box drawn at a scale.</summary>
+    public static int WrapWidth(float boxWidth, float scale) => (int)MathF.Floor(boxWidth / scale);
+
+    /// <summary>The placed glyphs, enumerated without allocating.</summary>
+    public static PlacedBitmapGlyphs Place(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale,
+        bool centred = true) => new(font, box, lines, scale, centred);
+}
+
+/// <summary>The glyphs <see cref="BitmapTextPlacement.Place"/> places, as a struct enumerable.</summary>
+public readonly struct PlacedBitmapGlyphs(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale,
+    bool centred)
+{
+    public Enumerator GetEnumerator() => new(font, box, lines, scale, centred);
+
+    public struct Enumerator
+    {
+        private readonly BitmapFont _font;
+        private readonly HudRect _box;
+        private readonly IReadOnlyList<BitmapTextLine> _lines;
+        private readonly float _scale, _lineHeight, _top;
+        private readonly bool _centred;
+        private int _line, _char;
+        private string _text;
+        private float _pen, _y;
+
+        internal Enumerator(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale, bool centred)
+        {
+            _font = font;
+            _box = box;
+            _lines = lines;
+            _scale = scale;
+            _centred = centred;
+            _lineHeight = font.LineHeight * scale;
+            _top = box.Y + (box.Height - lines.Count * _lineHeight) / 2f;
+            _line = -1;
+            _char = 0;
+            _text = "";
+            _pen = _y = 0;
+            Current = default;
+        }
+
+        public PlacedBitmapGlyph Current { get; private set; }
+
+        public bool MoveNext()
+        {
+            while (true)
+            {
+                if (_char >= _text.Length)
+                {
+                    if (++_line >= _lines.Count) return false;
+                    BitmapTextLine line = _lines[_line];
+                    _text = line.Text;
+                    _char = 0;
+                    _pen = _centred ? _box.X + (_box.Width - line.Width * _scale) / 2f : _box.X;
+                    _y = _top + _line * _lineHeight;
+                    continue;
+                }
+                BitmapGlyph? glyph = _font.Find(_text[_char++]);
+                if (glyph == null) continue;
+                float pen = _pen;
+                _pen += glyph.Advance * _scale;
+                if (glyph.Width <= 0) continue;
+                Current = new PlacedBitmapGlyph(glyph, new HudRect(
+                    MathF.Round(pen + glyph.OffsetX * _scale), MathF.Round(_y + glyph.OffsetY * _scale),
+                    glyph.Width * _scale, glyph.Height * _scale));
+                return true;
+            }
+        }
+    }
+}
+
+/// <summary>
+/// Where the remake shows speech subtitles, the win screen's text and the cutscene title card, in screen pixels.
+/// Our layout, not DK2's: that DK2 shows no win-screen text is carried over uncited from the runner, and its title
+/// card's size is unread. The bitmap face is
+/// <see cref="InterfaceFonts.LegibleFileName"/> at the screen height; the TrueType face (the owner's first choice,
+/// 2026-10-17) is drawn in <see cref="TrueTypeLabel"/> at <see cref="TrueTypePixelSize"/>.
+/// </summary>
+public static class SubtitleLayout
+{
+    /// <summary>The title card's text over the subtitle size.</summary>
+    public const float TitleScale = 2f;
+
+    /// <summary>The speech subtitle: the bottom eighth of the screen.</summary>
+    public static HudRect SpeechBox(int screenWidth, int screenHeight)
+    {
+        float height = screenHeight / 8f;
+        return new HudRect(0f, screenHeight - height, screenWidth, height);
+    }
+
+    /// <summary>The win screen's text with speech off: an eighth of the screen high, from 70% down.</summary>
+    public static HudRect WinScreenBox(int screenWidth, int screenHeight) =>
+        new(0f, screenHeight * 0.70f, screenWidth, screenHeight / 8f);
+
+    /// <summary>The cutscene title card: the whole screen, at <see cref="TitleScale"/>.</summary>
+    public static HudRect TitleBox(int screenWidth, int screenHeight) => new(0, 0, screenWidth, screenHeight);
+
+    /// <summary>The TrueType label: the box's band, inset by 5% of the screen width each side, wrapped and centred.</summary>
+    public static HudRect TrueTypeLabel(HudRect box, int screenWidth) =>
+        new(screenWidth * 0.05f, box.Y, screenWidth * 0.9f, box.Height);
+
+    /// <summary>The TrueType size in pixels: a thirtieth of the screen height times the scale (halves to even), at
+    /// least 12.</summary>
+    public static int TrueTypePixelSize(int screenHeight, float scale) =>
+        Math.Max(12, (int)MathF.Round(screenHeight / 30f * scale));
+}

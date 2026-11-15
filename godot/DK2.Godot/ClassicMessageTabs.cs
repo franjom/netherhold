@@ -76,7 +76,7 @@ public partial class ClassicMessageTabs : Node
         _scale = screen.Scale;
         _canvas.Visible = visibility.ShowNormalHud;
         // Bottom-docked (ClassicHudScaling.Apply), as the bottom panel: the panel's bottom stays on the screen's bottom.
-        _origin = new Vector2(0, MathF.Floor(_layout.BottomOffset * _layout.Factor + .5f));
+        _origin = new Vector2(0, _layout.BottomOriginPixels);
         (float px, float py) = ToVirtual(GetViewport().GetMousePosition());
         _frame.Clear();
         _hud.Build(screen, width, visibility, collapsed, indicators,

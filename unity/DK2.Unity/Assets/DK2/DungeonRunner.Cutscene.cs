@@ -86,7 +86,7 @@ namespace DK2.Unity
             if (_cutsceneTitle == null || _cutsceneTitlePhase >= 3) return;
             // DK2 draws the title centred in its own font; ours takes the subtitle font chain, about twice
             // the subtitle size (the remake's size, unread).
-            DrawSubtitleText(new Rect(0, 0, Screen.width, Screen.height), _cutsceneTitle, 2f);
+            DrawSubtitleText(SubtitleLayout.TitleBox(Screen.width, Screen.height), _cutsceneTitle, SubtitleLayout.TitleScale);
         }
     }
 }

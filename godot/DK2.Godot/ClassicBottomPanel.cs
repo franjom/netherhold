@@ -75,7 +75,7 @@ public partial class ClassicBottomPanel : Node
         _hud.Build(MathF.Round(_layout.LogicalWidth) / _scale, milliseconds, _frame);
         // Bottom-docked (ClassicHudScaling.Apply): the canvas's local top is BottomOffset local units below the screen's
         // top, which is above it once the scale passes 100%, so the panel's bottom stays on the screen's bottom.
-        _origin = new Vector2(0, MathF.Floor(_layout.BottomOffset * _layout.Factor + .5f));
+        _origin = new Vector2(0, _layout.BottomOriginPixels);
         _canvas.Present(_frame, _origin, _scale, _layout.Factor);
         _hud.Repick();
     }

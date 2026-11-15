@@ -56,7 +56,7 @@ public partial class ClassicCreatureQueryPanel : Node
         HudScreen screen = _layout.Screen;
         _scale = screen.Scale;
         // Bottom-docked (ClassicHudScaling.Apply), as the bottom panel: the panel's bottom stays on the screen's bottom.
-        _origin = new Vector2(0, MathF.Floor(_layout.BottomOffset * _layout.Factor + .5f));
+        _origin = new Vector2(0, _layout.BottomOriginPixels);
         _frame.Clear();
         _hud.Build(screen, snapshot, visibility, otherPanelOpen, _frame);
         _canvas.Visible = _frame.Count > 0;

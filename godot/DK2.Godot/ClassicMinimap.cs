@@ -149,7 +149,7 @@ public partial class ClassicMinimap : Node
         HudScreen screen = _layout.Screen;
         _scale = screen.Scale;
         // Bottom-docked (ClassicHudScaling.Apply), as the bottom panel: the panel's bottom stays on the screen's bottom.
-        _origin = new Vector2(0, MathF.Floor(_layout.BottomOffset * _layout.Factor + .5f));
+        _origin = new Vector2(0, _layout.BottomOriginPixels);
         _hud.SetControls(selected, optionsVisible);
         bool shown = _hud.Visibility.ShowNormalHud;
         _canvas.Visible = shown; _discNode.Visible = shown;

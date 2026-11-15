@@ -63,7 +63,7 @@ public partial class ClassicCreatureOverview : Node
         _allowInput = visibility.AllowOrdinaryInput;
         _canvas.Visible = visibility.ShowNormalHud && area.HasValue;
         // Bottom-docked (ClassicHudScaling.Apply), as the bottom panel: the panel's bottom stays on the screen's bottom.
-        _origin = new Vector2(0, MathF.Floor(_layout.BottomOffset * _layout.Factor + .5f));
+        _origin = new Vector2(0, _layout.BottomOriginPixels);
         (float px, float py) = ToVirtual(_pointerInWindow ? GetViewport().GetMousePosition() : Away);
         _frame.Clear();
         _hud.Build(screen, width, visibility, area, (px, py), _frame);

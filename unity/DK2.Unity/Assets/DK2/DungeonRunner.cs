@@ -1531,14 +1531,13 @@ namespace DK2.Unity
             }
             string subtitle = _scriptedView.Subtitle;
             if (subtitle == null) return;
-            float height = Screen.height / 8f;
-            DrawSubtitleText(new Rect(0f, Screen.height - height, Screen.width, height), subtitle);
+            DrawSubtitleText(SubtitleLayout.SpeechBox(Screen.width, Screen.height), subtitle);
         }
 
         /// <summary>Centred subtitle text in the owner's font order (2026-10-17): Bullfrog's
         /// DungeonKeeperII TrueType face first, DK2's own bitmap font second, Unity's default last.
         /// <paramref name="scale"/> enlarges it over the subtitle size, as the title card does.</summary>
-        private void DrawSubtitleText(Rect box, string subtitle, float scale = 1f)
+        private void DrawSubtitleText(HudRect box, string subtitle, float scale = 1f)
         {
             Font trueType = Resources.Load<Font>("Fonts/DungeonKeeperII");
             if (trueType == null)
@@ -1546,7 +1545,7 @@ namespace DK2.Unity
                 ClassicBitmapText bitmap = SubtitleBitmapFont(Screen.height);
                 if (bitmap != null)
                 {
-                    bitmap.DrawCentred(box, subtitle, scale);
+                    bitmap.DrawCentred(new Rect(box.X, box.Y, box.Width, box.Height), subtitle, scale);
                     return;
                 }
             }
@@ -1557,12 +1556,13 @@ namespace DK2.Unity
                 {
                     font = trueType != null ? trueType : GUI.skin.label.font,
                     alignment = TextAnchor.MiddleCenter, wordWrap = true,
-                    fontSize = Mathf.Max(12, Mathf.RoundToInt(Screen.height / 30f * scale)),
+                    fontSize = SubtitleLayout.TrueTypePixelSize(Screen.height, scale),
                     normal = { textColor = Color.white },
                 };
                 if (scale == 1f) _subtitleStyle = style; else _titleStyle = style;
             }
-            GUI.Label(new Rect(Screen.width * 0.05f, box.y, Screen.width * 0.9f, box.height), subtitle, style);
+            HudRect label = SubtitleLayout.TrueTypeLabel(box, Screen.width);
+            GUI.Label(new Rect(label.X, label.Y, label.Width, label.Height), subtitle, style);
         }
 
         /// <summary>DK2's own bitmap font, the fallback: the shipped size that reads at this

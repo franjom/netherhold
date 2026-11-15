@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel, the resource strip, the message tabs, the hover HUD, the creature overview, the creature query details, the battle tab and the in-game options menu are done; the other group-1 panels remain.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Next is 1c.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -34,7 +34,7 @@ group 2 is a list to audit, not a finding.
       `DungeonRunner.CameraPathLoader`, and the 640x480 box origin (a `FrontEndBox` helper beside
       `ToUnits`). Delete the Godot copies (`FrontEndCameraPaths.cs`, the loading half of
       `ClassicFrontEndMenuAssets.cs`).
-- [ ] 1b. Port group 1, one panel per change, each checked with a Movie Maker capture against the
+- [x] 1b. Port group 1, one panel per change, each checked with a Movie Maker capture against the
       Unity probe capture of the same state. Done: the bottom panel (`InGameHud.tscn`,
       `ClassicBottomPanel.cs`; `HudSector` and additive blend both draw in Godot) and the resource
       strip (`ClassicResourceHud.cs`; mana rising once per simulated second, strip matches a Unity
@@ -209,13 +209,19 @@ group 2 is a list to audit, not a finding.
       applies; no double action has been found. Not wired in
       Godot: sound and
       speech, the Level6a torture-speech sink, the goto camera glide,
-      scripted-view visibility (step 2). All twelve panels are in. Remaining in group 1: the Unity helpers
-      `ClassicHudScaling` and `ClassicBitmapText`. `MinimapFrameVisual` is only `RgbaImage` to `Texture2D`
-      for six Unity files, with no Godot counterpart to write (Godot's panels decode through `HudCanvas`).
-      The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
+      scripted-view visibility (step 2). All twelve panels are in. The Unity helpers are settled:
+      `ClassicBitmapText`'s placement rule is now `BitmapTextPlacement.Place` and the subtitle box, scale and
+      size rules are `SubtitleLayout` (the remake's layout, not DK2's), both in `DK2.Presentation` with tests,
+      leaving Unity the atlas and the blit; `ClassicHudScaling` stays Unity-only, since it is UI Toolkit
+      plumbing whose rules are already `HudScaleLayout`; `MinimapFrameVisual` is only `RgbaImage` to
+      `Texture2D` for six Unity files, with no Godot counterpart to write (Godot's panels decode through
+      `HudCanvas`). The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
       every Unity panel uses it (the hover HUD still sizes from
       `UnityEngine.Screen`, not a fixture viewport, a possible cause of a mis-sized bar in a probe
-      capture, unverified).
+      capture, unverified). The bottom-docked panel origin in whole pixels (`BottomOffset` scaled, rounded
+      half up) is `HudScaleLayout.BottomOriginPixels`, which the six Godot panels that place themselves
+      (bottom panel, message tabs, creature overview, creature query, battle tab, minimap) call instead of
+      each repeating the expression. Unity at runtime was not run, and no subtitle was seen on screen.
 - [ ] 1c. Fix `FrontEndMenuController.UpdatePointer` (`DK2.Presentation`), which allocates (LINQ
       `First`) on every hovered frame. Also `KeeperResourceView.Capture` (`DK2.Presentation`, shared
       with Unity), which allocates two `int[]` per tick. Done: `MessageTextTables` (`DK2.Presentation`, both adapters) takes
@@ -263,7 +269,9 @@ group 2 is a list to audit, not a finding.
       posts through `ClassicHudControlLayout.TryGuiButton`, so the command streams differ for those
       clicks; tool state), the heading during the opening camera path (`ScriptedViewDirector`; Godot draws
       the level-start heading), and the bottom panel's `CancelPointerGesture`, which Godot runs before the
-      panel's own `PointerDown` when a minimap action applies.
+      panel's own `PointerDown` when a minimap action applies. Speech subtitles: Godot draws none
+      until speech is in. Draw them by wrapping with `BitmapTextLayout`, packing a `.bf4` atlas into an
+      `ImageTexture` and blitting `BitmapTextPlacement.Place`'s rects in `SubtitleLayout`'s boxes.
 - [ ] Move the behaviour into `DK2.Presentation` or the simulation, with tests; leave Unity a
       facade over it, as ADR-0805 did for the HUD.
 

@@ -108,7 +108,7 @@ namespace DK2.Unity
             if (_tabletArt != null && Event.current.type == EventType.Repaint)
                 DrawTablet(_tabletArt, _winScreen.Tablet, item.Id, Screen.width * RewardTablet.CentreX, Screen.height * RewardTablet.CentreY);
             if ((_soundPlayer == null || !_soundPlayer.SpeechEnabled) && _winScreen.Text is string text)
-                DrawSubtitleText(new Rect(0f, Screen.height * 0.70f, Screen.width, Screen.height / 8f), text);
+                DrawSubtitleText(SubtitleLayout.WinScreenBox(Screen.width, Screen.height), text);
         }
 
         private TabletArt LoadTabletArt()
