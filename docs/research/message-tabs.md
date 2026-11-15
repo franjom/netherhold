@@ -314,7 +314,8 @@ queue producer, local-player selection, NeedsTab/age and first-eight-record
 filter must all admit a record (sections 2 and 8). The normal HUD must be visible;
 `MessageTabsHud` also gates clicks on ordinary input and the objective
 viewer being closed. Existing left/right clicks, text frame, scrollbar, close,
-dismiss and conditional goto are wired through `DungeonRunner.Hud.cs`.
+dismiss and conditional goto are wired through `DungeonRunner.Hud.cs` (Unity) and
+`InGameHud`/`ClassicMessageTabs` (Godot); the text comes from `MessageTextTables`.
 
 **Built (ADR-0535).** Action 24 retains type 21 only when `SpeakOnly == 0`;
 speech-only delivery still works. Types 13/14/21 allow duplicates, last 50 seconds

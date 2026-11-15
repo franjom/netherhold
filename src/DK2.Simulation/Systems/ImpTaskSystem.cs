@@ -239,6 +239,7 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
             || creature.ClaimAction.Kind != ClaimActionKind.None || ClaimActionRules.UsesClock(creature, definition))
             RunWorkerPrelude(context, creature, definition);
         ReinforcementActionRules.Poll(context, creature);
+        RepairStrikeRules.Poll(context, creature);
         ClaimActionRules.Poll(context, creature);
         bool handlerWasDone = creature.ActionHandlerDone;
         Update(context, creature, definition);

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Data.Media;
@@ -176,6 +177,22 @@ public sealed class MessageTabsView
                 return null;
         }
     }
+
+    /// <summary><see cref="Location"/> worked out at most once a tick for one message, for a host that asks every
+    /// frame whether the goto button shows: a room's location is a flood fill (<see cref="RoomIndex.RoomAt"/>). The cache
+    /// is keyed on message id and tick only, so one view serves one world.</summary>
+    public (float X, float Y)? LocationOncePerTick(WorldState world, in PlayerMessage message)
+    {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        GameTick tick = world.CurrentTick;
+        if (_locatedId != message.Id || _locatedTick != tick)
+            (_locatedId, _locatedTick, _located) = (message.Id, tick, Location(world, message));
+        return _located;
+    }
+
+    private uint _locatedId;
+    private GameTick _locatedTick;
+    private (float X, float Y)? _located;
 
     private static (float, float)? CreatureAt(WorldState world, int id) =>
         world.CreatureById(id) is CreatureState creature

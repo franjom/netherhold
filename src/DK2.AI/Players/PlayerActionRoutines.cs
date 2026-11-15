@@ -317,8 +317,9 @@ public static class PlayerActionRoutines
     /// <summary>How far (tiles) in front of an attacker a Blocker goes, and behind it a Flanker or Blitzer: "1-2 tiles".</summary>
     public const double FrontTiles = 1.5;
 
-    /// <summary>How far (tiles) in front of an attacker Support goes: 3-4 tiles behind the Blockers.</summary>
-    public const double SupportTiles = 5;
+    /// <summary>How far (tiles) in front of an attacker Support goes: two tiles behind the Blockers, near enough to
+    /// engage (owner, 2026-11-15: five "may not engage at that distance", Q850).</summary>
+    public const double SupportTiles = FrontTiles + 2;
 
     /// <summary>The next defender to lift against an attacker at <paramref name="enemy"/> (defence plan D3): an own
     /// non-worker the hand may lift, not a NonFighter, not hurt (five petals or more when its flower shows), and not

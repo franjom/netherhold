@@ -45,6 +45,20 @@ work block, without resetting the retained animation object immediately.
 The existing frozen-animation predicate pauses advancement, not the earlier
 action-handler poll. No new reporting, fear or hero-selection rule is added.
 
+## The wall repair's strike is action 8's (Q811, ADR-0811, hash/save 524)
+
+The strike is action 8's handler (`0x00497AC0`, [record](functions/00497AC0.md)), run by the same
+poll as action 7: the runner `0x00496AA0`, called at `0x00489A68`, precedes `ProcessFight`
+(`0x00489AC7`) in the creature update `0x00488930`. State 24 (`0x00466710`) only begins action 8
+(`0x004667C0`). A repairer the fight scan moves off the wall this turn has still struck this turn.
+Level 5 seed 1, tick 1693: the imp that flees mid-repair lands its last strike (wall health
+811 to 815) and ours now matches DK2's wall health through 2155. Built as `RepairStrikeRules.Poll`,
+called beside `ReinforcementActionRules.Poll` and `ClaimActionRules.Poll`. STRONGLY INFERRED.
+
+Unverified: the cadence. It stays `WorkCadence`'s fitted family default, not the clip. The
+handler is read as returning 0 after a strike, one strike per cycle, which the capture does not
+test. The repair clip's length is unread.
+
 ## Verification
 
 Independent source/proof/pin review approves the frozen implementation.

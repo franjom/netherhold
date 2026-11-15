@@ -194,4 +194,34 @@ public sealed class MessageTabsViewTests
             view.Location(world, Message(PlayerMessageKind.RoomAttacked, (int)room.Definition.RoomId, firstSlab)));
         Assert.Null(view.Location(world, Message(PlayerMessageKind.RoomAttacked, 0xFF, firstSlab)));
     }
+
+    /// <summary>The goto location a host asks for every frame is worked out once a tick per message: a creature that
+    /// moved within the tick keeps its old answer, another message or the next tick asks again.</summary>
+    [InstallFact]
+    public void TheGotoLocationIsWorkedOutOnceATickPerMessage()
+    {
+        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
+        GameSimulation simulation = level.CreateSimulation(1, fogOfWarEnabled: true);
+        WorldState world = simulation.World;
+        GameDatabase db = level.Database;
+        PlayerId keeper = PlayerIds.FirstKeeper;
+        var view = new MessageTabsView(keeper, db);
+        CreatureState imp = world.SpawnCreature(db, db.Creatures.Values.Single(c => c.Name == "Imp").CreatureId, keeper, new TilePos(3, 4));
+        var unhappy = new PlayerMessage(1, keeper, PlayerMessageKind.CreatureUnhappy, 4, imp.Id, 0, 0, true, false);
+        var tile = new PlayerMessage(2, keeper, PlayerMessageKind.HeartAttacked, 5, 6, 0, 0, true, false);
+
+        (float X, float Y)? before = view.LocationOncePerTick(world, unhappy);
+        Assert.Equal(view.Location(world, unhappy), before);
+        imp.PosX += Fp32.One;
+        Assert.Equal(before, view.LocationOncePerTick(world, unhappy));
+        Assert.NotEqual(before, view.Location(world, unhappy));
+        Assert.Equal((5.5f, 6.5f), view.LocationOncePerTick(world, tile));
+        Assert.Equal(view.Location(world, unhappy), view.LocationOncePerTick(world, unhappy));
+
+        imp.PosX += Fp32.One;
+        (float X, float Y)? stale = view.LocationOncePerTick(world, unhappy);
+        simulation.Tick();
+        Assert.NotEqual(stale, view.Location(world, unhappy));
+        Assert.Equal(view.Location(world, unhappy), view.LocationOncePerTick(world, unhappy));
+    }
 }

@@ -40,7 +40,7 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 Q712, the Level 5 draw-continuation investigation, is answered through turn 1900.
-At hash 519 with ADR-0803, with the replay inputs including the five hero guards
+At hash 524 with ADR-0811, with the replay inputs including the five hero guards
 and the keeper's research points restored at turn 1400, the controlled replay matches all 8466 native draws of the
 capture's log, turns 1401-1900 (the log ends there). The result is in
 [Q712](research/open-questions.md), with its causes in
@@ -87,13 +87,14 @@ capture's log, turns 1401-1900 (the log ends there). The result is in
 [a room walk's point passes over a Hatchery pillar corner](research/hatchery-pillar-steering.md#room-walks-adr-0798) (ADR-0798),
 [the portal's entrance rules: notice only a weighted type, decay per definition index, a Unique definition as a second candidate](research/portal-creature-action.md#the-portals-type-pick-built-2026-09-28-adr-0272) (ADR-0801),
 [a finished research goes to a random Library with a place-holder, and an unreached place-holder cheers the same tick](research/research-tree.md#4-delivering-it-a-book-on-a-library-shelf) (ADR-0803),
+[a wall repair's side slot outlives its holder, and its strike runs before the fight scan](research/imp-task-stealing.md#4-reinforce-gold-and-tier-b-q2) (ADR-0811),
 [own-land regeneration every turn](research/creature-needs.md) (ADR-0759),
 [the fighting arms' candidate walk order](research/combat-target-selection.md) (ADR-0761),
 [the melee hold's end, the lifted creature's bit, own-land healing and the collapse booking](research/open-questions.md)
 (ADR-0762 to ADR-0765, Q768 to Q771); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
 [store-gold steering](research/store-gold-steering.md). The continuation is split into
-Q772 (past turn 1900: draws match through 2155 at hash 519; turn 2156 draw 1 differs, Q811), Q773 (five creatures with small position
+Q772 (past turn 1900: draws match through 2334 at hash 524; turn 2335 draw 1 differs, Q853), Q773 (five creatures with small position
 offsets and no draw affected) and Q774 (state words that differ in representation: held
 78, a collapsed creature's health countdown, Imp 440's states 10 and 22), besides
 Q764 to Q767 and Q733(d). Build only behavior supported
@@ -133,10 +134,22 @@ These are entry points, not a new priority order.
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
 - Godot adapter (ADR-0805, ADR-0810): not wired are the 3D station scenery, movies, sound and keyboard.
   The road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md); its step 1a is
-  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them), next is 1b, the bottom
-  panel. Untested in Godot until the
-  bottom panel is ported: `HudSector` drawn through `CanvasItemAddPolygon` (a degenerate fan may fail; a triangle array
-  is safer) and the native additive blend against Unity's `AdditiveOverAlpha` look.
+  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them). Step 1b has four
+  panels: the in-game bottom panel, the resource strip (`ClassicResourceHud` over `KeeperResourceHud`), the message tabs
+  (`ClassicMessageTabs` over `MessageTabsHud`) and the hover HUD (`ClassicHoverHud`: wooden bar, status line, tooltip) run over a live
+  Level1 simulation in the test scene `godot/DK2.Godot/InGameHud.tscn` (`InGameHud`, `ClassicBottomPanel`; the main menu
+  stays the default scene). The strip matched a Unity capture by eye at 1920x1080; the open message panel matches Unity's probe capture. Their shared logic (`InstallBottomPanelArt`,
+  `BottomPanelHud.OpenAtLevelStart`, `PlayerInputTranslator.ChooseStoredSpecial`, `TickPacer`, `CampaignLevelData`, `HudScaleLayout.Screen`,
+  `MessageTextTables`, `PlayerNames`, `MessageTabsView.LocationOncePerTick`, `HudHoverText`) lives in
+  `DK2.Presentation`. Hover text from the strip, bottom panel and tabs shows in Godot (Movie Maker 1920x1080 frames: mana, gold, the Rooms tab, a Hatchery slot, Review Objective, a message tab); no Unity hover capture exists to compare. `HudSector` (triangle fan) and additive blend both draw in Godot (research-pie sweep 1..99% and
+  additive hover and sparkles captured); no Unity hover or sparkle capture exists to compare pixels. Not wired in Godot,
+  still Unity runner logic (plan step 2): HUD hiding during the opening camera path, the resource flash, the flash-button hint, the tool state
+  after choosing a panel slot, right-click navigation (needs a camera); for the tabs also sound and speech, the Level6a torture-speech
+  sink, the goto camera glide and the tabs inside `HudModal`/options; for the hover HUD world hover (things and tiles, needs the world and a camera), the
+  hand cursor's resolution (Godot uses the small pointing finger's reach, valid only while nothing is held), and the creature overview, battle tab and
+  minimap hover text (they answer empty until ported). Known bug in both adapters' `MessageTextTables`: the briefing file
+  name for secret levels and My Pet Dungeon is wrong, so their objective panels show no briefing lines ([Q854](research/open-questions.md);
+  fix in plan step 1c). Next: the remaining group-1 panels, one per change.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)
@@ -184,13 +197,14 @@ These are entry points, not a new priority order.
   answered by the owner). Its observation and action rows are all built except Possession; the routines that
   use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default; on Level 15a it never acts: the peaceful
   routines now stop only for a threat within `strategy.enemy-near-tiles` (8) of home or the room, but the bot's own
-  Black Knights are prisoners, a level objective not built, Q843; Q848 asks the owner; Q827, Q828, Q831, Q836 and Q844-Q846 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
+  Black Knights are prisoners, a level objective not built, Q843; Q827, Q828, Q831, Q836 and Q844-Q846 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
   seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Imp creation, R8, is built too
   (`strategy.create-imps`, off by default; Level 6a seeds 1-3 show no gain; Q842 open;
   [plan](plans/2026-11-14-campaign-bot-stage3.md)). The bot defends its whole dungeon (an enemy within 8 tiles of own ground, the one nearest the Heart
-  first, Q847) and drops fighters in a formation by fighting style (observation schema 6; Q848-Q850 ask the owner;
-  [defence plan](plans/2026-11-15-campaign-bot-defence.md), D1-D3 built). Next: D4, traps on the attack routes, then D6,
-  attack spells that never hit own creatures or walls, then D5, measuring the lost levels 6a, 7, 11a and 15a.
+  first, Q847) and drops fighters in a formation by fighting style (observation schema 6; Q848-Q850 answered by the owner;
+  [defence plan](plans/2026-11-15-campaign-bot-defence.md), D1-D4 built). It also places traps on the corridors the
+  attacks take (`strategy.max-traps`, 8; the trap for a site follows its kind, Q851; Q852 open). Next: D6, attack spells
+  that never hit own creatures or walls, then D5, measuring the lost levels 6a, 7, 11a and 15a (traps alone turn none).
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

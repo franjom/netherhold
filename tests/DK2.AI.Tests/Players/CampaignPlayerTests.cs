@@ -21,7 +21,7 @@ public partial class CampaignPlayerTests
 
     /// <summary>'.' own floor, 'H' own heart, '#' diggable rock, '$' gold seam, 'R' impenetrable rock,
     /// '?' unseen, 't' an own dig mark on unseen ground, 'x' an own dig mark on rock, 'e' enemy floor, 'T' own Treasury, 'L' own Lair,
-    /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison, 'B' own Library.</summary>
+    /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison, 'B' own Library, 'k' own floor with an own trap.</summary>
     private static PlayerTileGrid Map(params string[] rows)
     {
         var tiles = new PlayerTile[rows.Length * rows[0].Length];
@@ -48,6 +48,7 @@ public partial class CampaignPlayerTests
                     't' => new PlayerTile(PlayerTileFlags.Tagged, default, default),
                     'x' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable | PlayerTileFlags.Tagged, default, default),
                     'e' => new PlayerTile(PlayerTileFlags.Known, Heroes, default),
+                    'k' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.OwnTrap, Me, default),   // own floor holding an own trap
                     _ => default,
                 };
         return new PlayerTileGrid(rows[0].Length, rows.Length, tiles);
@@ -73,7 +74,7 @@ public partial class CampaignPlayerTests
         PlayerPhase phase = PlayerPhase.Playing, IReadOnlyList<PlayerRoomOffer>? rooms = null, IReadOnlyList<PlayerVisibleThing>? things = null,
         IReadOnlyList<PlayerRoomSummary>? owned = null, IReadOnlyList<PlayerReceipt>? receipts = null, long tick = -1,
         IReadOnlyList<PlayerCreatureSummary>? creatures = null, IReadOnlyList<PlayerSpellOffer>? spells = null,
-        int mana = 0, int income = 0, int upkeep = 0, int? impCost = null)
+        int mana = 0, int income = 0, int upkeep = 0, int? impCost = null, IReadOnlyList<PlayerWorkshopOffer>? workshop = null)
     {
         rooms ??= [new PlayerRoomOffer(RoomTypeId.Treasury, new GoldAmount(50), true), new PlayerRoomOffer(RoomTypeId.Lair, new GoldAmount(50), true)];
         things ??= [];
@@ -83,7 +84,7 @@ public partial class CampaignPlayerTests
             PlayerPhase.Intro => PlayerActionKinds.SkipIntro,
             _ => PlayerActionKinds.TagArea | (rooms.Count > 0 ? PlayerActionKinds.BuildRoom | PlayerActionKinds.SelectPanel : 0)
                  | (hand > 0 ? PlayerActionKinds.DropAt : 0) | (spells is { Count: > 0 } ? PlayerActionKinds.CastSpell : 0)
-                 | (impCost is not null ? PlayerActionKinds.CreateImpAt : 0),
+                 | (impCost is not null ? PlayerActionKinds.CreateImpAt : 0) | (workshop is { Count: > 0 } ? PlayerActionKinds.PlaceTrap : 0),
         };
         foreach (PlayerVisibleThing thing in things)
         {
@@ -110,6 +111,7 @@ public partial class CampaignPlayerTests
                 Rooms = rooms,
                 Panels = [.. rooms.Select(r => GuiButtonTarget.Room(r.Room))],
                 Spells = spells ?? [],
+                Workshop = workshop ?? [],
                 CreateImpCost = impCost is int cost ? new ManaAmount(cost) : null,
             },
         };

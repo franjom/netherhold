@@ -71,6 +71,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         PossessedMeleeRules.Poll(context, creature);
         ReinforcementActionRules.Poll(context, creature);
+        RepairStrikeRules.Poll(context, creature);
         ClaimActionRules.Poll(context, creature);
         // Action handlers continue while possession pauses state dispatch.
         if (creature.SwingInProgress)

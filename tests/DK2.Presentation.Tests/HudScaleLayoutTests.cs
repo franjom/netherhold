@@ -43,6 +43,16 @@ public class HudScaleLayoutTests
         Assert.Equal(125, new HudScaleLayout(2560, 1440, 125).EffectivePercent);
         Assert.Equal(100, new HudScaleLayout(1024, 768, 200).EffectivePercent);
     }
+    [Theory]
+    [InlineData(1920, 1080, 100, 1920)]
+    [InlineData(1920, 1080, 150, 1440)]   // capped at 4:3 of the height: factor 4/3
+    [InlineData(1000, 500, 150, 667)]     // 666.67 rounds to the nearest pixel
+    [InlineData(5, 1, 200, 2)]            // 2.5 rounds half to even, as Mathf.RoundToInt
+    public void ScreenIsTheRoundedLogicalWidthOverTheFullHeight(int width, int height, int percent, int expectedWidth)
+    {
+        var layout = new HudScaleLayout(width, height, percent);
+        Assert.Equal(new HudScreen(expectedWidth, height), layout.Screen);
+    }
     [Fact]
     public void DefaultScalePreservesTheExistingCoordinates()
     {

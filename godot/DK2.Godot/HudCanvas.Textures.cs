@@ -32,6 +32,10 @@ public partial class HudCanvas
         public HudImage Current;
     }
 
+    /// <summary>Decodes an image now rather than at the first frame that draws it (Unity's <c>HudCanvas.Preload</c>);
+    /// <see cref="Load"/> must be set.</summary>
+    public void Preload(HudImage image) => Texture(image);
+
     private Resolved Texture(HudImage image)
     {
         if (image.IsNone) return default;

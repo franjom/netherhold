@@ -176,12 +176,20 @@ public sealed class BottomPanelHud
     /// <summary>An ordinary (unshifted) click on <paramref name="category"/>'s tab.</summary>
     public void SelectCategory(BottomPanelCategory category) => ClickTab(category, false);
 
+    /// <summary>The panel as a level starts: Creatures open. Nobody clicked its tab, so no GUI-button action is raised
+    /// and the tab's press sound is dropped.</summary>
+    public void OpenAtLevelStart()
+    {
+        ClickTab(BottomPanelCategory.Creatures, false, clicked: false);
+        _tabState.Sounds.Clear();
+    }
+
     /// <summary>0x00416C20: expand if collapsed, then open (or, with Shift alone, pin or unpin) the
     /// category. Resetting the page of a panel that opens is ours (the page index field is unread).</summary>
-    private void ClickTab(BottomPanelCategory category, bool shiftOnly)
+    private void ClickTab(BottomPanelCategory category, bool shiftOnly, bool clicked = true)
     {
         CancelPointerGesture();
-        GuiButton?.Invoke(GuiButtonPairs.ForTab(category));   // 0x00416C36, before any expansion
+        if (clicked) GuiButton?.Invoke(GuiButtonPairs.ForTab(category));   // 0x00416C36, before any expansion
         bool wasOpen = _tabState.Open.Contains(category);
         if (_tabState.Click(category, shiftOnly)) CollapsedChanged?.Invoke(false);
         if (!wasOpen) _page[(int)category] = 0;

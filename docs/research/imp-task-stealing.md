@@ -130,6 +130,23 @@ Every other holder then loses it: state 22's handler checks `0x00508070(+0x8A, 6
 `0x004663C4` whenever no action is playing, and on a miss clears `+0x8A` and sets 10 (read
 2026-10-06; built as ADR-0380).
 
+**A repair's side slot outlives its holder (kind 16; ADR-0811, Q811).** The kind-16 pass
+(`TaskPool_Find(0x10)` after the gate `0x0046B1FB`) reads the slot with `0x00508110`
+(`0x0046B318`). A held side is refused when the holder is dead (`0x006ED540`), not a creature
+(`+0x12`), has no `+0x252`, is in state `0x33`/`0x34`, or `0x00477310(10)` refuses it
+(`0x0046B3C3` to `0x0046B4B4`). Otherwise the asker takes it only when strictly nearer the
+wall's centre: it walks first, kicks the holder with `0x0048AD30(10)` (`0x0046B57A`), then
+writes the slot (`0x0046B5C5`). A free side is written at `0x0046B53F`, and an unreachable free
+side deletes the entry (`0x0046B3B6`). Nothing releases the slot when its holder stops
+repairing: the leave hook has no case for 23 or 24 (§5), and state 24's removal tests the
+entry's type against 6 where a repair entry's is 0x10, so a finished repair leaves entry and
+holders. Only a dig tag ends the entry: `TaskPool_Raise` kind 1 removes the tile's kind-6 and
+kind-16 entries (`0x00507C7B` to `0x00507D6C`); kind 2 (gold) removes none. No other removal
+was found; not every one of the ~28 `0x00508040` callers was read. Level 5 seed 1: imp 440 fled
+mid-repair at 1693 and kept the north side of wall (15,33); at 2106 imp 454 was not nearer,
+so it took the east side, as DK2 did. Both gaps are suspected DK2 defects, built as DK2 has
+them (ADR-0783; [00466710](functions/00466710.md), [004647D0](functions/004647D0.md)).
+
 Gold needs terrain flag `0x80` or the imp's own tile, and the imp not nearly full
 (`0x00464360(1)`). It walks the tile's things for neutral gold objects (`+0x12 == 2`,
 definition flag `0x40`); the kind-7 task is per tile. A held task whose pile is
@@ -171,7 +188,8 @@ The category-3 leave hook is `0x004647D0` (`state-categories.md` §7.1; the stor
 current action, drops a carried object or creature, and clears **only the pool slot of
 the kind its current state names** (13/14 → kind 1, 15–20 → 3 or 14, 21/22 → 6, 25/26
 → 2, 27 → 7, 30 → 8, 34/35 → 9, 36/37 → 10, 39 → 11, 40/41 → 12, 42 → 13; a walk is read
-through `+0xDF`). It never clears `+0x8A` or `+0x98`. A loser in state 10 hits no case, so
+through `+0xDF`; states 23 and 24, the repair, map to the default and release nothing, §4).
+It never clears `+0x8A` or `+0x98`. A loser in state 10 hits no case, so
 its next take does not wipe the thief's slot.
 
 ## 6. Protection (Q4)
@@ -237,8 +255,8 @@ more than two frames.
    ghost's next take runs the leave hook from a work state, or when the task is removed.
 2. Claim and reinforce return 0 when the slot names a dead or reused id (`0x0046AD36`,
    `0x0046AD42` and the reinforce twins), while dig, gold and objects treat it as free. A
-   kind-3 or kind-6 task whose worker died is untakeable until the entry is removed (16
-   removes competing claim tasks; the wall's neighbour changes re-raise kind 6). Slots are
+   kind-3, kind-6 or kind-16 task whose worker died is untakeable until the entry is removed (16
+   removes competing claim tasks; the wall's neighbour changes re-raise kind 6; a dig tag removes kind 16). Slots are
    reused (`an-entity-id-is-a-slot`), so the id can even come to name an object.
 
 ## 7a. A walk that does not start (Q588, Q590)

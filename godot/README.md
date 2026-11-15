@@ -5,8 +5,27 @@ no DK2 behaviour: rules live in `src/`, and its HUD renderer (`HudCanvas`, Unity
 same name) draws `DK2.Presentation`'s `HudFrame`. The main scene shows the classic front-end menu
 (`ClassicFrontEndMenu` over `FrontEndMenuHud`) on a black screen. Not wired yet: station scenery,
 movies, sound and keyboard; the model disables the campaign, save and movie buttons, and the settings
-pages open but their controls are inert. Like Unity's player it starts borderless full screen;
-add `--windowed` (or `--resolution 1280x720`) to a run for a window.
+pages open but their controls are inert. Like Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
+
+`InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
+Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Four panels
+are there so far: the hover HUD (`ClassicHoverHud` over `HoverHud`: the wooden bar under the other panels, the status
+line and the delayed tooltip over them), which shows what the shared `HudHoverText` picks from the panels under the
+pointer (the resource strip, the bottom panel, the message tabs; world hover needs the 3D world and is not wired); the
+resource strip at the top left (`ClassicResourceHud` over `KeeperResourceHud`, fed by
+`KeeperResourceView`: mana with its income and upkeep, gold, the Heart and payday gauges), which takes no input; the
+bottom panel (`ClassicBottomPanel` over `BottomPanelHud`), whose clicks post the commands Unity's do; and the message
+tabs above it (`ClassicMessageTabs` over `MessageTabsHud` and `MessageTabsView`: the level's messages sliding in, a left
+click opening one in the message panel, a right click dismissing it, the Review Objective button's objective panel, the
+level's indicators). The level's scripted view (the shared `ScriptedViewDirector`: opening camera path, HUD hiding,
+FLASH_BUTTON, the resource flash), the tool a selection sets, camera glides (a message's goto button shows but moves
+nothing), the options menu and sound are not wired, because the code that drives them is still in Unity's runner (plan
+step 2). The level start (`CampaignLevelData`), tick pacing (`TickPacer`), the panel's opening state, the stored-special
+click, the message string tables (`MessageTextTables`), player names (`PlayerNames`) and which panel's hover text wins
+(`HudHoverText`) are shared with Unity in
+`DK2.Presentation`. Run it by naming the scene, with
+optional user arguments after `--`:
+`<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
 
 | File | Role |
@@ -15,6 +34,13 @@ Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agent
 | `setup.ps1` | installs the pinned editor and the Godot AI addon, verified; warns on drift from the pin |
 | `editor.ps1` | starts the pinned editor on the project, from the repository root |
 | `DK2.Godot/` | the Godot project: `project.godot`, `DK2.Godot.csproj` (`ProjectReference`s into `src/`), scenes, C# |
+| `DK2.Godot/Main.tscn`, `Main.cs` | the main scene: the front-end menu (`ClassicFrontEndMenu`) |
+| `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level, no 3D world (see above) |
+| `DK2.Godot/ClassicHoverHud.cs` | the hover HUD: `HoverHud` drawn by two `HudCanvas`es, top-docked, the bar at z index -1 and the text at +1 around the other panels, no input |
+| `DK2.Godot/ClassicResourceHud.cs` | the keeper's resource strip: `KeeperResourceHud` drawn by `HudCanvas`, top-docked, no input |
+| `DK2.Godot/ClassicBottomPanel.cs` | the keeper's bottom panel: `BottomPanelHud` drawn by `HudCanvas`, mouse forwarded |
+| `DK2.Godot/ClassicMessageTabs.cs` | the message tabs, message and objective panels, indicators: `MessageTabsHud` drawn by `HudCanvas`, bottom-docked, mouse forwarded |
+| `DK2.Godot/HudCanvas*.cs` | the one `HudFrame` renderer every panel draws through |
 
 ## Setting up a machine
 
@@ -70,10 +96,14 @@ powershell -File godot/editor.ps1 -Console --headless --build-solutions --quit
 powershell -File godot/editor.ps1 -Console --headless --quit-after 10        # run the main scene
 ```
 
-The last prints `DK2.Godot front end: page Main` once the menu is up. `--headless` has no renderer; to see a
+The last prints `DK2.Godot front end: page Main` once the menu is up; with `res://InGameHud.tscn` added it runs the
+in-game HUD instead and prints `DK2.Godot in-game HUD: Level1 seed 1`. `--headless` has no renderer; to see a
 frame, run the console build without it, e.g. `--path godot/DK2.Godot --write-movie <dir>/f.png --fixed-fps 30
 --quit-after 120` (Movie Maker writes every frame as a PNG; keep the output outside the repository).
 `editor.ps1` adds `--editor` to any run without `--headless`, so call the pinned console executable directly for this.
+The window takes the desktop's size and `--windowed`/`--resolution` do not change it (`docs/TRAPS.md`); for a
+1920x1080 capture put a temporary `DK2.Godot/override.cfg` holding `[display]` / `window/size/mode=0` beside
+`project.godot`, and delete it afterwards.
 
 ## Upgrading Godot
 

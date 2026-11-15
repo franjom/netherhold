@@ -142,6 +142,7 @@ public sealed class CampaignPlayer : IPlayerController
         bool hand = Hand(observation, home, actions);
         if (hand) why.Add("hand");
         if (Room(observation, home, actions)) why.Add("room");
+        if (Trap(observation, actions)) why.Add("trap");
         if (CreateImp(observation, home, actions)) why.Add("imp");
         if (!hand && Work(observation, home, actions)) why.Add("work");
         else if (!hand && Pit(observation, home, actions)) why.Add("pit");
@@ -170,6 +171,9 @@ public sealed class CampaignPlayer : IPlayerController
                 && _pendingRooms.Remove(build.Room) && receipt.Reason is PlayerRefusalReason.NotOffered or PlayerRefusalReason.OutOfBounds)
                 Tried(build.Room).Add(build.From);
             if (action is PlayerAction.CreateImpAt imp && receipt.Status is PlayerReceiptStatus.Refused) _refusedImpTiles.Add(imp.Tile);
+            // Only a refusal about the place bans the tile; a stale view or a spent budget says nothing about it.
+            if (action is PlayerAction.PlaceTrap trap && receipt.Status is PlayerReceiptStatus.Refused
+                && receipt.Reason is PlayerRefusalReason.NotOffered or PlayerRefusalReason.OutOfBounds) _refusedTrapTiles.Add(trap.Tile);
             if (receipt.Status != PlayerReceiptStatus.Queued) _sent.Remove(receipt.Id);
         }
         var done = new List<RoomTypeId>();
@@ -890,6 +894,67 @@ public sealed class CampaignPlayer : IPlayerController
         _lastImpTick = observation.Stamp.Tick;
         return true;
     }
+
+    /// <summary>The trap routine (defence plan D4): one trap blueprint per <see cref="TrapGapTicks"/> on the outermost
+    /// free site (<see cref="PlayerTrapRoutines.Sites"/>) on the routes from where attackers come in (hero gates and
+    /// portals, enemy ground, every enemy ever seen) to the Heart, while fewer than <see cref="PlayerStrategy.MaxTraps"/>
+    /// own traps stand, keeping <see cref="PlayerStrategy.UseRoomMinGold"/> for rooms. The Workshop panel greys traps
+    /// without a Workshop (<see cref="PlayerWorkshopOffer.NeedsWorkshop"/>), so with none it waits.</summary>
+    private bool Trap(PlayerObservation observation, List<PlayerAction> actions)
+    {
+        if (_strategy.MaxTraps <= 0 || !Fits(actions, 1) || (observation.Offers.Actions & PlayerActionKinds.PlaceTrap) == 0) return false;
+        long now = observation.Stamp.Tick.Value;
+        if (_lastTrapTick is GameTick last && now - last.Value < TrapGapTicks) return false;
+        // A placement accepted but never shown on its tile was refused by the world (blueprint-placement.md): drop the site.
+        if (_placedTrap is (TilePos sent, GameTick when) && now - when.Value >= TrapGapTicks)
+        {
+            if (observation.Tiles.Contains(sent) && (observation.Tiles[sent].Flags & PlayerTileFlags.OwnTrap) == 0) _refusedTrapTiles.Add(sent);
+            _placedTrap = null;
+        }
+        // A room bought in this decision spends the same gold the trap would be weighed against.
+        foreach (PlayerAction queued in actions) if (queued is PlayerAction.BuildRoom) return false;
+        bool buyable = false;
+        foreach (PlayerWorkshopOffer offer in observation.Offers.Workshop)
+            if (offer.Kind == PlayerWorkshopKind.Trap && !offer.NeedsWorkshop && offer.Affordable
+                && (long)observation.Gold.Value - offer.Cost.Value >= _strategy.UseRoomMinGold) buyable = true;
+        if (!buyable) return false;
+        _lastTrapTick = observation.Stamp.Tick;   // weighed now: look again after the gap, placed or not
+        PlayerTileGrid grid = observation.Tiles;
+        if (PlayerTrapRoutines.OwnTraps(grid) >= _strategy.MaxTraps) return false;
+        PlayerId self = observation.Stamp.Player;
+        var entries = new List<TilePos>(_sightings);
+        for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var at = new TilePos(x, y);
+                PlayerTile tile = grid[at];
+                if (PlayerTrapRoutines.IsEntryRoom(tile, self) || PlayerTrapRoutines.IsEnemyGround(tile, self)) entries.Add(at);
+            }
+        if (entries.Count == 0) return false;
+        entries.Sort((a, b) => a.Y != b.Y ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X));   // _sightings is a set: fix the order
+        foreach (TilePos site in PlayerTrapRoutines.Sites(observation, entries, TrapSpacingTiles, _refusedTrapTiles))
+        {
+            // A blueprint under an enemy's feet is only carried into the fight.
+            if (PlayerActionRoutines.ThreatNear(observation, site, 1)) continue;
+            if (PlayerTrapRoutines.Choose(observation, site, _strategy.UseRoomMinGold) is not PlayerWorkshopOffer trap) continue;
+            actions.Add(new PlayerAction.PlaceTrap(trap.Id, site));
+            _placedTrap = (site, observation.Stamp.Tick);
+            return true;
+        }
+        return false;
+    }
+
+    private GameTick? _lastTrapTick;
+    private (TilePos Tile, GameTick Since)? _placedTrap;
+    /// <summary>Tiles a trap placement was refused at: not chosen again.</summary>
+    private readonly HashSet<TilePos> _refusedTrapTiles = [];
+
+    /// <summary>Ticks between two trap placements (5 s): the blueprint shows on its tile before the next is weighed.</summary>
+    private const int TrapGapTicks = 20;
+
+    /// <summary>Own traps, doors and new sites stand at least this many tiles (Chebyshev) apart (defence plan D4, as DK2's
+    /// own keeper spaces them).</summary>
+    private const int TrapSpacingTiles = 3;
 
     /// <summary>Remembers when an own non-worker last stood in an own Library: research is going on.</summary>
     private void NoteResearch(PlayerObservation observation)

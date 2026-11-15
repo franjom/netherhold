@@ -223,6 +223,24 @@ public sealed class PlayerInputTranslator
         return null;
     }
 
+    /// <summary>A stored special's panel slot was clicked (<see cref="BottomPanelHud.SpecialChosen"/>). The model first drops
+    /// its own pointer gesture (our step, not DK2's); then, as SpellPanel_ActivateSpecial (<c>0x0040A280</c>) does, action 88
+    /// is returned to post at once, or targeting begins for Kill Creatures and Transfer Creature. Mode 5 overwrites the tool
+    /// without Hud_CancelSelectedTool, and targeting
+    /// lasts only under the hand, so on null <paramref name="panel"/> returns to the hand and the host resets its tool too.</summary>
+    public PlayerCommand? ChooseStoredSpecial(PlayerId playerId, int objectId, byte typeId, BottomPanelView panel)
+    {
+        if (panel is null) throw new ArgumentNullException(nameof(panel));
+        CancelPointerGesture();
+        if (ActivateStoredSpecial(playerId, objectId, typeId) is PlayerCommand command) return command;
+        panel.SelectTool(PlayerToolMode.Hand);
+        return null;
+    }
+
+    /// <inheritdoc cref="ChooseStoredSpecial(PlayerId, int, byte, BottomPanelView)"/>
+    public PlayerCommand? ChooseStoredSpecial(PlayerId playerId, BottomPanelChoice special, BottomPanelView panel) =>
+        ChooseStoredSpecial(playerId, (special ?? throw new ArgumentNullException(nameof(special))).ObjectId, special.Key.Value, panel);
+
     /// <summary>The release clamps' limit, the database's <c>RubberBandAreaLimit</c>: the room release
     /// pulls the end toward the anchor (<see cref="PlacementCursor.ClampDrag"/>), the sell release
     /// keeps the low corner (<see cref="PlacementCursor.DragRectangle"/>). Unbounded until set.</summary>

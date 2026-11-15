@@ -59,6 +59,7 @@ public sealed partial class WorldState
         Carry = source.Carry;
         LocalPlayerId = source.LocalPlayerId;
         CopySecretDoorEntries(source);
+        CopyRepairTaskEntries(source);
         for (int i = 0; i < _players.Length; i++) CopyPlayer(ref _players[i], in source._players[i]);
         Array.Copy(source.RoomBuildWaveSlots, RoomBuildWaveSlots, RoomBuildWaveSlots.Length);
         Array.Copy(source.RoomSellWaveSlots, RoomSellWaveSlots, RoomSellWaveSlots.Length);
@@ -115,6 +116,18 @@ public sealed partial class WorldState
             target.Clear();
             target.AddRange(source);
             return target;
+        }
+    }
+
+    private void CopyRepairTaskEntries(WorldState source)
+    {
+        if (source.RepairTaskEntries.Count == 0 && RepairTaskEntries.Count == 0) return;
+        RepairTaskEntries.Clear();
+        foreach (var pair in source.RepairTaskEntries)
+        {
+            var entry = new RepairTaskEntry();
+            Array.Copy(pair.Value.Holders, entry.Holders, entry.Holders.Length);
+            RepairTaskEntries.Add(pair.Key, entry);
         }
     }
 

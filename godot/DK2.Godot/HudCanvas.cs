@@ -19,6 +19,7 @@ public partial class HudCanvas : Node2D
     private readonly List<Rid> _items = new();
     private CanvasItemMaterial? _additive;
     private Resolved[] _resolved = new Resolved[256];
+    private readonly SectorBuffers?[] _fans = new SectorBuffers?[HudSector.MaxVertices + 1];
     private Vector2 _origin;
     private float _scale = 1, _pixelsPerUnit = 1;
     private bool _invalid = true;
@@ -66,9 +67,6 @@ public partial class HudCanvas : Node2D
         foreach (Rid item in _items) RenderingServer.CanvasItemClear(item);
         ReadOnlySpan<HudDraw> draws = _shown.Draws;
         Span<HudVertex> fan = stackalloc HudVertex[HudSector.MaxVertices];
-        Span<Vector2> points = stackalloc Vector2[HudSector.MaxVertices];
-        Span<Vector2> uvs = stackalloc Vector2[HudSector.MaxVertices];
-        Span<Color> colors = stackalloc Color[HudSector.MaxVertices];
         int run = -1;
         HudBlend blend = HudBlend.Alpha;
         bool nearest = false;
@@ -92,13 +90,17 @@ public partial class HudCanvas : Node2D
                 // The fan is laid over the snapped rect, as Unity's sector element's content rect was.
                 int n = HudSector.Fan(new HudRect(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y), draw.Percent, fan);
                 if (n == 0) continue;
+                SectorBuffers buffers = _fans[n] ??= new SectorBuffers(n);
                 for (int k = 0; k < n; k++)
                 {
-                    points[k] = new Vector2(fan[k].X, fan[k].Y);
-                    uvs[k] = new Vector2(fan[k].U, fan[k].V);
-                    colors[k] = tint;
+                    buffers.Points[k] = new Vector2(fan[k].X, fan[k].Y);
+                    buffers.Uvs[k] = new Vector2(fan[k].U, fan[k].V);
+                    buffers.Colors[k] = tint;
                 }
-                RenderingServer.CanvasItemAddPolygon(item, points[..n], colors[..n], uvs[..n], texture.Texture);
+                // An explicit fan (0, k, k + 1), not CanvasItemAddPolygon: that triangulates the outline and drops the
+                // whole draw when a thin wedge or collinear rim points defeat the triangulation.
+                RenderingServer.CanvasItemAddTriangleArray(item, buffers.Indices, buffers.Points, buffers.Colors, buffers.Uvs,
+                    Array.Empty<int>(), Array.Empty<float>(), texture.Texture, -1);
                 continue;
             }
             if (r.Size.X <= 0 || r.Size.Y <= 0) continue;
@@ -114,6 +116,23 @@ public partial class HudCanvas : Node2D
             if (draw.Kind == HudDrawKind.Fill) { RenderingServer.CanvasItemAddRect(item, r, tint); continue; }
             var region = new Rect2(uv.X * texture.Size.X, uv.Y * texture.Size.Y, uv.Width * texture.Size.X, uv.Height * texture.Size.Y);
             RenderingServer.CanvasItemAddTextureRectRegion(item, r, texture.Texture, region, tint, false, true);
+        }
+    }
+
+    /// <summary>Reused arrays for a sector fan of one vertex count, exact-sized: the triangle-array call takes whole
+    /// arrays (4.8 beta 3's span overload rejected its own index count), so a fan allocates no managed memory after its
+    /// first draw. The call still copies them into native packed arrays each time a changed frame is recorded.</summary>
+    private sealed class SectorBuffers
+    {
+        public readonly Vector2[] Points, Uvs;
+        public readonly Color[] Colors;
+        public readonly int[] Indices;
+
+        public SectorBuffers(int vertices)
+        {
+            Points = new Vector2[vertices]; Uvs = new Vector2[vertices]; Colors = new Color[vertices];
+            Indices = new int[3 * (vertices - 2)];
+            for (int k = 1, i = 0; k + 1 < vertices; k++) { Indices[i++] = 0; Indices[i++] = k; Indices[i++] = k + 1; }
         }
     }
 
