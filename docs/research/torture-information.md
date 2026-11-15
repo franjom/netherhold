@@ -119,9 +119,22 @@ placed things and fog enabled, killed Guard 50 at tick 269 and emitted path 231
 and speech 23 at tick 270. This verifies script dispatch, not rendered subtitles
 or playback. The owner reports the generic speech preceding the scripted line,
 with the tutorial subtitle no longer appearing as previously remembered.
-**Open:** compare a native opening with the remake's playing-line and path-end
-times; the missing subtitle is not yet explained (Q824). Do not suppress the
-generic messages on the assumption that they are a confirmed DK2 defect.
+The owner-requested override is built as shared `DK2.Presentation.Level6aTortureSpeech`
+(ADR-0809); Unity wires it before the initial simulation tick. It suppresses only
+the scoped automatic speech, retaining message records and tabs, information
+rewards and the scripted scene. Newly posted-message source metadata prevents
+older deduplicated notifications from being reattributed to the opening Guard.
+
+Six focused cases passed, including the shipped opening and nearby exclusions.
+Disabling the suppression made the shipped-opening test fail because generic
+speech was queued; restoring it passed. Logs and the counterfactual manifest
+are in `build/q824-speech-verification/` (`red.txt`, `green.txt`,
+`counterfactual.json`). These checks establish the requested queue policy, not
+live hearing or rendered subtitle acceptance.
+
+**Open (Q824):** compare native playing-line and path-end times with the remake,
+including speech-disabled subtitles. ADR-0809 is a deliberate presentation
+deviation, not a finding that the original notifications are defective.
 
 **Corpse placement:** [the death-bookkeeping record](functions/00487C70.md)
 records the original-position argument (STRONGLY INFERRED), rather than a free

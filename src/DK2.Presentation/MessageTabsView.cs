@@ -44,6 +44,11 @@ public sealed class MessageTabsView
 
     public SoundRequests Sounds { get; } = new();
     public SoundRequests Speech { get; } = new();
+    /// <summary>Suppresses automatic speech while retaining the notification and its tab.</summary>
+    public void SuppressSpeech(PlayerMessage message)
+    {
+        if (message.PlayerId == _viewer) _heard.Add(message.Id);
+    }
     private readonly HashSet<uint> _heard = new();
     private readonly bool[] _slidingSlots = new bool[RecordsExamined];
     public IReadOnlyList<MessageTab> Tabs => _tabs;

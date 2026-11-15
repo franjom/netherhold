@@ -19285,3 +19285,23 @@ creates dust at click time. Authoritative hand timing, simulation state, RNG and
 hash/save 521 are unchanged. The effect event gains source metadata without
 attaching the cloud to the moving creature. Both world clicks and overview
 pickups use the same feedback event.
+
+## ADR-0809 - let Level6a's opening torture tutorial speak without generic announcements
+
+**Date:** 2026-11-15 | **Status:** accepted | **Systems:** audio, hud-front-end, rooms
+
+**Context.** The owner requests suppressing the generic torture-death speech for
+Level6a's opening Guard. The original posts and the scripted tutorial are separate
+([torture-information.md section 7](research/torture-information.md#7-level6as-opening-guard-2026-11-15)); no original defect is established.
+
+**Decision.** The shared presentation policy suppresses automatic speech for newly
+posted messages 97 and 59 to keeper 3 from `Level6a.kwd`'s Guard (type 25)
+with creature trigger root 24. Level-name matching ignores case.
+Retain the notifications, information reward, path 231 and scripted speech 23.
+Other deaths and other levels retain their ordinary speech.
+
+**Consequences.** This is an owner-requested presentation deviation, shared by
+engine adapters. Simulation events identify each newly created message's source;
+deduplicated existing messages are not reattributed. Simulation state, RNG,
+hash/save 521 and native-behavior findings are unchanged. Native playback timing
+and live-scene acceptance remain separate checks under Q824.

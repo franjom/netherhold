@@ -79,16 +79,22 @@ public static class TortureInformationRules
     /// <summary>The whole of <c>0x004F2370</c>: <see cref="Give"/>, then for 11 the reveal, then
     /// message 97 to the chamber's keeper and either 96 (rewards 3 to 10) or 59 (11). Returns the
     /// reward and what the reveal did.</summary>
+    /// <param name="onPosted">Observes newly created messages, never retained duplicates.</param>
     public static (int Reward, RevealResult Revealed) Award(
-        WorldState world, GameDatabase database, SimRandom rng, CreatureDef victim, PlayerId victimOwner, PlayerId chamberOwner)
+        WorldState world, GameDatabase database, SimRandom rng, CreatureDef victim, PlayerId victimOwner, PlayerId chamberOwner,
+        Action<PlayerMessage>? onPosted = null)
     {
         int reward = Give(world, rng, victim, victimOwner, chamberOwner);
         RevealResult revealed = reward == Reveal ? RevealTo(world, database, victimOwner, chamberOwner) : RevealResult.None;
         if (world.HasPlayer(chamberOwner))
         {
-            world.Messages.Post(world, chamberOwner.Value, PlayerMessageKind.InformationLearned, 0, 0);
-            world.Messages.Post(world, chamberOwner.Value,
-                reward == Reveal ? PlayerMessageKind.InformationReveal : PlayerMessageKind.InformationUnlocked, 0, 0);
+            uint nextId = world.Messages.NextMessageId;
+            if (world.Messages.Post(world, chamberOwner.Value, PlayerMessageKind.InformationLearned, 0, 0) is { } learned
+                && learned.Id == nextId) onPosted?.Invoke(learned);
+            nextId = world.Messages.NextMessageId;
+            if (world.Messages.Post(world, chamberOwner.Value,
+                    reward == Reveal ? PlayerMessageKind.InformationReveal : PlayerMessageKind.InformationUnlocked, 0, 0) is { } information
+                && information.Id == nextId) onPosted?.Invoke(information);
         }
         return (reward, revealed);
     }

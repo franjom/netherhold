@@ -487,7 +487,9 @@ namespace DK2.Unity
                 return;
             }
             _textFolder = Path.Combine(install, "Data", "Text", "Default");
+            _messageView = new MessageTabsView(new PlayerId((byte)viewingPlayerId), database);
             ISimulationEventSink effects = (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance;
+            effects = new Level6aTortureSpeech(database, _messageView, effects);
             if (_constructionEffects != null)
             {
                 _worldView.LocalPickups.DustRequested += request => _constructionEffects.Model.RequestPickupDust(request);
