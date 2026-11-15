@@ -3,7 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
-using System.Collections.Generic;
+using DK2.Art.Textures;
 using DK2.Data.Save;
 using DK2.Presentation;
 using UnityEngine;
@@ -11,117 +11,62 @@ using UnityEngine.UIElements;
 
 namespace DK2.Unity
 {
-    /// <summary>Original-font named-save browser; its native destinations are Options23/24 and front-end8.</summary>
+    /// <summary>The named-save browser's Unity side: <see cref="SaveLoadHud"/> (ADR-0805) drawn by a
+    /// <see cref="HudCanvas"/> that takes the pointer only on its pressable lines.</summary>
     public sealed class ClassicSaveLoadPanel : IDisposable
     {
+        private static readonly RgbaImage Blank = new RgbaImage(1, 1, new byte[4]);
+        private readonly SaveLoadHud _hud;
         private readonly GameObject _owner;
         private readonly PanelSettings _settings;
         private readonly VisualElement _root;
-        private readonly IClassicOptionsAssets _assets;
-        private readonly List<Texture2D> _textures = new List<Texture2D>();
-        private SaveSlotsView _view;
-        private int _height, _revision = -1, _first;
-        private bool _save, _frontEnd, _visible;
-        private string _error = "";
-        public event Action Submit;
-        public event Action Back;
-        public event Action Continue;
+        private readonly HudCanvas _canvas;
+        private readonly HudFrame _frame = new HudFrame();
+        public event Action Submit { add => _hud.Submit += value; remove => _hud.Submit -= value; }
+        public event Action Back { add => _hud.Back += value; remove => _hud.Back -= value; }
+        public event Action Continue { add => _hud.Continue += value; remove => _hud.Continue -= value; }
 
         public ClassicSaveLoadPanel(Transform parent, IClassicOptionsAssets assets)
         {
-            _assets = assets;
+            if (assets == null) throw new ArgumentNullException(nameof(assets));
+            _hud = new SaveLoadHud(assets.Text, assets.Font);
             _settings = ScriptableObject.CreateInstance<PanelSettings>();
             _settings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
-            _settings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
-            _settings.referenceResolution = new Vector2Int(1024,768);
-            _settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight; _settings.match = 1;
+            _settings.scaleMode = PanelScaleMode.ConstantPixelSize; _settings.scale = 1;
             _settings.sortingOrder = 16;
             _owner = new GameObject("Saved games"); _owner.transform.SetParent(parent, false);
             var document = _owner.AddComponent<UIDocument>(); document.panelSettings = _settings;
             _root = document.rootVisualElement; _root.pickingMode = PickingMode.Ignore;
             _root.style.width = Length.Percent(100); _root.style.height = Length.Percent(100);
             _root.style.display = DisplayStyle.None;
+            _canvas = new HudCanvas(_ => Blank, _hud.Hits);
+            _root.Add(_canvas);
+            _canvas.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                Vector2 at = _canvas.ToVirtual(evt.localPosition);
+                if (_hud.PointerDown(at.x, at.y, evt.button)) evt.StopPropagation();
+            });
         }
 
+        /// <summary>Shows or hides the browser, and feeds it this frame's typing and wheel.</summary>
         public void Show(SaveSlotsView view, bool visible, bool save, bool frontEnd = false)
         {
-            bool changed = _view != view || _save != save || _frontEnd != frontEnd || visible && !_visible;
-            _view = view; _visible = visible; _save = save; _frontEnd = frontEnd;
+            _hud.Show(view, visible, save, frontEnd);
             _root.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-            if (changed) { _revision = -1; _first = 0; _error = ""; }
-            if (!visible || view == null) return;
-            if (!_frontEnd && _save)
-            {
-                foreach (char c in Input.inputString)
-                {
-                    if (c == '\b') { if (view.Name.Length > 0) view.SetName(view.Name.Substring(0, view.Name.Length - 1)); }
-                    else if (c == '\n' || c == '\r') Submit?.Invoke();
-                    else if (!char.IsControl(c)) view.SetName(view.Name + c);
-                }
-            }
-            if (Input.mouseScrollDelta.y != 0)
-            {
-                int next = Mathf.Clamp(_first - (int)Input.mouseScrollDelta.y, 0, Math.Max(0, view.Entries.Count - 7));
-                if (next != _first) { _first = next; _revision = -1; }
-            }
-            if (_height != Screen.height || _revision != view.Revision) Rebuild();
+            if (!_hud.Visible) return;
+            _hud.Type(Input.inputString);
+            _hud.Wheel((int)Input.mouseScrollDelta.y);
+            var screen = new HudScreen(Screen.width, Screen.height);
+            _frame.Clear();
+            _hud.Build(screen, _frame);
+            _canvas.Present(_frame, screen.Scale, 1);
         }
 
-        public void Error(string message) { _error = message; _revision = -1; }
-
-        private void Rebuild()
-        {
-            _height = Screen.height; _revision = _view.Revision;
-            _root.Clear();
-            foreach (Texture2D texture in _textures) UnityEngine.Object.Destroy(texture);
-            _textures.Clear();
-            float x = _frontEnd ? 112 : 8, y = _frontEnd ? 188.8f : 112;
-            if (!_frontEnd) Text(_assets.Text(_save ? 201u : 143u), 8, 72, null);
-            int shown = Math.Min(_frontEnd ? 11 : 7, _view.Entries.Count - _first);
-            for (int i = 0; i < shown; i++)
-            {
-                int index = _first + i;
-                SavedSessionEntry entry = _view.Entries[index];
-                string caption = entry.DisplayName;
-                // An unreadable save stays listed so the player can see why it will not load (ADR-0588).
-                // English until ADR-0587's catalog exists.
-                if (!entry.Readable) caption += "   (cannot be loaded)";
-                else if (_frontEnd && entry.Header is { } header) caption += "   " + header.SavedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
-                Image image = Text(caption, x, y + i * 32, () =>
-                {
-                    _view.Select(index);
-                    _error = entry.Readable ? "" : entry.Refusal?.Message ?? "";
-                    _revision = -1;
-                });
-                Color unselected = entry.Readable ? new Color(200/255f,200/255f,200/255f) : new Color(120/255f,120/255f,120/255f);
-                image.tintColor = index == _view.SelectedIndex ? Color.white : unselected;
-            }
-            if (!_frontEnd)
-            {
-                if (_save) Text(_view.Name + "_", 8, 440, () => Submit?.Invoke());
-                else if (_view.Selected != null) Text(_assets.Text(143), 8, 440, () => Submit?.Invoke());
-                Text(_assets.Text(142), 8, 512, () => Continue?.Invoke());
-                Text(_assets.Text(20), 512, 512, () => Back?.Invoke());
-            }
-            if (!string.IsNullOrEmpty(_error)) Text(_error, x, _frontEnd ? 600 : 480, null);
-        }
-
-        private Image Text(string value, float x, float y, Action press)
-        {
-            Texture2D texture = ClassicOptionsPanel.TextTexture(_assets.Font(_height), value);
-            _textures.Add(texture);
-            var image = new Image { image = texture, pickingMode = press == null ? PickingMode.Ignore : PickingMode.Position };
-            image.style.position = Position.Absolute; image.style.left = x; image.style.top = y;
-            image.style.width = texture.width * 768f / _height;
-            image.style.height = texture.height * 768f / _height;
-            if (press != null) image.RegisterCallback<PointerDownEvent>(evt =>
-            { if (evt.button == 0) { evt.StopPropagation(); press(); } });
-            _root.Add(image); return image;
-        }
+        public void Error(string message) => _hud.Error(message);
 
         public void Dispose()
         {
-            foreach (Texture2D texture in _textures) UnityEngine.Object.Destroy(texture);
+            _canvas.Dispose();
             UnityEngine.Object.Destroy(_owner); UnityEngine.Object.Destroy(_settings);
         }
     }

@@ -24,9 +24,9 @@ questions live in their canonical documents; this file links to them.
   GPLv3 code linked to Unity's runtime remains [ADR-0041](DECISIONS.md)'s open question. ADR-0805 moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
-  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`) and the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`) are moved too; they build and their models are
+  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`) and the in-game options menu and save browser (`OptionsHud`, `SaveLoadHud`) are moved too; they build and their models are
   tested, but none has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
-  background-repeat are unchecked. Next: options and save/load, then the rest of the order in the ADR. No Godot code existed on that date.
+  background-repeat are unchecked. Next: the game-options panel (sliders, key list), then the front-end menu and the rest of the order in the ADR. No Godot code existed on that date.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,
@@ -102,7 +102,7 @@ Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [compatible-bed/point controls](research/q710-fighter-decisions.md#compatible-bed-and-point-controls-at-d6d9b5f7) are complete; next match room-point selection/RNG/slab-chain inputs for the stationary continuation, retaining unmatched body/world/clock and cohort limits.
+exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [room-order/RNG controls](research/q710-fighter-decisions.md#room-order-and-rng-inputs-at-0b71f052) rule out chain order only for the sampled Workshop; next locate/obtain a provenanced seed-8 Room.cpp:1509 per-call trace near 5001..5002 with actor/predicate/checkpoint context. Existing packets can drive the trace; comparison limits remain.
 
 ## Other pending work
 
