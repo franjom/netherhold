@@ -19248,3 +19248,21 @@ Copying, hashing and snapshot serialization include both fields.
 is `0xF5D7D4C89778DF7F`. Room-list identity adapts native room tags; the native
 allocator, generic finder/navigation and remaining Guard scratch are partial.
 Q710's aggregate outcome remains open.
+
+## ADR-0807 - defer moving torture corpses clear of their devices
+
+**Date:** 2026-11-15 | **Status:** accepted (implementation deferred) | **Systems:** creatures, rooms
+
+**Context.** The owner wants Level6a's tortured Guard to fall onto clear chamber
+floor instead of remaining inside the coals device. The binary placement and
+the separate speech investigation are in [torture-information.md section 7](research/torture-information.md#7-level6as-opening-guard-2026-11-15).
+
+**Decision.** Record the change now; implement it only after the owner is satisfied
+with the remake's state. Move the actual corpse to the nearest free tile in the
+same Torture Chamber, preferring the tile in front of its device. Imp collection
+and hand pickup must use the relocated body position too, not a display offset.
+
+**Consequences.** This is a requested future deviation from DK2, not a current
+fix or a claim that DK2's placement is defective. Current simulation and rendering
+stay unchanged. The precise free-tile eligibility, tie order and no-space fallback
+are left for the implementation design when the owner releases the deferral.
