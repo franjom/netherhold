@@ -113,7 +113,8 @@ becomes (c * word) >> 16 (32-bit multiply, logical shift), clamped to 255; alpha
 `TriSink_Clipping` drops a triangle whose three vertices all have t < 0 (their shared 0x20 bit). So:
 full brightness out to D = V/2, linear to black at D >= V, in a diamond metric. Because the lateral
 terms carry f/halfW and f/halfH, the fade's shape depends on the resolution and the viewport. The
-ordinary camera skips the block. It shades; it moves no vertex.
+ordinary camera skips the block. It shades; it moves no vertex. Built engine-free as `PossessionFade`; no
+adapter applies it yet.
 
 ## 5. Ruled out
 
