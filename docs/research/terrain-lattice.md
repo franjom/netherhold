@@ -400,4 +400,4 @@ corner where both axes change, 0 where the tiles agree.
   frame.
 - `0x0059F3C0`, a sibling rest-grid builder (3 × 3 × 3 points, offset 0.5 and −0.05
   with the same flags): its caller is `0x005A081C` in the procedural-art draw; purpose unread.
-- The new-entry flag from `0x0059A570` (entry `+0x18` bit 0) was not read.
+- The new-entry flag from `0x0059A570` (entry `+0x18` bit 0) is the occluder bit of the possession tile walk: off the map or navigation-solid ([possession-warp.md](possession-warp.md) section 8.4).

@@ -241,13 +241,7 @@ lattice window is the tile's own during the build; the call chain from the cache
 Lighting normals come from height differences with a constant z component of 4.0, spread
 bilinearly (`0x005A18A0`); the exact corner pairing is UNREAD, so an adapter may use mesh normals.
 
-**Which tiles are visible in possession (HYPOTHESIS).** In possession `0x00575A00` caps the
-view distance at 32 tiles and enumerates tiles by rings around the camera tile (`0x005737E0`,
-`0x00572F60`), keeping those inside the view polygon and not hidden by blocked tiles in angle:
-a 2D line-of-sight set. The renderer's view distance is camera `+0xD8A` (`0x0044D550` =
-max(2 * zoom, `+0xD8A`) / 4096; the commit copies preset `ViewDistance` into it and the lens
-into `+0xD8E`); preset 2 gives 12 tiles, 8 for mode 10. The occluder bit (cache entry `+0x18` bit 0)
-and the interval store `0x00573470` are UNREAD.
+**Which tiles are visible in possession (STRONGLY INFERRED).** A line-of-sight set inside the scaled view polygon, rebuilt every frame and limiting every tile-cache draw: [possession-warp.md](possession-warp.md) section 8.
 
 **Darkening (HYPOTHESIS).** No fog write, depth term or fog string was found. Default
 ambient is 0 (`classic-lighting.md` section 8) and the ceiling's tint is black, as the terrain
