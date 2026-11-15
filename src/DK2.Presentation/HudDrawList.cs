@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data.Model;
+
 namespace DK2.Presentation;
 
 /// <summary>A rectangle in native virtual HUD units: the screen is 1920 high and as wide as its aspect makes it.</summary>
@@ -46,28 +48,80 @@ public enum HudImageVariant : byte
     Gauge,
 }
 
-/// <summary>An image by catalogue name, plus a variant. The default value is "no image": nothing is drawn.</summary>
+/// <summary>Text set in a bitmap font, white with the glyphs' coverage as alpha; a tint colours it.
+/// <paramref name="WrapWidth"/> is in the font's pixels. Fonts compare by reference.</summary>
+public sealed record HudText(BitmapFont Font, string Text, int WrapWidth);
+
+/// <summary>An image by catalogue name plus a variant, or set text. The default value is "no image":
+/// nothing is drawn.</summary>
 public readonly record struct HudImage(string? Path, HudImageVariant Variant = HudImageVariant.None, byte Pieces = 0,
-    HudGaugeFraction Gauge = default)
+    HudGaugeFraction Gauge = default, HudText? Text = null)
 {
-    public bool IsNone => Path is null;
+    public bool IsNone => Path is null && Text is null;
     /// <summary>The variant's pixels change over time; see <see cref="HudImageVariant.Gauge"/>.</summary>
     public bool IsLive => Variant == HudImageVariant.Gauge;
     /// <summary>This image with its live parameter cleared: the identity a renderer keeps one texture for.</summary>
     public HudImage Slot => IsLive ? new HudImage(Path, Variant, Pieces) : this;
     public static implicit operator HudImage(string? path) => new(path);
+    public static HudImage Of(HudText text) => new(null, Text: text);
 }
 
 public enum HudDrawKind : byte
 {
-    /// <summary>The whole image stretched over <see cref="HudDraw.Rect"/>.</summary>
+    /// <summary>The image's <see cref="HudDraw.Uv"/> part (all of it by default) stretched over <see cref="HudDraw.Rect"/>.</summary>
     Quad,
     /// <summary>A clockwise wedge from 12 o'clock over <see cref="HudDraw.Percent"/>; see <see cref="HudSector"/>.</summary>
     Sector,
+    /// <summary>The rect filled with the tint; no image.</summary>
+    Fill,
 }
 
+/// <param name="Uv">The part of the image drawn, in image fractions from its top-left; null for all of it.</param>
+/// <param name="Clip">A window the quad shows through (an overflow-hidden box), or null. The renderer places
+/// the quad and the window on its pixel grid first and then cuts with <see cref="HudQuads.Cut"/>, so a text
+/// image keeps one texel per pixel as it scrolls.</param>
 public readonly record struct HudDraw(HudDrawKind Kind, HudImage Image, HudRect Rect, HudColor Tint,
-    HudBlend Blend = HudBlend.Alpha, int Percent = 0);
+    HudBlend Blend = HudBlend.Alpha, int Percent = 0, HudRect? Uv = null, HudRect? Clip = null);
+
+/// <summary>Quad helpers shared by the panels and renderers: clipping to a window and tiling an area.</summary>
+public static class HudQuads
+{
+    /// <summary>Adds <paramref name="rect"/> seen through <paramref name="clip"/>; nothing when they do not overlap.</summary>
+    public static void Clipped(HudFrame frame, HudImage image, HudRect rect, HudRect clip, HudColor tint)
+    {
+        if (!Cut(rect, new HudRect(0, 0, 1, 1), clip, out _, out _)) return;
+        frame.Add(new HudDraw(HudDrawKind.Quad, image, rect, tint, Clip: clip));
+    }
+
+    /// <summary>The part of a quad (<paramref name="rect"/> showing <paramref name="uv"/> of its image) inside
+    /// <paramref name="clip"/>, with the matching part of the image; false when nothing is left. Renderers
+    /// call it with coordinates already on their pixel grid.</summary>
+    public static bool Cut(HudRect rect, HudRect uv, HudRect clip, out HudRect drawn, out HudRect drawnUv)
+    {
+        float left = Math.Max(rect.X, clip.X), top = Math.Max(rect.Y, clip.Y);
+        float right = Math.Min(rect.X + rect.Width, clip.X + clip.Width), bottom = Math.Min(rect.Y + rect.Height, clip.Y + clip.Height);
+        drawn = drawnUv = default;
+        if (right <= left || bottom <= top || rect.Width <= 0 || rect.Height <= 0) return false;
+        drawn = new HudRect(left, top, right - left, bottom - top);
+        drawnUv = new HudRect(uv.X + (left - rect.X) / rect.Width * uv.Width, uv.Y + (top - rect.Y) / rect.Height * uv.Height,
+            (right - left) / rect.Width * uv.Width, (bottom - top) / rect.Height * uv.Height);
+        return true;
+    }
+
+    /// <summary>Covers <paramref name="area"/> with the image repeated at <paramref name="tile"/> square from
+    /// its top-left, the last row and column cropped (CSS background-repeat).</summary>
+    public static void Tiled(HudFrame frame, HudImage image, HudRect area, float tile, HudColor tint)
+    {
+        if (tile <= 0 || area.Width <= 0 || area.Height <= 0) return;
+        for (float y = 0; y < area.Height; y += tile)
+        for (float x = 0; x < area.Width; x += tile)
+        {
+            float w = Math.Min(tile, area.Width - x), h = Math.Min(tile, area.Height - y);
+            frame.Add(new HudDraw(HudDrawKind.Quad, image, new HudRect(area.X + x, area.Y + y, w, h), tint,
+                Uv: new HudRect(0, 0, w / tile, h / tile)));
+        }
+    }
+}
 
 /// <summary>One frame of HUD draws in back-to-front order. Reused between frames: <see cref="Clear"/>
 /// keeps its storage, so building a frame allocates nothing once it has grown to size.</summary>

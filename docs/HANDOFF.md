@@ -21,8 +21,9 @@ questions live in their canonical documents; this file links to them.
   Unity's runtime is [ADR-0041](DECISIONS.md)'s open question. [ADR-0805](DECISIONS.md) moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
-  resource strip is moved too (`KeeperResourceHud`); it builds and its model is tested, but it has not been run in
-  the Unity editor. Next: the message tabs, then the order in the ADR. No Godot code existed on that date.
+  resource strip (`KeeperResourceHud`) and the message tabs (`MessageTabsHud`) are moved too; they build and their models are
+  tested, but neither has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
+  background-repeat are unchecked. Next: the hover HUD, then the order in the ADR. No Godot code existed on that date.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,

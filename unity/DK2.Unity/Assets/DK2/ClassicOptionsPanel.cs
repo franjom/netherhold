@@ -130,46 +130,16 @@ namespace DK2.Unity
                 _labels[i].style.height=_textures[i].height*scale;
             }
         }
+        /// <summary>Text set by <see cref="HudTextPixels"/>, the one rasterizer every panel and engine shares.</summary>
         internal static Texture2D TextTexture(BitmapFont font,string text,int wrapWidth=0)
         {
-            IReadOnlyList<BitmapTextLine> lines=BitmapTextLayout.Wrap(font,text,wrapWidth>0?wrapWidth:32767);
-            int width=1,minY=0,maxY=font.LineHeight;
-            foreach(BitmapTextLine line in lines)
-            {
-                int pen=0;
-                foreach(char c in line.Text)
-                {
-                    BitmapGlyph glyph=font.Find(c); if(glyph==null) continue;
-                    width=Math.Max(width,pen+glyph.OffsetX+glyph.Width);
-                    minY=Math.Min(minY,glyph.OffsetY); maxY=Math.Max(maxY,glyph.OffsetY+glyph.Height);
-                    pen+=glyph.Advance;
-                }
-            }
-            int height=Math.Max(1,(Math.Max(1,lines.Count)-1)*font.LineHeight+maxY-minY);
-            var pixels=new Color32[width*height];
-            for(int row=0;row<lines.Count;row++)
-            {
-                int pen=0;
-                foreach(char c in lines[row].Text)
-                {
-                    BitmapGlyph glyph=font.Find(c); if(glyph==null) continue;
-                    for(int y=0;y<glyph.Height;y++) for(int x=0;x<glyph.Width;x++)
-                    {
-                        int px=pen+glyph.OffsetX+x,py=row*font.LineHeight+y+glyph.OffsetY-minY;
-                        // Glyph boxes overlap (a j reaches back under the letter before it): keep the stronger
-                        // ink instead of letting one glyph's blank pixels erase its neighbour.
-                        if((uint)px<(uint)width && (uint)py<(uint)height)
-                        {
-                            int at=(height-1-py)*width+px; byte alpha=(byte)(glyph.Pixels[y*glyph.Width+x]*17);
-                            if(alpha>pixels[at].a) pixels[at]=new Color32(255,255,255,alpha);
-                        }
-                    }
-                    pen+=glyph.Advance;
-                }
-            }
+            byte[] set=HudTextPixels.Render(new HudText(font,text,wrapWidth),out int width,out int height);
+            // Unity textures run bottom-up.
+            var rows=new byte[set.Length]; int row=width*4;
+            for(int y=0;y<height;y++) Buffer.BlockCopy(set,y*row,rows,(height-1-y)*row,row);
             var texture=new Texture2D(width,height,TextureFormat.RGBA32,false)
                 { filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp };
-            texture.SetPixels32(pixels); texture.Apply(false,true); return texture;
+            texture.LoadRawTextureData(rows); texture.Apply(false,true); return texture;
         }
         public void Dispose()
         {
