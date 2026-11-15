@@ -112,5 +112,9 @@ changes of entering and leaving; the near clip, lighting distance and ambience l
 which still follow the ordinary camera; the two ability keys; the possession HUD, so HUD
 shortcuts still act; the third-person view.
 
+Seen in the original by the owner on 2026-11-15 (possession-client.md section 6b, 19
+screenshots): the picture is warped and has a ceiling, neither of which the remake's
+first-person view is known to do; and the possession HUD, not built.
+
 Remake choices to check in play: one host pixel of mouse travel is one unit of DK2's
 delta; the roll's sign; the vertical field of view held at 73.7 degrees on wide screens.

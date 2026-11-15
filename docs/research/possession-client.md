@@ -332,8 +332,39 @@ re-observed that day, so not CONFIRMED):
 The remake builds all three that way. The binary's sender of the leave action and the
 initial value of the selection byte `+0x13D9` are still unread.
 
+## 6b. The owner's play of the original, 2026-11-15
+
+Seen and heard by the owner in the original that day, possessing an Imp (CONFIRMED as
+observations; what causes each is not read):
+
+- The view cannot be left while the camera is flying in. The remake's wait for the
+  landing (§6) matches.
+- The possessed Imp's footsteps are heard. Which of the two pairs of §6 was heard, or
+  both, is not told apart, so the footstep verdict there stays HYPOTHESIS.
+- No possessed creature died, so the mode-11 view is still unobserved.
+
+Nineteen screenshots of the original at 1600 by 1200, one as a possessed Imp and
+eighteen as a possessed Warlock, are in
+`F:\DK2Evidence\captures\visual\possession-first-person--2026-11-15--001`. They show:
+
+- **A warped picture.** Straight edges of ceilings, walls and floors are drawn as
+  curves, more toward the screen's edges, in every shot: not a plain perspective. The
+  remake draws a plain perspective at 73.7 degrees, a deviation; where DK2 makes the
+  warp is UNREAD.
+- **Near things drawn very large.** A wall, pillar, door frame or crystal beside the
+  camera fills a side of the screen, stretched. The large pieces at the edge of the
+  Imp's shot are probably the same (HYPOTHESIS), not a first-person model.
+- **A ceiling**, vaulted over rooms and corridors, which the ordinary view does not
+  draw, fading to black with distance, as the far floor and walls do.
+- **A HUD of its own.** Along the top: the mana counter, a portrait, a health bar, the
+  gold carried, then icons that differ by creature (the Imp a pickaxe and a boot, the
+  Warlock three). At the left three counters and the minimap; at the bottom left one
+  creature icon. The possession HUD (`0x00420D10`) is not built.
+- **No part of the possessed creature** in any shot, as §6's draw bit says.
+
 ## 7. Not read yet
 
+- The warp of the first-person picture (§6b).
 - How the first-person preset's lens and view distance reach the renderer, and the
   writers of camera `+0xE38` and `+0xE3C`.
 - Who raises the view event `0x00448440` handles, who posts the player's own leave, and
