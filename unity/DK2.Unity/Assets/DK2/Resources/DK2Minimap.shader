@@ -54,6 +54,9 @@ Shader "Hidden/DK2/Minimap"
                 #endif
                 return o;
             }
+            // Passes 1 and 2 have a CPU twin, DK2.Presentation's MinimapDiscImage (the Godot minimap): the two change together.
+            // The twins differ on _Backdrop: here v=0 is Map-BG's bottom row (LoadImage), there raster row 0 reads its top row,
+            // which minimap-rendering.md's "matches the raster indexing" (0x0041ADA0, 0x0041C660) supports.
             float4 Frag(Varyings i) : SV_Target
             {
                 float2 p = i.uv * 2 - 1;

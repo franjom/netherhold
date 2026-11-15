@@ -11,9 +11,9 @@ using DK2.Simulation;
 namespace DK2.Presentation;
 
 /// <summary>The engine-free minimap (ADR-0805): its zoom, corner controls, frame and north sprite, its hit area and
-/// navigation, and the class grid and markers it captures for the engine's GPU disc. Laid out bottom-docked in
-/// DK2's 1024x768 units; one is 2.5 virtual. The disc itself, and the camera footprint drawn on it, are the
-/// engine's (<see cref="Disc"/> is where they go).</summary>
+/// navigation, and the class grid and markers it captures for the engine's disc. Laid out bottom-docked in
+/// DK2's 1024x768 units; one is 2.5 virtual. The disc itself (Unity's GPU pass, or <see cref="MinimapDiscImage"/>), and
+/// the camera footprint drawn on it, are the engine's (<see cref="Disc"/> is where they go).</summary>
 public sealed class MinimapHud
 {
     private const float Unit = 2.5f;
@@ -46,8 +46,6 @@ public sealed class MinimapHud
     private WorldState? _capturedWorld;
     private long _capturedTick = -1;
     private int _capturedPreview = -1;
-    /// <summary>The last capture read the markers too.</summary>
-    private bool _markersCaptured;
 
     public MinimapHud(MinimapPalette palette, int mapWidth, int mapHeight)
     {
@@ -137,34 +135,44 @@ public sealed class MinimapHud
     /// <summary>Reads the class grid and markers once per tick or preview change; call while the simulation is joined.</summary>
     /// <param name="paletteChanged">The neutral colour cycle moved.</param>
     /// <returns>False when nothing was read: the world, tick and preview are the last capture's.</returns>
-    public bool Capture(WorldState world, WorldView view, INavByteGrid navigation, out bool paletteChanged) =>
-        Capture(world, view, navigation, markers: true, out paletteChanged);
-
-    /// <summary><see cref="Capture(WorldState, WorldView, INavByteGrid, out bool)"/> without the markers, for a host that
-    /// reads only the class grid and palette (the full map without a minimap); <see cref="Markers"/> is left as it was.</summary>
-    public bool CaptureGrid(WorldState world, WorldView view, INavByteGrid navigation, out bool paletteChanged) =>
-        Capture(world, view, navigation, markers: false, out paletteChanged);
-
-    private bool Capture(WorldState world, WorldView view, INavByteGrid navigation, bool markers, out bool paletteChanged)
+    public bool Capture(WorldState world, WorldView view, INavByteGrid navigation, out bool paletteChanged)
     {
         paletteChanged = false;
-        bool same = _capturedWorld == world && _capturedTick == world.CurrentTick.Value && _capturedPreview == view.PreviewVersion;
-        if (same && (_markersCaptured || !markers)) return false;
-        if (!same)
-        {
-            _capturedWorld = world; _capturedTick = world.CurrentTick.Value; _capturedPreview = view.PreviewVersion;
-            for (int y = 0; y < world.Height; y++)
-                for (int x = 0; x < world.Width; x++)
-                {
-                    var at = new TilePos(x, y);
-                    _grid.Set(at, view.MinimapColourAt(world, navigation, at));
-                }
-            paletteChanged = Palette.AdvanceNeutralCycle(world.CurrentTick, PlayerIds.Neutral);
-        }
-        if (markers) view.CaptureMinimapMarkers(world, Palette, _markers);
-        _markersCaptured = markers;
+        if (_capturedWorld == world && _capturedTick == world.CurrentTick.Value && _capturedPreview == view.PreviewVersion) return false;
+        _capturedWorld = world; _capturedTick = world.CurrentTick.Value; _capturedPreview = view.PreviewVersion;
+        for (int y = 0; y < world.Height; y++)
+            for (int x = 0; x < world.Width; x++)
+            {
+                var at = new TilePos(x, y);
+                _grid.Set(at, view.MinimapColourAt(world, navigation, at));
+            }
+        paletteChanged = Palette.AdvanceNeutralCycle(world.CurrentTick, PlayerIds.Neutral);
+        view.CaptureMinimapMarkers(world, Palette, _markers);
         return true;
     }
+
+    /// <summary>What a press on the minimap does (DungeonRunner.QueueHudInput): a corner's action, else
+    /// <see cref="ClassicHudAction.ToggleFullMap"/> for a secondary press on the map that resolves to a tile; None
+    /// otherwise. A primary press on the map moves the camera (<see cref="TryNavigate"/>), which the host asks after its
+    /// other HUD presses.</summary>
+    /// <param name="focus">The camera's focus (<see cref="FixedFocus"/>) and <paramref name="heading"/>, which the map is drawn
+    /// from.</param>
+    public ClassicHudAction Press(float x, float y, bool primary, bool secondary, FpPosition3 focus, Dk2Angle heading)
+    {
+        ClassicHudAction corner = CornerPress(x, y, primary, secondary);
+        if (corner != ClassicHudAction.None) return corner;
+        return secondary && TryNavigate(x, y, focus, heading, out _) ? ClassicHudAction.ToggleFullMap : ClassicHudAction.None;
+    }
+
+    /// <summary>A camera focus in the adapters' world space (x east, y up, z the negated tile row) as the fixed-point map
+    /// position the minimap centres on and navigates from.</summary>
+    public static FpPosition3 FixedFocus(Vector3 focus) =>
+        new(new Fp32((int)(focus.X * Fp32.One)), new Fp32((int)(-focus.Z * Fp32.One)), new Fp32(0));
+
+    /// <summary>The disc's side in screen pixels for a screen height and HUD scale factor, at least 1 and at most 4096: the
+    /// resolution the engine draws it at, stretched over <see cref="Disc"/>.</summary>
+    public static int DiscPixels(int screenHeight, float factor) =>
+        Math.Clamp((int)MathF.Ceiling(Disc.Width / 2.5f * screenHeight / 768f * factor), 1, 4096);
 
     /// <param name="pointer">The pointer in virtual units: the corner under it shows.</param>
     /// <param name="heading">The camera's heading, which places the north sprite on the ring.</param>

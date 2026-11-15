@@ -158,27 +158,17 @@ public sealed class FullMapHudTests
     }
 
     [Fact]
-    public void TheMinimapsGridOnlyCaptureSkipsTheMarkersAndAFullCaptureOfTheSameTickStillReadsThem()
+    public void TheSharedMinimapCaptureReadsTheGridAndMarkersOncePerCaptureKey()
     {
         (GameDatabase db, WorldState world) = Map();
         var minimap = new MinimapHud(Palette(), 8, 8);
         var view = new WorldView(db, new PlayerId(3));
-        Assert.True(minimap.CaptureGrid(world, view, new FloorGrid(), out _));
-        Assert.Empty(minimap.Markers);
-        Assert.Equal(new MinimapColourClass(26 + 2), minimap.Grid[new TilePos(3, 3)]);   // the grid was read: player 2's treasury
-        Assert.False(minimap.CaptureGrid(world, view, new FloorGrid(), out _));   // same tick: nothing to read
-        Assert.True(minimap.Capture(world, view, new FloorGrid(), out bool paletteChanged));
-        Assert.False(paletteChanged);                                             // the grid was current; only the markers were read
-        Assert.NotEmpty(minimap.Markers);                                         // the viewer's Heart ring
-        Assert.False(minimap.Capture(world, view, new FloorGrid(), out _));
-        Assert.False(minimap.CaptureGrid(world, view, new FloorGrid(), out _));
-
-        // A new capture key (here another world, as a new tick is): a grid-only capture leaves the markers stale, so a
-        // full capture of that key rereads them.
+        Assert.True(minimap.Capture(world, view, new FloorGrid(), out _));
+        Assert.Equal(new MinimapColourClass(26 + 2), minimap.Grid[new TilePos(3, 3)]);   // player 2's treasury
+        Assert.NotEmpty(minimap.Markers);                                                 // the viewer's Heart ring
+        Assert.False(minimap.Capture(world, view, new FloorGrid(), out _));              // same tick: nothing to read
         (_, WorldState next) = Map();
-        Assert.True(minimap.CaptureGrid(next, view, new FloorGrid(), out _));
-        Assert.True(minimap.Capture(next, view, new FloorGrid(), out _));
-        Assert.NotEmpty(minimap.Markers);
+        Assert.True(minimap.Capture(next, view, new FloorGrid(), out _));                // a new key (another world, as a new tick)
     }
 
     [Fact]

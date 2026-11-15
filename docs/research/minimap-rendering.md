@@ -125,7 +125,7 @@ is not evidence of a different resource. `0x0041FFA0` loads a PNG descriptor
 and optionally applies a requested pixel format before decoding.
 
 The reference install's `EngineTextures.WAD` contains `GUI\Map\MapColours.png`
-and `Map-BG.PNG`; the latter is 128×128 rock, matching the raster indexing.
+and `Map-BG.PNG`; the latter is 128×128 rock, matching the raster indexing. Unity's shader samples it bottom-up and Godot's `MinimapDiscImage` reads its top row first, so the two adapters' rock is flipped against each other; which is DK2's is [Q861](open-questions.md).
 Its palette is 64×16. `FrontEnd.WAD` has a same-named palette but different RGB
 content; do not use that copy for the game HUD merely because its filename fits.
 
@@ -389,9 +389,9 @@ circle radius becomes the configured byte distance times step; possession and
 Alarm pulse radii remain raster-unit counts. Room rectangles retain the half-tile
 fraction of the preceding Heart/Guard Post point, matching centre-based bounds.
 
-The adapter magnifier uses primary/secondary presses for zoom in/out. Its GPU
-projection follows live camera panning between turns; DK2 refreshes that raster
-on turn changes. This presentation choice moves no simulation entities.
+The adapter magnifier uses primary/secondary presses for zoom in/out. Unity's GPU
+pass and `MinimapDiscImage`, its CPU twin for Godot, follow the camera's focus and
+heading between turns; DK2 refreshes that raster on turn changes. This presentation choice moves no simulation entities.
 
 Widget3 uses the same type-0 poll as the magnifier: once per primary press,
 retaining capture until release without calling navigation again on movement.
@@ -399,5 +399,5 @@ The primary held channel takes priority over the secondary channel. Its complete
 poll and GUI-manager capture paths establish click navigation, not continuous
 drag panning. Secondary map-mode entry is integrated; see [minimap controls](minimap-controls.md).
 
-The adapter forwards primary press edges to the existing camera glide without
-world commands. Full held-channel capture arbitration remains part of Step6.3.
+Unity's adapter forwards primary press edges to the existing camera glide without
+world commands; Godot's prints the tile (no camera yet). Full held-channel capture arbitration remains part of Step6.3.

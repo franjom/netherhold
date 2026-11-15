@@ -153,6 +153,10 @@ public partial class HudCanvas : Node2D
         RenderingServer.CanvasItemSetDrawIndex(item, run);
     }
 
+    /// <summary>A virtual rect in screen pixels as the last <see cref="Present"/> placed its draws, for a host that draws
+    /// beside the canvas on the same grid (the minimap's disc).</summary>
+    public Rect2 ScreenRect(HudRect rect) => Snapped(rect);
+
     /// <summary>A virtual rect in screen pixels with its edges on whole pixels, as Unity's layout placed images.</summary>
     private Rect2 Snapped(HudRect r)
     {

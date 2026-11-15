@@ -116,4 +116,43 @@ public sealed class MinimapHudTests
             hud.TryNavigate(x, y, default, new Dk2Angle(0), out TilePos target));
         Assert.Equal(expected, target);
     }
+
+    [Fact]
+    public void APressGivesTheCornersActionOrTheFullMapForASecondaryPressOnTheMap()
+    {
+        MinimapHud hud = Hud();
+        (float cx, float cy) = At(95.2f, 672);   // the disc's centre
+        (float ox, float oy) = At(20, 740);      // the options corner
+        (float mx, float my) = At(170, 745);     // the magnifier
+        (float px, float py) = At(180, 700);     // the panel, off the map and the corners
+        var heading = new Dk2Angle(256);
+        Assert.Equal(ClassicHudAction.ToggleFullMap, hud.Press(cx, cy, false, true, default, heading));
+        Assert.Equal(ClassicHudAction.None, hud.Press(cx, cy, true, false, default, heading));   // the camera's, asked apart
+        Assert.Equal(ClassicHudAction.ToggleOptions, hud.Press(ox, oy, true, false, default, heading));
+        Assert.Equal(ClassicHudAction.ZoomIn, hud.Press(mx, my, true, false, default, heading));
+        Assert.Equal(ClassicHudAction.ZoomOut, hud.Press(mx, my, false, true, default, heading));
+        Assert.Equal(ClassicHudAction.None, hud.Press(px, py, false, true, default, heading));
+        Assert.Equal(ClassicHudAction.None, hud.Press(cx, cy, false, false, default, heading));
+
+        hud.SetVisibility(new HudVisibility(true, false));
+        Assert.Equal(ClassicHudAction.None, hud.Press(cx, cy, false, true, default, heading));
+        Assert.Equal(ClassicHudAction.None, hud.Press(ox, oy, true, false, default, heading));
+    }
+
+    [Fact]
+    public void ACameraFocusBecomesTheFixedPointMapPositionWithTheRowFromTheNegatedDepth()
+    {
+        Assert.Equal(new FpPosition3(new Fp32(14 * 4096 + 2048), new Fp32(28 * 4096 + 2048), new Fp32(0)),
+            MinimapHud.FixedFocus(new Vector3(14.5f, 1, -28.5f)));
+        Assert.Equal(new FpPosition3(new Fp32(409), new Fp32(0), new Fp32(0)), MinimapHud.FixedFocus(new Vector3(.1f, 7, 0)));
+    }
+
+    [Theory]
+    [InlineData(1080, 1f, 239)]      // 169.6 * 1080 / 768 = 238.5, rounded up
+    [InlineData(768, 1f, 170)]
+    [InlineData(1080, 1.5f, 358)]
+    [InlineData(1, .5f, 1)]
+    [InlineData(100000, 2f, 4096)]
+    public void TheDiscIsDrawnAtItsScreenSizeRoundedUpAndClamped(int height, float factor, int expected) =>
+        Assert.Equal(expected, MinimapHud.DiscPixels(height, factor));
 }

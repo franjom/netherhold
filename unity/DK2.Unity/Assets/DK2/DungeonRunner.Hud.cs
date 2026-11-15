@@ -314,9 +314,7 @@ namespace DK2.Unity
 
         private void ApplyHudAction(ClassicHudAction action)
         {
-            if (action == ClassicHudAction.None || _hudControls.InputSuppressed) return;
-            if (HudModal && action is ClassicHudAction.NavigateHeart or ClassicHudAction.NavigatePortal or ClassicHudAction.NavigateFight
-                or ClassicHudAction.SelectQuery or ClassicHudAction.SelectSell or ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut) return;
+            if (!_hudControls.Accepts(action)) return;
             _input.CancelPointerGesture(); _bottomPanel?.CancelPointerGesture();
             if (action == ClassicHudAction.NavigatePortal)
             {
@@ -335,13 +333,14 @@ namespace DK2.Unity
             }
             if (action == ClassicHudAction.ZoomIn || action == ClassicHudAction.ZoomOut)
             {
-                PostGuiButton(GuiButtonTarget.MinimapZoom);   // the magnifier's primary or secondary click, 0x00416511/0x00416611
+                // The magnifier's primary or secondary click, 0x00416511/0x00416611.
+                if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget zoomButton)) PostGuiButton(zoomButton);
                 _minimap.HandleZoomPress(Input.mousePosition, action == ClassicHudAction.ZoomIn, action == ClassicHudAction.ZoomOut);
                 return;
             }
             if (action == ClassicHudAction.SelectQuery || action == ClassicHudAction.SelectSell)
             {
-                PostGuiButton(action == ClassicHudAction.SelectQuery ? GuiButtonTarget.Query : GuiButtonTarget.Sell);
+                if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget toolButton)) PostGuiButton(toolButton);
                 _panelChoice = null; _selectedCorner = action;
                 _input.CancelTool();
                 _queryTool = action == ClassicHudAction.SelectQuery;
@@ -428,10 +427,8 @@ namespace DK2.Unity
                 }
                 return true;
             }
-            ClassicHudAction corner = _minimap.HandleCornerPress(Input.mousePosition, primary, secondary);
-            if (corner != ClassicHudAction.None) { ApplyHudAction(corner); return true; }
-            if (secondary && _minimap.TryNavigate(Input.mousePosition, Camera.main, _cameraFocus, out TilePos _))
-            { ApplyHudAction(ClassicHudAction.ToggleFullMap); return true; }
+            ClassicHudAction minimapAction = _minimap.HandlePress(Input.mousePosition, primary, secondary, Camera.main, _cameraFocus);
+            if (minimapAction != ClassicHudAction.None) { ApplyHudAction(minimapAction); return true; }
             KeeperResourceKind resource = _resourceHud.ResourceAt(Input.mousePosition);
             if (resource == KeeperResourceKind.Gold && primary)
             {

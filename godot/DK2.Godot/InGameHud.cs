@@ -22,10 +22,10 @@ namespace DK2.GodotAdapter;
 /// the options key; while it is open the level pauses and the other panels take no input, as Unity's <c>HudModal</c>) and
 /// its save and load pages (writing and reading a save are not wired) and game options pages (<see cref="ClassicGameOptionsPanel"/>;
 /// the settings are read from and saved to <c>user://game-settings.ini</c>) and the full map (<see cref="ClassicFullMap"/>, opened
-/// by its key, closed by it, Escape or a left or right press; while it shows the normal HUD hides). Not wired (logic still in Unity's runner, or
-/// needing the 3D world): the list is in docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c>
-/// (<c>--level</c>, <c>--seed</c>, <c>--query-first-creature</c>, <c>--stage-battle</c> (<see cref="StageBattle"/>),
-/// <c>--open-options</c>, <c>--saves</c>, <c>--settings</c>, <c>--open-full-map</c>): godot/README.md.</summary>
+/// by its key, closed by it, Escape or a left or right press; while it shows the normal HUD hides) and the minimap
+/// (<see cref="ClassicMinimap"/>, drawn from the level-start camera's focus and heading, as no camera moves them here; its
+/// grid is the full map's too). Not wired (logic still in Unity's runner, or needing the 3D world): the list is in
+/// docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c> (<c>--stage-battle</c> is <see cref="StageBattle"/>): godot/README.md.</summary>
 public partial class InGameHud : Node, IHudHoverSources
 {
     /// <summary>DungeonRunner's <c>maxTicksPerFrame</c> in the Dungeon scene.</summary>
@@ -70,8 +70,15 @@ public partial class InGameHud : Node, IHudHoverSources
     /// <summary>The save and load pages' list, as Unity's runner keeps it.</summary>
     private SaveSlotsView? _saves;
     private ClassicSaveLoadPanel? _saveLoad;
-    /// <summary>The full map, over its own class grid (Unity's runner shares the minimap's; the minimap is not ported).</summary>
+    /// <summary>The full map, over the minimap's class grid, as Unity's runner shares it.</summary>
     private ClassicFullMap? _fullMap;
+    private ClassicMinimap? _minimap;
+    /// <summary>The world as the viewer's HUD sees it (Unity's runner's <c>_worldView</c>): the minimap's colours and markers.</summary>
+    private WorldView? _worldView;
+    /// <summary>The camera's focus and heading the minimap is drawn from: the level start's (<see cref="ClassicCamera.LevelStartFocus(IReadOnlyList{PlayerDef}, PlayerId, int, int)"/>,
+    /// <see cref="ClassicCamera.LevelStartYaw"/>), which stay put because no camera is ported (plan step 3).</summary>
+    private FpPosition3 _cameraFocus;
+    private readonly Dk2Angle _cameraHeading = ClassicCamera.LevelStartYaw;
     /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
     private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
@@ -138,6 +145,16 @@ public partial class InGameHud : Node, IHudHoverSources
         _queryPanel = new ClassicCreatureQueryPanel { Name = "CreatureQuery" };
         _queryPanel.Open(_art.Font, _sources.Texture);
         AddChild(_queryPanel);
+        // Unity's sorting order 14, over the bottom panel (12) and the creature panels (13), as DK2 draws it over the tab
+        // strip's rail; created before the tabs, as DungeonRunner creates it first.
+        _worldView = new WorldView(level.Database, _viewer);
+        _cameraFocus = MinimapHud.FixedFocus(ClassicCamera.LevelStartFocus(level.Players, _viewer,
+            _simulation.World.Width, _simulation.World.Height));
+        _minimap = new ClassicMinimap { Name = "Minimap" };
+        _minimap.Open(new InstallMinimapAssets(install, _sources.Texture), _simulation.World.Width, _simulation.World.Height);
+        _minimap.Pressed += MinimapPressed;
+        _minimap.Navigated += MinimapNavigated;
+        AddChild(_minimap);
         // Added after the panel, so it draws over it and takes the mouse first, as Unity's sorting order 14 over 12.
         _messageView = new MessageTabsView(_viewer, level.Database);
         var messageText = new MessageTextTables(_sources, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning));
@@ -184,11 +201,9 @@ public partial class InGameHud : Node, IHudHoverSources
         _hover.Open(_sources);
         AddChild(_hover);
         // Last, so it draws over every panel and takes the mouse first, as Unity's sorting order 20 over the rest. Its grid
-        // is read through a world view of its own, which only the full map uses here.
-        var minimap = new MinimapHud(ClassicFullMap.DecodePalette(InstallMinimapAssets.PalettePngOf(install)),
-            _simulation.World.Width, _simulation.World.Height);
+        // is the minimap's.
         _fullMap = new ClassicFullMap { Name = "FullMap" };
-        _fullMap.Open(minimap, new WorldView(level.Database, _viewer), _art.Font, PlayerNames.From(level.Players), _sources.Texture);
+        _fullMap.Open(_minimap.Model!, _art.Font, PlayerNames.From(level.Players), _sources.Texture);
         _fullMap.Pressed += FullMapPressed;
         AddChild(_fullMap);
         _hudHover = new HudHoverText(_sources.Strings.Resolve);
@@ -225,11 +240,13 @@ public partial class InGameHud : Node, IHudHoverSources
             || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
             || _battles == null || _battleTab == null || _options == null || _saveLoad == null || _optionsPages == null
-            || _gameOptionsPanel == null || _fullMap == null) return;
+            || _gameOptionsPanel == null || _fullMap == null || _minimap == null || _worldView == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         // Once per settled turn, before the HUD draws, as DungeonRunner.UpdateWorldSound captures it.
         _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
+        // Once per settled turn, as DungeonRunner captures it before the HUD draws; the full map reads the same grid.
+        bool minimapCaptured = _minimap.Capture(_simulation.World, _worldView, _simulation.Navigation);
         // The HUD keys, as DungeonRunner.UpdateHudControls reads them. Only the options menu's and the full map's toggles
         // are applied: the other keys' GUI toggle and camera moves are not ported. AllowOptionsKey is always true: the
         // scripted camera path that holds the key back (DungeonRunner's pathWasPlaying) is not ported (plan step 2). While
@@ -247,6 +264,7 @@ public partial class InGameHud : Node, IHudHoverSources
         _options.SetVisible(_hudControls.OptionsMenuShown(visibility));
         _gameOptionsPanel.Show(_hudControls.GameOptionsShown(visibility));
         _fullMap.SetVisible(_hudControls.FullMapShown(camera));
+        _minimap.SetVisibility(visibility);
         _options.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
         // DungeonRunner.DrawSavePanel's in-game branch, with this frame's typing (Unity reads Input.inputString there).
         (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(visibility);
@@ -279,10 +297,12 @@ public partial class InGameHud : Node, IHudHoverSources
         // After the battle tab, as DungeonRunner draws it; the options menu closes it.
         _overviewView.Capture(_simulation.World);
         _overview.Draw(visibility, modal ? null : _model.PanelArea(BottomPanelCategory.Creatures));
-        // After the overview, as DungeonRunner.DrawHudControls draws it (the minimap is not ported).
+        // After the overview, as DungeonRunner.DrawHudControls updates it; no tool is selected here (plan step 2).
+        _minimap.Draw(ClassicHudAction.None, _hudControls.OptionsVisible, _cameraFocus, _cameraHeading);
+        // After the minimap, as DungeonRunner.DrawHudControls draws it.
         _options.Draw();
         // DungeonRunner.DrawHudControls captures it after the bottom panel and draws it after the menu.
-        _fullMap.Capture(_simulation.World, _simulation.Database, _simulation.Navigation, _viewer);
+        _fullMap.Capture(_simulation.World, _simulation.Database, _viewer, minimapCaptured);
         _fullMap.Draw();
         // DungeonRunner.DrawHudControls draws it after the save browser; the two never show together.
         _gameOptionsPanel.Draw();
@@ -336,12 +356,43 @@ public partial class InGameHud : Node, IHudHoverSources
     }
 
     /// <summary>DungeonRunner.ApplyHudAction for the actions this scene applies: the options key, the options menu's
-    /// entries and the save browser's Back and Continue lines. The camera's and the minimap's actions (navigation, zoom, the query and sell corners) are not applied.</summary>
-    private void ApplyHudAction(ClassicHudAction action)
+    /// entries, the save browser's Back and Continue lines and the minimap's corners and right click, behind the shared gate
+    /// (<see cref="ClassicHudControls.Accepts"/>). The camera's navigation and the query and sell corners' tools are not
+    /// applied (plan step 2).</summary>
+    private void ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action, _pointer);
+
+    /// <param name="pointer">Where the press was, in screen pixels: the magnifier zooms only under it.</param>
+    private void ApplyHudAction(ClassicHudAction action, Vector2 pointer)
     {
-        if (action == ClassicHudAction.None || _hudControls.InputSuppressed) return;
+        if (!_hudControls.Accepts(action)) return;
         _input.CancelPointerGesture(); _panel?.CancelPointerGesture();
+        if (action is ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut)
+        {
+            if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget button)) PostGuiButton(button);
+            _minimap?.HandleZoomPress(pointer, action == ClassicHudAction.ZoomIn, action == ClassicHudAction.ZoomOut);
+            return;
+        }
+        if (action is ClassicHudAction.SelectQuery or ClassicHudAction.SelectSell)
+        {
+            // Unity's runner also posts the corner's GuiButtonCommand (ClassicHudControlLayout.TryGuiButton) with the tool; both
+            // are skipped here, so a Godot session's command stream differs from Unity's for these clicks.
+            GD.Print("DK2.Godot: the minimap's ", action.ToString(), " corner is not wired yet.");
+            return;
+        }
         _hudControls.Apply(action);
+    }
+
+    /// <summary>A minimap press that acts (DungeonRunner.QueueHudInput): a corner's action, or the full map on a right
+    /// click on the map.</summary>
+    private void MinimapPressed(ClassicHudAction action, Vector2 position) => ApplyHudAction(action, position);
+
+    /// <summary>A left click on the minimap's map. Unity's runner glides the camera to the tile only once no other HUD press
+    /// took it, which an open options menu or full map always does (DungeonRunner.QueueHudInput), and input is not
+    /// suppressed; the same gate holds here. There is no camera to move yet (plan step 3).</summary>
+    private void MinimapNavigated(TilePos tile)
+    {
+        if (_hudControls.Modal || _hudControls.InputSuppressed) return;
+        GD.Print("DK2.Godot: the minimap's move to tile (", tile.X, ", ", tile.Y, ") is not wired yet.");
     }
 
     /// <summary>A press on the open full map, as DungeonRunner.QueueHudInput applies it (<see cref="FullMapHud.Press"/>): both
@@ -377,6 +428,7 @@ public partial class InGameHud : Node, IHudHoverSources
         _settings = settings;
         // The twin of DungeonRunner.ApplyHudScale's panel list: the two change together while both adapters exist.
         int scale = settings.UiScale;
+        if (_minimap != null) _minimap.UiScale = scale;
         if (_panel != null) _panel.UiScale = scale;
         if (_resources != null) _resources.UiScale = scale;
         if (_hover != null) _hover.UiScale = scale;
@@ -437,10 +489,10 @@ public partial class InGameHud : Node, IHudHoverSources
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
-    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap is not ported); the open
-    /// full map holds the whole screen.</summary>
+    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own; the open full map holds the whole
+    /// screen.</summary>
     private bool PointerOverHud(Vector2 position, HudVisibility visibility) =>
-        (_hover != null && _hover.ContainsPointer(position)) || (_resources != null && _resources.ContainsPointer(position))
+        (_minimap != null && _minimap.ContainsPointer(position)) || (_hover != null && _hover.ContainsPointer(position)) || (_resources != null && _resources.ContainsPointer(position))
         || (_panel != null && _panel.ContainsPointer(position)) || (_messages != null && _messages.ContainsPointer(position))
         || (_battleTab != null && _battleTab.ContainsPointer(position))
         || (_overview != null && _overview.ContainsPointer(position))
@@ -461,7 +513,7 @@ public partial class InGameHud : Node, IHudHoverSources
     HoverTextSnapshot IHudHoverSources.BattleTabText() => _battleTab?.HoverText(_pointer) ?? HoverTextSnapshot.Empty;
     bool IHudHoverSources.OverBottomPanel() => _panel != null && _panel.ContainsPointer(_pointer);
     HoverTextSnapshot IHudHoverSources.BottomPanelText() => _panel?.HoverText ?? HoverTextSnapshot.Empty;
-    ClassicHudAction IHudHoverSources.MinimapControl() => ClassicHudAction.None;
+    ClassicHudAction IHudHoverSources.MinimapControl() => _minimap?.HoveredControl(_pointer) ?? ClassicHudAction.None;
     KeeperResourceKind IHudHoverSources.Resource() => _resources?.ResourceAt(_pointer) ?? KeeperResourceKind.None;
 
     private static string? Argument(string[] args, string name)
@@ -492,12 +544,14 @@ public partial class InGameHud : Node, IHudHoverSources
         if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
         if (_options != null) _options.Pressed -= OptionsPressed;
         if (_fullMap != null) _fullMap.Pressed -= FullMapPressed;
+        if (_minimap != null) { _minimap.Pressed -= MinimapPressed; _minimap.Navigated -= MinimapNavigated; }
         if (_saveLoad != null)
         {
             _saveLoad.Submit -= SaveLoadSubmitted; _saveLoad.HudAction -= ApplyHudAction;
         }
         if (_optionsPages != null) { _optionsPages.Applied -= ApplySettings; _optionsPages.SaveRequested -= SaveSettings; }
         _battleTab = null; _battles = null; _options = null; _saveLoad = null; _saves = null; _fullMap = null;
+        _minimap = null; _worldView = null;
         _gameOptionsPanel = null; _gameOptions = null; _optionsPages = null;
         _art?.Dispose(); _sources?.Dispose();
         _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _queryPanel = null; _queryView = null;

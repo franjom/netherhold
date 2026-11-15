@@ -5,7 +5,6 @@
 using DK2.Art.Textures;
 using DK2.Core;
 using DK2.Data.Model;
-using DK2.Pathfinding;
 using DK2.Presentation;
 using DK2.Simulation;
 using Godot;
@@ -14,8 +13,8 @@ namespace DK2.GodotAdapter;
 
 /// <summary>The full map, the Godot counterpart of Unity's <c>ClassicFullMap</c>: <see cref="FullMapHud"/> (ADR-0805) drawn
 /// by two <see cref="HudCanvas"/>es, the black backdrop under and the room icon, creature squares and legend over the map
-/// image, which <see cref="FullMapImage"/> colours from <see cref="MinimapHud"/>'s class grid and this node only uploads
-/// (Unity blits the same image with a shader). The panel is in screen pixels. While it shows it takes every mouse press
+/// image, which <see cref="FullMapImage"/> colours from the minimap's class grid (<see cref="ClassicMinimap.Model"/>, as
+/// Unity's full map reads its minimap's) and this node only uploads (Unity blits the same image with a shader). The panel is in screen pixels. While it shows it takes every mouse press
 /// and raises <see cref="Pressed"/> with what the press does (<see cref="FullMapHud.Press"/>). Unity's camera preview at the
 /// top right needs the 3D world and is not drawn.</summary>
 public partial class ClassicFullMap : Node
@@ -23,8 +22,9 @@ public partial class ClassicFullMap : Node
     private readonly HudFrame _backFrame = new(), _frontFrame = new();
     private FullMapHud? _hud;
     private MinimapHud? _minimap;
-    private WorldView? _view;
     private FullMapImage? _pixels;
+    /// <summary>The minimap captured since the image was last coloured.</summary>
+    private bool _stale = true;
     private HudCanvas? _back, _front;
     private Node2D? _mapNode;
     private Rid _mapItem;
@@ -39,29 +39,15 @@ public partial class ClassicFullMap : Node
 
     public bool Visible => _hud != null && _hud.Visible;
 
-    /// <summary>The palette from the native colour strip's PNG (<see cref="IMinimapAssets.PalettePng"/>), decoded by Godot
-    /// as Unity's <c>DungeonMinimap</c> decodes it (stored bytes: <see cref="PngChunks.WithoutColourSpace"/>), and read by
-    /// <see cref="MinimapPalette.FromTopRow"/>.</summary>
-    public static MinimapPalette DecodePalette(byte[] png)
-    {
-        using var strip = new Image();
-        if (strip.LoadPngFromBuffer(PngChunks.WithoutColourSpace(png)) != Error.Ok) throw new InvalidOperationException("Minimap asset failed to decode.");
-        strip.Convert(Image.Format.Rgba8);
-        return MinimapPalette.FromTopRow(strip.GetData().AsSpan(0, strip.GetWidth() * 4));
-    }
-
     /// <summary>Opens the map, hidden; call before it enters the tree.</summary>
-    /// <param name="minimap">The class grid's source, captured here while the map shows.</param>
-    /// <param name="view">The world view the grid's colours are read through.</param>
+    /// <param name="minimap">The class grid's source, which the minimap captures.</param>
     /// <param name="font">The legible bitmap font for a screen height (the legend).</param>
     /// <param name="playerName">A player's name by id (the legend).</param>
     /// <param name="image">A catalogue image by name (the room icons).</param>
-    public void Open(MinimapHud minimap, WorldView view, Func<int, BitmapFont> font, Func<byte, string> playerName,
-        Func<string, RgbaImage> image)
+    public void Open(MinimapHud minimap, Func<int, BitmapFont> font, Func<byte, string> playerName, Func<string, RgbaImage> image)
     {
         if (_hud != null) throw new InvalidOperationException("The full map is already open.");
         _minimap = minimap ?? throw new ArgumentNullException(nameof(minimap));
-        _view = view ?? throw new ArgumentNullException(nameof(view));
         if (image is null) throw new ArgumentNullException(nameof(image));
         _hud = new FullMapHud(minimap.Palette, minimap.MapWidth, minimap.MapHeight);
         _hud.SetLegend(font, playerName, roomIcons: true);
@@ -83,16 +69,21 @@ public partial class ClassicFullMap : Node
         _back.Visible = visible; _mapNode.Visible = visible; _front.Visible = visible;
     }
 
-    /// <summary>The class grid, its image and the markers, while the map shows; call while the simulation is settled.
-    /// The grid is read once per tick, without the minimap's markers (<see cref="MinimapHud.CaptureGrid"/>), and the image uploaded only when it changed.</summary>
-    public void Capture(WorldState world, GameDatabase database, INavByteGrid navigation, PlayerId viewer)
+    /// <summary>The image and the markers, while the map shows; call after the minimap's capture, while the simulation is
+    /// settled. The image is recoloured from the shared grid once after each capture, and uploaded only when it changed.</summary>
+    /// <param name="gridCaptured">The minimap captured this frame (<see cref="ClassicMinimap.Capture"/>).</param>
+    public void Capture(WorldState world, GameDatabase database, PlayerId viewer, bool gridCaptured)
     {
-        if (_hud == null || _minimap == null || _view == null || _pixels == null || _image == null || _texture == null
-            || !_hud.Visible) return;
-        if (_minimap.CaptureGrid(world, _view, navigation, out _) && _pixels.Update(_minimap.Grid, _minimap.Palette))
+        if (gridCaptured) _stale = true;
+        if (_hud == null || _minimap == null || _pixels == null || _image == null || _texture == null || !_hud.Visible) return;
+        if (_stale)
         {
-            _image.SetData(_pixels.Width, _pixels.Height, false, Image.Format.Rgba8, _pixels.Pixels);
-            _texture.Update(_image);
+            _stale = false;
+            if (_pixels.Update(_minimap.Grid, _minimap.Palette))
+            {
+                _image.SetData(_pixels.Width, _pixels.Height, false, Image.Format.Rgba8, _pixels.Pixels);
+                _texture.Update(_image);
+            }
         }
         _hud.Capture(world, database, viewer, ResolvePointer(GetViewport().GetMousePosition()));
     }
@@ -156,7 +147,7 @@ public partial class ClassicFullMap : Node
     {
         // Freed, not merely removed from the tree: a reparented map keeps working.
         if (what != NotificationPredelete) return;
-        Pressed = null; _hud = null; _minimap = null; _view = null; _pixels = null;
+        Pressed = null; _hud = null; _minimap = null; _pixels = null;
         // The canvas item draws the texture, so it goes first.
         if (_mapItem.IsValid) { RenderingServer.FreeRid(_mapItem); _mapItem = default; }
         _texture?.Dispose(); _image?.Dispose(); _texture = null; _image = null;

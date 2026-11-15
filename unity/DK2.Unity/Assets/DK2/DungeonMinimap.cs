@@ -35,11 +35,13 @@ namespace DK2.Unity
         public int UiScale { get; set; } = 100;
         private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale);
 
-        public ClassicHudAction HandleCornerPress(Vector3 screenPosition, bool primaryPressed, bool secondaryPressed)
+        /// <summary>What a press does (<see cref="MinimapHud.Press"/>); without a camera only the corners act.</summary>
+        public ClassicHudAction HandlePress(Vector3 screenPosition, bool primaryPressed, bool secondaryPressed, Camera camera, Vector3 focus)
         {
             if (Screen.height <= 0) return ClassicHudAction.None;
             Vector2 at = Virtual(screenPosition);
-            return _hud.CornerPress(at.x, at.y, primaryPressed, secondaryPressed);
+            return camera == null ? _hud.CornerPress(at.x, at.y, primaryPressed, secondaryPressed)
+                : _hud.Press(at.x, at.y, primaryPressed, secondaryPressed, FixedFocus(focus), Heading(camera));
         }
 
         /// <summary>The corner control under the pointer, for its tooltip; None off the corners.</summary>
@@ -90,8 +92,8 @@ namespace DK2.Unity
         private static Dk2Angle Heading(Camera camera) =>
             new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(camera.transform.eulerAngles.y * (2048f / 360))));
 
-        private static FpPosition3 FixedFocus(Vector3 focus) => new FpPosition3(
-            new Fp32((int)(focus.x * Fp32.One)), new Fp32((int)(-focus.z * Fp32.One)), new Fp32(0));
+        private static FpPosition3 FixedFocus(Vector3 focus) =>
+            MinimapHud.FixedFocus(new System.Numerics.Vector3(focus.x, focus.y, focus.z));
 
         public DungeonMinimap(Transform parent, IMinimapAssets assets, int width, int height)
         {
@@ -177,7 +179,7 @@ namespace DK2.Unity
             }
             MinimapZoom zoom = _hud.Zoom;
             _gpu.SetView(zoom, FixedFocus(centre));
-            _gpu.Render(camera.transform.eulerAngles.y, Mathf.CeilToInt(MinimapHud.Disc.Width / 2.5f * Screen.height / 768f * ScaleLayout.Factor));
+            _gpu.Render(camera.transform.eulerAngles.y, MinimapHud.DiscPixels(Screen.height, ScaleLayout.Factor));
             if (_image.image != _gpu.Disc) _image.image = _gpu.Disc;
             _footprint.UpdateCamera(zoom.IsWholeMap ? camera : null);
             _heading = Heading(camera);

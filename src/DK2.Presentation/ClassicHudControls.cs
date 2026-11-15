@@ -5,6 +5,7 @@
 using System.Numerics;
 using DK2.Core;
 using DK2.Data.Media;
+using DK2.Simulation.Commands;
 namespace DK2.Presentation;
 
 public enum ClassicHudAction : byte
@@ -81,6 +82,14 @@ public sealed class ClassicHudControls
     /// hide the normal HUD under the map): <see cref="FullMapVisible"/> while the camera shows the normal HUD.</summary>
     public bool FullMapShown(HudVisibility camera) => camera.ShowNormalHud && FullMapVisible;
     public bool InputSuppressed { get; private set; }
+
+    /// <summary>Whether a host acts on a HUD action at all (DungeonRunner.ApplyHudAction's gate): not None, input not
+    /// suppressed, and while <see cref="Modal"/> none of the camera's and the minimap's own actions (navigation, the query
+    /// and sell corners, zoom), which the host applies itself rather than through <see cref="Apply"/>.</summary>
+    public bool Accepts(ClassicHudAction action) =>
+        action != ClassicHudAction.None && !InputSuppressed
+        && !(Modal && action is ClassicHudAction.NavigateHeart or ClassicHudAction.NavigatePortal or ClassicHudAction.NavigateFight
+            or ClassicHudAction.SelectQuery or ClassicHudAction.SelectSell or ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut);
 
     public void SetGuiVisible(bool visible) => GuiVisible = visible;
 
@@ -178,6 +187,18 @@ public static class ClassicHudControlLayout
         if (In(point, 155.2f, 584, 187.2f, 616)) return ClassicHudAction.SelectSell;
         if (In(point, 8, 728, 40, 760)) return ClassicHudAction.ToggleOptions;
         return ClassicHudAction.None;
+    }
+    /// <summary>The GUI button (game action 0x72, ADR-0670) a minimap corner's action posts: the magnifier's either click,
+    /// the query corner and the sell corner; false for every other action.</summary>
+    public static bool TryGuiButton(ClassicHudAction action, out GuiButtonTarget target)
+    {
+        switch (action)
+        {
+            case ClassicHudAction.ZoomIn: case ClassicHudAction.ZoomOut: target = GuiButtonTarget.MinimapZoom; return true;
+            case ClassicHudAction.SelectQuery: target = GuiButtonTarget.Query; return true;
+            case ClassicHudAction.SelectSell: target = GuiButtonTarget.Sell; return true;
+            default: target = default; return false;
+        }
     }
     private static bool In(Vector2 p,float left,float top,float right,float bottom) =>
         p.X >= left && p.X < right && p.Y >= top && p.Y < bottom;

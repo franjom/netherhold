@@ -325,7 +325,6 @@ namespace DK2.Unity
             Func<GameSimulation> warmupCopy = null;
             LevelMap map = campaign?.Map ?? LoadSave(install);
 
-            PlayerDef startingCameraPlayer = null;
             int cameraTicksPerSecond = SimulationTiming.OriginalTicksPerGameSecond;
             if (campaignLevel)
             {
@@ -333,7 +332,6 @@ namespace DK2.Unity
                 cameraTicksPerSecond = level.TicksPerSecond;
                 _levelTicksPerSecond = level.TicksPerSecond;
                 var players = campaign.Players;
-                startingCameraPlayer = players.FirstOrDefault(p => p.PlayerId == viewingPlayerId);
                 _simulation = _resumeSimulation ?? (frontEnd
                     ? new GameSimulation(database, WorldState.FromMap(database, map,
                         players.Select(player => player.PlayerId), fogOfWarEnabled: false), seed)
@@ -554,9 +552,8 @@ namespace DK2.Unity
                     new CameraFocusBounds(new System.Numerics.Vector3(0, 4095f / Fp32.One, -world.Height + 1f / Fp32.One),
                         new System.Numerics.Vector3(world.Width - 1f / Fp32.One, 4095f / Fp32.One, 0)));
                 _cameraBounds = new Vector2(world.Width, world.Height);
-                System.Numerics.Vector3 focus = startingCameraPlayer != null
-                    ? ClassicCamera.LevelStartFocus(new TilePos(startingCameraPlayer.CameraX, startingCameraPlayer.CameraY))
-                    : new System.Numerics.Vector3(world.Width / 2f, 1, -world.Height / 2f);
+                System.Numerics.Vector3 focus = ClassicCamera.LevelStartFocus(campaignLevel ? campaign.Players : null,
+                    new PlayerId((byte)viewingPlayerId), world.Width, world.Height);
                 _cameraFocus = new Vector3(focus.X, focus.Y, focus.Z);
             }
             if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();

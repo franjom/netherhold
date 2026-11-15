@@ -111,6 +111,21 @@ public class ClassicCameraTests
         Assert.Equal(new Vector3(worldX, 1, worldZ), ClassicCamera.LevelStartFocus(new TilePos(x, y)));
     }
 
+    private static PlayerDef Player(byte id, ushort cameraX, ushort cameraY) => new()
+    {
+        PlayerId = id, Name = "test", StartingGold = 0, HasAiFlag = false, TriggerId = 0, CameraX = cameraX, CameraY = cameraY,
+        Ai = null!,
+    };
+
+    [Fact]
+    public void LevelStartFocusIsTheViewersAuthoredCameraTileElseTheMapCentre()
+    {
+        PlayerDef[] players = [Player(2, 1, 1), Player(3, 14, 28), Player(3, 5, 5)];
+        Assert.Equal(new Vector3(14.5f, 1, -28.5f), ClassicCamera.LevelStartFocus(players, new PlayerId(3), 85, 85));
+        Assert.Equal(new Vector3(42.5f, 1, -21f), ClassicCamera.LevelStartFocus(players, new PlayerId(4), 85, 42));
+        Assert.Equal(new Vector3(42.5f, 1, -21f), ClassicCamera.LevelStartFocus(null, new PlayerId(3), 85, 42));
+    }
+
     [Fact]
     public void LevelStartUsesNativeDiagonalYawWithoutChangingAuthoredPitch()
     {

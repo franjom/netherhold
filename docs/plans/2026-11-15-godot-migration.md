@@ -144,8 +144,7 @@ group 2 is a list to audit, not a finding.
       Restart, Return to Menu and Quit, taken and dropped with a `GD.Print` because it needs the
       runner (step 2); the other HUD keys (GUI toggle, heart, portal and fight
       navigation); `AllowOptionsKey`, passed true, where Unity's scripted camera path holds the key
-      back (step 2); the open and close sounds 0x139 and 0x13A; and the minimap corner
-      button that opens the menu in DK2 and Unity, the minimap not being ported. Godot also has the
+      back (step 2); and the open and close sounds 0x139 and 0x13A. Godot also has the
       full map (`ClassicFullMap.cs` over `FullMapHud`: M, scan 0x32, opens it, and M, Escape or a
       left or right press closes it; it draws the map image, the creature squares, the keepers' legend and the
       hovered room's icon on two `HudCanvas` layers over one reused `Image` and `ImageTexture`, uploaded
@@ -155,8 +154,7 @@ group 2 is a list to audit, not a finding.
       frame; test-scene argument `--open-full-map`; the `ApplySettings` panel list does not include it,
       as neither adapter scales the full map). New in `DK2.Presentation`: `FullMapImage`, the CPU twin of
       `DK2FullMap.shader` (class 1 is black); `PngChunks.WithoutColourSpace`, which drops gAMA, cHRM,
-      sRGB and iCCP; `MinimapHud.CaptureGrid`, a grid-only capture Godot uses (Unity's `Capture` is
-      unchanged). Moved from Unity as pure moves, with tests, and every Unity call site calls them:
+      sRGB and iCCP. Moved from Unity as pure moves, with tests, and every Unity call site calls them:
       `ClassicHudControls.FullMapShown`, `FullMapHud.Press` and `Action` (a left press goes to the tile
       and closes, a right press closes, any other press is consumed and does nothing; both adapters apply
       `ApplyHudAction(FullMapHud.Action(press))`), `MinimapPalette.FromTopRow` (Unity's per-pixel
@@ -165,7 +163,7 @@ group 2 is a list to audit, not a finding.
       Godot's PNG decoder applies gAMA (231,24,24 decoded as 209,2,2) and nearly every shipped PNG
       declares one (FrontEnd.WAD 356 of 371, EngineTextures.WAD all 102), where DKII.EXE draws the
       stored bytes ([0x005B6030](research/functions/005B6030.md)); so the map's palette
-      (`ClassicFullMap.DecodePalette`) and the front end's art (`ClassicFrontEndMenuAssets.DecodePng`)
+      (`ClassicMinimap.DecodePalette`) and the front end's art (`ClassicFrontEndMenuAssets.DecodePng`)
       decode through `WithoutColourSpace`, and the Godot front end now draws brighter than before, as
       Unity does. That Unity's `LoadImage` ignores gAMA is assumed and unverified
       ([Q859](research/open-questions.md)). A Movie Maker capture on Level1 (fog on) matches Unity's
@@ -174,13 +172,46 @@ group 2 is a list to audit, not a finding.
       synthesized Escape, M, left and right presses opened and closed it. Real input, the room hover,
       a legend with several keepers, the Unity runtime and the front end's brightness against Unity's are
       unverified. Not wired on the full map: the camera move on a left press (Godot prints that it is not
-      wired; step 2), the camera preview at the top right (needs the 3D world), and opening it with a
-      right click on the minimap (not ported); the dig-tag and pickup previews are step 2 below, and
-      whether the wheel does anything over it is [Q860](research/open-questions.md). Not wired in
+      wired; step 2), the camera preview at the top right (needs the 3D world); the dig-tag and pickup
+      previews are step 2 below, and whether the wheel does anything over it is
+      [Q860](research/open-questions.md).
+      The twelfth panel is the minimap (`ClassicMinimap.cs` over `MinimapHud`: the disc, frame, markers,
+      north sprite, corners and zoom; the options corner opens the options menu, a right click on a tile
+      opens the full map, `PointerOverHud` includes it, the hover text asks `MinimapControl`, and
+      `ApplySettings` sets its HUD scale, a line in the twin list of `DungeonRunner.ApplyHudScale`). The
+      disc is `MinimapDiscImage` in `DK2.Presentation`, the tested CPU twin of `DK2Minimap.shader`'s tile
+      and marker passes (`[Dk2Behavior(StronglyInferred)]`, as `MinimapHeartTrail`'s is, while records
+      0x0041A9B0, 0x0041ADA0 and 0x0041C660 are HYPOTHESIS), redrawn only after a capture or a pose change
+      into one reused texture. The twins differ on the rock backdrop: the CPU one reads `Map-BG` top row
+      first, which the 0x0041ADA0 record's "matches the raster indexing" supports, while Unity's shader
+      samples a `LoadImage` texture bottom-up, so Unity's rock is flipped; both files say so
+      ([Q861](research/open-questions.md)). Godot has one `WorldView` and one `MinimapHud`, owned by the
+      minimap, with one full `Capture` per tick; the full map borrows the model (`ClassicMinimap.Model`),
+      so the grid-only capture is gone and `ClassicFullMap.Open` takes the minimap. The pose is the
+      level start's, since no camera is ported (`ClassicCamera.LevelStartFocus` and `LevelStartYaw` 256).
+      Moved from Unity into `DK2.Presentation` as pure moves at every Unity call site: `ClassicHudControls.Accepts`
+      (the `ApplyHudAction` gate), `ClassicHudControlLayout.TryGuiButton`, `MinimapHud.Press` (a corner's
+      action, or `ToggleFullMap` for a right click on a tile; it replaces `DungeonMinimap.HandleCornerPress`,
+      now `HandlePress`), `MinimapHud.FixedFocus` and `DiscPixels`, and `ClassicCamera.LevelStartFocus`
+      for a viewer, which replaces the runner's `startingCameraPlayer`. Godot drops a minimap navigation
+      press while a menu is modal or input is suppressed, as Unity does (whether DK2 does is
+      [Q862](research/open-questions.md)). Movie Maker captures on Level1 (fog on) match Unity's
+      `level1-heart-courtyard-1024x768-minimap-yaw256.png` by eye in the frame, corners, north sprite,
+      rotation, backdrop shading and rim; the differences have known causes (Unity has fog off and draws
+      the camera footprint, and the blink phase differs). Synthesized clicks showed zoom level 1, the options
+      corner opening the menu and a right click opening the full map. Real input, corner hover with a real
+      cursor, pixel equality against the GPU, HUD scales other than 100% and the Unity runtime are
+      unverified. Not wired on the minimap: the camera footprint (step 3), the left-click camera move
+      (Godot prints the tile; steps 2-3), the query and sell corners (they light up and print, and post no
+      `GuiButtonCommand`, so a Godot session's command stream differs from Unity's for those clicks; step 2,
+      tool state) and the heading during the opening camera path (step 2, scripted view). In Godot the
+      bottom panel's `CancelPointerGesture` runs before the panel's own `PointerDown` when a minimap action
+      applies; no double action has been found. Not wired in
       Godot: sound and
       speech, the Level6a torture-speech sink, the goto camera glide,
-      scripted-view visibility (step 2). Remaining: `DungeonMinimap`,
-      `ClassicHudScaling`, `ClassicBitmapText`, `MinimapFrameVisual`.
+      scripted-view visibility (step 2). All twelve panels are in. Remaining in group 1: the Unity helpers
+      `ClassicHudScaling` and `ClassicBitmapText`. `MinimapFrameVisual` is only `RgbaImage` to `Texture2D`
+      for six Unity files, with no Godot counterpart to write (Godot's panels decode through `HudCanvas`).
       The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
       every Unity panel uses it (the hover HUD still sizes from
       `UnityEngine.Screen`, not a fixture viewport, a possible cause of a mis-sized bar in a probe
@@ -201,8 +232,8 @@ group 2 is a list to audit, not a finding.
       `MusicWorldObserver.Capture`, which allocates per tick (`Keys.ToArray()`, LINQ `Any` with
       closures) and now runs on Godot's tick path as well as Unity's. Also
       `WorldView.CaptureMinimapMarkers`, which rebuilds `RoomIndex` and scans the whole map for the
-      heart on each captured tick; shared with Unity, while Godot's full map avoids it through
-      `MinimapHud.CaptureGrid`.
+      heart on each captured tick; shared with Unity, and now on Godot's tick too
+      (`ClassicMinimap.Capture`).
 
 ## Step 2: move game-flow logic out of Unity
 
@@ -215,8 +246,7 @@ group 2 is a list to audit, not a finding.
       pointing finger's reach, valid only while nothing is held; Unity's runner resolves the
       held, slap and tag cursors, and "over the HUD means SmallPoint" is itself HYPOTHESIS there);
       the "pointer over HUD" membership list and the `AllowOrdinaryInput` && focus && inside gate,
-      runner logic that Godot's `InGameHud` duplicates; the minimap hover text,
-      which answers empty until that panel is ported. From the creature overview: the pickup
+      runner logic that Godot's `InGameHud` duplicates. From the creature overview: the pickup
       and focus flow a column press starts (`DungeonRunner.Hud.cs` around lines 431-451:
       `CreatureOverview.Select`, the pickup preview, the hand and cursor feedback, the camera
       focus), and `QueueHudInput`'s order and the possession gate (the modal gate is
@@ -229,9 +259,13 @@ group 2 is a list to audit, not a finding.
       `DK2.Presentation`, and the load (rebuilding the database, the triggers, the simulation and the
       session) with it; decide the save folder both adapters share. From the full map: the camera
       move to the tile under a left press (`FullMapPressed` prints that it is not wired; Unity sends
-      the camera there), the camera preview at the top right, and a shared `WorldView`: Godot's full
-      map has a `WorldView` of its own, so it will not see the tag previews or pickup previews that
-      Unity's runner's view holds, which is invisible until dig input is ported.
+      the camera there), and the camera preview at the top right. From the minimap: the
+      left-click camera move (`MinimapNavigated` prints the tile; needs the camera, step 3), the query and
+      sell corners (Godot prints a line, sets no tool and posts no `GuiButtonCommand`, which Unity's runner
+      posts through `ClassicHudControlLayout.TryGuiButton`, so the command streams differ for those
+      clicks; tool state), the heading during the opening camera path (`ScriptedViewDirector`; Godot draws
+      the level-start heading), and the bottom panel's `CancelPointerGesture`, which Godot runs before the
+      panel's own `PointerDown` when a minimap action applies.
 - [ ] Move the behaviour into `DK2.Presentation` or the simulation, with tests; leave Unity a
       facade over it, as ADR-0805 did for the HUD.
 
@@ -241,7 +275,7 @@ group 2 is a list to audit, not a finding.
       are already in `src/`).
 - [ ] Creatures, animation playback, shadows.
 - [ ] Lighting tuned to feel like DK2 (owner exception: tuned per engine, not ported natively).
-- [ ] 3D overlays, the minimap GPU image, the hand cursor, then the in-game HUD from step 1.
+- [ ] 3D overlays, the minimap's camera footprint, the hand cursor, then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging
 

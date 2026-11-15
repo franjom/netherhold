@@ -4,6 +4,7 @@
 
 using System.Numerics;
 using DK2.Data.Media;
+using DK2.Simulation.Commands;
 namespace DK2.Presentation.Tests;
 public sealed class ClassicHudControlsTests
 {
@@ -369,5 +370,51 @@ public sealed class ClassicHudControlsTests
         Assert.False(controls.GameOptionsShown(new HudVisibility(false, true)));
         controls.Apply(ClassicHudAction.ToggleOptions);
         Assert.False(controls.GameOptionsShown(shown));
+    }
+
+    private static readonly ClassicHudAction[] HostActions =
+    {
+        ClassicHudAction.NavigateHeart, ClassicHudAction.NavigatePortal, ClassicHudAction.NavigateFight,
+        ClassicHudAction.SelectQuery, ClassicHudAction.SelectSell, ClassicHudAction.ZoomIn, ClassicHudAction.ZoomOut,
+    };
+
+    [Fact]
+    public void AHostActsOnNoActionWhileInputIsSuppressedAndOnNoCameraOrMinimapActionWhileModal()
+    {
+        var controls = new ClassicHudControls();
+        Assert.False(controls.Accepts(ClassicHudAction.None));
+        foreach (ClassicHudAction action in HostActions) Assert.True(controls.Accepts(action));
+        Assert.True(controls.Accepts(ClassicHudAction.ToggleOptions));
+
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        foreach (ClassicHudAction action in HostActions) Assert.False(controls.Accepts(action));
+        Assert.True(controls.Accepts(ClassicHudAction.ToggleOptions));
+        Assert.True(controls.Accepts(ClassicHudAction.ToggleFullMap));   // Apply itself refuses it while the menu is open
+        controls.Apply(ClassicHudAction.ToggleOptions);
+
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+        foreach (ClassicHudAction action in HostActions) Assert.False(controls.Accepts(action));
+        Assert.True(controls.Accepts(ClassicHudAction.ToggleFullMap));
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+
+        controls.UpdateResult(new HudResultState(HasResult: true));
+        Assert.False(controls.Accepts(ClassicHudAction.ToggleOptions));
+        Assert.False(controls.Accepts(ClassicHudAction.ZoomIn));
+    }
+
+    [Fact]
+    public void TheMagnifierPostsTheMinimapZoomButtonAndTheToolCornersTheirToolsButtons()
+    {
+        Assert.True(ClassicHudControlLayout.TryGuiButton(ClassicHudAction.ZoomIn, out GuiButtonTarget zoomIn));
+        Assert.True(ClassicHudControlLayout.TryGuiButton(ClassicHudAction.ZoomOut, out GuiButtonTarget zoomOut));
+        Assert.Equal(GuiButtonTarget.MinimapZoom, zoomIn);
+        Assert.Equal(GuiButtonTarget.MinimapZoom, zoomOut);
+        Assert.True(ClassicHudControlLayout.TryGuiButton(ClassicHudAction.SelectQuery, out GuiButtonTarget query));
+        Assert.Equal(GuiButtonTarget.Query, query);
+        Assert.True(ClassicHudControlLayout.TryGuiButton(ClassicHudAction.SelectSell, out GuiButtonTarget sell));
+        Assert.Equal(GuiButtonTarget.Sell, sell);
+        foreach (ClassicHudAction other in new[] { ClassicHudAction.None, ClassicHudAction.ToggleOptions, ClassicHudAction.ToggleFullMap,
+            ClassicHudAction.NavigateHeart })
+            Assert.False(ClassicHudControlLayout.TryGuiButton(other, out _));
     }
 }

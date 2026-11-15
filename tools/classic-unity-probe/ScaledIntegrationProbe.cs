@@ -199,7 +199,7 @@ namespace DK2.Unity.Editor
             // The magnifier's centre, (169.6, 745.6) of 1024x768 docked to the bottom, at the scaled panel's pixels (ADR-0805).
             float scale = Screen.height / 768f * ClassicHudScaling.Layout(minimap.UiScale).Factor;
             var point = new Vector3(169.6f * scale, (768 - 745.6f) * scale, 0);
-            if (minimap.HandleCornerPress(point, true, false) != ClassicHudAction.ZoomIn || !minimap.ContainsPointer(point)) throw new Exception("Scaled magnifier hit mismatch.");
+            if (minimap.HandlePress(point, true, false, null, default) != ClassicHudAction.ZoomIn || !minimap.ContainsPointer(point)) throw new Exception("Scaled magnifier hit mismatch.");
             var hud = (MinimapHud)Get(minimap, "_hud");
             while (!hud.Zoom.IsWholeMap) hud.ZoomOut();
             minimap.HandleZoomPress(point, true, false);
