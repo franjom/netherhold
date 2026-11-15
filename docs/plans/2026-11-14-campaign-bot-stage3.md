@@ -348,7 +348,7 @@ replay tests updated.
 
 **The Combat Pit routine (owner direction, 2026-11-14).** Once the rows above exist: creatures below
 `CombatPitMaxExperienceLevel` (variable 192, ships 8; `combat-pit.md`) are dropped into an owned Combat Pit;
-one low on health (two petals, the last quarter; one petal is a collapsed or dying creature, a living one shows at
+one low on health (two petals, the last quarter, owner-confirmed 2026-11-15; one petal is a collapsed or dying creature, a living one shows at
 least two) is healed with Heal when the mana allows, otherwise lifted and dropped in a Hatchery to eat; one that reaches the cap is lifted and dropped in its Lair (unhappy, tired) or a Hatchery (hurt, hungry).
 Training Room work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Tests first on
 synthetic observations; measured on the ladder like Task 2.
