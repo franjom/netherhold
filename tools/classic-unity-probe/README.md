@@ -583,13 +583,18 @@ live-scene visual acceptance.
 
 ## Known-broken probes
 
-Four probes fail on HEAD without the minimap and full-map move (checked 2026-11-15), so a failure
-is not evidence of a regression there. Fix each before relying on it.
+Fixed on 2026-11-15, after the HUD panel moves (ADR-0805): `run-front-end.ps1`'s session run (its
+"no gameplay HUD" check now tests `_bottomPanel`; the front end builds `_hudSources` for its save list),
+`run-session-save-load.ps1` (the objective state is `MessageTabsHud`'s; a frame with Options open lays out
+the pane, then the probe presses it through the model) and `run-completion-flow.ps1` (a menu click's clip
+decodes on a worker and plays when ready, so its check waits for the clip instead of racing the decode).
 
-- `run-front-end.ps1` without `-Menus` or `-Campaign` (the session run): its "no front-end HUD" check forbids the `_hudSources` that `InitializeSaves` creates.
-- `run-session-save-load.ps1`: reflects on `_messageTabs._objectiveOpen`, which no longer exists.
-- `run-completion-flow.ps1`: throws "Sequence contains no matching element" at `CompletionFlowProbe.cs:309`,
-  `Effects().Last(clip != null)`. The reviewer reads it as a race, a sound decode not finished because front-end
-  sessions skip sound prefetch; not confirmed.
-
-- `run-scaled-integration.ps1` (`ScaledIntegrationProbe`): reflects on `ClassicCreatureOverview._modeHover`, `_modeHovers` and `_workerHighlight`, `ClassicBottomPanel._icons`, `_slots` and `_root`, and `ClassicResourceHud._gold`, which earlier panel moves removed. Its minimap check reads the magnifier from 1024x768 units and the zoom through `DungeonMinimap._hud`; that part was updated for ADR-0805 and is untested, because the probe fails earlier on the other reflections.
+Still failing: `run-scaled-integration.ps1` (`ScaledIntegrationProbe`). Its stages now find their targets
+through the panel models (`ScreenOf` maps a virtual-unit rect to a screen point at the phase's UI scale), and
+it passes the audio and rebound-key checks. It then fails "Blank scaled UI mode": every one of the 15 UI
+panels' target textures reads back with no ink, the untouched hand cursor's too, while the overview's canvas
+is shown, full size and holds 12 draws. Ruled out on 2026-11-15: lost canvas meshes (the probe now invalidates
+every `HudCanvas` after targeting), the texture format (ARGB32 as `HudComparisonProbe`), URP camera render
+requests before the read (as `HudComparisonProbe`), and editor focus. `HudComparisonProbe` uses the same
+target textures and does get ink, so the difference is in how this probe drives its frames; open. A blank
+capture writes `diagnostic-blank-*.png` and logs each document's state and ink.

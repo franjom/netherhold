@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -106,12 +107,25 @@ namespace DK2.Unity.Editor
                         throw new Exception("Restart did not recreate original Level1 with seed317.");
                     var controls = (ClassicHudControls)Get(runner, "_hudControls");
                     controls.UpdateResult(default);
-                    var tabs = Get(runner, "_messageTabs"); Set(tabs, "_objectiveOpen", true);
+                    // The objective's state is MessageTabsHud's (ADR-0805), behind the facade's _hud.
+                    var tabs = Get(Get(runner, "_messageTabs"), "_hud"); Set(tabs, "_objectiveOpen", true);
                     Call(runner, "ApplyHudAction", ClassicHudAction.ToggleOptions);
                     Call(runner, "ApplyHudAction", ClassicHudAction.ShowObjective);
                     if (!controls.OptionsVisible || !controls.ObjectiveVisible) throw new Exception("Objective did not retain Options pause.");
-                    Set(tabs, "_optionsOpen", true);
-                    using (var down = PointerDownEvent.GetPooled()) ((VisualElement)Get(tabs, "_objectivePanel")).SendEvent(down);
+                    SessionState.SetInt(Active + ".stage", 5);
+                    return;
+                }
+                if (stage == 5)
+                {
+                    // A frame drawn with Options open lays out the objective pane; a press on it goes through the model.
+                    var controls = (ClassicHudControls)Get(runner, "_hudControls");
+                    var tabs = (MessageTabsHud)Get(Get(runner, "_messageTabs"), "_hud");
+                    var hits = (List<(int Action, HudRect Rect)>)Get(tabs, "_hits");
+                    int pane = (int)typeof(MessageTabsHud).GetField("ObjectivePanelAction", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+                    int at = hits.FindIndex(hit => hit.Action == pane);
+                    if (at < 0 || !(bool)Get(tabs, "_optionsOpen")) return;
+                    HudRect rect = hits[at].Rect;
+                    if (!tabs.PointerDown(rect.X + rect.Width / 2, rect.Y + rect.Height / 2, 0)) throw new Exception("Options objective pane took no press.");
                     if (!(bool)Get(tabs, "_objectiveOpen")) throw new Exception("Options objective click cleared review state.");
                     Call(runner, "ApplyHudAction", ClassicHudAction.ToggleOptions);
                     if (controls.OptionsVisible || controls.ObjectiveVisible || !(bool)Get(tabs, "_objectiveOpen")) throw new Exception("Continue did not restore prior objective state.");

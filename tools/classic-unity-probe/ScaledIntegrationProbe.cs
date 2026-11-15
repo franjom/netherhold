@@ -78,12 +78,6 @@ namespace DK2.Unity.Editor
                     _initialHash = simulation.StateHash().ToString();
                     if (Type.GetType("NLayer.MpegFile, NLayer") == null) throw new Exception("Ninth runtime assembly NLayer is missing.");
                     CheckAudio(); CheckBindingsAndFight();
-                    foreach (var panel in UnityEngine.Object.FindObjectsByType<UIDocument>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                        .Select(d => d.panelSettings).Where(p => p != null).Distinct())
-                    {
-                        var target = new RenderTexture(2560, 1440, 24); target.Create(); panel.targetTexture = target;
-                        panel.clearColor = true; panel.colorClearValue = Color.clear;
-                    }
                     BeginScale(); return;
                 }
                 Draw();
@@ -99,17 +93,19 @@ namespace DK2.Unity.Editor
                 }
                 if (_stage == 1)
                 {
-                    var hover = (Image)Get(overview, "_modeHover");
-                    if (hover.style.display.value != DisplayStyle.Flex || hover.image != ((Texture2D[])Get(overview, "_modeHovers"))[1])
+                    // The panels are CreatureOverviewHud and friends drawn by HudCanvas (ADR-0805): what they drew is the
+                    // facade's last frame, and where is the model's rect, both in virtual units.
+                    var modeHover = ((HudImage[])typeof(CreatureOverviewHud).GetField("ModeHovers", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null))[1];
+                    if (!Drawn(overview, draw => draw.Image == modeHover))
                         throw new Exception("Scale " + Requests[_phase] + " mode hover overlay missed the rendered selector.");
-                    Capture(overview.Panel, "mode", hover);
+                    Capture(overview.Panel, "mode", _pointer);
                     _pointer = OverviewPoint("WorkerCountRect", 1); Next(2); return;
                 }
                 if (_stage == 2)
                 {
-                    var highlight = (Image)Get(overview, "_workerHighlight");
-                    if (highlight.style.display.value != DisplayStyle.Flex) throw new Exception("Worker hover overlay missed.");
-                    Capture(overview.Panel, "worker", highlight);
+                    var worker = (HudRect)Call(Get(overview, "_hud"), "WorkerCountRect", 1);
+                    if (!Drawn(overview, draw => draw.Rect == worker && draw.Image.Path == "GUI\\Tabs\\t-cp-hilight")) throw new Exception("Worker hover overlay missed.");
+                    Capture(overview.Panel, "worker", _pointer);
                     CheckMinimapAndGold();
                     Field<ClassicBottomPanel>("_bottomPanel").SelectCategory(BottomPanelCategory.Rooms);
                     Next(3); return;
@@ -117,16 +113,22 @@ namespace DK2.Unity.Editor
                 if (_stage == 3)
                 {
                     var bottom = Field<ClassicBottomPanel>("_bottomPanel");
-                    var images = (Image[])Get(bottom, "_icons");
-                    var slots = (BottomPanelChoice[])Get(bottom, "_slots");
+                    var hud = (BottomPanelHud)Get(bottom, "_hud");
+                    var slots = (BottomPanelChoice[])Get(hud, "_slots");
                     int slot = Array.FindIndex(slots, s => s != null && s.Kind == BottomPanelChoiceKind.Room);
                     if (slot < 0) throw new Exception("No built room slot in real Level1 fixture.");
-                    Image image = images[slot]; Vector3 point = ScreenPoint(image, bottom.Panel);
+                    var element = (int?)Call(hud, "ElementOf", slot);
+                    if (element == null) throw new Exception("Room slot " + slot + " has no element.");
+                    var icon = (HudRect)Get(((Array)Get(hud, "_elements")).GetValue(element.Value), "Rect");
+                    Vector3 point = ScreenOf(icon, true);
                     if (!bottom.ContainsPointer(point) || !(bool)Call(_runner, "PointerOverHud", point)) throw new Exception("Room icon leaks through to world input.");
-                    Click(image, (VisualElement)Get(bottom, "_root"));
+                    // The canvas's own pointer callbacks hand the model these calls, at the icon's centre.
+                    float x = icon.X + icon.Width / 2, y = icon.Y + icon.Height / 2;
+                    if (hud.HitAction(x, y) != slot || !hud.PointerDown(x, y, 0) || !hud.PointerUp(x, y, 0, false, false, false))
+                        throw new Exception("Room icon did not take the press.");
                     if (!(Get(_runner, "_panelChoice") is BottomPanelChoiceKey choice) || choice.Kind != BottomPanelChoiceKind.Room)
                         throw new Exception("Actual room icon callback did not select a room.");
-                    Capture(bottom.Panel, "rooms", image);
+                    Capture(bottom.Panel, "rooms", point);
                     Debug.Log("Scaled HUD fixture passed request=" + Requests[_phase] + " effective=" + (bottom.Panel.scale * 100) + "%: mode/worker overlays, minimap magnifier, Gold and actual room callback.");
                     if (++_phase < Requests.Length) { BeginScale(); return; }
                     if (Field<GameSimulation>("_simulation").StateHash().ToString() != _initialHash) throw new Exception("Presentation fixture changed simulation state.");
@@ -136,8 +138,23 @@ namespace DK2.Unity.Editor
             }
             catch (Exception error) { SessionState.SetBool(Active, false); Debug.LogException(error); EditorApplication.Exit(1); }
         }
+        /// <summary>Every panel renders to its own 2560x1440 texture: also those the HUD built after the probe found
+        /// the runner, so each phase targets them again before its first capture.</summary>
+        private static void TargetPanels()
+        {
+            var documents = UnityEngine.Object.FindObjectsByType<UIDocument>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var panel in documents.Select(d => d.panelSettings).Where(p => p != null && p.targetTexture == null).Distinct())
+            {
+                var target = new RenderTexture(2560, 1440, 24, RenderTextureFormat.ARGB32); target.Create(); panel.targetTexture = target;
+                panel.clearColor = true; panel.colorClearValue = Color.clear;
+            }
+            // A re-targeted panel loses the meshes its canvases built, and a canvas redraws only a changed frame.
+            foreach (var document in documents)
+                document.rootVisualElement?.Query<HudCanvas>().ForEach(canvas => canvas.Invalidate());
+        }
         private static void BeginScale()
         {
+            TargetPanels();
             Call(_runner, "ApplyGameSettings", _runner.Settings with { UiScale = Requests[_phase] });
             var bottom = Field<ClassicBottomPanel>("_bottomPanel");
             if (bottom.PanelArea(BottomPanelCategory.Creatures) == null) bottom.SelectCategory(BottomPanelCategory.Creatures);
@@ -160,19 +177,21 @@ namespace DK2.Unity.Editor
         private static Vector3 OverviewPoint(string rectangle, int row)
         {
             var overview = Field<ClassicCreatureOverview>("_overviewPanel");
-            Rect box = (Rect)Call(overview, rectangle, row);
-            var root = (VisualElement)Get(overview, "_root");
-            Vector2 panel = root.LocalToWorld(box.center);
-            return new Vector3(panel.x * overview.Panel.scale, Screen.height - panel.y * overview.Panel.scale, 0);
+            return ScreenOf((HudRect)Call(Get(overview, "_hud"), rectangle, row), true);
         }
-        private static Vector3 ScreenPoint(VisualElement element, PanelSettings panel)
+        /// <summary>A virtual-unit rect's centre as a bottom-up screen point, for a panel at this phase's UI scale.</summary>
+        private static Vector3 ScreenOf(HudRect rect, bool bottomDocked)
         {
-            float factor = panel.scale * (panel.scaleMode == PanelScaleMode.ScaleWithScreenSize ? Screen.height / (float)panel.referenceResolution.y : 1);
-            Vector2 at = element.worldBound.center;
-            Vector2 pixels = at * factor;
-            Vector2 roundTrip = RuntimePanelUtils.ScreenToPanel(element.panel, pixels);
-            if (Vector2.Distance(roundTrip, at) > .02f) throw new Exception("Rendered element and screen pointer disagree.");
-            return new Vector3(pixels.x, Screen.height - pixels.y, 0);
+            HudScaleLayout layout = ClassicHudScaling.Layout(Requests[_phase]);
+            float local = Screen.height / 1920f;
+            System.Numerics.Vector2 top = layout.ToScreenTop(new System.Numerics.Vector2(
+                (rect.X + rect.Width / 2) * local, (rect.Y + rect.Height / 2) * local), bottomDocked);
+            return new Vector3(top.X, Screen.height - top.Y, 0);
+        }
+        private static bool Drawn(object facade, Func<HudDraw, bool> match)
+        {
+            foreach (HudDraw draw in ((HudFrame)Get(facade, "_frame")).Draws) if (match(draw)) return true;
+            return false;
         }
         private static void CheckMinimapAndGold()
         {
@@ -185,20 +204,16 @@ namespace DK2.Unity.Editor
             while (!hud.Zoom.IsWholeMap) hud.ZoomOut();
             minimap.HandleZoomPress(point, true, false);
             if (hud.Zoom.Level != 0) throw new Exception("Magnifier handler did not zoom.");
+            // The first gold digit KeeperResourceHud drew, at its place in the resource strip (top-docked).
             var resources = Field<ClassicResourceHud>("_resourceHud");
-            var glyphs = (Image[])Get(Get(resources, "_gold"), "_glyphs");
-            Image gold = glyphs.First(g => g.style.display.value == DisplayStyle.Flex);
-            point = ScreenPoint(gold, resources.Panel);
+            object model = Get(resources, "_hud");
+            var elements = (Array)Get(model, "_elements");
+            var glyphs = (int[])Get(Get(model, "_gold"), "_glyphs");
+            object gold = glyphs.Select(index => elements.GetValue(index)).First(glyph => (bool)Get(glyph, "Show"));
+            point = ScreenOf((HudRect)Get(gold, "Rect"), false);
             Debug.Log("Gold rendered hit fixture: pointer=" + point + " kind=" + resources.ResourceAt(point) + " contains=" + resources.ContainsPointer(point) + " hud=" + Call(_runner, "PointerOverHud", point));
             if (resources.ResourceAt(point) != KeeperResourceKind.Gold || !resources.ContainsPointer(point) || !(bool)Call(_runner, "PointerOverHud", point))
                 throw new Exception("Scaled Gold glyph and resource hit disagree.");
-        }
-        private static void Click(Image image, VisualElement root)
-        {
-            var input = new Event { type = EventType.MouseDown, button = 0, mousePosition = image.worldBound.center };
-            using (var down = PointerDownEvent.GetPooled(input)) image.SendEvent(down);
-            input.type = EventType.MouseUp;
-            using (var up = PointerUpEvent.GetPooled(input)) root.SendEvent(up);
         }
         private static void CheckAudio()
         {
@@ -243,14 +258,38 @@ namespace DK2.Unity.Editor
             Vector3 target = Field<Vector3>("_glideTo");
             Near(target.x, tile.X + .5f, "glideX"); Near(target.z, -tile.Y - .5f, "glideZ");
         }
-        private static void Capture(PanelSettings panel, string name, VisualElement element)
+        private static int Ink(RenderTexture layer)
         {
-            var target = panel.targetTexture; RenderTexture.active = target;
+            var previous = RenderTexture.active; RenderTexture.active = layer;
+            var read = new Texture2D(layer.width, layer.height, TextureFormat.RGBA32, false);
+            read.ReadPixels(new Rect(0, 0, layer.width, layer.height), 0, 0); read.Apply();
+            int ink = read.GetPixels32().Count(p => p.a > 0);
+            UnityEngine.Object.DestroyImmediate(read); RenderTexture.active = previous;
+            return ink;
+        }
+        private static void Capture(PanelSettings panel, string name, Vector3 point)
+        {
+            var target = panel.targetTexture;
+            if (target == null) throw new Exception("Scaled UI " + name + " has no target texture.");
+            RenderTexture.active = target;
             var image = new Texture2D(target.width, target.height, TextureFormat.RGBA32, false);
             image.ReadPixels(new Rect(0, 0, image.width, image.height), 0, 0); image.Apply();
             var pixels = image.GetPixels32();
-            if (pixels.Count(p => p.a > 0) < 500) throw new Exception("Blank scaled UI " + name);
-            Vector3 point = ScreenPoint(element, panel);
+            if (pixels.Count(p => p.a > 0) < 500)
+            {
+                File.WriteAllBytes(Path.Combine(Output, "diagnostic-blank-" + Requests[_phase] + "-" + name + ".png"), image.EncodeToPNG());
+                foreach (var document in UnityEngine.Object.FindObjectsByType<UIDocument>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    var root = document.rootVisualElement; var settings = document.panelSettings;
+                    string canvases = root == null ? "no root" : string.Join(";", root.Query<HudCanvas>().ToList()
+                        .Select(c => c.layout + " shown=" + ((HudFrame)Get(c, "_shown")).Count));
+                    Debug.Log("Blank diagnostic " + document.name + " sort=" + settings?.sortingOrder + " same=" + (settings == panel)
+                        + " target=" + (settings?.targetTexture != null) + " enabled=" + document.enabled + "/" + document.gameObject.activeInHierarchy
+                        + " display=" + root?.resolvedStyle.display + " root=" + root?.layout + " canvases=" + canvases
+                        + " ink=" + (settings?.targetTexture is RenderTexture layer ? Ink(layer) : -1));
+                }
+                throw new Exception("Blank scaled UI " + name + " (" + target.width + "x" + target.height + ")");
+            }
             int x = Mathf.Clamp((int)point.x, 0, image.width - 1), y = Mathf.Clamp((int)point.y, 0, image.height - 1);
             int count = 0;
             for (int dy = -20; dy <= 20; dy++) for (int dx = -20; dx <= 20; dx++)
