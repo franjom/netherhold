@@ -102,7 +102,7 @@ Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [compatible-bed/point controls](research/q710-fighter-decisions.md#compatible-bed-and-point-controls-at-d6d9b5f7) are complete; next match room-point selection/RNG/slab-chain inputs for the stationary continuation, retaining unmatched body/world/clock and cohort limits.
+exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [room-order/RNG controls](research/q710-fighter-decisions.md#room-order-and-rng-inputs-at-0b71f052) rule out chain order only for the sampled Workshop; next locate/obtain a provenanced seed-8 Room.cpp:1509 per-call trace near 5001..5002 with actor/predicate/checkpoint context. Existing packets can drive the trace; comparison limits remain.
 
 ## Other pending work
 
