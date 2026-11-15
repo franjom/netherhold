@@ -409,7 +409,7 @@ the offer carries none; `CoverageLimits` says that and the untested tile. `Playe
 information only. `DK2.AI.Tests` 557, `DK2.Simulation.Tests` 5479, `DK2.Presentation.Tests` 1812 and
 `DK2.Behavior.Tests` 669 (5 skipped) passed before the review fixes; `PlayerWorkshopTests` (3) pass after them.
 Level 1 seed 1 is unchanged (Completed at tick 2334, final hash af7204fe4c0f8594), no simulation change.
-Reviewer: no blocker, no major. Open: Q824 (a greyed slot's click), Q825 (placed-but-unbuilt doors on the slot).
+Reviewer: no blocker, no major. Open: Q825 (a greyed slot's click), Q826 (placed-but-unbuilt doors on the slot).
 
 **The Imp scouting routine (owner direction, 2026-11-14; first aimed at Level 6a).** Unknown ground
 (`PlayerTile.IsKnown` false) hides gold, gems, water to bridge and enemies. The bot lifts an own Imp, drops

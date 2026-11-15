@@ -169,7 +169,7 @@ These are entry points, not a new priority order.
   open, Levels 5-10 are not won ([ladder](research/campaign-bot-ladder.md) sections 7-8). Open
   from Tasks 3a and 3b: Q813-Q818. Task 4, the observation and action additions, is built one row per
   branch: each own creature's level, petals and mood, every offered spell with `CastSpell`, then door and trap
-  offers with `PlaceDoor` and `PlaceTrap` (observation schema 4; Q819, Q820, Q824 and Q825 open, Q821-Q823
+  offers with `PlaceDoor` and `PlaceTrap` (observation schema 4; Q819, Q820, Q825 and Q826 open, Q821-Q823
   answered by the owner). Its observation and action rows are all built except Possession; the routines that
   use them (Combat Pit, Imp scouting) come next.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
