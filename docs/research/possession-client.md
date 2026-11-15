@@ -332,8 +332,33 @@ re-observed that day, so not CONFIRMED):
 The remake builds all three that way. The binary's sender of the leave action and the
 initial value of the selection byte `+0x13D9` are still unread.
 
+## 6b. The owner's play of the original, 2026-11-15
+
+Seen and heard by the owner in the original that day, possessing an Imp (CONFIRMED as
+observations; what causes each is not read):
+
+- The view cannot be left while the camera is flying in. The remake's wait for the
+  landing (§6) matches.
+- The possessed Imp's footsteps are heard. Which of the two pairs of §6 was heard, or
+  both, is not told apart, so the footstep verdict there stays HYPOTHESIS.
+- No possessed creature died, so the mode-11 view is still unobserved.
+
+One screenshot of the Imp's view (1600 by 1200, kept by the owner) shows:
+
+- Straight edges of the ceiling and walls drawn as curves, more toward the screen's
+  edges: the picture is warped, not a plain perspective. The remake draws a plain
+  perspective at 73.7 degrees, a deviation; where DK2 makes the warp is UNREAD.
+- A HUD of its own: the mana counter, a health bar, the gold carried, a pickaxe and a
+  boot icon along the top; three counters and the minimap at the left; one creature
+  icon at the bottom. The possession HUD (`0x00420D10`) is not built.
+- Large pieces of textured geometry at the right edge and top right, very near the
+  camera. What they are is UNKNOWN (render-item flag bit 0x8 draws a piece only in the
+  possession modes, `0x00586190`; whether these are such pieces is not read).
+- The ceiling over the room, which the ordinary view does not draw.
+
 ## 7. Not read yet
 
+- The warp of the first-person picture (§6b).
 - How the first-person preset's lens and view distance reach the renderer, and the
   writers of camera `+0xE38` and `+0xE3C`.
 - Who raises the view event `0x00448440` handles, who posts the player's own leave, and
