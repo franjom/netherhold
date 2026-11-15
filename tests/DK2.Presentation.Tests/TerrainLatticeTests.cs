@@ -139,4 +139,23 @@ public class TerrainLatticeTests
         lattice.HighWalls = false;
         Assert.InRange(lattice.Deform(top, X0 + 1, Y0 + 1).Z - high.Z, 0.49f, 0.51f);
     }
+
+    /// <summary>The possession latch 0x00759AE8 rests the levels at full spacing even with HighWalls
+    /// off, and each flip forgets the cells (terrain-lattice.md §3).</summary>
+    [InstallFact]
+    public void APossessionRestsTheWallsAtFullHeightWhateverHighWallsSays_StronglyInferredFromBinary()
+    {
+        (GameDatabase db, WorldState world) = Cross();
+        var lattice = new TerrainLattice(db, world, PlayerIds.Good);
+        var top = new Vector3(X0 + 1.25f, Y0 + 1.25f, -2f);
+        Vector3 high = lattice.Deform(top, X0 + 1, Y0 + 1);
+        lattice.HighWalls = false;
+        Vector3 low = lattice.Deform(top, X0 + 1, Y0 + 1);
+
+        lattice.Possession = true;
+        Assert.Equal(high, lattice.Deform(top, X0 + 1, Y0 + 1));
+
+        lattice.Possession = false;
+        Assert.Equal(low, lattice.Deform(top, X0 + 1, Y0 + 1));
+    }
 }

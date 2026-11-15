@@ -122,6 +122,7 @@ namespace DK2.Unity
         private readonly ClassicTorchLightBuffer _torchLights;
         private readonly ClassicTileFillBuffer _tileFill;
         private ClassicTileLightBuffer _tileLights;
+        private bool _lightTablesNeedPublication;
         private readonly ClassicWorldLightCache _worldLights;
         private readonly PortalCentreLights _portalCentreLights;
         private int _portalLightRequestsPublished;
@@ -143,6 +144,7 @@ namespace DK2.Unity
         private readonly int _worldHeight;
         private readonly ClassicMeshes _classic;
         private readonly TerrainChunks _terrain;
+        private readonly TerrainCeilingChunks _ceiling;
         private readonly LiquidSurfaces _liquids;
         private readonly HashSet<int> _meshObjects = new HashSet<int>();
         // Objects the install has no art for, keyed with the key they asked for, so they are not tried again.
@@ -440,8 +442,19 @@ namespace DK2.Unity
             if (classic != null)
             {
                 _terrain = new TerrainChunks(root, classic, worldWidth, worldHeight, lattice);
+                _ceiling = new TerrainCeilingChunks(root, classic, worldWidth, worldHeight, lattice);
                 _liquids = new LiquidSurfaces(root, classic, worldWidth, worldHeight);
             }
+        }
+
+        /// <summary>Shows or hides the possession view's roof (<see cref="TerrainCeiling"/>), which DK2
+        /// draws only while a possession camera holds the view. Call after the world is presented:
+        /// showing it reads the world.</summary>
+        public void SetCeilingVisible(bool visible, WorldState world, GameDatabase database)
+        {
+            if (_ceiling == null) return;
+            if (visible) _ceiling.Show(world, database);
+            else _ceiling.Hide();
         }
 
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
@@ -454,6 +467,7 @@ namespace DK2.Unity
             // Steps 1 and 2 of the classic look: plain terrain and rooms from their pieces. A room
             // drawn so needs no furniture box; its objects are step 3.
             _liquids?.Set(tileIndex, tile);
+            _ceiling?.TileChanged(tile.Position.X, tile.Position.Y);
             if (_terrain != null && _terrain.TrySet(tileIndex, tile))
             {
                 ApplyFurniture(tileIndex, tile, default);
@@ -995,6 +1009,7 @@ namespace DK2.Unity
                 throw new System.InvalidOperationException("Tile point-light tables require classic vertex lighting.");
             _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
             _tileLights.Set(table);
+            _lightTablesNeedPublication = true;
         }
 
         public void PrepareClassicLighting(Camera camera, float nativeViewDistance, Camera additionalCamera = null)
@@ -1044,6 +1059,11 @@ namespace DK2.Unity
                     visible = new System.ReadOnlySpan<TilePos>(_joinedLightBuffer, 0, _joinedLightTiles.Count);
                 }
                 _worldLights.PrepareFrame(visible);
+                if (_worldLights.TablesUnchanged && !_lightTablesNeedPublication)
+                {
+                    _tileLights?.Flush();
+                    return;
+                }
                 _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
                 foreach (TilePos previous in _publishedLightTiles)
                     if (!_worldLights.IsVisible(previous)) _tileLights.Remove(previous);
@@ -1055,6 +1075,7 @@ namespace DK2.Unity
                     _publishedLightTiles.Add(table.Tile);
                 }
                 _tileLights.Flush();
+                _lightTablesNeedPublication = false;
             }
         }
 
@@ -1111,6 +1132,7 @@ namespace DK2.Unity
             foreach (GameObject go in _structures.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _torches.Values) if (go != null) Object.Destroy(go);
             _terrain?.Clear();
+            _ceiling?.Clear();
             _liquids?.Clear();
 
             _tiles.Clear();

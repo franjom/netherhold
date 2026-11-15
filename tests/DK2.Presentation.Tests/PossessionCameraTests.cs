@@ -43,17 +43,23 @@ public sealed class PossessionCameraTests
     }
 
     [Fact]
-    public void HalvingTheLensDoublesTheTangentOfTheHalfAngle()
+    public void TheFirstPersonLensGivesDk2sVeryWideView_StronglyInferredFromBinary()
     {
         var ordinary = new CameraThing(new byte[84]) { Lens = 8192 };
         var possession = new CameraThing(new byte[84]) { Lens = 4096, ViewDistance = 49152 };
+        var native = new CameraViewport(1600, 1600, 1200);
 
-        float wide = PossessionCamera.VerticalFieldOfView(possession);
-        float narrow = PossessionCamera.VerticalFieldOfView(ordinary);
+        float wide = PossessionCamera.VerticalFieldOfView(possession, native, null);
+        float narrow = PossessionCamera.VerticalFieldOfView(ordinary, native, null);
 
-        // Preset 2 on DK2's 640 by 480: 240 pixels of half height over a 320 pixel focal length.
-        Assert.Equal(2 * MathF.Atan(240f / 320f) * 180 / MathF.PI, wide, 3);
+        // A focal length of 320 pixels whatever the screen: 600 pixels of half height over it.
+        Assert.Equal(2 * MathF.Atan(600f / 320f) * 180 / MathF.PI, wide, 3);
+        Assert.Equal(123.9f, wide, 1);
         Assert.Equal(2 * MathF.Tan(narrow * MathF.PI / 360), MathF.Tan(wide * MathF.PI / 360), 4);
+        // On DK2's 640 by 480 the same lens is 73.7 degrees: the angle grows with the resolution.
+        Assert.Equal(73.7f, PossessionCamera.VerticalFieldOfView(possession, new CameraViewport(640, 640, 480), null), 1);
+        // A reference width keeps the 1600-wide angle on another screen of the same shape.
+        Assert.Equal(wide, PossessionCamera.VerticalFieldOfView(possession, new CameraViewport(800, 800, 600), 1600), 3);
         Assert.Equal(12f, PossessionCamera.FarClipDistance(possession));
     }
 
