@@ -8,10 +8,12 @@ agent (Claude's private memory and Codex's are not shared; this file is). Add a 
 that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps live in
 `.agents/skills/ghidra-queries/SKILL.md`, DK2 facts in `docs/research/`.
 
+- Godot AI 4.4.1's dock shows Claude Code red ("verification still reads error") for a working `local`-scope entry; check with `claude mcp get godot-ai` from the repo root, and do not run its suggested `remove --scope user`.
 - Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
 
 ## Shell and files
-- Codex MCP calls can time out after 300 seconds despite a larger `ctx_execute` budget; run long suites in a background wrapper that saves its exit receipt.
+- Two sessions share one index: `git rm` stages at once, and another session's plain `git commit` takes it (a probe commit took 1a's Unity deletions and was redone). Delete with `rm` and commit by path (`git commit -- <paths>`).
+- Codex MCP calls can time out after 300 seconds despite a larger `ctx_execute` budget; its `background: true` discards stdout, so the wrapper must write its own log and exit receipt.
 - Normalize hash-manifest relative keys to one path separator before updating entries; mixed slashes can retain duplicate paths and invalidate setup provenance.
 - Build a hash manifest's inventory before opening its output file; otherwise a recursive scan can include the manifest's own empty-file hash.
 - `git archive` can export CRLF while `git show` returns an LF blob; compare blobs with blobs and archived files with their own manifests.
@@ -149,6 +151,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Decode Ghidra read_bytes hex as ASCII before naming a source-file draw site; reading near-spellings by eye can mislabel the verifier.
 
 ## Builds, tests and dk2tools
+- Function records on disk need one `evidence:` line per path; comma-separated evidence is `kb_upsert` input syntax and becomes an invalid anchor in a record file.
 
 - `SaveLoadingBoundsTests.DuplicateSecretDoorKeysAreWrappedWithPosition` uses the remake snapshot tile stride; update it when tile fields change, or its corruption lands in another section.
 
@@ -385,3 +388,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Python on this Windows host may default to cp1252; pass encoding="utf-8-sig" when reading BOM Markdown before rewriting, or its header becomes mojibake.
 - The dk2kb MCP server (`kb_upsert`) writes records into the main clone, not the linked worktree you are in: edit the record file in the worktree by hand there, and restore anything it wrote to the main clone.
+- The first `GameSimulation.Tick` executes tick 0; raw placed-state age fixtures need an entry stamp of -1, not 0.

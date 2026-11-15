@@ -11,10 +11,11 @@ namespace DK2.Presentation;
 /// The angular masks measure rows from the bottom up, as they were first written against Unity's texture order.</summary>
 public static class HudImagePixels
 {
-    /// <summary><paramref name="image"/>'s variant applied to its catalogue pixels; the source itself when there is none.</summary>
+    /// <summary><paramref name="image"/>'s variant applied to its catalogue pixels; the source itself when there is none.
+    /// <see cref="HudImageVariant.Glow"/> changes the size, so it is <see cref="HudLabelPixels"/>'s and passes through here.</summary>
     public static byte[] Apply(byte[] rgba, int width, int height, in HudImage image)
     {
-        if (image.Variant == HudImageVariant.None) return rgba;
+        if (image.Variant is HudImageVariant.None or HudImageVariant.Glow) return rgba;
         var into = new byte[rgba.Length];
         Fill(rgba, width, height, image, into);
         return into;
@@ -26,7 +27,8 @@ public static class HudImagePixels
     {
         switch (image.Variant)
         {
-            case HudImageVariant.None: Buffer.BlockCopy(rgba, 0, into, 0, rgba.Length); break;
+            case HudImageVariant.None:
+            case HudImageVariant.Glow: Buffer.BlockCopy(rgba, 0, into, 0, rgba.Length); break;
             case HudImageVariant.TalismanArc: Talisman(rgba, width, height, image.Pieces, false, into); break;
             case HudImageVariant.TalismanQuarter: Talisman(rgba, width, height, image.Pieces, true, into); break;
             case HudImageVariant.Gauge: Gauge(rgba, width, height, image.Gauge, into); break;

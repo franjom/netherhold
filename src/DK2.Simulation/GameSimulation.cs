@@ -21,7 +21,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 521;
+    private const ulong HashVersion = 523;
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
@@ -110,6 +110,10 @@ public sealed class GameSimulation
         world.GameEnded = (player, status) => FinaleRules.OnVerdict(_context, player, status);
         world.ObjectMade = thing => ObjectSoundRules.Made(_context, thing);
         world.ObjectRemoving = thing => ObjectSoundRules.Removing(_context, thing);
+        world.CreatureSlotReleasing = creature =>
+        {
+            if (creature.CombatPitFighter) CombatPitRoomStep.CreatureDestroyed(_context, creature);
+        };
     }
 
     /// <summary>Whether the list walks the trigger roots inside the turn (ADR-0568). A list that
@@ -208,12 +212,15 @@ public sealed class GameSimulation
         _context.ClaimActionsAdvancedThisTick.Clear();
         _context.IdleActionsPolledThisTick.Clear();
         _context.IdleActionsAdvancedThisTick.Clear();
+        _context.CombatPitActionsPolledThisTick.Clear();
+        _context.CombatPitActionsAdvancedThisTick.Clear();
         _context.PossessedMeleePolledThisTick.Clear();
         _context.PossessedMeleeAdvancedThisTick.Clear();
         _context.PossessedExcavationsPolledThisTick.Clear();
         _context.PossessedExcavationsAdvancedThisTick.Clear();
         _context.WorkerPreludeProcessedThisTick.Clear();
         _context.CreaturesUpdatedThisTick.Clear();
+        _context.DyingStatesUpdatedThisTick.Clear();
         _context.WorkerPreludeClaimedThisTick.Clear();
         _context.TremorRebellionStartedThisTick.Clear();
 

@@ -14,3 +14,7 @@ docs/research/samples/*.gz binary
 # A replayed journal names its scenario by SHA-256: keep both files byte for byte.
 tests/DK2.Behavior.Tests/Fixtures/**/*.yaml -text
 tests/DK2.Behavior.Tests/Fixtures/**/*.journal binary
+
+# Godot writes LF on every platform; without this, core.autocrlf checkouts make every
+# scene and resource the editor touches show as a whole-file diff (ADR-0810).
+godot/** text=auto eol=lf

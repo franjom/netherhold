@@ -16,10 +16,11 @@ that depends on it.
 Every thing has an absolute height `z` (`+0x22`) and a floor word (`+0x26`). The ordinary floor is 0x1000, so
 a creature on flat ground has `z` 0x1000; ours keeps `CreatureState.PosZ` above that, zero on the ordinary
 floor. The setter `Thing_SetPosition` (`0x004B5020`) recomputes the floor from the tile floor function
-(`0x004545C0`) at the new x and y on every position write and stores it in `+0x26`; it raises `z` to the
+(`0x004545C0`) at the new x and y on each call and stores it in `+0x26`; it raises `z` to the
 floor when below (and zeroes a creature's vertical vector `+0x10C`), and drops a `z` above 0x3000 to 0x2000
 (record 004B5020). It never lowers `z` otherwise: a thing above its floor stays there until the physical pass
-brings it down.
+brings it down. The Combat Pit transport instead uses the raw setter, retaining the previous floor;
+see [combat-pit.md section 4](combat-pit.md#4-the-fight).
 
 ## 2. The floor function `0x004545C0` (STRONGLY INFERRED, whole body read)
 
@@ -94,11 +95,12 @@ at turn 1864 has floor word 3924 under `z` 4096.
   the same room thing); the Heart's centre is the tile whose 5 x 5 square is all Heart; `0x00454110`'s
   per-type rule is the interior test alone (a Graveyard cell holding a crypt is not refused); the Pit's
   interior test is the eight-neighbour test.
-- `CreaturePhysicsRules.Step` runs every creature every update: raise to the floor first (ours' other position
+- `CreaturePhysicsRules.Step` runs every creature every update: normally raise to the floor first (ours' other position
   writers do not call the setter), gravity, ground response, sub-steps with `nextZ` fed to the door test,
   `SetHeight` (the setter's height half) on commit, body resync. `OwnsHeight` excludes what keeps its own
   height rules: the imp's creation fall (state 214), a party's arrival, a hand drop's landing, a creature in
-  the hand, a possessed one.
+  the hand, a possessed one. The pit transport's retained floor and below-floor exception are described
+  in `combat-pit.md` section 4.
 - `CreatureMovementSystem` commits through `SetHeight`; `CreatureDeathRules.Collapse` does not call `StopMoving`,
   zeroes `PhysicalVelocityX/Y` and `CreationVelocityZ` (`+0x10C`), and calls `SetHeight`.
 - `PreviousPositionStep` copies z into `LastPosZ` (`+0xFE`) with x and y (record 00488930).

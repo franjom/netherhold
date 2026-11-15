@@ -163,6 +163,7 @@ public static class SlabChain
         long partyStart = 0;
         long hatcheryStamp = world.CurrentTick.Value + 1;
         WorkshopTimers workshop = default;
+        CombatPitRoomRuntime pit = new(0, 0, 0, world.CurrentTick.Value);
         var freed = new List<int>();
         for (int d = 0; d < Dx.Length; d++)
         {
@@ -176,6 +177,7 @@ public static class SlabChain
                 foreach (int t in room) clockTile = Math.Min(clockTile, t);
                 hatcheryStamp = world.TileAtIndex(clockTile).HatcheryLastGeneratedTick;
                 workshop = WorkshopTimerRules.Read(world, clockTile);
+                pit = CombatPitRoomStep.Read(world, clockTile);
                 listPosition = world.TileAtIndex(room[0]).RoomListPosition;
                 ruined = world.TileAtIndex(room[0]).RoomRuined;
                 foreach (int t in room)
@@ -191,6 +193,8 @@ public static class SlabChain
             }
             else
             {
+                if (database.RoomByTerrain(terrain)?.TypeId == RoomTypeId.CombatPit && context is not null)
+                    Systems.CombatPitSystem.ReleaseAttached(context, place => room.Contains(place.TileIndex));
                 chain.AddRange(room);
                 absorbed?.AddRange(room);
                 freed.AddRange(room);
@@ -205,6 +209,7 @@ public static class SlabChain
         RoomLists.Set(world, chain, listPosition);
         Stamp(world, chain);
         if (workshopRoom) WorkshopTimerRules.Place(world, chain, workshop);
+        if (database.RoomByTerrain(terrain)?.TypeId == RoomTypeId.CombatPit) CombatPitRoomStep.Place(world, chain, pit);
         // The joined room's ruin (+0x9A bit 0) is the grown room's; a tile that starts a room starts
         // unruined, as Room_Construct clears the bit (0x004E392D, ADR-0662).
         foreach (int t in chain) world.TileAtIndex(t).RoomRuined = ruined;
@@ -232,6 +237,9 @@ public static class SlabChain
         // Room_AddTile's 0x004E4480 (0x004ED2D8): a Treasury's slot +0x09 banks its floor gold, an
         // absorbed room's store emptied first (ADR-0669).
         GoldStore.BankFloorGold(world, database, chain, freed, stream, context);
+        if (database.RoomByTerrain(terrain)?.TypeId == RoomTypeId.CombatPit && context is not null
+            && RoomIndex.RoomAt(world, database, chain[0]) is { } grownPit)
+            Systems.CombatPitSystem.Reset(context, grownPit);
         return chain;
     }
 
@@ -293,6 +301,8 @@ public static class SlabChain
         Sort(world, order);
         // The old room is freed (0x004ED9FA), and Room_OnFreed takes out every corpse in it (0x004E3AB3).
         if (room.TypeId == RoomTypeId.Graveyard) GraveyardRules.Unlink(world, [.. old, tileIndex]);
+        if (room.TypeId == RoomTypeId.CombatPit && context is not null)
+            Systems.CombatPitSystem.ReleaseAttached(context, place => place.TileIndex == tileIndex || old.Contains(place.TileIndex));
 
         var chainOf = new Dictionary<int, List<int>>(order.Length);
         var chains = new List<List<int>>();
@@ -348,6 +358,7 @@ public static class SlabChain
         (leaving.WorkshopSteamTimer, leaving.WorkshopSmokeTimer, leaving.WorkshopLavaBubblingTimer, leaving.WorkshopLavaSpillTimer) = (0, 0, 0, 0);
         leaving.HatcheryLastGeneratedTick = 0;
         leaving.HatcheryStartupIntervalTicks = 0;
+        (leaving.PitAmbientShortTicks, leaving.PitAmbientLongTicks, leaving.PitPreviousStandingCount, leaving.PitFightSeenTick) = (0, 0, 0, 0);
         (leaving.PrisonDoor, leaving.CasinoParty, leaving.CasinoPartyStartTick) = (0, 0, 0);
         foreach (int tile in old) door |= world.TileAtIndex(tile).PrisonDoor;
         // The freed old room's Room_OnFreed unlinks every bird it held (0x004E39C0); each piece adopts afresh.
@@ -365,6 +376,8 @@ public static class SlabChain
             RoomHealthRules.SetPiece(world, database, room, chain, percent);
             KeepDoor(world, chain, door, animationTick);
             if (WorkshopTimerRules.IsWorkshop(room)) WorkshopTimerRules.Place(world, chain, workshops.GetValueOrDefault(chain));
+            if (room.TypeId == RoomTypeId.CombatPit)
+                CombatPitRoomStep.Place(world, chain, new CombatPitRoomRuntime(0, 0, 0, world.CurrentTick.Value));
             if (room.TypeId == RoomTypeId.Hatchery)
             {
                 int lowest = int.MaxValue;
@@ -380,6 +393,9 @@ public static class SlabChain
                 ChickenMovementRules.AdoptOnChain(world, database, chain);
             }
             if (room.TypeId == RoomTypeId.Prison) Activate(world, chain);
+            if (room.TypeId == RoomTypeId.CombatPit && context is not null
+                && RoomIndex.RoomAt(world, database, chain[0]) is { } piecePit)
+                Systems.CombatPitSystem.Reset(context, piecePit);
             // The old room was freed and emptied (0x004D9670); each piece banks what lies on it (0x004ED76C).
             if (room.TypeId == RoomTypeId.Treasury) GoldStore.BankFloorGold(world, database, chain, chain, stream, context);
         }

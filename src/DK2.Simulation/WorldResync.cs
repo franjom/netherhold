@@ -105,8 +105,8 @@ public static class WorldResync
             if (IsDown(native))
             {
                 // DK2's health counts the dying window down from 240 a tick at a time (the capture,
-                // 3940-4180); ours lies at zero and counts DyingTicks up to the same window, a game
-                // second at a time, so the death can land up to 3 ticks off DK2's.
+                // 3940-4180); ours lies at zero and counts DyingTicks up to the same window per turn.
+                // This pose resync does not import the pit transport's phase, deadline or retained floor.
                 ours.PosX = native.X;
                 ours.PosY = native.Y;
                 ours.Health = 0;

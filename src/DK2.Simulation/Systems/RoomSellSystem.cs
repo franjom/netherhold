@@ -115,14 +115,10 @@ public sealed class RoomSellSystem : ISimulationSystem
             && RoomIndex.RoomAt(world, context.Database, index) is RoomInstance graveyard)
             GraveyardRules.Forget(world, graveyard);
 
-        List<RoomInstance>? pits = wave && room.TypeId == RoomTypeId.CombatPit
-            ? CombatPitRules.PitsUnder(world, context.Database, [pos]) : null;
-
         // Unmake first, then bank: the other order would let a refund land on the tile being sold.
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
         int displaced = RoomRules.Unmake(context.Database, ref tile);
         SlabChain.Changed(world, context.Database, index, terrainBefore, ownerBefore, context.Rng, context);
-        if (pits is not null) foreach (RoomInstance pit in pits) CombatPitSystem.Reset(context, pit);
 
         // The store's contents stay where the store was, as a pile on the floor of that very tile
         // (gold-on-the-floor.md section 4), dropped before the refund is banked.
@@ -160,10 +156,6 @@ public sealed class RoomSellSystem : ISimulationSystem
         int lastSold = -1;
         var refusals = new Dictionary<RoomSale, int>();
 
-        // A sold tile rebuilds or frees its room, and a Combat Pit's reset throws its fighters
-        // out (0x004D7E00, 0x004D8000): the pits as they stood before the sale.
-        List<RoomInstance> pits = CombatPitRules.PitsUnder(world, context.Database, command.Tiles);
-
         foreach (TilePos pos in command.Tiles)
         {
             TileSale sale = SellOne(context, command.PlayerId, pos);
@@ -183,7 +175,6 @@ public sealed class RoomSellSystem : ISimulationSystem
         context.Emit(SystemName, "sold",
             $"player={command.PlayerId} tiles={sold} refund={refunded} " +
             $"refused={Describe(refusals)}");
-        if (sold > 0) foreach (RoomInstance pit in pits) CombatPitSystem.Reset(context, pit);
 
         // A refund with nowhere to go lands on the floor rather than vanishing (gold-on-the-floor.md section 5).
         // An immediate multi-tile sale has no single tile of DK2's to use, so the last tile sold is a choice (Q139).

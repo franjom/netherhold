@@ -159,12 +159,15 @@ what a working slice and the triage needed, not guessed.
       Prison, Temple, Graveyard, Torture Chamber, Casino, Combat Pit: each built once, rebuilt if
       lost, after every listed room stands and none has outgrown itself), `LairTilesPerCreature`
       1, `CreaturesPerHatcheryTile` 2, `TreasuryFullPercent` 80, `UseRooms`, `TilesPerWorkingCreature`
-      3, `UseRoomEveryTicks` 200, `UseRoomMinGold` 1000, `Breach`, `EnemyClearanceTiles` 3.
+      3, `UseRoomEveryTicks` 200, `UseRoomMinGold` 1000, `Breach`, `EnemyClearanceTiles` 3, `EnemyNearTiles` 8 (playbook `strategy.enemy-near-tiles`, 0-255).
       `CampaignPlayerOptions` gains `GoldPerTreasuryTile` and `HeartGold`, definition data the
       harness passes (`MaxGoldPerTreasuryTile`; sixteen heart tiles of `MaxGoldPerDungeonHeartTile`,
       Q52, ADR-0027); unknown, no Treasury grows for want of room. Growth and extras wait while a
       missing listed room is offered but unaffordable; a pending build completes when its type's
-      tile count rises; a Work step carries an idle own non-worker to a room `UseRooms` names.
+      tile count rises; a Work step carries an idle own non-worker to a room `UseRooms` names. It stops while a threat
+      stands within `EnemyNearTiles` of home (Chebyshev), and never picks a room tile with one that near, whatever its
+      distance from home. A creature already lifted goes on to its room, the Pit or a scout tile; it turns back only
+      for a threat near home or near its destination (Q843).
       `IsThreat` treats an enemy on the player's own Prison or Torture Chamber as a captive.
       **`UseRooms` defaults to empty:** with the Training Room on by default Level 3 accept seeds
       12 and 13 were lost (8/10); on those two seeds training off won both, extras off won both
@@ -348,16 +351,22 @@ replay tests updated.
 
 **The Combat Pit routine (owner direction, 2026-11-14; built 2026-11-15).** `CampaignPlayer.Pit` is off unless
 `PlayerStrategy.PitFighters` is above 0 (default 0; playbook tunable `strategy.pit-fighters`, 0-16). It needs an
-owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since its last act; the first that can act:
+owned Combat Pit, an empty hand, no enemy within `strategy.enemy-near-tiles` of home or of the Pit's tile nearest home, and
+`UseRoomEveryTicks` since its last act; the first that can act:
 
-1. A creature collapsed on the Pit (one petal) gets the nearest liftable own Imp dropped beside it
-   (`PlayerActionRoutines.RescueDropTile`: an own floor tile within `ImpTaskSystem.DropScanTiles` of the body that is
-   not the Pit's interior, where the hand refuses a worker), so the Imp carries it to its bed (`CarryUnconscious`). Only
-   with an own Lair, once per 400 ticks per body tile. Owner, 2026-11-15: "if a creature gets defeated in the combat
-   pit, its body then appears on the combat pit rim, bot should grab an imp and drop it onto that bleeding creature so
-   it gets dragged to its bed to recover". The simulation does not yet throw the loser to the rim (state 217's throw
-   is read, not built: `combat-pit.md` section 10), so in it the body lies on the interior and the Imp lands on the
-   rim beside it (Q827).
+1. A creature collapsed on the Pit (one petal) gets the nearest liftable own Imp dropped on it, so the Imp carries it
+   to its bed (`CarryUnconscious`). This runs before the interval check: a collapsed creature dies within
+   `CreatureDyingStateDurationSeconds` = 60 s (240 ticks), so the rescue does not wait for `UseRoomEveryTicks`. Only
+   with an own Lair, once per 400 ticks per body tile, rescues at least 40 ticks apart, and not for a body on an own
+   worker's tile (it is being carried). A beaten fighter sinks into the floor and rises on a random rim tile (state 217,
+   `combat-pit.md` section 4). A body on the rim is fetched at once, the Imp dropped on the body's own tile
+   (`PlayerActionRoutines.RescueDropTile`: the nearest own floor tile within `ImpTaskSystem.DropScanTiles` that is not
+   the Pit's interior, where the hand refuses a worker). A body still on the floor is left to sink and rise, timed per
+   floor tile, and fetched there only after `RiseTicks` = 40 ticks, an estimate: state 217 waits ten turns, then sinks
+   and rises 0x200 a turn, and the collapse before it is unread. Owner, 2026-11-15: "if a creature gets defeated in the
+   combat pit, its body then appears on the combat pit rim, bot should grab an imp and drop it onto that bleeding
+   creature so it gets dragged to its bed to recover". The Imp sent is the liftable one nearest the body (Q827,
+   Q844-Q846).
 2. A fighter on the floor (interior) at two petals (the last quarter, owner-confirmed 2026-11-15; a living creature
    shows at least two): `CastSpell(Heal)` when Heal is offered, affordable and recharged, else lifted to the nearest
    Hatchery tile (Q828, Q831).
@@ -365,7 +374,8 @@ owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since
    ships 8; `combat-pit.md`): to its Lair when unhappy or angry (owner, 2026-11-15: "mood matters too, unhappy goes to
    lair"), else to a Hatchery at four petals or fewer, else to its Lair.
 4. A lone fighter on the floor (its opponent gone, or none to come) is a victor: it is lifted to its Lair before it
-   grows unhappy (owner, 2026-11-15; whether it does, and how fast, is Q836).
+   grows unhappy (owner, 2026-11-15; whether it does, and how fast, is Q836). "A pair fought" is remembered across the
+   routine's interval, so a fight wholly inside one interval still leaves its victor lifted.
 5. Below `PitFighters` fighters on the floor, and only when two can pair: the lowest-level idle own non-worker on plain
    floor or watching from the rim (job 26), at five petals or more, Happy and below the cap, is lifted onto an
    interior Pit tile (`InteriorRoomTile`, `IsInterior`); a drop there starts the fight (`combat-pit.md` section 9).
@@ -376,11 +386,17 @@ owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since
 
 A refused Pit drop goes to its own set, not the Work routine's. The harness passes `CombatPitMaxLevel`. Training Room
 work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Known gaps: a refused Heal is retried each
-interval (cast outcomes are not read), and `Pit` allocates per decision when on. `DK2.AI.Tests` 579 (with the
-scouting tests) and `DK2.Behavior.Tests` 670 (5 skipped) pass; Level 1 seed 1 is unchanged (Completed at tick 2334, final hash
-af7204fe4c0f8594). **Not measured:** only Levels 15a and later offer a Combat Pit, and a Level 15a smoke run
-(`pit-fighters` 2 against 0) ended Defeated at tick 3469 both ways before any Pit was built; measure when the bot
-reaches Level 15.
+interval (cast outcomes are not read), and `Pit` allocates per decision when on. `DK2.AI.Tests` 597 and
+`DK2.Behavior.Tests` 672 (5 skipped) pass, the latter with an end-to-end test (a beaten Goblin rises on the rim, the
+bot drops one Imp there, the Goblin ends asleep in its bed); Level 1 seed 1 is unchanged (Completed at tick 2334, final
+hash fd4199d3977b784f). Limits: that test covers the rim path only (the floor fallback is covered by unit tests), and a
+floor-tile entry can survive up to 12 ticks when the routine is skipped. **Not measured:** only Levels 15a and later
+offer a Combat Pit. A Level 15a campaign run built a 3x3 Pit, but the routine never acted. Q843 found two causes. Hero Guards stand in
+the heroes' own Prison, 9 to 25 tiles from the Heart and in sight all game, and froze Work, the Pit and scouting; the
+`EnemyNearTiles` gate fixes that. The bot's own eight Black Knights are prisoners in that Prison, listed as its
+creatures but not liftable, so no fighter is free: freeing them is a level objective, not built, and the Pit stays
+unused there. Level 15a seeds 1-3 are unchanged (Defeated at ticks 4861, 7554 and 9792). The fight routine is
+unchanged here; the defence plan then limited it to attacks on the dungeon (Q847, [plan](2026-11-15-campaign-bot-defence.md)).
 
 **Built: creature level, petals and mood.** `PlayerCreatureSummary` gains `Level`, `Petals`, `Mood`
 (`PlayerCreatureMood`: Happy, Unhappy, Angry) and `FlowerKnown`, filled by
@@ -443,7 +459,7 @@ Reviewer: no blocker, no major. Open: Q825 (a greyed slot's click), Q826 (placed
 **The Imp scouting routine (owner direction, 2026-11-14; first aimed at Level 6a; built 2026-11-15).**
 Unknown ground (`PlayerTile.IsKnown` false) hides gold, gems, water to bridge and enemies. `CampaignPlayer.Scout`
 is off unless `PlayerStrategy.Scouts` is 1 (default 0; playbook tunable `strategy.scouts`, 0-1); rule R6 in
-`knowledge/rules.yaml`. It runs when no Work or Pit routine acted, with an empty hand, no enemy in sight, at
+`knowledge/rules.yaml`. It runs when no Work or Pit routine acted, with an empty hand, no enemy within `strategy.enemy-near-tiles` of home, at
 least 3 Imps, one of them unhurt to send, and `UseRoomEveryTicks` since the last trip.
 - Target (`ScoutTarget`): known, dry, roomless floor beside unknown ground that no enemy seen in the last 1200 ticks
   stands within 8 tiles of, and no ground held by another keeper or the heroes lies within 8 tiles of. Owner 0
@@ -466,28 +482,59 @@ least 3 Imps, one of them unhurt to send, and `UseRoomEveryTicks` since the last
 3955, 3934 and 2982; scouting on Defeated at ticks 3951, 4094 and 3837, so no gain is shown yet. Removing the
 drop-toward-enemy rule or the allied-ground rule fails its test. Open: Q834, Q835, Q838.
 
-**The Imp creation routine, R8 (owner direction, 2026-11-15; not built).** The campaign bot casts no Create
-Imp today (`PlayerAction.CreateImpAt` is offered and adapted, but only the computer keeper, `KeeperAI.CreateImps`,
-uses the spell). The owner's play:
-1. Keep an optimal Imp count, set by the current mana income and the current Create Imp price (the price rises
-   with each Imp above the free minimum: `ImpSupplyRules.CreateImpBaseCost`, `MinimumImps`).
-2. While a Library and Warlocks can research the Create Imp upgrade, hold back mass production until it lands:
-   the owner says an upgraded spell gives a level 4 Imp instead of level 1. That is a lead, not a fact (Q837).
-   Check the binary before the routine relies on it.
-3. Balance that wait against how badly Imps are needed now: digging, claiming and gold waiting.
-4. Never more than 15-20 Imps. The cap becomes a playbook tunable (`strategy.max-imps`, researched 15-20).
-5. Keep a mana reserve for attack and defence spells (Heal, Thunderbolt, Call to Arms and the like). Imps never
-   spend mana below it, so the keeper can still defend itself. The reserve is a tunable too.
+**The Imp creation routine, R8 (owner direction, 2026-11-15; built 2026-11-15).** `CampaignPlayer.CreateImp` is off
+unless `PlayerStrategy.CreateImps` is 1 (default 0; playbook tunable `strategy.create-imps`, 0-1); rule R8 in
+`knowledge/rules.yaml`. Before it, only the computer keeper (`KeeperAI.CreateImps`) cast Create Imp. It needs
+observation schema 5, presentation only (the simulation and its hash are unchanged): `PlayerObservation.ManaIncome` and
+`ManaUpkeep` are the mana orb's two figures, from the same `ManaRules` calls as `KeeperResourceView`, and
+`PlayerSpellOffer.Upgraded` is the slot's upgraded icon ([panel-indicators.md](../research/panel-indicators.md)).
 
-R8 (`kind: manual`, `applies: playbook`) goes into `knowledge/rules.yaml` with the routine, as R6 and R7 did.
-Tests first on synthetic observations: no cast at the cap, none below the reserve, a hold while the upgrade is
-researchable and need is low, a cast when need is high. Then measured on the ladder.
+| Tunable | Path | Default | Range |
+|---|---|---|---|
+| `CreateImps` | `strategy.create-imps` | 0 (off) | 0-1 |
+| `MaxImps` | `strategy.max-imps` | 16 | 1-40; the owner's band is 15-20 |
+| `MinImps` | `strategy.min-imps` | 6 | 0-40; above `MaxImps` the cap wins |
+| `ManaReserve` | `strategy.mana-reserve` | 15000 | 0-1000000 |
+| `ImpPriceSeconds` | `strategy.imp-price-seconds` | 60 | 1-3600 |
+
+One cast per 8 ticks, on own floor nearest the dig mark nearest home (a tile where a cast was refused, learned from
+the receipt, is skipped). It casts only if all of these hold:
+1. Own Imps are fewer than `min(target, MaxImps)`, where `target = max(MinImps, ceil(marks / 3))`.
+2. The price leaves `ManaReserve` intact, so Heal, Thunderbolt and Call to Arms can still be cast.
+3. The price is at most `ImpPriceSeconds` of net income (orb income minus upkeep). A heuristic, Q842; it ignores the
+   new Imp's own upkeep (7/s).
+4. No enemy in sight within 10 tiles (Chebyshev) of the birth tile, a rival keeper's creatures included (Q840, owner:
+   defense is priority).
+5. Own Imps, held ones included, are not below `CampaignPlayerOptions.FreeImps`: the game makes a free Imp every few
+   seconds only while the tally is below `MinimumImpThreshold` (`0x004BB479`-`0x004BB486`), so the bot waits for it
+   (Q841, owner: "wait"). The harness reads the variable off the level (4 as shipped); 0, unknown, never waits.
+
+The upgrade wait: while Create Imp is not upgraded and an own non-worker stood in an own Library within 1200 ticks,
+the target is `MinImps` unless the need is at least twice the Imps there are. An upgraded cast makes a level 4 Imp
+(shot 60, `0x004AFE50`; Q837). The Library upgrades a spell only after everything researchable is done
+(`0x004C3000`), so the wait lasts at most 4800 ticks (20 game minutes), Q839. The owner: the time depends on how many
+items are still to research, since the upgrade follows the research order. Not built: estimate the wait from that
+count in place of the fixed limit; the 20-minute limit stays.
+
+Why no cast near an enemy: the first Level 6a measurement found the routine buying about 50 Imps in the last 900 ticks of a
+lost keeper. Heroes killed each new Imp beside the Heart, the price fell back, and the bot bought again.
+
+`DK2.AI.Tests` 588, `DK2.Simulation.Tests` 5575 and `DK2.Behavior.Tests` 671 (5 skipped) pass; Level 1 seed 1 is
+unchanged (Completed at tick 2334). Breaking the reserve, price, upgrade-wait, free-Imp-wait or cap rule
+each fails a test. **Level 6a, seeds 1-3:** routine off Defeated at ticks 3955, 3934 and 2982; routine on (after the
+fight rule) Defeated at 3930, 3954 and 5274, with 4, 1 and 2 casts. The first "on" run, before the fight rule, was
+Defeated at 4144, 4302 and 3953 with 63, 55 and 53 casts. No gain is shown; the bot loses Level 6a either way.
+Reviewer: no blocker. Open, bot only: Q842; the observation builder computes the orb figures on every observation,
+even with the routine off (minor cost); the Behavior test compares `ManaRules` with `ManaRules` through the HUD, so it
+proves the wiring, not the figures; the fight rule counts any enemy, including a rival keeper's creatures parked in view
+(owner-confirmed, Q840), and does not try another tile.
 
 Possession (`PossessionCommands`) is not added here; a level that needs it is recorded as a
 controller limitation until a later task.
 
-Every row above is built; the routines that use them are separate: the Combat Pit and Imp scouting routines
-are built; Imp creation (R8) and defending a route with doors and traps are not. Manufacturing doors and traps is a Task 2
+Every row above is built; the routines that use them are separate: the Combat Pit, Imp scouting and Imp
+creation (R8) routines are built; defending a route with doors and traps is not, and moved to the
+[campaign bot defence plan](2026-11-15-campaign-bot-defence.md) (traps on the attack routes, task D4). Manufacturing doors and traps is a Task 2
 routine.
 
 - [ ] One branch per row; reviewer, documenter, commit each.

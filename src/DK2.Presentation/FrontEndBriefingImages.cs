@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data.Model;
+
 namespace DK2.Presentation;
 
 /// <summary>A picture 0x0053A580 draws for a briefing section: the level's two objective shots (0x0053AC60)
@@ -19,6 +21,10 @@ public readonly record struct FrontEndPlacedImage(FrontEndBriefingImage Image, i
 /// 0 is the briefing page, 1 the statistics page.</summary>
 public static class FrontEndBriefingImages
 {
+    /// <summary>A level's objective shot's front-end image name (<c>Obj_Shots\Level1-0</c>).</summary>
+    public static string ShotArtName(CampaignSlot slot, CampaignObjectiveShot shot) =>
+        "Obj_Shots/" + slot.LevelName + "-" + (int)shot;
+
     /// <summary>The panel strip's front-end image name; null for the shots, which are per level.</summary>
     public static string? ArtName(FrontEndBriefingImage image) => image switch
     {

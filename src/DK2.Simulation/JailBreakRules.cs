@@ -61,7 +61,7 @@ public static class JailBreakRules
     {
         if (room.Definition.TypeId != RoomTypeId.Prison) return false;
         if (world.AreAllied(rescuer.OwnerPlayerId, room.OwnerPlayerId) && room.OwnerPlayerId != PlayerIds.Neutral) return false;
-        if (PrisonRules.IsImprisoned(rescuer)) return false;
+        if (PrisonRules.HasKeeperBinding(rescuer)) return false;
         if (rescuer.Dk2StateId == BreakingOutState || rescuer.UtilityNewState == BreakingOutState) return false;
         if (Combat.CombatRules.Preoccupied(rescuer)) return false;
         return AlliedPrisoners(world, rescuer, room).Any();
@@ -73,7 +73,7 @@ public static class JailBreakRules
     {
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.Id == rescuer.Id || !PrisonRules.IsImprisoned(c) || c.PrisonOwnerPlayerId != room.OwnerPlayerId) continue;
+            if (c.Id == rescuer.Id || (!PrisonRules.HasKeeperBinding(c) || !PrisonRules.IsPrisonInmate(c)) || c.PrisonOwnerPlayerId != room.OwnerPlayerId) continue;
             if (HandRules.IsHeld(c) || CreatureDeathRules.IsDown(c) || c.OwnerPlayerId == PlayerIds.Neutral) continue;
             if (!room.Contains((c.Tile.Y * world.Width) + c.Tile.X)) continue;
             if (world.AreAllied(rescuer.OwnerPlayerId, c.OwnerPlayerId)) yield return c;
@@ -137,7 +137,7 @@ public static class JailBreakRules
         int w = world.Width;
         foreach (CreatureState c in world.Creatures)
         {
-            if (!PrisonRules.IsImprisoned(c) || HandRules.IsHeld(c) || CreatureDeathRules.IsDown(c)) continue;
+            if ((!PrisonRules.HasKeeperBinding(c) || !PrisonRules.IsPrisonInmate(c)) || HandRules.IsHeld(c) || CreatureDeathRules.IsDown(c)) continue;
             if (TortureRules.IsBeingTortured(c)) continue;
             int at = (c.Tile.Y * w) + c.Tile.X;
             if (!room.IsInterior(at) || (!all && c.OwnerPlayerId != player)) continue;

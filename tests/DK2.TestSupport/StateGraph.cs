@@ -22,7 +22,7 @@ public static class StateGraph
     public static readonly IReadOnlySet<string> WorldIgnored = new HashSet<string>
     {
         "StructureCache", "RoomSweepCache", "RoomTilesChanged", "HeartHealthChanged", "GameEnded", "ObjectMade",
-        "ObjectRemoving", "_creatureIdentityRandom", "RoomConstructionRandom", "ObjectCreationRandom", "LevelStartWorkshops", "_copyIndex",
+        "ObjectRemoving", "CreatureSlotReleasing", "_creatureIdentityRandom", "RoomConstructionRandom", "ObjectCreationRandom", "LevelStartWorkshops", "_copyIndex",
         "_staleSecretDoorKeys", "Version",
     };
 

@@ -52,7 +52,7 @@ public static partial class CreatureActionCoverage
         rows.Add(NeverBegun(33, $"no begin call passes 33; {Table}"));
         rows.Add(NeverBegun(34, $"no begin call passes 34; {Table}"));
         rows.Add(Built(35, typeof(ResearchStep), "Celebrate", "states 60, 140, 152, 153, 158, 159, 68; the celebration",
-            "states 140, 158, 159, and 68, which draws but plays nothing"));
+            "states 158, 159, and 68, which draws but plays nothing"));
         rows.Add(Unbuilt(36, "states 130, 131, 136", "the torture states play no art 17 action"));
         rows.Add(Unbuilt(37, "states 131, 136", "the torture states play no art 25 action"));
         rows.Add(NeverBegun(38, $"no begin call passes 38; {Table}"));
@@ -62,7 +62,7 @@ public static partial class CreatureActionCoverage
         rows.Add(NeverBegun(42, $"no begin call passes 42; {Table}"));
         rows.Add(Built(43, typeof(ImpTaskSystem), "Rest", "states 12, 5, 53, 63, 88, 176, 198, 250; job 16's start",
             "state 198 (not read), 250 (built, begins none), 88 (unreachable) and job 16; the creature idle holds a guessed length"));
-        rows.Add(Built(44, typeof(ImpTaskSystem), "Rest", "states 12, 5, 108, 139", "states 108 and 139"));
+        rows.Add(Built(44, typeof(ImpTaskSystem), "Rest", "states 12, 5, 108, 139", "state 108"));
         rows.Add(Unbuilt(45, "state 240", "state 240 read (special-role-idle.md), not built"));
         rows.Add(Built(46, typeof(ReaperRules), "BeginAction", "states 231, 237, 242"));
         rows.Add(Built(47, typeof(FinaleRules), "PickUpGem", "state 233"));
@@ -87,8 +87,8 @@ public static partial class CreatureActionCoverage
         rows.Add(Built(66, typeof(CasinoStep), "AtTheTable", "state 148"));
         rows.Add(Built(67, typeof(CasinoStep), "AtTheTable", "state 148"));
         rows.Add(Built(68, typeof(CasinoStep), "OnTheFloor", "states 148, 150"));
-        rows.Add(Built(69, typeof(CombatPitSpectatorRules), "Face", "state 143", "the hold is a guess (CheerGuessTicks)"));
-        rows.Add(Built(70, typeof(CombatPitSpectatorRules), "Face", "state 143", "the hold is a guess (CheerGuessTicks)"));
+        rows.Add(Built(69, typeof(CombatPitSpectatorRules), "Face", "state 143"));
+        rows.Add(Built(70, typeof(CombatPitSpectatorRules), "Face", "state 143"));
         for (int id = 71; id <= 75; id++) rows.Add(Unbuilt(id, "state 272", "state 272 not read"));
         rows.Add(Unbuilt(76, "states 272, 276", "272 not read; 276 is a Crypt state, dead code (Q375)"));
         rows.Add(Unbuilt(77, "state 272", "state 272 not read"));

@@ -221,7 +221,7 @@ type's tick handler, which `Room_Tick` calls before the common health step.
 | 11 Prison | `0x004E2AC0` | the door's auto-close | |
 | 12 Torture, 13 Temple, 14 Graveyard, 21 hero gate | see their records | effects; the first three draw the world stream (workshop-timers.md section 7) | none |
 | 15 Casino | `0x004D6270` | ends parties, settles gold | `CasinoSystem` (the lever is a command) |
-| 16 Combat Pit | `0x004D7A60` | the pit (`combat-pit.md` §8) | `CombatPitSystem` |
+| 16 Combat Pit | `0x004D7A60` | the pit (`combat-pit.md` section 8) | `CombatPitRoomStep` |
 
 The hated-company step `0x004E8C60` was the one unbuilt rule. Every 32 turns, a
 room holding both an `IsEvil` creature and one without it angers each holder

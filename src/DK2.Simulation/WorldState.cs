@@ -172,9 +172,11 @@ public struct TileState
     /// <summary>A Combat Pit's <c>+0x53</c>: the turn <c>0x004D7CF0</c> last found a fight on its
     /// floor, on the room's lowest tile index like <see cref="HatcheryLastGeneratedTick"/> and zero elsewhere. The
     /// spectators' 144 and job 26 read it for the quiet spell after a fight
-    /// (<see cref="CombatPitSpectatorRules"/>). The same deviation: a pit whose lowest tile changes
-    /// forgets it.</summary>
+    /// (<see cref="CombatPitSpectatorRules"/>). Slab changes migrate the room runtime to its new anchor.</summary>
     public long PitFightSeenTick;
+    public byte PitAmbientShortTicks;
+    public byte PitAmbientLongTicks;
+    public byte PitPreviousStandingCount;
 
     /// <summary>A Casino's jackpot party, on the room's lowest tile like <see cref="HatcheryLastGeneratedTick"/>:
     /// <see cref="CasinoJackpotRules.PartyBit"/> is room <c>+0x41</c>, <see cref="CasinoJackpotRules.MusicBit"/>
@@ -303,6 +305,9 @@ public struct TileState
         hash.Add(HatcheryStartupIntervalTicks);
         hash.Add(ChickensGenerated);
         hash.Add(PitFightSeenTick);
+        hash.Add(PitAmbientShortTicks);
+        hash.Add(PitAmbientLongTicks);
+        hash.Add(PitPreviousStandingCount);
         hash.Add(CasinoParty);
         hash.Add(CasinoPartyStartTick);
         hash.Add(PrisonDoor);
@@ -1207,6 +1212,7 @@ public sealed partial class WorldState
     internal void ReleaseCreatureSlot(CreatureState creature)
     {
         if (creature.NativeSlotTag == 0) return;
+        CreatureSlotReleasing?.Invoke(creature);
         CreatureSlots.Return(new NativeCreatureTag(creature.NativeSlotTag));
         creature.NativeSlotTag = 0;
     }
@@ -1344,6 +1350,7 @@ public sealed partial class WorldState
     /// <see cref="ObjectSoundRules"/> makes) and just before one leaves it (<c>Object_OnDelete</c>,
     /// <c>0x0049B5E0</c>). The simulation binds them; a world no simulation holds makes no sound.</summary>
     internal Action<ObjectState>? ObjectMade, ObjectRemoving;
+    internal Action<CreatureState>? CreatureSlotReleasing;
 
     /// <summary>Kind-11 pool insertion order and retained middle-slot holders, independent per keeper.</summary>
     public Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> SecretDoorEntries { get; } = [];

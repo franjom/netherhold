@@ -69,8 +69,9 @@ the renderer and is not evidence that the original level posted it at that tick.
 The full-map far preview applies the production layout's camera pose for the
 authored light-object tile farthest from the Heart focus after Draw and prepares
 lighting for both cameras. The corrected full-map pair also supplies the real
-RoomIndex room centre/type to ClassicFullMapMarkers.TryRoom and repaints the
-overlay after Draw, matching the preview's logical pointer. This is a labelled
+RoomIndex room centre/type to ClassicFullMapMarkers.TryRoom and hands the room
+to FullMapHud.Capture before ClassicFullMap.Draw, matching the preview's logical pointer;
+it then checks that the icon is in the front HudFrame. This is a labelled
 presentation fixture, not operating-system input automation. In this set the only light-object tile is the Heart
 at `(14,28)`; this is a Heart preview and **does not verify distant lighting**.
 The existing `level1-far-preview-*.png` filenames are retained under the add-only

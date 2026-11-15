@@ -38,11 +38,12 @@ public static class DeathFallRules
 
     /// <summary>State 216's handler (<c>0x00459850</c>): it waits for the action, enters 217 and steps
     /// the body back along its heading by vector 3's y, onto a tile that is not solid and has its own
-    /// tile's navigation byte. Not built: the stamp at state <c>+0xAB</c> (the turn plus ten).</summary>
+    /// tile's navigation byte, and stamps state <c>+0xAB</c> (the turn plus ten).</summary>
     public static void Fall(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (context.Tick.Value < creature.ActionUntilTick) return;
         if (!CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureDeathRules.DyingState, context.Tick.Value)) return;
+        creature.PitTransportAfter = new GameTick(context.Tick.Value + 10);
         int back = unchecked(-definition.DeathFallStepY);
         int x = unchecked(creature.PosX + ((TrapRules.Sine(creature.Heading) * back) >> 16));
         int y = unchecked(creature.PosY - ((TrapRules.Cosine(creature.Heading) * back) >> 16));

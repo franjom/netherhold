@@ -71,12 +71,12 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return;
 
         if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) return;
+        if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
         if (creature.CombatPitFighter) return;   // idle sends it back to the pit (ADR-0213)
         // Before the leaving test: 169, the thief's escape, reads as leaving (ADR-0223).
         if (!HeroJobRules.IsHero(creature) && StealGoldRules.KeeperTurn(context, SystemName, creature)) return;
         if (creature.Activity == CreatureActivity.Leaving) return;
         if (HeroJobRules.IsHero(creature)) return;   // HeroSystem: state 1 sends a hero to 90
-        if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
         if (Combat.ThreatFleeRules.IsFleeing(creature)) return;   // the combat states' (ADR-0678)
         if (ExploreRules.KeeperTurn(context, SystemName, creature)) return;   // job 24's state 225 (ADR-0674)
 

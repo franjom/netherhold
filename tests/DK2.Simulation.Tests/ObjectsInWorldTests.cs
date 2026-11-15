@@ -205,9 +205,12 @@ public class ObjectsInWorldTests
         Assert.Single(world.Objects);
 
         goblin.Health = 0;
-        new GameSimulation(db, world, 42, [
+        var simulation = new GameSimulation(db, world, 42, [
             new CreatureSleepSystem(), new CreatureHealthSystem(),
-        ]).Run(Second * 61);
+        ]);
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) simulation.Tick();
+        Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
+        simulation.Run(CreatureDeathRules.DyingWindowTicks(db));
 
         // Dead, and now a corpse on the floor for a second sixty seconds
         // (ADR-0063). The creature is still in the world; its bed is not.

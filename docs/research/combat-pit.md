@@ -196,10 +196,36 @@ None of those knockout, target-loss, victory or pickup paths sets 140. State 140
 does not explain the normal winner's post-knockout behaviour found statically; Q431 asks
 for the short live capture that can falsify that conclusion.
 
-**The loser is thrown to the rim.** State 217 (`0x004599D0`) clears `CombatPitFighter`, and
-for a creature lying on a Combat Pit's interior it picks a random rim tile through
-`0x004E8430` (a tile the interior test and `0x00454230` both refuse), sets the body there
-with facing `0x300`, and plays sound `0x149`.
+**The loser sinks, moves to the rim and rises.** Owner recollection (2026-11-15): the
+defeated body sinks into the sand and sprouts on the rim, where an imp can collect it.
+The sequence below is STRONGLY INFERRED from the binary; no new native capture was taken.
+State 217 (`0x004599D0`, re-read 2026-11-15) clears `CombatPitFighter`. After the turn
+passes state `+0xAB` (stamped turn + 10 by state 216), with no action running and the
+entity on a Combat Pit interior, it starts phase 1 and requests effect `0x149`.
+Each phase-1 call lowers Z by `0x200`; at Z <= 0 it clamps to zero and starts phase 2.
+If still on that interior, `0x004E8430` selects a random tile that is neither an interior
+nor a wall slot; the entity moves there at sub-tile offset `(0x400, 0x400)`, facing
+`0x300`, and effect `0x149` is requested again. Each phase-2 call raises Z by `0x200`, ending
+at `0x1000`. Phase start and both phase branches return before the dying countdown.
+The separate steering body is not moved by this handler (see `steering-body-retention.md`).
+The requests use world slot `+0x38C` (`0x00509580`), the effect wrapper, not the sound
+manager (independent review, 2026-11-15). Raw setter `0x004B5570` forwards to `0x004B5350`:
+it relinks the entity but neither refreshes its floor word `+0x26` nor clamps Z to it.
+The later physical pass still runs. For an ordinary non-flying fighter without another
+impulse, below the retained floor it makes no commit; rising above it adds gravity, and
+a physical commit through the normal setter can refresh/clamp to the rim floor before
+phase 2 finishes. The nominal eight rise calls therefore need not all be visible.
+
+**Built (hash/save 522):** `DyingStateRules`, called in the per-creature recovery step,
+runs both phases, the delay, raw relocation and effects. It retains the old floor for
+`CreaturePhysicsRules` until a normal commit refreshes it. The dying countdown is now
+per turn, paused by phase branches and carriage; a standalone health-system host has
+a once-per-turn fallback. `WorldView` exposes current and previous Z instead of pinning
+the dying creature to its floor. `CombatPitTransportTests` cover the sequence, effect
+requests, physical clamp, snapshot/copy continuation and imp rescue to the bed.
+The action-running test still uses `ActionUntilTick`; its inherited collapse timing is
+a hypothesis (`death-fall-heading.md`). Native capture resync does not import these
+phase/deadline/floor fields; exact continuation is tested with our own snapshots.
 
 ## 5. The floor, and where a waiting fighter walks
 
@@ -250,56 +276,73 @@ interior; `+0xA3` = 1 when any tile is interior) and sets every creature on its 
 list (`room+0x0A`) to 141. **`0x004D8000`** (freed, owner changed) does only the last.
 
 ## 8. The room's own turn, and the finder's messages
+The room turn (`0x004D7A60`) advances byte countdowns `+0x49` and `+0x4A`,
+reloading with `random(var19 * 4)` and `random(var19 * 32)`. The room definition's
+`+0x421` / `+0x423` words name **effects**, not sounds: shipped Combat Pit ids are
+90 and 52. Reload draws occur even when the effect id is zero; a nonzero effect also
+needs an eligible slot. The canonical handler record describes the slot and position
+rules: [004D7A60](functions/004D7A60.md).
 
-`0x004D7A60`, each turn: two countdowns at `room+0x49` and `+0x4A` reload with
-`random(var19 × 4)` and `random(var19 × 32)` and each, on reload, plays the room
-definition's sound `+0x421` / `+0x423` at a random interior point. Then it counts the
-creatures on the interior: those not dying and those dying. **Exactly one standing, more
-than one standing last turn and at least one down** posts message 9 to the owner (the
-mentor's "the fight in the Combat Pit is over", CONFIRMED by the owner); the count is kept at
-`+0x59`.
+Exactly one standing floor creature, more than one standing on the previous turn and
+at least one down posts message 9 to the owner (the mentor's fight-over announcement,
+CONFIRMED by the owner). The standing count is stored as byte `+0x59`. This counts
+on-map floor occupants, regardless of allegiance or the fighter flag.
 
 `0x004D8870`, the finder, per keeper's Combat Pit (`player+0x36` chain) that has room
 (`0x00471740(room, 0x80)`): a free spot (`0x004E8210(1, 0)`), whether the drop test
 `0x004D8430` accepts it, and the nearest by distance to the room's first tile, preferring a
 pit with nobody in it that `0x0045C640` objects to. With none, when the keeper may build a
 Combat Pit (`0x004BAB20(16) == 3`), one of messages `0x29` (no pit), `0x2A`, `0x2B`, `0x2C`
-(full, or no interior), each held off by `room+0x9F` and variable 19 × 4.
+(full, or no interior), each held off by `room+0x9F` and variable 19 * 4.
 
-`0x004581F0`, called from the creature's destruction for a `CombatPitFighter`, plays the
-room's `+0x423` sound.
+`0x004581F0`, called from destruction of a `CombatPitFighter`, requests the second
+room effect at the destroyed creature's position. Its foreign-owner helper is a
+state-neutral floor query: [004D83D0](functions/004D83D0.md), suspected defect DK2-040.
 
-## 9. What is built (ADR-0213)
+## 9. What is built (ADR-0213; hash/save 523)
+- The hand-drop paths for own and enemy creatures, workers and the keeper `Number`
+  branch, and 138's keeper-binding write. `PrisonOwnerPlayerId` represents the shared
+  binding; actual Prison custody additionally requires resolved category 14 or raw
+  state 126. Disposal, regeneration, rescue and the dying gate use that distinction.
+- 137 through 141, idle's follower attempt before pit return or flag clearing, pairing, per-turn
+  anger and one-step wandering. Load-restored 140 runs action 35 and its anger exit;
+  ordinary entry remains unestablished (Q431). The cap runs action 44 on its plain clock.
+- The forced-target route through combat, missing-tag scan A and the common D/E/F
+  acquisition routes, including friendly-route failure. Pit fighters' targeted shots
+  use the Good player's ownership. Existing scan and target-selection limits are in section 10.
+- Knockout, rescue and transport (section 4), attackability, damage, experience refusal and
+  the cap transition. The actual-held-place test governs the dying exception.
+- `CombatPitRoomStep` runs the two effect timers and fight-over message. Message 9 uses
+  the existing speech-353 presentation row, 50-second lifetime, tab and duplicate rules.
+  The destruction effect and both finders' room-needed/full/unreachable/unequipped
+  messages are wired (`RoomNeedRules`, ADR-0413).
+- Room grow, split, capture, absorption and free callbacks migrate runtime with the
+  surviving room or initialize a new room's runtime, and reset or release fighters and
+  attached holders at the corresponding callbacks. See [004D7E00](functions/004D7E00.md)
+  and [004D8000](functions/004D8000.md); the native refusal-loop candidate DK2-041 is deferred.
+- Entry geometry, rim slopes and the full navigation-byte neighbour predicate are used.
+  Spectators, their counted cheer actions and room-centre facing are described in
+  [combat-pit-spectators.md](combat-pit-spectators.md).
 
-- The drop of an own non-worker creature on an interior tile of the keeper's own Combat Pit
-  → 1 → 137 (`HandSystem`).
-- 137, 138, 139 and 141 (`CombatPitSystem`), idle's return to 138, the pairing, the per-turn
-  anger, the one-step wander.
-- The forced target through `ProcessFight`, `SelectAVictim` and the fight state; the pit
-  fighter's attackability, its blow and its damage taken; the knockout's release of the winner
-  with no victory; the experience refusal and the level-cap move to 1.
-- The room reset: a sale or build that touches a keeper's Combat Pit sends the fighters on
-  that pit's tiles to 141 without the flag.
-- **The spectators (ADR-0227, `combat-pit-spectators.md`):** job 26, 142, 143 and 144, the pit's fight stamp, and the
-  pit's drop state on getting up (137, through 1).
+The three room bytes and `CombatPitAction` are hashed, saved and copied. Pit timing
+uses explicit miscellaneous variable 19, otherwise `LEVEL.TicksPerSecond`, otherwise
+fixture value 4; see [0056C4E0](functions/0056C4E0.md).
 
-## 10. Read, not built
+## 10. Remaining boundaries
+The selector and scan B retain their existing partial parity, as do shared geometry,
+resource identity, ground occupancy and action-position payloads. The callbacks mirror
+room lifecycle ordering with tile-backed runtime rather than native room-object identity.
+State 140 remains classified unreachable for ordinary entry coverage despite its built
+save-restored handler. Tests establish clone behavior; no new native runtime reproduction
+or live visual acceptance was performed.
 
-- **An enemy captive dropped into the pit.** Ours holds captivity in
-  `PrisonOwnerPlayerId`, and DK2's pit writes the same word (`+0x3CB`) for every fighter,
-  own creatures included; writing it would make our fighters prisoners. 138's copy of the
-  room owner into `+0x3CB` is left out for the same reason.
-- **The workers' and low-`Number` branches of the drop.** State 76 is built (ADR-0226).
-- **State 140**, which a save can restore but no ordinary gameplay path was found to enter
-  (§1; Q431).
-- **Action `0x2C`** at the level cap and its wait: ours goes straight to the anger and the
-  walk. **Scan A** for a dead forced target: ours clears it and finds nobody.
-- 217's throw of the loser to the rim; the room's entry point, its sounds, message 9, the
-  finder's messages, the death sound;
-  `0x00455000`'s byte in the neighbour picker (not read; the floor test stands for floor slots 4 against rim 0); the rim's
-  slopes; `KillsInCombatPit` (`+0x408`), whose writer is still unread.
-- The shot owner: a pit fighter's shots are the hero player's (`combat-spells.md`).
-
+`KillsInCombatPit` (`creature+0x408`) has no modeled counter or dedicated pit trigger.
+The bounded broad-offset audit found constructor byte-zeroing and the diagnostic byte
+reader, with no increment found among seven stores and 31 references; indirect writes
+are not excluded. See [00490240](functions/00490240.md) and
+[004872A0](functions/004872A0.md). This does not establish that DK2 lacks an increment
+or that a dedicated script event is missing. Generic Dying and Killed creature events
+remain separate from mentor message 9.
 ## 11. The spectators
 
 Job 26 and states 142–144 are in `combat-pit-spectators.md` (ADR-0227).

@@ -89,6 +89,7 @@ public class SimulationSystemsOrderTests
             "RoomTickSystem/HatcheryLayStep",
             "RoomTickSystem/HatedCompanySystem",
             "RoomTickSystem/WorkshopTimerSystem",
+            "RoomTickSystem/CombatPitRoomStep",
             "RoomTickSystem/RoomBorderFlameSystem",
             "RoomTickSystem/RoomHealthSystem",
             "PlayerTriggerSystem",

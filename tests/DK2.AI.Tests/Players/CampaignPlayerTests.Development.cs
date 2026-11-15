@@ -188,7 +188,7 @@ public partial class CampaignPlayerTests
         Assert.Contains(new PlayerAction.PickUp(Handle(0)), player.Decide(Observe(map: WithTraining, owned: owned, things: [Creature(0, 7, 7, Goblin)])).Actions);
 
         PlayerDecision drop = player.Decide(Observe(2, map: WithTraining, owned: owned, hand: 1, things: [Creature(0, 8, 2, Goblin, Heroes)]));
-        Assert.Contains(new PlayerAction.DropAt(new TilePos(8, 2)), drop.Actions);    // the floor at the enemy, not the room
+        Assert.Contains(new PlayerAction.DropAt(new TilePos(7, 3)), drop.Actions);    // in front of the enemy, toward the Heart, not the room
     }
 
     [Fact]

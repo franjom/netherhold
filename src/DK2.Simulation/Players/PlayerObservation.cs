@@ -21,6 +21,8 @@ public enum PlayerTileFlags : byte
     GoldSeam = 16,
     Water = 32,
     Lava = 64,
+    /// <summary>One of the player's own traps, or a trap blueprint it placed, stands here (schema 6).</summary>
+    OwnTrap = 128,
 }
 
 /// <summary>One tile as its player sees it: flags, owner and room type (default when not a room).</summary>
@@ -164,8 +166,10 @@ public readonly record struct PlayerRoomOffer(RoomTypeId Room, GoldAmount Cost, 
 /// can pay it, whether its slot's recharge pie is done (<see cref="Ready"/>), and whether it is cast on a
 /// creature (<see cref="OnCreature"/>, the spell definition's target selector) or at a place. Create Imp
 /// is listed too; it is cast with <see cref="PlayerAction.CreateImpAt"/>. Possession is not offered: the
-/// player has no action to end one.</summary>
-public readonly record struct PlayerSpellOffer(byte Spell, string Name, ManaAmount Cost, bool Affordable, bool OnCreature, bool Ready = true);
+/// player has no action to end one. <see cref="Upgraded"/> is whether the Library has upgraded it, which the
+/// slot shows as the spell's second icon (panel-indicators.md; schema 5).</summary>
+public readonly record struct PlayerSpellOffer(byte Spell, string Name, ManaAmount Cost, bool Affordable, bool OnCreature, bool Ready = true,
+    bool Upgraded = false);
 
 /// <summary>What the player may do now, as the HUD offers it.</summary>
 public sealed class PlayerOffers
@@ -195,14 +199,21 @@ public sealed class PlayerOffers
 /// </summary>
 public sealed class PlayerObservation
 {
-    /// <summary>2 adds each own creature's level, petals and mood; 3 every offered spell; 4 doors and traps (Task 4).</summary>
-    public const int SchemaVersion = 4;
+    /// <summary>2 adds each own creature's level, petals and mood; 3 every offered spell; 4 doors and traps; 5 the
+    /// mana orb's income and upkeep and each spell's upgrade (Task 4); 6 the own-trap tile flag (defence plan D1).</summary>
+    public const int SchemaVersion = 6;
 
     public required PlayerStamp Stamp { get; init; }
     public PlayerPhase Phase { get; init; } = PlayerPhase.Playing;
     public PlayerResult Result { get; init; }
     public GoldAmount Gold { get; init; }
     public ManaAmount Mana { get; init; }
+    /// <summary>The mana orb's income figure: mana gained per second (<c>ManaRules.GainPerSecondByPlayerIndex</c>, as
+    /// the HUD's <c>KeeperResourceView</c> shows it; schema 5).</summary>
+    public ManaPerSecond ManaIncome { get; init; }
+    /// <summary>The mana orb's upkeep figure: mana spent per second on Imps, traps and spells held
+    /// (<c>ManaRules.UpkeepPerSecondByPlayerIndex</c>, as the HUD shows it; schema 5).</summary>
+    public ManaPerSecond ManaUpkeep { get; init; }
     /// <summary>Items in the hand; the held creatures are flagged in <see cref="Creatures"/>.</summary>
     public int HandCount { get; init; }
     public PlayerTileGrid Tiles { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); } = PlayerTileGrid.Empty;

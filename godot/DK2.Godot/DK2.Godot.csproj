@@ -1,0 +1,22 @@
+<Project Sdk="Godot.NET.Sdk/4.8.0-beta.3">
+
+  <!--
+    The Godot adapter (ADR-0805, ADR-0810). Godot.NET.Sdk comes from NuGet, so this builds with
+    plain `dotnet build godot/DK2.Godot/DK2.Godot.csproj` and no editor install, unlike Unity's
+    DK2.Unity.Compile. The SDK version above is rewritten by the editor when it opens the project
+    on a newer Godot; keep it equal to godotNetSdk in godot/godot-version.json.
+    Not in DK2.slnx yet (ADR-0805).
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- Not DK2.Godot: inside namespace DK2.Godot, `Godot.GD` would bind to DK2.Godot.GD. -->
+    <RootNamespace>DK2.GodotAdapter</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/DK2.Presentation/DK2.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>

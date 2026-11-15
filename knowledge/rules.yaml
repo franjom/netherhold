@@ -71,3 +71,11 @@ rules:
     form: { kind: manual }
     note: "built as CampaignPlayer's Combat Pit routine, switched on by a playbook's strategy.pit-fighters (Task 4)"
     applies: playbook
+
+  - id: R8
+    rule: "Create Imps to an optimal count from mana income and the current price; while the Library can upgrade Create Imp, buy only the minimum until it lands, unless the work is pressing; wait for the free Imps below the minimum; never more than 15-20 Imps; keep a mana reserve for attack and defence spells; never create Imps into a fight."
+    source: "owner, 2026-11-15"
+    status: proposed
+    form: { kind: manual }
+    note: "built as CampaignPlayer's Imp creation routine, switched on by a playbook's strategy.create-imps (Task 4)"
+    applies: playbook

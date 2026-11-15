@@ -18,6 +18,6 @@ Format notes: `src/DK2.Convert/README.md`. Tests: `dotnet test tests/DK2.Convert
 (`ArtArchitectureTests` checks the target framework and the references).
 
 `WadImageSource` supplies BMP24 and unmasked `.444` images as top-down RGBA,
-using an injected PNG decoder (`ClassicFrontEndAssets` in Unity). Indexed reads
+using an injected PNG decoder (`InstallFrontEndSources` in `DK2.Presentation` takes each engine's). Indexed reads
 preserve duplicate names; name lookup retains the archive's last-match behavior.
 The source owns its archive; callers own textures returned by the Unity adapter.

@@ -106,7 +106,7 @@ the camera's existing height and calls the guarded, clamped immediate focus
 setter. This is distinct from the minimap's command4 timed glide.
 Secondary `0x00408EE0` exits to mode3 without navigating. `ClassicFullMapLayout`
 mirrors that display/pointer geometry; `ClassicFullMap` draws cached class and
-palette textures. Supplementary overlays read the settled world.
+palette textures, with the markers drawn by `FullMapHud` (ADR-0805). Supplementary overlays read the settled world.
 
 ### Full-map markers and legend
 
@@ -118,7 +118,9 @@ missing entries are recorded in [the loader](functions/00403060.md).
 The symbol is32W/640 by32H/480. Keeper names use the player's colour and
 Number>2, starting at reference474,274 in the right-hand legend.
 
-Built: GPU creature squares and room symbols, and original-font keeper names.
+Built: creature squares, room symbols and original-font keeper names in `FullMapHud`'s draw list.
+The room symbol centres on the room's centre field coordinate, the tile's top-left corner with no
+half-tile offset; this is unverified against the running game.
 Room centres reuse the existing derived centre fields, whose Heart offset
 remains STRONGLY INFERRED. The host scales creature squares by screen height
 relative to768 for readability; DK2 uses3device pixels. Matched acceptance is pending.

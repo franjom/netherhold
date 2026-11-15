@@ -13,6 +13,25 @@ namespace DK2.Presentation.Tests;
 
 public sealed class CreatureBankHeightTests
 {
+    [InstallTheory]
+    [InlineData(-0xC00, -0xE00, 0x400, 0x200)]
+    [InlineData(-0xE00, -0x1000, 0x200, 0)]
+    [InlineData(-0x1000, -0xE00, 0, 0x200)]
+    public void ADyingPitCreatureUsesItsTransportHeightInsteadOfBeingPinnedToTheFloor(
+        int previousZ, int currentZ, int previousHeight, int currentHeight)
+    {
+        var (database, world, creature) = WaterPatch();
+        for (int y = 0; y < 3; y++)
+        for (int x = 0; x < 3; x++)
+            world.Tile(x, y).TerrainId = database.Room(RoomTypeId.CombatPit).TerrainId;
+        creature.Dk2StateId = CreatureDeathRules.DyingState;
+        creature.Health = 0;
+        creature.LastPosZ = previousZ;
+        creature.PosZ = currentZ;
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal((currentHeight, previousHeight), (rendered.Height, rendered.PreviousHeight));
+    }
+
     // A created worker rises from just above its floor over the creation turn in its ordinary pose (HYPOTHESIS:
     // construction leaves the previous height there), then plays its slot-32 jump for the one update the chooser
     // sees it in 214, the one whose physical pass drops it (0x0048BE50's 214 arm, imp-create-position.md).

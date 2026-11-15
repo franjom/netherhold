@@ -104,6 +104,7 @@ public static class CreatureStateMachine
         ClaimActionRules.Cancel(creature);
         TrainingStep.CancelAction(creature);
         IdleActionRules.Cancel(creature);
+        Systems.CombatPitSystem.CancelAction(creature);
         creature.SwingInProgress = false;
         creature.SwingTargetKind = Combat.FightTargetKind.None;
         creature.ActionUntilTick = 0;

@@ -11,7 +11,7 @@ systems: [rooms, combat]
 
 - **138's rim arm never succeeds.** 142–144 are category 31, Spectating, whose entry mask
   `0x8002383B` lacks the Combat Pit's bit `0x10000`. `SetState(142)` from 138 is refused, and
-  138 returns 0. **Corrected:** `combat-pit.md` §10 said, before ADR-0227, that 142 was refused in ours only because it was not built.
+  138 returns 0.
 - **Job 26, `CombatPitSpectate`**, handler `0x00457780`, is the way in. The job dispatcher
   `0x00478800` sends job `0x1A` to it.
 - **No shipped creature lists job 26** in its happy, unhappy or angry table. The only code
@@ -44,7 +44,7 @@ systems: [rooms, combat]
    pit none of whose occupants (`room+0x0A`) `0x0045C640` objects to. That test is called on the
    seeker (`MOV ECX,[EBP+0x10]`): a good creature objects to an evil one, anyone else to a good
    one. With a pit full, and the keeper able to build pits, it posts one of messages
-   `0x2A`–`0x2C` (not built).
+   `0x2A`–`0x2C` (built: see `combat-pit.md` section 9).
 3. Found: `0x00471A70(room, 142, 0x80)`. Already in the room it sets 1 and then 142. Otherwise
    it walks in state 7 to a point from `0x004E4C10`: a random tile of the room, then the first
    round the chain that is **not interior** (`0x00454110` = 0, so on a pit the rim) and passes
@@ -89,27 +89,24 @@ and **`room+0x53` takes now**. It returns 1; with none, 0.
   - Then `SetState(142)`.
 - Moved, and 142 taken: a running action is ended (`0x00496D20`), return 1.
 
-`0x00457780`'s test is `≥`, and 144's is `>`: 16 turns after the last fight, job 26 no longer
-keeps a creature in place, while a watcher in 144 still picks a new spot.
+`0x00457780` stops keeping a creature in place at `var19 * 4` elapsed turns,
+while 144 still picks a new spot at equality and leaves only above that limit.
+The elapsed comparison is unsigned.
 
 ## 5. Ours
-
-- `PitFightSeenTick` holds `+0x53` on the pit's lowest tile, as `HatcheryLastGeneratedTick` does for a
-  Hatchery. A pit whose lowest tile changes forgets it. The room dumper names the field
-  `GameTickLastFight` (`room-object.md`), which confirms the reading.
-- `SpectatorPosX`, `SpectatorPosY` hold 144's position.
-- `CurrentJob` is `CombatPitSpectate` while spectating.
-- **UNKNOWN or guessed:**
-  - The cheer's length (`CheerGuessTicks` = 8). The binary does not hold it: an action runs
-    for its animation, whose length is in the creature's animation data, not read. The owner
-    confirms the cheering itself (2026-09-26).
-  - Whether a creature has animation 8 or `0x14`: ours assumes it does.
-  - Room `+0x27` is DK2's own `CentrePos`, named by its room dumper
-    (`verification-2026-09-26.md` §8). How it is computed is unread; ours uses the middle of the
-    bounding box.
-  - The route point `0x004E5000`: ours tests the room's first standable tile.
-- **Not built:** the finder's messages. `0x00478680`, job 26's only caller, is built (ADR-0228).
-- 138's rim arm is kept and refused by the gate, as DK2's is.
-- **Getting up on a pit.** A stunned creature that gets up on a pit (`0x004E8DA0(0)`) takes the
-  drop state 137 through 1. On the rim, 137 goes to 138, and 138 idles.
-
+- `PitFightSeenTick` holds `+0x53` on the lowest tile. Runtime migration and reset
+  follow the room-lifecycle rules in
+  [combat-pit.md section 9](combat-pit.md#9-what-is-built-adr-0213-hashsave-523).
+- `SpectatorPosX` and `SpectatorPosY` hold 144's remembered position; `CurrentJob`
+  is `CombatPitSpectate` while spectating.
+- Actions 69/70 use counted animation playback, creature art availability and the native
+  conditional RNG draws. The fixed eight-turn cheer guess is removed. Shared animation
+  resource identity and action-position payload limits remain.
+- Facing uses the attached room's centroid field; the room route uses its first
+  slab-chain point. Shared route geometry and ground-occupancy limits remain.
+- The quiet interval uses variable 19 with the fallback precedence recorded in
+  [combat-pit.md section 9](combat-pit.md#9-what-is-built-adr-0213-hashsave-523).
+- The finder's messages are built (ADR-0413); job 26's fallback caller is built (ADR-0228).
+- 138's rim arm remains refused by the category gate.
+- Getting up on a pit takes drop state 137 through 1. On the rim, 137 goes to 138,
+  whose refused spectator transition idles.

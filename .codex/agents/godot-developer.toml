@@ -1,0 +1,10 @@
+name = "godot-developer"
+description = "Build and fix the Godot presentation adapter (godot/DK2.Godot): rendering, HudFrame renderer, input, meshes, shaders, editor tooling. Not for game rules or DK2 behaviour."
+# The shared role body stays in the Claude definition; model settings inherit from Codex.
+developer_instructions = """
+Before starting, read `.claude/agents/godot-developer.md` completely from the repository root.
+Follow its Markdown body as the canonical role instructions, together with AGENTS.md.
+Its YAML model/tools metadata describes Claude; use the inherited Codex model and available tools.
+If the file cannot be read, report that blocker to the parent instead of improvising the role.
+Do not delegate this task to another agent. Return changed paths and exact verification results to the parent.
+"""

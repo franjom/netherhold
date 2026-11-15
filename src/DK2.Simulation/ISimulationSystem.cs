@@ -51,6 +51,8 @@ public sealed class SimulationContext
     internal HashSet<CreatureState> ClaimActionsAdvancedThisTick { get; } = [];
     internal HashSet<CreatureState> IdleActionsPolledThisTick { get; } = [];
     internal HashSet<CreatureState> IdleActionsAdvancedThisTick { get; } = [];
+    internal HashSet<CreatureState> CombatPitActionsPolledThisTick { get; } = [];
+    internal HashSet<CreatureState> CombatPitActionsAdvancedThisTick { get; } = [];
     internal HashSet<CreatureState> PossessedMeleePolledThisTick { get; } = [];
     internal HashSet<CreatureState> PossessedMeleeAdvancedThisTick { get; } = [];
     internal HashSet<CreatureState> PossessedExcavationsPolledThisTick { get; } = [];
@@ -76,6 +78,7 @@ public sealed class SimulationContext
     /// so a state set on one not in it is set before its own dispatch counts the Age up. Cleared
     /// before every turn; never an input to the following one.</summary>
     internal HashSet<CreatureState> CreaturesUpdatedThisTick { get; } = [];
+    internal HashSet<CreatureState> DyingStatesUpdatedThisTick { get; } = [];
 
     /// <summary>The mesh, the router and the steering probes over <see cref="World"/>. Systems
     /// request routes through it; the movement system steps bodies against it.</summary>

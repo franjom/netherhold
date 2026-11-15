@@ -42,6 +42,8 @@ public sealed partial class WorldView
         if (terrain.IsLava) flags |= PlayerTileFlags.Lava;
         if (ShowsTag(tile, terrain, x, y)) flags |= PlayerTileFlags.Tagged;
         if (!admitted) return new PlayerTile(flags, default, default);
+        // A player sees its own traps and blueprints; another keeper's stay hidden.
+        if (world.Traps.Count > 0 && world.TrapAt(x, y, new PlayerId(_viewingPlayerId)) is not null) flags |= PlayerTileFlags.OwnTrap;
 
         PlayerId owner = terrain.IsOwnable ? tile.OwnerPlayerId : (byte)0;
         RoomTypeId room = _database.RoomByTerrain(tile.TerrainId)?.TypeId ?? default;

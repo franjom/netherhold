@@ -1011,7 +1011,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 **Context.** Dying is three states with two sixty-second timers — health → 0; COLLAPSED (`CreatureDyingStateDurationSeconds` = 60, an imp → its own bed); CORPSE (`DeadBodyDiesAfterSeconds` = 60, an imp → a graveyard); gone. Only the first existed; the stated blocker "a corpse is an object" was false (none of 145 OBJECTS is a corpse). Research: `docs/research/creature-death.md`, `docs/research/imp-task-priority.md` §4.
 
 **Decision.**
-- `CarryRules`, activities `FetchingBody` (= 11) and `CarryingBody` (= 12), corpse state `Dead` (= 10), and the last two entries of DK2's Tier A table `14, 8, 9, 1, 3, 13, 12`: kind 13 carry an unconscious creature (own → Lair, enemy → Prison), kind 12 carry a corpse → Graveyard. Carrying sits below claiming and above everything found by distance; an imp buries nobody while there is unclaimed ground (`an_imp_buries_a_corpse`: corpses claimable at t1219, the imp comes at t1311).
+- `CarryRules`, activities `FetchingBody` (= 11) and `CarryingBody` (= 12), corpse state `Dead` (= 10), and the last two entries of DK2's Tier A table `14, 8, 9, 1, 3, 13, 12`: kind 13 carry an unconscious creature (own → Lair, enemy → Prison), kind 12 carry a corpse → Graveyard. Carrying sits below claiming and above everything found by distance; an imp buries nobody while there is unclaimed ground (`an_imp_buries_a_corpse`).
 - A collapsed creature goes to its own bed (kept through the dying window for this); arrival calls `CreatureDeathRules.Rescue`. A corpse goes to the nearest Graveyard tile and is consumed. The destination is settled before the walk starts.
 - `DyingTicks` counts the rescue window while `Dying` and the corpse window while `Dead`; reset at the seam.
 - Both ends stored: `CarriedCreatureId` on the carrier, `CarriedByCreatureId` on the body; `TargetBodyId` is the body a worker walks towards.
@@ -1021,7 +1021,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - A creature that leaves a body no longer vanishes; four tests that asserted vanishing now assert the corpse.
 - `HashVersion`/`FormatVersion` 22 → 23. `CreatureDeathRules.BodyWindowTicks` has its first caller.
 - Fixture gains the Graveyard (terrain 23, room 14, 2000 to build). Three animation keys in `WorldView.ActivityKeySegment` (a switch; a new activity does not compile without one).
-- `CarryingTests`; `an_imp_buries_a_corpse`; `a_goblin_collapses_and_dies` runs to t2419 and shows the corpse rotting.
+- `CarryingTests`; `an_imp_buries_a_corpse`; `a_goblin_collapses_and_dies` covers the corpse rotting, with timing pinned in its expectations.
 - Open then: prison and capture (ADR-0064); kind 8 (ADR-0065); what a graveyard does when it fills (vampires).
 
 ## ADR-0064 — The Prison: capture, and the half of carrying that was missing
@@ -4004,8 +4004,9 @@ amount, then armours it, then hastens it; a Thief in a fight vanishes on its own
 spell; a hurt fighter at half health gets nothing. A Support that was struck turns
 to melee for one tick and is back on its spell the next. A Haste at 3686 units a
 tick can pass a standing ally, as DK2's per-tick finder would (Q401, an owner
-question). Not built: the Support's escape gate on the survey, the Turncoat, pit
-and torture refusals, the Imp's Teleport and Haste paths (Q401).
+question). Remaining: the Support's escape gate on the survey, the Turncoat, and
+the Imp's Teleport and Haste paths (Q401). The pit/torture exclusions are built; see
+`combat-pit.md` section 9.
 
 ## ADR-0171 — A cell bites in fours, and anger cools in seven states not three
 **Date:** 2026-09-23 · **Status:** accepted · closes Q402, closes Q123's live divergence · Research: `docs/research/state-category-hooks.md` §3, `state-categories.md` §7.2, `prison.md`, `creature-anger.md`
@@ -4548,12 +4549,12 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Context.** Dying was still an activity with no state id. DK2 enters state 216 from any state when a creature collapses; 216's handler moves to 217 once the fall ends; 217 counts down and hands a healed creature to state 1. The binary also carries `.?AVCDeadBody@@`, the flag `DeadBodyOnDestroy`, THINGS tag 202 and a room `DeadBodyList`. So DK2's corpse is a thing of its own class, not a creature in a state, as ADR-0051 and ADR-0063 had put it.
 
 **Decision.**
-1. `CreatureDeathRules.Collapse` enters 216 (`FallingState`). The first dying second in `CreatureHealthSystem` enters 217 (`DyingState`). Dying joins the retired activities.
+1. `CreatureDeathRules.Collapse` enters 216 (`FallingState`). Since hash/save 522, `DyingStateRules` dispatches 216/217 per turn; 216 enters 217 (`DyingState`) when the fall action ends (ADR-0741). Dying joins the retired activities.
 2. `Rescue` leaves through state 1 into 83, the sleeping state its bed puts it in.
 3. `BecomeCorpse` hands the state id back. The corpse stays in the creature list, in `CreatureActivity.Dead`, as the one creature with no state.
 
 **Consequences.**
-- Ours, stated: no fall animation, so 216 lasts until the next game second. A rescue lies down in its bed rather than running the lair-trip chooser `0x0046F390`. The corpse is not a separate thing.
+- Ours uses the fitted action clock described in `death-fall-heading.md`. A rescue lies down in its bed rather than running the lair-trip chooser `0x0046F390`. The corpse is not a separate thing.
 - The research notes, `RESEARCH_STATUS.md` and the code comments no longer say a corpse is a creature in a state.
 - No hashed state changed in the pinned world. Four tests. Negative controls: no fall, never lying down, a corpse keeping its id, a rescue skipping idle, and Dying left off the retired list each fail a named test.
 
@@ -4667,14 +4668,14 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 2. `CombatPitSystem` runs 137, 138, 139 and 141 once a turn after the combat system, and idle's return of a fighter to 138. A state entered this turn runs from the next.
 3. The fight is the combat system's: a creature with `AttackAbnormalTargets` skips the look gate, and `SelectAVictim` takes its `AttackingId` with no attackability, sight or hostility test. A pit fighter is not attackable, keeps a target that is not attackable, is released without victory when its opponent is knocked out, hits at variable 225 (double) and takes variable 239 of 128.
 4. Hand: an own non-worker dropped on the keeper's pit floor goes 1 → 137; the pick-up clears the fighter and its forced target. 217 clears the fighter. The experience adder refuses a fighter at `CombatPitMaxExperienceLevel`, and reaching it sets 1.
-5. A sale or build touching a pit throws the fighters on it out to 141.
+5. Room lifecycle callbacks reset floor fighters or release attached holders as appropriate; surviving room runtime is preserved. See `combat-pit.md` section 9.
 6. `CreatureState` gains `CombatPitFighter`, `AttackAbnormalTargets`, `AttackingId` and `PitStateEnteredTick`; `CreatureActivity.PitFighting`. `HashVersion` and `FormatVersion` 109, pin `0x1754FA244591A3A6`.
 
 **Consequences.**
 - **The knockout ends the fight with no victory**, CONFIRMED by the owner (2026-09-25): the winner takes another fighter or walks about, and the mentor announces the fight over. The loser's leave hook `0x0045ADC0` releases every attacker, and gives the victory nibble only to one whose target's health is below 1, which a knockout's is not. (The first build of this ADR had the winner swinging at the unconscious loser; the owner's memory sent the reading back to the leave hook.)
 - **A waiting fighter's anger rises every turn**: `angerNoWork` into buckets 0 and 3 each turn it waits in 139.
-- **Nothing enters 140**, the victor's celebration: no literal, no computed id, no room record names it. It is not built; whole-image scans found no gameplay entry, and a save load can restore it (Q431, open).
-- Not built: a captive dropped in the pit (ours holds captivity in `PrisonOwnerPlayerId`, which DK2's pit writes for every fighter), 142–144 (built later, ADR-0227), action `0x2C` at the cap, scan A for a dead forced target, the room's sounds and messages, and state 76.
+- **No ordinary entry to 140 was found** (Q431, open). Its save-restored handler is built; see `combat-pit.md` sections 1 and 9.
+- Completion scope and remaining limits, including binding, actions, room effects and messages: `combat-pit.md` sections 9-10. Spectators: ADR-0227; landing state 76: ADR-0226.
 - `state-category-hooks.md` named the pit's and the spectators' enter-hook bit as 23; it is 15, `CombatPitFighter`. `+0x16 == 2` is "off the map" (Q364).
 - Eleven tests. Eighteen negative controls each fail a named test: attackability, the forced branch, the blow's stance, the damage taken, the knocked-out target, the enemy-first search, the pick-up clear, the sale's reset, idle's return, the step's floor, the anger, the experience cap, the cap's move to 1, the same-turn wait, 141's wait, the knockout not counting as a death, 138 on the rim and the drop on the rim. The rim case first survived, and its test was added.
 
@@ -4949,7 +4950,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Consequences.**
 - **Tests changed to the new sequence.** Seven tests and one scenario now wait out the stun. `AFreezeIsTwoEighteen_…` ends in 250 off a room.
 - The need-grace test uses a Goblin with the shipped one-second stun, since the fixture's five seconds is a deliberate test value.
-- **Not built:** the other rooms' drop states on getting up (they idle; the pit's: ADR-0227), Call To Arms (built later, ADR-0279), `+0x2CC`, and the landing's sound, fall and pit scatter. The worker combat attempt is built under ADR-0698.
+- **Not built:** the other rooms' drop states on getting up (they idle; the pit's: ADR-0227), Call To Arms (built later, ADR-0279), `+0x2CC`, and the landing's sound and fall. Pit scatter is built (`combat-pit.md` section 9). The worker combat attempt is built under ADR-0698.
 - Three new tests. Six negative controls each fail a named test: no stun, no 250, a zero-length 250, a freed prisoner stunned, a worker stunned, and the room ignored on getting up.
 - No new state; `HashVersion` stays **117**.
 
@@ -4959,24 +4960,21 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Context.** 142–144 were unbuilt, and ours said 138 on the rim idled because 142 was missing. The binary says something else. Spectating's entry mask `0x8002383B` lacks the Combat Pit's bit, so DK2's own `SetState(142)` from 138 is refused, and 138 idles there too. The way in is **job 26**, whose handler `0x00457780` wants a fight on in one of the keeper's pits. Its only caller is state 89's fallback `0x00478680`, after the mood chooser fails. No shipped creature lists job 26.
 
 **Decision.** `CombatPitSpectatorRules`:
-1. **A fight is on** (`0x004D7CF0`) when a creature on the pit's floor is in a Combat-category state (a walk counted by its resume state). Found, it stamps the pit's `+0x53` (ours: `PitFightSeenTick` on the pit's lowest tile).
+1. **A fight is on** (`0x004D7CF0`) when a creature on the pit's floor is in a Combat-category state (a walk counted by its resume state). Found, it stamps the pit's `+0x53` (ours: migrated tile-backed `PitFightSeenTick`; see `combat-pit.md` section 9).
 2. **Job 26** (`0x00457780`):
-   - On the rim of an own or allied pit with a fight on, or one seen under 16 turns ago: 142 in place.
+   - On the rim of an own or allied pit with a fight on, or one seen under variable 19 * 4 turns ago: 142 in place.
    - Otherwise the nearest own pit with a fight on, reachable and with a place, preferring one with no occupant of the other side (`0x004D8510`). The creature walks into it, to a rim tile, resuming 142.
 3. **142** picks a free rim tile next to it: always when another creature shares its tile, otherwise on `random(100)` ≤ 35; else it keeps its own position. The point is in the tile's middle third, and it walks there resuming 143. A refused walk runs job 26 again.
 4. **143** goes back to 142 if its tile is shared. Otherwise it turns to the pit's centre, waiting while it turns, cheers (action 70, or 69 on `random(100)` > 30), and enters 144.
-5. **144** waits out the cheer and picks again. Once more than 16 turns have passed with no fight seen, it idles. Moved since it last looked, it picks again at once.
+5. **144** waits out the cheer and picks again. Once more than variable 19 * 4 turns have passed with no fight seen, it idles. Moved since it last looked, it picks again at once.
 6. **Getting up on a pit** takes its drop state 137 through 1 (ADR-0226's unbuilt list loses the pit).
 7. **The Spectating hook's calm** runs each fifth turn, as before, and the three handlers follow it.
 
 **Consequences.**
-- **Unreachable with shipped data until `0x00478680` is built.** That is the next change; it also makes idle creatures fall back to Train and Drink.
-- **Guessed:**
-  - The cheer's length, 8 turns (`CheerGuessTicks`).
-  - That every creature has the cheer animations.
-  - Room `+0x27` as the room's centre.
-  - The route point `0x004E5000` as the room's first standable tile.
-- **Not built:** the finder's messages `0x2A`–`0x2C`.
+- State 89's fallback caller is built (ADR-0228), as are the finder's messages (ADR-0413).
+- Counted actions, art availability, centroid facing, room route and timing now follow the
+  implementation described in `combat-pit-spectators.md` section 5. Its shared parity
+  limits remain; the fixed eight-turn cheer guess has been removed.
 - **Tests.** `CombatPitSpectatorTests` has eight tests, two of them theories. `CombatPitTests` gains the rim get-up and renames the 138 test for the gate.
 - **Nine negative controls each fail a named test:**
   - no fight seen;
@@ -14792,7 +14790,7 @@ ours, with no draw, where Room_Rebuild places them at room change with one draw 
 furniture list lacks the Workshop
 Pillars; the lava-spill effect sits at the object's floor position, not its unread mesh point (the owner is the
 object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not (Q733). The Torture
-Chamber, Temple, Graveyard, Combat Pit and hero gate handlers draw the world stream too and are not built.
+Chamber, Temple, Graveyard and hero gate handlers draw the world stream too and are not built. The Combat Pit handler is built; see `combat-pit.md` section 9.
 Hash/save 385: sixteen bytes a tile. No scenario moved and no fixture holds a Workshop, so the pin moved only
 with the version.
 
@@ -17388,7 +17386,7 @@ goes from 6764 ordered draws through 1788 to 6810 through 1791; the next boundar
 the heart and door arms stand in for DK2's one search predicate (`0x004B5800`); a hit in the
 first probe iteration leaves velocity 0 and `Move` then requests a hit-solid effect; Guided
 Bolt's process 28 (`0x004AF3A0`) rewrites the shot's `+0xF4` and is unbuilt; the `+0xAB` stamp
-and 217's two-phase fall machine are unbuilt; `Fall` does not test `CarriedByCreatureId` or
+and pit transport are built since hash/save 522 (`combat-pit.md` section 4); `Fall` does not test `CarriedByCreatureId` or
 `InHand`, and `ActionUntilTick` is not cleared when a rescue leaves 216; the Thief's z drops
 4096 to 3924 on 1865 in 216, unexplained. Shot_Update runs Collide, the per-tick damage, then
 the mover; ours moves first, and a hit shot does not move in ours.
@@ -17500,8 +17498,8 @@ position through 1793. The next boundary is 1794 draw 1: native `ObjectState.cpp
 on an enemy tile, holds state 16 through 1793; ours leaves on 1793 (Q712).
 Still open: states 56 and 250 and the other bit-0-clear states re-sync in ours, and a door
 contact zeroes a native body (Q736); the `+0x4E9` timer path (`0x004889AB`), which calls
-`0x004D1070` after state `0xF2`, is unbuilt and what sets the timer is unread; 217's Temple-floor
-arm is not built; whether the cursor can pick up a creature in 217 is unchecked.
+`0x004D1070` after state `0xF2`, is unbuilt and what sets the timer is unread; the pit transport
+is built since hash/save 522 (`combat-pit.md` section 4); whether the cursor can pick up a creature in 217 is unchecked.
 
 ## ADR-0746 - an attacked floor's claim starts its own clip; the slot-13 clip is kept only inside the work state
 **Date:** 2026-11-11 | **Status:** accepted | **Systems:** imps-tile-work, creatures | Advances Q712
@@ -19209,7 +19207,10 @@ pointer state and the commands a click posts. Left there, every HUD fix would ha
    (the Reaper talisman's quarters) are `HudImageVariant`s, applied by `HudImagePixels`, so every engine gets the same pixels.
 3. **Panel by panel, Unity kept working.** Each step adds the model and its tests, turns the Unity class into a facade with
    the same public API over `HudCanvas`, and deletes the old Unity logic. Order: bottom panel (done), resource HUD (done), message
-   tabs (done), hover HUD (done), creature query and overview (done), options menu and save/load (done), game-options panel (done), front-end menu, minimap and full-map markers.
+   tabs (done), hover HUD (done), creature query and overview (done), options menu and save/load (done), game-options panel (done), front-end menu (done), minimap and full-map markers (done).
+4. **The replacement font is drawn in BF4 glyph boxes** (owner, 2026-11-15). The model lays every front-end label out as
+   BF4 glyph boxes (`HudLabel`). A renderer draws either the shared BF4 bitmap or its own engine's TrueType glyphs in those
+   boxes; a label whose font lacks a glyph, and every glow, is the bitmap. Only the TrueType rasterizing is per engine.
 
 **Where new files go.**
 
@@ -19219,7 +19220,7 @@ pointer state and the commands a click posts. Left there, every HUD fix would ha
 | Any other engine-neutral rule or value | where ADR-0002 and `ARCHITECTURE.md` already put it; never in an adapter |
 | Unity: the one `HudFrame` renderer | `unity/DK2.Unity/Assets/DK2/HudCanvas.cs`; a panel's Unity file is only its facade |
 | Godot: the adapter | `godot/DK2.Godot/` (the Godot project root), C# using `ProjectReference`s to `src/`; outside `DK2.slnx` until CI builds it. Its HUD renderer mirrors `HudCanvas` |
-| Engine-specific on purpose | 3D overlays (hover outline, placement, possession), movie playback, the GPU minimap image, shaders and GPU light buffers: written once per engine |
+| Engine-specific on purpose | 3D overlays (hover outline, placement, possession), movie playback, the GPU minimap image, shaders and GPU light buffers, TrueType glyph rasterizing for the replacement font: written once per engine |
 
 New DK2 behaviour written into a Unity or Godot file is a defect under this ADR.
 
@@ -19228,7 +19229,7 @@ did not change. The panel's hit testing and click handling are unit-tested witho
 additive stand-ins were two bakes, luminance-as-alpha for the hover art and peak-as-alpha for sparkles; both now use the second.
 The hover art is near grey (mean chroma 7.6/255), so the hover highlight shifts by a few levels at most. `IClassicBottomPanelAssets`
 extends `IBottomPanelArt`. The message tabs added text (`HudText`, rasterized once by `HudTextPixels` for every panel and engine), fills,
-UV sub-rectangles and clip windows to the draw list. No Godot code exists yet, and ADR-0041's question stays open until the engine decision is made.
+UV sub-rectangles and clip windows to the draw list. The Godot adapter's current state is in `HANDOFF.md` (toolchain: ADR-0810), and ADR-0041's question stays open until the engine decision is made.
 
 ## ADR-0806 - remember Guard assignments independently of current work
 
@@ -19305,3 +19306,37 @@ engine adapters. Simulation events identify each newly created message's source;
 deduplicated existing messages are not reattributed. Simulation state, RNG,
 hash/save 521 and native-behavior findings are unchanged. Native playback timing
 and live-scene acceptance remain separate checks under Q824.
+
+## ADR-0810 - the Godot toolchain: one version pin, side-by-side editors, Godot AI through its own dock
+**Date:** 2026-11-15 | **Status:** accepted | **Systems:** presentation-godot, tooling-process
+
+**Context.** ADR-0805 places the Godot adapter in `godot/DK2.Godot`. The owner chose Godot 4.8 beta 3
+(.NET build) and asked for upgrades with as little friction as possible, and for the Godot AI editor
+MCP in Claude Code and Codex through proper channels. Godot AI asset 5050 is v3.2.5, the last release
+for Godot 4.5 and 4.6; Godot 4.7 and newer need v4. Neither Claude's nor Codex's marketplace has it.
+
+**Decision.**
+1. **One pin.** `godot/godot-version.json` names the editor build with its SHA-512, the
+   `Godot.NET.Sdk` version and the Godot AI version with its SHA-256. `godot/setup.ps1` installs
+   from it and verifies the files. The editor is not in the repository.
+2. **Editors side by side**, one folder per version under `%LOCALAPPDATA%\Programs\Godot\`. To
+   upgrade, change the pin, run setup and let Godot's project upgrade tool rewrite the csproj `Sdk`
+   and `config/features`. The commit holds the pin and the editor's rewrite, nothing else.
+3. **Plain SDK project.** `DK2.Godot.csproj` uses `Godot.NET.Sdk` from NuGet and references `src/`
+   with `ProjectReference`s. `dotnet build` compiles it without an editor, so no compile shadow
+   like `DK2.Unity.Compile` and no copied DLLs like `sync-assemblies.ps1`. Its namespace is
+   `DK2.GodotAdapter`, because `DK2.Godot` would shadow `Godot`.
+4. **Godot AI v4 is agent tooling, not game code.** Its addon is gitignored; setup installs the release
+   archive pinned by SHA-256. Updates go through its dock, which verifies signatures and re-pins
+   clients; then bump the pin. The plugin writes its enable line and `_mcp_game_helper` autoload into
+   `project.godot`; both are committed.
+5. **Client entries come from Godot AI's dock, at `local` scope for Claude Code and in
+   `~/.codex/config.toml` for Codex.** On Windows the entry holds machine paths, so it is never
+   committed. Telemetry is off: `godot/editor.ps1` sets `GODOT_AI_DISABLE_TELEMETRY`.
+6. **Godot text files are LF** (`.gitattributes`), as Godot writes them.
+
+**Consequences.** A new machine runs `godot/setup.ps1`, then configures the dock once
+(`godot/README.md`). Because the csproj needs no editor, CI could build it; adding it to `DK2.slnx`
+and CI is still open (ADR-0805). Godot 4.8 requires .NET 10, which `global.json` already pins.
+Without the addon the project fails to load that autoload on every run, so setup runs first. Claude
+Code's `local` scope is keyed by path: a worktree under `.claude/worktrees/` needs its own Configure.

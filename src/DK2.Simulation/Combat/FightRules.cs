@@ -436,7 +436,8 @@ public static class FightRules
         }
 
         (int originX, int originY) = ShotOrigin(me, mine.Spells[me.SwingSpellSlot]);
-        ShotState shot = ShotRules.Spawn(world, shotDef, me.OwnerPlayerId, originX, originY, (int)spell.ShotData1, (int)spell.ShotData2,
+        PlayerId shotOwner = me.CombatPitFighter ? new PlayerId(PlayerIds.Good) : me.OwnerPlayerId;
+        ShotState shot = ShotRules.Spawn(world, shotDef, shotOwner, originX, originY, (int)spell.ShotData1, (int)spell.ShotData2,
             me.Id, me.SwingTargetKind, me.SwingTargetId, me.SwingTargetPlayerId, targetTile, aimX, aimY);
         shot.PosZ = me.PosZ + mine.Spells[me.SwingSpellSlot].OriginZ;
         ShotRules.Launch(shot, shotDef, aimX, aimY, aimZ);

@@ -499,7 +499,7 @@ namespace DK2.Unity
                 effects = new LocalPickupEffectSink(_worldView.LocalPickups, effects);
             }
             _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),
-                CameraPathLoader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
+                EngineCameraPaths.Loader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
                 effects);
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
             WireSpeech(database);
@@ -1514,28 +1514,6 @@ namespace DK2.Unity
             camera.transform.rotation = Quaternion.LookRotation(
                 new Vector3(pose.Forward.X, pose.Forward.Y, pose.Forward.Z),
                 new Vector3(pose.Up.X, pose.Up.Y, pose.Up.Z));
-        }
-
-        /// <summary>EnginePath%d.kcs out of Paths.WAD, read once per path.</summary>
-        private static Func<int, IReadOnlyList<KcsFrame>> CameraPathLoader(string install)
-        {
-            string wad = Path.Combine(install, "Data", "Paths.WAD");
-            var cache = new Dictionary<int, IReadOnlyList<KcsFrame>>();
-            return pathId =>
-            {
-                if (cache.TryGetValue(pathId, out IReadOnlyList<KcsFrame> frames)) return frames;
-                frames = null;
-                if (File.Exists(wad))
-                {
-                    using WadArchive archive = WadArchive.Open(wad);
-                    string name = $"EnginePath{pathId}.kcs";
-                    WadEntry entry = archive.Entries.FirstOrDefault(e =>
-                        string.Equals(Path.GetFileName(e.Name), name, StringComparison.OrdinalIgnoreCase));
-                    if (entry != null) frames = KcsCameraPath.Read(archive.Extract(entry), entry.Name).Frames;
-                }
-                cache[pathId] = frames;
-                return frames;
-            };
         }
 
         /// <summary>The level's own string table by line index: the subtitle text of a

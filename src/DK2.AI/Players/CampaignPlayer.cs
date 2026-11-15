@@ -142,6 +142,7 @@ public sealed class CampaignPlayer : IPlayerController
         bool hand = Hand(observation, home, actions);
         if (hand) why.Add("hand");
         if (Room(observation, home, actions)) why.Add("room");
+        if (CreateImp(observation, home, actions)) why.Add("imp");
         if (!hand && Work(observation, home, actions)) why.Add("work");
         else if (!hand && Pit(observation, home, actions)) why.Add("pit");
         else if (!hand && Scout(observation, home, actions)) why.Add("scout");
@@ -168,6 +169,7 @@ public sealed class CampaignPlayer : IPlayerController
             if (action is PlayerAction.BuildRoom build && receipt.Status is PlayerReceiptStatus.Refused or PlayerReceiptStatus.Cancelled
                 && _pendingRooms.Remove(build.Room) && receipt.Reason is PlayerRefusalReason.NotOffered or PlayerRefusalReason.OutOfBounds)
                 Tried(build.Room).Add(build.From);
+            if (action is PlayerAction.CreateImpAt imp && receipt.Status is PlayerReceiptStatus.Refused) _refusedImpTiles.Add(imp.Tile);
             if (receipt.Status != PlayerReceiptStatus.Queued) _sent.Remove(receipt.Id);
         }
         var done = new List<RoomTypeId>();
@@ -204,8 +206,8 @@ public sealed class CampaignPlayer : IPlayerController
         }
     }
 
-    /// <summary>A held item goes down (near the nearest enemy, else near home), skipping tiles a
-    /// drop already failed on; with an empty hand and an enemy, a free fighter is lifted.</summary>
+    /// <summary>A held item goes down (a fighter in its formation place against the attack, else near home), skipping
+    /// tiles a drop already failed on; with an empty hand and an attack, a defender is lifted.</summary>
     private bool Hand(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
         if (_lastDrop is (TilePos tile, int hand) && observation.HandCount >= hand)
@@ -220,12 +222,14 @@ public sealed class CampaignPlayer : IPlayerController
             _failedDrops.Clear();
             // A lift that never landed leaves nothing held: its carry plan must not steer the next one.
             _carryTo = null;
-            _carryForPit = _carryWorker = _carryScout = false;
+            _carryForPit = _carryWorker = _carryScout = _carryRetreat = false;
+            _carryStyle = null;
         }
         if (!Fits(actions, 1)) return false;
-        // Engage answers the nearest enemy, HoldHome only one near home, Off none; with none, anything
-        // held goes down near home.
-        PlayerVisibleThing? enemy = _strategy.Fight == FightMode.Off ? null : PlayerActionRoutines.NearestEnemy(observation, home);
+        // Engage answers an attack on any of the dungeon (an enemy within EnemyNearTiles of own ground), the one nearest
+        // the Heart first; HoldHome only one near home; Off none. With none, anything held goes down near home.
+        PlayerVisibleThing? enemy = _strategy.Fight == FightMode.Off ? null
+            : PlayerActionRoutines.NearestAttacker(observation, home, _strategy.EnemyNearTiles);
         if (_strategy.Fight == FightMode.HoldHome && enemy is PlayerVisibleThing far
             && PlayerActionRoutines.DistanceSquared(far.Tile, home) > (long)_strategy.HomeGuardTiles * _strategy.HomeGuardTiles) enemy = null;
         if (observation.HandCount > 0)
@@ -234,29 +238,93 @@ public sealed class CampaignPlayer : IPlayerController
             _carryWorker = false;
             bool scout = _carryScout;
             _carryScout = false;
-            // A creature lifted to work goes to its room unless an enemy needs it or a drop there failed.
-            TilePos? work = enemy is null && _carryTo is TilePos room && !(_carryForPit ? _refusedPit : _refusedWork).Contains(room) ? room : null;
+            // A creature lifted to work goes to its room unless an enemy near home, or near that room, needs it, or a
+            // drop there failed. An enemy merely in sight further off does not turn it back (Q843).
+            TilePos? work = _carryTo is TilePos room && !(_carryForPit ? _refusedPit : _refusedWork).Contains(room)
+                && !PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)
+                && !PlayerActionRoutines.ThreatNear(observation, room, _strategy.EnemyNearTiles) ? room : null;
+            TilePos? carriedTo = _carryTo;
             _carryTo = null;
             _workDrop = work;
             _workDropForPit = _carryForPit;
             _carryForPit = false;
-            // A held worker goes down near home, never toward an enemy (an Imp is no fighter).
+            FightStyle style = _carryStyle ?? FightStyle.Blocker;
+            _carryStyle = null;
+            bool retreat = _carryRetreat;
+            _carryRetreat = false;
+            // A hurt defender taken out of a fight goes to its Hatchery (or home) whatever the danger there.
+            if (retreat) work = carriedTo ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _failedDrops);
+            // A held worker goes down near home, never toward an enemy (an Imp is no fighter); a fighter takes its place
+            // in the formation against the attack (defence plan D3).
+            TilePos? fight = !worker && !retreat && enemy is PlayerVisibleThing foe ? FormationDrop(observation, foe.Tile, home, style) : null;
             if ((observation.Offers.Actions & PlayerActionKinds.DropAt) == 0
-                || (work ?? PlayerActionRoutines.NearestOwnFloor(observation, worker ? home : enemy?.Tile ?? home, _failedDrops)) is not TilePos drop) return false;
+                || (work ?? fight ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _failedDrops)) is not TilePos drop) return false;
             if (scout && work is TilePos sent) { _scout = (sent, observation.Stamp.Tick); _scouted.Add(sent); }
             actions.Add(new PlayerAction.DropAt(drop));
             _lastDrop = (drop, observation.HandCount);
             _lastDropTick = observation.Stamp.Tick;
             return true;
         }
-        // A fighter already near the enemy, or already on the floor a drop would choose, stays put.
         if (enemy is not PlayerVisibleThing target
-            || _lastDropTick is GameTick dropped && observation.Stamp.Tick.Value - dropped.Value < _options.DropCooldownTicks
-            || PlayerActionRoutines.NearestOwnFloor(observation, target.Tile, _failedDrops) is not TilePos placed
-            || PlayerActionRoutines.Fighter(observation, _options, target.Tile, placed, _options.EngagedTiles, home) is not PlayerVisibleThing fighter) return false;
+            || _lastDropTick is GameTick dropped && observation.Stamp.Tick.Value - dropped.Value < _options.DropCooldownTicks) return false;
+        // A defender down to two petals at the fight is healed, else taken to a Hatchery (defence plan D3).
+        int attackers = 0, defenders = 0;
+        PlayerVisibleThing? hurt = null;
+        var flowers = new Dictionary<PlayerThingHandle, PlayerCreatureSummary>();
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) flowers[seen] = creature;
+        long reach = (long)(_options.EngagedTiles + 1) * (_options.EngagedTiles + 1);
+        foreach (PlayerVisibleThing thing in observation.Things)
+        {
+            if (PlayerActionRoutines.DistanceSquared(thing.Tile, target.Tile) > reach) continue;
+            if (PlayerActionRoutines.IsThreat(observation, thing)) attackers++;
+            else if (thing.Kind == PlayerThingKind.Creature && thing.Owner == observation.Stamp.Player && thing.CreatureType is CreatureTypeId type
+                && !_options.IsWorker(type) && _options.StyleOf(type) != FightStyle.NonFighter)
+            {
+                // Only a fighter able to fight counts toward outnumbering the attackers.
+                bool known = flowers.TryGetValue(thing.Handle, out PlayerCreatureSummary flower);
+                if (known && flower.Petals == 2) hurt ??= thing;
+                else if (!known || flower.Petals > 2) defenders++;
+            }
+        }
+        if (hurt is PlayerVisibleThing low && HealOffered(observation))
+        {
+            actions.Add(new PlayerAction.CastSpell(HealSpell, Target: low.Handle));
+            return true;
+        }
+        if (hurt is PlayerVisibleThing tired && Owns(observation, RoomTypeId.Hatchery) && Lift(observation, tired, RoomTypeId.Hatchery, home, actions))
+        {
+            _carryRetreat = true;
+            return true;
+        }
+        // Enough already: the defenders at the fight outnumber the attackers.
+        if (defenders > attackers
+            || PlayerActionRoutines.Defender(observation, _options, target.Tile, _options.EngagedTiles, home,
+                style => FormationDrop(observation, target.Tile, home, style)) is not PlayerVisibleThing fighter) return false;
         actions.Add(new PlayerAction.PickUp(fighter.Handle));
+        _carryStyle = fighter.CreatureType is CreatureTypeId kind ? _options.StyleOf(kind) : FightStyle.Blocker;
         return true;
     }
+
+    /// <summary>The own floor a lifted defender of <paramref name="style"/> goes down on against an attacker at
+    /// <paramref name="enemy"/>: the floor nearest its formation point. A Flanker or Blitzer whose floor is not truly
+    /// behind the enemy (within two tiles of the point, and further from home than the enemy: the hand drops only on own
+    /// ground) goes beside the Blockers instead.</summary>
+    private TilePos? FormationDrop(PlayerObservation observation, TilePos enemy, TilePos home, FightStyle style)
+    {
+        TilePos ideal = PlayerActionRoutines.FormationPoint(enemy, home, style);
+        TilePos? at = PlayerActionRoutines.NearestOwnFloor(observation, ideal, _failedDrops);
+        if (style is FightStyle.Flanker or FightStyle.Blitzer && (at is not TilePos behind || Chebyshev(behind, ideal) > 2
+            || PlayerActionRoutines.DistanceSquared(behind, home) <= PlayerActionRoutines.DistanceSquared(enemy, home)))
+            at = PlayerActionRoutines.NearestOwnFloor(observation, PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Blocker), _failedDrops);
+        return at;
+    }
+
+    /// <summary>The fighting style of the defender being carried to an attack, for its formation drop.</summary>
+    private FightStyle? _carryStyle;
+
+    /// <summary>Whether the creature carried is a hurt defender taken out of a fight.</summary>
+    private bool _carryRetreat;
 
     /// <summary>Unless a build is pending, the first of: a missing listed room, a listed room its
     /// creatures or gold have outgrown (grown beside itself), an offered extra room not owned (rebuilt if
@@ -435,7 +503,7 @@ public sealed class CampaignPlayer : IPlayerController
         return count;
     }
 
-    /// <summary>With the hand free, no enemy in sight, gold to spare and the interval passed: lifts an
+    /// <summary>With the hand free, no enemy within <see cref="PlayerStrategy.EnemyNearTiles"/> of home, gold to spare and the interval passed: lifts an
     /// idle own non-worker (one standing on floor that is no room, nearest home first) toward the first used
     /// room with fewer creatures on it than its tiles allow; the drop follows next decision, on the room's
     /// tile nearest home that has not refused one.</summary>
@@ -445,7 +513,7 @@ public sealed class CampaignPlayer : IPlayerController
             || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0
             || observation.Gold.Value < _strategy.UseRoomMinGold
             || _lastWorkTick is GameTick last && observation.Stamp.Tick.Value - last.Value < _strategy.UseRoomEveryTicks
-            || PlayerActionRoutines.NearestEnemy(observation, home) is not null) return false;
+            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) return false;
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         foreach (RoomTypeId room in _strategy.UseRooms)
@@ -472,6 +540,8 @@ public sealed class CampaignPlayer : IPlayerController
                 if (PlayerActionRoutines.NearestRoomTile(observation, room, home) is not null) _refusedWork.Clear();
                 continue;
             }
+            // Never into a room an enemy stands near, however far it is from home.
+            if (PlayerActionRoutines.ThreatNear(observation, target, _strategy.EnemyNearTiles)) continue;
             actions.Add(new PlayerAction.PickUp(lifted.Handle));
             _carryTo = target;
             _lastWorkTick = observation.Stamp.Tick;
@@ -481,7 +551,7 @@ public sealed class CampaignPlayer : IPlayerController
     }
 
     /// <summary>The Combat Pit routine (stage 3 plan, Task 4; owner direction, 2026-11-14 and 2026-11-15): with the
-    /// hand free, no enemy in sight and the interval passed, the first that can act of: a creature collapsed on the
+    /// hand free, no enemy within <see cref="PlayerStrategy.EnemyNearTiles"/> of home or the Pit and the interval passed, the first that can act of: a creature collapsed on the
     /// Pit (one petal) gets an own Imp dropped beside it, once per <see cref="RescueTicks"/> and only with a Lair to
     /// carry it to, so the Imp takes it to its bed (<c>CarryUnconscious</c>, CarryRules); a fighter on the Pit's
     /// floor at two petals (its last quarter, owner-confirmed) is healed when Heal is offered, affordable and
@@ -496,8 +566,12 @@ public sealed class CampaignPlayer : IPlayerController
     {
         if (_strategy.PitFighters <= 0 || observation.HandCount > 0 || !Fits(actions, 1)
             || OwnedTiles(observation, RoomTypeId.CombatPit) == 0
-            || _lastPitTick is GameTick last && observation.Stamp.Tick.Value - last.Value < _strategy.UseRoomEveryTicks
-            || PlayerActionRoutines.NearestEnemy(observation, home) is not null) return false;
+            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)
+            || PlayerActionRoutines.NearestRoomTile(observation, RoomTypeId.CombatPit, home) is TilePos pitTile
+               && PlayerActionRoutines.ThreatNear(observation, pitTile, _strategy.EnemyNearTiles)) return false;
+        long now = observation.Stamp.Tick.Value;
+        // A rescue does not wait for the interval: a collapsed creature dies within 60 s (CreatureDyingStateDurationSeconds).
+        bool paced = _lastPitTick is GameTick last && now - last.Value < _strategy.UseRoomEveryTicks;
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         var flowers = new Dictionary<PlayerThingHandle, PlayerCreatureSummary>();
@@ -507,19 +581,26 @@ public sealed class CampaignPlayer : IPlayerController
         PlayerVisibleThing? downed = null, hurt = null, done = null, recruit = null, alone = null;
         PlayerCreatureSummary doneFlower = default, recruitFlower = default;
         int recruits = 0;
-        PlayerVisibleThing? carrier = null;
+        var workers = new List<PlayerVisibleThing>();
+        var workerTiles = new HashSet<TilePos>();
+        var bodies = new List<(PlayerVisibleThing Thing, bool Floor)>();
         foreach (PlayerVisibleThing thing in observation.Things)
         {
             if (thing.Kind != PlayerThingKind.Creature || thing.Owner != self || thing.CreatureType is not CreatureTypeId type || !grid.Contains(thing.Tile)) continue;
             if (_options.IsWorker(type))
             {
-                if ((thing.Actions & PlayerThingActions.PickUp) != 0) carrier = Nearer(carrier, thing);
+                if ((thing.Actions & PlayerThingActions.PickUp) != 0) workers.Add(thing);
+                workerTiles.Add(thing.Tile);
                 continue;
             }
             if (!flowers.TryGetValue(thing.Handle, out PlayerCreatureSummary flower)) continue;
             PlayerTile on = grid[thing.Tile];
             bool floor = on.Room == RoomTypeId.CombatPit && PlayerActionRoutines.IsInterior(grid, thing.Tile, RoomTypeId.CombatPit, self);
-            if (on.Room == RoomTypeId.CombatPit && flower.Petals <= 1) { downed ??= thing; continue; }
+            if (on.Room == RoomTypeId.CombatPit && flower.Petals <= 1)
+            {
+                bodies.Add((thing, floor));
+                continue;
+            }
             if (floor)
             {
                 fighting++;
@@ -539,20 +620,53 @@ public sealed class CampaignPlayer : IPlayerController
         bool picks = (observation.Offers.Actions & PlayerActionKinds.PickUp) != 0;
         // A lone fighter on the floor is a victor whose opponent is gone, or one nobody will come to fight: left there it
         // grows unhappy (owner, 2026-11-15), so it goes to its Lair, unless a partner is on its way.
-        bool paired = _pitPaired;
-        _pitPaired = fighting >= 2;
-        bool lone = fighting == 1 && (paired || recruits == 0 || fighting >= _strategy.PitFighters);
-        if (downed is PlayerVisibleThing body && carrier is PlayerVisibleThing imp && picks && Owns(observation, RoomTypeId.Lair)
-            && !(_rescues.TryGetValue(body.Tile, out GameTick sent) && observation.Stamp.Tick.Value - sent.Value < RescueTicks)
-            && PlayerActionRoutines.RescueDropTile(observation, body.Tile) is TilePos beside)
+        // A beaten fighter sinks into the floor and rises on the rim (state 217, combat-pit.md): the Imp goes to it there.
+        // Each floor tile's body is timed from when it was first seen there; one fetched after RiseTicks on the floor
+        // all the same. A body on an own worker's tile is being carried already.
+        var stillSinking = new Dictionary<TilePos, GameTick>();
+        foreach ((PlayerVisibleThing body, bool floor) in bodies)
+        {
+            if (workerTiles.Contains(body.Tile)) continue;
+            if (!floor) { downed ??= body; continue; }
+            GameTick first = _sinking.TryGetValue(body.Tile, out (GameTick First, GameTick Seen) seen) && now - seen.Seen.Value <= SinkSeenTicks
+                ? seen.First : observation.Stamp.Tick;
+            stillSinking[body.Tile] = first;
+        }
+        _sinking.Clear();
+        foreach (KeyValuePair<TilePos, GameTick> body in stillSinking)
+        {
+            _sinking[body.Key] = (body.Value, observation.Stamp.Tick);
+            if (downed is null && now - body.Value.Value >= RiseTicks)
+                foreach ((PlayerVisibleThing thing, bool floor) in bodies)
+                    if (floor && thing.Tile == body.Key) { downed = thing; break; }
+        }
+        // A pair seen fighting on any decision is remembered until the routine next runs: a fight may begin and end
+        // inside its interval.
+        if (fighting >= 2) _pitPaired = true;
+        // The liftable own Imp nearest the body carries it.
+        PlayerVisibleThing? carrier = null;
+        if (downed is PlayerVisibleThing target)
+            foreach (PlayerVisibleThing worker in workers)
+                if (carrier is not PlayerVisibleThing b || PlayerActionRoutines.DistanceSquared(worker.Tile, target.Tile)
+                    < PlayerActionRoutines.DistanceSquared(b.Tile, target.Tile)) carrier = worker;
+        if (downed is PlayerVisibleThing body2 && carrier is PlayerVisibleThing imp && picks && Owns(observation, RoomTypeId.Lair)
+            && !(_lastRescueTick is GameTick rescued && now - rescued.Value < RescueGapTicks)
+            && !(_rescues.TryGetValue(body2.Tile, out GameTick sent) && now - sent.Value < RescueTicks)
+            && PlayerActionRoutines.RescueDropTile(observation, body2.Tile) is TilePos beside)
         {
             actions.Add(new PlayerAction.PickUp(imp.Handle));
             _carryTo = beside;
             _carryForPit = true;
             _carryWorker = true;
-            _rescues[body.Tile] = observation.Stamp.Tick;
+            _rescues[body2.Tile] = observation.Stamp.Tick;
+            _lastRescueTick = observation.Stamp.Tick;
+            return true;
         }
-        else if (hurt is PlayerVisibleThing low && HealOffered(observation)) actions.Add(new PlayerAction.CastSpell(HealSpell, Target: low.Handle));
+        if (paced) return false;
+        bool paired = _pitPaired;
+        _pitPaired = fighting >= 2;
+        bool lone = fighting == 1 && (paired || recruits == 0 || fighting >= _strategy.PitFighters);
+        if (hurt is PlayerVisibleThing low && HealOffered(observation)) actions.Add(new PlayerAction.CastSpell(HealSpell, Target: low.Handle));
         else if (hurt is PlayerVisibleThing tired && Lift(observation, tired, RoomTypeId.Hatchery, home, actions)) { }
         else if (done is PlayerVisibleThing capped && Lift(observation, capped,
                      doneFlower.Mood != PlayerCreatureMood.Happy ? RoomTypeId.Lair : doneFlower.Petals <= 4 ? RoomTypeId.Hatchery : RoomTypeId.Lair,
@@ -568,10 +682,6 @@ public sealed class CampaignPlayer : IPlayerController
         else return false;
         _lastPitTick = observation.Stamp.Tick;
         return true;
-
-        PlayerVisibleThing? Nearer(PlayerVisibleThing? best, PlayerVisibleThing candidate) =>
-            downed is not PlayerVisibleThing at || best is not PlayerVisibleThing b
-            || PlayerActionRoutines.DistanceSquared(candidate.Tile, at.Tile) < PlayerActionRoutines.DistanceSquared(b.Tile, at.Tile) ? candidate : best;
     }
 
     /// <summary>The Imp scouting routine (stage 3 plan, Task 4; owner direction, 2026-11-14): one own Imp at a time is
@@ -618,7 +728,7 @@ public sealed class CampaignPlayer : IPlayerController
             return true;
         }
         if (_lastScoutTick is GameTick last && now - last.Value < _strategy.UseRoomEveryTicks
-            || PlayerActionRoutines.NearestEnemy(observation, home) is not null) return false;
+            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) return false;
         if (ScoutTarget(observation, home) is not TilePos target)
         {
             _lastScoutTick = observation.Stamp.Tick;          // none now: look again after the interval, not every decision
@@ -719,6 +829,103 @@ public sealed class CampaignPlayer : IPlayerController
 
     private static int Chebyshev(TilePos a, TilePos b) => Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
 
+    /// <summary>The Imp creation routine, rule R8 (owner direction, 2026-11-15; the plan has the reasons). One Create Imp
+    /// per cast gap, on own floor nearest the dig mark nearest home, while: no fewer own Imps than the free ones
+    /// (<see cref="CampaignPlayerOptions.FreeImps"/>: one is on its way) but fewer than the target (the larger of
+    /// <see cref="PlayerStrategy.MinImps"/> and one per <see cref="MarkedTilesPerImp"/> marks, at most
+    /// <see cref="PlayerStrategy.MaxImps"/>); the target is <see cref="PlayerStrategy.MinImps"/> while Create Imp waits
+    /// for its upgrade (not upgraded, an own creature in an own Library within <see cref="ResearchMemoryTicks"/>, for at
+    /// most <see cref="UpgradeWaitTicks"/>) unless the marks want twice the Imps there are; the price leaves
+    /// <see cref="PlayerStrategy.ManaReserve"/>; it is at most <see cref="PlayerStrategy.ImpPriceSeconds"/> of net income;
+    /// no enemy in sight within <see cref="ImpSafeTiles"/>. Off unless <see cref="PlayerStrategy.CreateImps"/> is 1.</summary>
+    private bool CreateImp(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
+    {
+        if (_strategy.CreateImps <= 0) return false;
+        long now = observation.Stamp.Tick.Value;
+        NoteResearch(observation);
+        if (!Fits(actions, 1) || (observation.Offers.Actions & PlayerActionKinds.CreateImpAt) == 0
+            || observation.Offers.CreateImpCost is not ManaAmount price
+            || _lastImpTick is GameTick last && now - last.Value < ImpCastGapTicks) return false;
+        bool upgraded = false;
+        foreach (PlayerSpellOffer spell in observation.Offers.Spells)
+            if (spell.Spell == CreateImpSpell)
+            {
+                if (!spell.Ready || !spell.Affordable) return false;
+                upgraded = spell.Upgraded;
+            }
+
+        int imps = 0;
+        foreach (PlayerCreatureSummary creature in observation.Creatures) if (_options.IsWorker(creature.Type)) imps++;
+        // Below the free minimum a free Imp is on its way: wait for it (owner, 2026-11-15).
+        if (imps < _options.FreeImps || imps >= _strategy.MaxImps
+            || (long)observation.Mana.Value - price.Value < _strategy.ManaReserve) return false;
+        long net = (long)observation.ManaIncome.Value - observation.ManaUpkeep.Value;
+        if (net <= 0 || price.Value > net * _strategy.ImpPriceSeconds) return false;
+        PlayerTileGrid grid = observation.Tiles;
+        int marked = 0;
+        TilePos? nearestMark = null;
+        for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var at = new TilePos(x, y);
+                if ((grid[at].Flags & PlayerTileFlags.Tagged) == 0) continue;
+                marked++;
+                if (nearestMark is not TilePos m || PlayerActionRoutines.DistanceSquared(at, home) < PlayerActionRoutines.DistanceSquared(m, home))
+                    nearestMark = at;
+            }
+        int need = (marked + MarkedTilesPerImp - 1) / MarkedTilesPerImp;
+        bool waiting = !upgraded && _lastResearchAt is GameTick seen && now - seen.Value < ResearchMemoryTicks;
+        // The Library upgrades only once nothing is left to research (0x004C3000): the wait is bounded, never endless.
+        if (!waiting) _upgradeWaitSince = null;
+        else if ((_upgradeWaitSince ??= observation.Stamp.Tick) is GameTick began && now - began.Value >= UpgradeWaitTicks) waiting = false;
+        int target = waiting && need < 2 * Math.Max(imps, 1) ? _strategy.MinImps : Math.Max(_strategy.MinImps, need);
+        if (imps >= Math.Min(target, _strategy.MaxImps)) return false;
+
+        if (PlayerActionRoutines.NearestOwnFloor(observation, nearestMark ?? home, _refusedImpTiles) is not TilePos tile) return false;
+        // Under attack the mana is for spells: an Imp born beside an enemy dies, its price falls back, and the next is
+        // bought into the same fight (Level 6a, 2026-11-15: 50 casts in the last 900 ticks of a lost keeper).
+        foreach (PlayerVisibleThing thing in observation.Things)
+            if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, tile) <= ImpSafeTiles) return false;
+        actions.Add(new PlayerAction.CreateImpAt(tile));
+        _lastImpTick = observation.Stamp.Tick;
+        return true;
+    }
+
+    /// <summary>Remembers when an own non-worker last stood in an own Library: research is going on.</summary>
+    private void NoteResearch(PlayerObservation observation)
+    {
+        PlayerTileGrid grid = observation.Tiles;
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (creature.Tile is TilePos at && !_options.IsWorker(creature.Type) && grid.Contains(at)
+                && grid[at].Room == RoomTypeId.Library && grid[at].Owner == observation.Stamp.Player)
+            {
+                _lastResearchAt = observation.Stamp.Tick;
+                return;
+            }
+    }
+
+    private GameTick? _lastImpTick, _lastResearchAt, _upgradeWaitSince;
+    /// <summary>Tiles a Create Imp cast was refused at (the spell's place gates): not chosen again.</summary>
+    private readonly HashSet<TilePos> _refusedImpTiles = [];
+
+    /// <summary>The longest (ticks) Imp buying waits for Create Imp's upgrade: 20 game minutes.</summary>
+    private const int UpgradeWaitTicks = 4800;
+
+    /// <summary>Create Imp's spell id on the Spell panel and in the cast packets.</summary>
+    private const byte CreateImpSpell = 4;
+
+    /// <summary>Ticks between two Create Imp casts: the new Imp shows, and the price rises, before the next is weighed.</summary>
+    private const int ImpCastGapTicks = 8;
+
+    /// <summary>No Imp is created with an enemy in sight this near (tiles) its birth tile.</summary>
+    private const int ImpSafeTiles = 10;
+
+    /// <summary>R8's dig need: one Imp per this many marked tiles.</summary>
+    private const int MarkedTilesPerImp = 3;
+
+    /// <summary>How long (ticks) after a creature was last seen in the Library research still counts as going on: 5 game minutes.</summary>
+    private const int ResearchMemoryTicks = 1200;
+
     /// <summary>How long (ticks) a scouting Imp stays to look before it is lifted again: 2 game seconds. The fog
     /// reveals its sight on the first tick it stands (FogOfWarSystem runs every tick), and the owner recalls an Imp
     /// left on dirt path standing a second or two before it walks back to own ground.</summary>
@@ -726,6 +933,21 @@ public sealed class CampaignPlayer : IPlayerController
 
     /// <summary>How near (tiles) an enemy may come to a scouting Imp, or its target, before it is kept away or lifted.</summary>
     private const int ScoutDangerTiles = 8;
+
+    /// <summary>Each Pit floor tile a beaten fighter lies on: when it was first and last seen there.</summary>
+    private readonly Dictionary<TilePos, (GameTick First, GameTick Seen)> _sinking = [];
+    private GameTick? _lastRescueTick;
+
+    /// <summary>How long (ticks) a beaten fighter may lie on the Pit's floor before an Imp is sent to it there. An estimate:
+    /// state 217 (0x004599D0, combat-pit.md) waits ten turns, then sinks and rises 0x200 a turn; the collapse before it
+    /// is unread, so 40 leaves room.</summary>
+    private const int RiseTicks = 40;
+
+    /// <summary>A floor body unseen for longer than this (ticks) is timed afresh when seen again.</summary>
+    private const int SinkSeenTicks = 12;
+
+    /// <summary>Ticks between two rescues: a carried body moves tile by tile and must not draw a second Imp.</summary>
+    private const int RescueGapTicks = 40;
 
     /// <summary>How long (ticks) after sending an Imp to a collapsed creature another is not sent to the same tile.</summary>
     private const int RescueTicks = 400;

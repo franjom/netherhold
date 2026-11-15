@@ -64,7 +64,7 @@ internal sealed class StateModel
         ["Width"] = World, ["Height"] = World,
         ["_creatureIdentityRandom"] = Rng, ["RoomConstructionRandom"] = Rng, ["ObjectCreationRandom"] = Rng,
         ["RoomTilesChanged"] = EventsOut, ["HeartHealthChanged"] = EventsOut, ["GameEnded"] = EventsOut,
-        ["ObjectMade"] = EventsOut, ["ObjectRemoving"] = EventsOut,
+        ["ObjectMade"] = EventsOut, ["ObjectRemoving"] = EventsOut, ["CreatureSlotReleasing"] = EventsOut,
     };
 
     /// <summary>The column of each <c>SimulationContext</c> member. A plumbing member's own reads are not
@@ -81,8 +81,10 @@ internal sealed class StateModel
         ["IdledByEatHandlerThisTick"] = Caches,
         ["LandingDueThisTick"] = Caches,
         ["ReinforcementActionsPolledThisTick"] = Caches, ["WorkerPreludeProcessedThisTick"] = Caches, ["CreaturesUpdatedThisTick"] = Caches,
+        ["DyingStatesUpdatedThisTick"] = Caches,
         ["ClaimActionsPolledThisTick"] = Caches, ["ClaimActionsAdvancedThisTick"] = Caches,
         ["IdleActionsPolledThisTick"] = Caches, ["IdleActionsAdvancedThisTick"] = Caches,
+        ["CombatPitActionsPolledThisTick"] = Caches, ["CombatPitActionsAdvancedThisTick"] = Caches,
         ["PossessedMeleePolledThisTick"] = Caches, ["PossessedMeleeAdvancedThisTick"] = Caches,
         ["PossessedExcavationsPolledThisTick"] = Caches, ["PossessedExcavationsAdvancedThisTick"] = Caches,
         ["WorkerPreludeClaimedThisTick"] = Caches, ["TremorRebellionStartedThisTick"] = Caches,

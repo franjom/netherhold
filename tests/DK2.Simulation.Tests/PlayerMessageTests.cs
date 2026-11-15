@@ -12,6 +12,21 @@ namespace DK2.Simulation.Tests;
 public class PlayerMessageTests
 {
     [Fact]
+    public void PitFightOverAllowsSeparateAnnouncementsAndExpiresAtFiftySeconds()
+    {
+        GameSimulation sim = TestWorld.Simulation();
+        PlayerMessage first = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.CombatPitFightOver, 0, 0)!.Value;
+        PlayerMessage second = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.CombatPitFightOver, 0, 0)!.Value;
+        Assert.NotEqual(first.Id, second.Id);
+        Assert.True(first.NeedsTab);
+        Assert.Equal((uint)SimulationTiming.TicksFromSeconds(50), first.Timeout);
+        sim.Run((int)first.Timeout - 1);
+        Assert.Equal(2, sim.World.Messages.Entries.Count(m => m.Kind == PlayerMessageKind.CombatPitFightOver));
+        sim.Tick();
+        Assert.DoesNotContain(sim.World.Messages.Entries, m => m.Kind == PlayerMessageKind.CombatPitFightOver);
+    }
+
+    [Fact]
     public void DuplicatesKeepTheOriginalPayloadAgeAndHandledBit()
     {
         GameSimulation sim = TestWorld.Simulation();

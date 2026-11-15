@@ -9,6 +9,7 @@ questions live in their canonical documents; this file links to them.
   Generate counts with `dk2tools status`; use `dk2tools coverage` for implementation
   coverage. Neither counts nor historical test totals are maintained here.
 - Current simulation/save composition: [hash versions](research/hash-versions.md).
+  Combat Pit completion and remaining parity limits: [canonical scope](research/combat-pit.md#9-what-is-built-adr-0213-hashsave-523).
   Behavioral parity with DK2 remains incomplete; bounded replay controls do not
   establish full-state, campaign-outcome or interactive-play acceptance.
 - Classic rendering, HUD and front-end integration are on master. Owner play,
@@ -25,9 +26,9 @@ questions live in their canonical documents; this file links to them.
   GPLv3 code linked to Unity's runtime remains [ADR-0041](DECISIONS.md)'s open question. ADR-0805 moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
-  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`) and the in-game options menu, save browser and settings pages (`OptionsHud`, `SaveLoadHud`, `GameOptionsHud`) are moved too; they build and their models are
+  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`), the in-game options menu, save browser and settings pages (`OptionsHud`, `SaveLoadHud`, `GameOptionsHud`) the front-end menu (`FrontEndMenuHud`, with its label bitmap and glow pixels in `HudLabelPixels`) and the minimap and full-map markers (`MinimapHud`, `FullMapHud`; the minimap's GPU disc and footprint stay Unity) are moved too; they build and their models are
   tested, but none has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
-  background-repeat are unchecked. Next: the front-end menu, then the minimap and full-map markers (the rest of the order in the ADR). No Godot code existed on that date.
+  background-repeat are unchecked. Every step of the order in the ADR is done. Three of the four probes that broke during the panel moves are fixed; `run-scaled-integration.ps1` still reads blank panel textures: [known-broken probes](../tools/classic-unity-probe/README.md#known-broken-probes). `godot/DK2.Godot` opens on the classic front-end menu (`FrontEndMenuHud`), drawn by its own `HudCanvas`, and has been run (captures at 1152x648, 1024x768 and 1920x1080, a scripted hover and click to the Options page); the owner has not used it with a real mouse. The remaining Godot work is under Other pending work. The pinned toolchain and agent setup are in [godot/README.md](../godot/README.md) (ADR-0810).
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,
@@ -103,7 +104,7 @@ Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [room-order/RNG controls](research/q710-fighter-decisions.md#room-order-and-rng-inputs-at-0b71f052) rule out chain order only for the sampled Workshop; next locate/obtain a provenanced seed-8 Room.cpp:1509 per-call trace near 5001..5002 with actor/predicate/checkpoint context. Existing packets can drive the trace; comparison limits remain.
+exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [route/body inventory](research/q710-fighter-decisions.md#routebody-inventory-at-65a0290c) is complete; next prepare a source-bound short continuation guarded for arrival/stop, refill, stuck requery and new routes, with neighbour/action/mesh/world-history limits explicit. No matched result or global closure is established; no new native recording is prescribed.
 
 ## Other pending work
 
@@ -130,6 +131,12 @@ These are entry points, not a new priority order.
   ambience listener in first person. Next: one editor run, then owner play. Evidence and remake choices:
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
+- Godot adapter (ADR-0805, ADR-0810): not wired are the 3D station scenery, movies, sound and keyboard.
+  The road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md); its step 1a is
+  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them), next is 1b, the bottom
+  panel. Untested in Godot until the
+  bottom panel is ported: `HudSector` drawn through `CanvasItemAddPolygon` (a degenerate fan may fail; a triangle array
+  is safer) and the native additive blend against Unity's `AdditiveOverAlpha` look.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)
@@ -173,12 +180,17 @@ These are entry points, not a new priority order.
   open, Levels 5-10 are not won ([ladder](research/campaign-bot-ladder.md) sections 7-8). Open
   from Tasks 3a and 3b: Q813-Q818. Task 4, the observation and action additions, is built one row per
   branch: each own creature's level, petals and mood, every offered spell with `CastSpell`, then door and trap
-  offers with `PlaceDoor` and `PlaceTrap` (observation schema 4; Q819, Q820, Q825 and Q826 open, Q821-Q823
+  offers with `PlaceDoor` and `PlaceTrap` (Q819, Q820, Q825 and Q826 open, Q821-Q823
   answered by the owner). Its observation and action rows are all built except Possession; the routines that
-  use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default, not measured: only Level 15a and
-  later offer a Pit; Q827, Q828, Q831 and Q836 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
-  seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Next: Imp creation, R8 (cap of 15-20 Imps, a mana reserve, Q837
-  open; [plan](plans/2026-11-14-campaign-bot-stage3.md)) and the last Task 4 row, defending a route with doors and traps.
+  use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default; on Level 15a it never acts: the peaceful
+  routines now stop only for a threat within `strategy.enemy-near-tiles` (8) of home or the room, but the bot's own
+  Black Knights are prisoners, a level objective not built, Q843; Q848 asks the owner; Q827, Q828, Q831, Q836 and Q844-Q846 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
+  seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Imp creation, R8, is built too
+  (`strategy.create-imps`, off by default; Level 6a seeds 1-3 show no gain; Q842 open;
+  [plan](plans/2026-11-14-campaign-bot-stage3.md)). The bot defends its whole dungeon (an enemy within 8 tiles of own ground, the one nearest the Heart
+  first, Q847) and drops fighters in a formation by fighting style (observation schema 6; Q848-Q850 ask the owner;
+  [defence plan](plans/2026-11-15-campaign-bot-defence.md), D1-D3 built). Next: D4, traps on the attack routes, then D6,
+  attack spells that never hit own creatures or walls, then D5, measuring the lost levels 6a, 7, 11a and 15a.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
@@ -189,7 +201,7 @@ These are entry points, not a new priority order.
     `ClassicLightning`, `ClassicTorchFlames`, `ClassicHoverOutline`): trim quads to the visible texels
     where the frame is fill-bound. Needs a busy scene, not Level1's opening.
   - Off-screen and menu work only when something changed: `MinimapGpuMap` command buffers,
-    `ClassicFullMap`'s blit and preview target, `ClassicFrontEndMenu`'s font-atlas blit.
+    `ClassicFullMap`'s blit and preview target, `HudCanvas`'s font-atlas blit for the front-end menu's replacement font.
   - `ClassicCreatureShadows`: skip the coverage redraw when no caster moved. It is already cheap
     (R8 targets, frustum-culled casters), so this is the lowest priority.
 

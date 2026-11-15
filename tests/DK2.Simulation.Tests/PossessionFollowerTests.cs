@@ -251,16 +251,19 @@ public sealed class PossessionFollowerTests
         Assert.Equal(me.Id, atSeven.FollowLeaderId);
     }
 
-    [Fact]
-    public void APitFighterIsNotRecruited_ConfirmedFromBinary()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PitRecruitmentChecksTheKeeperBindingRatherThanTheFighterFlag(bool bound)
     {
         var (db, world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState fighter = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
         fighter.CombatPitFighter = true;
+        fighter.PrisonOwnerPlayerId = bound ? Keeper : PrisonRules.NoPrison;
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(Recruit(me)));
-        Assert.Equal(0, fighter.FollowLeaderId);
+        Assert.Equal(bound ? 0 : me.Id, fighter.FollowLeaderId);
     }
 
     [Fact]

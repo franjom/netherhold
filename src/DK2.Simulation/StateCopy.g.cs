@@ -77,6 +77,9 @@ namespace DK2.Simulation
             NextSleepTryTick = other.NextSleepTryTick;
             SleepTicks = other.SleepTicks;
             DyingTicks = other.DyingTicks;
+            PitTransportPhase = other.PitTransportPhase;
+            PitTransportAfter = other.PitTransportAfter;
+            PitTransportFloorHeight = other.PitTransportFloorHeight;
             Anger = other.Anger;
             Mood = other.Mood;
             CurrentJob = other.CurrentJob;
@@ -177,6 +180,7 @@ namespace DK2.Simulation
             ActionHandlerDone = other.ActionHandlerDone;
             ActionCount = other.ActionCount;
             IdleAction = other.IdleAction;
+            CombatPitAction = other.CombatPitAction;
             ReinforcementAction = other.ReinforcementAction;
             PossessedExcavation = other.PossessedExcavation;
             PossessedMelee = other.PossessedMelee;

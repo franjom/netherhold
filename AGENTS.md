@@ -174,6 +174,7 @@ Unity is presentation/integration.
 
 A switch to Godot is being prepared (ADR-0805). DK2 behaviour never goes into an engine adapter; a HUD panel's
 logic goes in `DK2.Presentation` as a draw list, and ADR-0805's table says where each kind of new file goes.
+The Godot project and its toolchain are in `godot/` (`godot/README.md`, ADR-0810).
 
 ## Original assets
 
@@ -367,8 +368,8 @@ invokes it (a subagent cannot spawn one, so its caller does), passing the diff
 range, a task summary, the ADR/Q/hash numbers, the reviewer's verdicts and the
 verification results. Read its edits before staging them by name.
 
-Codex's project definitions are `.codex/agents/reviewer.toml` and
-`.codex/agents/documenter.toml`. They use the same canonical role bodies in
+Codex's project definitions are `.codex/agents/reviewer.toml`,
+`.codex/agents/documenter.toml` and `.codex/agents/godot-developer.toml`. They use the same canonical role bodies in
 `.claude/agents/`; update those bodies rather than copying them into Codex's
 files. Use the named roles when the spawn tool supports them. Otherwise read
 the matching role file and instruct the spawned agent to read and follow its

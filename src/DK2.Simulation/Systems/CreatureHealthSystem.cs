@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -20,6 +20,12 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
+        // Standalone hosts without the creature recovery step still dispatch 216/217 each turn.
+        for (int i = context.World.Creatures.Count - 1; i >= 0; i--)
+        {
+            CreatureState state = context.World.Creatures[i];
+            if (CreatureDeathRules.IsDying(state)) DyingStateRules.Update(context, state);
+        }
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
 
         WorldState world = context.World;
@@ -34,7 +40,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // PrisonModifyCreatureHealthPerSecond and dies into a Skeleton, not a
             // collapse, so nothing here touches its health or dying clock
             // (ADR-0064). Its hunger clock runs in the needs routine like anyone's (ADR-0074).
-            if (PrisonRules.IsImprisoned(state)) continue;
+            if (PrisonRules.IsPrisonInmate(state)) continue;
 
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
@@ -65,13 +71,13 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // left to collapse into.
             if (CreatureDeathRules.IsCorpse(state))
             {
+                if (context.DyingStatesUpdatedThisTick.Contains(state)) continue;
                 Rotting(context, creature, state);
                 continue;
             }
 
             if (CreatureDeathRules.IsDying(state))
             {
-                Dying(context, creature, state);
                 continue;
             }
 
@@ -136,33 +142,6 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         context.Emit(SystemName, "creature_cannot_sleep_health",
             $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} delta={landed} " +
             $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)}");
-    }
-
-    /// <summary>Counts the rescue window down, and kills what it runs out on.</summary>
-    private static void Dying(
-        SimulationContext context, CreatureDef creature, CreatureState state)
-    {
-        // 216's handler moves to 217 once the fall's action ends, in the creature's own update
-        // (DeathFallRules.Fall). Ours' adapter: a simulation run without that sweep ends the fall here.
-        // The countdown is 217's own, so it stands while the creature falls.
-        if (state.Dk2StateId == CreatureDeathRules.FallingState)
-        {
-            DeathFallRules.Fall(context, state, creature);
-            if (state.Dk2StateId == CreatureDeathRules.FallingState) return;
-        }
-
-        // 217's handler clears CombatPitFighter: a knocked-out loser is no longer a fighter.
-        if (state.Dk2StateId == CreatureDeathRules.DyingState) state.CombatPitFighter = false;
-
-        // The window stands still while the body is carried: 0x004599D0 skips the countdown
-        // while BeingDragged (+0x3C7) is set (0x00459BE8), Q164.
-        if (state.CarriedByCreatureId >= 0) return;
-
-        state.DyingTicks += SimulationTiming.TicksPerSecond;
-
-        if (!CreatureDeathRules.DyingWindowElapsed(context.Database, state)) return;
-
-        Die(context, SystemName, creature, state);
     }
 
     /// <summary>
@@ -243,10 +222,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     }
 
     /// <summary>The own-land regeneration, first in the creature's own update (<c>0x00488C32</c>), with
-    /// the creature's own <c>+0x36</c> as the source. Ours alone skips a prisoner, whose health is PrisonSystem's (ADR-0064).</summary>
+    /// the creature's own <c>+0x36</c> as the source. Ours alone skips a Prison inmate, whose health is PrisonSystem's (ADR-0064); a pit binding does not suppress it.</summary>
     internal static void RegenerateOnOwnLand(SimulationContext context, CreatureDef creature, CreatureState state)
     {
-        if (PrisonRules.IsImprisoned(state)) return;
+        if (PrisonRules.IsPrisonInmate(state)) return;
         int regen = CreatureHealthRules.OwnLandRegenPerTurn(context.World, context.Database, creature, state);
         if (regen == 0) return;
         int landed = CreatureHealthRules.Apply(context.Database, creature, state, regen, state.HealthSourcePlayerId);

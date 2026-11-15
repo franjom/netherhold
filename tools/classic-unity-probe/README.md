@@ -580,3 +580,21 @@ open or save the owner's scene. The 2026-11-15 regression failed four profile an
 16 raster cases before the clamp (`build/hover-outline-raster-red.log`) and passed
 all 44 afterward (`build/hover-outline-final.log`). This is a shader check, not
 live-scene visual acceptance.
+
+## Known-broken probes
+
+Fixed on 2026-11-15, after the HUD panel moves (ADR-0805): `run-front-end.ps1`'s session run (its
+"no gameplay HUD" check now tests `_bottomPanel`; the front end builds `_hudSources` for its save list),
+`run-session-save-load.ps1` (the objective state is `MessageTabsHud`'s; a frame with Options open lays out
+the pane, then the probe presses it through the model) and `run-completion-flow.ps1` (a menu click's clip
+decodes on a worker and plays when ready, so its check waits for the clip instead of racing the decode).
+
+Still failing: `run-scaled-integration.ps1` (`ScaledIntegrationProbe`). Its stages now find their targets
+through the panel models (`ScreenOf` maps a virtual-unit rect to a screen point at the phase's UI scale), and
+it passes the audio and rebound-key checks. It then fails "Blank scaled UI mode": every one of the 15 UI
+panels' target textures reads back with no ink, the untouched hand cursor's too, while the overview's canvas
+is shown, full size and holds 12 draws. Ruled out on 2026-11-15: lost canvas meshes (the probe now invalidates
+every `HudCanvas` after targeting), the texture format (ARGB32 as `HudComparisonProbe`), URP camera render
+requests before the read (as `HudComparisonProbe`), and editor focus. `HudComparisonProbe` uses the same
+target textures and does get ink, so the difference is in how this probe drives its frames; open. A blank
+capture writes `diagnostic-blank-*.png` and logs each document's state and ink.

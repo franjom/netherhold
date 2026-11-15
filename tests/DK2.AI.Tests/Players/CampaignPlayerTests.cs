@@ -20,7 +20,7 @@ public partial class CampaignPlayerTests
     private static readonly CreatureTypeId Imp = new(1), Goblin = new(7);
 
     /// <summary>'.' own floor, 'H' own heart, '#' diggable rock, '$' gold seam, 'R' impenetrable rock,
-    /// '?' unseen, 't' an own dig mark on unseen ground, 'e' enemy floor, 'T' own Treasury, 'L' own Lair,
+    /// '?' unseen, 't' an own dig mark on unseen ground, 'x' an own dig mark on rock, 'e' enemy floor, 'T' own Treasury, 'L' own Lair,
     /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison, 'B' own Library.</summary>
     private static PlayerTileGrid Map(params string[] rows)
     {
@@ -46,6 +46,7 @@ public partial class CampaignPlayerTests
                     '$' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable | PlayerTileFlags.GoldSeam, default, default),
                     'R' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid, default, default),
                     't' => new PlayerTile(PlayerTileFlags.Tagged, default, default),
+                    'x' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable | PlayerTileFlags.Tagged, default, default),
                     'e' => new PlayerTile(PlayerTileFlags.Known, Heroes, default),
                     _ => default,
                 };
@@ -71,7 +72,8 @@ public partial class CampaignPlayerTests
     private static PlayerObservation Observe(long revision = 1, string[]? map = null, int gold = 5000, int hand = 0,
         PlayerPhase phase = PlayerPhase.Playing, IReadOnlyList<PlayerRoomOffer>? rooms = null, IReadOnlyList<PlayerVisibleThing>? things = null,
         IReadOnlyList<PlayerRoomSummary>? owned = null, IReadOnlyList<PlayerReceipt>? receipts = null, long tick = -1,
-        IReadOnlyList<PlayerCreatureSummary>? creatures = null, IReadOnlyList<PlayerSpellOffer>? spells = null)
+        IReadOnlyList<PlayerCreatureSummary>? creatures = null, IReadOnlyList<PlayerSpellOffer>? spells = null,
+        int mana = 0, int income = 0, int upkeep = 0, int? impCost = null)
     {
         rooms ??= [new PlayerRoomOffer(RoomTypeId.Treasury, new GoldAmount(50), true), new PlayerRoomOffer(RoomTypeId.Lair, new GoldAmount(50), true)];
         things ??= [];
@@ -80,7 +82,8 @@ public partial class CampaignPlayerTests
             PlayerPhase.Ended => PlayerActionKinds.None,
             PlayerPhase.Intro => PlayerActionKinds.SkipIntro,
             _ => PlayerActionKinds.TagArea | (rooms.Count > 0 ? PlayerActionKinds.BuildRoom | PlayerActionKinds.SelectPanel : 0)
-                 | (hand > 0 ? PlayerActionKinds.DropAt : 0) | (spells is { Count: > 0 } ? PlayerActionKinds.CastSpell : 0),
+                 | (hand > 0 ? PlayerActionKinds.DropAt : 0) | (spells is { Count: > 0 } ? PlayerActionKinds.CastSpell : 0)
+                 | (impCost is not null ? PlayerActionKinds.CreateImpAt : 0),
         };
         foreach (PlayerVisibleThing thing in things)
         {
@@ -92,6 +95,9 @@ public partial class CampaignPlayerTests
             Stamp = new PlayerStamp(Run, Me, new GameTick(tick >= 0 ? tick : revision * 4), new PlayerRevision(revision)),
             Phase = phase,
             Gold = new GoldAmount(gold),
+            Mana = new ManaAmount(mana),
+            ManaIncome = new ManaPerSecond(income),
+            ManaUpkeep = new ManaPerSecond(upkeep),
             HandCount = hand,
             Tiles = Map(map ?? Dungeon),
             Things = things,
@@ -104,6 +110,7 @@ public partial class CampaignPlayerTests
                 Rooms = rooms,
                 Panels = [.. rooms.Select(r => GuiButtonTarget.Room(r.Room))],
                 Spells = spells ?? [],
+                CreateImpCost = impCost is int cost ? new ManaAmount(cost) : null,
             },
         };
     }
@@ -284,9 +291,10 @@ public partial class CampaignPlayerTests
     [Fact]
     public void AFighterAlreadyOnTheBestDropFloorIsNotLiftedForAnOutOfReachEnemy()
     {
-        // The hero stands 8 tiles beyond own floor; the goblin already stands where a drop would put it.
+        // The hero stands 8 tiles beyond own floor (an attack: EnemyNearTiles is 8); the goblin already stands where a
+        // drop would put it.
         string[] wide = [.. Dungeon.Select(r => r + "##########")];
-        PlayerVisibleThing hero = new(Handle(0), PlayerThingKind.Creature, new TilePos(18, 5), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        PlayerVisibleThing hero = new(Handle(0), PlayerThingKind.Creature, new TilePos(16, 5), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
         PlayerVisibleThing goblin = new(Handle(1), PlayerThingKind.Creature, new TilePos(8, 5), Me, PlayerThingActions.PickUp, creatureType: Goblin);
         Assert.DoesNotContain(Player().Decide(Observe(map: wide, things: [hero, goblin], gold: 0)).Actions, a => a is PlayerAction.PickUp);
         // The same goblin back home is lifted.

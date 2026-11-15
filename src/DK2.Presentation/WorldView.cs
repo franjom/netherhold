@@ -1542,6 +1542,11 @@ public sealed partial class WorldView
                 previousHeight += IsWorker(creature) && IsCreationTurn(creature) ? CreationPreviousHeight : creature.LastPosZ;
             }
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
+            if (creature.Dk2StateId == CreatureDeathRules.DyingState)
+            {
+                height = FloorZ + creature.PosZ;
+                previousHeight = FloorZ + creature.LastPosZ;
+            }
             int previousX = creature.LastPosX, previousY = creature.LastPosY;
             if (PortalExitIsRelocation(world, creature))
             {

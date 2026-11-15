@@ -23,8 +23,8 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
 ```
 
 `DK2.Pathfinding` references only `DK2.Core`; `DK2.Data` never references
-`DK2.Simulation`. `DK2.Convert` references `DK2.Art`, `DK2.Assets` and `DK2.Data`; the
-`DK2.Presentation` reads media through `IClassicSoundAssets`, settings and saved sessions
+`DK2.Simulation`. `DK2.Convert` references `DK2.Art`, `DK2.Assets` and `DK2.Data`.
+`DK2.Presentation` references `DK2.Art` for `RgbaImage` and `FrontEndLabelGlow` (the HUD's label pixels, ADR-0805) and reads media through `IClassicSoundAssets`, settings and saved sessions
 from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references are the authority.
 
 | Project | Holds |
@@ -42,6 +42,7 @@ from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references a
 | `DK2.Harness` | headless scenario runner |
 | `DK2.Tools` | the `dk2tools` CLI: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, `simmatrix`, and the data inspectors |
 | `unity/DK2.Unity` | the adapter; `unity/DK2.Unity.Compile` builds it against Unity's modules |
+| `godot/DK2.Godot` | the Godot adapter, namespace `DK2.GodotAdapter` (ADR-0805, ADR-0810); shows the classic front-end menu so far |
 
 `docs/HANDOFF.md` §"Where to work" says which project a change belongs in.
 
@@ -287,8 +288,9 @@ a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is Uni
 
 **HUD (ADR-0805).** A HUD panel's DK2 behaviour lives in `DK2.Presentation` and writes a `HudFrame`
 (`HudDrawList.cs`). The adapter draws it with `HudCanvas` and forwards pointer input. The bottom panel,
-the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages have moved; the other panels are still Unity code until they move in the order ADR-0805 lists. The ADR's
-table says where new HUD files go, including the future `godot/DK2.Godot` adapter.
+the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages, the front-end menu, and the minimap and full-map markers have moved (`MinimapHud`, `FullMapHud`); the minimap's GPU disc and camera footprint stay Unity code. A
+front-end label is a `HudLabel` in BF4 glyph boxes: `HudCanvas` draws the shared bitmap (`HudLabelPixels`) or the replacement TrueType glyphs in those boxes. The ADR's
+table says where new HUD files go, including the `godot/DK2.Godot` adapter, which today shows the classic front-end menu through its own `HudCanvas` (ADR-0810; toolchain and run notes in `godot/README.md`). Its csproj is outside `DK2.slnx` and CI.
 
 `unity/DK2.Unity.Compile` compiles the adapter against Unity's real module
 assemblies, which is the only way "do not commit code you have not built" reaches

@@ -36,6 +36,15 @@ public sealed record CampaignPlayerOptions
 
     public bool IsWorker(CreatureTypeId type) => _workers.Contains(type);
 
+    /// <summary>Each creature type's fighting style (<c>CreatureDef.FightStyle</c>), heroes' included: public data a
+    /// player reads in the creature's description, supplied by the host (campaign bot defence plan, D1). A type not
+    /// listed is a <see cref="FightStyle.NonFighter"/>; with none supplied at all every type is a
+    /// <see cref="FightStyle.Blocker"/>, so a host without the data still defends.</summary>
+    public IReadOnlyDictionary<CreatureTypeId, FightStyle> FightStyles { get; init; } = new Dictionary<CreatureTypeId, FightStyle>();
+
+    public FightStyle StyleOf(CreatureTypeId type) =>
+        FightStyles.Count == 0 ? FightStyle.Blocker : FightStyles.TryGetValue(type, out FightStyle style) ? style : FightStyle.NonFighter;
+
     /// <summary>Special box types to activate; null activates any offered special.</summary>
     public IReadOnlyList<ObjectTypeId>? SpecialTypes
     {
@@ -55,6 +64,11 @@ public sealed record CampaignPlayerOptions
     /// <summary>The level a Combat Pit fighter stops gaining at (<c>CombatPitMaxExperienceLevel</c>, variable 192,
     /// 8 as shipped; combat-pit.md section 7): definition data the host reads off the level's variables.</summary>
     public int CombatPitMaxLevel { get; init; } = 8;
+
+    /// <summary>Below this many Imps the game makes one free every few seconds (<c>MinimumImpThreshold</c>, 4 as shipped;
+    /// imps-and-mana.md): definition data the host reads off the level's variables. Rule R8 buys none below it (owner,
+    /// 2026-11-15: "wait"). 0, unknown, never waits.</summary>
+    public int FreeImps { get; init; }
 
     /// <summary>The room facts (stage 3 plan, Task 3a): definition data generated from the game's rules,
     /// loaded by the host before tick 0. <see cref="KeeperKnowledge.None"/> sizes every room by

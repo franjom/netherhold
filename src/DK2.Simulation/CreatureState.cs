@@ -198,7 +198,7 @@ public enum CreatureActivity
     /// (ADR-0201, <see cref="RescueRules"/>).</summary>
     Rescuing = 31,
 
-    /// <summary>In a Combat Pit: DK2's states 137, 138, 139 and 141 and 139's walks, category 16
+    /// <summary>In a Combat Pit: DK2's states 137 through 141 and 139's walks, category 16
     /// (ADR-0213, <see cref="CombatPitRules"/>). The fight itself is <see cref="Fighting"/>.</summary>
     PitFighting = 32,
 
@@ -466,6 +466,14 @@ public sealed partial class CreatureState
     /// <c>DeadBodyDiesAfterSeconds</c> (also 60). Reset to zero at the
     /// transition, so a corpse gets its own full sixty seconds.</para></summary>
     public int DyingTicks;
+    /// <summary>State +0xA7: the pit loser's sinking/rising phase.</summary>
+    public PitTransportPhase PitTransportPhase;
+    /// <summary>State +0xAB, stamped by 216: transport starts strictly after this turn.</summary>
+    public GameTick PitTransportAfter;
+    /// <summary>The retained native floor word during raw pit transport position writes.</summary>
+    public Fp32 PitTransportFloorHeight;
+    public bool IsPitTransporting => Dk2StateId == CreatureDeathRules.DyingState
+        && PitTransportPhase != PitTransportPhase.None;
 
     /// <summary>How cross this creature is — six counters, one per grievance, each
     /// running from 0 to <see cref="CreatureAngerRules.Saturation"/> (65533).
@@ -730,14 +738,9 @@ public sealed partial class CreatureState
     /// two bodies on one tile distinct.</summary>
     public int TargetBodyId = -1;
 
-    /// <summary>The keeper whose prison holds this creature, or
-    /// <see cref="PrisonRules.NoPrison"/> for none.
-    /// <para>Not <see cref="OwnerPlayerId"/>: a prisoner is still its own
-    /// keeper's creature, merely somebody else's problem to feed. The original's
-    /// creature dump names the field <c>PrisonOwner</c> at offset <c>0x3cb</c>
-    /// (ADR-0046). Survives being picked up: dropping a prisoner back on a
-    /// prison tile puts it straight back, and only dropping it elsewhere frees
-    /// it (<see cref="PrisonRules.Release"/>).</para></summary>
+    /// <summary>Raw keeper binding at native <c>+0x3CB</c>, or <see cref="PrisonRules.NoPrison"/>.
+    /// Prison inmates and pit fighters both use it; an own pit fighter binds to its own keeper.
+    /// It survives pickup and is independent of room attachment and actual creature ownership.</summary>
     public int PrisonOwnerPlayerId = PrisonRules.NoPrison;
 
     /// <summary>Casualty priority per compact player id minus one; initially zero (creature +0x3F7).</summary>
@@ -1023,6 +1026,7 @@ public sealed partial class CreatureState
 
     /// <summary>The counted idle action carried across idle and wander states, or none.</summary>
     public IdleActionId IdleAction;
+    public Systems.CombatPitActionId CombatPitAction;
 
     public ReinforcementActionState ReinforcementAction;
     public PossessedExcavationState PossessedExcavation;
@@ -1525,6 +1529,9 @@ public sealed partial class CreatureState
         hash.Add(NextSleepTryTick.Value);
         hash.Add(SleepTicks);
         hash.Add(DyingTicks);
+        hash.Add((byte)PitTransportPhase);
+        hash.Add(PitTransportAfter.Value);
+        hash.Add(PitTransportFloorHeight.Raw);
         Anger.Hash(ref hash);
         hash.Add(WageOwed);
         hash.Add(PayAttemptsFailed);
@@ -1618,6 +1625,7 @@ public sealed partial class CreatureState
         hash.Add(CombatStateEnteredTick);
         hash.Add(StateEnteredTick);
         hash.Add((byte)IdleAction);
+        hash.Add((byte)CombatPitAction);
         hash.Add(ActionArtSlot);
         hash.Add(ActionAnimationPhase);
         hash.Add(ActionAnimationRate);

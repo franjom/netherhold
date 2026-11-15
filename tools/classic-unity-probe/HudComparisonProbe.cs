@@ -247,6 +247,11 @@ namespace DK2.Unity.Editor
             var fullmap = Field<ClassicFullMap>("_fullMap");
             if (_slice == 7)
             {
+                // The room's icon as if the pointer were on it, built and presented now (ADR-0805); the preview
+                // camera is placed after, since Draw places it at the pointer.
+                ((FullMapHud)typeof(ClassicFullMap).GetField("_hud", Private).GetValue(fullmap))
+                    .Capture(world, _runner.Simulation.Database, new PlayerId(3), _previewTile);
+                fullmap.Draw();
                 var layout = ClassicFullMapLayout.Fit(Screen.width, Screen.height, world.Width, world.Height);
                 var preview = layout.Preview(Screen.width, Screen.height, layout.Origin + layout.Size
                     * new System.Numerics.Vector2((_previewTile.X + .5f) / world.Width, (_previewTile.Y + .5f) / world.Height));
@@ -256,8 +261,6 @@ namespace DK2.Unity.Editor
                 bool explored = !world.FogOfWarEnabled || world.Tile(centre).IsExploredBy(new PlayerId(3));
                 if (!ClassicFullMapMarkers.TryRoom(room.Definition.TypeId.Value, centre, explored, out var marker))
                     throw new Exception("Real room was refused by the production full-map marker API.");
-                typeof(ClassicFullMap).GetField("_roomMarker", Private).SetValue(fullmap, (MinimapMarker?)marker);
-                ((VisualElement)typeof(ClassicFullMap).GetField("_overlay", Private).GetValue(fullmap)).MarkDirtyRepaint();
             }
             scene.PrepareClassicLighting(_camera, Field<ClassicCamera>("_classicCamera").NativeViewDistance, fullmap.PreviewCamera);
         }
@@ -291,9 +294,10 @@ namespace DK2.Unity.Editor
             var composite = new Material(Shader.Find("Hidden/DK2/FrontEndProbeComposite"));
             if (_slice == 7)
             {
-                var roomTextures = (Dictionary<RoomTypeId, Texture2D>)typeof(ClassicFullMap).GetField("_roomTextures", Private)
-                    .GetValue(Field<ClassicFullMap>("_fullMap"));
-                if (roomTextures.Count == 0) throw new Exception("Full-map room hover icon was never drawn.");
+                var front = (HudFrame)typeof(ClassicFullMap).GetField("_frontFrame", Private).GetValue(Field<ClassicFullMap>("_fullMap"));
+                bool icon = false;
+                foreach (HudDraw draw in front.Draws) icon |= draw.Image.Path != null && draw.Image.Path.StartsWith("gui\\rooms\\", StringComparison.Ordinal);
+                if (!icon) throw new Exception("Full-map room hover icon was never drawn.");
                 var preview = Pixels(Field<ClassicFullMap>("_fullMap").PreviewCamera.targetTexture);
                 if (preview.GetPixels32().Count(c => c.r > 20 || c.g > 20 || c.b > 20) < preview.width * preview.height / 20)
                 {
@@ -350,7 +354,7 @@ namespace DK2.Unity.Editor
         {
             var world = _runner.Simulation.World;
             var source = Field<DungeonMinimap>("_minimap");
-            var grid = (MinimapClassGrid)typeof(DungeonMinimap).GetField("_grid", Private).GetValue(source);
+            var grid = ((MinimapHud)typeof(DungeonMinimap).GetField("_hud", Private).GetValue(source)).Grid;
             var rooms = RoomIndex.Build(world, _runner.Simulation.Database);
             var heart = rooms.First(room => room.Definition.TypeId == RoomTypeId.DungeonHeart);
             var portal = rooms.First(room => room.Definition.TypeId == RoomTypeId.Portal);
@@ -365,7 +369,8 @@ namespace DK2.Unity.Editor
             }
             Vector2 Pixel(TilePos tile) => new Vector2(layout.Origin.X + (tile.X + .5f) * layout.Size.X / world.Width,
                 layout.Origin.Y + (tile.Y + .5f) * layout.Size.Y / world.Height);
-            var markers = (List<MinimapMarker>)typeof(ClassicFullMap).GetField("_markers", Private).GetValue(Field<ClassicFullMap>("_fullMap"));
+            var markers = (List<MinimapMarker>)typeof(FullMapHud).GetField("_markers", Private)
+                .GetValue(typeof(ClassicFullMap).GetField("_hud", Private).GetValue(Field<ClassicFullMap>("_fullMap")));
             bool Uncovered(TilePos tile)
             {
                 var p = Pixel(tile);

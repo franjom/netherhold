@@ -196,7 +196,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         if (creature.Dk2StateId == CombatStates.Engaging && creature.StateEnteredTick == tick) creature.SetSpeedMode(CreatureSpeedMode.Run, tick);
         CombatMessageRules.UpdateBattle(world, creature, tick);
 
-        if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: false))
+        if (!creature.AttackAbnormalTargets && !CombatRules.MayLookForAFight(world, context.Database, creature, force: false))
         {
             LetGo(context, creature, "cannot_continue");
             return;

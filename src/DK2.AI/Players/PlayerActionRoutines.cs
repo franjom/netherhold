@@ -249,6 +249,42 @@ public static class PlayerActionRoutines
         return null;
     }
 
+    /// <summary>Whether a visible threat (<see cref="IsThreat"/>) stands within <paramref name="tiles"/> (Chebyshev) of
+    /// <paramref name="at"/>. One in sight but further off, such as a guard standing in its own room across the map,
+    /// does not count.</summary>
+    public static bool ThreatNear(PlayerObservation observation, TilePos at, int tiles)
+    {
+        foreach (PlayerVisibleThing thing in observation.Things)
+            if (IsThreat(observation, thing) && Math.Max(Math.Abs(thing.Tile.X - at.X), Math.Abs(thing.Tile.Y - at.Y)) <= tiles)
+                return true;
+        return false;
+    }
+
+    /// <summary>The attack to answer first (campaign bot defence plan, D2; owner, 2026-11-15: "it should defend its
+    /// entire dungeon"): of the visible threats within <paramref name="tiles"/> (Chebyshev) of any tile the player owns,
+    /// the one nearest <paramref name="home"/>; null when none. An enemy far from all of the dungeon, such as a guard
+    /// in its own Prison across the map, is no attack.</summary>
+    public static PlayerVisibleThing? NearestAttacker(PlayerObservation observation, TilePos home, int tiles)
+    {
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        PlayerVisibleThing? best = null;
+        foreach (PlayerVisibleThing thing in observation.Things)
+        {
+            if (!IsThreat(observation, thing)
+                || best is PlayerVisibleThing b && DistanceSquared(thing.Tile, home) >= DistanceSquared(b.Tile, home)) continue;
+            bool near = false;
+            for (int dy = -tiles; dy <= tiles && !near; dy++)
+                for (int dx = -tiles; dx <= tiles && !near; dx++)
+                {
+                    var at = new TilePos(thing.Tile.X + dx, thing.Tile.Y + dy);
+                    near = grid.Contains(at) && IsOwnFloor(grid[at], self);
+                }
+            if (near) best = thing;
+        }
+        return best;
+    }
+
     /// <summary>The visible threat (<see cref="IsThreat"/>) nearest <paramref name="home"/>, or null.</summary>
     public static PlayerVisibleThing? NearestEnemy(PlayerObservation observation, TilePos home)
     {
@@ -259,20 +295,67 @@ public static class PlayerActionRoutines
         return enemy;
     }
 
-    /// <summary>An own non-worker the hand may lift that is not already within <paramref name="near"/>
-    /// tiles of <paramref name="enemy"/> or of <paramref name="placed"/> (where a drop would put it);
-    /// the nearest home first.</summary>
-    public static PlayerVisibleThing? Fighter(PlayerObservation observation, CampaignPlayerOptions options, TilePos enemy, TilePos placed, int near, TilePos home)
+    /// <summary>Where a defender of <paramref name="style"/> belongs against an attacker at <paramref name="enemy"/>
+    /// (defence plan D3; owner, 2026-11-15: "tanks in front, support and squishy in the back, flankers and blitzers
+    /// behind enemies"). The front faces from the enemy toward <paramref name="home"/>: a Blocker (or any other)
+    /// <see cref="FrontTiles"/> in front of the enemy, Support <see cref="SupportTiles"/> in front, a Flanker or
+    /// Blitzer <see cref="FrontTiles"/> behind it.</summary>
+    public static TilePos FormationPoint(TilePos enemy, TilePos home, FightStyle style)
+    {
+        double dx = home.X - enemy.X, dy = home.Y - enemy.Y, length = Math.Sqrt(dx * dx + dy * dy);
+        if (length < 1) { dx = 0; dy = 1; length = 1; }
+        double depth = style switch
+        {
+            FightStyle.Support => SupportTiles,
+            FightStyle.Flanker or FightStyle.Blitzer => -FrontTiles,
+            _ => FrontTiles,
+        };
+        return new TilePos((int)Math.Round(enemy.X + dx / length * depth, MidpointRounding.AwayFromZero),
+            (int)Math.Round(enemy.Y + dy / length * depth, MidpointRounding.AwayFromZero));
+    }
+
+    /// <summary>How far (tiles) in front of an attacker a Blocker goes, and behind it a Flanker or Blitzer: "1-2 tiles".</summary>
+    public const double FrontTiles = 1.5;
+
+    /// <summary>How far (tiles) in front of an attacker Support goes: 3-4 tiles behind the Blockers.</summary>
+    public const double SupportTiles = 5;
+
+    /// <summary>The next defender to lift against an attacker at <paramref name="enemy"/> (defence plan D3): an own
+    /// non-worker the hand may lift, not a NonFighter, not hurt (five petals or more when its flower shows), and not
+    /// already within <paramref name="near"/> of the enemy or of the tile a drop would put it on
+    /// (<paramref name="dropFor"/> its style); Blockers first, then Flankers and Blitzers, then Support, each nearest
+    /// <paramref name="home"/> first. Null with none.</summary>
+    public static PlayerVisibleThing? Defender(PlayerObservation observation, CampaignPlayerOptions options, TilePos enemy, int near, TilePos home,
+        Func<FightStyle, TilePos?> dropFor)
     {
         PlayerId self = observation.Stamp.Player;
+        var petals = new Dictionary<PlayerThingHandle, int>();
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) petals[seen] = creature.Petals;
         PlayerVisibleThing? best = null;
+        int bestRank = int.MaxValue;
+        var drops = new Dictionary<FightStyle, TilePos?>();
         foreach (PlayerVisibleThing thing in observation.Things)
         {
             if (thing.Kind != PlayerThingKind.Creature || thing.Owner != self || (thing.Actions & PlayerThingActions.PickUp) == 0
                 || thing.CreatureType is not CreatureTypeId type || options.IsWorker(type)
-                || DistanceSquared(thing.Tile, enemy) <= (long)near * near
-                || DistanceSquared(thing.Tile, placed) <= (long)near * near) continue;
-            if (best is null || DistanceSquared(thing.Tile, home) < DistanceSquared(best.Value.Tile, home)) best = thing;
+                || petals.GetValueOrDefault(thing.Handle, 6) < 5
+                || DistanceSquared(thing.Tile, enemy) <= (long)near * near) continue;
+            int rank = options.StyleOf(type) switch
+            {
+                FightStyle.Blocker => 0,
+                FightStyle.Flanker or FightStyle.Blitzer => 1,
+                FightStyle.Support => 2,
+                _ => -1,
+            };
+            FightStyle style = options.StyleOf(type);
+            if (!drops.TryGetValue(style, out TilePos? drop)) drops[style] = drop = dropFor(style);
+            if (rank < 0 || drop is TilePos placed && DistanceSquared(thing.Tile, placed) <= (long)near * near) continue;
+            if (best is null || rank < bestRank || rank == bestRank && DistanceSquared(thing.Tile, home) < DistanceSquared(best.Value.Tile, home))
+            {
+                best = thing;
+                bestRank = rank;
+            }
         }
         return best;
     }
