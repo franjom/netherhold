@@ -249,6 +249,17 @@ public static class PlayerActionRoutines
         return null;
     }
 
+    /// <summary>Whether a visible threat (<see cref="IsThreat"/>) stands within <paramref name="tiles"/> (Chebyshev) of
+    /// <paramref name="at"/>. One in sight but further off, such as a guard standing in its own room across the map,
+    /// does not count.</summary>
+    public static bool ThreatNear(PlayerObservation observation, TilePos at, int tiles)
+    {
+        foreach (PlayerVisibleThing thing in observation.Things)
+            if (IsThreat(observation, thing) && Math.Max(Math.Abs(thing.Tile.X - at.X), Math.Abs(thing.Tile.Y - at.Y)) <= tiles)
+                return true;
+        return false;
+    }
+
     /// <summary>The visible threat (<see cref="IsThreat"/>) nearest <paramref name="home"/>, or null.</summary>
     public static PlayerVisibleThing? NearestEnemy(PlayerObservation observation, TilePos home)
     {

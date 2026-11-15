@@ -159,12 +159,15 @@ what a working slice and the triage needed, not guessed.
       Prison, Temple, Graveyard, Torture Chamber, Casino, Combat Pit: each built once, rebuilt if
       lost, after every listed room stands and none has outgrown itself), `LairTilesPerCreature`
       1, `CreaturesPerHatcheryTile` 2, `TreasuryFullPercent` 80, `UseRooms`, `TilesPerWorkingCreature`
-      3, `UseRoomEveryTicks` 200, `UseRoomMinGold` 1000, `Breach`, `EnemyClearanceTiles` 3.
+      3, `UseRoomEveryTicks` 200, `UseRoomMinGold` 1000, `Breach`, `EnemyClearanceTiles` 3, `EnemyNearTiles` 8 (playbook `strategy.enemy-near-tiles`, 0-255).
       `CampaignPlayerOptions` gains `GoldPerTreasuryTile` and `HeartGold`, definition data the
       harness passes (`MaxGoldPerTreasuryTile`; sixteen heart tiles of `MaxGoldPerDungeonHeartTile`,
       Q52, ADR-0027); unknown, no Treasury grows for want of room. Growth and extras wait while a
       missing listed room is offered but unaffordable; a pending build completes when its type's
-      tile count rises; a Work step carries an idle own non-worker to a room `UseRooms` names.
+      tile count rises; a Work step carries an idle own non-worker to a room `UseRooms` names. It stops while a threat
+      stands within `EnemyNearTiles` of home (Chebyshev), and never picks a room tile with one that near, whatever its
+      distance from home. A creature already lifted goes on to its room, the Pit or a scout tile; it turns back only
+      for a threat near home or near its destination (Q843).
       `IsThreat` treats an enemy on the player's own Prison or Torture Chamber as a captive.
       **`UseRooms` defaults to empty:** with the Training Room on by default Level 3 accept seeds
       12 and 13 were lost (8/10); on those two seeds training off won both, extras off won both
@@ -348,7 +351,8 @@ replay tests updated.
 
 **The Combat Pit routine (owner direction, 2026-11-14; built 2026-11-15).** `CampaignPlayer.Pit` is off unless
 `PlayerStrategy.PitFighters` is above 0 (default 0; playbook tunable `strategy.pit-fighters`, 0-16). It needs an
-owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since its last act; the first that can act:
+owned Combat Pit, an empty hand, no enemy within `strategy.enemy-near-tiles` of home or of the Pit's tile nearest home, and
+`UseRoomEveryTicks` since its last act; the first that can act:
 
 1. A creature collapsed on the Pit (one petal) gets the nearest liftable own Imp dropped on it, so the Imp carries it
    to its bed (`CarryUnconscious`). This runs before the interval check: a collapsed creature dies within
@@ -382,13 +386,17 @@ owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since
 
 A refused Pit drop goes to its own set, not the Work routine's. The harness passes `CombatPitMaxLevel`. Training Room
 work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Known gaps: a refused Heal is retried each
-interval (cast outcomes are not read), and `Pit` allocates per decision when on. `DK2.AI.Tests` 592 and
+interval (cast outcomes are not read), and `Pit` allocates per decision when on. `DK2.AI.Tests` 597 and
 `DK2.Behavior.Tests` 672 (5 skipped) pass, the latter with an end-to-end test (a beaten Goblin rises on the rim, the
 bot drops one Imp there, the Goblin ends asleep in its bed); Level 1 seed 1 is unchanged (Completed at tick 2334, final
 hash fd4199d3977b784f). Limits: that test covers the rim path only (the floor fallback is covered by unit tests), and a
 floor-tile entry can survive up to 12 ticks when the routine is skipped. **Not measured:** only Levels 15a and later
-offer a Combat Pit. A Level 15a campaign run built a 3x3 Pit, but the routine never acted and the bot mostly waited;
-the cause is not investigated (Q843).
+offer a Combat Pit. A Level 15a campaign run built a 3x3 Pit, but the routine never acted. Q843 found two causes. Hero Guards stand in
+the heroes' own Prison, 9 to 25 tiles from the Heart and in sight all game, and froze Work, the Pit and scouting; the
+`EnemyNearTiles` gate fixes that. The bot's own eight Black Knights are prisoners in that Prison, listed as its
+creatures but not liftable, so no fighter is free: freeing them is a level objective, not built, and the Pit stays
+unused there. Level 15a seeds 1-3 are unchanged (Defeated at ticks 4861, 7554 and 9792). The fight routine is
+unchanged: under `Engage` it still lifts a free fighter toward any enemy in sight (Q847).
 
 **Built: creature level, petals and mood.** `PlayerCreatureSummary` gains `Level`, `Petals`, `Mood`
 (`PlayerCreatureMood`: Happy, Unhappy, Angry) and `FlowerKnown`, filled by
@@ -451,7 +459,7 @@ Reviewer: no blocker, no major. Open: Q825 (a greyed slot's click), Q826 (placed
 **The Imp scouting routine (owner direction, 2026-11-14; first aimed at Level 6a; built 2026-11-15).**
 Unknown ground (`PlayerTile.IsKnown` false) hides gold, gems, water to bridge and enemies. `CampaignPlayer.Scout`
 is off unless `PlayerStrategy.Scouts` is 1 (default 0; playbook tunable `strategy.scouts`, 0-1); rule R6 in
-`knowledge/rules.yaml`. It runs when no Work or Pit routine acted, with an empty hand, no enemy in sight, at
+`knowledge/rules.yaml`. It runs when no Work or Pit routine acted, with an empty hand, no enemy within `strategy.enemy-near-tiles` of home, at
 least 3 Imps, one of them unhurt to send, and `UseRoomEveryTicks` since the last trip.
 - Target (`ScoutTarget`): known, dry, roomless floor beside unknown ground that no enemy seen in the last 1200 ticks
   stands within 8 tiles of, and no ground held by another keeper or the heroes lies within 8 tiles of. Owner 0

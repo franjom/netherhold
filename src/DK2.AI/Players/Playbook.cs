@@ -77,6 +77,7 @@ public sealed record Playbook
         ["strategy.use-room-every-ticks"] = new(1, 4800, (s, v) => s with { UseRoomEveryTicks = v }),
         ["strategy.use-room-min-gold"] = new(0, 1_000_000, (s, v) => s with { UseRoomMinGold = v }),
         ["strategy.enemy-clearance-tiles"] = new(0, 32, (s, v) => s with { EnemyClearanceTiles = v }),
+        ["strategy.enemy-near-tiles"] = new(0, 255, (s, v) => s with { EnemyNearTiles = v }),
         ["strategy.pit-fighters"] = new(0, 16, (s, v) => s with { PitFighters = v }),
         ["strategy.scouts"] = new(0, 1, (s, v) => s with { Scouts = v }),
         ["strategy.create-imps"] = new(0, 1, (s, v) => s with { CreateImps = v }),

@@ -236,8 +236,11 @@ public sealed class CampaignPlayer : IPlayerController
             _carryWorker = false;
             bool scout = _carryScout;
             _carryScout = false;
-            // A creature lifted to work goes to its room unless an enemy needs it or a drop there failed.
-            TilePos? work = enemy is null && _carryTo is TilePos room && !(_carryForPit ? _refusedPit : _refusedWork).Contains(room) ? room : null;
+            // A creature lifted to work goes to its room unless an enemy near home, or near that room, needs it, or a
+            // drop there failed. An enemy merely in sight further off does not turn it back (Q843).
+            TilePos? work = _carryTo is TilePos room && !(_carryForPit ? _refusedPit : _refusedWork).Contains(room)
+                && !PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)
+                && !PlayerActionRoutines.ThreatNear(observation, room, _strategy.EnemyNearTiles) ? room : null;
             _carryTo = null;
             _workDrop = work;
             _workDropForPit = _carryForPit;
@@ -437,7 +440,7 @@ public sealed class CampaignPlayer : IPlayerController
         return count;
     }
 
-    /// <summary>With the hand free, no enemy in sight, gold to spare and the interval passed: lifts an
+    /// <summary>With the hand free, no enemy within <see cref="PlayerStrategy.EnemyNearTiles"/> of home, gold to spare and the interval passed: lifts an
     /// idle own non-worker (one standing on floor that is no room, nearest home first) toward the first used
     /// room with fewer creatures on it than its tiles allow; the drop follows next decision, on the room's
     /// tile nearest home that has not refused one.</summary>
@@ -447,7 +450,7 @@ public sealed class CampaignPlayer : IPlayerController
             || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0
             || observation.Gold.Value < _strategy.UseRoomMinGold
             || _lastWorkTick is GameTick last && observation.Stamp.Tick.Value - last.Value < _strategy.UseRoomEveryTicks
-            || PlayerActionRoutines.NearestEnemy(observation, home) is not null) return false;
+            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) return false;
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         foreach (RoomTypeId room in _strategy.UseRooms)
@@ -474,6 +477,8 @@ public sealed class CampaignPlayer : IPlayerController
                 if (PlayerActionRoutines.NearestRoomTile(observation, room, home) is not null) _refusedWork.Clear();
                 continue;
             }
+            // Never into a room an enemy stands near, however far it is from home.
+            if (PlayerActionRoutines.ThreatNear(observation, target, _strategy.EnemyNearTiles)) continue;
             actions.Add(new PlayerAction.PickUp(lifted.Handle));
             _carryTo = target;
             _lastWorkTick = observation.Stamp.Tick;
@@ -483,7 +488,7 @@ public sealed class CampaignPlayer : IPlayerController
     }
 
     /// <summary>The Combat Pit routine (stage 3 plan, Task 4; owner direction, 2026-11-14 and 2026-11-15): with the
-    /// hand free, no enemy in sight and the interval passed, the first that can act of: a creature collapsed on the
+    /// hand free, no enemy within <see cref="PlayerStrategy.EnemyNearTiles"/> of home or the Pit and the interval passed, the first that can act of: a creature collapsed on the
     /// Pit (one petal) gets an own Imp dropped beside it, once per <see cref="RescueTicks"/> and only with a Lair to
     /// carry it to, so the Imp takes it to its bed (<c>CarryUnconscious</c>, CarryRules); a fighter on the Pit's
     /// floor at two petals (its last quarter, owner-confirmed) is healed when Heal is offered, affordable and
@@ -498,7 +503,9 @@ public sealed class CampaignPlayer : IPlayerController
     {
         if (_strategy.PitFighters <= 0 || observation.HandCount > 0 || !Fits(actions, 1)
             || OwnedTiles(observation, RoomTypeId.CombatPit) == 0
-            || PlayerActionRoutines.NearestEnemy(observation, home) is not null) return false;
+            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)
+            || PlayerActionRoutines.NearestRoomTile(observation, RoomTypeId.CombatPit, home) is TilePos pitTile
+               && PlayerActionRoutines.ThreatNear(observation, pitTile, _strategy.EnemyNearTiles)) return false;
         long now = observation.Stamp.Tick.Value;
         // A rescue does not wait for the interval: a collapsed creature dies within 60 s (CreatureDyingStateDurationSeconds).
         bool paced = _lastPitTick is GameTick last && now - last.Value < _strategy.UseRoomEveryTicks;
@@ -658,7 +665,7 @@ public sealed class CampaignPlayer : IPlayerController
             return true;
         }
         if (_lastScoutTick is GameTick last && now - last.Value < _strategy.UseRoomEveryTicks
-            || PlayerActionRoutines.NearestEnemy(observation, home) is not null) return false;
+            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) return false;
         if (ScoutTarget(observation, home) is not TilePos target)
         {
             _lastScoutTick = observation.Stamp.Tick;          // none now: look again after the interval, not every decision
