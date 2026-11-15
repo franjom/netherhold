@@ -552,7 +552,9 @@ The menu probe also checks each page's Confirm and Cancel pixels separately.
 `run-in-game-options.ps1` uses an isolated project with the Release adapter.
 It exercises the native in-game Game Options pages over Level1, live slider drag,
 Back/Continue, key capture/cancellation, persistence and paused/resumed ticks.
-The 2560x1440 target also checks actual thumb-pointer events reach the keyboard
+The panel has no named UI Toolkit elements, so the probe drives `GameOptionsHud`
+(widget and slider rectangles, key rows, `PointerDown`/`PointerMove`/`PointerUp`).
+The 2560x1440 target also checks thumb-pointer events reach the keyboard
 scrollbar maximum. Each page checks Continue and Back pixels after rendered
 play frames. Captures contain the options UI layer, not the level image.
 The fixture ends the bootstrap presentation path/letterbox without advancing the

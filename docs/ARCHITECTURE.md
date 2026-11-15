@@ -287,7 +287,7 @@ a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is Uni
 
 **HUD (ADR-0805).** A HUD panel's DK2 behaviour lives in `DK2.Presentation` and writes a `HudFrame`
 (`HudDrawList.cs`). The adapter draws it with `HudCanvas` and forwards pointer input. The bottom panel,
-the resource strip, the message tabs, the hover HUD, the creature query and overview, and the options menu and save browser have moved; the other panels are still Unity code until they move in the order ADR-0805 lists. The ADR's
+the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages have moved; the other panels are still Unity code until they move in the order ADR-0805 lists. The ADR's
 table says where new HUD files go, including the future `godot/DK2.Godot` adapter.
 
 `unity/DK2.Unity.Compile` compiles the adapter against Unity's real module
