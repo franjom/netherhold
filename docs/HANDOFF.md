@@ -116,8 +116,13 @@ These are entry points, not a new priority order.
   Q737's native closure and scope are in
   [boulder](research/boulder.md#9c-q737-recheck-stun-duration-does-not-establish-the-next-state).
   Owner observations are in [traps](research/traps.md); original-game acceptance remains open.
-- Possession camera and input: [build plan](plans/2026-10-12-possession-arms-build-plan.md)
-  and [owner play questions](research/possession-arms-and-inputs.md).
+- Possession first-person view: built and unit-tested, never seen running in an editor, no owner play
+  acceptance. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805); `DungeonRunner.Possession.cs`
+  is the Unity glue. Not built: the death view and the entry and exit colour changes (Q745), the two
+  special-ability keys, the possession HUD, the third-person view, near clip, lighting distance and
+  ambience listener in first person. Next: one editor run, then owner play. Evidence and remake choices:
+  [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
+  simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)

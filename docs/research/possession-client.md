@@ -338,7 +338,7 @@ initial value of the selection byte `+0x13D9` are still unread.
   writers of camera `+0xE38` and `+0xE3C`.
 - Who raises the view event `0x00448440` handles, who posts the player's own leave, and
   the colour changes of `0x005976D0`.
-- `Possession_SelectAbility`'s level gate in full, `0x005075A0`, `0x004D2230`, and the
+- `Possession_SelectAbility`'s level gate in full, `0x005075A0`, and the
   handlers of actions `0x1C`, `0x1E`, `0x1F` and `0x89`.
 - The map and cell accessors the step calls, taken by name: world slots `+0x1CC` and
   `+0x1D0` (`0x00508FA0`, `0x00508FB0`, width and height) and `+0x1D4` (`0x00508FE0`,

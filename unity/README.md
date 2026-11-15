@@ -200,7 +200,9 @@ level. `DungeonScene` implements `IRenderTarget` (create, update and remove for
 tiles, creatures, objects and torches, plus `Flush`) and adds a `Clear`, with no
 judgement in it beyond "file or placeholder". `DungeonRunner` reads the pointer into a
 `PlayerIntent`, translates it through `PlayerInput`, and sends the simulation only
-`InputFrame`s; `TilePicker` decides which tile a ray hits.
+`InputFrame`s; `TilePicker` decides which tile a ray hits. The first-person view is the same: `PossessionSession` holds its
+rules, and `DungeonRunner.Possession.cs` only reads keys, mouse and clock into a `PossessionInput` and applies the camera,
+pointer lock, hidden model, commands and sounds it answers.
 
 The HUD follows the same split (ADR-0805). A moved panel is an engine-free model in `src/DK2.Presentation`
 that writes a `HudFrame` draw list; `HudCanvas` renders it as UI Toolkit quads and fan meshes, snapped to

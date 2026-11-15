@@ -7,7 +7,7 @@ gem divergence (Q587), on branch `possession/arms`. All five parts are merged to
 against every branch and master at commit time (master took 232–233 and ADR-0441–0442 mid-branch). Each part gets
 focused tests, the gate (Release build, no-install suite, kb/docs/coverage checks), the 42
 scenarios against master, a reviewer pass, and its own commit. Presentation (camera, HUD, input
-keys) stays out: commands carry the original packets' meaning.
+keys) stays out, and is `plans/2026-11-14-possession-view.md`: commands carry the original packets' meaning.
 
 ## Part A: followers (§4) — built, ADR-0445
 
