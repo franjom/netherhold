@@ -12,13 +12,12 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
-    public interface IClassicFrontEndMenuAssets : IDisposable
+    public interface IClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposable
     {
-        string Text(uint id);
-        BitmapFont Font(FrontEndFont font);
         Font ReplacementFont { get; }
+        /// <summary>A front-end image's pixels by name; the menu's <see cref="HudCanvas"/> reads its art through this.</summary>
+        RgbaImage Load(string name);
         Texture2D Image(string name);
-        Texture2D ObjectiveShot(CampaignSlot slot, CampaignObjectiveShot shot);
         CampaignBriefing Briefing(CampaignSlot slot);
     }
 
@@ -27,6 +26,7 @@ namespace DK2.Unity
         private readonly InstallHudSources _text;
         private readonly ClassicFrontEndAssets _images;
         private readonly WadDirectoryIndex _imageIndex;
+        private readonly Dictionary<string, RgbaImage> _pixels = new Dictionary<string, RgbaImage>();
         private readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
         public InstallClassicFrontEndMenuAssets(string install)
         {
@@ -39,14 +39,27 @@ namespace DK2.Unity
         public string Text(uint id) => _text.Strings.TryResolve(id, out string text) ? text : string.Empty;
         public BitmapFont Font(FrontEndFont font) => _text.Font(font.FileName);
         public CampaignBriefing Briefing(CampaignSlot slot) => CampaignBriefingLoader.Load(_text.Install, slot);
+        public RgbaImage Load(string name) => LoadPixels(name + ".png");
+        public (int Width, int Height)? ImageSize(string name)
+        {
+            try { RgbaImage image = Load(name); return (image.Width, image.Height); }
+            catch (System.IO.FileNotFoundException) { return null; }
+        }
         public Texture2D Image(string name) => LoadImage(name + ".png");
-        public Texture2D ObjectiveShot(CampaignSlot slot, CampaignObjectiveShot shot)
-            => LoadImage("Obj_Shots/" + slot.LevelName + "-" + (int)shot + ".png");
+        private RgbaImage LoadPixels(string path)
+        {
+            if (!_pixels.TryGetValue(path, out RgbaImage pixels))
+            {
+                pixels = _images.Load(_imageIndex.Find(path));
+                _pixels.Add(path, pixels);
+            }
+            return pixels;
+        }
         private Texture2D LoadImage(string path)
         {
             if (!_textures.TryGetValue(path, out Texture2D texture))
             {
-                texture = _images.LoadTexture(_imageIndex.Find(path));
+                texture = MinimapFrameVisual.Decode(LoadPixels(path));
                 _textures.Add(path, texture);
             }
             return texture;

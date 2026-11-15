@@ -23,8 +23,8 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
 ```
 
 `DK2.Pathfinding` references only `DK2.Core`; `DK2.Data` never references
-`DK2.Simulation`. `DK2.Convert` references `DK2.Art`, `DK2.Assets` and `DK2.Data`; the
-`DK2.Presentation` reads media through `IClassicSoundAssets`, settings and saved sessions
+`DK2.Simulation`. `DK2.Convert` references `DK2.Art`, `DK2.Assets` and `DK2.Data`.
+`DK2.Presentation` references `DK2.Art` for `RgbaImage` and `FrontEndLabelGlow` (the HUD's label pixels, ADR-0805) and reads media through `IClassicSoundAssets`, settings and saved sessions
 from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references are the authority.
 
 | Project | Holds |
@@ -287,7 +287,8 @@ a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is Uni
 
 **HUD (ADR-0805).** A HUD panel's DK2 behaviour lives in `DK2.Presentation` and writes a `HudFrame`
 (`HudDrawList.cs`). The adapter draws it with `HudCanvas` and forwards pointer input. The bottom panel,
-the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages have moved; the other panels are still Unity code until they move in the order ADR-0805 lists. The ADR's
+the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages, and the front-end menu have moved; the minimap and full-map markers are still Unity code until they move in the order ADR-0805 lists. A
+front-end label is a `HudLabel` in BF4 glyph boxes: `HudCanvas` draws the shared bitmap (`HudLabelPixels`) or the replacement TrueType glyphs in those boxes. The ADR's
 table says where new HUD files go, including the future `godot/DK2.Godot` adapter.
 
 `unity/DK2.Unity.Compile` compiles the adapter against Unity's real module

@@ -59,5 +59,10 @@ public static partial class FrontEndPages
 {
     public static IReadOnlyList<FrontEndPageDefinition> All { get; } = Array.AsReadOnly(CreateCatalogue());
     public static FrontEndPageDefinition Get(FrontEndPage id) => All.First(p => p.Id == id);
-    public static FrontEndPageDefinition? Find(FrontEndPage id) => All.FirstOrDefault(p => p.Id == id);
+    public static FrontEndPageDefinition? Find(FrontEndPage id)
+    {
+        // A loop, not LINQ: the menu looks its page up every frame and a closure here would allocate each time.
+        for (int i = 0; i < All.Count; i++) if (All[i].Id == id) return All[i];
+        return null;
+    }
 }

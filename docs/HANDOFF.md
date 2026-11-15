@@ -25,9 +25,9 @@ questions live in their canonical documents; this file links to them.
   GPLv3 code linked to Unity's runtime remains [ADR-0041](DECISIONS.md)'s open question. ADR-0805 moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
-  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`) and the in-game options menu, save browser and settings pages (`OptionsHud`, `SaveLoadHud`, `GameOptionsHud`) are moved too; they build and their models are
+  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`), the in-game options menu, save browser and settings pages (`OptionsHud`, `SaveLoadHud`, `GameOptionsHud`) and the front-end menu (`FrontEndMenuHud`, with its label bitmap and glow pixels in `HudLabelPixels`) are moved too; they build and their models are
   tested, but none has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
-  background-repeat are unchecked. Next: the front-end menu, then the minimap and full-map markers (the rest of the order in the ADR). No Godot code existed on that date.
+  background-repeat are unchecked. Next: the minimap and full-map markers (the last of the order in the ADR). Three front-end probes fail identically on a clean HEAD and are not regressions: [known-broken probes](../tools/classic-unity-probe/README.md#known-broken-probes). No Godot code existed on that date.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,
@@ -189,7 +189,7 @@ These are entry points, not a new priority order.
     `ClassicLightning`, `ClassicTorchFlames`, `ClassicHoverOutline`): trim quads to the visible texels
     where the frame is fill-bound. Needs a busy scene, not Level1's opening.
   - Off-screen and menu work only when something changed: `MinimapGpuMap` command buffers,
-    `ClassicFullMap`'s blit and preview target, `ClassicFrontEndMenu`'s font-atlas blit.
+    `ClassicFullMap`'s blit and preview target, `HudCanvas`'s font-atlas blit for the front-end menu's replacement font.
   - `ClassicCreatureShadows`: skip the coverage redraw when no caster moved. It is already cheap
     (R8 targets, frustum-culled casters), so this is the lowest priority.
 

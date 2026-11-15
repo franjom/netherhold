@@ -580,3 +580,14 @@ open or save the owner's scene. The 2026-11-15 regression failed four profile an
 16 raster cases before the clamp (`build/hover-outline-raster-red.log`) and passed
 all 44 afterward (`build/hover-outline-final.log`). This is a shader check, not
 live-scene visual acceptance.
+
+## Known-broken probes
+
+Three probes fail identically on HEAD without the front-end menu move (checked 2026-11-15), so a failure
+is not evidence of a regression there. Fix each before relying on it.
+
+- `run-front-end.ps1` without `-Menus` or `-Campaign` (the session run): its "no front-end HUD" check forbids the `_hudSources` that `InitializeSaves` creates.
+- `run-session-save-load.ps1`: reflects on `_messageTabs._objectiveOpen`, which no longer exists.
+- `run-completion-flow.ps1`: throws "Sequence contains no matching element" at `CompletionFlowProbe.cs:309`,
+  `Effects().Last(clip != null)`. The reviewer reads it as a race, a sound decode not finished because front-end
+  sessions skip sound prefetch; not confirmed.

@@ -19209,7 +19209,10 @@ pointer state and the commands a click posts. Left there, every HUD fix would ha
    (the Reaper talisman's quarters) are `HudImageVariant`s, applied by `HudImagePixels`, so every engine gets the same pixels.
 3. **Panel by panel, Unity kept working.** Each step adds the model and its tests, turns the Unity class into a facade with
    the same public API over `HudCanvas`, and deletes the old Unity logic. Order: bottom panel (done), resource HUD (done), message
-   tabs (done), hover HUD (done), creature query and overview (done), options menu and save/load (done), game-options panel (done), front-end menu, minimap and full-map markers.
+   tabs (done), hover HUD (done), creature query and overview (done), options menu and save/load (done), game-options panel (done), front-end menu (done), minimap and full-map markers.
+4. **The replacement font is drawn in BF4 glyph boxes** (owner, 2026-11-15). The model lays every front-end label out as
+   BF4 glyph boxes (`HudLabel`). A renderer draws either the shared BF4 bitmap or its own engine's TrueType glyphs in those
+   boxes; a label whose font lacks a glyph, and every glow, is the bitmap. Only the TrueType rasterizing is per engine.
 
 **Where new files go.**
 
@@ -19219,7 +19222,7 @@ pointer state and the commands a click posts. Left there, every HUD fix would ha
 | Any other engine-neutral rule or value | where ADR-0002 and `ARCHITECTURE.md` already put it; never in an adapter |
 | Unity: the one `HudFrame` renderer | `unity/DK2.Unity/Assets/DK2/HudCanvas.cs`; a panel's Unity file is only its facade |
 | Godot: the adapter | `godot/DK2.Godot/` (the Godot project root), C# using `ProjectReference`s to `src/`; outside `DK2.slnx` until CI builds it. Its HUD renderer mirrors `HudCanvas` |
-| Engine-specific on purpose | 3D overlays (hover outline, placement, possession), movie playback, the GPU minimap image, shaders and GPU light buffers: written once per engine |
+| Engine-specific on purpose | 3D overlays (hover outline, placement, possession), movie playback, the GPU minimap image, shaders and GPU light buffers, TrueType glyph rasterizing for the replacement font: written once per engine |
 
 New DK2 behaviour written into a Unity or Godot file is a defect under this ADR.
 

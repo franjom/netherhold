@@ -24,6 +24,7 @@ namespace DK2.Unity
 
         public Texture2D LoadTexture(string name) => MinimapFrameVisual.Decode(_source.Read(name));
         public Texture2D LoadTexture(int entryIndex) => MinimapFrameVisual.Decode(_source.Read(entryIndex));
+        public RgbaImage Load(int entryIndex) => _source.Read(entryIndex);
 
         private static RgbaImage DecodePng(byte[] bytes)
         {

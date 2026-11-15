@@ -46,6 +46,12 @@ public enum HudImageVariant : byte
     /// <summary>A gauge ring filled clockwise from 12 o'clock to <see cref="HudImage.Gauge"/>, the rest black.
     /// Live: a renderer keeps one texture per path and refills it when the fraction changes.</summary>
     Gauge,
+    /// <summary>The image with its glow: padded by <see cref="HudLabel.GlowPadding"/> a side for a label or by
+    /// <see cref="FrontEndScrollBar.GlowPadding"/> for a catalogue image, its alpha dilated and blurred into the
+    /// front end's orange halo (<see cref="FrontEndLabelGlow"/>), then scaled to <see cref="HudImage.Pieces"/>
+    /// quarters (1 to 4) of full strength. The result is larger than the source, so the draw's rect covers the
+    /// padding too.</summary>
+    Glow,
 }
 
 /// <summary>Text set in a bitmap font, white with the glyphs' coverage as alpha; a tint colours it.
@@ -53,18 +59,48 @@ public enum HudImageVariant : byte
 /// widest. Fonts compare by reference.</summary>
 public sealed record HudText(BitmapFont Font, string Text, int WrapWidth, bool Centred = false);
 
-/// <summary>An image by catalogue name plus a variant, or set text. The default value is "no image":
-/// nothing is drawn.</summary>
-public readonly record struct HudImage(string? Path, HudImageVariant Variant = HudImageVariant.None, byte Pieces = 0,
-    HudGaugeFraction Gauge = default, HudText? Text = null)
+/// <summary>A front-end label laid out as DK2 does (<see cref="FrontEndLabelGeometry"/>): its text in a BF4 font,
+/// placed glyph by glyph in boxes. A renderer draws the shared bitmap of those boxes (<see cref="HudLabelPixels"/>)
+/// or, to match them with its own engine's TrueType font, one glyph of that font in each box. The draw's rect is the
+/// label's ink box; glyph k's box is <see cref="FrontEndGlyph.InkBounds"/> minus the geometry's own ink corner,
+/// scaled by the rect's width over the geometry's. A label whose font lacks any one of its glyphs is drawn whole as the
+/// bitmap, and a glow (<see cref="HudImageVariant.Glow"/>) is always the bitmap's: every renderer follows both rules.
+/// Font and geometry compare by reference.</summary>
+public sealed record HudLabel(BitmapFont Font, FrontEndLabelGeometry Geometry)
 {
-    public bool IsNone => Path is null && Text is null;
+    /// <summary>The padding the label's glow frames carry on every side, in the font's pixels.</summary>
+    public const int GlowPadding = 16;
+}
+
+/// <summary>An image by catalogue name plus a variant, set text, or a front-end label. The default value is
+/// "no image": nothing is drawn.</summary>
+public readonly record struct HudImage(string? Path, HudImageVariant Variant = HudImageVariant.None, byte Pieces = 0,
+    HudGaugeFraction Gauge = default, HudText? Text = null, HudLabel? Label = null)
+{
+    public bool IsNone => Path is null && Text is null && Label is null;
+    /// <summary>Drawn from set text or a label rather than a catalogue image: a renderer makes its pixels itself.</summary>
+    public bool IsGenerated => Text is not null || Label is not null;
     /// <summary>The variant's pixels change over time; see <see cref="HudImageVariant.Gauge"/>.</summary>
     public bool IsLive => Variant == HudImageVariant.Gauge;
     /// <summary>This image with its live parameter cleared: the identity a renderer keeps one texture for.</summary>
     public HudImage Slot => IsLive ? new HudImage(Path, Variant, Pieces) : this;
     public static implicit operator HudImage(string? path) => new(path);
+    /// <summary>The generated <c>ToString</c> would print <see cref="Slot"/>, which is this image again: a stack overflow
+    /// the first time a failed assertion or a log line formats one.</summary>
+    private bool PrintMembers(System.Text.StringBuilder builder)
+    {
+        builder.Append("Path = ").Append(Path).Append(", Variant = ").Append(Variant).Append(", Pieces = ").Append(Pieces);
+        if (Text is not null) builder.Append(", Text = ").Append(Text.Text);
+        if (Label is not null) builder.Append(", Label = ").Append(Label.Geometry.Glyphs.Count).Append(" glyphs");
+        return true;
+    }
     public static HudImage Of(HudText text) => new(null, Text: text);
+    /// <summary>The label's bitmap; with <paramref name="glowQuarters"/> from 1 to 4 its glow at that share of
+    /// full strength (<see cref="HudImageVariant.Glow"/>), whose rect is the ink box grown by the padding.</summary>
+    public static HudImage Of(HudLabel label, byte glowQuarters = 0) => glowQuarters == 0
+        ? new(null, Label: label) : new(null, HudImageVariant.Glow, glowQuarters, Label: label);
+    /// <summary>A catalogue image's glow frame: <paramref name="quarters"/> from 1 to 4.</summary>
+    public static HudImage Glowing(string path, byte quarters) => new(path, HudImageVariant.Glow, quarters);
 }
 
 public enum HudDrawKind : byte
