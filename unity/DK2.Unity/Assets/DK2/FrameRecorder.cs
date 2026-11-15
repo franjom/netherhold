@@ -66,6 +66,13 @@ namespace DK2.Unity
                 ? args[at + 1]
                 : Path.Combine(Application.persistentDataPath, "frames", DateTime.Now.ToString("yyyyMMdd-HHmmss", Invariant));
             Directory.CreateDirectory(directory);
+            if (File.Exists(Path.Combine(directory, "frames.csv"))
+                || File.Exists(Path.Combine(directory, "metadata.txt"))
+                || File.Exists(Path.Combine(directory, "capture.raw")))
+            {
+                Debug.LogWarning($"DK2: recording directory already contains a capture; choose a fresh directory: {directory}");
+                return null;
+            }
             Debug.Log($"DK2: recording frames to {directory}");
             return new FrameRecorder(directory, Seconds(args, "-profileFrom"), Seconds(args, "-profileTo"));
         }
@@ -152,9 +159,16 @@ namespace DK2.Unity
         {
             if (_written) return;
             _written = true;
+            if (_profiling)
+            {
+                UnityEngine.Profiling.Profiler.enabled = false;
+                UnityEngine.Profiling.Profiler.enableBinaryLog = false;
+                UnityEngine.Profiling.Profiler.logFile = "";
+                _profiling = false;
+            }
             var csv = new StringBuilder(_count * 100 + 200);
-            // update_ms is the runner's Update from its first line to its last; the rest of frame_ms is
-            // the engine's: rendering, presenting, other components, and whatever the driver does.
+            // frame_ms spans the preceding Update's start to this start; update_ms and parts describe this Update.
+            // Compare interval N with Update N-1 when separating runner and engine cost.
             csv.Append("frame,play_seconds,frame_ms,update_ms,ticks,tick_ms,sound_ms,wait_tick_ms,script_ms,input_ms,present_ms,")
                .Append("animated_frame_ms,chunk_rebuild_ms,lights_ms,hud_ms,gc_collections,render_tick,cam_x,cam_y,cam_z,path\n");
             for (int i = 0; i < _count; i++)

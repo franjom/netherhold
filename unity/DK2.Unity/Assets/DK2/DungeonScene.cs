@@ -122,6 +122,7 @@ namespace DK2.Unity
         private readonly ClassicTorchLightBuffer _torchLights;
         private readonly ClassicTileFillBuffer _tileFill;
         private ClassicTileLightBuffer _tileLights;
+        private bool _lightTablesNeedPublication;
         private readonly ClassicWorldLightCache _worldLights;
         private readonly PortalCentreLights _portalCentreLights;
         private int _portalLightRequestsPublished;
@@ -995,6 +996,7 @@ namespace DK2.Unity
                 throw new System.InvalidOperationException("Tile point-light tables require classic vertex lighting.");
             _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
             _tileLights.Set(table);
+            _lightTablesNeedPublication = true;
         }
 
         public void PrepareClassicLighting(Camera camera, float nativeViewDistance, Camera additionalCamera = null)
@@ -1044,6 +1046,11 @@ namespace DK2.Unity
                     visible = new System.ReadOnlySpan<TilePos>(_joinedLightBuffer, 0, _joinedLightTiles.Count);
                 }
                 _worldLights.PrepareFrame(visible);
+                if (_worldLights.TablesUnchanged && !_lightTablesNeedPublication)
+                {
+                    _tileLights?.Flush();
+                    return;
+                }
                 _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
                 foreach (TilePos previous in _publishedLightTiles)
                     if (!_worldLights.IsVisible(previous)) _tileLights.Remove(previous);
@@ -1055,6 +1062,7 @@ namespace DK2.Unity
                     _publishedLightTiles.Add(table.Tile);
                 }
                 _tileLights.Flush();
+                _lightTablesNeedPublication = false;
             }
         }
 
