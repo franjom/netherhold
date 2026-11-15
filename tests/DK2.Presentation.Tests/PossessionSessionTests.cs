@@ -156,6 +156,65 @@ public sealed class PossessionSessionTests
         Assert.Equal(new SetCreepingCommand(Viewer, true), Assert.Single(rig.Commands));
     }
 
+    /// <summary>Camera mode 11: a possessed creature that dies and leaves its body sends the camera
+    /// beside it for 3000 ms with the view running down to nothing, holds 2000 ms, looks straight
+    /// down and only then flies back; the body stays out of the picture until that move back.</summary>
+    [InstallFact]
+    public void ADeathThatLeavesItsBodyPlaysTheDeathViewBeforeFlyingBack_StronglyInferredFromBinary()
+    {
+        Rig rig = Level1(withOrdinaryCamera: true);
+        rig.Frame();
+        rig.Frame(2000);
+        rig.Me.Health = 0;
+        rig.World.Player(Viewer).PossessedCreatureId = 0;
+
+        PossessionUpdate ended = rig.Frame();
+
+        Assert.True(ended.Ended);
+        Assert.Null(ended.OrdinaryFocus);
+        Assert.True(rig.Session.CameraHeld);
+        Assert.Equal(rig.Me.Id, rig.Session.HiddenCreatureId);
+        CameraFlightState target = rig.Session.Flight.Target;
+        Assert.Equal(0, target.ViewDistance);
+        Assert.InRange(target.Pitch, 0x300, 0x4FF);
+        Assert.True(target.Roll is <= 0x7F or >= 0x780);
+        Assert.Equal(0x1100, target.Z);
+        int eye = rig.Session.Flight.Target.X - rig.Me.PosX, side = rig.Session.Flight.Target.Y - rig.Me.PosY;
+        Assert.InRange(Math.Sqrt(((double)eye * eye) + ((double)side * side)), 1, 0x1000);
+
+        rig.Frame(PossessionSession.DeathMove);
+        Assert.False(rig.Session.Flight.Active);
+        Assert.True(rig.Session.TryCamera(rig.Ordinary, Screen, out ClassicCameraPose dark));
+        Assert.Equal(0f, dark.FarClipDistance);
+        Assert.Equal(0f, dark.ProjectionCentreShift);
+
+        // The hold: nothing moves, the body stays hidden, the ordinary camera is not asked for yet.
+        Assert.Null(rig.Frame(PossessionSession.DeathHold).OrdinaryFocus);
+        Assert.Equal(rig.Me.Id, rig.Session.HiddenCreatureId);
+
+        PossessionUpdate back = rig.Frame();
+        Assert.NotNull(back.OrdinaryFocus);
+        Assert.Equal(0, rig.Session.HiddenCreatureId);
+        Assert.Equal(0, rig.Session.Flight.State.Pitch);
+        Assert.True(rig.Session.CameraHeld);
+
+        rig.Frame(2000);
+        Assert.False(rig.Session.CameraHeld);
+    }
+
+    [InstallFact]
+    public void ADeathDuringTheMoveInFliesStraightBack_StronglyInferredFromBinary()
+    {
+        Rig rig = Level1(withOrdinaryCamera: true);
+        rig.Frame();
+        rig.Frame(500);
+        rig.Me.Health = 0;
+        rig.World.Player(Viewer).PossessedCreatureId = 0;
+
+        Assert.NotNull(rig.Frame().OrdinaryFocus);
+        Assert.Equal(0, rig.Session.HiddenCreatureId);
+    }
+
     [InstallFact]
     public void AnEndedPossessionFliesBackToTheOrdinaryCameraOverTheEye_StronglyInferredFromBinary()
     {

@@ -49,7 +49,15 @@ public sealed class PossessionSession
     private double _milliseconds;
     private Vector2 _mouse;
     private bool? _creepingSent;
-    private bool _flyingOut;
+    private Ending _ending;
+    private int _bodyId;
+    private long _deadSince;
+
+    // After a possession: nothing, the death view's move, its hold, or the move back to the ordinary camera.
+    private enum Ending { None, Dying, Dead, Out }
+
+    /// <summary>The death view's move (camera mode 11) takes this long; its hold after landing, <see cref="DeathHold"/>.</summary>
+    public const int DeathMove = 3000, DeathHold = 2000;
     private uint _held;
 
     /// <param name="preset">Camera preset 2 of <c>GlobalVariables.kwd</c>; without one its shipped lens
@@ -63,13 +71,15 @@ public sealed class PossessionSession
     public bool Possessing => _possessed != null;
 
     /// <summary>The camera is the possession's: in first person, or on the timed move to or from it.</summary>
-    public bool CameraHeld => Possessing || _flyingOut;
+    public bool CameraHeld => Possessing || _ending != Ending.None;
 
     /// <summary>The id of the creature whose own model is left out of the picture, or 0. DK2 clears
     /// the thing's draw bit (<c>+0xF3</c> bit 0) when the move into first person lands
     /// (<c>Camera_CommitMode</c>, <c>0x0044BD70</c>) and sets it again as the move out is asked for
-    /// (<c>Camera_RequestMode</c>, <c>0x0044A5D0</c>).</summary>
-    public int HiddenCreatureId => Possessing && !_flight.Active ? _possessed!.Id : 0;
+    /// (<c>Camera_RequestMode</c>, <c>0x0044A5D0</c>). A request for the death view does not set it, and
+    /// hides the body it is given at once (<c>0x0044BA0A</c>), so the body stays out until the move back.</summary>
+    public int HiddenCreatureId => Possessing ? (_flight.Active ? 0 : _possessed!.Id)
+        : _ending is Ending.Dying or Ending.Dead ? _bodyId : 0;
 
     /// <summary>The pointer is hidden and held at the window's middle: a remake choice for mouse look.</summary>
     public bool PointerLockWanted { get; private set; }
@@ -93,14 +103,34 @@ public sealed class PossessionSession
             Vector3? focus = null;
             if (ended)
             {
-                CameraFlightState from = _flight.Active ? _flight.State : PossessionFlight.FirstPerson(_view, _preset);
+                bool landed = !_flight.Active;
+                CameraFlightState from = landed ? PossessionFlight.FirstPerson(_view, _preset) : _flight.State;
+                int endedId = _possessed!.Id;
                 Reset();
-                if (ordinary != null) focus = BeginFlyOut(from, ordinary, ordinaryFocus, world, input.ClockMilliseconds);
+                // The death view is asked for only from mode 2 (0x0044283F), for a death that leaves its body (0x00488095).
+                if (ordinary != null && landed && world.CreatureById(endedId) is { Health: <= 0 } body)
+                    BeginDeath(from, body, world, input.ClockMilliseconds);
+                else if (ordinary != null) focus = BeginFlyOut(from, ordinary, ordinaryFocus, world, input.ClockMilliseconds);
             }
-            if (_flyingOut)
+            switch (_ending)
             {
-                _flight.Step(input.ClockMilliseconds);
-                _flyingOut = _flight.Active;
+                case Ending.Dying:
+                    _flight.Step(input.ClockMilliseconds);
+                    if (!_flight.Active) (_ending, _deadSince) = (Ending.Dead, input.ClockMilliseconds);
+                    break;
+                // Camera_Update's mode-11 arm: 2000 ms after the move, the pitch is zeroed and the kept ordinary mode asked for.
+                case Ending.Dead when ordinary == null:
+                    _ending = Ending.None;
+                    break;
+                case Ending.Dead when input.ClockMilliseconds > _deadSince + DeathHold:
+                    CameraFlightState down = _flight.Target;
+                    focus = BeginFlyOut(new CameraFlightState(down.X, down.Y, down.Z, down.Zoom, down.Lens, down.ViewDistance,
+                        down.Yaw, 0, down.Roll), ordinary, ordinaryFocus, world, input.ClockMilliseconds);
+                    break;
+                case Ending.Out:
+                    _flight.Step(input.ClockMilliseconds);
+                    if (!_flight.Active) _ending = Ending.None;
+                    break;
             }
             return new PossessionUpdate(false, ended, focus);
         }
@@ -123,10 +153,10 @@ public sealed class PossessionSession
             _mouse = default;
             // DK2 flies the camera to the eye in a timed move (Camera_SetMode 0x0044ACE0). Remake choice: a move out still running is turned round.
             if (ordinary != null)
-                _flight.Start(_flyingOut ? _flight.State : ordinary.State(ordinaryFocus),
+                _flight.Start(_ending == Ending.None ? ordinary.State(ordinaryFocus) : _flight.Active ? _flight.State : _flight.Target,
                     PossessionFlight.FirstPerson(_view, _preset), input.ClockMilliseconds);
             else _flight.Cancel();
-            _flyingOut = false;
+            _ending = Ending.None;
         }
 
         // The first-person step, the look and the once-a-turn pose are mode 2's: none runs until the move lands.
@@ -217,8 +247,29 @@ public sealed class PossessionSession
         };
         ordinary.Face(new Dk2Angle((ushort)to.Yaw));
         _flight.Start(from, to, clock);
-        _flyingOut = _flight.Active;
+        _ending = _flight.Active ? Ending.Out : Ending.None;
         return new Vector3(to.X / (float)Fp32.One, ordinaryFocus.Y, -to.Y / (float)Fp32.One);
+    }
+
+    /// <summary>Starts the death view (camera mode 11, Camera_SetMode <c>0x0044B867</c>-<c>0x0044BA0A</c>):
+    /// over 3000 ms the camera goes to a point one eye height from the body along its heading, 0x100
+    /// over the floor there, turning to a yaw within 0x80 of its own, a roll within 0x80 of level and
+    /// a pitch of 0x300 to 0x4FF, while the view distance runs down to nothing. That the point lies
+    /// behind the body is a HYPOTHESIS (which of the two tables is the sine is not read). DK2 draws the
+    /// three angles from its own generator seeded by the body's place; ours come from that place too,
+    /// by another generator (a remake choice). The colour change that goes with it is not built.</summary>
+    private void BeginDeath(in CameraFlightState from, CreatureState body, WorldState world, long clock)
+    {
+        int eye = _database.CreatureById(body.CreatureTypeId).EyeHeight.Raw;
+        double heading = (body.Heading & 0x7FF) * (Math.PI / 1024);
+        int x = body.PosX - (int)(Math.Sin(heading) * eye), y = body.PosY + (int)(Math.Cos(heading) * eye);
+        var random = new Random(unchecked((body.PosX * 397) ^ body.PosY));
+        var to = new CameraFlightState(x, y, FloorHeightRules.At(world, _database, x, y) + 0x100,
+            _preset.Zoom, _preset.Lens, 0,
+            (from.Yaw + random.Next(0x100) - 0x80) & 0x7FF, (random.Next(0x200) + 0x300) & 0x7FF, (random.Next(0x100) - 0x80) & 0x7FF);
+        _flight.Start(from, to, clock, DeathMove);
+        _ending = Ending.Dying;
+        _bodyId = body.Id;
     }
 
     /// <summary>The once-a-turn pose (<c>0x004039A0</c>, sent in camera mode 2 only), or null: the
@@ -230,15 +281,21 @@ public sealed class PossessionSession
     /// camera's own pose formula, else the first-person one.</summary>
     public bool TryCamera(ClassicCamera? ordinary, CameraViewport viewport, out ClassicCameraPose pose)
     {
-        if (_flight.Active && ordinary != null)
+        if (ordinary != null && (_flight.Active || _ending == Ending.Dead))
         {
-            float progress = _flight.Progress;
-            pose = ordinary.Pose(_flight.State, viewport, _flyingOut ? 1f - progress : progress);
+            // The death view keeps the first-person projection; the moves in and out cross to and from it.
+            float share = _ending switch
+            {
+                Ending.Dying or Ending.Dead => 1f,
+                Ending.Out => 1f - _flight.Progress,
+                _ => _flight.Progress,
+            };
+            pose = ordinary.Pose(_flight.Active ? _flight.State : _flight.Target, viewport, share);
             return true;
         }
         if (Possessing)
         {
-            pose = PossessionCamera.Picture(_view, _preset);
+            pose = PossessionCamera.Picture(_view, _preset, viewport, ordinary?.ReferenceScreenWidth);
             return true;
         }
         pose = default;
@@ -252,7 +309,7 @@ public sealed class PossessionSession
         _world = null;
         _boundWorld = null;
         _flight.Cancel();
-        _flyingOut = false;
+        _ending = Ending.None;
         PointerLockWanted = false;
     }
 }
