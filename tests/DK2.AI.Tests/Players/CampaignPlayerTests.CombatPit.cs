@@ -1,0 +1,182 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.AI.Players;
+using DK2.Core;
+using DK2.Data.Model;
+using DK2.Simulation.Players;
+
+namespace DK2.AI.Tests.Players;
+
+/// <summary>The Combat Pit routine (campaign bot stage 3 plan, Task 4; owner direction): fighters in, a hurt one
+/// healed at two petals or fed, one at the cap out to its Lair or a Hatchery.</summary>
+public partial class CampaignPlayerTests
+{
+    /// <summary>A 4x4 Combat Pit at (2..5, 2..5) whose interior is (3..4, 3..4); a Hatchery at (8..9, 2..3), a Lair
+    /// at (8..9, 8..9); plain own floor elsewhere; the heart at (6,6).</summary>
+    private static readonly string[] PitMap =
+    [
+        "RRRRRRRRRRRR",
+        "R..........R",
+        "R.CCCC..AA.R",
+        "R.CCCC..AA.R",
+        "R.CCCC.....R",
+        "R.CCCC.....R",
+        "R.....H....R",
+        "R..........R",
+        "R.......LL.R",
+        "R.......LL.R",
+        "R..........R",
+        "RRRRRRRRRRRR",
+    ];
+
+    private static readonly PlayerRoomSummary[] PitRooms =
+        [new(RoomTypeId.CombatPit, 16), new(RoomTypeId.Hatchery, 4), new(RoomTypeId.Lair, 4)];
+
+    private static readonly PlayerSpellOffer Heal = new(10, "Heal", new ManaAmount(1000), true, OnCreature: true);
+
+    /// <summary>One own Goblin at <paramref name="at"/> with the given flower.</summary>
+    private static (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) Goblin1(TilePos at, int level, int petals,
+        PlayerCreatureMood mood = PlayerCreatureMood.Happy, int ordinal = 0) =>
+        (new PlayerVisibleThing(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin),
+         new PlayerCreatureSummary(Goblin, at, false, Handle(ordinal), level, petals, mood));
+
+    private static PlayerObservation PitView((PlayerVisibleThing Thing, PlayerCreatureSummary Flower)[] creatures, int hand = 0,
+        long revision = 1, IReadOnlyList<PlayerSpellOffer>? spells = null) =>
+        Observe(revision, map: PitMap, hand: hand, rooms: [], owned: PitRooms, tick: revision * 1000,
+            things: [.. creatures.Select(c => c.Thing)], creatures: [.. creatures.Select(c => c.Flower)], spells: spells);
+
+    private static CampaignPlayer PitPlayer(int fighters = 2) =>
+        Player(o => o with { CombatPitMaxLevel = 8 }).Also(p => p.Apply(p.Strategy with { PitFighters = fighters, Dig = DigMode.Off }));
+
+    [Fact]
+    public void AnIdleHealthyFighterIsLiftedOntoThePitsInterior()
+    {
+        CampaignPlayer player = PitPlayer();
+        var idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6);
+        PlayerDecision lift = player.Decide(PitView([idle]));
+        Assert.Contains(new PlayerAction.PickUp(idle.Thing.Handle), lift.Actions);
+        Assert.Contains("pit", lift.Reason, StringComparison.Ordinal);
+
+        PlayerDecision drop = player.Decide(PitView([], hand: 1, revision: 2));
+        PlayerAction.DropAt at = Assert.Single(drop.Actions.OfType<PlayerAction.DropAt>());
+        Assert.Equal(new TilePos(4, 4), at.Tile);                                   // the interior tile nearest the heart
+    }
+
+    [Theory]
+    [InlineData(4, PlayerCreatureMood.Happy, false)]     // hurt: not sent in
+    [InlineData(6, PlayerCreatureMood.Angry, false)]     // angry: not sent in
+    [InlineData(6, PlayerCreatureMood.Unhappy, true)]
+    public void OnlyAHealthyNotAngryCreatureBelowTheCapIsSentIn(int petals, PlayerCreatureMood mood, bool lifted)
+    {
+        var idle = Goblin1(new TilePos(9, 6), level: 3, petals, mood);
+        Assert.Equal(lifted, PitPlayer().Decide(PitView([idle])).Actions.OfType<PlayerAction.PickUp>().Any());
+        Assert.Empty(PitPlayer().Decide(PitView([Goblin1(new TilePos(9, 6), level: 8, petals: 6)])).Actions.OfType<PlayerAction.PickUp>());
+    }
+
+    [Fact]
+    public void AFullPitTakesNoMoreAndTheRoutineIsOffByDefault()
+    {
+        var a = Goblin1(new TilePos(3, 3), level: 3, petals: 6, ordinal: 0);
+        var b = Goblin1(new TilePos(4, 4), level: 3, petals: 6, ordinal: 1);
+        var idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 2);
+        Assert.DoesNotContain(new PlayerAction.PickUp(idle.Thing.Handle), PitPlayer(fighters: 2).Decide(PitView([a, b, idle])).Actions);
+        Assert.Contains(new PlayerAction.PickUp(idle.Thing.Handle), PitPlayer(fighters: 3).Decide(PitView([a, b, idle])).Actions);
+        Assert.Equal(0, new PlayerStrategy().PitFighters);
+        Assert.DoesNotContain(new PlayerAction.PickUp(idle.Thing.Handle), Player().Decide(PitView([idle])).Actions);
+    }
+
+    [Fact]
+    public void AFighterAtTwoPetalsIsHealedWhenHealIsReadyElseFed()
+    {
+        var hurt = Goblin1(new TilePos(3, 3), level: 4, petals: 2);
+        PlayerDecision healed = PitPlayer().Decide(PitView([hurt], spells: [Heal]));
+        Assert.Contains(new PlayerAction.CastSpell(10, Target: hurt.Thing.Handle), healed.Actions);
+
+        foreach (PlayerSpellOffer? offer in (PlayerSpellOffer?[])[null, Heal with { Affordable = false }, Heal with { Ready = false }])
+        {
+            CampaignPlayer player = PitPlayer();
+            PlayerDecision lifted = player.Decide(PitView([hurt], spells: offer is PlayerSpellOffer o ? [o] : null));
+            Assert.Contains(new PlayerAction.PickUp(hurt.Thing.Handle), lifted.Actions);
+            Assert.Equal(new TilePos(8, 3), Assert.Single(player.Decide(PitView([], hand: 1, revision: 2)).Actions.OfType<PlayerAction.DropAt>()).Tile);   // the Hatchery tile nearest the heart
+        }
+
+    }
+
+    [Fact]
+    public void ABeatenFighterGetsAnImpDroppedOnItsBodyToCarryItToBed()
+    {
+        // One petal: collapsed on the Pit's rim (owner, 2026-11-15). No heal lands on it (Q823) and the hand does not lift it.
+        var body = Goblin1(new TilePos(2, 4), level: 4, petals: 1, ordinal: 0);
+        PlayerVisibleThing far = new(Handle(1), PlayerThingKind.Creature, new TilePos(10, 10), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        PlayerVisibleThing near = new(Handle(2), PlayerThingKind.Creature, new TilePos(7, 4), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        PlayerObservation view = Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000, spells: [Heal],
+            things: [body.Thing, far, near], creatures: [body.Flower]);
+        CampaignPlayer player = PitPlayer();
+        PlayerDecision send = player.Decide(view);
+        Assert.Contains(new PlayerAction.PickUp(near.Handle), send.Actions);                       // the nearest Imp
+        Assert.DoesNotContain(send.Actions, a => a is PlayerAction.CastSpell);
+        Assert.Equal(body.Thing.Tile, Assert.Single(player.Decide(Observe(2, map: PitMap, hand: 1, rooms: [], owned: PitRooms, tick: 1100))
+            .Actions.OfType<PlayerAction.DropAt>()).Tile);                                           // the body lies on the rim: beside it is its own tile
+
+        // Sent once: within the rescue window no second Imp goes to the same body; after it, one does.
+        PlayerObservation Later(long revision, long tick) => Observe(revision, map: PitMap, rooms: [], owned: PitRooms, tick: tick,
+            things: [body.Thing, far, near], creatures: [body.Flower]);
+        Assert.Empty(player.Decide(Later(3, 1300)).Actions.OfType<PlayerAction.PickUp>());
+        Assert.Contains(new PlayerAction.PickUp(near.Handle), player.Decide(Later(4, 1500)).Actions);
+
+        // Without a Lair there is no bed to carry it to: no Imp is sent, and the rest of the routine goes on.
+        var idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 3);
+        PlayerDecision noBed = PitPlayer().Decide(Observe(1, map: PitMap, rooms: [], owned: [new(RoomTypeId.CombatPit, 16)], tick: 1000,
+            things: [body.Thing, near, idle.Thing], creatures: [body.Flower, idle.Flower]));
+        Assert.Equal([new PlayerAction.PickUp(idle.Thing.Handle)], noBed.Actions.OfType<PlayerAction.PickUp>());
+    }
+
+    [Fact]
+    public void ABodyOnThePitsFloorGetsItsImpDroppedBesideItWhereTheHandMayDropOne()
+    {
+        var body = Goblin1(new TilePos(3, 3), level: 4, petals: 1, ordinal: 0);                   // interior: a worker drop is refused there
+        PlayerVisibleThing imp = new(Handle(1), PlayerThingKind.Creature, new TilePos(9, 9), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        CampaignPlayer player = PitPlayer();
+        Assert.Contains(new PlayerAction.PickUp(imp.Handle), player.Decide(Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
+            things: [body.Thing, imp], creatures: [body.Flower])).Actions);
+        TilePos drop = Assert.Single(player.Decide(PitView([], hand: 1, revision: 2)).Actions.OfType<PlayerAction.DropAt>()).Tile;
+        Assert.Equal(1, Math.Abs(drop.X - 3) + Math.Abs(drop.Y - 3));                                // the rim beside it
+        Assert.False(PlayerActionRoutines.IsInterior(Map(PitMap), drop, RoomTypeId.CombatPit, Me));
+    }
+
+    [Fact]
+    public void ACreatureWatchingFromTheRimIsNoFighterAndMayBeSentIn()
+    {
+        var watching = Goblin1(new TilePos(2, 3), level: 3, petals: 6, ordinal: 0);              // the rim
+        var fighter = Goblin1(new TilePos(3, 3), level: 3, petals: 6, ordinal: 1);               // the floor
+        CampaignPlayer player = PitPlayer(fighters: 2);
+        Assert.Contains(new PlayerAction.PickUp(watching.Thing.Handle), player.Decide(PitView([watching, fighter])).Actions);
+        Assert.Equal(new TilePos(4, 4), Assert.Single(player.Decide(PitView([fighter], hand: 1, revision: 2)).Actions.OfType<PlayerAction.DropAt>()).Tile);
+        // A capped creature watching from the rim is left alone.
+        Assert.Empty(PitPlayer().Decide(PitView([Goblin1(new TilePos(2, 3), level: 8, petals: 6)])).Actions.OfType<PlayerAction.PickUp>());
+    }
+
+    [Theory]
+    [InlineData(6, PlayerCreatureMood.Happy, 8, 8)]     // whole and content: to its Lair
+    [InlineData(4, PlayerCreatureMood.Happy, 8, 3)]     // hurt and content: to a Hatchery
+    [InlineData(4, PlayerCreatureMood.Unhappy, 8, 8)]   // unhappy goes to its Lair (owner, 2026-11-15)
+    [InlineData(6, PlayerCreatureMood.Angry, 8, 8)]
+    public void AFighterAtTheCapLeavesForItsLairOrAHatchery(int petals, PlayerCreatureMood mood, int x, int y)
+    {
+        CampaignPlayer player = PitPlayer();
+        var capped = Goblin1(new TilePos(3, 3), level: 8, petals, mood);
+        Assert.Contains(new PlayerAction.PickUp(capped.Thing.Handle), player.Decide(PitView([capped])).Actions);
+        Assert.Equal(new TilePos(x, y), Assert.Single(player.Decide(PitView([], hand: 1, revision: 2)).Actions.OfType<PlayerAction.DropAt>()).Tile);
+    }
+}
+
+internal static class PitTestExtensions
+{
+    public static T Also<T>(this T value, Action<T> act)
+    {
+        act(value);
+        return value;
+    }
+}

@@ -113,6 +113,59 @@ public static class PlayerActionRoutines
         return null;
     }
 
+    /// <summary>The player's own <paramref name="room"/> tile nearest <paramref name="home"/> whose eight neighbours are
+    /// the same room too (an interior tile, where a Combat Pit drop starts a fight; combat-pit.md section 9), skipping
+    /// <paramref name="skip"/>; Y, then X, breaks a tie. Null without one.</summary>
+    public static TilePos? InteriorRoomTile(PlayerObservation observation, RoomTypeId room, TilePos home, ICollection<TilePos>? skip = null)
+    {
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        TilePos? best = null;
+        for (int y = 1; y < grid.Height - 1; y++)
+            for (int x = 1; x < grid.Width - 1; x++)
+            {
+                var at = new TilePos(x, y);
+                if (skip?.Contains(at) == true || !IsInterior(grid, at, room, self)) continue;
+                if (best is not TilePos b || DistanceSquared(at, home) < DistanceSquared(b, home)) best = at;
+            }
+        return best;
+    }
+
+    /// <summary>Whether <paramref name="at"/> and its eight neighbours are all the player's own
+    /// <paramref name="room"/>: a room's interior, the Combat Pit's floor (the hand's floor-slot test).</summary>
+    public static bool IsInterior(PlayerTileGrid grid, TilePos at, RoomTypeId room, PlayerId self)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                var near = new TilePos(at.X + dx, at.Y + dy);
+                if (!grid.Contains(near) || grid[near].Room != room || grid[near].Owner != self) return false;
+            }
+        return true;
+    }
+
+    /// <summary>Where an Imp is dropped to carry a collapsed creature at <paramref name="body"/> to its bed: the own
+    /// floor tile nearest the body, within <see cref="ImpDropScanTiles"/> (Manhattan) of it, that is not the Combat
+    /// Pit's interior, where the hand refuses a worker drop; then Y, then X. Null without one.</summary>
+    public static TilePos? RescueDropTile(PlayerObservation observation, TilePos body)
+    {
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        TilePos? best = null;
+        for (int dy = -ImpDropScanTiles; dy <= ImpDropScanTiles; dy++)
+            for (int dx = -ImpDropScanTiles; dx <= ImpDropScanTiles; dx++)
+            {
+                var at = new TilePos(body.X + dx, body.Y + dy);
+                if (Math.Abs(dx) + Math.Abs(dy) > ImpDropScanTiles || !grid.Contains(at) || !IsOwnFloor(grid[at], self)
+                    || IsInterior(grid, at, RoomTypeId.CombatPit, self)) continue;
+                if (best is not TilePos b || DistanceSquared(at, body) < DistanceSquared(b, body)) best = at;
+            }
+        return best;
+    }
+
+    /// <summary>How far (Manhattan tiles) a dropped Imp looks for work at once (ImpTaskSystem.DropScanTiles).</summary>
+    public const int ImpDropScanTiles = 3;
+
     /// <summary>The tile of the own <paramref name="room"/> nearest <paramref name="home"/>, then Y, then X, not in
     /// <paramref name="skip"/>; null when none shows.</summary>
     public static TilePos? NearestRoomTile(PlayerObservation observation, RoomTypeId room, TilePos home, ICollection<TilePos>? skip = null)

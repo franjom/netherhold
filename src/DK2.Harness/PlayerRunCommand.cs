@@ -303,6 +303,7 @@ public static class PlayerRunCommand
             // sixteen non-platform tiles (Q52, ADR-0027).
             GoldPerTreasuryTile = database[VariableTypeId.MaxGoldPerTreasuryTile],
             HeartGold = 16 * database[VariableTypeId.MaxGoldPerDungeonHeartTile],
+            CombatPitMaxLevel = database[VariableTypeId.CombatPitMaxExperienceLevel],
             AdvanceTicks = spec.IntervalTicks,
             StallWindowTicks = spec.StallTicks,
             RecoveryAttempts = spec.Retries,

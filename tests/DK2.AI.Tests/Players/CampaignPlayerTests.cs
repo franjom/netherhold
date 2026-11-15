@@ -37,6 +37,7 @@ public partial class CampaignPlayerTests
                     'W' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Workshop),
                     'P' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Prison),
                     'B' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Library),
+                    'C' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.CombatPit),
                     'H' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid, Me, RoomTypeId.DungeonHeart),
                     '#' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable, default, default),
                     '$' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable | PlayerTileFlags.GoldSeam, default, default),
@@ -67,7 +68,7 @@ public partial class CampaignPlayerTests
     private static PlayerObservation Observe(long revision = 1, string[]? map = null, int gold = 5000, int hand = 0,
         PlayerPhase phase = PlayerPhase.Playing, IReadOnlyList<PlayerRoomOffer>? rooms = null, IReadOnlyList<PlayerVisibleThing>? things = null,
         IReadOnlyList<PlayerRoomSummary>? owned = null, IReadOnlyList<PlayerReceipt>? receipts = null, long tick = -1,
-        IReadOnlyList<PlayerCreatureSummary>? creatures = null)
+        IReadOnlyList<PlayerCreatureSummary>? creatures = null, IReadOnlyList<PlayerSpellOffer>? spells = null)
     {
         rooms ??= [new PlayerRoomOffer(RoomTypeId.Treasury, new GoldAmount(50), true), new PlayerRoomOffer(RoomTypeId.Lair, new GoldAmount(50), true)];
         things ??= [];
@@ -76,7 +77,7 @@ public partial class CampaignPlayerTests
             PlayerPhase.Ended => PlayerActionKinds.None,
             PlayerPhase.Intro => PlayerActionKinds.SkipIntro,
             _ => PlayerActionKinds.TagArea | (rooms.Count > 0 ? PlayerActionKinds.BuildRoom | PlayerActionKinds.SelectPanel : 0)
-                 | (hand > 0 ? PlayerActionKinds.DropAt : 0),
+                 | (hand > 0 ? PlayerActionKinds.DropAt : 0) | (spells is { Count: > 0 } ? PlayerActionKinds.CastSpell : 0),
         };
         foreach (PlayerVisibleThing thing in things)
         {
@@ -99,6 +100,7 @@ public partial class CampaignPlayerTests
                 Actions = actions,
                 Rooms = rooms,
                 Panels = [.. rooms.Select(r => GuiButtonTarget.Room(r.Room))],
+                Spells = spells ?? [],
             },
         };
     }

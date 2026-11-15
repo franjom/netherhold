@@ -52,6 +52,10 @@ public sealed record CampaignPlayerOptions
     /// <summary>Gold an own Dungeon Heart holds (definition data from the host); null counts none.</summary>
     public int? HeartGold { get; init; }
 
+    /// <summary>The level a Combat Pit fighter stops gaining at (<c>CombatPitMaxExperienceLevel</c>, variable 192,
+    /// 8 as shipped; combat-pit.md section 7): definition data the host reads off the level's variables.</summary>
+    public int CombatPitMaxLevel { get; init; } = 8;
+
     /// <summary>The room facts (stage 3 plan, Task 3a): definition data generated from the game's rules,
     /// loaded by the host before tick 0. <see cref="KeeperKnowledge.None"/> sizes every room by
     /// <see cref="RoomSide"/> alone, as before Task 3a.</summary>

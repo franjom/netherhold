@@ -344,14 +344,38 @@ replay tests updated.
 | `PlaceDoor`, `PlaceTrap` actions | defend a route | the panel's build intents. **Built 2026-11-15** |
 | `CastSpell(spell, target)` | offered spells | the existing spell intent path. **Built 2026-11-15** |
 | Each own creature's level (1-10), health in petals and mood (happy, unhappy, angry) | the status flower shows them (`status-flowers.md`: H-00..H-05, SL-01..SL-10, SM-*) | the creature's flower. **Built 2026-11-15** |
-| `CastSpell(Heal, creature)` | heal a creature in the Pit | the spell panel and the existing spell intent path. **Built 2026-11-15**, as a creature spell of `CastSpell`; the Pit routine is not |
+| `CastSpell(Heal, creature)` | heal a creature in the Pit | the spell panel and the existing spell intent path. **Built 2026-11-15**, as a creature spell of `CastSpell`; the Pit routine that casts it is built below |
 
-**The Combat Pit routine (owner direction, 2026-11-14).** Once the rows above exist: creatures below
-`CombatPitMaxExperienceLevel` (variable 192, ships 8; `combat-pit.md`) are dropped into an owned Combat Pit;
-one low on health (two petals, the last quarter, owner-confirmed 2026-11-15; one petal is a collapsed or dying creature, a living one shows at
-least two) is healed with Heal when the mana allows, otherwise lifted and dropped in a Hatchery to eat; one that reaches the cap is lifted and dropped in its Lair (unhappy, tired) or a Hatchery (hurt, hungry).
-Training Room work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Tests first on
-synthetic observations; measured on the ladder like Task 2.
+**The Combat Pit routine (owner direction, 2026-11-14; built 2026-11-15).** `CampaignPlayer.Pit` is off unless
+`PlayerStrategy.PitFighters` is above 0 (default 0; playbook tunable `strategy.pit-fighters`, 0-16). It needs an
+owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since its last act; the first that can act:
+
+1. A creature collapsed on the Pit (one petal) gets the nearest liftable own Imp dropped beside it
+   (`PlayerActionRoutines.RescueDropTile`: an own floor tile within `ImpTaskSystem.DropScanTiles` of the body that is
+   not the Pit's interior, where the hand refuses a worker), so the Imp carries it to its bed (`CarryUnconscious`). Only
+   with an own Lair, once per 400 ticks per body tile. Owner, 2026-11-15: "if a creature gets defeated in the combat
+   pit, its body then appears on the combat pit rim, bot should grab an imp and drop it onto that bleeding creature so
+   it gets dragged to its bed to recover". The simulation does not yet throw the loser to the rim (state 217's throw
+   is read, not built: `combat-pit.md` section 10), so in it the body lies on the interior and the Imp lands on the
+   rim beside it (Q827).
+2. A fighter on the floor (interior) at two petals (the last quarter, owner-confirmed 2026-11-15; a living creature
+   shows at least two): `CastSpell(Heal)` when Heal is offered, affordable and recharged, else lifted to the nearest
+   Hatchery tile (Q828, Q831).
+3. A fighter on the floor at `CombatPitMaxExperienceLevel` (`CampaignPlayerOptions.CombatPitMaxLevel`, variable 192,
+   ships 8; `combat-pit.md`): to its Lair when unhappy or angry (owner, 2026-11-15: "mood matters too, unhappy goes to
+   lair"), else to a Hatchery at four petals or fewer, else to its Lair.
+4. Below `PitFighters` fighters on the floor: the lowest-level idle own non-worker on plain floor or watching from the
+   rim (job 26), at five petals or more, not angry and below the cap, is lifted onto an interior Pit tile
+   (`InteriorRoomTile`, `IsInterior`); a drop there starts the fight (`combat-pit.md` section 9). Rim spectators are
+   recruits, not counted as fighters (Q830); unhappy creatures are recruited too (Q829).
+
+A refused Pit drop goes to its own set, not the Work routine's. The harness passes `CombatPitMaxLevel`. Training Room
+work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Known gaps: a refused Heal is retried each
+interval (cast outcomes are not read), and `Pit` allocates per decision when on. `DK2.AI.Tests` 570 (12 Combat Pit
+tests) and `DK2.Behavior.Tests` 670 (5 skipped) pass; Level 1 seed 1 is unchanged (Completed at tick 2334, final hash
+af7204fe4c0f8594). **Not measured:** only Levels 15a and later offer a Combat Pit, and a Level 15a smoke run
+(`pit-fighters` 2 against 0) ended Defeated at tick 3469 both ways before any Pit was built; measure when the bot
+reaches Level 15.
 
 **Built: creature level, petals and mood.** `PlayerCreatureSummary` gains `Level`, `Petals`, `Mood`
 (`PlayerCreatureMood`: Happy, Unhappy, Angry) and `FlowerKnown`, filled by
@@ -428,8 +452,8 @@ observations (drop legal and refused, lift on threat, bridge planned from reveal
 Possession (`PossessionCommands`) is not added here; a level that needs it is recorded as a
 controller limitation until a later task.
 
-Every row above is built; the routines that use them (Combat Pit, Imp scouting, defending a route with
-doors and traps) are separate. Manufacturing doors and traps is a Task 2 routine.
+Every row above is built; the routines that use them are separate: the Combat Pit routine is built, Imp
+scouting and defending a route with doors and traps are not. Manufacturing doors and traps is a Task 2 routine.
 
 - [ ] One branch per row; reviewer, documenter, commit each.
 
