@@ -21,6 +21,8 @@ public enum PlayerTileFlags : byte
     GoldSeam = 16,
     Water = 32,
     Lava = 64,
+    /// <summary>One of the player's own traps, or a trap blueprint it placed, stands here (schema 6).</summary>
+    OwnTrap = 128,
 }
 
 /// <summary>One tile as its player sees it: flags, owner and room type (default when not a room).</summary>
@@ -198,8 +200,8 @@ public sealed class PlayerOffers
 public sealed class PlayerObservation
 {
     /// <summary>2 adds each own creature's level, petals and mood; 3 every offered spell; 4 doors and traps; 5 the
-    /// mana orb's income and upkeep and each spell's upgrade (Task 4).</summary>
-    public const int SchemaVersion = 5;
+    /// mana orb's income and upkeep and each spell's upgrade (Task 4); 6 the own-trap tile flag (defence plan D1).</summary>
+    public const int SchemaVersion = 6;
 
     public required PlayerStamp Stamp { get; init; }
     public PlayerPhase Phase { get; init; } = PlayerPhase.Playing;

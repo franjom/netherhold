@@ -305,6 +305,7 @@ public static class PlayerRunCommand
             HeartGold = 16 * database[VariableTypeId.MaxGoldPerDungeonHeartTile],
             CombatPitMaxLevel = database[VariableTypeId.CombatPitMaxExperienceLevel],
             FreeImps = database[VariableTypeId.MinimumImpThreshold],
+            FightStyles = database.Creatures.Values.ToDictionary(c => new CreatureTypeId(c.CreatureId), c => c.FightStyle),
             AdvanceTicks = spec.IntervalTicks,
             StallWindowTicks = spec.StallTicks,
             RecoveryAttempts = spec.Retries,

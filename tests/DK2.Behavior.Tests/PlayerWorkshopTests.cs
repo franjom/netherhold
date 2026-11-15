@@ -64,6 +64,33 @@ public class PlayerWorkshopTests
     }
 
     [InstallFact]
+    public void TheTileOfAnOwnTrapBlueprintShowsIt()
+    {
+        Setup s = Level1(workshop: true);
+        GoldStore.Deposit(s.World, s.Database, Keeper, 10_000);
+        Assert.False(Capture(s).Observation.Tiles[s.Floor].Flags.HasFlag(PlayerTileFlags.OwnTrap));
+        Assert.Equal(BlueprintPlacementRules.Verdict.Allowed, BlueprintPlacementRules.PlaceTrap(s.World, s.Database, s.Floor, Keeper, s.Trap));
+        Assert.True(Capture(s).Observation.Tiles[s.Floor].Flags.HasFlag(PlayerTileFlags.OwnTrap));
+        // Another keeper sees nothing there.
+        PlayerId other = s.World.PlayerAtIndex(0).PlayerId == Keeper ? s.World.PlayerAtIndex(1).PlayerId : s.World.PlayerAtIndex(0).PlayerId;
+        PlayerObservation theirs = new PlayerObservationBuilder(s.Database, other).Capture(s.World,
+            new PlayerStamp(new PlayerRunId("workshop-test"), other, s.World.CurrentTick, new PlayerRevision(1)), []).Observation;
+        Assert.False(theirs.Tiles[s.Floor].Flags.HasFlag(PlayerTileFlags.OwnTrap));
+    }
+
+    [InstallFact]
+    public void TheHarnessGivesThePlayerEveryCreaturesFightingStyle()
+    {
+        var spec = new DK2.Harness.CampaignPlayerSpec(Keeper);
+        var player = (DK2.AI.Players.CampaignPlayer)DK2.Harness.PlayerRunCommand.PlayerRunFor(
+            ScenarioCorpus.Database, spec, new PlayerRunId("styles"), null).Controller;
+        foreach (CreatureDef creature in ScenarioCorpus.Database.Creatures.Values)
+            Assert.Equal(creature.FightStyle, player.Options.StyleOf(new CreatureTypeId(creature.CreatureId)));
+        Assert.Contains(ScenarioCorpus.Database.Creatures.Values, c => c.FightStyle == FightStyle.Flanker);
+        Assert.Contains(ScenarioCorpus.Database.Creatures.Values, c => c.FightStyle == FightStyle.Blocker);
+    }
+
+    [InstallFact]
     public void AnUnknownDoorAndAnOffPanelTrapAreNotOffered()
     {
         Setup s = Level1(workshop: true);
