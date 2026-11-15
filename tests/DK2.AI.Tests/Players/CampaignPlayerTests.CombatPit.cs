@@ -159,16 +159,107 @@ public partial class CampaignPlayerTests
     }
 
     [Fact]
-    public void ABodyOnThePitsFloorGetsItsImpDroppedBesideItWhereTheHandMayDropOne()
+    public void ABodyStillOnThePitsFloorIsLeftToRiseOnTheRimThenFetchedAfterTheEstimated40TicksBesideItWhereTheHandMayDropOne()
     {
         var body = Goblin1(new TilePos(3, 3), level: 4, petals: 1, ordinal: 0);                   // interior: a worker drop is refused there
         PlayerVisibleThing imp = new(Handle(1), PlayerThingKind.Creature, new TilePos(9, 9), Me, PlayerThingActions.PickUp, creatureType: Imp);
         CampaignPlayer player = PitPlayer();
-        Assert.Contains(new PlayerAction.PickUp(imp.Handle), player.Decide(Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
-            things: [body.Thing, imp], creatures: [body.Flower])).Actions);
-        TilePos drop = Assert.Single(player.Decide(PitView([], hand: 1, revision: 2)).Actions.OfType<PlayerAction.DropAt>()).Tile;
+        PlayerObservation Sinking(long revision, long tick) => Observe(revision, map: PitMap, rooms: [], owned: PitRooms, tick: tick,
+            things: [body.Thing, imp], creatures: [body.Flower]);
+        // It sinks and rises on the rim within seconds (state 217): no Imp yet, decision after decision.
+        for (int i = 0; i < 10; i++)
+            Assert.Empty(player.Decide(Sinking(1 + i, 1000 + 4 * i)).Actions.OfType<PlayerAction.PickUp>());
+        // Still there after 40 ticks: fetched where it lies.
+        Assert.Contains(new PlayerAction.PickUp(imp.Handle), player.Decide(Sinking(11, 1040)).Actions);
+        TilePos drop = Assert.Single(player.Decide(PitView([], hand: 1, revision: 12)).Actions.OfType<PlayerAction.DropAt>()).Tile;
+
+        // Unseen for a while (the routine did not run), it is timed afresh: no Imp at once.
+        CampaignPlayer later = PitPlayer();
+        later.Decide(Sinking(1, 1000));
+        Assert.Empty(later.Decide(Sinking(2, 1100)).Actions.OfType<PlayerAction.PickUp>());
         Assert.Equal(1, Math.Abs(drop.X - 3) + Math.Abs(drop.Y - 3));                                // the rim beside it
         Assert.False(PlayerActionRoutines.IsInterior(Map(PitMap), drop, RoomTypeId.CombatPit, Me));
+    }
+
+    [Fact]
+    public void ARescueDoesNotWaitForThePitsInterval()
+    {
+        // The routine has just sent a fighter in; a body rising on the rim a moment later is fetched at once, not after
+        // the 200-tick interval (it dies within 60 s, 240 ticks).
+        CampaignPlayer player = PitPlayer();
+        var idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 0);
+        var partner = Goblin1(new TilePos(10, 6), level: 4, petals: 6, ordinal: 1);
+        Assert.Contains(new PlayerAction.PickUp(idle.Thing.Handle), player.Decide(PitView([idle, partner])).Actions);
+        player.Decide(Observe(2, map: PitMap, hand: 1, rooms: [], owned: PitRooms, tick: 1004,
+            things: [partner.Thing], creatures: [partner.Flower]));
+        var body = Goblin1(new TilePos(2, 4), level: 4, petals: 1, ordinal: 2);                   // the rim
+        PlayerVisibleThing imp = new(Handle(3), PlayerThingKind.Creature, new TilePos(7, 4), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        PlayerObservation risen = Observe(3, map: PitMap, rooms: [], owned: PitRooms, tick: 1010,
+            things: [body.Thing, imp, partner.Thing], creatures: [body.Flower, partner.Flower]);
+        Assert.Contains(new PlayerAction.PickUp(imp.Handle), player.Decide(risen).Actions);
+    }
+
+    [Fact]
+    public void TheImpNearestTheBodyIsSentWhereverItIsListed()
+    {
+        var body = Goblin1(new TilePos(2, 4), level: 4, petals: 1, ordinal: 0);                   // the rim
+        PlayerVisibleThing near = new(Handle(1), PlayerThingKind.Creature, new TilePos(1, 6), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        PlayerVisibleThing far = new(Handle(2), PlayerThingKind.Creature, new TilePos(10, 10), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        foreach (PlayerVisibleThing[] order in (PlayerVisibleThing[][])[[near, far, body.Thing], [body.Thing, far, near], [near, body.Thing, far]])
+            Assert.Contains(new PlayerAction.PickUp(near.Handle), PitPlayer().Decide(Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
+                things: order, creatures: [body.Flower])).Actions);
+    }
+
+    [Fact]
+    public void ABodyBeingCarriedDrawsNoSecondImp()
+    {
+        var body = Goblin1(new TilePos(2, 4), level: 4, petals: 1, ordinal: 0);                   // the rim
+        PlayerVisibleThing imp = new(Handle(1), PlayerThingKind.Creature, new TilePos(7, 4), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        CampaignPlayer player = PitPlayer();
+        Assert.Contains(new PlayerAction.PickUp(imp.Handle), player.Decide(Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
+            things: [body.Thing, imp], creatures: [body.Flower])).Actions);
+        player.Decide(Observe(2, map: PitMap, hand: 1, rooms: [], owned: PitRooms, tick: 1004));
+        // The Imp carries it along the rim: the body is on the carrier's tile, a new tile each step.
+        PlayerVisibleThing other = new(Handle(2), PlayerThingKind.Creature, new TilePos(9, 9), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        foreach ((int step, TilePos at) in (ReadOnlySpan<(int, TilePos)>)[(3, new TilePos(2, 3)), (4, new TilePos(2, 2))])
+        {
+            var carried = Goblin1(at, level: 4, petals: 1, ordinal: 0);
+            PlayerVisibleThing carrier = new(Handle(1), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Imp);
+            Assert.Empty(player.Decide(Observe(step, map: PitMap, rooms: [], owned: PitRooms, tick: 1040 + 4 * step,
+                things: [carried.Thing, carrier, other], creatures: [carried.Flower])).Actions.OfType<PlayerAction.PickUp>());
+        }
+
+        // A body on a new tile soon after a rescue waits out the 40-tick gap, then gets its Imp.
+        CampaignPlayer gap = PitPlayer();
+        gap.Decide(Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000, things: [body.Thing, imp], creatures: [body.Flower]));
+        gap.Decide(Observe(2, map: PitMap, hand: 1, rooms: [], owned: PitRooms, tick: 1004));
+        var moved = Goblin1(new TilePos(2, 2), level: 4, petals: 1, ordinal: 0);
+        PlayerObservation Moved(long revision, long tick) => Observe(revision, map: PitMap, rooms: [], owned: PitRooms, tick: tick,
+            things: [moved.Thing, other], creatures: [moved.Flower]);
+        Assert.Empty(gap.Decide(Moved(3, 1020)).Actions.OfType<PlayerAction.PickUp>());
+        Assert.Contains(new PlayerAction.PickUp(other.Handle), gap.Decide(Moved(4, 1040)).Actions);
+    }
+
+    [Fact]
+    public void ALoneVictorIsLiftedAtTheRoutinesRealCadence()
+    {
+        // The routine sends a partner in at tick 1000; the pair's whole fight falls inside its 200-tick interval, and the
+        // victor is left alone at 1100 with another recruit standing by. Decisions every 4 ticks.
+        CampaignPlayer player = PitPlayer();
+        var a = Goblin1(new TilePos(3, 3), level: 3, petals: 6, ordinal: 0);
+        var b = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 1);
+        var c = Goblin1(new TilePos(10, 6), level: 4, petals: 6, ordinal: 2);
+        var bIn = Goblin1(new TilePos(4, 4), level: 3, petals: 6, ordinal: 1);
+        PlayerObservation View(long tick, int hand, params (PlayerVisibleThing Thing, PlayerCreatureSummary Flower)[] cs) =>
+            Observe(tick, map: PitMap, hand: hand, rooms: [], owned: PitRooms, tick: tick,
+                things: [.. cs.Select(x => x.Thing)], creatures: [.. cs.Select(x => x.Flower)]);
+        Assert.Contains(new PlayerAction.PickUp(b.Thing.Handle), player.Decide(View(1000, 0, a, b, c)).Actions);
+        player.Decide(View(1004, 1, a, c));
+        for (long t = 1008; t < 1100; t += 4) player.Decide(View(t, 0, a, bIn, c));
+        bool lifted = false;
+        for (long t = 1100; t < 1400 && !lifted; t += 4)
+            lifted = player.Decide(View(t, 0, a, c)).Actions.Contains(new PlayerAction.PickUp(a.Thing.Handle));
+        Assert.True(lifted, "the lone victor was never lifted");
     }
 
     [Fact]
