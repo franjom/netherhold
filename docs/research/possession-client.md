@@ -324,6 +324,8 @@ colour changes are not built. The focus height of the way back is the ordinary c
 own, which is the preset's unless something moved it. The view cannot be left until the
 move in has landed, as in the original (§6b).
 
+**The colour changes** (what `0x005976D0` starts, its 16 kinds, timing and each creature's kind) are read in [screen-colour-changes.md](screen-colour-changes.md).
+
 ## 6a. The owner's recollection, 2026-11-14
 
 Three things the reads above do not settle, as the owner remembers the original (not
@@ -377,13 +379,12 @@ eighteen as a possessed Warlock, are in
 ## 7. Not read yet
 
 - The writers of camera `+0xE38` and `+0xE3C`.
-- Who raises the view event `0x00448440` handles, who posts the player's own leave, and
-  the colour changes of `0x005976D0`.
+- Who raises the view event `0x00448440` handles, and who posts the player's own leave.
 - `Possession_SelectAbility`'s level gate in full, `0x005075A0`, and the
   handlers of actions `0x1C`, `0x1E`, `0x1F` and `0x89`.
 - The map and cell accessors the step calls, taken by name: world slots `+0x1CC` and
   `+0x1D0` (`0x00508FA0`, `0x00508FB0`, width and height) and `+0x1D4` (`0x00508FE0`,
   the cell at a position).
-- The possession HUD (`0x00420D10`), the colour ramps (Q745) and the cast effect (Q749).
+- The possession HUD (`0x00420D10`) and the cast effect (Q749).
 - The units of the mouse delta `Input_DrainMouseDelta` returns, and what Mouse
   Sensitivity does to it.

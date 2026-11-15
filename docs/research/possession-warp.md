@@ -153,8 +153,8 @@ found them straight to the eye; an automated fit was too noisy to count. Nothing
   line, look next at the D3D device set-up.
 - Whether any shipped level overrides preset 2's lens; who writes `+0xD58`/`+0xD5C`.
 - The 2D clipper's helpers (`0x0058D580`, `0x0058D790`, `0x0058D990`, `0x0058DB70`).
-- `0x00597760` fills three 256-entry WORD tables, the layout of a DirectDraw gamma ramp (HYPOTHESIS:
-  a screen colour effect, not geometry; its consumers are unread).
+- `0x00597760` fills the display's gamma ramp, a screen colour effect and not geometry:
+  [screen-colour-changes.md](screen-colour-changes.md).
 
 ## 8. Which tiles are drawn in the possession cameras
 
