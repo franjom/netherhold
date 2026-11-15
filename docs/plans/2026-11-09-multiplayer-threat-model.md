@@ -65,7 +65,8 @@ does, and the gates that keep it true. It is written before any network code exi
 - **Good:** commands are typed records with an explicit binary codec (`CommandCodec.cs`), not
   reflection-based serialization. The simulation reads nothing but `InputFrame`s and hashes
   inputs and state, so desync detection is already possible.
-- **Good:** no `unsafe` code; `AllowUnsafeBlocks` is off in Unity; no P/Invoke in `src/`.
+- **Good:** no `unsafe` code; `AllowUnsafeBlocks` is off in Unity (the Godot project must keep
+  it off too); no P/Invoke in `src/`.
 - **Good:** the editor-only git query in `DungeonRunner.InputJournal.cs` runs only when
   `Application.isEditor` and takes fixed arguments.
 - **Closed, R1 (codec):** `CommandCodec.Read` returns a command or throws `InvalidDataException`
@@ -117,7 +118,7 @@ does, and the gates that keep it true. It is written before any network code exi
 - **Gap, R1 (snapshots):** `WorldSnapshot.Read` is not fuzzed; it bounds the grid only by
   `width*height <= int.MaxValue`.
 - **Gap, determinism:** CI compares Linux and Windows hashes under CoreCLR on synthetic content
-  only (`DK2_DIR=/nonexistent`); no real map, no keeper run and no IL2CPP build is compared.
+  only (`DK2_DIR=/nonexistent`); no real map, no keeper run and no client build is compared.
 
 ## Gates
 
@@ -129,7 +130,7 @@ does, and the gates that keep it true. It is written before any network code exi
 | codec fuzz target | CI (short), nightly (long) | any byte string decodes or throws one controlled exception, bounded memory and time |
 | file-parser fuzz targets | CI (short), nightly (long) | same, for every reader reachable from map/mod transfer |
 | hostile-command tests | `DK2.Simulation.Tests` | each network-allowed command, sent by the wrong player or with out-of-range values, is refused without throwing and the state hash stays equal on all peers |
-| IL2CPP hash parity | CI, per release | a Unity player build reaches the same state hashes as CoreCLR |
+| client hash parity | CI, per release | the shipped client build (Godot, ADR-0805) reaches the test run's state hashes |
 | single-player through the session | every single-player test and replay | R1-R4 run on every command, not only in matches |
 | review checklist | every PR touching codec, session, validation or backend | rules R1-R8 |
 | external pentest of the backend | before public matchmaking | backend controls hold |

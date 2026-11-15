@@ -16988,8 +16988,8 @@ by us in a few regions, and runnable by anyone for private, LAN or community gam
   The official relay and the overseer speak one protocol.
 
 **Consequences.** Single-player goes through the same session, so its tests exercise R1-R4. CI
-compares Linux and Windows hashes on synthetic content only; real data and the Unity (IL2CPP)
-build need a machine with an install. Snapshots stay local (saves and checkpoints), so
+compares Linux and Windows hashes on synthetic content only; real data and the shipped client
+build (Unity or Godot, ADR-0805) need a machine with an install. Snapshots stay local (saves and checkpoints), so
 `WorldSnapshot.Read` faces only the player's own files.
 
 ## ADR-0725: the Portal Gem keeps a position: made at its carrier's point, dropped on its tile centre
@@ -19209,7 +19209,7 @@ pointer state and the commands a click posts. Left there, every HUD fix would ha
    (the Reaper talisman's quarters) are `HudImageVariant`s, applied by `HudImagePixels`, so every engine gets the same pixels.
 3. **Panel by panel, Unity kept working.** Each step adds the model and its tests, turns the Unity class into a facade with
    the same public API over `HudCanvas`, and deletes the old Unity logic. Order: bottom panel (done), resource HUD (done), message
-   tabs (done), hover HUD, creature query and overview, options and save/load, front-end menu, minimap and full-map markers.
+   tabs (done), hover HUD (done), creature query and overview, options and save/load, front-end menu, minimap and full-map markers.
 
 **Where new files go.**
 

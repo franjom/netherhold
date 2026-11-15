@@ -3,7 +3,6 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using DK2.Art.Textures;
 using DK2.Data.Model;
@@ -47,295 +46,124 @@ namespace DK2.Unity
         public BitmapFont Font(string file) => _sources.Font(file);
     }
 
-    /// <summary>Retained UI Toolkit hover/status visuals from immutable settled snapshots.</summary>
+    /// <summary>The hover HUD's Unity side: <see cref="HoverHud"/> (ADR-0805) drawn by two
+    /// <see cref="HudCanvas"/>es, the bar under the resource panels and the text and popup over them.</summary>
     public sealed class ClassicHoverHud : IDisposable
     {
         private readonly IClassicHoverAssets _assets;
-        private readonly Texture2D _status, _end;
-        private readonly Texture2D[] _pieces = new Texture2D[9];
-        private readonly HoverTooltipDelay _delay = new HoverTooltipDelay();
+        private readonly HoverHud _hud;
         private readonly GameObject _owner, _barOwner;
         private readonly PanelSettings _settings, _barSettings;
-        private readonly VisualElement _root, _bar, _strip, _clip, _popup;
-        private readonly Image _endImage, _statusImage, _tooltipImage;
-        private readonly Image[] _popupPieces = new Image[9];
-        private readonly List<Image> _stripTiles = new List<Image>();
-        private BitmapFont _font, _tooltipFont;
-        private Texture2D _statusTextTexture, _tooltipTextTexture;
-        private string _statusText, _tooltipText;
-        private float _scroll, _clipWidth = 1, _cursorReach = 80;
-        private bool _scrollForward = true, _visible = true, _allowInput = true;
-        private int _screenWidth, _screenHeight;
-        public bool ShowCreatureTooltip { get; set; } = true;
+        private readonly VisualElement _root, _barRoot;
+        private readonly HudCanvas _canvas, _barCanvas;
+        private readonly HudFrame _frame = new HudFrame(), _barFrame = new HudFrame();
+        public bool ShowCreatureTooltip { get => _hud.ShowCreatureTooltip; set => _hud.ShowCreatureTooltip = value; }
         public PanelSettings Panel => _settings;
         public int UiScale { get; set; } = 100;
         private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale);
-        private int Width => Mathf.RoundToInt(ScaleLayout.LogicalWidth);
-        public Rect StatusBounds => new Rect(ResourceWidth, StatusTop,
-            Mathf.Max(0, Width - ResourceWidth), StatusHeight);
+        private HudScreen Screen => new HudScreen(Mathf.RoundToInt(ScaleLayout.LogicalWidth), UnityEngine.Screen.height);
+        public Rect StatusBounds => Local(_hud.StatusBounds(Screen));
         /// <summary>The wooden bar: the whole width, behind the Heart, mana and gold panels, as in DK2.</summary>
-        public Rect BarBounds => new Rect(0, StatusTop, Width, StatusHeight);
-        private static float StatusTop => 8 * Screen.height / 768f;
-        private float ResourceWidth => Mathf.Min(Width, Mathf.Floor(1020 * Screen.height / 1920f));
-        private float StatusHeight => Mathf.Max(22 * Screen.height / 480f, (_font?.LineHeight ?? 12) + 12);
+        public Rect BarBounds => Local(_hud.BarBounds(Screen));
 
         public ClassicHoverHud(IClassicHoverAssets assets) : this(null, assets) { }
 
         public ClassicHoverHud(Transform parent, IClassicHoverAssets assets)
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
-            _status = MinimapFrameVisual.Decode(assets.StatusBar);
-            _end = MinimapFrameVisual.Decode(assets.StatusEnd);
-            for (int i = 0; i < 9; i++) _pieces[i] = MinimapFrameVisual.Decode(assets.TooltipPiece(i));
-            _settings = ScriptableObject.CreateInstance<PanelSettings>();
-            _settings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
-            _settings.scaleMode = PanelScaleMode.ConstantPixelSize;
-            _settings.scale = 1;
-            _settings.sortingOrder = 17;   // tooltips over every panel but the full map (20)
-            _owner = new GameObject("Dungeon hover HUD");
-            if (parent != null) _owner.transform.SetParent(parent, false);
-            var document = _owner.AddComponent<UIDocument>();
-            document.panelSettings = _settings;
-            _root = document.rootVisualElement;
-            _root.pickingMode = PickingMode.Ignore;
-            _root.style.width = Length.Percent(100); _root.style.height = Length.Percent(100);
-            // The bar draws under the resource panels (11); its text and the popup stay on top.
-            _barSettings = ScriptableObject.CreateInstance<PanelSettings>();
-            _barSettings.themeStyleSheet = _settings.themeStyleSheet;
-            _barSettings.scaleMode = PanelScaleMode.ConstantPixelSize;
-            _barSettings.scale = 1;
-            _barSettings.sortingOrder = 10;
-            _barOwner = new GameObject("Dungeon status bar");
-            if (parent != null) _barOwner.transform.SetParent(parent, false);
-            var barDocument = _barOwner.AddComponent<UIDocument>();
-            barDocument.panelSettings = _barSettings;
-            VisualElement barRoot = barDocument.rootVisualElement;
-            barRoot.pickingMode = PickingMode.Ignore;
-            barRoot.style.width = Length.Percent(100); barRoot.style.height = Length.Percent(100);
-            _bar = Element(barRoot);
-            _bar.style.overflow = Overflow.Hidden;
-            // The cap is not clipped to the bar: it is taller and runs off the right edge.
-            _endImage = Picture(barRoot, _end);
-            _strip = Element(_root);
-            _strip.style.overflow = Overflow.Hidden;
-            _clip = Element(_strip);
-            _clip.style.overflow = Overflow.Hidden;
-            _statusImage = Picture(_clip, null);
-            _popup = Element(_root);
-            for (int i = 0; i < 9; i++) _popupPieces[i] = Picture(_popup, _pieces[i]);
-            _tooltipImage = Picture(_popup, null);
-            _popup.style.display = DisplayStyle.None;
+            _hud = new HoverHud(assets.Font, (assets.StatusBar.Width, assets.StatusBar.Height));
+            // Tooltips over every panel but the full map (20); the bar under the resource panels (11).
+            _settings = Settings(17);
+            _barSettings = Settings(10);
+            _canvas = Canvas(parent, _settings, "Dungeon hover HUD", out _owner, out _root);
+            _barCanvas = Canvas(parent, _barSettings, "Dungeon status bar", out _barOwner, out _barRoot);
+            foreach (HudImage image in HoverHud.Images())
+            {
+                if (image == HoverHud.Bar || image == HoverHud.Cap) _barCanvas.Preload(image);
+                else _canvas.Preload(image);
+            }
+        }
+
+        private static PanelSettings Settings(int order)
+        {
+            PanelSettings settings = ScriptableObject.CreateInstance<PanelSettings>();
+            settings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
+            settings.scaleMode = PanelScaleMode.ConstantPixelSize; settings.scale = 1;
+            settings.sortingOrder = order;
+            return settings;
+        }
+
+        private HudCanvas Canvas(Transform parent, PanelSettings settings, string name, out GameObject owner, out VisualElement root)
+        {
+            owner = new GameObject(name);
+            if (parent != null) owner.transform.SetParent(parent, false);
+            var document = owner.AddComponent<UIDocument>(); document.panelSettings = settings;
+            root = document.rootVisualElement; root.pickingMode = PickingMode.Ignore;
+            root.style.width = Length.Percent(100); root.style.height = Length.Percent(100);
+            var canvas = new HudCanvas(Load, null);
+            root.Add(canvas);
+            return canvas;
+        }
+
+        private RgbaImage Load(string path)
+        {
+            if (path == HoverHud.Bar.Path) return _assets.StatusBar;
+            if (path == HoverHud.Cap.Path) return _assets.StatusEnd;
+            const string Piece = "GUI\\Windows\\text_box-";
+            string[] suffixes = { "tl", "t", "tr", "l", "m", "r", "bl", "b", "br" };
+            if (path.StartsWith(Piece, StringComparison.Ordinal))
+            {
+                int index = Array.IndexOf(suffixes, path.Substring(Piece.Length));
+                if (index >= 0) return _assets.TooltipPiece(index);
+            }
+            throw new FileNotFoundException("Not a hover HUD image: " + path);
+        }
+
+        private Rect Local(HudRect r)
+        {
+            float scale = Screen.Scale;
+            return new Rect(r.X * scale, r.Y * scale, r.Width * scale, r.Height * scale);
         }
 
         public void SetVisibility(HudVisibility visibility)
         {
-            _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
-            _root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
-            _bar.style.display = _root.style.display;
-            _endImage.style.display = _root.style.display;
-            if (!_visible) _delay.Visible(HoverTextSnapshot.Empty, (long)(Time.unscaledTimeAsDouble * 1000));
+            _hud.SetVisibility(visibility, (long)(Time.unscaledTimeAsDouble * 1000));
+            DisplayStyle display = visibility.ShowNormalHud ? DisplayStyle.Flex : DisplayStyle.None;
+            _root.style.display = display; _barRoot.style.display = display;
         }
 
-        public bool ContainsPointer(Vector3 screenPosition) => _visible && _allowInput
-            && BarBounds.Contains(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false));
+        public bool ContainsPointer(Vector3 screenPosition)
+        {
+            Vector2 local = ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false);
+            float scale = Screen.Scale;
+            return _hud.ContainsPointer(local.x / scale, local.y / scale);
+        }
 
-        /// <summary>Refreshes retained visuals in Update, before worker simulation dispatch.</summary>
+        /// <summary>Refreshes the frames in Update, before worker simulation dispatch.</summary>
+        /// <param name="cursorGui">The pointer in screen pixels from the top-left.</param>
         /// <param name="cursorReach">How far the drawn cursor reaches right of the pointer, in DK2's
         /// 640×480 units (<see cref="HandCursor.Reach"/>). DK2's 98-unit offset is the 82-wide Point hand
         /// (hotspot 2) plus 18; ours anchors Point at its claw tip, whose least X over the loop is 0, so
         /// 100. The small pointer shown over the HUD is 42 wide, so the same offset left a wide gap (owner, 2026-10-20).</param>
         public void Draw(HoverTextSnapshot snapshot, Vector2 cursorGui, float cursorReach = 80)
         {
-            _cursorReach = cursorReach;
-            if (!_visible) return;
-            BitmapFont font = _font, tooltipFont = _tooltipFont;
-            _settings.scale = _barSettings.scale = ScaleLayout.Factor;
-            cursorGui /= ScaleLayout.Factor;
-            bool sizeChanged = _screenWidth != Width || _screenHeight != Screen.height;
-            if (font == null || _screenHeight != Screen.height)
-            {
-                font = _assets.Font(InterfaceFonts.HudTextFileName(Screen.height));
-                tooltipFont = _assets.Font(InterfaceFonts.HudTooltipFileName(Screen.height));
-            }
-            bool fontChanged = !ReferenceEquals(font, _font) || !ReferenceEquals(tooltipFont, _tooltipFont);
-            _font = font; _tooltipFont = tooltipFont; _screenHeight = Screen.height; _screenWidth = Width;
-            string status = snapshot.TopStatus ?? "", tooltip = snapshot.TooltipName ?? "";
-            if (_statusText != status || fontChanged)
-            {
-                _statusText = status; _scroll = 0; _scrollForward = true;
-                ReplaceText(_statusImage, ref _statusTextTexture, font,
-                    new[] { new BitmapTextLine(status, BitmapTextLayout.Measure(font, status)) }, false);
-            }
-            if (_tooltipText != tooltip || fontChanged || sizeChanged)
-            {
-                _tooltipText = tooltip;
-                ReplaceText(_tooltipImage, ref _tooltipTextTexture, tooltipFont,
-                    BitmapTextLayout.Wrap(tooltipFont, tooltip, Mathf.Max(1, Width / 2)), true);
-            }
-            Rect strip = StatusBounds;
-            if (sizeChanged || fontChanged) LayoutStrip(strip);
-            float width = _statusTextTexture?.width ?? 0;
-            float overflow = Mathf.Max(0, width - _clipWidth);
-            if (overflow > 0)
-            {
-                _scroll += (_scrollForward ? 1 : -1) * Time.unscaledDeltaTime * 60;
-                if (_scroll >= overflow) { _scroll = overflow; _scrollForward = false; }
-                if (_scroll <= 0) { _scroll = 0; _scrollForward = true; }
-            }
-            else _scroll = 0;
-            Place(_statusImage, -_scroll, (strip.height - (_statusTextTexture?.height ?? 0)) / 2,
-                width, _statusTextTexture?.height ?? 0);
-            bool popupVisible = _delay.Visible(snapshot, (long)(Time.unscaledTimeAsDouble * 1000), ShowCreatureTooltip);
-            _popup.style.display = popupVisible ? DisplayStyle.Flex : DisplayStyle.None;
-            if (popupVisible) LayoutTooltip(cursorGui);
-        }
-
-        private void LayoutStrip(Rect strip)
-        {
-            Rect bar = BarBounds;
-            float scale = bar.height / Mathf.Max(1, _status.height);
-            float tileWidth = _status.width * scale;
-            // 0x0042E140: the cap is a 128-unit square at (W - 80, 0), virtual 2560x1920, over a
-            // bar of 88 at y20, so it stands above and below the bar and 48 units off the right edge.
-            float unit = Screen.height / 1920f, cap = 128 * unit, capLeft = bar.width - 80 * unit;
-            Place(_strip, strip.x, strip.y, strip.width, strip.height);
-            // The text stops short of the iron end cap.
-            _clipWidth = Mathf.Max(1, capLeft - strip.x - 24);
-            Place(_clip, 12, 0, _clipWidth, strip.height);
-            Place(_bar, bar.x, bar.y, bar.width, bar.height);
-            int count = Mathf.CeilToInt(bar.width / tileWidth);
-            while (_stripTiles.Count < count)
-            {
-                Image tile = Picture(_bar, _status);
-                tile.SendToBack(); _stripTiles.Add(tile);
-            }
-            for (int i = 0; i < _stripTiles.Count; i++)
-            {
-                _stripTiles[i].style.display = i < count ? DisplayStyle.Flex : DisplayStyle.None;
-                if (i < count) Place(_stripTiles[i], i * tileWidth, 0, tileWidth, bar.height);
-            }
-            Place(_endImage, capLeft, 0, cap, cap);
-            _endImage.BringToFront();
-        }
-
-        private void LayoutTooltip(Vector2 cursor)
-        {
-            if (_tooltipTextTexture == null) return;
-            float textWidth = _tooltipTextTexture.width, textHeight = _tooltipTextTexture.height;
-            float padding = Mathf.Max(4, InterfaceFonts.HudTooltipPixels(Screen.height));
-            float width = Mathf.Min(Width, textWidth + padding * 2);
-            float height = textHeight + padding * 2;
-            // DK2 offsets the popup 98 units at width 640, and scales the Hand by that width too.
-            // Our Hand scales by height/480 (HandCursor.Place), so the offsets follow it.
-            float unit = Screen.height / 480f;
-            float x = cursor.x + (_cursorReach + 18) * unit;
-            if (x + width > Width - 40 * unit)
-                x = cursor.x - width - 30 * unit;
-            x = Mathf.Clamp(x, 0, Mathf.Max(0, Width - width));
-            float y = Mathf.Clamp(cursor.y - _tooltipFont.LineHeight, StatusHeight,
-                Mathf.Max(StatusHeight, Screen.height / ScaleLayout.Factor - height - 10));
-            Place(_popup, x, y, width, height);
-            float border = Mathf.Min(padding, Mathf.Min(width, height) / 2);
-            for (int row = 0; row < 3; row++)
-            for (int column = 0; column < 3; column++)
-            {
-                float left = column == 0 ? 0 : column == 1 ? border : width - border;
-                float top = row == 0 ? 0 : row == 1 ? border : height - border;
-                Place(_popupPieces[row * 3 + column], left, top,
-                    column == 1 ? width - border * 2 : border, row == 1 ? height - border * 2 : border);
-            }
-            Place(_tooltipImage, (width - textWidth) / 2, padding, textWidth, textHeight);
-        }
-
-        private void ReplaceText(Image image, ref Texture2D previous, BitmapFont font, IReadOnlyList<BitmapTextLine> lines, bool centred)
-        {
-            Texture2D next = Raster(font, lines, centred);
-            image.image = next;
-            if (previous != null) UnityEngine.Object.Destroy(previous);
-            previous = next;
-        }
-
-        private static Texture2D Raster(BitmapFont font, IReadOnlyList<BitmapTextLine> lines, bool centred)
-        {
-            int width = 1, minX = 0, minY = 0, maxY = Math.Max(1, lines.Count * font.LineHeight);
-            foreach (BitmapTextLine line in lines) width = Math.Max(width, line.Width);
-            for (int row = 0; row < lines.Count; row++)
-            {
-                int pen = centred ? (width - lines[row].Width) / 2 : 0;
-                foreach (char character in lines[row].Text)
-                {
-                    BitmapGlyph glyph = font.Find(character);
-                    if (glyph == null) continue;
-                    minX = Math.Min(minX, pen + glyph.OffsetX);
-                    minY = Math.Min(minY, row * font.LineHeight + glyph.OffsetY);
-                    maxY = Math.Max(maxY, row * font.LineHeight + glyph.OffsetY + glyph.Height);
-                    pen += glyph.Advance;
-                }
-            }
-            int height = Math.Max(1, maxY - minY);
-            // Preserve advances and glyph bearings, including overhang beyond the final advance.
-            int maxX = width;
-            for (int row = 0; row < lines.Count; row++)
-            {
-                int pen = centred ? (width - lines[row].Width) / 2 : 0;
-                foreach (char character in lines[row].Text)
-                {
-                    BitmapGlyph glyph = font.Find(character);
-                    if (glyph == null) continue;
-                    maxX = Math.Max(maxX, pen + glyph.OffsetX + glyph.Width);
-                    pen += glyph.Advance;
-                }
-            }
-            int textureWidth = Math.Max(1, maxX - minX);
-            var pixels = new Color32[textureWidth * height];
-            for (int row = 0; row < lines.Count; row++)
-            {
-                int pen = (centred ? (width - lines[row].Width) / 2 : 0) - minX;
-                foreach (char character in lines[row].Text)
-                {
-                    BitmapGlyph glyph = font.Find(character);
-                    if (glyph == null) continue;
-                    for (int gy = 0; gy < glyph.Height; gy++)
-                    for (int gx = 0; gx < glyph.Width; gx++)
-                    {
-                        int px = pen + glyph.OffsetX + gx;
-                        int py = row * font.LineHeight + glyph.OffsetY - minY + gy;
-                        int index = (height - 1 - py) * textureWidth + px;
-                        byte alpha = (byte)(glyph.Pixels[gy * glyph.Width + gx] * 17);
-                        if (alpha > pixels[index].a) pixels[index] = new Color32(255, 255, 255, alpha);
-                    }
-                    pen += glyph.Advance;
-                }
-            }
-            var texture = new Texture2D(textureWidth, height, TextureFormat.RGBA32, false, true)
-            { name = "DK2 retained BF4 text", filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
-            texture.SetPixels32(pixels); texture.Apply(false, true);
-            return texture;
-        }
-
-        private static VisualElement Element(VisualElement parent)
-        {
-            var element = new VisualElement { pickingMode = PickingMode.Ignore };
-            element.style.position = Position.Absolute; parent.Add(element); return element;
-        }
-        private static Image Picture(VisualElement parent, Texture2D texture)
-        {
-            var image = new Image { image = texture, pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
-            image.style.position = Position.Absolute; parent.Add(image); return image;
-        }
-        private static void Place(VisualElement element, float x, float y, float width, float height)
-        {
-            element.style.left = x; element.style.top = y; element.style.width = width; element.style.height = height;
+            HudScaleLayout layout = ScaleLayout;
+            _settings.scale = _barSettings.scale = layout.Factor;
+            HudScreen screen = Screen;
+            float toVirtual = layout.Factor * screen.Scale;
+            _frame.Clear(); _barFrame.Clear();
+            _hud.Build(screen, UnityEngine.Screen.height / toVirtual, snapshot,
+                (cursorGui.x / toVirtual, cursorGui.y / toVirtual), cursorReach,
+                (long)(Time.unscaledTimeAsDouble * 1000), _barFrame, _frame);
+            _barCanvas.Present(_barFrame, screen.Scale, layout.Factor);
+            _canvas.Present(_frame, screen.Scale, layout.Factor);
         }
 
         public void Dispose()
         {
-            _root.RemoveFromHierarchy(); _bar.RemoveFromHierarchy(); _endImage.RemoveFromHierarchy();
+            _canvas.Dispose(); _barCanvas.Dispose();
             UnityEngine.Object.Destroy(_owner); UnityEngine.Object.Destroy(_settings);
             UnityEngine.Object.Destroy(_barOwner); UnityEngine.Object.Destroy(_barSettings);
-            UnityEngine.Object.Destroy(_statusTextTexture); UnityEngine.Object.Destroy(_tooltipTextTexture);
-            UnityEngine.Object.Destroy(_status); UnityEngine.Object.Destroy(_end);
-            foreach (Texture2D piece in _pieces) UnityEngine.Object.Destroy(piece);
         }
     }
 }
