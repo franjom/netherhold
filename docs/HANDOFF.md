@@ -21,8 +21,9 @@ questions live in their canonical documents; this file links to them.
   Unity's runtime is [ADR-0041](DECISIONS.md)'s open question. [ADR-0805](DECISIONS.md) moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
-  resource strip is moved too (`KeeperResourceHud`); it builds and its model is tested, but it has not been run in
-  the Unity editor. Next: the message tabs, then the order in the ADR. No Godot code existed on that date.
+  resource strip (`KeeperResourceHud`) and the message tabs (`MessageTabsHud`) are moved too; they build and their models are
+  tested, but neither has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
+  background-repeat are unchecked. Next: the hover HUD, then the order in the ADR. No Godot code existed on that date.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,
@@ -115,8 +116,13 @@ These are entry points, not a new priority order.
   Q737's native closure and scope are in
   [boulder](research/boulder.md#9c-q737-recheck-stun-duration-does-not-establish-the-next-state).
   Owner observations are in [traps](research/traps.md); original-game acceptance remains open.
-- Possession camera and input: [build plan](plans/2026-10-12-possession-arms-build-plan.md)
-  and [owner play questions](research/possession-arms-and-inputs.md).
+- Possession first-person view: built and unit-tested, never seen running in an editor, no owner play
+  acceptance. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805); `DungeonRunner.Possession.cs`
+  is the Unity glue. Not built: the death view and the entry and exit colour changes (Q745), the two
+  special-ability keys, the possession HUD, the third-person view, near clip, lighting distance and
+  ambience listener in first person. Next: one editor run, then owner play. Evidence and remake choices:
+  [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
+  simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)

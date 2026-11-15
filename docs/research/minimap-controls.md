@@ -230,5 +230,5 @@ regenerated and passed to 0x0052A330 on every draw, which puts the position back
 the cache is drawn with offset 0: the bar shows when the text overflows but never scrolls it.
 
 **Ours (built 2026-10-23).** `TextScrollBar` draws the four textures and takes the arrow, track and
-thumb input above; `ClassicMessageTabs.DrawPanel` scrolls the message panel by it, and the query panel
+thumb input above; `MessageTabsHud` scrolls the message panel by it, and the query panel
 shows the bar inert, as DK2 does.

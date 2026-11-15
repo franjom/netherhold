@@ -212,7 +212,8 @@ replays. A menu33 button reuses 0x004288C0 to close it.
 `MessageTypeTable` holds the 100 rows' string references and graphics and the 28 variant lists,
 copied from the bytes at `0x006A0B00` and `0x006A0000..`. `MessageTabsView` captures the tabs as
 section 2-3 read them, keeping the opened and dismissed bits and the slide stamps out of the
-simulation (first seen by the view stands in for the record's `+0x2C` stamp). `ClassicMessageTabs`
+simulation (first seen by the view stands in for the record's `+0x2C` stamp). `MessageTabsHud` (the Unity `ClassicMessageTabs` is a
+facade over it)
 draws Review Objective and the slots, puts the hovered message's text on the status line, opens
 the message panel on a left click and dismisses on a right click; the panel has exit and tick, and
 Review Objective opens the briefing. The panel takes the text height in virtual units as four
@@ -271,7 +272,7 @@ adds to the score through it, ours can show a different score.
 
 **Built (2026-10-23).** `HudIndicatorSnapshot.Capture` makes the tests on what our simulation holds
 (time limit, `SpecialValueWritten`, level flag 0x80, `SpecialInfoPlayerId`, `MaximumSlaps` minus the
-player's slaps, next room). `HudIndicatorLayout.Place` packs them; `ClassicMessageTabs` draws all six
+player's slaps, next room). `HudIndicatorLayout.Place` packs them; `MessageTabsHud` draws all six
 boxes: Time Remaining and Score digits, Current Holder's name (ping-pong scroll when it overflows; the
 Players-record name, else "Good Player", "Neutral Player" or "Keeper N"), Heroes Killed's count, Slaps
 Remaining's digits and Next Room's icons. Camera class 1 is not mapped to our camera, so ours always
@@ -311,7 +312,7 @@ set by actions 50 and 46. Not built: the level-end pass of [0x004BE630](function
 The small `mt-info` buttons are retained messages, not permanent controls. The
 queue producer, local-player selection, NeedsTab/age and first-eight-record
 filter must all admit a record (sections 2 and 8). The normal HUD must be visible;
-`ClassicMessageTabs.Draw` also gates clicks on ordinary input and the objective
+`MessageTabsHud` also gates clicks on ordinary input and the objective
 viewer being closed. Existing left/right clicks, text frame, scrollbar, close,
 dismiss and conditional goto are wired through `DungeonRunner.Hud.cs`.
 

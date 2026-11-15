@@ -21,6 +21,10 @@ namespace DK2.Unity
         private readonly Dictionary<(HudImage, HudBlend), Texture2D> _textures = new Dictionary<(HudImage, HudBlend), Texture2D>();
         private readonly Dictionary<(HudImage, HudBlend), LiveTexture> _live = new Dictionary<(HudImage, HudBlend), LiveTexture>();
         private readonly HudFrame _shown = new HudFrame();
+        private readonly HashSet<(HudImage, HudBlend)> _textInUse = new HashSet<(HudImage, HudBlend)>();
+        private readonly List<(HudImage, HudBlend)> _stale = new List<(HudImage, HudBlend)>();
+        private int _catalogueCount;
+        private Texture2D _white;
         private Texture2D[] _resolved = new Texture2D[256];
         private float _scale = 1, _pixelsPerUnit = 1;
 
@@ -51,9 +55,37 @@ namespace DK2.Unity
             if (_resolved.Length < frame.Count) _resolved = new Texture2D[Math.Max(frame.Count, _resolved.Length * 2)];
             // Textures first: if loading throws, the frame is not taken and the next one tries again.
             ReadOnlySpan<HudDraw> draws = frame.Draws;
-            for (int i = 0; i < draws.Length; i++) _resolved[i] = Texture(draws[i].Image, draws[i].Blend);
+            _textInUse.Clear();
+            for (int i = 0; i < draws.Length; i++)
+            {
+                _resolved[i] = draws[i].Kind == HudDrawKind.Fill ? White : Texture(draws[i].Image, draws[i].Blend);
+                if (draws[i].Image.Text != null) _textInUse.Add((draws[i].Image, draws[i].Blend));
+            }
             _scale = scale; _pixelsPerUnit = pixelsPerUnit; _shown.CopyFrom(frame);
+            ReleaseUnusedText();
             MarkDirtyRepaint();
+        }
+
+        /// <summary>Text changes with the message shown; a text texture no frame draws any more is destroyed,
+        /// as the panels destroyed a replaced text texture.</summary>
+        private void ReleaseUnusedText()
+        {
+            if (_textures.Count == _textInUse.Count + _catalogueCount) return;
+            _stale.Clear();
+            foreach (KeyValuePair<(HudImage, HudBlend), Texture2D> entry in _textures)
+                if (entry.Key.Item1.Text != null && !_textInUse.Contains(entry.Key)) _stale.Add(entry.Key);
+            foreach ((HudImage, HudBlend) key in _stale) { UnityEngine.Object.Destroy(_textures[key]); _textures.Remove(key); }
+        }
+
+        private Texture2D White
+        {
+            get
+            {
+                if (_white != null) return _white;
+                _white = new Texture2D(1, 1, TextureFormat.RGBA32, false) { name = "HUD fill" };
+                _white.SetPixel(0, 0, Color.white); _white.Apply(false);
+                return _white;
+            }
         }
 
         /// <summary>A virtual rect in local units with its edges on whole screen pixels, as UI Toolkit's
@@ -86,14 +118,25 @@ namespace DK2.Unity
                 HudDraw draw = draws[i];
                 var tint = new Color32(draw.Tint.R, draw.Tint.G, draw.Tint.B, draw.Tint.A);
                 Rect r = Snapped(draw.Rect);
-                if (draw.Kind == HudDrawKind.Quad)
+                if (draw.Kind != HudDrawKind.Sector)
                 {
                     if (r.width <= 0 || r.height <= 0) continue;
+                    // UV from the image's top-left, to Unity's bottom-up texture space.
+                    HudRect uv = draw.Uv ?? new HudRect(0, 0, 1, 1);
+                    if (draw.Clip is HudRect clip)
+                    {
+                        // Quad and window both on the pixel grid, then cut: the overflow-hidden box's own rule.
+                        Rect c = Snapped(clip);
+                        if (!HudQuads.Cut(new HudRect(r.x, r.y, r.width, r.height), uv, new HudRect(c.x, c.y, c.width, c.height),
+                            out HudRect cut, out uv)) continue;
+                        r = new Rect(cut.X, cut.Y, cut.Width, cut.Height);
+                    }
+                    float u0 = uv.X, u1 = uv.X + uv.Width, v0 = 1 - uv.Y, v1 = 1 - (uv.Y + uv.Height);
                     MeshWriteData quad = context.Allocate(4, 6, texture);
-                    Vertex(quad, r.xMin, r.yMin, 0, 1, tint);
-                    Vertex(quad, r.xMax, r.yMin, 1, 1, tint);
-                    Vertex(quad, r.xMax, r.yMax, 1, 0, tint);
-                    Vertex(quad, r.xMin, r.yMax, 0, 0, tint);
+                    Vertex(quad, r.xMin, r.yMin, u0, v0, tint);
+                    Vertex(quad, r.xMax, r.yMin, u1, v0, tint);
+                    Vertex(quad, r.xMax, r.yMax, u1, v1, tint);
+                    Vertex(quad, r.xMin, r.yMax, u0, v1, tint);
                     // Clockwise on screen: UI Toolkit's winding.
                     quad.SetNextIndex(0); quad.SetNextIndex(1); quad.SetNextIndex(2);
                     quad.SetNextIndex(0); quad.SetNextIndex(2); quad.SetNextIndex(3);
@@ -122,7 +165,17 @@ namespace DK2.Unity
             if (image.IsNone) return null;
             if (image.IsLive) return Live(image, blend);
             if (_textures.TryGetValue((image, blend), out Texture2D texture)) return texture;
-            RgbaImage source = _load(image.Path);
+            RgbaImage source;
+            if (image.Text != null)
+            {
+                byte[] set = HudTextPixels.Render(image.Text, out int width, out int height);
+                source = new RgbaImage(width, height, set);
+            }
+            else
+            {
+                source = _load(image.Path);
+                _catalogueCount++;
+            }
             byte[] pixels = HudImagePixels.Apply(source.Pixels, source.Width, source.Height, image);
             if (blend == HudBlend.Additive) pixels = HudImagePixels.AdditiveOverAlpha(pixels);
             texture = MinimapFrameVisual.Decode(new RgbaImage(source.Width, source.Height, pixels));
@@ -169,7 +222,8 @@ namespace DK2.Unity
         {
             foreach (Texture2D texture in _textures.Values) UnityEngine.Object.Destroy(texture);
             foreach (LiveTexture live in _live.Values) UnityEngine.Object.Destroy(live.Texture);
-            _textures.Clear(); _live.Clear();
+            if (_white != null) UnityEngine.Object.Destroy(_white);
+            _textures.Clear(); _live.Clear(); _catalogueCount = 0;
         }
     }
 }

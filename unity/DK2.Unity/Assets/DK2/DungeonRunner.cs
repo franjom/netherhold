@@ -543,7 +543,7 @@ namespace DK2.Unity
             _startup.Breakdown("present", artBefore, _classic?.Breakdown.Snapshot());
             IReadOnlyList<CameraThing> presets = GameDatabaseLoader.LoadCameraPresets(install, campaignLevel ? levelName : null);
             CameraThing profile = presets.FirstOrDefault(c => c.CameraId == (ushort)cameraPreset);
-            _possessionPreset = presets.FirstOrDefault(c => c.CameraId == PossessionCamera.PresetId);
+            _possession = new PossessionSession(database, presets.FirstOrDefault(c => c.CameraId == PossessionCamera.PresetId));
             if (classicMeshes && profile != null)
             {
                 _classicCamera = new ClassicCamera(profile with
@@ -1600,8 +1600,7 @@ namespace DK2.Unity
 
         private void ApplyClassicCamera()
         {
-            if (_possessionFlight.Active) { ApplyPossessionFlight(); return; }
-            if (Possessing) { ApplyPossessionCamera(); return; }
+            if (PossessionCameraHeld && ApplyPossessionCamera()) return;
             Camera camera = Camera.main;
             if (camera == null || camera.pixelWidth <= 0 || camera.pixelHeight <= 0) return;
             int screenWidth = camera.targetTexture != null ? camera.targetTexture.width : Screen.width;
