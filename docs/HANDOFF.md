@@ -176,7 +176,9 @@ These are entry points, not a new priority order.
   offers with `PlaceDoor` and `PlaceTrap` (observation schema 4; Q819, Q820, Q825 and Q826 open, Q821-Q823
   answered by the owner). Its observation and action rows are all built except Possession; the routines that
   use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default, not measured: only Level 15a and
-  later offer a Pit; Q827-Q831 open); Imp scouting comes next.
+  later offer a Pit; Q827, Q828, Q831 and Q836 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
+  seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Next: Imp creation, R8 (cap of 15-20 Imps, a mana reserve, Q837
+  open; [plan](plans/2026-11-14-campaign-bot-stage3.md)) and the last Task 4 row, defending a route with doors and traps.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

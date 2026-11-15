@@ -18,7 +18,8 @@ namespace DK2.Data.Model;
 /// portals, neither id ever carrying a creature pool (Q91).</para></summary>
 public static class PlayerIds
 {
-    /// <summary>Terrain that belongs to nobody — unmined rock, undug dirt.</summary>
+    /// <summary>Terrain that belongs to nobody — unmined rock, undug dirt, and the dirt path, which is not ownable, so a
+    /// player view shows owner 0 there, not <see cref="Neutral"/>.</summary>
     public const byte Unowned = 0;
 
     /// <summary>The hero side. Hero gates and four shipped portals carry this.</summary>
