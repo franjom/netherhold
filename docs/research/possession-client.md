@@ -246,8 +246,8 @@ classes (1, 2, 10 and 11; 3, 4, 5, 9, 13, 14 and 15; 7; 18; the rest) and gives 
 new one is not, or camera flag `+0xE3C` bit 6 is set; it refuses the change when flag
 byte `+0xD92` has bit 7. It fills the target view (`+0xDB6` X, Y, Z, `+0xDC2`
 zoom, `+0xDC6` yaw, `+0xDC8` pitch, `+0xDCA` roll, `+0xDCC` from the preset's file
-`0x24` and `+0xDD0` from its file `0x3C` (our `ViewDistance` and `Lens`; which the
-renderer takes as which is UNREAD), `+0xDD4` mode) and `Camera_CommitMode` (`0x0044BD70`) stores the start `+0xDDC` and the
+`0x24` and `+0xDD0` from its file `0x3C` (our `ViewDistance` and `Lens`; the commit
+copies them to `+0xD8A`, the renderer's view distance, and `+0xD8E`, the lens), `+0xDD4` mode) and `Camera_CommitMode` (`0x0044BD70`) stores the start `+0xDDC` and the
 end `+0xDD8`. Each frame `Camera_Update` (`0x0044C875`-`0x0044C9DB`) moves every value by
 `(target - value) * (now - start) / (end - start)` in whole numbers and then makes
 `start = now`; an angle's gap is the 11-bit difference with its sign, so it turns the
@@ -281,7 +281,7 @@ and the move takes 2000 ms. Posters of action 21 with zeros: the upkeep failure
 (`0x004BEA98`, `0x004BEEAB`). Which of them, if any, is the player's own leave is UNREAD;
 the remake takes that leave to be the same record.
 
-**The mode-11 view (STRONGLY INFERRED, not built).** A first word of 1 requests mode 11,
+**The mode-11 view (STRONGLY INFERRED).** A first word of 1 requests mode 11,
 and only from mode 2. `Creature_DeathBookkeeping` posts it with the id of the thing the
 dead creature leaves behind (`0x00488095`), and `Object_OnDelete` with id 0
 (`0x0049B702`). The move takes 3000 ms with the `+0xDCC` target 0 and colour change 9
@@ -312,12 +312,17 @@ authored marks should sound its `0x314` and `0x315` steps beside the view's `0x3
 tile, and whether the sound manager takes both.
 
 **The remake.** `PossessionFlight` runs the 2000 ms move both ways with the formula
-above; the picture comes from the ordinary camera's pose formula, and the two remake
-projection choices (§3) are blended by the move's progress. The model is hidden from the
-landing to the leave, with its shadow, and both kinds of footstep sound. Every end of a possession flies out the ordinary way, death
-included. The colour changes are not built. The focus height of the way back is the
-ordinary camera's own, which is the preset's unless something moved it. The view cannot
-be left until the move in has landed (remake choice: DK2's leave during it is unread).
+above; the picture comes from the ordinary camera's pose formula, and only the view
+axis's place on the screen is blended by the move's progress. The model is hidden from
+the landing to the leave, with its shadow, and both kinds of footstep sound. A possessed
+creature still in the world at zero health when the possession ends in first person gets
+the mode-11 view beside its body (`PossessionSession`): the 3000 ms move, the 2000 ms
+hold, then the pitch zeroed and the move back. Its three angles come from our own
+generator seeded by the body's place, and that the point lies behind the body is a
+HYPOTHESIS. Any other end flies out the ordinary way; the object arm of mode 11 and the
+colour changes are not built. The focus height of the way back is the ordinary camera's
+own, which is the preset's unless something moved it. The view cannot be left until the
+move in has landed, as in the original (§6b).
 
 ## 6a. The owner's recollection, 2026-11-14
 
@@ -342,20 +347,27 @@ observations; what causes each is not read):
 - The possessed Imp's footsteps are heard. Which of the two pairs of §6 was heard, or
   both, is not told apart, so the footstep verdict there stays HYPOTHESIS.
 - No possessed creature died, so the mode-11 view is still unobserved.
+- There is a ceiling over door tiles and over water and lava, as the read of the roof
+  says (`kwd-terrain-rooms.md`).
 
 Nineteen screenshots of the original at 1600 by 1200, one as a possessed Imp and
 eighteen as a possessed Warlock, are in
 `F:\DK2Evidence\captures\visual\possession-first-person--2026-11-15--001`. They show:
 
-- **A warped picture.** Straight edges of ceilings, walls and floors are drawn as
-  curves, more toward the screen's edges, in every shot: not a plain perspective. The
-  remake draws a plain perspective at 73.7 degrees, a deviation; where DK2 makes the
-  warp is UNREAD.
+- **A picture that looks warped.** Straight edges of ceilings, walls and floors look
+  curved, more toward the screen's edges, in every shot. The binary has no warp
+  ([possession-warp.md](possession-warp.md)): one plain projection serves every camera,
+  with a focal length of lens x 320 pixels whatever the screen, so at 1600 by 1200 the
+  first-person view is 136 by 124 degrees. The curves are then the vaulted roof and the
+  bent walls seen very wide (HYPOTHESIS: not fitted to a shot). The remake drew 90 by 74
+  degrees until 2026-11-15; it now uses the same rule as the ordinary camera.
 - **Near things drawn very large.** A wall, pillar, door frame or crystal beside the
   camera fills a side of the screen, stretched. The large pieces at the edge of the
   Imp's shot are probably the same (HYPOTHESIS), not a first-person model.
 - **A ceiling**, vaulted over rooms and corridors, which the ordinary view does not
-  draw, fading to black with distance, as the far floor and walls do.
+  draw, fading to black with distance, as the far floor and walls do. Its mechanism is read
+  (a per-tile height-field roof drawn only in the possession modes): `kwd-terrain-rooms.md`,
+  *Ceiling: the possession-view roof*.
 - **A HUD of its own.** Along the top: the mana counter, a portrait, a health bar, the
   gold carried, then icons that differ by creature (the Imp a pickaxe and a boot, the
   Warlock three). At the left three counters and the minimap; at the bottom left one
@@ -364,9 +376,7 @@ eighteen as a possessed Warlock, are in
 
 ## 7. Not read yet
 
-- The warp of the first-person picture (§6b).
-- How the first-person preset's lens and view distance reach the renderer, and the
-  writers of camera `+0xE38` and `+0xE3C`.
+- The writers of camera `+0xE38` and `+0xE3C`.
 - Who raises the view event `0x00448440` handles, who posts the player's own leave, and
   the colour changes of `0x005976D0`.
 - `Possession_SelectAbility`'s level gate in full, `0x005075A0`, and the

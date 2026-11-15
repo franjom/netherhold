@@ -108,10 +108,10 @@ public sealed class ClassicCamera
     /// <summary>Takes the yaw a timed move ended on, whatever the preset locks.</summary>
     public void Face(Dk2Angle yaw) => _yaw = new Dk2Angle((ushort)(yaw.Value & 2047));
 
-    /// <summary>The pose of any camera state. <paramref name="firstPersonShare"/> runs from 0, this
-    /// camera's own projection, to 1, the first-person one (the axis at the screen's middle and
-    /// <see cref="PossessionCamera.VerticalFieldOfView"/>'s angle): the two differ only by remake
-    /// choices, so a move between them blends them.</summary>
+    /// <summary>The pose of any camera state. The field of view is the state's lens through DK2's one
+    /// projection (possession-warp.md §2). <paramref name="firstPersonShare"/> runs from 0, this
+    /// camera's own view axis above the screen's middle, to 1, the first-person one at the middle:
+    /// that offset is the only difference a move between them blends.</summary>
     public ClassicCameraPose Pose(in CameraFlightState state, CameraViewport viewport, float firstPersonShare) => Pose(
         new Vector3(state.X / (float)Fp32.One, state.Z / (float)Fp32.One, -state.Y / (float)Fp32.One), state, viewport, firstPersonShare);
 
@@ -133,8 +133,6 @@ public sealed class ClassicCamera
         Vector3 forward = ToUnity(Vector3.TransformNormal(Vector3.UnitZ, inverseView));
         Vector3 up = ToUnity(Vector3.TransformNormal(-Vector3.UnitY, inverseView));
         float fov = VerticalFieldOfView(state.Lens, viewport, ReferenceScreenWidth);
-        if (firstPersonShare > 0)
-            fov += (VerticalFieldOfView(state.Lens, new CameraViewport(640, 640, 480), null) - fov) * firstPersonShare;
         return new ClassicCameraPose(focus + offset, forward, up, fov,
             Math.Max(state.ViewDistance / (float)Fp32.One, 2f * (float)new Fp32(state.Zoom).ToDouble()),
             90f - pitch.Value * (360f / 2048),
@@ -142,8 +140,10 @@ public sealed class ClassicCamera
             (1f - 2f * ProjectionCentre) * (1 - firstPersonShare));
     }
 
-    /// <summary>The vertical field of view, in degrees, of a preset's lens: 320 pixels of focal length
-    /// to a lens of one, on a screen <paramref name="referenceScreenWidth"/> wide when that is given.</summary>
+    /// <summary>The vertical field of view, in degrees, of a lens. DK2's focal length is lens x 320
+    /// pixels whatever the screen (<c>0x00598D3C</c>, possession-warp.md §2), so its angle grows with the
+    /// resolution; given <paramref name="referenceScreenWidth"/>, the angle is the one DK2 shows on a
+    /// screen that wide, kept across resolutions (a remake choice).</summary>
     public static float VerticalFieldOfView(int lens, CameraViewport viewport, int? referenceScreenWidth)
     {
         float focalPixels = (float)(new Fp32(lens) * new Fp32(320 * Fp32.One)).ToDouble();

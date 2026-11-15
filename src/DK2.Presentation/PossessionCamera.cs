@@ -14,9 +14,8 @@ namespace DK2.Presentation;
 public readonly record struct PossessionCameraPose(Vector3 Position, Vector3 Forward, float RollDegrees);
 
 /// <summary>Turns <see cref="PossessionView"/>'s fixed-point place and 11-bit angles into what a host
-/// camera takes, and reads camera preset 2 (possession-client.md §3). How DK2's renderer uses that
-/// preset's lens and view distance is unread: taking them as the ordinary camera's are taken is a
-/// HYPOTHESIS.</summary>
+/// camera takes, and reads camera preset 2 (possession-client.md §3). The lens and view distance
+/// go through the same projection as the ordinary camera's (possession-warp.md).</summary>
 public static class PossessionCamera
 {
     /// <summary>The first-person preset in <c>GlobalVariables.kwd</c>.</summary>
@@ -30,14 +29,14 @@ public static class PossessionCamera
     /// view and far plane, and the view axis at the screen's middle (a remake choice). The roll turns
     /// the camera about its own view axis; the side a positive roll leans to is not read, so its sign
     /// is a HYPOTHESIS.</summary>
-    public static ClassicCameraPose Picture(PossessionView view, CameraThing preset)
+    public static ClassicCameraPose Picture(PossessionView view, CameraThing preset, CameraViewport viewport, int? referenceScreenWidth)
     {
         PossessionCameraPose pose = Pose(view);
         Vector3 right = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, pose.Forward));
         Vector3 level = Vector3.Cross(pose.Forward, right);
         float roll = pose.RollDegrees * (MathF.PI / 180);
         return new ClassicCameraPose(pose.Position, pose.Forward, level * MathF.Cos(roll) - right * MathF.Sin(roll),
-            VerticalFieldOfView(preset), FarClipDistance(preset),
+            VerticalFieldOfView(preset, viewport, referenceScreenWidth), FarClipDistance(preset),
             90f - view.Pitch * (360f / 2048), view.Yaw * (360f / 2048));
     }
 
@@ -53,11 +52,12 @@ public static class PossessionCamera
     /// <summary>A point in 1/4096 tile, height last, in host axes (<see cref="PartyPopSound"/>'s convention).</summary>
     public static Vector3 ToHost(int x, int y, int z) => new(x / (float)Fp32.One, z / (float)Fp32.One, -y / (float)Fp32.One);
 
-    /// <summary>The vertical field of view, in degrees, the preset's lens gives DK2's own 640 by 480
-    /// screen (a focal length of 320 pixels to a lens of one): 73.7 degrees for preset 2, 90 across.
-    /// Keeping that vertical angle on a wider screen, so the sides gain, is a remake choice.</summary>
-    public static float VerticalFieldOfView(CameraThing preset) =>
-        ClassicCamera.VerticalFieldOfView(preset.Lens, new CameraViewport(640, 640, 480), null);
+    /// <summary>The vertical field of view, in degrees, of the preset's lens, by the ordinary camera's
+    /// own rule (<see cref="ClassicCamera.VerticalFieldOfView"/>): DK2 has one projection and the
+    /// first-person lens is half the ordinary one, so the view is very wide. For preset 2 on DK2's
+    /// 1600 by 1200 that is 123.9 degrees, 136.4 across (possession-warp.md §2).</summary>
+    public static float VerticalFieldOfView(CameraThing preset, CameraViewport viewport, int? referenceScreenWidth) =>
+        ClassicCamera.VerticalFieldOfView(preset.Lens, viewport, referenceScreenWidth);
 
     /// <summary>The preset's view distance in tiles: 12 for preset 2.</summary>
     public static float FarClipDistance(CameraThing preset) => preset.ViewDistance / (float)Fp32.One;

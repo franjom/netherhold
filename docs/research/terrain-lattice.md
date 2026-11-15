@@ -120,8 +120,8 @@ commit `0x0044BD70` sets it only when entering those modes from outside them, so
 request between two of them leaves it clear; each flip invalidates every cell
 (`0x00571DA0`). **STRONGLY INFERRED** for the code paths.
 
-**So the walls stand a full tile above the floor by default**, in the keeper's view and
-in possession alike. Only with HighWalls off, outside possession and the 3D front end,
+**So the walls stand a full tile above the floor by default**, in the keeper's view and in possession alike
+(`TerrainLattice.HighWalls`, `.Possession`; the option is not offered to players, owner 2026-11-15). Only with HighWalls off, outside possession and the 3D front end,
 do the levels rest at half spacing: in this project's renderer frame (up = −Z, pieces
 spanning heights 1 to 2; `RenderMesh.ToRenderFrame`) level k sits at 2.5 − k/2 with
 the identity, k = 3 the floor (1.0) is fixed either way, and the wall top drops from 2
@@ -399,5 +399,5 @@ corner where both axes change, 0 where the tiles agree.
 - How the Tremor table at entry `+0x58` enters the draw, and whether it is rebuilt per
   frame.
 - `0x0059F3C0`, a sibling rest-grid builder (3 × 3 × 3 points, offset 0.5 and −0.05
-  with the same flags): its caller and purpose were not read.
+  with the same flags): its caller is `0x005A081C` in the procedural-art draw; purpose unread.
 - The new-entry flag from `0x0059A570` (entry `+0x18` bit 0) was not read.

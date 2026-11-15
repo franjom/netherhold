@@ -141,7 +141,7 @@ Shader "DK2/Classic Vertex Lit"
             {
                 if (_DK2TileLightGridCount <= 0 || _DK2TileLightGridWidth <= 0) return 0;
                 int tile;
-                if (input.tileAnchor.y == 1) tile = (int)input.tileAnchor.x;
+                if (input.tileAnchor.y >= 1) tile = (int)input.tileAnchor.x;
                 else
                 {
                     float3 origin = TransformObjectToWorld(float3(0, 0, 0));
@@ -228,6 +228,8 @@ Shader "DK2/Classic Vertex Lit"
                         * main.distanceAttenuation * main.shadowAttenuation;
                     if (_DK2FillTint.w > 0) fill *= _DK2FillTint.rgb;
                     fill *= TileFillWeight(input, position.positionWS);
+                    // Anchor kind 2 is the possession roof: black where no DK2 light reaches it.
+                    if (input.tileAnchor.y == 2) fill = 0;
                 }
                 InputData inputData = (InputData)0;
                 inputData.positionWS = position.positionWS;

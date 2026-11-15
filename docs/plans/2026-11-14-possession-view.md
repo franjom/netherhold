@@ -107,14 +107,17 @@ fills a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` 
 for Unity, and a Godot adapter writes the same few lines. The first-person roll is now
 applied through an up vector the session computes, the same picture as before.
 
-Not built, each its own later task: the death view (camera mode 11) and the colour
-changes of entering and leaving; the near clip, lighting distance and ambience listener,
+Not built, each its own later task: the colour changes of entering, leaving and dying; the near clip, lighting distance and ambience listener,
 which still follow the ordinary camera; the two ability keys; the possession HUD, so HUD
 shortcuts still act; the third-person view.
 
 Seen in the original by the owner on 2026-11-15 (possession-client.md section 6b, 19
-screenshots): the picture is warped and has a ceiling, neither of which the remake's
-first-person view is known to do; and the possession HUD, not built.
+screenshots) and since built: the roof over every open tile (`TerrainCeiling`, drawn by
+Unity's `TerrainCeilingChunks`), the very wide field of view (there is no warp:
+possession-warp.md), full-height walls whatever the High Walls option says, and the
+death view. Read but not built: the distance fade to black (possession-warp.md section
+4, a shader term per engine) and the possession-only set of visible tiles. Not built:
+the possession HUD. None of it has been seen running.
 
 Remake choices to check in play: one host pixel of mouse travel is one unit of DK2's
 delta; the roll's sign; the vertical field of view held at 73.7 degrees on wide screens.

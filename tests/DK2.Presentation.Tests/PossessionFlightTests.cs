@@ -107,9 +107,20 @@ public sealed class PossessionFlightTests
         Assert.True(Vector3.Distance(PossessionCamera.ToHost(state.X, state.Y, state.Z), pose.Position) < 1e-5f);
         Assert.True(Vector3.Distance(PossessionCamera.Forward(yaw, pitch), pose.Forward) < 1e-5f, $"{pose.Forward}");
         Assert.True(pose.Up.Y > 0);
-        Assert.Equal(PossessionCamera.VerticalFieldOfView(preset), pose.VerticalFieldOfView, 4);
+        var screen = new CameraViewport(1920, 1920, 1080);
+        ClassicCameraPose picture = PossessionCamera.Picture(Eye(state, yaw), preset, screen, 1600);
+        Assert.Equal(picture.VerticalFieldOfView, pose.VerticalFieldOfView, 4);
+        if (pitch == PossessionView.Horizon) Assert.True(Vector3.Distance(picture.Up, pose.Up) < 1e-5f);
         Assert.Equal(PossessionCamera.FarClipDistance(preset), pose.FarClipDistance);
         Assert.Equal(0f, pose.ProjectionCentreShift);
+    }
+
+    // A first-person view standing where the state is, level, facing its yaw.
+    private static PossessionView Eye(in CameraFlightState state, int yaw)
+    {
+        var view = new PossessionView();
+        view.Enter(state.X, state.Y, state.Z, new PossessedBody(100, 200, 50, false, false, false, false, 0x200, 0, 0, 0, 4, false, yaw));
+        return view;
     }
 
     [Fact]

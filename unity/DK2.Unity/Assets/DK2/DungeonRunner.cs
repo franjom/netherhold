@@ -115,7 +115,8 @@ namespace DK2.Unity
         [Tooltip("Bend the classic terrain as DK2 does (the terrain lattice, Q72).")]
         [SerializeField] private bool bendTerrain = true;
 
-        [Tooltip("DK2's HighWalls display option, on by default; off rests walls at about half height.")]
+        [Tooltip("DK2's HighWalls display option, on by default; off rests walls at about half height. " +
+                 "Kept for parity with DK2's config key; not offered to players in the options menu (owner, 2026-11-15).")]
         [SerializeField] private bool highWalls = true;
 
         [Header("Camera")]
@@ -182,6 +183,7 @@ namespace DK2.Unity
         private TilePos? _dragTo;
         private HandCursorEventSink _handCursorEvents;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
+        private TerrainLattice _terrainLattice;
         private ScriptedViewDirector _scriptedView;
         private Vector3 _appliedCameraJitter;
         private Vector3 _glideFrom;
@@ -410,6 +412,7 @@ namespace DK2.Unity
             TerrainLattice lattice = _classic != null && bendTerrain
                 ? new TerrainLattice(database, world, (byte)viewingPlayerId) { HighWalls = highWalls }
                 : null;
+            _terrainLattice = lattice;
             _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice, classicCreatureShadows, cheapLighting);
             if (EffectClock != null) _scene.HeartEffectClock = EffectClock;
             _worldView = new WorldView(database, (byte)viewingPlayerId);
@@ -1035,10 +1038,15 @@ namespace DK2.Unity
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
             _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
             _scene.SetCreatureFrameTime(World.CurrentTick, fraction);
-            _worldView.SetPossessionView(World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
+            bool possessionView = World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0;
+            _worldView.SetPossessionView(possessionView);
+            // The same latch rests the walls at full height; the view's change re-presents every tile, which rebuilds the chunks.
+            if (_terrainLattice != null) _terrainLattice.Possession = possessionView;
             _scene.HideCreature(PossessionHiddenCreatureId);
             long presentStarted = _recorder?.Stamp() ?? 0;
             using (PresentMarker.Auto()) _presenter.Present(World);
+            // DK2 draws the roof in camera modes 2, 10 and 11: the span the possessed model is hidden for.
+            _scene.SetCeilingVisible(PossessionHiddenCreatureId != 0, World, _simulation.Database);
             _recorder?.Spent(FrameRecorder.Part.Present, presentStarted);
             if (_gemIdleEffects != null)
             {
