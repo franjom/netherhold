@@ -343,18 +343,24 @@ observations; what causes each is not read):
   both, is not told apart, so the footstep verdict there stays HYPOTHESIS.
 - No possessed creature died, so the mode-11 view is still unobserved.
 
-One screenshot of the Imp's view (1600 by 1200, kept by the owner) shows:
+Nineteen screenshots of the original at 1600 by 1200, one as a possessed Imp and
+eighteen as a possessed Warlock, are in
+`F:\DK2Evidence\captures\visual\possession-first-person--2026-11-15--001`. They show:
 
-- Straight edges of the ceiling and walls drawn as curves, more toward the screen's
-  edges: the picture is warped, not a plain perspective. The remake draws a plain
-  perspective at 73.7 degrees, a deviation; where DK2 makes the warp is UNREAD.
-- A HUD of its own: the mana counter, a health bar, the gold carried, a pickaxe and a
-  boot icon along the top; three counters and the minimap at the left; one creature
-  icon at the bottom. The possession HUD (`0x00420D10`) is not built.
-- Large pieces of textured geometry at the right edge and top right, very near the
-  camera. What they are is UNKNOWN (render-item flag bit 0x8 draws a piece only in the
-  possession modes, `0x00586190`; whether these are such pieces is not read).
-- The ceiling over the room, which the ordinary view does not draw.
+- **A warped picture.** Straight edges of ceilings, walls and floors are drawn as
+  curves, more toward the screen's edges, in every shot: not a plain perspective. The
+  remake draws a plain perspective at 73.7 degrees, a deviation; where DK2 makes the
+  warp is UNREAD.
+- **Near things drawn very large.** A wall, pillar, door frame or crystal beside the
+  camera fills a side of the screen, stretched. The large pieces at the edge of the
+  Imp's shot are probably the same (HYPOTHESIS), not a first-person model.
+- **A ceiling**, vaulted over rooms and corridors, which the ordinary view does not
+  draw, fading to black with distance, as the far floor and walls do.
+- **A HUD of its own.** Along the top: the mana counter, a portrait, a health bar, the
+  gold carried, then icons that differ by creature (the Imp a pickaxe and a boot, the
+  Warlock three). At the left three counters and the minimap; at the bottom left one
+  creature icon. The possession HUD (`0x00420D10`) is not built.
+- **No part of the possessed creature** in any shot, as §6's draw bit says.
 
 ## 7. Not read yet
 
