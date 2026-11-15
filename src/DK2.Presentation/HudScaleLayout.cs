@@ -14,6 +14,9 @@ public readonly record struct HudScaleLayout(int Width, int Height, int Requeste
     public float EffectivePercent => Factor * 100;
     public float LogicalWidth => Width / Factor;
     public float BottomOffset => Height / Factor - Height;
+    /// <summary>The surface a panel built from a <see cref="HudScreen"/> lays out on: the logical width in whole local
+    /// pixels (halves to even, as Unity's <c>Mathf.RoundToInt</c>) over the full screen height.</summary>
+    public HudScreen Screen => new((int)Math.Round(LogicalWidth), Height);
     public Vector2 ToLocalTop(Vector2 screenTop, bool bottomDocked) => screenTop / Factor - new Vector2(0, bottomDocked ? BottomOffset : 0);
     public Vector2 ToScreenTop(Vector2 local, bool bottomDocked) => (local + new Vector2(0, bottomDocked ? BottomOffset : 0)) * Factor;
 }

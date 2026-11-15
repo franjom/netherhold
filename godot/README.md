@@ -8,10 +8,13 @@ movies, sound and keyboard; the model disables the campaign, save and movie butt
 pages open but their controls are inert. Like Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
-Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Only the
-bottom panel (`ClassicBottomPanel` over `BottomPanelHud`) is there so far; its clicks post the commands Unity's do. The
-level's scripted view (opening camera path, HUD hiding, FLASH_BUTTON), the tool a selection sets, camera glides and
-sound are not wired, because that logic is still in Unity's runner (plan step 2). The level start (`CampaignLevelData`), tick
+Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Two panels
+are there so far: the resource strip at the top left (`ClassicResourceHud` over `KeeperResourceHud`, fed by
+`KeeperResourceView`: mana with its income and upkeep, gold, the Heart and payday gauges), which takes no input, and the
+bottom panel (`ClassicBottomPanel` over `BottomPanelHud`), whose clicks post the commands Unity's do. The level's
+scripted view (the shared `ScriptedViewDirector`: opening camera path, HUD hiding, FLASH_BUTTON, the resource flash),
+the tool a selection sets, camera glides and sound are not wired, because the code that drives them is still in Unity's
+runner (plan step 2). The level start (`CampaignLevelData`), tick
 pacing (`TickPacer`), the panel's opening state and the stored-special click are shared with Unity in `DK2.Presentation`. Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1).
@@ -25,6 +28,7 @@ Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agent
 | `DK2.Godot/` | the Godot project: `project.godot`, `DK2.Godot.csproj` (`ProjectReference`s into `src/`), scenes, C# |
 | `DK2.Godot/Main.tscn`, `Main.cs` | the main scene: the front-end menu (`ClassicFrontEndMenu`) |
 | `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level, no 3D world (see above) |
+| `DK2.Godot/ClassicResourceHud.cs` | the keeper's resource strip: `KeeperResourceHud` drawn by `HudCanvas`, top-docked, no input |
 | `DK2.Godot/ClassicBottomPanel.cs` | the keeper's bottom panel: `BottomPanelHud` drawn by `HudCanvas`, mouse forwarded |
 | `DK2.Godot/HudCanvas*.cs` | the one `HudFrame` renderer every panel draws through |
 

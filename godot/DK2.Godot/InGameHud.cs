@@ -15,10 +15,10 @@ namespace DK2.GodotAdapter;
 
 /// <summary>Scene root of <c>InGameHud.tscn</c>: a campaign level started as Unity's <c>DungeonRunner</c> starts one
 /// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
-/// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Only the bottom
-/// panel is ported so far (migration plan step 1b). Not wired, because their logic is still Unity's runner (plan
-/// step 2): the scripted view (the level's opening camera path, HUD hiding, FLASH_BUTTON), the tool a selection sets,
-/// camera glides for room, door and trap navigation, and sound. User arguments after <c>--</c>:
+/// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported so far
+/// (migration plan step 1b): the resource strip and the bottom panel. Not wired, because their logic is still Unity's
+/// runner (plan step 2): driving the shared <c>ScriptedViewDirector</c> (the level's opening camera path, HUD hiding,
+/// FLASH_BUTTON, the resource flash), the tool a selection sets, camera glides for room, door and trap navigation, and sound. User arguments after <c>--</c>:
 /// <c>--level &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>.</summary>
 public partial class InGameHud : Node
 {
@@ -35,6 +35,8 @@ public partial class InGameHud : Node
     private InstallHudSources? _sources;
     private InstallBottomPanelArt? _art;
     private BottomPanelView? _view;
+    private KeeperResourceView? _resourceView;
+    private ClassicResourceHud? _resources;
     private ClassicBottomPanel? _panel;
     private BottomPanelHud? _model;
     private double _elapsed;
@@ -58,6 +60,11 @@ public partial class InGameHud : Node
 
         _sources = new InstallHudSources(install);
         _art = new InstallBottomPanelArt(_sources, level.Database);
+        // Added first so it draws under the panel, as Unity's sorting orders 11 and 12.
+        _resourceView = new KeeperResourceView(level.Database, _viewer);
+        _resources = new ClassicResourceHud { Name = "ResourceHud" };
+        _resources.Open(_sources);
+        AddChild(_resources);
         _view = new BottomPanelView(level.Database, _viewer, _art.Name, _art.Order, campaignMode: true);
         _panel = new ClassicBottomPanel { Name = "BottomPanel" };
         _panel.Open(_art, _view);
@@ -73,12 +80,16 @@ public partial class InGameHud : Node
 
     public override void _Process(double delta)
     {
-        if (_simulation == null || _view == null || _panel == null || _model == null) return;
+        if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
+            || _resources == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
+        long milliseconds = (long)(_elapsed * 1000);
+        // displayHealth follows the normal HUD's visibility in Unity; the scripted view that hides it is not wired.
+        _resources.Draw(_resourceView.Capture(_simulation.World), unchecked((uint)milliseconds));
         _view.Capture(_simulation.World);
-        _panel.Draw((long)(_elapsed * 1000));
+        _panel.Draw(milliseconds);
         // No sound player yet: drop the requests so they do not pile up.
         _model.Sounds.Clear(); _view.Sounds.Clear();
 
@@ -121,6 +132,6 @@ public partial class InGameHud : Node
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
         }
         _art?.Dispose(); _sources?.Dispose();
-        _panel = null; _model = null; _view = null; _art = null; _sources = null; _simulation = null;
+        _panel = null; _model = null; _view = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;
     }
 }
