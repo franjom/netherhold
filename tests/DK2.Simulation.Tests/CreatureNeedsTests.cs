@@ -700,9 +700,10 @@ public class CreatureNeedsTests
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         sim.ObserveWith(events);
 
-        // One second short of the rescue window: still lying there, still
-        // rescuable.
-        sim.Run(Second * 60);
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) sim.Tick();
+        Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
+        // The rescue window starts after the fall, not at collapse.
+        sim.Run(CreatureDeathRules.DyingWindowTicks(db) - Second);
         Assert.Single(world.Creatures);
         Assert.Equal(CreatureActivity.Dying, goblin.Activity);
 
@@ -901,7 +902,7 @@ public class CreatureNeedsTests
         // Death is what frees it - and the body stays on the floor as a
         // corpse for a second sixty seconds (ADR-0063), which is why this
         // asserts the bed rather than the creature's absence.
-        sim.Run(Second * 31);
+        sim.Run(CreatureDeathRules.DyingWindowTicks(db) - first.DyingTicks);
         Assert.Equal(CreatureActivity.Dead, first.Activity);
         Assert.False(LairRules.HasBed(world, db, first));
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, second));
@@ -922,7 +923,9 @@ public class CreatureNeedsTests
         goblin.Health = 0;
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         sim.ObserveWith(events);
-        sim.Run(Second * 61);
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) sim.Tick();
+        Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
+        sim.Run(CreatureDeathRules.DyingWindowTicks(db));
 
         SimEvent died = events.Events.First(e => e.Kind == "creature_died");
         Assert.Contains("leaves_body=", died.Detail);

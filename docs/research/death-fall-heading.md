@@ -82,7 +82,7 @@ Handler [00459850](functions/00459850.md), read 2026-11-11:
   ([steering-body-retention.md](steering-body-retention.md#state-217-leaves-its-body-where-it-fell-adr-0745-hashsave-471)).
 - Then state `+0xAB` is set to the turn plus 10, step taken or not (`0x004599A5..0x004599B0`).
   217's handler [004599D0](functions/004599D0.md) uses it for the Combat Pit transport
-  (see [combat-pit.md section 4](combat-pit.md#4-the-fight)); that sequence and the stamp are unbuilt.
+  (see [combat-pit.md section 4](combat-pit.md#4-the-fight)); both are built since hash/save 522.
 
 Capture: Wizard 436 is in 216 from 1720 and in 217 on 1726, moving (67803,135760) to
 (66542,132794). Thief 434 is in 216 on 1864 and 217 on 1870 and does not move; its destination
@@ -112,12 +112,12 @@ map blocks (ours).
 
 - `CreatureDef.DeathFallStepY` (the `KwdCreatures` reader and writer), and
   `DeathFallRules.Fall` in `CreatureStatusSystem`'s per-creature step: it waits for
-  `ActionUntilTick`, enters 217, then steps back as above. `CreatureHealthSystem.Dying` no
-  longer forces 217, does not count the dying window in 216 (the countdown starts when 217 is
-  entered) and calls `Fall` as an adapter for simulations assembled without the creature sweep.
+  `ActionUntilTick`, enters 217, then steps back as above. Since hash/save 522,
+  `DyingStateRules` dispatches 216/217 per turn, with the health system as a deduplicated
+  fallback for standalone hosts. The dying window does not count in 216.
   `WorldResync` enters 217 directly for a creature DK2 has in 217.
 - Since ADR-0745 (hash/save 471) the step leaves the body: `SyncMovedBody` skips a creature in 217.
-- Not built: the `+0xAB` stamp. `Fall` does not test `CarriedByCreatureId` or `InHand`, and
+- The `+0xAB` stamp is built since hash/save 522. `Fall` does not test `CarriedByCreatureId` or `InHand`, and
   `ActionUntilTick` is not cleared when 216 is left by a rescue.
 
 ## Hypothesis and unknown

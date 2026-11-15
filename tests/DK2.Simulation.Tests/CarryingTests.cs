@@ -350,7 +350,9 @@ public class CarryingTests
         imp.Health = 0;
 
         GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
-        sim.Run(Second * 61);
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) sim.Tick();
+        Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
+        sim.Run(CreatureDeathRules.DyingWindowTicks(db));
 
         Assert.Equal(CreatureActivity.Dead, goblin.Activity);
         Assert.DoesNotContain(world.Creatures, c => c.Id == imp.Id);
@@ -714,7 +716,9 @@ public class CarryingTests
         goblin.Health = 0;
 
         GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
-        sim.Run(Second * 61);
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) sim.Tick();
+        Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
+        sim.Run(CreatureDeathRules.DyingWindowTicks(db));
 
         Assert.Equal(CreatureActivity.Dead, goblin.Activity);
         Assert.Equal(0, goblin.DyingTicks);

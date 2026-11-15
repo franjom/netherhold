@@ -11,7 +11,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
 
 ## Shell and files
-- Codex MCP calls can time out after 300 seconds despite a larger `ctx_execute` budget; run long suites in a background wrapper that saves its exit receipt.
+- Codex MCP calls can time out after 300 seconds despite a larger `ctx_execute` budget; its `background: true` discards stdout, so the wrapper must write its own log and exit receipt.
 - Normalize hash-manifest relative keys to one path separator before updating entries; mixed slashes can retain duplicate paths and invalidate setup provenance.
 - Build a hash manifest's inventory before opening its output file; otherwise a recursive scan can include the manifest's own empty-file hash.
 - `git archive` can export CRLF while `git show` returns an LF blob; compare blobs with blobs and archived files with their own manifests.

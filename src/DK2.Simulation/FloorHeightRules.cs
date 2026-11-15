@@ -11,8 +11,8 @@ namespace DK2.Simulation;
 /// world's 1/4096 units with the ordinary floor at <see cref="Ordinary"/>: a Portal's or the Heart's
 /// sunken centre, a bridge's deck, a room's floor slot and its rim zones, and a liquid's banks.
 /// Thing_SetPosition (<c>0x004B5020</c>) stores it in a thing's floor word
-/// <c>+0x26</c>; ours asks it from the point when needed, which is the same value while every position
-/// write goes through that setter, as native's do (Q795).</summary>
+/// <c>+0x26</c>; ours normally asks it from the point when needed (Q795). The pit transport's raw
+/// setter retains the previous floor instead; see combat-pit.md section 4.</summary>
 /// <remarks>Native reads the cell's cached piece and neighbour masks (<c>+0xC</c>, kept by
 /// <c>0x00450470</c>); ours derives them from the neighbouring tiles. Approximations: a Portal's piece 4
 /// is its four orthogonal neighbours of the same terrain and owner (native also asks the same room

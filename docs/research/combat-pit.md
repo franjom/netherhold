@@ -201,16 +201,31 @@ defeated body sinks into the sand and sprouts on the rim, where an imp can colle
 The sequence below is STRONGLY INFERRED from the binary; no new native capture was taken.
 State 217 (`0x004599D0`, re-read 2026-11-15) clears `CombatPitFighter`. After the turn
 passes state `+0xAB` (stamped turn + 10 by state 216), with no action running and the
-entity on a Combat Pit interior, it starts phase 1 and plays sound `0x149`.
+entity on a Combat Pit interior, it starts phase 1 and requests effect `0x149`.
 Each phase-1 call lowers Z by `0x200`; at Z <= 0 it clamps to zero and starts phase 2.
 If still on that interior, `0x004E8430` selects a random tile that is neither an interior
 nor a wall slot; the entity moves there at sub-tile offset `(0x400, 0x400)`, facing
-`0x300`, and sound `0x149` plays again. Each phase-2 call raises Z by `0x200`, ending
+`0x300`, and effect `0x149` is requested again. Each phase-2 call raises Z by `0x200`, ending
 at `0x1000`. Phase start and both phase branches return before the dying countdown.
 The separate steering body is not moved by this handler (see `steering-body-retention.md`).
-Our `CreatureHealthSystem.Dying` only clears the fighter flag and counts the rescue
-window: the delay, sinking, relocation and rising are absent. Imp rescue is a separate
-existing path; the current knockout regression checks the winner's release, not this transport.
+The requests use world slot `+0x38C` (`0x00509580`), the effect wrapper, not the sound
+manager (independent review, 2026-11-15). Raw setter `0x004B5570` forwards to `0x004B5350`:
+it relinks the entity but neither refreshes its floor word `+0x26` nor clamps Z to it.
+The later physical pass still runs. For an ordinary non-flying fighter without another
+impulse, below the retained floor it makes no commit; rising above it adds gravity, and
+a physical commit through the normal setter can refresh/clamp to the rim floor before
+phase 2 finishes. The nominal eight rise calls therefore need not all be visible.
+
+**Built (hash/save 522):** `DyingStateRules`, called in the per-creature recovery step,
+runs both phases, the delay, raw relocation and effects. It retains the old floor for
+`CreaturePhysicsRules` until a normal commit refreshes it. The dying countdown is now
+per turn, paused by phase branches and carriage; a standalone health-system host has
+a once-per-turn fallback. `WorldView` exposes current and previous Z instead of pinning
+the dying creature to its floor. `CombatPitTransportTests` cover the sequence, effect
+requests, physical clamp, snapshot/copy continuation and imp rescue to the bed.
+The action-running test still uses `ActionUntilTick`; its inherited collapse timing is
+a hypothesis (`death-fall-heading.md`). Native capture resync does not import these
+phase/deadline/floor fields; exact continuation is tested with our own snapshots.
 
 ## 5. The floor, and where a waiting fighter walks
 
@@ -307,7 +322,7 @@ room's `+0x423` sound.
   (§1; Q431).
 - **Action `0x2C`** at the level cap and its wait: ours goes straight to the anger and the
   walk. **Scan A** for a dead forced target: ours clears it and finds nobody.
-- 217's sink/transport/rise sequence (§4); the room's entry point, its sounds, message 9,
+- The room's entry point, its sounds, message 9,
   the death sound;
   `0x00455000`'s byte in the neighbour picker (not read; the floor test stands for floor slots 4 against rim 0); the rim's
   slopes; `KillsInCombatPit` (`+0x408`), whose writer is still unread.

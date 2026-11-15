@@ -1011,7 +1011,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 **Context.** Dying is three states with two sixty-second timers — health → 0; COLLAPSED (`CreatureDyingStateDurationSeconds` = 60, an imp → its own bed); CORPSE (`DeadBodyDiesAfterSeconds` = 60, an imp → a graveyard); gone. Only the first existed; the stated blocker "a corpse is an object" was false (none of 145 OBJECTS is a corpse). Research: `docs/research/creature-death.md`, `docs/research/imp-task-priority.md` §4.
 
 **Decision.**
-- `CarryRules`, activities `FetchingBody` (= 11) and `CarryingBody` (= 12), corpse state `Dead` (= 10), and the last two entries of DK2's Tier A table `14, 8, 9, 1, 3, 13, 12`: kind 13 carry an unconscious creature (own → Lair, enemy → Prison), kind 12 carry a corpse → Graveyard. Carrying sits below claiming and above everything found by distance; an imp buries nobody while there is unclaimed ground (`an_imp_buries_a_corpse`: corpses claimable at t1219, the imp comes at t1311).
+- `CarryRules`, activities `FetchingBody` (= 11) and `CarryingBody` (= 12), corpse state `Dead` (= 10), and the last two entries of DK2's Tier A table `14, 8, 9, 1, 3, 13, 12`: kind 13 carry an unconscious creature (own → Lair, enemy → Prison), kind 12 carry a corpse → Graveyard. Carrying sits below claiming and above everything found by distance; an imp buries nobody while there is unclaimed ground (`an_imp_buries_a_corpse`).
 - A collapsed creature goes to its own bed (kept through the dying window for this); arrival calls `CreatureDeathRules.Rescue`. A corpse goes to the nearest Graveyard tile and is consumed. The destination is settled before the walk starts.
 - `DyingTicks` counts the rescue window while `Dying` and the corpse window while `Dead`; reset at the seam.
 - Both ends stored: `CarriedCreatureId` on the carrier, `CarriedByCreatureId` on the body; `TargetBodyId` is the body a worker walks towards.
@@ -1021,7 +1021,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - A creature that leaves a body no longer vanishes; four tests that asserted vanishing now assert the corpse.
 - `HashVersion`/`FormatVersion` 22 → 23. `CreatureDeathRules.BodyWindowTicks` has its first caller.
 - Fixture gains the Graveyard (terrain 23, room 14, 2000 to build). Three animation keys in `WorldView.ActivityKeySegment` (a switch; a new activity does not compile without one).
-- `CarryingTests`; `an_imp_buries_a_corpse`; `a_goblin_collapses_and_dies` runs to t2419 and shows the corpse rotting.
+- `CarryingTests`; `an_imp_buries_a_corpse`; `a_goblin_collapses_and_dies` covers the corpse rotting, with timing pinned in its expectations.
 - Open then: prison and capture (ADR-0064); kind 8 (ADR-0065); what a graveyard does when it fills (vampires).
 
 ## ADR-0064 — The Prison: capture, and the half of carrying that was missing
@@ -4548,12 +4548,12 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Context.** Dying was still an activity with no state id. DK2 enters state 216 from any state when a creature collapses; 216's handler moves to 217 once the fall ends; 217 counts down and hands a healed creature to state 1. The binary also carries `.?AVCDeadBody@@`, the flag `DeadBodyOnDestroy`, THINGS tag 202 and a room `DeadBodyList`. So DK2's corpse is a thing of its own class, not a creature in a state, as ADR-0051 and ADR-0063 had put it.
 
 **Decision.**
-1. `CreatureDeathRules.Collapse` enters 216 (`FallingState`). The first dying second in `CreatureHealthSystem` enters 217 (`DyingState`). Dying joins the retired activities.
+1. `CreatureDeathRules.Collapse` enters 216 (`FallingState`). Since hash/save 522, `DyingStateRules` dispatches 216/217 per turn; 216 enters 217 (`DyingState`) when the fall action ends (ADR-0741). Dying joins the retired activities.
 2. `Rescue` leaves through state 1 into 83, the sleeping state its bed puts it in.
 3. `BecomeCorpse` hands the state id back. The corpse stays in the creature list, in `CreatureActivity.Dead`, as the one creature with no state.
 
 **Consequences.**
-- Ours, stated: no fall animation, so 216 lasts until the next game second. A rescue lies down in its bed rather than running the lair-trip chooser `0x0046F390`. The corpse is not a separate thing.
+- Ours uses the fitted action clock described in `death-fall-heading.md`. A rescue lies down in its bed rather than running the lair-trip chooser `0x0046F390`. The corpse is not a separate thing.
 - The research notes, `RESEARCH_STATUS.md` and the code comments no longer say a corpse is a creature in a state.
 - No hashed state changed in the pinned world. Four tests. Negative controls: no fall, never lying down, a corpse keeping its id, a rescue skipping idle, and Dying left off the retired list each fail a named test.
 
@@ -17388,7 +17388,7 @@ goes from 6764 ordered draws through 1788 to 6810 through 1791; the next boundar
 the heart and door arms stand in for DK2's one search predicate (`0x004B5800`); a hit in the
 first probe iteration leaves velocity 0 and `Move` then requests a hit-solid effect; Guided
 Bolt's process 28 (`0x004AF3A0`) rewrites the shot's `+0xF4` and is unbuilt; the `+0xAB` stamp
-and pit transport (`combat-pit.md` section 4) are unbuilt; `Fall` does not test `CarriedByCreatureId` or
+and pit transport are built since hash/save 522 (`combat-pit.md` section 4); `Fall` does not test `CarriedByCreatureId` or
 `InHand`, and `ActionUntilTick` is not cleared when a rescue leaves 216; the Thief's z drops
 4096 to 3924 on 1865 in 216, unexplained. Shot_Update runs Collide, the per-tick damage, then
 the mover; ours moves first, and a hit shot does not move in ours.
@@ -17501,7 +17501,7 @@ on an enemy tile, holds state 16 through 1793; ours leaves on 1793 (Q712).
 Still open: states 56 and 250 and the other bit-0-clear states re-sync in ours, and a door
 contact zeroes a native body (Q736); the `+0x4E9` timer path (`0x004889AB`), which calls
 `0x004D1070` after state `0xF2`, is unbuilt and what sets the timer is unread; the pit transport
-is unbuilt (`combat-pit.md` section 4); whether the cursor can pick up a creature in 217 is unchecked.
+is built since hash/save 522 (`combat-pit.md` section 4); whether the cursor can pick up a creature in 217 is unchecked.
 
 ## ADR-0746 - an attacked floor's claim starts its own clip; the slot-13 clip is kept only inside the work state
 **Date:** 2026-11-11 | **Status:** accepted | **Systems:** imps-tile-work, creatures | Advances Q712

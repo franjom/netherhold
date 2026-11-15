@@ -41,9 +41,9 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
             WorldState world = context.World;
             GameDatabase database = context.Database;
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-            if (creature.Dk2StateId == CreatureDeathRules.FallingState)
+            if (creature.Dk2StateId is CreatureDeathRules.FallingState or CreatureDeathRules.DyingState)
             {
-                DeathFallRules.Fall(context, creature, definition);
+                DyingStateRules.Update(context, creature);
                 return;
             }
             // 71, which 257's tail sets: its handler is a later turn's (0x00459180).

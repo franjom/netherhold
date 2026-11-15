@@ -55,8 +55,9 @@ Confidence: **STRONGLY INFERRED (binary)**.
 - **Built** (ADR-0206, ADR-0741): collapse enters 216; `DeathFallRules.Fall` enters 217 when
   the collapse's action is over (its end, `FallEndsAt`, is a HYPOTHESIS) and takes the step
   back; the countdown starts there; a rescue leaves through state 1 into the Sleeping state 83;
-  a corpse hands its id back. **Ours:** the pit transport and its stamp are unbuilt (see
-  `combat-pit.md` section 4); a rescue lies down in its bed (ADR-0063) rather than running
+  a corpse hands its id back. Since hash/save 522, `DyingStateRules` runs 216/217 once per
+  turn, including the pit transport and its stamp (see `combat-pit.md` section 4 for limits).
+  **Ours:** a rescue lies down in its bed (ADR-0063) rather than running
   `0x0046F390`; the corpse stays in the creature list.
 
 ## 2. A corpse is a thing of its own
