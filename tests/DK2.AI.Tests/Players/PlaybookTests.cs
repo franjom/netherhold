@@ -127,13 +127,14 @@ public class PlaybookTests
     {
         foreach (string path in Playbook.TunablePaths)
         {
-            // 5 is within every path's bounds and is no default.
-            Playbook five = Level2 with { Tunables = [new(path, 5, 5, 5, PlaybookProvenance.Researched, Source: "test")] };
-            Assert.Empty(five.Review(Hash).Problems);
-            PlayerStrategy changed = five.Apply(new PlayerStrategy());
+            // 5 is within every path's bounds but the on/off scout count's (0-1), and is no default; 1 there.
+            int value = path == "strategy.scouts" ? 1 : 5;
+            Playbook set = Level2 with { Tunables = [new(path, value, value, value, PlaybookProvenance.Researched, Source: "test")] };
+            Assert.Empty(set.Review(Hash).Problems);
+            PlayerStrategy changed = set.Apply(new PlayerStrategy());
             Assert.Empty(changed.Validate());
             Assert.Contains(typeof(PlayerStrategy).GetProperties(), p => p.PropertyType == typeof(int)
-                && (int)p.GetValue(changed)! == 5 && (int)p.GetValue(new PlayerStrategy())! != 5);
+                && (int)p.GetValue(changed)! == value && (int)p.GetValue(new PlayerStrategy())! != value);
         }
     }
 }

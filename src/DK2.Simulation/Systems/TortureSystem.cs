@@ -143,7 +143,12 @@ public sealed class TortureSystem : ISimulationSystem
             if (creature.OwnerPlayerId != keeper)
             {
                 (int reward, RevealResult revealed) = TortureInformationRules.Award(
-                    world, database, context.Rng, definition, creature.OwnerPlayerId, keeper);
+                    world, database, context.Rng, definition, creature.OwnerPlayerId, keeper,
+                    message => context.Events.Emit(new SimEvent(context.Tick, SystemName, "death_message",
+                        $"creature={creature.Id} message={message.Id} kind={message.Kind}")
+                    {
+                        TortureMessage = new(message, new(creature.Id), new(creature.CreatureTypeId), new(creature.TriggerId)),
+                    }));
                 information = reward.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 context.Emit(SystemName, "information",
                     $"keeper={keeper} about={creature.OwnerPlayerId} reward={reward}" +

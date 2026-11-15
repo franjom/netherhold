@@ -20,13 +20,14 @@ questions live in their canonical documents; this file links to them.
 - Engine switch (owner, 2026-11-15): the switch to Godot is decided ([ADR-0805](DECISIONS.md)).
   Stop Unity FPS optimization; continue engine-independent Q710 simulation/replay work.
   Engine-neutral lighting-cache measurements are in [Level6a performance](research/level6a-editor-performance.md);
-  local pickup feedback and dust coverage are in [the pick-up's turn](research/hand-pickup-turn.md).
+  local pickup dust timing (ADR-0808) and verification are in [the pick-up's turn](research/hand-pickup-turn.md).
+  The hover-cage shader check is in [hand cursor rendering](research/hand-cursor-rendering.md#selection-outline-rendering); live-scene acceptance remains open.
   GPLv3 code linked to Unity's runtime remains [ADR-0041](DECISIONS.md)'s open question. ADR-0805 moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
-  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`) and the in-game options menu and save browser (`OptionsHud`, `SaveLoadHud`) are moved too; they build and their models are
+  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`) and the in-game options menu, save browser and settings pages (`OptionsHud`, `SaveLoadHud`, `GameOptionsHud`) are moved too; they build and their models are
   tested, but none has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
-  background-repeat are unchecked. Next: the game-options panel (sliders, key list), then the front-end menu and the rest of the order in the ADR. No Godot code existed on that date.
+  background-repeat are unchecked. Next: the front-end menu, then the minimap and full-map markers (the rest of the order in the ADR). No Godot code existed on that date.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,
@@ -119,8 +120,9 @@ These are entry points, not a new priority order.
   Q737's native closure and scope are in
   [boulder](research/boulder.md#9c-q737-recheck-stun-duration-does-not-establish-the-next-state).
   Owner observations are in [traps](research/traps.md); original-game acceptance remains open.
-- Level6a torture-death scene: playback/subtitle comparison is Q824 ([evidence](research/torture-information.md#7-level6as-opening-guard-2026-11-15));
-  the owner's deferred corpse-placement change is [ADR-0807](DECISIONS.md#adr-0807---defer-moving-torture-corpses-clear-of-their-devices).
+- Level6a torture-death scene: the shared speech override is built (ADR-0809); Q824 retains native playback/subtitle and live-scene checks
+  ([evidence](research/torture-information.md#7-level6as-opening-guard-2026-11-15)). The owner's corpse-placement change remains deferred under
+  [ADR-0807](DECISIONS.md#adr-0807---defer-moving-torture-corpses-clear-of-their-devices).
 - Possession first-person view: built and unit-tested, never seen running in an editor, no owner play
   acceptance. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805); `DungeonRunner.Possession.cs`
   is the Unity glue. Not built: the death view and the entry and exit colour changes (Q745), the two
@@ -173,7 +175,10 @@ These are entry points, not a new priority order.
   branch: each own creature's level, petals and mood, every offered spell with `CastSpell`, then door and trap
   offers with `PlaceDoor` and `PlaceTrap` (observation schema 4; Q819, Q820, Q825 and Q826 open, Q821-Q823
   answered by the owner). Its observation and action rows are all built except Possession; the routines that
-  use them (Combat Pit, Imp scouting) come next.
+  use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default, not measured: only Level 15a and
+  later offer a Pit; Q827, Q828, Q831 and Q836 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
+  seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Next: Imp creation, R8 (cap of 15-20 Imps, a mana reserve, Q837
+  open; [plan](plans/2026-11-14-campaign-bot-stage3.md)) and the last Task 4 row, defending a route with doors and traps.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

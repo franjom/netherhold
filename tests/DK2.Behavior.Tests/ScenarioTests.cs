@@ -552,6 +552,9 @@ public class ScenarioTests
             new MiscVariable(VariableTypeId.WoodBridgeLifeOnLavaSeconds, 30, 0, 0);
         vars.Misc[VariableTypeId.MaxGoldPerDungeonHeartTile] =
             new MiscVariable(VariableTypeId.MaxGoldPerDungeonHeartTile, 1000, 0, 0);
+        // The campaign player reads the Pit's level cap off the variables (stage 3 plan, Task 4); 8 as shipped.
+        vars.Misc[VariableTypeId.CombatPitMaxExperienceLevel] =
+            new MiscVariable(VariableTypeId.CombatPitMaxExperienceLevel, 8, 0, 0);
 
         // ManaSystem reads these every second and GameDatabase throws rather
         // than defaulting. No terrain here generates mana, so the values only

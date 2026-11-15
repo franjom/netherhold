@@ -152,6 +152,14 @@ public sealed record PlayerStrategy
     /// <summary>Which rooms get a square dug out when none is free (Task 3a).</summary>
     public RoomSites Sites { get; init; } = RoomSites.Oversized;
 
+    /// <summary>The Combat Pit routine (stage 3 plan, Task 4; owner direction): at most this many own creatures
+    /// fighting in an owned Combat Pit at once; 0 (the default) leaves the Pit alone. Two pair off; 1 is refused.</summary>
+    public int PitFighters { get; init; }
+
+    /// <summary>The Imp scouting routine (stage 3 plan, Task 4; owner direction): 1 sends one own Imp at a time to
+    /// look at unknown ground from unowned or neutral floor at the edge of what the player knows; 0 (the default) does not.</summary>
+    public int Scouts { get; init; }
+
     /// <summary>While breaching is held back, no tile within this many tiles of an enemy sighting is marked.</summary>
     public int EnemyClearanceTiles { get; init; } = 3;
 
@@ -160,6 +168,9 @@ public sealed record PlayerStrategy
     public IReadOnlyList<string> Validate(int? mapWidth = null, int? mapHeight = null)
     {
         var problems = new List<string>();
+        // One fighter has no one to pair with and would be lifted straight out again (the lone-victor rule).
+        if (PitFighters is < 0 or 1) problems.Add($"PitFighters {PitFighters} is neither 0 nor 2 or more");
+        if (Scouts is < 0 or > 1) problems.Add($"Scouts {Scouts} is not 0 or 1");
         if (Rooms is null) problems.Add("Rooms is null");
         else if (Rooms.Distinct().Count() != Rooms.Count) problems.Add("Rooms names a room twice");
         if (RoomSide <= 0) problems.Add($"RoomSide {RoomSide} is not positive");

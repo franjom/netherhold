@@ -160,6 +160,7 @@ public sealed partial class PlayerMessageQueue
     public const int Capacity = 256;
     private readonly List<PlayerMessage> _entries = new();
     private uint _nextId = 1;
+    internal uint NextMessageId => _nextId;
 
     public PlayerMessageQueue() => Entries = _entries.AsReadOnly();
     public IReadOnlyList<PlayerMessage> Entries { get; }

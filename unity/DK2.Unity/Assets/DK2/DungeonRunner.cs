@@ -490,9 +490,17 @@ namespace DK2.Unity
                 return;
             }
             _textFolder = Path.Combine(install, "Data", "Text", "Default");
+            _messageView = new MessageTabsView(new PlayerId((byte)viewingPlayerId), database);
+            ISimulationEventSink effects = (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance;
+            effects = new Level6aTortureSpeech(database, _messageView, effects);
+            if (_constructionEffects != null)
+            {
+                _worldView.LocalPickups.DustRequested += request => _constructionEffects.Model.RequestPickupDust(request);
+                effects = new LocalPickupEffectSink(_worldView.LocalPickups, effects);
+            }
             _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),
                 CameraPathLoader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
-                (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance);
+                effects);
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
             WireSpeech(database);
             PrepareWinScreen(database);

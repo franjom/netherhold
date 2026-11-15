@@ -344,14 +344,43 @@ replay tests updated.
 | `PlaceDoor`, `PlaceTrap` actions | defend a route | the panel's build intents. **Built 2026-11-15** |
 | `CastSpell(spell, target)` | offered spells | the existing spell intent path. **Built 2026-11-15** |
 | Each own creature's level (1-10), health in petals and mood (happy, unhappy, angry) | the status flower shows them (`status-flowers.md`: H-00..H-05, SL-01..SL-10, SM-*) | the creature's flower. **Built 2026-11-15** |
-| `CastSpell(Heal, creature)` | heal a creature in the Pit | the spell panel and the existing spell intent path. **Built 2026-11-15**, as a creature spell of `CastSpell`; the Pit routine is not |
+| `CastSpell(Heal, creature)` | heal a creature in the Pit | the spell panel and the existing spell intent path. **Built 2026-11-15**, as a creature spell of `CastSpell`; the Pit routine that casts it is built below |
 
-**The Combat Pit routine (owner direction, 2026-11-14).** Once the rows above exist: creatures below
-`CombatPitMaxExperienceLevel` (variable 192, ships 8; `combat-pit.md`) are dropped into an owned Combat Pit;
-one low on health (two petals, the last quarter, owner-confirmed 2026-11-15; one petal is a collapsed or dying creature, a living one shows at
-least two) is healed with Heal when the mana allows, otherwise lifted and dropped in a Hatchery to eat; one that reaches the cap is lifted and dropped in its Lair (unhappy, tired) or a Hatchery (hurt, hungry).
-Training Room work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Tests first on
-synthetic observations; measured on the ladder like Task 2.
+**The Combat Pit routine (owner direction, 2026-11-14; built 2026-11-15).** `CampaignPlayer.Pit` is off unless
+`PlayerStrategy.PitFighters` is above 0 (default 0; playbook tunable `strategy.pit-fighters`, 0-16). It needs an
+owned Combat Pit, an empty hand, no enemy in sight and `UseRoomEveryTicks` since its last act; the first that can act:
+
+1. A creature collapsed on the Pit (one petal) gets the nearest liftable own Imp dropped beside it
+   (`PlayerActionRoutines.RescueDropTile`: an own floor tile within `ImpTaskSystem.DropScanTiles` of the body that is
+   not the Pit's interior, where the hand refuses a worker), so the Imp carries it to its bed (`CarryUnconscious`). Only
+   with an own Lair, once per 400 ticks per body tile. Owner, 2026-11-15: "if a creature gets defeated in the combat
+   pit, its body then appears on the combat pit rim, bot should grab an imp and drop it onto that bleeding creature so
+   it gets dragged to its bed to recover". The simulation does not yet throw the loser to the rim (state 217's throw
+   is read, not built: `combat-pit.md` section 10), so in it the body lies on the interior and the Imp lands on the
+   rim beside it (Q827).
+2. A fighter on the floor (interior) at two petals (the last quarter, owner-confirmed 2026-11-15; a living creature
+   shows at least two): `CastSpell(Heal)` when Heal is offered, affordable and recharged, else lifted to the nearest
+   Hatchery tile (Q828, Q831).
+3. A fighter on the floor at `CombatPitMaxExperienceLevel` (`CampaignPlayerOptions.CombatPitMaxLevel`, variable 192,
+   ships 8; `combat-pit.md`): to its Lair when unhappy or angry (owner, 2026-11-15: "mood matters too, unhappy goes to
+   lair"), else to a Hatchery at four petals or fewer, else to its Lair.
+4. A lone fighter on the floor (its opponent gone, or none to come) is a victor: it is lifted to its Lair before it
+   grows unhappy (owner, 2026-11-15; whether it does, and how fast, is Q836).
+5. Below `PitFighters` fighters on the floor, and only when two can pair: the lowest-level idle own non-worker on plain
+   floor or watching from the rim (job 26), at five petals or more, Happy and below the cap, is lifted onto an
+   interior Pit tile (`InteriorRoomTile`, `IsInterior`); a drop there starts the fight (`combat-pit.md` section 9).
+   The observation's Happy includes content, which the owner confirmed is what was meant (Q829). Only interior tiles
+   count as fighting; a rim spectator is a recruit, and the owner confirmed fighters never stand on the rim (Q830).
+   `PitFighters` of 1 is refused by `PlayerStrategy.Validate` and `Playbook.Review`: one fighter has no one to pair
+   with.
+
+A refused Pit drop goes to its own set, not the Work routine's. The harness passes `CombatPitMaxLevel`. Training Room
+work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Known gaps: a refused Heal is retried each
+interval (cast outcomes are not read), and `Pit` allocates per decision when on. `DK2.AI.Tests` 579 (with the
+scouting tests) and `DK2.Behavior.Tests` 670 (5 skipped) pass; Level 1 seed 1 is unchanged (Completed at tick 2334, final hash
+af7204fe4c0f8594). **Not measured:** only Levels 15a and later offer a Combat Pit, and a Level 15a smoke run
+(`pit-fighters` 2 against 0) ended Defeated at tick 3469 both ways before any Pit was built; measure when the bot
+reaches Level 15.
 
 **Built: creature level, petals and mood.** `PlayerCreatureSummary` gains `Level`, `Petals`, `Mood`
 (`PlayerCreatureMood`: Happy, Unhappy, Angry) and `FlowerKnown`, filled by
@@ -411,25 +440,55 @@ information only. `DK2.AI.Tests` 557, `DK2.Simulation.Tests` 5479, `DK2.Presenta
 Level 1 seed 1 is unchanged (Completed at tick 2334, final hash af7204fe4c0f8594), no simulation change.
 Reviewer: no blocker, no major. Open: Q825 (a greyed slot's click), Q826 (placed-but-unbuilt doors on the slot).
 
-**The Imp scouting routine (owner direction, 2026-11-14; first aimed at Level 6a).** Unknown ground
-(`PlayerTile.IsKnown` false) hides gold, gems, water to bridge and enemies. The bot lifts an own Imp, drops
-it on a dirt-path tile at the edge of what it knows, lets its sight reveal the ground around it
-(`FogOfWarSystem`, `fog-reveal-sources.md`), then lifts it again and drops it further on, or back on own
-ground. The drop is legal by the binary's gate: `0x00450910` lets a worker down on neutral, roomless dry floor
-(`HandRules.MapAllowsCreature`); water, lava, rock and enemy ground are refused. What it reveals feeds the
-existing plans: gold and gem tiles to dig, a Wooden Bridge over water that joins two pieces of ground, enemies
-to avoid (`_sightings`). The Imp must not die: never drop it within sight of a known enemy, never leave it on
-neutral ground longer than the reveal needs, and lift it at once if it is hit (its petals, the row above) or an
-enemy comes into view. A rule R6 (`kind: manual`, `applies: playbook`) goes into `knowledge/rules.yaml` with
-the routine, not before, so the Task 3a evidence keeps the rules hash it ran with. Tests first on synthetic
-observations (drop legal and refused, lift on threat, bridge planned from revealed water); measured on Level
-6a and the ladder like Task 2.
+**The Imp scouting routine (owner direction, 2026-11-14; first aimed at Level 6a; built 2026-11-15).**
+Unknown ground (`PlayerTile.IsKnown` false) hides gold, gems, water to bridge and enemies. `CampaignPlayer.Scout`
+is off unless `PlayerStrategy.Scouts` is 1 (default 0; playbook tunable `strategy.scouts`, 0-1); rule R6 in
+`knowledge/rules.yaml`. It runs when no Work or Pit routine acted, with an empty hand, no enemy in sight, at
+least 3 Imps, one of them unhurt to send, and `UseRoomEveryTicks` since the last trip.
+- Target (`ScoutTarget`): known, dry, roomless floor beside unknown ground that no enemy seen in the last 1200 ticks
+  stands within 8 tiles of, and no ground held by another keeper or the heroes lies within 8 tiles of. Owner 0
+  (dirt path is not ownable, so the view shows 0) or Neutral qualifies. The binary's gate lets a
+  worker down there (`0x00450910`, `HandRules.MapAllowsCreature`); water, lava, rock and enemy ground are refused.
+- One own Imp at a time is lifted and dropped there. After 8 ticks it is lifted to the next target: the fog reveals
+  its sight on the first tick (`FogOfWarSystem`, `fog-reveal-sources.md`), and the owner says an Imp left on dirt path
+  stands 1-2 s, then walks back to own ground (Q832). The scout is followed within 3 tiles of where it was last seen.
+- Danger: when it is hit (petals below 6) or an enemy comes within 8 tiles, it is lifted home on the routine's next
+  decision (the owner says a hero cannot hit it first if the keeper is paying attention, Q833). A held worker is
+  always dropped near home, never toward an enemy.
+- What it reveals feeds the existing plans: gold and gem tiles to dig, a Wooden Bridge over water that joins two
+  pieces of ground, enemies to avoid (`_sightings`).
+- Stale carry flags are cleared when the hand is empty. Known risks, bot only (Q838): a refused scout drop leaves
+  the routine's tile pointing where the Imp never went, and its refusals go into the Pit's refused set; an own Imp
+  within 3 tiles may be adopted as the scout; the threat memory is never pruned.
+
+`DK2.AI.Tests` 579 and `DK2.Behavior.Tests` 670 (5 skipped) pass; Level 1 seed 1 is unchanged (Completed at tick
+2334, final hash af7204fe4c0f8594). **Level 6a, seeds 1-3, before the last fixes:** scouting off Defeated at ticks
+3955, 3934 and 2982; scouting on Defeated at ticks 3951, 4094 and 3837, so no gain is shown yet. Removing the
+drop-toward-enemy rule or the allied-ground rule fails its test. Open: Q834, Q835, Q838.
+
+**The Imp creation routine, R8 (owner direction, 2026-11-15; not built).** The campaign bot casts no Create
+Imp today (`PlayerAction.CreateImpAt` is offered and adapted, but only the computer keeper, `KeeperAI.CreateImps`,
+uses the spell). The owner's play:
+1. Keep an optimal Imp count, set by the current mana income and the current Create Imp price (the price rises
+   with each Imp above the free minimum: `ImpSupplyRules.CreateImpBaseCost`, `MinimumImps`).
+2. While a Library and Warlocks can research the Create Imp upgrade, hold back mass production until it lands:
+   the owner says an upgraded spell gives a level 4 Imp instead of level 1. That is a lead, not a fact (Q837).
+   Check the binary before the routine relies on it.
+3. Balance that wait against how badly Imps are needed now: digging, claiming and gold waiting.
+4. Never more than 15-20 Imps. The cap becomes a playbook tunable (`strategy.max-imps`, researched 15-20).
+5. Keep a mana reserve for attack and defence spells (Heal, Thunderbolt, Call to Arms and the like). Imps never
+   spend mana below it, so the keeper can still defend itself. The reserve is a tunable too.
+
+R8 (`kind: manual`, `applies: playbook`) goes into `knowledge/rules.yaml` with the routine, as R6 and R7 did.
+Tests first on synthetic observations: no cast at the cap, none below the reserve, a hold while the upgrade is
+researchable and need is low, a cast when need is high. Then measured on the ladder.
 
 Possession (`PossessionCommands`) is not added here; a level that needs it is recorded as a
 controller limitation until a later task.
 
-Every row above is built; the routines that use them (Combat Pit, Imp scouting, defending a route with
-doors and traps) are separate. Manufacturing doors and traps is a Task 2 routine.
+Every row above is built; the routines that use them are separate: the Combat Pit and Imp scouting routines
+are built; Imp creation (R8) and defending a route with doors and traps are not. Manufacturing doors and traps is a Task 2
+routine.
 
 - [ ] One branch per row; reviewer, documenter, commit each.
 

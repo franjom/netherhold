@@ -26,7 +26,7 @@ namespace DK2.Unity.Editor
         private static double _deadline;
         private static int _frames, _lastFrame;
         private static readonly System.Collections.Generic.Dictionary<string, int> CaptureAttempts = new System.Collections.Generic.Dictionary<string, int>();
-        private static Image _drag;
+        private static HudRect _drag;
         private static RenderTexture _target;
         static InGameOptionsProbe()
         {
@@ -79,60 +79,61 @@ namespace DK2.Unity.Editor
                 if (stage != 12 && (!hud.GameOptionsVisible || sim.World.CurrentTick.Value.ToString() != SessionState.GetString(Active + ".tick", "")))
                     throw new Exception("Editing did not preserve Options pause.");
                 var root = (VisualElement)Get(panel, "_root");
-                if (stage == 1) { Debug.Log("Options probe state: visible=" + Get(panel, "_visible") + ", page=" + panel.Model.Page + ", children=" + root.childCount + ", bounds=" + root.worldBound + ", path=" + ((ScriptedViewDirector)Get(runner, "_scriptedView")).PathPlaying + ", gui=" + hud.GuiVisible); if (!Capture("game-options", panel)) return; Click(root, "option-1"); Next(2); return; }
+                var model = (GameOptionsHud)Get(panel, "_hud");
+                if (stage == 1) { Debug.Log("Options probe state: visible=" + panel.ContainsPointer(default) + ", page=" + panel.Model.Page + ", children=" + root.childCount + ", bounds=" + root.worldBound + ", path=" + ((ScriptedViewDirector)Get(runner, "_scriptedView")).PathPlaying + ", gui=" + hud.GuiVisible); if (!Capture("game-options", panel)) return; Click(model, 1); Next(2); return; }
                 if (stage == 2)
                 {
-                    if (!Capture("graphics", panel)) return; _drag = root.Q<Image>("slider-126"); Pointer(_drag, EventType.MouseDown, .25f); Next(3); return;
+                    if (!Capture("graphics", panel)) return; _drag = Slider(model, 126); Press(model, _drag, .25f); Next(3); return;
                 }
                 if (stage == 3)
                 {
-                    if (!ReferenceEquals(_drag, root.Q<Image>("slider-126"))) throw new Exception("Slider drag lost its element during live apply.");
-                    Pointer(_drag, EventType.MouseDrag, 2f / 3); Next(4); return;
+                    if (!model.Holding) throw new Exception("Slider drag was dropped during live apply.");
+                    model.PointerMove(_drag.X + _drag.Width * 2f / 3, _drag.Y + _drag.Height / 2); Next(4); return;
                 }
                 if (stage == 4)
                 {
-                    Pointer(_drag, EventType.MouseUp, 2f / 3);
+                    model.PointerUp();
                     if (runner.Settings.Gamma != 45) throw new Exception("Gamma drag failed: " + runner.Settings.Gamma);
-                    Click(root, "option-12"); Next(5); return;
+                    Click(model, 12); Next(5); return;
                 }
-                if (stage == 5) { Click(root, "option-2"); Next(6); return; }
-                if (stage == 6) { if (!Capture("sound", panel)) return; Click(root, "option-21"); Next(7); return; }
-                if (stage == 7) { Click(root, "option-3"); Next(8); return; }
+                if (stage == 5) { Click(model, 2); Next(6); return; }
+                if (stage == 6) { if (!Capture("sound", panel)) return; Click(model, 21); Next(7); return; }
+                if (stage == 7) { Click(model, 3); Next(8); return; }
                 if (stage == 8)
                 {
-                    if (!Capture("controls", panel)) return; var slider = root.Q<Image>("slider-154"); Pointer(slider, EventType.MouseDown, .4f); Pointer(slider, EventType.MouseUp, .4f);
+                    if (!Capture("controls", panel)) return; Press(model, Slider(model, 154), .4f); model.PointerUp();
                     if (runner.Settings.GameSpeed != 7) throw new Exception("In-game game speed did not apply live.");
-                    Click(root, "option-15"); Next(9); return;
+                    Click(model, 15); Next(9); return;
                 }
                 if (stage == 9)
                 {
-                    if (!Capture("keyboard", panel)) return; DragKeyboardToBottom(panel); ScrollToHeart(panel); Next(91); return;
+                    if (!Capture("keyboard", panel)) return; DragKeyboardToBottom(panel, model); ScrollToHeart(panel, model); Next(91); return;
                 }
                 if (stage == 91)
                 {
-                    Click(root, "key-39");
+                    ClickKey(model, GameAction.Heart);
                     if (runner.OptionsPages.CapturingAction != GameAction.Heart) throw new Exception("Keyboard row did not capture.");
-                    Click(root, "option-3");
+                    Click(model, 3);
                     if (runner.OptionsPages.CapturingAction != null || runner.Settings.Binding(GameAction.Heart).ScanCode != 0x23)
                         throw new Exception("Back did not cancel pending capture.");
                     Next(10); return;
                 }
-                if (stage == 10) { Click(root, "option-15"); Next(11); return; }
+                if (stage == 10) { Click(model, 15); Next(11); return; }
                 if (stage == 11)
                 {
-                    ScrollToHeart(panel); Next(111); return;
+                    ScrollToHeart(panel, model); Next(111); return;
                 }
                 if (stage == 111)
                 {
-                    Click(root, "key-39");
+                    ClickKey(model, GameAction.Heart);
                     if (runner.OptionsPages.CapturingAction != GameAction.Heart) throw new Exception("Keyboard row did not enter second capture.");
                     using (var key = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.D })) root.SendEvent(key);
                     if (runner.Settings.Binding(GameAction.Heart).ScanCode != 0x20) throw new Exception("Key event did not rebind Heart.");
-                    Click(root, "option-3"); Next(112); return;
+                    Click(model, 3); Next(112); return;
                 }
                 if (stage == 112)
                 {
-                    Click(root, "option-16");
+                    Click(model, 16);
                     if (hud.OptionsVisible || runner.Settings.Gamma != 45) throw new Exception("Continue did not retain settings and close Options.");
                     var saved = GameSettingsFile.Load((string)Get(runner, "_settingsPath"));
                     if (saved.Gamma != 45 || saved.GameSpeed != 7 || saved.Binding(GameAction.Heart).ScanCode != 0x20) throw new Exception("Settings were not persisted.");
@@ -147,40 +148,42 @@ namespace DK2.Unity.Editor
             catch (Exception ex) { SessionState.SetBool(Active, false); Debug.LogException(ex); EditorApplication.Exit(1); }
         }
         private static void Next(int stage) { SessionState.SetInt(Active + ".stage", stage); _frames = 0; }
-        private static void Click(VisualElement root, string name)
+        /// <summary>A primary press on a page widget, by its native index, through the panel's model: the
+        /// draw list has no elements to send events to.</summary>
+        private static void Click(GameOptionsHud model, int nativeIndex)
         {
-            VisualElement element = root.Q<VisualElement>(name); if (element == null) throw new Exception("Missing control " + name);
-            using (var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = element.worldBound.center })) element.SendEvent(down);
+            HudRect r = model.WidgetRect(nativeIndex) ?? throw new Exception("Missing control " + nativeIndex);
+            if (!model.PointerDown(r.X + r.Width / 2, r.Y + r.Height / 2, 0)) throw new Exception("Control " + nativeIndex + " took no press.");
+            model.PointerUp();
         }
-        private static void Pointer(Image image, EventType type, float fraction)
+        private static HudRect Slider(GameOptionsHud model, ushort setting) => model.SliderRect(setting) ?? throw new Exception("Missing slider " + setting);
+        private static void Press(GameOptionsHud model, HudRect track, float fraction)
         {
-            var e = new Event { type = type, button = 0, mousePosition = new Vector2(image.worldBound.x + image.worldBound.width * fraction, image.worldBound.center.y) };
-            if (type == EventType.MouseDown) { using (var down = PointerDownEvent.GetPooled(e)) image.SendEvent(down); }
-            else if (type == EventType.MouseDrag) { using (var move = PointerMoveEvent.GetPooled(e)) image.SendEvent(move); }
-            else { using (var up = PointerUpEvent.GetPooled(e)) image.SendEvent(up); }
+            if (!model.PointerDown(track.X + track.Width * fraction, track.Y + track.Height / 2, 0)) throw new Exception("Slider took no press.");
         }
-        private static void DragKeyboardToBottom(ClassicGameOptionsPanel panel)
+        private static void ClickKey(GameOptionsHud model, GameAction action)
         {
-            var thumb = (Image)Get(panel, "_keyThumb");
-            var track = (VisualElement)Get(panel, "_keyTrack");
-            var scroll = (TextScrollBar)Get(panel, "_keyScroll");
-            var down = new Event { type = EventType.MouseDown, button = 0, mousePosition = thumb.worldBound.center };
-            using (var e = PointerDownEvent.GetPooled(down)) thumb.SendEvent(e);
-            var bottom = new Event { type = EventType.MouseDrag, button = 0,
-                mousePosition = new Vector2(track.worldBound.center.x, track.worldBound.yMax) };
-            using (var e = PointerMoveEvent.GetPooled(bottom)) thumb.SendEvent(e);
-            bottom.type = EventType.MouseUp;
-            using (var e = PointerUpEvent.GetPooled(bottom)) thumb.SendEvent(e);
+            HudRect r = model.KeyRowRect(action) ?? throw new Exception("Missing key row " + action);
+            if (!model.PointerDown(r.X + r.Width / 2, r.Y + r.Height / 2, 0)) throw new Exception("Key row " + action + " took no press.");
+            model.PointerUp();
+        }
+        private static void DragKeyboardToBottom(ClassicGameOptionsPanel panel, GameOptionsHud model)
+        {
+            (HudRect thumb, HudRect track) = model.KeyBar() ?? throw new Exception("No key list.");
+            if (!model.PointerDown(thumb.X + thumb.Width / 2, thumb.Y + thumb.Height / 2, 0)) throw new Exception("Key thumb took no press.");
+            model.PointerMove(track.X + track.Width / 2, track.Y + track.Height);
+            model.PointerUp();
+            TextScrollBar scroll = model.KeyScroll;
             if (scroll.Range <= 0 || scroll.Position != scroll.Range)
                 throw new Exception("1440p keyboard thumb did not reach maximum: " + scroll.Position + "/" + scroll.Range);
             Debug.Log("1440p keyboard thumb reached maximum: " + scroll.Position + "/" + scroll.Range);
             panel.Draw();
         }
-        private static void ScrollToHeart(ClassicGameOptionsPanel panel)
+        private static void ScrollToHeart(ClassicGameOptionsPanel panel, GameOptionsHud model)
         {
-            var scroll = (TextScrollBar)Get(panel, "_keyScroll");
+            TextScrollBar scroll = model.KeyScroll;
             int row = KeyboardSetup.Actions.ToList().FindIndex(a => a.Action == GameAction.Heart);
-            int target = (int)(row * (float)Get(panel, "_keyLine"));
+            int target = (int)(row * model.KeyLine);
             while (scroll.Position < target && scroll.Position < scroll.Range) scroll.Step(1);
             while (scroll.Position > target) scroll.Step(-1);
             panel.Draw();

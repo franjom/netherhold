@@ -39,7 +39,8 @@ public sealed class HandPickupEffectTests
         creature.PosZ = 0x2800;
         creature.Heading = 0x321;
         var expected = new ViewEffectRequest(new EffectId(117), Keeper,
-            new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0x1000)), new Dk2Angle((ushort)creature.Heading));
+            new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0x1000)), new Dk2Angle((ushort)creature.Heading))
+            { SourceCreatureId = new(creature.Id) };
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
 
