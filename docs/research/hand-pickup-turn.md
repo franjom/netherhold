@@ -84,7 +84,7 @@ arguments and timing are in [004C0BE0](functions/004C0BE0.md), appearance in
 [creature movement dust](creature-movement-dust.md#2-shipped-dust---strongly-inferred-data).
 The local hide and the later dust request are separate steps.
 
-## Built (ADR-0731, hash/save 460)
+## Built (ADR-0731; current hash/save 521)
 
 - `HandSystem.PickUp` prepares: state 75, the sound, the job, load and marks
   let go, the body stopped, a pending landing cancelled. The keeper's
@@ -106,9 +106,16 @@ The local hide and the later dust request are separate steps.
   pickup preparation leaves the torture device, before insertion into the hand.
 - `WorldView` draws state 75 at absolute height `0x2000` from preparation, with the same
   previous height. Native interpolation during the lift remains unverified.
-- Local clicks currently queue only a minimap preview; world disappearance and pending
-  held icons wait for authoritative state. The immediate feedback above is missing.
-  `HandSystem.PickUp` also omits the callback's dust request.
+- `LocalPickupFeedback` hides an accepted local creature before command submission,
+  supplies pending held icons and holding-kind selection, and rolls back an unacknowledged
+  pickup after 2001 ms. Feedback survives worker snapshot replacement; viewer/level resets
+  clear it. Permissions and hand capacity gate admission.
+  Queued drops wait for authoritative membership and dispatch in pending-entry order;
+  queued/dispatched entries are excluded from held icons. `WorldView`, `PlayerInput` and
+  `HeldItemStack` consume this engine-neutral state through a small adapter bridge.
+- Successful human `HandSystem.PickUp` preparation requests dust effect117 with the
+  reviewed owner, position and heading; direct computer-keeper pickup excludes it.
+  These changes add no simulation state or RNG and leave hash/save 521 unchanged.
 
 Deviations: the timed insert (`HandSystem.Execute`) runs at the start of the
 second tick after the command, stamped one turn earlier; DK2's runs in the
@@ -116,15 +123,14 @@ keeper's frame of the first turn after it, once that turn's sweep is done. The
 creature is in 75 through that sweep and in 78 for the next in both; only the
 hand's list differs in between. A creature that left 75 before the insert is
 still taken, but ours leaves its state (DK2 forces it into 78, the leave hooks
-run); a mint-wage command does not leave the hand's state (unread). The view still
-counts a queued creature pick-up as holding, so a quick second click sends a
-drop the simulation ignores.
+run); a mint-wage command does not leave the hand's state (unread). Accepted-drop
+cursor animation retains ADR-0582's execution-time policy; packet-submit timing remains partial.
 
 ## Unknown
 
 Whether the call at `0x004BA0B4` (the keeper tick's route to the timed
-completion) depends on the player's kind, and whether the interface refuses a
-pick-up when the hand is full before the packet is sent.
+completion) depends on the player's kind. The interface capacity gate is recorded
+in [0040DD20](functions/0040DD20.md).
 
 ## Control
 

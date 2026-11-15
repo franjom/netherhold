@@ -1518,6 +1518,7 @@ public sealed partial class WorldView
         foreach (CreatureState creature in world.Creatures)
         {
             if (creature.InHand) continue;
+            if (LocalPickups.Contains(new CreatureId(creature.Id))) continue;
             // The finale Reaper's draw bit (+0xF3 bit 0) is off from state 228 until 230.
             if (creature.ReaperHidden) continue;
             if (IsMistressBedEntrance(world, creature) || IsMistressBedExit(world, creature)) continue;

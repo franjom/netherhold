@@ -41,6 +41,9 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         _previousTables = Array.Empty<ClassicLightTable>();
     private int _visibleCount, _previousCount;
     private bool _evictionPending;
+    private ulong _sourceRevision, _gatheredRevision;
+    private bool _canReuse;
+    private ulong[] _tableRevisions = Array.Empty<ulong>();
 
     public ClassicWorldLightCache(int width, int height)
     {
@@ -60,6 +63,8 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     }
 
     public ClassicLightFrame Frame { get; private set; }
+    /// <summary>Whether the last preparation reused the same ordered visible light tables.</summary>
+    public bool TablesUnchanged { get; private set; }
     public ReadOnlySpan<ClassicLightTable> VisibleTables => _visibleTables.AsSpan(0, _visibleCount);
     public void SetTerrain(TilePos tile, ClassicPointLight? light) => SetSource(_terrain, tile, light);
     public void SetTorch(TilePos tile, ClassicPointLight? light) => SetSource(_torches, tile, light);
@@ -122,13 +127,16 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
             _objects.Add(key, source);
             _entries[kind].Add(source);
             (_objectsByTile[index] ??= new List<ObjectSource>()).Add(source);
+            _sourceRevision++;
         }
         else if (source.Tile != index)
         {
             _objectsByTile[source.Tile]!.Remove(source);
             (_objectsByTile[index] ??= new List<ObjectSource>()).Add(source);
             source.Tile = index;
+            _sourceRevision++;
         }
+        if (!source.Light.Equals(drawn)) _sourceRevision++;
         source.Light = drawn;
         source.Seen = true;
     }
@@ -142,20 +150,41 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
             _objectsByTile[source.Tile]!.Remove(source);
             _objects.Remove(source.Key);
             entries.RemoveAt(i);
+            _sourceRevision++;
         }
     }
 
     public void PrepareFrame(ReadOnlySpan<TilePos> visible)
     {
+        TablesUnchanged = false;
         if (_evictionPending) EvictUntouched();
+        bool reuse = _canReuse && _sourceRevision == _gatheredRevision && visible.Length == _visibleCount;
+        _canReuse = false;
         _visible.Clear();
-        foreach (TilePos tile in visible)
+        for (int i = 0; i < visible.Length; i++)
+        {
+            TilePos tile = visible[i];
             if (!_visible.Add(tile)) throw new ArgumentException("Visible enumeration contains a duplicate tile.", nameof(visible));
+            if (reuse && tile != _visibleTables[i].Tile) reuse = false;
+            if (reuse && _visibleTables[i].Revision != _tableRevisions[i]) reuse = false;
+        }
         _window.Reset();
         Frame = new ClassicLightFrame(unchecked(Frame.Value + 1));
         (_preparedIndices, _previousIndices) = (_previousIndices, _preparedIndices);
         foreach (int index in _previousIndices) _prepared[index] = false;
         _preparedIndices.Clear();
+        if (reuse)
+        {
+            // The exact same footprint was prepared; retain its cells and build stamps.
+            foreach (int index in _previousIndices)
+            {
+                _prepared[index] = true;
+                _preparedIndices.Add(index);
+            }
+            _previousCount = 0;
+            _canReuse = TablesUnchanged = _evictionPending = true;
+            return;
+        }
         foreach (TilePos tile in visible)
         {
             PrepareCell(tile);
@@ -170,15 +199,24 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         _previousCount = _visibleCount;
         if (_visibleTables.Length < visible.Length)
             Array.Resize(ref _visibleTables, Math.Max(visible.Length, _visibleTables.Length * 2 + 16));
+        if (_tableRevisions.Length < visible.Length)
+            Array.Resize(ref _tableRevisions, _visibleTables.Length);
         _visibleCount = visible.Length;
+        bool rebuiltStatic = false;
         for (int index = 0; index < visible.Length; index++)
         {
             TilePos tile = visible[index];
             if (!_tables.TryGetValue(tile, out ClassicLightTable? table))
                 _tables.Add(tile, table = new ClassicLightTable(tile));
             _window.Gather(table, this, Frame);
+            if (table.StaticFrame == Frame) rebuiltStatic = true;
             _visibleTables[index] = table;
+            _tableRevisions[index] = table.Revision;
         }
+        // A static rebuild can alter the rolling window's next-frame winners even with
+        // identical inputs. Only a gather without any static rebuilds establishes reuse.
+        _canReuse = !rebuiltStatic;
+        _gatheredRevision = _sourceRevision;
         _evictionPending = true;
     }
 
@@ -195,11 +233,16 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         {
             TilePos tile = _previousTables[i].Tile;
             _previousTables[i] = null!;
-            if (!Contains(tile) && !_visible.Contains(tile)) _tables.Remove(tile);
+            if (!Contains(tile) && !_visible.Contains(tile))
+            {
+                _tables.Remove(tile);
+                _canReuse = false;
+            }
         }
         foreach (int index in _previousIndices)
         {
             if (_prepared[index]) continue;
+            _canReuse = false;
             int x = index % _width, y = index / _width;
             if (!_cells[index].StaticSources.IsEmpty)
                 for (int ny = y - 3; ny <= y + 3; ny++)
@@ -233,6 +276,7 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         int index = tile.Y * _width + tile.X;
         if (Nullable.Equals(inputs[index], light)) return;
         inputs[index] = light;
+        _sourceRevision++;
         _dirty[index] = true;
     }
 
@@ -287,6 +331,8 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         _preparedIndices.Clear(); _previousIndices.Clear(); _visible.Clear(); _tables.Clear();
         _visibleCount = _previousCount = 0;
         _evictionPending = false;
+        _canReuse = TablesUnchanged = false;
+        _sourceRevision = _gatheredRevision = 0;
         Frame = default;
     }
 }

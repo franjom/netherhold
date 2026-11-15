@@ -221,6 +221,11 @@ public sealed class HandSystem : ISimulationSystem
         }
         if (lifted)
             ThingSoundRules.RequestUnvoiced(context, SystemName, creature, ThingSoundEvent.PickedUp, liftedAt);
+        // 0x004C0BE0 requests the human callback's dust after preparation, before stopping the body.
+        if (prepared && !direct)
+            context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(117), playerId,
+                new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0x1000)),
+                new Dk2Angle(unchecked((ushort)creature.Heading))));
         // The hand callback (0x004C0BE0) stops the creature after the prepare step (0x004C0C82).
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         // Hand state 1 is entered; its exit callback (0x004C0EA0) is the insert.

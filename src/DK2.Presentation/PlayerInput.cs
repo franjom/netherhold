@@ -137,15 +137,18 @@ public sealed class PlayerInputSnapshot
         if (view is null) throw new ArgumentNullException(nameof(view));
         if (world is null) throw new ArgumentNullException(nameof(world));
 
-        bool isHolding = world.HasPlayer(playerId) && world.Player(playerId).Hand.Count > 0;
+        bool isHolding = view.LocalPickups.HasVisibleItems(world, playerId);
         if (!isHolding && pendingCommands is not null)
             foreach (PlayerCommand pending in pendingCommands)
+            {
+                if (pending is PickUpCreatureCommand pickup && view.LocalPickups.Contains(new CreatureId(pickup.CreatureId))) continue;
                 if (pending.PlayerId == playerId && pending is PickUpCreatureCommand or PickUpObjectCommand
                     or PickUpStoreGoldCommand or WithdrawCounterGoldCommand)
                 {
                     isHolding = true;
                     break;
                 }
+            }
         var targets = new List<PlayerInputTarget>();
 
         foreach (CreatureView creature in view.Creatures(world))

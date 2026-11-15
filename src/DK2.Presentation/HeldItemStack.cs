@@ -43,19 +43,31 @@ public sealed class HeldItemStack
     public static (int X, int Y) Offset(int index) =>
         index >= MaxIcons ? (128, 32) : (32 * (index % 4), 32 * (index / 4));
 
-    /// <summary>Reads <paramref name="player"/>'s hand. DK2 walks the hand from its last slot down
-    /// (slot <c>+0x274</c>) after the drops still waiting for the simulation (interface list
-    /// <c>+0x142</c>), which ours does not have. A dead body would take a slot and draw nothing; our
-    /// hand holds none.</summary>
+    /// <summary>Reads the authoritative hand, last slot first. The overload also draws local
+    /// pending pickups first and excludes items with queued drops (interface list +0x142).
+    /// A dead body would take a slot and draw nothing; our hand holds none.</summary>
     public void Refresh(WorldState world, PlayerId player)
+        => Refresh(world, player, null);
+    public void Refresh(WorldState world, PlayerId player, LocalPickupFeedback? pending)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         _icons.Clear();
         List<HandItem> hand = world.Player(player).Hand;
-        More = hand.Count > MaxIcons;
+        int pendingCount = 0;
+        if (pending is not null)
+            foreach (HeldIcon icon in pending.Icons(world, player))
+            {
+                pendingCount++;
+                if (_icons.Count < MaxIcons) _icons.Add(icon);
+            }
+        int visibleCount = pendingCount;
+        foreach (HandItem item in hand)
+            if (pending?.HidesHeld(player, item) != true) visibleCount++;
+        More = visibleCount > MaxIcons;
         for (int i = hand.Count - 1; i >= 0 && _icons.Count < MaxIcons; i--)
         {
             HandItem item = hand[i];
+            if (pending?.HidesHeld(player, item) == true) continue;
             if (item.IsObject)
             {
                 if (world.ObjectById(item.Id) is ObjectState thing) _icons.Add(new HeldIcon(HeldIconKind.Object, thing.ObjectTypeId));
