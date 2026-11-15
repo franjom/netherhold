@@ -168,8 +168,10 @@ These are entry points, not a new priority order.
   hash 519); Level 4 won 2 of 3 diagnosis seeds but stays out of the driver choice while Q710 is
   open, Levels 5-10 are not won ([ladder](research/campaign-bot-ladder.md) sections 7-8). Open
   from Tasks 3a and 3b: Q813-Q818. Task 4, the observation and action additions, is built one row per
-  branch: each own creature's level, petals and mood, then every offered spell with `CastSpell` (observation schema 3;
-  Q819 and Q820 open, Q821-Q823 answered by the owner); the door and trap rows and the routines that use them wait.
+  branch: each own creature's level, petals and mood, every offered spell with `CastSpell`, then door and trap
+  offers with `PlaceDoor` and `PlaceTrap` (observation schema 4; Q819, Q820, Q824 and Q825 open, Q821-Q823
+  answered by the owner). Its observation and action rows are all built except Possession; the routines that
+  use them (Combat Pit, Imp scouting) come next.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

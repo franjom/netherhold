@@ -70,6 +70,18 @@ public abstract record PlayerAction
         private protected override PlayerActionKinds Family => PlayerActionKinds.CreateImpAt;
     }
 
+    /// <summary>Places an offered door's blueprint on a tile (Task 4), as a click with the door selected sends it.</summary>
+    public sealed record PlaceDoor(byte Door, TilePos Tile) : PlayerAction
+    {
+        private protected override PlayerActionKinds Family => PlayerActionKinds.PlaceDoor;
+    }
+
+    /// <summary>Places an offered trap's blueprint on a tile (Task 4), as a click with the trap selected sends it.</summary>
+    public sealed record PlaceTrap(byte Trap, TilePos Tile) : PlayerAction
+    {
+        private protected override PlayerActionKinds Family => PlayerActionKinds.PlaceTrap;
+    }
+
     /// <summary>Casts an offered spell (Task 4): a creature spell on a visible creature
     /// (<paramref name="Target"/>), a place spell at a tile's centre (<paramref name="Tile"/>), as a click
     /// on the hovered creature or ground sends it (<c>PlacementCursor.Spell</c>). Exactly one of the two.</summary>

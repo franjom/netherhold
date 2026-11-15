@@ -339,9 +339,9 @@ replay tests updated.
 
 | Addition | Why | Source of truth |
 |---|---|---|
-| Door and Trap offers in `PlayerOffers` | the panel shows them; `CaptureOffers` keeps only Room and Spell today | `BottomPanelChoiceKind.Door/Trap` |
+| Door and Trap offers in `PlayerOffers` | the panel shows them | `BottomPanelChoiceKind.Door/Trap`. **Built 2026-11-15** |
 | Every offered spell, not only Create Imp | spells the level gives | the Spell panel. **Built 2026-11-15** |
-| `PlaceDoor`, `PlaceTrap` actions | defend a route | the panel's build intents |
+| `PlaceDoor`, `PlaceTrap` actions | defend a route | the panel's build intents. **Built 2026-11-15** |
 | `CastSpell(spell, target)` | offered spells | the existing spell intent path. **Built 2026-11-15** |
 | Each own creature's level (1-10), health in petals and mood (happy, unhappy, angry) | the status flower shows them (`status-flowers.md`: H-00..H-05, SL-01..SL-10, SM-*) | the creature's flower. **Built 2026-11-15** |
 | `CastSpell(Heal, creature)` | heal a creature in the Pit | the spell panel and the existing spell intent path. **Built 2026-11-15**, as a creature spell of `CastSpell`; the Pit routine is not |
@@ -375,11 +375,11 @@ a visible creature, a place spell `CastSpellAtPlaceCommand` (packet 54) at the t
 them (`PlacementCursor.Spell`); the simulation decides whether the cast lands. The cursor shows No Go for Thunderbolt
 or Heal at a dying creature because it asks the simulation's `CanCast`, so the bot's cast is refused the same way (Q823,
 owner-confirmed). Both commands were already in
-the journal and replay paths. `CoverageLimits` now says doors and traps, Possession, the Reaper's spells and
+the journal and replay paths. `CoverageLimits` says Possession, the Reaper's spells and
 object targets are not offered, that a creature spell may name a creature the hover pick passes over (Q823),
 and that Sight of Evil is offered but reveals nothing to the observing view: a human sees the ground it reveals, so
 the offer is a mana sink until a later addition applies it to the observation (Q822, owner-confirmed).
-`PlayerObservation.SchemaVersion` is 3, information only (journal header `player.observation.schema`, read by
+This row made `PlayerObservation.SchemaVersion` 3, information only (journal header `player.observation.schema`, read by
 nothing; older journals replay). `DK2.AI.Tests` 557, `DK2.Simulation.Tests` 5472 and `DK2.Behavior.Tests` 667
 (5 skipped) pass; `DK2.Presentation.Tests` passed 1785 of 1786 in the full run, the one failure
 `ClassicObjectLightTests.WarmDynamicPublicationAndGatherAllocateNothing` (an allocation measurement in code
@@ -388,6 +388,28 @@ this change does not touch, [TRAPS](../TRAPS.md)), which passed alone three time
 receipt test (`PlayerSessionTests.ReceiptsDoNotDistinguishHiddenStates`) has no `CastSpell` probe because its
 synthetic database offers no castable spell; the adapter reads only the capture, so the property holds by design.
 Answered by the owner on 2026-11-15: Q821-Q823.
+
+**Built: doors and traps.** `PlayerOffers.Workshop` lists a `PlayerWorkshopOffer` (`Kind` Door or Trap, `Id`,
+`Name`, `Cost`, `Affordable`, `NeedsWorkshop`), doors then traps by id, for each Workshop-panel slot that is
+visible and selectable. A trap with definition flag `0x2000` is never on the panel; a slot whose availability
+is unknown (2 or 4) is not offered. `Cost` is the item's `GoldCost`, paid at once when the blueprint is laid
+(`BlueprintPlacementRules`, `0x004C33B0` door and `0x004C3860` trap; owner-confirmed,
+[blueprint-placement.md](../research/blueprint-placement.md)), so `Affordable` (the panel's cost within gold) is
+meaningful. `NeedsWorkshop` marks a slot greyed because the keeper owns no Workshop tile: the click places
+nothing (`Hand_Click`, `0x0040849F` and `0x00408586`). `PlayerAction.PlaceDoor(Door, Tile)` and
+`PlaceTrap(Trap, Tile)` are offered when an offer is not greyed; `PlayerActionAdapter` refuses an unoffered or
+greyed item and an out-of-bounds tile, otherwise it sends `PlaceDoorCommand` or `PlaceTrapCommand` at the tile, as
+`DungeonRunner.Hud`'s click does (both were already in `HumanCommandPolicy`, the codec and `PeerCommands`).
+The click's own door and trap arms test the tile locally (vtable `+0x244`, `+0x24C`) before the packet and have
+no gold gate; the adapter skips that test. The simulation refuses the same placements (`blueprint_refused`:
+`NotTheKeepersTile`, `Solid`, `ARoom`, `Occupied`, `NoWalls`, or `NotEnoughGold`), so the outcome is the same,
+but the bot can spend an action on a placement a human click never sends. Stock: the slot draws no digits and no
+crate count ([panel-indicators.md](../research/panel-indicators.md)), only the head-order manufacture wedge, so
+the offer carries none; `CoverageLimits` says that and the untested tile. `PlayerObservation.SchemaVersion` is 4,
+information only. `DK2.AI.Tests` 557, `DK2.Simulation.Tests` 5479, `DK2.Presentation.Tests` 1812 and
+`DK2.Behavior.Tests` 669 (5 skipped) passed before the review fixes; `PlayerWorkshopTests` (3) pass after them.
+Level 1 seed 1 is unchanged (Completed at tick 2334, final hash af7204fe4c0f8594), no simulation change.
+Reviewer: no blocker, no major. Open: Q824 (a greyed slot's click), Q825 (placed-but-unbuilt doors on the slot).
 
 **The Imp scouting routine (owner direction, 2026-11-14; first aimed at Level 6a).** Unknown ground
 (`PlayerTile.IsKnown` false) hides gold, gems, water to bridge and enemies. The bot lifts an own Imp, drops
@@ -406,9 +428,8 @@ observations (drop legal and refused, lift on threat, bridge planned from reveal
 Possession (`PossessionCommands`) is not added here; a level that needs it is recorded as a
 controller limitation until a later task.
 
-Only the rows the triage and the driver need are built; the others wait. Doors and traps are
-Workshop stock: if the panel shows a stock count, the offer carries it; manufacturing is a
-Task 2 routine.
+Every row above is built; the routines that use them (Combat Pit, Imp scouting, defending a route with
+doors and traps) are separate. Manufacturing doors and traps is a Task 2 routine.
 
 - [ ] One branch per row; reviewer, documenter, commit each.
 

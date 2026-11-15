@@ -94,6 +94,10 @@ public sealed class PlayerActionAdapter
                     new Fp32(CreatureState.CentreOf(imp.Tile.X)), new Fp32(CreatureState.CentreOf(imp.Tile.Y)))));
             case PlayerAction.CastSpell cast:
                 return Cast(capture, cast);
+            case PlayerAction.PlaceDoor door:
+                return Place(observation, PlayerWorkshopKind.Door, door.Door, door.Tile, () => new PlaceDoorCommand(_player, door.Tile, door.Door));
+            case PlayerAction.PlaceTrap trap:
+                return Place(observation, PlayerWorkshopKind.Trap, trap.Trap, trap.Tile, () => new PlaceTrapCommand(_player, trap.Tile, trap.Trap));
             case PlayerAction.PickUp pick:
                 return OnThing(capture, pick.Thing, PlayerThingActions.PickUp, target => target.Kind switch
                 {
@@ -131,6 +135,17 @@ public sealed class PlayerActionAdapter
             return PlayerActionResolution.Refused(PlayerRefusalReason.UnknownHandle);
         return target.Kind == PlayerInputTargetKind.Creature
             ? PlayerActionResolution.Of(new CastSpellOnCreatureCommand(_player, cast.Spell, target.Id)) : NotOffered;
+    }
+
+    /// <summary>A door or trap click (DungeonRunner.Hud): an offered item whose slot is not greyed for want
+    /// of a Workshop (that click places nothing), on a tile of the map. The simulation decides the placement.</summary>
+    private static PlayerActionResolution Place(PlayerObservation observation, PlayerWorkshopKind kind, byte id, TilePos tile, Func<PlayerCommand> command)
+    {
+        bool offered = false;
+        foreach (PlayerWorkshopOffer offer in observation.Offers.Workshop)
+            if (offer.Kind == kind && offer.Id == id && !offer.NeedsWorkshop) offered = true;
+        if (!offered) return NotOffered;
+        return observation.Tiles.Contains(tile) ? PlayerActionResolution.Of(command()) : OutOfBounds;
     }
 
     private static readonly PlayerActionResolution OutOfBounds = PlayerActionResolution.Refused(PlayerRefusalReason.OutOfBounds),
