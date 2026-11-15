@@ -342,6 +342,8 @@ observations; what causes each is not read):
 - The possessed Imp's footsteps are heard. Which of the two pairs of §6 was heard, or
   both, is not told apart, so the footstep verdict there stays HYPOTHESIS.
 - No possessed creature died, so the mode-11 view is still unobserved.
+- There is a ceiling over door tiles and over water and lava, as the read of the roof
+  says (`kwd-terrain-rooms.md`).
 
 Nineteen screenshots of the original at 1600 by 1200, one as a possessed Imp and
 eighteen as a possessed Warlock, are in
