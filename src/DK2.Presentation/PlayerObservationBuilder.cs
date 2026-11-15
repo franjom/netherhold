@@ -80,6 +80,7 @@ public sealed class PlayerObservationBuilder
     private readonly List<PlayerNotice> _notices = [];
     private readonly List<PlayerRoomOffer> _roomOffers = [];
     private readonly List<PlayerSpellOffer> _spellOffers = [];
+    private readonly List<PlayerWorkshopOffer> _workshopOffers = [];
     private readonly List<GuiButtonTarget> _panels = [];
     private PlayerTile[] _tiles = [];
 
@@ -97,7 +98,9 @@ public sealed class PlayerObservationBuilder
     /// Phase Intro covers any scripted camera path, mid-level introductions included.</summary>
     public static IReadOnlyList<string> CoverageLimits { get; } =
     [
-        "doors and traps are not offered; Possession and the Reaper's spells are not offered, nor a spell's object targets",
+        "Possession and the Reaper's spells are not offered, nor a spell's object targets",
+        "a door or trap slot's manufacture progress wedge is not carried (the panel shows no stock count)",
+        "a door or trap placement is not pre-tested at the tile as the click is; the simulation refuses what the click would not send",
         "a creature spell may name any visible creature, also one the hover pick passes over (dying, unpickable types)",
         "specials that name a creature (127, 140) and stored specials are not offered",
         "tag previews and Sight of Evil are not applied to the observing view (Sight of Evil is offered, and reveals nothing to it)",
@@ -281,6 +284,7 @@ public sealed class PlayerObservationBuilder
         _roomOffers.Clear();
         _panels.Clear();
         _spellOffers.Clear();
+        _workshopOffers.Clear();
         ManaAmount? createImp = null;
         foreach (BottomPanelChoice choice in _panel.Choices)
         {
@@ -290,6 +294,12 @@ public sealed class PlayerObservationBuilder
                 var room = (RoomTypeId)choice.Key.Value;
                 _roomOffers.Add(new PlayerRoomOffer(room, new GoldAmount(choice.Cost), choice.Affordable));
                 _panels.Add(GuiButtonTarget.Room(room));
+            }
+            else if (choice.Kind is BottomPanelChoiceKind.Door or BottomPanelChoiceKind.Trap)
+            {
+                _workshopOffers.Add(new PlayerWorkshopOffer(
+                    choice.Kind == BottomPanelChoiceKind.Door ? PlayerWorkshopKind.Door : PlayerWorkshopKind.Trap,
+                    choice.Key.Value, choice.Name, new GoldAmount(choice.Cost), choice.Affordable, choice.NeedsWorkshop));
             }
             else if (choice.Kind == BottomPanelChoiceKind.Spell)
             {
@@ -318,12 +328,14 @@ public sealed class PlayerObservationBuilder
         if (createImp is not null) actions |= PlayerActionKinds.CreateImpAt;
         foreach (PlayerSpellOffer offer in _spellOffers)
             if (offer.Spell != BottomPanelView.CreateImpSpellId) actions |= PlayerActionKinds.CastSpell;
+        foreach (PlayerWorkshopOffer offer in _workshopOffers)
+            if (!offer.NeedsWorkshop) actions |= offer.Kind == PlayerWorkshopKind.Door ? PlayerActionKinds.PlaceDoor : PlayerActionKinds.PlaceTrap;
         foreach (PlayerVisibleThing thing in _things)
         {
             if ((thing.Actions & PlayerThingActions.PickUp) != 0) actions |= PlayerActionKinds.PickUp;
             if ((thing.Actions & PlayerThingActions.Slap) != 0) actions |= PlayerActionKinds.Slap;
             if ((thing.Actions & PlayerThingActions.Activate) != 0) actions |= PlayerActionKinds.ActivateSpecial;
         }
-        return new PlayerOffers { Actions = actions, Rooms = _roomOffers, Panels = _panels, CreateImpCost = createImp, Spells = _spellOffers };
+        return new PlayerOffers { Actions = actions, Rooms = _roomOffers, Panels = _panels, CreateImpCost = createImp, Spells = _spellOffers, Workshop = _workshopOffers };
     }
 }

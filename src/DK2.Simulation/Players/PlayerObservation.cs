@@ -143,7 +143,18 @@ public enum PlayerActionKinds : ushort
     CreateImpAt = 1 << 7,
     SkipIntro = 1 << 8,
     CastSpell = 1 << 9,
+    PlaceDoor = 1 << 10,
+    PlaceTrap = 1 << 11,
 }
+
+/// <summary>A Workshop panel item: a door or a trap.</summary>
+public enum PlayerWorkshopKind : byte { Door, Trap }
+
+/// <summary>A door or trap the Workshop panel offers (campaign bot stage 3 plan, Task 4): its id (the
+/// placement packets' door or trap id), its name, its displayed gold price and whether the keeper can pay
+/// it, and <see cref="NeedsWorkshop"/>: the slot is greyed because the keeper owns no Workshop, and a
+/// click places nothing (<c>0x0040849F</c>, <c>0x00408586</c>). The panel model (BottomPanelView) carries no stock count.</summary>
+public readonly record struct PlayerWorkshopOffer(PlayerWorkshopKind Kind, byte Id, string Name, GoldAmount Cost, bool Affordable, bool NeedsWorkshop);
 
 /// <summary>A room the bottom panel offers, at its displayed per-tile price.</summary>
 public readonly record struct PlayerRoomOffer(RoomTypeId Room, GoldAmount Cost, bool Affordable);
@@ -170,6 +181,9 @@ public sealed class PlayerOffers
     /// <summary>Create Imp's displayed price, when offered.</summary>
     public ManaAmount? CreateImpCost { get; init; }
 
+    /// <summary>Every door, then every trap, the Workshop panel offers, by id (Task 4).</summary>
+    public IReadOnlyList<PlayerWorkshopOffer> Workshop { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerWorkshopOffer>();
+
     /// <summary>Every spell the Spell panel offers, by spell id (Task 4).</summary>
     public IReadOnlyList<PlayerSpellOffer> Spells { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerSpellOffer>();
 }
@@ -181,8 +195,8 @@ public sealed class PlayerOffers
 /// </summary>
 public sealed class PlayerObservation
 {
-    /// <summary>2 adds each own creature's level, petals and mood; 3 every offered spell (Task 4).</summary>
-    public const int SchemaVersion = 3;
+    /// <summary>2 adds each own creature's level, petals and mood; 3 every offered spell; 4 doors and traps (Task 4).</summary>
+    public const int SchemaVersion = 4;
 
     public required PlayerStamp Stamp { get; init; }
     public PlayerPhase Phase { get; init; } = PlayerPhase.Playing;
