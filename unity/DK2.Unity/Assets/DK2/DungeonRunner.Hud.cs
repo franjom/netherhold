@@ -489,6 +489,9 @@ namespace DK2.Unity
                 if (selected.Kind == CreatureOverviewActionKind.Pickup)
                 {
                     var command = new PickUpCreatureCommand(new PlayerId((byte)viewingPlayerId), selected.Target.Value);
+                    if (!_worldView.LocalPickups.TryQueue(World, _simulation.Database, command.PlayerId,
+                        new CreatureId(command.CreatureId), (long)(Time.unscaledTimeAsDouble * 1000))) return true;
+                    _cursorFeedback.Play(HandCursorKind.HoldThing, (long)(Time.unscaledTimeAsDouble * 1000));
                     _pendingCommands.Add(command);
                     _worldView.QueueMinimapPickupPreview(command, World.CurrentTick.Next);
                     _overviewView.QueuePickupPreview(selected.Target, World.CurrentTick.Next);
@@ -636,13 +639,7 @@ namespace DK2.Unity
         }
 
         private bool HoldingGold()
-        {
-            var hand = World.Player(new PlayerId((byte)viewingPlayerId)).Hand;
-            if (hand.Count == 0) return false;
-            HandItem top = hand[hand.Count - 1];
-            return top.Kind == HandItemKind.Object && World.ObjectById(top.Id) is ObjectState obj
-                && obj.ObjectTypeId is 1 or 2 or 3;
-        }
+            => _worldView.LocalPickups.HoldingGold(World, new PlayerId((byte)viewingPlayerId));
 
         private void FollowQueriedCreature()
         {

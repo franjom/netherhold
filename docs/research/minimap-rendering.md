@@ -73,9 +73,9 @@ before scaling. The previous shader's continuous centred fit was one pixel off
 even for a square map. Marker projection uses integer arithmetic to avoid an
 inexact GPU division rounding a boundary down by another pixel.
 
-The local pickup preview is a bounded adapter approximation: suppress the
-queued creature until its command's simulation tick settles, then read the
-viewer's actual hand. Native pending-pickup animation lifetime is still unread.
+The minimap retains a separate tick-bounded preview: suppress the queued creature
+until its command's simulation tick settles, then read the viewer's actual hand.
+The separate world/held-icon feedback lifetime is in [hand-pickup-turn.md](hand-pickup-turn.md).
 The reporting-distance and possession/Alarm outlines below are built, including
 Guard Room rectangles. The camera footprint is built as described below;
 Guard Post links and other transient signals remain outside the implementation.

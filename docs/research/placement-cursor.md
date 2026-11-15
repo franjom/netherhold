@@ -397,7 +397,7 @@ Both show No Go over the HUD. The spell's No Go shift of 2 pixels uses the price
 refuses, and `Dispose` for a drop that lands. `HeldItemStack.Disposes` asks the click's own rule
 (`CreatureLands`' disposal: `DisposalRules`, no prisoner, the Heart not ruined), including
 the own Portal centre only. A Hero Portal shows No Go, the held creature's icon crossed out
-over a red tile (owner, 2026-10-31); see [structure-blocks.md](structure-blocks.md#confidence). Icon 0 in ours is the authoritative hand's top; local pending feedback is missing
-(see [hand-pickup-turn.md](hand-pickup-turn.md#local-feedback-precedes-the-simulation-action)). `DungeonRunner.HeldIcons` gates the icons apart from the cage: Options hides them,
+over a red tile (owner, 2026-10-31); see [structure-blocks.md](structure-blocks.md#confidence). Held icons now include local pending feedback
+(see [hand-pickup-turn.md](hand-pickup-turn.md)). `DungeonRunner.HeldIcons` gates the icons apart from the cage: Options hides them,
 possession and the full map do not; the result bit 0x01 is not mirrored. The overlay draws them in
 DK2's order at the tool icon's scale (HYPOTHESIS).

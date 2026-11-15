@@ -160,6 +160,7 @@ namespace DK2.Unity
         private ClassicHandCursor _handCursor;
         private ClassicPlacementOverlay _placementOverlay;
         private readonly HeldItemStack _heldStack = new HeldItemStack();
+        private int _pickupPreviewPlayer = -1;
         private ClassicTileHoverOutline _tileHighlight;
         private WorldHoverText _hoverText;
         private ClassicHoverHud _hoverHud;
@@ -939,6 +940,12 @@ namespace DK2.Unity
             long inputStarted = _recorder?.Stamp() ?? 0;
             using (InputMarker.Auto())
             {
+                if (_pickupPreviewPlayer != viewingPlayerId)
+                {
+                    _worldView.LocalPickups.Reset();
+                    _pickupPreviewPlayer = viewingPlayerId;
+                }
+                _worldView.LocalPickups.Advance(World, (long)(Time.unscaledTimeAsDouble * 1000));
                 ApplyLetterbox();
                 bool pathWasPlaying = _scriptedView.PathPlaying;
                 if (_scriptedView.PathPlaying)
@@ -977,6 +984,7 @@ namespace DK2.Unity
             }
             _recorder?.Spent(FrameRecorder.Part.Input, inputStarted);
             if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
+            _worldView.LocalPickups.DrainReadyDrops(World, _pendingCommands);
 
             int ticks = 0;
             InputFrame firstInput = InputFrame.Empty;
@@ -1293,6 +1301,13 @@ namespace DK2.Unity
 
             foreach (PlayerCommand command in frame.All)
             {
+                if (command is DK2.Simulation.Commands.PickUpCreatureCommand localPickup
+                    && !_worldView.LocalPickups.TryQueue(World, _simulation.Database, localPickup.PlayerId,
+                        new CreatureId(localPickup.CreatureId), nowMs)) continue;
+                if (command is DK2.Simulation.Commands.DropCommand localDrop
+                    && _worldView.LocalPickups.TryQueueDrop(localDrop)) continue;
+                if (command is DK2.Simulation.Commands.PickUpCreatureCommand)
+                    _cursorFeedback.Play(HandCursorKind.HoldThing, nowMs, pointed);
                 _pendingCommands.Add(command);
                 if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs, pointed);
                 // DK2's click runs the cursor's own permission tests and posts only a permitted cast.
@@ -1871,10 +1886,16 @@ namespace DK2.Unity
             else if (!PointerOverHud(mouse))
                 cursor = _spellCastCursor.Showing(castMs) ? HandCursorKind.SpellCast : HandCursorKind.SpellPoint;
             _spellRefused = placement.NoGo;
-            bool holding = World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
+            bool holding = _worldView.LocalPickups.HasVisibleItems(World, new PlayerId((byte)viewingPlayerId));
+            if (!holding && placement.Icon == PlacementIcon.Held) placement = PlacementFeedback.None;
+            if (holding && placement.Icon == PlacementIcon.None && ActiveTool == PlayerToolMode.Hand)
+                placement = new PlacementFeedback(placement.Cage, placement.Valid, placement.Price,
+                    PlacementIcon.Held, placement.NoGo, placement.Affordable);
             long cursorMs = (long)(Time.unscaledTimeAsDouble * 1000);
             if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal && !spellArmed)
-                cursor = _cursorFeedback.Resolve(cursor, holding, HoldingGold(), Input.GetMouseButton(0), cursorMs, _pointerWorld);
+                cursor = _cursorFeedback.Resolve(cursor, holding,
+                    HoldingGold(),
+                    Input.GetMouseButton(0), cursorMs, _pointerWorld);
             else _cursorFeedback.Advance(cursorMs, _pointerWorld);
             if (_soundPlayer != null) _soundPlayer.Play(_cursorFeedback.Sounds); else _cursorFeedback.Sounds.Clear();
             Vector2 pointerGui = new Vector2(mouse.x, Screen.height - mouse.y);
@@ -1887,7 +1908,7 @@ namespace DK2.Unity
             using (HoverHudMarker.Auto()) _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
             using (HoverPlacementMarker.Auto())
             {
-                if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(World, new PlayerId((byte)viewingPlayerId));
+                if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(World, new PlayerId((byte)viewingPlayerId), _worldView.LocalPickups);
                 _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse), _heldStack, cursor);
                 _tileHighlight?.Update(placement.Cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
             }

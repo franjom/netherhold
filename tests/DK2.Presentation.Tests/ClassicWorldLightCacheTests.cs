@@ -10,6 +10,194 @@ namespace DK2.Presentation.Tests;
 public class ClassicWorldLightCacheTests
 {
     private static readonly TilePos Tile = new(5, 5);
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExternallyRebuiltTablesAreGatheredAgain(bool replaceStatic)
+    {
+        var cache = new ClassicWorldLightCache(12, 12);
+        cache.SetTerrain(Tile, Source(1, Tile));
+        cache.UpdateHand(Source(2, Tile));
+        TilePos[] visible = { Tile };
+        for (int i = 0; i < 3; i++) cache.PrepareFrame(visible);
+        Assert.True(cache.TablesUnchanged);
+        ClassicLightTable table = cache.VisibleTables[0];
+        if (replaceStatic) table.RebuildStatic(new[] { Source(9, Tile) });
+        else table.RebuildDynamic(new[] { Source(9, Tile) });
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        Assert.Equal(new[] { 1, 2 }, Ids(table));
+    }
+
+    [Fact]
+    public void SourceIdentityAndTileInsertionOrderRetainEqualDistanceOverflowWinners()
+    {
+        var cache = new ClassicWorldLightCache(12, 12);
+        var lights = Enumerable.Range(1, 26)
+            .Select(id => new PortalLightView(new PortalLightId(id), Source(id, Tile))).ToArray();
+        TilePos[] visible = { Tile };
+        cache.UpdatePortalLights(lights);
+        for (int i = 0; i < 3; i++) cache.PrepareFrame(visible);
+        Assert.True(cache.TablesUnchanged);
+        Assert.Equal(Enumerable.Range(1, 24), Ids(cache.VisibleTables[0]));
+        Array.Reverse(lights);
+        cache.UpdatePortalLights(lights);
+        cache.PrepareFrame(visible);
+        Assert.True(cache.TablesUnchanged);
+        Assert.Equal(Enumerable.Range(1, 24), Ids(cache.VisibleTables[0]));
+        cache.UpdatePortalLights(lights.Where(light => light.Id.Value != 1).ToArray());
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        Assert.Equal(Enumerable.Range(2, 24), Ids(cache.VisibleTables[0]));
+        cache.UpdatePortalLights(lights);
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        Assert.Equal(Enumerable.Range(2, 24), Ids(cache.VisibleTables[0]));
+    }
+
+    [Fact]
+    public void ObjectInterpolationAndPortalPulseUpdateWithoutASimulationTick()
+    {
+        var cache = new ClassicWorldLightCache(12, 12);
+        var descriptor = new KwdLight(0, 0, 0, 8192, 0x3800, 244, 244, 204, 0);
+        var objects = new[] { new ObjectView(1, 86, new PlayerId(3), Tile, default, 0,
+            5 * Fp32.One + 2048, 5 * Fp32.One + 2048, Fp32.One, 0, Fp32.One,
+            previousPosX: new Fp32(4 * Fp32.One + 2048), light: descriptor) };
+        var portals = new PortalCentreLights(new EffectTime(0));
+        portals.Create(Tile);
+        TilePos[] visible = { Tile };
+        cache.UpdateObjects(objects, 0);
+        cache.UpdatePortalLights(portals.Advance(new EffectTime(0)));
+        for (int i = 0; i < 3; i++)
+        {
+            cache.UpdateObjects(objects, 0);
+            cache.UpdatePortalLights(portals.Advance(new EffectTime(0)));
+            cache.PrepareFrame(visible);
+        }
+        Assert.True(cache.TablesUnchanged);
+        cache.UpdateObjects(objects, .5f);
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        Assert.Equal(5f, cache.VisibleTables[0].Lights[0].Position.X);
+        cache.PrepareFrame(visible);
+        Assert.True(cache.TablesUnchanged);
+        cache.UpdatePortalLights(portals.Advance(new EffectTime(51)));
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        Assert.Equal(System.Numerics.Vector3.Zero, cache.VisibleTables[0].Lights[1].Colour);
+    }
+
+    [Fact]
+    public void ReusedFramesMatchFullGathersThroughSourceChangesEvictionAndReentry()
+    {
+        var cached = new ClassicWorldLightCache(32, 32);
+        var full = new ClassicWorldLightCache(32, 32);
+        TilePos sentinel = new(31, 31);
+        TilePos[][] views = { new[] { Tile, new TilePos(6, 5), new TilePos(7, 5) },
+            new[] { new TilePos(7, 5), Tile, new TilePos(6, 5) },
+            new[] { new TilePos(12, 12) }, new[] { new TilePos(-1, 0), new TilePos(0, 0) } };
+        for (int frame = 0; frame < 80; frame++)
+        {
+            foreach (ClassicWorldLightCache cache in new[] { cached, full })
+            {
+                if (frame == 0 || frame == 25) cache.SetTerrain(Tile, Source(1, Tile));
+                if (frame == 15) cache.SetTerrain(Tile, null);
+                if (frame == 5 || frame == 30) cache.UpdateHand(Source(2, Tile));
+                if (frame == 10) cache.UpdateHand(Source(3, new TilePos(6, 5)));
+                if (frame == 35) cache.UpdateHand(null);
+                if (frame == 45) cache.Clear();
+            }
+            // Change an unprepared input twice: final inputs match, but force a full gather.
+            full.SetTorch(sentinel, Source(255, sentinel));
+            full.SetTorch(sentinel, null);
+            TilePos[] visible = views[frame < 20 ? 0 : frame < 25 ? 1 : frame < 40 ? 2 : frame < 50 ? 0 : frame < 60 ? 3 : 0];
+            cached.PrepareFrame(visible);
+            full.PrepareFrame(visible);
+            Assert.False(full.TablesUnchanged);
+            Assert.Equal(full.Frame, cached.Frame);
+            Assert.Equal(full.VisibleTables.Length, cached.VisibleTables.Length);
+            for (int i = 0; i < full.VisibleTables.Length; i++)
+            {
+                ClassicLightTable expected = full.VisibleTables[i], actual = cached.VisibleTables[i];
+                Assert.Equal(expected.Tile, actual.Tile);
+                Assert.Equal(expected.StaticFrame, actual.StaticFrame);
+                Assert.Equal(expected.StaticCount, actual.StaticCount);
+                Assert.Equal(expected.Lights.ToArray(), actual.Lights.ToArray());
+            }
+            for (int y = 0; y < 20; y++)
+            for (int x = 0; x < 20; x++)
+            {
+                var tile = new TilePos(x, y);
+                ClassicLightCacheCell expected = full.GetCell(tile), actual = cached.GetCell(tile);
+                Assert.Equal(expected.BuildFrame, actual.BuildFrame);
+                Assert.Equal(expected.StaticSources.ToArray(), actual.StaticSources.ToArray());
+                Assert.Equal(expected.DynamicSources.ToArray(), actual.DynamicSources.ToArray());
+            }
+        }
+    }
+
+    [Fact]
+    public void IdenticalInputsReuseOnlyAfterStaticGatherHasSettledAndStillAdvanceFrames()
+    {
+        var cache = new ClassicWorldLightCache(12, 12);
+        cache.SetTerrain(Tile, Source(1, Tile));
+        TilePos[] visible = { Tile, new(6, 5) };
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        cache.SetTerrain(Tile, Source(1, Tile));
+        for (int i = 0; i < 4; i++)
+        {
+            cache.PrepareFrame(visible);
+            Assert.True(cache.TablesUnchanged);
+            Assert.Equal(new ClassicLightFrame((uint)(i + 3)), cache.Frame);
+            Assert.Equal(new ClassicLightFrame(1), cache.GetCell(Tile).BuildFrame);
+            Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
+        }
+    }
+
+    [Fact]
+    public void SameTickHandValueAndRemovalInvalidateReuse()
+    {
+        var cache = new ClassicWorldLightCache(12, 12);
+        TilePos[] visible = { Tile };
+        cache.UpdateHand(Source(1, Tile));
+        for (int i = 0; i < 3; i++) cache.PrepareFrame(visible);
+        Assert.True(cache.TablesUnchanged);
+        cache.UpdateHand(Source(2, Tile));
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        Assert.Equal(new[] { 2 }, Ids(cache.VisibleTables[0]));
+        cache.PrepareFrame(visible);
+        Assert.True(cache.TablesUnchanged);
+        cache.UpdateHand(null);
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        Assert.Empty(Ids(cache.VisibleTables[0]));
+    }
+
+    [Fact]
+    public void ReuseDoesNotBypassVisibleOrderDuplicateValidationOrClear()
+    {
+        var cache = new ClassicWorldLightCache(12, 12);
+        TilePos next = new(6, 5);
+        TilePos[] visible = { Tile, next };
+        for (int i = 0; i < 3; i++) cache.PrepareFrame(visible);
+        Assert.True(cache.TablesUnchanged);
+        cache.PrepareFrame(new[] { next, Tile });
+        Assert.False(cache.TablesUnchanged);
+        Assert.Equal(next, cache.VisibleTables[0].Tile);
+        ClassicLightFrame frame = cache.Frame;
+        Assert.Throws<ArgumentException>(() => cache.PrepareFrame(new[] { next, next }));
+        Assert.Equal(frame, cache.Frame);
+        cache.Clear();
+        Assert.False(cache.TablesUnchanged);
+        cache.PrepareFrame(visible);
+        Assert.False(cache.TablesUnchanged);
+        Assert.Equal(new ClassicLightFrame(1), cache.Frame);
+    }
+
 
     [Fact]
     public void PreparedCellOrdersTerrainBeforeTorchAndStaticTablePersistsAcrossFrames()
