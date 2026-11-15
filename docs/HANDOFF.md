@@ -148,8 +148,10 @@ These are entry points, not a new priority order.
   still Unity runner logic (plan step 2): HUD hiding during the opening camera path, the resource flash, the flash-button hint, the tool state
   after choosing a panel slot, right-click navigation (needs a camera); for the tabs also sound and speech, the Level6a torture-speech
   sink, the goto camera glide and the tabs inside `HudModal`/options; for the hover HUD world hover (things and tiles, needs the world and a camera), the
-  hand cursor's resolution (Godot uses the small pointing finger's reach, valid only while nothing is held), and the battle tab and
-  minimap hover text (they answer empty until ported); for the creature overview the pickup and focus a column press asks for (needs the hand, cursor feedback and camera); for the query details the query tool (world click, right-click and stored-special/gold cancels), the camera follow and turn, and `HudModal` hiding. Known bug in both adapters' `MessageTextTables`: the briefing file
+  hand cursor's resolution (Godot uses the small pointing finger's reach, valid only while nothing is held), and the minimap hover text (it
+  answers empty until ported); for the battle tab (`ClassicBattleTab`, `BattleTabHud`; the blades, the cancel and the alarm, hover text from
+  menu 43) only the cancel's left click is wired, the blades' zoom, the glides and the fly-in need the camera (a Movie Maker capture with
+  `--stage-battle` shows the blades cycling through four frames; hover and press with a real cursor, and the cancel and alarm in Godot, are unverified); for the creature overview the pickup and focus a column press asks for (needs the hand, cursor feedback and camera); for the query details the query tool (world click, right-click and stored-special/gold cancels), the camera follow and turn, and `HudModal` hiding. Known bug in both adapters' `MessageTextTables`: the briefing file
   name for secret levels and My Pet Dungeon is wrong, so their objective panels show no briefing lines ([Q854](research/open-questions.md);
   fix in plan step 1c). Next: the remaining group-1 panels, one per change.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).

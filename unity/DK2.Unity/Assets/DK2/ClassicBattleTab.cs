@@ -12,8 +12,8 @@ namespace DK2.Unity
 {
     /// <summary>Menu 43, the Battle tab right of the message tabs: the crossed blades, the Call to
     /// Arms cancel and the alarm (docs/research/battle-tab.md, <see cref="BattleTabView"/>). Clicks
-    /// are raised as <see cref="Clicked"/>; the blades take only the right click, the cancel both,
-    /// the alarm only the right. Not built: the blades' sound 0x30F (Q775). The fly-in is
+    /// are raised as <see cref="Clicked"/> for both buttons; <see cref="BattleTabView.Action"/> picks
+    /// what each button and mouse does. Not built: the blades' sound 0x30F (Q775). The fly-in is
     /// DungeonRunner.DrawBattleFlyIn (ADR-0774).</summary>
     public sealed class ClassicBattleTab : IDisposable
     {
@@ -27,7 +27,7 @@ namespace DK2.Unity
         private readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
         private BattleTabButton _hovered;
         private bool _visible = true, _allowInput = true;
-        private HoverTextSnapshot _battleHover;
+        private readonly BattleTabHoverText _hoverText;
 
         /// <summary>A button and the mouse button (0 left, 1 right) that pressed it.</summary>
         public event Action<BattleTabButton, int> Clicked;
@@ -39,6 +39,7 @@ namespace DK2.Unity
         public ClassicBattleTab(Transform parent, IClassicBottomPanelAssets assets)
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
+            _hoverText = new BattleTabHoverText(_assets.Text);
             _settings = ScriptableObject.CreateInstance<PanelSettings>();
             _settings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
             _settings.scaleMode = PanelScaleMode.ConstantPixelSize; _settings.scale = 1;
@@ -65,19 +66,8 @@ namespace DK2.Unity
             }
         }
 
-        /// <summary>The blades' texts: Text.str 2165 "Zoom to Battle" as the name, 2166 "Battle Tab:
-        /// right-click to zoom, click again to cycle." as the status line (seen in DK2, 2026-11-13,
-        /// battle-tab.md section 8). The cancel and the alarm have no text.</summary>
-        public HoverTextSnapshot HoverText
-        {
-            get
-            {
-                if (_hovered != BattleTabButton.Battle) return HoverTextSnapshot.Empty;
-                if (_battleHover.TooltipName == null)
-                    _battleHover = new HoverTextSnapshot(_assets.Text(BattleTabView.BattleStatusText), _assets.Text(BattleTabView.BattleText), default);
-                return _battleHover;
-            }
-        }
+        /// <summary>The hovered button's texts (<see cref="BattleTabHoverText"/>): the blades' only.</summary>
+        public HoverTextSnapshot HoverText => _hoverText.For(_hovered);
 
         /// <summary>The blades' centre in screen pixels from the top left (<c>0x00426D80</c>), placed
         /// or not: the fly-in's target, read once when it starts.</summary>
@@ -85,7 +75,7 @@ namespace DK2.Unity
         {
             float factor = ClassicHudScaling.Layout(UiScale).Factor, height = Height;
             int half = BattleTabView.ButtonSize / 2;
-            int top = BattleTabView.MenuY + (collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0);
+            int top = BattleTabView.MenuTop(collapsed);
             // The panel is bottom-docked: its root sits height / factor - height down, then scales.
             return new Vector2(V(BattleTabView.MenuX + BattleTabView.LocalX(BattleTabButton.Battle) + half) * factor,
                 height - height * factor + V(top + half) * factor);
@@ -107,7 +97,7 @@ namespace DK2.Unity
             _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
             _root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
             if (!_visible) { _hovered = BattleTabButton.None; return; }
-            int top = BattleTabView.MenuY + (collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0);
+            int top = BattleTabView.MenuTop(collapsed);
             int phase = BattleTabView.Phase(milliseconds);
             for (int i = 0; i < Buttons.Length; i++)
             {

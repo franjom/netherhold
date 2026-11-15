@@ -253,27 +253,25 @@ namespace DK2.Unity
             if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
         }
 
-        /// <summary>Menu 43's clicks (docs/research/battle-tab.md): the blades' right click is the
-        /// F key's zoom (0x00426960); the cancel's left click submits action 0x81 (0x004268A0) and its
-        /// right click glides to the call's tile (0x00426830); the alarm's right click (0x00426A00)
-        /// walks the ringing alarms on the Workshop trap cycle's last trap. Left clicks on the blades
-        /// and the alarm do nothing (their records have no left-click callback).</summary>
+        /// <summary>Menu 43's clicks (docs/research/battle-tab.md), as <see cref="BattleTabView.Action"/> maps
+        /// them: the blades' zoom is the F key's; the alarm's walks the ringing alarms on the Workshop
+        /// trap cycle's last trap.</summary>
         private void BattleTabClicked(BattleTabButton button, int mouse)
         {
             if (_hudControls.InputSuppressed || HudModal) return;
             var viewer = new PlayerId((byte)viewingPlayerId);
-            switch (button)
+            switch (BattleTabView.Action(button, mouse))
             {
-                case BattleTabButton.Battle when mouse == 1:
+                case BattleTabAction.ZoomToBattle:
                     ApplyHudAction(ClassicHudAction.NavigateFight);
                     break;
-                case BattleTabButton.CallToArms when mouse == 0:
+                case BattleTabAction.CancelCallToArms:
                     _pendingCommands.Add(new RemoveCallToArmsCommand(viewer));
                     break;
-                case BattleTabButton.CallToArms when mouse == 1:
+                case BattleTabAction.GoToCallToArms:
                     if (BattleTabView.CallToArmsTile(World, viewer) is TilePos flag) StartGlide(flag);
                     break;
-                case BattleTabButton.Alarm when mouse == 1:
+                case BattleTabAction.NextAlarm:
                     BattleTabView.TrapEntries(World.Traps, _simulation.Database, World.CurrentTick, _thingEntries);
                     if (_trapNavigation.NextAlarm(_thingEntries) is TilePos alarm) StartGlide(alarm);
                     break;

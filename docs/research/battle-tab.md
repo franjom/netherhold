@@ -19,7 +19,7 @@ The battle records themselves were first read for the census
 the whole mechanism, from the records to the HUD. Read-only membership is built
 for music; `BattleNavigation` selects the next local record and the rebound
 Zoom To Fight action glides to its tile centre. The tab's three buttons are built
-(ADR-0773: `BattleTabView`, `ClassicBattleTab`); the blades' sound `0x30F` (Q775),
+(ADR-0773: `BattleTabView`, `BattleTabHud`, `BattleTabView.Action`, `ClassicBattleTab` in both adapters); the blades' sound `0x30F` (Q775),
 the fly-in is built too (ADR-0774); the minimap's battle ring remains pending.
 
 ## 1. Where the tab lives — STRONGLY INFERRED

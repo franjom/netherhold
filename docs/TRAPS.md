@@ -12,7 +12,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Godot 4.8 beta 3 on this machine (project `window/size/mode=3`) ignores `--windowed` and `--resolution`; the window takes the desktop size and a Movie Maker PNG is a 1920x1080 cut of it. Use a temporary `godot/DK2.Godot/override.cfg` (`window/size/mode=0`) for captures.
 - Godot 4.8's `Viewport.GetMousePosition` (which the adapter polls, as Unity polls `Input.mousePosition`) reads the OS cursor, so `Input.ParseInputEvent` motion does not move it; a hover probe must `warp_mouse`, which moves the owner's real cursor while it runs.
 - Godot 4.8 beta 3's `CanvasItemAddTriangleArray` errors (span overload) or crashes the process silently (index array longer than `count`); pass exact-size arrays and count -1 (`HudCanvas.SectorBuffers`).
-- `godot/editor.ps1` cannot pass a bare `--` to Godot, so the user arguments after it (`--level`, `--seed`, `--query-first-creature` for `InGameHud.tscn`) never arrive; run the pinned console executable directly (`godot/README.md`).
+- `godot/editor.ps1` cannot pass a bare `--` to Godot, so the user arguments after it (`--level`, `--seed`, `--query-first-creature`, `--stage-battle` for `InGameHud.tscn`) never arrive; run the pinned console executable directly (`godot/README.md`).
 - Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
 
 ## Shell and files

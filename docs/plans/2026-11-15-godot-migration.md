@@ -64,13 +64,24 @@ group 2 is a list to audit, not a finding.
       `ClassicCreatureNames` (`InstallClassicCreatureNames`) and `CreatureQueryView`, the query
       target, its snapshot and the per-frame capture that were Unity runner fields, moved into
       `DK2.Presentation` as pure moves with tests; both adapters clear the view when a bottom-panel
-      choice is selected). Godot opens the panel on the viewer's first creature only with the
-      test-scene argument `--query-first-creature`, as it has no world picking yet. Not wired in
+      choice is selected) and the battle tab (`ClassicBattleTab.cs`: `BattleTabHud` draws the crossed
+      blades, the Call to Arms cancel and the alarm right of the message tabs, fed by
+      `MusicWorldObserver.Battles`, which Godot captures every tick; `BattleTabView.MenuTop`,
+      `BattleTabHoverText` and `BattleTabView.Action` moved from Unity's `ClassicBattleTab` and
+      `DungeonRunner.BattleTabClicked` into `DK2.Presentation` with tests; the cancel's left click
+      posts `RemoveCallToArmsCommand`; a Movie Maker capture with `--stage-battle` shows the blades
+      cycling through four frames; hover and press with a real cursor are unverified, and so are
+      the cancel and the alarm in Godot). Godot opens the query panel on the viewer's first creature only with the
+      test-scene argument `--query-first-creature`, as it has no world picking yet, and
+      the battle tab with `--stage-battle`, which spawns a hero Knight on the tile of the viewer's
+      first creature, Level1 having no early fight. Not wired in Godot for the battle tab: the
+      blades' zoom, the glides and the fly-in (need the camera), and the `InputSuppressed`/`HudModal`
+      gate (step 2). Not wired in
       Godot: sound and
       speech, the Level6a torture-speech sink, the goto camera glide, the tabs inside
       `HudModal`/options, scripted-view visibility (step 2). Remaining: `ClassicOptionsPanel`,
       `ClassicGameOptionsPanel`,
-      `ClassicSaveLoadPanel`, `ClassicBattleTab`, `ClassicFullMap`, `DungeonMinimap`,
+      `ClassicSaveLoadPanel`, `ClassicFullMap`, `DungeonMinimap`,
       `ClassicHudScaling`, `ClassicBitmapText`, `MinimapFrameVisual`.
       The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
       every Unity panel uses it (the hover HUD still sizes from
@@ -88,7 +99,9 @@ group 2 is a list to audit, not a finding.
       `BottomPanelHud.HoverText` and `MessageTabsHud.HoverText` build strings on each call while
       hovered, and `KeeperResourceInteraction.ResourceHover` rebuilds a `Dictionary` whenever the
       snapshot (tick included) changes. Also `WorldHoverText.CreatureType`, which builds a
-      `Dictionary` and strings on each call while a creature overview column is hovered.
+      `Dictionary` and strings on each call while a creature overview column is hovered. Also
+      `MusicWorldObserver.Capture`, which allocates per tick (`Keys.ToArray()`, LINQ `Any` with
+      closures) and now runs on Godot's tick path as well as Unity's.
 
 ## Step 2: move game-flow logic out of Unity
 
@@ -101,8 +114,8 @@ group 2 is a list to audit, not a finding.
       pointing finger's reach, valid only while nothing is held; Unity's runner resolves the
       held, slap and tag cursors, and "over the HUD means SmallPoint" is itself HYPOTHESIS there);
       the "pointer over HUD" membership list and the `AllowOrdinaryInput` && focus && inside gate,
-      runner logic that Godot's `InGameHud` duplicates; the battle tab and minimap hover text,
-      which answer empty until those panels are ported. From the creature overview: the pickup
+      runner logic that Godot's `InGameHud` duplicates; the minimap hover text,
+      which answers empty until that panel is ported. From the creature overview: the pickup
       and focus flow a column press starts (`DungeonRunner.Hud.cs` around lines 431-451:
       `CreatureOverview.Select`, the pickup preview, the hand and cursor feedback, the camera
       focus), `HudModal`/options hiding, and `QueueHudInput`'s order and the possession/modal gate,

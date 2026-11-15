@@ -8,11 +8,16 @@ movies, sound and keyboard; the model disables the campaign, save and movie butt
 pages open but their controls are inert. Like Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
-Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Six panels
+Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Seven panels
 are there so far: the hover HUD (`ClassicHoverHud` over `HoverHud`: the wooden bar under the other panels, the status
 line and the delayed tooltip over them), which shows what the shared `HudHoverText` picks from the panels under the
-pointer (the resource strip, the bottom panel, the creature overview, the message tabs; world hover needs the 3D world
-and is not wired); the
+pointer (the resource strip, the bottom panel, the creature overview, the message tabs, the battle tab; world hover needs
+the 3D world and is not wired); the battle tab right of the message tabs (`ClassicBattleTab` over `BattleTabHud` and
+`BattleTabView`, fed by the battle records of `MusicWorldObserver`: the crossed blades while one of the keeper's
+creatures fights, the Call to Arms cancel, the alarm; the cancel's left click posts its command, while the blades' zoom,
+the cancel's and the alarm's glides and the fly-in notice need the camera and the reward tablet and are not wired;
+Level1 has no early fight, so the scene's `--stage-battle` argument spawns a hero Knight on the tile of the keeper's
+first creature and lets the simulation start the fight); the
 resource strip at the top left (`ClassicResourceHud` over `KeeperResourceHud`, fed by
 `KeeperResourceView`: mana with its income and upkeep, gold, the Heart and payday gauges), which takes no input; the
 bottom panel (`ClassicBottomPanel` over `BottomPanelHud`), whose clicks post the commands Unity's do; the creature
@@ -31,11 +36,12 @@ nothing), the options menu and sound are not wired, because the code that drives
 step 2). The level start (`CampaignLevelData`), tick pacing (`TickPacer`), the panel's opening state, the stored-special
 click, the message string tables (`MessageTextTables`), player names (`PlayerNames`) and which panel's hover text wins
 (`HudHoverText`), the creature overview's install art (`InstallCreatureOverviewArt`), the query target and its details
-(`CreatureQueryView`) and the creature names it shows (`InstallClassicCreatureNames`) are shared with Unity in
+(`CreatureQueryView`), the creature names it shows (`InstallClassicCreatureNames`), and the battle tab's place, hover
+text and click actions (`BattleTabView.MenuTop`, `BattleTabHoverText`, `BattleTabView.Action`) are shared with Unity in
 `DK2.Presentation`. Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
-`--query-first-creature` to show the query details).
+`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
 
 | File | Role |
@@ -51,6 +57,7 @@ Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agent
 | `DK2.Godot/ClassicBottomPanel.cs` | the keeper's bottom panel: `BottomPanelHud` drawn by `HudCanvas`, mouse forwarded |
 | `DK2.Godot/ClassicCreatureOverview.cs` | the creature overview in the Creatures panel: `CreatureOverviewHud` drawn by `HudCanvas`, bottom-docked, presses forwarded without taking them from the panel |
 | `DK2.Godot/ClassicCreatureQueryPanel.cs` | the creature query details: `CreatureQueryHud` drawn by `HudCanvas`, bottom-docked, no input |
+| `DK2.Godot/ClassicBattleTab.cs` | the battle tab: `BattleTabHud` drawn by `HudCanvas`, bottom-docked, presses on a shown button taken and raised |
 | `DK2.Godot/ClassicMessageTabs.cs` | the message tabs, message and objective panels, indicators: `MessageTabsHud` drawn by `HudCanvas`, bottom-docked, mouse forwarded |
 | `DK2.Godot/HudCanvas*.cs` | the one `HudFrame` renderer every panel draws through |
 

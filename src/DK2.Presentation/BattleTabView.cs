@@ -12,6 +12,20 @@ namespace DK2.Presentation;
 /// to Arms cancel (widget 2) and the alarm (widget 3).</summary>
 public enum BattleTabButton : byte { None = 0, Battle = 1, CallToArms = 2, Alarm = 3 }
 
+/// <summary>What a press on one of menu 43's buttons asks of the runner (<see cref="BattleTabView.Action"/>).</summary>
+public enum BattleTabAction : byte
+{
+    None = 0,
+    /// <summary>The blades' right click, the F key's zoom (<c>0x00426960</c>): the next battle, through <see cref="BattleNavigation"/>.</summary>
+    ZoomToBattle,
+    /// <summary>The cancel's left click (<c>0x004268A0</c>): a <c>RemoveCallToArmsCommand</c>, game action 0x81.</summary>
+    CancelCallToArms,
+    /// <summary>The cancel's right click (<c>0x00426830</c>): a glide to <see cref="BattleTabView.CallToArmsTile"/>.</summary>
+    GoToCallToArms,
+    /// <summary>The alarm's right click (<c>0x00426A00</c>): a glide to <see cref="ThingNavigation.NextAlarm"/>.</summary>
+    NextAlarm,
+}
+
 /// <summary>Which of menu 43's buttons show this frame; each frame callback sets its widget's state
 /// on its own and the positions are static, so a hidden button leaves its gap.</summary>
 public readonly record struct BattleTabSnapshot(bool Battle, bool CallToArms, bool Alarm)
@@ -63,6 +77,28 @@ public static class BattleTabView
         BattleTabButton.CallToArms => 136,
         BattleTabButton.Alarm => 264,
         _ => throw new ArgumentOutOfRangeException(nameof(button)),
+    };
+
+    /// <summary>The menu's top in the reference screen: <see cref="MenuY"/>, dropped with the panel when it is
+    /// collapsed (moved unchanged from Unity's <c>ClassicBattleTab</c>).</summary>
+    public static int MenuTop(bool collapsed) =>
+        MenuY + (collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0);
+
+    /// <summary>A button's square in native virtual units (1920 high), where Unity's <c>ClassicBattleTab</c> places
+    /// its image.</summary>
+    public static HudRect Rect(BattleTabButton button, bool collapsed) =>
+        new(MenuX + LocalX(button), MenuTop(collapsed), ButtonSize, ButtonSize);
+
+    /// <summary>A press's action, moved unchanged from Unity's <c>DungeonRunner.BattleTabClicked</c>: the blades and the
+    /// alarm take only the right click (their records have no left-click callback), the cancel both.</summary>
+    /// <param name="mouse">0 left, 1 right.</param>
+    public static BattleTabAction Action(BattleTabButton button, int mouse) => (button, mouse) switch
+    {
+        (BattleTabButton.Battle, 1) => BattleTabAction.ZoomToBattle,
+        (BattleTabButton.CallToArms, 0) => BattleTabAction.CancelCallToArms,
+        (BattleTabButton.CallToArms, 1) => BattleTabAction.GoToCallToArms,
+        (BattleTabButton.Alarm, 1) => BattleTabAction.NextAlarm,
+        _ => BattleTabAction.None,
     };
 
     /// <summary>Every art name the menu draws, for preloading and the install check.</summary>
@@ -145,4 +181,25 @@ public static class BattleTabView
 
     public static bool Ringing(TrapState trap, GameTick tick) =>
         MinimapMarkerRules.IsAlarmRingActive(tick, new GameTick(trap.RechargeAt));
+}
+
+/// <summary>Menu 43's hover text, moved unchanged from Unity's <c>ClassicBattleTab.HoverText</c>: over the blades,
+/// Text.str 2166 "Battle Tab: right-click to zoom, click again to cycle." as the status line and 2165 "Zoom to
+/// Battle" as the name (seen in DK2, 2026-11-13, battle-tab.md section 8); the cancel and the alarm have no text.
+/// The blades' text is built once.</summary>
+public sealed class BattleTabHoverText
+{
+    private readonly Func<uint, string> _text;
+    private HoverTextSnapshot _battle;
+
+    /// <param name="text">A <c>Text.str</c> string by id.</param>
+    public BattleTabHoverText(Func<uint, string> text) => _text = text ?? throw new ArgumentNullException(nameof(text));
+
+    public HoverTextSnapshot For(BattleTabButton hovered)
+    {
+        if (hovered != BattleTabButton.Battle) return HoverTextSnapshot.Empty;
+        if (_battle.TooltipName == null)
+            _battle = new HoverTextSnapshot(_text(BattleTabView.BattleStatusText), _text(BattleTabView.BattleText), default);
+        return _battle;
+    }
 }

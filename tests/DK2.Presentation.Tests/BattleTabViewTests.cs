@@ -40,6 +40,42 @@ public sealed class BattleTabViewTests
     }
 
     [Fact]
+    public void TheMenuDropsWithTheCollapsedPanel()
+    {
+        // 0x00417170: the tab top 1460, or 1772 collapsed (the panel top moves 0x5B4 to 0x6EC).
+        Assert.Equal(1460, BattleTabView.MenuTop(collapsed: false));
+        Assert.Equal(1772, BattleTabView.MenuTop(collapsed: true));
+        Assert.Equal(new HudRect(2080 + 136, 1772, 128, 128), BattleTabView.Rect(BattleTabButton.CallToArms, collapsed: true));
+    }
+
+    [Fact]
+    public void TheBladesAndTheAlarmTakeOnlyTheRightClickAndTheCancelBoth()
+    {
+        Assert.Equal(BattleTabAction.ZoomToBattle, BattleTabView.Action(BattleTabButton.Battle, 1));
+        Assert.Equal(BattleTabAction.None, BattleTabView.Action(BattleTabButton.Battle, 0));
+        Assert.Equal(BattleTabAction.CancelCallToArms, BattleTabView.Action(BattleTabButton.CallToArms, 0));
+        Assert.Equal(BattleTabAction.GoToCallToArms, BattleTabView.Action(BattleTabButton.CallToArms, 1));
+        Assert.Equal(BattleTabAction.NextAlarm, BattleTabView.Action(BattleTabButton.Alarm, 1));
+        Assert.Equal(BattleTabAction.None, BattleTabView.Action(BattleTabButton.Alarm, 0));
+        Assert.Equal(BattleTabAction.None, BattleTabView.Action(BattleTabButton.CallToArms, 2));
+        Assert.Equal(BattleTabAction.None, BattleTabView.Action(BattleTabButton.None, 1));
+    }
+
+    [Fact]
+    public void OnlyTheBladesHaveTextAndItIsBuiltOnce()
+    {
+        int calls = 0;
+        var text = new BattleTabHoverText(id => { calls++; return "t" + id; });
+        Assert.Equal(HoverTextSnapshot.Empty, text.For(BattleTabButton.CallToArms));
+        Assert.Equal(HoverTextSnapshot.Empty, text.For(BattleTabButton.Alarm));
+        Assert.Equal(HoverTextSnapshot.Empty, text.For(BattleTabButton.None));
+        HoverTextSnapshot blades = text.For(BattleTabButton.Battle);
+        Assert.Equal(("t2166", "t2165"), (blades.TopStatus, blades.TooltipName));
+        Assert.Equal(blades, text.For(BattleTabButton.Battle));
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
     public void TheBladesShowOnlyForALiveBattleHoldingTheViewersCreature()
     {
         // 0x004269D0 through 0x00505250 from index -1.

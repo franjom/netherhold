@@ -15,16 +15,14 @@ namespace DK2.GodotAdapter;
 
 /// <summary>Scene root of <c>InGameHud.tscn</c>: a campaign level started as Unity's <c>DungeonRunner</c> starts one
 /// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
-/// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported so far
-/// (migration plan step 1b): the resource strip, the bottom panel, the creature overview in its Creatures panel, the
-/// creature query details, the message tabs and the hover HUD (status line and tooltip from <see cref="HudHoverText"/>).
-/// Not wired, because their logic is still Unity's runner (plan step 2) or needs the 3D world (step 3): the overview's
-/// pickup (the hand) and focus (the camera), the query tool (world click, cancels, the camera following and turning to
-/// it), driving the shared <c>ScriptedViewDirector</c> (the level's opening camera path, HUD hiding, FLASH_BUTTON, the
-/// resource flash), the tool a selection sets, camera glides for room, door and trap navigation and for a message's
-/// goto button, the options menu's effect on the tabs, sound, world hover (things and tiles) and the hand cursor. User
-/// arguments after <c>--</c>: <c>--level &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>, and <c>--query-first-creature</c>
-/// (stands in for the query tool's world click: queries the viewer's first owned creature).</summary>
+/// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported (plan step
+/// 1b): the resource strip, the bottom panel, the creature overview, the creature query details, the message tabs, the
+/// battle tab and the hover HUD (<see cref="HudHoverText"/>). Not wired, as their logic is still Unity's runner (step 2) or
+/// needs the 3D world (step 3): the overview's pickup and focus, the query tool, the <c>ScriptedViewDirector</c>, the
+/// tool a selection sets, every camera glide (navigation, a message's goto, the battle tab's zoom and glides), the battle
+/// fly-in, the options menu, sound, world hover and the hand cursor. User arguments after <c>--</c>: <c>--level
+/// &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>, <c>--query-first-creature</c> (queries the viewer's first creature, for the
+/// query tool's world click) and <c>--stage-battle</c> (<see cref="StageBattle"/>).</summary>
 public partial class InGameHud : Node, IHudHoverSources
 {
     /// <summary>DungeonRunner's <c>maxTicksPerFrame</c> in the Dungeon scene.</summary>
@@ -52,6 +50,9 @@ public partial class InGameHud : Node, IHudHoverSources
     private ClassicCreatureOverview? _overview;
     private CreatureQueryView? _queryView;
     private ClassicCreatureQueryPanel? _queryPanel;
+    /// <summary>The battle records the battle tab reads (Unity's runner keeps it for the music; no music is played here).</summary>
+    private MusicWorldObserver? _battles;
+    private ClassicBattleTab? _battleTab;
     /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
     private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
@@ -123,6 +124,12 @@ public partial class InGameHud : Node, IHudHoverSources
             messageText.Resolve, messageText.Briefing, message => messageView.LocationOncePerTick(simulation.World, message),
             goTo: null, PlayerNames.From(level.Players));
         AddChild(_messages);
+        // Created after the tabs, as DungeonRunner creates it, with their sorting order 14 over the panel's 12.
+        _battles = new MusicWorldObserver(_viewer, new MusicDirector());
+        _battleTab = new ClassicBattleTab { Name = "BattleTab" };
+        _battleTab.Open(_art.Image, _art.Text);
+        _battleTab.Clicked += BattleTabClicked;
+        AddChild(_battleTab);
         // Its bar's canvas draws under the panels and its text's over them by z index (ClassicHoverHud), not tree order.
         _hover = new ClassicHoverHud { Name = "HoverHud" };
         _hover.Open(_sources);
@@ -137,6 +144,7 @@ public partial class InGameHud : Node, IHudHoverSources
                 _queryView.Query(new CreatureQueryTarget(creature.Id));
                 break;
             }
+        if (Array.IndexOf(args, "--stage-battle") >= 0) StageBattle(_simulation);
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture));
     }
 
@@ -144,9 +152,12 @@ public partial class InGameHud : Node, IHudHoverSources
     {
         if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
             || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
-            || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null) return;
+            || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
+            || _battles == null || _battleTab == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
+        // Once per settled turn, before the HUD draws, as DungeonRunner.UpdateWorldSound captures it.
+        _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         long milliseconds = (long)(_elapsed * 1000);
         // displayHealth follows the normal HUD's visibility in Unity; the scripted view that hides it is not wired.
@@ -161,7 +172,10 @@ public partial class InGameHud : Node, IHudHoverSources
         var visibility = new HudVisibility(true, true);
         _messages.Draw(visibility, _model.Collapsed,
             HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer));
-        // After the tabs, as DungeonRunner draws it; the options menu and full map that would close it are not wired.
+        // After the tabs, as DungeonRunner draws it. The fly-in it starts (BattleFlyIn, the reward tablet) is not ported.
+        _battleTab.Draw(visibility, _model.Collapsed,
+            BattleTabView.Capture(_simulation.World, _simulation.Database, _viewer, _battles.Battles), milliseconds);
+        // After the battle tab, as DungeonRunner draws it; the options menu and full map that would close it are not wired.
         _overviewView.Capture(_simulation.World);
         _overview.Draw(visibility, _model.PanelArea(BottomPanelCategory.Creatures));
         // Last, as DungeonRunner.DrawHudControls captures and draws it; HudModal, which would hide it, is not wired.
@@ -183,6 +197,34 @@ public partial class InGameHud : Node, IHudHoverSources
         for (int i = 0; i < ticks; i++) _simulation.Tick(TickPacer.InputFor(i, first));
     }
 
+    /// <summary>The <c>--stage-battle</c> test argument: a Knight of the heroes on the tile of the viewer's first creature,
+    /// spawned through <see cref="WorldState.TrySpawnCreature"/>; the fight that follows, and so the
+    /// battle tab, is the simulation's own. Level1 has no early fight to show the tab.</summary>
+    private void StageBattle(GameSimulation simulation)
+    {
+        WorldState world = simulation.World;
+        var heroes = new PlayerId(PlayerIds.Good);
+        if (!world.HasPlayer(heroes)) { GD.PushWarning("DK2.Godot: --stage-battle needs the heroes' player."); return; }
+        CreatureDef? knight = null;
+        foreach (CreatureDef creature in simulation.Database.Creatures.Values)
+            if (creature.Name == "Knight") { knight = creature; break; }
+        if (knight is null) return;
+        foreach (CreatureState creature in world.OwnedCreatures(_viewer))
+        {
+            if (world.TrySpawnCreature(simulation.Database, new CreatureTypeId(knight.CreatureId), heroes, creature.Tile) is null)
+                GD.PushWarning("DK2.Godot: --stage-battle found the creature pool full.");
+            return;
+        }
+    }
+
+    /// <summary>Menu 43's presses, as DungeonRunner.BattleTabClicked maps them (<see cref="BattleTabView.Action"/>). Only the
+    /// cancel's left click acts here; the zoom and the two glides need the camera (plan step 3), and the runner's
+    /// suppressed-input and HudModal gate is not wired.</summary>
+    private void BattleTabClicked(BattleTabButton button, int mouse)
+    {
+        if (BattleTabView.Action(button, mouse) == BattleTabAction.CancelCallToArms) _pending.Add(new RemoveCallToArmsCommand(_viewer));
+    }
+
     /// <summary>DungeonRunner.SelectPanelChoice's pointer resets and its query clear; the tool it then sets lives in the
     /// runner (plan step 2).</summary>
     private void SelectPanelChoice(BottomPanelSelection selection)
@@ -201,11 +243,12 @@ public partial class InGameHud : Node, IHudHoverSources
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
-    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap, the battle tab, the
-    /// options and full map are not ported).</summary>
+    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap, the options and full
+    /// map are not ported).</summary>
     private bool PointerOverHud(Vector2 position, HudVisibility visibility) =>
         (_hover != null && _hover.ContainsPointer(position)) || (_resources != null && _resources.ContainsPointer(position))
         || (_panel != null && _panel.ContainsPointer(position)) || (_messages != null && _messages.ContainsPointer(position))
+        || (_battleTab != null && _battleTab.ContainsPointer(position))
         || (_overview != null && _overview.ContainsPointer(position))
         || (_queryPanel != null && _queryView != null && _queryView.Target != CreatureQueryTarget.None
             && _queryPanel.ContainsPointer(position, visibility));
@@ -218,8 +261,8 @@ public partial class InGameHud : Node, IHudHoverSources
         _typeText != null && _simulation != null ? _typeText.CreatureType(_simulation.Database.CreatureById(column.Value)) : HoverTextSnapshot.Empty;
     bool IHudHoverSources.OverMessageTabs() => _messages != null && _messages.ContainsPointer(_pointer);
     HoverTextSnapshot IHudHoverSources.MessageTabsText() => _messages?.HoverText ?? HoverTextSnapshot.Empty;
-    bool IHudHoverSources.OverBattleTab() => false;
-    HoverTextSnapshot IHudHoverSources.BattleTabText() => HoverTextSnapshot.Empty;
+    bool IHudHoverSources.OverBattleTab() => _battleTab != null && _battleTab.ContainsPointer(_pointer);
+    HoverTextSnapshot IHudHoverSources.BattleTabText() => _battleTab?.HoverText(_pointer) ?? HoverTextSnapshot.Empty;
     bool IHudHoverSources.OverBottomPanel() => _panel != null && _panel.ContainsPointer(_pointer);
     HoverTextSnapshot IHudHoverSources.BottomPanelText() => _panel?.HoverText ?? HoverTextSnapshot.Empty;
     ClassicHudAction IHudHoverSources.MinimapControl() => ClassicHudAction.None;
@@ -242,6 +285,8 @@ public partial class InGameHud : Node, IHudHoverSources
         {
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
         }
+        if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
+        _battleTab = null; _battles = null;
         _art?.Dispose(); _sources?.Dispose();
         _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _queryPanel = null; _queryView = null;
         _panel = null; _model = null; _view = null; _messages = null; _messageView = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;
