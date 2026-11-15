@@ -142,6 +142,7 @@ public sealed class CampaignPlayer : IPlayerController
         bool hand = Hand(observation, home, actions);
         if (hand) why.Add("hand");
         if (Room(observation, home, actions)) why.Add("room");
+        if (CreateImp(observation, home, actions)) why.Add("imp");
         if (!hand && Work(observation, home, actions)) why.Add("work");
         else if (!hand && Pit(observation, home, actions)) why.Add("pit");
         else if (!hand && Scout(observation, home, actions)) why.Add("scout");
@@ -168,6 +169,7 @@ public sealed class CampaignPlayer : IPlayerController
             if (action is PlayerAction.BuildRoom build && receipt.Status is PlayerReceiptStatus.Refused or PlayerReceiptStatus.Cancelled
                 && _pendingRooms.Remove(build.Room) && receipt.Reason is PlayerRefusalReason.NotOffered or PlayerRefusalReason.OutOfBounds)
                 Tried(build.Room).Add(build.From);
+            if (action is PlayerAction.CreateImpAt imp && receipt.Status is PlayerReceiptStatus.Refused) _refusedImpTiles.Add(imp.Tile);
             if (receipt.Status != PlayerReceiptStatus.Queued) _sent.Remove(receipt.Id);
         }
         var done = new List<RoomTypeId>();
@@ -718,6 +720,100 @@ public sealed class CampaignPlayer : IPlayerController
     private const int MinImpsToScout = 3;
 
     private static int Chebyshev(TilePos a, TilePos b) => Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
+
+    /// <summary>The Imp creation routine, rule R8 (owner direction, 2026-11-15; the plan has the reasons). One Create Imp
+    /// per cast gap, on own floor nearest the dig mark nearest home, while: fewer own Imps than the target (the larger of
+    /// <see cref="PlayerStrategy.MinImps"/> and one per <see cref="MarkedTilesPerImp"/> marks, at most
+    /// <see cref="PlayerStrategy.MaxImps"/>); the target is <see cref="PlayerStrategy.MinImps"/> while Create Imp waits
+    /// for its upgrade (not upgraded, an own creature in an own Library within <see cref="ResearchMemoryTicks"/>, for at
+    /// most <see cref="UpgradeWaitTicks"/>) unless the marks want twice the Imps there are; the price leaves
+    /// <see cref="PlayerStrategy.ManaReserve"/>; it is at most <see cref="PlayerStrategy.ImpPriceSeconds"/> of net income;
+    /// no enemy in sight within <see cref="ImpSafeTiles"/>. Off unless <see cref="PlayerStrategy.CreateImps"/> is 1.</summary>
+    private bool CreateImp(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
+    {
+        if (_strategy.CreateImps <= 0) return false;
+        long now = observation.Stamp.Tick.Value;
+        NoteResearch(observation);
+        if (!Fits(actions, 1) || (observation.Offers.Actions & PlayerActionKinds.CreateImpAt) == 0
+            || observation.Offers.CreateImpCost is not ManaAmount price
+            || _lastImpTick is GameTick last && now - last.Value < ImpCastGapTicks) return false;
+        bool upgraded = false;
+        foreach (PlayerSpellOffer spell in observation.Offers.Spells)
+            if (spell.Spell == CreateImpSpell)
+            {
+                if (!spell.Ready || !spell.Affordable) return false;
+                upgraded = spell.Upgraded;
+            }
+
+        int imps = 0;
+        foreach (PlayerCreatureSummary creature in observation.Creatures) if (_options.IsWorker(creature.Type)) imps++;
+        if (imps >= _strategy.MaxImps || (long)observation.Mana.Value - price.Value < _strategy.ManaReserve) return false;
+        long net = (long)observation.ManaIncome.Value - observation.ManaUpkeep.Value;
+        if (net <= 0 || price.Value > net * _strategy.ImpPriceSeconds) return false;
+        PlayerTileGrid grid = observation.Tiles;
+        int marked = 0;
+        TilePos? nearestMark = null;
+        for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var at = new TilePos(x, y);
+                if ((grid[at].Flags & PlayerTileFlags.Tagged) == 0) continue;
+                marked++;
+                if (nearestMark is not TilePos m || PlayerActionRoutines.DistanceSquared(at, home) < PlayerActionRoutines.DistanceSquared(m, home))
+                    nearestMark = at;
+            }
+        int need = (marked + MarkedTilesPerImp - 1) / MarkedTilesPerImp;
+        bool waiting = !upgraded && _lastResearchAt is GameTick seen && now - seen.Value < ResearchMemoryTicks;
+        // The Library upgrades only once nothing is left to research (0x004C3000): the wait is bounded, never endless.
+        if (!waiting) _upgradeWaitSince = null;
+        else if ((_upgradeWaitSince ??= observation.Stamp.Tick) is GameTick began && now - began.Value >= UpgradeWaitTicks) waiting = false;
+        int target = waiting && need < 2 * Math.Max(imps, 1) ? _strategy.MinImps : Math.Max(_strategy.MinImps, need);
+        if (imps >= Math.Min(target, _strategy.MaxImps)) return false;
+
+        if (PlayerActionRoutines.NearestOwnFloor(observation, nearestMark ?? home, _refusedImpTiles) is not TilePos tile) return false;
+        // Under attack the mana is for spells: an Imp born beside an enemy dies, its price falls back, and the next is
+        // bought into the same fight (Level 6a, 2026-11-15: 50 casts in the last 900 ticks of a lost keeper).
+        foreach (PlayerVisibleThing thing in observation.Things)
+            if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, tile) <= ImpSafeTiles) return false;
+        actions.Add(new PlayerAction.CreateImpAt(tile));
+        _lastImpTick = observation.Stamp.Tick;
+        return true;
+    }
+
+    /// <summary>Remembers when an own non-worker last stood in an own Library: research is going on.</summary>
+    private void NoteResearch(PlayerObservation observation)
+    {
+        PlayerTileGrid grid = observation.Tiles;
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (creature.Tile is TilePos at && !_options.IsWorker(creature.Type) && grid.Contains(at)
+                && grid[at].Room == RoomTypeId.Library && grid[at].Owner == observation.Stamp.Player)
+            {
+                _lastResearchAt = observation.Stamp.Tick;
+                return;
+            }
+    }
+
+    private GameTick? _lastImpTick, _lastResearchAt, _upgradeWaitSince;
+    /// <summary>Tiles a Create Imp cast was refused at (the spell's place gates): not chosen again.</summary>
+    private readonly HashSet<TilePos> _refusedImpTiles = [];
+
+    /// <summary>The longest (ticks) Imp buying waits for Create Imp's upgrade: 20 game minutes.</summary>
+    private const int UpgradeWaitTicks = 4800;
+
+    /// <summary>Create Imp's spell id on the Spell panel and in the cast packets.</summary>
+    private const byte CreateImpSpell = 4;
+
+    /// <summary>Ticks between two Create Imp casts: the new Imp shows, and the price rises, before the next is weighed.</summary>
+    private const int ImpCastGapTicks = 8;
+
+    /// <summary>No Imp is created with an enemy in sight this near (tiles) its birth tile.</summary>
+    private const int ImpSafeTiles = 10;
+
+    /// <summary>R8's dig need: one Imp per this many marked tiles.</summary>
+    private const int MarkedTilesPerImp = 3;
+
+    /// <summary>How long (ticks) after a creature was last seen in the Library research still counts as going on: 5 game minutes.</summary>
+    private const int ResearchMemoryTicks = 1200;
 
     /// <summary>How long (ticks) a scouting Imp stays to look before it is lifted again: 2 game seconds. The fog
     /// reveals its sight on the first tick it stands (FogOfWarSystem runs every tick), and the owner recalls an Imp
