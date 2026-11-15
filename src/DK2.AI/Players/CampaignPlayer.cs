@@ -206,8 +206,8 @@ public sealed class CampaignPlayer : IPlayerController
         }
     }
 
-    /// <summary>A held item goes down (near the nearest enemy, else near home), skipping tiles a
-    /// drop already failed on; with an empty hand and an enemy, a free fighter is lifted.</summary>
+    /// <summary>A held item goes down (a fighter in its formation place against the attack, else near home), skipping
+    /// tiles a drop already failed on; with an empty hand and an attack, a defender is lifted.</summary>
     private bool Hand(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
         if (_lastDrop is (TilePos tile, int hand) && observation.HandCount >= hand)
@@ -222,12 +222,14 @@ public sealed class CampaignPlayer : IPlayerController
             _failedDrops.Clear();
             // A lift that never landed leaves nothing held: its carry plan must not steer the next one.
             _carryTo = null;
-            _carryForPit = _carryWorker = _carryScout = false;
+            _carryForPit = _carryWorker = _carryScout = _carryRetreat = false;
+            _carryStyle = null;
         }
         if (!Fits(actions, 1)) return false;
-        // Engage answers the nearest enemy, HoldHome only one near home, Off none; with none, anything
-        // held goes down near home.
-        PlayerVisibleThing? enemy = _strategy.Fight == FightMode.Off ? null : PlayerActionRoutines.NearestEnemy(observation, home);
+        // Engage answers an attack on any of the dungeon (an enemy within EnemyNearTiles of own ground), the one nearest
+        // the Heart first; HoldHome only one near home; Off none. With none, anything held goes down near home.
+        PlayerVisibleThing? enemy = _strategy.Fight == FightMode.Off ? null
+            : PlayerActionRoutines.NearestAttacker(observation, home, _strategy.EnemyNearTiles);
         if (_strategy.Fight == FightMode.HoldHome && enemy is PlayerVisibleThing far
             && PlayerActionRoutines.DistanceSquared(far.Tile, home) > (long)_strategy.HomeGuardTiles * _strategy.HomeGuardTiles) enemy = null;
         if (observation.HandCount > 0)
@@ -241,27 +243,88 @@ public sealed class CampaignPlayer : IPlayerController
             TilePos? work = _carryTo is TilePos room && !(_carryForPit ? _refusedPit : _refusedWork).Contains(room)
                 && !PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)
                 && !PlayerActionRoutines.ThreatNear(observation, room, _strategy.EnemyNearTiles) ? room : null;
+            TilePos? carriedTo = _carryTo;
             _carryTo = null;
             _workDrop = work;
             _workDropForPit = _carryForPit;
             _carryForPit = false;
-            // A held worker goes down near home, never toward an enemy (an Imp is no fighter).
+            FightStyle style = _carryStyle ?? FightStyle.Blocker;
+            _carryStyle = null;
+            bool retreat = _carryRetreat;
+            _carryRetreat = false;
+            // A hurt defender taken out of a fight goes to its Hatchery (or home) whatever the danger there.
+            if (retreat) work = carriedTo ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _failedDrops);
+            // A held worker goes down near home, never toward an enemy (an Imp is no fighter); a fighter takes its place
+            // in the formation against the attack (defence plan D3).
+            TilePos? fight = !worker && !retreat && enemy is PlayerVisibleThing foe ? FormationDrop(observation, foe.Tile, home, style) : null;
             if ((observation.Offers.Actions & PlayerActionKinds.DropAt) == 0
-                || (work ?? PlayerActionRoutines.NearestOwnFloor(observation, worker ? home : enemy?.Tile ?? home, _failedDrops)) is not TilePos drop) return false;
+                || (work ?? fight ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _failedDrops)) is not TilePos drop) return false;
             if (scout && work is TilePos sent) { _scout = (sent, observation.Stamp.Tick); _scouted.Add(sent); }
             actions.Add(new PlayerAction.DropAt(drop));
             _lastDrop = (drop, observation.HandCount);
             _lastDropTick = observation.Stamp.Tick;
             return true;
         }
-        // A fighter already near the enemy, or already on the floor a drop would choose, stays put.
         if (enemy is not PlayerVisibleThing target
-            || _lastDropTick is GameTick dropped && observation.Stamp.Tick.Value - dropped.Value < _options.DropCooldownTicks
-            || PlayerActionRoutines.NearestOwnFloor(observation, target.Tile, _failedDrops) is not TilePos placed
-            || PlayerActionRoutines.Fighter(observation, _options, target.Tile, placed, _options.EngagedTiles, home) is not PlayerVisibleThing fighter) return false;
+            || _lastDropTick is GameTick dropped && observation.Stamp.Tick.Value - dropped.Value < _options.DropCooldownTicks) return false;
+        // A defender down to two petals at the fight is healed, else taken to a Hatchery (defence plan D3).
+        int attackers = 0, defenders = 0;
+        PlayerVisibleThing? hurt = null;
+        var flowers = new Dictionary<PlayerThingHandle, PlayerCreatureSummary>();
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) flowers[seen] = creature;
+        long reach = (long)(_options.EngagedTiles + 1) * (_options.EngagedTiles + 1);
+        foreach (PlayerVisibleThing thing in observation.Things)
+        {
+            if (PlayerActionRoutines.DistanceSquared(thing.Tile, target.Tile) > reach) continue;
+            if (PlayerActionRoutines.IsThreat(observation, thing)) attackers++;
+            else if (thing.Kind == PlayerThingKind.Creature && thing.Owner == observation.Stamp.Player && thing.CreatureType is CreatureTypeId type
+                && !_options.IsWorker(type) && _options.StyleOf(type) != FightStyle.NonFighter)
+            {
+                // Only a fighter able to fight counts toward outnumbering the attackers.
+                bool known = flowers.TryGetValue(thing.Handle, out PlayerCreatureSummary flower);
+                if (known && flower.Petals == 2) hurt ??= thing;
+                else if (!known || flower.Petals > 2) defenders++;
+            }
+        }
+        if (hurt is PlayerVisibleThing low && HealOffered(observation))
+        {
+            actions.Add(new PlayerAction.CastSpell(HealSpell, Target: low.Handle));
+            return true;
+        }
+        if (hurt is PlayerVisibleThing tired && Owns(observation, RoomTypeId.Hatchery) && Lift(observation, tired, RoomTypeId.Hatchery, home, actions))
+        {
+            _carryRetreat = true;
+            return true;
+        }
+        // Enough already: the defenders at the fight outnumber the attackers.
+        if (defenders > attackers
+            || PlayerActionRoutines.Defender(observation, _options, target.Tile, _options.EngagedTiles, home,
+                style => FormationDrop(observation, target.Tile, home, style)) is not PlayerVisibleThing fighter) return false;
         actions.Add(new PlayerAction.PickUp(fighter.Handle));
+        _carryStyle = fighter.CreatureType is CreatureTypeId kind ? _options.StyleOf(kind) : FightStyle.Blocker;
         return true;
     }
+
+    /// <summary>The own floor a lifted defender of <paramref name="style"/> goes down on against an attacker at
+    /// <paramref name="enemy"/>: the floor nearest its formation point. A Flanker or Blitzer whose floor is not truly
+    /// behind the enemy (within two tiles of the point, and further from home than the enemy: the hand drops only on own
+    /// ground) goes beside the Blockers instead.</summary>
+    private TilePos? FormationDrop(PlayerObservation observation, TilePos enemy, TilePos home, FightStyle style)
+    {
+        TilePos ideal = PlayerActionRoutines.FormationPoint(enemy, home, style);
+        TilePos? at = PlayerActionRoutines.NearestOwnFloor(observation, ideal, _failedDrops);
+        if (style is FightStyle.Flanker or FightStyle.Blitzer && (at is not TilePos behind || Chebyshev(behind, ideal) > 2
+            || PlayerActionRoutines.DistanceSquared(behind, home) <= PlayerActionRoutines.DistanceSquared(enemy, home)))
+            at = PlayerActionRoutines.NearestOwnFloor(observation, PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Blocker), _failedDrops);
+        return at;
+    }
+
+    /// <summary>The fighting style of the defender being carried to an attack, for its formation drop.</summary>
+    private FightStyle? _carryStyle;
+
+    /// <summary>Whether the creature carried is a hurt defender taken out of a fight.</summary>
+    private bool _carryRetreat;
 
     /// <summary>Unless a build is pending, the first of: a missing listed room, a listed room its
     /// creatures or gold have outgrown (grown beside itself), an offered extra room not owned (rebuilt if

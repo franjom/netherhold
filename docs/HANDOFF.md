@@ -174,14 +174,17 @@ These are entry points, not a new priority order.
   open, Levels 5-10 are not won ([ladder](research/campaign-bot-ladder.md) sections 7-8). Open
   from Tasks 3a and 3b: Q813-Q818. Task 4, the observation and action additions, is built one row per
   branch: each own creature's level, petals and mood, every offered spell with `CastSpell`, then door and trap
-  offers with `PlaceDoor` and `PlaceTrap` (observation schema 5; Q819, Q820, Q825 and Q826 open, Q821-Q823
+  offers with `PlaceDoor` and `PlaceTrap` (Q819, Q820, Q825 and Q826 open, Q821-Q823
   answered by the owner). Its observation and action rows are all built except Possession; the routines that
   use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default; on Level 15a it never acts: the peaceful
   routines now stop only for a threat within `strategy.enemy-near-tiles` (8) of home or the room, but the bot's own
-  Black Knights are prisoners, a level objective not built, Q843; Q847 and Q848 ask the owner; Q827, Q828, Q831, Q836 and Q844-Q846 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
+  Black Knights are prisoners, a level objective not built, Q843; Q848 asks the owner; Q827, Q828, Q831, Q836 and Q844-Q846 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
   seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Imp creation, R8, is built too
-  (`strategy.create-imps`, off by default; observation schema 5; Level 6a seeds 1-3 show no gain; Q842 open;
-  [plan](plans/2026-11-14-campaign-bot-stage3.md)). Next: the last Task 4 row, defending a route with doors and traps.
+  (`strategy.create-imps`, off by default; Level 6a seeds 1-3 show no gain; Q842 open;
+  [plan](plans/2026-11-14-campaign-bot-stage3.md)). The bot defends its whole dungeon (an enemy within 8 tiles of own ground, the one nearest the Heart
+  first, Q847) and drops fighters in a formation by fighting style (observation schema 6; Q848-Q850 ask the owner;
+  [defence plan](plans/2026-11-15-campaign-bot-defence.md), D1-D3 built). Next: D4, traps on the attack routes, then D6,
+  attack spells that never hit own creatures or walls, then D5, measuring the lost levels 6a, 7, 11a and 15a.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

@@ -26,7 +26,8 @@ public enum DigMode
 /// <summary>What the campaign player does about visible enemies.</summary>
 public enum FightMode
 {
-    /// <summary>Lift free fighters and drop them beside the nearest enemy (the default).</summary>
+    /// <summary>Lift free fighters and drop them at an attack on the dungeon (an enemy within
+    /// <see cref="PlayerStrategy.EnemyNearTiles"/> of own ground), the one nearest home first (the default).</summary>
     Engage,
 
     /// <summary>Answer only an enemy within <see cref="PlayerStrategy.HomeGuardTiles"/> of home;

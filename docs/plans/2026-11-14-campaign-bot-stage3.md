@@ -396,7 +396,7 @@ the heroes' own Prison, 9 to 25 tiles from the Heart and in sight all game, and 
 `EnemyNearTiles` gate fixes that. The bot's own eight Black Knights are prisoners in that Prison, listed as its
 creatures but not liftable, so no fighter is free: freeing them is a level objective, not built, and the Pit stays
 unused there. Level 15a seeds 1-3 are unchanged (Defeated at ticks 4861, 7554 and 9792). The fight routine is
-unchanged: under `Engage` it still lifts a free fighter toward any enemy in sight (Q847).
+unchanged here; the defence plan then limited it to attacks on the dungeon (Q847, [plan](2026-11-15-campaign-bot-defence.md)).
 
 **Built: creature level, petals and mood.** `PlayerCreatureSummary` gains `Level`, `Petals`, `Mood`
 (`PlayerCreatureMood`: Happy, Unhappy, Angry) and `FlowerKnown`, filled by
@@ -533,7 +533,8 @@ Possession (`PossessionCommands`) is not added here; a level that needs it is re
 controller limitation until a later task.
 
 Every row above is built; the routines that use them are separate: the Combat Pit, Imp scouting and Imp
-creation (R8) routines are built; defending a route with doors and traps is not. Manufacturing doors and traps is a Task 2
+creation (R8) routines are built; defending a route with doors and traps is not, and moved to the
+[campaign bot defence plan](2026-11-15-campaign-bot-defence.md) (traps on the attack routes, task D4). Manufacturing doors and traps is a Task 2
 routine.
 
 - [ ] One branch per row; reviewer, documenter, commit each.

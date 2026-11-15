@@ -36,6 +36,15 @@ public sealed record CampaignPlayerOptions
 
     public bool IsWorker(CreatureTypeId type) => _workers.Contains(type);
 
+    /// <summary>Each creature type's fighting style (<c>CreatureDef.FightStyle</c>), heroes' included: public data a
+    /// player reads in the creature's description, supplied by the host (campaign bot defence plan, D1). A type not
+    /// listed is a <see cref="FightStyle.NonFighter"/>; with none supplied at all every type is a
+    /// <see cref="FightStyle.Blocker"/>, so a host without the data still defends.</summary>
+    public IReadOnlyDictionary<CreatureTypeId, FightStyle> FightStyles { get; init; } = new Dictionary<CreatureTypeId, FightStyle>();
+
+    public FightStyle StyleOf(CreatureTypeId type) =>
+        FightStyles.Count == 0 ? FightStyle.Blocker : FightStyles.TryGetValue(type, out FightStyle style) ? style : FightStyle.NonFighter;
+
     /// <summary>Special box types to activate; null activates any offered special.</summary>
     public IReadOnlyList<ObjectTypeId>? SpecialTypes
     {

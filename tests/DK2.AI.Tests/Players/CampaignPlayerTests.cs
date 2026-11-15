@@ -291,9 +291,10 @@ public partial class CampaignPlayerTests
     [Fact]
     public void AFighterAlreadyOnTheBestDropFloorIsNotLiftedForAnOutOfReachEnemy()
     {
-        // The hero stands 8 tiles beyond own floor; the goblin already stands where a drop would put it.
+        // The hero stands 8 tiles beyond own floor (an attack: EnemyNearTiles is 8); the goblin already stands where a
+        // drop would put it.
         string[] wide = [.. Dungeon.Select(r => r + "##########")];
-        PlayerVisibleThing hero = new(Handle(0), PlayerThingKind.Creature, new TilePos(18, 5), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        PlayerVisibleThing hero = new(Handle(0), PlayerThingKind.Creature, new TilePos(16, 5), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
         PlayerVisibleThing goblin = new(Handle(1), PlayerThingKind.Creature, new TilePos(8, 5), Me, PlayerThingActions.PickUp, creatureType: Goblin);
         Assert.DoesNotContain(Player().Decide(Observe(map: wide, things: [hero, goblin], gold: 0)).Actions, a => a is PlayerAction.PickUp);
         // The same goblin back home is lifted.
