@@ -119,6 +119,8 @@ These are entry points, not a new priority order.
   Q737's native closure and scope are in
   [boulder](research/boulder.md#9c-q737-recheck-stun-duration-does-not-establish-the-next-state).
   Owner observations are in [traps](research/traps.md); original-game acceptance remains open.
+- Level6a torture-death scene: playback/subtitle comparison is Q824 ([evidence](research/torture-information.md#7-level6as-opening-guard-2026-11-15));
+  the owner's deferred corpse-placement change is [ADR-0807](DECISIONS.md#adr-0807---defer-moving-torture-corpses-clear-of-their-devices).
 - Possession first-person view: built and unit-tested, never seen running in an editor, no owner play
   acceptance. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805); `DungeonRunner.Possession.cs`
   is the Unity glue. Not built: the death view and the entry and exit colour changes (Q745), the two

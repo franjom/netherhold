@@ -1,5 +1,5 @@
 ---
-systems: [rooms]
+systems: [rooms, creatures, audio, hud-front-end]
 ---
 # What torture tells a keeper: `0x004F2370`
 
@@ -97,3 +97,32 @@ Reward 6 maps to no message, and is never a candidate.
   posted: the view rebuilds from the explored layer. A pass is spent only on a tile change, not at
   DK2's other callers of `0x0048CC90`.
 - **Not built:** the enemy-information panel.
+
+## 7. Level6a's opening Guard (2026-11-15)
+
+**STRONGLY INFERRED (binary and shipped data).** The starting Guard at (37,14)
+has 25% health and creature trigger 24. Its killed-event chain sets flag 15;
+player condition 41 then requests a glide to action point 19, camera path 231,
+and speech event 23 (action 65486). `LEVEL6A.str` entry 22 is the owner's
+"A fragile Hero has died..." tutorial. It is a level speech with a subtitle,
+not a replacement reference for the common torture notifications.
+
+`0x004F2370` posts 97 followed by 59 for this hero's reward 11, subject to
+`0x004C4600`'s ordinary admission gates. The latter's script-speech arm (type 21)
+sets the subtitle flag and does not clear earlier speech: only types 14, 50 and
+51 clear it in that function. `0x004C5530` adds no gate for 59 or 97. Thus a
+generic line before the tutorial is supported by these binary paths; this does
+not establish the audible order in a native Level6a run.
+
+A 1300-tick headless run of the prebuilt harness, shipped Level6a, seed 1,
+placed things and fog enabled, killed Guard 50 at tick 269 and emitted path 231
+and speech 23 at tick 270. This verifies script dispatch, not rendered subtitles
+or playback. The owner reports the generic speech preceding the scripted line,
+with the tutorial subtitle no longer appearing as previously remembered.
+**Open:** compare a native opening with the remake's playing-line and path-end
+times; the missing subtitle is not yet explained (Q824). Do not suppress the
+generic messages on the assumption that they are a confirmed DK2 defect.
+
+**Corpse placement:** [the death-bookkeeping record](functions/00487C70.md)
+records the original-position argument (STRONGLY INFERRED), rather than a free
+room-tile selection. The requested future change and its deferral are ADR-0807.
