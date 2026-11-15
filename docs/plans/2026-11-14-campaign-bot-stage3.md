@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-14, revised the same day after two adversarial reviews;
-approved by the owner on 2026-11-14. Tasks 0a-3b are built; Task 4 is next.
+approved by the owner on 2026-11-14. Tasks 0a-3b are built; Task 4 is under way, one row per branch (built: each own creature's level, petals and mood).
 **Goal:** grow the Level 1 campaign player into a bot that needs no AI model and wins every
 campaign level the simulation can complete, level by level as each becomes playable, from
 player-visible observation and normal commands only.
@@ -343,15 +343,27 @@ replay tests updated.
 | Every offered spell, not only Create Imp | spells the level gives | the Spell panel |
 | `PlaceDoor`, `PlaceTrap` actions | defend a route | the panel's build intents |
 | `CastSpell(spell, target)` | offered spells | the existing spell intent path |
-| Each own creature's level (1-10), health in petals (six down to one) and mood (happy, unhappy, angry) | the status flower shows them (`status-flowers.md`: H-00..H-05, SL-01..SL-10, SM-*) | the creature's flower |
+| Each own creature's level (1-10), health in petals and mood (happy, unhappy, angry) | the status flower shows them (`status-flowers.md`: H-00..H-05, SL-01..SL-10, SM-*) | the creature's flower. **Built 2026-11-15** |
 | `CastSpell(Heal, creature)` | heal a creature in the Pit | the spell panel and the existing spell intent path |
 
 **The Combat Pit routine (owner direction, 2026-11-14).** Once the rows above exist: creatures below
 `CombatPitMaxExperienceLevel` (variable 192, ships 8; `combat-pit.md`) are dropped into an owned Combat Pit;
-one at a single petal is healed with Heal when the mana allows, otherwise lifted and dropped in a Hatchery to
-eat; one that reaches the cap is lifted and dropped in its Lair (unhappy, tired) or a Hatchery (hurt, hungry).
+one low on health (two petals, the last quarter, owner-confirmed 2026-11-15; one petal is a collapsed or dying creature, a living one shows at
+least two) is healed with Heal when the mana allows, otherwise lifted and dropped in a Hatchery to eat; one that reaches the cap is lifted and dropped in its Lair (unhappy, tired) or a Hatchery (hurt, hungry).
 Training Room work stops at `TrainingRoomMaxExperienceLevel`, where the Pit takes over. Tests first on
 synthetic observations; measured on the ladder like Task 2.
+
+**Built: creature level, petals and mood.** `PlayerCreatureSummary` gains `Level`, `Petals`, `Mood`
+(`PlayerCreatureMood`: Happy, Unhappy, Angry) and `FlowerKnown`, filled by
+`PlayerObservationBuilder.CaptureCreatures` as the flower shows them when hovered: petals are six at full
+health, one fewer per quarter lost (`StatusFlowerRules.Ring`, `0x00596EB0`); mood is the band `0x00596410` reads,
+Content shown as Happy. A creature whose flower never shows (held, joining, an own Horny;
+`StatusFlowerRules.NeverShows`, `0x0048E830`) has level 0, 0 petals and no mood: unknown.
+`PlayerObservation.SchemaVersion` is 2, information only (journal header `player.observation.schema`, read by
+nothing; older journals replay). `DK2.AI.Tests` 557, `DK2.Simulation.Tests` 5472, `DK2.Presentation.Tests`
+1777 and `DK2.Behavior.Tests` 664 (5 skipped) pass; Level 1 seed 1 is unchanged (Completed at tick 2334, final
+hash af7204fe4c0f8594), no simulation change. Reviewer: no blocker. Open: Q819 (a held creature's values),
+Q820 (the ring's timing under hover).
 
 **The Imp scouting routine (owner direction, 2026-11-14; first aimed at Level 6a).** Unknown ground
 (`PlayerTile.IsKnown` false) hides gold, gems, water to bridge and enemies. The bot lifts an own Imp, drops

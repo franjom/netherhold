@@ -59,7 +59,7 @@ public class PlayerObservationTests
                 Terrain(RevealedFloor, "Revealed Floor", TerrainFlags.Ownable | TerrainFlags.RevealThroughFogOfWar),
             ]),
             basic.Rooms.Values,
-            [imp, imp with { Name = "Fighter", CreatureId = Fighter, Flags = CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped }],
+            [imp, imp with { Name = "Fighter", CreatureId = Fighter, Flags = CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped, Hp = 400 }],
             basic.Variables,
             // The panel prices Create Imp by its key (BottomPanelView.CreateImpSpellId); give it that id.
             basic.KeeperSpells.Values.Select(k => k with { KeeperSpellId = BottomPanelView.CreateImpSpellId }),
@@ -203,6 +203,56 @@ public class PlayerObservationTests
         PlayerNotice notice = Assert.Single(observation.Notices);
         Assert.Equal((1, PlayerMessageKind.ScriptedSpeech, world.CurrentTick), (notice.Ordinal, notice.Kind, notice.Tick));
         Assert.True((observation.Offers.Actions & PlayerActionKinds.DropAt) != 0);
+    }
+
+    [Theory]
+    [InlineData(1.00, 6)]   // full health: six petals
+    [InlineData(0.80, 5)]   // a quarter or less lost: one fewer
+    [InlineData(0.75, 5)]   // exactly a quarter lost
+    [InlineData(0.25, 3)]   // exactly three quarters lost
+    [InlineData(0.50, 4)]
+    [InlineData(0.30, 3)]
+    [InlineData(0.05, 2)]   // the last quarter: two
+    public void OwnCreaturesShowTheirFlowersLevelPetalsAndMood(double share, int petals)
+    {
+        var (database, world) = World();
+        CreatureState creature = world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
+        creature.Level = 7;                                                            // the maximum grows with the level
+        int max = CreatureHealthRules.MaxHealth(database, database.CreatureById(Fighter), creature);
+        creature.Health = Math.Max(1, (int)(max * share));
+        creature.Mood = CreatureMood.Unhappy;
+
+        PlayerCreatureSummary summary = Assert.Single(Observe(database, world).Creatures);
+        Assert.Equal((7, petals, PlayerCreatureMood.Unhappy), (summary.Level, summary.Petals, summary.Mood));
+    }
+
+    [Fact]
+    public void AHeldCreaturesFlowerIsUnknownAndAContentOneIsHappy()
+    {
+        var (database, world) = World();
+        CreatureState walking = world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
+        walking.Level = 12;                                                             // shown clamped, as SL-10
+        CreatureState held = world.SpawnCreature(database, Fighter, Viewer, new TilePos(2, 1));
+        world.Player(Viewer).Hand.Add(HandItem.Of(held));
+        held.InHand = true;
+        held.Mood = CreatureMood.Angry;
+
+        PlayerObservation observation = Observe(database, world);
+        PlayerCreatureSummary inHand = Assert.Single(observation.Creatures, c => c.InHand);
+        Assert.Equal((false, 0, 0, (PlayerCreatureMood?)null), (inHand.FlowerKnown, inHand.Level, inHand.Petals, inHand.Mood));
+        PlayerCreatureSummary onFloor = Assert.Single(observation.Creatures, c => !c.InHand);
+        Assert.Equal((true, 10, PlayerCreatureMood.Happy), (onFloor.FlowerKnown, onFloor.Level, onFloor.Mood));
+    }
+
+    [Fact]
+    public void ADyingCreatureShowsOnePetalAndAnAngryOneItsMood()
+    {
+        var (database, world) = World();
+        CreatureState creature = world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
+        creature.Dk2StateId = CreatureDeathRules.DyingState;
+        creature.Mood = CreatureMood.Angry;
+        PlayerCreatureSummary summary = Assert.Single(Observe(database, world).Creatures);
+        Assert.Equal((1, PlayerCreatureMood.Angry), (summary.Petals, summary.Mood));
     }
 
     [Fact]

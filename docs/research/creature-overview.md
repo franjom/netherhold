@@ -48,7 +48,7 @@ and menu7 at(904,1616). Count columns are local(20+136*i,0,108,244).
 `00418DD0` updates visibility. `004201B0` draws portrait headers, separate
 from those widgets: worker(544,1608,128,264), ordinary(912+136*i,1612,128,264).
 The native capacity calculation divides category width minus432 by116 although columns
-advance136; the adapter preserves that calculation pending visual verification.
+advance136; `CreatureOverviewHud` preserves that calculation pending visual verification.
 
 The worker sidebar is one strip, catalogue 157 `GUI/Tabs/t-cp-imp` (32×128;
 widget `0x00690488`, menu6 local(4,8,64,264)). Catalogue65/56/50/53 are the art

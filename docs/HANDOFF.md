@@ -24,9 +24,9 @@ questions live in their canonical documents; this file links to them.
   GPLv3 code linked to Unity's runtime remains [ADR-0041](DECISIONS.md)'s open question. ADR-0805 moves each HUD
   panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
-  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`) and the hover HUD (`HoverHud`) are moved too; they build and their models are
+  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`) and the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`) are moved too; they build and their models are
   tested, but none has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
-  background-repeat are unchecked. Next: the creature query and overview, then the rest of the order in the ADR. No Godot code existed on that date.
+  background-repeat are unchecked. Next: options and save/load, then the rest of the order in the ADR. No Godot code existed on that date.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,
@@ -167,7 +167,8 @@ These are entry points, not a new priority order.
   alone, exists and plays as without one. The bot wins Levels 1-3 on accept seeds 11-20 (10/10 each,
   hash 519); Level 4 won 2 of 3 diagnosis seeds but stays out of the driver choice while Q710 is
   open, Levels 5-10 are not won ([ladder](research/campaign-bot-ladder.md) sections 7-8). Open
-  from Tasks 3a and 3b: Q813-Q818. Next: Task 4, the observation and action additions.
+  from Tasks 3a and 3b: Q813-Q818. Task 4, the observation and action additions, is built one row per
+  branch: each own creature's level, petals and mood (observation schema 2; Q819, Q820); the rest wait.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

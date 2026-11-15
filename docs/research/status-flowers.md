@@ -171,6 +171,8 @@ So pointing at any creature shows its flower, and the flower lingers ¾ s after 
 
 `StatusFlowerRules`, `StatusFlowerCentre` and `StatusFlowers` (src/DK2.Presentation/StatusFlowers.cs) decide who shows a flower and what it shows; `ClassicStatusFlowers` (Unity) draws the ring and the centre as camera-facing quads. Both ¾ s windows live in presentation, keyed by creature id: the hover from the Hand's hover id in any tool, the health change from the health seen at each capture. Nothing simulated reads the native `+0x38`.
 
+The campaign bot's observation reads the ring, the level and the mood as a hover shows them, and leaves a creature whose flower never shows unknown (`PlayerCreatureSummary`; [stage 3 plan](../plans/2026-11-14-campaign-bot-stage3.md), Task 4).
+
 Read and built (pass 2, 2026-10-20):
 - **Ring** ([00596EB0](functions/00596EB0.md)): `H-0n` with entry `clamp(1 − trunc(−4·health/max), 0, 5)`, the loader filling entry i with `H-0(5−i)` ([00596850](functions/00596850.md)). Six petals at full health, one fewer per quarter lost, one while dying.
 - **Colour** ([005956E0](functions/005956E0.md)): the owner's palette entry. Neutral creatures cycle entries 1–7 every 333 ms; others blink, a triangle over one 333 ms phase shared by every flower, below a sixth of health or for ¾ s after a health change. The clock is real milliseconds ([005953D0](functions/005953D0.md)).

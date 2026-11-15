@@ -184,7 +184,7 @@ menus. `BottomPanelLayout.PanelOf` is 0x00417310, `Grid` and `BottomPanelGrid` (
 `BottomPanelHud` reads Shift without Ctrl/Alt from the release event (`ClassicBottomPanel` passes it on), draws up to two panels
 (26 slots each), each with its own arrows and page, the selected overlay on every open tab and
 `gui\icons\tab-lock` over the pinned one (between the overlay and the hover);
-`ClassicCreatureOverview` moves with its panel and narrows to `(W − 432) / 116` columns. Ours, not
+`CreatureOverviewHud` moves with its panel and narrows to `(W − 432) / 116` columns. Ours, not
 read: each category keeps its own page, a panel's page resets when it opens, and the wheel pages
 the panel under the pointer. A lone overview keeps the wider screen's extra width (as before);
 the item grids keep the 1800-unit reference span. Not wired: sound `0x138` on expanding. Tests:
