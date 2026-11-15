@@ -304,6 +304,7 @@ public static class PlayerRunCommand
             GoldPerTreasuryTile = database[VariableTypeId.MaxGoldPerTreasuryTile],
             HeartGold = 16 * database[VariableTypeId.MaxGoldPerDungeonHeartTile],
             CombatPitMaxLevel = database[VariableTypeId.CombatPitMaxExperienceLevel],
+            FreeImps = database[VariableTypeId.MinimumImpThreshold],
             AdvanceTicks = spec.IntervalTicks,
             StallWindowTicks = spec.StallTicks,
             RecoveryAttempts = spec.Retries,

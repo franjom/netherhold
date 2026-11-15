@@ -56,8 +56,8 @@ public partial class CampaignPlayerTests
             mana: mana, income: income, upkeep: upkeep, impCost: 1500);
 
     private static CampaignPlayer ImpMaker(Func<PlayerStrategy, PlayerStrategy>? tune = null) =>
-        // A long stall window: these timelines pass minutes with dig marks standing and nothing dug.
-        Player(o => o with { StallWindowTicks = 100_000 }).Also(p => p.Apply((tune ?? (s => s))(p.Strategy with { CreateImps = 1 })));
+        // A long stall window: these timelines pass minutes with dig marks standing and nothing dug. Four free Imps, as shipped.
+        Player(o => o with { StallWindowTicks = 100_000, FreeImps = 4 }).Also(p => p.Apply((tune ?? (s => s))(p.Strategy with { CreateImps = 1 })));
 
     private static PlayerAction.CreateImpAt? Cast(CampaignPlayer player, PlayerObservation view) =>
         player.Decide(view).Actions.OfType<PlayerAction.CreateImpAt>().SingleOrDefault();
@@ -118,7 +118,7 @@ public partial class CampaignPlayerTests
         // Pressing work (36 marks want 12, twice the 6 there are) does not wait.
         Assert.NotNull(Cast(ImpMaker(four), ImpView(imps: 6, marks: 36, more: researcher)));
         // Below the minimum is always bought.
-        Assert.NotNull(Cast(ImpMaker(four), ImpView(imps: 3, more: researcher)));
+        Assert.NotNull(Cast(ImpMaker(s => s with { MinImps = 5 }), ImpView(imps: 4, more: researcher)));
 
         // 33 marks want 11, short of twice the 6 there are: still waiting.
         Assert.Null(Cast(ImpMaker(four), ImpView(imps: 6, marks: 33, more: researcher)));
@@ -174,6 +174,21 @@ public partial class CampaignPlayerTests
         PlayerObservation next = Observe(252, map: Marked(0), rooms: [], tick: 1008, creatures: Imps(4), receipts: [refused],
             spells: [CreateImpOffer()], mana: 50_000, income: 300, upkeep: 28, impCost: 1500);
         Assert.NotEqual(first, Assert.IsType<PlayerAction.CreateImpAt>(Cast(player, next)).Tile);
+    }
+
+    [Fact]
+    public void NoImpIsBoughtWhileAFreeOneIsOnItsWay()
+    {
+        // Below the four free Imps the game makes one every few seconds: the bot waits for it.
+        Assert.Null(Cast(ImpMaker(), ImpView(imps: 3)));
+        Assert.NotNull(Cast(ImpMaker(), ImpView(imps: 4)));
+        // An Imp in the hand counts, as it does in the game's tally (Q148).
+        Assert.NotNull(Cast(ImpMaker(), ImpView(imps: 3, more: [new(Imp, null, true)])));
+        // Unknown (0, the default): never waits.
+        Assert.Equal(0, new CampaignPlayerOptions(Run, Me, [Imp]).FreeImps);
+        CampaignPlayer noFree = new CampaignPlayer(new CampaignPlayerOptions(Run, Me, [Imp]) { StallWindowTicks = 100_000 })
+            .Also(p => p.Apply(p.Strategy with { CreateImps = 1 }));
+        Assert.NotNull(Cast(noFree, ImpView(imps: 3)));
     }
 
     [Fact]

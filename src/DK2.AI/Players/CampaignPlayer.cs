@@ -722,7 +722,8 @@ public sealed class CampaignPlayer : IPlayerController
     private static int Chebyshev(TilePos a, TilePos b) => Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
 
     /// <summary>The Imp creation routine, rule R8 (owner direction, 2026-11-15; the plan has the reasons). One Create Imp
-    /// per cast gap, on own floor nearest the dig mark nearest home, while: fewer own Imps than the target (the larger of
+    /// per cast gap, on own floor nearest the dig mark nearest home, while: no fewer own Imps than the free ones
+    /// (<see cref="CampaignPlayerOptions.FreeImps"/>: one is on its way) but fewer than the target (the larger of
     /// <see cref="PlayerStrategy.MinImps"/> and one per <see cref="MarkedTilesPerImp"/> marks, at most
     /// <see cref="PlayerStrategy.MaxImps"/>); the target is <see cref="PlayerStrategy.MinImps"/> while Create Imp waits
     /// for its upgrade (not upgraded, an own creature in an own Library within <see cref="ResearchMemoryTicks"/>, for at
@@ -747,7 +748,9 @@ public sealed class CampaignPlayer : IPlayerController
 
         int imps = 0;
         foreach (PlayerCreatureSummary creature in observation.Creatures) if (_options.IsWorker(creature.Type)) imps++;
-        if (imps >= _strategy.MaxImps || (long)observation.Mana.Value - price.Value < _strategy.ManaReserve) return false;
+        // Below the free minimum a free Imp is on its way: wait for it (owner, 2026-11-15).
+        if (imps < _options.FreeImps || imps >= _strategy.MaxImps
+            || (long)observation.Mana.Value - price.Value < _strategy.ManaReserve) return false;
         long net = (long)observation.ManaIncome.Value - observation.ManaUpkeep.Value;
         if (net <= 0 || price.Value > net * _strategy.ImpPriceSeconds) return false;
         PlayerTileGrid grid = observation.Tiles;

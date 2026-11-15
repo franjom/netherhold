@@ -487,25 +487,31 @@ the receipt, is skipped). It casts only if all of these hold:
 2. The price leaves `ManaReserve` intact, so Heal, Thunderbolt and Call to Arms can still be cast.
 3. The price is at most `ImpPriceSeconds` of net income (orb income minus upkeep). A heuristic, Q842; it ignores the
    new Imp's own upkeep (7/s).
-4. No enemy in sight within 10 tiles (Chebyshev) of the birth tile (Q840).
+4. No enemy in sight within 10 tiles (Chebyshev) of the birth tile, a rival keeper's creatures included (Q840, owner:
+   defense is priority).
+5. Own Imps, held ones included, are not below `CampaignPlayerOptions.FreeImps`: the game makes a free Imp every few
+   seconds only while the tally is below `MinimumImpThreshold` (`0x004BB479`-`0x004BB486`), so the bot waits for it
+   (Q841, owner: "wait"). The harness reads the variable off the level (4 as shipped); 0, unknown, never waits.
 
 The upgrade wait: while Create Imp is not upgraded and an own non-worker stood in an own Library within 1200 ticks,
 the target is `MinImps` unless the need is at least twice the Imps there are. An upgraded cast makes a level 4 Imp
 (shot 60, `0x004AFE50`; Q837). The Library upgrades a spell only after everything researchable is done
-(`0x004C3000`), so the wait lasts at most 4800 ticks (20 game minutes), Q839.
+(`0x004C3000`), so the wait lasts at most 4800 ticks (20 game minutes), Q839. The owner: the time depends on how many
+items are still to research, since the upgrade follows the research order. Not built: estimate the wait from that
+count in place of the fixed limit; the 20-minute limit stays.
 
 Why no cast near an enemy: the first Level 6a measurement found the routine buying about 50 Imps in the last 900 ticks of a
 lost keeper. Heroes killed each new Imp beside the Heart, the price fell back, and the bot bought again.
 
-`DK2.AI.Tests` 587, `DK2.Simulation.Tests` 5479 and `DK2.Behavior.Tests` 671 (5 skipped) pass; Level 1 seed 1 is
-unchanged (Completed at tick 2334, final hash af7204fe4c0f8594). Breaking the reserve, price, upgrade-wait or cap rule
+`DK2.AI.Tests` 588, `DK2.Simulation.Tests` 5575 and `DK2.Behavior.Tests` 671 (5 skipped) pass; Level 1 seed 1 is
+unchanged (Completed at tick 2334). Breaking the reserve, price, upgrade-wait, free-Imp-wait or cap rule
 each fails a test. **Level 6a, seeds 1-3:** routine off Defeated at ticks 3955, 3934 and 2982; routine on (after the
 fight rule) Defeated at 3930, 3954 and 5274, with 4, 1 and 2 casts. The first "on" run, before the fight rule, was
 Defeated at 4144, 4302 and 3953 with 63, 55 and 53 casts. No gain is shown; the bot loses Level 6a either way.
-Reviewer: no blocker. Open, bot only: Q839-Q842; the observation builder computes the orb figures on every observation,
+Reviewer: no blocker. Open, bot only: Q842; the observation builder computes the orb figures on every observation,
 even with the routine off (minor cost); the Behavior test compares `ManaRules` with `ManaRules` through the HUD, so it
-proves the wiring, not the figures; the fight rule counts any enemy, including a rival keeper's creatures parked in view,
-and does not try another tile.
+proves the wiring, not the figures; the fight rule counts any enemy, including a rival keeper's creatures parked in view
+(owner-confirmed, Q840), and does not try another tile.
 
 Possession (`PossessionCommands`) is not added here; a level that needs it is recorded as a
 controller limitation until a later task.

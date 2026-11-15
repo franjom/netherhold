@@ -179,7 +179,7 @@ These are entry points, not a new priority order.
   use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default, not measured: only Level 15a and
   later offer a Pit; Q827, Q828, Q831 and Q836 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
   seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Imp creation, R8, is built too
-  (`strategy.create-imps`, off by default; observation schema 5; Level 6a seeds 1-3 show no gain; Q839-Q842 open;
+  (`strategy.create-imps`, off by default; observation schema 5; Level 6a seeds 1-3 show no gain; Q842 open;
   [plan](plans/2026-11-14-campaign-bot-stage3.md)). Next: the last Task 4 row, defending a route with doors and traps.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
