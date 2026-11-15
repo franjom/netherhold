@@ -9,6 +9,9 @@ namespace DK2.Simulation;
 
 /// <summary>A hand release accepted by the drop rules; presentation only.</summary>
 public readonly record struct HandDropFeedback(PlayerId Player, bool Gold);
+/// <summary>Source of a newly posted torture-death notification; observation only.</summary>
+public readonly record struct TortureDeathMessage(
+    PlayerMessage Message, CreatureId Creature, CreatureTypeId CreatureType, KwdTriggerId Trigger);
 
 /// <summary>Something the simulation did, recorded for observation only.</summary>
 /// <remarks>Events are the harness's and the oracle comparison's window into the simulation,
@@ -22,6 +25,7 @@ public readonly record struct HandDropFeedback(PlayerId Player, bool Gold);
 public readonly record struct SimEvent(GameTick Tick, string System, string Kind, string Detail)
 {
     public HandDropFeedback? HandDrop { get; init; }
+    public TortureDeathMessage? TortureMessage { get; init; }
     public ThingSoundRequest? ThingSound { get; init; }
     public RoomConstructionEffect? ConstructionEffect { get; init; }
     public ViewEffectRequest? EffectRequest { get; init; }

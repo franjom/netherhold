@@ -158,7 +158,7 @@ namespace DK2.Unity
             _statusFlowers = new StatusFlowers(database, new PlayerId((byte)viewingPlayerId));
             _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources), _installArt, _classic);
             _startup.Step("hud.flowers");
-            _messageView = new MessageTabsView(new PlayerId((byte)viewingPlayerId), database);
+            // Reuse the model already observing events before the initial simulation tick.
             Dk2StringTable speech = OpenText(Path.Combine(_hudSources.TextDirectory, "Speech.str"));
             string levelFile = LevelTextTable.FileName(database.Level?.TextTableId ?? 0);
             Dk2StringTable level = levelFile == null ? null : OpenText(Path.Combine(_hudSources.TextDirectory, levelFile));
