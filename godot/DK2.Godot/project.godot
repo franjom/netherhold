@@ -18,6 +18,13 @@ config/features=PackedStringArray("4.8", "C#", "Forward Plus")
 
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/mode=3
+window/size/resizable=false
+
 [dotnet]
 
 project/assembly_name="DK2.Godot"

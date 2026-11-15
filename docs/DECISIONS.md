@@ -19229,7 +19229,7 @@ did not change. The panel's hit testing and click handling are unit-tested witho
 additive stand-ins were two bakes, luminance-as-alpha for the hover art and peak-as-alpha for sparkles; both now use the second.
 The hover art is near grey (mean chroma 7.6/255), so the hover highlight shifts by a few levels at most. `IClassicBottomPanelAssets`
 extends `IBottomPanelArt`. The message tabs added text (`HudText`, rasterized once by `HudTextPixels` for every panel and engine), fills,
-UV sub-rectangles and clip windows to the draw list. The Godot project holds only a bootstrap scene so far (ADR-0810), and ADR-0041's question stays open until the engine decision is made.
+UV sub-rectangles and clip windows to the draw list. The Godot adapter's current state is in `HANDOFF.md` (toolchain: ADR-0810), and ADR-0041's question stays open until the engine decision is made.
 
 ## ADR-0806 - remember Guard assignments independently of current work
 

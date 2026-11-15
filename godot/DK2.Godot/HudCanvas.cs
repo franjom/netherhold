@@ -1,0 +1,161 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Presentation;
+using Godot;
+
+namespace DK2.GodotAdapter;
+
+/// <summary>Draws a <see cref="HudFrame"/> built in DK2.Presentation (ADR-0805), the Godot counterpart of Unity's
+/// <c>HudCanvas</c>. The frame is recorded into RenderingServer canvas items only when it changes: one item per run
+/// of draws that share a blend and a texture filter, so back-to-front order holds while additive draws
+/// (<see cref="HudBlend.Additive"/>, DK2's render flag 8) use Godot's own additive blend rather than a pixel bake.
+/// A <see cref="HudLabel"/> is drawn as its shared BF4 bitmap or, once <see cref="ReplacementFont"/> is set, as that
+/// face's glyphs in the label's glyph boxes. Edges snap to whole screen pixels as Unity's layout did.</summary>
+public partial class HudCanvas : Node2D
+{
+    private readonly HudFrame _shown = new();
+    private readonly List<Rid> _items = new();
+    private CanvasItemMaterial? _additive;
+    private Resolved[] _resolved = new Resolved[256];
+    private Vector2 _origin;
+    private float _scale = 1, _pixelsPerUnit = 1;
+    private bool _invalid = true;
+
+    /// <summary>A draw's texture as the rebuild uses it.</summary>
+    private readonly record struct Resolved(Rid Texture, Vector2 Size, bool Nearest)
+    {
+        public bool IsValid => Texture.IsValid;
+    }
+
+    /// <summary>Reads a catalogue image by name; set before the first <see cref="Present"/>.</summary>
+    public Func<string, DK2.Art.Textures.RgbaImage>? Load { get; set; }
+
+    /// <param name="origin">Screen pixel of virtual (0, 0).</param>
+    /// <param name="scale">Local units per virtual unit.</param>
+    /// <param name="pixelsPerUnit">Screen pixels per local unit; edges snap to them.</param>
+    public void Present(HudFrame frame, Vector2 origin, float scale, float pixelsPerUnit)
+    {
+        if (!_invalid && origin == _origin && scale == _scale && pixelsPerUnit == _pixelsPerUnit && frame.SameAs(_shown)) return;
+        if (_resolved.Length < frame.Count)
+        {
+            int size = Math.Max(frame.Count, _resolved.Length * 2);
+            _resolved = new Resolved[size]; _glyphs = new FontGlyph[]?[size];
+        }
+        // Textures first: if loading throws, the frame is not taken and the next one tries again.
+        ReadOnlySpan<HudDraw> draws = frame.Draws;
+        _textInUse.Clear(); _labelsDrawn.Clear();
+        for (int i = 0; i < draws.Length; i++) if (draws[i].Image.Label != null) _labelsDrawn.Add(draws[i].Image.Label!);
+        PrepareFont(draws, scale * pixelsPerUnit);
+        for (int i = 0; i < draws.Length; i++)
+        {
+            // A label set in the replacement font needs no bitmap; its bitmap texture is released below.
+            if (draws[i].Kind == HudDrawKind.Fill || _glyphs[i] != null) { _resolved[i] = default; continue; }
+            _resolved[i] = Texture(draws[i].Image);
+            if (draws[i].Image.IsGenerated) _textInUse.Add(draws[i].Image);
+        }
+        _origin = origin; _scale = scale; _pixelsPerUnit = pixelsPerUnit; _shown.CopyFrom(frame); _invalid = false;
+        ReleaseUnusedText();
+        Record();
+    }
+
+    /// <summary>Records the shown frame into the canvas items, back to front.</summary>
+    private void Record()
+    {
+        foreach (Rid item in _items) RenderingServer.CanvasItemClear(item);
+        ReadOnlySpan<HudDraw> draws = _shown.Draws;
+        Span<HudVertex> fan = stackalloc HudVertex[HudSector.MaxVertices];
+        Span<Vector2> points = stackalloc Vector2[HudSector.MaxVertices];
+        Span<Vector2> uvs = stackalloc Vector2[HudSector.MaxVertices];
+        Span<Color> colors = stackalloc Color[HudSector.MaxVertices];
+        int run = -1;
+        HudBlend blend = HudBlend.Alpha;
+        bool nearest = false;
+        for (int i = 0; i < draws.Length; i++)
+        {
+            HudDraw draw = draws[i];
+            Resolved texture = _resolved[i];
+            FontGlyph[]? glyphs = _glyphs[i];
+            if (glyphs == null && draw.Kind != HudDrawKind.Fill && !texture.IsValid) continue;
+            if (run < 0 || draw.Blend != blend || texture.Nearest != nearest)
+            {
+                run++; blend = draw.Blend; nearest = texture.Nearest;
+                Begin(run, blend, nearest);
+            }
+            Rid item = _items[run];
+            var tint = new Color(draw.Tint.R / 255f, draw.Tint.G / 255f, draw.Tint.B / 255f, draw.Tint.A / 255f);
+            if (glyphs != null) { RecordGlyphs(item, draw, glyphs, tint); continue; }
+            Rect2 r = Snapped(draw.Rect);
+            if (draw.Kind == HudDrawKind.Sector)
+            {
+                // The fan is laid over the snapped rect, as Unity's sector element's content rect was.
+                int n = HudSector.Fan(new HudRect(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y), draw.Percent, fan);
+                if (n == 0) continue;
+                for (int k = 0; k < n; k++)
+                {
+                    points[k] = new Vector2(fan[k].X, fan[k].Y);
+                    uvs[k] = new Vector2(fan[k].U, fan[k].V);
+                    colors[k] = tint;
+                }
+                RenderingServer.CanvasItemAddPolygon(item, points[..n], colors[..n], uvs[..n], texture.Texture);
+                continue;
+            }
+            if (r.Size.X <= 0 || r.Size.Y <= 0) continue;
+            HudRect uv = draw.Uv ?? new HudRect(0, 0, 1, 1);
+            if (draw.Clip is HudRect clip)
+            {
+                // Quad and window both on the pixel grid, then cut: the overflow-hidden box's own rule.
+                Rect2 c = Snapped(clip);
+                if (!HudQuads.Cut(new HudRect(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y), uv,
+                    new HudRect(c.Position.X, c.Position.Y, c.Size.X, c.Size.Y), out HudRect cut, out uv)) continue;
+                r = new Rect2(cut.X, cut.Y, cut.Width, cut.Height);
+            }
+            if (draw.Kind == HudDrawKind.Fill) { RenderingServer.CanvasItemAddRect(item, r, tint); continue; }
+            var region = new Rect2(uv.X * texture.Size.X, uv.Y * texture.Size.Y, uv.Width * texture.Size.X, uv.Height * texture.Size.Y);
+            RenderingServer.CanvasItemAddTextureRectRegion(item, r, texture.Texture, region, tint, false, true);
+        }
+    }
+
+    /// <summary>Readies pooled canvas item <paramref name="run"/> for a run of draws with one blend and filter.</summary>
+    private void Begin(int run, HudBlend blend, bool nearest)
+    {
+        while (_items.Count <= run)
+        {
+            Rid created = RenderingServer.CanvasItemCreate();
+            RenderingServer.CanvasItemSetParent(created, GetCanvasItem());
+            _items.Add(created);
+        }
+        Rid item = _items[run];
+        _additive ??= new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
+        RenderingServer.CanvasItemSetMaterial(item, blend == HudBlend.Additive ? _additive.GetRid() : default);
+        RenderingServer.CanvasItemSetDefaultTextureFilter(item, nearest
+            ? RenderingServer.CanvasItemTextureFilter.Nearest : RenderingServer.CanvasItemTextureFilter.Linear);
+        RenderingServer.CanvasItemSetDrawIndex(item, run);
+    }
+
+    /// <summary>A virtual rect in screen pixels with its edges on whole pixels, as Unity's layout placed images.</summary>
+    private Rect2 Snapped(HudRect r)
+    {
+        float left = Edge(r.X), top = Edge(r.Y), right = Edge(r.X + r.Width), bottom = Edge(r.Y + r.Height);
+        return new Rect2(_origin.X + left, _origin.Y + top, right - left, bottom - top);
+    }
+
+    /// <summary>A virtual coordinate in whole screen pixels, halves rounded up like layout rounding. The local value
+    /// is first cleaned to 1/1024 so a float round trip cannot land a hair under a half (Unity's <c>Edge</c>).</summary>
+    private float Edge(float v)
+    {
+        float local = MathF.Round(v * _scale * 1024f) / 1024f;
+        return MathF.Floor(local * _pixelsPerUnit + .5f);
+    }
+
+    public override void _ExitTree()
+    {
+        foreach (Rid item in _items) RenderingServer.FreeRid(item);
+        _items.Clear();
+        _additive?.Dispose(); _additive = null;
+        ReleaseTextures();
+        _fontInfo.Clear();
+        _shown.Clear(); _invalid = true;
+    }
+}

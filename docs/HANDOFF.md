@@ -28,7 +28,7 @@ questions live in their canonical documents; this file links to them.
   panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
   resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`), the in-game options menu, save browser and settings pages (`OptionsHud`, `SaveLoadHud`, `GameOptionsHud`) the front-end menu (`FrontEndMenuHud`, with its label bitmap and glow pixels in `HudLabelPixels`) and the minimap and full-map markers (`MinimapHud`, `FullMapHud`; the minimap's GPU disc and footprint stay Unity) are moved too; they build and their models are
   tested, but none has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
-  background-repeat are unchecked. Every step of the order in the ADR is done. Four probes fail on a clean HEAD and are not regressions: [known-broken probes](../tools/classic-unity-probe/README.md#known-broken-probes). `godot/DK2.Godot` builds and loads `DK2.Presentation` but draws nothing yet; the pinned toolchain and agent setup are in [godot/README.md](../godot/README.md) (ADR-0810).
+  background-repeat are unchecked. Every step of the order in the ADR is done. Four probes fail on a clean HEAD and are not regressions: [known-broken probes](../tools/classic-unity-probe/README.md#known-broken-probes). `godot/DK2.Godot` opens on the classic front-end menu (`FrontEndMenuHud`), drawn by its own `HudCanvas`, and has been run (captures at 1152x648, 1024x768 and 1920x1080, a scripted hover and click to the Options page); the owner has not used it with a real mouse. The remaining Godot work is under Other pending work. The pinned toolchain and agent setup are in [godot/README.md](../godot/README.md) (ADR-0810).
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,
@@ -131,6 +131,15 @@ These are entry points, not a new priority order.
   ambience listener in first person. Next: one editor run, then owner play. Evidence and remake choices:
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
+- Godot adapter (ADR-0805, ADR-0810): not wired are the 3D station scenery, movies, sound and keyboard.
+  Next: move the engine-neutral asset glue the adapter copied out of Unity into `src/` (`DK2.Data`, `DK2.Art` or
+  `DK2.Presentation`) so both adapters share it, which ADR-0805's table requires: `FrontEndCameraPaths.cs` (Unity's
+  `DungeonRunner.CameraPathLoader`), `ClassicFrontEndMenuAssets.cs` (the strings and fonts of `InstallHudSources`, the
+  WAD loading of `ClassicFrontEndAssets`; only the PNG decode is Godot's) and the 640x480 menu-box centring in
+  `ClassicFrontEndMenu.cs` (`FrontEndBox.ToUnits`' formula). Untested in Godot until the bottom panel is ported:
+  `HudSector` drawn through `CanvasItemAddPolygon` (a degenerate fan may fail; a triangle array is safer) and the
+  native additive blend against Unity's `AdditiveOverAlpha` look. `FrontEndMenuController.UpdatePointer`
+  (`DK2.Presentation`) allocates (LINQ `First`) on every hovered frame.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)

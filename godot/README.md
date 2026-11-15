@@ -1,8 +1,12 @@
 # The Godot project
 
 `godot/DK2.Godot` is the Godot adapter that is to replace `unity/DK2.Unity` (ADR-0805). It holds
-no DK2 behaviour: rules live in `src/`, and its HUD renderer is to draw `DK2.Presentation`'s
-`HudFrame`. Today it holds only a bootstrap scene.
+no DK2 behaviour: rules live in `src/`, and its HUD renderer (`HudCanvas`, Unity's counterpart of the
+same name) draws `DK2.Presentation`'s `HudFrame`. The main scene shows the classic front-end menu
+(`ClassicFrontEndMenu` over `FrontEndMenuHud`) on a black screen. Not wired yet: station scenery,
+movies, sound and keyboard; the model disables the campaign, save and movie buttons, and the settings
+pages open but their controls are inert. Like Unity's player it starts borderless full screen;
+add `--windowed` (or `--resolution 1280x720`) to a run for a window.
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
 
 | File | Role |
@@ -21,6 +25,12 @@ Needs the .NET 10 SDK (`global.json`; Godot 4.8 requires .NET 10) and, for Godot
 powershell -File godot/setup.ps1     # editor into %LOCALAPPDATA%\Programs\Godot\<version>\, addon into DK2.Godot/addons/godot_ai/
 powershell -File godot/editor.ps1    # open the editor
 ```
+
+The game reads the original install in place: `DK2_DIR`, else the usual install locations
+(`DK2.Data.Dk2Install`). The front end's replacement TrueType face is Bullfrog's DungeonKeeperII.ttf, which is not
+ours to ship (download: see `unity/README.md`). It is read from an absolute path, never imported:
+`DK2_REPLACEMENT_FONT`, else `DK2.Godot/Fonts/DungeonKeeperII.ttf` (gitignored), else the Unity project's
+gitignored copy. Without it the menu draws DK2's BF4 bitmap font.
 
 `-InstallRoot` or `DK2_GODOT_ROOT` puts editors elsewhere. Each version gets its own folder, so
 an upgrade never touches the version you are leaving. Export templates are not installed yet.
@@ -60,7 +70,10 @@ powershell -File godot/editor.ps1 -Console --headless --build-solutions --quit
 powershell -File godot/editor.ps1 -Console --headless --quit-after 10        # run the main scene
 ```
 
-The last prints `DK2.Godot: DK2.Presentation loaded on Godot <version>`.
+The last prints `DK2.Godot front end: page Main` once the menu is up. `--headless` has no renderer; to see a
+frame, run the console build without it, e.g. `--path godot/DK2.Godot --write-movie <dir>/f.png --fixed-fps 30
+--quit-after 120` (Movie Maker writes every frame as a PNG; keep the output outside the repository).
+`editor.ps1` adds `--editor` to any run without `--headless`, so call the pinned console executable directly for this.
 
 ## Upgrading Godot
 
