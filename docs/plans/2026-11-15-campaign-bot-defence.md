@@ -19,7 +19,9 @@ made when asked:
   one nearest the Heart is answered first. Enemies far from the dungeon (Level 15a's Guards in their own Prison)
   are watched, not attacked. This answers Q847.
 - **Formation (tight):** Blockers 1-2 tiles in front of the enemy, between it and the Heart; Support (and
-  fragile creatures) 3-4 tiles behind the Blockers; Flankers and Blitzers 1-2 tiles behind the enemy.
+  fragile creatures) 2 tiles behind the Blockers; Flankers and Blitzers 1-2 tiles behind the enemy. (The
+  first reading was 3-4 tiles behind the Blockers, built as 5 in front of the enemy; the owner corrected it on
+  2026-11-15, Q850: five "may not engage at that distance".)
 
 **Architecture:** Bot policy in `DK2.AI` (`CampaignPlayer`, `PlayerActionRoutines`), fed by public definition
 data the host supplies (as worker types are) and the player-visible observation. No simulation change. DK2's
@@ -68,15 +70,17 @@ attack (`computer-keeper-threat.md`, `computer-keeper-handlers.md`); this plan f
   the enemy or its own drop tile.
 - Drop tiles, all own floor the hand accepts, nearest the ideal point (halves round away from zero):
   - Blocker: 1.5 tiles in front of the enemy, between it and the Heart.
-  - Support: 5 tiles in front of the enemy, so 3-4 behind the Blockers (Q850).
+  - Support: 2 tiles behind the Blockers, 3.5 in front of the enemy (`SupportTiles` = `FrontTiles` + 2; Q850).
   - Flanker, Blitzer: 1.5 tiles behind the enemy; with no own floor truly behind it, beside the Blockers
     (`FormationDrop`).
 - How many: until the bot's healthy fighters near the attack outnumber the attackers (heads, not levels), or none
-  left. NonFighters and hurt creatures do not count.
-- A fighter down to two petals is healed when Heal is offered, else lifted out to a Hatchery (only when one is
-  owned) and dropped there whatever the danger, never back at the front (Q849).
+  left. NonFighters and creatures at two petals do not count (one at three or four petals counts but is not lifted).
+- A fighter down to two petals is healed when Heal is offered, ready and affordable, else lifted out to a Hatchery (only when one is
+  owned) and dropped there whatever the danger, never back at the front. It does not count toward outnumbering
+  the attackers, so a fresh fighter goes in its place; healed to five petals or more it is eligible again, which
+  is the rotation (Q849).
 - Tests (`CampaignPlayerTests.Defence.cs`): each role's drop tile on a synthetic map; the fallback when behind is
-  not own ground; the order; the outnumber stop; the hurt defender. No end-to-end test on the shipped data that a
+  not own ground; the order; the outnumber stop; the hurt defender (healed when affordable, else the Hatchery). No end-to-end test on the shipped data that a
   Blocker lands in front and a Flanker behind: the Behavior tests cover only D1 (the harness fills every
   creature's style; an own trap blueprint shows on its tile, another keeper's does not).
 - The unused `PlayerActionRoutines.Fighter` is removed.
@@ -110,8 +114,8 @@ just enemy's". Today the bot casts only Heal.
 ## Status
 
 D1-D3 are built; D4, D6 and D5 follow in that order. Measured on the built change:
-- AI 610/610 (the role order, the Flanker fallback, the outnumber stop, the hurt exclusion and count, the retreat
-  drop and attacks against any enemy are mutation-checked), Behavior 674 passed and 5 skipped, Simulation 5575/5575.
+- AI 610/610 after the Support change, whose new tile expectations fail on a revert to five tiles (the role order, the Flanker fallback, the outnumber stop, the hurt exclusion and count, the retreat
+  drop and attacks against any enemy were mutation-checked before it), Behavior 674 passed and 5 skipped, Simulation 5575/5575.
 - Levels 1-3 seeds 1-3 all Completed. Final ticks, defence against master: Level 1 2466/2322/2225 against
   2334/2364/2291; Level 2 4704/4403/4048 against 5384/5236/3956; Level 3 10151/5792/5636 against 6966/5709/8593.
 - Seeds 11-20, mean final tick, defence against master: Level 2 4542 against 4851 (faster in 5 of 10); Level 3
@@ -123,9 +127,9 @@ D1-D3 are built; D4, D6 and D5 follow in that order. Measured on the built chang
 
 ## Open questions this plan raises
 - Q847 is answered by the owner's direction above, and built (D2).
-- Q848: whether 8 tiles is right for "near"; open. D2 reads it.
-- Q849: a defender at two petals in the middle of an attack on the Heart: pulled back to a Hatchery, as now, or
-  only healed? Open.
-- Q850: Support 5 tiles "toward home" when that straight line runs through rock and is not the attackers' route;
-  open.
+- Q848: 8 tiles for "near" is right (owner, 2026-11-15); answered, no change. D2 reads it.
+- Q849: a defender at two petals is healed if the mana allows, else lifted to the Hatchery (owner, 2026-11-15);
+  answered, built.
+- Q850: Support goes 2 tiles behind the Blockers, not 5 in front (owner, 2026-11-15); answered, built. Whether
+  the straight line to the Heart runs through rock is not asked again: at 3.5 tiles the error is small.
 - Which trap types count as "strongest": by cost, or by a fixed order per type? Default: by cost.

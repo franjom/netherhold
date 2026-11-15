@@ -184,11 +184,11 @@ These are entry points, not a new priority order.
   answered by the owner). Its observation and action rows are all built except Possession; the routines that
   use them: the Combat Pit routine is built (`strategy.pit-fighters`, off by default; on Level 15a it never acts: the peaceful
   routines now stop only for a threat within `strategy.enemy-near-tiles` (8) of home or the room, but the bot's own
-  Black Knights are prisoners, a level objective not built, Q843; Q848 asks the owner; Q827, Q828, Q831, Q836 and Q844-Q846 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
+  Black Knights are prisoners, a level objective not built, Q843; Q827, Q828, Q831, Q836 and Q844-Q846 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
   seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Imp creation, R8, is built too
   (`strategy.create-imps`, off by default; Level 6a seeds 1-3 show no gain; Q842 open;
   [plan](plans/2026-11-14-campaign-bot-stage3.md)). The bot defends its whole dungeon (an enemy within 8 tiles of own ground, the one nearest the Heart
-  first, Q847) and drops fighters in a formation by fighting style (observation schema 6; Q848-Q850 ask the owner;
+  first, Q847) and drops fighters in a formation by fighting style (observation schema 6; Q848-Q850 answered by the owner;
   [defence plan](plans/2026-11-15-campaign-bot-defence.md), D1-D3 built). Next: D4, traps on the attack routes, then D6,
   attack spells that never hit own creatures or walls, then D5, measuring the lost levels 6a, 7, 11a and 15a.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.

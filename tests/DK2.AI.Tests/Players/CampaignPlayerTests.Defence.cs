@@ -74,6 +74,11 @@ public partial class CampaignPlayerTests
         TilePos drop = Assert.Single(player.Decide(Observe(2, map: map, hand: 1, rooms: [], owned: owned, gold: 0, things: [raider]))
             .Actions.OfType<PlayerAction.DropAt>()).Tile;
         Assert.InRange(drop.X, 17, 19);
+        // Healed when the mana allows (owner, 2026-11-15, Q849); with Heal offered but too dear, to the Hatchery all the same.
+        Assert.Contains(new PlayerAction.CastSpell(10, Target: tired.Handle), Styled().Decide(Observe(1, map: map, rooms: [], owned: owned, gold: 0,
+            things: [raider, tired], creatures: [Flower(tired, 2)], spells: [Heal])).Actions);
+        Assert.Contains(new PlayerAction.PickUp(tired.Handle), Styled().Decide(Observe(1, map: map, rooms: [], owned: owned, gold: 0,
+            things: [raider, tired], creatures: [Flower(tired, 2)], spells: [Heal with { Affordable = false }])).Actions);
         // With no Hatchery it is not lifted at all.
         Assert.DoesNotContain(new PlayerAction.PickUp(tired.Handle), Styled().Decide(Observe(1, map: DefenceMap, rooms: [], gold: 0,
             things: [raider, tired], creatures: [Flower(tired, 2)])).Actions);
@@ -116,7 +121,7 @@ public partial class CampaignPlayerTests
     {
         TilePos enemy = new(10, 2), home = new(2, 2);
         Assert.Equal(new TilePos(9, 2), PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Blocker));   // 1.5 in front, halves away from zero
-        Assert.Equal(new TilePos(5, 2), PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Support));   // 5 in front
+        Assert.Equal(new TilePos(7, 2), PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Support));   // 3.5 in front: 2 behind the Blockers
         Assert.Equal(new TilePos(12, 2), PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Flanker));  // 1.5 behind
         Assert.Equal(new TilePos(12, 2), PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Blitzer));
     }
@@ -141,7 +146,7 @@ public partial class CampaignPlayerTests
     [Theory]
     [InlineData(7, 11, 4)]   // Blocker (Goblin): in front of the raider, toward the Heart
     [InlineData(8, 13, 4)]   // Flanker: behind it
-    [InlineData(9, 7, 4)]    // Support: further back
+    [InlineData(9, 9, 4)]    // Support: two tiles behind the Blockers
     public void EachRoleGoesDownInItsPlaceInTheFormation(int type, int x, int y)
     {
         PlayerVisibleThing raider = Raider(0, new TilePos(12, 4)), own = Own(1, new TilePos(2, 1), new CreatureTypeId((byte)type));
