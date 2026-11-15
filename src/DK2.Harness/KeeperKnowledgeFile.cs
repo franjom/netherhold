@@ -78,8 +78,10 @@ public static class KeeperKnowledgeFile
     }
 
     /// <summary>Loads the knowledge; <paramref name="researchable"/> is the level's research count
-    /// (<see cref="ResearchableItems"/>), without which a research-shelves rule does not act.</summary>
-    public static Loaded Load(string directory, int? researchable = null)
+    /// (<see cref="ResearchableItems"/>), without which a research-shelves rule does not act;
+    /// <paramref name="playbookRules"/> the level playbook's rules, which switch on rules that apply only
+    /// where a playbook asks (Task 3b). Asking for any other rule is refused.</summary>
+    public static Loaded Load(string directory, int? researchable = null, IReadOnlyCollection<string>? playbookRules = null)
     {
         var problems = new List<string>();
         string roomsPath = Path.Combine(directory, RoomsFile), rulesPath = Path.Combine(directory, RulesFile);
@@ -126,7 +128,7 @@ public static class KeeperKnowledgeFile
             {
                 if (!KnownRoom(rule.Form!.GetValueOrDefault("room"), out RoomTypeId shelves)) { problems.Add($"{RulesFile}: {id} names no known room"); continue; }
                 if (!facts.Exists(f => f.Room == shelves)) { problems.Add($"{RulesFile}: {id} targets {shelves}, which {RoomsFile} does not describe"); continue; }
-                if (rule.Status == "refuted" || rule.Applies != "always") continue;
+                if (!Acts(rule)) continue;
                 // A second rule for one room is refused whatever the level, not only when a research count is given.
                 if (!shelfRooms.Add(shelves)) { problems.Add($"{RulesFile}: {id} sets {shelves} a second time"); continue; }
                 if (researchable is not int count || count <= 0) continue;
@@ -142,16 +144,23 @@ public static class KeeperKnowledgeFile
             { problems.Add($"{RulesFile}: {id} targets {target}, which {RoomsFile} does not describe"); continue; }
             if (!int.TryParse(rule.Form!.GetValueOrDefault(valueKey), out int value) || value <= 0)
             { problems.Add($"{RulesFile}: {id} {valueKey} is not a positive whole number"); continue; }
-            if (rule.Status == "refuted" || rule.Applies != "always") continue;
+            if (!Acts(rule)) continue;
             Dictionary<RoomTypeId, int> into = kind == "attraction-target" ? attraction : tiles;
             if (!into.TryAdd(target, value)) { problems.Add($"{RulesFile}: {id} sets {target} a second time"); continue; }
             acting.Add(id);
         }
+        // A playbook may only switch on a rule that waits for one (Task 3b).
+        foreach (string asked in playbookRules ?? [])
+            if (!(rules.Rules ?? []).Exists(r => r.Id == asked && r.Applies == "playbook" && r.Status != "refuted"))
+                problems.Add($"the playbook asks for rule {asked}, which {RulesFile} does not hold as applies: playbook and in force");
         if (problems.Count > 0) throw new InvalidDataException($"knowledge in '{directory}' is refused: " + string.Join("; ", problems));
+
+        // A rule in force acts always, or on a level whose playbook asks for it.
+        bool Acts(RuleEntry rule) => rule.Status != "refuted"
+            && (rule.Applies == "always" || (rule.Applies == "playbook" && playbookRules?.Contains(rule.Id!) == true));
         return new Loaded(new KeeperKnowledge(facts), attraction, tiles, acting, Sha256(roomsPath), Sha256(rulesPath)) { SlotTargets = slots };
     }
 
-    /// <summary>A room named as the enum names it; a number is not a name.</summary>
     /// <summary>An exact room type name: no number, no comma list, no padding (<see cref="Enum.TryParse{TEnum}(string?, out TEnum)"/> takes all three).</summary>
     private static bool KnownRoom(string? name, out RoomTypeId room)
     {

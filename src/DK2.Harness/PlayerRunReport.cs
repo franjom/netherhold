@@ -16,6 +16,10 @@ namespace DK2.Harness;
 /// all reach disk, is incomplete evidence.</summary>
 public enum PlayerRunOutcome : byte { Completed, Defeated, ControllerLimited, TechnicalFailure, IncompleteEvidence }
 
+/// <summary>The player-run limits a playbook's caps may stand in for (Task 3b).</summary>
+[Flags]
+public enum PlayerLimitFlags : byte { None = 0, MaxTicks = 1, MaxActions = 2, WallSeconds = 4, OutputMiB = 8 }
+
 /// <summary>The command line's player-run settings; test policy, not DK2 rules.</summary>
 public sealed record CampaignPlayerSpec(
     Data.Model.PlayerId Player, int MaxTicks = 14400, int WallSeconds = 600, int IntervalTicks = 4,
@@ -25,6 +29,25 @@ public sealed record CampaignPlayerSpec(
     /// <summary>The knowledge directory the player reads (Task 3a), or null for none; <c>run</c> fills in
     /// the repository's <c>knowledge/</c> unless <c>--player-knowledge</c> names one or <c>none</c>.</summary>
     public string? KnowledgeDirectory => Knowledge is null || Knowledge == KeeperKnowledgeFile.None ? null : Knowledge;
+
+    /// <summary>The level's playbook file (Task 3b, <c>--playbook</c>), or null for none.</summary>
+    public string? Playbook { get; init; }
+
+    /// <summary>The limits the command line gave; a playbook's cap replaces only the others.</summary>
+    public PlayerLimitFlags GivenLimits { get; init; }
+
+    /// <summary>The playbook once <c>run</c> has loaded and reviewed it; null without one.</summary>
+    public PlaybookFile.Loaded? LoadedPlaybook { get; init; }
+
+    /// <summary>The knowledge rules the playbook switches on.</summary>
+    public IReadOnlyList<string> PlaybookRules => LoadedPlaybook?.Playbook.Rules ?? [];
+
+    /// <summary>The limit flags a playbook's caps stand in for, each with its bit.</summary>
+    public static readonly IReadOnlyList<(string Flag, PlayerLimitFlags Limit)> CappedFlags =
+    [
+        ("--player-max-ticks", PlayerLimitFlags.MaxTicks), ("--player-max-actions", PlayerLimitFlags.MaxActions),
+        ("--player-wall-seconds", PlayerLimitFlags.WallSeconds), ("--player-output-mib", PlayerLimitFlags.OutputMiB),
+    ];
 
     /// <summary>Bytes kept back from the output budget for the final journal record and report.</summary>
     public const long ReserveBytes = 1024 * 1024;
@@ -129,7 +152,13 @@ public static class PlayerRunReport
             receipts = player.Decisions.SelectMany(d => d.Receipts).GroupBy(r => $"{r.Status}/{r.Reason}")
                 .OrderBy(g => g.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count()),
             development = Development(player.LastObservation),
-            knowledge = spec.KnowledgeDirectory is string knowledge ? KnowledgeSummary(knowledge, spec.Researchable) : null,
+            knowledge = spec.KnowledgeDirectory is string knowledge ? KnowledgeSummary(knowledge, spec.Researchable, spec.PlaybookRules) : null,
+            playbook = spec.LoadedPlaybook is { } playbook ? new
+            {
+                path = spec.Playbook, sha256 = playbook.Sha256, level = playbook.Playbook.Level, rules = playbook.Playbook.Rules,
+                tunables = playbook.Playbook.Tunables.Select(t => new { path = t.Path, value = t.Value }),
+                warnings = playbook.Warnings,
+            } : null,
             coverage_limits = PlayerObservationBuilder.CoverageLimits,
             untested = Untested,
             manifest = PlayerRunManifest.FileName,
@@ -137,9 +166,9 @@ public static class PlayerRunReport
     }
 
     /// <summary>Which knowledge the player read (Task 3a): the two files' SHA-256 and the rules that acted.</summary>
-    private static object KnowledgeSummary(string directory, int? researchable)
+    private static object KnowledgeSummary(string directory, int? researchable, IReadOnlyList<string> playbookRules)
     {
-        KeeperKnowledgeFile.Loaded loaded = KeeperKnowledgeFile.Load(directory, researchable);
+        KeeperKnowledgeFile.Loaded loaded = KeeperKnowledgeFile.Load(directory, researchable, playbookRules);
         return new
         {
             rooms_sha256 = loaded.RoomsSha256, rules_sha256 = loaded.RulesSha256, acting_rules = loaded.ActingRules, researchable,

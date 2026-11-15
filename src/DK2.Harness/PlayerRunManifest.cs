@@ -22,15 +22,17 @@ namespace DK2.Harness;
 public static class PlayerRunManifest
 {
     public const string FileName = "player-run-manifest.json";
-    /// <summary>2 adds <see cref="Identity.Seed"/>; schema-1 evidence ran its scenario file's own seed.</summary>
-    public const int Schema = 2;
+    /// <summary>2 adds <see cref="Identity.Seed"/>; schema-1 evidence ran its scenario file's own seed.
+    /// 3 adds <see cref="Identity.PlaybookSha256"/>, information only (Task 3b): a replay reads the journal.</summary>
+    public const int Schema = 3;
 
     /// <summary>Assemblies a manifest must name; without them it identifies no build.</summary>
     private static readonly string[] Required = ["DK2.Harness", "DK2.Simulation"];
 
     public sealed record Identity(
         int Schema, string RunId, string ScenarioSha256, string DataSha256, int DataFiles,
-        IReadOnlyDictionary<string, string> Assemblies, string SourceSha256, int SourceFiles, ulong? Seed = null);
+        IReadOnlyDictionary<string, string> Assemblies, string SourceSha256, int SourceFiles, ulong? Seed = null,
+        string? PlaybookSha256 = null);
 
     /// <summary>A replay may proceed only with no blocking difference.</summary>
     public sealed record Verification(IReadOnlyList<string> Blocking, IReadOnlyList<string> Diagnostic)
@@ -38,19 +40,19 @@ public static class PlayerRunManifest
         public bool MayReplay => Blocking.Count == 0;
     }
 
-    public static Identity Compute(Scenario scenario, string? installDirectory, PlayerRunId runId)
+    public static Identity Compute(Scenario scenario, string? installDirectory, PlayerRunId runId, string? playbookSha256 = null)
     {
         if (scenario is null) throw new ArgumentNullException(nameof(scenario));
         (string data, int dataFiles) = DataHash(installDirectory);
         (string source, int sourceFiles) = SourceHash(scenario.SourcePath);
         return new Identity(Schema, runId.Value, JournalHeader.Sha256(scenario.SourcePath), data, dataFiles,
-            Assemblies(), source, sourceFiles, scenario.Seed);
+            Assemblies(), source, sourceFiles, scenario.Seed, playbookSha256);
     }
 
-    public static void Write(string directory, Scenario scenario, string? installDirectory, PlayerRunId runId)
+    public static void Write(string directory, Scenario scenario, string? installDirectory, PlayerRunId runId, string? playbookSha256 = null)
     {
         Directory.CreateDirectory(directory);
-        byte[] json = JsonSerializer.SerializeToUtf8Bytes(Compute(scenario, installDirectory, runId), Indented);
+        byte[] json = JsonSerializer.SerializeToUtf8Bytes(Compute(scenario, installDirectory, runId, playbookSha256), Indented);
         // CreateNew: evidence is never overwritten, and a second writer cannot race the first.
         using var file = new FileStream(Path.Combine(directory, FileName), FileMode.CreateNew, FileAccess.Write);
         file.Write(json);
@@ -74,7 +76,7 @@ public static class PlayerRunManifest
             return Blocked($"incomplete evidence: {FileName} could not be read ({ex.GetType().Name}: {ex.Message})");
         }
         if (recorded?.Assemblies is null || recorded.RunId is null) return Blocked($"incomplete evidence: {FileName} is empty or malformed");
-        if (recorded.Schema is not (1 or Schema)) return Blocked($"incomplete evidence: manifest schema {recorded.Schema}, this build reads 1 and {Schema}");
+        if (recorded.Schema is not (1 or 2 or Schema)) return Blocked($"incomplete evidence: manifest schema {recorded.Schema}, this build reads 1 to {Schema}");
 
         Identity current;
         try { current = Compute(scenario, installDirectory, runId); }

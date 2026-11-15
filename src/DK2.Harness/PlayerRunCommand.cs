@@ -40,9 +40,37 @@ public static class PlayerRunCommand
         // What the level lets the player research, read from its files as a player knows it (Task 3a).
         if (spec.Researchable is null && installDirectory is not null)
             spec = spec with { Researchable = KeeperKnowledgeFile.ResearchableItems(installDirectory, scenario.Map, spec.Player) };
+        // The level's playbook (Task 3b): reviewed, for this scenario's level, its caps standing in for limits not given.
+        if (spec.Playbook is string playbookPath)
+        {
+            PlaybookFile.Loaded playbook;
+            try { playbook = PlaybookFile.Load(playbookPath, GameSimulation.CurrentHashVersion); }
+            catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
+            {
+                error.WriteLine($"{scenario.Id}: refused: {ex.Message}");
+                return 2;
+            }
+            if (!string.Equals(playbook.Playbook.Level, scenario.Map.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                error.WriteLine($"{scenario.Id}: refused: the playbook is for {playbook.Playbook.Level}, the scenario plays {scenario.Map}");
+                return 2;
+            }
+            if (playbook.Playbook.Rules.Count > 0 && spec.KnowledgeDirectory is null)
+            {
+                error.WriteLine($"{scenario.Id}: refused: the playbook asks for rules {string.Join(", ", playbook.Playbook.Rules)}, but the player reads no knowledge");
+                return 2;
+            }
+            foreach (string warning in playbook.Warnings) error.WriteLine($"{scenario.Id}: playbook: {warning}");
+            spec = WithCaps(spec, playbook.Playbook.Caps) with { LoadedPlaybook = playbook };
+            if (playbook.Playbook.Caps.MaxTicks is int capped && (spec.GivenLimits & PlayerLimitFlags.MaxTicks) == 0 && capped > scenario.DurationTicks)
+            {
+                error.WriteLine($"{scenario.Id}: refused: the playbook's max-ticks {capped} exceeds the scenario's duration_ticks {scenario.DurationTicks}");
+                return 2;
+            }
+        }
         if (spec.KnowledgeDirectory is string knowledgeDirectory)
         {
-            try { KeeperKnowledgeFile.Load(knowledgeDirectory, spec.Researchable); }
+            try { KeeperKnowledgeFile.Load(knowledgeDirectory, spec.Researchable, spec.PlaybookRules); }
             catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or YamlDotNet.Core.YamlException)
             {
                 error.WriteLine($"{scenario.Id}: refused: {ex.Message}");
@@ -82,7 +110,7 @@ public static class PlayerRunCommand
             Directory.CreateDirectory(directory);
             budgeted = new BudgetedStream(new FileStream(Path.Combine(directory, "input.journal"), FileMode.CreateNew, FileAccess.Write),
                 spec.OutputBytes, CampaignPlayerSpec.ReserveBytes);
-            PlayerRunManifest.Write(directory, scenario, installDirectory, id);
+            PlayerRunManifest.Write(directory, scenario, installDirectory, id, spec.LoadedPlaybook?.Sha256);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -264,7 +292,7 @@ public static class PlayerRunCommand
     {
         IEnumerable<CreatureTypeId> workers = database.Creatures.Values
             .Where(c => (c.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker).Select(c => new CreatureTypeId(c.CreatureId));
-        KeeperKnowledgeFile.Loaded? knowledge = spec.KnowledgeDirectory is string directory ? KeeperKnowledgeFile.Load(directory, spec.Researchable) : null;
+        KeeperKnowledgeFile.Loaded? knowledge = spec.KnowledgeDirectory is string directory ? KeeperKnowledgeFile.Load(directory, spec.Researchable, spec.PlaybookRules) : null;
         var controller = new CampaignPlayer(new CampaignPlayerOptions(id, spec.Player, workers)
         {
             Knowledge = knowledge?.Knowledge ?? KeeperKnowledge.None,
@@ -278,6 +306,7 @@ public static class PlayerRunCommand
             AdvanceTicks = spec.IntervalTicks,
             StallWindowTicks = spec.StallTicks,
             RecoveryAttempts = spec.Retries,
+            Playbook = spec.LoadedPlaybook?.Playbook,
         });
         return new PlayerRunOptions(controller, spec.Player, id)
         {
@@ -285,6 +314,19 @@ public static class PlayerRunCommand
             FinaleTicks = spec.FinaleTicks,
             Limits = new PlayerSessionLimits(maxAdmittedActions: spec.MaxActions),
             StopRequested = stopRequested,
+        };
+    }
+
+    /// <summary>The spec with each playbook cap standing in for a limit the command line did not give.</summary>
+    internal static CampaignPlayerSpec WithCaps(CampaignPlayerSpec spec, PlaybookCaps caps)
+    {
+        bool Free(PlayerLimitFlags limit) => (spec.GivenLimits & limit) == 0;
+        return spec with
+        {
+            MaxTicks = caps.MaxTicks is int ticks && Free(PlayerLimitFlags.MaxTicks) ? ticks : spec.MaxTicks,
+            MaxActions = caps.MaxActions is int actions && Free(PlayerLimitFlags.MaxActions) ? actions : spec.MaxActions,
+            WallSeconds = caps.WallSeconds is int wall && Free(PlayerLimitFlags.WallSeconds) ? wall : spec.WallSeconds,
+            OutputMiB = caps.OutputMiB is int mib && Free(PlayerLimitFlags.OutputMiB) ? mib : spec.OutputMiB,
         };
     }
 
