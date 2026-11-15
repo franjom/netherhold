@@ -103,7 +103,7 @@ Restore and adapter gaps remain separate: Q713, Q719, Q723, Q736 and Q738
 in [open questions](research/open-questions.md). The broader M6 work is in
 [Heart defence parity](research/heart-defence-parity.md) and
 [resync replay](research/resync-replay.md); Level 4's remaining Guard-room
-exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [targeted native trace](research/q710-fighter-decisions.md#native-room-draw-trace-at-9ac4c16e) is obtained; next account for preceding RNG consumption and confirm actor/range/predicate inputs in its measured window. The phase mapping is local; no rerun or global outcome closure is prescribed.
+exposure is Q710; the [fighter-decision study](research/q710-fighter-decisions.md) records the controls and [remembered Guard memory](research/guard-job-memory.md) is built. The [preceding-draw study](research/q710-fighter-decisions.md#preceding-draw-attribution-at-c0a88b63) identifies unmatched moving inputs for 420/422 in its frozen control. Next inventory their captured route/body coverage before a matched bed/state/resume/body control and bounded-prefix recheck; account for current-baseline drift before implementation. No native replay or global closure is prescribed.
 
 ## Other pending work
 
