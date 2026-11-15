@@ -26,6 +26,21 @@ public static class PossessionCamera
         ToHost(view.X, view.Y, view.Z), Forward(view.Yaw, view.Pitch),
         (view.Roll >= 0x400 ? view.Roll - 0x800 : view.Roll) * (360f / 2048));
 
+    /// <summary>The whole first-person picture for a host camera: the pose, the preset's field of
+    /// view and far plane, and the view axis at the screen's middle (a remake choice). The roll turns
+    /// the camera about its own view axis; the side a positive roll leans to is not read, so its sign
+    /// is a HYPOTHESIS.</summary>
+    public static ClassicCameraPose Picture(PossessionView view, CameraThing preset)
+    {
+        PossessionCameraPose pose = Pose(view);
+        Vector3 right = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, pose.Forward));
+        Vector3 level = Vector3.Cross(pose.Forward, right);
+        float roll = pose.RollDegrees * (MathF.PI / 180);
+        return new ClassicCameraPose(pose.Position, pose.Forward, level * MathF.Cos(roll) - right * MathF.Sin(roll),
+            VerticalFieldOfView(preset), FarClipDistance(preset),
+            90f - view.Pitch * (360f / 2048), view.Yaw * (360f / 2048));
+    }
+
     /// <summary>The view direction: the heading the movement step walks along (yaw 0 is north, a
     /// quarter turn east), level at a pitch of 0x200 and down below it.</summary>
     public static Vector3 Forward(int yaw, int pitch)
