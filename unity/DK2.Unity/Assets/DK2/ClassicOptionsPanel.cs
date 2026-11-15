@@ -31,104 +31,64 @@ namespace DK2.Unity
         public string Text(uint id) => _sources.Strings.TryResolve(id,out string value) ? value : string.Empty;
         public BitmapFont Font(int height) => _sources.Font(InterfaceFonts.LegibleFileName(height));
     }
+    /// <summary>The in-game options menu's Unity side: <see cref="OptionsHud"/> (ADR-0805) drawn by a
+    /// <see cref="HudCanvas"/>. The runner reads presses through <see cref="ActionAt"/>.</summary>
     public sealed class ClassicOptionsPanel : IDisposable
     {
-        private readonly IClassicOptionsAssets _assets;
+        private static readonly RgbaImage Blank = new RgbaImage(1, 1, new byte[4]);
+        private readonly OptionsHud _hud;
         private readonly GameObject _owner;
         private readonly PanelSettings _settings;
         private readonly VisualElement _root;
-        private readonly Image[] _labels = new Image[8];
-        private readonly Texture2D[] _textures = new Texture2D[8];
-        private readonly bool[] _supported = new bool[13];
-        private ClassicOptionsPage _page;
-        private ClassicSessionAction _confirmation;
-        private IReadOnlyList<ClassicOptionsEntry> Entries => ClassicOptionsLayout.ForPage(_page);
-        private bool _visible;
-        private int _height;
+        private readonly HudCanvas _canvas;
+        private readonly HudFrame _frame = new HudFrame();
         private Vector2Int _viewport;
         public PanelSettings Panel => _settings;
+        private int Width => _viewport.x > 0 ? _viewport.x : Screen.width;
         private int Height => _viewport.y > 0 ? _viewport.y : Screen.height;
-        public ClassicOptionsPanel(Transform parent,IClassicOptionsAssets assets)
+        public ClassicOptionsPanel(Transform parent, IClassicOptionsAssets assets)
         {
-            _assets=assets;
-            _settings=ScriptableObject.CreateInstance<PanelSettings>();
-            _settings.themeStyleSheet=Resources.Load<ThemeStyleSheet>("DK2Hud");
-            _settings.scaleMode=PanelScaleMode.ScaleWithScreenSize;
-            _settings.referenceResolution=new Vector2Int(1024,768);
-            _settings.screenMatchMode=PanelScreenMatchMode.MatchWidthOrHeight; _settings.match=1;
-            _settings.sortingOrder=15;
-            _owner=new GameObject("Dungeon options"); _owner.transform.SetParent(parent,false);
-            var document=_owner.AddComponent<UIDocument>(); document.panelSettings=_settings;
-            _root=document.rootVisualElement; _root.pickingMode=PickingMode.Ignore;
-            _root.style.width=Length.Percent(100); _root.style.height=Length.Percent(100);
-            for(int i=0;i<_labels.Length;i++)
-            {
-                var label=new Image { pickingMode=PickingMode.Ignore,scaleMode=ScaleMode.ScaleToFit };
-                label.style.position=Position.Absolute; _root.Add(label); _labels[i]=label;
-            }
-            SetSupported(ClassicOptionsAction.ContinueGame,true);
-            SetSupported(ClassicOptionsAction.LevelObjective,true);
-            SetSupported(ClassicOptionsAction.Back,true);
-            SetSupported(ClassicOptionsAction.EndGame,true);
-            SetSupported(ClassicOptionsAction.RestartLevel,true);
-            SetSupported(ClassicOptionsAction.ReturnToMenu,true);
-            SetSupported(ClassicOptionsAction.QuitGame,true);
-            SetSupported(ClassicOptionsAction.Confirm,true);
-            SetSupported(ClassicOptionsAction.Cancel,true);
+            if (assets == null) throw new ArgumentNullException(nameof(assets));
+            _hud = new OptionsHud(assets.Text, assets.Font);
+            _settings = ScriptableObject.CreateInstance<PanelSettings>();
+            _settings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
+            _settings.scaleMode = PanelScaleMode.ConstantPixelSize; _settings.scale = 1;
+            _settings.sortingOrder = 15;
+            _owner = new GameObject("Dungeon options"); _owner.transform.SetParent(parent, false);
+            var document = _owner.AddComponent<UIDocument>(); document.panelSettings = _settings;
+            _root = document.rootVisualElement; _root.pickingMode = PickingMode.Ignore;
+            _root.style.width = Length.Percent(100); _root.style.height = Length.Percent(100);
+            // Set text only: nothing to load from the catalogue.
+            _canvas = new HudCanvas(_ => Blank, null);
+            _root.Add(_canvas);
             SetVisible(false);
         }
-        public void SetSupported(ClassicOptionsAction action,bool supported)
-        { if(action!=ClassicOptionsAction.None) _supported[(int)action]=supported; }
+        public void SetSupported(ClassicOptionsAction action, bool supported) => _hud.SetSupported(action, supported);
         public void SetVisible(bool visible)
-        { _visible=visible; _root.style.display=visible?DisplayStyle.Flex:DisplayStyle.None; }
-        public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation)
-        {
-            if (_page == page && _confirmation == confirmation) return;
-            _page = page; _confirmation = confirmation; _height = 0;
-        }
-        public bool ContainsPointer(Vector3 screenPosition) => _visible;
+        { _hud.SetVisible(visible); _root.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None; }
+        public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation) => _hud.SetPage(page, confirmation);
+        public bool ContainsPointer(Vector3 screenPosition) => _hud.Visible;
         public ClassicOptionsAction ActionAt(Vector3 screenPosition)
         {
-            if (!_visible || Height<=0) return ClassicOptionsAction.None;
-            float scale=Height/768f;
-            float x=screenPosition.x/scale,y=768-screenPosition.y/scale;
-            foreach(ClassicOptionsEntry entry in Entries)
-                if(_supported[(int)entry.Action] && x>=entry.X && x<entry.X+entry.Width && y>=entry.Y && y<entry.Y+38.4f)
-                    return entry.Action;
-            return ClassicOptionsAction.None;
+            if (Height <= 0) return ClassicOptionsAction.None;
+            Vector2 at = Virtual(screenPosition);
+            return _hud.ActionAt(at.x, at.y);
         }
-        public void Draw(Vector3 pointer,Vector2Int viewport=default)
+        /// <summary>A screen position (bottom-up) in virtual units.</summary>
+        private Vector2 Virtual(Vector3 screen)
         {
-            _viewport=viewport;
-            if (!_visible) return;
-            if (_height!=Height) { _height=Height; RebuildText(); }
-            ClassicOptionsAction hover=ActionAt(pointer);
-            for(int i=0;i<Entries.Count;i++)
-            {
-                var entry=Entries[i];
-                float colour=entry.Action == ClassicOptionsAction.None ? 200/255f
-                    : !_supported[(int)entry.Action] ? .4f : hover==entry.Action ? 1 : 200/255f;
-                _labels[i+1].tintColor=new Color(colour,colour,colour,1);
-            }
+            float toVirtual = 1920f / Height;
+            return new Vector2(screen.x * toVirtual, 1920 - screen.y * toVirtual);
         }
-        private void RebuildText()
+        public void Draw(Vector3 pointer, Vector2Int viewport = default)
         {
-            BitmapFont font=_assets.Font(_height);
-            for(int i=0;i<_labels.Length;i++)
-            {
-                if(_textures[i]!=null) UnityEngine.Object.Destroy(_textures[i]);
-                bool shown = i == 0 ? _page != ClassicOptionsPage.Objective : i <= Entries.Count;
-                _labels[i].style.display = shown ? DisplayStyle.Flex : DisplayStyle.None;
-                if (!shown) { _textures[i] = null; _labels[i].image = null; continue; }
-                uint id=i==0 ? ClassicOptionsLayout.TitleFor(_page, _confirmation) : Entries[i-1].TextId;
-                _textures[i]=TextTexture(font,_assets.Text(id)); _labels[i].image=_textures[i];
-                float x=i==0?8:Entries[i-1].X;
-                float y=i==0?72:Entries[i-1].Y;
-                float scale=768f/_height;
-                _labels[i].style.left=x; _labels[i].style.top=y;
-                _labels[i].style.width=_textures[i].width*scale;
-                _labels[i].style.height=_textures[i].height*scale;
-            }
+            _viewport = viewport;
+            if (!_hud.Visible) return;
+            var screen = new HudScreen(Width, Height);
+            Vector2 at = Virtual(pointer);
+            _frame.Clear();
+            _hud.Build(screen, (at.x, at.y), _frame);
+            _canvas.Present(_frame, screen.Scale, 1);
         }
         /// <summary>Text set by <see cref="HudTextPixels"/>, the one rasterizer every panel and engine shares.</summary>
         internal static Texture2D TextTexture(BitmapFont font,string text,int wrapWidth=0)
@@ -143,7 +103,7 @@ namespace DK2.Unity
         }
         public void Dispose()
         {
-            foreach(Texture2D texture in _textures) if(texture!=null) UnityEngine.Object.Destroy(texture);
+            _canvas.Dispose();
             UnityEngine.Object.Destroy(_owner); UnityEngine.Object.Destroy(_settings);
         }
     }

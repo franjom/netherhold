@@ -55,7 +55,7 @@ its pause/network semantics are not established by this reading.
 
 Static menu 22 at `0x00696BE8` uses widgets at `0x006945C8`.
 `ClassicOptionsLayout` preserves its shipped text ids and reference positions;
-`ClassicOptionsPanel` loads Text.str and BF4 through its asset abstraction.
+`OptionsHud` loads Text.str and BF4 through the asset functions its facade `ClassicOptionsPanel` passes.
 The rows are Level Objective, Game Options, Load, Save, End Game, Restart Level
 and Continue Game. Native row destinations and our implemented objective, confirmation,
 session/browser and settings hosts are in [options-menu.md](options-menu.md).
