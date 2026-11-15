@@ -19,6 +19,7 @@ keepers, checks `expect` claims, and writes a report per run.
 
     dotnet run --project src/DK2.Harness -- list [dir]
     dotnet run --project src/DK2.Harness -- keeper-knowledge [--out <file>]
+    dotnet run --project src/DK2.Harness -- playbook-available <scenario.yaml> [--player <id>] [--out <playbook>]
     dotnet run --project src/DK2.Harness -- run <file|dir> [--out <dir>] [--fuzz <player>[:<seed>[:<interval>]]] [--coverage] [--progress <ticks>] [--snapshot-check <ticks>] [--campaign-player <player> [--player-* ...] [--player-receipt <dir>]]
     dotnet run --project src/DK2.Harness -- replay <scenario> <input.journal> [--out <dir>]
     dotnet run --project src/DK2.Harness -- watch <file|dir> [--out <dir>] [--timeout-seconds 600] [--budget-minutes 30] [--max-runs 20] [--jobs 1] [run options] [--fuzz-seeds <n>]
@@ -76,6 +77,23 @@ attraction, gold, furniture and, per creature, its room needs and portal eligibi
 stdout unless `--out` names a file; the committed file is `knowledge/rooms.yaml`, and a test
 compares it with a fresh run. `rules.yaml` is written by hand.
 
+`--playbook <file>` loads a level's playbook (`knowledge/playbooks/<level>.yaml`; format in the
+[stage 3 plan](../../docs/plans/2026-11-14-campaign-bot-stage3.md), Task 3b) through
+`PlaybookFile.Load`: its plan and tunables are applied to the starting strategy, and its rules switch on
+the `applies: playbook` rules of `rules.yaml` they name. The run is refused (exit 2) for a playbook that
+fails review, one for another level, a `max-ticks` cap beyond the scenario's `duration_ticks`, and rules
+under `--player-knowledge none`. The playbook's caps stand in only for limits the command line did not
+give; under `watch` its wall cap becomes each run's `--player-wall-seconds` and must stay below
+`--timeout-seconds`.
+
+`playbook-available` writes the playbook's available section for a scenario's level and keeper (default
+3): it runs the scenario with a probe controller to the first playable tick and lists the bottom panel's
+visible, selectable choices (rooms, spells, doors, traps), the level's portal creatures (its pool, not
+the creature availability table, ADR-0316), and what the player's triggers (`MAKE`) and the research
+list may change. It prints to stdout; `--out` replaces that section in an existing playbook for the same
+level (other sections, comments and line endings kept, another level's is refused) or starts one.
+`knowledge/playbooks/level1.yaml` is generated this way, and a test compares it with a fresh run.
+
 Each run writes a new folder `<out>/<scenario>/<run id>/` (default id: the UTC time; an existing
 folder is never reused): the manifest before the first tick, a budgeted `input.journal`, the
 standard report files, `player-decisions.tsv`, `player-actions.tsv`, and `player-run.json` last,
@@ -83,7 +101,8 @@ once the whole folder is known to fit the budget. The JSON holds the verdict, ev
 finale coverage, any suspected anomaly (a win whose Horned Reaper finale was `NotReached`),
 `development` (from the last observation: tick, gold, owned room tiles by type, own creatures by
 type id), `knowledge` (SHA-256 of both files, the acting rules, the level's research count and
-the slot targets; absent with `none`), `acceptance_claimed` and `receipt`. Without a matching receipt the acceptance line reads
+the slot targets; absent with `none`), `playbook` (path, SHA-256, level, rules, tunables, warnings;
+only with `--playbook`), `acceptance_claimed` and `receipt`. Without a matching receipt the acceptance line reads
 `not claimed: ` followed by every reason (see "Build receipt and acceptance" below).
 
 | Verdict | Meaning | Exit |
@@ -101,7 +120,8 @@ from its run folder.
 
 **Seeds.** `run` and `replay` take `--seed <n>` to run a scenario on another seed than its file's;
 `watch` passes `--seed` through and `--seeds a-b` runs each scenario once per seed. The journal header
-and the player-run manifest (schema 2; schema-1 evidence ran its file's own seed) record the seed
+and the player-run manifest (schema 3; schema 2 added the seed, schema-1 evidence ran its file's own
+seed; schema 3 adds the playbook's SHA-256, information only; `Verify` reads 1-3) record the seed
 run, and `replay` refuses a journal recorded on another seed than the one it would run.
 
 Level 1 (task 7): `watch scenarios/campaign-player --campaign-player 3` plays shipped Level 1 on

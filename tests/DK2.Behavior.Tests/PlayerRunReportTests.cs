@@ -76,7 +76,7 @@ public class PlayerRunReportTests
     {
         RunTemplate template = HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "3", "--player-finale-ticks", "0",
             "--player-interval-ticks", "40", "--player-output-mib", "2"])!;
-        Assert.Equal(new CampaignPlayerSpec(new PlayerId(3), IntervalTicks: 40, FinaleTicks: 0, OutputMiB: 2), template.Player);
+        Assert.Equal(new CampaignPlayerSpec(new PlayerId(3), IntervalTicks: 40, FinaleTicks: 0, OutputMiB: 2) { GivenLimits = PlayerLimitFlags.OutputMiB }, template.Player);
         Assert.Equal(new CampaignPlayerSpec(new PlayerId(3)), HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "3"])!.Player);
         Assert.Null(HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "3", "--fuzz", "3"]));
         Assert.Null(HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "1"]));        // heroes are no keeper

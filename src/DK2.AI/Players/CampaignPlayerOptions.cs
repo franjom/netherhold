@@ -97,17 +97,29 @@ public sealed record CampaignPlayerOptions
     public int MaxActionsPerDecision { get; init; } = 4;
 
     /// <summary>The strategy a new <see cref="CampaignPlayer"/> starts with: these options' rooms, room
-    /// side, mark bound and advance, gold-first digging, engaging fighters and specials on.</summary>
-    public PlayerStrategy Strategy => new()
+    /// side, mark bound and advance, gold-first digging, engaging fighters and specials on, then the
+    /// <see cref="Playbook"/>'s rooms and values.</summary>
+    public PlayerStrategy Strategy
     {
-        Rooms = Rooms,
-        RoomSide = RoomSide,
-        MaxOutstandingTags = MaxOutstandingTags,
-        AdvanceTicks = AdvanceTicks,
-        AttractionTargets = AttractionTargets,
-        SlotTargets = SlotTargets,
-        TileTargets = TileTargets,
-    };
+        get
+        {
+            var strategy = new PlayerStrategy
+            {
+                Rooms = Rooms,
+                RoomSide = RoomSide,
+                MaxOutstandingTags = MaxOutstandingTags,
+                AdvanceTicks = AdvanceTicks,
+                AttractionTargets = AttractionTargets,
+                SlotTargets = SlotTargets,
+                TileTargets = TileTargets,
+            };
+            return Playbook?.Apply(strategy) ?? strategy;
+        }
+    }
+
+    /// <summary>The level's playbook (stage 3 plan, Task 3b), applied over these options' strategy; null for none.
+    /// Definition data, loaded and reviewed by the host before tick 0.</summary>
+    public Playbook? Playbook { get; init; }
 
     public void Validate()
     {

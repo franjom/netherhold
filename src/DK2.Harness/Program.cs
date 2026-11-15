@@ -50,6 +50,9 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
                     otherwise player-run.json says what was missing.
                     --player-knowledge <dir|none>  the player's room facts and rules (default: the
                     repository's knowledge/; none runs without); bad knowledge is refused (exit 2).
+                    --playbook <file>  the level's playbook (knowledge/playbooks/): its plan and values,
+                    and caps standing in for limits not given; refused (exit 2) when it fails review
+                    or is for another level.
                     Not covered: Unity rendering, audio, the real UI, an external agent, the front end.
 
           replay <scenario.yaml> <input.journal> [--out <dir>] [--seed <n>]
@@ -79,6 +82,12 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
               every buildable room painted as a 3x3 to 7x7 square, measured by the
               simulation's own furniture, attraction and gold rules. Default: stdout.
 
+          playbook-available <scenario.yaml> [--player <id>] [--out <playbook>]
+              Writes what the scenario's level offers keeper <id> (default 3) at its first
+              playable tick, and what its triggers and research may change: a playbook's
+              available section (stage 3 plan, Task 3b). --out replaces that section in the
+              playbook, or starts one. Default: stdout.
+
         The DK2 installation is located via the DK2_DIR environment variable.
         """);
     return 0;
@@ -86,6 +95,26 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
 
 switch (args[0])
 {
+    case "playbook-available":
+    {
+        string? install = Dk2Install.Find();
+        if (install is null)
+        {
+            Console.Error.WriteLine("No Dungeon Keeper 2 installation found. Set DK2_DIR to the folder containing DKII.EXE.");
+            return 3;
+        }
+        string? output = HarnessCommandLine.Value(args, "--out");
+        string? who = HarnessCommandLine.Value(args, "--player");
+        if (args.Length < 2 || args[1].StartsWith("--", StringComparison.Ordinal)
+            || (Array.IndexOf(args, "--out") >= 0 && output is null)
+            || (who is not null && (!byte.TryParse(who, out byte keeper) || !PlayerIds.IsKeeper(keeper))))
+        {
+            Console.Error.WriteLine("usage: playbook-available <scenario.yaml> [--player <keeper id>] [--out <playbook>]");
+            return 2;
+        }
+        return PlaybookAvailableCommand.Run(install, args[1], new PlayerId(who is null ? (byte)3 : byte.Parse(who)), output, Console.Out, Console.Error);
+    }
+
     case "keeper-knowledge":
     {
         string? install = Dk2Install.Find();

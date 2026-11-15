@@ -44,6 +44,10 @@ public sealed record PlayerRunOptions
     /// output budget). Null never stops it.</summary>
     public Func<string?>? StopRequested { get; init; }
 
+    /// <summary>Called with the world and each observation before the controller sees it: for an authoring
+    /// tool (<c>playbook-available</c>) reading what the level offers, never for a player. Null for none.</summary>
+    public Action<WorldState, PlayerObservation>? Observed { get; init; }
+
     /// <summary>A controller's name for the journal; the controller's type name by default.</summary>
     public string ControllerName => Controller.GetType().FullName ?? Controller.GetType().Name;
 
@@ -204,6 +208,7 @@ public sealed class PlayerRunCoordinator
         PlayerObservationCapture capture = _builder.Capture(world, stamp, _session.TakeReceipts());
         _session.Observe(capture);
         LastObservation = capture.Observation;
+        _options.Observed?.Invoke(world, capture.Observation);
 
         PlayerDecision? decision;
         try { decision = _options.Controller.Decide(capture.Observation); }
