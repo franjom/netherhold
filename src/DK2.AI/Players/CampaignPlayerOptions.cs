@@ -56,6 +56,11 @@ public sealed record CampaignPlayerOptions
     /// 8 as shipped; combat-pit.md section 7): definition data the host reads off the level's variables.</summary>
     public int CombatPitMaxLevel { get; init; } = 8;
 
+    /// <summary>Below this many Imps the game makes one free every few seconds (<c>MinimumImpThreshold</c>, 4 as shipped;
+    /// imps-and-mana.md): definition data the host reads off the level's variables. Rule R8 buys none below it (owner,
+    /// 2026-11-15: "wait"). 0, unknown, never waits.</summary>
+    public int FreeImps { get; init; }
+
     /// <summary>The room facts (stage 3 plan, Task 3a): definition data generated from the game's rules,
     /// loaded by the host before tick 0. <see cref="KeeperKnowledge.None"/> sizes every room by
     /// <see cref="RoomSide"/> alone, as before Task 3a.</summary>
