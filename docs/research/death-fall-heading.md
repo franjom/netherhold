@@ -81,9 +81,8 @@ Handler [00459850](functions/00459850.md), read 2026-11-11:
   entity only; the steering body (creature `+0x124`) stays where the creature collapsed
   ([steering-body-retention.md](steering-body-retention.md#state-217-leaves-its-body-where-it-fell-adr-0745-hashsave-471)).
 - Then state `+0xAB` is set to the turn plus 10, step taken or not (`0x004599A5..0x004599B0`).
-  217's handler [004599D0](functions/004599D0.md) compares it with the turn at `0x00459A34` to hold
-  off its two-phase fall machine (state `+0xA7`, the z sink, effect `0x149`). None of that
-  machine is built, so the stamp is not built either.
+  217's handler [004599D0](functions/004599D0.md) uses it for the Combat Pit transport
+  (see [combat-pit.md section 4](combat-pit.md#4-the-fight)); that sequence and the stamp are unbuilt.
 
 Capture: Wizard 436 is in 216 from 1720 and in 217 on 1726, moving (67803,135760) to
 (66542,132794). Thief 434 is in 216 on 1864 and 217 on 1870 and does not move; its destination

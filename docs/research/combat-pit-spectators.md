@@ -44,7 +44,7 @@ systems: [rooms, combat]
    pit none of whose occupants (`room+0x0A`) `0x0045C640` objects to. That test is called on the
    seeker (`MOV ECX,[EBP+0x10]`): a good creature objects to an evil one, anyone else to a good
    one. With a pit full, and the keeper able to build pits, it posts one of messages
-   `0x2A`–`0x2C` (not built).
+   `0x2A`–`0x2C` (built: see `combat-pit.md` section 9).
 3. Found: `0x00471A70(room, 142, 0x80)`. Already in the room it sets 1 and then 142. Otherwise
    it walks in state 7 to a point from `0x004E4C10`: a random tile of the room, then the first
    round the chain that is **not interior** (`0x00454110` = 0, so on a pit the rim) and passes
@@ -108,7 +108,7 @@ keeps a creature in place, while a watcher in 144 still picks a new spot.
     (`verification-2026-09-26.md` §8). How it is computed is unread; ours uses the middle of the
     bounding box.
   - The route point `0x004E5000`: ours tests the room's first standable tile.
-- **Not built:** the finder's messages. `0x00478680`, job 26's only caller, is built (ADR-0228).
+- The finder's messages are built (see `combat-pit.md` section 9); `0x00478680`, job 26's only caller, is built (ADR-0228).
 - 138's rim arm is kept and refused by the gate, as DK2's is.
 - **Getting up on a pit.** A stunned creature that gets up on a pit (`0x004E8DA0(0)`) takes the
   drop state 137 through 1. On the rim, 137 goes to 138, and 138 idles.

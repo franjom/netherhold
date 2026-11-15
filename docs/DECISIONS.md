@@ -17388,7 +17388,7 @@ goes from 6764 ordered draws through 1788 to 6810 through 1791; the next boundar
 the heart and door arms stand in for DK2's one search predicate (`0x004B5800`); a hit in the
 first probe iteration leaves velocity 0 and `Move` then requests a hit-solid effect; Guided
 Bolt's process 28 (`0x004AF3A0`) rewrites the shot's `+0xF4` and is unbuilt; the `+0xAB` stamp
-and 217's two-phase fall machine are unbuilt; `Fall` does not test `CarriedByCreatureId` or
+and pit transport (`combat-pit.md` section 4) are unbuilt; `Fall` does not test `CarriedByCreatureId` or
 `InHand`, and `ActionUntilTick` is not cleared when a rescue leaves 216; the Thief's z drops
 4096 to 3924 on 1865 in 216, unexplained. Shot_Update runs Collide, the per-tick damage, then
 the mover; ours moves first, and a hit shot does not move in ours.
@@ -17500,8 +17500,8 @@ position through 1793. The next boundary is 1794 draw 1: native `ObjectState.cpp
 on an enemy tile, holds state 16 through 1793; ours leaves on 1793 (Q712).
 Still open: states 56 and 250 and the other bit-0-clear states re-sync in ours, and a door
 contact zeroes a native body (Q736); the `+0x4E9` timer path (`0x004889AB`), which calls
-`0x004D1070` after state `0xF2`, is unbuilt and what sets the timer is unread; 217's Temple-floor
-arm is not built; whether the cursor can pick up a creature in 217 is unchecked.
+`0x004D1070` after state `0xF2`, is unbuilt and what sets the timer is unread; the pit transport
+is unbuilt (`combat-pit.md` section 4); whether the cursor can pick up a creature in 217 is unchecked.
 
 ## ADR-0746 - an attacked floor's claim starts its own clip; the slot-13 clip is kept only inside the work state
 **Date:** 2026-11-11 | **Status:** accepted | **Systems:** imps-tile-work, creatures | Advances Q712

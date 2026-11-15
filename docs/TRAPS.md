@@ -149,6 +149,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Decode Ghidra read_bytes hex as ASCII before naming a source-file draw site; reading near-spellings by eye can mislabel the verifier.
 
 ## Builds, tests and dk2tools
+- Function records on disk need one `evidence:` line per path; comma-separated evidence is `kb_upsert` input syntax and becomes an invalid anchor in a record file.
 
 - `SaveLoadingBoundsTests.DuplicateSecretDoorKeysAreWrappedWithPosition` uses the remake snapshot tile stride; update it when tile fields change, or its corruption lands in another section.
 
