@@ -1,0 +1,18 @@
+{
+  "editor": {
+    "version": "4.8-beta3",
+    "releaseUrl": "https://github.com/godotengine/godot-builds/releases/download/4.8-beta3/",
+    "windowsZip": "Godot_v4.8-beta3_mono_win64.zip",
+    "windowsZipSha512": "d48ed5b9d88019c8ae75bfa9b3a38f5585ccbcad9e81397a98e24c9887e110ce1b412b796dbb0c0477f5ec6430d5b08c7aa6b1859d81c6bc2cfbd9b140dc2974",
+    "windowsExe": "Godot_v4.8-beta3_mono_win64/Godot_v4.8-beta3_mono_win64.exe",
+    "windowsConsoleExe": "Godot_v4.8-beta3_mono_win64/Godot_v4.8-beta3_mono_win64_console.exe"
+  },
+  "godotNetSdk": "4.8.0-beta.3",
+  "godotAi": {
+    "version": "4.4.1",
+    "releaseUrl": "https://github.com/hi-godot/godot-ai/releases/download/v4.4.1/",
+    "zip": "godot-ai-v4-plugin.zip",
+    "zipSha256": "aa101a3e8991e95fb2a358cae1aeb06f3550622daea10b366aeda81335a91f7f",
+    "manifest": "godot-ai-v4-plugin.manifest.json"
+  }
+}

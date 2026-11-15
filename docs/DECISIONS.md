@@ -19229,7 +19229,7 @@ did not change. The panel's hit testing and click handling are unit-tested witho
 additive stand-ins were two bakes, luminance-as-alpha for the hover art and peak-as-alpha for sparkles; both now use the second.
 The hover art is near grey (mean chroma 7.6/255), so the hover highlight shifts by a few levels at most. `IClassicBottomPanelAssets`
 extends `IBottomPanelArt`. The message tabs added text (`HudText`, rasterized once by `HudTextPixels` for every panel and engine), fills,
-UV sub-rectangles and clip windows to the draw list. No Godot code exists yet, and ADR-0041's question stays open until the engine decision is made.
+UV sub-rectangles and clip windows to the draw list. The Godot project holds only a bootstrap scene so far (ADR-0810), and ADR-0041's question stays open until the engine decision is made.
 
 ## ADR-0806 - remember Guard assignments independently of current work
 
@@ -19306,3 +19306,37 @@ engine adapters. Simulation events identify each newly created message's source;
 deduplicated existing messages are not reattributed. Simulation state, RNG,
 hash/save 521 and native-behavior findings are unchanged. Native playback timing
 and live-scene acceptance remain separate checks under Q824.
+
+## ADR-0810 - the Godot toolchain: one version pin, side-by-side editors, Godot AI through its own dock
+**Date:** 2026-11-15 | **Status:** accepted | **Systems:** presentation-godot, tooling-process
+
+**Context.** ADR-0805 places the Godot adapter in `godot/DK2.Godot`. The owner chose Godot 4.8 beta 3
+(.NET build) and asked for upgrades with as little friction as possible, and for the Godot AI editor
+MCP in Claude Code and Codex through proper channels. Godot AI asset 5050 is v3.2.5, the last release
+for Godot 4.5 and 4.6; Godot 4.7 and newer need v4. Neither Claude's nor Codex's marketplace has it.
+
+**Decision.**
+1. **One pin.** `godot/godot-version.json` names the editor build with its SHA-512, the
+   `Godot.NET.Sdk` version and the Godot AI version with its SHA-256. `godot/setup.ps1` installs
+   from it and verifies the files. The editor is not in the repository.
+2. **Editors side by side**, one folder per version under `%LOCALAPPDATA%\Programs\Godot\`. To
+   upgrade, change the pin, run setup and let Godot's project upgrade tool rewrite the csproj `Sdk`
+   and `config/features`. The commit holds the pin and the editor's rewrite, nothing else.
+3. **Plain SDK project.** `DK2.Godot.csproj` uses `Godot.NET.Sdk` from NuGet and references `src/`
+   with `ProjectReference`s. `dotnet build` compiles it without an editor, so no compile shadow
+   like `DK2.Unity.Compile` and no copied DLLs like `sync-assemblies.ps1`. Its namespace is
+   `DK2.GodotAdapter`, because `DK2.Godot` would shadow `Godot`.
+4. **Godot AI v4 is agent tooling, not game code.** Its addon is gitignored; setup installs the release
+   archive pinned by SHA-256. Updates go through its dock, which verifies signatures and re-pins
+   clients; then bump the pin. The plugin writes its enable line and `_mcp_game_helper` autoload into
+   `project.godot`; both are committed.
+5. **Client entries come from Godot AI's dock, at `local` scope for Claude Code and in
+   `~/.codex/config.toml` for Codex.** On Windows the entry holds machine paths, so it is never
+   committed. Telemetry is off: `godot/editor.ps1` sets `GODOT_AI_DISABLE_TELEMETRY`.
+6. **Godot text files are LF** (`.gitattributes`), as Godot writes them.
+
+**Consequences.** A new machine runs `godot/setup.ps1`, then configures the dock once
+(`godot/README.md`). Because the csproj needs no editor, CI could build it; adding it to `DK2.slnx`
+and CI is still open (ADR-0805). Godot 4.8 requires .NET 10, which `global.json` already pins.
+Without the addon the project fails to load that autoload on every run, so setup runs first. Claude
+Code's `local` scope is keyed by path: a worktree under `.claude/worktrees/` needs its own Configure.

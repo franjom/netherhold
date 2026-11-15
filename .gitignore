@@ -57,6 +57,15 @@ unity/DK2.Unity/*.csproj
 unity/DK2.Unity/*.sln
 unity/DK2.Unity/.vsconfig
 
+# Godot (ADR-0810): the import cache, C# build output, and the Godot AI addon, which is agent
+# tooling that godot/setup.ps1 installs at the version godot/godot-version.json pins.
+godot/**/.godot/
+godot/**/bin/
+godot/**/obj/
+godot/**/addons/godot_ai/
+godot/**/addons/.godot_ai_update/
+godot/**/mono_crash.*.json
+
 # ---------------------------------------------------------------
 # NEVER COMMIT: decompiler output. Derived from EA's executable and
 # therefore the same proprietary material as the binary itself.
