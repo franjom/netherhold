@@ -231,4 +231,4 @@ the cache is drawn with offset 0: the bar shows when the text overflows but neve
 
 **Ours (built 2026-10-23).** `TextScrollBar` draws the four textures and takes the arrow, track and
 thumb input above; `MessageTabsHud` scrolls the message panel by it, and the query panel
-shows the bar inert, as DK2 does.
+(`CreatureQueryHud`) shows the bar inert, as DK2 does.

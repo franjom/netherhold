@@ -167,7 +167,7 @@ authority for cast/placement validation. Create Imp cost uses the existing
 ImpSupplyRules.CreateImpCost, including the live additional-imp multiplier.
 Cooldown wedges and research/manufacture progress are built (`BottomPanelChoice.Indicators`, `BottomPanelHud` with `HudSector.Fan`). Their native contract (three clockwise texture sectors drawn by the slot draw,
 no digits or crate counts) is in [panel-indicators.md](panel-indicators.md) (read 2026-10-23). The FlashButton tab/slot flash is built ([tab-alerts.md](tab-alerts.md):
-level-script only, never raised by research). Default creature overview roster, counters and input use a separate retained helper;
+level-script only, never raised by research). Default creature overview roster, counters and input use a separate model, `CreatureOverviewHud`;
 see [creature overview](creature-overview.md) for confirmed producers and the
 remaining alternate-mode presentation boundary.
 
