@@ -81,6 +81,10 @@ call sites push kinds 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14 and **16** —
 which the coordinate lookup, walking only 1…15, never checks. Q286 is now
 about which activity each names rather than whether they exist.
 
+A kind-16 entry (a wall repair) outlives its holders: only a kind-1 dig tag on the tile or an
+unreachable free side removes it, and a finished repair does not
+([imp-task-stealing.md §4](imp-task-stealing.md#4-reinforce-gold-and-tier-b-q2), ADR-0811).
+
 > A caution on method: a window of instructions before a `CALL` mis-reads the
 > kind wherever several branches `JMP` to one shared call site, as these three
 > tag arms do. Read the branches, not the call.

@@ -47,6 +47,7 @@ public sealed class SimulationContext
     // Cleared before every turn; last turn's drops the creature sweep lands in their own slots.
     internal HashSet<CreatureState> LandingDueThisTick { get; } = [];
     internal HashSet<CreatureState> ReinforcementActionsPolledThisTick { get; } = [];
+    internal HashSet<CreatureState> RepairStrikesPolledThisTick { get; } = [];
     internal HashSet<CreatureState> ClaimActionsPolledThisTick { get; } = [];
     internal HashSet<CreatureState> ClaimActionsAdvancedThisTick { get; } = [];
     internal HashSet<CreatureState> IdleActionsPolledThisTick { get; } = [];

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 523;
+    private const int FormatVersion = 524;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -224,6 +224,15 @@ public static class WorldSnapshot
             w.Write(pair.Key.Tile.X);
             w.Write(pair.Key.Tile.Y);
             w.Write(pair.Value.Order);
+            foreach (int holder in pair.Value.Holders) w.Write(holder);
+        }
+        w.Write(world.RepairTaskEntries.Count);
+        foreach (var pair in world.RepairTaskEntries.OrderBy(e => e.Key.Player.Value)
+            .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
+        {
+            w.Write(pair.Key.Player.Value);
+            w.Write(pair.Key.Tile.X);
+            w.Write(pair.Key.Tile.Y);
             foreach (int holder in pair.Value.Holders) w.Write(holder);
         }
         w.Write(world.PlayerCount);
@@ -1074,6 +1083,16 @@ public static class WorldSnapshot
             for (int side = 0; side < 4; side++) entry.Holders[side] = r.ReadInt32();
             secretDoorEntries.Add((player, tile), entry);
         }
+        int repairTaskEntryCount = SaveReader.Count(r, "repairTaskEntryCount", 25);
+        var repairTaskEntries = new Dictionary<(PlayerId Player, TilePos Tile), RepairTaskEntry>();
+        for (int i = 0; i < repairTaskEntryCount; i++)
+        {
+            PlayerId player = r.ReadByte();
+            var tile = new TilePos(r.ReadInt32(), r.ReadInt32());
+            var entry = new RepairTaskEntry();
+            for (int side = 0; side < 4; side++) entry.Holders[side] = r.ReadInt32();
+            repairTaskEntries.Add((player, tile), entry);
+        }
         int playerCount = SaveReader.Count(r, "playerCount", 132, byte.MaxValue + 1);
         var players = new PlayerState[playerCount];
         for (int i = 0; i < playerCount; i++)
@@ -1169,6 +1188,7 @@ public static class WorldSnapshot
         world.Carry = carry;
         world.LocalPlayerId = new PlayerId(localPlayer);
         foreach (var pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);
+        foreach (var pair in repairTaskEntries) world.RepairTaskEntries.Add(pair.Key, pair.Value);
         world.CurrentTick = tick;
 
         for (int i = 0; i < world.RoomBuildWaveSlots.Length; i++)

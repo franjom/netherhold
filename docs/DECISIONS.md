@@ -19340,3 +19340,48 @@ for Godot 4.5 and 4.6; Godot 4.7 and newer need v4. Neither Claude's nor Codex's
 and CI is still open (ADR-0805). Godot 4.8 requires .NET 10, which `global.json` already pins.
 Without the addon the project fails to load that autoload on every run, so setup runs first. Claude
 Code's `local` scope is keyed by path: a worktree under `.claude/worktrees/` needs its own Configure.
+
+## ADR-0811 - a wall repair's side slots outlive their holders, and its strike runs before the fight scan
+**Date:** 2026-11-15 | **Status:** accepted | **Systems:** imps-tile-work | **Hash/save:** 524
+
+**Context.** Level 5 seed 1, controlled replay: at tick 2106 imp 454 chose the wall repair of (15,33). DK2 sent it to the
+east side; ours to the north. Imp 440 had fled that repair at 1693 and, in DK2, still held the north side. Ours derived
+holders from creatures' current routes, so a holder that had stopped repairing was invisible. At 1693 ours also dropped
+the fleeing imp's last strike, which DK2 lands. STRONGLY INFERRED (bodies read; the reviewer CONFIRMED every address
+below in Ghidra).
+
+1. **The kind-16 pool entry has no release.** The leave hook `0x004647D0` indexes the byte table `0x00464A50` (state - 10)
+   into the jump table `0x00464A10`: states 21/22 reach the kind-6 release (`0x004648D8`), states 23/24 the default
+   `0x00464A09`, which releases nothing. State 24 (`0x00466710`) removes an entry only when its type byte is 6
+   (`0x0046680E`), and a repair entry's is 0x10, so a finished repair leaves entry and slots too. A dig tag (`TaskPool_Raise`
+   kind 1) removes the tile's kind-6 and kind-16 entries (`0x00507C7B`-`0x00507D6C`); gold (kind 2) removes none.
+   An unreachable free side deletes the entry (`0x0046B3B6`). No other removal was found, and not every one of the
+   ~28 `0x00508040` callers was read.
+2. **The repair pass** in `0x0046AEA0` (gate `0x0046B1FB`, `TaskPool_Find(0x10)` `0x0046B237`) reads the slot with
+   `0x00508110` (`0x0046B318`). A held side is refused when its holder is dead, not a creature, has no `+0x252`, is in
+   state `0x33`/`0x34` or refuses 10 (`0x00477310`). Otherwise the asker steals it only when strictly nearer the wall's
+   centre: it walks first, kicks the holder with `0x0048AD30(10)` (`0x0046B57A`), then writes the slot (`0x0046B5C5`).
+3. **The strike is action 8's handler** (`0x00497AC0`), run by the action runner `0x00496AA0` at `0x00489A68`, before
+   `ProcessFight` (`0x00489AC7`) in the creature update `0x00488930`. State 24 only begins the action (`0x004667C0`).
+
+**Decision.** Build both as DK2 has them. The missing 23/24 release and the type-6 compare copied from state 22 are
+suspected DK2 defects, built faithfully (ADR-0783, `Suspected DK2 defect:` lines in `00466710.md` and `004647D0.md`).
+`WorldState.RepairTaskEntries`, keyed by keeper and wall, holds `RepairTaskEntry` (four side holders): written when a
+repairer takes a side, removed by a dig tag (`TileTagSystem`) or an unreachable free side (`ImpTaskSystem.TryReinforceAt`),
+saved, copied and hashed. `RepairStrikeRules.Poll` runs the strike beside `ReinforcementActionRules.Poll` and
+`ClaimActionRules.Poll`.
+
+**Consequences.** Hash and save 524, pin `0x980D2DBDA2E1B742`; earlier saves are refused. Level 1's journal is
+re-recorded (win tick 2384 to 2334, gem (15,20) to (14,22); remake output, not DK2 evidence). At 1693 the fleeing imp's
+last strike lands and ours matches DK2's wall health through 2155; at 2106 imp 454 takes the east side. Controlled612
+(deterministic env, [Q772](research/open-questions.md)) matches 14883 draws through tick 2334 (12141 through 2155 at 519);
+the next boundary is Q853. Seven tests in `RepairWallPoolTests`, each mutation-checked: a fled holder keeps its side, a
+farther repairer does not steal, a nearer one steals and kicks, a dig tag removes the entry, a finished repair keeps its
+holder, the snapshot and hash round trip, and the strike lands after the poll when the fight scan moves the imp. The
+full suite passes.
+
+Not built or not pinned: the strike's per-tick cadence stays `WorkCadence`'s fitted family default, not the clip
+(UNVERIFIED; the handler is read as returning 0 after a strike). A stale holder the keeper has picked up, or one in a state
+whose SetState refuses, is kicked in ours and probably not in DK2 (the same for the other kinds). DK2 could reuse
+creature ids; ours never do. Evidence: [imp-task-stealing.md section 4](research/imp-task-stealing.md#4-reinforce-gold-and-tier-b-q2),
+[reinforcement-action-clock.md](research/reinforcement-action-clock.md#the-wall-repairs-strike-is-action-8s-q811-adr-0811-hashsave-524).

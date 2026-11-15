@@ -1368,6 +1368,22 @@ public sealed partial class WorldState
         SecretDoorEntries.Remove((player, tile));
     }
 
+    /// <summary>Each keeper's kind-16 (wall repair) pool entries and their side holders. Persistent:
+    /// the entry and its holders survive the repair that raised them (<see cref="RepairTaskEntry"/>).</summary>
+    public Dictionary<(PlayerId Player, TilePos Tile), RepairTaskEntry> RepairTaskEntries { get; } = [];
+
+    internal RepairTaskEntry RepairEntry(PlayerId player, TilePos tile)
+    {
+        if (!RepairTaskEntries.TryGetValue((player, tile), out RepairTaskEntry? entry))
+            RepairTaskEntries.Add((player, tile), entry = new RepairTaskEntry());
+        return entry;
+    }
+
+    /// <summary>The holder of one side of the wall's kind-16 entry, 0 when the entry or the side is empty.</summary>
+    internal int RepairSideHolder(PlayerId player, TilePos tile, int side) =>
+        RepairTaskEntries.Count == 0 ? 0
+        : RepairTaskEntries.TryGetValue((player, tile), out RepairTaskEntry? entry) ? entry.Holders[side] : 0;
+
     internal List<ShotState> RawShots => _shots;
 
     public ShotState? ShotById(int id)
@@ -1731,6 +1747,15 @@ public sealed partial class WorldState
             hash.Add(pair.Key.Tile.X);
             hash.Add(pair.Key.Tile.Y);
             hash.Add(pair.Value.Order);
+            foreach (int holder in pair.Value.Holders) hash.Add(holder);
+        }
+        hash.Add(RepairTaskEntries.Count);
+        foreach (var pair in RepairTaskEntries.OrderBy(e => e.Key.Player.Value)
+            .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
+        {
+            hash.Add(pair.Key.Player.Value);
+            hash.Add(pair.Key.Tile.X);
+            hash.Add(pair.Key.Tile.Y);
             foreach (int holder in pair.Value.Holders) hash.Add(holder);
         }
         hash.Add(_players.Length);

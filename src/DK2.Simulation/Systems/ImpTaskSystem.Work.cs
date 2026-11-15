@@ -151,8 +151,14 @@ public sealed partial class ImpTaskSystem
         // State 24's handler (0x00466710) begins action 8 on its first call, when none runs (0x004667C0), and that begin asks the
         // record's 0x10C (sound-effects-continuous.md section 2). The repair clip's length is unread, so ours begins it once per
         // work state: DK2 begins one per cycle (a marked deviation).
-        if (creature.TargetWork == TileWorkKind.RepairWall && context.Tick.Value == creature.StateEnteredTick + 1)
-            CreatureActionSounds.Begin(context, SystemName, creature, CreatureActionTable.RepairWall);
+        if (creature.TargetWork == TileWorkKind.RepairWall)
+        {
+            if (context.Tick.Value == creature.StateEnteredTick + 1)
+                CreatureActionSounds.Begin(context, SystemName, creature, CreatureActionTable.RepairWall);
+            // The strike is action 8's, run from the poll before the fight scan (RepairStrikeRules).
+            RepairStrikeRules.Poll(context, creature);
+            return;
+        }
 
         // Decrement first, then act on zero. The timer is WorkCadence's: three ticks
         // from arrival, a kind-dependent gap, then every tick (ADR-0280).

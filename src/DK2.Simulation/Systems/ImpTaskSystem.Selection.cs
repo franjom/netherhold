@@ -304,15 +304,14 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>
-    /// The reinforce handler (<c>0x0046aea0</c>) on one wall: its four sides from the one
-    /// <see cref="MiningSlots.StartSide"/> gives for the worker, each a stand of the keeper's own
-    /// floor, not solid (an owned reinforced wall beside it is not a side); the first whose face is free, or held by a farther worker, and which the worker can
-    /// reach is taken. A free side it cannot reach deletes the wall's task (<c>0x00508040</c>),
-    /// whoever else holds a side, and the next side is tried (<see cref="ForgetReinforceTask"/>).
-    /// The four sides are walked twice: for kind 6, then, when no side was taken, for kind 16,
-    /// whose pool entry and side slots are its own (<c>TaskPool_Find(6)</c> at the top,
-    /// <c>TaskPool_Find(0x10)</c> after <c>0x0046B1FB</c>). So an own wall below half health is
-    /// repaired once every side's kind-6 slot is held or unreachable. imp-task-stealing.md §4.
+    /// The reinforce handler (<c>0x0046aea0</c>) on one wall: its four sides from
+    /// <see cref="MiningSlots.StartSide"/>, each a non-solid stand of the keeper's own floor; the first
+    /// free, or held by a farther worker, that the worker can reach is taken. A free side it cannot
+    /// reach deletes the wall's task (<c>0x00508040</c>) and the next is tried. Kind 6 is walked first,
+    /// then kind 16 (repair), whose holders come from the wall's persistent entry
+    /// (<see cref="WorldState.RepairTaskEntries"/>, <c>0x00508110</c>): nothing releases a repair slot,
+    /// as the leave hook has no case for states 23 and 24, so a repairer that fled still holds its side.
+    /// Likely a DK2 defect, built as DK2 has it (ADR-0783). imp-task-stealing.md §4.
     /// </summary>
     private bool TryReinforceAt(SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos wall)
     {
@@ -329,19 +328,42 @@ public sealed partial class ImpTaskSystem
                 // A side counts only when it is not solid (and the keeper's, which TryJobOn tests).
                 if (!world.Contains(stand) || context.Database.TerrainById(world.Tile(stand).TerrainId).IsSolid) continue;
                 if (!TryJobOn(context, grid, stand, wall, creature.OwnerPlayerId, JobPriority.Reinforce, creature.Id,
-                              out int tileIndex, out TileWorkKind kind, repairPass: repairPass))
+                              out int tileIndex, out TileWorkKind kind, crowding: !repairPass, repairPass: repairPass))
                     continue;
+                CreatureState? repairHolder = null;
+                int slot = repairPass ? world.RepairSideHolder(creature.OwnerPlayerId, wall, side) : 0;
+                if (slot != 0 && !MayTakeRepairSide(world, creature, wall, slot, out repairHolder)) continue;
                 if (!Reaches(grid, creature, stand)
-                    || !CommitJob(context, creature, tileIndex, kind, JobPriority.Reinforce))
+                    || !CommitJob(context, creature, tileIndex, kind, JobPriority.Reinforce, repairHolder: repairHolder))
                 {
-                    if (!ImpCrowding.FaceIsFull(world, context.Database, tileIndex, stand, creature.Id, false, kind))
+                    if (repairPass ? slot == 0
+                            : !ImpCrowding.FaceIsFull(world, context.Database, tileIndex, stand, creature.Id, false, kind))
+                    {
+                        // 0x0046B3B6: a free side that cannot be walked to deletes the entry, holders and all.
+                        if (repairPass) world.RepairTaskEntries.Remove((creature.OwnerPlayerId, wall));
                         ForgetReinforceTask(context, tileIndex, creature.Id, kind);
+                    }
                     continue;
                 }
+                if (repairPass) world.RepairEntry(creature.OwnerPlayerId, wall).Holders[side] = creature.Id;
                 return true;
             }
         }
         return false;
+    }
+
+    /// <summary>The repair handler's test of a held side (<c>0x0046B3C3</c>-<c>0x0046B4B4</c>): the
+    /// slot's id must be a live creature (a dead one refuses the side, it does not free it),
+    /// able to go to state 10, and strictly farther from the wall's centre than the asker. The holder
+    /// may be anywhere doing anything: nothing checks that it still repairs this wall. The asker
+    /// itself is no exception (it is not nearer than itself).</summary>
+    private static bool MayTakeRepairSide(
+        WorldState world, CreatureState asking, TilePos wall, int slot, out CreatureState? holder)
+    {
+        holder = world.CreatureById(slot);
+        return holder is not null
+            && TaskStealing.CanLoseItsTask(holder)
+            && TaskStealing.NearerTheTile(asking, (holder.PosX, holder.PosY), wall);
     }
 
     /// <summary>
@@ -838,7 +860,7 @@ public sealed partial class ImpTaskSystem
     /// </summary>
     private bool CommitJob(
         SimulationContext context, CreatureState creature, int tileIndex, TileWorkKind kind, JobPriority priority,
-        byte? slot = null)
+        byte? slot = null, CreatureState? repairHolder = null)
     {
         TilePos standing = _route.Count > 0 ? _route[^1] : creature.Tile;
         WorldState world = context.World;
@@ -880,7 +902,12 @@ public sealed partial class ImpTaskSystem
         }
 
         bool onTheTile = standing.Y * world.Width + standing.X == tileIndex;
-        if (slot is null && ImpCrowding.FaceIsFull(world, context.Database, tileIndex, standing, creature.Id, onTheTile, kind)
+        if (kind == TileWorkKind.RepairWall)
+        {
+            // The holder is the one the wall's entry names, chosen by TryReinforceAt (0x0046B576).
+            if (repairHolder is not null) TakeTaskFrom(context, repairHolder, creature, tileIndex);
+        }
+        else if (slot is null && ImpCrowding.FaceIsFull(world, context.Database, tileIndex, standing, creature.Id, onTheTile, kind)
             && HolderToTakeFrom(context, tileIndex, standing, creature.Id, kind) is CreatureState holder)
             TakeTaskFrom(context, holder, creature, tileIndex);
 
@@ -965,6 +992,7 @@ public sealed partial class ImpTaskSystem
         };
         creature.LastTaskKind = KindOf(priority, kind);
         creature.LastTaskTileIndex = tileIndex;
+        if (kind == TileWorkKind.RepairWall) world.RepairEntry(creature.OwnerPlayerId, target).Holders[side & 3] = creature.Id;
         context.Emit(WorldResync.SystemName, "job_reissued",
             $"imp={creature.Id} {Describe(world, tileIndex)} {kind} side={side} slot={slot} routed={routed}");
         return true;

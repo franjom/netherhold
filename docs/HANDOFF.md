@@ -40,7 +40,7 @@ questions live in their canonical documents; this file links to them.
 ## Active continuation
 
 Q712, the Level 5 draw-continuation investigation, is answered through turn 1900.
-At hash 519 with ADR-0803, with the replay inputs including the five hero guards
+At hash 524 with ADR-0811, with the replay inputs including the five hero guards
 and the keeper's research points restored at turn 1400, the controlled replay matches all 8466 native draws of the
 capture's log, turns 1401-1900 (the log ends there). The result is in
 [Q712](research/open-questions.md), with its causes in
@@ -87,13 +87,14 @@ capture's log, turns 1401-1900 (the log ends there). The result is in
 [a room walk's point passes over a Hatchery pillar corner](research/hatchery-pillar-steering.md#room-walks-adr-0798) (ADR-0798),
 [the portal's entrance rules: notice only a weighted type, decay per definition index, a Unique definition as a second candidate](research/portal-creature-action.md#the-portals-type-pick-built-2026-09-28-adr-0272) (ADR-0801),
 [a finished research goes to a random Library with a place-holder, and an unreached place-holder cheers the same tick](research/research-tree.md#4-delivering-it-a-book-on-a-library-shelf) (ADR-0803),
+[a wall repair's side slot outlives its holder, and its strike runs before the fight scan](research/imp-task-stealing.md#4-reinforce-gold-and-tier-b-q2) (ADR-0811),
 [own-land regeneration every turn](research/creature-needs.md) (ADR-0759),
 [the fighting arms' candidate walk order](research/combat-target-selection.md) (ADR-0761),
 [the melee hold's end, the lifted creature's bit, own-land healing and the collapse booking](research/open-questions.md)
 (ADR-0762 to ADR-0765, Q768 to Q771); earlier prefixes are
 [possessed melee draw](research/possessed-melee-draw.md) and
 [store-gold steering](research/store-gold-steering.md). The continuation is split into
-Q772 (past turn 1900: draws match through 2155 at hash 519; turn 2156 draw 1 differs, Q811), Q773 (five creatures with small position
+Q772 (past turn 1900: draws match through 2334 at hash 524; turn 2335 draw 1 differs, Q853), Q773 (five creatures with small position
 offsets and no draw affected) and Q774 (state words that differ in representation: held
 78, a collapsed creature's health countdown, Imp 440's states 10 and 22), besides
 Q764 to Q767 and Q733(d). Build only behavior supported
