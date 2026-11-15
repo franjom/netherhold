@@ -174,4 +174,42 @@ public sealed class OptionsHudTests
         hud.Show(view, visible: false, save: true, frontEnd: true);
         Assert.Empty(Build(hud));
     }
+
+    [Theory]
+    [InlineData(ClassicOptionsAction.None, ClassicHudAction.None)]
+    [InlineData(ClassicOptionsAction.ContinueGame, ClassicHudAction.ToggleOptions)]
+    [InlineData(ClassicOptionsAction.GameOptions, ClassicHudAction.OpenGameOptions)]
+    [InlineData(ClassicOptionsAction.LevelObjective, ClassicHudAction.ShowObjective)]
+    [InlineData(ClassicOptionsAction.Back, ClassicHudAction.BackToOptions)]
+    [InlineData(ClassicOptionsAction.RestartLevel, ClassicHudAction.RestartLevel)]
+    [InlineData(ClassicOptionsAction.EndGame, ClassicHudAction.EndGame)]
+    [InlineData(ClassicOptionsAction.ReturnToMenu, ClassicHudAction.ReturnToMenu)]
+    [InlineData(ClassicOptionsAction.QuitGame, ClassicHudAction.QuitGame)]
+    [InlineData(ClassicOptionsAction.Confirm, ClassicHudAction.Confirm)]
+    [InlineData(ClassicOptionsAction.Cancel, ClassicHudAction.CancelConfirmation)]
+    [InlineData(ClassicOptionsAction.Save, ClassicHudAction.OpenSave)]
+    [InlineData(ClassicOptionsAction.Load, ClassicHudAction.OpenLoad)]
+    public void AnEntrysPressAppliesItsHudAction(ClassicOptionsAction entry, ClassicHudAction expected) =>
+        Assert.Equal(expected, OptionsHud.HudAction(entry));
+
+    [Fact]
+    public void AnEntryMapsToNoHudActionExactlyWhenItsActionIsNone()
+    {
+        foreach (ClassicOptionsPage page in Enum.GetValues<ClassicOptionsPage>())
+            foreach (ClassicOptionsEntry entry in ClassicOptionsLayout.ForPage(page))
+                Assert.Equal(entry.Action == ClassicOptionsAction.None, OptionsHud.HudAction(entry.Action) == ClassicHudAction.None);
+    }
+
+    [Fact]
+    public void OnlyTheRunnersPagesAreUnsupportedByDefaultAndNoneNeverIs()
+    {
+        var hud = new OptionsHud(_ => "", _ => Font);
+        foreach (ClassicOptionsAction action in Enum.GetValues<ClassicOptionsAction>())
+            Assert.Equal(action is not (ClassicOptionsAction.None or ClassicOptionsAction.Save or ClassicOptionsAction.Load
+                or ClassicOptionsAction.GameOptions), hud.Supported(action));
+        hud.SetSupported(ClassicOptionsAction.Save, true);
+        Assert.True(hud.Supported(ClassicOptionsAction.Save));
+        hud.SetSupported(ClassicOptionsAction.None, true);
+        Assert.False(hud.Supported(ClassicOptionsAction.None));
+    }
 }

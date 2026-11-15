@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel, the resource strip, the message tabs, the hover HUD and the creature overview and the creature query details are done; the other group-1 panels remain.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). In 1b the bottom panel, the resource strip, the message tabs, the hover HUD, the creature overview, the creature query details, the battle tab and the in-game options menu are done; the other group-1 panels remain.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -71,16 +71,35 @@ group 2 is a list to audit, not a finding.
       `DungeonRunner.BattleTabClicked` into `DK2.Presentation` with tests; the cancel's left click
       posts `RemoveCallToArmsCommand`; a Movie Maker capture with `--stage-battle` shows the blades
       cycling through four frames; hover and press with a real cursor are unverified, and so are
-      the cancel and the alarm in Godot). Godot opens the query panel on the viewer's first creature only with the
+      the cancel and the alarm in Godot) and the options menu (`ClassicOptionsPanel.cs` over `OptionsHud`,
+      `ClassicKeyboard.cs`: Escape opens and closes it, through `GameBindingInput.HudShortcut` with the
+      default `GameAction.Options` binding, scan 0x01; the root, objective, exit and confirmation
+      pages, entries lighting under the pointer and acting on a left click; while it shows it takes
+      every mouse press and the level pauses; `ClassicKeyboard` maps Godot physical keys to
+      DirectInput scan codes and is the inverse of Unity's `ClassicKeyBindings.Key` table, so the two
+      must change together, with no drift test; `OptionsHud.HudAction`, `OptionsHud.Supported` and
+      `ClassicHudControls.OptionsMenuVisible`, `Modal`, `EditingText`, `TicksPaused`,
+      `ModalInput` and `ShortcutContext` moved from Unity's `DungeonRunner.QueueHudInput` and
+      `HudModal` into `DK2.Presentation` with tests, and Unity calls them; a Movie Maker probe with
+      synthesized Escape and clicks shows the root menu, the objective page, the Restart
+      confirmation and the menu closed again; a real key press or click, right and middle press
+      swallowing and the tick count during the pause are unverified). Godot opens the query panel on the viewer's first creature only with the
       test-scene argument `--query-first-creature`, as it has no world picking yet, and
       the battle tab with `--stage-battle`, which spawns a hero Knight on the tile of the viewer's
       first creature, Level1 having no early fight. Not wired in Godot for the battle tab: the
-      blades' zoom, the glides and the fly-in (need the camera), and the `InputSuppressed`/`HudModal`
-      gate (step 2). Not wired in
+      blades' zoom, the glides and the fly-in (need the camera). Godot opens the options menu at
+      start with the test-scene argument `--open-options [Entry]`, which refuses an unsupported
+      entry. Not wired in the options menu: Save, Load and Game Options (greyed; the later panels
+      `ClassicSaveLoadPanel` and `ClassicGameOptionsPanel`); the session action after Yes on
+      Restart, Return to Menu and Quit, taken and dropped with a `GD.Print` because it needs the
+      runner (step 2); the other HUD keys (GUI toggle, full map, heart, portal and fight
+      navigation); `AllowOptionsKey`, passed true, where Unity's scripted camera path holds the key
+      back (step 2); `capturingKey`, passed false until the controls page; the settings file, so
+      the default bindings apply; the open and close sounds 0x139 and 0x13A; and the minimap corner
+      button that opens the menu in DK2 and Unity, the minimap not being ported. Not wired in
       Godot: sound and
-      speech, the Level6a torture-speech sink, the goto camera glide, the tabs inside
-      `HudModal`/options, scripted-view visibility (step 2). Remaining: `ClassicOptionsPanel`,
-      `ClassicGameOptionsPanel`,
+      speech, the Level6a torture-speech sink, the goto camera glide,
+      scripted-view visibility (step 2). Remaining: `ClassicGameOptionsPanel`,
       `ClassicSaveLoadPanel`, `ClassicFullMap`, `DungeonMinimap`,
       `ClassicHudScaling`, `ClassicBitmapText`, `MinimapFrameVisual`.
       The screen-size rule (rounded logical width over full height) is now `HudScaleLayout.Screen`;
@@ -118,11 +137,11 @@ group 2 is a list to audit, not a finding.
       which answers empty until that panel is ported. From the creature overview: the pickup
       and focus flow a column press starts (`DungeonRunner.Hud.cs` around lines 431-451:
       `CreatureOverview.Select`, the pickup preview, the hand and cursor feedback, the camera
-      focus), `HudModal`/options hiding, and `QueueHudInput`'s order and the possession/modal gate,
-      none wired in Godot, where a column press raises a pickup or focus nothing handles. From the
+      focus), and `QueueHudInput`'s order and the possession gate (the modal gate is
+      `ClassicHudControls.Modal`, wired in Godot), none wired in Godot, where a column press raises a pickup or focus nothing handles. From the
       creature query details: the query tool (select it, world click to query, which needs
       picking, right-click cancel, the stored-special and gold cancels), the camera follow and
-      turn (`ClassicCreatureQueryRules.FollowHeading`) and `HudModal` hiding, none wired in Godot.
+      turn (`ClassicCreatureQueryRules.FollowHeading`), none wired in Godot.
 - [ ] Move the behaviour into `DK2.Presentation` or the simulation, with tests; leave Unity a
       facade over it, as ADR-0805 did for the HUD.
 

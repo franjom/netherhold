@@ -87,7 +87,7 @@ namespace DK2.Unity
                     document.rootVisualElement.style.opacity = UnityEngine.UIElements.StyleKeyword.Null;
             _warmDocuments = null;
         }
-        private bool HudModal => _hudControls.OptionsVisible || _hudControls.FullMapVisible;
+        private bool HudModal => _hudControls.Modal;
 
         private void InitializeHudControls(string install, GameDatabase database, bool campaignLevel)
         {
@@ -356,21 +356,13 @@ namespace DK2.Unity
         {
             HudVisibility camera = _scriptedView.HudFor(cameraPreset);
             GameBindingInput keys = ClassicKeyBindings.Read(_gameSettings);
-            ClassicHudAction shortcut = keys.HudShortcut(new GameShortcutContext
-            {
-                OrdinaryInput = camera.AllowOrdinaryInput && !_hudControls.InputSuppressed,
-                AllowOptionsKey = allowOptionsKey,
-                OptionsVisible = _hudControls.OptionsVisible,
-                FullMapVisible = _hudControls.FullMapVisible,
-                EditingText = _hudControls.OptionsVisible && _hudControls.OptionsPage == ClassicOptionsPage.Save,
-                CapturingKey = _optionsPages.CapturingAction != null,
-            }, escapePressed: Input.GetKeyDown(KeyCode.Escape));
+            ClassicHudAction shortcut = keys.HudShortcut(
+                _hudControls.ShortcutContext(camera, allowOptionsKey, capturingKey: _optionsPages.CapturingAction != null),
+                escapePressed: Input.GetKeyDown(KeyCode.Escape));
             ApplyHudAction(shortcut);
             HudVisibility hud = CurrentHud;
-            _bottomPanel?.SetVisibility(new HudVisibility(hud.ShowNormalHud, hud.AllowOrdinaryInput && !HudModal));
-            _optionsPanel?.SetVisible(hud.ShowNormalHud && _hudControls.OptionsVisible
-                && _hudControls.OptionsPage != ClassicOptionsPage.Save && _hudControls.OptionsPage != ClassicOptionsPage.Load
-                && !_hudControls.GameOptionsVisible);
+            _bottomPanel?.SetVisibility(_hudControls.ModalInput(hud));
+            _optionsPanel?.SetVisible(hud.ShowNormalHud && _hudControls.OptionsMenuVisible);
             _gameOptionsPanel?.Show(hud.ShowNormalHud && _hudControls.GameOptionsVisible);
             _optionsPanel?.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
             _fullMap?.SetVisible(camera.ShowNormalHud && _hudControls.FullMapVisible);
@@ -399,18 +391,8 @@ namespace DK2.Unity
                 if (Input.GetMouseButtonDown(0))
                 {
                     ClassicOptionsAction action = _optionsPanel.ActionAt(Input.mousePosition);
-                    if (action == ClassicOptionsAction.ContinueGame) ApplyHudAction(ClassicHudAction.ToggleOptions);
-                    else if (action == ClassicOptionsAction.GameOptions) ApplyHudAction(ClassicHudAction.OpenGameOptions);
-                    else if (action == ClassicOptionsAction.LevelObjective) ApplyHudAction(ClassicHudAction.ShowObjective);
-                    else if (action == ClassicOptionsAction.Back) ApplyHudAction(ClassicHudAction.BackToOptions);
-                    else if (action == ClassicOptionsAction.RestartLevel) ApplyHudAction(ClassicHudAction.RestartLevel);
-                    else if (action == ClassicOptionsAction.EndGame) ApplyHudAction(ClassicHudAction.EndGame);
-                    else if (action == ClassicOptionsAction.ReturnToMenu) ApplyHudAction(ClassicHudAction.ReturnToMenu);
-                    else if (action == ClassicOptionsAction.QuitGame) ApplyHudAction(ClassicHudAction.QuitGame);
-                    else if (action == ClassicOptionsAction.Confirm) ApplyHudAction(ClassicHudAction.Confirm);
-                    else if (action == ClassicOptionsAction.Cancel) ApplyHudAction(ClassicHudAction.CancelConfirmation);
-                    else if (action == ClassicOptionsAction.Save) { _saves.Refresh(); ApplyHudAction(ClassicHudAction.OpenSave); }
-                    else if (action == ClassicOptionsAction.Load) { _saves.Refresh(); ApplyHudAction(ClassicHudAction.OpenLoad); }
+                    if (action is ClassicOptionsAction.Save or ClassicOptionsAction.Load) _saves.Refresh();
+                    ApplyHudAction(OptionsHud.HudAction(action));
                     ClassicSessionAction session = _hudControls.TakeSessionAction();
                     if (session == ClassicSessionAction.Restart)
                         _pendingSession = GameSessionRequest.Restart(GameSessionRequest.Campaign(levelName, frontEndReturnPage));
@@ -540,7 +522,7 @@ namespace DK2.Unity
                 && BottomPanelFlash.ClearedByUse(flash, ActiveTool, selectedRoomId, _panelChoice, _bottomPanel.OpenPanel))
                 _scriptedView.ClearFlash(flash);
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
-            _bottomPanel.GamePaused = _hudControls.OptionsVisible;
+            _bottomPanel.GamePaused = _hudControls.TicksPaused;
             _bottomPanel.Draw();
             _fullMap.Capture(World, _simulation.Database, new PlayerId((byte)viewingPlayerId));
             DrawSavePanel(frontEnd: false);
@@ -561,10 +543,10 @@ namespace DK2.Unity
                 if (_optionsPages != null) _soundPlayer?.Play(_optionsPages.Sounds);
                 _soundPlayer?.QueueSpeech(_messageView.Speech);
             }
-            _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
+            _messageTabs.Draw(_hudControls.ModalInput(CurrentHud), _bottomPanel.Collapsed,
                 HudIndicatorSnapshot.Capture(World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)),
                 _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
-            _battleTab.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
+            _battleTab.Draw(_hudControls.ModalInput(CurrentHud), _bottomPanel.Collapsed,
                 _musicObserver == null ? default : BattleTabView.Capture(World, _simulation.Database, new PlayerId((byte)viewingPlayerId), _musicObserver.Battles),
                 (long)(Time.realtimeSinceStartupAsDouble * 1000));
             StartBattleFlyIn();

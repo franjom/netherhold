@@ -28,6 +28,35 @@ public sealed class ClassicHudControls
     private ClassicSessionAction _sessionAction;
     public bool GameOptionsVisible => OptionsVisible && OptionsPage == ClassicOptionsPage.GameOptions;
     public bool ObjectiveVisible => OptionsVisible && OptionsPage == ClassicOptionsPage.Objective;
+    /// <summary>Whether the options menu's own page shows (<see cref="OptionsHud"/>): open, and not on the pages other
+    /// panels draw (save, load, game options).</summary>
+    public bool OptionsMenuVisible => OptionsVisible && OptionsPage != ClassicOptionsPage.Save
+        && OptionsPage != ClassicOptionsPage.Load && !GameOptionsVisible;
+    /// <summary>A panel that holds the screen is open (the options menu or the full map): the other panels and the world
+    /// take no ordinary input.</summary>
+    public bool Modal => OptionsVisible || FullMapVisible;
+    /// <summary>The save page's name field takes the keys, so no HUD shortcut fires.</summary>
+    public bool EditingText => OptionsVisible && OptionsPage == ClassicOptionsPage.Save;
+    /// <summary>No turn runs, and none accrues, while the options menu is open; the bottom panel shows the game paused.</summary>
+    public bool TicksPaused => OptionsVisible;
+
+    /// <summary>A panel's visibility under <see cref="Modal"/>: shown as <paramref name="hud"/> says, taking input only
+    /// while nothing modal is open.</summary>
+    public HudVisibility ModalInput(HudVisibility hud) => new(hud.ShowNormalHud, hud.AllowOrdinaryInput && !Modal);
+
+    /// <summary>The context the HUD shortcuts are read in (<see cref="GameBindingInput.HudShortcut"/>).</summary>
+    /// <param name="camera">The camera's visibility (the scripted view's), before this state's own gates.</param>
+    /// <param name="allowOptionsKey">False while a scripted camera path plays, which holds the options key back.</param>
+    /// <param name="capturingKey">A key binding is being captured on the controls page.</param>
+    public GameShortcutContext ShortcutContext(HudVisibility camera, bool allowOptionsKey, bool capturingKey) => new()
+    {
+        OrdinaryInput = camera.AllowOrdinaryInput && !InputSuppressed,
+        AllowOptionsKey = allowOptionsKey,
+        OptionsVisible = OptionsVisible,
+        FullMapVisible = FullMapVisible,
+        EditingText = EditingText,
+        CapturingKey = capturingKey,
+    };
     public ClassicSessionAction TakeSessionAction()
     {
         ClassicSessionAction action = _sessionAction;

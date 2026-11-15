@@ -132,26 +132,26 @@ These are entry points, not a new priority order.
   ambience listener in first person. Next: one editor run, then owner play. Evidence and remake choices:
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
-- Godot adapter (ADR-0805, ADR-0810): not wired are the 3D station scenery, movies, sound and keyboard.
+- Godot adapter (ADR-0805, ADR-0810): not wired are the 3D station scenery, movies, sound and most keys (`ClassicKeyboard` reads only the options key's scan code so far).
   The road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md); its step 1a is
-  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them). Step 1b has six
+  done (the install loaders and camera paths live in `DK2.Presentation`, both adapters call them). Step 1b has eight
   panels: the in-game bottom panel, the resource strip (`ClassicResourceHud` over `KeeperResourceHud`), the message tabs
   (`ClassicMessageTabs` over `MessageTabsHud`), the hover HUD (`ClassicHoverHud`: wooden bar, status line, tooltip) and the creature
-  overview (`ClassicCreatureOverview` over `CreatureOverviewHud`) and the creature query details (`ClassicCreatureQueryPanel` over `CreatureQueryHud`) run over a live
+  overview (`ClassicCreatureOverview` over `CreatureOverviewHud`) and the creature query details (`ClassicCreatureQueryPanel` over `CreatureQueryHud`), the battle tab (`ClassicBattleTab` over `BattleTabHud`) and the in-game options menu (`ClassicOptionsPanel` over `OptionsHud`; Escape opens it and the level pauses) run over a live
   Level1 simulation in the test scene `godot/DK2.Godot/InGameHud.tscn` (`InGameHud`, `ClassicBottomPanel`; the main menu
   stays the default scene). The strip matched a Unity capture by eye at 1920x1080; the open message panel matches Unity's probe capture. Their shared logic (`InstallBottomPanelArt`,
   `BottomPanelHud.OpenAtLevelStart`, `PlayerInputTranslator.ChooseStoredSpecial`, `TickPacer`, `CampaignLevelData`, `HudScaleLayout.Screen`,
   `MessageTextTables`, `PlayerNames`, `MessageTabsView.LocationOncePerTick`, `HudHoverText`,
-  `InstallCreatureOverviewArt`, the overview's modifier chord in `CreatureOverviewHud.TryPress`, `CreatureQueryView`, `InstallClassicCreatureNames`) lives in
+  `InstallCreatureOverviewArt`, the overview's modifier chord in `CreatureOverviewHud.TryPress`, `CreatureQueryView`, `InstallClassicCreatureNames`, `OptionsHud.HudAction`, `ClassicHudControls.Modal` and `ShortcutContext`) lives in
   `DK2.Presentation`. Hover text from the strip, bottom panel and tabs shows in Godot (Movie Maker 1920x1080 frames: mana, gold, the Rooms tab, a Hatchery slot, Review Objective, a message tab); no Unity hover capture exists to compare. The overview's art and layout match Unity's 1024x768 capture by eye at 1920x1080; Movie Maker frames show the Imp portrait's status text, the Jobs selector's tooltip and a click switching to Jobs mode (its page strips look greyer than Unity's, probably the disabled tint for a single page at that width, unverified). The query details show "Shintaro the Imp. Blood Group: BA. Current Wage: 0. Gold Held: 0." above the bottom panel in a Movie Maker frame (no Unity capture to compare); the scene opens them on the viewer's first creature only with `--query-first-creature`, since Godot has no world picking. `HudSector` (triangle fan) and additive blend both draw in Godot (research-pie sweep 1..99% and
   additive hover and sparkles captured); no Unity hover or sparkle capture exists to compare pixels. Not wired in Godot,
   still Unity runner logic (plan step 2): HUD hiding during the opening camera path, the resource flash, the flash-button hint, the tool state
   after choosing a panel slot, right-click navigation (needs a camera); for the tabs also sound and speech, the Level6a torture-speech
-  sink, the goto camera glide and the tabs inside `HudModal`/options; for the hover HUD world hover (things and tiles, needs the world and a camera), the
+  sink and the goto camera glide; for the options menu (Movie Maker frames with synthesized Escape and clicks show the root, objective and Restart confirmation pages; a real key or click is unverified; test-scene argument `--open-options [Entry]`) Save, Load and Game Options (greyed, the later panels), the session action after Yes on Restart, Return to Menu and Quit (dropped; needs the runner), the other HUD keys, `AllowOptionsKey` (passed true), the controls page's key capture, the settings file (default bindings) and the open and close sounds 0x139 and 0x13A; for the hover HUD world hover (things and tiles, needs the world and a camera), the
   hand cursor's resolution (Godot uses the small pointing finger's reach, valid only while nothing is held), and the minimap hover text (it
   answers empty until ported); for the battle tab (`ClassicBattleTab`, `BattleTabHud`; the blades, the cancel and the alarm, hover text from
   menu 43) only the cancel's left click is wired, the blades' zoom, the glides and the fly-in need the camera (a Movie Maker capture with
-  `--stage-battle` shows the blades cycling through four frames; hover and press with a real cursor, and the cancel and alarm in Godot, are unverified); for the creature overview the pickup and focus a column press asks for (needs the hand, cursor feedback and camera); for the query details the query tool (world click, right-click and stored-special/gold cancels), the camera follow and turn, and `HudModal` hiding. Known bug in both adapters' `MessageTextTables`: the briefing file
+  `--stage-battle` shows the blades cycling through four frames; hover and press with a real cursor, and the cancel and alarm in Godot, are unverified); for the creature overview the pickup and focus a column press asks for (needs the hand, cursor feedback and camera); for the query details the query tool (world click, right-click and stored-special/gold cancels), and the camera follow and turn. Known bug in both adapters' `MessageTextTables`: the briefing file
   name for secret levels and My Pet Dungeon is wrong, so their objective panels show no briefing lines ([Q854](research/open-questions.md);
   fix in plan step 1c). Next: the remaining group-1 panels, one per change.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).

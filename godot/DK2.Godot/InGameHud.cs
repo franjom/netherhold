@@ -17,12 +17,13 @@ namespace DK2.GodotAdapter;
 /// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
 /// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported (plan step
 /// 1b): the resource strip, the bottom panel, the creature overview, the creature query details, the message tabs, the
-/// battle tab and the hover HUD (<see cref="HudHoverText"/>). Not wired, as their logic is still Unity's runner (step 2) or
-/// needs the 3D world (step 3): the overview's pickup and focus, the query tool, the <c>ScriptedViewDirector</c>, the
-/// tool a selection sets, every camera glide (navigation, a message's goto, the battle tab's zoom and glides), the battle
-/// fly-in, the options menu, sound, world hover and the hand cursor. User arguments after <c>--</c>: <c>--level
+/// battle tab, the hover HUD (<see cref="HudHoverText"/>) and the options menu (<see cref="ClassicHudControls"/>, opened by
+/// the options key; while it is open the level pauses and the other panels take no input, as Unity's <c>HudModal</c>).
+/// Not wired (logic still in Unity's runner, or needing the 3D world): the list is in docs/plans/2026-11-15-godot-migration.md.
+/// User arguments after <c>--</c>: <c>--level
 /// &lt;name&gt;</c>, <c>--seed &lt;n&gt;</c>, <c>--query-first-creature</c> (queries the viewer's first creature, for the
-/// query tool's world click) and <c>--stage-battle</c> (<see cref="StageBattle"/>).</summary>
+/// query tool's world click), <c>--stage-battle</c> (<see cref="StageBattle"/>) and <c>--open-options [entry]</c> (opens
+/// the options menu, then presses a <see cref="ClassicOptionsAction"/> entry by name, such as <c>RestartLevel</c>).</summary>
 public partial class InGameHud : Node, IHudHoverSources
 {
     /// <summary>DungeonRunner's <c>maxTicksPerFrame</c> in the Dungeon scene.</summary>
@@ -32,7 +33,11 @@ public partial class InGameHud : Node, IHudHoverSources
     private readonly List<PlayerCommand> _pending = new();
     private readonly PlayerInputTranslator _input = new();
     private readonly TickPacer _pacer = new();
-    private readonly int _gameSpeed = new GameSettings().GameSpeed;
+    /// <summary>The default settings: the game speed and the key bindings (no settings file is read yet).</summary>
+    private readonly GameSettings _settings = new();
+    private readonly ClassicKeyboard _keyboard = new();
+    /// <summary>The options menu's pages and the GUI state, as Unity's runner keeps them.</summary>
+    private readonly ClassicHudControls _hudControls = new();
     private readonly PlayerId _viewer = PlayerIds.FirstKeeper;
     private GameSimulation? _simulation;
     private InstallHudSources? _sources;
@@ -53,6 +58,7 @@ public partial class InGameHud : Node, IHudHoverSources
     /// <summary>The battle records the battle tab reads (Unity's runner keeps it for the music; no music is played here).</summary>
     private MusicWorldObserver? _battles;
     private ClassicBattleTab? _battleTab;
+    private ClassicOptionsPanel? _options;
     /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
     private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
@@ -130,6 +136,12 @@ public partial class InGameHud : Node, IHudHoverSources
         _battleTab.Open(_art.Image, _art.Text);
         _battleTab.Clicked += BattleTabClicked;
         AddChild(_battleTab);
+        // After every panel it covers, so it draws over them and takes the mouse first, as Unity's sorting order 15. Its
+        // save, load and game options entries stay greyed: those pages are other panels, not ported yet.
+        _options = new ClassicOptionsPanel { Name = "Options" };
+        _options.Open(_sources.Text, _art.Font);
+        _options.Pressed += OptionsPressed;
+        AddChild(_options);
         // Its bar's canvas draws under the panels and its text's over them by z index (ClassicHoverHud), not tree order.
         _hover = new ClassicHoverHud { Name = "HoverHud" };
         _hover.Open(_sources);
@@ -145,6 +157,16 @@ public partial class InGameHud : Node, IHudHoverSources
                 break;
             }
         if (Array.IndexOf(args, "--stage-battle") >= 0) StageBattle(_simulation);
+        if (Array.IndexOf(args, "--open-options") >= 0)
+        {
+            ApplyHudAction(ClassicHudAction.ToggleOptions);
+            // Only an entry the menu takes a press on: an unsupported one (save, load, game options) is ignored, as a click.
+            if (Enum.TryParse(Argument(args, "--open-options"), out ClassicOptionsAction entry))
+            {
+                if (_options.Supported(entry)) OptionsPressed(entry);
+                else GD.PushWarning("DK2.Godot: --open-options ignores " + entry + ", which the menu does not support.");
+            }
+        }
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture));
     }
 
@@ -153,33 +175,52 @@ public partial class InGameHud : Node, IHudHoverSources
         if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
             || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
-            || _battles == null || _battleTab == null) return;
+            || _battles == null || _battleTab == null || _options == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         // Once per settled turn, before the HUD draws, as DungeonRunner.UpdateWorldSound captures it.
         _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
+        // The options key, as DungeonRunner.UpdateHudControls reads it. Only the menu's toggle is applied: the other HUD
+        // keys' panels and camera are not ported. AllowOptionsKey is always true: the scripted camera path that holds the
+        // key back (DungeonRunner's pathWasPlaying) is not ported (plan step 2). No key is being captured: the controls
+        // page is not ported.
+        var visibility = new HudVisibility(true, true);
+        ClassicHudAction shortcut = _keyboard.Read(_settings).HudShortcut(
+            _hudControls.ShortcutContext(visibility, allowOptionsKey: true, capturingKey: false), _keyboard.EscapePressed);
+        _keyboard.EndFrame();
+        if (shortcut == ClassicHudAction.ToggleOptions) ApplyHudAction(shortcut);
+        bool modal = _hudControls.Modal;
+        _panel.SetVisibility(_hudControls.ModalInput(visibility));
+        _options.SetVisible(visibility.ShowNormalHud && _hudControls.OptionsMenuVisible);
+        _options.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         long milliseconds = (long)(_elapsed * 1000);
         // displayHealth follows the normal HUD's visibility in Unity; the scripted view that hides it is not wired.
         _resourceFacts = _resourceView.Capture(_simulation.World);
         _resources.Draw(_resourceFacts, unchecked((uint)milliseconds));
         _view.Capture(_simulation.World);
+        _model.GamePaused = _hudControls.TicksPaused;
         _panel.Draw(milliseconds);
         _messageView.Capture(_simulation.World, milliseconds);
         // No sound player yet: drop the requests so they do not pile up.
         _model.Sounds.Clear(); _view.Sounds.Clear(); _messageView.Sounds.Clear(); _messageView.Speech.Clear();
-        // Visible and taking input: the scripted view and the options menu that would hide or hold the tabs are not wired.
-        var visibility = new HudVisibility(true, true);
-        _messages.Draw(visibility, _model.Collapsed,
-            HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer));
+        _hudControls.Sounds.Clear();
+        // Visible; taking input unless the options menu holds it. The scripted view that would hide or hold the tabs is
+        // not wired.
+        HudVisibility tabs = _hudControls.ModalInput(visibility);
+        _messages.Draw(tabs, _model.Collapsed,
+            HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer),
+            _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
         // After the tabs, as DungeonRunner draws it. The fly-in it starts (BattleFlyIn, the reward tablet) is not ported.
-        _battleTab.Draw(visibility, _model.Collapsed,
+        _battleTab.Draw(tabs, _model.Collapsed,
             BattleTabView.Capture(_simulation.World, _simulation.Database, _viewer, _battles.Battles), milliseconds);
-        // After the battle tab, as DungeonRunner draws it; the options menu and full map that would close it are not wired.
+        // After the battle tab, as DungeonRunner draws it; the options menu closes it.
         _overviewView.Capture(_simulation.World);
-        _overview.Draw(visibility, _model.PanelArea(BottomPanelCategory.Creatures));
-        // Last, as DungeonRunner.DrawHudControls captures and draws it; HudModal, which would hide it, is not wired.
-        _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility);
+        _overview.Draw(visibility, modal ? null : _model.PanelArea(BottomPanelCategory.Creatures));
+        // After the overview, as DungeonRunner.DrawHudControls draws it (the minimap and full map are not ported).
+        _options.Draw();
+        // Last, as DungeonRunner.DrawHudControls captures and draws it; the options menu hides it.
+        _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility, modal);
         // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; elsewhere
         // nothing, because world hover needs the 3D world.
         _hover.SetVisibility(visibility, milliseconds);
@@ -190,7 +231,9 @@ public partial class InGameHud : Node, IHudHoverSources
         _hover.Draw(hover, _pointer, _cursorReach, milliseconds);
 
         // Clamped as Unity's runner clamps it (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap.
-        _pacer.Accrue(Math.Min(delta, MaximumFrameSeconds), 1f, _gameSpeed);
+        // DungeonRunner's tick gate: no turn runs, and none accrues, while it holds.
+        if (_hudControls.TicksPaused) return;
+        _pacer.Accrue(Math.Min(delta, MaximumFrameSeconds), 1f, _settings.GameSpeed);
         int ticks = _pacer.Take(MaxTicksPerFrame);
         InputFrame first = TickPacer.FirstInput(ticks, _pending);
         if (first.Commands != null) _pending.Clear();
@@ -219,10 +262,30 @@ public partial class InGameHud : Node, IHudHoverSources
 
     /// <summary>Menu 43's presses, as DungeonRunner.BattleTabClicked maps them (<see cref="BattleTabView.Action"/>). Only the
     /// cancel's left click acts here; the zoom and the two glides need the camera (plan step 3), and the runner's
-    /// suppressed-input and HudModal gate is not wired.</summary>
+    /// suppressed-input gate is not wired (the modal gate is <see cref="ClassicHudControls.ModalInput"/> on the tabs' visibility).</summary>
     private void BattleTabClicked(BattleTabButton button, int mouse)
     {
         if (BattleTabView.Action(button, mouse) == BattleTabAction.CancelCallToArms) _pending.Add(new RemoveCallToArmsCommand(_viewer));
+    }
+
+    /// <summary>DungeonRunner.ApplyHudAction for the actions this scene applies: the options key and the options menu's
+    /// entries. The camera's and the minimap's actions (navigation, zoom, the query and sell corners) are not applied.</summary>
+    private void ApplyHudAction(ClassicHudAction action)
+    {
+        if (action == ClassicHudAction.None || _hudControls.InputSuppressed) return;
+        _input.CancelPointerGesture(); _panel?.CancelPointerGesture();
+        _hudControls.Apply(action);
+    }
+
+    /// <summary>A press on an options menu entry, as DungeonRunner.QueueHudInput applies it
+    /// (<see cref="OptionsHud.HudAction"/>). The session a confirmed restart, return or quit asks for is taken and dropped:
+    /// loading a level and leaving the game are the runner's (plan step 2). Save, Load and Game Options are unsupported
+    /// here, so the menu never raises them and <c>--open-options</c> refuses them.</summary>
+    private void OptionsPressed(ClassicOptionsAction action)
+    {
+        ApplyHudAction(OptionsHud.HudAction(action));
+        ClassicSessionAction session = _hudControls.TakeSessionAction();
+        if (session != ClassicSessionAction.None) GD.Print("DK2.Godot: the options menu's ", session.ToString(), " is not wired yet.");
     }
 
     /// <summary>DungeonRunner.SelectPanelChoice's pointer resets and its query clear; the tool it then sets lives in the
@@ -243,13 +306,14 @@ public partial class InGameHud : Node, IHudHoverSources
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
-    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap, the options and full
-    /// map are not ported).</summary>
+    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own (the minimap and full map are not
+    /// ported).</summary>
     private bool PointerOverHud(Vector2 position, HudVisibility visibility) =>
         (_hover != null && _hover.ContainsPointer(position)) || (_resources != null && _resources.ContainsPointer(position))
         || (_panel != null && _panel.ContainsPointer(position)) || (_messages != null && _messages.ContainsPointer(position))
         || (_battleTab != null && _battleTab.ContainsPointer(position))
         || (_overview != null && _overview.ContainsPointer(position))
+        || (_options != null && _options.ContainsPointer(position))
         || (_queryPanel != null && _queryView != null && _queryView.Target != CreatureQueryTarget.None
             && _queryPanel.ContainsPointer(position, visibility));
 
@@ -274,8 +338,16 @@ public partial class InGameHud : Node, IHudHoverSources
         return null;
     }
 
+    /// <summary>Every key event reaches the keyboard, as Unity's <c>Input.GetKey</c> reads the keys whatever the UI holds.</summary>
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventKey key) _keyboard.Feed(key);
+    }
+
     public override void _Notification(int what)
     {
+        // A window without focus misses the releases.
+        if (what == NotificationApplicationFocusOut) { _keyboard.ReleaseAll(); return; }
         // Unity's Input.mousePosition leaves the screen with the pointer; Godot stops reporting it instead.
         if (what == NotificationWMMouseExit) { _pointerInWindow = false; return; }
         if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
@@ -286,7 +358,8 @@ public partial class InGameHud : Node, IHudHoverSources
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
         }
         if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
-        _battleTab = null; _battles = null;
+        if (_options != null) _options.Pressed -= OptionsPressed;
+        _battleTab = null; _battles = null; _options = null;
         _art?.Dispose(); _sources?.Dispose();
         _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _queryPanel = null; _queryView = null;
         _panel = null; _model = null; _view = null; _messages = null; _messageView = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;

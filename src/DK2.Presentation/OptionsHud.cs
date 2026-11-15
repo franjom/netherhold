@@ -44,7 +44,29 @@ public sealed class OptionsHud
     public void SetSupported(ClassicOptionsAction action, bool supported)
     { if (action != ClassicOptionsAction.None) _supported[(int)action] = supported; }
 
+    /// <summary>Whether an entry with this action takes a press; never for <see cref="ClassicOptionsAction.None"/>.</summary>
+    public bool Supported(ClassicOptionsAction action) => action != ClassicOptionsAction.None && _supported[(int)action];
+
     public void SetVisible(bool visible) => _visible = visible;
+
+    /// <summary>The <see cref="ClassicHudControls"/> action a press on an entry applies; none for a title or nothing.
+    /// Save and Load open their pages; the host also refreshes its save list for them.</summary>
+    public static ClassicHudAction HudAction(ClassicOptionsAction action) => action switch
+    {
+        ClassicOptionsAction.ContinueGame => ClassicHudAction.ToggleOptions,
+        ClassicOptionsAction.GameOptions => ClassicHudAction.OpenGameOptions,
+        ClassicOptionsAction.LevelObjective => ClassicHudAction.ShowObjective,
+        ClassicOptionsAction.Back => ClassicHudAction.BackToOptions,
+        ClassicOptionsAction.RestartLevel => ClassicHudAction.RestartLevel,
+        ClassicOptionsAction.EndGame => ClassicHudAction.EndGame,
+        ClassicOptionsAction.ReturnToMenu => ClassicHudAction.ReturnToMenu,
+        ClassicOptionsAction.QuitGame => ClassicHudAction.QuitGame,
+        ClassicOptionsAction.Confirm => ClassicHudAction.Confirm,
+        ClassicOptionsAction.Cancel => ClassicHudAction.CancelConfirmation,
+        ClassicOptionsAction.Save => ClassicHudAction.OpenSave,
+        ClassicOptionsAction.Load => ClassicHudAction.OpenLoad,
+        _ => ClassicHudAction.None,
+    };
 
     public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation)
     {

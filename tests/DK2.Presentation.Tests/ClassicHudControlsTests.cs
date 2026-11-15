@@ -206,4 +206,87 @@ public sealed class ClassicHudControlsTests
         controls.Apply(ClassicHudAction.ToggleFullMap);
         Assert.True(controls.Visibility(new(true,true)).ShowNormalHud);
     }
+
+    [Fact]
+    public void TheOptionsMenuShowsOnlyOnItsOwnPagesWhileOpen()
+    {
+        var controls = new ClassicHudControls();
+        Assert.False(controls.OptionsMenuVisible);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.True(controls.OptionsMenuVisible);
+        controls.Apply(ClassicHudAction.RestartLevel);
+        Assert.True(controls.OptionsMenuVisible);   // the confirmation page is the menu's own
+        controls.Apply(ClassicHudAction.CancelConfirmation);
+        controls.Apply(ClassicHudAction.ShowObjective);
+        Assert.True(controls.OptionsMenuVisible);   // so is the objective page's Continue and Back
+        controls.Apply(ClassicHudAction.BackToOptions);
+        controls.Apply(ClassicHudAction.EndGame);
+        Assert.Equal(ClassicOptionsPage.Exit, controls.OptionsPage);
+        Assert.True(controls.OptionsMenuVisible);   // the exit page
+        controls.Apply(ClassicHudAction.ReturnToMenu);
+        Assert.Equal((ClassicOptionsPage.Confirmation, ClassicSessionAction.ReturnToMenu), (controls.OptionsPage, controls.Confirmation));
+        Assert.True(controls.OptionsMenuVisible);   // and the confirmation reached from it
+        foreach (ClassicHudAction other in new[] { ClassicHudAction.OpenSave, ClassicHudAction.OpenLoad, ClassicHudAction.OpenGameOptions })
+        {
+            controls.Apply(ClassicHudAction.BackToOptions);
+            controls.Apply(other);
+            Assert.True(controls.OptionsVisible);
+            Assert.False(controls.OptionsMenuVisible);
+        }
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.False(controls.OptionsMenuVisible);
+    }
+
+    [Fact]
+    public void TheOptionsMenuAndTheFullMapAreModalAndHoldPanelInputButNotTheirShowing()
+    {
+        var controls = new ClassicHudControls();
+        var shown = new HudVisibility(true, true);
+        Assert.False(controls.Modal);
+        Assert.Equal(shown, controls.ModalInput(shown));
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.True(controls.Modal);
+        Assert.Equal(new HudVisibility(true, false), controls.ModalInput(shown));
+        Assert.Equal(new HudVisibility(false, false), controls.ModalInput(new HudVisibility(false, true)));
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+        Assert.True(controls.Modal);
+        Assert.Equal(new HudVisibility(true, false), controls.ModalInput(shown));
+    }
+
+    [Fact]
+    public void TurnsPauseOnlyWhileTheOptionsMenuIsOpen()
+    {
+        var controls = new ClassicHudControls();
+        Assert.False(controls.TicksPaused);
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+        Assert.False(controls.TicksPaused);   // the full map does not pause
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.True(controls.TicksPaused);
+        controls.Apply(ClassicHudAction.OpenGameOptions);
+        Assert.True(controls.TicksPaused);   // on every page of it
+    }
+
+    [Fact]
+    public void TheShortcutContextCarriesTheStateAndTextIsEditedOnlyOnTheSavePage()
+    {
+        var controls = new ClassicHudControls();
+        GameShortcutContext closed = controls.ShortcutContext(new HudVisibility(true, true), allowOptionsKey: true, capturingKey: false);
+        Assert.Equal(new GameShortcutContext { OrdinaryInput = true, AllowOptionsKey = true }, closed);
+        Assert.False(controls.ShortcutContext(new HudVisibility(true, false), true, false).OrdinaryInput);
+        Assert.False(controls.ShortcutContext(new HudVisibility(true, true), allowOptionsKey: false, false).AllowOptionsKey);
+        Assert.True(controls.ShortcutContext(new HudVisibility(true, true), true, capturingKey: true).CapturingKey);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.False(controls.EditingText);
+        controls.Apply(ClassicHudAction.OpenLoad);
+        Assert.False(controls.EditingText);
+        controls.Apply(ClassicHudAction.BackToOptions);
+        controls.Apply(ClassicHudAction.OpenSave);
+        Assert.True(controls.EditingText);
+        GameShortcutContext saving = controls.ShortcutContext(new HudVisibility(true, true), true, false);
+        Assert.True(saving.OptionsVisible && saving.EditingText && !saving.FullMapVisible);
+        controls.UpdateResult(new HudResultState(HasResult: true));
+        Assert.False(controls.ShortcutContext(new HudVisibility(true, true), true, false).OrdinaryInput);   // input suppressed
+    }
 }

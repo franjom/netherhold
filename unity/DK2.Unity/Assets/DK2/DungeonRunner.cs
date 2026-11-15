@@ -987,7 +987,7 @@ namespace DK2.Unity
 
             int ticks = 0;
             InputFrame firstInput = InputFrame.Empty;
-            if (speed > 0f && !_hudControls.OptionsVisible)
+            if (speed > 0f && !_hudControls.TicksPaused)
             {
                 _drawLag.Observe(_tickPacer.Accrue(elapsed, speed, _gameSettings.GameSpeed));
                 ticks = _tickPacer.Take(maxTicksPerFrame);

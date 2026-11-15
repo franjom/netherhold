@@ -8,7 +8,7 @@ movies, sound and keyboard; the model disables the campaign, save and movie butt
 pages open but their controls are inert. Like Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
-Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Seven panels
+Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Eight panels
 are there so far: the hover HUD (`ClassicHoverHud` over `HoverHud`: the wooden bar under the other panels, the status
 line and the delayed tooltip over them), which shows what the shared `HudHoverText` picks from the panels under the
 pointer (the resource strip, the bottom panel, the creature overview, the message tabs, the battle tab; world hover needs
@@ -32,8 +32,8 @@ tabs above it (`ClassicMessageTabs` over `MessageTabsHud` and `MessageTabsView`:
 click opening one in the message panel, a right click dismissing it, the Review Objective button's objective panel, the
 level's indicators). The level's scripted view (the shared `ScriptedViewDirector`: opening camera path, HUD hiding,
 FLASH_BUTTON, the resource flash), the tool a selection sets, camera glides (a message's goto button shows but moves
-nothing), the options menu and sound are not wired, because the code that drives them is still in Unity's runner (plan
-step 2). The level start (`CampaignLevelData`), tick pacing (`TickPacer`), the panel's opening state, the stored-special
+nothing) and sound are not wired, because the code that drives them is still in Unity's runner (plan
+step 2). The options menu (`ClassicOptionsPanel` over `OptionsHud`) opens on Escape (`ClassicKeyboard` maps Godot physical keys to DirectInput scan codes, the inverse of Unity's `ClassicKeyBindings.Key`; the two tables change together) and pauses the level; its root, objective, exit and confirmation pages work, Save, Load and Game Options are greyed, and the session action after a confirmed restart, return or quit is dropped. `--open-options [Entry]` opens it at start and refuses an unsupported entry. The level start (`CampaignLevelData`), tick pacing (`TickPacer`), the panel's opening state, the stored-special
 click, the message string tables (`MessageTextTables`), player names (`PlayerNames`) and which panel's hover text wins
 (`HudHoverText`), the creature overview's install art (`InstallCreatureOverviewArt`), the query target and its details
 (`CreatureQueryView`), the creature names it shows (`InstallClassicCreatureNames`), and the battle tab's place, hover
@@ -41,7 +41,7 @@ text and click actions (`BattleTabView.MenuTop`, `BattleTabHoverText`, `BattleTa
 `DK2.Presentation`. Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
-`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab).
+`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab, `--open-options [Entry]` to open the options menu at an entry).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
 
 | File | Role |
