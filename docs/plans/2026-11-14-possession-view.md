@@ -115,8 +115,8 @@ Seen in the original by the owner on 2026-11-15 (possession-client.md section 6b
 screenshots) and since built: the roof over every open tile (`TerrainCeiling`, drawn by
 Unity's `TerrainCeilingChunks`), the very wide field of view (there is no warp:
 possession-warp.md), full-height walls whatever the High Walls option says, and the
-death view. Read but not built: the distance fade to black (possession-warp.md section
-4, a shader term per engine) and the possession-only set of visible tiles. Not built:
+death view. The distance fade to black is a tested rule (`PossessionFade`) that no
+adapter applies yet. Read but not built: the possession-only set of visible tiles. Not built:
 the possession HUD. None of it has been seen running.
 
 Remake choices to check in play: one host pixel of mouse travel is one unit of DK2's
