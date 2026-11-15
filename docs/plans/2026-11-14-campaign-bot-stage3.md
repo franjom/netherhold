@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Follow AGENTS.md's reviewer/documenter passes before commits.
 
 **Status:** execution plan, 2026-11-14, revised the same day after two adversarial reviews;
-approved by the owner on 2026-11-14. Tasks 0a-3b are built; Task 4 is under way, one row per branch (built: each own creature's level, petals and mood).
+approved by the owner on 2026-11-14. Tasks 0a-3b are built; Task 4 is under way, one row per branch (built: each own creature's level, petals and mood; every offered spell and `CastSpell`).
 **Goal:** grow the Level 1 campaign player into a bot that needs no AI model and wins every
 campaign level the simulation can complete, level by level as each becomes playable, from
 player-visible observation and normal commands only.
@@ -340,11 +340,11 @@ replay tests updated.
 | Addition | Why | Source of truth |
 |---|---|---|
 | Door and Trap offers in `PlayerOffers` | the panel shows them; `CaptureOffers` keeps only Room and Spell today | `BottomPanelChoiceKind.Door/Trap` |
-| Every offered spell, not only Create Imp | spells the level gives | the Spell panel |
+| Every offered spell, not only Create Imp | spells the level gives | the Spell panel. **Built 2026-11-15** |
 | `PlaceDoor`, `PlaceTrap` actions | defend a route | the panel's build intents |
-| `CastSpell(spell, target)` | offered spells | the existing spell intent path |
+| `CastSpell(spell, target)` | offered spells | the existing spell intent path. **Built 2026-11-15** |
 | Each own creature's level (1-10), health in petals and mood (happy, unhappy, angry) | the status flower shows them (`status-flowers.md`: H-00..H-05, SL-01..SL-10, SM-*) | the creature's flower. **Built 2026-11-15** |
-| `CastSpell(Heal, creature)` | heal a creature in the Pit | the spell panel and the existing spell intent path |
+| `CastSpell(Heal, creature)` | heal a creature in the Pit | the spell panel and the existing spell intent path. **Built 2026-11-15**, as a creature spell of `CastSpell`; the Pit routine is not |
 
 **The Combat Pit routine (owner direction, 2026-11-14).** Once the rows above exist: creatures below
 `CombatPitMaxExperienceLevel` (variable 192, ships 8; `combat-pit.md`) are dropped into an owned Combat Pit;
@@ -359,11 +359,35 @@ synthetic observations; measured on the ladder like Task 2.
 health, one fewer per quarter lost (`StatusFlowerRules.Ring`, `0x00596EB0`); mood is the band `0x00596410` reads,
 Content shown as Happy. A creature whose flower never shows (held, joining, an own Horny;
 `StatusFlowerRules.NeverShows`, `0x0048E830`) has level 0, 0 petals and no mood: unknown.
-`PlayerObservation.SchemaVersion` is 2, information only (journal header `player.observation.schema`, read by
-nothing; older journals replay). `DK2.AI.Tests` 557, `DK2.Simulation.Tests` 5472, `DK2.Presentation.Tests`
-1777 and `DK2.Behavior.Tests` 664 (5 skipped) pass; Level 1 seed 1 is unchanged (Completed at tick 2334, final
-hash af7204fe4c0f8594), no simulation change. Reviewer: no blocker. Open: Q819 (a held creature's values),
-Q820 (the ring's timing under hover).
+Open: Q819 (a held creature's values), Q820 (the ring's timing under hover).
+
+**Built: every offered spell and `CastSpell`.** `PlayerOffers.Spells` lists a `PlayerSpellOffer` (spell id,
+name, `Cost`, `Affordable`, `OnCreature`, `Ready`) for each Spell-panel choice that is visible and selectable,
+the set a human can select (`BottomPanelView.Select`). `Cost` is the spell's `ManaCost` (Create Imp:
+`ImpSupplyRules.CreateImpCost`), the value the simulation tests and charges; `Affordable` is the panel's cost
+within mana; `Ready` is the slot's recharge pie done (`BottomPanelProgress.RechargePercent`, `0x004BE430`,
+the cooldown `CanCast` tests); `OnCreature` is `KeeperSpellRules.TargetsAThing` of the target selector.
+Possession is not offered: the player has no action to end one, and a human possession ends only by the owner's key press, the creature dying or mana running out (Q821, owner-confirmed). The Reaper's spells are never on the
+panel. `PlayerAction.CastSpell(Spell, Target, Tile)` takes exactly one target, and `PlayerActionAdapter.Cast`
+refuses Create Imp (its own action), an unoffered spell, the wrong target kind, an out-of-bounds tile, an
+unknown handle and a non-creature handle. A creature spell becomes `CastSpellOnCreatureCommand` (packet 55) on
+a visible creature, a place spell `CastSpellAtPlaceCommand` (packet 54) at the tile centre, as the click sends
+them (`PlacementCursor.Spell`); the simulation decides whether the cast lands. The cursor shows No Go for Thunderbolt
+or Heal at a dying creature because it asks the simulation's `CanCast`, so the bot's cast is refused the same way (Q823,
+owner-confirmed). Both commands were already in
+the journal and replay paths. `CoverageLimits` now says doors and traps, Possession, the Reaper's spells and
+object targets are not offered, that a creature spell may name a creature the hover pick passes over (Q823),
+and that Sight of Evil is offered but reveals nothing to the observing view: a human sees the ground it reveals, so
+the offer is a mana sink until a later addition applies it to the observation (Q822, owner-confirmed).
+`PlayerObservation.SchemaVersion` is 3, information only (journal header `player.observation.schema`, read by
+nothing; older journals replay). `DK2.AI.Tests` 557, `DK2.Simulation.Tests` 5472 and `DK2.Behavior.Tests` 667
+(5 skipped) pass; `DK2.Presentation.Tests` passed 1785 of 1786 in the full run, the one failure
+`ClassicObjectLightTests.WarmDynamicPublicationAndGatherAllocateNothing` (an allocation measurement in code
+this change does not touch, [TRAPS](../TRAPS.md)), which passed alone three times. Level 1 seed 1 is unchanged
+(Completed at tick 2334, final hash af7204fe4c0f8594), no simulation change. Reviewer: no blocker. The hidden-state
+receipt test (`PlayerSessionTests.ReceiptsDoNotDistinguishHiddenStates`) has no `CastSpell` probe because its
+synthetic database offers no castable spell; the adapter reads only the capture, so the property holds by design.
+Answered by the owner on 2026-11-15: Q821-Q823.
 
 **The Imp scouting routine (owner direction, 2026-11-14; first aimed at Level 6a).** Unknown ground
 (`PlayerTile.IsKnown` false) hides gold, gems, water to bridge and enemies. The bot lifts an own Imp, drops

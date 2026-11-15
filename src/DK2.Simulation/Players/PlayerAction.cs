@@ -70,6 +70,14 @@ public abstract record PlayerAction
         private protected override PlayerActionKinds Family => PlayerActionKinds.CreateImpAt;
     }
 
+    /// <summary>Casts an offered spell (Task 4): a creature spell on a visible creature
+    /// (<paramref name="Target"/>), a place spell at a tile's centre (<paramref name="Tile"/>), as a click
+    /// on the hovered creature or ground sends it (<c>PlacementCursor.Spell</c>). Exactly one of the two.</summary>
+    public sealed record CastSpell(byte Spell, PlayerThingHandle? Target = null, TilePos? Tile = null) : PlayerAction
+    {
+        private protected override PlayerActionKinds Family => PlayerActionKinds.CastSpell;
+    }
+
     /// <summary>Skips the level's intro camera path; offered only while it plays.</summary>
     public sealed record SkipIntro : PlayerAction
     {

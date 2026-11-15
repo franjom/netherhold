@@ -79,6 +79,7 @@ public sealed class PlayerObservationBuilder
     private readonly List<PlayerVisibleThing> _things = [];
     private readonly List<PlayerNotice> _notices = [];
     private readonly List<PlayerRoomOffer> _roomOffers = [];
+    private readonly List<PlayerSpellOffer> _spellOffers = [];
     private readonly List<GuiButtonTarget> _panels = [];
     private PlayerTile[] _tiles = [];
 
@@ -96,9 +97,10 @@ public sealed class PlayerObservationBuilder
     /// Phase Intro covers any scripted camera path, mid-level introductions included.</summary>
     public static IReadOnlyList<string> CoverageLimits { get; } =
     [
-        "doors, traps and spells other than Create Imp are not offered",
+        "doors and traps are not offered; Possession and the Reaper's spells are not offered, nor a spell's object targets",
+        "a creature spell may name any visible creature, also one the hover pick passes over (dying, unpickable types)",
         "specials that name a creature (127, 140) and stored specials are not offered",
-        "tag previews and Sight of Evil are not applied to the observing view",
+        "tag previews and Sight of Evil are not applied to the observing view (Sight of Evil is offered, and reveals nothing to it)",
         "message text and payloads are not carried, only kind and order",
     ];
 
@@ -278,6 +280,7 @@ public sealed class PlayerObservationBuilder
         _panel.Capture(world);
         _roomOffers.Clear();
         _panels.Clear();
+        _spellOffers.Clear();
         ManaAmount? createImp = null;
         foreach (BottomPanelChoice choice in _panel.Choices)
         {
@@ -292,6 +295,19 @@ public sealed class PlayerObservationBuilder
             {
                 _panels.Add(GuiButtonTarget.Spell(choice.Key.Value));
                 if (choice.Key.Value == BottomPanelView.CreateImpSpellId) createImp = new ManaAmount(choice.Cost);
+                // Possession needs an action to end it, which the player does not have (Task 4).
+                if (choice.Key.Value == PossessionRules.SpellId || _database.KeeperSpellById(choice.Key.Value) is not KeeperSpellDef spell) continue;
+                // The click casts a thing spell on the hovered creature, any other at the ground (PlacementCursor.Spell);
+                // the slot's recharge pie is BottomPanelView's own reading of the spell's row.
+                bool ready = true;
+                foreach (AvailabilityState row in world.Player(_player).Availabilities)
+                    if (row.Kind == AvailabilityKind.Spell && row.TypeId == choice.Key.Value)
+                    {
+                        ready = BottomPanelProgress.RechargePercent(row.LastCastTick, world.CurrentTick.Value, spell.CooldownRaw) == 100;
+                        break;
+                    }
+                _spellOffers.Add(new PlayerSpellOffer(choice.Key.Value, choice.Name, new ManaAmount(choice.Cost), choice.Affordable,
+                    KeeperSpellRules.TargetsAThing(spell.TargetSelector), ready));
             }
         }
 
@@ -300,12 +316,14 @@ public sealed class PlayerObservationBuilder
         if (_panels.Count > 0) actions |= PlayerActionKinds.SelectPanel;
         if (handCount > 0) actions |= PlayerActionKinds.DropAt;
         if (createImp is not null) actions |= PlayerActionKinds.CreateImpAt;
+        foreach (PlayerSpellOffer offer in _spellOffers)
+            if (offer.Spell != BottomPanelView.CreateImpSpellId) actions |= PlayerActionKinds.CastSpell;
         foreach (PlayerVisibleThing thing in _things)
         {
             if ((thing.Actions & PlayerThingActions.PickUp) != 0) actions |= PlayerActionKinds.PickUp;
             if ((thing.Actions & PlayerThingActions.Slap) != 0) actions |= PlayerActionKinds.Slap;
             if ((thing.Actions & PlayerThingActions.Activate) != 0) actions |= PlayerActionKinds.ActivateSpecial;
         }
-        return new PlayerOffers { Actions = actions, Rooms = _roomOffers, Panels = _panels, CreateImpCost = createImp };
+        return new PlayerOffers { Actions = actions, Rooms = _roomOffers, Panels = _panels, CreateImpCost = createImp, Spells = _spellOffers };
     }
 }

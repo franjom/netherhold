@@ -142,10 +142,19 @@ public enum PlayerActionKinds : ushort
     ActivateSpecial = 1 << 6,
     CreateImpAt = 1 << 7,
     SkipIntro = 1 << 8,
+    CastSpell = 1 << 9,
 }
 
 /// <summary>A room the bottom panel offers, at its displayed per-tile price.</summary>
 public readonly record struct PlayerRoomOffer(RoomTypeId Room, GoldAmount Cost, bool Affordable);
+
+/// <summary>A keeper spell the Spell panel offers (campaign bot stage 3 plan, Task 4): its id (the
+/// panel's and the cast packets' spell id), its name, its displayed mana price and whether the keeper
+/// can pay it, whether its slot's recharge pie is done (<see cref="Ready"/>), and whether it is cast on a
+/// creature (<see cref="OnCreature"/>, the spell definition's target selector) or at a place. Create Imp
+/// is listed too; it is cast with <see cref="PlayerAction.CreateImpAt"/>. Possession is not offered: the
+/// player has no action to end one.</summary>
+public readonly record struct PlayerSpellOffer(byte Spell, string Name, ManaAmount Cost, bool Affordable, bool OnCreature, bool Ready = true);
 
 /// <summary>What the player may do now, as the HUD offers it.</summary>
 public sealed class PlayerOffers
@@ -160,6 +169,9 @@ public sealed class PlayerOffers
 
     /// <summary>Create Imp's displayed price, when offered.</summary>
     public ManaAmount? CreateImpCost { get; init; }
+
+    /// <summary>Every spell the Spell panel offers, by spell id (Task 4).</summary>
+    public IReadOnlyList<PlayerSpellOffer> Spells { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerSpellOffer>();
 }
 
 /// <summary>
@@ -169,8 +181,8 @@ public sealed class PlayerOffers
 /// </summary>
 public sealed class PlayerObservation
 {
-    /// <summary>2 adds each own creature's level, petals and mood (Task 4).</summary>
-    public const int SchemaVersion = 2;
+    /// <summary>2 adds each own creature's level, petals and mood; 3 every offered spell (Task 4).</summary>
+    public const int SchemaVersion = 3;
 
     public required PlayerStamp Stamp { get; init; }
     public PlayerPhase Phase { get; init; } = PlayerPhase.Playing;

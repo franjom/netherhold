@@ -92,6 +92,8 @@ public sealed class PlayerActionAdapter
                 // A pointer with no ground point casts at the tile centre (PlayerInputTranslator).
                 return PlayerActionResolution.Of(new CreateImpCommand(_player, new FpPosition2(
                     new Fp32(CreatureState.CentreOf(imp.Tile.X)), new Fp32(CreatureState.CentreOf(imp.Tile.Y)))));
+            case PlayerAction.CastSpell cast:
+                return Cast(capture, cast);
             case PlayerAction.PickUp pick:
                 return OnThing(capture, pick.Thing, PlayerThingActions.PickUp, target => target.Kind switch
                 {
@@ -109,6 +111,26 @@ public sealed class PlayerActionAdapter
             default:
                 throw new InvalidOperationException($"No resolution for {action.GetType().Name}.");
         }
+    }
+
+    /// <summary>A cast as the click sends it: an offered spell other than Create Imp (which has its own
+    /// action); a creature spell on a visible creature's handle, a place spell at a tile's centre. The
+    /// simulation decides whether the cast lands (KeeperSpellRules), as for a click.</summary>
+    private PlayerActionResolution Cast(PlayerObservationCapture capture, PlayerAction.CastSpell cast)
+    {
+        PlayerSpellOffer? offer = null;
+        foreach (PlayerSpellOffer s in capture.Observation.Offers.Spells) if (s.Spell == cast.Spell) offer = s;
+        if (offer is not PlayerSpellOffer spell || spell.Spell == BottomPanelView.CreateImpSpellId) return NotOffered;
+        if ((cast.Target is null) == (cast.Tile is null) || spell.OnCreature != cast.Target is not null) return NotOffered;
+        if (cast.Tile is TilePos tile)
+        {
+            if (!capture.Observation.Tiles.Contains(tile)) return OutOfBounds;
+            return PlayerActionResolution.Of(new CastSpellAtPlaceCommand(_player, cast.Spell, CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y)));
+        }
+        if (!capture.TryResolve(cast.Target!.Value, out PlayerInputTarget target))
+            return PlayerActionResolution.Refused(PlayerRefusalReason.UnknownHandle);
+        return target.Kind == PlayerInputTargetKind.Creature
+            ? PlayerActionResolution.Of(new CastSpellOnCreatureCommand(_player, cast.Spell, target.Id)) : NotOffered;
     }
 
     private static readonly PlayerActionResolution OutOfBounds = PlayerActionResolution.Refused(PlayerRefusalReason.OutOfBounds),
