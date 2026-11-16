@@ -9,7 +9,11 @@ a character grid. `PlayerInputTranslator` turns a `PlayerIntent` into commands,
 placement. Small rules both engine adapters share: `HudPointerMap` (whether the pointer is over the HUD), `GameFolders`
 (profile, settings, saves and hi-score locations), `LaunchArguments`, `LevelSubtitles`, `PointerGestures.CancelAll`
 (focus loss), `TickPacer` (tick debt, the frame clamp, ticks per frame), `HudToolState` (the tool, the panel
-choice, the query tool, the selected corner) and `HudActionRouter` (a HUD action's gate, cancels and corners).
+choice, the query tool, the selected corner) and `HudActionRouter` (a HUD action's gate, cancels and corners). The HUD's and the world's presses:
+`HudPressRouter` (`HudPress`, `IHudPressHost`: full map, options, overview, minimap, gold withdraw, heart),
+`WorldClickCommands` (`IWorldClickHost`: the query click, cancels, door, trap and spell placement), `PickupFlow`
+(the pickup sequence), `BattleTabView.Click` and the navigation entries (`RoomNavigation.Entries`,
+`ThingNavigation.DoorEntries` and `TrapEntries`).
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

@@ -15,9 +15,9 @@ namespace DK2.GodotAdapter;
 /// the frame, corners, north sprite, hit areas and presses, and a <see cref="HudCanvas"/> draws them bottom-docked under
 /// the HUD scale over the disc. The disc is <see cref="MinimapDiscImage"/>'s pixels (the CPU twin of Unity's
 /// <c>DK2Minimap.shader</c>), drawn again only when a capture, the zoom, the view or the size changed, and uploaded into
-/// one reused texture. A press is raised as <see cref="Pressed"/> with the action <see cref="MinimapHud.Press"/> gives,
-/// and not taken from the panels under it: Unity's minimap canvas picks nothing. Not drawn: the camera footprint, which
-/// needs the 3D camera.</summary>
+/// one reused texture. It takes no press itself: the host asks <see cref="HandlePress"/> and <see cref="TryNavigate"/> in
+/// Unity's order (<see cref="HudPressRouter"/>), and the press is not taken from the panels under it, as Unity's minimap
+/// canvas picks nothing. Not drawn: the camera footprint, which needs the 3D camera.</summary>
 public partial class ClassicMinimap : Node
 {
     private static readonly Vector2 Away = new(-1e9f, -1e9f);
@@ -50,15 +50,6 @@ public partial class ClassicMinimap : Node
 
     /// <summary>The model, whose class grid and palette the full map shares.</summary>
     public MinimapHud? Model => _hud;
-
-    /// <summary>A press that acts (<see cref="MinimapHud.Press"/>: a corner, or a secondary press on the map) and where
-    /// it was, in screen pixels.</summary>
-    public event Action<ClassicHudAction, Vector2>? Pressed;
-
-    /// <summary>A primary press on the map and the tile it resolves to (<see cref="MinimapHud.TryNavigate"/>), where
-    /// Unity's runner sends the camera when no other HUD press took it. Raised whatever is open: the host drops it while a
-    /// modal panel holds the screen or input is suppressed, reading that state when the press arrives.</summary>
-    public event Action<TilePos>? Navigated;
 
     /// <summary>The palette from the native colour strip's PNG (<see cref="IMinimapAssets.PalettePng"/>), decoded by Godot
     /// as Unity's <c>DungeonMinimap</c> decodes it (stored bytes: <see cref="PngChunks.WithoutColourSpace"/>), and read by
@@ -201,16 +192,24 @@ public partial class ClassicMinimap : Node
         _discRect = rect;
     }
 
-    public override void _Input(InputEvent @event)
+    /// <summary>This frame's press at a screen pixel (Unity's <c>DungeonMinimap.HandlePress</c>): the action
+    /// <see cref="MinimapHud.Press"/> gives from the drawn focus and heading, a corner's or the full map on a secondary
+    /// press on the map; None when it does not act.</summary>
+    public ClassicHudAction HandlePress(Vector2 screenPosition, bool primary, bool secondary)
     {
-        if (_hud == null || _layout.Height <= 0 || @event is not InputEventMouseButton { Pressed: true } button) return;
-        bool primary = button.ButtonIndex == MouseButton.Left, secondary = button.ButtonIndex == MouseButton.Right;
-        if (!primary && !secondary) return;
-        (float x, float y) = ToVirtual(button.Position);
-        // Not marked handled: Unity's minimap canvas picks nothing, so the panels under it still get the press.
-        ClassicHudAction action = _hud.Press(x, y, primary, secondary, _focus, _heading);
-        if (action != ClassicHudAction.None) Pressed?.Invoke(action, button.Position);
-        else if (primary && _hud.TryNavigate(x, y, _focus, _heading, out TilePos tile)) Navigated?.Invoke(tile);
+        if (_hud == null || _layout.Height <= 0) return ClassicHudAction.None;
+        (float x, float y) = ToVirtual(screenPosition);
+        return _hud.Press(x, y, primary, secondary, _focus, _heading);
+    }
+
+    /// <summary>The tile a press on the map at a screen pixel goes to (<see cref="MinimapHud.TryNavigate"/>), from the drawn
+    /// focus and heading, as Unity's <c>DungeonMinimap.TryNavigate</c>.</summary>
+    public bool TryNavigate(Vector2 screenPosition, out TilePos tile)
+    {
+        tile = default;
+        if (_hud == null || _layout.Height <= 0) return false;
+        (float x, float y) = ToVirtual(screenPosition);
+        return _hud.TryNavigate(x, y, _focus, _heading, out tile);
     }
 
     public override void _ExitTree()
@@ -226,7 +225,7 @@ public partial class ClassicMinimap : Node
         if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
         // Freed, not merely removed from the tree: a reparented minimap keeps working.
         if (what != NotificationPredelete) return;
-        Pressed = null; Navigated = null; _hud = null; _disc = null;
+        _hud = null; _disc = null;
         // The canvas item draws the texture, so it goes first.
         if (_discItem.IsValid) { RenderingServer.FreeRid(_discItem); _discItem = default; }
         _texture?.Dispose(); _image?.Dispose(); _texture = null; _image = null;

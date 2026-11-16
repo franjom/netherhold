@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a and 2b are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b and 2c are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -277,15 +277,34 @@ group 2 is a list to audit, not a finding.
       as named transitions, so the open tool-reset point in the audit stands. Godot's query and sell corners now set
       the tool, post `GuiButtonCommand` (Query, Sell) and draw lit; its `SelectPanelChoice` and `ActivateStoredSpecial`
       use the shared transitions, the latter with Unity's Options-visible gate (0x00411140); navigation prints "not
-      wired: no camera". A lit corner stays lit until a panel choice or a stored special clears it, because the gold
-      withdraw and the right-click cancels come with 2c and 2h. In Unity, `LoadLevel` copies the live tool and room
+      wired: no camera". The gold withdraw and the right-click cancels came with 2c. In Unity, `LoadLevel` copies the live tool and room
       back into the serialized fields before cloning the runner, and editing `tool` or `selectedRoomId` in the
       Inspector during Play mode no longer changes the live tool. `ScaledIntegrationProbe` reads the panel choice
       through `_toolState` (no build compiles probes, so that fix is uncompiled). Not run: Unity in Play mode and
       Godot corner clicks with a real mouse.
-- [ ] 2c. HUD and world presses: `PickupFlow` (copied twice in Unity; it filters which pickups and
-      defers drops), `WorldClickCommands`, `HudPressRouter` (`QueueHudInput`'s order), the
-      navigation entries. Godot's overview column press then picks up.
+- [x] 2c. HUD and world presses (2026-11-16), pure moves into `DK2.Presentation`: `PickupFlow` (`PickUpFromOverview`,
+      `PostWorldCommand`; it replaces the pickup sequence copied in the overview press and the world click, so
+      `LocalPickups.TryQueue` filters which pickups and `TryQueueDrop` defers a drop; the overview swallows a refused
+      press and the world loop continues past it, and only the overview calls `QueuePickupPreview`), `HudPressRouter`
+      over `IHudPressHost` (`QueueHudInput`'s order: full map, options, overview, minimap, gold withdraw, then the
+      heart right click; `HudPress` is the frame's buttons and modifiers), `WorldClickCommands` over `IWorldClickHost`
+      (`QueuePanelWorldAction`: the query click, the right-click cancels through 2b's transitions, door, trap and
+      spell placement with the Workshop gate and the spell-target rule; picking stays in the adapter),
+      `RoomNavigation.Entries`, `ThingNavigation.DoorEntries`/`TrapEntries` (newest first) and `BattleTabView.Click`.
+      Unity calls them and reads the buttons once per frame (`ReadHudPress`). Godot reads presses from
+      `Window.WindowInput` and runs a `QueueInput` (the gate, `HudPressRouter`, `WorldClickCommands`, then the minimap's
+      map press); the panels' own per-signal press handlers are gone, and the full map and options menu swallow
+      presses on the live `_hudControls` flags (one narrow split is left: a mouse press and the M or Escape shortcut in
+      the same frame). Now working in Godot: an overview column press posts its pickup, the gold withdraw posts and
+      resets the tool, a right click cancels the query tool or a held tool (so a lit query or sell corner can be turned
+      off), the full map, options and minimap follow Unity's order, the battle tab goes through `Click`, and room, door
+      and trap navigation compute their entries and print the target. Game Options key capture is polled only in the
+      options branch, `None` is applied while the full map is open, the pointer is taken at frame time, and an options
+      left press that misses every entry still runs `TakeSessionAction`, all as in Unity. Still unwired: every camera
+      move, session actions, picking (world left clicks do nothing), the hand's own world press and possession, the
+      per-frame `LocalPickups.Advance` and `DrainReadyDrops` (2h) and the hand cursor. Godot's `QueueInput` gate order
+      and the battle-tab dispatch still mirror the runner and move with 2h. Not run: Godot presses with a real mouse,
+      Unity in Play mode, and Godot 4.8's `WindowInput`-before-`_Input` order (inferred, not read in source).
 - [ ] 2d. World hover to cursor (`HoverCursorResolver`), with the fog gate and the hand-light point.
 - [ ] 2e. `CampaignProfileStore`, `HiScoreStore`, `FrontEndHost`.
 - [ ] 2f. Save and load (`SessionSaver`, `SessionLoader`, `SessionContext`, a resume payload on

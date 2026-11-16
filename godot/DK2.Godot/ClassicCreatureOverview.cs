@@ -9,9 +9,9 @@ namespace DK2.GodotAdapter;
 
 /// <summary>The creature overview in the Creatures panel, the Godot counterpart of Unity's <c>ClassicCreatureOverview</c>:
 /// <see cref="CreatureOverviewHud"/> (ADR-0805) decides every draw and press, and a <see cref="HudCanvas"/> draws its frame
-/// bottom-docked under the HUD scale. Like Unity's runner, a press goes to the model without being taken from the other
-/// panels: a mode button or a page strip changes the overview, and a press on a worker row or a column raises
-/// <see cref="Requested"/> with the pickup or focus it asks for.</summary>
+/// bottom-docked under the HUD scale. Like Unity's facade it takes no press itself: the host's <see cref="HudPressRouter"/>
+/// asks <see cref="TryPress"/> in Unity's order, and the press is not taken from the other panels. A mode button or a page
+/// strip changes the overview, and a press on a worker row or a column gives the pickup or focus it asks for.</summary>
 public partial class ClassicCreatureOverview : Node
 {
     /// <summary>A pointer no widget contains, for while it is outside the window.</summary>
@@ -23,16 +23,12 @@ public partial class ClassicCreatureOverview : Node
     private float _scale = 1;
     /// <summary>Screen pixel of the canvas's local (0, 0), rounded as drawn; the pointer is measured from it.</summary>
     private Vector2 _origin;
-    private bool _allowInput, _pointerInWindow = true;
+    private bool _pointerInWindow = true;
 
     /// <summary>The HUD scale percent (Unity's <c>UiScale</c>, the graphics setting).</summary>
     public int UiScale { get; set; } = 100;
 
     public CreatureOverviewMode Mode => _hud?.Mode ?? CreatureOverviewMode.Total;
-
-    /// <summary>A press on a worker row or a column: the pickup or focus it asks for, which a host turns into the hand's
-    /// pickup or a camera move.</summary>
-    public event Action<CreatureOverviewRequest>? Requested;
 
     /// <summary>Opens the overview over <paramref name="art"/> and <paramref name="view"/>; call before it enters the tree.</summary>
     public void Open(InstallCreatureOverviewArt art, CreatureOverview view)
@@ -60,7 +56,6 @@ public partial class ClassicCreatureOverview : Node
         _layout = new HudScaleLayout(width, height, UiScale);
         HudScreen screen = _layout.Screen;
         _scale = screen.Scale;
-        _allowInput = visibility.AllowOrdinaryInput;
         _canvas.Visible = visibility.ShowNormalHud && area.HasValue;
         // Bottom-docked (ClassicHudScaling.Apply), as the bottom panel: the panel's bottom stays on the screen's bottom.
         _origin = new Vector2(0, _layout.BottomOriginPixels);
@@ -94,18 +89,14 @@ public partial class ClassicCreatureOverview : Node
         return _hud.ContainsPointer(x, y);
     }
 
-    public override void _Input(InputEvent @event)
+    /// <summary>This frame's press at a screen pixel (Unity's facade's <c>TryPress</c>): a mode button or a page strip changes
+    /// the overview and gives false; a worker row or a column gives the pickup or focus it asks for.</summary>
+    public bool TryPress(Vector2 screenPosition, in HudPress press, out CreatureOverviewRequest request)
     {
-        // Unity's runner asks only while ordinary input is allowed (DungeonRunner.QueueInput).
-        if (_hud == null || _layout.Height <= 0 || !_allowInput) return;
-        if (@event is not InputEventMouseButton { Pressed: true } button) return;
-        bool primary = button.ButtonIndex == MouseButton.Left, secondary = button.ButtonIndex == MouseButton.Right;
-        if (!primary && !secondary) return;
-        bool shift = button.ShiftPressed, control = button.CtrlPressed, alt = button.AltPressed;
-        (float x, float y) = ToVirtual(button.Position);
-        // Not marked handled: Unity's overview canvas picks nothing, so the panels under it still get the press.
-        if (_hud.TryPress(x, y, primary, secondary, shift, control, alt, out CreatureOverviewRequest request))
-            Requested?.Invoke(request);
+        request = default;
+        if (_hud == null || _layout.Height <= 0) return false;
+        (float x, float y) = ToVirtual(screenPosition);
+        return _hud.TryPress(x, y, press.Primary, press.Secondary, press.Shift, press.Control, press.Alt, out request);
     }
 
     public override void _Notification(int what)
@@ -114,7 +105,7 @@ public partial class ClassicCreatureOverview : Node
         if (what == NotificationWMMouseExit) _pointerInWindow = false;
         else if (what == NotificationWMMouseEnter) _pointerInWindow = true;
         // Freed, not merely removed from the tree: a reparented overview keeps working.
-        else if (what == NotificationPredelete) { Requested = null; _hud = null; _canvas = null; }
+        else if (what == NotificationPredelete) { _hud = null; _canvas = null; }
     }
 
     /// <summary>A screen pixel in the model's virtual units (Unity's <c>LocalPointer</c> then <c>ToVirtual</c>), from the

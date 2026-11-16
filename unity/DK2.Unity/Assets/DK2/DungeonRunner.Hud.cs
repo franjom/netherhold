@@ -18,7 +18,7 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
-    public sealed partial class DungeonRunner : IHudHoverSources, IHudActionHost
+    public sealed partial class DungeonRunner : IHudHoverSources, IHudActionHost, IHudPressHost, IWorldClickHost
     {
         private readonly ClassicHudControls _hudControls = new ClassicHudControls();
         private BottomPanelView _bottomView;
@@ -28,6 +28,10 @@ namespace DK2.Unity
         private RoomNavigation _roomNavigation;
         private ThingNavigation _doorNavigation, _trapNavigation;
         private readonly System.Collections.Generic.List<ThingNavigationEntry> _thingEntries = new();
+        private readonly System.Collections.Generic.List<RoomNavigationEntry> _roomEntries = new();
+        // QueueHudInput's order and QueuePanelWorldAction's commands (migration plan step 2c); built with the panels.
+        private HudPressRouter _hudPresses;
+        private WorldClickCommands _worldClicks;
         private ClassicOptionsPanel _optionsPanel;
         private ClassicFullMap _fullMap;
         private HudActionRouter _hudRouter;
@@ -158,6 +162,9 @@ namespace DK2.Unity
             _startup.Step("hud.messages");
             _battleTab = new ClassicBattleTab(transform, bottomAssets);
             _battleTab.Clicked += BattleTabClicked;
+            var viewer = new PlayerId((byte)viewingPlayerId);
+            _hudPresses = new HudPressRouter(_hudControls, _toolState, _overviewView, _bottomView, _pickupFlow, viewer, this);
+            _worldClicks = new WorldClickCommands(_toolState, _input, _queryView, _bottomView, viewer, this);
         }
 
         /// <summary>Captures the flowers from the settled world (before the worker tick starts) and
@@ -197,68 +204,33 @@ namespace DK2.Unity
 
         private void NavigateRoom(RoomTypeId type)
         {
-            var rooms = RoomIndex.Build(World, _simulation.Database);
-            var entries = new System.Collections.Generic.List<RoomNavigationEntry>(rooms.Count);
-            for (int i = 0; i < rooms.Count; i++)
-            {
-                RoomInstance room = rooms[i];
-                if (room.Definition.TypeId is not RoomTypeId roomType) continue;
-                TilePos identity = World.TilePosition(room.TileIndices[0]);
-                entries.Add(new RoomNavigationEntry(identity, new PlayerId(room.OwnerPlayerId), roomType,
-                    new TilePos(room.CentreFieldX, room.CentreFieldY)));
-            }
-            if (_roomNavigation.Next(entries, type) is TilePos tile) StartGlide(tile);
+            RoomNavigation.Entries(World, _simulation.Database, _roomEntries);
+            if (_roomNavigation.Next(_roomEntries, type) is TilePos tile) StartGlide(tile);
         }
 
-        // 0x00416150 / 0x004162A0: the viewer's doors or traps of one kind, blueprints included,
-        // newest first: Thing_LinkToOwner (0x004B4C30) links each new thing at the list's head.
+        // 0x00416150 / 0x004162A0: the viewer's doors or traps of one kind, newest first (ThingNavigation.DoorEntries).
         private void NavigateDoor(byte kind)
         {
-            _thingEntries.Clear();
-            IReadOnlyList<DoorState> doors = World.Doors;
-            for (int i = doors.Count - 1; i >= 0; i--)
-            {
-                DoorState door = doors[i];
-                _thingEntries.Add(new ThingNavigationEntry(door.Id, new PlayerId(door.PlayerId), door.DoorId, new TilePos(door.X, door.Y)));
-            }
+            ThingNavigation.DoorEntries(World.Doors, _thingEntries);
             if (_doorNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
         }
 
         private void NavigateTrap(byte kind)
         {
-            _thingEntries.Clear();
-            IReadOnlyList<TrapState> traps = World.Traps;
-            for (int i = traps.Count - 1; i >= 0; i--)
-            {
-                TrapState trap = traps[i];
-                _thingEntries.Add(new ThingNavigationEntry(trap.Id, new PlayerId(trap.PlayerId), trap.TrapId, new TilePos(trap.X, trap.Y)));
-            }
+            ThingNavigation.TrapEntries(World.Traps, _thingEntries);
             if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
         }
 
-        /// <summary>Menu 43's clicks (docs/research/battle-tab.md), as <see cref="BattleTabView.Action"/> maps
+        /// <summary>Menu 43's clicks (docs/research/battle-tab.md), as <see cref="BattleTabView.Click"/> maps
         /// them: the blades' zoom is the F key's; the alarm's walks the ringing alarms on the Workshop
         /// trap cycle's last trap.</summary>
         private void BattleTabClicked(BattleTabButton button, int mouse)
         {
-            if (_hudControls.InputSuppressed || HudModal) return;
-            var viewer = new PlayerId((byte)viewingPlayerId);
-            switch (BattleTabView.Action(button, mouse))
-            {
-                case BattleTabAction.ZoomToBattle:
-                    ApplyHudAction(ClassicHudAction.NavigateFight);
-                    break;
-                case BattleTabAction.CancelCallToArms:
-                    _pendingCommands.Add(new RemoveCallToArmsCommand(viewer));
-                    break;
-                case BattleTabAction.GoToCallToArms:
-                    if (BattleTabView.CallToArmsTile(World, viewer) is TilePos flag) StartGlide(flag);
-                    break;
-                case BattleTabAction.NextAlarm:
-                    BattleTabView.TrapEntries(World.Traps, _simulation.Database, World.CurrentTick, _thingEntries);
-                    if (_trapNavigation.NextAlarm(_thingEntries) is TilePos alarm) StartGlide(alarm);
-                    break;
-            }
+            BattleTabClick click = BattleTabView.Click(button, mouse, _hudControls, World, _simulation.Database,
+                new PlayerId((byte)viewingPlayerId), _trapNavigation, _thingEntries);
+            if (click.HudAction != ClassicHudAction.None) ApplyHudAction(click.HudAction);
+            if (click.Command != null) _pendingCommands.Add(click.Command);
+            if (click.Glide is TilePos tile) StartGlide(tile);
         }
 
         /// <summary>The fly-in's start (<c>0x0042C0D0</c>): once for each new entry of one of the viewer's
@@ -332,135 +304,77 @@ namespace DK2.Unity
             _overviewPanel?.Draw(hud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
         }
 
-        private bool QueueHudInput()
+        /// <summary>This frame's presses and modifiers, read once (Input.GetMouseButtonDown; either side's Shift, Control and Alt).</summary>
+        private static HudPress ReadHudPress() => new HudPress(Input.GetMouseButtonDown(0), Input.GetMouseButtonDown(1),
+            Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift),
+            Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl),
+            Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt));
+
+        /// <summary>The HUD's press, in <see cref="HudPressRouter"/>'s order; true when the HUD took the frame.</summary>
+        private bool QueueHudInput(in HudPress press) =>
+            _hudPresses.Route(press, World, _simulation.Database, (long)(Time.unscaledTimeAsDouble * 1000), _pendingCommands);
+
+        /// <summary>The query tool's and a held choice's world press (<see cref="WorldClickCommands"/>); true when it took the frame.</summary>
+        private bool QueuePanelWorldAction(in HudPress press) => _worldClicks.Queue(press, _simulation.Database, _pendingCommands);
+
+        // What HudPressRouter asks of the runner: the panels' hit tests at the pointer, the camera and the session.
+        void IHudPressHost.ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action);
+
+        void IHudPressHost.GoToFullMapTile()
         {
-            if (_hudControls.FullMapVisible)
-            {
-                FullMapPress press = FullMapHud.Press(Input.GetMouseButtonDown(0), Input.GetMouseButtonDown(1));
-                if (press == FullMapPress.GoToTile)
-                {
-                    TilePos tile = _fullMap.ResolvePointer(Input.mousePosition);
-                    _cameraFocus = new Vector3(Mathf.Clamp(tile.X + .5f, 0, _cameraBounds.x - 1f / Fp32.One), _cameraFocus.y,
-                        Mathf.Clamp(-tile.Y - .5f, -_cameraBounds.y + 1f / Fp32.One, 0));
-                    _glideMilliseconds = 0;
-                }
-                ApplyHudAction(FullMapHud.Action(press));
-                return true;
-            }
-            if (_hudControls.OptionsVisible)
-            {
-                if (_hudControls.GameOptionsVisible) { _gameOptionsPanel?.PollKeyboard(); return true; }
-                if (Input.GetMouseButtonDown(0))
-                {
-                    ClassicOptionsAction action = _optionsPanel.ActionAt(Input.mousePosition);
-                    if (OptionsHud.RefreshesSaves(action)) _saves.Refresh();
-                    ApplyHudAction(OptionsHud.HudAction(action));
-                    ClassicSessionAction session = _hudControls.TakeSessionAction();
-                    if (session == ClassicSessionAction.Restart)
-                        _pendingSession = GameSessionRequest.Restart(GameSessionRequest.Campaign(levelName, frontEndReturnPage));
-                    else if (session == ClassicSessionAction.ReturnToMenu)
-                        _pendingSession = GameSessionRequest.FrontEnd(LaunchedFromFrontEnd ? FrontEndPage.CampaignMap : FrontEndPage.None);
-                    else if (session == ClassicSessionAction.Quit) QuitFrontEnd();
-                }
-                return true;
-            }
-            bool primary = Input.GetMouseButtonDown(0), secondary = Input.GetMouseButtonDown(1);
-            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-            bool control = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
-            bool alt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
-            if (_overviewPanel.TryPress(Input.mousePosition, primary, secondary, shift, control, alt,
-                out CreatureOverviewRequest request))
-            {
-                CreatureOverviewAction selected = _overviewView.Select(World, request.Type, request.Selection, request.Filter);
-                if (selected.Kind == CreatureOverviewActionKind.Pickup)
-                {
-                    var command = new PickUpCreatureCommand(new PlayerId((byte)viewingPlayerId), selected.Target.Value);
-                    if (!_worldView.LocalPickups.TryQueue(World, _simulation.Database, command.PlayerId,
-                        new CreatureId(command.CreatureId), (long)(Time.unscaledTimeAsDouble * 1000))) return true;
-                    _cursorFeedback.Play(HandCursorKind.HoldThing, (long)(Time.unscaledTimeAsDouble * 1000));
-                    _pendingCommands.Add(command);
-                    _worldView.QueueMinimapPickupPreview(command, World.CurrentTick.Next);
-                    _overviewView.QueuePickupPreview(selected.Target, World.CurrentTick.Next);
-                }
-                else if (selected.Kind == CreatureOverviewActionKind.Focus)
-                {
-                    _cameraFocus = new Vector3(selected.Position.X.Raw / (float)Fp32.One, _cameraFocus.y,
-                        -selected.Position.Y.Raw / (float)Fp32.One);
-                    _glideMilliseconds = 0;
-                }
-                return true;
-            }
-            ClassicHudAction minimapAction = _minimap.HandlePress(Input.mousePosition, primary, secondary, Camera.main, _cameraFocus);
-            if (minimapAction != ClassicHudAction.None) { ApplyHudAction(minimapAction); return true; }
-            KeeperResourceKind resource = _resourceHud.ResourceAt(Input.mousePosition);
-            if (resource == KeeperResourceKind.Gold && primary)
-            {
-                KeeperResourceModifiers modifiers = KeeperResourceModifiers.None;
-                if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) modifiers |= KeeperResourceModifiers.Shift;
-                if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) modifiers |= KeeperResourceModifiers.Control;
-                if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) modifiers |= KeeperResourceModifiers.Alt;
-                _pendingCommands.Add(KeeperResourceInteraction.Withdraw(new PlayerId((byte)viewingPlayerId), modifiers));
-                _toolState.ResetAfterGoldWithdraw(_bottomView);
-                return true;
-            }
-            if (resource == KeeperResourceKind.Heart && secondary)
-            { ApplyHudAction(ClassicHudAction.NavigateHeart); return true; }
-            return false;
+            TilePos tile = _fullMap.ResolvePointer(Input.mousePosition);
+            _cameraFocus = new Vector3(Mathf.Clamp(tile.X + .5f, 0, _cameraBounds.x - 1f / Fp32.One), _cameraFocus.y,
+                Mathf.Clamp(-tile.Y - .5f, -_cameraBounds.y + 1f / Fp32.One, 0));
+            _glideMilliseconds = 0;
         }
 
-        private bool QueuePanelWorldAction()
+        void IHudPressHost.PollGameOptionsKeyboard() => _gameOptionsPanel?.PollKeyboard();
+
+        ClassicOptionsAction IHudPressHost.OptionsActionAtPointer() => _optionsPanel.ActionAt(Input.mousePosition);
+
+        void IHudPressHost.RefreshSaves() => _saves.Refresh();
+
+        void IHudPressHost.StartSession(ClassicSessionAction session)
         {
-            if (_toolState.QueryTool)
+            if (session == ClassicSessionAction.Restart)
+                _pendingSession = GameSessionRequest.Restart(GameSessionRequest.Campaign(levelName, frontEndReturnPage));
+            else if (session == ClassicSessionAction.ReturnToMenu)
+                _pendingSession = GameSessionRequest.FrontEnd(LaunchedFromFrontEnd ? FrontEndPage.CampaignMap : FrontEndPage.None);
+            else if (session == ClassicSessionAction.Quit) QuitFrontEnd();
+        }
+
+        bool IHudPressHost.TryPressOverview(in HudPress press, out CreatureOverviewRequest request) =>
+            _overviewPanel.TryPress(Input.mousePosition, press.Primary, press.Secondary, press.Shift, press.Control, press.Alt, out request);
+
+        void IHudPressHost.FocusCreature(FpPosition3 position)
+        {
+            _cameraFocus = new Vector3(position.X.Raw / (float)Fp32.One, _cameraFocus.y, -position.Y.Raw / (float)Fp32.One);
+            _glideMilliseconds = 0;
+        }
+
+        ClassicHudAction IHudPressHost.PressMinimap(in HudPress press) =>
+            _minimap.HandlePress(Input.mousePosition, press.Primary, press.Secondary, Camera.main, _cameraFocus);
+
+        KeeperResourceKind IHudPressHost.ResourceAtPointer() => _resourceHud.ResourceAt(Input.mousePosition);
+
+        // What WorldClickCommands asks of the runner: the camera-bound picking and the query's turn.
+        bool IWorldClickHost.PointerOverHud() => PointerOverHud(Input.mousePosition);
+
+        TilePos? IWorldClickHost.PointerTile() => ScreenToTile(Input.mousePosition);
+
+        WorldHoverHit IWorldClickHost.Hover(TilePos tile) => ResolveWorldHover(tile);
+
+        void IWorldClickHost.FollowQueriedCreature()
+        {
+            _glideMilliseconds = 0;
+            if (_classicCamera != null && Camera.main != null)
             {
-                if (_queryView.Target == CreatureQueryTarget.None && Input.GetMouseButtonDown(0) && !PointerOverHud(Input.mousePosition)
-                    && ScreenToTile(Input.mousePosition) is TilePos queryTile)
-                {
-                    WorldHoverHit hit = ResolveWorldHover(queryTile);
-                    if (hit.Kind == WorldHoverKind.Creature)
-                    {
-                        _queryView.Query(new CreatureQueryTarget(hit.EntityId)); _glideMilliseconds = 0;
-                        if (_classicCamera != null && Camera.main != null)
-                        {
-                            var focus = new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z);
-                            var viewport = new CameraViewport(Screen.width, Camera.main.pixelWidth, Camera.main.pixelHeight);
-                            Dk2Angle yaw = new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(_classicCamera.Pose(focus, viewport).YawDegrees * 2048 / 360f)));
-                            Dk2Angle desired = ClassicCreatureQueryRules.FollowHeading(yaw);
-                            _classicCamera.Rotate(new Dk2Angle(unchecked((ushort)(desired.Value - yaw.Value))));
-                        }
-                    }
-                }
-                if (Input.GetMouseButtonDown(1)) _toolState.CancelQueryByRightClick(_queryView);
-                return true;
+                var focus = new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z);
+                var viewport = new CameraViewport(Screen.width, Camera.main.pixelWidth, Camera.main.pixelHeight);
+                Dk2Angle yaw = new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(_classicCamera.Pose(focus, viewport).YawDegrees * 2048 / 360f)));
+                Dk2Angle desired = ClassicCreatureQueryRules.FollowHeading(yaw);
+                _classicCamera.Rotate(new Dk2Angle(unchecked((ushort)(desired.Value - yaw.Value))));
             }
-            if (Input.GetMouseButtonDown(1) && (_toolState.Tool != DungeonToolMode.Hand || _toolState.PanelChoice != null))
-            {
-                if (_input.DragFrom(ActiveTool) != null) _input.CancelPointerGesture();
-                else _toolState.CancelToolByRightClick(_bottomView);
-                return true;
-            }
-            if (_toolState.PanelChoice is not BottomPanelChoiceKey choice || choice.Kind == BottomPanelChoiceKind.Room
-                || choice.Kind == BottomPanelChoiceKind.Spell && choice.Value == 4) return false;
-            if (!Input.GetMouseButtonDown(0) || PointerOverHud(Input.mousePosition)) return true;
-            if (ScreenToTile(Input.mousePosition) is not TilePos tile) return true;
-            PlayerId viewer = new PlayerId((byte)viewingPlayerId);
-            // Without a Workshop DK2's hand places no door or trap (0x0040849F, 0x00408586).
-            if (_bottomView.Choice(choice)?.NeedsWorkshop == true) return true;
-            if (choice.Kind == BottomPanelChoiceKind.Door) _pendingCommands.Add(new PlaceDoorCommand(viewer, tile, choice.Value));
-            else if (choice.Kind == BottomPanelChoiceKind.Trap) _pendingCommands.Add(new PlaceTrapCommand(viewer, tile, choice.Value));
-            else
-            {
-                KeeperSpellDef spell = _simulation.Database.KeeperSpellById(choice.Value);
-                if (spell == null) return true;
-                if (KeeperSpellRules.TargetsAThing(spell.TargetSelector))
-                {
-                    WorldHoverHit hit = ResolveWorldHover(tile);
-                    if (hit.Kind == WorldHoverKind.Creature)
-                        _pendingCommands.Add(new CastSpellOnCreatureCommand(viewer, choice.Value, hit.EntityId));
-                }
-                else _pendingCommands.Add(new CastSpellAtPlaceCommand(viewer, choice.Value,
-                    CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y)));
-            }
-            return true;
         }
 
         private void DrawHudControls()

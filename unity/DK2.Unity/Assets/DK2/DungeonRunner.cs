@@ -146,6 +146,8 @@ namespace DK2.Unity
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
         private WorldView _worldView;
+        /// <summary>The hand's local pickups and deferred drops, over <see cref="_worldView"/> (migration plan step 2c).</summary>
+        private PickupFlow _pickupFlow;
         private float _shotDrawFraction = 1f;
         private readonly Plane[] _effectCameraPlanes = new Plane[6];
         private readonly object _effectCameraLock = new object();
@@ -384,6 +386,7 @@ namespace DK2.Unity
             _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice, classicCreatureShadows, cheapLighting);
             if (EffectClock != null) _scene.HeartEffectClock = EffectClock;
             _worldView = new WorldView(database, (byte)viewingPlayerId);
+            _pickupFlow = new PickupFlow(_worldView, _cursorFeedback);
             if (_frontEndScenery != null) _worldView.FrontEndScenery = _frontEndScenery;
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database)) { Profiler = new UnitySimulationProfiler("DK2.") };
@@ -1231,11 +1234,12 @@ namespace DK2.Unity
             // Possessing, the pointer is the view's: only a modal panel takes its clicks.
             if (Possessing)
             {
-                if (HudModal) QueueHudInput();
+                if (HudModal) QueueHudInput(ReadHudPress());
                 _input.CancelPointerGesture();
                 return;
             }
-            if (QueueHudInput() || QueuePanelWorldAction()) return;
+            HudPress press = ReadHudPress();
+            if (QueueHudInput(press) || QueuePanelWorldAction(press)) return;
             if (!_scriptedView.PathPlaying && !frameWholeMap && _minimap != null && Input.GetMouseButtonDown(0)
                 && _minimap.TryNavigate(Input.mousePosition, Camera.main, _cameraFocus, out TilePos navigationTile))
                 StartGlide(navigationTile);
@@ -1271,21 +1275,14 @@ namespace DK2.Unity
 
             foreach (PlayerCommand command in frame.All)
             {
-                if (command is DK2.Simulation.Commands.PickUpCreatureCommand localPickup
-                    && !_worldView.LocalPickups.TryQueue(World, _simulation.Database, localPickup.PlayerId,
-                        new CreatureId(localPickup.CreatureId), nowMs)) continue;
-                if (command is DK2.Simulation.Commands.DropCommand localDrop
-                    && _worldView.LocalPickups.TryQueueDrop(localDrop)) continue;
-                if (command is DK2.Simulation.Commands.PickUpCreatureCommand)
-                    _cursorFeedback.Play(HandCursorKind.HoldThing, nowMs, pointed);
-                _pendingCommands.Add(command);
+                // A refused pickup is skipped and a drop deferred onto a pending pickup; a posted pickup gets its held
+                // cursor first and its minimap preview after (PickupFlow).
+                if (!_pickupFlow.PostWorldCommand(World, _simulation.Database, command, nowMs, pointed, _pendingCommands)) continue;
                 if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs, pointed);
                 // DK2's click runs the cursor's own permission tests and posts only a permitted cast.
                 if (!_spellRefused && HudToolState.CastSpellId(command) is byte cast) _spellCastCursor.Play(cast, nowMs);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
                     _worldView.QueueTagPreview(tag, World.CurrentTick.Next);
-                if (command is DK2.Simulation.Commands.PickUpCreatureCommand pickup)
-                    _worldView.QueueMinimapPickupPreview(pickup, World.CurrentTick.Next);
             }
         }
 

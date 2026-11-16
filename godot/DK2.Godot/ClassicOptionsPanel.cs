@@ -12,8 +12,8 @@ namespace DK2.GodotAdapter;
 /// <summary>The in-game options menu over the paused level, the Godot counterpart of Unity's <c>ClassicOptionsPanel</c>:
 /// <see cref="OptionsHud"/> (ADR-0805) decides every draw and hit, and a <see cref="HudCanvas"/> draws its frame over the
 /// whole screen at the screen's own scale (1920 virtual units high; the HUD scale does not apply, as in Unity). While it
-/// shows it takes every mouse press from the panels under it; a left press on a supported entry is raised as
-/// <see cref="Pressed"/>, and what it does is <see cref="OptionsHud.HudAction"/>.</summary>
+/// shows it takes every mouse press from the panels under it; the host's <see cref="HudPressRouter"/> asks
+/// <see cref="ActionAt"/> on a left press, and what it does is <see cref="OptionsHud.HudAction"/>.</summary>
 public partial class ClassicOptionsPanel : Node
 {
     /// <summary>The canvas's image source: the menu draws set text only, as Unity's facade loads nothing.</summary>
@@ -24,9 +24,6 @@ public partial class ClassicOptionsPanel : Node
     private HudCanvas? _canvas;
     /// <summary>Local units per virtual unit (the screen height over 1920) at the last draw; 0 before it.</summary>
     private float _scale;
-
-    /// <summary>A supported entry pressed with the left button.</summary>
-    public event Action<ClassicOptionsAction>? Pressed;
 
     /// <summary>Opens the menu, hidden; call before it enters the tree.</summary>
     /// <param name="text">A <c>Text.str</c> string by id, empty when missing.</param>
@@ -74,22 +71,30 @@ public partial class ClassicOptionsPanel : Node
         _canvas.Present(_frame, Vector2.Zero, _scale, 1);
     }
 
+    /// <summary>The supported entry under a screen pixel (Unity's facade's <c>ActionAt</c>), None off the entries or
+    /// before the first draw.</summary>
+    public ClassicOptionsAction ActionAt(Vector2 screenPosition)
+    {
+        if (_hud == null || _scale <= 0) return ClassicOptionsAction.None;
+        (float x, float y) = ToVirtual(screenPosition);
+        return _hud.ActionAt(x, y);
+    }
+
+    /// <summary>Whether the host's router takes this frame's presses for the open menu (the live HUD state it routes on,
+    /// not this node's drawn visibility, which updates only at the next draw); while it does, no panel under it gets one.</summary>
+    public Func<bool>? HoldsPresses { get; set; }
+
     public override void _Input(InputEvent @event)
     {
-        if (_hud == null || !_hud.Visible || _scale <= 0) return;
-        if (@event is not InputEventMouseButton { Pressed: true } button) return;
-        // Unity's runner gives every press to the menu while it is open (QueueHudInput), and acts on the left one.
-        GetViewport().SetInputAsHandled();
-        if (button.ButtonIndex != MouseButton.Left) return;
-        (float x, float y) = ToVirtual(button.Position);
-        ClassicOptionsAction action = _hud.ActionAt(x, y);
-        if (action != ClassicOptionsAction.None) Pressed?.Invoke(action);
+        // Unity's runner gives every frame to the open menu (QueueHudInput): the panels under it get no press. The router
+        // reads the press from the window; this node and the router decide on the same state.
+        if (@event is InputEventMouseButton { Pressed: true } && HoldsPresses?.Invoke() == true) GetViewport().SetInputAsHandled();
     }
 
     public override void _Notification(int what)
     {
         // Freed, not merely removed from the tree: a reparented menu keeps working.
-        if (what == NotificationPredelete) { Pressed = null; _hud = null; _canvas = null; }
+        if (what == NotificationPredelete) { HoldsPresses = null; _hud = null; _canvas = null; }
     }
 
     /// <summary>A screen pixel (top-left origin) in virtual units: Unity's <c>Virtual</c>, 1920 over the screen height.</summary>

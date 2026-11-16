@@ -26,7 +26,7 @@ namespace DK2.GodotAdapter;
 /// (<see cref="ClassicMinimap"/>, drawn from the level-start camera's focus and heading, as no camera moves them here; its
 /// grid is the full map's too). Not wired (logic still in Unity's runner, or needing the 3D world): the list is in
 /// docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c> (<c>--stage-battle</c> is <see cref="StageBattle"/>): godot/README.md.</summary>
-public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
+public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPressHost, IWorldClickHost
 {
     private readonly List<PlayerCommand> _pending = new();
     private readonly PlayerInputTranslator _input = new();
@@ -36,6 +36,26 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
     private HudActionRouter? _router;
     /// <summary>Where the press that raised the action being applied was, for the magnifier's zoom.</summary>
     private Vector2 _actionPointer;
+    /// <summary>The overview's pickups, as Unity's runner's; no hand cursor is drawn here.</summary>
+    private PickupFlow? _pickups;
+    /// <summary>The HUD's presses in Unity's order (DungeonRunner.QueueHudInput); this scene is its host.</summary>
+    private HudPressRouter? _presses;
+    /// <summary>The query tool's and a held choice's world presses (DungeonRunner.QueuePanelWorldAction). Without picking
+    /// (plan step 3) only the right-click cancels act; a left press finds no tile.</summary>
+    private WorldClickCommands? _worldClicks;
+    /// <summary>The window, whose input is read before any panel takes it.</summary>
+    private Window? _window;
+    /// <summary>The left and right buttons pressed since the last frame, read from the window before any panel marks the
+    /// event handled, as Unity's <c>Input.GetMouseButtonDown</c> sees every press whatever the UI does with it.</summary>
+    private bool _primaryDown, _secondaryDown;
+    /// <summary>The pointer and the HUD's visibility for this frame's presses (Unity's <c>Input.mousePosition</c> and
+    /// <c>CurrentHud</c> while the runner queues input).</summary>
+    private Vector2 _pressPointer;
+    private HudVisibility _pressVisibility;
+    private RoomNavigation? _roomNavigation;
+    private ThingNavigation? _doorNavigation, _trapNavigation;
+    private readonly List<RoomNavigationEntry> _roomEntries = new();
+    private readonly List<ThingNavigationEntry> _thingEntries = new();
     private readonly TickPacer _pacer = new();
     /// <summary>The applied settings, as Unity's runner keeps them: read here for the game speed, the key bindings and the
     /// HUD scale. Loaded from, and saved to, <see cref="_settingsPath"/>.</summary>
@@ -143,11 +163,18 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
         _model.Selected += SelectPanelChoice;
         _model.SpecialChosen += ActivateStoredSpecial;
         _model.GuiButton += PostGuiButton;
+        // The panel's right clicks walk the rooms, doors and traps as Unity's runner does; the glide needs the camera.
+        _roomNavigation = new RoomNavigation(_viewer);
+        _doorNavigation = new ThingNavigation(_viewer);
+        _trapNavigation = new ThingNavigation(_viewer);
+        _model.NavigateRoom += NavigateRoom;
+        _model.NavigateDoor += NavigateDoor;
+        _model.NavigateTrap += NavigateTrap;
         // Added after the panel and before the tabs, so it draws between them, as Unity's sorting order 13 between 12 and 14.
         var overviewArt = new InstallCreatureOverviewArt(install, level.Database, _art.Image, _art.Text);
         _overviewView = new CreatureOverview(level.Database, _viewer, overviewArt.Name, overviewArt.Order);
         _overview = new ClassicCreatureOverview { Name = "CreatureOverview" };
-        // Its Requested (a pickup or a focus) is not handled: the hand and the camera are not ported.
+        // Its presses are the router's (QueueInput): a pickup is posted, a focus needs the camera.
         _overview.Open(overviewArt, _overviewView);
         AddChild(_overview);
         // Unity gives it the overview's sorting order 13 and creates it after the overview; added after it here.
@@ -158,12 +185,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
         // Unity's sorting order 14, over the bottom panel (12) and the creature panels (13), as DK2 draws it over the tab
         // strip's rail; created before the tabs, as DungeonRunner creates it first.
         _worldView = new WorldView(level.Database, _viewer);
+        _pickups = new PickupFlow(_worldView, cursor: null);
+        _presses = new HudPressRouter(_hudControls, _tools, _overviewView, _view, _pickups, _viewer, this);
+        _worldClicks = new WorldClickCommands(_tools, _input, _queryView, _view, _viewer, this);
         _cameraFocus = MinimapHud.FixedFocus(ClassicCamera.LevelStartFocus(level.Players, _viewer,
             _simulation.World.Width, _simulation.World.Height));
         _minimap = new ClassicMinimap { Name = "Minimap" };
         _minimap.Open(new InstallMinimapAssets(install, _sources.Texture), _simulation.World.Width, _simulation.World.Height);
-        _minimap.Pressed += MinimapPressed;
-        _minimap.Navigated += MinimapNavigated;
         AddChild(_minimap);
         // Added after the panel, so it draws over it and takes the mouse first, as Unity's sorting order 14 over 12.
         _messageView = new MessageTabsView(_viewer, level.Database);
@@ -189,7 +217,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
         _options.SetSupported(ClassicOptionsAction.Save, true);
         _options.SetSupported(ClassicOptionsAction.Load, true);
         _options.SetSupported(ClassicOptionsAction.GameOptions, true);
-        _options.Pressed += OptionsPressed;
+        // Its press swallow reads the router's own live state (ClassicHudControls), never the drawn menu's.
+        _options.HoldsPresses = () => _hudControls.OptionsVisible;
         AddChild(_options);
         // Created after the menu, as DungeonRunner creates it; the two never show together.
         _gameOptions = new InGameOptionsController(_hudControls, _optionsPages);
@@ -213,8 +242,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
         // is the minimap's.
         _fullMap = new ClassicFullMap { Name = "FullMap" };
         _fullMap.Open(_minimap.Model!, _art.Font, PlayerNames.From(level.Players), _sources.Texture);
-        _fullMap.Pressed += FullMapPressed;
+        _fullMap.HoldsPresses = () => _hudControls.FullMapVisible;
         AddChild(_fullMap);
+        _window = GetWindow();
+        _window.WindowInput += ReadPress;
         _hudHover = new HudHoverText(_sources.Strings.Resolve);
         // The played campaign slot only world hover reads, passed as Unity's runner passes it.
         _typeText = new WorldHoverText(level.Database, _sources.Strings.Resolve, _viewer, CampaignSlot.ForLevel(levelName));
@@ -235,7 +266,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
             // Only an entry the menu takes a press on: an unsupported one is ignored, as a click.
             if (Enum.TryParse(LaunchArguments.Value(args, "--open-options"), out ClassicOptionsAction entry))
             {
-                if (_options.Supported(entry)) OptionsPressed(entry);
+                if (_options.Supported(entry)) _presses.PressOptions(entry);
                 else GD.PushWarning("DK2.Godot: --open-options ignores " + entry + ", which the menu does not support.");
             }
         }
@@ -278,11 +309,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
         // DungeonRunner.DrawSavePanel's in-game branch, with this frame's typing (Unity reads Input.inputString there).
         (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(visibility);
         _saveLoad.Show(_saves, saveLoadShown, saving, _keyboard.Typed);
-        // DungeonRunner.QueueHudInput's game options branch (PollKeyboard), after the shortcuts as there.
-        _gameOptionsPanel.CaptureKey(_keyboard.Read(_settings));
+        long milliseconds = (long)(_elapsed * 1000);
+        // DungeonRunner.QueueInput after the shortcuts, as there; its game options branch polls the keys before they end.
+        QueueInput(visibility, milliseconds);
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
-        long milliseconds = (long)(_elapsed * 1000);
         // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
         _resourceFacts = _resourceView.Capture(_simulation.World, displayHealth: visibility.ShowNormalHud);
         _resources.SetVisibility(visibility);
@@ -356,12 +387,79 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
         }
     }
 
-    /// <summary>Menu 43's presses, as DungeonRunner.BattleTabClicked maps them (<see cref="BattleTabView.Action"/>). Only the
-    /// cancel's left click acts here; the zoom and the two glides need the camera (plan step 3), and the runner's
-    /// suppressed-input gate is not wired (the modal gate is <see cref="ClassicHudControls.ModalInput"/> on the tabs' visibility).</summary>
+    /// <summary>Menu 43's presses, as DungeonRunner.BattleTabClicked applies them (<see cref="BattleTabView.Click"/>, with its
+    /// suppressed-input and modal gate): the cancel's left click posts; the zoom goes to the router, whose fight navigation
+    /// needs the camera, and the cancel's and the alarm's glides only print (plan step 3).</summary>
     private void BattleTabClicked(BattleTabButton button, int mouse)
     {
-        if (BattleTabView.Action(button, mouse) == BattleTabAction.CancelCallToArms) _pending.Add(new RemoveCallToArmsCommand(_viewer));
+        if (_simulation == null || _trapNavigation == null) return;
+        BattleTabClick click = BattleTabView.Click(button, mouse, _hudControls, _simulation.World, _simulation.Database, _viewer,
+            _trapNavigation, _thingEntries);
+        if (click.HudAction != ClassicHudAction.None) ApplyHudAction(click.HudAction);
+        if (click.Command != null) _pending.Add(click.Command);
+        if (click.Glide is TilePos tile) NotWiredGlide("battle tab", tile);
+    }
+
+    /// <summary>DungeonRunner.NavigateRoom: the next of the viewer's rooms of a type (<see cref="RoomNavigation.Entries"/>).</summary>
+    private void NavigateRoom(RoomTypeId type)
+    {
+        if (_simulation == null || _roomNavigation == null) return;
+        RoomNavigation.Entries(_simulation.World, _simulation.Database, _roomEntries);
+        if (_roomNavigation.Next(_roomEntries, type) is TilePos tile) NotWiredGlide("room", tile);
+    }
+
+    /// <summary>DungeonRunner.NavigateDoor: the next of the viewer's doors of a kind, newest first.</summary>
+    private void NavigateDoor(byte kind)
+    {
+        if (_simulation == null || _doorNavigation == null) return;
+        ThingNavigation.DoorEntries(_simulation.World.Doors, _thingEntries);
+        if (_doorNavigation.Next(_thingEntries, kind) is TilePos tile) NotWiredGlide("door", tile);
+    }
+
+    /// <summary>DungeonRunner.NavigateTrap: the next of the viewer's traps of a kind, newest first.</summary>
+    private void NavigateTrap(byte kind)
+    {
+        if (_simulation == null || _trapNavigation == null) return;
+        ThingNavigation.TrapEntries(_simulation.World.Traps, _thingEntries);
+        if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) NotWiredGlide("trap", tile);
+    }
+
+    private static void NotWiredGlide(string what, TilePos tile) =>
+        GD.Print("DK2.Godot: the ", what, " glide to tile (", tile.X, ", ", tile.Y, ") is not wired yet: there is no camera.");
+
+    /// <summary>A mouse press reaching the window, before any panel's <c>_Input</c> can mark it handled, as Unity's
+    /// <c>Input.GetMouseButtonDown</c> sees every press; <see cref="QueueInput"/> routes it in the next frame.</summary>
+    private void ReadPress(InputEvent @event)
+    {
+        if (@event is not InputEventMouseButton { Pressed: true } button) return;
+        if (button.ButtonIndex == MouseButton.Left) _primaryDown = true;
+        else if (button.ButtonIndex == MouseButton.Right) _secondaryDown = true;
+    }
+
+    /// <summary>DungeonRunner.QueueInput for what this scene has (plan step 2c): nothing while ordinary input is not allowed
+    /// (the world drag is dropped), then the HUD's press in Unity's order (<see cref="HudPressRouter"/>: an overview pickup
+    /// is posted through <see cref="PickupFlow"/>, a left press on the gold withdraws it), the query tool's and a choice's
+    /// world press (<see cref="WorldClickCommands"/>: a right press cancels the query tool or a held tool; a left press finds
+    /// no tile) and a left press on the minimap's map. Not wired: possession, the scripted path and whole-map gates, and the
+    /// hand's own world press, which need the camera and picking (plan steps 2h and 3).</summary>
+    private void QueueInput(HudVisibility visibility, long milliseconds)
+    {
+        KeyModifiers modifiers = _keyboard.Modifiers;
+        var press = new HudPress(_primaryDown, _secondaryDown, (modifiers & KeyModifiers.Shift) != 0,
+            (modifiers & KeyModifiers.Control) != 0, (modifiers & KeyModifiers.Alt) != 0);
+        _primaryDown = false; _secondaryDown = false;
+        if (_simulation == null || _presses == null || _worldClicks == null || _minimap == null) return;
+        if (!visibility.AllowOrdinaryInput)
+        {
+            _input.CancelPointerGesture();
+            return;
+        }
+        _pressPointer = GetViewport().GetMousePosition();
+        _pressVisibility = visibility;
+        if (_presses.Route(press, _simulation.World, _simulation.Database, milliseconds, _pending)
+            || _worldClicks.Queue(press, _simulation.Database, _pending)) return;
+        if (press.Primary && _minimap.TryNavigate(_pressPointer, out TilePos tile))
+            GD.Print("DK2.Godot: the minimap's move to tile (", tile.X, ", ", tile.Y, ") is not wired yet.");
     }
 
     /// <summary>DungeonRunner.ApplyHudAction, through the shared <see cref="HudActionRouter"/>: the options key, the options
@@ -382,42 +480,46 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
     void IHudActionHost.ZoomMinimap(bool zoomIn, bool zoomOut) => _minimap?.HandleZoomPress(_actionPointer, zoomIn, zoomOut);
     void IHudActionHost.PostGuiButton(GuiButtonTarget target) => PostGuiButton(target);
 
-    /// <summary>A minimap press that acts (DungeonRunner.QueueHudInput): a corner's action, or the full map on a right
-    /// click on the map.</summary>
-    private void MinimapPressed(ClassicHudAction action, Vector2 position) => ApplyHudAction(action, position);
+    // What HudPressRouter asks of this scene, at this frame's pointer: the panels' hit tests; the camera and the session are
+    // not wired here.
+    void IHudPressHost.ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action, _pressPointer);
 
-    /// <summary>A left click on the minimap's map. Unity's runner glides the camera to the tile only once no other HUD press
-    /// took it, which an open options menu or full map always does (DungeonRunner.QueueHudInput), and input is not
-    /// suppressed; the same gate holds here. There is no camera to move yet (plan step 3).</summary>
-    private void MinimapNavigated(TilePos tile)
+    void IHudPressHost.GoToFullMapTile()
     {
-        if (_hudControls.Modal || _hudControls.InputSuppressed) return;
-        GD.Print("DK2.Godot: the minimap's move to tile (", tile.X, ", ", tile.Y, ") is not wired yet.");
+        if (_fullMap == null) return;
+        TilePos tile = _fullMap.ResolvePointer(_pressPointer);
+        GD.Print("DK2.Godot: the full map's move to tile (", tile.X, ", ", tile.Y, ") is not wired yet.");
     }
 
-    /// <summary>A press on the open full map, as DungeonRunner.QueueHudInput applies it (<see cref="FullMapHud.Press"/>): both
-    /// close the map. The left press's camera move to the tile under the pointer is not wired: there is no camera (plan
-    /// step 2).</summary>
-    private void FullMapPressed(FullMapPress press, TilePos tile)
+    void IHudPressHost.PollGameOptionsKeyboard() => _gameOptionsPanel?.CaptureKey(_keyboard.Read(_settings));
+
+    ClassicOptionsAction IHudPressHost.OptionsActionAtPointer() => _options?.ActionAt(_pressPointer) ?? ClassicOptionsAction.None;
+
+    void IHudPressHost.RefreshSaves() => _saves?.Refresh();
+
+    /// <summary>Loading a level and leaving the game are the runner's (plan step 2): the session is dropped.</summary>
+    void IHudPressHost.StartSession(ClassicSessionAction session) =>
+        GD.Print("DK2.Godot: the options menu's ", session.ToString(), " is not wired yet.");
+
+    bool IHudPressHost.TryPressOverview(in HudPress press, out CreatureOverviewRequest request)
     {
-        // The facade's Visible lags a frame; a second press in the frame that closed the map must not reopen it.
-        if (!_hudControls.FullMapVisible) return;
-        if (press == FullMapPress.GoToTile)
-            GD.Print("DK2.Godot: the full map's move to tile (", tile.X, ", ", tile.Y, ") is not wired yet.");
-        ApplyHudAction(FullMapHud.Action(press));
+        request = default;
+        return _overview != null && _overview.TryPress(_pressPointer, press, out request);
     }
 
-    /// <summary>A press on an options menu entry, as DungeonRunner.QueueHudInput applies it
-    /// (<see cref="OptionsHud.HudAction"/>), the save list reread first for Save and Load. The session a confirmed restart,
-    /// return or quit asks for is taken and dropped: loading a level and leaving the game are the runner's (plan step 2).
-    /// Game Options opens the settings pages (<see cref="ClassicGameOptionsPanel"/>).</summary>
-    private void OptionsPressed(ClassicOptionsAction action)
-    {
-        if (OptionsHud.RefreshesSaves(action)) _saves?.Refresh();
-        ApplyHudAction(OptionsHud.HudAction(action));
-        ClassicSessionAction session = _hudControls.TakeSessionAction();
-        if (session != ClassicSessionAction.None) GD.Print("DK2.Godot: the options menu's ", session.ToString(), " is not wired yet.");
-    }
+    void IHudPressHost.FocusCreature(FpPosition3 position) =>
+        GD.Print("DK2.Godot: the overview's focus is not wired yet: there is no camera.");
+
+    ClassicHudAction IHudPressHost.PressMinimap(in HudPress press) =>
+        _minimap?.HandlePress(_pressPointer, press.Primary, press.Secondary) ?? ClassicHudAction.None;
+
+    KeeperResourceKind IHudPressHost.ResourceAtPointer() => _resources?.ResourceAt(_pressPointer) ?? KeeperResourceKind.None;
+
+    // What WorldClickCommands asks of this scene. There is no 3D world to pick (plan step 3), so no press finds a tile.
+    bool IWorldClickHost.PointerOverHud() => PointerOverHud(_pressPointer, _pressVisibility);
+    TilePos? IWorldClickHost.PointerTile() => null;
+    WorldHoverHit IWorldClickHost.Hover(TilePos tile) => new(WorldHoverKind.Tile, tile);
+    void IWorldClickHost.FollowQueriedCreature() { }
 
     /// <summary>DungeonRunner.ApplyGameSettings for what this scene has: the settings it reads (game speed, key bindings)
     /// and the HUD scale on the ported panels (ApplyHudScale). The scroll speed and the camera, the rendering settings
@@ -549,11 +651,12 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
         if (_model != null)
         {
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
+            _model.NavigateRoom -= NavigateRoom; _model.NavigateDoor -= NavigateDoor; _model.NavigateTrap -= NavigateTrap;
         }
         if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
-        if (_options != null) _options.Pressed -= OptionsPressed;
-        if (_fullMap != null) _fullMap.Pressed -= FullMapPressed;
-        if (_minimap != null) { _minimap.Pressed -= MinimapPressed; _minimap.Navigated -= MinimapNavigated; }
+        if (_window != null && IsInstanceValid(_window)) _window.WindowInput -= ReadPress;
+        _window = null; _presses = null; _worldClicks = null; _pickups = null;
+        _roomNavigation = null; _doorNavigation = null; _trapNavigation = null;
         if (_saveLoad != null)
         {
             _saveLoad.Submit -= SaveLoadSubmitted; _saveLoad.HudAction -= ApplyHudAction;

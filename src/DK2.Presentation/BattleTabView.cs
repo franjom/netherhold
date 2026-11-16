@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Commands;
 
 namespace DK2.Presentation;
 
@@ -25,6 +26,10 @@ public enum BattleTabAction : byte
     /// <summary>The alarm's right click (<c>0x00426A00</c>): a glide to <see cref="ThingNavigation.NextAlarm"/>.</summary>
     NextAlarm,
 }
+
+/// <summary>What a press on menu 43 asks of the adapter (<see cref="BattleTabView.Click"/>): a HUD action to apply, a
+/// command to post or a tile to glide to; at most one is set, and none when the press does nothing.</summary>
+public readonly record struct BattleTabClick(ClassicHudAction HudAction, PlayerCommand? Command, TilePos? Glide);
 
 /// <summary>Which of menu 43's buttons show this frame; each frame callback sets its widget's state
 /// on its own and the positions are static, so a hidden button leaves its gap.</summary>
@@ -100,6 +105,36 @@ public static class BattleTabView
         (BattleTabButton.Alarm, 1) => BattleTabAction.NextAlarm,
         _ => BattleTabAction.None,
     };
+
+    /// <summary>A press on menu 43, moved out of Unity's <c>DungeonRunner.BattleTabClicked</c> (migration plan step 2c):
+    /// nothing while input is suppressed or a menu is modal; otherwise <see cref="Action"/>'s, the blades' zoom as the F
+    /// key's (<see cref="ClassicHudAction.NavigateFight"/>), the cancel's <see cref="RemoveCallToArmsCommand"/> (action 0x81)
+    /// or glide to <see cref="CallToArmsTile"/>, and the alarm's glide to <see cref="ThingNavigation.NextAlarm"/> over
+    /// <see cref="TrapEntries"/>, walked on <paramref name="traps"/>, the Workshop trap cycle's last trap.</summary>
+    /// <param name="mouse">0 left, 1 right.</param>
+    /// <param name="scratch">A reused list the trap entries are written into.</param>
+    public static BattleTabClick Click(BattleTabButton button, int mouse, ClassicHudControls controls, WorldState world,
+        GameDatabase database, PlayerId viewer, ThingNavigation traps, List<ThingNavigationEntry> scratch)
+    {
+        if (controls is null) throw new ArgumentNullException(nameof(controls));
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (traps is null) throw new ArgumentNullException(nameof(traps));
+        if (controls.InputSuppressed || controls.Modal) return default;
+        switch (Action(button, mouse))
+        {
+            case BattleTabAction.ZoomToBattle:
+                return new BattleTabClick(ClassicHudAction.NavigateFight, null, null);
+            case BattleTabAction.CancelCallToArms:
+                return new BattleTabClick(ClassicHudAction.None, new RemoveCallToArmsCommand(viewer), null);
+            case BattleTabAction.GoToCallToArms:
+                return new BattleTabClick(ClassicHudAction.None, null, CallToArmsTile(world, viewer));
+            case BattleTabAction.NextAlarm:
+                TrapEntries(world.Traps, database, world.CurrentTick, scratch);
+                return new BattleTabClick(ClassicHudAction.None, null, traps.NextAlarm(scratch));
+            default:
+                return default;
+        }
+    }
 
     /// <summary>Every art name the menu draws, for preloading and the install check.</summary>
     public static IEnumerable<string> AllArt => BattleArt.Concat(CallToArmsArt).Concat(AlarmArt);

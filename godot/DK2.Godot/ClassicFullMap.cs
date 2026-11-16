@@ -15,7 +15,7 @@ namespace DK2.GodotAdapter;
 /// by two <see cref="HudCanvas"/>es, the black backdrop under and the room icon, creature squares and legend over the map
 /// image, which <see cref="FullMapImage"/> colours from the minimap's class grid (<see cref="ClassicMinimap.Model"/>, as
 /// Unity's full map reads its minimap's) and this node only uploads (Unity blits the same image with a shader). The panel is in screen pixels. While it shows it takes every mouse press
-/// and raises <see cref="Pressed"/> with what the press does (<see cref="FullMapHud.Press"/>). Unity's camera preview at the
+/// from the panels under it; what a press does is the host's <see cref="HudPressRouter"/> (<see cref="FullMapHud.Press"/>). Unity's camera preview at the
 /// top right needs the 3D world and is not drawn.</summary>
 public partial class ClassicFullMap : Node
 {
@@ -32,10 +32,6 @@ public partial class ClassicFullMap : Node
     private ImageTexture? _texture;
     /// <summary>The map image's rect as last recorded; empty before the first draw.</summary>
     private Rect2 _mapRect;
-
-    /// <summary>A mouse press while the map shows, and the tile under it (Unity's runner sends the camera there on
-    /// <see cref="FullMapPress.GoToTile"/>).</summary>
-    public event Action<FullMapPress, TilePos>? Pressed;
 
     public bool Visible => _hud != null && _hud.Visible;
 
@@ -128,13 +124,15 @@ public partial class ClassicFullMap : Node
         _mapRect = rect;
     }
 
+    /// <summary>Whether the host's router takes this frame's presses for the open map (the live HUD state it routes on,
+    /// not this node's drawn visibility, which updates only at the next draw); while it does, no panel under it gets one.</summary>
+    public Func<bool>? HoldsPresses { get; set; }
+
     public override void _Input(InputEvent @event)
     {
-        if (_hud == null || !_hud.Visible || @event is not InputEventMouseButton { Pressed: true } button) return;
-        // Unity's runner gives every press to the open map (QueueHudInput) and acts on the left and right ones.
-        GetViewport().SetInputAsHandled();
-        FullMapPress press = FullMapHud.Press(button.ButtonIndex == MouseButton.Left, button.ButtonIndex == MouseButton.Right);
-        Pressed?.Invoke(press, ResolvePointer(button.Position));
+        // Unity's runner gives every frame to the open map (QueueHudInput): the panels under it get no press. The router
+        // reads the press from the window; this node and the router decide on the same state.
+        if (@event is InputEventMouseButton { Pressed: true } && HoldsPresses?.Invoke() == true) GetViewport().SetInputAsHandled();
     }
 
     public override void _ExitTree()
@@ -147,7 +145,7 @@ public partial class ClassicFullMap : Node
     {
         // Freed, not merely removed from the tree: a reparented map keeps working.
         if (what != NotificationPredelete) return;
-        Pressed = null; _hud = null; _minimap = null; _pixels = null;
+        HoldsPresses = null; _hud = null; _minimap = null; _pixels = null;
         // The canvas item draws the texture, so it goes first.
         if (_mapItem.IsValid) { RenderingServer.FreeRid(_mapItem); _mapItem = default; }
         _texture?.Dispose(); _image?.Dispose(); _texture = null; _image = null;

@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation;
 
 namespace DK2.Presentation;
 
@@ -29,6 +30,36 @@ public sealed class ThingNavigation
     private int _last;
 
     public ThingNavigation(PlayerId viewer) => _viewer = viewer;
+
+    /// <summary>The doors for <see cref="Next"/>, newest first (<c>0x00416150</c> walks the per-player list, which
+    /// <c>Thing_LinkToOwner</c> <c>0x004B4C30</c> links at the head; ours is descending id), blueprints included, into
+    /// <paramref name="into"/> (cleared first). Moved out of Unity's DungeonRunner.NavigateDoor (migration plan step 2c).</summary>
+    public static void DoorEntries(IReadOnlyList<DoorState> doors, List<ThingNavigationEntry> into)
+    {
+        if (doors is null) throw new ArgumentNullException(nameof(doors));
+        if (into is null) throw new ArgumentNullException(nameof(into));
+        into.Clear();
+        for (int i = doors.Count - 1; i >= 0; i--)
+        {
+            DoorState door = doors[i];
+            into.Add(new ThingNavigationEntry(door.Id, new PlayerId(door.PlayerId), door.DoorId, new TilePos(door.X, door.Y)));
+        }
+    }
+
+    /// <summary>The traps for <see cref="Next"/>, newest first as <see cref="DoorEntries"/> (<c>0x004162A0</c>), without
+    /// the alarm's fields (<see cref="BattleTabView.TrapEntries"/> has them). Moved out of Unity's
+    /// DungeonRunner.NavigateTrap (migration plan step 2c).</summary>
+    public static void TrapEntries(IReadOnlyList<TrapState> traps, List<ThingNavigationEntry> into)
+    {
+        if (traps is null) throw new ArgumentNullException(nameof(traps));
+        if (into is null) throw new ArgumentNullException(nameof(into));
+        into.Clear();
+        for (int i = traps.Count - 1; i >= 0; i--)
+        {
+            TrapState trap = traps[i];
+            into.Add(new ThingNavigationEntry(trap.Id, new PlayerId(trap.PlayerId), trap.TrapId, new TilePos(trap.X, trap.Y)));
+        }
+    }
 
     public TilePos? Next(IReadOnlyList<ThingNavigationEntry> things, byte kind)
     {
