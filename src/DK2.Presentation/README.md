@@ -15,6 +15,9 @@ choice, the query tool, the selected corner) and `HudActionRouter` (a HUD action
 (the pickup sequence), `BattleTabView.Click` and the navigation entries (`RoomNavigation.Entries`,
 `ThingNavigation.DoorEntries` and `TrapEntries`). World hover to the hand cursor: `HoverCursorResolver`
 (`Resolve`: cursor, placement, hovered creature, hover sound and tint; `FogHit`, `TryHandLightPoint`).
+The front end's stores and glue: `CampaignProfileStore` (`Load`, `Save`, `Track`, `Adopt`, `SecretFiveAvailable`),
+`HiScoreStore` (its own file, then the install's, then empty), `FrontEndHost` (`OpenCampaign`, `TypeName`,
+`FillPickSlots`, `CreatureFrame`, `MovieGallery`) and `FrontEndStartupGate`.
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

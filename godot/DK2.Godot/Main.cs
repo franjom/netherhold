@@ -8,7 +8,8 @@ using Godot;
 namespace DK2.GodotAdapter;
 
 /// <summary>Scene root: shows the classic front-end menu over a black screen. The install is DK2_DIR, else the usual
-/// install locations (<see cref="Dk2Install"/>); its files are read in place and never copied into the project.</summary>
+/// install locations (<see cref="Dk2Install"/>); its files are read in place and never copied into the project. The
+/// campaign profile and hi-score table are the player's files under <see cref="UserFolders"/>.</summary>
 public partial class Main : Node
 {
     public override void _Ready()
@@ -21,7 +22,7 @@ public partial class Main : Node
             return;
         }
         var menu = new ClassicFrontEndMenu { Name = "FrontEndMenu" };
-        menu.Open(install);
+        menu.Open(install, UserFolders.FromArguments(OS.GetCmdlineUserArgs()));
         AddChild(menu);
     }
 }

@@ -11,7 +11,7 @@ namespace DK2.Unity
     public sealed partial class DungeonRunner
     {
         [SerializeField] private bool skipStartup;
-        private static bool _startupShown;
+        private static readonly FrontEndStartupGate StartupGate = new FrontEndStartupGate();
         private FrontEndStartup _frontEndStartup;
         private readonly FrontEndAttract _attract = new FrontEndAttract();
         private double _startupStarted;
@@ -21,19 +21,18 @@ namespace DK2.Unity
         private Vector3 _lastFrontEndPointer;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStartupRun() => _startupShown = false;
+        private static void ResetStartupRun() => StartupGate.Reset();
 
         private void BeginStartup(string install, IClassicFrontEndMenuAssets assets)
         {
             _startupInstall = install;
             _lastFrontEndPointer = Input.mousePosition;
-            if (!skipStartup && !_startupShown && frontEndReturnPage == FrontEndPage.None)
+            if (StartupGate.Begin(skipStartup, frontEndReturnPage))
             {
                 _frontEndStartup = new FrontEndStartup();
                 _startupStarted = Time.realtimeSinceStartupAsDouble;
                 _startupTitle = assets.Image("TitleScreen/TitleScreen");
             }
-            _startupShown = true;
         }
 
         private bool UpdateStartup()

@@ -4,8 +4,11 @@
 no DK2 behaviour: rules live in `src/`, and its HUD renderer (`HudCanvas`, Unity's counterpart of the
 same name) draws `DK2.Presentation`'s `HudFrame`. The main scene shows the classic front-end menu
 (`ClassicFrontEndMenu` over `FrontEndMenuHud`) on a black screen. Not wired yet: station scenery,
-movies, sound and keyboard; the model disables the campaign, save and movie buttons, and the settings
-pages open but their controls are inert. Like Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
+movie playback, sound and keyboard. The campaign entries fly to the campaign map page and the movie gallery shows which
+movies are unlocked, but with no station scene there is no land picking, briefing or launch, and name typing is not
+reachable; the model disables the save buttons, and the settings pages open but their controls are inert. The front end
+loads a real campaign profile and hi-score table, and reads and writes the files listed under *The player's files*. Like
+Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
 Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Twelve panels
@@ -56,8 +59,23 @@ bottom panel's press and the world drag; a held choice slot queues its release s
 Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
-`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--settings <file>` for the settings file, `--open-full-map` to open the full map; `LaunchArguments` also parses `--dk2Install <path>`, which the scene ignores: it still uses `Dk2Install.Find()`).
+`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--settings <file>` for the settings file, `--profile <file>` and `--hiscores <file>` for the front end's profile and hi-score table (every scene takes all four of `--profile`, `--settings`, `--saves` and `--hiscores`, through `UserFolders`), `--open-full-map` to open the full map; `LaunchArguments` also parses `--dk2Install <path>`, which the scene ignores: it still uses `Dk2Install.Find()`).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
+
+### The player's files
+
+`UserFolders.FromArguments` builds `GameFolders` over `user://` (`%APPDATA%/Godot/app_userdata/DK2.Godot/`), never Unity's
+`persistentDataPath`; `--profile`, `--settings`, `--saves` and `--hiscores` name a file or directory instead, and
+`--profile` without `--settings` puts the HUD's settings beside that profile, as Unity does. A front-end start:
+
+- reads `user://campaign-profile.dk2p`; only when it is missing, reads the original game's registry profile
+  (HKCU, `KEY_QUERY_VALUE`, read-only) to seed a new one, so the two profiles diverge after that first start;
+- reads `user://HiScores.dat`, then the install's `Data/Settings/HiScores.dat`, then starts empty;
+- writes the profile only if it was missing or `EnsureOpenMap` changed it, and `HiScores.dat` only on a committed name;
+- never writes Unity's `persistentDataPath` or the install's `HiScores.dat`, unless `--profile` or `--hiscores` points there.
+
+A corrupt or unwritable profile, or a registry error, warns and gives a fresh in-memory profile that is not saved
+(`CampaignProfileStore.Adopt`); an unreadable hi-score file warns and shows empty rows.
 
 | File | Role |
 |---|---|
@@ -66,6 +84,7 @@ Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agent
 | `editor.ps1` | starts the pinned editor on the project, from the repository root |
 | `DK2.Godot/` | the Godot project: `project.godot`, `DK2.Godot.csproj` (`ProjectReference`s into `src/`), scenes, C# |
 | `DK2.Godot/Main.tscn`, `Main.cs` | the main scene: the front-end menu (`ClassicFrontEndMenu`) |
+| `DK2.Godot/UserFolders.cs` | `GameFolders` over `user://` with the `--profile`, `--settings`, `--saves` and `--hiscores` overrides, for both scenes |
 | `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level, no 3D world (see above) |
 | `DK2.Godot/ClassicHoverHud.cs` | the hover HUD: `HoverHud` drawn by two `HudCanvas`es, top-docked, the bar at z index -1 and the text at +1 around the other panels, no input |
 | `DK2.Godot/ClassicResourceHud.cs` | the keeper's resource strip: `KeeperResourceHud` drawn by `HudCanvas`, top-docked, no input |
@@ -140,7 +159,11 @@ frame, run the console build without it, e.g. `--path godot/DK2.Godot --write-mo
 --quit-after 120` (Movie Maker writes every frame as a PNG; keep the output outside the repository).
 `editor.ps1` adds `--editor` to any run without `--headless`, so call the pinned console executable directly for this.
 `InGameHud.tscn` reads the saved settings (speed, key bindings, HUD scale) when it starts, so a capture recipe passes
-`-- --settings <temp file>` to repeat the same frames and not depend on the player's `user://game-settings.ini`.
+`-- --settings <temp file>` to repeat the same frames and not depend on the player's `user://game-settings.ini`. The main
+scene now loads the profile and hi-scores too, so its recipe also passes `-- --profile <temp file> --hiscores <temp file>`
+(with `--settings` if it opens the HUD); otherwise a run reads, and on a first start creates, the player's own files.
+`editor.ps1` cannot forward these user arguments (an ambiguous PowerShell parameter, `docs/TRAPS.md`): call the console
+executable directly.
 The window takes the desktop's size and `--windowed`/`--resolution` do not change it (`docs/TRAPS.md`); for a
 1920x1080 capture put a temporary `DK2.Godot/override.cfg` holding `[display]` / `window/size/mode=0` beside
 `project.godot`, and delete it afterwards.

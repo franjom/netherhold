@@ -43,12 +43,12 @@ namespace DK2.Unity
             try
             {
                 WaitForTick();
-                if (_campaignProfile == null) LoadFrontEndProfile();
+                if (_profiles.Profile == null) LoadFrontEndProfile();
                 if (_playedSlot != CampaignSlot.None) ApplyCampaignCarry();
                 string path = SavedSessionFile.PathForName(_saves.Directory, _saves.Name);
                 var header = new SavedSessionHeader(levelName, (byte)sessionMode, (ushort)frontEndReturnPage,
                     DateTime.UtcNow, _saves.Name);
-                SavedSessionFile.Save(path, new SavedSession(header, WorldSnapshot.ToBytes(_simulation), _campaignProfile));
+                SavedSessionFile.Save(path, new SavedSession(header, WorldSnapshot.ToBytes(_simulation), _profiles.Profile));
                 _saves.Refresh();
             }
             catch (Exception ex) when (ex is IOException || ex is InvalidDataException || ex is ArgumentException || ex is UnauthorizedAccessException)
@@ -77,8 +77,8 @@ namespace DK2.Unity
                     players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
                 // Validate before releasing the current scene. Our checkpoint format preserves its hash exactly.
                 GameSimulation simulation = WorldSnapshot.FromBytes(session.Snapshot, database, SimulationSystems.Default(), tree);
-                if (_campaignProfilePath == null) LoadFrontEndProfile();
-                CampaignProfileFile.Save(_campaignProfilePath, session.Profile);
+                if (_profiles.Path == null) LoadFrontEndProfile();
+                CampaignProfileFile.Save(_profiles.Path, session.Profile);
                 _pendingResumeSession = session; _pendingResumeSimulation = simulation;
                 _pendingSession = GameSessionRequest.Campaign(name, (FrontEndPage)session.Header.ReturnPageId);
             }

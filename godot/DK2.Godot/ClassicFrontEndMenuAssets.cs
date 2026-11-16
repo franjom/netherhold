@@ -58,6 +58,8 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
 
     public BitmapFont Font(FrontEndFont font) => _sources.Font(font);
 
+    public CampaignBriefing Briefing(CampaignSlot slot) => _sources.Briefing(slot);
+
     /// <summary>A front-end image's pixels by name; the menu's <see cref="HudCanvas"/> reads its art through this.</summary>
     public RgbaImage Load(string name) => _sources.Load(name);
 

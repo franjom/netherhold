@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c and 2d are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d and 2e are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -134,7 +134,7 @@ group 2 is a list to audit, not a finding.
       not support (`GameOptions`, `Save` and `Load` open their pages), lists saves from the directory
       `--saves <dir>` names, and reads the settings from the file `--settings <file>` names. Not wired on the save and load pages: the submit, that is writing or
       loading a save (Godot prints that the page's submit is not wired; it needs the runner's campaign
-      profile, `LoadFrontEndProfile`, and `ApplyCampaignCarry` with `_playedSlot`, the session mode and
+      profile (`CampaignProfileStore.Load`), and `ApplyCampaignCarry` with `_playedSlot`, the session mode and
       the return page, and a save built from a made-up profile would be harmful, since Unity's
       `LoadSession` writes `session.Profile` over the player's profile file); the save folder (Godot
       lists `user://Saves`, `%APPDATA%/Godot/app_userdata/DK2.Godot/Saves`, not created at startup, which
@@ -322,7 +322,29 @@ group 2 is a list to audit, not a finding.
       Not covered: `TintBlended` true (a type-8 door or trap) and the unreachable `CageTool is null` branch. The
       SmallPoint test is named `...AsHypothesised`, because its source 0x0040BBE0 is HYPOTHESIS. Not run: Unity in Play
       mode (the cursor, cage, tint and cast hand by eye).
-- [ ] 2e. `CampaignProfileStore`, `HiScoreStore`, `FrontEndHost`.
+- [x] 2e. Profile, hi-score and front-end glue (2026-11-16), a move into `DK2.Presentation` that Unity calls through a
+      `_profiles` field. `CampaignProfileStore`: `Load(path, mode, returnPage)` keeps `LoadFrontEndProfile`'s order
+      (create or read seeded by the registry import, `EnsureOpenMap`, `RepairAfterLevel` only from the campaign-results
+      page, save if changed, then the moon-phase secret five from an injected clock), `Save`, `Track` (raises
+      `Changed`, then writes, and only when it has a file), `Adopt` (a fileless in-memory profile) and
+      `SecretFiveAvailable`. `HiScoreStore` reads its own file, then the install's `Data/Settings/HiScores.dat`, then
+      empty, and writes its own file only. `FrontEndHost`: `TypeName`, `FillPickSlots` (a map piece wins over a marker),
+      `CreatureFrame`, `MovieGallery` and `OpenCampaign` (the shared store and controller wiring). `FrontEndStartupGate`
+      replaces the static `_startupShown`. Every Unity read and write maps 1:1 to the old code, including the null checks
+      and `LoadSession`'s write of `session.Profile` without adopting it. Godot: `UserFolders` builds `GameFolders` over
+      `user://` with `--profile`, `--settings`, `--saves` and `--hiscores` (both scenes take them); the front end loads a
+      real profile and hi-scores, so the hi-score page shows real rows, the movie gallery shows which movies are
+      unlocked (no playback) and the campaign entries fly to the map page. Not wired: land picking, briefing and launch
+      (no station scene), name typing, playback. A corrupt or unwritable profile, or a registry error, warns and gives
+      an unsaved in-memory profile; an unreadable hi-score file warns and gives empty rows. Tests:
+      `CampaignProfileStoreTests`, `HiScoreStoreTests`, `FrontEndHostTests`; 34 mutations across the review all fail a
+      test. Not run: Unity in Play mode and the Godot front-end pages by eye. `SessionSaveLoadProbe` reflects `_profiles`
+      (no build compiles it). Left for later: DK2's 0x00534F70 reaches `RepairAfterLevel` for return states 0x1A, 0x1B,
+      0x2A and 0x2D and ours only for 0x1A (its record says so; possibly a separate gap);
+      `CampaignMapController.AdvanceVisuals` calls `RouteSlots(...)` every frame on the map page, a possible
+      allocation, unmeasured, which Godot can now reach. Owner questions, product policy and not DK2 unknowns (so no Q
+      row): is a corrupt profile falling back to a fresh unsaved one acceptable; is it acceptable that Godot's first
+      start imports the original game's registry profile once into `user://` and the two then diverge.
 - [ ] 2f. Save and load (`SessionSaver`, `SessionLoader`, `SessionContext`, a resume payload on
       `GameSessionRequest`); Godot's save page then writes and loads.
 - [ ] 2g. Level end and cutscenes (`CampaignResultFlow`, `CampaignCutsceneRunner`, the tablet

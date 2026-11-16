@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.ComponentModel;
+using DK2.Data.Campaign;
 using DK2.Data.Model;
 using DK2.Data.Settings;
 using DK2.Presentation;
@@ -12,13 +14,17 @@ namespace DK2.GodotAdapter;
 /// <summary>The front-end menu, the Godot counterpart of Unity's <c>ClassicFrontEndMenu</c> plus the menu part of
 /// <c>DungeonRunner.FrontEnd</c>: <see cref="FrontEndMenuHud"/> (ADR-0805) decides every label, colour, hover and
 /// page, and a <see cref="HudCanvas"/> draws its frame. This node runs the session's clock, converts the pointer to
-/// 640 x 480 units and forwards it. No station scene, movies, campaign, saves or settings pages are wired yet, so the
-/// model leaves their buttons disabled.</summary>
+/// 640 x 480 units and forwards it. The campaign profile and hi-score table load as in Unity
+/// (<see cref="CampaignProfileStore"/>, <see cref="HiScoreStore"/>), so the hi-score and movie gallery pages show the
+/// player's rows and the campaign entries open the map page; with no station scene there is no land to pick, no level
+/// launches, and no movie plays. The saves and settings pages are not wired, so the model leaves their buttons disabled.</summary>
 public partial class ClassicFrontEndMenu : Node
 {
     private readonly HudFrame _frame = new();
     private ClassicFrontEndMenuAssets? _assets;
     private FrontEndSession? _session;
+    private CampaignProfileStore? _profiles;
+    private CampaignMapController? _campaign;
     private FrontEndMenuHud? _hud;
     private HudCanvas? _canvas;
     private double _elapsed;
@@ -51,20 +57,51 @@ public partial class ClassicFrontEndMenu : Node
     public FrontEndRect HitBounds(FrontEndWidget widget) =>
         (_hud ?? throw new InvalidOperationException("The menu is not open.")).HitBounds(widget);
 
-    /// <summary>Opens the menu over an install; call before the node enters the tree.</summary>
-    public void Open(string install)
+    /// <summary>Opens the menu over an install with the player's files in <paramref name="folders"/>; call before the
+    /// node enters the tree. A missing profile is created here (from the original game's registry entry on Windows); an
+    /// unusable one falls back to memory (<see cref="LoadProfile"/>).</summary>
+    public void Open(string install, GameFolders folders)
     {
         if (_hud != null) throw new InvalidOperationException("The menu is already open.");
         _assets = new ClassicFrontEndMenuAssets(install);
         Func<int, IReadOnlyList<KcsFrame>?> paths = EngineCameraPaths.Loader(install);
         _session = new FrontEndSession(path => paths((int)path));
-        _hud = new FrontEndMenuHud(_session, _assets, HudFit, ClassicKeyNames.Name);
+        // DungeonRunner.StartFrontEnd: the profile, the hi-scores, and the map that writes both back.
+        _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
+        CampaignProfile profile = LoadProfile(_profiles, folders.Profile);
+        var hiScores = new HiScoreStore(folders.HiScores, install);
+        _campaign = FrontEndHost.OpenCampaign(_session, _profiles, hiScores, LoadHiScores(hiScores), _assets.Briefing, RefreshMovies);
+        _hud = new FrontEndMenuHud(_session, _assets, HudFit, ClassicKeyNames.Name, _campaign);
+        _hud.Model.SetMovieGallery(FrontEndHost.MovieGallery(profile, install, _assets.Text));
         _hud.Model.QuitRequested += Quit;
         _session.PageChanged += PageChanged;
         _canvas = new HudCanvas { Name = "HudCanvas", Load = _assets.Load };
         AddChild(_canvas);
         UseReplacementFont = true;
         _session.Update(TimeSpan.Zero);
+    }
+
+    /// <summary>The player's profile; one that cannot be read or created (corrupt, unwritable, a failed registry read)
+    /// warns and leaves a fresh profile in memory only, so the menu still opens. Unity lets the error stop the front end.</summary>
+    private static CampaignProfile LoadProfile(CampaignProfileStore profiles, string path)
+    {
+        try { return profiles.Load(path, GameSessionMode.FrontEnd, FrontEndPage.None); }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or Win32Exception or UnauthorizedAccessException)
+        {
+            GD.PushWarning($"DK2.Godot: cannot use the campaign profile {path} ({ex.Message}); using a fresh one that is not saved.");
+            return profiles.Adopt(new CampaignProfile());
+        }
+    }
+
+    /// <summary>The hi-score table; one that cannot be read for an IO reason warns and shows empty rows.</summary>
+    private static IReadOnlyList<HiScoreEntry> LoadHiScores(HiScoreStore store)
+    {
+        try { return store.Load(path => GD.PushWarning("DK2.Godot: unreadable hi-score table " + path)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            GD.PushWarning($"DK2.Godot: cannot read the hi-score table ({ex.Message}); showing empty rows.");
+            return HiScoreTable.Empty;
+        }
     }
 
     public override void _Input(InputEvent @event)
@@ -99,6 +136,7 @@ public partial class ClassicFrontEndMenu : Node
         _wheel = 0;
         // No sound player yet: drop the requests so they do not pile up.
         _hud.Model.Sounds.Clear();
+        _campaign?.Sounds.Clear();
         _hud.Sync();
         if (!sized) return;
         _frame.Clear();
@@ -120,10 +158,15 @@ public partial class ClassicFrontEndMenu : Node
 
     private void Quit() => GetTree().Quit();
 
+    /// <summary>A profile the map changed re-reads the gallery's unlocks, as Unity's <c>ProfileChanged</c> handler does.</summary>
+    private void RefreshMovies(CampaignProfile profile) => _hud?.Model.Movies?.Refresh(profile);
+
     public override void _ExitTree()
     {
         if (_session != null) _session.PageChanged -= PageChanged;
+        if (_profiles != null) _profiles.Changed -= RefreshMovies;
         _hud?.Dispose(); _hud = null;
+        _campaign?.Dispose(); _campaign = null; _profiles = null;
         _assets?.Dispose(); _assets = null;
         _session = null; _canvas = null;
     }

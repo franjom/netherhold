@@ -342,7 +342,7 @@ namespace DK2.Unity
             if (frontEnd)
             {
                 LoadFrontEndProfile();
-                _frontEndScenery = FrontEndScenery.Create(world, database, _campaignProfile, new SimRandom(seed), _secretFiveAvailable)
+                _frontEndScenery = FrontEndScenery.Create(world, database, _profiles.Profile, new SimRandom(seed), _profiles.SecretFiveAvailable)
                     .Concat(FrontEndScenery.CreateCampaignMarkers(database)).ToArray();
                 _frontEndBaseScenery = _frontEndScenery;
             }

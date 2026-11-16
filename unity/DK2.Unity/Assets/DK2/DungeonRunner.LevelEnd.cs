@@ -26,16 +26,16 @@ namespace DK2.Unity
         {
             if (!LaunchedFromFrontEnd) return;
             LoadFrontEndProfile();
-            CampaignSlot slot = CampaignProgression.PlayedSlot(_campaignProfile);
+            CampaignSlot slot = CampaignProgression.PlayedSlot(_profiles.Profile);
             // A profile that names another map (edited between sessions) records nothing.
             _playedSlot = string.Equals(slot.LevelName, levelName, System.StringComparison.OrdinalIgnoreCase) ? slot : CampaignSlot.None;
             if (resumed) { _carryApplied = World.Carry; return; }
-            if (_campaignProfile.TransferCreatureId == 0) return;
+            if (_profiles.Profile.TransferCreatureId == 0) return;
             // 0x0050C67D: the stored creature arrives before the first turn; both values clear whatever happens.
             TransferCreatureRules.Arrive(_simulation, new PlayerId((byte)viewingPlayerId),
-                _campaignProfile.TransferCreatureId, _campaignProfile.TransferCreatureLevel);
-            _campaignProfile = _campaignProfile with { TransferCreatureId = 0, TransferCreatureLevel = 0 };
-            CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
+                _profiles.Profile.TransferCreatureId, _profiles.Profile.TransferCreatureLevel);
+            _profiles.Profile = _profiles.Profile with { TransferCreatureId = 0, TransferCreatureLevel = 0 };
+            _profiles.Save();
         }
 
         /// <summary>The profile writes specials 129 and 140 make in DK2 the moment they act.</summary>
@@ -46,15 +46,15 @@ namespace DK2.Unity
                 && carry.TransferCreatureTypeId == _carryApplied.TransferCreatureTypeId
                 && carry.TransferCreatureLevel == _carryApplied.TransferCreatureLevel) return;
             for (int i = _carryApplied.HiddenLandFound; i < carry.HiddenLandFound; i++)
-                if (_campaignProfile.LevelNumber is >= 1 and <= 30)
-                    _campaignProfile = CampaignProgression.LocateHiddenLand(_campaignProfile, new CampaignSlot(_campaignProfile.LevelNumber));
+                if (_profiles.Profile.LevelNumber is >= 1 and <= 30)
+                    _profiles.Profile = CampaignProgression.LocateHiddenLand(_profiles.Profile, new CampaignSlot(_profiles.Profile.LevelNumber));
             if (carry.TransferStored)
-                _campaignProfile = _campaignProfile with
+                _profiles.Profile = _profiles.Profile with
                 {
                     TransferCreatureId = carry.TransferCreatureTypeId, TransferCreatureLevel = carry.TransferCreatureLevel,
                 };
             _carryApplied = carry;
-            CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
+            _profiles.Save();
         }
 
         /// <summary>0x004BE630's local-player arms when the verdict lands; Space then posts action 1,
@@ -71,8 +71,8 @@ namespace DK2.Unity
             if (!ended) return false;
             if (!_resultRecorded && _playedSlot != CampaignSlot.None)
             {
-                _campaignProfile = CampaignProgression.RecordResult(_campaignProfile, _playedSlot, won: status == PlayerStatus.Won);
-                CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
+                _profiles.Profile = CampaignProgression.RecordResult(_profiles.Profile, _playedSlot, won: status == PlayerStatus.Won);
+                _profiles.Save();
             }
             _resultRecorded = true;
             if (_scriptedView.PathPlaying) return false;
@@ -108,9 +108,9 @@ namespace DK2.Unity
                     ? KeeperRank.Compute(block, LevelStatisticsRules.NativeEndTurn(player.Statistics), _levelTicksPerSecond,
                         database[VariableTypeId.AverageTime], database[VariableTypeId.LevelRating])
                     : (uint?)null;
-                _campaignProfile = CampaignProgression.RecordStatistics(_campaignProfile, player.PlayerId, block, _playedSlot, rank);
+                _profiles.Profile = CampaignProgression.RecordStatistics(_profiles.Profile, player.PlayerId, block, _playedSlot, rank);
             }
-            CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
+            _profiles.Save();
         }
 
         private void DrawCampaignResultPrompt()
@@ -121,7 +121,7 @@ namespace DK2.Unity
             if (!PlayerStatus.HasEnded(status)) return;
             DrawWinScreen();
             var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 18 };
-            string prompt = status != PlayerStatus.Won || _campaignProfile.SecretLevelNumber != 0 ? "Press Space to leave"
+            string prompt = status != PlayerStatus.Won || _profiles.Profile.SecretLevelNumber != 0 ? "Press Space to leave"
                 : _continueRequested ? "Continuing..." : "Press Space to leave, Escape to keep playing";
             GUI.Label(new Rect(0, Screen.height - 60, Screen.width, 30), prompt, style);
         }

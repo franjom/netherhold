@@ -25,7 +25,7 @@ namespace DK2.Unity
 
         private void BeginCutscene(string install)
         {
-            _cutscene = CampaignCutscene.AfterLevel(_campaignProfile);
+            _cutscene = CampaignCutscene.AfterLevel(_profiles.Profile);
             if (_cutscene == null) return;
             _cutsceneInstall = install;
             _cutsceneTitle = null;

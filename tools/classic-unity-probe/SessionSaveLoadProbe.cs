@@ -79,7 +79,7 @@ namespace DK2.Unity.Editor
                         throw new Exception("Resumed checkpoint advanced a tick: " + simulation.World.CurrentTick);
                     if (simulation.StateHash().ToString() != SessionState.GetString(Active + ".hash", "")) throw new Exception("Resumed checkpoint hash differs.");
                     if (simulation.World.Carry.HiddenLandFound != 1) throw new Exception("Carry was not restored.");
-                    if (Convert.ToBase64String(CampaignProfileFile.Write((CampaignProfile)Get(runner, "_campaignProfile")))
+                    if (Convert.ToBase64String(CampaignProfileFile.Write(((CampaignProfileStore)Get(runner, "_profiles")).Profile))
                         != SessionState.GetString(Active + ".profile", "")) throw new Exception("Profile was not restored.");
                     Debug.Log("Session restore passed " + (stage == 1 ? "in-game" : "front-end") + ": tick/hash/Level1/profile/carry.");
                     if (stage == 1)

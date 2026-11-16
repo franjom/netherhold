@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using DK2.Data.Campaign;
 using DK2.Data.Model;
 using DK2.Core;
@@ -22,9 +21,8 @@ namespace DK2.Unity
         private double _frontEndStarted;
         [SerializeField] private string campaignProfileFile = "";
         [SerializeField] private string hiScoresFile = "";
-        private CampaignProfile _campaignProfile;
-        private string _campaignProfilePath;
-        private bool _secretFiveAvailable;
+        /// <summary>The live campaign profile this session's front end, level end and saves share.</summary>
+        private readonly CampaignProfileStore _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
         private CampaignMapController _campaignMap;
         private IReadOnlyList<FrontEndProp> _frontEndBaseScenery;
         private readonly Dictionary<int, CampaignSlot> _campaignPickSlots = new Dictionary<int, CampaignSlot>();
@@ -39,16 +37,7 @@ namespace DK2.Unity
             ProfileFile = campaignProfileFile, SavesDirectory = savedSessionDirectory, HiScoresFile = hiScoresFile,
         };
 
-        private void LoadFrontEndProfile()
-        {
-            _campaignProfilePath = Folders.Profile;
-            CampaignProfile loaded = CampaignProfileFile.LoadOrCreate(_campaignProfilePath, InstalledCampaignRegistry.ReadCurrentUser);
-            _campaignProfile = CampaignProgression.EnsureOpenMap(loaded);
-            if (sessionMode == GameSessionMode.FrontEnd && frontEndReturnPage == FrontEndPage.CampaignResults)
-                _campaignProfile = CampaignProgression.RepairAfterLevel(_campaignProfile);
-            if (!ReferenceEquals(loaded, _campaignProfile)) CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
-            _secretFiveAvailable = CampaignMoon.IsSecretFiveAvailable(CampaignMoon.PhaseAt(DateTime.Now));
-        }
+        private void LoadFrontEndProfile() => _profiles.Load(Folders.Profile, sessionMode, frontEndReturnPage);
 
         public GameSessionMode SessionMode => sessionMode;
         public FrontEndSession FrontEnd => _frontEnd;
@@ -93,24 +82,13 @@ namespace DK2.Unity
             _frontEnd = new FrontEndSession(path => paths((int)path), frontEndReturnPage);
             _frontEndStarted = Time.realtimeSinceStartupAsDouble;
             var menuAssets = new InstallClassicFrontEndMenuAssets(install);
-            string hiScoresPath = Folders.HiScores;
-            _campaignMap = new CampaignMapController(_frontEnd, _campaignProfile, _secretFiveAvailable, menuAssets.Briefing,
-                LoadHiScores(hiScoresPath, install));
-            _campaignMap.HiScoresChanged += rows => HiScoresFile.Save(hiScoresPath, rows);
-            _campaignMap.ProfileChanged += profile =>
-            {
-                _campaignProfile = profile;
-                _frontEndMenu?.Model.Movies?.Refresh(profile);
-                CampaignProfileFile.Save(_campaignProfilePath, profile);
-            };
+            var hiScores = new HiScoreStore(Folders.HiScores, install);
+            _campaignMap = FrontEndHost.OpenCampaign(_frontEnd, _profiles, hiScores,
+                hiScores.Load(path => Debug.LogWarning("DK2: unreadable hi-score table " + path)), menuAssets.Briefing,
+                profile => _frontEndMenu?.Model.Movies?.Refresh(profile));
             // Dispatcher 0xC: the session ends and the campaign level runs with return page 0x1A.
             _campaignMap.LaunchRequested += slot => _pendingSession = GameSessionRequest.Campaign(slot.LevelName);
-            _campaignPickSlots.Clear();
-            foreach (FrontEndProp prop in _frontEndBaseScenery)
-            {
-                if (prop.MapPiece is DK2.Assets.FrontEndMapPiece piece) _campaignPickSlots[prop.View.Id] = new CampaignSlot((byte)piece);
-                else if (prop.MarkerSlot is CampaignSlot slot) _campaignPickSlots[prop.View.Id] = slot;
-            }
+            FrontEndHost.FillPickSlots(_frontEndBaseScenery, _campaignPickSlots);
             _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, menuAssets, _campaignMap, _optionsPages);
             _frontEndMenu.Model.QuitRequested += QuitFrontEnd;
             InitializeSaves(install);
@@ -118,11 +96,7 @@ namespace DK2.Unity
             _frontEndMenu.Model.LoadRequested += LoadSession;
 
             ApplyGameSettings(_gameSettings);
-            string speechPath = Path.Combine(LevelSubtitles.TextFolder(install), "Speech.str");
-            DK2.Data.Text.Dk2StringTable movieTitles = File.Exists(speechPath) ? DK2.Data.Text.Dk2StringTable.Open(speechPath) : null;
-            _frontEndMenu.Model.SetMovieGallery(new FrontEndMovieGallery(_campaignProfile,
-                path => File.Exists(Path.Combine(install, path)),
-                id => movieTitles != null && movieTitles.TryResolve(id, out string title) ? title : "", menuAssets.Text));
+            _frontEndMenu.Model.SetMovieGallery(FrontEndHost.MovieGallery(_profiles.Profile, install, menuAssets.Text));
             _frontEndMenu.Model.MovieRequested += PlayFrontEndMovie;
             BeginStartup(install, menuAssets);
             if (_frontEndStartup == null) _frontEnd.Update(TimeSpan.Zero);
@@ -140,7 +114,7 @@ namespace DK2.Unity
             if (UpdateAttract()) return;
             double elapsed = Math.Max(0, Time.realtimeSinceStartupAsDouble - _frontEndStarted);
             _frontEnd.Update(TimeSpan.FromSeconds(elapsed));
-            if (_campaignMap.EntryRow >= 0) TypeHiScoreName();
+            if (_campaignMap.EntryRow >= 0) FrontEndHost.TypeName(_campaignMap, Input.inputString);
             _frontEndMenu?.Refresh();
             if (_frontEndMenu != null) _soundPlayer?.Play(_frontEndMenu.Model.Sounds);
             if (_optionsPages != null) _soundPlayer?.Play(_optionsPages.Sounds);
@@ -153,9 +127,7 @@ namespace DK2.Unity
             _campaignMap.UpdatePointer(picked, Input.GetMouseButton(0));
             _soundPlayer?.Play(_campaignMap.Sounds);
             RefreshCampaignMap();
-            double turns = elapsed * SimulationTiming.OriginalTicksPerGameSecond;
-            var tick = new GameTick((long)Math.Floor(turns));
-            float fraction = (float)(turns - Math.Floor(turns));
+            (GameTick tick, float fraction) = FrontEndHost.CreatureFrame(elapsed);
             _scene.DrawCreatureFrame(tick, fraction);
             _scene.SetObjectLights(_worldView.LightObjects(World), 1);
             ApplyClassicLook();
@@ -164,29 +136,6 @@ namespace DK2.Unity
             _constructionEffects?.Draw();
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
-        }
-
-        /// <summary>Our own table; on first use the install's runtime table is read (never written), else
-        /// ten empty rows (ADR-0538's import pattern).</summary>
-        private static IReadOnlyList<HiScoreEntry> LoadHiScores(string path, string install)
-        {
-            string original = Path.Combine(install, "Data", "Settings", "HiScores.dat");
-            foreach (string candidate in new[] { path, original })
-            {
-                try { if (File.Exists(candidate)) return HiScoresFile.Read(File.ReadAllBytes(candidate)); }
-                catch (InvalidDataException) { Debug.LogWarning("DK2: unreadable hi-score table " + candidate); }
-            }
-            return HiScoreTable.Empty;
-        }
-
-        private void TypeHiScoreName()
-        {
-            foreach (char typed in Input.inputString)
-            {
-                if (typed == '\b') _campaignMap.EraseEntry();
-                else if (typed == '\n' || typed == '\r') { _campaignMap.CommitEntry(); return; }
-                else _campaignMap.TypeEntry(typed);
-            }
         }
 
         private void RefreshCampaignMap()

@@ -129,11 +129,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         LaunchArguments launch = LaunchArguments.Parse(args, "--");
         string levelName = launch.Level ?? "Level1";
         ulong seed = launch.Seed ?? 1;
-        // Godot's root is user:// (%APPDATA%/Godot/app_userdata/DK2.Godot), never Unity's persistentDataPath.
-        var folders = new GameFolders(ProjectSettings.GlobalizePath("user://"))
-        {
-            SettingsFile = LaunchArguments.Value(args, "--settings"), SavesDirectory = LaunchArguments.Value(args, "--saves"),
-        };
+        GameFolders folders = UserFolders.FromArguments(args);
         CampaignLevelData level = CampaignLevelData.Load(install, levelName);
         _simulation = level.CreateSimulation(seed, fogOfWarEnabled: true);
         _simulation.World.LocalPlayerId = _viewer;

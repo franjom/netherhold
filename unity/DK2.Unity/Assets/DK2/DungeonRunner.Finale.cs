@@ -79,7 +79,7 @@ namespace DK2.Unity
         {
             var player = new PlayerId((byte)viewingPlayerId);
             double now = Time.unscaledTimeAsDouble * 1000d;
-            bool secret = _campaignProfile.SecretLevelNumber != 0;
+            bool secret = _profiles.Profile.SecretLevelNumber != 0;
             if (_winScreen != null && _winScreen.Update(now, _scriptedView.PathPlaying, _continueRequested,
                 speechPlaying: _soundPlayer != null && _soundPlayer.SpeechEnabled ? _soundPlayer.SpeechBusy : (bool?)null))
             {
