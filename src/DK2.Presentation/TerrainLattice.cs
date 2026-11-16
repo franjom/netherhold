@@ -86,13 +86,18 @@ public sealed class TerrainLattice
 
     private bool _possession;
 
-    /// <summary>Forgets the cells a change at (x, y) reaches: its own and its eight neighbours'.</summary>
+    /// <summary>Forgets the cells a change at (x, y) reaches: its own and its eight neighbours'
+    /// (<see cref="LatticeDirtyTracker.ForgetReach"/>).</summary>
     public void Invalidate(int x, int y)
     {
-        for (int ty = y - 1; ty <= y + 1; ty++)
-            for (int tx = x - 1; tx <= x + 1; tx++)
+        const int reach = LatticeDirtyTracker.ForgetReach;
+        for (int ty = y - reach; ty <= y + reach; ty++)
+            for (int tx = x - reach; tx <= x + reach; tx++)
                 if (tx >= -1 && ty >= -1 && tx <= _width - 2 && ty <= _height - 2) _built[IndexOf(tx, ty)] = false;
     }
+
+    /// <summary>Whether the cell of tile (x, y), one of the tiles one beyond the map included, is built (tests).</summary>
+    internal bool IsBuilt(int x, int y) => _built[IndexOf(x, y)];
 
     /// <summary>Forgets every cell, as a change of <see cref="FullHeight"/> requires.</summary>
     public void InvalidateAll() => Array.Clear(_built, 0, _built.Length);

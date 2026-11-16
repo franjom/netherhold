@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
-    public sealed class ClassicTileLightBuffer : IDisposable
+    public sealed class ClassicTileLightBuffer : IDisposable, ITileLightSink
     {
         public const string Keyword = "DK2_TILE_LIGHT_TABLES";
         [StructLayout(LayoutKind.Sequential)]

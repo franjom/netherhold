@@ -40,6 +40,13 @@ The scene mapping for creatures and objects, render only (it reads views, never 
 clamped position lerp, the shortest-arc wrap and the object turn), `MeshOrientation` (a mesh's turns as a `RenderEuler`, with the
 ordering of `0x00580480` and our frame mapping stated), and `AnimationClipRequest` (the clip identity records, `Replacement` and
 `StartSeconds`). The clip player itself is `CreatureAnimationPlayer` in `DK2.Art`.
+The classic light frame and the hover pick, measured by the adapter and decided here (they read no world state, ADR-0458):
+`ClassicLightPublisher` (`Prepare` finds the visible tiles again only when the pose, viewport or distance changes and joins the
+second camera at view distance 10; `Publish` writes a diff to an `ITileLightSink`; `PublishPortalLights`, `MarkTablesWritten`,
+`Clear`), `ClassicLightFlagsRules` (`Torch`, `IsCheapTorch`), `TileView.LitAsExplored` (the tile fill rule),
+`LatticeDirtyTracker` (`ForgetReach`, `TorchReach`), `WorldHoverPicker` (`TryCastTerrain` through `TileTopPlane.TryHit`, then
+`Holds`, `Admits`, `Offer`, `TryRenderedResult`, the sweep and `OnPointerTile`; its vector arithmetic is Unity's term by term,
+so a pick is bit-identical) and `HoverOverlayPlan` (the frame's red creatures and each submesh's swap and red decision).
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

@@ -171,12 +171,14 @@ dropped back on a store it is deposited on landing, as DK2's state 5 does (ADR-0
   runner tints only what it accepts, in Hand mode off the HUD.
 - `ObjectHoverHighlight` holds §1's texture rule; `ObjectView.HoverTexture` marks the gold
   arts.
-- `DungeonScene.DrawHoverOverlay` draws a hovered gold object's `_HIGHLIGHT` twin (from
+- `HoverOverlayPlan` (src/DK2.Presentation) decides which submeshes swap to the `_HIGHLIGHT`
+  twin and which take the red pass, and which creatures were already drawn red this frame;
+  `DungeonScene.DrawHoverOverlay` draws a hovered gold object's twin (from
   `ClassicMeshes.HoverTextures`) one render queue after the original, then the red pass on
   its materials, skipping those made from additive or alpha-blended KMF materials
   (`ClassicMeshes.IsKmfBlended`) unless `HoverTint.CoversBlended` (Fear Trap, Hero
   Portcullis), for creatures, objects, doors and traps.
-- `DungeonScene.PickHoverEntity` admits the store pile decoration, doors and traps;
+- `WorldHoverPicker.OffersObject` and `StructureHit` (called by `DungeonScene.PickHoverEntity`) admit the store pile decoration, doors and traps;
   `WorldHoverText` reads a store pile as "N Gold" from its tile.
 - `PlayerInputSnapshot` offers an own store pile as a `StoreGold` target carrying its tile; a
   click lifts it (§4), and `DungeonRunner` shows the pickup hand over it.

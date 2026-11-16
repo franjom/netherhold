@@ -18,3 +18,16 @@ public enum ClassicLightFlags : uint
     NormalObject = 0x191,
     CheapObject = 0x95,
 }
+
+/// <summary>The renderer's cheap-lighting option as light flags: the torch flags a scene gives its torches, and the test
+/// its object, effect and portal lights read back (migration plan step 2j).</summary>
+public static class ClassicLightFlagsRules
+{
+    /// <summary>The torch flags of a scene with cheap lighting on or off.</summary>
+    public static ClassicLightFlags Torch(bool cheapLighting) =>
+        cheapLighting ? ClassicLightFlags.CheapTorch : ClassicLightFlags.NormalTorch;
+
+    /// <summary>Whether a scene's torch flags say cheap lighting; false for <see cref="ClassicLightFlags.None"/>, the
+    /// flags of a scene without classic vertex lighting.</summary>
+    public static bool IsCheapTorch(this ClassicLightFlags torchFlags) => torchFlags == ClassicLightFlags.CheapTorch;
+}

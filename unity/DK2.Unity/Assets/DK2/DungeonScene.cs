@@ -43,11 +43,8 @@ namespace DK2.Unity
             _torchFlames?.Dispose();
             _torchFlames = new ClassicTorchFlames(_root, _lattice, sprites, clock ?? (() => HeartEffectClock()));
         }
-        // Tiles pushed since the torches were last bent: the lattice forgets the cells within one of
-        // a pushed tile (TerrainChunks.TrySet), and a torch reads the cells within one of its wall
-        // (TerrainLattice.Deform), so only a torch within two of a pushed tile can bend differently.
-        private bool[] _latticeTouched;
-        private bool _anyLatticeTouched;
+        // Tiles pushed since the torches were last bent (LatticeDirtyTracker).
+        private readonly LatticeDirtyTracker _latticeDirty;
         private readonly Dictionary<int, ClassicTorchGeometry> _torchGeometry = new Dictionary<int, ClassicTorchGeometry>();
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
@@ -101,30 +98,17 @@ namespace DK2.Unity
         private readonly Dictionary<StructureId, StructureView> _structureViews = new Dictionary<StructureId, StructureView>();
         private readonly Dictionary<StructureId, int> _planSlots = new Dictionary<StructureId, int>();
         private readonly List<Material> _hoverMaterials = new List<Material>();
-        private readonly HashSet<int> _redCreatures = new HashSet<int>();
+        private readonly HoverOverlayPlan _hoverOverlay = new HoverOverlayPlan();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private bool _disposed;
         private readonly ClassicTorchLightBuffer _torchLights;
         private readonly ClassicTileFillBuffer _tileFill;
         private ClassicTileLightBuffer _tileLights;
-        private bool _lightTablesNeedPublication;
         private readonly ClassicWorldLightCache _worldLights;
-        private readonly PortalCentreLights _portalCentreLights;
-        private int _portalLightRequestsPublished;
+        private readonly ClassicLightPublisher _lightPublisher;
         private readonly ClassicLightFlags _torchFlags;
-        private TilePos[] _visibleLightTiles = System.Array.Empty<TilePos>();
-        private int _visibleLightCount;
-        private readonly HashSet<TilePos> _publishedLightTiles = new HashSet<TilePos>();
-        private ClassicCameraPose? _lightCameraPose;
-        private CameraViewport _lightViewport;
-        private float _lightViewDistance;
         private static readonly ProfilerMarker LightMarker = new ProfilerMarker("DK2.Scene.PrepareLighting");
-        private ClassicCameraPose? _additionalLightPose;
-        private CameraViewport _additionalLightViewport;
-        private TilePos[] _additionalLightTiles = System.Array.Empty<TilePos>();
-        private readonly HashSet<TilePos> _joinedLightTiles = new HashSet<TilePos>();
-        private TilePos[] _joinedLightBuffer = System.Array.Empty<TilePos>();
         private readonly ClassicCreatureShadows _creatureShadows;
         private readonly int _worldWidth;
         private readonly int _worldHeight;
@@ -153,18 +137,14 @@ namespace DK2.Unity
         }
         public int ObjectObjects => _objects.Count;
 
-        /// <summary>DK2 draws the Hand's hover id a second time with AA_RedTexture each frame
-        /// (Presentation_Update, 0x0043BE40): the caller decides which picks are tinted
-        /// (<see cref="HoverTint"/>). A gold object's art (flag 0x10000) first swaps each material to
-        /// its last texture, the spill cards' _HIGHLIGHT twin, drawn here over the original one queue
-        /// later. The red pass skips additive and alpha-blended materials unless
-        /// <paramref name="coversBlended"/> (draw flag 0x400; <see cref="HoverTint.DrawsOverlay"/>;
-        /// gold-hover-and-sparkle.md §2). A mesh holds its sampled pose, so both follow the animation.</summary>
+        /// <summary>Draws the hover tint the <see cref="HoverOverlayPlan"/> plans; the caller decides which picks are
+        /// tinted (<see cref="HoverTint"/>). A gold object's art (flag 0x10000) swaps each material to its last texture,
+        /// the spill cards' _HIGHLIGHT twin, drawn here over the original one queue later. A mesh holds its sampled
+        /// pose, so both follow the animation.</summary>
         public void DrawHoverOverlay(WorldHoverHit hit, bool coversBlended = false)
         {
             if (_classic == null) return;
-            bool redAlreadyDrawn = hit.Kind == WorldHoverKind.Creature && _redCreatures.Contains(hit.EntityId);
-            if (redAlreadyDrawn && !coversBlended) return;
+            if (!_hoverOverlay.TryBegin(hit, coversBlended, out HoverOverlayDraw plan)) return;
             GameObject go;
             Material[] swapped = null;
             if (hit.Kind == WorldHoverKind.Creature)
@@ -191,87 +171,49 @@ namespace DK2.Unity
             if (go.TryGetComponent(out Renderer renderer)) renderer.GetSharedMaterials(_hoverMaterials);
             for (int sub = 0; sub < mesh.subMeshCount; sub++)
             {
-                if (swapped != null && sub < swapped.Length && swapped[sub] != null)
+                bool swapAvailable = swapped != null && sub < swapped.Length && swapped[sub] != null;
+                bool blended = sub < _hoverMaterials.Count && _classic.IsKmfBlended(_hoverMaterials[sub]);
+                HoverSubmeshDraw draw = HoverOverlayPlan.Submesh(plan, swapAvailable, blended);
+                if (draw.Swap)
                     Graphics.RenderMesh(new RenderParams(swapped[sub])
                     { shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off, receiveShadows = false }, mesh, sub, matrix);
-                bool blended = sub < _hoverMaterials.Count && _classic.IsKmfBlended(_hoverMaterials[sub]);
-                if ((!redAlreadyDrawn || blended) && HoverTint.DrawsOverlay(blended, coversBlended))
-                    Graphics.RenderMesh(overlay, mesh, sub, matrix);
+                if (draw.Red) Graphics.RenderMesh(overlay, mesh, sub, matrix);
             }
-            if (hit.Kind == WorldHoverKind.Creature) _redCreatures.Add(hit.EntityId);
+            _hoverOverlay.Drawn(plan);
         }
 
-        /// <summary>What the Hand points at (Hand_ResolveScreenTarget 0x005992B0): first the rendered
-        /// hit, every mesh <paramref name="rendered"/> admits whose screen circle (KMF bounding sphere
-        /// from UV2, else renderer bounds; <see cref="HoverPickRules.CircleHolds"/>) holds the pointer
-        /// and which the terrain does not hide, the nearest triangle under the pointer winning over the
-        /// nearest centre in view depth along <paramref name="viewForward"/> (<see cref="RenderedPick"/>);
-        /// then the 3×3 sweep (0x0044DEC0) over what <paramref name="fallback"/> admits. A rendered winner
-        /// <paramref name="resolves"/> refuses leaves the tile hit without the sweep, as 0x005992B0 does; a
-        /// refused sweep object leaves it too.
-        /// Null filters admit everything. The ray distance stands in for DK2's mean vertex depth; the
-        /// terrain test uses the ray's entry into the renderer bounds, or, when only the circle holds,
-        /// the ray distance at the sphere centre's depth. The triangle test reads the MeshFilter's mesh
-        /// (a creature's posed vertices); a placeholder gets the centre test only.</summary>
+        /// <summary>What the Hand points at, by <see cref="WorldHoverPicker"/>'s rules over this scene's drawn things. Here
+        /// are only the measures: a candidate's bounding sphere (the KMF sphere from UV2, else the renderer bounds), the
+        /// view-frustum cull, the ray's entry into the renderer bounds, the nearest triangle of the MeshFilter's mesh (a
+        /// creature's posed vertices; a placeholder gets the centre test only) and where each thing is drawn.
+        /// Null filters admit everything.</summary>
         public WorldHoverHit PickHoverEntity(Ray ray, Vector3 viewForward, float terrainDistance, TilePos tile,
             Vector3 pointerGround, System.Func<WorldHoverKind, int, bool> rendered = null,
             System.Func<WorldHoverKind, int, bool> fallback = null, System.Func<WorldHoverHit, bool> resolves = null,
             Plane[] frustum = null, bool objectsOnly = false)
         {
-            WorldHoverHit hit = new WorldHoverHit(WorldHoverKind.Tile, tile);
-            _pickCandidates.Clear();
-            var pick = new RenderedPick();
+            _picker.Begin(new HoverPickRay(ToNumerics(ray.origin), ToNumerics(ray.direction), ToNumerics(viewForward)),
+                terrainDistance, tile, ToNumerics(pointerGround), rendered, fallback, resolves, objectsOnly);
             foreach (var entry in _creatures)
                 Offer(entry.Value, new WorldHoverHit(WorldHoverKind.Creature, _creaturePoses[entry.Key].Tile, entry.Key));
             foreach (var entry in _objects)
-                if (_objectPoses.TryGetValue(entry.Key, out ObjectView pose)
-                    && ObjectHoverHighlight.IsHoverTarget(entry.Key, pose.ObjectTypeId))
+                if (_objectPoses.TryGetValue(entry.Key, out ObjectView pose) && WorldHoverPicker.OffersObject(entry.Key, pose.ObjectTypeId))
                     Offer(entry.Value, new WorldHoverHit(WorldHoverKind.Object, pose.Tile, entry.Key));
             foreach (var entry in _structures)
                 if (_structureTiles.TryGetValue(entry.Key, out TilePos at))
-                    Offer(entry.Value, new WorldHoverHit(entry.Key.Kind == StructureKind.Door ? WorldHoverKind.Door : WorldHoverKind.Trap,
-                        at, entry.Key.Value));
-            if (pick.TryResult(out int picked, out _))
-            {
-                WorldHoverHit winner = _pickCandidates[picked];
-                return resolves == null || resolves(winner) ? winner : hit;
-            }
+                    Offer(entry.Value, WorldHoverPicker.StructureHit(entry.Key, at));
+            if (_picker.TryRenderedResult(out WorldHoverHit renderedHit)) return renderedHit;
 
-            var pointer = new FpPosition3(new Fp32((int)(pointerGround.x * Fp32.One)),
-                new Fp32((int)(-pointerGround.z * Fp32.One)), new Fp32(0));
-            int closestObject = HoverPickRules.FallbackObjectRadius(objectsOnly);
-            for (int y = tile.Y - 1; y <= tile.Y + 1; y++)
-                for (int x = tile.X - 1; x <= tile.X + 1; x++)
-                {
-                    foreach (var entry in _creaturePoses)
-                        if (!objectsOnly && entry.Value.Tile == new TilePos(x, y) && _creatures.TryGetValue(entry.Key, out GameObject go)
-                            && go != null && go.activeSelf && Distance(go) < Fp32.One / 2
-                            && (fallback == null || fallback(WorldHoverKind.Creature, entry.Key)))
-                            return new WorldHoverHit(WorldHoverKind.Creature, entry.Value.Tile, entry.Key);
-                    foreach (var entry in _objectPoses)
-                        if (ObjectHoverHighlight.IsHoverTarget(entry.Key, entry.Value.ObjectTypeId) && entry.Value.Tile == new TilePos(x, y)
-                            && _objects.TryGetValue(entry.Key, out GameObject go) && go != null && go.activeSelf
-                            && (fallback == null || fallback(WorldHoverKind.Object, entry.Key)))
-                        {
-                            int distance = Distance(go);
-                            if (distance < closestObject)
-                            {
-                                closestObject = distance;
-                                hit = new WorldHoverHit(WorldHoverKind.Object, entry.Value.Tile, entry.Key);
-                            }
-                        }
-                }
-            // The sweep's winner reaches the same class dispatch (0x00599710): an object the
-            // ownership arm refuses leaves the tile hit; the next-nearest object is not tried.
-            return hit.Kind == WorldHoverKind.Object && resolves != null && !resolves(hit)
-                ? new WorldHoverHit(WorldHoverKind.Tile, tile) : hit;
+            foreach (var entry in _creaturePoses)
+                if (_picker.SweepsCreature(entry.Value.Tile) && _creatures.TryGetValue(entry.Key, out GameObject go)
+                    && go != null && go.activeSelf)
+                    _picker.AddSweepCreature(entry.Key, entry.Value.Tile, ToNumerics(go.transform.position));
+            foreach (var entry in _objectPoses)
+                if (_picker.SweepsObject(entry.Key, entry.Value.ObjectTypeId, entry.Value.Tile)
+                    && _objects.TryGetValue(entry.Key, out GameObject go) && go != null && go.activeSelf)
+                    _picker.AddSweepObject(entry.Key, entry.Value.Tile, ToNumerics(go.transform.position));
+            return _picker.SweepResult();
 
-            int Distance(GameObject go)
-            {
-                Vector3 point = go.transform.position;
-                return HandHoverDistance.Between(pointer, new FpPosition3(new Fp32((int)(point.x * Fp32.One)),
-                    new Fp32((int)(-point.z * Fp32.One)), new Fp32(0)));
-            }
             void Offer(GameObject go, WorldHoverHit candidate)
             {
                 if (go == null || !go.activeSelf || !go.TryGetComponent<Renderer>(out Renderer renderer)) return;
@@ -295,19 +237,15 @@ namespace DK2.Unity
                     centre = bounds.center;
                     radius = bounds.extents.magnitude;
                 }
-                float depth = Vector3.Dot(centre - ray.origin, viewForward);
-                float along = Vector3.Dot(ray.direction, viewForward);
-                if (along <= 0f) return;
-                float rayDistance = depth / along;
-                if (!HoverPickRules.CircleHolds(depth, radius, (centre - ray.GetPoint(rayDistance)).sqrMagnitude)) return;
-                float entryDistance = bounds.IntersectRay(ray, out float boundsEntry) ? boundsEntry : rayDistance;
-                if (entryDistance >= terrainDistance) return;
-                if (rendered != null && !rendered(candidate.Kind, candidate.EntityId)) return;
+                if (!_picker.Holds(ToNumerics(centre), radius, out HoverPickProbe probe)) return;
+                float? boundsEntry = bounds.IntersectRay(ray, out float boundsDistance) ? boundsDistance : (float?)null;
+                if (!_picker.Admits(candidate, probe, boundsEntry)) return;
                 float? triangle = mesh != null ? NearestTriangle(mesh, go.transform, ray, terrainDistance) : null;
-                pick.Offer(_pickCandidates.Count, triangle, depth);
-                _pickCandidates.Add(candidate);
+                _picker.Offer(candidate, probe, triangle);
             }
         }
+
+        private static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
 
         public CampaignSlot PickFrontEndMap(Ray ray, IReadOnlyDictionary<int, CampaignSlot> mapSlots)
         {
@@ -326,7 +264,7 @@ namespace DK2.Unity
             return result;
         }
 
-        private readonly List<WorldHoverHit> _pickCandidates = new List<WorldHoverHit>();
+        private readonly WorldHoverPicker _picker = new WorldHoverPicker();
         private readonly Dictionary<Mesh, Vector4> _pickSpheres = new Dictionary<Mesh, Vector4>();
         private readonly List<Vector4> _pickSphereScratch = new List<Vector4>();
 
@@ -354,17 +292,14 @@ namespace DK2.Unity
         private readonly List<int> _pickTriangles = new List<int>();
 
         /// <summary>The ray distance to the nearest triangle of <paramref name="mesh"/> it crosses before
-        /// <paramref name="limit"/>, either winding, or null (Möller-Trumbore in the mesh's own space; an
-        /// affine transform keeps the ray parameter). A mesh the CPU cannot read counts as missed.
-        /// DK2 (0x00585AD0) accepts one screen winding only (all three edge products &lt;= 0); which of
-        /// our windings that is has not been mapped through the KMF import and DK2's projection, so
-        /// both are taken. A ray through a closed mesh meets its near side first either way, so this
-        /// differs only where the pointer reaches a triangle's back alone.</summary>
+        /// <paramref name="limit"/> (<see cref="WorldHoverPicker.TryHitTriangle"/> in the mesh's own space; an affine
+        /// transform keeps the ray parameter), or null. A mesh the CPU cannot read counts as missed.</summary>
         private float? NearestTriangle(Mesh mesh, Transform transform, Ray ray, float limit)
         {
             if (!mesh.isReadable) return null;
             Matrix4x4 toLocal = transform.worldToLocalMatrix;
-            Vector3 origin = toLocal.MultiplyPoint3x4(ray.origin), direction = toLocal.MultiplyVector(ray.direction);
+            System.Numerics.Vector3 origin = ToNumerics(toLocal.MultiplyPoint3x4(ray.origin)),
+                direction = ToNumerics(toLocal.MultiplyVector(ray.direction));
             mesh.GetVertices(_pickVertices);
             float best = limit;
             bool found = false;
@@ -372,22 +307,10 @@ namespace DK2.Unity
             {
                 mesh.GetTriangles(_pickTriangles, sub);
                 for (int i = 0; i + 2 < _pickTriangles.Count; i += 3)
-                {
-                    Vector3 a = _pickVertices[_pickTriangles[i]];
-                    Vector3 ab = _pickVertices[_pickTriangles[i + 1]] - a, ac = _pickVertices[_pickTriangles[i + 2]] - a;
-                    Vector3 p = Vector3.Cross(direction, ac);
-                    float det = Vector3.Dot(ab, p);
-                    if (det > -1e-9f && det < 1e-9f) continue;
-                    float inv = 1f / det;
-                    Vector3 s = origin - a;
-                    float u = Vector3.Dot(s, p) * inv;
-                    if (u < 0f || u > 1f) continue;
-                    Vector3 q = Vector3.Cross(s, ab);
-                    float v = Vector3.Dot(direction, q) * inv;
-                    if (v < 0f || u + v > 1f) continue;
-                    float t = Vector3.Dot(ac, q) * inv;
-                    if (t > 0f && t < best) { best = t; found = true; }
-                }
+                    if (WorldHoverPicker.TryHitTriangle(origin, direction, ToNumerics(_pickVertices[_pickTriangles[i]]),
+                            ToNumerics(_pickVertices[_pickTriangles[i + 1]]), ToNumerics(_pickVertices[_pickTriangles[i + 2]]),
+                            out float t) && t < best)
+                    { best = t; found = true; }
             }
             return found ? best : (float?)null;
         }
@@ -413,7 +336,7 @@ namespace DK2.Unity
             _lattice = lattice;
             _worldWidth = worldWidth;
             _worldHeight = worldHeight;
-            _latticeTouched = new bool[worldWidth * worldHeight];
+            _latticeDirty = new LatticeDirtyTracker(worldWidth, worldHeight);
             _classic = classic;
             if (classic != null && creatureShadows) _creatureShadows = new ClassicCreatureShadows(root);
             if (classic != null && classic.UsesClassicVertexLighting)
@@ -421,8 +344,9 @@ namespace DK2.Unity
                 _torchLights = new ClassicTorchLightBuffer(worldWidth, worldHeight);
                 _tileFill = new ClassicTileFillBuffer(worldWidth, worldHeight);
                 _worldLights = new ClassicWorldLightCache(worldWidth, worldHeight);
-                _portalCentreLights = new PortalCentreLights(new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d)));
-                _torchFlags = cheapLighting ? ClassicLightFlags.CheapTorch : ClassicLightFlags.NormalTorch;
+                _torchFlags = ClassicLightFlagsRules.Torch(cheapLighting);
+                _lightPublisher = new ClassicLightPublisher(_worldLights, worldWidth, worldHeight,
+                    new PortalCentreLights(new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d))), _torchFlags);
                 Shader.SetGlobalFloat("_DK2InitialAmbientPreview", classic.NativeInitialAmbient ? 1 : 0);
             }
             if (classic != null)
@@ -446,10 +370,8 @@ namespace DK2.Unity
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
         {
             _worldLights?.SetTerrain(tile.Position, tile.PointLight);
-            // Revealed ground (Sight, the claim scan) is as bright as explored ground (owner 2026-10-21).
-            _tileFill?.Set(tileIndex, tile.Explored || tile.Scanned || tile.PointLight.HasValue);
-            _latticeTouched[tileIndex] = true;
-            _anyLatticeTouched = true;
+            _tileFill?.Set(tileIndex, tile.LitAsExplored);
+            _latticeDirty.Touch(tileIndex);
             // Steps 1 and 2 of the classic look: plain terrain and rooms from their pieces. A room
             // drawn so needs no furniture box; its objects are step 3.
             _liquids?.Set(tileIndex, tile);
@@ -636,7 +558,7 @@ namespace DK2.Unity
 
         public void DrawCreatureFrame(GameTick tick, float fraction)
         {
-            _redCreatures.Clear();
+            _hoverOverlay.BeginFrame();
             using var frameScope = FrameMarker.Auto();
             fraction = Mathf.Clamp01(fraction);
             SetCreatureFrameTime(tick, fraction);
@@ -713,45 +635,30 @@ namespace DK2.Unity
                 }
             }
             FrameObjectsMarker.End();
-            if (_anyLatticeTouched)
+            if (_latticeDirty.AnyTouched)
             {
                 using (TorchRefreshMarker.Auto())
                     foreach (ClassicTorchGeometry geometry in _torchGeometry.Values)
-                        if (geometry != null && LatticeTouchedNear(geometry.Wall)) geometry.Refresh();
-                System.Array.Clear(_latticeTouched, 0, _latticeTouched.Length);
-                _anyLatticeTouched = false;
+                        if (geometry != null && _latticeDirty.TouchedNear(geometry.Wall)) geometry.Refresh();
+                _latticeDirty.Clear();
             }
         }
 
         private static readonly ProfilerMarker TorchRefreshMarker = new ProfilerMarker("DK2.Scene.TorchRefresh");
 
-        private bool LatticeTouchedNear(TilePos wall)
-        {
-            for (int y = Mathf.Max(0, wall.Y - 2); y <= Mathf.Min(_worldHeight - 1, wall.Y + 2); y++)
-                for (int x = Mathf.Max(0, wall.X - 2); x <= Mathf.Min(_worldWidth - 1, wall.X + 2); x++)
-                    if (_latticeTouched[(y * _worldWidth) + x]) return true;
-            return false;
-        }
-
-        public void SetPortalLights(IReadOnlyList<TilePos> requests)
-        {
-            if (_worldLights == null) return;
-            while (_portalLightRequestsPublished < requests.Count)
-                _portalCentreLights.Create(requests[_portalLightRequestsPublished++]);
-            _worldLights.UpdatePortalLights(_portalCentreLights.Advance(
-                new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d)), _torchFlags == ClassicLightFlags.CheapTorch));
-        }
+        public void SetPortalLights(IReadOnlyList<TilePos> requests) =>
+            _lightPublisher?.PublishPortalLights(requests, new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d)));
 
         public void SetObjectLights(IReadOnlyList<ObjectView> objects, float fraction)
         {
-            _worldLights?.UpdateObjects(objects, fraction, _torchFlags == ClassicLightFlags.CheapTorch);
+            _worldLights?.UpdateObjects(objects, fraction, _torchFlags.IsCheapTorch());
         }
 
         public void SetHandLight(ClassicPointLight? light) => _worldLights?.UpdateHand(light);
 
         public void SetEffectLights(IReadOnlyList<EffectLightView> lights)
         {
-            _worldLights?.UpdateEffects(lights, _torchFlags == ClassicLightFlags.CheapTorch);
+            _worldLights?.UpdateEffects(lights, _torchFlags.IsCheapTorch());
         }
 
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
@@ -979,74 +886,39 @@ namespace DK2.Unity
                 throw new System.InvalidOperationException("Tile point-light tables require classic vertex lighting.");
             _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
             _tileLights.Set(table);
-            _lightTablesNeedPublication = true;
+            _lightPublisher.MarkTablesWritten();
         }
 
         public void PrepareClassicLighting(Camera camera, float nativeViewDistance, Camera additionalCamera = null)
         {
-            if (_worldLights == null || camera == null) return;
+            if (_lightPublisher == null || camera == null) return;
             using (LightMarker.Auto())
             {
-                Vector3 position = camera.transform.position;
-                Vector3 forward = camera.transform.forward;
-                Vector3 up = camera.transform.up;
-                var pose = new ClassicCameraPose(
-                    new System.Numerics.Vector3(position.x, position.y, position.z),
-                    new System.Numerics.Vector3(forward.x, forward.y, forward.z),
-                    new System.Numerics.Vector3(up.x, up.y, up.z), camera.fieldOfView,
-                    camera.farClipPlane, 0, 0);
-                var viewport = new CameraViewport(Mathf.Max(camera.pixelWidth, Screen.width),
-                    camera.pixelWidth, camera.pixelHeight);
-                if (viewport.Width <= 0 || viewport.Height <= 0) return;
-                if (!_lightCameraPose.HasValue || !_lightCameraPose.Value.Equals(pose)
-                    || !_lightViewport.Equals(viewport) || _lightViewDistance != nativeViewDistance)
+                ClassicCameraPose? second = additionalCamera != null ? LightPose(additionalCamera) : (ClassicCameraPose?)null;
+                CameraViewport secondViewport = additionalCamera != null
+                    ? new CameraViewport(Screen.width, additionalCamera.pixelWidth, additionalCamera.pixelHeight) : default;
+                switch (_lightPublisher.Prepare(LightPose(camera),
+                    new CameraViewport(Mathf.Max(camera.pixelWidth, Screen.width), camera.pixelWidth, camera.pixelHeight),
+                    nativeViewDistance, second, secondViewport))
                 {
-                    TilePos[] polygon = ClassicLightVisibility.BuildPolygon(pose, viewport, nativeViewDistance);
-                    _visibleLightCount = ClassicLightVisibility.EnumerateTiles(polygon, ref _visibleLightTiles);
-                    _lightCameraPose = pose; _lightViewport = viewport; _lightViewDistance = nativeViewDistance;
+                    case ClassicLightPublication.Unchanged:
+                        _tileLights?.Flush();
+                        break;
+                    case ClassicLightPublication.Changed:
+                        _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
+                        _lightPublisher.Publish(_tileLights);
+                        break;
                 }
-                var visible = new System.ReadOnlySpan<TilePos>(_visibleLightTiles, 0, _visibleLightCount);
-                if (additionalCamera != null)
-                {
-                    Vector3 at = additionalCamera.transform.position, ahead = additionalCamera.transform.forward,
-                        upward = additionalCamera.transform.up;
-                    var additionalPose = new ClassicCameraPose(new System.Numerics.Vector3(at.x, at.y, at.z),
-                        new System.Numerics.Vector3(ahead.x, ahead.y, ahead.z), new System.Numerics.Vector3(upward.x, upward.y, upward.z),
-                        additionalCamera.fieldOfView, additionalCamera.farClipPlane, 0, 0);
-                    var additionalViewport = new CameraViewport(Screen.width, additionalCamera.pixelWidth, additionalCamera.pixelHeight);
-                    // The second camera's tiles are joined once per frame into buffers kept across frames.
-                    if (!additionalPose.Equals(_additionalLightPose) || !additionalViewport.Equals(_additionalLightViewport))
-                    {
-                        _additionalLightTiles = ClassicLightVisibility.EnumerateTiles(
-                            ClassicLightVisibility.BuildPolygon(additionalPose, additionalViewport, 10));
-                        _additionalLightPose = additionalPose; _additionalLightViewport = additionalViewport;
-                    }
-                    _joinedLightTiles.Clear();
-                    for (int i = 0; i < _visibleLightCount; i++) _joinedLightTiles.Add(_visibleLightTiles[i]);
-                    foreach (TilePos tile in _additionalLightTiles) _joinedLightTiles.Add(tile);
-                    if (_joinedLightBuffer.Length < _joinedLightTiles.Count) _joinedLightBuffer = new TilePos[_joinedLightTiles.Count * 2];
-                    _joinedLightTiles.CopyTo(_joinedLightBuffer);
-                    visible = new System.ReadOnlySpan<TilePos>(_joinedLightBuffer, 0, _joinedLightTiles.Count);
-                }
-                _worldLights.PrepareFrame(visible);
-                if (_worldLights.TablesUnchanged && !_lightTablesNeedPublication)
-                {
-                    _tileLights?.Flush();
-                    return;
-                }
-                _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
-                foreach (TilePos previous in _publishedLightTiles)
-                    if (!_worldLights.IsVisible(previous)) _tileLights.Remove(previous);
-                _publishedLightTiles.Clear();
-                foreach (ClassicLightTable table in _worldLights.VisibleTables)
-                {
-                    if ((uint)table.Tile.X >= (uint)_worldWidth || (uint)table.Tile.Y >= (uint)_worldHeight) continue;
-                    _tileLights.Set(table);
-                    _publishedLightTiles.Add(table.Tile);
-                }
-                _tileLights.Flush();
-                _lightTablesNeedPublication = false;
             }
+        }
+
+        private static ClassicCameraPose LightPose(Camera camera)
+        {
+            Transform t = camera.transform;
+            Vector3 position = t.position, forward = t.forward, up = t.up;
+            return new ClassicCameraPose(new System.Numerics.Vector3(position.x, position.y, position.z),
+                new System.Numerics.Vector3(forward.x, forward.y, forward.z), new System.Numerics.Vector3(up.x, up.y, up.z),
+                camera.fieldOfView, camera.farClipPlane, 0, 0);
         }
 
         /// <summary>Uploads changed lighting and terrain batches.</summary>
@@ -1086,11 +958,7 @@ namespace DK2.Unity
         public void Clear()
         {
             _torchFlames?.Clear();
-            _worldLights?.Clear();
-            _publishedLightTiles.Clear();
-            _visibleLightTiles = System.Array.Empty<TilePos>();
-            _visibleLightCount = 0;
-            _lightCameraPose = null;
+            _lightPublisher?.Clear();
             _tileLights?.Clear();
             _torchLights?.Clear();
             _tileFill?.Clear();

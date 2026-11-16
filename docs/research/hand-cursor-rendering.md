@@ -163,14 +163,14 @@ strictly within a quarter tile (definition flag `+0xF4 & 0x100` or object id13).
 A creature supersedes the object candidate. Object-only mode instead searches
 eligible objects within half a tile. This is not arbitrary same-tile picking.
 Built (2026-10-23) as `HoverPickRules` (both stages' eligibility) and `RenderedPick` (triangle hit
-over centre) in src/DK2.Presentation/HoverPickRules.cs, used by `DungeonScene.PickHoverEntity`.
+over centre) in src/DK2.Presentation/HoverPickRules.cs, and driven by `WorldHoverPicker` (candidate offering, the rendered winner, the 3x3 sweep; `DungeonScene.PickHoverEntity` only measures the meshes).
 **Picking leftovers (read 2026-10-24).** The screen circle is the projected bounding sphere
 (STRONGLY INFERRED): the animated draw ([0x00584900](functions/00584900.md)) takes the model's KMF Origin
 through the draw matrix plus the draw position as centre and BoundsScale times the draw scale
 (`+0x60`) as radius; the static draw ([0x00580EC0](functions/00580EC0.md)) the same with its own
 offsets (scale `+0x58`). [0x00575F10](functions/00575F10.md) projects it, radius = focal / depth
 times the world radius; a sphere reaching behind the eye gets a 1e30 radius, so it always holds
-the pointer. Built: `DungeonScene.PickHoverEntity` tests `HoverPickRules.CircleHolds` on the sphere
+the pointer. Built: `WorldHoverPicker.Holds` tests `HoverPickRules.CircleHolds` on the sphere
 ClassicMeshes writes into UV2 (read once per mesh), with the sphere centre's view depth as the
 centre-pass depth; a mesh without it uses its renderer bounds. Terrain occlusion is unchanged. A draw outside the view never reaches the list: 0x00575D70 culls a sphere outside any of the view's four side planes (so anything behind the eye), before the 1e30 case can apply. Ours tests each renderer's bounds against the camera frustum first (added 2026-10-24 after the owner saw "Chicken" with no chicken on screen: an off-screen chicken behind the camera held every pointer).
 The two gates in [0x005992B0](functions/005992B0.md): `[0x006ED540 + tag]` is the live-slot byte

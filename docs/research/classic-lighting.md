@@ -392,8 +392,9 @@ frees untouched entries ([classic-light-visibility.md §4](classic-light-visibil
 cover overflow, ring wrap/reset, retained dirty/clean bits, unsigned stamps,
 empty-cell invalidation, dynamic refresh and zero warm-gather allocations.
 `ClassicPointLight.FromTerrain` converts the confirmed source inputs. DungeonScene
-publishes WorldView terrain sources and classified torches through the automatic
-cache, removes tables leaving the view, and reuses visibility geometry until the camera changes.
+pushes WorldView terrain sources and classified torches into the automatic cache; `ClassicLightPublisher`
+(src/DK2.Presentation) finds the visible tiles again only when the pose, viewport or distance changes (the second camera
+joins at view distance 10) and publishes the tables to `ClassicTileLightBuffer` as a diff.
 
 ## 10. Selected-table Unity verification
 

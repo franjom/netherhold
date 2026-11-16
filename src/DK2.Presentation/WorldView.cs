@@ -160,6 +160,10 @@ public readonly struct TileView
 
     public ClassicPointLight? PointLight { get; }
 
+    /// <summary>Whether the classic tile fill draws this tile as bright as explored ground: explored, scanned (Sight, the
+    /// claim scan) or carrying its own light (owner, 2026-10-21).</summary>
+    public bool LitAsExplored => Explored || Scanned || PointLight.HasValue;
+
     public AssetRef SightFogOverlay { get; }
     public byte SightFogOpacity { get; }
 

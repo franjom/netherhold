@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g, 2h and 2i are done, and the first half of 2j (creature and object poses, mesh turns, clip requests, the creature animation player).
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g, 2h and 2i are done, and 2j in part: its first half (creature and object poses, mesh turns, clip requests, the creature animation player) and part A of its second half (light publishing, the lattice tracker, hover picking).
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -468,7 +468,7 @@ group 2 is a list to audit, not a finding.
       zoom-out in a frame, then held rotate or zoom). `ClassicCameraSetup`: `Preset`, `PossessionPreset`,
       `ZoomOutLimit` (rounds half to even), `ReferenceScreenWidth` (1600) and `Create`. `TileTopPlane`: `TryHit` (a copy of
       `Plane.Raycast`), `PositionOn` (feeds command positions with the old float steps) and `HandLightPoint`; the camera
-      ray stays in the adapter, and `ResolveWorldHover` keeps its own plane cast until 2j. `GameSessionStarter`:
+      ray stays in the adapter; the hover pick's terrain cast went through `TileTopPlane.TryHit` in 2j part A. `GameSessionStarter`:
       campaign, front end, DK2 save, `PlayersOf` and `CameraTicksPerSecond`, with the world built in the same order in
       every branch. `ClassicCreatureQueryRules.Follows` (the per-frame gate) and `TurnToFollowHeading` (equal to the old
       degrees round-trip for all 2048 yaws; the old `Pose` call in the query turn is gone, which could only throw on a
@@ -485,9 +485,9 @@ group 2 is a list to audit, not a finding.
       (Presentation 2382, Simulation 5583, Behavior 677 with 5 skipped); Godot and the editor headless build are
       clean and the Unity compile has 0 errors; headless Level1 turn-400 hash `D7290428D81A902F`, unchanged. Not run:
       Unity in Play mode.
-- [ ] 2j. Scene mapping for step 3. First half done (2026-11-16); still to do: `ClassicLightPublisher`,
-      `LatticeDirtyTracker`, `WorldHoverPicker`/`HoverOverlayPlan`, the effects draw list, the heart pulse, the sparkle
-      gate, the head table, the flower layers and the dollar clock.
+- [ ] 2j. Scene mapping for step 3. The first half and part A of the second half are done (2026-11-16); part B is still
+      to do: the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar
+      clock.
       Done, in `DK2.Presentation`: `PoseInterpolator` (the draw seconds, the clamped position lerp, the shortest-arc
       wrap and the object turn; creatures still take their turns uninterpolated and objects interpolate theirs, the
       audit's open point, kept as drawn, [Q868](../research/open-questions.md)). `MeshOrientation` returns a
@@ -515,6 +515,27 @@ group 2 is a list to audit, not a finding.
       green (Presentation 2405, Convert 205, Simulation 5583, Behavior 677 with 5 skipped); Godot and the editor
       headless build are clean and the Unity compile has 0 errors; the simulation hashes are unchanged. Not run:
       Unity in Play mode.
+      Part A of the second half (2026-11-16), in `DK2.Presentation`: `ClassicLightPublisher` with `ITileLightSink` and
+      `ClassicLightPublication` finds the visible tiles again only when the pose, viewport or distance changes, joins the
+      second camera at view distance 10, publishes a diff (removes tiles no longer visible, sets every visible table,
+      flushes; `Unchanged` short-circuits), publishes only new portal-light requests, and has `MarkTablesWritten` and
+      `Clear`. `ClassicLightFlagsRules.Torch` and `IsCheapTorch` give the torch flags. `TileView.LitAsExplored` is the fill
+      rule `Explored || Scanned || PointLight.HasValue` (owner, 2026-10-21). `LatticeDirtyTracker` holds `ForgetReach` (1,
+      used by `TerrainLattice.Invalidate`) and `TorchReach` (2). `WorldHoverPicker`, with `HoverPickRay` and
+      `HoverPickProbe`, holds the terrain cast through `TileTopPlane.TryHit`, candidate offering, the rendered winner
+      (nearest triangle, then depth; a refused winner gives the tile), the 3x3 sweep, Moller-Trumbore and `OnPointerTile`;
+      Unity's `Vector3` arithmetic is written out term by term so the pick, which reaches commands through hover, is
+      bit-identical. `HoverOverlayPlan` is the per-frame red set and each submesh's `(Swap, Red)` decision. Unity's
+      `DungeonScene` keeps only the measuring (frustum, UV2 sphere and bounds, mesh reads, camera to pose), and
+      `ClassicTileLightBuffer` implements the sink. The ADR-0458 threading contract holds: nothing reads `WorldState` but
+      the injected filters, and everything runs before the worker tick. Godot is not wired: it has no 3D world yet. The
+      comment's citation `0x00599710` is a branch inside 0x005992B0 (`Hand_ResolveScreenTarget`), not a function of its
+      own, and the comment says so. The reviewer found every move equivalent, with no leftover mutation; three gaps closed
+      after the review (the depth against ray distance ordering pinned through float rounding, the oblique-ray `Dot`,
+      `PointAlong` and `Cross`, and the cache forgotten on `Clear`), and 36 mutations all fail a test. Verification:
+      `dotnet test DK2.slnx` green (Presentation 2465, Simulation 5583, Behavior 677 with 5 skipped); Godot and the editor
+      headless build are clean and the Unity compile has 0 errors; the hashes are unchanged. Not run: Unity in Play mode
+      (the hover tint, the pick and the lighting).
 - [ ] 2k. Deferred: the level sound driver (step 4's audio abstraction), the gamma exponent (with
       lighting), and Godot's speech subtitles (wrap with `BitmapTextLayout`, pack a `.bf4` atlas, blit
       `BitmapTextPlacement.Place` in `SubtitleLayout`'s boxes); delete `ClassicKeyBindings.Name`.

@@ -1563,17 +1563,18 @@ namespace DK2.Unity
             Camera view = Camera.main;
             Ray ray = view.ScreenPointToRay(Input.mousePosition);
             TileView shown = _worldView.TileAt(world, tile.X, tile.Y);
-            var plane = new Plane(Vector3.up, new Vector3(0, shown.Solid ? TileHeights.Solid : TileHeights.Open, 0));
-            if (!plane.Raycast(ray, out float distance)) return new WorldHoverHit(WorldHoverKind.Tile, tile);
+            if (!WorldHoverPicker.TryCastTerrain(ToNumerics(ray.origin), ToNumerics(ray.direction), shown.Solid,
+                    out float terrainDistance, out System.Numerics.Vector3 ground))
+                return new WorldHoverHit(WorldHoverKind.Tile, tile);
             _objectsOnlyPick = HoverCursorResolver.ObjectsOnlyKeyCounts(CurrentHud, HudModal)
                 && ClassicKeyBindings.Held(_gameSettings, GameAction.ObjectsOnly, exactModifiers: true);
             _renderedPick ??= (kind, id) => HoverPickRules.Rendered(World, _simulation.Database, kind, id, _objectsOnlyPick);
             _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(World, _simulation.Database, kind, id, _objectsOnlyPick);
             _resolvesPick ??= candidate => HoverPickRules.Resolves(World, candidate, new PlayerId((byte)viewingPlayerId));
             GeometryUtility.CalculateFrustumPlanes(view, _pickFrustum);
-            WorldHoverHit hit = _scene.PickHoverEntity(ray, view.transform.forward, distance + .02f, tile,
-                ray.GetPoint(distance), _renderedPick, _fallbackPick, _resolvesPick, _pickFrustum, _objectsOnlyPick);
-            return new WorldHoverHit(hit.Kind, tile, hit.EntityId);
+            WorldHoverHit hit = _scene.PickHoverEntity(ray, view.transform.forward, terrainDistance, tile,
+                new Vector3(ground.X, ground.Y, ground.Z), _renderedPick, _fallbackPick, _resolvesPick, _pickFrustum, _objectsOnlyPick);
+            return WorldHoverPicker.OnPointerTile(hit, tile);
         }
 
         // The picker's eligibility (HoverPickRules), made once so a frame's pick allocates nothing.

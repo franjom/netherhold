@@ -277,7 +277,7 @@ within a room but does not reproduce native tag reuse or terrain x+y collisions.
 The asset provider currently uses `Text/Default`, consistent with the existing
 subtitle provider; selecting another installed locale remains unimplemented.
 
-Display and Hand/Slap input share `ResolveWorldHover`. Its first step,
+Display and Hand/Slap input share `ResolveWorldHover`, the Unity runner's wrapper over `WorldHoverPicker`. Its first step,
 `HoverCursorResolver.FogHit`, checks the cursor tile's exploration before entity picking; it retains that cursor tile beside
 the selected entity id, matching the native status gate even when the entity
 stands on a neighbouring tile. `PlayerInputSnapshot.ForHover` narrows the

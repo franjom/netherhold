@@ -17,13 +17,19 @@ public static class TileTopPlane
 
     /// <summary>Where the ray meets the horizontal plane at <paramref name="height"/>, as Unity's <c>Plane.Raycast</c> and
     /// <c>Ray.GetPoint</c> compute it: false for a ray parallel to the plane or one that meets it behind its origin.</summary>
-    public static bool TryHit(Vector3 origin, Vector3 direction, float height, out Vector3 point)
+    public static bool TryHit(Vector3 origin, Vector3 direction, float height, out Vector3 point) =>
+        TryHit(origin, direction, height, out point, out _);
+
+    /// <inheritdoc cref="TryHit(Vector3, Vector3, float, out Vector3)"/>
+    /// <param name="distance">The ray distance to <paramref name="point"/>, as <c>Plane.Raycast</c>'s <c>enter</c>.</param>
+    public static bool TryHit(Vector3 origin, Vector3 direction, float height, out Vector3 point, out float distance)
     {
         point = default;
+        distance = 0;
         float along = direction.Y;
         // Mathf.Approximately(along, 0): nothing but a zero or a denormal this small passes.
         if (Math.Abs(along) < Math.Max(1e-6f * Math.Abs(along), float.Epsilon * 8)) return false;
-        float distance = (-origin.Y - -height) / along;
+        distance = (-origin.Y - -height) / along;
         if (!(distance > 0)) return false;
         point = new Vector3(origin.X + direction.X * distance, origin.Y + direction.Y * distance, origin.Z + direction.Z * distance);
         return true;
