@@ -275,6 +275,8 @@ namespace DK2.Unity
 
         private void StartGame()
         {
+            // The Editor probes call StartGame through reflection without Start.
+            _startup ??= new StartupTimings();
             InitializeSettings();
             ApplyLaunchArguments();
             _recorder = FrameRecorder.TryCreate();
