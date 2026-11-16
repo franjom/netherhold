@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Diagnostics;
 using System.Globalization;
 using DK2.Art;
 using DK2.Art.Kmf;
@@ -13,6 +14,7 @@ using DK2.Presentation;
 using DK2.Simulation;
 using Godot;
 using System.Runtime.InteropServices;
+using NMatrix4x4 = System.Numerics.Matrix4x4;
 using NVector2 = System.Numerics.Vector2;
 using NVector3 = System.Numerics.Vector3;
 
@@ -22,7 +24,8 @@ namespace DK2.GodotAdapter;
 /// builds it and <see cref="TerrainChunkScheduler"/> schedules it, one <see cref="MeshInstance3D"/> per 16x16-tile chunk
 /// with a surface per <see cref="TerrainMaterialKey"/> drawn as <see cref="TerrainMaterialLook"/> describes it, and the
 /// waving water and lava (<see cref="LiquidSurfaceField"/>), unshaded under a stand-in light, seen from the classic
-/// camera. Everything crosses into Godot's right-handed frame through <see cref="RightHandedFrame"/>. Not yet drawn:
+/// camera; blended faces go back to front through <see cref="BlendedTerrainStream{TMaterial}"/> (step 3d, <see cref="RunSlot"/>).
+/// Everything crosses into Godot's right-handed frame through <see cref="RightHandedFrame"/>. Not yet drawn:
 /// creatures, objects, structures and torches (no-ops here) and lighting. The host presents the world once a frame
 /// (<see cref="Present"/>), moves the camera's <see cref="Focus"/> and places it (<see cref="PlaceCamera"/>).</summary>
 public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
@@ -51,6 +54,24 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private readonly List<SurfaceBuffer> _spareSurfaces = new();
     private int[] _remap = new int[256], _stamp = new int[256];
     private int _generation;
+
+    // The blended stream: a chunk's blended faces over its tiles' vertices, per material in first-use order across
+    // rebuilds (as Unity's TerrainChunks keeps one dictionary), and the run slots that draw the stream.
+    private BlendedTerrainStream<ShaderMaterial>? _blended;
+    private readonly List<BlendedVertex> _blendedVertices = new();
+    private readonly Dictionary<ShaderMaterial, List<int>> _blendedByMaterial = new();
+    private readonly HashSet<ShaderMaterial> _blendedMaterials = new(), _overlayMaterials = new();
+    private readonly List<RunSlot> _runSlots = new();
+    private readonly RunSlot.Scratch _runScratch = new();
+    private Aabb _worldBox;
+    // The re-sorting frames after the first (which pays the JIT): time, the most, and what they allocated.
+    // The re-sorting frames, for the exit report: time after the first (which pays the JIT), the most, and what the
+    // frames after the warm-up allocated.
+    private const int BlendedWarmUp = 60;
+    private ViewFrustum _frustum;
+    private bool _frustumStale = true;
+    private long _blendedTicks, _blendedMaxTicks, _blendedFirstTicks = -1, _blendedWarmUpBytes, _blendedLateBytes;
+    private int _blendedRefreshes, _blendedMaxRuns, _blendedMaxTriangles;
 
     private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _keyMaterials = new();
     private readonly Dictionary<TerrainMaterialLook, ShaderMaterial> _lookMaterials = new();
@@ -95,6 +116,9 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _liquids = new LiquidSurfaceField(world.Width, world.Height);
         _water = new LiquidLayer(_liquids.Water);
         _lava = new LiquidLayer(_liquids.Lava);
+        _blended = new BlendedTerrainStream<ShaderMaterial>(_overlayMaterials.Contains);
+        // Every run instance sorts from the origin; the box only keeps Godot from culling it (the stream culls).
+        _worldBox = new Aabb(new Vector3(-1, -4, -world.Height - 1), new Vector3(world.Width + 2, 16, world.Height + 2));
         using (Image white = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8))
         {
             white.Fill(Colors.White);
@@ -127,6 +151,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             KeepAspect = Camera3D.KeepAspectEnum.Height,
             Near = NearPlane,
         };
+        _camera.Environment = GammaOutput();
         AddChild(_camera);
         _camera.MakeCurrent();
         GetViewport().SizeChanged += PlaceCamera;
@@ -155,6 +180,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         ClassicCameraPose pose = ClassicCamera.Pose(Focus, viewport);
         if (View != null && pose == _placed && viewport == _placedViewport) return;
         _placed = pose; _placedViewport = viewport;
+        _frustumStale = true;
         View = MinimapCameraView.Of(pose, viewport);
         (float frustumHeight, float offset) = RightHandedFrame.Frustum(pose.VerticalFieldOfView, NearPlane, pose.ProjectionCentreShift);
         _camera.Size = frustumHeight;
@@ -217,6 +243,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _liquids!.Animate(_seconds);
         _water!.Upload(this);
         _lava!.Upload(this);
+        DrawBlended();
     }
 
     void ITerrainChunkSink.BeginChunk(int chunk)
@@ -225,13 +252,20 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         foreach (SurfaceBuffer surface in _surfaces) _spareSurfaces.Add(surface);
         _surfaces.Clear();
         _surfaceOf.Clear();
+        _blendedVertices.Clear();
+        foreach (List<int> list in _blendedByMaterial.Values) list.Clear();
     }
 
     void ITerrainChunkSink.AddTile(int tileIndex, TerrainTileGeometry geometry) => GatherTile(geometry);
 
-    /// <summary>Each key's gathered vertices as one surface of the chunk's mesh.</summary>
+    /// <summary>Each opaque key's gathered vertices as one surface of the chunk's mesh; the blended ones join the stream.</summary>
     void ITerrainChunkSink.EndChunk(int chunk)
     {
+        _blended!.BeginChunk(chunk, _blendedVertices);
+        foreach (KeyValuePair<ShaderMaterial, List<int>> entry in _blendedByMaterial)
+            if (entry.Value.Count != 0) _blended.AddChunkTriangles(entry.Key, entry.Value);
+        _blended.EndChunk();
+
         MeshInstance3D? instance = _chunks[chunk];
         var mesh = instance?.Mesh as ArrayMesh ?? new ArrayMesh();
         mesh.ClearSurfaces();
@@ -256,9 +290,26 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _remap = new int[geometry.VertexCount * 2];
             _stamp = new int[geometry.VertexCount * 2];
         }
+        int blendedStart = -1;
         for (int s = 0; s < geometry.KeyCount; s++)
         {
             TerrainMaterialKey key = geometry.Keys[s];
+            ShaderMaterial material = MaterialFor(key);
+            if (_blendedMaterials.Contains(material))
+            {
+                // Unity's chunk: the tile's vertices in the renderers' frame once, its blended triangles numbered from them.
+                if (blendedStart < 0)
+                {
+                    blendedStart = _blendedVertices.Count;
+                    for (int i = 0; i < geometry.VertexCount; i++)
+                        _blendedVertices.Add(new BlendedVertex(geometry.Positions[i], geometry.Normals[i], geometry.Uvs[i],
+                            geometry.LightAnchor, VertexColour.White));
+                }
+                if (!_blendedByMaterial.TryGetValue(material, out List<int>? list)) _blendedByMaterial.Add(material, list = new List<int>());
+                TerrainIndexList triangles = geometry.Triangles[s];
+                for (int i = 0; i < triangles.Count; i++) list.Add(blendedStart + triangles.Items[i]);
+                continue;
+            }
             if (!_surfaceOf.TryGetValue(key, out SurfaceBuffer? surface))
             {
                 surface = TakeSurface(key);
@@ -296,15 +347,19 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             material.SetShaderParameter(ColourParameter, new Color(look.Colour.X, look.Colour.Y, look.Colour.Z, look.Colour.W));
             material.SetShaderParameter(AddedLightParameter, ToGodot(look.AddedLight));
             _lookMaterials.Add(look, material);
+            // Unity's split: render queue Transparent, which every non-opaque look takes.
+            if (look.Blend != KmfBlend.Opaque) _blendedMaterials.Add(material);
         }
+        // Unity's DK2TagOverlay tag: the dig tag's and the tutorial's additive pass.
+        if (key.IsOverlay) _overlayMaterials.Add(material);
         _keyMaterials.Add(key, material);
         return material;
     }
 
     /// <summary>One shader per blend and light: the texture times the colour, times the stand-in light plus the added
-    /// light packed to bytes and clamped (Unity's <c>DK2PackedDiffuse</c>) unless at full light. The arithmetic is on the
-    /// stored bytes, as DK2 and Unity's gamma space do it, and the result is turned linear so Godot's output stores those
-    /// bytes again; the blending itself is Godot's, in linear space. Opaque writes depth; blended draws do not.</summary>
+    /// light packed to bytes and clamped (Unity's <c>DK2PackedDiffuse</c>) unless at full light. The colour buffer holds
+    /// the stored bytes over 255 and blends them there, as DK2 and Unity's gamma space do (<see cref="GammaOutput"/>).
+    /// Opaque writes depth; blended draws do not.</summary>
     private Shader ShaderFor(KmfBlend blend, bool fullLight)
     {
         if (_shaders.TryGetValue((blend, fullLight), out Shader? shader)) return shader;
@@ -323,14 +378,84 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         {
             Code = "shader_type spatial;\nrender_mode unshaded, cull_back, " + mode + ";\n"
                 + "uniform sampler2D albedo_texture : filter_linear_mipmap, repeat_disable;\n"
-                + "uniform vec4 base_colour = vec4(1.0);\n"
+                // A Color set on a plain vec4 is turned linear (material_storage.cpp, _fill_std140_variant_ubo_value).
+                + "uniform vec4 base_colour : source_color, color_conversion_disabled = vec4(1.0);\n"
                 + "uniform vec3 added_light = vec3(0.0);\n"
-                + "vec3 to_linear(vec3 c) { return mix(pow((c + vec3(0.055)) / 1.055, vec3(2.4)), c / 12.92, lessThan(c, vec3(0.04045))); }\n"
                 + "void fragment() {\nvec4 c = texture(albedo_texture, UV) * base_colour;\n" + light
-                + "ALBEDO = to_linear(c.rgb);\n" + alpha + "}\n",
+                + "ALBEDO = c.rgb;\n" + alpha + "}\n",
         };
         _shaders.Add((blend, fullLight), shader);
         return shader;
+    }
+
+    /// <summary>How many entries <see cref="GammaOutput"/>'s table has: the half-texel clamp at either end costs at most
+    /// 2.4 x 0.5 / 4096 of the range, under a tenth of a byte. Half floats (linear filtering of 32-bit float textures is
+    /// optional in Vulkan) round by at most 1/4096 near 1, under a tenth of a byte.</summary>
+    private const int GammaTableWidth = 4096;
+
+    /// <summary>The camera's output: the colour buffer holds gamma-space values (the stored bytes over 255), which Godot's
+    /// tonemap still encodes as if linear (<c>linear_to_srgb</c> in tonemap.glsl at 4.8 beta 3, c51ff06e8). A 1D colour
+    /// correction table of <c>srgb_to_linear</c>, applied after that encoding, undoes it, so the window shows the buffer's
+    /// values and every blend happened in gamma space, as in Unity's gamma colour space. Linear tonemap, exposure 1.</summary>
+    private static Godot.Environment GammaOutput()
+    {
+        using Image table = Image.CreateEmpty(GammaTableWidth, 1, false, Image.Format.Rgbah);
+        for (int i = 0; i < GammaTableWidth; i++)
+        {
+            // A linear-filtered texel i is sampled whole at (i + 0.5) / width.
+            double encoded = (i + 0.5) / GammaTableWidth;
+            float value = (float)(encoded < 0.04045 ? encoded / 12.92 : Math.Pow((encoded + 0.055) / 1.055, 2.4));
+            table.SetPixel(i, 0, new Color(value, value, value, 1f));
+        }
+        return new Godot.Environment
+        {
+            BackgroundMode = Godot.Environment.BGMode.ClearColor,
+            TonemapMode = Godot.Environment.ToneMapper.Linear,
+            TonemapExposure = 1f,
+            TonemapWhite = 1f,
+            AdjustmentEnabled = true,
+            AdjustmentBrightness = 1f,
+            AdjustmentContrast = 1f,
+            AdjustmentSaturation = 1f,
+            AdjustmentColorCorrection = ImageTexture.CreateFromImage(table),
+        };
+    }
+
+    /// <summary>Re-sorts the blended stream for the placed camera when it or the stream changed, and uploads the runs
+    /// (<see cref="RunSlot"/>); times the frames that re-sort.</summary>
+    private void DrawBlended()
+    {
+        if (_blended == null || _camera == null || View == null) return;
+        if (_frustumStale)
+        {
+            _frustum = ViewFrustum.FromPose(_placed, _placedViewport.Width / (float)_placedViewport.Height, NearPlane);
+            _frustumStale = false;
+        }
+        NVector3 forward = NVector3.Normalize(_placed.Forward);
+        if (!_blended.NeedsRefresh(forward, NMatrix4x4.Identity, _frustum.ViewProjection)) return;
+        long start = Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
+        _blended.Refresh(forward, NMatrix4x4.Identity, _frustum);
+        IReadOnlyList<TriangleDepthOrderBuffer.Run> runs = _blended.Runs;
+        int triangles = 0;
+        for (int i = 0; i < runs.Count; i++)
+        {
+            if (i == _runSlots.Count) _runSlots.Add(new RunSlot(GetWorld3D().Scenario, _worldBox));
+            _runSlots[i].Show(_blended.Material(runs[i].MaterialIndex), _blended.SortingOrder(i), runs[i].Triangles,
+                _blended.Vertices, _blended.GeometryRevision, _runScratch);
+            triangles += runs[i].Triangles.Count;
+        }
+        for (int i = runs.Count; i < _runSlots.Count; i++) _runSlots[i].Hide();
+        long ticks = Stopwatch.GetTimestamp() - start, bytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
+        _blendedMaxRuns = Math.Max(_blendedMaxRuns, runs.Count);
+        _blendedMaxTriangles = Math.Max(_blendedMaxTriangles, triangles);
+        if (_blendedFirstTicks < 0) _blendedFirstTicks = ticks;
+        else
+        {
+            _blendedTicks += ticks;
+            _blendedMaxTicks = Math.Max(_blendedMaxTicks, ticks);
+        }
+        if (_blendedRefreshes++ < BlendedWarmUp) _blendedWarmUpBytes += bytes;
+        else _blendedLateBytes += bytes;
     }
 
     private Texture2D TextureFor(string name)
@@ -356,6 +481,9 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     private static Vector3 ToGodot(NVector3 v) => new(v.X, v.Y, v.Z);
 
+    private static string Milliseconds(long ticks) =>
+        (Math.Max(0, ticks) * 1000.0 / Stopwatch.Frequency).ToString("0.000", CultureInfo.InvariantCulture);
+
     public override void _ExitTree()
     {
         if (_camera != null) GetViewport().SizeChanged -= PlaceCamera;
@@ -365,7 +493,12 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 " B in Present, ", _changeFrames, " with one ", _changeBytes, " B; collections since the level opened: ",
                 GC.CollectionCount(0) - _collectionsAtOpen[0], " gen0, ", GC.CollectionCount(1) - _collectionsAtOpen[1], " gen1, ",
                 GC.CollectionCount(2) - _collectionsAtOpen[2], " gen2; water ", _liquids!.Water.TileCount, " tiles, lava ",
-                _liquids.Lava.TileCount);
+                _liquids.Lava.TileCount, "; blended stream: ", _blendedRefreshes, " re-sorts, the first ", Milliseconds(_blendedFirstTicks),
+                " ms, the rest ", Milliseconds(_blendedTicks / Math.Max(1, _blendedRefreshes - 1)), " ms mean and ",
+                Milliseconds(_blendedMaxTicks), " ms max; allocated ", _blendedWarmUpBytes, " B in the first ", BlendedWarmUp,
+                " and ", _blendedLateBytes, " B after; up to ", _blendedMaxRuns, " runs and ", _blendedMaxTriangles, " triangles");
+        foreach (RunSlot slot in _runSlots) slot.Free();
+        _runSlots.Clear();
         _art?.Dispose();
         _art = null;
     }
@@ -432,6 +565,134 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             Aabb box = _mesh.GetAabb();
             float reach = 2f * Math.Max(LiquidSurfaceWave.WaterAmplitude, LiquidSurfaceWave.LavaAmplitude);
             _instance.CustomAabb = new Aabb(box.Position - new Vector3(0, reach, 0), box.Size + new Vector3(0, 2 * reach, 0));
+        }
+    }
+
+    /// <summary>One run of the blended stream: an instance of its own one-surface mesh, a triangle list in the run's order
+    /// (a surface draws its primitives in order), with zero-area triangles past the run. Godot 4.8 sorts the transparent
+    /// pass by material priority, then by camera distance minus the instance's sorting offset, with an unstable sort
+    /// (<c>SortByReverseDepthAndPriority</c>, <c>SortArray</c> in render_forward_clustered.h at c51ff06e8): every run
+    /// instance sits at the origin, sorted by its origin, with the stream's sorting order as its offset, so runs draw in
+    /// the stream's order and the triangles within one in theirs.</summary>
+    private sealed class RunSlot
+    {
+        /// <summary>The upload buffers every slot shares: positions (the vertex stream) and UVs (the attribute stream).</summary>
+        public sealed class Scratch
+        {
+            public byte[] Positions = [], Uvs = [];
+        }
+
+        private const RenderingServer.ArrayFormat Format = RenderingServer.ArrayFormat.FormatVertex
+            | RenderingServer.ArrayFormat.FormatTexUV | RenderingServer.ArrayFormat.FlagUseDynamicUpdate;
+        private const int PositionStride = 12, UvStride = 8;
+
+        private readonly Rid _instance, _mesh;
+        private readonly List<RenderTriangle> _triangles = new();
+        private ShaderMaterial? _material;
+        private int _capacity, _written, _order = int.MinValue;
+        private long _revision = -1;
+        private bool _visible = true;
+
+        public RunSlot(Rid scenario, Aabb box)
+        {
+            _mesh = RenderingServer.MeshCreate();
+            _instance = RenderingServer.InstanceCreate2(_mesh, scenario);
+            RenderingServer.InstanceGeometrySetCastShadowsSetting(_instance, RenderingServer.ShadowCastingSetting.Off);
+            RenderingServer.InstanceSetCustomAabb(_instance, box);
+        }
+
+        public void Show(ShaderMaterial material, int order, IReadOnlyList<RenderTriangle> triangles,
+            IReadOnlyList<BlendedVertex> vertices, long revision, Scratch scratch)
+        {
+            if (!_visible) { RenderingServer.InstanceSetVisible(_instance, true); _visible = true; }
+            if (!ReferenceEquals(material, _material))
+            {
+                RenderingServer.InstanceGeometrySetMaterialOverride(_instance, material.GetRid());
+                _material = material;
+            }
+            if (order != _order)
+            {
+                RenderingServer.InstanceSetPivotData(_instance, order, false);
+                _order = order;
+            }
+            if (revision == _revision && Same(triangles)) return;
+            _revision = revision;
+            _triangles.Clear();
+            for (int i = 0; i < triangles.Count; i++) _triangles.Add(triangles[i]);
+            int count = triangles.Count;
+            if (count > _capacity) Grow(count);
+            int vertexCount = Math.Max(count, _written) * 3;
+            if (scratch.Positions.Length < vertexCount * PositionStride)
+            {
+                scratch.Positions = new byte[_capacity * 3 * PositionStride];
+                scratch.Uvs = new byte[_capacity * 3 * UvStride];
+            }
+            Span<float> positions = MemoryMarshal.Cast<byte, float>(scratch.Positions.AsSpan(0, vertexCount * PositionStride));
+            Span<float> uvs = MemoryMarshal.Cast<byte, float>(scratch.Uvs.AsSpan(0, vertexCount * UvStride));
+            int p = 0, u = 0;
+            for (int t = 0; t < count; t++)
+            {
+                RenderTriangle triangle = triangles[t];
+                Corner(vertices[triangle.A], positions, uvs, ref p, ref u);
+                Corner(vertices[triangle.B], positions, uvs, ref p, ref u);
+                Corner(vertices[triangle.C], positions, uvs, ref p, ref u);
+            }
+            positions[p..].Clear();
+            uvs[u..].Clear();
+            RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, 0, scratch.Positions.AsSpan(0, vertexCount * PositionStride));
+            RenderingServer.MeshSurfaceUpdateAttributeRegion(_mesh, 0, 0, scratch.Uvs.AsSpan(0, vertexCount * UvStride));
+            _written = count;
+        }
+
+        public void Hide()
+        {
+            if (!_visible) return;
+            RenderingServer.InstanceSetVisible(_instance, false);
+            _visible = false;
+        }
+
+        public void Free()
+        {
+            RenderingServer.FreeRid(_instance);
+            RenderingServer.FreeRid(_mesh);
+        }
+
+        private static void Corner(in BlendedVertex vertex, Span<float> positions, Span<float> uvs, ref int p, ref int u)
+        {
+            NVector3 at = RightHandedFrame.Point(vertex.Position);
+            positions[p++] = at.X;
+            positions[p++] = at.Y;
+            positions[p++] = at.Z;
+            uvs[u++] = vertex.Uv.X;
+            uvs[u++] = vertex.Uv.Y;
+        }
+
+        private bool Same(IReadOnlyList<RenderTriangle> triangles)
+        {
+            if (triangles.Count != _triangles.Count) return false;
+            for (int i = 0; i < triangles.Count; i++)
+                if (triangles[i] != _triangles[i]) return false;
+            return true;
+        }
+
+        /// <summary>A new surface of a power-of-two triangle capacity, zeroed; the only allocation, as a run outgrows it.</summary>
+        private void Grow(int count)
+        {
+            int capacity = 64;
+            while (capacity < count) capacity <<= 1;
+            _capacity = capacity;
+            int vertexCount = capacity * 3;
+            if (RenderingServer.MeshSurfaceGetFormatVertexStride(Format, vertexCount) != PositionStride
+                || RenderingServer.MeshSurfaceGetFormatAttributeStride(Format, vertexCount) != UvStride)
+                GD.PushError("DK2.Godot: the blended run's vertex layout is not positions then UVs; runs draw wrong.");
+            var arrays = new Godot.Collections.Array();
+            arrays.Resize((int)Mesh.ArrayType.Max);
+            arrays[(int)Mesh.ArrayType.Vertex] = new Vector3[vertexCount];
+            arrays[(int)Mesh.ArrayType.TexUV] = new Vector2[vertexCount];
+            RenderingServer.MeshClear(_mesh);
+            RenderingServer.MeshAddSurfaceFromArrays(_mesh, RenderingServer.PrimitiveType.Triangles, arrays, null, null,
+                RenderingServer.ArrayFormat.FlagUseDynamicUpdate);
+            _written = 0;
         }
     }
 

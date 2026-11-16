@@ -129,10 +129,11 @@ selects (the Heart's decay; a hovered gold object's `_HIGHLIGHT`,
 
 Back faces stay culled (§4). The environment pass (file 0x40) is drawn as §8 says. Not
 drawn: the UNREAD state bits 0x2 and 0x40. Blended terrain faces now sort across chunks and
-materials before each camera, batching only adjacent equal materials into explicitly ordered
-renderers. Standalone object meshes and liquids still use Unity's object sort.
+materials before each camera (`BlendedTerrainStream`, shared), batching only adjacent equal materials into
+explicitly ordered renderers. Standalone object meshes and liquids still use Unity's object sort.
 The terrain runs use sortingOrder 1..N, so they follow those other blended renderers
 (at order 0); transparent faces across the two streams do not interleave by depth.
+Godot draws each run as an instance whose `sorting_offset` is that order.
 
 Shipped flags across Meshes.WAD (`KmfMaterialTests.ShippedFlagsUseOnlyTheSurveyedBits`):
 0x0 3957, 0x40 1031, 0x42 600, 0x2 381, 0x100 198, 0x3 117, 0x80 78, 0x1 63, 0x4 20,
@@ -160,7 +161,7 @@ This confirms a submission-order defect, not corrupt mesh positions.
 The sink 0x0058B9D0 forms its bucket key from the sum of the three transformed
 vertex depths; 0x00588D00 traverses those buckets in decreasing order and flushes
 when state or textures change. Thus sorting precedes material batching. The
-adapter uses continuous camera-facing centroid depth with stable equal-depth ties;
+remake (`TriangleDepthOrderBuffer`, shared) uses continuous camera-facing centroid depth with stable equal-depth ties;
 DK2's bucket quantisation and within-bucket tie order are not reproduced.
 `TriangleDepthOrderTests` covers material interleaving, camera reversal, centroid
 versus maximum depth, stable ties and the shipped Portal's complete blended stream.

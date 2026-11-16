@@ -7,14 +7,19 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using DK2.Art;
+using DK2.Presentation;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
+using NumericsMatrix = System.Numerics.Matrix4x4;
+using NumericsVector2 = System.Numerics.Vector2;
 using NumericsVector3 = System.Numerics.Vector3;
 
 namespace DK2.Unity
 {
-    /// <summary>Blended terrain faces share one camera-depth stream across chunks and materials.</summary>
+    /// <summary>Blended terrain faces share one camera-depth stream across chunks and materials: what is collected,
+    /// culled, sorted and split is <see cref="BlendedTerrainStream{TMaterial}"/>'s (plan step 3d); this class uploads
+    /// its runs, each a <see cref="GameObject"/> drawn at the stream's sorting order.</summary>
     public sealed class TransparentTerrain : MonoBehaviour
     {
         private static readonly ProfilerMarker SetChunkMarker = new ProfilerMarker("DK2.TransparentTerrain.SetChunk");
@@ -22,15 +27,6 @@ namespace DK2.Unity
         private static readonly ProfilerMarker OrderMarker = new ProfilerMarker("DK2.TransparentTerrain.DepthOrder");
         private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.TransparentTerrain.UploadRuns");
         private static readonly ProfilerMarker CullMarker = new ProfilerMarker("DK2.TransparentTerrain.Cull");
-
-        private sealed class Source
-        {
-            public Vector3[] Positions, Normals;
-            public Vector2[] Uvs;
-            public Vector2[] LightAnchors;
-            public Material[] Materials;
-            public int[][] Triangles;
-        }
 
         private sealed class Run
         {
@@ -68,53 +64,95 @@ namespace DK2.Unity
         private static readonly VertexAttributeDescriptor[] IndexMeshLayout = Array.Empty<VertexAttributeDescriptor>();
         private Mesh _sharedVertices;
         private SharedVertex[] _vertexData = Array.Empty<SharedVertex>();
-        private long _geometryRevision;
         private RenderPipelineAsset _checkedPipeline;
         private PropertyInfo _dynamicBatching;
 
-        private sealed class EffectMesh
+        private readonly BlendedTerrainStream<Material> _stream = new BlendedTerrainStream<Material>(ClassicMeshes.IsTagOverlay)
+        {
+            Profiler = StreamMarkers.Instance,
+        };
+        private readonly ChunkVertices _chunkVertices = new ChunkVertices();
+
+        private readonly List<Vector3> _effectPositions = new List<Vector3>(), _effectNormals = new List<Vector3>();
+        private readonly List<Vector2> _effectUvs = new List<Vector2>();
+        private readonly List<Color32> _effectColours = new List<Color32>();
+        private readonly List<int> _effectIndices = new List<int>();
+        private BlendedVertex[] _effectVertices = Array.Empty<BlendedVertex>();
+
+        // Each effect's inputs as last added, compared before any vertex is placed, as before the move.
+        private sealed class EffectInputs
         {
             public Material Material;
-            public Matrix4x4 Transform;
+            public Matrix4x4 Transform, WorldToLocal;
             public Vector3[] Positions = Array.Empty<Vector3>(), Normals = Array.Empty<Vector3>();
             public Vector2[] Uvs = Array.Empty<Vector2>();
             public Color32[] Colours = Array.Empty<Color32>();
             public int[] Indices = Array.Empty<int>();
         }
 
-        private readonly List<EffectMesh> _effects = new List<EffectMesh>();
-        private int _effectCount;
-        private readonly List<Vector3> _effectPositions = new List<Vector3>(), _effectNormals = new List<Vector3>();
-        private readonly List<Vector2> _effectUvs = new List<Vector2>();
-        private readonly List<Color32> _effectColours = new List<Color32>();
-        private readonly List<int> _effectIndices = new List<int>();
-        private readonly List<Color32> _colours = new List<Color32>();
+        private readonly List<EffectInputs> _effectInputs = new List<EffectInputs>();
+        private int _effectInputCount;
+        private int[] _effectIndexData = Array.Empty<int>();
 
-        public void BeginEffectFrame() => _effectCount = 0;
+        private readonly List<Run> _runs = new List<Run>();
+        private readonly List<Run> _selectedRuns = new List<Run>();
+        private readonly Dictionary<int, Run> _runMatches = new Dictionary<int, Run>();
+        private readonly Plane[] _frustum = new Plane[6];
+        private readonly List<NumericsVector3> _itemWorlds = new List<NumericsVector3>();
+        private int[] _runIndexData = Array.Empty<int>();
 
-        /// <summary>Unlit blended effect geometry, sorted together with the terrain this frame.</summary>
+        private void OnEnable() => RenderPipelineManager.beginCameraRendering += BeforeCamera;
+        private void OnDisable() => RenderPipelineManager.beginCameraRendering -= BeforeCamera;
+
+        public void BeginEffectFrame()
+        {
+            _effectInputCount = 0;
+            _stream.BeginEffectFrame();
+        }
+
+        /// <summary>Unlit blended effect geometry, sorted together with the terrain this frame. An effect whose inputs
+        /// and this object's transform are unchanged is repeated; otherwise it is placed in this object's space now,
+        /// absent normals up, UVs zero, colours white.</summary>
         public void AddEffectMesh(Mesh mesh, int submesh, Material material, Matrix4x4 worldTransform)
         {
             mesh.GetVertices(_effectPositions); mesh.GetNormals(_effectNormals);
             mesh.GetUVs(0, _effectUvs); mesh.GetColors(_effectColours); mesh.GetTriangles(_effectIndices, submesh);
-            if (_effectCount == _effects.Count) _effects.Add(new EffectMesh());
-            EffectMesh effect = _effects[_effectCount++];
-            if (effect.Material == material && effect.Transform.Equals(worldTransform)
-                && Same(_effectPositions, effect.Positions) && Same(_effectNormals, effect.Normals)
-                && Same(_effectUvs, effect.Uvs) && Same(_effectColours, effect.Colours)
-                && Same(_effectIndices, effect.Indices)) return;
-            effect.Material = material; effect.Transform = worldTransform;
-            Copy(_effectPositions, ref effect.Positions); Copy(_effectNormals, ref effect.Normals);
-            Copy(_effectUvs, ref effect.Uvs); Copy(_effectColours, ref effect.Colours);
-            Copy(_effectIndices, ref effect.Indices);
-            _dirty = true;
+            if (_effectInputCount == _effectInputs.Count) _effectInputs.Add(new EffectInputs());
+            EffectInputs inputs = _effectInputs[_effectInputCount++];
+            Matrix4x4 worldToLocal = transform.worldToLocalMatrix;
+            if (inputs.Material == material && inputs.Transform.Equals(worldTransform) && inputs.WorldToLocal.Equals(worldToLocal)
+                && Same(_effectPositions, inputs.Positions) && Same(_effectNormals, inputs.Normals)
+                && Same(_effectUvs, inputs.Uvs) && Same(_effectColours, inputs.Colours)
+                && Same(_effectIndices, inputs.Indices))
+            {
+                _stream.RepeatEffect();
+                return;
+            }
+            inputs.Material = material; inputs.Transform = worldTransform; inputs.WorldToLocal = worldToLocal;
+            Copy(_effectPositions, ref inputs.Positions); Copy(_effectNormals, ref inputs.Normals);
+            Copy(_effectUvs, ref inputs.Uvs); Copy(_effectColours, ref inputs.Colours);
+            Copy(_effectIndices, ref inputs.Indices);
+            Matrix4x4 local = worldToLocal * worldTransform;
+            Matrix4x4 normals = local.inverse.transpose;
+            int count = _effectPositions.Count;
+            if (_effectVertices.Length < count) _effectVertices = new BlendedVertex[Mathf.NextPowerOfTwo(count)];
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 position = local.MultiplyPoint3x4(_effectPositions[i]);
+                Vector3 normal = i < _effectNormals.Count ? normals.MultiplyVector(_effectNormals[i]).normalized : Vector3.up;
+                Vector2 uv = i < _effectUvs.Count ? _effectUvs[i] : Vector2.zero;
+                Color32 colour = i < _effectColours.Count ? _effectColours[i] : new Color32(255, 255, 255, 255);
+                _effectVertices[i] = new BlendedVertex(Numerics(position), Numerics(normal), new NumericsVector2(uv.x, uv.y),
+                    NumericsVector2.Zero, new VertexColour(colour.r, colour.g, colour.b, colour.a));
+            }
+            _stream.AddEffect(material, new ReadOnlySpan<BlendedVertex>(_effectVertices, 0, count),
+                IndicesOf(_effectIndices));
         }
 
         public void EndEffectFrame()
         {
-            if (_effectCount == _effects.Count) return;
-            _effects.RemoveRange(_effectCount, _effects.Count - _effectCount);
-            _dirty = true;
+            if (_effectInputCount < _effectInputs.Count) _effectInputs.RemoveRange(_effectInputCount, _effectInputs.Count - _effectInputCount);
+            _stream.EndEffectFrame();
         }
 
         private static bool Same<T>(List<T> values, T[] previous)
@@ -131,149 +169,29 @@ namespace DK2.Unity
             values.CopyTo(target);
         }
 
-        private readonly SortedDictionary<int, Source> _sources = new SortedDictionary<int, Source>();
-        private readonly List<Run> _runs = new List<Run>();
-        private readonly List<Run> _selectedRuns = new List<Run>();
-        private readonly Dictionary<int, Run> _runMatches = new Dictionary<int, Run>();
-        private readonly List<Vector3> _positions = new List<Vector3>();
-        private readonly List<Vector3> _normals = new List<Vector3>();
-        private readonly List<Vector2> _uvs = new List<Vector2>();
-        private readonly List<Vector2> _lightAnchors = new List<Vector2>();
-        private readonly List<Material> _materials = new List<Material>();
-        private readonly List<RenderTriangle> _triangles = new List<RenderTriangle>();
-        private readonly List<RenderTriangle> _visibleTriangles = new List<RenderTriangle>();
-        private readonly Plane[] _frustum = new Plane[6];
-        private readonly List<NumericsVector3> _worldPositions = new List<NumericsVector3>();
-        private int[] _runIndexData = Array.Empty<int>();
-        private readonly TriangleDepthOrderBuffer _sort = new TriangleDepthOrderBuffer();
-        private bool _dirty = true;
-        private Vector3 _lastForward;
-        private Matrix4x4 _lastMatrix;
-        private Matrix4x4 _lastCullingMatrix;
-        // Status-flower depths that split runs (PlaceItems), farthest first.
-        private float[] _breaks = Array.Empty<float>();
-        private float[] _scratchBreaks = Array.Empty<float>();
-        private float[] _itemDepths = Array.Empty<float>();
-        private int _breakCount;
-        private bool _breaksChanged;
-
-        private void OnEnable() => RenderPipelineManager.beginCameraRendering += BeforeCamera;
-        private void OnDisable() => RenderPipelineManager.beginCameraRendering -= BeforeCamera;
-
+        /// <summary>The chunk's blended materials (render queue Transparent and later) join the stream.</summary>
         public void SetChunk(int chunk, List<Vector3> positions, List<Vector3> normals,
             List<Vector2> uvs, List<Vector2> lightAnchors, Dictionary<Material, List<int>> byMaterial)
         {
             using ProfilerMarker.AutoScope scope = SetChunkMarker.Auto();
-            var materials = new List<Material>();
-            var triangles = new List<int[]>();
-
-            // Only the vertices the blended triangles use, renumbered in first-use order: a chunk's
-            // opaque bulk would otherwise be copied here and transformed on every camera turn. The
-            // depth sort breaks ties by triangle order, not vertex number, so drawing is unchanged.
-            _remap.Clear();
-            _keptPositions.Clear(); _keptNormals.Clear(); _keptUvs.Clear();
-            _keptLightAnchors.Clear();
+            _chunkVertices.Set(positions, normals, uvs, lightAnchors);
+            _stream.BeginChunk(chunk, _chunkVertices);
             foreach (KeyValuePair<Material, List<int>> entry in byMaterial)
                 if (entry.Value.Count != 0 && entry.Key.renderQueue >= (int)RenderQueue.Transparent)
-                {
-                    var kept = new int[entry.Value.Count];
-                    for (int i = 0; i < kept.Length; i++)
-                    {
-                        int vertex = entry.Value[i];
-                        if (!_remap.TryGetValue(vertex, out int local))
-                        {
-                            local = _keptPositions.Count;
-                            _remap.Add(vertex, local);
-                            _keptPositions.Add(positions[vertex]);
-                            _keptNormals.Add(normals[vertex]);
-                            _keptUvs.Add(uvs[vertex]);
-                            _keptLightAnchors.Add(lightAnchors[vertex]);
-                        }
-                        kept[i] = local;
-                    }
-                    materials.Add(entry.Key);
-                    triangles.Add(kept);
-                }
-            if (triangles.Count == 0)
-            {
-                // A chunk with no blended faces before or after changes nothing drawn here.
-                if (!_sources.Remove(chunk)) return;
-            }
-            else _sources[chunk] = new Source
-            {
-                Positions = _keptPositions.ToArray(), Normals = _keptNormals.ToArray(), Uvs = _keptUvs.ToArray(),
-                LightAnchors = _keptLightAnchors.ToArray(),
-                Materials = materials.ToArray(), Triangles = triangles.ToArray(),
-            };
-            _dirty = true;
+                    _stream.AddChunkTriangles(entry.Key, entry.Value);
+            _stream.EndChunk();
+            _chunkVertices.Set(null, null, null, null);
         }
-
-        private readonly Dictionary<int, int> _remap = new Dictionary<int, int>();
-        private readonly List<Vector3> _keptPositions = new List<Vector3>();
-        private readonly List<Vector3> _keptNormals = new List<Vector3>();
-        private readonly List<Vector2> _keptUvs = new List<Vector2>();
-        private readonly List<Vector2> _keptLightAnchors = new List<Vector2>();
 
         public void Clear()
         {
-            _sources.Clear();
-            _effects.Clear(); _effectCount = 0;
-            _dirty = true;
+            _stream.Clear();
+            _effectInputs.Clear(); _effectInputCount = 0;
             // A teardown on scene unload can find a run's object already gone with its parent.
             foreach (Run run in _runs)
             {
                 if (run.Object != null && run.Active) run.Object.SetActive(false);
                 run.Active = false;
-            }
-        }
-
-        private void Collect()
-        {
-            _positions.Clear(); _normals.Clear(); _uvs.Clear(); _materials.Clear(); _triangles.Clear();
-            _lightAnchors.Clear(); _colours.Clear();
-            var slots = new Dictionary<Material, int>();
-            foreach (Source source in _sources.Values)
-            {
-                int start = _positions.Count;
-                _positions.AddRange(source.Positions);
-                for (int i = 0; i < source.Positions.Length; i++) _colours.Add(new Color32(255, 255, 255, 255));
-                _normals.AddRange(source.Normals);
-                _uvs.AddRange(source.Uvs);
-                _lightAnchors.AddRange(source.LightAnchors);
-                for (int material = 0; material < source.Materials.Length; material++)
-                {
-                    if (!slots.TryGetValue(source.Materials[material], out int slot))
-                    {
-                        slot = _materials.Count;
-                        slots.Add(source.Materials[material], slot);
-                        _materials.Add(source.Materials[material]);
-                    }
-                    int[] indices = source.Triangles[material];
-                    for (int i = 0; i < indices.Length; i += 3)
-                        _triangles.Add(new RenderTriangle(start + indices[i], start + indices[i + 1],
-                            start + indices[i + 2], slot));
-                }
-            }
-            foreach (EffectMesh effect in _effects)
-            {
-                int start = _positions.Count;
-                Matrix4x4 local = transform.worldToLocalMatrix * effect.Transform;
-                Matrix4x4 normals = local.inverse.transpose;
-                for (int i = 0; i < effect.Positions.Length; i++)
-                {
-                    _positions.Add(local.MultiplyPoint3x4(effect.Positions[i]));
-                    _normals.Add(i < effect.Normals.Length ? normals.MultiplyVector(effect.Normals[i]).normalized : Vector3.up);
-                    _uvs.Add(i < effect.Uvs.Length ? effect.Uvs[i] : Vector2.zero);
-                    _colours.Add(i < effect.Colours.Length ? effect.Colours[i] : new Color32(255, 255, 255, 255));
-                    _lightAnchors.Add(Vector2.zero);
-                }
-                if (!slots.TryGetValue(effect.Material, out int slot))
-                {
-                    slot = _materials.Count; slots.Add(effect.Material, slot); _materials.Add(effect.Material);
-                }
-                for (int i = 0; i < effect.Indices.Length; i += 3)
-                    _triangles.Add(new RenderTriangle(start + effect.Indices[i], start + effect.Indices[i + 1],
-                        start + effect.Indices[i + 2], slot));
             }
         }
 
@@ -287,119 +205,65 @@ namespace DK2.Unity
             }
             if (_dynamicBatching != null && (bool)_dynamicBatching.GetValue(pipeline))
                 throw new InvalidOperationException("Shared transparent vertex streams require dynamic batching disabled.");
-            foreach (Material material in _materials)
-                if (material.enableInstancing)
-                    throw new InvalidOperationException("Shared transparent vertex streams require GPU instancing disabled.");
+            CheckInstancing();
             Refresh(camera);
         }
 
-        /// <summary>Joins blended items (status flowers) at <paramref name="worlds"/> into this frame's
-        /// back-to-front stream for <paramref name="camera"/>: sorts now, splits any run an item sits
-        /// inside (<see cref="TriangleDepthOrderBuffer.Split"/>), and writes each item's sorting order to
-        /// <paramref name="orders"/>. Call once per frame after the camera is placed and before the
-        /// render; the render's own refresh then finds nothing changed and keeps these runs.</summary>
+        /// <summary>Joins blended items (status flowers) at <paramref name="worlds"/> into this frame's back-to-front
+        /// stream for <paramref name="camera"/> (<see cref="BlendedTerrainStream{TMaterial}.PlaceItems"/>) and writes each
+        /// item's sorting order to <paramref name="orders"/>. Call once per frame after the camera is placed and before
+        /// the render; the render's own refresh then finds nothing changed and keeps these runs.</summary>
         public void PlaceItems(Camera camera, List<Vector3> worlds, List<int> orders)
         {
-            Vector3 forward = camera.transform.forward;
-            int count = worlds.Count;
-            if (_itemDepths.Length < count) { _itemDepths = new float[Mathf.NextPowerOfTwo(count)]; _scratchBreaks = new float[_itemDepths.Length]; }
-            for (int i = 0; i < count; i++)
-            {
-                _itemDepths[i] = Vector3.Dot(worlds[i], forward);
-                _scratchBreaks[i] = _itemDepths[i];
-            }
-            Array.Sort(_scratchBreaks, 0, count);
-            Array.Reverse(_scratchBreaks, 0, count);
-            bool same = count == _breakCount;
-            for (int i = 0; same && i < count; i++) same = _scratchBreaks[i] == _breaks[i];
-            if (!same)
-            {
-                if (_breaks.Length < count) _breaks = new float[_scratchBreaks.Length];
-                Array.Copy(_scratchBreaks, _breaks, count);
-                _breakCount = count;
-                _breaksChanged = true;
-            }
+            _itemWorlds.Clear();
+            foreach (Vector3 world in worlds) _itemWorlds.Add(Numerics(world));
+            _stream.SetItems(Numerics(camera.transform.forward), _itemWorlds);
             Refresh(camera);
-            orders.Clear();
-            for (int i = 0; i < count; i++) orders.Add(_sort.RunsBehind(_itemDepths[i]));
+            _stream.ItemOrders(orders);
         }
 
+        /// <summary>The frustum's planes are taken only when the stream will re-sort, as before the move.</summary>
         private void Refresh(Camera camera)
         {
-            Vector3 forward = camera.transform.forward;
-            Matrix4x4 matrix = transform.localToWorldMatrix;
+            NumericsVector3 forward = Numerics(camera.transform.forward);
+            NumericsMatrix matrix = Numerics(transform.localToWorldMatrix);
             Matrix4x4 culling = camera.cullingMatrix;
-            bool moved = _dirty || forward != _lastForward || matrix != _lastMatrix || culling != _lastCullingMatrix;
-            if (!moved && !_breaksChanged) return;
-            _breaksChanged = false;
-            if (!moved)
-            {
-                // Only the items moved: re-split the last order, no collect, cull or sort.
-                using (OrderMarker.Auto())
-                    Upload(_sort.Split(new ReadOnlySpan<float>(_breaks, 0, _breakCount)), geometryChanged: false);
-                return;
-            }
-            using ProfilerMarker.AutoScope scope = SortMarker.Auto();
-            bool geometryChanged = _dirty || (_effects.Count != 0 && matrix != _lastMatrix);
-            if (geometryChanged) { Collect(); _geometryRevision++; }
-            foreach (Material material in _materials)
-                if (material.enableInstancing)
-                    throw new InvalidOperationException("Shared transparent vertex streams require GPU instancing disabled.");
-            if (geometryChanged || matrix != _lastMatrix)
-            {
-                _worldPositions.Clear();
-                foreach (Vector3 local in _positions)
-                {
-                    Vector3 world = matrix.MultiplyPoint3x4(local);
-                    _worldPositions.Add(new NumericsVector3(world.x, world.y, world.z));
-                }
-            }
-            using (CullMarker.Auto())
-            {
-                GeometryUtility.CalculateFrustumPlanes(culling, _frustum);
-                _visibleTriangles.Clear();
-                foreach (RenderTriangle triangle in _triangles)
-                {
-                    NumericsVector3 a = _worldPositions[triangle.A], b = _worldPositions[triangle.B], c = _worldPositions[triangle.C];
-                    bool outside = false;
-                    foreach (Plane plane in _frustum)
-                    {
-                        Vector3 n = plane.normal;
-                        if (n.x * a.X + n.y * a.Y + n.z * a.Z + plane.distance < -.0001f
-                            && n.x * b.X + n.y * b.Y + n.z * b.Z + plane.distance < -.0001f
-                            && n.x * c.X + n.y * c.Y + n.z * c.Z + plane.distance < -.0001f)
-                        { outside = true; break; }
-                    }
-                    if (!outside) _visibleTriangles.Add(triangle);
-                }
-            }
-            IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered;
-            using (OrderMarker.Auto())
-                ordered = _sort.Sort(_worldPositions, _visibleTriangles,
-                    new NumericsVector3(forward.x, forward.y, forward.z), new ReadOnlySpan<float>(_breaks, 0, _breakCount));
-            Upload(ordered, geometryChanged);
-            _dirty = false;
-            _lastForward = forward;
-            _lastMatrix = matrix;
-            _lastCullingMatrix = culling;
+            if (!_stream.NeedsRefresh(forward, matrix, Numerics(culling))) return;
+            if (_stream.Refresh(forward, matrix, Frustum(culling))) Upload();
         }
 
-        private void Upload(IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered, bool geometryChanged)
+        private ViewFrustum Frustum(Matrix4x4 culling)
         {
+            GeometryUtility.CalculateFrustumPlanes(culling, _frustum);
+            return new ViewFrustum(Numerics(culling), Numerics(_frustum[0]), Numerics(_frustum[1]), Numerics(_frustum[2]),
+                Numerics(_frustum[3]), Numerics(_frustum[4]), Numerics(_frustum[5]));
+        }
+
+        private void CheckInstancing()
+        {
+            for (int i = 0; i < _stream.MaterialCount; i++)
+                if (_stream.Material(i).enableInstancing)
+                    throw new InvalidOperationException("Shared transparent vertex streams require GPU instancing disabled.");
+        }
+
+        private void Upload()
+        {
+            CheckInstancing();
             using ProfilerMarker.AutoScope uploadScope = UploadMarker.Auto();
+            IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered = _stream.Runs;
             if (ordered.Count > short.MaxValue)
                 throw new InvalidOperationException("Transparent terrain exceeds Unity's 32767 ordered-run limit.");
-            UploadSharedVertices(geometryChanged);
+            IReadOnlyList<BlendedVertex> vertices = _stream.Vertices;
+            UploadSharedVertices(_stream.GeometryChanged);
             SelectRuns(ordered);
             for (int i = 0; i < ordered.Count; i++)
             {
                 Run run = _selectedRuns[i];
                 if (!run.Active) { run.Object.SetActive(true); run.Active = true; }
-                Material material = _materials[ordered[i].MaterialIndex];
+                Material material = _stream.Material(ordered[i].MaterialIndex);
                 if (run.Material != material) { run.Renderer.sharedMaterial = material; run.Material = material; }
-                // Sorting order precedes material queue. Tag passes must precede actors/flowers;
-                // other blended terrain retains its existing ordering (including water and fog).
-                int sortingOrder = ClassicMeshes.IsTagOverlay(material) ? i - short.MaxValue : i + 1;
+                // Sorting order precedes material queue (BlendedTerrainStream.SortingOrder).
+                int sortingOrder = _stream.SortingOrder(i);
                 if (run.SortingOrder != sortingOrder) { run.Renderer.sortingOrder = sortingOrder; run.SortingOrder = sortingOrder; }
                 var triangles = ordered[i].Triangles;
                 bool layoutChanged = run.VertexCapacity != _vertexData.Length;
@@ -413,17 +277,17 @@ namespace DK2.Unity
                 if (!run.SharedBound) { run.Renderer.additionalVertexStreams = _sharedVertices; run.SharedBound = true; }
                 bool sameTriangles = SameTriangles(run.Triangles, triangles);
                 bool boundsChanged = false;
-                if (run.BoundsRevision != _geometryRevision || layoutChanged || !sameTriangles)
+                if (run.BoundsRevision != _stream.GeometryRevision || layoutChanged || !sameTriangles)
                 {
-                    Bounds bounds = new Bounds(_positions[triangles[0].A], Vector3.zero);
+                    Bounds bounds = new Bounds(Unity(vertices[triangles[0].A].Position), Vector3.zero);
                     foreach (RenderTriangle triangle in triangles)
                     {
-                        bounds.Encapsulate(_positions[triangle.A]);
-                        bounds.Encapsulate(_positions[triangle.B]);
-                        bounds.Encapsulate(_positions[triangle.C]);
+                        bounds.Encapsulate(Unity(vertices[triangle.A].Position));
+                        bounds.Encapsulate(Unity(vertices[triangle.B].Position));
+                        bounds.Encapsulate(Unity(vertices[triangle.C].Position));
                     }
                     if (layoutChanged || bounds != run.Bounds) { run.Mesh.bounds = bounds; run.Bounds = bounds; boundsChanged = true; }
-                    run.BoundsRevision = _geometryRevision;
+                    run.BoundsRevision = _stream.GeometryRevision;
                 }
                 if (!layoutChanged && sameTriangles)
                 {
@@ -452,7 +316,6 @@ namespace DK2.Unity
                 if (!run.Used && run.Active) { run.Object.SetActive(false); run.Active = false; }
         }
 
-
         private static void SetRunDrawRange(Run run, int indexCount)
         {
             run.Mesh.SetSubMesh(0, new SubMeshDescriptor(0, indexCount, MeshTopology.Triangles)
@@ -461,25 +324,30 @@ namespace DK2.Unity
 
         private void UploadSharedVertices(bool geometryChanged)
         {
-            if (_positions.Count == 0 || (!geometryChanged && _sharedVertices != null)) return;
+            IReadOnlyList<BlendedVertex> vertices = _stream.Vertices;
+            if (vertices.Count == 0 || (!geometryChanged && _sharedVertices != null)) return;
             if (_sharedVertices == null)
             {
                 _sharedVertices = new Mesh { name = "shared transparent vertices" };
                 _sharedVertices.MarkDynamic();
             }
-            bool grew = _vertexData.Length < _positions.Count;
+            bool grew = _vertexData.Length < vertices.Count;
             if (grew)
             {
-                _vertexData = new SharedVertex[Math.Max(1024, Mathf.NextPowerOfTwo(_positions.Count))];
+                _vertexData = new SharedVertex[Math.Max(1024, Mathf.NextPowerOfTwo(vertices.Count))];
                 _sharedVertices.SetVertexBufferParams(_vertexData.Length, SharedLayout);
             }
-            for (int i = 0; i < _positions.Count; i++)
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                BlendedVertex vertex = vertices[i];
                 _vertexData[i] = new SharedVertex
                 {
-                    Position = _positions[i], Normal = _normals[i], Colour = _colours[i],
-                    Uv = _uvs[i], LightAnchor = _lightAnchors[i],
+                    Position = Unity(vertex.Position), Normal = Unity(vertex.Normal),
+                    Colour = new Color32(vertex.Colour.R, vertex.Colour.G, vertex.Colour.B, vertex.Colour.A),
+                    Uv = new Vector2(vertex.Uv.X, vertex.Uv.Y), LightAnchor = new Vector2(vertex.LightAnchor.X, vertex.LightAnchor.Y),
                 };
-            _sharedVertices.SetVertexBufferData(_vertexData, 0, 0, grew ? _vertexData.Length : _positions.Count, 0, MeshUpdateFlags.DontRecalculateBounds);
+            }
+            _sharedVertices.SetVertexBufferData(_vertexData, 0, 0, grew ? _vertexData.Length : vertices.Count, 0, MeshUpdateFlags.DontRecalculateBounds);
         }
 
         private static bool SameTriangles(List<RenderTriangle> previous, IReadOnlyList<RenderTriangle> next)
@@ -567,6 +435,66 @@ namespace DK2.Unity
         {
             if (mesh == null) return;
             if (Application.isPlaying) Destroy(mesh); else DestroyImmediate(mesh);
+        }
+
+        // List<T> has no span view on Unity's profile: the indices go through a reused buffer.
+        private ReadOnlySpan<int> IndicesOf(List<int> list)
+        {
+            if (_effectIndexData.Length < list.Count) _effectIndexData = new int[Mathf.NextPowerOfTwo(list.Count)];
+            list.CopyTo(_effectIndexData);
+            return new ReadOnlySpan<int>(_effectIndexData, 0, list.Count);
+        }
+
+        private static NumericsVector3 Numerics(Vector3 v) => new NumericsVector3(v.x, v.y, v.z);
+
+        private static Vector3 Unity(NumericsVector3 v) => new Vector3(v.X, v.Y, v.Z);
+
+        private static System.Numerics.Plane Numerics(Plane plane) => new System.Numerics.Plane(Numerics(plane.normal), plane.distance);
+
+        /// <summary>Unity's layout: <c>M11</c> is <c>m00</c>, <c>M14</c> is <c>m03</c>.</summary>
+        private static NumericsMatrix Numerics(Matrix4x4 m) => new NumericsMatrix(
+            m.m00, m.m01, m.m02, m.m03, m.m10, m.m11, m.m12, m.m13, m.m20, m.m21, m.m22, m.m23, m.m30, m.m31, m.m32, m.m33);
+
+        /// <summary>A chunk's vertex lists read as <see cref="BlendedVertex"/> where the stream asks, so only the blended
+        /// triangles' vertices are converted.</summary>
+        private sealed class ChunkVertices : IReadOnlyList<BlendedVertex>
+        {
+            private List<Vector3> _positions, _normals;
+            private List<Vector2> _uvs, _lightAnchors;
+
+            public void Set(List<Vector3> positions, List<Vector3> normals, List<Vector2> uvs, List<Vector2> lightAnchors)
+            {
+                _positions = positions; _normals = normals; _uvs = uvs; _lightAnchors = lightAnchors;
+            }
+
+            public int Count => _positions.Count;
+
+            public BlendedVertex this[int index] => new BlendedVertex(Numerics(_positions[index]), Numerics(_normals[index]),
+                new NumericsVector2(_uvs[index].x, _uvs[index].y),
+                new NumericsVector2(_lightAnchors[index].x, _lightAnchors[index].y), VertexColour.White);
+
+            public IEnumerator<BlendedVertex> GetEnumerator()
+            {
+                for (int i = 0; i < Count; i++) yield return this[i];
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        /// <summary>The stream's markers mapped to this class's Unity markers.</summary>
+        private sealed class StreamMarkers : DK2.Simulation.ISimulationProfiler
+        {
+            public static readonly StreamMarkers Instance = new StreamMarkers();
+
+            public void Begin(DK2.Simulation.SimulationMarker marker) => Of(marker)?.Begin();
+
+            public void End(DK2.Simulation.SimulationMarker marker) => Of(marker)?.End();
+
+            private static ProfilerMarker? Of(DK2.Simulation.SimulationMarker marker) =>
+                marker == BlendedTerrainStream.Markers.Sort ? SortMarker
+                : marker == BlendedTerrainStream.Markers.Cull ? CullMarker
+                : marker == BlendedTerrainStream.Markers.DepthOrder ? OrderMarker
+                : (ProfilerMarker?)null;
         }
     }
 }

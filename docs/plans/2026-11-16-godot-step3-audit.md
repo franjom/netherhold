@@ -6,16 +6,14 @@ HEAD and go stale as moves land. Paths without a folder are under `unity/DK2.Uni
 `Resources/`). Each section maps one world feature; the move order (3a-3n) is at the end.
 
 The classes are step 2's: **B** is a DK2 rule still in Unity, which moves to `src/` with tests before Godot uses it
-(ADR-0805); **P** is engine plumbing that Godot rewrites; **S** is already a call into `src/`. Lighting is the owner's
-exception: its look is tuned per engine, so the fill, fade and exposure terms are P, while the DK2 light arithmetic the
-shader copies is B.
+(ADR-0805); **P** is engine plumbing that Godot rewrites; **S** is already a call into `src/`. Lighting's fill, fade and
+exposure terms are P (the owner's exception), while the DK2 light arithmetic the shader copies is B.
 
 ## What Godot starts from
 
 `godot/DK2.Godot/InGameHud.cs` runs Level1 inline (no tick worker, so no presented copy), owns one `WorldView`, a
-`FrameDriver` and a `ScriptedViewDirector`, and draws the HUD panels through `HudCanvas`, over the `WorldScene` that 3a
-added (a `Node3D` with its terrain, liquids and `Camera3D`, which 3b moves). The minimap and glides follow that camera
-since 3b, and world hover only has its type text. The project renders with Forward+ at 1920x1080.
+`FrameDriver` and a `ScriptedViewDirector`, and draws the HUD panels through `HudCanvas` over the `WorldScene` (a `Node3D`
+with its terrain, liquids and `Camera3D`). The project renders with Forward+ at 1920x1080.
 
 ## One frame decision for every feature
 
@@ -38,18 +36,16 @@ it by hand.
 
 - **Unity.** `TerrainChunks.cs` (697), driven by `DungeonScene.CreateTile`/`UpdateTile` (`DungeonScene.cs:365-406`)
   through `IRenderTarget`, and `DungeonScene.Flush` (`:902-909`). Chunks of 16x16 tiles, one `Mesh` per chunk with a
-  submesh per opaque material; blended triangles go to `TransparentTerrain.cs` (572).
+  submesh per opaque material; blended triangles go to `TransparentTerrain.cs`.
 - **Shared (S).** `ScenePresenter` diffing and push order, `TileView` (pieces, keys, walls, tints, fog), `TerrainPieces`,
   `TerrainLattice.Deform`/`Invalidate`, `LatticeDirtyTracker`, `ClassicTerrainTint.PieceColour`, `RenderMesh.FromModel`,
   `TriangleDepthOrderBuffer` (DK2.Art), `TileHeights`.
-- **B, moved in 3a.** The whole per-tile build is now `TerrainTileBuilder` (`Prepare` and `Build`, emitting positions,
-  normals, UVs, light anchors and triangles per `TerrainMaterialKey`: texture, blend, self-illumination, variant plain,
-  tint, tag, red, fog alpha or tag overlay). It holds which pieces a tile places with their quarter turns and quadrant
-  offsets, the inverted lighting normals of tops and top quarters, a room tile's floor set, extra piece and walls (a wall
-  tagged when the tile it faces is tagged, tinted by its neighbour except whole pieces below 7), hero faces with halves 4
-  and 5 swapped, a liquid's or bridge's bed, the sight-fog overlay piece, the lattice bend in DK2's frame, and the key
-  each triangle group takes (the additive tag pass is a second key). Unity maps a key to a `Material`, Godot to a
-  `ShaderMaterial`.
+- **B, moved in 3a.** The whole per-tile build is `TerrainTileBuilder` (`Prepare` and `Build`): positions, normals, UVs,
+  light anchors and triangles per `TerrainMaterialKey` (texture, blend, self-illumination, variant plain, tint, tag, red,
+  fog alpha or tag overlay). It holds the pieces a tile places with their quarter turns, the inverted lighting normals of
+  tops, a room tile's floor set, extra piece and walls (tagged or tinted by the neighbour), hero faces, a liquid's or
+  bridge's bed, the sight-fog overlay piece, the lattice bend in DK2's frame and the key of each triangle group. Unity
+  maps a key to a `Material`, Godot to a `ShaderMaterial`.
 - **B, moved in 3c.** `TerrainChunkScheduler` over `ITerrainChunkSink`: the dirty window (a change forgets its lattice
   cells and marks the 5x5 tiles stale, a tag or tint change the 4 neighbours) and the 4 ms flush, at least one chunk,
   lowest first, inline while no chunk shows, with the thread-pool build (ADR-0457, ADR-0696). Unity's `TerrainChunks`
@@ -72,19 +68,28 @@ it by hand.
   `RenderingServer` region updates when a chunk's vertex count is unchanged (check the 4.8 API with Context7). Textures
   come from `InstallArtProvider.LoadTexture` as `RgbaImage`, so Godot's PNG decoder and its gAMA handling (TRAPS) are
   not involved. A `ScenePresenter` takes `AssetProviderChain.Standard(install: art)`, which ends in the placeholder, not a
-  bare `InstallArtProvider`. Decided in 3c: the per-tile geometry cache stays, with `TerrainTileGeometry`'s starting
-  buffers cut to 32 and 16 (Level1, 1,140 tiles: 8,970 to 1,954 B a tile, 9.8 to 2.1 MB; a dig's 5x5 rebuild takes
-  0.23-0.27 ms through it, a whole chunk 2.3-2.5 ms).
+  bare `InstallArtProvider`. Decided in 3c: the per-tile geometry cache stays, with its starting buffers cut (numbers
+  in the plan's 3c).
 
 ## Blended terrain and the depth stream
 
-- **Unity.** `TransparentTerrain.cs` collects every chunk's blended triangles, culls them to the frustum, sorts them back
-  to front with `TriangleDepthOrderBuffer` and uploads runs, each a `GameObject` with a sorting order (`:327-454`); tag
-  overlays take negative orders (`:402`). Status flowers and additive effect meshes join the same stream
-  (`PlaceItems`, `:301-322`; `AddEffectMesh`, `:96-118`).
-- **Godot.** Godot sorts transparent instances by distance and `sorting_offset`, and `render_priority` covers only
-  -128..127. Reproducing a per-triangle order needs either one dynamic mesh whose surfaces are drawn in order, or runs
-  as instances with forced sort keys. Which one holds in 4.8 is a prototype question for 3d (open point 4).
+- **Unity.** `TransparentTerrain.cs` only uploads: each run a `GameObject` with the sorting order the stream gives it.
+- **B, moved in 3d.** `BlendedTerrainStream<TMaterial>` collects every chunk's blended triangles, culls them with a
+  1e-4 margin, sorts them back to front through `TriangleDepthOrderBuffer` and splits them into runs by material.
+  `SortingOrder(run, tagOverlay)` is run - 32767 for a tag overlay and run + 1 for everything else. It also holds the
+  effect-mesh slot (`AddEffect`, `RepeatEffect`), the status-flower slot (`SetItems`, `Refresh`, `ItemOrders`) and Unity's
+  approximate `==` change test (squared difference below 1e-10); its chunk table is a `SortedList`, so a re-collect
+  allocates nothing. `ViewFrustum` (`FromPose`, `FromViewProjection`) is the frustum test.
+- **Godot (open point 4, decided).** One mesh with ordered surfaces is impossible in 4.8 (engine commit c51ff06e8): the
+  transparent sort is an unstable introsort, `MAX_MESH_SURFACES` is 256 and Level7 makes up to 192 runs, and
+  `render_priority` is per material, -128..127. Each run is a `RenderingServer` instance at the origin with
+  `sorting_offset` set to the stream's order: Godot's transparent depth is distance(camera, origin) - `sorting_offset`
+  (the AABB centre counts only with `use_aabb_center`, off). A run is one triangle list, so the order is exact, run for
+  run and triangle for triangle. Runs upload with `MeshSurfaceUpdateVertexRegion` and `AttributeRegion`.
+- **Blending.** The 3c weakness was mostly double linearisation: Godot linearises a `Color` on a plain `vec4` uniform and
+  the shader did it again. Now uniforms are `source_color, color_conversion_disabled`, shaders write stored bytes / 255
+  and the camera's `Environment` shows the buffer values, so every blend is in gamma space as in Unity. The float buffer
+  does not clamp between blends where Unity's 8-bit target might (open, plan 3d).
 
 ## Camera and projection
 
@@ -114,9 +119,9 @@ it by hand.
 - **Plumbing.** Godot needs no physics: the ray comes from `Camera3D.ProjectRayOrigin`/`ProjectRayNormal`, converted to
   the shared frame. The KMF sphere is read from UV2 in Unity; Godot keeps the C# copy (`RenderMesh` sphere, the
   animation player's last sample) instead of reading meshes back. The view frustum (`GeometryUtility` at `:220` and in
-  the shadows) should be a `ViewFrustum.FromPose` in `src/`, since `Camera3D.GetFrustum` returns a Godot collection.
-- **B, small.** The entity cull before the pick list, cited to 0x00575D70 (`:217-220`), is a plain frustum-AABB test;
-  it moves with `ViewFrustum`.
+  the shadows) is `ViewFrustum.FromPose` in `src/` (3d), since `Camera3D.GetFrustum` returns a Godot collection.
+- **B, small.** The entity cull before the pick list, cited to 0x00575D70 (`:217-220`), is a plain frustum-AABB test
+  that `ViewFrustum` can serve; Unity's call is not moved yet.
 
 ## Creatures and animation
 
@@ -299,27 +304,25 @@ Each sub-step is one commit, leaves Unity working (its compile checked, and Unit
 Godot visibly better. Each is checked by unit tests for what moved and by a Movie Maker capture (below). The first
 three are the terrain and the camera; after that each step adds one kind of thing to the world.
 
-- **3a. Static terrain from the level-start camera.** Done 2026-11-16 (plan step 3a). Moved: `RightHandedFrame`,
-  `TerrainTileBuilder` with `TerrainMaterialKey` and the opaque, alpha and additive part of `ClassicMaterialRecipe`.
-  Godot: a `WorldScene` node under `InGameHud` implementing `IRenderTarget` for tiles (creatures, objects, structures and
-  torches ignored), one `MeshInstance3D` per chunk, an unshaded texture material per key, and a `Camera3D` at
-  `ClassicCamera.Pose(LevelStartFocus)` including the centre shift. Checked: the Level1 start frame shows the Heart
-  room from DK2's camera with the HUD on top; builder tests pin the output against the old build.
-- **3b. Camera control and the minimap.** Done 2026-11-16 (plan step 3b, which has the detail). Moved: `MinimapCameraView`,
-  `HudDrawKind.Triangles` with `HudTriangles`, `ClassicCameraSetup.DefaultZoomOutLimitScale` (1.3, as `Dungeon.unity`
-  serialised it) and `LaunchArguments.GlideTarget`. Godot: `ClassicCameraInput`, `CameraGlide` for every glide, the query
-  follow and turn, the minimap's live focus and heading, and the footprint. Checked: a `--glide-to x,y` capture; no live input.
+- **3a. Static terrain from the level-start camera.** Done 2026-11-16 (plan step 3a, which has the detail). Moved:
+  `RightHandedFrame`, `TerrainTileBuilder`, `TerrainMaterialKey` and the opaque, alpha and additive part of
+  `ClassicMaterialRecipe`. Godot: a `WorldScene` under `InGameHud`, one `MeshInstance3D` per chunk and a `Camera3D` at
+  `ClassicCamera.Pose(LevelStartFocus)`. Checked: the Level1 start frame shows the Heart room, not mirrored.
+- **3b. Camera control and the minimap.** Done 2026-11-16 (plan step 3b). Moved: `MinimapCameraView`,
+  `HudDrawKind.Triangles` with `HudTriangles`, `ClassicCameraSetup.DefaultZoomOutLimitScale` and
+  `LaunchArguments.GlideTarget`. Godot: camera input, every glide, the minimap's live focus and footprint. Checked: a
+  `--glide-to x,y` capture; no live input.
 - **3c. Terrain that changes.** Done 2026-11-16 (plan step 3c, ADR-0805). Moved: `TerrainChunkScheduler`,
-  `TerrainMaterialLook` (the decay stage was already shared), `LiquidSurfaceWave` and `LiquidSurfaceField`. Godot:
-  rebuilds through the scheduler, a `ShaderMaterial` per look, liquids rewritten in place each frame. Checked: Level1 at
-  tick 130 against tick 1000 differs in one tile, the tutorial's blinking red highlight (Level1 does not change by
-  itself); Level8 shows lava and water in their beds. No clean wave capture and no tag tint capture exist yet.
-- **3d. The blended stream.** Godot: blended terrain sorted back to front with `TriangleDepthOrderBuffer`, after the
-  4.8 sorting prototype (open point 4); also the additive overlays and the fog, which Godot blends in linear space and
-  so draws weaker than Unity. Check: a capture across the sight fog and a blended piece shows no order popping over 120 frames.
+  `TerrainMaterialLook`, `LiquidSurfaceWave` and `LiquidSurfaceField`. Godot: rebuilds through the scheduler, a
+  `ShaderMaterial` per look, liquids rewritten in place. Checked: Level1 at tick 130 against 1000 differs in one tile;
+  Level8 shows lava and water in their beds. No clean wave capture and no tag tint capture exist yet.
+- **3d. The blended stream.** Done 2026-11-16 (plan step 3d, which has the numbers; ADR-0805). Moved:
+  `BlendedTerrainStream<TMaterial>` and `ViewFrustum`. Godot: one `RenderingServer` instance per run with
+  `sorting_offset` (open point 4), and blends in gamma space. Checked: a Level7 glide across the gem crystals shows no
+  popping; Level1's tutorial overlay is at Unity's strength. Not captured: the sight fog, whose Sight cast nothing stages.
 - **3e. Pointer, cage and placement: the level becomes playable.** Godot: picking rays into `TilePicker`,
   `TileTopPlane` and the terrain cast, `WorldPointerInput.PointerPosition`, the hand cursor sprite, the cage and the
-  placement cursor. Move: `ViewFrustum`, `TileHoverOutline.Build`, `PlacementCursorHud`, the green key. Check: a capture
+  placement cursor. Move: `TileHoverOutline.Build`, `PlacementCursorHud`, the green key. Check: a capture
   driven by a recorded pointer (open point 10) shows the cage and the dig tag on a wall; tests for the moved pieces.
 - **3f. Objects, structures and torch meshes.** Move: the Euler composition, the rest of the recipe (texture phase,
   fade, blueprint, instance tint, hover twins), the flame phase offsets, group parts. Godot: static meshes, the Heart
@@ -334,11 +337,15 @@ three are the terrain and the camera; after that each step adds one kind of thin
 - **3i. Lighting.** Move: `ClassicVertexLight.Sum` and the packed diffuse with tests. Godot: the vertex-lit shader, the
   light-table textures, the publisher, ambient keys, torch, portal, object, effect and hand lights, the environment
   pass, the exposure pass, and Godot's own fill and fade (open point 2), replacing 3c's stand-in light of 0.5 and
-  uploading the liquids' normals. Check: captures of the start frame and a lit room, compared with what open point 3 settles.
+  uploading the liquids' normals. Check: captures of the start frame and a lit room against the Unity probe frames (open
+  point 3). Acceptance (owner, 2026-11-16, who found Godot's scene "too dark, too bland" and kept this order): the lit
+  frames must not look too dark or too bland next to them.
 - **3j. Creature shadows.** Move: source selection, fade and the silhouette projection. Godot: the chosen path (open
   point 8). Check: a capture of an imp beside a torch; tests for the selection ties and the projection.
 - **3k. Effects and status flowers.** Move: `EffectFilters`, the flower colour reference. Godot: billboards, flat
-  quads, mesh particles, flowers and the dollar in the blended stream. Check: dig debris and a flower over an imp.
+  quads, mesh particles, flowers and the dollar in the blended stream, given their order through sorting offsets
+  (`PlaceItems`/`RunsBehind`), or Godot sorts them by real distance among the run instances. Check: dig debris and a
+  flower over an imp.
 - **3l. Lightning.** Move: `LightningDrawList`. Godot: the ribbon mesh. Check: a capture with a staged lightning shot
   (Level1 has none; a test level or `--stage-battle` with a caster, open point 11).
 - **3m. Possession.** Godot: the possession camera, pointer lock, the roof and the hidden model. Check: a capture after
@@ -362,25 +369,19 @@ outside the repository (`godot/README.md`, *Verifying*). Level1's opening path h
 ```
 
 It opens a window and needs the GPU. Every step that changes a Unity file reruns the stand-in compile
-(`unity/DK2.Unity.Compile`) and Unity's own batch checks (`unity/README.md`, *Verifying it inside Unity*: the compile,
-`DungeonSetup.SmokeTest` and `SaveSmokeTest`; Unity 6000.6.0f1 is installed and licensed). Only the owner's open editor
-must not be driven.
+(`unity/DK2.Unity.Compile`) and Unity's own batch checks (`unity/README.md`, *Verifying it inside Unity*); only the
+owner's open editor must not be driven.
 
 ## Open points for the owner
 
 1. **The frame.** Decided (2026-11-16, option 1): an explicit Z flip through the tested `RightHandedFrame`.
-2. **How Godot's lighting is tuned.** The DK2 terms are shared; the fill (source, tint, floor, unlit share), the
-   distance fade and the exposure are Godot's. Starting from Unity's ADR-0522 values with a Godot fill (an
-   `Environment` ambient colour and one `DirectionalLight3D` read in the shader, or a fixed colour) is one way; a
-   separate set of owner-tuned values, kept in one Godot resource, is the other. Decided by the owner (2026-11-16):
-   start from Unity's ADR-0522 values and tune by eye.
-3. **What to compare against.** Candidates: the owner's DK2 screenshots ADR-0522 was tuned against, new DK2 captures of
-   Level1 at fixed camera poses, and Unity probe captures of the same state (`ClassicWorldLightingProbe`, run in batch
-   mode). Settled with point 2 (2026-11-16): 3i and 3j are checked by eye, and a Unity probe capture can serve as a
-   comparison.
-4. **Blended ordering in Godot.** Per-triangle order across chunks may not be reachable with `render_priority`
-   (-128..127) and instance sorting; a 3d prototype decides between one ordered dynamic mesh and sort-key runs, and
-   whether Godot may deviate (sorting per run only) for a first version.
+2. **How Godot's lighting is tuned.** Decided by the owner (2026-11-16): the DK2 terms are shared; the fill, the
+   distance fade and the exposure are Godot's, starting from Unity's ADR-0522 values and tuned by eye.
+3. **What to compare against.** Settled with point 2 (2026-11-16): 3i and 3j are checked by eye. Unity probe frames now
+   exist (d735490a fixed `ClassicWorldLightingProbe`; Level1 and Level7 in batch mode, recipe in the plan's step 3);
+   3f, 3g and 3i compare against them.
+4. **Blended ordering in Godot.** Decided in 3d by prototype and engine source: one instance per run with
+   `sorting_offset`; the exact per-triangle order is kept, with no deviation.
 5. **The light publisher's pose.** Unity gives it a pose with zero centre shift, pitch and yaw (`DungeonScene.cs:892-899`).
    Should Godot pass `ClassicCamera`'s full pose (and Unity follow), or match Unity's zero shift for now?
 6. **A no-install mode.** Decided (2026-11-16): Godot requires the install, like the HUD, with no placeholder mode and
@@ -392,8 +393,8 @@ must not be driven.
 10. **Pointer-driven captures.** Moving the OS pointer during a capture moves the owner's cursor (TRAPS). A launch
     argument that feeds a recorded pointer path (or replays an input journal) would make 3e, 3h and 3m checkable
     unattended.
-11. **Content for 3l and 3m.** Level1 has no lightning shot; a staged test level or launch argument is needed, built
-    with `tools/levelgen` or a new argument.
+11. **Content for 3d, 3l and 3m.** Level1 has no lightning shot, and nothing stages a Sight of Evil cast, so the sight
+    fog (3d) is uncaptured; a staged test level or launch argument is needed, built with `tools/levelgen` or a new argument.
 
 Out of scope here: the front end's 3D campaign map and its land picking (`DungeonScene.PickFrontEndMap`, `:245-264`), the
 level sound driver and subtitles (step 4), and the probes (step 4).
