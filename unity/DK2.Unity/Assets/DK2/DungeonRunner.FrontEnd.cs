@@ -69,6 +69,8 @@ namespace DK2.Unity
             next.transform.localRotation = transform.localRotation;
             next.transform.localScale = transform.localScale;
             var runner = next.AddComponent<DungeonRunner>();
+            // The next session starts with the live tool and room, as when these fields held them.
+            tool = _toolState.Tool; selectedRoomId = _toolState.SelectedRoomId;
             JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(this), runner);
             runner.sessionMode = request.Mode;
             runner.levelName = request.LevelName;

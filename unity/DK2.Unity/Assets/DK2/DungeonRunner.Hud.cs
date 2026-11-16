@@ -18,7 +18,7 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
-    public sealed partial class DungeonRunner : IHudHoverSources
+    public sealed partial class DungeonRunner : IHudHoverSources, IHudActionHost
     {
         private readonly ClassicHudControls _hudControls = new ClassicHudControls();
         private BottomPanelView _bottomView;
@@ -30,9 +30,8 @@ namespace DK2.Unity
         private readonly System.Collections.Generic.List<ThingNavigationEntry> _thingEntries = new();
         private ClassicOptionsPanel _optionsPanel;
         private ClassicFullMap _fullMap;
-        private BottomPanelChoiceKey? _panelChoice;
-        private bool _queryTool;
-        private ClassicHudAction _selectedCorner;
+        private HudActionRouter _hudRouter;
+        private HudActionRouter HudRouter => _hudRouter ??= new HudActionRouter(_hudControls, _toolState, _input, this);
         private KeeperResourceSnapshot _resources;
         private IClassicCreatureNames _identityNames;
         private Dk2StringTable _hudStrings;
@@ -184,32 +183,16 @@ namespace DK2.Unity
             _hudSources?.Dispose();
         }
 
-        private void SelectPanelChoice(BottomPanelSelection selection)
-        {
-            _input.CancelPointerGesture();
-            _input.CancelTool();
-            _panelChoice = selection.Choice;
-            _queryView?.Clear();
-            _queryTool = false; _selectedCorner = ClassicHudAction.None;
-            tool = selection.Tool == PlayerToolMode.BuildRoom ? DungeonToolMode.BuildRoom
-                : selection.Tool == PlayerToolMode.CreateImp ? DungeonToolMode.CreateImp : DungeonToolMode.Hand;
-            if (selection.Tool == PlayerToolMode.BuildRoom) selectedRoomId = selection.Room;
-        }
+        private void SelectPanelChoice(BottomPanelSelection selection) => _toolState.SelectPanelChoice(selection, _input, _queryView);
 
         /// <summary>A stored special's slot (<see cref="PlayerInputTranslator.ChooseStoredSpecial(PlayerId, BottomPanelChoice, BottomPanelView)"/>):
-        /// action 88 is posted, or targeting began and the runner's tool returns to the hand with the panel's.</summary>
+        /// action 88 is posted, or targeting began and the tool returns to the hand with the panel's (<see cref="HudToolState.ActivateStoredSpecial(PlayerId, BottomPanelChoice, PlayerInputTranslator, BottomPanelView)"/>).</summary>
         private void ActivateStoredSpecial(BottomPanelChoice special)
         {
             // 0x00411140 ignores a special's slot while the Options menu is open (+0x2722).
             if (_hudControls.OptionsVisible) return;
-            if (_input.ChooseStoredSpecial(new PlayerId((byte)viewingPlayerId), special, _bottomView) is PlayerCommand command)
-            {
+            if (_toolState.ActivateStoredSpecial(new PlayerId((byte)viewingPlayerId), special, _input, _bottomView) is PlayerCommand command)
                 _pendingCommands.Add(command);
-                return;
-            }
-            _panelChoice = null;
-            _queryTool = false; _selectedCorner = ClassicHudAction.None;
-            tool = DungeonToolMode.Hand;
         }
 
         private void NavigateRoom(RoomTypeId type)
@@ -312,44 +295,24 @@ namespace DK2.Unity
         private void PostGuiButton(GuiButtonTarget target) =>
             _pendingCommands.Add(new GuiButtonCommand(new PlayerId((byte)viewingPlayerId), target));
 
-        private void ApplyHudAction(ClassicHudAction action)
+        private void ApplyHudAction(ClassicHudAction action) => HudRouter.Apply(action, _bottomPanel, _bottomView);
+
+        // What HudActionRouter asks of the runner: the camera's glides and the minimap's zoom.
+        void IHudActionHost.NavigatePortal() => NavigateRoom(RoomTypeId.Portal);
+
+        void IHudActionHost.NavigateHeart()
         {
-            if (!_hudControls.Accepts(action)) return;
-            _input.CancelPointerGesture(); _bottomPanel?.CancelPointerGesture();
-            if (action == ClassicHudAction.NavigatePortal)
-            {
-                NavigateRoom(RoomTypeId.Portal);
-                return;
-            }
-            if (action == ClassicHudAction.NavigateHeart)
-            {
-                if (_worldView.MinimapHeartTile is TilePos heart) StartGlide(heart);
-                return;
-            }
-            if (action == ClassicHudAction.NavigateFight)
-            {
-                if (_musicObserver != null && _battleNavigation.Next(_musicObserver.Battles) is TilePos battle) StartGlide(battle);
-                return;
-            }
-            if (action == ClassicHudAction.ZoomIn || action == ClassicHudAction.ZoomOut)
-            {
-                // The magnifier's primary or secondary click, 0x00416511/0x00416611.
-                if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget zoomButton)) PostGuiButton(zoomButton);
-                _minimap.HandleZoomPress(Input.mousePosition, action == ClassicHudAction.ZoomIn, action == ClassicHudAction.ZoomOut);
-                return;
-            }
-            if (action == ClassicHudAction.SelectQuery || action == ClassicHudAction.SelectSell)
-            {
-                if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget toolButton)) PostGuiButton(toolButton);
-                _panelChoice = null; _selectedCorner = action;
-                _input.CancelTool();
-                _queryTool = action == ClassicHudAction.SelectQuery;
-                tool = _queryTool ? DungeonToolMode.Hand : DungeonToolMode.SellRoom;
-                _bottomView.SelectTool(ActiveTool, selectedRoomId);
-                return;
-            }
-            _hudControls.Apply(action);
+            if (_worldView.MinimapHeartTile is TilePos heart) StartGlide(heart);
         }
+
+        void IHudActionHost.NavigateFight()
+        {
+            if (_musicObserver != null && _battleNavigation.Next(_musicObserver.Battles) is TilePos battle) StartGlide(battle);
+        }
+
+        void IHudActionHost.ZoomMinimap(bool zoomIn, bool zoomOut) => _minimap.HandleZoomPress(Input.mousePosition, zoomIn, zoomOut);
+
+        void IHudActionHost.PostGuiButton(GuiButtonTarget target) => PostGuiButton(target);
 
         private void UpdateHudControls(bool allowOptionsKey)
         {
@@ -437,8 +400,7 @@ namespace DK2.Unity
                 if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) modifiers |= KeeperResourceModifiers.Control;
                 if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) modifiers |= KeeperResourceModifiers.Alt;
                 _pendingCommands.Add(KeeperResourceInteraction.Withdraw(new PlayerId((byte)viewingPlayerId), modifiers));
-                _panelChoice = null; _queryTool = false; tool = DungeonToolMode.Hand;
-                _bottomView.SelectTool(PlayerToolMode.Hand);
+                _toolState.ResetAfterGoldWithdraw(_bottomView);
                 return true;
             }
             if (resource == KeeperResourceKind.Heart && secondary)
@@ -448,7 +410,7 @@ namespace DK2.Unity
 
         private bool QueuePanelWorldAction()
         {
-            if (_queryTool)
+            if (_toolState.QueryTool)
             {
                 if (_queryView.Target == CreatureQueryTarget.None && Input.GetMouseButtonDown(0) && !PointerOverHud(Input.mousePosition)
                     && ScreenToTile(Input.mousePosition) is TilePos queryTile)
@@ -467,24 +429,16 @@ namespace DK2.Unity
                         }
                     }
                 }
-                if (Input.GetMouseButtonDown(1))
-                {
-                    _queryView.Clear(); _queryTool = false;
-                    _selectedCorner = ClassicHudAction.None; tool = DungeonToolMode.Hand;
-                }
+                if (Input.GetMouseButtonDown(1)) _toolState.CancelQueryByRightClick(_queryView);
                 return true;
             }
-            if (Input.GetMouseButtonDown(1) && (tool != DungeonToolMode.Hand || _panelChoice != null))
+            if (Input.GetMouseButtonDown(1) && (_toolState.Tool != DungeonToolMode.Hand || _toolState.PanelChoice != null))
             {
                 if (_input.DragFrom(ActiveTool) != null) _input.CancelPointerGesture();
-                else
-                {
-                    _panelChoice = null; tool = DungeonToolMode.Hand; _selectedCorner = ClassicHudAction.None;
-                    _bottomView.SelectTool(PlayerToolMode.Hand);
-                }
+                else _toolState.CancelToolByRightClick(_bottomView);
                 return true;
             }
-            if (_panelChoice is not BottomPanelChoiceKey choice || choice.Kind == BottomPanelChoiceKind.Room
+            if (_toolState.PanelChoice is not BottomPanelChoiceKey choice || choice.Kind == BottomPanelChoiceKind.Room
                 || choice.Kind == BottomPanelChoiceKind.Spell && choice.Value == 4) return false;
             if (!Input.GetMouseButtonDown(0) || PointerOverHud(Input.mousePosition)) return true;
             if (ScreenToTile(Input.mousePosition) is not TilePos tile) return true;
@@ -516,7 +470,7 @@ namespace DK2.Unity
             _bottomView.Capture(World);
             // FLASH_BUTTON on the panel (tab-alerts.md): the target drawn, and dropped once its item is in use.
             if (_scriptedView.ActiveFlashTarget is HudFlashTarget flash
-                && BottomPanelFlash.ClearedByUse(flash, ActiveTool, selectedRoomId, _panelChoice, _bottomPanel.OpenPanel))
+                && BottomPanelFlash.ClearedByUse(flash, ActiveTool, _toolState.SelectedRoomId, _toolState.PanelChoice, _bottomPanel.OpenPanel))
                 _scriptedView.ClearFlash(flash);
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
             _bottomPanel.GamePaused = _hudControls.TicksPaused;
@@ -549,7 +503,7 @@ namespace DK2.Unity
             StartBattleFlyIn();
             _overviewView.Capture(World);
             _overviewPanel.Draw(CurrentHud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
-            _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);
+            _minimap.UpdateControls(Input.mousePosition, _toolState.SelectedCorner, _hudControls.OptionsVisible);
             _optionsPanel.Draw(Input.mousePosition); _fullMap.Draw();
             _queryPanel.Draw(_queryView.Capture(World), CurrentHud, HudModal);
         }
@@ -559,7 +513,7 @@ namespace DK2.Unity
 
         private void FollowQueriedCreature()
         {
-            if (!_queryTool || _queryView.Target == CreatureQueryTarget.None || _scriptedView.PathPlaying || HudModal) return;
+            if (!_toolState.QueryTool || _queryView.Target == CreatureQueryTarget.None || _scriptedView.PathPlaying || HudModal) return;
             if (_scene.TryGetCreaturePosition(_queryView.Target, out Vector3 position))
             {
                 _cameraFocus = new Vector3(position.x, _cameraFocus.y, position.z);

@@ -83,7 +83,7 @@ public sealed class ClassicHudControls
     public bool FullMapShown(HudVisibility camera) => camera.ShowNormalHud && FullMapVisible;
     public bool InputSuppressed { get; private set; }
 
-    /// <summary>Whether a host acts on a HUD action at all (DungeonRunner.ApplyHudAction's gate): not None, input not
+    /// <summary>Whether a host acts on a HUD action at all (HudActionRouter's gate): not None, input not
     /// suppressed, and while <see cref="Modal"/> none of the camera's and the minimap's own actions (navigation, the query
     /// and sell corners, zoom), which the host applies itself rather than through <see cref="Apply"/>.</summary>
     public bool Accepts(ClassicHudAction action) =>

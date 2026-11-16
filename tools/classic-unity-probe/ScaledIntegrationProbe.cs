@@ -126,7 +126,7 @@ namespace DK2.Unity.Editor
                     float x = icon.X + icon.Width / 2, y = icon.Y + icon.Height / 2;
                     if (hud.HitAction(x, y) != slot || !hud.PointerDown(x, y, 0) || !hud.PointerUp(x, y, 0, false, false, false))
                         throw new Exception("Room icon did not take the press.");
-                    if (!(Get(_runner, "_panelChoice") is BottomPanelChoiceKey choice) || choice.Kind != BottomPanelChoiceKind.Room)
+                    if (!(Field<HudToolState>("_toolState").PanelChoice is BottomPanelChoiceKey choice) || choice.Kind != BottomPanelChoiceKind.Room)
                         throw new Exception("Actual room icon callback did not select a room.");
                     Capture(bottom.Panel, "rooms", point);
                     Debug.Log("Scaled HUD fixture passed request=" + Requests[_phase] + " effective=" + (bottom.Panel.scale * 100) + "%: mode/worker overlays, minimap magnifier, Gold and actual room callback.");

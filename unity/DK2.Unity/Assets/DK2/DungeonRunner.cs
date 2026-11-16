@@ -26,14 +26,6 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
-    public enum DungeonToolMode : byte
-    {
-        Hand = 0,
-        BuildRoom = 2,
-        SellRoom = 3,
-        CreateImp = 6
-    }
-
     /// <summary>Owns a simulation, ticks it, and hands the result to a
     /// <see cref="DungeonScene"/> — the whole of Unity's involvement in the game.</summary>
     /// <remarks>
@@ -68,6 +60,8 @@ namespace DK2.Unity
         [SerializeField] private DungeonToolMode tool = DungeonToolMode.Hand;
         [Tooltip("Room used by Build. Select a name here or cycle rooms with [ and ].")]
         [SerializeField] private RoomTypeId selectedRoomId = RoomTypeId.Treasury;
+        // The live tool (DK2.Presentation): the two fields above are its start, and LoadLevel copies it back into them.
+        private readonly HudToolState _toolState = new HudToolState();
 
         [Header("Running")]
         [Tooltip("Multiplies the simulation's own tick rate. 0 pauses; 1 is the placeholder rate (Q1).")]
@@ -193,7 +187,6 @@ namespace DK2.Unity
         private string _textFolder;
         private string _subtitleFontFile;
         private ClassicBitmapText _subtitleFont;
-        private RoomTypeId[] _roomIds = Array.Empty<RoomTypeId>();
         private readonly TickPacer _tickPacer = new TickPacer();
         private double _tickDebt => _tickPacer.Debt;
 
@@ -291,9 +284,7 @@ namespace DK2.Unity
                 levelName = GameSessionRequest.FrontEnd().LevelName;
                 saveFile = "";
             }
-            if (tool != DungeonToolMode.Hand && tool != DungeonToolMode.BuildRoom &&
-                tool != DungeonToolMode.SellRoom && tool != DungeonToolMode.CreateImp)
-                tool = DungeonToolMode.Hand;
+            _toolState.StartWith(tool, selectedRoomId);
 
             string install = string.IsNullOrWhiteSpace(installDirectory)
                 ? Dk2Install.Find()
@@ -353,8 +344,7 @@ namespace DK2.Unity
                     .Concat(FrontEndScenery.CreateCampaignMarkers(database)).ToArray();
                 _frontEndBaseScenery = _frontEndScenery;
             }
-            _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
-            SelectKnownRoom();
+            _toolState.SelectKnownRoom(database.Rooms.Keys);
             _startup.Step("level");
 
             // The chain the plan specifies (§7.2), with the install read in place as the
@@ -1262,7 +1252,7 @@ namespace DK2.Unity
 
             TilePos? tile = ScreenToTile(Input.mousePosition);
             var intent = new PlayerIntent(
-                (byte)viewingPlayerId, ActiveTool, tile, button, selectedRoomId,
+                (byte)viewingPlayerId, ActiveTool, tile, button, _toolState.SelectedRoomId,
                 SecondaryButton: secondaryButton,
                 PointerOverHud: PointerOverHud(Input.mousePosition),
                 PointerPosition: tile is TilePos pointTile ? ScreenToPosition(Input.mousePosition, pointTile) : null);
@@ -1291,7 +1281,7 @@ namespace DK2.Unity
                 _pendingCommands.Add(command);
                 if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs, pointed);
                 // DK2's click runs the cursor's own permission tests and posts only a permitted cast.
-                if (!_spellRefused && CastSpellId(command) is byte cast) _spellCastCursor.Play(cast, nowMs);
+                if (!_spellRefused && HudToolState.CastSpellId(command) is byte cast) _spellCastCursor.Play(cast, nowMs);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
                     _worldView.QueueTagPreview(tag, World.CurrentTick.Next);
                 if (command is DK2.Simulation.Commands.PickUpCreatureCommand pickup)
@@ -1335,26 +1325,7 @@ namespace DK2.Unity
             return position.Tile == tile ? position : null;
         }
 
-        private PlayerToolMode ActiveTool
-        {
-            get
-            {
-                switch (tool)
-                {
-                    case DungeonToolMode.BuildRoom: return PlayerToolMode.BuildRoom;
-                    case DungeonToolMode.SellRoom: return PlayerToolMode.SellRoom;
-                    case DungeonToolMode.CreateImp: return PlayerToolMode.CreateImp;
-                    default: return PlayerToolMode.Hand;
-                }
-            }
-        }
-
-        private void SelectKnownRoom()
-        {
-            if (_roomIds.Length == 0) return;
-            if (Array.IndexOf(_roomIds, selectedRoomId) >= 0) return;
-            selectedRoomId = _roomIds[0];
-        }
+        private PlayerToolMode ActiveTool => _toolState.ActiveTool;
 
         private Vector3 _cameraPointer;
         private void ControlCamera()
@@ -1850,7 +1821,7 @@ namespace DK2.Unity
                 placement = new PlacementFeedback(placement.Cage, placement.Valid, placement.Price,
                     PlacementIcon.Held, placement.NoGo, placement.Affordable);
             long cursorMs = (long)(Time.unscaledTimeAsDouble * 1000);
-            if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal && !spellArmed)
+            if (ActiveTool == PlayerToolMode.Hand && !_toolState.QueryTool && !HudModal && !spellArmed)
                 cursor = _cursorFeedback.Resolve(cursor, holding,
                     HoldingGold(),
                     Input.GetMouseButton(0), cursorMs, _pointerWorld);
@@ -1882,7 +1853,7 @@ namespace DK2.Unity
         private PlacementFeedback HoverCaged(in PlacementFeedback feedback, WorldState world, PlayerId viewer, TilePos at, bool dig)
         {
             if (feedback.Cage is not null || HudModal || world.Player(viewer).PossessedCreatureId != 0
-                || CageTool() is not HoverCageTool tool) return feedback;
+                || _toolState.CageTool is not HoverCageTool tool) return feedback;
             bool holds = world.Player(viewer).Hand.Count != 0;
             if (!PlacementCursor.HoverCageShows(tool, dig, holds)) return feedback;
             if (tool == HoverCageTool.Hand && !dig) return PlacementCursor.HandDrop(world, _simulation.Database, viewer, at);
@@ -1900,7 +1871,7 @@ namespace DK2.Unity
         private PlacementFeedback HeldIcons(in PlacementFeedback feedback, WorldState world, PlayerId viewer, TilePos at, bool dig)
         {
             if (feedback.Icon == PlacementIcon.Held || dig || _hudControls.OptionsVisible || ActiveTool != PlayerToolMode.Hand
-                || _queryTool || _panelChoice is not null || world.Player(viewer).Hand.Count == 0) return feedback;
+                || _toolState.QueryTool || _toolState.PanelChoice is not null || world.Player(viewer).Hand.Count == 0) return feedback;
             PlacementFeedback held = PlacementCursor.HandDrop(world, _simulation.Database, viewer, at);
             return new PlacementFeedback(feedback.Cage, feedback.Valid, 0, PlacementIcon.Held, held.NoGo, true, 0, held.Dispose);
         }
@@ -1908,72 +1879,13 @@ namespace DK2.Unity
         private readonly SpellCastCursor _spellCastCursor = new SpellCastCursor();
         private bool _spellRefused;
 
-        private static byte? CastSpellId(PlayerCommand command) => command switch
-        {
-            DK2.Simulation.Commands.CreateImpCommand => 4,
-            DK2.Simulation.Commands.CastSpellAtPlaceCommand place => place.SpellId,
-            DK2.Simulation.Commands.CastSpellOnCreatureCommand creature => creature.SpellId,
-            _ => null,
-        };
-
-        /// <summary>A keeper spell is the selected tool, DK2's mode 8: Create Imp's own tool or a spell
-        /// chosen from the panel.</summary>
-        private bool SpellArmed => ActiveTool == PlayerToolMode.CreateImp
-            || ActiveTool == PlayerToolMode.Hand && !_queryTool && _input.Targeting is null
-                && _panelChoice is BottomPanelChoiceKey { Kind: BottomPanelChoiceKind.Spell };
-
-        /// <summary>The active tool as 0x004096B0 sees it; null for tools DK2's cursor has no mode for.</summary>
-        private HoverCageTool? CageTool()
-        {
-            switch (ActiveTool)
-            {
-                case PlayerToolMode.BuildRoom: return HoverCageTool.Room;
-                case PlayerToolMode.SellRoom: return HoverCageTool.Sell;
-                // Create Imp is a keeper spell, DK2's mode 8.
-                case PlayerToolMode.CreateImp: return HoverCageTool.SpellOrQuery;
-                case PlayerToolMode.Hand:
-                    if (_queryTool) return HoverCageTool.SpellOrQuery;
-                    if (_panelChoice is not BottomPanelChoiceKey choice) return HoverCageTool.Hand;
-                    return choice.Kind == BottomPanelChoiceKind.Door ? HoverCageTool.Door
-                        : choice.Kind == BottomPanelChoiceKind.Trap ? HoverCageTool.Trap
-                        : choice.Kind == BottomPanelChoiceKind.Spell ? HoverCageTool.SpellOrQuery : HoverCageTool.Hand;
-                default: return null;
-            }
-        }
+        private bool SpellArmed => _toolState.SpellArmed(_input);
 
         /// <summary>The placement cursor of the selected tool over <paramref name="tile"/> (null: over the
-        /// HUD), whose hover target is <paramref name="hit"/>.</summary>
-        private PlacementFeedback Placement(WorldState world, PlayerId viewer, TilePos? tile, WorldHoverHit hit = default)
-        {
-            GameDatabase database = _simulation.Database;
-            int gold = _resources.Gold.Value;
-            if (ActiveTool == PlayerToolMode.BuildRoom)
-            {
-                if (tile is not TilePos at || !database.Rooms.TryGetValue(selectedRoomId, out RoomDef room))
-                    return tile is null ? new PlacementFeedback(null, false, 0, PlacementIcon.PlaceRoom, true, true) : PlacementFeedback.None;
-                return PlacementCursor.Room(world, database, viewer, room, at, _input.DragFrom(PlayerToolMode.BuildRoom), gold);
-            }
-            if (ActiveTool == PlayerToolMode.SellRoom)
-            {
-                if (tile is not TilePos at) return new PlacementFeedback(null, false, 0, PlacementIcon.Sell, true, true);
-                return PlacementCursor.Sell(world, database, viewer, at, _input.DragFrom(PlayerToolMode.SellRoom));
-            }
-            if (ActiveTool == PlayerToolMode.CreateImp)
-                return PlacementCursor.CreateImp(world, database, _simulation.Navigation, viewer, 4, tile);
-            if (ActiveTool != PlayerToolMode.Hand) return PlacementFeedback.None;
-            if (_input.Targeting is SpecialTargeting targeting) return PlacementCursor.Targeting(targeting);
-            if (_queryTool) return PlacementCursor.Query();
-            if (_panelChoice is not BottomPanelChoiceKey choice) return PlacementFeedback.None;
-            // The simulation's navigation bytes as its last turn left them; the cursor never refreshes them.
-            if (choice.Kind == BottomPanelChoiceKind.Spell)
-                return PlacementCursor.Spell(world, database, _simulation.Navigation, viewer, choice.Value, tile, hit);
-            bool workshop = _bottomView.Choice(choice)?.NeedsWorkshop != true;
-            if (choice.Kind == BottomPanelChoiceKind.Door && database.Doors.TryGetValue(choice.Value, out DoorDef door))
-                return PlacementCursor.Door(world, database, viewer, door, tile, workshop, gold);
-            if (choice.Kind == BottomPanelChoiceKind.Trap && database.Traps.TryGetValue(choice.Value, out TrapDef trap))
-                return PlacementCursor.Trap(world, database, viewer, trap, tile, workshop, gold);
-            return PlacementFeedback.None;
-        }
+        /// HUD), whose hover target is <paramref name="hit"/>: <see cref="HudToolState.Placement"/>.</summary>
+        private PlacementFeedback Placement(WorldState world, PlayerId viewer, TilePos? tile, WorldHoverHit hit = default) =>
+            _toolState.Placement(world, _simulation.Database, _simulation.Navigation, viewer, tile, hit, _resources.Gold.Value,
+                _input, _bottomView);
 
         private void OnApplicationFocus(bool focused)
         {
@@ -2036,8 +1948,8 @@ namespace DK2.Unity
 
             GUI.Label(
                 new Rect(10, 50 + offset, 1200, 20),
-                $"tool: {tool}" +
-                (tool == DungeonToolMode.BuildRoom ? $" (room {selectedRoomId})" : "") +
+                $"tool: {_toolState.Tool}" +
+                (_toolState.Tool == DungeonToolMode.BuildRoom ? $" (room {_toolState.SelectedRoomId})" : "") +
                 "   1/5 hand  3 build  4 sell  7 create imp  [/] room");
 
             GUI.Label(new Rect(10, 70 + offset, 1200, 20),

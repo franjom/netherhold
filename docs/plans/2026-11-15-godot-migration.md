@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit and 2a are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a and 2b are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -269,8 +269,20 @@ group 2 is a list to audit, not a finding.
       `--dk2Install` and ignores it (`Dk2Install.Find()`), and has no subtitles yet (2k). Unity's
       `OnDisable` and `Hud.cs:318` cancel in another order and are unchanged (2h). Not run: Godot's focus-out
       cancel and the modal query gate with a real window and pointer, and Unity in Play mode.
-- [ ] 2b. Tool state (`HudToolState`, `HudActionRouter`, the per-tool placement cursor, `CageTool`,
-      `CastSpellId`); Godot's query and sell corners then set the tool and post `GuiButtonCommand`.
+- [x] 2b. Tool state (2026-11-16): `HudToolState` (`DungeonToolMode` with its values unchanged, so `Dungeon.unity`'s
+      `tool: 0` loads; the tool, room, panel choice, query tool and selected corner; `ActiveTool`, `StartWith`,
+      `SelectKnownRoom`; `Placement`, `CageTool`, `CastSpellId`, `SpellArmed`) and `HudActionRouter` over
+      `IHudActionHost` (the gate, the cancels, navigation to the host, then zoom and corners posting the GUI button
+      before `ClassicHudControls.Apply`), in `DK2.Presentation`; Unity calls them. The six reset sites moved unchanged
+      as named transitions, so the open tool-reset point in the audit stands. Godot's query and sell corners now set
+      the tool, post `GuiButtonCommand` (Query, Sell) and draw lit; its `SelectPanelChoice` and `ActivateStoredSpecial`
+      use the shared transitions, the latter with Unity's Options-visible gate (0x00411140); navigation prints "not
+      wired: no camera". A lit corner stays lit until a panel choice or a stored special clears it, because the gold
+      withdraw and the right-click cancels come with 2c and 2h. In Unity, `LoadLevel` copies the live tool and room
+      back into the serialized fields before cloning the runner, and editing `tool` or `selectedRoomId` in the
+      Inspector during Play mode no longer changes the live tool. `ScaledIntegrationProbe` reads the panel choice
+      through `_toolState` (no build compiles probes, so that fix is uncompiled). Not run: Unity in Play mode and
+      Godot corner clicks with a real mouse.
 - [ ] 2c. HUD and world presses: `PickupFlow` (copied twice in Unity; it filters which pickups and
       defers drops), `WorldClickCommands`, `HudPressRouter` (`QueueHudInput`'s order), the
       navigation entries. Godot's overview column press then picks up.

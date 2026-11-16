@@ -26,10 +26,16 @@ namespace DK2.GodotAdapter;
 /// (<see cref="ClassicMinimap"/>, drawn from the level-start camera's focus and heading, as no camera moves them here; its
 /// grid is the full map's too). Not wired (logic still in Unity's runner, or needing the 3D world): the list is in
 /// docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c> (<c>--stage-battle</c> is <see cref="StageBattle"/>): godot/README.md.</summary>
-public partial class InGameHud : Node, IHudHoverSources
+public partial class InGameHud : Node, IHudHoverSources, IHudActionHost
 {
     private readonly List<PlayerCommand> _pending = new();
     private readonly PlayerInputTranslator _input = new();
+    /// <summary>The tool, the panel's choice, the query tool and the selected corner, as Unity's runner keeps them.</summary>
+    private readonly HudToolState _tools = new();
+    /// <summary>The HUD actions, applied as Unity's runner applies them; this scene is its host.</summary>
+    private HudActionRouter? _router;
+    /// <summary>Where the press that raised the action being applied was, for the magnifier's zoom.</summary>
+    private Vector2 _actionPointer;
     private readonly TickPacer _pacer = new();
     /// <summary>The applied settings, as Unity's runner keeps them: read here for the game speed, the key bindings and the
     /// HUD scale. Loaded from, and saved to, <see cref="_settingsPath"/>.</summary>
@@ -126,6 +132,9 @@ public partial class InGameHud : Node, IHudHoverSources
         _resources.Open(_sources);
         AddChild(_resources);
         _view = new BottomPanelView(level.Database, _viewer, _art.Name, _art.Order, campaignMode: true);
+        // DungeonRunner.StartGame's room check; the tool starts as the Inspector's default, the hand.
+        _tools.SelectKnownRoom(level.Database.Rooms.Keys);
+        _router = new HudActionRouter(_hudControls, _tools, _input, this);
         _panel = new ClassicBottomPanel { Name = "BottomPanel" };
         _panel.Open(_art, _view);
         AddChild(_panel);
@@ -297,8 +306,8 @@ public partial class InGameHud : Node, IHudHoverSources
         // After the battle tab, as DungeonRunner draws it; the options menu closes it.
         _overviewView.Capture(_simulation.World);
         _overview.Draw(visibility, modal ? null : _model.PanelArea(BottomPanelCategory.Creatures));
-        // After the overview, as DungeonRunner.DrawHudControls updates it; no tool is selected here (plan step 2).
-        _minimap.Draw(ClassicHudAction.None, _hudControls.OptionsVisible, _cameraFocus, _cameraHeading);
+        // After the overview, as DungeonRunner.DrawHudControls updates it, with the selected corner lit.
+        _minimap.Draw(_tools.SelectedCorner, _hudControls.OptionsVisible, _cameraFocus, _cameraHeading);
         // After the minimap, as DungeonRunner.DrawHudControls draws it.
         _options.Draw();
         // DungeonRunner.DrawHudControls captures it after the bottom panel and draws it after the menu.
@@ -355,32 +364,23 @@ public partial class InGameHud : Node, IHudHoverSources
         if (BattleTabView.Action(button, mouse) == BattleTabAction.CancelCallToArms) _pending.Add(new RemoveCallToArmsCommand(_viewer));
     }
 
-    /// <summary>DungeonRunner.ApplyHudAction for the actions this scene applies: the options key, the options menu's
-    /// entries, the save browser's Back and Continue lines and the minimap's corners and right click, behind the shared gate
-    /// (<see cref="ClassicHudControls.Accepts"/>). The camera's navigation and the query and sell corners' tools are not
-    /// applied (plan step 2).</summary>
+    /// <summary>DungeonRunner.ApplyHudAction, through the shared <see cref="HudActionRouter"/>: the options key, the options
+    /// menu's entries, the save browser's Back and Continue lines and the minimap's corners (zoom, and query and sell, which
+    /// post their GUI button and set the tool) and right click. Navigation needs the camera and only prints (plan step 3).</summary>
     private void ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action, _pointer);
 
     /// <param name="pointer">Where the press was, in screen pixels: the magnifier zooms only under it.</param>
     private void ApplyHudAction(ClassicHudAction action, Vector2 pointer)
     {
-        if (!_hudControls.Accepts(action)) return;
-        _input.CancelPointerGesture(); _panel?.CancelPointerGesture();
-        if (action is ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut)
-        {
-            if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget button)) PostGuiButton(button);
-            _minimap?.HandleZoomPress(pointer, action == ClassicHudAction.ZoomIn, action == ClassicHudAction.ZoomOut);
-            return;
-        }
-        if (action is ClassicHudAction.SelectQuery or ClassicHudAction.SelectSell)
-        {
-            // Unity's runner also posts the corner's GuiButtonCommand (ClassicHudControlLayout.TryGuiButton) with the tool; both
-            // are skipped here, so a Godot session's command stream differs from Unity's for these clicks.
-            GD.Print("DK2.Godot: the minimap's ", action.ToString(), " corner is not wired yet.");
-            return;
-        }
-        _hudControls.Apply(action);
+        _actionPointer = pointer;
+        _router?.Apply(action, _panel, _view);
     }
+
+    void IHudActionHost.NavigatePortal() => GD.Print("DK2.Godot: the portal navigation is not wired yet: there is no camera.");
+    void IHudActionHost.NavigateHeart() => GD.Print("DK2.Godot: the heart navigation is not wired yet: there is no camera.");
+    void IHudActionHost.NavigateFight() => GD.Print("DK2.Godot: the fight navigation is not wired yet: there is no camera.");
+    void IHudActionHost.ZoomMinimap(bool zoomIn, bool zoomOut) => _minimap?.HandleZoomPress(_actionPointer, zoomIn, zoomOut);
+    void IHudActionHost.PostGuiButton(GuiButtonTarget target) => PostGuiButton(target);
 
     /// <summary>A minimap press that acts (DungeonRunner.QueueHudInput): a corner's action, or the full map on a right
     /// click on the map.</summary>
@@ -471,19 +471,16 @@ public partial class InGameHud : Node, IHudHoverSources
     private void SaveLoadSubmitted() =>
         GD.Print("DK2.Godot: the ", _hudControls.OptionsPage.ToString(), " page's submit is not wired yet.");
 
-    /// <summary>DungeonRunner.SelectPanelChoice's pointer resets and its query clear; the tool it then sets lives in the
-    /// runner (plan step 2).</summary>
-    private void SelectPanelChoice(BottomPanelSelection selection)
-    {
-        _input.CancelPointerGesture();
-        _input.CancelTool();
-        _queryView?.Clear();
-    }
+    /// <summary>DungeonRunner.SelectPanelChoice: <see cref="HudToolState.SelectPanelChoice"/>.</summary>
+    private void SelectPanelChoice(BottomPanelSelection selection) => _tools.SelectPanelChoice(selection, _input, _queryView);
 
-    /// <summary>A stored special's slot: action 88, or targeting with the panel back on the hand.</summary>
+    /// <summary>A stored special's slot: action 88, or targeting with the panel and the tool back on the hand
+    /// (<see cref="HudToolState.ActivateStoredSpecial(PlayerId, BottomPanelChoice, PlayerInputTranslator, BottomPanelView)"/>).</summary>
     private void ActivateStoredSpecial(BottomPanelChoice special)
     {
-        if (_view != null && _input.ChooseStoredSpecial(_viewer, special, _view) is PlayerCommand command) _pending.Add(command);
+        // As DungeonRunner.ActivateStoredSpecial: 0x00411140 ignores a special's slot while the Options menu is open (+0x2722).
+        if (_hudControls.OptionsVisible) return;
+        if (_view != null && _tools.ActivateStoredSpecial(_viewer, special, _input, _view) is PlayerCommand command) _pending.Add(command);
     }
 
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
