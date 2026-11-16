@@ -32,6 +32,8 @@ namespace DK2.Unity
         // QueueHudInput's order and QueuePanelWorldAction's commands (migration plan step 2c); built with the panels.
         private HudPressRouter _hudPresses;
         private WorldClickCommands _worldClicks;
+        // CaptureWorldHover's cursor, placement and tint (migration plan step 2d); built with the panels.
+        private HoverCursorResolver _hoverCursor;
         private ClassicOptionsPanel _optionsPanel;
         private ClassicFullMap _fullMap;
         private HudActionRouter _hudRouter;
@@ -165,6 +167,7 @@ namespace DK2.Unity
             var viewer = new PlayerId((byte)viewingPlayerId);
             _hudPresses = new HudPressRouter(_hudControls, _toolState, _overviewView, _bottomView, _pickupFlow, viewer, this);
             _worldClicks = new WorldClickCommands(_toolState, _input, _queryView, _bottomView, viewer, this);
+            _hoverCursor = new HoverCursorResolver(_toolState, _input, _hudControls, _bottomView, _worldView, _cursorFeedback, viewer);
         }
 
         /// <summary>Captures the flowers from the settled world (before the worker tick starts) and
@@ -421,9 +424,6 @@ namespace DK2.Unity
             _optionsPanel.Draw(Input.mousePosition); _fullMap.Draw();
             _queryPanel.Draw(_queryView.Capture(World), CurrentHud, HudModal);
         }
-
-        private bool HoldingGold()
-            => _worldView.LocalPickups.HoldingGold(World, new PlayerId((byte)viewingPlayerId));
 
         private void FollowQueriedCreature()
         {

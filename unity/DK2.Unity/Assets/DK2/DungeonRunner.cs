@@ -1280,7 +1280,7 @@ namespace DK2.Unity
                 if (!_pickupFlow.PostWorldCommand(World, _simulation.Database, command, nowMs, pointed, _pendingCommands)) continue;
                 if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs, pointed);
                 // DK2's click runs the cursor's own permission tests and posts only a permitted cast.
-                if (!_spellRefused && HudToolState.CastSpellId(command) is byte cast) _spellCastCursor.Play(cast, nowMs);
+                _hoverCursor.CastPosted(command, nowMs);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
                     _worldView.QueueTagPreview(tag, World.CurrentTick.Next);
             }
@@ -1661,51 +1661,33 @@ namespace DK2.Unity
             }
         }
 
-        /// <summary>The Hand's light follows the pick (0x0043B220, <see cref="ClassicPointLight.FromHand"/>).
-        /// Over a thing it sits at the thing's position: the pick's output x and y are unread, and only
-        /// that fits the owner's SHOT0126, where both of the Heart's stairs turn white. The possession
-        /// and follow arms (height 0x1200) and the player gates are not modelled.</summary>
+        /// <summary>The Hand's light follows the pick (<see cref="HoverCursorResolver.TryHandLightPoint"/>); on a tile, the
+        /// pointer's hit on the tile's top plane, or the tile's centre when that misses.</summary>
         private void AimHandLight(WorldState world, TilePos tile, in WorldHoverHit hit)
         {
-            float x, y;
-            if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState creature)
-                (x, y) = (creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One);
-            else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState thing)
-                (x, y) = (thing.PosX / (float)Fp32.One, thing.PosY / (float)Fp32.One);
-            // A store pile stands for DK2's Gold Pile 1, a real thing there: its point, the tile centre
-            // (WorldView.StorePiles places it with no offset).
-            else if (hit.Kind == WorldHoverKind.Object && WorldView.IsStorePile(hit.EntityId))
-            {
-                int pile = WorldView.DecorationTileIndex(hit.EntityId);
-                (x, y) = (pile % world.Width + .5f, pile / world.Width + .5f);
-            }
-            else if (hit.Kind == WorldHoverKind.Door || hit.Kind == WorldHoverKind.Trap)
-                (x, y) = (tile.X + .5f, tile.Y + .5f);
-            else
+            if (!HoverCursorResolver.TryHandLightPoint(world, hit, out System.Numerics.Vector2 point))
             {
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 bool solid = _worldView.TileAt(world, tile.X, tile.Y).Solid;
                 var plane = new Plane(Vector3.up, new Vector3(0, solid ? TileHeights.Solid : TileHeights.Open, 0));
-                Vector3 point = plane.Raycast(ray, out float distance) ? ray.GetPoint(distance) : new Vector3(tile.X + .5f, 0, -tile.Y - .5f);
-                (x, y) = (point.x, -point.z);
+                Vector3 ground = plane.Raycast(ray, out float distance) ? ray.GetPoint(distance) : new Vector3(tile.X + .5f, 0, -tile.Y - .5f);
+                point = new System.Numerics.Vector2(ground.x, -ground.z);
             }
-            bool explored = !world.FogOfWarEnabled || world.Tile(tile).IsExploredBy(new PlayerId((byte)viewingPlayerId));
-            _handLight = ClassicPointLight.FromHand(x, y, hit.Kind != WorldHoverKind.Tile, explored,
-                world.Width, world.Height, cheapLighting);
+            _handLight = HoverCursorResolver.HandLight(world, new PlayerId((byte)viewingPlayerId), hit, point, cheapLighting);
         }
 
         private WorldHoverHit ResolveWorldHover(TilePos tile)
         {
             WorldState world = World;
             PlayerId viewer = new PlayerId((byte)viewingPlayerId);
-            if (world.FogOfWarEnabled && !world.Tile(tile).IsExploredBy(viewer))
-                return new WorldHoverHit(WorldHoverKind.Tile, tile);
+            if (HoverCursorResolver.FogHit(world, viewer, tile) is WorldHoverHit fogged) return fogged;
             Camera view = Camera.main;
             Ray ray = view.ScreenPointToRay(Input.mousePosition);
             TileView shown = _worldView.TileAt(world, tile.X, tile.Y);
             var plane = new Plane(Vector3.up, new Vector3(0, shown.Solid ? TileHeights.Solid : TileHeights.Open, 0));
             if (!plane.Raycast(ray, out float distance)) return new WorldHoverHit(WorldHoverKind.Tile, tile);
-            _objectsOnlyPick = !HudModal && CurrentHud.AllowOrdinaryInput && ClassicKeyBindings.Held(_gameSettings, GameAction.ObjectsOnly, exactModifiers: true);
+            _objectsOnlyPick = HoverCursorResolver.ObjectsOnlyKeyCounts(CurrentHud, HudModal)
+                && ClassicKeyBindings.Held(_gameSettings, GameAction.ObjectsOnly, exactModifiers: true);
             _renderedPick ??= (kind, id) => HoverPickRules.Rendered(World, _simulation.Database, kind, id, _objectsOnlyPick);
             _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(World, _simulation.Database, kind, id, _objectsOnlyPick);
             _resolvesPick ??= candidate => HoverPickRules.Resolves(World, candidate, new PlayerId((byte)viewingPlayerId));
@@ -1733,15 +1715,14 @@ namespace DK2.Unity
             Vector3 mouse = Input.mousePosition;
             bool inside = mouse.x >= 0 && mouse.y >= 0 && mouse.x < Screen.width && mouse.y < Screen.height;
             bool allowed = visibility.AllowOrdinaryInput && Application.isFocused && inside && !_possessionPointerLocked;
-            HandCursorKind cursor = HandCursorKind.Point;
-            PlacementFeedback placement = PlacementFeedback.None;
+            bool overHud = PointerOverHud(mouse);
             _debugHoverTile = null;
-            _hoveredCreature = CreatureQueryTarget.None;
             // A failed pick with nothing hovered sends DK2's light to (0,0,0), an edge tile, which
             // blacks it out (0x0043BCB8); with ordinary input off (a cutscene) it keeps its place.
             if (visibility.AllowOrdinaryInput) _handLight = null;
+            WorldHoverHit? hover = null;
             using (HoverPickMarker.Auto())
-            if (allowed && !PointerOverHud(mouse) && Camera.main != null && ScreenToTile(mouse) is TilePos tile)
+            if (allowed && !overHud && Camera.main != null && ScreenToTile(mouse) is TilePos tile)
             {
                 WorldState world = World;
                 _debugHoverTile = tile;
@@ -1749,80 +1730,22 @@ namespace DK2.Unity
                     new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
                 WorldHoverHit hit = ResolveWorldHover(tile);
                 AimHandLight(world, tile, hit);
-                {
-                    PlayerId viewer = new PlayerId((byte)viewingPlayerId);
-                    string personalName = hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState named
-                        ? _identityNames.Name(new CreatureNameIndex(named.NameIndex)) : "";
-                    _hoverSnapshot = _hoverText.Capture(world, hit, personalName);
-                    // Hand_UpdateHoverTarget (0x0040C290) asks the hovered own creature's sound on each refresh of a qualifying turn.
-                    if (_soundPlayer != null && CreatureHoverSound.For(world, _simulation.Database, hit, viewer) is SoundRequest hover)
-                        _soundPlayer.Play(hover);
-                    bool pickup = false;
-                    // The flower's hover stamp reads the same hover id as the tint, in any tool (0x0043B7F1).
-                    if (hit.Kind == WorldHoverKind.Creature) _hoveredCreature = new CreatureQueryTarget(hit.EntityId);
-                    if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState creature)
-                        pickup = HandRules.CanPickUp(world, _simulation.Database, creature, viewer);
-                    else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState obj)
-                        // A special is clicked to activate, never lifted (Hand_Click 0x00407AF1); the pointing hand over
-                        // it is the owner's observation, its producer unread (specials.md).
-                        pickup = _simulation.Database.ObjectById(obj.ObjectTypeId)?.IsSpecial != true
-                            && HandRules.CanPickUpObject(world, _simulation.Database, obj, viewer)
-                            && HandRules.MayReachObject(world, _simulation.Database, obj, viewer);
-                    else if (hit.Kind == WorldHoverKind.Object && WorldView.IsStorePile(hit.EntityId))
-                    {
-                        // A Treasury or Heart pile, lifted whole from its own tile (gold-hover-and-sparkle.md §4).
-                        TilePos pileTile = world.TilePosition(WorldView.DecorationTileIndex(hit.EntityId));
-                        pickup = HandRules.MayReachStoreGold(world, pileTile, viewer)
-                            && HandRules.CanPickUpStoreGold(world, _simulation.Database, pileTile, viewer);
-                    }
-                    bool dig = HandCursor.ShowsDig(world, _simulation.Database, tile, viewer);
-                    if (ActiveTool == PlayerToolMode.Hand)
-                        cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);
-                    // Only the Hand's hover id is tinted: own pickable creatures, own pickable or
-                    // slappable objects and loose gold on own land, own doors and traps (0x0040C290).
-                    if (ActiveTool == PlayerToolMode.Hand && HoverTint.Applies(world, _simulation.Database, hit, viewer))
-                        _scene.DrawHoverOverlay(hit, HoverTint.CoversBlended(world, hit));
-                    // In room mode a diggable tile keeps the pickaxe and draws no icon (0x0040B210).
-                    if (!(ActiveTool == PlayerToolMode.BuildRoom && dig)) placement = Placement(world, viewer, tile, hit);
-                    // The arms test the dig tag on a tile hover target (+0x1084 == 1, +0x1088 bit 0).
-                    placement = HoverCaged(placement, world, viewer, tile, hit.Kind == WorldHoverKind.Tile && dig);
-                    placement = HeldIcons(placement, world, viewer, tile, hit.Kind == WorldHoverKind.Tile && dig);
-                }
+                string personalName = hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState named
+                    ? _identityNames.Name(new CreatureNameIndex(named.NameIndex)) : "";
+                _hoverSnapshot = _hoverText.Capture(world, hit, personalName);
+                hover = hit;
             }
-            if (allowed && PointerOverHud(mouse))
-            {
-                _hoverSnapshot = CaptureHudHover();
-                // Over the HUD DK2 shows the small pointing finger, state 2, which 0x0040BCB6 and
-                // 0x0040BEFE set while interface +0x12B2 (pointer over the GUI) is set, in every tool
-                // mode: 0x0040BBE0 requests it before its tool switch (HYPOTHESIS; its producer at
-                // 0x00403D1C..0x00403D69 is partly read; owner-observed in play).
-                cursor = HandCursorKind.SmallPoint;
-                // Over the GUI 0x0040BBE0 sets No Go for the room, sell, door, trap and spell tools, and
-                // 0x0040CAE0 for every tool that draws an icon, Query included (0x0040CDD9..0x0040CDE1).
-                PlacementFeedback over = Placement(World, new PlayerId((byte)viewingPlayerId), null);
-                if (over.Icon != PlacementIcon.None)
-                    placement = new PlacementFeedback(null, false, over.Price, over.Icon, true, over.Affordable, over.SpellId);
-            }
-            // A keeper spell's tool (mode 8) clears the contextual channel and requests state 12, the
-            // pointing finger, every frame until the spell is cancelled (0x0040B7F0); over the GUI
-            // 0x0040BBE0 asks SmallPoint instead and never runs the spell arm.
-            bool spellArmed = SpellArmed;
-            long castMs = (long)(Time.unscaledTimeAsDouble * 1000);
-            if (!spellArmed) _spellCastCursor.Cancel();
-            else if (!PointerOverHud(mouse))
-                cursor = _spellCastCursor.Showing(castMs) ? HandCursorKind.SpellCast : HandCursorKind.SpellPoint;
-            _spellRefused = placement.NoGo;
-            bool holding = _worldView.LocalPickups.HasVisibleItems(World, new PlayerId((byte)viewingPlayerId));
-            if (!holding && placement.Icon == PlacementIcon.Held) placement = PlacementFeedback.None;
-            if (holding && placement.Icon == PlacementIcon.None && ActiveTool == PlayerToolMode.Hand)
-                placement = new PlacementFeedback(placement.Cage, placement.Valid, placement.Price,
-                    PlacementIcon.Held, placement.NoGo, placement.Affordable);
+            if (allowed && overHud) _hoverSnapshot = CaptureHudHover();
+            // The cursor, placement, tint and hover sound: HoverCursorResolver.
             long cursorMs = (long)(Time.unscaledTimeAsDouble * 1000);
-            if (ActiveTool == PlayerToolMode.Hand && !_toolState.QueryTool && !HudModal && !spellArmed)
-                cursor = _cursorFeedback.Resolve(cursor, holding,
-                    HoldingGold(),
-                    Input.GetMouseButton(0), cursorMs, _pointerWorld);
-            else _cursorFeedback.Advance(cursorMs, _pointerWorld);
+            HoverFeedback feedback = _hoverCursor.Resolve(World, _simulation.Database, _simulation.Navigation,
+                new HoverCursorInput(hover, Allowed: allowed, OverHud: overHud, PrimaryHeld: Input.GetMouseButton(0),
+                    Gold: _resources.Gold.Value, Milliseconds: cursorMs, PointerWorld: _pointerWorld));
+            HandCursorKind cursor = feedback.Cursor;
+            PlacementFeedback placement = feedback.Placement;
+            _hoveredCreature = feedback.HoveredCreature;
+            if (feedback.Tinted && hover is WorldHoverHit tinted) _scene.DrawHoverOverlay(tinted, feedback.TintBlended);
+            if (_soundPlayer != null && feedback.HoverSound is SoundRequest hoverSound) _soundPlayer.Play(hoverSound);
             if (_soundPlayer != null) _soundPlayer.Play(_cursorFeedback.Sounds); else _cursorFeedback.Sounds.Clear();
             Vector2 pointerGui = new Vector2(mouse.x, Screen.height - mouse.y);
             using (HoverCursorMarker.Auto())
@@ -1830,59 +1753,14 @@ namespace DK2.Unity
                 _handCursor?.Update(cursor, allowed, Time.unscaledTimeAsDouble);
                 _handCursor?.Draw(pointerGui);
             }
-            float reach = cursor == HandCursorKind.Default ? 80 : HandCursor.Reach(cursor);
-            using (HoverHudMarker.Auto()) _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
+            using (HoverHudMarker.Auto()) _hoverHud?.Draw(_hoverSnapshot, pointerGui, feedback.TooltipReach);
             using (HoverPlacementMarker.Auto())
             {
                 if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(World, new PlayerId((byte)viewingPlayerId), _worldView.LocalPickups);
-                _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse), _heldStack, cursor);
+                _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, overHud, _heldStack, cursor);
                 _tileHighlight?.Update(placement.Cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
             }
         }
-
-
-        /// <summary>With no rectangle, the one-tile hover cage, most likely the Hand light's own (+0x33E,
-        /// 0x0043B220; placement-cursor.md §2a), shown per tool as 0x004096B0 decides and hidden on a
-        /// border tile, while Options is closed and nothing is possessed (0x0043B220 tests +0x76 bit
-        /// 0x80000 and +0x19A). The full map is taken to be one of the view modes 1/2/10 that clear it
-        /// (unread). Colour: <see cref="PlacementCursor.HoverCageBlue"/>. A full hand off a dig tile shows
-        /// the drop cage instead (0x0040AE80). Unity compiles C# 9, which has no 'with' on a struct.</summary>
-        private PlacementFeedback HoverCaged(in PlacementFeedback feedback, WorldState world, PlayerId viewer, TilePos at, bool dig)
-        {
-            if (feedback.Cage is not null || HudModal || world.Player(viewer).PossessedCreatureId != 0
-                || _toolState.CageTool is not HoverCageTool tool) return feedback;
-            bool holds = world.Player(viewer).Hand.Count != 0;
-            if (!PlacementCursor.HoverCageShows(tool, dig, holds)) return feedback;
-            if (tool == HoverCageTool.Hand && !dig) return PlacementCursor.HandDrop(world, _simulation.Database, viewer, at);
-            return new PlacementFeedback(PlacementCursor.HoverCage(at, world.Width, world.Height),
-                PlacementCursor.HoverCageBlue(tool, dig, feedback.Valid), feedback.Price, feedback.Icon, feedback.NoGo, feedback.Affordable,
-                feedback.SpellId);
-        }
-
-        /// <summary>The Hand's held-item icons (0x0040CAE0 mode 0, 0x0040CFE0), gated apart from the cage:
-        /// 0x0040CAE0 returns at once while Options is open (+0x2722; owner-confirmed 2026-10-23) or bit
-        /// 0x01 is set (0x004039A0 sets it once the player has a result, Status +0x19A), and draws the
-        /// icons only with bit 0x08 (not over a dig-taggable tile with nothing to pick up) off the GUI.
-        /// Its caller 0x00403FB0 calls it every frame; neither tests possession or the full map, so
-        /// neither hides the icons here.</summary>
-        private PlacementFeedback HeldIcons(in PlacementFeedback feedback, WorldState world, PlayerId viewer, TilePos at, bool dig)
-        {
-            if (feedback.Icon == PlacementIcon.Held || dig || _hudControls.OptionsVisible || ActiveTool != PlayerToolMode.Hand
-                || _toolState.QueryTool || _toolState.PanelChoice is not null || world.Player(viewer).Hand.Count == 0) return feedback;
-            PlacementFeedback held = PlacementCursor.HandDrop(world, _simulation.Database, viewer, at);
-            return new PlacementFeedback(feedback.Cage, feedback.Valid, 0, PlacementIcon.Held, held.NoGo, true, 0, held.Dispose);
-        }
-
-        private readonly SpellCastCursor _spellCastCursor = new SpellCastCursor();
-        private bool _spellRefused;
-
-        private bool SpellArmed => _toolState.SpellArmed(_input);
-
-        /// <summary>The placement cursor of the selected tool over <paramref name="tile"/> (null: over the
-        /// HUD), whose hover target is <paramref name="hit"/>: <see cref="HudToolState.Placement"/>.</summary>
-        private PlacementFeedback Placement(WorldState world, PlayerId viewer, TilePos? tile, WorldHoverHit hit = default) =>
-            _toolState.Placement(world, _simulation.Database, _simulation.Navigation, viewer, tile, hit, _resources.Gold.Value,
-                _input, _bottomView);
 
         private void OnApplicationFocus(bool focused)
         {

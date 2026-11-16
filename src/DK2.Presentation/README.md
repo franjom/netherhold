@@ -13,7 +13,8 @@ choice, the query tool, the selected corner) and `HudActionRouter` (a HUD action
 `HudPressRouter` (`HudPress`, `IHudPressHost`: full map, options, overview, minimap, gold withdraw, heart),
 `WorldClickCommands` (`IWorldClickHost`: the query click, cancels, door, trap and spell placement), `PickupFlow`
 (the pickup sequence), `BattleTabView.Click` and the navigation entries (`RoomNavigation.Entries`,
-`ThingNavigation.DoorEntries` and `TrapEntries`).
+`ThingNavigation.DoorEntries` and `TrapEntries`). World hover to the hand cursor: `HoverCursorResolver`
+(`Resolve`: cursor, placement, hovered creature, hover sound and tint; `FogHit`, `TryHandLightPoint`).
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

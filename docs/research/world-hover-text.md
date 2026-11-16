@@ -277,8 +277,8 @@ within a room but does not reproduce native tag reuse or terrain x+y collisions.
 The asset provider currently uses `Text/Default`, consistent with the existing
 subtitle provider; selecting another installed locale remains unimplemented.
 
-Display and Hand/Slap input share `ResolveWorldHover`. It checks the cursor
-tile's exploration before entity picking and retains that cursor tile beside
+Display and Hand/Slap input share `ResolveWorldHover`. Its first step,
+`HoverCursorResolver.FogHit`, checks the cursor tile's exploration before entity picking; it retains that cursor tile beside
 the selected entity id, matching the native status gate even when the entity
 stands on a neighbouring tile. `PlayerInputSnapshot.ForHover` narrows the
 already permitted target list to that selected kind/id and uses the cursor

@@ -367,7 +367,7 @@ the room release the anchor (`0x00408194`); ours does each.
 `ClassicTileHoverOutline` cages any rectangle; `ClassicPlacementOverlay` draws the icon beside
 the rendered Hand (anchor correction below), No Go over it, and the price in the gold counter's digits,
 pink, red when unaffordable, (128,255,255) for a refund. The hover cage follows `0x004096B0`
-(`HoverCageShows`, `DungeonRunner.HoverCaged`; in Hand mode over a dig-taggable tile, hit kind
+(`HoverCageShows`, `HoverCursorResolver.HoverCaged`; in Hand mode over a dig-taggable tile, hit kind
 Tile), hidden on border tiles, with Options open and
 during possession; blue over a dig-taggable tile in Hand, room, spell and Query mode, else the
 arm's validity (`HoverCageBlue`). `HandDrop` asks `HandRules.DropLands`, the gate `0x0040D8F0`
@@ -398,6 +398,6 @@ refuses, and `Dispose` for a drop that lands. `HeldItemStack.Disposes` asks the 
 (`CreatureLands`' disposal: `DisposalRules`, no prisoner, the Heart not ruined), including
 the own Portal centre only. A Hero Portal shows No Go, the held creature's icon crossed out
 over a red tile (owner, 2026-10-31); see [structure-blocks.md](structure-blocks.md#confidence). Held icons now include local pending feedback
-(see [hand-pickup-turn.md](hand-pickup-turn.md)). `DungeonRunner.HeldIcons` gates the icons apart from the cage: Options hides them,
+(see [hand-pickup-turn.md](hand-pickup-turn.md)). `HoverCursorResolver.HeldIcons` gates the icons apart from the cage: Options hides them,
 possession and the full map do not; the result bit 0x01 is not mirrored. The overlay draws them in
 DK2's order at the tool icon's scale (HYPOTHESIS).

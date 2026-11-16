@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b and 2c are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c and 2d are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -305,7 +305,23 @@ group 2 is a list to audit, not a finding.
       per-frame `LocalPickups.Advance` and `DrainReadyDrops` (2h) and the hand cursor. Godot's `QueueInput` gate order
       and the battle-tab dispatch still mirror the runner and move with 2h. Not run: Godot presses with a real mouse,
       Unity in Play mode, and Godot 4.8's `WindowInput`-before-`_Input` order (inferred, not read in source).
-- [ ] 2d. World hover to cursor (`HoverCursorResolver`), with the fog gate and the hand-light point.
+- [x] 2d. World hover to cursor (2026-11-16), a pure move into `DK2.Presentation`: `HoverCursorResolver.Resolve` takes a
+      `HoverCursorInput` (the pick, whether input is allowed, the pointer over the HUD, the held button, the gold, the
+      clock, the hand's world point) and returns a `HoverFeedback` (cursor, placement, hovered creature, hover sound,
+      tint, tooltip reach). It holds the hover sound, pickup eligibility per hit kind, dig, `HandCursor.ForHover`, the
+      tint, the room-mode dig rule, `HoverCaged`, `HeldIcons`, the over-HUD SmallPoint with No Go, the spell cursor and
+      the cursor-feedback gate; `CastPosted` and `SpellRefused` gate only the cast-hand animation. The static helpers
+      are `FogHit` (an unexplored tile resolves to a Tile hit), `ObjectsOnlyKeyCounts` and `TryHandLightPoint` with
+      `HandLight` (the pure part of `AimHandLight`). Unity's `CaptureWorldHover` keeps the picking and the drawing and
+      calls `Resolve` once; `PointerOverHud` is evaluated once per frame, which can differ for one frame in the
+      placement overlay's offset on the first frame or a resize frame (`HoverHud`'s screen was set later in the old
+      order). Nothing journalled changed. Godot is unchanged, since it draws no hand cursor; it can take
+      `HoverFeedback.TooltipReach` instead of its fixed SmallPoint reach. `HoverCursorResolverTests` has 18 tests; twelve
+      mutations (the cast-hand ordering, the Query, Options and panel-choice gates, the `HoverCaged` modal and
+      possession gates, the room-mode dig rule, tint, sound, specials and the store-pile reach) each fail at least one.
+      Not covered: `TintBlended` true (a type-8 door or trap) and the unreachable `CageTool is null` branch. The
+      SmallPoint test is named `...AsHypothesised`, because its source 0x0040BBE0 is HYPOTHESIS. Not run: Unity in Play
+      mode (the cursor, cage, tint and cast hand by eye).
 - [ ] 2e. `CampaignProfileStore`, `HiScoreStore`, `FrontEndHost`.
 - [ ] 2f. Save and load (`SessionSaver`, `SessionLoader`, `SessionContext`, a resume payload on
       `GameSessionRequest`); Godot's save page then writes and loads.

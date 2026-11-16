@@ -181,7 +181,7 @@ dropped back on a store it is deposited on landing, as DK2's state 5 does (ADR-0
 - `PlayerInputSnapshot` offers an own store pile as a `StoreGold` target carrying its tile; a
   click lifts it (§4), and `DungeonRunner` shows the pickup hand over it.
 - The Hand's light aims at a store pile's point, its tile centre (the pile's `Spread` value
-  is its heading; it has no offset), as at a simulation object (`DungeonRunner.AimHandLight`;
+  is its heading; it has no offset), as at a simulation object (`HoverCursorResolver.TryHandLightPoint`;
   the map-edge test of 0x0043BCB8 is `ClassicPointLight.FromHand`'s).
 - Tests: `ObjectHoverHighlightTests`.
 
