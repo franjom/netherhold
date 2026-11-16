@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g, 2h, 2i and 2j are done: 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Only 2k is left.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is next.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -561,8 +561,9 @@ group 2 is a list to audit, not a finding.
       original quirk is open (record 0x005961A0). No simulation file changed and HashVersion is unchanged; the Level1
       turn-400 hash is `D7290428D81A902F`. Verification: Presentation 2519 passed (2517 and two new), Simulation 5583,
       Behavior 677 with 5 skipped, and `godot/DK2.Godot` builds with 0 warnings.
-- [ ] 2k. Deferred: the level sound driver (step 4's audio abstraction) and Godot's speech subtitles (wrap with
-      `BitmapTextLayout`, pack a `.bf4` atlas, blit `BitmapTextPlacement.Place` in `SubtitleLayout`'s boxes).
+- [x] 2k. Closed 2026-11-16 by moving its two items to step 4, where they now sit, since both follow
+      speech playback: the level sound driver (`DungeonRunner.Sound`, which waits for the audio abstraction) and
+      Godot's speech subtitles. Step 2 is complete.
 
 ## Step 3: a playable level in Godot
 
@@ -576,6 +577,10 @@ group 2 is a list to audit, not a finding.
 ## Step 4: media, tools, packaging
 
 - [ ] Sound and movies (decoding stays in `src/`).
+- [ ] The level sound driver (`DungeonRunner.Sound`, deferred from step 2k): move it to `src/` behind the audio
+      abstraction, which Unity and Godot then both call.
+- [ ] Godot's speech subtitles (deferred from step 2k): wrap with `BitmapTextLayout`, pack a `.bf4` atlas, and blit
+      `BitmapTextPlacement.Place` in `SubtitleLayout`'s boxes, timed by the speech playback.
 - [ ] Godot equivalents of the probes that are still needed (headless scenes, Movie Maker
       captures; keep the Python summarisers). `tools/hud-probe` is deleted here; its
       `HudPilot.Compile.csproj` already fails to compile (25 errors: `ClassicHudScaling` and

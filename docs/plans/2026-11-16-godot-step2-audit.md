@@ -62,7 +62,7 @@ Each row lists the Unity source, the proposed `src/` home, and its size and risk
   - `WorldHoverPicker` and `HoverOverlayPlan`. Done.
   - The effects draw list: the `ClassicConstructionEffects` B rows. Done: `EffectDrawList`, with its quad buffer, stream and group-key cache; `RenderWorld.ToNative` replaces the three inverse-frame copies.
   - The heart pulse, the gem sparkle gate, the creature head table, `ObjectView.TexturePhase`/`ScaleY`, the status flower layers and the dollar clock. Done: `HeartPulse`, `GemSparkleGate` and `CreatureHeadTable` (from `DungeonScene`), `StatusFlowerLayers` and `FlowerDollarClock` (from `ClassicStatusFlowers` and `ClassicFlowerDollar`). `ObjectView`'s texture phase and scale went in the first half (`DrawnTexturePhase`, `MeshScaleY`); part B did not touch them.
-- **2k, deferred.** The level sound driver waits for step 4's audio abstraction. The `DefaultGamma` exponent (`DisplaySettings`) and the deletion of `ClassicKeyBindings.Name` were done in 2j part B.
+- **2k, deferred.** Closed 2026-11-16. The level sound driver and Godot's speech subtitles moved to the plan's step 4: the driver waits for the audio abstraction, and the subtitles follow speech playback. The `DefaultGamma` exponent (`DisplaySettings`) and the deletion of `ClassicKeyBindings.Name` were done in 2j part B.
 
 ## Open points the moves must not decide silently
 
