@@ -22,7 +22,7 @@ namespace DK2.Unity
         [ContextMenu("DK2/Preview win screen")]
         private void PreviewWinScreen()
         {
-            if (!Application.isPlaying || _frontEnd != null || _winScreen == null || _resultRecorded)
+            if (!Application.isPlaying || _frontEnd != null || _winScreen == null || _resultFlow.ResultRecorded)
             {
                 Debug.LogWarning("DK2: the win screen preview needs a level running in Play mode, before its result.");
                 return;
@@ -36,7 +36,7 @@ namespace DK2.Unity
         {
             if (!_previewingWinScreen || _winScreen == null) return;
             // A real result takes the screen over; Done already clears the item, so nothing is closed.
-            if (_resultRecorded) { _previewingWinScreen = false; return; }
+            if (_resultFlow.ResultRecorded) { _previewingWinScreen = false; return; }
             _winScreen.Update(Time.unscaledTimeAsDouble * 1000d, _scriptedView.PathPlaying, continueRequested: false);
             if (_winScreen.Done) _previewingWinScreen = false;
         }

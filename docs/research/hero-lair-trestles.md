@@ -54,8 +54,8 @@ the Hatchery coops (`0x0050BC9D`) and event 3 (`0x0050BDAC`) in DK2's order.
 
 `0x0050C67D-0x0050C7BF` is as `campaign-map-and-progression.md` section 4 says. The draw is
 `random(4) << 9` after `Creature_KickToState` (`0x0048AD30`, state 1) and before the `Creature_LevelUp` loop. The block
-is already built: `TransferCreatureRules.Arrive` (`src/DK2.Simulation/CampaignCarry.cs`), called by the Unity host
-(`DungeonRunner.LevelEnd.cs`) after the simulation is made, which is after the sweep above, as in DK2. The facing
+is already built: `TransferCreatureRules.Arrive` (`src/DK2.Simulation/CampaignCarry.cs`), called by both hosts
+through `CampaignResultFlow.Prepare` (`src/DK2.Presentation`) after the simulation is made, which is after the sweep above, as in DK2. The facing
 is one draw after the creature's identity draws. The creature is made by `0x004B78D0` (identity draws through
 `0x00491900` and `0x004919C0` in `Creature_Construct`, bound to the stream by `BindCreatureIdentityRandom`).
 

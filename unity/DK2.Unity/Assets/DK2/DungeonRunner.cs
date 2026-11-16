@@ -288,6 +288,7 @@ namespace DK2.Unity
             }
             _toolState.StartWith(tool, selectedRoomId);
             _context = new SessionContext(levelName, sessionMode, frontEndReturnPage);
+            _resultFlow = new CampaignResultFlow(_context, _profiles, LoadFrontEndProfile, _hudControls);
 
             string install = string.IsNullOrWhiteSpace(installDirectory)
                 ? Dk2Install.Find()
@@ -313,7 +314,7 @@ namespace DK2.Unity
             {
                 var level = campaign.Level;
                 cameraTicksPerSecond = level.TicksPerSecond;
-                _levelTicksPerSecond = level.TicksPerSecond;
+                _resultFlow.LevelTicksPerSecond = level.TicksPerSecond;
                 var players = campaign.Players;
                 _simulation = _resumeSimulation ?? (frontEnd
                     ? new GameSimulation(database, WorldState.FromMap(database, map,

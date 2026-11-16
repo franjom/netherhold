@@ -13,32 +13,29 @@ using DK2.Data.Text;
 using DK2.Data.Media;
 using DK2.Presentation;
 using DK2.Simulation;
-using DK2.Simulation.Commands;
 using UnityEngine;
 using NumericsVector3 = System.Numerics.Vector3;
 
 namespace DK2.Unity
 {
     /// <summary>The campaign win's view side (campaign-win-sequence.md §4-§6): the win screen, the
-    /// camera following the Reaper, the finale's zoom, and Escape to carry on playing.</summary>
+    /// camera following the Reaper and the finale's zoom. Escape to carry on playing is
+    /// <see cref="CampaignResultFlow"/>'s.</summary>
     public sealed partial class DungeonRunner
     {
         private WinScreen _winScreen;
-        private bool _continueRequested;
         private TabletArt _tabletArt;
 
         // Editor previews (DungeonRunner.Preview.cs); without UNITY_EDITOR these calls compile away.
         partial void UpdateWinScreenPreview();
         partial void DrawWinScreenPreview();
 
-        /// <summary>Tablet.kmf for the win screen: its geometry points, triangles, and one material per
-        /// texture, made on first use.</summary>
+        /// <summary>Tablet.kmf for the win screen: its mesh and draw list (<see cref="TabletDrawList"/>), and one
+        /// material per texture, made on first use.</summary>
         private sealed class TabletArt
         {
-            public KmfModel Model;
-            public NumericsVector3[] Points;
-            /// <summary>The screen winding (sign of the y-down cross product) of the front at rest.</summary>
-            public int FrontWinding;
+            public TabletDrawList Draw;
+            public NumericsVector3[] Points => Draw.Mesh.Points;
             public readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
             public Material Sparkle;
             public bool SparkleLoaded;
@@ -47,13 +44,13 @@ namespace DK2.Unity
         private void PrepareWinScreen(GameDatabase database)
         {
             _winScreen = null;
-            _continueRequested = false;
             if (database.Level == null) return;
             string table = Path.Combine(_textFolder, "Speech.str");
             Dk2StringTable speech = File.Exists(table) ? Dk2StringTable.Open(table) : null;
             _tabletArt ??= LoadTabletArt();
             _winScreen = new WinScreen(WinScreen.RewardsOf(database.Level),
                 id => speech != null && speech.TryResolve(id, out string text) ? text : null, _tabletArt?.Points);
+            _resultFlow.WinScreen = _winScreen;
             _winScreen.SpeechRequested += id => _soundPlayer?.QueueSpeech(SoundCategory.Mentor, new SoundId(id + 1));
             _scriptedView.WinScreenRequested += () =>
             {
@@ -71,35 +68,6 @@ namespace DK2.Unity
             _cameraFocus = new Vector3(creature.PosX / (float)Fp32.One, _cameraFocus.y, -creature.PosY / (float)Fp32.One);
         }
 
-        /// <summary>The won campaign result's keys (<c>0x004054F0</c>) and the win screen's update
-        /// (<c>0x0042C390</c>). Space leaves unless a continue is pending; Escape continues at once when
-        /// the screen is done, else reveals the map and waits for it; on a secret level Escape does
-        /// nothing. Returns true when the frame's keys were taken.</summary>
-        private bool UpdateWinKeys()
-        {
-            var player = new PlayerId((byte)viewingPlayerId);
-            double now = Time.unscaledTimeAsDouble * 1000d;
-            bool secret = _profiles.Profile.SecretLevelNumber != 0;
-            if (_winScreen != null && _winScreen.Update(now, _scriptedView.PathPlaying, _continueRequested,
-                speechPlaying: _soundPlayer != null && _soundPlayer.SpeechEnabled ? _soundPlayer.SpeechBusy : (bool?)null))
-            {
-                Continue(player);
-                return true;
-            }
-            if (secret || _continueRequested || !Input.GetKeyDown(KeyCode.Escape)) return false;
-            _pendingCommands.Add(new RevealMapCommand(player));
-            if (_winScreen != null && _winScreen.Started && _winScreen.Done) Continue(player);
-            else _continueRequested = true;
-            return true;
-        }
-
-        private void Continue(PlayerId player)
-        {
-            _pendingCommands.Add(new ContinueAfterResultCommand(player));
-            _winScreen?.Close();
-            _continueRequested = false;
-        }
-
         /// <summary>The win screen's tablet (0x0042F040) and, with speech disabled, its
         /// Speech.str text near the bottom (DK2 shows no text).</summary>
         private void DrawWinScreen()
@@ -115,23 +83,7 @@ namespace DK2.Unity
         {
             if (_installArt == null || !_installArt.TryResolveEntry("Tablet", out ResolvedAsset asset)
                 || !_installArt.TryLoadModel(asset, out KmfModel model)) return null;
-            // The sparkles' points are the mesh's control points (0x00577DC0 reads the CTRL table):
-            // Tablet.kmf's sixteen ring its edge.
-            var points = new List<NumericsVector3>(model.ControlPoints.Count);
-            foreach (KmfControlPoint control in model.ControlPoints)
-                if (control.Vertex < model.Geometry.Count) points.Add(model.Geometry[(int)control.Vertex]);
-            var art = new TabletArt { Model = model, Points = points.ToArray() };
-            // The front is the material with the item frames; at rest it faces the viewer.
-            foreach (KmfPrimitive primitive in model.Mesh.Primitives)
-            {
-                IReadOnlyList<byte> indices = primitive.IndicesByDetailLevel[0];
-                if (model.Materials[(int)primitive.MaterialIndex].TextureNames.Count < 2 || indices.Count < 3) continue;
-                NumericsVector3 a = primitive.Vertices[indices[0]].Position, b = primitive.Vertices[indices[1]].Position,
-                    c = primitive.Vertices[indices[2]].Position;
-                art.FrontWinding = System.Math.Sign((b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X));
-                break;
-            }
-            return art;
+            return new TabletArt { Draw = new TabletDrawList(new TabletMesh(model)) };
         }
 
         private Material TabletMaterial(TabletArt art, string texture)
@@ -156,36 +108,27 @@ namespace DK2.Unity
             return material;
         }
 
-        /// <summary>The tablet in screen pixels (0x0042F040): turned and scaled about its centre, the
-        /// origin plus its position (the win screen's is ½ width, 5/12 height with position 0; the
-        /// fly-in's origin is the top left), DK2's pixels taken as 768-high reference units; faces wound
-        /// away from the viewer are left out. Then its sparkles, each a TabletSparkle square as wide as
-        /// its frames left (LIKELY), alpha-blended (the sprite's blend is unread).</summary>
+        /// <summary>Blits the tablet's draw list (<see cref="TabletDrawList"/>): each batch with its texture, then the
+        /// sparkles alpha-blended (the sprite's blend is unread).</summary>
         private void DrawTablet(TabletArt art, RewardTablet tablet, byte itemId, float originX, float originY)
         {
-            float unit = Screen.height / 768f;
-            float cx = originX + tablet.X * unit, cy = originY + tablet.Y * unit;
-            System.Numerics.Matrix4x4 turn = tablet.Turn();
+            TabletDrawList draw = art.Draw;
+            draw.Build(tablet, itemId, originX, originY, Screen.height);
             GL.PushMatrix();
             GL.LoadPixelMatrix(0, Screen.width, Screen.height, 0);
-            foreach (KmfPrimitive primitive in art.Model.Mesh.Primitives)
+            System.ReadOnlySpan<TabletVertex> vertices = draw.Vertices;
+            foreach (TabletBatch batch in draw.Batches)
             {
-                IReadOnlyList<string> textures = art.Model.Materials[(int)primitive.MaterialIndex].TextureNames;
-                if (textures.Count == 0) continue;
-                Material material = TabletMaterial(art, textures[RewardTablet.TextureFrame(textures.Count, itemId)]);
+                Material material = TabletMaterial(art, batch.Texture);
                 if (material == null) continue;
                 material.SetPass(0);
                 GL.Begin(GL.TRIANGLES);
                 GL.Color(Color.white);
-                IReadOnlyList<byte> indices = primitive.IndicesByDetailLevel[0];
-                for (int i = 0; i + 2 < indices.Count; i += 3)
+                for (int i = batch.First; i < batch.First + batch.Count; i++)
                 {
-                    KmfVertex a = primitive.Vertices[indices[i]], b = primitive.Vertices[indices[i + 1]], c = primitive.Vertices[indices[i + 2]];
-                    NumericsVector3 pa = tablet.Project(a.Position, turn), pb = tablet.Project(b.Position, turn), pc = tablet.Project(c.Position, turn);
-                    if (System.Math.Sign((pb.X - pa.X) * (pc.Y - pa.Y) - (pb.Y - pa.Y) * (pc.X - pa.X)) != art.FrontWinding) continue;
-                    TabletVertex(a, pa, cx, cy, unit);
-                    TabletVertex(b, pb, cx, cy, unit);
-                    TabletVertex(c, pc, cx, cy, unit);
+                    TabletVertex vertex = vertices[i];
+                    GL.TexCoord2(vertex.U, vertex.V);
+                    GL.Vertex3(vertex.X, vertex.Y, 0);
                 }
                 GL.End();
             }
@@ -194,29 +137,22 @@ namespace DK2.Unity
                 art.Sparkle = TabletMaterial(art, "TabletSparkle");
                 art.SparkleLoaded = true;
             }
-            System.ReadOnlySpan<RewardTablet.Sparkle> sparkles = tablet.Sparkles;
+            System.ReadOnlySpan<TabletSparkleQuad> sparkles = draw.Sparkles;
             if (art.Sparkle != null && sparkles.Length > 0)
             {
                 art.Sparkle.SetPass(0);
                 GL.Begin(GL.QUADS);
                 GL.Color(Color.white);
-                foreach (RewardTablet.Sparkle s in sparkles)
+                foreach (TabletSparkleQuad s in sparkles)
                 {
-                    float x = originX + s.X * unit, y = originY + s.Y * unit, half = s.Life * unit / 2;
-                    GL.TexCoord2(0, 0); GL.Vertex3(x - half, y - half, 0);
-                    GL.TexCoord2(1, 0); GL.Vertex3(x + half, y - half, 0);
-                    GL.TexCoord2(1, 1); GL.Vertex3(x + half, y + half, 0);
-                    GL.TexCoord2(0, 1); GL.Vertex3(x - half, y + half, 0);
+                    GL.TexCoord2(0, 0); GL.Vertex3(s.X - s.Half, s.Y - s.Half, 0);
+                    GL.TexCoord2(1, 0); GL.Vertex3(s.X + s.Half, s.Y - s.Half, 0);
+                    GL.TexCoord2(1, 1); GL.Vertex3(s.X + s.Half, s.Y + s.Half, 0);
+                    GL.TexCoord2(0, 1); GL.Vertex3(s.X - s.Half, s.Y + s.Half, 0);
                 }
                 GL.End();
             }
             GL.PopMatrix();
-        }
-
-        private static void TabletVertex(KmfVertex vertex, NumericsVector3 at, float cx, float cy, float unit)
-        {
-            GL.TexCoord2(vertex.TextureCoordinate.X, vertex.TextureCoordinate.Y);
-            GL.Vertex3(cx + at.X * unit, cy + at.Y * unit, 0);
         }
     }
 }

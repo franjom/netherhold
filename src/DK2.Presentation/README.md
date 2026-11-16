@@ -20,6 +20,11 @@ The front end's stores and glue: `CampaignProfileStore` (`Load`, `Save`, `Track`
 `FillPickSlots`, `CreatureFrame`, `MovieGallery`) and `FrontEndStartupGate`.
 Save and load: `SessionContext` (level, mode, return page, played slot, carry; `ApplyCarry`, `PlaySlotOf`), `SessionSaver` (`Save`),
 `SessionLoader` (`Load`, to a `GameSessionRequest` carrying a `SessionResume`; it restores with `WorldSnapshot.LoadGame`, so rooms re-chain row-major as in DK2, ADR-0241) and `GameSessionRequest.Resumed`.
+The level end and its cutscene: `CampaignResultFlow` (`Prepare`, `Update` with a `CampaignResultFrame`, `Prompt`: the carry, the
+statistics once per player, the result once, the win keys, and Space back to the front end), `CampaignCutsceneRunner` (the won
+level's title, speech, pause and movies, over an `ICampaignCutsceneHost`) and `TabletDrawList` over `TabletMesh` (the reward
+tablet's projection and back-face cull, shared by the win screen and the battle fly-in). `ScriptedViewDirector` also gives
+`PlayedHud` (the HUD's visibility under the scripted view) and `PanelFlash` (the flash-button target).
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

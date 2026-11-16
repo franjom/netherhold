@@ -37,6 +37,9 @@ public sealed class ClassicKeyboard
     /// <summary>Escape went down this frame (Unity's <c>Input.GetKeyDown(KeyCode.Escape)</c>), whatever it is bound to.</summary>
     public bool EscapePressed => _pressed[0x01];
 
+    /// <summary>Space went down this frame (Unity's <c>Input.GetKeyDown(KeyCode.Space)</c>), whatever it is bound to.</summary>
+    public bool SpacePressed => _pressed[0x39];
+
     public GameBindingInput Read(GameSettings settings) => new(settings, Modifiers, _readHeld, _readPressed);
 
     /// <summary>The characters typed since the last <see cref="EndFrame"/>, key repeats included, as Unity's

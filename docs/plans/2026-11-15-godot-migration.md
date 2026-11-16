@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e and 2f are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f and 2g are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -377,9 +377,41 @@ group 2 is a list to audit, not a finding.
       save-load feature should; Unity's runner had used `FromBytes`, so step 2f carried that deviation over. A load
       re-chains every room row-major, as DK2 does, in both adapters (`SessionSaveLoadTests`, 22/22). The Level1 hash
       above is unchanged as observed (map-placed rooms have order 0); no test pins it.
-- [ ] 2g. Level end and cutscenes (`CampaignResultFlow`, `CampaignCutsceneRunner`, the tablet
-      projection as a draw list); the resource flash, the flash-button hint, and the scripted view's HUD
-      hiding and opening-path heading.
+- [x] 2g. Level end and cutscenes (2026-11-16), a move into `DK2.Presentation` that Unity calls from `LevelEnd.cs`,
+      `Finale.cs`, `Cutscene.cs`, `Hud.cs`, `Preview.cs` and `DungeonRunner.cs`. `CampaignResultFlow` (`Prepare`,
+      `Update`, `Prompt`, `CampaignResultFrame`): `Prepare` runs `TransferCreatureRules.Arrive` before the first turn.
+      `Update` runs the front-end gate, the carry, the statistics once per player in verdict-then-player order and then
+      one profile save, `ClassicHudControls.UpdateResult` (with `ScriptedPath` while a path plays), the ended gate, the
+      result once and its save, the path gate, the win keys, and Space, which leaves unless a continue is pending.
+      `CampaignCutsceneRunner` (`ICampaignCutsceneHost`) runs the title, speech, pause and movies. `TabletDrawList` and
+      `TabletMesh` hold the tablet projection and back-face cull, which the battle fly-in shares.
+      `ScriptedViewDirector.PlayedHud` and `PanelFlash` hold the HUD visibility and the flash-button rules. Two
+      behaviour changes, in both adapters: Escape after a finished win screen now posts `ContinueAfterResultCommand`
+      (134) and then `RevealMapCommand` (75), the order of the done arm at 0x004055E3 (0x86 posted at 0x00405664,
+      +0x13DA set at 0x00405668, 0x4B posted at 0x00405697; [0x00405010](../research/functions/00405010.md)); our code
+      had them the other way round. `FinaleTests.TheContinueAndTheRevealCommuteWithinTheirTurn` shows the state hash is
+      equal in either order, so only that frame's command stream changes, and no journal fixture holds the commands
+      ([Q865](../research/open-questions.md)). A null `WinScreen` now counts as done, so Escape continues at once;
+      Godot has no win screen and Space never left before. The minimap heading during the opening path needs no rule:
+      the HUD, so the minimap, is hidden for the whole path. Open, not decided: the old runner's comment said Space
+      posts action 1, but the code switches the session directly and `CampaignResultFlow` keeps that
+      ([0x00510F40](../research/functions/00510F40.md)). Godot: it runs `ScriptedViewDirector`, observing the simulation
+      before turn 1 and writing nothing (the Level1 turn-400 hash is unchanged, `D7290428D81A902F`), hides the HUD
+      during the opening path, and follows Unity's HUD visibility, panel and resource flashes and options-key hold. A
+      level started `--from-map` runs `CampaignResultFlow`: Space switches to `Main.tscn` at the return page, and the
+      level end writes the profile (statistics, result, carry, transfer creature) to the `user://` profile unless
+      `--profile` is given. `ClassicFrontEndMenu.Open` passes the return page to the profile load, so the won map's
+      branch repair runs as in Unity (it writes the profile when the front end is entered with CampaignResults). New
+      check arguments: `--from-map`, `--stage-win`, `--stage-loss`, `--leave-result`, `--escape-result`; Godot also
+      prints the viewer's status changes (`godot/README.md`). Not wired in Godot: path skip and `SkipCameraPathCommand`
+      (2h), the path camera, letterbox, subtitles, the win screen and tablet, and the post-win cutscene (needs media,
+      step 4), so a won map goes straight to the results page. Owner question, product policy and not a DK2 unknown
+      (so no Q row): is it fine that Godot's Space goes straight to the front end, skipping the title card and cutscene,
+      until media lands in step 4. Verification: `dotnet test DK2.slnx` green (Presentation 2276, Simulation 5583,
+      Behavior 674 with 5 skipped); Godot builds clean and the Unity compile has 0 errors; headless Level3 `--from-map`
+      with temp folders: a win then Space leaves, a win then Escape posts Continue then Reveal and the game keeps
+      playing, a loss then Escape posts nothing and Space leaves; 17 + 8 mutations across the review all fail a test.
+      Not run: Unity in Play mode, and `CompletionFlowProbe` (uncompiled; its reflection is updated).
 - [ ] 2h. The frame order and the command stream (`FrameDriver`, `WorldPointerInput`,
       `FrameJournalSession`), last and in one piece, behind a journal-equivalence test written first.
       The bottom panel's `CancelPointerGesture` order in Godot is settled here.

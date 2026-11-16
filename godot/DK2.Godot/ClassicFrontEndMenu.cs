@@ -59,15 +59,17 @@ public partial class ClassicFrontEndMenu : Node
     /// <summary>Opens the menu over an install with the player's files in <paramref name="folders"/>; call before the
     /// node enters the tree. A missing profile is created here (from the original game's registry entry on Windows); an
     /// unusable one falls back to memory (<see cref="UserFolders.LoadProfile"/>).</summary>
-    public void Open(string install, GameFolders folders)
+    /// <param name="returnPage">The page a level that ended returns to, as Unity's runner passes it to the session and the
+    /// profile load (<see cref="FrontEndPage.CampaignResults"/> repairs the won map's branch row).</param>
+    public void Open(string install, GameFolders folders, FrontEndPage returnPage = FrontEndPage.None)
     {
         if (_hud != null) throw new InvalidOperationException("The menu is already open.");
         _assets = new ClassicFrontEndMenuAssets(install);
         Func<int, IReadOnlyList<KcsFrame>?> paths = EngineCameraPaths.Loader(install);
-        _session = new FrontEndSession(path => paths((int)path));
+        _session = new FrontEndSession(path => paths((int)path), returnPage);
         // DungeonRunner.StartFrontEnd: the profile, the hi-scores, and the map that writes both back.
         _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
-        CampaignProfile profile = UserFolders.LoadProfile(_profiles, folders.Profile, GameSessionMode.FrontEnd, FrontEndPage.None);
+        CampaignProfile profile = UserFolders.LoadProfile(_profiles, folders.Profile, GameSessionMode.FrontEnd, returnPage);
         var hiScores = new HiScoreStore(folders.HiScores, install);
         _campaign = FrontEndHost.OpenCampaign(_session, _profiles, hiScores, LoadHiScores(hiScores), _assets.Briefing, RefreshMovies);
         _hud = new FrontEndMenuHud(_session, _assets, HudFit, ClassicKeyNames.Name, _campaign);

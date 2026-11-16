@@ -245,7 +245,7 @@ namespace DK2.Unity.Editor
             OrdinaryHud();
             Require(VerdictRules.End(_runner.Simulation.World, _runner.Simulation.Database, new PlayerId(3), PlayerStatus.Lost), "Loss fixture refused.");
             Observe("fixture", "loss-verdict", "VerdictRules.End(Lost), not a played defeat.");
-            yield return Wait("loss-profile-recorded", () => Field<bool>("_resultRecorded"));
+            yield return Wait("loss-profile-recorded", () => Field<CampaignResultFlow>("_resultFlow").ResultRecorded);
             _runner = _runner.LoadLevel(GameSessionRequest.FrontEnd(FrontEndPage.CampaignResults));
             Observe("fixture", "loss-space-equivalent", "Host LoadLevel return request equivalent to Space; no OS key injection.");
             yield return Wait("loss-front-end", () => _runner.FrontEnd != null); FinishPath();
@@ -256,7 +256,7 @@ namespace DK2.Unity.Editor
             OrdinaryHud(); _runner.SoundPlayer.StopSpeech((long)(Time.unscaledTimeAsDouble * 1000));
             Require(VerdictRules.End(_runner.Simulation.World, _runner.Simulation.Database, new PlayerId(3), PlayerStatus.Won), "Win fixture refused.");
             Observe("fixture", "win-verdict", "VerdictRules.End(Won), not a played victory or native finale.");
-            yield return Wait("win-profile-recorded", () => Field<bool>("_resultRecorded"));
+            yield return Wait("win-profile-recorded", () => Field<CampaignResultFlow>("_resultFlow").ResultRecorded);
             var rewards = Field<WinScreen>("_winScreen"); Require(rewards != null, "Reward view is missing.");
             rewards.Start(Time.unscaledTimeAsDouble * 1000);
             Observe("fixture", "reward-view-start", "WinScreen.Start view fixture replaces unplayed finale trigger; actual level reward bytes and speech/tablet consumers retained.");
@@ -265,9 +265,9 @@ namespace DK2.Unity.Editor
             yield return Wait("reward-audio-tablet-completion", () => rewards.Done, 180);
             _runner = _runner.LoadLevel(GameSessionRequest.FrontEnd(FrontEndPage.CampaignResults));
             Observe("fixture", "win-space-equivalent", "Host return request equivalent to Space after actual reward audio/tablet completion.");
-            yield return Wait("postwin-title-and-speech", () => _runner.FrontEnd != null && Field<string>("_cutsceneTitle") != null && _runner.SoundPlayer.SpeechBusy);
+            yield return Wait("postwin-title-and-speech", () => _runner.FrontEnd != null && Field<CampaignCutsceneRunner>("_cutscenes")?.Title != null && _runner.SoundPlayer.SpeechBusy);
             foreach (var gate in Movie("postwin-cutscene", () => Field<ClassicMoviePlayer>("_cutscenePlayer"), "Data/Movies/CutSceneLevel1.tgq")) yield return gate;
-            yield return Wait("postwin-cutscene-finished", () => Field<CampaignCutscene>("_cutscene") == null);
+            yield return Wait("postwin-cutscene-finished", () => Field<CampaignCutsceneRunner>("_cutscenes")?.Cutscene == null);
             FinishPath(); yield return Wait("win-statistics", () => _runner.FrontEnd.Page == FrontEndPage.CampaignResults && !_runner.FrontEnd.PathPlaying);
             Require(_runner.CampaignMap.Profile.PlayerLevelStatus[0] == CampaignLevelStatus.Won, "Actual win did not reach the profile.");
             Activate(181); yield return Wait("highscore-name-entry", () => _runner.CampaignMap.EntryRow >= 0);

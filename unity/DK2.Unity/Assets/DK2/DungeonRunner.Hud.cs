@@ -68,7 +68,7 @@ namespace DK2.Unity
 
         /// <summary>The visibility the game is actually in: what the message tabs slide on and the
         /// sounds play for, whatever the warm frames below draw.</summary>
-        private HudVisibility PlayedHud => _hudControls.Visibility(_scriptedView.HudFor(cameraPreset));
+        private HudVisibility PlayedHud => _scriptedView.PlayedHud(_hudControls, cameraPreset);
 
         // The HUD's first draw, and the camera's first frame without the letterbox, build pipelines
         // and targets on the render thread: 74 ms where the fly-by ends. The first frames of play draw
@@ -385,11 +385,7 @@ namespace DK2.Unity
             ApplyHudScale();
             _resources = _resourceView.Capture(World, displayHealth: CurrentHud.ShowNormalHud);
             _bottomView.Capture(World);
-            // FLASH_BUTTON on the panel (tab-alerts.md): the target drawn, and dropped once its item is in use.
-            if (_scriptedView.ActiveFlashTarget is HudFlashTarget flash
-                && BottomPanelFlash.ClearedByUse(flash, ActiveTool, _toolState.SelectedRoomId, _toolState.PanelChoice, _bottomPanel.OpenPanel))
-                _scriptedView.ClearFlash(flash);
-            _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
+            _bottomPanel.FlashTarget = _scriptedView.PanelFlash(_toolState, _bottomPanel.OpenPanel);
             _bottomPanel.GamePaused = _hudControls.TicksPaused;
             _bottomPanel.Draw();
             _fullMap.Capture(World, _simulation.Database, new PlayerId((byte)viewingPlayerId));

@@ -100,6 +100,21 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private CampaignProfileStore? _profiles;
     private string _profilePath = "";
     private SessionContext? _context;
+    /// <summary>The level end (Unity's runner's level end): the carry, the statistics, the result and Space back to
+    /// <c>Main.tscn</c>; it acts only for a level started from the campaign map.</summary>
+    private CampaignResultFlow? _resultFlow;
+    /// <summary>The level script's view requests (Unity's runner's <c>_scriptedView</c>): the camera path, the letterbox
+    /// count and the flash, which hide the HUD, hold the options key and light the panel and the resources. The path's
+    /// camera, letterbox, subtitles, speech and the skip are not wired (plan steps 2h, 3 and 4).</summary>
+    private ScriptedViewDirector? _scriptedView;
+    private bool _pathPlaying;
+    /// <summary>The viewer's status last printed (<see cref="ReportPath"/>).</summary>
+    private byte _status;
+    /// <summary>The check arguments <c>--leave-result</c> (Space, once the result is recorded) and <c>--escape-result</c>
+    /// (Escape once, then, if the result still stands, Space); a camera path holds both, as it holds the keys.</summary>
+    private bool _leaveResult, _escapeResult;
+    /// <summary>Set once the level end has asked for the front end; the scene does nothing more.</summary>
+    private bool _leaving;
     private SessionSaver? _saver;
     private SessionLoader? _loader;
     /// <summary>The check arguments (godot/README.md): <c>--save-as</c> once the turn reaches <c>--save-tick</c>,
@@ -152,21 +167,22 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         CampaignLevelData level = CampaignLevelData.Load(install, levelName);
         _simulation = resume?.Resume?.Simulation ?? level.CreateSimulation(seed, fogOfWarEnabled: true);
         _simulation.World.LocalPlayerId = _viewer;
-        // DungeonRunner's session: a direct start returns to no page, as Unity's runner started from its scene does.
-        _context = new SessionContext(levelName, GameSessionMode.Campaign, resume?.ReturnPage ?? FrontEndPage.None);
+        // DungeonRunner's session: a direct start returns to no page, as Unity's runner started from its scene does;
+        // --from-map starts it as the campaign map launches a level (GameSessionRequest.Campaign).
+        FrontEndPage returnPage = Array.IndexOf(args, "--from-map") >= 0
+            ? GameSessionRequest.Campaign(levelName).ReturnPage : FrontEndPage.None;
+        _context = new SessionContext(levelName, GameSessionMode.Campaign, resume?.ReturnPage ?? returnPage);
         _profilePath = folders.Profile;
         _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
         _saver = new SessionSaver(_profiles, LoadProfile, () => DateTime.UtcNow);
         _loader = new SessionLoader(_profiles, LoadProfile, name => CampaignLevelData.Load(install, name));
-        // DungeonRunner.PrepareCampaignResult's resumed branch: a save of a level started from the campaign map plays its
-        // slot and counts the restored carry as written. A fresh start from the map (the transfer creature) needs a front
-        // end that launches levels, and the level end is not ported (plan step 2g).
-        if (resume != null && _context.LaunchedFromFrontEnd)
+        // DungeonRunner.PrepareCampaignResult, before the first turn: a level started from the campaign map plays its slot;
+        // a restored save counts its carry as written, a fresh start brings the stored transfer creature in.
+        _resultFlow = new CampaignResultFlow(_context, _profiles, LoadProfile, _hudControls)
         {
-            LoadProfile();
-            _context.PlaySlotOf(_profiles.Profile!);
-            _context.CarryApplied = _simulation.World.Carry;
-        }
+            LevelTicksPerSecond = level.Level.TicksPerSecond,
+        };
+        _resultFlow.Prepare(_simulation, _viewer, resumed: resume != null);
         // DungeonRunner.InitializeSettings: game-settings.ini beside the campaign profile.
         _settingsPath = folders.Settings;
         _settings = LoadSettings(_settingsPath);
@@ -281,6 +297,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _typeText = new WorldHoverText(level.Database, _sources.Strings.Resolve, _viewer, CampaignSlot.ForLevel(levelName));
         // DungeonRunner applies the loaded settings once the level is up.
         ApplySettings(_settings);
+        // DungeonRunner.StartGame's scripted view, observing the simulation before its first turn.
+        _scriptedView = new ScriptedViewDirector(_viewer, EngineCameraPaths.Loader(install),
+            LevelSubtitles.Open(install, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning)).Line);
+        _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
+        _simulation.ObserveWith(_scriptedView);
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
         if (resume == null)
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
@@ -291,6 +312,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 break;
             }
         if (Array.IndexOf(args, "--stage-battle") >= 0) StageBattle(_simulation);
+        // The check arguments --stage-win and --stage-loss: the viewer's verdict, set after the first turn.
+        byte stageVerdict = Array.IndexOf(args, "--stage-win") >= 0 ? PlayerStatus.Won
+            : Array.IndexOf(args, "--stage-loss") >= 0 ? PlayerStatus.Lost : (byte)0;
+        if (stageVerdict != 0 && !VerdictRules.End(_simulation.World, _simulation.Database, _viewer, stageVerdict))
+            GD.PushWarning("DK2.Godot: --stage-win or --stage-loss found the viewer's game already ended.");
+        _leaveResult = Array.IndexOf(args, "--leave-result") >= 0;
+        _escapeResult = Array.IndexOf(args, "--escape-result") >= 0;
         if (Array.IndexOf(args, "--open-full-map") >= 0) ApplyHudAction(ClassicHudAction.ToggleFullMap);
         if (Array.IndexOf(args, "--open-options") >= 0)
         {
@@ -322,7 +350,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
             || _battles == null || _battleTab == null || _options == null || _saveLoad == null || _optionsPages == null
-            || _gameOptionsPanel == null || _fullMap == null || _minimap == null || _worldView == null) return;
+            || _gameOptionsPanel == null || _fullMap == null || _minimap == null || _worldView == null || _scriptedView == null
+            || _resultFlow == null || _leaving) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         if (_loadName != null || (_saveAs != null && _simulation.World.CurrentTick >= _saveTick)) RunSaveLoadCheck();
@@ -330,18 +359,34 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
         // Once per settled turn, as DungeonRunner captures it before the HUD draws; the full map reads the same grid.
         bool minimapCaptured = _minimap.Capture(_simulation.World, _worldView, _simulation.Navigation);
+        long milliseconds = (long)(_elapsed * 1000);
+        // DungeonRunner.Update's script step: the scripted view on the drawn turn plus the debt toward the next (this scene
+        // ticks inline, so none is pending), then the level end, which may leave for the front end.
+        _scriptedView.Update(milliseconds, _simulation.World.CurrentTick.Value + Math.Min(_pacer.Debt, 1d),
+            _simulation.World.Player(_viewer).PossessedCreatureId != 0 ? CameraModeId.Possession : CameraModeId.Dungeon);
+        ReportPath();
+        bool checkKeys = _resultFlow.ResultRecorded && !_scriptedView.PathPlaying;
+        bool escapeCheck = _escapeResult && checkKeys;
+        var result = new CampaignResultFrame(_viewer, _scriptedView.PathPlaying, milliseconds, SpeechPlaying: null,
+            _keyboard.SpacePressed || (_leaveResult && checkKeys && !escapeCheck), _keyboard.EscapePressed || escapeCheck);
+        if (_resultFlow.Update(_simulation.World, _simulation.Database, result, _pending))
+        {
+            LeaveForFrontEnd();
+            return;
+        }
+        if (escapeCheck) ReportEscape();
+        bool pathWasPlaying = _scriptedView.PathPlaying;
         // The HUD keys, as DungeonRunner.UpdateHudControls reads them. Only the options menu's and the full map's toggles
-        // are applied: the other keys' GUI toggle and camera moves are not ported. AllowOptionsKey is always true: the
-        // scripted camera path that holds the key back (DungeonRunner's pathWasPlaying) is not ported (plan step 2). While
-        // the keyboard page captures a key, no shortcut fires. The camera's visibility is the scripted view's, not wired:
-        // always shown, taking input.
-        var camera = new HudVisibility(true, true);
+        // are applied: the other keys' GUI toggle and camera moves are not ported. A camera path holds the options key
+        // back; the path's skip is not wired (plan step 2h). While the keyboard page captures a key, no shortcut fires.
+        HudVisibility camera = _scriptedView.HudFor(ClassicCameraMode.Dungeon);
         ClassicHudAction shortcut = _keyboard.Read(_settings).HudShortcut(
-            _hudControls.ShortcutContext(camera, allowOptionsKey: true, capturingKey: _optionsPages.CapturingAction != null),
+            _hudControls.ShortcutContext(camera, allowOptionsKey: !pathWasPlaying, capturingKey: _optionsPages.CapturingAction != null),
             _keyboard.EscapePressed);
         if (shortcut is ClassicHudAction.ToggleOptions or ClassicHudAction.ToggleFullMap) ApplyHudAction(shortcut);
-        // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): the full map hides the normal HUD.
-        HudVisibility visibility = _hudControls.Visibility(camera);
+        // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): a camera path, the letterbox, the result
+        // and the full map hide the normal HUD.
+        HudVisibility visibility = _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon);
         bool modal = _hudControls.Modal;
         _panel.SetVisibility(_hudControls.ModalInput(visibility));
         _options.SetVisible(_hudControls.OptionsMenuShown(visibility));
@@ -352,24 +397,25 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // DungeonRunner.DrawSavePanel's in-game branch, with this frame's typing (Unity reads Input.inputString there).
         (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(visibility);
         _saveLoad.Show(_saves, saveLoadShown, saving, _keyboard.Typed);
-        long milliseconds = (long)(_elapsed * 1000);
         // DungeonRunner.QueueInput after the shortcuts, as there; its game options branch polls the keys before they end.
         QueueInput(visibility, milliseconds);
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
         _resourceFacts = _resourceView.Capture(_simulation.World, displayHealth: visibility.ShowNormalHud);
+        // FLASH_BUTTON, dropped once its item is in use, as DungeonRunner.DrawHudControls resolves it before the resources
+        // draw their flash.
+        _model.FlashTarget = _scriptedView.PanelFlash(_tools, _model.OpenPanel);
         _resources.SetVisibility(visibility);
-        if (visibility.ShowNormalHud) _resources.Draw(_resourceFacts, unchecked((uint)milliseconds));
+        if (visibility.ShowNormalHud) _resources.Draw(_resourceFacts, unchecked((uint)milliseconds), _scriptedView.ResourceFlash);
         _view.Capture(_simulation.World);
         _model.GamePaused = _hudControls.TicksPaused;
         _panel.Draw(milliseconds);
-        _messageView.Capture(_simulation.World, milliseconds);
+        _messageView.Capture(_simulation.World, milliseconds, visibility);
         // No sound player yet: drop the requests so they do not pile up.
         _model.Sounds.Clear(); _view.Sounds.Clear(); _messageView.Sounds.Clear(); _messageView.Speech.Clear();
         _hudControls.Sounds.Clear(); _optionsPages.Sounds.Clear();
-        // Visible; taking input unless the options menu holds it. The scripted view that would hide or hold the tabs is
-        // not wired.
+        // As the HUD shows; taking input unless the options menu holds it.
         HudVisibility tabs = _hudControls.ModalInput(visibility);
         _messages.Draw(tabs, _model.Collapsed,
             HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer),
@@ -402,16 +448,72 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
         // Clamped as Unity's runner clamps it (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap.
         // DungeonRunner's tick gate: no turn runs, and none accrues, while it holds.
-        if (_hudControls.TicksPaused) return;
-        _pacer.Accrue(Math.Min(delta, TickPacer.MaximumFrameSeconds), 1f, _settings.GameSpeed);
-        int ticks = _pacer.Take(TickPacer.DefaultMaxTicksPerFrame);
-        InputFrame first = TickPacer.FirstInput(ticks, _pending);
-        if (first.Commands != null) _pending.Clear();
-        for (int i = 0; i < ticks; i++)
+        if (!_hudControls.TicksPaused)
         {
-            _simulation.Tick(TickPacer.InputFor(i, first));
-            if (_simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
+            _pacer.Accrue(Math.Min(delta, TickPacer.MaximumFrameSeconds), 1f, _settings.GameSpeed);
+            int ticks = _pacer.Take(TickPacer.DefaultMaxTicksPerFrame);
+            InputFrame first = TickPacer.FirstInput(ticks, _pending);
+            if (first.Commands != null) _pending.Clear();
+            for (int i = 0; i < ticks; i++)
+            {
+                _simulation.Tick(TickPacer.InputFor(i, first));
+                if (_simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
+            }
         }
+        // DungeonRunner.Present's seek: the path is placed on the turn now drawn, without taking requests.
+        _scriptedView.SeekCamera(_simulation.World.CurrentTick.Value + Math.Min(_pacer.Debt, 1d));
+    }
+
+    /// <summary>The <c>--escape-result</c> check: once, the commands Escape posted; Space follows on later frames.</summary>
+    private void ReportEscape()
+    {
+        _escapeResult = false;
+        if (_simulation == null) return;
+        var posted = new System.Text.StringBuilder();
+        foreach (PlayerCommand command in _pending) posted.Append(' ').Append(command.GetType().Name);
+        GD.Print("DK2.Godot: Escape on the result at tick ", _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture),
+            " posted", posted.ToString(), "; status ", _simulation.World.Player(_viewer).Status.ToString(CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>Prints the viewer's status changes and a camera path's start and end, the moments the HUD hides and comes
+    /// back.</summary>
+    private void ReportPath()
+    {
+        if (_scriptedView == null || _simulation == null) return;
+        byte status = _simulation.World.Player(_viewer).Status;
+        if (status != _status)
+        {
+            _status = status;
+            GD.Print("DK2.Godot: the viewer's status is ", status.ToString(CultureInfo.InvariantCulture), " at tick ",
+                _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture), "; the HUD's input is ",
+                _hudControls.InputSuppressed ? "suppressed" : "open");
+        }
+        if (_scriptedView.PathPlaying == _pathPlaying) return;
+        _pathPlaying = _scriptedView.PathPlaying;
+        GD.Print("DK2.Godot: camera path ", _pathPlaying ? "started" : "ended", " at tick ",
+            _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture), "; the HUD ", _pathPlaying ? "hides" : "shows");
+    }
+
+    /// <summary>DungeonRunner.UpdateCampaignResult's Space: the session ends and the front end opens at the session's return
+    /// page (<c>Main.tscn</c>, as Unity's runner loads <c>GameSessionRequest.FrontEnd(returnPage)</c>), deferred to the
+    /// frame's end as a load's reload is. The won map's title card and cutscene that Unity plays first need media (plan
+    /// step 4).</summary>
+    private void LeaveForFrontEnd()
+    {
+        _leaving = true;
+        _keyboard.EndFrame();
+        Main.s_returnPage = _context?.ReturnPage ?? FrontEndPage.None;
+        GD.Print("DK2.Godot: the level ended; leaving for the front end at page ", Main.s_returnPage.ToString(), ".");
+        Callable.From(ChangeToFrontEnd).CallDeferred();
+    }
+
+    private void ChangeToFrontEnd()
+    {
+        Error error = GetTree().ChangeSceneToFile("res://Main.tscn");
+        if (error == Error.Ok) return;
+        Main.s_returnPage = FrontEndPage.None;
+        _leaving = false;
+        GD.PushWarning("DK2.Godot: the front end could not be opened (", error.ToString(), ").");
     }
 
     private void PrintHash(string what)
@@ -787,7 +889,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_optionsPages != null) { _optionsPages.Applied -= ApplySettings; _optionsPages.SaveRequested -= SaveSettings; }
         _battleTab = null; _battles = null; _options = null; _saveLoad = null; _saves = null; _fullMap = null;
         _minimap = null; _worldView = null;
-        _saver = null; _loader = null; _context = null; _profiles = null;
+        if (_scriptedView != null) _scriptedView.GuiVisibilityRequested -= _hudControls.SetGuiVisible;
+        _saver = null; _loader = null; _context = null; _profiles = null; _resultFlow = null; _scriptedView = null;
         _gameOptionsPanel = null; _gameOptions = null; _optionsPages = null;
         _art?.Dispose(); _sources?.Dispose();
         _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _queryPanel = null; _queryView = null;

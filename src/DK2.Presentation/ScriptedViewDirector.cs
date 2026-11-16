@@ -84,6 +84,22 @@ public sealed class ScriptedViewDirector(
     public HudVisibility HudFor(ClassicCameraMode normalMode) => HudVisibilityRules.ForCamera(
         PathPlaying ? CameraModeId.ScriptedPath : new((ushort)normalMode), _letterbox.RequestCount);
 
+    /// <summary>The visibility the game is in (Unity's runner's <c>PlayedHud</c>): this view's camera visibility
+    /// (<see cref="HudFor"/>: hidden while a path plays or the letterbox is asked for) under the HUD's own gates.</summary>
+    public HudVisibility PlayedHud(ClassicHudControls controls, ClassicCameraMode normalMode) =>
+        (controls ?? throw new ArgumentNullException(nameof(controls))).Visibility(HudFor(normalMode));
+
+    /// <summary>FLASH_BUTTON on the bottom panel (tab-alerts.md), once per drawn frame: the flash is dropped once its
+    /// item is in use (<see cref="BottomPanelFlash.ClearedByUse"/>), and the target left is the one to draw.</summary>
+    public HudFlashTarget? PanelFlash(HudToolState tools, BottomPanelOpenSet open)
+    {
+        if (tools is null) throw new ArgumentNullException(nameof(tools));
+        if (ActiveFlashTarget is HudFlashTarget flash
+            && BottomPanelFlash.ClearedByUse(flash, tools.ActiveTool, tools.SelectedRoomId, tools.PanelChoice, open))
+            ClearFlash(flash);
+        return ActiveFlashTarget;
+    }
+
     /// <summary>The path on screen, or null.</summary>
     public int? PathId => _path?.PathId;
 

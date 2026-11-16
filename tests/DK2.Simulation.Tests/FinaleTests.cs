@@ -219,6 +219,27 @@ public sealed class FinaleTests
         Assert.Equal(0, sim.World.Player(Keeper).Finale.FireworksTick);
     }
 
+    /// <summary>The win keys' done arm posts action 134 before action 75 (0x00405664, 0x00405697); the two touch disjoint
+    /// state, so the turn they land on hashes the same in either order, and so do the turns after it.</summary>
+    [Fact]
+    public void TheContinueAndTheRevealCommuteWithinTheirTurn()
+    {
+        var keeper = new PlayerId(Keeper);
+        (GameSimulation first, _, _) = Setup();
+        (GameSimulation second, _, _) = Setup();
+        Win(first);
+        Win(second);
+        first.Tick(InputFrame.Of(new ContinueAfterResultCommand(keeper), new RevealMapCommand(keeper)));
+        second.Tick(InputFrame.Of(new RevealMapCommand(keeper), new ContinueAfterResultCommand(keeper)));
+        Assert.Equal(first.StateHash(), second.StateHash());
+        for (int t = 0; t < 20; t++)
+        {
+            first.Tick(InputFrame.Empty);
+            second.Tick(InputFrame.Empty);
+        }
+        Assert.Equal(first.StateHash(), second.StateHash());
+    }
+
     [Fact]
     public void ContinuingReopensPlaySendsTheReaperAwayAndRevealsTheMap()
     {

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
+using DK2.Presentation;
 using Godot;
 
 namespace DK2.GodotAdapter;
@@ -12,8 +13,14 @@ namespace DK2.GodotAdapter;
 /// campaign profile and hi-score table are the player's files under <see cref="UserFolders"/>.</summary>
 public partial class Main : Node
 {
+    /// <summary>The page a level that ended hands this scene (Unity's <c>GameSessionRequest.FrontEnd(returnPage)</c>);
+    /// taken and cleared by <see cref="_Ready"/>.</summary>
+    internal static FrontEndPage s_returnPage;
+
     public override void _Ready()
     {
+        FrontEndPage returnPage = s_returnPage;
+        s_returnPage = FrontEndPage.None;
         RenderingServer.SetDefaultClearColor(Colors.Black);
         string? install = Dk2Install.Find();
         if (install is null)
@@ -22,7 +29,7 @@ public partial class Main : Node
             return;
         }
         var menu = new ClassicFrontEndMenu { Name = "FrontEndMenu" };
-        menu.Open(install, UserFolders.FromArguments(OS.GetCmdlineUserArgs()));
+        menu.Open(install, UserFolders.FromArguments(OS.GetCmdlineUserArgs()), returnPage);
         AddChild(menu);
     }
 }
