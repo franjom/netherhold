@@ -49,7 +49,8 @@ public sealed class MinimapHudTests
         Assert.Equal("GUI\\Map\\mapbf-03", MinimapHud.CornerArt(MinimapCorner.BottomRight, true));
         Assert.Equal("GUI\\Map\\mapbf-00", MinimapHud.CornerArt(MinimapCorner.TopLeft, false));
         Assert.Equal("GUI\\Map\\selected-mapbf-01", MinimapHud.CornerArt(MinimapCorner.TopRight, true));
-        Assert.Equal(10, MinimapHud.Images().Count());
+        Assert.Equal(11, MinimapHud.Images().Count());
+        Assert.Contains(new HudImage(MinimapHud.FootprintArt), MinimapHud.Images());
     }
 
     [Fact]
@@ -155,4 +156,76 @@ public sealed class MinimapHudTests
     [InlineData(100000, 2f, 4096)]
     public void TheDiscIsDrawnAtItsScreenSizeRoundedUpAndClamped(int height, float factor, int expected) =>
         Assert.Equal(expected, MinimapHud.DiscPixels(height, factor));
+    private static readonly CameraViewport Viewport = new(1920, 1920, 1080);
+
+    private static MinimapCameraView CameraAt(Vector3 focus, ushort yaw) => MinimapCameraView.Of(new ClassicCamera(
+        new CameraThing(new byte[84]) { CameraId = 3, Z = 4096, Zoom = 40960, MinZoom = 16384, MaxZoom = 53248, Lens = 8192, AnglePitch = 220, Flags = 0x26 },
+        new Dk2Angle(yaw)) { ReferenceScreenWidth = 1600 }.Pose(focus, Viewport), Viewport);
+
+    private static HudFrame Frame(MinimapHud hud)
+    {
+        var frame = new HudFrame();
+        hud.Build(FullHd, default, new Dk2Angle(256), frame);
+        return frame;
+    }
+
+    [Fact]
+    public void TheCameraFootprintIsTheWholeMapsFirstDrawUnderTheFrame()
+    {
+        MinimapHud hud = Hud();
+        MinimapCameraView view = CameraAt(new Vector3(32.5f, 1, -32.5f), 300);
+        hud.SetCamera(view);
+        HudFrame frame = Frame(hud);
+        HudDraw footprint = frame.Draws[0];
+        Assert.Equal(HudDrawKind.Triangles, footprint.Kind);
+        Assert.Equal(new HudImage(MinimapHud.FootprintArt), footprint.Image);
+        Assert.Equal(HudColor.White, footprint.Tint);
+        Assert.Equal(MinimapHud.FrameArt, frame.Draws[1].Image.Path);
+        // A centred camera's footprint lies inside the disc: the native ribbon, uncut.
+        var corners = new Vector2[4];
+        var ribbon = new Vector2[8];
+        var expected = new HudVertex[MinimapCameraFootprint.TriangleVertices];
+        Assert.True(view.TryFloorCorners(corners));
+        Assert.True(MinimapCameraFootprint.TryBuild(corners, 64, 64, view.YawDegrees * (MathF.PI / 180f), ribbon));
+        MinimapCameraFootprint.Triangles(ribbon, expected);
+        Assert.Equal(expected, frame.Vertices(footprint).ToArray());
+        hud.ZoomIn();
+        Assert.DoesNotContain(Frame(hud).Draws.ToArray(), d => d.Kind == HudDrawKind.Triangles);
+        hud.ZoomOut();
+        Assert.Equal(HudDrawKind.Triangles, Frame(hud).Draws[0].Kind);
+        hud.SetCamera(null);
+        Assert.DoesNotContain(Frame(hud).Draws.ToArray(), d => d.Kind == HudDrawKind.Triangles);
+        hud.SetCamera(view with { Forward = Vector3.UnitZ, Up = Vector3.UnitY });
+        Assert.DoesNotContain(Frame(hud).Draws.ToArray(), d => d.Kind == HudDrawKind.Triangles);
+    }
+
+    [Fact]
+    public void AFootprintLargerThanTheDiscIsCutToItsCircle()
+    {
+        var hud = new MinimapHud(new MinimapPalette(new uint[37]), 4, 4);
+        hud.SetCamera(CameraAt(new Vector3(2, 1, -2), 300));
+        HudFrame frame = Frame(hud);
+        ReadOnlySpan<HudVertex> cut = frame.Vertices(frame.Draws[0]);
+        Assert.NotEqual(MinimapCameraFootprint.TriangleVertices, cut.Length);
+        float reach = 212 / MathF.Cos(MathF.PI / HudTriangles.CircleSides) + 1e-3f;
+        foreach (HudVertex v in cut) Assert.True(Vector2.Distance(new Vector2(v.X, v.Y), new Vector2(244, 1680)) <= reach);
+    }
+
+    [Fact]
+    public void SettingTheCameraAndBuildingAllocateNothing()
+    {
+        MinimapHud hud = Hud();
+        MinimapCameraView view = CameraAt(new Vector3(32.5f, 1, -32.5f), 300);
+        var frame = new HudFrame();
+        hud.SetCamera(view);
+        hud.Build(FullHd, default, new Dk2Angle(256), frame);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 50; i++)
+        {
+            hud.SetCamera(view with { Position = view.Position + new Vector3(i * .1f, 0, 0) });
+            frame.Clear();
+            hud.Build(FullHd, default, new Dk2Angle(256), frame);
+        }
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
 }

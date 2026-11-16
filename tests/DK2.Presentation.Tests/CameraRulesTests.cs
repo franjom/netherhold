@@ -271,6 +271,13 @@ public class CameraRulesTests
         Assert.Equal(expected, ClassicCameraSetup.ZoomOutLimit(maxZoom, scale));
 
     [Fact]
+    public void TheDefaultZoomOutLimitScaleIsUnitysSerialisedValue()
+    {
+        Assert.Equal(1.3f, ClassicCameraSetup.DefaultZoomOutLimitScale);
+        Assert.Equal(69222, ClassicCameraSetup.ZoomOutLimit(53248, ClassicCameraSetup.DefaultZoomOutLimitScale));
+    }
+
+    [Fact]
     public void TheSetupStartsAtTheViewersCameraTileWithTheReferenceWidthAndStartYaw()
     {
         var players = new List<PlayerDef> { Player(1, 2, 2), Player(3, 12, 20) };

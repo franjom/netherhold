@@ -24,8 +24,8 @@ namespace DK2.GodotAdapter;
 /// its save and load pages (<see cref="SaveLoadSubmitted"/>) and game options pages (<see cref="ClassicGameOptionsPanel"/>;
 /// the settings are read from and saved to <c>user://game-settings.ini</c>) and the full map (<see cref="ClassicFullMap"/>, opened
 /// by its key, closed by it, Escape or a left or right press; while it shows the normal HUD hides) and the minimap
-/// (<see cref="ClassicMinimap"/>, drawn from the level-start camera's focus and heading, as no camera moves them here; its
-/// grid is the full map's too). Not wired (logic still in Unity's runner, or needing the 3D world): the list is in
+/// (<see cref="ClassicMinimap"/>, from the live camera, whose moves are <see cref="UpdateCamera"/>'s; its grid is the full
+/// map's too). Not wired (logic still in Unity's runner, or needing the 3D world): the list is in
 /// docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c> (<c>--stage-battle</c> is <see cref="StageBattle"/>): godot/README.md.</summary>
 public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPressHost, IWorldPointerHost
 {
@@ -146,12 +146,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>The 3D world under the HUD (plan step 3a): the start frame's terrain from the level-start camera, which
     /// does not move yet.</summary>
     private WorldScene? _world;
-    /// <summary>The camera's focus and heading the minimap is drawn from: the level start's (<see cref="ClassicCamera.LevelStartFocus(IReadOnlyList{PlayerDef}, PlayerId, int, int)"/>,
-    /// <see cref="ClassicCamera.LevelStartYaw"/>), which stay put because no camera is ported (plan step 3).</summary>
-    private FpPosition3 _cameraFocus;
-    private readonly Dk2Angle _cameraHeading = ClassicCamera.LevelStartYaw;
-    /// <summary>The level start focus's height, which the printed glide and focus targets keep (<see cref="CameraFocus"/>).</summary>
-    private float _focusHeight;
+    /// <summary>Action 26's focus glide (Unity's runner's <c>_glide</c>), on this scene's engine-time clock.</summary>
+    private readonly CameraGlide _glide = new();
+    /// <summary>The camera pointer last frame, y up (Unity's runner's <c>_cameraPointer</c>), and the wheel since then.</summary>
+    private System.Numerics.Vector2 _cameraPointer;
+    private float _cameraWheel;
+    /// <summary>The <c>--glide-to x,y</c> check: a glide started one second into the scene, once no camera path plays.</summary>
+    private TilePos? _glideTo;
+    private BattleNavigation? _battleNavigation;
     /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
     private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
@@ -236,18 +238,20 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _model.Selected += SelectPanelChoice;
         _model.SpecialChosen += ActivateStoredSpecial;
         _model.GuiButton += PostGuiButton;
-        // The panel's right clicks walk the rooms, doors and traps as Unity's runner does; the glide needs the camera.
+        // The panel's right clicks walk the rooms, doors and traps as Unity's runner does, each a camera glide.
         _roomNavigation = new RoomNavigation(_viewer);
         _doorNavigation = new ThingNavigation(_viewer);
         _trapNavigation = new ThingNavigation(_viewer);
         _model.NavigateRoom += NavigateRoom;
         _model.NavigateDoor += NavigateDoor;
         _model.NavigateTrap += NavigateTrap;
+        _model.CollapsedChanged += PanelCollapsed;
+        _battleNavigation = new BattleNavigation(_viewer);
         // Added after the panel and before the tabs, so it draws between them, as Unity's sorting order 13 between 12 and 14.
         var overviewArt = new InstallCreatureOverviewArt(install, level.Database, _art.Image, _art.Text);
         _overviewView = new CreatureOverview(level.Database, _viewer, overviewArt.Name, overviewArt.Order);
         _overview = new ClassicCreatureOverview { Name = "CreatureOverview" };
-        // Its presses are the router's (QueueInput): a pickup is posted, a focus needs the camera.
+        // Its presses are the router's (QueueInput): a pickup is posted, a focus moves the camera.
         _overview.Open(overviewArt, _overviewView);
         AddChild(_overview);
         // Unity gives it the overview's sorting order 13 and creates it after the overview; added after it here.
@@ -266,8 +270,6 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _journal, this);
         System.Numerics.Vector3 startFocus = ClassicCamera.LevelStartFocus(level.Players, _viewer,
             _simulation.World.Width, _simulation.World.Height);
-        _focusHeight = startFocus.Y;
-        _cameraFocus = MinimapHud.FixedFocus(startFocus);
         _minimap = new ClassicMinimap { Name = "Minimap" };
         _minimap.Open(new InstallMinimapAssets(install, _sources.Texture), _simulation.World.Width, _simulation.World.Height);
         AddChild(_minimap);
@@ -278,10 +280,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         GameSimulation simulation = _simulation;
         MessageTabsView messageView = _messageView;
         _messages = new ClassicMessageTabs { Name = "MessageTabs" };
-        // No camera yet: the goto button shows for a message with a location, as in Unity, but moves nothing.
+        // 0x00415B30 submits game action 4 with the point's tile: the focus glides to that tile's centre, as Unity's runner
+        // wires it (DK2 first drops an off-map point; ours clamps in the glide).
         _messages.Open(_art, _art.Font, _messageView,
             messageText.Resolve, messageText.Briefing, message => messageView.LocationOncePerTick(simulation.World, message),
-            goTo: null, PlayerNames.From(level.Players));
+            (x, y) => StartGlide(new TilePos((int)Math.Floor(x), (int)Math.Floor(y))), PlayerNames.From(level.Players));
         AddChild(_messages);
         // Created after the tabs, as DungeonRunner creates it, with their sorting order 14 over the panel's 12.
         _battles = new MusicWorldObserver(_viewer, new MusicDirector());
@@ -333,6 +336,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _scriptedView = new ScriptedViewDirector(_viewer, EngineCameraPaths.Loader(install),
             LevelSubtitles.Open(install, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning)).Line);
         _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
+        _scriptedView.ZoomRequested += ScriptZoom;
         _simulation.ObserveWith(_scriptedView);
         _frameDriver = new FrameDriver(_pending, _worldView, _pacer, _journal);
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
@@ -340,6 +344,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
         // The first frame's terrain, pushed once: tile changes after it are step 3c.
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
+        _glideTo = LaunchArguments.GlideTarget(args, "--");
         if (Array.IndexOf(args, "--query-first-creature") >= 0)
             foreach (CreatureState creature in _simulation.World.OwnedCreatures(_viewer))
             {
@@ -386,7 +391,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
             || _battles == null || _battleTab == null || _options == null || _saveLoad == null || _optionsPages == null
             || _gameOptionsPanel == null || _fullMap == null || _minimap == null || _worldView == null || _scriptedView == null
-            || _resultFlow == null || _frameDriver == null || _leaving) return;
+            || _resultFlow == null || _frameDriver == null || _world == null || _leaving) return;
         JournalBeginFrame(delta);
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
@@ -411,10 +416,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
         if (escapeCheck) ReportEscape();
         // DungeonRunner.Update's input step (FrameDriver): the local pickups, then Escape or Space ends a playing camera path
-        // and posts SkipCameraPathCommand (0x00405362); the script's glide needs the camera (plan step 3).
+        // and posts SkipCameraPathCommand (0x00405362); the script's glide starts.
         _frameDriver.AdvancePickups(_simulation.World, _viewer, milliseconds);
         FrameScriptInput script = _frameDriver.TakeScriptedInput(_scriptedView, _viewer, _keyboard.EscapePressed || _keyboard.SpacePressed);
-        if (script.Glide is TilePos glide) NotWiredGlide("script", glide);
+        if (script.Glide is TilePos glide) StartGlide(glide);
         // The HUD keys, as DungeonRunner.UpdateHudControls reads them. Only the options menu's and the full map's toggles
         // are applied: the other keys' GUI toggle and camera moves are not ported. A camera path holds the options key
         // back that frame. While the keyboard page captures a key, no shortcut fires.
@@ -436,8 +441,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // DungeonRunner.DrawSavePanel's in-game branch, with this frame's typing (Unity reads Input.inputString there).
         (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(visibility);
         _saveLoad.Show(_saves, saveLoadShown, saving, _keyboard.Typed);
-        // DungeonRunner.QueueInput after the shortcuts, as there; its game options branch polls the keys before they end.
+        // DungeonRunner.Update's camera step, then QueueInput after the shortcuts, as there; its game options branch polls
+        // the keys before they end.
+        UpdateCamera(visibility, delta);
         QueueInput(visibility, milliseconds);
+        // The query follow (DungeonRunner.FollowQueriedCreature, after the ticks there) runs on the settled world here, so the
+        // view and the minimap below draw the same focus; then the camera is placed once.
+        FollowQueriedCreature();
+        _world.PlaceCamera();
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
@@ -466,7 +477,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _overviewView.Capture(_simulation.World);
         _overview.Draw(visibility, modal ? null : _model.PanelArea(BottomPanelCategory.Creatures));
         // After the overview, as DungeonRunner.DrawHudControls updates it, with the selected corner lit.
-        _minimap.Draw(_tools.SelectedCorner, _hudControls.OptionsVisible, _cameraFocus, _cameraHeading);
+        MinimapCameraView? drawn = _world.View;
+        _minimap.Draw(_tools.SelectedCorner, _hudControls.OptionsVisible, MinimapHud.FixedFocus(_world.Focus),
+            drawn?.Heading ?? ClassicCamera.LevelStartYaw, drawn);
         // After the minimap, as DungeonRunner.DrawHudControls draws it.
         _options.Draw();
         // DungeonRunner.DrawHudControls captures it after the bottom panel and draws it after the menu.
@@ -667,8 +680,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>Menu 43's presses, as DungeonRunner.BattleTabClicked applies them (<see cref="BattleTabView.Click"/>, with its
-    /// suppressed-input and modal gate): the cancel's left click posts; the zoom goes to the router, whose fight navigation
-    /// needs the camera, and the cancel's and the alarm's glides only print (plan step 3).</summary>
+    /// suppressed-input and modal gate): the cancel's left click posts; the zoom goes to the router (the fight navigation's
+    /// glide), and the cancel's and the alarm's glides start here.</summary>
     private void BattleTabClicked(BattleTabButton button, int mouse)
     {
         if (_simulation == null || _trapNavigation == null) return;
@@ -676,7 +689,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _trapNavigation, _thingEntries);
         if (click.HudAction != ClassicHudAction.None) ApplyHudAction(click.HudAction);
         if (click.Command != null) _pending.Add(click.Command);
-        if (click.Glide is TilePos tile) NotWiredGlide("battle tab", tile);
+        if (click.Glide is TilePos tile) StartGlide(tile);
     }
 
     /// <summary>DungeonRunner.NavigateRoom: the next of the viewer's rooms of a type (<see cref="RoomNavigation.Entries"/>).</summary>
@@ -684,7 +697,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         if (_simulation == null || _roomNavigation == null) return;
         RoomNavigation.Entries(_simulation.World, _simulation.Database, _roomEntries);
-        if (_roomNavigation.Next(_roomEntries, type) is TilePos tile) NotWiredGlide("room", tile);
+        if (_roomNavigation.Next(_roomEntries, type) is TilePos tile) StartGlide(tile);
     }
 
     /// <summary>DungeonRunner.NavigateDoor: the next of the viewer's doors of a kind, newest first.</summary>
@@ -692,7 +705,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         if (_simulation == null || _doorNavigation == null) return;
         ThingNavigation.DoorEntries(_simulation.World.Doors, _thingEntries);
-        if (_doorNavigation.Next(_thingEntries, kind) is TilePos tile) NotWiredGlide("door", tile);
+        if (_doorNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
     }
 
     /// <summary>DungeonRunner.NavigateTrap: the next of the viewer's traps of a kind, newest first.</summary>
@@ -700,21 +713,75 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         if (_simulation == null || _trapNavigation == null) return;
         ThingNavigation.TrapEntries(_simulation.World.Traps, _thingEntries);
-        if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) NotWiredGlide("trap", tile);
+        if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
     }
 
-    /// <summary>Prints the focus a glide would reach (<see cref="CameraGlide"/>'s target, the shared
-    /// <see cref="CameraFocus.TileCentre"/>); the glide itself needs the camera (plan step 3).</summary>
-    private void NotWiredGlide(string what, TilePos tile)
+    /// <summary>Action 26 (game action 4, 0x00442650), Unity's runner's <c>StartGlide</c>: the focus glides to the tile's
+    /// centre, kept inside the map, angles unchanged (<see cref="CameraGlide"/>).</summary>
+    private void StartGlide(TilePos tile)
     {
-        System.Numerics.Vector3 focus = TileFocus(tile);
-        GD.Print("DK2.Godot: the ", what, " glide to tile (", tile.X, ", ", tile.Y, "), focus (", focus.X, ", ", focus.Z,
-            "), is not wired yet: there is no camera.");
+        if (_world == null || _simulation == null) return;
+        _glide.Start(_world.Focus, tile, _simulation.World.Width, _simulation.World.Height, _elapsed * 1000d);
     }
 
-    /// <summary>A tile's centre kept inside the map, at the level start focus's height (<see cref="CameraFocus.TileCentre"/>).</summary>
-    private System.Numerics.Vector3 TileFocus(TilePos tile) => _simulation == null ? default
-        : CameraFocus.TileCentre(tile, _focusHeight, _simulation.World.Width, _simulation.World.Height);
+    /// <summary>DungeonRunner.Update's camera step: during a camera path only the pointer is taken (the path's camera is
+    /// step 3n); otherwise the glide, the script's follow (game action 17), then <see cref="ClassicCameraInput.Apply"/>
+    /// while ordinary input is allowed and no menu is modal, else only the pointer (DungeonRunner.ControlCamera).</summary>
+    private void UpdateCamera(HudVisibility visibility, double delta)
+    {
+        ClassicCameraControls? controls = _world?.Controls;
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        int width = (int)size.X, height = (int)size.Y;
+        Vector2 top = GetViewport().GetMousePosition();
+        // Unity's Input.mousePosition is y up; off the window the edge scroll never acts.
+        System.Numerics.Vector2 pointer = _pointerInWindow ? new(top.X, height - top.Y) : new(-1, -1);
+        float wheel = _cameraWheel;
+        _cameraWheel = 0;
+        if (controls == null || _world == null || _scriptedView == null || _simulation == null) { _cameraPointer = pointer; return; }
+        if (_glideTo is TilePos target && _elapsed >= 1 && !_scriptedView.PathPlaying)
+        {
+            _glideTo = null;
+            StartGlide(target);
+            GD.Print("DK2.Godot: --glide-to tile (", target.X, ", ", target.Y, "), focus (", _glide.Target.X, ", ", _glide.Target.Z, ")");
+        }
+        if (_scriptedView.PathPlaying)
+        {
+            controls.AdvancePointer(default, false, false);
+            _cameraPointer = pointer;
+            return;
+        }
+        bool gliding = _glide.Active;
+        if (gliding) _world.Focus = _glide.Advance(_world.Focus, _elapsed * 1000d);
+        if (gliding && !_glide.Active)
+            GD.Print("DK2.Godot: the glide ended at focus (", _world.Focus.X, ", ", _world.Focus.Z, ")");
+        if (_scriptedView.FollowedCreatureId != 0 && !_glide.Active
+            && _simulation.World.CreatureById(_scriptedView.FollowedCreatureId) is CreatureState followed)
+            _world.Focus = CameraFocus.Over(new Fp32(followed.PosX), new Fp32(followed.PosY), _world.Focus.Y);
+        if (visibility.AllowOrdinaryInput && !_hudControls.Modal && width > 0 && height > 0)
+        {
+            var sample = new CameraPointerSample(pointer, width, height, GetWindow().HasFocus(), PointerOverHud(top, visibility), wheel);
+            _world.Focus = ClassicCameraInput.Apply(controls, _world.Focus, _keyboard.Read(_settings), sample, _cameraPointer,
+                _settings.MouseSensitivity, delta);
+        }
+        else controls.AdvancePointer(default, false, false);
+        _cameraPointer = pointer;
+    }
+
+    /// <summary>DungeonRunner.FollowQueriedCreature: while <see cref="ClassicCreatureQueryRules.Follows"/>, the focus keeps
+    /// the queried creature, read from the simulation (no creature is drawn before step 3g).</summary>
+    private void FollowQueriedCreature()
+    {
+        if (_world == null || _simulation == null || _queryView == null || _scriptedView == null) return;
+        if (!ClassicCreatureQueryRules.Follows(_tools.QueryTool, _queryView.Target, _scriptedView.PathPlaying, _hudControls.Modal)) return;
+        if (_simulation.World.CreatureById(_queryView.Target.Value) is CreatureState creature)
+            _world.Focus = CameraFocus.Over(new Fp32(creature.PosX), new Fp32(creature.PosY), _world.Focus.Y);
+    }
+
+    /// <summary>The bottom panel's collapse moves the view axis, as Unity's runner's handler does.</summary>
+    private void PanelCollapsed(bool collapsed) => _world?.SetPanelCollapsed(collapsed);
+
+    /// <summary>The script's camera zoom (Unity's runner's <c>ZoomRequested</c> handler).</summary>
+    private void ScriptZoom(int zoom, int unused) => _world?.ClassicCamera?.SetZoom(new Fp32(zoom));
 
     /// <summary>A mouse press reaching the window, before any panel's <c>_Input</c> can mark it handled, as Unity's
     /// <c>Input.GetMouseButtonDown</c> sees every press; <see cref="QueueInput"/> routes it in the next frame.</summary>
@@ -723,6 +790,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (@event is not InputEventMouseButton button) return;
         if (button.ButtonIndex == MouseButton.Left) { if (button.Pressed) _primaryDown = true; else _primaryUp = true; }
         else if (button.ButtonIndex == MouseButton.Right) { if (button.Pressed) _secondaryDown = true; else _secondaryUp = true; }
+        // Unity's Input.mouseScrollDelta.y, summed over the frame: positive away from the user.
+        else if (button.Pressed && button.ButtonIndex == MouseButton.WheelUp) _cameraWheel += button.Factor;
+        else if (button.Pressed && button.ButtonIndex == MouseButton.WheelDown) _cameraWheel -= button.Factor;
         if (!_journal.Recording) return;
         FrameMouseButtons journalled = button.ButtonIndex switch
         {
@@ -758,19 +828,19 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             primaryUp, secondaryUp, milliseconds), _simulation.World, _simulation.Database, _pending);
     }
 
-    /// <summary>Unity's runner's minimap press: off while a camera path plays; the glide needs the camera (plan step 3).</summary>
+    /// <summary>Unity's runner's minimap press: a glide to the tile, off while a camera path plays.</summary>
     void IWorldPointerHost.MinimapPress(in HudPress press)
     {
         if (_scriptedView != null && !_scriptedView.PathPlaying && _minimap != null && press.Primary
             && _minimap.TryNavigate(_pressPointer, out TilePos tile))
-            NotWiredGlide("minimap", tile);
+            StartGlide(tile);
     }
 
     FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile) => null;
 
     /// <summary>DungeonRunner.ApplyHudAction, through the shared <see cref="HudActionRouter"/>: the options key, the options
     /// menu's entries, the save browser's Back and Continue lines and the minimap's corners (zoom, and query and sell, which
-    /// post their GUI button and set the tool) and right click. Navigation needs the camera and only prints (plan step 3).</summary>
+    /// post their GUI button and set the tool) and right click, and the portal, Heart and fight navigation's glides.</summary>
     private void ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action, _pointer);
 
     /// <param name="pointer">Where the press was, in screen pixels: the magnifier zooms only under it.</param>
@@ -780,23 +850,32 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _router?.Apply(action, _panel, _view);
     }
 
-    void IHudActionHost.NavigatePortal() => GD.Print("DK2.Godot: the portal navigation is not wired yet: there is no camera.");
-    void IHudActionHost.NavigateHeart() => GD.Print("DK2.Godot: the heart navigation is not wired yet: there is no camera.");
-    void IHudActionHost.NavigateFight() => GD.Print("DK2.Godot: the fight navigation is not wired yet: there is no camera.");
+    void IHudActionHost.NavigatePortal() => NavigateRoom(RoomTypeId.Portal);
+
+    void IHudActionHost.NavigateHeart()
+    {
+        if (_worldView?.MinimapHeartTile is TilePos heart) StartGlide(heart);
+    }
+
+    void IHudActionHost.NavigateFight()
+    {
+        if (_battles != null && _battleNavigation?.Next(_battles.Battles) is TilePos battle) StartGlide(battle);
+    }
+
     void IHudActionHost.ZoomMinimap(bool zoomIn, bool zoomOut) => _minimap?.HandleZoomPress(_actionPointer, zoomIn, zoomOut);
     void IHudActionHost.PostGuiButton(GuiButtonTarget target) => PostGuiButton(target);
 
-    // What HudPressRouter asks of this scene, at this frame's pointer: the panels' hit tests; the camera and the session are
+    // What HudPressRouter asks of this scene, at this frame's pointer: the panels' hit tests and the camera; the session is
     // not wired here.
     void IHudPressHost.ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action, _pressPointer);
 
     void IHudPressHost.GoToFullMapTile()
     {
         if (_fullMap == null) return;
+        if (_world == null || _simulation == null) return;
         TilePos tile = _fullMap.ResolvePointer(_pressPointer);
-        System.Numerics.Vector3 focus = TileFocus(tile);
-        GD.Print("DK2.Godot: the full map's move to tile (", tile.X, ", ", tile.Y, "), focus (", focus.X, ", ", focus.Z,
-            "), is not wired yet.");
+        _world.Focus = CameraFocus.TileCentre(tile, _world.Focus.Y, _simulation.World.Width, _simulation.World.Height);
+        _glide.Stop();
     }
 
     void IHudPressHost.PollGameOptionsKeyboard() => _gameOptionsPanel?.CaptureKey(_keyboard.Read(_settings));
@@ -817,8 +896,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     void IHudPressHost.FocusCreature(FpPosition3 position)
     {
-        System.Numerics.Vector3 focus = CameraFocus.Over(position.X, position.Y, _focusHeight);
-        GD.Print("DK2.Godot: the overview's focus (", focus.X, ", ", focus.Z, ") is not wired yet: there is no camera.");
+        if (_world == null) return;
+        _world.Focus = CameraFocus.Over(position.X, position.Y, _world.Focus.Y);
+        _glide.Stop();
     }
 
     ClassicHudAction IHudPressHost.PressMinimap(in HudPress press) =>
@@ -830,15 +910,20 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     bool IWorldClickHost.PointerOverHud() => PointerOverHud(_pressPointer, _pressVisibility);
     TilePos? IWorldClickHost.PointerTile() => null;
     WorldHoverHit IWorldClickHost.Hover(TilePos tile) => new(WorldHoverKind.Tile, tile);
-    void IWorldClickHost.FollowQueriedCreature() { }
+    void IWorldClickHost.FollowQueriedCreature()
+    {
+        _glide.Stop();
+        if (_world?.ClassicCamera is ClassicCamera camera) ClassicCreatureQueryRules.TurnToFollowHeading(camera);
+    }
 
     /// <summary>DungeonRunner.ApplyGameSettings for what this scene has: the settings it reads (game speed, key bindings)
-    /// and the HUD scale on the ported panels (ApplyHudScale). The scroll speed and the camera, the rendering settings
+    /// and the HUD scale on the ported panels (ApplyHudScale), and the camera's scroll speed. The rendering settings
     /// (gamma, shadows, water, environment mapping) and the sound volumes and switches need systems not ported yet:
     /// their values change, and nothing acts on them.</summary>
     private void ApplySettings(GameSettings settings)
     {
         _settings = settings;
+        if (_world?.Controls is ClassicCameraControls controls) controls.ScrollSpeed = settings.ScrollSpeed;
         // The twin of DungeonRunner.ApplyHudScale's panel list: the two change together while both adapters exist.
         int scale = settings.UiScale;
         if (_minimap != null) _minimap.UiScale = scale;
@@ -1023,11 +1108,12 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         {
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
             _model.NavigateRoom -= NavigateRoom; _model.NavigateDoor -= NavigateDoor; _model.NavigateTrap -= NavigateTrap;
+            _model.CollapsedChanged -= PanelCollapsed;
         }
         if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
         if (_window != null && IsInstanceValid(_window)) _window.WindowInput -= ReadPress;
         _window = null; _presses = null; _worldClicks = null; _pickups = null; _worldPointer = null; _frameDriver = null;
-        _roomNavigation = null; _doorNavigation = null; _trapNavigation = null;
+        _roomNavigation = null; _doorNavigation = null; _trapNavigation = null; _battleNavigation = null; _world = null;
         if (_saveLoad != null)
         {
             _saveLoad.Submit -= SaveLoadSubmitted; _saveLoad.HudAction -= ApplyHudAction;
@@ -1035,7 +1121,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_optionsPages != null) { _optionsPages.Applied -= ApplySettings; _optionsPages.SaveRequested -= SaveSettings; }
         _battleTab = null; _battles = null; _options = null; _saveLoad = null; _saves = null; _fullMap = null;
         _minimap = null; _worldView = null;
-        if (_scriptedView != null) _scriptedView.GuiVisibilityRequested -= _hudControls.SetGuiVisible;
+        if (_scriptedView != null)
+        {
+            _scriptedView.GuiVisibilityRequested -= _hudControls.SetGuiVisible; _scriptedView.ZoomRequested -= ScriptZoom;
+        }
         _saver = null; _loader = null; _context = null; _profiles = null; _resultFlow = null; _scriptedView = null;
         _gameOptionsPanel = null; _gameOptions = null; _optionsPages = null;
         _art?.Dispose(); _sources?.Dispose();

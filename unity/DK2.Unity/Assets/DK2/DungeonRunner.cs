@@ -115,9 +115,6 @@ namespace DK2.Unity
         [Header("Camera")]
         [Tooltip("Original camera profile used when Play starts.")]
         [SerializeField] private ClassicCameraMode cameraPreset = ClassicCameraMode.Dungeon;
-        [Tooltip("Zoom-out limit multiplier. 1 keeps DK2's original bound; 1.2 allows 20% more distance.")]
-        [Range(1f, 2f)]
-        [SerializeField] private float cameraZoomOutLimitScale = 1.2f;
         [Tooltip("Diagnostic whole-map overview instead of the original playing camera.")]
         [SerializeField] private bool frameWholeMap;
         [Tooltip("Pitch for the diagnostic whole-map overview.")]
@@ -520,7 +517,7 @@ namespace DK2.Unity
             _possession = new PossessionSession(database, ClassicCameraSetup.PossessionPreset(presets));
             if (classicMeshes && profile != null)
             {
-                ClassicCameraSetup setup = ClassicCameraSetup.Create(profile, cameraZoomOutLimitScale, cameraTicksPerSecond,
+                ClassicCameraSetup setup = ClassicCameraSetup.Create(profile, ClassicCameraSetup.DefaultZoomOutLimitScale, cameraTicksPerSecond,
                     classicScrollSpeed, campaignLevel ? campaign.Players : null, new PlayerId((byte)viewingPlayerId),
                     world.Width, world.Height);
                 _classicCamera = setup.Camera;

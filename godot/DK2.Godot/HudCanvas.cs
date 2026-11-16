@@ -20,6 +20,8 @@ public partial class HudCanvas : Node2D
     private CanvasItemMaterial? _additive;
     private Resolved[] _resolved = new Resolved[256];
     private readonly SectorBuffers?[] _fans = new SectorBuffers?[HudSector.MaxVertices + 1];
+    /// <summary>Exact-size arrays for a triangle list of 3 (k + 1) vertices at index k, kept once made.</summary>
+    private TriangleBuffers?[] _lists = new TriangleBuffers?[8];
     private Vector2 _origin;
     private float _scale = 1, _pixelsPerUnit = 1;
     private bool _invalid = true;
@@ -84,6 +86,7 @@ public partial class HudCanvas : Node2D
             Rid item = _items[run];
             var tint = new Color(draw.Tint.R / 255f, draw.Tint.G / 255f, draw.Tint.B / 255f, draw.Tint.A / 255f);
             if (glyphs != null) { RecordGlyphs(item, draw, glyphs, tint); continue; }
+            if (draw.Kind == HudDrawKind.Triangles) { RecordTriangles(item, _shown.Vertices(draw), texture.Texture, tint); continue; }
             Rect2 r = Snapped(draw.Rect);
             if (draw.Kind == HudDrawKind.Sector)
             {
@@ -116,6 +119,38 @@ public partial class HudCanvas : Node2D
             if (draw.Kind == HudDrawKind.Fill) { RenderingServer.CanvasItemAddRect(item, r, tint); continue; }
             var region = new Rect2(uv.X * texture.Size.X, uv.Y * texture.Size.Y, uv.Width * texture.Size.X, uv.Height * texture.Size.Y);
             RenderingServer.CanvasItemAddTextureRectRegion(item, r, texture.Texture, region, tint, false, true);
+        }
+    }
+
+    /// <summary>A triangle list in screen pixels, unsnapped, as Unity's footprint element placed its vertices.</summary>
+    private void RecordTriangles(Rid item, ReadOnlySpan<HudVertex> vertices, Rid texture, Color tint)
+    {
+        int slot = vertices.Length / 3 - 1;
+        if (slot < 0) return;
+        if (slot >= _lists.Length) Array.Resize(ref _lists, Math.Max(slot + 1, _lists.Length * 2));
+        TriangleBuffers buffers = _lists[slot] ??= new TriangleBuffers(vertices.Length);
+        float unit = _scale * _pixelsPerUnit;
+        for (int k = 0; k < vertices.Length; k++)
+        {
+            buffers.Points[k] = new Vector2(_origin.X + vertices[k].X * unit, _origin.Y + vertices[k].Y * unit);
+            buffers.Uvs[k] = new Vector2(vertices[k].U, vertices[k].V);
+            buffers.Colors[k] = tint;
+        }
+        RenderingServer.CanvasItemAddTriangleArray(item, buffers.Indices, buffers.Points, buffers.Colors, buffers.Uvs,
+            Array.Empty<int>(), Array.Empty<float>(), texture, -1);
+    }
+
+    /// <summary>Reused exact-size arrays for a triangle list, for the same reason as <see cref="SectorBuffers"/>.</summary>
+    private sealed class TriangleBuffers
+    {
+        public readonly Vector2[] Points, Uvs;
+        public readonly Color[] Colors;
+        public readonly int[] Indices;
+
+        public TriangleBuffers(int vertices)
+        {
+            Points = new Vector2[vertices]; Uvs = new Vector2[vertices]; Colors = new Color[vertices]; Indices = new int[vertices];
+            for (int k = 0; k < vertices; k++) Indices[k] = k;
         }
     }
 

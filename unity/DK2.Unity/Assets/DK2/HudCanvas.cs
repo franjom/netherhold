@@ -232,12 +232,25 @@ namespace DK2.Unity
                 HudDraw draw = draws[i];
                 var tint = new Color32(draw.Tint.R, draw.Tint.G, draw.Tint.B, draw.Tint.A);
                 if (_glyphs[i] != null) { DrawGlyphs(context, draw, _glyphs[i], texture, tint); continue; }
+                if (draw.Kind == HudDrawKind.Triangles)
+                {
+                    // A triangle list, unsnapped, as the minimap's footprint element placed its vertices.
+                    ReadOnlySpan<HudVertex> list = _shown.Vertices(draw);
+                    MeshWriteData triangles = context.Allocate(list.Length, list.Length, texture);
+                    for (int k = 0; k < list.Length; k++)
+                    {
+                        Vertex(triangles, list[k].X * _scale, list[k].Y * _scale, list[k].U, 1 - list[k].V, tint);
+                        triangles.SetNextIndex((ushort)k);
+                    }
+                    continue;
+                }
                 if (draw.Kind != HudDrawKind.Sector)
                 {
                     // A run of quads on one texture is one mesh: a full map's hundreds of creature squares are one
                     // allocation, not one each. Only neighbours join, so the back-to-front order is kept.
                     int end = i + 1;
-                    while (end < draws.Length && end - i < MaxBatch && _resolved[end] == texture && _glyphs[end] == null && draws[end].Kind != HudDrawKind.Sector) end++;
+                    while (end < draws.Length && end - i < MaxBatch && _resolved[end] == texture && _glyphs[end] == null
+                        && draws[end].Kind != HudDrawKind.Sector && draws[end].Kind != HudDrawKind.Triangles) end++;
                     if (_batch.Length < end - i) _batch = new BatchQuad[Math.Max(end - i, _batch.Length * 2)];
                     int count = 0;
                     for (int k = i; k < end; k++)

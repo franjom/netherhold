@@ -16,7 +16,8 @@ using UnityEngine.UIElements;
 namespace DK2.Unity
 {
     /// <summary>The minimap's Unity side: <see cref="MinimapHud"/> (ADR-0805) drawn by a <see cref="HudCanvas"/> over
-    /// the engine's own GPU disc (<see cref="MinimapGpuMap"/>) and camera footprint. The panel is DK2's 1024x768,
+    /// the engine's own GPU disc (<see cref="MinimapGpuMap"/>); the camera footprint is the frame's first draw
+    /// (<see cref="MinimapHud.SetCamera"/>). The panel is DK2's 1024x768,
     /// height-matched and docked to the bottom.</summary>
     public sealed class DungeonMinimap : IDisposable
     {
@@ -27,7 +28,6 @@ namespace DK2.Unity
         private readonly Image _image;
         private readonly Texture2D _backdrop;
         private readonly MinimapGpuMap _gpu;
-        private readonly MinimapFootprintVisual _footprint;
         private readonly HudCanvas _canvas;
         private readonly HudFrame _frame = new HudFrame();
         private Vector3 _pointer;
@@ -41,7 +41,7 @@ namespace DK2.Unity
             if (Screen.height <= 0) return ClassicHudAction.None;
             Vector2 at = Virtual(screenPosition);
             return camera == null ? _hud.CornerPress(at.x, at.y, primaryPressed, secondaryPressed)
-                : _hud.Press(at.x, at.y, primaryPressed, secondaryPressed, FixedFocus(focus), Heading(camera));
+                : _hud.Press(at.x, at.y, primaryPressed, secondaryPressed, FixedFocus(focus), View(camera).Heading);
         }
 
         /// <summary>The corner control under the pointer, for its tooltip; None off the corners.</summary>
@@ -86,11 +86,19 @@ namespace DK2.Unity
             target = default;
             if (camera == null || Screen.height <= 0) return false;
             Vector2 at = Virtual(screenPosition);
-            return _hud.TryNavigate(at.x, at.y, FixedFocus(focus), Heading(camera), out target);
+            return _hud.TryNavigate(at.x, at.y, FixedFocus(focus), View(camera).Heading, out target);
         }
 
-        private static Dk2Angle Heading(Camera camera) =>
-            new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(camera.transform.eulerAngles.y * (2048f / 360))));
+        /// <summary>The camera as the minimap reads it (<see cref="MinimapCameraView"/>): its pose, field of view, aspect
+        /// and the off-centre shift the runner wrote as <c>projection[1, 2] = -shift</c>.</summary>
+        private static MinimapCameraView View(Camera camera)
+        {
+            Transform t = camera.transform;
+            return new MinimapCameraView(ToNumerics(t.position), ToNumerics(t.forward), ToNumerics(t.up), camera.fieldOfView,
+                camera.aspect, -camera.projectionMatrix[1, 2]);
+        }
+
+        private static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
 
         private static FpPosition3 FixedFocus(Vector3 focus) =>
             MinimapHud.FixedFocus(new System.Numerics.Vector3(focus.x, focus.y, focus.z));
@@ -130,15 +138,11 @@ namespace DK2.Unity
             _image.style.left = disc.X / 2.5f; _image.style.bottom = 768 - (disc.Y + disc.Height) / 2.5f;
             _image.style.width = disc.Width / 2.5f; _image.style.height = disc.Height / 2.5f;
             _hudRoot.Add(_image);
-            // Our choice, the native z-order being unread: under the frame, as the map is. The native
-            // corner clamp is to the disc's square, so a clamped corner can leave the circle, and the
-            // ring covers it (minimap-rendering.md).
-            _footprint = new MinimapFootprintVisual(assets.CameraFootprint, width, height);
-            _hudRoot.Add(_footprint);
             var art = new Dictionary<string, RgbaImage>(StringComparer.Ordinal)
             {
                 [MinimapHud.FrameArt] = assets.Frame,
                 [MinimapHud.NorthArt] = assets.North,
+                [MinimapHud.FootprintArt] = assets.CameraFootprint,
             };
             for (int i = 0; i < 4; i++)
                 for (int active = 0; active < 2; active++)
@@ -170,19 +174,15 @@ namespace DK2.Unity
         {
             _settings.scale = ScaleLayout.Factor;
             if (!_hud.Visibility.ShowNormalHud || camera == null) return;
+            MinimapCameraView view = View(camera);
             Vector3 centre = focus ?? camera.transform.position;
-            if (!focus.HasValue)
-            {
-                var floor = new Plane(Vector3.up, new Vector3(0, TileHeights.Floor, 0));
-                Ray ray = camera.ViewportPointToRay(new Vector3(.5f, .5f, 0));
-                if (floor.Raycast(ray, out float distance)) centre = ray.GetPoint(distance);
-            }
+            if (!focus.HasValue && view.TryFloorCentre(out System.Numerics.Vector3 floor)) centre = new Vector3(floor.X, floor.Y, floor.Z);
             MinimapZoom zoom = _hud.Zoom;
             _gpu.SetView(zoom, FixedFocus(centre));
             _gpu.Render(camera.transform.eulerAngles.y, MinimapHud.DiscPixels(Screen.height, ScaleLayout.Factor));
             if (_image.image != _gpu.Disc) _image.image = _gpu.Disc;
-            _footprint.UpdateCamera(zoom.IsWholeMap ? camera : null);
-            _heading = Heading(camera);
+            _hud.SetCamera(view);
+            _heading = view.Heading;
             Present();
         }
 
@@ -221,79 +221,8 @@ namespace DK2.Unity
         {
             _gpu.Dispose();
             _canvas.Dispose();
-            _footprint.Dispose();
             UnityEngine.Object.Destroy(_root); UnityEngine.Object.Destroy(_settings);
             UnityEngine.Object.Destroy(_backdrop);
-        }
-    }
-
-    public sealed class MinimapFootprintVisual : VisualElement, IDisposable
-    {
-        private static readonly ushort[] Indices = { 0,2,1, 1,2,3, 2,4,3, 3,4,5, 5,4,6, 7,5,6, 0,7,6, 0,1,7 };
-        private readonly Texture2D _texture;
-        private readonly int _mapWidth, _mapHeight;
-        private readonly System.Numerics.Vector2[] _corners = new System.Numerics.Vector2[4];
-        private readonly System.Numerics.Vector2[] _vertices = new System.Numerics.Vector2[8];
-        private readonly System.Numerics.Vector2[] _next = new System.Numerics.Vector2[8];
-        private bool _valid;
-        private readonly VisualElement _ribbon;
-
-        public MinimapFootprintVisual(RgbaImage texture, int mapWidth, int mapHeight)
-        {
-            _texture = MinimapFrameVisual.Decode(texture);
-            _mapWidth = mapWidth; _mapHeight = mapHeight;
-            pickingMode = PickingMode.Ignore;
-            style.position = Position.Absolute;
-            style.left = 12.8f; style.bottom = 11.2f;
-            style.width = 169.6f; style.height = 169.6f;
-            style.overflow = Overflow.Hidden;
-            style.borderTopLeftRadius = style.borderTopRightRadius = 84.8f;
-            style.borderBottomLeftRadius = style.borderBottomRightRadius = 84.8f;
-            _ribbon = new VisualElement { pickingMode = PickingMode.Ignore };
-            _ribbon.style.position = Position.Absolute;
-            _ribbon.style.left = _ribbon.style.top = _ribbon.style.right = _ribbon.style.bottom = 0;
-            Add(_ribbon);
-            _ribbon.generateVisualContent += DrawFootprint;
-        }
-
-        public void UpdateCamera(Camera camera)
-        {
-            bool valid = camera != null;
-            var floor = new Plane(Vector3.up, new Vector3(0, TileHeights.Floor, 0));
-            for (int i = 0; valid && i < 4; i++)
-            {
-                Ray ray = camera.ViewportPointToRay(new Vector3(i == 1 || i == 2 ? 1 : 0, i < 2 ? 1 : 0, 0));
-                if (!floor.Raycast(ray, out float distance)) { valid = false; break; }
-                Vector3 ground = ray.GetPoint(distance);
-                _corners[i] = new System.Numerics.Vector2(ground.x, -ground.z);
-            }
-            valid = valid && MinimapCameraFootprint.TryBuild(_corners, _mapWidth, _mapHeight,
-                camera.transform.eulerAngles.y * Mathf.Deg2Rad, _next);
-            bool changed = valid != _valid;
-            if (valid)
-                for (int i = 0; i < 8; i++)
-                {
-                    changed |= _vertices[i] != _next[i];
-                    _vertices[i] = _next[i];
-                }
-            _valid = valid;
-            if (changed) _ribbon.MarkDirtyRepaint();
-        }
-
-        private void DrawFootprint(MeshGenerationContext context)
-        {
-            if (!_valid) return;
-            MeshWriteData mesh = context.Allocate(8, Indices.Length, _texture);
-            for (int i = 0; i < 8; i++)
-                mesh.SetNextVertex(new Vertex { position = new Vector3(_vertices[i].X - 12.8f, _vertices[i].Y - 587.2f, Vertex.nearZ),
-                    tint = Color.white, uv = new Vector2(.5f, i % 2 == 0 ? 1 : 0) });
-            foreach (ushort index in Indices) mesh.SetNextIndex(index);
-        }
-
-        public void Dispose()
-        {
-            RemoveFromHierarchy();
-            UnityEngine.Object.Destroy(_texture);
         }
     }
 }

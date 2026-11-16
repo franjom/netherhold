@@ -111,14 +111,21 @@ public enum HudDrawKind : byte
     Sector,
     /// <summary>The rect filled with the tint; no image.</summary>
     Fill,
+    /// <summary>The image mapped over a triangle list, every three of <see cref="HudFrame.Vertices"/> one triangle, not
+    /// snapped to the pixel grid; <see cref="HudDraw.Rect"/> is their bounds.</summary>
+    Triangles,
 }
+
+/// <summary>Where a <see cref="HudDrawKind.Triangles"/> draw's vertices sit in its frame's vertex store.</summary>
+public readonly record struct HudVertexRange(int Start, int Count);
 
 /// <param name="Uv">The part of the image drawn, in image fractions from its top-left; null for all of it.</param>
 /// <param name="Clip">A window the quad shows through (an overflow-hidden box), or null. The renderer places
 /// the quad and the window on its pixel grid first and then cuts with <see cref="HudQuads.Cut"/>, so a text
 /// image keeps one texel per pixel as it scrolls.</param>
+/// <param name="Vertices">A triangle list's place in the frame (<see cref="HudFrame.AddTriangles"/>).</param>
 public readonly record struct HudDraw(HudDrawKind Kind, HudImage Image, HudRect Rect, HudColor Tint,
-    HudBlend Blend = HudBlend.Alpha, int Percent = 0, HudRect? Uv = null, HudRect? Clip = null);
+    HudBlend Blend = HudBlend.Alpha, int Percent = 0, HudRect? Uv = null, HudRect? Clip = null, HudVertexRange Vertices = default);
 
 /// <summary>Quad helpers shared by the panels and renderers: clipping to a window and tiling an area.</summary>
 public static class HudQuads
@@ -170,11 +177,34 @@ public static class HudQuads
 public sealed class HudFrame
 {
     private HudDraw[] _draws = new HudDraw[256];
-    private int _count;
+    private HudVertex[] _vertices = new HudVertex[64];
+    private int _count, _vertexCount;
 
     public int Count => _count;
     public ReadOnlySpan<HudDraw> Draws => new(_draws, 0, _count);
-    public void Clear() => _count = 0;
+    public void Clear() { _count = 0; _vertexCount = 0; }
+
+    /// <summary>A <see cref="HudDrawKind.Triangles"/> draw's vertices; empty for any other kind.</summary>
+    public ReadOnlySpan<HudVertex> Vertices(in HudDraw draw) =>
+        draw.Kind == HudDrawKind.Triangles ? new(_vertices, draw.Vertices.Start, draw.Vertices.Count) : default;
+
+    /// <summary>Adds the image mapped over a triangle list, copied into the frame; nothing for an empty list.</summary>
+    public void AddTriangles(HudImage image, ReadOnlySpan<HudVertex> triangles, HudColor tint, HudBlend blend = HudBlend.Alpha)
+    {
+        if (triangles.Length % 3 != 0) throw new ArgumentException("Whole triangles required.", nameof(triangles));
+        if (triangles.Length == 0) return;
+        if (_vertices.Length < _vertexCount + triangles.Length)
+            Array.Resize(ref _vertices, Math.Max(_vertexCount + triangles.Length, _vertices.Length * 2));
+        triangles.CopyTo(new Span<HudVertex>(_vertices, _vertexCount, triangles.Length));
+        float left = float.MaxValue, top = float.MaxValue, right = float.MinValue, bottom = float.MinValue;
+        foreach (HudVertex v in triangles)
+        {
+            left = Math.Min(left, v.X); top = Math.Min(top, v.Y); right = Math.Max(right, v.X); bottom = Math.Max(bottom, v.Y);
+        }
+        Add(new HudDraw(HudDrawKind.Triangles, image, new HudRect(left, top, right - left, bottom - top), tint, blend,
+            Vertices: new HudVertexRange(_vertexCount, triangles.Length)));
+        _vertexCount += triangles.Length;
+    }
 
     public void Add(in HudDraw draw)
     {
@@ -183,17 +213,21 @@ public sealed class HudFrame
     }
 
     /// <summary>True when both frames would draw the same thing, so a renderer can skip rebuilding.</summary>
-    public bool SameAs(HudFrame other) => Draws.SequenceEqual(other.Draws);
+    public bool SameAs(HudFrame other) => Draws.SequenceEqual(other.Draws)
+        && new ReadOnlySpan<HudVertex>(_vertices, 0, _vertexCount).SequenceEqual(new ReadOnlySpan<HudVertex>(other._vertices, 0, other._vertexCount));
 
     public void CopyFrom(HudFrame other)
     {
         if (_draws.Length < other._count) _draws = new HudDraw[other._draws.Length];
         Array.Copy(other._draws, _draws, other._count);
         _count = other._count;
+        if (_vertices.Length < other._vertexCount) _vertices = new HudVertex[other._vertices.Length];
+        Array.Copy(other._vertices, _vertices, other._vertexCount);
+        _vertexCount = other._vertexCount;
     }
 }
 
-/// <summary>A vertex of a HUD triangle fan: position in virtual units, UV with V = 0 at the image's top.</summary>
+/// <summary>A vertex of a HUD triangle fan or list: position in virtual units, UV with V = 0 at the image's top.</summary>
 public readonly record struct HudVertex(float X, float Y, float U, float V);
 
 /// <summary>Hud_DrawTexturedRadialSector <c>0x0041EF70</c> as the slot draw uses it: the image cut to the

@@ -17,6 +17,10 @@ public sealed class ClassicCameraSetup
     /// (<see cref="ClassicCamera.ReferenceScreenWidth"/>; the owner's native recording, classic-camera.md §8).</summary>
     public const int ReferenceScreenWidth = 1600;
 
+    /// <summary>The zoom-out limit scale both adapters set the camera up with (a remake option; 1 is DK2's own bound):
+    /// 1.3, the value Unity's <c>Dungeon.unity</c> serialised for the runner's inspector field it replaces.</summary>
+    public const float DefaultZoomOutLimitScale = 1.3f;
+
     private ClassicCameraSetup(ClassicCamera camera, ClassicCameraControls controls, Vector3 startFocus)
     {
         Camera = camera; Controls = controls; StartFocus = startFocus;

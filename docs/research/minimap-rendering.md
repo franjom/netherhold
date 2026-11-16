@@ -347,12 +347,10 @@ field into the third position component. Preserve the shipped texture alpha;
 do not infer a uniform 75% opacity from that argument. Full material-flag
 semantics are not established by this reading.
 
-The adapter draws the native texture over an eight-vertex ribbon between turns,
-with a circular presentation mask after the owner's zoom-out comparison; the
-native downstream clipping remains untraced. The height-scaled HUD uses two
-reference pixels per radial offset, rather than two physical pixels, and hides
-invalid/behind-camera intersections; native unprojection has no such guard.
-OpenKeeper was consulted as a facts-only reference (see THIRD-PARTY-NOTICES.md);
+Both adapters draw the native texture over the eight-vertex ribbon between turns as a triangle list (`MinimapHud.SetCamera`, ADR-0805): the frame's first draw, whole-map mode only, cut to the disc's circle by `HudTriangles.ClipToCircle`
+(the remake's choice after the owner's zoom-out comparison; native clipping and z-order untraced). The adapter uses two reference pixels per radial offset, rather than two physical pixels, and hides invalid/behind-camera
+intersections; native unprojection has no such guard. Open, not checked against the binary: the adapter's scale (1.989 units per tile) and centre x (95.2) differ from the tile raster's (1.863) and the disc's (97.6), so the
+footprint sits slightly off the Heart. OpenKeeper was consulted as a facts-only reference (see THIRD-PARTY-NOTICES.md);
 the projection, floor, clamp and border contracts above come from DKII.EXE.
 Owner comparison in the original game remains pending.
 
@@ -399,5 +397,5 @@ The primary held channel takes priority over the secondary channel. Its complete
 poll and GUI-manager capture paths establish click navigation, not continuous
 drag panning. Secondary map-mode entry is integrated; see [minimap controls](minimap-controls.md).
 
-Unity's adapter forwards primary press edges to the existing camera glide without
-world commands; Godot's prints the tile (no camera yet). Full held-channel capture arbitration remains part of Step6.3.
+Both adapters forward primary press edges to the camera glide without world
+commands (`MinimapHud.TryNavigate`). Full held-channel capture arbitration remains part of Step6.3.

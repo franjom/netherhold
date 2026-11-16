@@ -20,8 +20,8 @@ namespace DK2.GodotAdapter;
 /// builds it, one <see cref="MeshInstance3D"/> per 16x16-tile chunk with a surface per <see cref="TerrainMaterialKey"/>,
 /// unshaded, seen from the level-start camera. Everything crosses into Godot's right-handed frame through
 /// <see cref="RightHandedFrame"/>. Not yet drawn: creatures, objects, structures and torches (no-ops here), the sight fog
-/// and tag overlay variants, liquids and lighting; nothing is rebuilt after the first push (step 3c) and the camera
-/// does not move (step 3b).</summary>
+/// and tag overlay variants, liquids and lighting; nothing is rebuilt after the first push (step 3c). The host moves the
+/// camera's <see cref="Focus"/> through the shared rules and places it once a frame (<see cref="PlaceCamera"/>, step 3b).</summary>
 public partial class WorldScene : Node3D, IRenderTarget
 {
     private const int ChunkSize = 16;
@@ -52,8 +52,22 @@ public partial class WorldScene : Node3D, IRenderTarget
     private ImageTexture? _white;
 
     private Camera3D? _camera;
-    private ClassicCamera? _classicCamera;
-    private NVector3 _focus;
+    private ClassicCameraControls? _controls;
+    private ClassicCameraPose _placed;
+    private CameraViewport _placedViewport;
+
+    /// <summary>The ordinary camera's controls over the map's focus bounds (<see cref="ClassicCameraSetup.Create"/>); null
+    /// when the level has no dungeon camera preset.</summary>
+    public ClassicCameraControls? Controls => _controls;
+
+    /// <summary>The ordinary camera the controls move; null with them.</summary>
+    public ClassicCamera? ClassicCamera { get; private set; }
+
+    /// <summary>The ordinary camera's focus, in the renderers' frame; drawn at the next <see cref="PlaceCamera"/>.</summary>
+    public NVector3 Focus { get; set; }
+
+    /// <summary>The camera as last placed, as the minimap reads it; null before the first placement or without a camera.</summary>
+    public MinimapCameraView? View { get; private set; }
 
     /// <summary>Builds the level's terrain and the camera at <paramref name="focus"/> (the level start's), from the
     /// install's models and textures (<see cref="InstallArtProvider"/>).</summary>
@@ -95,10 +109,11 @@ public partial class WorldScene : Node3D, IRenderTarget
             GD.PushError("DK2.Godot: the level has no dungeon camera preset; no 3D camera.");
             return;
         }
-        // Zoom-out limit scale 1, DK2's own bound; Unity's inspector widens it (plan step 3b).
-        _classicCamera = ClassicCameraSetup.Create(profile, 1f, GameSessionStarter.CameraTicksPerSecond(level), scrollSpeed,
-            level.Players, viewer, _width, _height).Camera;
-        _focus = focus;
+        ClassicCameraSetup setup = ClassicCameraSetup.Create(profile, ClassicCameraSetup.DefaultZoomOutLimitScale,
+            GameSessionStarter.CameraTicksPerSecond(level), scrollSpeed, level.Players, viewer, _width, _height);
+        _controls = setup.Controls;
+        ClassicCamera = setup.Camera;
+        Focus = focus;
         _camera = new Camera3D
         {
             Name = "Camera",
@@ -112,15 +127,29 @@ public partial class WorldScene : Node3D, IRenderTarget
         PlaceCamera();
     }
 
-    /// <summary>The classic camera's pose for the current viewport, through the frame change, with Unity's off-centre
-    /// projection (<c>projection[1,2] = -shift</c>) as a frustum offset.</summary>
-    private void PlaceCamera()
+    /// <summary>The bottom panel's collapse moves the view axis (Unity's runner's <c>CollapsedChanged</c> handler,
+    /// <see cref="ClassicCamera.ProjectionCentreFromTop"/>); drawn at the next <see cref="PlaceCamera"/>.</summary>
+    public void SetPanelCollapsed(bool collapsed)
     {
-        if (_camera == null || _classicCamera == null) return;
+        if (ClassicCamera == null) return;
+        ClassicCamera.ProjectionCentre = ClassicCamera.ProjectionCentreFromTop(
+            collapsed ? ClassicCamera.CollapsedPanelTop : ClassicCamera.ExpandedPanelTop);
+    }
+
+    /// <summary>The classic camera's pose at <see cref="Focus"/> for the current viewport, through the frame change, with
+    /// Unity's off-centre projection (<c>projection[1,2] = -shift</c>) as a frustum offset; the camera is written only
+    /// when the pose changed. Allocation-free.</summary>
+    public void PlaceCamera()
+    {
+        if (_camera == null || ClassicCamera == null) return;
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
         if (width <= 0 || height <= 0) return;
-        ClassicCameraPose pose = _classicCamera.Pose(_focus, new CameraViewport(width, width, height));
+        var viewport = new CameraViewport(width, width, height);
+        ClassicCameraPose pose = ClassicCamera.Pose(Focus, viewport);
+        if (View != null && pose == _placed && viewport == _placedViewport) return;
+        _placed = pose; _placedViewport = viewport;
+        View = MinimapCameraView.Of(pose, viewport);
         (float frustumHeight, float offset) = RightHandedFrame.Frustum(pose.VerticalFieldOfView, NearPlane, pose.ProjectionCentreShift);
         _camera.Size = frustumHeight;
         _camera.FrustumOffset = new Vector2(0, offset);

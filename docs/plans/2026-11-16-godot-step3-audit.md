@@ -14,8 +14,8 @@ shader copies is B.
 
 `godot/DK2.Godot/InGameHud.cs` runs Level1 inline (no tick worker, so no presented copy), owns one `WorldView`, a
 `FrameDriver` and a `ScriptedViewDirector`, and draws the HUD panels through `HudCanvas`, over the `WorldScene` that 3a
-added (a `Node3D` with its `Camera3D` fixed at the level-start pose). The minimap is drawn from the level-start focus
-and `ClassicCamera.LevelStartYaw`, glides and focus moves are printed, and world hover only has its type text. The
+added (a `Node3D` with its `Camera3D` fixed at the level-start pose). Until 3b the minimap is drawn from the level-start
+focus and `ClassicCamera.LevelStartYaw`, glides and focus moves are printed, and world hover only has its type text. The
 project renders with Forward+ at 1920x1080.
 
 ## One frame decision for every feature
@@ -263,13 +263,14 @@ it by hand.
 
 ## Minimap camera footprint and heading
 
-- **Unity.** `DungeonMinimap.Draw` (`:169-187`), `Heading` (`:92-93`), `MinimapFootprintVisual` (`:230-291`).
+- **Unity.** `DungeonMinimap.Draw` (`:169-187`), `Heading` (`:92-93`), `MinimapFootprintVisual` (`:230-291`; deleted in 3b).
 - **Shared (S).** `MinimapCameraFootprint.TryBuild`, `MinimapHud`, `MinimapDiscImage` (Godot's CPU disc).
-- **B left.** The focus as the view centre's hit on the floor plane when no focus is given (`:173-179`); the four
-  viewport corners in order on the floor plane (`:262-268`); the heading as yaw x 2048/360 (`:92-93`); the ribbon's
-  index list, UV and placement constants (`:232`, `:247-251`, `:288-289`). The corners move as a pose-based helper
-  beside `MinimapCameraFootprint`; the ribbon needs a triangle-list `HudDrawKind`, since `HudDrawKind` has only `Quad`,
-  `Sector` and `Fill` (open point 9; `CanvasItemAddTriangleArray` has a 4.8 trap in TRAPS).
+- **B, moved in 3b.** `MinimapCameraView`: the view centre's and the four viewport corners' hits on the floor plane
+  (rays through the off-centre frustum, `TileTopPlane.TryHit`), the yaw (Unity's `eulerAngles.y`) and the heading as yaw x
+  2048/360, rounded half to even and unmasked. `MinimapCameraFootprint.Triangles` builds the ribbon's index list, UV and
+  placement; `MinimapHud.SetCamera` makes it the frame's first draw, in whole-map mode; `HudTriangles.ClipToCircle` cuts it
+  to the disc on the CPU, replacing Unity's rounded-overflow mask. `HudDrawKind.Triangles` (open point 9) carries it in
+  both `HudCanvas`es (`CanvasItemAddTriangleArray` has a 4.8 trap in TRAPS).
 
 ## Possession camera
 
@@ -305,12 +306,12 @@ three are the terrain and the camera; after that each step adds one kind of thin
   torches ignored), one `MeshInstance3D` per chunk, an unshaded texture material per key, and a `Camera3D` at
   `ClassicCamera.Pose(LevelStartFocus)` including the centre shift. Checked: the Level1 start frame shows the Heart
   room from DK2's camera with the HUD on top; builder tests pin the output against the old build.
-- **3b. Camera control and the minimap.** Godot: `ClassicCameraInput` (keys, edges, wheel, held buttons; y-up sample),
-  `CameraGlide` for the minimap left click and the script's glide, the query follow and turn, the minimap's focus and
-  heading from the live pose, and the footprint. The 1.2 zoom-out limit scale exists only in Unity's inspector
-  (`DungeonRunner.cs:120`) and Godot uses 1, DK2's bound; 3b makes it a shared default. Move: the floor-plane corners and centre, and the triangle-list
-  `HudDrawKind` (open point 9). Check: a capture with a test glide (a `--glide-to x,y` launch argument in
-  `LaunchArguments`) ends at the target, and the footprint matches the view.
+- **3b. Camera control and the minimap.** Done 2026-11-16 (plan step 3b). Moved: `MinimapCameraView`, `HudDrawKind.Triangles`
+  with `HudTriangles`, `ClassicCameraSetup.DefaultZoomOutLimitScale` and `LaunchArguments.GlideTarget`. Godot:
+  `ClassicCameraInput` (y-up sample), `CameraGlide` for every glide, the query follow and turn, the minimap's focus and
+  heading from the live pose, and the footprint. The zoom-out limit scale was 1.3, serialised in `Dungeon.unity` (1.2 was
+  only the code default at `DungeonRunner.cs:120`); it is now the shared default, and the scene keeps an orphaned field.
+  Checked: a `--glide-to x,y` capture moves the view for the 500 ms glide and stops, and the footprint follows; no live input.
 - **3c. Terrain that changes.** Move: the dirty window and the budgeted, threaded flush; the material variants (tint,
   tag, red, fog, decay, tag overlay); `LiquidSurfaceWave`. Godot: rebuilds on tile pushes, liquids waving. Check: the
   frames at turn 1 and after the imps claim tiles differ where expected; tests for the wave and the variant choice.
@@ -388,7 +389,7 @@ must not be driven.
 7. **The scene frame order.** Move the `DrawCreatureFrame` and `Update` world sequence into a shared `SceneFrame`, or
    copy the order into Godot with a comment pointing at Unity's lines until Unity is deleted.
 8. **Shadow silhouettes.** CPU rasterizing in `src/` (testable, no second creature render) or a GPU `SubViewport`.
-9. **The footprint ribbon.** A new triangle-list `HudDrawKind` for every HUD renderer, or a Godot-only draw.
+9. **The footprint ribbon.** Decided in 3b: a shared triangle-list `HudDrawKind`, which Unity draws too.
 10. **Pointer-driven captures.** Moving the OS pointer during a capture moves the owner's cursor (TRAPS). A launch
     argument that feeds a recorded pointer path (or replays an input journal) would make 3e, 3h and 3m checkable
     unattended.

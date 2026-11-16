@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
+
 namespace DK2.Presentation.Tests;
 
 public sealed class LaunchArgumentsTests
@@ -32,4 +34,26 @@ public sealed class LaunchArgumentsTests
         Assert.Null(LaunchArguments.Value(["a", "-x"], "-x"));
         Assert.Null(LaunchArguments.Value([], "-x"));
     }
+    [Fact]
+    public void AGlideTargetIsTwoPlainDecimalsAfterTheKey()
+    {
+        Assert.Equal(new TilePos(12, 40), LaunchArguments.GlideTarget(["--glide-to", "12,40"], "--"));
+        Assert.Equal(new TilePos(0, 7), LaunchArguments.GlideTarget(["-glide-to", "0,7", "-glide-to", "1,1"], "-"));
+        Assert.Null(LaunchArguments.GlideTarget(["--glide-to", "12,40"], "-"));
+        Assert.Null(LaunchArguments.GlideTarget(["--glide-to"], "--"));
+        Assert.Null(LaunchArguments.GlideTarget([], "--"));
+    }
+
+    [Theory]
+    [InlineData("12")]
+    [InlineData("12,")]
+    [InlineData(",40")]
+    [InlineData("-1,4")]
+    [InlineData("1,+4")]
+    [InlineData("1, 4")]
+    [InlineData("1,4,5")]
+    [InlineData("1.5,4")]
+    [InlineData("2147483648,4")]
+    public void AGlideTargetThatIsNotTwoPlainDecimalsIsNone(string text) =>
+        Assert.Null(LaunchArguments.GlideTarget(["--glide-to", text], "--"));
 }

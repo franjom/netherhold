@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit and 3a (static terrain from the level-start camera) are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera) and 3b (camera control and the minimap) are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -171,8 +171,8 @@ group 2 is a list to audit, not a finding.
       (142,0,0), (126,109,33) and (185,0,34), and in the "Player" legend's place and colour;
       synthesized Escape, M, left and right presses opened and closed it. Real input, the room hover,
       a legend with several keepers, the Unity runtime and the front end's brightness against Unity's are
-      unverified. Not wired on the full map: the camera move on a left press (Godot prints that it is not
-      wired; step 2), the camera preview at the top right (needs the 3D world); the dig-tag and pickup
+      unverified. Not wired on the full map: the camera preview at the top right (needs the 3D world; the move on a left press
+      is wired in 3b); the dig-tag and pickup
       previews are step 2 below, and whether the wheel does anything over it is
       [Q860](research/open-questions.md).
       The twelfth panel is the minimap (`ClassicMinimap.cs` over `MinimapHud`: the disc, frame, markers,
@@ -188,7 +188,7 @@ group 2 is a list to audit, not a finding.
       ([Q861](research/open-questions.md)). Godot has one `WorldView` and one `MinimapHud`, owned by the
       minimap, with one full `Capture` per tick; the full map borrows the model (`ClassicMinimap.Model`),
       so the grid-only capture is gone and `ClassicFullMap.Open` takes the minimap. The pose is the
-      level start's, since no camera is ported (`ClassicCamera.LevelStartFocus` and `LevelStartYaw` 256).
+      level start's until step 3b moves the camera (`ClassicCamera.LevelStartFocus` and `LevelStartYaw` 256).
       Moved from Unity into `DK2.Presentation` as pure moves at every Unity call site: `ClassicHudControls.Accepts`
       (the `ApplyHudAction` gate), `ClassicHudControlLayout.TryGuiButton`, `MinimapHud.Press` (a corner's
       action, or `ToggleFullMap` for a right click on a tile; it replaces `DungeonMinimap.HandleCornerPress`,
@@ -201,8 +201,7 @@ group 2 is a list to audit, not a finding.
       the camera footprint, and the blink phase differs). Synthesized clicks showed zoom level 1, the options
       corner opening the menu and a right click opening the full map. Real input, corner hover with a real
       cursor, pixel equality against the GPU, HUD scales other than 100% and the Unity runtime are
-      unverified. Not wired on the minimap: the camera footprint (step 3), the left-click camera move
-      (Godot prints the tile; steps 2-3), the query and sell corners (they light up and print, and post no
+      unverified. Not wired on the minimap (the camera footprint and the left-click camera move are wired in 3b): the query and sell corners (they light up and print, and post no
       `GuiButtonCommand`, so a Godot session's command stream differs from Unity's for those clicks; step 2,
       tool state) and the heading during the opening camera path (step 2, scripted view). In Godot the
       bottom panel's `CancelPointerGesture` runs before the panel's own `PointerDown` when a minimap action
@@ -596,12 +595,41 @@ licensed; its lighting probes can give reference frames for 3i and 3j).
       passes; Unity's batch compile, `SmokeTest` and `SaveSmokeTest` passed on the final change, after the review fixes. A
       Movie Maker capture at 1920x1080 shows Level1's Heart room from DK2's start camera with the HUD on top, not
       mirrored (a Gold tile at the minimap's north notch), with correct wall faces and textures, full-bright.
-- [ ] Terrain meshes and the classic camera (`TerrainPieces`, `TerrainLattice`, `ClassicCamera`,
-      `CameraGlide` and `ClassicCameraInput` are already in `src/`). The pointer sample is y-up: pass
-      `y = ScreenHeight - yTop` from a top-left host (step 2i).
+- [x] 3b. Camera control and the minimap (2026-11-16). In `DK2.Presentation`: `MinimapCameraView` holds the drawn
+      camera's floor-plane centre and corners (rays through the off-centre frustum, `TileTopPlane.TryHit`), its yaw
+      (Unity's `eulerAngles.y`; looking straight down, from `Up`'s horizontal part) and the heading, yaw x 2048/360 rounded
+      half to even and unmasked; it moved out of Unity's `DungeonMinimap`. `HudDrawKind.Triangles`, `HudVertexRange` and
+      `HudFrame`'s vertex store (`AddTriangles`, `Vertices(draw)`; `Clear`, `SameAs` and `CopyFrom` cover it) carry a textured
+      triangle list, and both `HudCanvas` renderers draw it. `HudTriangles.ClipToCircle` cuts the footprint to the disc's circle
+      on the CPU, within 0.12% of the radius; it replaces Unity's rounded-overflow mask (the remake's choice).
+      `MinimapCameraFootprint.Triangles` builds the ribbon, and `MinimapHud.SetCamera` makes it the frame's first draw, under
+      the frame, in whole-map mode only (the draw order is the remake's choice, the native z-order being unread). Unity's
+      `MinimapFootprintVisual` is deleted and `DungeonMinimap` calls `SetCamera`. `ClassicCameraSetup.DefaultZoomOutLimitScale`
+      is 1.3 and both adapters use it: Unity's serialised `cameraZoomOutLimitScale` was 1.3 in `Dungeon.unity` (1.2 was only
+      the code default); the scene keeps an orphaned field Unity ignores, and tuning the scale now needs a code change.
+      `LaunchArguments.GlideTarget` reads `--glide-to x,y`. Godot's `WorldScene` exposes the focus and places the camera once a
+      frame, and `InGameHud.UpdateCamera` moves it in Unity's order: the path, the glide, the script's follow, then
+      `ClassicCameraInput` (keys, edges, wheel, held buttons; y-up pointer, `PointerOverHud`, window focus). Every glide that
+      was printed now runs through `CameraGlide`: the script's, minimap, room, door, trap, battle tab, portal, Heart, fight and
+      a message's goto. The full map and the overview jump the focus; the query follow and turn, the script's zoom, the scroll
+      speed and the panel collapse are wired, and the minimap draws from the live camera with its footprint.
+      `tools/hud-probe`'s pilot footprint checks are removed (the tool is due for deletion in step 4). Reviewer: 49 mutants,
+      the survivors now killed or equivalent; it re-derived that the Heart, the focus, sits about 31% of the floor depth in from
+      the footprint's narrow edge, as the capture shows. Verification: `dotnet test DK2.slnx` 10,578 passed before the review
+      fixes (Presentation 2,610 after them); the Level1 turn-400 hash is unchanged (`D7290428D81A902F`); the
+      `DK2.Unity.Compile` stand-in passes; Unity's batch compile, `SmokeTest` and `SaveSmokeTest` passed. A Movie Maker capture
+      with `--glide-to 30,12` from a save after the opening path: the 3D view moves for 16 frames (the 500 ms glide) and
+      stops, and the minimap footprint moves from around the Heart to the top of the disc and is clipped cleanly at the rim;
+      the disc does not scroll, since Level1 is in whole-map mode. Not exercised: live keys, edges and wheel in Godot (they ran
+      only in unit tests, since driving the pointer would move the owner's cursor). In 3g the query follow must read the drawn,
+      interpolated model, as Unity does; Godot reads the settled simulation position. The footprint's native scale and centre
+      constants are an open item ([minimap-rendering.md](research/minimap-rendering.md), *Camera footprint*). An allocation
+      test fails in about 1 of 5 to 10 full Presentation runs, also on a clean HEAD (`docs/TRAPS.md`).
+- [ ] Terrain that changes, the blended stream, the pointer, cage and placement (3c to 3e; the audit lists the order). Pointer
+      samples are y-up: pass `y = ScreenHeight - yTop` from a top-left host (step 2i).
 - [ ] Creatures, animation playback, shadows.
 - [ ] Lighting tuned to feel like DK2 (owner exception: tuned per engine, not ported natively).
-- [ ] 3D overlays, the minimap's camera footprint, the hand cursor, then the in-game HUD from step 1.
+- [ ] 3D overlays, the hand cursor, then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging
 

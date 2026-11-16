@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Globalization;
+using DK2.Core;
 
 namespace DK2.Presentation;
 
@@ -19,6 +20,19 @@ public sealed record LaunchArguments(string? Level, ulong? Seed, string? Install
         ulong? seed = seedText != null && ulong.TryParse(seedText, NumberStyles.None, CultureInfo.InvariantCulture, out ulong value)
             ? value : null;
         return new LaunchArguments(Value(args, prefix + "level"), seed, Value(args, prefix + "dk2Install"));
+    }
+
+    /// <summary>The tile a <c>glide-to x,y</c> argument names (a check that shows a camera glide), or null when it is
+    /// absent or not two plain decimals.</summary>
+    public static TilePos? GlideTarget(IReadOnlyList<string> args, string prefix)
+    {
+        if (prefix is null) throw new ArgumentNullException(nameof(prefix));
+        string? text = Value(args, prefix + "glide-to");
+        int comma = text?.IndexOf(',') ?? -1;
+        if (text is null || comma < 0) return null;
+        return int.TryParse(text.Substring(0, comma), NumberStyles.None, CultureInfo.InvariantCulture, out int x)
+            && int.TryParse(text.Substring(comma + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int y)
+            ? new TilePos(x, y) : null;
     }
 
     /// <summary>The argument after the first <paramref name="key"/>, or null when the key is absent or last.</summary>

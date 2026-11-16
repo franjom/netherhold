@@ -39,8 +39,6 @@ namespace DK2.Unity.HudProbe
         private MinimapGpuMap _liveGpu;
         private MinimapHud _minimapHud;
         private HudCanvas _minimapCanvas;
-        private MinimapFootprintVisual _footprint;
-        private MinimapFootprintVisual _wideFootprint;
         private ClassicTileHoverOutline _tileOutline;
         private RenderTexture _outlineTarget;
         private ClassicHoverHud _hoverHud;
@@ -100,22 +98,6 @@ namespace DK2.Unity.HudProbe
                 AssertDisc(disc);
                 AddImage(root, disc, left: 260, top: 420, width: 224, height: 224);
                 AddLiveLevel(root, palette, backdrop);
-                _footprint = new MinimapFootprintVisual(frameAssets.CameraFootprint, 128, 128);
-                root.Add(_footprint);
-                var footprintCamera = Own(new GameObject("Footprint probe camera"));
-                var camera = footprintCamera.AddComponent<Camera>();
-                camera.enabled = false; camera.orthographic = true; camera.orthographicSize = 8; camera.aspect = 1;
-                camera.transform.SetPositionAndRotation(new Vector3(64, 33, -64), Quaternion.Euler(90, 0, 0));
-                _footprint.UpdateCamera(camera);
-                var wideRoot = new VisualElement { pickingMode = PickingMode.Ignore };
-                wideRoot.style.position = Position.Absolute;
-                wideRoot.style.left = 500; wideRoot.style.top = -100;
-                wideRoot.style.right = -500; wideRoot.style.bottom = 100;
-                root.Add(wideRoot);
-                _wideFootprint = new MinimapFootprintVisual(frameAssets.CameraFootprint, 128, 128);
-                wideRoot.Add(_wideFootprint);
-                camera.orthographicSize = 40; camera.aspect = 2;
-                _wideFootprint.UpdateCamera(camera);
                 // The frame, corners and north sprite, drawn as the game draws them (ADR-0805).
                 var minimapArt = new Dictionary<string, RgbaImage>
                     { [MinimapHud.FrameArt] = frameAssets.Frame, [MinimapHud.NorthArt] = frameAssets.North };
@@ -555,20 +537,10 @@ namespace DK2.Unity.HudProbe
                     if (pixels.Count(p => p.r > 45 || p.g > 45 || p.b > 45) < pixels.Length / 200)
                         throw new InvalidOperationException("UI Toolkit target has no rendered image content.");
                     AssertComposition(image);
-                    AssertFootprintClip(image);
                     AssertNorth(image, new Dk2Angle((ushort)(_view == 0 ? 0 : 256)));
                     AssertHoverOutline();
                     AssertHoverDocuments();
                     AssertControlsPilot();
-                    int white = 0;
-                    float scale = _panel.height / 768f;
-                    for (int y = Mathf.FloorToInt(661 * scale); y < 684 * scale; y++)
-                        for (int x = Mathf.FloorToInt(84 * scale); x < 108 * scale; x++)
-                        {
-                            Color32 pixel = image.GetPixel(x, image.height - 1 - y);
-                            if (pixel.r > 180 && pixel.g > 180 && pixel.b > 180) white++;
-                        }
-                    if (white < 8 * scale) throw new InvalidOperationException("Native camera-footprint ribbon did not render.");
                     string path = Path.Combine(_output, "hud-pilot-" + _panel.width + "x" + _panel.height + ".png");
                     File.WriteAllBytes(path, image.EncodeToPNG()); _captures.Add(Path.GetFileName(path));
                 }
@@ -598,23 +570,6 @@ namespace DK2.Unity.HudProbe
                     throw new InvalidOperationException("Minimap shader alpha mask failed.");
             }
             finally { Destroy(image); }
-        }
-        private static void AssertFootprintClip(Texture2D image)
-        {
-            float scale = image.height / 768f;
-            int inside = 0, outside = 0;
-            for (int y = Mathf.CeilToInt(480 * scale); y < 665 * scale; y++)
-                for (int x = Mathf.CeilToInt(505 * scale); x < 690 * scale; x++)
-                {
-                    Color32 pixel = image.GetPixel(x, image.height - 1 - y);
-                    if (pixel.r < 180 || pixel.g < 180 || pixel.b < 180) continue;
-                    float dx = (x + .5f) / scale - 597.6f;
-                    float dy = (y + .5f) / scale - 572;
-                    if (dx * dx + dy * dy > 86 * 86) outside++;
-                    else inside++;
-                }
-            if (inside < 20 || outside != 0)
-                throw new InvalidOperationException("Zoomed-out footprint clip failed: inside=" + inside + ", outside=" + outside);
         }
         private static void AssertNorth(Texture2D image, Dk2Angle heading)
         {
@@ -725,8 +680,6 @@ namespace DK2.Unity.HudProbe
         {
             _liveGpu?.Dispose();
             _minimapCanvas?.Dispose();
-            _footprint?.Dispose();
-            _wideFootprint?.Dispose();
             _tileOutline?.Dispose();
             _hoverHud?.Dispose();
             DisposeControlsPilot();

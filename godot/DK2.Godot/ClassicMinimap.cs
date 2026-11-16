@@ -17,7 +17,7 @@ namespace DK2.GodotAdapter;
 /// <c>DK2Minimap.shader</c>), drawn again only when a capture, the zoom, the view or the size changed, and uploaded into
 /// one reused texture. It takes no press itself: the host asks <see cref="HandlePress"/> and <see cref="TryNavigate"/> in
 /// Unity's order (<see cref="HudPressRouter"/>), and the press is not taken from the panels under it, as Unity's minimap
-/// canvas picks nothing. Not drawn: the camera footprint, which needs the 3D camera.</summary>
+/// canvas picks nothing. The camera footprint is the frame's first draw (<see cref="MinimapHud.SetCamera"/>).</summary>
 public partial class ClassicMinimap : Node
 {
     private static readonly Vector2 Away = new(-1e9f, -1e9f);
@@ -72,6 +72,7 @@ public partial class ClassicMinimap : Node
         {
             [MinimapHud.FrameArt] = assets.Frame,
             [MinimapHud.NorthArt] = assets.North,
+            [MinimapHud.FootprintArt] = assets.CameraFootprint,
         };
         for (int i = 0; i < 4; i++)
             for (int active = 0; active < 2; active++)
@@ -130,7 +131,8 @@ public partial class ClassicMinimap : Node
     /// <param name="optionsVisible">The options menu is open, which keeps its corner lit.</param>
     /// <param name="focus">The camera's focus (<see cref="MinimapHud.FixedFocus"/>) and <paramref name="heading"/>, which
     /// the disc is drawn from and presses resolve against.</param>
-    public void Draw(ClassicHudAction selected, bool optionsVisible, FpPosition3 focus, Dk2Angle heading)
+    /// <param name="camera">The drawn camera, whose footprint the whole-map disc shows; null for none.</param>
+    public void Draw(ClassicHudAction selected, bool optionsVisible, FpPosition3 focus, Dk2Angle heading, MinimapCameraView? camera)
     {
         if (_hud == null || _disc == null || _canvas == null || _discNode == null) return;
         Vector2 size = GetViewport().GetVisibleRect().Size;
@@ -142,6 +144,7 @@ public partial class ClassicMinimap : Node
         // Bottom-docked (ClassicHudScaling.Apply), as the bottom panel: the panel's bottom stays on the screen's bottom.
         _origin = new Vector2(0, _layout.BottomOriginPixels);
         _hud.SetControls(selected, optionsVisible);
+        _hud.SetCamera(camera);
         bool shown = _hud.Visibility.ShowNormalHud;
         _canvas.Visible = shown; _discNode.Visible = shown;
         if (!shown) return;

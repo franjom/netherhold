@@ -12,8 +12,8 @@ namespace DK2.Presentation;
 
 /// <summary>The engine-free minimap (ADR-0805): its zoom, corner controls, frame and north sprite, its hit area and
 /// navigation, and the class grid and markers it captures for the engine's disc. Laid out bottom-docked in
-/// DK2's 1024x768 units; one is 2.5 virtual. The disc itself (Unity's GPU pass, or <see cref="MinimapDiscImage"/>), and
-/// the camera footprint drawn on it, are the engine's (<see cref="Disc"/> is where they go).</summary>
+/// DK2's 1024x768 units; one is 2.5 virtual. The disc itself (Unity's GPU pass, or <see cref="MinimapDiscImage"/>) is the
+/// engine's (<see cref="Disc"/> is where it goes); the camera footprint over it is the frame's first draw.</summary>
 public sealed class MinimapHud
 {
     private const float Unit = 2.5f;
@@ -46,6 +46,11 @@ public sealed class MinimapHud
     private WorldState? _capturedWorld;
     private long _capturedTick = -1;
     private int _capturedPreview = -1;
+    private readonly Vector2[] _corners = new Vector2[4], _ribbon = new Vector2[8];
+    private readonly HudVertex[] _ribbonTriangles = new HudVertex[MinimapCameraFootprint.TriangleVertices];
+    private readonly HudVertex[] _footprint =
+        new HudVertex[MinimapCameraFootprint.TriangleVertices / 3 * HudTriangles.MaxVerticesPerTriangle];
+    private int _footprintCount;
 
     public MinimapHud(MinimapPalette palette, int mapWidth, int mapHeight)
     {
@@ -78,6 +83,7 @@ public sealed class MinimapHud
     {
         yield return FrameArt;
         yield return NorthArt;
+        yield return FootprintArt;
         foreach (string corner in Corners) yield return corner;
     }
 
@@ -129,6 +135,20 @@ public sealed class MinimapHud
         _visibility.ShowNormalHud && _visibility.AllowOrdinaryInput
         && x >= 8 * Unit && x < 192 * Unit && y > 584 * Unit && y <= 768 * Unit;
 
+    /// <summary>The drawn camera, whose footprint the whole-map disc shows (<see cref="MinimapCameraFootprint"/>, turned by
+    /// the camera's yaw), cut to the disc's circle as Unity's footprint element was; null, or a corner ray that misses
+    /// the floor, shows none.</summary>
+    public void SetCamera(MinimapCameraView? view)
+    {
+        _footprintCount = 0;
+        if (view is not MinimapCameraView camera || !camera.TryFloorCorners(_corners)
+            || !MinimapCameraFootprint.TryBuild(_corners, MapWidth, MapHeight, camera.YawDegrees * (MathF.PI / 180f), _ribbon))
+            return;
+        MinimapCameraFootprint.Triangles(_ribbon, _ribbonTriangles);
+        _footprintCount = HudTriangles.ClipToCircle(_ribbonTriangles, Disc.X + Disc.Width / 2, Disc.Y + Disc.Height / 2,
+            Disc.Width / 2, _footprint);
+    }
+
     /// <summary>The selected tool and whether Options is open: their corners stay lit.</summary>
     public void SetControls(ClassicHudAction selected, bool optionsVisible) { _selected = selected; _optionsVisible = optionsVisible; }
 
@@ -179,6 +199,10 @@ public sealed class MinimapHud
     public void Build(HudScreen screen, (float X, float Y) pointer, Dk2Angle heading, HudFrame frame)
     {
         if (!_visibility.ShowNormalHud || screen.Height <= 0) return;
+        // Over the disc and under the frame: the remake's choice, as in Unity's footprint element, the native z-order being
+        // unread (minimap-rendering.md). Whole map only.
+        if (_zoom.IsWholeMap && _footprintCount > 0)
+            frame.AddTriangles(FootprintArt, new ReadOnlySpan<HudVertex>(_footprint, 0, _footprintCount), HudColor.White);
         HudQuads.Clipped(frame, FrameArt, FrameRect, FrameClip, HudColor.White);
         ClassicHudAction hover = ClassicHudControlLayout.ActionAt(Reference(pointer.X, pointer.Y), false);
         for (int i = 0; i < 4; i++)

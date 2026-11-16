@@ -33,7 +33,7 @@ pointer's gates from the HUD press to the translated commands, over an `IWorldPo
 the failure and close handling; the format is `FrameInputJournal` and `InputJournalWriter`).
 The ordinary camera's rules, shared by both adapters: `CameraGlide` and `CameraFocus` (the action-26 glide, `TileCentre`
 clamped to the bounds, `Over`, `Bounds`), `ClassicCameraInput` (the 5 px edge scroll, frame time, pointer delta and `Apply`, over a
-y-up `CameraPointerSample`), `ClassicCameraSetup` (preset lookup, `ZoomOutLimit`, `Create`), `TileTopPlane` (the ray's hit on a
+y-up `CameraPointerSample`), `ClassicCameraSetup` (preset lookup, `ZoomOutLimit`, `DefaultZoomOutLimitScale`, `Create`), `MinimapCameraView` (the drawn camera's floor corners, yaw and heading for the minimap's footprint), `TileTopPlane` (the ray's hit on a
 tile's top plane, command positions and the hand-light point), `GameSessionStarter` (the simulation for a campaign, front-end or DK2-save
 start), `ClassicCreatureQueryRules.Follows` and `TurnToFollowHeading`, and `CameraPathPose.FrontEndVerticalFieldOfView`.
 The scene mapping for creatures and objects, render only (it reads views, never the world): `PoseInterpolator` (draw seconds, the
