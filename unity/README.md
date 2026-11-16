@@ -154,7 +154,8 @@ files exist; campaign wins unlock their gallery entries. Locked/missing movies
 and Credits are disabled. Runtime media acceptance is tracked in the front-end plan.
 
 Off by default. Set the runner's **Input Journal Directory** field, or the `DK2_INPUT_JOURNAL`
-environment variable (the field wins), to a folder. Each `DungeonRunner` writes a new
+environment variable (the field wins), to a folder. The policy is `FrameJournalSession` in `DK2.Presentation`: the header's `keys` names the key
+table (`UnityEngine.KeyCode` here; Godot has its own switch and writes `Godot.Key`). Each `DungeonRunner` writes a new
 `session-<utc>-<level or front-end>` folder there with `frames.journal` (one record per rendered
 frame: raw input, HUD flags, intents, queued commands, ticks run) and, once its simulation ticks,
 `input.journal` (the ADR-0552 format: the frame and the hash after each tick). A front-end walk

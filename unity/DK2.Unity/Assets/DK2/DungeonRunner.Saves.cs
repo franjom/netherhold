@@ -17,8 +17,8 @@ namespace DK2.Unity
         [SerializeField] private string savedSessionDirectory = "";
         private SaveSlotsView _saves;
         private ClassicSaveLoadPanel _savePanel;
-        private GameSimulation _resumeSimulation, _pendingResumeSimulation;
-        private SavedSession _resumeSession, _pendingResumeSession;
+        private GameSimulation _resumeSimulation;
+        private SavedSession _resumeSession;
         private SessionSaver _saver;
         private SessionLoader _loader;
 
@@ -55,9 +55,7 @@ namespace DK2.Unity
             {
                 WaitForTick();
                 // Validated and rebuilt before the current scene is released; loaded as DK2 loads a save (ADR-0241: rooms re-chain).
-                GameSessionRequest request = _loader.Load(path);
-                _pendingResumeSession = request.Resume.Session; _pendingResumeSimulation = request.Resume.Simulation;
-                _pendingSession = request;
+                _pendingSession = _loader.Load(path);
             }
             catch (Exception ex) when (ex is IOException || ex is InvalidDataException || ex is ArgumentException
                 || ex is UnauthorizedAccessException || ex is NotSupportedException)

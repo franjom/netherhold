@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f and 2g are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g and 2h are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -247,7 +247,9 @@ group 2 is a list to audit, not a finding.
       for three arrays, the upkeep call 32 B, about 40 B untraced, perhaps `GoldStore.Total` or
       `CasinoJackpotRules.WageBill`; the view allocates nothing), where buffer or span overloads in
       `ManaRules` would remove it; and `MusicWorldObserver.Capture`'s remaining 216 B, three
-      `WorldState.OwnedCreatures` iterators, where a struct enumerator would remove it.
+      `WorldState.OwnedCreatures` iterators, where a struct enumerator would remove it. Also left (2026-11-16, found in
+      2h): `LocalPickupFeedback.Advance`'s `_dust.RemoveAll(p => ...)` captures `milliseconds`, so it allocates a closure
+      every frame (unmeasured); Godot now calls it every frame, and a backwards loop would remove it.
 
 ## Step 2: move game-flow logic out of Unity
 
@@ -267,7 +269,7 @@ group 2 is a list to audit, not a finding.
       played slot to `WorldHoverText`; and on focus-out it now cancels the bottom panel's press and the
       world drag, queuing the slot-release sound request 0x136 if a choice slot was held, as Unity does (Godot has no sound player). Godot parses
       `--dk2Install` and ignores it (`Dk2Install.Find()`), and has no subtitles yet (2k). Unity's
-      `OnDisable` and `Hud.cs:318` cancel in another order and are unchanged (2h). Not run: Godot's focus-out
+      `OnDisable` and `Hud.cs:318` cancel in another order and are unchanged; the order Godot uses was settled in 2h. Not run: Godot's focus-out
       cancel and the modal query gate with a real window and pointer, and Unity in Play mode.
 - [x] 2b. Tool state (2026-11-16): `HudToolState` (`DungeonToolMode` with its values unchanged, so `Dungeon.unity`'s
       `tool: 0` loads; the tool, room, panel choice, query tool and selected corner; `ActiveTool`, `StartWith`,
@@ -301,9 +303,9 @@ group 2 is a list to audit, not a finding.
       and trap navigation compute their entries and print the target. Game Options key capture is polled only in the
       options branch, `None` is applied while the full map is open, the pointer is taken at frame time, and an options
       left press that misses every entry still runs `TakeSessionAction`, all as in Unity. Still unwired: every camera
-      move, session actions, picking (world left clicks do nothing), the hand's own world press and possession, the
-      per-frame `LocalPickups.Advance` and `DrainReadyDrops` (2h) and the hand cursor. Godot's `QueueInput` gate order
-      and the battle-tab dispatch still mirror the runner and move with 2h. Not run: Godot presses with a real mouse,
+      move, session actions, picking (world left clicks do nothing), the hand's own world press and possession, and the
+      hand cursor. Godot's `QueueInput` gate order moved with 2h (`WorldPointerInput`); its battle-tab dispatch still
+      mirrors the runner's. Not run: Godot presses with a real mouse,
       Unity in Play mode, and Godot 4.8's `WindowInput`-before-`_Input` order (inferred, not read in source).
 - [x] 2d. World hover to cursor (2026-11-16), a pure move into `DK2.Presentation`: `HoverCursorResolver.Resolve` takes a
       `HoverCursorInput` (the pick, whether input is allowed, the pointer over the HUD, the held button, the gold, the
@@ -355,8 +357,8 @@ group 2 is a list to audit, not a finding.
       without adopting it. The snapshot format and load order are unchanged. `GameSessionRequest.Resume` and `Resumed` carry the result;
       `CampaignLevelData`'s constructor is internal. The one Unity difference: a save whose level map is missing is now
       refused, since `CampaignLevelData.Load` reads the map (all 66 shipped maps load; an `InvalidOperationException`
-      from it reads as "not available in this installation"). Unity's `LoadLevel` still copies `_pendingResume*` and
-      does not read `request.Resume`, as at HEAD: for 2h. Godot: `InGameHud` has a `CampaignProfileStore`, loaded on the
+      from it reads as "not available in this installation"). Unity's `LoadLevel` copied `_pendingResume*` instead of
+      reading `request.Resume` until 2h. Godot: `InGameHud` has a `CampaignProfileStore`, loaded on the
       first save or load. Save writes `<saves>/<name>.dk2g` through `SessionSaver`. Load goes through `SessionLoader`,
       a static handoff and a deferred scene reload (`ReloadForResume`); the new instance continues from the restored
       simulation, a second submit while a reload is pending is ignored, and a failed reload clears the handoff and shows
@@ -403,8 +405,7 @@ group 2 is a list to audit, not a finding.
       `--profile` is given. `ClassicFrontEndMenu.Open` passes the return page to the profile load, so the won map's
       branch repair runs as in Unity (it writes the profile when the front end is entered with CampaignResults). New
       check arguments: `--from-map`, `--stage-win`, `--stage-loss`, `--leave-result`, `--escape-result`; Godot also
-      prints the viewer's status changes (`godot/README.md`). Not wired in Godot: path skip and `SkipCameraPathCommand`
-      (2h), the path camera, letterbox, subtitles, the win screen and tablet, and the post-win cutscene (needs media,
+      prints the viewer's status changes (`godot/README.md`). Not wired in Godot: the path camera, letterbox, subtitles, the win screen and tablet, and the post-win cutscene (needs media,
       step 4), so a won map goes straight to the results page. Owner question, product policy and not a DK2 unknown
       (so no Q row): is it fine that Godot's Space goes straight to the front end, skipping the title card and cutscene,
       until media lands in step 4. Verification: `dotnet test DK2.slnx` green (Presentation 2276, Simulation 5583,
@@ -412,9 +413,50 @@ group 2 is a list to audit, not a finding.
       with temp folders: a win then Space leaves, a win then Escape posts Continue then Reveal and the game keeps
       playing, a loss then Escape posts nothing and Space leaves; 17 + 8 mutations across the review all fail a test.
       Not run: Unity in Play mode, and `CompletionFlowProbe` (uncompiled; its reflection is updated).
-- [ ] 2h. The frame order and the command stream (`FrameDriver`, `WorldPointerInput`,
-      `FrameJournalSession`), last and in one piece, behind a journal-equivalence test written first.
-      The bottom panel's `CancelPointerGesture` order in Godot is settled here.
+- [x] 2h. The frame order and the command stream (2026-11-16), last and in one piece, in `DK2.Presentation`.
+      `FrameDriver` (with `ITurnPoseSource`, `FrameScriptInput`, `FrameTicks`; the scripted-view director is passed in on
+      each call, since two Unity probes swap it): `UpdateScript` (render tick = current + pending + min(debt, 1)),
+      `AdvancePickups` (reset on a viewer change), `TakeScriptedInput` (Escape or Space skips a playing path and posts
+      `SkipCameraPathCommand`, 0x00405362; a glide; `AllowOptionsKey = !PathWasPlaying`), `TakeTicks` (`DrainReadyDrops`,
+      the speed and pause gate, accrue, take, the pose inserted at index 0 only with ticks, `FirstInput`, the journal's
+      `HandOff`, then `Clear`) and `AfterTicks` (tag acknowledgements, terrain highlights). `WorldPointerInput` (with
+      `IWorldPointerHost`, `WorldPointerFrame`) is `QueueInput`'s gate sequence: ordinary input, possessing (modal only),
+      HUD and world clicks, the minimap, `SelectTool`, press or release, the intent, the journal's intent, the snapshot
+      and hover, `Translate`, the post-processing. `FrameJournalSession` is the journal policy (`DK2_INPUT_JOURNAL`,
+      folder name, header, failure and close). `PossessionSession` implements `ITurnPoseSource`; the worker-tick
+      protocol stays in Unity. The `keys` header now names the key table ("UnityEngine.KeyCode" or "Godot.Key"), which
+      closes the audit's journal-portability point; the format is unchanged, so existing Unity journals still read.
+      Unity's `LoadLevel` reads `request.Resume` and `_pendingResume*` is gone (strictly more correct). Known gap: the
+      binary gates Escape on 0x0075A661 and Space on player +0x76 bit 0x400000; `FrameDriver` mirrors only the path
+      branch with the bare keys, as Unity did (ADR-0496; [0x00405010](../research/functions/00405010.md)).
+      Godot: `InGameHud` runs `FrameDriver` and `WorldPointerInput` in Unity's order, replacing its `TickPacer` loop and
+      gate copies (`QueueInput` is a thin call). Deferred drops now post. Escape or Space skips a playing camera path and
+      posts `SkipCameraPathCommand`, and the options key is held that frame; the script's glide prints "not wired".
+      Releases are read, but without picking they find no tile and post nothing. The journal is opt-in through
+      `--input-journal <dir>` only: Godot does not read `DK2_INPUT_JOURNAL`, Unity's variable, so that a globally set
+      variable does not make every Godot run write; the header carries `source=godot`, `keys=Godot.Key` and
+      `godot.version`. The `CancelPointerGesture` order, settled: a frame without ordinary input and possession cancel
+      only the world drag, focus loss cancels the panel's press and then the world drag, and the panel cancels its own
+      press when freed. Unity's cancel sites are unchanged. Evidence: Unity's own recordings in `F:\DK2Evidence` hold no
+      commands and use old HashVersions, so none replays as pass or fail. `FrameOrderJournalEquivalenceTests`
+      (Behavior) feeds the committed `level1-seed1-win/input.journal` through the frame order with hand-built frame
+      splits (paused, speed 0, short and two-tick frames), rebuilds the fixture byte for byte, checks that each handing
+      frame's record holds exactly that tick's commands, and an install-gated replay matches all 2445 hashes (that
+      replay is a sanity check of the fixture, not of the frame order). `UnityFrameJournalFixtureTests` (Presentation)
+      re-records a real Unity recording, committed under `tests/DK2.Presentation.Tests/Fixtures/unity-level1-frames/`
+      (our adapter's output, a SHA-verified copy, no personal data, marked binary in `.gitattributes`), and reproduces
+      Unity's `frames.journal` byte for byte; it covers the recorder only. `FrameDriverTests` (18),
+      `WorldPointerInputTests` (9) and `FrameJournalSessionTests` (10) cover what recordings cannot: the pose, drops,
+      the skip, the options hold, a viewer change, the camera mode, the render-tick clock, `AfterTicks`, every gate
+      and the journal policy. 26 mutations (the render-tick terms, the pose position, hand-off before clear, drops
+      before hand-off, the gate, the skip and the `WorldPointerInput` gates) all fail a test. The reviewer found no
+      equivalence defect in either product path; fixed after review: the cached `_scriptedView` (now passed per call),
+      the clock expression tests, the Godot journal switch (argument-only) and the sanity replay's name. Verification:
+      `dotnet test DK2.slnx` green (Presentation 2315, Behavior 677 with 5 skipped, Simulation 5583); Godot builds 0
+      warnings and 0 errors and the Unity compile has 0 errors; headless Godot Level1 turn-400 hash `D7290428D81A902F`,
+      the save and load hashes unchanged, `--from-map` win and Escape as before, an `--input-journal` run wrote both
+      journals with the same hash, and `DK2_INPUT_JOURNAL` without the argument wrote nothing. Not run: Unity in Play
+      mode (the possession pose, pickup and drop, the skip) and Godot with real input.
 - [ ] 2i. Pure camera rules: glide, edge scroll and wheel input, set-up, focus clamp, query follow
       and turn, the front end's 4:3 field of view, the session build branch.
 - [ ] 2j. Scene mapping for step 3: `PoseInterpolator`/`MeshOrientation`, `AnimationClipRequest`,

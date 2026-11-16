@@ -52,12 +52,6 @@ namespace DK2.Unity
             if (Possessing && !_scriptedView.PathPlaying && PossessionOrdinaryCamera == null) ApplyPossessionCamera();
         }
 
-        private void QueuePossessionPose()
-        {
-            PlayerCommand pose = _possession?.TurnPose(new PlayerId((byte)viewingPlayerId));
-            if (pose != null) _pendingCommands.Insert(0, pose);
-        }
-
         /// <summary>Places the camera when the picture is the possession's; false leaves it to the ordinary camera.</summary>
         private bool ApplyPossessionCamera()
         {

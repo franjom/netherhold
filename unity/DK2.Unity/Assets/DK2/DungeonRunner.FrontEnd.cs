@@ -65,8 +65,8 @@ namespace DK2.Unity
             runner.levelName = request.LevelName;
             runner.frontEndReturnPage = request.ReturnPage;
             runner.saveFile = "";
-            runner._resumeSession = _pendingResumeSession;
-            runner._resumeSimulation = _pendingResumeSimulation;
+            runner._resumeSession = request.Resume?.Session;
+            runner._resumeSimulation = request.Resume?.Simulation;
             runner.enabled = true;
             gameObject.SetActive(false);
             // Shader globals belong to one scene; release them before the replacement publishes its buffers.

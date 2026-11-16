@@ -29,7 +29,7 @@ public readonly record struct PossessionUpdate(bool Entered, bool Ended, Vector3
 /// moves, and says what the host applies: the camera's pose, the creature whose model is left out,
 /// whether the pointer is held, the commands to queue and the sounds to play. A host only reads its
 /// input into <see cref="PossessionInput"/> and applies the result (ADR-0805).</summary>
-public sealed class PossessionSession
+public sealed class PossessionSession : ITurnPoseSource
 {
     private static readonly GameAction[] PressActions =
     [

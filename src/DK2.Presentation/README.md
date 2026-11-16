@@ -25,6 +25,12 @@ statistics once per player, the result once, the win keys, and Space back to the
 level's title, speech, pause and movies, over an `ICampaignCutsceneHost`) and `TabletDrawList` over `TabletMesh` (the reward
 tablet's projection and back-face cull, shared by the win screen and the battle fly-in). `ScriptedViewDirector` also gives
 `PlayedHud` (the HUD's visibility under the scripted view) and `PanelFlash` (the flash-button target).
+The frame order and the command stream, shared by both adapters: `FrameDriver` (`UpdateScript`, `AdvancePickups`,
+`TakeScriptedInput` with the camera-path skip, `TakeTicks` and `AfterTicks`; `ITurnPoseSource`, which `PossessionSession`
+implements, puts the possession pose first, and `FrameScriptInput` and `FrameTicks` carry the results), `WorldPointerInput` (the world
+pointer's gates from the HUD press to the translated commands, over an `IWorldPointerHost` and a `WorldPointerFrame`) and
+`FrameJournalSession` (the input journal's policy: the opt-in variable, folder name, header with the key table's name, and
+the failure and close handling; the format is `FrameInputJournal` and `InputJournalWriter`).
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

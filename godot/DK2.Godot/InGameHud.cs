@@ -27,7 +27,7 @@ namespace DK2.GodotAdapter;
 /// (<see cref="ClassicMinimap"/>, drawn from the level-start camera's focus and heading, as no camera moves them here; its
 /// grid is the full map's too). Not wired (logic still in Unity's runner, or needing the 3D world): the list is in
 /// docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c> (<c>--stage-battle</c> is <see cref="StageBattle"/>): godot/README.md.</summary>
-public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPressHost, IWorldClickHost
+public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPressHost, IWorldPointerHost
 {
     private readonly List<PlayerCommand> _pending = new();
     private readonly PlayerInputTranslator _input = new();
@@ -48,7 +48,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private Window? _window;
     /// <summary>The left and right buttons pressed since the last frame, read from the window before any panel marks the
     /// event handled, as Unity's <c>Input.GetMouseButtonDown</c> sees every press whatever the UI does with it.</summary>
-    private bool _primaryDown, _secondaryDown;
+    private bool _primaryDown, _secondaryDown, _primaryUp, _secondaryUp;
     /// <summary>The pointer and the HUD's visibility for this frame's presses (Unity's <c>Input.mousePosition</c> and
     /// <c>CurrentHud</c> while the runner queues input).</summary>
     private Vector2 _pressPointer;
@@ -58,6 +58,20 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private readonly List<RoomNavigationEntry> _roomEntries = new();
     private readonly List<ThingNavigationEntry> _thingEntries = new();
     private readonly TickPacer _pacer = new();
+    /// <summary>The frame order around this scene's HUD and input, as Unity's runner runs it (plan step 2h).</summary>
+    private FrameDriver? _frameDriver;
+    /// <summary>The world pointer's gates (Unity's runner's QueueInput); without picking a press finds no tile.</summary>
+    private WorldPointerInput? _worldPointer;
+    /// <summary>The input journal, off unless <c>--input-journal &lt;dir&gt;</c> names a folder (not Unity's variable); its
+    /// keys are Godot physical keycodes (<see cref="FrameJournalSession.GodotKeyTable"/>).</summary>
+    private readonly FrameJournalSession _journal = new(message => GD.Print(message), message => GD.PushWarning(message));
+    private string? _journalRoot;
+    private string _levelName = "";
+    private ulong _seed;
+    /// <summary>The journal's device sample since the last frame, kept only while it records.</summary>
+    private readonly List<HostKey> _journalDown = new(), _journalUp = new(), _journalHeld = new();
+    private FrameMouseButtons _journalButtonsDown, _journalButtonsUp;
+    private float _journalWheelX, _journalWheelY;
     /// <summary>The applied settings, as Unity's runner keeps them: read here for the game speed, the key bindings and the
     /// HUD scale. Loaded from, and saved to, <see cref="_settingsPath"/>.</summary>
     private GameSettings _settings = new();
@@ -104,8 +118,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <c>Main.tscn</c>; it acts only for a level started from the campaign map.</summary>
     private CampaignResultFlow? _resultFlow;
     /// <summary>The level script's view requests (Unity's runner's <c>_scriptedView</c>): the camera path, the letterbox
-    /// count and the flash, which hide the HUD, hold the options key and light the panel and the resources. The path's
-    /// camera, letterbox, subtitles, speech and the skip are not wired (plan steps 2h, 3 and 4).</summary>
+    /// count and the flash, which hide the HUD, hold the options key and light the panel and the resources; Escape or Space
+    /// skips a path (<see cref="FrameDriver"/>). The path's camera, letterbox, subtitles and speech are not wired (plan steps 3
+    /// and 4).</summary>
     private ScriptedViewDirector? _scriptedView;
     private bool _pathPlaying;
     /// <summary>The viewer's status last printed (<see cref="ReportPath"/>).</summary>
@@ -164,6 +179,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         string levelName = resume?.LevelName ?? launch.Level ?? "Level1";
         ulong seed = launch.Seed ?? 1;
         GameFolders folders = UserFolders.FromArguments(args);
+        _levelName = levelName;
+        _seed = seed;
+        // Only the argument: DK2_INPUT_JOURNAL is Unity's switch, and a global one must not make every Godot run write a session.
+        _journalRoot = LaunchArguments.Value(args, "--input-journal");
         CampaignLevelData level = CampaignLevelData.Load(install, levelName);
         _simulation = resume?.Resume?.Simulation ?? level.CreateSimulation(seed, fogOfWarEnabled: true);
         _simulation.World.LocalPlayerId = _viewer;
@@ -234,6 +253,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _pickups = new PickupFlow(_worldView, cursor: null);
         _presses = new HudPressRouter(_hudControls, _tools, _overviewView, _view, _pickups, _viewer, this);
         _worldClicks = new WorldClickCommands(_tools, _input, _queryView, _view, _viewer, this);
+        // No hand cursor and no hover resolver here: the cursor feedback and the cast hand are left out.
+        _worldPointer = new WorldPointerInput(_input, _tools, _presses, _worldClicks, _pickups, _worldView, cursor: null, hover: null,
+            _journal, this);
         _cameraFocus = MinimapHud.FixedFocus(ClassicCamera.LevelStartFocus(level.Players, _viewer,
             _simulation.World.Width, _simulation.World.Height));
         _minimap = new ClassicMinimap { Name = "Minimap" };
@@ -302,6 +324,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             LevelSubtitles.Open(install, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning)).Line);
         _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
         _simulation.ObserveWith(_scriptedView);
+        _frameDriver = new FrameDriver(_pending, _worldView, _pacer, _journal);
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
         if (resume == null)
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
@@ -351,7 +374,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
             || _battles == null || _battleTab == null || _options == null || _saveLoad == null || _optionsPages == null
             || _gameOptionsPanel == null || _fullMap == null || _minimap == null || _worldView == null || _scriptedView == null
-            || _resultFlow == null || _leaving) return;
+            || _resultFlow == null || _frameDriver == null || _leaving) return;
+        JournalBeginFrame(delta);
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         if (_loadName != null || (_saveAs != null && _simulation.World.CurrentTick >= _saveTick)) RunSaveLoadCheck();
@@ -360,10 +384,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Once per settled turn, as DungeonRunner captures it before the HUD draws; the full map reads the same grid.
         bool minimapCaptured = _minimap.Capture(_simulation.World, _worldView, _simulation.Navigation);
         long milliseconds = (long)(_elapsed * 1000);
-        // DungeonRunner.Update's script step: the scripted view on the drawn turn plus the debt toward the next (this scene
-        // ticks inline, so none is pending), then the level end, which may leave for the front end.
-        _scriptedView.Update(milliseconds, _simulation.World.CurrentTick.Value + Math.Min(_pacer.Debt, 1d),
-            _simulation.World.Player(_viewer).PossessedCreatureId != 0 ? CameraModeId.Possession : CameraModeId.Dungeon);
+        // DungeonRunner.Update's script step (FrameDriver): the scripted view on the drawn turn plus the debt toward the next
+        // (this scene ticks inline, so none is pending), then the level end, which may leave for the front end.
+        _frameDriver.UpdateScript(_scriptedView, milliseconds, _simulation.World, _viewer, ticksPending: 0);
         ReportPath();
         bool checkKeys = _resultFlow.ResultRecorded && !_scriptedView.PathPlaying;
         bool escapeCheck = _escapeResult && checkKeys;
@@ -375,13 +398,17 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             return;
         }
         if (escapeCheck) ReportEscape();
-        bool pathWasPlaying = _scriptedView.PathPlaying;
+        // DungeonRunner.Update's input step (FrameDriver): the local pickups, then Escape or Space ends a playing camera path
+        // and posts SkipCameraPathCommand (0x00405362); the script's glide needs the camera (plan step 3).
+        _frameDriver.AdvancePickups(_simulation.World, _viewer, milliseconds);
+        FrameScriptInput script = _frameDriver.TakeScriptedInput(_scriptedView, _viewer, _keyboard.EscapePressed || _keyboard.SpacePressed);
+        if (script.Glide is TilePos glide) NotWiredGlide("script", glide);
         // The HUD keys, as DungeonRunner.UpdateHudControls reads them. Only the options menu's and the full map's toggles
         // are applied: the other keys' GUI toggle and camera moves are not ported. A camera path holds the options key
-        // back; the path's skip is not wired (plan step 2h). While the keyboard page captures a key, no shortcut fires.
+        // back that frame. While the keyboard page captures a key, no shortcut fires.
         HudVisibility camera = _scriptedView.HudFor(ClassicCameraMode.Dungeon);
         ClassicHudAction shortcut = _keyboard.Read(_settings).HudShortcut(
-            _hudControls.ShortcutContext(camera, allowOptionsKey: !pathWasPlaying, capturingKey: _optionsPages.CapturingAction != null),
+            _hudControls.ShortcutContext(camera, script.AllowOptionsKey, capturingKey: _optionsPages.CapturingAction != null),
             _keyboard.EscapePressed);
         if (shortcut is ClassicHudAction.ToggleOptions or ClassicHudAction.ToggleFullMap) ApplyHudAction(shortcut);
         // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): a camera path, the letterbox, the result
@@ -446,22 +473,80 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         HoverTextSnapshot hover = allowed && PointerOverHud(_pointer, visibility) ? _hudHover.Capture(this, _resourceFacts) : HoverTextSnapshot.Empty;
         _hover.Draw(hover, _pointer, _cursorReach, milliseconds);
 
-        // Clamped as Unity's runner clamps it (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap.
-        // DungeonRunner's tick gate: no turn runs, and none accrues, while it holds.
-        if (!_hudControls.TicksPaused)
+        // DungeonRunner.Update's tick step (FrameDriver): ready drops after the input, then the tick gate (no turn runs, and
+        // none accrues, while it holds), the hand-off and the clear. The frame is clamped as Unity's runner clamps it
+        // (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap. No possession here, so no pose.
+        FrameTicks ticks = _frameDriver.TakeTicks(_simulation.World, _viewer, Math.Min(delta, TickPacer.MaximumFrameSeconds), 1f,
+            _settings.GameSpeed, _hudControls.TicksPaused, TickPacer.DefaultMaxTicksPerFrame, poses: null);
+        _journal.Ticks(_simulation.World.CurrentTick, ticks.Count);
+        for (int i = 0; i < ticks.Count; i++)
         {
-            _pacer.Accrue(Math.Min(delta, TickPacer.MaximumFrameSeconds), 1f, _settings.GameSpeed);
-            int ticks = _pacer.Take(TickPacer.DefaultMaxTicksPerFrame);
-            InputFrame first = TickPacer.FirstInput(ticks, _pending);
-            if (first.Commands != null) _pending.Clear();
-            for (int i = 0; i < ticks; i++)
+            InputFrame input = ticks.InputFor(i);
+            long tick = _simulation.World.CurrentTick.Value;
+            _journal.BeforeTick(tick, input, _simulation);
+            try
             {
-                _simulation.Tick(TickPacer.InputFor(i, first));
-                if (_simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
+                _simulation.Tick(input);
             }
+            catch (Exception ex)
+            {
+                _journal.TickFailed(ex, _simulation);
+                throw;
+            }
+            _journal.AfterTick(tick + 1, _simulation);
+            if (_simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
         }
+        _frameDriver.AfterTicks(_simulation.World, milliseconds);
         // DungeonRunner.Present's seek: the path is placed on the turn now drawn, without taking requests.
         _scriptedView.SeekCamera(_simulation.World.CurrentTick.Value + Math.Min(_pacer.Debt, 1d));
+        // Unity's LateUpdate: the frame's journal record.
+        _journal.EndFrame(_pending, _pacer.Debt);
+    }
+
+    /// <summary>Unity's runner's JournalBeginFrame: the journal opens on the first frame, and while it records, each frame's
+    /// raw sample (Godot's top-left pointer, its buttons, wheel and physical keys since the last frame) starts the record.</summary>
+    private void JournalBeginFrame(double delta)
+    {
+        if (!_journal.Resolved)
+            _journal.Open(_journalRoot, FrameJournalSession.FolderName(DateTime.UtcNow, GameSessionMode.Campaign, _levelName), JournalHeader);
+        if (!_journal.Recording || _scriptedView == null) return;
+        Vector2 pointer = GetViewport().GetMousePosition();
+        HudVisibility hud = _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon);
+        _journal.BeginFrame(new FrameInputRecord
+        {
+            Frame = (long)Engine.GetProcessFrames(),
+            UnscaledDeltaSeconds = delta,
+            Mode = FrameInputMode.Game,
+            PointerX = pointer.X,
+            PointerY = pointer.Y,
+            ButtonsHeld = (Input.IsMouseButtonPressed(MouseButton.Left) ? FrameMouseButtons.Primary : 0)
+                | (Input.IsMouseButtonPressed(MouseButton.Right) ? FrameMouseButtons.Secondary : 0)
+                | (Input.IsMouseButtonPressed(MouseButton.Middle) ? FrameMouseButtons.Middle : 0),
+            ButtonsDown = _journalButtonsDown,
+            ButtonsUp = _journalButtonsUp,
+            WheelX = _journalWheelX,
+            WheelY = _journalWheelY,
+            TypedText = new string(_keyboard.Typed),
+            KeysDown = _journalDown.ToArray(),
+            KeysUp = _journalUp.ToArray(),
+            KeysHeld = _journalHeld.ToArray(),
+            Hud = (hud.AllowOrdinaryInput ? FrameHudFlags.OrdinaryInput : 0) | (_hudControls.Modal ? FrameHudFlags.Modal : 0)
+                | (_hudControls.OptionsVisible ? FrameHudFlags.Options : 0) | (_scriptedView.PathPlaying ? FrameHudFlags.CameraPath : 0),
+            ActiveTool = _tools.ActiveTool,
+        }, _pending);
+        _journalDown.Clear(); _journalUp.Clear();
+        _journalButtonsDown = _journalButtonsUp = FrameMouseButtons.None;
+        _journalWheelX = _journalWheelY = 0;
+    }
+
+    /// <summary>The journal header: the keys both adapters write, Godot's physical key table and its version.</summary>
+    private IReadOnlyDictionary<string, string> JournalHeader()
+    {
+        Vector2I size = GetWindow().Size;
+        Dictionary<string, string> header = FrameJournalSession.Header("godot", FrameJournalSession.GodotKeyTable,
+            GameSessionMode.Campaign, _levelName, _seed, _viewer, fogOfWar: true, tickOnWorker: false, size.X, size.Y);
+        header["godot.version"] = Engine.GetVersionInfo()["string"].AsString();
+        return header;
     }
 
     /// <summary>The <c>--escape-result</c> check: once, the commands Escape posted; Space follows on later frames.</summary>
@@ -613,36 +698,53 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <c>Input.GetMouseButtonDown</c> sees every press; <see cref="QueueInput"/> routes it in the next frame.</summary>
     private void ReadPress(InputEvent @event)
     {
-        if (@event is not InputEventMouseButton { Pressed: true } button) return;
-        if (button.ButtonIndex == MouseButton.Left) _primaryDown = true;
-        else if (button.ButtonIndex == MouseButton.Right) _secondaryDown = true;
+        if (@event is not InputEventMouseButton button) return;
+        if (button.ButtonIndex == MouseButton.Left) { if (button.Pressed) _primaryDown = true; else _primaryUp = true; }
+        else if (button.ButtonIndex == MouseButton.Right) { if (button.Pressed) _secondaryDown = true; else _secondaryUp = true; }
+        if (!_journal.Recording) return;
+        FrameMouseButtons journalled = button.ButtonIndex switch
+        {
+            MouseButton.Left => FrameMouseButtons.Primary,
+            MouseButton.Right => FrameMouseButtons.Secondary,
+            MouseButton.Middle => FrameMouseButtons.Middle,
+            _ => FrameMouseButtons.None,
+        };
+        if (button.Pressed) _journalButtonsDown |= journalled; else _journalButtonsUp |= journalled;
+        if (!button.Pressed) return;
+        if (button.ButtonIndex == MouseButton.WheelUp) _journalWheelY += button.Factor;
+        else if (button.ButtonIndex == MouseButton.WheelDown) _journalWheelY -= button.Factor;
+        else if (button.ButtonIndex == MouseButton.WheelRight) _journalWheelX += button.Factor;
+        else if (button.ButtonIndex == MouseButton.WheelLeft) _journalWheelX -= button.Factor;
     }
 
-    /// <summary>DungeonRunner.QueueInput for what this scene has (plan step 2c): nothing while ordinary input is not allowed
-    /// (the world drag is dropped), then the HUD's press in Unity's order (<see cref="HudPressRouter"/>: an overview pickup
-    /// is posted through <see cref="PickupFlow"/>, a left press on the gold withdraws it), the query tool's and a choice's
-    /// world press (<see cref="WorldClickCommands"/>: a right press cancels the query tool or a held tool; a left press finds
-    /// no tile) and a left press on the minimap's map. Not wired: possession, the scripted path and whole-map gates, and the
-    /// hand's own world press, which need the camera and picking (plan steps 2h and 3).</summary>
+    /// <summary>DungeonRunner.QueueInput through the shared <see cref="WorldPointerInput"/> (plan step 2h): nothing while ordinary
+    /// input is not allowed (the world drag is dropped), then the HUD's press in Unity's order (<see cref="HudPressRouter"/>),
+    /// the query tool's and a choice's world press (<see cref="WorldClickCommands"/>), the minimap's map press
+    /// (<see cref="IWorldPointerHost.MinimapPress"/>), the tool, and a press's intent and translation, which find no tile here
+    /// (no picking before plan step 3). No possession here, so the possession gate never holds.</summary>
     private void QueueInput(HudVisibility visibility, long milliseconds)
     {
         KeyModifiers modifiers = _keyboard.Modifiers;
         var press = new HudPress(_primaryDown, _secondaryDown, (modifiers & KeyModifiers.Shift) != 0,
             (modifiers & KeyModifiers.Control) != 0, (modifiers & KeyModifiers.Alt) != 0);
-        _primaryDown = false; _secondaryDown = false;
-        if (_simulation == null || _presses == null || _worldClicks == null || _minimap == null) return;
-        if (!visibility.AllowOrdinaryInput)
-        {
-            _input.CancelPointerGesture();
-            return;
-        }
+        bool primaryUp = _primaryUp, secondaryUp = _secondaryUp;
+        _primaryDown = false; _secondaryDown = false; _primaryUp = false; _secondaryUp = false;
+        if (_simulation == null || _worldPointer == null) return;
         _pressPointer = GetViewport().GetMousePosition();
         _pressVisibility = visibility;
-        if (_presses.Route(press, _simulation.World, _simulation.Database, milliseconds, _pending)
-            || _worldClicks.Queue(press, _simulation.Database, _pending)) return;
-        if (press.Primary && _minimap.TryNavigate(_pressPointer, out TilePos tile))
+        _worldPointer.Queue(new WorldPointerFrame(_viewer, visibility.AllowOrdinaryInput, Possessing: false, _hudControls.Modal, press,
+            primaryUp, secondaryUp, milliseconds), _simulation.World, _simulation.Database, _pending);
+    }
+
+    /// <summary>Unity's runner's minimap press: off while a camera path plays; the glide needs the camera (plan step 3).</summary>
+    void IWorldPointerHost.MinimapPress(in HudPress press)
+    {
+        if (_scriptedView != null && !_scriptedView.PathPlaying && _minimap != null && press.Primary
+            && _minimap.TryNavigate(_pressPointer, out TilePos tile))
             GD.Print("DK2.Godot: the minimap's move to tile (", tile.X, ", ", tile.Y, ") is not wired yet.");
     }
+
+    FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile) => null;
 
     /// <summary>DungeonRunner.ApplyHudAction, through the shared <see cref="HudActionRouter"/>: the options key, the options
     /// menu's entries, the save browser's Back and Continue lines and the minimap's corners (zoom, and query and sell, which
@@ -855,7 +957,20 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>Every key event reaches the keyboard, as Unity's <c>Input.GetKey</c> reads the keys whatever the UI holds.</summary>
     public override void _Input(InputEvent @event)
     {
-        if (@event is InputEventKey key) _keyboard.Feed(key);
+        if (@event is not InputEventKey key) return;
+        _keyboard.Feed(key);
+        if (!_journal.Recording || key.Echo) return;
+        var journalled = new HostKey((int)key.PhysicalKeycode);
+        if (key.Pressed)
+        {
+            _journalDown.Add(journalled);
+            if (!_journalHeld.Contains(journalled)) _journalHeld.Add(journalled);
+        }
+        else
+        {
+            _journalUp.Add(journalled);
+            _journalHeld.Remove(journalled);
+        }
     }
 
     public override void _Notification(int what)
@@ -865,6 +980,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (what == NotificationApplicationFocusOut)
         {
             _keyboard.ReleaseAll();
+            _journalHeld.Clear();
+            // Unity's runner's OnApplicationFocus order: the panel's press, then the world drag.
             PointerGestures.CancelAll(_panel, _input, feedback: null);
             return;
         }
@@ -873,6 +990,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
         // Freed, not merely removed from the tree: a reparented scene keeps its level.
         if (what != NotificationPredelete) return;
+        // Unity's runner closes its journal when it is destroyed, writing the frame a session switch left open.
+        _journal.Close("destroyed", _pending, _pacer.Debt, _simulation);
         if (_model != null)
         {
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
@@ -880,7 +999,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
         if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
         if (_window != null && IsInstanceValid(_window)) _window.WindowInput -= ReadPress;
-        _window = null; _presses = null; _worldClicks = null; _pickups = null;
+        _window = null; _presses = null; _worldClicks = null; _pickups = null; _worldPointer = null; _frameDriver = null;
         _roomNavigation = null; _doorNavigation = null; _trapNavigation = null;
         if (_saveLoad != null)
         {

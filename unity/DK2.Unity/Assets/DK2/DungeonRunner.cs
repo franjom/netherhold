@@ -156,7 +156,6 @@ namespace DK2.Unity
         private ClassicHandCursor _handCursor;
         private ClassicPlacementOverlay _placementOverlay;
         private readonly HeldItemStack _heldStack = new HeldItemStack();
-        private int _pickupPreviewPlayer = -1;
         private ClassicTileHoverOutline _tileHighlight;
         private WorldHoverText _hoverText;
         private ClassicHoverHud _hoverHud;
@@ -191,6 +190,10 @@ namespace DK2.Unity
         private ClassicBitmapText _subtitleFont;
         private readonly TickPacer _tickPacer = new TickPacer();
         private double _tickDebt => _tickPacer.Debt;
+        /// <summary>The frame order around this runner's camera, HUD and world input (migration plan step 2h).</summary>
+        private FrameDriver _frameDriver;
+        /// <summary>The world pointer's gates, from the HUD press to the world command (migration plan step 2h).</summary>
+        private WorldPointerInput _worldPointer;
 
         // The presented world (ADR-0694): the frame reads this copy while the worker ticks the live
         // one. The worker copies live into the spare after its batch; the frame takes the spare over,
@@ -476,6 +479,7 @@ namespace DK2.Unity
                 LevelSubtitles.Open(install, database.Level?.TextTableId ?? 0, message => Debug.LogWarning(message)).Line,
                 effects);
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
+            _frameDriver = new FrameDriver(_pendingCommands, _worldView, _tickPacer, _journal);
             WireSpeech(database);
             PrepareWinScreen(database);
             _worldSounds = new WorldSoundDirector(_scriptedView, new PlayerId((byte)viewingPlayerId));
@@ -902,10 +906,7 @@ namespace DK2.Unity
             // is the world this frame draws; on the main thread this frame's ticks come after.
             long scriptStarted = _recorder?.Stamp() ?? 0;
             FrameScriptMarker.Begin();
-            _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
-                World.CurrentTick.Value + _ticksPending + Math.Min(_tickDebt, 1d),
-                World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0
-                    ? CameraModeId.Possession : CameraModeId.Dungeon);
+            _frameDriver.UpdateScript(_scriptedView, Time.unscaledTimeAsDouble * 1000d, World, new PlayerId((byte)viewingPlayerId), _ticksPending);
             UpdateWinScreenPreview();
             // ClassicHudControls.UpdateResult (0x004039A0) is fed only for a level launched from the front
             // end, where Space leaves the result; elsewhere suppressing input would strand the player.
@@ -916,22 +917,13 @@ namespace DK2.Unity
             long inputStarted = _recorder?.Stamp() ?? 0;
             using (InputMarker.Auto())
             {
-                if (_pickupPreviewPlayer != viewingPlayerId)
-                {
-                    _worldView.LocalPickups.Reset();
-                    _pickupPreviewPlayer = viewingPlayerId;
-                }
-                _worldView.LocalPickups.Advance(World, (long)(Time.unscaledTimeAsDouble * 1000));
+                _frameDriver.AdvancePickups(World, new PlayerId((byte)viewingPlayerId), (long)(Time.unscaledTimeAsDouble * 1000));
                 ApplyLetterbox();
-                bool pathWasPlaying = _scriptedView.PathPlaying;
-                if (_scriptedView.PathPlaying)
-                {
-                    // 0x00405362: Escape or Space ends the path; the simulation hears it next tick.
-                    if ((Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Space)) && _scriptedView.Skip())
-                        _pendingCommands.Add(new DK2.Simulation.Commands.SkipCameraPathCommand(new PlayerId((byte)viewingPlayerId)));
-                }
-                if (_scriptedView.TryTakeCameraMove(out TilePos glideTile)) StartGlide(glideTile);
-                using (InputHudMarker.Auto()) UpdateHudControls(allowOptionsKey: !pathWasPlaying);
+                // 0x00405362: Escape or Space ends the path; the simulation hears it next tick.
+                FrameScriptInput script = _frameDriver.TakeScriptedInput(_scriptedView, new PlayerId((byte)viewingPlayerId),
+                    Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Space));
+                if (script.Glide is TilePos glideTile) StartGlide(glideTile);
+                using (InputHudMarker.Auto()) UpdateHudControls(allowOptionsKey: script.AllowOptionsKey);
                 HudVisibility hud = CurrentHud;
                 _minimap?.SetVisibility(hud);
                 _hoverHud?.SetVisibility(hud);
@@ -960,29 +952,17 @@ namespace DK2.Unity
             }
             _recorder?.Spent(FrameRecorder.Part.Input, inputStarted);
             if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
-            _worldView.LocalPickups.DrainReadyDrops(World, _pendingCommands);
-
-            int ticks = 0;
-            InputFrame firstInput = InputFrame.Empty;
-            if (speed > 0f && !_hudControls.TicksPaused)
-            {
-                _drawLag.Observe(_tickPacer.Accrue(elapsed, speed, _gameSettings.GameSpeed));
-                ticks = _tickPacer.Take(maxTicksPerFrame);
-                if (ticks > 0) QueuePossessionPose();
-                firstInput = TickPacer.FirstInput(ticks, _pendingCommands);
-                if (firstInput.Commands != null)
-                {
-                    JournalHandOff();
-                    _pendingCommands.Clear();
-                }
-            }
+            FrameTicks frameTicks = _frameDriver.TakeTicks(World, new PlayerId((byte)viewingPlayerId), elapsed, speed,
+                _gameSettings.GameSpeed, _hudControls.TicksPaused, maxTicksPerFrame, _possession);
+            if (frameTicks.Accrued) _drawLag.Observe(frameTicks.Advance);
+            int ticks = frameTicks.Count;
+            InputFrame firstInput = frameTicks.FirstInput;
 
             if (ticks > 0 && !tickOnWorkerThread) RunTicks(ticks, firstInput);
             _handCursorEvents?.Drain((long)(Time.unscaledTimeAsDouble * 1000));
             // Retain released tag previews until the command's tick has actually completed,
             // including the frame before a worker tick starts.
-            _worldView.AcknowledgeTagPreviews(World.CurrentTick);
-            _worldView.AdvanceTerrainHighlights(new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d)));
+            _frameDriver.AfterTicks(World, (long)(Time.unscaledTimeAsDouble * 1000d));
 
             // How far the drawn world is from its last presented tick toward its next, for the
             // creature interpolation and the camera path. On the worker path the ticks started and
@@ -1109,17 +1089,17 @@ namespace DK2.Unity
                         using (CaptureMarker.Auto())
                             _worldView.CaptureObjectPositions(_simulation.World);
                     long tick = _simulation.World.CurrentTick.Value;
-                    JournalTick(tick, input, before: true);
+                    _journal.BeforeTick(tick, input, _simulation);
                     try
                     {
                         _simulation.Tick(input);
                     }
                     catch (Exception ex)
                     {
-                        JournalTickFailed(ex);
+                        _journal.TickFailed(ex, _simulation);
                         throw;
                     }
-                    JournalTick(tick + 1, input, before: false);
+                    _journal.AfterTick(tick + 1, _simulation);
                 }
             }
             // The hash is for the diagnostics only, and costs a few milliseconds; here it is off the
@@ -1226,67 +1206,19 @@ namespace DK2.Unity
                 $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame" + hover;
         }
 
-        private void QueueInput()
+        /// <summary>The frame's world pointer through <see cref="WorldPointerInput"/>'s gates.</summary>
+        private void QueueInput() => _worldPointer.Queue(new WorldPointerFrame(new PlayerId((byte)viewingPlayerId),
+            CurrentHud.AllowOrdinaryInput, Possessing, HudModal, ReadHudPress(), Input.GetMouseButtonUp(0), Input.GetMouseButtonUp(1),
+            (long)(Time.unscaledTimeAsDouble * 1000)), World, _simulation.Database, _pendingCommands);
+
+        void IWorldPointerHost.MinimapPress(in HudPress press)
         {
-            if (!CurrentHud.AllowOrdinaryInput)
-            {
-                _input.CancelPointerGesture();
-                return;
-            }
-            // Possessing, the pointer is the view's: only a modal panel takes its clicks.
-            if (Possessing)
-            {
-                if (HudModal) QueueHudInput(ReadHudPress());
-                _input.CancelPointerGesture();
-                return;
-            }
-            HudPress press = ReadHudPress();
-            if (QueueHudInput(press) || QueuePanelWorldAction(press)) return;
-            if (!_scriptedView.PathPlaying && !frameWholeMap && _minimap != null && Input.GetMouseButtonDown(0)
+            if (!_scriptedView.PathPlaying && !frameWholeMap && _minimap != null && press.Primary
                 && _minimap.TryNavigate(Input.mousePosition, Camera.main, _cameraFocus, out TilePos navigationTile))
                 StartGlide(navigationTile);
-            _input.SelectTool((byte)viewingPlayerId, ActiveTool);
-            PointerButtonTransition button = PointerButtonTransition.None;
-            if (Input.GetMouseButtonDown(0)) button |= PointerButtonTransition.Pressed;
-            if (Input.GetMouseButtonUp(0)) button |= PointerButtonTransition.Released;
-
-            PointerButtonTransition secondaryButton = PointerButtonTransition.None;
-            if (Input.GetMouseButtonDown(1)) secondaryButton |= PointerButtonTransition.Pressed;
-            if (Input.GetMouseButtonUp(1)) secondaryButton |= PointerButtonTransition.Released;
-
-            if (button == PointerButtonTransition.None && secondaryButton == PointerButtonTransition.None) return;
-
-            TilePos? tile = ScreenToTile(Input.mousePosition);
-            var intent = new PlayerIntent(
-                (byte)viewingPlayerId, ActiveTool, tile, button, _toolState.SelectedRoomId,
-                SecondaryButton: secondaryButton,
-                PointerOverHud: PointerOverHud(Input.mousePosition),
-                PointerPosition: tile is TilePos pointTile ? ScreenToPosition(Input.mousePosition, pointTile) : null);
-            JournalIntent(intent);
-            PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
-                _worldView, World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile, pendingCommands: _pendingCommands);
-            if (tile is TilePos at && (ActiveTool == PlayerToolMode.Hand || ActiveTool == PlayerToolMode.Slap))
-                snapshot = snapshot.ForHover(ResolveWorldHover(at));
-            InputFrame frame = _input.Translate(intent, snapshot);
-            long nowMs = (long)(Time.unscaledTimeAsDouble * 1000);
-            FpPosition2? pointed = intent.PointerPosition ?? (tile is TilePos centred
-                ? new FpPosition2(new Fp32(CreatureState.CentreOf(centred.X)), new Fp32(CreatureState.CentreOf(centred.Y)))
-                : (FpPosition2?)null);
-            if ((button & PointerButtonTransition.Pressed) != 0 && _input.DragFrom(PlayerToolMode.Hand) != null)
-                _cursorFeedback.Play(HandCursorKind.Tag, nowMs, pointed);
-
-            foreach (PlayerCommand command in frame.All)
-            {
-                // A refused pickup is skipped and a drop deferred onto a pending pickup; a posted pickup gets its held
-                // cursor first and its minimap preview after (PickupFlow).
-                if (!_pickupFlow.PostWorldCommand(World, _simulation.Database, command, nowMs, pointed, _pendingCommands)) continue;
-                if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs, pointed);
-                // DK2's click runs the cursor's own permission tests and posts only a permitted cast.
-                _hoverCursor.CastPosted(command, nowMs);
-                if (command is DK2.Simulation.Commands.TagTilesCommand tag)
-                    _worldView.QueueTagPreview(tag, World.CurrentTick.Next);
-            }
         }
+
+        FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile) => ScreenToPosition(Input.mousePosition, tile);
 
         /// <summary>
         /// Which tile the pointer is over. The rule is <see cref="TilePicker"/>'s, because

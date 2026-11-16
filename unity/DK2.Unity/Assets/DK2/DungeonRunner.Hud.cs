@@ -18,7 +18,7 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
-    public sealed partial class DungeonRunner : IHudHoverSources, IHudActionHost, IHudPressHost, IWorldClickHost
+    public sealed partial class DungeonRunner : IHudHoverSources, IHudActionHost, IHudPressHost, IWorldPointerHost
     {
         private readonly ClassicHudControls _hudControls = new ClassicHudControls();
         private BottomPanelView _bottomView;
@@ -168,6 +168,8 @@ namespace DK2.Unity
             _hudPresses = new HudPressRouter(_hudControls, _toolState, _overviewView, _bottomView, _pickupFlow, viewer, this);
             _worldClicks = new WorldClickCommands(_toolState, _input, _queryView, _bottomView, viewer, this);
             _hoverCursor = new HoverCursorResolver(_toolState, _input, _hudControls, _bottomView, _worldView, _cursorFeedback, viewer);
+            _worldPointer = new WorldPointerInput(_input, _toolState, _hudPresses, _worldClicks, _pickupFlow, _worldView, _cursorFeedback,
+                _hoverCursor, _journal, this);
         }
 
         /// <summary>Captures the flowers from the settled world (before the worker tick starts) and

@@ -10,7 +10,8 @@ using DK2.Simulation.Commands;
 namespace DK2.Presentation;
 
 /// <summary>The hand's local pickup, moved out of Unity's runner (migration plan step 2c), where it was written twice: the
-/// creature overview's press (DungeonRunner.QueueHudInput) and the world click's command loop (DungeonRunner.QueueInput).
+/// creature overview's press (DungeonRunner.QueueHudInput) and the world click's command loop (formerly
+/// DungeonRunner.QueueInput, now <see cref="WorldPointerInput"/>).
 /// <see cref="LocalPickupFeedback.TryQueue"/> decides whether a pickup is posted (dead, dying, already pending, not
 /// pickable, hand full); a posted one also plays the held-thing cursor and queues the minimap's preview. A drop is
 /// deferred onto a pending pickup (<see cref="LocalPickupFeedback.TryQueueDrop"/>) until

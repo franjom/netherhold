@@ -35,8 +35,10 @@ tabs above it (`ClassicMessageTabs` over `MessageTabsHud` and `MessageTabsView`:
 click opening one in the message panel, a right click dismissing it, the Review Objective button's objective panel, the
 level's indicators). The level's scripted view (the shared `ScriptedViewDirector`) runs: it observes the simulation before
 turn 1 and writes nothing, the HUD hides during the opening camera path, and its visibility, the panel and resource
-flashes and the options-key hold follow Unity's rules (`PlayedHud`, `PanelFlash`). Not wired: the path's camera, the
-letterbox, the subtitles and the path skip with `SkipCameraPathCommand` (plan steps 2h, 3 and 4), camera glides (a
+flashes and the options-key hold follow Unity's rules (`PlayedHud`, `PanelFlash`). Escape or Space skips a playing camera path and posts `SkipCameraPathCommand`
+(`FrameDriver`; the options key is held that frame, and the script's glide prints "not wired"). The binary also gates Escape
+on a flag and Space on a player bit, which `FrameDriver` does not mirror (ADR-0496, [0x00405010](../docs/research/functions/00405010.md)). Not wired:
+the path's camera, the letterbox and the subtitles (plan steps 3 and 4), camera glides (a
 message's goto button shows but moves nothing) and sound. The level end is `CampaignResultFlow`, shared with Unity: a
 level started with `--from-map` (as the campaign map launches one) runs it, so a verdict writes the profile and Space
 then switches to `Main.tscn` at the session's return page, the campaign results page;
@@ -55,18 +57,22 @@ ticks per frame (`TickPacer.MaximumFrameSeconds`, `DefaultMaxTicksPerFrame`) the
 the query tool, the selected corner and the panel-choice and stored-special transitions) and the HUD action routing
 (`HudActionRouter`: the gate, the cancels, the corners), the HUD's and the world's presses (`HudPressRouter` in `QueueHudInput`'s order,
 `WorldClickCommands`, `PickupFlow`, `BattleTabView.Click`, and the room, door and trap navigation entries)
-are shared with Unity in `DK2.Presentation`. The scene reads the left and right presses from `Window.WindowInput`, before any panel marks
-them handled, and routes them once per frame in `QueueInput`: the gate, `HudPressRouter`, `WorldClickCommands`, then the minimap's map
-press. The panels only hit-test (`TryPress`, `HandlePress`, `ActionAt`); the full map and options menu swallow presses on the live
+are shared with Unity in `DK2.Presentation`. The scene reads the left and right presses and releases from `Window.WindowInput`, before any panel marks
+them handled, and routes them once per frame through `WorldPointerInput`, in Unity's order: the ordinary-input gate, possession (never
+here), `HudPressRouter`, `WorldClickCommands`, the minimap's map press, `SelectTool`, then a press's or release's intent. The frame
+order (the scripted view's step, the local pickups, the speed and pause gate, the ticks, the journal's hand-off, the tag
+acknowledgements) is the shared `FrameDriver`, so deferred drops post. The panels only hit-test (`TryPress`, `HandlePress`, `ActionAt`); the full map and options menu swallow presses on the live
 `ClassicHudControls` flags the router reads. Working: the overview pickup, the gold withdraw, the right-click cancels of the query tool
 and a held tool, and the order of full map, options, overview, minimap and battle tab. Printed, not done: every camera move (the full
 map's, the minimap's, the overview focus, room, door, trap and battle-tab glides) and session actions. Not wired: picking (a world
-left click finds no tile), the hand's own world press, possession, `LocalPickups.Advance` and `DrainReadyDrops` (plan step 2h). When the window loses focus the scene releases the keys and cancels the
-bottom panel's press and the world drag; a held choice slot queues its release sound request 0x136, which nothing plays yet.
+left click or release finds no tile, so it posts nothing), the hand's own world press and possession. The `CancelPointerGesture` order: a
+frame without ordinary input cancels only the world drag; when the window loses focus the scene releases the keys and cancels the
+bottom panel's press and then the world drag; the bottom panel cancels its own press when it is freed. A held choice slot queues its release
+sound request 0x136, which nothing plays yet.
 Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
-`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--save-as <name>` with `--save-tick <n>` to save under that name once the turn reaches n (a check, through the Save page), `--load <name>` to load a save of that name on the first frame, `--hash-at <n>` to print the state hash at turn n (a resumed instance ignores `--save-as` and `--load`; a `--load` run overwrites the profile file, so pass `--profile <temp file>`), `--settings <file>` for the settings file, `--profile <file>` and `--hiscores <file>` for the front end's profile and hi-score table (every scene takes all four of `--profile`, `--settings`, `--saves` and `--hiscores`, through `UserFolders`), `--open-full-map` to open the full map, `--from-map` to start the level as the campaign map launches it (it plays the profile's slot and runs `CampaignResultFlow`; the level end then writes the profile, so pass `--profile <temp file>`), `--stage-win` or `--stage-loss` to end the viewer's game after the first turn, `--leave-result` to press Space once the result is recorded, `--escape-result` to press Escape once on the result, print the commands it posted, and then press Space (the three result checks need `--from-map`; Godot prints the viewer's status changes and a camera path's start and end); `LaunchArguments` also parses `--dk2Install <path>`, which the scene ignores: it still uses `Dk2Install.Find()`).
+`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--save-as <name>` with `--save-tick <n>` to save under that name once the turn reaches n (a check, through the Save page), `--load <name>` to load a save of that name on the first frame, `--hash-at <n>` to print the state hash at turn n (a resumed instance ignores `--save-as` and `--load`; a `--load` run overwrites the profile file, so pass `--profile <temp file>`), `--settings <file>` for the settings file, `--profile <file>` and `--hiscores <file>` for the front end's profile and hi-score table (every scene takes all four of `--profile`, `--settings`, `--saves` and `--hiscores`, through `UserFolders`), `--open-full-map` to open the full map, `--from-map` to start the level as the campaign map launches it (it plays the profile's slot and runs `CampaignResultFlow`; the level end then writes the profile, so pass `--profile <temp file>`), `--stage-win` or `--stage-loss` to end the viewer's game after the first turn, `--leave-result` to press Space once the result is recorded, `--escape-result` to press Escape once on the result, print the commands it posted, and then press Space (the three result checks need `--from-map`; Godot prints the viewer's status changes and a camera path's start and end). `--input-journal <dir>` writes the session's input journals (`frames.journal` and `input.journal`) into a new folder there; it is Godot's only journal switch, because `DK2_INPUT_JOURNAL` is Unity's only (a globally set variable must not make every Godot run write); the header carries `source=godot`, `keys=Godot.Key` and `godot.version`. `LaunchArguments` also parses `--dk2Install <path>`, which the scene ignores: it still uses `Dk2Install.Find()`).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
 
 ### The player's files
