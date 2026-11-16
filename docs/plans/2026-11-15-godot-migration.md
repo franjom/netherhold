@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g, 2h and 2i are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g, 2h and 2i are done, and the first half of 2j (creature and object poses, mesh turns, clip requests, the creature animation player).
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -485,9 +485,36 @@ group 2 is a list to audit, not a finding.
       (Presentation 2382, Simulation 5583, Behavior 677 with 5 skipped); Godot and the editor headless build are
       clean and the Unity compile has 0 errors; headless Level1 turn-400 hash `D7290428D81A902F`, unchanged. Not run:
       Unity in Play mode.
-- [ ] 2j. Scene mapping for step 3: `PoseInterpolator`/`MeshOrientation`, `AnimationClipRequest`,
-      `CreatureAnimationPlayer`, `ClassicLightPublisher`, `LatticeDirtyTracker`, `WorldHoverPicker`,
-      the effects draw list, heart pulse, sparkle gate, head table, flower layers, dollar clock.
+- [ ] 2j. Scene mapping for step 3. First half done (2026-11-16); still to do: `ClassicLightPublisher`,
+      `LatticeDirtyTracker`, `WorldHoverPicker`/`HoverOverlayPlan`, the effects draw list, the heart pulse, the sparkle
+      gate, the head table, the flower layers and the dollar clock.
+      Done, in `DK2.Presentation`: `PoseInterpolator` (the draw seconds, the clamped position lerp, the shortest-arc
+      wrap and the object turn; creatures still take their turns uninterpolated and objects interpolate theirs, the
+      audit's open point, kept as drawn, [Q868](../research/open-questions.md)). `MeshOrientation` returns a
+      `RenderEuler`: `Mesh` is the one chain that was written four times (objects, creatures, instances, construction
+      particles), `Particle` is a copy of `Mathf.LerpAngle` plus the half turn, `Heading` serves structures, torches and
+      `ClassicTorchGeometry`. Its doc states the order of [0x00580480](../research/functions/00580480.md) (M = S·Rx·Ry·Rz);
+      the half turn and the negated pitch are our frame mapping. `AnimationClipRequest`: the clip identity record
+      structs, `Replacement` and `StartSeconds`. `ObjectView` gains `DrawnTexturePhase`, `MeshScale` and `MeshScaleY`
+      (`ClassicMeshes.ConfigureHeartDecay` had no callers and is gone); `LightningControlPoint.FromRenderWorld` does the
+      (x, -z, y) swap.
+      Done, in `DK2.Art`: `CreatureAnimationPlayer<TResources>` behind `ICreatureAnimationSurface` (Install, Show,
+      Upload) holds the deferred replacement, the start tick `floor(start*4)`, the catch-up, the beat, the footstep
+      normalisation ([Q869](../research/open-questions.md)), `AdvanceHealthPhase`, the control-point lookup
+      ([0x0059D260](../research/functions/0059D260.md), [0x0059D380](../research/functions/0059D380.md)) and the
+      lightning points with `Id < 2000`. `CreatureAnimationArt` came from `ClassicMeshes.ConfigureAnimation`; its
+      `TurnsPerSecond` must equal `SimulationTiming.OriginalTicksPerGameSecond` (DK2.Art cannot reference it) and a
+      Presentation test pins that.
+      Unity: `RenderEulerRotation` composes `Euler(0,Yaw,0)·AngleAxis(Roll,forward)·Euler(Pitch,0,0)`; no test covers
+      it, it was checked by eye against all four old sites. Not visible in output: the profiler marker scopes moved, a
+      lookup with no meshes returns nothing where it threw, and a few allocations went. The ADR-0458 threading contract
+      holds: the moved code reads view copies, never `WorldState`. Godot is not wired; step 3 builds the 3D world.
+      The reviewer found every formula and call order equal to HEAD, bit for bit; three mutation gaps (the clip identity
+      fields, the install, show and upload order in the `Draw` that installs a deferred clip, and the footstep window
+      over several turns) are closed by tests, and 17 mutations all fail a test. Verification: `dotnet test DK2.slnx`
+      green (Presentation 2405, Convert 205, Simulation 5583, Behavior 677 with 5 skipped); Godot and the editor
+      headless build are clean and the Unity compile has 0 errors; the simulation hashes are unchanged. Not run:
+      Unity in Play mode.
 - [ ] 2k. Deferred: the level sound driver (step 4's audio abstraction), the gamma exponent (with
       lighting), and Godot's speech subtitles (wrap with `BitmapTextLayout`, pack a `.bf4` atlas, blit
       `BitmapTextPlacement.Place` in `SubtitleLayout`'s boxes); delete `ClassicKeyBindings.Name`.

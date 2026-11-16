@@ -100,12 +100,9 @@ namespace DK2.Unity
             var clips = new RenderAnimation[3];
             var templates = new Mesh[3];
             var materials = new Material[3][];
-            foreach (AnimationSegment segment in new[] { AnimationSegment.Start, AnimationSegment.Main, AnimationSegment.End })
+            for (AnimationSegment segment = AnimationSegment.Start; segment <= AnimationSegment.End; segment++)
             {
-                if (segment == AnimationSegment.Start
-                    && (resource.AnimationFlags & CreatureAnimationFlags.StartSegment) == 0) continue;
-                if (segment == AnimationSegment.End
-                    && (resource.AnimationFlags & CreatureAnimationFlags.EndSegment) == 0) continue;
+                if (!CreatureAnimationArt.HasSegment(resource, segment)) continue;
                 if (!_art.TryResolveSegment(asset, segment, out ResolvedAsset part)
                     || !_art.TryLoadModel(part, out KmfModel partModel)
                     || partModel.Animation is not { IsComplete: true } || !TryBuild(part, false, out Built partBuilt)) return false;
@@ -117,19 +114,11 @@ namespace DK2.Unity
             }
             ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
             if (player == null) player = go.AddComponent<ClassicCreatureAnimation>();
-            player.Configure(clips, templates, materials, new CreatureAnimationTiming
-            {
-                ResourceType = resource.Type, FrameCount = resource.FrameCount,
-                FramesPerSecond = resource.FramesPerSecond, Flags = resource.AnimationFlags,
-                StartSegmentFrames = resource.StartSegmentFrames, EndSegmentFrames = resource.EndSegmentFrames,
-            }, loop, seconds, movementSpeed.HasValue ? new Fp32(resource.MovementScale) : null, movementSpeed,
+            player.Configure(clips, templates, materials, CreatureAnimationArt.Timing(resource), loop, seconds,
+                CreatureAnimationArt.AuthoredMovementScale(resource, movementSpeed), movementSpeed,
                 replacement, hold, initialMovementSpeed, phaseStepOverride, initialPhase, footstepMarks);
             return true;
         }
-
-        public void ConfigureHeartDecay(GameObject go, in ResolvedAsset asset, Fp32 phase,
-            DK2.Data.Model.TerrainLightColour addedLight = default)
-            => ConfigureTexturePhase(go, asset, phase, addedLight);
 
         public void ConfigureTexturePhase(GameObject go, in ResolvedAsset asset, Fp32 phase,
             DK2.Data.Model.TerrainLightColour addedLight = default)

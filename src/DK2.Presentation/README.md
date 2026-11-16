@@ -36,6 +36,10 @@ clamped to the bounds, `Over`, `Bounds`), `ClassicCameraInput` (the 5 px edge sc
 y-up `CameraPointerSample`), `ClassicCameraSetup` (preset lookup, `ZoomOutLimit`, `Create`), `TileTopPlane` (the ray's hit on a
 tile's top plane, command positions and the hand-light point), `GameSessionStarter` (the simulation for a campaign, front-end or DK2-save
 start), `ClassicCreatureQueryRules.Follows` and `TurnToFollowHeading`, and `CameraPathPose.FrontEndVerticalFieldOfView`.
+The scene mapping for creatures and objects, render only (it reads views, never the world): `PoseInterpolator` (draw seconds, the
+clamped position lerp, the shortest-arc wrap and the object turn), `MeshOrientation` (a mesh's turns as a `RenderEuler`, with the
+ordering of `0x00580480` and our frame mapping stated), and `AnimationClipRequest` (the clip identity records, `Replacement` and
+`StartSeconds`). The clip player itself is `CreatureAnimationPlayer` in `DK2.Art`.
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

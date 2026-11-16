@@ -387,6 +387,15 @@ public readonly struct ObjectView
     public KwdLight? Light { get; }
     public DungeonHeartVisual? HeartVisual { get; }
 
+    /// <summary>The texture phase a renderer draws: a Heart's decay phase, else <see cref="TexturePhase"/>.</summary>
+    public Fp32? DrawnTexturePhase => HeartVisual.HasValue ? HeartVisual.Value.DecayPhase : TexturePhase;
+
+    /// <summary><see cref="Scale"/> in model units, 1 for <see cref="Fp32.One"/>.</summary>
+    public float MeshScale => Scale / (float)Fp32.One;
+
+    /// <summary>The vertical scale: <see cref="MeshScale"/> times a Heart's <see cref="DungeonHeartVisual.VerticalScale"/>.</summary>
+    public float MeshScaleY => MeshScale * (HeartVisual?.VerticalScale.Raw ?? Fp32.One) / Fp32.One;
+
     /// <summary>The model's alpha, 0 to 255 (object <c>+0x8F</c>): 255 but for the local player's
     /// Heart Arches and Big Steps during the Heart's opening sequence (<see cref="HeartIntroRules"/>).</summary>
     public byte Alpha { get; }

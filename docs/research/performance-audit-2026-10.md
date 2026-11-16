@@ -38,13 +38,13 @@ The reported six persistent allocations have **no established attribution**.
 ## Unity per-frame CPU and GC
 
 **C1 — STRONGLY INFERRED: resample and upload every posed actor.**
-`U/ClassicCreatureAnimation.cs:93,120,130`; `U/DungeonRunner.cs:622`.
+`U/ClassicCreatureAnimation.cs` (`Upload`: SetVertices and bounds), now `DK2.Art/CreatureAnimationPlayer.Draw` (the clock and the sampling; godot step 2j); `U/DungeonRunner.cs:622`.
 Each draw samples every vertex, converts it, calls SetVertices and recalculates
 bounds even when the resulting pose is unchanged. Cost is O(total animated
 vertices/frame), roughly 12 bytes/vertex of position payload per upload, plus
 sampling, copies and bounds work. Arrays are reused; this is primarily CPU and
 upload work, not a new managed vertex array every frame. Clip replacements
-also clone up to three meshes and allocate sample arrays (`:66`). Proposed:
+also clone up to three meshes and allocate sample arrays (`ClassicCreatureAnimation.Install`). Proposed:
 cache the full effective pose/resource revision and skip identical output;
 then evaluate tighter upload/bounds handling. Gain: eliminate those operations
 on held/identical poses; moving actors still need them. Risk V: control points,

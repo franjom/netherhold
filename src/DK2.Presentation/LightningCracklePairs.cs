@@ -7,7 +7,11 @@ using DK2.Core;
 
 namespace DK2.Presentation;
 
-public readonly record struct LightningControlPoint(uint Id, Vector3 Position);
+public readonly record struct LightningControlPoint(uint Id, Vector3 Position)
+{
+    /// <summary>A point in the renderer's world frame (Y up) as DK2's world point, (x, −z, y).</summary>
+    public static LightningControlPoint FromRenderWorld(uint id, Vector3 render) => new(id, new Vector3(render.X, -render.Z, render.Y));
+}
 public readonly record struct LightningSegment(Vector3 Start, Vector3 End);
 
 public sealed class LightningCracklePairs(IRandomAlgorithm random)

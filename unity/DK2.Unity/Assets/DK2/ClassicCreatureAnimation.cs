@@ -10,41 +10,46 @@ using Unity.Profiling;
 
 namespace DK2.Unity
 {
-    public sealed class ClassicCreatureAnimation : MonoBehaviour
+    /// <summary>Unity's side of <see cref="CreatureAnimationPlayer{TResources}"/>: the mesh copies, the materials and the
+    /// vertex upload. The playback rules are the player's.</summary>
+    public sealed class ClassicCreatureAnimation : MonoBehaviour, ICreatureAnimationSurface<ClassicCreatureAnimation.MeshSet>
     {
+        /// <summary>A clip set's mesh templates and materials, by <see cref="AnimationSegment"/>.</summary>
+        public readonly struct MeshSet
+        {
+            public MeshSet(Mesh[] templates, Material[][] materials)
+            {
+                Templates = templates;
+                Materials = materials;
+            }
+
+            public Mesh[] Templates { get; }
+            public Material[][] Materials { get; }
+        }
+
         private static readonly ProfilerMarker ClockMarker = new ProfilerMarker("DK2.Animation.Clock");
         private static readonly ProfilerMarker SampleMarker = new ProfilerMarker("DK2.Animation.Sample");
         private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.Animation.MeshUpload");
+        private CreatureAnimationPlayer<MeshSet> _player;
         private RenderAnimation[] _clips;
         private Mesh[] _meshes;
         private Mesh[] _templates;
         private Material[][] _materials;
-        private System.Numerics.Vector3[][] _samples;
         private Vector3[][] _vertices;
-        private RenderAnimationClock _clock;
-        private long _startTick;
-        private long _advanced;
-        private AnimationSegment? _drawnSegment;
-        private (RenderAnimation[] Clips, Mesh[] Templates, Material[][] Materials)? _pending;
-        private int _resourceRevision;
-        private readonly AnimationMarkWatcher _marks = new AnimationMarkWatcher();
-        private int _mark1, _mark2;
+        private readonly System.Collections.Generic.List<AnimationPoint> _lightningPoints =
+            new System.Collections.Generic.List<AnimationPoint>();
+
+        private CreatureAnimationPlayer<MeshSet> Player => _player ??= new CreatureAnimationPlayer<MeshSet>(this);
 
         /// <summary>What the last <see cref="Draw"/> found of the clip's footstep marks: 0 none, 1 before the clip's wrap, 2 after it
         /// (<c>0x004B4630</c>, asked at each drawn frame by <c>0x0043CC30</c>).</summary>
-        public int FootstepCrossing { get; private set; }
-        public bool BeatPending { get; private set; }
-        public int InstallationRevision { get; private set; }
+        public int FootstepCrossing => Player.FootstepCrossing;
+        public bool BeatPending => Player.BeatPending;
+        public int InstallationRevision => Player.InstallationRevision;
 
-        public void ConsumeBeat() => BeatPending = false;
+        public void ConsumeBeat() => Player.ConsumeBeat();
 
-        public void AdvanceHealthPhase(Fp32 phaseStep)
-        {
-            if (_clock == null) return;
-            long previousLoops = _clock.CompletedLoops;
-            _clock.Advance(phaseStepOverride: phaseStep);
-            if (_clock.CompletedLoops != previousLoops) BeatPending = true;
-        }
+        public void AdvanceHealthPhase(Fp32 phaseStep) => Player.AdvanceHealthPhase(phaseStep);
 
         public void Configure(RenderAnimation[] clips, Mesh[] templates, Material[][] materials,
             CreatureAnimationTiming timing, bool loop, double start, Fp32? authoredMovementScale = null,
@@ -52,57 +57,53 @@ namespace DK2.Unity
             bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null, Fp32 initialPhase = default,
             FootstepMarkPair footstepMarks = default)
         {
-            if (_clock != null && replacement == AnimationReplacement.Deferred)
-            {
-                Draw(start, movementSpeed, hold);
-                int revision = _clock.ResourceRevision;
-                _clock.Replace(timing, loop, replacement, authoredMovementScale, initialMovementSpeed);
-                if (_clock.ResourceRevision == revision)
-                {
-                    _pending = (clips, templates, materials);
-                    return;
-                }
-            }
-            Halt();
-            _clock = new RenderAnimationClock(timing, loop, authoredMovementScale, initialMovementSpeed, initialPhase);
-            _resourceRevision = _clock.ResourceRevision;
-            // The install normalizes the definition's marks by the clip's frame count (0x0048C5D0).
-            _mark1 = FootstepMarkPair.Normalize(footstepMarks.First, timing.FrameCount);
-            _mark2 = FootstepMarkPair.Normalize(footstepMarks.Second, timing.FrameCount);
-            FootstepCrossing = 0;
-            _marks.Reset();
-            _startTick = (long)System.Math.Floor(start * 4);
-            _advanced = 0;
-            InstallMeshes(clips, templates, materials);
-            Draw(start, movementSpeed, hold, phaseStepOverride);
+            using (ClockMarker.Auto())
+                Player.Configure(clips, new MeshSet(templates, materials), timing, loop, start, authoredMovementScale,
+                    movementSpeed, replacement, hold, initialMovementSpeed, phaseStepOverride, initialPhase, footstepMarks);
         }
 
-        private void InstallMeshes(RenderAnimation[] clips, Mesh[] templates, Material[][] materials)
+        void ICreatureAnimationSurface<MeshSet>.Install(RenderAnimation[] clips, MeshSet resources)
         {
-            InstallationRevision++;
-            _drawnSegment = null;
+            Mesh[] templates = resources.Templates;
             if (SameClips(clips, templates))
             {
                 // The copies differ from their templates only in the vertices and bounds Draw writes
                 // before a segment is shown, so a clip started again keeps them.
                 _clips = clips;
-                _materials = materials;
+                _materials = resources.Materials;
                 return;
             }
             ReleaseMeshes();
             _clips = clips;
             _templates = templates;
-            _materials = materials;
+            _materials = resources.Materials;
             _meshes = new Mesh[3];
-            _samples = new System.Numerics.Vector3[3][];
             _vertices = new Vector3[3][];
             for (int i = 0; i < clips.Length; i++)
             {
                 if (clips[i] == null) continue;
-                _samples[i] = new System.Numerics.Vector3[clips[i].Mesh.Positions.Count];
-                _vertices[i] = new Vector3[_samples[i].Length];
+                _vertices[i] = new Vector3[clips[i].Mesh.Positions.Count];
                 _meshes[i] = Object.Instantiate(templates[i]);
                 _meshes[i].MarkDynamic();
+            }
+        }
+
+        void ICreatureAnimationSurface<MeshSet>.Show(AnimationSegment segment)
+        {
+            GetComponent<MeshFilter>().sharedMesh = _meshes[(int)segment];
+            GetComponent<MeshRenderer>().sharedMaterials = _materials[(int)segment];
+        }
+
+        void ICreatureAnimationSurface<MeshSet>.Upload(AnimationSegment segment, System.Numerics.Vector3[] sample)
+        {
+            Vector3[] vertices = _vertices[(int)segment];
+            using (SampleMarker.Auto())
+                for (int i = 0; i < vertices.Length; i++)
+                    vertices[i] = new Vector3(sample[i].X, sample[i].Y, sample[i].Z);
+            using (UploadMarker.Auto())
+            {
+                _meshes[(int)segment].SetVertices(vertices);
+                _meshes[(int)segment].RecalculateBounds();
             }
         }
 
@@ -110,53 +111,13 @@ namespace DK2.Unity
         {
             if (_materials == null) return;
             _materials[(int)AnimationSegment.Main] = materials;
-            if (_drawnSegment == AnimationSegment.Main)
+            if (Player.DrawnSegment == AnimationSegment.Main)
                 GetComponent<MeshRenderer>().sharedMaterials = materials;
         }
 
         public void Draw(double seconds, Fp32? movementSpeed = null, bool hold = false, Fp32? phaseStepOverride = null)
         {
-            if (_clock == null) return;
-            double tickTime = seconds * 4;
-            long tick = (long)System.Math.Floor(tickTime);
-            AnimationPose pose;
-            using (ClockMarker.Auto())
-            {
-                long previousLoops = _clock.CompletedLoops;
-                int advancedNow = 0;
-                while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed, hold, phaseStepOverride); _advanced++; advancedNow++; }
-                if (_clock.CompletedLoops != previousLoops) BeatPending = true;
-                pose = _clock.Sample((float)(tickTime - tick));
-                FootstepCrossing = (_mark1 | _mark2) == 0 ? 0
-                    : _marks.Observe(_mark1, _mark2, _clock.PreviousPhase, _clock.Phase, advancedNow, (float)(tickTime - tick));
-            }
-            if (_clock.ResourceRevision != _resourceRevision && _pending.HasValue)
-            {
-                var pending = _pending.Value;
-                InstallMeshes(pending.Clips, pending.Templates, pending.Materials);
-                _pending = null;
-                _resourceRevision = _clock.ResourceRevision;
-            }
-            int segment = (int)pose.Segment;
-            if (_drawnSegment != (AnimationSegment)segment)
-            {
-                GetComponent<MeshFilter>().sharedMesh = _meshes[segment];
-                GetComponent<MeshRenderer>().sharedMaterials = _materials[segment];
-                _drawnSegment = (AnimationSegment)segment;
-            }
-            System.Numerics.Vector3[] sample = _samples[segment];
-            Vector3[] vertices = _vertices[segment];
-            using (SampleMarker.Auto())
-            {
-                _clips[segment].Sample(pose.Phase, false, sample);
-                for (int i = 0; i < vertices.Length; i++)
-                    vertices[i] = new Vector3(sample[i].X, sample[i].Y, sample[i].Z);
-            }
-            using (UploadMarker.Auto())
-            {
-                _meshes[segment].SetVertices(vertices);
-                _meshes[segment].RecalculateBounds();
-            }
+            using (ClockMarker.Auto()) Player.Draw(seconds, movementSpeed, hold, phaseStepOverride);
         }
 
         /// <summary>The drawn clip's tagged point <paramref name="id"/> (a KMF control point) in world
@@ -164,46 +125,28 @@ namespace DK2.Unity
         public bool TryGetControlPoint(uint id, out Vector3 world)
         {
             world = default;
-            if (!_drawnSegment.HasValue || _clips == null || _vertices == null) return false;
-            int segment = (int)_drawnSegment.Value;
-            RenderAnimation clip = _clips[segment];
-            Vector3[] vertices = _vertices[segment];
-            if (clip == null || vertices == null || !clip.Mesh.ControlPoints.TryGetValue(id, out int index)
-                || index >= vertices.Length) return false;
-            world = transform.TransformPoint(vertices[index]);
+            if (_vertices == null || !Player.TryGetControlPoint(id, out System.Numerics.Vector3 local)) return false;
+            world = transform.TransformPoint(new Vector3(local.X, local.Y, local.Z));
             return true;
         }
 
         public void CollectLightningControlPoints(System.Collections.Generic.List<DK2.Presentation.LightningControlPoint> points)
         {
             points.Clear();
-            if (!_drawnSegment.HasValue || _clips == null) return;
-            RenderAnimation clip = _clips[(int)_drawnSegment.Value];
-            if (clip == null) return;
-            Vector3[] vertices = _vertices[(int)_drawnSegment.Value];
-            foreach (RenderControlPoint control in clip.Mesh.TaggedPoints)
-                if (control.Id < 2000 && control.VertexIndex < vertices.Length)
-                {
-                    Vector3 point = transform.TransformPoint(vertices[control.VertexIndex]);
-                    points.Add(new DK2.Presentation.LightningControlPoint(control.Id,
-                        new System.Numerics.Vector3(point.x, -point.z, point.y)));
-                }
+            if (_vertices == null) return;
+            Player.CollectLightningPoints(_lightningPoints);
+            foreach (AnimationPoint control in _lightningPoints)
+            {
+                Vector3 point = transform.TransformPoint(new Vector3(control.Local.X, control.Local.Y, control.Local.Z));
+                points.Add(DK2.Presentation.LightningControlPoint.FromRenderWorld(control.Id,
+                    new System.Numerics.Vector3(point.x, point.y, point.z)));
+            }
         }
 
         public void Stop()
         {
-            Halt();
+            _player?.Stop();
             ReleaseMeshes();
-        }
-
-        // Stop, but the mesh copies stay for a configure that may reuse them (InstallMeshes).
-        private void Halt()
-        {
-            _clock = null;
-            _mark1 = _mark2 = 0;
-            FootstepCrossing = 0;
-            BeatPending = false;
-            _pending = null;
         }
 
         private bool SameClips(RenderAnimation[] clips, Mesh[] templates)

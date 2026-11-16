@@ -43,7 +43,7 @@ namespace DK2.Unity
             _lattice = lattice;
             transform.localPosition = Vector3.zero;
             transform.localRotation = Quaternion.identity;
-            Quaternion turn = Quaternion.Euler(0f, torch.Yaw * 360f / 2048f, 0f);
+            Quaternion turn = RenderEulerRotation.Heading(MeshOrientation.Heading(torch.Yaw));
             for (int i = 0; i < _normals.Length; i++) _normals[i] = turn * _sourceNormals[i];
             _mesh.SetNormals(_normals);
             Refresh();

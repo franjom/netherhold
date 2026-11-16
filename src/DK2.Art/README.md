@@ -14,6 +14,11 @@ Targets `netstandard2.1` so the Unity adapter can load it; depends on `DK2.Data`
 nothing: the GLB and PNG writers are `DK2.Convert`'s. Original files and anything decoded from
 them stay out of the repository.
 
+`CreatureAnimationPlayer<TResources>` plays one creature's or object's type-6 clip on the draw clock: the deferred
+replacement, the start tick, the turn catch-up, the loop beat, the footstep marks, the health phase and the tagged control
+points, over an engine's `ICreatureAnimationSurface` (install, show, upload). `CreatureAnimationArt` holds the art rules for
+starting a clip. The pose and turn rules it is driven by are in `DK2.Presentation` (`PoseInterpolator`, `AnimationClipRequest`).
+
 Format notes: `src/DK2.Convert/README.md`. Tests: `dotnet test tests/DK2.Convert.Tests`
 (`ArtArchitectureTests` checks the target framework and the references).
 

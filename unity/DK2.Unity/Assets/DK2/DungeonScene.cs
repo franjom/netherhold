@@ -58,8 +58,7 @@ namespace DK2.Unity
             new System.Collections.Concurrent.ConcurrentDictionary<int, FpPosition3?>();
         private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
         private readonly Dictionary<int, CreatureView> _creaturePoses = new Dictionary<int, CreatureView>();
-        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, bool Deferred)> _creatureClips =
-            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, bool Deferred)>();
+        private readonly Dictionary<int, CreatureClipIdentity> _creatureClips = new Dictionary<int, CreatureClipIdentity>();
         private double _renderSeconds;
 
         /// <summary>The draw clock in game seconds, as the last frame drew it; read by the game probe.</summary>
@@ -96,8 +95,7 @@ namespace DK2.Unity
             () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, ObjectView> _objectPoses = new Dictionary<int, ObjectView>();
-        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight, Fp32 Phase)> _objectClips =
-            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight, Fp32 Phase)>();
+        private readonly Dictionary<int, ObjectClipIdentity> _objectClips = new Dictionary<int, ObjectClipIdentity>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<StructureId, TilePos> _structureTiles = new Dictionary<StructureId, TilePos>();
         private readonly Dictionary<StructureId, StructureView> _structureViews = new Dictionary<StructureId, StructureView>();
@@ -577,18 +575,14 @@ namespace DK2.Unity
             in ResolvedAsset mesh, in ResolvedAsset animation)
         {
             if (_classic == null || !_meshCreatures.Contains(id)) return;
-            AssetRef clip = creature.PlaysAnimation ? animation.Reference : default;
-            var identity = (clip, creature.AnimationStartedAt, creature.AnimationLoops, creature.AnimationDeferred);
+            CreatureClipIdentity identity = AnimationClipRequest.Identity(creature, animation.Reference);
             if (_creatureClips.TryGetValue(id, out var previous) && previous == identity) return;
             using var clipScope = CreatureClipMarker.Auto();
             _creatureClips[id] = identity;
             ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
-            double startSeconds = creature.AnimationStartedAt.HasValue
-                ? (creature.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
-                : _renderSeconds;
+            double startSeconds = AnimationClipRequest.StartSeconds(creature.AnimationStartedAt, _renderSeconds);
             if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops,
-                startSeconds, creature.AnimationMovementSpeed,
-                creature.AnimationDeferred ? AnimationReplacement.Deferred : AnimationReplacement.Immediate,
+                startSeconds, creature.AnimationMovementSpeed, AnimationClipRequest.Replacement(creature),
                 creature.AnimationPaused, creature.AnimationInitialMovementSpeed, footstepMarks: creature.FootstepMarks)) return;
             if (player != null) player.Stop();
             _classic.RestoreModel(go, mesh);
@@ -635,7 +629,7 @@ namespace DK2.Unity
 
         public void SetCreatureFrameTime(GameTick tick, float fraction)
         {
-            _renderSeconds = (tick.Value + (double)Mathf.Clamp01(fraction)) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond;
+            _renderSeconds = PoseInterpolator.DrawSeconds(tick, fraction);
         }
 
         private static readonly ProfilerMarker FrameMarker = new ProfilerMarker("DK2.Scene.AnimatedFrame");
@@ -657,10 +651,9 @@ namespace DK2.Unity
                 if (!_creatures.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
                 CreatureView pose = entry.Value;
                 Vector3 position = go.transform.position;
-                Vector3 ground = Ground(
-                    Mathf.Lerp(pose.PreviousPosX, pose.PosX, fraction) / Fp32.One,
-                    Mathf.Lerp(pose.PreviousPosY, pose.PosY, fraction) / Fp32.One,
-                    Mathf.Lerp(pose.PreviousHeight, pose.Height, fraction) / Fp32.One);
+                // Position only: a creature keeps its last tick's turns (PositionCreature, PoseInterpolator).
+                DrawPoint drawn = PoseInterpolator.Position(pose, fraction);
+                Vector3 ground = Ground(drawn.X, drawn.Y, drawn.Height);
                 go.transform.position = new Vector3(ground.x,
                     _meshCreatures.Contains(entry.Key) ? ground.y : position.y, ground.z);
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
@@ -701,18 +694,11 @@ namespace DK2.Unity
             {
                 if (!_objects.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
                 ObjectView pose = entry.Value;
-                Vector3 ground = Ground(Mathf.Lerp(pose.PreviousPosX, pose.PosX, fraction) / Fp32.One,
-                    Mathf.Lerp(pose.PreviousPosY, pose.PosY, fraction) / Fp32.One,
-                    Mathf.Lerp(pose.PreviousHeight, pose.Height, fraction) / Fp32.One);
+                DrawPoint drawn = PoseInterpolator.Position(pose, fraction);
+                Vector3 ground = Ground(drawn.X, drawn.Y, drawn.Height);
                 go.transform.position = new Vector3(ground.x,
                     _meshObjects.Contains(entry.Key) ? ground.y : go.transform.position.y, ground.z);
-                int turn = ((pose.Heading - pose.PreviousHeading + 1024) & 2047) - 1024;
-                float yaw = (pose.PreviousHeading + 1024 + turn * fraction) * 360f / 2048f;
-                float pitch = pose.PreviousPitch + (((pose.Pitch - pose.PreviousPitch + 1024) & 2047) - 1024) * fraction;
-                float roll = pose.PreviousRoll + (((pose.Roll - pose.PreviousRoll + 1024) & 2047) - 1024) * fraction;
-                go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f)
-                    * Quaternion.AngleAxis(roll * 360f / 2048f, Vector3.forward)
-                    * Quaternion.Euler(-pitch * 360f / 2048f, 0f, 0f);
+                go.transform.localRotation = RenderEulerRotation.Of(PoseInterpolator.ObjectTurn(pose, fraction));
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
                 player?.Draw(_renderSeconds, phaseStepOverride: pose.HeartVisual?.PhaseStep);
                 if (pose.HeartVisual.HasValue && player != null && player.BeatPending
@@ -785,8 +771,7 @@ namespace DK2.Unity
             _objects[objectId] = go;
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
-            if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase, instance.AddedLight);
-            else if (instance.TexturePhase is Fp32 phase) _classic?.ConfigureTexturePhase(go, mesh, phase, instance.AddedLight);
+            if (instance.DrawnTexturePhase is Fp32 phase) _classic?.ConfigureTexturePhase(go, mesh, phase, instance.AddedLight);
             if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 
@@ -803,8 +788,7 @@ namespace DK2.Unity
             PositionObject(go, objectId, instance, mesh.Look);
             using (ObjectClipMarker.Auto()) ConfigureObjectClip(go, objectId, instance, mesh);
             using var phaseScope = TexturePhaseMarker.Auto();
-            if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase, instance.AddedLight);
-            else if (instance.TexturePhase is Fp32 phase) _classic?.ConfigureTexturePhase(go, mesh, phase, instance.AddedLight);
+            if (instance.DrawnTexturePhase is Fp32 phase) _classic?.ConfigureTexturePhase(go, mesh, phase, instance.AddedLight);
             if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 
@@ -819,12 +803,10 @@ namespace DK2.Unity
                 return;
             }
             _objectPoses[id] = pose;
-            var identity = (mesh.Reference, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight, pose.AnimationInitialPhase);
+            ObjectClipIdentity identity = AnimationClipRequest.Identity(pose, mesh.Reference);
             if (_objectClips.TryGetValue(id, out var previous) && previous == identity) return;
             _objectClips[id] = identity;
-            double startSeconds = pose.AnimationStartedAt.HasValue
-                ? (pose.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
-                : _renderSeconds;
+            double startSeconds = AnimationClipRequest.StartSeconds(pose.AnimationStartedAt, _renderSeconds);
             if (_classic != null && _meshObjects.Contains(id)
                 && _classic.ConfigureAnimation(go, mesh, pose.AnimationLoops, startSeconds,
                     phaseStepOverride: pose.HeartVisual?.PhaseStep, addedLight: pose.AddedLight, initialPhase: pose.AnimationInitialPhase)) return;
@@ -854,7 +836,7 @@ namespace DK2.Unity
             _structureTiles[id] = structure.Tile;
             float x = structure.PosX / (float)Fp32.One, y = structure.PosY / (float)Fp32.One;
             go.transform.position = Ground(x, y, structure.Height / (float)Fp32.One);
-            go.transform.localRotation = Quaternion.Euler(0f, structure.MeshYaw * 360f / 2048f, 0f);
+            go.transform.localRotation = RenderEulerRotation.Heading(MeshOrientation.Heading(structure.MeshYaw));
             if (realMesh) go.transform.localScale = Vector3.one;
             _structureViews[id] = structure;
             // The built door's own tint, a base light that no point light has to reach (0x004A6B70).
@@ -975,7 +957,7 @@ namespace DK2.Unity
                 (torch.MeshPosX - torch.PosX) / (float)Fp32.One,
                 (torch.MeshPosY - torch.PosY) / (float)Fp32.One);
             // Type-5 light meshes use yaw without the ordinary object's half-turn (wall-torches.md §4).
-            model.localRotation = Quaternion.Euler(0f, torch.Yaw * 360f / 2048f, 0f);
+            model.localRotation = RenderEulerRotation.Heading(MeshOrientation.Heading(torch.Yaw));
         }
 
         private static void ApplyTorchLight(Light light, in TorchView torch)
@@ -1242,9 +1224,8 @@ namespace DK2.Unity
                 // A real mesh is modelled in tiles about its feet.
                 go.transform.position = Ground(creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One,
                     creature.Height / (float)Fp32.One);
-                go.transform.localRotation = Quaternion.Euler(0f, creature.MeshYaw * 360f / 2048f, 0f)
-                    * Quaternion.AngleAxis(creature.Roll * 360f / 2048f, Vector3.forward)
-                    * Quaternion.Euler(-creature.Pitch * 360f / 2048f, 0f, 0f);
+                go.transform.localRotation = RenderEulerRotation.Of(
+                    MeshOrientation.Mesh(creature.MeshYaw, creature.Pitch, creature.Roll));
                 return;
             }
 
@@ -1273,13 +1254,11 @@ namespace DK2.Unity
             {
                 // A real mesh is modelled in tiles about its own origin, at the object's height.
                 go.transform.position = Ground(x, y, instance.Height / (float)Fp32.One);
-                // DK2 turns about the model's X, then its Y, then the heading (0x00580480); its X is
-                // ours, its Y our -Z (RenderMesh.ToRenderFrame), hence pitch minus and roll plus.
-                go.transform.localRotation = Quaternion.Euler(0f, instance.MeshYaw * 360f / 2048f, 0f)
-                    * Quaternion.AngleAxis(instance.Roll * 360f / 2048f, Vector3.forward)
-                    * Quaternion.Euler(-instance.Pitch * 360f / 2048f, 0f, 0f);
-                float scale = instance.Scale / (float)Fp32.One;
-                go.transform.localScale = new Vector3(scale, scale * (instance.HeartVisual?.VerticalScale.Raw ?? Fp32.One) / Fp32.One, scale);
+                // DK2's turn order and our frame mapping: MeshOrientation (0x00580480).
+                go.transform.localRotation = RenderEulerRotation.Of(
+                    MeshOrientation.Mesh(instance.MeshYaw, instance.Pitch, instance.Roll));
+                float scale = instance.MeshScale;
+                go.transform.localScale = new Vector3(scale, instance.MeshScaleY, scale);
                 return;
             }
 

@@ -15,12 +15,17 @@ internal static class AnimatedKmfFixture
         ? Build(3, [0, 200, 1, 0, 1, 1, 0, 1, 1], [0, 1, 0, 1, 0, 1])
         : Build(2, [0, 1, 0, 1, 0, 1], [0, 1, 0, 1, 0, 1]);
 
+    /// <summary><see cref="TwoFrames"/> with tagged points, each a packed vertex reference (primitive in the low word,
+    /// vertex in the high) and an id.</summary>
+    public static byte[] TwoFramesWithControls(params (uint Vertex, uint Id)[] controls) =>
+        Build(2, [0, 1, 0, 1, 0, 1], [0, 1, 0, 1, 0, 1], controls);
+
     /// <summary>Three frames whose middle one is no key: each vertex's entries g and g + 1 are
     /// exact at frames 0 and 2, so frame 1 is halfway between them (<c>0x0057E5B0</c>).</summary>
     public static byte[] KeyedAtFramesZeroAndTwo() =>
         Build(3, [0, 0, 1, 0, 0, 1, 0, 0, 1], [0, 2, 0, 2, 0, 2]);
 
-    private static byte[] Build(uint frames, byte[] frameOffsets, byte[] keyFrames)
+    private static byte[] Build(uint frames, byte[] frameOffsets, byte[] keyFrames, (uint Vertex, uint Id)[]? controls = null)
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
@@ -32,7 +37,8 @@ internal static class AnimatedKmfFixture
         Tag("ANIM"); U32(0); Tag("HEAD"); U32(0); Text("moving triangle");
         U32(1); U32(frames); U32(3); U32(6); U32(0);
         Vector(0, 0, 0); writer.Write(1f); writer.Write(2f); U32(1);
-        Tag("CTRL"); U32(0); U32(0);
+        Tag("CTRL"); U32(0); U32((uint)(controls?.Length ?? 0));
+        foreach ((uint vertex, uint id) in controls ?? []) { U32(vertex); U32(id); }
         Tag("SPRS"); U32(0); Tag("SPHD"); U32(0); U32(1); U32(3); writer.Write(1f);
         Tag("SPRS"); U32(0); U32(0);
         Tag("POLY"); U32(0); writer.Write(new byte[] { 0, 1, 2 });

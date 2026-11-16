@@ -168,7 +168,7 @@ namespace DK2.Unity
                 float size = source.ScaleRaw / 4096f;
                 if (group.IsMesh)
                 {
-                    var matrix = Matrix4x4.TRS(position, MeshRotation(source, fraction), Vector3.one * size);
+                    var matrix = Matrix4x4.TRS(position, RenderEulerRotation.Of(MeshOrientation.Particle(source, fraction)), Vector3.one * size);
                     Mesh mesh = group.Mesh;
                     Material[] materials = group.Materials;
                     if (group.Frames != null)
@@ -242,21 +242,6 @@ namespace DK2.Unity
                 group.System.SetParticles(group.Buffer, group.Count);
             }
             _transparent?.EndEffectFrame();
-        }
-
-        /// <summary>A mesh particle's turn: DK2 turns a model about its X, then its Y, then the heading
-        /// (0x00580480), in the object's DK2 frame mapping (pitch minus, roll plus).</summary>
-        private static Quaternion MeshRotation(ConstructionParticle source, float fraction)
-        {
-            const float degreesPerUnit = 360f / 2048f;
-            float heading = Mathf.LerpAngle(source.PreviousHeadingRaw * degreesPerUnit,
-                source.HeadingRaw * degreesPerUnit, fraction);
-            float pitch = Mathf.LerpAngle(source.PreviousPitchRaw * degreesPerUnit,
-                source.PitchRaw * degreesPerUnit, fraction);
-            float roll = Mathf.LerpAngle(source.PreviousRollRaw * degreesPerUnit,
-                source.RollRaw * degreesPerUnit, fraction);
-            return Quaternion.Euler(0f, heading + 180f, 0f)
-                * Quaternion.AngleAxis(roll, Vector3.forward) * Quaternion.Euler(-pitch, 0f, 0f);
         }
 
         /// <summary>One flat sprite (0x0059C720 → 0x0057FB80): a square of half-size scale / 4096 in the
