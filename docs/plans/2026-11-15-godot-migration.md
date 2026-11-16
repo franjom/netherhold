@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is next.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit and 3a (static terrain from the level-start camera) are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -563,10 +563,39 @@ group 2 is a list to audit, not a finding.
       Behavior 677 with 5 skipped, and `godot/DK2.Godot` builds with 0 warnings.
 - [x] 2k. Closed 2026-11-16 by moving its two items to step 4, where they now sit, since both follow
       speech playback: the level sound driver (`DungeonRunner.Sound`, which waits for the audio abstraction) and
-      Godot's speech subtitles. Step 2 is complete.
+      Godot's speech subtitles. Step 2 is complete. Unity's batch checks (`unity/README.md`, *Verifying it inside Unity*)
+      run unattended here, and at 1a766d8f, over all of step 2, its own compile, `DungeonSetup.SmokeTest` (Level1 30x38,
+      1140 tile objects) and `SaveSmokeTest` (20 saves) passed; the "Not run: Unity in Play mode" lines above mean Play
+      mode in the owner's open editor, which no session drives.
 
 ## Step 3: a playable level in Godot
 
+The sub-steps 3a to 3n, their order and the owner's decisions on the open points are in
+[the step-3 audit](2026-11-16-godot-step3-audit.md), whose *How a step is checked here* lists the checks: the
+rules' tests, a Movie Maker capture, the stand-in compile and Unity's batch checks (Unity 6000.6.0f1 is installed and
+licensed; its lighting probes can give reference frames for 3i and 3j).
+
+- [x] 3a. Static terrain from the level-start camera (2026-11-16). In `DK2.Presentation`, out of `TerrainChunks` and
+      `ClassicMeshes`: `TerrainTileBuilder` (`Prepare`, `Build`, `Draws`, `PrepareSinglePiece`) with
+      `TerrainTileGeometry` and `TerrainPiece` (`ITerrainPieceSource`, `InstallTerrainPieces`); `TerrainMaterialKey`
+      (`For` chooses the variant: fog, red, tag or tint; `Overlay` is the tag pass); `ClassicMaterialRecipe` (texture
+      choice, blend, `WritesDepth`, `TakesAddedLight`: an additive material takes no added light, an explicit rule
+      where Unity had the implicit "URP Unlit has no `_EmissionColor`"). `RightHandedFrame` is the Unity
+      (left-handed) to Godot (right-handed) Z flip, audit open point 1, option 1: triangle indices pass through
+      unchanged, because the geometry and the camera are mirrored together and the screen winding stays. Unity's
+      `TerrainChunks` keeps the upload, the scheduler and `Append`; `ClassicMeshes` implements `ITerrainPieceSource`
+      and maps a key to a cached `Material`. Godot's new `WorldScene`, under `InGameHud`, has one `MeshInstance3D` per
+      16x16 chunk, one `ArrayMesh` surface per key, unshaded shaders and a `Camera3D` at the level-start pose
+      (`PROJECTION_FRUSTUM`, keep-height, `frustum_offset = -shift*h/2`, near 0.3); the focus projects to y 453.37
+      against DK2's expected 453.375 at 1080p. In 3a the fog and tag-overlay keys draw nothing (3c) and tint, tag and
+      red draw with the plain material; there is no lighting (3i) and no camera movement (3b), and the chunks are built
+      once, synchronously, in `Open`. Positions and normals match the old build to 1e-6 (its quarter turn went through
+      a float quaternion, one ulp off); keys, triangles, UVs and light anchors match exactly. Reviewer: about 60
+      mutants and 8 follow-ups, all now fail a test. Verification: `dotnet test DK2.slnx` 10,537 passed, 30 skipped
+      (Presentation 2,556); the Level1 turn-400 hash is unchanged (`D7290428D81A902F`); the `DK2.Unity.Compile` stand-in
+      passes; Unity's batch compile, `SmokeTest` and `SaveSmokeTest` passed on the final change, after the review fixes. A
+      Movie Maker capture at 1920x1080 shows Level1's Heart room from DK2's start camera with the HUD on top, not
+      mirrored (a Gold tile at the minimap's north notch), with correct wall faces and textures, full-bright.
 - [ ] Terrain meshes and the classic camera (`TerrainPieces`, `TerrainLattice`, `ClassicCamera`,
       `CameraGlide` and `ClassicCameraInput` are already in `src/`). The pointer sample is y-up: pass
       `y = ScreenHeight - yTop` from a top-left host (step 2i).

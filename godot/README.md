@@ -11,11 +11,15 @@ loads a real campaign profile and hi-score table, and reads and writes the files
 Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
-Unity's `DungeonRunner` does and ticks it at the default game speed, over a black screen with no 3D world. Twelve panels
+Unity's `DungeonRunner` does and ticks it at the default game speed, over the level's terrain (`WorldScene`, plan step 3a:
+a `Camera3D` at DK2's level-start pose that does not move, one `MeshInstance3D` per 16x16 chunk, unshaded; there are no
+creatures, objects, structures, torches, liquid waves, fog, tag highlights or lighting yet, and nothing is rebuilt after the
+first frame). `WorldScene` takes its models and textures from the original install, which the scene requires: there is
+no placeholder mode. Twelve panels
 are there: the hover HUD (`ClassicHoverHud` over `HoverHud`: the wooden bar under the other panels, the status
 line and the delayed tooltip over them), which shows what the shared `HudHoverText` picks from the panels under the
 pointer (the resource strip, the bottom panel, the creature overview, the message tabs, the battle tab; world hover needs
-the 3D world and is not wired); the battle tab right of the message tabs (`ClassicBattleTab` over `BattleTabHud` and
+picking, which is not wired); the battle tab right of the message tabs (`ClassicBattleTab` over `BattleTabHud` and
 `BattleTabView`, fed by the battle records of `MusicWorldObserver`: the crossed blades while one of the keeper's
 creatures fights, the Call to Arms cancel, the alarm; the cancel's left click posts its command, while the blades' zoom,
 the cancel's and the alarm's glides and the fly-in notice need the camera and the reward tablet and are not wired;
@@ -50,7 +54,7 @@ click, the message string tables (`MessageTextTables`), player names (`PlayerNam
 (`HudHoverText`), the creature overview's install art (`InstallCreatureOverviewArt`), the query target and its details
 (`CreatureQueryView`), the creature names it shows (`InstallClassicCreatureNames`), and the battle tab's place, hover
 text and click actions (`BattleTabView.MenuTop`, `BattleTabHoverText`, `BattleTabView.Action`), the pointer-over-HUD list
-(`HudPointerMap`, used for the HUD's hover text only, since there is no world yet; the creature query details count only while
+(`HudPointerMap`, used for the HUD's hover text only, since world picking is not wired; the creature query details count only while
 no menu is modal), the settings and saves locations (`GameFolders` over `user://`), the launch arguments
 (`LaunchArguments`), the played slot (`CampaignSlot.ForLevel`, passed to `WorldHoverText`), the frame clamp and
 ticks per frame (`TickPacer.MaximumFrameSeconds`, `DefaultMaxTicksPerFrame`) the focus-out cancel (`PointerGestures.CancelAll`), the HUD tool state (`HudToolState`: the tool, the panel choice,
@@ -110,7 +114,8 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/` | the Godot project: `project.godot`, `DK2.Godot.csproj` (`ProjectReference`s into `src/`), scenes, C# |
 | `DK2.Godot/Main.tscn`, `Main.cs` | the main scene: the front-end menu (`ClassicFrontEndMenu`) |
 | `DK2.Godot/UserFolders.cs` | `GameFolders` over `user://` with the `--profile`, `--settings`, `--saves` and `--hiscores` overrides, for both scenes |
-| `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level, no 3D world (see above) |
+| `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level and its `WorldScene` (see above) |
+| `DK2.Godot/WorldScene.cs` | the 3D world: `TerrainTileBuilder`'s chunks as `MeshInstance3D`s through `RightHandedFrame`, and the level-start `Camera3D` |
 | `DK2.Godot/ClassicHoverHud.cs` | the hover HUD: `HoverHud` drawn by two `HudCanvas`es, top-docked, the bar at z index -1 and the text at +1 around the other panels, no input |
 | `DK2.Godot/ClassicResourceHud.cs` | the keeper's resource strip: `KeeperResourceHud` drawn by `HudCanvas`, top-docked, no input |
 | `DK2.Godot/ClassicBottomPanel.cs` | the keeper's bottom panel: `BottomPanelHud` drawn by `HudCanvas`, mouse forwarded |
@@ -135,7 +140,7 @@ powershell -File godot/editor.ps1    # open the editor
 ```
 
 The game reads the original install in place: `DK2_DIR`, else the usual install locations
-(`DK2.Data.Dk2Install`). The front end's replacement TrueType face is Bullfrog's DungeonKeeperII.ttf, which is not
+(`DK2.Data.Dk2Install`); the in-game scene needs it for its models and textures as well as the HUD art. The front end's replacement TrueType face is Bullfrog's DungeonKeeperII.ttf, which is not
 ours to ship (download: see `unity/README.md`). It is read from an absolute path, never imported:
 `DK2_REPLACEMENT_FONT`, else `DK2.Godot/Fonts/DungeonKeeperII.ttf` (gitignored), else the Unity project's
 gitignored copy. Without it the menu draws DK2's BF4 bitmap font.
@@ -183,6 +188,10 @@ in-game HUD instead and prints `DK2.Godot in-game HUD: Level1 seed 1`. `--headle
 frame, run the console build without it, e.g. `--path godot/DK2.Godot --write-movie <dir>/f.png --fixed-fps 30
 --quit-after 120` (Movie Maker writes every frame as a PNG; keep the output outside the repository).
 `editor.ps1` adds `--editor` to any run without `--headless`, so call the pinned console executable directly for this.
+To capture the world, run `res://InGameHud.tscn` that way at 1920x1080 (the `override.cfg` below) with
+`-- --settings <temp file>`. Level1's opening camera path hides the HUD for about 1,000 frames at 30 fps, so a capture of the HUD
+over the terrain needs a save made after the path (`--save-as <name> --save-tick 130` with `--saves` and `--profile`, then
+`--load <name>`); the terrain itself is visible from the first frame.
 `InGameHud.tscn` reads the saved settings (speed, key bindings, HUD scale) when it starts, so a capture recipe passes
 `-- --settings <temp file>` to repeat the same frames and not depend on the player's `user://game-settings.ini`. A recipe that saves or loads
 (`--save-as`, `--load`, or a press on the Save or Load page) passes `--saves <temp dir>` and `--profile <temp file>` too: a save writes

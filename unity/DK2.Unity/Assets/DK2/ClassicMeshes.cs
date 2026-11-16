@@ -29,7 +29,7 @@ namespace DK2.Unity
     /// or additive, none clipped, none shining, every face one-sided
     /// (<c>docs/research/kmf-materials.md</c>).</para>
     /// </remarks>
-    public sealed class ClassicMeshes
+    public sealed class ClassicMeshes : ITerrainPieceSource
     {
         private static readonly ProfilerMarker ColdMeshMarker = new ProfilerMarker("DK2.Art.BuildMeshCold");
         public enum LightingMode { Instance, TerrainPiece }
@@ -48,7 +48,8 @@ namespace DK2.Unity
         private readonly Dictionary<Material, Material> _redHighlighted = new Dictionary<Material, Material>();
         private readonly Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material> _tinted =
             new Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material>();
-        private readonly Dictionary<(AssetRef, int), PieceSource> _pieces = new Dictionary<(AssetRef, int), PieceSource>();
+        private readonly Dictionary<(AssetRef, int), TerrainPiece> _pieces = new Dictionary<(AssetRef, int), TerrainPiece>();
+        private readonly Dictionary<TerrainMaterialKey, Material> _terrainMaterials = new Dictionary<TerrainMaterialKey, Material>();
         private readonly Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]> _texturePhaseMaterials = new Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]>();
         private readonly Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]> _tintedSets = new Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]>();
         // Every mesh, texture and material this class made (Own), once each however many caches hold
@@ -171,30 +172,43 @@ namespace DK2.Unity
             return go;
         }
 
-        /// <summary>A piece's geometry and materials for a chunk to copy, resolved straight from the
-        /// install (the classic look's own tier); null when the install has no model for the key.
+        /// <summary>A piece's geometry and material recipes for a chunk to copy, resolved straight from
+        /// the install (the classic look's own tier); null when the install has no model for the key.
         /// <paramref name="textureIndex"/> picks each material's alternative texture, clamped to its
         /// list; below 0 the first. A Decay terrain's face passes its damage stage
         /// (<see cref="WorldView.DecayStage"/>): CLAIMED WALL lists Brick_DECAY3 to Brick.</summary>
-        public PieceSource Piece(AssetRef key, int textureIndex = -1)
+        public TerrainPiece Piece(AssetRef key, int textureIndex = -1)
         {
             if (textureIndex < 0) textureIndex = 0;
-            if (_pieces.TryGetValue((key, textureIndex), out PieceSource cached)) return cached;
+            if (_pieces.TryGetValue((key, textureIndex), out TerrainPiece cached)) return cached;
 
             using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Mesh);
-            PieceSource piece = null;
-            if (_art.TryResolve(key, out ResolvedAsset asset) && _art.TryLoadModel(asset, out KmfModel model))
-            {
-                RenderMesh source = RenderMesh.FromModel(model);
-                var materials = new Material[source.Triangles.Count];
-                for (int i = 0; i < materials.Length; i++)
-                    materials[i] = MaterialFor(i < model.Materials.Count ? model.Materials[i] : null, textureIndex);
-                piece = new PieceSource(
-                    ToUnity(source.Positions).ToArray(), ToUnity(source.Normals).ToArray(),
-                    ToUnity(source.Uvs).ToArray(), source.Triangles, materials);
-            }
+            TerrainPiece piece = _art.TryResolve(key, out ResolvedAsset asset) && _art.TryLoadModel(asset, out KmfModel model)
+                ? TerrainPiece.FromModel(model, textureIndex) : null;
             _pieces[(key, textureIndex)] = piece;
             return piece;
+        }
+
+        /// <summary>The material a terrain surface draws with: the recipe's own, or its sight fog,
+        /// red, tag or tinted twin, or the tag overlay. Shared per key.</summary>
+        public Material Terrain(in TerrainMaterialKey key)
+        {
+            if (_terrainMaterials.TryGetValue(key, out Material material) && material != null) return material;
+            if (key.IsOverlay) material = TagOverlay(key.Variant == TerrainMaterialVariant.RedTagOverlay);
+            else
+            {
+                Material recipe = ForTexture(key.Recipe.Texture ?? "", key.Recipe.Blend, key.Recipe.SelfIllumination);
+                switch (key.Variant)
+                {
+                    case TerrainMaterialVariant.Fog: material = SightFog(recipe, key.FogOpacity); break;
+                    case TerrainMaterialVariant.Red: material = Tagged(recipe, red: true); break;
+                    case TerrainMaterialVariant.Tagged: material = Tagged(recipe); break;
+                    case TerrainMaterialVariant.Tinted: material = TerrainTinted(recipe, key.Tint); break;
+                    default: material = recipe; break;
+                }
+            }
+            _terrainMaterials[key] = material;
+            return material;
         }
 
         private readonly Dictionary<(string, int), Built> _builtFrames = new Dictionary<(string, int), Built>();
@@ -350,11 +364,8 @@ namespace DK2.Unity
 
         private Material MaterialFor(KmfMaterial kmf, int textureIndex = 0)
         {
-            // The converter's order: the first named texture, else the environment texture.
-            string texture = kmf == null ? ""
-                : kmf.TextureNames.Count > 0 ? kmf.TextureNames[Mathf.Clamp(textureIndex, 0, kmf.TextureNames.Count - 1)]
-                : kmf.EnvironmentTextureName ?? "";
-            return kmf == null ? ForTexture(texture) : ForTexture(texture, kmf.Blend, kmf.SelfIllumination);
+            ClassicMaterialRecipe recipe = ClassicMaterialRecipe.FromKmf(kmf, textureIndex);
+            return ForTexture(recipe.Texture, recipe.Blend, recipe.SelfIllumination);
         }
 
         private readonly List<(int Submesh, Material Material)> _environmentScratch = new List<(int, Material)>();
@@ -625,6 +636,7 @@ namespace DK2.Unity
         {
             var key = (texture, blend, selfIllumination);
             if (_materials.TryGetValue(key, out Material material)) return material;
+            var recipe = new ClassicMaterialRecipe(texture, blend, selfIllumination);
 
             using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Material);
             string name = texture.Length > 0 ? texture : "untextured";
@@ -648,7 +660,7 @@ namespace DK2.Unity
                 if (blend == KmfBlend.AlphaBlend)
                     MakeTransparent(material, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
             }
-            if (blend != KmfBlend.Opaque) _kmfBlended.Add(material);
+            if (recipe.IsBlended) _kmfBlended.Add(material);
             if (texture.Length > 0)
             {
                 try
@@ -662,11 +674,12 @@ namespace DK2.Unity
                     Debug.LogWarning($"DK2: engine texture '{texture}' not found; drawing it untextured.");
                 }
             }
-            if (blend != KmfBlend.Additive && selfIllumination > 0f)
+            if (recipe.AddedLight > 0f)
             {
+                float added = recipe.AddedLight;
                 material.EnableKeyword("_EMISSION");
                 material.SetTexture("_EmissionMap", material.mainTexture);
-                material.SetColor("_EmissionColor", new Color(selfIllumination, selfIllumination, selfIllumination));
+                material.SetColor("_EmissionColor", new Color(added, added, added));
                 material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             }
             _materials[key] = material;
@@ -775,7 +788,7 @@ namespace DK2.Unity
                 else UnityEngine.Object.DestroyImmediate(asset);
             }
             _owned.Clear();
-            _built.Clear(); _builtFrames.Clear(); _materials.Clear(); _pieces.Clear(); _animations.Clear();
+            _built.Clear(); _builtFrames.Clear(); _materials.Clear(); _pieces.Clear(); _terrainMaterials.Clear(); _animations.Clear();
             _groupParts.Clear(); _tagged.Clear(); _redHighlighted.Clear(); _tinted.Clear(); _tintedSets.Clear();
             _elementTinted.Clear(); _texturePhaseMaterials.Clear(); _hoverTextures.Clear(); _faded.Clear();
             _opaqueOf.Clear(); _environmentPasses.Clear(); _environmentMaterials.Clear(); _kmfBlended.Clear();
@@ -877,26 +890,6 @@ namespace DK2.Unity
 
                 public void Dispose() => _breakdown?.Switch(_outer);
             }
-        }
-
-        /// <summary>One install model as arrays in the renderer frame, triangles per material.</summary>
-        public sealed class PieceSource
-        {
-            public PieceSource(Vector3[] positions, Vector3[] normals, Vector2[] uvs,
-                IReadOnlyList<int[]> triangles, Material[] materials)
-            {
-                Positions = positions;
-                Normals = normals;
-                Uvs = uvs;
-                Triangles = triangles;
-                Materials = materials;
-            }
-
-            public Vector3[] Positions { get; }
-            public Vector3[] Normals { get; }
-            public Vector2[] Uvs { get; }
-            public IReadOnlyList<int[]> Triangles { get; }
-            public Material[] Materials { get; }
         }
 
         private sealed class Built

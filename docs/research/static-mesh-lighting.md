@@ -35,7 +35,7 @@ only the open PlayerColouredPath branch clears them at`0x0043FF6B`.
 Solid PlayerColouredWall quarters retain normal inversion. Floor quarters do not.
 
 Built: `HasTop` and `QuarterKind.Top` submissions invert the normal in
-`TerrainChunks.Add` before rotation. Decoded assets, positions, floors, room
+`TerrainTileBuilder.Add` before rotation. Decoded assets, positions, floors, room
 quarter sets and animation normals retain their existing paths. Production
 regressions and image checks are in classic-lighting-verification.md.
 

@@ -48,17 +48,22 @@ namespace DK2.Unity.Editor
             try
             {
                 var classic = new ClassicMeshes(null, classicVertexLighting: true);
-                var source = new Material(shader);
+                // The piece's own material, made from its recipe and then given a texture.
+                const float selfLight = .25f;
+                var recipe = new ClassicMaterialRecipe("", KmfBlend.Opaque, selfLight);
+                Material source = classic.ForTexture(recipe.Texture, recipe.Blend, recipe.SelfIllumination);
                 owned.Add(source);
                 source.mainTexture = Texture2D.whiteTexture;
-                source.EnableKeyword("_EMISSION");
+                if (source.GetColor("_EmissionColor") != new Color(selfLight, selfLight, selfLight))
+                    throw new InvalidOperationException("ForTexture lost the recipe's self-illumination.");
+                // Distinct channels, so a twin that mixes them is caught.
                 var selfIllumination = new Color(.125f, .25f, .375f, 0);
                 source.SetColor("_EmissionColor", selfIllumination);
-                var piece = new ClassicMeshes.PieceSource(
-                    new[] { Vector3.zero, Vector3.right, Vector3.forward },
-                    new[] { Vector3.up, Vector3.up, Vector3.up },
-                    new[] { Vector2.zero, Vector2.right, Vector2.up },
-                    new[] { new[] { 0, 1, 2 } }, new[] { source });
+                var piece = new TerrainPiece(
+                    new[] { System.Numerics.Vector3.Zero, System.Numerics.Vector3.UnitX, System.Numerics.Vector3.UnitZ },
+                    new[] { System.Numerics.Vector3.UnitY, System.Numerics.Vector3.UnitY, System.Numerics.Vector3.UnitY },
+                    new[] { System.Numerics.Vector2.Zero, System.Numerics.Vector2.UnitX, System.Numerics.Vector2.UnitY },
+                    new[] { new[] { 0, 1, 2 } }, new[] { recipe });
                 foreach (TerrainLightColour tint in new[] { new TerrainLightColour(40, 60, 80),
                     new TerrainLightColour(90, 10, 20), new TerrainLightColour(265, 510, 300) })
                     foreach (bool tagged in new[] { false, true })

@@ -522,9 +522,9 @@ namespace DK2.Unity.Editor
                 {
                     for (int quarter = 0; quarter < 4; quarter++)
                     {
-                        ClassicMeshes.PieceSource source = classic.Piece(tile.PieceKeys.Quarter(
+                        TerrainPiece source = classic.Piece(tile.PieceKeys.Quarter(
                             tile.Pieces.QuarterSet, tile.Pieces.QuarterPiece(quarter)));
-                        if (source == null || source.Normals.Any(normal => normal.y < .99f))
+                        if (source == null || source.Normals.Any(normal => normal.Y < .99f))
                             throw new InvalidOperationException("Wall-cap fixture requires authored upward plane normals.");
                     }
                     capOnlyTiles.Add(tile.Position.Y * width + tile.Position.X);

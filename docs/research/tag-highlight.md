@@ -134,7 +134,7 @@ AP4 disable, checking pulse/clear changes without advancing simulation.
 
 Built: `TileHighlightState` is saved/hashed; `WorldView` supplies the wall-clock
 phase; `ScenePresenter` refreshes affected tiles even on a paused simulation.
-`TerrainChunks` adds pure-red base light and `AA_RedTexture` overlay, ahead of
+`TerrainTileBuilder` keys a red-highlighted tile to pure-red base light and the `AA_RedTexture` overlay, ahead of
 blue tags and behind creatures/flowers. Adjacent room-wall propagation beyond
 the selected tile is unconfirmed and is not added.
 
@@ -203,11 +203,11 @@ the selected tile is unconfirmed and is not added.
 ## Built (2026-10-10)
 
 `TileView.Tagged` is the viewer's tag, or a Taggable tile inside a held tag drag
-(`WorldView.PreviewTags`); the pieces no longer change with it (art 3 is not drawn). Unity's
-`TerrainChunks` draws every piece of such a tile, and a room wall facing one, with its
-material's tagged twin (`ClassicMeshes.Tagged`: URP emission of texture × (128, 128, 200), standing
+(`WorldView.PreviewTags`); the pieces no longer change with it (art 3 is not drawn). `TerrainTileBuilder`
+keys every piece of such a tile, and a room wall facing one, to its
+material's tagged twin (Unity builds it as `ClassicMeshes.Tagged`: URP emission of texture × (128, 128, 200), standing
 for DK2's added light), then again with `AA_BlueTexture` as flat (63, 64, 255) (HYPOTHESIS, §4) additively, no depth
-write. URP's lighting is not DK2's, so the sum is the same shape, not the same numbers (step 5).
+write (the `TagOverlay` key). URP's lighting is not DK2's, so the sum is the same shape, not the same numbers (step 5).
 
 Tagged material variants replace terrain instance tint while retaining material
 self-illumination. The isolated `ClassicTagMaterialProbe` reproduced the prior

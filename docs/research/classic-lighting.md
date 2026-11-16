@@ -49,8 +49,8 @@ Normal and DoubleQuad room quarters receive ambient tint; Quad quarters do
 so only for Wooden Bridge over lava (0x00443979..0x00443996,
 0x00443A66..0x00443AC8, repeated for every quadrant). Whole room pieces and
 general room walls retain their documented tint sources. Plain terrain pieces
-also receive their ambient tint. `TerrainChunks` publishes these through shared
-texture-weighted emission variants, with tags replacing instance tint.
+also receive their ambient tint. `TerrainTileBuilder` keys these as `TerrainMaterialKey` tints, which Unity builds
+as shared texture-weighted emission variants, with tags replacing instance tint.
 Additive materials already supply white diffuse, so nonnegative additional tint
 cannot change their saturated native RGB; their unlit variants remain shared.
 Special gate wall tint and final colour transfer remain outside this application.

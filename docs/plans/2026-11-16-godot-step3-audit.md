@@ -13,29 +13,27 @@ shader copies is B.
 ## What Godot starts from
 
 `godot/DK2.Godot/InGameHud.cs` runs Level1 inline (no tick worker, so no presented copy), owns one `WorldView`, a
-`FrameDriver` and a `ScriptedViewDirector`, and draws the HUD panels through `HudCanvas`. It has no `Node3D`. The
-minimap is drawn from the level-start focus and `ClassicCamera.LevelStartYaw` (`InGameHud.cs:146-151`), glides and
-focus moves are printed, and world hover only has its type text. The project renders with Forward+ at 1920x1080.
+`FrameDriver` and a `ScriptedViewDirector`, and draws the HUD panels through `HudCanvas`, over the `WorldScene` that 3a
+added (a `Node3D` with its `Camera3D` fixed at the level-start pose). The minimap is drawn from the level-start focus
+and `ClassicCamera.LevelStartYaw`, glides and focus moves are printed, and world hover only has its type text. The
+project renders with Forward+ at 1920x1080.
 
 ## One frame decision for every feature
 
 Every shared rule speaks the renderers' frame of `RenderWorld` (`src/DK2.Presentation/RenderWorld.cs`): X east, Y up,
 Z north, tile `(x, y)` at `(x + 0.5, 0, -(y + 0.5))`; `RenderMesh.ToRenderFrame` maps KMF's `(x, -z, -y)`, and
 `ClassicCameraPose` gives position, forward and up in it. Unity is left-handed; Godot is right-handed (camera looks down
-local -Z). The same numbers in Godot draw the dungeon mirrored east-west, and every rotation, winding and camera basis
-inherits the mirror. Godot needs one conversion, applied in one place:
+local -Z). The same numbers in Godot draw the dungeon mirrored east-west, and every rotation and camera basis inherits
+the mirror. Decided (open point 1): one explicit conversion in one place, `RightHandedFrame` in `DK2.Presentation` with
+tests, since a mirrored root `Node3D` still needs the camera, the picking rays and every billboard facing flipped by hand.
+It negates Z on every position, normal and direction entering Godot (and on rays leaving it) and turns a rotation `R`
+into `S·R·S` with `S = diag(1, 1, -1)`; the camera gets the converted pose. Triangle indices keep their order: the
+geometry and the camera are mirrored together, so the winding on screen is unchanged, and reversing it would draw the
+back faces.
 
-- **Option 1, explicit.** Negate Z on every position, normal and direction entering Godot (and on rays leaving it),
-  reverse each triangle's index order, and turn a rotation `R` into `S·R·S` with `S = diag(1, 1, -1)`. The camera gets
-  the converted pose. A `RightHandedFrame` helper in `DK2.Presentation` with tests (point, normal, winding, rotation,
-  pose, ray) keeps it out of untested adapter code.
-- **Option 2, a mirrored root.** One `Node3D` with scale `(1, 1, -1)` above the world; Godot flips culling for a
-  negative-determinant instance transform, but the camera, the picking rays and every billboard facing still need the
-  explicit flip, so the conversion exists anyway. Verify the culling behaviour against the 4.8 docs (Context7) first.
-
-Recommended: option 1 (open point 1). `RenderEulerRotation.cs` (18 lines) composes
-`Euler(0,Yaw,0)·AngleAxis(Roll,forward)·Euler(Pitch,0,0)` with no test; 3f moves that composition into
-`DK2.Presentation` as a `System.Numerics` matrix with tests so neither engine composes it by hand.
+`RenderEulerRotation.cs` (18 lines) composes `Euler(0,Yaw,0)·AngleAxis(Roll,forward)·Euler(Pitch,0,0)` with no test;
+3f moves that composition into `DK2.Presentation` as a `System.Numerics` matrix with tests so neither engine composes
+it by hand.
 
 ## Terrain
 
@@ -45,30 +43,26 @@ Recommended: option 1 (open point 1). `RenderEulerRotation.cs` (18 lines) compos
 - **Shared (S).** `ScenePresenter` diffing and push order, `TileView` (pieces, keys, walls, tints, fog), `TerrainPieces`,
   `TerrainLattice.Deform`/`Invalidate`, `LatticeDirtyTracker`, `ClassicTerrainTint.PieceColour`, `RenderMesh.FromModel`,
   `TriangleDepthOrderBuffer` (DK2.Art), `TileHeights`.
-- **B left in Unity.** The whole per-tile build:
-  - which pieces a tile places, their quarter turns and quadrant offsets, and when tops and top quarters take inverted
-    lighting normals (`TerrainChunks.cs:527-558`);
-  - a room tile's floor set, extra piece and walls, a wall tagged when the tile it faces is tagged, and a wall's tint
-    taken from its neighbour except whole pieces below 7 (`:562-588`, `:638-649`);
-  - hero faces with halves 4 and 5 swapped (`:593-611`), a liquid's or bridge's bed (`:615-634`), the sight-fog overlay
-    piece (`:452-454`);
-  - the material each triangle group takes (fog twin, red twin, tag twin or tinted twin) and the additive tag pass drawn
-    a second time (`:660-677`);
-  - the lattice bend in DK2's frame (`:484-489`);
-  - the dirty window: a change invalidates the lattice cell and marks the 5x5 tiles stale, and a tag or tint change
-    dirties the neighbours (`:183-198`).
-  `Build` (`:460-505`) is arrays and arithmetic already; with `Prepare` it moves as one `TerrainTileBuilder` emitting
-  positions, normals, UVs, light anchors and triangles per `TerrainMaterialKey` (texture, blend, self-illumination,
-  variant: plain, tint, tag, red, fog alpha, tag overlay). Unity maps a key to a `Material`, Godot to a
-  `ShaderMaterial`. The flush budget, the thread-pool build and lowest-chunk-first upload (`:206-244`, ADR-0457,
-  ADR-0696) are a performance policy both engines want; the scheduler moves with the builder.
+- **B, moved in 3a.** The whole per-tile build is now `TerrainTileBuilder` (`Prepare` and `Build`, emitting positions,
+  normals, UVs, light anchors and triangles per `TerrainMaterialKey`: texture, blend, self-illumination, variant plain,
+  tint, tag, red, fog alpha or tag overlay). It holds which pieces a tile places with their quarter turns and quadrant
+  offsets, the inverted lighting normals of tops and top quarters, a room tile's floor set, extra piece and walls (a wall
+  tagged when the tile it faces is tagged, tinted by its neighbour except whole pieces below 7), hero faces with halves 4
+  and 5 swapped, a liquid's or bridge's bed, the sight-fog overlay piece, the lattice bend in DK2's frame, and the key
+  each triangle group takes (the additive tag pass is a second key). Unity maps a key to a `Material`, Godot to a
+  `ShaderMaterial`.
+- **B left in Unity, for 3c.** The dirty window: a change invalidates the lattice cell and marks the 5x5 tiles stale,
+  and a tag or tint change dirties the neighbours (`TerrainChunks.cs:183-198`). The flush budget, the thread-pool build
+  and lowest-chunk-first upload (`:206-244`, ADR-0457, ADR-0696) are a performance policy both engines want; the
+  scheduler moves with the dirty window.
 - **B in `ClassicMeshes.cs` (the material recipe).** The texture choice (first named, else the environment texture,
   `:351-358`); opaque, alpha or additive with no depth write and specular off (`:624-674`, `:741-757`); self-illumination
   added as emission (`:665-671`); `TagTint` (128,128,200) (`:405`) and `TagOverlayColour` (`:409`); a tagged twin adds
   the tag colour to the material's own (`:416-431`); `TerrainTinted` adds the piece colour (`:493-508`); the environment
   pass, which materials get it and its light (`:370-401`); a faded environment pass draws black (`:722-727`); the decay
-  stage picking the face texture (`:179-198`). These become a `ClassicMaterialRecipe` value per key in `DK2.Presentation`
-  (or `DK2.Art`), so both engines build materials from one description.
+  stage picking the face texture (`:179-198`). The texture choice, blend, depth write and added light became a
+  `ClassicMaterialRecipe` value per key in `DK2.Presentation` (3a), so both engines build materials from one
+  description; the rest follows in 3c and 3f.
 - **Liquids (B).** `LiquidSurfaces.cs` is entirely rule: rest heights 0.9 and 0.85, amplitudes, the 30 per second frame,
   the two phase formulas, the 3x3 grid per tile and the textures (`:24-26`, `:82-170`). It moves as `LiquidSurfaceWave`
   filling a reused position buffer. Unity rewrites every vertex and recalculates normals each frame (`:141-163`).
@@ -79,7 +73,9 @@ Recommended: option 1 (open point 1). `RenderEulerRotation.cs` (18 lines) compos
   happens on a tile change, not per frame; reuse the C# arrays and replace surfaces, and prefer the
   `RenderingServer` region updates when a chunk's vertex count is unchanged (check the 4.8 API with Context7). Textures
   come from `InstallArtProvider.LoadTexture` as `RgbaImage`, so Godot's PNG decoder and its gAMA handling (TRAPS) are
-  not involved.
+  not involved. A `ScenePresenter` takes `AssetProviderChain.Standard(install: art)`, which ends in the placeholder, not a
+  bare `InstallArtProvider`. Unity caches about 8 KB of geometry a tile, while Godot builds each tile through one shared
+  `TerrainTileGeometry`; 3c chooses.
 
 ## Blended terrain and the depth stream
 
@@ -103,7 +99,7 @@ Recommended: option 1 (open point 1). `RenderEulerRotation.cs` (18 lines) compos
   plane and vertical field of view and a `frustum_offset` gives the same frustum (derive and pin the sign, verify the
   4.8 API). `keep_aspect` must be height, since the pose's field of view is vertical.
 - **B, small.** `LookAt`'s whole-map framing (half-diagonal sphere in the vertical field, far plane x3, `:1453-1477`) is
-  a renderer choice, not DK2's; it moves with the free camera only if Godot needs a no-install mode (open point 6).
+  a renderer choice, not DK2's; Godot needs no no-install mode (open point 6), so it stays in Unity.
 - **Note.** `DungeonScene.LightPose` (`DungeonScene.cs:892-899`) rebuilds a pose from Unity's camera with pitch, yaw and
   centre shift zero for the light publisher. Godot should pass `ClassicCamera`'s pose; whether the zero shift changes
   the visible-tile set is open point 5.
@@ -303,16 +299,16 @@ Each sub-step is one commit, leaves Unity working (its compile checked, and Unit
 Godot visibly better. Each is checked by unit tests for what moved and by a Movie Maker capture (below). The first
 three are the terrain and the camera; after that each step adds one kind of thing to the world.
 
-- **3a. Static terrain from the level-start camera.** Move: `RightHandedFrame` (or the root decision, open point 1),
+- **3a. Static terrain from the level-start camera.** Done 2026-11-16 (plan step 3a). Moved: `RightHandedFrame`,
   `TerrainTileBuilder` with `TerrainMaterialKey` and the opaque, alpha and additive part of `ClassicMaterialRecipe`.
   Godot: a `WorldScene` node under `InGameHud` implementing `IRenderTarget` for tiles (creatures, objects, structures and
-  torches ignored), one `MeshInstance3D` per chunk, an unshaded texture material, and a `Camera3D` at
-  `ClassicCamera.Pose(LevelStartFocus)` including the centre shift. Check: the Level1 start frame shows the dungeon
-  from DK2's camera with the HUD on top; builder tests pin a wall, a room tile, a hero face and a bed against the old
-  output vertex for vertex.
+  torches ignored), one `MeshInstance3D` per chunk, an unshaded texture material per key, and a `Camera3D` at
+  `ClassicCamera.Pose(LevelStartFocus)` including the centre shift. Checked: the Level1 start frame shows the Heart
+  room from DK2's camera with the HUD on top; builder tests pin the output against the old build.
 - **3b. Camera control and the minimap.** Godot: `ClassicCameraInput` (keys, edges, wheel, held buttons; y-up sample),
   `CameraGlide` for the minimap left click and the script's glide, the query follow and turn, the minimap's focus and
-  heading from the live pose, and the footprint. Move: the floor-plane corners and centre, and the triangle-list
+  heading from the live pose, and the footprint. The 1.2 zoom-out limit scale exists only in Unity's inspector
+  (`DungeonRunner.cs:120`) and Godot uses 1, DK2's bound; 3b makes it a shared default. Move: the floor-plane corners and centre, and the triangle-list
   `HudDrawKind` (open point 9). Check: a capture with a test glide (a `--glide-to x,y` launch argument in
   `LaunchArguments`) ends at the target, and the footprint matches the view.
 - **3c. Terrain that changes.** Move: the dirty window and the budgeted, threaded flush; the material variants (tint,
@@ -355,7 +351,9 @@ three are the terrain and the camera; after that each step adds one kind of thin
 Build with `dotnet build godot/DK2.Godot/DK2.Godot.csproj` and run the moved rules' tests in `tests/DK2.Presentation.Tests`
 filtered to the touched classes. The frame check cannot use `--headless`, which has no renderer; it runs unattended with
 the pinned console executable, a temporary `godot/DK2.Godot/override.cfg` for 1920x1080 (TRAPS), and the output kept
-outside the repository (`godot/README.md`, *Verifying*):
+outside the repository (`godot/README.md`, *Verifying*). Level1's opening path hides the HUD for about 1,000 frames at
+30 fps, so a capture that shows the HUD needs a save made after the path (`--save-as <name> --save-tick 130`, then
+`--load <name>`) or a skip argument; 120 frames never show it:
 
 ```powershell
 & "$env:LOCALAPPDATA\Programs\Godot\4.8-beta3\Godot_v4.8-beta3_mono_win64\Godot_v4.8-beta3_mono_win64_console.exe" `
@@ -363,26 +361,30 @@ outside the repository (`godot/README.md`, *Verifying*):
   -- --settings <temp>/settings.ini
 ```
 
-It opens a window and needs the GPU. The Unity compile (`unity/DK2.Unity.Compile`) is rerun for every step that changes
-a Unity file; Unity Play mode cannot run here, as in step 2.
+It opens a window and needs the GPU. Every step that changes a Unity file reruns the stand-in compile
+(`unity/DK2.Unity.Compile`) and Unity's own batch checks (`unity/README.md`, *Verifying it inside Unity*: the compile,
+`DungeonSetup.SmokeTest` and `SaveSmokeTest`; Unity 6000.6.0f1 is installed and licensed). Only the owner's open editor
+must not be driven.
 
 ## Open points for the owner
 
-1. **The frame.** Explicit Z flip through a tested `RightHandedFrame` (recommended), or a mirrored root node.
+1. **The frame.** Decided (2026-11-16, option 1): an explicit Z flip through the tested `RightHandedFrame`.
 2. **How Godot's lighting is tuned.** The DK2 terms are shared; the fill (source, tint, floor, unlit share), the
    distance fade and the exposure are Godot's. Starting from Unity's ADR-0522 values with a Godot fill (an
    `Environment` ambient colour and one `DirectionalLight3D` read in the shader, or a fixed colour) is one way; a
-   separate set of owner-tuned values, kept in one Godot resource, is the other. Who tunes, and against what.
-3. **What to compare against.** Unity cannot run here, so captures cannot be compared with Unity frames of the same
-   state. Candidates: the owner's DK2 screenshots ADR-0522 was tuned against, Unity probe captures if any exist outside
-   the repository, or new DK2 captures of Level1 at fixed camera poses. Without one, 3i and 3j are checked by eye only.
+   separate set of owner-tuned values, kept in one Godot resource, is the other. Decided by the owner (2026-11-16):
+   start from Unity's ADR-0522 values and tune by eye.
+3. **What to compare against.** Candidates: the owner's DK2 screenshots ADR-0522 was tuned against, new DK2 captures of
+   Level1 at fixed camera poses, and Unity probe captures of the same state (`ClassicWorldLightingProbe`, run in batch
+   mode). Settled with point 2 (2026-11-16): 3i and 3j are checked by eye, and a Unity probe capture can serve as a
+   comparison.
 4. **Blended ordering in Godot.** Per-triangle order across chunks may not be reachable with `render_priority`
    (-128..127) and instance sorting; a 3d prototype decides between one ordered dynamic mesh and sort-key runs, and
    whether Godot may deviate (sorting per run only) for a first version.
 5. **The light publisher's pose.** Unity gives it a pose with zero centre shift, pitch and yaw (`DungeonScene.cs:892-899`).
    Should Godot pass `ClassicCamera`'s full pose (and Unity follow), or match Unity's zero shift for now?
-6. **A no-install mode.** Unity draws placeholder boxes and a free camera without the install. Does Godot need it, or
-   does it require the install like the HUD?
+6. **A no-install mode.** Decided (2026-11-16): Godot requires the install, like the HUD, with no placeholder mode and
+   no free camera.
 7. **The scene frame order.** Move the `DrawCreatureFrame` and `Update` world sequence into a shared `SceneFrame`, or
    copy the order into Godot with a comment pointing at Unity's lines until Unity is deleted.
 8. **Shadow silhouettes.** CPU rasterizing in `src/` (testable, no second creature render) or a GPU `SubViewport`.

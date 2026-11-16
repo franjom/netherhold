@@ -42,7 +42,7 @@ from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references a
 | `DK2.Harness` | headless scenario runner |
 | `DK2.Tools` | the `dk2tools` CLI: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, `simmatrix`, and the data inspectors |
 | `unity/DK2.Unity` | the adapter; `unity/DK2.Unity.Compile` builds it against Unity's modules |
-| `godot/DK2.Godot` | the Godot adapter, namespace `DK2.GodotAdapter` (ADR-0805, ADR-0810); shows the classic front-end menu so far |
+| `godot/DK2.Godot` | the Godot adapter, namespace `DK2.GodotAdapter` (ADR-0805, ADR-0810); shows the classic front-end menu, the in-game HUD and, since step 3a, the level's terrain |
 
 `docs/HANDOFF.md` §"Where to work" says which project a change belongs in.
 
@@ -220,6 +220,7 @@ would look exactly like a simulation bug (ADR-0035).
 ```
 WorldState ──► WorldView ──► ScenePresenter ──► IRenderTarget
                                   │                   ├── DungeonScene   (Unity)
+                                  │                   ├── WorldScene     (Godot)
                              AssetProviderChain        └── (a text view redraws
                                   │                        from WorldView direct)
               replacement ──► converted ──► placeholder
@@ -240,6 +241,10 @@ WorldState ──► WorldView ──► ScenePresenter ──► IRenderTarget
 - **`IRenderTarget` has no logic in it**: create and update a tile; create, update
   and remove a creature, an object and a torch; flush. Everything an engine adapter could get wrong is upstream of it
   and tested.
+- **The terrain's geometry is shared below the boundary.** `TerrainTileBuilder` turns a `TileView` into positions,
+  normals, UVs and triangles per `TerrainMaterialKey` in the renderers' frame; `ClassicMaterialRecipe` says how a key's
+  material draws; `RightHandedFrame` is the one Z flip into Godot's frame. Each engine uploads the arrays and maps a
+  key to its own material (ADR-0805).
 - An object crosses the boundary as a tile, a mesh key and its gold amount — no
   sub-tile position, because the simulation has none.
 - **`TextRenderer` is the second renderer**, and the one that runs in the test
@@ -290,7 +295,7 @@ a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is Uni
 (`HudDrawList.cs`). The adapter draws it with `HudCanvas` and forwards pointer input. The bottom panel,
 the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages, the front-end menu, and the minimap and full-map markers have moved (`MinimapHud`, `FullMapHud`); the minimap's disc is a GPU pass in Unity and `MinimapDiscImage`, its CPU twin, in `DK2.Presentation` for Godot, and its camera footprint stays Unity code. A
 front-end label is a `HudLabel` in BF4 glyph boxes: `HudCanvas` draws the shared bitmap (`HudLabelPixels`) or the replacement TrueType glyphs in those boxes. The ADR's
-table says where new HUD files go, including the `godot/DK2.Godot` adapter, which today shows the classic front-end menu through its own `HudCanvas` (ADR-0810; toolchain and run notes in `godot/README.md`). Its csproj is outside `DK2.slnx` and CI.
+table says where new HUD files go, including the `godot/DK2.Godot` adapter, which today shows the classic front-end menu and the in-game HUD through its own `HudCanvas`, over the level's terrain (`WorldScene`) (ADR-0810; toolchain and run notes in `godot/README.md`). Its csproj is outside `DK2.slnx` and CI.
 
 `unity/DK2.Unity.Compile` compiles the adapter against Unity's real module
 assemblies, which is the only way "do not commit code you have not built" reaches

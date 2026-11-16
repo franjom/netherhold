@@ -17,8 +17,8 @@ namespace DK2.GodotAdapter;
 
 /// <summary>Scene root of <c>InGameHud.tscn</c>: a campaign level started as Unity's <c>DungeonRunner</c> starts one
 /// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
-/// <see cref="TickPacer"/> at normal speed, with the in-game HUD over a black screen and no 3D world. Ported (plan step
-/// 1b): the resource strip, the bottom panel, the creature overview, the creature query details, the message tabs, the
+/// <see cref="TickPacer"/> at normal speed, with the in-game HUD over the level's terrain (<see cref="_world"/>). Ported
+/// (plan step 1b): the resource strip, the bottom panel, the creature overview, the creature query details, the message tabs, the
 /// battle tab, the hover HUD (<see cref="HudHoverText"/>), the options menu (<see cref="ClassicHudControls"/>, opened by
 /// the options key; while it is open the level pauses and the other panels take no input, as Unity's <c>HudModal</c>) and
 /// its save and load pages (<see cref="SaveLoadSubmitted"/>) and game options pages (<see cref="ClassicGameOptionsPanel"/>;
@@ -143,6 +143,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private ClassicMinimap? _minimap;
     /// <summary>The world as the viewer's HUD sees it (Unity's runner's <c>_worldView</c>): the minimap's colours and markers.</summary>
     private WorldView? _worldView;
+    /// <summary>The 3D world under the HUD (plan step 3a): the start frame's terrain from the level-start camera, which
+    /// does not move yet.</summary>
+    private WorldScene? _world;
     /// <summary>The camera's focus and heading the minimap is drawn from: the level start's (<see cref="ClassicCamera.LevelStartFocus(IReadOnlyList{PlayerDef}, PlayerId, int, int)"/>,
     /// <see cref="ClassicCamera.LevelStartYaw"/>), which stay put because no camera is ported (plan step 3).</summary>
     private FpPosition3 _cameraFocus;
@@ -211,6 +214,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _optionsPages.Applied += ApplySettings;
         _optionsPages.SaveRequested += SaveSettings;
 
+        // First, so the tree reads world then HUD; the HUD's canvas draws over the 3D world whatever the order.
+        _world = new WorldScene { Name = "World" };
+        AddChild(_world);
         _sources = new InstallHudSources(install);
         _art = new InstallBottomPanelArt(_sources, level.Database);
         // Added first so it draws under the panel, as Unity's sorting orders 11 and 12.
@@ -332,6 +338,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
         if (resume == null)
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
+        // The first frame's terrain, pushed once: tile changes after it are step 3c.
+        _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
         if (Array.IndexOf(args, "--query-first-creature") >= 0)
             foreach (CreatureState creature in _simulation.World.OwnedCreatures(_viewer))
             {

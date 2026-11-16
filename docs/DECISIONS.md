@@ -16516,8 +16516,8 @@ near every creature. The probe's rebuild frames allocated 0.5 MB each in the til
   `RoomInstance.Tiles` is the tile array as a span.
 - The auto-furniture system keeps its containers; the rules' per-room scratch is `[ThreadStatic]`,
   as `RoomIndex`'s visited array is. The movement system refills one mover.
-- `TerrainChunks` builds a tile in two phases: the frame resolves its pieces and materials
-  (`Prepare`, Unity objects) and builds the lattice cells it reaches (`TerrainLattice.Prepare`); a
+- `TerrainChunks` schedules `TerrainTileBuilder`'s two phases: the frame resolves a tile's pieces and
+  material keys (`Prepare`) and builds the lattice cells it reaches (`TerrainLattice.Prepare`); a
   thread-pool task turns, places and bends the vertices and gathers the triangles (`Build`, arrays
   and arithmetic only); the next flush joins it and uploads the chunks whose tiles are built. A tile
   keeps its arrays and refills them. A tile change joins a running build first; the first build after
