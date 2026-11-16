@@ -25,6 +25,9 @@
   # Overnight, after playing: every turn read from outside while DK2 replays undisturbed (preferred)
   powershell -ExecutionPolicy Bypass -File tools\oracle\play-record.ps1 -Replay -Study 'F:\DK2Evidence\studies\<the kept folder>' -Map 70x70
 .EXAMPLE
+  # The control: the same replay with nothing attached; reports the first out-of-sync turn, if any
+  powershell -ExecutionPolicy Bypass -File tools\oracle\play-record.ps1 -Verify -Study 'F:\DK2Evidence\studies\<the kept folder>'
+.EXAMPLE
   # Full memory at chosen turns (record_native.py; a Level 6a replay desynced at turn 76 under it, cause unsettled)
   powershell -ExecutionPolicy Bypass -File tools\oracle\play-record.ps1 -Capture -Study 'F:\DK2Evidence\studies\<the kept folder>'
   powershell -ExecutionPolicy Bypass -File tools\oracle\play-record.ps1 -Level Level6a -Name l6a-owner-01
@@ -47,7 +50,12 @@ param(
     [switch]$Replay,
     [string]$Recorder = 'D:\DungeonKeeperRemake\reverse-engineering\dk2live.py',
     # -Replay: the level's map size, WxH (Level6a 70x70), so the recorder does not latch onto the front end's world.
-    [string]$Map
+    [string]$Map,
+    # The control: replay a kept recording (-Study) with nothing attached, watch only MESSAGE.LOG, report the first desync.
+    [switch]$Verify,
+    # -Verify: stop the replay after this many minutes if it has not gone out of sync (Level 6a: the owner's play, 7243
+    # records, took 1884 s; the -Replay run 1872 s). Set it above the recording's length, or a clean run proves less.
+    [int]$Minutes = 45
 )
 $ErrorActionPreference = 'Stop'
 
@@ -113,6 +121,35 @@ function Read-Packet([string]$Path, [string]$Into) {
     [pscustomobject]@{ Level = $recordedLevel; Turns = $turns; Commands = $commands.Count - 1; Actions = $actions; Bytes = $data.Length; LastStamp = $lastStamp }
 }
 
+# -Replay, -Verify and -Capture replay a kept recording: -Study kept by this script, an elevated shell, DK2 closed, and the
+# install's copy of the recording identical to the kept one. -Study is checked first so a wrong call fails without elevation.
+function Open-Study([string]$Mode) {
+    if (-not $Study -or -not (Test-Path (Join-Path $Study 'manifest.json'))) { throw "$Mode needs -Study, a folder this script kept (with manifest.json)." }
+    $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run this from an elevated PowerShell (Run as administrator).' }
+    if (Get-Process -Name 'DKII-DX', 'DKII' -ErrorAction SilentlyContinue) { throw 'DK2 is already running; close it first.' }
+    $m = Get-Content (Join-Path $Study 'manifest.json') -Raw | ConvertFrom-Json
+    $packet = Join-Path $GameDir "PacketRecord\$($m.name).sav"
+    if (-not (Test-Path $packet)) { throw "The recording is not in the install any more ($packet); copy it back from $Study first." }
+    if ((Get-FileHash $packet -Algorithm SHA256).Hash.ToLowerInvariant() -ne $m.packet.sha256) { throw "$packet differs from the kept recording." }
+    [pscustomobject]@{ Manifest = $m; Exe = (Join-Path $GameDir 'DKII-DX.exe'); Packet = $packet }
+}
+
+# The game keeps MESSAGE.LOG open while it runs; read it with full sharing so the game is never blocked.
+function Read-GameLog([string]$Path) {
+    if (-not (Test-Path $Path)) { return '' }
+    $stream = [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
+    try { [IO.StreamReader]::new($stream).ReadToEnd() } finally { $stream.Dispose() }
+}
+
+# The first 'Gone Out Of Sync (Seed|Checksum) GT n' line of a game log, or $null.
+function Find-Desync([string]$Text) {
+    # The line must be complete (its newline written): a read that ends mid-line could cut 'GT 631' to 'GT 6'.
+    $hit = [regex]::Match($Text, 'Gone Out Of Sync \((\w+)\) GT (\d+)[^\r\n]*(?=\r?\n)')
+    if (-not $hit.Success) { return $null }
+    [pscustomobject]@{ Line = $hit.Value; Kind = $hit.Groups[1].Value; Turn = [int]$hit.Groups[2].Value }
+}
+
 if ($Decode) {
     if (-not $Out) { throw '-Decode needs -Out, a new folder.' }
     if (Test-Path $Out) { throw "$Out exists; pick a new folder." }
@@ -122,20 +159,70 @@ if ($Decode) {
     return
 }
 
+if ($Verify) {
+    # The control for the other replay modes: DK2 replays the recording with nothing attached and the script only reads
+    # MESSAGE.LOG, so a desync here is the game's own, not a tool's (play-record.md, Traps).
+    $s = Open-Study '-Verify'
+    $out = "$Study--verify-" + (Get-Date -Format 'yyyyMMdd-HHmm')
+    if (Test-Path $out) { throw "$out exists." }
+    New-Item -ItemType Directory $out | Out-Null
+    $log = Join-Path $GameDir 'MESSAGE.LOG'
+    $start = Get-Date
+    $game = Start-Process -FilePath $s.Exe -ArgumentList "-LEVEL $($s.Manifest.level) -PLOAD $($s.Manifest.name) 0" -WorkingDirectory $GameDir -PassThru
+    Write-Host "Replaying $($s.Manifest.name) with nothing attached for up to $Minutes minutes; the game is closed at the first out-of-sync line." -ForegroundColor Cyan
+    $desync = $null; $reason = 'time limit'
+    # A failed read must not leave the game running unwatched: any error ends the watch, and the cleanup below still runs.
+    try {
+        while (((Get-Date) - $start).TotalMinutes -lt $Minutes) {
+            Start-Sleep -Seconds 5
+            # DKII-DX.exe can hand off to another DK2 process, so look for any, after a start-up grace.
+            if (((Get-Date) - $start).TotalSeconds -gt 30 -and -not (Get-Process -Name 'DKII-DX', 'DKII' -ErrorAction SilentlyContinue)) { $reason = 'game closed'; break }
+            # MESSAGE.LOG is rewritten at each launch; an older file is the previous run's.
+            if ((Test-Path $log) -and (Get-Item $log).LastWriteTime -ge $start.AddSeconds(-2)) {
+                $desync = Find-Desync (Read-GameLog $log)
+                if ($desync) { $reason = 'out of sync'; Write-Warning $desync.Line; Start-Sleep -Seconds 2; break }
+            }
+        }
+        # A game that closed in the last poll interval is an early close, not a clean run.
+        if ($reason -eq 'time limit' -and -not (Get-Process -Name 'DKII-DX', 'DKII' -ErrorAction SilentlyContinue)) { $reason = 'game closed' }
+    } catch { $reason = 'watch failed'; Write-Warning "Watching the game failed: $_" }
+    $elapsed = ((Get-Date) - $start).TotalSeconds
+    $exitedItself = $reason -eq 'game closed'
+    if (-not $game.HasExited) { Stop-Process -Id $game.Id -Force -ErrorAction SilentlyContinue }
+    # -ErrorAction: a process already exiting would otherwise throw (ErrorActionPreference Stop) and lose the summary.
+    Get-Process -Name 'DKII-DX', 'DKII' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+    $kept = Join-Path $out 'MESSAGE.verify.LOG'; $engineTime = $false
+    if ((Test-Path $log) -and (Get-Item $log).LastWriteTime -ge $start.AddSeconds(-2)) {
+        Copy-Item $log $kept
+        $text = Read-GameLog $kept
+        # The 'Engine Time:' block is the game's exit statistics.
+        $engineTime = $text.Contains('Engine Time:')
+        # Re-read the whole file: a hit taken mid-run may come from a read that ended mid-write.
+        $final = Find-Desync $text
+        if ($final) { $desync = $final; $reason = 'out of sync' }
+    } else { Write-Warning 'The game wrote no MESSAGE.LOG for this run.' }
+    $summary = [ordered]@{ study = $Study; packet = $s.Packet; records = $s.Manifest.turns; minutesLimit = $Minutes
+        elapsedSeconds = [math]::Round($elapsed); stopped = $reason; gameExitedItself = $exitedItself; engineTimeBlock = $engineTime
+        desyncTurn = if ($desync) { $desync.Turn } else { $null }; desyncKind = if ($desync) { $desync.Kind } else { $null }
+        desyncLine = if ($desync) { $desync.Line } else { $null }; finished = (Get-Date).ToString('o') }
+    $summary | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $out 'verify-summary.json')
+    # Nothing here measures how far the replay got: the script reads only the log. A clean run is the time limit reached
+    # with the game still running (with -Minutes above the recording's length it has likely reached the end); an early close (by hand, a crash, a bad load) proves nothing past its own moment.
+    if ($desync) { Write-Warning "The replay went out of sync at GT $($desync.Turn) with nothing attached (one run)." }
+    elseif ($reason -eq 'time limit') { Write-Host ("No out-of-sync line in {0:N0} s, the game still running at the limit. One run, nothing attached." -f $elapsed) -ForegroundColor Green }
+    else { Write-Warning ("Stopped ({0}) after {1:N0} s with no out-of-sync line. How far the replay got is unknown: not evidence of sync." -f $reason, $elapsed) }
+    Write-Host "Done: $out"
+    return
+}
+
 if ($Replay) {
-    # Under record_native.py a Level 6a replay went out of sync (checksum) at GT 76, while a plain -PLOAD replay ran 427
-    # turns in sync (2026-11-16); why is not settled (play-record.md, Traps). dk2live.py record only reads memory from outside.
-    $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run this from an elevated PowerShell (Run as administrator).' }
-    if (-not $Study -or -not (Test-Path (Join-Path $Study 'manifest.json'))) { throw '-Replay needs -Study, a folder this script kept (with manifest.json).' }
+    # Level 6a went out of sync at GT 76 under record_native.py and at GT 631 under dk2live.py record (2026-11-16); a plain
+    # -PLOAD replay ran 427 turns in sync. Run -Verify on the same study to tell the game's own desync from a tool's.
+    $s = Open-Study '-Replay'
     if (-not (Test-Path $Recorder)) { throw "No recorder at $Recorder." }
     if ($Map -notmatch '^\d+x\d+$') { throw '-Replay needs -Map WxH, the level''s map size (Level6a: 70x70).' }
-    if (Get-Process -Name 'DKII-DX', 'DKII' -ErrorAction SilentlyContinue) { throw 'DK2 is already running; close it first.' }
-    $m = Get-Content (Join-Path $Study 'manifest.json') -Raw | ConvertFrom-Json
-    $exe = Join-Path $GameDir 'DKII-DX.exe'
-    $packet = Join-Path $GameDir "PacketRecord\$($m.name).sav"
-    if (-not (Test-Path $packet)) { throw "The recording is not in the install any more ($packet); copy it back from $Study first." }
-    if ((Get-FileHash $packet -Algorithm SHA256).Hash.ToLowerInvariant() -ne $m.packet.sha256) { throw "$packet differs from the kept recording." }
+    $m = $s.Manifest; $exe = $s.Exe; $packet = $s.Packet
     $out = "$Study--replay-" + (Get-Date -Format 'yyyyMMdd-HHmm')
     if (Test-Path $out) { throw "$out exists." }
     New-Item -ItemType Directory $out | Out-Null
@@ -147,13 +234,17 @@ if ($Replay) {
     # The recorder first, then the game (dk2live.py record waits for the process and the level).
     $rec = Start-Process -FilePath $Python -ArgumentList @("`"$Recorder`"", 'record', "`"$cap`"", '--map', $Map, '--last-tick', $last, '--wait-game', '600') `
         -RedirectStandardOutput (Join-Path $out 'recorder.out.txt') -RedirectStandardError (Join-Path $out 'recorder.err.txt') -PassThru -WindowStyle Hidden
+    # Windows PowerShell 5.1: without reading Handle while the process runs, ExitCode is $null after it exits, and
+    # "$null -ne 0" would report a clean recorder as failed (the 2026-11-16 Level 6a run: recorderExit null).
+    $null = $rec.Handle
     Start-Sleep -Seconds 3
+    $start = Get-Date
     $game = Start-Process -FilePath $exe -ArgumentList "-LEVEL $($m.level) -PLOAD $($m.name) 0" -WorkingDirectory $GameDir -PassThru
     $rec.WaitForExit()
     # The owner closes replays by force; close the game this script started, then any DK2 left (a launcher hand-off).
-    if (-not $game.HasExited) { Stop-Process -Id $game.Id -Force; Start-Sleep -Seconds 2 }
+    if (-not $game.HasExited) { Stop-Process -Id $game.Id -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 }
     $left = @(Get-Process -Name 'DKII-DX', 'DKII' -ErrorAction SilentlyContinue)
-    if ($left.Count -gt 0) { Write-Warning ("DK2 still running after the replay (pid {0}); closing it." -f ($left.Id -join ', ')); $left | Stop-Process -Force }
+    if ($left.Count -gt 0) { Write-Warning ("DK2 still running after the replay (pid {0}); closing it." -f ($left.Id -join ', ')); $left | Stop-Process -Force -ErrorAction SilentlyContinue }
     # dk2live.py record ends by printing an indented JSON object (json.dumps(end, indent=1)): why it stopped, frames,
     # missed and torn ticks. Parse from the last line that is exactly '{' to the end.
     $recLines = @(Get-Content (Join-Path $out 'recorder.out.txt') -ErrorAction SilentlyContinue)
@@ -162,27 +253,27 @@ if ($Replay) {
         if ($recLines[$i] -eq '{') { try { $recEnd = ($recLines[$i..($recLines.Count - 1)] -join "`n") | ConvertFrom-Json } catch { $recEnd = $null }; break }
     }
     $log = Join-Path $GameDir 'MESSAGE.LOG'
-    if (Test-Path $log) { Copy-Item $log (Join-Path $out 'MESSAGE.replay.LOG') }
-    $sync = if (Test-Path $log) { Select-String -Path $log -Pattern 'Out Of Sync' -SimpleMatch | Select-Object -First 1 } else { $null }
+    $kept = Join-Path $out 'MESSAGE.replay.LOG'
+    # MESSAGE.LOG is rewritten at each launch; an older file is a previous run's and must not be read as this one's.
+    $logRead = (Test-Path $log) -and (Get-Item $log).LastWriteTime -ge $start.AddSeconds(-2)
+    if ($logRead) { Copy-Item $log $kept }
+    else { Write-Warning 'The game wrote no MESSAGE.LOG for this run; the desync check has nothing to read.' }
+    $sync = Find-Desync (Read-GameLog $kept)
+    if ($sync) { $sync = "GT $($sync.Turn): $($sync.Line)" }
     $summary = [ordered]@{ study = $Study; packet = $packet; map = $Map; lastTick = $last; recorderExit = $rec.ExitCode; recorderEnd = $recEnd; capture = $cap
         captureBytes = if (Test-Path $cap) { (Get-Item $cap).Length } else { 0 }; desync = [string]$sync; finished = (Get-Date).ToString('o') }
     $summary | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $out 'replay-summary.json')
     if ($rec.ExitCode -ne 0 -or -not (Test-Path $cap)) { Write-Warning "The recorder failed (exit $($rec.ExitCode)); see recorder.err.txt. This run is not evidence." }
-    elseif ($sync) { Write-Warning "The replay went out of sync: $sync" } else { Write-Host 'No out-of-sync line in the game log.' -ForegroundColor Green }
+    elseif ($sync) { Write-Warning "The replay went out of sync: $sync" }
+    elseif ($logRead) { Write-Host 'No out-of-sync line in the game log.' -ForegroundColor Green }
     if ($recEnd) { Write-Host ("Recorder: " + ($recEnd | ConvertTo-Json -Compress -Depth 4)) } else { Write-Warning 'The recorder printed no end summary.' }
     Write-Host "Done: $out (recorder exit $($rec.ExitCode))."
     return
 }
 
 if ($Capture) {
-    $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run this from an elevated PowerShell (Run as administrator).' }
-    if (-not $Study -or -not (Test-Path (Join-Path $Study 'manifest.json'))) { throw '-Capture needs -Study, a folder this script kept (with manifest.json).' }
-    $m = Get-Content (Join-Path $Study 'manifest.json') -Raw | ConvertFrom-Json
-    $exe = Join-Path $GameDir 'DKII-DX.exe'
-    $packet = Join-Path $GameDir "PacketRecord\$($m.name).sav"
-    if (-not (Test-Path $packet)) { throw "The recording is not in the install any more ($packet); copy it back from $Study first." }
-    if ((Get-FileHash $packet -Algorithm SHA256).Hash.ToLowerInvariant() -ne $m.packet.sha256) { throw "$packet differs from the kept recording." }
+    $s = Open-Study '-Capture'
+    $m = $s.Manifest; $exe = $s.Exe; $packet = $s.Packet
     $recorder = Join-Path $PSScriptRoot 'record_native.py'
     $data = [IO.File]::ReadAllBytes($packet)
     # The first turn record's seed: record_native.py sets the world seed at turn 1, and the replay must run on the game's own.

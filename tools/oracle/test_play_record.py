@@ -106,5 +106,53 @@ class DecodeTests(unittest.TestCase):
         self.assertEqual(commands, [])
 
 
+def powershell(command):
+    return subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command],
+                          capture_output=True, text=True)
+
+
+# Loads only the named functions from the script's syntax tree; running the script itself would start a play session.
+LOAD = ("$ast = [Management.Automation.Language.Parser]::ParseFile('{script}', [ref]$null, [ref]$null); "
+        "foreach ($f in $ast.FindAll({{ $args[0] -is [Management.Automation.Language.FunctionDefinitionAst] }}, $true)) "
+        "{{ if ($f.Name -in 'Find-Desync', 'Read-GameLog') {{ Invoke-Expression $f.Extent.Text }} }}; ")
+
+
+@unittest.skipUnless(sys.platform == 'win32' and shutil.which('powershell'), 'needs Windows PowerShell')
+class ReplayCheckTests(unittest.TestCase):
+    # Modelled on the 2026-11-16 Level 6a -Replay run's MESSAGE.replay.LOG (its lines 1-2 and 7-9, real); the Seed line is
+    # invented, to show the first hit wins.
+    LOG =('LOG CREATED  @ 18:16:48  16-11-2026\r\n\r\nEngine Heap Size: 64Mb\r\n'
+           'Gone Out Of Sync (Checksum) GT 631 [482DC5CE:482D9AA2]\r\nOut Of Sync(on GT 631) GT 632\r\n'
+           'Gone Out Of Sync (Seed) GT 900 [1:2]\r\n')
+
+    def check(self, log):
+        work = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, work, True)
+        path = work / 'MESSAGE.LOG'
+        path.write_bytes(log.encode('ascii'))
+        result = powershell(LOAD.format(script=SCRIPT) +
+                            f"$d = Find-Desync (Read-GameLog '{path}'); if ($d) {{ \"$($d.Turn)|$($d.Kind)|$($d.Line)\" }} else {{ 'none' }}")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result.stdout.strip()
+
+    def test_the_first_gone_out_of_sync_line_gives_the_turn_and_kind(self):
+        self.assertEqual(self.check(self.LOG), '631|Checksum|Gone Out Of Sync (Checksum) GT 631 [482DC5CE:482D9AA2]')
+
+    def test_a_line_still_being_written_is_not_read(self):
+        # A read that ends mid-write must not turn 'GT 631' into 'GT 6'.
+        self.assertEqual(self.check('LOG CREATED\r\nGone Out Of Sync (Checksum) GT 6'), 'none')
+
+    def test_a_log_in_sync_and_a_missing_log_give_nothing(self):
+        self.assertEqual(self.check('LOG CREATED\r\nEngine Time:\r\n'), 'none')
+        result = powershell(LOAD.format(script=SCRIPT) + "if (Find-Desync (Read-GameLog 'Z:\\no\\such.LOG')) { 'hit' } else { 'none' }")
+        self.assertEqual(result.stdout.strip(), 'none', result.stderr)
+
+    def test_verify_without_a_kept_study_fails_before_asking_for_elevation(self):
+        result = subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(SCRIPT), '-Verify'],
+                                capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('-Verify needs -Study', result.stdout + result.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()

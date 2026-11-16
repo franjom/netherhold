@@ -12,7 +12,8 @@ All native tools need an elevated shell (DK2 runs elevated) and no other DK2 pro
 |---|---|---|---|
 | Record the owner playing a level | `play-record.ps1` | DK2's own packet recorder; inputs, seeds, checksums, camera, no state | [play-record.md](play-record.md) |
 | Read a recording | `play-record.ps1 -Decode` | `thing` ids are the original process's, not types | [play-record.md](play-record.md) |
-| Every turn's state from a replay, undisturbed | `play-record.ps1 -Replay -Map WxH` (runs `reverse-engineering/dk2live.py record`) | legacy capture: selected regions only, object slots 1150-1719, ticks can be missed or torn; not yet run on a long replay | [play-record.md](play-record.md), `reverse-engineering/README.md` |
+| Every turn's state from a replay, undisturbed | `play-record.ps1 -Replay -Map WxH` (runs `reverse-engineering/dk2live.py record`) | legacy capture: selected regions only, object slots 1150-1719, ticks can be missed or torn; run once on Level 6a (2026-11-16): 7238 frames, 2 missed, but the game logged a checksum desync at GT 631 | [play-record.md](play-record.md), `reverse-engineering/README.md` |
+| Does a replay with nothing attached stay in sync | `play-record.ps1 -Verify -Study <study> [-Minutes 45]` | reads `MESSAGE.LOG` only; first `Gone Out Of Sync` line stops it; clean only if the time limit is reached with the game still running; cannot measure how far the replay got | [play-record.md](play-record.md) |
 | Exact full memory at chosen turns | `record_native.py` (or `play-record.ps1 -Capture`) | a Level 6a replay went out of sync at GT 76 under it while a plain replay did not (2026-11-16; cause unsettled, play-record.md) | [native-capture.md](native-capture.md) |
 | A running process's memory, now | `process_dump.py` | no replay control, no provenance; prefer `record_native.py` | its docstring |
 | Stop at a function's entry and return | `decision_boundary.py` (`decision_boundary.py q737` is the Q737 preset) | hardware breakpoints stop the game | [decision-boundary.md](decision-boundary.md), [q737-boundary.md](q737-boundary.md) |
@@ -29,6 +30,8 @@ Not this folder: `dk2tools replay` (`src/DK2.Tools`, a packet replayed in our si
 - `-LEVEL` must be given with both `-PSAVE` and `-PLOAD`; launch `DKII-DX.exe`, not `DKII.EXE` (`docs/TRAPS.md`).
 - A tool attached to the game can change the replay itself (suspected for `record_native.py`, play-record.md); check
   `MESSAGE.LOG` for `Gone Out Of Sync` after every replay capture, and copy the log before the next launch rewrites it.
+  `-Replay` on Level 6a also logged one (GT 631). Do not touch the game during a replay: it takes live input.
+  `play-record.ps1 -Verify` replays with nothing attached.
 - `reverse-engineering/` is never committed and its only copy must not live in a clone: copy a changed script to
   `F:\DK2Evidence\archive\` (the 2026-11-16 copy is `re-scripts--2026-11-16--001`).
 - Do not run `reverse-engineering/` scripts with `python -I`: isolation drops their own folder from `sys.path`.
