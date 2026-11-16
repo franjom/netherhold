@@ -39,15 +39,11 @@ namespace DK2.Unity
             public int FramesPerSecond;
             public readonly List<Texture2D> Textures = new List<Texture2D>();
             public readonly List<Sprite> Sprites = new List<Sprite>();
-            /// <summary>A sprite with art flag 0x100: DK2 draws it as a square lying flat at the
-            /// element (0x0059B880 → 0x0059C720), not facing the camera; its quads are rebuilt into
-            /// one mesh each frame.</summary>
-            public bool IsFlat;
-            /// <summary>A billboard's width and height per unit of scale: the descriptor's /4096
-            /// (0x0059C360 multiplies scale +4 and +8 by them), and art flag 0x40's lift by half the
-            /// height so the sprite stands on its point.</summary>
-            public float WidthPerScale = 1f, HeightPerScale = 1f;
-            public bool StandsOnPoint;
+            /// <summary>A sprite's shape (EffectSpriteShape): flat sprites, and every billboard when the blended
+            /// terrain draws them, are rebuilt into one mesh each frame from <see cref="Quads"/>.</summary>
+            public EffectSpriteShape Shape = new EffectSpriteShape(false, false, 1f, 1f);
+            public bool IsFlat => Shape.IsFlat;
+            public readonly EffectQuadBuffer Quads = new EffectQuadBuffer();
             public Mesh FlatMesh;
             public readonly List<Vector3> FlatVertices = new List<Vector3>();
             public readonly List<Vector2> FlatUvs = new List<Vector2>();
@@ -61,8 +57,9 @@ namespace DK2.Unity
         private readonly TransparentTerrain _transparent;
         /// <summary>Cached render resources per sprite asset or group-part mesh entry.</summary>
         private readonly Dictionary<(AssetRef, string), Group> _groups = new Dictionary<(AssetRef, string), Group>();
-        public RoomConstructionParticles Model { get; }
-        public ShotBodyParticles ShotBodies { get; }
+        private readonly EffectDrawList _list;
+        public RoomConstructionParticles Model => _list.Model;
+        public ShotBodyParticles ShotBodies => _list.ShotBodies;
 
         public ClassicConstructionEffects(Transform root, GameDatabase database, IEffectSpriteProvider sprites, ulong seed,
             Func<RoomConstructionEffect, bool> visible = null,
@@ -84,104 +81,65 @@ namespace DK2.Unity
             _sprites = sprites;
             _meshes = meshes;
             _transparent = root.GetComponentInChildren<TransparentTerrain>();
-            ShotBodies = new ShotBodyParticles(database, unchecked((uint)seed), shotVisible);
-            Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight,
-                terrainDebrisStyle: TerrainDebrisStyle.Crumbling,
-                captureEffectStyle: CaptureEffectStyle.Native, captureEdges: captureEdges,
-                heartSparkleStyle: HeartSparkleStyle.PillarHeight,
+            // The styles, the seeds and the default stopwatch clock (ADR-0458) are the draw list's.
+            _list = new EffectDrawList(database, seed, clock, visible, effectVisible, floorHeight,
+                captureEdges: captureEdges,
                 groupParts: meshes != null ? meshes.GroupParts : null, attachment: attachment,
                 shotAttachment: shotAttachment, cameraVisible: cameraVisible,
-                terrainFlags: terrainFlags, solidTile: solidTile, creatureGroundHeight: creatureGroundHeight,
-                viewer: viewer);
+                terrainFlags: terrainFlags, solidTile: solidTile, shotVisible: shotVisible,
+                creatureGroundHeight: creatureGroundHeight, viewer: viewer);
         }
-
-        // A stopwatch rather than Unity's clock: the model's Emit runs on the runner's worker thread
-        // (ADR-0458), and Unity's time is for the main thread.
-        private static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
-
-        private static EffectTime ReadClock() => new EffectTime(Clock.ElapsedMilliseconds);
-
-        private float _fraction;
-        private readonly List<EffectLightView> _lights = new List<EffectLightView>();
-
-        /// <summary>A sprite's colour: an additive sprite's tint alone; a lit one's (art types 1 and 2) tint plus
-        /// its tile table's radial light at its point (0x0057F3D0, 0x0057FB80; Q609, ADR-0665). The ambient DK2 adds
-        /// is RGB 0 at the default setting (classic-lighting.md section 8) and is not added.</summary>
-        private Color32 SpriteColour(ConstructionParticle source, Vector3 position)
-        {
-            if (!source.TakesLight) return new Color32(source.Red, source.Green, source.Blue, 255);
-            // Without classic lighting there are no tables: a lit sprite keeps its tint, and one whose tint is black
-            // (the digits, a cannonball) draws its art plain rather than vanishing.
-            if (TileLights == null)
-                return (source.Red | source.Green | source.Blue) == 0
-                    ? new Color32(255, 255, 255, 255) : new Color32(source.Red, source.Green, source.Blue, 255);
-            // A tile drawn without a table this frame has no lights, as DK2's empty list: base colour alone.
-            if (!TileLights(new TilePos(source.XRaw >> 12, source.YRaw >> 12), out ClassicLightTable table))
-                return new Color32(source.Red, source.Green, source.Blue, 255);
-            var (red, green, blue) = SpriteLighting.Lit(source.Red, source.Green, source.Blue, table.Lights,
-                new System.Numerics.Vector3(position.x, position.y, position.z));
-            return new Color32(red, green, blue, 255);
-        }
-
-        public delegate bool TileLightLookup(TilePos tile, out ClassicLightTable table);
 
         /// <summary>The frame's light table of a tile, for sprites that take light (<see cref="ConstructionParticle.TakesLight"/>).</summary>
-        public TileLightLookup TileLights { get; set; }
+        public TileLightLookup TileLights { get => _list.TileLights; set => _list.TileLights = value; }
 
         /// <summary>Runs the effect updates due by now and returns the instances' lights, which
         /// the frame's lighting takes before it is prepared; <see cref="Draw"/> then draws this state.</summary>
-        public IReadOnlyList<EffectLightView> Advance()
-        {
-            _fraction = Model.Advance();
-            Model.CollectLights(_lights);
-            foreach (EffectLightView light in ShotBodies.Lights) _lights.Add(light);
-            return _lights;
-        }
+        public IReadOnlyList<EffectLightView> Advance() => _list.Advance();
 
-        public void CaptureShots(IReadOnlyList<ShotState> shots, float fraction) => ShotBodies.Capture(shots, fraction);
+        public void CaptureShots(IReadOnlyList<ShotState> shots, float fraction) => _list.CaptureShots(shots, fraction);
+
+        private static Color32 ToUnity(EffectColour colour) => new Color32(colour.Red, colour.Green, colour.Blue, 255);
+        private static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
+        private static System.Numerics.Vector3 Numerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
 
         public void Draw()
         {
             using var drawScope = DrawMarker.Auto();
             _transparent?.BeginEffectFrame();
-            float fraction = _fraction;
+            float fraction = _list.Fraction;
             Camera camera = Camera.main;
             Vector3 cameraUp = camera != null ? camera.transform.up : Vector3.up;
             Vector3 cameraRight = camera != null ? camera.transform.right : Vector3.right;
+            System.Numerics.Vector3 up = Numerics(cameraUp), right = Numerics(cameraRight);
             foreach (Group group in _groups.Values)
             {
                 if (group == null) continue;
                 group.Count = 0;
                 if (!group.IsFlat && _transparent == null) continue;
-                group.FlatVertices.Clear(); group.FlatUvs.Clear(); group.FlatColours.Clear(); group.FlatTriangles.Clear();
+                group.Quads.Clear();
             }
-            int effectCount = Model.Particles.Count;
-            for (int i = 0; i < effectCount + ShotBodies.Particles.Count; i++)
+            EffectParticleStream particles = _list.Particles;
+            for (int i = 0; i < particles.Count; i++)
             {
-                ConstructionParticle source = i < effectCount ? Model.Particles[i] : ShotBodies.Particles[i - effectCount];
-                Group group = For(source.Definition, source.MeshEntry, source.SpriteAsset);
+                ConstructionParticle source = particles[i];
+                Group group = For(source.Definition, source.MeshEntry, _list.GroupKey(source));
                 if (group == null) continue;
-                Vector3 position = DungeonScene.Ground(
-                    Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction) / 4096f,
-                    Mathf.Lerp(source.PreviousYRaw, source.YRaw, fraction) / 4096f,
-                    Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction) / 4096f);
-                float size = source.ScaleRaw / 4096f;
+                System.Numerics.Vector3 at = EffectDrawList.Position(source, fraction);
+                Vector3 position = ToUnity(at);
                 if (group.IsMesh)
                 {
+                    float size = EffectDrawList.Size(source);
                     var matrix = Matrix4x4.TRS(position, RenderEulerRotation.Of(MeshOrientation.Particle(source, fraction)), Vector3.one * size);
                     Mesh mesh = group.Mesh;
                     Material[] materials = group.Materials;
                     if (group.Frames != null)
                     {
-                        // Shot bodies supply their game-tick phase. Other mesh elements loop
-                        // from birth at the authored rate, with one visual update per 50 ms.
-                        int frame = source.MeshPhaseRaw.HasValue
-                            ? ShotBodyParticles.FrameIndex(new Fp32(source.MeshPhaseRaw.Value), group.Frames.Length)
-                            : (source.VisualUpdates * group.FramesPerSecond / 20) % group.Frames.Length;
+                        int frame = EffectDrawList.MeshFrame(source, group.Frames.Length, group.FramesPerSecond);
                         mesh = group.Frames[frame];
                         materials = group.FrameMaterials[frame];
                     }
-                    var tint = new Color32(source.Red, source.Green, source.Blue, 255);
+                    Color32 tint = ToUnity(EffectDrawList.Tint(source));
                     for (int sub = 0; sub < materials.Length; sub++)
                     {
                         if (materials[sub] == null) continue;
@@ -201,29 +159,22 @@ namespace DK2.Unity
                 }
                 if (group.IsFlat)
                 {
-                    AddFlatQuad(group, source, fraction);
+                    _list.AddFlatQuad(group.Quads, source, fraction, group.SpriteFrames);
                     continue;
                 }
                 if (group.Count == group.Buffer.Length) Array.Resize(ref group.Buffer, group.Buffer.Length * 2);
-                float width = size * group.WidthPerScale, spriteHeight = size * group.HeightPerScale;
-                // 0x0059C360 with art flag 0x40 offsets the quad by half its height in camera space; that
-                // it lifts the sprite onto its point (flames, splashes) is STRONGLY INFERRED from the
-                // quad's UVs (v grows with camera y, D3D's v runs down) and the art.
-                Color32 colour = SpriteColour(source, position);
-                if (group.StandsOnPoint) position += cameraUp * (spriteHeight * 0.5f);
-                // A floating amount's digit sits beside its neighbours in camera space (0x0059C360's +0x57).
-                if (source.ScreenOffsetXRaw != 0) position += cameraRight * (source.ScreenOffsetXRaw / 4096f);
+                EffectBillboard billboard = _list.Billboard(source, at, group.Shape, right, up);
                 if (_transparent != null)
                 {
-                    AddBillboardQuad(group, source, colour, position, cameraRight, cameraUp, width, spriteHeight);
+                    EffectDrawList.AddBillboardQuad(group.Quads, source, billboard, right, up, group.SpriteFrames);
                     continue;
                 }
                 group.Buffer[group.Count++] = new ParticleSystem.Particle
                 {
-                    position = position,
-                    startColor = colour,
+                    position = ToUnity(billboard.Centre),
+                    startColor = ToUnity(billboard.Colour),
                     rotation3D = Vector3.zero,
-                    startSize3D = new Vector3(width, spriteHeight, 1f),
+                    startSize3D = new Vector3(billboard.Width, billboard.Height, 1f),
                     startLifetime = 1f,
                     remainingLifetime = source.RemainingSpriteLifetimeFraction,
                     randomSeed = (uint)(i + 1),
@@ -244,51 +195,28 @@ namespace DK2.Unity
             _transparent?.EndEffectFrame();
         }
 
-        /// <summary>One flat sprite (0x0059C720 → 0x0057FB80): a square of half-size scale / 4096 in the
-        /// DK2 x-y plane at the element, its corners (-s,-s), (s,-s), (s,s), (-s,s) taking UVs (0,0),
-        /// (1,0), (1,1), (0,1), coloured by <see cref="SpriteColour"/>. DK2 passes the angle -heading·π/1024 to a
-        /// clockwise turn (0x0041C580 with the row transform 0x00594DB0), so the corners turn
-        /// counter-clockwise by heading·π/1024 in the DK2 x-y plane. The frame is the particle's age
-        /// through the stored frames, as the billboards' sheet takes it (DK2's frame pick for a flat
-        /// sprite, 0x0057FF30, is unread).</summary>
-        private void AddFlatQuad(Group group, ConstructionParticle source, float fraction)
-        {
-            float x = Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction);
-            float y = Mathf.Lerp(source.PreviousYRaw, source.YRaw, fraction);
-            float heightRaw = Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction);
-            float height = heightRaw / 4096f;
-            float half = source.ScaleRaw;
-            float angle = Mathf.LerpAngle(source.PreviousHeadingRaw * (360f / 2048f),
-                source.HeadingRaw * (360f / 2048f), fraction) * Mathf.Deg2Rad;
-            float cos = Mathf.Cos(angle), sin = Mathf.Sin(angle);
-            int frames = Math.Max(1, group.SpriteFrames);
-            float age = 1f - source.RemainingSpriteLifetimeFraction;
-            int frame = Math.Min(frames - 1, (int)(age * frames));
-            float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
-            int first = group.FlatVertices.Count;
-            // The four corners share one colour (0x0057FB80).
-            Color32 colour = SpriteColour(source, DungeonScene.Ground(x / 4096f, y / 4096f, height));
-            for (int corner = 0; corner < 4; corner++)
-            {
-                float cx = corner == 0 || corner == 3 ? -half : half;
-                float cy = corner < 2 ? -half : half;
-                group.FlatVertices.Add(DungeonScene.Ground((x + cx * cos - cy * sin) / 4096f,
-                    (y + cx * sin + cy * cos) / 4096f, height));
-                group.FlatUvs.Add(new Vector2(corner == 0 || corner == 3 ? u0 : u1, corner < 2 ? 0f : 1f));
-                group.FlatColours.Add(colour);
-            }
-            group.FlatTriangles.Add(first); group.FlatTriangles.Add(first + 1); group.FlatTriangles.Add(first + 2);
-            group.FlatTriangles.Add(first); group.FlatTriangles.Add(first + 2); group.FlatTriangles.Add(first + 3);
-        }
-
+        // Uploads the draw list's quads (EffectQuadBuffer) through the group's reused lists.
         private void DrawFlat(Group group)
         {
-            if (group.FlatVertices.Count == 0) return;
+            EffectQuadBuffer quads = group.Quads;
+            if (quads.VertexCount == 0) return;
             if (group.FlatMesh == null)
             {
                 group.FlatMesh = new Mesh { name = group.Material.name + " (flat)" };
                 group.FlatMesh.MarkDynamic();
             }
+            group.FlatVertices.Clear(); group.FlatUvs.Clear(); group.FlatColours.Clear(); group.FlatTriangles.Clear();
+            ReadOnlySpan<System.Numerics.Vector3> vertices = quads.Vertices;
+            ReadOnlySpan<System.Numerics.Vector2> uvs = quads.Uvs;
+            ReadOnlySpan<EffectColour> colours = quads.Colours;
+            for (int v = 0; v < vertices.Length; v++)
+            {
+                group.FlatVertices.Add(ToUnity(vertices[v]));
+                group.FlatUvs.Add(new Vector2(uvs[v].X, uvs[v].Y));
+                group.FlatColours.Add(ToUnity(colours[v]));
+            }
+            ReadOnlySpan<int> indices = quads.Indices;
+            for (int n = 0; n < indices.Length; n++) group.FlatTriangles.Add(indices[n]);
             Mesh mesh = group.FlatMesh;
             mesh.Clear();
             mesh.SetVertices(group.FlatVertices);
@@ -310,33 +238,12 @@ namespace DK2.Unity
             Graphics.RenderMesh(parameters, mesh, 0, Matrix4x4.identity);
         }
 
-        private static void AddBillboardQuad(Group group, ConstructionParticle source, Color32 colour, Vector3 position,
-            Vector3 right, Vector3 up, float width, float height)
-        {
-            int frames = Math.Max(1, group.SpriteFrames);
-            int frame = Math.Min(frames - 1, (int)((1f - source.RemainingSpriteLifetimeFraction) * frames));
-            float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
-            int first = group.FlatVertices.Count;
-            for (int corner = 0; corner < 4; corner++)
-            {
-                bool left = corner == 0 || corner == 3;
-                group.FlatVertices.Add(position + right * (left ? -width * .5f : width * .5f)
-                    + up * (corner < 2 ? -height * .5f : height * .5f));
-                // 0x0057F3D0 gives the screen's upper corners v 0, the image's top row; the atlas holds that
-                // row at Unity's v 0, so the lower corners take v 1 (the floating digits showed it upside down).
-                group.FlatUvs.Add(new Vector2(left ? u0 : u1, corner < 2 ? 1f : 0f));
-                group.FlatColours.Add(colour);
-            }
-            group.FlatTriangles.Add(first); group.FlatTriangles.Add(first + 1); group.FlatTriangles.Add(first + 2);
-            group.FlatTriangles.Add(first); group.FlatTriangles.Add(first + 2); group.FlatTriangles.Add(first + 3);
-        }
-
-        private Group MeshGroup(EffectElementDef definition, string meshEntry, AssetRef key)
+        private Group MeshGroup(EffectElementDef definition, string meshEntry, AssetRef key, EffectGroupKind kind)
         {
             Mesh mesh = null; Material[] materials = null;
             Mesh[] frames = null; Material[][] frameMaterials = null;
             bool found = false;
-            if (_meshes != null && meshEntry == null && definition.ArtResource.Type == 6)
+            if (_meshes != null && kind == EffectGroupKind.AnimatedMesh)
             {
                 // An animated model: every frame built once, drawn by the particle's age.
                 if (_meshes.TryGetMeshFrame(key, 0, out mesh, out materials, out int frameCount))
@@ -368,30 +275,20 @@ namespace DK2.Unity
             var group = new Group
             {
                 IsMesh = true, Mesh = mesh, Materials = materials, Frames = frames, FrameMaterials = frameMaterials,
-                FramesPerSecond = AuthoredFramesPerSecond(definition),
+                FramesPerSecond = EffectDrawList.AuthoredFramesPerSecond(definition),
             };
             _groups.Add((key, meshEntry ?? ""), group);
             return group;
         }
 
-        /// <summary>An animated element's frame rate: the second dword of its descriptor read as
-        /// frames a second is a HYPOTHESIS fitted to the Portal Beams (60 frames, 10, a six-second
-        /// life; no reader of type-6 elements is read); 10 when the dword is out of range.</summary>
-        private static int AuthoredFramesPerSecond(EffectElementDef definition)
-        {
-            ReadOnlySpan<byte> block = definition.ArtResource.Unknown_0044.Span;
-            int rate = block.Length >= 8 ? BitConverter.ToInt32(block.Slice(4, 4)) : 0;
-            return rate > 0 && rate <= 60 ? rate : 10;
-        }
-
         /// <param name="meshEntry">A group part's mesh entry, drawn in place of the definition's art.</param>
-        private Group For(EffectElementDef definition, string meshEntry, AssetRef spriteAsset)
+        /// <param name="key">The draw list's <see cref="EffectDrawList.GroupKey"/>.</param>
+        private Group For(EffectElementDef definition, string meshEntry, AssetRef key)
         {
-            AssetRef key = spriteAsset.IsEmpty ? AssetRef.ForEffectElement(definition.Name) : spriteAsset;
             if (_groups.TryGetValue((key, meshEntry ?? ""), out Group existing)) return existing;
             using var resourceScope = ResourceMarker.Auto();
-            if (meshEntry != null || definition.ArtResource.Type == 5 || definition.ArtResource.Type == 6)
-                return MeshGroup(definition, meshEntry, key);
+            EffectGroupKind kind = EffectDrawList.Classify(definition, meshEntry);
+            if (kind != EffectGroupKind.Sprite) return MeshGroup(definition, meshEntry, key, kind);
             if (_sprites == null || !_sprites.TryResolve(key, out ResolvedAsset asset)
                 || !_sprites.TryGetSprite(asset, out EffectSpriteResource resource))
             {
@@ -401,10 +298,9 @@ namespace DK2.Unity
             Shader shader = Shader.Find("DK2/ClassicEffect");
             if (shader == null) throw new InvalidOperationException("The classic effect shader is unavailable.");
             var group = new Group { Material = new Material(shader) { name = key.Key } };
-            group.Material.SetInt("_SrcBlend", (int)(resource.Blend == EffectSpriteBlend.Alpha
-                ? BlendMode.SrcAlpha : BlendMode.One));
-            group.Material.SetInt("_DstBlend", (int)(resource.Blend == EffectSpriteBlend.Additive
-                ? BlendMode.One : resource.Blend == EffectSpriteBlend.Alpha ? BlendMode.OneMinusSrcAlpha : BlendMode.Zero));
+            EffectBlend blend = EffectDrawList.Blend(resource.Blend);
+            group.Material.SetInt("_SrcBlend", (int)ToUnity(blend.Source));
+            group.Material.SetInt("_DstBlend", (int)ToUnity(blend.Destination));
             var images = new List<RgbaImage>();
             for (int frame = 0; frame < resource.StoredFrameCount; frame++)
             {
@@ -425,13 +321,18 @@ namespace DK2.Unity
             group.Textures.Add(texture); group.Material.SetTexture("_MainTex", texture);
             group.SpriteFrames = images.Count;
             if (_transparent == null) CreateParticleSystem(group, definition, texture);
-            group.IsFlat = (definition.ArtResource.Flags & 0x100) != 0;
-            group.WidthPerScale = resource.WidthRaw / 4096f;
-            group.HeightPerScale = resource.HeightRaw / 4096f;
-            group.StandsOnPoint = (definition.ArtResource.Flags & 0x40) != 0;
+            group.Shape = EffectSpriteShape.Of(definition, resource);
             _groups.Add((key, ""), group);
             return group;
         }
+
+        private static BlendMode ToUnity(EffectBlendFactor factor) => factor switch
+        {
+            EffectBlendFactor.Zero => BlendMode.Zero,
+            EffectBlendFactor.SourceAlpha => BlendMode.SrcAlpha,
+            EffectBlendFactor.OneMinusSourceAlpha => BlendMode.OneMinusSrcAlpha,
+            _ => BlendMode.One,
+        };
 
         private void CreateParticleSystem(Group group, EffectElementDef definition, Texture2D texture)
         {

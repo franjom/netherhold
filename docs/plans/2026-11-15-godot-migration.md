@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g, 2h and 2i are done, and 2j in part: its first half (creature and object poses, mesh turns, clip requests, the creature animation player) and part A of its second half (light publishing, the lattice tracker, hover picking).
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g, 2h, 2i and 2j are done: 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Only 2k is left.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -111,7 +111,7 @@ group 2 is a list to audit, not a finding.
       now the one key-capture loop for both adapters' front ends and in-game pages (it replaces Unity's two
       `Enum.GetValues(KeyCode)` loops), `GameOptionsHud.CaptureKey`, `GameBindingInput.Modifiers` and `KeyPressed`,
       and `ClassicKeyNames`, the one table of 99 key names, which equals Unity's `KeyCode.ToString()` names (a
-      script comparison found no difference), used by both front ends and `ClassicKeyBindings.Name`; they are not
+      script comparison found no difference), used by both front ends; they are not
       DK2's own names, [Q857](research/open-questions.md); Godot's controls page now shows names instead of
       numbers; the slider test sounds are dropped; when two keys go down in one frame during capture they are
       tried in scan-code order, where Unity tried `KeyCode` order, and DK2's order is unknown (`0x0042B770` takes
@@ -485,9 +485,7 @@ group 2 is a list to audit, not a finding.
       (Presentation 2382, Simulation 5583, Behavior 677 with 5 skipped); Godot and the editor headless build are
       clean and the Unity compile has 0 errors; headless Level1 turn-400 hash `D7290428D81A902F`, unchanged. Not run:
       Unity in Play mode.
-- [ ] 2j. Scene mapping for step 3. The first half and part A of the second half are done (2026-11-16); part B is still
-      to do: the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar
-      clock.
+- [x] 2j. Scene mapping for step 3 (2026-11-16, in three parts: the first half, part A and part B, below).
       Done, in `DK2.Presentation`: `PoseInterpolator` (the draw seconds, the clamped position lerp, the shortest-arc
       wrap and the object turn; creatures still take their turns uninterpolated and objects interpolate theirs, the
       audit's open point, kept as drawn, [Q868](../research/open-questions.md)). `MeshOrientation` returns a
@@ -536,9 +534,35 @@ group 2 is a list to audit, not a finding.
       `dotnet test DK2.slnx` green (Presentation 2465, Simulation 5583, Behavior 677 with 5 skipped); Godot and the editor
       headless build are clean and the Unity compile has 0 errors; the hashes are unchanged. Not run: Unity in Play mode
       (the hover tint, the pick and the lighting).
-- [ ] 2k. Deferred: the level sound driver (step 4's audio abstraction), the gamma exponent (with
-      lighting), and Godot's speech subtitles (wrap with `BitmapTextLayout`, pack a `.bf4` atlas, blit
-      `BitmapTextPlacement.Place` in `SubtitleLayout`'s boxes); delete `ClassicKeyBindings.Name`.
+      Part B (2026-11-16), in `DK2.Presentation`: `EffectDrawList` is the construction-effects draw list that was in
+      `ClassicConstructionEffects`: the defaults (`TerrainDebris`, `CaptureEffects`, `HeartSparkles` and the stopwatch
+      clock), the stream order (`EffectParticleStream`: room effects, then shots), the sprite colour (an unlit tint; no
+      tables makes black white; no table for the tile gives the tint; else lit; taken before the StandsOnPoint lift),
+      the frame pick, the billboard and flat quads ([0x0059C720](../research/functions/0059C720.md) →
+      [0x0057FB80](../research/functions/0057FB80.md), the lift and offset of 0x0059C360, the UVs of 0x0057F3D0) into an
+      `EffectQuadBuffer`, and the blend. A reference-keyed group-key cache removes a per-particle, per-frame allocation.
+      `ClassicConstructionEffects` keeps the Unity meshes, materials and draw calls. `RenderWorld` is the DK2 to render
+      frame, with `ToNative`, which replaces the three inverse-frame copies (shadows, head, sparkle). `HeartPulse`
+      ([0x0043CC30](../research/functions/0043CC30.md)), `GemSparkleGate`
+      ([0x005A3AA0](../research/functions/005A3AA0.md)) and `CreatureHeadTable`
+      ([0x00434E80](../research/functions/00434E80.md)) came from `DungeonScene`; `StatusFlowerLayers` and
+      `FlowerDollarClock` ([0x005961A0](../research/functions/005961A0.md): the dollar descriptor is installed only
+      when the current type is not 6, and the clock advances once per dollar drawn) came from `ClassicStatusFlowers`
+      and `ClassicFlowerDollar`. `DisplaySettings` holds `DefaultGamma` 30 and the brightness exponent `30 / Gamma`
+      from `ClassicSettingsRendering`; `ClassicKeyBindings.Name`, which had no callers, is deleted.
+      `RoomConstructionParticles` gained three internal read-only style properties. `ObjectView`'s texture phase and
+      scale (`DrawnTexturePhase`, `MeshScaleY`) moved in the first half, not here. The reviewer found the moved code
+      arithmetic- and order-identical to HEAD, with threading, reflection and allocation sound; two test gaps (the
+      flat-quad interpolation and the frame-pick guards) are closed by two new tests and all six surviving mutants
+      now fail a test. The frame pick's `Math.Min(frames - 1, ...)` is a guard `ConstructionParticle` cannot reach,
+      since `RemainingSpriteLifetimeFraction` caps the phase at 4095. `ClassicConstructionEffects.DrawFlat` copies
+      the quads into Unity's lists, an extra pass over the vertices per group per frame with no allocation; accepted
+      for now. Whether the dollar's speed, which follows the number of dollars drawn and the frame rate, is an
+      original quirk is open (record 0x005961A0). No simulation file changed and HashVersion is unchanged; the Level1
+      turn-400 hash is `D7290428D81A902F`. Verification: Presentation 2519 passed (2517 and two new), Simulation 5583,
+      Behavior 677 with 5 skipped, and `godot/DK2.Godot` builds with 0 warnings.
+- [ ] 2k. Deferred: the level sound driver (step 4's audio abstraction) and Godot's speech subtitles (wrap with
+      `BitmapTextLayout`, pack a `.bf4` atlas, blit `BitmapTextPlacement.Place` in `SubtitleLayout`'s boxes).
 
 ## Step 3: a playable level in Godot
 

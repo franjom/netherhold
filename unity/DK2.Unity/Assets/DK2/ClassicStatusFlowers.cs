@@ -13,20 +13,10 @@ using Object = UnityEngine.Object;
 
 namespace DK2.Unity
 {
-    /// <summary>Draws <see cref="StatusFlowers"/> as camera-facing quads over each shown creature
-    /// (status-flowers.md §2): the petal ring <c>GUI\moods\H-0n</c> in the owner's colour, then the
-    /// centre: the level badge at half colour with a full-colour experience wedge, or a mood, job
-    /// or status icon at full colour; then the Imprison tag when the viewer marked the creature
-    /// (0x005961A0) and, over a hero that trigger action 42 marked, the Objective ring (0x00596770).</summary>
+    /// <summary>Draws <see cref="StatusFlowers"/> as camera-facing quads over each shown creature, the layers
+    /// <see cref="StatusFlowerLayers.Build"/> gives in its order.</summary>
     public sealed class ClassicStatusFlowers : IDisposable
     {
-        private const string Folder = "GUI\\moods\\";
-
-        // Draws each later layer this much nearer the camera, along the eye ray, so sorting and depth
-        // put it on top while it stays concentric on screen.
-        private const float CentreLift = 0.01f;
-
-        private static readonly string[] Rings = { "H-00", "H-01", "H-02", "H-03", "H-04", "H-05" };
 
         private static readonly int TintId = Shader.PropertyToID("_Tint");
         private static readonly int WedgeId = Shader.PropertyToID("_Wedge");
@@ -38,6 +28,7 @@ namespace DK2.Unity
         private readonly List<MaterialPropertyBlock> _blocks = new List<MaterialPropertyBlock>();
         private readonly Mesh _quad;
         private readonly ClassicFlowerDollar _dollar;
+        private readonly StatusFlowerLayer[] _layers = new StatusFlowerLayer[StatusFlowerLayers.MaxLayers];
 
         public ClassicStatusFlowers(IClassicResourceAssets assets, DK2.Art.InstallArtProvider art = null, ClassicMeshes meshes = null)
         {
@@ -67,16 +58,14 @@ namespace DK2.Unity
                 Vector3 centre = feet + Vector3.up * (flower.Height.Raw / (float)Fp32.One);
                 if (flower.Dollar)
                 {
-                    _dollar.Draw(flower.CreatureId, centre, (float)(Time.unscaledTimeAsDouble * 4 % 1));
+                    _dollar.Draw(flower.CreatureId, centre, FlowerDollarClock.Fraction(Time.unscaledTimeAsDouble));
                     continue;
                 }
                 _dollar.Reset();
                 var colour = new Color32(flower.Colour.Red, flower.Colour.Green, flower.Colour.Blue, 255);
-                if (flower.DrawRing)
-                    Sprite(Rings[Mathf.Clamp(flower.Ring, 0, 5)], centre, 0, colour, -1, ring: true);
-                Sprite(flower.Centre, centre, 1, colour, flower.ExperienceArcs ? flower.Experience : -1, ring: false);
-                if (flower.Imprison) Sprite("Imprison", centre, 2, colour, -1, ring: false);
-                if (flower.Objective != null) Sprite(flower.Objective, centre, 3, colour, -1, ring: false);
+                int layers = StatusFlowerLayers.Build(flower, _layers);
+                for (int l = 0; l < layers; l++)
+                    Sprite(_layers[l].Name, centre, _layers[l].Index, colour, _layers[l].Wedge, _layers[l].Ring);
             }
 
             // The A_ sprite is queued into the same back-to-front blended list as the terrain's
@@ -99,7 +88,8 @@ namespace DK2.Unity
             // a perspective camera only, which the runner always sets.
             void Sprite(string name, Vector3 anchor, int layer, Color colour, float wedge, bool ring)
             {
-                var (at, scale) = StatusFlowerRules.LayerPlacement(Numerics(anchor), Numerics(eye), Numerics(forward), layer, CentreLift);
+                var (at, scale) = StatusFlowerRules.LayerPlacement(Numerics(anchor), Numerics(eye), Numerics(forward), layer,
+                    StatusFlowerLayers.CentreLift);
                 _positions.Add(new Vector3(at.X, at.Y, at.Z));
                 _pending.Add(new Pending(Art(name, ring), Block(ref block, colour, wedge),
                     StatusFlowerRules.WorldSize(name, possessing) * scale));
@@ -145,7 +135,7 @@ namespace DK2.Unity
         private Material Art(string name, bool ring)
         {
             if (_art.TryGetValue(name, out Material art)) return art;
-            RgbaImage image = _assets.Image(Folder + name);
+            RgbaImage image = _assets.Image(StatusFlowerLayers.Folder + name);
             Texture2D texture = MinimapFrameVisual.Decode(image);
             texture.name = name;
             // An "A_" material (0x00596850 loads kind 2; 0x0057C420, 0x00589250): SRCALPHA/INVSRCALPHA,

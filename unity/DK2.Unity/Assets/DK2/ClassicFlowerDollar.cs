@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 using DK2.Art;
-using DK2.Data.Model;
+using DK2.Presentation;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
@@ -20,7 +20,7 @@ namespace DK2.Unity
         private readonly Dictionary<int, Mesh> _meshes = new Dictionary<int, Mesh>();
         private readonly System.Numerics.Vector3[] _sample;
         private readonly Vector3[] _vertices;
-        private RenderAnimationClock _clock;
+        private readonly FlowerDollarClock _clock = new FlowerDollarClock();
 
         public ClassicFlowerDollar(InstallArtProvider art, ClassicMeshes meshes)
         {
@@ -32,7 +32,7 @@ namespace DK2.Unity
             _vertices = new Vector3[_sample.Length];
         }
 
-        public void Reset() => _clock = null;
+        public void Reset() => _clock.Reset();
 
         public void Draw(int creatureId, Vector3 position, float fraction)
         {
@@ -41,24 +41,22 @@ namespace DK2.Unity
             {
                 mesh = Object.Instantiate(_template); mesh.MarkDynamic(); _meshes.Add(creatureId, mesh);
             }
-            if (_clock == null) _clock = new RenderAnimationClock(new CreatureAnimationTiming
-                { ResourceType = 6, FrameCount = 30, FramesPerSecond = 30 }, loop: true);
-            _clip.Sample(_clock.Sample(fraction).Phase, false, _sample);
+            _clip.Sample(_clock.Phase(fraction), false, _sample);
             for (int i = 0; i < _vertices.Length; i++)
                 _vertices[i] = new Vector3(_sample[i].X, _sample[i].Y, _sample[i].Z);
             mesh.SetVertices(_vertices); mesh.RecalculateBounds();
             for (int i = 0; i < _materials.Length; i++)
                 Graphics.RenderMesh(new RenderParams(_materials[i])
                     { shadowCastingMode = ShadowCastingMode.Off, receiveShadows = false }, mesh, i,
-                    Matrix4x4.TRS(position, Quaternion.Euler(0, 180, 0), Vector3.one));
-            // Native005961A0 advances the shared overlay animation after each winner draw.
+                    Matrix4x4.TRS(position, Quaternion.Euler(0, FlowerDollarClock.YawDegrees, 0), Vector3.one));
+            // 0x005961A0 advances the shared overlay animation after each dollar drawn (FlowerDollarClock).
             _clock.Advance();
         }
 
         public void Dispose()
         {
             foreach (Mesh mesh in _meshes.Values) Object.Destroy(mesh);
-            _meshes.Clear(); _clock = null;
+            _meshes.Clear(); _clock.Reset();
         }
     }
 }

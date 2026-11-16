@@ -5,24 +5,23 @@
 using System;
 using System.Reflection;
 using DK2.Data.Settings;
+using DK2.Presentation;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace DK2.Unity
 {
     /// <summary>
-    /// The display settings: brightness and multisampling. Brightness is a gamma curve over the
-    /// main camera's finished image, pow(c, 30 / Gamma), our stand-in for DK2's display gamma ramp:
+    /// The display settings: brightness and multisampling. Brightness is the gamma curve of
+    /// <see cref="DisplaySettings.BrightnessExponent"/> over the main camera's finished image:
     /// the image is copied and redrawn through the curve by one full-screen triangle, and nothing
-    /// is drawn at the default gamma. Black and white stay put, so no end of the slider clips (a
-    /// multiply clipped highlights from about Gamma 40). The project renders in Gamma colour
+    /// is drawn at the default gamma. The project renders in Gamma colour
     /// space, so the curve is on display-encoded values. The UI Toolkit HUD draws after the camera
     /// and keeps its brightness. (A URP Volume's postExposure did nothing here: the renderer has no
     /// post-processing data, so URP runs no post-processing.)
     /// </summary>
     public sealed class ClassicSettingsRendering : IDisposable
     {
-        private const int DefaultGamma = 30;
         private static readonly int SourceId = Shader.PropertyToID("_DK2BrightnessSource"), ExponentId = Shader.PropertyToID("_Exponent");
 
         private readonly Material _curve;
@@ -51,8 +50,9 @@ namespace DK2.Unity
 
         public void Apply(GameSettings settings)
         {
-            bool draw = _curve != null && settings.Gamma != DefaultGamma;
-            BrightnessExponent = draw ? DefaultGamma / (float)settings.Gamma : 1;
+            float? exponent = _curve != null ? DisplaySettings.BrightnessExponent(settings.Gamma) : null;
+            bool draw = exponent.HasValue;
+            BrightnessExponent = exponent ?? 1;
             if (draw) _curve.SetFloat(ExponentId, BrightnessExponent);
             if (draw != _drawing)
             {

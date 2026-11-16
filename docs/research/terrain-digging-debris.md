@@ -86,7 +86,7 @@ is a distinct definition, not the rock dust element.
 
 Current `TileWorkSystem` preserves destruction-only requests and the
 worker owner. `RoomConstructionParticles` applies the raw art-color flag;
-`ClassicConstructionEffects` submits its resulting sprite RGB and the
+`EffectDrawList` takes its resulting sprite RGB, and `ClassicConstructionEffects` submits it with the
 resolved resource. The previous red ordinary-rock cloud was caused by the
 incorrect colour mask, corrected in ec92cfae; it is not native keeper colouring.
 The remaining prominence comparison is Q593.

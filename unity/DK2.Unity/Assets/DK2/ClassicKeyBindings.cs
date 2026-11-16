@@ -21,8 +21,6 @@ namespace DK2.Unity
         public static GameBindingInput Read(GameSettings settings) => new GameBindingInput(settings, Modifiers, ReadHeld, ReadPressed);
         public static bool Held(GameSettings settings, GameAction action, bool exactModifiers = false) => Read(settings).Held(action, exactModifiers);
         public static bool Pressed(GameSettings settings, GameAction action) => Read(settings).Pressed(action);
-        public static string Name(GameKeyBinding binding) => binding.ScanCode == 0 ? "-"
-            : (binding.Modifiers == KeyModifiers.None ? "" : binding.Modifiers + " + ") + ClassicKeyNames.Name(binding.ScanCode);
         public static KeyScanCode ScanCode(KeyCode key)
         {
             for (int scan = 1; scan < 256; scan++) if (Key(scan) == key) return scan;

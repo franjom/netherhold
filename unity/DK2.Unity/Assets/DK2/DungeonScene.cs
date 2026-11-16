@@ -49,10 +49,7 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
-        // Each drawn creature's head (KMF point 5000) in native units, null when its clip has none;
-        // read by the effects on the runner's worker thread (ADR-0458), so it is concurrent.
-        private readonly System.Collections.Concurrent.ConcurrentDictionary<int, FpPosition3?> _creatureHeads =
-            new System.Collections.Concurrent.ConcurrentDictionary<int, FpPosition3?>();
+        private readonly CreatureHeadTable _creatureHeads = new CreatureHeadTable();
         private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
         private readonly Dictionary<int, CreatureView> _creaturePoses = new Dictionary<int, CreatureView>();
         private readonly Dictionary<int, CreatureClipIdentity> _creatureClips = new Dictionary<int, CreatureClipIdentity>();
@@ -62,11 +59,9 @@ namespace DK2.Unity
         internal double DrawSeconds => _renderSeconds;
 
         internal double TerrainFlushMilliseconds => _terrain?.LastFlushMilliseconds ?? 0;
-        private readonly HeartPulseGate _heartPulseGate = new HeartPulseGate();
-        private readonly System.Collections.Concurrent.ConcurrentQueue<(PlayerId Owner, Fp32 Step)> _heartAdvances =
-            new System.Collections.Concurrent.ConcurrentQueue<(PlayerId Owner, Fp32 Step)>();
+        private readonly HeartPulse _heartPulse = new HeartPulse();
         public void QueueHeartHealthChange(PlayerId owner, DungeonHeartVisual visual) =>
-            _heartAdvances.Enqueue((owner, visual.PhaseStep));
+            _heartPulse.QueueHealthChange(owner, visual);
         public System.Action<ViewEffectRequest> HeartEffectRequested { get; set; }
 
         /// <summary>A heart's pending beat let through by the pulse gate: DK2 plays 0x150 there (0x0043CE85).</summary>
@@ -87,7 +82,7 @@ namespace DK2.Unity
             table = null;
             return _worldLights != null && _worldLights.TryGetVisibleTable(tile, out table);
         }
-        private readonly Dictionary<int, long> _gemSparkleQuanta = new Dictionary<int, long>();
+        private readonly GemSparkleGate _gemSparkles = new GemSparkleGate();
         public System.Func<EffectTime> HeartEffectClock { get; set; } =
             () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
@@ -420,7 +415,7 @@ namespace DK2.Unity
             if (go == null) return;
 
             _creatures[creatureId] = go;
-            _creatureHeads.TryAdd(creatureId, null);
+            _creatureHeads.Add(new CreatureId(creatureId));
             _creatureArt[creatureId] = mesh.Reference;
             _creaturePoses[creatureId] = creature;
             ConfigureCreatureClip(go, creatureId, creature, mesh, animation);
@@ -462,15 +457,10 @@ namespace DK2.Unity
                 : ColourOf(mesh.Look));
         }
 
-        /// <summary>An effect's tie to a creature (0x00434E80): gone with its object, else its head
-        /// as last drawn (Ground's inverse), or not found for a clip without one or another point.
-        /// Safe from the effects' worker thread.</summary>
-        public EffectAttachment CreatureAttachment(int creatureId, uint point)
-        {
-            if (!_creatureHeads.TryGetValue(creatureId, out FpPosition3? head)) return EffectAttachment.Gone;
-            return point == DK2.Art.Kmf.KmfControlPoint.Head && head.HasValue
-                ? EffectAttachment.At(head.Value) : EffectAttachment.NotFound;
-        }
+        /// <summary>An effect's tie to a creature (<see cref="CreatureHeadTable.Attachment"/>). Safe from the
+        /// effects' worker thread.</summary>
+        public EffectAttachment CreatureAttachment(int creatureId, uint point) =>
+            _creatureHeads.Attachment(new CreatureId(creatureId), point);
 
         public void RemoveCreature(int creatureId) => RemoveCreature(creatureId, keepHead: false);
 
@@ -486,8 +476,8 @@ namespace DK2.Unity
             _meshCreatures.Remove(creatureId);
 
             _creatures.Remove(creatureId);
-            if (!keepHead) _creatureHeads.TryRemove(creatureId, out _);
-            _gemSparkleQuanta.Remove(creatureId);
+            if (!keepHead) _creatureHeads.Remove(new CreatureId(creatureId));
+            _gemSparkles.Forget(new CreatureId(creatureId));
             _creatureArt.Remove(creatureId);
             _creaturePoses.Remove(creatureId);
             _creatureClips.Remove(creatureId);
@@ -520,9 +510,7 @@ namespace DK2.Unity
             foreach (GameObject creature in _creatures.Values)
             {
                 if (creature == null) continue;
-                Vector3 position = creature.transform.position;
-                var point = new FpPosition3(new Fp32((int)(position.x * Fp32.One)),
-                    new Fp32((int)(-position.z * Fp32.One)), new Fp32((int)(position.y * Fp32.One)));
+                FpPosition3 point = RenderWorld.ToNative(ToNumerics(creature.transform.position));
                 float ground = view.GroundHeightAt(world, point).Raw / (float)Fp32.One;
                 _creatureShadows.SetGroundHeight(creature, ground + .01f);
             }
@@ -562,11 +550,11 @@ namespace DK2.Unity
             using var frameScope = FrameMarker.Auto();
             fraction = Mathf.Clamp01(fraction);
             SetCreatureFrameTime(tick, fraction);
-            while (_heartAdvances.TryDequeue(out var advance))
+            while (_heartPulse.TryTakeHealthAdvance(out PlayerId owner, out Fp32 step))
                 foreach (KeyValuePair<int, ObjectView> heart in _objectPoses)
-                    if (heart.Value.HeartVisual.HasValue && heart.Value.OwnerPlayerId == advance.Owner
+                    if (HeartPulse.IsHeartOf(heart.Value, owner)
                         && _objects.TryGetValue(heart.Key, out GameObject heartObject) && heartObject != null)
-                        heartObject.GetComponent<ClassicCreatureAnimation>()?.AdvanceHealthPhase(advance.Step);
+                        heartObject.GetComponent<ClassicCreatureAnimation>()?.AdvanceHealthPhase(step);
             FrameCreaturesMarker.Begin();
             foreach (KeyValuePair<int, CreatureView> entry in _creaturePoses)
             {
@@ -589,26 +577,14 @@ namespace DK2.Unity
                 FrameLightningMarker.Begin();
                 Lightning?.DrawCreature(new CreatureId(entry.Key), tick, player);
                 FrameLightningMarker.End();
-                _creatureHeads[entry.Key] = player != null
+                _creatureHeads.Set(new CreatureId(entry.Key), player != null
                     && player.TryGetControlPoint(DK2.Art.Kmf.KmfControlPoint.Head, out Vector3 head)
-                        ? new FpPosition3(new Fp32((int)(head.x * Fp32.One)), new Fp32((int)(-head.z * Fp32.One)),
-                            new Fp32((int)(head.y * Fp32.One)))
-                        : (FpPosition3?)null;
-                // Render_MeshEffectPoints (0x005A3AA0) runs after each draw of a creature's mesh: a
-                // gem carrier gives off effect 257 at its point 10001, every draw. Per-draw work is
-                // paced by the 50 ms presentation quantum, as the wall flames are (ADR-0494): at most
-                // one per draw and one per quantum, since retail DK2's frame rate is open (Q604).
+                        ? RenderWorld.ToNative(ToNumerics(head)) : (FpPosition3?)null);
+                // A gem carrier's sparkle at its point 10001, paced by GemSparkleGate.
                 if (pose.GemCarrier && player != null && GemSparkleRequested != null
-                    && player.TryGetControlPoint(CreatureView.GemDustSparkle.ControlPoint, out Vector3 sparkle))
-                {
-                    long quantum = HeartEffectClock().Milliseconds / 50;
-                    if (!_gemSparkleQuanta.TryGetValue(entry.Key, out long last) || quantum > last)
-                    {
-                        _gemSparkleQuanta[entry.Key] = quantum;
-                        GemSparkleRequested(new FpPosition3(new Fp32((int)(sparkle.x * Fp32.One)),
-                            new Fp32((int)(-sparkle.z * Fp32.One)), new Fp32((int)(sparkle.y * Fp32.One))));
-                    }
-                }
+                    && player.TryGetControlPoint(CreatureView.GemDustSparkle.ControlPoint, out Vector3 sparkle)
+                    && _gemSparkles.TryPass(new CreatureId(entry.Key), HeartEffectClock()))
+                    GemSparkleRequested(RenderWorld.ToNative(ToNumerics(sparkle)));
             }
             FrameCreaturesMarker.End();
             FrameObjectsMarker.Begin();
@@ -623,15 +599,16 @@ namespace DK2.Unity
                 go.transform.localRotation = RenderEulerRotation.Of(PoseInterpolator.ObjectTurn(pose, fraction));
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
                 player?.Draw(_renderSeconds, phaseStepOverride: pose.HeartVisual?.PhaseStep);
-                if (pose.HeartVisual.HasValue && player != null && player.BeatPending
-                    && go.GetComponent<Renderer>().isVisible && _heartPulseGate.ConsumePendingBeat(HeartEffectClock()))
+                if (pose.HeartVisual.HasValue && player != null && player.BeatPending)
                 {
-                    player.ConsumeBeat();
-                    HeartBeatRequested?.Invoke(pose);
-                    if (HeartPulseGate.CanEmit(tick) && pose.HeartVisual.Value.ManaEffect != EffectId.None)
-                        HeartEffectRequested?.Invoke(new ViewEffectRequest(pose.HeartVisual.Value.ManaEffect,
-                            new PlayerId(pose.OwnerPlayerId), new FpPosition3(new Fp32(pose.PosX),
-                                new Fp32(pose.PosY), new Fp32(pose.Height))));
+                    HeartBeat beat = _heartPulse.TryBeat(pose, beatPending: true, go.GetComponent<Renderer>().isVisible,
+                        HeartEffectClock, tick);
+                    if (beat.Consumed)
+                    {
+                        player.ConsumeBeat();
+                        HeartBeatRequested?.Invoke(pose);
+                        if (beat.Effect.HasValue) HeartEffectRequested?.Invoke(beat.Effect.Value);
+                    }
                 }
             }
             FrameObjectsMarker.End();
@@ -984,7 +961,7 @@ namespace DK2.Unity
             _objects.Clear();
             _objectPoses.Clear();
             _objectClips.Clear();
-            while (_heartAdvances.TryDequeue(out _)) { }
+            _heartPulse.ClearHealthAdvances();
             _structures.Clear();
             _structureTiles.Clear();
             _structureViews.Clear();

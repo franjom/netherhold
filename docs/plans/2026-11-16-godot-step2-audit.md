@@ -24,10 +24,10 @@ Each Unity region was classified in one of four ways:
 | `.Sound` | B | The level sound driver. It is blocked on an audio abstraction (step 4) |
 | `DungeonScene.cs` (1,334) | P | About 450 lines of B: pose interpolation, mesh orientation (written four times, plus heading-only variants), the clip request, the light publisher, the hover picker, the heart pulse, the sparkle gate, the head table and the tile heights |
 | `ClassicCreatureAnimation` | B | The animation player: deferred replacement, catch-up, beats, footstep marks and control points |
-| `ClassicConstructionEffects` | B | The effects draw list: defaults, stream order, sprite colour, frame pick, quad geometry, blend |
-| `ClassicStatusFlowers`, `ClassicFlowerDollar` | B (small) | Layer order and the dollar clock |
-| `ClassicKeyBindings` | P | The KeyCode table. `Name(GameKeyBinding)` has no callers |
-| `ClassicSettingsRendering` | P | Only `DefaultGamma` 30 and the exponent `30/Gamma` are B |
+| `ClassicConstructionEffects` | B | The effects draw list: defaults, stream order, sprite colour, frame pick, quad geometry, blend. Moved to `EffectDrawList` in 2j |
+| `ClassicStatusFlowers`, `ClassicFlowerDollar` | B (small) | Layer order and the dollar clock. Moved to `StatusFlowerLayers` and `FlowerDollarClock` in 2j |
+| `ClassicKeyBindings` | P | The KeyCode table. `Name(GameKeyBinding)` had no callers and was deleted in 2j |
+| `ClassicSettingsRendering` | P | Only `DefaultGamma` 30 and the exponent `30/Gamma` were B; they moved to `DisplaySettings` in 2j |
 
 ## Move order
 
@@ -54,19 +54,19 @@ Each row lists the Unity source, the proposed `src/` home, and its size and risk
 - **2g, level end and cutscenes.** Done 2026-11-16 (plan step 2g). `CampaignResultFlow` (`LevelEnd.cs:25-114`, `Finale.cs:207-230`) covers the carry, the statistics once per player, the result once, the path gate, the win keys and Space to the front end. It posts `RevealMapCommand` and `ContinueAfterResultCommand`. The comment at `LevelEnd.cs:60-61` says Space posts action 1, but the code switches the session directly, and the move kept that (open, see the plan). `CampaignCutsceneRunner` (`Cutscene.cs:26-76`) takes them in turn: title, speech, pause, movies. The tablet projection (`Finale.cs:293-343`, also used by the battle fly-in) becomes a draw list. The scripted view's HUD hiding went here too (`ScriptedViewDirector.PlayedHud`); the minimap heading during the opening path needed no rule, since the HUD, so the minimap, is hidden for the whole path.
 - **2h, the frame order and the command stream.** Done 2026-11-16 (plan step 2h). This was the high-risk part, so it was done last and in one piece. `FrameDriver` (`DungeonRunner.cs:925-1005`) covers the tick gate, the accrual, `QueuePossessionPose` at index 0, the first-input hand-off and its clear, the local pickup `Advance` and `DrainReadyDrops`, the tag acknowledgements and the scripted-view skip (`SkipCameraPathCommand`, `allowOptionsKey`). It also absorbs `QueueInput`'s gate sequence (`:1249-1315`) as `WorldPointerInput`. `FrameJournalSession` takes the journal policy. A journal-equivalence test was written first: the same recorded input gives the same command stream (`FrameOrderJournalEquivalenceTests`). The worker-tick protocol (`:1118-1228`) stays in Unity, because Godot ticks inline.
 - **2i, camera rules.** Done 2026-11-16 (plan step 2i). These are pure. Godot can use them once step 3 gives it a camera. They were the glide (`:1463-1480`), the edge-scroll, wheel and key mapping with the 5 px margin (`:1377-1406`), the camera set-up (`:542-558`), the focus clamp, the query follow and turn (`Hud.cs:459-467, 560-568`, which needs `ClassicCamera.Yaw` exposed), the front-end 4:3 vertical field of view (`FrontEnd.cs:218`) and the session build branch (`:319-347`). The full map's camera preview waits for step 3's 3D world.
-- **2j, scene mapping for step 3.** The first half is done (2026-11-16, plan step 2j): the first three bullets. Part A of the second half is done too (2026-11-16): the `ClassicLightPublisher` and `WorldHoverPicker` bullets. The rest (part B) are still to do.
+- **2j, scene mapping for step 3.** Done (2026-11-16, plan step 2j) in three parts: the first half (the first three bullets), part A (the `ClassicLightPublisher` and `WorldHoverPicker` bullets) and part B (the last two bullets).
   - `PoseInterpolator` and `MeshOrientation`. DK2 composes the rotation in the order of 0x00580480; the half turn on the heading (`MeshYaw`) and the negated pitch are our frame mapping (`RenderMesh.ToRenderFrame`). The full chain is written four times with differing interpolation (`DungeonScene.cs:721-727, 1257-1259, 1290-1292`, `ClassicConstructionEffects.cs:259`), plus three heading-only variants (`DungeonScene.cs:869, 990`, `ClassicTorchGeometry.cs:46`).
   - `AnimationClipRequest`, whose start-time rule is copied twice.
   - `CreatureAnimationPlayer`, which also takes `ClassicMeshes.ConfigureAnimation`'s segment and timing rules.
   - `ClassicLightPublisher` and `LatticeDirtyTracker`. Done.
   - `WorldHoverPicker` and `HoverOverlayPlan`. Done.
-  - The effects draw list: the `ClassicConstructionEffects` B rows.
-  - The heart pulse, the gem sparkle gate, the creature head table, `ObjectView.TexturePhase`/`ScaleY`, the status flower layers and the dollar clock.
-- **2k, deferred.** The level sound driver waits for step 4's audio abstraction. The `DefaultGamma` exponent goes with lighting. `ClassicKeyBindings.Name` is deleted.
+  - The effects draw list: the `ClassicConstructionEffects` B rows. Done: `EffectDrawList`, with its quad buffer, stream and group-key cache; `RenderWorld.ToNative` replaces the three inverse-frame copies.
+  - The heart pulse, the gem sparkle gate, the creature head table, `ObjectView.TexturePhase`/`ScaleY`, the status flower layers and the dollar clock. Done: `HeartPulse`, `GemSparkleGate` and `CreatureHeadTable` (from `DungeonScene`), `StatusFlowerLayers` and `FlowerDollarClock` (from `ClassicStatusFlowers` and `ClassicFlowerDollar`). `ObjectView`'s texture phase and scale went in the first half (`DrawnTexturePhase`, `MeshScaleY`); part B did not touch them.
+- **2k, deferred.** The level sound driver waits for step 4's audio abstraction. The `DefaultGamma` exponent (`DisplaySettings`) and the deletion of `ClassicKeyBindings.Name` were done in 2j part B.
 
 ## Open points the moves must not decide silently
 
 - **Creature headings.** Creatures do not interpolate their heading between ticks (`DungeonScene.cs:672-677`, `1257-1259`), but objects do (`:721-727`). Is it a rule or an accident? 2j kept both as drawn; the retail question is [Q868](../research/open-questions.md).
-- **The dollar clock.** It advances once per dollar drawn and resets on every non-dollar flower. So its speed depends on how many dollars are visible and on the frame rate (`ClassicFlowerDollar.cs:55`, cited to 0x005961A0).
+- **The dollar clock.** It advances once per dollar drawn and resets on every non-dollar flower. So its speed depends on how many dollars are visible and on the frame rate (`FlowerDollarClock`, cited to 0x005961A0; the record has the reading).
 - **Tool resets.** The six tool-reset sites reset different subsets. The gold withdraw skips `CancelTool`, the stored special skips `SelectTool`, the right-click query cancel calls neither, and the right-click tool cancel skips `CancelTool` and keeps `_queryTool`. 2b moved them unchanged, as named transitions of `HudToolState` (the gold withdraw also keeps the selected corner, so a lit corner outlives it). A fix is a separate change.
 - **Journal portability.** Resolved in 2h: the journal's `keys` header names the key table ("UnityEngine.KeyCode" or "Godot.Key"), so a Godot journal carries its own.

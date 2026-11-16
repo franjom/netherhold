@@ -169,7 +169,7 @@ So pointing at any creature shows its flower, and the flower lingers ¾ s after 
 
 ## 3. Built (passes 1 to 3)
 
-`StatusFlowerRules`, `StatusFlowerCentre` and `StatusFlowers` (src/DK2.Presentation/StatusFlowers.cs) decide who shows a flower and what it shows; `ClassicStatusFlowers` (Unity) draws the ring and the centre as camera-facing quads. Both ¾ s windows live in presentation, keyed by creature id: the hover from the Hand's hover id in any tool, the health change from the health seen at each capture. Nothing simulated reads the native `+0x38`.
+`StatusFlowerRules`, `StatusFlowerCentre` and `StatusFlowers` (src/DK2.Presentation/StatusFlowers.cs) decide who shows a flower and what it shows, `StatusFlowerLayers` the sprites in draw order and `FlowerDollarClock` the dollar's clock; `ClassicStatusFlowers` (Unity) draws the ring and the centre as camera-facing quads. Both ¾ s windows live in presentation, keyed by creature id: the hover from the Hand's hover id in any tool, the health change from the health seen at each capture. Nothing simulated reads the native `+0x38`.
 
 The campaign bot's observation reads the ring, the level and the mood as a hover shows them, and leaves a creature whose flower never shows unknown (`PlayerCreatureSummary`; [stage 3 plan](../plans/2026-11-14-campaign-bot-stage3.md), Task 4).
 

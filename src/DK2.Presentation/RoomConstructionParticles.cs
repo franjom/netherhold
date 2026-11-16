@@ -83,6 +83,9 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         Func<CreatureId, Fp32?>? creatureGroundHeight = null,
         PlayerId? viewer = null)
     {
+        TerrainDebris = terrainDebrisStyle;
+        CaptureEffects = captureEffectStyle;
+        HeartSparkles = heartSparkleStyle;
         _viewer = viewer;
         _groupParts = groupParts;
         _creatureGroundHeight = creatureGroundHeight;
@@ -109,6 +112,11 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     }
 
     public IReadOnlyList<ConstructionParticle> Particles => _particles;
+
+    // The styles this model was built with, for the tests of the adapters' choice (EffectDrawList).
+    internal TerrainDebrisStyle TerrainDebris { get; }
+    internal CaptureEffectStyle CaptureEffects { get; }
+    internal HeartSparkleStyle HeartSparkles { get; }
 
     /// <summary>Raised for each request that passes DK2's creation gates (<c>View_CreateVisibleEffect</c>,
     /// <c>0x00440420</c>: the effect exists, the tile is explored or seen, and the camera test passes or the

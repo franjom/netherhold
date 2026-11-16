@@ -378,7 +378,7 @@ type 3, which explains why summing the lights turned them wrong (ADR-0493's amen
 is type 2 and is lit; element 99 is type 2, 1 type 1, 411 type 3. Built (ADR-0665): `SpriteLighting.IsLit`
 (types 1 and 2); `ConstructionParticle.TakesLight` set by it in `EmitElement` (type 1 starts white,
 `0x00436311`) and `ShotBodyParticles.Create` (type 2 keeps RGB 0); Unity's
-`ClassicConstructionEffects.SpriteColour` adds `ClassicPointLight.RadialAt` over the tile's table from
+`EffectDrawList.SpriteColour` (DK2.Presentation) adds `ClassicPointLight.RadialAt` over the tile's table from
 `ClassicWorldLightCache.TryGetVisibleTable` at the unlifted point. Not mirrored: the ambient, the hover
 cage's edge bits, and an effect's own art (footprints, the room-border flame), which takes the same native
 path and is lit natively where ours leaves it unlit, its native starting tint unread.

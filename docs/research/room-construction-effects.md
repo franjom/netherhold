@@ -355,7 +355,7 @@ Element143 remains authored white. `RoomConstructionParticles` gives red keeper3
 element142 RGB230/50/50 before lifetime dimming and renderer lighting.
 
 Commit a21c8734 changed billboard output from that source RGB to source plus radial light in
-`ClassicConstructionEffects.SpriteColour`, capped at255; a0.8 white contribution turns230/50/50 into
+`EffectDrawList.SpriteColour` (then in `ClassicConstructionEffects`), capped at255; a0.8 white contribution turns230/50/50 into
 255/254/254, the bleaching reported. Elements142 and143 are additive (art type 3), which DK2 never lights
 ([object-drawing.md section10](object-drawing.md#10-flat-sprites), Q609, ADR-0665), so the sum was wrong for
 them and they draw at their tint. The claim mist was not probed live.

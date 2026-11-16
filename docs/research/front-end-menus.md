@@ -242,7 +242,7 @@ UTF-8 settings beside the campaign profile, and a gamma curve over the camera im
 as a brightness proxy for Gamma. `ClassicSettingsRendering` runs from
 `RenderPipelineManager.endCameraRendering` on `Camera.main`: it copies the camera target
 into a temporary ARGB32 render texture and redraws it with one full-screen triangle
-through `pow(c, 30 / Gamma)` (`Hidden/DK2/Classic Exposure`); nothing is drawn at Gamma
+through `pow(c, 30 / Gamma)` (`DisplaySettings.BrightnessExponent`; shader `Hidden/DK2/Classic Exposure`); nothing is drawn at Gamma
 30. Black and white stay fixed, so the slider does not clip highlights, which the earlier
 multiply did from about Gamma 40. The project is in Gamma colour space, so the curve acts
 on display-encoded values. It does not reproduce the native gamma ramp, and the UI Toolkit
