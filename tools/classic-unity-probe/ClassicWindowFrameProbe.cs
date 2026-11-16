@@ -69,7 +69,7 @@ namespace DK2.Unity
                 Field(typeof(DungeonRunner), "_scriptedView").SetValue(_runner,
                     new ScriptedViewDirector(new PlayerId((byte)(int)Field(typeof(DungeonRunner), "viewingPlayerId").GetValue(_runner)),
                         _ => null, _ => null));
-                Field(typeof(DungeonRunner), "_glideMilliseconds").SetValue(_runner, 0d);
+                ((CameraGlide)Field(typeof(DungeonRunner), "_glide").GetValue(_runner)).Stop();
                 _camera.rect = new Rect(0, 0, 1, 1);
                 typeof(DungeonRunner).GetMethod("ApplyClassicCamera", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(_runner, null);
                 var scene = (DungeonScene)Field(typeof(DungeonRunner), "_scene").GetValue(_runner);

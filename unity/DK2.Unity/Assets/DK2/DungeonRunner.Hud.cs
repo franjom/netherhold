@@ -328,9 +328,8 @@ namespace DK2.Unity
         void IHudPressHost.GoToFullMapTile()
         {
             TilePos tile = _fullMap.ResolvePointer(Input.mousePosition);
-            _cameraFocus = new Vector3(Mathf.Clamp(tile.X + .5f, 0, _cameraBounds.x - 1f / Fp32.One), _cameraFocus.y,
-                Mathf.Clamp(-tile.Y - .5f, -_cameraBounds.y + 1f / Fp32.One, 0));
-            _glideMilliseconds = 0;
+            _cameraFocus = ToUnity(CameraFocus.TileCentre(tile, _cameraFocus.y, _cameraBounds.x, _cameraBounds.y));
+            _glide.Stop();
         }
 
         void IHudPressHost.PollGameOptionsKeyboard() => _gameOptionsPanel?.PollKeyboard();
@@ -353,8 +352,8 @@ namespace DK2.Unity
 
         void IHudPressHost.FocusCreature(FpPosition3 position)
         {
-            _cameraFocus = new Vector3(position.X.Raw / (float)Fp32.One, _cameraFocus.y, -position.Y.Raw / (float)Fp32.One);
-            _glideMilliseconds = 0;
+            _cameraFocus = ToUnity(CameraFocus.Over(position.X, position.Y, _cameraFocus.y));
+            _glide.Stop();
         }
 
         ClassicHudAction IHudPressHost.PressMinimap(in HudPress press) =>
@@ -371,15 +370,8 @@ namespace DK2.Unity
 
         void IWorldClickHost.FollowQueriedCreature()
         {
-            _glideMilliseconds = 0;
-            if (_classicCamera != null && Camera.main != null)
-            {
-                var focus = new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z);
-                var viewport = new CameraViewport(Screen.width, Camera.main.pixelWidth, Camera.main.pixelHeight);
-                Dk2Angle yaw = new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(_classicCamera.Pose(focus, viewport).YawDegrees * 2048 / 360f)));
-                Dk2Angle desired = ClassicCreatureQueryRules.FollowHeading(yaw);
-                _classicCamera.Rotate(new Dk2Angle(unchecked((ushort)(desired.Value - yaw.Value))));
-            }
+            _glide.Stop();
+            if (_classicCamera != null && Camera.main != null) ClassicCreatureQueryRules.TurnToFollowHeading(_classicCamera);
         }
 
         private void DrawHudControls()
@@ -425,7 +417,7 @@ namespace DK2.Unity
 
         private void FollowQueriedCreature()
         {
-            if (!_toolState.QueryTool || _queryView.Target == CreatureQueryTarget.None || _scriptedView.PathPlaying || HudModal) return;
+            if (!ClassicCreatureQueryRules.Follows(_toolState.QueryTool, _queryView.Target, _scriptedView.PathPlaying, HudModal)) return;
             if (_scene.TryGetCreaturePosition(_queryView.Target, out Vector3 position))
             {
                 _cameraFocus = new Vector3(position.x, _cameraFocus.y, position.z);

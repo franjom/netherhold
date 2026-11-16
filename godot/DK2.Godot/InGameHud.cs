@@ -147,6 +147,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <see cref="ClassicCamera.LevelStartYaw"/>), which stay put because no camera is ported (plan step 3).</summary>
     private FpPosition3 _cameraFocus;
     private readonly Dk2Angle _cameraHeading = ClassicCamera.LevelStartYaw;
+    /// <summary>The level start focus's height, which the printed glide and focus targets keep (<see cref="CameraFocus"/>).</summary>
+    private float _focusHeight;
     /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
     private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
@@ -256,8 +258,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // No hand cursor and no hover resolver here: the cursor feedback and the cast hand are left out.
         _worldPointer = new WorldPointerInput(_input, _tools, _presses, _worldClicks, _pickups, _worldView, cursor: null, hover: null,
             _journal, this);
-        _cameraFocus = MinimapHud.FixedFocus(ClassicCamera.LevelStartFocus(level.Players, _viewer,
-            _simulation.World.Width, _simulation.World.Height));
+        System.Numerics.Vector3 startFocus = ClassicCamera.LevelStartFocus(level.Players, _viewer,
+            _simulation.World.Width, _simulation.World.Height);
+        _focusHeight = startFocus.Y;
+        _cameraFocus = MinimapHud.FixedFocus(startFocus);
         _minimap = new ClassicMinimap { Name = "Minimap" };
         _minimap.Open(new InstallMinimapAssets(install, _sources.Texture), _simulation.World.Width, _simulation.World.Height);
         AddChild(_minimap);
@@ -691,8 +695,18 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) NotWiredGlide("trap", tile);
     }
 
-    private static void NotWiredGlide(string what, TilePos tile) =>
-        GD.Print("DK2.Godot: the ", what, " glide to tile (", tile.X, ", ", tile.Y, ") is not wired yet: there is no camera.");
+    /// <summary>Prints the focus a glide would reach (<see cref="CameraGlide"/>'s target, the shared
+    /// <see cref="CameraFocus.TileCentre"/>); the glide itself needs the camera (plan step 3).</summary>
+    private void NotWiredGlide(string what, TilePos tile)
+    {
+        System.Numerics.Vector3 focus = TileFocus(tile);
+        GD.Print("DK2.Godot: the ", what, " glide to tile (", tile.X, ", ", tile.Y, "), focus (", focus.X, ", ", focus.Z,
+            "), is not wired yet: there is no camera.");
+    }
+
+    /// <summary>A tile's centre kept inside the map, at the level start focus's height (<see cref="CameraFocus.TileCentre"/>).</summary>
+    private System.Numerics.Vector3 TileFocus(TilePos tile) => _simulation == null ? default
+        : CameraFocus.TileCentre(tile, _focusHeight, _simulation.World.Width, _simulation.World.Height);
 
     /// <summary>A mouse press reaching the window, before any panel's <c>_Input</c> can mark it handled, as Unity's
     /// <c>Input.GetMouseButtonDown</c> sees every press; <see cref="QueueInput"/> routes it in the next frame.</summary>
@@ -741,7 +755,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         if (_scriptedView != null && !_scriptedView.PathPlaying && _minimap != null && press.Primary
             && _minimap.TryNavigate(_pressPointer, out TilePos tile))
-            GD.Print("DK2.Godot: the minimap's move to tile (", tile.X, ", ", tile.Y, ") is not wired yet.");
+            NotWiredGlide("minimap", tile);
     }
 
     FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile) => null;
@@ -772,7 +786,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         if (_fullMap == null) return;
         TilePos tile = _fullMap.ResolvePointer(_pressPointer);
-        GD.Print("DK2.Godot: the full map's move to tile (", tile.X, ", ", tile.Y, ") is not wired yet.");
+        System.Numerics.Vector3 focus = TileFocus(tile);
+        GD.Print("DK2.Godot: the full map's move to tile (", tile.X, ", ", tile.Y, "), focus (", focus.X, ", ", focus.Z,
+            "), is not wired yet.");
     }
 
     void IHudPressHost.PollGameOptionsKeyboard() => _gameOptionsPanel?.CaptureKey(_keyboard.Read(_settings));
@@ -791,8 +807,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         return _overview != null && _overview.TryPress(_pressPointer, press, out request);
     }
 
-    void IHudPressHost.FocusCreature(FpPosition3 position) =>
-        GD.Print("DK2.Godot: the overview's focus is not wired yet: there is no camera.");
+    void IHudPressHost.FocusCreature(FpPosition3 position)
+    {
+        System.Numerics.Vector3 focus = CameraFocus.Over(position.X, position.Y, _focusHeight);
+        GD.Print("DK2.Godot: the overview's focus (", focus.X, ", ", focus.Z, ") is not wired yet: there is no camera.");
+    }
 
     ClassicHudAction IHudPressHost.PressMinimap(in HudPress press) =>
         _minimap?.HandlePress(_pressPointer, press.Primary, press.Secondary) ?? ClassicHudAction.None;

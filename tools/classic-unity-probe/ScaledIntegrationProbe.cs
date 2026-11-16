@@ -255,8 +255,8 @@ namespace DK2.Unity.Editor
         }
         private static void CheckGlide(TilePos tile)
         {
-            Vector3 target = Field<Vector3>("_glideTo");
-            Near(target.x, tile.X + .5f, "glideX"); Near(target.z, -tile.Y - .5f, "glideZ");
+            System.Numerics.Vector3 target = Field<CameraGlide>("_glide").Target;
+            Near(target.X, tile.X + .5f, "glideX"); Near(target.Z, -tile.Y - .5f, "glideZ");
         }
         private static int Ink(RenderTexture layer)
         {

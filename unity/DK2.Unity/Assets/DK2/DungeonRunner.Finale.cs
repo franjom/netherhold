@@ -63,9 +63,9 @@ namespace DK2.Unity
         /// <summary>Game action 17: the camera keeps the followed creature at its focus.</summary>
         private void FollowScriptedCreature()
         {
-            if (_scriptedView.FollowedCreatureId == 0 || _glideMilliseconds > 0) return;
+            if (_scriptedView.FollowedCreatureId == 0 || _glide.Active) return;
             if (World.CreatureById(_scriptedView.FollowedCreatureId) is not CreatureState creature) return;
-            _cameraFocus = new Vector3(creature.PosX / (float)Fp32.One, _cameraFocus.y, -creature.PosY / (float)Fp32.One);
+            _cameraFocus = ToUnity(CameraFocus.Over(new Fp32(creature.PosX), new Fp32(creature.PosY), _cameraFocus.y));
         }
 
         /// <summary>The win screen's tablet (0x0042F040) and, with speech disabled, its

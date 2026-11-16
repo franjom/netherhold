@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g and 2h are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e, 2f, 2g, 2h and 2i are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -457,8 +457,34 @@ group 2 is a list to audit, not a finding.
       the save and load hashes unchanged, `--from-map` win and Escape as before, an `--input-journal` run wrote both
       journals with the same hash, and `DK2_INPUT_JOURNAL` without the argument wrote nothing. Not run: Unity in Play
       mode (the possession pose, pickup and drop, the skip) and Godot with real input.
-- [ ] 2i. Pure camera rules: glide, edge scroll and wheel input, set-up, focus clamp, query follow
-      and turn, the front end's 4:3 field of view, the session build branch.
+- [x] 2i. Pure camera rules (2026-11-16), in `DK2.Presentation`; Unity calls them, Godot has no camera until step 3.
+      `CameraGlide` and the static `CameraFocus`: the action-26 glide ([0x00442650](../research/functions/00442650.md)),
+      with `TileCentre` (clamps to the bounds; on the room-goto path, 0x00415B30, DK2 drops an off-map point first and
+      ours clamps, [Q866](../research/open-questions.md)), `Over` and `Bounds` for the full map and the overview focus,
+      and `Clamp` mirroring `Mathf.Clamp`, minimum first; the lerp is written as `Vector3.Lerp`. Unity's four glide
+      fields are one `_glide`. `ClassicCameraInput` with `CameraPointerSample`: the strict 5 px edge scroll
+      ([0x00406DF0](../research/functions/00406DF0.md)) with the window-focus gate, `FrameTime`, `PointerDelta`, and
+      `Apply` in Unity's order (pan, one zoom step, with the wheel ignored over the HUD and zoom-in winning over
+      zoom-out in a frame, then held rotate or zoom). `ClassicCameraSetup`: `Preset`, `PossessionPreset`,
+      `ZoomOutLimit` (rounds half to even), `ReferenceScreenWidth` (1600) and `Create`. `TileTopPlane`: `TryHit` (a copy of
+      `Plane.Raycast`), `PositionOn` (feeds command positions with the old float steps) and `HandLightPoint`; the camera
+      ray stays in the adapter, and `ResolveWorldHover` keeps its own plane cast until 2j. `GameSessionStarter`:
+      campaign, front end, DK2 save, `PlayersOf` and `CameraTicksPerSecond`, with the world built in the same order in
+      every branch. `ClassicCreatureQueryRules.Follows` (the per-frame gate) and `TurnToFollowHeading` (equal to the old
+      degrees round-trip for all 2048 yaws; the old `Pose` call in the query turn is gone, which could only throw on a
+      bad viewport; the `Camera.main` guard stays). `CameraPathPose.FrontEndVerticalFieldOfView` is the front end's 4:3
+      field of view. The probes go through `_glide`; they are not compiled. Godot: the "not wired" prints now show the
+      targets computed through the shared rules (room, door, trap, battle tab, script, the minimap glide, the full map,
+      the overview focus); no camera was added. For step 3: the pointer sample is y-up like Unity's
+      `Input.mousePosition`, which runs from (0, 0) to (Screen.width, Screen.height), so a top-left host passes
+      `y = ScreenHeight - yTop`; the Up band is then `0 < yTop < 5` and the Down band `ScreenHeight - 5 < yTop`. That
+      rests on Unity's documented range and is not measured; which pixel row Windows reports at the top edge is open
+      ([Q867](../research/open-questions.md)). The reviewer found every expression equivalent and determinism intact;
+      fixed after review: the off-map comment's scope, a test pinning the `Clamp` order, tests for the `Apply` priority
+      and order, and the documented y flip. 13 mutations all fail a test. Verification: `dotnet test DK2.slnx` green
+      (Presentation 2382, Simulation 5583, Behavior 677 with 5 skipped); Godot and the editor headless build are
+      clean and the Unity compile has 0 errors; headless Level1 turn-400 hash `D7290428D81A902F`, unchanged. Not run:
+      Unity in Play mode.
 - [ ] 2j. Scene mapping for step 3: `PoseInterpolator`/`MeshOrientation`, `AnimationClipRequest`,
       `CreatureAnimationPlayer`, `ClassicLightPublisher`, `LatticeDirtyTracker`, `WorldHoverPicker`,
       the effects draw list, heart pulse, sparkle gate, head table, flower layers, dollar clock.
@@ -468,8 +494,9 @@ group 2 is a list to audit, not a finding.
 
 ## Step 3: a playable level in Godot
 
-- [ ] Terrain meshes and the classic camera (`TerrainPieces`, `TerrainLattice`, `ClassicCamera`
-      are already in `src/`).
+- [ ] Terrain meshes and the classic camera (`TerrainPieces`, `TerrainLattice`, `ClassicCamera`,
+      `CameraGlide` and `ClassicCameraInput` are already in `src/`). The pointer sample is y-up: pass
+      `y = ScreenHeight - yTop` from a top-left host (step 2i).
 - [ ] Creatures, animation playback, shadows.
 - [ ] Lighting tuned to feel like DK2 (owner exception: tuned per engine, not ported natively).
 - [ ] 3D overlays, the minimap's camera footprint, the hand cursor, then the in-game HUD from step 1.

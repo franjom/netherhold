@@ -31,6 +31,11 @@ implements, puts the possession pose first, and `FrameScriptInput` and `FrameTic
 pointer's gates from the HUD press to the translated commands, over an `IWorldPointerHost` and a `WorldPointerFrame`) and
 `FrameJournalSession` (the input journal's policy: the opt-in variable, folder name, header with the key table's name, and
 the failure and close handling; the format is `FrameInputJournal` and `InputJournalWriter`).
+The ordinary camera's rules, shared by both adapters: `CameraGlide` and `CameraFocus` (the action-26 glide, `TileCentre`
+clamped to the bounds, `Over`, `Bounds`), `ClassicCameraInput` (the 5 px edge scroll, frame time, pointer delta and `Apply`, over a
+y-up `CameraPointerSample`), `ClassicCameraSetup` (preset lookup, `ZoomOutLimit`, `Create`), `TileTopPlane` (the ray's hit on a
+tile's top plane, command positions and the hand-light point), `GameSessionStarter` (the simulation for a campaign, front-end or DK2-save
+start), `ClassicCreatureQueryRules.Follows` and `TurnToFollowHeading`, and `CameraPathPose.FrontEndVerticalFieldOfView`.
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

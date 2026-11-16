@@ -180,10 +180,8 @@ namespace DK2.Unity
         private TerrainLattice _terrainLattice;
         private ScriptedViewDirector _scriptedView;
         private Vector3 _appliedCameraJitter;
-        private Vector3 _glideFrom;
-        private Vector3 _glideTo;
-        private double _glideStart;
-        private double _glideMilliseconds;
+        /// <summary>Action 26's focus glide (<see cref="CameraGlide"/>, migration plan step 2i).</summary>
+        private readonly CameraGlide _glide = new CameraGlide();
         private GUIStyle _subtitleStyle, _titleStyle;
         private string _textFolder;
         private string _subtitleFontFile;
@@ -312,26 +310,15 @@ namespace DK2.Unity
             Func<GameSimulation> warmupCopy = null;
             LevelMap map = campaign?.Map ?? LoadSave(install);
 
-            int cameraTicksPerSecond = SimulationTiming.OriginalTicksPerGameSecond;
+            int cameraTicksPerSecond = GameSessionStarter.CameraTicksPerSecond(campaign);
             if (campaignLevel)
             {
-                var level = campaign.Level;
-                cameraTicksPerSecond = level.TicksPerSecond;
-                _resultFlow.LevelTicksPerSecond = level.TicksPerSecond;
-                var players = campaign.Players;
-                _simulation = _resumeSimulation ?? (frontEnd
-                    ? new GameSimulation(database, WorldState.FromMap(database, map,
-                        players.Select(player => player.PlayerId), fogOfWarEnabled: false), seed)
-                    : campaign.CreateSimulation(seed, fogOfWar));
+                _resultFlow.LevelTicksPerSecond = campaign.Level.TicksPerSecond;
+                _simulation = GameSessionStarter.Campaign(campaign, _resumeSimulation, frontEnd, seed, fogOfWar);
                 if (!frontEnd && _resumeSimulation == null)
                     warmupCopy = () => campaign.CreateSimulation(seed, fogOfWar);
             }
-            else
-            {
-                WorldState savedMap = WorldState.FromMap(
-                    database, map, PlayersOf(map), fogOfWarEnabled: fogOfWar);
-                _simulation = new GameSimulation(database, savedMap, seed, SimulationSystems.Default());
-            }
+            else _simulation = GameSessionStarter.FromDk2Save(database, map, seed, fogOfWar);
             _simulation.ProfileWith(new UnitySimulationProfiler());
 #if !ENABLE_IL2CPP
             // A second copy of the level ticks on a worker while this one loads, so the live ticks
@@ -529,21 +516,17 @@ namespace DK2.Unity
             _startup.Step("present");
             _startup.Breakdown("present", artBefore, _classic?.Breakdown.Snapshot());
             IReadOnlyList<CameraThing> presets = GameDatabaseLoader.LoadCameraPresets(install, campaignLevel ? levelName : null);
-            CameraThing profile = presets.FirstOrDefault(c => c.CameraId == (ushort)cameraPreset);
-            _possession = new PossessionSession(database, presets.FirstOrDefault(c => c.CameraId == PossessionCamera.PresetId));
+            CameraThing profile = ClassicCameraSetup.Preset(presets, cameraPreset);
+            _possession = new PossessionSession(database, ClassicCameraSetup.PossessionPreset(presets));
             if (classicMeshes && profile != null)
             {
-                _classicCamera = new ClassicCamera(profile with
-                {
-                    MaxZoom = Mathf.RoundToInt(profile.MaxZoom * Mathf.Clamp(cameraZoomOutLimitScale, 1f, 2f)),
-                }, initialYaw: ClassicCamera.LevelStartYaw) { ReferenceScreenWidth = 1600 };
-                _classicCameraControls = new ClassicCameraControls(_classicCamera, cameraTicksPerSecond, classicScrollSpeed,
-                    new CameraFocusBounds(new System.Numerics.Vector3(0, 4095f / Fp32.One, -world.Height + 1f / Fp32.One),
-                        new System.Numerics.Vector3(world.Width - 1f / Fp32.One, 4095f / Fp32.One, 0)));
+                ClassicCameraSetup setup = ClassicCameraSetup.Create(profile, cameraZoomOutLimitScale, cameraTicksPerSecond,
+                    classicScrollSpeed, campaignLevel ? campaign.Players : null, new PlayerId((byte)viewingPlayerId),
+                    world.Width, world.Height);
+                _classicCamera = setup.Camera;
+                _classicCameraControls = setup.Controls;
                 _cameraBounds = new Vector2(world.Width, world.Height);
-                System.Numerics.Vector3 focus = ClassicCamera.LevelStartFocus(campaignLevel ? campaign.Players : null,
-                    new PlayerId((byte)viewingPlayerId), world.Width, world.Height);
-                _cameraFocus = new Vector3(focus.X, focus.Y, focus.Z);
+                _cameraFocus = ToUnity(setup.StartFocus);
             }
             if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
             else LookAt(world);
@@ -1246,14 +1229,8 @@ namespace DK2.Unity
             Camera camera = Camera.main;
             if (camera == null) return null;
             Ray ray = camera.ScreenPointToRay(screenPosition);
-            bool solid = _worldView.TileAt(World, tile.X, tile.Y).Solid;
-            var plane = new Plane(Vector3.up,
-                new Vector3(0, solid ? TileHeights.Solid : TileHeights.Open, 0));
-            if (!plane.Raycast(ray, out float distance)) return null;
-            Vector3 point = ray.GetPoint(distance);
-            var position = new FpPosition2(new Fp32((int)Mathf.Floor(point.x * Fp32.One)),
-                new Fp32((int)Mathf.Floor(-point.z * Fp32.One)));
-            return position.Tile == tile ? position : null;
+            return TileTopPlane.PositionOn(ToNumerics(ray.origin), ToNumerics(ray.direction), tile,
+                _worldView.TileAt(World, tile.X, tile.Y).Solid);
         }
 
         private PlayerToolMode ActiveTool => _toolState.ActiveTool;
@@ -1266,25 +1243,14 @@ namespace DK2.Unity
 
             if (_classicCamera != null && !frameWholeMap)
             {
+                // The edges, keys, wheel and held buttons: ClassicCameraInput (migration plan step 2i).
                 GameBindingInput input = ClassicKeyBindings.Read(_gameSettings);
-                ClassicCameraKeys keys = input.CameraKeys, edges = ClassicCameraKeys.None;
                 Vector3 pointer = Input.mousePosition;
-                if (Application.isFocused && pointer.x >= 0 && pointer.x < Screen.width && pointer.y >= 0 && pointer.y < Screen.height)
-                {
-                    if (pointer.x < 5) edges |= ClassicCameraKeys.Left;
-                    if (pointer.x > Screen.width - 5) edges |= ClassicCameraKeys.Right;
-                    if (pointer.y > Screen.height - 5) edges |= ClassicCameraKeys.Up;
-                    if (pointer.y < 5) edges |= ClassicCameraKeys.Down;
-                }
-                var nextFocus = _classicCameraControls.Advance(
-                    new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z), keys,
-                    TimeSpan.FromTicks((long)Math.Round(Time.unscaledDeltaTime * (double)TimeSpan.TicksPerSecond)), edges);
-                _cameraFocus = new Vector3(nextFocus.X, nextFocus.Y, nextFocus.Z);
-                float wheel = PointerOverHud(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
-                if (wheel > 0 || input.ZoomIn) _classicCamera.ZoomIn();
-                else if (wheel < 0 || input.ZoomOut) _classicCamera.ZoomOut();
-                _classicCameraControls.AdvancePointer(GameBindingInput.HostPointerDelta(new System.Numerics.Vector2(pointer.x - _cameraPointer.x, _cameraPointer.y - pointer.y), _gameSettings.MouseSensitivity),
-                    input.Held(GameAction.MouseRotate, exactModifiers: true), input.Held(GameAction.MouseZoom, exactModifiers: true));
+                var sample = new CameraPointerSample(new System.Numerics.Vector2(pointer.x, pointer.y), Screen.width, Screen.height,
+                    Application.isFocused, PointerOverHud(pointer), Input.mouseScrollDelta.y);
+                _cameraFocus = ToUnity(ClassicCameraInput.Apply(_classicCameraControls, ToNumerics(_cameraFocus), input, sample,
+                    new System.Numerics.Vector2(_cameraPointer.x, _cameraPointer.y), _gameSettings.MouseSensitivity,
+                    Time.unscaledDeltaTime));
                 _cameraPointer = pointer;
                 ApplyClassicCamera();
                 return;
@@ -1344,25 +1310,18 @@ namespace DK2.Unity
         }
 
         /// <summary>Action 26 (game action 4, 0x00442650): the focus glides to the point's
-        /// centre, kept inside the bounds, angles unchanged.</summary>
-        private void StartGlide(TilePos tile)
-        {
-            _glideFrom = _cameraFocus;
-            _glideTo = new Vector3(
-                Mathf.Clamp(tile.X + 0.5f, 0, _cameraBounds.x - 1f / Fp32.One), _cameraFocus.y,
-                Mathf.Clamp(-tile.Y - 0.5f, -_cameraBounds.y + 1f / Fp32.One, 0));
-            _glideStart = Time.unscaledTimeAsDouble * 1000d;
-            _glideMilliseconds = ScriptedViewDirector.GlideMilliseconds(
-                _glideTo.x - _glideFrom.x, _glideTo.z - _glideFrom.z);
-        }
+        /// centre, kept inside the bounds, angles unchanged (<see cref="CameraGlide"/>).</summary>
+        private void StartGlide(TilePos tile) =>
+            _glide.Start(ToNumerics(_cameraFocus), tile, _cameraBounds.x, _cameraBounds.y, Time.unscaledTimeAsDouble * 1000d);
 
         private void Glide()
         {
-            if (_glideMilliseconds <= 0) return;
-            double t = (Time.unscaledTimeAsDouble * 1000d - _glideStart) / _glideMilliseconds;
-            _cameraFocus = Vector3.Lerp(_glideFrom, _glideTo, (float)Math.Min(t, 1d));
-            if (t >= 1d) _glideMilliseconds = 0;
+            if (_glide.Active) _cameraFocus = ToUnity(_glide.Advance(ToNumerics(_cameraFocus), Time.unscaledTimeAsDouble * 1000d));
         }
+
+        private static Vector3 ToUnity(System.Numerics.Vector3 value) => new Vector3(value.X, value.Y, value.Z);
+
+        private static System.Numerics.Vector3 ToNumerics(Vector3 value) => new System.Numerics.Vector3(value.x, value.y, value.z);
 
         private void ApplyPathCamera()
         {
@@ -1551,18 +1510,6 @@ namespace DK2.Unity
             return save.Map;
         }
 
-        private static byte[] PlayersOf(LevelMap map)
-        {
-            // Whoever the map says owns something. The same rule the harness
-            // uses when a scenario does not name players.
-            var seen = new System.Collections.Generic.SortedSet<byte>();
-            foreach (MapTile tile in map.Tiles) seen.Add(tile.PlayerId);
-
-            var players = new byte[seen.Count];
-            seen.CopyTo(players);
-            return players;
-        }
-
         private bool PointerOverHud(Vector3 position) =>
             HudPointerMap.Over(new PointerPanels(this, position), fullMapVisible: _hudControls.FullMapVisible,
                 queryHasTarget: _queryView != null && _queryView.Target != CreatureQueryTarget.None, modal: HudModal);
@@ -1602,10 +1549,8 @@ namespace DK2.Unity
             if (!HoverCursorResolver.TryHandLightPoint(world, hit, out System.Numerics.Vector2 point))
             {
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                bool solid = _worldView.TileAt(world, tile.X, tile.Y).Solid;
-                var plane = new Plane(Vector3.up, new Vector3(0, solid ? TileHeights.Solid : TileHeights.Open, 0));
-                Vector3 ground = plane.Raycast(ray, out float distance) ? ray.GetPoint(distance) : new Vector3(tile.X + .5f, 0, -tile.Y - .5f);
-                point = new System.Numerics.Vector2(ground.x, -ground.z);
+                point = TileTopPlane.HandLightPoint(ToNumerics(ray.origin), ToNumerics(ray.direction), tile,
+                    _worldView.TileAt(world, tile.X, tile.Y).Solid);
             }
             _handLight = HoverCursorResolver.HandLight(world, new PlayerId((byte)viewingPlayerId), hit, point, cheapLighting);
         }

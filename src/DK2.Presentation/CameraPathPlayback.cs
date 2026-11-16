@@ -24,6 +24,12 @@ public readonly record struct CameraPathPose(
         double focal = screenWidth / (2 * Math.Tan(FieldOfView * 0.5));
         return (float)(2 * Math.Atan(viewportHeight / (2 * focal)) * 180 / Math.PI);
     }
+
+    /// <summary>The front end's vertical field of view, degrees, on a screen <paramref name="screenWidth"/> by
+    /// <paramref name="screenHeight"/>: DK2 drew the front end on a 4:3 screen, so a wider screen keeps the 4:3 vertical
+    /// extent (the map's castle sits at its top edge) and shows more at the sides, and a narrower one keeps the horizontal.</summary>
+    public float FrontEndVerticalFieldOfView(int screenWidth, int screenHeight) =>
+        VerticalFieldOfView(Math.Min(screenWidth, screenHeight * 4 / 3), screenHeight);
 }
 
 /// <summary>One scripted camera path, played as DK2's camera mode 0x12 plays it

@@ -61,7 +61,7 @@ namespace DK2.Unity
             _tick = _runner.Simulation.World.CurrentTick.Value;
             Field("_scriptedView").SetValue(_runner, new ScriptedViewDirector(
                 new PlayerId((byte)(int)Field("viewingPlayerId").GetValue(_runner)), _ => null, _ => null));
-            Field("_glideMilliseconds").SetValue(_runner, 0d);
+            ((CameraGlide)Field("_glide").GetValue(_runner)).Stop();
             Field("_cameraFocus").SetValue(_runner, new Vector3(42.5f, 1f, -18.5f));
             _classic = (ClassicCamera)Field("_classicCamera").GetValue(_runner);
             _applyCamera = (Action)Delegate.CreateDelegate(typeof(Action), _runner,

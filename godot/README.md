@@ -64,7 +64,7 @@ order (the scripted view's step, the local pickups, the speed and pause gate, th
 acknowledgements) is the shared `FrameDriver`, so deferred drops post. The panels only hit-test (`TryPress`, `HandlePress`, `ActionAt`); the full map and options menu swallow presses on the live
 `ClassicHudControls` flags the router reads. Working: the overview pickup, the gold withdraw, the right-click cancels of the query tool
 and a held tool, and the order of full map, options, overview, minimap and battle tab. Printed, not done: every camera move (the full
-map's, the minimap's, the overview focus, room, door, trap and battle-tab glides) and session actions. Not wired: picking (a world
+map's, the minimap's, the overview focus, room, door, trap and battle-tab glides), each with the focus the shared camera rules (`CameraFocus`, `CameraGlide`) give it, e.g. "the minimap glide to tile (x, y), focus (fx, fz)"; and session actions. Not wired: picking (a world
 left click or release finds no tile, so it posts nothing), the hand's own world press and possession. The `CancelPointerGesture` order: a
 frame without ordinary input cancels only the world drag; when the window loses focus the scene releases the keys and cancels the
 bottom panel's press and then the world drag; the bottom panel cancels its own press when it is freed. A held choice slot queues its release
