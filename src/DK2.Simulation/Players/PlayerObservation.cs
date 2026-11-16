@@ -61,8 +61,11 @@ public sealed class PlayerTileGrid
         : throw new ArgumentOutOfRangeException(nameof(tile), tile, "Outside the grid.");
 }
 
-/// <summary>An owned room as the HUD shows it.</summary>
-public readonly record struct PlayerRoomSummary(RoomTypeId Type, int TileCount);
+/// <summary>An owned room type as the HUD shows it: its tiles, and for the rooms whose hover text gives a fill (schema 7)
+/// what they hold summed over every room of the type: the Lair's beds (<see cref="Capacity"/>) and beds taken
+/// (<see cref="Used"/>), as its status-bar hover reads (string 2435); the Treasury's gold capacity and gold held (string
+/// 2581). Zero for the other types.</summary>
+public readonly record struct PlayerRoomSummary(RoomTypeId Type, int TileCount, int Capacity = 0, int Used = 0);
 
 /// <summary>A creature's mood as its status flower shows it (SM-Happy, SM-Sad, SM-Angry).</summary>
 public enum PlayerCreatureMood : byte { Happy = 0, Unhappy = 1, Angry = 2 }
@@ -73,16 +76,26 @@ public enum PlayerCreatureMood : byte { Happy = 0, Unhappy = 1, Angry = 2 }
 /// hovered (status-flowers.md: SL-01..SL-10, H-00..H-05, SM-*; campaign bot stage 3 plan, Task 4): six
 /// petals at full health, one fewer per quarter lost, so two in the last quarter and one only once
 /// collapsed or dying. A creature whose flower never shows (held, joining, an own Horny,
-/// <c>StatusFlowerRules.NeverShows</c>) has level 0, 0 petals and no mood: unknown.</summary>
+/// <c>StatusFlowerRules.NeverShows</c>) has level 0, 0 petals and no mood: unknown. <paramref name="Hungry"/>
+/// (schema 7) is whether the flower's centre shows the chicken (SJ-Hungry): unhappy or angry with hunger its largest
+/// grievance, or content and eating (status-flowers.md section 2). A status (stunned, afraid, leaving) that takes the
+/// centre over is not modelled.</summary>
 public readonly record struct PlayerCreatureSummary(
     CreatureTypeId Type, TilePos? Tile, bool InHand, PlayerThingHandle? Handle = null,
-    int Level = 0, int Petals = 0, PlayerCreatureMood? Mood = null)
+    int Level = 0, int Petals = 0, PlayerCreatureMood? Mood = null, bool Hungry = false)
 {
     /// <summary>Whether the flower's level, petals and mood are known.</summary>
     public bool FlowerKnown => Level > 0;
 }
 
 public enum PlayerThingKind : byte { Creature, Object, Special, StoreGold, Door }
+
+/// <summary>Another player's trap as the viewer sees it on screen (schema 7, economy and assault plan A1): its tile,
+/// trap id, owner, and <paramref name="ReachTiles"/>, how far its target finder looks: 0 for a trap that fires at its own
+/// tile, else its definition's detection range, plus two for one that turns toward a target (traps.md sections 5 and 6;
+/// public data, as a creature's fighting style is). Shown as the world view draws it: on a visible tile, built, and not hidden (a hidden trap shows once it
+/// fires or a revealing creature stands beside it, traps.md section 11).</summary>
+public readonly record struct PlayerVisibleTrap(TilePos Tile, byte Type, PlayerId Owner, int ReachTiles);
 
 /// <summary>What the hand may currently do to one visible thing.</summary>
 [Flags]
@@ -200,8 +213,10 @@ public sealed class PlayerOffers
 public sealed class PlayerObservation
 {
     /// <summary>2 adds each own creature's level, petals and mood; 3 every offered spell; 4 doors and traps; 5 the
-    /// mana orb's income and upkeep and each spell's upgrade (Task 4); 6 the own-trap tile flag (defence plan D1).</summary>
-    public const int SchemaVersion = 6;
+    /// mana orb's income and upkeep and each spell's upgrade (Task 4); 6 the own-trap tile flag (defence plan D1); 7 the
+    /// payday clock and wage bill, the Lair's and Treasury's fill, each creature's hunger, and other players' traps in
+    /// view (economy and assault plan E1, A1).</summary>
+    public const int SchemaVersion = 7;
 
     public required PlayerStamp Stamp { get; init; }
     public PlayerPhase Phase { get; init; } = PlayerPhase.Playing;
@@ -216,10 +231,17 @@ public sealed class PlayerObservation
     public ManaPerSecond ManaUpkeep { get; init; }
     /// <summary>Items in the hand; the held creatures are flagged in <see cref="Creatures"/>.</summary>
     public int HandCount { get; init; }
+    /// <summary>Ticks until the next payday, as the payday gauge shows it filling (schema 7).</summary>
+    public int TicksToPayday { get; init; }
+    /// <summary>The coming payday's total wages, as the payday gauge's hover text and the gold counter's warning show
+    /// it (<c>CasinoJackpotRules.WageBill</c>, hud-resources.md; schema 7).</summary>
+    public GoldAmount WageBill { get; init; }
     public PlayerTileGrid Tiles { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); } = PlayerTileGrid.Empty;
     public IReadOnlyList<PlayerRoomSummary> Rooms { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerRoomSummary>();
     public IReadOnlyList<PlayerCreatureSummary> Creatures { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerCreatureSummary>();
     public IReadOnlyList<PlayerVisibleThing> Things { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleThing>();
+    /// <summary>Other players' traps in view (schema 7).</summary>
+    public IReadOnlyList<PlayerVisibleTrap> EnemyTraps { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleTrap>();
     public IReadOnlyList<PlayerNotice> Notices { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerNotice>();
     public IReadOnlyList<PlayerReceipt> Receipts { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerReceipt>();
     public PlayerOffers Offers { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); } = PlayerOffers.None;

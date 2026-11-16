@@ -96,14 +96,23 @@ level (other sections, comments and line endings kept, another level's is refuse
 
 Each run writes a new folder `<out>/<scenario>/<run id>/` (default id: the UTC time; an existing
 folder is never reused): the manifest before the first tick, a budgeted `input.journal`, the
-standard report files, `player-decisions.tsv`, `player-actions.tsv`, and `player-run.json` last,
-once the whole folder is known to fit the budget. The JSON holds the verdict, every limit, the
+standard report files, `player-decisions.tsv`, `player-actions.tsv`, the diagnostics tables below, and
+`player-run.json` last, once the whole folder is known to fit the budget. The JSON holds the verdict, every limit, the
 finale coverage, any suspected anomaly (a win whose Horned Reaper finale was `NotReached`),
 `development` (from the last observation: tick, gold, owned room tiles by type, own creatures by
-type id), `knowledge` (SHA-256 of both files, the acting rules, the level's research count and
+type id), `diagnostics` (the headline numbers of the tables below), `knowledge` (SHA-256 of both files, the acting rules, the level's research count and
 the slot targets; absent with `none`), `playbook` (path, SHA-256, level, rules, tunables, warnings;
 only with `--playbook`), `acceptance_claimed` and `receipt`. Without a matching receipt the acceptance line reads
 `not claimed: ` followed by every reason (see "Build receipt and acceptance" below).
+
+Diagnostics (`PlayerRunDiagnostics`; read-only, no hash, random stream or command is touched). The controller's
+own account, from `PlayerDecision.Thoughts` and `Beliefs`: `player-thinking.tsv` (a routine's verdict, written
+when it changes, and every action) and `player-beliefs.tsv` (a number the controller decided on, written when
+it changes). The host's ground truth, never shown to the controller: `player-metrics.tsv` (the dungeon every 100
+ticks: gold, fighters, Imps, hungry, unhappy, beds, chickens, wage bill, enemy creatures and traps, losses,
+kills), `player-losses.tsv` (each own creature lost, with the distance to the nearest enemy trap and enemy
+creature) and `player-enemy-traps.tsv` (each enemy trap: firings, health, whether hidden or destroyed). The
+`diagnostics` block of `player-run.json` sums them up. About 1.5 MB for a 57600-tick run.
 
 | Verdict | Meaning | Exit |
 |---|---|---|

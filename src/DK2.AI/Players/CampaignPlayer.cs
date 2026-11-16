@@ -136,28 +136,133 @@ public sealed class CampaignPlayer : IPlayerController
         TilePos home = PlayerActionRoutines.Home(observation);
         var actions = new List<PlayerAction>(_options.MaxActionsPerDecision);
         var why = new List<string>(4);
+        _thoughts.Clear();
+        Cover(observation);
+        Believe(observation);
         if (Stalled(observation, home, actions) is PlayerDecision limited) return limited;
-        if (actions.Count > 0) why.Add("recover");
-        if (_untagAll && Untag(observation, actions)) why.Add("untag");
-        bool hand = Hand(observation, home, actions);
-        if (hand) why.Add("hand");
-        if (Room(observation, home, actions)) why.Add("room");
-        if (Trap(observation, actions)) why.Add("trap");
-        if (CreateImp(observation, home, actions)) why.Add("imp");
-        if (!hand && Work(observation, home, actions)) why.Add("work");
-        else if (!hand && Pit(observation, home, actions)) why.Add("pit");
-        else if (!hand && Scout(observation, home, actions)) why.Add("scout");
-        if (_strategy.UseSpecials && Fits(actions, 1) && PlayerActionRoutines.Special(observation, _options) is PlayerAction special) { actions.Add(special); why.Add("special"); }
-        if (Dig(observation, home, actions)) why.Add("dig");
+        if (actions.Count > 0) { why.Add("recover"); _thoughts.Add(new PlayerThought("recover", true, "stalled: untagged and skipped the marks")); }
+        if (_untagAll) Think("untag", why, actions, () => Untag(observation, actions));
+        bool hand = Think("hand", why, actions, () => Hand(observation, home, actions));
+        Think("room", why, actions, () => Room(observation, home, actions));
+        Think("trap", why, actions, () => Trap(observation, actions));
+        Think("imp", why, actions, () => CreateImp(observation, home, actions));
+        bool assault = !hand && Think("assault", why, actions, () => Assault(observation, home, actions));
+        if (!hand && !assault && !Think("work", why, actions, () => Work(observation, home, actions))
+            && !Think("pit", why, actions, () => Pit(observation, home, actions)))
+            Think("scout", why, actions, () => Scout(observation, home, actions));
+        if (_strategy.UseSpecials)
+            Think("special", why, actions, () =>
+            {
+                if (!Fits(actions, 1) || PlayerActionRoutines.Special(observation, _options) is not PlayerAction special) return false;
+                actions.Add(special);
+                Note($"activate {special}");
+                return true;
+            });
+        Think("dig", why, actions, () => Dig(observation, home, actions));
         return actions.Count == 0
-            ? PlayerDecision.Wait(_strategy.AdvanceTicks, "wait: nothing offered to do")
+            ? new PlayerDecision([], _strategy.AdvanceTicks, "wait: nothing offered to do") { Thoughts = _thoughts, Beliefs = _beliefs }
             : Send(actions, string.Join(", ", why));
     }
 
     private PlayerDecision Send(List<PlayerAction> actions, string reason)
     {
         foreach (PlayerAction action in actions) _sent[new PlayerActionId(_nextActionId++)] = action;
-        return new PlayerDecision(actions, _strategy.AdvanceTicks, reason);
+        return new PlayerDecision(actions, _strategy.AdvanceTicks, reason) { Thoughts = _thoughts, Beliefs = _beliefs };
+    }
+
+    /// <summary>Runs one routine and records its verdict: whether it added actions, and the note it left (diagnostics:
+    /// nothing reads them back). Returns the routine's own answer.</summary>
+    private bool Think(string routine, List<string> why, List<PlayerAction> actions, Func<bool> run)
+    {
+        _note = null;
+        int before = actions.Count;
+        bool acted = run();
+        if (acted) why.Add(routine);
+        _thoughts.Add(new PlayerThought(routine, actions.Count > before, _note ?? (acted ? "acted" : "nothing to do")));
+        return acted;
+    }
+
+    /// <summary>Leaves the running routine's note for the decision's thoughts; the last note of a routine wins.</summary>
+    private void Note(string note) => _note = note;
+
+    private string? _note;
+    private readonly List<PlayerThought> _thoughts = [];
+    private readonly List<PlayerBelief> _beliefs = [];
+
+    /// <summary>Tiles in reach of an enemy trap in view (A2), and the tiles no drop goes to: those plus the ones a drop
+    /// already failed on.</summary>
+    private readonly HashSet<TilePos> _covered = [], _noDrop = [], _digSkip = [];
+
+    /// <summary>Rebuilds <see cref="_covered"/> from the enemy traps in view and <see cref="_noDrop"/>. The finder measures
+    /// real positions (traps.md section 5), so a tile counts when any of it may lie within the reach: its centre within
+    /// reach plus half a tile. Line of sight, which also limits the finder, is not modelled: the cover is the larger.</summary>
+    private void Cover(PlayerObservation observation)
+    {
+        _covered.Clear();
+        foreach (PlayerVisibleTrap trap in observation.EnemyTraps)
+        {
+            if (_strategy.AvoidTraps == 0) break;
+            int r = trap.ReachTiles;
+            for (int dy = -r; dy <= r; dy++)
+                for (int dx = -r; dx <= r; dx++)
+                    if (InReach(dx, dy, r)) _covered.Add(new TilePos(trap.Tile.X + dx, trap.Tile.Y + dy));
+        }
+        RefreshNoDrop();
+    }
+
+    /// <summary>Whether a tile <paramref name="dx"/>, <paramref name="dy"/> from a trap may lie within its reach
+    /// <paramref name="r"/>: centre distance at most r plus half a tile (4·(dx²+dy²) ≤ (2r+1)²).</summary>
+    private static bool InReach(int dx, int dy, int r) => 4L * (dx * dx + dy * dy) <= (2L * r + 1) * (2L * r + 1);
+
+    private void RefreshNoDrop()
+    {
+        _noDrop.Clear();
+        _noDrop.UnionWith(_failedDrops);
+        _noDrop.UnionWith(_covered);
+    }
+
+    /// <summary>The numbers this decision rests on, as the observation shows them (diagnostics).</summary>
+    private void Believe(PlayerObservation observation)
+    {
+        _beliefs.Clear();
+        int imps = 0, fighters = 0, hurt = 0, unhappy = 0, angry = 0, held = 0;
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+        {
+            if (creature.InHand) held++;
+            if (_options.IsWorker(creature.Type)) imps++;
+            else fighters++;
+            if (creature.FlowerKnown && creature.Petals <= 2) hurt++;
+            if (creature.Mood == PlayerCreatureMood.Unhappy) unhappy++;
+            else if (creature.Mood == PlayerCreatureMood.Angry) angry++;
+        }
+        int threats = 0, enemies = 0;
+        foreach (PlayerVisibleThing thing in observation.Things)
+            if (thing.Kind == PlayerThingKind.Creature && thing.Owner != observation.Stamp.Player)
+            {
+                enemies++;
+                if (PlayerActionRoutines.IsThreat(observation, thing)) threats++;
+            }
+        Add("gold", observation.Gold.Value);
+        Add("mana", observation.Mana.Value);
+        Add("mana_net_per_s", (long)observation.ManaIncome.Value - observation.ManaUpkeep.Value);
+        Add("imps", imps);
+        Add("fighters", fighters);
+        Add("hurt", hurt);
+        Add("unhappy", unhappy);
+        Add("angry", angry);
+        Add("in_hand", held);
+        Add("enemies_seen", enemies);
+        Add("threats_seen", threats);
+        Add("marks", Outstanding(observation));
+        Add("own_traps", PlayerTrapRoutines.OwnTraps(observation.Tiles));
+        Add("enemy_traps_seen", observation.EnemyTraps.Count);
+        Add("tiles_in_trap_reach", _covered.Count);
+        Add("lair_tiles", OwnedTiles(observation, RoomTypeId.Lair));
+        Add("hatchery_tiles", OwnedTiles(observation, RoomTypeId.Hatchery));
+        Add("treasury_tiles", OwnedTiles(observation, RoomTypeId.Treasury));
+        Add("pending_rooms", _pendingRooms.Count);
+
+        void Add(string name, long value) => _beliefs.Add(new PlayerBelief(name, value));
     }
 
     /// <summary>Reads receipts for builds refused because of their square, and releases rooms the
@@ -217,6 +322,7 @@ public sealed class CampaignPlayer : IPlayerController
         if (_lastDrop is (TilePos tile, int hand) && observation.HandCount >= hand)
         {
             _failedDrops.Add(tile);
+            _noDrop.Add(tile);
             if (_workDrop == tile) (_workDropForPit ? _refusedPit : _refusedWork).Add(tile);
         }
         _lastDrop = null;
@@ -224,18 +330,35 @@ public sealed class CampaignPlayer : IPlayerController
         if (observation.HandCount == 0)
         {
             _failedDrops.Clear();
+            RefreshNoDrop();
             // A lift that never landed leaves nothing held: its carry plan must not steer the next one.
             _carryTo = null;
             _carryForPit = _carryWorker = _carryScout = _carryRetreat = false;
             _carryStyle = null;
+            _assaultDrop = null;
         }
         if (!Fits(actions, 1)) return false;
         // Engage answers an attack on any of the dungeon (an enemy within EnemyNearTiles of own ground), the one nearest
         // the Heart first; HoldHome only one near home; Off none. With none, anything held goes down near home.
         PlayerVisibleThing? enemy = _strategy.Fight == FightMode.Off ? null
-            : PlayerActionRoutines.NearestAttacker(observation, home, _strategy.EnemyNearTiles);
+            : PlayerActionRoutines.NearestAttacker(observation, home, _strategy.EnemyNearTiles, _covered);
         if (_strategy.Fight == FightMode.HoldHome && enemy is PlayerVisibleThing far
             && PlayerActionRoutines.DistanceSquared(far.Tile, home) > (long)_strategy.HomeGuardTiles * _strategy.HomeGuardTiles) enemy = null;
+        if (observation.HandCount > 0 && _assaultDrop is TilePos assaultAt)
+        {
+            // An assault party goes down together beside its trap, inside its reach (A2): one drop per item held.
+            if ((observation.Offers.Actions & PlayerActionKinds.DropAt) == 0 || _failedDrops.Contains(assaultAt)) _assaultDrop = null;
+            else
+            {
+                int released = 0;
+                while (released < observation.HandCount && Fits(actions, 1)) { actions.Add(new PlayerAction.DropAt(assaultAt)); released++; }
+                Note($"drop an assault party of {released} at {assaultAt}");
+                _lastDrop = (assaultAt, observation.HandCount);
+                _lastDropTick = observation.Stamp.Tick;
+                if (released >= observation.HandCount) _assaultDrop = null;
+                return true;
+            }
+        }
         if (observation.HandCount > 0)
         {
             bool worker = _carryWorker;
@@ -257,20 +380,30 @@ public sealed class CampaignPlayer : IPlayerController
             bool retreat = _carryRetreat;
             _carryRetreat = false;
             // A hurt defender taken out of a fight goes to its Hatchery (or home) whatever the danger there.
-            if (retreat) work = carriedTo ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _failedDrops);
+            if (retreat) work = carriedTo ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _noDrop);
             // A held worker goes down near home, never toward an enemy (an Imp is no fighter); a fighter takes its place
             // in the formation against the attack (defence plan D3).
             TilePos? fight = !worker && !retreat && enemy is PlayerVisibleThing foe ? FormationDrop(observation, foe.Tile, home, style) : null;
             if ((observation.Offers.Actions & PlayerActionKinds.DropAt) == 0
-                || (work ?? fight ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _failedDrops)) is not TilePos drop) return false;
+                || (work ?? fight ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _noDrop)) is not TilePos drop)
+            {
+                Note($"holding {observation.HandCount}: no drop offered or no own floor free");
+                return false;
+            }
             if (scout && work is TilePos sent) { _scout = (sent, observation.Stamp.Tick); _scouted.Add(sent); }
+            Note(retreat ? $"drop a hurt defender at {drop}" : work is not null ? $"drop at {drop} to work there"
+                : fight is not null && enemy is PlayerVisibleThing at ? $"drop a {style} at {drop} against the enemy at {at.Tile}" : $"drop at {drop} near home");
             actions.Add(new PlayerAction.DropAt(drop));
             _lastDrop = (drop, observation.HandCount);
             _lastDropTick = observation.Stamp.Tick;
             return true;
         }
-        if (enemy is not PlayerVisibleThing target
-            || _lastDropTick is GameTick dropped && observation.Stamp.Tick.Value - dropped.Value < _options.DropCooldownTicks) return false;
+        if (enemy is not PlayerVisibleThing target) { Note("no attack to answer"); return false; }
+        if (_lastDropTick is GameTick dropped && observation.Stamp.Tick.Value - dropped.Value < _options.DropCooldownTicks)
+        {
+            Note($"attack at {target.Tile}; drop cooling down");
+            return false;
+        }
         // A defender down to two petals at the fight is healed, else taken to a Hatchery (defence plan D3).
         int attackers = 0, defenders = 0;
         PlayerVisibleThing? hurt = null;
@@ -294,17 +427,24 @@ public sealed class CampaignPlayer : IPlayerController
         if (hurt is PlayerVisibleThing low && HealOffered(observation))
         {
             actions.Add(new PlayerAction.CastSpell(HealSpell, Target: low.Handle));
+            Note($"heal a defender at {low.Tile} ({defenders} defenders, {attackers} attackers)");
             return true;
         }
         if (hurt is PlayerVisibleThing tired && Owns(observation, RoomTypeId.Hatchery) && Lift(observation, tired, RoomTypeId.Hatchery, home, actions))
         {
             _carryRetreat = true;
+            Note($"lift a hurt defender at {tired.Tile} out of the fight");
             return true;
         }
         // Enough already: the defenders at the fight outnumber the attackers.
-        if (defenders > attackers
-            || PlayerActionRoutines.Defender(observation, _options, target.Tile, _options.EngagedTiles, home,
-                style => FormationDrop(observation, target.Tile, home, style)) is not PlayerVisibleThing fighter) return false;
+        if (defenders > attackers) { Note($"attack at {target.Tile}: {defenders} defenders outnumber {attackers} attackers"); return false; }
+        if (PlayerActionRoutines.Defender(observation, _options, target.Tile, _options.EngagedTiles, home,
+                style => FormationDrop(observation, target.Tile, home, style)) is not PlayerVisibleThing fighter)
+        {
+            Note($"attack at {target.Tile}: {defenders} defenders, {attackers} attackers, no fighter free to lift");
+            return false;
+        }
+        Note($"lift a {fighter.CreatureType} at {fighter.Tile} against the attack at {target.Tile} ({defenders} defenders, {attackers} attackers)");
         actions.Add(new PlayerAction.PickUp(fighter.Handle));
         _carryStyle = fighter.CreatureType is CreatureTypeId kind ? _options.StyleOf(kind) : FightStyle.Blocker;
         return true;
@@ -317,10 +457,10 @@ public sealed class CampaignPlayer : IPlayerController
     private TilePos? FormationDrop(PlayerObservation observation, TilePos enemy, TilePos home, FightStyle style)
     {
         TilePos ideal = PlayerActionRoutines.FormationPoint(enemy, home, style);
-        TilePos? at = PlayerActionRoutines.NearestOwnFloor(observation, ideal, _failedDrops);
+        TilePos? at = PlayerActionRoutines.NearestOwnFloor(observation, ideal, _noDrop);
         if (style is FightStyle.Flanker or FightStyle.Blitzer && (at is not TilePos behind || Chebyshev(behind, ideal) > 2
             || PlayerActionRoutines.DistanceSquared(behind, home) <= PlayerActionRoutines.DistanceSquared(enemy, home)))
-            at = PlayerActionRoutines.NearestOwnFloor(observation, PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Blocker), _failedDrops);
+            at = PlayerActionRoutines.NearestOwnFloor(observation, PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Blocker), _noDrop);
         return at;
     }
 
@@ -338,23 +478,34 @@ public sealed class CampaignPlayer : IPlayerController
     private bool Room(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
         AgeSite(observation);
-        if (_pendingRooms.Count > 0 || !Fits(actions, 2)) return false;
-        if (_repairs.Count > 0 && Finish(observation, actions)) return true;
+        if (_pendingRooms.Count > 0) { Note("waiting for " + string.Join(", ", _pendingRooms.Keys) + " to be laid"); return false; }
+        if (!Fits(actions, 2)) { Note("no room left in this decision's actions"); return false; }
+        if (_repairs.Count > 0 && Finish(observation, actions)) { NoteMore("finish a short square"); return true; }
         bool waiting = false;
+        var saving = new List<RoomTypeId>();
         foreach (RoomTypeId room in _strategy.Rooms)
         {
             if (Owns(observation, room)) continue;
             if (Build(observation, home, room, grow: false, actions)) return true;
-            waiting |= Unaffordable(observation, room);
+            if (Unaffordable(observation, room)) { waiting = true; saving.Add(room); }
         }
         // A listed room the panel offers but the player cannot yet pay for keeps the gold for itself.
-        if (waiting) return false;
+        if (waiting) { Note($"saving gold for {string.Join(", ", saving)} (gold {observation.Gold.Value})"); return false; }
+        // Short of the gold budget (E2): payday first, so nothing grows and no extra room is bought.
+        if (Short(observation)) { Note($"keeping {GoldNeed(observation)} gold for payday (gold {observation.Gold.Value})"); return false; }
+        long keep = _strategy.GoldBudget == 1 ? GoldNeed(observation) : 0;
         foreach (RoomTypeId room in _strategy.Rooms)
-            if (Outgrown(observation, room) && Build(observation, home, room, grow: true, actions)) return true;
+            if (Outgrown(observation, room) && (Build(observation, home, room, grow: true, actions, keep)
+                // A room that cannot grow beside itself gets a second one (E3, owner R12: "expand it, create a second one").
+                || _strategy.SecondRooms == 1 && room != RoomTypeId.Treasury && Build(observation, home, room, grow: false, actions, keep))) return true;
         foreach (RoomTypeId room in _strategy.ExtraRooms)
-            if (!_strategy.Rooms.Contains(room) && !Owns(observation, room) && Build(observation, home, room, grow: false, actions)) return true;
+            if (!_strategy.Rooms.Contains(room) && !Owns(observation, room) && Build(observation, home, room, grow: false, actions, keep)) return true;
+        _note ??= "every listed room owned and none outgrown";
         return false;
     }
+
+    /// <summary>Adds to the running routine's note.</summary>
+    private void NoteMore(string more) => _note = _note is null ? more : _note + "; " + more;
 
     /// <summary>Whether a missing listed room is offered but costs more than the gold: priced at the side
     /// <see cref="Build"/> waits for (its target, while a free square of it exists), else its smallest.</summary>
@@ -391,7 +542,7 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>Builds <paramref name="room"/> at its target side, or, only with no free square that big, the
     /// largest smaller side down to its smallest useful one; a free square it cannot yet pay for is waited
     /// for, not swapped for a smaller room. Growth uses the smallest side.</summary>
-    private bool Build(PlayerObservation observation, TilePos home, RoomTypeId room, bool grow, List<PlayerAction> actions)
+    private bool Build(PlayerObservation observation, TilePos home, RoomTypeId room, bool grow, List<PlayerAction> actions, long keep = 0)
     {
         int largest = grow ? SmallestSide(room) : TargetSide(room);
         for (int side = largest; side >= SmallestSide(room); side--)
@@ -409,9 +560,16 @@ public sealed class CampaignPlayer : IPlayerController
                     }
                 continue;
             }
+            // Growth and extra rooms leave the gold budget standing after they are paid for (E2).
+            if (keep > 0 && Price(observation, room) is long price && observation.Gold.Value - price * side * side < keep)
+            {
+                NoteMore($"{room} {side}x{side} would leave less than {keep} gold");
+                return false;
+            }
             if (_site is Site built && built.Room == room) _site = null;
             if (PlayerActionRoutines.SelectRoom(observation, room) is PlayerAction press) actions.Add(press);
             actions.Add(build);
+            NoteMore($"{(grow ? "grow" : "build")} {room} {side}x{side} at {build.From}");
             _pendingRooms[room] = new PendingRoom(build.From, side, observation.Stamp.Tick, OwnedTiles(observation, room));
             return true;
         }
@@ -488,15 +646,149 @@ public sealed class CampaignPlayer : IPlayerController
         switch (room)
         {
             case RoomTypeId.Lair:
-                return tiles < (long)NonWorkers(observation) * _strategy.LairTilesPerCreature;
+                // The beds the Lair's hover shows (E3); without that fill, its tiles per non-worker.
+                if (_strategy.FreeBeds > 0 && Summary(observation, RoomTypeId.Lair) is { Capacity: > 0 } lair)
+                    return Grow(lair.Capacity - NonWorkers(observation) < _strategy.FreeBeds,
+                        $"Lair {lair.Capacity} beds for {NonWorkers(observation)} non-workers");
+                return Grow(tiles < (long)NonWorkers(observation) * _strategy.LairTilesPerCreature,
+                    $"Lair {tiles} tiles for {NonWorkers(observation)} non-workers");
             case RoomTypeId.Hatchery:
-                return (long)tiles * _strategy.CreaturesPerHatcheryTile < NonWorkers(observation);
+                int hungry = 0;
+                foreach (PlayerCreatureSummary creature in observation.Creatures) if (creature.Hungry && !_options.IsWorker(creature.Type)) hungry++;
+                int nonWorkers = NonWorkers(observation);
+                if (_strategy.HungryPercent < 100 && hungry >= Math.Max(2, nonWorkers * _strategy.HungryPercent / 100))
+                    return Grow(true, $"{hungry} of {nonWorkers} non-workers hungry with {tiles} Hatchery tiles");
+                return Grow((long)tiles * _strategy.CreaturesPerHatcheryTile < nonWorkers,
+                    $"Hatchery {tiles} tiles for {nonWorkers} non-workers");
             case RoomTypeId.Treasury:
                 if (_options.GoldPerTreasuryTile is not int perTile) return false;
                 long capacity = (long)tiles * perTile + (Owns(observation, RoomTypeId.DungeonHeart) ? _options.HeartGold ?? 0 : 0);
-                return (long)observation.Gold.Value * 100 >= capacity * _strategy.TreasuryFullPercent;
+                return Grow((long)observation.Gold.Value * 100 >= capacity * _strategy.TreasuryFullPercent,
+                    $"Treasury holds {observation.Gold.Value} of {capacity}");
             default:
                 return false;
+        }
+
+        bool Grow(bool outgrown, string why)
+        {
+            if (outgrown) NoteMore("outgrown: " + why);
+            return outgrown;
+        }
+    }
+
+    /// <summary>The gold the budget keeps (E2): the coming payday's wage bill plus the strategy's margin.</summary>
+    private long GoldNeed(PlayerObservation observation) => (long)observation.WageBill.Value * (100 + _strategy.GoldMarginPercent) / 100;
+
+    /// <summary>Whether gold is below the budget (never while no wages are due).</summary>
+    private bool Short(PlayerObservation observation) =>
+        _strategy.GoldBudget == 1 && observation.WageBill.Value > 0 && observation.Gold.Value < GoldNeed(observation);
+
+    /// <summary>The rooms the Work routine fills: the strategy's, or, with none named, an owned Training Room once gold is at
+    /// least <see cref="PlayerStrategy.TrainGold"/> and three wage bills (E2).</summary>
+    private IReadOnlyList<RoomTypeId> UsedRooms(PlayerObservation observation)
+    {
+        if (_strategy.UseRooms.Count > 0) return _strategy.UseRooms;
+        return _strategy.TrainGold > 0 && Owns(observation, RoomTypeId.TrainingRoom)
+            && observation.Gold.Value >= Math.Max(_strategy.TrainGold, 3L * observation.WageBill.Value) ? [RoomTypeId.TrainingRoom] : [];
+    }
+
+    /// <summary>The panel's per-tile price of <paramref name="room"/>, or null when it is not offered.</summary>
+    private static long? Price(PlayerObservation observation, RoomTypeId room)
+    {
+        foreach (PlayerRoomOffer offer in observation.Offers.Rooms) if (offer.Room == room) return offer.Cost.Value;
+        return null;
+    }
+
+    private static PlayerRoomSummary? Summary(PlayerObservation observation, RoomTypeId room)
+    {
+        foreach (PlayerRoomSummary summary in observation.Rooms) if (summary.Type == room) return summary;
+        return null;
+    }
+
+    /// <summary>Where the assault party lifted last decision goes down, or null.</summary>
+    private TilePos? _assaultDrop;
+
+    /// <summary>When a party was last sent at each enemy trap (by its tile).</summary>
+    private readonly Dictionary<TilePos, GameTick> _assaulted = [];
+
+    /// <summary>How near (tiles, Chebyshev) a trap the party lands and counts as there.</summary>
+    private const int AssaultTiles = 2;
+
+    /// <summary>Ticks a party is given at a trap before another is sent to it (100 game seconds).</summary>
+    private const int AssaultRetryTicks = 400;
+
+    /// <summary>The trap assault (A2): with the hand free and no attack answered, the enemy trap in view whose reach covers own
+    /// floor or an own dig mark, nearest home, gets <see cref="PlayerStrategy.AssaultParty"/> fighters (never workers, five
+    /// petals or more), lifted together in one decision and dropped together the next on the own floor nearest the trap. Own
+    /// creatures attack a revealed trap by themselves (traps.md section 11; owner: "yes if they can"). It waits until the
+    /// whole party can go rather than sending fighters one by one, and stops once the party stands beside the trap.</summary>
+    private bool Assault(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
+    {
+        if (_strategy.AssaultParty <= 0 || observation.EnemyTraps.Count == 0) return false;
+        if (observation.HandCount > 0 || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0) return false;
+        // Defence first: no party goes while an enemy is near home (as Work waits).
+        if (PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) { Note("enemy near home: defence first"); return false; }
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        PlayerVisibleTrap? target = null;
+        long now = observation.Stamp.Tick.Value;
+        foreach (PlayerVisibleTrap trap in observation.EnemyTraps)
+        {
+            // A party sent lately is given its time before another goes to the same trap.
+            if (_assaulted.TryGetValue(trap.Tile, out GameTick sent) && now - sent.Value < AssaultRetryTicks || !Blocks(trap)) continue;
+            if (target is not PlayerVisibleTrap best
+                || PlayerActionRoutines.DistanceSquared(trap.Tile, home) < PlayerActionRoutines.DistanceSquared(best.Tile, home)) target = trap;
+        }
+        if (target is not PlayerVisibleTrap aim) { Note("no enemy trap covers own ground or a mark"); return false; }
+        // The party must land beside the trap to fight it: own floor within AssaultTiles, else the Imps claim nearer first.
+        if (PlayerActionRoutines.NearestOwnFloor(observation, aim.Tile, _failedDrops) is not TilePos drop
+            || Chebyshev(drop, aim.Tile) > AssaultTiles)
+        {
+            Note($"no own floor within {AssaultTiles} tiles of the trap at {aim.Tile}");
+            return false;
+        }
+        var petals = new Dictionary<PlayerThingHandle, int>();
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) petals[seen] = creature.Petals;
+        int there = 0;
+        var free = new List<PlayerVisibleThing>();
+        foreach (PlayerVisibleThing thing in observation.Things)
+        {
+            if (thing.Kind != PlayerThingKind.Creature || thing.Owner != self || thing.CreatureType is not CreatureTypeId type
+                || _options.IsWorker(type) || _options.StyleOf(type) == FightStyle.NonFighter) continue;
+            if (Chebyshev(thing.Tile, aim.Tile) <= AssaultTiles) { there++; continue; }
+            // Not one in a fight (an enemy within the engaged distance), nor one whose flower does not show it fit.
+            if ((thing.Actions & PlayerThingActions.PickUp) != 0 && petals.TryGetValue(thing.Handle, out int shown) && shown >= 5
+                && !PlayerActionRoutines.ThreatNear(observation, thing.Tile, _options.EngagedTiles)) free.Add(thing);
+        }
+        if (there >= _strategy.AssaultParty) { Note($"{there} fighters at the trap at {aim.Tile}"); return false; }
+        // The whole rest of the party goes in this decision or none does: a partial party would walk in alone.
+        int want = _strategy.AssaultParty - there;
+        if (free.Count < want || _options.MaxActionsPerDecision - actions.Count < want)
+        {
+            Note($"trap at {aim.Tile}: {free.Count} fighters free, {want} wanted, {_options.MaxActionsPerDecision - actions.Count} actions left");
+            return false;
+        }
+        free.Sort((a, b) => PlayerActionRoutines.DistanceSquared(a.Tile, drop).CompareTo(PlayerActionRoutines.DistanceSquared(b.Tile, drop)));
+        for (int i = 0; i < want; i++) actions.Add(new PlayerAction.PickUp(free[i].Handle));
+        _assaultDrop = drop;
+        _assaulted[aim.Tile] = observation.Stamp.Tick;
+        Note($"lift {want} fighters against the {aim.Type} trap at {aim.Tile} (drop at {drop}, {there} there)");
+        return true;
+
+        // A trap is in the way when its reach covers own floor or an own dig mark.
+        bool Blocks(PlayerVisibleTrap trap)
+        {
+            int r = trap.ReachTiles;
+            for (int dy = -r; dy <= r; dy++)
+                for (int dx = -r; dx <= r; dx++)
+                {
+                    var at = new TilePos(trap.Tile.X + dx, trap.Tile.Y + dy);
+                    if (!InReach(dx, dy, r) || !grid.Contains(at)) continue;
+                    PlayerTile tile = grid[at];
+                    if ((tile.Flags & PlayerTileFlags.Tagged) != 0 || PlayerActionRoutines.IsOwnFloor(tile, self)) return true;
+                }
+            return false;
         }
     }
 
@@ -513,14 +805,19 @@ public sealed class CampaignPlayer : IPlayerController
     /// tile nearest home that has not refused one.</summary>
     private bool Work(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
-        if (_strategy.UseRooms.Count == 0 || observation.HandCount > 0 || !Fits(actions, 1)
+        IReadOnlyList<RoomTypeId> use = UsedRooms(observation);
+        if (use.Count == 0 || observation.HandCount > 0 || !Fits(actions, 1)
             || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0
-            || observation.Gold.Value < _strategy.UseRoomMinGold
+            || observation.Gold.Value < _strategy.UseRoomMinGold || Short(observation)
             || _lastWorkTick is GameTick last && observation.Stamp.Tick.Value - last.Value < _strategy.UseRoomEveryTicks
             || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) return false;
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
-        foreach (RoomTypeId room in _strategy.UseRooms)
+        // A creature at the Training Room's cap gains nothing there (owner: "only up to level 4 in the training room").
+        var capped = new HashSet<PlayerThingHandle>();
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown && creature.Level >= _options.TrainingMaxLevel) capped.Add(seen);
+        foreach (RoomTypeId room in use)
         {
             int tiles = OwnedTiles(observation, room);
             if (tiles == 0) continue;
@@ -533,6 +830,7 @@ public sealed class CampaignPlayer : IPlayerController
                 PlayerTile on = grid[thing.Tile];
                 if (on.Room == room) working++;
                 else if (on.Room == default && (thing.Actions & PlayerThingActions.PickUp) != 0
+                    && !(room == RoomTypeId.TrainingRoom && capped.Contains(thing.Handle))
                     && (idle is null || PlayerActionRoutines.DistanceSquared(thing.Tile, home) < PlayerActionRoutines.DistanceSquared(idle.Value.Tile, home)))
                     idle = thing;
             }
@@ -547,6 +845,7 @@ public sealed class CampaignPlayer : IPlayerController
             // Never into a room an enemy stands near, however far it is from home.
             if (PlayerActionRoutines.ThreatNear(observation, target, _strategy.EnemyNearTiles)) continue;
             actions.Add(new PlayerAction.PickUp(lifted.Handle));
+            Note($"lift a {lifted.CreatureType} at {lifted.Tile} to the {room} ({working} working on {tiles} tiles)");
             _carryTo = target;
             _lastWorkTick = observation.Stamp.Tick;
             return true;
@@ -861,10 +1160,11 @@ public sealed class CampaignPlayer : IPlayerController
         int imps = 0;
         foreach (PlayerCreatureSummary creature in observation.Creatures) if (_options.IsWorker(creature.Type)) imps++;
         // Below the free minimum a free Imp is on its way: wait for it (owner, 2026-11-15).
-        if (imps < _options.FreeImps || imps >= _strategy.MaxImps
-            || (long)observation.Mana.Value - price.Value < _strategy.ManaReserve) return false;
+        if (imps < _options.FreeImps) { Note($"{imps} Imps: a free one is coming"); return false; }
+        if (imps >= _strategy.MaxImps) { Note($"{imps} Imps: at the limit"); return false; }
+        if ((long)observation.Mana.Value - price.Value < _strategy.ManaReserve) { Note($"price {price.Value} would break the mana reserve"); return false; }
         long net = (long)observation.ManaIncome.Value - observation.ManaUpkeep.Value;
-        if (net <= 0 || price.Value > net * _strategy.ImpPriceSeconds) return false;
+        if (net <= 0 || price.Value > net * _strategy.ImpPriceSeconds) { Note($"price {price.Value} too dear for net mana {net}/s"); return false; }
         PlayerTileGrid grid = observation.Tiles;
         int marked = 0;
         TilePos? nearestMark = null;
@@ -883,13 +1183,18 @@ public sealed class CampaignPlayer : IPlayerController
         if (!waiting) _upgradeWaitSince = null;
         else if ((_upgradeWaitSince ??= observation.Stamp.Tick) is GameTick began && now - began.Value >= UpgradeWaitTicks) waiting = false;
         int target = waiting && need < 2 * Math.Max(imps, 1) ? _strategy.MinImps : Math.Max(_strategy.MinImps, need);
-        if (imps >= Math.Min(target, _strategy.MaxImps)) return false;
+        if (imps >= Math.Min(target, _strategy.MaxImps)) { Note($"{imps} Imps meet the target {target} ({marked} marks)"); return false; }
 
         if (PlayerActionRoutines.NearestOwnFloor(observation, nearestMark ?? home, _refusedImpTiles) is not TilePos tile) return false;
         // Under attack the mana is for spells: an Imp born beside an enemy dies, its price falls back, and the next is
         // bought into the same fight (Level 6a, 2026-11-15: 50 casts in the last 900 ticks of a lost keeper).
         foreach (PlayerVisibleThing thing in observation.Things)
-            if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, tile) <= ImpSafeTiles) return false;
+            if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, tile) <= ImpSafeTiles)
+            {
+                Note($"enemy near the birth tile {tile}");
+                return false;
+            }
+        Note($"create an Imp at {tile} ({imps} of target {target})");
         actions.Add(new PlayerAction.CreateImpAt(tile));
         _lastImpTick = observation.Stamp.Tick;
         return true;
@@ -913,14 +1218,15 @@ public sealed class CampaignPlayer : IPlayerController
         }
         // A room bought in this decision spends the same gold the trap would be weighed against.
         foreach (PlayerAction queued in actions) if (queued is PlayerAction.BuildRoom) return false;
+        if (Short(observation)) { Note($"keeping {GoldNeed(observation)} gold for payday"); return false; }
         bool buyable = false;
         foreach (PlayerWorkshopOffer offer in observation.Offers.Workshop)
             if (offer.Kind == PlayerWorkshopKind.Trap && !offer.NeedsWorkshop && offer.Affordable
                 && (long)observation.Gold.Value - offer.Cost.Value >= _strategy.UseRoomMinGold) buyable = true;
-        if (!buyable) return false;
+        if (!buyable) { Note($"no trap affordable while keeping {_strategy.UseRoomMinGold} gold (or no Workshop)"); return false; }
         _lastTrapTick = observation.Stamp.Tick;   // weighed now: look again after the gap, placed or not
         PlayerTileGrid grid = observation.Tiles;
-        if (PlayerTrapRoutines.OwnTraps(grid) >= _strategy.MaxTraps) return false;
+        if (PlayerTrapRoutines.OwnTraps(grid) >= _strategy.MaxTraps) { Note($"at the trap limit {_strategy.MaxTraps}"); return false; }
         PlayerId self = observation.Stamp.Player;
         var entries = new List<TilePos>(_sightings);
         for (int y = 0; y < grid.Height; y++)
@@ -930,7 +1236,7 @@ public sealed class CampaignPlayer : IPlayerController
                 PlayerTile tile = grid[at];
                 if (PlayerTrapRoutines.IsEntryRoom(tile, self) || PlayerTrapRoutines.IsEnemyGround(tile, self)) entries.Add(at);
             }
-        if (entries.Count == 0) return false;
+        if (entries.Count == 0) { Note("no entry seen to guard"); return false; }
         entries.Sort((a, b) => a.Y != b.Y ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X));   // _sightings is a set: fix the order
         foreach (TilePos site in PlayerTrapRoutines.Sites(observation, entries, TrapSpacingTiles, _refusedTrapTiles))
         {
@@ -939,8 +1245,10 @@ public sealed class CampaignPlayer : IPlayerController
             if (PlayerTrapRoutines.Choose(observation, site, _strategy.UseRoomMinGold) is not PlayerWorkshopOffer trap) continue;
             actions.Add(new PlayerAction.PlaceTrap(trap.Id, site));
             _placedTrap = (site, observation.Stamp.Tick);
+            Note($"place {trap.Name} at {site} ({PlayerTrapRoutines.SiteKind(observation.Tiles, site)})");
             return true;
         }
+        Note($"no free trap site on the routes from {entries.Count} entries");
         return false;
     }
 
@@ -1045,14 +1353,18 @@ public sealed class CampaignPlayer : IPlayerController
         if (_strategy.Dig == DigMode.Off || (observation.Offers.Actions & PlayerActionKinds.TagArea) == 0) return false;
         // A room site's marks are its own (Task 3a): they do not hold the frontier back.
         int room = _strategy.MaxOutstandingTags - Outstanding(observation) + SiteMarks(observation);
-        int added = 0;
+        int added = 0, gold = 0, free = room;
         TilePos from = _strategy.Dig == DigMode.Toward && _strategy.DigTarget is TilePos target ? target : home;
+        PlayerTileGrid grid = observation.Tiles;
         foreach (TilePos tile in Frontier(observation, from, preferGold: _strategy.Dig == DigMode.GoldFirst))
         {
             if (room-- <= 0 || !Fits(actions, 1)) break;
             actions.Add(new PlayerAction.TagArea(tile, tile));
             added++;
+            if ((grid[tile].Flags & PlayerTileFlags.GoldSeam) != 0) gold++;
         }
+        Note(added > 0 ? $"mark {added} tiles ({gold} gold), {_strategy.Dig}" : free <= 0 ? $"{Outstanding(observation)} marks outstanding, at the limit"
+            : "no frontier tile to mark");
         return added > 0;
     }
 
@@ -1069,6 +1381,7 @@ public sealed class CampaignPlayer : IPlayerController
             _recoveries = 0;
             _abandoned.Clear();
             _failedDrops.Clear();
+            RefreshNoDrop();
             return null;
         }
         if (observation.Stamp.Tick.Value - _gainTick.Value < _options.StallWindowTicks) return null;
@@ -1125,9 +1438,23 @@ public sealed class CampaignPlayer : IPlayerController
     /// <see cref="BreachMode.WhenDeveloped"/>, the whole frontier once no bounded tile is left, marked or not.</summary>
     private List<TilePos> Frontier(PlayerObservation observation, TilePos from, bool preferGold)
     {
-        if (_strategy.Breach == BreachMode.Always) return PlayerActionRoutines.Frontier(observation, from, preferGold, _abandoned);
+        // A tile in an enemy trap's reach is marked only once nothing else is left (A2): the Imps that dig and claim it
+        // are shot at, so the dungeon grows elsewhere first, and the assault clears the trap once its reach touches a mark.
+        ICollection<TilePos> skip = _abandoned;
+        if (_covered.Count > 0)
+        {
+            _digSkip.Clear();
+            _digSkip.UnionWith(_abandoned);
+            _digSkip.UnionWith(_covered);
+            skip = _digSkip;
+        }
+        if (_strategy.Breach == BreachMode.Always)
+        {
+            List<TilePos> clear = PlayerActionRoutines.Frontier(observation, from, preferGold, skip);
+            return clear.Count > 0 || _covered.Count == 0 ? clear : PlayerActionRoutines.Frontier(observation, from, preferGold, _abandoned);
+        }
         EnsureClearance();
-        List<TilePos> safe = PlayerActionRoutines.Frontier(observation, from, preferGold, _abandoned, breach: false, avoid: _danger, tagged: true);
+        List<TilePos> safe = PlayerActionRoutines.Frontier(observation, from, preferGold, skip, breach: false, avoid: _danger, tagged: true);
         // Develop first: the breach waits until no safe tile is left, marked or not.
         if (safe.Count == 0 && _strategy.Breach == BreachMode.WhenDeveloped) return PlayerActionRoutines.Frontier(observation, from, preferGold, _abandoned);
         safe.RemoveAll(t => (observation.Tiles[t].Flags & PlayerTileFlags.Tagged) != 0);

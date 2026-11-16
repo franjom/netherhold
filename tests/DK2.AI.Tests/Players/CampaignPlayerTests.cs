@@ -74,7 +74,8 @@ public partial class CampaignPlayerTests
         PlayerPhase phase = PlayerPhase.Playing, IReadOnlyList<PlayerRoomOffer>? rooms = null, IReadOnlyList<PlayerVisibleThing>? things = null,
         IReadOnlyList<PlayerRoomSummary>? owned = null, IReadOnlyList<PlayerReceipt>? receipts = null, long tick = -1,
         IReadOnlyList<PlayerCreatureSummary>? creatures = null, IReadOnlyList<PlayerSpellOffer>? spells = null,
-        int mana = 0, int income = 0, int upkeep = 0, int? impCost = null, IReadOnlyList<PlayerWorkshopOffer>? workshop = null)
+        int mana = 0, int income = 0, int upkeep = 0, int? impCost = null, IReadOnlyList<PlayerWorkshopOffer>? workshop = null,
+        IReadOnlyList<PlayerVisibleTrap>? enemyTraps = null, int wageBill = 0)
     {
         rooms ??= [new PlayerRoomOffer(RoomTypeId.Treasury, new GoldAmount(50), true), new PlayerRoomOffer(RoomTypeId.Lair, new GoldAmount(50), true)];
         things ??= [];
@@ -100,8 +101,10 @@ public partial class CampaignPlayerTests
             ManaIncome = new ManaPerSecond(income),
             ManaUpkeep = new ManaPerSecond(upkeep),
             HandCount = hand,
+            WageBill = new GoldAmount(wageBill),
             Tiles = Map(map ?? Dungeon),
             Things = things,
+            EnemyTraps = enemyTraps ?? [],
             Rooms = owned ?? [],
             Creatures = creatures ?? [],
             Receipts = receipts ?? [],

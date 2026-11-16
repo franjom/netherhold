@@ -152,6 +152,7 @@ public static class PlayerRunReport
             receipts = player.Decisions.SelectMany(d => d.Receipts).GroupBy(r => $"{r.Status}/{r.Reason}")
                 .OrderBy(g => g.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count()),
             development = Development(player.LastObservation),
+            diagnostics = player.Diagnostics.Summary(player.Decisions),
             knowledge = spec.KnowledgeDirectory is string knowledge ? KnowledgeSummary(knowledge, spec.Researchable, spec.PlaybookRules) : null,
             playbook = spec.LoadedPlaybook is { } playbook ? new
             {

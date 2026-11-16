@@ -263,15 +263,18 @@ public static class PlayerActionRoutines
     /// <summary>The attack to answer first (campaign bot defence plan, D2; owner, 2026-11-15: "it should defend its
     /// entire dungeon"): of the visible threats within <paramref name="tiles"/> (Chebyshev) of any tile the player owns,
     /// the one nearest <paramref name="home"/>; null when none. An enemy far from all of the dungeon, such as a guard
-    /// in its own Prison across the map, is no attack.</summary>
-    public static PlayerVisibleThing? NearestAttacker(PlayerObservation observation, TilePos home, int tiles)
+    /// in its own Prison across the map, is no attack. One standing on a <paramref name="covered"/> tile (in an enemy
+    /// trap's reach) is not answered.</summary>
+    public static PlayerVisibleThing? NearestAttacker(PlayerObservation observation, TilePos home, int tiles, ICollection<TilePos>? covered = null)
     {
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         PlayerVisibleThing? best = null;
         foreach (PlayerVisibleThing thing in observation.Things)
         {
-            if (!IsThreat(observation, thing)
+            // An enemy inside an enemy trap's reach is not answered: a drop there feeds the trap (economy and assault plan
+            // A2; Level 4, 2026-11-16: a Dwarf lookout between two Sentry traps drew 2617 drops on seed 3).
+            if (!IsThreat(observation, thing) || covered is not null && covered.Contains(thing.Tile)
                 || best is PlayerVisibleThing b && DistanceSquared(thing.Tile, home) >= DistanceSquared(b.Tile, home)) continue;
             bool near = false;
             for (int dy = -tiles; dy <= tiles && !near; dy++)

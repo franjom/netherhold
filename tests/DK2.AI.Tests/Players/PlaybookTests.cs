@@ -118,7 +118,7 @@ public class PlaybookTests
             "cap output-mib 1 is not between 2 and 1048576",
         ];
         foreach (string problem in expected) Assert.Contains(problem, problems);
-        Assert.Contains(problems, p => p.StartsWith("tunable 'strategy.colour' is not one of strategy.create-imps, ", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.StartsWith("tunable 'strategy.colour' is not one of strategy.assault-party, ", StringComparison.Ordinal));
         Assert.Equal(expected.Length + 1, problems.Count);
     }
 
@@ -127,8 +127,14 @@ public class PlaybookTests
     {
         foreach (string path in Playbook.TunablePaths)
         {
-            // 5 is within every path's bounds but the on/off switches' (0-1), and is no default; 1 there.
-            int value = path is "strategy.scouts" or "strategy.create-imps" ? 1 : 5;
+            // 5 is within every path's bounds but the on/off switches' (0-1), and is no default; there the one not the default.
+            int value = path switch
+            {
+                "strategy.scouts" or "strategy.create-imps" => 1,
+                "strategy.avoid-traps" or "strategy.gold-budget" or "strategy.second-rooms" => 0,
+                "strategy.assault-party" => 3,
+                _ => 5,
+            };
             Playbook set = Level2 with { Tunables = [new(path, value, value, value, PlaybookProvenance.Researched, Source: "test")] };
             Assert.Empty(set.Review(Hash).Problems);
             PlayerStrategy changed = set.Apply(new PlayerStrategy());

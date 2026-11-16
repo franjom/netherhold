@@ -15,6 +15,13 @@ public interface IPlayerController
     PlayerDecision Decide(PlayerObservation observation);
 }
 
+/// <summary>One routine's verdict in a decision: <paramref name="Acted"/> when it added actions, and a short note on
+/// what it did or why it did not.</summary>
+public readonly record struct PlayerThought(string Routine, bool Acted, string Note);
+
+/// <summary>A number the controller read or derived from its observation and decided on, by name.</summary>
+public readonly record struct PlayerBelief(string Name, long Value);
+
 /// <summary>One decision: the actions to request now, how many ticks to advance before the next
 /// decision, and a short reason for the decision log.</summary>
 public sealed class PlayerDecision
@@ -46,6 +53,14 @@ public sealed class PlayerDecision
     public static PlayerDecision Limited(string reason) => new([], 1, reason) { IsLimitation = true };
 
     public bool IsLimitation { get; private init; }
+
+    /// <summary>Each routine's verdict this decision, in the order it ran: what it did, or why it did nothing
+    /// (diagnostics only; the host logs it and never acts on it).</summary>
+    public IReadOnlyList<PlayerThought> Thoughts { get; init => field = value?.ToArray() ?? throw new ArgumentNullException(nameof(value)); } = [];
+
+    /// <summary>The numbers the controller decided on this decision, as it read them from its observation
+    /// (diagnostics only).</summary>
+    public IReadOnlyList<PlayerBelief> Beliefs { get; init => field = value?.ToArray() ?? throw new ArgumentNullException(nameof(value)); } = [];
 
     public IReadOnlyList<PlayerAction> Actions { get; }
     public int AdvanceTicks { get; }

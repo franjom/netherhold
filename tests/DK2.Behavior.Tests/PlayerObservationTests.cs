@@ -255,6 +255,37 @@ public class PlayerObservationTests
         Assert.Equal((1, PlayerCreatureMood.Angry), (summary.Petals, summary.Mood));
     }
 
+    [Theory]
+    [InlineData(CreatureMood.Unhappy, 900, 0, true)]     // unhappy, hunger the largest grievance: the chicken
+    [InlineData(CreatureMood.Angry, 900, 0, true)]
+    [InlineData(CreatureMood.Unhappy, 100, 900, false)]  // unhappy for another reason
+    [InlineData(CreatureMood.Content, 900, 0, false)]      // content: the flower shows no grievance
+    public void AHungryCreatureShowsTheChickenOnlyWhenItsFlowerDoes(CreatureMood mood, int hunger, int pay, bool hungry)
+    {
+        var (database, world) = World();
+        CreatureState creature = world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
+        creature.Mood = mood;
+        creature.Anger.Hunger = hunger;
+        creature.Anger.Pay = pay;
+        Assert.Equal(hungry, Assert.Single(Observe(database, world).Creatures).Hungry);
+    }
+
+    [Fact]
+    public void TheTreasurysFillThePaydayClockAndTheWageBillAreShown()
+    {
+        var (database, world) = World();
+        world.Tile(OwnFloor).TerrainId = Treasury;
+        world.Tile(OwnFloor).GoldHeld = 300;
+        world.Player(Viewer).NextPaydayTick = new GameTick(world.CurrentTick.Value + 640);
+
+        PlayerObservation observation = Observe(database, world);
+        PlayerRoomSummary treasury = Assert.Single(observation.Rooms, r => r.Type == RoomTypeId.Treasury);
+        RoomInstance room = Assert.Single(RoomIndex.Build(world, database), r => r.Definition.TypeId == RoomTypeId.Treasury);
+        Assert.Equal((300, GoldStore.Capacity(world, database, room.TileIndices[0], room)), (treasury.Used, treasury.Capacity));
+        Assert.Equal(640, observation.TicksToPayday);
+        Assert.Equal(CasinoJackpotRules.WageBill(world, database, Viewer), observation.WageBill.Value);
+    }
+
     [Fact]
     public void ObjectsAreOfferedOnlyWhenTheHandCanLiftThem()
     {
@@ -398,7 +429,8 @@ public class PlayerObservationTests
         PlayerRoomOffer treasury = Assert.Single(observation.Offers.Rooms);
         Assert.Equal((RoomTypeId.Treasury, new GoldAmount(200), affordable), (treasury.Room, treasury.Cost, treasury.Affordable));
         Assert.Equal(new GoldAmount(gold), observation.Gold);
-        Assert.Equal(new PlayerRoomSummary(RoomTypeId.Treasury, 1), Assert.Single(observation.Rooms));
+        PlayerRoomSummary room = Assert.Single(observation.Rooms);
+        Assert.Equal((RoomTypeId.Treasury, 1, gold), (room.Type, room.TileCount, room.Used));
         Assert.Equal(PlayerActionKinds.TagArea | PlayerActionKinds.BuildRoom | PlayerActionKinds.SelectPanel,
             observation.Offers.Actions & (PlayerActionKinds.TagArea | PlayerActionKinds.BuildRoom | PlayerActionKinds.SelectPanel));
     }

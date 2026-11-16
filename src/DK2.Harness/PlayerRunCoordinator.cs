@@ -88,7 +88,14 @@ public enum PlayerFinaleCoverage : byte
 
 /// <summary>One decision, for the run's decision log.</summary>
 public sealed record PlayerDecisionRecord(GameTick Tick, PlayerRevision Revision, int AdvanceTicks, string Reason,
-    IReadOnlyList<PlayerRequest> Requests, IReadOnlyList<PlayerReceipt> Receipts, int Commands);
+    IReadOnlyList<PlayerRequest> Requests, IReadOnlyList<PlayerReceipt> Receipts, int Commands)
+{
+    /// <summary>The controller's own account of the decision (diagnostics; see <see cref="PlayerDecision.Thoughts"/>).</summary>
+    public IReadOnlyList<PlayerThought> Thoughts { get; init; } = [];
+
+    /// <summary>The numbers the controller decided on (diagnostics; see <see cref="PlayerDecision.Beliefs"/>).</summary>
+    public IReadOnlyList<PlayerBelief> Beliefs { get; init; } = [];
+}
 
 /// <summary>
 /// Drives one controlled player inside <see cref="ScenarioRunner"/>'s single tick loop. After each
@@ -106,6 +113,7 @@ public sealed class PlayerRunCoordinator
     private readonly PlayerObservationBuilder _builder;
     private readonly PlayerSession _session;
     private readonly List<PlayerDecisionRecord> _decisions = [];
+    private readonly PlayerRunDiagnostics _diagnostics;
     private long _revision, _nextActionId = 1;
     private long _nextDecisionTick;
     private long _finaleEndTick = -1;
@@ -116,12 +124,16 @@ public sealed class PlayerRunCoordinator
         _options = options ?? throw new ArgumentNullException(nameof(options));
         options.Validate();
         _builder = new PlayerObservationBuilder(database, options.Player);
+        _diagnostics = new PlayerRunDiagnostics(database, options.Player);
         _session = new PlayerSession(options.RunId, options.Player, new PlayerActionAdapter(database, options.Player), options.Limits);
     }
 
     public PlayerRunOptions Options => _options;
     public PlayerSession Session => _session;
     public IReadOnlyList<PlayerDecisionRecord> Decisions => _decisions;
+
+    /// <summary>The host's privileged view of the run (ground truth beside what the controller saw).</summary>
+    public PlayerRunDiagnostics Diagnostics => _diagnostics;
 
     public PlayerRunStop Stop { get; private set; }
     public bool Stopped => Stop != PlayerRunStop.None;
@@ -142,6 +154,7 @@ public sealed class PlayerRunCoordinator
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (Stopped) return [];
+        _diagnostics.AfterTick(world, completedTick);
         ref readonly PlayerState player = ref world.Player(_options.Player);
         // A result already in the world comes first: a budget stop on the winning tick keeps the win.
         if (_finaleEndTick < 0 && player.Status == PlayerStatus.Playing && _options.StopRequested?.Invoke() is string why)
@@ -236,7 +249,7 @@ public sealed class PlayerRunCoordinator
         for (int i = 0; i < receipts.Length; i++)
             if (_session.TryGetReceipt(requests[i].Id, out PlayerReceipt held)) receipts[i] = held;
         _decisions.Add(new PlayerDecisionRecord(stamp.Tick, stamp.Revision, decision.AdvanceTicks, decision.Reason,
-            requests, receipts, commands.Count));
+            requests, receipts, commands.Count) { Thoughts = decision.Thoughts, Beliefs = decision.Beliefs });
         _nextDecisionTick = completedTick.Value + decision.AdvanceTicks;
         return commands;
     }

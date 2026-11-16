@@ -135,11 +135,11 @@ just enemy's". Today the bot casts only Heal.
 
 ### Task D5: measure
 - The campaign ladder levels the bot loses (6a, 7, 11a, 15a), seeds 1-3, before and after; Level 1 unchanged.
-  D4 alone is measured (Status); the whole defence is measured once D6 is built.
+  D4 alone is measured (Status); the whole defence is measured in the economy plan (D5).
 
 ## Status
 
-D1-D4 are built; D6 and D5 follow in that order. Measured on the built change:
+D1-D4 are built; D6 and D5 moved to [the economy plan](2026-11-16-campaign-bot-economy-and-assault.md). Measured on the built change:
 - AI 626/626, Behavior 674 passed and 5 skipped, Simulation 5575/5575. The D3 expectations were mutation-checked
   before D4 (the role order, the Flanker fallback, the outnumber stop, the hurt exclusion and count, the retreat
   drop, attacks against any enemy, Support's two tiles behind the Blockers); 16 mutants of the D4 trap rules were

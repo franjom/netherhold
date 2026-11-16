@@ -192,6 +192,42 @@ public sealed record PlayerStrategy
     /// <summary>While breaching is held back, no tile within this many tiles of an enemy sighting is marked.</summary>
     public int EnemyClearanceTiles { get; init; } = 3;
 
+    /// <summary>1 keeps the gold budget (economy and assault plan E2, owner R11: "enough for payday and training"); 0 spends
+    /// as before the plan.</summary>
+    public int GoldBudget { get; init; } = 1;
+
+    /// <summary>The gold budget's margin: the gold kept is the coming payday's wage bill plus this percent. Below it the
+    /// player grows no room, builds no extra room, buys no trap and trains nobody; growth and extra rooms must also leave
+    /// it standing once paid for.</summary>
+    public int GoldMarginPercent { get; init; } = 20;
+
+    /// <summary>The Lair grows while fewer than this many beds would be left over for the non-workers (E3, owner R12:
+    /// "keep track of available slots in the lair"); its hover shows one bed per tile (<c>LairRules.Capacity</c>). 0 grows
+    /// it by <see cref="LairTilesPerCreature"/> as before the plan.</summary>
+    public int FreeBeds { get; init; } = 2;
+
+    /// <summary>The Hatchery grows once at least this percent of the non-workers (and two) show the hunger chicken on
+    /// their flower (E3, owner R12). 100 never grows it for hunger.</summary>
+    public int HungryPercent { get; init; } = 25;
+
+    /// <summary>1 builds a second Lair or Hatchery when an outgrown one cannot grow beside itself (E3, owner R12: "expand
+    /// it, create a second one"); 0 as before the plan.</summary>
+    public int SecondRooms { get; init; } = 1;
+
+    /// <summary>With no <see cref="UseRooms"/> named, an owned Training Room is used once gold is at least this and
+    /// three wage bills (E2: idle gold trains the army; Level 4 ended with 92k unspent). 0 never.</summary>
+    public int TrainGold { get; init; } = 30000;
+
+    /// <summary>The trap assault (economy and assault plan A2; owner on Level 4: "drop several creatures near ... form a
+    /// party of offensive creatures, not imps, and attack together those sentry traps"): this many fighters, lifted
+    /// together and dropped together beside an enemy trap whose reach covers own ground or a dig mark. 0 never; at most
+    /// the actions one decision may send (<see cref="CampaignPlayerOptions.MaxActionsPerDecision"/>), or it never goes.</summary>
+    public int AssaultParty { get; init; } = 4;
+
+    /// <summary>1 keeps drops, answers and (while other ground is left) dig marks out of enemy traps' reach (A2); 0 ignores
+    /// enemy traps, as before the plan.</summary>
+    public int AvoidTraps { get; init; } = 1;
+
     /// <summary>Every problem with this strategy, empty when it may be applied. With the map's size,
     /// a dig target outside it is one.</summary>
     public IReadOnlyList<string> Validate(int? mapWidth = null, int? mapHeight = null)
@@ -224,6 +260,14 @@ public sealed record PlayerStrategy
         if (UseRoomMinGold < 0) problems.Add($"UseRoomMinGold {UseRoomMinGold} is negative");
         if (EnemyClearanceTiles < 0) problems.Add($"EnemyClearanceTiles {EnemyClearanceTiles} is negative");
         if (EnemyNearTiles < 0) problems.Add($"EnemyNearTiles {EnemyNearTiles} is negative");
+        if (GoldMarginPercent < 0) problems.Add($"GoldMarginPercent {GoldMarginPercent} is negative");
+        if (GoldBudget is < 0 or > 1) problems.Add($"GoldBudget {GoldBudget} is not 0 or 1");
+        if (SecondRooms is < 0 or > 1) problems.Add($"SecondRooms {SecondRooms} is not 0 or 1");
+        if (FreeBeds < 0) problems.Add($"FreeBeds {FreeBeds} is negative");
+        if (HungryPercent is < 1 or > 100) problems.Add($"HungryPercent {HungryPercent} is outside 1 to 100");
+        if (TrainGold < 0) problems.Add($"TrainGold {TrainGold} is negative");
+        if (AssaultParty < 0) problems.Add($"AssaultParty {AssaultParty} is negative");
+        if (AvoidTraps is < 0 or > 1) problems.Add($"AvoidTraps {AvoidTraps} is not 0 or 1");
         if (AttractionTargets is null) problems.Add("AttractionTargets is null");
         else foreach (KeyValuePair<RoomTypeId, int> t in AttractionTargets.Where(t => t.Value <= 0))
             problems.Add($"AttractionTargets[{t.Key}] {t.Value} is not positive");

@@ -78,6 +78,7 @@ public sealed class PlayerObservationBuilder
     private readonly List<PlayerCreatureSummary> _creatures = [];
     private readonly List<PlayerVisibleThing> _things = [];
     private readonly List<PlayerNotice> _notices = [];
+    private readonly List<PlayerVisibleTrap> _enemyTraps = [];
     private readonly List<PlayerRoomOffer> _roomOffers = [];
     private readonly List<PlayerSpellOffer> _spellOffers = [];
     private readonly List<PlayerWorkshopOffer> _workshopOffers = [];
@@ -105,6 +106,7 @@ public sealed class PlayerObservationBuilder
         "specials that name a creature (127, 140) and stored specials are not offered",
         "tag previews and Sight of Evil are not applied to the observing view (Sight of Evil is offered, and reveals nothing to it)",
         "message text and payloads are not carried, only kind and order",
+        "an enemy trap's reach is its finder's range; the line of sight that also limits the finder is not carried",
     ];
 
     public PlayerObservationCapture Capture(WorldState completedWorld, PlayerStamp stamp, IReadOnlyList<PlayerReceipt> receipts)
@@ -125,6 +127,7 @@ public sealed class PlayerObservationBuilder
         PlayerInputTarget[] targets = CaptureThings(world, stamp.Revision);
         CaptureCreatures(world);
         CaptureNotices(world, stamp.Tick);
+        _view.PlayerEnemyTraps(world, _enemyTraps);
         PlayerOffers offers = CaptureOffers(world, phase, keeper.Hand.Count);
 
         var observation = new PlayerObservation
@@ -137,10 +140,13 @@ public sealed class PlayerObservationBuilder
             ManaIncome = new ManaPerSecond(ManaRules.GainPerSecondByPlayerIndex(world, _database)[PlayerIndex(world)]),
             ManaUpkeep = new ManaPerSecond(ManaRules.UpkeepPerSecondByPlayerIndex(world, _database, world.CurrentTick)[PlayerIndex(world)]),
             HandCount = keeper.Hand.Count,
+            TicksToPayday = (int)Math.Clamp(keeper.NextPaydayTick.Value - world.CurrentTick.Value, 0, int.MaxValue),
+            WageBill = new GoldAmount(CasinoJackpotRules.WageBill(world, _database, _player)),
             Tiles = grid,
             Rooms = _rooms,
             Creatures = _creatures,
             Things = _things,
+            EnemyTraps = _enemyTraps,
             Notices = _notices,
             Receipts = receipts,
             Offers = offers,
@@ -161,9 +167,33 @@ public sealed class PlayerObservationBuilder
                 if (tile.Room != default && tile.Owner == _player) _roomTiles[(byte)tile.Room]++;
             }
 
+        // The Lair's and Treasury's hover texts give their fill (WorldHoverText.Room: strings 2435, 2581).
+        int beds = 0, taken = 0, goldCapacity = 0, goldHeld = 0;
+        if (_roomTiles[(byte)RoomTypeId.Lair] > 0 || _roomTiles[(byte)RoomTypeId.Treasury] > 0)
+            foreach (RoomInstance room in RoomIndex.Build(world, _database))
+            {
+                if (room.OwnerPlayerId != _player.Value) continue;
+                if (room.Definition.TypeId == RoomTypeId.Lair)
+                {
+                    beds += LairRules.Capacity(room);
+                    taken += LairRules.Occupied(world, _database, room);
+                }
+                else if (room.Definition.TypeId == RoomTypeId.Treasury)
+                    foreach (int tile in room.TileIndices)
+                    {
+                        goldHeld += world.TileAtIndex(tile).GoldHeld;
+                        goldCapacity += GoldStore.Capacity(world, _database, tile, room);
+                    }
+            }
         _rooms.Clear();
         for (int room = 1; room < _roomTiles.Length; room++)
-            if (_roomTiles[room] > 0) _rooms.Add(new PlayerRoomSummary((RoomTypeId)room, _roomTiles[room]));
+            if (_roomTiles[room] > 0)
+                _rooms.Add((RoomTypeId)room switch
+                {
+                    RoomTypeId.Lair => new PlayerRoomSummary(RoomTypeId.Lair, _roomTiles[room], beds, taken),
+                    RoomTypeId.Treasury => new PlayerRoomSummary(RoomTypeId.Treasury, _roomTiles[room], goldCapacity, goldHeld),
+                    _ => new PlayerRoomSummary((RoomTypeId)room, _roomTiles[room]),
+                });
         return new PlayerTileGrid(world.Width, world.Height, _tiles);
     }
 
@@ -255,8 +285,13 @@ public sealed class PlayerObservationBuilder
                 CreatureMood.Unhappy => PlayerCreatureMood.Unhappy,
                 _ => PlayerCreatureMood.Happy,
             };
+            // The flower's chicken (SJ-Hungry, StatusFlowerCentre.Next): an unhappy or angry creature's centre shows its
+            // mood then its largest grievance; a content one's shows its job, the chicken when eating.
+            bool hungry = mood != PlayerCreatureMood.Happy
+                ? StatusFlowerCentre.LargestAnger(creature.Anger) == AngerBucket.Hunger
+                : NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Eating;
             _creatures.Add(new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand, seen,
-                CreatureLevelRules.Clamp(creature.Level), petals, mood));
+                CreatureLevelRules.Clamp(creature.Level), petals, mood, hungry));
         }
     }
 

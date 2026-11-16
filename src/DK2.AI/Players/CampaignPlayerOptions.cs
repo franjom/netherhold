@@ -65,6 +65,10 @@ public sealed record CampaignPlayerOptions
     /// 8 as shipped; combat-pit.md section 7): definition data the host reads off the level's variables.</summary>
     public int CombatPitMaxLevel { get; init; } = 8;
 
+    /// <summary>The level the Training Room stops at (<c>TrainingRoomMaxExperienceLevel</c>, variable 126, 4 as shipped;
+    /// owner: "creatures can only level up to level 4 in the training room"): definition data from the host.</summary>
+    public int TrainingMaxLevel { get; init; } = 4;
+
     /// <summary>Below this many Imps the game makes one free every few seconds (<c>MinimumImpThreshold</c>, 4 as shipped;
     /// imps-and-mana.md): definition data the host reads off the level's variables. Rule R8 buys none below it (owner,
     /// 2026-11-15: "wait"). 0, unknown, never waits.</summary>

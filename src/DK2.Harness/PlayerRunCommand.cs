@@ -170,6 +170,7 @@ public static class PlayerRunCommand
         {
             ScenarioRunner.WriteReport(result, directory);
             PlayerRunReport.WriteTables(directory, result);
+            player.Diagnostics.Write(directory, player.Decisions);
             // The output budget covers the whole folder, the verdict file included.
             PlayerRunOutcome outcome = PlayerRunReport.Outcome(player, evidenceComplete: true);
             List<string> gaps = ClaimGaps(scenario, player, outcome, receipt, fuzzed: template.Fuzz is not null,
@@ -304,6 +305,8 @@ public static class PlayerRunCommand
             GoldPerTreasuryTile = database[VariableTypeId.MaxGoldPerTreasuryTile],
             HeartGold = 16 * database[VariableTypeId.MaxGoldPerDungeonHeartTile],
             CombatPitMaxLevel = database[VariableTypeId.CombatPitMaxExperienceLevel],
+            // A data set without the variable (a synthetic one) keeps the shipped 4.
+            TrainingMaxLevel = database.Variables.TryGet(VariableTypeId.TrainingRoomMaxExperienceLevel, out int trainingCap) ? trainingCap : 4,
             FreeImps = database[VariableTypeId.MinimumImpThreshold],
             FightStyles = database.Creatures.Values.ToDictionary(c => new CreatureTypeId(c.CreatureId), c => c.FightStyle),
             AdvanceTicks = spec.IntervalTicks,

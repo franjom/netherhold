@@ -86,6 +86,14 @@ public sealed record Playbook
         ["strategy.min-imps"] = new(0, 40, (s, v) => s with { MinImps = v }),
         ["strategy.mana-reserve"] = new(0, 1_000_000, (s, v) => s with { ManaReserve = v }),
         ["strategy.imp-price-seconds"] = new(1, 3600, (s, v) => s with { ImpPriceSeconds = v }),
+        ["strategy.gold-margin-percent"] = new(0, 500, (s, v) => s with { GoldMarginPercent = v }),
+        ["strategy.free-beds"] = new(0, 20, (s, v) => s with { FreeBeds = v }),
+        ["strategy.hungry-percent"] = new(1, 100, (s, v) => s with { HungryPercent = v }),
+        ["strategy.train-gold"] = new(0, 1_000_000, (s, v) => s with { TrainGold = v }),
+        ["strategy.assault-party"] = new(0, 4, (s, v) => s with { AssaultParty = v }),
+        ["strategy.gold-budget"] = new(0, 1, (s, v) => s with { GoldBudget = v }),
+        ["strategy.second-rooms"] = new(0, 1, (s, v) => s with { SecondRooms = v }),
+        ["strategy.avoid-traps"] = new(0, 1, (s, v) => s with { AvoidTraps = v }),
     };
 
     /// <summary>The paths a tunable may name, in order.</summary>
