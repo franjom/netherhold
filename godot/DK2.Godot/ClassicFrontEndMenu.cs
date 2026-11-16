@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using System.ComponentModel;
 using DK2.Data.Campaign;
 using DK2.Data.Model;
 using DK2.Data.Settings;
@@ -59,7 +58,7 @@ public partial class ClassicFrontEndMenu : Node
 
     /// <summary>Opens the menu over an install with the player's files in <paramref name="folders"/>; call before the
     /// node enters the tree. A missing profile is created here (from the original game's registry entry on Windows); an
-    /// unusable one falls back to memory (<see cref="LoadProfile"/>).</summary>
+    /// unusable one falls back to memory (<see cref="UserFolders.LoadProfile"/>).</summary>
     public void Open(string install, GameFolders folders)
     {
         if (_hud != null) throw new InvalidOperationException("The menu is already open.");
@@ -68,7 +67,7 @@ public partial class ClassicFrontEndMenu : Node
         _session = new FrontEndSession(path => paths((int)path));
         // DungeonRunner.StartFrontEnd: the profile, the hi-scores, and the map that writes both back.
         _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
-        CampaignProfile profile = LoadProfile(_profiles, folders.Profile);
+        CampaignProfile profile = UserFolders.LoadProfile(_profiles, folders.Profile, GameSessionMode.FrontEnd, FrontEndPage.None);
         var hiScores = new HiScoreStore(folders.HiScores, install);
         _campaign = FrontEndHost.OpenCampaign(_session, _profiles, hiScores, LoadHiScores(hiScores), _assets.Briefing, RefreshMovies);
         _hud = new FrontEndMenuHud(_session, _assets, HudFit, ClassicKeyNames.Name, _campaign);
@@ -79,18 +78,6 @@ public partial class ClassicFrontEndMenu : Node
         AddChild(_canvas);
         UseReplacementFont = true;
         _session.Update(TimeSpan.Zero);
-    }
-
-    /// <summary>The player's profile; one that cannot be read or created (corrupt, unwritable, a failed registry read)
-    /// warns and leaves a fresh profile in memory only, so the menu still opens. Unity lets the error stop the front end.</summary>
-    private static CampaignProfile LoadProfile(CampaignProfileStore profiles, string path)
-    {
-        try { return profiles.Load(path, GameSessionMode.FrontEnd, FrontEndPage.None); }
-        catch (Exception ex) when (ex is IOException or InvalidDataException or Win32Exception or UnauthorizedAccessException)
-        {
-            GD.PushWarning($"DK2.Godot: cannot use the campaign profile {path} ({ex.Message}); using a fresh one that is not saved.");
-            return profiles.Adopt(new CampaignProfile());
-        }
     }
 
     /// <summary>The hi-score table; one that cannot be read for an IO reason warns and shows empty rows.</summary>

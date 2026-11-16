@@ -18,7 +18,8 @@ public sealed class CampaignLevelData
     /// includes its starting turn and runs none.</summary>
     public const int TicksBeforeFirstFrame = 1;
 
-    private CampaignLevelData(string name, GameDatabase database, LevelMap map, LevelDef level, List<PlayerDef> players,
+    /// <summary>Records already read; <see cref="Load"/> outside tests.</summary>
+    internal CampaignLevelData(string name, GameDatabase database, LevelMap map, LevelDef level, List<PlayerDef> players,
         List<ThingRecord> things, List<TriggerRecord> triggers)
     {
         Name = name; Database = database; Map = map; Level = level; Players = players; Things = things; Triggers = triggers;

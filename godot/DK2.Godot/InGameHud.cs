@@ -5,6 +5,7 @@
 using System.Globalization;
 using DK2.Core;
 using DK2.Data;
+using DK2.Data.Campaign;
 using DK2.Data.Model;
 using DK2.Data.Settings;
 using DK2.Presentation;
@@ -20,7 +21,7 @@ namespace DK2.GodotAdapter;
 /// 1b): the resource strip, the bottom panel, the creature overview, the creature query details, the message tabs, the
 /// battle tab, the hover HUD (<see cref="HudHoverText"/>), the options menu (<see cref="ClassicHudControls"/>, opened by
 /// the options key; while it is open the level pauses and the other panels take no input, as Unity's <c>HudModal</c>) and
-/// its save and load pages (writing and reading a save are not wired) and game options pages (<see cref="ClassicGameOptionsPanel"/>;
+/// its save and load pages (<see cref="SaveLoadSubmitted"/>) and game options pages (<see cref="ClassicGameOptionsPanel"/>;
 /// the settings are read from and saved to <c>user://game-settings.ini</c>) and the full map (<see cref="ClassicFullMap"/>, opened
 /// by its key, closed by it, Escape or a left or right press; while it shows the normal HUD hides) and the minimap
 /// (<see cref="ClassicMinimap"/>, drawn from the level-start camera's focus and heading, as no camera moves them here; its
@@ -91,6 +92,21 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private ClassicOptionsPanel? _options;
     /// <summary>The save and load pages' list, as Unity's runner keeps it.</summary>
     private SaveSlotsView? _saves;
+    /// <summary>The loaded save the next instance of this scene continues (<see cref="SaveLoadSubmitted"/>), as Unity's
+    /// runner hands its pending resume to the runner that replaces it; taken and cleared by <see cref="_Ready"/>.</summary>
+    private static GameSessionRequest? s_resume;
+    /// <summary>The live campaign profile, loaded on the first save or load (Unity's runner's <c>_profiles</c>) from
+    /// <see cref="_profilePath"/>.</summary>
+    private CampaignProfileStore? _profiles;
+    private string _profilePath = "";
+    private SessionContext? _context;
+    private SessionSaver? _saver;
+    private SessionLoader? _loader;
+    /// <summary>The check arguments (godot/README.md): <c>--save-as</c> once the turn reaches <c>--save-tick</c>,
+    /// <c>--load</c> on the first frame, and the state hash at turn <c>--hash-at</c>.</summary>
+    private string? _saveAs, _loadName;
+    private GameTick _saveTick;
+    private GameTick? _hashTick;
     private ClassicSaveLoadPanel? _saveLoad;
     /// <summary>The full map, over the minimap's class grid, as Unity's runner shares it.</summary>
     private ClassicFullMap? _fullMap;
@@ -127,12 +143,30 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
         string[] args = OS.GetCmdlineUserArgs();
         LaunchArguments launch = LaunchArguments.Parse(args, "--");
-        string levelName = launch.Level ?? "Level1";
+        // A save the previous instance loaded: its level, return page and restored simulation replace the arguments'.
+        GameSessionRequest? resume = s_resume;
+        s_resume = null;
+        string levelName = resume?.LevelName ?? launch.Level ?? "Level1";
         ulong seed = launch.Seed ?? 1;
         GameFolders folders = UserFolders.FromArguments(args);
         CampaignLevelData level = CampaignLevelData.Load(install, levelName);
-        _simulation = level.CreateSimulation(seed, fogOfWarEnabled: true);
+        _simulation = resume?.Resume?.Simulation ?? level.CreateSimulation(seed, fogOfWarEnabled: true);
         _simulation.World.LocalPlayerId = _viewer;
+        // DungeonRunner's session: a direct start returns to no page, as Unity's runner started from its scene does.
+        _context = new SessionContext(levelName, GameSessionMode.Campaign, resume?.ReturnPage ?? FrontEndPage.None);
+        _profilePath = folders.Profile;
+        _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
+        _saver = new SessionSaver(_profiles, LoadProfile, () => DateTime.UtcNow);
+        _loader = new SessionLoader(_profiles, LoadProfile, name => CampaignLevelData.Load(install, name));
+        // DungeonRunner.PrepareCampaignResult's resumed branch: a save of a level started from the campaign map plays its
+        // slot and counts the restored carry as written. A fresh start from the map (the transfer creature) needs a front
+        // end that launches levels, and the level end is not ported (plan step 2g).
+        if (resume != null && _context.LaunchedFromFrontEnd)
+        {
+            LoadProfile();
+            _context.PlaySlotOf(_profiles.Profile!);
+            _context.CarryApplied = _simulation.World.Carry;
+        }
         // DungeonRunner.InitializeSettings: game-settings.ini beside the campaign profile.
         _settingsPath = folders.Settings;
         _settings = LoadSettings(_settingsPath);
@@ -247,7 +281,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _typeText = new WorldHoverText(level.Database, _sources.Strings.Resolve, _viewer, CampaignSlot.ForLevel(levelName));
         // DungeonRunner applies the loaded settings once the level is up.
         ApplySettings(_settings);
-        for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
+        // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
+        if (resume == null)
+            for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
         if (Array.IndexOf(args, "--query-first-creature") >= 0)
             foreach (CreatureState creature in _simulation.World.OwnedCreatures(_viewer))
             {
@@ -266,8 +302,18 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 else GD.PushWarning("DK2.Godot: --open-options ignores " + entry + ", which the menu does not support.");
             }
         }
+        if (resume == null)
+        {
+            _saveAs = LaunchArguments.Value(args, "--save-as");
+            _loadName = LaunchArguments.Value(args, "--load");
+            if (long.TryParse(LaunchArguments.Value(args, "--save-tick"), NumberStyles.None, CultureInfo.InvariantCulture, out long saveTick))
+                _saveTick = new GameTick(saveTick);
+        }
+        if (long.TryParse(LaunchArguments.Value(args, "--hash-at"), NumberStyles.None, CultureInfo.InvariantCulture, out long hashTick))
+            _hashTick = new GameTick(hashTick);
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture), ", saves in ", savesDirectory,
             ", settings in ", _settingsPath);
+        if (resume != null) PrintHash("resumed " + resume.Resume!.Session.Header.DisplayName + " at");
     }
 
     public override void _Process(double delta)
@@ -279,6 +325,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             || _gameOptionsPanel == null || _fullMap == null || _minimap == null || _worldView == null) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
+        if (_loadName != null || (_saveAs != null && _simulation.World.CurrentTick >= _saveTick)) RunSaveLoadCheck();
         // Once per settled turn, before the HUD draws, as DungeonRunner.UpdateWorldSound captures it.
         _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
         // Once per settled turn, as DungeonRunner captures it before the HUD draws; the full map reads the same grid.
@@ -360,7 +407,44 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         int ticks = _pacer.Take(TickPacer.DefaultMaxTicksPerFrame);
         InputFrame first = TickPacer.FirstInput(ticks, _pending);
         if (first.Commands != null) _pending.Clear();
-        for (int i = 0; i < ticks; i++) _simulation.Tick(TickPacer.InputFor(i, first));
+        for (int i = 0; i < ticks; i++)
+        {
+            _simulation.Tick(TickPacer.InputFor(i, first));
+            if (_simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
+        }
+    }
+
+    private void PrintHash(string what)
+    {
+        if (_simulation == null) return;
+        GD.Print("DK2.Godot: ", what, " tick ", _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture),
+            ", state hash ", _simulation.StateHash().ToString("X16", CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>The <c>--save-as</c> and <c>--load</c> check arguments, through the options menu's own pages: open the
+    /// menu, press Save or Load, name or select the save, submit as a press on the page does, then close the menu so the
+    /// level runs on. Each acts once; a resumed instance ignores both.</summary>
+    private void RunSaveLoadCheck()
+    {
+        if (_presses == null || _saves == null) return;
+        bool saving = _loadName == null;
+        string name = (saving ? _saveAs : _loadName)!;
+        if (saving) _saveAs = null; else _loadName = null;
+        if (!_hudControls.OptionsVisible) ApplyHudAction(ClassicHudAction.ToggleOptions);
+        _presses.PressOptions(saving ? ClassicOptionsAction.Save : ClassicOptionsAction.Load);
+        if (saving)
+        {
+            _saves.SetName(name);
+            PrintHash("saving " + name + " at");
+        }
+        else
+        {
+            int index = -1;
+            for (int i = 0; i < _saves.Entries.Count; i++) if (_saves.Entries[i].DisplayName == name) index = i;
+            if (!_saves.Select(index)) { GD.PushError("DK2.Godot: --load found no save named ", name, " in ", _saves.Directory); return; }
+        }
+        SaveLoadSubmitted();
+        ApplyHudAction(ClassicHudAction.ToggleOptions);
     }
 
     /// <summary>The <c>--stage-battle</c> test argument: a Knight of the heroes on the tile of the viewer's first creature,
@@ -562,12 +646,55 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private static bool IsFileError(Exception e) =>
         e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or System.Security.SecurityException;
 
-    /// <summary>The save browser's Enter, or a press on its name or Load line. Unity's runner writes the session there
-    /// (DungeonRunner.SaveSession: the campaign profile and its carry, the header, the world snapshot) or rebuilds the world
-    /// and the session from the chosen save (LoadSession); both need the runner's session and campaign profile, so the
-    /// request is dropped here (plan step 2), and nothing is written.</summary>
-    private void SaveLoadSubmitted() =>
-        GD.Print("DK2.Godot: the ", _hudControls.OptionsPage.ToString(), " page's submit is not wired yet.");
+    /// <summary>The save browser's Enter, or a press on its name or Load line, as DungeonRunner.SaveSession and LoadSession
+    /// apply it. Save writes the session under the typed name (<see cref="SessionSaver"/>: the carry into the profile, the
+    /// header, the world checkpoint, the profile); Load rebuilds the chosen save's simulation (<see cref="SessionLoader"/>,
+    /// which writes the saved profile to the profile file) and reloads this scene to continue it, as Unity's runner
+    /// replaces itself. This scene ticks inline, so no tick is in flight here. A refused file shows on the page.</summary>
+    private void SaveLoadSubmitted()
+    {
+        if (_simulation == null || _saves == null || _saveLoad == null || _context == null || _saver == null || _loader == null) return;
+        try
+        {
+            if (_hudControls.OptionsPage == ClassicOptionsPage.Save)
+            {
+                string path = _saver.Save(_simulation, _simulation.World.Carry, _context, _saves);
+                GD.Print("DK2.Godot: saved ", path);
+            }
+            // A load already handed over waits for its reload; a second submit in the same frame is ignored.
+            else if (_saves.Selected != null && s_resume == null)
+            {
+                s_resume = _loader.Load(_saves.Selected.Path);
+                GD.Print("DK2.Godot: loaded ", _saves.Selected.Path, "; reloading the scene to continue it.");
+                // Deferred to the frame's end, as Unity's runner switches only once the frame is done with it: a reload
+                // takes this node out of the tree at once, and a submit can come from inside this frame's _Process.
+                Callable.From(ReloadForResume).CallDeferred();
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or ArgumentException or UnauthorizedAccessException
+            or NotSupportedException)
+        {
+            GD.PushWarning("DK2.Godot: the ", _hudControls.OptionsPage.ToString(), " page refused: ", ex.Message);
+            _saveLoad.Error(ex.Message);
+        }
+    }
+
+    /// <summary>Reloads this scene to continue <see cref="s_resume"/>; a reload the tree refuses drops the handover, so the
+    /// running level goes on and the next load can try again.</summary>
+    private void ReloadForResume()
+    {
+        Error error = GetTree().ReloadCurrentScene();
+        if (error == Error.Ok) return;
+        s_resume = null;
+        GD.PushWarning("DK2.Godot: the scene could not be reloaded to continue the save (", error.ToString(), ").");
+        _saveLoad?.Error("The scene could not be reloaded.");
+    }
+
+    /// <summary>DungeonRunner.LoadFrontEndProfile for this session, with the front end's fallback (<see cref="UserFolders.LoadProfile"/>).</summary>
+    private void LoadProfile()
+    {
+        if (_profiles != null && _context != null) UserFolders.LoadProfile(_profiles, _profilePath, _context.Mode, _context.ReturnPage);
+    }
 
     /// <summary>DungeonRunner.SelectPanelChoice: <see cref="HudToolState.SelectPanelChoice"/>.</summary>
     private void SelectPanelChoice(BottomPanelSelection selection) => _tools.SelectPanelChoice(selection, _input, _queryView);
@@ -660,6 +787,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_optionsPages != null) { _optionsPages.Applied -= ApplySettings; _optionsPages.SaveRequested -= SaveSettings; }
         _battleTab = null; _battles = null; _options = null; _saveLoad = null; _saves = null; _fullMap = null;
         _minimap = null; _worldView = null;
+        _saver = null; _loader = null; _context = null; _profiles = null;
         _gameOptionsPanel = null; _gameOptions = null; _optionsPages = null;
         _art?.Dispose(); _sources?.Dispose();
         _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _queryPanel = null; _queryView = null;

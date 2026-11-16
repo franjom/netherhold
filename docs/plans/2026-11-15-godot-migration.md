@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d and 2e are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit, 2a, 2b, 2c, 2d, 2e and 2f are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -342,11 +342,38 @@ group 2 is a list to audit, not a finding.
       (no build compiles it). Left for later: DK2's 0x00534F70 reaches `RepairAfterLevel` for return states 0x1A, 0x1B,
       0x2A and 0x2D and ours only for 0x1A (its record says so; possibly a separate gap);
       `CampaignMapController.AdvanceVisuals` calls `RouteSlots(...)` every frame on the map page, a possible
-      allocation, unmeasured, which Godot can now reach. Owner questions, product policy and not DK2 unknowns (so no Q
-      row): is a corrupt profile falling back to a fresh unsaved one acceptable; is it acceptable that Godot's first
-      start imports the original game's registry profile once into `user://` and the two then diverge.
-- [ ] 2f. Save and load (`SessionSaver`, `SessionLoader`, `SessionContext`, a resume payload on
-      `GameSessionRequest`); Godot's save page then writes and loads.
+      allocation, unmeasured, which Godot can now reach. Owner question, product policy and not a DK2 unknown (so no Q
+      row): is it acceptable that Godot's first start imports the original game's registry profile once into
+      `user://` and the two then diverge. The corrupt-profile fallback is the current policy (see 2f).
+- [x] 2f. Save and load (2026-11-16), a move into `DK2.Presentation` that Unity calls from `Saves.cs`, `LevelEnd.cs` and
+      `DungeonRunner.cs` (`_playedSlot` and `_carryApplied` are gone). `SessionContext` holds the level, mode, return
+      page, `PlayedSlot` and `CarryApplied`, with `ApplyCarry` (the old `ApplyCampaignCarry`), `PlaySlotOf` and the
+      front-end launch rule. `SessionSaver` is the old `SaveSession`: load the profile if needed, apply the carry when a
+      slot is played, write the header and `ToBytes`, then the profile, and refresh the list. `SessionLoader` is the old
+      `LoadSession`: it validates, reuses `CampaignLevelData.Load` and `CampaignSimulationFactory.Triggers` (Unity's
+      copies are gone), calls `FromBytes` with `SimulationSystems.Default()` and writes the save's profile to the path
+      without adopting it. The snapshot format and load order are unchanged; whether `WorldSnapshot.LoadGame` should
+      replace `FromBytes` stays open (audit). `GameSessionRequest.Resume` and `Resumed` carry the result;
+      `CampaignLevelData`'s constructor is internal. The one Unity difference: a save whose level map is missing is now
+      refused, since `CampaignLevelData.Load` reads the map (all 66 shipped maps load; an `InvalidOperationException`
+      from it reads as "not available in this installation"). Unity's `LoadLevel` still copies `_pendingResume*` and
+      does not read `request.Resume`, as at HEAD: for 2h. Godot: `InGameHud` has a `CampaignProfileStore`, loaded on the
+      first save or load. Save writes `<saves>/<name>.dk2g` through `SessionSaver`. Load goes through `SessionLoader`,
+      a static handoff and a deferred scene reload (`ReloadForResume`); the new instance continues from the restored
+      simulation, a second submit while a reload is pending is ignored, and a failed reload clears the handoff and shows
+      "The scene could not be reloaded." A save writes the `.dk2g` and the profile file if it is missing, and rewrites
+      the profile when a played slot has a new carry; a load overwrites the profile file with the save's profile, as
+      Unity does. Corrupt-profile policy (an owner product decision): a save still works, keeping the profile
+      in memory with no file write; a load is refused with "The campaign profile could not be read, so a save cannot be
+      loaded." and writes nothing. Check arguments: `--save-as <name>` with `--save-tick <n>`, `--load <name>`,
+      `--hash-at <n>`; a resumed instance ignores `--save-as` and `--load` (`godot/README.md`). Portability: the Unity
+      saves under `build/` are snapshot format 523, the current format is 524, and Godot refuses them cleanly; no
+      current-format Unity save exists to cross-check. `SessionSaveLoadTests` (new) and `CampaignProfileStoreTests`;
+      20 mutations across the review all fail a test, the `LoadGame` one only in an install-gated test. Headless
+      Godot on Level1: the state hash at turn 400 is `D7290428D81A902F` whether the run never saved, saved at turn 200
+      (`3057C00AA838C44A`) and went on, or loaded that save and went on; the install-gated test repeats it over 301 +
+      300 turns. A corrupt-profile run refused the load and left the file unchanged. Not run: Unity in Play mode, and
+      a save written by a current Unity build loaded in Godot.
 - [ ] 2g. Level end and cutscenes (`CampaignResultFlow`, `CampaignCutsceneRunner`, the tablet
       projection as a draw list); the resource flash, the flash-button hint, and the scripted view's HUD
       hiding and opening-path heading.

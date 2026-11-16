@@ -18,6 +18,8 @@ choice, the query tool, the selected corner) and `HudActionRouter` (a HUD action
 The front end's stores and glue: `CampaignProfileStore` (`Load`, `Save`, `Track`, `Adopt`, `SecretFiveAvailable`),
 `HiScoreStore` (its own file, then the install's, then empty), `FrontEndHost` (`OpenCampaign`, `TypeName`,
 `FillPickSlots`, `CreatureFrame`, `MovieGallery`) and `FrontEndStartupGate`.
+Save and load: `SessionContext` (level, mode, return page, played slot, carry; `ApplyCarry`, `PlaySlotOf`), `SessionSaver` (`Save`),
+`SessionLoader` (`Load`, to a `GameSessionRequest` carrying a `SessionResume`) and `GameSessionRequest.Resumed`.
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

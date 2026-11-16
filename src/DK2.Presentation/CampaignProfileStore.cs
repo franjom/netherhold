@@ -64,8 +64,11 @@ public sealed class CampaignProfileStore
         return Profile;
     }
 
-    /// <summary>Writes the live profile to its file.</summary>
-    public void Save() => CampaignProfileFile.Save(Path!, Profile!);
+    /// <summary>Writes the live profile to its file; after <see cref="Adopt"/>, which has none, it stays in memory only.</summary>
+    public void Save()
+    {
+        if (Path != null) CampaignProfileFile.Save(Path, Profile!);
+    }
 
     /// <summary>Keeps every profile the map changes: it becomes the live one, <see cref="Changed"/> runs, then the file
     /// is written (not after <see cref="Adopt"/>, which has none).</summary>

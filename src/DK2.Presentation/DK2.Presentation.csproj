@@ -15,4 +15,8 @@
     <ProjectReference Include="../DK2.Assets/DK2.Assets.csproj" />
     <ProjectReference Include="../DK2.Art/DK2.Art.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DK2.Presentation.Tests" />
+  </ItemGroup>
 </Project>

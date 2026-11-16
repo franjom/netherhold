@@ -14,46 +14,25 @@ namespace DK2.Unity
     /// <summary>A campaign level started from the front end: its verdict, and the way back.</summary>
     public sealed partial class DungeonRunner
     {
-        private CampaignSlot _playedSlot;
         private bool _resultRecorded;
         private int _levelTicksPerSecond;
         private readonly bool[] _statisticsRecorded = new bool[8];
-        private CampaignCarry _carryApplied;
+        /// <summary>The level, how it started, the played slot and the carry already in the profile (saves read it too).</summary>
+        private SessionContext _context;
 
-        private bool LaunchedFromFrontEnd => sessionMode == GameSessionMode.Campaign && frontEndReturnPage == FrontEndPage.CampaignResults;
+        private bool LaunchedFromFrontEnd => SessionContext.StartedFromFrontEnd(sessionMode, frontEndReturnPage);
 
         private void PrepareCampaignResult(bool resumed = false)
         {
             if (!LaunchedFromFrontEnd) return;
             LoadFrontEndProfile();
-            CampaignSlot slot = CampaignProgression.PlayedSlot(_profiles.Profile);
-            // A profile that names another map (edited between sessions) records nothing.
-            _playedSlot = string.Equals(slot.LevelName, levelName, System.StringComparison.OrdinalIgnoreCase) ? slot : CampaignSlot.None;
-            if (resumed) { _carryApplied = World.Carry; return; }
+            _context.PlaySlotOf(_profiles.Profile);
+            if (resumed) { _context.CarryApplied = World.Carry; return; }
             if (_profiles.Profile.TransferCreatureId == 0) return;
             // 0x0050C67D: the stored creature arrives before the first turn; both values clear whatever happens.
             TransferCreatureRules.Arrive(_simulation, new PlayerId((byte)viewingPlayerId),
                 _profiles.Profile.TransferCreatureId, _profiles.Profile.TransferCreatureLevel);
             _profiles.Profile = _profiles.Profile with { TransferCreatureId = 0, TransferCreatureLevel = 0 };
-            _profiles.Save();
-        }
-
-        /// <summary>The profile writes specials 129 and 140 make in DK2 the moment they act.</summary>
-        private void ApplyCampaignCarry()
-        {
-            CampaignCarry carry = World.Carry;
-            if (carry.HiddenLandFound == _carryApplied.HiddenLandFound && carry.TransferStored == _carryApplied.TransferStored
-                && carry.TransferCreatureTypeId == _carryApplied.TransferCreatureTypeId
-                && carry.TransferCreatureLevel == _carryApplied.TransferCreatureLevel) return;
-            for (int i = _carryApplied.HiddenLandFound; i < carry.HiddenLandFound; i++)
-                if (_profiles.Profile.LevelNumber is >= 1 and <= 30)
-                    _profiles.Profile = CampaignProgression.LocateHiddenLand(_profiles.Profile, new CampaignSlot(_profiles.Profile.LevelNumber));
-            if (carry.TransferStored)
-                _profiles.Profile = _profiles.Profile with
-                {
-                    TransferCreatureId = carry.TransferCreatureTypeId, TransferCreatureLevel = carry.TransferCreatureLevel,
-                };
-            _carryApplied = carry;
             _profiles.Save();
         }
 
@@ -63,15 +42,15 @@ namespace DK2.Unity
         private bool UpdateCampaignResult()
         {
             if (!LaunchedFromFrontEnd) return false;
-            if (_playedSlot != CampaignSlot.None) ApplyCampaignCarry();
+            if (_context.PlayedSlot != CampaignSlot.None) _context.ApplyCarry(_profiles, World.Carry);
             RecordLevelStatistics();
             byte status = World.Player(new PlayerId((byte)viewingPlayerId)).Status;
             bool ended = PlayerStatus.HasEnded(status);
             _hudControls.UpdateResult(new HudResultState(HasResult: ended), _scriptedView.PathPlaying ? CameraModeId.ScriptedPath : default);
             if (!ended) return false;
-            if (!_resultRecorded && _playedSlot != CampaignSlot.None)
+            if (!_resultRecorded && _context.PlayedSlot != CampaignSlot.None)
             {
-                _profiles.Profile = CampaignProgression.RecordResult(_profiles.Profile, _playedSlot, won: status == PlayerStatus.Won);
+                _profiles.Profile = CampaignProgression.RecordResult(_profiles.Profile, _context.PlayedSlot, won: status == PlayerStatus.Won);
                 _profiles.Save();
             }
             _resultRecorded = true;
@@ -85,7 +64,7 @@ namespace DK2.Unity
         /// <summary>0x004BE630's shared tail for each player as its verdict is sampled, in verdict order.</summary>
         private void RecordLevelStatistics()
         {
-            if (_playedSlot == CampaignSlot.None) return;
+            if (_context.PlayedSlot == CampaignSlot.None) return;
             WorldState world = World;
             bool any = false;
             for (int i = 0; i < world.PlayerCount && !any; i++)
@@ -108,7 +87,7 @@ namespace DK2.Unity
                     ? KeeperRank.Compute(block, LevelStatisticsRules.NativeEndTurn(player.Statistics), _levelTicksPerSecond,
                         database[VariableTypeId.AverageTime], database[VariableTypeId.LevelRating])
                     : (uint?)null;
-                _profiles.Profile = CampaignProgression.RecordStatistics(_profiles.Profile, player.PlayerId, block, _playedSlot, rank);
+                _profiles.Profile = CampaignProgression.RecordStatistics(_profiles.Profile, player.PlayerId, block, _context.PlayedSlot, rank);
             }
             _profiles.Save();
         }

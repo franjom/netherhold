@@ -4,15 +4,10 @@
 
 using System;
 using System.IO;
-using System.Linq;
-using DK2.Core;
 using DK2.Data;
-using DK2.Data.Campaign;
-using DK2.Data.Model;
 using DK2.Data.Save;
 using DK2.Presentation;
 using DK2.Simulation;
-using DK2.Simulation.Systems;
 using UnityEngine;
 
 namespace DK2.Unity
@@ -24,6 +19,8 @@ namespace DK2.Unity
         private ClassicSaveLoadPanel _savePanel;
         private GameSimulation _resumeSimulation, _pendingResumeSimulation;
         private SavedSession _resumeSession, _pendingResumeSession;
+        private SessionSaver _saver;
+        private SessionLoader _loader;
 
         private void InitializeSaves(string install)
         {
@@ -31,6 +28,9 @@ namespace DK2.Unity
             _saves = new SaveSlotsView(Folders.Saves);
             _savePanel = new ClassicSaveLoadPanel(transform, new InstallClassicOptionsAssets(_hudSources));
             _savePanel.HudAction += ApplyHudAction;
+            _saver = new SessionSaver(_profiles, LoadFrontEndProfile, () => DateTime.UtcNow);
+            _loader = new SessionLoader(_profiles, LoadFrontEndProfile, name => CampaignLevelData.Load(
+                string.IsNullOrWhiteSpace(installDirectory) ? Dk2Install.Find() : installDirectory, name));
             _savePanel.Submit += () =>
             {
                 if (_hudControls.OptionsPage == ClassicOptionsPage.Save) SaveSession();
@@ -43,13 +43,7 @@ namespace DK2.Unity
             try
             {
                 WaitForTick();
-                if (_profiles.Profile == null) LoadFrontEndProfile();
-                if (_playedSlot != CampaignSlot.None) ApplyCampaignCarry();
-                string path = SavedSessionFile.PathForName(_saves.Directory, _saves.Name);
-                var header = new SavedSessionHeader(levelName, (byte)sessionMode, (ushort)frontEndReturnPage,
-                    DateTime.UtcNow, _saves.Name);
-                SavedSessionFile.Save(path, new SavedSession(header, WorldSnapshot.ToBytes(_simulation), _profiles.Profile));
-                _saves.Refresh();
+                _saver.Save(_simulation, World.Carry, _context, _saves);
             }
             catch (Exception ex) when (ex is IOException || ex is InvalidDataException || ex is ArgumentException || ex is UnauthorizedAccessException)
             { _savePanel.Error(ex.Message); }
@@ -60,27 +54,10 @@ namespace DK2.Unity
             try
             {
                 WaitForTick();
-                SavedSession session = SavedSessionFile.Load(path);
-                if (session.Header.GameMode != (byte)GameSessionMode.Campaign
-                    || !Enum.IsDefined(typeof(FrontEndPage), session.Header.ReturnPageId))
-                    throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "This saved session has an unsupported game mode or return page.");
-                string install = string.IsNullOrWhiteSpace(installDirectory) ? Dk2Install.Find() : installDirectory;
-                string name = session.Header.LevelName;
-                GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, name);
-                var level = GameDatabaseLoader.LoadCampaignLevel(install, name);
-                var players = GameDatabaseLoader.LoadCampaignPlayers(install, name);
-                var things = GameDatabaseLoader.LoadCampaignThings(install, name);
-                var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, name);
-                if (level == null || players == null || things == null || triggers == null)
-                    throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "The saved level is not available in this installation.");
-                var tree = new TriggerTree(triggers, level.TriggerId, things.OfType<HeroPartyThing>(),
-                    players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
-                // Validate before releasing the current scene. Our checkpoint format preserves its hash exactly.
-                GameSimulation simulation = WorldSnapshot.FromBytes(session.Snapshot, database, SimulationSystems.Default(), tree);
-                if (_profiles.Path == null) LoadFrontEndProfile();
-                CampaignProfileFile.Save(_profiles.Path, session.Profile);
-                _pendingResumeSession = session; _pendingResumeSimulation = simulation;
-                _pendingSession = GameSessionRequest.Campaign(name, (FrontEndPage)session.Header.ReturnPageId);
+                // Validated and rebuilt before the current scene is released; the checkpoint keeps its hash exactly.
+                GameSessionRequest request = _loader.Load(path);
+                _pendingResumeSession = request.Resume.Session; _pendingResumeSimulation = request.Resume.Simulation;
+                _pendingSession = request;
             }
             catch (Exception ex) when (ex is IOException || ex is InvalidDataException || ex is ArgumentException
                 || ex is UnauthorizedAccessException || ex is NotSupportedException)

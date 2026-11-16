@@ -186,6 +186,17 @@ public sealed class CampaignProfileStoreTests : IDisposable
     }
 
     [Fact]
+    public void SaveAfterAdoptKeepsTheProfileInMemoryAndWritesNoFile()
+    {
+        CampaignProfileStore store = Store();
+        store.Adopt(new CampaignProfile());
+        store.Profile = store.Profile! with { TransferCreatureId = 7 };
+        store.Save();
+        Assert.Equal(7, store.Profile.TransferCreatureId);
+        Assert.Empty(Directory.GetFiles(_root));
+    }
+
+    [Fact]
     public void ATrackedMapsChangeBecomesLiveThenNotifiesThenIsWritten()
     {
         WriteOld(WithStatuses((1, CampaignLevelStatus.Won), (2, CampaignLevelStatus.Won), (3, CampaignLevelStatus.Open)) with { LevelNumber = 3 });

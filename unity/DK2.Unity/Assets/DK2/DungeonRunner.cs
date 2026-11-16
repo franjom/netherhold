@@ -287,6 +287,7 @@ namespace DK2.Unity
                 saveFile = "";
             }
             _toolState.StartWith(tool, selectedRoomId);
+            _context = new SessionContext(levelName, sessionMode, frontEndReturnPage);
 
             string install = string.IsNullOrWhiteSpace(installDirectory)
                 ? Dk2Install.Find()
