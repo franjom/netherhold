@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera) and 3b (camera control and the minimap) are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap) and 3c (terrain that changes) are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -582,7 +582,7 @@ licensed; its lighting probes can give reference frames for 3i and 3j).
       where Unity had the implicit "URP Unlit has no `_EmissionColor`"). `RightHandedFrame` is the Unity
       (left-handed) to Godot (right-handed) Z flip, audit open point 1, option 1: triangle indices pass through
       unchanged, because the geometry and the camera are mirrored together and the screen winding stays. Unity's
-      `TerrainChunks` keeps the upload, the scheduler and `Append`; `ClassicMeshes` implements `ITerrainPieceSource`
+      `TerrainChunks` keeps the upload, the scheduler (moved in 3c) and `Append`; `ClassicMeshes` implements `ITerrainPieceSource`
       and maps a key to a cached `Material`. Godot's new `WorldScene`, under `InGameHud`, has one `MeshInstance3D` per
       16x16 chunk, one `ArrayMesh` surface per key, unshaded shaders and a `Camera3D` at the level-start pose
       (`PROJECTION_FRUSTUM`, keep-height, `frustum_offset = -shift*h/2`, near 0.3); the focus projects to y 453.37
@@ -625,7 +625,47 @@ licensed; its lighting probes can give reference frames for 3i and 3j).
       interpolated model, as Unity does; Godot reads the settled simulation position. The footprint's native scale and centre
       constants are an open item ([minimap-rendering.md](research/minimap-rendering.md), *Camera footprint*). An allocation
       test fails in about 1 of 5 to 10 full Presentation runs, also on a clean HEAD (`docs/TRAPS.md`).
-- [ ] Terrain that changes, the blended stream, the pointer, cage and placement (3c to 3e; the audit lists the order). Pointer
+- [x] 3c. Terrain that changes (2026-11-16, ADR-0805; ADR-0457 and ADR-0696 for the scheduler). In `DK2.Presentation`:
+      `TerrainChunkScheduler` over `ITerrainChunkSink`, out of Unity's `TerrainChunks`. A change forgets its lattice cells and
+      marks the 5x5 tiles stale (`StaleReach` 2; without a lattice only the tile itself; a tag or tint change marks the 4
+      neighbours). The flush keeps Unity's numbers: a 4 ms budget, at least one chunk, inline while no chunk shows, lowest
+      chunk first. A tile is prepared on the main thread and built on the pool, joined by the next flush or `Set`; a budgeted
+      flush returns without waiting for an unfinished build. The profiler markers keep Unity's names, created at type init as
+      before. `TerrainMaterialLook` is one look per key: `TagTint` (128,128,200), `TagOverlayColour` (63,64,255),
+      `HoverOverlayColour` (255,64,65; global 0x006FCD73, read at 0x0043BF1F in 0x0043B220), `RedLight`, `TaggedLight`,
+      `TintedLight` and `FogAlpha`; Unity's `ClassicMeshes.Terrain(key)` now picks its `Material` from it. `LiquidSurfaceWave`
+      and `LiquidSurfaceField` came out of `LiquidSurfaces`: rest heights 0.9 and 0.85, amplitudes 0.03 and 0.04, the 30 a
+      second frame, both phase formulas and a 3x3 grid a tile. `TerrainTileGeometry`'s starting buffers are cut to 32 and 16:
+      on Level1 (1,140 tiles) the retained memory a tile went from 8,970 B to 1,954 B (9.8 to 2.1 MB), and a dig's 5x5 rebuild
+      takes 0.23-0.27 ms through the per-tile cache against 2.3-2.5 ms for a whole chunk, so the cache stays. Audit
+      corrections: the decay stage was already in `src` (`WorldView.DecayStage`, `TileView.FaceTexture`,
+      `TerrainPiece.FromModel`, `ClassicMaterialRecipe.FromKmf`), and `HoverOverlayColour` moved now with the overlay, not in
+      3h. Unity: `TerrainChunks` is a sink over the scheduler and `LiquidSurfaces` uploads the field. Two deviations, both
+      the remake's: Unity takes the shared liquid normals (the normalised sum of unit face normals) in place of
+      `Mesh.RecalculateNormals`, which the reviewer bounds at 1.5 degrees (0.02 against area weighting), at most a one-byte
+      light step; and an alpha-blended recipe under fog opacity 255 reuses the plain material instead of an identical
+      alpha-1 twin, which renders the same. A race that was already there is fixed: `DungeonRunner` set
+      `_terrainLattice.Possession` (`InvalidateAll`) while a pool build could run; `TerrainChunks.JoinBuild` and
+      `DungeonScene.JoinTerrainBuild` are new, and the runner joins before the latch changes. Godot's `WorldScene` rebuilds
+      through the scheduler with one `ShaderMaterial` per look, and rewrites the liquids' positions in place each frame
+      (`SurfaceUpdateVertexRegion`). Its normal upload waits for 3i, since every material is unshaded. A stand-in light of
+      0.5 stands until 3i (the remake's choice): a lit material draws texture x colour x clamp(floor((0.5 + added) x
+      255) / 255), Unity's packed diffuse with a fixed sum, so the tag, red and tint light stay visible under DK2's clamp.
+      Colour arithmetic runs on stored bytes and is converted to linear once, but Godot blends additive overlays and the fog
+      in linear space, so they come out weaker than in Unity's gamma space (0.5 + 0.5 is 1.0 in Unity, about 0.68 in Godot);
+      left for 3d. Mutation checks: the developer's 37 and 11 more, and the reviewer's 56, each killed or equivalent. Verification:
+      `dotnet test DK2.slnx` 10,646 passed, 30 skipped (Presentation 2,662); the Level1 turn-400 hash is unchanged
+      (`D7290428D81A902F`); the `DK2.Unity.Compile` stand-in passes; Unity's batch compile, `SmokeTest` and `SaveSmokeTest`
+      passed. Captures: Level1 at tick 130 against tick 1000 is identical except one gold tile lit by the tutorial's blinking
+      red highlight (the red twin plus the overlay), rebuilt within a frame or two; Level1's terrain does not change on its own
+      (no tags, and the imps do not dig without the player). Level8 shows lava and water surfaces in their beds; no clean wave
+      capture exists (the camera drifted after a load), so the vertex upload was checked by reading Godot's vertex buffer back.
+      The tag tint is not captured. Open: (1) the steady-frame allocation that remains is shared code, about 2.8 KB a frame on
+      Level1 and 10.6 KB on Level8, from `ScenePresenter.Present`'s object, creature and structure passes (yield iterators in
+      `WorldView` and `Scenery`); a separate `DK2.Presentation` change. (2) The linear-blend weakness above, for 3d. (3) A
+      `--stage-tags x0,y0,x1,y1` launch argument would make the tag tint capturable. (4) A staged liquid capture, with the
+      camera held, would show the wave.
+- [ ] The blended stream, the pointer, cage and placement (3d and 3e; the audit lists the order). Pointer
       samples are y-up: pass `y = ScreenHeight - yTop` from a top-left host (step 2i).
 - [ ] Creatures, animation playback, shadows.
 - [ ] Lighting tuned to feel like DK2 (owner exception: tuned per engine, not ported natively).

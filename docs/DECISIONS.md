@@ -10534,7 +10534,7 @@ in, in one frame. A tag wave or a room drop touches many 16x16 chunks at
 once, and an earlier probe run (not kept) saw frames of about 120 ms on
 Level 1 from it, even with the per-tile geometry cache (commit c902b2a3).
 
-**Decision.** A flush rebuilds dirty chunks in ascending chunk order until
+**Decision.** A flush (`TerrainChunkScheduler.Flush`, shared with Godot since its step 3c) rebuilds dirty chunks in ascending chunk order until
 `FlushBudgetMilliseconds` (4 ms by default) has passed, leaving the rest
 dirty for the next frame; at least one chunk is rebuilt per flush, and a
 flush that finds no chunk drawn yet (the first after a load or a `Clear`)
@@ -16516,7 +16516,7 @@ near every creature. The probe's rebuild frames allocated 0.5 MB each in the til
   `RoomInstance.Tiles` is the tile array as a span.
 - The auto-furniture system keeps its containers; the rules' per-room scratch is `[ThreadStatic]`,
   as `RoomIndex`'s visited array is. The movement system refills one mover.
-- `TerrainChunks` schedules `TerrainTileBuilder`'s two phases: the frame resolves a tile's pieces and
+- `TerrainChunkScheduler` (Unity's `TerrainChunks` is its sink) schedules `TerrainTileBuilder`'s two phases: the frame resolves a tile's pieces and
   material keys (`Prepare`) and builds the lattice cells it reaches (`TerrainLattice.Prepare`); a
   thread-pool task turns, places and bends the vertices and gathers the triangles (`Build`, arrays
   and arithmetic only); the next flush joins it and uploads the chunks whose tiles are built. A tile

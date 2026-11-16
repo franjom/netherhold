@@ -960,7 +960,12 @@ namespace DK2.Unity
             bool possessionView = World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0;
             _worldView.SetPossessionView(possessionView);
             // The same latch rests the walls at full height; the view's change re-presents every tile, which rebuilds the chunks.
-            if (_terrainLattice != null) _terrainLattice.Possession = possessionView;
+            // Flipping it forgets every cell, which the terrain's thread-pool build may be reading: join it first.
+            if (_terrainLattice != null && _terrainLattice.Possession != possessionView)
+            {
+                _scene.JoinTerrainBuild();
+                _terrainLattice.Possession = possessionView;
+            }
             _scene.HideCreature(PossessionHiddenCreatureId);
             long presentStarted = _recorder?.Stamp() ?? 0;
             using (PresentMarker.Auto()) _presenter.Present(World);

@@ -19,8 +19,8 @@ public sealed class TerrainTileGeometry
 
     private TerrainMaterialKey[] _keys = new TerrainMaterialKey[4];
     private TerrainIndexList[] _triangles = new TerrainIndexList[4];
-    private Vector3[] _positions = new Vector3[256], _normals = new Vector3[256];
-    private Vector2[] _uvs = new Vector2[256];
+    private Vector3[] _positions = new Vector3[32], _normals = new Vector3[32];
+    private Vector2[] _uvs = new Vector2[32];
 
     /// <summary>The key of each slot, in the tile's first-use order; <see cref="KeyCount"/> are in use.</summary>
     public TerrainMaterialKey[] Keys => _keys;
@@ -76,7 +76,7 @@ public sealed class TerrainTileGeometry
 /// <summary>A growing list of vertex indices that keeps its array across rebuilds.</summary>
 public sealed class TerrainIndexList
 {
-    private int[] _items = new int[64];
+    private int[] _items = new int[16];
 
     /// <summary><see cref="Count"/> of them are in use.</summary>
     public int[] Items => _items;

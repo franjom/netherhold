@@ -189,8 +189,9 @@ namespace DK2.Unity
             return piece;
         }
 
-        /// <summary>The material a terrain surface draws with: the recipe's own, or its sight fog,
-        /// red, tag or tinted twin, or the tag overlay. Shared per key.</summary>
+        /// <summary>The material a terrain surface draws with, as <see cref="TerrainMaterialLook.For(in TerrainMaterialKey, System.Numerics.Vector3)"/>
+        /// describes it over the recipe's material and that material's own added light: the overlay's flat colour, the
+        /// recipe's material faded for the sight fog, a twin with more added light, or the recipe's material. Shared per key.</summary>
         public Material Terrain(in TerrainMaterialKey key)
         {
             if (_terrainMaterials.TryGetValue(key, out Material material) && material != null) return material;
@@ -198,17 +199,36 @@ namespace DK2.Unity
             else
             {
                 Material recipe = ForTexture(key.Recipe.Texture ?? "", key.Recipe.Blend, key.Recipe.SelfIllumination);
-                switch (key.Variant)
-                {
-                    case TerrainMaterialVariant.Fog: material = SightFog(recipe, key.FogOpacity); break;
-                    case TerrainMaterialVariant.Red: material = Tagged(recipe, red: true); break;
-                    case TerrainMaterialVariant.Tagged: material = Tagged(recipe); break;
-                    case TerrainMaterialVariant.Tinted: material = TerrainTinted(recipe, key.Tint); break;
-                    default: material = recipe; break;
-                }
+                System.Numerics.Vector3 own = ToVector(OwnEmission(recipe));
+                TerrainMaterialLook look = TerrainMaterialLook.For(key, own);
+                if (look.Blend != key.Recipe.Blend || look.Colour != System.Numerics.Vector4.One)
+                    material = SightFog(recipe, key.FogOpacity);
+                else if (look.AddedLight != own) material = AddedLightTwin(recipe, look.AddedLight);
+                else material = recipe;
             }
             _terrainMaterials[key] = material;
             return material;
+        }
+
+        private static Color OwnEmission(Material material) =>
+            material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
+
+        private readonly Dictionary<(Material, System.Numerics.Vector3), Material> _addedLight =
+            new Dictionary<(Material, System.Numerics.Vector3), Material>();
+
+        /// <summary>A terrain material's twin drawn with <paramref name="addedLight"/> as its emission (texture × colour,
+        /// added as DK2 adds light): the tagged, red and tinted looks. Shared per (material, light).</summary>
+        private Material AddedLightTwin(Material material, System.Numerics.Vector3 addedLight)
+        {
+            if (!material.HasProperty(EmissionColorId) || _environmentMaterials.Contains(material)) return material;
+            if (_addedLight.TryGetValue((material, addedLight), out Material twin)) return twin;
+            twin = Copy(material, " (added light)");
+            twin.EnableKeyword("_EMISSION");
+            twin.SetTexture("_EmissionMap", material.mainTexture);
+            twin.SetColor("_EmissionColor", ToColour(addedLight));
+            twin.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            _addedLight[(material, addedLight)] = twin;
+            return twin;
         }
 
         private readonly Dictionary<(string, int), Built> _builtFrames = new Dictionary<(string, int), Built>();
@@ -411,19 +431,15 @@ namespace DK2.Unity
             return material;
         }
 
-        /// <summary>The dig tag's colour, which DK2 adds to a tagged piece's vertex light
-        /// (<c>0x0059A050</c>, <c>0x0059A200</c>, summed by <c>0x0057B6D0</c>; tag-highlight.md).</summary>
-        public static readonly Color TagTint = new Color(128f / 255f, 128f / 255f, 200f / 255f);
-
-        /// <summary>BlueTexture's one colour, drawn over a tagged piece as AA_BlueTexture: ONE, ONE,
-        /// no depth write (<c>0x0057C420</c>, <c>0x00589250</c>).</summary>
-        public static readonly Color TagOverlayColour = new Color(63f / 255f, 64f / 255f, 1f);
+        /// <summary><see cref="TerrainMaterialLook.TagOverlayColour"/>.</summary>
+        public static readonly Color TagOverlayColour = ToColour(TerrainMaterialLook.TagOverlayColour);
 
         private Material _tagOverlay;
         private Material _redTerrainOverlay;
 
-        /// <summary>A material's tagged twin: its texture lit by <see cref="TagTint"/> more, which
-        /// URP's emission (texture × colour) adds as DK2's sum of light does. Shared.</summary>
+        /// <summary>A material's tagged twin: its texture lit by the tag's light more
+        /// (<see cref="TerrainMaterialLook.TaggedLight"/>), which URP's emission (texture × colour) adds as
+        /// DK2's sum of light does. Shared.</summary>
         public Material Tagged(Material material, bool red = false)
         {
             // Additive materials already supply white diffuse before native RGB saturation.
@@ -435,7 +451,7 @@ namespace DK2.Unity
             Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
             tagged.EnableKeyword("_EMISSION");
             tagged.SetTexture("_EmissionMap", material.mainTexture);
-            tagged.SetColor("_EmissionColor", (red ? Color.red : TagTint) + own);
+            tagged.SetColor("_EmissionColor", ToColour(TerrainMaterialLook.TaggedLight(ToVector(own), red)));
             tagged.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             cache[material] = tagged;
             return tagged;
@@ -512,15 +528,19 @@ namespace DK2.Unity
             Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
             tinted.EnableKeyword("_EMISSION");
             tinted.SetTexture("_EmissionMap", material.mainTexture);
-            tinted.SetColor("_EmissionColor", own + new Color(tint.Red / 255f, tint.Green / 255f, tint.Blue / 255f, 0f));
+            tinted.SetColor("_EmissionColor", ToColour(TerrainMaterialLook.TintedLight(ToVector(own), tint)));
             tinted.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             _tinted[(material, tint)] = tinted;
             return tinted;
         }
 
-        /// <summary>RedTexture's one colour, drawn over the Hand's hover target as AA_RedTexture
-        /// (global 0x006FCD73, set by Presentation_Update at 0x0043BE40; status-flowers.md §1).</summary>
-        public static readonly Color HoverOverlayColour = new Color(1f, 64f / 255f, 65f / 255f);
+        /// <summary><see cref="TerrainMaterialLook.HoverOverlayColour"/>, drawn over the Hand's hover target as
+        /// AA_RedTexture (status-flowers.md §1).</summary>
+        public static readonly Color HoverOverlayColour = ToColour(TerrainMaterialLook.HoverOverlayColour);
+
+        private static Color ToColour(System.Numerics.Vector3 colour) => new Color(colour.X, colour.Y, colour.Z);
+
+        private static System.Numerics.Vector3 ToVector(Color colour) => new System.Numerics.Vector3(colour.r, colour.g, colour.b);
 
         private Material _hoverOverlay;
 
@@ -790,7 +810,7 @@ namespace DK2.Unity
             _owned.Clear();
             _built.Clear(); _builtFrames.Clear(); _materials.Clear(); _pieces.Clear(); _terrainMaterials.Clear(); _animations.Clear();
             _groupParts.Clear(); _tagged.Clear(); _redHighlighted.Clear(); _tinted.Clear(); _tintedSets.Clear();
-            _elementTinted.Clear(); _texturePhaseMaterials.Clear(); _hoverTextures.Clear(); _faded.Clear();
+            _elementTinted.Clear(); _addedLight.Clear(); _texturePhaseMaterials.Clear(); _hoverTextures.Clear(); _faded.Clear();
             _opaqueOf.Clear(); _environmentPasses.Clear(); _environmentMaterials.Clear(); _kmfBlended.Clear();
             System.Array.Clear(_fadedScratch, 0, _fadedScratch.Length);
             _tagOverlay = null; _redTerrainOverlay = null; _hoverOverlay = null;

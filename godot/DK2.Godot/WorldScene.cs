@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Globalization;
 using DK2.Art;
 using DK2.Art.Kmf;
 using DK2.Art.Textures;
@@ -11,34 +12,39 @@ using DK2.Data.Model;
 using DK2.Presentation;
 using DK2.Simulation;
 using Godot;
+using System.Runtime.InteropServices;
 using NVector2 = System.Numerics.Vector2;
 using NVector3 = System.Numerics.Vector3;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The 3D world under <see cref="InGameHud"/> (plan step 3a): the terrain as <see cref="TerrainTileBuilder"/>
-/// builds it, one <see cref="MeshInstance3D"/> per 16x16-tile chunk with a surface per <see cref="TerrainMaterialKey"/>,
-/// unshaded, seen from the level-start camera. Everything crosses into Godot's right-handed frame through
-/// <see cref="RightHandedFrame"/>. Not yet drawn: creatures, objects, structures and torches (no-ops here), the sight fog
-/// and tag overlay variants, liquids and lighting; nothing is rebuilt after the first push (step 3c). The host moves the
-/// camera's <see cref="Focus"/> through the shared rules and places it once a frame (<see cref="PlaceCamera"/>, step 3b).</summary>
-public partial class WorldScene : Node3D, IRenderTarget
+/// <summary>The 3D world under <see cref="InGameHud"/> (plan steps 3a to 3c): the terrain as <see cref="TerrainTileBuilder"/>
+/// builds it and <see cref="TerrainChunkScheduler"/> schedules it, one <see cref="MeshInstance3D"/> per 16x16-tile chunk
+/// with a surface per <see cref="TerrainMaterialKey"/> drawn as <see cref="TerrainMaterialLook"/> describes it, and the
+/// waving water and lava (<see cref="LiquidSurfaceField"/>), unshaded under a stand-in light, seen from the classic
+/// camera. Everything crosses into Godot's right-handed frame through <see cref="RightHandedFrame"/>. Not yet drawn:
+/// creatures, objects, structures and torches (no-ops here) and lighting. The host presents the world once a frame
+/// (<see cref="Present"/>), moves the camera's <see cref="Focus"/> and places it (<see cref="PlaceCamera"/>).</summary>
+public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 {
-    private const int ChunkSize = 16;
     /// <summary>Unity's camera near plane (Dungeon.unity), which the frustum is sized at.</summary>
     private const float NearPlane = 0.3f;
 
-    private static readonly StringName AlbedoParameter = "albedo_texture";
+    /// <summary>The vertex light every lit material is drawn under until the classic lighting is ported (step 3i):
+    /// below 1, so the light the tagged, red and tinted twins add shows before DK2's clamp, as it does where DK2's lights
+    /// leave headroom. The remake's choice, not DK2's.</summary>
+    private const float StandInLight = 0.5f;
+
+    private static readonly StringName AlbedoParameter = "albedo_texture", ColourParameter = "base_colour",
+        AddedLightParameter = "added_light";
 
     private InstallArtProvider? _art;
     private ScenePresenter? _presenter;
-    private TerrainTileBuilder? _builder;
-    private readonly TerrainTileGeometry _geometry = new();
-    private TileView[] _tiles = [];
-    private bool[] _drawn = [];
-    private bool[] _dirtyChunks = [];
+    private TerrainChunkScheduler? _terrain;
     private MeshInstance3D?[] _chunks = [];
-    private int _width, _height, _chunksX;
+    private LiquidSurfaceField? _liquids;
+    private LiquidLayer? _water, _lava;
+    private float _seconds;
 
     private readonly Dictionary<TerrainMaterialKey, SurfaceBuffer> _surfaceOf = new();
     private readonly List<SurfaceBuffer> _surfaces = new();
@@ -46,10 +52,17 @@ public partial class WorldScene : Node3D, IRenderTarget
     private int[] _remap = new int[256], _stamp = new int[256];
     private int _generation;
 
-    private readonly Dictionary<ClassicMaterialRecipe, ShaderMaterial> _materials = new();
+    private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _keyMaterials = new();
+    private readonly Dictionary<TerrainMaterialLook, ShaderMaterial> _lookMaterials = new();
+    private readonly Dictionary<(KmfBlend, bool), Shader> _shaders = new();
     private readonly Dictionary<string, Texture2D> _textures = new();
-    private Shader? _opaque, _alphaBlend, _additive;
     private ImageTexture? _white;
+
+    // Allocation on the frame's thread inside Present, split by whether the terrain changed that frame.
+    private long _steadyBytes, _changeBytes;
+    private int _steadyFrames, _changeFrames;
+    private bool _changed;
+    private readonly int[] _collectionsAtOpen = new int[3];
 
     private Camera3D? _camera;
     private ClassicCameraControls? _controls;
@@ -74,33 +87,26 @@ public partial class WorldScene : Node3D, IRenderTarget
     public void Open(string install, CampaignLevelData level, WorldState world, WorldView view, PlayerId viewer,
         NVector3 focus, int scrollSpeed)
     {
-        _width = world.Width;
-        _height = world.Height;
-        _chunksX = (_width + ChunkSize - 1) / ChunkSize;
-        int chunks = _chunksX * ((_height + ChunkSize - 1) / ChunkSize);
-        _tiles = new TileView[_width * _height];
-        _drawn = new bool[_width * _height];
-        _dirtyChunks = new bool[chunks];
-        _chunks = new MeshInstance3D?[chunks];
         _art = InstallArtProvider.Open(install, level.Database);
         // DungeonRunner's defaults: the lattice bends the terrain, with DK2's high walls.
         var lattice = new TerrainLattice(level.Database, world, viewer) { HighWalls = true };
-        _builder = new TerrainTileBuilder(new InstallTerrainPieces(_art), _width, _height, lattice);
-        _opaque = NewShader("render_mode unshaded, cull_back, depth_draw_opaque;", "ALBEDO = texture(albedo_texture, UV).rgb;");
-        _alphaBlend = NewShader("render_mode unshaded, cull_back, blend_mix, depth_draw_never;",
-            "vec4 c = texture(albedo_texture, UV); ALBEDO = c.rgb; ALPHA = c.a;");
-        // ONE/ONE: blend_add weights the source by its alpha, held at 1.
-        _additive = NewShader("render_mode unshaded, cull_back, blend_add, depth_draw_never;",
-            "ALBEDO = texture(albedo_texture, UV).rgb; ALPHA = 1.0;");
+        _terrain = new TerrainChunkScheduler(new InstallTerrainPieces(_art), world.Width, world.Height, lattice);
+        _chunks = new MeshInstance3D?[_terrain.ChunkCount];
+        _liquids = new LiquidSurfaceField(world.Width, world.Height);
+        _water = new LiquidLayer(_liquids.Water);
+        _lava = new LiquidLayer(_liquids.Lava);
         using (Image white = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8))
         {
             white.Fill(Colors.White);
             _white = ImageTexture.CreateFromImage(white);
         }
 
-        // The install, then the placeholder, as Unity's chain without its optional folders.
+        // The install, then the placeholder, as Unity's chain without its optional folders. The first present builds
+        // every chunk inline, so the level appears whole.
         _presenter = new ScenePresenter(view, AssetProviderChain.Standard(install: _art), this);
         _presenter.Present(world);
+        for (int generation = 0; generation < _collectionsAtOpen.Length; generation++)
+            _collectionsAtOpen[generation] = GC.CollectionCount(generation);
 
         CameraThing? profile = ClassicCameraSetup.Preset(
             GameDatabaseLoader.LoadCameraPresets(install, level.Name), ClassicCameraMode.Dungeon);
@@ -110,7 +116,7 @@ public partial class WorldScene : Node3D, IRenderTarget
             return;
         }
         ClassicCameraSetup setup = ClassicCameraSetup.Create(profile, ClassicCameraSetup.DefaultZoomOutLimitScale,
-            GameSessionStarter.CameraTicksPerSecond(level), scrollSpeed, level.Players, viewer, _width, _height);
+            GameSessionStarter.CameraTicksPerSecond(level), scrollSpeed, level.Players, viewer, world.Width, world.Height);
         _controls = setup.Controls;
         ClassicCamera = setup.Camera;
         Focus = focus;
@@ -164,10 +170,31 @@ public partial class WorldScene : Node3D, IRenderTarget
 
     private void SetTile(int tileIndex, in TileView tile)
     {
-        bool draws = TerrainTileBuilder.Draws(tile);
-        if (draws || _drawn[tileIndex]) _dirtyChunks[ChunkOf(tileIndex)] = true;
-        _tiles[tileIndex] = tile;
-        _drawn[tileIndex] = draws;
+        _liquids!.Set(tileIndex, tile);
+        _terrain!.Set(tileIndex, tile);
+    }
+
+    /// <summary>Pushes the settled world's changes (<see cref="ScenePresenter.Present"/>) and waves the liquids at
+    /// <paramref name="seconds"/> of engine time; a changed tile's chunks are built on the thread pool and uploaded by a
+    /// later present within the flush budget. Counts what it allocates, reported when the node leaves the tree.</summary>
+    public void Present(WorldState world, double seconds)
+    {
+        if (_presenter == null || _terrain == null) return;
+        _seconds = (float)seconds;
+        _changed = _terrain.PendingChunks > 0;
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        _presenter.Present(world);
+        long bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        if (_changed || _presenter.TilesPushed > 0)
+        {
+            _changeFrames++;
+            _changeBytes += bytes;
+        }
+        else
+        {
+            _steadyFrames++;
+            _steadyBytes += bytes;
+        }
     }
 
     public void CreateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation) { }
@@ -183,45 +210,36 @@ public partial class WorldScene : Node3D, IRenderTarget
     public void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh) { }
     public void RemoveTorch(int floorTileIndex) { }
 
-    /// <summary>Rebuilds every chunk a pushed tile marked.</summary>
+    /// <summary>The scheduler's flush (the <see cref="ITerrainChunkSink"/> calls below upload), then the liquids' wave.</summary>
     public void Flush()
     {
-        for (int chunk = 0; chunk < _dirtyChunks.Length; chunk++)
-        {
-            if (!_dirtyChunks[chunk]) continue;
-            _dirtyChunks[chunk] = false;
-            RebuildChunk(chunk);
-        }
+        _terrain!.Flush(this);
+        _liquids!.Animate(_seconds);
+        _water!.Upload(this);
+        _lava!.Upload(this);
     }
 
-    private int ChunkOf(int tileIndex) => (tileIndex / _width / ChunkSize * _chunksX) + (tileIndex % _width / ChunkSize);
-
-    /// <summary>Each drawn tile of the chunk built and its triangles gathered per key, each key's vertices copied once
-    /// into its own surface.</summary>
-    private void RebuildChunk(int chunk)
+    void ITerrainChunkSink.BeginChunk(int chunk)
     {
+        _changed = true;
         foreach (SurfaceBuffer surface in _surfaces) _spareSurfaces.Add(surface);
         _surfaces.Clear();
         _surfaceOf.Clear();
-        int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
-        for (int y = y0; y < Math.Min(y0 + ChunkSize, _height); y++)
-            for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
-            {
-                if (!_drawn[(y * _width) + x]) continue;
-                _builder!.Prepare(x, y, _tiles, _geometry);
-                _builder.Build(_geometry);
-                GatherTile();
-            }
+    }
 
+    void ITerrainChunkSink.AddTile(int tileIndex, TerrainTileGeometry geometry) => GatherTile(geometry);
+
+    /// <summary>Each key's gathered vertices as one surface of the chunk's mesh.</summary>
+    void ITerrainChunkSink.EndChunk(int chunk)
+    {
         MeshInstance3D? instance = _chunks[chunk];
         var mesh = instance?.Mesh as ArrayMesh ?? new ArrayMesh();
         mesh.ClearSurfaces();
         foreach (SurfaceBuffer surface in _surfaces)
         {
-            ShaderMaterial? material = MaterialFor(surface.Key);
-            if (material == null || surface.IndexCount == 0) continue;
+            if (surface.IndexCount == 0) continue;
             mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, surface.ToArrays());
-            mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, material);
+            mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, MaterialFor(surface.Key));
         }
         if (instance == null && mesh.GetSurfaceCount() > 0)
         {
@@ -231,16 +249,16 @@ public partial class WorldScene : Node3D, IRenderTarget
         }
     }
 
-    private void GatherTile()
+    private void GatherTile(TerrainTileGeometry geometry)
     {
-        if (_remap.Length < _geometry.VertexCount)
+        if (_remap.Length < geometry.VertexCount)
         {
-            _remap = new int[_geometry.VertexCount * 2];
-            _stamp = new int[_geometry.VertexCount * 2];
+            _remap = new int[geometry.VertexCount * 2];
+            _stamp = new int[geometry.VertexCount * 2];
         }
-        for (int s = 0; s < _geometry.KeyCount; s++)
+        for (int s = 0; s < geometry.KeyCount; s++)
         {
-            TerrainMaterialKey key = _geometry.Keys[s];
+            TerrainMaterialKey key = geometry.Keys[s];
             if (!_surfaceOf.TryGetValue(key, out SurfaceBuffer? surface))
             {
                 surface = TakeSurface(key);
@@ -248,7 +266,7 @@ public partial class WorldScene : Node3D, IRenderTarget
                 _surfaces.Add(surface);
             }
             _generation++;
-            surface.Append(_geometry, _geometry.Triangles[s], _remap, _stamp, _generation);
+            surface.Append(geometry, geometry.Triangles[s], _remap, _stamp, _generation);
         }
     }
 
@@ -265,26 +283,54 @@ public partial class WorldScene : Node3D, IRenderTarget
         return surface;
     }
 
-    /// <summary>The material a key draws with here: the recipe's own. The variants and the tag overlays wait for
-    /// step 3c and draw nothing yet.</summary>
-    private ShaderMaterial? MaterialFor(in TerrainMaterialKey key)
+    /// <summary>The material a key draws with: one per <see cref="TerrainMaterialLook"/>, shared by every key that looks
+    /// the same.</summary>
+    private ShaderMaterial MaterialFor(in TerrainMaterialKey key)
     {
-        if (key.Variant is TerrainMaterialVariant.Fog or TerrainMaterialVariant.TagOverlay or TerrainMaterialVariant.RedTagOverlay)
-            return null;
-        ClassicMaterialRecipe recipe = key.Recipe;
-        if (_materials.TryGetValue(recipe, out ShaderMaterial? material)) return material;
-        material = new ShaderMaterial
+        if (_keyMaterials.TryGetValue(key, out ShaderMaterial? material)) return material;
+        TerrainMaterialLook look = TerrainMaterialLook.For(key);
+        if (!_lookMaterials.TryGetValue(look, out material))
         {
-            Shader = recipe.Blend switch
-            {
-                KmfBlend.Opaque => _opaque,
-                KmfBlend.AlphaBlend => _alphaBlend,
-                _ => _additive,
-            },
-        };
-        material.SetShaderParameter(AlbedoParameter, TextureFor(recipe.Texture ?? ""));
-        _materials.Add(recipe, material);
+            material = new ShaderMaterial { Shader = ShaderFor(look.Blend, look.FullLight) };
+            material.SetShaderParameter(AlbedoParameter, TextureFor(look.Texture));
+            material.SetShaderParameter(ColourParameter, new Color(look.Colour.X, look.Colour.Y, look.Colour.Z, look.Colour.W));
+            material.SetShaderParameter(AddedLightParameter, ToGodot(look.AddedLight));
+            _lookMaterials.Add(look, material);
+        }
+        _keyMaterials.Add(key, material);
         return material;
+    }
+
+    /// <summary>One shader per blend and light: the texture times the colour, times the stand-in light plus the added
+    /// light packed to bytes and clamped (Unity's <c>DK2PackedDiffuse</c>) unless at full light. The arithmetic is on the
+    /// stored bytes, as DK2 and Unity's gamma space do it, and the result is turned linear so Godot's output stores those
+    /// bytes again; the blending itself is Godot's, in linear space. Opaque writes depth; blended draws do not.</summary>
+    private Shader ShaderFor(KmfBlend blend, bool fullLight)
+    {
+        if (_shaders.TryGetValue((blend, fullLight), out Shader? shader)) return shader;
+        string mode = blend switch
+        {
+            KmfBlend.Opaque => "blend_mix, depth_draw_opaque",
+            KmfBlend.AlphaBlend => "blend_mix, depth_draw_never",
+            // ONE/ONE: blend_add weights the source by its alpha, held at 1.
+            _ => "blend_add, depth_draw_never",
+        };
+        string light = fullLight ? ""
+            : "c.rgb *= min(floor(max(vec3(" + StandInLight.ToString("0.0###", CultureInfo.InvariantCulture)
+                + ") + added_light, vec3(0.0)) * 255.0 + 0.00001), vec3(255.0)) / 255.0;\n";
+        string alpha = blend switch { KmfBlend.Opaque => "", KmfBlend.AlphaBlend => "ALPHA = c.a;\n", _ => "ALPHA = 1.0;\n" };
+        shader = new Shader
+        {
+            Code = "shader_type spatial;\nrender_mode unshaded, cull_back, " + mode + ";\n"
+                + "uniform sampler2D albedo_texture : filter_linear_mipmap, repeat_disable;\n"
+                + "uniform vec4 base_colour = vec4(1.0);\n"
+                + "uniform vec3 added_light = vec3(0.0);\n"
+                + "vec3 to_linear(vec3 c) { return mix(pow((c + vec3(0.055)) / 1.055, vec3(2.4)), c / 12.92, lessThan(c, vec3(0.04045))); }\n"
+                + "void fragment() {\nvec4 c = texture(albedo_texture, UV) * base_colour;\n" + light
+                + "ALBEDO = to_linear(c.rgb);\n" + alpha + "}\n",
+        };
+        _shaders.Add((blend, fullLight), shader);
+        return shader;
     }
 
     private Texture2D TextureFor(string name)
@@ -308,22 +354,85 @@ public partial class WorldScene : Node3D, IRenderTarget
         return texture;
     }
 
-    /// <summary>Clamped, as Unity's terrain textures are: no shipped KMF coordinate leaves 0..1, and repeating let
-    /// filtering pull the opposite edge into seams (ClassicMeshes.ToTexture).</summary>
-    private static Shader NewShader(string renderMode, string fragment) => new()
-    {
-        Code = "shader_type spatial;\n" + renderMode + "\n"
-            + "uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, repeat_disable;\n"
-            + "void fragment() { " + fragment + " }\n",
-    };
-
     private static Vector3 ToGodot(NVector3 v) => new(v.X, v.Y, v.Z);
 
     public override void _ExitTree()
     {
         if (_camera != null) GetViewport().SizeChanged -= PlaceCamera;
+        _terrain?.JoinBuild();
+        if (_presenter != null)
+            GD.Print("DK2.Godot world: ", _steadyFrames, " frames without a terrain change allocated ", _steadyBytes,
+                " B in Present, ", _changeFrames, " with one ", _changeBytes, " B; collections since the level opened: ",
+                GC.CollectionCount(0) - _collectionsAtOpen[0], " gen0, ", GC.CollectionCount(1) - _collectionsAtOpen[1], " gen1, ",
+                GC.CollectionCount(2) - _collectionsAtOpen[2], " gen2; water ", _liquids!.Water.TileCount, " tiles, lava ",
+                _liquids.Lava.TileCount);
         _art?.Dispose();
         _art = null;
+    }
+
+    /// <summary>One liquid's surface: a mesh built when its tiles change, whose positions are rewritten in place every
+    /// frame from one reused buffer, the head of Godot's vertex stream. The normals stay as built: every material is
+    /// unshaded until step 3i, which uploads the wave's normals here (octahedral, after the positions, interleaved with
+    /// the tangents; <see cref="RenderingServer.MeshSurfaceGetFormatOffset"/>).</summary>
+    private sealed class LiquidLayer(LiquidSurfaceWave wave)
+    {
+        private int _version = -1;
+        private MeshInstance3D? _instance;
+        private ArrayMesh? _mesh;
+        private byte[] _stream = [];
+
+        public void Upload(WorldScene scene)
+        {
+            if (_version != wave.Version) Rebuild(scene);
+            if (_mesh == null || wave.VertexCount == 0) return;
+            int count = wave.VertexCount;
+            Span<float> positions = MemoryMarshal.Cast<byte, float>(_stream.AsSpan(0, count * 12));
+            for (int i = 0; i < count; i++)
+            {
+                NVector3 p = RightHandedFrame.Point(wave.Positions[i]);
+                positions[i * 3] = p.X;
+                positions[(i * 3) + 1] = p.Y;
+                positions[(i * 3) + 2] = p.Z;
+            }
+            _mesh.SurfaceUpdateVertexRegion(0, 0, _stream.AsSpan(0, count * 12));
+        }
+
+        private void Rebuild(WorldScene scene)
+        {
+            _version = wave.Version;
+            _mesh?.ClearSurfaces();
+            int count = wave.VertexCount;
+            if (count == 0) return;
+            var positions = new Vector3[count];
+            var normals = new Vector3[count];
+            var uvs = new Vector2[count];
+            for (int i = 0; i < count; i++)
+            {
+                positions[i] = ToGodot(RightHandedFrame.Point(wave.Positions[i]));
+                normals[i] = ToGodot(RightHandedFrame.Normal(wave.Normals[i]));
+                uvs[i] = new Vector2(wave.Uvs[i].X, wave.Uvs[i].Y);
+            }
+            var arrays = new Godot.Collections.Array();
+            arrays.Resize((int)Mesh.ArrayType.Max);
+            arrays[(int)Mesh.ArrayType.Vertex] = positions;
+            arrays[(int)Mesh.ArrayType.Normal] = normals;
+            arrays[(int)Mesh.ArrayType.TexUV] = uvs;
+            arrays[(int)Mesh.ArrayType.Index] = wave.Triangles.AsSpan(0, wave.IndexCount).ToArray();
+            _mesh ??= new ArrayMesh();
+            _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null, Mesh.ArrayFormat.FlagUseDynamicUpdate);
+            _mesh.SurfaceSetMaterial(0, scene.MaterialFor(
+                new TerrainMaterialKey(new ClassicMaterialRecipe(wave.Texture, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain)));
+            if (_stream.Length < count * 12) _stream = new byte[count * 12];
+            if (_instance == null)
+            {
+                _instance = new MeshInstance3D { Name = wave.Kind + "Surface", Mesh = _mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+                scene.AddChild(_instance);
+            }
+            // The wave moves each vertex within twice its amplitude of the rest height; the box covers every frame.
+            Aabb box = _mesh.GetAabb();
+            float reach = 2f * Math.Max(LiquidSurfaceWave.WaterAmplitude, LiquidSurfaceWave.LavaAmplitude);
+            _instance.CustomAabb = new Aabb(box.Position - new Vector3(0, reach, 0), box.Size + new Vector3(0, 2 * reach, 0));
+        }
     }
 
     /// <summary>One key's surface in the chunk being built: the vertices its triangles use, each copied once, in

@@ -342,7 +342,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
         if (resume == null)
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
-        // The first frame's terrain, pushed once: tile changes after it are step 3c.
+        // The first frame's terrain, built whole; each frame's Present pushes the changes since.
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
         _glideTo = LaunchArguments.GlideTarget(args, "--");
         if (Array.IndexOf(args, "--query-first-creature") >= 0)
@@ -449,6 +449,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // view and the minimap below draw the same focus; then the camera is placed once.
         FollowQueriedCreature();
         _world.PlaceCamera();
+        // DungeonRunner.Update's present: the settled world's changes, before the frame's ticks; the chunk build it
+        // starts runs on the thread pool while they do (ADR-0696).
+        _world.Present(_simulation.World, _elapsed);
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.

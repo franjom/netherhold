@@ -32,7 +32,7 @@ Original version: DK2 v1.70 (GOG)
 
 Presentation only. Split from `floor-and-terrain-pieces.md` (its §4 lists the builders' arms; its
 §5 the plain terrain), whose conventions and labels this note uses. Built in
-`src/DK2.Presentation/WorldView.cs` and `unity/DK2.Unity/Assets/DK2/LiquidSurfaces.cs` (classic
+`src/DK2.Presentation/WorldView.cs` and `src/DK2.Presentation/LiquidSurfaceWave.cs` (classic
 look, plan step 2; the 2×2 and 3×1 hero gates' floors, §7, step 3).
 
 Coordinates: (dx, dy) grow east and south, as the direction table does (N = (0, −1)).
@@ -274,7 +274,7 @@ up = −z, so −0.9 is 0.1 tile below the floor (DK2 z 0xE66) (STRONGLY INFERRE
 | Lava | −0.85 + 0.04·(sin b_row + sin b_col) | b = ((j·32 − tile·64 + t) & 0x7F)·π/64 | 2 tiles, 128 frames |
 | Temple pool | −0.85 + 0.04·(…) | c = ((j·8 − tile·16 + t) & 0x1F)·π/16 | 2 tiles, 32 frames |
 
-The vertex normal is normalize(cos col, −3, cos row). Ripple water with bump support (renderer
+The vertex normal is normalize(cos col, −3, cos row). The remake does not use it: `LiquidSurfaceWave` sets each normal to the normalised sum of the unit normals of the triangles sharing the vertex (the reviewer bounds the difference at 1.5°, 0.02° against area weighting; Godot's upload is deferred to the lighting step). Ripple water with bump support (renderer
 flag `0x00764BB8` bit 0x10) uses renderer `+0x72` (BumpWater) at alpha 1.0 instead; lava with it
 adds flag 0x8000. The ripple field (`0x00448C20`, `0x00449140`, `0x00448D80`) is 64 × 64 cells
 centred on the camera, blocked where the terrain lacks Water; at most every 50 ms each open cell's
@@ -313,7 +313,7 @@ Queue helper `0x00586A70` only stores metadata, not vertices. The eventual queue
 vertex producer remains unestablished. Adding liquid deformation or a skirt
 would therefore be a guess. A separate recovered mismatch is the projected
 drawer's alternating cell diagonals (`0x005878AE..0x005878E9`) versus the uniform
-split in `LiquidSurfaces`; that does not supply the absent fog-wall underside,
+split in `LiquidSurfaceWave`; that does not supply the absent fog-wall underside,
 and is not changed here.
 
 Evidence: `F:/DK2Evidence/studies/level7-fog-edge-trace--2026-11-01--001/`

@@ -59,6 +59,9 @@ namespace DK2.Unity
         internal double DrawSeconds => _renderSeconds;
 
         internal double TerrainFlushMilliseconds => _terrain?.LastFlushMilliseconds ?? 0;
+
+        /// <summary>Waits for the terrain's thread-pool build (<see cref="TerrainChunks.JoinBuild"/>).</summary>
+        public void JoinTerrainBuild() => _terrain?.JoinBuild();
         private readonly HeartPulse _heartPulse = new HeartPulse();
         public void QueueHeartHealthChange(PlayerId owner, DungeonHeartVisual visual) =>
             _heartPulse.QueueHealthChange(owner, visual);

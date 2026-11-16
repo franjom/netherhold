@@ -14,9 +14,8 @@ shader copies is B.
 
 `godot/DK2.Godot/InGameHud.cs` runs Level1 inline (no tick worker, so no presented copy), owns one `WorldView`, a
 `FrameDriver` and a `ScriptedViewDirector`, and draws the HUD panels through `HudCanvas`, over the `WorldScene` that 3a
-added (a `Node3D` with its `Camera3D` fixed at the level-start pose). Until 3b the minimap is drawn from the level-start
-focus and `ClassicCamera.LevelStartYaw`, glides and focus moves are printed, and world hover only has its type text. The
-project renders with Forward+ at 1920x1080.
+added (a `Node3D` with its terrain, liquids and `Camera3D`, which 3b moves). The minimap and glides follow that camera
+since 3b, and world hover only has its type text. The project renders with Forward+ at 1920x1080.
 
 ## One frame decision for every feature
 
@@ -51,21 +50,20 @@ it by hand.
   and 5 swapped, a liquid's or bridge's bed, the sight-fog overlay piece, the lattice bend in DK2's frame, and the key
   each triangle group takes (the additive tag pass is a second key). Unity maps a key to a `Material`, Godot to a
   `ShaderMaterial`.
-- **B left in Unity, for 3c.** The dirty window: a change invalidates the lattice cell and marks the 5x5 tiles stale,
-  and a tag or tint change dirties the neighbours (`TerrainChunks.cs:183-198`). The flush budget, the thread-pool build
-  and lowest-chunk-first upload (`:206-244`, ADR-0457, ADR-0696) are a performance policy both engines want; the
-  scheduler moves with the dirty window.
-- **B in `ClassicMeshes.cs` (the material recipe).** The texture choice (first named, else the environment texture,
-  `:351-358`); opaque, alpha or additive with no depth write and specular off (`:624-674`, `:741-757`); self-illumination
-  added as emission (`:665-671`); `TagTint` (128,128,200) (`:405`) and `TagOverlayColour` (`:409`); a tagged twin adds
-  the tag colour to the material's own (`:416-431`); `TerrainTinted` adds the piece colour (`:493-508`); the environment
-  pass, which materials get it and its light (`:370-401`); a faded environment pass draws black (`:722-727`); the decay
-  stage picking the face texture (`:179-198`). The texture choice, blend, depth write and added light became a
-  `ClassicMaterialRecipe` value per key in `DK2.Presentation` (3a), so both engines build materials from one
-  description; the rest follows in 3c and 3f.
-- **Liquids (B).** `LiquidSurfaces.cs` is entirely rule: rest heights 0.9 and 0.85, amplitudes, the 30 per second frame,
-  the two phase formulas, the 3x3 grid per tile and the textures (`:24-26`, `:82-170`). It moves as `LiquidSurfaceWave`
-  filling a reused position buffer. Unity rewrites every vertex and recalculates normals each frame (`:141-163`).
+- **B, moved in 3c.** `TerrainChunkScheduler` over `ITerrainChunkSink`: the dirty window (a change forgets its lattice
+  cells and marks the 5x5 tiles stale, a tag or tint change the 4 neighbours) and the 4 ms flush, at least one chunk,
+  lowest first, inline while no chunk shows, with the thread-pool build (ADR-0457, ADR-0696). Unity's `TerrainChunks`
+  is a sink over it.
+- **B in `ClassicMeshes.cs` (the material recipe).** The texture choice, blend, depth write and added light became a
+  `ClassicMaterialRecipe` per key (3a), and in 3c `TerrainMaterialLook` took one look per key: `TagTint` (128,128,200),
+  `TagOverlayColour`, `HoverOverlayColour`, the red, tagged and tinted light and the fog alpha. Both engines build
+  materials from it. The decay stage was already shared (`WorldView.DecayStage`, `TileView.FaceTexture`,
+  `TerrainPiece.FromModel`, `ClassicMaterialRecipe.FromKmf`). The environment pass, which materials get it and its
+  light (`:370-401`) and a faded one drawing black (`:722-727`) are still in Unity; 3f.
+- **Liquids (B), moved in 3c.** `LiquidSurfaceWave` and `LiquidSurfaceField` hold the rest heights 0.9 and 0.85, the
+  amplitudes, the 30 per second frame, both phase formulas and the 3x3 grid per tile, filling reused buffers. Normals
+  are the normalised sum of unit face normals; Unity takes them too, where it recalculated them each frame (the
+  reviewer bounds the difference at 1.5 degrees, a one-byte light step at most). `LiquidSurfaces.cs` only uploads.
 - **Ceiling (S, P).** `TerrainCeilingChunks.cs` (202) uses `TerrainCeiling` and `TerrainCeilingField`; it reads
   `WorldState` in `Show` (`:78-98`), which Godot can do since it ticks inline. Light anchor kind 2 (`:26`, `:146`) is
   the possession roof's "black where no DK2 light reaches" switch in the shader.
@@ -74,8 +72,9 @@ it by hand.
   `RenderingServer` region updates when a chunk's vertex count is unchanged (check the 4.8 API with Context7). Textures
   come from `InstallArtProvider.LoadTexture` as `RgbaImage`, so Godot's PNG decoder and its gAMA handling (TRAPS) are
   not involved. A `ScenePresenter` takes `AssetProviderChain.Standard(install: art)`, which ends in the placeholder, not a
-  bare `InstallArtProvider`. Unity caches about 8 KB of geometry a tile, while Godot builds each tile through one shared
-  `TerrainTileGeometry`; 3c chooses.
+  bare `InstallArtProvider`. Decided in 3c: the per-tile geometry cache stays, with `TerrainTileGeometry`'s starting
+  buffers cut to 32 and 16 (Level1, 1,140 tiles: 8,970 to 1,954 B a tile, 9.8 to 2.1 MB; a dig's 5x5 rebuild takes
+  0.23-0.27 ms through it, a whole chunk 2.3-2.5 ms).
 
 ## Blended terrain and the depth stream
 
@@ -245,7 +244,7 @@ it by hand.
   The ribbon profile (exponent 2.15, x1.6, `ClassicHoverOutline.shader:31-34`) is owner-matched: P.
 - **Hover tint.** `DungeonScene.DrawHoverOverlay` (`:139-178`) draws `HoverOverlayPlan`'s red pass and the gold
   object's texture swap. Godot: a `next_pass` or a second surface override on the hovered instance for that frame,
-  additive, `HoverOverlayColour` (`ClassicMeshes.cs:512`, B, moves with the recipe).
+  additive, `HoverOverlayColour` (moved to `TerrainMaterialLook` in 3c).
 - **Placement cursor.** `ClassicPlacementOverlay.cs` (225) is a UI Toolkit overlay whose `Draw` is all rule: icon names
   per tool (`:137-153`), the draw order (`:42-48`), the No Go shift of (-2, +2) (`:85-101`), held icons and the
   I-Dismiss (`:158-186`), price digits, family, colours and offsets (`:102-117`). It moves as a `PlacementCursorHud`
@@ -306,18 +305,18 @@ three are the terrain and the camera; after that each step adds one kind of thin
   torches ignored), one `MeshInstance3D` per chunk, an unshaded texture material per key, and a `Camera3D` at
   `ClassicCamera.Pose(LevelStartFocus)` including the centre shift. Checked: the Level1 start frame shows the Heart
   room from DK2's camera with the HUD on top; builder tests pin the output against the old build.
-- **3b. Camera control and the minimap.** Done 2026-11-16 (plan step 3b). Moved: `MinimapCameraView`, `HudDrawKind.Triangles`
-  with `HudTriangles`, `ClassicCameraSetup.DefaultZoomOutLimitScale` and `LaunchArguments.GlideTarget`. Godot:
-  `ClassicCameraInput` (y-up sample), `CameraGlide` for every glide, the query follow and turn, the minimap's focus and
-  heading from the live pose, and the footprint. The zoom-out limit scale was 1.3, serialised in `Dungeon.unity` (1.2 was
-  only the code default at `DungeonRunner.cs:120`); it is now the shared default, and the scene keeps an orphaned field.
-  Checked: a `--glide-to x,y` capture moves the view for the 500 ms glide and stops, and the footprint follows; no live input.
-- **3c. Terrain that changes.** Move: the dirty window and the budgeted, threaded flush; the material variants (tint,
-  tag, red, fog, decay, tag overlay); `LiquidSurfaceWave`. Godot: rebuilds on tile pushes, liquids waving. Check: the
-  frames at turn 1 and after the imps claim tiles differ where expected; tests for the wave and the variant choice.
+- **3b. Camera control and the minimap.** Done 2026-11-16 (plan step 3b, which has the detail). Moved: `MinimapCameraView`,
+  `HudDrawKind.Triangles` with `HudTriangles`, `ClassicCameraSetup.DefaultZoomOutLimitScale` (1.3, as `Dungeon.unity`
+  serialised it) and `LaunchArguments.GlideTarget`. Godot: `ClassicCameraInput`, `CameraGlide` for every glide, the query
+  follow and turn, the minimap's live focus and heading, and the footprint. Checked: a `--glide-to x,y` capture; no live input.
+- **3c. Terrain that changes.** Done 2026-11-16 (plan step 3c, ADR-0805). Moved: `TerrainChunkScheduler`,
+  `TerrainMaterialLook` (the decay stage was already shared), `LiquidSurfaceWave` and `LiquidSurfaceField`. Godot:
+  rebuilds through the scheduler, a `ShaderMaterial` per look, liquids rewritten in place each frame. Checked: Level1 at
+  tick 130 against tick 1000 differs in one tile, the tutorial's blinking red highlight (Level1 does not change by
+  itself); Level8 shows lava and water in their beds. No clean wave capture and no tag tint capture exist yet.
 - **3d. The blended stream.** Godot: blended terrain sorted back to front with `TriangleDepthOrderBuffer`, after the
-  4.8 sorting prototype (open point 4). Check: a capture across the sight fog and a blended piece shows no order
-  popping over 120 frames.
+  4.8 sorting prototype (open point 4); also the additive overlays and the fog, which Godot blends in linear space and
+  so draws weaker than Unity. Check: a capture across the sight fog and a blended piece shows no order popping over 120 frames.
 - **3e. Pointer, cage and placement: the level becomes playable.** Godot: picking rays into `TilePicker`,
   `TileTopPlane` and the terrain cast, `WorldPointerInput.PointerPosition`, the hand cursor sprite, the cage and the
   placement cursor. Move: `ViewFrustum`, `TileHoverOutline.Build`, `PlacementCursorHud`, the green key. Check: a capture
@@ -334,8 +333,8 @@ three are the terrain and the camera; after that each step adds one kind of thin
   imp and the held icon after a pickup.
 - **3i. Lighting.** Move: `ClassicVertexLight.Sum` and the packed diffuse with tests. Godot: the vertex-lit shader, the
   light-table textures, the publisher, ambient keys, torch, portal, object, effect and hand lights, the environment
-  pass, the exposure pass, and Godot's own fill and fade (open point 2). Check: captures of the start frame and a lit
-  room, compared with what open point 3 settles.
+  pass, the exposure pass, and Godot's own fill and fade (open point 2), replacing 3c's stand-in light of 0.5 and
+  uploading the liquids' normals. Check: captures of the start frame and a lit room, compared with what open point 3 settles.
 - **3j. Creature shadows.** Move: source selection, fade and the silhouette projection. Godot: the chosen path (open
   point 8). Check: a capture of an imp beside a torch; tests for the selection ties and the projection.
 - **3k. Effects and status flowers.** Move: `EffectFilters`, the flower colour reference. Godot: billboards, flat

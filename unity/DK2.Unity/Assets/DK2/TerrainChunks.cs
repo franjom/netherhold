@@ -3,7 +3,6 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using DK2.Assets;
 using DK2.Presentation;
 using Unity.Profiling;
@@ -18,30 +17,22 @@ namespace DK2.Unity
     /// material; blended triangles go to <see cref="TransparentTerrain"/>.
     /// </summary>
     /// <remarks>
-    /// A change rebuilds the 5×5 tiles' chunks around it, where DK2 rebuilds the 3×3. A tile's
-    /// vertices are built on a thread-pool task between frames (ADR-0696; <see cref="Flush"/>).
+    /// Which tiles go stale and when a chunk is rebuilt is <see cref="TerrainChunkScheduler"/>'s (the 5×5 window,
+    /// the flush budget, the thread-pool build, ADR-0457 and ADR-0696); this class uploads what it hands over.
     /// </remarks>
-    public sealed class TerrainChunks
+    public sealed class TerrainChunks : ITerrainChunkSink
     {
-        private const int ChunkSize = 16;
-
+        private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.TerrainChunks.Upload");
+        // The scheduler's spans, made at type init as before the move, so the runner's recorders find them.
         private static readonly ProfilerMarker RebuildMarker = new ProfilerMarker("DK2.TerrainChunks.Rebuild");
         private static readonly ProfilerMarker GeometryMarker = new ProfilerMarker("DK2.TerrainChunks.Geometry");
         private static readonly ProfilerMarker PrepareMarker = new ProfilerMarker("DK2.TerrainChunks.Prepare");
         private static readonly ProfilerMarker JoinMarker = new ProfilerMarker("DK2.TerrainChunks.Join");
-        private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.TerrainChunks.Upload");
 
         private readonly Transform _root;
         private readonly ClassicMeshes _classic;
         private readonly TransparentTerrain _transparent;
-        private readonly TerrainLattice _lattice;
-        private readonly TerrainTileBuilder _builder;
-        private readonly int _width;
-        private readonly int _chunksX;
-        private readonly TileView[] _tiles;
-        private readonly bool[] _drawn;
-        private readonly HashSet<int> _dirty = new HashSet<int>();
-        private readonly List<int> _dirtyOrder = new List<int>();
+        private readonly TerrainChunkScheduler _scheduler;
         private readonly Dictionary<int, GameObject> _chunks = new Dictionary<int, GameObject>();
         // Each chunk's mesh, held apart from its object so a teardown frees it even when the object
         // went first with its parent.
@@ -51,29 +42,17 @@ namespace DK2.Unity
         // Bounds are recalculated once at the end; nothing here changes an index out of range.
         private const MeshUpdateFlags UploadFlags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices
             | MeshUpdateFlags.DontNotifyMeshUsers;
-        private readonly System.Diagnostics.Stopwatch _flushClock = new System.Diagnostics.Stopwatch();
 
-        /// <summary>How long one <see cref="Flush"/> may spend uploading chunks before it leaves the
-        /// rest for the next frame, in milliseconds; at least one chunk is uploaded per flush, and the
-        /// first build after a <see cref="Clear"/> takes every chunk. A tag wave that touches many
-        /// chunks then costs a few frames of a few milliseconds instead of one frame of a hundred,
-        /// and a chunk not yet rebuilt shows its previous mesh until its turn (ADR-0457). Zero or
-        /// less builds and uploads everything at once, on the calling thread.</summary>
-        public double FlushBudgetMilliseconds { get; set; } = 4.0;
+        /// <summary>How long one <see cref="Flush"/> may spend before it leaves the rest for the next frame
+        /// (<see cref="TerrainChunkScheduler.FlushBudgetMilliseconds"/>, ADR-0457).</summary>
+        public double FlushBudgetMilliseconds
+        {
+            get => _scheduler.FlushBudgetMilliseconds;
+            set => _scheduler.FlushBudgetMilliseconds = value;
+        }
 
         /// <summary>How many chunks the last <see cref="Flush"/> left for a later one.</summary>
-        public int PendingChunks => _dirty.Count;
-
-        // Each drawn tile's pieces as the last build left them, in buffers the tile keeps: a rebuild
-        // regenerates only the tiles whose inputs changed (_stale) and copies the rest, so a dig costs
-        // its 5x5 window rather than every tile of the chunks that window touches, and the arrays are
-        // refilled rather than replaced (a tick's rebuild was 0.5 MB of them, ADR-0696). The chunk
-        // comes out the same, vertex for vertex and triangle for triangle.
-        private readonly TerrainTileGeometry[] _geometry;
-        private readonly bool[] _stale;
-        // The tiles the running build task owns; nothing of theirs is read until it is joined.
-        private readonly List<int> _building = new List<int>();
-        private Task _buildTask;
+        public int PendingChunks => _scheduler.PendingChunks;
 
         // One chunk's assembly, reused across rebuilds.
         private readonly List<Vector3> _positions = new List<Vector3>();
@@ -91,112 +70,43 @@ namespace DK2.Unity
             var blended = new GameObject("transparent terrain");
             blended.transform.SetParent(root, worldPositionStays: false);
             _transparent = blended.AddComponent<TransparentTerrain>();
-            _lattice = lattice;
-            _builder = new TerrainTileBuilder(classic, width, height, lattice);
-            _width = width;
-            _chunksX = (width + ChunkSize - 1) / ChunkSize;
-            _tiles = new TileView[width * height];
-            _drawn = new bool[width * height];
-            _geometry = new TerrainTileGeometry[width * height];
-            _stale = new bool[width * height];
+            _scheduler = new TerrainChunkScheduler(classic, width, height, lattice)
+            {
+                Profiler = SchedulerMarkers.Instance,
+            };
         }
 
         /// <summary>Takes the tile when it has plain or room pieces; false leaves it to the placeholder.</summary>
-        public bool TrySet(int tileIndex, in TileView tile)
-        {
-            // The build task reads the tiles and the lattice; a change waits for it (rarely: it is a
-            // millisecond or two, started a frame or more before the next tick's tiles arrive).
-            JoinBuild();
-            bool draws = TerrainTileBuilder.Draws(tile);
-            if (_lattice != null)
-            {
-                // A change reaches its 3×3 cells, and they bend the pieces one tile further.
-                int x = tileIndex % _width, y = tileIndex / _width, height = _tiles.Length / _width;
-                _lattice.Invalidate(x, y);
-                for (int ty = Mathf.Max(0, y - 2); ty <= Mathf.Min(height - 1, y + 2); ty++)
-                    for (int tx = Mathf.Max(0, x - 2); tx <= Mathf.Min(_width - 1, x + 2); tx++)
-                        MarkStale((ty * _width) + tx);
-            }
-            else if (draws || _drawn[tileIndex]) MarkStale(tileIndex);
-            if (tile.Tagged != _tiles[tileIndex].Tagged || tile.AmbientTint != _tiles[tileIndex].AmbientTint)
-                DirtyNeighbours(tileIndex);
-            _tiles[tileIndex] = tile;
-            _drawn[tileIndex] = draws;
-            return draws;
-        }
+        public bool TrySet(int tileIndex, in TileView tile) => _scheduler.Set(tileIndex, tile);
 
-        /// <summary>Takes a finished build over, starts one for the tiles that changed since, and
-        /// uploads the chunks whose tiles are all built, lowest chunk first, within
-        /// <see cref="FlushBudgetMilliseconds"/>; what does not fit stays dirty for the next flush.
-        /// Everything is built inline and uploaded when nothing is drawn yet, so a level appears whole.</summary>
+        /// <summary>Uploads the chunks the scheduler hands over this frame (<see cref="TerrainChunkScheduler.Flush"/>).</summary>
         public void Flush()
         {
-            LastFlushMilliseconds = 0;
-            if (_dirty.Count == 0) return;
+            if (_scheduler.PendingChunks == 0)
+            {
+                _scheduler.Flush(this);
+                return;
+            }
             using ClassicMeshes.LoadBreakdown.Scope _ = ClassicMeshes.LoadBreakdown.Span(
                 _classic?.Breakdown, ClassicMeshes.LoadBreakdown.Work.Terrain);
-            _flushClock.Restart();
-            bool budgeted = FlushBudgetMilliseconds > 0 && _chunks.Count > 0;
-            Task build = _buildTask;
-            if (build != null)
-            {
-                if (budgeted && !build.IsCompleted)
-                {
-                    LastFlushMilliseconds = _flushClock.Elapsed.TotalMilliseconds;
-                    return;
-                }
-                JoinBuild();
-            }
-
-            _dirtyOrder.Clear();
-            _dirtyOrder.AddRange(_dirty);
-            _dirtyOrder.Sort();
-            if (budgeted) StartBuild();
-            else BuildInline();
-
-            foreach (int chunk in _dirtyOrder)
-            {
-                if (budgeted && _dirty.Count < _dirtyOrder.Count && _flushClock.Elapsed.TotalMilliseconds >= FlushBudgetMilliseconds)
-                    break;
-                if (AnyStale(chunk)) continue;
-                using (RebuildMarker.Auto())
-                    Rebuild(chunk);
-                _dirty.Remove(chunk);
-            }
-            LastFlushMilliseconds = _flushClock.Elapsed.TotalMilliseconds;
+            _scheduler.Flush(this);
         }
 
         /// <summary>What the last <see cref="Flush"/> spent on the frame's thread, for the frame recorder.</summary>
-        public double LastFlushMilliseconds { get; private set; }
+        public double LastFlushMilliseconds => _scheduler.LastFlushMilliseconds;
+
+        /// <summary>Waits for the thread-pool build, if one runs; call it before changing the lattice's latches, which
+        /// forget cells the build may be reading (<see cref="TerrainChunkScheduler.JoinBuild"/>).</summary>
+        public void JoinBuild() => _scheduler.JoinBuild();
 
         public void Clear()
         {
-            JoinBuild();
+            _scheduler.Clear();
             foreach (GameObject go in _chunks.Values) if (go != null) Object.Destroy(go);
             foreach (Mesh mesh in _chunkMeshes.Values) if (mesh != null) Object.Destroy(mesh);
             _chunks.Clear();
             _chunkMeshes.Clear();
             _transparent.Clear();
-            _dirty.Clear();
-            System.Array.Clear(_drawn, 0, _drawn.Length);
-            System.Array.Clear(_geometry, 0, _geometry.Length);
-            System.Array.Clear(_stale, 0, _stale.Length);
-        }
-
-        /// <summary>A tag tints the room walls facing the tile, so its four neighbours redraw.</summary>
-        private void DirtyNeighbours(int tileIndex)
-        {
-            int x = tileIndex % _width, y = tileIndex / _width, height = _tiles.Length / _width;
-            if (x > 0) MarkStale(tileIndex - 1);
-            if (x < _width - 1) MarkStale(tileIndex + 1);
-            if (y > 0) MarkStale(tileIndex - _width);
-            if (y < height - 1) MarkStale(tileIndex + _width);
-        }
-
-        private void MarkStale(int tileIndex)
-        {
-            _stale[tileIndex] = true;
-            _dirty.Add(ChunkOf(tileIndex));
         }
 
         // The mesh is the chunk's own: destroying the object alone would leak it.
@@ -209,100 +119,21 @@ namespace DK2.Unity
             _chunkMaterials.Remove(chunk);
         }
 
-        private int ChunkOf(int tileIndex) =>
-            (tileIndex / _width / ChunkSize * _chunksX) + (tileIndex % _width / ChunkSize);
-
-        private bool AnyStale(int chunk)
-        {
-            int height = _tiles.Length / _width;
-            int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
-            for (int y = y0; y < Mathf.Min(y0 + ChunkSize, height); y++)
-                for (int x = x0; x < Mathf.Min(x0 + ChunkSize, _width); x++)
-                    if (_stale[(y * _width) + x]) return true;
-            return false;
-        }
-
-        /// <summary>Phase one for every stale tile of the dirty chunks, on this thread; a stale tile
-        /// no longer drawn just stops being stale.</summary>
-        private void PrepareStale()
-        {
-            using ProfilerMarker.AutoScope _ = PrepareMarker.Auto();
-            int height = _tiles.Length / _width;
-            foreach (int chunk in _dirtyOrder)
-            {
-                int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
-                for (int y = y0; y < Mathf.Min(y0 + ChunkSize, height); y++)
-                    for (int x = x0; x < Mathf.Min(x0 + ChunkSize, _width); x++)
-                    {
-                        int index = (y * _width) + x;
-                        if (!_stale[index]) continue;
-                        if (!_drawn[index])
-                        {
-                            _stale[index] = false;
-                            continue;
-                        }
-                        _builder.Prepare(x, y, _tiles, _geometry[index] ??= new TerrainTileGeometry());
-                        _building.Add(index);
-                    }
-            }
-        }
-
-        private void StartBuild()
-        {
-            PrepareStale();
-            if (_building.Count == 0) return;
-            _buildTask = Task.Run(() =>
-            {
-                foreach (int index in _building) _builder.Build(_geometry[index]);
-            });
-        }
-
-        private void BuildInline()
-        {
-            PrepareStale();
-            using (GeometryMarker.Auto())
-                foreach (int index in _building) _builder.Build(_geometry[index]);
-            foreach (int index in _building) _stale[index] = false;
-            _building.Clear();
-        }
-
-        /// <summary>Waits for the build task, if one runs, and takes its tiles over.</summary>
-        private void JoinBuild()
-        {
-            Task build = _buildTask;
-            if (build == null) return;
-            using (JoinMarker.Auto())
-            {
-                _buildTask = null;
-                try
-                {
-                    build.GetAwaiter().GetResult();
-                }
-                finally
-                {
-                    foreach (int index in _building) _stale[index] = false;
-                    _building.Clear();
-                }
-            }
-        }
-
-        private void Rebuild(int chunk)
+        void ITerrainChunkSink.BeginChunk(int chunk)
         {
             _positions.Clear();
             _normals.Clear();
             _uvs.Clear();
             _lightAnchors.Clear();
             foreach (List<int> list in _byMaterial.Values) list.Clear();
+        }
 
-            int height = _tiles.Length / _width;
-            int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
-            for (int y = y0; y < Mathf.Min(y0 + ChunkSize, height); y++)
-                for (int x = x0; x < Mathf.Min(x0 + ChunkSize, _width); x++)
-                {
-                    int index = (y * _width) + x;
-                    if (_drawn[index]) Append(_geometry[index]);
-                }
+        void ITerrainChunkSink.AddTile(int tileIndex, TerrainTileGeometry geometry) => Append(geometry);
 
+        void ITerrainChunkSink.EndChunk(int chunk) => Rebuild(chunk);
+
+        private void Rebuild(int chunk)
+        {
             _transparent.SetChunk(chunk, _positions, _normals, _uvs, _lightAnchors, _byMaterial);
             _chunks.TryGetValue(chunk, out GameObject go);
             if (_positions.Count == 0)
@@ -394,8 +225,8 @@ namespace DK2.Unity
             DK2.Data.Model.TerrainLightColour tint)
         {
             var geometry = new TerrainTileGeometry();
-            _builder.PrepareSinglePiece(geometry, piece, tagged, tint);
-            _builder.Build(geometry);
+            _scheduler.Builder.PrepareSinglePiece(geometry, piece, tagged, tint);
+            _scheduler.Builder.Build(geometry);
             var emitted = new Dictionary<Material, List<int>>();
             for (int s = 0; s < geometry.KeyCount; s++)
             {
@@ -404,6 +235,23 @@ namespace DK2.Unity
                 emitted[_classic.Terrain(geometry.Keys[s])] = list;
             }
             return emitted;
+        }
+
+        /// <summary>The scheduler's markers mapped to this class's Unity markers.</summary>
+        private sealed class SchedulerMarkers : DK2.Simulation.ISimulationProfiler
+        {
+            public static readonly SchedulerMarkers Instance = new SchedulerMarkers();
+
+            public void Begin(DK2.Simulation.SimulationMarker marker) => Of(marker)?.Begin();
+
+            public void End(DK2.Simulation.SimulationMarker marker) => Of(marker)?.End();
+
+            private static ProfilerMarker? Of(DK2.Simulation.SimulationMarker marker) =>
+                marker == TerrainChunkScheduler.Markers.Rebuild ? RebuildMarker
+                : marker == TerrainChunkScheduler.Markers.Geometry ? GeometryMarker
+                : marker == TerrainChunkScheduler.Markers.Prepare ? PrepareMarker
+                : marker == TerrainChunkScheduler.Markers.Join ? JoinMarker
+                : (ProfilerMarker?)null;
         }
     }
 }

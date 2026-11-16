@@ -205,7 +205,7 @@ the selected tile is unconfirmed and is not added.
 `TileView.Tagged` is the viewer's tag, or a Taggable tile inside a held tag drag
 (`WorldView.PreviewTags`); the pieces no longer change with it (art 3 is not drawn). `TerrainTileBuilder`
 keys every piece of such a tile, and a room wall facing one, to its
-material's tagged twin (Unity builds it as `ClassicMeshes.Tagged`: URP emission of texture × (128, 128, 200), standing
+material's tagged twin (the tint is `TerrainMaterialLook.TagTint`, (128, 128, 200), added by `TaggedLight`; Unity builds it as `ClassicMeshes.Tagged`: URP emission of texture × that light, standing
 for DK2's added light), then again with `AA_BlueTexture` as flat (63, 64, 255) (HYPOTHESIS, §4) additively, no depth
 write (the `TagOverlay` key). URP's lighting is not DK2's, so the sum is the same shape, not the same numbers (step 5).
 
