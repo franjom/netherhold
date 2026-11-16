@@ -10,7 +10,7 @@ namespace DK2.GodotAdapter;
 /// <summary>The keeper's bottom panel, the Godot counterpart of Unity's <c>ClassicBottomPanel</c>: <see cref="BottomPanelHud"/>
 /// (ADR-0805) decides every draw and click, a <see cref="HudCanvas"/> draws its frame bottom-docked under the HUD scale,
 /// and this node forwards the mouse in virtual units (1920 high). Its events are the model's (<see cref="Model"/>).</summary>
-public partial class ClassicBottomPanel : Node
+public partial class ClassicBottomPanel : Node, IPointerGestureHolder
 {
     private const float Tall = 1920f;
     private readonly HudFrame _frame = new();

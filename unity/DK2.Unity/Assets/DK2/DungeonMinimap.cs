@@ -173,7 +173,7 @@ namespace DK2.Unity
             Vector3 centre = focus ?? camera.transform.position;
             if (!focus.HasValue)
             {
-                var floor = new Plane(Vector3.up, new Vector3(0, 1, 0));
+                var floor = new Plane(Vector3.up, new Vector3(0, TileHeights.Floor, 0));
                 Ray ray = camera.ViewportPointToRay(new Vector3(.5f, .5f, 0));
                 if (floor.Raycast(ray, out float distance)) centre = ray.GetPoint(distance);
             }
@@ -259,7 +259,7 @@ namespace DK2.Unity
         public void UpdateCamera(Camera camera)
         {
             bool valid = camera != null;
-            var floor = new Plane(Vector3.up, new Vector3(0, 1, 0));
+            var floor = new Plane(Vector3.up, new Vector3(0, TileHeights.Floor, 0));
             for (int i = 0; valid && i < 4; i++)
             {
                 Ray ray = camera.ViewportPointToRay(new Vector3(i == 1 || i == 2 ? 1 : 0, i < 2 ? 1 : 0, 0));

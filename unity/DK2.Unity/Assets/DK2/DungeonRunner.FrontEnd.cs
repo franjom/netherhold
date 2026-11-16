@@ -32,10 +32,16 @@ namespace DK2.Unity
         private GameSessionRequest _pendingSession;
         public CampaignMapController CampaignMap => _campaignMap;
 
+        /// <summary>The player's files under <c>persistentDataPath</c>, or where the Inspector names them; the settings follow
+        /// the profile.</summary>
+        private GameFolders Folders => new GameFolders(Application.persistentDataPath)
+        {
+            ProfileFile = campaignProfileFile, SavesDirectory = savedSessionDirectory, HiScoresFile = hiScoresFile,
+        };
+
         private void LoadFrontEndProfile()
         {
-            _campaignProfilePath = string.IsNullOrWhiteSpace(campaignProfileFile)
-                ? Path.Combine(Application.persistentDataPath, "campaign-profile.dk2p") : campaignProfileFile;
+            _campaignProfilePath = Folders.Profile;
             CampaignProfile loaded = CampaignProfileFile.LoadOrCreate(_campaignProfilePath, InstalledCampaignRegistry.ReadCurrentUser);
             _campaignProfile = CampaignProgression.EnsureOpenMap(loaded);
             if (sessionMode == GameSessionMode.FrontEnd && frontEndReturnPage == FrontEndPage.CampaignResults)
@@ -85,8 +91,7 @@ namespace DK2.Unity
             _frontEnd = new FrontEndSession(path => paths((int)path), frontEndReturnPage);
             _frontEndStarted = Time.realtimeSinceStartupAsDouble;
             var menuAssets = new InstallClassicFrontEndMenuAssets(install);
-            string hiScoresPath = string.IsNullOrWhiteSpace(hiScoresFile)
-                ? Path.Combine(Application.persistentDataPath, "HiScores.dat") : hiScoresFile;
+            string hiScoresPath = Folders.HiScores;
             _campaignMap = new CampaignMapController(_frontEnd, _campaignProfile, _secretFiveAvailable, menuAssets.Briefing,
                 LoadHiScores(hiScoresPath, install));
             _campaignMap.HiScoresChanged += rows => HiScoresFile.Save(hiScoresPath, rows);
@@ -111,7 +116,7 @@ namespace DK2.Unity
             _frontEndMenu.Model.LoadRequested += LoadSession;
 
             ApplyGameSettings(_gameSettings);
-            string speechPath = Path.Combine(install, "Data", "Text", "Default", "Speech.str");
+            string speechPath = Path.Combine(LevelSubtitles.TextFolder(install), "Speech.str");
             DK2.Data.Text.Dk2StringTable movieTitles = File.Exists(speechPath) ? DK2.Data.Text.Dk2StringTable.Open(speechPath) : null;
             _frontEndMenu.Model.SetMovieGallery(new FrontEndMovieGallery(_campaignProfile,
                 path => File.Exists(Path.Combine(install, path)),

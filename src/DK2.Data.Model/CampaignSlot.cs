@@ -21,6 +21,15 @@ public readonly record struct CampaignSlot
     public bool IsCampaign => Value is >= 1 and <= 24;
     public bool IsSecret => Value is >= 26 and <= 30;
     public string? LevelName => Names[Value];
+    /// <summary>The slot whose level is <paramref name="levelName"/>, ignoring case, or <see cref="None"/> for a level off the
+    /// campaign map.</summary>
+    public static CampaignSlot ForLevel(string? levelName)
+    {
+        if (levelName is null) return None;
+        for (int slot = 1; slot <= 30; slot++)
+            if (string.Equals(Names[slot], levelName, StringComparison.OrdinalIgnoreCase)) return new CampaignSlot(slot);
+        return None;
+    }
     public static CampaignSlot FromPickTag(byte tag) => tag switch
     {
         >= 1 and <= 30 => new(tag),

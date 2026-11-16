@@ -5,8 +5,10 @@ Everything between the simulation and a renderer that does not need an engine.
 against what was last shown and drives an `IRenderTarget` (create, update, remove,
 `Flush`) with assets from an `IAssetProvider`. `TextRenderer` is the same job against
 a character grid. `PlayerInputTranslator` turns a `PlayerIntent` into commands,
-`TilePicker` picks a tile from a ray, and `TorchLayout` and `RoomWalls` compute
-placement.
+`TilePicker` picks a tile from a ray (over the `TileHeights` planes), and `TorchLayout` and `RoomWalls` compute
+placement. Small rules both engine adapters share: `HudPointerMap` (whether the pointer is over the HUD), `GameFolders`
+(profile, settings, saves and hi-score locations), `LaunchArguments`, `LevelSubtitles`, `PointerGestures.CancelAll`
+(focus loss) and `TickPacer` (tick debt, the frame clamp, ticks per frame).
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

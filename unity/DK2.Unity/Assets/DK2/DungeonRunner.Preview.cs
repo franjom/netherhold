@@ -59,8 +59,7 @@ namespace DK2.Unity
             }
             string folder = Path.Combine(Application.temporaryCachePath, "dk2-preview");
             Directory.CreateDirectory(folder);
-            string realProfile = string.IsNullOrWhiteSpace(campaignProfileFile)
-                ? Path.Combine(Application.persistentDataPath, "campaign-profile.dk2p") : campaignProfileFile;
+            string realProfile = Folders.Profile;
             CampaignProfile profile = File.Exists(realProfile)
                 ? CampaignProfileFile.LoadOrCreate(realProfile, InstalledCampaignRegistry.ReadCurrentUser)
                 : new CampaignProfile();
@@ -76,8 +75,7 @@ namespace DK2.Unity
             profile = CampaignProgression.RecordStatistics(profile, PlayerIds.FirstKeeper, block, played, keeperRank: 60);
             string previewProfile = Path.Combine(folder, "campaign-profile.dk2p");
             CampaignProfileFile.Save(previewProfile, profile);
-            string realScores = string.IsNullOrWhiteSpace(hiScoresFile)
-                ? Path.Combine(Application.persistentDataPath, "HiScores.dat") : hiScoresFile;
+            string realScores = Folders.HiScores;
             string previewScores = Path.Combine(folder, "HiScores.dat");
             if (File.Exists(realScores) && realScores != previewScores) File.Copy(realScores, previewScores, overwrite: true);
             else if (!File.Exists(realScores) && File.Exists(previewScores)) File.Delete(previewScores);

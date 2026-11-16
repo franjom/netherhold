@@ -30,6 +30,10 @@ public static class TilePicker
     /// dungeon.</summary>
     private const int StepLimit = 4;
 
+    /// <summary>The first tile whose column the ray meets at the heights the scene draws (<see cref="TileHeights"/>).</summary>
+    public static TilePos? Pick(in PickRay ray, WorldView view, WorldState world) =>
+        Pick(ray, view, world, TileHeights.Solid, TileHeights.Open);
+
     /// <summary>
     /// The first tile whose column the ray meets, or null if it meets none.
     /// </summary>

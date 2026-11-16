@@ -118,7 +118,7 @@ namespace DK2.Unity.Editor
                     Set("_cameraFocus", new Vector3(focus.X, focus.Y, focus.Z));
                     typeof(DungeonRunner).GetMethod("ApplyClassicCamera", Private).Invoke(_runner, null);
                 }
-                if (Camera.main != _camera || _camera.transform.position.y <= DungeonScene.FloorHeight)
+                if (Camera.main != _camera || _camera.transform.position.y <= TileHeights.Floor)
                     throw new InvalidOperationException("The production camera was not positioned.");
                 EditorApplication.update += CaptureFrame;
                 EditorApplication.QueuePlayerLoopUpdate();

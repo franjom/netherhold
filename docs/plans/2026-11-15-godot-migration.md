@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Next is step 2.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is in progress: the audit and 2a are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -257,9 +257,18 @@ group 2 is a list to audit, not a finding.
       the six tool-reset sites, journal key tables). Each move goes into `DK2.Presentation` (or the
       simulation) with tests, Unity calls it, and Godot wires it where it has what it needs (the
       camera arrives in step 3). One move per change, reviewed and documented.
-- [ ] 2a. Small, independent moves that remove Godot copies: `HudPointerMap` (the pointer-over-HUD
-      list), `GameFolders`, `CampaignSlot.ForLevel`, `LevelSubtitles.Open`, `PointerGestures.CancelAll`,
-      `TileHeights`, the frame clamp and ticks-per-frame into `TickPacer`, `LaunchArguments`.
+- [x] 2a. Small, independent moves that remove Godot copies (2026-11-16): `HudPointerMap` (the pointer-over-HUD
+      list), `GameFolders`, `CampaignSlot.ForLevel`, `LevelSubtitles` (`Open`, `Line`, `TextFolder`),
+      `PointerGestures.CancelAll`, `TileHeights`, the frame clamp and ticks-per-frame into `TickPacer`
+      (`MaximumFrameSeconds`, `DefaultMaxTicksPerFrame`), `LaunchArguments`. Each is a pure move with tests;
+      Unity calls it and Godot calls it where it had its own copy. Godot's hover now asks `HudPointerMap`,
+      so the query details no longer count as HUD while a menu is modal (Unity's term; an intended change);
+      its settings and saves paths come from `GameFolders` over `user://` (no path changed); it passes the
+      played slot to `WorldHoverText`; and on focus-out it now cancels the bottom panel's press and the
+      world drag, queuing the slot-release sound request 0x136 if a choice slot was held, as Unity does (Godot has no sound player). Godot parses
+      `--dk2Install` and ignores it (`Dk2Install.Find()`), and has no subtitles yet (2k). Unity's
+      `OnDisable` and `Hud.cs:318` cancel in another order and are unchanged (2h). Not run: Godot's focus-out
+      cancel and the modal query gate with a real window and pointer, and Unity in Play mode.
 - [ ] 2b. Tool state (`HudToolState`, `HudActionRouter`, the per-tool placement cursor, `CageTool`,
       `CastSpellId`); Godot's query and sell corners then set the tool and post `GuiButtonCommand`.
 - [ ] 2c. HUD and world presses: `PickupFlow` (copied twice in Unity; it filters which pickups and

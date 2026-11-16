@@ -13,7 +13,7 @@ namespace DK2.Unity
 {
     /// <summary>Unity glue for <see cref="BottomPanelHud"/> (ADR-0805): one UI Toolkit panel holding a
     /// <see cref="HudCanvas"/>, pointer events forwarded in virtual units. The panel's DK2 behaviour is the model's.</summary>
-    public sealed class ClassicBottomPanel : IDisposable
+    public sealed class ClassicBottomPanel : IDisposable, IPointerGestureHolder
     {
         private const float Tall = 1920f;
         private readonly GameObject _owner;

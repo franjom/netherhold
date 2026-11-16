@@ -21,9 +21,7 @@ namespace DK2.Unity
         public event Action<GameSettings> SettingsChanged;
         private void InitializeSettings()
         {
-            string profile = string.IsNullOrWhiteSpace(campaignProfileFile)
-                ? Path.Combine(Application.persistentDataPath, "campaign-profile.dk2p") : campaignProfileFile;
-            _settingsPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(profile)), "game-settings.ini");
+            _settingsPath = Folders.Settings;
             _gameSettings = GameSettingsFile.Load(_settingsPath);
             _optionsPages = new OptionsPagesController(_gameSettings);
             _optionsPages.Applied += ApplyGameSettings;

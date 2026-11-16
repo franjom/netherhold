@@ -28,9 +28,7 @@ namespace DK2.Unity
         private void InitializeSaves(string install)
         {
             if (_hudSources == null) _hudSources = new InstallHudSources(install, _installArt);
-            string directory = string.IsNullOrWhiteSpace(savedSessionDirectory)
-                ? Path.Combine(Application.persistentDataPath, "Saves") : savedSessionDirectory;
-            _saves = new SaveSlotsView(directory);
+            _saves = new SaveSlotsView(Folders.Saves);
             _savePanel = new ClassicSaveLoadPanel(transform, new InstallClassicOptionsAssets(_hudSources));
             _savePanel.HudAction += ApplyHudAction;
             _savePanel.Submit += () =>

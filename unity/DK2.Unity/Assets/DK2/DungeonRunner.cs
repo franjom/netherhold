@@ -80,9 +80,8 @@ namespace DK2.Unity
         /// before the present, as they did.</summary>
         [SerializeField] private bool tickOnWorkerThread = true;
 
-        /// <summary>Whole ticks one frame may run: a stall is paid back at this rate rather than
-        /// fast-forwarding the game in one frame.</summary>
-        [SerializeField] private int maxTicksPerFrame = 2;
+        /// <summary>Whole ticks one frame may run (<see cref="TickPacer.DefaultMaxTicksPerFrame"/>).</summary>
+        [SerializeField] private int maxTicksPerFrame = TickPacer.DefaultMaxTicksPerFrame;
 
         [Header("Art")]
         [Tooltip("Draw objects with their meshes from the install (ADR-0408). Off draws every object as a box.")]
@@ -135,7 +134,7 @@ namespace DK2.Unity
         [Tooltip("DK2's Scroll Speed preference; the original default is 10.")]
         [Range(5, 20)] [SerializeField] private int classicScrollSpeed = 10;
         [SerializeField] private float cameraZoomFraction = 0.15f;
-        private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
+        private const float MinCameraHeight = TileHeights.Floor + 0.5f;
         private ClassicCamera _classicCamera;
         private ClassicCameraControls _classicCameraControls;
         private readonly ClassicAmbientLight _ambientLight = new ClassicAmbientLight();
@@ -244,34 +243,24 @@ namespace DK2.Unity
         private void ApplyLaunchArguments()
         {
             string[] args = Environment.GetCommandLineArgs();
-            string level = Argument(args, "-level");
-            if (level != null)
+            LaunchArguments launch = LaunchArguments.Parse(args, "-");
+            if (launch.Level != null)
             {
                 sessionMode = GameSessionMode.Campaign;
-                levelName = level;
+                levelName = launch.Level;
                 saveFile = "";
             }
-            string seedText = Argument(args, "-seed");
-            if (seedText != null && ulong.TryParse(seedText, System.Globalization.NumberStyles.None,
-                    System.Globalization.CultureInfo.InvariantCulture, out ulong value))
-                seed = value;
-            string install = Argument(args, "-dk2Install");
-            if (install != null) installDirectory = install;
+            if (launch.Seed is ulong value) seed = value;
+            if (launch.Install != null) installDirectory = launch.Install;
             // A capture names its frame cap and VSync, so a run on other hardware is comparable.
-            string cap = Argument(args, "-frameCap");
+            string cap = LaunchArguments.Value(args, "-frameCap");
             if (cap != null && int.TryParse(cap, System.Globalization.NumberStyles.AllowLeadingSign,
                     System.Globalization.CultureInfo.InvariantCulture, out int frameCap))
                 Application.targetFrameRate = frameCap;
-            string vsync = Argument(args, "-vsync");
+            string vsync = LaunchArguments.Value(args, "-vsync");
             if (vsync != null && int.TryParse(vsync, System.Globalization.NumberStyles.None,
                     System.Globalization.CultureInfo.InvariantCulture, out int vSyncCount))
                 QualitySettings.vSyncCount = vSyncCount;
-        }
-
-        private static string Argument(string[] args, string key)
-        {
-            int at = Array.IndexOf(args, key);
-            return at >= 0 && at + 1 < args.Length ? args[at + 1] : null;
         }
 
         private void Start()
@@ -478,7 +467,7 @@ namespace DK2.Unity
                 Debug.Log(_startup.Summary(_installArt));
                 return;
             }
-            _textFolder = Path.Combine(install, "Data", "Text", "Default");
+            _textFolder = LevelSubtitles.TextFolder(install);
             _messageView = new MessageTabsView(new PlayerId((byte)viewingPlayerId), database);
             ISimulationEventSink effects = (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance;
             effects = new Level6aTortureSpeech(database, _messageView, effects);
@@ -488,7 +477,8 @@ namespace DK2.Unity
                 effects = new LocalPickupEffectSink(_worldView.LocalPickups, effects);
             }
             _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),
-                EngineCameraPaths.Loader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
+                EngineCameraPaths.Loader(install),
+                LevelSubtitles.Open(install, database.Level?.TextTableId ?? 0, message => Debug.LogWarning(message)).Line,
                 effects);
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
             WireSpeech(database);
@@ -584,13 +574,8 @@ namespace DK2.Unity
             _resourceView = new KeeperResourceView(_simulation.Database, new PlayerId((byte)viewingPlayerId));
             _startup.Step("hud.resources");
             InitializeHudControls(install, database, campaignLevel);
-            CampaignSlot hoverSlot = CampaignSlot.None;
-            for (int slot = 1; slot <= 30; slot++)
-            {
-                var candidate = new CampaignSlot(slot);
-                if (string.Equals(candidate.LevelName, levelName, StringComparison.OrdinalIgnoreCase)) { hoverSlot = candidate; break; }
-            }
-            _hoverText = new WorldHoverText(database, _hudSources.Strings.Resolve, new PlayerId((byte)viewingPlayerId), hoverSlot);
+            _hoverText = new WorldHoverText(database, _hudSources.Strings.Resolve, new PlayerId((byte)viewingPlayerId),
+                CampaignSlot.ForLevel(levelName));
             _startup.Step("hud.text");
             _scene.SetPortalLights(_worldView.PortalLightTiles(World));
             _scene.SetObjectLights(_worldView.LightObjects(World), 1);
@@ -1332,9 +1317,7 @@ namespace DK2.Unity
                     ray.origin.x, ray.origin.y, -ray.origin.z,
                     ray.direction.x, ray.direction.y, -ray.direction.z),
                 _worldView,
-                World,
-                DungeonScene.SolidHeight,
-                DungeonScene.OpenHeight);
+                World);
         }
 
         private FpPosition2? ScreenToPosition(Vector3 screenPosition, TilePos tile)
@@ -1344,7 +1327,7 @@ namespace DK2.Unity
             Ray ray = camera.ScreenPointToRay(screenPosition);
             bool solid = _worldView.TileAt(World, tile.X, tile.Y).Solid;
             var plane = new Plane(Vector3.up,
-                new Vector3(0, solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
+                new Vector3(0, solid ? TileHeights.Solid : TileHeights.Open, 0));
             if (!plane.Raycast(ray, out float distance)) return null;
             Vector3 point = ray.GetPoint(distance);
             var position = new FpPosition2(new Fp32((int)Mathf.Floor(point.x * Fp32.One)),
@@ -1417,7 +1400,7 @@ namespace DK2.Unity
 
             // A step in proportion to the height, so the wheel is as useful over a whole level
             // as beside a third-of-a-tile imp.
-            float height = camera.transform.position.y - DungeonScene.FloorHeight;
+            float height = camera.transform.position.y - TileHeights.Floor;
             Vector3 next = camera.transform.position +
                 (camera.transform.forward * scroll * cameraZoomFraction * height);
             if (next.y > MinCameraHeight) camera.transform.position = next;
@@ -1493,24 +1476,6 @@ namespace DK2.Unity
             camera.transform.rotation = Quaternion.LookRotation(
                 new Vector3(pose.Forward.X, pose.Forward.Y, pose.Forward.Z),
                 new Vector3(pose.Up.X, pose.Up.Y, pose.Up.Z));
-        }
-
-        /// <summary>The level's own string table by line index: the subtitle text of a
-        /// scripted Mentor line (0x00553780 loads it from the level's text-table byte).</summary>
-        private static Func<int, string> SubtitleLoader(string install, int textTableId)
-        {
-            string file = LevelTextTable.FileName(textTableId);
-            string path = file == null ? null : Path.Combine(install, "Data", "Text", "Default", file);
-            Dk2StringTable table = null;
-            try
-            {
-                if (path != null && File.Exists(path)) table = Dk2StringTable.Open(path);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"subtitles unavailable: {ex.Message}");
-            }
-            return line => table != null && line >= 0 && line < table.Entries.Count ? table.Entries[line].Value : null;
         }
 
         /// <summary>The letterbox bars and, while a path plays, the Mentor's subtitle in the
@@ -1629,7 +1594,7 @@ namespace DK2.Unity
             Camera camera = Camera.main;
             if (camera == null) return;
 
-            Vector3 centre = DungeonScene.Ground(world.Width / 2f, world.Height / 2f, DungeonScene.FloorHeight);
+            Vector3 centre = DungeonScene.Ground(world.Width / 2f, world.Height / 2f, TileHeights.Floor);
 
             float radius = 0.5f * Mathf.Sqrt(
                 (world.Width * (float)world.Width) + (world.Height * (float)world.Height));
@@ -1697,16 +1662,36 @@ namespace DK2.Unity
         }
 
         private bool PointerOverHud(Vector3 position) =>
-            (_minimap != null && _minimap.ContainsPointer(position)) || (_hoverHud != null && _hoverHud.ContainsPointer(position))
-            || (_resourceHud != null && _resourceHud.ContainsPointer(position))
-            || (_gameOptionsPanel != null && _gameOptionsPanel.ContainsPointer(position))
-            || (_bottomPanel != null && _bottomPanel.ContainsPointer(position))
-            || (_messageTabs != null && _messageTabs.ContainsPointer(position))
-            || (_battleTab != null && _battleTab.ContainsPointer(position))
-            || (_overviewPanel != null && _overviewPanel.ContainsPointer(position))
-            || (_optionsPanel != null && _optionsPanel.ContainsPointer(position)) || _hudControls.FullMapVisible
-            || (_queryPanel != null && _queryView.Target != CreatureQueryTarget.None && !HudModal
-                && _queryPanel.ContainsPointer(position, CurrentHud));
+            HudPointerMap.Over(new PointerPanels(this, position), fullMapVisible: _hudControls.FullMapVisible,
+                queryHasTarget: _queryView != null && _queryView.Target != CreatureQueryTarget.None, modal: HudModal);
+
+        /// <summary>This runner's panels at one pointer, for <see cref="HudPointerMap"/>; a struct, so a query allocates nothing.</summary>
+        private readonly struct PointerPanels : IHudPointerPanels
+        {
+            private readonly DungeonRunner _runner;
+            private readonly Vector3 _position;
+
+            public PointerPanels(DungeonRunner runner, Vector3 position) { _runner = runner; _position = position; }
+
+            public bool Contains(HudPointerPanel panel)
+            {
+                DungeonRunner r = _runner;
+                switch (panel)
+                {
+                    case HudPointerPanel.Minimap: return r._minimap != null && r._minimap.ContainsPointer(_position);
+                    case HudPointerPanel.HoverHud: return r._hoverHud != null && r._hoverHud.ContainsPointer(_position);
+                    case HudPointerPanel.ResourceStrip: return r._resourceHud != null && r._resourceHud.ContainsPointer(_position);
+                    case HudPointerPanel.GameOptions: return r._gameOptionsPanel != null && r._gameOptionsPanel.ContainsPointer(_position);
+                    case HudPointerPanel.BottomPanel: return r._bottomPanel != null && r._bottomPanel.ContainsPointer(_position);
+                    case HudPointerPanel.MessageTabs: return r._messageTabs != null && r._messageTabs.ContainsPointer(_position);
+                    case HudPointerPanel.BattleTab: return r._battleTab != null && r._battleTab.ContainsPointer(_position);
+                    case HudPointerPanel.CreatureOverview: return r._overviewPanel != null && r._overviewPanel.ContainsPointer(_position);
+                    case HudPointerPanel.OptionsMenu: return r._optionsPanel != null && r._optionsPanel.ContainsPointer(_position);
+                    case HudPointerPanel.CreatureQuery: return r._queryPanel != null && r._queryPanel.ContainsPointer(_position, r.CurrentHud);
+                    default: return false;
+                }
+            }
+        }
 
         /// <summary>The Hand's light follows the pick (0x0043B220, <see cref="ClassicPointLight.FromHand"/>).
         /// Over a thing it sits at the thing's position: the pick's output x and y are unread, and only
@@ -1732,7 +1717,7 @@ namespace DK2.Unity
             {
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 bool solid = _worldView.TileAt(world, tile.X, tile.Y).Solid;
-                var plane = new Plane(Vector3.up, new Vector3(0, solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
+                var plane = new Plane(Vector3.up, new Vector3(0, solid ? TileHeights.Solid : TileHeights.Open, 0));
                 Vector3 point = plane.Raycast(ray, out float distance) ? ray.GetPoint(distance) : new Vector3(tile.X + .5f, 0, -tile.Y - .5f);
                 (x, y) = (point.x, -point.z);
             }
@@ -1750,7 +1735,7 @@ namespace DK2.Unity
             Camera view = Camera.main;
             Ray ray = view.ScreenPointToRay(Input.mousePosition);
             TileView shown = _worldView.TileAt(world, tile.X, tile.Y);
-            var plane = new Plane(Vector3.up, new Vector3(0, shown.Solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
+            var plane = new Plane(Vector3.up, new Vector3(0, shown.Solid ? TileHeights.Solid : TileHeights.Open, 0));
             if (!plane.Raycast(ray, out float distance)) return new WorldHoverHit(WorldHoverKind.Tile, tile);
             _objectsOnlyPick = !HudModal && CurrentHud.AllowOrdinaryInput && ClassicKeyBindings.Held(_gameSettings, GameAction.ObjectsOnly, exactModifiers: true);
             _renderedPick ??= (kind, id) => HoverPickRules.Rendered(World, _simulation.Database, kind, id, _objectsOnlyPick);
@@ -1995,8 +1980,7 @@ namespace DK2.Unity
             if (!focused)
             {
                 _handCursor?.Update(HandCursorKind.Default, false, Time.unscaledTimeAsDouble);
-                _bottomPanel?.CancelPointerGesture(); _input.CancelPointerGesture();
-                _cursorFeedback.Reset();
+                PointerGestures.CancelAll(_bottomPanel, _input, _cursorFeedback);
             }
         }
 

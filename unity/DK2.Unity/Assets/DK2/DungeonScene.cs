@@ -27,18 +27,6 @@ namespace DK2.Unity
     /// </remarks>
     public sealed class DungeonScene : IRenderTarget
     {
-        /// <summary>DK2's ordinary floor height, 0x1000 (<c>0x004545C0</c>; pits, pools and
-        /// water lie lower). Heights here are DK2's own, so a torch's 1.5 is mid-wall.</summary>
-        public const float FloorHeight = 1f;
-
-        /// <summary>The top of a tile whose terrain fills its cell: every solid terrain KMF in
-        /// the install spans heights 1 to 2, a wall one tile above the floor. Public because
-        /// <see cref="TilePicker"/> needs the same number to work out what the pointer is over.</summary>
-        public const float SolidHeight = 2f;
-
-        /// <summary>The top of a tile you could stand on, the floor; for the picker too.</summary>
-        public const float OpenHeight = FloorHeight;
-
         /// <summary>A floor slab's thickness: thin, so a creature on it reads as standing on it.</summary>
         private const float SlabThickness = 0.06f;
 
@@ -1174,7 +1162,7 @@ namespace DK2.Unity
             // Room furniture stands on the floor rather than replacing it, so it
             // is deliberately smaller than a tile and sits above the ground.
             go.transform.localScale = new Vector3(0.6f, 0.35f, 0.6f);
-            go.transform.position = Ground(tile.Position.X + 0.5f, tile.Position.Y + 0.5f, FloorHeight + 0.2f);
+            go.transform.position = Ground(tile.Position.X + 0.5f, tile.Position.Y + 0.5f, TileHeights.Floor + 0.2f);
             _furniture[tileIndex] = go;
         }
 
@@ -1236,8 +1224,8 @@ namespace DK2.Unity
         private void Place(GameObject go, int x, int y, bool solid)
         {
             // A block stands from 0 to its top; a slab's top is the floor.
-            float top = solid ? SolidHeight : OpenHeight;
-            float thickness = solid ? SolidHeight : SlabThickness;
+            float top = solid ? TileHeights.Solid : TileHeights.Open;
+            float thickness = solid ? TileHeights.Solid : SlabThickness;
 
             go.transform.localScale = new Vector3(1f, thickness, 1f);
             go.transform.position = Ground(x + 0.5f, y + 0.5f, top - thickness / 2f);
@@ -1267,7 +1255,7 @@ namespace DK2.Unity
             go.transform.position = Ground(
                 creature.PosX / (float)Fp32.One,
                 creature.PosY / (float)Fp32.One,
-                FloorHeight + height / 2f);
+                TileHeights.Floor + height / 2f);
         }
 
         /// <summary>
@@ -1300,7 +1288,7 @@ namespace DK2.Unity
             height *= 0.5f;
 
             go.transform.localScale = new Vector3(0.5f, height, 0.5f);
-            go.transform.position = Ground(x, y, FloorHeight + height / 2f);
+            go.transform.position = Ground(x, y, TileHeights.Floor + height / 2f);
         }
 
         private static Color ColourOf(in PlaceholderLook look) =>

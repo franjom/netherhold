@@ -33,7 +33,7 @@ Each Unity region was classified in one of four ways:
 
 Each row lists the Unity source, the proposed `src/` home, and its size and risk.
 
-- **2a, small and independent.** These remove Godot copies.
+- **2a, small and independent.** These remove Godot copies. Done 2026-11-16 (plan step 2a).
   - The pointer-over-HUD list (`DungeonRunner.cs:1699-1709`, copied at `InGameHud.cs:494-502`) becomes a `HudPointerMap`. The copies differ: Unity's query-panel term has `&& !HudModal` and Godot's has none, so the move takes Unity's.
   - The file locations (profile, settings, saves and hi-scores, built in four places) become `GameFolders`.
   - The played slot by level name (`:587-592`) becomes `CampaignSlot.ForLevel`.

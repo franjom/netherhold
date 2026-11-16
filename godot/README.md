@@ -37,11 +37,17 @@ step 2). The options menu (`ClassicOptionsPanel` over `OptionsHud`) opens on Esc
 click, the message string tables (`MessageTextTables`), player names (`PlayerNames`) and which panel's hover text wins
 (`HudHoverText`), the creature overview's install art (`InstallCreatureOverviewArt`), the query target and its details
 (`CreatureQueryView`), the creature names it shows (`InstallClassicCreatureNames`), and the battle tab's place, hover
-text and click actions (`BattleTabView.MenuTop`, `BattleTabHoverText`, `BattleTabView.Action`) are shared with Unity in
-`DK2.Presentation`. Run it by naming the scene, with
+text and click actions (`BattleTabView.MenuTop`, `BattleTabHoverText`, `BattleTabView.Action`), the pointer-over-HUD list
+(`HudPointerMap`, used for the HUD's hover text only, since there is no world yet; the creature query details count only while
+no menu is modal), the settings and saves locations (`GameFolders` over `user://`), the launch arguments
+(`LaunchArguments`), the played slot (`CampaignSlot.ForLevel`, passed to `WorldHoverText`), the frame clamp and
+ticks per frame (`TickPacer.MaximumFrameSeconds`, `DefaultMaxTicksPerFrame`) and the focus-out cancel (`PointerGestures.CancelAll`)
+are shared with Unity in `DK2.Presentation`. When the window loses focus the scene releases the keys and cancels the
+bottom panel's press and the world drag; a held choice slot queues its release sound request 0x136, which nothing plays yet.
+Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
-`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--settings <file>` for the settings file, `--open-full-map` to open the full map).
+`--query-first-creature` to show the query details, `--stage-battle` to show the battle tab, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--settings <file>` for the settings file, `--open-full-map` to open the full map; `LaunchArguments` also parses `--dk2Install <path>`, which the scene ignores: it still uses `Dk2Install.Find()`).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
 
 | File | Role |

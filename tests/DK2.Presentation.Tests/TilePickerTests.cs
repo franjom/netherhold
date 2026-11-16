@@ -17,9 +17,9 @@ namespace DK2.Presentation.Tests;
 /// </summary>
 public class TilePickerTests
 {
-    // What the Unity scene passes: DK2's floor at one tile, a wall's top at two.
-    private const float SolidHeight = 2f;
-    private const float OpenHeight = 1f;
+    // TileHeights, the scene's own: DK2's floor at one tile, a wall's top at two.
+    private const float SolidHeight = TileHeights.Solid;
+    private const float OpenHeight = TileHeights.Open;
 
     /// <summary>The pitch the Unity runner defaults to, in the plane where the error is
     /// largest: straight along +z, so a one-tile wall displaces the ground hit by
@@ -46,6 +46,7 @@ public class TilePickerTests
             LookingAt(5.5f, 5.5f, SolidHeight), view, world, SolidHeight, OpenHeight);
 
         Assert.Equal(new TilePos(5, 5), picked);
+        Assert.Equal(picked, TilePicker.Pick(LookingAt(5.5f, 5.5f, SolidHeight), view, world));   // the scene's own heights
     }
 
     [Fact]
@@ -83,6 +84,7 @@ public class TilePickerTests
             LookingAt(9.5f, 12.5f, OpenHeight), view, world, SolidHeight, OpenHeight);
 
         Assert.Equal(new TilePos(9, 12), picked);
+        Assert.Equal(picked, TilePicker.Pick(LookingAt(9.5f, 12.5f, OpenHeight), view, world));   // the scene's own heights
     }
 
     [Fact]

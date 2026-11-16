@@ -31,7 +31,7 @@ namespace DK2.Unity
             _cutsceneTitle = null;
             if (_cutscene.TitleTextId != 0)
             {
-                string table = Path.Combine(install, "Data", "Text", "Default", "Speech.str");
+                string table = Path.Combine(LevelSubtitles.TextFolder(install), "Speech.str");
                 if (File.Exists(table) && Dk2StringTable.Open(table).TryResolve(_cutscene.TitleTextId, out string title))
                     _cutsceneTitle = title;
             }

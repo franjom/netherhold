@@ -28,10 +28,6 @@ namespace DK2.GodotAdapter;
 /// docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c> (<c>--stage-battle</c> is <see cref="StageBattle"/>): godot/README.md.</summary>
 public partial class InGameHud : Node, IHudHoverSources
 {
-    /// <summary>DungeonRunner's <c>maxTicksPerFrame</c> in the Dungeon scene.</summary>
-    private const int MaxTicksPerFrame = 2;
-    /// <summary>Unity's Time.maximumDeltaTime in this project (ProjectSettings/TimeManager.asset).</summary>
-    private const double MaximumFrameSeconds = 1.0 / 3.0;
     private readonly List<PlayerCommand> _pending = new();
     private readonly PlayerInputTranslator _input = new();
     private readonly TickPacer _pacer = new();
@@ -104,14 +100,19 @@ public partial class InGameHud : Node, IHudHoverSources
             return;
         }
         string[] args = OS.GetCmdlineUserArgs();
-        string levelName = Argument(args, "--level") ?? "Level1";
-        ulong seed = ulong.TryParse(Argument(args, "--seed"), NumberStyles.None, CultureInfo.InvariantCulture, out ulong s) ? s : 1;
+        LaunchArguments launch = LaunchArguments.Parse(args, "--");
+        string levelName = launch.Level ?? "Level1";
+        ulong seed = launch.Seed ?? 1;
+        // Godot's root is user:// (%APPDATA%/Godot/app_userdata/DK2.Godot), never Unity's persistentDataPath.
+        var folders = new GameFolders(ProjectSettings.GlobalizePath("user://"))
+        {
+            SettingsFile = LaunchArguments.Value(args, "--settings"), SavesDirectory = LaunchArguments.Value(args, "--saves"),
+        };
         CampaignLevelData level = CampaignLevelData.Load(install, levelName);
         _simulation = level.CreateSimulation(seed, fogOfWarEnabled: true);
         _simulation.World.LocalPlayerId = _viewer;
-        // DungeonRunner.InitializeSettings: Unity's file is game-settings.ini beside the campaign profile in its
-        // persistentDataPath; Godot's counterpart is user://, never Unity's file.
-        _settingsPath = Argument(args, "--settings") ?? ProjectSettings.GlobalizePath("user://game-settings.ini");
+        // DungeonRunner.InitializeSettings: game-settings.ini beside the campaign profile.
+        _settingsPath = folders.Settings;
         _settings = LoadSettings(_settingsPath);
         _optionsPages = new OptionsPagesController(_settings);
         _optionsPages.Applied += ApplySettings;
@@ -186,9 +187,8 @@ public partial class InGameHud : Node, IHudHoverSources
         _gameOptionsPanel = new ClassicGameOptionsPanel { Name = "GameOptions" };
         _gameOptionsPanel.Open(_gameOptions, _sources.Text, _art.Font, _sources.Texture);
         AddChild(_gameOptionsPanel);
-        // Unity's runner lists Application.persistentDataPath/Saves unless savedSessionDirectory names another; Godot's
-        // counterpart of that path is user://Saves. Listing only reads: nothing is created there.
-        string savesDirectory = Argument(args, "--saves") ?? ProjectSettings.GlobalizePath("user://Saves");
+        // Listing only reads: nothing is created there.
+        string savesDirectory = folders.Saves;
         _saves = new SaveSlotsView(savesDirectory);
         // After the menu, as Unity's sorting order 16 over its 15.
         _saveLoad = new ClassicSaveLoadPanel { Name = "SaveLoad" };
@@ -207,8 +207,8 @@ public partial class InGameHud : Node, IHudHoverSources
         _fullMap.Pressed += FullMapPressed;
         AddChild(_fullMap);
         _hudHover = new HudHoverText(_sources.Strings.Resolve);
-        // Unity's runner also passes the played campaign slot, which only world hover reads.
-        _typeText = new WorldHoverText(level.Database, _sources.Strings.Resolve, _viewer);
+        // The played campaign slot only world hover reads, passed as Unity's runner passes it.
+        _typeText = new WorldHoverText(level.Database, _sources.Strings.Resolve, _viewer, CampaignSlot.ForLevel(levelName));
         // DungeonRunner applies the loaded settings once the level is up.
         ApplySettings(_settings);
         for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
@@ -224,7 +224,7 @@ public partial class InGameHud : Node, IHudHoverSources
         {
             ApplyHudAction(ClassicHudAction.ToggleOptions);
             // Only an entry the menu takes a press on: an unsupported one is ignored, as a click.
-            if (Enum.TryParse(Argument(args, "--open-options"), out ClassicOptionsAction entry))
+            if (Enum.TryParse(LaunchArguments.Value(args, "--open-options"), out ClassicOptionsAction entry))
             {
                 if (_options.Supported(entry)) OptionsPressed(entry);
                 else GD.PushWarning("DK2.Godot: --open-options ignores " + entry + ", which the menu does not support.");
@@ -320,8 +320,8 @@ public partial class InGameHud : Node, IHudHoverSources
         // Clamped as Unity's runner clamps it (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap.
         // DungeonRunner's tick gate: no turn runs, and none accrues, while it holds.
         if (_hudControls.TicksPaused) return;
-        _pacer.Accrue(Math.Min(delta, MaximumFrameSeconds), 1f, _settings.GameSpeed);
-        int ticks = _pacer.Take(MaxTicksPerFrame);
+        _pacer.Accrue(Math.Min(delta, TickPacer.MaximumFrameSeconds), 1f, _settings.GameSpeed);
+        int ticks = _pacer.Take(TickPacer.DefaultMaxTicksPerFrame);
         InputFrame first = TickPacer.FirstInput(ticks, _pending);
         if (first.Commands != null) _pending.Clear();
         for (int i = 0; i < ticks; i++) _simulation.Tick(TickPacer.InputFor(i, first));
@@ -489,17 +489,29 @@ public partial class InGameHud : Node, IHudHoverSources
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
-    /// <summary>The panels this scene has, as DungeonRunner.PointerOverHud asks its own; the open full map holds the whole
-    /// screen.</summary>
+    /// <summary>The panels this scene has, asked as DungeonRunner.PointerOverHud asks its own (<see cref="HudPointerMap"/>).</summary>
     private bool PointerOverHud(Vector2 position, HudVisibility visibility) =>
-        (_minimap != null && _minimap.ContainsPointer(position)) || (_hover != null && _hover.ContainsPointer(position)) || (_resources != null && _resources.ContainsPointer(position))
-        || (_panel != null && _panel.ContainsPointer(position)) || (_messages != null && _messages.ContainsPointer(position))
-        || (_battleTab != null && _battleTab.ContainsPointer(position))
-        || (_overview != null && _overview.ContainsPointer(position))
-        || (_options != null && _options.ContainsPointer(position))
-        || (_gameOptionsPanel != null && _gameOptionsPanel.ContainsPointer(position)) || _hudControls.FullMapVisible
-        || (_queryPanel != null && _queryView != null && _queryView.Target != CreatureQueryTarget.None
-            && _queryPanel.ContainsPointer(position, visibility));
+        HudPointerMap.Over(new PointerPanels(this, position, visibility), fullMapVisible: _hudControls.FullMapVisible,
+            queryHasTarget: _queryView != null && _queryView.Target != CreatureQueryTarget.None, modal: _hudControls.Modal);
+
+    /// <summary>This scene's panels at one pointer, for <see cref="HudPointerMap"/>; a struct, so a query allocates nothing.</summary>
+    private readonly struct PointerPanels(InGameHud hud, Vector2 position, HudVisibility visibility) : IHudPointerPanels
+    {
+        public bool Contains(HudPointerPanel panel) => panel switch
+        {
+            HudPointerPanel.Minimap => hud._minimap != null && hud._minimap.ContainsPointer(position),
+            HudPointerPanel.HoverHud => hud._hover != null && hud._hover.ContainsPointer(position),
+            HudPointerPanel.ResourceStrip => hud._resources != null && hud._resources.ContainsPointer(position),
+            HudPointerPanel.GameOptions => hud._gameOptionsPanel != null && hud._gameOptionsPanel.ContainsPointer(position),
+            HudPointerPanel.BottomPanel => hud._panel != null && hud._panel.ContainsPointer(position),
+            HudPointerPanel.MessageTabs => hud._messages != null && hud._messages.ContainsPointer(position),
+            HudPointerPanel.BattleTab => hud._battleTab != null && hud._battleTab.ContainsPointer(position),
+            HudPointerPanel.CreatureOverview => hud._overview != null && hud._overview.ContainsPointer(position),
+            HudPointerPanel.OptionsMenu => hud._options != null && hud._options.ContainsPointer(position),
+            HudPointerPanel.CreatureQuery => hud._queryPanel != null && hud._queryPanel.ContainsPointer(position, visibility),
+            _ => false,
+        };
+    }
 
     // The panels under the pointer for HudHoverText, answered as Unity's runner answers; the ones not ported give the
     // empty answer.
@@ -516,12 +528,6 @@ public partial class InGameHud : Node, IHudHoverSources
     ClassicHudAction IHudHoverSources.MinimapControl() => _minimap?.HoveredControl(_pointer) ?? ClassicHudAction.None;
     KeeperResourceKind IHudHoverSources.Resource() => _resources?.ResourceAt(_pointer) ?? KeeperResourceKind.None;
 
-    private static string? Argument(string[] args, string name)
-    {
-        for (int i = 0; i + 1 < args.Length; i++) if (args[i] == name) return args[i + 1];
-        return null;
-    }
-
     /// <summary>Every key event reaches the keyboard, as Unity's <c>Input.GetKey</c> reads the keys whatever the UI holds.</summary>
     public override void _Input(InputEvent @event)
     {
@@ -530,8 +536,14 @@ public partial class InGameHud : Node, IHudHoverSources
 
     public override void _Notification(int what)
     {
-        // A window without focus misses the releases.
-        if (what == NotificationApplicationFocusOut) { _keyboard.ReleaseAll(); return; }
+        // A window without focus misses the releases: the keys, the bottom panel's press and the world drag (Unity's
+        // runner's OnApplicationFocus; there is no hand cursor feedback here).
+        if (what == NotificationApplicationFocusOut)
+        {
+            _keyboard.ReleaseAll();
+            PointerGestures.CancelAll(_panel, _input, feedback: null);
+            return;
+        }
         // Unity's Input.mousePosition leaves the screen with the pointer; Godot stops reporting it instead.
         if (what == NotificationWMMouseExit) { _pointerInWindow = false; return; }
         if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
