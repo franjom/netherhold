@@ -8,16 +8,16 @@ using DK2.Simulation;
 
 namespace DK2.Tools;
 
-/// <summary>Reads a <c>capture_state.py</c> tick (<c>--state-only</c>) as a <see cref="ResyncState"/>.</summary>
+/// <summary>Reads a <c>capture_export.py state</c> tick (<c>--state-only</c>) as a <see cref="ResyncState"/>.</summary>
 public static class ResyncStateFile
 {
     public static ResyncState Load(string path)
     {
         ResyncState? state;
         try { state = JsonSerializer.Deserialize<ResyncState>(File.ReadAllText(path), Json); }
-        catch (JsonException ex) { throw new InvalidDataException($"{path} is not a complete capture_state.py tick: {ex.Message}", ex); }
+        catch (JsonException ex) { throw new InvalidDataException($"{path} is not a complete capture_export.py state tick: {ex.Message}", ex); }
         if (state is null || state.Tiles.Length != 3 * state.Width * state.Height)
-            throw new InvalidDataException($"{path} is not a capture_state.py tick.");
+            throw new InvalidDataException($"{path} is not a capture_export.py state tick.");
         return state;
     }
 

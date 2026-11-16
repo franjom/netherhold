@@ -256,7 +256,7 @@ counterpart, and its 2.8 steals a run belong to the same kind-3 count as claims.
 
 ## 10. Capture checks
 
-`dk2steals.py` over the eight captures reproduces the owner's table (Level 1: 3, 4, 5,
+`dk2capture.py <capture> steals` over the eight captures reproduces the owner's table (Level 1: 3, 4, 5,
 2, 7, 7, 8 kind-3 steals; Level 2: 31). A scratch script re-derived each kind-3 steal
 with both imps' squared distances to the tile centre from the frame before:
 

@@ -153,7 +153,7 @@ capture shows the Hand, payday, Casino or Training numbers in play. The Training
 
 ## 6. Measured in the game — CONFIRMED (capture and video, 2026-11-04)
 
-Level `Q750CostNumbersBank` (tools/levelgen), played by the owner with `dk2record.py` running and
+Level `Q750CostNumbersBank` (tools/levelgen), played by the owner with `dk2live.py record` (then `dk2record.py`) running and
 the screen recorded: `F:/DK2Evidence/studies/q750-cost-numbers--2026-11-04--003/payload`
 (`run.dk2cap`, ticks 1-343; `video-2026-11-04-18-42-50.mp4`, 94 s, 30 fps). Video time is capture
 wall time minus about 8.2 s, fixed by the waves below.

@@ -48,7 +48,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Capture `record.u(offset)` defaults to a dword; supply the recorded field width explicitly so padding cannot enter restore inputs.
 - Seed packed action completion/count fields as bytes: a dword at creature +0x3AD also overwrites the work rate at +0x3AF.
 
-- The archived dk2seed default map filter is 40x50; Level 5 is 51x55. Read the selected capture dimensions before launching a seeded native control.
+- The `dk2live.py seed` default map filter is 40x50; Level 5 is 51x55. Read the selected capture dimensions before launching a seeded native control.
 
 - Codex's sandbox helper can fail before process startup with `setup refresh had errors`; an approved `require_escalated` command can still run.
 - Concurrent commits in one checkout share both the index and COMMIT_EDITMSG; serialize staging and commits across sessions, including while hooks run.
@@ -394,3 +394,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Python on this Windows host may default to cp1252; pass encoding="utf-8-sig" when reading BOM Markdown before rewriting, or its header becomes mojibake.
 - The dk2kb MCP server (`kb_upsert`) writes records into the main clone, not the linked worktree you are in: edit the record file in the worktree by hand there, and restore anything it wrote to the main clone.
 - The first `GameSimulation.Tick` executes tick 0; raw placed-state age fixtures need an entry stamp of -1, not 0.
+- A tool attached to DK2 can change a replay: a Level 6a `record_native.py` replay went out of sync at GT 76 while a plain `-PLOAD` did not (2026-11-16; the cause is a hypothesis). Check `MESSAGE.LOG` for `Gone Out Of Sync` after every replay capture; see `tools/oracle/play-record.md`.

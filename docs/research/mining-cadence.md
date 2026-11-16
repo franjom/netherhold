@@ -4,7 +4,7 @@ systems: [imps-tile-work]
 # How often a DK2 miner strikes, and where the gold goes (Q480)
 
 **Source:** the owner's Level 2 recording `l2win928`, replayed once with `-PLOAD`
-on 2026-09-28 and recorded in full by `reverse-engineering/dk2record.py`
+on 2026-09-28 and recorded in full by `reverse-engineering/dk2live.py record` (then `dk2record.py`)
 (ignored `dk2runs/level2-fullstate-20260928/`). Every tick of the playback,
 1–3536, is in the capture: no torn passes and no missed ticks. The format and
 decoders are in `reverse-engineering/README.md`, "Full-state captures".

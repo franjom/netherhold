@@ -56,7 +56,7 @@ dead-slot/point-anchor canonicalization. Existing active body routes are still
 reissued by resync and are not restored by importing the mesh afterwards.
 
 The first navigation import is excluded: its equality guard found exactly
-one byte difference, door 1164 at (39,48), native 0 versus modern 16. capture_state
+one byte difference, door 1164 at (39,48), native 0 versus modern 16. `capture_export.py state`
 exports open/lock values, but ResyncDoor drops them. Restoring that open door's
 Boolean/lock fields makes all grid bytes agree, permitting the guarded import.
 Native 004A55F0 uses dword open +10D and lock +111; 004A66F0 clears the open door's

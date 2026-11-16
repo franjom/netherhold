@@ -3,7 +3,7 @@
 # See LICENSE in the project root for the full license text.
 """process_dump: every committed, readable page of a running 32-bit process, as a memory image.
 
-The image is capture_memory.py's format (`<u32 address> <u32 length> <bytes>` regions) inside
+The image is capture_export.py memory's format (`<u32 address> <u32 length> <bytes>` regions) inside
 one zlib stream, which dk2oracle.py loads directly, so a function that reads definitions, path
 buffers or any other heap the full-state captures leave out can run on the game's real state.
 

@@ -1,13 +1,23 @@
 # Copyright (C) 2026 Franjo Misetic
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See LICENSE in the project root for the full license text.
-"""capture_state: ticks of a full-state capture as plain values, for C# to rebuild our world from.
+"""capture_export: a full-state capture's ticks as plain values (for C#) or as memory images (for dk2oracle.py).
 
-Usage: python -I capture_state.py <capture.dk2cap> <out folder> <tick>... [--dump <tick>.mem.z] [--state-only]
+Usage:
+    python -I capture_export.py state <capture.dk2cap> <out folder> <tick>... [--dump <tick>.mem.z] [--state-only]
+    python -I capture_export.py memory <capture.dk2cap> <tick> <out.mem[.z]> [<address>=<hex bytes>...]
 
-For each tick, writes <out>/<tick>.json and the matching memory image <out>/<tick>.mem
-(capture_memory.py's format), so a test can run the original on exactly the state it rebuilds.
-The JSON carries only fields whose meaning the decoder documents (reverse-engineering/
+Merged on 2026-11-16 from capture_state.py (now `state`) and capture_memory.py (now `memory`); tools/oracle/README.md.
+The decoder is chosen from the capture: a record_native.py capture's frozen sources (identity checked against its
+sha256-final.json; DK2_CAPTURE_DECODER may only name identical code), else DK2_CAPTURE_DECODER, the capture's sources
+or the F:/DK2Evidence archive. All outputs are created exclusively; existing evidence is never replaced.
+
+memory: one tick as a memory image. New record_native.py captures supply their verified full-memory timeline; oracle
+region boundaries are preserved; the .z suffix selects compression. A legacy capture without a complete-memory
+declaration gives an explicitly PARTIAL structured image. Extra address=bytes arguments are analysis overlays.
+
+state: for each tick, writes <out>/<tick>.json and the matching memory image <out>/<tick>.mem (the `memory` format),
+so a test can run the original on exactly the state it rebuilds. The JSON carries only fields whose meaning the decoder documents (reverse-engineering/
 dk2capture.py's FIELDS, and the record offsets named below with the research they come from);
 anything a test needs beyond them is added here, not guessed in C#.
 
@@ -78,16 +88,86 @@ With --state-only no memory image is written; full-memory JSON fields still load
 This is for a resync replay (dk2tools replay --resync),
 which rebuilds our world from the JSON alone.
 """
+import hashlib
 import json
 import os
 import struct
 import sys
+from pathlib import Path
 
 sys.dont_write_bytecode = True
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import capture_memory  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from native_memory import capture_header, for_capture  # noqa: E402
 
-dk2capture = capture_memory.dk2capture
+dk2capture = None
+
+
+def decoder_path(capture_path):
+    """The folder holding the capture's decoder: its frozen sources for a complete capture (identity checked),
+    else DK2_CAPTURE_DECODER, the capture's sources or the F: archive."""
+    explicit = os.environ.get('DK2_CAPTURE_DECODER')
+    capture = Path(capture_path).resolve() if capture_path else None
+    captured_sources = capture.parent / 'sources' if capture else None
+    declared = False
+    if capture is not None and capture.is_file():
+        with capture.open('rb') as stream:
+            is_capture = stream.read(8) == b'DK2CAP\x01\n'
+        declared = is_capture and capture_header(capture).get('complete_memory') is not None
+    if declared:
+        source = captured_sources / 'dk2capture.py'
+        manifest = json.loads((capture.parent / 'sha256-final.json').read_bytes())
+        if not source.is_file() or manifest.get('sources/dk2capture.py') != hashlib.sha256(source.read_bytes()).hexdigest():
+            raise ValueError('Declared complete capture decoder is missing or has a different identity')
+        candidates = [Path(explicit)] if explicit else [captured_sources]
+        if explicit:
+            override = Path(explicit) / 'dk2capture.py'
+            if not override.is_file() or hashlib.sha256(override.read_bytes()).hexdigest() != manifest['sources/dk2capture.py']:
+                raise ValueError('Decoder override differs from the complete capture source')
+    else:
+        candidates = [Path(explicit)] if explicit else ([captured_sources] if captured_sources else [])
+        if not explicit:
+            candidates += [Path('F:/DK2Evidence/archive/main-clone--unknown-date--001/payload/reverse-engineering')]
+    for candidate in candidates:
+        if (candidate / 'dk2capture.py').is_file():
+            return candidate
+    raise RuntimeError('No retained capture decoder found; expected capture/sources or the F:/DK2Evidence archive')
+
+
+_decoder_folder = None
+
+
+def load_decoder(capture_path):
+    """Imports the capture's decoder as the module global dk2capture. The folder is chosen (and a complete
+    capture's frozen decoder identity-checked) on every call; a second capture that needs another decoder is refused,
+    since one process can hold only one module named dk2capture."""
+    global dk2capture, _decoder_folder
+    folder = decoder_path(capture_path)
+    if _decoder_folder is not None:
+        if Path(folder).resolve() != Path(_decoder_folder).resolve():
+            raise ValueError(f'{capture_path} needs the decoder in {folder}; this process already loaded {_decoder_folder}')
+        return dk2capture
+    sys.path.insert(0, str(folder))
+    import dk2capture as decoder  # noqa: E402
+    dk2capture, _decoder_folder = decoder, folder
+    return dk2capture
+
+
+def image(snapshot, extra=()):
+    """(address, bytes) for every stored region and record, then the extras."""
+    for _rid, (address, data) in sorted(snapshot.regions.items()):
+        if data:
+            yield address, data
+    for record in snapshot.records():
+        if record.raw:
+            yield record.ptr, record.raw
+    yield from extra
+
+
+def write(path, regions):
+    with open(path, "xb") as out:
+        for address, data in regions:
+            out.write(struct.pack("<II", address, len(data)))
+            out.write(data)
 
 
 class Dump(object):
@@ -352,18 +432,19 @@ def state(snap):
             "seed": struct.unpack_from("<I", snap.region(dk2capture.REGION_WORLD), 0x15A0)[0]}
 
 
-def main():
-    if sys.argv[1:] in (['--help'], ['-h']):
-        print(__doc__)
-        return
-    args = sys.argv[1:]
+def main_state(args):
+    if args[:1] in (['-h'], ['--help']):
+        sys.exit(__doc__)
     dump = None
     state_only = "--state-only" in args
     args = [a for a in args if a != "--state-only"]
     if "--dump" in args:
         i = args.index("--dump")
         dump, args = args[i + 1], args[:i] + args[i + 2:]
+    if len(args) < 3:
+        sys.exit(__doc__)
     capture, out = args[0], args[1]
+    load_decoder(capture)
     os.makedirs(out, exist_ok=True)
     cap = dk2capture.Capture(capture)
     if dump is not None and cap.header.get('complete_memory') is not None:
@@ -391,7 +472,7 @@ def main():
                 complete.export(memory_path)
                 values['memoryImage'] = os.path.abspath(memory_path)
         elif not state_only:
-            capture_memory.write(os.path.join(out, f"{tick}.mem"), capture_memory.image(snap))
+            write(os.path.join(out, f"{tick}.mem"), image(snap))
         if complete is None and dump is None:
             values['captureCompleteness'] = 'partial-legacy-structured-frame'
             print(f'PARTIAL legacy frame {tick}: no complete memory timeline.', file=sys.stderr)
@@ -400,5 +481,35 @@ def main():
         print(tick)
 
 
+
+def main_memory(args):
+    if len(args) < 3 or args[0] in ('-h', '--help'):
+        sys.exit(__doc__)
+    capture, tick, path = args[0], int(args[1]), args[2]
+    extra = [(int(a, 16), bytes.fromhex(b)) for a, b in (x.split("=") for x in args[3:])]
+    load_decoder(capture)
+    cap = dk2capture.Capture(capture)
+    snapshot = cap.at(tick)
+    if snapshot is None or snapshot.tick != tick or snapshot.torn:
+        sys.exit(f"{capture} has no exact untorn frame at tick {tick}")
+    complete = for_capture(capture, tick, cap.header)
+    if complete is not None:
+        complete.export(path, compressed=path.endswith('.z'), extra=extra)
+    else:
+        print('PARTIAL legacy image: this capture has no complete memory timeline.', file=sys.stderr)
+        write(path, image(snapshot, extra))
+    print(f"tick {snapshot.tick}: {len(snapshot.regions)} regions, {sum(1 for _ in snapshot.records())} records -> {path}")
+
+
+
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    if not argv or argv[0] in ('-h', '--help') or argv[0] not in ('state', 'memory'):
+        print(__doc__)
+        return 0 if argv and argv[0] in ('-h', '--help') else 2
+    (main_state if argv[0] == 'state' else main_memory)(argv[1:])
+    return 0
+
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

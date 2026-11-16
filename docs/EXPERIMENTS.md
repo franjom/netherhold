@@ -91,7 +91,7 @@ instead — a tick is 250 ms (ADR-0089).
 
 ### Level 1 played with recorded input, runs 10-15, 2026-09-10
 
-**The input channel works.** `dk2watch.py --tags` records DK2's player task pool,
+**The input channel works.** `dk2live.py watch --tags` records DK2's player task pool,
 so a marked tile becomes a `tag` or `untag` at a coordinate and a tick
 (ADR-0127, `player-task-pool.md`). Replaying a capture's own commands took
 DK2-only events from 28 to 7 in run 10, and from 3 to 0 in runs 13 and 14 (two

@@ -13,7 +13,7 @@ the visible game appear hung. From a 64-bit Windows CPython shell, with no
 DK2 process already running:
 
 ```powershell
-python tools/oracle/q737_boundary.py --exe C:/path/to/isolated/DKII-DX.exe --out F:/DK2Evidence/studies/new-study/run-001
+python tools/oracle/decision_boundary.py q737 --exe C:/path/to/isolated/DKII-DX.exe --out F:/DK2Evidence/studies/new-study/run-001
 ```
 
 The recorder launches `-LEVEL M7Q513a` without player inputs or seed injection.
@@ -40,5 +40,5 @@ seed or full initial state of the legacy capture. Findings belong in
 Synthetic recorder and debugger checks:
 
 ```powershell
-python -m unittest discover -s tools/oracle -p 'test_*boundary.py' -v
+python -m unittest discover -s tools/oracle -p test_decision_boundary.py -v
 ```

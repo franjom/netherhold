@@ -10,7 +10,7 @@ three runs and `analysis/resync_compare*.out`).
 
 ## How it runs
 
-1. `python -I tools/oracle/capture_state.py <capture.dk2cap> <out> <tick> --state-only` writes
+1. `python -I tools/oracle/capture_export.py state <capture.dk2cap> <out> <tick> --state-only` writes
    `<tick>.json`: tiles (terrain, owner, room slot, health), players (money `+0x7E`, mana
    `+0x82`, and the task pool), creatures with the Imp job block (resume `+0xDF`, task tile
    `+0x8C`/`+0x90`, task id `+0x8A`, side `+0x94`, slot `+0x96`, last kind `+0x98`, `JustDropped`
@@ -85,7 +85,7 @@ with neither); this run's corridor claims are not recorded here.
 
 - Creature health `+0x40` is written signed (`0x0045AEBA` compares it with `JG`): a dead pool slot holds a
   negative value, which an unsigned read made unloadable (Level 4 states cut at 5000, 2026-10-31).
-- `capture_state.py` writes each door's and trap's type, construction flag and health, and each
+- `capture_export.py state` writes each door's and trap's type, construction flag and health, and each
   player's manufacture ring: points, the orders (cost, kind, type, the blueprint's point), the
   tail and slot 0's cost. `WorldResync` removes a door or trap DK2 lacks, lays one ours lacks
   (no gold, no order), takes DK2's construction flag and health, rebuilds each keeper's

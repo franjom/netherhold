@@ -103,7 +103,7 @@ shared debug log object `0x00756EE8`.
   `0x0050A4CA`.
 - Setting `0x0075B2F4` to 1 prints every simulation draw with its call site to
   `MESSAGE.LOG` beside the executable (CONFIRMED 2026-09-29, §6). No Cheat Engine
-  is needed: `reverse-engineering/dk2drawlog.py` writes the flag from outside.
+  is needed: `reverse-engineering/dk2live.py drawlog` writes the flag from outside.
 
 This is the cheapest oracle for "which mechanics roll, how often, in what
 order". Reading per-tick seeds from a full-state capture gives the count only:

@@ -2,14 +2,14 @@
 
     python tools/levelgen/q716_draws.py <capture.dk2cap> [--max-steps 200000]
 
-For every new Imp in a dk2record.py capture, finds which world-seed draws (world +0x15A0, the
+For every new Imp in a dk2live.py record capture, finds which world-seed draws (world +0x15A0, the
 0x005558D0 LCG) gave its ring angle and its heading. Between two frames the seed has stepped some
 number of times; each step's value is rotr(seed, 13) mod n. An angle draw a matches when the
 Heart's centre (player +0xB43/+0xB45, tile*0x1000 + 0x800) plus ((sin a * 0x2000) >> 16) in X and
 minus ((cos a * 0x2000) >> 16) in Y is the Imp's position (0x004BB2A0); a heading matches as
 random(0x800) (process 1, 0x004AD957) or random(4) << 9 (process 36). Draws are numbered across
 the whole capture, so an Imp made a turn after its cast still finds both. The capture's
-framing, torn frames and missed ticks are dk2record.py's.
+framing, torn frames and missed ticks are those of dk2live.py record.
 Reads the capture through reverse-engineering/dk2capture.py (gitignored, local).
 """
 import argparse

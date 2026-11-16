@@ -1,7 +1,7 @@
 using System.Globalization;
 using DK2.Pathfinding;
 
-// meshreplay <capture dir> [mode] [v]: replays a dk2move.py capture through our navigation mesh and
+// meshreplay <capture dir> [mode] [v]: replays a dk2live.py positions capture through our navigation mesh and
 // compares it with the original's mesh dumps (navigation-partial-rebuild.md §5). Modes: fresh (a
 // whole-map build at each dump), edit (one build, then Retriangulate per logged byte change), edit0
 // (the same from the first byte table, tick 1 included), import (DK2's first dump imported slot for

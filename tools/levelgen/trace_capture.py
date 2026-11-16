@@ -1,4 +1,4 @@
-"""Trace the objects of one type and every live creature through a dk2record.py capture.
+"""Trace the objects of one type and every live creature through a dk2live.py record capture.
 
     python tools/levelgen/trace_capture.py <capture.dk2cap> [--object-type 74]
 

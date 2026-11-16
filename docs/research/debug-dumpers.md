@@ -129,7 +129,7 @@ resume and saved state; `travel-states.md` §10 is its first use. Two ways to ta
   `alloc(newmem,2048)` / `newmem:` / `mov ecx,006F2A08` / `call 0050EA70` / `ret 4` /
   `createthread(newmem)`. **Pause the game first.** The created thread runs alongside
   the game's main thread, so a dump taken while the game is running can mix two ticks.
-- **Scripted, not built:** `dk2watch.py` opens the process read-only. Calling the function
+- **Scripted, not built:** `dk2live.py` (`watch`) opens the process read-only. Calling the function
   needs `PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_CREATE_THREAD` (elevated), then
   `VirtualAllocEx`, `WriteProcessMemory` for a 13-byte stub (`B9 08 2A 6F 00` `E8 rel32`
   `C2 04 00`: a thread procedure is stdcall with one argument, so `ret 4`; the Cheat Engine

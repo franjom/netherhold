@@ -318,7 +318,7 @@ global is written only by the constructor `0x004B5A10` and the teardown `0x004B5
 ## 10. Capture checks
 
 Captures: `reverse-engineering/dk2runs/level1-live1*/`, `level2-live2/`; decode with
-`dk2decisions.py` (a `lost` line is a kicked holder) and compare with `dk2tools decide`.
+`dk2capture.py <capture> decisions` (a `lost` line is a kicked holder) and compare with `dk2tools decide`.
 
 1. §2 rules: for every `lost` line, recompute both distances from the frame before with
    the point of the handler that took it; the taker must be nearer under that handler's

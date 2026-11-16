@@ -68,7 +68,7 @@ Evidence: `q710-current-h518--2026-11-14--001`.
 
 The inventory retains untorn native 428 and reciprocal bed 2356, object type 20,
 owner 3 at (27,59), in Lair 1111. Inline state/job/needs fields are present;
-pointed-to paths and navigation caches are not ([capture scope](../../reverse-engineering/README.md#legacy-polling-captures-dk2recordpy-dk2capturepy)).
+pointed-to paths and navigation caches are not ([capture scope](../../reverse-engineering/README.md#legacy-polling-captures-dk2livepy-record-dk2capturepy)).
 At source `d0d3d065`, actual pair 428 to modern 76 is idle and bedless after
 restore. A logical bed intervention changes its next path from home acquisition
 to Guard. Recorded non-bed fields and RNG are asserted unchanged, but the bed

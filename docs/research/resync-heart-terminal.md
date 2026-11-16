@@ -5,7 +5,7 @@ systems: [simulation-core, campaign-triggers, rooms, tooling-process]
 
 ## Scope and representation
 
-`capture_state.py` exports optional `players[].terminal` and `players[].heart`.
+`capture_export.py state` exports optional `players[].terminal` and `players[].heart`.
 `WorldResync.Apply` restores them under `ResyncParts.Players`; absent sections
 retain modern values and report that limitation. Old JSON remains compatible.
 A present section requires all its fields: incomplete JSON is an input error,

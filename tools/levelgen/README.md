@@ -7,7 +7,7 @@ There were three steps:
 
 1. **Build.** `levelgen` copies a shipped level, edits its map, things and variables, and
    saves it under a new name.
-2. **Play.** DK2 loads the new name with `-LEVEL <name>`, and `dk2record.py` records every tick.
+2. **Play.** DK2 loads the new name with `-LEVEL <name>`, and `dk2live.py record` records every tick.
 3. **Read.** `trace_capture.py` (or any `dk2capture.py` decoder) reads the capture.
 
 ## 1. Build
@@ -71,7 +71,7 @@ The recorder must be running before the game starts, and both must run elevated.
 elevated PowerShell, as one line, with the run folder already created:
 
 ```powershell
-Start-Process cmd -WorkingDirectory 'D:\DungeonKeeperRemake\reverse-engineering' -ArgumentList '/k python -u dk2record.py F:\DK2Evidence\captures\native\<capture-id>\<run>.dk2cap --map <W>x<H>'; Start-Sleep 3; Start-Process 'E:\GogGames\Dungeon Keeper 2\DKII-DX.exe' -ArgumentList '-LEVEL <recipe>' -WorkingDirectory 'E:\GogGames\Dungeon Keeper 2'
+Start-Process cmd -WorkingDirectory 'D:\DungeonKeeperRemake\reverse-engineering' -ArgumentList '/k python -u dk2live.py record F:\DK2Evidence\captures\native\<capture-id>\<run>.dk2cap --map <W>x<H>'; Start-Sleep 3; Start-Process 'E:\GogGames\Dungeon Keeper 2\DKII-DX.exe' -ArgumentList '-LEVEL <recipe>' -WorkingDirectory 'E:\GogGames\Dungeon Keeper 2'
 ```
 
 `cmd /k` keeps the recorder's summary on screen after DK2 exits. `--map` is the level's size

@@ -31,15 +31,15 @@ class DecoderTests(unittest.TestCase):
     def invoke(self, override=None):
         tools = str(Path(__file__).resolve().parent)
         code = ('import sys;sys.path.insert(0,' + repr(tools) + ');'
-                'sys.argv=["capture_state.py","--state-only",' + repr(str(self.capture)) +
-                ',"unused","1"];import capture_memory;print(capture_memory.dk2capture.SENTINEL)')
+                'import capture_export;capture_export.load_decoder(' + repr(str(self.capture)) +
+                ');print(capture_export.dk2capture.SENTINEL)')
         env = {k: v for k, v in os.environ.items() if k != 'DK2_CAPTURE_DECODER'}
         if override is not None:
             env['DK2_CAPTURE_DECODER'] = str(override)
         return subprocess.run([sys.executable, '-I', '-c', code], env=env,
                               capture_output=True, text=True, timeout=10)
 
-    def test_leading_state_only_and_isolation_still_use_frozen_decoder(self):
+    def test_isolation_still_uses_the_frozen_decoder(self):
         result = self.invoke()
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertEqual('frozen', result.stdout.strip())

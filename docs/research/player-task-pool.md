@@ -162,7 +162,7 @@ clicking tiles 1.5 seconds apart produces exactly that trickle (owner,
 
 ## Reading it live
 
-`reverse-engineering/dk2watch.py --tags <out.csv>` walks **all fifteen** kinds
+`reverse-engineering/dk2live.py watch --tags <out.csv>` walks **all fifteen** kinds
 for players 1–7 each sample and writes one row per change. It records every
 kind because that is how the unread ones get read; `InputLog` then replays only
 the mark kinds, and counts the rest:
@@ -175,7 +175,7 @@ wall,tick,player,event,kind,x,y,type,data,id,workers
 lines up with `GameSimulation.Tick(in InputFrame)` on our side.
 
 A full-state capture holds each keeper's pool as region `REGION_POOL` + player index;
-`tools/oracle/capture_state.py` walks the kind-1 and kind-2 lists from their heads at a tick, and
+`tools/oracle/capture_export.py state` walks the kind-1 and kind-2 lists from their heads at a tick, and
 the resync replay sets them as our marks (`resync-replay.md`, ADR-0556).
 
 **The coordinates are tile coordinates** (Q287, answered): replaying run 9's

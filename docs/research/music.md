@@ -346,7 +346,7 @@ Read 2026-10-28 (literal-push scans of `SetState` `0x00476D30` and its wrappers 
 
 ### Live capture, 2026-10-28 (Q666 answered)
 
-`reverse-engineering/dk2music.py` (gitignored) detours slots `+0x4C` and `+0x50` in the running
+`reverse-engineering/dk2live.py music` (gitignored) detours slots `+0x4C` and `+0x50` in the running
 game and logs every call (caller, request, level before, tick), and snapshots the battle records'
 owners at each battle raise. Run on DKII-DX.exe (code byte-identical to DKII.EXE) replaying the
 owner's recordings with `-PLOAD`, no input; evidence `F:\DK2Evidence\studies\music--2026-10-28--002\payload`:

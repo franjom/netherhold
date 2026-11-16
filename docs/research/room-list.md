@@ -144,7 +144,7 @@ instantly is a deviation with nothing to model against, rather than a gap.
 
 ## Reading it live
 
-`reverse-engineering/dk2watch.py --rooms <out.csv>` walks players 1–7 each
+`reverse-engineering/dk2live.py watch --rooms <out.csv>` walks players 1–7 each
 sample and writes one row per change:
 
 ```

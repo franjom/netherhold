@@ -232,7 +232,8 @@ These are entry points, not a new priority order.
   rules. Do not rely on legacy `reverse-engineering/dk2runs/` paths;
   the 2026-10-18 cleanup lost captures and rigs. Follow each research note's
   external evidence path and verify availability before planning a replay.
-- New native recordings use the [complete recorder](../tools/oracle/native-capture.md).
+- Which original-game tool serves which job: [tools/oracle/README.md](../tools/oracle/README.md). Exact full-memory
+  recordings use the [complete recorder](../tools/oracle/native-capture.md).
   Research setup and tools: [reverse-engineering README](../reverse-engineering/README.md)
   and [research queue](RESEARCH-QUEUE.md). Read function records before binary queries.
 - The reference install is `E:/GogGames/Dungeon Keeper 2`; `DK2_DIR` overrides

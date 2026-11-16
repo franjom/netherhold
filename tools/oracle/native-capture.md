@@ -64,11 +64,11 @@ for another attempt; evidence is never renamed, overwritten or cleaned up.
 ## Analysis without extra capture flags
 
 ```powershell
-python -I tools/oracle/capture_state.py --state-only `
+python -I tools/oracle/capture_export.py state --state-only `
   'F:/DK2Evidence/studies/my-new-native-capture/level.dk2cap' `
   'F:/DK2Evidence/studies/my-new-native-export' 1500
 
-python -I tools/oracle/capture_memory.py `
+python -I tools/oracle/capture_export.py memory `
   'F:/DK2Evidence/studies/my-new-native-capture/level.dk2cap' 1500 `
   'F:/DK2Evidence/studies/my-new-native-export/1500.mem.z'
 ```

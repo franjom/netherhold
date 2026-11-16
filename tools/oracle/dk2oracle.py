@@ -21,7 +21,7 @@ whose exception chain is empty, for functions that install a handler. One outcom
 
 The image is mapped as the file has it: no imports bound, no globals initialised. A function
 that reaches outside its arguments and the image's own bytes ends in a fault, not an answer.
-A memory image (tools/oracle/capture_memory.py writes one from a capture tick) is a sequence of
+A memory image (tools/oracle/capture_export.py memory writes one from a capture tick) is a sequence of
 `<u32 address> <u32 length> <bytes>` regions (process_dump.py's arrive as one zlib stream),
 written over the image and mapped where it has no pages, before the first request; every
 request then runs against that same state.

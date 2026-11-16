@@ -1161,7 +1161,7 @@ missing mechanism. **M5's next step is an input channel**, not more simulation:
 other half. ADR-0127 takes the recording side from DK2's **player task pool** rather than
 from keyboard and mouse — a marked tile is an entry in a per-player list, so diffing it
 gives `tag`/`untag` at a coordinate and a tick with no camera to reconstruct
-(`player-task-pool.md`); `dk2watch.py --tags` writes it, and **runs 9–14 captured and closed it on 2026-09-10** — replaying the recorded input took DK2-only events from 3 to 0 twice (ADR-0131, `EXPERIMENTS.md`). What remains is rate, not input.
+(`player-task-pool.md`); `dk2live.py watch --tags` writes it, and **runs 9–14 captured and closed it on 2026-09-10** — replaying the recorded input took DK2-only events from 3 to 0 twice (ADR-0131, `EXPERIMENTS.md`). What remains is rate, not input.
 A computer keeper does not substitute for the recorded input: `DK2.AI.KeeperAI` follows
 DK2's keeper as read (§1.2 row 5) and matches it in outline on Level 17 and Level 11A
 (Q497), but its timing still differs (Q509, Q555, Q563), so it would inject divergence

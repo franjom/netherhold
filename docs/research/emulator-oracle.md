@@ -33,11 +33,11 @@ from the bytes before testing.
 
 ## 2. Our C# on a captured tick
 
-`capture_state.py` exports a capture tick as plain values and `CapturedState` rebuilds our world
+`capture_export.py state` exports a capture tick as plain values and `CapturedState` rebuilds our world
 from the level, then gives it the tick's tiles and doors. Level 4's first tick equals our level
 map tile for tile.
 
-- **`0x00460B50`, the Guard Room test.** Run every tenth tick (`guard_room_on_capture.py`): 542
+- **`0x00460B50`, the Guard Room test.** Run every tenth tick (a pilot script, retired 2026-11-16; copy in `F:/DK2Evidence/archive/oracle-retired--2026-11-16--001`): 542
   calls, 86 targets within a tile of an expanded edge, every answer the rule
   `FearRules.NearOwnGuardRooms` encodes, and each Guard Room's stored bounds equal its tiles'
   extent in 470 samples. Our C# itself (`CapturedGuardRoomTests`), every fiftieth tick: all 80

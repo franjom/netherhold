@@ -171,7 +171,7 @@ order, the split layout and the constraint insertion are since transcribed too
 
 ## 5. Checked against the Level 10 capture
 
-The owner ran the original on Level 10 on 2026-10-15 with `dk2move.py --level
+The owner ran the original on Level 10 on 2026-10-15 with `dk2live.py positions --level
 level10 --seconds 300` (reverse-engineering/, gitignored): 141 mesh dumps (one
 whenever the triangle table changed, at most one every two seconds), 2,132
 navigation-byte changes over 1,110 ticks, and the byte table at the start. The

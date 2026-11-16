@@ -55,7 +55,7 @@ Setup, once: a Windows x64 `unicorn.dll` 2.1.x outside the repository (the PyPI
 `DK2_UNICORN_DLL` set to its path, plus a Python 3 (`py -3`, or `DK2_PYTHON`); without
 the DLL the function tests skip, while the table tests need only the install. Unicorn is never
 committed (owner, 2026-10-15). `tools/oracle/purity.py` lists ported candidates (read each before trusting it);
-`tools/oracle/capture_memory.py` turns a capture tick into a memory image for functions that read the world
+`tools/oracle/capture_export.py memory` turns a capture tick into a memory image for functions that read the world
 (new complete captures discover their verified decoder and memory timeline;
 legacy captures use the retained F: archive or an explicit `DK2_CAPTURE_DECODER`).
 For new recordings, use the [complete native capture guide](../tools/oracle/native-capture.md).
@@ -102,7 +102,7 @@ at each selected completed turn, with no dump-enable flag. Saved turns can be
 exported offline with their verified decoder and timeline. Evidence belongs
 under `F:/DK2Evidence/`, outside all checkouts.
 
-### Legacy polling captures (`dk2record.py`, `dk2capture.py`)
+### Legacy polling captures (`dk2live.py record`, `dk2capture.py`)
 
 The procedure below describes historical partial recordings, not the default
 for new analysis. The old recorder polls DK2 and stores selected raw regions;
@@ -111,10 +111,19 @@ be reconstructed from that file. Legacy header clocks also differ from the
 completed-turn stamps used by the new recorder. Custom test levels are
 described in `tools/levelgen/README.md`.
 
+**The live-game tools are one script since 2026-11-16:** `dk2live.py <subcommand>` with `record` (was
+`dk2record.py`), `positions` (`dk2move.py`), `seed` (`dk2seed.py`), `reveal` (`dk2reveal.py`), `drawlog`
+(`dk2drawlog.py`), `music` (`dk2music.py`) and `watch` (`dk2watch.py`). Each subcommand takes the old script's
+arguments unchanged; `dk2live.py <subcommand> --doc` prints its documentation; `test_dk2live.py` checks it without a
+game. Code that imported `dk2watch` imports `dk2live` (same names); `dk2move`'s and `dk2record`'s own `Mem` classes
+are `_move_Mem` and `_record_Mem`. Never run it with `python -I` (it imports `dk2capture` from this folder). The
+originals are at `F:/DK2Evidence/archive/re-scripts--2026-11-16--001`, `dk2live.py` at `--002`;
+`tools/oracle/README.md` says which tool serves which job.
+
 **Record** (probe first, elevated; then the game, elevated):
 
 ```
-python -u dk2record.py dk2runs/<run>/<name>.dk2cap --map 40x50 --last-tick 3545
+python -u dk2live.py record dk2runs/<run>/<name>.dk2cap --map 40x50 --last-tick 3545
 "E:\GogGames\Dungeon Keeper 2\DKII-DX.exe" -LEVEL level2 -PLOAD l2win928 0
 ```
 
@@ -170,8 +179,11 @@ pointer, class and size; otherwise the bytes are stored in full.
 field. Every offset lives in one table, `dk2capture.FIELDS`, and each entry
 cites its source. CLI: `python dk2capture.py <cap> info | creature-map |
 object-map | tiles | floor-gold <out.csv>`. The first two regenerate the old
-`level2_creature_map.py` CSVs exactly. `dk2check_l2.py` runs the Level 2
-checks in a run folder's `PREDICTIONS.md`. `test_dk2capture.py` is the offline
+`level2_creature_map.py` CSVs exactly. The analysis subcommands since 2026-11-16 are
+`decisions` (was `dk2decisions.py`), `steals`, `idle-runs`, `idle-stats` and `draw-sites`
+(the capture comes first, unlike the old `dk2drawsites.py`); `python dk2capture.py --help`
+lists their arguments, and `test_dk2capture_cli.py` checks them offline. `dk2check_l2.py`
+is retired (archive `--003`). `test_dk2capture.py` is the offline
 dry run: a synthetic game in memory, polled by the real recorder loop, then
 checked frame by frame.
 

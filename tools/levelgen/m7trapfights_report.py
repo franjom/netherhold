@@ -1,4 +1,4 @@
-"""Answer M7TrapFights2's three owner checks from a dk2record.py capture, so nothing rests on watching.
+"""Answer M7TrapFights2's three owner checks from a dk2live.py record capture, so nothing rests on watching.
 
     py tools/levelgen/m7trapfights_report.py <capture.dk2cap> [--log]
 

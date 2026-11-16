@@ -15,7 +15,7 @@ namespace DK2.Oracle.Tests;
 /// runs on: our world is rebuilt from the level and then given the capture's tiles, so our C#
 /// and DKII.EXE answer the same question on the same state (ADR-0481).
 ///
-/// <para>The values come from <c>tools/oracle/capture_state.py</c>, which reads the capture
+/// <para>The values come from <c>tools/oracle/capture_export.py state</c>, which reads the capture
 /// with the local decoder; what each field is, and where its offset comes from, is written
 /// there. Captures and the decoder live in the gitignored <c>reverse-engineering/</c>, so
 /// every test that reads one skips where they are absent (<see cref="CapturedFactAttribute"/>).</para>
@@ -51,7 +51,7 @@ internal sealed record CapturedState(
         int[] missing = [.. wanted.Where(t => !File.Exists(Path.Combine(folder, $"{t}.json")))];
         string[] dumpArgs = dump is null ? [] : ["--dump", Dk2CaptureGate.PathFor(dump)];
         if (missing.Length > 0)
-            OriginalCpu.Python("capture_state.py", [source, folder, .. missing.Select(t => t.ToString()), .. dumpArgs]);
+            OriginalCpu.Python("capture_export.py", ["state", source, folder, .. missing.Select(t => t.ToString()), .. dumpArgs]);
 
         var states = new List<CapturedState>();
         foreach (int tick in wanted)
@@ -127,7 +127,7 @@ internal sealed record CapturedCreature(int Slot, uint Ptr, int Owner, int X, in
 /// creature <c>+0x3E6</c> and definition <c>+0x686</c>.</summary>
 internal sealed record CapturedMover(int Number, uint Flags3E6, uint Def686);
 
-/// <summary>The steering body at creature <c>+0x124</c> (dump only; capture_state.py names the
+/// <summary>The steering body at creature <c>+0x124</c> (dump only; capture_export.py state names the
 /// offsets). <see cref="Window"/> holds all eight slots <c>(B10E &gt;&gt; 3) &amp; 7</c> can index.</summary>
 internal sealed record CapturedBody(uint Ptr, int[] Pos, int[] Vel, int Radius, int B10E, int B10F, int[][] Window);
 

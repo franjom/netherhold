@@ -64,7 +64,7 @@ import the native navigation cache or mesh. No production steering fix follows.
 |---|---|
 | 004D5100 / 004D3C40 | The 1566 refill returns four versus three points. Router input/mesh equality is unestablished; no production fix selected. |
 | 00470C80 / 004D5AC0 | Native post-step body fractions survive in the capture; ours kept them from hash 392 (ADR-0644, [rule and outcomes](steering-body-retention.md)). |
-| 004D5C00 | The logger reads five window vectors. capture_state.body exported eight, treating subsequent scalar fields as coordinates; corrected to five with a failing old-source regression. Decoder only; no simulation-score explanation. |
+| 004D5C00 | The logger reads five window vectors. the `state` export's `body` held eight, treating subsequent scalar fields as coordinates; corrected to five with a failing old-source regression. Decoder only; no simulation-score explanation. |
 
 ## Evidence
 

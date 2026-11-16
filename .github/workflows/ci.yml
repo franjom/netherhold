@@ -160,9 +160,12 @@ jobs:
         if: runner.os == 'Windows'
         run: python -m unittest discover -s tools/oracle -p test_decision_boundary.py -v
 
-      - name: Capture state reads (no DK2 install)
+      - name: Capture export, decoder selection and packet decoding (no DK2 install)
         if: runner.os == 'Windows'
-        run: python -m unittest discover -s tools/oracle -p test_capture_state.py -v
+        run: |
+          python -m unittest discover -s tools/oracle -p test_capture_export.py -v
+          python -m unittest discover -s tools/oracle -p test_capture_decoder.py -v
+          python -m unittest discover -s tools/oracle -p test_play_record.py -v
 
       - name: Performance capture regression tests (no GPU required)
         if: runner.os == 'Windows'

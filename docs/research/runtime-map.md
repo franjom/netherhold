@@ -8,7 +8,7 @@ systems: [simulation-core]
 | Source(s) | `DKII.EXE` v1.70 — the tile lookup `FUN_004508D0`, the applier `FUN_00452F60`, the caller at `0x0049713D` |
 | Observed behaviour | Sampled, run 15 (level 1, 2026-09-10) — 235 rows over six tiles |
 | Confidence | **CONFIRMED** — the terrains came back 2/3/6/8/9 and every health sat inside its tabled maximum |
-| Implementation | Read by `dk2watch.py --tiles`; nothing in `src/` uses it |
+| Implementation | Read by `dk2live.py watch --tiles`; nothing in `src/` uses it |
 | Tests | — |
 | Open questions | Q292 and Q297 answered (ADR-0133/0134) |
 
@@ -56,7 +56,7 @@ tabled rate this can check against the tile it acts on.
 
 ## Reading it live
 
-`dk2watch.py --tiles <out.csv>` reads the health, terrain and flags of every
+`dk2live.py watch --tiles <out.csv>` reads the health, terrain and flags of every
 tile the task pool currently has work on — a small set, so it costs one read
 per working tile rather than a sweep — and writes a row when any of them
 changes:

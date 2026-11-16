@@ -74,8 +74,9 @@ contains all nine real worker-system results. `manifest.json` names inputs.
 The external bundle also retains the modern probe source, binary, runtime
 configuration, dependency assemblies and PDBs. The originals remain in place.
 
-The repeatable native probe is `tools/oracle/imp_claim_clock_probe.py`, using
-the existing oracle helper and pinned retail executable. It runs the native
+The native probe was `tools/oracle/imp_claim_clock_probe.py` (retired 2026-11-16; a copy is in
+`F:/DK2Evidence/archive/oracle-retired--2026-11-16--001`, and in git history). It used
+the existing oracle helper and pinned retail executable, and ran the native
 table initializer, action starter, handlers, runner and type-6 advance.
 Eligibility, health application, room lookup, XP and sound dependencies are
 synthetic stubs; no terrain, takeover, merge, sound or XP correctness follows

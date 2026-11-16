@@ -410,7 +410,7 @@ internal static class ReplayCommands
                 case "--rng" when value is "dk2" or "xoshiro":
                     dk2Random = value == "dk2";
                     break;
-                // --resync: a capture_state.py tick (--state-only) copied over our world after the
+                // --resync: a capture_export.py state tick (--state-only) copied over our world after the
                 // turn --resync-at, the controlled-input test (WorldResync).
                 case "--resync":
                     resyncPath = value;

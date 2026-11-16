@@ -4,7 +4,7 @@
 
 namespace DK2.Simulation;
 
-/// <summary>One tick of a DK2 full-state capture, as <c>tools/oracle/capture_state.py</c> writes
+/// <summary>One tick of a DK2 full-state capture, as <c>tools/oracle/capture_export.py state</c> writes
 /// it: the fields <see cref="WorldResync"/> copies into our world. Positions are DK2's fixed
 /// point (4096 a tile), the same as ours; owners are player ids, 0 where the tile names no
 /// player. The JSON is read by <c>DK2.Tools</c> (<c>ResyncStateFile</c>); fields it carries beyond
@@ -80,7 +80,7 @@ public sealed record ResyncJob(
 /// (<see cref="TileState.TagOrder"/>).</summary>
 public sealed record ResyncMark(int X, int Y, int Player, int Order);
 
-/// <summary>A room record: type <c>+0x18</c>, player <c>+0x1D</c>, and the words <c>capture_state.py</c>
+/// <summary>A room record: type <c>+0x18</c>, player <c>+0x1D</c>, and the words <c>capture_export.py state</c>
 /// reads at <c>+0x49</c>, <c>+0x4B</c>, <c>+0x4D</c> and <c>+0x4F</c> as bounds. They are a union: a
 /// Guard Room's bounds, a Portal's dwords <c>room[0x49]</c>, the turn of its last due roll, and
 /// <c>room[0x4D]</c>, its live arrivals (portals-interval.md). <see cref="Active"/> is the slot's byte.</summary>

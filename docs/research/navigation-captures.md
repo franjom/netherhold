@@ -16,7 +16,7 @@ Original version: DK2 v1.70 (GOG)
 ## The instrument
 
 Two levels were captured with nobody at the controls.
-`reverse-engineering/dk2move.py` holds the recipe: it pokes the gate, reads the
+`reverse-engineering/dk2live.py positions` holds the recipe: it pokes the gate, reads the
 entity table and the navigation cache, and dumps DK2's own triangle and point
 tables. Both its outputs and `nav.log` are game-derived and stay out of the
 repository. The log's line grammar — ` Path`, ` retC`, ` route=`, ` way=`,

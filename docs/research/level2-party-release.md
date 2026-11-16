@@ -36,7 +36,7 @@ against DK2's 2178. Each split is an owner command landing on ground ours has or
 
 ## 3. Resynced from DK2's state at 2100
 
-`capture_state.py ... 2100 --state-only` (a partial legacy frame), then `dk2tools replay level2 ... --resync 2100.json
+`capture_export.py state ... 2100 --state-only` (a partial legacy frame), then `dk2tools replay level2 ... --resync 2100.json
 --resync-at 2100 --births creature-map.csv` with seed 1's entity map, seeds 1-3 ([resync-replay.md](resync-replay.md)).
 Outputs were not kept; rerun from these commands.
 

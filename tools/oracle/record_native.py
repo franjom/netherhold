@@ -206,7 +206,7 @@ def run(args):
                     'Memory is read while game threads are stopped; external shared-page writers are not frozen. '
                     'Read-window pauses are measured and can affect real-time presentation. '
                     'These are analysis captures, not performance or older-trajectory parity controls.\n\n'
-                    'Use tools/oracle/capture_state.py or capture_memory.py: the frozen decoder and '
+                    'Use tools/oracle/capture_export.py (state or memory): the frozen decoder and '
                     'complete timeline load automatically, without --dump or an environment setting. '
                     'The operational guide is tools/oracle/native-capture.md.\n')
     debugger, timeline = boundary.BoundaryDebugger(WORLD_UPDATE), MemoryWriter(output / 'memory')

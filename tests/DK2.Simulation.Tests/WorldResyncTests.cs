@@ -11,7 +11,7 @@ using System.Text.Json.Nodes;
 namespace DK2.Simulation.Tests;
 
 /// <summary><see cref="WorldResync"/>: a capture's tick copied over our world between ticks. The
-/// state here is written by hand in <c>capture_state.py</c>'s shape; what the fields mean is that
+/// state here is written by hand in <c>capture_export.py state</c>'s shape; what the fields mean is that
 /// script's and <c>ResyncState</c>'s to say, not this test's.</summary>
 public class WorldResyncTests
 {
