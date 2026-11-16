@@ -251,39 +251,38 @@ group 2 is a list to audit, not a finding.
 
 ## Step 2: move game-flow logic out of Unity
 
-- [ ] Audit each group-2 file: list what is DK2 behaviour (rules, timing, ordering, defaults)
-      and what is drawing or engine plumbing. Record the split in this plan. Known from the
-      bottom panel, not yet wired in Godot: HUD hiding during the opening camera path
-      (`ScriptedViewDirector`), the resource flash, the flash-button hint, the tool state after choosing a panel
-      slot, right-click navigation (needs a camera). From the hover HUD: world hover (things and
-      tiles, needs the world and a camera); the hand cursor's resolution (Godot uses the small
-      pointing finger's reach, valid only while nothing is held; Unity's runner resolves the
-      held, slap and tag cursors, and "over the HUD means SmallPoint" is itself HYPOTHESIS there);
-      the "pointer over HUD" membership list and the `AllowOrdinaryInput` && focus && inside gate,
-      runner logic that Godot's `InGameHud` duplicates. From the creature overview: the pickup
-      and focus flow a column press starts (`DungeonRunner.Hud.cs` around lines 431-451:
-      `CreatureOverview.Select`, the pickup preview, the hand and cursor feedback, the camera
-      focus), and `QueueHudInput`'s order and the possession gate (the modal gate is
-      `ClassicHudControls.Modal`, wired in Godot), none wired in Godot, where a column press raises a pickup or focus nothing handles. From the
-      creature query details: the query tool (select it, world click to query, which needs
-      picking, right-click cancel, the stored-special and gold cancels), the camera follow and
-      turn (`ClassicCreatureQueryRules.FollowHeading`), none wired in Godot. From the save and load
-      pages: move "build a `SavedSession` from the running session" (the campaign profile, its carry,
-      the header, `WorldSnapshot.ToBytes` through `SavedSessionFile.Save` and `PathForName`) into
-      `DK2.Presentation`, and the load (rebuilding the database, the triggers, the simulation and the
-      session) with it; decide the save folder both adapters share. From the full map: the camera
-      move to the tile under a left press (`FullMapPressed` prints that it is not wired; Unity sends
-      the camera there), and the camera preview at the top right. From the minimap: the
-      left-click camera move (`MinimapNavigated` prints the tile; needs the camera, step 3), the query and
-      sell corners (Godot prints a line, sets no tool and posts no `GuiButtonCommand`, which Unity's runner
-      posts through `ClassicHudControlLayout.TryGuiButton`, so the command streams differ for those
-      clicks; tool state), the heading during the opening camera path (`ScriptedViewDirector`; Godot draws
-      the level-start heading), and the bottom panel's `CancelPointerGesture`, which Godot runs before the
-      panel's own `PointerDown` when a minimap action applies. Speech subtitles: Godot draws none
-      until speech is in. Draw them by wrapping with `BitmapTextLayout`, packing a `.bf4` atlas into an
-      `ImageTexture` and blitting `BitmapTextPlacement.Place`'s rects in `SubtitleLayout`'s boxes.
-- [ ] Move the behaviour into `DK2.Presentation` or the simulation, with tests; leave Unity a
-      facade over it, as ADR-0805 did for the HUD.
+- [x] Audit each group-2 file (2026-11-16): [the step-2 audit](2026-11-16-godot-step2-audit.md) records
+      what is DK2 behaviour and what is plumbing, file by file, the move order below, and the open
+      points the moves must not decide silently (creature heading interpolation, the dollar clock,
+      the six tool-reset sites, journal key tables). Each move goes into `DK2.Presentation` (or the
+      simulation) with tests, Unity calls it, and Godot wires it where it has what it needs (the
+      camera arrives in step 3). One move per change, reviewed and documented.
+- [ ] 2a. Small, independent moves that remove Godot copies: `HudPointerMap` (the pointer-over-HUD
+      list), `GameFolders`, `CampaignSlot.ForLevel`, `LevelSubtitles.Open`, `PointerGestures.CancelAll`,
+      `TileHeights`, the frame clamp and ticks-per-frame into `TickPacer`, `LaunchArguments`.
+- [ ] 2b. Tool state (`HudToolState`, `HudActionRouter`, the per-tool placement cursor, `CageTool`,
+      `CastSpellId`); Godot's query and sell corners then set the tool and post `GuiButtonCommand`.
+- [ ] 2c. HUD and world presses: `PickupFlow` (copied twice in Unity; it filters which pickups and
+      defers drops), `WorldClickCommands`, `HudPressRouter` (`QueueHudInput`'s order), the
+      navigation entries. Godot's overview column press then picks up.
+- [ ] 2d. World hover to cursor (`HoverCursorResolver`), with the fog gate and the hand-light point.
+- [ ] 2e. `CampaignProfileStore`, `HiScoreStore`, `FrontEndHost`.
+- [ ] 2f. Save and load (`SessionSaver`, `SessionLoader`, `SessionContext`, a resume payload on
+      `GameSessionRequest`); Godot's save page then writes and loads.
+- [ ] 2g. Level end and cutscenes (`CampaignResultFlow`, `CampaignCutsceneRunner`, the tablet
+      projection as a draw list); the resource flash, the flash-button hint, and the scripted view's HUD
+      hiding and opening-path heading.
+- [ ] 2h. The frame order and the command stream (`FrameDriver`, `WorldPointerInput`,
+      `FrameJournalSession`), last and in one piece, behind a journal-equivalence test written first.
+      The bottom panel's `CancelPointerGesture` order in Godot is settled here.
+- [ ] 2i. Pure camera rules: glide, edge scroll and wheel input, set-up, focus clamp, query follow
+      and turn, the front end's 4:3 field of view, the session build branch.
+- [ ] 2j. Scene mapping for step 3: `PoseInterpolator`/`MeshOrientation`, `AnimationClipRequest`,
+      `CreatureAnimationPlayer`, `ClassicLightPublisher`, `LatticeDirtyTracker`, `WorldHoverPicker`,
+      the effects draw list, heart pulse, sparkle gate, head table, flower layers, dollar clock.
+- [ ] 2k. Deferred: the level sound driver (step 4's audio abstraction), the gamma exponent (with
+      lighting), and Godot's speech subtitles (wrap with `BitmapTextLayout`, pack a `.bf4` atlas, blit
+      `BitmapTextPlacement.Place` in `SubtitleLayout`'s boxes); delete `ClassicKeyBindings.Name`.
 
 ## Step 3: a playable level in Godot
 
