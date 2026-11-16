@@ -54,7 +54,7 @@ namespace DK2.Unity
             try
             {
                 WaitForTick();
-                // Validated and rebuilt before the current scene is released; the checkpoint keeps its hash exactly.
+                // Validated and rebuilt before the current scene is released; loaded as DK2 loads a save (ADR-0241: rooms re-chain).
                 GameSessionRequest request = _loader.Load(path);
                 _pendingResumeSession = request.Resume.Session; _pendingResumeSimulation = request.Resume.Simulation;
                 _pendingSession = request;

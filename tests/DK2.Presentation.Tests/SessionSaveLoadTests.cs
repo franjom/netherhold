@@ -8,6 +8,7 @@ using DK2.Data.Campaign;
 using DK2.Data.Model;
 using DK2.Data.Save;
 using DK2.Simulation;
+using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
 using DK2.TestSupport;
 
@@ -180,8 +181,9 @@ public sealed class SessionSaveLoadTests : IDisposable
     public void OnlyACampaignLevelReturningToTheResultsIsLaunchedFromTheFrontEnd(GameSessionMode mode, FrontEndPage page, bool launched)
         => Assert.Equal(launched, new SessionContext("Level1", mode, page).LaunchedFromFrontEnd);
 
+    /// <summary>A level with no rooms has no chain to re-chain, so a load of it hashes as the saved world does.</summary>
     [Fact]
-    public void ALoadRestoresTheExactCheckpointAndResumesItsLevelAndReturnPage()
+    public void ALoadRestoresTheSavedWorldAndResumesItsLevelAndReturnPage()
     {
         CampaignLevelData level = Level();
         GameSimulation simulation = level.CreateSimulation(7, fogOfWarEnabled: false);
@@ -311,7 +313,7 @@ public sealed class SessionSaveLoadTests : IDisposable
         Assert.False(File.Exists(ProfilePath));
     }
 
-    /// <summary>A save whose checkpoint cannot be read is refused at <see cref="WorldSnapshot.FromBytes"/>, before the
+    /// <summary>A save whose snapshot cannot be read is refused by <see cref="WorldSnapshot.LoadGame"/>, before the
     /// saved profile would replace the player's.</summary>
     [Fact]
     public void ASaveWithACorruptSnapshotIsRefusedAndLeavesTheProfileAlone()
@@ -343,66 +345,113 @@ public sealed class SessionSaveLoadTests : IDisposable
         Assert.Equal(GameSessionRequest.Campaign("Level5"), restart);
     }
 
-    /// <summary>The determinism contract of a save: a mid-game Level1 saved and loaded through the moved code has the
-    /// same state hash, and every turn after it hashes as the run that was never saved.</summary>
+    private const int PrisonX1 = 4, PrisonY1 = 4, PrisonX2 = 8, PrisonY2 = 7;
+    private const byte ClaimedPath = 8;
+
+    /// <summary>Level1 a few turns in, with a Prison dragged from its top-left to its bottom-right corner (4..8 by 4..7,
+    /// on claimed ground set up in the empty rock; the drag of <c>SlabChainTests</c>), so its slab chain is the build
+    /// wave's and its door stands in the east interior column.</summary>
+    private static GameSimulation LevelWithADraggedPrison(string install, PlayerId keeper)
+    {
+        GameSimulation simulation = CampaignLevelData.Load(install, "Level1").CreateSimulation(1, fogOfWarEnabled: true);
+        simulation.World.LocalPlayerId = keeper;
+        for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame + 10; i++) simulation.Tick(InputFrame.Empty);
+        WorldState world = simulation.World;
+        for (int y = PrisonY1; y <= PrisonY2; y++)
+            for (int x = PrisonX1; x <= PrisonX2; x++)
+            {
+                ref TileState tile = ref world.Tile(x, y);
+                tile.TerrainId = ClaimedPath;
+                tile.OwnerPlayerId = keeper.Value;
+            }
+
+        // Twenty tiles of Prison cost 15000 and the keeper starts with none.
+        Assert.Equal(16000, GoldStore.Deposit(world, simulation.Database, keeper, 16000));
+        world.Player(keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Prison, 2));
+        simulation.Tick(new InputFrame([BuildRoomCommand.Rect(keeper, RoomTypeId.Prison, PrisonX1, PrisonY1, PrisonX2, PrisonY2)]));
+        simulation.Run((PrisonX2 - PrisonX1) + (PrisonY2 - PrisonY1));
+        Assert.NotNull(PrisonAt(simulation));
+        return simulation;
+    }
+
+    private static RoomInstance? PrisonAt(GameSimulation simulation) =>
+        RoomIndex.RoomAt(simulation.World, simulation.Database, (6 * simulation.World.Width) + 6) is { } room
+        && room.Definition.TypeId == RoomTypeId.Prison ? room : null;
+
+    private static TilePos DoorOf(GameSimulation simulation)
+    {
+        int door = JailBreakRules.DoorTile(simulation.World, PrisonAt(simulation)!);
+        return new TilePos(door % simulation.World.Width, door / simulation.World.Width);
+    }
+
+    private static TilePos[] ChainOf(GameSimulation simulation) =>
+        [.. SlabChain.Order(simulation.World, PrisonAt(simulation)!).Select(i => new TilePos(i % simulation.World.Width, i / simulation.World.Width))];
+
+    private SessionLoader InstallLoader(CampaignProfileStore store, string install) =>
+        new(store, LoadInto(store), name => CampaignLevelData.Load(install, name));
+
+    /// <summary>The owner's DK2 observation (ADR-0241, room-slab-chain.md section 6): a Prison dragged with its door in
+    /// the east column, saved and reloaded, has its door in the west column. The load is <see cref="WorldSnapshot.LoadGame"/>,
+    /// which re-chains every room row-major; the exact checkpoint (<see cref="WorldSnapshot.FromBytes"/>) would keep the door.</summary>
     [InstallFact]
-    public void ASavedAndLoadedLevelContinuesWithTheUnsavedRunsHashes()
+    public void ALoadReChainsEveryRoomRowMajorSoADraggedPrisonsDoorMovesWest()
+    {
+        string install = Dk2InstallGate.Path;
+        GameSimulation saved = LevelWithADraggedPrison(install, PlayerIds.FirstKeeper);
+        Assert.Equal(new TilePos(7, 4), DoorOf(saved));
+        Assert.Equal(new TilePos(8, 7), ChainOf(saved)[0]);
+        CampaignProfileStore store = Store();
+        string path = Saver(store).Save(saved, saved.World.Carry,
+            new SessionContext("Level1", GameSessionMode.Campaign, FrontEndPage.None), Saves("chain"));
+
+        GameSimulation loaded = InstallLoader(store, install).Load(path).Resume!.Simulation;
+
+        Assert.Equal(new TilePos(5, 4), DoorOf(loaded));
+        TilePos[] chain = ChainOf(loaded);
+        Assert.Equal(new TilePos(4, 4), chain[0]);
+        Assert.Equal(chain.OrderBy(t => t.Y).ThenBy(t => t.X), chain);
+        Assert.All(PrisonAt(loaded)!.TileIndices, tile => Assert.Equal(0, loaded.World.TileAtIndex(tile).SlabOrder));
+        Assert.All(PrisonAt(saved)!.TileIndices, tile => Assert.NotEqual(0, saved.World.TileAtIndex(tile).SlabOrder));
+        // The slab order is hashed, so the loaded game's hash at the load tick is not the saved run's.
+        Assert.NotEqual(saved.StateHash(), loaded.StateHash());
+        Assert.Equal(saved.World.CurrentTick, loaded.World.CurrentTick);
+    }
+
+    /// <summary>ADR-0241's determinism: a loaded game is <see cref="WorldSnapshot.LoadGame"/> of the saved bytes and
+    /// differs from the run that was never saved where a room re-chains (the Prison here), so what holds from the load
+    /// point is that two loads of one save hash alike for every turn after it. <see cref="WorldSnapshot.FromBytes"/>
+    /// stays the exact checkpoint for replays and the tick worker's copy.</summary>
+    [InstallFact]
+    public void ALoadedLevelEqualsLoadGameOfTheSavedBytesAndTwoLoadsOfTheSameSaveContinueWithIdenticalHashes()
     {
         string install = Dk2InstallGate.Path;
         PlayerId keeper = PlayerIds.FirstKeeper;
-        GameSimulation unsaved = CampaignLevelData.Load(install, "Level1").CreateSimulation(1, fogOfWarEnabled: true);
-        unsaved.World.LocalPlayerId = keeper;
-        for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame + 300; i++) unsaved.Tick(InputFrame.Empty);
+        GameSimulation unsaved = LevelWithADraggedPrison(install, keeper);
+        for (int i = 0; i < 300; i++) unsaved.Tick(InputFrame.Empty);
         ulong savedHash = unsaved.StateHash();
         CampaignProfileStore store = Store();
         string path = Saver(store).Save(unsaved, unsaved.World.Carry,
             new SessionContext("Level1", GameSessionMode.Campaign, FrontEndPage.None), Saves("determinism"));
         Assert.Equal(savedHash, unsaved.StateHash());
+        CampaignLevelData records = CampaignLevelData.Load(install, "Level1");
+        GameSimulation expected = WorldSnapshot.LoadGame(WorldSnapshot.ToBytes(unsaved), records.Database, SimulationSystems.Default(),
+            CampaignSimulationFactory.Triggers(records.Level, records.Players, records.Things, records.Triggers));
 
-        GameSimulation loaded = new SessionLoader(store, LoadInto(store), name => CampaignLevelData.Load(install, name))
-            .Load(path).Resume!.Simulation;
-        loaded.World.LocalPlayerId = keeper;
+        GameSimulation first = InstallLoader(store, install).Load(path).Resume!.Simulation;
+        GameSimulation second = InstallLoader(store, install).Load(path).Resume!.Simulation;
+        foreach (GameSimulation sim in new[] { expected, first, second }) sim.World.LocalPlayerId = keeper;
 
-        Assert.Equal(unsaved.World.CurrentTick, loaded.World.CurrentTick);
-        Assert.Equal(savedHash, loaded.StateHash());
+        Assert.Equal(unsaved.World.CurrentTick, first.World.CurrentTick);
+        Assert.Equal(expected.StateHash(), first.StateHash());
+        Assert.Equal(expected.StateHash(), second.StateHash());
+        Assert.NotEqual(savedHash, first.StateHash());
         for (int i = 0; i < 300; i++)
         {
-            unsaved.Tick(InputFrame.Empty);
-            loaded.Tick(InputFrame.Empty);
-            Assert.Equal(unsaved.StateHash(), loaded.StateHash());
+            expected.Tick(InputFrame.Empty);
+            first.Tick(InputFrame.Empty);
+            second.Tick(InputFrame.Empty);
+            Assert.Equal(expected.StateHash(), first.StateHash());
+            Assert.Equal(first.StateHash(), second.StateHash());
         }
-    }
-
-    /// <summary>The load restores the exact checkpoint (<see cref="WorldSnapshot.FromBytes"/>), not DK2's own reload
-    /// (<see cref="WorldSnapshot.LoadGame"/>, which re-chains every room row-major by clearing each tile's slab order;
-    /// whether ours should is open): a room tile's slab order, and so the hash, survives the save.</summary>
-    [InstallFact]
-    public void ALoadKeepsTheRoomChainsAsSavedRatherThanReChainingThem()
-    {
-        string install = Dk2InstallGate.Path;
-        GameSimulation simulation = CampaignLevelData.Load(install, "Level1").CreateSimulation(1, fogOfWarEnabled: true);
-        simulation.World.LocalPlayerId = PlayerIds.FirstKeeper;
-        simulation.Tick(InputFrame.Empty);
-        // A chain as a room built tile by tile leaves it (DK2's 0x004C7380 order), on the Heart's first tile.
-        int heart = -1;
-        for (int i = 0; i < simulation.World.TileCount && heart < 0; i++)
-            if (RoomIndex.RoomAt(simulation.World, simulation.Database, i) is not null) heart = i;
-        Assert.True(heart >= 0);
-        simulation.World.TileAtIndex(heart).SlabOrder = 7;
-        byte[] snapshot = WorldSnapshot.ToBytes(simulation);
-        CampaignLevelData records = CampaignLevelData.Load(install, "Level1");
-        TriggerTree Tree() => CampaignSimulationFactory.Triggers(records.Level, records.Players, records.Things, records.Triggers);
-        // The precondition: on this world DK2's reload and the exact checkpoint differ.
-        Assert.NotEqual(WorldSnapshot.FromBytes(snapshot, records.Database, SimulationSystems.Default(), Tree()).StateHash(),
-            WorldSnapshot.LoadGame(snapshot, records.Database, SimulationSystems.Default(), Tree()).StateHash());
-
-        CampaignProfileStore store = Store();
-        string path = Saver(store).Save(simulation, simulation.World.Carry,
-            new SessionContext("Level1", GameSessionMode.Campaign, FrontEndPage.None), Saves("chain"));
-        GameSimulation loaded = new SessionLoader(store, LoadInto(store), name => CampaignLevelData.Load(install, name))
-            .Load(path).Resume!.Simulation;
-
-        Assert.Equal(7, loaded.World.TileAtIndex(heart).SlabOrder);
-        Assert.Equal(simulation.StateHash(), loaded.StateHash());
     }
 }

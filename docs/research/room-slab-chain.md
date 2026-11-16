@@ -272,7 +272,8 @@ ADR-0240 records the chain order. §9 says what was built.
   that fails when its reader is temporarily returned to index order.
 - Fog and capacity counts require no order change (above).
 - **A loaded game:** `WorldSnapshot.LoadGame` zeroes every order (`SlabChain.AsLoaded`), which is
-  DK2's row-major re-chaining. `FromBytes` stays an exact checkpoint (ADR-0241).
+  DK2's row-major re-chaining. `FromBytes` stays an exact checkpoint (ADR-0241). `SessionLoader`
+  takes `LoadGame` as of 2026-11-16.
 
 ## 10. Owner changes and room count — STRONGLY INFERRED
 

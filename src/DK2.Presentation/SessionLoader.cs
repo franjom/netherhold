@@ -12,9 +12,10 @@ namespace DK2.Presentation;
 
 /// <summary>Reads a saved session and rebuilds its simulation before the running one is released: the level's records
 /// come from the adapter's level loader (<see cref="CampaignLevelData.Load"/> over the install), the trigger tree is
-/// fresh (<see cref="CampaignSimulationFactory.Triggers"/>) and the world is the exact checkpoint
-/// (<see cref="WorldSnapshot.FromBytes"/>, so the state hash carries on unchanged). The saved profile is written to the
-/// profile file and not adopted: the next session reads it.</summary>
+/// fresh (<see cref="CampaignSimulationFactory.Triggers"/>) and the world is loaded as DK2 loads a saved game
+/// (<see cref="WorldSnapshot.LoadGame"/>, ADR-0241): the snapshot is restored and every room chain comes back row-major,
+/// so a loaded game's state hash can differ from the saved run's where a room was chained otherwise. The saved profile
+/// is written to the profile file and not adopted: the next session reads it.</summary>
 public sealed class SessionLoader
 {
     private readonly CampaignProfileStore _profiles;
@@ -48,7 +49,7 @@ public sealed class SessionLoader
             throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "The saved level is not available in this installation.");
         }
         TriggerTree tree = CampaignSimulationFactory.Triggers(level.Level, level.Players, level.Things, level.Triggers);
-        GameSimulation simulation = WorldSnapshot.FromBytes(session.Snapshot, level.Database, SimulationSystems.Default(), tree);
+        GameSimulation simulation = WorldSnapshot.LoadGame(session.Snapshot, level.Database, SimulationSystems.Default(), tree);
         if (_profiles.Path == null) _loadProfile();
         // A store left with no file (an adapter's fallback for an unreadable profile) cannot take the saved profile.
         if (_profiles.Path == null)

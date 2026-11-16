@@ -5361,6 +5361,8 @@ The stream loader `0x0044F4C0` re-adds every room tile row by row, each to its s
 - **Tests:** `SlabChainTests.LoadingASavedGameReChainsEveryRoomRowMajor_SoADraggedPrisonsDoorMovesWest`, which fails under its control (a load that keeps the chain), and `ACheckpointKeepsTheChain`.
 - No new state; `HashVersion` stays **123**.
 
+**Amendment (2026-11-16).** `SessionLoader`, which both adapters call, now takes `WorldSnapshot.LoadGame`, so item 2's "nothing in `src/` loads a saved game yet" no longer holds. Unity's runner had used `FromBytes` and step 2f of the Godot migration moved that unchanged. No other `FromBytes` use changed: checkpoints, replays and lockstep stay exact, and none goes through `SessionLoader`. `SlabOrder` is hashed, so a loaded game hashes differently from the saved run once a room tile has a non-zero order; map-placed rooms have order 0. Headless Godot Level1 gives `D7290428D81A902F` at turn 400 whether the game was never saved, saved, or saved and loaded (observed; no test pins the no-room equality). `HashVersion` is unchanged. Tests: `SessionSaveLoadTests.ALoadReChainsEveryRoomRowMajorSoADraggedPrisonsDoorMovesWest` (a Level1 Prison dragged at (4,4)-(8,7): door (7,4) before the save, (5,4) after the load) and `ALoadedLevelEqualsLoadGameOfTheSavedBytesAndTwoLoadsOfTheSameSaveContinueWithIdenticalHashes`; putting `FromBytes` back fails both.
+
 ## ADR-0242 — Modern assets re-express the original: preserve design, increase fidelity
 **Date:** 2026-09-26 · **Status:** accepted as a standard; the pipeline is proposed · Docs: `docs/ART_DIRECTION.md`, `docs/ASSET_PIPELINE.md` · **Systems:** art-assets
 

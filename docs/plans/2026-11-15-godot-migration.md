@@ -351,9 +351,8 @@ group 2 is a list to audit, not a finding.
       front-end launch rule. `SessionSaver` is the old `SaveSession`: load the profile if needed, apply the carry when a
       slot is played, write the header and `ToBytes`, then the profile, and refresh the list. `SessionLoader` is the old
       `LoadSession`: it validates, reuses `CampaignLevelData.Load` and `CampaignSimulationFactory.Triggers` (Unity's
-      copies are gone), calls `FromBytes` with `SimulationSystems.Default()` and writes the save's profile to the path
-      without adopting it. The snapshot format and load order are unchanged; whether `WorldSnapshot.LoadGame` should
-      replace `FromBytes` stays open (audit). `GameSessionRequest.Resume` and `Resumed` carry the result;
+      copies are gone), calls `FromBytes` with `SimulationSystems.Default()` (see the follow-up below) and writes the save's profile to the path
+      without adopting it. The snapshot format and load order are unchanged. `GameSessionRequest.Resume` and `Resumed` carry the result;
       `CampaignLevelData`'s constructor is internal. The one Unity difference: a save whose level map is missing is now
       refused, since `CampaignLevelData.Load` reads the map (all 66 shipped maps load; an `InvalidOperationException`
       from it reads as "not available in this installation"). Unity's `LoadLevel` still copies `_pendingResume*` and
@@ -374,6 +373,10 @@ group 2 is a list to audit, not a finding.
       (`3057C00AA838C44A`) and went on, or loaded that save and went on; the install-gated test repeats it over 301 +
       300 turns. A corrupt-profile run refused the load and left the file unchanged. Not run: Unity in Play mode, and
       a save written by a current Unity build loaded in Godot.
+      Follow-up (2026-11-16): `SessionLoader` now calls `WorldSnapshot.LoadGame`, as ADR-0241 item 2 says a
+      save-load feature should; Unity's runner had used `FromBytes`, so step 2f carried that deviation over. A load
+      re-chains every room row-major, as DK2 does, in both adapters (`SessionSaveLoadTests`, 22/22). The Level1 hash
+      above is unchanged as observed (map-placed rooms have order 0); no test pins it.
 - [ ] 2g. Level end and cutscenes (`CampaignResultFlow`, `CampaignCutsceneRunner`, the tablet
       projection as a draw list); the resource flash, the flash-button hint, and the scripted view's HUD
       hiding and opening-path heading.
