@@ -146,8 +146,10 @@ public sealed class CampaignPlayer : IPlayerController
         Think("room", why, actions, () => Room(observation, home, actions));
         Think("trap", why, actions, () => Trap(observation, actions));
         Think("imp", why, actions, () => CreateImp(observation, home, actions));
-        bool assault = !hand && Think("assault", why, actions, () => Assault(observation, home, actions));
-        if (!hand && !assault && !Think("work", why, actions, () => Work(observation, home, actions))
+        Think("bridge", why, actions, () => Bridge(observation, home, actions));
+        bool bank = !hand && Think("bank", why, actions, () => Bank(observation, home, actions));
+        bool assault = !hand && !bank && Think("assault", why, actions, () => Assault(observation, home, actions));
+        if (!hand && !bank && !assault && !Think("work", why, actions, () => Work(observation, home, actions))
             && !Think("pit", why, actions, () => Pit(observation, home, actions)))
             Think("scout", why, actions, () => Scout(observation, home, actions));
         if (_strategy.UseSpecials)
@@ -336,6 +338,8 @@ public sealed class CampaignPlayer : IPlayerController
             _carryForPit = _carryWorker = _carryScout = _carryRetreat = false;
             _carryStyle = null;
             _assaultDrop = null;
+            _rallyDrop = null;
+            _rallyDropping = false;
         }
         if (!Fits(actions, 1)) return false;
         // Engage answers an attack on any of the dungeon (an enemy within EnemyNearTiles of own ground), the one nearest
@@ -344,6 +348,7 @@ public sealed class CampaignPlayer : IPlayerController
             : PlayerActionRoutines.NearestAttacker(observation, home, _strategy.EnemyNearTiles, _covered);
         if (_strategy.Fight == FightMode.HoldHome && enemy is PlayerVisibleThing far
             && PlayerActionRoutines.DistanceSquared(far.Tile, home) > (long)_strategy.HomeGuardTiles * _strategy.HomeGuardTiles) enemy = null;
+        if (Rally(observation, home, enemy, actions) is bool rallied) return rallied;
         if (observation.HandCount > 0 && _assaultDrop is TilePos assaultAt)
         {
             // An assault party goes down together beside its trap, inside its reach (A2): one drop per item held.
@@ -438,6 +443,7 @@ public sealed class CampaignPlayer : IPlayerController
         }
         // Enough already: the defenders at the fight outnumber the attackers.
         if (defenders > attackers) { Note($"attack at {target.Tile}: {defenders} defenders outnumber {attackers} attackers"); return false; }
+        if (_holdDefenders) { Note($"siege at {target.Tile}: gathering a party, none goes alone"); return false; }
         if (PlayerActionRoutines.Defender(observation, _options, target.Tile, _options.EngagedTiles, home,
                 style => FormationDrop(observation, target.Tile, home, style)) is not PlayerVisibleThing fighter)
         {
@@ -478,6 +484,7 @@ public sealed class CampaignPlayer : IPlayerController
     private bool Room(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
         AgeSite(observation);
+        CountArrivals(observation);
         if (_pendingRooms.Count > 0) { Note("waiting for " + string.Join(", ", _pendingRooms.Keys) + " to be laid"); return false; }
         if (!Fits(actions, 2)) { Note("no room left in this decision's actions"); return false; }
         if (_repairs.Count > 0 && Finish(observation, actions)) { NoteMore("finish a short square"); return true; }
@@ -495,12 +502,85 @@ public sealed class CampaignPlayer : IPlayerController
         if (Short(observation)) { Note($"keeping {GoldNeed(observation)} gold for payday (gold {observation.Gold.Value})"); return false; }
         long keep = _strategy.GoldBudget == 1 ? GoldNeed(observation) : 0;
         foreach (RoomTypeId room in _strategy.Rooms)
+        {
+            _hungerAsked = false;
             if (Outgrown(observation, room) && (Build(observation, home, room, grow: true, actions, keep)
                 // A room that cannot grow beside itself gets a second one (E3, owner R12: "expand it, create a second one").
-                || _strategy.SecondRooms == 1 && room != RoomTypeId.Treasury && Build(observation, home, room, grow: false, actions, keep))) return true;
+                || _strategy.SecondRooms == 1 && room != RoomTypeId.Treasury && Build(observation, home, room, grow: false, actions, keep)))
+            {
+                if (_hungerAsked) _hungerGrowth = observation.Stamp.Tick;
+                return true;
+            }
+        }
         foreach (RoomTypeId room in _strategy.ExtraRooms)
             if (!_strategy.Rooms.Contains(room) && !Owns(observation, room) && Build(observation, home, room, grow: false, actions, keep)) return true;
+        if (Recruit(observation, home, actions, keep)) return true;
         _note ??= "every listed room owned and none outgrown";
+        return false;
+    }
+
+    /// <summary>Ticks without a new non-worker, and between two recruiting builds, before recruiting builds (5 game minutes).</summary>
+    private const int RecruitWaitTicks = 1200;
+
+    /// <summary>A room recruiting no longer grows once it holds a 7x7's tiles (the largest side the knowledge measures); the
+    /// last growth may pass it by one square.</summary>
+    private const int RecruitMaxTiles = 49;
+
+    /// <summary>Recruiting adds wages: it builds only while the gold pays this many paydays at the current bill.</summary>
+    private const int RecruitPaydays = 6;
+
+    /// <summary>Ticks after a recruiting pass that built nothing before the next looks again.</summary>
+    private const int RecruitRetryTicks = 200;
+
+    private int _seenNonWorkers;
+    private GameTick _lastArrival;
+    private GameTick? _lastRecruit;
+    private GameTick? _recruitTried;
+
+    /// <summary>Notes when the non-workers last grew in number (an arrival through the Portal, a conversion, a Skeleton).</summary>
+    private void CountArrivals(PlayerObservation observation)
+    {
+        int nonWorkers = NonWorkers(observation);
+        if (nonWorkers > _seenNonWorkers) _lastArrival = observation.Stamp.Tick;
+        _seenNonWorkers = nonWorkers;
+    }
+
+    /// <summary>Recruiting (<see cref="PlayerStrategy.RecruitGold"/>): with a Portal owned, no new non-worker for
+    /// <see cref="RecruitWaitTicks"/> and the gold over the payday budget, the offered room whose attraction caps creatures
+    /// (the knowledge's <see cref="RoomFacts.CapsCreatures"/>) with the fewest own tiles is built, or grown beside itself
+    /// (a second one when it cannot); among equals the cheaper per tile first. The player cannot see which creatures the
+    /// Portal holds back, only that none come; so every such room is grown in turn. Creatures cost wages and the gold may
+    /// have no income behind it (Level 5, 2026-11-17: an army of 15 drained 94k to nothing), so it builds only while the
+    /// gold pays <see cref="RecruitPaydays"/> paydays at the current bill. A conversion or a Skeleton counts as an arrival
+    /// too (the net count of non-workers), which only delays it.</summary>
+    private bool Recruit(PlayerObservation observation, TilePos home, List<PlayerAction> actions, long keep)
+    {
+        if (_strategy.RecruitGold <= 0 || !Owns(observation, RoomTypeId.Portal)) return false;
+        long tick = observation.Stamp.Tick.Value;
+        long gold = observation.Gold.Value;
+        if (gold - keep < _strategy.RecruitGold || gold < (long)observation.WageBill.Value * RecruitPaydays
+            || tick - _lastArrival.Value < RecruitWaitTicks
+            || _lastRecruit is GameTick last && tick - last.Value < RecruitWaitTicks
+            || _recruitTried is GameTick tried && tick - tried.Value < RecruitRetryTicks) return false;
+        _recruitTried = observation.Stamp.Tick;
+        var candidates = new List<(RoomTypeId Room, int Tiles, int Cost)>();
+        foreach (PlayerRoomOffer offer in observation.Offers.Rooms)
+        {
+            if (_options.Knowledge.Room(offer.Room) is not { CapsCreatures: true }) continue;
+            int tiles = OwnedTiles(observation, offer.Room);
+            if (tiles < RecruitMaxTiles) candidates.Add((offer.Room, tiles, offer.Cost.Value));
+        }
+        foreach ((RoomTypeId room, int tiles, _) in candidates.OrderBy(c => c.Tiles).ThenBy(c => c.Cost).ThenBy(c => c.Room))
+        {
+            bool built = tiles == 0
+                ? Build(observation, home, room, grow: false, actions, keep)
+                : Build(observation, home, room, grow: true, actions, keep)
+                  || _strategy.SecondRooms == 1 && Build(observation, home, room, grow: false, actions, keep);
+            if (!built) continue;
+            _lastRecruit = observation.Stamp.Tick;
+            NoteMore($"recruiting: no new creature for {tick - _lastArrival.Value} ticks, {room} had {tiles} tiles");
+            return true;
+        }
         return false;
     }
 
@@ -656,8 +736,15 @@ public sealed class CampaignPlayer : IPlayerController
                 int hungry = 0;
                 foreach (PlayerCreatureSummary creature in observation.Creatures) if (creature.Hungry && !_options.IsWorker(creature.Type)) hungry++;
                 int nonWorkers = NonWorkers(observation);
-                if (_strategy.HungryPercent < 100 && hungry >= Math.Max(2, nonWorkers * _strategy.HungryPercent / 100))
+                // Hunger grows it only while it is small for the army: a new Hatchery's chickens take time to hatch, and the
+                // chicken stays on the flowers meanwhile (Level 5, 2026-11-16: 86 Hatchery tiles for four fighters, no gold left).
+                if (_strategy.HungryPercent < 100 && tiles < HatcheryTilesPerCreature * nonWorkers
+                    && hungry >= Math.Max(2, nonWorkers * _strategy.HungryPercent / 100)
+                    && !(_hungerGrowth is GameTick grew && observation.Stamp.Tick.Value - grew.Value < HungerGrowthTicks))
+                {
+                    _hungerAsked = true;
                     return Grow(true, $"{hungry} of {nonWorkers} non-workers hungry with {tiles} Hatchery tiles");
+                }
                 return Grow((long)tiles * _strategy.CreaturesPerHatcheryTile < nonWorkers,
                     $"Hatchery {tiles} tiles for {nonWorkers} non-workers");
             case RoomTypeId.Treasury:
@@ -675,6 +762,115 @@ public sealed class CampaignPlayer : IPlayerController
             return outgrown;
         }
     }
+
+    /// <summary>The bank (E2): wages are collected from a Treasury holding gold (PaydaySystem: a creature walks to a paying
+    /// room with gold; Level 5, 2026-11-16: the Treasury ran dry while gold sat in the Heart, and 22-25 creatures a run left
+    /// unpaid). With the hand free and no enemy near home, while the Treasury's own fill (its hover) is below the gold
+    /// budget and more gold lies elsewhere, a store pile not on a Treasury tile is lifted and carried to the Treasury, as
+    /// the owner did on Level 6a (two gold pick-ups). Off with the gold budget.</summary>
+    private bool Bank(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
+    {
+        if (_strategy.GoldBudget == 0 || observation.HandCount > 0 || !Fits(actions, 1)
+            || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0
+            || Summary(observation, RoomTypeId.Treasury) is not PlayerRoomSummary treasury) return false;
+        // Only what wages need (the bill itself, not the margin), and only with room for a whole pile (a Heart tile holds
+        // up to BankPileGold; what does not fit lands as loose gold beside the store).
+        long need = observation.WageBill.Value;
+        if (treasury.Used >= need || observation.Gold.Value <= treasury.Used || treasury.Capacity - treasury.Used < BankPileGold) return false;
+        if (_lastBank is GameTick banked && observation.Stamp.Tick.Value - banked.Value < BankGapTicks) return false;
+        if (PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) { Note("Treasury short, but an enemy is near home"); return false; }
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerVisibleThing? pile = null;
+        foreach (PlayerVisibleThing thing in observation.Things)
+            if (thing.Kind == PlayerThingKind.StoreGold && (thing.Actions & PlayerThingActions.PickUp) != 0 && grid.Contains(thing.Tile)
+                && grid[thing.Tile].Room != RoomTypeId.Treasury
+                && (pile is null || PlayerActionRoutines.DistanceSquared(thing.Tile, home) < PlayerActionRoutines.DistanceSquared(pile.Value.Tile, home)))
+                pile = thing;
+        if (pile is not PlayerVisibleThing gold
+            || PlayerActionRoutines.NearestRoomTile(observation, RoomTypeId.Treasury, home, _refusedWork) is not TilePos to)
+        {
+            Note($"Treasury holds {treasury.Used} of {need} needed; no gold pile outside it to carry");
+            return false;
+        }
+        // The drop goes to the Treasury only with no enemy near it (Hand's rule); else the gold would land as loose gold.
+        if (PlayerActionRoutines.ThreatNear(observation, to, _strategy.EnemyNearTiles)) { Note("Treasury short, but an enemy is near it"); return false; }
+        actions.Add(new PlayerAction.PickUp(gold.Handle));
+        _lastBank = observation.Stamp.Tick;
+        _carryTo = to;
+        _carryWorker = true;   // goes down at the Treasury, never toward an enemy
+        Note($"Treasury holds {treasury.Used} of {need} needed: carry the gold at {gold.Tile} to {to}");
+        return true;
+    }
+
+    /// <summary>The bridge routine (economy and assault plan E2: income comes from new ground; Level 5, 2026-11-16: no tile left
+    /// to mark after tick ~6000, so no gold came in and the army left unpaid). Once nothing is left to dig and no mark stands,
+    /// the shortest straight span of water (a Wooden Bridge) or lava (a Stone Bridge), at most <see cref="MaxBridgeTiles"/>,
+    /// from own floor to new ground (diggable rock, unseen ground or floor not the player's) is built in one drag, nearest
+    /// home first, when the panel offers that bridge and the gold budget stands after it. A dragged span spreads across the
+    /// hazard from its end that touches own floor, and a built bridge is own floor for the next (bridge-placement.md sections
+    /// 1-2).</summary>
+    private bool Bridge(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
+    {
+        if (_strategy.Dig == DigMode.Off || _pendingRooms.Count > 0 || !Fits(actions, 2)
+            || (observation.Offers.Actions & PlayerActionKinds.BuildRoom) == 0) return false;
+        if (Outstanding(observation) > 0 || Frontier(observation, home, preferGold: false).Count > 0) return false;
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        long keep = _strategy.GoldBudget == 1 ? GoldNeed(observation) : 0;
+        (TilePos From, TilePos To, RoomTypeId Room, long Score)? best = null;
+        ReadOnlySpan<(int X, int Y)> directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+        for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var floor = new TilePos(x, y);
+                if (!PlayerActionRoutines.IsOwnFloor(grid[floor], self)) continue;
+                foreach ((int dx, int dy) in directions)
+                {
+                    var first = new TilePos(x + dx, y + dy);
+                    if (!grid.Contains(first)) continue;
+                    PlayerTileFlags hazard = grid[first].Flags & (PlayerTileFlags.Water | PlayerTileFlags.Lava);
+                    if (hazard is not (PlayerTileFlags.Water or PlayerTileFlags.Lava) || grid[first].Room != default) continue;
+                    int k = 0;
+                    var at = first;
+                    while (grid.Contains(at) && (grid[at].Flags & PlayerTileFlags.Known) != 0 && (grid[at].Flags & hazard) != 0
+                           && grid[at].Room == default && k <= MaxBridgeTiles)
+                    {
+                        k++;
+                        at = new TilePos(at.X + dx, at.Y + dy);
+                    }
+                    if (k == 0 || k > MaxBridgeTiles || !grid.Contains(at)) continue;
+                    PlayerTile end = grid[at];
+                    bool fresh = (end.Flags & PlayerTileFlags.Known) == 0
+                        || (end.Flags & (PlayerTileFlags.Water | PlayerTileFlags.Lava)) == 0
+                           && ((end.Flags & PlayerTileFlags.Diggable) != 0 || (end.Flags & PlayerTileFlags.Solid) == 0 && end.Owner != self);
+                    if (!fresh || _covered.Contains(at)) continue;
+                    RoomTypeId bridge = hazard == PlayerTileFlags.Water ? RoomTypeId.WoodenBridge : RoomTypeId.StoneBridge;
+                    if (Tried(bridge).Contains(first) || Price(observation, bridge) is not long price
+                        || observation.Gold.Value - price * k < keep) continue;
+                    var last = new TilePos(first.X + dx * (k - 1), first.Y + dy * (k - 1));
+                    long score = (long)k * 1000 + PlayerActionRoutines.DistanceSquared(floor, home);
+                    if (best is not { } b || score < b.Score) best = (first, last, bridge, score);
+                }
+            }
+        if (best is not { } span) { Note("nothing left to dig and no span to bridge"); return false; }
+        if (PlayerActionRoutines.SelectRoom(observation, span.Room) is PlayerAction press) actions.Add(press);
+        actions.Add(new PlayerAction.BuildRoom(span.Room, span.From, span.To));
+        _pendingRooms[span.Room] = new PendingRoom(span.From, 1, observation.Stamp.Tick, OwnedTiles(observation, span.Room));
+        Tried(span.Room).Add(span.From);
+        Note($"nothing left to dig: {span.Room} from {span.From} to {span.To}");
+        return true;
+    }
+
+    /// <summary>The longest span of water or lava the bridge routine builds in one drag.</summary>
+    private const int MaxBridgeTiles = 8;
+
+    private GameTick? _lastBank;
+
+    /// <summary>The most gold one store pile outside a Treasury holds (a Heart tile, MaxGoldPerDungeonHeartTile 1000).</summary>
+    private const int BankPileGold = 1000;
+
+    /// <summary>Ticks between two bank carries (10 game seconds): the hand is left free for other work in between.</summary>
+    private const int BankGapTicks = 40;
 
     /// <summary>The gold the budget keeps (E2): the coming payday's wage bill plus the strategy's margin.</summary>
     private long GoldNeed(PlayerObservation observation) => (long)observation.WageBill.Value * (100 + _strategy.GoldMarginPercent) / 100;
@@ -704,6 +900,164 @@ public sealed class CampaignPlayer : IPlayerController
         foreach (PlayerRoomSummary summary in observation.Rooms) if (summary.Type == room) return summary;
         return null;
     }
+
+    /// <summary>An attack holding its ground (A4): where it was last answered, since when, when last seen, the most own
+    /// fighters seen meanwhile, and whether it became a siege (latched until the attack is gone).</summary>
+    private sealed class Stand(TilePos at, GameTick since, int fighters)
+    {
+        public TilePos Origin { get; } = at;
+        public TilePos At { get; set; } = at;
+        public GameTick Since { get; } = since;
+        public GameTick Seen { get; set; } = since;
+        public int Peak { get; set; } = fighters;
+        public bool Siege { get; set; }
+    }
+
+    private Stand? _stand;
+
+    /// <summary>Where a rally party being gathered goes down, and how many it wants, or null.</summary>
+    private TilePos? _rallyDrop;
+    private int _rallyWant;
+    private bool _rallyDropping;
+
+    /// <summary>Ticks an attack must hold within <see cref="StandTiles"/> of where it was first answered before it can be a
+    /// siege (5 game minutes), and how far it may move meanwhile.</summary>
+    private const int SiegeTicks = 1200, StandTiles = 5;
+
+    /// <summary>Own fighters lost below the stand's peak that make it a siege.</summary>
+    private const int SiegeLosses = 4;
+
+    /// <summary>An attack unseen this long is gone (100 game seconds).</summary>
+    private const int StandForgetTicks = 400;
+
+    /// <summary>The whole-army push (A4). Tracks the attack the hand answers; once one has held within
+    /// <see cref="StandTiles"/> for <see cref="SiegeTicks"/> while own fighters fell <see cref="SiegeLosses"/> below their
+    /// peak, it is a siege: no fighter goes to it alone. The player waits until the party (<see cref="PlayerStrategy.RallyParty"/>,
+    /// or two thirds of its fighters, at least four) is fit and free, lifts it over as many decisions as the action budget
+    /// needs, and drops it all at once on the Blockers' place. Null when the routine leaves the hand to the usual answer;
+    /// otherwise whether it acted.</summary>
+    private bool? Rally(PlayerObservation observation, TilePos home, PlayerVisibleThing? enemy, List<PlayerAction> actions)
+    {
+        _holdDefenders = false;
+        if (_strategy.RallyParty <= 0) return null;
+        GameTick now = observation.Stamp.Tick;
+        int fighters = 0;
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (!_options.IsWorker(creature.Type) && _options.StyleOf(creature.Type) != FightStyle.NonFighter) fighters++;
+        if (enemy is PlayerVisibleThing foe)
+        {
+            if (_stand is not Stand stand || Chebyshev(stand.At, foe.Tile) > StandTiles) _stand = new Stand(foe.Tile, now, fighters);
+            else
+            {
+                // The stand follows its attack as it paces (Level 4 seed 3: the Lord walks x 21-27 on row 4); only a jump of
+                // more than StandTiles between sightings is a new attack.
+                stand.At = foe.Tile;
+                stand.Seen = now;
+                // A steady advance is no stand: once it is more than three times StandTiles from where it began, start again.
+                if (Chebyshev(stand.Origin, foe.Tile) > 3 * StandTiles) _stand = new Stand(foe.Tile, now, fighters);
+                stand.Peak = Math.Max(stand.Peak, fighters);
+                // Never at home: a raid on the dungeon is always answered (defence plan D2); a siege is a stand far out.
+                if (!stand.Siege && now.Value - stand.Since.Value >= SiegeTicks && fighters <= stand.Peak - SiegeLosses
+                    && PlayerActionRoutines.DistanceSquared(foe.Tile, home) > 4L * _strategy.HomeGuardTiles * _strategy.HomeGuardTiles) stand.Siege = true;
+            }
+        }
+        else if (_stand is Stand old && now.Value - old.Seen.Value > StandForgetTicks) _stand = null;
+        if (_stand is not { Siege: true } siege || enemy is not PlayerVisibleThing target)
+        {
+            _rallyDrop = null;
+            _rallyDropping = false;
+            return null;
+        }
+        // The party's tile, taken afresh each decision from where the attack stands now, past tiles a drop failed on.
+        if (FormationDrop(observation, target.Tile, home, FightStyle.Blocker) is not TilePos drop)
+        {
+            Note($"siege at {siege.At}: no own floor to drop on");
+            _holdDefenders = true;
+            return null;
+        }
+
+        if (observation.HandCount > 0 && _rallyDrop is not null)
+        {
+            // Still gathering: lift more while the party is short, fighters are free and the gathering is young; else all
+            // go down together, over as many decisions as the action budget needs, never lifting again once one has.
+            List<PlayerVisibleThing> more = _rallyDropping || now.Value - _rallyLiftTick.Value > RallyGatherTicks
+                ? [] : FreeFighters(observation, home, drop);
+            if (more.Count > 0 && observation.HandCount < _rallyWant && (observation.Offers.Actions & PlayerActionKinds.PickUp) != 0)
+            {
+                int lifted = 0;
+                for (int i = 0; i < more.Count && observation.HandCount + lifted < _rallyWant && Fits(actions, 1); i++, lifted++)
+                    actions.Add(new PlayerAction.PickUp(more[i].Handle));
+                Note($"siege at {siege.At}: gathering, {observation.HandCount + lifted} of {_rallyWant} in hand");
+                _rallyDrop = drop;
+                return true;
+            }
+            if ((observation.Offers.Actions & PlayerActionKinds.DropAt) == 0) { Note("siege: no drop offered"); return false; }
+            int released = 0;
+            while (released < observation.HandCount && Fits(actions, 1)) { actions.Add(new PlayerAction.DropAt(drop)); released++; }
+            Note($"siege at {siege.At}: drop a party of {released} at {drop} against the attack at {target.Tile}");
+            _lastDrop = (drop, observation.HandCount);
+            _lastDropTick = now;
+            _rallyDropping = released < observation.HandCount;
+            if (!_rallyDropping) { _rallyDrop = null; _rallyDone = now; }
+            siege.Peak = fighters;   // a new reckoning from the push on
+            return true;
+        }
+        if (observation.HandCount > 0) return null;   // something else is held: the usual drop takes it
+
+        // The hand is free. No fighter goes to the siege alone, but the usual path still heals a hurt defender and takes
+        // one out of the fight (it only stops short of lifting one to send in).
+        _holdDefenders = true;
+        if (_rallyDone is GameTick done && now.Value - done.Value < RallyCooldownTicks)
+        {
+            Note($"siege at {siege.At}: the last party went in lately");
+            return null;
+        }
+        int want = Math.Max(4, Math.Min(_strategy.RallyParty, fighters * 2 / 3));
+        List<PlayerVisibleThing> free = FreeFighters(observation, home, drop);
+        if (free.Count < want || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0)
+        {
+            Note($"siege at {siege.At}: gathering, {free.Count} of {want} fighters fit and free; none goes alone");
+            return null;
+        }
+        int taken = 0;
+        for (int i = 0; i < want && Fits(actions, 1); i++, taken++) actions.Add(new PlayerAction.PickUp(free[i].Handle));
+        _rallyDrop = drop;
+        _rallyWant = want;
+        _rallyDropping = false;
+        _rallyLiftTick = now;
+        Note($"siege at {siege.At}: lift {taken} of a party of {want} (drop at {drop})");
+        return true;
+    }
+
+    /// <summary>Own fighters a rally may lift: fit (the flower shows five petals or more), liftable, not in a fight (no threat
+    /// within the engaged distance) and not already at the drop (within the engaged distance of it), nearest home first.</summary>
+    private List<PlayerVisibleThing> FreeFighters(PlayerObservation observation, TilePos home, TilePos drop)
+    {
+        var petals = new Dictionary<PlayerThingHandle, int>();
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) petals[seen] = creature.Petals;
+        long near = (long)_options.EngagedTiles * _options.EngagedTiles;
+        var free = new List<PlayerVisibleThing>();
+        foreach (PlayerVisibleThing thing in observation.Things)
+            if (thing.Kind == PlayerThingKind.Creature && thing.Owner == observation.Stamp.Player && thing.CreatureType is CreatureTypeId type
+                && !_options.IsWorker(type) && _options.StyleOf(type) != FightStyle.NonFighter && (thing.Actions & PlayerThingActions.PickUp) != 0
+                && petals.TryGetValue(thing.Handle, out int shown) && shown >= 5
+                && PlayerActionRoutines.DistanceSquared(thing.Tile, drop) > near
+                && !PlayerActionRoutines.ThreatNear(observation, thing.Tile, _options.EngagedTiles)) free.Add(thing);
+        free.Sort((a, b) => PlayerActionRoutines.DistanceSquared(a.Tile, home).CompareTo(PlayerActionRoutines.DistanceSquared(b.Tile, home)));
+        return free;
+    }
+
+    /// <summary>Whether a siege holds the usual one-at-a-time lift back this decision.</summary>
+    private bool _holdDefenders;
+    private GameTick _rallyLiftTick;
+    private GameTick? _rallyDone;
+
+    /// <summary>Ticks a rally may spend gathering in the hand before what it holds goes down (10 game seconds).</summary>
+    private const int RallyGatherTicks = 40;
+
+    /// <summary>Ticks after a party went in before the next is gathered (100 game seconds): it fights first.</summary>
+    private const int RallyCooldownTicks = 400;
 
     /// <summary>Where the assault party lifted last decision goes down, or null.</summary>
     private TilePos? _assaultDrop;
@@ -791,6 +1145,18 @@ public sealed class CampaignPlayer : IPlayerController
             return false;
         }
     }
+
+    /// <summary>The most Hatchery tiles per non-worker that hunger alone may grow it to.</summary>
+    private const int HatcheryTilesPerCreature = 3;
+
+    /// <summary>Ticks after a growth for hunger before hunger may grow the Hatchery again (5 game minutes): its new chickens
+    /// hatch and feed first.</summary>
+    private const int HungerGrowthTicks = 1200;
+
+    private GameTick? _hungerGrowth;
+
+    /// <summary>Whether this decision's Hatchery growth was asked for by hunger (its cooldown starts once it is queued).</summary>
+    private bool _hungerAsked;
 
     private int NonWorkers(PlayerObservation observation)
     {
@@ -1140,7 +1506,7 @@ public sealed class CampaignPlayer : IPlayerController
     /// for its upgrade (not upgraded, an own creature in an own Library within <see cref="ResearchMemoryTicks"/>, for at
     /// most <see cref="UpgradeWaitTicks"/>) unless the marks want twice the Imps there are; the price leaves
     /// <see cref="PlayerStrategy.ManaReserve"/>; it is at most <see cref="PlayerStrategy.ImpPriceSeconds"/> of net income;
-    /// no enemy in sight within <see cref="ImpSafeTiles"/>. Off unless <see cref="PlayerStrategy.CreateImps"/> is 1.</summary>
+    /// no enemy in sight within <see cref="ImpSafeTiles"/>. On by default; off when <see cref="PlayerStrategy.CreateImps"/> is 0.</summary>
     private bool CreateImp(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
         if (_strategy.CreateImps <= 0) return false;

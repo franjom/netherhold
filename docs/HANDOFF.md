@@ -202,17 +202,24 @@ These are entry points, not a new priority order.
   routines now stop only for a threat within `strategy.enemy-near-tiles` (8) of home or the room, but the bot's own
   Black Knights are prisoners, a level objective not built, Q843; Q827, Q828, Q831, Q836 and Q844-Q846 open) and so is Imp scouting (`strategy.scouts`, off by default; Level 6a
   seeds 1-3 show no gain yet; Q834, Q835, Q838 open). Imp creation, R8, is built too
-  (`strategy.create-imps`, off by default; Level 6a seeds 1-3 show no gain; Q842 open;
+  (`strategy.create-imps`, on by default with `strategy.min-imps` 10 since the owner's rule R17; Level 6a seeds 1-3 showed no gain; Q842 open;
   [plan](plans/2026-11-14-campaign-bot-stage3.md)). The bot defends its whole dungeon (an enemy within 8 tiles of own ground, the one nearest the Heart
   first, Q847) and drops fighters in a formation by fighting style ([defence plan](plans/2026-11-15-campaign-bot-defence.md), D1-D4 built;
   Q848-Q850 answered by the owner). It also places traps on the corridors the
   attacks take (`strategy.max-traps`, 8; the trap for a site follows its kind, Q851; Q852 open). The
-  [economy and assault plan](plans/2026-11-16-campaign-bot-economy-and-assault.md) is built through E3 and A2 (observation
-  schema 7; Q870-Q873 answered by the owner): payday, beds, hunger and enemy traps are observed, the bot budgets gold,
-  grows the Lair by beds and the Hatchery by hunger, keeps out of enemy traps' reach and sends an assault party at them,
-  and every run writes `player-*.tsv` diagnostics ([harness README](../src/DK2.Harness/README.md)). Level 4 seeds 1-3 won
-  3 of 3 (before 1 of 3); Levels 1-3 stay won. Next: Level 4 seed 3's last fight (A4), then A3 possession, D6 attack spells
-  that never hit own creatures or walls, and D5, measuring Levels 6a, 7, 11a and 15a.
+  [economy and assault plan](plans/2026-11-16-campaign-bot-economy-and-assault.md) is built through E3, A2, A4's push and recruiting
+  (observation schema 7; Q870-Q873 answered by the owner): payday, beds, hunger and enemy traps are observed, the bot
+  budgets gold, carries Heart gold to a dry Treasury, bridges water and lava when nothing is left to dig, grows the Lair
+  by beds and the Hatchery by hunger (capped), builds the rooms that cap Portal creatures when nobody arrives while gold
+  idles (`strategy.recruit-gold`), keeps out of enemy traps' reach, sends an assault party at them and, in a
+  siege far from home, drops the army together instead of one fighter at a time (`strategy.rally-party`). Every run
+  writes `player-*.tsv` diagnostics and a `player-map.txt` of its last observation ([harness README](../src/DK2.Harness/README.md)).
+  Levels 1-4 win 12 of 12 (Level 4 before 1 of 3); Level 5 0 of 3: the army now peaks at 15 (was 4), but the wages drain
+  the gold to 0 by about tick 30000 and 18-27 creatures leave over pay, as the bot never attacks. Next: R20, the offence
+  at the army's peak (a strength estimate, a counters table), then A3 possession, D6 attack spells that never hit
+  own creatures or walls, and D5, measuring Levels 6a, 7, 11a and 15a. Open owner questions: does DK2 pay wages from
+  Heart gold, is a Sentry's reach its range plus two, can a player see an enemy creature's level (plan, "Questions for
+  the owner"). Guide-derived rules R21-R64 wait for the owner's review.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

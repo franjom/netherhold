@@ -77,8 +77,8 @@ rules:
     source: "owner, 2026-11-15"
     status: proposed
     form: { kind: manual }
-    note: "built as CampaignPlayer's Imp creation routine, switched on by a playbook's strategy.create-imps (Task 4)"
-    applies: playbook
+    note: "built as CampaignPlayer's Imp creation routine (strategy.create-imps); on by default since R17"
+    applies: always
 
   - id: R9
     rule: "Slow attacks with traps on own corridor tiles along the routes attackers take to the Heart: Boulder on a long straight run, Sentry, Spike, Freeze or Fireburst on a choke point, Fear in a narrow corridor; it depends on the map and the situation, so no trap is forbidden anywhere."
@@ -87,3 +87,49 @@ rules:
     form: { kind: manual }
     note: "built as CampaignPlayer's trap routine, on by default (strategy.max-traps 8; defence plan D4). Alone it turned no lost level: Level 6a, 7, 11A and 15a seeds 1-3 unchanged in outcome"
     applies: always
+
+  - id: R15
+    rule: "A Fear trap scares off creatures that feel fear: break it with creatures that do not (Skeletons, any fearless type), and keep the others out of its reach until it is gone."
+    source: "owner, 2026-11-17 (Level 5: the Fear traps before the Lord are meant for Skeletons; creatures attack enemy traps on their own if they can, Q873); the fact is the creature definition's IsFearless flag, which FearRules reads"
+    status: proposed
+    form: { kind: manual }
+    applies: always
+
+  - id: R16
+    rule: "Raise Skeletons from prisoners: keep a Prison with free cells, enough Imps to carry fallen heroes to it within their rescue window, and let the prisoners starve; a larger Prison holds more cells and more Skeletons."
+    source: "owner, 2026-11-17 (Level 5 introduces the Prison for this) and R10; prison.md (only starving makes a Skeleton; the Skeleton cap is the sum of the keeper's Prison capacities, PrisonRules.SkeletonCap)"
+    status: proposed
+    form: { kind: manual }
+    applies: always
+
+  - id: R17
+    rule: "Keep at least ten Imps: four is never enough to dig, claim, carry gold and carry the fallen."
+    source: "owner, 2026-11-17"
+    status: proposed
+    form: { kind: built-in, path: strategy.MinImps }
+    note: "strategy.create-imps is on by default with strategy.min-imps 10 (Level 5 ran on four Imps for 20000 ticks before)"
+    applies: always
+
+  - id: R18
+    rule: "When the Portal brings nobody while gold lies idle, the rooms its creatures need are full: build the missing ones and grow the rest; a room walled in rock draws more than one on open floor."
+    source: "Level 5 seed 1, 2026-11-17: every Portal roll turned Warlock, Dark Elf and Troll away for a full room (Library and Workshop 3x3 on open floor, no Guard Room) while 50-90k gold lay idle; rooms.yaml (walled against open attraction)"
+    status: proposed
+    form: { kind: built-in, path: strategy.RecruitGold }
+    note: "the player sees only that no creature comes, not which ones the Portal holds back, so every room whose attraction caps creatures grows in turn, the smallest first"
+    applies: always
+
+  - id: R19
+    rule: "Behind a hero fortification's traps and guards waits its boss with an entourage: clear the traps, then the guards, then gather the whole army, healed, before the boss fight; never feed it one creature at a time."
+    source: "owner, 2026-11-17 (Level 5: Fear traps, then four Sentry traps and two Knights, then the Lord of the Land and his entourage, a hard fight) and R14"
+    status: proposed
+    form: { kind: manual }
+    applies: always
+
+  - id: R20
+    rule: "Attack when the army is at its peak, on every level: a trained, levelled, mixed army with a fighting chance against the enemies it has scouted, judged by their number, types and levels and by which creature counters which; never wait while gold or the army wastes away, and never attack before it has that chance."
+    source: "owner, 2026-11-17 (\"this is always the answer, regardless of level\"); Level 5 seeds 1-3, 2026-11-17: the army peaked at 15 at tick 17500, then wages drained 94k gold to 0 by tick 30000 and 18-27 creatures a run left over pay without an attack"
+    status: proposed
+    form: { kind: manual }
+    note: "needs a strength estimate from what the player sees (own and enemy creatures, their levels; scouted ground) and a counters table (R15 is one counter: fearless creatures against Fear traps)"
+    applies: always
+

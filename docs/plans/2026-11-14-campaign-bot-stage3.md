@@ -482,8 +482,8 @@ least 3 Imps, one of them unhurt to send, and `UseRoomEveryTicks` since the last
 3955, 3934 and 2982; scouting on Defeated at ticks 3951, 4094 and 3837, so no gain is shown yet. Removing the
 drop-toward-enemy rule or the allied-ground rule fails its test. Open: Q834, Q835, Q838.
 
-**The Imp creation routine, R8 (owner direction, 2026-11-15; built 2026-11-15).** `CampaignPlayer.CreateImp` is off
-unless `PlayerStrategy.CreateImps` is 1 (default 0; playbook tunable `strategy.create-imps`, 0-1); rule R8 in
+**The Imp creation routine, R8 (owner direction, 2026-11-15; built 2026-11-15).** `CampaignPlayer.CreateImp` casts
+only while `PlayerStrategy.CreateImps` is 1 (the default since 2026-11-17, rule R17; playbook tunable `strategy.create-imps`, 0-1); rule R8 in
 `knowledge/rules.yaml`. Before it, only the computer keeper (`KeeperAI.CreateImps`) cast Create Imp. It needs
 observation schema 5, presentation only (the simulation and its hash are unchanged): `PlayerObservation.ManaIncome` and
 `ManaUpkeep` are the mana orb's two figures, from the same `ManaRules` calls as `KeeperResourceView`, and
@@ -491,9 +491,9 @@ observation schema 5, presentation only (the simulation and its hash are unchang
 
 | Tunable | Path | Default | Range |
 |---|---|---|---|
-| `CreateImps` | `strategy.create-imps` | 0 (off) | 0-1 |
+| `CreateImps` | `strategy.create-imps` | 1 (on) | 0-1 |
 | `MaxImps` | `strategy.max-imps` | 16 | 1-40; the owner's band is 15-20 |
-| `MinImps` | `strategy.min-imps` | 6 | 0-40; above `MaxImps` the cap wins |
+| `MinImps` | `strategy.min-imps` | 10 | 0-40; above `MaxImps` the cap wins |
 | `ManaReserve` | `strategy.mana-reserve` | 15000 | 0-1000000 |
 | `ImpPriceSeconds` | `strategy.imp-price-seconds` | 60 | 1-3600 |
 

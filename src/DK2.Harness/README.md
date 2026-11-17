@@ -107,12 +107,13 @@ only with `--playbook`), `acceptance_claimed` and `receipt`. Without a matching 
 
 Diagnostics (`PlayerRunDiagnostics`; read-only, no hash, random stream or command is touched). The controller's
 own account, from `PlayerDecision.Thoughts` and `Beliefs`: `player-thinking.tsv` (a routine's verdict, written
-when it changes, and every action) and `player-beliefs.tsv` (a number the controller decided on, written when
-it changes). The host's ground truth, never shown to the controller: `player-metrics.tsv` (the dungeon every 100
+when it changes, and every action), `player-beliefs.tsv` (a number the controller decided on, written when
+it changes) and `player-map.txt` (the controller's last observation drawn as text: rock, gold, floor by owner, rooms
+by letter, visible enemy traps and creatures; the file carries its own key). The host's ground truth, never shown to the controller: `player-metrics.tsv` (the dungeon every 100
 ticks: gold, fighters, Imps, hungry, unhappy, beds, chickens, wage bill, enemy creatures and traps, losses,
 kills), `player-losses.tsv` (each own creature lost, with the distance to the nearest enemy trap and enemy
-creature) and `player-enemy-traps.tsv` (each enemy trap: firings, health, whether hidden or destroyed). The
-`diagnostics` block of `player-run.json` sums them up. About 1.5 MB for a 57600-tick run.
+creature, and its largest grievance when last seen, `None` when it was calm) and `player-enemy-traps.tsv` (each enemy trap: firings, health, whether hidden or destroyed). The
+`diagnostics` block of `player-run.json` sums them up, including `left_by_grievance` (creatures that left, by that grievance). About 1.5 MB for a 57600-tick run.
 
 | Verdict | Meaning | Exit |
 |---|---|---|

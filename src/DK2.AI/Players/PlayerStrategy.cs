@@ -162,15 +162,17 @@ public sealed record PlayerStrategy
     public int Scouts { get; init; }
 
     /// <summary>The Imp creation routine (rule R8; owner direction, 2026-11-15): 1 casts Create Imp when the Imps are
-    /// fewer than the work wants and the mana income pays the price back; 0 (the default) never casts it.</summary>
-    public int CreateImps { get; init; }
+    /// fewer than the work wants and the mana income pays the price back (the default; owner, 2026-11-17: "4 imps are never
+    /// an optimal number, at least 10"); 0 never casts it.</summary>
+    public int CreateImps { get; init; } = 1;
 
     /// <summary>R8: never more own Imps than this (owner: 15 to 20, so the bot does not spend everything on Imps).</summary>
     public int MaxImps { get; init; } = 16;
 
     /// <summary>R8: the Imps kept whatever the dig backlog, and the most bought while the Library is still to upgrade
-    /// Create Imp (an upgraded cast makes a level 4 Imp, a plain one level 1). Never above <see cref="MaxImps"/>.</summary>
-    public int MinImps { get; init; } = 6;
+    /// Create Imp (an upgraded cast makes a level 4 Imp, a plain one level 1). Never above <see cref="MaxImps"/>. Ten by the
+    /// owner's rule (2026-11-17).</summary>
+    public int MinImps { get; init; } = 10;
 
     /// <summary>R8: mana never spent on an Imp, kept for the spells that attack and defend (Heal 5000, Thunderbolt 6000,
     /// Call To Arms 10000).</summary>
@@ -228,6 +230,18 @@ public sealed record PlayerStrategy
     /// enemy traps, as before the plan.</summary>
     public int AvoidTraps { get; init; } = 1;
 
+    /// <summary>The whole-army push (economy and assault plan A4; owner on Level 4: "drop all my creatures to rush the
+    /// lord"): an attack that holds its ground while the army shrinks is no longer answered one fighter at a time; the
+    /// player gathers this many fit fighters (or two thirds of its fighters, never fewer than four) and drops them
+    /// together. 0 answers every attack one at a time, as before the plan.</summary>
+    public int RallyParty { get; init; } = 8;
+
+    /// <summary>Recruiting (Level 5, 2026-11-17: the Portal turned every creature away for a full Workshop and Library while
+    /// 50-90k gold lay idle): with a Portal owned, no new non-worker for a while and at least this much gold over the
+    /// payday budget (with strategy.gold-budget 0 there is no budget, and only this floor and the paydays the gold must cover stand),
+    /// the offered room that caps portal creatures with the fewest tiles is built or grown. 0 never does.</summary>
+    public int RecruitGold { get; init; } = 20000;
+
     /// <summary>Every problem with this strategy, empty when it may be applied. With the map's size,
     /// a dig target outside it is one.</summary>
     public IReadOnlyList<string> Validate(int? mapWidth = null, int? mapHeight = null)
@@ -268,6 +282,8 @@ public sealed record PlayerStrategy
         if (TrainGold < 0) problems.Add($"TrainGold {TrainGold} is negative");
         if (AssaultParty < 0) problems.Add($"AssaultParty {AssaultParty} is negative");
         if (AvoidTraps is < 0 or > 1) problems.Add($"AvoidTraps {AvoidTraps} is not 0 or 1");
+        if (RallyParty < 0) problems.Add($"RallyParty {RallyParty} is negative");
+        if (RecruitGold < 0) problems.Add($"RecruitGold {RecruitGold} is negative");
         if (AttractionTargets is null) problems.Add("AttractionTargets is null");
         else foreach (KeyValuePair<RoomTypeId, int> t in AttractionTargets.Where(t => t.Value <= 0))
             problems.Add($"AttractionTargets[{t.Key}] {t.Value} is not positive");

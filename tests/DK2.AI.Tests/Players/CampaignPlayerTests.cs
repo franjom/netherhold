@@ -21,7 +21,8 @@ public partial class CampaignPlayerTests
 
     /// <summary>'.' own floor, 'H' own heart, '#' diggable rock, '$' gold seam, 'R' impenetrable rock,
     /// '?' unseen, 't' an own dig mark on unseen ground, 'x' an own dig mark on rock, 'e' enemy floor, 'T' own Treasury, 'L' own Lair,
-    /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison, 'B' own Library, 'k' own floor with an own trap.</summary>
+    /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison, 'B' own Library, 'k' own floor with an own trap,
+    /// 'w' water, 'l' lava.</summary>
     private static PlayerTileGrid Map(params string[] rows)
     {
         var tiles = new PlayerTile[rows.Length * rows[0].Length];
@@ -49,6 +50,8 @@ public partial class CampaignPlayerTests
                     'x' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable | PlayerTileFlags.Tagged, default, default),
                     'e' => new PlayerTile(PlayerTileFlags.Known, Heroes, default),
                     'k' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.OwnTrap, Me, default),   // own floor holding an own trap
+                    'w' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Water, default, default),
+                    'l' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Lava, default, default),
                     _ => default,
                 };
         return new PlayerTileGrid(rows[0].Length, rows.Length, tiles);

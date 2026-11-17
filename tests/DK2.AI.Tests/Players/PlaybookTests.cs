@@ -130,8 +130,8 @@ public class PlaybookTests
             // 5 is within every path's bounds but the on/off switches' (0-1), and is no default; there the one not the default.
             int value = path switch
             {
-                "strategy.scouts" or "strategy.create-imps" => 1,
-                "strategy.avoid-traps" or "strategy.gold-budget" or "strategy.second-rooms" => 0,
+                "strategy.scouts" => 1,
+                "strategy.create-imps" or "strategy.avoid-traps" or "strategy.gold-budget" or "strategy.second-rooms" => 0,
                 "strategy.assault-party" => 3,
                 _ => 5,
             };

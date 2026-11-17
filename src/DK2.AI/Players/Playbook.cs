@@ -94,6 +94,8 @@ public sealed record Playbook
         ["strategy.gold-budget"] = new(0, 1, (s, v) => s with { GoldBudget = v }),
         ["strategy.second-rooms"] = new(0, 1, (s, v) => s with { SecondRooms = v }),
         ["strategy.avoid-traps"] = new(0, 1, (s, v) => s with { AvoidTraps = v }),
+        ["strategy.rally-party"] = new(0, 16, (s, v) => s with { RallyParty = v }),
+        ["strategy.recruit-gold"] = new(0, 1_000_000, (s, v) => s with { RecruitGold = v }),
     };
 
     /// <summary>The paths a tunable may name, in order.</summary>

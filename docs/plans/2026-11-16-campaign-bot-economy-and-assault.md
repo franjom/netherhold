@@ -1,6 +1,6 @@
 # Campaign bot: economy, capacity and the assault on hero fortifications
 
-> For the owner's review (2026-11-16). T0, E1-E3, A1 and A2 are built (Status); A3, A4, D6, R10 and R13 are not. Source of every rule: the owner's directions in
+> For the owner's review (2026-11-16). T0, E1-E3 (with the bank, the bridge and recruiting), A1, A2 and A4's push are built (Status); A3, A4's Horny talisman, D6, R10, R13 and the offence at the army's peak (R20) are not. Source of every rule: the owner's directions in
 > [the strategy notes](2026-11-15-campaign-bot-owner-strategy.md) (R10-R14) and the Level 6a recording
 > (`F:/DK2Evidence/studies/l6a-owner-20261115-1821--2026-11-15--001`). Follows
 > [the defence plan](2026-11-15-campaign-bot-defence.md) (D1-D4 built; D6 and D5 move here).
@@ -81,6 +81,14 @@ thinking and decision making")
   is short of the wage bill, and never below the defence mana reserve. The owner saves it for emergencies.
 - Spend idle gold: when gold is above `GoldNeed` and the Treasury is near full, build or grow the next useful room
   (Level 4 ended with 92k unspent).
+- Built, the bank: the simulation collects wages from a Treasury holding gold (an owner question below), and on Level 5
+  it ran dry while gold sat in the Heart, so 22-25 creatures a run left unpaid. While the Treasury holds less than the wage bill, the keeper has more gold than it
+  holds and it has room for at least 1000 more, the bot lifts a gold pile that is not on a Treasury tile and carries it
+  there: at most once per 40 ticks, with the hand free, and not while an enemy is near home or near the Treasury. Off
+  with `strategy.gold-budget`.
+- Built, the bridge: Level 5 had nothing left to mark after tick ~6000, so no gold came in. With no dig mark standing
+  and the frontier empty, the bot builds the shortest straight span of water (Wooden Bridge) or lava (Stone Bridge), at
+  most 8 tiles, from its own floor to fresh ground, nearest home first, within the gold budget.
 - Tests: the budget in each case; Create Gold only in the emergency; the reserve kept. Ladder: Levels 1-4, 6a.
 
 ### E3: rooms keep ahead of the army (R12)
@@ -88,7 +96,17 @@ thinking and decision making")
   build a second one where `DigSite` finds space.
 - Hatchery: grow when visible chickens fall below `strategy.chickens-per-creature` x non-workers (default 0.5), or on
   repeated CreatureUnhappy notices while chickens are short (and hunger, once Q871 is answered); a second Hatchery as for
-  the Lair.
+  the Lair. Built cap: hunger grows it only while it has fewer than 3 tiles per non-worker, once per 1200 ticks (Level 5
+  grew a 103-tile Hatchery for four fighters and spent the gold the wages needed).
+- Built, recruiting: Level 5's Portal turned Warlock, Dark Elf and Troll away for a full room each roll (Library and
+  Workshop 3x3 on open floor, no Guard Room) while 50-90k gold idled. With a Portal owned, no new non-worker for 1200
+  ticks, gold minus the payday budget at least `strategy.recruit-gold` (default 20000, 0-1,000,000; 0 never) and gold at
+  least 6 paydays of the current wage bill, the bot builds or grows the offered room whose knowledge says it caps
+  creatures (CapsCreatures): fewest tiles first, then the cheaper per tile, and never one of 49 tiles or more. It waits
+  1200 ticks after a build and 200 after a pass that built nothing. A conversion or a Skeleton counts as an arrival. The
+  player cannot see which creatures the Portal holds back, so every such room grows in turn (R18).
+- Built, Imps (R17, owner, 2026-11-17: "4 imps are never an optimal number, at least 10"): `strategy.create-imps` now
+  defaults to 1 and `strategy.min-imps` to 10 ([stage 3 plan](2026-11-14-campaign-bot-stage3.md), R8).
 - Army size: the bot stops adding creatures it controls (conversion in R10, Imps beyond the floor) when no bed is free
   or the mix is enough: melee at least `strategy.melee-per-support` (2) times the Support creatures.
 - Tests: grow, second room, stop. Ladder: Levels 3, 4, 6a, 7.
@@ -128,6 +146,18 @@ thinking and decision making")
 ### A4: the final push (R14)
 - Once the fortifications in sight are broken: Imps claim up to the enemy walls, dig through, then the whole army is
   dropped together on the boss. The Horny talisman (spell 14) on the boss (owner).
+- Built (the push): the hand tracks a stand, an enemy attack it answers that holds ground. The stand's anchor follows
+  the foe and starts again on a jump of more than 5 tiles or a drift of more than 15 from where it began. A stand that
+  lasts 1200 ticks, costs own fighters 4 below their peak and is more than twice the home guard from home is a siege.
+  In a siege no fighter is sent to the attack alone (heal and retreat still run). A party of
+  max(4, min(`strategy.rally-party`, two thirds of the fighters)) that is fit, out of any fight and not already at the
+  drop is lifted over as many decisions as needed (gathering stops after 40 ticks) and dropped all together on one
+  Blockers' formation tile, taken afresh from where the attack stands; the drop latches until the hand is empty, then
+  400 ticks before the next party. A raid near home is always answered. `strategy.rally-party` (default 8, 0-16): 0
+  turns it off.
+- Telemetry on Level 4 seed 3: the army fell from 20 to 5 in the first clash with the Lord's group, before a siege can
+  be declared, and creatures kept walking into that fight on their own. Army strength, not the drop, is the limit there.
+- Not built: the claim-to-the-walls breach order and the Horny talisman.
 
 ### D6: attack spells, never on own creatures or walls (moved from the defence plan, unchanged)
 - Creature spells (Lightning Strike, spell 6, owner) on attackers only; area spells only where no own creature is in
@@ -148,32 +178,39 @@ seeds 11-20 on the levels that turn.
 
 ## Status (2026-11-16)
 
-Built: T0, E1 (payday, wage bill, Lair beds, Treasury fill, hunger; schema 7), A1 (enemy traps in view, schema 7), A2
+Built: T0, E1 (payday, wage bill, Lair beds, Treasury fill, hunger; schema 7), the bank and the bridge (E2), A1 (enemy traps in view, schema 7), A2
 (drops, answers and, while other ground is left, dig marks kept out of enemy traps' reach; the assault party: the whole
 party lifted in one decision or none, never while an enemy is near home, never a fighter in a fight or one whose
 flower does not show five petals), E2 (the gold budget kept after a purchase; idle gold trains below the Training
-Room's cap), E3 (Lair by beds, Hatchery by hunger, a second room when one cannot grow). Each new rule has a playbook
-switch: `strategy.assault-party` (0-4), `strategy.avoid-traps`, `strategy.gold-budget`, `strategy.gold-margin-percent`,
+Room's cap), E3 (Lair by beds, Hatchery by hunger up to 3 tiles per non-worker, a second room when one cannot grow,
+recruiting rooms when the Portal brings nobody), A4's push, and the default of 10 Imps. Each new rule has a playbook
+switch: `strategy.recruit-gold` (0-1,000,000), `strategy.rally-party` (0-16), `strategy.assault-party` (0-4), `strategy.avoid-traps`, `strategy.gold-budget`, `strategy.gold-margin-percent`,
 `strategy.free-beds` (0: the old tiles rule), `strategy.hungry-percent` (100: never), `strategy.second-rooms`,
 `strategy.train-gold`. The Training Room's level cap applies whenever the Training Room is used.
 
-Measured (final ticks; Levels 1-3 from `scenarios/campaign-player`, Level 4 `scenarios/campaign-ladder/level4.yaml`
-seeds 1-3, 57600-tick cap):
-- After the review's fixes (final build): Levels 1-3 9 of 9 won (Level 1 2584/2436/2349, Level 2 4466/4676/4325,
-  Level 3 5624/7607/9156); Level 4 3 of 3 won and accepted with `--player-output-mib 512` (32476/21540/48646).
-- Before the review's fixes: Levels 1-3 9 of 9 won. Level 3 6900/5813/8079 (before the plan 10151/7010/6887; with the assault, avoidance, bed,
-  hunger and training switches off, before the gold budget and second rooms had switches, 10254/7899/6615: not the old
-  bot). Switching off the assault alone, or the bed and hunger rules alone, loses Level 3 seed 3.
-- Level 4: 3 of 3 won at 25380/31099/55844 (before: 1 of 3, seed 2 at 19746); every seed destroyed all four hero
-  Sentry traps; losses within 6 tiles of an enemy trap fell from 217 to 6 on seed 1. Seeds 2 and 3 are reported as
-  incomplete evidence only because the run's `events.log` exceeds the 64 MiB output budget (T0's finding); ladder runs
-  need `--player-output-mib` until that is changed.
+Measured (final ticks; Levels 1-3 from `scenarios/campaign-player`, Level 4 `scenarios/campaign-ladder/level4.yaml`,
+seeds 1-3, 57600-tick cap, current build with the push, bank, bridge and hatchery cap):
+- Levels 1-3 9 of 9 won: Level 1 2584/2436/2349, Level 2 4390/5109/3914, Level 3 7860/5240/6141 (5558/5680/5529
+  before the push, bank and bridge; 10151/7010/6887 before this plan). Switching off the assault alone, or the bed and
+  hunger rules alone, loses Level 3 seed 3.
+- Level 4 3 of 3 won, 23570/17535/20531 (before this plan 1 of 3); every seed destroyed all four hero Sentry traps, and
+  losses within 6 tiles of an enemy trap fell from 217 to 6 on seed 1. A run's `events.log` exceeds the 64 MiB output
+  budget (T0's finding), so ladder runs need `--player-output-mib` (TRAPS.md).
+- Level 5 0 of 3 (seeds 1-3, with recruiting and 10 Imps; build with the bank and bridge only: army about 4 fighters,
+  gold about 90k, nobody left over pay). The army now peaks at 15 (was 4), but the gold seams are mined out, the wages
+  drain gold to 0 by about tick 30000, and 18-27 creatures leave over pay without an attack. The limit is no longer
+  the economy before the peak but the missing offence at the peak (R20).
+- Verification of the recruit and Imp change: `DK2.AI.Tests` 655 of 655; Levels 1-3 9 of 9, Level 4 3 of 3.
 - What went wrong on the way, from the telemetry: avoiding every tile in a trap's reach cut Levels 3 and 4 off from
   their gold and their route (Level 3 0 of 3); an assault dropped 6 tiles from its trap never arrived and was re-sent
   every 8 ticks; Lair and Hatchery growth spent the payday's gold and creatures left (54 on Level 4 seed 1). The rules
   above are the fixes.
-- Next, from the same telemetry: Level 4 seed 3 lost 188 Dark Elves after the traps fell, fed one at a time into the
-  last fight (A4's whole-army push); then Levels 6a, 7, 11a and 15a.
+- Next: R20, the offence at the army's peak: a readiness and strength estimate from what the player sees (own and
+  enemy creatures and their levels, scouted ground), a counters table (which creature beats which; R15 is one entry),
+  and an attack when the estimate says the army has a fighting chance, instead of waiting while wages drain it. Then
+  Levels 6a, 7, 11a and 15a.
+- Pending owner review, not in the repo: a draft of guide-derived rules R21-R64, a counters table and per-level notes
+  (scratchpad `guide-rules/`). R20's counters table starts from it once the owner has reviewed it.
 
 ## Questions for the owner (from the review, 2026-11-16)
 - Does a Sentry reach exactly its range plus two in play, and does a Fear or Boulder trap fire at the shorter range?
@@ -181,6 +218,10 @@ seeds 1-3, 57600-tick cap):
   grievance, never the job.
 - Should the Hatchery grow when a quarter of the army is eating at the same time, even if nobody starves?
 - Should a party ever take defenders out of a fight to attack a trap? (Built: never.)
+- Does DK2 pay wages from the gold in the Heart, or only from the Treasury? (The bank assumes the Treasury.)
+- Can a player see an enemy creature's level (a status flower on heroes)? R20's estimate needs it.
+- Does the Portal stop at some creature cap?
+- Does a captured hero show in the own creature list?
 
 ## Questions this plan raised (all answered by the owner, 2026-11-16)
 - Q870: Lair capacity shows in the top status bar while hovering over the Lair; gold is the top bar's yellow figure.

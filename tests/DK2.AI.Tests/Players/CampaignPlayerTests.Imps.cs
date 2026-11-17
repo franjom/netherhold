@@ -63,24 +63,26 @@ public partial class CampaignPlayerTests
         player.Decide(view).Actions.OfType<PlayerAction.CreateImpAt>().SingleOrDefault();
 
     [Fact]
-    public void AnImpIsCreatedOnOwnFloorWhileFewerThanTheMinimumAndOffByDefault()
+    public void AnImpIsCreatedOnOwnFloorWhileFewerThanTheMinimumAndOnByDefault()
     {
         PlayerAction.CreateImpAt cast = Assert.IsType<PlayerAction.CreateImpAt>(Cast(ImpMaker(), ImpView(imps: 4)));
         PlayerTile floor = ImpView(imps: 4).Tiles[cast.Tile];
         Assert.Equal(Me, floor.Owner);
         Assert.Equal(default, floor.Room);
-        Assert.Equal(0, new PlayerStrategy().CreateImps);
-        Assert.Null(Cast(Player(), ImpView(imps: 4)));
+        // On by default, ten the minimum (owner, 2026-11-17: "4 imps are never an optimal number, at least 10").
+        Assert.Equal(1, new PlayerStrategy().CreateImps);
+        Assert.Equal(10, new PlayerStrategy().MinImps);
+        Assert.Null(Cast(Player().Also(p => p.Apply(p.Strategy with { CreateImps = 0 })), ImpView(imps: 4)));
         // At the minimum with no dig marks: enough.
-        Assert.Null(Cast(ImpMaker(), ImpView(imps: 6)));
+        Assert.Null(Cast(ImpMaker(), ImpView(imps: 10)));
     }
 
     [Fact]
     public void TheDigMarksSetTheTargetUpToTheCapAndTheImpGoesToTheNearestMark()
     {
-        // 24 marks want 8 Imps; 7 are short of it.
-        PlayerAction.CreateImpAt cast = Assert.IsType<PlayerAction.CreateImpAt>(Cast(ImpMaker(), ImpView(imps: 7, marks: 24)));
-        Assert.Null(Cast(ImpMaker(), ImpView(imps: 8, marks: 24)));
+        // 36 marks want 12 Imps, above the minimum of ten; 11 are short of it.
+        PlayerAction.CreateImpAt cast = Assert.IsType<PlayerAction.CreateImpAt>(Cast(ImpMaker(), ImpView(imps: 11, marks: 36)));
+        Assert.Null(Cast(ImpMaker(), ImpView(imps: 12, marks: 36)));
         // The first marks are on the top row: the Imp lands on the floor beside them, not at the heart.
         Assert.Equal(2, cast.Tile.Y);
         // A minimum above the cap: the cap wins.

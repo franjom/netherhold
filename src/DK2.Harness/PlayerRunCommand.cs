@@ -171,6 +171,7 @@ public static class PlayerRunCommand
             ScenarioRunner.WriteReport(result, directory);
             PlayerRunReport.WriteTables(directory, result);
             player.Diagnostics.Write(directory, player.Decisions);
+            player.Diagnostics.WriteMap(directory, player.LastObservation);
             // The output budget covers the whole folder, the verdict file included.
             PlayerRunOutcome outcome = PlayerRunReport.Outcome(player, evidenceComplete: true);
             List<string> gaps = ClaimGaps(scenario, player, outcome, receipt, fuzzed: template.Fuzz is not null,

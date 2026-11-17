@@ -41,6 +41,52 @@ public partial class CampaignPlayerTests
             gold: 1100, wageBill: 1000)).Actions, a => a is PlayerAction.BuildRoom { Room: RoomTypeId.Lair });
     }
 
+    /// <summary>Own floor walled in by impenetrable rock but for three water tiles leading to diggable rock (x 11).</summary>
+    private static readonly string[] Moat =
+    [
+        "RRRRRRRRRRRR",
+        "R....H..www#",
+        "RRRRRRRRRRRR",
+    ];
+
+    private static readonly PlayerRoomOffer[] BridgeOffer = [new(RoomTypeId.WoodenBridge, new GoldAmount(100), true)];
+
+    [Fact]
+    public void WithNothingLeftToDigTheShortestSpanToNewGroundIsBridged()
+    {
+        PlayerDecision decision = Player().Decide(Observe(map: Moat, rooms: BridgeOffer, gold: 5000));
+        var build = Assert.Single(decision.Actions.OfType<PlayerAction.BuildRoom>());
+        Assert.Equal((RoomTypeId.WoodenBridge, new TilePos(8, 1), new TilePos(10, 1)), (build.Room, build.From, build.To));
+        // Not while the budget would not stand after it (300 for three tiles, a 1000 wage bill).
+        Assert.DoesNotContain(Player().Decide(Observe(map: Moat, rooms: BridgeOffer, gold: 1400, wageBill: 1000)).Actions,
+            a => a is PlayerAction.BuildRoom);
+        // Not while land is left to dig.
+        string[] open = [.. Moat];
+        open[0] = "RRR#RRRRRRRR";
+        Assert.DoesNotContain(Player().Decide(Observe(map: open, rooms: BridgeOffer, gold: 5000)).Actions, a => a is PlayerAction.BuildRoom);
+    }
+
+    [Fact]
+    public void ADryTreasuryIsFilledFromGoldLyingElsewhere()
+    {
+        // 600 gold in the Treasury against a 1000 wage bill, 5000 in all: the pile beside the heart goes to the Treasury.
+        PlayerRoomSummary[] owned = CoreOwned();
+        owned[1] = new PlayerRoomSummary(RoomTypeId.Treasury, 9, Capacity: 9000, Used: 600);
+        PlayerVisibleThing pile = new(Handle(0), PlayerThingKind.StoreGold, new TilePos(6, 5), Me, PlayerThingActions.PickUp);
+        PlayerVisibleThing kept = new(Handle(1), PlayerThingKind.StoreGold, new TilePos(10, 2), Me, PlayerThingActions.PickUp);   // in the Treasury
+        CampaignPlayer player = Player();
+        PlayerDecision lift = player.Decide(Observe(map: Developed, rooms: CoreOffers, owned: owned, things: [kept, pile], gold: 5000, wageBill: 1000, tick: 100));
+        Assert.Contains(new PlayerAction.PickUp(Handle(0)), lift.Actions);
+        Assert.DoesNotContain(new PlayerAction.PickUp(Handle(1)), lift.Actions);
+        var drop = Assert.Single(player.Decide(Observe(2, map: Developed, rooms: CoreOffers, owned: owned, hand: 1, gold: 5000, wageBill: 1000, tick: 104))
+            .Actions.OfType<PlayerAction.DropAt>());
+        Assert.Equal(RoomTypeId.Treasury, Map(Developed)[drop.Tile].Room);
+        // A Treasury holding the budget is left alone.
+        owned[1] = new PlayerRoomSummary(RoomTypeId.Treasury, 9, Capacity: 9000, Used: 1300);
+        Assert.DoesNotContain(Player().Decide(Observe(map: Developed, rooms: CoreOffers, owned: owned, things: [kept, pile], gold: 5000, wageBill: 1000, tick: 100))
+            .Actions, a => a is PlayerAction.PickUp);
+    }
+
     [Fact]
     public void TheLairGrowsByItsBedsWhenTheHoverShowsThem()
     {
@@ -73,6 +119,11 @@ public partial class CampaignPlayerTests
         PlayerDecision hungry = Player().Decide(Observe(map: Developed, rooms: CoreOffers, owned: CoreOwned(), creatures: four));
         Assert.Contains(hungry.Actions, a => a is PlayerAction.BuildRoom { Room: RoomTypeId.Hatchery });
         Assert.Contains("2 of 4 non-workers hungry", hungry.Thoughts.Single(t => t.Routine == "room").Note);
+        // Twelve Hatchery tiles for four is three each: hunger grows it no further while the chickens hatch.
+        PlayerRoomSummary[] big = CoreOwned();
+        big[3] = new PlayerRoomSummary(RoomTypeId.Hatchery, 12);
+        Assert.DoesNotContain(Player().Decide(Observe(map: Developed, rooms: CoreOffers, owned: big, creatures: four)).Actions,
+            a => a is PlayerAction.BuildRoom { Room: RoomTypeId.Hatchery });
     }
 
     [Fact]

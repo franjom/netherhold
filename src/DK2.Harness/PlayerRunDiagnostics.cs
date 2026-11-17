@@ -6,8 +6,10 @@ using System.Globalization;
 using System.Text;
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Players;
 
 namespace DK2.Harness;
 
@@ -20,7 +22,7 @@ public sealed record PlayerMetricSample(int Tick, int Gold, int Mana, int Fighte
 /// is the player that last changed its health; <paramref name="TrapTiles"/> and <paramref name="EnemyTiles"/> the
 /// Chebyshev distance to the nearest enemy trap and enemy creature (-1: none).</summary>
 public sealed record PlayerCreatureLoss(int Tick, int Id, string Type, int Level, TilePos Tile, string Cause, int Source,
-    int TrapTiles, string? TrapType, int EnemyTiles);
+    int TrapTiles, string? TrapType, int EnemyTiles, string Grievance = "");
 
 /// <summary>
 /// The host's privileged diagnostics of a player run: what was really there, apart from what the controller saw.
@@ -31,7 +33,7 @@ public sealed record PlayerCreatureLoss(int Tick, int Id, string Type, int Level
 public sealed class PlayerRunDiagnostics
 {
     public const string MetricsFile = "player-metrics.tsv", LossesFile = "player-losses.tsv", TrapsFile = "player-enemy-traps.tsv",
-        ThinkingFile = "player-thinking.tsv", BeliefsFile = "player-beliefs.tsv";
+        ThinkingFile = "player-thinking.tsv", BeliefsFile = "player-beliefs.tsv", MapFile = "player-map.txt";
 
     /// <summary>Ticks between two creature scans: a death is seen while the corpse lies (far longer than this).</summary>
     private const int ScanEveryTicks = 4;
@@ -120,8 +122,11 @@ public sealed class PlayerRunDiagnostics
             string cause = !died ? (now is not null && now.OwnerPlayerId != _player.Value ? "converted" : "left")
                 : creature.HealthSourcePlayerId == _player.Value || creature.HealthSourcePlayerId == 0 ? "died" : "killed";
             (int trapTiles, string? trapType) = NearestEnemyTrap(world, tile);
+            // Its largest anger counter when last seen (what its flower would show as the grievance).
+            CreatureAnger anger = (now ?? creature).Anger;
+            string grievance = anger.IsCalm ? "None" : StatusFlowerCentre.LargestAnger(anger).ToString();
             _losses.Add(new PlayerCreatureLoss((int)tick.Value, id, _database.CreatureById(creature.CreatureTypeId).Name, creature.Level, tile, cause,
-                (now ?? creature).HealthSourcePlayerId, trapTiles, trapType, NearestEnemy(world, tile)));
+                (now ?? creature).HealthSourcePlayerId, trapTiles, trapType, NearestEnemy(world, tile), grievance));
         }
     }
 
@@ -209,9 +214,9 @@ public sealed class PlayerRunDiagnostics
                 $"{s.HatcheryTiles}\t{s.Chickens}\t{s.TreasuryTiles}\t{s.WageBill}\t{s.TicksToPayday}\t{s.EnemyCreatures}\t{s.EnemyTraps}\t{s.OwnTraps}\t{s.Losses}\t{s.Kills}\n");
         PlayerRunReport.WriteNew(Path.Combine(directory, MetricsFile), Encoding.UTF8.GetBytes(metrics.ToString()));
 
-        var losses = new StringBuilder("tick\tid\ttype\tlevel\tx\ty\tcause\tsource_player\tenemy_trap_tiles\tenemy_trap\tenemy_tiles\n");
+        var losses = new StringBuilder("tick\tid\ttype\tlevel\tx\ty\tcause\tsource_player\tenemy_trap_tiles\tenemy_trap\tenemy_tiles\tgrievance\n");
         foreach (PlayerCreatureLoss l in _losses)
-            losses.Append(inv, $"{l.Tick}\t{l.Id}\t{l.Type}\t{l.Level}\t{l.Tile.X}\t{l.Tile.Y}\t{l.Cause}\t{l.Source}\t{l.TrapTiles}\t{l.TrapType}\t{l.EnemyTiles}\n");
+            losses.Append(inv, $"{l.Tick}\t{l.Id}\t{l.Type}\t{l.Level}\t{l.Tile.X}\t{l.Tile.Y}\t{l.Cause}\t{l.Source}\t{l.TrapTiles}\t{l.TrapType}\t{l.EnemyTiles}\t{l.Grievance}\n");
         PlayerRunReport.WriteNew(Path.Combine(directory, LossesFile), Encoding.UTF8.GetBytes(losses.ToString()));
 
         var traps = new StringBuilder("id\ttype\towner\tx\ty\tfires\thealth\thidden\tdestroyed\n");
@@ -243,6 +248,66 @@ public sealed class PlayerRunDiagnostics
         PlayerRunReport.WriteNew(Path.Combine(directory, BeliefsFile), Encoding.UTF8.GetBytes(beliefs.ToString()));
     }
 
+    /// <summary>Draws <paramref name="seen"/>, the controller's last observation, as text (<see cref="MapFile"/>): what the
+    /// player knew of the map when the run ended, nothing more. The file carries its own key (<see cref="MapKey"/>) and
+    /// the room letters it used (never <c>R</c>, which is rock); a room is lower case when owned.</summary>
+    public const string MapKey = "key: blank unknown, # rock to dig, $ gold or gems, R rock that cannot be dug, % own wall, " +
+        "& another player's wall, ~ water, = lava, : unclaimed floor, . own floor, , another player's floor, " +
+        "room letter (lower case own), ! visible enemy trap, @ own creature, * any other creature";
+
+    public void WriteMap(string directory, PlayerObservation? seen)
+    {
+        if (seen is null) return;
+        PlayerTileGrid grid = seen.Tiles;
+        var letters = new Dictionary<RoomTypeId, char>();
+        var legend = new StringBuilder();
+        char next = 'A';
+        char Letter(RoomTypeId room)
+        {
+            if (letters.TryGetValue(room, out char c)) return c;
+            if (next == 'R') next++;
+            c = next <= 'Z' ? next++ : '?';
+            letters[room] = c;
+            legend.Append(CultureInfo.InvariantCulture, $"{c} {(_database.Rooms.TryGetValue(room, out RoomDef? def) ? def.Name : $"room-{(int)room}")}\n");
+            return c;
+        }
+        var rows = new char[grid.Height][];
+        for (int y = 0; y < grid.Height; y++)
+        {
+            rows[y] = new char[grid.Width];
+            for (int x = 0; x < grid.Width; x++)
+            {
+                PlayerTile t = grid[new TilePos(x, y)];
+                PlayerTileFlags f = t.Flags;
+                bool own = t.Owner == _player;
+                rows[y][x] = !t.IsKnown ? ' '
+                    : (f & PlayerTileFlags.GoldSeam) != 0 ? '$'
+                    : (f & PlayerTileFlags.Solid) != 0 ? (own ? '%' : t.Owner != default ? '&' : (f & PlayerTileFlags.Diggable) != 0 ? '#' : 'R')
+                    : (f & PlayerTileFlags.Water) != 0 ? '~'
+                    : (f & PlayerTileFlags.Lava) != 0 ? '='
+                    : t.Room != default ? (own ? char.ToLowerInvariant(Letter(t.Room)) : Letter(t.Room))
+                    : own ? '.' : t.Owner == default ? ':' : ',';
+            }
+        }
+        foreach (PlayerVisibleThing thing in seen.Things)
+            if (thing.Kind == PlayerThingKind.Creature && grid.Contains(thing.Tile))
+                rows[thing.Tile.Y][thing.Tile.X] = thing.Owner == _player ? '@' : '*';
+        foreach (PlayerVisibleTrap trap in seen.EnemyTraps)
+            if (grid.Contains(trap.Tile)) rows[trap.Tile.Y][trap.Tile.X] = '!';
+        var text = new StringBuilder();
+        text.Append(CultureInfo.InvariantCulture, $"tick {seen.Stamp.Tick.Value}, player {_player}, {grid.Width}x{grid.Height}; rows are y, columns x\n");
+        text.Append(MapKey).Append('\n');
+        text.Append(legend);
+        text.Append("     ");
+        for (int x = 0; x < grid.Width; x++) text.Append(x % 10 == 0 ? (char)('0' + x / 10 % 10) : ' ');
+        text.Append("\n     ");
+        for (int x = 0; x < grid.Width; x++) text.Append((char)('0' + x % 10));
+        text.Append('\n');
+        for (int y = 0; y < grid.Height; y++)
+            text.Append(CultureInfo.InvariantCulture, $"{y,4} ").Append(rows[y]).Append('\n');
+        PlayerRunReport.WriteNew(Path.Combine(directory, MapFile), Encoding.UTF8.GetBytes(text.ToString()));
+    }
+
     /// <summary>The run's headline numbers, for the verdict file and for comparing runs.</summary>
     public object Summary(IReadOnlyList<PlayerDecisionRecord> decisions)
     {
@@ -270,6 +335,8 @@ public sealed class PlayerRunDiagnostics
             losses = _losses.GroupBy(l => l.Cause).OrderBy(g => g.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count()),
             losses_near_enemy_traps = _losses.Count(l => l.Cause is "killed" or "died" && l.TrapTiles is >= 0 and <= 6),
             losses_by_type = _losses.GroupBy(l => l.Type).OrderByDescending(g => g.Count()).ToDictionary(g => g.Key, g => g.Count()),
+            left_by_grievance = _losses.Where(l => l.Cause == "left").GroupBy(l => l.Grievance).OrderByDescending(g => g.Count())
+                .ToDictionary(g => g.Key, g => g.Count()),
             samples_with_hungry = hungrySamples,
             samples_gold_below_wage_bill = shortSamples,
             samples_gold_idle_20k = idleGoldSamples,
