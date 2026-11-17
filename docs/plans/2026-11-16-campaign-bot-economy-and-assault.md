@@ -199,7 +199,7 @@ seeds 1-3, 57600-tick cap, current build with the push, bank, bridge and hatcher
 - Level 5 0 of 3 (seeds 1-3, with recruiting and 10 Imps; build with the bank and bridge only: army about 4 fighters,
   gold about 90k, nobody left over pay). The army now peaks at 15 (was 4), but the gold seams are mined out, the wages
   drain gold to 0 by about tick 30000, and 18-27 creatures leave over pay without an attack. The limit is no longer
-  the economy before the peak but the missing offence at the peak (R20).
+  the economy before the peak but the missing offence at the peak (R20). Level 5 continues in [its plan](2026-11-17-campaign-bot-level5.md).
 - Verification of the recruit and Imp change: `DK2.AI.Tests` 655 of 655; Levels 1-3 9 of 9, Level 4 3 of 3.
 - What went wrong on the way, from the telemetry: avoiding every tile in a trap's reach cut Levels 3 and 4 off from
   their gold and their route (Level 3 0 of 3); an assault dropped 6 tiles from its trap never arrived and was re-sent

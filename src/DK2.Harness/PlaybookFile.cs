@@ -4,6 +4,7 @@
 
 using System.Security.Cryptography;
 using DK2.AI.Players;
+using DK2.Core;
 using DK2.Data.Model;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -98,12 +99,26 @@ public static class PlaybookFile
             MayChange = changes,
             Rooms = Rooms("rooms", d.Plan?.Rooms),
             ExtraRooms = Rooms("extra-rooms", d.Plan?.ExtraRooms),
+            Take = Take(d.Plan?.Take),
             Rules = d.Plan?.Rules ?? [],
             Tunables = tunables,
             Notes = [.. (d.Notes ?? []).Select(Note)],
             Events = [.. (d.Events ?? []).Select(Event)],
             Caps = Caps(d.Caps),
         };
+    }
+
+    /// <summary>The plan's rooms to take, each <c>[x, y]</c> (R66); null when the plan names none.</summary>
+    private static IReadOnlyList<TilePos>? Take(List<List<int>>? at)
+    {
+        if (at is null) return null;
+        var tiles = new List<TilePos>(at.Count);
+        foreach (List<int> xy in at)
+        {
+            if (xy is not { Count: 2 } || xy[0] < 0 || xy[1] < 0) throw new FormatException("plan take: each entry is [x, y] with x and y not negative");
+            tiles.Add(new TilePos(xy[0], xy[1]));
+        }
+        return tiles;
     }
 
     private static PlaybookNote Note(NoteEntry n, int index)
@@ -150,6 +165,7 @@ public static class PlaybookFile
     {
         public List<string>? Rooms { get; set; }
         public List<string>? ExtraRooms { get; set; }
+        public List<List<int>>? Take { get; set; }
         public List<string>? Rules { get; set; }
     }
 

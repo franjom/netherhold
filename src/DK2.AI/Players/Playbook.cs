@@ -4,6 +4,7 @@
 
 using System.Collections.ObjectModel;
 using System.Globalization;
+using DK2.Core;
 using DK2.Data.Model;
 
 namespace DK2.AI.Players;
@@ -109,6 +110,8 @@ public sealed record Playbook
     public IReadOnlyList<RoomTypeId>? Rooms { get; init; }
     /// <summary>The rooms built once the listed ones stand, in order; null keeps the player's default.</summary>
     public IReadOnlyList<RoomTypeId>? ExtraRooms { get; init; }
+    /// <summary>Tiles of rooms to take on this level (R66), known before they are seen; null keeps the player's default.</summary>
+    public IReadOnlyList<TilePos>? Take { get; init; }
     /// <summary>Knowledge rules (<c>applies: playbook</c>) that act on this level.</summary>
     public IReadOnlyList<string> Rules { get; init; } = [];
     public IReadOnlyList<PlaybookTunable> Tunables { get; init; } = [];
@@ -207,6 +210,7 @@ public sealed record Playbook
         if (strategy is null) throw new ArgumentNullException(nameof(strategy));
         if (Rooms is not null) strategy = strategy with { Rooms = Rooms };
         if (ExtraRooms is not null) strategy = strategy with { ExtraRooms = ExtraRooms };
+        if (Take is not null) strategy = strategy with { TakeAt = Take };
         foreach (PlaybookTunable t in Tunables) strategy = Knobs[t.Path].Set(strategy, t.Value);
         return strategy;
     }

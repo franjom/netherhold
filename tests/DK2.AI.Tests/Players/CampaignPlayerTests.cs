@@ -21,7 +21,7 @@ public partial class CampaignPlayerTests
 
     /// <summary>'.' own floor, 'H' own heart, '#' diggable rock, '$' gold seam, 'R' impenetrable rock,
     /// '?' unseen, 't' an own dig mark on unseen ground, 'x' an own dig mark on rock, 'e' enemy floor, 'T' own Treasury, 'L' own Lair,
-    /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison, 'B' own Library, 'k' own floor with an own trap,
+    /// 'A' own Hatchery, 'G' own Training Room, 'W' own Workshop, 'P' own Prison, 'B' own Library, 'p' a hero Prison, 'k' own floor with an own trap,
     /// 'w' water, 'l' lava.</summary>
     private static PlayerTileGrid Map(params string[] rows)
     {
@@ -39,6 +39,7 @@ public partial class CampaignPlayerTests
                     'P' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Prison),
                     'B' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.Library),
                     'C' => new PlayerTile(PlayerTileFlags.Known, Me, RoomTypeId.CombatPit),
+                    'p' => new PlayerTile(PlayerTileFlags.Known, Heroes, RoomTypeId.Prison),   // a hero-owned Prison
                     'n' => new PlayerTile(PlayerTileFlags.Known, new PlayerId(PlayerIds.Neutral), default),
                     'd' => new PlayerTile(PlayerTileFlags.Known, default, default),   // dirt path: not ownable, so no owner shows
                     'h' => new PlayerTile(PlayerTileFlags.Known, Heroes, default),   // hero-owned floor

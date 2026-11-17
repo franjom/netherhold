@@ -147,9 +147,10 @@ public sealed class CampaignPlayer : IPlayerController
         Think("trap", why, actions, () => Trap(observation, actions));
         Think("imp", why, actions, () => CreateImp(observation, home, actions));
         Think("bridge", why, actions, () => Bridge(observation, home, actions));
-        bool bank = !hand && Think("bank", why, actions, () => Bank(observation, home, actions));
-        bool assault = !hand && !bank && Think("assault", why, actions, () => Assault(observation, home, actions));
-        if (!hand && !bank && !assault && !Think("work", why, actions, () => Work(observation, home, actions))
+        bool capture = !hand && Think("capture", why, actions, () => Capture(observation, actions));
+        bool bank = !hand && !capture && Think("bank", why, actions, () => Bank(observation, home, actions));
+        bool assault = !hand && !capture && !bank && Think("assault", why, actions, () => Assault(observation, home, actions));
+        if (!hand && !capture && !bank && !assault && !Think("work", why, actions, () => Work(observation, home, actions))
             && !Think("pit", why, actions, () => Pit(observation, home, actions)))
             Think("scout", why, actions, () => Scout(observation, home, actions));
         if (_strategy.UseSpecials)
@@ -338,6 +339,7 @@ public sealed class CampaignPlayer : IPlayerController
             _carryForPit = _carryWorker = _carryScout = _carryRetreat = false;
             _carryStyle = null;
             _assaultDrop = null;
+            _captureDrop = null;
             _rallyDrop = null;
             _rallyDropping = false;
         }
@@ -349,6 +351,19 @@ public sealed class CampaignPlayer : IPlayerController
         if (_strategy.Fight == FightMode.HoldHome && enemy is PlayerVisibleThing far
             && PlayerActionRoutines.DistanceSquared(far.Tile, home) > (long)_strategy.HomeGuardTiles * _strategy.HomeGuardTiles) enemy = null;
         if (Rally(observation, home, enemy, actions) is bool rallied) return rallied;
+        if (observation.HandCount > 0 && _captureDrop is TilePos body)
+        {
+            // An Imp lifted to capture goes down on the body (R16): a dropped Imp looks at its landing ring first, where a
+            // capture outranks reinforcing, gold and objects (0x0046D810 in the drop scan's chain, imp-task-priority.md 4.1).
+            _captureDrop = null;
+            if ((observation.Offers.Actions & PlayerActionKinds.DropAt) != 0 && !_failedDrops.Contains(body))
+            {
+                actions.Add(new PlayerAction.DropAt(body));
+                Note($"drop an Imp on the body at {body}");
+                _lastDrop = (body, observation.HandCount);
+                return true;
+            }
+        }
         if (observation.HandCount > 0 && _assaultDrop is TilePos assaultAt)
         {
             // An assault party goes down together beside its trap, inside its reach (A2): one drop per item held.
@@ -1070,6 +1085,65 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>Ticks after a party went in before the next is gathered (100 game seconds): it fights first.</summary>
     private const int RallyCooldownTicks = 400;
 
+    /// <summary>Where the Imp lifted to capture last decision goes down (the body's tile), or null.</summary>
+    private TilePos? _captureDrop;
+
+    /// <summary>When an Imp was last sent to each body (by its tile).</summary>
+    private readonly Dictionary<TilePos, GameTick> _captureSent = [];
+
+    /// <summary>Ticks an Imp sent to a body is given before another is sent (15 game seconds of the 60 s rescue window).</summary>
+    private const int CaptureRetryTicks = 60;
+
+    /// <summary>The capture routine (R16, Level 5 plan step 2; 2026-11-17): an Imp choosing its own work takes a body only
+    /// once no marked rock, claimable floor or loose object is left anywhere (the idle search table at 0x00698658), so the
+    /// player drops one on it. With a Prison owned and the hand free, the enemy collapsed on own ground nearest an Imp that
+    /// can be lifted, with no standing enemy within two tiles of it, gets that Imp: lifted now, dropped on the body next
+    /// decision.</summary>
+    private bool Capture(PlayerObservation observation, List<PlayerAction> actions)
+    {
+        if (!Owns(observation, RoomTypeId.Prison)) return false;
+        if (observation.HandCount > 0 || (observation.Offers.Actions & (PlayerActionKinds.PickUp | PlayerActionKinds.DropAt)) == 0) return false;
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        long now = observation.Stamp.Tick.Value;
+        PlayerVisibleThing? imp = null;
+        TilePos target = default;
+        long best = long.MaxValue;
+        foreach (PlayerVisibleThing body in observation.Things)
+        {
+            if (body.Kind != PlayerThingKind.Creature || !PlayerActionRoutines.IsEnemy(body, self) || !PlayerActionRoutines.IsDown(body)
+                || !grid.Contains(body.Tile) || grid[body.Tile].Owner != self || _failedDrops.Contains(body.Tile)
+                // A prisoner dying in an own cell has nowhere to go (0x0046D810 takes no body with a room).
+                || grid[body.Tile].Room is RoomTypeId.Prison or RoomTypeId.TortureChamber
+                // An own Imp on the body's tile carries it or was dropped there: lifting it would drop the body.
+                || ImpOn(body.Tile)
+                || _captureSent.TryGetValue(body.Tile, out GameTick sent) && now - sent.Value < CaptureRetryTicks
+                || PlayerActionRoutines.ThreatNear(observation, body.Tile, 2)) continue;
+            foreach (PlayerVisibleThing worker in observation.Things)
+            {
+                if (worker.Kind != PlayerThingKind.Creature || worker.Owner != self || worker.CreatureType is not CreatureTypeId type
+                    || !_options.IsWorker(type) || (worker.Actions & PlayerThingActions.PickUp) == 0) continue;
+                long distance = PlayerActionRoutines.DistanceSquared(worker.Tile, body.Tile);
+                if (distance < best) { best = distance; imp = worker; target = body.Tile; }
+            }
+        }
+        if (imp is not PlayerVisibleThing lifted) { Note("no body to capture"); return false; }
+        if (!Fits(actions, 1)) return false;
+        actions.Add(new PlayerAction.PickUp(lifted.Handle));
+        _captureDrop = target;
+        _captureSent[target] = observation.Stamp.Tick;
+        Note($"lift the Imp at {lifted.Tile} to capture the body at {target}");
+        return true;
+
+        bool ImpOn(TilePos at)
+        {
+            foreach (PlayerVisibleThing other in observation.Things)
+                if (other.Kind == PlayerThingKind.Creature && other.Owner == self && other.Tile == at
+                    && other.CreatureType is CreatureTypeId type && _options.IsWorker(type)) return true;
+            return false;
+        }
+    }
+
     /// <summary>Where the assault party lifted last decision goes down, or null.</summary>
     private TilePos? _assaultDrop;
 
@@ -1733,16 +1807,90 @@ public sealed class CampaignPlayer : IPlayerController
         int added = 0, gold = 0, free = room;
         TilePos from = _strategy.Dig == DigMode.Toward && _strategy.DigTarget is TilePos target ? target : home;
         PlayerTileGrid grid = observation.Tiles;
+        // A room to take (R66) comes first: the frontier nearest it, held-back ground included, since a room another
+        // player owns stands on its ground (Level 5's hero Prison was owned only at tick 4044, after the raids).
+        int took = 0;
+        TilePos? take = TakeTarget(observation, home);
+        if (take is TilePos toward)
+            foreach (TilePos tile in PlayerActionRoutines.Frontier(observation, toward, preferGold: false, _abandoned, breach: true, avoid: _covered))
+            {
+                if (took >= TakeMarks || room-- <= 0 || !Fits(actions, 1)) break;
+                actions.Add(new PlayerAction.TagArea(tile, tile));
+                added++;
+                took++;
+                if ((grid[tile].Flags & PlayerTileFlags.GoldSeam) != 0) gold++;
+            }
         foreach (TilePos tile in Frontier(observation, from, preferGold: _strategy.Dig == DigMode.GoldFirst))
         {
-            if (room-- <= 0 || !Fits(actions, 1)) break;
+            if (room <= 0 || !Fits(actions, 1)) break;
+            if (actions.Contains(new PlayerAction.TagArea(tile, tile))) continue;
+            room--;
             actions.Add(new PlayerAction.TagArea(tile, tile));
             added++;
             if ((grid[tile].Flags & PlayerTileFlags.GoldSeam) != 0) gold++;
         }
-        Note(added > 0 ? $"mark {added} tiles ({gold} gold), {_strategy.Dig}" : free <= 0 ? $"{Outstanding(observation)} marks outstanding, at the limit"
-            : "no frontier tile to mark");
+        string takeNote = took > 0 ? $", {took} toward the room to take at {take}" : "";
+        Note(added > 0 ? $"mark {added} tiles ({gold} gold{takeNote}), {_strategy.Dig}"
+            : free <= 0 ? $"{Outstanding(observation)} marks outstanding, at the limit" : "no frontier tile to mark");
         return added > 0;
+    }
+
+    /// <summary>Marks a decision gives the way to a room to take (R66), the rest going to the ordinary frontier.</summary>
+    private const int TakeMarks = 4;
+
+    /// <summary>The room tile to take (R66) nearest home: a tile of a <see cref="PlayerStrategy.TakeRooms"/> room in view
+    /// that is not the player's, or a <see cref="PlayerStrategy.TakeAt"/> tile not yet seen as the player's own; none once
+    /// open floor joins it to own floor (the Imps claim their way to a room they can walk to). Null without one.</summary>
+    private TilePos? TakeTarget(PlayerObservation observation, TilePos home)
+    {
+        PlayerTileGrid grid = observation.Tiles;
+        PlayerId self = observation.Stamp.Player;
+        if (_strategy.TakeAt.Count == 0 && _strategy.TakeRooms.Count == 0) return null;
+        HashSet<TilePos> reached = WalkableFromOwnFloor(grid, self);
+        TilePos? best = null;
+        long bestDistance = long.MaxValue;
+        foreach (TilePos at in _strategy.TakeAt) Consider(at);
+        if (_strategy.TakeRooms.Count > 0)
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var at = new TilePos(x, y);
+                    PlayerTile tile = grid[at];
+                    if (tile.Room != default && tile.Owner != self && _strategy.TakeRooms.Contains(tile.Room)) Consider(at);
+                }
+        return best;
+
+        void Consider(TilePos at)
+        {
+            if (!grid.Contains(at)) return;
+            PlayerTile tile = grid[at];
+            if (tile.IsKnown && tile.Owner == self || reached.Contains(at) || PlayerActionRoutines.BesideOwnFloor(grid, at, self)) return;
+            long distance = PlayerActionRoutines.DistanceSquared(at, home);
+            if (distance < bestDistance) { best = at; bestDistance = distance; }
+        }
+    }
+
+    /// <summary>Known open tiles (not solid, not water or lava) joined to own floor by such tiles, own floor included.</summary>
+    private static HashSet<TilePos> WalkableFromOwnFloor(PlayerTileGrid grid, PlayerId self)
+    {
+        var reached = new HashSet<TilePos>();
+        var queue = new Queue<TilePos>();
+        for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var at = new TilePos(x, y);
+                if (Open(grid[at]) && grid[at].Owner == self && reached.Add(at)) queue.Enqueue(at);
+            }
+        while (queue.Count > 0)
+        {
+            TilePos at = queue.Dequeue();
+            foreach (TilePos next in (ReadOnlySpan<TilePos>)[new(at.X + 1, at.Y), new(at.X - 1, at.Y), new(at.X, at.Y + 1), new(at.X, at.Y - 1)])
+                if (grid.Contains(next) && Open(grid[next]) && reached.Add(next)) queue.Enqueue(next);
+        }
+        return reached;
+
+        static bool Open(PlayerTile tile) => tile.IsKnown
+            && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Water | PlayerTileFlags.Lava)) == 0;
     }
 
     /// <summary>Without a gain for the stall window while work is pending: give up pending squares,

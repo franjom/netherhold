@@ -133,6 +133,22 @@ rules:
     note: "needs a strength estimate from what the player sees (own and enemy creatures, their levels; scouted ground) and a counters table (R15 is one counter: fearless creatures against Fear traps)"
     applies: always
 
+  - id: R65
+    rule: "A hero that falls unconscious in water is not lost: build a Wooden Bridge under it so it lies on your own ground, where an Imp can carry it to the Prison."
+    source: "owner, 2026-11-17 (\"a legit strategy\")"
+    status: proposed
+    form: { kind: manual }
+    note: "Serves R16 (Skeletons from prisoners). Whether the simulation lifts a collapsed body onto a bridge built under it, and whether the 60 s rescue window allows it, is to be checked against the binary before the bot relies on it. Numbered after the guide rules R21-R64 because they took those ids."
+    applies: always
+
+  - id: R66
+    rule: "Take the rooms the map holds that you cannot or need not build (a Prison, a Portal, a Torture Chamber) first: dig to them before the raids, ring them with Sentry traps, and bridge the rooms together so a fight there is fought and heard at once."
+    source: "owner, 2026-11-17 (Level 5: \"I take the prison, place a few sentry traps around it, clear rocks, connect with bridges to make rooms so in case heroes come through the portal next to prison something attacks them and alerts me there's a fight\"); Level 5 seeds 1-3, 2026-11-17: the hero Prison was owned only at tick 4044, after the five raids, and about 14 collapsed heroes died uncaptured"
+    status: proposed
+    form: { kind: built-in, path: strategy.TakeRooms and a playbook's plan take }
+    note: "Digging toward the room is built (Level 5 plan step 1); the Sentry ring and the bridging are not yet."
+    applies: always
+
   # ================================================================================================================
   # R21-R64: from public DK2 text guides, taken as proposed by the owner (2026-11-17). Judgements only: a number or
   # mechanic a guide states is in guides.yaml under facts_to_verify, checked against the binary before any use.

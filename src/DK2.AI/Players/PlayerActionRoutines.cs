@@ -28,12 +28,16 @@ public static class PlayerActionRoutines
     public static bool IsThreat(PlayerObservation observation, in PlayerVisibleThing thing)
     {
         PlayerId self = observation.Stamp.Player;
-        if (!IsEnemy(thing, self)) return false;
+        if (!IsEnemy(thing, self) || IsDown(thing)) return false;
         PlayerTileGrid grid = observation.Tiles;
         if (!grid.Contains(thing.Tile)) return true;
         PlayerTile on = grid[thing.Tile];
         return on.Owner != self || on.Room is not (RoomTypeId.Prison or RoomTypeId.TortureChamber);
     }
+
+    /// <summary>A creature whose flower shows one petal: collapsed or dying (status-flowers.md section 3), so no threat;
+    /// an enemy collapsed on own ground is a body to capture (R16). A flower not shown (level 0) says nothing.</summary>
+    public static bool IsDown(in PlayerVisibleThing thing) => thing.Level > 0 && thing.Petals <= 1;
 
     /// <summary>Own claimed ground a creature can stand on: known, not solid or liquid, the player's.</summary>
     public static bool IsOwnFloor(in PlayerTile tile, PlayerId self) =>
@@ -478,7 +482,7 @@ public static class PlayerActionRoutines
         return false;
     }
 
-    private static bool BesideOwnFloor(PlayerTileGrid grid, TilePos at, PlayerId self)
+    internal static bool BesideOwnFloor(PlayerTileGrid grid, TilePos at, PlayerId self)
     {
         foreach ((int dx, int dy) in Neighbours)
         {

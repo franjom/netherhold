@@ -101,6 +101,14 @@ public sealed record PlayerStrategy
     /// <summary>Ticks between ordinary decisions, 1 to <see cref="MaxAdvanceTicks"/>.</summary>
     public int AdvanceTicks { get; init; } = 4;
 
+    /// <summary>Rooms worth taking where the map holds them (rule R66): one in view that another player or nobody owns
+    /// is dug toward before the rest of the frontier, held-back ground included, until own floor touches it.</summary>
+    public IReadOnlyList<RoomTypeId> TakeRooms { get; init; } = [RoomTypeId.Portal, RoomTypeId.Prison, RoomTypeId.TortureChamber];
+
+    /// <summary>Tiles of rooms to take that a player who knows the level knows of before seeing them (a level's
+    /// playbook, R66), dug toward the same way until own floor touches them.</summary>
+    public IReadOnlyList<TilePos> TakeAt { get; init; } = [];
+
     /// <summary>Rooms the panel offers that are not in <see cref="Rooms"/>, built once each in this
     /// order after every listed room stands and none has outgrown itself (stage 3 plan, Task 2).</summary>
     public IReadOnlyList<RoomTypeId> ExtraRooms { get; init; } =
@@ -262,6 +270,10 @@ public sealed record PlayerStrategy
         if (MaxOutstandingTags <= 0) problems.Add($"MaxOutstandingTags {MaxOutstandingTags} is not positive");
         if (HomeGuardTiles < 0) problems.Add($"HomeGuardTiles {HomeGuardTiles} is negative");
         if (AdvanceTicks is < 1 or > MaxAdvanceTicks) problems.Add($"AdvanceTicks {AdvanceTicks} is outside 1 to {MaxAdvanceTicks}");
+        if (TakeRooms is null) problems.Add("TakeRooms is null");
+        if (TakeAt is null) problems.Add("TakeAt is null");
+        else if (mapWidth is int takeWidth && mapHeight is int takeHeight
+                 && TakeAt.Any(t => t.X < 0 || t.Y < 0 || t.X >= takeWidth || t.Y >= takeHeight)) problems.Add("TakeAt names a tile outside the map");
         if (ExtraRooms is null) problems.Add("ExtraRooms is null");
         else if (ExtraRooms.Distinct().Count() != ExtraRooms.Count) problems.Add("ExtraRooms names a room twice");
         if (UseRooms is null) problems.Add("UseRooms is null");
