@@ -42,6 +42,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         AddedLightParameter = "added_light";
 
     private InstallArtProvider? _art;
+    private TerrainLattice? _lattice;
+    private CageRibbon? _cage;
     private ScenePresenter? _presenter;
     private TerrainChunkScheduler? _terrain;
     private MeshInstance3D?[] _chunks = [];
@@ -111,6 +113,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _art = InstallArtProvider.Open(install, level.Database);
         // DungeonRunner's defaults: the lattice bends the terrain, with DK2's high walls.
         var lattice = new TerrainLattice(level.Database, world, viewer) { HighWalls = true };
+        _lattice = lattice;
         _terrain = new TerrainChunkScheduler(new InstallTerrainPieces(_art), world.Width, world.Height, lattice);
         _chunks = new MeshInstance3D?[_terrain.ChunkCount];
         _liquids = new LiquidSurfaceField(world.Width, world.Height);
@@ -119,6 +122,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _blended = new BlendedTerrainStream<ShaderMaterial>(_overlayMaterials.Contains);
         // Every run instance sorts from the origin; the box only keeps Godot from culling it (the stream culls).
         _worldBox = new Aabb(new Vector3(-1, -4, -world.Height - 1), new Vector3(world.Width + 2, 16, world.Height + 2));
+        _cage = new CageRibbon(GetWorld3D().Scenario, _worldBox);
         using (Image white = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8))
         {
             white.Fill(Colors.White);
@@ -188,6 +192,28 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _camera.Far = Math.Max(NearPlane + 0.01f, pose.FarClipDistance);
         RightHandedCamera basis = RightHandedFrame.Camera(pose);
         _camera.Transform = new Transform3D(new Basis(ToGodot(basis.X), ToGodot(basis.Y), ToGodot(basis.Z)), ToGodot(basis.Origin));
+    }
+
+    /// <summary>The ray through a screen pixel (top-left origin), in the renderers' frame, as Unity's <c>ScreenPointToRay</c>
+    /// casts it through the off-centre frustum (<see cref="MinimapCameraView.RayDirection"/>), from the camera as last
+    /// placed (<see cref="PlaceCamera"/>); false before the first placement. Not <see cref="Camera3D.ProjectRayNormal"/>:
+    /// 4.8's assumes a symmetric frustum and drops the frustum offset (<c>Projection::get_viewport_half_extents</c>, c51ff06e8).</summary>
+    public bool TryPickRay(Vector2 screen, out NVector3 origin, out NVector3 direction)
+    {
+        origin = direction = default;
+        if (View is not MinimapCameraView view || _placedViewport.Height <= 0) return false;
+        origin = view.Position;
+        direction = view.RayDirection(screen.X / _placedViewport.Width, 1f - screen.Y / _placedViewport.Height);
+        return true;
+    }
+
+    /// <summary>The selection cage over <paramref name="area"/> (<see cref="TileHoverOutline.Build"/>), turned to the placed
+    /// camera; null hides it. Allocation-free once its buffers have grown.</summary>
+    public void DrawCage(TileRectangle? area, bool blue, long milliseconds)
+    {
+        if (_cage == null) return;
+        if (area is not TileRectangle shown || View is not MinimapCameraView view) { _cage.Hide(); return; }
+        _cage.Show(shown, blue, view.Position, _lattice, milliseconds);
     }
 
     public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture) => SetTile(tileIndex, tile);
@@ -499,6 +525,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 " and ", _blendedLateBytes, " B after; up to ", _blendedMaxRuns, " runs and ", _blendedMaxTriangles, " triangles");
         foreach (RunSlot slot in _runSlots) slot.Free();
         _runSlots.Clear();
+        _cage?.Free();
+        _cage = null;
         _art?.Dispose();
         _art = null;
     }
@@ -568,6 +596,122 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         }
     }
 
+    /// <summary>The cage as Unity's <c>ClassicTileHoverOutline</c> draws it (plan step 3e): <see cref="TileHoverRibbon"/>'s
+    /// triangles unindexed in one dynamic surface, zero-area triangles past the ribbon, additive, no depth write, both faces.
+    /// The fragment is Unity's <c>ClassicHoverOutline.shader</c>: the colour times pow(centre, 2.15) x 1.6 across the band,
+    /// owner-matched (2026-10-19). Sorted from the origin with offset 0 (<see cref="SortFromOrigin"/>), it draws where Unity's
+    /// sorting order 0 did: after the tag overlay runs (negative orders), under the other blended runs
+    /// (<see cref="BlendedTerrainStream{TMaterial}.SortingOrder"/>).</summary>
+    private sealed class CageRibbon
+    {
+        private const RenderingServer.ArrayFormat Format = RenderingServer.ArrayFormat.FormatVertex
+            | RenderingServer.ArrayFormat.FormatTexUV | RenderingServer.ArrayFormat.FlagUseDynamicUpdate;
+        private const int PositionStride = 12, UvStride = 8;
+        private static readonly StringName ColourParameter = "colour";
+
+        private readonly Rid _instance, _mesh;
+        private readonly ShaderMaterial _material;
+        private readonly TileHoverRibbon _ribbon = new();
+        private byte[] _positions = [], _uvs = [];
+        private int _capacity, _written;
+        private bool _visible = true;
+        private NVector3 _colour = new(-1, -1, -1);
+
+        public CageRibbon(Rid scenario, Aabb box)
+        {
+            _material = new ShaderMaterial
+            {
+                Shader = new Shader
+                {
+                    Code = "shader_type spatial;\nrender_mode unshaded, blend_add, depth_draw_never, cull_disabled;\n"
+                        + "uniform vec4 colour : source_color, color_conversion_disabled = vec4(0.0, 0.0, 0.0, 1.0);\n"
+                        + "void fragment() {\n"
+                        // Kept non-negative, as Unity's saturate, where MSAA extrapolates the UV past the ribbon.
+                        + "float centre = clamp(1.0 - abs(UV.y * 2.0 - 1.0), 0.0, 1.0);\n"
+                        + "ALBEDO = colour.rgb * pow(centre, 2.15) * 1.6;\nALPHA = 1.0;\n}\n",
+                },
+            };
+            _mesh = RenderingServer.MeshCreate();
+            _instance = RenderingServer.InstanceCreate2(_mesh, scenario);
+            RenderingServer.InstanceGeometrySetCastShadowsSetting(_instance, RenderingServer.ShadowCastingSetting.Off);
+            RenderingServer.InstanceSetCustomAabb(_instance, box);
+            RenderingServer.InstanceGeometrySetMaterialOverride(_instance, _material.GetRid());
+            SortFromOrigin(_instance, 0);
+            Hide();
+        }
+
+        public void Show(TileRectangle area, bool blue, NVector3 eye, TerrainLattice? lattice, long milliseconds)
+        {
+            TileHoverOutline.Build(_ribbon, area, blue, eye, lattice, milliseconds);
+            int count = _ribbon.IndexCount;
+            if (count > _capacity) Grow(count);
+            if (count == 0) { Hide(); return; }
+            int vertexCount = Math.Max(count, _written);
+            Span<float> positions = MemoryMarshal.Cast<byte, float>(_positions.AsSpan(0, vertexCount * PositionStride));
+            Span<float> uvs = MemoryMarshal.Cast<byte, float>(_uvs.AsSpan(0, vertexCount * UvStride));
+            ReadOnlySpan<int> indices = _ribbon.Indices;
+            ReadOnlySpan<NVector3> from = _ribbon.Positions;
+            ReadOnlySpan<NVector2> along = _ribbon.Uvs;
+            for (int i = 0; i < count; i++)
+            {
+                NVector3 at = RightHandedFrame.Point(from[indices[i]]);
+                positions[i * 3] = at.X; positions[(i * 3) + 1] = at.Y; positions[(i * 3) + 2] = at.Z;
+                uvs[i * 2] = along[indices[i]].X; uvs[(i * 2) + 1] = along[indices[i]].Y;
+            }
+            positions[(count * 3)..].Clear();
+            uvs[(count * 2)..].Clear();
+            RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, 0, _positions.AsSpan(0, vertexCount * PositionStride));
+            RenderingServer.MeshSurfaceUpdateAttributeRegion(_mesh, 0, 0, _uvs.AsSpan(0, vertexCount * UvStride));
+            _written = count;
+            if (_ribbon.Colour != _colour)
+            {
+                _colour = _ribbon.Colour;
+                _material.SetShaderParameter(ColourParameter, new Color(_colour.X, _colour.Y, _colour.Z, 1f));
+            }
+            if (!_visible) { RenderingServer.InstanceSetVisible(_instance, true); _visible = true; }
+        }
+
+        public void Hide()
+        {
+            if (!_visible) return;
+            RenderingServer.InstanceSetVisible(_instance, false);
+            _visible = false;
+        }
+
+        public void Free()
+        {
+            RenderingServer.FreeRid(_instance);
+            RenderingServer.FreeRid(_mesh);
+            _material.Dispose();
+        }
+
+        /// <summary>A new zeroed surface of a power-of-two vertex capacity, as the ribbon outgrows it.</summary>
+        private void Grow(int count)
+        {
+            int capacity = 384;
+            while (capacity < count) capacity <<= 1;
+            _capacity = capacity;
+            if (RenderingServer.MeshSurfaceGetFormatVertexStride(Format, capacity) != PositionStride
+                || RenderingServer.MeshSurfaceGetFormatAttributeStride(Format, capacity) != UvStride)
+                GD.PushError("DK2.Godot: the cage's vertex layout is not positions then UVs; it draws wrong.");
+            var arrays = new Godot.Collections.Array();
+            arrays.Resize((int)Mesh.ArrayType.Max);
+            arrays[(int)Mesh.ArrayType.Vertex] = new Vector3[capacity];
+            arrays[(int)Mesh.ArrayType.TexUV] = new Vector2[capacity];
+            RenderingServer.MeshClear(_mesh);
+            RenderingServer.MeshAddSurfaceFromArrays(_mesh, RenderingServer.PrimitiveType.Triangles, arrays, null, null,
+                RenderingServer.ArrayFormat.FlagUseDynamicUpdate);
+            _positions = new byte[capacity * PositionStride];
+            _uvs = new byte[capacity * UvStride];
+            _written = 0;
+        }
+    }
+
+    /// <summary>Every instance of the blended pass sorts by its origin's distance minus <paramref name="order"/>: a new
+    /// instance's pivot is its AABB centre (<c>use_aabb_center</c> true, renderer_scene_cull.h at c51ff06e8), which would
+    /// sort it by real distance among the runs. The one place the runs and the cage set their sort key.</summary>
+    private static void SortFromOrigin(Rid instance, float order) => RenderingServer.InstanceSetPivotData(instance, order, false);
+
     /// <summary>One run of the blended stream: an instance of its own one-surface mesh, a triangle list in the run's order
     /// (a surface draws its primitives in order), with zero-area triangles past the run. Godot 4.8 sorts the transparent
     /// pass by material priority, then by camera distance minus the instance's sorting offset, with an unstable sort
@@ -612,7 +756,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             }
             if (order != _order)
             {
-                RenderingServer.InstanceSetPivotData(_instance, order, false);
+                SortFromOrigin(_instance, order);
                 _order = order;
             }
             if (revision == _revision && Same(triangles)) return;

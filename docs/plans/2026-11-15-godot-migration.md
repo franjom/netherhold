@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes) and 3d (the blended stream) are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream) and 3e (the pointer, cage and placement cursor: the level is playable from the pointer) are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -683,8 +683,9 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       prototype and the engine source (Godot 4.8, commit c51ff06e8): one mesh with ordered surfaces is impossible, because
       the transparent sort is an unstable introsort, `MAX_MESH_SURFACES` is 256 and Level7 makes up to 192 runs, and
       `render_priority` is per material and limited to -128..127. Godot draws one `RenderingServer` instance per run, at the
-      origin, with `sorting_offset` set to the stream's order: its transparent depth is distance(camera, origin) -
-      `sorting_offset` (the AABB centre only counts with `use_aabb_center`, which is off). Each run is one triangle list, so
+      origin, with `sorting_offset` set to the stream's order: its transparent depth is distance(camera, pivot) -
+      `sorting_offset`, and `InstanceSetPivotData(order, false)` puts the pivot at the origin (the default is the AABB centre,
+      `use_aabb_center` true; 3e's `SortFromOrigin`). Each run is one triangle list, so
       the order is exact, run for run and triangle for triangle; a capture with the offsets negated changes 9,941 pixels, with
       visibly wrong compositing. Runs upload with `MeshSurfaceUpdateVertexRegion` and `MeshSurfaceUpdateAttributeRegion`;
       normals wait for 3i. The 3c weakness was mostly double linearisation, not linear-space blending: Godot linearises a
@@ -707,13 +708,47 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       64/65 to green and blue). Not captured: the sight fog, which needs a Sight of Evil cast that nothing stages. Open:
       (1) a launch argument that stages a Sight cast (or the fog) makes the fog capturable. (2) Godot's float buffer does not
       clamp between blends, where Unity's 8-bit target might; no capture has compared the two.
-- [ ] The pointer, cage and placement (3e; the audit lists the order). Pointer
-      samples are y-up: pass `y = ScreenHeight - yTop` from a top-left host (step 2i).
+- [x] 3e. The pointer, cage and placement (2026-11-17, ADR-0805). In `DK2.Presentation`: `TileHoverOutline.Build` with
+      `TileHoverRibbon`, out of Unity's `ClassicTileHoverOutline`: the cage's edge masks, the 0.05 lift around the lattice
+      bend, the camera-facing ribbon side, red or blue x `BluePeak`, and the pulse read before it advances. Unity's cross
+      product and `normalized` (1e-5 cut) are written out per component, so the floats are Unity's; the Unity class now only
+      uploads. `PlacementCursorHud` is `ClassicPlacementOverlay.Draw` as a `HudFrame`: icon names, DK2's draw order, the No Go
+      shift, held icons, I-Dismiss, the overflow icon and the price digits (the i-/lo- family at 640 wide, colours, offsets,
+      the last 7 digits). Unity's overlay is a thin wrapper drawn by `HudCanvas`, which snaps edges to whole pixels; the
+      reviewer judged that equivalent to UI Toolkit's rounding. The refund colour, the 1/1200 scale, the +30/+10 offsets and the
+      spell No Go shift stay HYPOTHESIS, as in [placement-cursor.md](research/placement-cursor.md), and the code says so.
+      `HudImagePixels.KeyGreen` and `HudImageVariant.GreenKey` are the hand sheet's green key; `HandCursorHud` and
+      `InstallHandCursorSheets` draw and load the sheets. `PointerScript` with `LaunchArguments.PointerPath`/`ParsePointerPath`
+      reads `--pointer-path "frame:x,y[:LlRr];..."`: audit open point 10 is decided as a scripted path, not an input-journal
+      replay. Godot pushes its events into the viewport and never warps the owner's cursor; `ScriptedPointerGate` drops OS
+      mouse events while a script runs, and non-finite coordinates are rejected. Godot: `WorldScene.TryPickRay` builds the ray
+      from the placed pose through `MinimapCameraView.RayDirection`, not `Camera3D.ProjectRayNormal`, which in 4.8 assumes a
+      symmetric frustum and drops `frustum_offset` (`camera_3d.cpp`, `projection.cpp` at c51ff06e8; the reviewer confirmed it);
+      the pose is computed once a frame and `TryPickRay` reads it. `InGameHud`'s world pointer runs through `TilePicker`,
+      `TileTopPlane`, the fog test, `WorldHoverPicker.TryCastTerrain` and `HoverCursorResolver`; tagging and placing post through
+      the shared `WorldPointerInput`/`WorldClickCommands`. Entity offers wait for 3h, so creatures and objects are not hover
+      targets yet. `ClassicHandCursor` draws on canvas layer 101 with the OS pointer hidden while it shows, and
+      `ClassicPlacementOverlay` on layer 100. `CageRibbon` uses Godot's own shader with the owner-matched profile pow(centre,
+      2.15) x 1.6, additive, no depth write, both faces. A Godot instance sorts by its AABB centre by default
+      (`use_aabb_center`), so `SortFromOrigin` (`InstanceSetPivotData(order, false)`) is now the one place the blended runs and
+      the cage set their order; the cage's 0 sorts after the tag overlays and under every other blended run, as Unity's
+      sortingOrder 0 did. A Level7 capture shows the cage behind the gem crystals; a deliberately sorted-last build draws it
+      across them (9,703 pixels differ). Mutation checks: the developer's 44 and 6 more, and the reviewer's 63, each killed or
+      equivalent. Verification: `dotnet test DK2.slnx` 10,754 passed, 30 skipped (Presentation 2,750); the Level1 turn-400
+      hash is unchanged (`D7290428D81A902F`) with no pointer argument; the `DK2.Unity.Compile` stand-in passes; Unity's batch
+      compile, `SmokeTest` and `SaveSmokeTest` passed. Captures, scripted, from a tick-130 save: the claw cursor over the Heart
+      floor; the blue pulsing cage on an earth wall; a dig tag (the tag tint plus the blue overlay, the tag-tint capture 3c
+      lacked), which the imps dig out about 25 s later and then claim; a Lair cursor with No Go and the red price 300 at gold 0.
+      No Unity Editor probe renders the cage or the placement cursor. Not exercised: a real OS click dropped under a script
+      (it needs the owner's mouse), and hiding the OS pointer. Open: (1) the shared `HoverCursorResolver.Resolve` still
+      allocates 128 B a frame with the Hand and 360 B with a room tool, because `PlacementCursor.Room` builds a new List and
+      HashSet per call; it is older than 3e and Unity hits it too, so it belongs in a separate `DK2.Presentation` change.
+      (2) The hand light, the world hover text, the red tint and the hover sound go to 3h and 3i.
 - [ ] Creatures, animation playback, shadows.
 - [ ] Lighting tuned to feel like DK2 (owner exception: tuned per engine, not ported natively). Acceptance check for 3i
       (owner, 2026-11-16, who saw the Godot scene and found it "too dark, too bland", and kept this order): Godot's lit
       frames are judged against the Unity probe frames above and must not look too dark or too bland.
-- [ ] 3D overlays, the hand cursor, then the in-game HUD from step 1.
+- [ ] The remaining 3D overlays (possession, 3m; the hover tint, 3h), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging
 

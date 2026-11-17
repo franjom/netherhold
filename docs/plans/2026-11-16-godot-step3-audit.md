@@ -83,9 +83,11 @@ it by hand.
 - **Godot (open point 4, decided).** One mesh with ordered surfaces is impossible in 4.8 (engine commit c51ff06e8): the
   transparent sort is an unstable introsort, `MAX_MESH_SURFACES` is 256 and Level7 makes up to 192 runs, and
   `render_priority` is per material, -128..127. Each run is a `RenderingServer` instance at the origin with
-  `sorting_offset` set to the stream's order: Godot's transparent depth is distance(camera, origin) - `sorting_offset`
-  (the AABB centre counts only with `use_aabb_center`, off). A run is one triangle list, so the order is exact, run for
-  run and triangle for triangle. Runs upload with `MeshSurfaceUpdateVertexRegion` and `AttributeRegion`.
+  `sorting_offset` set to the stream's order: Godot's transparent depth is distance(camera, pivot) - `sorting_offset`, and a
+  new instance's pivot is its AABB centre (`use_aabb_center` true), so `SortFromOrigin`
+  (`InstanceSetPivotData(order, false)`) is the one place the runs and the cage set their order (TRAPS). A run is one
+  triangle list, so the order is exact, run for run and triangle for triangle. Runs upload with
+  `MeshSurfaceUpdateVertexRegion` and `AttributeRegion`.
 - **Blending.** The 3c weakness was mostly double linearisation: Godot linearises a `Color` on a plain `vec4` uniform and
   the shader did it again. Now uniforms are `source_color, color_conversion_disabled`, shaders write stored bytes / 255
   and the camera's `Environment` shows the buffer values, so every blend is in gamma space as in Unity. The float buffer
@@ -116,10 +118,14 @@ it by hand.
   (`:292-311`).
 - **Shared (S).** `TilePicker.Pick`, `TileTopPlane.PositionOn`/`HandLightPoint`, `WorldHoverPicker` (terrain cast,
   `Holds`, `Admits`, `Offer`, the sweep, Moller-Trumbore), `HoverPickRules`, `HoverCursorResolver`, `HoverOverlayPlan`.
-- **Plumbing.** Godot needs no physics: the ray comes from `Camera3D.ProjectRayOrigin`/`ProjectRayNormal`, converted to
-  the shared frame. The KMF sphere is read from UV2 in Unity; Godot keeps the C# copy (`RenderMesh` sphere, the
+- **Plumbing, ray done in 3e.** Godot needs no physics. `WorldScene.TryPickRay` builds the ray from the placed pose
+  through `MinimapCameraView.RayDirection`, not the `Camera3D.ProjectRayOrigin`/`ProjectRayNormal` first planned here:
+  4.8's `ProjectRayNormal` assumes a symmetric frustum and drops `frustum_offset` (`projection.cpp` at c51ff06e8; TRAPS). The pose is computed once a frame. The KMF sphere is read from UV2 in Unity; Godot keeps the C# copy (`RenderMesh` sphere, the
   animation player's last sample) instead of reading meshes back. The view frustum (`GeometryUtility` at `:220` and in
   the shadows) is `ViewFrustum.FromPose` in `src/` (3d), since `Camera3D.GetFrustum` returns a Godot collection.
+- **Godot, 3e.** `InGameHud`'s pointer runs through `TilePicker`, `TileTopPlane`, the fog test,
+  `WorldHoverPicker.TryCastTerrain` and `HoverCursorResolver`; tagging and placing post through `WorldPointerInput` and
+  `WorldClickCommands`. Entity offers wait for 3h, so creatures and objects are not hover targets yet.
 - **B, small.** The entity cull before the pick list, cited to 0x00575D70 (`:217-220`), is a plain frustum-AABB test
   that `ViewFrustum` can serve; Unity's call is not moved yet.
 
@@ -243,26 +249,28 @@ it by hand.
 
 ## 3D overlays: tile cage, hover tint, placement cursor
 
-- **Tile cage.** `ClassicTileHoverOutline.cs` (106). B left: the edge mask per boundary tile (`:58-66`), the 0.05 lift
-  around the lattice bend (`:81-83`), the camera-facing ribbon side (`:91`), red or blue x `BluePeak` (`:70`), and the
-  pulse level read before it advances (`:54-55`). Moves as `TileHoverOutline.Build` into a reused ribbon buffer.
-  The ribbon profile (exponent 2.15, x1.6, `ClassicHoverOutline.shader:31-34`) is owner-matched: P.
+- **Tile cage, moved in 3e.** `TileHoverOutline.Build` with `TileHoverRibbon` holds the edge mask per boundary tile, the 0.05
+  lift around the lattice bend, the camera-facing ribbon side, red or blue x `BluePeak` and the pulse level read before it
+  advances; Unity's `ClassicTileHoverOutline` only uploads it. Godot's `CageRibbon` is one dynamic surface with its own
+  shader, the owner-matched profile (P) pow(centre, 2.15) x 1.6, additive, no depth write, both faces. Its sort key 0
+  (`SortFromOrigin`) puts it after the tag overlays and under every other blended run, as Unity's sortingOrder 0 did.
 - **Hover tint.** `DungeonScene.DrawHoverOverlay` (`:139-178`) draws `HoverOverlayPlan`'s red pass and the gold
   object's texture swap. Godot: a `next_pass` or a second surface override on the hovered instance for that frame,
   additive, `HoverOverlayColour` (moved to `TerrainMaterialLook` in 3c).
-- **Placement cursor.** `ClassicPlacementOverlay.cs` (225) is a UI Toolkit overlay whose `Draw` is all rule: icon names
-  per tool (`:137-153`), the draw order (`:42-48`), the No Go shift of (-2, +2) (`:85-101`), held icons and the
-  I-Dismiss (`:158-186`), price digits, family, colours and offsets (`:102-117`). It moves as a `PlacementCursorHud`
-  draw list (a `HudFrame`), which Godot's `HudCanvas` draws as it draws the panels.
+- **Placement cursor, moved in 3e.** `PlacementCursorHud` is `ClassicPlacementOverlay.Draw` as a `HudFrame`: icon names,
+  DK2's draw order, the No Go shift, held icons, I-Dismiss, the overflow icon and the price digits. Unity's overlay is a thin
+  wrapper drawn by `HudCanvas`; Godot's `ClassicPlacementOverlay` draws it on canvas layer 100. The refund colour, the
+  1/1200 scale, the +30/+10 offsets and the spell No Go shift stay HYPOTHESIS (placement-cursor.md).
 
 ## Hand cursor and held things
 
 - **Unity.** `ClassicHandCursor.cs` (143); `CaptureWorldHover` updates it (`DungeonRunner.cs:1630-1641`).
 - **Shared (S).** `HandCursor.Sprite`/`Place`/`OverlayAnchor`/`Reach`, `HandCursorAnimation`, `HeldItemStack`,
   `HandCursorEventSink`.
-- **B left.** The pure green key to transparent on the sheet (`:102-106`) moves to an image pass beside
-  `HudImagePixels`. The 768-line scale and the HUD factor compensation (`:114-125`) are UI Toolkit plumbing.
-- **Godot.** A quad with a UV sub-rect in a `HudFrame` on the top canvas layer; the OS pointer hidden while it shows.
+- **B, moved in 3e.** The pure green key to transparent is `HudImagePixels.KeyGreen` (`HudImageVariant.GreenKey`);
+  `HandCursorHud` and `InstallHandCursorSheets` draw and load the sheets. The 768-line scale and the HUD factor
+  compensation are UI Toolkit plumbing.
+- **Godot.** `ClassicHandCursor` draws a `HudFrame` quad on canvas layer 101, with the OS pointer hidden while it shows.
   Held items are the placement cursor's icons; nothing held is drawn in 3D.
 
 ## Minimap camera footprint and heading
@@ -304,26 +312,18 @@ Each sub-step is one commit, leaves Unity working (its compile checked, and Unit
 Godot visibly better. Each is checked by unit tests for what moved and by a Movie Maker capture (below). The first
 three are the terrain and the camera; after that each step adds one kind of thing to the world.
 
-- **3a. Static terrain from the level-start camera.** Done 2026-11-16 (plan step 3a, which has the detail). Moved:
-  `RightHandedFrame`, `TerrainTileBuilder`, `TerrainMaterialKey` and the opaque, alpha and additive part of
-  `ClassicMaterialRecipe`. Godot: a `WorldScene` under `InGameHud`, one `MeshInstance3D` per chunk and a `Camera3D` at
-  `ClassicCamera.Pose(LevelStartFocus)`. Checked: the Level1 start frame shows the Heart room, not mirrored.
-- **3b. Camera control and the minimap.** Done 2026-11-16 (plan step 3b). Moved: `MinimapCameraView`,
-  `HudDrawKind.Triangles` with `HudTriangles`, `ClassicCameraSetup.DefaultZoomOutLimitScale` and
-  `LaunchArguments.GlideTarget`. Godot: camera input, every glide, the minimap's live focus and footprint. Checked: a
-  `--glide-to x,y` capture; no live input.
-- **3c. Terrain that changes.** Done 2026-11-16 (plan step 3c, ADR-0805). Moved: `TerrainChunkScheduler`,
-  `TerrainMaterialLook`, `LiquidSurfaceWave` and `LiquidSurfaceField`. Godot: rebuilds through the scheduler, a
-  `ShaderMaterial` per look, liquids rewritten in place. Checked: Level1 at tick 130 against 1000 differs in one tile;
-  Level8 shows lava and water in their beds. No clean wave capture and no tag tint capture exist yet.
-- **3d. The blended stream.** Done 2026-11-16 (plan step 3d, which has the numbers; ADR-0805). Moved:
-  `BlendedTerrainStream<TMaterial>` and `ViewFrustum`. Godot: one `RenderingServer` instance per run with
-  `sorting_offset` (open point 4), and blends in gamma space. Checked: a Level7 glide across the gem crystals shows no
-  popping; Level1's tutorial overlay is at Unity's strength. Not captured: the sight fog, whose Sight cast nothing stages.
-- **3e. Pointer, cage and placement: the level becomes playable.** Godot: picking rays into `TilePicker`,
-  `TileTopPlane` and the terrain cast, `WorldPointerInput.PointerPosition`, the hand cursor sprite, the cage and the
-  placement cursor. Move: `TileHoverOutline.Build`, `PlacementCursorHud`, the green key. Check: a capture
-  driven by a recorded pointer (open point 10) shows the cage and the dig tag on a wall; tests for the moved pieces.
+- **3a. Static terrain from the level-start camera.** Done 2026-11-16 (the plan's step 3a has the detail): `RightHandedFrame`,
+  `TerrainTileBuilder`, `TerrainMaterialKey`, `ClassicMaterialRecipe`; Godot's `WorldScene` and `Camera3D`.
+- **3b. Camera control and the minimap.** Done 2026-11-16 (plan step 3b): `MinimapCameraView`, `HudDrawKind.Triangles`,
+  `LaunchArguments.GlideTarget`; camera input, every glide, the minimap's live focus and footprint. No live input checked.
+- **3c. Terrain that changes.** Done 2026-11-16 (plan step 3c, ADR-0805): `TerrainChunkScheduler`, `TerrainMaterialLook`,
+  `LiquidSurfaceWave` and `LiquidSurfaceField`. No clean wave capture exists yet.
+- **3d. The blended stream.** Done 2026-11-16 (plan step 3d, ADR-0805): `BlendedTerrainStream<TMaterial>`, `ViewFrustum`; one
+  instance per run with `sorting_offset` (open point 4), blends in gamma space. Not captured: the sight fog.
+- **3e. Pointer, cage and placement: the level becomes playable.** Done 2026-11-17 (plan step 3e, which has the numbers;
+  ADR-0805). Moved: `TileHoverOutline.Build`, `PlacementCursorHud`, the green key, `HandCursorHud`, `PointerScript`.
+  Godot: picking, the hand cursor, the cage and the placement cursor. Checked: scripted-pointer captures show the claw
+  cursor, the cage on a wall, a dig tag and a Lair cursor with No Go and a price.
 - **3f. Objects, structures and torch meshes.** Move: the Euler composition, the rest of the recipe (texture phase,
   fade, blueprint, instance tint, hover twins), the flame phase offsets, group parts. Godot: static meshes, the Heart
   and its beat, doors and traps, torch meshes and flames. Check: the Heart, gold and torches in the start frame.
@@ -332,7 +332,7 @@ three are the terrain and the camera; after that each step adds one kind of thin
   point 7. Check: imps walk and dig over 300 frames; frame times show no GC spikes (`GC.CollectionCount` before and
   after a run, printed).
 - **3h. Entity hover and the Hand.** Godot: entity offers into `WorldHoverPicker`, the red pass and gold swap, pickup
-  and drop through the shared flows, hover text in the world. Check: a recorded-pointer capture shows the red tint on an
+  and drop through the shared flows, hover text in the world. Check: a scripted-pointer capture shows the red tint on an
   imp and the held icon after a pickup.
 - **3i. Lighting.** Move: `ClassicVertexLight.Sum` and the packed diffuse with tests. Godot: the vertex-lit shader, the
   light-table textures, the publisher, ambient keys, torch, portal, object, effect and hand lights, the environment
@@ -360,7 +360,7 @@ filtered to the touched classes. The frame check cannot use `--headless`, which 
 the pinned console executable, a temporary `godot/DK2.Godot/override.cfg` for 1920x1080 (TRAPS), and the output kept
 outside the repository (`godot/README.md`, *Verifying*). Level1's opening path hides the HUD for about 1,000 frames at
 30 fps, so a capture that shows the HUD needs a save made after the path (`--save-as <name> --save-tick 130`, then
-`--load <name>`) or a skip argument; 120 frames never show it:
+`--load <name>`) or a skip argument; 120 frames never show it. A pointer-driven check adds `--pointer-path`:
 
 ```powershell
 & "$env:LOCALAPPDATA\Programs\Godot\4.8-beta3\Godot_v4.8-beta3_mono_win64\Godot_v4.8-beta3_mono_win64_console.exe" `
@@ -390,9 +390,8 @@ owner's open editor must not be driven.
    copy the order into Godot with a comment pointing at Unity's lines until Unity is deleted.
 8. **Shadow silhouettes.** CPU rasterizing in `src/` (testable, no second creature render) or a GPU `SubViewport`.
 9. **The footprint ribbon.** Decided in 3b: a shared triangle-list `HudDrawKind`, which Unity draws too.
-10. **Pointer-driven captures.** Moving the OS pointer during a capture moves the owner's cursor (TRAPS). A launch
-    argument that feeds a recorded pointer path (or replays an input journal) would make 3e, 3h and 3m checkable
-    unattended.
+10. **Pointer-driven captures.** Decided in 3e: `--pointer-path "frame:x,y[:LlRr];..."`, a scripted pointer pushed into
+    the viewport, so a capture never moves the owner's cursor (TRAPS); not an input-journal replay. 3h and 3m use it.
 11. **Content for 3d, 3l and 3m.** Level1 has no lightning shot, and nothing stages a Sight of Evil cast, so the sight
     fog (3d) is uncaptured; a staged test level or launch argument is needed, built with `tools/levelgen` or a new argument.
 

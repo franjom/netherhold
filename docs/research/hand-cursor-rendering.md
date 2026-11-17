@@ -67,7 +67,7 @@ Read for the owner's report that our Hand feels "too far down and right" of the 
 - **The pointer source (HYPOTHESIS).** The point comes from a mouse source read through a vtable in `0x005DBB10`. That source is unread, so "it is the same point the world picker uses" is HYPOTHESIS, not CONFIRMED.
 - **The art (STRONGLY INFERRED, shipped data).** The hand is drawn down and right of its hotspot on purpose. Point.png frame 0 has its hotspot (2,17) on a transparent pixel; its claw tip is at (6,33), which is (+4,+16) frame pixels from the hotspot. The claw reaches the hotspot only around frames 24-32 of the 41-frame loop (leftmost pixels (3,19), (0,12), (0,14)).
 
-**Ours (read in our code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which was the hotspot, as in DK2, and since 2026-10-24 is the claw tip (below).
+**Ours (read in our code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset; `HandCursorHud.Draw` (Godot) places the same rectangle through `HandCursor.Place` and scales it about the pointer by the HUD factor. `ScreenToTile` picks at `Input.mousePosition`, which was the hotspot, as in DK2, and since 2026-10-24 is the claw tip (below).
 
 Claw-tip offset from the pointer in screen pixels (Point frame 0):
 
@@ -183,7 +183,8 @@ calls `PickHoverEntity` only when `ScreenToTile` returns one, the same outcome (
 
 ## Implemented cursor subset and limits
 
-`HandCursor` and `ClassicHandCursor` use the original Point, Idle and
+`HandCursor`, with `ClassicHandCursor` (Unity) and `HandCursorHud` (a `HudFrame` quad,
+which Godot draws), uses the original Point, Idle and
 PickAxeHold sheets, with uniform height-based scaling under ART_DIRECTION §13
 instead of native per-axis integer scaling. The claw tip, not the hotspot, goes on the
 pointer (owner, 2026-10-24, "Where the hotspot lands"). The runner captures hover state
@@ -277,8 +278,9 @@ Ours shows the pickup hand over own creatures and loose gold and the pointing cu
 doors, traps and store piles (owner, 2026-10-23).
 
 Implementation: `TileHoverOutline` retains the full-height rest grid, endpoint
-table, radius and blue peak. `ClassicTileHoverOutline` emits one camera-facing
-quad per segment in a retained mesh. Native emits two crossed textured ribbons
+table, radius and blue peak, and `TileHoverOutline.Build` writes one camera-facing
+quad per segment into a `TileHoverRibbon`, which Unity's `ClassicTileHoverOutline`
+and Godot's `CageRibbon` upload. Native emits two crossed textured ribbons
 with both windings; native UVs run 0..1 across the ribbon. Ours blends additively
 with a bright-centre profile `centre^2.15` across that width (a third wider than
 the cubic first tried, owner 2026-10-19), so the 0.06-tile band reads as a thin light line; both are matched to the owner's DK2 screenshot (2026-10-19,

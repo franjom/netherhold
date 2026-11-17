@@ -52,6 +52,8 @@ public enum HudImageVariant : byte
     /// quarters (1 to 4) of full strength. The result is larger than the source, so the draw's rect covers the
     /// padding too.</summary>
     Glow,
+    /// <summary>Pure green keyed to transparent (<see cref="HudImagePixels.KeyGreen"/>), as the hand cursor sheets draw.</summary>
+    GreenKey,
 }
 
 /// <summary>Text set in a bitmap font, white with the glyphs' coverage as alpha; a tint colours it.
