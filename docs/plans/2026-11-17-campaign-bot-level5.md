@@ -3,7 +3,7 @@ systems: [tooling-process]
 ---
 # Campaign bot: winning Level 5
 
-**Goal.** The campaign player wins shipped Level 5 (`scenarios/campaign-ladder/level5.yaml`, seeds 1-3) and still wins
+**Goal.** The campaign player wins shipped Level 5 (`scenarios/campaign-ladder/level5.yaml`, seeds 1-6 measured) and still wins
 Levels 1-4, playing only from what a human sees. Every step adds general behaviour backed by a rule in
 `knowledge/rules.yaml`; nothing keys on the level's name.
 
@@ -61,17 +61,45 @@ a bridge under a hero who falls in water).
    seeds 1-3 won, Levels 1-3 27 of 27. A down creature (flower level above 0, petals 1 or fewer) is no longer a threat.
 3. **Bridge under a hero in water (R65).** A collapsed enemy on a water tile beside own floor gets a Wooden Bridge under
    it while its rescue window runs. Measure: captures from water.
-4. **Spend mana on the fight.** Thunderbolt on raiders near home while mana is over a reserve; Create Imp as now.
-   Measure: mana no longer capped; raids beaten with fewer losses.
+4. **Spend mana on the fight.** Built (`Strike`, between bridge and capture in the decide order). Thunderbolt (spell 6)
+   on the highest-level standing enemy on the keeper's own ground (Thunderbolt's location selector 1,
+   keeper-spell-casting.md section 1) that is in a fight or near home, while mana minus the price stays above
+   `strategy.mana-reserve`. Measured with step 6: 85-199 Thunderbolts a Level 5 run. Create Imp as before.
 5. **Live within the income.** Recruit only while the gold and the gold still in sight pay the wages (no exodus); mine
    the remaining seams and open the box pockets on the way (boxes: R6 scouting, the special routine). Measure: no
    creature leaves over pay; boxes taken.
-6. **Attack at the peak (R20, R19, R15, R23).** An army-strength estimate from what is seen (types, levels, petals of
-   own and enemy creatures), the counters in `knowledge/guides.yaml` as the first table; Skeletons first at the Fear
-   traps, then the party at the Sentries and Knights, then the whole army, healed, at the Lord. Measure: Level 5 won.
+6. **Attack at the peak (R20, R19, R15, R21). Built before 4 and 5** (2026-11-17): the wage bill of an army of 15 is
+   about 8,700 a payday (2,400 ticks), so 24 paydays cost about 209k against about 204k of seams on the whole map; no
+   economy keeps that army, so it must be used while the gold lasts (owner: "I usually aim to win asap"). The Offence
+   path of `CampaignPlayer`'s hand, with no attack on the dungeon to answer:
+   - **Objective.** A playbook's `plan.attack: [x, y]` (`PlayerStrategy.AttackAt`; Level 5: (29,13), the west mouth of
+     the Lord's hall, Fear traps at x 30-31). Without one a level is played as before.
+   - **Approach.** With no own floor or own bridge within 2 tiles of the objective, and half the party and half the
+     levels fit, the dig takes the objective as a room to take and the bridge routine spans toward it (a span must end
+     nearer than any own floor; failed spans are retried after 1200 ticks).
+   - **Readiness.** `AttackParty` (10) fit fighters whose summed levels reach `AttackLevels` (playbook tunable
+     `strategy.attack-levels`; Level 5: 40, researched) and outweigh 1.5 times the enemy levels seen within 12 tiles of
+     the objective; or, with the gold covering fewer than `AttackPaydays` (3) paydays, any 4 free. The Thoughts note
+     says which.
+   - **Order (R19, R15).** Fearless creatures (`CreatureFlags.IsFearless` through `CampaignPlayerOptions.Fearless`, set
+     by `PlayerRunCommand`) first, the vanguard counting once landed; then every fit fighter, gathered in the hand over
+     decisions and dropped together on own floor or an own bridge within 2 tiles of the objective; reinforcements
+     every 400 ticks while they outweigh what is seen. An enemy within 12 tiles of the objective and nearer it than
+     home belongs to the attack, not to defence one fighter at a time.
+   - **Measured** (2026-11-17, hash 525): Level 5 seeds 1-6 all won, the Lord killed at ticks 12685, 13321, 15631,
+     10481, 13641, 19442 (attacks launched at about 12000-18300; 1-4 Skeletons). Earlier iterations: 0 of 3 at the
+     start; attacks at summed levels 17-25 lost the Heart by tick 10700 (1 of 6); threshold 40 without Thunderbolt 3
+     of 6; with it 6 of 6. Level 4 seeds 1-3 won, Levels 1-3 27 of 27. `DK2.AI.Tests` 669 pass.
+   - **Not tested.** Gathering over several decisions, an enemy at the objective, the approach bridging, the playbook
+     `attack` parse and the `Fearless` wiring have no unit test; only the Level 5 runs exercise them.
 
 ## Open
 
+- Not built: step 3 (bridge under a hero) and step 5 (live within the income). The Sentry traps (24,34), (25,36) on
+  the Prison route still make carrying Imps drop bodies (R66's ring and rock tagging).
+- Owner, from the reviewer on the attack: can Thunderbolt hit an enemy on hero ground in the real game (the bot casts it
+  only on own ground); do players keep sending groups after a first wave dies; does the entourage reach the Heart's east
+  side; is a Skeleton's fearlessness visible in its description (the bot reads it as public)?
 - Owner, from the reviewer: does lifting an Imp that carries a body drop the body; does an Imp dropped on an unconscious
   hero take it at once; are starving prisoners ever moved by Imps; can rock in a hero Sentry's reach be tagged and kept?
 - Owner: does DK2's Level 5 keep sending Knights and Wizards from the NE gate in the mid game (the timer-1 chain our

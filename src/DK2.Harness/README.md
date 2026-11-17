@@ -94,7 +94,7 @@ list may change. It prints to stdout; `--out` replaces that section in an existi
 level (other sections, comments and line endings kept, another level's is refused) or starts one.
 `knowledge/playbooks/level1.yaml` is generated this way, and a test compares it with a fresh run.
 `knowledge/playbooks/level5.yaml`'s available section is generated the same way (no test compares it); its plan
-takes the level's hero Prison (`plan.take`, R66), and Level 5 runs read it with `--playbook`.
+takes the level's hero Prison (`plan.take`, R66) and attacks the Lord's hall (`plan.attack: [x, y]`, R20), and Level 5 runs read it with `--playbook`.
 
 Each run writes a new folder `<out>/<scenario>/<run id>/` (default id: the UTC time; an existing
 folder is never reused): the manifest before the first tick, a budgeted `input.journal`, the

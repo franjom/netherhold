@@ -17,7 +17,7 @@ public partial class CampaignPlayerTests
     public void EveryRoutineThatRanLeavesAVerdictInOrder()
     {
         PlayerDecision decision = Player().Decide(Observe());
-        Assert.Equal(["hand", "room", "trap", "imp", "bridge", "capture", "bank", "assault", "work", "pit", "scout", "special", "dig"], decision.Thoughts.Select(t => t.Routine));
+        Assert.Equal(["hand", "room", "trap", "imp", "bridge", "strike", "capture", "bank", "assault", "work", "pit", "scout", "special", "dig"], decision.Thoughts.Select(t => t.Routine));
         PlayerThought room = decision.Thoughts.Single(t => t.Routine == "room");
         Assert.True(room.Acted);
         Assert.Contains("build Treasury 3x3 at", room.Note);

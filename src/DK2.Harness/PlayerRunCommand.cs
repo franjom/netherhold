@@ -310,6 +310,8 @@ public static class PlayerRunCommand
             TrainingMaxLevel = database.Variables.TryGet(VariableTypeId.TrainingRoomMaxExperienceLevel, out int trainingCap) ? trainingCap : 4,
             FreeImps = database[VariableTypeId.MinimumImpThreshold],
             FightStyles = database.Creatures.Values.ToDictionary(c => new CreatureTypeId(c.CreatureId), c => c.FightStyle),
+            Fearless = database.Creatures.Values.Where(c => (c.Flags & CreatureFlags.IsFearless) != 0)
+                .Select(c => new CreatureTypeId(c.CreatureId)).ToHashSet(),
             AdvanceTicks = spec.IntervalTicks,
             StallWindowTicks = spec.StallTicks,
             RecoveryAttempts = spec.Retries,

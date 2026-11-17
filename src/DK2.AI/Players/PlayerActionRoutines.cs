@@ -378,8 +378,9 @@ public static class PlayerActionRoutines
         return null;
     }
 
-    /// <summary>The own non-room floor tile nearest <paramref name="to"/> not in <paramref name="skip"/>.</summary>
-    public static TilePos? NearestOwnFloor(PlayerObservation observation, TilePos to, ICollection<TilePos> skip)
+    /// <summary>The own non-room floor tile nearest <paramref name="to"/> not in <paramref name="skip"/>; with
+    /// <paramref name="bridges"/>, an own bridge's tile too (the attack's way across water, R20).</summary>
+    public static TilePos? NearestOwnFloor(PlayerObservation observation, TilePos to, ICollection<TilePos> skip, bool bridges = false)
     {
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
@@ -390,7 +391,8 @@ public static class PlayerActionRoutines
             {
                 var at = new TilePos(x, y);
                 PlayerTile tile = grid[at];
-                if (!IsOwnFloor(tile, self) || tile.Room != default || skip.Contains(at)) continue;
+                bool bridge = bridges && tile.Room is RoomTypeId.WoodenBridge or RoomTypeId.StoneBridge && tile.Owner == self;
+                if (!bridge && (!IsOwnFloor(tile, self) || tile.Room != default) || skip.Contains(at)) continue;
                 long d = DistanceSquared(at, to);
                 if (d < bestDistance) { bestDistance = d; best = at; }
             }

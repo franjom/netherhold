@@ -271,6 +271,7 @@ plan:               # what the player does with it
   rooms: [Lair, Hatchery, ...]    # in building order
   extra-rooms: [...]
   take: [[24, 42]]                # tiles of rooms to take, dug toward until own floor joins them (R66)
+  attack: [29, 13]                # the tile the army goes for (R20); none, no attack
   rules: [R4]                     # knowledge rules with `applies: playbook`
 tunable:            # integer values from the fixed `Playbook.TunablePaths`, each with a range
   - { path: strategy.room-side, value: 4, min: 3, max: 6, provenance: tuned, proven-on: "<commit>", hash-version: 521 }

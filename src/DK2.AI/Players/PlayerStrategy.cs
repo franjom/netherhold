@@ -105,6 +105,22 @@ public sealed record PlayerStrategy
     /// is dug toward before the rest of the frontier, held-back ground included, until own floor touches it.</summary>
     public IReadOnlyList<RoomTypeId> TakeRooms { get; init; } = [RoomTypeId.Portal, RoomTypeId.Prison, RoomTypeId.TortureChamber];
 
+    /// <summary>The tile the army goes for (R20): a level's playbook names it (Level 5: the Lord's hall); null attacks
+    /// nothing.</summary>
+    public TilePos? AttackAt { get; init; }
+
+    /// <summary>Fit fighters the first attack waits for (R20); 0 never attacks.</summary>
+    public int AttackParty { get; init; } = 10;
+
+    /// <summary>The fit fighters' summed levels the first attack waits for besides their number (R21: trained before
+    /// attacking); a level's playbook sets it from the defenders a player knows of (Level 5: the Lord and his entourage).
+    /// The approach to the objective waits for half of it, since taking ground beside it can wake its defenders.</summary>
+    public int AttackLevels { get; init; }
+
+    /// <summary>Paydays of gold below which the army attacks with whatever is fit (at least four): it is paid for, and
+    /// would leave unpaid (R20: never wait while the gold wastes away).</summary>
+    public int AttackPaydays { get; init; } = 3;
+
     /// <summary>Tiles of rooms to take that a player who knows the level knows of before seeing them (a level's
     /// playbook, R66), dug toward the same way until own floor touches them.</summary>
     public IReadOnlyList<TilePos> TakeAt { get; init; } = [];
@@ -270,6 +286,11 @@ public sealed record PlayerStrategy
         if (MaxOutstandingTags <= 0) problems.Add($"MaxOutstandingTags {MaxOutstandingTags} is not positive");
         if (HomeGuardTiles < 0) problems.Add($"HomeGuardTiles {HomeGuardTiles} is negative");
         if (AdvanceTicks is < 1 or > MaxAdvanceTicks) problems.Add($"AdvanceTicks {AdvanceTicks} is outside 1 to {MaxAdvanceTicks}");
+        if (AttackParty < 0) problems.Add($"AttackParty {AttackParty} is negative");
+        if (AttackLevels < 0) problems.Add($"AttackLevels {AttackLevels} is negative");
+        if (AttackPaydays < 0) problems.Add($"AttackPaydays {AttackPaydays} is negative");
+        if (AttackAt is TilePos attack && mapWidth is int attackWidth && mapHeight is int attackHeight
+            && (attack.X < 0 || attack.Y < 0 || attack.X >= attackWidth || attack.Y >= attackHeight)) problems.Add("AttackAt is outside the map");
         if (TakeRooms is null) problems.Add("TakeRooms is null");
         if (TakeAt is null) problems.Add("TakeAt is null");
         else if (mapWidth is int takeWidth && mapHeight is int takeHeight

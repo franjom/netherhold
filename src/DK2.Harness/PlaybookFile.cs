@@ -100,6 +100,9 @@ public static class PlaybookFile
             Rooms = Rooms("rooms", d.Plan?.Rooms),
             ExtraRooms = Rooms("extra-rooms", d.Plan?.ExtraRooms),
             Take = Take(d.Plan?.Take),
+            Attack = d.Plan?.Attack is not { } attack ? null
+                : attack is [int x, int y] && x >= 0 && y >= 0 ? new TilePos(x, y)
+                : throw new FormatException("plan attack: [x, y] with x and y not negative"),
             Rules = d.Plan?.Rules ?? [],
             Tunables = tunables,
             Notes = [.. (d.Notes ?? []).Select(Note)],
@@ -166,6 +169,7 @@ public static class PlaybookFile
         public List<string>? Rooms { get; set; }
         public List<string>? ExtraRooms { get; set; }
         public List<List<int>>? Take { get; set; }
+        public List<int>? Attack { get; set; }
         public List<string>? Rules { get; set; }
     }
 

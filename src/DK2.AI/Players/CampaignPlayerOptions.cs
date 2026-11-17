@@ -42,6 +42,10 @@ public sealed record CampaignPlayerOptions
     /// <see cref="FightStyle.Blocker"/>, so a host without the data still defends.</summary>
     public IReadOnlyDictionary<CreatureTypeId, FightStyle> FightStyles { get; init; } = new Dictionary<CreatureTypeId, FightStyle>();
 
+    /// <summary>Creature types that feel no fear (<c>CreatureFlags.IsFearless</c>): public data a player reads in the
+    /// creature's description, supplied by the host; they go first at a Fear trap (R15).</summary>
+    public IReadOnlyCollection<CreatureTypeId> Fearless { get; init; } = [];
+
     public FightStyle StyleOf(CreatureTypeId type) =>
         FightStyles.Count == 0 ? FightStyle.Blocker : FightStyles.TryGetValue(type, out FightStyle style) ? style : FightStyle.NonFighter;
 

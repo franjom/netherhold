@@ -97,6 +97,9 @@ public sealed record Playbook
         ["strategy.avoid-traps"] = new(0, 1, (s, v) => s with { AvoidTraps = v }),
         ["strategy.rally-party"] = new(0, 16, (s, v) => s with { RallyParty = v }),
         ["strategy.recruit-gold"] = new(0, 1_000_000, (s, v) => s with { RecruitGold = v }),
+        ["strategy.attack-party"] = new(0, 40, (s, v) => s with { AttackParty = v }),
+        ["strategy.attack-levels"] = new(0, 400, (s, v) => s with { AttackLevels = v }),
+        ["strategy.attack-paydays"] = new(0, 24, (s, v) => s with { AttackPaydays = v }),
     };
 
     /// <summary>The paths a tunable may name, in order.</summary>
@@ -112,6 +115,8 @@ public sealed record Playbook
     public IReadOnlyList<RoomTypeId>? ExtraRooms { get; init; }
     /// <summary>Tiles of rooms to take on this level (R66), known before they are seen; null keeps the player's default.</summary>
     public IReadOnlyList<TilePos>? Take { get; init; }
+    /// <summary>The tile the army goes for on this level (R20); null keeps the player's default (none).</summary>
+    public TilePos? Attack { get; init; }
     /// <summary>Knowledge rules (<c>applies: playbook</c>) that act on this level.</summary>
     public IReadOnlyList<string> Rules { get; init; } = [];
     public IReadOnlyList<PlaybookTunable> Tunables { get; init; } = [];
@@ -211,6 +216,7 @@ public sealed record Playbook
         if (Rooms is not null) strategy = strategy with { Rooms = Rooms };
         if (ExtraRooms is not null) strategy = strategy with { ExtraRooms = ExtraRooms };
         if (Take is not null) strategy = strategy with { TakeAt = Take };
+        if (Attack is not null) strategy = strategy with { AttackAt = Attack };
         foreach (PlaybookTunable t in Tunables) strategy = Knobs[t.Path].Set(strategy, t.Value);
         return strategy;
     }

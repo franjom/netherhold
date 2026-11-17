@@ -147,6 +147,7 @@ public sealed class CampaignPlayer : IPlayerController
         Think("trap", why, actions, () => Trap(observation, actions));
         Think("imp", why, actions, () => CreateImp(observation, home, actions));
         Think("bridge", why, actions, () => Bridge(observation, home, actions));
+        Think("strike", why, actions, () => Strike(observation, home, actions));
         bool capture = !hand && Think("capture", why, actions, () => Capture(observation, actions));
         bool bank = !hand && !capture && Think("bank", why, actions, () => Bank(observation, home, actions));
         bool assault = !hand && !capture && !bank && Think("assault", why, actions, () => Assault(observation, home, actions));
@@ -351,6 +352,16 @@ public sealed class CampaignPlayer : IPlayerController
         if (_strategy.Fight == FightMode.HoldHome && enemy is PlayerVisibleThing far
             && PlayerActionRoutines.DistanceSquared(far.Tile, home) > (long)_strategy.HomeGuardTiles * _strategy.HomeGuardTiles) enemy = null;
         if (Rally(observation, home, enemy, actions) is bool rallied) return rallied;
+        // An enemy at the objective is the attack's, not an attack on the dungeon (Level 5: once own floor touches the hall,
+        // its Knights are within reach of own ground and defence would hold the hand for good).
+        _attackNote = "";
+        // Only nearer the objective than home: Level 5's objective is 13 tiles from the Heart, so a field alone would take
+        // the Heart's east side out of defence.
+        bool atObjective = enemy is PlayerVisibleThing guard && _strategy.AttackParty > 0 && _strategy.AttackAt is TilePos field
+            && Chebyshev(guard.Tile, field) <= AttackFieldTiles && Chebyshev(guard.Tile, field) < Chebyshev(guard.Tile, home);
+        if ((enemy is null || atObjective) && Offence(observation, home, actions) is bool attacked) return attacked;
+        // Nor is it answered one fighter at a time while the attack gathers (R19: never feed it one creature at a time).
+        if (atObjective) enemy = null;
         if (observation.HandCount > 0 && _captureDrop is TilePos body)
         {
             // An Imp lifted to capture goes down on the body (R16): a dropped Imp looks at its landing ring first, where a
@@ -418,7 +429,7 @@ public sealed class CampaignPlayer : IPlayerController
             _lastDropTick = observation.Stamp.Tick;
             return true;
         }
-        if (enemy is not PlayerVisibleThing target) { Note("no attack to answer"); return false; }
+        if (enemy is not PlayerVisibleThing target) { Note("no attack to answer" + _attackNote); return false; }
         if (_lastDropTick is GameTick dropped && observation.Stamp.Tick.Value - dropped.Value < _options.DropCooldownTicks)
         {
             Note($"attack at {target.Tile}; drop cooling down");
@@ -839,10 +850,30 @@ public sealed class CampaignPlayer : IPlayerController
     {
         if (_strategy.Dig == DigMode.Off || _pendingRooms.Count > 0 || !Fits(actions, 2)
             || (observation.Offers.Actions & PlayerActionKinds.BuildRoom) == 0) return false;
-        if (Outstanding(observation) > 0 || Frontier(observation, home, preferGold: false).Count > 0) return false;
+        // An attack short of floor near its objective (R20) bridges toward it at once; otherwise a bridge waits until
+        // nothing is left to dig.
+        TilePos? approach = _attackApproach ? _strategy.AttackAt : null;
+        if (approach is null && (Outstanding(observation) > 0 || Frontier(observation, home, preferGold: false).Count > 0)) return false;
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         long keep = _strategy.GoldBudget == 1 ? GoldNeed(observation) : 0;
+        // Toward an objective a span must end nearer it than any own floor (progress, not a sideways step), and a span that
+        // came to nothing is tried again after a while (Level 5 seed 1: the one span into the hall failed once and the
+        // routine then bridged everywhere else).
+        long nearest = long.MaxValue;
+        if (approach is TilePos aimAt)
+        {
+            if (observation.Stamp.Tick.Value - _approachTriedReset.Value >= ApproachRetryTicks)
+            {
+                Tried(RoomTypeId.WoodenBridge).Clear();
+                Tried(RoomTypeId.StoneBridge).Clear();
+                _approachTriedReset = observation.Stamp.Tick;
+            }
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                    if (PlayerActionRoutines.IsOwnFloor(grid[new TilePos(x, y)], self))
+                        nearest = Math.Min(nearest, PlayerActionRoutines.DistanceSquared(new TilePos(x, y), aimAt));
+        }
         (TilePos From, TilePos To, RoomTypeId Room, long Score)? best = null;
         ReadOnlySpan<(int X, int Y)> directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
         for (int y = 0; y < grid.Height; y++)
@@ -869,12 +900,15 @@ public sealed class CampaignPlayer : IPlayerController
                     bool fresh = (end.Flags & PlayerTileFlags.Known) == 0
                         || (end.Flags & (PlayerTileFlags.Water | PlayerTileFlags.Lava)) == 0
                            && ((end.Flags & PlayerTileFlags.Diggable) != 0 || (end.Flags & PlayerTileFlags.Solid) == 0 && end.Owner != self);
-                    if (!fresh || _covered.Contains(at)) continue;
+                    // Toward an objective a span must end nearer it, and may end in a trap's reach: the attack is for that.
+                    if (!fresh || approach is null && _covered.Contains(at)) continue;
+                    if (approach is TilePos goal && PlayerActionRoutines.DistanceSquared(at, goal) >= nearest) continue;
                     RoomTypeId bridge = hazard == PlayerTileFlags.Water ? RoomTypeId.WoodenBridge : RoomTypeId.StoneBridge;
                     if (Tried(bridge).Contains(first) || Price(observation, bridge) is not long price
                         || observation.Gold.Value - price * k < keep) continue;
                     var last = new TilePos(first.X + dx * (k - 1), first.Y + dy * (k - 1));
-                    long score = (long)k * 1000 + PlayerActionRoutines.DistanceSquared(floor, home);
+                    long score = approach is TilePos target ? (long)k * 100 + PlayerActionRoutines.DistanceSquared(at, target)
+                        : (long)k * 1000 + PlayerActionRoutines.DistanceSquared(floor, home);
                     if (best is not { } b || score < b.Score) best = (first, last, bridge, score);
                 }
             }
@@ -883,9 +917,15 @@ public sealed class CampaignPlayer : IPlayerController
         actions.Add(new PlayerAction.BuildRoom(span.Room, span.From, span.To));
         _pendingRooms[span.Room] = new PendingRoom(span.From, 1, observation.Stamp.Tick, OwnedTiles(observation, span.Room));
         Tried(span.Room).Add(span.From);
-        Note($"nothing left to dig: {span.Room} from {span.From} to {span.To}");
+        Note(approach is TilePos aim ? $"toward the attack on {aim}: {span.Room} from {span.From} to {span.To}"
+            : $"nothing left to dig: {span.Room} from {span.From} to {span.To}");
         return true;
     }
+
+    /// <summary>Ticks after which spans toward an objective that came to nothing are tried again (5 game minutes).</summary>
+    private const int ApproachRetryTicks = 1200;
+
+    private GameTick _approachTriedReset;
 
     /// <summary>The longest span of water or lava the bridge routine builds in one drag.</summary>
     private const int MaxBridgeTiles = 8;
@@ -1074,6 +1114,131 @@ public sealed class CampaignPlayer : IPlayerController
         return free;
     }
 
+    /// <summary>The farthest (tiles, Chebyshev) own floor may lie from the objective for an attack to be dropped there.</summary>
+    private const int AttackDropTiles = 2;
+
+    /// <summary>How near the objective (tiles, Chebyshev) an enemy counts as its defender: weighed by the attack, not
+    /// answered by defence.</summary>
+    private const int AttackFieldTiles = 12;
+
+    /// <summary>Why the attack waits, for the hand routine's note when the hand does nothing else.</summary>
+    private string _attackNote = "";
+
+    /// <summary>Ticks the hand may gather an attack before it goes down (25 game seconds).</summary>
+    private const int AttackGatherTicks = 100;
+
+    /// <summary>Ticks after a wave went in before the next is gathered (100 game seconds).</summary>
+    private const int AttackCooldownTicks = 400;
+
+    private bool _attackLaunched, _vanguardSent, _attackGathering, _attackApproach, _attackDropping, _waveIsVanguard;
+    private int _attackWant;
+    private TilePos? _attackDrop;
+    private GameTick _attackLift;
+    private GameTick? _attackDone;
+
+    /// <summary>The attack (R20, R19, R15; Level 5 plan step 6): with no attack on the dungeon to answer and an objective
+    /// (<see cref="PlayerStrategy.AttackAt"/>), the army goes for it once ready: <see cref="PlayerStrategy.AttackParty"/>
+    /// fit fighters free whose levels outweigh half again the enemies seen near the objective, or, with the gold short of
+    /// <see cref="PlayerStrategy.AttackPaydays"/> paydays, any four. Fearless creatures go first (R15: a Fear trap does not
+    /// turn them), then every fit fighter, gathered in the hand over a few decisions and dropped together on the own
+    /// floor nearest the objective; after the first wave, every fit fighter at home follows each cooldown. Without own
+    /// floor near enough the dig heads for the objective too. Null leaves the hand to the usual answer.</summary>
+    private bool? Offence(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
+    {
+        if (_strategy.AttackParty <= 0 || _strategy.AttackAt is not TilePos objective) return null;
+        const PlayerActionKinds hand = PlayerActionKinds.PickUp | PlayerActionKinds.DropAt;
+        if ((observation.Offers.Actions & hand) == 0 && observation.HandCount == 0) return null;
+        GameTick now = observation.Stamp.Tick;
+        if (observation.HandCount > 0 && _attackGathering && _attackDrop is TilePos held)
+        {
+            // A refused drop tile is chosen afresh near the objective; with none, the usual drop takes what is held.
+            TilePos at = held;
+            if (_failedDrops.Contains(held))
+            {
+                if (PlayerActionRoutines.NearestOwnFloor(observation, objective, _failedDrops, bridges: true) is TilePos other
+                    && Chebyshev(other, objective) <= AttackDropTiles) _attackDrop = at = other;
+                else { _attackGathering = _attackDropping = false; return null; }
+            }
+            // Never lift again once part of the wave is down (a dropped fighter that walked off would be lifted again).
+            List<PlayerVisibleThing> more = _attackDropping || now.Value - _attackLift.Value > AttackGatherTicks ? [] : Wave(FreeFighters(observation, home, at));
+            if (more.Count > 0 && observation.HandCount < _attackWant && (observation.Offers.Actions & PlayerActionKinds.PickUp) != 0)
+            {
+                int lifted = 0;
+                for (int i = 0; i < more.Count && observation.HandCount + lifted < _attackWant && Fits(actions, 1); i++, lifted++)
+                    actions.Add(new PlayerAction.PickUp(more[i].Handle));
+                Note($"attack on {objective}: gathering, {observation.HandCount + lifted} of {_attackWant} in hand");
+                return true;
+            }
+            if ((observation.Offers.Actions & PlayerActionKinds.DropAt) == 0) { Note("attack: no drop offered"); return false; }
+            int released = 0;
+            while (released < observation.HandCount && Fits(actions, 1)) { actions.Add(new PlayerAction.DropAt(at)); released++; }
+            Note($"attack on {objective}: drop {released} at {at}");
+            _lastDrop = (at, observation.HandCount);
+            _attackDropping = released < observation.HandCount;
+            if (!_attackDropping)
+            {
+                _attackGathering = false;
+                _attackDone = now;
+                _attackLaunched = true;
+                if (_waveIsVanguard) _vanguardSent = true;
+            }
+            return true;
+        }
+        if (observation.HandCount > 0) return null;
+        _attackGathering = _attackDropping = false;
+
+        int fit = 0, levels = 0;
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+            if (!_options.IsWorker(creature.Type) && _options.StyleOf(creature.Type) != FightStyle.NonFighter && creature.FlowerKnown && creature.Petals >= 5)
+            { fit++; levels += creature.Level; }
+        if (PlayerActionRoutines.NearestOwnFloor(observation, objective, _failedDrops, bridges: true) is not TilePos drop
+            || Chebyshev(drop, objective) > AttackDropTiles)
+        {
+            _attackApproach = fit * 2 >= _strategy.AttackParty && levels * 2 >= _strategy.AttackLevels;
+            _attackNote = $"; attack on {objective}: no own floor within {AttackDropTiles} tiles{(_attackApproach ? ", heading for it" : "")}";
+            return null;
+        }
+        _attackApproach = false;
+        if (_attackDone is GameTick done && now.Value - done.Value < AttackCooldownTicks) return null;
+        List<PlayerVisibleThing> free = FreeFighters(observation, home, drop);
+        int enemyLevels = 0;
+        foreach (PlayerVisibleThing thing in observation.Things)
+            if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, objective) <= AttackFieldTiles) enemyLevels += Math.Max(1, thing.Level);
+        bool poor = observation.WageBill.Value > 0 && observation.Gold.Value < (long)observation.WageBill.Value * _strategy.AttackPaydays;
+        bool strong = levels * 2 >= enemyLevels * 3;
+        bool trained = levels >= _strategy.AttackLevels;
+        // After the first wave, reinforcements go in fours or more while they still outweigh what is seen (R19).
+        bool ready = _attackLaunched ? free.Count >= 4 && strong : (fit >= _strategy.AttackParty && trained && strong) || (poor && free.Count >= 4);
+        if (!ready)
+        {
+            _attackNote = $"; attack on {objective}: waiting, {fit} fit of {_strategy.AttackParty}, levels {levels} of {_strategy.AttackLevels} (against {enemyLevels} seen), {free.Count} free";
+            return null;
+        }
+        List<PlayerVisibleThing> wave = Wave(free);
+        if (wave.Count == 0 || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0) return null;
+        string why = _attackLaunched ? "reinforcing" : poor && (fit < _strategy.AttackParty || !trained) ? "the gold is short" : "the army is ready";
+        _attackWant = wave.Count;
+        _waveIsVanguard = !_vanguardSent && wave.TrueForAll(c => c.CreatureType is CreatureTypeId t && _options.Fearless.Contains(t));
+        int taken = 0;
+        for (int i = 0; i < wave.Count && Fits(actions, 1); i++, taken++) actions.Add(new PlayerAction.PickUp(wave[i].Handle));
+        _attackDrop = drop;
+        _attackLift = now;
+        _attackGathering = true;
+        Note($"attack on {objective} ({why}; levels {levels} against {enemyLevels} seen): lift {taken} of {wave.Count}{(_vanguardSent ? "" : " fearless first")} (drop at {drop})");
+        return true;
+
+        // The first wave is the fearless alone when there are any (R15), topped up only with fearless; it counts as sent
+        // once it is down. Every later wave takes all who are free.
+        List<PlayerVisibleThing> Wave(List<PlayerVisibleThing> candidates)
+        {
+            if (_vanguardSent) return candidates;
+            List<PlayerVisibleThing> fearless = candidates.FindAll(c => c.CreatureType is CreatureTypeId type && _options.Fearless.Contains(type));
+            if (fearless.Count > 0 || _attackGathering && _waveIsVanguard) return fearless;
+            _vanguardSent = true;
+            return candidates;
+        }
+    }
+
     /// <summary>Whether a siege holds the usual one-at-a-time lift back this decision.</summary>
     private bool _holdDefenders;
     private GameTick _rallyLiftTick;
@@ -1122,7 +1287,9 @@ public sealed class CampaignPlayer : IPlayerController
             foreach (PlayerVisibleThing worker in observation.Things)
             {
                 if (worker.Kind != PlayerThingKind.Creature || worker.Owner != self || worker.CreatureType is not CreatureTypeId type
-                    || !_options.IsWorker(type) || (worker.Actions & PlayerThingActions.PickUp) == 0) continue;
+                    || !_options.IsWorker(type) || (worker.Actions & PlayerThingActions.PickUp) == 0
+                    // An Imp sharing its tile with a body carries it: lifting it would drop that body (0x004647D0).
+                    || DownEnemyOn(worker.Tile)) continue;
                 long distance = PlayerActionRoutines.DistanceSquared(worker.Tile, body.Tile);
                 if (distance < best) { best = distance; imp = worker; target = body.Tile; }
             }
@@ -1134,6 +1301,14 @@ public sealed class CampaignPlayer : IPlayerController
         _captureSent[target] = observation.Stamp.Tick;
         Note($"lift the Imp at {lifted.Tile} to capture the body at {target}");
         return true;
+
+        bool DownEnemyOn(TilePos at)
+        {
+            foreach (PlayerVisibleThing other in observation.Things)
+                if (other.Kind == PlayerThingKind.Creature && other.Tile == at && PlayerActionRoutines.IsEnemy(other, self)
+                    && PlayerActionRoutines.IsDown(other)) return true;
+            return false;
+        }
 
         bool ImpOn(TilePos at)
         {
@@ -1779,6 +1954,43 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>Heal's spell id, as the Spell panel and the cast packets carry it (definition data, KEEPERSPELLS).</summary>
     private const byte HealSpell = 10;
 
+    /// <summary>Thunderbolt's spell id, as the Spell panel and the cast packets carry it (definition data, KEEPERSPELLS).</summary>
+    private const byte ThunderboltSpell = 6;
+
+    /// <summary>The strike (Level 5 plan step 4; 2026-11-17: Level 5 sat on 200k mana while its army lost at the Lord's
+    /// hall): with Thunderbolt offered, recharged and affordable without breaking the mana reserve, it hits the
+    /// highest-level enemy standing in a fight (an own fighter within the engaged distance) or within the near distance
+    /// of home, the nearest home among equals.</summary>
+    private bool Strike(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
+    {
+        if (!Fits(actions, 1) || (observation.Offers.Actions & PlayerActionKinds.CastSpell) == 0) return false;
+        PlayerSpellOffer? bolt = null;
+        foreach (PlayerSpellOffer spell in observation.Offers.Spells) if (spell.Spell == ThunderboltSpell) bolt = spell;
+        if (bolt is not PlayerSpellOffer offer || !offer.Ready || !offer.Affordable || !offer.OnCreature) return false;
+        if ((long)observation.Mana.Value - offer.Cost.Value < _strategy.ManaReserve) return false;
+        PlayerId self = observation.Stamp.Player;
+        PlayerVisibleThing? best = null;
+        foreach (PlayerVisibleThing enemy in observation.Things)
+        {
+            // Thunderbolt lands only on ground the caster owns (location selector 1, keeper-spell-casting.md section 1).
+            if (enemy.Kind != PlayerThingKind.Creature || !PlayerActionRoutines.IsThreat(observation, enemy)
+                || !observation.Tiles.Contains(enemy.Tile) || observation.Tiles[enemy.Tile].Owner != self) continue;
+            bool fight = PlayerActionRoutines.DistanceSquared(enemy.Tile, home) <= (long)_strategy.EnemyNearTiles * _strategy.EnemyNearTiles;
+            if (!fight)
+                foreach (PlayerVisibleThing own in observation.Things)
+                    if (own.Kind == PlayerThingKind.Creature && own.Owner == self && own.CreatureType is CreatureTypeId type
+                        && !_options.IsWorker(type) && Chebyshev(own.Tile, enemy.Tile) <= _options.EngagedTiles) { fight = true; break; }
+            if (!fight) continue;
+            if (best is not PlayerVisibleThing b || enemy.Level > b.Level
+                || enemy.Level == b.Level && PlayerActionRoutines.DistanceSquared(enemy.Tile, home) < PlayerActionRoutines.DistanceSquared(b.Tile, home))
+                best = enemy;
+        }
+        if (best is not PlayerVisibleThing target) return false;
+        actions.Add(new PlayerAction.CastSpell(ThunderboltSpell, Target: target.Handle));
+        Note($"Thunderbolt on the level {target.Level} enemy at {target.Tile}");
+        return true;
+    }
+
     /// <summary>Heal on the Spell panel, payable and recharged (Task 4's offers).</summary>
     private static bool HealOffered(PlayerObservation observation)
     {
@@ -1845,11 +2057,12 @@ public sealed class CampaignPlayer : IPlayerController
     {
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
-        if (_strategy.TakeAt.Count == 0 && _strategy.TakeRooms.Count == 0) return null;
+        if (_strategy.TakeAt.Count == 0 && _strategy.TakeRooms.Count == 0 && !_attackApproach) return null;
         HashSet<TilePos> reached = WalkableFromOwnFloor(grid, self);
         TilePos? best = null;
         long bestDistance = long.MaxValue;
         foreach (TilePos at in _strategy.TakeAt) Consider(at);
+        if (_attackApproach && _strategy.AttackAt is TilePos objective) Consider(objective);
         if (_strategy.TakeRooms.Count > 0)
             for (int y = 0; y < grid.Height; y++)
                 for (int x = 0; x < grid.Width; x++)

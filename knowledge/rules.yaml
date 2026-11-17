@@ -92,7 +92,8 @@ rules:
     rule: "A Fear trap scares off creatures that feel fear: break it with creatures that do not (Skeletons, any fearless type), and keep the others out of its reach until it is gone."
     source: "owner, 2026-11-17 (Level 5: the Fear traps before the Lord are meant for Skeletons; creatures attack enemy traps on their own if they can, Q873); the fact is the creature definition's IsFearless flag, which FearRules reads"
     status: proposed
-    form: { kind: manual }
+    form: { kind: built-in, path: "CampaignPlayerOptions.Fearless, the attack's first wave" }
+    note: "Built as the vanguard of the attack (Level 5 plan step 6): the fearless go first, then everyone. Level 5 seeds 1-6 won with 1-4 Skeletons; no run isolates the vanguard, so the status stays proposed."
     applies: always
 
   - id: R16
@@ -123,14 +124,15 @@ rules:
     source: "owner, 2026-11-17 (Level 5: Fear traps, then four Sentry traps and two Knights, then the Lord of the Land and his entourage, a hard fight) and R14"
     status: proposed
     form: { kind: manual }
+    note: "Built in part (Level 5 plan step 6): the whole fit army is gathered in the hand and dropped together, reinforcements follow while they outweigh what is seen. Clearing the traps, then the guards, is not built; no run isolates the gathering."
     applies: always
 
   - id: R20
     rule: "Attack when the army is at its peak, on every level: a trained, levelled, mixed army with a fighting chance against the enemies it has scouted, judged by their number, types and levels and by which creature counters which; never wait while gold or the army wastes away, and never attack before it has that chance."
     source: "owner, 2026-11-17 (\"this is always the answer, regardless of level\"); Level 5 seeds 1-3, 2026-11-17: the army peaked at 15 at tick 17500, then wages drained 94k gold to 0 by tick 30000 and 18-27 creatures a run left over pay without an attack"
     status: proposed
-    form: { kind: manual }
-    note: "needs a strength estimate from what the player sees (own and enemy creatures, their levels; scouted ground) and a counters table (R15 is one counter: fearless creatures against Fear traps)"
+    form: { kind: built-in, path: "strategy.AttackAt, AttackParty, AttackLevels, AttackPaydays and a playbook's plan attack" }
+    note: "Built (Level 5 plan step 6): the estimate is the fit fighters' summed levels against 1.5 times the enemy levels seen near the objective, or too little gold to wait; Level 5 seeds 1-6 won, where attacks at summed levels 17-25 lost the Heart (the plan holds the numbers). Not built: a counters table (R15 is one counter) and a trained, healed and rested measure (R21). Stays proposed until a run folder is kept as evidence."
     applies: always
 
   - id: R65
