@@ -208,7 +208,7 @@ These are entry points, not a new priority order.
   Q848-Q850 answered by the owner). It also places traps on the corridors the
   attacks take (`strategy.max-traps`, 8; the trap for a site follows its kind, Q851; Q852 open). The
   [economy and assault plan](plans/2026-11-16-campaign-bot-economy-and-assault.md) is built through E3, A2, A4's push and recruiting
-  (observation schema 9; Q870-Q873 answered by the owner): payday, beds, hunger and enemy traps are observed, the bot
+  (observation schema 10; Q870-Q873 answered by the owner): payday, beds, hunger and enemy traps are observed, the bot
   budgets gold, carries Heart gold to a dry Treasury, bridges water and lava when nothing is left to dig, grows the Lair
   by beds and the Hatchery by hunger (capped), builds the rooms that cap Portal creatures when nobody arrives while gold
   idles (`strategy.recruit-gold`), keeps out of enemy traps' reach, sends an assault party at them and, in a
@@ -217,9 +217,9 @@ These are entry points, not a new priority order.
   Levels 1-4 win 12 of 12 (Level 4 before 1 of 3); Level 5 0 of 3: the army now peaks at 15 (was 4), but the wages drain
   the gold to 0 by about tick 30000 and 18-27 creatures leave over pay, as the bot never attacks. Next: R20, the offence
   at the army's peak (a strength estimate, a counters table), then A3 possession, D6 attack spells that never hit
-  own creatures or walls, and D5, measuring Levels 6a, 7, 11a and 15a. R20's observation (schema 9: every creature's
-  level and petals, prisoners, the Portal's cap) exists; the estimate and the attack do not. Open owner questions: does DK2
-  pay wages from Heart gold, is a Sentry's reach its range plus two (plan, "Questions for the owner"). Guide-derived rules R21-R64 wait for the owner's review.
+  own creatures or walls, and D5, measuring Levels 6a, 7, 11a and 15a. R20's observation (schema 10: every creature's
+  level and petals, the Portal's cap; a captive is another player's creature in `Things`) exists; the estimate and the attack do not. Open owner questions: does DK2
+  pay wages from Heart gold, is a Sentry's reach its range plus two (plan, "Questions for the owner"). Guide-derived rules R21-R64 are in `knowledge/rules.yaml` as proposed (owner, 2026-11-17), their guide claims to verify in `knowledge/guides.yaml`.
   Agent supervision (now stage 4) and skirmish playtesting (stage 8) come after it.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).

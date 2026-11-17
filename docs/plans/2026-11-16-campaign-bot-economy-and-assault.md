@@ -178,7 +178,7 @@ seeds 11-20 on the levels that turn.
 
 ## Status (2026-11-16)
 
-Built: T0, E1 (payday, wage bill, Lair beds, Treasury fill, hunger; schema 7), the bank and the bridge (E2), A1 (enemy traps in view, schema 7), R20's observation groundwork (schema 9, below), A2
+Built: T0, E1 (payday, wage bill, Lair beds, Treasury fill, hunger; schema 7), the bank and the bridge (E2), A1 (enemy traps in view, schema 7), R20's observation groundwork (schema 10, below), A2
 (drops, answers and, while other ground is left, dig marks kept out of enemy traps' reach; the assault party: the whole
 party lifted in one decision or none, never while an enemy is near home, never a fighter in a fight or one whose
 flower does not show five petals), E2 (the gold budget kept after a purchase; idle gold trains below the Training
@@ -205,10 +205,11 @@ seeds 1-3, 57600-tick cap, current build with the push, bank, bridge and hatcher
   their gold and their route (Level 3 0 of 3); an assault dropped 6 tiles from its trap never arrived and was re-sent
   every 8 ticks; Lair and Hatchery growth spent the payday's gold and creatures left (54 on Level 4 seed 1). The rules
   above are the fixes.
-- Built, R20's groundwork (observation schema 9; unit tests, not yet measured on a level): every creature in view carries
+- Built, R20's groundwork (observation schema 10; unit tests, not yet measured on a level): every creature in view carries
   its flower `Level` and `Petals`, enemies included (owner, 2026-11-17; the binary agrees, 0x0048E830, STRONGLY INFERRED:
-  the Horny refusal is own-only); `PlayerObservation.Prisoners` lists other players' creatures held in the keeper's own
-  Prisons, apart from `Creatures`; the Portal's `PlayerRoomSummary` reads `Capacity` 15 for the first portal and 5 for
+  the Horny refusal is own-only); `Creatures` lists only the keeper's own, and a captive in its Prison is seen in
+  `Things` as another player's creature (schema 10 removed `Prisoners`; the creature panel lists a captive only once
+  converted, owner, 2026-11-17); the Portal's `PlayerRoomSummary` reads `Capacity` 15 for the first portal and 5 for
   each more (`PortalRules.CreatureCapacity`, applied to the portals the keeper sees it owns) and `Used` 0: the interface
   shows no "held / cap" (owner, 2026-11-17), so schema 9 dropped the count. `Recruit` estimates the arrivals held as its
   non-workers less the placed ones (the count at its first look, lowered whenever the non-workers fall below it) and
@@ -219,9 +220,12 @@ seeds 1-3, 57600-tick cap, current build with the push, bank, bridge and hatcher
 - Next: R20, the offence at the army's peak: a readiness and strength estimate from what the player sees (own and
   enemy creatures and their levels, scouted ground), a counters table (which creature beats which; R15 is one entry),
   and an attack when the estimate says the army has a fighting chance, instead of waiting while wages drain it. The
-  observation it needs exists (schema 9); the estimate and the attack do not. Then Levels 6a, 7, 11a and 15a.
-- Pending owner review, not in the repo: a draft of guide-derived rules R21-R64, a counters table and per-level notes
-  (scratchpad `guide-rules/`). R20's counters table starts from it once the owner has reviewed it.
+  observation it needs exists (schema 10); the estimate and the attack do not. Then Levels 6a, 7, 11a and 15a. R16
+  (Skeletons from prisoners) and R20 find prisoners in `Things`: another player's creatures on the keeper's own Prison
+  tiles; `Creatures` never holds them.
+- Guide-derived rules R21-R64 are in `knowledge/rules.yaml` as proposed, taken as proposed by the owner (2026-11-17). Their
+  counters, hero dislikes and claims to verify against the binary are in `knowledge/guides.yaml` (read by no code);
+  per-level notes are in [campaign-guide-levels](../research/campaign-guide-levels.md). R20's counters table starts from them.
 
 ## Questions for the owner (from the review, 2026-11-16)
 - Does a Sentry reach exactly its range plus two in play, and does a Fear or Boulder trap fire at the shorter range?
@@ -238,9 +242,9 @@ seeds 1-3, 57600-tick cap, current build with the push, bank, bridge and hatcher
   `traps.md` section 11).
 - Q873: own creatures attack an enemy trap by themselves when they can (binary-backed, ADR-0340).
 - Enemy creatures' flowers (level, petals) are always on. The Portal supports 15 creatures, 5 more for each further
-  portal. A captured hero shows in the keeper's own creature list.
-- A captive carried by an Imp to the Prison, or in the Torture Chamber, is not in the creature panel; it appears once
-  converted (built: only creatures held in a Prison are listed).
+  portal.
+- A captive carried by an Imp to the Prison, in a Prison cell, or in the Torture Chamber is not in the creature panel; it
+  appears once converted (built, schema 10: `Creatures` lists only own creatures).
 - A keeper cannot capture a Hero Portal, only destroy it, so it never raises the Portal cap.
 - Nothing in the interface shows "creatures held / cap"; the only limit shown is the Prison's capacity.
 - Only creatures that came through a Portal count toward the 15 (5 more per further portal), as `PortalRules.CreatureCount`

@@ -1,0 +1,274 @@
+# What public DK2 text guides say beyond the rules (R21-R64 live in rules.yaml). Nothing here is a game fact and
+# no code reads this file: the counters and dislikes are guide claims for the R20/R23 counters table, the
+# confirmations say how the guides bear on rules R1-R20, and every number or mechanic under facts_to_verify is
+# checked against DKII.EXE before anything leans on it (binary is king). Taken as proposed by the owner, 2026-11-17.
+# Source keys: see the R21 header in rules.yaml. Level-by-level notes: docs/research/campaign-guide-levels.md.
+
+# ---------------------------------------------------------------------------------------------------------------
+# How existing rules fare against the guides (confirms or refines). Use when reading rules.yaml.
+confirmations:
+  R1:
+    - "Hampton Level 2: Library and Training Room at least 4x4; Level 5: build rooms small at first because there is little space (H). TENSION: R1 says a room under its working size does nothing; the 'small first' advice holds only where the attraction minimum is met (L: Lair 5 tiles for Goblins; Hatchery, Training, Library minimums are rooms.yaml's)."
+    - "B Level 10: little rooms quickly to start creatures, then expand."
+  R2:
+    - "L b-enchantments-sing-song: a Library for 5-6 researchers; finish research marked '?' before ending the level or it is lost for the next. Supports R2 and R57."
+  R3:
+    - "L b-cash-mana-marvellous: gold with no Treasury space is left lying; supports growing the Treasury."
+  R4:
+    - "L k-smash-woodsong and n-conversion-cherish: a 5x5 Hatchery for Bile Demons (agrees with 25 tiles). L a-room-list instead lists Bile Demon at a 3x3 Hatchery and 9-tile Lair (older text); rooms.yaml, generated from Creatures.kwd, decides."
+  R6:
+    - "L c-creature-spell-list and d-first-person-mode: Firefly scouts lava and water; Rogue cloaks; Sight of Evil reveals ground. Adds scouts other than an Imp (a Rogue is spotted by a Guard Room's sphere)."
+  R7:
+    - "L e-combat: Training Room to 4, Combat Pit to 8, a level-8 creature stops fighting in the pit; heal at two petals; Imps carry the fallen home. Agrees. H level 15: nurse the loser."
+  R8:
+    - "L a-creature-list: ten Imps for a medium dungeon, fifteen to twenty for a sprawling one (agrees with 'never more than 15-20' and R17's ten). L a-excavation: create at least one more at once and five more when mana allows (disagrees mildly with 'buy only the minimum' while the upgrade is pending)."
+  R9:
+    - "L have-time-to-muster-a-defence...: Boulder in a long thin corridor behind a weak door; Spike in front of and behind doors; Fear then Sentry or Lightning behind it; Freeze 30 s. Agrees; see R40."
+  R10:
+    - "L b-hero-comparison-table, a-hero-list: Guards, Giants, Knights worth converting; Monks the exception; others Skeletons or Vampire food. Agrees; see R44, R45."
+  R11:
+    - "L b-cash-mana-marvellous: Create Gold and selling rooms only as a last resort. Agrees. H level 16 disagrees (see R51)."
+  R12:
+    - "L b-planning-dungeon-layouts: one tile per Lair, Lairs beside the room where creatures work, Hatchery, Treasury strips together, Guard Room outposts need their own Lairs, Hatchery and cash. B level 4: a Hatchery by each guard post. Refines 'Lair by free beds'."
+  R13:
+    - "L d-magic-items-specials: boxes sit in corners and crannies of soft rock near bedrock; Imps carry them to the Library if there is one, else leave them. Agrees. L list: Increase Mana, Increase Gold, Fortify/Unfortify Walls, Make Happy/Unhappy, Increase Level, Create Imps, Hidden Land. H and B: finish digging before killing the Lord (R57); several levels hide Increase Level items (Levels 1, 4, B 4); L 15a/15b: Level Up and Increase Mana specials north of the prison."
+  R14:
+    - "L d-snipers-shadygrove (the guide: lock Imps away, possess a Dark Elf in sniper mode to kill the lookout Dwarf, possessed Troll or group for the Cannons, two Increase Level items saved for the final assault) matches the owner's Level 4 play almost step for step."
+    - "H level 8: Imps claim up to the fort, then drop the attack force or Call to Arms; L i-aftermath-snapdragon the same. Confirms 'claim up to the enemy walls, breach, drop the whole army'."
+  R15:
+    - "Skeletons are the only creatures a Fear Trap does not affect: H level 5, 6b, 13; B level 5; L e-fear-elmshadow, g-rout-sweetwater-b. L e-fear-elmshadow adds: Imp-claimed tiles beside the trap let Skeletons attack it on their own; Skeletons attack cannons outside the dungeon when released, so clear the cannons first."
+    - "DISAGREEMENT on Level 8: H has Dark Elves snipe the Fear Trap; L says Mistresses might disable it, otherwise wait for Skeletons. Both are ways to destroy it from outside its fear."
+  R16:
+    - "H level 5, L e-fear-elmshadow, B 5: Prison on imprisonment, Imps carry the fallen in, Skeletons do not eat or sleep. L a-hero-list: Dwarves rarely rise as Skeletons, Fairies and Thieves not always (fact to verify, bears on R16's expectations)."
+  R17:
+    - "L a-creature-list: ten Imps for a medium dungeon; agrees. Also L a-excavation-and-building: surplus Imps dropped into the Heart near the end return part of their mana (fact to verify, F4)."
+  R18:
+    - "L a-room-list: Lair 5 tiles for Goblins, Training Room draws Salamanders; L k-smash-woodsong: a large Hatchery and Workshop make Trolls and Bile Demons arrive before Goblins. Agrees that the missing room, not gold, holds creatures back."
+  R19:
+    - "H level 5 describes the owner's Level 5 sequence: four Fear Traps, 2 Knights (and Sentry traps in some readings), then Knights, Mages and Dwarves through the Hero Gate, 'make sure every single creature is fighting'. L e-fear-elmshadow: muster Trolls, Goblins, Dark Elves, Warlocks, Thunderbolt Constantine on your ground."
+
+# ---------------------------------------------------------------------------------------------------------------
+# Counters: who answers what. Source keys as above. Every entry is a guide's claim; none is verified.
+counters:
+  - answer: "Skeletons (fearless)"
+    against: "Fear Trap"
+    kind: creature-vs-trap
+    source: "H level 5, 6, 13; B 5; L e-fear-elmshadow, g-rout-sweetwater-b"
+    note: "Owner R15. Releasing Skeletons also sends them at nearby cannons (L)."
+  - answer: "Dark Elf in sniper mode (possessed)"
+    against: "Fear Trap, Gas Traps, Alarm Trap, Sentry Trap, Cannons, a lookout Dwarf, Elven Archers"
+    kind: creature-vs-trap
+    source: "H level 5, 8, 13 (snipe the four Archers); L d-snipers-shadygrove, d-first-person-mode"
+    note: "Out of the trap's range, kills before the alarm sounds."
+  - answer: "Possessed Troll (Spot and Disarm Trap)"
+    against: "hidden enemy traps; Cannons (smash them)"
+    kind: creature-vs-trap
+    source: "L d-first-person-mode, d-snipers-shadygrove"
+  - answer: "Rogue (stealth, trap disabling, lock picking)"
+    against: "hidden traps, locked prisons, Guard Room alarm (but he is spotted inside a Guard Room's sphere)"
+    kind: creature-vs-trap
+    source: "L i-aftermath-snapdragon, d-first-person-mode, c-creature-spell-list"
+  - answer: "Salamanders (cross lava, ranged fire)"
+    against: "Sentry traps and Barricades over lava; doors across lava; Fire (Inferno)-resistant targets are the reverse"
+    kind: creature-vs-trap
+    source: "H level 7, 14, 20; B 7"
+    note: "Giants also cross lava (L h-caverns-emberglow): they batter doors there."
+  - answer: "Mistresses and Skeletons"
+    against: "cannons round an enemy Heart; Barricades; to scare enemy Imps out of a lair"
+    kind: creature-vs-trap
+    source: "L n-conversion-cherish, k-smash-woodsong; H level 8 (Barricades first)"
+  - answer: "Vampires"
+    against: "spike traps and cannons in a weak keep; the opposing army by terror"
+    kind: creature-vs-trap
+    source: "L m-scavenger-goldenglade"
+  - answer: "Monks"
+    against: "enemy Vampire horde"
+    kind: creature-vs-creature
+    source: "H level 13; L n-conversion-cherish, a-hero-list (Monks hate Vampires and Dark Angels and neutralise Vampires)"
+    note: "Keep Monks away from your own Vampires and Dark Angels (anger)."
+  - answer: "Healing (spell, Warlock, Monk Pray) plus Thunderbolt"
+    against: "enemy Monks that heal each other"
+    kind: creature-vs-creature
+    source: "H level 13"
+  - answer: "Thunderbolt stun then a swarm of fast, weak creatures"
+    against: "armoured, slow heroes (Knights, Guards, Giants, a Lord of the Land)"
+    kind: spell-vs-creature
+    source: "L b-hero-comparison-table (use faster, weaker troops against them with Thunderbolt), b-keepers-spell-list; H level 2, 5, 9"
+  - answer: "Turncoat"
+    against: "an invading group with Knights (mop up the rest)"
+    kind: spell-vs-creature
+    source: "L b-keepers-spell-list"
+  - answer: "superior numbers, ambushed one at a time"
+    against: "Giants early (slow, high health; they also squash Imps)"
+    kind: tactic-vs-creature
+    source: "L a-hero-list"
+    note: "Converted Giants then fill the Blocker line (L h-caverns-emberglow)."
+  - answer: "numbers and allies nearby"
+    against: "Guards and Knights, which frighten a lone Goblin or Warlock"
+    kind: tactic-vs-creature
+    source: "L a-hero-list, b-creature-comparison-table"
+  - answer: "Bile Demons and Trolls as a wall (Blockers)"
+    against: "a Lord breaking through your rooms (Voss); mass melee"
+    kind: creature-vs-creature
+    source: "L j-ambush-silverstream, a-creature-list"
+  - answer: "Dark Elf (ranged Support)"
+    against: "Elven Archers (weaker, slower, fewer skills)"
+    kind: creature-vs-creature
+    source: "L a-hero-list; H level 13"
+  - answer: "Horny"
+    against: "level-10 guard rooms and King Reginald; Stone Knights/Lords (only he can kill them); hero-gate garrisons; Level 14 Lord Tiberius"
+    kind: summon-vs-creature
+    source: "H level 14, 15, 16, 20; L s-regicide-heartland, o-reap-peachtree"
+  - answer: "Dark Angels, level 10"
+    against: "rival keepers' dungeons (Level 17)"
+    kind: creature-vs-keeper
+    source: "H level 17; L s-angelic-moonshrine"
+  - answer: "Boulder trap behind a wooden door"
+    against: "a group in a long thin corridor (the enemy attacks the weakest door)"
+    kind: trap-vs-creature
+    source: "L a-doors, have-time-to-muster..."
+  - answer: "Freeze trap"
+    against: "attackers held for your creatures to hit"
+    kind: trap-vs-creature
+    source: "L have-time-to-muster..."
+  - answer: "Fear trap with Sentry or Lightning traps behind"
+    against: "raiding parties and enemy Imps"
+    kind: trap-vs-creature
+    source: "L have-time-to-muster...; L s-angelic-moonshrine (Magic Doors and Fear Traps against enemy Imps); L l-carnage-sparklydell-a-b-and-c"
+  - answer: "Sentry trap"
+    against: "small intruders (Imps, Dwarves) only; weak against large enemies"
+    kind: trap-vs-creature
+    source: "L b-traps"
+  - answer: "Magic Door"
+    against: "enemy Imps and low-level creatures"
+    kind: trap-vs-creature
+    source: "L a-doors"
+  - answer: "Lightning trap"
+    against: "approaching enemies, stronger when they stand in water"
+    kind: trap-vs-creature
+    source: "L have-time-to-muster..."
+  - answer: "heal all and Call to Arms with level-8 army"
+    against: "the post-boss incursion of about ten level-10 heroes (Level 20)"
+    kind: spell-vs-wave
+    source: "L s-regicide-heartland"
+  - answer: "keep away from Ice traps"
+    against: "hero Ice traps that easily kill creatures (Fluttershine)"
+    kind: trap-vs-creature
+    source: "H level 15"
+
+# Heroes' hates, to read with R45. Each is a guide's Hates line (fact to verify, below).
+hero_dislikes_per_guide:
+  - "Dwarf hates Dark Elves, Bile Demons"
+  - "Elven Archer hates Dark Elves"
+  - "Wizard hates Warlocks (converted Wizard beside a Warlock incites rebellion)"
+  - "Fairy hates Mistresses, Vampires, Dark Angels"
+  - "Monk hates Vampires, Dark Angels"
+  - "Guard hates Mistresses"
+  - "Giant hates Trolls"
+  - "Knight hates Dark Knights, Goblins, Trolls"
+  - "Thief hates nothing; Dwarf likes digging; Warlock hates converted Wizards; Troll hates converted Giants"
+
+# ---------------------------------------------------------------------------------------------------------------
+# Facts the guides state (numbers and mechanics, not advice). To be verified against the binary by others; never taken
+# from the guides. Each names where it was read and which rule leans on it.
+facts_to_verify:
+  - id: F1
+    claim: "The first Portal supports 15 creatures, each further Portal adds 5, to a maximum of 25; Skeletons, Vampires and captured heroes are not counted."
+    source: "L a-excavation-and-building"
+    rules: [R55]
+  - id: F2
+    claim: "Each claimed floor tile yields 1 mana a turn; a claimed Mana Vault 100 a turn; the mana store caps at 200,000; room tiles give no more than floor tiles."
+    source: "L b-cash-mana-marvellous, a-researching-spells-and-accumulating-mana"
+    rules: [R55, R56]
+  - id: F3
+    claim: "Summon Horny costs 100,000 mana, then drains about 2,000 mana a turn after about 30 seconds; slapping him dismisses him."
+    source: "L b-keepers-spell-list; H level 14"
+    rules: [R36]
+  - id: F4
+    claim: "Keeper spell costs: Create Imp 1,500 and +1,500 each cast; Thunderbolt 6,000; Possession 500; Heal 5,000; Sight of Evil 5,000; Call to Arms 10,000; Tremor 30,000; Turncoat 20,000; Create Gold 15,000 (1,500 gold at level 1, 2,000 at level 2); Inferno 50,000 (Giants and Salamanders immune). Casting Create Imp on the Heart returns half the cost."
+    source: "L b-keepers-spell-list, a-researching-spells-and-accumulating-mana"
+    rules: [R27, R29, R30, R51]
+  - id: F5
+    claim: "Trap and door gold costs: Sentry 1,000 (5 mana a turn, 250 to fire); Fear 750; Alarm 500; Guard Post 300; Spike 750; Trigger 300; Boulder 1,500; Freeze 1,500; Lightning 3,000 (125 mana a turn); Fireburst 6,000; Wooden Door 500; Braced 1,000; Steel 1,500; Magic 6,000; Secret 3,000; Barricade 400."
+    source: "L b-traps, have-time-to-muster-a-defence..., a-doors"
+    rules: [R40, R41]
+  - id: F6
+    claim: "Room costs per tile: Lair 300, Hatchery 300, Treasury 200, Training Room 500. Attractions: Lair draws Fireflies, Goblins (5 tiles), Bile Demons (9 tiles); Hatchery draws Bile Demons at 3x3; Training Room draws Salamanders. CONFLICTS with R4 (Bile Demons need a 25-tile Hatchery); the guides' 5x5 Hatchery advice for Bile Demons in Levels 10 and 13 agrees with R4, the room list does not."
+    source: "L a-room-list; L k-smash-woodsong; L n-conversion-cherish"
+    rules: [R4, R18]
+  - id: F7
+    claim: "Training Room trains to level 4, Combat Pit to level 8 (a level-8 creature no longer fights there and is not attacked); levels 9 and 10 only from level-up items and combat; level 5 is a big power jump."
+    source: "L e-combat, 7-magic-and-mana"
+    rules: [R21]
+  - id: F8
+    claim: "A creature dropped is stunned for a time that depends on the type (Imps not, Goblins little, Bile Demons long); not stunned if dropped in a Combat Pit."
+    source: "L 7-magic-and-mana, a-creature-list, a-warcry-smilesville; H level 1"
+    rules: [R35]
+  - id: F9
+    claim: "Fear Traps affect everything except Skeletons; Skeletons attack enemy cannons outside the dungeon when released."
+    source: "H level 5; L e-fear-elmshadow"
+    rules: [R15, R37]
+  - id: F10
+    claim: "Hero kinds and how they end in a Prison: Dwarves rarely rise as Skeletons, Fairies and Thieves do not always, Wizards can; Giants, Guards, Knights, Monks convert (Monks slowly)."
+    source: "L a-hero-list"
+    rules: [R16, R44]
+  - id: F11
+    claim: "Creature roles: Blitzers Dark Angel, Dark Mistress, Skeleton, Vampire; Blockers Bile Demon, Troll, Dark Knight (and Giants, Guards, Knights as heroes); Flankers Goblin, Salamander, Rogue, Firefly; Support Warlock, Dark Elf. Threat and speed tables (Dark Angel threat 9, Bile Demon 7, Mistress 5, Skeleton 3, Goblin 2, Imp 1; Dwarf speed 7, Guard speed 3 threat 6, Knight threat 7, Royal Guard threat 8)."
+    source: "L e-combat, b-creature-comparison-table, b-hero-comparison-table"
+    rules: [R22, R24, R25]
+  - id: F12
+    claim: "Courage and fear scale with numbers; the Dungeon Heart's aura lowers enemy threat inside its radius."
+    source: "L b-creature-comparison-table, a-room-list"
+    rules: [R25]
+  - id: F13
+    claim: "Hates lines: see hero_dislikes_per_guide above; mixed rooms anger creatures."
+    source: "L a-hero-list, a-creature-list"
+    rules: [R45]
+  - id: F14
+    claim: "Level 17: ten level-10 Dark Angels come after twenty hero kills near the Temple; kills of imprisoned or tortured heroes do not count."
+    source: "L s-angelic-moonshrine; H level 17"
+    rules: [R63]
+  - id: F15
+    claim: "Timers: Level 9 about 20 minutes, Level 10 45 minutes (B: over 3 hours when patched), Level 6b a countdown to Iron Helm's flight."
+    source: "H level 9, 10; L j-ambush-silverstream, k-smash-woodsong; B 10"
+    rules: [R59, R60]
+  - id: F16
+    claim: "Dungeon Heart stores up to 16,000 gold; the player starts most levels with four Imps; Imps level by working and learn Haste (level 4+) and Teleport (9-10)."
+    source: "L a-room-list, a-excavation-and-building, a-creature-list"
+    rules: [R8, R17]
+  - id: F17
+    claim: "A creature works at 80% efficiency; a slap or a drop to the work place each add 10%. Slapping non-Imps angers them; the Dark Mistress likes it."
+    source: "L c-using-the-hand-of-evil"
+    rules: []
+  - id: F18
+    claim: "Vampires reincarnate in the Graveyard minus a level; a level-1 Vampire dies for good; a large Graveyard supports 8 Vampires, one more row 11."
+    source: "L m-scavenger-goldenglade"
+    rules: [R46]
+  - id: F19
+    claim: "A Training Room gains one training target for every three tiles of wall; a Library holds 5-6 researchers; a Workshop with 5 workers makes an item in 20-30 seconds; a 3x3 Workshop and Library suit Trolls and Warlocks."
+    source: "L a-room-list, b-enchantments-sing-song, k-smash-woodsong, b-planning-dungeon-layouts"
+    rules: [R2, R53, R54]
+  - id: F20
+    claim: "Level 3: Lord Avaricious leaves his castle only once all the gold around his keep is mined; Level 13: breaching Malleus' dungeon triggers his Vampire army; Level 14: damaging the Lair door triggers a massive hero sortie; Level 4: a lookout Dwarf's alarm; Level 8: claiming the Portal triggers an alarm."
+    source: "H level 3, 13, 14; L c-greed-ramshackle, n-conversion-cherish, d-snipers-shadygrove, i-aftermath-snapdragon"
+    rules: [R26, R39]
+  - id: F21
+    claim: "Possessing a creature raises its attack; a grouped, possessed party is braver; Dark Mistress interrogation while possessed breaks prisoners faster; Monk Pray heals a group in melee; Tremor frightens your own creatures."
+    source: "H level 5; L d-first-person-mode, e-combat, c-creature-spell-list, b-keepers-spell-list"
+    rules: [R30, R35]
+  - id: F22
+    claim: "Hero Gates cannot be destroyed; Hero Portals are disabled by claiming the land round them (a bridge if in water); Stone Knights/Lords at the end of Level 20 can be killed only by Horny."
+    source: "H level 14, 20; L 9-campaign-mode-walkthrough, s-regicide-heartland"
+    rules: [R36, R42]
+  - id: F23
+    claim: "Enemies attack the weakest door; a Secret Door seen opening in front of an enemy becomes visible and attackable; a Barricade blocks your own creatures; flyers and projectiles pass over it."
+    source: "L a-doors"
+    rules: [R41, R62]
+  - id: F24
+    claim: "Patrol parties per H: Level 13 a Wizard, two Warriors or Guards, Giants and a Monk; Level 14 a Wizard, an Elven Archer, two Giants and two Monks; Level 20 three waves from the north, then a pause, then about ten level-10 heroes after Reginald."
+    source: "H level 13, 14, 20; L s-regicide-heartland"
+    rules: [R22, R64]
+  - id: F25
+    claim: "A creature at two petals is still fighting and should be healed; at one petal it is incapacitated."
+    source: "L e-combat"
+    rules: [R7, R28]

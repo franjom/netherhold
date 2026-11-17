@@ -133,3 +133,363 @@ rules:
     note: "needs a strength estimate from what the player sees (own and enemy creatures, their levels; scouted ground) and a counters table (R15 is one counter: fearless creatures against Fear traps)"
     applies: always
 
+  # ================================================================================================================
+  # R21-R64: from public DK2 text guides, taken as proposed by the owner (2026-11-17). Judgements only: a number or
+  # mechanic a guide states is in guides.yaml under facts_to_verify, checked against the binary before any use.
+  # Source keys used in `source`:
+  #   H = Jarrod Hampton, "The Dungeon Keeper 2 Mission Guide", all 20 levels:
+  #       https://the-spoiler.com/STRATEGY/Bullfrog/dungeon.keeper2.1/Page%202.htm (redirects to https://strategygamers.com/walkthrough/dungeon-keepertm-2-2)
+  #   L = ludo.guide community "Dungeon Keeper 2" guide, https://www.ludo.guide/guide/dungeon-keeper-2/<slug> (slug named per rule)
+  #   B = BellaOnline walkthrough, levels 1-10, https://computergames.bellaonline.com/gaming/w/dungeonkeeper2/dk2walk<N>.html
+  # Unreadable: strategywiki.org (403), dungeonkeeper.fandom.com (403), pearlnightslair.neocities.org guides (404), cheatcc.com (403).
+  # Level files: see docs/research/campaign-guide-levels.md (6a/6b, 11a/b/c, 15a/15b mapped by the guides' lettering only).
+  # ---------------------------------------------------------------- attack readiness (R20 and its signals)
+  - id: R21
+    rule: "Treat the army as at its peak, and attack, only when its fighters are trained to the Training Room cap (to level 8 where a Combat Pit exists), healed and rested, mixed in roles, and in numbers that fit what you scouted."
+    source: "L e-combat (train to 4 in the Training Room, 8 in the Combat Pit, level 5 is a big jump) https://www.ludo.guide/guide/dungeon-keeper-2/e-combat; L t-brotherhood-cherry-blossom 'patience is key, train to a high level before attacking' https://www.ludo.guide/guide/dungeon-keeper-2/t-brotherhood-cherry-blossom; H level 12, 18"
+    status: proposed
+    form: { kind: manual }
+    note: "Concretises R20. The guides' own thresholds: Levels 2 and 10 level 3-4 fighters (H, L); 12 ten Skeletons and five Vampires at level 4+ (H), or eight level-4 Vampires (L); 15a/15b Black Knights, Knights, Guards, Giants at 8 and Skeletons at 4, or 20-30 level 6-8 fighters (L); 18 and 20 level 8 (L); 19 about twenty level-8 monsters plus Vampires or Skeletons (L); 11 levels 8-10 for the last keeper (L). Several guides name no number; they say to wait for the creatures to be rested and healed."
+    applies: always
+
+  - id: R22
+    rule: "Before committing, scout the defenders' composition and defences (Sight of Evil, tortured prisoners' map information, a possessed or scouting creature) and compare their types and levels with your own."
+    source: "L l-carnage-sparklydell-a-b-and-c (scout every Heart with Sight of Evil) https://www.ludo.guide/guide/dungeon-keeper-2/l-carnage-sparklydell-a-b-and-c; L b-creature-comparison-table (use speed and threat to pick the creature that answers a hero) https://www.ludo.guide/guide/dungeon-keeper-2/b-creature-comparison-table; H level 10 (interrogate prisoners for map info)"
+    status: proposed
+    form: { kind: manual }
+    note: "Extends R6 (Imp scouting). Tied to Levels 6, 10, 11, 13, 16, 18. The observation shows every creature in view with its type, level and petals (schema 8; owner: enemy flowers always show)."
+    applies: always
+
+  - id: R23
+    rule: "Bring the creature that answers each defence you scouted (the counters list) and do not start the attack without it."
+    source: "H level 5 (Skeletons for Fear Traps), 8 (Dark Elves for Gas and Fear Traps), 7 (Salamanders over lava), 13 (Monks against Vampires); L h-caverns-emberglow, n-conversion-cherish, e-fear-elmshadow"
+    status: proposed
+    form: { kind: manual }
+    note: "R15 is the Fear Trap case of this rule. See the counters section. Level-bound in the guides (5, 6b, 7, 8, 13, 20) but the pairings are general."
+    applies: always
+
+  - id: R24
+    rule: "Field a mixed force: a front of Blockers (Trolls, Bile Demons, Dark Knights, converted Giants and Guards), Blitzers (Mistresses, Skeletons, Vampires, Dark Angels) charging in, Flankers in groups, and ranged Support behind."
+    source: "L e-combat (roles: Blitzers charge, Blockers hold the line, Flankers in groups, Support ranged) https://www.ludo.guide/guide/dungeon-keeper-2/e-combat; L k-smash-woodsong (4 Bile Demons, 4 Giants, 4 Guards, 6 Mistresses, assorted Elves and Warlocks at level 3-4) https://www.ludo.guide/guide/dungeon-keeper-2/k-smash-woodsong"
+    status: proposed
+    form: { kind: manual }
+    note: "Refines R12 (melee against support ratio): the guides also want Blockers in front, not only melee in number. Tied to Level 10 (assault on Asmodeus), 8 and 7 (six or more converted Giants), 6a (five Knights, five Guards, 6-7 Skeletons)."
+    applies: always
+
+  - id: R25
+    rule: "Send the force in as one mass, because creatures' courage rises with the number around them; keep cowardly or fragile types (Goblins, Warlocks, Dark Elves) in the group or behind it, never alone in front."
+    source: "L e-combat (send in as many as possible; Warlocks not at the front) https://www.ludo.guide/guide/dungeon-keeper-2/e-combat; L b-creature-comparison-table (bravery and threat increase with numbers) https://www.ludo.guide/guide/dungeon-keeper-2/b-creature-comparison-table; H level 5 ('make sure every single creature is fighting')"
+    status: proposed
+    form: { kind: manual }
+    note: "R19 already forbids the one-at-a-time feed at a fortification; this is the general form. H level 6 and L level 10 say the same of the whole army."
+    applies: always
+
+  - id: R26
+    rule: "Provoke the enemy, then pull your creatures back onto your own traps and spells, so the fight happens where you are strongest."
+    source: "H level 5, 6 (lure the heroes back to your defences, then use Lightning Bolt), 14 (hit the door just enough to trigger the sortie, retreat, summon Horny on the sortie); L r-creep-stonekeep (his forces are slow to pursue if you retreat quickly)"
+    status: proposed
+    form: { kind: manual }
+    note: "Tied to Levels 5, 6, 14, 16. Needs the bot to withdraw a dropped group, which it can do by dropping again."
+    applies: playbook
+
+  # ---------------------------------------------------------------- spells in battle
+  - id: R27
+    rule: "Cast Lightning Bolt (Thunderbolt) on the strongest armoured enemy or boss while it stands on your claimed land, to knock it down so weaker creatures can swarm it, and cast again each time it rises."
+    source: "L b-keepers-spell-list https://www.ludo.guide/guide/dungeon-keeper-2/b-keepers-spell-list; H level 5, 9 (strike Lord Voss each time he gets up), 13"
+    status: proposed
+    form: { kind: manual }
+    note: "Confirms the owner's D6 (Lightning Strike on attackers only). The 'own land only' limit is H's wording ('once they are on your territory'); verify it. Level 9 and 5 explicit."
+    applies: always
+
+  - id: R28
+    rule: "Heal creatures during the fight while they are at two petals, and heal more often when the enemy has healers (Monks, Wizards)."
+    source: "L e-combat (two petals: heal; one petal: incapacitated) https://www.ludo.guide/guide/dungeon-keeper-2/e-combat; H level 13 (Monks heal each other: heal yours often), 17, 19"
+    status: proposed
+    form: { kind: manual }
+    note: "Confirms R7's heal at two petals, extended from the Combat Pit to every battle. Mana reserve for it is R8's."
+    applies: always
+
+  - id: R29
+    rule: "Rally the army beside a hero door with Call to Arms (or drops) before breaking it, break it with one possessed or grouped creature, and cast Call to Arms again at the enemy Heart or boss once inside."
+    source: "H level 17 (place Call to Arms near the Steel Door, then break it), 10, 11, 12, 18; L d-snipers-shadygrove (drop the army in front of the door) https://www.ludo.guide/guide/dungeon-keeper-2/d-snipers-shadygrove"
+    status: proposed
+    form: { kind: manual }
+    note: "Refines R14's 'drop the whole army on the boss' and R19. Call to Arms is a Keeper spell; its price is under facts_to_verify."
+    applies: always
+
+  - id: R30
+    rule: "Research and cast Tremor before breaching a fortified keeper's walls and doors, so the Imps and the army get through at once."
+    source: "L k-smash-woodsong https://www.ludo.guide/guide/dungeon-keeper-2/k-smash-woodsong; L t-brotherhood-cherry-blossom; L s-regicide-heartland; H level 10"
+    status: proposed
+    form: { kind: manual }
+    note: "Tied to Levels 10, 18, 20 (Tremor is introduced on 10). Tremor frightens your own creatures (L): wait for it to end."
+    applies: playbook
+
+  # ---------------------------------------------------------------- assault shape
+  - id: R31
+    rule: "Attack a fortified place from its weakest side, not through the front and its traps: breach through a side wall, a back door or the rear prisons and guard rooms."
+    source: "H level 7 (not the end with six Sentry guns), 8 (attack Titus from the left); L o-reap-peachtree (side breach of the Magic Door room), i-aftermath-snapdragon, m-scavenger-goldenglade (side of Malachi's wall), f-beseiged-sweetwater-a (rear guard rooms) https://www.ludo.guide/guide/dungeon-keeper-2/o-reap-peachtree"
+    status: proposed
+    form: { kind: manual }
+    note: "Confirms R14 (the owner digs left toward the Lord of the Land's territory on Level 4). Tied to Levels 6a, 7, 8, 12, 14."
+    applies: always
+
+  - id: R32
+    rule: "Where a fort can be reached from two sides, claim a tile behind it with an Imp over a bridge and drop part of the army there so the garrison is hit from the front and the back at once."
+    source: "L h-caverns-emberglow (bridges to both doors, drop front and back) https://www.ludo.guide/guide/dungeon-keeper-2/h-caverns-emberglow; L q-storm-fluttershine-b https://www.ludo.guide/guide/dungeon-keeper-2/q-storm-fluttershine-b; H level 7"
+    status: proposed
+    form: { kind: manual }
+    note: "Tied to Levels 7, 15b, 12. The Imp's claimed tile is what makes the drop legal (the same as R14's 'claim up to the enemy walls')."
+    applies: playbook
+
+  - id: R33
+    rule: "To eliminate a keeper, go straight for its Dungeon Heart with the whole army and ignore every other room until it falls; take the weakest neighbour first and leave the strongest for last."
+    source: "H level 10, 11 ('don't bother with anything else'), 12, 18; L l-carnage-sparklydell-a-b-and-c (weakest first, Call to Arms near the Heart) https://www.ludo.guide/guide/dungeon-keeper-2/l-carnage-sparklydell-a-b-and-c"
+    status: proposed
+    form: { kind: manual }
+    note: "Tied to Levels 10, 11a/b/c, 12, 17, 18. Disagreement on rival behaviour: L Level 18 says none of the three keepers attacks before you breach them; L Level 11 and H Level 11 expect constant attacks and Thunderbolt-casting rivals. Level-dependent, not a contradiction of the rule."
+    applies: playbook
+
+  - id: R34
+    rule: "Once the force is inside, keep it on the Heart rather than the defenders; if your own Heart is attacked while you are far from it, keep attacking when the enemy Heart or the boss is close, and race back only when it is not."
+    source: "H level 10 ('your Heart will take a long time to fall'), 15 (do not worry about your Heart if you are fighting Lord Volstag); L k-smash-woodsong (a risk you must take) https://www.ludo.guide/guide/dungeon-keeper-2/k-smash-woodsong"
+    status: proposed
+    form: { kind: manual }
+    note: "Levels 10 and 15b. How long an enemy needs to destroy a Heart is a fact to verify; the rule is only as sound as that."
+    applies: playbook
+
+  - id: R35
+    rule: "Lead a strike party by possessing one creature and grouping the rest, rather than dropping them unled; a grouped party follows its leader and is braver."
+    source: "L d-first-person-mode https://www.ludo.guide/guide/dungeon-keeper-2/d-first-person-mode; L d-snipers-shadygrove (hold 7 and click to group); L s-angelic-moonshrine; H level 4, 8, 20"
+    status: proposed
+    form: { kind: manual }
+    note: "Confirms the owner's R14 (possess one, attack the traps together). Built in the simulation, missing from the bot's interface. Tied to Levels 4, 17, 20; H level 5 says possession also 'enhances attacking ability' (fact to verify)."
+    applies: always
+
+  - id: R36
+    rule: "Keep the Horny Talisman for the strongest defenders and bosses (a hero gate's garrison, a boss with an entourage, a keeper's Heart), summon him where they stand, keep mana for a second summon, and keep him away from any hero you must capture alive."
+    source: "H level 14, 15, 16, 19 (get rid of him before he engages the Princes), 20; L o-reap-peachtree, s-regicide-heartland (only Horny can kill the Stone Knights) https://www.ludo.guide/guide/dungeon-keeper-2/s-regicide-heartland"
+    status: proposed
+    form: { kind: manual }
+    note: "Confirms the owner's D6 note (Horny for a boss, before the level ends unused). Level 14 requires him (win condition); Level 20's gate guards are immune to the army (guides' claim, verify). Level 19: Horny must not touch the Princes."
+    applies: always
+
+  # ---------------------------------------------------------------- traps, cannons, doors
+  - id: R37
+    rule: "Destroy enemy traps and cannons from outside their reach: Dark Elves sniping, a possessed Troll or fighter, Salamanders over lava, or Skeletons for Fear Traps; send Imps and weak creatures in only after they are gone."
+    source: "H level 8 (Dark Elves snipe Fear, Gas and Alarm traps), 13, 20 (Salamanders vs Sentry traps over lava), 7, 14; L d-snipers-shadygrove (Dark Elf sniper mode, possessed Troll for Cannons) https://www.ludo.guide/guide/dungeon-keeper-2/d-snipers-shadygrove"
+    status: proposed
+    form: { kind: manual }
+    note: "Confirms R14 (destroy revealed traps with a group of fighters, not Imps). R15 is the Fear Trap case. Tied to Levels 4, 7, 8, 13, 14, 20."
+    applies: always
+
+  - id: R38
+    rule: "Pre-trigger an enemy Alarm trap from a safe distance with a retreat path, or disable it early, so the garrison comes out to your army and you can count it."
+    source: "H level 8 (set it off with a possessed Salamander, retreat to your lair), 16 (set it off to see how many defenders are left); L r-creep-stonekeep (disable Alarm traps before patrols arrive) https://www.ludo.guide/guide/dungeon-keeper-2/r-creep-stonekeep"
+    status: proposed
+    form: { kind: manual }
+    note: "Tied to Levels 8, 16. Related to R26."
+    applies: playbook
+
+  - id: R39
+    rule: "Do not walk into an enemy's alert radius (a Guard Room's detection sphere, a lookout, a claimed enemy Portal) until the army is ready; an alarm brings the whole garrison."
+    source: "L i-aftermath-snapdragon (do not claim the Portal early: it sounds an alarm; sphere of alertness round Titus) https://www.ludo.guide/guide/dungeon-keeper-2/i-aftermath-snapdragon; L d-snipers-shadygrove (lock Imps away so they do not raise the alarm); L r-creep-stonekeep; L c-creature-spell-list (a Rogue is spotted in a Guard Room's sphere)"
+    status: proposed
+    form: { kind: manual }
+    note: "Confirms R14's lookout avoidance. Tied to Levels 4, 8, 16, 18 (do not dig past the lava: a Hero Gate opens)."
+    applies: always
+
+  - id: R40
+    rule: "Layer defences along each approach: a Fear trap at the front with Sentry or Lightning traps behind it, Spike traps just in front of and behind doors, a Boulder trap on a long thin corridor behind a weak door, a Freeze trap to hold attackers for your creatures."
+    source: "L have-time-to-muster-a-defence-while-the-enemy-deal (trap notes) https://www.ludo.guide/guide/dungeon-keeper-2/have-time-to-muster-a-defence-while-the-enemy-deal; L a-doors https://www.ludo.guide/guide/dungeon-keeper-2/a-doors; L n-conversion-cherish (Iron Doors, Spike, Freeze, Boulder in one funnel)"
+    status: proposed
+    form: { kind: manual }
+    note: "Refines R9 (no trap forbidden; Boulder on a long straight run, Fear in a narrow corridor); the guides add that Fear and Sentry work as a pair, which also matches the owner's Barricade-beside-Sentry/Fear pattern in the 2026-11-15 plan. The Sentry is 'not effective against larger enemies' and best against Imps and Dwarves (L b-traps https://www.ludo.guide/guide/dungeon-keeper-2/b-traps): pair it with fighters or other traps. Tied to Levels 3, 4, 13, 20."
+    applies: always
+
+  - id: R41
+    rule: "Put Steel Doors at the entrances to the Heart and the way out of the dungeon, and add an Alarm trap or Guard Post beside them so the defenders hear the attack; a Barricade slows an assault but stops your own creatures too."
+    source: "L a-doors (Steel Door for Heart entrances; Barricade: own creatures cannot pass, flyers and shots can) https://www.ludo.guide/guide/dungeon-keeper-2/a-doors; L have-time-to-muster... (Alarm trap outside indestructible Hero Gates; Guard Post sphere of detection)"
+    status: proposed
+    form: { kind: manual }
+    note: "Door and trap costs are facts to verify. Confirms the owner's Barricade pattern (R10-R14 plan); the 'decoy wooden door with a lethal trap behind' idea is one guide's claim about enemy targeting (fact to verify)."
+    applies: always
+
+  - id: R42
+    rule: "Disable a Hero Portal by having Imps claim all the land around it (a bridge round it if it stands in water); block a Hero Gate that cannot be disabled with an Alarm trap or a locked Secret Door."
+    source: "L 9-campaign-mode-walkthrough https://www.ludo.guide/guide/dungeon-keeper-2/9-campaign-mode-walkthrough; L i-aftermath-snapdragon; L r-creep-stonekeep; H level 19 (Secret Door over the gate's door), 18, 20; H level 14 (a Hero Gate cannot be destroyed)"
+    status: proposed
+    form: { kind: manual }
+    note: "Not in R1-R19. Most useful for portals behind the dungeon, where attacks come from the rear while the army faces the front (L). Tied to Levels 8, 14, 16, 18, 19, 20."
+    applies: playbook
+
+  - id: R43
+    rule: "Use bridges as a weapon: sell them to funnel an enemy into one thin tunnel, to strand a hero, or to stop enemy Imps retaking claimed ground."
+    source: "L n-conversion-cherish (sell the wooden bridges: do-or-die) https://www.ludo.guide/guide/dungeon-keeper-2/n-conversion-cherish; L r-interception-butterscotch (sell the bridge to trap a Prince); H level 7 (bait onto a bridge, sell it); L s-angelic-moonshrine (claim and sell the bridges round the Temple)"
+    status: proposed
+    form: { kind: manual }
+    note: "Tied to Levels 7, 13, 17, 19. Wooden bridges across lava burn up on their own (H, B 7): claim fast."
+    applies: playbook
+
+  # ---------------------------------------------------------------- prisoners, conversion, undead
+  - id: R44
+    rule: "Convert the heroes that add muscle or support (Giants, Guards, Knights, Royal Guards, Monks) and let Dwarves, Archers, Thieves, Wizards and Fairies starve into Skeletons or feed Vampires."
+    source: "L b-hero-comparison-table (Guards, Giants, Knights bolster the line; others best as Skeletons; Monk is the exception) https://www.ludo.guide/guide/dungeon-keeper-2/b-hero-comparison-table; L a-hero-list https://www.ludo.guide/guide/dungeon-keeper-2/a-hero-list; L h-caverns-emberglow, i-aftermath-snapdragon, f-beseiged-sweetwater-a"
+    status: proposed
+    form: { kind: manual }
+    note: "Confirms the owner's R10 (melee heroes the army lacks go to the Torture Chamber, Dwarf, Wizard, Thief stay in the Prison and starve). The guides add Giants and Monks to the converts and say Wizards are not worth converting when Warlocks are held. Tied to Levels 6a, 7, 8, 10, 13."
+    applies: always
+
+  - id: R45
+    rule: "Do not convert a hero whose hated company you already hold in numbers; keep converted heroes in rooms apart from what they hate."
+    source: "L a-hero-list (each hero's Hates line) https://www.ludo.guide/guide/dungeon-keeper-2/a-hero-list; L a-creature-list (Warlock hates converted Wizards, Troll hates converted Giants); L n-conversion-cherish (house converted heroes separately)"
+    status: proposed
+    form: { kind: manual }
+    note: "Extends R10's hated-company clause with specifics. The pairs are in facts_to_verify (hates_pairs). Examples: Wizard and Warlock, Giant and Troll, Knight and Dark Knight/Goblin/Troll, Monk and Vampire/Dark Angel, Guard and Mistress."
+    applies: always
+
+  - id: R46
+    rule: "Raise Vampires from fallen heroes that will not become Skeletons by carrying them to a Graveyard; train the Vampires, because a killed Vampire returns a level lower."
+    source: "H level 12 (prisoners that do not return as Skeletons go to the Graveyard to attract Vampires); L m-scavenger-goldenglade (Imps drag bodies to the Graveyard when there is no Prison; a killed Vampire comes back minus a level) https://www.ludo.guide/guide/dungeon-keeper-2/m-scavenger-goldenglade; L 6-the-weedy-forces-of-good (imprison, torture, then the Graveyard gives a Vampire) https://www.ludo.guide/guide/dungeon-keeper-2/6-the-weedy-forces-of-good; L t-brotherhood-cherry-blossom"
+    status: proposed
+    form: { kind: manual }
+    note: "Companion to R16 (Prison and Skeletons). Tied to Levels 12, 13, 15b, 18, 20. Graveyard size for eight and eleven Vampires: facts_to_verify."
+    applies: playbook
+
+  - id: R47
+    rule: "Torture a captured Wizard, Thief or Warlock for the map information the level needs (where a hero gate or a siege is) before spending them as Skeletons."
+    source: "H level 6, 10; L g-rout-sweetwater-b, f-beseiged-sweetwater-a https://www.ludo.guide/guide/dungeon-keeper-2/g-rout-sweetwater-b; L h-caverns-emberglow (torture Giants to find the fort)"
+    status: proposed
+    form: { kind: manual }
+    note: "Tied to Levels 6a/6b, 7, 10; in 6b time is short, so L says torture for map info or let them become Skeletons rather than convert."
+    applies: playbook
+
+  - id: R48
+    rule: "Imprison, then torture and heal, a hero you must convert alive (a Prince); have Imps standing by to drag each fallen one to the Prison at once."
+    source: "H level 19 https://the-spoiler.com/STRATEGY/Bullfrog/dungeon.keeper2.1/Page%202.htm; L r-interception-butterscotch https://www.ludo.guide/guide/dungeon-keeper-2/r-interception-butterscotch"
+    status: proposed
+    form: { kind: manual }
+    note: "Level 19 only. The win depends on none of the three dying before conversion, and on the first captive not alerting his brothers until the exits are cut (L)."
+    applies: playbook
+
+  - id: R49
+    rule: "Contact neutral creatures in enemy or hidden rooms (neutral Mistresses, a Black Knight, Skeletons, Elite Knud) as soon as reachable; touching them recruits them."
+    source: "H level 8 (three neutral Mistresses in the Torture Chamber), 5 (two friendly Skeletons behind the door); L p-crusade-fluttershine-a (rescue ten Black Knights from the prisons, free them quickly), r-interception-butterscotch (neutral Black Knight in the Combat Pit) https://www.ludo.guide/guide/dungeon-keeper-2/p-crusade-fluttershine-a"
+    status: proposed
+    form: { kind: manual }
+    note: "Tied to Levels 5, 6a, 8, 15a, 19. On 15a the imprisoned Black Knights weaken and grow angry the longer they wait (L)."
+    applies: playbook
+
+  # ---------------------------------------------------------------- economy and rooms
+  - id: R50
+    rule: "Sell captured enemy rooms you do not need (and a Workshop once the doors and traps are made) for cash, and keep your own rooms in a rim round the centre so there is less to defend."
+    source: "L r-creep-stonekeep (sell central rooms, keep a rim) https://www.ludo.guide/guide/dungeon-keeper-2/r-creep-stonekeep; L o-reap-peachtree (sell the Workshop for emergency cash); H level 13, 18 ('sell nearly everything and build a big Prison and Graveyard'); L m-scavenger-goldenglade"
+    status: proposed
+    form: { kind: manual }
+    note: "Extends R11 (gold). Selling is a gold source the owner's R11 does not name. Tied to Levels 14, 16, 18, 12."
+    applies: playbook
+
+  - id: R51
+    rule: "On a level with no income of its own, spend Create Gold as the main income only when nothing else pays and it does not drain the defence mana."
+    source: "H level 16 (Create Gold becomes the main source of income, used all the time to pay wages); L b-cash-mana-marvellous (last resort: Create Gold or sell rooms) https://www.ludo.guide/guide/dungeon-keeper-2/b-cash-mana-marvellous"
+    status: proposed
+    form: { kind: manual }
+    note: "CONTRADICTION with R11 (owner: Create Gold only in an emergency, never below the defence mana) and with L's 'last resort': H makes it the main income on Level 16, where rooms were sold and gold seams are few. Level 16 is the one level this fits; kept as playbook so R11 stays the default."
+    applies: playbook
+
+  - id: R52
+    rule: "Build a Casino when gold is plentiful and creatures that gamble (Goblins, Salamanders, Rogues, Thieves, Vampires) are bored or unhappy; it recycles gold and lifts mood, at the price of rigging it."
+    source: "L b-cash-mana-marvellous (Casino recycles gold; rigged pays but creatures are less happy) https://www.ludo.guide/guide/dungeon-keeper-2/b-cash-mana-marvellous; L a-creature-list (Goblins and Salamanders like gambling); L m-scavenger-goldenglade (small Casino for Vampires); L q-storm-fluttershine-b"
+    status: proposed
+    form: { kind: manual }
+    note: "R3 spends idle gold on the Treasury; this is the other sink. Casino size: R1 (draws nothing at 3x3 on open ground)."
+    applies: always
+
+  - id: R53
+    rule: "Size the Workshop for the workers you want (at least five Trolls or Bile Demons for a large build) and keep them fed, rested and paid in it, so traps and doors come in tens of seconds."
+    source: "L k-smash-woodsong (a Workshop for at least five workers makes items in 20-30 seconds) https://www.ludo.guide/guide/dungeon-keeper-2/k-smash-woodsong; L b-planning-dungeon-layouts (lock Trolls and Bile Demons in a one-door Workshop beside a Hatchery) https://www.ludo.guide/guide/dungeon-keeper-2/b-planning-dungeon-layouts; H level 20 (put the Bile Demons and Trolls in the Workshop)"
+    status: proposed
+    form: { kind: manual }
+    note: "A second instance of R5 (size a room for the creatures you want), after R2's Library. Tied to Levels 10, 20. Guide figure; worker count and speed are facts to verify."
+    applies: playbook
+
+  - id: R54
+    rule: "Build the Training Room against rock walls (each wall length adds a training target) and at least 3x3."
+    source: "L a-room-list https://www.ludo.guide/guide/dungeon-keeper-2/a-room-list; L b-enchantments-sing-song (walled Training Room, more targets) https://www.ludo.guide/guide/dungeon-keeper-2/b-enchantments-sing-song; L b-planning-dungeon-layouts"
+    status: proposed
+    form: { kind: manual }
+    note: "Confirms R1's note that walled rooms draw more than open floor, but for the room's work, not its attraction. The 'every three tiles of wall' figure is a fact to verify."
+    applies: always
+
+  - id: R55
+    rule: "Claim every extra Portal within reach, because each raises the cap on how many creatures you can hold; and claim every Mana Vault and as much floor as is safe, because both raise mana."
+    source: "H level 11, 12, 18, 20 (claim the Portals for more creatures); L a-excavation-and-building (portal capacity) https://www.ludo.guide/guide/dungeon-keeper-2/a-excavation-and-building; L b-cash-mana-marvellous (Vaults, claimed land); L o-reap-peachtree (claim all Mana Vaults is the sub-objective)"
+    status: proposed
+    form: { kind: manual }
+    note: "Not in R1-R19 (R18 is about a Portal that brings nobody). Capacity and mana numbers are facts to verify. Level 14 makes the Vaults an objective and the Vault rooms are bridged to if in water."
+    applies: always
+
+  - id: R56
+    rule: "Where a Temple exists, have creatures pray (thinkers and converted creatures yield most) so mana stays high enough for Horny, Heal All and Call to Arms."
+    source: "L a-researching-spells-and-accumulating-mana https://www.ludo.guide/guide/dungeon-keeper-2/a-researching-spells-and-accumulating-mana; L t-brotherhood-cherry-blossom (Temple and claimed Vaults give the mana for Horny); L s-regicide-heartland (dump creatures into the Temple for mana, Heal All)"
+    status: proposed
+    form: { kind: manual }
+    note: "Supports R8's mana reserve. Tied to Levels 18, 20. 'Dump creatures into the Temple' (L Regicide) may mean sacrifice; verify what it does before the bot does it."
+    applies: playbook
+
+  - id: R57
+    rule: "Do not kill the Lord (the win) until the level's research is complete and the hidden boxes within reach are found, because the level ends the moment he dies."
+    source: "L b-enchantments-sing-song (finish every spell marked '?' first) https://www.ludo.guide/guide/dungeon-keeper-2/b-enchantments-sing-song; L 9-campaign-mode-walkthrough; B 2, B 3, B 4 (killing the Lord ends the level at once; secrets missed); H (secrets on every level)"
+    status: proposed
+    form: { kind: manual }
+    note: "Supports R13 (special boxes) and R2 (research). Applies where the win is not forced by a timer or a hostile mechanic (Levels 9, 10 are timed). H says the secrets 'start to stick out' from Level 9 on."
+    applies: always
+
+  # ---------------------------------------------------------------- level-tied playbook rules
+  - id: R59
+    rule: "On a timed ambush level, trap and door the room the target must break through, hold the army near it, drop everyone in when he arrives, strike him with Thunderbolt, and keep barricades and traps at his exit."
+    source: "L j-ambush-silverstream https://www.ludo.guide/guide/dungeon-keeper-2/j-ambush-silverstream; H level 9 (capture the forts at the 8:00 and 4:00 marks); B 9 (trap him in the middle guard room)"
+    status: proposed
+    form: { kind: manual }
+    note: "Level 9. H and L agree; B differs only in which room. Lord Voss breaks through rooms rather than going round (L)."
+    applies: playbook
+
+  - id: R60
+    rule: "On a timed assault level, ignore the enemy's army when you cannot beat it in the time left, bridge round it, breach the keeper's walls with Tremor, and take the Heart before your own falls."
+    source: "L k-smash-woodsong (ignore Ronin) https://www.ludo.guide/guide/dungeon-keeper-2/k-smash-woodsong; H level 10; B 10"
+    status: proposed
+    form: { kind: manual }
+    note: "Level 10. The clock length differs: H and L 45 minutes, B says the patch gives over three hours; verify in the level file."
+    applies: playbook
+
+  - id: R61
+    rule: "Against an undead horde (Level 13), convert Monks and feed a funnel of traps; against a no-Portal level (12), build the Skeleton and Vampire force first and storm only when it is at strength."
+    source: "H level 13; L n-conversion-cherish https://www.ludo.guide/guide/dungeon-keeper-2/n-conversion-cherish; H level 12, L m-scavenger-goldenglade"
+    status: proposed
+    form: { kind: manual }
+    note: "Levels 12 and 13. Do not breach Malleus' dungeon early or the Vampire army is triggered too soon (H, L). Contradiction in what to do with prisoners: H Level 12 and L Level 18 favour Skeletons and Vampires with no conversion, Level 13 requires converting Monks."
+    applies: playbook
+
+  - id: R62
+    rule: "In a stealth dungeon inside a fortress (Level 16), keep Imps in a locked room and release one at a time, lock the doors you replace with Secret Doors, and claim outward from the rim."
+    source: "L r-creep-stonekeep https://www.ludo.guide/guide/dungeon-keeper-2/r-creep-stonekeep; H level 16"
+    status: proposed
+    form: { kind: manual }
+    note: "Level 16 only. A Secret Door seen opening in front of an enemy can be attacked (L a-doors)."
+    applies: playbook
+
+  - id: R63
+    rule: "To earn the Dark Angels (Level 17) kill twenty heroes in the field near their Temple, not in the Prison or Torture Chamber, then have Lairs and a Hatchery ready for ten level-10 Angels."
+    source: "L s-angelic-moonshrine https://www.ludo.guide/guide/dungeon-keeper-2/s-angelic-moonshrine; H level 17"
+    status: proposed
+    form: { kind: manual }
+    note: "CONTRADICTION: H builds a Prison and Torture Chamber on this level; L says build no Prison, because prison deaths do not count towards the twenty. L's reading is more specific; verify in the level's script."
+    applies: playbook
+
+  - id: R64
+    rule: "Seal the routes by which attack waves come with locked Secret Doors and traps once the waves have stopped, so the army can leave for the offence."
+    source: "H level 20 (after three attacks), 18 (seal the second Portal's side), 16; L s-regicide-heartland https://www.ludo.guide/guide/dungeon-keeper-2/s-regicide-heartland"
+    status: proposed
+    form: { kind: manual }
+    note: "Levels 16, 18, 20. A pause in waves (three attacks, then quiet, H) is the cue; whether the bot can see it is open."
+    applies: playbook

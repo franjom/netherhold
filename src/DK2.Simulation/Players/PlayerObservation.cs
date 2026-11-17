@@ -228,8 +228,9 @@ public sealed class PlayerObservation
     /// payday clock and wage bill, the Lair's and Treasury's fill, each creature's hunger, and other players' traps in
     /// view (economy and assault plan E1, A1); 8 the prisoners in the keeper's own Prisons, every visible creature's flower
     /// level and petals, and the Portal's creature cap (R20 groundwork); 9 drops the Portal's arrivals held, which no
-    /// screen shows (owner, 2026-11-17).</summary>
-    public const int SchemaVersion = 9;
+    /// screen shows (owner, 2026-11-17); 10 drops the prisoners, whom the creature panel lists only once converted
+    /// (owner, 2026-11-17): a captive is seen as another player's creature in <see cref="Things"/>.</summary>
+    public const int SchemaVersion = 10;
 
     public required PlayerStamp Stamp { get; init; }
     public PlayerPhase Phase { get; init; } = PlayerPhase.Playing;
@@ -252,9 +253,6 @@ public sealed class PlayerObservation
     public PlayerTileGrid Tiles { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); } = PlayerTileGrid.Empty;
     public IReadOnlyList<PlayerRoomSummary> Rooms { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerRoomSummary>();
     public IReadOnlyList<PlayerCreatureSummary> Creatures { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerCreatureSummary>();
-    /// <summary>Other players' creatures held in the keeper's own Prisons, as the creature panel lists them with the
-    /// keeper's own (owner, 2026-11-17; schema 8); never in <see cref="Creatures"/>, so no own count takes them in.</summary>
-    public IReadOnlyList<PlayerCreatureSummary> Prisoners { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerCreatureSummary>();
     public IReadOnlyList<PlayerVisibleThing> Things { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleThing>();
     /// <summary>Other players' traps in view (schema 7).</summary>
     public IReadOnlyList<PlayerVisibleTrap> EnemyTraps { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleTrap>();

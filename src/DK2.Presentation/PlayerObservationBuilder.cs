@@ -76,7 +76,6 @@ public sealed class PlayerObservationBuilder
     private readonly Dictionary<int, PlayerThingHandle> _creatureHandles = [];
     private readonly List<PlayerRoomSummary> _rooms = [];
     private readonly List<PlayerCreatureSummary> _creatures = [];
-    private readonly List<PlayerCreatureSummary> _prisoners = [];
     private readonly List<PlayerVisibleThing> _things = [];
     private readonly List<PlayerNotice> _notices = [];
     private readonly List<PlayerVisibleTrap> _enemyTraps = [];
@@ -146,7 +145,6 @@ public sealed class PlayerObservationBuilder
             Tiles = grid,
             Rooms = _rooms,
             Creatures = _creatures,
-            Prisoners = _prisoners,
             Things = _things,
             EnemyTraps = _enemyTraps,
             Notices = _notices,
@@ -267,21 +265,17 @@ public sealed class PlayerObservationBuilder
     private void CaptureCreatures(WorldState world)
     {
         _creatures.Clear();
-        _prisoners.Clear();
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.Activity == CreatureActivity.Dead) continue;
-            // Another player's creature held in one of this keeper's Prisons shows in the keeper's creature list
-            // (owner, 2026-11-17), apart from the keeper's own (schema 8).
-            bool prisoner = creature.OwnerPlayerId != _player && creature.PrisonOwnerPlayerId == _player.Value
-                && PrisonRules.IsPrisonInmate(creature);
-            if (creature.OwnerPlayerId != _player && !prisoner) continue;
+            // A captive in the keeper's own Prison is not in its creature panel until it converts (owner, 2026-11-17;
+            // schema 10): the player sees it only in the world, another player's creature on a Prison tile.
+            if (creature.OwnerPlayerId != _player || creature.Activity == CreatureActivity.Dead) continue;
             // Every own creature's place is the viewer's to know: the creature panel's Focus
             // (0x00417F60) jumps the camera to any not held or joining, prisoners included.
             TilePos? tile = creature.InHand ? null : creature.Tile;
             PlayerThingHandle? seen = _creatureHandles.TryGetValue(creature.Id, out PlayerThingHandle handle) ? handle : null;
             (int level, int petals) = Flower(creature, out PlayerCreatureMood? mood, out bool hungry);
-            (prisoner ? _prisoners : _creatures).Add(level == 0
+            _creatures.Add(level == 0
                 // Held, joining or never flowered: no hover shows a player these (0x0048E830).
                 ? new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand, seen)
                 : new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand, seen, level, petals, mood, hungry));

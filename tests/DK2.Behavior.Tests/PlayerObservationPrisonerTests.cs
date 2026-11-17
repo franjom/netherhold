@@ -10,16 +10,16 @@ using DK2.Simulation.Players;
 
 namespace DK2.Behavior.Tests;
 
-/// <summary>Schema 8 (R20 groundwork): another player's creature held in the viewer's Prison is listed apart, as the
-/// creature panel lists it (owner, 2026-11-17), and every creature in view carries its flower's level and petals, since
-/// enemies' flowers always show (owner, 2026-11-17).</summary>
+/// <summary>R20 groundwork: another player's creature held in the viewer's Prison is not in the creature panel until it
+/// converts (owner, 2026-11-17; schema 10), only in view, and every creature in view carries its flower's level and
+/// petals, since enemies' flowers always show (owner, 2026-11-17; schema 8).</summary>
 public class PlayerObservationPrisonerTests
 {
     private static PlayerObservation Observe(GameDatabase database, WorldState world) =>
         new PlayerObservationBuilder(database, PlayerObservationTests.Viewer).Capture(world, PlayerObservationTests.Stamp(world), []).Observation;
 
     [Fact]
-    public void ARivalHeldInTheViewersPrisonIsAPrisonerNeverAnOwnCreature()
+    public void ARivalHeldInTheViewersPrisonIsSeenInTheWorldNeverInTheCreaturePanel()
     {
         var (database, world) = PlayerObservationTests.World();
         CreatureState captive = world.SpawnCreature(database, PlayerObservationTests.Fighter, PlayerObservationTests.Rival, PlayerObservationTests.OwnFloor);
@@ -29,19 +29,8 @@ public class PlayerObservationPrisonerTests
 
         PlayerObservation observation = Observe(database, world);
         Assert.Empty(observation.Creatures);
-        PlayerCreatureSummary prisoner = Assert.Single(observation.Prisoners);
-        Assert.Equal((new CreatureTypeId(PlayerObservationTests.Fighter), (TilePos?)PlayerObservationTests.OwnFloor, 3),
-            (prisoner.Type, prisoner.Tile, prisoner.Level));
-
-        // Bound to the viewer but out of the cell's states (here idle, as on the way in): not listed, the panel's Prison
-        // count being the captives in a cell (PrisonRules.IsPrisonInmate, 0x00473990).
-        captive.Dk2StateId = 1;
-        Assert.Empty(Observe(database, world).Prisoners);
-
-        // Bound to another keeper's Prison: not the viewer's prisoner.
-        captive.Dk2StateId = PrisonRules.ReturningState;
-        captive.PrisonOwnerPlayerId = PlayerObservationTests.Rival.Value;
-        Assert.Empty(Observe(database, world).Prisoners);
+        PlayerVisibleThing seen = Assert.Single(observation.Things, t => t.Kind == PlayerThingKind.Creature);
+        Assert.Equal((PlayerObservationTests.Rival, PlayerObservationTests.OwnFloor, 3), (seen.Owner, seen.Tile, seen.Level));
     }
 
     [Fact]
