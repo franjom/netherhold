@@ -25,7 +25,7 @@ namespace DK2.Unity
     /// creature's <see cref="Fp32"/> position divides by <see cref="Fp32.One"/> — here and
     /// nowhere else (ADR-0001).</para>
     /// </remarks>
-    public sealed class DungeonScene : IRenderTarget
+    public sealed class DungeonScene : IRenderTarget, ISceneFrameHost
     {
         /// <summary>A floor slab's thickness: thin, so a creature on it reads as standing on it.</summary>
         private const float SlabThickness = 0.06f;
@@ -49,14 +49,16 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
-        private readonly CreatureHeadTable _creatureHeads = new CreatureHeadTable();
         private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
-        private readonly Dictionary<int, CreatureView> _creaturePoses = new Dictionary<int, CreatureView>();
         private readonly Dictionary<int, CreatureClipIdentity> _creatureClips = new Dictionary<int, CreatureClipIdentity>();
-        private double _renderSeconds;
+        // The drawn creatures, their heads, the draw clock and the frame's order (SceneFrame).
+        private readonly SceneFrame _frame;
+        // The creature the frame's steps are drawing (PlaceCreature to the next).
+        private GameObject _drawnCreature;
+        private ClassicCreatureAnimation _drawnPlayer;
 
         /// <summary>The draw clock in game seconds, as the last frame drew it; read by the game probe.</summary>
-        internal double DrawSeconds => _renderSeconds;
+        internal double DrawSeconds => _frame.DrawSeconds;
 
         internal double TerrainFlushMilliseconds => _terrain?.LastFlushMilliseconds ?? 0;
 
@@ -85,7 +87,6 @@ namespace DK2.Unity
             table = null;
             return _worldLights != null && _worldLights.TryGetVisibleTable(tile, out table);
         }
-        private readonly GemSparkleGate _gemSparkles = new GemSparkleGate();
         public System.Func<EffectTime> HeartEffectClock { get; set; } =
             () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
@@ -193,7 +194,7 @@ namespace DK2.Unity
             _picker.Begin(new HoverPickRay(ToNumerics(ray.origin), ToNumerics(ray.direction), ToNumerics(viewForward)),
                 terrainDistance, tile, ToNumerics(pointerGround), rendered, fallback, resolves, objectsOnly);
             foreach (var entry in _creatures)
-                Offer(entry.Value, new WorldHoverHit(WorldHoverKind.Creature, _creaturePoses[entry.Key].Tile, entry.Key));
+                Offer(entry.Value, new WorldHoverHit(WorldHoverKind.Creature, _frame.Creatures[new CreatureId(entry.Key)].Tile, entry.Key));
             foreach (var entry in _objects)
                 if (_objectPoses.TryGetValue(entry.Key, out ObjectView pose) && WorldHoverPicker.OffersObject(entry.Key, pose.ObjectTypeId))
                     Offer(entry.Value, new WorldHoverHit(WorldHoverKind.Object, pose.Tile, entry.Key));
@@ -202,10 +203,10 @@ namespace DK2.Unity
                     Offer(entry.Value, WorldHoverPicker.StructureHit(entry.Key, at));
             if (_picker.TryRenderedResult(out WorldHoverHit renderedHit)) return renderedHit;
 
-            foreach (var entry in _creaturePoses)
-                if (_picker.SweepsCreature(entry.Value.Tile) && _creatures.TryGetValue(entry.Key, out GameObject go)
+            foreach (var entry in _frame.Creatures)
+                if (_picker.SweepsCreature(entry.Value.Tile) && _creatures.TryGetValue(entry.Key.Value, out GameObject go)
                     && go != null && go.activeSelf)
-                    _picker.AddSweepCreature(entry.Key, entry.Value.Tile, ToNumerics(go.transform.position));
+                    _picker.AddSweepCreature(entry.Key.Value, entry.Value.Tile, ToNumerics(go.transform.position));
             foreach (var entry in _objectPoses)
                 if (_picker.SweepsObject(entry.Key, entry.Value.ObjectTypeId, entry.Value.Tile)
                     && _objects.TryGetValue(entry.Key, out GameObject go) && go != null && go.activeSelf)
@@ -331,6 +332,7 @@ namespace DK2.Unity
             TerrainLattice lattice = null, bool creatureShadows = true, bool cheapLighting = false)
         {
             _root = root;
+            _frame = new SceneFrame(this);
             _lattice = lattice;
             _worldWidth = worldWidth;
             _worldHeight = worldHeight;
@@ -418,9 +420,8 @@ namespace DK2.Unity
             if (go == null) return;
 
             _creatures[creatureId] = go;
-            _creatureHeads.Add(new CreatureId(creatureId));
             _creatureArt[creatureId] = mesh.Reference;
-            _creaturePoses[creatureId] = creature;
+            _frame.Add(new CreatureId(creatureId), creature);
             ConfigureCreatureClip(go, creatureId, creature, mesh, animation);
             if (_meshCreatures.Contains(creatureId)) _creatureShadows?.Register(go);
             PositionCreature(go, creatureId, creature, mesh.Look);
@@ -449,7 +450,7 @@ namespace DK2.Unity
             }
 
             PositionCreature(go, creatureId, creature, mesh.Look);
-            _creaturePoses[creatureId] = creature;
+            _frame.Set(new CreatureId(creatureId), creature);
             ConfigureCreatureClip(go, creatureId, creature, mesh, animation);
             if (_meshCreatures.Contains(creatureId)) return;
 
@@ -463,7 +464,7 @@ namespace DK2.Unity
         /// <summary>An effect's tie to a creature (<see cref="CreatureHeadTable.Attachment"/>). Safe from the
         /// effects' worker thread.</summary>
         public EffectAttachment CreatureAttachment(int creatureId, uint point) =>
-            _creatureHeads.Attachment(new CreatureId(creatureId), point);
+            _frame.Heads.Attachment(new CreatureId(creatureId), point);
 
         public void RemoveCreature(int creatureId) => RemoveCreature(creatureId, keepHead: false);
 
@@ -479,10 +480,8 @@ namespace DK2.Unity
             _meshCreatures.Remove(creatureId);
 
             _creatures.Remove(creatureId);
-            if (!keepHead) _creatureHeads.Remove(new CreatureId(creatureId));
-            _gemSparkles.Forget(new CreatureId(creatureId));
+            _frame.Remove(new CreatureId(creatureId), keepHead);
             _creatureArt.Remove(creatureId);
-            _creaturePoses.Remove(creatureId);
             _creatureClips.Remove(creatureId);
         }
 
@@ -495,7 +494,7 @@ namespace DK2.Unity
             using var clipScope = CreatureClipMarker.Auto();
             _creatureClips[id] = identity;
             ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
-            double startSeconds = AnimationClipRequest.StartSeconds(creature.AnimationStartedAt, _renderSeconds);
+            double startSeconds = AnimationClipRequest.StartSeconds(creature.AnimationStartedAt, _frame.DrawSeconds);
             if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops,
                 startSeconds, creature.AnimationMovementSpeed, AnimationClipRequest.Replacement(creature),
                 creature.AnimationPaused, creature.AnimationInitialMovementSpeed, footstepMarks: creature.FootstepMarks)) return;
@@ -520,7 +519,6 @@ namespace DK2.Unity
             _creatureShadows.Render(camera);
         }
 
-        private int _hiddenCreatureId;
         private readonly List<Renderer> _hiddenRenderers = new List<Renderer>();
 
         /// <summary>Leaves one creature's model out of the picture, or none with 0: the possessed
@@ -528,9 +526,9 @@ namespace DK2.Unity
         /// (possession-client.md §6). Its clip, its head point and its place go on as before.</summary>
         public void HideCreature(int creatureId)
         {
-            if (_hiddenCreatureId == creatureId) return;
-            if (_creatures.TryGetValue(_hiddenCreatureId, out GameObject shown) && shown != null) SetRenderingOff(shown, false);
-            _hiddenCreatureId = creatureId;
+            if (_frame.HiddenCreature.Value == creatureId) return;
+            if (_creatures.TryGetValue(_frame.HiddenCreature.Value, out GameObject shown) && shown != null) SetRenderingOff(shown, false);
+            _frame.HiddenCreature = new CreatureId(creatureId);
         }
 
         private void SetRenderingOff(GameObject go, bool off)
@@ -540,56 +538,87 @@ namespace DK2.Unity
             _hiddenRenderers.Clear();
         }
 
-        public void SetCreatureFrameTime(GameTick tick, float fraction)
-        {
-            _renderSeconds = PoseInterpolator.DrawSeconds(tick, fraction);
-        }
+        public void SetCreatureFrameTime(GameTick tick, float fraction) => _frame.SetFrameTime(tick, fraction);
 
         private static readonly ProfilerMarker FrameMarker = new ProfilerMarker("DK2.Scene.AnimatedFrame");
 
+        /// <summary>One drawn frame in <see cref="SceneFrame"/>'s order; this scene draws each step (ISceneFrameHost).</summary>
         public void DrawCreatureFrame(GameTick tick, float fraction)
         {
-            _hoverOverlay.BeginFrame();
             using var frameScope = FrameMarker.Auto();
-            fraction = Mathf.Clamp01(fraction);
-            SetCreatureFrameTime(tick, fraction);
+            _frame.Draw(tick, fraction);
+            _drawnCreature = null;
+            _drawnPlayer = null;
+        }
+
+        void ISceneFrameHost.BeginFrame() => _hoverOverlay.BeginFrame();
+
+        void ISceneFrameHost.AdvanceHeartHealth()
+        {
             while (_heartPulse.TryTakeHealthAdvance(out PlayerId owner, out Fp32 step))
                 foreach (KeyValuePair<int, ObjectView> heart in _objectPoses)
                     if (HeartPulse.IsHeartOf(heart.Value, owner)
                         && _objects.TryGetValue(heart.Key, out GameObject heartObject) && heartObject != null)
                         heartObject.GetComponent<ClassicCreatureAnimation>()?.AdvanceHealthPhase(step);
+            // The creature steps' span, ended by DrawObjects.
             FrameCreaturesMarker.Begin();
-            foreach (KeyValuePair<int, CreatureView> entry in _creaturePoses)
-            {
-                if (!_creatures.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
-                CreatureView pose = entry.Value;
-                Vector3 position = go.transform.position;
-                // Position only: a creature keeps its last tick's turns (PositionCreature, PoseInterpolator).
-                DrawPoint drawn = PoseInterpolator.Position(pose, fraction);
-                Vector3 ground = Ground(drawn.X, drawn.Y, drawn.Height);
-                go.transform.position = new Vector3(ground.x,
-                    _meshCreatures.Contains(entry.Key) ? ground.y : position.y, ground.z);
-                ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
-                if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
-                // Every frame: a new look or a restored model brings its own renderers.
-                if (entry.Key == _hiddenCreatureId) SetRenderingOff(go, true);
-                // 0x0043CD84: the pass tests the clip's marks at each drawn frame and requests the creature's footstep.
-                if (player != null && player.FootstepCrossing != 0 && CreatureFootstepRequested != null)
-                    CreatureFootstepRequested(entry.Key, pose, player.FootstepCrossing, go.transform.position);
-                if (pose.BurningRed) DrawHoverOverlay(new WorldHoverHit(WorldHoverKind.Creature, pose.Tile, entry.Key));
-                FrameLightningMarker.Begin();
-                Lightning?.DrawCreature(new CreatureId(entry.Key), tick, player);
-                FrameLightningMarker.End();
-                _creatureHeads.Set(new CreatureId(entry.Key), player != null
-                    && player.TryGetControlPoint(DK2.Art.Kmf.KmfControlPoint.Head, out Vector3 head)
-                        ? RenderWorld.ToNative(ToNumerics(head)) : (FpPosition3?)null);
-                // A gem carrier's sparkle at its point 10001, paced by GemSparkleGate.
-                if (pose.GemCarrier && player != null && GemSparkleRequested != null
-                    && player.TryGetControlPoint(CreatureView.GemDustSparkle.ControlPoint, out Vector3 sparkle)
-                    && _gemSparkles.TryPass(new CreatureId(entry.Key), HeartEffectClock()))
-                    GemSparkleRequested(RenderWorld.ToNative(ToNumerics(sparkle)));
-            }
+        }
+
+        bool ISceneFrameHost.PlaceCreature(CreatureId creature, in CreatureView pose, DrawPoint drawn)
+        {
+            _drawnCreature = null;
+            _drawnPlayer = null;
+            if (!_creatures.TryGetValue(creature.Value, out GameObject go) || go == null) return false;
+            _drawnCreature = go;
+            Vector3 position = go.transform.position;
+            Vector3 ground = Ground(drawn.X, drawn.Y, drawn.Height);
+            go.transform.position = new Vector3(ground.x,
+                _meshCreatures.Contains(creature.Value) ? ground.y : position.y, ground.z);
+            _drawnPlayer = go.GetComponent<ClassicCreatureAnimation>();
+            return true;
+        }
+
+        void ISceneFrameHost.DrawCreatureClip(CreatureId creature, in CreatureView pose, double seconds)
+        {
+            if (_drawnPlayer != null) _drawnPlayer.Draw(seconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
+        }
+
+        void ISceneFrameHost.HideCreatureModel(CreatureId creature) => SetRenderingOff(_drawnCreature, true);
+
+        int ISceneFrameHost.FootstepCrossing(CreatureId creature) => _drawnPlayer != null ? _drawnPlayer.FootstepCrossing : 0;
+
+        void ISceneFrameHost.RequestFootstep(CreatureId creature, in CreatureView pose, int crossing) =>
+            CreatureFootstepRequested?.Invoke(creature.Value, pose, crossing, _drawnCreature.transform.position);
+
+        void ISceneFrameHost.DrawBurningRed(CreatureId creature, in CreatureView pose) =>
+            DrawHoverOverlay(new WorldHoverHit(WorldHoverKind.Creature, pose.Tile, creature.Value));
+
+        void ISceneFrameHost.DrawCrackle(CreatureId creature, GameTick tick)
+        {
+            FrameLightningMarker.Begin();
+            Lightning?.DrawCreature(creature, tick, _drawnPlayer);
+            FrameLightningMarker.End();
+        }
+
+        bool ISceneFrameHost.TryGetControlPoint(CreatureId creature, uint point, out System.Numerics.Vector3 render)
+        {
+            render = default;
+            if (_drawnPlayer == null || !_drawnPlayer.TryGetControlPoint(point, out Vector3 world)) return false;
+            render = ToNumerics(world);
+            return true;
+        }
+
+        bool ISceneFrameHost.TakesGemSparkles => GemSparkleRequested != null;
+
+        EffectTime ISceneFrameHost.EffectClock() => HeartEffectClock();
+
+        void ISceneFrameHost.RequestGemSparkle(FpPosition3 point) => GemSparkleRequested(point);
+
+        void ISceneFrameHost.DrawObjects(GameTick tick, float fraction)
+        {
             FrameCreaturesMarker.End();
+            _drawnCreature = null;
+            _drawnPlayer = null;
             FrameObjectsMarker.Begin();
             foreach (KeyValuePair<int, ObjectView> entry in _objectPoses)
             {
@@ -601,7 +630,7 @@ namespace DK2.Unity
                     _meshObjects.Contains(entry.Key) ? ground.y : go.transform.position.y, ground.z);
                 go.transform.localRotation = RenderEulerRotation.Of(PoseInterpolator.ObjectTurn(pose, fraction));
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
-                player?.Draw(_renderSeconds, phaseStepOverride: pose.HeartVisual?.PhaseStep);
+                player?.Draw(_frame.DrawSeconds, phaseStepOverride: pose.HeartVisual?.PhaseStep);
                 if (pose.HeartVisual.HasValue && player != null && player.BeatPending)
                 {
                     HeartBeat beat = _heartPulse.TryBeat(pose, beatPending: true, go.GetComponent<Renderer>().isVisible,
@@ -615,6 +644,10 @@ namespace DK2.Unity
                 }
             }
             FrameObjectsMarker.End();
+        }
+
+        void ISceneFrameHost.RefreshTorches()
+        {
             if (_latticeDirty.AnyTouched)
             {
                 using (TorchRefreshMarker.Auto())
@@ -693,7 +726,7 @@ namespace DK2.Unity
             ObjectClipIdentity identity = AnimationClipRequest.Identity(pose, mesh.Reference);
             if (_objectClips.TryGetValue(id, out var previous) && previous == identity) return;
             _objectClips[id] = identity;
-            double startSeconds = AnimationClipRequest.StartSeconds(pose.AnimationStartedAt, _renderSeconds);
+            double startSeconds = AnimationClipRequest.StartSeconds(pose.AnimationStartedAt, _frame.DrawSeconds);
             if (_classic != null && _meshObjects.Contains(id)
                 && _classic.ConfigureAnimation(go, mesh, pose.AnimationLoops, startSeconds,
                     phaseStepOverride: pose.HeartVisual?.PhaseStep, addedLight: pose.AddedLight, initialPhase: pose.AnimationInitialPhase)) return;
@@ -956,11 +989,9 @@ namespace DK2.Unity
             _tiles.Clear();
             _furniture.Clear();
             _creatures.Clear();
-            _creatureHeads.Clear();
+            _frame.Clear();
             _creatureArt.Clear();
-            _creaturePoses.Clear();
             _creatureClips.Clear();
-            _renderSeconds = 0d;
             _objects.Clear();
             _objectPoses.Clear();
             _objectClips.Clear();

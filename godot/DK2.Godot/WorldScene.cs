@@ -26,8 +26,9 @@ namespace DK2.GodotAdapter;
 /// waving water and lava (<see cref="LiquidSurfaceField"/>), unshaded under a stand-in light, seen from the classic
 /// camera; blended faces go back to front through <see cref="BlendedTerrainStream{TMaterial}"/> (step 3d, <see cref="RunSlot"/>).
 /// Everything crosses into Godot's right-handed frame through <see cref="RightHandedFrame"/>. Objects, structures and
-/// torches are step 3f's (WorldScene.Objects.cs). Not yet drawn: creatures (no-ops here) and lighting. The host presents the world once a frame
-/// (<see cref="Present"/>), moves the camera's <see cref="Focus"/> and places it (<see cref="PlaceCamera"/>).</summary>
+/// torches are step 3f's (WorldScene.Objects.cs), creatures step 3g's (WorldScene.Creatures.cs). Not yet drawn: lighting. The
+/// host presents the world once a frame (<see cref="Present"/>), draws it (<see cref="DrawFrame"/>), moves the camera's
+/// <see cref="Focus"/> and places it (<see cref="PlaceCamera"/>), then finishes it (<see cref="FinishFrame"/>).</summary>
 public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 {
     /// <summary>Unity's camera near plane (Dungeon.unity), which the frustum is sized at.</summary>
@@ -251,18 +252,14 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         }
     }
 
-    public void CreateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation) { }
-    public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation) { }
-    public void RemoveCreature(int creatureId) { }
-
-    /// <summary>The scheduler's flush (the <see cref="ITerrainChunkSink"/> calls below upload), then the liquids' wave.</summary>
+    /// <summary>The scheduler's flush (the <see cref="ITerrainChunkSink"/> calls below upload), then the liquids' wave; the
+    /// blended stream is sorted by <see cref="FinishFrame"/>, once the frame's camera is placed.</summary>
     public void Flush()
     {
         _terrain!.Flush(this);
         _liquids!.Animate(_seconds);
         _water!.Upload(this);
         _lava!.Upload(this);
-        DrawBlended();
     }
 
     void ITerrainChunkSink.BeginChunk(int chunk)
@@ -510,7 +507,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _terrain?.JoinBuild();
         if (_presenter != null)
             GD.Print("DK2.Godot world: ", _steadyFrames, " frames without a terrain change allocated ", _steadyBytes,
-                " B in Present, ", _changeFrames, " with one ", _changeBytes, " B; collections since the level opened: ",
+                " B in Present, ", _changeFrames, " with one ", _changeBytes, " B; collections when the level opened ",
+                _collectionsAtOpen[0], "/", _collectionsAtOpen[1], "/", _collectionsAtOpen[2], " (gen0/1/2), since then: ",
                 GC.CollectionCount(0) - _collectionsAtOpen[0], " gen0, ", GC.CollectionCount(1) - _collectionsAtOpen[1], " gen1, ",
                 GC.CollectionCount(2) - _collectionsAtOpen[2], " gen2; water ", _liquids!.Water.TileCount, " tiles, lava ",
                 _liquids.Lava.TileCount, "; blended stream: ", _blendedRefreshes, " re-sorts, the first ", Milliseconds(_blendedFirstTicks),

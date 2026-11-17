@@ -56,13 +56,16 @@ public static class CreatureAnimationArt
 }
 
 /// <summary>Plays one creature's or object's type-6 clip on the draw clock: the turn catch-up, the deferred replacement,
-/// the loop beat, the footstep marks and the sampling. Render only; it allocates only when a new clip set arrives.</summary>
+/// the loop beat, the footstep marks and the sampling. Render only; it allocates a clock per started clip and a sample
+/// buffer per clip it has not drawn before, which it keeps.</summary>
 public sealed class CreatureAnimationPlayer<TResources>
 {
     private const int SegmentCount = 3;
     private const uint LightningPointLimit = 2000;
     private readonly ICreatureAnimationSurface<TResources> _surface;
     private readonly Vector3[]?[] _samples = new Vector3[SegmentCount][];
+    // Each clip's own buffer, so switching between clips of different vertex counts allocates nothing once each has played.
+    private readonly Dictionary<RenderAnimation, Vector3[]> _buffers = new();
     private readonly AnimationMarkWatcher _marks = new();
     private RenderAnimation?[]? _clips;
     private RenderAnimationClock? _clock;
@@ -235,8 +238,10 @@ public sealed class CreatureAnimationPlayer<TResources>
         for (int i = 0; i < SegmentCount; i++)
         {
             RenderAnimation? clip = i < clips.Length ? clips[i] : null;
-            if (clip != null && _samples[i]?.Length != clip.Mesh.Positions.Count)
-                _samples[i] = new Vector3[clip.Mesh.Positions.Count];
+            if (clip == null) continue;
+            if (!_buffers.TryGetValue(clip, out Vector3[]? buffer))
+                _buffers.Add(clip, buffer = new Vector3[clip.Mesh.Positions.Count]);
+            _samples[i] = buffer;
         }
         _surface.Install(clips, resources);
     }
