@@ -511,8 +511,9 @@ public class ObjectCarryingTests
         // And it is still loose, so the next imp along takes it to the same
         // library.
         Assert.True(ObjectCarryRules.IsLoose(db, book));
+        // The prepared state leaves WorkerJob, whose leave hook (0x004647D0) lets go first.
         Assert.Contains(sink.Events,
-            e => e.Kind == "object_dropped" && e.Detail.Contains("carrier_picked_up"));
+            e => e.Kind == "object_dropped" && e.Detail.Contains("left_worker_job"));
     }
 
     /// <summary>A book in the keeper's hand is off the map: no imp takes it as a fetch, and one already

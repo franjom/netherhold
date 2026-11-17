@@ -364,7 +364,7 @@ does not move it.
 - The task hold is read from the other imps' states.
 - A held crate, book or Special takes the imp's position and heading minus `0x400` (half a turn) every turn, in any state (ADR-0680, ADR-0684): `CarriedThingAttachSystem` runs `ObjectCarryRules.FollowCarrier` after the state handlers and the mover, and the view draws it at that point at the carrier's ground height, interpolated from the last tick's capture. A dragged body takes the same heading (`CarryRules.FollowCarrier`).
 - `ObjectCarryRules.Drop` sets the thing at the carrier's point and keeps its heading; the view draws a loose crate, book or Special there (`StandsAtOwnPoint`), and `CrateRules.Arrange` sets a listed crate at its tile centre, heading 0 (DK2's aim at the room's position and the three-to-a-tile draw offsets `+0x249`, `-0x249`, height `0x300` are unbuilt). The hand's drop sets the tile centre (DK2's point for it is unread).
-- Ours drops a held thing only on a hand pick-up, death, possession and the job's own ends; the worker-job leave hook's drop on every other category change is not built.
+- Ours drops a held thing on a hand pick-up, death, possession, the job's own ends and every exit from the WorkerJob category (the leave hook `0x004647D0`; ADR-0812).
 - 68's celebration takes no time: action 35 is not played, though its `random(2)` draw is (ADR-0671).
 - The eviction takes the working creature with the lowest id.
 
