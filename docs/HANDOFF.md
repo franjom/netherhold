@@ -133,16 +133,15 @@ These are entry points, not a new priority order.
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
 - Godot adapter (ADR-0805, ADR-0810): the road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md);
-  steps 1, 2, 3a, 3b and 3c are done and step 3 is in progress. Rules that were Unity-only now live in `DK2.Presentation` and both adapters call them;
+  steps 1, 2, 3a, 3b, 3c, 3d and 3e are done and step 3 is in progress. Rules that were Unity-only now live in `DK2.Presentation` and both adapters call them;
   Godot draws and forwards input (`godot/README.md` lists the scenes, files and launch arguments).
   Now in Godot: the front end; the in-game HUD, twelve panels (bottom panel, resource strip, message tabs, hover HUD, creature overview
   and query details, battle tab, options menu with its save and load and Game Options pages, full map, minimap) over a live Level1 in
-  `godot/DK2.Godot/InGameHud.tscn` (the main menu stays the default scene); Level1's terrain from the shared `TerrainTileBuilder` (`WorldScene`, 3a), rebuilt on change with its material variants and waving liquids (3c);
+  `godot/DK2.Godot/InGameHud.tscn` (the main menu stays the default scene); Level1's terrain from the shared `TerrainTileBuilder` (`WorldScene`, 3a), rebuilt on change with its material variants and waving liquids (3c), and its blended terrain drawn back to front by the shared `BlendedTerrainStream`, one instance per run with `sorting_offset` (3d); the output is in gamma space through the camera's `Environment`, so blends match Unity's;
   the camera moving through the shared rules (`ClassicCameraInput`, `CameraGlide`; every glide, the query follow and turn, the full map's
-  and the overview's focus jumps, 3b); and the minimap drawn from the live camera with its footprint (`MinimapCameraView`). Level1's
+  and the overview's focus jumps, 3b); the minimap drawn from the live camera with its footprint (`MinimapCameraView`); and the world pointer (3e): the pick ray from the placed pose (`WorldScene.TryPickRay`), tile picking and terrain hover, the hand cursor, the placement cursor and the selection cage, with tagging and placing posted through the shared `WorldPointerInput`, so the level is playable from the pointer. `--pointer-path` drives a capture's pointer from a script and never moves the owner's cursor. Level1's
   turn-400 hash is unchanged (`D7290428D81A902F`).
-  Not wired yet, by plan step: 3d blended terrain (and Godot's weaker linear-space overlay and fog blend); 3e picking, the hand cursor and placement;
-  3f objects; 3g creatures; 3h hover and the Hand; 3i lighting; 3j shadows; 3k effects and flowers; 3l lightning; 3m possession;
+  Not wired yet, by plan step: 3f objects; 3g creatures; 3h hover and the Hand; 3i lighting; 3j shadows; 3k effects and flowers; 3l lightning; 3m possession;
   3n scripted paths and the letterbox; step 4 sound, movies and subtitles (and the level sound driver). The 3D station scenery and
   most keys are also unwired (`ClassicKeyboard` reads the options and full-map keys, the save name and the key being bound so far);
   the options menu's session action after Restart, Return to Menu or Quit is dropped.
@@ -150,9 +149,10 @@ These are entry points, not a new priority order.
   `KeyCode` names, matches DK2's own ([Q857](research/open-questions.md)); whether the front end's brightness, after `PngChunks.WithoutColourSpace` drops Godot's gAMA handling,
   is Unity's ([Q859](research/open-questions.md), [0x005B6030](research/functions/005B6030.md)).
   Verified with Movie Maker captures at 1920x1080 (`godot/README.md`, *Verifying*), the rules' unit tests, the `DK2.Unity.Compile` stand-in and
-  Unity's own batch compile, `SmokeTest` and `SaveSmokeTest` run in a worktree. Live keys, edges, the wheel and a real pointer have not been driven in Godot, and Unity's
+  Unity's own batch compile, `SmokeTest` and `SaveSmokeTest` run in a worktree. Live keys, edges, the wheel and a real OS click have not been driven in Godot (the scripted pointer has), and Unity's
   Play mode is unrun; the step entries in the plan list what each capture showed and left unchecked.
-  Next is 3d: [the plan](plans/2026-11-15-godot-migration.md), [the step-3 audit](plans/2026-11-16-godot-step3-audit.md).
+  Godot's lit frames are judged against Unity's probe frames (`ClassicWorldLightingProbe`; the recipe is in the plan's step 3), and the owner found the scene too dark and bland (3i's acceptance check).
+  Next is 3f: [the plan](plans/2026-11-15-godot-migration.md), [the step-3 audit](plans/2026-11-16-godot-step3-audit.md).
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)

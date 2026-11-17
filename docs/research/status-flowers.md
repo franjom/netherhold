@@ -114,8 +114,8 @@ takes the order of the runs wholly behind its depth.
 
 That alone did not fix it (owner, 2026-11-05: still under the bars). A whole Prison fence is one
 material, so it sorted into one run that straddled the flower and drew over it. Now
-`TransparentTerrain.PlaceItems` sorts when the flowers are queued and splits every run at each
-icon's depth (`TriangleDepthOrderBuffer.Split`, one pass, no re-sort when only the flowers moved).
+`BlendedTerrainStream.PlaceItems` (shared; Unity's `TransparentTerrain` uploads) sorts when the flowers
+are queued and splits every run at each icon's depth (`TriangleDepthOrderBuffer.Split`, one pass, no re-sort when only the flowers moved).
 Each icon then sits between whole runs, as in DK2's per-triangle list.
 
 ### When an own creature's flower shows (0048E830, STRONGLY INFERRED)

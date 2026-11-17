@@ -48,7 +48,8 @@ Its metadata/camera differ; its numbers must not be mixed with the close-up.
 ## Results
 
 Medians in milliseconds. Stopwatch scopes are separate; the three profiler
-markers are nested, so Upload/Depth must not be added to the inclusive Sort.
+markers are nested, so Upload/Depth must not be added to the inclusive Sort. (Since plan step 3d the Sort span no
+longer includes the upload, so new captures are not comparable with these figures.)
 Render submission may include driver/GPU waits: it is not GPU duration, pure
 CPU execution time, a normal game frame interval, or an FPS measurement.
 

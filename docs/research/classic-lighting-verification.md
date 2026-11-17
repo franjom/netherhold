@@ -343,11 +343,14 @@ the completed screenshot was inspected. The normal run has profiling disabled.
 | Second rotation | 12.68 /20.03 | 2.82 | 4.01 /7.17 | 429022 |
 | Last idle | 7.58 /9.93 | 2.79 | 0 /0 | 144723 |
 
+Since plan step 3d the Sort span no longer includes the run upload (the sort is the shared `BlendedTerrainStream`), so
+new captures are not comparable with these figures.
+
 A separate allocation-callstack trace uses the same executable and40 labelled
 frames per phase. A65536-byte calibration array reports65568bytes including
 overhead; calibration allocations are excluded from attribution. Repeated
 AssetRef.ForCreature/AnimationFor key construction accounts for110210B/frame,
-about76% of idle allocations. TransparentTerrain sorting/run-mesh preparation
+about76% of idle allocations. TransparentTerrain (before 3d moved its rules into `BlendedTerrainStream`) sorting/run-mesh preparation
 adds273608–282166B/frame during rotation; visibility adds about13KB/frame.
 The source paths agree with independent review. These are measured recurring
 costs, not proof that every hitch has the same cause or a completed optimization.

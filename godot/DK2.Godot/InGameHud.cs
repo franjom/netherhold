@@ -37,12 +37,35 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private HudActionRouter? _router;
     /// <summary>Where the press that raised the action being applied was, for the magnifier's zoom.</summary>
     private Vector2 _actionPointer;
-    /// <summary>The overview's pickups, as Unity's runner's; no hand cursor is drawn here.</summary>
+    /// <summary>The pickups (the overview's; the Hand's world pickup is step 3h), as Unity's runner's, playing the cursor's
+    /// held state.</summary>
     private PickupFlow? _pickups;
+    /// <summary>The hand cursor's transient states (Unity's runner's <c>_cursorFeedback</c>), shared by the pickups, the world
+    /// pointer and the hover; their sounds are dropped, as no sound plays here.</summary>
+    private readonly HandCursorFeedback _cursorFeedback = new();
+    /// <summary>The cursor, placement and cage the pointer shows (DungeonRunner.CaptureWorldHover after the pick).</summary>
+    private HoverCursorResolver? _hoverCursor;
+    /// <summary>The hand's icons the placement cursor draws while it holds things.</summary>
+    private readonly HeldItemStack _heldStack = new();
+    private ClassicHandCursor? _handCursor;
+    private ClassicPlacementOverlay? _placement;
+    private InstallHandCursorSheets? _cursorSheets;
+    /// <summary>The world pick for the hover: entities join in step 3h, until then a pick is the tile under the pointer.</summary>
+    private readonly WorldHoverPicker _picker = new();
+    /// <summary>Where the hand last pointed on the map (Unity's runner's <c>_pointerWorld</c>), for the cursor's sounds.</summary>
+    private FpPosition2? _pointerWorld;
+    /// <summary>The Hand's excavation drag's far end; off the map it keeps the last tile the pointer was on.</summary>
+    private TilePos? _dragTo;
+    /// <summary>The <c>--pointer-path</c> check (audit open point 10): a scripted pointer in place of the OS one, so a capture
+    /// never moves the owner's cursor. Its frames count this scene's frames from 0.</summary>
+    private PointerScript? _pointerScript;
+    private int _scriptFrame = -1;
+    private PointerScriptSample _scripted;
+    private Vector2 _scriptPushed = new(float.NaN, float.NaN);
     /// <summary>The HUD's presses in Unity's order (DungeonRunner.QueueHudInput); this scene is its host.</summary>
     private HudPressRouter? _presses;
-    /// <summary>The query tool's and a held choice's world presses (DungeonRunner.QueuePanelWorldAction). Without picking
-    /// (plan step 3) only the right-click cancels act; a left press finds no tile.</summary>
+    /// <summary>The query tool's and a held choice's world presses (DungeonRunner.QueuePanelWorldAction), on the tile
+    /// <see cref="PointerTile"/> picks.</summary>
     private WorldClickCommands? _worldClicks;
     /// <summary>The window, whose input is read before any panel takes it.</summary>
     private Window? _window;
@@ -60,7 +83,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private readonly TickPacer _pacer = new();
     /// <summary>The frame order around this scene's HUD and input, as Unity's runner runs it (plan step 2h).</summary>
     private FrameDriver? _frameDriver;
-    /// <summary>The world pointer's gates (Unity's runner's QueueInput); without picking a press finds no tile.</summary>
+    /// <summary>The world pointer's gates (Unity's runner's QueueInput), on the tile <see cref="PointerTile"/> picks.</summary>
     private WorldPointerInput? _worldPointer;
     /// <summary>The input journal, off unless <c>--input-journal &lt;dir&gt;</c> names a folder (not Unity's variable); its
     /// keys are Godot physical keycodes (<see cref="FrameJournalSession.GodotKeyTable"/>).</summary>
@@ -157,15 +180,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
     private WorldHoverText? _typeText;
     private KeeperResourceSnapshot _resourceFacts;
-    /// <summary>The pointer in screen pixels from the top left, polled each frame as Unity reads
-    /// <c>Input.mousePosition</c> (an event a panel handles never reaches this node).</summary>
+    /// <summary>The pointer in screen pixels from the top left, sampled once at the frame's start as Unity reads
+    /// <c>Input.mousePosition</c> (an event a panel handles never reaches this node), or the scripted pointer's.</summary>
     private Vector2 _pointer;
     private bool _pointerInWindow = true;
-    /// <summary>The reach of the small pointing finger, the cursor Unity's runner shows over the HUD while nothing is held
-    /// and no spell is armed. Valid only until the runner's cursor resolution (DungeonRunner.cs, held hand, slap and tag
-    /// cursors; itself HYPOTHESIS over the HUD) moves into src in plan step 2; world hover and the hand cursor are not
-    /// ported, so today a status line or tooltip only ever shows over the HUD with nothing held.</summary>
-    private readonly float _cursorReach = HandCursor.Reach(HandCursorKind.SmallPoint);
     private double _elapsed;
 
     public override void _Ready()
@@ -262,12 +280,12 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Unity's sorting order 14, over the bottom panel (12) and the creature panels (13), as DK2 draws it over the tab
         // strip's rail; created before the tabs, as DungeonRunner creates it first.
         _worldView = new WorldView(level.Database, _viewer);
-        _pickups = new PickupFlow(_worldView, cursor: null);
+        _pickups = new PickupFlow(_worldView, _cursorFeedback);
         _presses = new HudPressRouter(_hudControls, _tools, _overviewView, _view, _pickups, _viewer, this);
         _worldClicks = new WorldClickCommands(_tools, _input, _queryView, _view, _viewer, this);
-        // No hand cursor and no hover resolver here: the cursor feedback and the cast hand are left out.
-        _worldPointer = new WorldPointerInput(_input, _tools, _presses, _worldClicks, _pickups, _worldView, cursor: null, hover: null,
-            _journal, this);
+        _hoverCursor = new HoverCursorResolver(_tools, _input, _hudControls, _view, _worldView, _cursorFeedback, _viewer);
+        _worldPointer = new WorldPointerInput(_input, _tools, _presses, _worldClicks, _pickups, _worldView, _cursorFeedback,
+            _hoverCursor, _journal, this);
         System.Numerics.Vector3 startFocus = ClassicCamera.LevelStartFocus(level.Players, _viewer,
             _simulation.World.Width, _simulation.World.Height);
         _minimap = new ClassicMinimap { Name = "Minimap" };
@@ -325,6 +343,22 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _fullMap.Open(_minimap.Model!, _art.Font, PlayerNames.From(level.Players), _sources.Texture);
         _fullMap.HoldsPresses = () => _hudControls.FullMapVisible;
         AddChild(_fullMap);
+        // On their own canvas layers over every panel: the placement cursor, then the hand over it (Unity's sorting orders
+        // 999 and 1000). The cursor's spell icon is the panel's own resource (0x0040D310 reads the same art); the held icons
+        // are a creature's Icon1Resource and an object's GuiIconResource (0x0040D450).
+        _placement = new ClassicPlacementOverlay { Name = "PlacementCursor" };
+        _placement.Open(_sources.Texture);
+        InstallBottomPanelArt panelArt = _art;
+        DK2.Art.Dk2ArtCatalogue heldArt = _sources.Catalogue;
+        _placement.Model.SpellIconName = id => panelArt.Icon(new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, id));
+        _placement.Model.CreatureIconName = id => heldArt.CreatureIcons.TryGetValue(id, out DK2.Art.Dk2ArtResource? icon) ? icon.Name : null;
+        _placement.Model.ObjectIconName = id =>
+            heldArt.Objects.TryGetValue(id, out IReadOnlyList<DK2.Art.Dk2ArtResource>? art) && art.Count > 1 ? art[1].Name : null;
+        AddChild(_placement);
+        _cursorSheets = new InstallHandCursorSheets(install, ClassicFrontEndMenuAssets.DecodePng);
+        _handCursor = new ClassicHandCursor { Name = "HandCursor" };
+        _handCursor.Open(_cursorSheets);
+        AddChild(_handCursor);
         _window = GetWindow();
         _window.WindowInput += ReadPress;
         _hudHover = new HudHoverText(_sources.Strings.Resolve);
@@ -345,6 +379,15 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // The first frame's terrain, built whole; each frame's Present pushes the changes since.
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
         _glideTo = LaunchArguments.GlideTarget(args, "--");
+        _pointerScript = LaunchArguments.PointerPath(args, "--");
+        if (_pointerScript == null && LaunchArguments.Value(args, "--pointer-path") != null)
+            GD.PushWarning("DK2.Godot: --pointer-path is malformed (LaunchArguments.ParsePointerPath); the OS pointer is used.");
+        // A scripted pointer leaves the owner's pointer as it is, and the OS mouse stops at one gate added last.
+        if (_pointerScript != null)
+        {
+            _handCursor.ManageSystemPointer = false;
+            AddChild(new ScriptedPointerGate { Name = "ScriptedPointerGate" });
+        }
         if (Array.IndexOf(args, "--query-first-creature") >= 0)
             foreach (CreatureState creature in _simulation.World.OwnedCreatures(_viewer))
             {
@@ -391,7 +434,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
             || _battles == null || _battleTab == null || _options == null || _saveLoad == null || _optionsPages == null
             || _gameOptionsPanel == null || _fullMap == null || _minimap == null || _worldView == null || _scriptedView == null
-            || _resultFlow == null || _frameDriver == null || _world == null || _leaving) return;
+            || _resultFlow == null || _frameDriver == null || _world == null || _hoverCursor == null || _handCursor == null
+            || _placement == null || _leaving) return;
+        SamplePointer();
         JournalBeginFrame(delta);
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
@@ -444,11 +489,19 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // DungeonRunner.Update's camera step, then QueueInput after the shortcuts, as there; its game options branch polls
         // the keys before they end.
         UpdateCamera(visibility, delta);
+        // The frame's one pose, which this frame's picks read; the follow below places it again only if it moved the focus.
+        _world.PlaceCamera();
         QueueInput(visibility, milliseconds);
         // The query follow (DungeonRunner.FollowQueriedCreature, after the ticks there) runs on the settled world here, so the
         // view and the minimap below draw the same focus; then the camera is placed once.
+        System.Numerics.Vector3 focus = _world.Focus;
         FollowQueriedCreature();
-        _world.PlaceCamera();
+        if (_world.Focus != focus) _world.PlaceCamera();
+        // DungeonRunner.Update before its present: the Hand's excavation drag previews its tags; off the map the far end keeps
+        // the last tile the pointer was on.
+        TilePos? dragFrom = _input.DragFrom(PlayerToolMode.Hand);
+        _dragTo = dragFrom == null ? null : PointerTile(_pointer, visibility) ?? _dragTo ?? dragFrom;
+        _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
         // DungeonRunner.Update's present: the settled world's changes, before the frame's ticks; the chunk build it
         // starts runs on the thread pool while they do (ADR-0696).
         _world.Present(_simulation.World, _elapsed);
@@ -492,14 +545,32 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _gameOptionsPanel.Draw();
         // Last, as DungeonRunner.DrawHudControls captures and draws it; the options menu hides it.
         _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility, modal);
-        // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; elsewhere
-        // nothing, because world hover needs the 3D world.
+        // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; over the world
+        // the pick, then the cursor, placement and cage (HoverCursorResolver). The world's hover text, the Hand's tint and
+        // light, the hovered creature's sound and flower stamp come with entity hover (step 3h) and lighting (3i).
         _hover.SetVisibility(visibility, milliseconds);
-        _pointer = GetViewport().GetMousePosition();
         bool inside = _pointerInWindow && GetViewport().GetVisibleRect().HasPoint(_pointer);
-        bool allowed = visibility.AllowOrdinaryInput && GetWindow().HasFocus() && inside;
-        HoverTextSnapshot hover = allowed && PointerOverHud(_pointer, visibility) ? _hudHover.Capture(this, _resourceFacts) : HoverTextSnapshot.Empty;
-        _hover.Draw(hover, _pointer, _cursorReach, milliseconds);
+        bool allowed = visibility.AllowOrdinaryInput && Focused && inside;
+        bool overHud = PointerOverHud(_pointer, visibility);
+        WorldHoverHit? pick = null;
+        if (allowed && !overHud && PointerTile(_pointer, visibility) is TilePos tile)
+        {
+            _pointerWorld = PointerPosition(_pointer, tile)
+                ?? new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
+            pick = ResolveWorldHover(_pointer, tile);
+        }
+        HoverTextSnapshot hover = allowed && overHud ? _hudHover.Capture(this, _resourceFacts) : HoverTextSnapshot.Empty;
+        HoverFeedback feedback = _hoverCursor.Resolve(_simulation.World, _simulation.Database, _simulation.Navigation,
+            new HoverCursorInput(pick, allowed, overHud, PrimaryHeld, _resourceFacts.Gold.Value, milliseconds, _pointerWorld));
+        // No sound player yet: the hover's and the cursor's requests are dropped.
+        _cursorFeedback.Sounds.Clear();
+        _handCursor.Update(feedback.Cursor, allowed, milliseconds);
+        _handCursor.Draw(_pointer);
+        _hover.Draw(hover, _pointer, feedback.TooltipReach, milliseconds);
+        PlacementFeedback placement = feedback.Placement;
+        if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(_simulation.World, _viewer, _worldView.LocalPickups);
+        _placement.Draw(allowed ? placement : PlacementFeedback.None, _pointer, overHud, _heldStack, feedback.Cursor);
+        _world.DrawCage(placement.Cage, placement.Valid, milliseconds);
 
         // DungeonRunner.Update's tick step (FrameDriver): ready drops after the input, then the tick gate (no turn runs, and
         // none accrues, while it holds), the hand-off and the clear. The frame is clamped as Unity's runner clamps it
@@ -538,7 +609,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (!_journal.Resolved)
             _journal.Open(_journalRoot, FrameJournalSession.FolderName(DateTime.UtcNow, GameSessionMode.Campaign, _levelName), JournalHeader);
         if (!_journal.Recording || _scriptedView == null) return;
-        Vector2 pointer = GetViewport().GetMousePosition();
+        Vector2 pointer = _pointer;
         HudVisibility hud = _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon);
         _journal.BeginFrame(new FrameInputRecord
         {
@@ -547,9 +618,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             Mode = FrameInputMode.Game,
             PointerX = pointer.X,
             PointerY = pointer.Y,
-            ButtonsHeld = (Input.IsMouseButtonPressed(MouseButton.Left) ? FrameMouseButtons.Primary : 0)
-                | (Input.IsMouseButtonPressed(MouseButton.Right) ? FrameMouseButtons.Secondary : 0)
-                | (Input.IsMouseButtonPressed(MouseButton.Middle) ? FrameMouseButtons.Middle : 0),
+            ButtonsHeld = (PrimaryHeld ? FrameMouseButtons.Primary : 0)
+                | ((_pointerScript != null ? _scripted.SecondaryHeld : Input.IsMouseButtonPressed(MouseButton.Right)) ? FrameMouseButtons.Secondary : 0)
+                | (_pointerScript == null && Input.IsMouseButtonPressed(MouseButton.Middle) ? FrameMouseButtons.Middle : 0),
             ButtonsDown = _journalButtonsDown,
             ButtonsUp = _journalButtonsUp,
             WheelX = _journalWheelX,
@@ -735,7 +806,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         ClassicCameraControls? controls = _world?.Controls;
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        Vector2 top = GetViewport().GetMousePosition();
+        Vector2 top = _pointer;
         // Unity's Input.mousePosition is y up; off the window the edge scroll never acts.
         System.Numerics.Vector2 pointer = _pointerInWindow ? new(top.X, height - top.Y) : new(-1, -1);
         float wheel = _cameraWheel;
@@ -762,7 +833,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _world.Focus = CameraFocus.Over(new Fp32(followed.PosX), new Fp32(followed.PosY), _world.Focus.Y);
         if (visibility.AllowOrdinaryInput && !_hudControls.Modal && width > 0 && height > 0)
         {
-            var sample = new CameraPointerSample(pointer, width, height, GetWindow().HasFocus(), PointerOverHud(top, visibility), wheel);
+            var sample = new CameraPointerSample(pointer, width, height, Focused, PointerOverHud(top, visibility), wheel);
             _world.Focus = ClassicCameraInput.Apply(controls, _world.Focus, _keyboard.Read(_settings), sample, _cameraPointer,
                 _settings.MouseSensitivity, delta);
         }
@@ -790,7 +861,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <c>Input.GetMouseButtonDown</c> sees every press; <see cref="QueueInput"/> routes it in the next frame.</summary>
     private void ReadPress(InputEvent @event)
     {
-        if (@event is not InputEventMouseButton button) return;
+        // A scripted pointer's presses are its own (SamplePointer); the OS pointer's are left out.
+        if (@event is not InputEventMouseButton button || _pointerScript != null) return;
         if (button.ButtonIndex == MouseButton.Left) { if (button.Pressed) _primaryDown = true; else _primaryUp = true; }
         else if (button.ButtonIndex == MouseButton.Right) { if (button.Pressed) _secondaryDown = true; else _secondaryUp = true; }
         // Unity's Input.mouseScrollDelta.y, summed over the frame: positive away from the user.
@@ -815,8 +887,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>DungeonRunner.QueueInput through the shared <see cref="WorldPointerInput"/> (plan step 2h): nothing while ordinary
     /// input is not allowed (the world drag is dropped), then the HUD's press in Unity's order (<see cref="HudPressRouter"/>),
     /// the query tool's and a choice's world press (<see cref="WorldClickCommands"/>), the minimap's map press
-    /// (<see cref="IWorldPointerHost.MinimapPress"/>), the tool, and a press's intent and translation, which find no tile here
-    /// (no picking before plan step 3). No possession here, so the possession gate never holds.</summary>
+    /// (<see cref="IWorldPointerHost.MinimapPress"/>), the tool, and a press's intent and translation on the picked tile (plan
+    /// step 3e). No possession here, so the possession gate never holds.</summary>
     private void QueueInput(HudVisibility visibility, long milliseconds)
     {
         KeyModifiers modifiers = _keyboard.Modifiers;
@@ -825,7 +897,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         bool primaryUp = _primaryUp, secondaryUp = _secondaryUp;
         _primaryDown = false; _secondaryDown = false; _primaryUp = false; _secondaryUp = false;
         if (_simulation == null || _worldPointer == null) return;
-        _pressPointer = GetViewport().GetMousePosition();
+        _pressPointer = _pointer;
         _pressVisibility = visibility;
         _worldPointer.Queue(new WorldPointerFrame(_viewer, visibility.AllowOrdinaryInput, Possessing: false, _hudControls.Modal, press,
             primaryUp, secondaryUp, milliseconds), _simulation.World, _simulation.Database, _pending);
@@ -839,7 +911,101 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             StartGlide(tile);
     }
 
-    FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile) => null;
+    FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile) => PointerPosition(_pressPointer, tile);
+
+    /// <summary>DungeonRunner.ScreenToTile: the tile under a screen pixel (top-left origin) by <see cref="TilePicker"/>, which
+    /// meets the columns at the heights the scene draws; null over the HUD, off the map or before the camera is placed.</summary>
+    private TilePos? PointerTile(Vector2 at, HudVisibility visibility)
+    {
+        if (PointerOverHud(at, visibility) || _world == null || _worldView == null || _simulation == null) return null;
+        if (!_world.TryPickRay(at, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction)) return null;
+        // TilePicker works in DK2's plane, Y south; the renderers' Z runs north.
+        return TilePicker.Pick(new PickRay(origin.X, origin.Y, -origin.Z, direction.X, direction.Y, -direction.Z),
+            _worldView, _simulation.World);
+    }
+
+    /// <summary>DungeonRunner.ScreenToPosition: the pointer's point on the tile's top plane, map coordinates
+    /// (<see cref="TileTopPlane.PositionOn"/>).</summary>
+    private FpPosition2? PointerPosition(Vector2 at, TilePos tile)
+    {
+        if (_world == null || _worldView == null || _simulation == null) return null;
+        if (!_world.TryPickRay(at, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction)) return null;
+        return TileTopPlane.PositionOn(origin, direction, tile, _worldView.TileAt(_simulation.World, tile.X, tile.Y).Solid);
+    }
+
+    /// <summary>DungeonRunner.ResolveWorldHover: an unexplored tile is the bare tile; else the ray's hit on the tile's top
+    /// plane bounds the pick (<see cref="WorldHoverPicker.TryCastTerrain"/>). Entities are offered to the picker in step 3h;
+    /// until then the rendered stage is empty and the sweep finds the tile.</summary>
+    private WorldHoverHit ResolveWorldHover(Vector2 at, TilePos tile)
+    {
+        var bare = new WorldHoverHit(WorldHoverKind.Tile, tile);
+        if (_simulation == null || _world == null || _worldView == null) return bare;
+        WorldState world = _simulation.World;
+        if (HoverCursorResolver.FogHit(world, _viewer, tile) is WorldHoverHit fogged) return fogged;
+        if (!_world.TryPickRay(at, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction)
+            || _world.View is not MinimapCameraView view) return bare;
+        if (!WorldHoverPicker.TryCastTerrain(origin, direction, _worldView.TileAt(world, tile.X, tile.Y).Solid,
+                out float terrainDistance, out System.Numerics.Vector3 ground))
+            return bare;
+        _picker.Begin(new HoverPickRay(origin, direction, System.Numerics.Vector3.Normalize(view.Forward)), terrainDistance, tile, ground);
+        WorldHoverHit hit = _picker.TryRenderedResult(out WorldHoverHit rendered) ? rendered : _picker.SweepResult();
+        return WorldHoverPicker.OnPointerTile(hit, tile);
+    }
+
+    /// <summary>Whether the window counts as focused: always under a scripted pointer, which a capture must not lose to
+    /// the owner's other windows.</summary>
+    private bool Focused => _pointerScript != null || GetWindow().HasFocus();
+
+    /// <summary>The primary button held, the scripted pointer's or the OS's.</summary>
+    private bool PrimaryHeld => _pointerScript != null ? _scripted.PrimaryHeld : Input.IsMouseButtonPressed(MouseButton.Left);
+
+    /// <summary>The frame's pointer: the OS pointer, or the script's sample, whose motion and presses are pushed into the
+    /// viewport for the panels and whose presses and releases are this frame's (<see cref="QueueInput"/>), as
+    /// <see cref="ReadPress"/> takes the OS's; the OS mouse stops at <see cref="ScriptedPointerGate"/>. The OS pointer is
+    /// never moved. A pushed event is a new object, so a scripted
+    /// frame that moves or presses allocates; the OS path does not.</summary>
+    private void SamplePointer()
+    {
+        if (_pointerScript == null)
+        {
+            _pointer = GetViewport().GetMousePosition();
+            return;
+        }
+        _scripted = _pointerScript.At(++_scriptFrame);
+        _pointer = new Vector2(_scripted.Position.X, _scripted.Position.Y);
+        MouseButtonMask held = (_scripted.PrimaryHeld ? MouseButtonMask.Left : 0) | (_scripted.SecondaryHeld ? MouseButtonMask.Right : 0);
+        Viewport viewport = GetViewport();
+        if (_pointer != _scriptPushed)
+        {
+            Vector2 relative = float.IsNaN(_scriptPushed.X) ? Vector2.Zero : _pointer - _scriptPushed;
+            viewport.PushInput(new InputEventMouseMotion
+            {
+                Device = ScriptedPointerGate.Device, Position = _pointer, GlobalPosition = _pointer, Relative = relative, ButtonMask = held,
+            });
+            _scriptPushed = _pointer;
+        }
+        if (_scripted.PrimaryDown) PushScriptedButton(viewport, MouseButton.Left, true, held);
+        if (_scripted.SecondaryDown) PushScriptedButton(viewport, MouseButton.Right, true, held);
+        if (_scripted.PrimaryUp) PushScriptedButton(viewport, MouseButton.Left, false, held);
+        if (_scripted.SecondaryUp) PushScriptedButton(viewport, MouseButton.Right, false, held);
+        _primaryDown |= _scripted.PrimaryDown; _primaryUp |= _scripted.PrimaryUp;
+        _secondaryDown |= _scripted.SecondaryDown; _secondaryUp |= _scripted.SecondaryUp;
+        if (!_journal.Recording) return;
+        _journalButtonsDown |= (_scripted.PrimaryDown ? FrameMouseButtons.Primary : 0) | (_scripted.SecondaryDown ? FrameMouseButtons.Secondary : 0);
+        _journalButtonsUp |= (_scripted.PrimaryUp ? FrameMouseButtons.Primary : 0) | (_scripted.SecondaryUp ? FrameMouseButtons.Secondary : 0);
+    }
+
+    private void PushScriptedButton(Viewport viewport, MouseButton button, bool pressed, MouseButtonMask held)
+    {
+        viewport.PushInput(new InputEventMouseButton
+        {
+            Device = ScriptedPointerGate.Device, Position = _pointer, GlobalPosition = _pointer, ButtonIndex = button, Pressed = pressed,
+            ButtonMask = held,
+        });
+        if (pressed)
+            GD.Print("DK2.Godot: scripted ", button.ToString(), " press at (", _pointer.X, ", ", _pointer.Y, ") on frame ", _scriptFrame,
+                ", tick ", _simulation?.World.CurrentTick.Value ?? 0);
+    }
 
     /// <summary>DungeonRunner.ApplyHudAction, through the shared <see cref="HudActionRouter"/>: the options key, the options
     /// menu's entries, the save browser's Back and Continue lines and the minimap's corners (zoom, and query and sell, which
@@ -909,10 +1075,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     KeeperResourceKind IHudPressHost.ResourceAtPointer() => _resources?.ResourceAt(_pressPointer) ?? KeeperResourceKind.None;
 
-    // What WorldClickCommands asks of this scene. There is no 3D world to pick (plan step 3), so no press finds a tile.
+    // What WorldClickCommands and WorldPointerInput ask of this scene, at this frame's press pointer.
     bool IWorldClickHost.PointerOverHud() => PointerOverHud(_pressPointer, _pressVisibility);
-    TilePos? IWorldClickHost.PointerTile() => null;
-    WorldHoverHit IWorldClickHost.Hover(TilePos tile) => new(WorldHoverKind.Tile, tile);
+    TilePos? IWorldClickHost.PointerTile() => PointerTile(_pressPointer, _pressVisibility);
+    WorldHoverHit IWorldClickHost.Hover(TilePos tile) => ResolveWorldHover(_pressPointer, tile);
     void IWorldClickHost.FollowQueriedCreature()
     {
         _glide.Stop();
@@ -937,6 +1103,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_battleTab != null) _battleTab.UiScale = scale;
         if (_overview != null) _overview.UiScale = scale;
         if (_queryPanel != null) _queryPanel.UiScale = scale;
+        if (_handCursor != null) _handCursor.UiScale = scale;
     }
 
     /// <summary>The settings file as <see cref="GameSettingsFile"/> reads it; the defaults, with a warning, when it cannot
@@ -1090,18 +1257,21 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     public override void _Notification(int what)
     {
-        // A window without focus misses the releases: the keys, the bottom panel's press and the world drag (Unity's
-        // runner's OnApplicationFocus; there is no hand cursor feedback here).
+        // A window without focus misses the releases: the keys, the hand, the bottom panel's press and the world drag
+        // (Unity's runner's OnApplicationFocus).
         if (what == NotificationApplicationFocusOut)
         {
             _keyboard.ReleaseAll();
             _journalHeld.Clear();
-            // Unity's runner's OnApplicationFocus order: the panel's press, then the world drag.
-            PointerGestures.CancelAll(_panel, _input, feedback: null);
+            // A scripted pointer keeps its gestures: the owner's other windows must not change a capture.
+            if (_pointerScript != null) return;
+            // Unity's runner's OnApplicationFocus order: the hand back to the default, the panel's press, then the world drag.
+            _handCursor?.Update(HandCursorKind.Default, false, (long)(_elapsed * 1000));
+            PointerGestures.CancelAll(_panel, _input, _cursorFeedback);
             return;
         }
         // Unity's Input.mousePosition leaves the screen with the pointer; Godot stops reporting it instead.
-        if (what == NotificationWMMouseExit) { _pointerInWindow = false; return; }
+        if (what == NotificationWMMouseExit && _pointerScript == null) { _pointerInWindow = false; return; }
         if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
         // Freed, not merely removed from the tree: a reparented scene keeps its level.
         if (what != NotificationPredelete) return;
@@ -1116,6 +1286,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
         if (_window != null && IsInstanceValid(_window)) _window.WindowInput -= ReadPress;
         _window = null; _presses = null; _worldClicks = null; _pickups = null; _worldPointer = null; _frameDriver = null;
+        _hoverCursor = null; _handCursor = null; _placement = null; _cursorFeedback.Reset();
+        _cursorSheets?.Dispose(); _cursorSheets = null;
         _roomNavigation = null; _doorNavigation = null; _trapNavigation = null; _battleNavigation = null; _world = null;
         if (_saveLoad != null)
         {

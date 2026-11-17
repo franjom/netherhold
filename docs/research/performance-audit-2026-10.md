@@ -200,7 +200,7 @@ geometry is unchanged. Cost O(total shared vertices + triangles), plus sorting
 and run uploads, even for a small moving effect. Proposed: retain static
 geometry/topology separately, merge dynamic triangles into the identical depth
 order and update only affected runs. Gain potentially high in active effects;
-measure Sort/Order/Upload markers. V high: global transparent ordering is a
+measure Sort/Order/Upload markers (since plan step 3d the Sort span no longer includes the upload, so new captures are not comparable). V high: global transparent ordering is a
 fidelity requirement; separating queues or dropping mist is not an acceptable
 shortcut. No H. Headless probe does not execute this camera callback. Current implementation and measurements: [portal arrival performance](portal-arrival-performance.md).
 

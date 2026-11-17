@@ -364,7 +364,7 @@ the tiles `CanBuild` or the span rule accepts, and with none it is invalid and u
 clamps its end to `RubberBandAreaLimit` (`PlayerInputTranslator`, as `0x00408194..0x004081FD`); the
 cursor rectangle and sell release keep the low corner (`0x0040B2B0`, `0x0040B661`, `0x004083DA`),
 the room release the anchor (`0x00408194`); ours does each.
-`ClassicTileHoverOutline` cages any rectangle; `ClassicPlacementOverlay` draws the icon beside
+`TileHoverOutline.Build` cages any rectangle (Unity's `ClassicTileHoverOutline` and Godot's `CageRibbon` upload it); `PlacementCursorHud`, as a `HudFrame` (Unity's `ClassicPlacementOverlay` and Godot's draw it), draws the icon beside
 the rendered Hand (anchor correction below), No Go over it, and the price in the gold counter's digits,
 pink, red when unaffordable, (128,255,255) for a refund. The hover cage follows `0x004096B0`
 (`HoverCageShows`, `HoverCursorResolver.HoverCaged`; in Hand mode over a dig-taggable tile, hit kind

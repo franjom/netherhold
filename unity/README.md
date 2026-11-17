@@ -268,8 +268,9 @@ these are whole-frame intervals, not GPU timings. Release builds omit the box.
 For camera-rotation stutter, pause simulation and keep focus, zoom, resolution
 and fog fixed: record5seconds idle,10seconds holding X while moving the pointer, then5seconds idle.
 Repeat the sweep to separate first-exposure allocations from recurring costs.
-Inspect `DK2.TransparentTerrain.Sort` first: a changed camera direction triggers
-global transparent-triangle sorting and run-mesh uploads. Also inspect
+Inspect `DK2.TransparentTerrain.Sort` and `DK2.TransparentTerrain.UploadRuns` first: a changed camera direction
+triggers global transparent-triangle sorting (the shared `BlendedTerrainStream`) and run-mesh uploads (since plan step
+3d the uploads are outside the Sort span). Also inspect
 `DK2.Scene.PrepareLighting` for visibility/table publication. Use CPU Timeline
 and GC allocation call stacks; a fixed-camera baseline cannot diagnose this hitch.
 

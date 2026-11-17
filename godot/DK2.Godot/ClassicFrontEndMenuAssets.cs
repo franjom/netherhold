@@ -65,7 +65,8 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
 
     public (int Width, int Height)? ImageSize(string name) => _sources.ImageSize(name);
 
-    private static RgbaImage DecodePng(byte[] bytes)
+    /// <summary>A DK2 PNG's stored bytes as RGBA, its colour-space chunks dropped (Godot's decoder would apply them).</summary>
+    internal static RgbaImage DecodePng(byte[] bytes)
     {
         using var image = new Image();
         // Stored bytes, as Unity's LoadImage reads them: most FrontEnd.WAD PNGs declare a gamma Godot would correct.

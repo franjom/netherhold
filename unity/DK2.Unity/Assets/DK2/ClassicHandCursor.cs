@@ -98,12 +98,7 @@ namespace DK2.Unity
                 throw new InvalidDataException("Cursor sheet does not match its native frame table: " + sprite.FileName);
             }
             image.filterMode = FilterMode.Bilinear; image.wrapMode = TextureWrapMode.Clamp;
-            var pixels = image.GetRawTextureData<Color32>();
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                Color32 pixel = pixels[i];
-                if (pixel.r == 0 && pixel.g == 255 && pixel.b == 0) { pixel.a = 0; pixels[i] = pixel; }
-            }
+            HudImagePixels.KeyGreen(image.GetRawTextureData<byte>().AsSpan());
             image.Apply();
             _textures.Add(kind, image);
             return image;

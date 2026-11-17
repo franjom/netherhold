@@ -35,6 +35,57 @@ public sealed record LaunchArguments(string? Level, ulong? Seed, string? Install
             ? new TilePos(x, y) : null;
     }
 
+    /// <summary>The scripted pointer a <c>pointer-path</c> argument names (<see cref="PointerScript"/>, a check that drives a
+    /// capture without the OS pointer), or null when it is absent or malformed.</summary>
+    public static PointerScript? PointerPath(IReadOnlyList<string> args, string prefix)
+    {
+        if (prefix is null) throw new ArgumentNullException(nameof(prefix));
+        return ParsePointerPath(Value(args, prefix + "pointer-path"));
+    }
+
+    /// <summary>A <see cref="PointerScript"/> from its text, or null when the text is empty or any key is malformed. Keys
+    /// are separated by <c>;</c>, each <c>frame:x,y</c> with an optional <c>:buttons</c> of <c>L</c> (primary down),
+    /// <c>l</c> (primary up), <c>R</c> and <c>r</c> (secondary), each at most once; frames are plain decimals, strictly
+    /// increasing; x and y are finite invariant-culture decimals.</summary>
+    public static PointerScript? ParsePointerPath(string? text)
+    {
+        if (text is null || text.Trim().Length == 0) return null;
+        string[] entries = text.Split(';');
+        var keys = new PointerScriptKey[entries.Length];
+        for (int i = 0; i < entries.Length; i++)
+        {
+            string[] parts = entries[i].Trim().Split(':');
+            if (parts.Length is < 2 or > 3) return null;
+            if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int frame)) return null;
+            if (i > 0 && frame <= keys[i - 1].Frame) return null;
+            string[] xy = parts[1].Split(',');
+            if (xy.Length != 2 || !Coordinate(xy[0], out float x) || !Coordinate(xy[1], out float y)) return null;
+            PointerScriptButtons buttons = PointerScriptButtons.None;
+            if (parts.Length == 3)
+            {
+                if (parts[2].Length == 0) return null;
+                foreach (char c in parts[2])
+                {
+                    PointerScriptButtons button = c switch
+                    {
+                        'L' => PointerScriptButtons.PrimaryDown,
+                        'l' => PointerScriptButtons.PrimaryUp,
+                        'R' => PointerScriptButtons.SecondaryDown,
+                        'r' => PointerScriptButtons.SecondaryUp,
+                        _ => PointerScriptButtons.None,
+                    };
+                    if (button == PointerScriptButtons.None || (buttons & button) != 0) return null;
+                    buttons |= button;
+                }
+            }
+            keys[i] = new PointerScriptKey(frame, x, y, buttons);
+        }
+        return new PointerScript(keys);
+    }
+
+    private static bool Coordinate(string text, out float value) =>
+        float.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value) && float.IsFinite(value);
+
     /// <summary>The argument after the first <paramref name="key"/>, or null when the key is absent or last.</summary>
     public static string? Value(IReadOnlyList<string> args, string key)
     {

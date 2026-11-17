@@ -32,8 +32,20 @@ public static class HudImagePixels
             case HudImageVariant.TalismanArc: Talisman(rgba, width, height, image.Pieces, false, into); break;
             case HudImageVariant.TalismanQuarter: Talisman(rgba, width, height, image.Pieces, true, into); break;
             case HudImageVariant.Gauge: Gauge(rgba, width, height, image.Gauge, into); break;
+            case HudImageVariant.GreenKey:
+                Buffer.BlockCopy(rgba, 0, into, 0, rgba.Length);
+                KeyGreen(into.AsSpan(0, rgba.Length));
+                break;
             default: throw new ArgumentOutOfRangeException(nameof(image), image.Variant, null);
         }
+    }
+
+    /// <summary>The hand cursor sheets' key, in place: a pure green pixel (0, 255, 0) turns transparent and keeps its
+    /// colour; every other pixel is left as it is. Out of Unity's <c>ClassicHandCursor.Sheet</c> (plan step 3e).</summary>
+    public static void KeyGreen(Span<byte> rgba)
+    {
+        for (int i = 0; i + 3 < rgba.Length; i += 4)
+            if (rgba[i] == 0 && rgba[i + 1] == 255 && rgba[i + 2] == 0) rgba[i + 3] = 0;
     }
 
     /// <summary>Keeps the pixels within <paramref name="pieces"/> quarters swept clockwise on screen from
