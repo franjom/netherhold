@@ -34,6 +34,17 @@ public sealed class HoverOverlayPlan
         return !redAlreadyDrawn || coversBlended;
     }
 
+    /// <summary>Whether a hit of <paramref name="kind"/> has a model the overlay draws over: a creature, an object, a door
+    /// or a trap.</summary>
+    public static bool Overlays(WorldHoverKind kind) =>
+        kind is WorldHoverKind.Creature or WorldHoverKind.Object or WorldHoverKind.Door or WorldHoverKind.Trap;
+
+    /// <summary>Whether the draw swaps textures: an object whose art has the hover texture (flag 0x10000,
+    /// <see cref="ObjectView.HoverTexture"/>); each submesh then swaps where its material has a twin
+    /// (<see cref="ObjectMaterialLook.HoverTwin"/>).</summary>
+    public static bool Swaps(in HoverOverlayDraw draw, bool hoverTexture) =>
+        draw.Hit.Kind == WorldHoverKind.Object && hoverTexture;
+
     /// <summary>What one submesh draws: the swap when its hover texture exists, the red pass unless the creature is
     /// already red and the material is not blended, and only where <see cref="HoverTint.DrawsOverlay"/> lets it.</summary>
     public static HoverSubmeshDraw Submesh(in HoverOverlayDraw draw, bool swapAvailable, bool blended) =>

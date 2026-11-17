@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream), 3e (the pointer, cage and placement cursor: the level is playable from the pointer) and 3f (objects, structures and torch meshes) and 3g (creatures) are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream), 3e (the pointer, cage and placement cursor: the level is playable from the pointer) 3f (objects, structures and torch meshes), 3g (creatures) and 3h (entity hover and the Hand) are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -726,8 +726,7 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       symmetric frustum and drops `frustum_offset` (`camera_3d.cpp`, `projection.cpp` at c51ff06e8; the reviewer confirmed it);
       the pose is computed once a frame and `TryPickRay` reads it. `InGameHud`'s world pointer runs through `TilePicker`,
       `TileTopPlane`, the fog test, `WorldHoverPicker.TryCastTerrain` and `HoverCursorResolver`; tagging and placing post through
-      the shared `WorldPointerInput`/`WorldClickCommands`. Entity offers wait for 3h, so creatures and objects are not hover
-      targets yet. `ClassicHandCursor` draws on canvas layer 101 with the OS pointer hidden while it shows, and
+      the shared `WorldPointerInput`/`WorldClickCommands`. Entity offers came in 3h. `ClassicHandCursor` draws on canvas layer 101 with the OS pointer hidden while it shows, and
       `ClassicPlacementOverlay` on layer 100. `CageRibbon` uses Godot's own shader with the owner-matched profile pow(centre,
       2.15) x 1.6, additive, no depth write, both faces. A Godot instance sorts by its AABB centre by default
       (`use_aabb_center`), so `SortFromOrigin` (`InstanceSetPivotData(order, false)`) is now the one place the blended runs and
@@ -743,7 +742,7 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       (it needs the owner's mouse), and hiding the OS pointer. Open: (1) the shared `HoverCursorResolver.Resolve` still
       allocates 128 B a frame with the Hand and 360 B with a room tool, because `PlacementCursor.Room` builds a new List and
       HashSet per call; it is older than 3e and Unity hits it too, so it belongs in a separate `DK2.Presentation` change.
-      (2) The hand light, the world hover text, the red tint and the hover sound go to 3h and 3i.
+      (2) 3h took the world hover text and the red tint; the hand light is 3i's and the hover sound step 4's.
 - [x] 3f. Objects, structures and torch meshes (2026-11-17, ADR-0805). In `DK2.Presentation`: `RenderRotation` (yaw, roll
       about Z, pitch about X as a `System.Numerics` quaternion, plus `Heading`; Unity's `RenderEulerRotation` only converts
       it, and the composition now has tests). `ObjectMaterialLook`, `ObjectPass` and `ObjectModelPasses`, out of
@@ -799,9 +798,9 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       vertex upload from per-template mesh copies (bounded by the distinct clips per entry; Unity releases its copies on a clip-set
       change), clip sets cached per entry, pose interpolation and orientation through `RightHandedFrame` with the head point
       converted back, removal on death or exit, and `ZeroOrderOffset` for blended surfaces. On an idle-clip swap Godot keeps the
-      node and restarts the clip, which the reviewer confirmed is equivalent on screen to Unity's rebuild. The burning red (3h),
-      the crackle (3l), footsteps and sparkle (3k) and the possession hide (3m) are no-op steps waiting for their sub-steps, so
-      3g's "footstep requests" are none until 3k. The query follow now runs after `DrawFrame` and reads the drawn position, as
+      node and restarts the clip, which the reviewer confirmed is equivalent on screen to Unity's rebuild. The crackle (3l),
+      footsteps and sparkle (3k) and the possession hide (3m) are no-op steps waiting for their sub-steps (the burning red
+      came in 3h), so 3g's "footstep requests" are none until 3k. The query follow now runs after `DrawFrame` and reads the drawn position, as
       Unity's does (this resolves 3b's note); the blended stream's sort moved from `Flush` into `FinishFrame`, after the follow
       places the camera. Mutation checks: the developer's 30 and the reviewer's 27, each killed except the head table's lock,
       which a two-thread test covers. Verification: `dotnet test DK2.slnx` 10,814 passed, 30 skipped (Presentation 2,790,
@@ -819,11 +818,38 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       Open: (1) Godot's per-template mesh copies cost memory that Unity releases on a clip-set change; measure it before
       deciding whether to release them. (2) The 136 B clip-start clock object. (3) The presenter iterators in `WorldView` and
       `Scenery` still allocate (3c's item).
+- [x] 3h. Entity hover and the Hand (2026-11-17, ADR-0805). In `DK2.Presentation`, as pure moves out of Unity's
+      `DungeonScene`: `PickBox`, `PickSphere` (`Of(KmfModel)`, which `ClassicMeshes` now writes into UV2 through) and
+      `PickTriangles` in `HoverEntityMeasure.cs`; `WorldHoverPicker.TryAdmit` (the view cull, then the sphere or the bounds
+      circle, then the bounds entry, then `Admits`); `ViewFrustum.Excludes(PickBox)`; `HoverOverlayPlan.Overlays` and `Swaps`;
+      `ObjectMaterialLook.HoverOverlay`. Unity's `DungeonRunner` hands the picker a `ViewFrustum` built from its camera's planes.
+      The cull is an approximation carried over from Unity: DK2's 0x00575D70 tests the KMF bounds sphere against four side
+      planes, with no near or far ([record](../research/functions/00575D70.md), STRONGLY INFERRED), and `Excludes` tests the
+      renderer box against six. Godot, in the new `WorldScene.Hover.cs`: creatures, hover-target objects, doors and traps
+      are offered to the picker with their measures, falling back to the 3x3 sweep. A `ModelSlot` measures a model from its
+      renderer box and the sphere; an animated model's pick box is computed during upload, over indexed vertices only, and the
+      triangle test runs on the clip's last sample. The red pass is a cached `ShaderMaterial` copy whose `NextPass` is the
+      additive red look, and the burning red, a no-op since 3g, uses the same mechanism; the gold hover swaps the surface to its
+      texture twin. Looks are re-applied only when a model's hover state changes. The world hover text, with a creature's own
+      name, goes through the screen-space hover HUD, as in Unity, not through 3D text. Pickup and drop needed no new code (wired
+      in 3e). `WorldScene.PlacedFrustum` is the one accessor of the pose's frustum, shared by the blended stream and the pick.
+      Not wired: the hover sound (step 4) and the Hand's light (3i). Verification: `dotnet test DK2.slnx` 10,833 passed, 30
+      skipped (Presentation 2,809, the hover tests 67); the Level1 turn-400 hash is unchanged (`D7290428D81A902F`); the
+      `DK2.Unity.Compile` stand-in passes; Unity's batch compile, `SmokeTest` and `SaveSmokeTest` passed, and `ClassicWorldLightingProbe`'s
+      Level1 frames were byte-identical to 3g's, before and after the review fixes. Mutation checks: 33 run, 29 killed,
+      2 did not compile, 2 survived and were killed by added assertions. The reviewer confirmed the Unity
+      move is pure and that the red passes in gamma space: over dark texels green and blue bottom out at 64 and 62, and the near-solid red
+      is red saturating, as in Unity. Scripted captures show the hover red on an imp, a pickup, the drop cage and the drop. Allocation:
+      the pick and the tint allocate 0 B a frame in steady state (the exit report prints it). Not captured: the gold swap and the
+      burning red (no hoverable gold at tick 130). Not verified: Unity's `Bounds.IntersectRay` from inside a box and
+      `TestPlanesAABB` on a tie, which `RayEntry` and `Excludes` stand in for. Finding: a sweep pick can land far from the pointer over a wall top (the shared sweep, the same in Unity).
+      Open: (1) capture the gold swap and the burning red once a staged level offers them. (2) The cull tests the renderer
+      box against six planes where DK2 tests the KMF sphere against four.
 - [ ] Creature shadows (3j).
 - [ ] Lighting tuned to feel like DK2 (owner exception: tuned per engine, not ported natively). Acceptance check for 3i
       (owner, 2026-11-16, who saw the Godot scene and found it "too dark, too bland", and kept this order): Godot's lit
       frames are judged against the Unity probe frames above and must not look too dark or too bland.
-- [ ] The remaining 3D overlays (possession, 3m; the hover tint, 3h), then the in-game HUD from step 1.
+- [ ] The remaining 3D overlays (possession, 3m), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging
 

@@ -163,7 +163,7 @@ strictly within a quarter tile (definition flag `+0xF4 & 0x100` or object id13).
 A creature supersedes the object candidate. Object-only mode instead searches
 eligible objects within half a tile. This is not arbitrary same-tile picking.
 Built (2026-10-23) as `HoverPickRules` (both stages' eligibility) and `RenderedPick` (triangle hit
-over centre) in src/DK2.Presentation/HoverPickRules.cs, and driven by `WorldHoverPicker` (candidate offering, the rendered winner, the 3x3 sweep; `DungeonScene.PickHoverEntity` only measures the meshes).
+over centre) in src/DK2.Presentation/HoverPickRules.cs, and driven by `WorldHoverPicker` (candidate offering, the rendered winner, the 3x3 sweep; the adapters, `DungeonScene.PickHoverEntity` and `WorldScene.PickHoverEntity`, only measure the meshes, through `PickBox`, `PickSphere` and `PickTriangles`).
 **Picking leftovers (read 2026-10-24).** The screen circle is the projected bounding sphere
 (STRONGLY INFERRED): the animated draw ([0x00584900](functions/00584900.md)) takes the model's KMF Origin
 through the draw matrix plus the draw position as centre and BoundsScale times the draw scale
@@ -171,8 +171,8 @@ through the draw matrix plus the draw position as centre and BoundsScale times t
 offsets (scale `+0x58`). [0x00575F10](functions/00575F10.md) projects it, radius = focal / depth
 times the world radius; a sphere reaching behind the eye gets a 1e30 radius, so it always holds
 the pointer. Built: `WorldHoverPicker.Holds` tests `HoverPickRules.CircleHolds` on the sphere
-ClassicMeshes writes into UV2 (read once per mesh), with the sphere centre's view depth as the
-centre-pass depth; a mesh without it uses its renderer bounds. Terrain occlusion is unchanged. A draw outside the view never reaches the list: 0x00575D70 culls a sphere outside any of the view's four side planes (so anything behind the eye), before the 1e30 case can apply. Ours tests each renderer's bounds against the camera frustum first (added 2026-10-24 after the owner saw "Chicken" with no chicken on screen: an off-screen chicken behind the camera held every pointer).
+ClassicMeshes writes into UV2 (read once per mesh; `PickSphere.Of` makes it, and Godot takes it from the KMF model), with the sphere centre's view depth as the
+centre-pass depth; a mesh without it uses its renderer bounds. Terrain occlusion is unchanged. A draw outside the view never reaches the list: 0x00575D70 culls a sphere outside any of the view's four side planes (so anything behind the eye), before the 1e30 case can apply. Ours tests each renderer's bounds against the camera frustum first (`WorldHoverPicker.TryAdmit` through `ViewFrustum.Excludes`: six planes, where [0x00575D70](functions/00575D70.md) takes four; added 2026-10-24 after the owner saw "Chicken" with no chicken on screen: an off-screen chicken behind the camera held every pointer).
 The two gates in [0x005992B0](functions/005992B0.md): `[0x006ED540 + tag]` is the live-slot byte
 of the thing table, which ours meets by looking every candidate up by id (nothing to build); sink
 `+0xD1` is set while binding 26 is held (default PAGE UP, probably the manual's "Pick up Objects

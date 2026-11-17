@@ -1575,9 +1575,9 @@ namespace DK2.Unity
             _renderedPick ??= (kind, id) => HoverPickRules.Rendered(World, _simulation.Database, kind, id, _objectsOnlyPick);
             _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(World, _simulation.Database, kind, id, _objectsOnlyPick);
             _resolvesPick ??= candidate => HoverPickRules.Resolves(World, candidate, new PlayerId((byte)viewingPlayerId));
-            GeometryUtility.CalculateFrustumPlanes(view, _pickFrustum);
             WorldHoverHit hit = _scene.PickHoverEntity(ray, view.transform.forward, terrainDistance, tile,
-                new Vector3(ground.X, ground.Y, ground.Z), _renderedPick, _fallbackPick, _resolvesPick, _pickFrustum, _objectsOnlyPick);
+                new Vector3(ground.X, ground.Y, ground.Z), _renderedPick, _fallbackPick, _resolvesPick, PickFrustum(view),
+                _objectsOnlyPick);
             return WorldHoverPicker.OnPointerTile(hit, tile);
         }
 
@@ -1585,6 +1585,20 @@ namespace DK2.Unity
         private System.Func<WorldHoverKind, int, bool> _renderedPick, _fallbackPick;
         private bool _objectsOnlyPick;
         private readonly Plane[] _pickFrustum = new Plane[6];
+
+        /// <summary>The view the pick culls by (<see cref="WorldHoverPicker.TryAdmit"/>): the camera's own planes.</summary>
+        private ViewFrustum PickFrustum(Camera view)
+        {
+            GeometryUtility.CalculateFrustumPlanes(view, _pickFrustum);
+            Matrix4x4 culling = view.projectionMatrix * view.worldToCameraMatrix;
+            var matrix = new System.Numerics.Matrix4x4(culling.m00, culling.m01, culling.m02, culling.m03, culling.m10,
+                culling.m11, culling.m12, culling.m13, culling.m20, culling.m21, culling.m22, culling.m23, culling.m30, culling.m31,
+                culling.m32, culling.m33);
+            return new ViewFrustum(matrix, PickPlane(0), PickPlane(1), PickPlane(2), PickPlane(3), PickPlane(4), PickPlane(5));
+        }
+
+        private System.Numerics.Plane PickPlane(int index) =>
+            new System.Numerics.Plane(ToNumerics(_pickFrustum[index].normal), _pickFrustum[index].distance);
         private System.Func<WorldHoverHit, bool> _resolvesPick;
 
         private void CaptureWorldHover()

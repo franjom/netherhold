@@ -354,15 +354,13 @@ namespace DK2.Unity
         private static void SetLightBounds(Mesh mesh, KmfModel model,
             LightingMode lightingMode = LightingMode.Instance)
         {
-            bool animated = model.Animation is { IsComplete: true };
-            KmfMesh bounds = animated ? model.Animation.Frames[0] : model.Mesh;
-            if (bounds == null) return;
-            NumericsVector3 centre = RenderMesh.ToRenderFrame(bounds.Origin);
+            if (PickSphere.Of(model) is not PickSphere bounds) return;
+            NumericsVector3 centre = bounds.Centre;
             var values = new List<Vector4>(mesh.vertexCount);
             var markers = new List<Vector2>(mesh.vertexCount);
             for (int i = 0; i < mesh.vertexCount; i++)
             {
-                values.Add(new Vector4(centre.X, centre.Y, centre.Z, bounds.BoundsScale));
+                values.Add(new Vector4(centre.X, centre.Y, centre.Z, bounds.Radius));
                 markers.Add(new Vector2(lightingMode == LightingMode.Instance ? 1 : 0, 1));
             }
             // UV2 remains the terrain table anchor; clones retain these authored draw bounds.

@@ -26,7 +26,7 @@ namespace DK2.GodotAdapter;
 /// waving water and lava (<see cref="LiquidSurfaceField"/>), unshaded under a stand-in light, seen from the classic
 /// camera; blended faces go back to front through <see cref="BlendedTerrainStream{TMaterial}"/> (step 3d, <see cref="RunSlot"/>).
 /// Everything crosses into Godot's right-handed frame through <see cref="RightHandedFrame"/>. Objects, structures and
-/// torches are step 3f's (WorldScene.Objects.cs), creatures step 3g's (WorldScene.Creatures.cs). Not yet drawn: lighting. The
+/// torches are step 3f's (WorldScene.Objects.cs), creatures step 3g's (WorldScene.Creatures.cs), entity hover step 3h's (WorldScene.Hover.cs). Not yet drawn: lighting. The
 /// host presents the world once a frame (<see cref="Present"/>), draws it (<see cref="DrawFrame"/>), moves the camera's
 /// <see cref="Focus"/> and places it (<see cref="PlaceCamera"/>), then finishes it (<see cref="FinishFrame"/>).</summary>
 public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
@@ -438,20 +438,31 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         };
     }
 
+    /// <summary>The placed camera's frustum (<see cref="ViewFrustum.FromPose"/>), built again only after the camera moved
+    /// (<see cref="PlaceCamera"/>); read only once <see cref="View"/> is set.</summary>
+    private ViewFrustum PlacedFrustum
+    {
+        get
+        {
+            if (_frustumStale)
+            {
+                _frustum = ViewFrustum.FromPose(_placed, _placedViewport.Width / (float)_placedViewport.Height, NearPlane);
+                _frustumStale = false;
+            }
+            return _frustum;
+        }
+    }
+
     /// <summary>Re-sorts the blended stream for the placed camera when it or the stream changed, and uploads the runs
     /// (<see cref="RunSlot"/>); times the frames that re-sort.</summary>
     private void DrawBlended()
     {
         if (_blended == null || _camera == null || View == null) return;
-        if (_frustumStale)
-        {
-            _frustum = ViewFrustum.FromPose(_placed, _placedViewport.Width / (float)_placedViewport.Height, NearPlane);
-            _frustumStale = false;
-        }
+        ViewFrustum frustum = PlacedFrustum;
         NVector3 forward = NVector3.Normalize(_placed.Forward);
-        if (!_blended.NeedsRefresh(forward, NMatrix4x4.Identity, _frustum.ViewProjection)) return;
+        if (!_blended.NeedsRefresh(forward, NMatrix4x4.Identity, frustum.ViewProjection)) return;
         long start = Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
-        _blended.Refresh(forward, NMatrix4x4.Identity, _frustum);
+        _blended.Refresh(forward, NMatrix4x4.Identity, frustum);
         IReadOnlyList<TriangleDepthOrderBuffer.Run> runs = _blended.Runs;
         int triangles = 0;
         for (int i = 0; i < runs.Count; i++)

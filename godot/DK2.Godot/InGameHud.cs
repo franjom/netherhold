@@ -37,7 +37,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private HudActionRouter? _router;
     /// <summary>Where the press that raised the action being applied was, for the magnifier's zoom.</summary>
     private Vector2 _actionPointer;
-    /// <summary>The pickups (the overview's; the Hand's world pickup is step 3h), as Unity's runner's, playing the cursor's
+    /// <summary>The pickups (the overview's and the Hand's world pickup), as Unity's runner's, playing the cursor's
     /// held state.</summary>
     private PickupFlow? _pickups;
     /// <summary>The hand cursor's transient states (Unity's runner's <c>_cursorFeedback</c>), shared by the pickups, the world
@@ -50,7 +50,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private ClassicHandCursor? _handCursor;
     private ClassicPlacementOverlay? _placement;
     private InstallHandCursorSheets? _cursorSheets;
-    /// <summary>The world pick for the hover: entities join in step 3h, until then a pick is the tile under the pointer.</summary>
+    /// <summary>The world pick for the hover: the drawn entities (<see cref="WorldScene.PickHoverEntity"/>), else the tile under the pointer.</summary>
     private readonly WorldHoverPicker _picker = new();
     /// <summary>Where the hand last pointed on the map (Unity's runner's <c>_pointerWorld</c>), for the cursor's sounds.</summary>
     private FpPosition2? _pointerWorld;
@@ -178,8 +178,18 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>The <c>--glide-to x,y</c> check: a glide started one second into the scene, once no camera path plays.</summary>
     private TilePos? _glideTo;
     private BattleNavigation? _battleNavigation;
-    /// <summary>Only its creature-type text is used here: world hover needs the 3D world.</summary>
+    /// <summary>The world hover's text (DungeonRunner's _hoverText), and the Creatures panel's type text.</summary>
     private WorldHoverText? _typeText;
+    // The world hover's names (DungeonRunner's _identityNames), for a hovered creature's own name.
+    private IClassicCreatureNames? _identityNames;
+    // The picker's eligibility (HoverPickRules), made once so a frame's pick allocates nothing, and the objects-only key.
+    private Func<WorldHoverKind, int, bool>? _renderedPick, _fallbackPick;
+    private Func<WorldHoverHit, bool>? _resolvesPick;
+    private bool _objectsOnlyPick;
+    // What the world hover's pick and tint allocated (the exit report): frames over the world after the first 60, and
+    // the bytes; the text capture is shared code that builds its text again when the turn changes, so it is not counted.
+    private long _pickBytes;
+    private int _pickFrames, _pickWarmUp = 60;
     private KeeperResourceSnapshot _resourceFacts;
     /// <summary>The pointer in screen pixels from the top left, sampled once at the frame's start as Unity reads
     /// <c>Input.mousePosition</c> (an event a panel handles never reaches this node), or the scripted pointer's.</summary>
@@ -274,7 +284,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _overview.Open(overviewArt, _overviewView);
         AddChild(_overview);
         // Unity gives it the overview's sorting order 13 and creates it after the overview; added after it here.
-        _queryView = new CreatureQueryView(level.Database, _sources.Strings.Resolve, _viewer, new InstallClassicCreatureNames(install));
+        _identityNames = new InstallClassicCreatureNames(install);
+        _queryView = new CreatureQueryView(level.Database, _sources.Strings.Resolve, _viewer, _identityNames);
         _queryPanel = new ClassicCreatureQueryPanel { Name = "CreatureQuery" };
         _queryPanel.Open(_art.Font, _sources.Texture);
         AddChild(_queryPanel);
@@ -560,23 +571,37 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Last, as DungeonRunner.DrawHudControls captures and draws it; the options menu hides it.
         _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility, modal);
         // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; over the world
-        // the pick, then the cursor, placement and cage (HoverCursorResolver). The world's hover text, the Hand's tint and
-        // light, the hovered creature's sound and flower stamp come with entity hover (step 3h) and lighting (3i).
+        // the pick and its text, then the cursor, placement, tint and cage (HoverCursorResolver). The Hand's light waits for
+        // the lighting (step 3i) and the hover sound for the sound player (step 4).
         _hover.SetVisibility(visibility, milliseconds);
         bool inside = _pointerInWindow && GetViewport().GetVisibleRect().HasPoint(_pointer);
         bool allowed = visibility.AllowOrdinaryInput && Focused && inside;
         bool overHud = PointerOverHud(_pointer, visibility);
         WorldHoverHit? pick = null;
+        HoverTextSnapshot hover = HoverTextSnapshot.Empty;
         if (allowed && !overHud && PointerTile(_pointer, visibility) is TilePos tile)
         {
             _pointerWorld = PointerPosition(_pointer, tile)
                 ?? new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
-            pick = ResolveWorldHover(_pointer, tile);
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            WorldHoverHit hit = ResolveWorldHover(_pointer, tile, visibility);
+            if (_pickWarmUp > 0) _pickWarmUp--;
+            else { _pickBytes += GC.GetAllocatedBytesForCurrentThread() - before; _pickFrames++; }
+            // The Hand's light aims here (DungeonRunner.AimHandLight) once the lighting is ported (step 3i).
+            string personalName = hit.Kind == WorldHoverKind.Creature && _identityNames != null
+                && _simulation.World.CreatureById(hit.EntityId) is CreatureState named
+                ? _identityNames.Name(new CreatureNameIndex(named.NameIndex)) : "";
+            hover = _typeText?.Capture(_simulation.World, hit, personalName) ?? HoverTextSnapshot.Empty;
+            pick = hit;
         }
-        HoverTextSnapshot hover = allowed && overHud ? _hudHover.Capture(this, _resourceFacts) : HoverTextSnapshot.Empty;
+        if (allowed && overHud) hover = _hudHover.Capture(this, _resourceFacts);
         HoverFeedback feedback = _hoverCursor.Resolve(_simulation.World, _simulation.Database, _simulation.Navigation,
             new HoverCursorInput(pick, allowed, overHud, PrimaryHeld, _resourceFacts.Gold.Value, milliseconds, _pointerWorld));
-        // No sound player yet: the hover's and the cursor's requests are dropped.
+        long tintBefore = GC.GetAllocatedBytesForCurrentThread();
+        if (feedback.Tinted && pick is WorldHoverHit tinted) _world.DrawHoverOverlay(tinted, feedback.TintBlended);
+        _world.CommitHoverOverlay();
+        if (_pickFrames > 0 && pick != null) _pickBytes += GC.GetAllocatedBytesForCurrentThread() - tintBefore;
+        // No sound player yet (step 4): the hover's (feedback.HoverSound) and the cursor's requests are dropped.
         _cursorFeedback.Sounds.Clear();
         _handCursor.Update(feedback.Cursor, allowed, milliseconds);
         _handCursor.Draw(_pointer);
@@ -949,9 +974,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>DungeonRunner.ResolveWorldHover: an unexplored tile is the bare tile; else the ray's hit on the tile's top
-    /// plane bounds the pick (<see cref="WorldHoverPicker.TryCastTerrain"/>). Entities are offered to the picker in step 3h;
-    /// until then the rendered stage is empty and the sweep finds the tile.</summary>
-    private WorldHoverHit ResolveWorldHover(Vector2 at, TilePos tile)
+    /// plane bounds the pick (<see cref="WorldHoverPicker.TryCastTerrain"/>), which the drawn things are offered to under
+    /// <see cref="HoverPickRules"/> (<see cref="WorldScene.PickHoverEntity"/>), culled by the placed view.</summary>
+    private WorldHoverHit ResolveWorldHover(Vector2 at, TilePos tile, HudVisibility visibility)
     {
         var bare = new WorldHoverHit(WorldHoverKind.Tile, tile);
         if (_simulation == null || _world == null || _worldView == null) return bare;
@@ -962,8 +987,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (!WorldHoverPicker.TryCastTerrain(origin, direction, _worldView.TileAt(world, tile.X, tile.Y).Solid,
                 out float terrainDistance, out System.Numerics.Vector3 ground))
             return bare;
-        _picker.Begin(new HoverPickRay(origin, direction, System.Numerics.Vector3.Normalize(view.Forward)), terrainDistance, tile, ground);
-        WorldHoverHit hit = _picker.TryRenderedResult(out WorldHoverHit rendered) ? rendered : _picker.SweepResult();
+        _objectsOnlyPick = HoverCursorResolver.ObjectsOnlyKeyCounts(visibility, _hudControls.Modal)
+            && _keyboard.Read(_settings).Held(GameAction.ObjectsOnly, exactModifiers: true);
+        _renderedPick ??= (kind, id) => HoverPickRules.Rendered(_simulation.World, _simulation.Database, kind, id, _objectsOnlyPick);
+        _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(_simulation.World, _simulation.Database, kind, id, _objectsOnlyPick);
+        _resolvesPick ??= candidate => HoverPickRules.Resolves(_simulation.World, candidate, _viewer);
+        _picker.Begin(new HoverPickRay(origin, direction, System.Numerics.Vector3.Normalize(view.Forward)), terrainDistance, tile,
+            ground, _renderedPick, _fallbackPick, _resolvesPick, _objectsOnlyPick, _world.PickFrustum);
+        WorldHoverHit hit = _world.PickHoverEntity(_picker, origin, direction);
         return WorldHoverPicker.OnPointerTile(hit, tile);
     }
 
@@ -1093,7 +1124,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     // What WorldClickCommands and WorldPointerInput ask of this scene, at this frame's press pointer.
     bool IWorldClickHost.PointerOverHud() => PointerOverHud(_pressPointer, _pressVisibility);
     TilePos? IWorldClickHost.PointerTile() => PointerTile(_pressPointer, _pressVisibility);
-    WorldHoverHit IWorldClickHost.Hover(TilePos tile) => ResolveWorldHover(_pressPointer, tile);
+    WorldHoverHit IWorldClickHost.Hover(TilePos tile) => ResolveWorldHover(_pressPointer, tile, _pressVisibility);
     void IWorldClickHost.FollowQueriedCreature()
     {
         _glide.Stop();
@@ -1299,6 +1330,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (what != NotificationPredelete) return;
         // Unity's runner closes its journal when it is destroyed, writing the frame a session switch left open.
         _journal.Close("destroyed", _pending, _pacer.Debt, _simulation);
+        GD.Print("DK2.Godot world hover: the pick and tint allocated ", _pickBytes, " B in ", _pickFrames,
+            " frames over the world after the first 60");
         if (_model != null)
         {
             _model.Selected -= SelectPanelChoice; _model.SpecialChosen -= ActivateStoredSpecial; _model.GuiButton -= PostGuiButton;
@@ -1325,7 +1358,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _saver = null; _loader = null; _context = null; _profiles = null; _resultFlow = null; _scriptedView = null;
         _gameOptionsPanel = null; _gameOptions = null; _optionsPages = null;
         _art?.Dispose(); _sources?.Dispose();
-        _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _queryPanel = null; _queryView = null;
+        _hover = null; _hudHover = null; _overview = null; _overviewView = null; _typeText = null; _identityNames = null; _queryPanel = null; _queryView = null;
         _panel = null; _model = null; _view = null; _messages = null; _messageView = null; _resources = null; _resourceView = null; _art = null; _sources = null; _simulation = null;
     }
 }

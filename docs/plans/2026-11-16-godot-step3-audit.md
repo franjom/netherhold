@@ -112,21 +112,21 @@ back faces.
 ## World picking and hover
 
 - **Unity.** `ScreenToTile` (`DungeonRunner.cs:1211-1225`), `ScreenToPosition` (`:1227-1234`), `ResolveWorldHover`
-  (`:1558-1578`), `CaptureWorldHover` (`:1586-1643`), `AimHandLight` (`:1547-1556`); the measures in
-  `DungeonScene.PickHoverEntity` (`DungeonScene.cs:185-241`), `TryPickSphere` (`:269-287`), `NearestTriangle`
-  (`:292-311`).
+  (`:1558-1578`), `CaptureWorldHover` (`:1586-1643`), `AimHandLight` (`:1547-1556`); the entity measures, `DungeonScene.PickHoverEntity`.
 - **Shared (S).** `TilePicker.Pick`, `TileTopPlane.PositionOn`/`HandLightPoint`, `WorldHoverPicker` (terrain cast,
-  `Holds`, `Admits`, `Offer`, the sweep, Moller-Trumbore), `HoverPickRules`, `HoverCursorResolver`, `HoverOverlayPlan`.
+  `TryAdmit`, `Offer`, the sweep, Moller-Trumbore), `HoverPickRules`, `HoverCursorResolver`, `HoverOverlayPlan`.
 - **Plumbing, ray done in 3e.** Godot needs no physics. `WorldScene.TryPickRay` builds the ray from the placed pose
   through `MinimapCameraView.RayDirection`, not the `Camera3D.ProjectRayOrigin`/`ProjectRayNormal` first planned here:
   4.8's `ProjectRayNormal` assumes a symmetric frustum and drops `frustum_offset` (`projection.cpp` at c51ff06e8; TRAPS). The pose is computed once a frame. The KMF sphere is read from UV2 in Unity; Godot keeps the C# copy (`RenderMesh` sphere, the
   animation player's last sample) instead of reading meshes back. The view frustum (`GeometryUtility` at `:220` and in
   the shadows) is `ViewFrustum.FromPose` in `src/` (3d), since `Camera3D.GetFrustum` returns a Godot collection.
-- **Godot, 3e.** `InGameHud`'s pointer runs through `TilePicker`, `TileTopPlane`, the fog test,
+- **Godot, 3e and 3h.** `InGameHud`'s pointer runs through `TilePicker`, `TileTopPlane`, the fog test,
   `WorldHoverPicker.TryCastTerrain` and `HoverCursorResolver`; tagging and placing post through `WorldPointerInput` and
-  `WorldClickCommands`. Entity offers wait for 3h, so creatures and objects are not hover targets yet.
-- **B, small.** The entity cull before the pick list, cited to 0x00575D70 (`:217-220`), is a plain frustum-AABB test
-  that `ViewFrustum` can serve; Unity's call is not moved yet.
+  `WorldClickCommands`. `WorldScene.Hover.cs` (3h) offers creatures, hover-target objects, doors and traps; the hover text is
+  the screen-space hover HUD, not 3D text.
+- **B, moved in 3h.** `PickBox`, `PickSphere`, `PickTriangles`, `WorldHoverPicker.TryAdmit` and `ViewFrustum.Excludes`. The cull
+  is not a plain frustum-AABB test: 0x00575D70 tests the KMF sphere against four side planes ([record](../research/functions/00575D70.md));
+  `Excludes` is Unity's box-against-six approximation.
 
 ## Creatures and animation
 
@@ -144,7 +144,7 @@ back faces.
 - **Godot, 3g.** `WorldScene.Creatures.cs` (the plan's step 3g has the detail): shared KMF models, a node per creature, clips
   through `CreatureAnimationPlayer` with in-place vertex upload from per-template mesh copies (bounded by the distinct clips
   per entry; Unity releases its copies on a clip-set change), pose and head point through `RightHandedFrame`. The burning
-  red (3h), crackle (3l), footsteps and sparkle (3k) and the possession hide (3m) are no-op steps of the order. The query
+  crackle (3l), footsteps and sparkle (3k) and the possession hide (3m) are no-op steps of the order; the burning red came in 3h. The query
   follow runs after `DrawFrame` on the drawn position, as Unity's, so the blended sort moved from `Flush` to `FinishFrame`.
 - **Probe frames.** Unity's probe draws at fraction 1, so Godot's imp at tick 70 is one tick's offset straight after a
   load and on Unity's spot within nine frames; a single-frame comparison needs the fraction near 1.
@@ -259,9 +259,9 @@ back faces.
   advances; Unity's `ClassicTileHoverOutline` only uploads it. Godot's `CageRibbon` is one dynamic surface with its own
   shader, the owner-matched profile (P) pow(centre, 2.15) x 1.6, additive, no depth write, both faces. Its sort key 0
   (`SortFromOrigin`) puts it after the tag overlays and under every other blended run, as Unity's sortingOrder 0 did.
-- **Hover tint.** `DungeonScene.DrawHoverOverlay` (`:139-178`) draws `HoverOverlayPlan`'s red pass and the gold
-  object's texture swap. Godot: a `next_pass` or a second surface override on the hovered instance for that frame,
-  additive, `HoverOverlayColour` (moved to `TerrainMaterialLook` in 3c).
+- **Hover tint, Godot in 3h.** `DungeonScene.DrawHoverOverlay` (`:139-178`) draws `HoverOverlayPlan`'s red pass and the gold
+  object's texture swap. Godot: a cached `ShaderMaterial` copy with `NextPass` set to `ObjectMaterialLook.HoverOverlay` (also the
+  burning red), the gold twin as a surface swap, re-applied only when the hover state changes.
 - **Placement cursor, moved in 3e.** `PlacementCursorHud` is `ClassicPlacementOverlay.Draw` as a `HudFrame`: icon names,
   DK2's draw order, the No Go shift, held icons, I-Dismiss, the overflow icon and the price digits. Unity's overlay is a thin
   wrapper drawn by `HudCanvas`; Godot's `ClassicPlacementOverlay` draws it on canvas layer 100. The refund colour, the
@@ -333,9 +333,9 @@ terrain and the camera; then each step adds one kind of thing to the world.
   torch meshes and flames, checked against the Unity probe frames; the environment pass waits for 3i.
 - **3g. Creatures.** Done 2026-11-17 (plan step 3g, which has the numbers; ADR-0805). Moved: `SceneFrame`,
   `ISceneFrameHost`, `SceneCreatures` (open point 7). Godot: the imps and the query follow on the drawn position.
-- **3h. Entity hover and the Hand.** Godot: entity offers into `WorldHoverPicker`, the red pass and gold swap, pickup
-  and drop through the shared flows, hover text in the world. Check: a scripted-pointer capture shows the red tint on an
-  imp and the held icon after a pickup.
+- **3h. Entity hover and the Hand.** Done 2026-11-17 (plan step 3h, which has the numbers; ADR-0805). Moved: the pick measures and the cull.
+  Godot: entity offers, the red pass, the gold swap (uncaptured); pickup and drop were wired in 3e. The hover sound waits for
+  step 4, the hand light for 3i.
 - **3i. Lighting.** Move: `ClassicVertexLight.Sum` and the packed diffuse with tests. Godot: the vertex-lit shader, the
   light-table textures, the publisher, ambient keys, torch, portal, object, effect and hand lights, the environment
   pass (also over plans, and the cage's key: see *Objects*), the exposure pass, and Godot's own fill and fade (open point 2), replacing 3c's stand-in light of 0.5 and

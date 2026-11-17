@@ -143,7 +143,8 @@ namespace DK2.Unity
         public void DrawHoverOverlay(WorldHoverHit hit, bool coversBlended = false)
         {
             if (_classic == null) return;
-            if (!_hoverOverlay.TryBegin(hit, coversBlended, out HoverOverlayDraw plan)) return;
+            if (!HoverOverlayPlan.Overlays(hit.Kind) || !_hoverOverlay.TryBegin(hit, coversBlended, out HoverOverlayDraw plan))
+                return;
             GameObject go;
             Material[] swapped = null;
             if (hit.Kind == WorldHoverKind.Creature)
@@ -153,7 +154,7 @@ namespace DK2.Unity
             else if (hit.Kind == WorldHoverKind.Object && _meshObjects.Contains(hit.EntityId)
                 && _objects.TryGetValue(hit.EntityId, out go) && _objectPoses.TryGetValue(hit.EntityId, out ObjectView pose))
             {
-                if (pose.HoverTexture) swapped = _classic.HoverTextures(pose.Mesh);
+                if (HoverOverlayPlan.Swaps(plan, pose.HoverTexture)) swapped = _classic.HoverTextures(pose.Mesh);
             }
             else if (hit.Kind == WorldHoverKind.Door || hit.Kind == WorldHoverKind.Trap)
             {
@@ -189,10 +190,10 @@ namespace DK2.Unity
         public WorldHoverHit PickHoverEntity(Ray ray, Vector3 viewForward, float terrainDistance, TilePos tile,
             Vector3 pointerGround, System.Func<WorldHoverKind, int, bool> rendered = null,
             System.Func<WorldHoverKind, int, bool> fallback = null, System.Func<WorldHoverHit, bool> resolves = null,
-            Plane[] frustum = null, bool objectsOnly = false)
+            ViewFrustum? frustum = null, bool objectsOnly = false)
         {
             _picker.Begin(new HoverPickRay(ToNumerics(ray.origin), ToNumerics(ray.direction), ToNumerics(viewForward)),
-                terrainDistance, tile, ToNumerics(pointerGround), rendered, fallback, resolves, objectsOnly);
+                terrainDistance, tile, ToNumerics(pointerGround), rendered, fallback, resolves, objectsOnly, frustum);
             foreach (var entry in _creatures)
                 Offer(entry.Value, new WorldHoverHit(WorldHoverKind.Creature, _frame.Creatures[new CreatureId(entry.Key)].Tile, entry.Key));
             foreach (var entry in _objects)
@@ -218,33 +219,22 @@ namespace DK2.Unity
                 if (go == null || !go.activeSelf || !go.TryGetComponent<Renderer>(out Renderer renderer)) return;
                 Mesh mesh = go.TryGetComponent(out MeshFilter filter) ? filter.sharedMesh : null;
                 Bounds bounds = renderer.bounds;
-                // DK2 culls a draw outside the view (0x00575D70) before it can enter the pick list; without
-                // this, a sphere reaching behind the eye "holds" every pointer (CircleHolds' unbounded case)
-                // and an off-screen thing behind the camera wins the nearest-depth test.
-                if (frustum != null && !GeometryUtility.TestPlanesAABB(frustum, bounds)) return;
-                Vector3 centre;
-                float radius;
-                if (mesh != null && TryPickSphere(mesh, out Vector4 sphere))
+                PickSphere? sphere = null;
+                if (mesh != null && TryPickSphere(mesh, out PickSphere local))
                 {
                     Transform t = go.transform;
-                    centre = t.TransformPoint(sphere.x, sphere.y, sphere.z);
-                    Vector3 scale = t.lossyScale;
-                    radius = sphere.w * Mathf.Max(Mathf.Abs(scale.x), Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+                    sphere = new PickSphere(ToNumerics(t.TransformPoint(ToUnity(local.Centre))),
+                        PickSphere.ScaledRadius(local.Radius, ToNumerics(t.lossyScale)));
                 }
-                else
-                {
-                    centre = bounds.center;
-                    radius = bounds.extents.magnitude;
-                }
-                if (!_picker.Holds(ToNumerics(centre), radius, out HoverPickProbe probe)) return;
-                float? boundsEntry = bounds.IntersectRay(ray, out float boundsDistance) ? boundsDistance : (float?)null;
-                if (!_picker.Admits(candidate, probe, boundsEntry)) return;
+                if (!_picker.TryAdmit(candidate, new PickBox(ToNumerics(bounds.min), ToNumerics(bounds.max)), sphere,
+                        out HoverPickProbe probe)) return;
                 float? triangle = mesh != null ? NearestTriangle(mesh, go.transform, ray, terrainDistance) : null;
                 _picker.Offer(candidate, probe, triangle);
             }
         }
 
         private static System.Numerics.Vector3 ToNumerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
+        private static Vector3 ToUnity(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
 
         public CampaignSlot PickFrontEndMap(Ray ray, IReadOnlyDictionary<int, CampaignSlot> mapSlots)
         {
@@ -264,35 +254,40 @@ namespace DK2.Unity
         }
 
         private readonly WorldHoverPicker _picker = new WorldHoverPicker();
-        private readonly Dictionary<Mesh, Vector4> _pickSpheres = new Dictionary<Mesh, Vector4>();
+        private readonly Dictionary<Mesh, PickSphere> _pickSpheres = new Dictionary<Mesh, PickSphere>();
         private readonly List<Vector4> _pickSphereScratch = new List<Vector4>();
 
-        /// <summary>The mesh's KMF bounding sphere in its own space (xyz the Origin, w BoundsScale), which
-        /// ClassicMeshes writes into every vertex's UV2 and an instanced creature mesh copies; read once
-        /// per mesh. False for a mesh without it (a placeholder) or one the CPU cannot read.</summary>
-        private bool TryPickSphere(Mesh mesh, out Vector4 sphere)
+        /// <summary>The mesh's KMF bounding sphere in its own space (<see cref="PickSphere.Of"/>), which ClassicMeshes
+        /// writes into every vertex's UV2 and an instanced creature mesh copies; read once per mesh. False for a mesh
+        /// without a usable one (a placeholder) or one the CPU cannot read.</summary>
+        private bool TryPickSphere(Mesh mesh, out PickSphere sphere)
         {
             if (!_pickSpheres.TryGetValue(mesh, out sphere))
             {
-                sphere = new Vector4(0f, 0f, 0f, -1f);
+                sphere = new PickSphere(System.Numerics.Vector3.Zero, -1f);
                 if (mesh.isReadable && mesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord2))
                 {
                     mesh.GetUVs(2, _pickSphereScratch);
-                    if (_pickSphereScratch.Count > 0) sphere = _pickSphereScratch[0];
+                    if (_pickSphereScratch.Count > 0)
+                    {
+                        Vector4 uv = _pickSphereScratch[0];
+                        sphere = new PickSphere(new System.Numerics.Vector3(uv.x, uv.y, uv.z), uv.w);
+                    }
                     _pickSphereScratch.Clear();
                 }
                 // Destroyed creature meshes stay as keys; a bound keeps the table from growing for ever.
                 if (_pickSpheres.Count >= 4096) _pickSpheres.Clear();
                 _pickSpheres[mesh] = sphere;
             }
-            return sphere.w > 0f;
+            return sphere.Usable;
         }
         private readonly List<Vector3> _pickVertices = new List<Vector3>();
+        private readonly List<System.Numerics.Vector3> _pickPositions = new List<System.Numerics.Vector3>();
         private readonly List<int> _pickTriangles = new List<int>();
 
         /// <summary>The ray distance to the nearest triangle of <paramref name="mesh"/> it crosses before
-        /// <paramref name="limit"/> (<see cref="WorldHoverPicker.TryHitTriangle"/> in the mesh's own space; an affine
-        /// transform keeps the ray parameter), or null. A mesh the CPU cannot read counts as missed.</summary>
+        /// <paramref name="limit"/> (<see cref="PickTriangles.TryNearest"/> in the mesh's own space; an affine transform
+        /// keeps the ray parameter), or null. A mesh the CPU cannot read counts as missed.</summary>
         private float? NearestTriangle(Mesh mesh, Transform transform, Ray ray, float limit)
         {
             if (!mesh.isReadable) return null;
@@ -300,16 +295,14 @@ namespace DK2.Unity
             System.Numerics.Vector3 origin = ToNumerics(toLocal.MultiplyPoint3x4(ray.origin)),
                 direction = ToNumerics(toLocal.MultiplyVector(ray.direction));
             mesh.GetVertices(_pickVertices);
+            _pickPositions.Clear();
+            for (int i = 0; i < _pickVertices.Count; i++) _pickPositions.Add(ToNumerics(_pickVertices[i]));
             float best = limit;
             bool found = false;
             for (int sub = 0; sub < mesh.subMeshCount; sub++)
             {
                 mesh.GetTriangles(_pickTriangles, sub);
-                for (int i = 0; i + 2 < _pickTriangles.Count; i += 3)
-                    if (WorldHoverPicker.TryHitTriangle(origin, direction, ToNumerics(_pickVertices[_pickTriangles[i]]),
-                            ToNumerics(_pickVertices[_pickTriangles[i + 1]]), ToNumerics(_pickVertices[_pickTriangles[i + 2]]),
-                            out float t) && t < best)
-                    { best = t; found = true; }
+                found |= PickTriangles.TryNearest(_pickPositions, _pickTriangles, origin, direction, ref best);
             }
             return found ? best : (float?)null;
         }
