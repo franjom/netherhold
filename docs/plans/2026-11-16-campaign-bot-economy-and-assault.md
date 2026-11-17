@@ -178,7 +178,7 @@ seeds 11-20 on the levels that turn.
 
 ## Status (2026-11-16)
 
-Built: T0, E1 (payday, wage bill, Lair beds, Treasury fill, hunger; schema 7), the bank and the bridge (E2), A1 (enemy traps in view, schema 7), R20's observation groundwork (schema 8, below), A2
+Built: T0, E1 (payday, wage bill, Lair beds, Treasury fill, hunger; schema 7), the bank and the bridge (E2), A1 (enemy traps in view, schema 7), R20's observation groundwork (schema 9, below), A2
 (drops, answers and, while other ground is left, dig marks kept out of enemy traps' reach; the assault party: the whole
 party lifted in one decision or none, never while an enemy is near home, never a fighter in a fight or one whose
 flower does not show five petals), E2 (the gold budget kept after a purchase; idle gold trains below the Training
@@ -205,18 +205,21 @@ seeds 1-3, 57600-tick cap, current build with the push, bank, bridge and hatcher
   their gold and their route (Level 3 0 of 3); an assault dropped 6 tiles from its trap never arrived and was re-sent
   every 8 ticks; Lair and Hatchery growth spent the payday's gold and creatures left (54 on Level 4 seed 1). The rules
   above are the fixes.
-- Built, R20's groundwork (observation schema 8; unit tests, not yet measured on a level): every creature in view carries
+- Built, R20's groundwork (observation schema 9; unit tests, not yet measured on a level): every creature in view carries
   its flower `Level` and `Petals`, enemies included (owner, 2026-11-17; the binary agrees, 0x0048E830, STRONGLY INFERRED:
   the Horny refusal is own-only); `PlayerObservation.Prisoners` lists other players' creatures held in the keeper's own
   Prisons, apart from `Creatures`; the Portal's `PlayerRoomSummary` reads `Capacity` 15 for the first portal and 5 for
-  each more (both portal types count, `PortalRules.CreatureCapacity`) and `Used` the creatures that came through one
-  (`PortalRules.CreatureCount`, after 0x004DBF90). `Recruit` stops when the portals are full. Tests:
-  `PlayerObservationPrisonerTests`, `FullPortalsRecruitNobodyWhateverTheRoomsDraw`; `DK2.AI.Tests` 656 of 656,
-  `DK2.Simulation.Tests` 5583 of 5583.
+  each more (`PortalRules.CreatureCapacity`, applied to the portals the keeper sees it owns) and `Used` 0: the interface
+  shows no "held / cap" (owner, 2026-11-17), so schema 9 dropped the count. `Recruit` estimates the arrivals held as its
+  non-workers less the placed ones (the count at its first look, lowered whenever the non-workers fall below it) and
+  stops at the cap. A conversion or a Skeleton counts as an arrival (recruiting stops early), and a placed creature's
+  death after arrivals can undercount. Tests: `PlayerObservationPrisonerTests`,
+  `FullPortalsRecruitNobodyWhateverTheRoomsDraw`; `DK2.AI.Tests` 656 of 656, `DK2.Behavior.Tests` 686 passed (5
+  skipped), `DK2.Simulation.Tests` 5583 of 5583.
 - Next: R20, the offence at the army's peak: a readiness and strength estimate from what the player sees (own and
   enemy creatures and their levels, scouted ground), a counters table (which creature beats which; R15 is one entry),
   and an attack when the estimate says the army has a fighting chance, instead of waiting while wages drain it. The
-  observation it needs exists (schema 8); the estimate and the attack do not. Then Levels 6a, 7, 11a and 15a.
+  observation it needs exists (schema 9); the estimate and the attack do not. Then Levels 6a, 7, 11a and 15a.
 - Pending owner review, not in the repo: a draft of guide-derived rules R21-R64, a counters table and per-level notes
   (scratchpad `guide-rules/`). R20's counters table starts from it once the owner has reviewed it.
 
@@ -227,13 +230,8 @@ seeds 1-3, 57600-tick cap, current build with the push, bank, bridge and hatcher
 - Should the Hatchery grow when a quarter of the army is eating at the same time, even if nobody starves?
 - Should a party ever take defenders out of a fight to attack a trap? (Built: never.)
 - Does DK2 pay wages from the gold in the Heart, or only from the Treasury? (The bank assumes the Treasury.)
-- Does a captive being carried to the Prison, or one in the Torture Chamber, still show in the creature panel's list?
-  (Built: only creatures held in a Prison are listed.)
-- Does a captured Hero Portal raise the Portal cap by 5? (Built: both portal types count.)
-- Does anything in the UI show "creatures held / cap" for the Portal?
-- Do placed, converted or captured creatures count toward the cap of 15? (Built: only portal arrivals, after 0x004DBF90.)
 
-## Questions this plan raised (all answered by the owner, 2026-11-16; the last bullet 2026-11-17)
+## Questions this plan raised (all answered by the owner, 2026-11-16; the last bullets 2026-11-17)
 - Q870: Lair capacity shows in the top status bar while hovering over the Lair; gold is the top bar's yellow figure.
 - Q871: hunger shows as a chicken icon in the creature's status flower.
 - Q872: visible traps (Sentry, Fear, Boulder, ...) are always seen; hidden traps once they fire (binary agrees,
@@ -241,6 +239,12 @@ seeds 1-3, 57600-tick cap, current build with the push, bank, bridge and hatcher
 - Q873: own creatures attack an enemy trap by themselves when they can (binary-backed, ADR-0340).
 - Enemy creatures' flowers (level, petals) are always on. The Portal supports 15 creatures, 5 more for each further
   portal. A captured hero shows in the keeper's own creature list.
+- A captive carried by an Imp to the Prison, or in the Torture Chamber, is not in the creature panel; it appears once
+  converted (built: only creatures held in a Prison are listed).
+- A keeper cannot capture a Hero Portal, only destroy it, so it never raises the Portal cap.
+- Nothing in the interface shows "creatures held / cap"; the only limit shown is the Prison's capacity.
+- Only creatures that came through a Portal count toward the 15 (5 more per further portal), as `PortalRules.CreatureCount`
+  does (after 0x004DBF90).
 
 ## For the owner
 1. Is this order right: economy and capacity (E1-E3), then Level 4's fortifications (A1-A4), then spells (D6), then

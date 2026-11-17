@@ -65,8 +65,9 @@ public sealed class PlayerTileGrid
 /// what they hold summed over every room of the type: the Lair's beds (<see cref="Capacity"/>) and beds taken
 /// (<see cref="Used"/>), as its status-bar hover reads (string 2435); the Treasury's gold capacity and gold held (string
 /// 2581). For the Portal (schema 8) the creatures the keeper's portals support, 15 for the first and 5 for each more
-/// (owner, 2026-11-17; <c>PortalRules.CreatureCapacity</c>), and how many of the keeper's creatures came through one.
-/// Zero for the other types.</summary>
+/// (owner, 2026-11-17; <c>PortalRules.CreatureCapacity</c>), a rule applied to the portals the keeper sees it owns. How
+/// many count against it is shown nowhere in the interface (owner, 2026-11-17), so its Used is 0 (schema 9). Zero for
+/// the other types.</summary>
 public readonly record struct PlayerRoomSummary(RoomTypeId Type, int TileCount, int Capacity = 0, int Used = 0);
 
 /// <summary>A creature's mood as its status flower shows it (SM-Happy, SM-Sad, SM-Angry).</summary>
@@ -226,8 +227,9 @@ public sealed class PlayerObservation
     /// mana orb's income and upkeep and each spell's upgrade (Task 4); 6 the own-trap tile flag (defence plan D1); 7 the
     /// payday clock and wage bill, the Lair's and Treasury's fill, each creature's hunger, and other players' traps in
     /// view (economy and assault plan E1, A1); 8 the prisoners in the keeper's own Prisons, every visible creature's flower
-    /// level and petals, and the Portal's creature cap (R20 groundwork).</summary>
-    public const int SchemaVersion = 8;
+    /// level and petals, and the Portal's creature cap (R20 groundwork); 9 drops the Portal's arrivals held, which no
+    /// screen shows (owner, 2026-11-17).</summary>
+    public const int SchemaVersion = 9;
 
     public required PlayerStamp Stamp { get; init; }
     public PlayerPhase Phase { get; init; } = PlayerPhase.Playing;

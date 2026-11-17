@@ -77,12 +77,28 @@ public partial class CampaignPlayerTests
     [Fact]
     public void FullPortalsRecruitNobodyWhateverTheRoomsDraw()
     {
-        PlayerObservation View(int held) => Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom)], gold: 50_000, tick: 1300, revision: 1300,
-            owned: CoreOwned(more: new PlayerRoomSummary(RoomTypeId.Portal, 9, Capacity: 15, Used: held)));
-        PlayerDecision full = Recruiter().Decide(View(15));
-        Assert.Null(Built(full, RoomTypeId.GuardRoom));
-        Assert.Contains("the portals hold their 15 creatures", full.Thoughts.Single(t => t.Routine == "room").Note);
-        Assert.NotNull(Built(Recruiter().Decide(View(14)), RoomTypeId.GuardRoom));
+        // No screen shows the arrivals held (owner, 2026-11-17): the player counts its non-workers beyond the two the
+        // level placed, seen at its first look.
+        PlayerCreatureSummary goblin = new(Goblin, new TilePos(5, 5), false);
+        PlayerObservation View(long tick, int fighters) => Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom)], gold: 50_000, tick: tick,
+            revision: tick, owned: CoreOwned(more: new PlayerRoomSummary(RoomTypeId.Portal, 9, Capacity: 15)),
+            creatures: Enumerable.Repeat(goblin, fighters).ToArray());
+        CampaignPlayer full = Recruiter(), room = Recruiter();
+        full.Decide(View(1, 2));
+        room.Decide(View(1, 2));
+        PlayerDecision held = full.Decide(View(1300, 17));
+        Assert.Null(Built(held, RoomTypeId.GuardRoom));
+        Assert.Contains("the portals hold their 15 creatures (about 15 came)", held.Thoughts.Single(t => t.Routine == "room").Note);
+        // The quiet spell counts from the last arrival, so the 16th look comes later.
+        room.Decide(View(100, 16));
+        Assert.NotNull(Built(room.Decide(View(1400, 16)), RoomTypeId.GuardRoom));
+
+        // Both placed creatures die before anyone arrives: the 15 that come later fill the portals.
+        CampaignPlayer bereaved = Recruiter();
+        bereaved.Decide(View(1, 2));
+        bereaved.Decide(View(50, 0));
+        bereaved.Decide(View(100, 15));
+        Assert.Null(Built(bereaved.Decide(View(1400, 15)), RoomTypeId.GuardRoom));
     }
 
     [Fact]

@@ -188,7 +188,7 @@ public class PlayerContractsTests
     {
         var observation = new PlayerObservation { Stamp = Stamp() };
 
-        Assert.Equal(8, PlayerObservation.SchemaVersion);
+        Assert.Equal(9, PlayerObservation.SchemaVersion);
         Assert.Equal(PlayerPhase.Playing, observation.Phase);
         Assert.Equal(PlayerResult.Playing, observation.Result);
         Assert.Empty(observation.Rooms);

@@ -45,7 +45,7 @@ public class PlayerObservationPrisonerTests
     }
 
     [Fact]
-    public void ThePortalSummaryCarriesTheCapOfEveryPortalAndTheArrivalsHeld()
+    public void ThePortalSummaryCarriesTheCapOfEveryPortalButNotTheArrivalsHeld()
     {
         GameDatabase basic = PlayerObservationTests.Database();
         const byte PortalTerrain = 9;
@@ -69,12 +69,12 @@ public class PlayerObservationPrisonerTests
         for (int y = 0; y < height; y++)
             for (int x = 0; x < PlayerObservationTests.Seen; x++)
                 world.Tile(x, y).SetExploredBy(3);
-        // Two arrivals and one creature that did not come through a portal.
+        // Two arrivals and one creature that did not come through a portal: no screen shows the arrivals (owner, 2026-11-17).
         foreach (bool arrived in new[] { true, true, false })
             world.SpawnCreature(database, PlayerObservationTests.Fighter, PlayerObservationTests.Viewer, PlayerObservationTests.OwnFloor).CameThroughPortal = arrived;
 
         PlayerRoomSummary portal = Assert.Single(Observe(database, world).Rooms, r => r.Type == RoomTypeId.Portal);
-        Assert.Equal((2, 20, 2), (portal.TileCount, portal.Capacity, portal.Used));
+        Assert.Equal((2, 20, 0), (portal.TileCount, portal.Capacity, portal.Used));
     }
 
     [Fact]

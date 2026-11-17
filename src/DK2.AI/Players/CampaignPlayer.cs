@@ -533,14 +533,18 @@ public sealed class CampaignPlayer : IPlayerController
     private const int RecruitRetryTicks = 200;
 
     private int _seenNonWorkers;
+    private int? _placedNonWorkers;
     private GameTick _lastArrival;
     private GameTick? _lastRecruit;
     private GameTick? _recruitTried;
 
-    /// <summary>Notes when the non-workers last grew in number (an arrival through the Portal, a conversion, a Skeleton).</summary>
+    /// <summary>Notes when the non-workers last grew in number (an arrival through the Portal, a conversion, a Skeleton),
+    /// and the creatures the level placed, which no portal brought: the number at the first look, fewer whenever the
+    /// non-workers fall below it (a placed creature can no longer be there).</summary>
     private void CountArrivals(PlayerObservation observation)
     {
         int nonWorkers = NonWorkers(observation);
+        _placedNonWorkers = Math.Min(_placedNonWorkers ?? nonWorkers, nonWorkers);
         if (nonWorkers > _seenNonWorkers) _lastArrival = observation.Stamp.Tick;
         _seenNonWorkers = nonWorkers;
     }
@@ -556,8 +560,13 @@ public sealed class CampaignPlayer : IPlayerController
     private bool Recruit(PlayerObservation observation, TilePos home, List<PlayerAction> actions, long keep)
     {
         if (_strategy.RecruitGold <= 0 || Summary(observation, RoomTypeId.Portal) is not PlayerRoomSummary portal) return false;
-        // The portals' cap (schema 8): at it nobody comes whatever the rooms draw (owner: 15, and 5 for each more portal).
-        if (portal.Capacity > 0 && portal.Used >= portal.Capacity) { Note($"the portals hold their {portal.Capacity} creatures"); return false; }
+        // The portals' cap: at it nobody comes whatever the rooms draw (owner: 15, and 5 for each more portal). Only
+        // Portal arrivals count toward it, and no screen shows how many are held (owner, 2026-11-17; schema 9), so the
+        // player estimates them: its non-workers less those the level placed. A conversion or a Skeleton counts as an
+        // arrival here (recruiting stops early by those), and a placed creature's death as an arrival's until the
+        // non-workers fall below the placed (it may build a room the full Portal cannot use).
+        int held = NonWorkers(observation) - (_placedNonWorkers ?? 0);
+        if (portal.Capacity > 0 && held >= portal.Capacity) { Note($"the portals hold their {portal.Capacity} creatures (about {held} came)"); return false; }
         long tick = observation.Stamp.Tick.Value;
         long gold = observation.Gold.Value;
         if (gold - keep < _strategy.RecruitGold || gold < (long)observation.WageBill.Value * RecruitPaydays

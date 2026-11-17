@@ -170,7 +170,8 @@ public sealed class PlayerObservationBuilder
             }
 
         // The Lair's and Treasury's hover texts give their fill (WorldHoverText.Room: strings 2435, 2581).
-        // The Portal's creature cap (schema 8): 15 for the first portal and 5 for each more (owner, 2026-11-17).
+        // The Portal's creature cap (schema 8): 15 for the first portal and 5 for each more (owner, 2026-11-17). How many
+        // count against it is not shown anywhere (owner, 2026-11-17; schema 9), so Used stays 0.
         int beds = 0, taken = 0, goldCapacity = 0, goldHeld = 0, portals = 0;
         if (_roomTiles[(byte)RoomTypeId.Lair] > 0 || _roomTiles[(byte)RoomTypeId.Treasury] > 0 || _roomTiles[(byte)RoomTypeId.Portal] > 0)
             foreach (RoomInstance room in RoomIndex.Build(world, _database))
@@ -197,7 +198,7 @@ public sealed class PlayerObservationBuilder
                     RoomTypeId.Lair => new PlayerRoomSummary(RoomTypeId.Lair, _roomTiles[room], beds, taken),
                     RoomTypeId.Treasury => new PlayerRoomSummary(RoomTypeId.Treasury, _roomTiles[room], goldCapacity, goldHeld),
                     RoomTypeId.Portal => new PlayerRoomSummary(RoomTypeId.Portal, _roomTiles[room],
-                        PortalRules.CreatureCapacity(_database, portals), PortalRules.CreatureCount(world, _player)),
+                        PortalRules.CreatureCapacity(_database, portals)),
                     _ => new PlayerRoomSummary((RoomTypeId)room, _roomTiles[room]),
                 });
         return new PlayerTileGrid(world.Width, world.Height, _tiles);
