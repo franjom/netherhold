@@ -244,7 +244,9 @@ seeds 1-3, 57600-tick cap, current build with the push, bank, bridge and hatcher
 - Enemy creatures' flowers (level, petals) are always on. The Portal supports 15 creatures, 5 more for each further
   portal.
 - A captive carried by an Imp to the Prison, in a Prison cell, or in the Torture Chamber is not in the creature panel; it
-  appears once converted (built, schema 10: `Creatures` lists only own creatures).
+  appears once converted (built, schema 10: `Creatures` lists only own creatures). A captive in a Prison cell is drawn in
+  the world with its flower showing, as any other player's creature is (owner, 2026-11-17), so `Things` lists it with its
+  level and petals.
 - A keeper cannot capture a Hero Portal, only destroy it, so it never raises the Portal cap.
 - Nothing in the interface shows "creatures held / cap"; the only limit shown is the Prison's capacity.
 - Only creatures that came through a Portal count toward the 15 (5 more per further portal), as `PortalRules.CreatureCount`
