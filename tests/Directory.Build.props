@@ -1,0 +1,15 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    Test hosts run without background (concurrent) GC. A background GC retires a running thread's
+    allocation context and charges its unused tail to GC.GetAllocatedBytesForCurrentThread, so a
+    zero-allocation assertion saw 1-8 KB it never allocated whenever another test's garbage started
+    one mid-measurement (docs/TRAPS.md). Blocking GCs do not do this, so the assertions stay exact.
+  -->
+  <PropertyGroup>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
+</Project>

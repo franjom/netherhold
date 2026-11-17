@@ -39,7 +39,8 @@ state 46 (`0x004683F0`) restores them before returning to worker idle. Combat ro
 `0x00474850`/`0x004748E0` also restore them. These are traced call sites,
 not a claim that every runtime writer has been integrated.
 
-The task-release routine `0x004647D0` restores both for states 43/44/46/49.
+The task-release routine `0x004647D0` restores both for states 43/44/46/49, and first lets go of a
+held creature or object (ADR-0812; [record](functions/004647D0.md)).
 While current state is 6/7, its switch reads the **resume** (`state+0xDF`),
 not the saved caller. The dispatcher `0x00476D30` chooses the leave hook by
 the saved caller's category when leaving travel for a different category.

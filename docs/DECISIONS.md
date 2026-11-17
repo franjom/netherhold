@@ -16090,7 +16090,7 @@ crate jumped from the imp's point to the centre; and ours followed the carrier o
   saves are refused.
 - Not built: DK2's aim of a listed crate at the room's position and its three-to-a-tile draw offsets; the
   hand-drop point for a crate (unread); the worker-job leave hook's (`0x004647D0`) drop on a category change
-  beyond pick-up, death and possession.
+  beyond pick-up, death and possession (built later, ADR-0812).
 
 STRONGLY INFERRED from the disassembly; the hand pick-up's route through the leave hook is HYPOTHESIS. See [workshop-crates.md](research/workshop-crates.md) §7 and records `0048B500`, `0048B5F0`, `004F5040`, `004647D0`.
 
@@ -19387,3 +19387,31 @@ Not built or not pinned: the strike's per-tick cadence stays `WorkCadence`'s fit
 whose SetState refuses, is kicked in ours and probably not in DK2 (the same for the other kinds). DK2 could reuse
 creature ids; ours never do. Evidence: [imp-task-stealing.md section 4](research/imp-task-stealing.md#4-reinforce-gold-and-tier-b-q2),
 [reinforcement-action-clock.md](research/reinforcement-action-clock.md#the-wall-repairs-strike-is-action-8s-q811-adr-0811-hashsave-524).
+
+## ADR-0812 - a worker that leaves the WorkerJob category puts down what it holds
+**Date:** 2026-11-17 | **Status:** accepted | **Systems:** imps-tile-work | **Hash/save:** 525
+
+**Context.** Level 5 bot runs (seeds 2 and 3): an imp carrying a captured hero to the Prison fled a trap (imp 13, pick-up
+t4229, trap fired t4270) or a fight (imp 43, t4972) and kept the body in its arms to the end of the run, dragged behind it,
+with the carried-thing sound every tick and the body never imprisoned. STRONGLY INFERRED (both callees decompiled and the
+call sites disassembled).
+
+**Reading.** The WorkerJob leave hook `0x004647D0` ends a running action, then tests creature `+0x3C3` and calls
+`Creature_DropCarriedThing` (`0x0048B3A0`, call `0x00464815`) and tests `+0x3C5` and calls `Creature_DropDraggedThing`
+(`0x0048B500`, call `0x00464827`), both before its release switch (`0x0046482F`). Each sets the thing at the carrier's
+`+0x1A` triple; the dragged drop also clears the thing's carried flag through its `+0x70`; neither changes any state, so a collapsed creature
+stays collapsed and its dying clock runs again. Ours dropped only on pick-up, death and possession (ADR-0684).
+
+**Decision.** `WorkerPickupRules.OnTaskReleased`, the hook's body in `CategoryHooks`, drops the carried object
+(`ObjectCarryRules.DropWhatever`) and the carried creature (`CarryRules.DropWhatever`) at the leaving worker's point after the
+action end and before the pickup bits. A held body is carryable again at once (`CarryRules.IsCarryable`); a second imp
+takes it to the Prison. Ours alone also clears the worker's `TargetBodyId` and `TargetTileIndex`, since the walk it served
+is over (DK2's task pool is separate). Hand preparation leaves the category too, so a hand pick-up drops the load at
+preparation, before the pick-up itself.
+
+**Consequences.** Hash and save 525, pin `0x1B7D03DC72DF670B`; earlier saves are refused. Level 1's journal is re-recorded (win tick 2334 to 2466, gem (14,22) to (13,20); remake output, not DK2 evidence).
+Tests: `WorkerJobLeaveDropTests` (six; the four drop tests fail without the
+change, the two in-category tests pass either way) and `ObjectCarryingTests` (the book's drop event now reads `left_worker_job`).
+
+Not verified: the Level 5 controlled replay needs the capture and was not run here; the heading and height of a dropped
+body follow the carrier's last attach, which the binary sets from the carrier's triple (heading kept).

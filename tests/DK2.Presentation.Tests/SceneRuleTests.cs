@@ -124,12 +124,14 @@ public sealed class SceneRuleTests
         });
         var reader = new Thread(() =>
         {
-            while (DateTime.UtcNow < deadline)
+            // do-while: a loaded machine can start this thread after the deadline has already passed.
+            do
             {
                 EffectAttachment found = heads.Attachment(imp, KmfControlPoint.Head);
                 reads++;
                 if (found.Point is FpPosition3 p && (p.X != p.Y || p.Y != p.Z)) torn++;
             }
+            while (DateTime.UtcNow < deadline);
         });
         writer.Start();
         reader.Start();
