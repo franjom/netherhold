@@ -25,8 +25,8 @@ namespace DK2.GodotAdapter;
 /// with a surface per <see cref="TerrainMaterialKey"/> drawn as <see cref="TerrainMaterialLook"/> describes it, and the
 /// waving water and lava (<see cref="LiquidSurfaceField"/>), unshaded under a stand-in light, seen from the classic
 /// camera; blended faces go back to front through <see cref="BlendedTerrainStream{TMaterial}"/> (step 3d, <see cref="RunSlot"/>).
-/// Everything crosses into Godot's right-handed frame through <see cref="RightHandedFrame"/>. Not yet drawn:
-/// creatures, objects, structures and torches (no-ops here) and lighting. The host presents the world once a frame
+/// Everything crosses into Godot's right-handed frame through <see cref="RightHandedFrame"/>. Objects, structures and
+/// torches are step 3f's (WorldScene.Objects.cs). Not yet drawn: creatures (no-ops here) and lighting. The host presents the world once a frame
 /// (<see cref="Present"/>), moves the camera's <see cref="Focus"/> and places it (<see cref="PlaceCamera"/>).</summary>
 public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 {
@@ -77,7 +77,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _keyMaterials = new();
     private readonly Dictionary<TerrainMaterialLook, ShaderMaterial> _lookMaterials = new();
-    private readonly Dictionary<(KmfBlend, bool), Shader> _shaders = new();
+    private readonly Dictionary<(KmfBlend, bool, bool), Shader> _shaders = new();
     private readonly Dictionary<string, Texture2D> _textures = new();
     private ImageTexture? _white;
 
@@ -131,7 +131,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
         // The install, then the placeholder, as Unity's chain without its optional folders. The first present builds
         // every chunk inline, so the level appears whole.
-        _presenter = new ScenePresenter(view, AssetProviderChain.Standard(install: _art), this);
+        OpenObjects(_art, level.Database, world.Width, world.Height);
+        _presenter = new ScenePresenter(view, AssetProviderChain.Standard(install: _art), this, new TorchLayout(level.Database));
         _presenter.Present(world);
         for (int generation = 0; generation < _collectionsAtOpen.Length; generation++)
             _collectionsAtOpen[generation] = GC.CollectionCount(generation);
@@ -223,6 +224,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private void SetTile(int tileIndex, in TileView tile)
     {
         _liquids!.Set(tileIndex, tile);
+        _latticeDirty?.Touch(tileIndex);
         _terrain!.Set(tileIndex, tile);
     }
 
@@ -252,15 +254,6 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     public void CreateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation) { }
     public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation) { }
     public void RemoveCreature(int creatureId) { }
-    public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh) { }
-    public void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh) { }
-    public void RemoveObject(int objectId) { }
-    public void CreateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh) { }
-    public void UpdateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh) { }
-    public void RemoveStructure(StructureId id) { }
-    public void CreateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh) { }
-    public void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh) { }
-    public void RemoveTorch(int floorTileIndex) { }
 
     /// <summary>The scheduler's flush (the <see cref="ITerrainChunkSink"/> calls below upload), then the liquids' wave.</summary>
     public void Flush()
@@ -368,7 +361,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         TerrainMaterialLook look = TerrainMaterialLook.For(key);
         if (!_lookMaterials.TryGetValue(look, out material))
         {
-            material = new ShaderMaterial { Shader = ShaderFor(look.Blend, look.FullLight) };
+            material = new ShaderMaterial { Shader = ShaderFor(look.Blend, look.FullLight, look.WritesDepth) };
             material.SetShaderParameter(AlbedoParameter, TextureFor(look.Texture));
             material.SetShaderParameter(ColourParameter, new Color(look.Colour.X, look.Colour.Y, look.Colour.Z, look.Colour.W));
             material.SetShaderParameter(AddedLightParameter, ToGodot(look.AddedLight));
@@ -385,13 +378,14 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// <summary>One shader per blend and light: the texture times the colour, times the stand-in light plus the added
     /// light packed to bytes and clamped (Unity's <c>DK2PackedDiffuse</c>) unless at full light. The colour buffer holds
     /// the stored bytes over 255 and blends them there, as DK2 and Unity's gamma space do (<see cref="GammaOutput"/>).
-    /// Opaque writes depth; blended draws do not.</summary>
-    private Shader ShaderFor(KmfBlend blend, bool fullLight)
+    /// Opaque writes depth; blended draws do not, but for a fading object's (<see cref="ObjectMaterialLook.Faded"/>).</summary>
+    private Shader ShaderFor(KmfBlend blend, bool fullLight, bool writesDepth)
     {
-        if (_shaders.TryGetValue((blend, fullLight), out Shader? shader)) return shader;
+        if (_shaders.TryGetValue((blend, fullLight, writesDepth), out Shader? shader)) return shader;
         string mode = blend switch
         {
             KmfBlend.Opaque => "blend_mix, depth_draw_opaque",
+            KmfBlend.AlphaBlend when writesDepth => "blend_mix, depth_draw_always",
             KmfBlend.AlphaBlend => "blend_mix, depth_draw_never",
             // ONE/ONE: blend_add weights the source by its alpha, held at 1.
             _ => "blend_add, depth_draw_never",
@@ -410,7 +404,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 + "void fragment() {\nvec4 c = texture(albedo_texture, UV) * base_colour;\n" + light
                 + "ALBEDO = c.rgb;\n" + alpha + "}\n",
         };
-        _shaders.Add((blend, fullLight), shader);
+        _shaders.Add((blend, fullLight, writesDepth), shader);
         return shader;
     }
 
@@ -523,6 +517,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 " ms, the rest ", Milliseconds(_blendedTicks / Math.Max(1, _blendedRefreshes - 1)), " ms mean and ",
                 Milliseconds(_blendedMaxTicks), " ms max; allocated ", _blendedWarmUpBytes, " B in the first ", BlendedWarmUp,
                 " and ", _blendedLateBytes, " B after; up to ", _blendedMaxRuns, " runs and ", _blendedMaxTriangles, " triangles");
+        FreeObjects();
         foreach (RunSlot slot in _runSlots) slot.Free();
         _runSlots.Clear();
         _cage?.Free();

@@ -166,7 +166,7 @@ transforms each vertex and then samples `0x0058F030`, as for the wall pieces.
 Moving only the anchor onto the straight tile edge still leaves a gap against
 a bent wall. Classic torches now share the wall lattice for every vertex,
 retain rotated unbent normals, and refresh their private meshes after terrain
-changes. The illumination position stays separate.
+changes (`TorchGeometry` places the vertices; Unity's `ClassicTorchGeometry` and Godot's `TorchSlot` in `WorldScene.Objects.cs` bend and refresh them). The illumination position stays separate.
 
 ### Shipped room values (STRONGLY INFERRED, `Rooms.kwd`)
 

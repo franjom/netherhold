@@ -131,7 +131,7 @@ The companion resource is `KTorch`, loaded by `0x0043AD70` at resource name
 axes to`0x400`. Rechecked in Ghidra on2026-10-16. The install sprite provider
 now supplies this built-in descriptor independently of effect-element records.
 `ClassicTorchFlames` draws its additive white, camera-facing sprite alongside
-the mounted model, with the same visibility lifetime as the torch.
+the mounted model, with the same visibility lifetime as the torch; Godot's `TorchFlames` (`WorldScene.Objects.cs`) draws them too, upright (see [object-drawing.md](object-drawing.md) §10 for Unity's flipped flames).
 
 STRONGLY INFERRED (2026-10-16): `0x0043CC30` adds height`0x4B0` and a512-unit cardinal
 offset to the mounted model offset, almost cancelling that offset (the two

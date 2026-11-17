@@ -12,7 +12,7 @@ Unity's player it starts full screen (see *Verifying* for a window of a fixed si
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
 Unity's `DungeonRunner` does and ticks it at the default game speed, over the level's terrain (`WorldScene`, plan steps 3a
-to 3e: a `Camera3D` that the shared camera rules move (3b), one `MeshInstance3D` per 16x16 chunk with one `ArrayMesh`
+to 3f: a `Camera3D` that the shared camera rules move (3b), one `MeshInstance3D` per 16x16 chunk with one `ArrayMesh`
 surface per `TerrainMaterialKey`, drawn with one `ShaderMaterial` per `TerrainMaterialLook`, so the tint, tag, red, fog and
 tag-overlay variants show). A changed tile is rebuilt through the shared `TerrainChunkScheduler`: the 5x5 tiles around it
 are marked stale, built on the thread pool and uploaded within a 4 ms budget, lowest chunk first. Water and lava wave
@@ -25,7 +25,14 @@ terrain (alpha, additive, the tag overlay, the fog) is drawn back to front by th
 list uploaded with `MeshSurfaceUpdateVertexRegion`. Shaders write stored bytes / 255 (uniforms are `source_color,
 color_conversion_disabled`), and the camera's `Environment` (linear tonemap, a colour-correction table of
 `srgb_to_linear`) shows those values as they are, so every blend happens in gamma space as in Unity; the HUD and front end
-are unaffected. There are no creatures, objects, structures, torches or classic lighting yet. `WorldScene` takes its models and textures from the original install, which the scene requires: there is
+are unaffected. Objects, structures and torches (`WorldScene.Objects.cs`, step 3f) are drawn from shared `ArrayMesh`es, one node per
+object with a `ShaderMaterial` per surface from `ObjectMaterialLook`: the Dungeon Heart, animated through
+`CreatureAnimationPlayer` with `HeartPulse`'s beat (its on-screen test is a point test on its origin; the beat's sound and
+the mana effect wait for 3k and step 4); doors and traps with the door tint, the blinking blueprint and the lock mesh; wall
+torches, bent by `TorchGeometry` and bent again in place when a tile near the wall changes; and their flames as additive
+camera-facing billboards, drawn upright. A blended object or a flame takes Unity's sorting-order-0 place through
+`ZeroOrderOffset`. There are no creatures (3g), environment-mapped passes (3i) or classic lighting yet, and the selection
+cage always draws under blended objects until 3i gives it a `ZeroOrderOffset` key. `WorldScene` takes its models and textures from the original install, which the scene requires: there is
 no placeholder mode. Twelve panels
 are there: the hover HUD (`ClassicHoverHud` over `HoverHud`: the wooden bar under the other panels, the status
 line and the delayed tooltip over them), which shows what the shared `HudHoverText` picks from the panels under the
@@ -123,6 +130,7 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/UserFolders.cs` | `GameFolders` over `user://` with the `--profile`, `--settings`, `--saves` and `--hiscores` overrides, for both scenes |
 | `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level and its `WorldScene` (see above) |
 | `DK2.Godot/WorldScene.cs` | the 3D world: `TerrainTileBuilder`'s chunks as `MeshInstance3D`s through `RightHandedFrame`, rebuilt by `TerrainChunkScheduler` (`ITerrainChunkSink`) with one `ShaderMaterial` per `TerrainMaterialLook`, the waving liquids (`LiquidSurfaceField`), the blended runs (`BlendedTerrainStream`, `ViewFrustum`, one `RenderingServer` instance per run), the gamma-space output `Environment`, the selection cage (`CageRibbon`, `TileHoverOutline.Build`'s ribbon with Godot's own additive shader), `TryPickRay` (the pointer's ray), and the classic `Camera3D`, placed once a frame at the focus the scene moves |
+| `DK2.Godot/WorldScene.Objects.cs` | the objects, structures and torches (`WorldScene`, partial): shared model meshes, a node per object with per-surface looks (`ObjectMaterialLook`), the Heart through `CreatureAnimationPlayer` and `HeartPulse`, the door tint, blueprint and lock mesh, torch meshes (`TorchGeometry`, re-bent in place, with a `CustomAabb`), flames as additive billboards, and `ZeroOrderOffset` for blended draws |
 | `DK2.Godot/ClassicHandCursor.cs` | the hand cursor: `HandCursorHud`'s quad drawn by `HudCanvas` on canvas layer 101 from `InstallHandCursorSheets`, the OS pointer hidden while it shows |
 | `DK2.Godot/ClassicPlacementOverlay.cs` | the placement cursor: `PlacementCursorHud` drawn by `HudCanvas` on canvas layer 100 (the tool's icon, No Go, price, held icons) |
 | `DK2.Godot/ScriptedPointerGate.cs` | drops OS mouse events while a `--pointer-path` script runs, so a capture never takes the owner's mouse |

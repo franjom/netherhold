@@ -27,7 +27,7 @@ namespace DK2.Unity
         private readonly Material _material;
         private readonly Func<EffectTime> _clock;
         private readonly long _startedMilliseconds;
-        private readonly Dk2Lcg _random = new Dk2Lcg(1);
+        private readonly ClassicTorchFlamePhases _phases = new ClassicTorchFlamePhases();
         private readonly ClassicTorchFlameAnimation _animation = new ClassicTorchFlameAnimation();
 
         public ClassicTorchFlames(Transform root, TerrainLattice lattice, IEffectSpriteProvider provider, Func<EffectTime> clock)
@@ -74,7 +74,7 @@ namespace DK2.Unity
                 renderer.sharedMaterial = _material;
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
-                drawn = (renderer, torch, _random.NextInt(4096));
+                drawn = (renderer, torch, _phases.OffsetOf(torch.FloorTileIndex));
             }
             _drawn[torch.FloorTileIndex] = (drawn.Renderer, torch, drawn.PhaseOffsetRaw);
         }
@@ -83,6 +83,7 @@ namespace DK2.Unity
         {
             if (_drawn.TryGetValue(tile, out var drawn)) Object.Destroy(drawn.Renderer.gameObject);
             _drawn.Remove(tile);
+            _phases.Remove(tile);
         }
 
         public void Advance() => _animation.AdvanceTo(new EffectTime(_clock().Milliseconds - _startedMilliseconds));
@@ -92,10 +93,8 @@ namespace DK2.Unity
             if (camera == null || _frames.Count == 0) return;
             foreach (var drawn in _drawn.Values)
             {
-                FpPosition3 raw = ClassicTorchFlame.Position(drawn.Torch);
-                var point = new System.Numerics.Vector3(raw.X.Raw / 4096f, raw.Y.Raw / 4096f, -raw.Z.Raw / 4096f);
-                if (_lattice != null) point = _lattice.Deform(point, drawn.Torch.Wall.X, drawn.Torch.Wall.Y);
-                drawn.Renderer.transform.localPosition = new Vector3(point.X, -point.Z, -point.Y);
+                System.Numerics.Vector3 point = ClassicTorchFlame.RenderPoint(drawn.Torch, _lattice);
+                drawn.Renderer.transform.localPosition = new Vector3(point.X, point.Y, point.Z);
                 drawn.Renderer.transform.rotation = camera.transform.rotation;
                 drawn.Renderer.sprite = _frames[_animation.Frame(_frames.Count, drawn.PhaseOffsetRaw)];
             }
@@ -106,6 +105,7 @@ namespace DK2.Unity
             // A teardown on scene unload can find the sprites already gone with their parent.
             foreach (var drawn in _drawn.Values) if (drawn.Renderer != null) Object.Destroy(drawn.Renderer.gameObject);
             _drawn.Clear();
+            _phases.Clear();
         }
 
         public void Dispose()

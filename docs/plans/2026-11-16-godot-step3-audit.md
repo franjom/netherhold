@@ -28,9 +28,8 @@ into `S·R·S` with `S = diag(1, 1, -1)`; the camera gets the converted pose. Tr
 geometry and the camera are mirrored together, so the winding on screen is unchanged, and reversing it would draw the
 back faces.
 
-`RenderEulerRotation.cs` (18 lines) composes `Euler(0,Yaw,0)·AngleAxis(Roll,forward)·Euler(Pitch,0,0)` with no test;
-3f moves that composition into `DK2.Presentation` as a `System.Numerics` matrix with tests so neither engine composes
-it by hand.
+`RenderRotation` (3f) composes yaw, roll and pitch as a `System.Numerics` quaternion with tests; Unity's
+`RenderEulerRotation` only converts it, and Godot takes it through `RightHandedFrame.Rotation`.
 
 ## Terrain
 
@@ -54,8 +53,8 @@ it by hand.
   `ClassicMaterialRecipe` per key (3a), and in 3c `TerrainMaterialLook` took one look per key: `TagTint` (128,128,200),
   `TagOverlayColour`, `HoverOverlayColour`, the red, tagged and tinted light and the fog alpha. Both engines build
   materials from it. The decay stage was already shared (`WorldView.DecayStage`, `TileView.FaceTexture`,
-  `TerrainPiece.FromModel`, `ClassicMaterialRecipe.FromKmf`). The environment pass, which materials get it and its
-  light (`:370-401`) and a faded one drawing black (`:722-727`) are still in Unity; 3f.
+  `TerrainPiece.FromModel`, `ClassicMaterialRecipe.FromKmf`). The environment pass and the fade moved in 3f
+  (`ObjectMaterialLook`); Godot's environment pass waits for 3i.
 - **Liquids (B), moved in 3c.** `LiquidSurfaceWave` and `LiquidSurfaceField` hold the rest heights 0.9 and 0.85, the
   amplitudes, the 30 per second frame, both phase formulas and the 3x3 grid per tile, filling reused buffers. Normals
   are the normalised sum of unit face normals; Unity takes them too, where it recalculated them each frame (the
@@ -148,18 +147,20 @@ it by hand.
 
 ## Objects, structures and torches
 
-- **Unity.** `CreateObject`/`UpdateObject`/`ConfigureObjectClip` (`DungeonScene.cs:641-699`), `PositionObject`
-  (`:1095-1116`), heart beats (`:591-613`), structures (`:713-762`), torches (`:767-853`), `ClassicTorchGeometry.cs`
-  (71), `ClassicTorchFlames.cs` (119).
+- **Unity.** `DungeonScene`'s `CreateObject`, `UpdateObject`, `ConfigureObjectClip`, `PositionObject`, heart beats,
+  structures and torches, with `ClassicTorchGeometry.cs` and `ClassicTorchFlames.cs`.
 - **Shared (S).** `ObjectView` (`DrawnTexturePhase`, `MeshScale`, `MeshScaleY`, `Alpha`, `AddedLight`), `HeartPulse`,
   `DungeonHeartVisual.TextureIndex`, `TorchLayout`, `TorchGeometry`, `ClassicTorchFlame`, `ClassicTorchFlameAnimation`.
-- **B left.** In the recipe: the texture-phase material set (`ClassicMeshes.cs:123-150`), the alpha fade keeping depth
-  writes (`:687-739`), the blueprint swap to the tag overlay (`:588-598`), the door's instance tint (`:483-491`), the
-  hover-texture twins one queue later (`:547-564`). The flame phase offsets from `Dk2Lcg(1)` drawn in first-seen order
-  (`ClassicTorchFlames.cs:30`, `:77`) and the flame point bent by the lattice (`:95-98`). KMF group part offsets
-  (`ClassicMeshes.cs:257-272`).
-- **Plumbing.** Static meshes are shared `ArrayMesh`es built once per entry; many identical objects (gold, eggs) can
-  become a `MultiMeshInstance3D` later. Flames are camera-facing quads with an additive unshaded material.
+- **B, moved in 3f.** `ObjectMaterialLook`, `ObjectPass` and `ObjectModelPasses`: the own look, the environment pass (which
+  materials, its light), the blueprint overlay, the hover twin, the door's and an element's tint, the fade (blended, still
+  writing depth; a faded environment pass draws black), the texture-phase set, one pass per submesh then the environment
+  passes. `EffectGroupParts.Of`, `ClassicTorchFlame.RenderPoint` and `ClassicTorchFlamePhases` (`Dk2Lcg(1)` offsets).
+- **Godot, 3f.** `WorldScene.Objects.cs` (the plan's step 3f lists what it draws): shared `ArrayMesh`es, and
+  `ZeroOrderOffset` for the sorting-order-0 window. Identical objects (gold, eggs) may become a `MultiMeshInstance3D`.
+- **For 3i.** The environment pass needs the env-map coordinates in the vertex shader and must draw over plan submeshes:
+  DK2 draws a plan as the overlay plus one additive environment pass ([structure-drawing.md](../research/structure-drawing.md)
+  §5); Unity draws the overlay twice, Godot once. The cage (order 0) takes a `ZeroOrderOffset` key, so it sorts among
+  blended objects by distance as in Unity, not always under them.
 
 ## Lighting
 
@@ -324,9 +325,9 @@ three are the terrain and the camera; after that each step adds one kind of thin
   ADR-0805). Moved: `TileHoverOutline.Build`, `PlacementCursorHud`, the green key, `HandCursorHud`, `PointerScript`.
   Godot: picking, the hand cursor, the cage and the placement cursor. Checked: scripted-pointer captures show the claw
   cursor, the cage on a wall, a dig tag and a Lair cursor with No Go and a price.
-- **3f. Objects, structures and torch meshes.** Move: the Euler composition, the rest of the recipe (texture phase,
-  fade, blueprint, instance tint, hover twins), the flame phase offsets, group parts. Godot: static meshes, the Heart
-  and its beat, doors and traps, torch meshes and flames. Check: the Heart, gold and torches in the start frame.
+- **3f. Objects, structures and torch meshes.** Done 2026-11-17 (plan step 3f, which has the numbers; ADR-0805). Moved:
+  `RenderRotation`, `ObjectMaterialLook`, `EffectGroupParts`, the flame point and phases. Godot: the Heart, doors, traps,
+  torch meshes and flames, checked against the Unity probe frames. Not done: the environment pass (3i).
 - **3g. Creatures.** Godot: KMF segment meshes, the `CreatureAnimationPlayer` surface with in-place vertex upload,
   pose interpolation, the head table and footstep requests. Move: the `SceneFrame` order if the owner takes open
   point 7. Check: imps walk and dig over 300 frames; frame times show no GC spikes (`GC.CollectionCount` before and
@@ -336,7 +337,7 @@ three are the terrain and the camera; after that each step adds one kind of thin
   imp and the held icon after a pickup.
 - **3i. Lighting.** Move: `ClassicVertexLight.Sum` and the packed diffuse with tests. Godot: the vertex-lit shader, the
   light-table textures, the publisher, ambient keys, torch, portal, object, effect and hand lights, the environment
-  pass, the exposure pass, and Godot's own fill and fade (open point 2), replacing 3c's stand-in light of 0.5 and
+  pass (also over plans, and the cage's key: see *Objects*), the exposure pass, and Godot's own fill and fade (open point 2), replacing 3c's stand-in light of 0.5 and
   uploading the liquids' normals. Check: captures of the start frame and a lit room against the Unity probe frames (open
   point 3). Acceptance (owner, 2026-11-16, who found Godot's scene "too dark, too bland" and kept this order): the lit
   frames must not look too dark or too bland next to them.

@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream) and 3e (the pointer, cage and placement cursor: the level is playable from the pointer) are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream), 3e (the pointer, cage and placement cursor: the level is playable from the pointer) and 3f (objects, structures and torch meshes) are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -502,8 +502,8 @@ group 2 is a list to audit, not a finding.
       lightning points with `Id < 2000`. `CreatureAnimationArt` came from `ClassicMeshes.ConfigureAnimation`; its
       `TurnsPerSecond` must equal `SimulationTiming.OriginalTicksPerGameSecond` (DK2.Art cannot reference it) and a
       Presentation test pins that.
-      Unity: `RenderEulerRotation` composes `Euler(0,Yaw,0)·AngleAxis(Roll,forward)·Euler(Pitch,0,0)`; no test covers
-      it, it was checked by eye against all four old sites. Not visible in output: the profiler marker scopes moved, a
+      Unity: `RenderEulerRotation` composed the Euler chain by hand, checked by eye against all four old sites (3f moved the
+      composition into `RenderRotation`, with tests). Not visible in output: the profiler marker scopes moved, a
       lookup with no meshes returns nothing where it threw, and a few allocations went. The ADR-0458 threading contract
       holds: the moved code reads view copies, never `WorldState`. Godot is not wired; step 3 builds the 3D world.
       The reviewer found every formula and call order equal to HEAD, bit for bit; three mutation gaps (the clip identity
@@ -744,6 +744,45 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       allocates 128 B a frame with the Hand and 360 B with a room tool, because `PlacementCursor.Room` builds a new List and
       HashSet per call; it is older than 3e and Unity hits it too, so it belongs in a separate `DK2.Presentation` change.
       (2) The hand light, the world hover text, the red tint and the hover sound go to 3h and 3i.
+- [x] 3f. Objects, structures and torch meshes (2026-11-17, ADR-0805). In `DK2.Presentation`: `RenderRotation` (yaw, roll
+      about Z, pitch about X as a `System.Numerics` quaternion, plus `Heading`; Unity's `RenderEulerRotation` only converts
+      it, and the composition now has tests). `ObjectMaterialLook`, `ObjectPass` and `ObjectModelPasses`, out of
+      `ClassicMeshes`: `Own`; `EnvironmentPass` (which materials get one, and its light); `Blueprint` and `BlueprintOverlay`;
+      `HoverTwin` (`HoverTwinQueueOffset` 1; the description only, the red pass is 3h); `Tinted` and `InstanceTinted` (the
+      door's and an element's tint); `Faded` (alpha-blended, still writing depth, and a faded environment pass draws black);
+      `IsDrawn`; one pass per submesh and then the environment passes; and the `TexturePhase` material set.
+      `EffectGroupParts.Of(KmfGroup)` holds the KMF group part offsets (HYPOTHESIS, [heart-intro.md](../research/heart-intro.md)).
+      `ClassicTorchFlame.RenderPoint` is the flame point bent by the lattice and `ClassicTorchFlamePhases` the `Dk2Lcg(1)`
+      phase offsets in first-seen order. Unity's `ClassicMeshes`, `ClassicTorchFlames` and `RenderEulerRotation` call
+      them. Godot, in the new `WorldScene.Objects.cs`: shared model meshes and one node per object with per-surface looks; the
+      Heart, animated through `CreatureAnimationPlayer` with `HeartPulse`'s beat (its on-screen test is a point test on the
+      origin, where Unity uses `renderer.isVisible`; the beat sound and the mana effect wait for 3k and step 4); structures
+      (the door tint, the blinking blueprint, the lock mesh); torch meshes bent by `TorchGeometry`, bent again in place on
+      tile changes and given a `CustomAabb`; flames as additive billboards. `ZeroOrderOffset` puts blended objects and
+      flames in Unity's sorting-order-0 window: after the tag overlays and before runs >= 1, back to front by distance to
+      the bounds centre. The presenter now sends Godot a `TorchLayout`. Not done: Godot's environment pass waits for 3i, which
+      needs the env-map coordinates in the vertex shader. Mutation checks: the developer's 41 and 2 more, and the reviewer's
+      57, each killed, equivalent or unreachable. Verification: `dotnet test DK2.slnx` 10,802 passed, 30 skipped
+      (Presentation 2,779); the Level1 turn-400 hash is unchanged (`D7290428D81A902F`); the `DK2.Unity.Compile` stand-in
+      passes; Unity's batch compile, `SmokeTest` and `SaveSmokeTest` passed. Unity's `ClassicWorldLightingProbe` frames
+      (Level1 and Level7; start, tick70, shifted and torch-only, with and without torches) are byte-identical to before 3f,
+      16 of 16, so the Unity side of the move changed nothing visible. Godot captures against those frames, from the same
+      level-start pose: Level1's terrain and the Heart in its pit line up to the pixel; all nine wall torches and their
+      flames are in place at the right size; at tick 70 the Heart's arches and big steps match in place, shape and size; a
+      tick-32 save shows the fading arches at about half alpha, the depth they write hiding what is behind them; Level7 shows
+      the Heart, torches, crystals and markers in place. Imps (3g) and lighting (3i) are missing. Allocation: object draws
+      allocate 0 B a frame in every phase (hearts, objects and clips, torch bend, flames, sort), on a real-renderer Level7
+      run (294 steady frames and 46 bend frames) and on Level1 headless (2,782 frames). Findings: (1) Unity's wall flames
+      are drawn upside down, a defect that predates 3f. `ClassicTorchFlames` sets `SpriteRenderer.flipY`, which
+      `ClassicEffect.shader` never applies (URP applies it only in its own sprite shaders); the shipped frames are upright
+      and DK2 draws billboards top row up ([object-drawing.md](../research/object-drawing.md) §10, 0x0057F3D0); a crop of the
+      probe frame against Godot's capture shows it, and Godot's upright flames are right. (2) DK2 draws a plan over an
+      environment-mapped material as the plan overlay plus one additive environment pass; Unity draws the flat overlay twice
+      (older than 3f) and Godot once for now. [structure-drawing.md](../research/structure-drawing.md) §5 and the record of
+      0x00581190 have the reading (STRONGLY INFERRED). (3) The cage (sorting order 0) always draws under blended objects in
+      Godot, where Unity sorts it among them by distance; it shows only for a faded or alpha object farther than the cage,
+      such as the Heart intro's fading arches. Open: (1) 3i draws the environment pass, including over plan submeshes. (2) 3i
+      gives the cage a `ZeroOrderOffset` key. (3) A separate commit fixes Unity's upside-down flames.
 - [ ] Creatures, animation playback, shadows.
 - [ ] Lighting tuned to feel like DK2 (owner exception: tuned per engine, not ported natively). Acceptance check for 3i
       (owner, 2026-11-16, who saw the Godot scene and found it "too dark, too bland", and kept this order): Godot's lit

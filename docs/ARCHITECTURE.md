@@ -42,7 +42,7 @@ from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references a
 | `DK2.Harness` | headless scenario runner |
 | `DK2.Tools` | the `dk2tools` CLI: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, `simmatrix`, and the data inspectors |
 | `unity/DK2.Unity` | the adapter; `unity/DK2.Unity.Compile` builds it against Unity's modules |
-| `godot/DK2.Godot` | the Godot adapter, namespace `DK2.GodotAdapter` (ADR-0805, ADR-0810); shows the classic front-end menu, the in-game HUD and, since step 3a, the level's terrain |
+| `godot/DK2.Godot` | the Godot adapter, namespace `DK2.GodotAdapter` (ADR-0805, ADR-0810); shows the classic front-end menu, the in-game HUD and, since step 3a, the level's terrain, and since step 3f its objects, structures and wall torches |
 
 `docs/HANDOFF.md` §"Where to work" says which project a change belongs in.
 
@@ -295,7 +295,7 @@ a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is Uni
 (`HudDrawList.cs`). The adapter draws it with `HudCanvas` and forwards pointer input. The bottom panel,
 the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages, the front-end menu, and the minimap and full-map markers have moved (`MinimapHud`, `FullMapHud`); the minimap's disc is a GPU pass in Unity and `MinimapDiscImage`, its CPU twin, in `DK2.Presentation` for Godot, and its camera footprint is a `HudDrawKind.Triangles` draw (`MinimapCameraView`, `HudTriangles.ClipToCircle`) that both adapters draw. A
 front-end label is a `HudLabel` in BF4 glyph boxes: `HudCanvas` draws the shared bitmap (`HudLabelPixels`) or the replacement TrueType glyphs in those boxes. The ADR's
-table says where new HUD files go, including the `godot/DK2.Godot` adapter, which today shows the classic front-end menu and the in-game HUD through its own `HudCanvas`, over the level's terrain (`WorldScene`) (ADR-0810; toolchain and run notes in `godot/README.md`). Its csproj is outside `DK2.slnx` and CI.
+table says where new HUD files go, including the `godot/DK2.Godot` adapter, which today shows the classic front-end menu and the in-game HUD through its own `HudCanvas`, over the level's terrain, objects, structures and torches (`WorldScene`) (ADR-0810; toolchain and run notes in `godot/README.md`). Its csproj is outside `DK2.slnx` and CI.
 
 `unity/DK2.Unity.Compile` compiles the adapter against Unity's real module
 assemblies, which is the only way "do not commit code you have not built" reaches

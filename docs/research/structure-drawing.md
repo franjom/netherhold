@@ -90,7 +90,7 @@ for one flat colour. STRONGLY INFERRED from DKII.EXE unless marked.
   frame), and set the tint `+0x48..+0x4A` to 255. A built door clears the override and tint 128.
   `0x0059D4B0` turns bit 1 into draw flag 0x100, and the static draw `0x00580EC0` then draws every
   primitive of the model with that one material and its render state, in place of the model's own
-  (draw `+0x50` bit 0x100 tested at `0x0058122E`, material from draw `+0x64` at `0x00581237`; the animated draw `0x00584900` does the same from its `+0x4C` and `+0x70`). The geometry, and so the silhouette, stays.
+  (draw `+0x50` bit 0x100 tested at `0x0058122E`, material from draw `+0x64` at `0x00581237`; the animated draw `0x00584900` does the same from its `+0x4C` and `+0x70`). The geometry, and so the silhouette, stays. The environment pass is not replaced: a model material whose original state has 0x800 still queues its one additive environment pass on top of the plan. The static queue (`0x00581190..0x0058178E`, [00581190](functions/00581190.md); STRONGLY INFERRED) gates it on the state saved before the override (`0x00581583`), the flash flag 0x200 is clear for a blueprint (`0x00581597`; `0x0059D4B0` returns only 0x100), and `0x0058178E` queues the original material's environment texture at state 0x741 (`0x005817A4..0x00581837`; [kmf-materials.md §8](kmf-materials.md#8-the-environment-pass-2026-10-23-claude-q622q623)).
 - **The material.** `0x005099A0` fills `+0xA36B` RedTexture and `+0xA36F` BlueTexture as kind 3
   (`AA_`), `+0xA373` RedTexture and `+0xA377` BlueTexture as kind 1 (`S_`, string `0x006A4AE4`
   BlueTexture). Kind 3 is additive ONE/ONE, no depth write, depth test kept, colour forced white
@@ -114,9 +114,9 @@ Ours: `WorldView.PlanTint` gives each blueprint's `StructureView.Plan` (Blue or 
 Workshop test (any owned Workshop tile, refreshed once per turn) and the tick parity. A view
 reads `CurrentTick` after the tick that ran DK2 turn `CurrentTick` (`GameSimulation` passes
 `CurrentTick + 1` as the turn, then increments), so the parity is that of the last turn run. `DungeonScene` swaps the model's
-materials for the shared `AA_BlueTexture` or `AA_RedTexture` array (`ClassicMeshes.Blueprint`,
-the dig tag's own overlay materials) and, on a blink, swaps the array in place rather than
-rebuilding the model. Not modelled: the kind-1 branch, and the second override `0x004A6B70`
+materials for the shared `AA_BlueTexture` or `AA_RedTexture` array (`ObjectMaterialLook.Blueprint`, which Unity's `ClassicMeshes.Blueprint` and Godot's `WorldScene.Objects.cs` both use;
+the dig tag's own overlay look) and, on a blink, swaps the array in place rather than
+rebuilding the model. Not modelled: the environment pass over a plan (Unity draws the flat overlay twice, Godot once; step 3i draws the pass), the kind-1 branch, and the second override `0x004A6B70`
 gives the linked thing at door `+0x103`.
 
 ## 6. A built door's base light (Level6a, 2026-11-05)

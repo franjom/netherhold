@@ -140,11 +140,11 @@ shipped definitions, asserts the closure and checks every art flag.
   the owner; 225 and 314 are viewer-only, which the Unity runner filters by the
   viewing player. The ordinary frame waits for the sequence (`SequenceOver`).
 - `WorldView.DecorateHeart`: the viewer's Arches and Big Steps carry
-  `DecorationAlpha`; `ClassicMeshes.SetAlpha` hides at 0, blends between, restores
+  `DecorationAlpha`; `ObjectMaterialLook.IsDrawn` hides at 0 and `Faded` blends between (Unity's `ClassicMeshes.SetAlpha` and Godot's `WorldScene.Objects.cs` apply them), restores
   at 255.
 - `RoomConstructionParticles`: Next chains at creation, death effects at removal
   after the last child, flag `0x40` generation, the randomness gate, and group
-  parts through an injected lookup; `KmfReader` reads GROP; `ClassicMeshes.GroupParts`
+  parts through an injected lookup; `KmfReader` reads GROP; `EffectGroupParts.Of` (Unity's `ClassicMeshes.GroupParts` calls it)
   maps a member's offset to position units (KMF x, y are the world's, z points
   down, a unit is a tile). `ClassicConstructionEffects` keys a mesh group by the
   part's entry.
@@ -235,7 +235,7 @@ glow at 50/255 and the flying rock (380) at 120,100,100 before any light; the
 nine plug pieces (396, no art) have no tint and show only the scene's lights.
 Ours drew every effect mesh without the tint, so the lid lay black under the
 Heart's low orange light; the Unity effects renderer now adds it through the
-material's emission (`ClassicMeshes.ElementTinted`), which the classic vertex-lit
+material's emission (`ObjectMaterialLook.InstanceTinted`, called by `ClassicMeshes.ElementTinted`), which the classic vertex-lit
 shader sums with the lights as DK2 does.
 
 So the reading gives `Falloff` × 1. ADR-0476's "peaks at 68" does not match the

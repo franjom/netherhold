@@ -131,10 +131,8 @@ namespace DK2.Unity
                 materials = new Material[model.Materials.Count];
                 for (int i = 0; i < materials.Length; i++)
                 {
-                    KmfMaterial source = model.Materials[i];
-                    materials[i] = source.TextureNames.Count == 0 ? MaterialFor(source)
-                        : ForTexture(source.TextureNames[DungeonHeartVisual.TextureIndex(phase, source.TextureNames.Count)],
-                            source.Blend, source.SelfIllumination);
+                    ClassicMaterialRecipe recipe = ObjectModelPasses.TexturePhase(model.Materials[i], phase);
+                    materials[i] = ForTexture(recipe.Texture, recipe.Blend, recipe.SelfIllumination);
                 }
                 for (int i = 0; i < materials.Length; i++) materials[i] = TerrainTinted(materials[i], addedLight);
                 // The model's environment passes follow its own materials (TryBuild).
@@ -285,22 +283,12 @@ namespace DK2.Unity
             new Dictionary<string, IReadOnlyList<EffectGroupPart>>();
 
         /// <summary>The members of a KMF group an effect flings (art type 8), each with its offset in
-        /// position units. INFERRED from the mesh convention (RenderMesh.ToRenderFrame): the KMF's x and
-        /// y are the world's, its z points down, a unit is a tile; the loader that fills the part array
-        /// (heart-intro.md §3) is unread. Null when the install has no such group.</summary>
+        /// position units (<see cref="EffectGroupParts.Of"/>). Null when the install has no such group.</summary>
         public IReadOnlyList<EffectGroupPart> GroupParts(string groupName)
         {
             if (_groupParts.TryGetValue(groupName, out IReadOnlyList<EffectGroupPart> parts)) return parts;
             parts = null;
-            if (_art.TryLoadGroup(groupName, out KmfGroup group))
-            {
-                var list = new List<EffectGroupPart>(group.Elements.Count);
-                foreach (KmfGroupElement element in group.Elements)
-                    list.Add(new EffectGroupPart(element.Name,
-                        (int)(element.Position.X * Fp32.One), (int)(element.Position.Y * Fp32.One),
-                        (int)(-element.Position.Z * Fp32.One)));
-                parts = list;
-            }
+            if (_art.TryLoadGroup(groupName, out KmfGroup group)) parts = EffectGroupParts.Of(group);
             _groupParts[groupName] = parts;
             return parts;
         }
@@ -400,27 +388,25 @@ namespace DK2.Unity
         /// in the install, or without the classic vertex-lit shader, which carries the coordinates.</summary>
         private Material EnvironmentPass(KmfMaterial kmf)
         {
-            if (kmf == null || !kmf.HasEnvironmentPass || !UsesClassicVertexLighting
-                || string.IsNullOrEmpty(kmf.EnvironmentTextureName)) return null;
-            var key = (kmf.EnvironmentTextureName, kmf.EnvironmentPassLight);
+            if (!UsesClassicVertexLighting || ObjectMaterialLook.EnvironmentPass(kmf) is not ObjectMaterialLook look) return null;
+            var key = (look.Texture, look.Colour.X);
             if (_environmentPasses.TryGetValue(key, out Material material)) return material;
             using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Material);
             Texture2D texture = null;
             try
             {
-                RgbaImage image = _art.LoadTexture(kmf.EnvironmentTextureName);
+                RgbaImage image = _art.LoadTexture(look.Texture);
                 using (LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Texture))
-                    texture = Own(ToTexture(image, kmf.EnvironmentTextureName));
+                    texture = Own(ToTexture(image, look.Texture));
             }
             catch (System.IO.FileNotFoundException)
             {
-                Debug.LogWarning($"DK2: environment texture '{kmf.EnvironmentTextureName}' not found; no environment pass.");
+                Debug.LogWarning($"DK2: environment texture '{look.Texture}' not found; no environment pass.");
             }
             if (texture != null)
             {
-                float light = kmf.EnvironmentPassLight;
-                material = Own(new Material(_shader) { name = "ENV_" + kmf.EnvironmentTextureName, mainTexture = texture });
-                material.SetColor("_BaseColor", new Color(light, light, light, 1f));
+                material = Own(new Material(_shader) { name = "ENV_" + look.Texture, mainTexture = texture });
+                material.SetColor("_BaseColor", new Color(look.Colour.X, look.Colour.Y, look.Colour.Z, look.Colour.W));
                 material.EnableKeyword("DK2_ENVIRONMENT_MAP");
                 MakeTransparent(material, BlendMode.One, BlendMode.One, 2f);
                 // Counted as blended so the hover's red pass does not cover it twice.
@@ -496,9 +482,10 @@ namespace DK2.Unity
             if (_elementTinted.TryGetValue((material, packed), out Material tinted)) return tinted;
             tinted = Copy(material, " (element tint)");
             Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
+            System.Numerics.Vector3 added = OwnLook(ToVector(own)).InstanceTinted(tint.r, tint.g, tint.b).AddedLight;
             tinted.EnableKeyword("_EMISSION");
             tinted.SetTexture("_EmissionMap", material.mainTexture);
-            tinted.SetColor("_EmissionColor", own + new Color(tint.r / 255f, tint.g / 255f, tint.b / 255f, 0f));
+            tinted.SetColor("_EmissionColor", new Color(added.X, added.Y, added.Z, own.a));
             tinted.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             _elementTinted[(material, packed)] = tinted;
             return tinted;
@@ -539,6 +526,9 @@ namespace DK2.Unity
         public static readonly Color HoverOverlayColour = ToColour(TerrainMaterialLook.HoverOverlayColour);
 
         private static Color ToColour(System.Numerics.Vector3 colour) => new Color(colour.X, colour.Y, colour.Z);
+
+        private static ObjectMaterialLook OwnLook(System.Numerics.Vector3 own) =>
+            new ObjectMaterialLook("", KmfBlend.Opaque, true, false, System.Numerics.Vector4.One, own);
 
         private static System.Numerics.Vector3 ToVector(Color colour) => new System.Numerics.Vector3(colour.r, colour.g, colour.b);
 
@@ -583,12 +573,11 @@ namespace DK2.Unity
                 for (int i = 0; i < model.Materials.Count; i++)
                 {
                     KmfMaterial kmf = model.Materials[i];
-                    int index = ObjectHoverHighlight.HoverTextureIndex(kmf.TextureNames.Count);
-                    if (index == 0) continue;
-                    Material source = MaterialFor(kmf, index);
+                    if (ObjectMaterialLook.HoverTwin(kmf) is not ObjectMaterialLook twin) continue;
+                    Material source = MaterialFor(kmf, ObjectHoverHighlight.HoverTextureIndex(kmf.TextureNames.Count));
                     result ??= new Material[model.Materials.Count];
                     result[i] = Copy(source, " (hover)");
-                    result[i].renderQueue = source.renderQueue + 1;
+                    result[i].renderQueue = source.renderQueue + twin.QueueOffset;
                 }
             _hoverTextures[key] = result;
             return result;
@@ -621,8 +610,8 @@ namespace DK2.Unity
             slots = Mathf.Max(1, slots);
             if (_blueprints.TryGetValue((slots, red), out Material[] plan)) return plan;
             plan = new Material[slots];
-            // The dig tag's own materials; their DK2TagOverlay tag is read only for terrain runs.
-            Material overlay = TagOverlay(red);
+            // The dig tag's own materials (ObjectMaterialLook.Blueprint); their DK2TagOverlay tag is read only for terrain runs.
+            Material overlay = Terrain(new TerrainMaterialKey(default, ObjectMaterialLook.BlueprintOverlay(red)));
             for (int i = 0; i < slots; i++) plan[i] = overlay;
             _blueprints[(slots, red)] = plan;
             return plan;
@@ -752,19 +741,21 @@ namespace DK2.Unity
             var cacheKey = (source, (byte)alpha, writeDepth);
             if (_faded.TryGetValue(cacheKey, out Material faded)) return faded;
             faded = Copy(source, " (alpha " + alpha + ")");
-            if (_environmentMaterials.Contains(source))
+            // The object fade's rule (ObjectMaterialLook.Faded); the sight fog's twin is the same but writes no depth.
+            ObjectMaterialLook look = new ObjectMaterialLook("", KmfBlend.Opaque, true, false, System.Numerics.Vector4.One,
+                default, EnvironmentMapped: _environmentMaterials.Contains(source)).Faded(alpha);
+            if (look.EnvironmentMapped)
             {
-                // A blended draw gets no environment pass (state bits 0x21, 0x00581797): black adds nothing.
-                faded.SetColor("_BaseColor", Color.clear);
+                faded.SetColor("_BaseColor", new Color(look.Colour.X, look.Colour.Y, look.Colour.Z, look.Colour.W));
                 _faded[cacheKey] = faded;
                 return faded;
             }
             MakeTransparent(faded, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
-            if (writeDepth) faded.SetFloat("_ZWrite", 1f);
+            if (writeDepth && look.WritesDepth) faded.SetFloat("_ZWrite", 1f);
             if (faded.HasProperty("_BaseColor"))
             {
                 Color colour = faded.GetColor("_BaseColor");
-                colour.a = alpha / 255f;
+                colour.a = look.Colour.W;
                 faded.SetColor("_BaseColor", colour);
             }
             _faded[cacheKey] = faded;

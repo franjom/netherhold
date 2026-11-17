@@ -169,6 +169,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>The 3D world under the HUD (plan step 3a): the start frame's terrain from the level-start camera, which
     /// does not move yet.</summary>
     private WorldScene? _world;
+    private Action<HeartHealthChange>? _heartHealthObserver;
     /// <summary>Action 26's focus glide (Unity's runner's <c>_glide</c>), on this scene's engine-time clock.</summary>
     private readonly CameraGlide _glide = new();
     /// <summary>The camera pointer last frame, y up (Unity's runner's <c>_cameraPointer</c>), and the wheel since then.</summary>
@@ -378,6 +379,12 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
         // The first frame's terrain, built whole; each frame's Present pushes the changes since.
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
+        // DungeonRunner's heart health observer: each change queued for the next frame's beat.
+        int maximumHeartHealth = level.Database[VariableTypeId.DungeonHeartObjectHealth];
+        WorldScene world = _world;
+        _heartHealthObserver = change => world.QueueHeartHealthChange(change.Owner,
+            DungeonHeartVisual.FromHealth(currentHealth: change.Health, maximumHealth: maximumHeartHealth));
+        _simulation.World.HeartHealthChanged += _heartHealthObserver;
         _glideTo = LaunchArguments.GlideTarget(args, "--");
         _pointerScript = LaunchArguments.PointerPath(args, "--");
         if (_pointerScript == null && LaunchArguments.Value(args, "--pointer-path") != null)
@@ -504,7 +511,12 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
         // DungeonRunner.Update's present: the settled world's changes, before the frame's ticks; the chunk build it
         // starts runs on the thread pool while they do (ADR-0696).
+        // DungeonRunner's frame time before its present, then DrawCreatureFrame's objects after it: the drawn turn and how
+        // far toward the next (this scene ticks inline, so the debt left by the last frame).
+        float drawFraction = (float)Math.Min(_pacer.Debt, 1d);
+        _world.SetFrameTime(_simulation.World.CurrentTick, drawFraction, milliseconds);
         _world.Present(_simulation.World, _elapsed);
+        _world.DrawFrame(_simulation.World.CurrentTick, drawFraction);
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
@@ -1237,6 +1249,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     KeeperResourceKind IHudHoverSources.Resource() => _resources?.ResourceAt(_pointer) ?? KeeperResourceKind.None;
 
     /// <summary>Every key event reaches the keyboard, as Unity's <c>Input.GetKey</c> reads the keys whatever the UI holds.</summary>
+    /// <summary>Unity's runner removes its heart health observer when the level goes; so does this scene.</summary>
+    public override void _ExitTree()
+    {
+        if (_heartHealthObserver != null && _simulation != null) _simulation.World.HeartHealthChanged -= _heartHealthObserver;
+        _heartHealthObserver = null;
+    }
+
     public override void _Input(InputEvent @event)
     {
         if (@event is not InputEventKey key) return;

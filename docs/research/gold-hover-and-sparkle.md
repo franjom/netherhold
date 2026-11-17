@@ -174,7 +174,7 @@ dropped back on a store it is deposited on landing, as DK2's state 5 does (ADR-0
 - `HoverOverlayPlan` (src/DK2.Presentation) decides which submeshes swap to the `_HIGHLIGHT`
   twin and which take the red pass, and which creatures were already drawn red this frame;
   `DungeonScene.DrawHoverOverlay` draws a hovered gold object's twin (from
-  `ClassicMeshes.HoverTextures`) one render queue after the original, then the red pass on
+  `ClassicMeshes.HoverTextures`, which takes the twin from `ObjectMaterialLook.HoverTwin`) one render queue after the original, then the red pass on
   its materials, skipping those made from additive or alpha-blended KMF materials
   (`ClassicMeshes.IsKmfBlended`) unless `HoverTint.CoversBlended` (Fear Trap, Hero
   Portcullis), for creatures, objects, doors and traps.

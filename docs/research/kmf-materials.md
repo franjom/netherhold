@@ -209,13 +209,13 @@ flags 0x40/0x42, shininess 0.2, `DefaultEnvMap`; his sword 0.5.
 (DK2.Art) carry the gate and the scale; the classic vertex-lit shader
 (`ClassicVertexLit.shader`, keyword `DK2_ENVIRONMENT_MAP`) computes the coordinates
 inline, and `EnvironmentMapCoordinates` (DK2.Presentation) is only the tested C#
-reference of that formula; nothing calls it at run time. `ClassicMeshes` appends each such material's triangles as an
+reference of that formula; nothing calls it at run time. `ObjectMaterialLook.EnvironmentPass` (DK2.Presentation) is the shared choice of texture and light; `ClassicMeshes` appends each such material's triangles as an
 extra submesh drawn ONE/ONE with the environment texture, lit by the shader's own light
 sum times shininess. Approximated: our light sum includes the owner-tuned Unity fill
 (ADR-0522); DK2's camera space is assumed to be Direct3D's (HYPOTHESIS); animated meshes keep
 their first frame's normals; terrain pieces and effect frames get no pass; a fading
 object drops its pass, as DK2's blended gate does; the option is always on. Without the
-classic vertex-lit shader no pass is drawn.
+classic vertex-lit shader no pass is drawn. Godot draws none until step 3i, which needs the coordinates in its vertex shader.
 
 ## 9. Unique creature textures (2026-10-29, Q681)
 

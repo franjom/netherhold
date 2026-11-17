@@ -40,6 +40,10 @@ The scene mapping for creatures and objects, render only (it reads views, never 
 clamped position lerp, the shortest-arc wrap and the object turn), `MeshOrientation` (a mesh's turns as a `RenderEuler`, with the
 ordering of `0x00580480` and our frame mapping stated), and `AnimationClipRequest` (the clip identity records, `Replacement` and
 `StartSeconds`). The clip player itself is `CreatureAnimationPlayer` in `DK2.Art`.
+How an object, structure or torch draws, for either engine to build its materials from: `RenderRotation` (a `RenderEuler` as
+one quaternion: yaw, roll, then pitch), `ObjectMaterialLook` with `ObjectModelPasses` (the own, environment, blueprint,
+hover-twin, tinted and faded looks, one pass a submesh), `EffectGroupParts`, and `ClassicTorchFlame.RenderPoint` and
+`ClassicTorchFlamePhases` for the wall flames.
 The classic light frame and the hover pick, measured by the adapter and decided here (they read no world state, ADR-0458):
 `ClassicLightPublisher` (`Prepare` finds the visible tiles again only when the pose, viewport or distance changes and joins the
 second camera at view distance 10; `Publish` writes a diff to an `ITileLightSink`; `PublishPortalLights`, `MarkTablesWritten`,
