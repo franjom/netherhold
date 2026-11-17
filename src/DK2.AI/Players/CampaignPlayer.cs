@@ -555,7 +555,9 @@ public sealed class CampaignPlayer : IPlayerController
     /// too (the net count of non-workers), which only delays it.</summary>
     private bool Recruit(PlayerObservation observation, TilePos home, List<PlayerAction> actions, long keep)
     {
-        if (_strategy.RecruitGold <= 0 || !Owns(observation, RoomTypeId.Portal)) return false;
+        if (_strategy.RecruitGold <= 0 || Summary(observation, RoomTypeId.Portal) is not PlayerRoomSummary portal) return false;
+        // The portals' cap (schema 8): at it nobody comes whatever the rooms draw (owner: 15, and 5 for each more portal).
+        if (portal.Capacity > 0 && portal.Used >= portal.Capacity) { Note($"the portals hold their {portal.Capacity} creatures"); return false; }
         long tick = observation.Stamp.Tick.Value;
         long gold = observation.Gold.Value;
         if (gold - keep < _strategy.RecruitGold || gold < (long)observation.WageBill.Value * RecruitPaydays

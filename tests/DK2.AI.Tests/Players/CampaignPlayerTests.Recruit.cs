@@ -75,6 +75,17 @@ public partial class CampaignPlayerTests
     }
 
     [Fact]
+    public void FullPortalsRecruitNobodyWhateverTheRoomsDraw()
+    {
+        PlayerObservation View(int held) => Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom)], gold: 50_000, tick: 1300, revision: 1300,
+            owned: CoreOwned(more: new PlayerRoomSummary(RoomTypeId.Portal, 9, Capacity: 15, Used: held)));
+        PlayerDecision full = Recruiter().Decide(View(15));
+        Assert.Null(Built(full, RoomTypeId.GuardRoom));
+        Assert.Contains("the portals hold their 15 creatures", full.Thoughts.Single(t => t.Routine == "room").Note);
+        Assert.NotNull(Built(Recruiter().Decide(View(14)), RoomTypeId.GuardRoom));
+    }
+
+    [Fact]
     public void ANewCreatureRestartsTheQuietSpell()
     {
         CampaignPlayer player = Recruiter();

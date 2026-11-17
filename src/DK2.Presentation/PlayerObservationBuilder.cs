@@ -76,6 +76,7 @@ public sealed class PlayerObservationBuilder
     private readonly Dictionary<int, PlayerThingHandle> _creatureHandles = [];
     private readonly List<PlayerRoomSummary> _rooms = [];
     private readonly List<PlayerCreatureSummary> _creatures = [];
+    private readonly List<PlayerCreatureSummary> _prisoners = [];
     private readonly List<PlayerVisibleThing> _things = [];
     private readonly List<PlayerNotice> _notices = [];
     private readonly List<PlayerVisibleTrap> _enemyTraps = [];
@@ -145,6 +146,7 @@ public sealed class PlayerObservationBuilder
             Tiles = grid,
             Rooms = _rooms,
             Creatures = _creatures,
+            Prisoners = _prisoners,
             Things = _things,
             EnemyTraps = _enemyTraps,
             Notices = _notices,
@@ -168,11 +170,13 @@ public sealed class PlayerObservationBuilder
             }
 
         // The Lair's and Treasury's hover texts give their fill (WorldHoverText.Room: strings 2435, 2581).
-        int beds = 0, taken = 0, goldCapacity = 0, goldHeld = 0;
-        if (_roomTiles[(byte)RoomTypeId.Lair] > 0 || _roomTiles[(byte)RoomTypeId.Treasury] > 0)
+        // The Portal's creature cap (schema 8): 15 for the first portal and 5 for each more (owner, 2026-11-17).
+        int beds = 0, taken = 0, goldCapacity = 0, goldHeld = 0, portals = 0;
+        if (_roomTiles[(byte)RoomTypeId.Lair] > 0 || _roomTiles[(byte)RoomTypeId.Treasury] > 0 || _roomTiles[(byte)RoomTypeId.Portal] > 0)
             foreach (RoomInstance room in RoomIndex.Build(world, _database))
             {
                 if (room.OwnerPlayerId != _player.Value) continue;
+                if (PortalRules.IsEntrance(room.Definition)) portals++;
                 if (room.Definition.TypeId == RoomTypeId.Lair)
                 {
                     beds += LairRules.Capacity(room);
@@ -192,6 +196,8 @@ public sealed class PlayerObservationBuilder
                 {
                     RoomTypeId.Lair => new PlayerRoomSummary(RoomTypeId.Lair, _roomTiles[room], beds, taken),
                     RoomTypeId.Treasury => new PlayerRoomSummary(RoomTypeId.Treasury, _roomTiles[room], goldCapacity, goldHeld),
+                    RoomTypeId.Portal => new PlayerRoomSummary(RoomTypeId.Portal, _roomTiles[room],
+                        PortalRules.CreatureCapacity(_database, portals), PortalRules.CreatureCount(world, _player)),
                     _ => new PlayerRoomSummary((RoomTypeId)room, _roomTiles[room]),
                 });
         return new PlayerTileGrid(world.Width, world.Height, _tiles);
@@ -225,8 +231,9 @@ public sealed class PlayerObservationBuilder
                 PlayerThingActions creatureActions = PlayerThingActions.None;
                 if (HandRules.CanPickUp(world, _database, creature, _player)) creatureActions |= PlayerThingActions.PickUp;
                 if (HandRules.CanSlap(_database, creature, _player)) creatureActions |= PlayerThingActions.Slap;
+                (int level, int petals) = Flower(creature, out _, out _);
                 return new PlayerVisibleThing(handle, PlayerThingKind.Creature, target.Tile, creature.OwnerPlayerId,
-                    creatureActions, creatureType: creature.CreatureTypeId);
+                    creatureActions, creatureType: creature.CreatureTypeId) { Level = level, Petals = petals };
             case PlayerInputTargetKind.Object:
                 ObjectState thing = world.ObjectById(target.Id)!;
                 return new PlayerVisibleThing(handle, PlayerThingKind.Object, target.Tile, thing.OwnerPlayerId,
@@ -259,40 +266,52 @@ public sealed class PlayerObservationBuilder
     private void CaptureCreatures(WorldState world)
     {
         _creatures.Clear();
+        _prisoners.Clear();
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.OwnerPlayerId != _player || creature.Activity == CreatureActivity.Dead) continue;
+            if (creature.Activity == CreatureActivity.Dead) continue;
+            // Another player's creature held in one of this keeper's Prisons shows in the keeper's creature list
+            // (owner, 2026-11-17), apart from the keeper's own (schema 8).
+            bool prisoner = creature.OwnerPlayerId != _player && creature.PrisonOwnerPlayerId == _player.Value
+                && PrisonRules.IsPrisonInmate(creature);
+            if (creature.OwnerPlayerId != _player && !prisoner) continue;
             // Every own creature's place is the viewer's to know: the creature panel's Focus
             // (0x00417F60) jumps the camera to any not held or joining, prisoners included.
             TilePos? tile = creature.InHand ? null : creature.Tile;
-            // What the status flower shows its owner (status-flowers.md section 3): the level badge,
-            // the petal ring (six petals at full health, one fewer per quarter lost, one while dying)
-            // and the mood icon.
-            CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
             PlayerThingHandle? seen = _creatureHandles.TryGetValue(creature.Id, out PlayerThingHandle handle) ? handle : null;
-            if (StatusFlowerRules.NeverShows(definition, creature, _player))
-            {
+            (int level, int petals) = Flower(creature, out PlayerCreatureMood? mood, out bool hungry);
+            (prisoner ? _prisoners : _creatures).Add(level == 0
                 // Held, joining or never flowered: no hover shows a player these (0x0048E830).
-                _creatures.Add(new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand, seen));
-                continue;
-            }
-            bool dying = creature.Dk2StateId is CreatureDeathRules.FallingState or CreatureDeathRules.DyingState
-                || CreatureDeathRules.HasCollapsed(creature);
-            int petals = 6 - StatusFlowerRules.Ring(dying, creature.Health, CreatureHealthRules.MaxHealth(_database, definition, creature));
-            PlayerCreatureMood mood = creature.Mood switch
-            {
-                CreatureMood.Angry => PlayerCreatureMood.Angry,
-                CreatureMood.Unhappy => PlayerCreatureMood.Unhappy,
-                _ => PlayerCreatureMood.Happy,
-            };
-            // The flower's chicken (SJ-Hungry, StatusFlowerCentre.Next): an unhappy or angry creature's centre shows its
-            // mood then its largest grievance; a content one's shows its job, the chicken when eating.
-            bool hungry = mood != PlayerCreatureMood.Happy
-                ? StatusFlowerCentre.LargestAnger(creature.Anger) == AngerBucket.Hunger
-                : NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Eating;
-            _creatures.Add(new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand, seen,
-                CreatureLevelRules.Clamp(creature.Level), petals, mood, hungry));
+                ? new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand, seen)
+                : new PlayerCreatureSummary(creature.CreatureTypeId, tile, creature.InHand, seen, level, petals, mood, hungry));
         }
+    }
+
+    /// <summary>What a creature's status flower shows the viewer (status-flowers.md section 3): the level badge, the petal
+    /// ring (six petals at full health, one fewer per quarter lost, one while dying), the mood icon and the centre's
+    /// chicken; level 0 when the flower never shows. Enemies' flowers show too (owner, 2026-11-17).</summary>
+    private (int Level, int Petals) Flower(CreatureState creature, out PlayerCreatureMood? mood, out bool hungry)
+    {
+        CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
+        mood = null;
+        hungry = false;
+        if (StatusFlowerRules.NeverShows(definition, creature, _player)) return (0, 0);
+        bool dying = creature.Dk2StateId is CreatureDeathRules.FallingState or CreatureDeathRules.DyingState
+            || CreatureDeathRules.HasCollapsed(creature);
+        int petals = 6 - StatusFlowerRules.Ring(dying, creature.Health, CreatureHealthRules.MaxHealth(_database, definition, creature));
+        PlayerCreatureMood shown = creature.Mood switch
+        {
+            CreatureMood.Angry => PlayerCreatureMood.Angry,
+            CreatureMood.Unhappy => PlayerCreatureMood.Unhappy,
+            _ => PlayerCreatureMood.Happy,
+        };
+        mood = shown;
+        // The flower's chicken (SJ-Hungry, StatusFlowerCentre.Next): an unhappy or angry creature's centre shows its
+        // mood then its largest grievance; a content one's shows its job, the chicken when eating.
+        hungry = shown != PlayerCreatureMood.Happy
+            ? StatusFlowerCentre.LargestAnger(creature.Anger) == AngerBucket.Hunger
+            : NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Eating;
+        return (CreatureLevelRules.Clamp(creature.Level), petals);
     }
 
     private void CaptureNotices(WorldState world, GameTick tick)

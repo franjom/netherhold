@@ -64,7 +64,9 @@ public sealed class PlayerTileGrid
 /// <summary>An owned room type as the HUD shows it: its tiles, and for the rooms whose hover text gives a fill (schema 7)
 /// what they hold summed over every room of the type: the Lair's beds (<see cref="Capacity"/>) and beds taken
 /// (<see cref="Used"/>), as its status-bar hover reads (string 2435); the Treasury's gold capacity and gold held (string
-/// 2581). Zero for the other types.</summary>
+/// 2581). For the Portal (schema 8) the creatures the keeper's portals support, 15 for the first and 5 for each more
+/// (owner, 2026-11-17; <c>PortalRules.CreatureCapacity</c>), and how many of the keeper's creatures came through one.
+/// Zero for the other types.</summary>
 public readonly record struct PlayerRoomSummary(RoomTypeId Type, int TileCount, int Capacity = 0, int Used = 0);
 
 /// <summary>A creature's mood as its status flower shows it (SM-Happy, SM-Sad, SM-Angry).</summary>
@@ -136,6 +138,14 @@ public readonly record struct PlayerVisibleThing
     public PlayerThingActions Actions { get; }
     public CreatureTypeId? CreatureType { get; }
     public ObjectTypeId? ObjectType { get; }
+
+    /// <summary>A creature's status flower, which shows over every creature in view, enemies included (owner,
+    /// 2026-11-17; schema 8): its level (1-10) and petals (six at full health, one fewer per quarter lost). 0 for a
+    /// creature whose flower never shows (held, joining, an own Horny) and for anything not a creature.</summary>
+    public int Level { get; init; }
+
+    /// <summary>See <see cref="Level"/>.</summary>
+    public int Petals { get; init; }
 }
 
 /// <summary>A message the player received: the tick it was first observed, its ordinal among this
@@ -215,8 +225,9 @@ public sealed class PlayerObservation
     /// <summary>2 adds each own creature's level, petals and mood; 3 every offered spell; 4 doors and traps; 5 the
     /// mana orb's income and upkeep and each spell's upgrade (Task 4); 6 the own-trap tile flag (defence plan D1); 7 the
     /// payday clock and wage bill, the Lair's and Treasury's fill, each creature's hunger, and other players' traps in
-    /// view (economy and assault plan E1, A1).</summary>
-    public const int SchemaVersion = 7;
+    /// view (economy and assault plan E1, A1); 8 the prisoners in the keeper's own Prisons, every visible creature's flower
+    /// level and petals, and the Portal's creature cap (R20 groundwork).</summary>
+    public const int SchemaVersion = 8;
 
     public required PlayerStamp Stamp { get; init; }
     public PlayerPhase Phase { get; init; } = PlayerPhase.Playing;
@@ -239,6 +250,9 @@ public sealed class PlayerObservation
     public PlayerTileGrid Tiles { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); } = PlayerTileGrid.Empty;
     public IReadOnlyList<PlayerRoomSummary> Rooms { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerRoomSummary>();
     public IReadOnlyList<PlayerCreatureSummary> Creatures { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerCreatureSummary>();
+    /// <summary>Other players' creatures held in the keeper's own Prisons, as the creature panel lists them with the
+    /// keeper's own (owner, 2026-11-17; schema 8); never in <see cref="Creatures"/>, so no own count takes them in.</summary>
+    public IReadOnlyList<PlayerCreatureSummary> Prisoners { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerCreatureSummary>();
     public IReadOnlyList<PlayerVisibleThing> Things { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleThing>();
     /// <summary>Other players' traps in view (schema 7).</summary>
     public IReadOnlyList<PlayerVisibleTrap> EnemyTraps { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleTrap>();
