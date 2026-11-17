@@ -47,12 +47,23 @@ namespace DK2.Unity
                 if (!provider.TryLoadFrame(asset, frame, out RgbaImage image)) break;
                 var texture = new Texture2D(image.Width, image.Height, TextureFormat.RGBA32, false)
                 { name = "wall flame " + frame, wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-                texture.LoadRawTextureData(image.Pixels);
+                texture.LoadRawTextureData(BottomRowFirst(image));
                 texture.Apply(false, true);
                 _textures.Add(texture);
                 _frames.Add(Sprite.Create(texture, new Rect(0, 0, image.Width, image.Height),
                     new Vector2(0.5f, 0.5f), image.Width / (ClassicTorchFlame.SizeRaw / 4096f)));
             }
+        }
+
+        // The frames are decoded top row first and a texture's first row is its bottom (v 0), so the rows are
+        // reversed to stand the tip up. SpriteRenderer.flipY cannot do it: DK2/ClassicEffect never applies the flip.
+        private static byte[] BottomRowFirst(RgbaImage image)
+        {
+            int stride = image.Width * 4;
+            var rows = new byte[image.Pixels.Length];
+            for (int y = 0; y < image.Height; y++)
+                Buffer.BlockCopy(image.Pixels, y * stride, rows, (image.Height - 1 - y) * stride, stride);
+            return rows;
         }
 
         public void Set(in TorchView torch)
@@ -69,8 +80,6 @@ namespace DK2.Unity
                 go.transform.SetParent(_root, false);
                 go.layer = _root.gameObject.layer;
                 var renderer = go.AddComponent<SpriteRenderer>();
-                // The flame frames are decoded top row first and a sprite counts v up: flip to stand the tip up.
-                renderer.flipY = true;
                 renderer.sharedMaterial = _material;
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
                 renderer.receiveShadows = false;

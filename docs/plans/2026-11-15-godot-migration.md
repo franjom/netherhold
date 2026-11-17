@@ -776,7 +776,8 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       are drawn upside down, a defect that predates 3f. `ClassicTorchFlames` sets `SpriteRenderer.flipY`, which
       `ClassicEffect.shader` never applies (URP applies it only in its own sprite shaders); the shipped frames are upright
       and DK2 draws billboards top row up ([object-drawing.md](../research/object-drawing.md) §10, 0x0057F3D0); a crop of the
-      probe frame against Godot's capture shows it, and Godot's upright flames are right. (2) DK2 draws a plan over an
+      probe frame against Godot's capture shows it, and Godot's upright flames are right. Fixed after 3f: Unity now
+      loads the frames bottom row first and no longer sets `flipY`; only flame pixels of the probe frames changed. (2) DK2 draws a plan over an
       environment-mapped material as the plan overlay plus one additive environment pass; Unity draws the flat overlay twice
       (older than 3f) and Godot once for now. [structure-drawing.md](../research/structure-drawing.md) §5 and the record of
       0x00581190 have the reading (STRONGLY INFERRED). (3) The cage (sorting order 0) always draws under blended objects in

@@ -152,7 +152,7 @@ These are entry points, not a new priority order.
   Unity's own batch compile, `SmokeTest` and `SaveSmokeTest` run in a worktree. Live keys, edges, the wheel and a real OS click have not been driven in Godot (the scripted pointer has), and Unity's
   Play mode is unrun; the step entries in the plan list what each capture showed and left unchecked.
   Godot's lit frames are judged against Unity's probe frames (`ClassicWorldLightingProbe`; the recipe is in the plan's step 3), and the owner found the scene too dark and bland (3i's acceptance check).
-  Unity's wall flames are drawn upside down, a defect older than 3f (`ClassicTorchFlames` sets `flipY`, which its shader never applies); a separate commit fixes it. Next is 3g: [the plan](plans/2026-11-15-godot-migration.md), [the step-3 audit](plans/2026-11-16-godot-step3-audit.md).
+  Next is 3g: [the plan](plans/2026-11-15-godot-migration.md), [the step-3 audit](plans/2026-11-16-godot-step3-audit.md).
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)

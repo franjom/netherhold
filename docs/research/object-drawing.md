@@ -342,7 +342,7 @@ descriptor; the rest (drips, eye glow, door flames among them) now take theirs.
 The six with flag `0x40` are flames, splashes and a mist, so the shift is drawn
 as a lift onto the point. STRONGLY INFERRED: `0x0057F3D0` gives the corner with the
 smaller camera y the UV v 0, the image's top row in D3D, so camera y runs down and
-−h/2 raises the quad; `0x00594E10`'s axes are not read. The shipped flame frames are upright, so a billboard draws unflipped: Godot's `TorchFlames` does, while Unity's `ClassicTorchFlames` sets `SpriteRenderer.flipY`, which `ClassicEffect.shader` never applies (URP applies it only in its own sprite shaders), so Unity's wall flames draw upside down (a known defect, migration plan step 3f). Both scales come from one
+−h/2 raises the quad; `0x00594E10`'s axes are not read. The shipped flame frames are upright, so a billboard draws unflipped: Godot's `TorchFlames` does, while Unity's `ClassicTorchFlames` sets `SpriteRenderer.flipY`, which `ClassicEffect.shader` never applies (URP applies it only in its own sprite shaders), so Unity's wall flames drew upside down until 2026-11-17, when it began loading the frames bottom row first instead. Both scales come from one
 value for an effect element (`0x00435F20` sets the width and height targets
 alike), and the offset words `+0x51..+0x59` are zeroed by the reset `0x004B3610`
 with no effect-element writer found, so ours takes them as zero.
