@@ -39,7 +39,11 @@ start), `ClassicCreatureQueryRules.Follows` and `TurnToFollowHeading`, and `Came
 The scene mapping for creatures and objects, render only (it reads views, never the world): `PoseInterpolator` (draw seconds, the
 clamped position lerp, the shortest-arc wrap and the object turn), `MeshOrientation` (a mesh's turns as a `RenderEuler`, with the
 ordering of `0x00580480` and our frame mapping stated), and `AnimationClipRequest` (the clip identity records, `Replacement` and
-`StartSeconds`). The clip player itself is `CreatureAnimationPlayer` in `DK2.Art`.
+`StartSeconds`). The clip player itself is `CreatureAnimationPlayer` in `DK2.Art`. `SceneFrame` is the order a drawn frame
+runs in, over an `ISceneFrameHost` that each adapter implements for its own models: the hover overlay's frame and the Hearts'
+health, then per creature its place, clip, the possessed model's hide, footstep, burning red, crackle, head point
+(`CreatureHeadTable`, one slot per creature) and gem sparkle, then the objects and the torch refresh. It also holds the drawn
+creatures' views (`SceneCreatures`), the sparkle pace, the hidden creature and the draw clock.
 How an object, structure or torch draws, for either engine to build its materials from: `RenderRotation` (a `RenderEuler` as
 one quaternion: yaw, roll, then pitch), `ObjectMaterialLook` with `ObjectModelPasses` (the own, environment, blueprint,
 hover-twin, tinted and faded looks, one pass a submesh), `EffectGroupParts`, and `ClassicTorchFlame.RenderPoint` and

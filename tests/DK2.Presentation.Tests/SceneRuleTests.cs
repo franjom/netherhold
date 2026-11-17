@@ -103,8 +103,52 @@ public sealed class SceneRuleTests
         heads.Remove(imp);
         Assert.Equal(EffectAttachment.Gone, heads.Attachment(imp, KmfControlPoint.Head));
         heads.Set(imp, head);
+        Assert.Equal(EffectAttachment.At(head), heads.Attachment(imp, KmfControlPoint.Head));
         heads.Clear();
         Assert.Equal(EffectAttachment.Gone, heads.Attachment(imp, KmfControlPoint.Head));
+    }
+
+    [Fact]
+    public void AHeadReadOnAnotherThreadIsNeverATornMix()
+    {
+        // The writer stores (n, n, n) or none; a read that mixes two writes has unequal axes.
+        var heads = new CreatureHeadTable();
+        var imp = new CreatureId(7);
+        heads.Add(imp);
+        var deadline = DateTime.UtcNow.AddMilliseconds(300);
+        int torn = 0, reads = 0;
+        var writer = new Thread(() =>
+        {
+            for (int n = 1; DateTime.UtcNow < deadline; n++)
+                heads.Set(imp, n % 7 == 0 ? null : new FpPosition3(new Fp32(n), new Fp32(n), new Fp32(n)));
+        });
+        var reader = new Thread(() =>
+        {
+            while (DateTime.UtcNow < deadline)
+            {
+                EffectAttachment found = heads.Attachment(imp, KmfControlPoint.Head);
+                reads++;
+                if (found.Point is FpPosition3 p && (p.X != p.Y || p.Y != p.Z)) torn++;
+            }
+        });
+        writer.Start();
+        reader.Start();
+        Assert.True(writer.Join(TimeSpan.FromSeconds(10)) && reader.Join(TimeSpan.FromSeconds(10)));
+        Assert.True(reads > 0);
+        Assert.Equal(0, torn);
+    }
+
+    [Fact]
+    public void ATrackedHeadIsRewrittenWithoutAllocating()
+    {
+        var heads = new CreatureHeadTable();
+        var imp = new CreatureId(7);
+        heads.Add(imp);
+        heads.Set(imp, null);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 16; i++) heads.Set(imp, i % 2 == 0 ? new FpPosition3(new Fp32(i), new Fp32(2), new Fp32(3)) : null);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        Assert.Equal(EffectAttachment.NotFound, heads.Attachment(imp, KmfControlPoint.Head));
     }
 
     [Fact]

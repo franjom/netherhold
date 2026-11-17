@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream), 3e (the pointer, cage and placement cursor: the level is playable from the pointer) and 3f (objects, structures and torch meshes) are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream), 3e (the pointer, cage and placement cursor: the level is playable from the pointer) and 3f (objects, structures and torch meshes) and 3g (creatures) are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -628,8 +628,8 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       with `--glide-to 30,12` from a save after the opening path: the 3D view moves for 16 frames (the 500 ms glide) and
       stops, and the minimap footprint moves from around the Heart to the top of the disc and is clipped cleanly at the rim;
       the disc does not scroll, since Level1 is in whole-map mode. Not exercised: live keys, edges and wheel in Godot (they ran
-      only in unit tests, since driving the pointer would move the owner's cursor). In 3g the query follow must read the drawn,
-      interpolated model, as Unity does; Godot reads the settled simulation position. The footprint's native scale and centre
+      only in unit tests, since driving the pointer would move the owner's cursor). 3g resolved the query follow: it runs after the frame's draw and reads the drawn,
+      interpolated model, as Unity does. The footprint's native scale and centre
       constants are an open item ([minimap-rendering.md](research/minimap-rendering.md), *Camera footprint*). An allocation
       test fails in about 1 of 5 to 10 full Presentation runs, also on a clean HEAD (`docs/TRAPS.md`).
 - [x] 3c. Terrain that changes (2026-11-16, ADR-0805; ADR-0457 and ADR-0696 for the scheduler). In `DK2.Presentation`:
@@ -784,7 +784,42 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       Godot, where Unity sorts it among them by distance; it shows only for a faded or alpha object farther than the cage,
       such as the Heart intro's fading arches. Open: (1) 3i draws the environment pass, including over plan submeshes. (2) 3i
       gives the cage a `ZeroOrderOffset` key. (3) A separate commit fixes Unity's upside-down flames.
-- [ ] Creatures, animation playback, shadows.
+- [x] 3g. Creatures (2026-11-17, ADR-0805). In `DK2.Presentation`, out of Unity's `DungeonScene.DrawCreatureFrame` (audit open
+      point 7 is decided: a shared frame): `SceneFrame` over `ISceneFrameHost`, with `SceneCreatures`. Before the creatures it
+      starts the hover overlay's frame and advances the Hearts' health; then per creature the place from `PoseInterpolator` (a
+      false skips the rest), the clip, hiding the possessed model, the footstep crossing and request (the drawn place is the
+      remake's choice; the cadence stays HYPOTHESIS, [sound-effects-continuous.md](../research/sound-effects-continuous.md)), the
+      burning red, the crackle, the head point and the gem sparkle; then the objects and the torch refresh. It holds the drawn
+      creatures' views, the head table, the sparkle pace, the hidden creature and the draw clock, and Unity's `DungeonScene` hosts
+      it. Two shared allocation fixes reach Unity too: `CreatureHeadTable.Set` used the `ConcurrentDictionary` indexer (48 B per
+      creature a frame) and now rewrites one slot per creature under a lock (the worker reads it through `Attachment`);
+      `CreatureAnimationPlayer` keeps one sample buffer per clip, not per segment (it reallocated when the walk and idle vertex
+      counts differed, so its "allocates only when a new clip set arrives" comment was wrong). Godot, in the new
+      `WorldScene.Creatures.cs`: shared KMF models, one node per creature, clips through `CreatureAnimationPlayer` with in-place
+      vertex upload from per-template mesh copies (bounded by the distinct clips per entry; Unity releases its copies on a clip-set
+      change), clip sets cached per entry, pose interpolation and orientation through `RightHandedFrame` with the head point
+      converted back, removal on death or exit, and `ZeroOrderOffset` for blended surfaces. On an idle-clip swap Godot keeps the
+      node and restarts the clip, which the reviewer confirmed is equivalent on screen to Unity's rebuild. The burning red (3h),
+      the crackle (3l), footsteps and sparkle (3k) and the possession hide (3m) are no-op steps waiting for their sub-steps, so
+      3g's "footstep requests" are none until 3k. The query follow now runs after `DrawFrame` and reads the drawn position, as
+      Unity's does (this resolves 3b's note); the blended stream's sort moved from `Flush` into `FinishFrame`, after the follow
+      places the camera. Mutation checks: the developer's 30 and the reviewer's 27, each killed except the head table's lock,
+      which a two-thread test covers. Verification: `dotnet test DK2.slnx` 10,814 passed, 30 skipped (Presentation 2,790,
+      Convert 206); the Level1 turn-400 hash is unchanged (`D7290428D81A902F`); the `DK2.Unity.Compile` stand-in passes; Unity's
+      batch compile, `SmokeTest` and `SaveSmokeTest` passed, and `ClassicWorldLightingProbe`'s Level1 frames are byte-identical
+      to the frames after the flame fix (8 of 8), so the shared frame order changed nothing in Unity. Captures on the real
+      renderer: Level1 at the start shows the three imps where Unity's are, with the same size, pose and facing; only lighting
+      (3i) and shadows (3j) are missing. At tick 70 the imp is one tick's offset from Unity's frame straight after a load, since
+      Unity's probe draws at fraction 1, and is on Unity's spot within nine frames; a comparison at a single frame needs the
+      fraction near 1. About 300 frames with a scripted tag on a gold seam: the imps arrive, swing picks, dig it out (gold 0 to
+      3000) and leave. With `--query-first-creature` the imp stays centred and the focus moves an even 0.0616 tiles a frame,
+      where the settled position jumped up to 0.43 tiles a tick. Allocation: 0 B a frame in every steady phase (hearts,
+      creatures, objects and clips, torch bend, flames, sort), headless over 3,300 frames and on the real renderer over 1,500;
+      a clip start costs 136 B (one clock object), accepted. Present's about 3.2 KB a frame is the presenter-iterator item of 3c.
+      Open: (1) Godot's per-template mesh copies cost memory that Unity releases on a clip-set change; measure it before
+      deciding whether to release them. (2) The 136 B clip-start clock object. (3) The presenter iterators in `WorldView` and
+      `Scenery` still allocate (3c's item).
+- [ ] Creature shadows (3j).
 - [ ] Lighting tuned to feel like DK2 (owner exception: tuned per engine, not ported natively). Acceptance check for 3i
       (owner, 2026-11-16, who saw the Godot scene and found it "too dark, too bland", and kept this order): Godot's lit
       frames are judged against the Unity probe frames above and must not look too dark or too bland.

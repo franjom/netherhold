@@ -130,20 +130,24 @@ back faces.
 
 ## Creatures and animation
 
-- **Unity.** `DungeonScene.CreateCreature`/`UpdateCreature` (`:408-458`), `ConfigureCreatureClip` (`:486-501`),
-  `DrawCreatureFrame` (`:547-589`), `PositionCreature` (`:1065-1085`); `ClassicMeshes.ConfigureAnimation` (`:90-121`)
-  builds three segment meshes; `ClassicCreatureAnimation.cs` (175) is the `ICreatureAnimationSurface` (`Install`
-  `:65-89`, `Show` `:91-95`, `Upload` `:97-108`).
+- **Unity.** `DungeonScene.CreateCreature`/`UpdateCreature`, `ConfigureCreatureClip`, `PositionCreature`;
+  `ClassicMeshes.ConfigureAnimation` builds three segment meshes; `ClassicCreatureAnimation.cs` is the
+  `ICreatureAnimationSurface`; `DrawCreatureFrame` is one call into `SceneFrame`, each step a host method.
 - **Shared (S).** `CreatureAnimationPlayer<T>`, `CreatureAnimationArt`, `AnimationClipRequest`, `PoseInterpolator`,
   `MeshOrientation.Mesh`, `CreatureHeadTable`, `GemSparkleGate`, `RenderAnimation`.
-- **B left.** The per-frame order in `DrawCreatureFrame`: position from `PoseInterpolator`, animation draw, hide the
-  possessed model, footstep request, burning-red overlay, crackle, head point, gem sparkle (`:559-588`), then objects and
-  the torch refresh. Each step is shared; the order is not. A `SceneFrame` sequence in `DK2.Presentation` over an
-  `ISceneFrameHost` keeps Godot from reordering it (open point 7: move it, or document it in the Godot port).
-- **Plumbing.** One `MeshInstance3D` per creature, one `ArrayMesh` per segment. `Upload` rewrites positions every frame;
-  Godot writes them with `RenderingServer.MeshSurfaceUpdateVertexRegion` from a reused `byte[]`, which needs the 4.8
-  vertex stream layout (positions with or without interleaved normals; check before choosing). Hiding the possessed
-  model is `Visible = false`, not a destroy. Control points stay in C# (`TryGetControlPoint`, `:125-131`).
+- **B, moved in 3g (open point 7).** `SceneFrame` over `ISceneFrameHost`, with `SceneCreatures`: the hover overlay's frame
+  and the Hearts' health, then per creature the place from `PoseInterpolator` (false skips the rest), the clip, the
+  possessed model's hide, the footstep crossing and request, the burning red, the crackle, the head point and the gem
+  sparkle, then the objects and the torch refresh. Two shared allocation fixes reach Unity too: `CreatureHeadTable.Set` used
+  the `ConcurrentDictionary` indexer (48 B a creature a frame) and now rewrites one slot a creature under a lock (the worker
+  reads it through `Attachment`); `CreatureAnimationPlayer` keeps one sample buffer per clip, not per segment.
+- **Godot, 3g.** `WorldScene.Creatures.cs` (the plan's step 3g has the detail): shared KMF models, a node per creature, clips
+  through `CreatureAnimationPlayer` with in-place vertex upload from per-template mesh copies (bounded by the distinct clips
+  per entry; Unity releases its copies on a clip-set change), pose and head point through `RightHandedFrame`. The burning
+  red (3h), crackle (3l), footsteps and sparkle (3k) and the possession hide (3m) are no-op steps of the order. The query
+  follow runs after `DrawFrame` on the drawn position, as Unity's, so the blended sort moved from `Flush` to `FinishFrame`.
+- **Probe frames.** Unity's probe draws at fraction 1, so Godot's imp at tick 70 is one tick's offset straight after a
+  load and on Unity's spot within nine frames; a single-frame comparison needs the fraction near 1.
 
 ## Objects, structures and torches
 
@@ -291,7 +295,7 @@ back faces.
   pointer lock (`:70-75`); the ceiling and wall latch in `Update` (`DungeonRunner.cs:963-971`).
 - **Shared (S).** `PossessionSession` (input, camera, hidden id, commands, sounds), `PossessionCamera`, `TerrainCeiling`.
 - **B, small.** The roof shows exactly while a model is hidden (`:970-971`), and the lattice and view take the
-  possession latch (`:963-966`). Both join the `SceneFrame` sequence (open point 7).
+  possession latch (`:963-966`). Both join the `SceneFrame` sequence (open point 7, decided in 3g).
 - **Godot.** Same `Camera3D`; `Input.MouseMode = Captured` for the lock; the ceiling as a chunked mesh like the terrain.
 
 ## Scripted camera paths, letterbox, jitter and the full-map preview
@@ -310,8 +314,8 @@ back faces.
 ## Move order
 
 Each sub-step is one commit, leaves Unity working (its compile checked, and Unity calling any moved rule), and leaves
-Godot visibly better. Each is checked by unit tests for what moved and by a Movie Maker capture (below). The first
-three are the terrain and the camera; after that each step adds one kind of thing to the world.
+Godot visibly better, checked by unit tests for what moved and a Movie Maker capture (below). The first three are the
+terrain and the camera; then each step adds one kind of thing to the world.
 
 - **3a. Static terrain from the level-start camera.** Done 2026-11-16 (the plan's step 3a has the detail): `RightHandedFrame`,
   `TerrainTileBuilder`, `TerrainMaterialKey`, `ClassicMaterialRecipe`; Godot's `WorldScene` and `Camera3D`.
@@ -322,16 +326,13 @@ three are the terrain and the camera; after that each step adds one kind of thin
 - **3d. The blended stream.** Done 2026-11-16 (plan step 3d, ADR-0805): `BlendedTerrainStream<TMaterial>`, `ViewFrustum`; one
   instance per run with `sorting_offset` (open point 4), blends in gamma space. Not captured: the sight fog.
 - **3e. Pointer, cage and placement: the level becomes playable.** Done 2026-11-17 (plan step 3e, which has the numbers;
-  ADR-0805). Moved: `TileHoverOutline.Build`, `PlacementCursorHud`, the green key, `HandCursorHud`, `PointerScript`.
-  Godot: picking, the hand cursor, the cage and the placement cursor. Checked: scripted-pointer captures show the claw
-  cursor, the cage on a wall, a dig tag and a Lair cursor with No Go and a price.
+  ADR-0805). Moved: `TileHoverOutline.Build`, `PlacementCursorHud`, the green key, `HandCursorHud`, `PointerScript`. Godot:
+  picking, the hand cursor, the cage and the placement cursor, checked by scripted-pointer captures.
 - **3f. Objects, structures and torch meshes.** Done 2026-11-17 (plan step 3f, which has the numbers; ADR-0805). Moved:
   `RenderRotation`, `ObjectMaterialLook`, `EffectGroupParts`, the flame point and phases. Godot: the Heart, doors, traps,
-  torch meshes and flames, checked against the Unity probe frames. Not done: the environment pass (3i).
-- **3g. Creatures.** Godot: KMF segment meshes, the `CreatureAnimationPlayer` surface with in-place vertex upload,
-  pose interpolation, the head table and footstep requests. Move: the `SceneFrame` order if the owner takes open
-  point 7. Check: imps walk and dig over 300 frames; frame times show no GC spikes (`GC.CollectionCount` before and
-  after a run, printed).
+  torch meshes and flames, checked against the Unity probe frames; the environment pass waits for 3i.
+- **3g. Creatures.** Done 2026-11-17 (plan step 3g, which has the numbers; ADR-0805). Moved: `SceneFrame`,
+  `ISceneFrameHost`, `SceneCreatures` (open point 7). Godot: the imps and the query follow on the drawn position.
 - **3h. Entity hover and the Hand.** Godot: entity offers into `WorldHoverPicker`, the red pass and gold swap, pickup
   and drop through the shared flows, hover text in the world. Check: a scripted-pointer capture shows the red tint on an
   imp and the held icon after a pickup.
@@ -387,8 +388,7 @@ owner's open editor must not be driven.
    Should Godot pass `ClassicCamera`'s full pose (and Unity follow), or match Unity's zero shift for now?
 6. **A no-install mode.** Decided (2026-11-16): Godot requires the install, like the HUD, with no placeholder mode and
    no free camera.
-7. **The scene frame order.** Move the `DrawCreatureFrame` and `Update` world sequence into a shared `SceneFrame`, or
-   copy the order into Godot with a comment pointing at Unity's lines until Unity is deleted.
+7. **The scene frame order.** Decided in 3g (ADR-0805): a shared `SceneFrame`, hosted by `DungeonScene` and `WorldScene`.
 8. **Shadow silhouettes.** CPU rasterizing in `src/` (testable, no second creature render) or a GPU `SubViewport`.
 9. **The footprint ribbon.** Decided in 3b: a shared triangle-list `HudDrawKind`, which Unity draws too.
 10. **Pointer-driven captures.** Decided in 3e: `--pointer-path "frame:x,y[:LlRr];..."`, a scripted pointer pushed into

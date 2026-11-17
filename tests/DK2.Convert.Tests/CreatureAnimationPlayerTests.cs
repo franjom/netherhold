@@ -161,6 +161,22 @@ public class CreatureAnimationPlayerTests
     }
 
     [Fact]
+    public void EachClipKeepsItsOwnSampleBufferAcrossRestarts()
+    {
+        // Per clip, not per segment: a walk and an idle of different vertex counts swap without a new buffer each start.
+        var surface = new Surface { Logs = false };
+        var player = new CreatureAnimationPlayer<int>(surface);
+        RenderAnimation?[] walk = Clips(), idle = Clips();
+        player.Configure(walk, 1, Quarter, loop: true, start: 0);
+        Vector3[] walkBuffer = surface.Last;
+        player.Configure(idle, 2, Quarter, loop: true, start: .25);
+        Vector3[] idleBuffer = surface.Last;
+        player.Configure(walk, 1, Quarter, loop: true, start: .5);
+        Assert.NotSame(walkBuffer, idleBuffer);
+        Assert.Same(walkBuffer, surface.Last);
+    }
+
+    [Fact]
     public void ArtResourcesNameTheirSegmentsTimingAndMovementScale()
     {
         var resource = new Dk2ArtResource("walk", 6)

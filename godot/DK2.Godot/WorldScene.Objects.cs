@@ -33,6 +33,7 @@ public partial class WorldScene
     private readonly Dictionary<int, TorchSlot> _torches = new();
     private readonly Dictionary<(string Entry, bool LastFrame), ModelMesh?> _models = new();
     private readonly Dictionary<string, RenderAnimation> _clips = new();
+    private readonly Dictionary<string, ClipSet?> _clipSets = new();
     private readonly Dictionary<ObjectMaterialLook, ShaderMaterial> _objectMaterials = new();
     private readonly List<ObjectPass> _passes = new();
     private readonly HeartPulse _heartPulse = new();
@@ -40,7 +41,6 @@ public partial class WorldScene
     private TorchFlames? _flames;
     private Func<EffectTime>? _effectClock;
     private byte[] _upload = [];
-    private double _renderSeconds;
     private long _frameMilliseconds;
     // The camera as the order-0 keys last read it, in Godot's frame; a new stamp re-keys every blended thing.
     private NVector3 _eye;
@@ -52,6 +52,7 @@ public partial class WorldScene
     private int _drawFrames, _drawBendingFrames;
     private readonly long[] _phaseBytes = new long[(int)DrawPhase.Count], _steadyPhaseBytes = new long[(int)DrawPhase.Count];
     private long _phaseStart;
+    private bool _frameBending;
 
     /// <summary>A Heart's health change from the world's event (Unity's <c>QueueHeartHealthChange</c>); the next
     /// <see cref="DrawFrame"/> advances each Heart of the owner by its phase step.</summary>
@@ -61,7 +62,7 @@ public partial class WorldScene
     /// before its present).</summary>
     public void SetFrameTime(GameTick tick, float fraction, long milliseconds)
     {
-        _renderSeconds = PoseInterpolator.DrawSeconds(tick, PoseInterpolator.Clamp01(fraction));
+        _frame.SetFrameTime(tick, fraction);
         _frameMilliseconds = milliseconds;
     }
 
@@ -82,7 +83,7 @@ public partial class WorldScene
             return;
         }
         _artless.Remove(objectId);
-        var slot = new ModelSlot(this, model, "Object" + objectId);
+        var slot = new ModelSlot(this, model, "Object" + objectId, SlotKind.Object);
         _objects[objectId] = slot;
         slot.Pose = instance;
         PlaceObject(slot, instance, 1f);
@@ -124,36 +125,61 @@ public partial class WorldScene
         if (slot.HasClip && slot.Clip == identity) return;
         slot.HasClip = true;
         slot.Clip = identity;
-        double start = AnimationClipRequest.StartSeconds(pose.AnimationStartedAt, _renderSeconds);
+        double start = AnimationClipRequest.StartSeconds(pose.AnimationStartedAt, _frame.DrawSeconds);
         if (TryStartClip(slot, mesh, pose, start)) return;
         slot.StopAnimation();
         if (Model(mesh, lastFrame: false) is ModelMesh fallback) slot.ShowStatic(fallback);
     }
 
-    /// <summary>Unity's <c>ClassicMeshes.ConfigureAnimation</c> for an object: the clip's segments (start, main, end by the
-    /// resource's flags), each with its template model, played on the draw clock with a Heart's phase step.</summary>
+    /// <summary>Unity's <c>ClassicMeshes.ConfigureAnimation</c> for an object: the clip's segments (<see cref="ClipSetFor"/>),
+    /// played on the draw clock with a Heart's phase step.</summary>
     private bool TryStartClip(ModelSlot slot, in ResolvedAsset asset, in ObjectView pose, double start)
     {
-        if (_art == null || !_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
-            || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true }
-            || Model(asset, lastFrame: false) is null) return false;
-        var clips = new RenderAnimation?[3];
-        var templates = new ModelMesh?[3];
-        for (AnimationSegment segment = AnimationSegment.Start; segment <= AnimationSegment.End; segment++)
-        {
-            if (!CreatureAnimationArt.HasSegment(resource, segment)) continue;
-            if (!_art.TryResolveSegment(asset, segment, out ResolvedAsset part) || !_art.TryLoadModel(part, out KmfModel partModel)
-                || partModel.Animation is not { IsComplete: true } || Model(part, lastFrame: false) is not ModelMesh template) return false;
-            if (!_clips.TryGetValue(part.InstallEntry ?? "", out RenderAnimation? clip))
-                _clips.Add(part.InstallEntry ?? "", clip = new RenderAnimation(partModel));
-            clips[(int)segment] = clip;
-            templates[(int)segment] = template;
-        }
+        if (ClipSetFor(asset) is not ClipSet set) return false;
         slot.Animation ??= new AnimatedModel(slot);
-        slot.Animation.Player.Configure(clips, templates, CreatureAnimationArt.Timing(resource), pose.AnimationLoops, start,
+        slot.Animation.Player.Configure(set.Clips, set.Templates, set.Timing, pose.AnimationLoops, start,
             phaseStepOverride: pose.HeartVisual?.PhaseStep, initialPhase: pose.AnimationInitialPhase);
         return true;
     }
+
+    /// <summary>Unity's <c>ClassicMeshes.ConfigureAnimation</c> up to the player: a type-6 clip's segments (start, main,
+    /// end by the resource's flags), each with its template model, built once per install entry and shared by every
+    /// player, so a clip started again allocates no arrays; null when the asset has no complete clip.</summary>
+    private ClipSet? ClipSetFor(in ResolvedAsset asset)
+    {
+        if (_art == null || Model(asset, lastFrame: false) is null) return null;
+        string entry = asset.InstallEntry ?? "";
+        if (_clipSets.TryGetValue(entry, out ClipSet? set)) return set;
+        set = null;
+        if (_art.TryGetResource(asset, out Dk2ArtResource resource) && resource.Type == 6
+            && _art.TryLoadModel(asset, out KmfModel model) && model.Animation is { IsComplete: true })
+        {
+            var clips = new RenderAnimation?[3];
+            var templates = new ModelMesh?[3];
+            bool complete = true;
+            for (AnimationSegment segment = AnimationSegment.Start; segment <= AnimationSegment.End && complete; segment++)
+            {
+                if (!CreatureAnimationArt.HasSegment(resource, segment)) continue;
+                if (!_art.TryResolveSegment(asset, segment, out ResolvedAsset part) || !_art.TryLoadModel(part, out KmfModel partModel)
+                    || partModel.Animation is not { IsComplete: true } || Model(part, lastFrame: false) is not ModelMesh template)
+                {
+                    complete = false;
+                    continue;
+                }
+                if (!_clips.TryGetValue(part.InstallEntry ?? "", out RenderAnimation? clip))
+                    _clips.Add(part.InstallEntry ?? "", clip = new RenderAnimation(partModel));
+                clips[(int)segment] = clip;
+                templates[(int)segment] = template;
+            }
+            if (complete) set = new ClipSet(clips, templates, CreatureAnimationArt.Timing(resource), resource);
+        }
+        _clipSets.Add(entry, set);
+        return set;
+    }
+
+    /// <summary>A clip's segments and templates by <see cref="AnimationSegment"/>, its timing and its resource.</summary>
+    private sealed record ClipSet(RenderAnimation?[] Clips, ModelMesh?[] Templates, CreatureAnimationTiming Timing,
+        Dk2ArtResource Resource);
 
     /// <summary>Unity's <c>PositionObject</c> and its per-frame pose: the object's point and height between its last two
     /// turns (<see cref="PoseInterpolator"/>), its turns (<see cref="MeshOrientation"/>) and its scale, a Heart's taller.</summary>
@@ -167,7 +193,7 @@ public partial class WorldScene
     public void CreateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh)
     {
         if (Model(mesh, structure.LastFrame) is not ModelMesh model) return;
-        var slot = new ModelSlot(this, model, structure.Id.Kind.ToString() + structure.Id.Value) { Structure = structure };
+        var slot = new ModelSlot(this, model, structure.Id.Kind.ToString() + structure.Id.Value, SlotKind.Structure) { Structure = structure };
         _structures[id] = slot;
         _structureViews[id] = structure;
         slot.Place(new NVector3(structure.PosX / (float)Fp32.One, structure.Height / (float)Fp32.One, -structure.PosY / (float)Fp32.One),
@@ -177,7 +203,7 @@ public partial class WorldScene
         if (!structure.LockMesh.IsEmpty && _art != null && _art.TryResolve(structure.LockMesh, out ResolvedAsset lockAsset)
             && Model(lockAsset, lastFrame: false) is ModelMesh lockModel)
         {
-            slot.Lock = new ModelSlot(this, lockModel, "Lock", slot.Node);
+            slot.Lock = new ModelSlot(this, lockModel, "Lock", SlotKind.Plain, slot.Node);
             slot.Lock.ApplyLooks();
         }
     }
@@ -219,25 +245,52 @@ public partial class WorldScene
         _flames?.Remove(floorTileIndex);
     }
 
-    /// <summary>Unity's object pass of <c>DrawCreatureFrame</c>, then its torch refresh and flame draw: the Hearts' queued
-    /// health steps, each moving object's drawn pose, each clip's frame and a Heart's beat, the torches near a changed tile
-    /// bent again, the flames advanced, and every blended thing's order-0 key (<see cref="ZeroOrderOffset"/>). The beat's
-    /// sound and mana effect are not drawn yet (step 3k and step 4). Allocation-free.</summary>
+    /// <summary>Unity's <c>DrawCreatureFrame</c> in <see cref="SceneFrame"/>'s order (this scene is its host): the Hearts'
+    /// queued health steps, each creature's drawn place, clip and head, each moving object's drawn pose, each clip's frame
+    /// and a Heart's beat, the torches near a changed tile bent again; then the flames advanced. The beat's sound and mana
+    /// effect are not drawn yet (step 3k and step 4). <see cref="FinishFrame"/> sorts once the camera is placed.
+    /// Allocation-free.</summary>
     public void DrawFrame(GameTick tick, float fraction)
     {
-        bool bending = _latticeDirty is { AnyTouched: true };
+        _frameBending = _latticeDirty is { AnyTouched: true };
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
-        long before = _phaseStart;
-        DrawObjects(tick, PoseInterpolator.Clamp01(fraction));
-        long bytes = GC.GetAllocatedBytesForCurrentThread() - before;
-        bool steady = _drawFrames++ >= DrawWarmUp && !bending;
+        _frame.Draw(tick, fraction);
+        _drawn = null;
+        _flames?.Draw(_frameMilliseconds);
+        Mark(DrawPhase.Flames);
+    }
+
+    /// <summary>After the frame's camera is placed (the query follow reads the drawn creatures): the blended stream sorted
+    /// for it and every blended thing's order-0 key (<see cref="ZeroOrderOffset"/>). Allocation-free.</summary>
+    public void FinishFrame()
+    {
+        DrawBlended();
+        _phaseStart = GC.GetAllocatedBytesForCurrentThread();
+        if (View is MinimapCameraView view)
+        {
+            NVector3 eye = RightHandedFrame.Point(view.Position);
+            if (eye != _eye || _sortStamp == 0)
+            {
+                _eye = eye;
+                _originDistance = eye.Length();
+                _sortStamp++;
+            }
+        }
+        foreach (KeyValuePair<int, CreatureSlot> entry in _creatures) entry.Value.Slot.Sort();
+        foreach (KeyValuePair<int, ModelSlot> entry in _objects) entry.Value.Sort();
+        foreach (KeyValuePair<StructureId, ModelSlot> entry in _structures) entry.Value.Sort();
+        _flames?.Sort();
+        Mark(DrawPhase.Sort);
+        long bytes = 0;
+        for (int i = 0; i < _phaseBytes.Length; i++) bytes += _phaseBytes[i];
+        bool steady = _drawFrames++ >= DrawWarmUp && !_frameBending;
         for (int i = 0; i < _phaseBytes.Length; i++)
         {
             if (steady) _steadyPhaseBytes[i] += _phaseBytes[i];
             _phaseBytes[i] = 0;
         }
         if (_drawFrames <= DrawWarmUp) _drawWarmUpBytes += bytes;
-        else if (bending) { _drawBendingBytes += bytes; _drawBendingFrames++; }
+        else if (_frameBending) { _drawBendingBytes += bytes; _drawBendingFrames++; }
         else _drawLateBytes += bytes;
     }
 
@@ -249,14 +302,20 @@ public partial class WorldScene
         _phaseStart = now;
     }
 
-    private enum DrawPhase { Hearts, Objects, Bend, Flames, Sort, Count }
+    private enum DrawPhase { Hearts, Creatures, Objects, Bend, Flames, Sort, Count }
 
-    private void DrawObjects(GameTick tick, float fraction)
+    void ISceneFrameHost.AdvanceHeartHealth()
     {
         while (_heartPulse.TryTakeHealthAdvance(out PlayerId owner, out Fp32 step))
             foreach (KeyValuePair<int, ModelSlot> heart in _objects)
                 if (HeartPulse.IsHeartOf(heart.Value.Pose, owner)) heart.Value.Animation?.Player.AdvanceHealthPhase(step);
         Mark(DrawPhase.Hearts);
+    }
+
+    void ISceneFrameHost.DrawObjects(GameTick tick, float fraction)
+    {
+        _drawn = null;
+        Mark(DrawPhase.Creatures);
         if (_frustumStale && View != null)
         {
             _frustum = ViewFrustum.FromPose(_placed, _placedViewport.Width / (float)_placedViewport.Height, NearPlane);
@@ -269,13 +328,17 @@ public partial class WorldScene
             ObjectView pose = slot.Pose;
             if (slot.Moving) PlaceObject(slot, pose, fraction);
             if (slot.Animation is not AnimatedModel animated) continue;
-            animated.Player.Draw(_renderSeconds, phaseStepOverride: pose.HeartVisual?.PhaseStep);
+            animated.Player.Draw(_frame.DrawSeconds, phaseStepOverride: pose.HeartVisual?.PhaseStep);
             if (!pose.HeartVisual.HasValue || !animated.Player.BeatPending) continue;
             NVector3 at = slot.RenderPosition;
             bool visible = View != null && !_frustum.Excludes(at, at, at);
             if (_heartPulse.TryBeat(pose, beatPending: true, visible, _effectClock!, tick).Consumed) animated.Player.ConsumeBeat();
         }
         Mark(DrawPhase.Objects);
+    }
+
+    void ISceneFrameHost.RefreshTorches()
+    {
         if (_latticeDirty is { AnyTouched: true })
         {
             foreach (KeyValuePair<int, TorchSlot> torch in _torches)
@@ -287,22 +350,6 @@ public partial class WorldScene
             _latticeDirty.Clear();
         }
         Mark(DrawPhase.Bend);
-        _flames?.Draw(_frameMilliseconds);
-        Mark(DrawPhase.Flames);
-        if (View is MinimapCameraView view)
-        {
-            NVector3 eye = RightHandedFrame.Point(view.Position);
-            if (eye != _eye || _sortStamp == 0)
-            {
-                _eye = eye;
-                _originDistance = eye.Length();
-                _sortStamp++;
-            }
-        }
-        foreach (KeyValuePair<int, ModelSlot> entry in _objects) entry.Value.Sort();
-        foreach (KeyValuePair<StructureId, ModelSlot> entry in _structures) entry.Value.Sort();
-        _flames?.Sort();
-        Mark(DrawPhase.Sort);
     }
 
     /// <summary>The sorting offset that puts a blended instance among Unity's sorting order 0, back to front by the distance
@@ -367,17 +414,35 @@ public partial class WorldScene
         }
     }
 
+    // The clip copies alive (each a dynamic ArrayMesh, a 12-byte position and an 8-byte UV per vertex), and their peak.
+    private int _copies, _peakCopies;
+    private long _copyBytes, _peakCopyBytes;
+
+    private void CountCopy(ModelMesh template, int sign)
+    {
+        long vertices = 0;
+        foreach (int[] surface in template.SurfaceVertices) vertices += surface.Length;
+        _copies += sign;
+        _copyBytes += sign * vertices * 20;
+        _peakCopies = Math.Max(_peakCopies, _copies);
+        _peakCopyBytes = Math.Max(_peakCopyBytes, _copyBytes);
+    }
+
     private void FreeObjects()
     {
+        GD.Print("DK2.Godot clip copies: ", _copies, " alive (", _copyBytes, " vertex bytes), at most ", _peakCopies, " (",
+            _peakCopyBytes, " B)");
         int playing = 0;
         foreach (ModelSlot slot in _objects.Values) if (slot.Animation?.Player.Clock != null) playing++;
         GD.Print("DK2.Godot objects: ", _objects.Count, " drawn (", playing, " playing a clip), ", _artless.Count, " without art, ", _structures.Count,
             " structures, ", _torches.Count, " torches; the object draws allocated ", _drawWarmUpBytes, " B in the first ",
             DrawWarmUp, " frames, then ", _drawLateBytes, " B in ", Math.Max(0, _drawFrames - DrawWarmUp - _drawBendingFrames),
             " and ", _drawBendingBytes, " B in ", _drawBendingFrames, " that bent torches again; steady by phase: hearts ",
-            _steadyPhaseBytes[(int)DrawPhase.Hearts], " B, objects and clips ", _steadyPhaseBytes[(int)DrawPhase.Objects],
+            _steadyPhaseBytes[(int)DrawPhase.Hearts], " B, creatures ", _steadyPhaseBytes[(int)DrawPhase.Creatures],
+            " B, objects and clips ", _steadyPhaseBytes[(int)DrawPhase.Objects],
             " B, torch bend ", _steadyPhaseBytes[(int)DrawPhase.Bend], " B, flames ", _steadyPhaseBytes[(int)DrawPhase.Flames],
             " B, sort ", _steadyPhaseBytes[(int)DrawPhase.Sort], " B");
+        FreeCreatures();
         foreach (ModelSlot slot in _objects.Values) slot.Free();
         foreach (ModelSlot slot in _structures.Values) slot.Free();
         foreach (TorchSlot slot in _torches.Values) slot.Free();
@@ -464,8 +529,9 @@ public partial class WorldScene
         }
     }
 
-    /// <summary>What a thing's draw takes its looks from: an object's pose, a structure's view or a torch's plain model.</summary>
-    private enum SlotKind { Object, Structure, Plain }
+    /// <summary>What a thing's draw takes its looks from: an object's pose, a structure's view, or a creature's, torch's or
+    /// lock's plain model.</summary>
+    private enum SlotKind { Object, Structure, Creature, Plain }
 
     /// <summary>One drawn model: a node showing the shared model or a clip's segment, its surfaces' materials and, when one
     /// of them blends, its order-0 key.</summary>
@@ -480,11 +546,11 @@ public partial class WorldScene
         private StructureView _structure;
         private ObjectView _pose;
 
-        public ModelSlot(WorldScene scene, ModelMesh model, string name, Node3D? parent = null)
+        public ModelSlot(WorldScene scene, ModelMesh model, string name, SlotKind kind, Node3D? parent = null)
         {
             _scene = scene;
             _shown = _static = model;
-            Kind = parent == null ? SlotKind.Object : SlotKind.Plain;
+            Kind = kind;
             Node = new MeshInstance3D { Name = name, Mesh = model.Mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
             (parent ?? (Node3D)scene).AddChild(Node);
         }
@@ -510,6 +576,10 @@ public partial class WorldScene
         public ModelSlot? Lock { get; set; }
         public NVector3 RenderPosition { get; private set; }
 
+        /// <summary>The turn and scale as last placed, in the renderers' frame.</summary>
+        public System.Numerics.Quaternion RenderTurn { get; private set; } = System.Numerics.Quaternion.Identity;
+        public NVector3 RenderScale { get; private set; } = NVector3.One;
+
         /// <summary>A structure's view: its plan colour or its tint decide its looks.</summary>
         public StructureView Structure
         {
@@ -523,11 +593,25 @@ public partial class WorldScene
         public void Place(NVector3 position, in RenderEuler turn, Vector3 scale)
         {
             RenderPosition = position;
-            System.Numerics.Quaternion q = RightHandedFrame.Rotation(RenderRotation.Of(turn));
+            RenderTurn = RenderRotation.Of(turn);
+            RenderScale = new NVector3(scale.X, scale.Y, scale.Z);
+            System.Numerics.Quaternion q = RightHandedFrame.Rotation(RenderTurn);
             var basis = new Basis(new Quaternion(q.X, q.Y, q.Z, q.W)) * Basis.FromScale(scale);
             Node.Transform = new Transform3D(basis, ToGodot(RightHandedFrame.Point(position)));
             _sortStamp = -1;
         }
+
+        /// <summary>The model at <paramref name="position"/> (the renderers' frame), its turn and scale kept.</summary>
+        public void MoveTo(NVector3 position)
+        {
+            RenderPosition = position;
+            Node.Position = ToGodot(RightHandedFrame.Point(position));
+            _sortStamp = -1;
+        }
+
+        /// <summary>A model-local point (<see cref="RenderMesh"/>'s frame) where it is drawn, in the renderers' frame: Unity's
+        /// <c>Transform.TransformPoint</c>.</summary>
+        public NVector3 ToRender(NVector3 local) => RenderPosition + NVector3.Transform(local * RenderScale, RenderTurn);
 
         public void ShowStatic(ModelMesh model)
         {
@@ -608,6 +692,10 @@ public partial class WorldScene
         private RenderAnimation?[] _clips = [];
         private ModelMesh?[] _templates = [];
         private readonly ArrayMesh?[] _meshes = new ArrayMesh?[3];
+        // Each template's own copy, kept for the model's life so a clip started again (a creature's walk after its dig)
+        // makes none: bounded by the distinct clip templates the creature's or object's entries name. Unity's
+        // ClassicCreatureAnimation keeps its copies only while the clip set is the same and releases them on another.
+        private readonly Dictionary<ModelMesh, ArrayMesh> _copies = new();
         private AnimationSegment _shown = AnimationSegment.Main;
 
         public AnimatedModel(ModelSlot slot)
@@ -624,19 +712,25 @@ public partial class WorldScene
         void ICreatureAnimationSurface<ModelMesh?[]>.Install(RenderAnimation?[] clips, ModelMesh?[] templates)
         {
             if (Same(clips, templates)) return;
-            Free();
             _clips = clips;
             _templates = templates;
-            for (int segment = 0; segment < clips.Length && segment < 3; segment++)
+            for (int segment = 0; segment < _meshes.Length; segment++)
             {
-                if (clips[segment] is not RenderAnimation clip || templates[segment] is not ModelMesh template) continue;
-                var mesh = new ArrayMesh();
-                for (int surface = 0; surface < template.SurfaceVertices.Length; surface++)
-                    mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, template.Arrays(clip.Mesh.Positions, surface), null, null,
-                        Mesh.ArrayFormat.FlagUseDynamicUpdate);
-                if (mesh.GetSurfaceCount() > 0 && RenderingServer.MeshSurfaceGetFormatVertexStride(
-                        (RenderingServer.ArrayFormat)mesh.SurfaceGetFormat(0), template.SurfaceVertices[0].Length) != 12)
-                    GD.PushError("DK2.Godot: an animated model's vertex stream is not positions alone; it draws wrong.");
+                _meshes[segment] = null;
+                if (segment >= clips.Length || clips[segment] is not RenderAnimation clip || templates[segment] is not ModelMesh template)
+                    continue;
+                if (!_copies.TryGetValue(template, out ArrayMesh? mesh))
+                {
+                    mesh = new ArrayMesh();
+                    for (int surface = 0; surface < template.SurfaceVertices.Length; surface++)
+                        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, template.Arrays(clip.Mesh.Positions, surface), null,
+                            null, Mesh.ArrayFormat.FlagUseDynamicUpdate);
+                    if (mesh.GetSurfaceCount() > 0 && RenderingServer.MeshSurfaceGetFormatVertexStride(
+                            (RenderingServer.ArrayFormat)mesh.SurfaceGetFormat(0), template.SurfaceVertices[0].Length) != 12)
+                        GD.PushError("DK2.Godot: an animated model's vertex stream is not positions alone; it draws wrong.");
+                    _copies.Add(template, mesh);
+                    _slot.Scene.CountCopy(template, +1);
+                }
                 _meshes[segment] = mesh;
             }
         }
@@ -670,6 +764,8 @@ public partial class WorldScene
         public void Free()
         {
             for (int i = 0; i < _meshes.Length; i++) _meshes[i] = null;
+            foreach (ModelMesh template in _copies.Keys) _slot.Scene.CountCopy(template, -1);
+            _copies.Clear();
             _clips = [];
             _templates = [];
         }

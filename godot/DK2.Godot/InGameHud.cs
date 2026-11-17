@@ -499,11 +499,6 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // The frame's one pose, which this frame's picks read; the follow below places it again only if it moved the focus.
         _world.PlaceCamera();
         QueueInput(visibility, milliseconds);
-        // The query follow (DungeonRunner.FollowQueriedCreature, after the ticks there) runs on the settled world here, so the
-        // view and the minimap below draw the same focus; then the camera is placed once.
-        System.Numerics.Vector3 focus = _world.Focus;
-        FollowQueriedCreature();
-        if (_world.Focus != focus) _world.PlaceCamera();
         // DungeonRunner.Update before its present: the Hand's excavation drag previews its tags; off the map the far end keeps
         // the last tile the pointer was on.
         TilePos? dragFrom = _input.DragFrom(PlayerToolMode.Hand);
@@ -517,6 +512,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _world.SetFrameTime(_simulation.World.CurrentTick, drawFraction, milliseconds);
         _world.Present(_simulation.World, _elapsed);
         _world.DrawFrame(_simulation.World.CurrentTick, drawFraction);
+        // DungeonRunner.FollowQueriedCreature, after DrawCreatureFrame there: the focus keeps the queried creature where it
+        // is drawn, so the view and the minimap below draw the same focus; the camera is placed again only if it moved,
+        // then the blended draws are sorted for it.
+        System.Numerics.Vector3 focus = _world.Focus;
+        FollowQueriedCreature();
+        if (_world.Focus != focus) _world.PlaceCamera();
+        _world.FinishFrame();
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
@@ -854,13 +856,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>DungeonRunner.FollowQueriedCreature: while <see cref="ClassicCreatureQueryRules.Follows"/>, the focus keeps
-    /// the queried creature, read from the simulation (no creature is drawn before step 3g).</summary>
+    /// the queried creature where the frame drew it (<see cref="WorldScene.TryGetCreaturePosition"/>, between turns), so
+    /// the focus does not step against the model.</summary>
     private void FollowQueriedCreature()
     {
-        if (_world == null || _simulation == null || _queryView == null || _scriptedView == null) return;
+        if (_world == null || _queryView == null || _scriptedView == null) return;
         if (!ClassicCreatureQueryRules.Follows(_tools.QueryTool, _queryView.Target, _scriptedView.PathPlaying, _hudControls.Modal)) return;
-        if (_simulation.World.CreatureById(_queryView.Target.Value) is CreatureState creature)
-            _world.Focus = CameraFocus.Over(new Fp32(creature.PosX), new Fp32(creature.PosY), _world.Focus.Y);
+        if (_world.TryGetCreaturePosition(_queryView.Target, out System.Numerics.Vector3 drawn))
+            _world.Focus = new System.Numerics.Vector3(drawn.X, _world.Focus.Y, drawn.Z);
     }
 
     /// <summary>The bottom panel's collapse moves the view axis, as Unity's runner's handler does.</summary>
