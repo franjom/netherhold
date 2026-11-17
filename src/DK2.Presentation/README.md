@@ -53,8 +53,10 @@ The classic light frame and the hover pick, measured by the adapter and decided 
 second camera at view distance 10; `Publish` writes a diff to an `ITileLightSink`; `PublishPortalLights`, `MarkTablesWritten`,
 `Clear`), `ClassicLightFlagsRules` (`Torch`, `IsCheapTorch`), `TileView.LitAsExplored` (the tile fill rule),
 `LatticeDirtyTracker` (`ForgetReach`, `TorchReach`), `WorldHoverPicker` (`TryCastTerrain` through `TileTopPlane.TryHit`, then
-`Holds`, `Admits`, `Offer`, `TryRenderedResult`, the sweep and `OnPointerTile`; its vector arithmetic is Unity's term by term,
-so a pick is bit-identical) and `HoverOverlayPlan` (the frame's red creatures and each submesh's swap and red decision).
+`TryAdmit` (the view cull, the pick circle, the bounds entry, `Admits`), `Offer`, `TryRenderedResult`, the sweep and
+`OnPointerTile`; its vector arithmetic is Unity's term by term, so a pick is bit-identical), `PickBox`, `PickSphere` and
+`PickTriangles` (the measures of a drawn thing), `ViewFrustum.Excludes` and `HoverOverlayPlan` (the frame's red creatures and
+each submesh's swap and red decision).
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

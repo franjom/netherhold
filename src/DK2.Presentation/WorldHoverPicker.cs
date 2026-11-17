@@ -42,6 +42,7 @@ public sealed class WorldHoverPicker
     private Func<WorldHoverKind, int, bool>? _rendered, _fallback;
     private Func<WorldHoverHit, bool>? _resolves;
     private bool _objectsOnly;
+    private ViewFrustum? _frustum;
 
     private readonly record struct SweepEntry(int Id, TilePos Tile, Vector3 Position);
 
@@ -63,11 +64,13 @@ public sealed class WorldHoverPicker
     /// <summary>The hover on the pointer's tile: a pick keeps its kind and entity and takes the tile under the pointer.</summary>
     public static WorldHoverHit OnPointerTile(WorldHoverHit pick, TilePos tile) => new(pick.Kind, tile, pick.EntityId);
 
-    /// <summary>Starts a frame's pick on <paramref name="tile"/>.</summary>
+    /// <summary>Starts a frame's pick on <paramref name="tile"/>; <paramref name="frustum"/> is the view
+    /// <see cref="TryAdmit"/> culls by, none culling nothing.</summary>
     public void Begin(in HoverPickRay ray, float terrainDistance, TilePos tile, Vector3 pointerGround,
         Func<WorldHoverKind, int, bool>? rendered = null, Func<WorldHoverKind, int, bool>? fallback = null,
-        Func<WorldHoverHit, bool>? resolves = null, bool objectsOnly = false)
+        Func<WorldHoverHit, bool>? resolves = null, bool objectsOnly = false, ViewFrustum? frustum = null)
     {
+        _frustum = frustum;
         _ray = ray;
         TerrainDistance = terrainDistance;
         _tile = tile;
@@ -113,6 +116,23 @@ public sealed class WorldHoverPicker
         float entryDistance = boundsEntry ?? probe.RayDistance;
         if (entryDistance >= TerrainDistance) return false;
         return _rendered == null || _rendered(candidate.Kind, candidate.EntityId);
+    }
+
+    /// <summary>A drawn candidate's measures before its triangles (Unity's <c>DungeonScene.PickHoverEntity</c>). First the
+    /// view cull: DK2 tests the bounding sphere against the view's four side planes (0x00575D70) before the pick circle,
+    /// so a sphere reaching behind the eye cannot hold every pointer (<see cref="HoverPickRules.CircleHolds"/>); ours tests
+    /// the bounds box against six planes (<see cref="ViewFrustum.Excludes(in PickBox)"/>), Unity's approximation. Then the
+    /// screen circle of <paramref name="sphere"/> (placed; the adapter passes one only where the model's own is
+    /// <see cref="PickSphere.Usable"/>), else of the bounds' centre and half diagonal; then <see cref="Admits"/> with the
+    /// ray's entry into the bounds. On true, the adapter offers it with its triangle.</summary>
+    public bool TryAdmit(WorldHoverHit candidate, in PickBox bounds, PickSphere? sphere, out HoverPickProbe probe)
+    {
+        probe = default;
+        if (_frustum is ViewFrustum frustum && frustum.Excludes(bounds)) return false;
+        Vector3 centre = sphere?.Centre ?? bounds.Centre;
+        float radius = sphere?.Radius ?? MathF.Sqrt(SquaredLength(bounds.Extents));
+        if (!Holds(centre, radius, out probe)) return false;
+        return Admits(candidate, probe, bounds.RayEntry(_ray.Origin, _ray.Direction));
     }
 
     /// <summary>Offers an admitted candidate: <paramref name="triangleDistance"/> is the ray distance to its nearest

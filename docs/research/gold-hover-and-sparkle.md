@@ -178,7 +178,7 @@ dropped back on a store it is deposited on landing, as DK2's state 5 does (ADR-0
   its materials, skipping those made from additive or alpha-blended KMF materials
   (`ClassicMeshes.IsKmfBlended`) unless `HoverTint.CoversBlended` (Fear Trap, Hero
   Portcullis), for creatures, objects, doors and traps.
-- `WorldHoverPicker.OffersObject` and `StructureHit` (called by `DungeonScene.PickHoverEntity`) admit the store pile decoration, doors and traps;
+- `WorldHoverPicker.OffersObject` and `StructureHit` (called by `DungeonScene.PickHoverEntity` and `WorldScene.PickHoverEntity`) admit the store pile decoration, doors and traps;
   `WorldHoverText` reads a store pile as "N Gold" from its tile.
 - `PlayerInputSnapshot` offers an own store pile as a `StoreGold` target carrying its tile; a
   click lifts it (§4), and `DungeonRunner` shows the pickup hand over it.

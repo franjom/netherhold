@@ -34,7 +34,7 @@ public partial class WorldScene
     private readonly Dictionary<(string Entry, bool LastFrame), ModelMesh?> _models = new();
     private readonly Dictionary<string, RenderAnimation> _clips = new();
     private readonly Dictionary<string, ClipSet?> _clipSets = new();
-    private readonly Dictionary<ObjectMaterialLook, ShaderMaterial> _objectMaterials = new();
+    private readonly Dictionary<ObjectMaterialLook, ShaderMaterial> _objectMaterials = new(), _redMaterials = new();
     private readonly List<ObjectPass> _passes = new();
     private readonly HeartPulse _heartPulse = new();
     private LatticeDirtyTracker? _latticeDirty;
@@ -316,11 +316,6 @@ public partial class WorldScene
     {
         _drawn = null;
         Mark(DrawPhase.Creatures);
-        if (_frustumStale && View != null)
-        {
-            _frustum = ViewFrustum.FromPose(_placed, _placedViewport.Width / (float)_placedViewport.Height, NearPlane);
-            _frustumStale = false;
-        }
         foreach (KeyValuePair<int, ModelSlot> entry in _objects)
         {
             ModelSlot slot = entry.Value;
@@ -331,7 +326,7 @@ public partial class WorldScene
             animated.Player.Draw(_frame.DrawSeconds, phaseStepOverride: pose.HeartVisual?.PhaseStep);
             if (!pose.HeartVisual.HasValue || !animated.Player.BeatPending) continue;
             NVector3 at = slot.RenderPosition;
-            bool visible = View != null && !_frustum.Excludes(at, at, at);
+            bool visible = View != null && !PlacedFrustum.Excludes(at, at, at);
             if (_heartPulse.TryBeat(pose, beatPending: true, visible, _effectClock!, tick).Consumed) animated.Player.ConsumeBeat();
         }
         Mark(DrawPhase.Objects);
@@ -392,11 +387,41 @@ public partial class WorldScene
         return material;
     }
 
+    /// <summary>The material of <paramref name="look"/>, with the hover's red pass after it when <paramref name="red"/>: a
+    /// twin whose next pass is <see cref="ObjectMaterialLook.HoverOverlay"/> on the same vertices, so it follows a clip as
+    /// Unity's overlay draws the sampled mesh again.</summary>
+    private ShaderMaterial MaterialFor(in ObjectMaterialLook look, bool red)
+    {
+        if (!red) return MaterialFor(look);
+        if (_redMaterials.TryGetValue(look, out ShaderMaterial? material)) return material;
+        ShaderMaterial plain = MaterialFor(look);
+        material = new ShaderMaterial { Shader = plain.Shader, NextPass = MaterialFor(ObjectMaterialLook.HoverOverlay()) };
+        material.SetShaderParameter(AlbedoParameter, plain.GetShaderParameter(AlbedoParameter));
+        material.SetShaderParameter(ColourParameter, plain.GetShaderParameter(ColourParameter));
+        material.SetShaderParameter(AddedLightParameter, plain.GetShaderParameter(AddedLightParameter));
+        _redMaterials.Add(look, material);
+        return material;
+    }
+
+    /// <summary>What the hover overlay asks of one model this frame: the gold texture swap, and the red pass over its
+    /// materials made from opaque and from blended KMF ones (<see cref="HoverOverlayPlan.Submesh"/>).</summary>
+    private readonly record struct HoverLooks(bool Swap, bool RedOpaque, bool RedBlended)
+    {
+        public bool Any => Swap || RedOpaque || RedBlended;
+
+        /// <summary>This and <paramref name="other"/>: a creature red twice in a frame draws red once
+        /// (<see cref="HoverOverlayPlan"/>), so the two never ask for the same material.</summary>
+        public HoverLooks With(HoverLooks other) =>
+            new(Swap || other.Swap, RedOpaque || other.RedOpaque, RedBlended || other.RedBlended);
+    }
+
     /// <summary>Rewrites each surface's positions in place from <paramref name="vertices"/> (the renderers' frame, by
     /// source vertex) through one reused buffer: a dynamic surface's vertex stream is its positions alone (no normals
-    /// until step 3i), checked when an animated copy is made.</summary>
-    private void UploadPositions(ArrayMesh mesh, ModelMesh model, ReadOnlySpan<NVector3> vertices)
+    /// until step 3i), checked when an animated copy is made. <paramref name="box"/> is the box around the vertices the
+    /// surfaces use, in the renderers' frame (the Hand's pick measures it, as Unity's bounds follow each upload).</summary>
+    private void UploadPositions(ArrayMesh mesh, ModelMesh model, ReadOnlySpan<NVector3> vertices, out PickBox box)
     {
+        NVector3 low = new(float.MaxValue), high = new(float.MinValue);
         for (int surface = 0; surface < model.SurfaceVertices.Length; surface++)
         {
             int[] used = model.SurfaceVertices[surface];
@@ -405,13 +430,17 @@ public partial class WorldScene
             Span<float> positions = MemoryMarshal.Cast<byte, float>(_upload.AsSpan(0, bytes));
             for (int i = 0; i < used.Length; i++)
             {
-                NVector3 p = RightHandedFrame.Point(vertices[used[i]]);
+                NVector3 v = vertices[used[i]];
+                low = NVector3.Min(low, v);
+                high = NVector3.Max(high, v);
+                NVector3 p = RightHandedFrame.Point(v);
                 positions[i * 3] = p.X;
                 positions[(i * 3) + 1] = p.Y;
                 positions[(i * 3) + 2] = p.Z;
             }
             mesh.SurfaceUpdateVertexRegion(surface, 0, _upload.AsSpan(0, bytes));
         }
+        box = low.X <= high.X ? new PickBox(low, high) : default;
     }
 
     // The clip copies alive (each a dynamic ArrayMesh, a 12-byte position and an 8-byte UV per vertex), and their peak.
@@ -482,7 +511,15 @@ public partial class WorldScene
             }
             SurfaceVertices = [.. vertices];
             Box = Mesh.GetSurfaceCount() > 0 ? Mesh.GetAabb() : new Aabb();
+            Sphere = PickSphere.Of(model);
+            PickBox = PickBox.Around(source.Positions);
         }
+
+        /// <summary>The KMF sphere the Hand's pick measures (Unity reads it from UV2); null for a model without one.</summary>
+        public PickSphere? Sphere { get; }
+
+        /// <summary>The model's own box in the renderers' frame (Unity's mesh bounds).</summary>
+        public PickBox PickBox { get; }
 
         public KmfModel Model { get; }
         public RenderMesh Source { get; }
@@ -645,6 +682,7 @@ public partial class WorldScene
             byte alpha = Kind == SlotKind.Object ? pose.Alpha : byte.MaxValue;
             Node.Visible = ObjectMaterialLook.IsDrawn(alpha);
             _blended = false;
+            bool plan = Kind == SlotKind.Structure && Structure.Plan != BlueprintTint.None;
             foreach (ObjectPass pass in _scene._passes)
             {
                 // The environment pass waits for the lighting (step 3i), which carries its coordinates.
@@ -652,16 +690,71 @@ public partial class WorldScene
                 int surface = _shown.SurfaceOf[pass.Submesh];
                 if (surface < 0) continue;
                 ObjectMaterialLook look = pass.Look;
+                // The red pass skips a material made from a blended KMF one, whatever a fade or plan made of it (Unity's
+                // IsKmfBlended; a plan's materials are not KMF ones, so it reads opaque).
+                bool kmfBlended = !plan && pass.Look.Blend != KmfBlend.Opaque;
                 if (Kind == SlotKind.Object) look = look.Tinted(pose.AddedLight).Faded(alpha);
-                else if (Kind == SlotKind.Structure && Structure.Plan != BlueprintTint.None)
-                    look = ObjectMaterialLook.Blueprint(Structure.Plan == BlueprintTint.Red);
+                else if (plan) look = ObjectMaterialLook.Blueprint(Structure.Plan == BlueprintTint.Red);
                 else if (Kind == SlotKind.Structure)
                     look = look.InstanceTinted(Structure.InstanceTint, Structure.InstanceTint, Structure.InstanceTint);
+                // A hovered gold object draws its material's twin (Unity draws the twin over it, one queue later).
+                if (Hover.Swap && pass.Submesh < _shown.Model.Materials.Count
+                    && ObjectMaterialLook.HoverTwin(_shown.Model.Materials[pass.Submesh]) is ObjectMaterialLook twin)
+                    look = twin with { QueueOffset = 0 };
                 _blended |= look.Blend != KmfBlend.Opaque;
-                Node.SetSurfaceOverrideMaterial(surface, _scene.MaterialFor(look));
+                bool red = kmfBlended ? Hover.RedBlended : Hover.RedOpaque;
+                Node.SetSurfaceOverrideMaterial(surface, _scene.MaterialFor(look, red));
             }
             if (_blended) Node.SortingUseAabbCenter = false;
+            _appliedHover = Hover;
             _sortStamp = -1;
+        }
+
+        /// <summary>The hover overlay this frame asks for (<see cref="WorldScene.DrawHoverOverlay"/>); applied by
+        /// <see cref="CommitHover"/>.</summary>
+        public HoverLooks Hover;
+        private HoverLooks _appliedHover;
+
+        /// <summary>Whether the slot was freed; a hover list drops it.</summary>
+        public bool Freed { get; private set; }
+
+        /// <summary>The asked-for hover overlay on the surfaces, when it changed; allocation-free once the materials exist.</summary>
+        public void CommitHover()
+        {
+            if (!Freed && Hover != _appliedHover) ApplyLooks();
+        }
+
+        /// <summary>The shown model's posed vertices and their box: the clip's last sample, else the model's own.</summary>
+        private IReadOnlyList<NVector3> Positions(out PickBox box)
+        {
+            NVector3[] posed = [];
+            box = default;
+            if (Animation != null && Animation.TryGetSample(out posed, out box)) return posed;
+            box = _shown.PickBox;
+            return _shown.Source.Positions;
+        }
+
+        /// <summary>The Hand's measures of the model where it is drawn (Unity's renderer bounds and UV2 sphere): its box,
+        /// the box around the clip's last sample when one plays (taken in its upload), and its KMF sphere.</summary>
+        public void Measure(out PickBox bounds, out PickSphere? sphere)
+        {
+            Positions(out PickBox local);
+            bounds = local.Placed(RenderPosition, RenderTurn, RenderScale);
+            sphere = _shown.Sphere is PickSphere own && own.Usable ? own.Placed(RenderPosition, RenderTurn, RenderScale) : null;
+        }
+
+        /// <summary>The ray distance to the nearest triangle of the shown model it crosses before <paramref name="limit"/>
+        /// (<see cref="PickTriangles"/>), or null.</summary>
+        public float? NearestTriangle(NVector3 origin, NVector3 direction, float limit)
+        {
+            IReadOnlyList<NVector3> positions = Positions(out PickBox _);
+            PickTriangles.ToLocal(RenderPosition, RenderTurn, RenderScale, ref origin, ref direction);
+            float best = limit;
+            bool found = false;
+            IReadOnlyList<int[]> triangles = _shown.Source.Triangles;
+            for (int submesh = 0; submesh < triangles.Count; submesh++)
+                found |= PickTriangles.TryNearest(positions, triangles[submesh], origin, direction, ref best);
+            return found ? best : null;
         }
 
         /// <summary>A blended model's order-0 key, again when it or the camera moved (<see cref="ZeroOrderOffset"/>).</summary>
@@ -678,6 +771,7 @@ public partial class WorldScene
 
         public void Free()
         {
+            Freed = true;
             Lock = null;
             Animation?.Free();
             Node.QueueFree();
@@ -697,6 +791,10 @@ public partial class WorldScene
         // ClassicCreatureAnimation keeps its copies only while the clip set is the same and releases them on another.
         private readonly Dictionary<ModelMesh, ArrayMesh> _copies = new();
         private AnimationSegment _shown = AnimationSegment.Main;
+        // The player's last sample, its box and the segment it was drawn for: what the Hand's pick measures.
+        private NVector3[]? _sample;
+        private PickBox _sampleBox;
+        private AnimationSegment _sampled;
 
         public AnimatedModel(ModelSlot slot)
         {
@@ -706,12 +804,22 @@ public partial class WorldScene
 
         public CreatureAnimationPlayer<ModelMesh?[]> Player { get; }
 
+        /// <summary>The posed vertices of the shown segment as last drawn (the renderers' frame, by source vertex); false
+        /// while the clip has drawn none of it.</summary>
+        public bool TryGetSample(out NVector3[] vertices, out PickBox box)
+        {
+            vertices = _sample!;
+            box = _sampleBox;
+            return Player.Clock != null && _sample != null && _sampled == _shown;
+        }
+
         /// <summary>Whether the main segment shows, the one a texture phase dresses.</summary>
         public bool ShowsMain => Player.Clock == null || _shown == AnimationSegment.Main;
 
         void ICreatureAnimationSurface<ModelMesh?[]>.Install(RenderAnimation?[] clips, ModelMesh?[] templates)
         {
             if (Same(clips, templates)) return;
+            _sample = null;
             _clips = clips;
             _templates = templates;
             for (int segment = 0; segment < _meshes.Length; segment++)
@@ -750,7 +858,11 @@ public partial class WorldScene
         void ICreatureAnimationSurface<ModelMesh?[]>.Upload(AnimationSegment segment, NVector3[] vertices)
         {
             if (_templates[(int)segment] is ModelMesh template && _meshes[(int)segment] is ArrayMesh mesh)
-                _slot.Scene.UploadPositions(mesh, template, vertices);
+            {
+                _slot.Scene.UploadPositions(mesh, template, vertices, out _sampleBox);
+                _sample = vertices;
+                _sampled = segment;
+            }
         }
 
         private bool Same(RenderAnimation?[] clips, ModelMesh?[] templates)
@@ -764,6 +876,7 @@ public partial class WorldScene
         public void Free()
         {
             for (int i = 0; i < _meshes.Length; i++) _meshes[i] = null;
+            _sample = null;
             foreach (ModelMesh template in _copies.Keys) _slot.Scene.CountCopy(template, -1);
             _copies.Clear();
             _clips = [];
@@ -820,7 +933,7 @@ public partial class WorldScene
                 return;
             }
             // Bent again in place, as Unity's ClassicTorchGeometry.Refresh rewrites its vertices.
-            _scene.UploadPositions(mesh, _model, _bent);
+            _scene.UploadPositions(mesh, _model, _bent, out _);
         }
 
         public void Free() => _node?.QueueFree();

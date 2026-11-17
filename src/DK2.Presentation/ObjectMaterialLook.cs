@@ -46,6 +46,10 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
             overlay.AddedLight);
     }
 
+    /// <summary>The red pass of the Hand's hover and of a burning creature (<see cref="HoverOverlayPlan"/>): RedTexture's
+    /// <see cref="TerrainMaterialLook.HoverOverlayColour"/>, additive, unlit, no depth write, as the tutorial's red plan.</summary>
+    public static ObjectMaterialLook HoverOverlay() => Blueprint(red: true);
+
     /// <summary>The terrain overlay a plan draws as: the dig tag's, or the tutorial's red.</summary>
     public static TerrainMaterialVariant BlueprintOverlay(bool red) =>
         red ? TerrainMaterialVariant.RedTagOverlay : TerrainMaterialVariant.TagOverlay;

@@ -77,6 +77,24 @@ public readonly struct ViewFrustum
         Outside(_left, a, b, c) || Outside(_right, a, b, c) || Outside(_bottom, a, b, c)
         || Outside(_top, a, b, c) || Outside(_near, a, b, c) || Outside(_far, a, b, c);
 
+    /// <summary>True when the box lies wholly outside one plane: the centre's distance plus the extents projected on the
+    /// plane's normal below zero (Unity's <c>GeometryUtility.TestPlanesAABB</c> test; a box touching a plane is kept, our
+    /// choice). The Hand's view cull uses it in place of DK2's sphere against four side planes (0x00575D70).</summary>
+    public bool Excludes(in PickBox box)
+    {
+        Vector3 centre = box.Centre, extents = box.Extents;
+        return OutsideBox(_left, centre, extents) || OutsideBox(_right, centre, extents) || OutsideBox(_bottom, centre, extents)
+            || OutsideBox(_top, centre, extents) || OutsideBox(_near, centre, extents) || OutsideBox(_far, centre, extents);
+    }
+
+    private static bool OutsideBox(in Plane plane, Vector3 centre, Vector3 extents)
+    {
+        Vector3 n = plane.Normal;
+        float distance = n.X * centre.X + n.Y * centre.Y + n.Z * centre.Z + plane.D;
+        float reach = Math.Abs(n.X) * extents.X + Math.Abs(n.Y) * extents.Y + Math.Abs(n.Z) * extents.Z;
+        return distance + reach < 0f;
+    }
+
     /// <summary>Unity's <c>Matrix4x4 ==</c> on <see cref="ViewProjection"/>: each column's squared difference below
     /// 1e-10 (<c>Vector4 ==</c>).</summary>
     public bool SameView(in ViewFrustum other) => ApproximatelyEqual(ViewProjection, other.ViewProjection);

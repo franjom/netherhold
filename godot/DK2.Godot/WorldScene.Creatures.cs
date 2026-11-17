@@ -15,8 +15,9 @@ namespace DK2.GodotAdapter;
 /// <summary>Creatures (plan step 3g), as Unity's <c>DungeonScene</c> draws them: each install model shared with the objects
 /// (<see cref="ModelMesh"/>), a <see cref="ModelSlot"/> per creature, its type-6 clip played by the shared
 /// <see cref="CreatureAnimationPlayer{TResources}"/> with each segment's positions rewritten in place, and each frame drawn
-/// in <see cref="SceneFrame"/>'s order, which this scene hosts. The burning red (step 3h), the crackle (3l), the footsteps
-/// and the gem sparkle (3k) and the possessed model (3m) are not drawn yet.</summary>
+/// in <see cref="SceneFrame"/>'s order, which this scene hosts; the hover overlay's frame and the burning red are
+/// WorldScene.Hover.cs's. The crackle (3l), the footsteps and the gem sparkle (3k) and the possessed model (3m) are not
+/// drawn yet.</summary>
 public partial class WorldScene : ISceneFrameHost
 {
     private readonly SceneFrame _frame;
@@ -157,9 +158,6 @@ public partial class WorldScene : ISceneFrameHost
     }
 
 
-    // The hover overlay's frame: the red pass waits for entity hover (step 3h).
-    void ISceneFrameHost.BeginFrame() { }
-
     bool ISceneFrameHost.PlaceCreature(CreatureId creature, in CreatureView pose, DrawPoint drawn)
     {
         if (!_creatures.TryGetValue(creature.Value, out _drawn)) return false;
@@ -177,9 +175,6 @@ public partial class WorldScene : ISceneFrameHost
 
     // Footstep sounds wait for the effects and sound steps (step 3k).
     void ISceneFrameHost.RequestFootstep(CreatureId creature, in CreatureView pose, int crossing) { }
-
-    // The burning red overlay waits for entity hover's red pass (step 3h).
-    void ISceneFrameHost.DrawBurningRed(CreatureId creature, in CreatureView pose) { }
 
     // The lightning crackle waits for step 3l.
     void ISceneFrameHost.DrawCrackle(CreatureId creature, GameTick tick) { }
