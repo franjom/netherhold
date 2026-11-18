@@ -22,6 +22,53 @@ public class HeartDefenceTests
     private const int ReportingDanger = 254;
 
     [Fact]
+    public void HeartDispatch_DoesNotRecruitAnInvoluntaryWalkResumingTortureFromIdle()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState defender = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 11, 14);
+        StatePlacement.Place(defender, CreatureStateMachine.Idle);
+        StatePlacement.Place(defender, TravelToPoint);
+        defender.UtilityNewState = TortureRules.StrappingState;
+        defender.PrisonOwnerPlayerId = Keeper;
+        Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 13, 8);
+        Assert.Equal(-1, FirstSent(db, world, defender, 4));
+        Assert.Equal(TortureRules.StrappingState, defender.UtilityNewState);
+    }
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void HeartDispatch_004D99E4_ReleasesOnlyAVoluntaryTortureeAfterASuccessfulRouteProbe(bool voluntary, bool reachable)
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState defender = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 11, 14);
+        StatePlacement.Place(defender, TortureRules.TorturedState);
+        defender.PrisonOwnerPlayerId = Keeper;
+        defender.TortureVoluntary = voluntary;
+        defender.TortureRoll = 0x400;
+        defender.HeldPlace = new RoomPlace(14 * world.Width + 11, 1);
+        Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 13, 8);
+        if (!reachable)
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                    if (dx != 0 || dy != 0) world.Tile(13 + dx, 8 + dy).TerrainId = Dk2TerrainFixture.Rock;
+        Assert.Equal(voluntary && reachable ? 3 : -1, FirstSent(db, world, defender, 4));
+        if (voluntary && reachable)
+        {
+            Assert.Equal((TravelToPoint, ReportingDanger), (defender.Dk2StateId, defender.UtilityNewState));
+            Assert.False(defender.TortureVoluntary);
+            Assert.False(defender.HeldPlace.IsHeld);
+            Assert.Equal(0, defender.TortureRoll);
+        }
+        else
+        {
+            Assert.Equal(TortureRules.TorturedState, defender.Dk2StateId);
+            Assert.Equal(voluntary, defender.TortureVoluntary);
+            Assert.True(defender.HeldPlace.IsHeld);
+            Assert.Equal(0x400, defender.TortureRoll);
+        }
+    }
+    [Fact]
     public void HeartDispatch_004D9A1A_RetainsTheIntrudersPointWithinTheRespondersTile_004CF490()
     {
         (GameDatabase db, WorldState world) = World();

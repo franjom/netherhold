@@ -189,7 +189,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   scaled by stat row 24, it zeroes the duration. An enemy then dies on
   `rand(100) < TortureChanceOfDyingWhenConverted` (0) or is converted by `0x004F2800`:
   owner changed to the chamber's, trigger event 9, and the keeper's conversion count
-  `+0x16A` goes up.
+  `+0x16A` goes up. Own-room threshold expiry does not release; checked exit paths and remaining UNKNOWN: [voluntary torture release](voluntary-torture-exit.md).
 - **The torturer.** The job handler `0x00483AE0` walks in 7 resuming in **127**
   (`0x00483B90`). 127 looks for a creature in 129 on the chamber's slabs and walks
   beside it (6, resuming 128); failing that, it walks onto a free device resuming 130,

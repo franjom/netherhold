@@ -9215,7 +9215,7 @@ one the Temple surrounds: by the Hand's drop (creature or object) and by 101 (`T
 Deviates: a rebuilt room is seen at the holder's next turn by its size stamp, and a freed room or
 new owner is left to the job's room test or the Prison's release; the neighbour-terrain trigger
 `0x004E44E0` and 76's worker arm are not built; 71 runs in the turn it is entered; the Heart object
-is a living Heart; 126's neutral owner change and the Heart's responder kick to 135 are not built;
+is a living Heart; 126's neutral owner change is not built; the Heart's responder is covered in `combat-alarm.md` §7;
 the Hand offers a creature in the pool at the drop, where DK2 offers it in 101 after the drop's stun.
 
 **Measured** (hash 200) against the branch at `5e504d86` (M-D), both sides run: Level 1 20/20 and
@@ -9421,7 +9421,7 @@ a dropped job, already walking to 254), its Imp route flag and its run, into the
 254 (ADR-0166). A table without the two variables has no dispatch. Deviates: DK2's phase is the
 heart room's id, `(turn + room+4) & 3`; ours has none and gives every heart Morgana's, 1100 (the
 other Level 11A hearts are 1097, 1101, 1105 and 1107); the ruin gate is the player's, not the
-room's; a willing torturee is not kicked to 135 first.
+room's. The willing torturee's kick is built; see `combat-alarm.md` §7.
 
 **Consequences.** A breached wall within four tiles of a heart is defended by everyone near it.
 `level11a_drako_attack.yaml` moves to seed 7, whose wall falls at 369 (DK2's idle capture 387)
@@ -14476,7 +14476,7 @@ responders still omit the solid-point guard; DK2 routes all three through
 and query globals (`0x004D0E60`), and, after a successful preprobe, an attempted
 willing-torturee kick to 135; its three word clears require a successful kick
 (`0x004D99D2-0x004D99F7`).
-None is modelled on our Heart path; see [dispatch record](research/functions/004D9690.md).
+The early rejection still skips these side effects; other destinations now use the voluntary kick (hash/save 526). See [dispatch record](research/functions/004D9690.md).
 
 Consequence: hash/save 362 rejects 361 saves. Four regression cases fail against
 old source; ordinary acquisition and flee controls remain. The target-acquisition

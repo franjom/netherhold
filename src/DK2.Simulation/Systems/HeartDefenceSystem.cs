@@ -15,8 +15,8 @@ namespace DK2.Simulation.Systems;
 /// creature of its owner within <c>DungeonHeartCreatureGatheringDistanceTiles</c> that may go,
 /// workers included, running to it to stand in state 254, as the alarm's responders do.</summary>
 /// <remarks>Deviates: DK2's phase is the heart room's id (<c>(turn + room+4) &amp; 3</c>); ours has
-/// no room ids and uses Morgana's on Level 11A (1100) for every heart; a willing torturee is not kicked to 135 first
-/// (ADR-0400); the job is let go as the alarm's responders do.</remarks>
+/// no room ids and uses Morgana's on Level 11A (1100) for every heart;
+/// the job is let go as the alarm's responders do.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-alarm.md")]
 public sealed class HeartDefenceSystem : IRoomTickStep
 {
@@ -104,6 +104,10 @@ public sealed class HeartDefenceSystem : IRoomTickStep
             // the travel routes the body; retain the point using ADR-0388's tile approximation of
             // 0x004CF490's triangle case.
             if (!CanRoute(context, c, def, intruder, options)) continue;
+            // 0x004D99D2-0x004D99F7: release a willing torturee after the probe, before travel.
+            if (c.TortureVoluntary
+                && CreatureStateMachine.TrySetState(context.Hooks, c, TortureRules.VoluntaryLeaveState, context.Tick.Value))
+                c.TortureRoll = 0;
             if (!context.Navigation.TryRouteToStance(c, intruder.PosX, intruder.PosY, options)) continue;
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;

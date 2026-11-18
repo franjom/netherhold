@@ -303,9 +303,9 @@ her heart's room id (`+0x04`) is 1100 in every seed. The other hearts are 1097 (
 the Combat category on 348-403 of the first 500 ticks in the four seeds whose wall falls before
 100 (3, 5, 7, 10), and on 101 in seed 1.
 
-**Built** (ADR-0407): `HeartDefenceSystem`, after the store sweep. Deviates: ours has no room ids,
+**Built** (ADR-0407): `HeartDefenceSystem`, after the store sweep. Hash/save 526 adds the voluntary kick to 135 after a successful route probe and clears the modeled wheel roll on a successful kick. The shared fight gate distinguishes Prison inmates from keeper bindings and excludes involuntary torture, including walks resuming torture from another category. `HeartDefenceTests` covers release, failed routing, forced torture and the utility-walk guard. Deviates: ours has no room ids,
 so every heart takes Morgana's phase (1100); the ruin gate reads the player's heart, not the
-room's `+0x9A`; the torturee's kick and the probe's `+0x3E6` writes are not modelled; `+0x2CC` is `ReportTicks` and is reset; the job is let go as the
+room's `+0x9A`; the probe's `+0x3E6` writes remain unmodelled; `+0x2CC` is `ReportTicks` and is reset; the job is let go as the
 alarm's responders' is (ours; DK2's `0x00471890` is not read for it).
 
 The Level 5 branch comparison and score/point-route corrections are in

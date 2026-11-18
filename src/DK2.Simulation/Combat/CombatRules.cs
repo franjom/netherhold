@@ -210,9 +210,10 @@ public static class CombatRules
     /// <summary><c>0x00485210</c>: state 136, or the Torture category through a walk.</summary>
     public static bool OnTortureDevice(CreatureState creature) =>
         creature.Dk2StateId == TortureRules.ReleasedState
-        || CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Torture;
+        || (CreatureStateMachine.HasState(creature)
+            && NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Torture);
 
-    /// <summary>The gate <c>0x0045A6D0</c>: may this creature look for a fight? Refused for a captive,
+    /// <summary>The gate <c>0x0045A6D0</c>: may this creature look for a fight? Refused for a Prison inmate or involuntary torturee,
     /// one asleep, one leaving unless forced, one in the hand or with <c>+0x46F</c> bit 0 clear (a sprung
     /// Jack, ADR-0615) unless forced, the possessed
     /// creature, a dying one, one in a state flagged <see cref="CreatureStateFlags.NoFightLookup"/>
@@ -223,7 +224,8 @@ public static class CombatRules
     /// (<c>ChickenTimer</c> <c>+0x44B</c> running). Not modelled: hypnosis, the threat-response state
     /// and Horny's non-arrival scratch guard.</summary>
     public static bool MayLookForAFight(WorldState world, GameDatabase database, CreatureState creature, bool force) =>
-        !PrisonRules.IsImprisoned(creature)
+        !PrisonRules.IsPrisonInmate(creature)
+        && (creature.TortureVoluntary || !OnTortureDevice(creature))
         && (!((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
             || ((force || creature.ReaperCanAcquireFight) && creature.Activity != CreatureActivity.ReaperArriving))
         && (force || CallToArmsRules.WithinFightDistance(world, database, creature))
