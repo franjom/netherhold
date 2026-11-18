@@ -199,6 +199,7 @@ public sealed class PossessionSessionTests
 
         Assert.True(first.Entered);
         Assert.True(rig.Session.CameraHeld);
+        Assert.True(PossessionScene.RoofShown(rig.Session));
         Assert.False(rig.Session.SettledPossessionCamera);
         Assert.True(rig.Session.PointerLockWanted);
         Assert.Equal(0, rig.Session.HiddenCreatureId);
@@ -285,6 +286,7 @@ public sealed class PossessionSessionTests
         Assert.True(ended.Ended);
         Assert.Null(ended.OrdinaryFocus);
         Assert.True(rig.Session.CameraHeld);
+        Assert.True(PossessionScene.RoofShown(rig.Session));
         Assert.False(rig.Session.SettledPossessionCamera);
         Assert.Equal(rig.Me.Id, rig.Session.HiddenCreatureId);
         CameraFlightState target = rig.Session.Flight.Target;
@@ -313,9 +315,11 @@ public sealed class PossessionSessionTests
         Assert.Equal(0, rig.Session.HiddenCreatureId);
         Assert.Equal(0, rig.Session.Flight.State.Pitch);
         Assert.True(rig.Session.CameraHeld);
+        Assert.True(PossessionScene.RoofShown(rig.Session));
 
         rig.Frame(2000);
         Assert.False(rig.Session.CameraHeld);
+        Assert.False(PossessionScene.RoofShown(rig.Session));
     }
 
     [InstallFact]
@@ -346,6 +350,7 @@ public sealed class PossessionSessionTests
         Assert.False(rig.Session.Possessing);
         Assert.False(rig.Session.SettledPossessionCamera);
         Assert.True(rig.Session.CameraHeld);
+        Assert.True(PossessionScene.RoofShown(rig.Session));
         Assert.False(rig.Session.PointerLockWanted);
         Assert.Equal(0, rig.Session.HiddenCreatureId);
         Assert.Null(rig.Session.TurnPose(Viewer));
@@ -354,6 +359,7 @@ public sealed class PossessionSessionTests
         rig.Frame(2000);
 
         Assert.False(rig.Session.CameraHeld);
+        Assert.False(PossessionScene.RoofShown(rig.Session));
         Assert.False(rig.Session.TryCamera(rig.Ordinary, Screen, out _));
         Assert.Equal((rig.Me.Heading + 4) & 0x7F8, rig.Ordinary!.State(rig.Focus).Yaw);
     }

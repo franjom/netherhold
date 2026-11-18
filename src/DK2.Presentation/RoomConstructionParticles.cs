@@ -467,8 +467,13 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             particle.InitialScale = particle.ScaleTarget = Fp32.One;
             particle.ScaleIncrement = 0;
         }
-        // Group pieces retain their existing floor-response bypass; general birth-contact parity is Q620.
-        else if (!ApplyFloorContact(particle)) return null;
+        else
+        {
+            // 0x00435FDA positions against the floor before authored launch velocity and HP are installed.
+            (int xLaunch, int yLaunch, int zLaunch) = (particle.VelocityX, particle.VelocityY, particle.VelocityZ);
+            ApplyFloorContact(particle, initializing: true);
+            (particle.VelocityX, particle.VelocityY, particle.VelocityZ) = (xLaunch, yLaunch, zLaunch);
+        }
         int spinRange = effect.SpriteSpinRateRange * 8;
         particle.HeadingSpinRaw = replaced?.HeadingSpinRaw ?? DrawAngularOffset(spinRange).Value;
         particle.PitchSpinRaw = replaced?.PitchSpinRaw ?? DrawAngularOffset(spinRange).Value;
@@ -629,12 +634,12 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         }
     }
 
-    private bool ApplyFloorContact(ConstructionParticle particle)
+    private bool ApplyFloorContact(ConstructionParticle particle, bool initializing = false)
     {
         int floor = _floorHeight(new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw))).Raw;
         if (particle.HeightRaw >= floor) return true;
         SpawnContactElement(particle, floorContact: true);
-        if ((particle.Definition.Flags & 1) != 0) return false;
+        if ((particle.Definition.Flags & 1) != 0 && !initializing) return false;
         particle.HeadingSpinRaw = particle.PitchSpinRaw = particle.RollSpinRaw = 0;
         if ((particle.Definition.Flags & 16) != 0)
         {

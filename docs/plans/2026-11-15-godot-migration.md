@@ -928,7 +928,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         Godot (`InGameHud.Possession.cs`, `WorldScene.Possession.cs`): the shared `PossessionSession` is driven every
         frame, its pose goes on the same `Camera3D` (fly-in, first person, death view, fly-out), the pointer lock is
         `Input.MouseMode = Captured` while `PointerLockWanted` (never under `--pointer-path`, no `warp_mouse`), the roof is
-        one `MeshInstance3D` per 16x16 chunk shown exactly while a model is hidden (terrain material, `Ceiling` texture,
+        one `MeshInstance3D` per 16x16 chunk shown throughout the possession camera hold (terrain material, `Ceiling` texture,
         anchor kind 2), and the lattice latch and the hidden possessed model go through the `SceneFrame` sequence. The
         possession cameras take `PossessionCamera.NearClipDistance` (0.05, a remake choice: DK2 has no near plane,
         possession-warp.md section 2); the ordinary camera keeps 0.3, and Unity still uses 0.3 in first person. With 0.3 a
@@ -936,8 +936,9 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         0 errors and 0 warnings; the Possession-filtered tests in `DK2.Presentation.Tests` 106 passed; Godot build 0
         errors; the `DK2.Unity.Compile` stand-in 0 errors; the reviewer found Unity's behaviour identical after the move.
         Captures at 1920x1080 from a save made after Level1's opening path, with `--possess-first-creature` and a scripted
-        pointer: no roof and the imp drawn during the fly-in; in first person the roof, full-height walls, the hidden model,
-        the HUD and no Hand; the scripted pointer turns the view and a scripted right click starts the fly-out. Not
+        pointer checked settled first person and fly-out. Entry roof timing and ordinary-versus-possession HUD display
+        are corrected by the later [entry review](../research/possession-entry-effect.md#capture-verification);
+        [pointer feedback and its entry badge](../research/possession-target-highlight.md#entry-pointer-feedback) are built. Not
         verified: `unity-verify.sh` and `unity-probe.sh` (they cannot target a worktree); in Godot real mouse capture,
         alt-tab re-capture, the walking keys and the death view. Open: the view's sounds are dropped (no sound player, step
         4); the roof is black away from walls and torches (lighting); during Level1's opening path Godot shows the

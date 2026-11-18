@@ -56,11 +56,11 @@ public partial class WorldScene
         _frame.HiddenCreature = new CreatureId(creatureId);
     }
 
-    /// <summary>After the present, which the roof reads: the roof shown exactly while a model is hidden
-    /// (<see cref="PossessionScene.RoofShown"/>), its changed chunks built again; the world is read once a turn.</summary>
+    /// <summary>After the present: the roof available throughout camera moves to and from possession
+    /// (<see cref="PossessionScene.RoofShown(PossessionSession)"/>), its changed chunks built again; the world is read once a turn.</summary>
     public void PresentRoof(WorldState world, GameDatabase database)
     {
-        if (!PossessionScene.RoofShown(Possession?.HiddenCreatureId ?? 0))
+        if (!PossessionScene.RoofShown(Possession))
         {
             if (_roofRoot is { Visible: true }) _roofRoot.Visible = false;
             return;

@@ -63,7 +63,7 @@ its distinction from native sensitivity is recorded in
 
 ## Other boundaries
 
-The cast creation effect and its qualitative fly-in capture verification are recorded
+The cast creation effect, corrected birth ordering and remaining visual differences are recorded
 in [Q749](possession-entry-effect.md). The unpaid check projects that native request;
 real casts already request it through the shot update. Native density, brightness,
 timing and camera-trajectory parity remain unverified. Footstep requests still have

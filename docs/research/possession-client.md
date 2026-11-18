@@ -375,7 +375,7 @@ eighteen as a possessed Warlock, are in
   Imp's shot are probably the same (HYPOTHESIS), not a first-person model.
 - **A ceiling**, vaulted over rooms and corridors, which the ordinary view does not
   draw, fading to black with distance, as the far floor and walls do. Its mechanism is read
-  (a per-tile height-field roof drawn only in the possession modes): `kwd-terrain-rooms.md`,
+  (a per-tile height-field roof with an entry/return endpoint gate): `kwd-terrain-rooms.md`,
   *Ceiling: the possession-view roof*.
 - **A HUD of its own.** Along the top: the mana counter, a portrait, a health bar, the
   gold carried, then icons that differ by creature (the Imp a pickaxe and a boot, the
@@ -392,7 +392,7 @@ eighteen as a possessed Warlock, are in
 - The map and cell accessors the step calls, taken by name: world slots `+0x1CC` and
   `+0x1D0` (`0x00508FA0`, `0x00508FB0`, width and height) and `+0x1D4` (`0x00508FE0`,
   the cell at a position).
-- Q749 has a built entry-effect subset with [qualitative capture verification](possession-entry-effect.md);
+- Q749 has a built entry-effect subset with [entry/landing capture verification](possession-entry-effect.md);
   the [possession HUD reading and built subset](possession-hud.md) have their own note.
 - The mouse profile/device link and Godot calibration remain UNREAD after the
   bounded device-chain read ([client completion](possession-client-completion.md#mouse-units-and-sensitivity)).

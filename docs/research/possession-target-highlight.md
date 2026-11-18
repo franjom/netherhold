@@ -44,15 +44,14 @@ committing the frame's hover materials.
 The preview retains native candidate classes. The adapter can show creatures,
 objects, doors and traps; shot, corpse and virtual Heart-pillar highlights remain
 unbuilt because those classes have no ordinary hover model mapping. The inherited
-picker's documented predicate and map-edge limits remain. The session's settled
-camera gate is a remake presentation policy matching its existing possession
-render gates; native behavior during the entry transition is not established here.
+picker's documented predicate and map-edge limits remain. The settled camera uses this first-person picker. Entry follows the ordinary
+pointer path described below, independently of the blocked click input.
 
 Tests cover a dummy in reach, an enemy door, exactly one of several enemies as aim
 changes, a friendly group target and no qualifying group target. A hash-neutrality
 test pins that preview does not attack, stamp or recruit. The inspected target and native comparison are recorded in
 [adapter capture comparison](possession-foreground.md#adapter-capture-comparison).
-Other drawable classes and transition-time behavior retain the limits above.
+Other drawable classes retain the limits above.
 
 ## Shared visibility policy
 
@@ -62,3 +61,38 @@ decisions; Godot uploads the existing tile mask and uses those decisions.
 This moves existing decisions out of the adapter under ADR-0805 without claiming
 new native behavior. Tests include hidden and visible entities, off-map mask
 indices, disabled masks, zero alpha, solid effects and viewer-only effects.
+
+## Entry pointer feedback
+
+CONFIRMED owner play,2026-11-18, registered dataset
+`F:\DK2Evidence\captures\visual\possession-fly-in-skeleton--2026-11-18--001`:
+the Skeleton remains visible during entry, has a short-name popup and level badge,
+and becomes tinted in later frames; the body disappears at landing.
+
+STRONGLY INFERRED fresh reads: [0040BBE0](functions/0040BBE0.md) dispatches
+by the current camera class, so the ordinary tool path still runs before entry
+commits first person. [0040B7F0](functions/0040B7F0.md)'s spell-tool arm publishes
+the valid pointed creature, rather than substituting the possessed creature.
+[004BBA40](functions/004BBA40.md) has no direct current-possession exclusion
+in this body; callee eligibility remains separate. Mana and cooldown precede
+its location/target tests. The Hand's already-built
+permission likewise does not reject a creature merely because it is possessed.
+There is no evidence for an unconditional tint attached to the possession itself.
+
+`PossessionHighlight.EntryPointerFeedback` keeps pointer observation separate
+from ordinary input during entry. The existing pointer pick and tool permission
+name the tint target; changing the pointer can select another eligible thing.
+The existing hover text supplies the status line and delayed short-name popup.
+Godot's entry badge draws `StatusFlowers` and `StatusFlowerLayers` as world-space
+billboards, using their existing height, size, palette, experience wedge and layer
+placement. It depth-tests against the scene and is hidden with entry feedback at
+landing. No new flower selection or motion rule is introduced.
+
+The spell cursor still inherits its documented flag2/object/offering gaps; no
+new cast validator is claimed. Native spell refusal leaves the previously
+published hover id untouched; the remake still supplies only the current
+qualified pick and does not mirror that retained-id state. Godot's entry-only billboard draw does not join
+the blended terrain sorter, so its order against translucent geometry remains
+unverified. General non-entry flower drawing and dollar-mesh flowers remain
+unbuilt in Godot. Native capture pixel, tint intensity and popup timing parity
+remain separate from the rule tests.

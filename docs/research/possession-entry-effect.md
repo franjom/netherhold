@@ -5,8 +5,12 @@ systems: [keeper-spells, art-assets, presentation-godot, camera-lighting]
 
 ## Observation and native source
 
-CONFIRMED owner play, 2026-11-18: yellow stars rise from the possessed creature's
-feet while the keeper camera flies into it. The earlier remake staging showed none.
+CONFIRMED owner play, 2026-11-18, registered dataset
+`possession-fly-in-skeleton--2026-11-18--001` under `F:\DK2Evidence\captures\visual`:
+yellow stars form an expanding floor ring around the Skeleton's feet during entry
+(SHOT0000–0005), then a yellow haze lights nearby walls as the camera approaches
+(SHOT0010–0012). None remains after landing (SHOT0013–0014). The shots span more
+than one cast and do not supply continuous timing.
 This observation does not settle the fly-in trajectory; that is being rechecked
 separately. This change leaves `PossessionFlight` and `PossessionSession` alone.
 
@@ -39,13 +43,25 @@ STRONGLY INFERRED from the focused DKII.EXE reread and shipped data:
   multiplies by16. They mean−150, hence an origin offset−2400, not+1046176.
   [00435660](functions/00435660.md) adds the drawn height to the current parent
   point. The request stays at that point if the creature later moves.
+- Effect102 has zero inner/outer origin radii. The ring comes from element243's
+  horizontal launch speed7372, not an authored ring-shaped emission area.
+  [00435F20](functions/00435F20.md) calls floor positioning at00435FDA before
+  installing launch velocity at00436155 and authored HP afterward. The zero
+  elasticity in [00446C70](functions/00446C70.md) therefore clamps the birth
+  point to the floor without erasing that later launch. Ordinary movement
+  contact still damps or kills according to the element flags.
 
 ## Remake fixes and staging
 
 `RoomConstructionParticles` now sign-extends both height words before the
 origin conversion, in the generated-effect and generated-element paths. The
 previous unsigned conversion placed the stars hundreds of tiles above the target.
-Godot now supplies the same existing frame clock used by its other effects and
+The prior remake birth contact ran after launch initialization: it erased the
+zero-elasticity stars' horizontal motion and produced a vertical column. Birth
+positioning now preserves the subsequent authored launch velocity and HP, including
+for below-floor kill/stop flags; movement contact is unchanged. General group-part
+and contact-child birth ordering remains outside this correction (Q620).
+Godot supplies the same existing frame clock used by its other effects and
 possession input; the default draw-list stopwatch must not expire a burst against
 wall time while Movie Maker advances the fly-in on fixed frame time.
 
@@ -67,23 +83,37 @@ Shared tests now check signed origin, upward motion, a renamed spell and overrid
 shot/effect ids, missing-data behavior, and the actual shipped102/243 star resource.
 The installed-data test advances the supplied clock from0 to51/101ms, observes
 sixteen then thirty-two stars, and moves the creature to establish no attachment.
+The floor regression additionally checks a sixteen-star birth wave at floor height,
+outward and upward motion on the next update, and eventual disappearance, plus
+birth launch/HP retention for ordinary, floor-kill and floor-stop elements.
 ## Capture verification
-The inspected navigation-validated `black-knight-entry-nav` (1600x1200)
-and `black-knight-entry-wide-nav` (1920x1080) recordings are under
-`F:\DK2Evidence\captures\possession-flyin-20261118-001`. Each has 200 frames at 30 fps,
-exit 0, no runtime/shader errors, and stable pre/post DLL SHA-256
-`0849eb6ee672f4c3c54e8f3de6197cf0f24fe0009113a5b2f19552340e97e48a`.
-Adjacent metadata records exact commands, isolated user files and hashes.
-Frames 10 and 25 show the camera above the selected creature, a yellow star at its
-feet followed by a rising bright dense column, and no visor. Frame 40 is closer
-behind the body, with the bright column ended and no visor. Frame 70 is settled
-first person with the visor behind the HUD. The reviewer independently inspected
-the 4:3 sequence. These establish qualitative remake visibility, not native density,
-brightness, exact timing or camera-trajectory parity. The fly-in move itself is
-unchanged and remains under the owner's separate binary recheck.
-The earlier `black-knight-entry` run had no runtime errors but used a stale
-navigation fixture and is excluded from effect verification. Its target tile was
-rendered non-solid terrain 8 but NAV 0x08 (solid), so the correct creation gate rejected
-it. The replacement was rebuilt from the authentic post-opening save, refreshing
-navigation after painting and asserting NAV 0x00 before saving at tick 130. No
-production visibility gate was bypassed; earlier evidence remains untouched.
+
+Registered native comparison: `F:\DK2Evidence\captures\visual\`
+`possession-fly-in-skeleton--2026-11-18--001`, fifteen ordered files from multiple
+casts. SHOT0005 shows a broad floor ring; SHOT0010–0012 show wall haze. File order
+alone does not establish one cast's elapsed timeline.
+
+The inspected final `skeleton-entry-final-4x3` (1600x1200) and
+`skeleton-entry-final-wide` (1920x1080) recordings are under
+`F:\DK2Evidence\captures\possession-entry-review-20261118-001`. Each has 200 frames
+at 30fps, exit0, no runtime/shader errors, and stable pre/post DLL SHA-256
+`5cfda8d2fd29fea92f5e1fd9056f84ae689bc313dfd0036a613bbefb516b160c`.
+Adjacent metadata records exact commands, temporary settings/profile/saves/hiscores
+and hashes. The fixture is rebuilt from the authentic post-opening format533 save;
+its painted corridor's navigation is refreshed and asserted non-solid before saving.
+
+The parent inspected 4:3 frames10,20,40,70 and wide frames10,40,70; the reviewer
+independently inspected frames10,20,40,70 in both formats. Frame10 shows small
+feet-level gold stars from above and the ordinary HUD. Frame20's larger gold burst
+is partly hidden by the foreground wall; it does not establish a complete visible
+ring matching SHOT0005. Frame40 is beneath the roof with the red hovered Skeleton,
+level badge, localized status name and ordinary HUD. At frame70 the controlled body
+and entry gold are gone, and the possession HUD has appeared.
+
+The supported birth-order correction is built, but native brightness, density,
+phase, full ring shape and wall-haze timing remain unverified. The native ring is
+broader and wavier than the inspected remake stars. This narrow staged corridor
+also exposes the unchanged fly-in crossing the side wall/roof edge; no trajectory
+parity is claimed and `PossessionFlight`/`PossessionSession` remain under the
+owner's separate recheck. The earlier column and pre-review recordings are retained
+as superseded evidence, not current validation.

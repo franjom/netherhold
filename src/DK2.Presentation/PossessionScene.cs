@@ -28,7 +28,10 @@ public static class PossessionScene
         lattice.Possession = latched;
     }
 
-    /// <summary>DK2 draws the roof in camera modes 2, 10 and 11: the span the possessed creature's
-    /// model is hidden for (<see cref="PossessionSession.HiddenCreatureId"/>).</summary>
+    /// <summary>The roof's frame flag is set when either end of a camera move is a possession
+    /// mode (0x0044AB60); it does not wait for the creature model to disappear on landing.</summary>
+    public static bool RoofShown(PossessionSession? session) => session is { CameraHeld: true };
+
+    /// <summary>The legacy model-only gate for hosts that do not supply their camera session.</summary>
     public static bool RoofShown(int hiddenCreatureId) => hiddenCreatureId != 0;
 }

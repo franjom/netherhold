@@ -44,6 +44,10 @@ public sealed class PossessionHud
     public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, bool possessionCameraHeld) =>
         possessionCameraHeld ? new(false, false) : ordinary;
 
+    public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, bool possessionCameraHeld,
+        bool possessing, bool firstPersonCameraSettled) =>
+        !possessionCameraHeld ? ordinary : new(ordinary.ShowNormalHud && possessing && !firstPersonCameraSettled, false);
+
     public static GameShortcutContext ShortcutContext(GameShortcutContext ordinary, bool possessionCameraHeld, bool possessing = true) =>
         ordinary with { Possession = possessionCameraHeld, OrdinaryInput = ordinary.OrdinaryInput && (!possessionCameraHeld || possessing) };
 
@@ -51,6 +55,9 @@ public sealed class PossessionHud
         possessing ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, possessionCameraHeld);
 
     public static bool ShowPanel(bool possessing, HudVisibility ordinary) => possessing && ordinary.ShowNormalHud;
+
+    public static bool ShowPanel(bool possessing, HudVisibility ordinary, bool firstPersonCameraSettled) =>
+        firstPersonCameraSettled && ShowPanel(possessing, ordinary);
 
     /// <summary>The mana/Heart corner remains; creature gold replaces the keeper's gold/payday corner.</summary>
     public static void AppendResourceCorner(HudFrame resourceFrame, HudFrame frame) =>

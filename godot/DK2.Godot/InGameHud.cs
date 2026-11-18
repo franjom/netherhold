@@ -521,7 +521,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): a camera path, the letterbox, the result
         // and the full map hide the normal HUD.
         HudVisibility menuVisibility = _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon);
-        HudVisibility visibility = PossessionHud.OrdinaryVisibility(menuVisibility, _possession?.CameraHeld == true);
+        HudVisibility visibility = PossessionHud.OrdinaryVisibility(menuVisibility, _possession?.CameraHeld == true,
+            possessing: Possessing, firstPersonCameraSettled: _possession?.SettledPossessionCamera == true);
         bool modal = _hudControls.Modal;
         _panel.SetVisibility(_hudControls.ModalInput(visibility));
         _options.SetVisible(_hudControls.OptionsMenuShown(menuVisibility));
@@ -619,10 +620,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (visibility.AllowOrdinaryInput) _handLight = null;
         bool inside = _pointerInWindow && GetViewport().GetVisibleRect().HasPoint(_pointer);
         bool allowed = visibility.AllowOrdinaryInput && Focused && inside && !PossessionPointerHeld;
+        bool entryFeedback = PossessionHighlight.EntryPointerFeedback(Possessing,
+            _possession?.SettledPossessionCamera == true, menuVisibility) && Focused && inside;
+        bool feedbackAllowed = allowed || entryFeedback;
         bool overHud = PointerOverHud(_pointer, visibility);
         WorldHoverHit? pick = null;
         HoverTextSnapshot hover = HoverTextSnapshot.Empty;
-        if (allowed && !overHud && PointerTile(_pointer, visibility) is TilePos tile)
+        if (feedbackAllowed && !overHud && PointerTile(_pointer, visibility) is TilePos tile)
         {
             _pointerWorld = PointerPosition(_pointer, tile)
                 ?? new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
@@ -639,10 +643,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
         if (allowed && overHud) hover = _hudHover.Capture(this, _resourceFacts);
         HoverFeedback feedback = _hoverCursor.Resolve(_simulation.World, _simulation.Database, _simulation.Navigation,
-            new HoverCursorInput(pick, allowed, overHud, PrimaryHeld, _resourceFacts.Gold.Value, milliseconds, _pointerWorld));
+            new HoverCursorInput(pick, feedbackAllowed, overHud, PrimaryHeld, _resourceFacts.Gold.Value, milliseconds, _pointerWorld));
         long tintBefore = GC.GetAllocatedBytesForCurrentThread();
         if (feedback.Tinted && pick is WorldHoverHit tinted) _world.DrawHoverOverlay(tinted, feedback.TintBlended);
-        DrawPossessionHighlight();
+        DrawPossessionHighlight(pick, feedback, entryFeedback);
+        DrawPossessionEntryBadge(milliseconds, pick, feedback, entryFeedback);
         _world.CommitHoverOverlay();
         if (_pickFrames > 0 && pick != null) _pickBytes += GC.GetAllocatedBytesForCurrentThread() - tintBefore;
         // No sound player yet (step 4): the hover's (feedback.HoverSound) and the cursor's requests are dropped.

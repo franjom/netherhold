@@ -11,6 +11,51 @@ namespace DK2.Presentation.Tests;
 
 public class ShotEffectEngineTests
 {
+    [Theory]
+    [InlineData(0u)]
+    [InlineData(1u)]
+    [InlineData(16u)]
+    public void BirthFloorPlacementPrecedesAuthoredLaunchVelocityAndHealth(uint flags)
+    {
+        var source = Effect() with { LowerHeightLimit = unchecked((ushort)-150),
+            UpperHeightLimit = unchecked((ushort)-150) };
+        var moving = Element() with { Flags = flags, MinSpeedXy = 7372, MaxSpeedXy = 7372,
+            MinSpeedYz = 160, MaxSpeedYz = 160 };
+        var model = new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(),
+            effects: [source], effectElements: [moving]), 7, () => default, floorHeight: _ => new(Fp32.One));
+        model.Request(Request() with { Position = Point(10000, 12000, Fp32.One) });
+
+        model.AdvanceTo(new(51));
+
+        ConstructionParticle particle = Assert.Single(model.Particles);
+        Assert.Equal(Fp32.One, particle.HeightRaw);
+        Assert.True(particle.VelocityX != 0 || particle.VelocityY != 0);
+        Assert.Equal(160, particle.VelocityZ);
+        Assert.Equal(20, particle.Health);
+    }
+
+    [InstallFact]
+    public void ChosenCreatureStarsStartAtTheFloorAndExpandInsteadOfLosingTheirHorizontalLaunch()
+    {
+        GameDatabase database = DK2.Data.GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var model = new RoomConstructionParticles(database, 7, () => default, floorHeight: _ => new(Fp32.One));
+        model.Request(Request() with { EffectId = new(102), Position = Point(10000, 12000, Fp32.One) });
+        model.AdvanceTo(new(51));
+        ConstructionParticle[] first = model.Particles.ToArray();
+        Assert.Equal(16, first.Length);
+        Assert.All(first, star => Assert.Equal(Fp32.One, star.HeightRaw));
+
+        model.AdvanceTo(new(101));
+
+        Assert.All(first, star =>
+        {
+            Assert.True(star.XRaw != 10000 || star.YRaw != 12000);
+            Assert.True(star.HeightRaw > Fp32.One);
+        });
+        for (int step = 3; step <= 54; step++) model.AdvanceTo(new(step * 50 + 1));
+        Assert.Empty(model.Particles);
+    }
+
     [Fact]
     public void SignedOriginHeightPlacesChosenCreatureStarsNearTheFeetInsteadOfAboveTheMap()
     {

@@ -28,7 +28,8 @@ add-only under `F:\DK2Evidence`; no cleanup of worktrees or evidence is authoriz
 - [ ] 5. Supported ability data, commands, keys, sniper and save/hash fields built (ADR-0819).
   Carry/throw physics and native action136 room mapping remain open; [scope and bounded reads](../research/possession-special-abilities.md).
   Authored foreground attacks and creature filters are built ([scope](../research/possession-foreground.md));
-  target highlighting is built ([scope](../research/possession-target-highlight.md)). Owner acceptance remains.
+  action and entry-pointer highlighting, including the entry badge, are built
+  ([scope](../research/possession-target-highlight.md)). Owner acceptance remains.
 - [ ] 6. Room-pillar roof and explicit object-death view built; bounded lighting, listener
   and mouse reads recorded in [client completion](../research/possession-client-completion.md).
   Shot creation-effect upload and qualitative entry-star visibility are checked
@@ -42,7 +43,9 @@ including distance fade, occlusion, HUD, a current-action target and an authored
 Tints and hit flashes stay off; the corrected native observations supersede that capture target.
 Compare the Black Knight visor at 1600x1200 and label widescreen fitting as an adaptation.
 Entry staging focuses the ordinary camera before possession and projects the authored
-creation request; the visor waits for settled first person. Capture scope is in Q749.
+creation request. Roof entry timing follows the [endpoint gate](../research/kwd-terrain-rooms.md#ceiling-the-possession-view-roof);
+ordinary HUD display remains during entry, then the [possession panel](../research/possession-hud.md#entry-and-landing)
+and visor appear at landing. Capture scope is in Q749.
 Do not change `PossessionFlight` or `PossessionSession`: the owner is rechecking the move.
 Use temporary settings/profile/save/hiscore paths and remove only `override.cfg`
 created for a capture, as the owner explicitly requests.

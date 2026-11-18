@@ -1,4 +1,4 @@
-﻿---
+---
 systems: [data-formats]
 ---
 # Mechanic: TERRAIN(110), ROOMS(120) and MAP(100) records
@@ -206,7 +206,12 @@ instance tint black. For the quad at row i, column j with corners v00 = 3i + j, 
 v10 = v00 + 3, v11 = v00 + 4: (v01, v00, v11) and (v11, v00, v10) when i + j is even, else
 (v01, v00, v10) and (v11, v01, v10). The item has draw
 flag 8: `0x00587060` skips it unless frame global `0x00760B60` is set, which is true only in
-camera modes 2, 10, 11 (and a camera path started with plain = 0). It is cached with the tile and rebuilt on terrain change; the cell
+camera modes 2, 10, 11 (and a camera path started with plain = 0). During a timed move,
+`0x0044AB60` enables this flag when **either** endpoint is a possession mode. The current
+mode `+0xDA8` remains ordinary during the fly-in; the pending mode `+0xDD4 = 2` enables the
+roof before landing. This is frame flag **bit 1**, distinct from bit 0 (`0x0044AA20`),
+which needs both endpoints in possession and selects the line-of-sight tile walk.
+It is cached with the tile and rebuilt on terrain change; the cell
 invalidation at the camera latch flip (`0x00571DA0`) rebuilds it on entering and leaving possession.
 
 **The height (STRONGLY INFERRED).** The vault is a height field, not the lattice. Each tile cell
@@ -251,6 +256,16 @@ the roof 3 tiles up over a wide cave may be out of every light's reach. That flo
 also fade is not explained by a read term; the 12-tile polygon end is a hard cut. Not read: the
 body of `0x00587060` after the queue, the vertex light loop for this item class.
 
+**During entry (CONFIRMED observation, 2026-11-18).** The Skeleton dataset
+`possession-fly-in-skeleton--2026-11-18--001` at `F:\DK2Evidence\captures\visual\`
+shows open dungeon from above (SHOT0000..0005), then the underside of the vault
+(SHOT0006..0012), before landing. `PossessionScene.RoofShown(session)` now enables the roof
+through the camera's move in, settled view, death view and move out. Godot's existing
+back-face culling and downward-facing roof geometry keep its top invisible; no flight rule
+changed. Native software back-face rejection is read in `0x0058B9D0` (see
+[kmf-materials.md section 4](kmf-materials.md#4-culling-is-in-software-for-every-material));
+the roof batch's complete path to that sink is UNREAD, so applying that explanation to
+its above/below transition remains HYPOTHESIS.
 **Not read:** wall faces or tops set only for possession (the item flag `0x10` setters for
 terrain pieces; only the Sight fog mesh, flags `0x2090`, is known to carry it, so it is hidden
 in possession); the cull mode against the triangle order; the meaning of material flag `0x20000`.

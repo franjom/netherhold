@@ -16,6 +16,18 @@ public sealed class PossessionHighlight
     private WorldSight? _sight;
     private readonly HeartSites _hearts = new();
 
+    public static bool EntryPointerFeedback(bool possessing, bool firstPersonCameraSettled, HudVisibility ordinary) =>
+        possessing && !firstPersonCameraSettled && ordinary.ShowNormalHud;
+
+    public static WorldHoverHit? EntryPointerTarget(WorldHoverHit? pointerHit, bool entering, bool ordinaryTargetAllowed) =>
+        entering && ordinaryTargetAllowed && pointerHit is { Kind: WorldHoverKind.Creature or WorldHoverKind.Object or WorldHoverKind.Door or WorldHoverKind.Trap }
+            ? pointerHit : null;
+
+    public static WorldHoverHit? EntryPointerTarget(WorldHoverHit? pointerHit, bool entering,
+        bool ordinaryTargetAllowed, bool spellTargetAllowed) =>
+        EntryPointerTarget(pointerHit, entering, ordinaryTargetAllowed
+            || (spellTargetAllowed && pointerHit is { Kind: WorldHoverKind.Creature }));
+
     public WorldHoverHit? Capture(WorldState world, GameDatabase database, PlayerId viewer, PossessionSession session)
     {
         if (!session.Possessing || !session.SettledPossessionCamera

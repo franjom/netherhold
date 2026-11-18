@@ -44,7 +44,7 @@ public partial class InGameHud
     {
         if (_possessionCanvas == null || _possessionHudView == null || _simulation == null || _possession == null) return;
         PossessionHudSnapshot? snapshot = PossessionHud.ShowPanel(_possession.Possessing,
-            _scriptedView!.PlayedHud(_hudControls, ClassicCameraMode.Dungeon))
+            _scriptedView!.PlayedHud(_hudControls, ClassicCameraMode.Dungeon), _possession.SettledPossessionCamera)
             ? _possessionHudView.Capture(_simulation.World, _viewer, _possession.Controls,
                 firstPersonCameraSettled: _possession.SettledPossessionCamera) : null;
         _possessionCanvas.Visible = snapshot != null;

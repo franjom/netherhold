@@ -43,6 +43,20 @@ have selection overlays. State flags select the other ability overlays; secondar
 kind 5 draws hypnosis with selection while a target is held. The player-owned
 creature list supplies follower art `def+0x52B` when `+0x482` is nonzero.
 
+## Entry and landing
+CONFIRMED owner play, 2026-11-18, registered Skeleton fly-in dataset
+`possession-fly-in-skeleton--2026-11-18--001`: the ordinary bottom panel and keeper
+mana/gold remain during entry; the possession panel appears at landing.
+STRONGLY INFERRED: [the dispatcher](functions/00419DF0.md) uses the current
+camera class for its ordinary-versus-possession branch. The additional interface
+`+4` receiver's `+0x284` guard is read, but its meaning remains UNREAD.
+[HUD display](functions/0044D620.md) and [ordinary input](functions/0044D590.md)
+have separate gates: the latter refuses the timed transition.
+`PossessionHud` preserves ordinary display during entry without enabling its
+buttons; the possession panel and its filters wait for the settled camera.
+Creature-filter appearance is recorded in [the filter note](possession-foreground.md#creature-filter),
+and entry target feedback in [the highlight note](possession-target-highlight.md#entry-pointer-feedback).
+
 ## Native geometry
 `SX(n) = trunc(n * width / 2560)` and `SY(n) = trunc(n * height / 1920)` are independent
 integer pixel scales ([conversion record](functions/0052C5A0.md)). The mixed axes
@@ -138,9 +152,9 @@ overlays, lower group column and follower geometry. The old four-argument icon
 constructor remains available; role is an added init property.
 
 The shared possession minimap uses map-2's empty corners and native per-axis disc
-placement. The ordinary minimap builder is preserved. Normal panels and shortcuts
-remain blocked while possession holds the camera, except Options and GUI toggle
-shortcuts in the live possession view (`0x004057E3` and `0x00405875`). Heart, full map,
+placement. The ordinary minimap builder is preserved. Ordinary panel input and
+shortcuts remain blocked while possession holds the camera, except Options and GUI
+toggle shortcuts in the live possession view (`0x004057E3` and `0x00405875`). Heart, full map,
 portal and fight navigation stay blocked. The map has no possession input.
 ADR-0821 implements a height-fit content policy consistent with ADR-0497. In shared
 virtual units, the content X factor is `min(1, width * 1920 / (height * 2560))`.
@@ -153,10 +167,9 @@ upstream dimensions. This 4:3-to-wide fit is an adaptation, not native behavior.
 User UI scale, bottom docking and the stacked indicator layout remain host
 adaptations. Selecting the mana/Heart corner by `X + Width <= 520` is a geometric
 fit to SHOT0033; that extraction threshold was not read in the binary.
-The former flight-only suppression was unsupported and is removed. Shared rules
-now preserve GUI visibility for the panel/minimap, and separate live-possession
-Options/GUI shortcuts from ordinary panel input. The float renderer representation has not been checked for equality
-with native integer pixel rounding.
+The entry/landing visibility split above preserves the GUI toggle and keeps
+live-possession Options/GUI shortcuts separate from ordinary panel input. The float
+renderer representation has not been checked for equality with native integer pixel rounding.
 
 Successful spell/follower selection clears special bits at the key-handler call site;
 `SelectSpell` and `SelectFollowers` retain that result. One boundary remains: native

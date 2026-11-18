@@ -12,11 +12,28 @@ public sealed class PossessionHudTests
     private static PossessionHudSnapshot Snapshot => new("portrait", 50, new GoldAmount(1350),
         [new("pick", 100, true), new("boot", 25, false)], ["follower"]);
     [Fact]
-    public void PossessionPanelRemainsAvailableDuringEntryAndRespectsTheGuiToggle()
+    public void PossessionPanelWaitsForLandingAndRespectsTheGuiToggle()
     {
-        Assert.True(PossessionHud.ShowPanel(true, new(true, true)));
-        Assert.False(PossessionHud.ShowPanel(true, new(false, true)));
-        Assert.False(PossessionHud.ShowPanel(false, new(true, true)));
+        Assert.False(PossessionHud.ShowPanel(true, new(true, true), firstPersonCameraSettled: false));
+        Assert.True(PossessionHud.ShowPanel(true, new(true, true), firstPersonCameraSettled: true));
+        Assert.False(PossessionHud.ShowPanel(true, new(false, true), firstPersonCameraSettled: true));
+        Assert.False(PossessionHud.ShowPanel(false, new(true, true), firstPersonCameraSettled: true));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void EntryKeepsOrdinaryPanelsAndKeeperResourcesVisibleWithoutAcceptingTheirInput(bool guiVisible)
+    {
+        var ordinary = new HudVisibility(guiVisible, true);
+        Assert.Equal(new HudVisibility(guiVisible, false),
+            PossessionHud.OrdinaryVisibility(ordinary, possessionCameraHeld: true, possessing: true, firstPersonCameraSettled: false));
+        Assert.Equal(new HudVisibility(false, false),
+            PossessionHud.OrdinaryVisibility(ordinary, possessionCameraHeld: true, possessing: true, firstPersonCameraSettled: true));
+        Assert.Equal(new HudVisibility(false, false),
+            PossessionHud.OrdinaryVisibility(ordinary, possessionCameraHeld: true, possessing: false, firstPersonCameraSettled: false));
+        Assert.Equal(ordinary,
+            PossessionHud.OrdinaryVisibility(ordinary, possessionCameraHeld: false, possessing: false, firstPersonCameraSettled: false));
     }
     [Fact]
     public void PossessionMinimapUsesTheGuiVisibilityWithoutOrdinaryInput()

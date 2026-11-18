@@ -79,8 +79,9 @@ public sealed class PossessionSceneTests
     }
 
     [Fact]
-    public void TheRoofShowsExactlyWhileAModelIsHidden()
+    public void LegacyModelOnlyCallersRetainTheirSettledRoofGate()
     {
+        Assert.False(PossessionScene.RoofShown((PossessionSession?)null));
         Assert.False(PossessionScene.RoofShown(0));
         Assert.True(PossessionScene.RoofShown(12));
     }

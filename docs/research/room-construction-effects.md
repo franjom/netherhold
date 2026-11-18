@@ -384,5 +384,5 @@ with the native profile throughout its lifetime. The former adapter failed
 with256 births; the corrected adapter matches the full native profile and
 renders a visible broad burst before expiry. Captures use original art in a
 fixed diagnostic view; pixel parity and native frame pacing are not established.
-General newborn floor-response ordering remains a preexisting discrepancy
-outside this fixture; native evidence and the next comparison are Q620.
+Ordinary-element birth floor/launch ordering is corrected; [Q620](open-questions.md)
+retains the group-piece and contact-child initialization boundaries.

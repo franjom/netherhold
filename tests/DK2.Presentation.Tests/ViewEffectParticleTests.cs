@@ -125,13 +125,14 @@ public class ViewEffectParticleTests
     }
 
     [Fact]
-    public void AContactDestroyedElementIsNotBornUnderARaisedChildFloor()
+    public void BirthFloorKillIsOverwrittenByAuthoredHealthAfterPositioning()
     {
         var model = new RoomConstructionParticles(Database(originRange: 8, elementFlags: 1),
             7, () => new EffectTime(0), floorHeight: ChildFloor);
         model.Emit(Request());
         model.AdvanceTo(new EffectTime(51));
-        Assert.Empty(model.Particles);
+        Assert.Equal(4, model.Particles.Count);
+        Assert.All(model.Particles, p => Assert.Equal(8192, p.HeightRaw));
     }
 
     [Fact]
