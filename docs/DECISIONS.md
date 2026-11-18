@@ -4615,7 +4615,7 @@ the Imp's Teleport and Haste paths (Q401). The pit/torture exclusions are built;
 **Context.** With every creature holding a state (ADR-0209), the activity should be redundant. A probe over the whole test suite recorded every (activity, state, resume) combination held at the end of a tick: 196 of them over 71 state keys. Only three keys named more than one activity, and every such case came from a test that set the activity by hand without a state.
 
 **Decision.**
-1. `ActivityRules.Of` derives the activity from the state id. A walk in state 6 or 7 is named by the state it resumes. 81 is the Sleep job's work when the job is Sleep and a tired creature's walk to bed otherwise. 77, the hand drop, is a captive's only for a prisoner. A corpse is Dead, and a state no system enters names nothing.
+1. `ActivityRules.Of` derives the activity from the state id. A walk in state 6 or 7 is named by the state it resumes. 81 is a walk to bed (ADR-0815). 77, the hand drop, is a captive's only for a prisoner. A corpse is Dead, and a state no system enters names nothing.
 2. `StateInvariantTests` checks, every tick of its busy dungeon, that the stored activity is the derived one.
 3. Tests that set an activity by hand now place a state that names it (`StatePlacement.As`). The alarm test's workers take the Sulk job, so their walk saves 85 as its caller, as a job's does.
 
@@ -4638,7 +4638,7 @@ the Imp's Teleport and Haste paths (Q401). The pit/torture exclusions are built;
 - The systems' switches on the activity are switches on the state, read through the table. `CreatureActivity` stays as the vocabulary the presentation and the logs use.
 - Tests that stripped a state to show a hook reads the state and not the activity cannot say that any more; they now put the creature in state 1 and show the hook does not run. The Casino test leaves through state 1 rather than releasing its state.
 - `StateInvariantTests` now checks that every creature's state names an activity every tick, and that only a worker rests in 10.
-- Every test passed after the assignments were removed, which is what ADR-0210's per-tick check predicted. Negative controls on the table: sleeping read as idle and a walk not named by its resume fail behaviour tests across the suite (the first also hung one, so the control harness now kills a test after 90 s). 81 ignoring the job, the hand drop always idle and an unmapped state read as idle fail only the table's own tests: 77 lasts within a tick and no system enters an unmapped state, but no simulation test covers a Sleep-job creature standing in 81, which is a gap.
+- Every test passed after the assignments were removed, which is what ADR-0210's per-tick check predicted. Negative controls on the table: sleeping read as idle and a walk not named by its resume fail behaviour tests across the suite (the first also hung one, so the control harness now kills a test after 90 s). The hand drop always idle and an unmapped state read as idle fail only the table's own tests: 77 lasts within a tick and no system enters an unmapped state.
 
 ## ADR-0212 — Guard duty is states 97, 98 and 99
 **Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · amended by ADR-0780: the post finder returns the facing, so all four corners are posts (the two-corner consequence below no longer holds) · Research: `docs/research/guard-room.md`
@@ -10375,7 +10375,7 @@ the owner's requested presentation profile, not a claim of original geometry.
 in another Lair. Native state 79 handles this room-directed relocation.
 
 **Decision.** Dispatch state 79 after the landing/get-up sequence, remembering
-the Sleep job. Use the existing local free-tile search. A bed in this room is
+no job (ADR-0815). Use the existing local free-tile search. A bed in this room is
 reused; a full destination keeps the old bed. Successful selection releases
 the old bed before a seeded, jittered walk to state 80, which creates the new
 bed with the existing effect request. Hash/save version 239; no new field.
@@ -19471,3 +19471,31 @@ modeled states' angry selection, and voluntary Mistress sessions at each mood.
 Hash/save 527 adds no state fields and includes the Heart-defense behavior
 from version 526. Campaign measurements and remaining limits stay in the
 evidence note.
+
+## ADR-0815 - the Lair drop remembers no job
+**Date:** 2026-11-18 | **Status:** accepted | partly supersedes ADR-0450 | **Hash/save:** 530
+
+**Context.** A creature the hand dropped into its own Lair stood in state 81
+for thousands of ticks and neither slept nor took wages. ADR-0450 had the drop
+remember the Sleep job; state 89's chooser took it as a Sleep job and parked the
+creature in an "at work" 81 that no system advances. The Lair's room record
+holds job 0, not Sleep, and `Room_DropCreature` stores the record's job. Evidence
+and confidence (STRONGLY INFERRED, static read, no capture):
+[hand-drop-landing.md section 4](research/hand-drop-landing.md#4-0x004e8da00-the-room-drop-and-250--strongly-inferred).
+
+**Decision.**
+1. `DropLandingRules`' Lair arm sets `DroppedToDoJob` to none, goes to 1 and
+   then 79, and no longer refuses a creature that hates Sleep (job 0 is never
+   hated). The dropped-job efficiency bonus does not apply to it.
+2. The Sleep arm of `CreatureJobSystem.TryTake` mirrors `Job_Sleep`
+   (`0x0046F440`): refuse with no bed, no sleep debt or no route, else go to bed
+   through `CreatureSleepSystem.GoToBed`. `CurrentJob` is never Sleep, and
+   `ActivityRules` reads 81 as the walk to bed only.
+
+**Consequences.** A Lair drop goes through 79 to a bed or to state 80 and sleeps
+or takes wages as any idle creature does; the Sleep arm is reachable only from
+a Sleep entry in a job table or a remembered job. Unread: what the state
+machine does with 81's silent 0 returns, whether DK2 reads `+0x64` after a Sleep
+job, and the failure message 0x2B, still not posted. Hash/save 530 adds no field;
+earlier saves are refused. Tests: `SleepJobTests`, `LairDropTests`,
+`ActivityRulesTests`.

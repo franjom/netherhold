@@ -10,7 +10,7 @@ namespace DK2.Simulation;
 
 /// <summary>The activity a creature's DK2 state names (ADR-0210): what
 /// <see cref="CreatureState.Activity"/> must agree with, read from the state id, the resume
-/// slot for a walk in state 6 or 7, and the job for the Sleep job's 81. A corpse, holding no state, is <see cref="CreatureActivity.Dead"/>.</summary>
+/// slot for a walk in state 6 or 7. A corpse, holding no state, is <see cref="CreatureActivity.Dead"/>.</summary>
 /// <remarks>The activities are ours, so this table is too: it is the inverse of the moves each
 /// system makes beside them. Null for a state no system moves a creature into.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-state-table.md")]
@@ -31,7 +31,7 @@ public static class ActivityRules
     private static CreatureActivity? Walking(CreatureState creature, int resume) => resume switch
     {
         ImpStates.SecretDoorApproach => CreatureActivity.MovingToJob,
-        LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.GoingToJob : CreatureActivity.GoingToSleep,
+        LairRules.GoingToBedState => CreatureActivity.GoingToSleep,
         TortureRules.TorturerFacingState or TortureRules.StrappingState => CreatureActivity.AtWork,
         GuardRules.PatrolState or 100 => CreatureActivity.AtWork,
         CombatPitRules.WaitingState => CreatureActivity.PitFighting,
@@ -102,7 +102,7 @@ public static class ActivityRules
         PartyArrivalRules.WaitingState => CreatureActivity.Arriving,
         CallToArmsRules.GoingState or CallToArmsRules.ArrivedState or CallToArmsRules.MillingState => CreatureActivity.HeedingCallToArms,
         LairRules.SelectingBedState or LairRules.MakingAHomeState => CreatureActivity.SeekingLair,
-        LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.AtWork : CreatureActivity.GoingToSleep,
+        LairRules.GoingToBedState => CreatureActivity.GoingToSleep,
         LairRules.LyingDownState => CreatureActivity.GoingToSleep,
         LairRules.SleepingState or LairRules.MistressBedExitState => CreatureActivity.Sleeping,
         EatingRules.FindHatcheryState or EatingRules.InHatcheryState or EatingRules.AfterMealState => CreatureActivity.SeekingFood,

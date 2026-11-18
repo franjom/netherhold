@@ -247,8 +247,9 @@ Eight independent agreements, from a table opened while chasing a portal reset.
 this project asks for it. It is in the map because the table states it, and a
 missing row is harder to notice than an unused one.
 
-**Two rows the table cannot speak to.** The **Lair** and **Combat Pit** records
-carry *no* job id, so `Sleep`, `Sulk` and `CombatPitSpectate` are reached by some
+**Two rows the table cannot speak to.** The **Lair** record's job is 0 (a hand
+drop remembers none, [hand-drop-landing.md §4](hand-drop-landing.md)) and the **Combat Pit**
+record carries *no* job id, so `Sleep`, `Sulk` and `CombatPitSpectate` are reached by some
 other route and are neither confirmed nor contradicted.
 **`CombatPitSpectate` answered (2026-09-25, ADR-0227):** its only caller is state 89's
 fallback `0x00478680`, after the mood chooser fails (`combat-pit-spectators.md` §1). Sulk needing a Lair (§3.1)

@@ -294,16 +294,24 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     // ---- sleeping in a bed it has ------------------------------------------
 
     /// <summary>Routes a creature to its own bed.</summary>
-    private void SetOff(
+    private static void SetOff(
+        SimulationContext context, CreatureState creature, CreatureDef definition) =>
+        GoToBed(context, creature, definition);
+
+    /// <summary>The bed route of Job_Sleep (<c>0x0046F440</c>): the room helper with resume 81. Shared
+    /// by the needs routine's tired attempt and the chooser's Sleep job
+    /// (<see cref="CreatureJobSystem"/>), which in DK2 is the same call. False when there is no bed or
+    /// no route, where the handler returns 0.</summary>
+    internal static bool GoToBed(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
         int index = LairRules.BedTileIndex(world, context.Database, creature);
-        if (index < 0) return;
+        if (index < 0) return false;
 
         var bed = new TilePos(index % world.Width, index / world.Width);
 
-        if (!context.Navigation.TryRoute(creature, bed, Navigation.MoveOptions.ExactSpot)) return;
+        if (!context.Navigation.TryRoute(creature, bed, Navigation.MoveOptions.ExactSpot)) return false;
 
         if (NeedRules.IsAtAJob(creature)) NeedRules.EndJob(creature);
 
@@ -324,7 +332,8 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         context.Emit(SystemName, "going_to_sleep",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} to=({bed.X},{bed.Y}) " +
-            $"steps={_route.Count} health={creature.Health}/{definition.Hp}");
+            $"steps={creature.Body.PathTotalCount} health={creature.Health}/{definition.Hp}");
+        return true;
     }
 
     /// <summary>Falls asleep once it is standing on its own bed.</summary>

@@ -104,8 +104,9 @@ public static class DropLandingRules
     };
 
     /// <summary>257's tail, <c>0x004E8DA0(0)</c>. On a room with a drop state: the job rooms' state
-    /// through 1, with the job remembered (<see cref="JobRules.TryDropOnARoom"/>), and the Combat
-    /// Pit's 137 through 1 (ADR-0227). Portal/Hero Portal enters 197 after the Casino gate;
+    /// through 1, with the job remembered (<see cref="JobRules.TryDropOnARoom"/>); the Lair's 79
+    /// through 1 with job 0, so none is remembered; and the Combat Pit's 137 through 1 (ADR-0227).
+    /// Portal/Hero Portal enters 197 after the Casino gate;
     /// its job 0 is never hated (ADR-0603). Remaining unbuilt states idle. With none, a keeper's creature goes to 250, its
     /// <c>FightProcessCounter</c> at 10; a hero or a neutral creature idles, and so does a
     /// keeper's while its Call To Arms is on (ADR-0279).</summary>
@@ -144,9 +145,10 @@ public static class DropLandingRules
 
             if (type == RoomTypeId.Lair)
             {
+                // The Lair's room record carries job 0 (+0x25 at 0x006A1F16): nothing is hated, and
+                // 0x004E8DA0 stores that 0 in DroppedToDoJobId, so no job is remembered (hand-drop-landing.md §4).
                 StateShadow.ToIdle(context, system, creature);
-                if (creature.OwnerPlayerId >= PlayerIds.FirstKeeper && definition.HateJobs.Contains(JobType.Sleep)) return;
-                creature.DroppedToDoJob = JobType.Sleep;
+                creature.DroppedToDoJob = JobType.None;
                 StateShadow.Move(context, system, creature, LairRules.SelectingBedState);
                 return;
             }
