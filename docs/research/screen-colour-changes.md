@@ -18,10 +18,16 @@ So a change is a **per-channel lookup**: output = `table[c][input] / 65535` for 
 channel c. HUD coverage is STRONGLY INFERRED: the hardware gamma ramp applies to the
 complete primary image, including the HUD. Native visual comparison remains unverified.
 The identity state is kind 0 with the user's gamma. "Kind" is a word
-0-15 that picks one of 16 table builders. The owner sees the tint when possessing a Vampire or a
-Skeleton and the red flash when a possessed creature is hit (original, 2026-11-15, CONFIRMED as
-observations), so the ramp is live on his install, although no code that switches it on was
-found (§2).
+0-15 that picks one of 16 table builders.
+
+CONFIRMED observation, 2026-11-18: the owner's possessed Vampire in My Pet Dungeon
+has no tint on the live display, as well as in SHOT0000.BMP through SHOT0020.BMP.
+The SHA-256-verified native copies and manifest are at
+`F:\DK2Evidence\captures\possession-vampire-owner-20261118-001`.
+This supersedes the unconditional-on interpretation of the earlier Vampire/Skeleton
+tint and hit-flash observations (2026-11-15). Those observations do not establish
+which configurations enable ramps. The current observation does not establish
+that all modes or creatures lack tints, nor whether a hit flashes in this setup.
 
 ## 2. How the tables reach the screen
 
@@ -43,9 +49,9 @@ found (§2).
   the graphics settings object `0x00759A78`, in the part of `.data` that loads as zero, its
   address occurs only at that read and that clear, and neither the settings load
   (`0x00564B00`) nor the reset (`0x00563FB0`) writes `+0x48` (reviewer read). The owner's
-  observation (§1) shows the ramp is on all the same, so a writer exists that these reads
-  missed (a store through a register, or the GOG build's own start-up): **UNREAD**. The
-  QueryInterface result and SetGammaRamp's return are not tested; no hardware check exists.
+  current live observation (§1) does not establish an enable path. The nonzero
+  writer and the runtime reason for different observed colour output remain **UNREAD**.
+  The QueryInterface result and SetGammaRamp's return are not tested; no hardware check exists.
 - **Gamma float** `+6` = the options Gamma slider / 30 (slider 15..60, `0x00429CD0`) = stored
   level / 4096 clamped to 0.5..2.0 at load (`0x0043AE0D`-`0x0043AE15`); the shipped default
   level is `0x1000` (gamma 1.0, `0x00564B00`). It is set through presentation slot `+0x78`
@@ -171,9 +177,9 @@ full-screen pass and verification boundaries are recorded in
 
 ## 8. Unread, and leads
 
-- What sets the gamma-enable flag `0x00759AC0` (§2). A capture of a Skeleton, Vampire or Dark
-  Elf possession would CONFIRM each tint's colours and the channel order; that they tint, and
-  that a hit flashes red, the owner has seen.
+- What sets the gamma-enable flag `0x00759AC0` (§2). The current native Vampire observation
+  is untinted (§1); close the enable condition before claiming any configuration applies
+  the researched tables. Per-level creature overrides remain unchecked.
 - Posters of commands 0x0F and 0x15, and any caller of kinds 6, 10, 11, 12, 13.
 - `0x00597760` reads only its argument, the object's float at `+6` and image constants, so
   it can run in `tests/DK2.Oracle.Tests` to turn §3 into a value-by-value check.

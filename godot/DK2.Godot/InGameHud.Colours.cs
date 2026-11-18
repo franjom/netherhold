@@ -34,7 +34,7 @@ public partial class InGameHud
         }
         // The final ramp includes gamma for the scene and every HUD layer.
         _world?.SetBrightness(1f);
-        var table = _possession.Colours.Change.Current;
+        var table = _possession.Colours.Output;
         bool changed = false;
         for (int i = 0; i < _uploadedScreenColours.Length; i++)
         {

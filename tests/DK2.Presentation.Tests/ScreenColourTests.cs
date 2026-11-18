@@ -6,6 +6,36 @@ namespace DK2.Presentation.Tests;
 
 public sealed class ScreenColourTests
 {
+    [Theory]
+    [InlineData(ScreenColourKind.Vampire)]
+    [InlineData(ScreenColourKind.Damage)]
+    [InlineData(ScreenColourKind.Death)]
+    public void UnestablishedGammaCapabilityDoesNotApplyColourChanges(ScreenColourKind kind)
+    {
+        var colours = new PossessionColours();
+        colours.Change.Start(kind, 0, 0);
+        Assert.Equal(ScreenColourTables.Build(ScreenColourKind.Normal, 1), colours.Output);
+        colours.Change.SetGamma(2);
+        colours.Change.Start(kind, 0, 0);
+        Assert.Equal(ScreenColourTables.Build(ScreenColourKind.Normal, 2), colours.Output);
+    }
+
+    [Fact]
+    public void EnabledOutputUsesTheRunningRampAndCanBeDisabledWithoutDiscardingIt()
+    {
+        var colours = new PossessionColours { ApplyColourChanges = true };
+        colours.Change.Start(ScreenColourKind.Damage, 0, 125);
+        colours.Change.Queue(ScreenColourKind.Vampire, 250);
+        colours.Step(60);
+        Assert.Equal(colours.Change.Current, colours.Output);
+        colours.ApplyColourChanges = false;
+        Assert.Equal(ScreenColourTables.Build(ScreenColourKind.Normal, 1), colours.Output);
+        Assert.True(colours.Change.Running);
+        Assert.Equal(1, colours.Change.QueuedCount);
+        colours.ApplyColourChanges = true;
+        Assert.Equal(colours.Change.Current, colours.Output);
+    }
+
     [Fact]
     public void ChangingGammaSynchronizesTheTargetUsedByUnknownKinds()
     {

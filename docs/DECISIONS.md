@@ -19478,8 +19478,8 @@ evidence note.
 healed before that frame; polling the frozen word misses a thaw followed by another freeze.
 **Decision.** Health and status rules publish transient possessed-creature notifications. The engine-free session
 receives them in order and drives the real-time ramp model; Godot uploads its tables in one final pass over the HUD
-and scene. The previous scene-only gamma is disabled while this pass owns gamma. Tints stay enabled from the owner's
-observations although the native enable writer remains unread. Evidence and limits:
+and scene. The previous scene-only gamma is disabled while this pass owns gamma. Application enablement is
+now governed by ADR-0822. Evidence and limits:
 [possession colour rendering](research/possession-colour-rendering.md), with binary rules in [Q745](research/screen-colour-changes.md).
 **Consequences.** Observer subscriptions and pending notifications are excluded from snapshots and hashing. HashVersion
 and FormatVersion advance 529 to 530 conservatively under the project's simulation-change rule; the saved field layout
@@ -19531,3 +19531,19 @@ is an observed native widescreen behavior. The player's UI scale and bottom dock
 **Consequences.** This is a remake presentation choice under ADR-0497, not a change to
 simulation. HashVersion and FormatVersion remain 532. Exact native integer-pixel rounding
 and original widescreen appearance remain unverified.
+
+
+## ADR-0822 - gate possession colour output until native enablement is established
+**Date:** 2026-11-18 | **Status:** accepted | **Systems:** camera-lighting, creatures, presentation-godot
+**Context.** The [current native Vampire observation](research/screen-colour-changes.md#1-verdict)
+contradicts ADR-0818's forced-on application policy. The native ramp consumer has an enable
+guard; its nonzero writer and the cause of configuration differences remain unread.
+**Decision.** Preserve the researched tables, queue and session events. Default engine-free
+colour output to disabled, returning the normal user-gamma ramp. An explicit capability
+can select the current coloured ramp without changing the queue. Godot consumes that output;
+no production path enables the capability until evidence establishes the condition.
+This is a conservative remake policy, not a claim that native ramps never apply.
+**Consequences.** Damage and death ramps share the gate; normal brightness remains available.
+This supersedes only ADR-0818's unconditional enablement. No simulation state changes;
+HashVersion and FormatVersion remain 532. Earlier tinted remake captures are superseded
+implementation evidence, not proof of native visual fidelity.

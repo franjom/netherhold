@@ -10,6 +10,24 @@ public sealed class PossessionColours
     private ScreenColourKind _own;
     private long? _entryEnd;
     public ScreenColourChange Change { get; } = new();
+    private readonly ushort[] _normal = new ushort[ScreenColourTables.Length];
+    private double _normalGamma = double.NaN;
+    // Native ramp application has a separate enable flag whose nonzero writer is UNREAD.
+    // Default off follows the owner's live Vampire observation; see ADR-0822.
+    public bool ApplyColourChanges { get; set; }
+    public IReadOnlyList<ushort> Output
+    {
+        get
+        {
+            if (ApplyColourChanges) return Change.Current;
+            if (_normalGamma != Change.Gamma)
+            {
+                _normalGamma = Change.Gamma;
+                ScreenColourTables.Build(ScreenColourKind.Normal, _normalGamma, _normal);
+            }
+            return _normal;
+        }
+    }
     public void Enter(ScreenColourKind own, long clockMilliseconds, long flyInEnds)
     {
         _own = own;

@@ -20,6 +20,7 @@ questions live in their canonical documents; this file links to them.
   Behavioral parity with DK2 remains incomplete; bounded replay controls do not
   establish full-state, campaign-outcome or interactive-play acceptance.
 - Possession colour ramps and the final Godot scene/HUD pass are built (ADR-0818);
+  colour output defaults to normal gamma under ADR-0822;
   implementation and acceptance limits: [possession colour rendering](research/possession-colour-rendering.md).
 - Classic rendering, HUD and front-end integration are on master. Owner play,
   visual and hearing acceptance remain open in the
