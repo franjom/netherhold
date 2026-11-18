@@ -15,6 +15,7 @@ public sealed class BattleTabHud
     private readonly BattleTabHoverText _text;
     private readonly bool[] _shown = new bool[Buttons.Length];
     private bool _collapsed, _allowInput;
+    private HudScreen _screen = new(2560, 1920);
 
     /// <param name="text">A <c>Text.str</c> string by id.</param>
     public BattleTabHud(Func<uint, string> text) => _text = new BattleTabHoverText(text);
@@ -29,19 +30,21 @@ public sealed class BattleTabHud
     }
 
     /// <summary>Writes the shown buttons into <paramref name="frame"/>; nothing while the normal HUD is hidden.</summary>
+    /// <param name="screen">The surface the menu lays out on; it stays flush right (<see cref="BattleTabView.MenuLeft"/>).</param>
     /// <param name="collapsed">Whether the bottom panel is collapsed, which drops the menu with it.</param>
     /// <param name="milliseconds">The real clock, which the frames step on whatever the game speed.</param>
-    public void Build(HudVisibility visibility, bool collapsed, BattleTabSnapshot shown, long milliseconds, HudFrame frame)
+    public void Build(HudScreen screen, HudVisibility visibility, bool collapsed, BattleTabSnapshot shown, long milliseconds,
+        HudFrame frame)
     {
         if (frame is null) throw new ArgumentNullException(nameof(frame));
-        _collapsed = collapsed; _allowInput = visibility.AllowOrdinaryInput;
+        _screen = screen; _collapsed = collapsed; _allowInput = visibility.AllowOrdinaryInput;
         int phase = BattleTabView.Phase(milliseconds);
         for (int i = 0; i < Buttons.Length; i++)
         {
             BattleTabButton button = Buttons[i];
             _shown[i] = visibility.ShowNormalHud && shown.Shows(button);
             if (_shown[i])
-                frame.Add(new HudDraw(HudDrawKind.Quad, BattleTabView.Art(button, phase), BattleTabView.Rect(button, collapsed), HudColor.White));
+                frame.Add(new HudDraw(HudDrawKind.Quad, BattleTabView.Art(button, phase), BattleTabView.Rect(button, collapsed, screen), HudColor.White));
         }
     }
 
@@ -50,7 +53,7 @@ public sealed class BattleTabHud
     public BattleTabButton ButtonAt(float x, float y)
     {
         for (int i = 0; i < Buttons.Length; i++)
-            if (_shown[i] && BattleTabView.Rect(Buttons[i], _collapsed).Contains(x, y)) return Buttons[i];
+            if (_shown[i] && BattleTabView.Rect(Buttons[i], _collapsed, _screen).Contains(x, y)) return Buttons[i];
         return BattleTabButton.None;
     }
 

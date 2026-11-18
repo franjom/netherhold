@@ -19,8 +19,17 @@ public readonly record struct HudRect(float X, float Y, float Width, float Heigh
 /// Panels that DK2 lays out in whole screen pixels use it to reproduce that rounding.</summary>
 public readonly record struct HudScreen(int Width, int Height)
 {
+    /// <summary>The width of DK2's 2560 x 1920 reference screen, which a 4:3 screen matches.</summary>
+    public const float ReferenceWidth = 2560;
+
     public float Scale => Height / 1920f;
     public float VirtualWidth => Width / Scale;
+
+    /// <summary>A reference x (2560 wide) of a group that DK2 places flush with the right edge, moved so the group keeps
+    /// its distance from this screen's right edge: DK2 stretches x by width / 2560 (<c>0x0052C5A0</c>), which keeps such
+    /// a group ending at the edge, and the remake keeps the art unstretched, so the group moves instead. Unchanged at
+    /// 4:3; left-hand groups keep their reference x.</summary>
+    public float FromRight(float referenceX) => referenceX + (VirtualWidth - ReferenceWidth);
     /// <summary>Virtual units for a length in local pixels.</summary>
     public float Virtual(float pixels) => pixels / Scale;
 }

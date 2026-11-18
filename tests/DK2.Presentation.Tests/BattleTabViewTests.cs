@@ -45,7 +45,7 @@ public sealed class BattleTabViewTests
         // 0x00417170: the tab top 1460, or 1772 collapsed (the panel top moves 0x5B4 to 0x6EC).
         Assert.Equal(1460, BattleTabView.MenuTop(collapsed: false));
         Assert.Equal(1772, BattleTabView.MenuTop(collapsed: true));
-        Assert.Equal(new HudRect(2080 + 136, 1772, 128, 128), BattleTabView.Rect(BattleTabButton.CallToArms, collapsed: true));
+        Assert.Equal(new HudRect(2080 + 136, 1772, 128, 128), BattleTabView.Rect(BattleTabButton.CallToArms, collapsed: true, new HudScreen(1024, 768)));
     }
 
     [Fact]

@@ -89,10 +89,15 @@ public static class BattleTabView
     public static int MenuTop(bool collapsed) =>
         MenuY + (collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0);
 
-    /// <summary>A button's square in native virtual units (1920 high), where Unity's <c>ClassicBattleTab</c> places
-    /// its image.</summary>
-    public static HudRect Rect(BattleTabButton button, bool collapsed) =>
-        new(MenuX + LocalX(button), MenuTop(collapsed), ButtonSize, ButtonSize);
+    /// <summary>The menu's left edge on <paramref name="screen"/>: 480 wide at <see cref="MenuX"/>, it ends at the
+    /// reference's right edge, so it stays flush right on a wider or narrower screen (<see cref="HudScreen.FromRight"/>),
+    /// over the bottom panel's metal rail end, which sits the same way.</summary>
+    public static float MenuLeft(HudScreen screen) => screen.FromRight(MenuX);
+
+    /// <summary>A button's square in native virtual units (1920 high) on <paramref name="screen"/>, where Unity's
+    /// <c>ClassicBattleTab</c> places its image.</summary>
+    public static HudRect Rect(BattleTabButton button, bool collapsed, HudScreen screen) =>
+        new(MenuLeft(screen) + LocalX(button), MenuTop(collapsed), ButtonSize, ButtonSize);
 
     /// <summary>A press's action, moved unchanged from Unity's <c>DungeonRunner.BattleTabClicked</c>: the blades and the
     /// alarm take only the right click (their records have no left-click callback), the cancel both.</summary>

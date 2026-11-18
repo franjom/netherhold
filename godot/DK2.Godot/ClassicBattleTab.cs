@@ -77,7 +77,7 @@ public partial class ClassicBattleTab : Node
         // Bottom-docked (ClassicHudScaling.Apply), as the bottom panel: the panel's bottom stays on the screen's bottom.
         _origin = new Vector2(0, _layout.BottomOriginPixels);
         _frame.Clear();
-        _hud.Build(visibility, collapsed, shown, milliseconds, _frame);
+        _hud.Build(_layout.Screen, visibility, collapsed, shown, milliseconds, _frame);
         _canvas.Visible = _frame.Count > 0;
         _canvas.Present(_frame, _origin, _scale, _layout.Factor);
     }

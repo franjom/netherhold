@@ -89,6 +89,13 @@ screen width/2560 and vertical ones by height/1920, with integer division.
 At 1024×768 both factors are 0.4. The adapter's existing height-preserving
 768-reference transform corresponds to multiplying virtual coordinates by
 0.4, then height/768; it deliberately avoids the native widescreen stretching.
+Under DK2's transform a menu flush with the reference's right edge (menu 43 at
+2080 + 480, the rail end from 0x820, menu 41) still ends at the screen's right
+edge at any width, so the remake keeps those groups that far from the right edge
+(`HudScreen.FromRight`) and the rest at their reference x; 4:3 is unchanged.
+Menu rectangles come from the manager origin plus the menu's offset
+([0x0052CE50](functions/0052CE50.md)); no menu-level anchor was read.
+**UNKNOWN:** where DK2 itself draws menu 43 at a wide mode, if it offers one.
 
 `0x00422BC0` supplies these global virtual text anchors:
 

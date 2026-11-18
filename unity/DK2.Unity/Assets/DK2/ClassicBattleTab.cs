@@ -34,7 +34,7 @@ namespace DK2.Unity
 
         public int UiScale { get; set; } = 100;
         private int Height => Screen.height;
-        private float V(int value) => value * Height / 1920f;
+        private float V(float value) => value * Height / 1920f;
 
         public ClassicBattleTab(Transform parent, IClassicBottomPanelAssets assets)
         {
@@ -73,11 +73,12 @@ namespace DK2.Unity
         /// or not: the fly-in's target, read once when it starts.</summary>
         public Vector2 BattleCentre(bool collapsed)
         {
-            float factor = ClassicHudScaling.Layout(UiScale).Factor, height = Height;
+            HudScaleLayout layout = ClassicHudScaling.Layout(UiScale);
+            float factor = layout.Factor, height = Height;
             int half = BattleTabView.ButtonSize / 2;
             int top = BattleTabView.MenuTop(collapsed);
             // The panel is bottom-docked: its root sits height / factor - height down, then scales.
-            return new Vector2(V(BattleTabView.MenuX + BattleTabView.LocalX(BattleTabButton.Battle) + half) * factor,
+            return new Vector2(V(BattleTabView.MenuLeft(layout.Screen) + BattleTabView.LocalX(BattleTabButton.Battle) + half) * factor,
                 height - height * factor + V(top + half) * factor);
         }
 
@@ -93,11 +94,13 @@ namespace DK2.Unity
         /// <param name="milliseconds">The real clock, which the frames step on whatever the game speed.</param>
         public void Draw(HudVisibility visibility, bool collapsed, BattleTabSnapshot shown, long milliseconds)
         {
-            ClassicHudScaling.Apply(_settings, _root, ClassicHudScaling.Layout(UiScale), true);
+            HudScaleLayout layout = ClassicHudScaling.Layout(UiScale);
+            ClassicHudScaling.Apply(_settings, _root, layout, true);
             _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
             _root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
             if (!_visible) { _hovered = BattleTabButton.None; return; }
             int top = BattleTabView.MenuTop(collapsed);
+            float left = BattleTabView.MenuLeft(layout.Screen);   // flush right on any aspect
             int phase = BattleTabView.Phase(milliseconds);
             for (int i = 0; i < Buttons.Length; i++)
             {
@@ -111,7 +114,7 @@ namespace DK2.Unity
                 }
                 image.style.display = DisplayStyle.Flex;
                 image.image = Texture(BattleTabView.Art(button, phase));
-                image.style.left = V(BattleTabView.MenuX + BattleTabView.LocalX(button)); image.style.top = V(top);
+                image.style.left = V(left + BattleTabView.LocalX(button)); image.style.top = V(top);
                 image.style.width = V(BattleTabView.ButtonSize); image.style.height = V(BattleTabView.ButtonSize);
             }
         }
