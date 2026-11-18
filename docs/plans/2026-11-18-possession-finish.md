@@ -21,12 +21,16 @@ add-only under `F:\DK2Evidence`; no cleanup of worktrees or evidence is authoriz
   for verification and the owner-requested settled-only scope deviation.
 - [ ] 3. Godot possession visibility implemented; GPU capture and owner acceptance remain.
   Scope and verification: [possession-warp section 8.3](../research/possession-warp.md#83-the-enumeration-strongly-inferred-whole-disassembly-of-0x005737e0-and-0x00572f60).
-- [ ] 4. Read HUD and callees; `PossessionHud` draw list, snapshot and tests, Godot
-  canvas; suppress ordinary panels and shortcuts without restructuring them.
-- [ ] 5. Read ability data, action handlers and client gates; parse kinds, implement
-  supported commands, input and presentation with tests; ADR and hash/save changes.
-- [ ] 6. Room-pillar roof; bounded lighting/listener read; object death view; entry
-  effect; mouse units/sensitivity; wire footsteps only if a sound player exists.
+- [ ] 4. Shared HUD subset and Godot canvas built; GPU capture and owner acceptance remain.
+  Scope and limits: [possession HUD](../research/possession-hud.md).
+- [ ] 5. Supported ability data, commands, keys, sniper and save/hash fields built (ADR-0819).
+  Carry/throw physics, foreground transform/renderer and native action136 room mapping
+  remain open; [scope and bounded reads](../research/possession-special-abilities.md).
+  Ability capture and owner acceptance remain.
+- [ ] 6. Room-pillar roof and explicit object-death view built; bounded lighting, listener
+  and mouse reads recorded in [client completion](../research/possession-client-completion.md).
+  Shot creation-effect sprite upload is built ([effects](../research/shot-effects.md#7-ours));
+  sound playback and the object-possession bridge remain unbuilt. GPU acceptance remains.
 
 For every item run the requested Release solution build, Godot build, touched
 Presentation tests (plus simulation/determinism tests for item 5), KB and docs gates.

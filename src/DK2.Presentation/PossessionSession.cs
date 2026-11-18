@@ -314,6 +314,22 @@ public sealed class PossessionSession : ITurnPoseSource
         _bodyId = body.Id;
     }
 
+    /// <summary>The mode-11 bridge request for an object or no surviving thing. Call after the
+    /// simulation clears possession; object-possession bridge delivery is not yet wired.</summary>
+    public bool RequestObjectDeathView(WorldState world, long clockMilliseconds)
+    {
+        if (!Possessing || _flight.Active) return false;
+        CameraFlightState from = PossessionFlight.FirstPerson(_view,
+            _preset with { Lens = _sniper.Lens, ViewDistance = _sniper.ViewDistance });
+        Fp32 floor = new(FloorHeightRules.At(world, _database, from.X, from.Y));
+        Reset();
+        Colours.Death(clockMilliseconds);
+        _flight.Start(from, PossessionObjectDeathView.Target(from, _preset, floor), clockMilliseconds, DeathMove);
+        _ending = Ending.Dying;
+        _bodyId = 0;
+        return true;
+    }
+
     /// <summary>The once-a-turn pose (<c>0x004039A0</c>, sent in camera mode 2 only), or null: the
     /// host puts it first among the commands of the input frame about to be handed to a turn.</summary>
     public PlayerCommand? TurnPose(PlayerId viewer) =>

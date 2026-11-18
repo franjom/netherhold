@@ -136,12 +136,14 @@ These are entry points, not a new priority order.
   [ADR-0807](DECISIONS.md#adr-0807---defer-moving-torture-corpses-clear-of-their-devices).
 - Possession first-person view: built and unit-tested, never seen running in an editor, no owner play
   acceptance. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805); `DungeonRunner.Possession.cs`
-  is the Unity glue, `InGameHud.Possession.cs` the Godot's. Not built: the entry and exit colour changes
-  (Q745), the two special-ability keys, the possession HUD, lighting distance and
-  ambience listener in first person, and Unity's near clip (Unity keeps 0.3; Godot's possession cameras use
-  `PossessionCamera.NearClipDistance`, 0.05, a remake choice). Next: one editor run, then owner play. Evidence and remake choices:
+  is the Unity glue, `InGameHud.Possession.cs` the Godot's. The room-pillar roof is built; remaining
+  lighting, listener, object-death bridge and mouse-calibration boundaries are recorded in
+  [client completion](research/possession-client-completion.md). Unity keeps its near clip at 0.3;
+  Godot uses `PossessionCamera.NearClipDistance`, 0.05, a remake choice. Owner play acceptance remains. Evidence and remake choices:
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
+  The special abilities and sniper are partly built; carry/throw physics and the foreground renderer remain unbuilt ([scope](research/possession-special-abilities.md), ADR-0819).
+  The shared possession HUD and Godot canvas are built; [scope and limits](research/possession-hud.md).
 - Godot adapter (ADR-0805, ADR-0810): the road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md);
   steps 1, 2, 3a, 3b, 3c, 3d, 3e, 3f, 3g, 3h, 3i, 3m and 3o are done and step 3 is in progress. Rules that were Unity-only now live in `DK2.Presentation` and both adapters call them;
   Godot draws and forwards input (`godot/README.md` lists the scenes, files and launch arguments).
@@ -151,7 +153,8 @@ These are entry points, not a new priority order.
   the camera moving through the shared rules (`ClassicCameraInput`, `CameraGlide`; every glide, the query follow and turn, the full map's
   and the overview's focus jumps, 3b); the minimap drawn from the live camera with its footprint (`MinimapCameraView`); and the world pointer (3e): the pick ray from the placed pose (`WorldScene.TryPickRay`), tile picking and terrain hover, the hand cursor, the placement cursor and the selection cage, with tagging and placing posted through the shared `WorldPointerInput`, so the level is playable from the pointer; objects, structures and torches (`WorldScene.Objects.cs`, 3f): the Heart with its beat, doors, traps, wall-torch meshes and their flames; and creatures (`WorldScene.Creatures.cs`, 3g): the imps walk and dig through the shared `CreatureAnimationPlayer`, in the frame order of the shared `SceneFrame` that Unity hosts too, with the query follow on the drawn creature, and the crackle, footsteps and sparkle waiting for 3l and 3k; and possession (`InGameHud.Possession.cs`, `WorldScene.Possession.cs`, 3m): the shared `PossessionSession` drives the first-person camera on the same `Camera3D`, the pointer lock, the roof and the hidden model, seen only in scripted-pointer captures (real mouse capture, alt-tab re-capture, the walking keys and the death view not exercised; its sounds dropped; the roof black away from lights); and entity hover (`WorldScene.Hover.cs`, 3h): creatures, hover-target objects, doors and traps offered to `WorldHoverPicker`, the red pass (also the burning red) and the gold twin, the hover text through the screen-space hover HUD, with the hover sound waiting for step 4, and the gold swap and burning red uncaptured; and the classic lighting (`WorldScene.Lighting.cs`, 3i): DK2's own tile tables, ambient keys, torch, portal, object and Hand lights through the shared `ClassicVertexLight`, with the environment pass (also over plans) and the distance fade, in the owner's Unity in-game look (native ambient, no fill; `--light-fill` adds the ADR-0522 fill). `--pointer-path` drives a capture's pointer from a script and never moves the owner's cursor. Level1's
   turn-400 hash is `60C97ECC6F9F0501`, the same on master before 3i; `D7290428D81A902F`, which earlier entries state, predates other sessions' simulation commits.
-  Not wired yet, by plan step: 3j shadows; 3k effects and flowers; 3l lightning;
+  Shot creation-effect sprites and lights are wired ([scope](research/shot-effects.md#7-ours)).
+  Not wired yet, by plan step: 3j shadows; 3k remaining effect uploads and flowers; 3l lightning;
   3n scripted paths and the letterbox; step 4 sound, movies and subtitles (and the level sound driver). The 3D station scenery and
   most keys are also unwired (`ClassicKeyboard` reads the options and full-map keys, the save name and the key being bound so far);
   the options menu's session action after Restart, Return to Menu or Quit is dropped.

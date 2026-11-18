@@ -194,7 +194,7 @@ The interface byte `+0x13D9` holds the selection: bit 0 melee, bits 1–2 a spec
 - **Keys** (`Input_HandleGameKey`, `0x004058C6`–`0x00405BC2`, only with a live possessed
   creature whose `+0x447` is zero): Melee (6) sets bit 0 and clears bits 1–2; Spell1–3
   (7, 8, 9) call `Possession_SelectAbility` with 0, 1, 2 and SelectAlly (12) with 3, then
-  clear bits 1–2; PickLock (2) is the Library special or the inert action 36; the two
+  clear bits 1–2; PickLock (2) is the Prison exception or the inert action 36; the two
   abilities (10, 11) are below; RemoveAlly (13) posts action 38; Sniper (1) is
   `0x0040FDF0`; Fire (3) calls `Possession_SubmitAttack`.
 - **The two abilities.** `0x00494700(n)` returns the definition byte `def+0x673+n`, the
@@ -205,7 +205,8 @@ The interface byte `+0x13D9` holds the selection: bit 0 melee, bits 1–2 a spec
   and posts `0x89` with (target, possessed thing, 2000). Kinds 3, 6, 7 and 9 then start
   the presentation `0x005075A0` with `def+0x682` and `def+0x791`. SecondaryAbility
   (`0x0040FDA0`) acts only on kind 5: it sets the selection byte to 4, so Fire posts the
-  hypnosis action `0x1B`. The file offsets of `def+0x673/+0x674` are UNREAD.
+  hypnosis action `0x1B`. Definition mapping, built arms and remaining carrying/foreground
+  limits: [special abilities](possession-special-abilities.md).
 - The left mouse button reaches the same `Possession_SubmitAttack` from `Hand_Click`
   (`0x00407666`).
 - **`Possession_SubmitAttack`** (`0x004100F0`) does nothing when the creature's `+0x447`
@@ -321,8 +322,9 @@ creature still in the world at zero health when the possession ends in first per
 the mode-11 view beside its body (`PossessionSession`): the 3000 ms move, the 2000 ms
 hold, then the pitch zeroed and the move back. Its three angles come from our own
 generator seeded by the body's place, and that the point lies behind the body is a
-HYPOTHESIS. Any other end flies out the ordinary way; the object arm of mode 11 and the
-colour changes are not built. The focus height of the way back is the ordinary camera's
+HYPOTHESIS. Any other end flies out the ordinary way. The explicit object-death API is built,
+but its acquisition/deletion bridge remains unbuilt ([client completion](possession-client-completion.md)).
+Colour changes are built ([scope](possession-colour-rendering.md)). The return focus height is the camera's
 own, which is the preset's unless something moved it. The view cannot be left until the
 move in has landed, as in the original (§6b).
 
@@ -375,18 +377,19 @@ eighteen as a possessed Warlock, are in
 - **A HUD of its own.** Along the top: the mana counter, a portrait, a health bar, the
   gold carried, then icons that differ by creature (the Imp a pickaxe and a boot, the
   Warlock three). At the left three counters and the minimap; at the bottom left one
-  creature icon. The possession HUD (`0x00420D10`) is not built.
+  creature icon. The [possession HUD subset](possession-hud.md) is built.
 - **No part of the possessed creature** in any shot, as §6's draw bit says.
 
 ## 7. Not read yet
 
 - The writers of camera `+0xE38` and `+0xE3C`.
 - Who raises the view event `0x00448440` handles, and who posts the player's own leave.
-- `Possession_SelectAbility`'s level gate in full, `0x005075A0`, and the
-  handlers of actions `0x1C`, `0x1E`, `0x1F` and `0x89`.
+- Carry/throw dependency closure and the foreground mesh transform; the supported
+  ability arms and sniper gates are built ([scope](possession-special-abilities.md)).
 - The map and cell accessors the step calls, taken by name: world slots `+0x1CC` and
   `+0x1D0` (`0x00508FA0`, `0x00508FB0`, width and height) and `+0x1D4` (`0x00508FE0`,
   the cell at a position).
-- The possession HUD (`0x00420D10`) and the cast effect (Q749).
-- The units of the mouse delta `Input_DrainMouseDelta` returns, and what Mouse
-  Sensitivity does to it.
+- Q749 has a built shot-creation-effect subset ([shot effects](shot-effects.md#7-ours));
+  the [possession HUD reading and built subset](possession-hud.md) have their own note.
+- The mouse profile/device link and Godot calibration remain UNREAD after the
+  bounded device-chain read ([client completion](possession-client-completion.md#mouse-units-and-sensitivity)).

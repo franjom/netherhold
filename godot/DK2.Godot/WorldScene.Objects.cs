@@ -272,7 +272,9 @@ public partial class WorldScene
     public void FinishFrame()
     {
         PreparePossessionVisibility();
+        AdvanceEffects();
         PrepareLighting();
+        DrawEffects();
         PrepareShadows();
         DrawBlended();
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();

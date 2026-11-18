@@ -59,8 +59,8 @@ simulation side, which is built.
    the possessed creature's own model hidden. One editor run to see it; owner play
    acceptance after.
 
-Deferred, each its own task later: the possession HUD (`0x00420D10`), the third-person
-view (action 20; since dropped, below), the colour ramps (Q745), the cast effect (Q749).
+Later work: the [possession HUD subset](../research/possession-hud.md) is built; the third-person
+view (action 20) is dropped (below). Colour ramps: Q745; cast effect: Q749.
 
 ## Prerequisites
 
@@ -73,8 +73,9 @@ Done (possession-client.md):
   handler, the two ability keys and the ability kind accessor (§4), and what requests
   mode 2 (§6).
 
-Still needed for the two ability keys, which are not built: the file offsets of the ability
-kinds `def+0x673/+0x674`, and the handlers of actions `0x1C`, `0x1E`, `0x1F` and `0x89`.
+The ability fields, key dispatch, form, prayer, timed fear, Prison exception and sniper
+are built (ADR-0819). Carry/throw physics and the foreground transform/renderer remain
+unbuilt; scope and verification: [special abilities](../research/possession-special-abilities.md).
 
 Creep (task 2) is built (ADR-0802, hash and save 518): the flag, `SetCreepingCommand`,
 the clear on leaving, `CreepingDistancePercent` and the weighting at the combat scans and
@@ -107,11 +108,11 @@ fills a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` 
 for Unity and `InGameHud.Possession.cs` for Godot (step 3m of the migration plan; the latch and the roof's shown rule are `PossessionScene`'s). The first-person roll is now
 applied through an up vector the session computes, the same picture as before.
 
-Colour changes are built in Godot ([scope](../research/possession-colour-rendering.md)).
-Not built, each its own later task: Unity's near clip, lighting distance and ambience listener,
-which still follow the ordinary camera (Godot's possession cameras take `PossessionCamera.NearClipDistance`, 0.05, a remake
-choice: DK2 has no near plane, possession-warp.md section 2); the two ability keys; the possession HUD, so HUD
-shortcuts still act. The third-person view (camera mode 10) is dropped: nothing in the binary enters it
+Remaining lighting, listener, object-death bridge and mouse-calibration boundaries:
+[client completion](../research/possession-client-completion.md). Unity keeps near clip 0.3;
+Godot uses `PossessionCamera.NearClipDistance`, 0.05, a remake choice (possession-warp.md section 2). The
+[possession HUD subset](../research/possession-hud.md) and ordinary-shortcut gate are built in Godot.
+The third-person view (camera mode 10) is dropped: nothing in the binary enters it
 (possession-client.md section 6, 2026-11-18).
 
 Seen in the original by the owner on 2026-11-15 (possession-client.md section 6b, 19
@@ -119,9 +120,9 @@ screenshots) and since built: the roof over every open tile (`TerrainCeiling`, s
 `TerrainCeilingScheduler` and built by `TerrainCeilingGeometry` in `DK2.Presentation`, uploaded by Unity's
 `TerrainCeilingChunks` and Godot's `WorldScene.Possession.cs`), the very wide field of view (there is no warp:
 possession-warp.md), full-height walls whatever the High Walls option says, and the
-death view. Godot applies the distance fade and possession-only tile visibility;
-implementation and limits: [possession warp](../research/possession-warp.md).
-The possession HUD remains unbuilt.
+death view. Godot applies the distance fade to black; scope and verification:
+[possession-warp section 4](../research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable). Godot now applies the possession-only visible tile set; scope and verification:
+[possession-warp section 8.3](../research/possession-warp.md#83-the-enumeration-strongly-inferred-whole-disassembly-of-0x005737e0-and-0x00572f60). The [possession HUD subset](../research/possession-hud.md) is built; GPU capture and owner acceptance remain.
 
 Remake choices to check in play: one host pixel of mouse travel is one unit of DK2's
 delta; the roll's sign; the vertical field of view held at 73.7 degrees on wide screens.

@@ -123,8 +123,8 @@ public partial class WorldScene
 
     /// <summary>The frame's lights, in Unity's runner's order once the camera is placed: the entrances, the objects at the
     /// drawn fraction, the Hand (the last frame's pick), then the visible tiles' tables published from the placed pose with
-    /// Unity's zero centre shift, pitch and yaw (audit open point 5), and the distance fade's far plane. The construction
-    /// effects' lights wait for step 3k. Allocation-free once warm while the camera holds still.</summary>
+    /// Unity's zero centre shift, pitch and yaw (audit open point 5), and the distance fade's far plane. AdvanceEffects
+    /// has already published effect lights. Allocation-free once warm while the camera holds still.</summary>
     private void PrepareLighting()
     {
         if (_lightPublisher == null || _worldLights == null || _lightTables == null || _lightView == null || _lightWorld == null

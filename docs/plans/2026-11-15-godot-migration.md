@@ -856,7 +856,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       (and an indexed loop) make a scrolling view allocate 0 B after warm-up (tested). Godot, in the new
       `WorldScene.Lighting.cs`: an unshaded vertex-lit shader with the 24-source tile tables in float textures; the
       publisher, the ambient keys and the torch, portal, object and Hand lights (deferred from 3h; the construction
-      effects' lights wait for 3k); the environment pass as the submesh material's `NextPass`, also over plans (a faded
+      effect sprite uploads and lights are now wired; [scope](../../godot/README.md#shot-effects)); the environment pass as the submesh material's `NextPass`, also over plans (a faded
       one draws black); the cage's `ZeroOrderOffset` key, set in the frame; the liquids' normals uploaded; exposure folded
       into the gamma table of the camera's colour correction, with no canvas pass; and `skip_vertex_transform` on every
       world shader (Godot 4.8 drew moved models black otherwise; the cause is not established, `docs/TRAPS.md`).

@@ -391,6 +391,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
         _scriptedView.ZoomRequested += ScriptZoom;
         _simulation.ObserveWith(_scriptedView);
+        _world.OpenEffects(_simulation, _worldView, _viewer, seed);
         _frameDriver = new FrameDriver(_pending, _worldView, _pacer, _journal);
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
         if (resume == null)

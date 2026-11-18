@@ -447,7 +447,7 @@ public sealed partial class WorldView
                 break;
         }
 
-        if (PillarOf(type) is byte pillar) Pillars(world, room, owner, pillar, into);
+        if (RoomPillarLayout.ObjectType(type) is ObjectTypeId pillar) Pillars(world, room, owner, pillar, into);
         if (type is RoomTypeId.Treasury or RoomTypeId.DungeonHeart) StorePiles(world, room, owner, into);
     }
 
@@ -514,17 +514,6 @@ public sealed partial class WorldView
         }
     }
 
-    private static byte? PillarOf(RoomTypeId? type) => type switch
-    {
-        RoomTypeId.Treasury => 76,
-        RoomTypeId.Hatchery => 78,
-        RoomTypeId.CombatPit => 79,
-        RoomTypeId.TortureChamber => 82,
-        RoomTypeId.Graveyard => 84,
-        RoomTypeId.Casino => 85,
-        RoomTypeId.Crypt => 141,
-        _ => null,
-    };
 
     // Pillar offsets toward k (NE, SE, SW, NW): 0x5A8 at angle 0x100 + 0x200k (0x004EF1F0).
     private static readonly (int X, int Y)[] PillarOffsets = [(0x3FF, -0x400), (0x3FF, 0x3FF), (-0x400, 0x3FF), (-0x400, -0x400)];
@@ -535,7 +524,7 @@ public sealed partial class WorldView
     /// <para>ASSUMED: DK2 creates a pillar at height 0, and whether it then settles on the floor is
     /// unread (furniture-placement.md §8); it is drawn on the floor here. Deviates: DK2 asks the
     /// tile's type and owner, not the room, which differ for two such rooms touching diagonally.</para></summary>
-    private void Pillars(WorldState world, RoomInstance room, PlayerId owner, byte pillar, List<ObjectView> into)
+    private void Pillars(WorldState world, RoomInstance room, PlayerId owner, ObjectTypeId pillar, List<ObjectView> into)
     {
         foreach (int tile in room.TileIndices)
         {
@@ -545,7 +534,7 @@ public sealed partial class WorldView
                 if (_pillarTiles.Contains(tile)) continue;
                 // Its +0x95/+0x97 draw offset undoes the move, so DK2 draws it at the centre, its
                 // heading turning the column into the tile's outer corner (object-drawing.md §4).
-                into.Add(Decoration(world, tile, PillarSlot, pillar, owner, 0, 0, -1, ((k - 1) & 3) << 9));
+                into.Add(Decoration(world, tile, PillarSlot, pillar.Value, owner, 0, 0, -1, ((k - 1) & 3) << 9));
             }
         }
     }

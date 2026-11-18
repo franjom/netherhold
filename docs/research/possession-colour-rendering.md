@@ -53,11 +53,15 @@ Simulation 33 and frame-order 3 focused tests passed, with no skips. The refresh
 Level 1 replay retained 2,926 ticks and 164 command frames; all 2,927 hashes matched
 a strict replay, with header/commands unchanged. Knowledge generation covered 15 rooms.
 
-The parent inspected 1920x1080 MovieMaker frame `f00000180.png` in each of
-`F:\DK2Evidence\captures\possession-finish-20261118-colour-001\vampire-tint-mana`
-and `vampire-hit-mana` (200 frames each). They show the settled Vampire tint and
-an actual runtime poison-hit flash over the world and ordinary HUD. Mana 200,000
-was staged after post-opening turn 130. Earlier `vampire-tint`/`vampire-hit` captures
-lost possession before entry completed and do not establish the tint. The possession
-HUD replacement is pending in this snapshot. Logs contained no shader errors and
-three existing missing Godot AI autoload errors; the temporary override was removed.
+Final hash/save-531 captures under
+`F:\DK2Evidence\captures\possession-finish-20261118-final-001\vampire-tint` and
+`vampire-hit` each produced 200 frames at 1920x1080, exit 0 with no errors. The parent
+inspected `f00000180.png` in both: settled Vampire tint and a stronger red runtime
+poison-hit flash cover the world and possession HUD. The fixture uses owners 1/2,
+mana 200,000, Vampire health 1,250, and poison 400 ticks/amount 40/owner 1 for the hit.
+Angular geometry at bottom centre likely comes from two foreign frozen Imps
+co-located with the Vampire. This fixture overlap proves no product defect, and
+these images do not establish that the possessed model is fully hidden.
+Earlier `colour-001` and `visibility-001` captures are excluded as validation because
+their missing-player-4 fixture was invalid. No independent native colour comparison
+or owner acceptance is claimed.

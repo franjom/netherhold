@@ -123,9 +123,9 @@ the native frame-bit-3 gate above, which also includes camera flights. The adapt
 the ordinary spherical fill fade while this projection-scaled fade is active.
 
 Verification: the implementer reports Release solution and Godot builds with zero warnings
-and errors, and 16 session/fade tests passing with no skips. Captures under
-`F:\DK2Evidence\captures\possession-finish-20261118-fade-a` show the near wall and dim Heart
-room; they do not conclusively establish black at maximum distance. Owner acceptance remains open.
+and errors, and 16 session/fade tests passing with no skips. The final corridor capture
+shows far geometry black; fixture and inspection limits are recorded in section 8.3.
+Owner acceptance remains open.
 
 ## 5. Ruled out
 
@@ -259,13 +259,14 @@ while meshes interpolate is a renderer choice; tile-edge crossing remains unveri
 gem sparkle remain undrawn stubs. The 21 new visibility tests pass with no skips, and the Release
 solution and Godot builds report no warnings or errors.
 
-The exact visibility snapshot's 200-frame 1920x1080 Movie Maker capture is under
-`F:\DK2Evidence\captures\possession-finish-20261118-visibility-001\frames\f00000180.png`.
-The inspected frame shows settled Vampire tint, an opaque left wall and vaulted roof, and the
-passage/right room without geometry showing through the wall. The mask executes on the GPU
-without shader errors; three existing missing Godot AI autoload errors remain. This does not
-independently verify every culled tile or a controlled behind-wall target. A controlled corridor
-capture, tile-edge crossing checks and owner acceptance remain pending.
+The parent inspected final hash/save-531 frame `f00000180.png` under
+`F:\DK2Evidence\captures\possession-finish-20261118-final-001\wall-prayer`: the full
+wall hides a staged Knight behind it. The companion `corridor-prayer-clean` frame
+shows the far corridor black and the adapted possession HUD. Prayer state was staged,
+not entered by key automation; health grew from 1,250 to about 1,460. Both runs produced
+200 frames at 1920x1080, exit 0 with no errors. This is GPU evidence for these fixtures,
+not every culled tile, tile-edge crossing or owner acceptance. The earlier
+`visibility-001` capture is excluded because its missing-player-4 fixture was invalid.
 
 Removing an arc (`0x00573470`): the two ends are masked as above and ordered; when they are more
 than 2^23 apart the removed set is [0, lo] and [hi, 2^24] instead. The removed interval [lo, hi] is

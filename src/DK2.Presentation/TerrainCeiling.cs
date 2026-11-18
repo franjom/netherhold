@@ -50,7 +50,7 @@ public static class TerrainCeiling
     public static (float U, float V) Uv(int row, int column) => (column * 0.5f, row * 0.5f);
 
     /// <summary>Marks the tiles a roof treats as wall (<c>0x005091C0</c>): solid terrain, or a tile
-    /// holding a pillar object. Rooms whose pillars are not objects here are not marked.</summary>
+    /// holding a pillar object, including the room pillars this remake represents virtually.</summary>
     public static void MarkClosed(WorldState world, GameDatabase database, Span<bool> closed)
     {
         ReadOnlySpan<TileState> tiles = world.Tiles;
@@ -60,6 +60,7 @@ public static class TerrainCeiling
             if (thing.TileLink.IsLinked && !thing.InHand && thing.CarriedByCreatureId < 0
                 && database.ObjectById(thing.ObjectTypeId) is { } definition && (definition.Flags & ObjectFlags.Pillar) != 0)
                 closed[thing.TileLink.TileIndex] = true;
+        RoomPillarLayout.MarkClosed(world, database, closed);
     }
 
     /// <summary>The tile's height nibble (cell word <c>+2</c> bits 12 to 15): 0 to 15 from the squared

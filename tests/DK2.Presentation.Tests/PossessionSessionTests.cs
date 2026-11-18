@@ -19,6 +19,24 @@ namespace DK2.Presentation.Tests;
 public sealed class PossessionSessionTests
 {
     [InstallFact]
+    public void ObjectDeathRequestRunsTheSharedDeathMoveAndHoldWithoutABody()
+    {
+        Rig rig = Level1(withOrdinaryCamera: true);
+        rig.Frame();
+        Assert.False(rig.Session.RequestObjectDeathView(rig.World, rig.Clock));
+        rig.Frame(PossessionFlight.BetweenClasses);
+        rig.World.Player(Viewer).PossessedCreatureId = 0;
+        Assert.True(rig.Session.RequestObjectDeathView(rig.World, rig.Clock));
+        Assert.Equal(0, rig.Session.HiddenCreatureId);
+        Assert.Equal(200, rig.Session.Flight.Target.Roll);
+        Assert.Equal(400, rig.Session.Flight.Target.Pitch);
+        rig.Frame(PossessionSession.DeathMove);
+        Assert.True(rig.Session.SettledPossessionCamera);
+        rig.Frame(PossessionSession.DeathHold + 1);
+        Assert.True(rig.Session.Flight.Active);
+    }
+
+    [InstallFact]
     public void AReplacementWorldWithTheSameCreatureIdRebindsColourEvents()
     {
         Rig rig = Level1(withOrdinaryCamera: false);

@@ -10,6 +10,8 @@ agent (Claude's private memory and Codex's are not shared; this file is). Add a 
 that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps live in
 `.agents/skills/ghidra-queries/SKILL.md`, DK2 facts in `docs/research/`.
 
+- Python in Windows `ctx_execute` can print through cp1252; call `sys.stdout.reconfigure(encoding='utf-8')` before printing repository text containing Unicode.
+
 - Godot AI 4.4.1's dock shows Claude Code red ("verification still reads error") for a working `local`-scope entry; check with `claude mcp get godot-ai` from the repo root, and do not run its suggested `remove --scope user`.
 - Godot 4.8 beta 3 on this machine (project `window/size/mode=3`) ignores `--windowed` and `--resolution`; the window takes the desktop size and a Movie Maker PNG is a 1920x1080 cut of it. Use a temporary `godot/DK2.Godot/override.cfg` (`window/size/mode=0`) for captures.
 - Godot 4.8's `Viewport.GetMousePosition` (which the adapter polls, as Unity polls `Input.mousePosition`) reads the OS cursor, so `Input.ParseInputEvent` motion does not move it; a hover probe that must `warp_mouse` moves the owner's real cursor while it runs. Drive a capture's pointer with `--pointer-path` instead (`godot/README.md`).
@@ -90,6 +92,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Windows PowerShell 5 needs both System.IO.Compression and System.IO.Compression.FileSystem loaded before ZipArchiveMode resolves.
 - New function records require `evidence:` before the first blank line; `kb index` rejects a split header.
+- Read a function record's complete History before relying on its summary: a later correction can be missing from the body, and truncating the record can hide it.
 
 - `Capture.frames(start, stop)` includes the stop header; use `birth + 3` for four snapshots. Its snapshots share live dictionaries: freeze record fields before advancing or previous/current both read the current frame.
 

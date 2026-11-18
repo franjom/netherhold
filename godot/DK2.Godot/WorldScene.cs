@@ -553,6 +553,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 " ms, the rest ", Milliseconds(_blendedTicks / Math.Max(1, _blendedRefreshes - 1)), " ms mean and ",
                 Milliseconds(_blendedMaxTicks), " ms max; allocated ", _blendedWarmUpBytes, " B in the first ", BlendedWarmUp,
                 " and ", _blendedLateBytes, " B after; up to ", _blendedMaxRuns, " runs and ", _blendedMaxTriangles, " triangles");
+        FreeEffects();
         FreeObjects();
         foreach (RunSlot slot in _runSlots) slot.Free();
         _runSlots.Clear();
