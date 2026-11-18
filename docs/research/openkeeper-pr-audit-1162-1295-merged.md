@@ -70,9 +70,6 @@ No Ghidra read was made for these; each is a lead, not a finding.
 - #1134: the possessed -64 and frozen 160 terms of `0x004B2CE0` were not compared with
   `StatusEffectRules`.
 - #1123: the three dig slots per side are not confirmed.
-- The record for `0x004DAA10` says 'after four turns' while `DefeatRules.cs` and
-  [win-and-defeat.md](win-and-defeat.md) use the fifth turn. The two disagree; one re-read
-  settles it.
 
 ## Limits
 
