@@ -231,7 +231,7 @@ public class CreatureAngerTests
     [Fact]
     public void AnAngryCreatureOnATortureDeviceCannotChooseToLeave()
     {
-        // Job 10 sets 194, and the rule refuses 194 from the Torture category.
+        // State-flag bit 1 skips the chooser before it can request job 10's state 194.
         GameDatabase db = DeserterDb;
         WorldState world = World(db);
         PaintPortal(db, world, new TilePos(3, 3));
@@ -246,7 +246,7 @@ public class CreatureAngerTests
         Assert.Equal(CreatureActivity.BeingTortured, goblin.Activity);
         Assert.Equal(TortureRules.TorturedState, goblin.Dk2StateId);
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_leaving");
-        Assert.Contains(events.Events, e => e.Kind == "state_refused" && e.Detail.Contains($"to={LeavingRules.ChoosingState}"));
+        Assert.DoesNotContain(events.Events, e => e.Kind is "state_refused" or "creature_angry");
     }
 
     [Fact]
@@ -724,6 +724,52 @@ public class CreatureAngerTests
 
     private static int HungerChargeOf(GameDatabase db, WorldState world, CreatureState goblin) =>
         CreatureAngerRules.PerSecond(world, db, db.CreatureById(GoblinId), goblin).Hunger;
+
+    public static IEnumerable<object[]> NeedAngerSuppressedStates() =>
+        Enumerable.Range(0, CreatureStateTable.Count)
+            .Where(id => (CreatureStateTable.Get(id).Flags & CreatureStateFlags.SuppressNeedAnger) != 0)
+            .Select(id => new object[] { id });
+
+    [Theory]
+    [MemberData(nameof(NeedAngerSuppressedStates))]
+    public void EverySuppressNeedAngerStateRefusesAllThreeNeedCharges(int stateId)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.Player(Keeper).Availabilities.Add(new(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, RoomNeedRules.Available));
+        world.Player(Keeper).Availabilities.Add(new(AvailabilityKind.Room, (int)RoomTypeId.Lair, RoomNeedRules.Available));
+        CreatureState goblin = HungryGoblin(db, world);
+        goblin.WageOwed = 100;
+        CreatureDef definition = db.CreatureById(GoblinId);
+        CreatureAnger ordinary = CreatureAngerRules.PerSecond(world, db, definition, goblin);
+        Assert.True(ordinary.Lair > 0 && ordinary.Hunger > 0 && ordinary.Pay > 0);
+        goblin.Dk2StateId = stateId;
+
+        Assert.Equal(default, CreatureAngerRules.PerSecond(world, db, definition, goblin));
+    }
+
+    public static IEnumerable<object[]> ModeledNeedAngerSuppressedStates() =>
+        NeedAngerSuppressedStates().Where(row =>
+            ActivityRules.Of(new CreatureState { Dk2StateId = (int)row[0] }) is not null);
+
+    [Theory]
+    [MemberData(nameof(ModeledNeedAngerSuppressedStates))]
+    public void EveryModeledSuppressNeedAngerStateSkipsTheAngryChooser(int stateId)
+    {
+        GameDatabase db = DeserterDb;
+        WorldState world = World(db);
+        CreatureState creature = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(2, 2));
+        creature.Anger.Lair = CreatureAngerRules.Ceiling + 1;
+        creature.Dk2StateId = stateId;
+        var events = new ListEventSink();
+        var sim = new GameSimulation(db, world, 42, [new CreatureAngerSystem()]);
+        sim.ObserveWith(events);
+
+        sim.Run(Second);
+
+        Assert.Equal(0, creature.LastAngryChoiceTick);
+        Assert.DoesNotContain(events.Events, e => e.Kind is "creature_angry" or "creature_rebelling" or "state_refused");
+    }
 
     private static CreatureState HungryGoblin(GameDatabase db, WorldState world)
     {

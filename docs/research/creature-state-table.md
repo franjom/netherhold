@@ -26,9 +26,9 @@ run `0`–`280` (`0x000`–`0x118`).
 The table lives in the **uninitialised** `.data` block
 (`0x006CCC00`–`0x007A6DCF`), so there is nothing to read in the file on disk. It
 is filled at run time by a single straight-line run of `MOV` instructions
-between **`0x0047BBE3` and `0x004805E4`**. No function contains that run, which
-is why a caller search finds nothing, and why recovering it means walking the
-disassembly tracking register values rather than reading bytes out of a section.
+between **`0x0047BBE3` and `0x004805E4`**. Read coverage is in
+[the initializer record](functions/0047BBE0.md); the flag scope is in
+[torture-captive-health.md](torture-captive-health.md).
 
 ## 2. Record layout — STRONGLY INFERRED
 
@@ -362,7 +362,7 @@ labels in §3 were resolved independently from the install's own `Text.str`.
   Casino's states. That run **spans three categories** (eight in 17, six in 0,
   one in 18), so category 17 does not delimit the room and a mechanic keyed on
   it alone would miss seven states. Bit 1 suppresses the need-anger routine and
-  all eleven captive states carry it. Bit 6 refuses the fight lookup (`0x0045A71F`,
+  its full state list is in [torture-captive-health.md](torture-captive-health.md). Bit 6 refuses the fight lookup (`0x0045A71F`,
   ADR-0488). Bit 2 makes the creature not attackable (`0x0045A8B0` at `0x0045A948`, ADR-0585). Bit 0 is UNKNOWN (Q185, `eating.md` §3, `payday.md` §6).
 
   **The 147 this section used to give for bit 0 was the count of states whose

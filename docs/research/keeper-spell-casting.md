@@ -149,7 +149,7 @@ neither the caster nor neutral. Neither validator asks range, fog or health.
 either way, and runs no finder that tick; the hit raises process event 4, so
 `0x004ADB30` (shot process 3, `shots.md` §8) runs: a live, non-Horny target;
 the Disruption arm for shot 43; otherwise `amount = min(data1, max − health)`,
-then, when amount > 0 and the target is not frozen (`+0x447`), held (`+0x3CB`),
+then, when amount > 0 and the target is not frozen (`+0x447`), keeper-bound (`+0x3CB`),
 a pit fighter or attacking abnormal targets (`+0x3E6` bit 2), `SetState(1)`
 (`rebellion.md` §7.2), which ends its walk with its state; then the health
 routine `0x004B2CE0(amount, owner, 0)`, which for a positive delta clamps at the
@@ -157,8 +157,9 @@ maximum again, refuses the dying flag (`0x004B2D9F`), a virtual predicate at
 vtable `+0x74` (unread) and a kind flagged `OnlyAttackableByHorny` (`+0x686`
 bit 22), and applies no multiplier and no stun or fear. The shot then dies on the thing (flags bit 1).
 So a normal cast heals the whole deficit of any shipped creature (16000 exceeds
-every level-scaled `Hp`), interrupts what the target was doing, and a dying
-target costs the mana and gains nothing.
+every level-scaled `Hp`), interrupts an eligible target, and a dying
+target costs the mana and gains nothing. Captive interruption and trigger
+semantics: [torture-captive-health.md](torture-captive-health.md).
 
 **Battle step (STRONGLY INFERRED, `computer-keeper-management.md` §4,
 re-read 2026-09-29):** the supportive arm keeps Heal as the last eligible

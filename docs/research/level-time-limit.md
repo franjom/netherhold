@@ -95,16 +95,16 @@ panel slots, icon buttons, mana and gold) and what clears it are in [tab-alerts.
 The creature action dispatcher `0x0049AC80` (types 15–43, byte table `0x0049B19C`, jump table
 `0x0049B170`) sends 15 to `0x0049ACC1`. It returns 1 on every path:
 - **the owner is not the Good player** (`creature+0x28` against `[0x006F254C]`): nothing;
-- **`+0x3CB` is non-zero** (the Combat Pit owner word, written for every pit fighter) **or
+- **`+0x3CB` is non-zero** (the keeper binding shared by Prison, Torture and Combat Pit) **or
   `+0x3E6` bit 21 is set** (dying): nothing;
 - **otherwise** `0x0048BE20(ObjectiveType, target, ActionPointId)` stores the `GoodJob` triple
   `+0x409`/`+0x40D`/`+0x40F`, then `0x0048AD30(1)` enters state 1. The target is the named
   player's tag (`player+0x4`, through the player array at `[world+0x84]`, stride `0x1125`), except
   for objectives 22 and 23, which keep the creature's own `+0x40D`.
 
-`HeroJobRules.Dispatch` then runs the job from state 1 as it does a spawned hero's. Ours stands
-in `CombatPitFighter` for `+0x3CB` and `IsDying` for bit 21. No test covers the pit and dying
-guards.
+`HeroJobRules.Dispatch` then runs the job from state 1 as it does a spawned hero's.
+The binding guard and its tests are corrected by ADR-0814; see
+[torture-captive-health.md](torture-captive-health.md).
 
 ## 7. Action 31 is a local camera request — STRONGLY INFERRED, stays partial
 

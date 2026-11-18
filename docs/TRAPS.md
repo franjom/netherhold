@@ -1,5 +1,7 @@
 # Traps
 
+- Ghidra rejects a project path containing a dot-prefixed directory such as `.claude`; put query project clones under an ordinary path and pass output/cache paths explicitly.
+
 - PowerShell uses `[uint64]`; C#'s `[ulong]` is not a PowerShell type alias.
 - Windows PowerShell's `>` writes UTF-16LE; decode redirected native-command logs explicitly before parsing them.
 

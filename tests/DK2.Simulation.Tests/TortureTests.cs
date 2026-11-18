@@ -132,6 +132,43 @@ public class TortureTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "prisoner_freed");
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AVoluntarilyStrappedMistressKeepsHerNeedsAndMoodChoosersOffTheDevice(int mood)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureDef definition = db.CreatureById(Dk2TerrainFixture.MistressCreatureId);
+        CreatureState mistress = world.SpawnCreature(db, definition.CreatureId, Keeper, Wheel);
+        Assert.True(TortureRules.TryStrapSelf(new StateHookContext(world, db), mistress));
+        Assert.False(PrisonRules.HasKeeperBinding(mistress));
+        mistress.HungerNeed = EatingRules.HungerFill(db, definition, mistress.Level);
+        mistress.WageOwed = 100;
+        mistress.Anger.Lair = mood switch
+        {
+            1 => CreatureAngerRules.UnhappyAt(definition),
+            2 => CreatureAngerRules.Ceiling + 1,
+            _ => 0,
+        };
+        CreatureAnger before = mistress.Anger;
+        world.Player(Keeper).Availabilities.Add(new(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, RoomNeedRules.Available));
+        world.Player(Keeper).Availabilities.Add(new(AvailabilityKind.Room, (int)RoomTypeId.Lair, RoomNeedRules.Available));
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, 42,
+            [new CreatureAngerSystem(), new CreatureJobSystem(), new TortureSystem()]);
+        sim.ObserveWith(sink);
+
+        sim.Run(100);
+
+        Assert.Equal(before, mistress.Anger);
+        Assert.Equal((0L, 0L, 0L),
+            (mistress.LastHappyChoiceTick, mistress.LastUnhappyChoiceTick, mistress.LastAngryChoiceTick));
+        Assert.Equal((Keeper, TortureRules.TorturedState), (mistress.OwnerPlayerId, mistress.Dk2StateId));
+        Assert.DoesNotContain(sink.Events, e => e.Kind is "creature_angry" or "creature_rebelling" or "job_chosen");
+    }
+
     [Fact]
     public void AnImpLeavesALivingCaptiveOnTheWheel()
     {

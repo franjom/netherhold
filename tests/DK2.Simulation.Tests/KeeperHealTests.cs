@@ -200,6 +200,7 @@ public class KeeperHealTests
     [InlineData(0)] // frozen
     [InlineData(2)] // a Combat Pit fighter
     [InlineData(3)] // attacking abnormal targets
+    [InlineData(4)] // keeper binding shared by Prison and Torture
     public void TheIdleIsSkippedForAFrozenHeldPitOrAbnormalTargetingCreatureButTheHealStillLands(int which)
     {
         var (db, world, target) = Setup();
@@ -213,6 +214,7 @@ public class KeeperHealTests
             case 1: target.InHand = true; break;
             case 2: target.CombatPitFighter = true; break;
             case 3: target.AttackAbnormalTargets = true; break;
+            case 4: target.PrisonOwnerPlayerId = Keeper; break;
         }
 
         new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()])
@@ -325,6 +327,32 @@ public class KeeperHealTests
         Assert.Empty(copy.World.Shots);
     }
 
+    [Fact]
+    public void ADirectHealthProcessHealsAHeldCreatureWithoutChangingItsStateOrRoute()
+    {
+        var (db, world, target) = Setup();
+        Walk(target, 16);
+        target.InHand = true;
+        Assert.False(PrisonRules.HasKeeperBinding(target));
+        var route = (target.Body.PathTotalCount, target.Body.PathTotalDist);
+
+        new GameSimulation(db, world, 1, [new DirectHealthProcess(target)]).Tick();
+
+        Assert.Equal(800, target.Health);
+        Assert.Equal(6, target.Dk2StateId);
+        Assert.Equal(route, (target.Body.PathTotalCount, target.Body.PathTotalDist));
+        Assert.True(target.HasRoute);
+    }
+
+    private sealed class DirectHealthProcess(CreatureState target) : ISimulationSystem
+    {
+        public string Name => "direct_health_process";
+
+        public void Execute(SimulationContext context) => ShotRules.ModifyHealth(context,
+            new ShotState { Data1 = 500, OwnerPlayerId = Keeper }, Shot(), target,
+            context.Database.CreatureById(target.CreatureTypeId));
+    }
+
     private sealed class Boundary : ISimulationSystem
     {
         public string Name => "boundary_probe";
@@ -339,6 +367,41 @@ public class KeeperHealTests
 
     /// <summary>KeeperSpells.kwd record 10 as shipped: shot 4 with 16000, upgraded 25000, 5000 mana,
     /// no cooldown, location 4, target 1, the supportive flag.</summary>
+    [Fact]
+    public void HealingAStrappedHeroPreservesItsDeviceAndConversionProgressWithoutAnAttackedEvent()
+    {
+        var (db, world, target) = Setup();
+        target.OwnerPlayerId = PlayerIds.Good;
+        target.TriggerId = EventCounterTree.Root;
+        for (int y = 9; y <= 11; y++)
+        for (int x = 9; x <= 11; x++)
+            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
+        int tile = 10 * world.Width + 10;
+        ObjectState wheel = world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, tile);
+        wheel.AutoPlaced = true;
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), target, Keeper, tile));
+        target.TorturedDuration = TortureRules.ConversionThreshold(db,
+            db.CreatureById(target.CreatureTypeId), target.Level) - TortureRules.DurationPerAct;
+        int duration = target.TorturedDuration;
+        var place = target.HeldPlace;
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, 1,
+            [new KeeperSpellSystem(), new ShotSystem(), new TortureSystem()],
+            EventCounterTree.For(CreatureTriggerEvent.Attacked));
+        sim.ObserveWith(sink);
+
+        sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, KeeperSpellRules.Heal, target.Id)));
+
+        Assert.Equal(1500, target.Health);
+        Assert.Equal((TortureRules.TorturedState, Keeper, duration),
+            (target.Dk2StateId, (byte)target.PrisonOwnerPlayerId, target.TorturedDuration));
+        Assert.Equal(place, target.HeldPlace);
+        Assert.Equal(0, world.Triggers.Read(EventCounterTree.CountFlag));
+        sim.Run(10); // Conversion requires strictly more than the threshold, on the following act.
+        Assert.Equal(Keeper, target.OwnerPlayerId);
+        Assert.Contains(sink.Events, e => e.Kind == "converted");
+    }
+
     private static KeeperSpellDef Spell() => new()
     {
         Name = "Heal", KeeperSpellId = KeeperSpellRules.Heal, ManaCost = 5000, ManaUpkeepPerSecond = 0,

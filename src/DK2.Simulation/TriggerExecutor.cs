@@ -1145,13 +1145,14 @@ public sealed class TriggerExecutor
     }
 
     /// <summary>Creature action 15 (<c>0x0049ACC1</c>): a Good creature's standing job. Anyone
-    /// else, a Combat Pit fighter (DK2 tests the pit's owner word <c>+0x3CB</c>, written for every
-    /// fighter) or a dying creature (body bit 21) is left alone, and the action succeeds anyway.
+    /// else, a keeper-bound creature (Prison, Torture or Combat Pit, word <c>+0x3CB</c>)
+    /// or a dying creature (body bit 21) is left alone, and the action succeeds anyway.
     /// Otherwise <c>0x0048BE20</c> stores the triple: the objective, the named player (objectives
     /// 22 and 23 keep the creature's own), the action point; then state 1 (<c>0x0048AD30</c>).</summary>
     private static bool SetHeroObjective(in StateHookContext hooks, IReadOnlyDictionary<string, long> p, CreatureState creature)
     {
-        if (creature.OwnerPlayerId != PlayerIds.Good || creature.CombatPitFighter || CreatureDeathRules.IsDying(creature))
+        if (creature.OwnerPlayerId != PlayerIds.Good || PrisonRules.HasKeeperBinding(creature)
+            || CreatureDeathRules.IsDying(creature))
             return true;
         byte objective = Byte(p, "ObjectiveType");
         if (objective is not (22 or 23)) creature.GoodJobPlayerId = Byte(p, "PlayerId");

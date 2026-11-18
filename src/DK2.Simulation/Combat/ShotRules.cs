@@ -616,7 +616,7 @@ public static partial class ShotRules
     /// kills under it; every other carrier heals the lesser of its data word and the missing
     /// health — through the health routine, which refuses <c>OnlyAttackableByHorny</c> and lets a
     /// target over its maximum lose the excess — after <c>SetState(1)</c>, which interrupts what the
-    /// target was doing, its walk included, unless it is frozen, held, a Combat Pit fighter or
+    /// target was doing, its walk included, unless it is frozen, keeper-bound, a Combat Pit fighter or
     /// attacking abnormal targets (rebellion.md §7.2).</summary>
     public static void ModifyHealth(SimulationContext context, ShotState shot, ShotDef definition, CreatureState target, CreatureDef targetDef)
     {
@@ -636,7 +636,9 @@ public static partial class ShotRules
             return;
         }
         int amount = Math.Min(shot.Data1, max - target.Health);
-        if (amount > 0 && target.FrozenTicks == 0 && !target.InHand && !target.CombatPitFighter && !target.AttackAbnormalTargets
+        // Keep SetState's hand refusal local until its general InHand guard is built (Q503).
+        if (amount > 0 && target.FrozenTicks == 0 && !target.InHand && !PrisonRules.HasKeeperBinding(target)
+            && !target.CombatPitFighter && !target.AttackAbnormalTargets
             && CreatureStateMachine.TrySetState(context.Hooks, target, CreatureStateMachine.Idle, context.Tick.Value))
             target.StopMoving(); // DK2 moves only a walking state (0x0048A23B), so the route goes with the state
         // 0x004B2CE0 refuses a creature whose kind is OnlyAttackableByHorny for a positive delta too.

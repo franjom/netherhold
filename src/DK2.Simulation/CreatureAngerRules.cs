@@ -147,11 +147,10 @@ public static class CreatureAngerRules
         WorldState world,
         GameDatabase database, CreatureDef creature, CreatureState state)
     {
-        // A captive takes no need-anger at all: the original's need-anger routine refuses when the
-        // current state carries bit 1 of the state record's flag byte, and all eleven "being held
-        // captive" states carry it. A captive's anger is the prison's (ADR-0064, ADR-0074).
+        // State-flag bit 1 returns before all three need charges, independently of custody
+        // (0x00478D0C). Prison anger is the prison's own update (ADR-0074).
         CreatureAnger delta = default;
-        if (PrisonRules.IsImprisoned(state)) return delta;
+        if (!NeedRules.NeedAngerRuns(state) || PrisonRules.HasKeeperBinding(state)) return delta;
         // The need-anger routine 0x00478D00 returns at once for a follower (0x00478D1D): no lair,
         // food or pay charge. The in-lair calm below is another routine's and still applies.
         // The dispatcher calls it for a keeper's non-workers only (0x00476FC0, ADR-0485; the worker

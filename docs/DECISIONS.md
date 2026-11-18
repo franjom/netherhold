@@ -19447,3 +19447,26 @@ Unity's and the classic switch's.
 measured, then the material model, the blended ordering, effects on MultiMesh. Creature shadows (3j) become Godot's
 shadows, keeping DK2's caster rule only. Shared presentation code that only Unity's technique used becomes Unity-only,
 and goes with Unity in step 5. Open: the owner's acceptance of the modern look.
+
+## ADR-0814 - preserve captive custody through healing and mood selection
+**Date:** 2026-11-18 | **Status:** accepted | **Hash/save:** 527
+
+**Context.** Heal released heroes from torture devices in Level 6a, and a
+voluntarily strapped Mistress accrued need anger and rebelled. The binary
+checks a shared keeper-binding word and a state flag that the remake had
+replaced with narrower proxies. Evidence and confidence:
+[torture-captive-health.md](research/torture-captive-health.md).
+
+**Decision.** Heal's positive-health state reset and creature action 15 honor
+`PrisonRules.HasKeeperBinding`. The latter refuses before writing an objective.
+Need anger and the angry/unhappy mood prelude honor
+`CreatureStateFlags.SuppressNeedAnger` through `NeedRules.NeedAngerRuns`.
+Keep the separate prison/torture anger effects and the happy idle handler.
+
+**Consequences.** Captives can be healed without losing their conversion
+progress, and a voluntarily strapped creature takes no need charges or mood
+prelude. Tests cover the shared binding, all 43 flagged states' need charges,
+modeled states' angry selection, and voluntary Mistress sessions at each mood.
+Hash/save 527 adds no state fields and includes the Heart-defense behavior
+from version 526. Campaign measurements and remaining limits stay in the
+evidence note.

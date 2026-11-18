@@ -35,7 +35,7 @@ only jobs 10 and 16 (`job-selection.md` §2).
 |---:|---|---|
 | 1 | `0x00473990` returns nonzero | `PrisonRules.IsImprisoned` — state group 14 or state 126 |
 | 2 | `+0x3E6` bit 15 set | `CombatPitFighter` |
-| 3 | `u16 [+0x3CB]` nonzero | held in the Hand |
+| 3 | `u16 [+0x3CB]` nonzero | keeper-bound; see [torture-captive-health.md](torture-captive-health.md) |
 
 Guard 2 is the interesting one: a creature fighting in the pit cannot rebel out
 of it, whatever its anger.

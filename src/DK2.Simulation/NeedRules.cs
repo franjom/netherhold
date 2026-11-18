@@ -151,6 +151,11 @@ public static class NeedRules
     public static bool TirednessClockRuns(CreatureState creature) =>
         !InNeedGroup(creature) && !Flagged(creature, CreatureStateFlags.SuppressTirednessClock);
 
+    /// <summary>State-flag bit 1 gates the need-anger routine and the angry/unhappy dispatcher
+    /// prelude (0x00478D0C, 0x00477169); the happy idle handler is separate.</summary>
+    public static bool NeedAngerRuns(CreatureState creature) =>
+        !Flagged(creature, CreatureStateFlags.SuppressNeedAnger);
+
     /// <summary>A need has taken the creature off its job: no job and no job tile. The need's own
     /// route, already set, is kept.</summary>
     public static void EndJob(CreatureState creature)

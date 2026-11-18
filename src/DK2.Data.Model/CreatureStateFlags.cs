@@ -25,9 +25,9 @@ public enum CreatureStateFlags : byte
     /// position; the rest of what it means is not read.</summary>
     Unread0 = 1 << 0,
 
-    /// <summary>Suppresses the need-anger routine: a creature busy with something urgent,
-    /// or not properly its keeper's, is charged no `AngerNoLair`, `AngerNoFood` or
-    /// `AngerNoPay` (ADR-0079). 43 states, including all eleven captive ones.</summary>
+    /// <summary>Suppresses the need-anger routine and the dispatcher's angry/unhappy
+    /// prelude. The 43-state scope and separate happy handler are recorded in
+    /// torture-captive-health.md (ADR-0814).</summary>
     SuppressNeedAnger = 1 << 1,
 
     /// <summary>The creature is not attackable while in the state: <c>0x0045A8B0</c> clears

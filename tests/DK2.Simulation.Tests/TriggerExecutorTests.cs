@@ -2148,6 +2148,7 @@ public class TriggerExecutorTests
         fighter.TriggerId = 5;
         dying.TriggerId = 7;
         fighter.CombatPitFighter = true;
+        fighter.PrisonOwnerPlayerId = 3;
         dying.Dk2StateId = CreatureDeathRules.DyingState;
         Assert.True(CreatureDeathRules.IsDying(dying));
 
@@ -2194,6 +2195,40 @@ public class TriggerExecutorTests
         new TriggerExecutor(new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
 
         Assert.Equal(2, world.Triggers.Read(5));
+    }
+
+    [Theory]
+    [InlineData(114)]
+    [InlineData(116)]
+    [InlineData(126)]
+    [InlineData(130)]
+    [InlineData(131)]
+    [InlineData(132)]
+    [InlineData(133)]
+    public void CreatureActionFifteenPreservesACaptiveHerosObjectiveAndState(int stateId)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState hero = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId,
+            PlayerIds.Good, new TilePos(4, 4));
+        hero.TriggerId = 5;
+        hero.PrisonOwnerPlayerId = 3;
+        hero.Dk2StateId = stateId;
+        hero.GoodJob = JobType.None;
+        hero.GoodJobPlayerId = 4;
+        hero.GoodJobActionPointId = 9;
+        TriggerRecord[] records =
+        [
+            Condition(5, repeat: 1, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            Objective(0xFFFF, (byte)JobType.KillPlayer, player: 3, actionPoint: 2),
+        ];
+
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Single(run.CreatureActions);
+        Assert.Equal((JobType.None, (byte)4, 9, stateId, 3),
+            (hero.GoodJob, hero.GoodJobPlayerId, hero.GoodJobActionPointId, hero.Dk2StateId, hero.PrisonOwnerPlayerId));
     }
 
     private static Dictionary<string, long> FlagEquals(byte flag, int value) => new()

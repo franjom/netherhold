@@ -37,6 +37,7 @@ public sealed partial class CreatureJobSystem
         CreatureMood mood = CreatureAngerRules.MoodOf(definition, creature);
         // The dispatcher's owner test: the hero and neutral players' creatures run no choosers (ADR-0485).
         bool eligible = NeedRules.RunsNeeds(creature)
+            && NeedRules.NeedAngerRuns(creature)
             && !((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
             && !creature.RebelActive
             && !CallToArmsRules.IsUnderCallToArms(context.World, creature);
