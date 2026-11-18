@@ -11,6 +11,24 @@ namespace DK2.Data.Tests;
 
 public class KwdDoorsTrapsTests
 {
+    [Theory]
+    [InlineData(KwdRecordType.Doors, 616, 0x232)]
+    [InlineData(KwdRecordType.Traps, 579, 0x1F8)]
+    public void DeathEffectIsAnUnsignedWordIndependentOfNeighbouringFields(KwdRecordType type, int size, int offset)
+    {
+        byte[] bytes = new byte[size];
+        bytes[offset - 1] = 0xFF;
+        bytes[offset + 2] = 0xFF;
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), 0xABCD);
+        var chunk = new KwdChunk { Type = type, ItemCount = 1, Content = bytes, HeaderBlock = [] };
+
+        ushort effect = type == KwdRecordType.Doors
+            ? Assert.Single(KwdDoors.Parse([chunk])).DeathEffectId
+            : Assert.Single(KwdTraps.Parse([chunk])).DeathEffectId;
+
+        Assert.Equal((ushort)0xABCD, effect);
+    }
+
     [Fact]
     public void TrapThreatIsAnUnsignedWordIndependentOfNeighbouringFields()
     {

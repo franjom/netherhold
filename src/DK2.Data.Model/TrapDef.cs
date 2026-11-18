@@ -73,4 +73,7 @@ public sealed record TrapDef
     /// <summary>Record byte <c>0x22F</c>, runtime <c>def+0xBF</c> (loader <c>0x004AA440</c>, intermediate <c>+0x2D7</c>): the surface byte the
     /// swing's impact lookup (<c>0x004998A0</c>) picks the weapon sound by when this trap is struck.</summary>
     public byte ImpactKind { get; init; }
+
+    /// <summary>Optional death effect id from record offset <c>0x1F8</c>; zero means no effect.</summary>
+    public ushort DeathEffectId { get; init; }
 }

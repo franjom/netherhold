@@ -93,7 +93,9 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
     `+0x2A0`, loader `0x004AA440`). Shipped (read from `Traps.kwd`, u16 at `0x1F8`; OpenKeeper #1170
     as the lead): **63** for Gas, Sentry, Fireburst, Lightning, Freeze, Fear, Spike, Guard Post,
     Magic Door and Hero Sentry; **263** for Alarm, Trigger and Hero Alarm; **0** (none) for Boulder,
-    Jack in the Box and Spare Door 1. Effects are not built. Sound positions follow.
+    Jack in the Box and Spare Door 1. `KwdTraps.cs` reads and writes `TrapDef.DeathEffectId`;
+    `TrapRules.Update` requests the effect after propagation and before recovery through
+    `ViewEffectRequest` (position limits: [structure drawing section 2](structure-drawing.md#2-placement-and-visibility)). Sound positions follow.
 12. **Recovery:** alive and the turn strictly past `+0x107`, with `+0xA4` nonzero: gain
     `min(+0xA4, health max − health)` through `0x004B2CE0` when its low word is nonzero, and
     `+0x107 += [0x006F2590]` (one game second) either way. Returns 1.

@@ -21,6 +21,7 @@ public static class KwdDoors
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetHealth), record.Health);
         BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(OffsetHealthGain), record.HealthGain);
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetGoldCost), record.GoldCost);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetDeathEffectId), record.DeathEffectId);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(OffsetManufactureRequired), record.ManufactureRequired);
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetNameStringId), record.NameStringId);
         bytes[OffsetImpactKind] = record.ImpactKind;
@@ -35,6 +36,7 @@ public static class KwdDoors
     private const int OffsetHealth = 0x22C;
     private const int OffsetHealthGain = 0x21C;
     private const int OffsetGoldCost = 0x22E;
+    private const int OffsetDeathEffectId = 0x232;
     private const int OffsetManufactureRequired = 0x234;
     private const int OffsetDoorId = 0x244;
     private const int OffsetCrateObjectId = 0x246;
@@ -71,6 +73,7 @@ public static class KwdDoors
         Health = U16(record, at + OffsetHealth),
         HealthGain = BinaryPrimitives.ReadInt16LittleEndian(record.AsSpan(at + OffsetHealthGain)),
         GoldCost = U16(record, at + OffsetGoldCost),
+        DeathEffectId = U16(record, at + OffsetDeathEffectId),
         ManufactureRequired = BinaryPrimitives.ReadUInt32LittleEndian(
             record.AsSpan(at + OffsetManufactureRequired)),
         Flags = (DoorFlags)record[at + OffsetFlags],

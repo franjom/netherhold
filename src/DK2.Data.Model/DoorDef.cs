@@ -48,6 +48,9 @@ public sealed record DoorDef
     /// and so does the boulder's strike, which sounds <c>0x15A</c> for 4 and 5 (the Steel and Magic doors) and <c>0x14A</c>
     /// for the rest (sound-effects-objects.md section 3).</summary>
     public byte ImpactKind { get; init; }
+
+    /// <summary>Optional death effect id from record offset <c>0x232</c>; zero means no effect.</summary>
+    public ushort DeathEffectId { get; init; }
 }
 
 /// <summary>The door record's flags byte. Named by which shipped records carry each bit: the

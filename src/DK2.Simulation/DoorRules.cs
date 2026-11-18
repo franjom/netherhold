@@ -98,8 +98,8 @@ public static class DoorRules
     /// that never wrote its byte, one placed in play and still under construction, and for an owner
     /// whose number (<c>player+0x10FC</c>) is 0; the first stands on its keeper's claimed floor
     /// and the one shipped door off floor is the Good player's, so ours stamps every door off floor. The
-    /// cleanup's sound, linked objects and the destruction effect
-    /// (<c>def+0xAE</c>) are presentation or unbuilt.</summary>
+    /// cleanup's sound and linked objects are presentation or unbuilt. The destruction
+    /// effect belongs to the update's dead arm, not this cleanup.</summary>
     public static void Remove(SimulationContext context, DoorState door)
     {
         WorldState world = context.World;

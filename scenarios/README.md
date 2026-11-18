@@ -26,6 +26,14 @@ Each run writes to `build/scenario-runs/<id>/`:
 | `progress.tsv` | Only with `--progress N` or `--fuzz`: per-player status, owned and room tiles, gold, mana and creatures every N ticks |
 | `world.txt` | The final world as `TextRenderer` draws it for `viewing_player` |
 
+## Refreshing remake regression fixtures
+`tools/journals/refresh-fixture.cs` refreshes hashes in a completed remake journal:
+```
+dotnet run tools/journals/refresh-fixture.cs -- scenario.yaml input.journal new.journal install
+```
+The output must be new. The tool preserves commands, metadata and tick count, checks a recorded player win,
+and strictly replays the refreshed hashes before writing. Native evidence is not a refresh input.
+
 ## Format
 
 The loader is `src/DK2.Harness/Scenario.cs`; it is the authority on every key, and

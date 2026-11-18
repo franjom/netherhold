@@ -23,6 +23,7 @@ public static class KwdTraps
         bytes[OffsetTriggerType] = record.TriggerType;
         U16(OffsetThreat, record.Threat);
         U16(OffsetHealth, record.Health);
+        U16(OffsetDeathEffectId, record.DeathEffectId);
         U16(OffsetGoldCost, record.GoldCost);
         U16(OffsetManufactureRequired, record.ManufactureRequired);
         U16(OffsetManaUpkeepPerSecond, record.ManaUpkeepPerSecond);
@@ -50,6 +51,7 @@ public static class KwdTraps
     private const int OffsetThreat = 0x1EA;
     private const int OffsetHealth = 0x1F0;
     private const int OffsetGoldCost = 0x1F2;
+    private const int OffsetDeathEffectId = 0x1F8;
     private const int OffsetManufactureRequired = 0x1FA;
     private const int OffsetManaUpkeepPerSecond = 0x202;
     private const int OffsetTrapId = 0x20C;
@@ -100,6 +102,7 @@ public static class KwdTraps
         Threat = U16(record, at + OffsetThreat),
         Health = U16(record, at + OffsetHealth),
         GoldCost = U16(record, at + OffsetGoldCost),
+        DeathEffectId = U16(record, at + OffsetDeathEffectId),
         ManufactureRequired = U16(record, at + OffsetManufactureRequired),
         ShotTypeId = record[at + OffsetShotTypeId],
         CrateObjectId = record[at + OffsetCrateObjectId],

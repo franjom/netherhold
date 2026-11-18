@@ -37,6 +37,8 @@ centre with height zero. The constructors call `0x004B5560`, the thunk to
 documented in [004545C0](functions/004545C0.md); the view reuses its furniture
 floor-height selector.
 
+Door/trap death-effect requests use the existing tile-centre/current-floor representation. Native requests forward the stored physical position instead; the current simulation model cannot retain an earlier structure height after the supporting terrain changes. Heading follows the stored trap heading or the door constructor's orientation mapping.
+
 `0x004A6B70` draws completed doors for everyone and construction only for the
 local owner. Trap reveal is [traps.md §11](traps.md#11-disarm-and-reveal-q451-q455).
 Visibility follows `0x004A9F10`: a foreign hidden trap is omitted, and construction

@@ -394,6 +394,11 @@ public static class TrapRules
             Propagate(context, sight, trap);
         }
 
+        if (IsDead(trap) && !trap.UnderConstruction && definition.DeathEffectId != 0)
+            context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(definition.DeathEffectId), trap.PlayerId,
+                new FpPosition3(new Fp32(trap.PosX), new Fp32(trap.PosY),
+                    new Fp32(FloorHeightRules.At(world, database, trap.PosX, trap.PosY))), new Dk2Angle((ushort)trap.Heading)));
+
         if (!IsDead(trap) && now > trap.RecoveryAt && definition.HealthGain != 0)
         {
             int gain = Math.Min(definition.HealthGain, definition.Health - trap.Health);

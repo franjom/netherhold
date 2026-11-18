@@ -20,6 +20,20 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
         GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
     [InstallFact]
+    public void EveryDoorDeathEffectMatchesTheShippedDefinitionIncludingSharedEffects()
+    {
+        Assert.Equal(new ushort[] { 220, 217, 219, 218, 62, 62, 62, 217 },
+            Database().Doors.OrderBy(d => d.Key).Select(d => d.Value.DeathEffectId));
+    }
+
+    [InstallFact]
+    public void EveryTrapDeathEffectMatchesTheShippedDefinitionIncludingZeros()
+    {
+        Assert.Equal(new ushort[] { 63, 0, 63, 263, 63, 63, 63, 63, 263, 63, 63, 63, 0, 63, 263, 0 },
+            Database().Traps.OrderBy(t => t.Key).Select(t => t.Value.DeathEffectId));
+    }
+
+    [InstallFact]
     public void EveryTrapThreatMatchesTheBinaryVerifiedColumnIncludingZeros()
     {
         Assert.Equal(new ushort[] { 74, 0, 74, 0, 185, 74, 37, 600, 0, 74, 0, 100, 0, 74, 0, 0 },

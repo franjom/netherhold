@@ -29,6 +29,7 @@ public class KwdDoorWriterTests
             (d => d with { NameStringId = 2528 }, 0x23C, 2),
             (d => d with { SoundCategory = "DOOR_EDITED" }, 0x248, 32),
             (d => d with { ImpactKind = 5 }, 0x226, 1),
+            (d => d with { DeathEffectId = 0xABCD }, 0x232, 2),
         };
         foreach (var edit in edits)
         {

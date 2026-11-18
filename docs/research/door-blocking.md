@@ -137,7 +137,8 @@ Update `0x004A55F0`, in its order:
 3. **Owner.** When the tile word `+8 & 0xFFF` (Q247) is not the door's owner: an unbuilt door
    leaves its keeper's blueprint list (`0x005056E0`), and health is set to 0.
 4. A closed built door pushes creatures off its tile, a barricade included: [door-push.md](door-push.md) (ADR-0679).
-5. A barricade returns here: alive it only updates sounds; dead it plays `def+0xAE`.
+5. A barricade returns here: alive it only updates sounds; dead it requests nonzero `def+0xAE`
+   only when construction `+0x109` is zero (`0x004A5974` to `0x004A59CE`). It skips support.
 6. **Support.** Orientation `+0x119` 0 tests `(x, y−1)` and `(x, y+1)`, otherwise `(x−1, y)` and
    `(x+1, y)`, through world slot `+0x208` (`0x00509200`, Solid bit). Unless both are Solid,
    the door's `+0x20` (`0x004B2AD0`) sets health to 0 (`0x004A5B0F`).
@@ -146,9 +147,10 @@ Update `0x004A55F0`, in its order:
    effect-creation slot `+0x38C` is called with (`def+0xAE`, owner word `+0x28`, position `+0x1A`,
    heading `+0xF4`). The loader `0x004A7100` fills `def+0xAE` from staging `+0x2A6` (presence dword
    `+0x64`); health maps from file `0x22C`, so the effect id is at door record file offset `0x232`,
-   which `KwdDoors.cs` does not parse. Shipped (read from `Doors.kwd`, u16 at `0x232`; OpenKeeper
+   which `KwdDoors.cs` reads and writes as `DoorDef.DeathEffectId`. Shipped (read from `Doors.kwd`, u16 at `0x232`; OpenKeeper
    #1170 as the lead): Wooden **220**, Braced **219**, Steel **217**, Hero Portcullis **217**,
-   Magic **218**; Secret, Barricade and Hero Barricade **62**. Effects are not built. The door's
+   Magic **218**; Secret, Barricade and Hero Barricade **62**. `DoorHealthSystem` requests both
+   dead-arm effects through `ViewEffectRequest`; position limits: [structure drawing section 2](structure-drawing.md#2-placement-and-visibility). The door's
    cleanup `Door_Cleanup` `0x004A5290` requests no effect.
 8. Opening (doors-and-traps.md); an open built Secret Door within four tiles of an enemy that
    sees it makes it that enemy's forced target and reveals it; not built.
@@ -171,7 +173,9 @@ tests only that the byte carries a door owner, never the terrain, so a door gone
 floor there until `Tile_SetTerrain` `0x0044FC40`, which writes the terrain's byte on every call, next runs
 on the tile; Level 4's hero door is the shipped case (Q600, `WorldState.NavStamps`). Level start (`0x0050BA1A`) writes every placed door's byte first. A door
 killed in a turn is removed in that turn, after every class has updated. Creatures (list 0)
-update before doors (list 4); where shots fall is Q398.
+update first, followed by shots (1), objects (2), traps (3), doors (4) and action points (5).
+`DoorHealthSystem` runs after `TrapSystem` and before removal, so a door killed by this turn's
+shot requests its death effect in the same turn (see [the sweep record](functions/004B7830.md)).
 
 ## 8. Other forced-door setters
 
@@ -187,15 +191,16 @@ table on 2026-11-06: STRONGLY INFERRED. Built in `DropCombatRules` (ADR-0698).
 ## Built (ADR-0318) and left
 
 Built: §1 except the bits 17/18 clear (nothing here sets them) and `+0x16` (unnamed, Q364); §2;
-§3; §4; §5's melee arm and the shot stand-in; §6 steps 1, 3 and 6; §7's removal and its
+§3; §4; §5's melee arm and the shot stand-in; §6's recovery, owner, push, support and death-effect
+requests; §7's removal and its
 timing. A door's id is stable and blueprints hold ids, so a removal leaves every other
 reference intact.
 
 Section 8 is built (ADR-0698); verification limits: [hand-drop-landing.md](hand-drop-landing.md#built-scope-and-verification-adr-0698-hashsave-430).
 
-Left: the secret-door reveal (§6.8), the linked objects, effects and
+Left: the secret-door reveal (§6.8), the linked objects, other effects and
 sounds, area damage on doors.
 
 ## Open questions
 
-Q510 (forced creature arm), Q364 (`+0x16 == 2`), Q398 (shot order and collision).
+Q510 (forced creature arm), Q364 (`+0x16 == 2`), Q398 (remaining shot collision limits).

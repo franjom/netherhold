@@ -9,8 +9,10 @@ questions live in their canonical documents; this file links to them.
   Generate counts with `dk2tools status`; use `dk2tools coverage` for implementation
   coverage. Neither counts nor historical test totals are maintained here.
 - Current simulation/save composition: [hash versions](research/hash-versions.md).
-  Mana running words and non-training experience loss are built (hash/save 528;
-  [mana](research/mana.md), [training](research/training.md#10-implementation)).
+  Door/trap death-effect requests and newest-first door health updates are built (hash/save 529;
+  [doors](research/door-blocking.md#6-health-recovery-and-the-two-kills), [traps](research/traps.md#3-the-update-0x004a84e0-in-its-order)).
+  Mana running words and non-training experience loss are built
+  ([mana](research/mana.md), [training](research/training.md#10-implementation)).
   Captive healing and state-flag mood guards are built (ADR-0814),
   preserving master's Heart-defense behavior. [Evidence and historical campaign measurements](research/torture-captive-health.md)
   distinguish the measured bot revision from master's bot.

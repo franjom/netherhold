@@ -97,6 +97,7 @@ internal static class TestWorld
         // Training's cost and the Casino's stake, as shipped: their enter hooks test them (ADR-0313).
         Set(vars, VariableTypeId.ModifyPlayerColdWhileTrainingPerSecond, -5);
         Set(vars, VariableTypeId.GamblingModifyCreatureMoneyMoneyPerSecond, -8);
+        Set(vars, VariableTypeId.EPLossSecondWhileNotTraining, 0);
         return vars;
     }
 

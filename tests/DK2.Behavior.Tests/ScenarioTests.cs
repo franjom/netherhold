@@ -519,6 +519,8 @@ public class ScenarioTests
     private static GlobalVariables Variables()
     {
         var vars = new GlobalVariables();
+        vars.Misc[VariableTypeId.EPLossSecondWhileNotTraining] =
+            new MiscVariable(VariableTypeId.EPLossSecondWhileNotTraining, 0, 0, 0);
         foreach (VariableTypeId id in new[]
                  {
                      VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds,
