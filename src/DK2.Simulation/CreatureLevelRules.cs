@@ -58,7 +58,7 @@ public static class CreatureLevelRules
 
     /// <summary>Adds experience and promotes at most one level, reproducing DK2's adder
     /// (<c>FUN_00457880</c>, Q127). Returns true if a level was gained. A threshold of zero refuses
-    /// everything, gains and losses alike; a loss bigger than the balance is a no-op, not a clamp;
+    /// everything, gains and losses alike; a loss bigger than the balance clamps it to zero;
     /// reaching the threshold zeroes the balance rather than subtracting, so the overshoot is
     /// discarded and an award's cadence is observable — hence training pays on
     /// <see cref="SimulationTiming.OnOriginalTick"/>; one level per call, no loop, through
@@ -75,8 +75,7 @@ public static class CreatureLevelRules
 
         if (amount < 0)
         {
-            // Refused, not clamped: the original only subtracts when it fits.
-            if (-amount <= state.ExperiencePoints) state.ExperiencePoints += amount;
+            state.ExperiencePoints = (int)Math.Max(0, (long)state.ExperiencePoints + amount);
             return false;
         }
 

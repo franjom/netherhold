@@ -7,29 +7,90 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>Where a keeper's mana comes from, and what stops it growing (mana.md).
-/// <para><b>Mana is land</b>: the three terrains with a non-zero <see cref="TerrainDef.ManaGain"/>
-/// — Claimed Path 1, Reinforced Wall 1, Claimed Vault 100 — are exactly the non-room
-/// terrains a keeper holds, so income is the size of the territory (STRONGLY INFERRED from the
-/// data). The unit is per second (STRONGLY INFERRED): <c>MaximumManaGainPerSecond</c>
-/// (500) caps the total and a cap shares its unit. A heart adds a flat 30, once per
-/// keeper — exact, because <b>a keeper has at most one heart, ever</b>. Every imp drains
-/// <see cref="ImpUpkeepPerSecond"/>, kept apart from income because the cap covers only
-/// the income half (Q53).</para>
-/// <para>Normal Horny upkeep is <see cref="ReaperRules.UpkeepPerSecond"/>; the one-shot variant is excluded by the binary. Possession is <see cref="PossessionRules.UpkeepPerSecond"/>. Call To Arms is <see cref="CallToArmsRules.UpkeepPerSecond"/>, and a completed trap's is <see cref="TrapUpkeepPerSecond"/>.
-/// <b><see cref="TerrainDef.MaxManaGain"/> and <c>DungeonHeartMaxManaIncrease</c> may not justify a mana rule</b>: both read like a ceiling contribution and neither can be
-/// one, the ceiling being 200000 from the first second and never moving (CONFIRMED, Q37).</para></summary>
+/// <summary>Mana income uses per-player running terrain gain and cap words (mana.md, Q521).
+/// Terrain and owner writes preserve room and bridge residuals; current tiles alone
+/// cannot reconstruct the words. A Heart adds 30 before the income cap; upkeep is
+/// deducted afterwards. The stored-mana ceiling is separate (Q37).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/mana.md")]
 public static class ManaRules
 {
-    /// <summary>Mana per second this tile generates for whoever owns it: the terrain's
-    /// <c>ManaGain</c>, plus, on a room tile, the floor's gain it kept when the room was built
-    /// over it (<see cref="TileState.KeptManaGain"/>). DK2 keeps the rate as a running word
-    /// (<c>player+0x10E2</c>): <c>Tile_SetOwner</c> (<c>0x004559D0</c>) moves the current
-    /// terrain's gain between owners, and <c>Tile_SetTerrain</c>'s adjustment
-    /// (<c>0x00455B90</c>) runs only when neither the old nor the new terrain is a Room, so a
-    /// room laid on claimed floor keeps the floor's 1 and a room owned from the start pays
-    /// nothing (ADR-0334). Read from the terrain, never from a terrain id.</summary>
+    // 0x455C2A tests these exact terrain ids, not room-placement flags. Mods with
+    // bridge-like flags on other ids do not earn this bonus (00455B90.md).
+    private static bool HasBridgeBonus(byte terrainId) => terrainId is 0x11 or 0x1A;
+
+    /// <summary>Terrain-write half of player +0x10E2; must run before any owner change.</summary>
+    public static void SetTerrain(WorldState world, GameDatabase database, ref TileState tile, byte terrainId)
+    {
+        RecordTerrainChange(world, database, tile, terrainId);
+        tile.TerrainId = terrainId;
+    }
+
+    internal static void RecordTerrainChange(WorldState world, GameDatabase database, in TileState tile, byte terrainId)
+    {
+        if (tile.TerrainId == terrainId || !world.HasPlayer(tile.OwnerPlayerId)) return;
+        TerrainDef old = database.TerrainById(tile.TerrainId);
+        TerrainDef next = database.TerrainById(terrainId);
+        ref PlayerState player = ref world.Player(tile.OwnerPlayerId);
+        if (!old.IsRoom && !next.IsRoom)
+        {
+            if (tile.OwnerPlayerId != PlayerIds.Unowned)
+                player.TerrainManaGainPerSecond += (short)next.ManaGain
+                    - (tile.TerrainId == 0 ? 0 : (short)old.ManaGain);
+        }
+        else if (HasBridgeBonus(terrainId)) player.TerrainManaGainPerSecond++;
+        else if (HasBridgeBonus(tile.TerrainId)) player.TerrainManaGainPerSecond--;
+    }
+
+    /// <summary>Owner-write half: transfers only the current definition's words, leaving room and bridge leftovers.</summary>
+    public static void SetOwner(WorldState world, GameDatabase database, ref TileState tile, PlayerId owner)
+    {
+        if (tile.OwnerPlayerId == owner) return;
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        if (tile.OwnerPlayerId != PlayerIds.Unowned && world.HasPlayer(tile.OwnerPlayerId))
+        {
+            ref PlayerState old = ref world.Player(tile.OwnerPlayerId);
+            old.TerrainManaGainPerSecond -= (short)terrain.ManaGain;
+            old.TerrainManaGainCapBonus -= (short)terrain.MaxManaGain;
+        }
+        if (world.HasPlayer(owner))
+        {
+            ref PlayerState next = ref world.Player(owner);
+            next.TerrainManaGainPerSecond += (short)terrain.ManaGain;
+            next.TerrainManaGainCapBonus += (short)terrain.MaxManaGain;
+        }
+        tile.OwnerPlayerId = owner.Value;
+    }
+
+    internal static void RecordTileChange(WorldState world, GameDatabase database, in TileState before, in TileState after)
+    {
+        TileState accounting = before;
+        SetTerrain(world, database, ref accounting, after.TerrainId);
+        SetOwner(world, database, ref accounting, after.OwnerPlayerId);
+    }
+
+    internal static void InitializeTerrainRates(WorldState world, GameDatabase database)
+    {
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            ref TileState tile = ref world.TileAtIndex(i);
+            TerrainDef terrain = database.TerrainById(tile.TerrainId);
+            if (world.HasPlayer(tile.OwnerPlayerId))
+            {
+                ref PlayerState owner = ref world.Player(tile.OwnerPlayerId);
+                if (tile.OwnerPlayerId != PlayerIds.Unowned)
+                {
+                    owner.TerrainManaGainPerSecond += (short)terrain.ManaGain;
+                    owner.TerrainManaGainCapBonus += (short)terrain.MaxManaGain;
+                }
+                // Map_LoadTileRecord lays the hazard, then builds the room for its owner;
+                // Map_SetRoomTile therefore credits map bridges just like newly built ones.
+                if (terrain.IsRoom && HasBridgeBonus(tile.TerrainId)) owner.TerrainManaGainPerSecond++;
+            }
+        }
+    }
+    /// <summary>Standalone tile estimate retained for tile-only callers. World income cannot
+    /// be reconstructed from current tiles: it uses the per-player running rate (ADR-0334).
+    /// This estimate excludes bridge bonuses and income left behind by ownership changes.</summary>
     public static int GainPerSecond(GameDatabase database, in TileState tile)
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
@@ -67,15 +128,10 @@ public static class ManaRules
     public static int Threshold(GameDatabase database) =>
         database[VariableTypeId.MaximumManaThreshold];
 
-    /// <summary>What every player in the world gains per second, indexed to match
-    /// <see cref="WorldState.PlayerAtIndex"/>. One pass over the map rather than one per
-    /// player: the map is the big thing.</summary>
+    /// <summary>Running terrain rate plus the heart, capped per keeper; indexed like <see cref="WorldState.PlayerAtIndex"/>.</summary>
     public static int[] GainPerSecondByPlayerIndex(WorldState world, GameDatabase database)
     {
         var gain = new int[world.PlayerCount];
-        // Tile_SetOwner moves the terrain's MaxManaGain into the owner's cap word (+0x10DE)
-        // beside its gain: a Claimed Vault raises a keeper's cap by 100 a tile (ADR-0334).
-        var capBonus = new int[world.PlayerCount];
         var hasHeart = new bool[world.PlayerCount];
         byte? heartTerrain = DungeonHeartTerrainId(database);
 
@@ -92,10 +148,6 @@ public static class ManaRules
             int player = indexOfOwner[tile.OwnerPlayerId];
             if (player < 0) continue;
 
-            int perTile = GainPerSecond(database, tile);
-            if (perTile != 0) gain[player] += perTile;
-            capBonus[player] += database.TerrainById(tile.TerrainId).MaxManaGain;
-
             // A flag rather than a count: however many tiles a heart covers it is one
             // heart, and a keeper never has two.
             if (tile.TerrainId == heartTerrain) hasHeart[player] = true;
@@ -104,7 +156,11 @@ public static class ManaRules
         int fromHeart = hasHeart.Contains(true) ? HeartGainPerSecond(database) : 0;
         int cap = MaxGainPerSecond(database);
         for (int i = 0; i < gain.Length; i++)
-            gain[i] = Math.Min(gain[i] + (hasHeart[i] ? fromHeart : 0), cap + capBonus[i]);
+        {
+            ref PlayerState player = ref world.PlayerAtIndex(i);
+            gain[i] = Math.Min(player.TerrainManaGainPerSecond + (hasHeart[i] ? fromHeart : 0),
+                cap + player.TerrainManaGainCapBonus);
+        }
 
         return gain;
     }

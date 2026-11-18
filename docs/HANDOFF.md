@@ -9,7 +9,9 @@ questions live in their canonical documents; this file links to them.
   Generate counts with `dk2tools status`; use `dk2tools coverage` for implementation
   coverage. Neither counts nor historical test totals are maintained here.
 - Current simulation/save composition: [hash versions](research/hash-versions.md).
-  Captive healing and state-flag mood guards are built (ADR-0814, hash/save 527),
+  Mana running words and non-training experience loss are built (hash/save 528;
+  [mana](research/mana.md), [training](research/training.md#10-implementation)).
+  Captive healing and state-flag mood guards are built (ADR-0814),
   preserving master's Heart-defense behavior. [Evidence and historical campaign measurements](research/torture-captive-health.md)
   distinguish the measured bot revision from master's bot.
   Combat Pit completion and remaining parity limits: [canonical scope](research/combat-pit.md#9-what-is-built-adr-0213-hashsave-523).

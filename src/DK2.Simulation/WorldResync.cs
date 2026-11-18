@@ -61,7 +61,12 @@ public static class WorldResync
             throw new InvalidDataException($"the capture's map is {state.Width}x{state.Height}, ours {world.Width}x{world.Height}");
 
         var notes = new List<string>();
-        int tilesChanged = ((parts & ResyncParts.Tiles) == ResyncParts.Tiles) ? ApplyTiles(world, state) : 0;
+        int tilesChanged = 0;
+        if ((parts & ResyncParts.Tiles) == ResyncParts.Tiles)
+        {
+            tilesChanged = ApplyTiles(world, database, state);
+            notes.Add("mana rate/cap updated by imported tile deltas; native historical leftovers unavailable in the capture schema");
+        }
         int marksSet = ((parts & ResyncParts.Marks) == ResyncParts.Marks) ? ApplyMarks(world, state) : 0;
         int doorsAndTraps = ((parts & ResyncParts.Doors) == ResyncParts.Doors) ? ApplyDoorsAndTraps(context, state, notes) : 0;
         simulation.Navigation.Refresh();
@@ -703,7 +708,7 @@ public static class WorldResync
         _ => null,
     };
 
-    private static int ApplyTiles(WorldState world, ResyncState state)
+    private static int ApplyTiles(WorldState world, GameDatabase database, ResyncState state)
     {
         int changed = 0;
         for (int y = 0; y < world.Height; y++)
@@ -711,11 +716,13 @@ public static class WorldResync
         {
             int index = (y * world.Width) + x;
             ref TileState tile = ref world.Tile(x, y);
+            TileState before = tile;
             byte terrain = (byte)state.Terrain(index);
             int owner = state.Owner(index);
             if (tile.TerrainId != terrain || (owner != 0 && tile.OwnerPlayerId != owner)) changed++;
             tile.TerrainId = terrain;
             if (owner != 0) tile.OwnerPlayerId = (byte)owner;
+            ManaRules.RecordTileChange(world, database, before, tile);
             if (state.TileHealth is { } health && index < health.Length) tile.Health = health[index];
         }
         return changed;

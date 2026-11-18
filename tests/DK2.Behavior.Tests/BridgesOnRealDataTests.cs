@@ -258,6 +258,12 @@ public class BridgesOnRealDataTests
         RoomDef stone = db.Room(RoomTypeId.StoneBridge);
         TerrainDef woodenTerrain = db.TerrainById(wooden.TerrainId);
         TerrainDef stoneTerrain = db.TerrainById(stone.TerrainId);
+        Assert.Equal(17, wooden.TerrainId);
+        Assert.Equal(26, stone.TerrainId);
+        Assert.True(woodenTerrain.IsRoom);
+        Assert.True(stoneTerrain.IsRoom);
+        Assert.Equal(0, woodenTerrain.ManaGain);
+        Assert.Equal(0, stoneTerrain.ManaGain);
 
         // Identical flags and identical health, and neither decays. So nothing in
         // the terrain table distinguishes the bridge that burns from the one that

@@ -95,12 +95,29 @@ public static class TrainingRules
     /// hook <c>0x0047B230</c> and the update hook <c>0x0047B2D0</c> both pass it.</summary>
     public const int UnpaidMessageVariant = 5;
 
-    /// <summary>The per-second experience drain DK2 ships and then disables:
-    /// <c>EPLossSecondWhileNotTraining</c>, which is <b>0</b>. The mechanism is live —
-    /// a per-tick hook negates this variable whenever the creature's state category is
-    /// not 13 — so DK2 was built to decay experience unless creatures kept training,
-    /// and shipped the rate at zero. Inert by value, not for want of a reader (Q203);
-    /// <see cref="CreatureLevelRules.Grant"/> already handles a non-zero one.</summary>
+    /// <summary>Compatibility name for <see cref="ExperienceLostPerTickWhileNotTraining"/>;
+    /// DK2's variable name says seconds, but its reader applies the value every tick.</summary>
     public static int ExperienceLostPerSecondWhileNotTraining(GameDatabase database) =>
-        database[VariableTypeId.EPLossSecondWhileNotTraining];
+        ExperienceLostPerTickWhileNotTraining(database);
+
+    /// <summary>The signed word stored for variable 132, applied raw every tick despite its name.</summary>
+    public static int ExperienceLostPerTickWhileNotTraining(GameDatabase database) =>
+        unchecked((short)database[VariableTypeId.EPLossSecondWhileNotTraining]);
+
+    /// <summary>The per-creature drain after timed effects (0x00489584): category 13, including
+    /// a utility state's resume slot, is exempt. Negative configured losses use the positive
+    /// award truncation of 0x004858B0 before entering the experience adder.</summary>
+    internal static void ApplyNonTrainingExperienceLoss(in StateHookContext hooks, CreatureState state)
+    {
+        if (NeedRules.ResolvedCategory(state) == CreatureStateCategory.Training) return;
+        int amount = -ExperienceLostPerTickWhileNotTraining(hooks.Database);
+        if (amount == 0) return;
+        CreatureDef definition = hooks.Database.CreatureById(state.CreatureTypeId);
+        if (amount > 0)
+        {
+            int needed = CreatureLevelRules.ExperienceForNextLevel(hooks.Database, definition, state.Level);
+            amount = Math.Min(amount, needed - state.ExperiencePoints);
+        }
+        CreatureLevelRules.Grant(hooks, definition, state, amount);
+    }
 }

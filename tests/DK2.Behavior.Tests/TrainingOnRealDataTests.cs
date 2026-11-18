@@ -147,6 +147,8 @@ public sealed class TrainingOnRealDataTests
         Assert.Equal(5, TrainingRules.GoldPerSecond(db));
 
         // The drain DK2 built and then switched off.
+        Assert.Equal(0, db[VariableTypeId.EPLossSecondWhileNotTraining]);
+        Assert.Equal(0, TrainingRules.ExperienceLostPerTickWhileNotTraining(db));
         Assert.Equal(0, TrainingRules.ExperienceLostPerSecondWhileNotTraining(db));
     }
 

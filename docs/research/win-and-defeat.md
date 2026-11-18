@@ -11,8 +11,6 @@ Source(s):
 - the shipped campaign's `*Triggers.kld`, swept with `dk2tools kwd triggers`
 - `Creatures.kwd` / `Objects.kwd` / the global VARIABLES table
 
-Original version: DK2 v1.70 (GOG)
-
 Questions: answers Q129, Q263, Q358 and Q363, closes the state half of Q40, Q93 and Q207,
 opens Q359. Built as ADR-0162, amended 2026-09-23 for the defeat's consequences.
 
@@ -254,12 +252,9 @@ clear:
    `Status` 0 and bit 19 of `+0x76` clear are counted; if exactly one remains,
    `0x004BE630` is called on that one with code 2 — last keeper standing.
 
-So **the heart's death is not the defeat; the stamped killer is**, read one turn
-later, and the side that struck decides between *lost* and *conquered*.
-`Number >= 3` is exactly this project's `PlayerIds.IsKeeper`. Bits 19 and 22 of
-`+0x76` are not among the fifteen the dumper names; UNKNOWN. Texts 701 and 702
-are not in `Text.str` (that table's 0–704 are placeholders), so `ObjectiveTextId`
-indexes another table: UNKNOWN which.
+The stamped killer is read one turn later; its side decides between *lost* and *conquered*.
+`Number >= 3` is this project's `PlayerIds.IsKeeper`. Bits 19 and 22 of `+0x76` are unnamed by the dumper: UNKNOWN.
+Texts 701 and 702 are not in `Text.str` (its 0–704 are placeholders); `ObjectiveTextId`'s table is UNKNOWN.
 
 ## 7. Alliances; what a defeat does
 
@@ -330,18 +325,23 @@ while the heart tile still carries a heart room (`0x00453A20(tile, 5)`):
    Obstacle* (object 100) is created at the heart's centre, owned by neutral, and attached
    to the room (`0x004E6220`, `obj+0x133 = 1`). Its role is UNKNOWN.
 
-From the fifth turn (`GameTickDied + 4 < now`), every turn, for each creature in the
-keeper's list (`player+0x6`, next `+0x10`): one flagged `CreatureDying` gets virtual
-slot `+0x20` (unread); one whose prison-owner word `+0x3CB` is set is skipped unless
-the jailer is the fallen keeper, when it gets slot `+0x20` too; then, if the thing's own
-finished predicate (slot `+0x28`, §3.1) is false: a **non-worker owned by the keeper**
-not yet `Leaving` (`+0x3E6` bit 14) has any action cleared (`0x00496D00`/`0x00496D20`)
-and is set to state 1 then **194 "leaving Dungeon"** (states 194–196, 6, 7, 87 and 193
-are left as they are); **everyone else — every Imp, and any creature in the list not
-owned by the keeper — is killed outright**, `0x004B2CE0(c, −health, KilledByPlayerId,
-0)`, the killer credited.
+**STRONGLY INFERRED, instructions re-read 2026-11-18:** the stamped Heart-death turn is turn 0;
+the general creature sweep first runs **5 turns after that turn**, then every turn, for workers and non-workers alike.
+`0x004DACC6..0x004DACD6` adds 4 to a local copy of `GameTickDied` and skips on unsigned `now <= stamp + 4`
+(32-bit addition); no countdown or stamp is incremented. The writer is `0x004C007A` (§5), not `0x004BE630`.
+In list `player+0x6` (next `+0x10`), `CreatureDying` invokes slot `+0x20`; a currently owned creature with
+prison owner `+0x3CB` set is skipped for a foreign jailer, or invokes `+0x20` for its own jailer.
+Slot `+0x28` then skips finished things. Owned non-workers enter state 1 then **194, leaving**;
+without `Leaving` bit 14 only state 193 is spared. With that bit, 194–196, 6, 7 and 87 are spared,
+and 193 only while its action runs; other active actions are ended. Workers and differently owned list members
+instead receive `0x004B2CE0(c, −health, KilledByPlayerId, 0)`. For state 194's entrance selection and later removal,
+see [creature-leaving.md](creature-leaving.md#1-state-194-chooses-across-every-players-entrances).
+Native corroboration: `F:/DK2Evidence/captures/native/native-dk2runs--unknown-date--001/payload/m12-level11A-20261031/m12l11a.dk2cap`
+(SHA-256 `9105e9a7f97355e07f4cc9d38b4f074ab2646c324931fa98538e3e4df1130c39`):
+keeper 6 has stamp 1377; slots 401/408/423/425/437 have positive health at frame 1382 and zero at 1383 (untorn).
+This brackets the turn-1382 sweep; the exact execution turn remains a binary reading.
 
-**`0x004DAE40`, the local player's collapse** (research only). At death only the
+**`0x004DAE40`, the mode-1 local player's collapse** (research only). At death only the
 Portal (3), Wooden Bridge (8), Stone Bridge (17) and Hero Stone Bridge (22) go neutral;
 each other room has the thing on every slab removed (`0x00453760`, `0x004E62D0`, tile
 bit 14 cleared, `0x00452340`, deleted) and gets the same obstacle object. From
@@ -351,7 +351,8 @@ terrain (`0x0044FC40(…, roomOwnerTag, 0, 1)`) and the room freed (`0x004ECD00`
 no Destructor lives (`player+0xB4C`, decremented by its death arm) and `+0x76` bit 14
 is clear, one is created on a random owned tile holding no gold pile (3) and no alarm
 crate (5) — the bounding box exhausted, bit 14 is set. Its creatures follow the same
-arm from the death turn, not the fifth. What a Destructor does is UNKNOWN.
+tail without the five-turn gate (successful Destructor creation returns before it); owned prisoners invoke
+slot `+0x20` even for foreign jailers. What a Destructor does is UNKNOWN.
 
 **Built (hash-neutral, 2026-09-23): `DefeatRules`, run by `DungeonHeartSystem` every
 turn a killer is stamped.** The general arm: gold to neutral piles per heart tile

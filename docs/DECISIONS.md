@@ -1439,7 +1439,7 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 2. **The 1200 was a coincidence between two unrelated mechanics.** `ExpPerSecond` belongs to state **category 22** — battle, fleeing, threat-response — so it is **combat** experience, which is the owner's own *"to get to level 10 they need to fight actual fights"* (Q124). The per-minute reading is withdrawn. Third instance in this project of two correct numbers that never meet.
 3. **The payment hangs off the state's category, not the state.** None of the six training states awards anything. The 32 category records at `0x00699688` each carry an enter hook at `+0x04`, an update hook at `+0x14` and a leave hook at `+0x24`, and the per-tick dispatcher calls the current category's update hook before the state's own handler. Category 13 is training; its update hook is the payment. All 32 records are now decoded (Q186).
 4. **Training bills the keeper five gold a game second, and poverty ends the job.** `ModifyPlayerColdWhileTrainingPerSecond` is −5 and "Cold" is the shipped spelling of gold. The original tests the keeper's gold before entering the state and before every charge, and returning failure from a category update hook makes the dispatcher put the creature back to idle. Training is the only job in DK2 a keeper can be evicted from by being poor. `JobRules.Refused` makes that test too, and *before* the level test, because that is the order in the handler.
-5. **`CreatureLevelRules.TryLevelUp` is replaced by `Grant`, and Q127's two readings were both wrong.** DK2 promotes **once** and **zeroes** the balance — the overshoot is discarded, not carried, and a large award cannot buy two levels. A negative award larger than the balance **clamps it to zero** (corrected 2026-11-18 from "no-op": `training.md` §7; `Grant` still leaves it unchanged). An `ExpForNextLevel` of zero refuses everything, losses included.
+5. **`CreatureLevelRules.TryLevelUp` is replaced by `Grant`, and Q127's two readings were both wrong.** DK2 promotes **once** and **zeroes** the balance — the overshoot is discarded, not carried, and a large award cannot buy two levels. A negative award larger than the balance **clamps it to zero** (`training.md` §7; mirrored by `Grant`). An `ExpForNextLevel` of zero refuses everything, losses included.
 6. **Q79: imp experience is per tick of work, not per job.** `ImpExperienceGainPerSecond` is read at nine sites, all in the imp's task unit, all awarding the raw 20 with no divide, each guarded by a predicate that decompiles to *"is this tile still a valid target"* rather than *"the job finished"*. It is the one rate in the family **not** divided by variable 19, so its name is wrong by a factor of four in the opposite direction to everything around it: **80 a game second**, and an imp reaches level 2 in about **37 seconds** of work rather than the 150 asserted in a test name for three weeks. (The owner leaned "per job done" and named exactly the right activities.) *Amended by ADR-0386: per work hit, not per tick.*
 7. **Both awards are paid on the original's tick, not once a game second** — `SimulationTiming.OnOriginalTick`. Because the promotion zeroes the balance, four awards of ten and one award of forty leave different numbers behind on any second that crosses a threshold. The cadence is behaviour.
 
@@ -7658,18 +7658,12 @@ the cap and removes it after: `min(cap, gross + 30) − upkeep`, as `ManaRules.A
 already paid. An earlier reading of that payment as "the upkeep cancels" was withdrawn by the
 same fit.
 
-**Decision.** `TileState.KeptManaGain`: `RoomRules.Place` records the covered floor's
-`ManaGain` when the builder owned the tile (a room over a room keeps the earlier value), and every
-owner change clears it (`TileWorkRules`' conversion, the room-convert spread, defeat).
-`ManaRules.GainPerSecond` adds it on room tiles; `GainPerSecondByPlayerIndex` raises the cap by
-the owned tiles' `MaxManaGain`. Setup rooms and the tests' map hearts keep 0. Not mirrored (Q521): the
-old owner's leftover for a lost room tile, a map-laid or captured room's 0 once sold, a rival's
-room over foreign floor, the bridge's 1, and the cap bonus following the current terrain
-rather than the owner-change; the kept value is a byte (a vault's 100 fits). Docs:
-`mana.md`, `terrain-room-dump.md`, `hash-versions.md`; KB `004559D0` and `00455B90` (new),
-`0044FC40`, `004C10E0`.
-
-**Consequences.** HashVersion and FormatVersion 165 (163 and 164 are branch m7/close's), pin `0x3112DA3F61990DB7`. Tests:
+**Decision.** Per-player `TerrainManaGainPerSecond` and `TerrainManaGainCapBonus`
+are running words, changed by world-aware terrain and owner writes. Mana income uses
+these words; snapshots and state hashes preserve them. Tile-only compatibility APIs and
+`KeptManaGain` remain available but do not drive world simulation income. Evidence and
+edge cases: `mana.md`, Q521; native resync cannot reconstruct historical rate leftovers.
+**Historical consequences (version 165).** HashVersion and FormatVersion 165 (163 and 164 are branch m7/close's), pin `0x3112DA3F61990DB7`. Tests:
 `ARoomBuiltOnClaimedFloorKeepsTheFloorsIncome…`, `ARoomTileTakenByARivalPaysTheRivalNothing`,
 the vault cap in `IncomeIsCappedAtMaximumManaGainPerSecond`; the scenario
 `land_pays_a_keeper` reads 38/s before and after its treasury. Measured: Level 3 seed01's keeper now holds 9,547 mana at 800 (DK2 9,405), 12,771 at 1200 (10,662),
@@ -7679,17 +7673,11 @@ claiming and building faster between 2000 and 2400 (gross 316 against 241 a seco
 at 3648 (DK2 3683). Rigs: L1 20/20 with every tick identical; L2 7/20 (seed 3 joins at 3616; the
 other six within 20 ticks of before).
 
-### ADR-0334 amendment — a bridge's +1 credits the building keeper (2026-11-18, Q521)
-This ADR first said a bridge laid over water or lava adds its 1 to the neutral player's word, and that a
-removed bridge debits its builder. A Ghidra re-read (OpenKeeper #1218 as the lead,
-STRONGLY INFERRED) corrects the credit: `0x00455B90` adds 1 to the word of the player the tile is tagged
-to when it runs, and a room tile is owned before its terrain is written (`Map_SetRoomTile` `0x00450770`
-calls `Tile_SetOwner`, then `Tile_SetTerrain`). A bridge built as a room tile credits the building keeper
-+1 mana/s; neutral gets it only on a tile still tagged 0. `Tile_SetOwner` has no bridge test, so after
-a capture the +1 stays with the player credited when it was written, and a later removal debits whoever
-is tagged then. The decision itself (`KeptManaGain`) is unchanged; the bridge +1 and that leftover are
-not yet built, and mirroring them needs a per-player running word or a credited-player record per tile,
-an open design decision (Q521). Evidence: `mana.md`, KB `00455B90`.
+### ADR-0334 amendment — running words replace tile reconstruction (2026-11-18, Q521)
+Hash/save 528 builds room and bridge leftovers, signed terrain transfers and owner-change
+cap accounting with per-player words. Map initialization credits bridges to their authored
+owner and excludes ordinary terrain gain/cap for unowned tag 0. The bridge credit, capture
+and removal reading is in `mana.md` and KB `00455B90`; suspected drift is DK2-048.
 
 ## ADR-0335 — The Hatchery finder posts 41–43, and a coop does not stock a hatchery
 **Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 166 · Q522 ·

@@ -1874,8 +1874,9 @@ internal static class Dk2TerrainFixture
             for (int x = 1; x <= 5; x++)
             {
                 ref TileState floor = ref world.Tile(x, y);
-                floor.TerrainId = ClaimedPath;
-                floor.OwnerPlayerId = owner;
+                ManaRules.SetOwner(world, database, ref floor, PlayerIds.Unowned);
+                ManaRules.SetTerrain(world, database, ref floor, ClaimedPath);
+                ManaRules.SetOwner(world, database, ref floor, owner);
             }
         if (heart) PlaceHeart(world, database, owner);
     }
@@ -1884,9 +1885,10 @@ internal static class Dk2TerrainFixture
     public static void PlaceHeart(WorldState world, GameDatabase database, byte owner)
     {
         ref TileState tile = ref world.Tile(HeartTile.X, HeartTile.Y);
-        tile.TerrainId = DungeonHeartTerrain;
+        ManaRules.SetOwner(world, database, ref tile, PlayerIds.Unowned);
+        ManaRules.SetTerrain(world, database, ref tile, DungeonHeartTerrain);
         tile.Health = database.TerrainById(tile.TerrainId).StartingHealth;
-        tile.OwnerPlayerId = owner;
+        ManaRules.SetOwner(world, database, ref tile, owner);
     }
 
     public static WorldState World() =>

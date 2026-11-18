@@ -375,8 +375,10 @@ still counted as training.
 - **The bill**: `TrainingRules.GoldPerSecond` (five) and `CanAfford`, tested
   before the job is taken and before every charge, and the job lost when it
   cannot be paid. **The order**: award, then charge.
-- `TrainingRules.ExperienceLostPerSecondWhileNotTraining` exposes §8's shipped
-  zero rather than pretending the variable does not exist.
+- `TrainingRules.ApplyNonTrainingExperienceLoss` runs after timed effects in
+  `CreatureUpdateSystem`, applying §8's signed word every tick through the
+  experience adder. `NeedRules.ResolvedCategory` exempts training through utility
+  resume states too. The shipped zero leaves experience unchanged.
 
 The natural 108/111/112 machine cycle and cap refusal are now built; see
 [training-actions.md](training-actions.md). Remaining presentation and room
@@ -385,19 +387,12 @@ payment differences: gold comes out of the keeper's tiles through
 fallback. The floating "-20" is shown every fourth paid charge (ADR-0664);
 ours still charges and counts at the level cap, where DK2's hook returns first.
 
-## Tests
-
-`TrainingTests` and `CreatureLevelTests` (`tests/DK2.Simulation.Tests/`);
-`ResearchOnRealDataTests` pins §4.2's floor. Scenario
-`scenarios/creatures/two_keepers_find_work_for_a_goblin.yaml`.
-
 ## Known exceptions
 
-§4.1's truncation and §4.2's floor are both reproduced; §7.2's redundant clamp
-is reported rather than reproduced; the unmapped `0x8000` flag in the adder's
-first line is not reproduced.
+§4.1's truncation and §4.2's floor are reproduced; §7.2's redundant clamp
+is reported rather than reproduced. The adder's Combat Pit flag guard is built;
+see [combat-pit.md §7](combat-pit.md#7-experience-levels-and-leaving-the-pit).
 
 ## Open questions
 
-The category record's `+0x3c` small integer (§2); the Imp's unreachable 1200
-(§5.2); the adder's `creature.flags & 0x8000` (§7).
+The category record's `+0x3c` small integer (§2); the Imp's unreachable 1200 (§5.2).

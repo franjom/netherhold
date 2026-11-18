@@ -240,10 +240,10 @@ public struct TileState
     /// <see cref="RoomHealthRules"/> and <see cref="SlabChain"/>. Zero off a room.</summary>
     public int RoomHealthLost;
 
-    /// <summary>The floor's <c>ManaGain</c> a room tile went on paying when the room was built over
-    /// it: DK2's rate word (<c>player+0x10E2</c>) is adjusted by <c>Tile_SetTerrain</c> only when
-    /// neither terrain is a Room (<c>0x00455B90</c>), so a room laid on claimed floor keeps the 1,
-    /// and a room owned from the start or taken from a rival carries 0 (ADR-0334). Read by <see cref="ManaRules.GainPerSecond"/> on room tiles alone.</summary>
+    /// <summary>Covered-floor gain retained for tile-only compatibility callers of
+    /// <see cref="ManaRules.GainPerSecond"/>. This estimate excludes bridge bonuses and
+    /// ownership residuals; world income uses the authoritative per-player running words
+    /// (ADR-0334), not this field.</summary>
     public byte KeptManaGain;
 
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
@@ -337,6 +337,10 @@ public struct TileState
 /// </summary>
 public struct PlayerState
 {
+    /// <summary>Running terrain part of +0x10E2, before heart income and registered upkeep (ADR-0334).</summary>
+    public int TerrainManaGainPerSecond;
+    /// <summary>Running +0x10DE contribution transferred by Tile_SetOwner.</summary>
+    public int TerrainManaGainCapBonus;
     public PlayerId PlayerId;
     public int Mana;
 
@@ -584,6 +588,8 @@ public struct PlayerState
         hash.Add(PlayerId.Value);
         hash.Add(AlliedWith);
         hash.Add(Mana);
+        hash.Add(TerrainManaGainPerSecond);
+        hash.Add(TerrainManaGainCapBonus);
         hash.Add(OneShotManaSpent);
         hash.Add(OneShotReaperUsed);
         hash.Add(TrapNoManaMessageAt);
@@ -1660,6 +1666,7 @@ public sealed partial class WorldState
             GameMode = gameMode,
             ActivePlayerOrderSlots = Enumerable.Reverse(activation).Select(id => new PlayerId(id)).ToArray(),
         };
+        ManaRules.InitializeTerrainRates(world, database);
         RoomLists.Initialize(world, database);
 
         // The level's id-66 records (0x0051DC90): 63 levels ally every keeper with neutral and

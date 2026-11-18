@@ -159,6 +159,42 @@ public enum TileWorkStrike : byte
 /// </summary>
 public static class TileWorkRules
 {
+    internal static bool CompleteWall(WorldState world, GameDatabase database, ref TileState tile, PlayerId owner)
+    {
+        TileState before = tile;
+        bool changed = CompleteWall(database, ref tile, owner);
+        ManaRules.RecordTileChange(world, database, before, tile);
+        return changed;
+    }
+
+    /// <summary>Applies work and updates the world's running mana words.</summary>
+    public static TileWorkResult Apply(WorldState world, GameDatabase database, ref TileState tile,
+        TileWorkKind kind, PlayerId playerId, int efficiency = EfficiencyRules.BaseModifier,
+        int multiplier = 1, TileWorkStrike strike = TileWorkStrike.None)
+    {
+        TileState before = tile;
+        TileWorkResult result = Apply(database, ref tile, kind, playerId, efficiency, multiplier, strike);
+        ManaRules.RecordTileChange(world, database, before, tile);
+        return result;
+    }
+
+    /// <summary>Applies a signed health delta and updates the world's running mana words.</summary>
+    public static TileWorkResult ApplyDelta(WorldState world, GameDatabase database, ref TileState tile, int delta, PlayerId playerId)
+    {
+        TileState before = tile;
+        TileWorkResult result = ApplyDelta(database, ref tile, delta, playerId);
+        ManaRules.RecordTileChange(world, database, before, tile);
+        return result;
+    }
+
+    /// <summary>Applies terrain damage and updates the world's running mana words.</summary>
+    public static TileWorkResult ApplyDamage(WorldState world, GameDatabase database, ref TileState tile, TileHealthDamage damage)
+    {
+        TileState before = tile;
+        TileWorkResult result = ApplyDamage(database, ref tile, damage);
+        ManaRules.RecordTileChange(world, database, before, tile);
+        return result;
+    }
     internal static bool CompleteWall(GameDatabase database, ref TileState tile, PlayerId owner)
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
@@ -176,11 +212,13 @@ public static class TileWorkRules
     internal static void ReleaseWall(WorldState world, GameDatabase database, TilePos at)
     {
         ref TileState tile = ref world.Tile(at);
+        TileState before = tile;
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
         Convert(database, ref tile, database.TerrainById(terrainBefore).DestroyedTypeTerrainId,
             PlayerIds.Neutral, takeOwnership: true);
         tile.OwnerPlayerId = PlayerIds.Neutral;
         tile.KeptManaGain = 0;
+        ManaRules.RecordTileChange(world, database, before, tile);
         SlabChain.Changed(world, database, (at.Y * world.Width) + at.X, terrainBefore, ownerBefore);
     }
 

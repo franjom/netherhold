@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -1579,7 +1579,7 @@ public sealed class TriggerExecutor
             if (RoomIndex.RoomAt(_world, _database, index) is { Definition.TypeId: RoomTypeId.Graveyard } graveyard)
                 GraveyardRules.Forget(_world, graveyard);
             byte soldTerrain = tile.TerrainId, soldOwner = tile.OwnerPlayerId;
-            int displaced = RoomRules.Unmake(_database, ref tile);
+            int displaced = RoomRules.Unmake(_world, _database, ref tile);
             SlabChain.Changed(_world, _database, index, soldTerrain, soldOwner, _rng);
             FloorGold.Drop(_world, _database, index, displaced);
         }
@@ -1595,7 +1595,7 @@ public sealed class TriggerExecutor
                 : room.PlaceableOnLava ? _database.LavaTerrain : null;
             if (under is not null) SetTerrain(ref tile, under, PlayerIds.Neutral);
             byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
-            RoomRules.Place(_database, ref tile, room, player);
+            RoomRules.Place(_world, _database, ref tile, room, player);
             SlabChain.Changed(_world, _database, index, terrainBefore, ownerBefore, _rng);
             // Then the one-tile rectangle is closed (0x005195F0), whose last step is the walker reset.
             WalkerResetRules.Reset(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested) { Rng = _rng },
@@ -1607,11 +1607,11 @@ public sealed class TriggerExecutor
         return true;
     }
 
-    private static void SetTerrain(ref TileState tile, TerrainDef terrain, PlayerId owner)
+    private void SetTerrain(ref TileState tile, TerrainDef terrain, PlayerId owner)
     {
-        tile.TerrainId = terrain.TerrainId;
+        ManaRules.SetTerrain(_world!, _database!, ref tile, terrain.TerrainId);
         tile.Health = terrain.StartingHealth;
-        tile.OwnerPlayerId = owner.Value;
+        ManaRules.SetOwner(_world!, _database!, ref tile, owner);
         if (!terrain.IsTaggable) tile.TaggedBy = PlayerMask.None;
     }
 

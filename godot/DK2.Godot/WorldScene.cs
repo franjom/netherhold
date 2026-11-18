@@ -121,6 +121,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _cage = new CageRibbon(GetWorld3D().Scenario, _worldBox);
         // Before any material: the lit shaders read the lighting's globals.
         OpenLighting(world, view, world.Width, world.Height);
+        OpenShadows();
         using (Image white = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8))
         {
             white.Fill(Colors.White);
@@ -298,6 +299,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         if (instance == null && mesh.GetSurfaceCount() > 0)
         {
             instance = new MeshInstance3D { Name = "Chunk" + chunk, Mesh = mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+            if (TorchShadowsActive) instance.Layers = ShadowCasterLayers;
             AddChild(instance);
             _chunks[chunk] = instance;
         }
@@ -408,11 +410,15 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 + "uniform vec4 base_colour : source_color, color_conversion_disabled = vec4(1.0);\n"
                 + "uniform vec3 added_light = vec3(0.0);\n"
                 + (fullLight ? PlacedVertex
+                    : TorchShadowsActive ? ShadowLightFunctions + PerPixelVaryings + ShadowCasterDeclarations(model)
+                        + PerPixelVertex(model, environment)
                     : PerPixelLight ? LightFunctions + PerPixelVaryings + PerPixelVertex(model, environment)
                     : LightFunctions + LitVertex(model, environment))
-                + "void fragment() {\nvec4 c = texture(albedo_texture, UV) * base_colour;\n"
-                + (fullLight ? "" : PerPixelLight ? LitFragment + "c.rgb *= dk2_diffuse_px;\n" : "c.rgb *= dk2_diffuse;\n")
-                + "ALBEDO = c.rgb;\n" + alpha + "}\n",
+                + "void fragment() {\n" + (TorchShadowsActive ? ShadowFragment(blend == KmfBlend.Opaque && !fullLight, model) : "")
+                + "vec4 c = texture(albedo_texture, UV) * base_colour;\n"
+                + (fullLight ? "" : PerPixelLight ? (TorchShadowsActive ? ShadowLitFragment : LitFragment) + "c.rgb *= dk2_diffuse_px;\n"
+                    : "c.rgb *= dk2_diffuse;\n")
+                + "ALBEDO = c.rgb;\n" + alpha + (TorchShadowsActive ? "}\n" : "") + "}\n",
         };
         _shaders.Add((blend, fullLight, writesDepth, model, environment), shader);
         return shader;

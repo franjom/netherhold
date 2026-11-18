@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 527;
+    private const int FormatVersion = 528;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -242,6 +242,8 @@ public static class WorldSnapshot
             w.Write(p.PlayerId.Value);
             w.Write(p.AlliedWith);
             w.Write(p.Mana);
+            w.Write(p.TerrainManaGainPerSecond);
+            w.Write(p.TerrainManaGainCapBonus);
             w.Write(p.OneShotManaSpent);
             w.Write(p.OneShotReaperUsed);
             w.Write(p.TrapNoManaMessageAt);
@@ -1102,6 +1104,8 @@ public static class WorldSnapshot
                 PlayerId = r.ReadByte(),
                 AlliedWith = r.ReadByte(),
                 Mana = r.ReadInt32(),
+                TerrainManaGainPerSecond = r.ReadInt32(),
+                TerrainManaGainCapBonus = r.ReadInt32(),
                 OneShotManaSpent = r.ReadInt32(),
                 OneShotReaperUsed = r.ReadBoolean(),
                 TrapNoManaMessageAt = r.ReadInt64(),

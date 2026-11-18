@@ -45,7 +45,14 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 - **2. Classic vertex light**, its tables, fill, the environment-pass light and the 3j shadows
   (`WorldScene.Lighting.cs`). The real-lights prototype (128 pooled `OmniLight3D`) was rejected and removed (2026-11-18). New
   direction: DK2's light model stays and moves to modern means; step 1 is `--light-perpixel` (migration plan, *DK2 light
-  per pixel*).
+  per pixel*). Step 2, `--light-shadows` with it (`WorldScene.Shadows.cs`, 2026-11-18): the two torches nearest the
+  focus each render a downward 150-degree distance map (one `SubViewport`, casters on their own layers; a dual
+  paraboloid misplaced the terrain's large triangles and was dropped). A wall's shadow multiplies only that torch's DK2
+  term; a creature's or object's darkens the whole per-pixel light by DK2's 1 - coverage x strength (the receiver
+  quad's blend; owner, stronger shadows), with the caster rule in `ClassicShadowSourceSelector` (shared with Unity's
+  `ClassicCreatureShadows`). A torch holding a map counts 1.5 tiles nearer, so the maps do not swap back and forth.
+  Two torches (four cost +1.9 to +3.0 ms with the creature darkening). Level1 1080p, 2 repeats against per-pixel:
+  GPU p50 3.80 to 4.27 ms, draw calls 133 to 223, video memory +18 MiB, 0 B a frame.
 - **3. P1, M. Terrain material per tile state** (tint, tag, red, fog opacity; overlays as additive triangles in the
   blended stream; `WorldScene.cs:302-373`, `TerrainMaterialKey.cs:44-55`). Replace with a per-tile state texture read
   in `vertex()` by a tile index in `CUSTOM0`; opaque overlays move into the shader; only the sight fog stays blended.
@@ -114,10 +121,9 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 
 ## Planned steps under the policy
 
-- **3j silhouette shadows: not built.** Godot's real shadows come from the lighting prototype. DK2's caster rule is kept
-  (the three nearest torches within 2.5 tiles, fading from the fourth) to choose which `OmniLight3D`s cast creature
-  shadows; `ClassicShadowMask` projection does not move to `src/`. Cap the shadowed lights, since each re-renders its
-  casters (2 passes dual-paraboloid, 6 cube). Fallback: one `Decal` per creature.
+- **3j silhouette shadows: folded into lighting step 2** (item 2, `--light-shadows`): DK2's caster rule (the three
+  nearest torches within 2.5 tiles, fading from the fourth) is `ClassicShadowSourceSelector` in `DK2.Presentation`;
+  `ClassicShadowMask` projection does not move to `src/`.
 - **3k effects and flowers:** keep the CPU DK2 particle simulation (`RoomConstructionParticles`, `Dk2Lcg`-seeded,
   deterministic); draw it through `MultiMesh` with per-instance colour, frame and wedge, the frames in texture arrays,
   alpha-blended instances sorted on the CPU; not through `BlendedTerrainStream`'s `AddEffect` and `PlaceItems`. Effect
@@ -134,7 +140,7 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 2. 3o performance harness (item 0): done.
 3. 3p material model (items 7, 15, 3 together) on the prototype's shader.
 4. 3q blended ordering (item 5), before 3k.
-5. 3j folded into lighting (the caster rule only, no silhouette).
+5. 3j folded into lighting: done as lighting step 2 (`--light-shadows`).
 6. 3k on MultiMesh, with the flames (item 6).
 7. 3l.
 8. 3m and 3n (independent, parallel).

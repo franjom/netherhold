@@ -108,7 +108,7 @@ public static class RoomHealthRules
             ref TileState tile = ref world.TileAtIndex(index);
             tile.SetExploredBy(playerId);
             if (tile.OwnerPlayerId == playerId) continue;
-            tile.OwnerPlayerId = playerId.Value;
+            ManaRules.SetOwner(world, database, ref tile, playerId);
             context?.RequestEffect("RoomHealth", ViewEffectRequest.AtTileCentre(new EffectId(8), playerId,
                 new TilePos(index % world.Width, index / world.Width), new Fp32(0)));
             tile.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)

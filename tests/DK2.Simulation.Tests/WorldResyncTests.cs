@@ -17,6 +17,72 @@ public class WorldResyncTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
 
+    private static GameSimulation StartWithRival()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+            [(byte)0, PlayerIds.Neutral, Keeper, (byte)4]);
+        return new GameSimulation(db, world, 42, []);
+    }
+
+    [Fact]
+    public void ImportedWaterRemovesTheBridgeBonusFromItsCurrentTaggedKeeper()
+    {
+        GameSimulation sim = StartWithRival();
+        RoomRules.Place(sim.World, sim.Database, ref sim.World.Tile(5, 5),
+            sim.Database.Room(RoomTypeId.WoodenBridge), Keeper);
+        Assert.Equal(10, sim.World.Player(Keeper).TerrainManaGainPerSecond);
+        ResyncState state = State(sim.World, []);
+        state.Tiles[3 * ((5 * sim.World.Width) + 5)] = Dk2TerrainFixture.Water;
+
+        ResyncReport report = WorldResync.Apply(sim, state, _ => null, ResyncParts.Tiles);
+
+        Assert.Equal(9, sim.World.Player(Keeper).TerrainManaGainPerSecond);
+        Assert.Equal(1, report.TilesChanged);
+        Assert.Contains(report.Notes, n => n.Contains("mana rate/cap") && n.Contains("historical leftovers unavailable"));
+    }
+
+    [Fact]
+    public void ImportedBridgeCapturePreservesOldBonusAndRemovalDebitsTheRival()
+    {
+        const byte rival = 4;
+        GameSimulation sim = StartWithRival();
+        RoomRules.Place(sim.World, sim.Database, ref sim.World.Tile(5, 5),
+            sim.Database.Room(RoomTypeId.WoodenBridge), Keeper);
+        ResyncState state = State(sim.World, []);
+        int index = 3 * ((5 * sim.World.Width) + 5);
+        state.Tiles[index + 1] = rival;
+
+        WorldResync.Apply(sim, state, _ => null, ResyncParts.Tiles);
+
+        Assert.Equal(10, sim.World.Player(Keeper).TerrainManaGainPerSecond);
+        Assert.Equal(0, sim.World.Player(rival).TerrainManaGainPerSecond);
+        state.Tiles[index] = Dk2TerrainFixture.Water;
+
+        WorldResync.Apply(sim, state, _ => null, ResyncParts.Tiles);
+
+        Assert.Equal(10, sim.World.Player(Keeper).TerrainManaGainPerSecond);
+        Assert.Equal(-1, sim.World.Player(rival).TerrainManaGainPerSecond);
+    }
+
+    [Fact]
+    public void ImportedTerrainChangesAccountBeforeTheOwnerChanges()
+    {
+        const byte rival = 4;
+        GameSimulation sim = StartWithRival();
+        ResyncState state = State(sim.World, []);
+        int index = 3 * (sim.World.Width + 1);
+        state.Tiles[index] = Dk2TerrainFixture.ClaimedVaultTerrain;
+        state.Tiles[index + 1] = rival;
+
+        WorldResync.Apply(sim, state, _ => null, ResyncParts.Tiles);
+
+        Assert.Equal(8, sim.World.Player(Keeper).TerrainManaGainPerSecond);
+        Assert.Equal(-100, sim.World.Player(Keeper).TerrainManaGainCapBonus);
+        Assert.Equal(100, sim.World.Player(rival).TerrainManaGainPerSecond);
+        Assert.Equal(100, sim.World.Player(rival).TerrainManaGainCapBonus);
+    }
+
     private static ResyncState WithPlayerState(WorldState world, int status, int health, bool ruined = false)
     {
         JsonNode state = JsonNode.Parse(JsonSerializer.Serialize(State(world, [])))!;
