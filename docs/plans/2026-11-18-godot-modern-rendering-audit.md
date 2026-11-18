@@ -1,0 +1,169 @@
+# Godot modern-rendering audit
+
+**Status:** audit, 2026-11-18, read-only, approved by the owner as proposed. Policy: [ADR-0813](../DECISIONS.md).
+It re-orders the rest of step 3 of [the migration plan](2026-11-15-godot-migration.md) and supersedes the move order
+of [the step-3 audit](2026-11-16-godot-step3-audit.md) from 3j onward. Nothing was built or run. File:line
+references are as of HEAD 57bbd328 with the uncommitted lighting prototype, and go stale as work lands. Godot source
+references are to the 4.8 engine tree (`render_forward_clustered.cpp`, `rendering_server.h`).
+
+Owner, 2026-11-18: "my stance in general, we use all the modern features a new modern engine gives us... no gimmicky BS
+from 20y ago, that enables us a better tuning experience to gain as much of performance as possible". Rendering and
+presentation only; DK2's rules, simulation and AI stay faithful, and DK2's data drives the presentation.
+
+## Findings that change the plan
+
+1. **Draw order copies Unity, not DK2.** `ZeroOrderOffset` (`WorldScene.Objects.cs:358-368`) puts every blended
+   object, flame and the cage into Unity's sorting-order-0 slot: after the tag overlays, before blended terrain run 1+
+   (`BlendedTerrainStream.cs:32`). A blended object in front of a gem crystal therefore draws under it. This is a Unity
+   sortingOrder artefact. It must be settled before 3k.
+2. **Godot already instances** consecutive same-mesh, same-material opaque surfaces
+   (`render_forward_clustered.cpp:896-900`), so MultiMesh for repeated objects gains little while materials are shared.
+   What breaks batching is per-state materials: `Faded(alpha)` per alpha byte, cached forever
+   (`ObjectMaterialLook.cs:85-90`, `WorldScene.Objects.cs:769`); one per `Tinted` added light; the red and environment
+   `NextPass` copies (`WorldScene.Objects.cs:404-440`); per-creature mesh copies.
+3. **4.8 APIs that fit:** `mesh_surface_update_index_region` (`rendering_server.h:230`) for index-only re-sort uploads;
+   `instance_geometry_set_shader_parameter` (`rendering_server.h:782`) for per-instance uniforms.
+4. **In-place vertex rewrites get no motion vectors** (`render_forward_clustered.cpp:1090-1093`): creatures, liquids and
+   torch bends would ghost under TAA or FSR2. `project.godot` sets no AA, upscaling or frame pacing.
+
+## Items
+
+Priority: P0 is a prerequisite, P1 the largest gain, P3 last. Sizes S, M, L. "Keep" marks an old technique that is
+already right in Godot. Estimates are marked; the harness (item 0) replaces them with measurements.
+
+- **0. P0, S. No performance harness.** Now: allocations and some timings only. Replace with
+  `RenderingServer.GetRenderingInfo` (draw calls, primitives, VRAM) and the `Performance` monitors in the exit report,
+  plus a capture recipe; pulled forward from step 4. It makes items 3, 4 and 8 measurable.
+- **1. Gamma-space output** through the `srgb_to_linear` lookup (`WorldScene.cs:157`, `:415-451`;
+  `color_conversion_disabled` `:404`; brightness `WorldScene.Lighting.cs:471-477`). Covered by the lighting prototype
+  (linear HDR, tonemap, exposure). Risk: the look shifts; the tag overlay (+64/65), the hover red and the fog
+  strengths need retuning by eye.
+- **2. Classic vertex light**, its tables, fill, the environment-pass light and the 3j shadows
+  (`WorldScene.Lighting.cs`). Covered by the lighting prototype.
+- **3. P1, M. Terrain material per tile state** (tint, tag, red, fog opacity; overlays as additive triangles in the
+  blended stream; `WorldScene.cs:302-373`, `TerrainMaterialKey.cs:44-55`). Replace with a per-tile state texture read
+  in `vertex()` by a tile index in `CUSTOM0`; opaque overlays move into the shader; only the sight fog stays blended.
+  Gain: a tag, tint or red change is one texel write, not a 4 to 25 tile chunk rebuild (Unity measured 0.23-0.27 ms per
+  5x5 and 2.3-2.5 ms per chunk); no per-tint materials; the overlay runs leave the stream. Risks: additive-before-clamp
+  equivalence, overlays over additive recipes; picking is unaffected; `TerrainMaterialKey.For` stays the reference.
+  Depends on the lighting shader.
+- **4. P2, M-L. One opaque surface per texture key per chunk** (`WorldScene.cs:285-293`). Replace with a
+  `Texture2DArray`, a per-vertex layer and self-illumination: 1 to 2 surfaces per chunk. Gain: opaque draws drop from
+  hundreds (estimate; measure with item 0) to about 2 a chunk. Risks: per-size arrays; mips and clamp identical; phase
+  and decay need a layer-offset texel or a rebuild. Depends on 3 and 0.
+- **5. P1, M. Blended terrain order.** Now: one RS instance per run at the origin, `sorting_offset` = stream order,
+  whole vertices rewritten unindexed on every re-sort, and `ZeroOrderOffset` for objects, flames and the cage
+  (`WorldScene.cs:470-499`, `:781-936`, rewrite `:850-867`; `WorldScene.Objects.cs:272-291`, `:358-368`, `:833-843`,
+  `:1141-1150`; `WorldScene.cs:742-750`). Replace: per-run key = real depth, so Godot's distance sort interleaves runs
+  with objects; `render_priority` only where a category must stay ordered; additive runs unordered; per-triangle order
+  only inside alpha-blended runs; a stable vertex buffer with an index-only re-upload; delete `ZeroOrderOffset`. Gain:
+  upload 96 to 12 B a triangle (Level7, 1,916 triangles: about 184 KB to 23 KB per camera-move frame); fewer runs
+  (Level7 up to 192); re-sort today costs 0.2, 0.5 and 1.57 ms. Risks: compositing changes against Unity (expected, more
+  correct); view-depth against distance ties. Depends on 3; before 3k.
+- **6. P3, S. Torch flames.** Now: one RS instance per flame and one `ShaderMaterial` per sprite frame, swapped about 20
+  times a second (`WorldScene.Objects.cs:1028-1158`, `:1066-1077`, `:1126-1139`). Replace with a `Texture2DArray`, one
+  material, the frame as an instance uniform or computed in the shader from a global time and the phase
+  (`ClassicTorchFlameAnimation`'s integer maths, exact); HDR emissive for the glow; keep DK2's flipbook billboard, no
+  `GPUParticles3D`. Gain: materials one a frame to one, no CPU swaps, glow. Low risk (additive). Depends on lighting.
+- **7. P1, S-M. Hover red, burning red and the environment pass** as `NextPass` chains on cached copies, and fade and
+  tint as new materials (`WorldScene.Objects.cs:401-440`, `:742-784`; `WorldScene.Hover.cs:57-99`). Replace with one
+  world shader with instance uniforms (`hover_red`, `alpha`, `added_light`), the environment pass folded in, and no
+  outline shader (DK2's red tint is the design). Gain: one draw fewer per hovered surface; removes `_redMaterials`,
+  `_chainedMaterials`, `Copy` and the unbounded per-alpha and per-tint materials, which restores batching. Risks: red is
+  skipped on KMF-blended surfaces (a rule); a faded environment pass still draws black. Built together with the
+  prototype's shader.
+- **8. P2, L. Per-template mesh copies, CPU frame lerp and an in-place upload every frame** per creature and animated
+  object (`WorldScene.Objects.cs:466-488`, `:856-958`; `CreatureAnimationPlayer.cs:176-178`;
+  `RenderAnimation.cs:37-54`). Replace with a vertex animation texture lerped in `vertex()` by an instance-uniform
+  phase, one mesh per clip (or blend shapes, for motion vectors); the CPU keeps the clock and samples on demand (control
+  points, lightning, picking after the sphere test). Gain: removes the lerp and the upload (about 100 creatures x 500
+  vertices, about 600 KB a frame, 0.3 to 0.6 ms; estimates), the copies' memory (3g open item 1) and the AABB hack.
+  Risk: picking needs a lazy sample after the sphere test, a new entry in the shared player. Depends on the lighting
+  `vertex()` and 3l.
+- **9. P3, S-M. Liquid waves**: positions and normals on the CPU, uploaded twice a frame (`WorldScene.cs:550-651`;
+  `LiquidSurfaceWave.Wave`). Replace with a vertex shader from (tile, i, j) and time; DK2's phase masks are exact in GLSL
+  integers. Gain: small (under 0.2 ms, estimate); a continuous-motion option. Low risk. Depends on lighting.
+- **10. P2, M. Minimap disc** rasterised on the CPU and uploaded per tick and heading change (`MinimapDiscImage.cs`;
+  `ClassicMinimap.cs:160-183`). Replace with a `canvas_item` shader ported from Unity's `DK2Minimap.shader`, markers as
+  quads. Gain: removes the O(d^2) raster and the upload (about 1 ms at 250 px, estimate). Keep `MinimapDiscImage` as the
+  oracle; the rock flip is Q861.
+- **11. P3, M. HUD text, gauges and glows** as CPU pixels, one texture per distinct string
+  (`HudCanvas.Textures.cs:60-103`). Replace with a glyph atlas per BF4 font, a gauge canvas shader, glows baked once or
+  in a shader. Gain: no texture churn per hover string or counter. Low risk.
+- **12. Keep, P3, S-M. CPU-built merged terrain chunks** (`WorldScene.cs:278-300`, `:987-1009`): the pieces are bent
+  by the lattice and picking needs the CPU geometry. Tweak only: Godot-format vertex bytes on the pool thread and
+  `MeshAddSurface`; attribute compression. No MultiMesh per piece, no occlusion culling, no mesh LOD, no visibility
+  ranges. Gain: fewer main-thread milliseconds per rebuild.
+- **13. Keep. C# frustum tests** (`ViewFrustum`): the pre-sort cull, DK2-derived hover admission (gameplay), the Heart's
+  beat point test and light visibility. Changing them risks picking.
+- **14. Keep. HUD from `HudFrame` triangles** through canvas items, `HudTriangles.ClipToCircle`; re-recording only on
+  change is the efficient path.
+- **15. P2, S-M. About 48 runtime shader variants** built from code strings (`WorldScene.cs:387-413`; the flame and the
+  cage). Replace with a few `.gdshader` resources (an uber shader plus uniforms) and precompilation or the shader baker
+  (verify in 4.8). Gain: fewer first-use hitches. Low risk. Depends on lighting.
+- **16. P2, S. `skip_vertex_transform` workaround**, cause unknown (`WorldScene.Lighting.cs:461-466`; `docs/TRAPS.md`).
+  Find the cause before real shadows and TAA; it unblocks items 17 and 2.
+- **17. P2, S. No AA, upscaling or frame pacing** (`project.godot`). MSAA 4x or SMAA now; TAA or FSR2 after items 8 and
+  16; `scaling_3d` as a performance setting; a separate render thread model. Risk: TAA ghosting on in-place meshes.
+
+## Planned steps under the policy
+
+- **3j silhouette shadows: not built.** Godot's real shadows come from the lighting prototype. DK2's caster rule is kept
+  (the three nearest torches within 2.5 tiles, fading from the fourth) to choose which `OmniLight3D`s cast creature
+  shadows; `ClassicShadowMask` projection does not move to `src/`. Cap the shadowed lights, since each re-renders its
+  casters (2 passes dual-paraboloid, 6 cube). Fallback: one `Decal` per creature.
+- **3k effects and flowers:** keep the CPU DK2 particle simulation (`RoomConstructionParticles`, `Dk2Lcg`-seeded,
+  deterministic); draw it through `MultiMesh` with per-instance colour, frame and wedge, the frames in texture arrays,
+  alpha-blended instances sorted on the CPU; not through `BlendedTerrainStream`'s `AddEffect` and `PlaceItems`. Effect
+  lights become real lights. Footsteps are sound only.
+- **3l lightning:** keep the CPU ribbon (DK2's bolt rules), emissive for the glow, an optional `OmniLight3D` flash; lazy
+  tagged points if item 8 lands first.
+- **3m possession:** nothing to modernise; the roof is a chunked mesh and the black roof is lighting.
+- **3n paths and the full-map preview:** the `SubViewport` sharing the `World3D` is already modern; render it at low
+  resolution only while visible or changed.
+
+## Revised order
+
+1. The lighting prototype decision (in flight).
+2. 3o performance harness (item 0), taken from step 4; can start now.
+3. 3p material model (items 7, 15, 3 together) on the prototype's shader.
+4. 3q blended ordering (item 5), before 3k.
+5. 3j folded into lighting (the caster rule only, no silhouette).
+6. 3k on MultiMesh, with the flames (item 6).
+7. 3l.
+8. 3m and 3n (independent, parallel).
+9. The remaining replacements: texture arrays (4, once 3o shows it pays), vertex animation (8), minimap shader (10),
+   AA (16 then 17), HUD text atlas (11), liquids (9), chunk upload tweak (12).
+10. The rest of step 4 unchanged; its performance targets are set from 3o's numbers.
+
+Acceptance for a modern item: the owner's eye, the harness numbers and gameplay correctness (the turn-400 hash, the pick
+and hover tests, scripted-pointer captures). Byte-identity with Unity no longer applies.
+
+## Built pieces to replace, in order
+
+`ZeroOrderOffset` and the origin-pivot run keys; the run vertex rewrites (index-only instead); the `NextPass` red and
+environment chains and the per-alpha and per-tint materials; the terrain variant keys and overlay triangles; the
+flame's per-frame materials; creature mesh copies and CPU uploads; the minimap's CPU disc; the per-string HUD text
+textures; the CPU liquid wave; the gamma lookup (with the prototype).
+
+## Shared `DK2.Presentation` code that becomes Unity-only or dead
+
+- **Unity-only:** `BlendedTerrainStream.SortingOrder`; the tag-overlay predicate; the flower and effect slots
+  (`PlaceItems`, `RunsBehind`, `ItemOrders`, `AddEffect`, `RepeatEffect`), while collect, cull, depth order and runs
+  stay; per-key terrain surfacing for tagged, red, tinted and overlay (`TerrainMaterialKey.For` and the
+  `TerrainMaterialLook` colours stay as rules); `LiquidSurfaceWave.Wave` (the constants stay shared, for the GLSL
+  substitution); the full-buffer `RenderAnimation.Sample` and `ICreatureAnimationSurface.Upload` (the player stays, with
+  a new lazy-sample entry); `HudImagePixels.Fill`; `ClassicMeshShadow` and the silhouette code; `EffectQuadBuffer`.
+- **Dead in production:** `MinimapDiscImage` (keep as the shader-test oracle, or delete).
+- **Stays shared:** `HudTextPixels.Measure`, `HudTriangles`, `ViewFrustum`, `TerrainChunkScheduler`,
+  `TerrainTileBuilder`.
+- **Godot code that goes:** `ZeroOrderOffset`, `SortFromOrigin`'s scheme, `RunSlot`'s vertex expansion, `Copy`,
+  `_redMaterials`, `_chainedMaterials`, `GammaOutput`, `GammaTable`.
+- Unity keeps its emulation as the frozen classic reference until step 5 (owner stopped Unity performance work
+  2026-11-15); no modern work is ported to it. Godot's classic path stays a switch until the owner accepts the modern
+  look.
+
+## Not emulation, separate changes
+
+- Simulation runs on the main thread in Godot's `InGameHud` (Unity uses a tick worker) and competes for frame time.
+- `ScenePresenter.Present` allocates 2.8 to 10.6 KB a frame (3c open item).

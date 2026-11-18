@@ -315,7 +315,7 @@ back faces.
 
 Each sub-step is one commit, leaves Unity working (its compile checked, and Unity calling any moved rule), and leaves
 Godot visibly better, checked by unit tests for what moved and a Movie Maker capture (below). The first three are the
-terrain and the camera; then each step adds one kind of thing to the world.
+terrain and the camera; then each step adds one kind of thing to the world. From 3j onward [the modern-rendering audit](2026-11-18-godot-modern-rendering-audit.md) supersedes this order (ADR-0813: 3o to 3q are new, 3j is folded into lighting).
 
 - **3a. Static terrain from the level-start camera.** Done 2026-11-16 (the plan's step 3a has the detail): `RightHandedFrame`,
   `TerrainTileBuilder`, `TerrainMaterialKey`, `ClassicMaterialRecipe`; Godot's `WorldScene` and `Camera3D`.
@@ -341,7 +341,7 @@ terrain and the camera; then each step adds one kind of thing to the world.
   the ambient keys and the torch, portal, object and Hand lights, the environment pass (also over plans), the cage's key,
   the liquids' normals and the exposure in the colour correction. Against Unity's in-game frames: see open points 2 and 3.
 - **3j. Creature shadows.** Move: source selection, fade and the silhouette projection. Godot: the chosen path (open
-  point 8), pending the owner's choice of modern lighting (the plan). Check: a capture of an imp beside a torch; tests for the selection ties and the projection.
+  point 8); now folded into the modern lighting (caster rule only, no silhouette; ADR-0813). Check: a capture of an imp beside a torch; tests for the selection ties.
 - **3k. Effects and status flowers.** Move: `EffectFilters`, the flower colour reference. Godot: billboards, flat
   quads, mesh particles, flowers and the dollar in the blended stream, given their order through sorting offsets
   (`PlaceItems`/`RunsBehind`), or Godot sorts them by real distance among the run instances. Check: dig debris and a

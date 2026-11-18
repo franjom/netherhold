@@ -570,7 +570,8 @@ group 2 is a list to audit, not a finding.
 ## Step 3: a playable level in Godot
 
 The sub-steps 3a to 3n, their order and the owner's decisions on the open points are in
-[the step-3 audit](2026-11-16-godot-step3-audit.md), whose *How a step is checked here* lists the checks: the
+[the step-3 audit](2026-11-16-godot-step3-audit.md); the order from 3j onward, and the new 3o to 3q, are in
+[the modern-rendering audit](2026-11-18-godot-modern-rendering-audit.md) (ADR-0813). The step-3 audit's *How a step is checked here* lists the checks: the
 rules' tests, a Movie Maker capture, the stand-in compile and Unity's batch checks (Unity 6000.6.0f1 is installed and
 licensed; its lighting probes give reference frames for 3f, 3g and 3i, see *Unity reference frames* below).
 
@@ -882,12 +883,26 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       change, plus bounded first-visit growth. Not verified: the environment pass over a plan, a faded one and the cage key
       (none captured), the ambient keys live, a non-default brightness, the wrap past 83 tiles at runtime. Probe review
       notes, both pre-existing: an already-open dirty scene, and the tile-light globals not restored after a run.
-- [ ] Modern lighting prototype (owner, 2026-11-18, after 3i commits as the classic baseline): the owner wants modern engine
-      features rather than the 20-year-old technique. On Level1, DK2's light sources (the shared publisher: positions,
-      colours, radii, flicker) drive real Godot per-pixel lights, the nearest few cast shadows, with glow and SSAO, tuned
-      by eye against the Unity in-game frames. The classic shader stays as a switch. If the owner prefers the modern look
-      it becomes the default and 3j is redone with Godot's shadows instead of the silhouette projection.
-- [ ] Creature shadows (3j): pending the modern-lighting decision above (the silhouette projection, or Godot's shadows).
+- [ ] Modern lighting prototype (owner, 2026-11-18, after 3i commits as the classic baseline; ADR-0813; `--light-modern`,
+      in progress): modern engine features rather than the 20-year-old technique. On Level1, DK2's light sources (the
+      shared publisher: positions, colours, radii, flicker) drive real Godot per-pixel lights, the nearest few cast
+      shadows, with glow and SSAO, tuned by eye against the Unity in-game frames. The classic shader stays as a switch.
+      The decision on the look is the owner's and is open; if accepted, the modern look becomes the default and the
+      classic path goes.
+- [ ] The rest of step 3, in the order of [the modern-rendering audit](2026-11-18-godot-modern-rendering-audit.md)
+      (ADR-0813; it supersedes the step-3 audit's move order from 3j; acceptance is the owner's eye, 3o's numbers and
+      gameplay correctness, not byte-identity with Unity):
+  - [ ] 3o. Performance harness: rendering info and `Performance` monitors in the exit report and a capture recipe, from step 4.
+  - [ ] 3p. Material model: one world shader with instance uniforms, the per-tile state texture, few `.gdshader`
+        resources (audit items 7, 15, 3), on the prototype's shader.
+  - [ ] 3q. Blended ordering: real-depth run keys and index-only re-sorts, `ZeroOrderOffset` deleted (item 5), before 3k.
+  - [ ] 3j. Creature shadows, folded into lighting: DK2's caster rule only (three nearest torches within 2.5 tiles) picks
+        the shadow-casting lights; Godot's shadows draw; no silhouette projection.
+  - [ ] 3k. Effects and flowers on MultiMesh over the CPU particle simulation, with the torch flames (item 6).
+  - [ ] 3l. Lightning.
+  - [ ] 3m and 3n. Possession and the scripted paths with the full-map preview (independent, parallel).
+  - [ ] Then the remaining replacements in the audit's order: texture arrays (once 3o shows they pay), vertex animation,
+        the minimap shader, AA, the HUD text atlas, liquid waves, the chunk upload tweak.
 - [ ] The remaining 3D overlays (possession, 3m), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging
@@ -901,7 +916,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       captures; keep the Python summarisers). `tools/hud-probe` is deleted here; its
       `HudPilot.Compile.csproj` already fails to compile (25 errors: `ClassicHudScaling` and
       `Input` missing from its compile list, stale signatures), so do not repair it.
-- [ ] Performance targets set again in Godot (owner, 2026-11-15: Unity FPS work stopped).
+- [ ] Performance targets set again in Godot, from 3o's harness numbers (owner, 2026-11-15: Unity FPS work stopped).
 - [ ] Tester package as a Godot export (export templates, committed export preset).
 - [ ] CI builds `godot/DK2.Godot` (no editor needed) and the architecture gate checks Godot.
 

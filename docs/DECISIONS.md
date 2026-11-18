@@ -19415,3 +19415,35 @@ change, the two in-category tests pass either way) and `ObjectCarryingTests` (th
 
 Not verified: the Level 5 controlled replay needs the capture and was not run here; the heading and height of a dropped
 body follow the carrier's last attach, which the binary sets from the carrier's triple (heading kept).
+
+## ADR-0813 - Godot rendering uses modern engine features
+**Date:** 2026-11-18 | **Status:** accepted | **Systems:** presentation-godot
+
+**Context.** Godot's 3a to 3i reproduce Unity's technique byte for byte: gamma-space blending through a lookup table, a
+vertex-lit shader over DK2's tile light tables, a sorting-order scheme for blended objects, per-state materials and
+CPU-lerped creature meshes. Owner, 2026-11-18: "my stance in general, we use all the modern features a new modern engine
+gives us... no gimmicky BS from 20y ago, that enables us a better tuning experience to gain as much of performance as
+possible". The audit that follows from it is [the modern-rendering audit](plans/2026-11-18-godot-modern-rendering-audit.md).
+
+**Decision.**
+1. **Scope.** Godot's rendering and presentation. DK2's game rules, simulation, AI and determinism stay faithful, and
+   DK2's data drives the presentation: the light sources, the effects, what is where. Only how they are drawn changes.
+2. **Unity** stays frozen as the classic reference until step 5 (owner, 2026-11-15: Unity performance work stopped). No
+   modern work is ported to it, and the shared code Unity still calls keeps its behaviour.
+3. **Godot's classic path** (3a to 3i) stays only as a switch until the owner accepts the modern look, then goes.
+4. **Acceptance for a modern item** is the owner's eye, the performance harness's numbers (step 3o) and gameplay
+   correctness: the turn-400 hash, the pick and hover tests, scripted-pointer captures. Byte-identity with Unity no
+   longer applies to it.
+5. **The lighting prototype** (`--light-modern`, in progress) is the first application: DK2's sources drive real
+   per-pixel lights and Godot's shadows.
+
+**Relation.** ADR-0805 stands: behaviour moves to `DK2.Presentation` and the adapters draw. A rule is still moved, tested
+and shared; what changes is that a rule's drawing in Godot need not match Unity's, and code that exists only to match
+Unity's technique (a sorting order, a gamma table) is deleted from Godot when its replacement lands. ADR-0522's fill
+(tint, unlit floor, sun) is Unity's tuning, and the modern look is tuned by eye in Godot's own lights; the fill stays
+Unity's and the classic switch's.
+
+**Consequences.** The remaining step 3 is re-ordered (the plan's step 3): the harness first, since "faster" must be
+measured, then the material model, the blended ordering, effects on MultiMesh. Creature shadows (3j) become Godot's
+shadows, keeping DK2's caster rule only. Shared presentation code that only Unity's technique used becomes Unity-only,
+and goes with Unity in step 5. Open: the owner's acceptance of the modern look.
