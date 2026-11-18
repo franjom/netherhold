@@ -180,15 +180,18 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         int width = (int)size.X, height = (int)size.Y;
         if (width <= 0 || height <= 0) return;
         var viewport = new CameraViewport(width, width, height);
-        ClassicCameraPose pose = PossessionPose(viewport) ?? ClassicCamera.Pose(Focus, viewport);
+        ClassicCameraPose? held = PossessionPose(viewport);
+        ClassicCameraPose pose = held ?? ClassicCamera.Pose(Focus, viewport);
         if (View != null && pose == _placed && viewport == _placedViewport) return;
+        _near = held == null ? NearPlane : PossessionCamera.NearClipDistance;
+        _camera.Near = _near;
         _placed = pose; _placedViewport = viewport;
         _frustumStale = true;
         View = MinimapCameraView.Of(pose, viewport);
-        (float frustumHeight, float offset) = RightHandedFrame.Frustum(pose.VerticalFieldOfView, NearPlane, pose.ProjectionCentreShift);
+        (float frustumHeight, float offset) = RightHandedFrame.Frustum(pose.VerticalFieldOfView, _near, pose.ProjectionCentreShift);
         _camera.Size = frustumHeight;
         _camera.FrustumOffset = new Vector2(0, offset);
-        _camera.Far = Math.Max(NearPlane + 0.01f, pose.FarClipDistance);
+        _camera.Far = Math.Max(_near + 0.01f, pose.FarClipDistance);
         RightHandedCamera basis = RightHandedFrame.Camera(pose);
         _camera.Transform = new Transform3D(new Basis(ToGodot(basis.X), ToGodot(basis.Y), ToGodot(basis.Z)), ToGodot(basis.Origin));
     }
@@ -461,7 +464,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         {
             if (_frustumStale)
             {
-                _frustum = ViewFrustum.FromPose(_placed, _placedViewport.Width / (float)_placedViewport.Height, NearPlane);
+                _frustum = ViewFrustum.FromPose(_placed, _placedViewport.Width / (float)_placedViewport.Height, _near);
                 _frustumStale = false;
             }
             return _frustum;

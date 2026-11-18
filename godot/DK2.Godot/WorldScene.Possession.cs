@@ -18,6 +18,8 @@ namespace DK2.GodotAdapter;
 public partial class WorldScene
 {
     private TerrainCeilingScheduler? _roof;
+    // The near plane the camera was last placed with: the ordinary one, or the possession cameras' own.
+    private float _near = NearPlane;
     private readonly TerrainCeilingGeometry _roofGeometry = new();
     private Node3D? _roofRoot;
     private MeshInstance3D?[] _roofChunks = [];

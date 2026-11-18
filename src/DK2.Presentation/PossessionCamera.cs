@@ -61,6 +61,12 @@ public static class PossessionCamera
 
     /// <summary>The preset's view distance in tiles: 12 for preset 2.</summary>
     public static float FarClipDistance(CameraThing preset) => preset.ViewDistance / (float)Fp32.One;
+
+    /// <summary>The near plane a host gives the possession cameras, in tiles. DK2 has none: its clipper cuts a
+    /// triangle only at the four sides of the view, which meet at the eye (<c>0x0058BB60</c>,
+    /// possession-warp.md §2), so a wall the creature stands against is drawn right up to the eye. An
+    /// engine needs a plane; this one is a remake choice.</summary>
+    public const float NearClipDistance = 0.05f;
 }
 
 /// <summary>The footfalls the possessed view's step asks for (<c>0x0040E910</c>, possession-client.md §2
