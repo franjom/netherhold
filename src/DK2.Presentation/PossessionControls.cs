@@ -10,8 +10,7 @@ using DK2.Simulation.Commands;
 namespace DK2.Presentation;
 
 /// <summary>What the possessor has selected and what Fire sends (possession-client.md §4): DK2's
-/// interface byte <c>+0x13D9</c>, bit 0 melee and bits 3 to 7 the spell slot. The two special
-/// abilities (bits 1 and 2, bindings 10 and 11) are not built: their kinds are not parsed yet.
+/// interface byte <c>+0x13D9</c>, bit 0 melee, bits 1 and 2 specials, bits 3 to 7 the spell slot.
 /// That a possession starts on melee is the owner's recollection (2026-11-14), not a read.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/possession-client.md")]
 public sealed class PossessionControls
@@ -39,6 +38,35 @@ public sealed class PossessionControls
 
     /// <summary>Binding 12 (<c>0x0040F9E0</c> with 3): the reserved slot, the followers' arm.</summary>
     public void SelectFollowers() => Selection = PossessedSlot.FollowerArm << 3;
+    /// <summary>Binding 11 selects hypnosis only for kind 5 (<c>0x0040FDA0</c>).</summary>
+    public void SelectSecondary(CreatureDef definition)
+    {
+        if (definition.SecondaryAbility == PossessionAbilityKind.Hypnosis) Selection = 4;
+    }
+    /// <summary>The built immediate primary arms: form, sneak at the camera tile and prayer.</summary>
+    public PlayerCommand? UsePrimary(PlayerId player, PossessionView view, CreatureDef definition) =>
+        UsePrimary(player, view, definition, CreatureId.None, CreatureId.None);
+    public PlayerCommand? UsePrimary(PlayerId player, PossessionView view, CreatureDef definition, CreatureId target, CreatureId source) =>
+        definition.PrimaryAbility switch
+        {
+            PossessionAbilityKind.Sneak => new ToggleSneakCommand(player, view.X >> 12, view.Y >> 12),
+            PossessionAbilityKind.ToggleFlag11 => new TogglePossessionFormCommand(player),
+            PossessionAbilityKind.Prayer => new TogglePossessionPrayerCommand(player),
+            PossessionAbilityKind.Fear => new FrightenPossessedCreatureCommand(player, target, source, new FearAmount(2000)),
+            _ => null,
+        };
+    /// <summary>Sniper's client gate (<c>0x0040FDF0</c>): multiplier above one and an unlocked nonzero slot.</summary>
+    public static bool CanToggleSniper(CreatureDef definition, int level)
+    {
+        if ((uint)definition.SniperZoom.Raw >> 12 <= 1) return false;
+        for (int i = 0; i < Math.Min(3, definition.Spells.Count); i++)
+            if (definition.Spells[i].CreatureSpellId != 0 && definition.Spells[i].LevelAvailable <= level) return true;
+        return false;
+    }
+    /// <summary>Special hypnosis selection takes precedence over the ordinary action-26 fall-through.</summary>
+    public PlayerCommand SubmitFire(PlayerId player, PossessionView view, CreatureDef definition) =>
+        !Melee && (Selection & SpecialBits) == 4 && definition.SecondaryAbility == PossessionAbilityKind.Hypnosis
+            ? new HypnotiseCommand(player, Aim(view)) : Fire(player, view);
 
     /// <summary><c>0x004100F0</c>'s action 26, from the camera's point and its yaw and pitch.</summary>
     public ActPossessedCreatureCommand Fire(PlayerId player, PossessionView view) =>

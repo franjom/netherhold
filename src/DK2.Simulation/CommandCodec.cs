@@ -63,6 +63,11 @@ public static class CommandCodec
             case ToggleSneakCommand c: Head(w, 25, c); w.Write(c.TileX); w.Write(c.TileY); break;
             case HypnotiseCommand c: Head(w, 26, c); Aim(w, c.Aim); break;
             case SetSniperModeCommand c: Head(w, 27, c); w.Write(c.On); break;
+            case TogglePossessionFormCommand c: Head(w, 38, c); break;
+            case TogglePossessionPrayerCommand c: Head(w, 39, c); break;
+            case FrightenPossessedCreatureCommand c:
+                Head(w, 40, c); w.Write(c.Target.Value); w.Write(c.Source.Value); w.Write(c.Amount.Value); break;
+            case OpenPossessedPrisonCommand c: Head(w, 41, c); Tile(w, c.PrisonAt); break;
             case SetCreepingCommand c: Head(w, 37, c); w.Write(c.On); break;
             case MovePossessedCreatureCommand c:
                 Head(w, 28, c); Position(w, c.Pose.Position); w.Write(c.Pose.Heading.Raw); break;
@@ -138,6 +143,10 @@ public static class CommandCodec
             25 => new ToggleSneakCommand(player, r.ReadInt32(), r.ReadInt32()),
             26 => new HypnotiseCommand(player, ReadAim(r)),
             27 => new SetSniperModeCommand(player, r.ReadBoolean()),
+            38 => new TogglePossessionFormCommand(player),
+            39 => new TogglePossessionPrayerCommand(player),
+            40 => new FrightenPossessedCreatureCommand(player, new CreatureId(r.ReadInt32()), new CreatureId(r.ReadInt32()), new FearAmount(r.ReadUInt16())),
+            41 => new OpenPossessedPrisonCommand(player, ReadTile(r)),
             28 => new MovePossessedCreatureCommand(player, new PossessionPose(ReadPosition3(r), new Dk2Angle(r.ReadUInt16()))),
             29 => new SetRescuePriorityCommand(player, r.ReadInt32(), r.ReadBoolean()),
             30 => new ContinueAfterResultCommand(player),

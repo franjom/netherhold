@@ -34,6 +34,11 @@ public static partial class KwdCreatures
         U8(0xF4B, (byte)row.CreatureId);
         U8(OffsetBaseCreatureId, (byte)row.UniqueBaseCreatureId);
         U32(0xEFC, (uint)row.Flags);
+        U8(0xF46, (byte)row.PrimaryAbility);
+        U8(0xF47, (byte)row.SecondaryAbility);
+        U32(0x14E9, row.PrimaryAbilityParameter);
+        U32(0x14ED, row.SecondaryAbilityParameter);
+        S32(0x107B, row.SniperZoom.Raw);
         U32(0x1545, (uint)row.Flags2);
         S32(0xE94, row.EntranceOffsetX);
         S32(0xE98, row.EntranceOffsetY);

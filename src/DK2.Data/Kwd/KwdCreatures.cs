@@ -244,6 +244,11 @@ public static partial class KwdCreatures
             FightStyle = (FightStyle)U8(0xF03),
             Resistances = resistances,
             Spells = spells,
+            PrimaryAbility = (PossessionAbilityKind)U8(0xF46),
+            SecondaryAbility = (PossessionAbilityKind)U8(0xF47),
+            PrimaryAbilityParameter = U32(0x14E9),
+            SecondaryAbilityParameter = U32(0x14ED),
+            SniperZoom = Fp(0x107B),
 
             Pay = U16(0xF1C),
             MaxGoldHeld = U16(0xF1E),

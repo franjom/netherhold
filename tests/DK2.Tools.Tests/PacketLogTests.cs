@@ -13,6 +13,42 @@ namespace DK2.Tools.Tests;
 
 public sealed class PacketLogTests
 {
+    [Fact]
+    public void PossessionSpecialPacketsKeepTheirFlagsAndRequireBothObservedFearIds()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (0, 0, 0, 30), (0, 0, 0, 31), (1, 0, 0, 39),
+            (0xFEED0047, 0xFADE0048, 0x123407D0, 137), (5, 6, 0, 29),
+            (0x20005800, 0x20006800, 0x1000, 27), (0, 0, 0, 38), (2, 0, 0, 39), (3, 0, 0, 39));
+        Turn(bytes, 3);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            PacketLog packet = PacketLog.Read(path, 1, 69);
+            Assert.Contains((1L, 71u, PacketEntityKind.Creature), packet.EntityReferences);
+            Assert.Contains((1L, 72u, PacketEntityKind.Creature), packet.EntityReferences);
+            var map = new PacketEntityMap();
+            map.Add(71, 1, 171, PacketEntityKind.Creature);
+            Assert.Throws<InvalidDataException>(() => packet.At(1, map));
+            map.Add(72, 1, 172, PacketEntityKind.Creature);
+            var commands = packet.At(1, map).All;
+            Assert.IsType<TogglePossessionFormCommand>(commands[0]);
+            Assert.IsType<TogglePossessionPrayerCommand>(commands[1]);
+            Assert.True(Assert.IsType<SetSniperModeCommand>(commands[2]).On);
+            var fear = Assert.IsType<FrightenPossessedCreatureCommand>(commands[3]);
+            Assert.Equal((new CreatureId(171), new CreatureId(172), new FearAmount(2000)),
+                (fear.Target, fear.Source, fear.Amount));
+            Assert.Equal((5, 6), (Assert.IsType<ToggleSneakCommand>(commands[4]).TileX,
+                Assert.IsType<ToggleSneakCommand>(commands[4]).TileY));
+            Assert.Equal(new PossessionAim(new(new(0x5800), new(0x6800), new(0x1000)), new(0x200), new(0x200)),
+                Assert.IsType<HypnotiseCommand>(commands[5]).Aim);
+            Assert.IsType<DismissFollowersCommand>(commands[6]);
+            Assert.False(Assert.IsType<SetSniperModeCommand>(commands[7]).On);
+            Assert.True(Assert.IsType<SetSniperModeCommand>(commands[8]).On);
+        }
+        finally { File.Delete(path); }
+    }
     [Theory]
     [InlineData(122351u, 221220u)]
     [InlineData(111273u, 222521u)]

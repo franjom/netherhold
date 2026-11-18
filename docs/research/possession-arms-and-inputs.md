@@ -271,7 +271,8 @@ does not release it. No timer.
 
 **Sniper, command 39** (`0x005171D0`) sets +0x3E6 bit 31 to packet bit 0 (AND
 0x7FFFFFFF, OR dword0 << 31): an assignment, not a toggle, with no definition or
-spell gate. Simulation readers: the free-aim range (`0x00515364`: 0x3000 when spell
+spell gate in the server handler. The client key has definition/spell gates; see
+[special abilities](possession-special-abilities.md#sniper). Simulation readers: the free-aim range (`0x00515364`: 0x3000 when spell
 Range +0x31 plus the bit is nonzero, else 0, which is unlimited) and shot +0x165
 (`0x004984D0`), which doubles contact damage (`0x004AC420`). So for a spell with Range
 0 sniper mode adds a 3-tile cap. The HUD `0x00420D10` reads it for presentation; the

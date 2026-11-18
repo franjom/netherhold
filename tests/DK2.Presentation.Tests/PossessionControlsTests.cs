@@ -14,6 +14,36 @@ namespace DK2.Presentation.Tests;
 /// <summary>The possessor's selection byte and what Fire sends (possession-client.md §4).</summary>
 public sealed class PossessionControlsTests
 {
+    [InstallFact]
+    public void SniperRequiresItsDefinitionMultiplierAndAnUnlockedSpell()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        CreatureDef elf = db.Creatures.Values.Single(c => c.Name == "Dark Elf");
+        Assert.True(PossessionControls.CanToggleSniper(elf, 10));
+        Assert.False(PossessionControls.CanToggleSniper(elf with { SniperZoom = new Fp32(0x1FFF) }, 10));
+        Assert.False(PossessionControls.CanToggleSniper(elf with { Spells = [] }, 10));
+        Assert.False(PossessionControls.CanToggleSniper(elf with
+        {
+            Spells = elf.Spells.Select(s => s with { LevelAvailable = 10 }).ToArray(),
+        }, 9));
+    }
+    [InstallFact]
+    public void SecondaryAbilitySelectsHypnosisAndPrimarySneakUsesTheCameraTile()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        CreatureDef vampire = db.Creatures.Values.Single(c => c.Name == "Vampire");
+        var controls = new PossessionControls();
+        controls.SelectSecondary(vampire);
+        Assert.False(controls.Melee);
+        Assert.Equal(4, controls.Selection);
+        Assert.IsType<HypnotiseCommand>(controls.SubmitFire(Keeper, new PossessionView(), vampire));
+        CreatureDef rogue = db.Creatures.Values.Single(c => c.Name == "Rogue");
+        var view = new PossessionView();
+        var body = new PossessedBody(100, 200, 50, false, false, false, false, 0x200, 0x600, 0, 0, 4, false, 0);
+        view.Enter(0x5800, 0x6800, 0x1000, body);
+        ToggleSneakCommand sneak = Assert.IsType<ToggleSneakCommand>(controls.UsePrimary(Keeper, view, rogue));
+        Assert.Equal((5, 6), (sneak.TileX, sneak.TileY));
+    }
     private static readonly PlayerId Keeper = new(3);
 
     [Fact]

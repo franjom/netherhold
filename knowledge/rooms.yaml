@@ -8,7 +8,7 @@
 # values ring the square with dirt path (terrain 3) instead: wall furniture needs a wall, so a room
 # on open ground or with gaps in its walls can draw less. These are our rules' readings; their
 # confidence is the research's: binary-entrance.md, auto-placed-furniture.md, rooms-and-gold.md.
-hash_version: 530
+hash_version: 531
 rooms:
   - room: Treasury
     name: "Treasury"

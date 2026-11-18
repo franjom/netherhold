@@ -1357,6 +1357,14 @@ public sealed partial class CreatureState
     /// <c>+0x3EA</c> bit 0, AttackCreatureHits <c>+0x4D9</c> and NHypnotisedAttacks <c>+0x4DB</c>.</summary>
     public ushort SneakingAs;
     public bool SniperMode;
+    /// <summary>Native +3E6 bits 11 and 13, toggled by possession actions 30 and 31.</summary>
+    public bool PossessionFlightForm;
+    public bool PossessionPraying;
+    public bool PossessionPrayerAction;
+    /// <summary>Native fear-over-time words +463/+465 and source tag +467.</summary>
+    public ushort PossessionFearTicks;
+    public ushort PossessionFearAmount;
+    public CreatureId PossessionFearSource;
 
     /// <summary>DK2's Creeping, <c>+0x3E6</c> bit 12: set and cleared by the possessor's creep key
     /// (game action 0x22) and cleared on leaving possession. The combat scans and a sneak's watchers
@@ -1766,6 +1774,12 @@ public sealed partial class CreatureState
         hash.Add(PossessedTargetTick);
         hash.Add(SneakingAs);
         hash.Add(SniperMode);
+        hash.Add(PossessionFlightForm);
+        hash.Add(PossessionPraying);
+        hash.Add(PossessionPrayerAction);
+        hash.Add(PossessionFearTicks);
+        hash.Add(PossessionFearAmount);
+        hash.Add(PossessionFearSource.Value);
         hash.Add(Creeping);
         hash.Add(HypnotisedCreatureId);
         hash.Add(HypnosisOwnerPlayerId);

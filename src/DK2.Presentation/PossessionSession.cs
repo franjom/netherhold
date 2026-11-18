@@ -34,7 +34,7 @@ public sealed class PossessionSession : ITurnPoseSource
     private static readonly GameAction[] PressActions =
     [
         GameAction.Melee, GameAction.Spell1, GameAction.Spell2, GameAction.Spell3, GameAction.SelectAlly,
-        GameAction.RemoveAlly, GameAction.Sniper, GameAction.Fire,
+        GameAction.RemoveAlly, GameAction.Sniper, GameAction.Fire, GameAction.PrimaryAbility, GameAction.SecondaryAbility, GameAction.PickLock,
     ];
 
     private readonly GameDatabase _database;
@@ -42,6 +42,7 @@ public sealed class PossessionSession : ITurnPoseSource
     private readonly PossessionView _view = new();
     private readonly PossessionControls _controls = new();
     private readonly PossessionFlight _flight = new();
+    private readonly PossessionSniper _sniper;
     private PossessionWorld? _world;
     private CreatureState? _possessed;
     private WorldState? _boundWorld;
@@ -68,6 +69,7 @@ public sealed class PossessionSession : ITurnPoseSource
     {
         _database = database;
         _preset = preset is { Lens: > 0 } ? preset : new CameraThing(new byte[84]) { Lens = 4096, ViewDistance = 49152 };
+        _sniper = new PossessionSniper(_preset);
     }
 
     public bool Possessing => _possessed != null;
@@ -79,9 +81,8 @@ public sealed class PossessionSession : ITurnPoseSource
     public bool SettledPossessionCamera => !_flight.Active && (Possessing || _ending == Ending.Dead);
     /// <summary>The possession camera's capped visibility distance, in tiles, for its fade and tile walk.</summary>
     public float PossessionViewDistance => Possessing
-        ? PossessionFade.ViewDistance(_preset.Zoom, _preset.ViewDistance, possessionCamera: true)
+        ? PossessionFade.ViewDistance(_preset.Zoom, _sniper.ViewDistance, possessionCamera: true)
         : PossessionFade.ViewDistance(_flight.Target.Zoom, _flight.Target.ViewDistance, possessionCamera: true);
-
 
     /// <summary>The id of the creature whose own model is left out of the picture, or 0. DK2 clears
     /// the thing's draw bit (<c>+0xF3</c> bit 0) when the move into first person lands
@@ -107,6 +108,7 @@ public sealed class PossessionSession : ITurnPoseSource
         ClassicCamera? ordinary, Vector3 ordinaryFocus, ICollection<PlayerCommand> commands, ICollection<SoundRequest> sounds)
     {
         Colours.Step(input.ClockMilliseconds);
+        _sniper.Step(input.ClockMilliseconds);
         while (_colourEvents.Count > 0)
         {
             if (_colourEvents.Dequeue() == PossessionColourEvent.Damaged) Colours.Damage(input.ClockMilliseconds);
@@ -121,7 +123,8 @@ public sealed class PossessionSession : ITurnPoseSource
             if (ended)
             {
                 bool landed = !_flight.Active;
-                CameraFlightState from = landed ? PossessionFlight.FirstPerson(_view, _preset) : _flight.State;
+                CameraFlightState from = landed ? PossessionFlight.FirstPerson(_view,
+                    _preset with { Lens = _sniper.Lens, ViewDistance = _sniper.ViewDistance }) : _flight.State;
                 int endedId = _possessed!.Id;
                 Reset();
                 // The death view is asked for only from mode 2 (0x0044283F), for a death that leaves its body (0x00488095).
@@ -165,6 +168,7 @@ public sealed class PossessionSession : ITurnPoseSource
         _possessed = creature;
         if (entered)
         {
+            _sniper.Reset();
             _view.Enter(creature.PosX, creature.PosY, creature.PosZ + FloorHeightRules.Ordinary, _world!.Body());
             _controls.Reset();
             _creepingSent = null;
@@ -244,9 +248,24 @@ public sealed class PossessionSession : ITurnPoseSource
         if (Pressed(GameAction.Spell2)) _controls.SelectSpell(1, definition, creature.Level);
         if (Pressed(GameAction.Spell3)) _controls.SelectSpell(2, definition, creature.Level);
         if (Pressed(GameAction.SelectAlly)) _controls.SelectFollowers();
+        if (Pressed(GameAction.PrimaryAbility))
+        {
+            CreatureId target = definition.PrimaryAbility == PossessionAbilityKind.Fear
+                ? PossessionAbilityRules.PickFrightenTarget(_boundWorld!, _database, creature, PossessionControls.Aim(_view))
+                : CreatureId.None;
+            if (_controls.UsePrimary(viewer, _view, definition, target, new CreatureId(creature.Id)) is PlayerCommand primary)
+                commands.Add(primary);
+        }
+        if (Pressed(GameAction.SecondaryAbility)) _controls.SelectSecondary(definition);
+        if (Pressed(GameAction.PickLock)) commands.Add(new OpenPossessedPrisonCommand(viewer, creature.Tile));
         if (Pressed(GameAction.RemoveAlly)) commands.Add(new DismissFollowersCommand(viewer));
-        if (Pressed(GameAction.Sniper)) commands.Add(new SetSniperModeCommand(viewer, !creature.SniperMode));
-        if (Pressed(GameAction.Fire) || input.PrimaryPressed) commands.Add(_controls.Fire(viewer, _view));
+        if (Pressed(GameAction.Sniper) && PossessionControls.CanToggleSniper(definition, creature.Level))
+        {
+            _sniper.Toggle(definition.SniperZoom, creature.SniperMode, input.ClockMilliseconds);
+            commands.Add(new SetSniperModeCommand(viewer, !creature.SniperMode));
+        }
+        if (!creature.PossessionFlightForm && (Pressed(GameAction.Fire) || input.PrimaryPressed))
+            commands.Add(_controls.SubmitFire(viewer, _view, definition));
     }
 
     private static void Footstep(PossessionFootstep? step, CreatureDef definition, ICollection<SoundRequest> sounds)
@@ -279,7 +298,7 @@ public sealed class PossessionSession : ITurnPoseSource
     /// a pitch of 0x300 to 0x4FF, while the view distance runs down to nothing. That the point lies
     /// behind the body is a HYPOTHESIS (which of the two tables is the sine is not read). DK2 draws the
     /// three angles from its own generator seeded by the body's place; ours come from that place too,
-    /// by another generator (a remake choice). The colour change that goes with it is not built.</summary>
+    /// by another generator (a remake choice).</summary>
     private void BeginDeath(in CameraFlightState from, CreatureState body, WorldState world, long clock)
     {
         Colours.Death(clock);
@@ -318,7 +337,8 @@ public sealed class PossessionSession : ITurnPoseSource
         }
         if (Possessing)
         {
-            pose = PossessionCamera.Picture(_view, _preset, viewport, ordinary?.ReferenceScreenWidth);
+            pose = PossessionCamera.Picture(_view, _preset with { Lens = _sniper.Lens, ViewDistance = _sniper.ViewDistance },
+                viewport, ordinary?.ReferenceScreenWidth);
             return true;
         }
         pose = default;

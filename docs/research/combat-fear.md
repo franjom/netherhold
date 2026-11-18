@@ -84,7 +84,8 @@ Called once a tick per creature from the creature update (`0x00488930`), after
 callers: the timed-effects update `0x0048E160`, which each tick a countdown at
 `+0x463` runs adds `+0x465` from `+0x467` — a fear-over-time effect a spell sets —
 and `0x004B32A0`, which gives every creature of a player within a radius and in
-sight of a point an amount at once. Both are spell effects, read and not built.
+sight of a point an amount at once. The timed source is built; see
+[special abilities](possession-special-abilities.md#simulation-arms). The area source remains unbuilt.
 
 ## 3. The checks in the fight state
 
@@ -318,9 +319,9 @@ word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 The stunned gate is built (ADR-0559), beside the chicken's (ADR-0302): a stunned creature's
 `TempFear` piles up and its first standing tick hands the whole intake over.
 
-**Not built:** hero gates; the owner modifiers (Q375); the two spell sources of §2; the alarm
+**Not built:** hero gates; the owner modifiers (Q375); the area spell source of §2; the alarm
 path's write of body bit `+0x10F`.0 (`0x00460A3F`). `ThreatThing` is built for traps and the Boulder (ADR-0678); its timed-effect source
-(`+0x463`/`+0x465`/`+0x467`, `0x0048E38C`) is not.
+(`+0x463`/`+0x465`/`+0x467`, `0x0048E38C`) is built (ADR-0819), with the inherited Crypt discount unsupported.
 
 Withdrawal is built through step 5 (ADR-0544 failed pick, ADR-0545 the away
 stage's draws; each caller supplies what it leaves in `+0x502`, the NonFighter

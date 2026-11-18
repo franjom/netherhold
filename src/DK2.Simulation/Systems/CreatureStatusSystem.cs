@@ -119,6 +119,7 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
         // 67, 77 and 120, the slap's reaction (0x0046F1F0, ADR-0401), for every creature.
         if (creature.Activity == CreatureActivity.Slapped) SlapRules.React(context, SystemName, creature, definition);
 
+        PossessionAbilityRules.BeginPrayer(context, creature);
         if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return;
 
         if (creature.ArmourTicks > 0) creature.ArmourTicks--;
@@ -150,6 +151,7 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
             }
         }
 
+        PossessionAbilityRules.UpdateFear(context, creature);
         StatusEffectRules.UpdateBurning(context, creature, definition);
         // The low-health branch's stamp half, before the handler reads the recharges (0x004896C8).
         LowHealthSpeedRules.DelayRecharge(database, definition, creature, context.Tick.Value);

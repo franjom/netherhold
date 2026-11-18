@@ -46,6 +46,8 @@ public static partial class PossessionRules
             if (target.HypnotisedCreatureId != 0) ReleaseHypnotised(context, target);
             target.SneakingAs = 0;
             target.SniperMode = false;
+            target.PossessionFlightForm = false;
+            target.PossessionPraying = false;
             target.Creeping = false;
             target.ClaimActionTile = -1;
             target.Possessed = false;

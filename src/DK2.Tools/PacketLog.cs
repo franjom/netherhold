@@ -30,12 +30,14 @@ public sealed class PacketLog
     public IReadOnlyList<(long Turn, uint Original, PacketEntityKind Kind)> EntityReferences =>
         [.. _turns.OrderBy(pair => pair.Key)
             .SelectMany(pair => pair.Value
-                .Where(action => action.Kind is 55 or 57 or 59 or 62 or 88 or 93)
+                .Where(action => action.Kind is 55 or 57 or 59 or 62 or 88 or 93 or 137)
                 .SelectMany(action => References(pair.Key, action)))];
 
     private static IEnumerable<(long Turn, uint Original, PacketEntityKind Kind)> References(long turn, PacketAction action)
     {
-        yield return (turn, action.Kind switch { 55 => action.Second & 0xffff, 93 => action.First & 0xffff, _ => action.First }, action.Kind switch
+        uint first = action.Kind switch { 55 => action.Second & 0xffff, 93 or 137 => action.First & 0xffff, _ => action.First };
+        if (first != 0 || action.Kind != 137)
+            yield return (turn, first, action.Kind switch
         {
             88 => PacketEntityKind.Object,
             59 => PacketEntityKind.GoldTile,
@@ -44,6 +46,8 @@ public sealed class PacketLog
         });
         // Action 88's target word: a creature for Kill Creatures and Transfer Creature, else zero.
         if (action.Kind == 88 && (action.Second & 0xffff) != 0)
+            yield return (turn, action.Second & 0xffff, PacketEntityKind.Creature);
+        if (action.Kind == 137 && (action.Second & 0xffff) != 0)
             yield return (turn, action.Second & 0xffff, PacketEntityKind.Creature);
     }
 
@@ -144,6 +148,37 @@ public sealed class PacketLog
                 case 34:
                     // 0x00517310: bit 0 of the first dword is the possessed creature's Creeping bit.
                     commands.Add(new SetCreepingCommand(player, (a.First & 1) != 0));
+                    break;
+                case 27:
+                    commands.Add(new HypnotiseCommand(player,
+                        new PossessionAim(
+                            new FpPosition3(new((int)(a.First & 0xFFFFF)), new((int)(a.Second & 0xFFFFF)),
+                                new((int)(a.Third & 0x3FFF))),
+                            new Dk2Angle((ushort)((a.First >> 20) & 0x7FF)),
+                            new Dk2Angle((ushort)((a.Second >> 20) & 0x7FF)))));
+                    break;
+                case 29:
+                    commands.Add(new ToggleSneakCommand(player, unchecked((int)a.First), unchecked((int)a.Second)));
+                    break;
+                case 30:
+                    commands.Add(new TogglePossessionFormCommand(player));
+                    break;
+                case 31:
+                    commands.Add(new TogglePossessionPrayerCommand(player));
+                    break;
+                case 36:
+                    break;
+                case 38:
+                    commands.Add(new DismissFollowersCommand(player));
+                    break;
+                case 39:
+                    commands.Add(new SetSniperModeCommand(player, (a.First & 1) != 0));
+                    break;
+                case 137:
+                    commands.Add(new FrightenPossessedCreatureCommand(player,
+                        (a.First & 0xFFFF) == 0 ? CreatureId.None : new CreatureId(Resolve(a.First & 0xFFFF, PacketEntityKind.Creature)),
+                        (a.Second & 0xFFFF) == 0 ? CreatureId.None : new CreatureId(Resolve(a.Second & 0xFFFF, PacketEntityKind.Creature)),
+                        new FearAmount((ushort)a.Third)));
                     break;
                 case 25:
                     // 0x005146B0: X, Y, then Z in the word's low half and the heading in its high half.

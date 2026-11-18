@@ -63,8 +63,12 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
     private static void Sweep(SimulationContext context, ReadOnlySpan<ICreatureUpdateStep> steps, bool walkTriggers = false)
     {
         bool hasCombatStep = false;
+        bool hasStatusStep = false;
         foreach (ICreatureUpdateStep step in steps)
+        {
             if (step is CombatSystem) hasCombatStep = true;
+            if (step is CreatureStatusSystem) hasStatusStep = true;
+        }
         EntityList<CreatureState> creatures = context.World.Creatures;
         int below = int.MaxValue;
         for (int i = creatures.Count - 1; ; i--)
@@ -79,6 +83,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
             context.UpdateStartStateId = creature.Dk2StateId;
             context.CreaturesUpdatedThisTick.Add(creature);
             bool actionPolled = false;
+            if (!hasStatusStep) PossessionAbilityRules.BeginPrayer(context, creature);
             foreach (ICreatureUpdateStep step in steps)
             {
                 // The native runner follows timed effects and the worker gold block, before combat.
@@ -86,6 +91,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                     || (!hasCombatStep && step is not CreatureStatusSystem and not ImpTaskSystem.WorkerPrelude)))
                 {
                     PossessedMeleeRules.Poll(context, creature);
+                    PossessionAbilityRules.PollPrayer(context, creature);
                     PossessedExcavationRules.Poll(context, creature);
                     ClaimActionRules.Poll(context, creature);
                     IdleActionRules.Poll(context, creature);
@@ -102,6 +108,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
             if (!actionPolled && creature.LinkWorld is not null)
             {
                 PossessedMeleeRules.Poll(context, creature);
+                PossessionAbilityRules.PollPrayer(context, creature);
                 PossessedExcavationRules.Poll(context, creature);
                 ClaimActionRules.Poll(context, creature);
                 IdleActionRules.Poll(context, creature);
@@ -112,6 +119,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
             if (creature.LinkWorld is not null) Combat.CombatRules.RefreshAttackable(creature);
             if (walkTriggers && creature.LinkWorld is not null) context.Triggers?.RunCreature(creature);
             if (creature.LinkWorld is not null) PossessedMeleeRules.Advance(context, creature);
+            if (creature.LinkWorld is not null) PossessionAbilityRules.AdvancePrayer(context, creature);
             if (creature.LinkWorld is not null) PossessedExcavationRules.Advance(context, creature);
             if (creature.LinkWorld is not null) ClaimActionRules.Advance(context, creature);
             if (creature.LinkWorld is not null) IdleActionRules.Advance(context, creature);

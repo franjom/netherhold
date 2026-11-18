@@ -53,6 +53,18 @@ public static class JailBreakRules
     }
 
     public static ref byte DoorOf(WorldState world, RoomInstance room) => ref world.TileAtIndex(room.TileIndices[0]).PrisonDoor;
+    /// <summary>Action136: unlock and open the prison, then release every side (0x00514420,0x004E2E60).</summary>
+    public static void OpenByPossession(SimulationContext context, RoomInstance room)
+    {
+        ref byte flags = ref DoorOf(context.World, room);
+        if ((flags & Activated) == 0) flags = Unlocked(flags);
+        if ((flags & Open) == 0)
+        {
+            flags |= Open;
+            StampDoor(context.World, room, context.Tick);
+        }
+        Release(context, "possession", room, new PlayerId(0), all: true);
+    }
 
     /// <summary><c>0x004E8660</c>'s Prison arm, for a creature already past the flag and worker tests:
     /// an occupied Prison of a keeper it is not allied with (or the neutral player's), itself not a

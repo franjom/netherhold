@@ -245,6 +245,13 @@ public sealed record CreatureDef
     public required FightStyle FightStyle { get; init; }
     public required IReadOnlyList<CreatureResistance> Resistances { get; init; }
     public required IReadOnlyList<CreatureSpellSlot> Spells { get; init; }
+    /// <summary>The possession ability bytes at file F46/F47 (compact definition 673/674).</summary>
+    public PossessionAbilityKind PrimaryAbility { get; init; }
+    public PossessionAbilityKind SecondaryAbility { get; init; }
+    public uint PrimaryAbilityParameter { get; init; }
+    public uint SecondaryAbilityParameter { get; init; }
+    /// <summary>File 107B, compact 79B: sniper's integral multiplier is the value shifted right twelve.</summary>
+    public Fp32 SniperZoom { get; init; }
 
     // Economy / work
     public required ushort Pay { get; init; }

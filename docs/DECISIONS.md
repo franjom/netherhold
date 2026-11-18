@@ -19484,3 +19484,23 @@ observations although the native enable writer remains unread. Evidence and limi
 **Consequences.** Observer subscriptions and pending notifications are excluded from snapshots and hashing. HashVersion
 and FormatVersion advance 529 to 530 conservatively under the project's simulation-change rule; the saved field layout
 is unchanged. Earlier saves are refused. No native visual or last-bit floating-point equivalence is claimed.
+
+## ADR-0819 - complete the readable possession ability inputs and clocks
+**Date:** 2026-11-18 | **Status:** accepted | **Systems:** creatures, camera-lighting, simulation-core, presentation-godot
+**Context.** The first-person client omitted the two special keys, imposed no sniper gate,
+and offered no possession Pick Lock path. The [ability read](research/possession-special-abilities.md)
+closes the definition fields, immediate form/prayer/fear arms, sniper camera move and Prison exception.
+The carry/throw lifecycle and foreground render transform remain incomplete reads.
+**Decision.**
+1. Parse and round-trip the two ability kinds, their parameters and sniper multiplier in `DK2.Data`.
+   Keep the key selection, targeting and real-time sniper lens move engine-free.
+2. Route hypnosis and sneak to their existing commands. Add the native form and prayer toggles,
+   action50's animation and capped prayer heal, action137's twenty-turn fear, and Pick Lock's
+   action136 Prison release through shared simulation rules. Godot forwards the existing bindings.
+3. Save and hash the form/prayer flags, active prayer action and timed fear words/source.
+   Bump hash/save530 to531, refresh the pinned world and remake journal, and regenerate knowledge.
+   New journal command tags38-41 do not change the journal container version.
+4. Preserve action36's inert effect outside a Prison. Keep carrying and foreground attacks unbuilt
+   until their remaining physical/projection dependencies are read; do not substitute guessed arms.
+**Consequences.** Shared signatures already consumed by Unity remain available. The existing
+Crypt fear-discount and Prison-release scope limits remain recorded with their mechanics.

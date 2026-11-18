@@ -6,6 +6,31 @@ using DK2.Core;
 using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
+/// <summary>Action 30: toggles native creature flag bit 11 and requests effect 201.</summary>
+public sealed record TogglePossessionFormCommand(PlayerId PlayerId) : PlayerCommand(PlayerId);
+/// <summary>Action 31: toggles native creature flag bit 13 (the possession prayer).</summary>
+public sealed record TogglePossessionPrayerCommand(PlayerId PlayerId) : PlayerCommand(PlayerId);
+/// <summary>Pick Lock's prison exception (action136); outside a prison the native action36 is inert.</summary>
+public sealed record OpenPossessedPrisonCommand(PlayerId PlayerId, TilePos PrisonAt) : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+        hash.Add(PrisonAt.X);
+        hash.Add(PrisonAt.Y);
+    }
+}
+/// <summary>Primary kind9's action137: a target/source creature pair and threat amount.</summary>
+public sealed record FrightenPossessedCreatureCommand(PlayerId PlayerId, CreatureId Target, CreatureId Source, FearAmount Amount) : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+        hash.Add(Target.Value);
+        hash.Add(Source.Value);
+        hash.Add(Amount.Value);
+    }
+}
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-possession.md")]
 public sealed record LeavePossessionCommand(PlayerId PlayerId) : PlayerCommand(PlayerId)

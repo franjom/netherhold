@@ -68,7 +68,7 @@ public static partial class CreatureActionCoverage
         rows.Add(Built(47, typeof(FinaleRules), "PickUpGem", "state 233"));
         rows.Add(NeverBegun(48, $"no begin call passes 48; {Table}"));
         rows.Add(Built(49, typeof(PortalRules), nameof(PortalRules.JoiningTicks), "portal arrival; special arrival", "the special arrival, not read"));
-        rows.Add(Unbuilt(50, "the creature update", "a possessed creature's prayer heal, begun with +0x3E6 bit 0x2000 (whose setter is unread); ours has none"));
+        rows.Add(Built(50, typeof(PossessionAbilityRules), nameof(PossessionAbilityRules.PrayerActionId), "the creature update"));
         rows.Add(NeverBegun(51, $"no begin call passes 51; {Table}"));
         rows.Add(Unbuilt(52, "state 209; the stun", "state 209 (0x00481020) begins it before 255; ours enters 255 with no art 24 action (StatusEffectRules.StunInto, StunFromStarter)"));
         rows.Add(Built(53, typeof(DropLandingRules), nameof(DropLandingRules.GetUpTicks), "states 255, 263; routine 0x004813C0", "routine 0x004813C0, not read"));

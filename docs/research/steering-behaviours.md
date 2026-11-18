@@ -1,4 +1,4 @@
-﻿---
+---
 systems: [navigation]
 ---
 # Mechanic: the steering behaviours' bodies (phase 2 of ADR-0157)
@@ -317,9 +317,9 @@ Neither `ShuffleSpeed` nor `CanWalkOnWater` enters this modifier.
 The independently recomputed grounded-water flag `+0x3EA` bit 21 is not its gate.
 Order: non-worker low-health half-speed, water, lava (150/100, `0x0048984C`), player bonus, possession/stat modifier.
 At tick end persistent speed is restored unless `+0x3BF` was set; water does not set it. They run before the state handlers, so a speed a handler sets is not modified that turn ([speed-set-turn.md](speed-set-turn.md)).
-Flying's worker bits, five animation exceptions and mode-dependent bit precede
-`CanFly` outside states 217–218. Ours supports the trap subset: workers grounded,
-otherwise `CanFly` outside 217–218; other flight arms remain deviations.
+The flying accessor and its supported form/CanFly subset are recorded in
+[special abilities](possession-special-abilities.md#simulation-arms); the worker bit-8
+and five-animation arms remain unsupported.
 Lava's adjacent non-flying 150 % arm remains unbuilt. The owner saw slowdown; no live ratio was timed.
 Ours: walk/run/shuffle (`MaxSpeedOf`, ADR-0729), timed modifiers, `WaterSpeedRules` and `LowHealthSpeedRules` (ADR-0756; [speed-set-turn.md](speed-set-turn.md)). The [current-state/speed gate](library-movement-gate.md) is mirrored for every non-Imp (ADR-0751; earlier scopes in [home-handover](lair-home-handover.md)); Imps keep their adapter. The body syncs to the entity in `Advance` and keeps its 16.16 position after a committed step; turn start re-syncs only a body whose entity moved (an adapter, Q736).
 

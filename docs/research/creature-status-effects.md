@@ -213,7 +213,8 @@ by the work rate was corrected first (`combat-fight-state.md` §4). On state ids
 the rule refuses it, and gets up through 257 to 1.
 
 **Not built, named (Q399):** the per-player byte `+0x1095`, the Stone
-Knight's blow path and other status display, the fear-over-time pair, the unread words.
+Knight's blow path and other status display, the unread words. The fear timer, amount and
+source are built; see [special abilities](possession-special-abilities.md#simulation-arms).
 Burning simulation is built (ADR-0595); presentation and native stream acceptance:
 [shot-effects.md section5](shot-effects.md#5-the-inferno). Ours lets the
 engagement go on freeze and stun where DK2 only changes the state, and scales the

@@ -53,7 +53,7 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
         bool weak = LowHealthSpeedRules.IsWeak(database, def, me);
         int stat = database.FirstPersonStat(CreatureStatId.Speed) + 100;
         return new PossessedBody(Speed(def.Speed), Speed(def.RunSpeed), Speed(def.ShuffleSpeed), me.Creeping, flying,
-            StepLocked: false, KeysLocked: false, def.FootprintRadius.Raw & 0xFFFF, def.EyeHeight.Raw & 0xFFFF,
+            StepLocked: me.PossessionPraying, KeysLocked: false, def.FootprintRadius.Raw & 0xFFFF, def.EyeHeight.Raw & 0xFFFF,
             def.FirstPersonWaddle, def.FirstPersonBob, def.FirstPersonWalkCycleScale,
             (def.Flags & CreatureFlags.CameraRollsWhenTurning) != 0, me.Heading);
 

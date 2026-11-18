@@ -1,4 +1,4 @@
-﻿---
+---
 systems: [doors-traps]
 ---
 # Mechanic: the trap's update, its firing, its threat and the Trigger
@@ -243,7 +243,8 @@ both sections' raw bytes checked displacement accesses and overlapping writes, i
 bytes outside the listing; it found no additional candidates at valid instruction starts.
 The constructor clears the required trap reference, and state 204 rejects an absent one.
 
-**STRONGLY INFERRED from disassembly: the advertised NUM 0 route is inert.** The original
+**STRONGLY INFERRED from disassembly: NUM 0 does not initiate trap disarming.**
+Its Prison exception is built; see [special abilities](possession-special-abilities.md#pick-lock-is-the-prison-exception). The original
 [manual §15.2](https://retrogamer.biz/wp-content/uploads/2016/06/Dungeon-Keeper-2-Manual.pdf)
 advertises this control; it does not establish the patched executable's behavior. The
 [default binding](functions/005604C0.md), [key handler](functions/00405010.md) and
@@ -391,7 +392,7 @@ traps and a shot's collision with a trap; (ADR-0331) the Alarm, Fear, Spike and 
 scan D and a creature's fight against a revealed trap, melee and spell.
 Disarming remains unbuilt under the scoped reachability inference in §11 (ADR-0329).
 Left: scan D's Turncoat skip and the game's player order (a tie between players); effects, sounds and
-animations; heights (Q398, M9 under ADR-0341); `0x0048ED40`'s worker, animation and `0x00494700` arms; a possessed creature's
+animations; heights (Q398, M9 under ADR-0341); `0x0048ED40`'s worker and animation arms; a possessed creature's
 swing at a trap is built (`keeper-spell-possession.md`, Possessed actions).
 
 ## Open questions

@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -29,7 +29,7 @@ public static class CreatureHealthRules
 
     /// <summary>A health change as <c>Thing_ModifyHealth</c> (<c>0x004B2CE0</c>) makes it: the delta is added with
     /// no lower clamp (<c>0x004B2EEC..0x004B2F03</c>), so a blow's overkill stays and a heal lifts it from there.
-    /// The cut at the maximum is ours (DK2's callers cut the heal). Damage that leaves health at or below zero
+    /// A positive delta is capped at the level maximum (<c>0x004B2D79..0x004B2DE1</c>). Damage that leaves health at or below zero
     /// books the collapse (<see cref="CreatureState.CollapseDue"/>; DK2 collapses inside the call, <c>0x004B2FB5</c>,
     /// for a heal too). A dying or dead creature keeps the zero floor and books nothing. Returns what landed, counted from zero. The <paramref name="source"/> is stamped first,
     /// for any delta (ADR-0764, ADR-0765).</summary>

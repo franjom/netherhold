@@ -1,4 +1,4 @@
-﻿---
+---
 systems: [creatures]
 ---
 # Mechanic: the creature action table — how an attack is entered
@@ -159,7 +159,7 @@ sound `+25`:
 | 47 | 23 | 0 | — | `0xe6` | state 233 `0x004745e4` |
 | 48 | 26 | 0 | — | `0xe6` | **none** |
 | 49 | 30 | 0 | — | — | portal arrival `0x004dcbe2`; special arrival `0x004dd0c7` |
-| 50 | 23 | 0 | `0x00499840` | `0xd4` | the creature update `0x00489572` |
+| 50 | 23 | 0 | `0x00499840` | `0xd4` | the creature update `0x00489572`, enabled by possession action 31; built (ADR-0819) |
 | 51 | 14 | 0 | — | `0xd1` | **none** |
 | 52 | 24 | 0 | `0x00499880` | — | state 209 `0x00481062`; the stun `0x00491855` |
 | 53 | 27 | 3 | — | — | state 255 `0x004811c8`; routine `0x004813C0` `0x004813e2`; state 263 `0x004815e2` |
