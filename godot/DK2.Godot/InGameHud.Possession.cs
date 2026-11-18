@@ -37,6 +37,7 @@ public partial class InGameHud
         _possession = new PossessionSession(level.Database,
             ClassicCameraSetup.PossessionPreset(GameDatabaseLoader.LoadCameraPresets(install, level.Name)));
         _world.Possession = _possession;
+        OpenScreenColours();
         if (!LaunchArguments.PossessFirstCreature(args, "--")) return;
         if (PossessionStaging.PossessFirst(_simulation.World, _viewer) is CreatureState possessed)
             GD.Print("DK2.Godot: --possess-first-creature possessed creature ", possessed.Id, " at tile (", possessed.Tile.X, ", ",
@@ -69,6 +70,7 @@ public partial class InGameHud
             _keyboard.Read(_settings), _settings.MouseSensitivity, _settings.InvertMouse);
         PossessionUpdate update = _possession.Update(_simulation.World, _viewer, input, _world.ClassicCamera, _world.Focus,
             _pending, _possessionSounds);
+        UpdateScreenColours();
         // No sound player yet (step 4): the view's footsteps are dropped.
         _possessionSounds.Clear();
         if (update.Entered) _input.CancelPointerGesture();
@@ -90,6 +92,7 @@ public partial class InGameHud
     private void ClosePossession()
     {
         _possession?.Reset();
+        CloseScreenColours();
         CapturePointer(false);
     }
 }

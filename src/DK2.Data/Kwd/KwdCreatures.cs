@@ -214,6 +214,7 @@ public static partial class KwdCreatures
             FirstPersonWaddle = S32(0xDBC),
             FirstPersonBob = S32(0xDC0),
             FirstPersonWalkCycleScale = U8(0xD3D),
+            PossessionColourKind = (ScreenColourKind)U8(0xD3C),
             DistanceCanSee = Fp(0xEC8),
             DistanceCanHear = Fp(0xECC),
             PerceptionRange = Fp(0xD01),

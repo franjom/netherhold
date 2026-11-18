@@ -189,6 +189,7 @@ public sealed record CreatureDef
     /// <summary>File <c>+0xD3D</c> (<c>def+0x86B</c>): how fast the possessed view's walk cycle
     /// runs, in table steps per 50 ms.</summary>
     public byte FirstPersonWalkCycleScale { get; init; }
+    public ScreenColourKind PossessionColourKind { get; init; }
 
     public required Fp32 DistanceCanSee { get; init; }
     public required Fp32 DistanceCanHear { get; init; }

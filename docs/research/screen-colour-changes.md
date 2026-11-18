@@ -15,9 +15,9 @@ The effect is the display's **gamma ramp**, not a draw. A small object at presen
 `+0x13D3` holds three 256-entry 16-bit tables, one per channel. Each frame, while a change is
 running, it blends them and hands them to `IDirectDrawGammaControl::SetGammaRamp(0, ramp)`.
 So a change is a **per-channel lookup**: output = `table[c][input] / 65535` for an 8-bit input
-channel c. Nothing in the exe applies it per draw, so nothing in the exe can leave the HUD
-out of it (that the display applies a ramp to the whole primary surface is the API's
-behaviour, not read). The identity state is kind 0 with the user's gamma. "Kind" is a word
+channel c. HUD coverage is STRONGLY INFERRED: the hardware gamma ramp applies to the
+complete primary image, including the HUD. Native visual comparison remains unverified.
+The identity state is kind 0 with the user's gamma. "Kind" is a word
 0-15 that picks one of 16 table builders. The owner sees the tint when possessing a Vampire or a
 Skeleton and the red flash when a possessed creature is hit (original, 2026-11-15, CONFIRMED as
 observations), so the ramp is live on his install, although no code that switches it on was
@@ -163,15 +163,11 @@ Kind 0 is the plain gamma ramp, so those creatures show no tint. This agrees wit
 OpenKeeper lead (a Skeleton halves red and green and lifts blue is kind 3). Per-level
 creature records were not checked. Two other readers of `def+0x86F` are the posts in §5.
 
-## 7. Recipe
+## 7. Implementation
 
-State: `current`, `start`, `target` as 3 x 256 words, `gamma` in [0.5, 2], a queue. Pure
-functions: `BuildTable(kind, gamma)` from §3; `Blend(start, target, w)` from §4;
-`Step(now)` from §4; the output colour of a pixel is `table[c][in_c] / 65535`. The remake's
-existing `Hidden/DK2/Classic Exposure` pass (front-end-menus.md) is `BuildTable(0, gamma)`
-with 1/255 where DK2 has 1/256. A LUT applied to the final image including the HUD needs a
-screen-space pass above the UI; a camera-only pass would leave the HUD uncoloured, which
-differs from DK2 (HYPOTHESIS that DK2's ramp covers the HUD, see §1).
+The engine-free tables and transition queue, transient simulation notifications, Godot
+full-screen pass and verification boundaries are recorded in
+[possession colour rendering](possession-colour-rendering.md) (ADR-0818).
 
 ## 8. Unread, and leads
 

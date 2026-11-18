@@ -19,6 +19,8 @@ questions live in their canonical documents; this file links to them.
   Combat Pit completion and remaining parity limits: [canonical scope](research/combat-pit.md#9-what-is-built-adr-0213-hashsave-523).
   Behavioral parity with DK2 remains incomplete; bounded replay controls do not
   establish full-state, campaign-outcome or interactive-play acceptance.
+- Possession colour ramps and the final Godot scene/HUD pass are built (ADR-0818);
+  implementation and acceptance limits: [possession colour rendering](research/possession-colour-rendering.md).
 - Classic rendering, HUD and front-end integration are on master. Owner play,
   visual and hearing acceptance remain open in the
   [completion acceptance record](plans/2026-10-29-hud-and-front-end-completion.md#acceptance-record)

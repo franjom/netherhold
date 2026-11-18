@@ -110,6 +110,7 @@ public static class StatusEffectRules
         if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || ((definition.Flags & CreatureFlags.OnlyAttackableByHorny) == CreatureFlags.OnlyAttackableByHorny)) return 0;
         if (target.InHand) return 0;   // the flag, which a drop clears: a falling creature can be hurt
         int scaled = (int)((long)damage * DamageMultiplier(world, database, target) / Base);
+        if (scaled == 0) target.NotifyPossessionColour(PossessionColourEvent.Damaged);
         if (IsStunned(target) && FearRules.NonImpAmongAttackers(world, target)) LengthenStun(database, definition, target);
         int landed = CreatureHealthRules.Apply(database, definition, target, -scaled, source);
         if (target.Health <= 0) target.CollapseDue = true;

@@ -18,6 +18,97 @@ namespace DK2.Presentation.Tests;
 /// <summary>The possessing client a host drives with its input (possession-client.md, ADR-0805).</summary>
 public sealed class PossessionSessionTests
 {
+    [InstallFact]
+    public void AReplacementWorldWithTheSameCreatureIdRebindsColourEvents()
+    {
+        Rig rig = Level1(withOrdinaryCamera: false);
+        rig.Frame();
+        rig.Frame(256);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        CreatureState previous = rig.Me;
+        rig.World = WorldState.CopyOf(rig.World);
+        rig.Me = rig.World.CreatureById(previous.Id)!;
+        Assert.NotSame(previous, rig.Me);
+        Assert.False(rig.Frame().Entered);
+        CreatureDef definition = database.CreatureById(rig.Me.CreatureTypeId);
+        CreatureHealthRules.Apply(database, definition, rig.Me, -10, 0);
+        CreatureHealthRules.Apply(database, definition, rig.Me, 10, 0);
+        rig.Frame();
+        rig.Frame(125);
+        Assert.Equal(65535, rig.Session.Colours.Change.Current[128]);
+        rig.Frame(250);
+        CreatureHealthRules.Apply(database, definition, previous, -10, 0);
+        rig.Frame();
+        rig.Frame(125);
+        Assert.Equal(32767, rig.Session.Colours.Change.Current[128]);
+    }
+    [InstallFact]
+    public void AHitTruncatedToZeroStillFlashesRed()
+    {
+        Rig rig = Level1(withOrdinaryCamera: false);
+        rig.Frame();
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        int before = rig.Me.Health;
+        int landed = DK2.Simulation.Combat.StatusEffectRules.Hurt(rig.World, db,
+            db.CreatureById(rig.Me.CreatureTypeId), rig.Me, 1, 0);
+        Assert.Equal(0, landed);
+        Assert.Equal(before, rig.Me.Health);
+        rig.Frame();
+        rig.Frame(125);
+        Assert.Equal(65535, rig.Session.Colours.Change.Current[128]);
+    }
+
+    [InstallFact]
+    public void SessionFeedsDamageThawAndLeaveToTheColourDriver()
+    {
+        Rig rig = Level1(withOrdinaryCamera: true);
+        rig.Frame();
+        rig.Frame(1744);
+        Assert.True(rig.Session.Colours.Change.Running);
+        rig.Frame(256);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        CreatureDef definition = database.CreatureById(rig.Me.CreatureTypeId);
+        // Both changes happen between presentation frames: net-health polling would miss the flash.
+        CreatureHealthRules.Apply(database, definition, rig.Me, -10, 0);
+        CreatureHealthRules.Apply(database, definition, rig.Me, 10, 0);
+        rig.Frame();
+        rig.Frame(125);
+        Assert.Equal(65535, rig.Session.Colours.Change.Current[128]);
+        rig.Frame(250);
+        Assert.Equal(32767, rig.Session.Colours.Change.Current[128]);
+        rig.Me.FrozenTicks = 1;
+        var simulation = new GameSimulation(database, rig.World, 1,
+            [new DK2.Simulation.Systems.CreatureStatusSystem()]);
+        simulation.Tick();
+        Assert.Equal(0, rig.Me.FrozenTicks);
+        // A second freeze before the frame must not erase the thaw notification.
+        rig.Me.FrozenTicks = 1;
+        rig.Frame();
+        Assert.True(rig.Session.Colours.Change.Running);
+        rig.Frame(500);
+        Assert.False(rig.Session.Colours.Change.Running);
+        rig.World.Player(Viewer).PossessedCreatureId = 0;
+        rig.Me.Possessed = false;
+        rig.Frame();
+        Assert.True(rig.Session.Colours.Change.Running);
+        rig.Frame(256);
+        Assert.False(rig.Session.Colours.Change.Running);
+    }
+    [InstallFact]
+    public void ColourSubscriptionChangesNoHashAndResetStopsObserving()
+    {
+        Rig rig = Level1(withOrdinaryCamera: false);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var simulation = new GameSimulation(database, rig.World, 1, []);
+        ulong before = simulation.StateHash();
+        rig.Frame();
+        Assert.Equal(before, simulation.StateHash());
+        rig.Session.Reset();
+        CreatureHealthRules.Apply(database, database.CreatureById(rig.Me.CreatureTypeId), rig.Me, -1, 0);
+        rig.World.Player(Viewer).PossessedCreatureId = 0;
+        rig.Frame(3000);
+        Assert.NotEqual(65535, rig.Session.Colours.Change.Current[128]);
+    }
     private static readonly PlayerId Viewer = new(3);
     private static readonly CameraViewport Screen = new(1920, 1920, 1080);
 

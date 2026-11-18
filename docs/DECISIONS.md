@@ -19471,3 +19471,16 @@ modeled states' angry selection, and voluntary Mistress sessions at each mood.
 Hash/save 527 adds no state fields and includes the Heart-defense behavior
 from version 526. Campaign measurements and remaining limits stay in the
 evidence note.
+
+## ADR-0818 - possession colour changes consume transient creature notifications
+**Date:** 2026-11-18 | **Status:** accepted | **Systems:** camera-lighting, creatures, presentation-godot
+**Context.** Q745 changes whole-screen ramps on damage and thaw. Polling net health once per frame misses damage
+healed before that frame; polling the frozen word misses a thaw followed by another freeze.
+**Decision.** Health and status rules publish transient possessed-creature notifications. The engine-free session
+receives them in order and drives the real-time ramp model; Godot uploads its tables in one final pass over the HUD
+and scene. The previous scene-only gamma is disabled while this pass owns gamma. Tints stay enabled from the owner's
+observations although the native enable writer remains unread. Evidence and limits:
+[possession colour rendering](research/possession-colour-rendering.md), with binary rules in [Q745](research/screen-colour-changes.md).
+**Consequences.** Observer subscriptions and pending notifications are excluded from snapshots and hashing. HashVersion
+and FormatVersion advance 529 to 530 conservatively under the project's simulation-change rule; the saved field layout
+is unchanged. Earlier saves are refused. No native visual or last-bit floating-point equivalence is claimed.

@@ -125,7 +125,8 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
         if (creature.InvulnerableTicks > 0) creature.InvulnerableTicks--;
         if (creature.InvisibleTicks > 0) creature.InvisibleTicks--;
         if (creature.TurncoatTicks > 0) creature.TurncoatTicks--;
-        if (creature.FrozenTicks > 0) creature.FrozenTicks--;
+        if (creature.FrozenTicks > 0 && --creature.FrozenTicks == 0)
+            creature.NotifyPossessionColour(PossessionColourEvent.Thawed);
         if (creature.ChickenTicks > 0 && --creature.ChickenTicks == 0) ChickenRules.TimerEnded(context, creature);
         if (creature.Activity == CreatureActivity.Frozen && creature.FrozenTicks == 0)
         {

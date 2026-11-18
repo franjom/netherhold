@@ -52,6 +52,8 @@ public sealed class PossessionSession : ITurnPoseSource
     private Ending _ending;
     private int _bodyId;
     private long _deadSince;
+    private CreatureState? _colourSource;
+    private readonly Queue<PossessionColourEvent> _colourEvents = new();
 
     // After a possession: nothing, the death view's move, its hold, or the move back to the ordinary camera.
     private enum Ending { None, Dying, Dead, Out }
@@ -95,6 +97,7 @@ public sealed class PossessionSession : ITurnPoseSource
     public PossessionView View => _view;
     public PossessionControls Controls => _controls;
     public PossessionFlight Flight => _flight;
+    public PossessionColours Colours { get; } = new();
 
     /// <summary>One frame. <paramref name="ordinary"/> is the ordinary camera the timed moves start
     /// from and return to, null when the host has none (then the view cuts); <paramref name="ordinaryFocus"/>
@@ -103,6 +106,12 @@ public sealed class PossessionSession : ITurnPoseSource
     public PossessionUpdate Update(WorldState world, PlayerId viewer, in PossessionInput input,
         ClassicCamera? ordinary, Vector3 ordinaryFocus, ICollection<PlayerCommand> commands, ICollection<SoundRequest> sounds)
     {
+        Colours.Step(input.ClockMilliseconds);
+        while (_colourEvents.Count > 0)
+        {
+            if (_colourEvents.Dequeue() == PossessionColourEvent.Damaged) Colours.Damage(input.ClockMilliseconds);
+            else Colours.Thaw(input.ClockMilliseconds);
+        }
         int id = world.Player(viewer).PossessedCreatureId;
         CreatureState? creature = id != 0 ? world.CreatureById(id) : null;
         if (creature == null)
@@ -119,6 +128,7 @@ public sealed class PossessionSession : ITurnPoseSource
                 if (ordinary != null && landed && world.CreatureById(endedId) is { Health: <= 0 } body)
                     BeginDeath(from, body, world, input.ClockMilliseconds);
                 else if (ordinary != null) focus = BeginFlyOut(from, ordinary, ordinaryFocus, world, input.ClockMilliseconds);
+                else Colours.Leave(input.ClockMilliseconds);
             }
             switch (_ending)
             {
@@ -151,6 +161,7 @@ public sealed class PossessionSession : ITurnPoseSource
             _boundWorld = world;
             _boundTick = world.CurrentTick.Value;
         }
+        if (!ReferenceEquals(_colourSource, creature)) ObserveColours(creature);
         _possessed = creature;
         if (entered)
         {
@@ -164,6 +175,8 @@ public sealed class PossessionSession : ITurnPoseSource
                 _flight.Start(_ending == Ending.None ? ordinary.State(ordinaryFocus) : _flight.Active ? _flight.State : _flight.Target,
                     PossessionFlight.FirstPerson(_view, _preset), input.ClockMilliseconds);
             else _flight.Cancel();
+            Colours.Enter(_database.CreatureById(creature.CreatureTypeId).PossessionColourKind,
+                input.ClockMilliseconds, input.ClockMilliseconds + (ordinary != null ? PossessionFlight.BetweenClasses : 0));
             _ending = Ending.None;
         }
 
@@ -247,6 +260,7 @@ public sealed class PossessionSession : ITurnPoseSource
     /// picture flies there. The focus is kept inside the map as the ordinary camera's always is.</summary>
     private Vector3 BeginFlyOut(in CameraFlightState from, ClassicCamera ordinary, Vector3 ordinaryFocus, WorldState world, long clock)
     {
+        Colours.Leave(clock);
         CameraFlightState to = ordinary.Return(from, (int)MathF.Round(ordinaryFocus.Y * Fp32.One));
         to = to with
         {
@@ -268,6 +282,7 @@ public sealed class PossessionSession : ITurnPoseSource
     /// by another generator (a remake choice). The colour change that goes with it is not built.</summary>
     private void BeginDeath(in CameraFlightState from, CreatureState body, WorldState world, long clock)
     {
+        Colours.Death(clock);
         int eye = _database.CreatureById(body.CreatureTypeId).EyeHeight.Raw;
         double heading = (body.Heading & 0x7FF) * (Math.PI / 1024);
         int x = body.PosX - (int)(Math.Sin(heading) * eye), y = body.PosY + (int)(Math.Cos(heading) * eye);
@@ -313,6 +328,7 @@ public sealed class PossessionSession : ITurnPoseSource
     /// <summary>Drops the possession without a move back: the level is being let go.</summary>
     public void Reset()
     {
+        ObserveColours(null);
         _possessed = null;
         _world = null;
         _boundWorld = null;
@@ -320,4 +336,12 @@ public sealed class PossessionSession : ITurnPoseSource
         _ending = Ending.None;
         PointerLockWanted = false;
     }
+    private void ObserveColours(CreatureState? creature)
+    {
+        if (_colourSource != null) _colourSource.PossessionColourChanged -= OnColour;
+        _colourEvents.Clear();
+        _colourSource = creature;
+        if (_colourSource != null) _colourSource.PossessionColourChanged += OnColour;
+    }
+    private void OnColour(PossessionColourEvent notification) => _colourEvents.Enqueue(notification);
 }

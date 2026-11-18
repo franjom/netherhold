@@ -38,6 +38,7 @@ public static class CreatureHealthRules
     {
         state.HealthSourcePlayerId = source;
         int before = state.Health;
+        if (delta < 0) state.NotifyPossessionColour(PossessionColourEvent.Damaged);
         int max = MaxHealth(database, creature, state);
         bool floor = CreatureDeathRules.IsDying(state) || CreatureDeathRules.IsCorpse(state);
         state.Health = Math.Min(before + delta, max);

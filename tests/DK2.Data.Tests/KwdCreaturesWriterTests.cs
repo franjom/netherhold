@@ -20,7 +20,7 @@ public class KwdCreaturesWriterTests
             "EntranceOffsetX:E94:4 EntranceOffsetY:E98:4 PrayerStepX:127B:4 PrayerStepY:127F:4 GetUpStepY:128B:4 DeathFallStepY:1297:4 EntranceFrames:A3C:4 EntranceFramesPerSecond:A40:4 GetUpFrames:940:4 GetUpFramesPerSecond:944:4 " +
             "AngryArtType:364:1 AngryArtFlags:354:4 AngryFrames:358:4 AngryFramesPerSecond:35C:4 " +
             "Speed:EB4:4 RunSpeed:EB8:4 ShuffleSpeed:D37:4 Height:EA4:4 EyeHeight:EB0:4 AirFriction:EAC:2 " +
-            "FirstPersonWaddle:DBC:4 FirstPersonBob:DC0:4 FirstPersonWalkCycleScale:D3D:1 " +
+            "FirstPersonWaddle:DBC:4 FirstPersonBob:DC0:4 FirstPersonWalkCycleScale:D3D:1 PossessionColourKind:D3C:1 " +
             "DistanceCanSee:EC8:4 DistanceCanHear:ECC:4 PerceptionRange:D01:4 FootprintRadius:EA0:4 SizeClass:EA8:4 TurnRate:F20:2 " +
             "Hp:F0C:2 HpFromChicken:F0E:2 HungerRate:EBC:4 HungerFill:F4E:1 Unknown_0F4C:F4C:1 " +
             "TimeAwake:EC0:4 TimeSleep:EC4:4 OwnLandHealthIncreasePerSecond:EEA:2 DecomposeValue:F22:2 " +
