@@ -94,6 +94,9 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                 }
                 step.Update(context, creature);
                 if (creature.LinkWorld is null) break;
+                // 0x00489584 follows timed effects (0x0048E160), before action polling and fight.
+                if (step is CreatureStatusSystem && !CreatureDeathRules.IsCorpse(creature))
+                    TrainingRules.ApplyNonTrainingExperienceLoss(context.Hooks, creature);
             }
             creature.LastPosBeforeCopy = null; // PreviousPositionStep's stash ends with the update
             if (!actionPolled && creature.LinkWorld is not null)

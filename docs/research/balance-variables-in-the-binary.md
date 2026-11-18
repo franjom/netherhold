@@ -590,7 +590,7 @@ shipped value is zero, then scan those globals for readers.** Twelve are zero.
 | 83 | `CannotLeaveModifyCreatureHealthPerSecond` | `0x006F28C4` | `FUN_00488930` |
 | 112 | `PercentageOfManaGainedBySacrificing` | `0x006F28F0` | `0x0047BB4E`, in the state-category hook block |
 | 116 | `HypnotismManaDrainPerSecond` | `0x006F28F8` | `FUN_004C10E0`, `FUN_004C17A0` |
-| 132 | `EPLossSecondWhileNotTraining` | `0x006F2904` | `FUN_00485880`, per tick (raw value) unless the state's category is 13 |
+| 132 | `EPLossSecondWhileNotTraining` | `0x006F2904` | `FUN_00485880`; cadence and category guard: `training.md` §8 |
 | 145 | `NumberOfRandomWallDeteriorationsPerSecond` | `0x006F2919` | **`FUN_004BB6D0`** |
 | 146 | `WallDeteriorationDamage` | `0x006F291A` | **`FUN_004BB6D0` — the same routine** |
 | 211 | `BackOffMinimumDurationSeconds` | `0x006F29B1` | `FUN_0045F030`, `FUN_00470E30` |

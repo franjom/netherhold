@@ -268,7 +268,7 @@ Two clauses that were never guessed at:
   of having experience.
 - **A loss larger than the balance clamps it to zero** and loses no level
   (`training.md` §7 clause 4; corrected from a no-op by an OpenKeeper #1200
-  re-read). Ours still leaves the balance unchanged; not yet fixed.
+  re-read). Mirrored by `CreatureLevelRules.Grant`.
 
 **The discard makes the cadence load-bearing**, which is why both awards are paid
 on the original's tick rather than once a game second: four awards of twenty and

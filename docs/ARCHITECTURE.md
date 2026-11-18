@@ -418,12 +418,11 @@ Which rooms have behaviour, and which are inert terrain their owner holds:
   every limit DK2 sets on gold is per place, and every variable it sets on mana is
   per player.
 
-**Mana income is territory**, and no code says so. Three terrain types out of 41
-pay anything, and they are exactly the ownable non-room ones — so claiming ground
-raises income and losing it lowers it, without a rule about claiming or losing.
-Building a room on your own floor does not lower it: DK2's rate word keeps the
-floor's 1 under a built room (`TileState.KeptManaGain`, ADR-0334), and
-`scenarios/mana/land_pays_a_keeper.yaml` reads 38/s before its treasury.
+**Mana income uses per-player running terrain words** (ADR-0334). World-aware
+terrain and owner mutations update gain and cap accounting; room and bridge
+residuals survive ownership changes. `TileState.KeptManaGain` remains a tile-only
+compatibility estimate. Snapshots and state hashes preserve the player words;
+native resync cannot recover historical leftovers from current tile state alone.
 
 Spells spend mana (`KeeperSpellSystem`); a falling heart ends the level through
 `DungeonHeartSystem` (ADR-0162). Evidence: `docs/research/mana.md`.

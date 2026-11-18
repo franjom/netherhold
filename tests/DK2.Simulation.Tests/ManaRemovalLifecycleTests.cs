@@ -34,8 +34,8 @@ public class ManaRemovalLifecycleTests
             for (int x = 1; x < world.Width - 1 && claimed < claimedTiles; x++)
             {
                 if (x <= 3 && y <= 3) continue;
-                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
-                world.Tile(x, y).OwnerPlayerId = Keeper;
+                ManaRules.SetTerrain(world, db, ref world.Tile(x, y), Dk2TerrainFixture.ClaimedPath);
+                ManaRules.SetOwner(world, db, ref world.Tile(x, y), Keeper);
                 claimed++;
             }
         var spawned = new List<CreatureState>();

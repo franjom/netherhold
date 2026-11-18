@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -57,7 +57,7 @@ public sealed class TileWorkSystem : ISimulationSystem
                         new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), order.PlayerId);
                 result = lostReinforceFloor
                     ? new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId)
-                    : TileWorkRules.Apply(context.Database, ref tile, order.Kind, order.PlayerId,
+                    : TileWorkRules.Apply(world, context.Database, ref tile, order.Kind, order.PlayerId,
                         EfficiencyOf(context, order.WorkerCreatureId), order.Multiplier, order.Strike);
 
                 // Anything that made or unmade a room tile, a rival breaking one down, goes

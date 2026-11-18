@@ -128,7 +128,7 @@ public static partial class TremorRules
         var damage = new TileHealthDamage(halfDamage + context.Rng.NextInt(halfDamage));
         byte before = tile.TerrainId;
         PlayerId ownerBefore = tile.OwnerPlayerId;
-        TileWorkResult result = TileWorkRules.ApplyDamage(context.Database, ref tile, damage);
+        TileWorkResult result = TileWorkRules.ApplyDamage(context.World, context.Database, ref tile, damage);
         if (result.Outcome == TileWorkOutcome.Destroyed)
         {
             tile.FreshlyDug = false;

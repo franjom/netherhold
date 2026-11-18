@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -10,22 +10,103 @@ using DK2.TestSupport;
 namespace DK2.Behavior.Tests;
 
 /// <summary>
-/// The mana rules against the real game's data.
-///
-/// Two jobs. The first is drift: <c>DK2.Simulation.Tests.Dk2TerrainFixture</c>
-/// transcribes the two vault terrains and three mana rates, and a transcription
-/// can be wrong. The second is the claim <see cref="ManaRules"/> rests on — that
-/// mana income <i>is</i> territory, because the only terrains carrying a
-/// non-zero <c>ManaGain</c> are exactly the ones a keeper holds and has not
-/// built on. That claim is worth nothing unless the shipped table really does
-/// partition that way, so it is asserted here by exhaustion rather than assumed.
-///
-/// Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing.
+/// Mana accounting against shipped terrain definitions, including the bridge
+/// bonus that is absent from their ManaGain fields. InstallFact skips without an install.
 /// </summary>
 public class ManaOnRealDataTests
 {
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+    public ManaOnRealDataTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
     private static GameDatabase RealDatabase() =>
         GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static WorldState OneTileWorld(GameDatabase db, byte terrainId, byte owner) =>
+        WorldState.FromMap(db, new LevelMap(1, 1, [new MapTile(terrainId, owner, 0, 0)]),
+            [(byte)0, PlayerIds.FirstKeeper, (byte)4, PlayerIds.Neutral]);
+
+    private static int KeeperGain(WorldState world, GameDatabase db) =>
+        ManaRules.GainPerSecondByPlayerIndex(world, db)[Enumerable.Range(0, world.PlayerCount)
+            .Single(i => world.PlayerAtIndex(i).PlayerId == PlayerIds.FirstKeeper)];
+
+    [InstallFact]
+    public void BuiltBridgeEarnsOnePerSecond_AndRemovalRestoresWaterWithoutIncome()
+    {
+        GameDatabase db = RealDatabase();
+        WorldState world = OneTileWorld(db, db.WaterTerrain!.TerrainId, PlayerIds.Neutral);
+        ref TileState tile = ref world.Tile(0, 0);
+        RoomRules.Place(world, db, ref tile, db.Room(RoomTypeId.WoodenBridge), PlayerIds.FirstKeeper);
+        Assert.Equal(1, KeeperGain(world, db));
+        Assert.Equal(0, world.Player((byte)0).TerrainManaGainPerSecond);
+
+        RoomRules.Unmake(world, db, ref tile);
+
+        Assert.Equal(db.WaterTerrain.TerrainId, tile.TerrainId);
+        Assert.Equal(0, KeeperGain(world, db));
+    }
+
+    [InstallFact]
+    public void BridgeTypeReplacementAddsAnotherBonus_ButSameTerrainDoesNot()
+    {
+        GameDatabase db = RealDatabase();
+        WorldState world = OneTileWorld(db, db.WaterTerrain!.TerrainId, PlayerIds.Neutral);
+        ref TileState tile = ref world.Tile(0, 0);
+        RoomDef wooden = db.Room(RoomTypeId.WoodenBridge);
+        RoomDef stone = db.Room(RoomTypeId.StoneBridge);
+        RoomRules.Place(world, db, ref tile, wooden, PlayerIds.FirstKeeper);
+        ManaRules.SetTerrain(world, db, ref tile, wooden.TerrainId);
+        Assert.Equal(1, KeeperGain(world, db));
+
+        ManaRules.SetTerrain(world, db, ref tile, stone.TerrainId);
+        Assert.Equal(2, KeeperGain(world, db));
+        ManaRules.SetTerrain(world, db, ref tile, stone.TerrainId);
+        Assert.Equal(2, KeeperGain(world, db));
+        RoomRules.Unmake(world, db, ref tile);
+        Assert.Equal(1, KeeperGain(world, db));
+    }
+
+    [InstallFact]
+    public void BridgeTerrainWrittenBeforeOwnershipCreditsTagZero()
+    {
+        GameDatabase db = RealDatabase();
+        WorldState world = OneTileWorld(db, db.WaterTerrain!.TerrainId, PlayerIds.Neutral);
+        ref TileState tile = ref world.Tile(0, 0);
+        ManaRules.SetOwner(world, db, ref tile, (byte)0);
+        ManaRules.SetTerrain(world, db, ref tile, db.Room(RoomTypeId.WoodenBridge).TerrainId);
+        Assert.Equal(1, world.Player((byte)0).TerrainManaGainPerSecond);
+        Assert.Equal(0, KeeperGain(world, db));
+
+        ManaRules.SetOwner(world, db, ref tile, PlayerIds.FirstKeeper);
+
+        Assert.Equal(1, world.Player((byte)0).TerrainManaGainPerSecond);
+        Assert.Equal(0, KeeperGain(world, db));
+    }
+
+    [InstallFact]
+    public void CapturedBridgeLeavesItsBonusBehind_AndRemovalDebitsTheCapturingKeeper()
+    {
+        GameDatabase db = RealDatabase();
+        WorldState world = OneTileWorld(db, db.WaterTerrain!.TerrainId, PlayerIds.Neutral);
+        ref TileState tile = ref world.Tile(0, 0);
+        RoomRules.Place(world, db, ref tile, db.Room(RoomTypeId.WoodenBridge), PlayerIds.FirstKeeper);
+        ManaRules.SetOwner(world, db, ref tile, (byte)4);
+        Assert.Equal(1, KeeperGain(world, db));
+        Assert.Equal(0, world.Player((byte)4).TerrainManaGainPerSecond);
+
+        RoomRules.Unmake(world, db, ref tile);
+
+        Assert.Equal(1, KeeperGain(world, db));
+        Assert.Equal(-1, world.Player((byte)4).TerrainManaGainPerSecond);
+    }
+
+    [InstallFact]
+    public void MapLaidOwnedBridgeCreditsItsKeeper()
+    {
+        GameDatabase db = RealDatabase();
+        WorldState world = OneTileWorld(db, db.Room(RoomTypeId.WoodenBridge).TerrainId,
+            PlayerIds.FirstKeeper);
+
+        Assert.Equal(0, world.Player((byte)0).TerrainManaGainPerSecond);
+        Assert.Equal(1, KeeperGain(world, db));
+    }
 
     [InstallFact]
     public void TheManaVariablesFixture_MatchesTheInstall()
@@ -185,23 +266,25 @@ public class ManaOnRealDataTests
     }
 
     /// <summary>
-    /// A keeper's income on a shipped level is the sum over the tiles they hold,
-    /// computed by the same code the simulation runs. Nothing here asserts a
-    /// number DK2 would print — it asserts the rule reaches the real map at all,
-    /// and that a level which starts a keeper with land starts them with income.
+    /// Checks imported terrain and bridge income against shipped maps.
+    /// Logged gross and upkeep are clone diagnostics, not native observations.
     /// </summary>
-    [InstallFact]
-    public void AKeepersIncomeOnARealCampaignLevelIsTheirClaimedLand()
+    [InstallTheory]
+    [InlineData("level1")]
+    [InlineData("level8")]
+    public void AKeepersInitialIncomeIncludesClaimedLandAndMapBridges(string level)
     {
         string install = Dk2InstallGate.Path;
 
-        GameDatabase db = GameDatabaseLoader.Load(install);
-        LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, "level1");
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, level);
+        LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
         Assert.NotNull(map);
 
         byte[] players = [.. map.Tiles.Select(t => t.PlayerId).Distinct().OrderBy(id => id)];
         WorldState world = WorldState.FromMap(db, map, players);
 
+        ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(install, level)!);
+        int[] upkeep = ManaRules.UpkeepPerSecondByPlayerIndex(world, db);
         int[] gain = ManaRules.GainPerSecondByPlayerIndex(world, db);
         byte heartTerrain = Assert.NotNull(ManaRules.DungeonHeartTerrainId(db));
 
@@ -209,12 +292,16 @@ public class ManaOnRealDataTests
         {
             byte player = world.PlayerAtIndex(i).PlayerId.Value;
             int expected = 0;
+            int bridges = 0;
+            int capBonus = 0;
             bool heart = false;
             for (int t = 0; t < world.TileCount; t++)
             {
                 ref TileState tile = ref world.TileAtIndex(t);
                 if (tile.OwnerPlayerId != player) continue;
                 expected += db.TerrainById(tile.TerrainId).ManaGain;
+                capBonus += db.TerrainById(tile.TerrainId).MaxManaGain;
+                if (tile.TerrainId is 17 or 26) bridges++;
                 if (tile.TerrainId == heartTerrain) heart = true;
             }
 
@@ -222,7 +309,10 @@ public class ManaOnRealDataTests
             // which on a shipped level is 25 of them.
             if (heart) expected += db[VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond];
 
-            Assert.Equal(Math.Min(expected, db[VariableTypeId.MaximumManaGainPerSecond]), gain[i]);
+            Assert.Equal(Math.Min(expected + bridges,
+                db[VariableTypeId.MaximumManaGainPerSecond] + capBonus), gain[i]);
+            _output.WriteLine($"{level} player={player}: terrainAndHeart={expected}, bridges={bridges}, " +
+                $"gross={gain[i]}, upkeep={upkeep[i]}, net={gain[i] - upkeep[i]}");
         }
 
         Assert.Contains(gain, g => g > 0);

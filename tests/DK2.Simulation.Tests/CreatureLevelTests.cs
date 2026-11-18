@@ -329,14 +329,8 @@ public class CreatureLevelTests
     }
 
     [Fact]
-    public void ALossBiggerThanTheBalanceIsRefusedRatherThanClamped()
+    public void ALossBiggerThanTheBalanceClampsToZeroWithoutLosingALevel()
     {
-        // DK2 subtracts only when the magnitude fits, so experience floors at
-        // zero by DECLINING the subtraction. A creature on ten points handed
-        // minus fifty keeps its ten - it does not drop to zero. The distinction
-        // exists because DK2 ships a per-second experience drain
-        // (EPLossSecondWhileNotTraining) whose rate happens to be zero, and if a
-        // mod ever turns it on this is the arithmetic it will use.
         GameDatabase db = Db;
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
         WorldState world = World(db);
@@ -346,15 +340,97 @@ public class CreatureLevelTests
         state.ExperiencePoints = 10;
 
         Assert.False(CreatureLevelRules.Grant(new StateHookContext(world, db), imp, state, -50));
-        Assert.Equal(10, state.ExperiencePoints);
+        Assert.Equal(0, state.ExperiencePoints);
+        Assert.Equal(1, state.Level);
 
         // A loss that fits is taken in full.
+        state.ExperiencePoints = 10;
         Assert.False(CreatureLevelRules.Grant(new StateHookContext(world, db), imp, state, -10));
+        Assert.Equal(0, state.ExperiencePoints);
+
+        state.ExperiencePoints = 10;
+        Assert.False(CreatureLevelRules.Grant(new StateHookContext(world, db), imp, state, int.MinValue));
         Assert.Equal(0, state.ExperiencePoints);
 
         // And the shipped drain is zero, which is why none of this is visible
         // in a normal game.
         Assert.Equal(0, TrainingRules.ExperienceLostPerSecondWhileNotTraining(db));
+    }
+
+    [Theory]
+    [InlineData(7, 100, 3, 79)]
+    [InlineData(50, 10, 1, 0)]
+    [InlineData(0, 100, 4, 100)]
+    [InlineData(65543, 100, 1, 93)]
+    [InlineData(65535, 100, 1, 101)]
+    [InlineData(65535, 3100, 1, 3000)]
+    public void TheNonTrainingLossUsesTheRawSignedWordEveryTick(
+        int configuredLoss, int balance, int ticks, int expected)
+    {
+        GameDatabase db = Db;
+        db.Variables.Misc[VariableTypeId.EPLossSecondWhileNotTraining] =
+            new MiscVariable(VariableTypeId.EPLossSecondWhileNotTraining, configuredLoss, 0, 0);
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        state.ExperiencePoints = balance;
+
+        new GameSimulation(db, world, 42, [new CreatureStatusSystem()]).Run(ticks);
+
+        Assert.Equal(expected, state.ExperiencePoints);
+        Assert.Equal(1, state.Level);
+    }
+
+    [Theory]
+    [InlineData(108, 1, 100)]
+    [InlineData(6, 108, 100)]
+    [InlineData(6, 1, 93)]
+    public void TrainingSkipsTheLossIncludingTheUtilityResumeState(
+        int stateId, int resumeStateId, int expected)
+    {
+        GameDatabase db = Db;
+        db.Variables.Misc[VariableTypeId.EPLossSecondWhileNotTraining] =
+            new MiscVariable(VariableTypeId.EPLossSecondWhileNotTraining, 7, 0, 0);
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        state.Dk2StateId = stateId;
+        state.UtilityNewState = resumeStateId;
+        state.StateBeforeUtilityState = 1;
+        state.ExperiencePoints = 100;
+
+        new GameSimulation(db, world, 42, [new CreatureStatusSystem()]).Run(1);
+
+        Assert.Equal(expected, state.ExperiencePoints);
+    }
+
+    [Fact]
+    public void TheLossSeesTheStateAfterTimedEffectsExpire()
+    {
+        GameDatabase db = Db;
+        db.Variables.Misc[VariableTypeId.EPLossSecondWhileNotTraining] =
+            new MiscVariable(VariableTypeId.EPLossSecondWhileNotTraining, 7, 0, 0);
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        state.Dk2StateId = 108;
+        state.ChickenTicks = 1;
+        state.ExperiencePoints = 100;
+
+        new GameSimulation(db, world, 42, [new CreatureStatusSystem()]).Run(1);
+
+        Assert.Equal(93, state.ExperiencePoints);
+    }
+
+    [Fact]
+    public void APitFighterAtTheCapRefusesLosses()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        state.Level = db[VariableTypeId.CombatPitMaxExperienceLevel];
+        state.CombatPitFighter = true;
+        state.ExperiencePoints = 100;
+
+        Assert.False(CreatureLevelRules.Grant(new StateHookContext(world, db), db.CreatureById(GoblinId), state, -200));
+        Assert.Equal(100, state.ExperiencePoints);
     }
 
     [Fact]

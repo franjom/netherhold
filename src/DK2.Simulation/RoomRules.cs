@@ -216,6 +216,14 @@ public static class RoomRules
     /// terrain's starting health, the conversion rule <see cref="TileWorkRules"/> uses:
     /// a tile's health belongs to what it now is. Dig markers go, room terrain not
     /// being taggable.</summary>
+    /// <summary>Places a room tile with owner-before-terrain mana bookkeeping (0x00450770).</summary>
+    public static void Place(WorldState world, GameDatabase database, ref TileState tile, RoomDef room, PlayerId playerId)
+    {
+        ManaRules.SetOwner(world, database, ref tile, playerId);
+        ManaRules.RecordTerrainChange(world, database, tile, room.TerrainId);
+        Place(database, ref tile, room, playerId);
+    }
+
     public static void Place(
         GameDatabase database, ref TileState tile, RoomDef room, PlayerId playerId)
     {
@@ -236,12 +244,8 @@ public static class RoomRules
             tile.BurnTicksRemaining = BridgeRules.LifetimeTicks(database, room, covered);
         }
 
-        // Tile_SetTerrain's mana adjustment (0x00455B90) runs only when neither terrain is a
-        // Room, so the floor's gain stays on the builder's rate word under the new room. A room
-        // over another room keeps what that one kept; a room over ground the builder did not
-        // own brings nothing. The bridge's own +1 lands on the tile's tag before the owner is
-        // set - the neutral player, over water or lava - so it is not the builder's and is not
-        // built (ADR-0334, Q521).
+        // Standalone tile bookkeeping for GainPerSecond; world income uses the running
+        // player rate through the world-aware overload, including the bridge bonus.
         byte kept = 0;
         if (!covered.IsRoom && tile.OwnerPlayerId == playerId) kept = (byte)Math.Min(byte.MaxValue, covered.ManaGain);
         else if (covered.IsRoom && tile.OwnerPlayerId == playerId) kept = tile.KeptManaGain;
@@ -333,6 +337,15 @@ public static class RoomRules
     /// this tile as a pile (<see cref="FloorGold"/>) — CONFIRMED (owner 2026-09-03;
     /// binary 2026-09-05), the original remaking each gold object as a floor pile in
     /// place and taking the amount off the keeper's total.</para></summary>
+    /// <summary>Unmakes a room tile and applies terrain-before-owner mana bookkeeping.</summary>
+    public static int Unmake(WorldState world, GameDatabase database, ref TileState tile)
+    {
+        TileState before = tile;
+        int displaced = Unmake(database, ref tile);
+        ManaRules.RecordTileChange(world, database, before, tile);
+        return displaced;
+    }
+
     public static int Unmake(GameDatabase database, ref TileState tile)
     {
         byte revertsTo = BridgeRules.RevertsTo(database, tile);

@@ -145,7 +145,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
         context.World.Player(playerId).Statistics.MoneySpent += RoomRules.CostPerTile(room); // 0x004C5D0A
         ref TileState tile = ref context.World.Tile(pos);
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
-        RoomRules.Place(context.Database, ref tile, room, playerId);
+        RoomRules.Place(context.World, context.Database, ref tile, room, playerId);
         SlabChain.Changed(context.World, context.Database, pos.Y * context.World.Width + pos.X, terrainBefore, ownerBefore, context.Rng, context);
         if (announce)
             ThingSoundRules.RequestTile(context, SystemName, room.TerrainId, pos.Y * context.World.Width + pos.X,

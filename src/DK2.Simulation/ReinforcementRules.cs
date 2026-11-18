@@ -67,7 +67,7 @@ public static class ReinforcementRules
             context.Navigation.Refresh();
             if (NavBytes.IsSolid(context.Navigation.NavByte(open.X, open.Y))) return;
             byte before = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
-            bool changed = TileWorkRules.CompleteWall(context.Database, ref tile, owner);
+            bool changed = TileWorkRules.CompleteWall(context.World, context.Database, ref tile, owner);
             SlabChain.Changed(world, context.Database, wall.Y * world.Width + wall.X, before, ownerBefore, context.Rng, context);
             // The fill is the applier at its maximum (0x00466552, 0x004665C1), whose neighbour refresh
             // (0x004533C0) rebuilds a Hatchery beside the wall (ADR-0672).

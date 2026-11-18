@@ -285,7 +285,7 @@ public static class TunnelRules
                 TileWorkStrike strike = work == TileWorkKind.Dig && creature.CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId
                     ? TileWorkStrike.NonImpDig : TileWorkStrike.None;
                 context.World.QueueWork(new TileWorkOrder(index, work, creature.OwnerPlayerId, creature.Id, Strike: strike));
-                TileWorkRules.Apply(context.Database, ref tile, work, creature.OwnerPlayerId,
+                TileWorkRules.Apply(context.World, context.Database, ref tile, work, creature.OwnerPlayerId,
                     TileWorkSystem.EfficiencyOf(context, creature.Id), strike: strike);
                 standing = StrikeKind(context, creature, tile) is not null;
             }

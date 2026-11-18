@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -54,6 +54,141 @@ public class ManaTests
     }
 
     // ---- income comes from land ----------------------------------------
+
+    [Theory]
+    [InlineData(Dk2TerrainFixture.ClaimedPath)]
+    [InlineData(Dk2TerrainFixture.ClaimedVaultTerrain)]
+    public void MapTerrainWithUnownedTagDoesNotCreditOrdinaryGainOrCap(byte terrain)
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = AllOneTerrain(db, 1, 1, terrain, PlayerIds.Unowned);
+        Assert.Equal(0, world.Player(PlayerIds.Unowned).TerrainManaGainPerSecond);
+        Assert.Equal(0, world.Player(PlayerIds.Unowned).TerrainManaGainCapBonus);
+    }
+
+    [Fact]
+    public void TerrainZeroGainIsNotSubtractedWhenItsTerrainIsReplaced()
+    {
+        GameDatabase source = Dk2TerrainFixture.Database();
+        TerrainDef zero = source.TerrainById(Dk2TerrainFixture.ClaimedPath) with { TerrainId = 0, ManaGain = 7 };
+        var db = new GameDatabase(source.Terrain.Values.Append(zero), source.Rooms.Values,
+            source.Creatures.Values, source.Variables, source.KeeperSpells.Values, source.Objects.Values);
+        WorldState world = AllOneTerrain(db, 1, 1, 0, Keeper);
+        Assert.Equal(7, world.Player(Keeper).TerrainManaGainPerSecond);
+        ManaRules.SetTerrain(world, db, ref world.Tile(0, 0), Dk2TerrainFixture.ClaimedPath);
+        Assert.Equal(8, world.Player(Keeper).TerrainManaGainPerSecond);
+    }
+
+    [Fact]
+    public void BridgeBonusStaysWithItsCreditedKeeper_WhenCapturedAndRemovedByRival()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        Run run = Start();
+        ref TileState tile = ref run.World.Tile(5, 5);
+        RoomRules.Place(run.World, db, ref tile, db.Room(RoomTypeId.WoodenBridge), Keeper);
+        Assert.Equal(10, run.World.Player(Keeper).TerrainManaGainPerSecond);
+        ManaRules.SetOwner(run.World, db, ref tile, Rival);
+        Assert.Equal(10, run.World.Player(Keeper).TerrainManaGainPerSecond);
+        Assert.Equal(0, run.World.Player(Rival).TerrainManaGainPerSecond);
+        RoomRules.Unmake(run.World, db, ref tile);
+        Assert.Equal(10, run.World.Player(Keeper).TerrainManaGainPerSecond);
+        Assert.Equal(-1, run.World.Player(Rival).TerrainManaGainPerSecond);
+    }
+
+    [Fact]
+    public void UnownedBridgeTerrainCreditsTagZero_AndNoKeeper()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        Run run = Start();
+        ref TileState tile = ref run.World.Tile(5, 5);
+        ManaRules.SetOwner(run.World, db, ref tile, (byte)0);
+        ManaRules.SetTerrain(run.World, db, ref tile, Dk2TerrainFixture.WoodenBridgeTerrain);
+        Assert.Equal(1, run.World.Player((byte)0).TerrainManaGainPerSecond);
+        Assert.Equal(9, run.World.Player(Keeper).TerrainManaGainPerSecond);
+        Assert.Equal(0, run.World.Player(Rival).TerrainManaGainPerSecond);
+    }
+
+    [Fact]
+    public void SoldMapLaidRoomDoesNotCreateFloorIncome()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = AllOneTerrain(db, 1, 1, Dk2TerrainFixture.TreasuryTerrain, Keeper);
+        RoomRules.Unmake(world, db, ref world.Tile(0, 0));
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, world.Tile(0, 0).TerrainId);
+        Assert.Equal(0, world.Player(Keeper).TerrainManaGainPerSecond);
+    }
+
+    [Fact]
+    public void BurningBridgeRemovesItsBonus()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        Run run = Start();
+        ref TileState tile = ref run.World.Tile(5, 5);
+        ManaRules.SetTerrain(run.World, db, ref tile, Dk2TerrainFixture.Lava);
+        RoomRules.Place(run.World, db, ref tile, db.Room(RoomTypeId.WoodenBridge), Keeper);
+        tile.BurnTicksRemaining = 1;
+        Assert.Equal(10, run.World.Player(Keeper).TerrainManaGainPerSecond);
+        run.Sim.Run(1);
+        Assert.Equal(Dk2TerrainFixture.Lava, tile.TerrainId);
+        Assert.Equal(9, run.World.Player(Keeper).TerrainManaGainPerSecond);
+    }
+
+    [Fact]
+    public void RoomIncomeLeftBehindSurvivesSnapshot_AndChangesTheHash()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        Run run = Start();
+        RoomRules.Place(run.World, db, ref run.World.Tile(1, 1), db.Room(RoomTypeId.Treasury), Keeper);
+        ManaRules.SetOwner(run.World, db, ref run.World.Tile(1, 1), Rival);
+        ulong hash = run.Sim.StateHash();
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(run.Sim), db);
+        Assert.Equal(hash, restored.StateHash());
+        Assert.Equal(9, restored.World.Player(Keeper).TerrainManaGainPerSecond);
+        Assert.Equal(0, restored.World.Player(Rival).TerrainManaGainPerSecond);
+        restored.World.Player(Keeper).TerrainManaGainPerSecond--;
+        Assert.NotEqual(hash, restored.StateHash());
+    }
+
+    [Fact]
+    public void RunningCapWordSurvivesTerrainReplacementAndSnapshot()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        Run run = Start();
+        ref TileState tile = ref run.World.Tile(5, 5);
+        ManaRules.SetTerrain(run.World, db, ref tile, Dk2TerrainFixture.ClaimedVaultTerrain);
+        ManaRules.SetOwner(run.World, db, ref tile, Keeper);
+        Assert.Equal(100, run.World.Player(Keeper).TerrainManaGainCapBonus);
+        ManaRules.SetTerrain(run.World, db, ref tile, Dk2TerrainFixture.ClaimedPath);
+        Assert.Equal(100, run.World.Player(Keeper).TerrainManaGainCapBonus);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(run.Sim), db);
+        Assert.Equal(100, restored.World.Player(Keeper).TerrainManaGainCapBonus);
+        ulong hash = restored.StateHash();
+        restored.World.Player(Keeper).TerrainManaGainCapBonus = 0;
+        Assert.NotEqual(hash, restored.StateHash());
+    }
+
+    [Fact]
+    public void BuiltBridgeAddsOnePerSecond_AndSellingRemovesIt()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        Run run = Start();
+        var span = new TilePos(4, 1);
+        run.World.Tile(span).TerrainId = Dk2TerrainFixture.Water;
+        run.World.Tile(span).OwnerPlayerId = PlayerIds.Neutral;
+        RoomRules.Place(db, ref run.World.Tile(5, 5), db.Room(RoomTypeId.Treasury), Keeper);
+        GoldStore.Deposit(run.World, db, Keeper, 1000);
+        Dk2TerrainFixture.Sellable(run.World);
+
+        run.Sim.Tick(InputFrame.Of(BuildRoomCommand.At(Keeper, RoomTypeId.WoodenBridge, span)));
+        Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, run.World.Tile(span).TerrainId);
+        int keeperIndex = Enumerable.Range(0, run.World.PlayerCount)
+            .Single(i => run.World.PlayerAtIndex(i).PlayerId == Keeper);
+        Assert.Equal(10, ManaRules.GainPerSecondByPlayerIndex(run.World, db)[keeperIndex]);
+
+        run.Sim.Tick(InputFrame.Of(SellRoomCommand.At(Keeper, span)));
+        Assert.Equal(Dk2TerrainFixture.Water, run.World.Tile(span).TerrainId);
+        Assert.Equal(9, ManaRules.GainPerSecondByPlayerIndex(run.World, db)[keeperIndex]);
+    }
 
     [Fact]
     public void ClaimedLandPaysItsKeeper()
@@ -112,7 +247,7 @@ public class ManaTests
         Assert.Equal(9, run.Mana(Keeper));
 
         // The rival takes one tile of the block.
-        run.World.Tile(1, 1).OwnerPlayerId = Rival;
+        ManaRules.SetOwner(run.World, Dk2TerrainFixture.Database(), ref run.World.Tile(1, 1), Rival);
 
         run.Seconds(1);
         Assert.Equal(9 + 8, run.Mana(Keeper));
@@ -161,25 +296,24 @@ public class ManaTests
         GameDatabase database = Dk2TerrainFixture.Database();
         RoomDef treasury = database.Room(RoomTypeId.Treasury);
 
-        RoomRules.Place(database, ref run.World.Tile(1, 1), treasury, Keeper);
-        RoomRules.Place(database, ref run.World.Tile(2, 1), treasury, Keeper);
+        RoomRules.Place(run.World, database, ref run.World.Tile(1, 1), treasury, Keeper);
+        RoomRules.Place(run.World, database, ref run.World.Tile(2, 1), treasury, Keeper);
         // Laid in the map rather than built: no floor was ever paid for under it.
         run.World.Tile(5, 1).TerrainId = treasury.TerrainId;
-        run.World.Tile(5, 1).OwnerPlayerId = Keeper;
+        ManaRules.SetOwner(run.World, Dk2TerrainFixture.Database(), ref run.World.Tile(5, 1), Keeper);
 
         run.Seconds(1);
         Assert.Equal(ClaimedTilesOnTheFixtureMap, run.Mana(Keeper));
     }
 
     /// <summary>A rival who takes a room tile gets the room terrain's 0 (<c>Tile_SetOwner</c>
-    /// moves the current terrain's gain, <c>0x004559D0</c>). Ours drops the kept floor gain on
-    /// the owner change; DK2's old owner keeps paying for it, which ours does not mirror (Q521).</summary>
+    /// moves the current terrain's gain, <c>0x004559D0</c>). The old owner keeps the floor income in its running word (Q521).</summary>
     [Fact]
     public void ARoomTileTakenByARivalPaysTheRivalNothing()
     {
         Run run = Start();
         GameDatabase database = Dk2TerrainFixture.Database();
-        RoomRules.Place(database, ref run.World.Tile(1, 1), database.Room(RoomTypeId.Treasury), Keeper);
+        RoomRules.Place(run.World, database, ref run.World.Tile(1, 1), database.Room(RoomTypeId.Treasury), Keeper);
         Assert.Equal(1, ManaRules.GainPerSecond(database, run.World.Tile(1, 1)));
 
         // The rival's imps convert the tile: applications until the takeover completes.
@@ -187,6 +321,8 @@ public class ManaTests
             RoomHealthRules.Convert(run.World, database, new TilePos(1, 1), Rival);
         Assert.Equal(Rival, run.World.Tile(1, 1).OwnerPlayerId);
         Assert.Equal(0, ManaRules.GainPerSecond(database, run.World.Tile(1, 1)));
+        Assert.Equal(9, run.World.Player(Keeper).TerrainManaGainPerSecond);
+        Assert.Equal(0, run.World.Player(Rival).TerrainManaGainPerSecond);
     }
 
     /// <summary>
@@ -198,8 +334,8 @@ public class ManaTests
     public void AClaimedVaultIsWorthAHundredClaimedPaths()
     {
         Run run = Start();
-        run.World.Tile(5, 1).TerrainId = Dk2TerrainFixture.ClaimedVaultTerrain;
-        run.World.Tile(5, 1).OwnerPlayerId = Keeper;
+        ManaRules.SetTerrain(run.World, Dk2TerrainFixture.Database(), ref run.World.Tile(5, 1), Dk2TerrainFixture.ClaimedVaultTerrain);
+        ManaRules.SetOwner(run.World, Dk2TerrainFixture.Database(), ref run.World.Tile(5, 1), Keeper);
 
         run.Seconds(1);
         Assert.Equal(9 + 100, run.Mana(Keeper));
@@ -211,7 +347,7 @@ public class ManaTests
     {
         Run run = Start();
         run.World.Tile(5, 1).TerrainId = Dk2TerrainFixture.ManaVaultTerrain;
-        run.World.Tile(5, 1).OwnerPlayerId = Keeper;
+        ManaRules.SetOwner(run.World, Dk2TerrainFixture.Database(), ref run.World.Tile(5, 1), Keeper);
 
         run.Seconds(1);
         Assert.Equal(9, run.Mana(Keeper));
@@ -286,9 +422,11 @@ public class ManaTests
         RoomDef heart = database.Room(RoomTypeId.DungeonHeart);
         foreach (TilePos p in tiles)
         {
-            RoomRules.Place(database, ref run.World.Tile(p), heart, player);
-            // A heart is laid in the map, never built over paid floor: nothing kept (ADR-0334).
-            run.World.Tile(p).KeptManaGain = 0;
+            ref TileState tile = ref run.World.Tile(p);
+            ManaRules.SetOwner(run.World, database, ref tile, (byte)0);
+            ManaRules.SetTerrain(run.World, database, ref tile, heart.TerrainId);
+            ManaRules.SetOwner(run.World, database, ref tile, player);
+            tile.Health = database.TerrainById(heart.TerrainId).StartingHealth;
         }
     }
 

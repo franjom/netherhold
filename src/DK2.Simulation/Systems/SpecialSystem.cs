@@ -211,7 +211,7 @@ public sealed class SpecialSystem : ISimulationSystem
         ref TileState tile = ref world.TileAtIndex(index);
         byte before = tile.TerrainId;
         PlayerId ownerBefore = tile.OwnerPlayerId;
-        TileWorkResult result = TileWorkRules.ApplyDelta(database, ref tile, delta, playerId);
+        TileWorkResult result = TileWorkRules.ApplyDelta(world, database, ref tile, delta, playerId);
         SlabChain.Changed(world, database, index, before, ownerBefore, context.Rng, context);
         if (tile.TerrainId == before) return;
         tile.FreshlyDug = false;

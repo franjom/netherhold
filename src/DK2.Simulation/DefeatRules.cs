@@ -71,7 +71,7 @@ public static class DefeatRules
             foreach (int index in room.TileIndices)
             {
                 ref TileState tile = ref world.TileAtIndex(index);
-                tile.OwnerPlayerId = PlayerIds.Neutral;
+                ManaRules.SetOwner(world, database, ref tile, PlayerIds.Neutral);
                 tile.KeptManaGain = 0;
                 if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
             }
@@ -89,11 +89,11 @@ public static class DefeatRules
             TerrainDef terrain = database.TerrainById(tile.TerrainId);
             if (terrain.IsRoom) continue;
             TerrainDef next = database.TerrainById(terrain.DestroyedTypeTerrainId);
-            tile.TerrainId = terrain.DestroyedTypeTerrainId;
+            ManaRules.SetTerrain(world, database, ref tile, terrain.DestroyedTypeTerrainId);
             tile.Health = next.StartingHealth;
             tile.BurnTicksRemaining = 0;
             if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
-            tile.OwnerPlayerId = PlayerIds.Neutral;
+            ManaRules.SetOwner(world, database, ref tile, PlayerIds.Neutral);
             tile.KeptManaGain = 0;
             SlabChain.KickNeighbours(world, database, i);   // Tile_SetTerrain's 0x004E44E0 (ADR-0406)
             fallen++;

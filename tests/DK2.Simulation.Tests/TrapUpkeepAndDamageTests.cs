@@ -22,15 +22,15 @@ public sealed class TrapUpkeepAndDamageTests
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
-                world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+                ManaRules.SetTerrain(world, db, ref world.Tile(x, y), Dk2TerrainFixture.DirtPath);
         return (db, world);
     }
 
     private static TrapState Place(GameDatabase db, WorldState world, byte trapId, int x, int y, byte owner = Keeper, bool completed = true)
     {
         ref TileState tile = ref world.Tile(x, y);
-        tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
-        tile.OwnerPlayerId = owner;
+        ManaRules.SetTerrain(world, db, ref tile, Dk2TerrainFixture.ClaimedPath);
+        ManaRules.SetOwner(world, db, ref tile, owner);
         ThingProjection.Place(world, db, [new TrapThing(new byte[16]) { X = x, Y = y, TrapId = trapId, PlayerId = owner, NumberOfShots = (byte)(completed ? 1 : 0) }]);
         return world.Traps[^1];
     }

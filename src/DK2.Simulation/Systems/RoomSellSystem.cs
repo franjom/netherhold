@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -117,7 +117,7 @@ public sealed class RoomSellSystem : ISimulationSystem
 
         // Unmake first, then bank: the other order would let a refund land on the tile being sold.
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
-        int displaced = RoomRules.Unmake(context.Database, ref tile);
+        int displaced = RoomRules.Unmake(context.World, context.Database, ref tile);
         SlabChain.Changed(world, context.Database, index, terrainBefore, ownerBefore, context.Rng, context);
 
         // The store's contents stay where the store was, as a pile on the floor of that very tile

@@ -87,21 +87,21 @@ install by `ManaOnRealDataTests.OnlyHeldGroundGeneratesMana` — precisely the
 terrains that are `Ownable` and are not a `Room`. Floor, wall and vault: the
 three shapes a keeper's plain territory can take.
 
-So the rule needs no policy of its own. A keeper's income is
+A keeper's gross income uses the running terrain word, including room and bridge
+residuals; it cannot be reconstructed from current owned tiles alone:
 
 ```
-min(  Σ over tiles they own of terrain.ManaGain
-      + (30 if they have a dungeon heart)          ,  MaximumManaGainPerSecond  )
+min( terrain rate word + (30 if they have a dungeon heart),
+     MaximumManaGainPerSecond + running terrain cap bonus )
 ```
 
-and three behaviours the original has fall out of the land term without being
-written:
+The terrain mutations account for these behaviours:
 
 - **Claiming raises income**, because claiming is what turns Dirt Path into
   Claimed Path, and it is the *tile rules* that do that. `ManaRules` has never
   heard of claiming.
-- **Losing land loses the income with it**, immediately, because the sum is over
-  what is owned right now rather than over a running total.
+- **Ownership moves the current terrain gain**, not the tile's historical contribution;
+  room and bridge income can remain with a previous owner (Q521).
 - **Building a room on your own floor does not cost you income** — a correction
   (ADR-0334). Room terrain pays zero, but DK2 keeps the rate as a running word,
   `player+0x10E2`, moved by two routines: `Tile_SetOwner` (`0x004559D0`) hands
@@ -117,22 +117,27 @@ written:
   tile is tagged to at that moment. A room tile is tagged with its owner before
   its terrain is written (`Map_SetRoomTile` `0x00450770` calls `Tile_SetOwner`,
   then `Tile_SetTerrain`), so a bridge built as a room tile credits the
-  building keeper +1 mana/s; the neutral player gets it only when bridge terrain
-  lands on a tile still tagged 0. A removed bridge debits the player tagged
+  building keeper +1 mana/s; the unowned tag0 gets it only when bridge terrain
+  lands before an owner is assigned. A removed bridge debits the player tagged
   then, symmetrically while the owner is unchanged
   (`Room_UnlinkTileAndRebuild` `0x004ED973`). `Tile_SetOwner` has no bridge
   test and moves only the terrain's `ManaGain`/`MaxManaGain` (0 for a bridge),
   so after a capture the +1 stays in the word of the player credited when it
   was written, and a later removal debits whoever is tagged then: the two
   words can drift apart (STRONGLY INFERRED, whole re-read of `0x004559D0`).
-  Not read: that terrains 17 and 26
-  carry the Room flag; OpenKeeper #1218's 11/s-versus-4/s level-8 figure could
-  not be derived. Ours keeps the floor's gain on the tile
-  (`TileState.KeptManaGain`) and clears it when the tile changes hands; the
-  bridge +1 and its leftover are not yet built, nor are the old owner's
-  leftover and a map-laid or captured room's 0 after it is sold (Q521);
-  mirroring needs a per-player running word or a credited-player record per
-  tile, an open design decision.
+  Both shipped bridge terrains have flags `0x30000034`, including Room `0x10`;
+  the loader copies the flags unchanged to runtime `+0x17B` (`0x004F69A8` to `0x004F69AE`).
+  The mana branch tests ids `0x11` and `0x1A` directly, so flags alone cannot identify
+  bonus-bearing custom terrains. Map loading lays the hazard and then builds the room
+  for the authored owner (`0x0051EC60`, `0x00450770`), so map-laid bridges also credit
+  that owner. Ours now keeps per-player running terrain gain and cap words, including
+  leftovers and signed replacement debits, saved and hashed at version 528 (Q521).
+
+  **Level 8, shipped-data calculation (STRONGLY INFERRED).** Keeper 3 starts with
+  32 mana/s from terrain and Heart, seven bridge bonuses, and 28 upkeep: gross 39,
+  net 11. Omitting bridges gives net 4, matching the two figures quoted by OpenKeeper
+  #1218. `ManaOnRealDataTests` checks the imported map and things. No native Level 8
+  capture was found in `F:\DK2Evidence` on 2026-11-18; this is not a native comparison.
 - **The word carries the upkeep too.** The imp and trap registrations
   (`0x004C1AE0`–`0x004C1B90`) take their upkeep off `+0x10E2` as they put it on
   the drain, which is why the once-a-second payment adds the upkeep back before
