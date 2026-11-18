@@ -60,9 +60,7 @@ namespace DK2.Unity
         private readonly List<Vector2> _uvs = new List<Vector2>();
         private readonly List<Color> _colours = new List<Color>();
         private readonly List<int> _indices = new List<int>();
-        private readonly NVector3[] _nearest = new NVector3[ClassicMeshShadow.MaximumSources + 1];
-        private readonly float[] _distances = new float[ClassicMeshShadow.MaximumSources + 1];
-        private readonly int[] _sourceKeys = new int[ClassicMeshShadow.MaximumSources + 1];
+        private readonly ClassicShadowSourceSelector _selector = new ClassicShadowSourceSelector();
         private readonly MaterialPropertyBlock _properties = new MaterialPropertyBlock();
         private readonly CommandBuffer _commands = new CommandBuffer { name = "DK2 mesh shadow coverage" };
         private readonly GameObject _receiver;
@@ -140,12 +138,12 @@ namespace DK2.Unity
                     if (!GeometryUtility.TestPlanesAABB(_frustum, bounds)) continue;
                     var caster = new ClassicShadowCaster(ToNumerics(bounds.center), bounds.extents.magnitude,
                         item.Value.GroundHeight);
-                    int count = SelectSources(caster.Centre);
-                    float fade = count > ClassicMeshShadow.MaximumSources
-                        ? Mathf.Sqrt(_distances[ClassicMeshShadow.MaximumSources]) : ClassicMeshShadow.MaximumDistance;
-                    for (int i = 0; i < Math.Min(count, ClassicMeshShadow.MaximumSources); i++)
+                    _selector.Begin(caster.Centre);
+                    foreach (KeyValuePair<int, NVector3> torch in _torches) _selector.Offer(torch.Key, torch.Value);
+                    float fade = _selector.FadeDistance;
+                    for (int i = 0; i < _selector.Count; i++)
                     {
-                        var source = new ClassicShadowSource(_nearest[i], fade);
+                        var source = new ClassicShadowSource(_selector.Source(i), fade);
                         if (ClassicMeshShadow.TryProject(caster, source, out ClassicShadowProjection projection))
                             _draws.Add(new Draw(item.Value, caster, projection));
                     }
@@ -190,31 +188,6 @@ namespace DK2.Unity
         private static bool IsOpaque(Material material) => material != null
             && (material.HasProperty(SurfaceId) ? material.GetFloat(SurfaceId) == 0
                 : material.renderQueue < (int)RenderQueue.Transparent);
-
-        private int SelectSources(NVector3 centre)
-        {
-            int count = 0;
-            foreach (KeyValuePair<int, NVector3> torch in _torches)
-            {
-                float squared = NVector3.DistanceSquared(centre, torch.Value);
-                if (squared >= ClassicMeshShadow.MaximumDistance * ClassicMeshShadow.MaximumDistance) continue;
-                int slot = 0;
-                while (slot < count && (_distances[slot] < squared
-                    || (_distances[slot] == squared && _sourceKeys[slot] < torch.Key))) slot++;
-                if (slot >= _nearest.Length) continue;
-                for (int j = Math.Min(count, _nearest.Length - 1); j > slot; j--)
-                {
-                    _distances[j] = _distances[j - 1];
-                    _nearest[j] = _nearest[j - 1];
-                    _sourceKeys[j] = _sourceKeys[j - 1];
-                }
-                _distances[slot] = squared;
-                _nearest[slot] = torch.Value;
-                _sourceKeys[slot] = torch.Key;
-                count = Math.Min(count + 1, _nearest.Length);
-            }
-            return count;
-        }
 
         private void EnsureAtlas(int count)
         {

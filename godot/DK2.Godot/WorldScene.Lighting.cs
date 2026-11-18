@@ -116,7 +116,9 @@ public partial class WorldScene
     {
         if (_worldLights == null || _lightWorld == null) return;
         var tile = new TilePos(floorTileIndex % _lightWorld.Width, floorTileIndex / _lightWorld.Width);
-        _worldLights.SetTorch(tile, torch is TorchView lit && !ProbeWithoutTorches ? ClassicPointLight.FromTorch(lit, _torchFlags) : null);
+        ClassicPointLight? light = torch is TorchView lit && !ProbeWithoutTorches ? ClassicPointLight.FromTorch(lit, _torchFlags) : null;
+        _worldLights.SetTorch(tile, light);
+        SetShadowTorch(floorTileIndex, light);
     }
 
     /// <summary>The frame's lights, in Unity's runner's order once the camera is placed: the entrances, the objects at the

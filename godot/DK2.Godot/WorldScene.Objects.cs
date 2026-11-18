@@ -272,6 +272,7 @@ public partial class WorldScene
     public void FinishFrame()
     {
         PrepareLighting();
+        PrepareShadows();
         DrawBlended();
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
         if (View is MinimapCameraView view)
@@ -654,11 +655,16 @@ public partial class WorldScene
             _shown = _static = model;
             Kind = kind;
             Node = new MeshInstance3D { Name = name, Mesh = model.Mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+            if (scene.TorchShadowsActive) Node.Layers = ShadowCasterLayers;
             (parent ?? (Node3D)scene).AddChild(Node);
         }
 
         public MeshInstance3D Node { get; }
         public WorldScene Scene => _scene;
+        /// <summary>The fade distance per shadowed torch slot last given its instance (<see cref="PrepareShadows"/>).</summary>
+        public Vector4 ShadowFades;
+        /// <summary>Where DK2's shadow selection measures from: the shown model's bound-sphere centre, else its origin.</summary>
+        public NVector3 ShadowCentre => _shown.Sphere is PickSphere sphere ? ToRender(sphere.Centre) : RenderPosition;
         public SlotKind Kind { get; private set; }
         /// <summary>An object's view; whether it moves between turns is read once here.</summary>
         public ObjectView Pose
