@@ -72,6 +72,14 @@ public sealed class PossessionSession : ITurnPoseSource
 
     /// <summary>The camera is the possession's: in first person, or on the timed move to or from it.</summary>
     public bool CameraHeld => Possessing || _ending != Ending.None;
+    /// <summary>The camera is at rest in first person or the death view; flights to and from the ordinary view
+    /// do not take the possession-only draw rules (possession-warp.md section 8.1).</summary>
+    public bool SettledPossessionCamera => !_flight.Active && (Possessing || _ending == Ending.Dead);
+    /// <summary>The possession camera's capped visibility distance, in tiles, for its fade and tile walk.</summary>
+    public float PossessionViewDistance => Possessing
+        ? PossessionFade.ViewDistance(_preset.Zoom, _preset.ViewDistance, possessionCamera: true)
+        : PossessionFade.ViewDistance(_flight.Target.Zoom, _flight.Target.ViewDistance, possessionCamera: true);
+
 
     /// <summary>The id of the creature whose own model is left out of the picture, or 0. DK2 clears
     /// the thing's draw bit (<c>+0xF3</c> bit 0) when the move into first person lands

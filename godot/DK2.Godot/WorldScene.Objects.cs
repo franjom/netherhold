@@ -1062,11 +1062,13 @@ public partial class WorldScene
             var shader = new Shader
             {
                 Code = "shader_type spatial;\nrender_mode unshaded, blend_add, depth_draw_never, cull_disabled;\n"
-                    + "uniform sampler2D frame_texture : filter_linear, repeat_disable;\n"
+                    + "uniform sampler2D frame_texture : filter_linear, repeat_disable;\n" + PossessionFadeDeclarations
                     // Turned as the camera is, as Unity sets the sprite's rotation to the camera's.
                     + "void vertex() {\nMODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], "
-                    + "INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);\n}\n"
-                    + "void fragment() {\nvec4 c = texture(frame_texture, UV);\nALBEDO = c.rgb;\nALPHA = c.a;\n}\n",
+                    + "INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);\n"
+                    + "dk2_possession_brightness = dk2_possession_fade((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz, PROJECTION_MATRIX);\n}\n"
+                    + "void fragment() {\nvec4 c = texture(frame_texture, UV);\n" + PossessionFadeFragment
+                    + "ALBEDO = c.rgb;\nALPHA = c.a;\n}\n",
             };
             int width = 0, height = 0;
             for (int frame = 0; frame < sprite.StoredFrameCount; frame++)

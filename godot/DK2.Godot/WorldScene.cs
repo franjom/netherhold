@@ -118,6 +118,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _blended = new BlendedTerrainStream<ShaderMaterial>(_overlayMaterials.Contains);
         // Every run instance sorts from the origin; the box only keeps Godot from culling it (the stream culls).
         _worldBox = new Aabb(new Vector3(-1, -4, -world.Height - 1), new Vector3(world.Width + 2, 16, world.Height + 2));
+        OpenPossessionRendering();
         _cage = new CageRibbon(GetWorld3D().Scenario, _worldBox);
         // Before any material: the lit shaders read the lighting's globals.
         OpenLighting(world, view, world.Width, world.Height);
@@ -408,7 +409,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 + "uniform sampler2D albedo_texture : filter_linear_mipmap, repeat_disable;\n"
                 // A Color set on a plain vec4 is turned linear (material_storage.cpp, _fill_std140_variant_ubo_value).
                 + "uniform vec4 base_colour : source_color, color_conversion_disabled = vec4(1.0);\n"
-                + "uniform vec3 added_light = vec3(0.0);\n"
+                + "uniform vec3 added_light = vec3(0.0);\n" + PossessionFadeDeclarations
                 + (fullLight ? PlacedVertex
                     : TorchShadowsActive ? ShadowLightFunctions + PerPixelVaryings + ShadowCasterDeclarations(model)
                         + PerPixelVertex(model, environment)
@@ -418,7 +419,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 + "vec4 c = texture(albedo_texture, UV) * base_colour;\n"
                 + (fullLight ? "" : PerPixelLight ? (TorchShadowsActive ? ShadowLitFragment : LitFragment) + "c.rgb *= dk2_diffuse_px;\n"
                     : "c.rgb *= dk2_diffuse;\n")
-                + "ALBEDO = c.rgb;\n" + alpha + (TorchShadowsActive ? "}\n" : "") + "}\n",
+                + PossessionFadeFragment + "ALBEDO = c.rgb;\n" + alpha + (TorchShadowsActive ? "}\n" : "") + "}\n",
         };
         _shaders.Add((blend, fullLight, writesDepth, model, environment), shader);
         return shader;
@@ -693,10 +694,12 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 {
                     Code = "shader_type spatial;\nrender_mode unshaded, blend_add, depth_draw_never, cull_disabled;\n"
                         + "uniform vec4 colour : source_color, color_conversion_disabled = vec4(0.0, 0.0, 0.0, 1.0);\n"
+                        + PossessionFadeDeclarations
+                        + "void vertex() { dk2_possession_brightness = dk2_possession_fade((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz, PROJECTION_MATRIX); }\n"
                         + "void fragment() {\n"
                         // Kept non-negative, as Unity's saturate, where MSAA extrapolates the UV past the ribbon.
                         + "float centre = clamp(1.0 - abs(UV.y * 2.0 - 1.0), 0.0, 1.0);\n"
-                        + "ALBEDO = colour.rgb * pow(centre, 2.15) * 1.6;\nALPHA = 1.0;\n}\n",
+                        + "ALBEDO = colour.rgb * pow(centre, 2.15) * 1.6 * dk2_possession_brightness;\nALPHA = 1.0;\n}\n",
                 },
             };
             _mesh = RenderingServer.MeshCreate();

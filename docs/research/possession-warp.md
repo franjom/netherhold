@@ -113,8 +113,19 @@ becomes (c * word) >> 16 (32-bit multiply, logical shift), clamped to 255; alpha
 `TriSink_Clipping` drops a triangle whose three vertices all have t < 0 (their shared 0x20 bit). So:
 full brightness out to D = V/2, linear to black at D >= V, in a diamond metric. Because the lateral
 terms carry f/halfW and f/halfH, the fade's shape depends on the resolution and the viewport. The
-ordinary camera skips the block. It shades; it moves no vertex. Built engine-free as `PossessionFade`; no
-adapter applies it yet.
+ordinary camera skips the block. It shades; it moves no vertex.
+
+`PossessionFade` is built engine-free and applied by Godot's `WorldScene.PossessionRendering.cs`
+through the world shaders, including lit, unlit and additive draws. The adapter uses
+`PossessionSession.SettledPossessionCamera` and `PossessionViewDistance`; entering, leaving and
+ordinary views disable it. This settled-only gate is an owner-requested scope deviation from
+the native frame-bit-3 gate above, which also includes camera flights. The adapter replaces
+the ordinary spherical fill fade while this projection-scaled fade is active.
+
+Verification: the implementer reports Release solution and Godot builds with zero warnings
+and errors, and 16 session/fade tests passing with no skips. Captures under
+`F:\DK2Evidence\captures\possession-finish-20261118-fade-a` show the near wall and dim Heart
+room; they do not conclusively establish black at maximum distance. Owner acceptance remains open.
 
 ## 5. Ruled out
 

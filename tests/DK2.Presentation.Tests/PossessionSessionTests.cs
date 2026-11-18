@@ -90,6 +90,7 @@ public sealed class PossessionSessionTests
 
         Assert.True(first.Entered);
         Assert.True(rig.Session.CameraHeld);
+        Assert.False(rig.Session.SettledPossessionCamera);
         Assert.True(rig.Session.PointerLockWanted);
         Assert.Equal(0, rig.Session.HiddenCreatureId);
         Assert.Null(rig.Session.TurnPose(Viewer));
@@ -104,6 +105,8 @@ public sealed class PossessionSessionTests
         rig.Frame(1000, held: [GameAction.Fire]);
 
         Assert.False(rig.Session.Flight.Active);
+        Assert.True(rig.Session.SettledPossessionCamera);
+        Assert.Equal(12f, rig.Session.PossessionViewDistance);
         Assert.Equal(rig.Me.Id, rig.Session.HiddenCreatureId);
         Assert.IsType<MovePossessedCreatureCommand>(rig.Session.TurnPose(Viewer));
         Assert.True(rig.Session.TryCamera(rig.Ordinary, Screen, out ClassicCameraPose eye));
@@ -173,6 +176,7 @@ public sealed class PossessionSessionTests
         Assert.True(ended.Ended);
         Assert.Null(ended.OrdinaryFocus);
         Assert.True(rig.Session.CameraHeld);
+        Assert.False(rig.Session.SettledPossessionCamera);
         Assert.Equal(rig.Me.Id, rig.Session.HiddenCreatureId);
         CameraFlightState target = rig.Session.Flight.Target;
         Assert.Equal(0, target.ViewDistance);
@@ -184,6 +188,8 @@ public sealed class PossessionSessionTests
 
         rig.Frame(PossessionSession.DeathMove);
         Assert.False(rig.Session.Flight.Active);
+        Assert.True(rig.Session.SettledPossessionCamera);
+        Assert.Equal(0f, rig.Session.PossessionViewDistance);
         Assert.True(rig.Session.TryCamera(rig.Ordinary, Screen, out ClassicCameraPose dark));
         Assert.Equal(0f, dark.FarClipDistance);
         Assert.Equal(0f, dark.ProjectionCentreShift);
@@ -194,6 +200,7 @@ public sealed class PossessionSessionTests
 
         PossessionUpdate back = rig.Frame();
         Assert.NotNull(back.OrdinaryFocus);
+        Assert.False(rig.Session.SettledPossessionCamera);
         Assert.Equal(0, rig.Session.HiddenCreatureId);
         Assert.Equal(0, rig.Session.Flight.State.Pitch);
         Assert.True(rig.Session.CameraHeld);
@@ -228,6 +235,7 @@ public sealed class PossessionSessionTests
         Assert.True(ended.Ended);
         Assert.Equal(new Vector3(rig.Me.PosX / 4096f, 1, -rig.Me.PosY / 4096f), ended.OrdinaryFocus);
         Assert.False(rig.Session.Possessing);
+        Assert.False(rig.Session.SettledPossessionCamera);
         Assert.True(rig.Session.CameraHeld);
         Assert.False(rig.Session.PointerLockWanted);
         Assert.Equal(0, rig.Session.HiddenCreatureId);
