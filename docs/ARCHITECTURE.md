@@ -289,7 +289,9 @@ Unity-free presentation assembly (ADR-0104).
 
 **Possession view (ADR-0805).** `PossessionSession` (`DK2.Presentation`) holds the first-person view's rules: when a
 possession starts and ends, the timed camera moves, the commands, the hidden creature and the pointer lock. A host fills
-a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is Unity's side.
+a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is Unity's side and `InGameHud.Possession.cs`
+Godot's. The latch that rests the walls at full height, the roof's shown rule and the roof's chunk scheduling and geometry
+are shared too (`PossessionScene`, `TerrainCeilingScheduler`, `TerrainCeilingGeometry`).
 
 **HUD (ADR-0805).** A HUD panel's DK2 behaviour lives in `DK2.Presentation` and writes a `HudFrame`
 (`HudDrawList.cs`). The adapter draws it with `HudCanvas` and forwards pointer input. The bottom panel,

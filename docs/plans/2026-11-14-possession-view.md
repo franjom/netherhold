@@ -104,16 +104,18 @@ For the Godot switch (ADR-0805) the wiring's rules moved out of Unity into
 `PossessionSession` (`DK2.Presentation`): when a possession starts and ends, the timed
 moves, key presses, the commands, the hidden creature and the pointer lock. A host only
 fills a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is that
-for Unity, and a Godot adapter writes the same few lines. The first-person roll is now
+for Unity and `InGameHud.Possession.cs` for Godot (step 3m of the migration plan; the latch and the roof's shown rule are `PossessionScene`'s). The first-person roll is now
 applied through an up vector the session computes, the same picture as before.
 
-Not built, each its own later task: the colour changes of entering, leaving and dying; the near clip, lighting distance and ambience listener,
-which still follow the ordinary camera; the two ability keys; the possession HUD, so HUD
+Not built, each its own later task: the colour changes of entering, leaving and dying; Unity's near clip, lighting distance and ambience listener,
+which still follow the ordinary camera (Godot's possession cameras take `PossessionCamera.NearClipDistance`, 0.05, a remake
+choice: DK2 has no near plane, possession-warp.md section 2); the two ability keys; the possession HUD, so HUD
 shortcuts still act; the third-person view.
 
 Seen in the original by the owner on 2026-11-15 (possession-client.md section 6b, 19
-screenshots) and since built: the roof over every open tile (`TerrainCeiling`, drawn by
-Unity's `TerrainCeilingChunks`), the very wide field of view (there is no warp:
+screenshots) and since built: the roof over every open tile (`TerrainCeiling`, scheduled by
+`TerrainCeilingScheduler` and built by `TerrainCeilingGeometry` in `DK2.Presentation`, uploaded by Unity's
+`TerrainCeilingChunks` and Godot's `WorldScene.Possession.cs`), the very wide field of view (there is no warp:
 possession-warp.md), full-height walls whatever the High Walls option says, and the
 death view. The distance fade to black is a tested rule (`PossessionFade`) that no
 adapter applies yet. Read but not built: the possession-only set of visible tiles. Not built:

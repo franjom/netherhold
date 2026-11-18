@@ -59,7 +59,7 @@ back faces.
   amplitudes, the 30 per second frame, both phase formulas and the 3x3 grid per tile, filling reused buffers. Normals
   are the normalised sum of unit face normals; Unity takes them too, where it recalculated them each frame (the
   reviewer bounds the difference at 1.5 degrees, a one-byte light step at most). `LiquidSurfaces.cs` only uploads.
-- **Ceiling (S, P).** `TerrainCeilingChunks.cs` (202) uses `TerrainCeiling` and `TerrainCeilingField`; it reads
+- **Ceiling (S, P).** `TerrainCeilingChunks.cs` (202; its scheduling and geometry moved to `DK2.Presentation` in 3m) uses `TerrainCeiling` and `TerrainCeilingField`; it reads
   `WorldState` in `Show` (`:78-98`), which Godot can do since it ticks inline. Light anchor kind 2 (`:26`, `:146`) is
   the possession roof's "black where no DK2 light reaches" switch in the shader.
 - **Plumbing for Godot.** One `MeshInstance3D` per chunk with an `ArrayMesh`, one surface per material key. A rebuild
@@ -144,7 +144,7 @@ back faces.
 - **Godot, 3g.** `WorldScene.Creatures.cs` (the plan's step 3g has the detail): shared KMF models, a node per creature, clips
   through `CreatureAnimationPlayer` with in-place vertex upload from per-template mesh copies (bounded by the distinct clips
   per entry; Unity releases its copies on a clip-set change), pose and head point through `RightHandedFrame`. The burning
-  crackle (3l), footsteps and sparkle (3k) and the possession hide (3m) are no-op steps of the order; the burning red came in 3h. The query
+  crackle (3l), footsteps and sparkle (3k) are no-op steps of the order; the burning red came in 3h and the possession hide in 3m. The query
   follow runs after `DrawFrame` on the drawn position, as Unity's, so the blended sort moved from `Flush` to `FinishFrame`.
 - **Probe frames.** Unity's probe draws at fraction 1, so Godot's imp at tick 70 is one tick's offset straight after a
   load and on Unity's spot within nine frames; a single-frame comparison needs the fraction near 1.
@@ -295,8 +295,10 @@ back faces.
   pointer lock (`:70-75`); the ceiling and wall latch in `Update` (`DungeonRunner.cs:963-971`).
 - **Shared (S).** `PossessionSession` (input, camera, hidden id, commands, sounds), `PossessionCamera`, `TerrainCeiling`.
 - **B, small.** The roof shows exactly while a model is hidden (`:970-971`), and the lattice and view take the
-  possession latch (`:963-966`). Both join the `SceneFrame` sequence (open point 7, decided in 3g).
-- **Godot.** Same `Camera3D`; `Input.MouseMode = Captured` for the lock; the ceiling as a chunked mesh like the terrain.
+  possession latch (`:963-966`). Both join the `SceneFrame` sequence (open point 7, decided in 3g); moved in 3m to
+  `PossessionScene`.
+- **Godot.** Same `Camera3D`; `Input.MouseMode = Captured` for the lock; the ceiling as a chunked mesh like the terrain
+  (done, 3m).
 
 ## Scripted camera paths, letterbox, jitter and the full-map preview
 
@@ -348,8 +350,11 @@ terrain and the camera; then each step adds one kind of thing to the world. From
   flower over an imp.
 - **3l. Lightning.** Move: `LightningDrawList`. Godot: the ribbon mesh. Check: a capture with a staged lightning shot
   (Level1 has none; a test level or `--stage-battle` with a caster, open point 11).
-- **3m. Possession.** Godot: the possession camera, pointer lock, the roof and the hidden model. Check: a capture after
-  `--possess-first-creature` (a new launch argument) shows the first-person view and the roof.
+- **3m. Possession.** Done 2026-11-18 (plan step 3m, which has the numbers; ADR-0805). Moved: `TerrainCeilingScheduler`,
+  `TerrainCeilingGeometry`, `PossessionScene` (the latch and the roof's shown rule), `PossessionStaging` and the argument
+  `--possess-first-creature`. Godot: the possession camera on the same `Camera3D` with a 0.05 near plane, the pointer lock,
+  the chunked roof and the hidden model, checked by scripted-pointer captures (real mouse capture, the walking keys and the
+  death view not exercised). The path camera (3n) is not ported, so the opening path shows the possession camera.
 - **3n. Scripted paths and the full-map preview.** Godot: path camera, letterbox, jitter, subtitles stay in step 4, and
   the full map's preview camera. Check: Level1's opening path played from turn 0 in a capture, letterboxed.
 
@@ -393,7 +398,7 @@ owner's open editor must not be driven.
 9. **The footprint ribbon.** Decided in 3b: a shared triangle-list `HudDrawKind`, which Unity draws too.
 10. **Pointer-driven captures.** Decided in 3e: `--pointer-path "frame:x,y[:LlRr];..."`, a scripted pointer pushed into
     the viewport, so a capture never moves the owner's cursor (TRAPS); not an input-journal replay. 3h and 3m use it.
-11. **Content for 3d, 3l and 3m.** Level1 has no lightning shot, and nothing stages a Sight of Evil cast, so the sight
+11. **Content for 3d and 3l.** (3m's is `--possess-first-creature`.) Level1 has no lightning shot, and nothing stages a Sight of Evil cast, so the sight
     fog (3d) is uncaptured; a staged test level or launch argument is needed, built with `tools/levelgen` or a new argument.
 
 Out of scope here: the front end's 3D campaign map and its land picking (`DungeonScene.PickFrontEndMap`, `:245-264`), the
