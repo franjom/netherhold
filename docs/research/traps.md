@@ -86,7 +86,14 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
 9. **Threat** (§8), every update while `+0x10F` is nonzero.
 10. **Trigger** (selector 3) with `+0x10D` nonzero: `+0x117` cleared unless a live creature,
     then the propagation (§9).
-11. The dying effect; sound positions.
+11. **The dying effect** (`0x004A8D5B`–`0x004A8DA3`): when the trap is dead (health below 1), def `+0xB9`
+    is nonzero and `+0x10C` bit `0x20` is clear, the world's effect-creation slot `+0x38C` is called
+    with (`+0xB9`, owner, position `+0x1A`, heading `+0xF4`). `0x004B2AD0` only zeroes health, and the
+    cleanup `Trap_Cleanup` `0x004A7B20` requests no effect. The id is file offset `0x1F8` (staging
+    `+0x2A0`, loader `0x004AA440`). Shipped (read from `Traps.kwd`, u16 at `0x1F8`; OpenKeeper #1170
+    as the lead): **63** for Gas, Sentry, Fireburst, Lightning, Freeze, Fear, Spike, Guard Post,
+    Magic Door and Hero Sentry; **263** for Alarm, Trigger and Hero Alarm; **0** (none) for Boulder,
+    Jack in the Box and Spare Door 1. Effects are not built. Sound positions follow.
 12. **Recovery:** alive and the turn strictly past `+0x107`, with `+0xA4` nonzero: gain
     `min(+0xA4, health max − health)` through `0x004B2CE0` when its low word is nonzero, and
     `+0x107 += [0x006F2590]` (one game second) either way. Returns 1.

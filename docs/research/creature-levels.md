@@ -266,7 +266,9 @@ Two clauses that were never guessed at:
 - **`ExpForNextLevel` of zero refuses everything**, losses included. The field is
   not merely the price of a level, it is the switch that makes a creature capable
   of having experience.
-- **A loss larger than the balance is a no-op**, not a clamp to zero.
+- **A loss larger than the balance clamps it to zero** and loses no level
+  (`training.md` §7 clause 4; corrected from a no-op by an OpenKeeper #1200
+  re-read). Ours still leaves the balance unchanged; not yet fixed.
 
 **The discard makes the cadence load-bearing**, which is why both awards are paid
 on the original's tick rather than once a game second: four awards of twenty and

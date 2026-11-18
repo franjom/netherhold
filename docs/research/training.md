@@ -265,10 +265,10 @@ working imp in that capture first reaches level 2 at tick 661, where the per-tic
 ours 305.
 
 **One correction falls out.** `FUN_00485880`, the `EPLossSecondWhileNotTraining`
-hook of §8, is **per tick** rather than per second: it is called from
-`FUN_00488930` at `+0xC54`. The name says "Second", the same misnaming
-`ImpExperienceGainPerSecond` carries. If that variable were ever non-zero it
-would drain **four times** its named rate.
+hook of §8, is **per tick** rather than per second: called once per update from
+`FUN_00488930` at `0x00489584` (`+0xC54`), with the word negated and not
+divided. The name says "Second", the same misnaming `ImpExperienceGainPerSecond`
+carries. A non-zero value would drain **four times** its named rate.
 
 ## 7. The adder, and two readings of ours that were wrong — STRONGLY INFERRED
 
@@ -282,9 +282,9 @@ creature's experience:
    `def.expForNextLevel * statPercent[13][level] / 100`, clamped to 0 to
    `0xFFFE`.
 3. If `needed` is zero it returns — it refuses **everything**, losses too.
-4. For a negative `delta`: the loss is applied only if its magnitude is no more
-   than the creature's current experience, and either way it returns — a loss
-   that does not fit is a **no-op**.
+4. A negative `delta` returns after the loss; one larger than the experience
+   (`0x0045793C`, `0x0045793E`) jumps to `0x004579D9` and writes 0 to `+0x3FF`:
+   it **clamps to zero**, no level lost (OpenKeeper #1200 re-read; ours: creature-levels.md §4.2).
 5. Otherwise `delta` is added to the creature's experience.
 6. If experience is still below `needed`, it returns.
 7. Otherwise the creature levels up and its experience is set to 0 — the
@@ -309,8 +309,8 @@ original's tick here rather than once a game second.
 
 - **`ExpForNextLevel` is not merely the price of a level, it is the switch.** A
   creature carrying zero can never gain *or lose* experience.
-- **A loss floors at zero by refusing the subtraction**, not by clamping. On ten
-  points, minus fifty leaves ten.
+- **A loss floors at zero by clamping** (clause 4). On ten points, minus fifty
+  leaves zero.
 
 ### 7.1 One clause of Q124 is confirmed rather than chosen
 

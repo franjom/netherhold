@@ -442,7 +442,7 @@ thirteen initialised blocks, and each reader placed in the task-handler table at
 | 129 | `RubberBandAreaLimit` | 8 | `0x006F2900` (u8) |
 | 130 | `GravityConstant` | 240 | `0x006F2901` (u8) |
 | 131 | `DungeonHeartHealthRegenerationPerSecond` | 25 | `0x006F2902` (u16) |
-| 132 | `EPLossSecondWhileNotTraining` | 0 | `0x006F2904` (u16) — **has a reader and ships as zero**: a per-second hook drains experience from any creature whose state category is not 13 (training). Disabled, not cut (Q203, 2026-09-07) |
+| 132 | `EPLossSecondWhileNotTraining` | 0 | `0x006F2904` (u16) — **has a reader and ships as zero**: a per-tick hook (value applied raw, no divide) drains experience from any creature whose state category is not 13 (training). Disabled, not cut (Q203, 2026-09-07) |
 | 133 | `ModifyAngerWhileSolitaryInPitPerSecond` | 275 | `0x006F2906` (u16) |
 | 134 | `ModifyAngerOfCombatPitVictor` | -16400 | `0x006F2908` (u16) |
 | 135 | `ModifyAngerOfPitSpectatorPerSecond` | -275 | `0x006F290A` (u16) |
@@ -570,7 +570,7 @@ variable. Twelve have gone that way and all twelve are genuinely cut.
 **But that scan cannot see the opposite shape** — a variable with a real reader
 whose *shipped value* makes the mechanism a no-op. It was found by accident:
 `EPLossSecondWhileNotTraining` turned up while reading training (Q205), has a
-live per-second hook, and ships as **0**.
+live per-tick hook, and ships as **0**.
 
 So the audit was run the other way round: **list every balance variable whose
 shipped value is zero, then scan those globals for readers.** Twelve are zero.
@@ -590,7 +590,7 @@ shipped value is zero, then scan those globals for readers.** Twelve are zero.
 | 83 | `CannotLeaveModifyCreatureHealthPerSecond` | `0x006F28C4` | `FUN_00488930` |
 | 112 | `PercentageOfManaGainedBySacrificing` | `0x006F28F0` | `0x0047BB4E`, in the state-category hook block |
 | 116 | `HypnotismManaDrainPerSecond` | `0x006F28F8` | `FUN_004C10E0`, `FUN_004C17A0` |
-| 132 | `EPLossSecondWhileNotTraining` | `0x006F2904` | `FUN_00485880`, per second unless the state's category is 13 |
+| 132 | `EPLossSecondWhileNotTraining` | `0x006F2904` | `FUN_00485880`, per tick (raw value) unless the state's category is 13 |
 | 145 | `NumberOfRandomWallDeteriorationsPerSecond` | `0x006F2919` | **`FUN_004BB6D0`** |
 | 146 | `WallDeteriorationDamage` | `0x006F291A` | **`FUN_004BB6D0` — the same routine** |
 | 211 | `BackOffMinimumDurationSeconds` | `0x006F29B1` | `FUN_0045F030`, `FUN_00470E30` |

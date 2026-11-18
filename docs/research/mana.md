@@ -113,12 +113,26 @@ written:
   rival hands the rival 0, and the old owner goes on paying for it. The Level 3
   capture's word reads `claimed + reinforced + every room tile the keeper built`
   less its upkeep, to the tile, with the heart's 25 and the portal's 9 at 0. A
-  bridge laid over water or lava adds 1 - to the tile's tag at that moment,
-  which is the neutral player's, so no keeper gains it; its removal debits the
-  builder. Ours keeps the floor's gain on the tile (`TileState.KeptManaGain`)
-  and clears it when the tile changes hands; the old owner's leftover, the
-  bridge's neutral 1 and a map-laid or captured room's 0 after it is sold are
-  not mirrored (Q521).
+  bridge (terrain 17 wooden, 26 stone) adds 1 to the rate word of the player the
+  tile is tagged to at that moment. A room tile is tagged with its owner before
+  its terrain is written (`Map_SetRoomTile` `0x00450770` calls `Tile_SetOwner`,
+  then `Tile_SetTerrain`), so a bridge built as a room tile credits the
+  building keeper +1 mana/s; the neutral player gets it only when bridge terrain
+  lands on a tile still tagged 0. A removed bridge debits the player tagged
+  then, symmetrically while the owner is unchanged
+  (`Room_UnlinkTileAndRebuild` `0x004ED973`). `Tile_SetOwner` has no bridge
+  test and moves only the terrain's `ManaGain`/`MaxManaGain` (0 for a bridge),
+  so after a capture the +1 stays in the word of the player credited when it
+  was written, and a later removal debits whoever is tagged then: the two
+  words can drift apart (STRONGLY INFERRED, whole re-read of `0x004559D0`).
+  Not read: that terrains 17 and 26
+  carry the Room flag; OpenKeeper #1218's 11/s-versus-4/s level-8 figure could
+  not be derived. Ours keeps the floor's gain on the tile
+  (`TileState.KeptManaGain`) and clears it when the tile changes hands; the
+  bridge +1 and its leftover are not yet built, nor are the old owner's
+  leftover and a map-laid or captured room's 0 after it is sold (Q521);
+  mirroring needs a per-player running word or a credited-player record per
+  tile, an open design decision.
 - **The word carries the upkeep too.** The imp and trap registrations
   (`0x004C1AE0`–`0x004C1B90`) take their upkeep off `+0x10E2` as they put it on
   the drain, which is why the once-a-second payment adds the upkeep back before

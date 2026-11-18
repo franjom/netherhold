@@ -1439,14 +1439,14 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 2. **The 1200 was a coincidence between two unrelated mechanics.** `ExpPerSecond` belongs to state **category 22** — battle, fleeing, threat-response — so it is **combat** experience, which is the owner's own *"to get to level 10 they need to fight actual fights"* (Q124). The per-minute reading is withdrawn. Third instance in this project of two correct numbers that never meet.
 3. **The payment hangs off the state's category, not the state.** None of the six training states awards anything. The 32 category records at `0x00699688` each carry an enter hook at `+0x04`, an update hook at `+0x14` and a leave hook at `+0x24`, and the per-tick dispatcher calls the current category's update hook before the state's own handler. Category 13 is training; its update hook is the payment. All 32 records are now decoded (Q186).
 4. **Training bills the keeper five gold a game second, and poverty ends the job.** `ModifyPlayerColdWhileTrainingPerSecond` is −5 and "Cold" is the shipped spelling of gold. The original tests the keeper's gold before entering the state and before every charge, and returning failure from a category update hook makes the dispatcher put the creature back to idle. Training is the only job in DK2 a keeper can be evicted from by being poor. `JobRules.Refused` makes that test too, and *before* the level test, because that is the order in the handler.
-5. **`CreatureLevelRules.TryLevelUp` is replaced by `Grant`, and Q127's two readings were both wrong.** DK2 promotes **once** and **zeroes** the balance — the overshoot is discarded, not carried, and a large award cannot buy two levels. A negative award larger than the balance is a **no-op**, not a clamp. An `ExpForNextLevel` of zero refuses everything, losses included.
+5. **`CreatureLevelRules.TryLevelUp` is replaced by `Grant`, and Q127's two readings were both wrong.** DK2 promotes **once** and **zeroes** the balance — the overshoot is discarded, not carried, and a large award cannot buy two levels. A negative award larger than the balance **clamps it to zero** (corrected 2026-11-18 from "no-op": `training.md` §7; `Grant` still leaves it unchanged). An `ExpForNextLevel` of zero refuses everything, losses included.
 6. **Q79: imp experience is per tick of work, not per job.** `ImpExperienceGainPerSecond` is read at nine sites, all in the imp's task unit, all awarding the raw 20 with no divide, each guarded by a predicate that decompiles to *"is this tile still a valid target"* rather than *"the job finished"*. It is the one rate in the family **not** divided by variable 19, so its name is wrong by a factor of four in the opposite direction to everything around it: **80 a game second**, and an imp reaches level 2 in about **37 seconds** of work rather than the 150 asserted in a test name for three weeks. (The owner leaned "per job done" and named exactly the right activities.) *Amended by ADR-0386: per work hit, not per tick.*
 7. **Both awards are paid on the original's tick, not once a game second** — `SimulationTiming.OnOriginalTick`. Because the promotion zeroes the balance, four awards of ten and one award of forty leave different numbers behind on any second that crosses a threshold. The cadence is behaviour.
 
 **Consequences.**
 - `TrainingRules` and the `Train` branch of `CreatureJobSystem.Working`; `JobRules.EffectIsBuilt` now names two jobs.
 - **The truncation is reproduced, not rounded away.** 30 / 4 = 7 gives 28 a second, and 26 of the 46 shipped creatures lose something — the heroes' lords and Horny lose a fifth. So does the floor, which is reachable: the Skeleton's `ResearchPerSecond` of 1 and the Dark Angel's 3 both become 4 a second. A fixture drift caught by needing the number: the fixture Goblin had been inheriting the Imp's 30 and 1200; its own are 40 and 200.
-- **One more inert balance variable (Q203), and a new kind of inert.** `EPLossSecondWhileNotTraining` has a real reader and ships as zero: a per-second hook draining experience from any creature whose state category is not 13. Experience was built to decay unless you kept creatures training, and the feature was **turned off rather than cut** — distinct from the twelve with no reader at all, because the mechanism is intact and a mod that set the rate would work. (`MotionlessWhileTrainingSeconds` is dead too, but ADR-0082 found it.)
+- **One more inert balance variable (Q203), and a new kind of inert.** `EPLossSecondWhileNotTraining` has a real reader and ships as zero: a per-tick hook (the variable's value is applied raw, not per second) draining experience from any creature whose state category is not 13. Experience was built to decay unless you kept creatures training, and the feature was **turned off rather than cut** — distinct from the twelve with no reader at all, because the mechanism is intact and a mod that set the rate would work. (`MotionlessWhileTrainingSeconds` is dead too, but ADR-0082 found it.)
 - **41 of 46 creatures have `ExpPerSecond` exactly 5 × `ExpPerSecondTraining`**, which argues the two are the same kind of quantity without reading any code. The exceptions are three uniques whose combat rate was raised without the training column following, the Maiden Of The Nest, and the Imp at forty times — the one creature that neither trains nor fights, and the source of the misleading number.
 - The scenario shows the arc: two Goblins train, both reach level 2, the treasury empties at about t2500 and both lose the job on the spot, and 2500 ticks later they are the same unhappy Goblin the keeper who built no room has. Player 4 had to be *given* gold for its refusal to still say `no_room`.
 - `HashVersion` unchanged at 33 — no hashed field changed shape — but hashed *values* move wherever experience is earned.
@@ -1484,7 +1484,7 @@ masked, so a non-lava creature can no longer route onto a ruin's centre, as DK2'
 ## ADR-0085 — Ten mechanics DK2 built and switched off, and the audit that could not see them
 **Date:** 2026-09-07 · **Status:** accepted · amended 2026-09-07: a zero percentage can be fully live, the scan range was never the whole image, and a level file can switch a disabled mechanism back on · Q203, Q106 (a clause explained), Q212, Q84/Q85 · Research: `docs/research/balance-variables-in-the-binary.md` (final section), `docs/research/variables-corpus-sweep.md`
 
-**Context.** Balance variables were retired as *dead* by one method: take the cached global, raw-scan for readers, find only the loader's setter stub, retire it. The blind spot was found by accident while reading training (ADR-0083): `EPLossSecondWhileNotTraining` has a real per-second reader — a hook draining a creature's experience unless its state category is the training one — and a shipped value of **0**. A reader-scan cannot surface that, because the reader is there.
+**Context.** Balance variables were retired as *dead* by one method: take the cached global, raw-scan for readers, find only the loader's setter stub, retire it. The blind spot was found by accident while reading training (ADR-0083): `EPLossSecondWhileNotTraining` has a real per-tick reader — a hook draining a creature's experience unless its state category is the training one — and a shipped value of **0**. A reader-scan cannot surface that, because the reader is there.
 
 **Decision.**
 - **Run the audit the other way round**: list every balance variable whose shipped value is zero, then scan those globals for readers. Twelve are zero; **two are dead outright, ten have live readers.**
@@ -7649,8 +7649,8 @@ terrains, read as "building costs income" since ADR-0017. The binary says why th
 disagrees: the word is a running sum. `Tile_SetOwner` (`0x004559D0`) moves the tile's current
 terrain's `ManaGain` (and its `MaxManaGain` into the cap word `+0x10DE`) between owners, and
 `Tile_SetTerrain`'s adjustment (`0x00455B90`) swaps the old terrain's gain for the new one's
-only when neither is a Room; a bridge laid adds 1 to the tile's tag of the moment — the neutral
-player's, over water or lava — and a bridge removed takes 1 from its builder. So a room over
+only when neither is a Room; a bridge laid adds 1 to the tile's tag of the moment and a bridge
+removed takes 1 from the player tagged then (see the amendment below). So a room over
 claimed floor keeps the floor's 1, a room the map laid pays 0, a captured room hands its
 captor 0 and leaves the old owner paying. The word also carries the upkeep (the imp and trap
 registrations take it off), which is why the payment `0x004C10E0` adds the upkeep back before
@@ -7664,7 +7664,7 @@ owner change clears it (`TileWorkRules`' conversion, the room-convert spread, de
 `ManaRules.GainPerSecond` adds it on room tiles; `GainPerSecondByPlayerIndex` raises the cap by
 the owned tiles' `MaxManaGain`. Setup rooms and the tests' map hearts keep 0. Not mirrored (Q521): the
 old owner's leftover for a lost room tile, a map-laid or captured room's 0 once sold, a rival's
-room over foreign floor, the bridge's neutral 1, and the cap bonus following the current terrain
+room over foreign floor, the bridge's 1, and the cap bonus following the current terrain
 rather than the owner-change; the kept value is a byte (a vault's 100 fits). Docs:
 `mana.md`, `terrain-room-dump.md`, `hash-versions.md`; KB `004559D0` and `00455B90` (new),
 `0044FC40`, `004C10E0`.
@@ -7678,6 +7678,18 @@ claiming and building faster between 2000 and 2400 (gross 316 against 241 a seco
 3200 (395 against 421); all six Create Imps and thirteen Thunderbolts are paid, and the level is won
 at 3648 (DK2 3683). Rigs: L1 20/20 with every tick identical; L2 7/20 (seed 3 joins at 3616; the
 other six within 20 ticks of before).
+
+### ADR-0334 amendment — a bridge's +1 credits the building keeper (2026-11-18, Q521)
+This ADR first said a bridge laid over water or lava adds its 1 to the neutral player's word, and that a
+removed bridge debits its builder. A Ghidra re-read (OpenKeeper #1218 as the lead,
+STRONGLY INFERRED) corrects the credit: `0x00455B90` adds 1 to the word of the player the tile is tagged
+to when it runs, and a room tile is owned before its terrain is written (`Map_SetRoomTile` `0x00450770`
+calls `Tile_SetOwner`, then `Tile_SetTerrain`). A bridge built as a room tile credits the building keeper
++1 mana/s; neutral gets it only on a tile still tagged 0. `Tile_SetOwner` has no bridge test, so after
+a capture the +1 stays with the player credited when it was written, and a later removal debits whoever
+is tagged then. The decision itself (`KeptManaGain`) is unchanged; the bridge +1 and that leftover are
+not yet built, and mirroring them needs a per-player running word or a credited-player record per tile,
+an open design decision (Q521). Evidence: `mana.md`, KB `00455B90`.
 
 ## ADR-0335 — The Hatchery finder posts 41–43, and a coop does not stock a hatchery
 **Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 166 · Q522 ·

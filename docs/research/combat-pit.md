@@ -72,7 +72,9 @@ The 25 computed arguments resolve to `+0xDF`, the current state, 1, fixed non-14
 the room table; every `+0xDF` writer and route-helper resume argument excludes 140, and
 the complete room table has no 140. The stun wrapper's four callers pass only 255 or 256.
 No exact `0x8C` scalar compares with the current-state field, and its state-table record
-has no specific reader; dispatch is only through the generic current-state index.
+has no specific reader; dispatch is only through the generic current-state index. The
+handler `0x00457CF0` has exactly one cross-reference, a data reference from the state-table
+initialiser at `0x0047E0AA`, and no caller (reviewer's re-read for OpenKeeper #1201).
 
 The exception is save loading. `0x00488520` invokes the state object's virtual
 serialiser, and `0x00476CB0` transfers `0x111` bytes beginning at state-object `+0x10`.

@@ -141,7 +141,15 @@ Update `0x004A55F0`, in its order:
 6. **Support.** Orientation `+0x119` 0 tests `(x, y−1)` and `(x, y+1)`, otherwise `(x−1, y)` and
    `(x+1, y)`, through world slot `+0x208` (`0x00509200`, Solid bit). Unless both are Solid,
    the door's `+0x20` (`0x004B2AD0`) sets health to 0 (`0x004A5B0F`).
-7. Dead: the linked object `+0x101` is destroyed and `def+0xAE`'s effect played.
+7. Dead (arm `0x004A5B16`–`0x004A5BA3`, after the `+0x28` test): the linked object `+0x101` is
+   zeroed, then, if `def+0xAE` is nonzero and construction `+0x109` is zero, the world's
+   effect-creation slot `+0x38C` is called with (`def+0xAE`, owner word `+0x28`, position `+0x1A`,
+   heading `+0xF4`). The loader `0x004A7100` fills `def+0xAE` from staging `+0x2A6` (presence dword
+   `+0x64`); health maps from file `0x22C`, so the effect id is at door record file offset `0x232`,
+   which `KwdDoors.cs` does not parse. Shipped (read from `Doors.kwd`, u16 at `0x232`; OpenKeeper
+   #1170 as the lead): Wooden **220**, Braced **219**, Steel **217**, Hero Portcullis **217**,
+   Magic **218**; Secret, Barricade and Hero Barricade **62**. Effects are not built. The door's
+   cleanup `Door_Cleanup` `0x004A5290` requests no effect.
 8. Opening (doors-and-traps.md); an open built Secret Door within four tiles of an enemy that
    sees it makes it that enemy's forced target and reveals it; not built.
 
