@@ -20,6 +20,14 @@ public static class ClassicLightVisibility
     public static TilePos[] BuildPolygon(ClassicCameraPose pose, CameraViewport viewport,
         float nativeViewDistance, bool scaleViewVolume = false, ClassicVisibilityHeightRange? heights = null)
     {
+        var buffer = new ClassicVisibilityPolygonBuffer();
+        int count = BuildPolygon(pose, viewport, nativeViewDistance, buffer, scaleViewVolume, heights);
+        return buffer.Tiles.AsSpan(0, count).ToArray();
+    }
+    internal static int BuildPolygon(ClassicCameraPose pose, CameraViewport viewport,
+        float nativeViewDistance, ClassicVisibilityPolygonBuffer buffer, bool scaleViewVolume = false,
+        ClassicVisibilityHeightRange? heights = null)
+    {
         if (viewport.Width <= 0 || viewport.Height <= 0)
             throw new ArgumentOutOfRangeException(nameof(viewport));
         if (!(nativeViewDistance > 0) || float.IsInfinity(nativeViewDistance))
@@ -37,24 +45,25 @@ public static class ClassicLightVisibility
         Vector3 right = ToNative(Vector3.Cross(pose.Up, pose.Forward));
         Vector3 down = ToNative(-pose.Up);
         Vector3 forward = ToNative(pose.Forward);
-        var points = new List<Vector3>(9);
-        void Prepend(float x, float y, float z) => points.Insert(0,
-            position + right * x + down * y + forward * z);
-        Prepend(-1, -1, -1);
-        Prepend(1, -1, -1);
-        Prepend(-1, 1, -1);
-        Prepend(1, 1, -1);
-        Prepend(-halfX * distance - 1, -halfY * distance - 1, distance);
-        Prepend(halfX * distance + 1, -halfY * distance - 1, distance);
-        Prepend(-halfX * distance - 1, halfY * distance + 1, distance);
-        Prepend(halfX * distance + 1, halfY * distance + 1, distance);
-        Prepend(0, 0, nativeViewDistance);
+        List<Vector3> points = buffer.Points;
+        points.Clear();
+        Prepend(points, position, right, down, forward, -1, -1, -1);
+        Prepend(points, position, right, down, forward, 1, -1, -1);
+        Prepend(points, position, right, down, forward, -1, 1, -1);
+        Prepend(points, position, right, down, forward, 1, 1, -1);
+        Prepend(points, position, right, down, forward, -halfX * distance - 1, -halfY * distance - 1, distance);
+        Prepend(points, position, right, down, forward, halfX * distance + 1, -halfY * distance - 1, distance);
+        Prepend(points, position, right, down, forward, -halfX * distance - 1, halfY * distance + 1, distance);
+        Prepend(points, position, right, down, forward, halfX * distance + 1, halfY * distance + 1, distance);
+        Prepend(points, position, right, down, forward, 0, 0, nativeViewDistance);
 
-        var crossings = new List<Vector3>();
+        List<Vector3> crossings = buffer.Crossings;
+        crossings.Clear();
         AddCrossings(points, slab.Minimum, crossings);
         AddCrossings(points, slab.Maximum, crossings);
         points.InsertRange(0, crossings);
-        points.RemoveAll(p => p.Z < slab.Minimum || p.Z > slab.Maximum);
+        for (int i = points.Count - 1; i >= 0; i--)
+            if (points[i].Z < slab.Minimum || points[i].Z > slab.Maximum) points.RemoveAt(i);
         for (int i = 0; i < points.Count;)
         {
             bool duplicate = false;
@@ -68,8 +77,13 @@ public static class ClassicLightVisibility
             if (duplicate) points.RemoveAt(i);
             else i++;
         }
-        return WrapBoundary(points);
+        List<TilePos> boundary = buffer.Boundary;
+        WrapBoundary(points, boundary);
+        boundary.CopyTo(buffer.Tiles);
+        return boundary.Count;
     }
+    private static void Prepend(List<Vector3> points, Vector3 position, Vector3 right, Vector3 down, Vector3 forward,
+        float x, float y, float z) => points.Insert(0, position + right * x + down * y + forward * z);
 
     public static TilePos[] EnumerateTiles(ReadOnlySpan<TilePos> polygon)
     {
@@ -137,13 +151,14 @@ public static class ClassicLightVisibility
             }
     }
 
-    private static TilePos[] WrapBoundary(List<Vector3> points)
+    private static void WrapBoundary(List<Vector3> points, List<TilePos> polygon)
     {
-        if (points.Count == 0) return Array.Empty<TilePos>();
+        polygon.Clear();
+        if (points.Count == 0) return;
         int start = 0;
         for (int i = 1; i < points.Count; i++)
             if (points[i].Y < points[start].Y) start = i;
-        var polygon = new List<TilePos> { ToTile(points[start]) };
+        polygon.Add(ToTile(points[start]));
         int current = start;
         float previousAngle = 0;
         while (true)
@@ -164,7 +179,7 @@ public static class ClassicLightVisibility
                     nextAngle = angle;
                 }
             }
-            if (next == start) return polygon.ToArray();
+            if (next == start) return;
             polygon.Add(ToTile(points[next]));
             current = next;
             previousAngle = nextAngle;

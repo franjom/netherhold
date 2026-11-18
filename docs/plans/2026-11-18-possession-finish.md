@@ -19,7 +19,8 @@ add-only under `F:\DK2Evidence`; no cleanup of worktrees or evidence is authoriz
 - [ ] 2. Godot fade implemented; distance-to-black capture proof and owner acceptance remain.
   See [possession-warp section 4](../research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable)
   for verification and the owner-requested settled-only scope deviation.
-- [ ] 3. Apply `PossessionVisibility` using the view-volume polygon and per-tile draws.
+- [ ] 3. Godot possession visibility implemented; GPU capture and owner acceptance remain.
+  Scope and verification: [possession-warp section 8.3](../research/possession-warp.md#83-the-enumeration-strongly-inferred-whole-disassembly-of-0x005737e0-and-0x00572f60).
 - [ ] 4. Read HUD and callees; `PossessionHud` draw list, snapshot and tests, Godot
   canvas; suppress ordinary panels and shortcuts without restructuring them.
 - [ ] 5. Read ability data, action handlers and client gates; parse kinds, implement

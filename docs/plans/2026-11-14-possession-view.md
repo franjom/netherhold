@@ -107,7 +107,8 @@ fills a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` 
 for Unity and `InGameHud.Possession.cs` for Godot (step 3m of the migration plan; the latch and the roof's shown rule are `PossessionScene`'s). The first-person roll is now
 applied through an up vector the session computes, the same picture as before.
 
-Not built, each its own later task: the colour changes of entering, leaving and dying; Unity's near clip, lighting distance and ambience listener,
+Colour changes are built in Godot ([scope](../research/possession-colour-rendering.md)).
+Not built, each its own later task: Unity's near clip, lighting distance and ambience listener,
 which still follow the ordinary camera (Godot's possession cameras take `PossessionCamera.NearClipDistance`, 0.05, a remake
 choice: DK2 has no near plane, possession-warp.md section 2); the two ability keys; the possession HUD, so HUD
 shortcuts still act. The third-person view (camera mode 10) is dropped: nothing in the binary enters it
@@ -118,9 +119,9 @@ screenshots) and since built: the roof over every open tile (`TerrainCeiling`, s
 `TerrainCeilingScheduler` and built by `TerrainCeilingGeometry` in `DK2.Presentation`, uploaded by Unity's
 `TerrainCeilingChunks` and Godot's `WorldScene.Possession.cs`), the very wide field of view (there is no warp:
 possession-warp.md), full-height walls whatever the High Walls option says, and the
-death view. The distance fade to black is a tested rule (`PossessionFade`) that no
-adapter applies yet. Read but not built: the possession-only set of visible tiles. Not built:
-the possession HUD. None of it has been seen running.
+death view. Godot applies the distance fade and possession-only tile visibility;
+implementation and limits: [possession warp](../research/possession-warp.md).
+The possession HUD remains unbuilt.
 
 Remake choices to check in play: one host pixel of mouse travel is one unit of DK2's
 delta; the roll's sign; the vertical field of view held at 73.7 degrees on wide screens.

@@ -119,6 +119,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         // Every run instance sorts from the origin; the box only keeps Godot from culling it (the stream culls).
         _worldBox = new Aabb(new Vector3(-1, -4, -world.Height - 1), new Vector3(world.Width + 2, 16, world.Height + 2));
         OpenPossessionRendering();
+        OpenPossessionVisibility(level.Database, world.Width, world.Height);
         _cage = new CageRibbon(GetWorld3D().Scenario, _worldBox);
         // Before any material: the lit shaders read the lighting's globals.
         OpenLighting(world, view, world.Width, world.Height);
@@ -409,13 +410,14 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 + "uniform sampler2D albedo_texture : filter_linear_mipmap, repeat_disable;\n"
                 // A Color set on a plain vec4 is turned linear (material_storage.cpp, _fill_std140_variant_ubo_value).
                 + "uniform vec4 base_colour : source_color, color_conversion_disabled = vec4(1.0);\n"
-                + "uniform vec3 added_light = vec3(0.0);\n" + PossessionFadeDeclarations
+                + "uniform vec3 added_light = vec3(0.0);\n" + PossessionFadeDeclarations + PossessionVisibilityDeclarations
                 + (fullLight ? PlacedVertex
                     : TorchShadowsActive ? ShadowLightFunctions + PerPixelVaryings + ShadowCasterDeclarations(model)
                         + PerPixelVertex(model, environment)
                     : PerPixelLight ? LightFunctions + PerPixelVaryings + PerPixelVertex(model, environment)
                     : LightFunctions + LitVertex(model, environment))
-                + "void fragment() {\n" + (TorchShadowsActive ? ShadowFragment(blend == KmfBlend.Opaque && !fullLight, model) : "")
+                + "void fragment() {\n" + (model ? "" : PossessionVisibilityFragment)
+                + (TorchShadowsActive ? ShadowFragment(blend == KmfBlend.Opaque && !fullLight, model) : "")
                 + "vec4 c = texture(albedo_texture, UV) * base_colour;\n"
                 + (fullLight ? "" : PerPixelLight ? (TorchShadowsActive ? ShadowLitFragment : LitFragment) + "c.rgb *= dk2_diffuse_px;\n"
                     : "c.rgb *= dk2_diffuse;\n")

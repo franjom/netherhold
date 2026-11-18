@@ -271,6 +271,7 @@ public partial class WorldScene
     /// (<see cref="ZeroOrderOffset"/>); the cage takes its key when it is drawn (<see cref="DrawCage"/>). Allocation-free.</summary>
     public void FinishFrame()
     {
+        PreparePossessionVisibility();
         PrepareLighting();
         PrepareShadows();
         DrawBlended();
@@ -1028,6 +1029,10 @@ public partial class WorldScene
             _scene.UploadPositions(mesh, _model, _bent, out _);
         }
 
+        public void SetPossessionVisibility()
+        {
+            if (_node != null) _node.Visible = _scene.PossessionFloorVisible(Torch.FloorTileIndex);
+        }
         public void Free() => _node?.QueueFree();
     }
 
@@ -1146,6 +1151,11 @@ public partial class WorldScene
             }
         }
 
+        public void SetPossessionVisibility()
+        {
+            foreach (KeyValuePair<int, Flame> entry in _drawn)
+                RenderingServer.InstanceSetVisible(entry.Value.Instance, _scene.PossessionFloorVisible(entry.Key));
+        }
         public void Sort()
         {
             foreach (KeyValuePair<int, Flame> entry in _drawn)

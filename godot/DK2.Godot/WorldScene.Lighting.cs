@@ -494,7 +494,7 @@ public partial class WorldScene
     /// drew whole triangles of moved models in the clear colour, as if they failed the depth test against the prepass
     /// (the cause is not established; docs/TRAPS.md).</summary>
     private const string PlaceOutputs = "NORMAL = normalize((MODELVIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);\n"
-        + "VERTEX = (MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;\n" + PossessionFadeVertex;
+        + "VERTEX = (MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;\n" + PossessionFadeVertex + PossessionVisibilityVertex;
 
     /// <summary>A gamma table of <paramref name="exponent"/> over the display values (Unity's <c>ClassicExposure</c>,
     /// <c>pow(c, 30 / Gamma)</c>), folded into the camera's colour correction table: the 3D view's brightness, the HUD's

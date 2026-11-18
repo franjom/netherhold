@@ -251,7 +251,21 @@ for r = 1, 2, 3, ...:                    the ring around (tx, ty), four sides, a
 
 The output can hold tiles off the map (they block, and are appended like any visible tile in the
 polygon); the per-tile pass draws nothing for them, so a user of the list skips them. Built as
-`PossessionVisibility` (engine-free; no adapter uses it yet).
+`PossessionVisibility`. Godot now uses `PossessionVisibilityField` with reusable polygon buffers
+for the settled possession camera. Its on-map mask clips batched terrain, roofs and liquids in
+shaders; creatures, objects and structures use their current view tile, while torches and flames
+use their floor tile. Leaving possession restores ordinary visibility. Current-tick tile ownership
+while meshes interpolate is a renderer choice; tile-edge crossing remains unverified. Crackle and
+gem sparkle remain undrawn stubs. The 21 new visibility tests pass with no skips, and the Release
+solution and Godot builds report no warnings or errors.
+
+The exact visibility snapshot's 200-frame 1920x1080 Movie Maker capture is under
+`F:\DK2Evidence\captures\possession-finish-20261118-visibility-001\frames\f00000180.png`.
+The inspected frame shows settled Vampire tint, an opaque left wall and vaulted roof, and the
+passage/right room without geometry showing through the wall. The mask executes on the GPU
+without shader errors; three existing missing Godot AI autoload errors remain. This does not
+independently verify every culled tile or a controlled behind-wall target. A controlled corridor
+capture, tile-edge crossing checks and owner acceptance remain pending.
 
 Removing an arc (`0x00573470`): the two ends are masked as above and ordered; when they are more
 than 2^23 apart the removed set is [0, lo] and [hi, 2^24] instead. The removed interval [lo, hi] is
