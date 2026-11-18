@@ -399,8 +399,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // moved by (1, 0, 1) (its shifted frames); --light-fill turns on Godot's fill, off as in the owner's Unity scene.
         _world.ProbeWithoutTorches = Array.IndexOf(args, "--light-probe-no-torches") >= 0;
         _world.Fill = Array.IndexOf(args, "--light-fill") >= 0;
-        // --light-modern: Godot's per-pixel lights, shadows and post effects over DK2's sources (WorldScene.ModernLighting.cs).
-        _world.Modern = Array.IndexOf(args, "--light-modern") >= 0;
+        // --light-perpixel: DK2's light per pixel instead of per vertex (WorldScene.PerPixelLight); classic is the default.
+        _world.PerPixelLight = Array.IndexOf(args, "--light-perpixel") >= 0;
         bool probeShift = Array.IndexOf(args, "--light-probe-shift") >= 0;
         _reportTicks = _world.ProbeWithoutTorches || probeShift || Array.IndexOf(args, "--light-probe") >= 0;
         // The first frame's terrain, built whole; each frame's Present pushes the changes since.

@@ -8,7 +8,7 @@
 # centre by --pointer-path (the OS cursor is never read or moved). Each run writes <Out>/<Label>-<level>-<size>-r<n>.json
 # with the machine's CPU load during the run added. Compare two labels with godot/perf_compare.py.
 #   powershell -File godot/perf.ps1 -Out <dir> -Label classic
-#   powershell -File godot/perf.ps1 -Out <dir> -Label modern -Extra --light-modern -State <same state dir>
+#   powershell -File godot/perf.ps1 -Out <dir> -Label perpixel -Extra --light-perpixel -State <same state dir>
 [CmdletBinding(PositionalBinding = $false)]
 param(
     [Parameter(Mandatory = $true)] [string] $Out,
@@ -26,7 +26,7 @@ param(
     [string] $State,
     # Tiles east and south of the start focus, by frame: still to 600, a loop to 1500, still to the end (1920).
     [string] $Camera = '0:0,0;600:0,0;825:8,0;1050:8,8;1275:0,8;1500:0,0',
-    # Extra scene arguments: '--light-modern' or '--light-modern,--light-fill'; an option and its value as
+    # Extra scene arguments: '--light-perpixel' or '--a,--b'; an option and its value as
     # '--name value' (a value with spaces cannot go through powershell -File).
     [string[]] $Extra = @(),
     # Skips building the C# assembly first (the run uses whatever the last build left).

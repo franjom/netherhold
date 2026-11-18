@@ -130,6 +130,19 @@ public class ClassicVertexLightShaderTextTests
         Assert.DoesNotContain("MAXIMUM_SOURCES", shader);
     }
 
+    /// <summary>Both of Godot's light steps call the one pinned <c>dk2_light</c>: the classic vertex step and the
+    /// <c>--light-perpixel</c> fragment step, so the formulas above are the ones either evaluates.</summary>
+    [Fact]
+    public void GodotsVertexAndPerPixelStepsBothEvaluateThePinnedLight()
+    {
+        string source = Read(GodotLighting);
+        Assert.Contains("\"dk2_diffuse = dk2_light(anchor, bounds, kind, VERTEX, NORMAL, MODEL_MATRIX, world, nws, added_light, CAMERA_POSITION_WORLD);\\n\"", source);
+        Assert.Contains("\"vec3 dk2_diffuse_px = dk2_light(dk2_anchor_kind.xy, dk2_bounds, dk2_anchor_kind.zw, \"", source);
+        // The tile anchor and model transform are flat: an interpolated tile index could round to a neighbour's table.
+        Assert.Contains("varying flat vec4 dk2_anchor_kind;", source);
+        Assert.Contains("varying flat vec4 dk2_m0;", source);
+    }
+
     /// <summary>The GLSL template of WorldScene.Lighting.cs after the substitution the adapter runs, normalised.</summary>
     private static string GodotShader()
     {

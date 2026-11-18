@@ -62,12 +62,6 @@ table a vertex reads; `TableSum`, the per-flag sum with the bound skip; `PackedD
 `ClassicLightTableLayout` (where a tile's 49 texels sit in a float texture array, 83 tiles to a texel row, and the GLSL
 constant substitution). `ClassicWorldLightCache` pools its `ClassicLightTable`s (`Reuse`), so a scrolling view allocates
 nothing once warm.
-The modern lighting's choice of lights, for Godot's `--light-modern` (ADR-0813): `ModernLightSelector` turns the sources
-`ClassicWorldLightCache.CopyPreparedSources` copies into point lights (the falloff fit and its tuning, colour magnitude
-kept, a colour over 1 cut and normalised), picks the best ones to cast shadows with hysteresis and keeps each light's slot.
-The performance harness's engine-free parts (migration plan step 3o): `FrameRecording` (one preallocated sample buffer,
-per-phase mean, p50, p95, p99 and max, slow frames over 16.67 ms, the exit table and the `dk2-godot-perf/1` JSON) and
-`CameraScript` (a frame-keyed focus path, parsed from `--perf-camera`).
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

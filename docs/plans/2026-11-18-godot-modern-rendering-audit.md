@@ -40,12 +40,12 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 - **1. Gamma-space output** through the `srgb_to_linear` lookup (`WorldScene.cs:157`, `:415-451`;
   `color_conversion_disabled` `:404`; brightness `WorldScene.Lighting.cs:471-477`). Covered by the lighting prototype
   (linear HDR, tonemap, exposure). Risk: the look shifts; the tag overlay (+64/65), the hover red and the fog
-  strengths need retuning by eye. Status: built in `--light-modern` (linear HDR, ACES, depth fog); the tuning pass is
-  next; classic stays the default until the owner accepts the tuned look.
+  strengths need retuning by eye. Status: built in `--light-modern` (linear HDR, ACES, depth fog), then rejected by
+  the owner for its look and removed (2026-11-18); open.
 - **2. Classic vertex light**, its tables, fill, the environment-pass light and the 3j shadows
-  (`WorldScene.Lighting.cs`). Covered by the lighting prototype: DK2's sources drive 128 pooled `OmniLight3D` (the best 4
-  cast shadows), terrain lights are emission, blended and environment-pass materials keep the vertex light. Built and
-  adopted by the owner (2026-11-18, "adopt, then tune"); tuning pending (migration plan, *Modern lighting prototype*).
+  (`WorldScene.Lighting.cs`). The real-lights prototype (128 pooled `OmniLight3D`) was rejected and removed (2026-11-18). New
+  direction: DK2's light model stays and moves to modern means; step 1 is `--light-perpixel` (migration plan, *DK2 light
+  per pixel*).
 - **3. P1, M. Terrain material per tile state** (tint, tag, red, fog opacity; overlays as additive triangles in the
   blended stream; `WorldScene.cs:302-373`, `TerrainMaterialKey.cs:44-55`). Replace with a per-tile state texture read
   in `vertex()` by a tile index in `CUSTOM0`; opaque overlays move into the shader; only the sight fog stays blended.

@@ -57,6 +57,11 @@ public partial class WorldScene
     /// <summary>Godot's fill (<c>--light-fill</c>), off as native ambient is in the owner's Unity scene.</summary>
     public bool Fill { get; set; }
 
+    /// <summary>DK2's light evaluated per pixel (<c>--light-perpixel</c>): the same tables, formulas, clamp and pack as the
+    /// classic per-vertex light, in the fragment step from the interpolated position and normals (<see cref="LitFragment"/>).
+    /// Set before <see cref="Open"/>; off, the shaders are the classic ones, byte for byte.</summary>
+    public bool PerPixelLight { get; set; }
+
     /// <summary>The scene's lights over a <paramref name="width"/> by <paramref name="height"/> map: Unity's
     /// <c>DungeonScene</c> constructor with classic vertex lighting, and its globals (ambient zero, as
     /// <c>RenderSink_Init</c>; the look).</summary>
@@ -94,11 +99,8 @@ public partial class WorldScene
     private static readonly HashSet<string> s_globals = new();
 
     /// <summary>DK2's ambient level from the ambient keys (<see cref="ClassicAmbientLight.Normalized"/>), grey.</summary>
-    public void SetAmbient(float level)
-    {
+    public void SetAmbient(float level) =>
         RenderingServer.GlobalShaderParameterSet(AmbientGlobal, new Vector3(level, level, level));
-        if (Modern) SetModernAmbient(level);
-    }
 
     /// <summary>The Hand's light (Unity's <c>SetHandLight</c>), drawn from the next <see cref="FinishFrame"/>.</summary>
     public void SetHandLight(ClassicPointLight? light) => _handLight = light;
@@ -155,9 +157,7 @@ public partial class WorldScene
         {
             _fadeFar = placed.FarClipDistance;
             RenderingServer.GlobalShaderParameterSet(FadeGlobal, new Vector3(FadeStart, FadeEnd, Math.Max(_fadeFar, 1e-3f)));
-            if (Modern) SetModernFade(_fadeFar);
         }
-        PrepareModernLights(moved);
         long ticks = System.Diagnostics.Stopwatch.GetTimestamp() - started, bytes = GC.GetAllocatedBytesForCurrentThread() - before;
         if (_lightFrames++ >= DrawWarmUp && moved) { _lightMovedBytes += bytes; _lightMovedFrames++; }
         else if (_lightFrames > DrawWarmUp)
@@ -169,13 +169,7 @@ public partial class WorldScene
         }
     }
 
-    private void ReportLighting()
-    {
-        ReportModernLighting();
-        ReportClassicLighting();
-    }
-
-    private void ReportClassicLighting() =>
+    private void ReportLighting() =>
         GD.Print("DK2.Godot lighting: ", _lightFrames, " frames, ", _lightPublishes, " published, ", _lightTables?.RowsUploaded ?? 0,
             " table rows uploaded (in ", Milliseconds(_lightTables?.UploadTicks ?? 0), " ms), ", _chainedMaterials.Count,
             " materials with an environment pass; after the first ", DrawWarmUp, " frames ", _lightBytes, " B allocated in ",
@@ -466,6 +460,34 @@ public partial class WorldScene
             : "")
         + PlaceOutputs + "}\n";
 
+    /// <summary>The vertex step of a per-pixel lit shader (<see cref="PerPixelLight"/>): <see cref="LitVertex"/>'s inputs
+    /// handed to the fragment step. The position and normals interpolate; the anchor, bounds, kind and model transform are
+    /// flat, so a tile index never drifts by interpolation and a model's table and basis are its own.</summary>
+    private static string PerPixelVertex(bool model, bool environment) =>
+        "void vertex() {\nvec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;\n"
+        + "vec3 nws = normalize(MODEL_NORMAL_MATRIX * NORMAL);\n"
+        + "dk2_world = world;\ndk2_nws = nws;\ndk2_vos = VERTEX;\ndk2_nos = NORMAL;\n"
+        + (model ? "dk2_bounds = CUSTOM0;\ndk2_anchor_kind = CUSTOM1;\n"
+            : "dk2_bounds = vec4(0.0);\ndk2_anchor_kind = vec4(CUSTOM0.xy, 0.0, 0.0);\n")
+        + "dk2_m0 = MODEL_MATRIX[0];\ndk2_m1 = MODEL_MATRIX[1];\ndk2_m2 = MODEL_MATRIX[2];\ndk2_m3 = MODEL_MATRIX[3];\n"
+        + (environment
+            ? "vec3 view = (VIEW_MATRIX * vec4(world, 1.0)).xyz;\nvec3 eye = normalize(vec3(view.x, view.y, -view.z));\n"
+                + "vec3 n = 0.5 * vec3(nws.x, nws.z, -nws.y);\n"
+                + "UV = vec2(n.z * eye.x - n.x * eye.z, n.z * eye.y - n.y * eye.z) + 0.5;\n"
+            : "")
+        + PlaceOutputs + "}\n";
+
+    /// <summary><see cref="PerPixelVertex"/>'s varyings, declared after <see cref="LightFunctions"/>.</summary>
+    private const string PerPixelVaryings = "varying vec3 dk2_world;\nvarying vec3 dk2_nws;\nvarying vec3 dk2_vos;\n"
+        + "varying vec3 dk2_nos;\nvarying flat vec4 dk2_bounds;\nvarying flat vec4 dk2_anchor_kind;\n"
+        + "varying flat vec4 dk2_m0;\nvarying flat vec4 dk2_m1;\nvarying flat vec4 dk2_m2;\nvarying flat vec4 dk2_m3;\n";
+
+    /// <summary>The per-pixel light the fragment step multiplies by: <see cref="LightFunctions"/>' <c>dk2_light</c> over
+    /// the interpolated world position and the interpolated normals, renormalised (the vertex's are unit).</summary>
+    private const string LitFragment = "vec3 dk2_diffuse_px = dk2_light(dk2_anchor_kind.xy, dk2_bounds, dk2_anchor_kind.zw, "
+        + "dk2_vos, normalize(dk2_nos), mat4(dk2_m0, dk2_m1, dk2_m2, dk2_m3), dk2_world, normalize(dk2_nws), added_light, "
+        + "CAMERA_POSITION_WORLD);\n";
+
     /// <summary>The vertex step of a full-light shader: only the placement.</summary>
     private const string PlacedVertex = "void vertex() {\n" + PlaceOutputs + "}\n";
 
@@ -484,9 +506,7 @@ public partial class WorldScene
         float value = exponent ?? 1f;
         if (_camera == null || value == _brightness) return;
         _brightness = value;
-        // The modern look's buffer is linear HDR: the curve alone, over the tonemapped display values.
-        _camera.Environment.AdjustmentColorCorrection = Modern ? (value == 1f ? null : GammaTable(value, undoEncoding: false))
-            : GammaTable(value);
+        _camera.Environment.AdjustmentColorCorrection = GammaTable(value);
     }
 
     private float _brightness = 1f;

@@ -341,7 +341,7 @@ terrain and the camera; then each step adds one kind of thing to the world. From
   the ambient keys and the torch, portal, object and Hand lights, the environment pass (also over plans), the cage's key,
   the liquids' normals and the exposure in the colour correction. Against Unity's in-game frames: see open points 2 and 3.
 - **3j. Creature shadows.** Move: source selection, fade and the silhouette projection. Godot: the chosen path (open
-  point 8); now folded into the modern lighting (caster rule only, no silhouette; ADR-0813). Check: a capture of an imp beside a torch; tests for the selection ties.
+  point 8); the modern lighting it was folded into was rejected and removed (2026-11-18), so this is open again (ADR-0813). Check: a capture of an imp beside a torch; tests for the selection ties.
 - **3k. Effects and status flowers.** Move: `EffectFilters`, the flower colour reference. Godot: billboards, flat
   quads, mesh particles, flowers and the dollar in the blended stream, given their order through sorting offsets
   (`PlaceItems`/`RunsBehind`), or Godot sorts them by real distance among the run instances. Check: dig debris and a

@@ -883,27 +883,17 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       change, plus bounded first-visit growth. Not verified: the environment pass over a plan, a faded one and the cage key
       (none captured), the ambient keys live, a non-default brightness, the wrap past 83 tiles at runtime. Probe review
       notes, both pre-existing: an already-open dirty scene, and the tile-light globals not restored after a run.
-- [ ] Modern lighting prototype (owner, 2026-11-18; ADR-0813; `--light-modern`; built and adopted, the owner's words
-      "adopt, then tune"; the tuning pass is next and the default switch waits for the owner's acceptance of the tuned
-      look, classic staying the default until then). DK2's light sources (the shared `ModernLightSelector`, from
-      `ClassicWorldLightCache.CopyPreparedSources`: torches, objects, effects, the Hand, portals) drive a pool of 128
-      `OmniLight3D`; a source keeps its slot (matched by flags and the nearest position within 0.5 tiles); the best 4
-      cast cube shadows, with 1.25x hysteresis. The falloff fit over intensity 0.5 to 1.25 and radius 1.1 to 2.5 tiles
-      is range 0.886R, energy 1.202*I^2.2, attenuation 1.861 (0.047 RMS), tuned with `Fitted.Scaled(range 1.3, energy
-      0.75)`; a colour keeps its magnitude, and one over 1 is cut and normalised. Terrain lights (DK2's under-top lights
-      with inverted normals) are emission summed from the classic tables, skipped in shadow passes. Linear HDR with
-      ACES, glow, SSAO and depth fog (ADR-0522's 0.5 to 1 fade); ambient from DK2's ambient keys. Blended, additive and
-      environment-pass materials keep DK2's vertex light, converted to linear. Reviewer: no blockers, classic purity
-      confirmed; fixed: colour magnitude, the pool's initial state, slot and shadow stability, the terrain glow's radial
-      term, the fit range, tests, a docs mismatch, the duplicate `--frame-times` (removed). Verification: `dotnet test
-      DK2.slnx` 11,020 passed; classic frames are byte-identical to 3i's; the turn-400 hash is `60C97ECC6F9F0501` with and
-      without the flag; brightness is within 0.01 of Unity's in-game frames and saturation within about 0.05. The
-      lighting step costs 0.13 to 0.20 ms CPU and allocates 0 B with a still camera; allocation with a moving camera is
-      bounded. 3o's classic to modern GPU p50 at 1080p, under 60 to 75% other CPU load: Level1 3.4 to 7.5 ms, Level7 4.3
-      to 7.7 ms; the shadows are about 0.5 to 1 ms. Known look issues for the tuning pass: white hot spots on walls by
-      torches (HDR against DK2's clamp at 1), pale arches, pink additive overlays, lava highlights near white, pale
-      flame sprites, a lean towards brown and orange (the green floors are lost). Open: the glow loop still runs in the
-      depth prepass (no built-in identifies it).
+- [x] Modern lighting prototype (`--light-modern`, real omni lights and Godot's shadows over DK2's sources; built
+      2026-11-18 in f8843f83): rejected by the owner for its look and removed (2026-11-18), with `ModernLightSelector`
+      and `ClassicWorldLightCache.CopyPreparedSources`. Classic frames stayed byte-identical through the removal.
+- [ ] DK2 light per pixel (owner, 2026-11-18: DK2's light model stays and moves to modern means; step 1). Built behind
+      `--light-perpixel`, classic the default: the classic shaders' fragment step evaluates the same `dk2_light`
+      (tables, `ClassicVertexLight` formulas, clamp, pack) from the interpolated world position and normals, with the
+      tile anchor, bounds and model transform as flat varyings; `ClassicVertexLightShaderTextTests` pins both steps.
+      GPU p50 at Level1 1080p, `perf.ps1 -Repeat 2`, under 40 to 75% other CPU load: classic 2.27, per-pixel 3.49 ms.
+      By eye against Unity's in-game frames it is not yet a match: per pixel, DK2's falloff draws hard-rimmed discs
+      on walls by torches and seams where a wall's tile table changes, which per-vertex interpolation hides. Next
+      step: the owner's verdict.
 - [ ] The rest of step 3, in the order of [the modern-rendering audit](2026-11-18-godot-modern-rendering-audit.md)
       (ADR-0813; it supersedes the step-3 audit's move order from 3j; acceptance is the owner's eye, 3o's numbers and
       gameplay correctness, not byte-identity with Unity):
