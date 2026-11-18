@@ -31,8 +31,9 @@ add-only under `F:\DK2Evidence`; no cleanup of worktrees or evidence is authoriz
   target highlighting is built ([scope](../research/possession-target-highlight.md)). Owner acceptance remains.
 - [ ] 6. Room-pillar roof and explicit object-death view built; bounded lighting, listener
   and mouse reads recorded in [client completion](../research/possession-client-completion.md).
-  Shot creation-effect sprite upload is built ([effects](../research/shot-effects.md#7-ours));
-  sound playback and the object-possession bridge remain unbuilt. GPU acceptance remains.
+  Shot creation-effect upload and qualitative entry-star visibility are checked
+  ([Q749](../research/possession-entry-effect.md)); sound playback and the object-possession
+  bridge remain unbuilt. Native visual parity and owner acceptance remain.
 
 Before each review-fix commit run the Release solution and Godot builds, full suites
 of every test project without filters, and KB, docs and status gates.
@@ -40,6 +41,9 @@ Visual items require 1920x1080 Movie Maker captures from the post-opening save,
 including distance fade, occlusion, HUD, a current-action target and an authored swing.
 Tints and hit flashes stay off; the corrected native observations supersede that capture target.
 Compare the Black Knight visor at 1600x1200 and label widescreen fitting as an adaptation.
+Entry staging focuses the ordinary camera before possession and projects the authored
+creation request; the visor waits for settled first person. Capture scope is in Q749.
+Do not change `PossessionFlight` or `PossessionSession`: the owner is rechecking the move.
 Use temporary settings/profile/save/hiscore paths and remove only `override.cfg`
 created for a capture, as the owner explicitly requests.
 

@@ -76,7 +76,11 @@ STRONGLY INFERRED: [00410580](functions/00410580.md) selects type12->110,
 13/28->107,22->108,25/30->109; type0 retains the previous resource and other types
 clear it. [00410630](functions/00410630.md) submits the selected filter at origin.
 CONFIRMED native Black Knight files show a curved black visor with a soft edge,
-and the HUD over it. The draw-list and Godot panel order now both put filters
+and the HUD over it. CONFIRMED owner play,2026-11-18: the visor appears only
+after the possession effect/fly-in ends and the camera reaches the character view.
+`PossessionHudView` gates the creature overlay on the existing settled-camera flag;
+this does not change the flight or session rules. Current entry-frame verification is in
+[Q749](possession-entry-effect.md#capture-verification). The draw-list and Godot panel order now both put filters
 before the portrait/health panel, minimap and remaining HUD.
 The existing mask image fills1600x1200 for a4:3 viewport. At16:9 it stretches
 independently over the entire viewport, a remake fitting choice; these native

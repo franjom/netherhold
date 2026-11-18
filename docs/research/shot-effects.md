@@ -61,7 +61,8 @@ never reads them back. A shot's save record (`0x004AB090`, `0x004AB120`) streams
 | thing struck (`0x004ABEDC..0x004ABEFE`) | `+0x67` hit-thing | `+0x38C` | shot position at collision | tied to a creature (below) |
 | health below 1 (`0x004AB515`) | `+0x5B` death | `+0x38C` | position after the move | no |
 
-Possession shot 32's shipped creation effect is 102, "Chosen Creature Effect" (type 4, 20 updates, 16 elements per turn): it generates additive Gsparkle element 243 and a gold light. Its other effect ids are zero. The first-tick block requests this before event `0x40`, rather than when the possession camera enters (Q749, STRONGLY INFERRED, 2026-11-18 binary reread and shipped data).
+Possession shot32's creation effect, signed star origin and ordering before possession entry
+are recorded in [Q749 entry stars](possession-entry-effect.md).
 
 **The trail** (STRONGLY INFERRED):
 - **Set up at shot creation.** The trail is made when the shot is made, before launch. It is
@@ -359,9 +360,8 @@ and duration still require comparison; rebuilding or loading the view does not r
 these timers or permanent link latches. Crackle adds bolts, not a tint.
 
 ## 7. Ours
-
-Godot uploads shot creation-effect sprites, including possession effect 102, and
-publishes their lights; adapter: [Godot README](../../godot/README.md#shot-effects); Q749 remains visually unverified ([capture limits](possession-client-completion.md#other-boundaries)).
+Godot uploads shot creation-effect sprites and lights; [adapter](../../godot/README.md#shot-effects).
+Possession effect 102 and its current fly-in verification: [Q749](possession-entry-effect.md).
 
 - **Built:** burning simulation (ADR-0595); shot requests/trail lifecycle (ADR-0596);
   type4 inheritance/headings, DirectionalSpread, contacts, element NextEffect and

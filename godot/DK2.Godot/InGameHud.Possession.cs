@@ -39,7 +39,16 @@ public partial class InGameHud
         _world.Possession = _possession;
         OpenScreenColours();
         if (!LaunchArguments.PossessFirstCreature(args, "--")) return;
-        if (PossessionStaging.PossessFirst(_simulation.World, _viewer) is CreatureState possessed)
+        WorldScene world = _world;
+        GameSimulation simulation = _simulation;
+        if (PossessionStaging.PossessFirst(simulation.World, _viewer, world.Focus, (creature, focus) =>
+            {
+                world.Focus = focus;
+                world.PlaceCamera();
+                if (PossessionEntryEffect.ForCreature(level.Database, creature, _viewer) is { } effect)
+                    world.Emit(new SimEvent(simulation.CurrentTick, "possession-staging", "effect_requested", "")
+                        { EffectRequest = effect });
+            }) is CreatureState possessed)
             GD.Print("DK2.Godot: --possess-first-creature possessed creature ", possessed.Id, " at tile (", possessed.Tile.X, ", ",
                 possessed.Tile.Y, ")");
         else GD.PushWarning("DK2.Godot: --possess-first-creature found no creature of the viewer's to possess.");

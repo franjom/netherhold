@@ -30,6 +30,7 @@ public partial class WorldScene : ISimulationEventSink
         WorldState world = simulation.World;
         GameDatabase database = simulation.Database;
         _effects = new EffectDrawList(database, seed,
+            clock: () => new EffectTime(_frameMilliseconds),
             visible: request => WorldEffectVisibility.Construction(world, view, request),
             effectVisible: request => WorldEffectVisibility.Effect(world, view, simulation.Navigation, viewer, request),
             floorHeight: point => view.GroundHeightAt(world, point),

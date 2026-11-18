@@ -11,6 +11,27 @@ namespace DK2.Presentation.Tests;
 
 public class ShotEffectEngineTests
 {
+    [Fact]
+    public void SignedOriginHeightPlacesChosenCreatureStarsNearTheFeetInsteadOfAboveTheMap()
+    {
+        var chosen = Effect() with
+        {
+            LowerHeightLimit = unchecked((ushort)-150),
+            UpperHeightLimit = unchecked((ushort)-150),
+        };
+        var rising = Element() with { Mass = -819, AirFriction = 655 };
+        var model = Model([chosen], [rising]);
+        model.Request(Request() with { Position = Point(10000, 12000, Fp32.One) });
+
+        model.AdvanceTo(new(51));
+
+        ConstructionParticle star = Assert.Single(model.Particles);
+        Assert.Equal(Fp32.One - 2400, star.HeightRaw);
+        model.AdvanceTo(new(101));
+        Assert.True(star.HeightRaw > Fp32.One - 2400);
+        Assert.True(star.VelocityZ > 0);
+    }
+
     [Theory]
     [InlineData(false, 4596)]
     [InlineData(true, 7500)]

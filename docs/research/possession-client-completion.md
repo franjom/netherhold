@@ -63,11 +63,8 @@ its distinction from native sensitivity is recorded in
 
 ## Other boundaries
 
-The cast effect is the shot's creation effect, not a session-entry substitute;
-its implementation is recorded separately with the effect adapter. Q749 is a built
-subset, visually unverified: three earlier hash/save-531 entry-shot runs exited 0 without
-errors, but inspected frames did not clearly show effect 102's burst. The fixture uses
-actual shot 32, not a session-entry substitute or a cast-input test. Capture manifest:
-`F:\DK2Evidence\captures\possession-finish-20261118-final-001\capture-manifest.md`. Footstep
-requests still have no Godot sound player to consume them. Third-person mode 10
-remains out of scope, as the owner requested.
+The cast creation effect and its qualitative fly-in capture verification are recorded
+in [Q749](possession-entry-effect.md). The unpaid check projects that native request;
+real casts already request it through the shot update. Native density, brightness,
+timing and camera-trajectory parity remain unverified. Footstep requests still have
+no Godot sound player. Third-person mode 10 remains out of scope.

@@ -340,6 +340,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         }
     }
 
+    private static int OriginHeight(ushort raw) => unchecked((short)raw) * 16;
+
     /// <summary>The type-4 origin draw (<c>0x00435660</c>): a point within the effect's origin ring,
     /// raised by its height range, about <paramref name="around"/>.</summary>
     private FpPosition3 DrawOrigin(EffectDef effect, FpPosition3 around)
@@ -348,7 +350,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         double angle = _random.NextInt(2048) * Math.PI / 1024;
         return new FpPosition3(new(around.X.Raw + (int)(Math.Sin(angle) * radius)),
             new(around.Y.Raw - (int)(Math.Cos(angle) * radius)),
-            new(around.Z.Raw + DrawExclusive(effect.LowerHeightLimit * 16, effect.UpperHeightLimit * 16)));
+            new(around.Z.Raw + DrawExclusive(OriginHeight(effect.LowerHeightLimit), OriginHeight(effect.UpperHeightLimit))));
     }
 
     /// <param name="atExactPoint">A group part (0x004352E0 given a ready position): no origin ring,
@@ -363,7 +365,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         int x = request.Position.X.Raw + (int)(Math.Sin(angle) * radius);
         int y = request.Position.Y.Raw - (int)(Math.Cos(angle) * radius);
         int height = request.Position.Z.Raw + (drawn
-            ? DrawExclusive(effect.LowerHeightLimit * 16, effect.UpperHeightLimit * 16) : 0);
+            ? DrawExclusive(OriginHeight(effect.LowerHeightLimit), OriginHeight(effect.UpperHeightLimit)) : 0);
         int heading = ((!drawn || (effect.Flags & 0x400) == 0 ? request.Heading.Value : 0) + (drawn
             ? DrawAngularOffset(effect.OrientationRange * 8).Value : 0)) & 2047;
         int speed = DrawInclusive(element.MinSpeedXy, element.MaxSpeedXy);

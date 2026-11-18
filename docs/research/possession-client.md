@@ -387,12 +387,12 @@ eighteen as a possessed Warlock, are in
 
 - The writers of camera `+0xE38` and `+0xE3C`.
 - Who raises the view event `0x00448440` handles, and who posts the player's own leave.
-- Carry/throw dependency closure and the foreground mesh transform; the supported
-  ability arms and sniper gates are built ([scope](possession-special-abilities.md)).
+- Carry/throw dependency closure; supported ability arms and sniper gates are built
+  ([scope](possession-special-abilities.md)); [foreground rendering](possession-foreground.md) is built.
 - The map and cell accessors the step calls, taken by name: world slots `+0x1CC` and
   `+0x1D0` (`0x00508FA0`, `0x00508FB0`, width and height) and `+0x1D4` (`0x00508FE0`,
   the cell at a position).
-- Q749 has a built shot-creation-effect subset ([shot effects](shot-effects.md#7-ours));
+- Q749 has a built entry-effect subset with [qualitative capture verification](possession-entry-effect.md);
   the [possession HUD reading and built subset](possession-hud.md) have their own note.
 - The mouse profile/device link and Godot calibration remain UNREAD after the
   bounded device-chain read ([client completion](possession-client-completion.md#mouse-units-and-sensitivity)).

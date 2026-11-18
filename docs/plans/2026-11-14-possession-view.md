@@ -60,7 +60,7 @@ simulation side, which is built.
    acceptance after.
 
 Later work: the [possession HUD subset](../research/possession-hud.md) is built; the third-person
-view (action 20) is dropped (below). Colour ramps: Q745, retained developer-only and off by default (ADR-0822); cast effect: Q749.
+view (action 20) is dropped (below). Colour ramps: Q745, retained developer-only and off by default (ADR-0822); cast effect and current entry-capture limits: [Q749](../research/possession-entry-effect.md).
 
 ## Prerequisites
 

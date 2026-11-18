@@ -11,7 +11,7 @@ namespace DK2.Presentation;
 /// <summary>The independent possession carry slot, player +0x136; ordinary keeper hand contents do not supply it.</summary>
 public enum PossessionCarryState { Empty, HoldingThing }
 
-/// <summary>The possession HUD's facts from the settled world, independent of an engine.</summary>
+/// <summary>The possession HUD's world facts, independent of an engine.</summary>
 public sealed class PossessionHudView
 {
     private readonly GameDatabase _database;
@@ -20,7 +20,11 @@ public sealed class PossessionHudView
     public PossessionHudView(GameDatabase database, InstallPossessionHudArt art) { _database = database; _art = art; }
 
     public PossessionHudSnapshot? Capture(WorldState world, PlayerId viewer, PossessionControls controls,
-        PossessionCarryState carry = PossessionCarryState.Empty)
+        PossessionCarryState carry = PossessionCarryState.Empty) =>
+        Capture(world, viewer, controls, firstPersonCameraSettled: true, carry);
+
+    public PossessionHudSnapshot? Capture(WorldState world, PlayerId viewer, PossessionControls controls,
+        bool firstPersonCameraSettled, PossessionCarryState carry = PossessionCarryState.Empty)
     {
         CreatureState? creature = world.CreatureById(world.Player(viewer).PossessedCreatureId);
         if (creature == null || creature.OwnerPlayerId != viewer) return null;
@@ -78,7 +82,7 @@ public sealed class PossessionHudView
             };
         var overlays = new List<string>(3);
         if (creature.SniperMode) overlays.Add("GUI\\Filters\\F-Sniper");
-        if (_creatureOverlay != null) overlays.Add(_creatureOverlay);
+        if (firstPersonCameraSettled && _creatureOverlay != null) overlays.Add(_creatureOverlay);
         if (creature.FrozenTicks != 0) overlays.Add("GUI\\Filters\\F-Frozen");
         int maxHealth = CreatureHealthRules.MaxHealth(_database, definition, creature);
         return new(_art.Icon(type), maxHealth <= 0 ? 0 : (int)Math.Min(100L, 100L * Math.Max(0, creature.Health) / maxHealth),

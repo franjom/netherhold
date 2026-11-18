@@ -12,6 +12,26 @@ namespace DK2.Presentation.Tests;
 
 public sealed class PossessionHudViewTests
 {
+    [InstallTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BlackKnightVisorAppearsOnlyInSettledFirstPerson(bool settled)
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var viewer = new PlayerId(3);
+        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [1, 3, 4], fogOfWarEnabled: false);
+        CreatureState creature = world.SpawnCreature(db, 22, viewer, new TilePos(4, 4));
+        world.Player(viewer).PossessedCreatureId = creature.Id;
+        var view = new PossessionHudView(db, new InstallPossessionHudArt(Dk2InstallGate.Path));
+
+        PossessionHudSnapshot snapshot = view.Capture(world, viewer, new PossessionControls(),
+            firstPersonCameraSettled: settled)!;
+
+        Assert.Equal(settled, snapshot.Overlays.Contains("GUI\\Filters\\F-Black_Knight"));
+        Assert.NotEmpty(snapshot.Portrait);
+    }
+
     [Theory]
     [InlineData(0, 0)]
     [InlineData(5, 50)]

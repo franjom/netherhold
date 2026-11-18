@@ -408,3 +408,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Redirecting the Ghidra runner log/CACHE does not redirect InsGrep's insdb cache; instruction scans still write under the checkout's reverse-engineering/.cache/.
 
 - Pinned Godot Movie Maker can log Vulkan surface-capability error -13 on every frame; `--rendering-driver d3d12` produced clean captures here without changing the project renderer.
+- Painted capture fixtures must refresh navigation before saving: stale solid NAV can permanently reject first-frame gated effects despite visible non-solid terrain.
