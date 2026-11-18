@@ -100,7 +100,7 @@ are recorded in [Q749 entry stars](possession-entry-effect.md).
 - With shot `Flags` bit 7 (`0x004AB1E0..0x004AB260`), the creation effect is given the same
   carried velocity: velocity × `0x006F2590` (variable 19) / **20**, and `+0x155` = 1.
   `+0x155` is a field of the effect, not the shot's max range.
-- The shot keeps no handle to it, so it does not follow the shot. No shipped shot has bit 7.
+- The creation handle stays local; the scoped shot32 attachment trace is [Q749](possession-entry-effect.md#creation-attachment-trace). No shipped shot has bit7.
 
 **Timed effect.** The id is tested before the division, so `TimedDelay` 251 with effect 0
 never divides. Only Raise Dead (shot 40) ships one: effect 286, every tick.

@@ -22,9 +22,9 @@ STRONGLY INFERRED from the focused DKII.EXE reread and shipped data:
   the additional0x2000 height; Possession does not.
 - On the first shot update, [004AB180](functions/004AB180.md) at004AB1AA–004AB1D7
   requests definition+59 through world+38C, at the shot's point and heading.
-  The request precedes event40 and the collision process. It does not attach
-  this creation effect to the creature or shot. The wrapper duplicates the
-  supplied point as the effect's two initial points; see [shot effects](shot-effects.md#1-how-the-simulation-asks-for-an-effect).
+  The request precedes event40 and the collision process. The wrapper duplicates
+  the supplied point as both initial points; attachment needs the separate tag
+  path established below, not merely the absence of an id argument.
 - Shot32's collision handler [004AEEA0](functions/004AEEA0.md) sets possession
   via [0048DEA0](functions/0048DEA0.md), installs the player pointer via
   [004BE090](functions/004BE090.md), then posts bridge command11 or12. Thus the
@@ -50,6 +50,18 @@ STRONGLY INFERRED from the focused DKII.EXE reread and shipped data:
   elasticity in [00446C70](functions/00446C70.md) therefore clamps the birth
   point to the floor without erasing that later launch. Ordinary movement
   contact still damps or kills according to the element flags.
+
+## Creation attachment trace
+STRONGLY INFERRED, fresh shot32-path read: [the constructor](functions/00434700.md)
+explicitly clears attachment tag+133 and selector+135. The request follows
+[00509580](functions/00509580.md), [0050E490](functions/0050E490.md),
+[00440420](functions/00440420.md) and [00440350](functions/00440350.md) into
+[the initializer](functions/004347E0.md); none installs that tag. The creation
+handle in [Shot_Update](functions/004AB180.md) is local and receives only optional
+carried velocity, not a creature tie. [The update](functions/00434E80.md) follows
+things only for nonzero+133, with no effect102-specific automatic attachment.
+This traced creation/update path therefore leaves102 at its copied point; it is
+not a whole-image proof that no indirect writer could ever affect any effect.
 
 ## Remake fixes and staging
 
@@ -82,7 +94,8 @@ The height regression failed with1050272 instead of1696 at an ordinary floor poi
 Shared tests now check signed origin, upward motion, a renamed spell and overridden
 shot/effect ids, missing-data behavior, and the actual shipped102/243 star resource.
 The installed-data test advances the supplied clock from0 to51/101ms, observes
-sixteen then thirty-two stars, and moves the creature to establish no attachment.
+sixteen then thirty-two stars, and moves the creature to verify the remake
+retains its copied request point. The native premise is the traced tag path above.
 The floor regression additionally checks a sixteen-star birth wave at floor height,
 outward and upward motion on the next update, and eventual disappearance, plus
 birth launch/HP retention for ordinary, floor-kill and floor-stop elements.

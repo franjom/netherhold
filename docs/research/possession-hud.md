@@ -25,6 +25,8 @@ room type 1, not object 1; [the room lookup](functions/0050D0B0.md) retains its 
 HYPOTHESIS header. Recharge getters `0x0048CA10`/`0x0048C8B0` report 0..100 against
 the possession-modified interval, without the combat gate's work-rate divisor. Neither getter treats stamp zero as already recharged; the
 first interval of a level therefore shows partial recharge even before first use.
+The HUD translates the simulation's never-used marker −1 to native stamp zero
+before calculating elapsed time; it does not change the stored simulation stamp.
 Partial recharge composes a 0.4-grey icon and bright radial portion. Selection
 overlays are drawn after the icon and sector. The read Warlock icon is opaque
 (RGBA alpha 255), while selected-creature artwork is translucent.
@@ -51,7 +53,9 @@ STRONGLY INFERRED: [the dispatcher](functions/00419DF0.md) uses the current
 camera class for its ordinary-versus-possession branch. The additional interface
 `+4` receiver's `+0x284` guard is read, but its meaning remains UNREAD.
 [HUD display](functions/0044D620.md) and [ordinary input](functions/0044D590.md)
-have separate gates: the latter refuses the timed transition.
+have separate gates: the latter refuses the timed transition before the key
+handler reaches Options or GUI toggle. Their shared shortcut context therefore
+waits for the settled camera, independently of the ordinary HUD remaining visible.
 `PossessionHud` preserves ordinary display during entry without enabling its
 buttons; the possession panel and its filters wait for the settled camera.
 Creature-filter appearance is recorded in [the filter note](possession-foreground.md#creature-filter),
@@ -154,8 +158,12 @@ constructor remains available; role is an added init property.
 The shared possession minimap uses map-2's empty corners and native per-axis disc
 placement. The ordinary minimap builder is preserved. Ordinary panel input and
 shortcuts remain blocked while possession holds the camera, except Options and GUI
-toggle shortcuts in the live possession view (`0x004057E3` and `0x00405875`). Heart, full map,
+toggle shortcuts in the settled possession view (`0x004057E3` and `0x00405875`). Heart, full map,
 portal and fight navigation stay blocked. The map has no possession input.
+The GUI binding toggles interface `+0xF5` ([key handler](functions/00405010.md));
+[the dispatcher](functions/00419DF0.md) skips both minimap paths while that flag
+is zero. The minimap therefore follows the GUI toggle during possession. Its
+first-person draw state comes from the shared settled-camera rule.
 ADR-0821 implements a height-fit content policy consistent with ADR-0497. In shared
 virtual units, the content X factor is `min(1, width * 1920 / (height * 2560))`.
 This caps the raw native X factor on widescreens while retaining it for narrower
@@ -168,7 +176,7 @@ User UI scale, bottom docking and the stacked indicator layout remain host
 adaptations. Selecting the mana/Heart corner by `X + Width <= 520` is a geometric
 fit to SHOT0033; that extraction threshold was not read in the binary.
 The entry/landing visibility split above preserves the GUI toggle and keeps
-live-possession Options/GUI shortcuts separate from ordinary panel input. The float
+settled-possession Options/GUI shortcuts separate from ordinary panel input. The float
 renderer representation has not been checked for equality with native integer pixel rounding.
 
 Successful spell/follower selection clears special bits at the key-handler call site;

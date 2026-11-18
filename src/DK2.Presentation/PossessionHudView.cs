@@ -96,6 +96,8 @@ public sealed class PossessionHudView
     /// <summary>The HUD recharge getters omit the combat work-rate divisor (0x0048CA10, 0x0048C8B0).</summary>
     public static int Recharge(GameTick now, long stamp, int intervalTicks)
     {
+        // Native stamps start at zero; -1 is the simulation's never-used marker.
+        if (stamp == -1) stamp = 0;
         if (intervalTicks <= 0 || now.Value - stamp >= intervalTicks) return 100;
         int reciprocal = (int)((100L << 24) / ((long)intervalTicks << 12));
         return Math.Clamp((int)((now.Value - stamp) * reciprocal >> 12), 0, 100);

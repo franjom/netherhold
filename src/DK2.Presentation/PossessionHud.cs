@@ -51,6 +51,11 @@ public sealed class PossessionHud
     public static GameShortcutContext ShortcutContext(GameShortcutContext ordinary, bool possessionCameraHeld, bool possessing = true) =>
         ordinary with { Possession = possessionCameraHeld, OrdinaryInput = ordinary.OrdinaryInput && (!possessionCameraHeld || possessing) };
 
+    public static GameShortcutContext ShortcutContext(GameShortcutContext ordinary, bool possessionCameraHeld,
+        bool possessing, bool firstPersonCameraSettled) =>
+        ShortcutContext(ordinary, possessionCameraHeld, possessing) with
+        { OrdinaryInput = ordinary.OrdinaryInput && (!possessionCameraHeld || (possessing && firstPersonCameraSettled)) };
+
     public static HudVisibility MinimapVisibility(HudVisibility ordinary, bool possessing, bool possessionCameraHeld = false) =>
         possessing ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, possessionCameraHeld);
 

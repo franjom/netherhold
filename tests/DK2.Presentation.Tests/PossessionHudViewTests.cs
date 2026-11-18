@@ -12,6 +12,25 @@ namespace DK2.Presentation.Tests;
 
 public sealed class PossessionHudViewTests
 {
+    [InstallFact]
+    public void NewCreatureMinusOneRechargeMarkersUseNativeZeroWhenCaptured()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var viewer = new PlayerId(3);
+        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [1, 3, 4], fogOfWarEnabled: false);
+        CreatureDef definition = db.Creatures.Values.Single(d => d.Name == "Warlock");
+        CreatureState creature = world.SpawnCreature(db, definition.CreatureId, viewer, new TilePos(4, 4));
+        Assert.Equal(-1, creature.TimeLastUsedMelee);
+        Assert.All(creature.SpellStamps, stamp => Assert.Equal(-1, stamp));
+        world.Player(viewer).PossessedCreatureId = creature.Id;
+        PossessionHudSnapshot snapshot = new PossessionHudView(db, new InstallPossessionHudArt(Dk2InstallGate.Path))
+            .Capture(world, viewer, new PossessionControls())!;
+        Assert.Equal(0, snapshot.Actions[0].RechargePercent);
+        Assert.Contains(snapshot.Actions, action => action.Spell);
+        Assert.All(snapshot.Actions.Where(action => action.Spell), action => Assert.Equal(0, action.RechargePercent));
+    }
+
     [InstallTheory]
     [InlineData(false)]
     [InlineData(true)]

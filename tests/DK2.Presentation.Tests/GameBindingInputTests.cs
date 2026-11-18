@@ -10,6 +10,17 @@ namespace DK2.Presentation.Tests;
 public class GameBindingInputTests
 {
     [Theory]
+    [InlineData(GameAction.Options)]
+    [InlineData(GameAction.TogglePanel)]
+    public void TimedPossessionMoveRefusesOptionsAndGuiToggle(GameAction action)
+    {
+        var settings = new GameSettings { Bindings = [new GameKeyBinding(action, 0x30)] };
+        GameShortcutContext context = PossessionHud.ShortcutContext(new(), possessionCameraHeld: true,
+            possessing: true, firstPersonCameraSettled: false);
+        Assert.Equal(ClassicHudAction.None, Input(settings, scans: 0x30).HudShortcut(context));
+    }
+
+    [Theory]
     [InlineData(GameAction.Options, ClassicHudAction.ToggleOptions)]
     [InlineData(GameAction.TogglePanel, ClassicHudAction.ToggleGui)]
     [InlineData(GameAction.Heart, ClassicHudAction.None)]

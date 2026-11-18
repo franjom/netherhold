@@ -1,7 +1,7 @@
 # Finish possession
 
-**Goal:** complete the owner's possession task on `codex/possession-finish`, from
-master `1fb1c15b`, leaving the worktree and branch for review without merge or push.
+**Goal:** complete the owner's possession follow-up on the retained
+`codex/possession-finish` worktree and branch, leaving fixes for review without push.
 **Architecture:** existing engine-free possession session and rules own behaviour;
 Godot partials upload draw lists, geometry and ramps and forward input (ADR-0805).
 **Spec:** the owner's task of 2026-11-18; existing design is
@@ -15,7 +15,7 @@ All edits and Git staging are confined to this worktree. Native captures are
 add-only under `F:\DK2Evidence`; no cleanup of worktrees or evidence is authorized.
 
 - [x] 1. Colour tables, queue and session driver are built. Application is developer-only
-  and off by default (ADR-0822); corrected native observations: [Q745](../research/screen-colour-changes.md).
+  and off by default (ADR-0822), with a documented developer launch path; corrected native observations: [Q745](../research/screen-colour-changes.md).
 - [ ] 2. Godot fade implemented; final corridor capture inspected, owner acceptance remains.
   See [possession-warp section 4](../research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable)
   for verification and the owner-requested settled-only scope deviation.
@@ -55,5 +55,5 @@ created for a capture, as the owner explicitly requests.
 - Interrupted and repeated colour events blend from the current ramp; queue limit 8.
 - Fly-in/out never inherits settled-only fade, occlusion or first-person input.
 - Hidden tiles hide all content and skip off-map entries without indexing errors.
-- Ordinary HUD input stays blocked across entering, possessing and leaving.
+- Ordinary HUD input stays blocked across entering, possessing and leaving; Options/GUI shortcuts wait for settled first person.
 - Level/spell gates, replay serialization and deterministic hashes follow binary reads.

@@ -47,6 +47,16 @@ public sealed record LaunchArguments(string? Level, ulong? Seed, string? Install
         return false;
     }
 
+    /// <summary>Developer-only output of the researched possession colour ramps; absent in normal play.</summary>
+    public static bool PossessionColourChanges(IReadOnlyList<string> args, string prefix)
+    {
+        if (args is null) throw new ArgumentNullException(nameof(args));
+        if (prefix is null) throw new ArgumentNullException(nameof(prefix));
+        for (int i = 0; i < args.Count; i++)
+            if (args[i] == prefix + "possession-colours") return true;
+        return false;
+    }
+
     /// <summary>The scripted pointer a <c>pointer-path</c> argument names (<see cref="PointerScript"/>, a check that drives a
     /// capture without the OS pointer), or null when it is absent or malformed.</summary>
     public static PointerScript? PointerPath(IReadOnlyList<string> args, string prefix)

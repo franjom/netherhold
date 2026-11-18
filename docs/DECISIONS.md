@@ -19477,8 +19477,9 @@ evidence note.
 **Context.** Q745 changes whole-screen ramps on damage and thaw. Polling net health once per frame misses damage
 healed before that frame; polling the frozen word misses a thaw followed by another freeze.
 **Decision.** Health and status rules publish transient possessed-creature notifications. The engine-free session
-receives them in order and drives the real-time ramp model; Godot uploads its tables in one final pass over the HUD
-and scene. The previous scene-only gamma is disabled while this pass owns gamma. Application enablement is
+receives them in order and drives the real-time ramp model. Godot draws the pass over the HUD and scene;
+native HUD coverage is HYPOTHESIS, as recorded in Q745. The previous scene-only gamma is disabled while this pass
+owns gamma. Application enablement is
 now governed by ADR-0822. Evidence and limits:
 [possession colour rendering](research/possession-colour-rendering.md), with binary rules in [Q745](research/screen-colour-changes.md).
 **Consequences.** Observer subscriptions and pending notifications are excluded from snapshots and hashing. HashVersion
@@ -19542,6 +19543,7 @@ The native application guard has no setter found by the bounded search.
 **Decision.** Preserve the researched tables, queue and session events. Default engine-free
 colour output to the normal user-gamma ramp. Only the developer-only
 `ApplyColourChanges` switch can expose the current coloured ramp; no player option does.
+Godot forwards the explicit [developer launch argument](../godot/README.md#verifying) to that switch.
 Godot consumes the shared output rather than imposing an enable policy in the adapter.
 **Consequences.** Damage and death ramps share the gate; normal brightness remains available.
 This supersedes only ADR-0818's unconditional enablement. No simulation state changes;

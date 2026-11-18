@@ -515,7 +515,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         HudVisibility camera = _scriptedView.HudFor(ClassicCameraMode.Dungeon);
         ClassicHudAction shortcut = _keyboard.Read(_settings).HudShortcut(
             PossessionHud.ShortcutContext(_hudControls.ShortcutContext(camera, script.AllowOptionsKey,
-                capturingKey: _optionsPages.CapturingAction != null), _possession?.CameraHeld == true, _possession?.Possessing == true),
+                capturingKey: _optionsPages.CapturingAction != null), _possession?.CameraHeld == true, _possession?.Possessing == true,
+                firstPersonCameraSettled: _possession?.SettledPossessionCamera == true),
             _keyboard.EscapePressed);
         if (shortcut is ClassicHudAction.ToggleOptions or ClassicHudAction.ToggleFullMap or ClassicHudAction.ToggleGui) ApplyHudAction(shortcut);
         // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): a camera path, the letterbox, the result
@@ -600,7 +601,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         MinimapCameraView? drawn = _world.View;
         _minimap.Draw(_tools.SelectedCorner, _hudControls.OptionsVisible, MinimapHud.FixedFocus(_world.Focus),
             drawn?.Heading ?? ClassicCamera.LevelStartYaw, drawn,
-            _possession is { Possessing: true } && !_possession.Flight.Active);
+            _possession?.SettledPossessionCamera == true);
         // After the minimap, as DungeonRunner.DrawHudControls draws it.
         _options.Draw();
         // DungeonRunner.DrawHudControls captures it after the bottom panel and draws it after the menu.

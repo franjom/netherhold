@@ -22,7 +22,7 @@ questions live in their canonical documents; this file links to them.
   Behavioral parity with DK2 remains incomplete; bounded replay controls do not
   establish full-state, campaign-outcome or interactive-play acceptance.
 - Possession colour ramps and the final Godot scene/HUD pass are built (ADR-0818);
-  colour output defaults to normal gamma under ADR-0822;
+  colour output defaults to normal gamma under ADR-0822, with an explicit developer launch path;
   implementation and acceptance limits: [possession colour rendering](research/possession-colour-rendering.md).
 - Classic rendering, HUD and front-end integration are on master. Owner play,
   visual and hearing acceptance remain open in the
@@ -147,7 +147,7 @@ These are entry points, not a new priority order.
   The special abilities and sniper are partly built; carry/throw physics remain unbuilt ([scope](research/possession-special-abilities.md), ADR-0819; trap flight consumer ADR-0820).
   Authored foreground swings and creature filters are built ([scope](research/possession-foreground.md));
   current-action and entry-pointer targets use the existing hover pass, with a scoped entry badge ([scope](research/possession-target-highlight.md)).
-  The shared possession HUD and Godot canvas implement the reviewed 4:3 geometry and compositing, with height-fitted widescreen content (ADR-0821); [scope and limits](research/possession-hud.md).
+  The shared possession HUD and Godot canvas implement the reviewed 4:3 geometry and compositing, height-fitted widescreen content (ADR-0821), settled-only shortcuts and native-stamp recharge display; [scope and limits](research/possession-hud.md).
 - Godot adapter (ADR-0805, ADR-0810): the road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md);
   steps 1, 2, 3a, 3b, 3c, 3d, 3e, 3f, 3g, 3h, 3i, 3m and 3o are done and step 3 is in progress. Rules that were Unity-only now live in `DK2.Presentation` and both adapters call them;
   Godot draws and forwards input (`godot/README.md` lists the scenes, files and launch arguments).

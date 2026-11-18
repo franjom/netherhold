@@ -69,6 +69,17 @@ public sealed class LaunchArgumentsTests
     }
 
     [Fact]
+    public void PossessionColourChangesRequireTheExplicitDeveloperArgument()
+    {
+        Assert.False(LaunchArguments.PossessionColourChanges([], "--"));
+        Assert.True(LaunchArguments.PossessionColourChanges(["--possession-colours"], "--"));
+        Assert.True(LaunchArguments.PossessionColourChanges(["-possession-colours"], "-"));
+        Assert.False(LaunchArguments.PossessionColourChanges(["--possession-colours"], "-"));
+        Assert.False(LaunchArguments.PossessionColourChanges(["--possession-colours=false"], "--"));
+        Assert.False(LaunchArguments.PossessionColourChanges(["--possession-colour"], "--"));
+    }
+
+    [Fact]
     public void APointerPathIsItsKeysInFrameOrder()
     {
         PointerScript script = LaunchArguments.PointerPath(["--level", "Level1", "--pointer-path", "0:10,20; 30:110.5,220:L;31:110.5,220:lR;40:0,0:r"], "--")!;

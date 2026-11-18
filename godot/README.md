@@ -97,7 +97,7 @@ frame without ordinary input cancels only the world drag; when the window loses 
 bottom panel's press and then the world drag; the bottom panel cancels its own press when it is freed. A held choice slot queues its release
 sound request 0x136, which nothing plays yet.
 Options gamma uses one final scene/HUD/cursor pass; possession colour ramps remain developer-only and off by default (ADR-0822): [implementation and limits](../docs/research/possession-colour-rendering.md).
-The possession canvas presents the shared HUD geometry and compositing in height-fitted widescreen content (ADR-0821), uses the map-2 minimap, and blocks ordinary panels and navigation shortcuts while the camera is held, with Options and GUI toggle available in the live possession view: [scope and limits](../docs/research/possession-hud.md).
+The possession canvas presents the shared HUD geometry and compositing in height-fitted widescreen content (ADR-0821), uses the map-2 minimap, and blocks ordinary panels and navigation shortcuts while the camera is held, with Options and GUI toggle available once the camera settles: [scope and limits](../docs/research/possession-hud.md).
 
 Authored first-person swings and creature filters use the shared [foreground draw list](../docs/research/possession-foreground.md);
 the one current-action target reuses [the hover pass](../docs/research/possession-target-highlight.md).
@@ -231,6 +231,11 @@ keep Godot AI out of the repository's `.mcp.json`. Its C# support is text-only: 
 files but does not compile them, so build with `dotnet`.
 
 ## Verifying
+
+Possession colour ramps normally stay off. For developer inspection only, add
+`--possession-colours` after Godot's `--`; no player setting exposes it. This is a
+remake test path, not evidence of native gamma enablement. [Policy and capture
+comparison](../docs/research/possession-colour-rendering.md).
 
 ```powershell
 dotnet build godot/DK2.Godot/DK2.Godot.csproj                               # compile, no editor needed

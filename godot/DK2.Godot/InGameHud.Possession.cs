@@ -37,6 +37,8 @@ public partial class InGameHud
         _possession = new PossessionSession(level.Database,
             ClassicCameraSetup.PossessionPreset(GameDatabaseLoader.LoadCameraPresets(install, level.Name)));
         _world.Possession = _possession;
+        _possession.Colours.ApplyColourChanges = LaunchArguments.PossessionColourChanges(args, "--");
+        if (_possession.Colours.ApplyColourChanges) GD.Print("DK2.Godot: developer possession colours enabled.");
         OpenScreenColours();
         if (!LaunchArguments.PossessFirstCreature(args, "--")) return;
         WorldScene world = _world;

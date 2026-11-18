@@ -35,8 +35,9 @@ gamma scope. Shader-layer placement, byte quantization, and a float texture are
 remake representation choices.
 
 `PossessionColours.Output` defaults to the normal user-gamma ramp. Explicit
-developer-only `ApplyColourChanges` selects the current transition table; Godot consumes this
-output. Tables, queue and session notifications remain active behind the gate.
+developer-only `ApplyColourChanges` selects the current transition table. Godot forwards
+the [developer launch argument](../../godot/README.md#verifying) into this shared gate;
+no player setting enables it. Godot consumes the selected output. Tables, queue and session notifications remain active behind the gate.
 ADR-0822 governs this conservative application policy; native observations and
 the unresolved enable path remain in Q745 sections 1–2.
 
@@ -51,8 +52,17 @@ CRT/x87 versus managed floating-point last-bit equivalence has not been checked
 with the oracle.
 The earlier format-532 untinted recording remains at
 `F:\DK2Evidence\captures\possession-colour-enable-correction-20261118-001\vampire-untinted\f00000180.png`.
-It predates the review corrections and is not current-build validation. The current
-adapter comparison is recorded in [foreground verification](possession-foreground.md#adapter-capture-comparison).
+It predates the review corrections and is not current-build validation.
+
+Current developer-gate comparison: `F:\DK2Evidence\captures\`
+`possession-review-followup-20261118-001/colours-default-off` and
+`colours-developer-on`, each 1920×1080, 200 frames at30fps, exit0 and no runtime
+or shader errors. Adjacent metadata records isolated settings/profile/saves/hiscores,
+commands and stable pre/post DLL SHA-256
+`035352955460c860b605632a5e1ee9232c1f7a0dafe087d186e6a3efac8c05f8`.
+The parent inspected frame70 in both: default output keeps the ordinary colours;
+explicit developer output makes the settled Skeleton view and HUD blue-purple.
+This verifies the remake switch, not native ramp enablement or visual parity.
 
 Earlier tinted remake captures remain preserved as superseded implementation
 evidence, not native-fidelity validation. Native evidence has one home in Q745
