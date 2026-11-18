@@ -60,7 +60,7 @@ simulation side, which is built.
    acceptance after.
 
 Deferred, each its own task later: the possession HUD (`0x00420D10`), the third-person
-view (camera mode 1, action 20), the colour ramps (Q745), the cast effect (Q749).
+view (action 20; since dropped, below), the colour ramps (Q745), the cast effect (Q749).
 
 ## Prerequisites
 
@@ -110,7 +110,8 @@ applied through an up vector the session computes, the same picture as before.
 Not built, each its own later task: the colour changes of entering, leaving and dying; Unity's near clip, lighting distance and ambience listener,
 which still follow the ordinary camera (Godot's possession cameras take `PossessionCamera.NearClipDistance`, 0.05, a remake
 choice: DK2 has no near plane, possession-warp.md section 2); the two ability keys; the possession HUD, so HUD
-shortcuts still act; the third-person view.
+shortcuts still act. The third-person view (camera mode 10) is dropped: nothing in the binary enters it
+(possession-client.md section 6, 2026-11-18).
 
 Seen in the original by the owner on 2026-11-15 (possession-client.md section 6b, 19
 screenshots) and since built: the roof over every open tile (`TerrainCeiling`, scheduled by

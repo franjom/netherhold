@@ -131,7 +131,7 @@ These are entry points, not a new priority order.
 - Possession first-person view: built and unit-tested, never seen running in an editor, no owner play
   acceptance. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805); `DungeonRunner.Possession.cs`
   is the Unity glue, `InGameHud.Possession.cs` the Godot's. Not built: the entry and exit colour changes
-  (Q745), the two special-ability keys, the possession HUD, the third-person view, lighting distance and
+  (Q745), the two special-ability keys, the possession HUD, lighting distance and
   ambience listener in first person, and Unity's near clip (Unity keeps 0.3; Godot's possession cameras use
   `PossessionCamera.NearClipDistance`, 0.05, a remake choice). Next: one editor run, then owner play. Evidence and remake choices:
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
