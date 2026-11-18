@@ -19434,7 +19434,7 @@ possible". The audit that follows from it is [the modern-rendering audit](plans/
 4. **Acceptance for a modern item** is the owner's eye, the performance harness's numbers (step 3o) and gameplay
    correctness: the turn-400 hash, the pick and hover tests, scripted-pointer captures. Byte-identity with Unity no
    longer applies to it.
-5. **The lighting prototype** (`--light-modern`, in progress) is the first application: DK2's sources drive real
+5. **The lighting prototype** (`--light-modern`; built, adopted by the owner 2026-11-18 to tune, classic still the default) is the first application: DK2's sources drive real
    per-pixel lights and Godot's shadows.
 
 **Relation.** ADR-0805 stands: behaviour moves to `DK2.Presentation` and the adapters draw. A rule is still moved, tested

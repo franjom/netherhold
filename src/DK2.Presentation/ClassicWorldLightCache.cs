@@ -266,6 +266,29 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         if (_tables.Remove(tile, out ClassicLightTable? table)) _freeTables.Push(table);
     }
 
+    /// <summary>Every source of the cells the last <see cref="PrepareFrame"/> prepared (the visible tiles and their
+    /// three-tile light margin), each cell's static sources then its dynamic ones, in preparation order, into
+    /// <paramref name="buffer"/>, grown as needed; the count. Each source sits in one cell, so none repeats.</summary>
+    public int CopyPreparedSources(ref ClassicPointLight[] buffer)
+    {
+        int count = 0;
+        foreach (int index in _preparedIndices)
+        {
+            ClassicLightCacheCell cell = _cells[index];
+            count = Append(cell.StaticSources.Span, ref buffer, count);
+            count = Append(cell.DynamicSources.Span, ref buffer, count);
+        }
+        return count;
+    }
+
+    private static int Append(ReadOnlySpan<ClassicPointLight> sources, ref ClassicPointLight[] buffer, int count)
+    {
+        if (sources.Length == 0) return count;
+        if (buffer.Length < count + sources.Length) Array.Resize(ref buffer, Math.Max(count + sources.Length, buffer.Length * 2 + 16));
+        sources.CopyTo(buffer.AsSpan(count));
+        return count + sources.Length;
+    }
+
     public ClassicLightCacheCell GetCell(TilePos tile) => Contains(tile) ? _cells[tile.Y * _width + tile.X] : default;
     public bool IsVisible(TilePos tile) => _visible.Contains(tile);
 

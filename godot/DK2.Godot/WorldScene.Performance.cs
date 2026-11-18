@@ -36,6 +36,7 @@ public partial class WorldScene
         Add(into, "present.changeBytes", _changeBytes);
         for (int generation = 0; generation < _collectionsAtOpen.Length; generation++)
             Add(into, "gcSinceOpen.gen" + generation, GC.CollectionCount(generation) - _collectionsAtOpen[generation]);
+        AddModernLightingCounters(into);
     }
 
     private static void Add(List<KeyValuePair<string, double>> into, string key, double value) => into.Add(new(key, value));

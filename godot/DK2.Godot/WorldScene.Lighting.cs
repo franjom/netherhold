@@ -94,8 +94,11 @@ public partial class WorldScene
     private static readonly HashSet<string> s_globals = new();
 
     /// <summary>DK2's ambient level from the ambient keys (<see cref="ClassicAmbientLight.Normalized"/>), grey.</summary>
-    public void SetAmbient(float level) =>
+    public void SetAmbient(float level)
+    {
         RenderingServer.GlobalShaderParameterSet(AmbientGlobal, new Vector3(level, level, level));
+        if (Modern) SetModernAmbient(level);
+    }
 
     /// <summary>The Hand's light (Unity's <c>SetHandLight</c>), drawn from the next <see cref="FinishFrame"/>.</summary>
     public void SetHandLight(ClassicPointLight? light) => _handLight = light;
@@ -152,7 +155,9 @@ public partial class WorldScene
         {
             _fadeFar = placed.FarClipDistance;
             RenderingServer.GlobalShaderParameterSet(FadeGlobal, new Vector3(FadeStart, FadeEnd, Math.Max(_fadeFar, 1e-3f)));
+            if (Modern) SetModernFade(_fadeFar);
         }
+        PrepareModernLights(moved);
         long ticks = System.Diagnostics.Stopwatch.GetTimestamp() - started, bytes = GC.GetAllocatedBytesForCurrentThread() - before;
         if (_lightFrames++ >= DrawWarmUp && moved) { _lightMovedBytes += bytes; _lightMovedFrames++; }
         else if (_lightFrames > DrawWarmUp)
@@ -164,7 +169,13 @@ public partial class WorldScene
         }
     }
 
-    private void ReportLighting() =>
+    private void ReportLighting()
+    {
+        ReportModernLighting();
+        ReportClassicLighting();
+    }
+
+    private void ReportClassicLighting() =>
         GD.Print("DK2.Godot lighting: ", _lightFrames, " frames, ", _lightPublishes, " published, ", _lightTables?.RowsUploaded ?? 0,
             " table rows uploaded (in ", Milliseconds(_lightTables?.UploadTicks ?? 0), " ms), ", _chainedMaterials.Count,
             " materials with an environment pass; after the first ", DrawWarmUp, " frames ", _lightBytes, " B allocated in ",
@@ -473,7 +484,9 @@ public partial class WorldScene
         float value = exponent ?? 1f;
         if (_camera == null || value == _brightness) return;
         _brightness = value;
-        _camera.Environment.AdjustmentColorCorrection = GammaTable(value);
+        // The modern look's buffer is linear HDR: the curve alone, over the tonemapped display values.
+        _camera.Environment.AdjustmentColorCorrection = Modern ? (value == 1f ? null : GammaTable(value, undoEncoding: false))
+            : GammaTable(value);
     }
 
     private float _brightness = 1f;

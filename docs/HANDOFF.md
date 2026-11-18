@@ -133,7 +133,7 @@ These are entry points, not a new priority order.
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
 - Godot adapter (ADR-0805, ADR-0810): the road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md);
-  steps 1, 2, 3a, 3b, 3c, 3d, 3e, 3f, 3g, 3h and 3i are done and step 3 is in progress. Rules that were Unity-only now live in `DK2.Presentation` and both adapters call them;
+  steps 1, 2, 3a, 3b, 3c, 3d, 3e, 3f, 3g, 3h, 3i and 3o are done and step 3 is in progress. Rules that were Unity-only now live in `DK2.Presentation` and both adapters call them;
   Godot draws and forwards input (`godot/README.md` lists the scenes, files and launch arguments).
   Now in Godot: the front end; the in-game HUD, twelve panels (bottom panel, resource strip, message tabs, hover HUD, creature overview
   and query details, battle tab, options menu with its save and load and Game Options pages, full map, minimap) over a live Level1 in
@@ -153,7 +153,9 @@ These are entry points, not a new priority order.
   Play mode is unrun; the step entries in the plan list what each capture showed and left unchecked.
   Godot's lit frames are judged against Unity's in-game probe frames (`ClassicWorldLightingProbe`; the recipe is in the plan's step 3); in 3i every pair is within 0.002 luminance and 0.004 saturation.
   Policy (owner, 2026-11-18, [ADR-0813](DECISIONS.md)): Godot's rendering uses the modern engine's features, not Unity's 20-year-old techniques; DK2's rules, simulation and AI stay faithful and DK2's data drives the presentation; Unity stays frozen as the classic reference and gets no modern work; Godot's classic path stays a switch until the owner accepts the modern look; modern items are accepted by the owner's eye, the harness numbers and gameplay correctness, not byte-identity with Unity.
-  Next: the modern lighting prototype on Level1 (`--light-modern`, in progress: DK2's sources driving per-pixel lights, shadows for the nearest few, glow and SSAO, tuned against Unity's in-game frames) awaits the owner's decision; then 3o, a performance harness (rendering info and monitors), which the later items are measured by; then 3p to 3q and 3j (folded into lighting) to 3n in the order of [the modern-rendering audit](plans/2026-11-18-godot-modern-rendering-audit.md). [The plan](plans/2026-11-15-godot-migration.md), [the step-3 audit](plans/2026-11-16-godot-step3-audit.md).
+  The performance harness (3o, ADR-0813): `--perf-report` with `godot/perf.ps1` and `godot/perf_compare.py` (`godot/README.md`, *Measuring performance*); the later items are measured by it. Its first baseline (GPU p50 at 1080p, classic Level1 1.9 ms and Level7 2.4 ms, modern 6.2 and 9.3 ms) came from a heavily loaded machine; a quiet re-run is pending.
+  The modern lighting (`--light-modern`, ADR-0813) is built and adopted by the owner (2026-11-18, "adopt, then tune"): DK2's sources drive 128 pooled `OmniLight3D`, the best 4 cast shadows, with linear HDR, ACES, glow, SSAO and depth fog. Classic stays the default until the owner accepts the tuned look. Known look issues are listed in the plan (white hot spots by torches, pale arches, pink additive overlays, a brown and orange lean).
+  Next: the tuning pass of the modern lighting; then 3p to 3q and 3j (folded into lighting) to 3n in the order of [the modern-rendering audit](plans/2026-11-18-godot-modern-rendering-audit.md). [The plan](plans/2026-11-15-godot-migration.md), [the step-3 audit](plans/2026-11-16-godot-step3-audit.md).
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)

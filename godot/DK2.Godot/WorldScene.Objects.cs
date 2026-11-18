@@ -781,6 +781,19 @@ public partial class WorldScene
             if (_blended) Node.SortingUseAabbCenter = false;
             _appliedHover = Hover;
             _sortStamp = -1;
+            if (_scene.Modern) ApplyModern();
+        }
+
+        private bool _modernApplied, _selfLit;
+
+        /// <summary>The modern look's shadow casting (<see cref="ModelShadow"/>), set when it changes.</summary>
+        private void ApplyModern()
+        {
+            bool selfLit = Kind == SlotKind.Object && Pose.Light != null;
+            if (_modernApplied && selfLit == _selfLit) return;
+            _modernApplied = true;
+            _selfLit = selfLit;
+            Node.CastShadow = _scene.ModelShadow(selfLit);
         }
 
         /// <summary>The hover overlay this frame asks for (<see cref="WorldScene.DrawHoverOverlay"/>); applied by
@@ -1060,7 +1073,10 @@ public partial class WorldScene
                     // Turned as the camera is, as Unity sets the sprite's rotation to the camera's.
                     + "void vertex() {\nMODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], "
                     + "INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);\n}\n"
-                    + "void fragment() {\nvec4 c = texture(frame_texture, UV);\nALBEDO = c.rgb;\nALPHA = c.a;\n}\n",
+                    // The modern look adds the stored bytes as linear light, brighter, lifted over the glow's threshold.
+                    + (scene.Modern ? "void fragment() {\nvec4 c = texture(frame_texture, UV);\nALBEDO = c.rgb * "
+                        + Float(ModernLook.FlameBoost) + ";\nALPHA = c.a;\n}\n"
+                        : "void fragment() {\nvec4 c = texture(frame_texture, UV);\nALBEDO = c.rgb;\nALPHA = c.a;\n}\n"),
             };
             int width = 0, height = 0;
             for (int frame = 0; frame < sprite.StoredFrameCount; frame++)

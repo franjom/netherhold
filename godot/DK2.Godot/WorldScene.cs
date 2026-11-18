@@ -121,6 +121,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _cage = new CageRibbon(GetWorld3D().Scenario, _worldBox);
         // Before any material: the lit shaders read the lighting's globals.
         OpenLighting(world, view, world.Width, world.Height);
+        OpenModernLighting();
         using (Image white = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8))
         {
             white.Fill(Colors.White);
@@ -154,7 +155,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             KeepAspect = Camera3D.KeepAspectEnum.Height,
             Near = NearPlane,
         };
-        _camera.Environment = GammaOutput();
+        _camera.Environment = Modern ? ModernOutput() : GammaOutput();
         AddChild(_camera);
         _camera.MakeCurrent();
         GetViewport().SizeChanged += PlaceCamera;
@@ -293,7 +294,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         }
         if (instance == null && mesh.GetSurfaceCount() > 0)
         {
-            instance = new MeshInstance3D { Name = "Chunk" + chunk, Mesh = mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+            // The modern look's walls stop the shadowed lights (WorldScene.ModernLighting.cs).
+            instance = new MeshInstance3D { Name = "Chunk" + chunk, Mesh = mesh, CastShadow = ModelShadow(selfLit: false) };
             AddChild(instance);
             _chunks[chunk] = instance;
         }
@@ -396,7 +398,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _ => "blend_add, depth_draw_never",
         };
         string alpha = blend switch { KmfBlend.Opaque => "", KmfBlend.AlphaBlend => "ALPHA = c.a;\n", _ => "ALPHA = 1.0;\n" };
-        shader = new Shader
+        shader = Modern ? new Shader { Code = ModernShaderCode(blend, fullLight, mode, alpha, model, environment) } : new Shader
         {
             Code = "shader_type spatial;\nrender_mode unshaded, cull_back, skip_vertex_transform, " + mode + ";\n"
                 + "uniform sampler2D albedo_texture : filter_linear_mipmap, repeat_disable;\n"
@@ -436,14 +438,14 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     /// <summary><see cref="GammaOutput"/>'s table, each display value then raised to <paramref name="exponent"/> (the
     /// brightness curve, <see cref="SetBrightness"/>; 1 leaves it).</summary>
-    private static ImageTexture GammaTable(float exponent)
+    private static ImageTexture GammaTable(float exponent, bool undoEncoding = true)
     {
         using Image table = Image.CreateEmpty(GammaTableWidth, 1, false, Image.Format.Rgbah);
         for (int i = 0; i < GammaTableWidth; i++)
         {
             // A linear-filtered texel i is sampled whole at (i + 0.5) / width.
             double encoded = (i + 0.5) / GammaTableWidth;
-            double stored = encoded < 0.04045 ? encoded / 12.92 : Math.Pow((encoded + 0.055) / 1.055, 2.4);
+            double stored = !undoEncoding ? encoded : encoded < 0.04045 ? encoded / 12.92 : Math.Pow((encoded + 0.055) / 1.055, 2.4);
             float value = (float)(exponent == 1f ? stored : Math.Pow(stored, exponent));
             table.SetPixel(i, 0, new Color(value, value, value, 1f));
         }
@@ -618,8 +620,15 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _mesh ??= new ArrayMesh();
             _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null,
                 Mesh.ArrayFormat.FlagUseDynamicUpdate | TerrainCustomFormat);
-            _mesh.SurfaceSetMaterial(0, scene.MaterialFor(
-                new TerrainMaterialKey(new ClassicMaterialRecipe(wave.Texture, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain)));
+            ShaderMaterial material = scene.MaterialFor(
+                new TerrainMaterialKey(new ClassicMaterialRecipe(wave.Texture, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain));
+            // The modern look's lava glows on its own (WorldScene.ModernLighting.cs).
+            if (scene.Modern && ReferenceEquals(wave, scene._liquids!.Lava))
+            {
+                material = (ShaderMaterial)material.Duplicate();
+                material.SetShaderParameter(EmissionParameter, ModernLook.LavaEmission);
+            }
+            _mesh.SurfaceSetMaterial(0, material);
             var format = (RenderingServer.ArrayFormat)_mesh.SurfaceGetFormat(0);
             _normalOffset = (int)RenderingServer.MeshSurfaceGetFormatOffset(format, count, (int)Mesh.ArrayType.Normal);
             if (RenderingServer.MeshSurfaceGetFormatVertexStride(format, count) != 12 || _normalOffset != count * 12)

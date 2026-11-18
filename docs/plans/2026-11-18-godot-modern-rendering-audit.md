@@ -31,15 +31,21 @@ presentation only; DK2's rules, simulation and AI stay faithful, and DK2's data 
 Priority: P0 is a prerequisite, P1 the largest gain, P3 last. Sizes S, M, L. "Keep" marks an old technique that is
 already right in Godot. Estimates are marked; the harness (item 0) replaces them with measurements.
 
-- **0. P0, S. No performance harness.** Now: allocations and some timings only. Replace with
-  `RenderingServer.GetRenderingInfo` (draw calls, primitives, VRAM) and the `Performance` monitors in the exit report,
-  plus a capture recipe; pulled forward from step 4. It makes items 3, 4 and 8 measurable.
+- **0. P0, S. Performance harness. Done (3o, 2026-11-18).** `--perf-report` records rendering info (draw calls,
+  objects, primitives, memory), CPU and GPU render time, frame time and allocation per frame, with `godot/perf.ps1` as
+  the capture recipe and `godot/perf_compare.py` for comparisons (`godot/README.md`, *Measuring performance*; migration
+  plan 3o). Baseline GPU p50 at 1080p on a heavily loaded iGPU: classic Level1 1.9 ms, Level7 2.4 ms; modern 6.2 and
+  9.3 ms; draw calls classic 143 and 320, modern about 490 and 995. A quiet re-run is pending. It makes items 3, 4 and 8
+  measurable.
 - **1. Gamma-space output** through the `srgb_to_linear` lookup (`WorldScene.cs:157`, `:415-451`;
   `color_conversion_disabled` `:404`; brightness `WorldScene.Lighting.cs:471-477`). Covered by the lighting prototype
   (linear HDR, tonemap, exposure). Risk: the look shifts; the tag overlay (+64/65), the hover red and the fog
-  strengths need retuning by eye.
+  strengths need retuning by eye. Status: built in `--light-modern` (linear HDR, ACES, depth fog); the tuning pass is
+  next; classic stays the default until the owner accepts the tuned look.
 - **2. Classic vertex light**, its tables, fill, the environment-pass light and the 3j shadows
-  (`WorldScene.Lighting.cs`). Covered by the lighting prototype.
+  (`WorldScene.Lighting.cs`). Covered by the lighting prototype: DK2's sources drive 128 pooled `OmniLight3D` (the best 4
+  cast shadows), terrain lights are emission, blended and environment-pass materials keep the vertex light. Built and
+  adopted by the owner (2026-11-18, "adopt, then tune"); tuning pending (migration plan, *Modern lighting prototype*).
 - **3. P1, M. Terrain material per tile state** (tint, tag, red, fog opacity; overlays as additive triangles in the
   blended stream; `WorldScene.cs:302-373`, `TerrainMaterialKey.cs:44-55`). Replace with a per-tile state texture read
   in `vertex()` by a tile index in `CUSTOM0`; opaque overlays move into the shader; only the sight fog stays blended.
@@ -124,8 +130,8 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 
 ## Revised order
 
-1. The lighting prototype decision (in flight).
-2. 3o performance harness (item 0), taken from step 4; can start now.
+1. The lighting prototype: built and adopted, tuning next, the default switch awaiting the owner's acceptance.
+2. 3o performance harness (item 0): done.
 3. 3p material model (items 7, 15, 3 together) on the prototype's shader.
 4. 3q blended ordering (item 5), before 3k.
 5. 3j folded into lighting (the caster rule only, no silhouette).

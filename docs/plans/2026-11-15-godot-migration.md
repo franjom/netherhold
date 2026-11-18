@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream), 3e (the pointer, cage and placement cursor: the level is playable from the pointer) 3f (objects, structures and torch meshes), 3g (creatures), 3h (entity hover and the Hand) and 3i (the classic lighting) are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream), 3e (the pointer, cage and placement cursor: the level is playable from the pointer) 3f (objects, structures and torch meshes), 3g (creatures), 3h (entity hover and the Hand), 3i (the classic lighting) and 3o (the performance harness) are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -883,16 +883,48 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       change, plus bounded first-visit growth. Not verified: the environment pass over a plan, a faded one and the cage key
       (none captured), the ambient keys live, a non-default brightness, the wrap past 83 tiles at runtime. Probe review
       notes, both pre-existing: an already-open dirty scene, and the tile-light globals not restored after a run.
-- [ ] Modern lighting prototype (owner, 2026-11-18, after 3i commits as the classic baseline; ADR-0813; `--light-modern`,
-      in progress): modern engine features rather than the 20-year-old technique. On Level1, DK2's light sources (the
-      shared publisher: positions, colours, radii, flicker) drive real Godot per-pixel lights, the nearest few cast
-      shadows, with glow and SSAO, tuned by eye against the Unity in-game frames. The classic shader stays as a switch.
-      The decision on the look is the owner's and is open; if accepted, the modern look becomes the default and the
-      classic path goes.
+- [ ] Modern lighting prototype (owner, 2026-11-18; ADR-0813; `--light-modern`; built and adopted, the owner's words
+      "adopt, then tune"; the tuning pass is next and the default switch waits for the owner's acceptance of the tuned
+      look, classic staying the default until then). DK2's light sources (the shared `ModernLightSelector`, from
+      `ClassicWorldLightCache.CopyPreparedSources`: torches, objects, effects, the Hand, portals) drive a pool of 128
+      `OmniLight3D`; a source keeps its slot (matched by flags and the nearest position within 0.5 tiles); the best 4
+      cast cube shadows, with 1.25x hysteresis. The falloff fit over intensity 0.5 to 1.25 and radius 1.1 to 2.5 tiles
+      is range 0.886R, energy 1.202*I^2.2, attenuation 1.861 (0.047 RMS), tuned with `Fitted.Scaled(range 1.3, energy
+      0.75)`; a colour keeps its magnitude, and one over 1 is cut and normalised. Terrain lights (DK2's under-top lights
+      with inverted normals) are emission summed from the classic tables, skipped in shadow passes. Linear HDR with
+      ACES, glow, SSAO and depth fog (ADR-0522's 0.5 to 1 fade); ambient from DK2's ambient keys. Blended, additive and
+      environment-pass materials keep DK2's vertex light, converted to linear. Reviewer: no blockers, classic purity
+      confirmed; fixed: colour magnitude, the pool's initial state, slot and shadow stability, the terrain glow's radial
+      term, the fit range, tests, a docs mismatch, the duplicate `--frame-times` (removed). Verification: `dotnet test
+      DK2.slnx` 11,020 passed; classic frames are byte-identical to 3i's; the turn-400 hash is `60C97ECC6F9F0501` with and
+      without the flag; brightness is within 0.01 of Unity's in-game frames and saturation within about 0.05. The
+      lighting step costs 0.13 to 0.20 ms CPU and allocates 0 B with a still camera; allocation with a moving camera is
+      bounded. 3o's classic to modern GPU p50 at 1080p, under 60 to 75% other CPU load: Level1 3.4 to 7.5 ms, Level7 4.3
+      to 7.7 ms; the shadows are about 0.5 to 1 ms. Known look issues for the tuning pass: white hot spots on walls by
+      torches (HDR against DK2's clamp at 1), pale arches, pink additive overlays, lava highlights near white, pale
+      flame sprites, a lean towards brown and orange (the green floors are lost). Open: the glow loop still runs in the
+      depth prepass (no built-in identifies it).
 - [ ] The rest of step 3, in the order of [the modern-rendering audit](2026-11-18-godot-modern-rendering-audit.md)
       (ADR-0813; it supersedes the step-3 audit's move order from 3j; acceptance is the owner's eye, 3o's numbers and
       gameplay correctness, not byte-identity with Unity):
-  - [ ] 3o. Performance harness: rendering info and `Performance` monitors in the exit report and a capture recipe, from step 4.
+  - [x] 3o. Performance harness (2026-11-18, ADR-0813; audit item 0). `--perf-report <file>` on `InGameHud.tscn` samples
+        every frame after a warm-up (`PerformanceReport`, `PerformanceReportTail`, `WorldScene.Performance.cs`; the shared
+        `FrameRecording` and `CameraScript` in `DK2.Presentation`, 17 tests): frame time, process time (between the first-
+        and last-priority nodes), viewport CPU and GPU render time (the GPU's lags about 2 frames), frame setup, draw
+        calls, objects, primitives, video, texture and buffer memory, main-thread allocation per frame and all threads'
+        and the main thread's totals over the window, collections, pipeline compilations. The exit table gives mean, p50,
+        p95, p99 and max, the frames over 16.67 ms, and still and moving phases; the JSON (`dk2-godot-perf/1`) adds
+        machine, GPU, driver, build and load information and the adapters' counters. The harness's own allocation is
+        expected to be 0 and is reported as `harness.selfBytes` and `selfMax`. Options: `--perf-camera`, `--perf-warmup`,
+        `--perf-frames`, `--perf-size`, `--perf-vsync`; a malformed value quits with an error. Recipe: `godot/perf.ps1`
+        (Level1 and Level7, 1920x1080 and 1024x576, real time from a save, a fixed camera loop, seed 1, 120 warm-up and
+        1,800 measured frames, machine load sampled, C# built first) and `godot/perf_compare.py` (two labels by median,
+        warnings for setting mismatches, grouped by render size). Reviewer: no blockers; all 8 findings fixed (the
+        per-second process monitors replaced, the imprecise all-threads allocation, the `selfBytes` claim, the GPU lag
+        documented, script bugs, the compare warnings, silent fallbacks, tests). Baseline (Radeon 780M iGPU, Vulkan,
+        Forward+, Debug C#, a heavily loaded machine, so rough), GPU p50 at 1080p: classic Level1 1.9 ms, Level7 2.4 ms;
+        modern Level1 6.2 ms, Level7 9.3 ms; draw calls classic 143 and 320, modern about 490 and about 995. Open: a quiet
+        re-run, from which step 4's targets are set.
   - [ ] 3p. Material model: one world shader with instance uniforms, the per-tile state texture, few `.gdshader`
         resources (audit items 7, 15, 3), on the prototype's shader.
   - [ ] 3q. Blended ordering: real-depth run keys and index-only re-sorts, `ZeroOrderOffset` deleted (item 5), before 3k.
