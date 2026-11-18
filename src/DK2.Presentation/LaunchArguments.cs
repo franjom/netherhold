@@ -35,6 +35,18 @@ public sealed record LaunchArguments(string? Level, ulong? Seed, string? Install
             ? new TilePos(x, y) : null;
     }
 
+    /// <summary>True when a <c>possess-first-creature</c> argument is present (a check that shows the first-person
+    /// view): the host possesses the viewer's first creature once the level is up.</summary>
+    public static bool PossessFirstCreature(IReadOnlyList<string> args, string prefix)
+    {
+        if (args is null) throw new ArgumentNullException(nameof(args));
+        if (prefix is null) throw new ArgumentNullException(nameof(prefix));
+        string key = prefix + "possess-first-creature";
+        for (int i = 0; i < args.Count; i++)
+            if (args[i] == key) return true;
+        return false;
+    }
+
     /// <summary>The scripted pointer a <c>pointer-path</c> argument names (<see cref="PointerScript"/>, a check that drives a
     /// capture without the OS pointer), or null when it is absent or malformed.</summary>
     public static PointerScript? PointerPath(IReadOnlyList<string> args, string prefix)

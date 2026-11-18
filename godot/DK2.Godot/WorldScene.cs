@@ -180,7 +180,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         int width = (int)size.X, height = (int)size.Y;
         if (width <= 0 || height <= 0) return;
         var viewport = new CameraViewport(width, width, height);
-        ClassicCameraPose pose = ClassicCamera.Pose(Focus, viewport);
+        ClassicCameraPose pose = PossessionPose(viewport) ?? ClassicCamera.Pose(Focus, viewport);
         if (View != null && pose == _placed && viewport == _placedViewport) return;
         _placed = pose; _placedViewport = viewport;
         _frustumStale = true;
@@ -226,6 +226,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         SetTileLight(tileIndex, tile);
         _liquids!.Set(tileIndex, tile);
         _latticeDirty?.Touch(tileIndex);
+        _roof?.TileChanged(tile.Position.X, tile.Position.Y);
         _terrain!.Set(tileIndex, tile);
     }
 

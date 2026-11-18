@@ -99,6 +99,9 @@ namespace DK2.Unity
         /// forget cells the build may be reading (<see cref="TerrainChunkScheduler.JoinBuild"/>).</summary>
         public void JoinBuild() => _scheduler.JoinBuild();
 
+        /// <summary>The scheduler, for the shared rules that join its build (<see cref="PossessionScene.Latch"/>).</summary>
+        public TerrainChunkScheduler Scheduler => _scheduler;
+
         public void Clear()
         {
             _scheduler.Clear();

@@ -64,6 +64,8 @@ namespace DK2.Unity
 
         /// <summary>Waits for the terrain's thread-pool build (<see cref="TerrainChunks.JoinBuild"/>).</summary>
         public void JoinTerrainBuild() => _terrain?.JoinBuild();
+        /// <summary>The terrain's scheduler, null without classic meshes.</summary>
+        public TerrainChunkScheduler TerrainScheduler => _terrain?.Scheduler;
         private readonly HeartPulse _heartPulse = new HeartPulse();
         public void QueueHeartHealthChange(PlayerId owner, DungeonHeartVisual visual) =>
             _heartPulse.QueueHealthChange(owner, visual);

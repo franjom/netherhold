@@ -16,8 +16,8 @@ namespace DK2.GodotAdapter;
 /// (<see cref="ModelMesh"/>), a <see cref="ModelSlot"/> per creature, its type-6 clip played by the shared
 /// <see cref="CreatureAnimationPlayer{TResources}"/> with each segment's positions rewritten in place, and each frame drawn
 /// in <see cref="SceneFrame"/>'s order, which this scene hosts; the hover overlay's frame and the burning red are
-/// WorldScene.Hover.cs's. The crackle (3l), the footsteps and the gem sparkle (3k) and the possessed model (3m) are not
-/// drawn yet.</summary>
+/// WorldScene.Hover.cs's, the possessed model's hiding WorldScene.Possession.cs's. The crackle (3l), the footsteps and
+/// the gem sparkle (3k) are not drawn yet.</summary>
 public partial class WorldScene : ISceneFrameHost
 {
     private readonly SceneFrame _frame;
@@ -168,8 +168,11 @@ public partial class WorldScene : ISceneFrameHost
     void ISceneFrameHost.DrawCreatureClip(CreatureId creature, in CreatureView pose, double seconds) =>
         _drawn!.Slot.Animation?.Player.Draw(seconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
 
-    // The possessed creature's hidden model waits for possession (step 3m).
-    void ISceneFrameHost.HideCreatureModel(CreatureId creature) { }
+    // Every drawn frame, as a new look shows its node again (ModelSlot.ApplyLooks); WorldScene.Possession.cs shows it again.
+    void ISceneFrameHost.HideCreatureModel(CreatureId creature)
+    {
+        if (_drawn!.Slot.Node.Visible) _drawn.Slot.Node.Visible = false;
+    }
 
     int ISceneFrameHost.FootstepCrossing(CreatureId creature) => _drawn!.Slot.Animation?.Player.FootstepCrossing ?? 0;
 

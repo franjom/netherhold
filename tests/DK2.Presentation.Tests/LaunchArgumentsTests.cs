@@ -59,6 +59,16 @@ public sealed class LaunchArgumentsTests
         Assert.Null(LaunchArguments.GlideTarget(["--glide-to", text], "--"));
 
     [Fact]
+    public void PossessFirstCreatureIsItsKeyUnderTheEnginesPrefix()
+    {
+        Assert.True(LaunchArguments.PossessFirstCreature(["--level", "Level1", "--possess-first-creature"], "--"));
+        Assert.True(LaunchArguments.PossessFirstCreature(["-possess-first-creature"], "-"));
+        Assert.False(LaunchArguments.PossessFirstCreature(["--possess-first-creature"], "-"));
+        Assert.False(LaunchArguments.PossessFirstCreature(["--possess-first-creatures", "possess-first-creature"], "--"));
+        Assert.False(LaunchArguments.PossessFirstCreature([], "--"));
+    }
+
+    [Fact]
     public void APointerPathIsItsKeysInFrameOrder()
     {
         PointerScript script = LaunchArguments.PointerPath(["--level", "Level1", "--pointer-path", "0:10,20; 30:110.5,220:L;31:110.5,220:lR;40:0,0:r"], "--")!;
